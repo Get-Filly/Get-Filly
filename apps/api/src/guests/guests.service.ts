@@ -13,6 +13,10 @@ export type Guest = {
   tags: string[];
   mail_opt_in: boolean;
   source: string | null;
+  average_spend_cents: number | null;
+  lifetime_value_cents: number | null;
+  preferences: { allergies?: string[]; dietary?: string[] } | null;
+  notes: string | null;
 };
 
 @Injectable()
@@ -23,7 +27,7 @@ export class GuestsService {
     const { data, error } = await this.supabase.client
       .from('guests')
       .select(
-        'id, first_name, last_name, email, phone, birthday, visit_count, last_visit_at, tags, mail_opt_in, source',
+        'id, first_name, last_name, email, phone, birthday, visit_count, last_visit_at, tags, mail_opt_in, source, average_spend_cents, lifetime_value_cents, preferences, notes',
       )
       .eq('restaurant_id', restaurantId)
       .is('deleted_at', null)

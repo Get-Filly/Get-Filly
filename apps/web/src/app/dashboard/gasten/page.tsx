@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchGuests, type Guest } from "../../../lib/api";
+import {
+  fetchGuests,
+  type Guest,
+  computeCustomerStatus,
+  type CustomerStatus,
+} from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
 function daysSince(dateStr: string | null): number | null {
@@ -21,11 +26,35 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
+function formatEuro(cents: number | null): string {
+  if (cents === null) return "—";
+  return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
+}
+
+const statusInfo: Record<CustomerStatus, { label: string; color: string; bg: string }> = {
+  nieuw: { label: "Nieuw", color: "#0284C7", bg: "#E0F2FE" },
+  vaste_gast: { label: "Vaste gast", color: "#1B7A2E", bg: "#DCFCE7" },
+  vip: { label: "VIP", color: "#7C2D12", bg: "#FED7AA" },
+  at_risk: { label: "At-risk", color: "#B45309", bg: "#FEF3C7" },
+  verloren: { label: "Verloren", color: "#71717A", bg: "#F4F4F5" },
+};
+
+type FilterStatus = "alle" | CustomerStatus;
+
+const statusFilters: FilterStatus[] = [
+  "alle",
+  "vip",
+  "vaste_gast",
+  "nieuw",
+  "at_risk",
+];
+
 export default function GastenPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<FilterStatus>("alle");
 
   useEffect(() => {
     fetchGuests()
@@ -45,24 +74,51 @@ export default function GastenPage() {
       return d !== null && d <= 90;
     }).length;
     const optIns = guests.filter((g) => g.mail_opt_in).length;
-    return { total: guests.length, active90, optIns };
+    const vips = guests.filter((g) => computeCustomerStatus(g) === "vip").length;
+    const atRisk = guests.filter(
+      (g) => computeCustomerStatus(g) === "at_risk",
+    ).length;
+    const totalLtv = guests.reduce(
+      (s, g) => s + (g.lifetime_value_cents ?? 0),
+      0,
+    );
+    const currentMonth = new Date().getMonth();
+    const birthdaysThisMonth = guests.filter((g) => {
+      if (!g.birthday) return false;
+      return new Date(g.birthday).getMonth() === currentMonth;
+    });
+    return {
+      total: guests.length,
+      active90,
+      optIns,
+      vips,
+      atRisk,
+      totalLtv,
+      birthdaysThisMonth,
+    };
   }, [guests]);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return guests;
-    const q = query.toLowerCase();
-    return guests.filter((g) =>
-      `${g.first_name ?? ""} ${g.last_name ?? ""} ${g.email ?? ""}`
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [guests, query]);
+    let out = guests;
+    if (filter !== "alle") {
+      out = out.filter((g) => computeCustomerStatus(g) === filter);
+    }
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      out = out.filter((g) =>
+        `${g.first_name ?? ""} ${g.last_name ?? ""} ${g.email ?? ""}`
+          .toLowerCase()
+          .includes(q),
+      );
+    }
+    return out;
+  }, [guests, filter, query]);
 
   return (
     <div className="page-full">
       <div className="page-title">Gasten</div>
       <div className="page-subtitle">
-        Wie jouw restaurant bezoekt — mailadressen, bezoekfrequentie, tags.
+        Wie jouw restaurant bezoekt — met voorkeuren, allergieën en waarde.
       </div>
 
       <div className="stats-row">
@@ -75,9 +131,60 @@ export default function GastenPage() {
           <div className="stat-card-val">{stats.active90}</div>
         </div>
         <div className="stat-card">
+          <div className="stat-card-label">VIPs</div>
+          <div className="stat-card-val">{stats.vips}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-label">At-risk</div>
+          <div className="stat-card-val">{stats.atRisk}</div>
+        </div>
+        <div className="stat-card">
           <div className="stat-card-label">Mail opt-ins</div>
           <div className="stat-card-val">{stats.optIns}</div>
         </div>
+        <div className="stat-card">
+          <div className="stat-card-label">Totaal LTV</div>
+          <div className="stat-card-val">{formatEuro(stats.totalLtv)}</div>
+        </div>
+      </div>
+
+      {stats.birthdaysThisMonth.length > 0 && (
+        <div
+          style={{
+            background: "var(--accent-light)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r)",
+            padding: "14px 18px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            fontSize: 13,
+          }}
+        >
+          <div style={{ fontSize: 20 }}>🎂</div>
+          <div>
+            <strong>{stats.birthdaysThisMonth.length}</strong> gast
+            {stats.birthdaysThisMonth.length > 1 ? "en" : ""} jarig deze maand:{" "}
+            <span style={{ color: "var(--ts)" }}>
+              {stats.birthdaysThisMonth
+                .map((g) => `${g.first_name} ${g.last_name}`)
+                .join(", ")}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="tabs">
+        {statusFilters.map((f) => (
+          <button
+            key={f}
+            className={`tab-btn ${filter === f ? "active" : ""}`}
+            onClick={() => setFilter(f)}
+          >
+            {f === "alle" ? "Alle" : statusInfo[f as CustomerStatus].label}
+          </button>
+        ))}
       </div>
 
       <input
@@ -101,13 +208,16 @@ export default function GastenPage() {
       {loading ? (
         <div className="data-table" style={{ padding: 16 }}>
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} style={{ display: "flex", gap: 16, padding: "10px 0" }}>
+            <div
+              key={i}
+              style={{ display: "flex", gap: 16, padding: "10px 0" }}
+            >
               <Skeleton height={16} width="20%" />
-              <Skeleton height={16} width="30%" />
-              <Skeleton height={16} width="10%" />
-              <Skeleton height={16} width="15%" />
-              <Skeleton height={16} width="15%" />
+              <Skeleton height={16} width="25%" />
               <Skeleton height={16} width="8%" />
+              <Skeleton height={16} width="12%" />
+              <Skeleton height={16} width="10%" />
+              <Skeleton height={16} width="10%" />
             </div>
           ))}
         </div>
@@ -116,17 +226,14 @@ export default function GastenPage() {
           Fout: {error}
         </div>
       ) : filtered.length === 0 ? (
-        query.trim() ? (
-          <div className="table-empty">
-            Geen gasten gevonden voor &quot;{query}&quot;.
-          </div>
+        query.trim() || filter !== "alle" ? (
+          <div className="table-empty">Geen gasten gevonden.</div>
         ) : (
           <div className="empty-state">
             <div className="empty-icon">👥</div>
             <div className="empty-title">Nog geen gasten</div>
             <div className="empty-desc">
-              Importeer vanuit je reserveringsplatform (Zenchef, OpenTable,
-              SevenRooms) of voeg gasten handmatig toe.
+              Importeer vanuit je reserveringsplatform of voeg handmatig toe.
             </div>
             <button className="btn-primary-dash">Gast toevoegen</button>
           </div>
@@ -136,44 +243,91 @@ export default function GastenPage() {
           <thead>
             <tr>
               <th>Naam</th>
-              <th>Email</th>
+              <th>Status</th>
               <th>Bezoeken</th>
+              <th>LTV</th>
               <th>Laatste bezoek</th>
-              <th>Tags</th>
               <th>Opt-in</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((g) => (
-              <tr key={g.id}>
-                <td style={{ fontWeight: 500 }}>
-                  {g.first_name} {g.last_name}
-                </td>
-                <td style={{ color: "var(--ts)" }}>{g.email ?? "—"}</td>
-                <td>{g.visit_count}</td>
-                <td style={{ color: "var(--tl)" }}>
-                  {formatDate(g.last_visit_at)}
-                </td>
-                <td>
-                  {g.tags.length === 0 ? (
-                    <span style={{ color: "var(--tl)" }}>—</span>
-                  ) : (
-                    g.tags.map((t) => (
-                      <span key={t} className="tag-chip">
-                        {t}
-                      </span>
-                    ))
-                  )}
-                </td>
-                <td>
-                  {g.mail_opt_in ? (
-                    <span style={{ color: "#1B7A2E" }}>✓</span>
-                  ) : (
-                    <span style={{ color: "var(--tl)" }}>—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {filtered.map((g) => {
+              const status = computeCustomerStatus(g);
+              const info = statusInfo[status];
+              const allergies = g.preferences?.allergies ?? [];
+              return (
+                <tr key={g.id}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {allergies.length > 0 && (
+                        <span
+                          title={`Allergieën: ${allergies.join(", ")}`}
+                          style={{
+                            fontSize: 12,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: "#FEE2E2",
+                            color: "#B91C1C",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ⚠ {allergies[0]}
+                        </span>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 500 }}>
+                          {g.first_name} {g.last_name}
+                        </div>
+                        <div style={{ color: "var(--tl)", fontSize: 11 }}>
+                          {g.email ?? "—"}
+                        </div>
+                      </div>
+                    </div>
+                    {g.notes && (
+                      <div
+                        style={{
+                          color: "var(--ts)",
+                          fontSize: 11,
+                          marginTop: 3,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {g.notes}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "2px 8px",
+                        borderRadius: "var(--rf)",
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: info.color,
+                        background: info.bg,
+                      }}
+                    >
+                      {info.label}
+                    </span>
+                  </td>
+                  <td>{g.visit_count}</td>
+                  <td style={{ fontWeight: 500 }}>
+                    {formatEuro(g.lifetime_value_cents)}
+                  </td>
+                  <td style={{ color: "var(--tl)" }}>
+                    {formatDate(g.last_visit_at)}
+                  </td>
+                  <td>
+                    {g.mail_opt_in ? (
+                      <span style={{ color: "#1B7A2E" }}>✓</span>
+                    ) : (
+                      <span style={{ color: "var(--tl)" }}>—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

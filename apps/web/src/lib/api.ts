@@ -39,7 +39,35 @@ export type Guest = {
   tags: string[];
   mail_opt_in: boolean;
   source: string | null;
+  average_spend_cents: number | null;
+  lifetime_value_cents: number | null;
+  preferences: { allergies?: string[]; dietary?: string[] } | null;
+  notes: string | null;
 };
+
+export type CustomerStatus =
+  | "nieuw"
+  | "vaste_gast"
+  | "vip"
+  | "at_risk"
+  | "verloren";
+
+export function computeCustomerStatus(g: Guest): CustomerStatus {
+  const daysSinceLastVisit = g.last_visit_at
+    ? Math.floor(
+        (Date.now() - new Date(g.last_visit_at).getTime()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : null;
+
+  const ltvEuro = (g.lifetime_value_cents ?? 0) / 100;
+
+  if (daysSinceLastVisit !== null && daysSinceLastVisit > 180) return "verloren";
+  if (daysSinceLastVisit !== null && daysSinceLastVisit > 90) return "at_risk";
+  if (g.visit_count >= 10 || ltvEuro >= 1000) return "vip";
+  if (g.visit_count < 3) return "nieuw";
+  return "vaste_gast";
+}
 
 export async function fetchGuests(): Promise<Guest[]> {
   const res = await fetch(`${API_URL}/guests`, { cache: "no-store" });
@@ -169,6 +197,14 @@ export type AiSuggestion = {
   rejection_reason: string | null;
   created_at: string;
   acted_at: string | null;
+  confidence_score: number | null;
+  expected_impact: {
+    extra_reservations?: number;
+    extra_revenue_cents?: number;
+    retention_guests?: number;
+  } | null;
+  urgency: "low" | "medium" | "high" | null;
+  reasoning: string | null;
 };
 
 export async function fetchSuggestions(

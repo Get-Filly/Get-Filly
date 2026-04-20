@@ -12,6 +12,14 @@ export type AiSuggestion = {
   rejection_reason: string | null;
   created_at: string;
   acted_at: string | null;
+  confidence_score: number | null;
+  expected_impact: {
+    extra_reservations?: number;
+    extra_revenue_cents?: number;
+    retention_guests?: number;
+  } | null;
+  urgency: 'low' | 'medium' | 'high' | null;
+  reasoning: string | null;
 };
 
 @Injectable()
@@ -25,7 +33,7 @@ export class SuggestionsService {
     let query = this.supabase.client
       .from('ai_suggestions')
       .select(
-        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, created_at, acted_at',
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false });
@@ -57,7 +65,7 @@ export class SuggestionsService {
       .eq('id', suggestionId)
       .eq('restaurant_id', restaurantId)
       .select(
-        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, created_at, acted_at',
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
       .single();
 

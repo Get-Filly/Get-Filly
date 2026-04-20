@@ -1106,3 +1106,34 @@
   border-radius: var(--rf);
   border: 1px solid var(--border);
 }
+
+/* Alert bar (kritieke dagen) */
+.dashboard-shell .alert-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+  padding: 10px 14px;
+  border-radius: var(--rs);
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.dashboard-shell .alert-bar .alert-icon { font-size: 16px; }
+.dashboard-shell .alert-bar strong { font-weight: 600; }
+
+/* Today briefing widget */
+.dashboard-shell .briefing {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 13px;
+}
+.dashboard-shell .briefing-item { display: flex; align-items: center; gap: 6px; }
+.dashboard-shell .briefing-item strong { font-weight: 600; }

@@ -34,9 +34,36 @@ export default function DashboardPage() {
       });
   }, [viewYear, viewMonth]);
 
+  // Alert-bar: dagen komende 14 dagen met bezetting onder 50%
+  const todayStr = today.toISOString().slice(0, 10);
+  const fortnight = new Date(today);
+  fortnight.setDate(today.getDate() + 14);
+  const criticalDays = occupancy.filter((d) => {
+    if (d.date <= todayStr) return false;
+    if (d.date > fortnight.toISOString().slice(0, 10)) return false;
+    return d.occupancy_pct < 50;
+  });
+
   return (
     <div className="page">
       <div className="dash-top">
+        {criticalDays.length > 0 && (
+          <div className="alert-bar">
+            <span className="alert-icon">⚠️</span>
+            <div>
+              <strong>{criticalDays.length} rustige dag{criticalDays.length > 1 ? "en" : ""}</strong> in de komende 2 weken
+              {" — "}
+              {criticalDays
+                .slice(0, 3)
+                .map((d) => {
+                  const date = new Date(d.date);
+                  return `${date.getDate()} ${date.toLocaleString("nl-NL", { month: "short" })} (${d.occupancy_pct}%)`;
+                })
+                .join(", ")}
+              {criticalDays.length > 3 && "…"} — laat Filly voorstellen doen.
+            </div>
+          </div>
+        )}
         <KpiRow />
       </div>
       <div className="dash-body">
