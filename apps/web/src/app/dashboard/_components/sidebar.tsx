@@ -7,9 +7,12 @@ import { createClient } from "../../../lib/supabase-browser";
 
 const menu = [
   { href: "/dashboard", icon: "📊", label: "Dashboard" },
+  { href: "/dashboard/taken", icon: "📥", label: "Taken" },
   { href: "/dashboard/suggesties", icon: "💡", label: "Suggesties" },
+  { href: "/dashboard/reserveringen", icon: "📆", label: "Reserveringen" },
   { href: "/dashboard/campagnes", icon: "📣", label: "Campagnes" },
   { href: "/dashboard/gasten", icon: "👥", label: "Gasten" },
+  { href: "/dashboard/reviews", icon: "⭐", label: "Reviews" },
   { href: "/dashboard/menu", icon: "🍽️", label: "Menu" },
   { href: "/dashboard/rapportages", icon: "📈", label: "Rapportages" },
 ];

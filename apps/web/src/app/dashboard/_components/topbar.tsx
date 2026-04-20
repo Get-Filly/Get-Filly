@@ -4,9 +4,12 @@ import { usePathname } from "next/navigation";
 
 const titleFor: Record<string, string> = {
   "/dashboard": "Dashboard",
+  "/dashboard/taken": "Taken",
   "/dashboard/suggesties": "Suggesties",
+  "/dashboard/reserveringen": "Reserveringen",
   "/dashboard/campagnes": "Campagnes",
   "/dashboard/gasten": "Gasten",
+  "/dashboard/reviews": "Reviews",
   "/dashboard/menu": "Menu",
   "/dashboard/rapportages": "Rapportages",
   "/dashboard/koppelingen": "Koppelingen",

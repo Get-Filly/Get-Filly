@@ -11,6 +11,8 @@ import { RestaurantModule } from './restaurant/restaurant.module';
 import { WeatherModule } from './weather/weather.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { MenuModule } from './menu/menu.module';
+import { ReservationsModule } from './reservations/reservations.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { MenuModule } from './menu/menu.module';
     WeatherModule,
     SuggestionsModule,
     MenuModule,
+    ReservationsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
