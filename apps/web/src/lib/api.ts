@@ -141,3 +141,48 @@ export async function fetchWeather(): Promise<ForecastDay[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export type SuggestionStatus = "pending" | "approved" | "rejected" | "expired";
+
+export type AiSuggestion = {
+  id: string;
+  trigger_type: string;
+  trigger_context: Record<string, unknown> | null;
+  suggested_campaign: {
+    name?: string;
+    type?: "mail" | "social" | "whatsapp";
+    subject?: string;
+    caption?: string;
+    segment?: string;
+    body?: string;
+  };
+  status: SuggestionStatus;
+  rejection_reason: string | null;
+  created_at: string;
+  acted_at: string | null;
+};
+
+export async function fetchSuggestions(
+  status?: SuggestionStatus,
+): Promise<AiSuggestion[]> {
+  const url = status
+    ? `${API_URL}/suggestions?status=${status}`
+    : `${API_URL}/suggestions`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function updateSuggestion(
+  id: string,
+  status: SuggestionStatus,
+  rejection_reason?: string,
+): Promise<AiSuggestion> {
+  const res = await fetch(`${API_URL}/suggestions/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, rejection_reason }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}

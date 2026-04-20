@@ -9,6 +9,7 @@ import { KpiModule } from './kpi/kpi.module';
 import { OccupancyModule } from './occupancy/occupancy.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { WeatherModule } from './weather/weather.module';
+import { SuggestionsModule } from './suggestions/suggestions.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WeatherModule } from './weather/weather.module';
     OccupancyModule,
     RestaurantModule,
     WeatherModule,
+    SuggestionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
