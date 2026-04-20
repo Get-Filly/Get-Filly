@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   getMonthData,
   occupancyClass,
@@ -9,21 +8,43 @@ import {
 
 type View = "dag" | "maand" | "jaar";
 
+type Props = {
+  view: View;
+  setView: (v: View) => void;
+  viewYear: number;
+  setViewYear: (n: number) => void;
+  viewMonth: number;
+  setViewMonth: (n: number) => void;
+  selectedDay: number | null;
+  setSelectedDay: (n: number | null) => void;
+};
+
 const weekdays = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
 
-export function CalendarCard() {
+export function CalendarCard({
+  view,
+  setView,
+  viewYear,
+  setViewYear,
+  viewMonth,
+  setViewMonth,
+  selectedDay,
+  setSelectedDay,
+}: Props) {
   const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [view, setView] = useState<View>("maand");
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-
   const cells = getMonthData(viewYear, viewMonth);
 
-  const label = `${maandenNL[viewMonth].charAt(0).toUpperCase() +
-    maandenNL[viewMonth].slice(1)} ${viewYear}`;
+  const monthName =
+    maandenNL[viewMonth].charAt(0).toUpperCase() +
+    maandenNL[viewMonth].slice(1);
+  const label =
+    view === "jaar" ? `${viewYear}` : `${monthName} ${viewYear}`;
 
   const goPrev = () => {
+    if (view === "jaar") {
+      setViewYear(viewYear - 1);
+      return;
+    }
     if (viewMonth === 0) {
       setViewMonth(11);
       setViewYear(viewYear - 1);
@@ -32,6 +53,10 @@ export function CalendarCard() {
     }
   };
   const goNext = () => {
+    if (view === "jaar") {
+      setViewYear(viewYear + 1);
+      return;
+    }
     if (viewMonth === 11) {
       setViewMonth(0);
       setViewYear(viewYear + 1);
@@ -42,12 +67,25 @@ export function CalendarCard() {
   const goToday = () => {
     setViewYear(today.getFullYear());
     setViewMonth(today.getMonth());
-    setSelectedDay(null);
+    setSelectedDay(today.getDate());
+    setView("maand");
   };
 
   const isTodayMonth =
     viewYear === today.getFullYear() && viewMonth === today.getMonth();
   const todayNum = today.getDate();
+
+  const onDayClick = (day: number) => {
+    setSelectedDay(day);
+    setView("dag"); // Spec: dag klikken schakelt naar dagweergave
+  };
+
+  // Mock jaaroverzicht — gemiddelde per maand
+  const yearMonthlyAvg = [56, 54, 60, 66, 72, 78, 82, 80, 74, 66, 58, 64];
+  const onYearMonthClick = (m: number) => {
+    setViewMonth(m);
+    setView("maand");
+  };
 
   return (
     <div className="card calendar-card">
@@ -80,7 +118,7 @@ export function CalendarCard() {
       </div>
 
       <div className="card-b">
-        {view === "maand" && (
+        {(view === "maand" || view === "dag") && (
           <>
             <div className="cal-header">
               {weekdays.map((d) => (
@@ -91,7 +129,8 @@ export function CalendarCard() {
             </div>
             <div className="cal-grid">
               {cells.map((cell, i) => {
-                if (!cell) return <div key={`e-${i}`} className="cal-cell empty" />;
+                if (!cell)
+                  return <div key={`e-${i}`} className="cal-cell empty" />;
                 const isToday = isTodayMonth && cell.day === todayNum;
                 const isSelected = selectedDay === cell.day;
                 return (
@@ -100,10 +139,12 @@ export function CalendarCard() {
                     className={`cal-cell ${isToday ? "today" : ""} ${
                       isSelected ? "selected" : ""
                     }`}
-                    onClick={() => setSelectedDay(cell.day)}
+                    onClick={() => onDayClick(cell.day)}
                   >
                     <div className="cal-dn">{cell.day}</div>
-                    <div className={`cal-occ ${occupancyClass(cell.occupancy)}`}>
+                    <div
+                      className={`cal-occ ${occupancyClass(cell.occupancy)}`}
+                    >
                       {cell.occupancy}%
                     </div>
                     {cell.campaigns.length > 0 && (
@@ -120,15 +161,28 @@ export function CalendarCard() {
           </>
         )}
 
-        {view === "dag" && (
-          <div style={{ padding: "20px 4px", color: "var(--tl)", fontSize: 13 }}>
-            Dagweergave komt in Fase 6.
-          </div>
-        )}
-
         {view === "jaar" && (
-          <div style={{ padding: "20px 4px", color: "var(--tl)", fontSize: 13 }}>
-            Jaarweergave komt in Fase 6.
+          <div className="year-grid">
+            {maandenNL.map((m, idx) => {
+              const pct = yearMonthlyAvg[idx];
+              const isCurrent =
+                viewYear === today.getFullYear() && idx === today.getMonth();
+              return (
+                <div
+                  key={m}
+                  className={`yr-cell ${isCurrent ? "current" : ""}`}
+                  onClick={() => onYearMonthClick(idx)}
+                >
+                  <div className="yr-name">
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </div>
+                  <div className="yr-pct">{pct}%</div>
+                  <div className="yr-bar">
+                    <div className="yr-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

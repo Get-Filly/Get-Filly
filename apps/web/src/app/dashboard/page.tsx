@@ -1,8 +1,21 @@
+"use client";
+
+import { useState } from "react";
 import { KpiRow } from "./_components/kpi-row";
 import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
+import { DetailCard } from "./_components/detail-card";
+import { ChartCard } from "./_components/chart-card";
+
+export type View = "dag" | "maand" | "jaar";
 
 export default function DashboardPage() {
+  const today = new Date();
+  const [view, setView] = useState<View>("maand");
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
   return (
     <div className="page">
       <div className="dash-top">
@@ -11,14 +24,32 @@ export default function DashboardPage() {
       <div className="dash-body">
         <div className="left-col">
           <WeatherForecast />
-          <CalendarCard />
-          <div style={{ color: "var(--tl)", fontSize: 13, padding: "8px 0" }}>
-            Detail en grafiek komen in Fase 4.
-          </div>
+          <CalendarCard
+            view={view}
+            setView={setView}
+            viewYear={viewYear}
+            setViewYear={setViewYear}
+            viewMonth={viewMonth}
+            setViewMonth={setViewMonth}
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+          />
+          <DetailCard
+            view={view}
+            year={viewYear}
+            month={viewMonth}
+            selectedDay={selectedDay}
+          />
+          <ChartCard
+            view={view}
+            year={viewYear}
+            month={viewMonth}
+            selectedDay={selectedDay}
+          />
         </div>
         <div className="right-col">
           <div style={{ color: "var(--tl)", fontSize: 13, padding: "20px 0" }}>
-            Filly AI chat komt in fase 5.
+            Filly AI chat komt in Fase 5.
           </div>
         </div>
       </div>
