@@ -1,25 +1,22 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
-const DEMO_RESTAURANT = '00000000-0000-0000-0000-000000000001';
-
 @Injectable()
 export class RestaurantService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getMe() {
+  async getById(restaurantId: string) {
     const { data, error } = await this.supabase.client
       .from('restaurants')
       .select('*')
-      .eq('id', DEMO_RESTAURANT)
+      .eq('id', restaurantId)
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
     return data;
   }
 
-  async updateMe(updates: Record<string, unknown>) {
-    // Verwijder velden die niet geüpdatet mogen worden
+  async update(restaurantId: string, updates: Record<string, unknown>) {
     const { id, created_at, ...safe } = updates as Record<string, unknown>;
     void id;
     void created_at;
@@ -27,7 +24,7 @@ export class RestaurantService {
     const { data, error } = await this.supabase.client
       .from('restaurants')
       .update({ ...safe, updated_at: new Date().toISOString() })
-      .eq('id', DEMO_RESTAURANT)
+      .eq('id', restaurantId)
       .select()
       .single();
 

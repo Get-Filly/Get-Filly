@@ -1,17 +1,21 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
+import { RestaurantId } from '../common/restaurant-id.decorator';
 
 @Controller('restaurant')
 export class RestaurantController {
   constructor(private readonly restaurant: RestaurantService) {}
 
   @Get('me')
-  getMe() {
-    return this.restaurant.getMe();
+  getMe(@RestaurantId() restaurantId: string) {
+    return this.restaurant.getById(restaurantId);
   }
 
   @Patch('me')
-  updateMe(@Body() updates: Record<string, unknown>) {
-    return this.restaurant.updateMe(updates);
+  updateMe(
+    @RestaurantId() restaurantId: string,
+    @Body() updates: Record<string, unknown>,
+  ) {
+    return this.restaurant.update(restaurantId, updates);
   }
 }

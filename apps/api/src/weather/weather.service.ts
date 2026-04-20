@@ -2,17 +2,14 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export type ForecastDay = {
-  date: string; // YYYY-MM-DD
-  dayLabel: string; // Ma/Di/Wo/Do/Vr/Za/Zo
+  date: string;
+  dayLabel: string;
   tempMin: number;
   tempMax: number;
   icon: string;
   description: string;
 };
 
-const DEMO_RESTAURANT = '00000000-0000-0000-0000-000000000001';
-
-// WMO weather codes (Open-Meteo standaard) → NL-taal
 const WEATHER_CODES: Record<number, { icon: string; desc: string }> = {
   0: { icon: '☀️', desc: 'Zonnig' },
   1: { icon: '🌤️', desc: 'Overwegend zonnig' },
@@ -52,11 +49,11 @@ type OpenMeteoResponse = {
 export class WeatherService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getForecastForRestaurant(): Promise<ForecastDay[]> {
+  async getForecastForRestaurant(restaurantId: string): Promise<ForecastDay[]> {
     const { data: restaurant, error } = await this.supabase.client
       .from('restaurants')
       .select('latitude, longitude')
-      .eq('id', DEMO_RESTAURANT)
+      .eq('id', restaurantId)
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);

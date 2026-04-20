@@ -19,12 +19,13 @@ export type Guest = {
 export class GuestsService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async findAll(): Promise<Guest[]> {
+  async findAll(restaurantId: string): Promise<Guest[]> {
     const { data, error } = await this.supabase.client
       .from('guests')
       .select(
         'id, first_name, last_name, email, phone, birthday, visit_count, last_visit_at, tags, mail_opt_in, source',
       )
+      .eq('restaurant_id', restaurantId)
       .is('deleted_at', null)
       .order('last_visit_at', { ascending: false, nullsFirst: false });
 

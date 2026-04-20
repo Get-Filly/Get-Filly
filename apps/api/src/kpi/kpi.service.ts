@@ -3,23 +3,21 @@ import { SupabaseService } from '../supabase/supabase.service';
 
 export type Kpis = {
   today_pct: number | null;
-  weekday_avg_pct: number | null; // gem. zelfde weekdag (mock v1)
+  weekday_avg_pct: number | null;
   month_avg_pct: number | null;
   month_guests: number;
   month_revenue_cents: number;
   pending_suggestions: number;
 };
 
-const DEMO_RESTAURANT = '00000000-0000-0000-0000-000000000001';
-
 @Injectable()
 export class KpiService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getKpis(): Promise<Kpis> {
+  async getKpis(restaurantId: string): Promise<Kpis> {
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
+    const month = now.getMonth();
     const todayStr = now.toISOString().slice(0, 10);
     const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
     const monthEnd = new Date(year, month + 1, 0).toISOString().slice(0, 10);
@@ -27,7 +25,7 @@ export class KpiService {
     const { data: occDays, error: occErr } = await this.supabase.client
       .from('occupancy_days')
       .select('date, occupancy_pct, estimated_guests, estimated_revenue_cents')
-      .eq('restaurant_id', DEMO_RESTAURANT)
+      .eq('restaurant_id', restaurantId)
       .gte('date', monthStart)
       .lte('date', monthEnd);
 
@@ -36,7 +34,7 @@ export class KpiService {
     const { data: suggestions, error: sugErr } = await this.supabase.client
       .from('ai_suggestions')
       .select('id')
-      .eq('restaurant_id', DEMO_RESTAURANT)
+      .eq('restaurant_id', restaurantId)
       .eq('status', 'pending');
 
     if (sugErr) throw new InternalServerErrorException(sugErr.message);
@@ -61,8 +59,7 @@ export class KpiService {
       0,
     );
 
-    // TODO Stap 8E: bereken echt via 6-maanden historie van zelfde weekdag
-    const weekday_avg_pct = 68;
+    const weekday_avg_pct = 68; // TODO Stap 8E: uit 6-maanden historie
 
     return {
       today_pct: today_pct !== null ? Math.round(Number(today_pct)) : null,

@@ -24,7 +24,7 @@ export function Sidebar() {
   return (
     <nav className="sidebar">
       <Link href="/" className="sb-logo">
-        GetFilly
+        Get-Filly
       </Link>
 
       <div className="sb-section">

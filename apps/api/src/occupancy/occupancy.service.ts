@@ -2,27 +2,28 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export type OccupancyDay = {
-  date: string; // YYYY-MM-DD
+  date: string;
   occupancy_pct: number;
   estimated_guests: number;
   estimated_revenue_cents: number;
 };
 
-const DEMO_RESTAURANT = '00000000-0000-0000-0000-000000000001';
-
 @Injectable()
 export class OccupancyService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getMonth(year: number, month: number): Promise<OccupancyDay[]> {
-    // month is 0-indexed (0=januari)
+  async getMonth(
+    restaurantId: string,
+    year: number,
+    month: number,
+  ): Promise<OccupancyDay[]> {
     const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
     const monthEnd = new Date(year, month + 1, 0).toISOString().slice(0, 10);
 
     const { data, error } = await this.supabase.client
       .from('occupancy_days')
       .select('date, occupancy_pct, estimated_guests, estimated_revenue_cents')
-      .eq('restaurant_id', DEMO_RESTAURANT)
+      .eq('restaurant_id', restaurantId)
       .gte('date', monthStart)
       .lte('date', monthEnd)
       .order('date', { ascending: true });
