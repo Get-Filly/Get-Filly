@@ -10,6 +10,7 @@ import { OccupancyModule } from './occupancy/occupancy.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { WeatherModule } from './weather/weather.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
+import { MenuModule } from './menu/menu.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SuggestionsModule } from './suggestions/suggestions.module';
     RestaurantModule,
     WeatherModule,
     SuggestionsModule,
+    MenuModule,
   ],
   controllers: [AppController],
   providers: [AppService],

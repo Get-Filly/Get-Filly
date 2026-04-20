@@ -218,6 +218,25 @@ export async function fetchSuggestions(
   return res.json();
 }
 
+export type MenuItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  price_cents: number | null;
+  is_signature: boolean;
+  is_seasonal: boolean;
+  season: string | null;
+  is_available: boolean;
+  dietary_tags: string[];
+};
+
+export async function fetchMenu(): Promise<MenuItem[]> {
+  const res = await fetch(`${API_URL}/menu`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateSuggestion(
   id: string,
   status: SuggestionStatus,

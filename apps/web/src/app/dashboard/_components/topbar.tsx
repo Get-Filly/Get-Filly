@@ -7,6 +7,7 @@ const titleFor: Record<string, string> = {
   "/dashboard/suggesties": "Suggesties",
   "/dashboard/campagnes": "Campagnes",
   "/dashboard/gasten": "Gasten",
+  "/dashboard/menu": "Menu",
   "/dashboard/rapportages": "Rapportages",
   "/dashboard/koppelingen": "Koppelingen",
   "/dashboard/account": "Account",
