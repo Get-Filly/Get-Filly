@@ -6,6 +6,7 @@ import {
   updateRestaurant,
   type Restaurant,
 } from "../../../lib/api";
+import { supabase } from "../../../lib/supabase";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -25,11 +26,23 @@ const toneOptions: Restaurant["brand_tone"][] = [
   "playful",
 ];
 
+function formatDate(d: string | null): string {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function AccountPage() {
   const [form, setForm] = useState<Restaurant | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchRestaurant()
@@ -75,19 +88,47 @@ export default function AccountPage() {
     }
   };
 
+  const handleMenuUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `menus/${form.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("restaurant-assets")
+        .upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("restaurant-assets").getPublicUrl(path);
+
+      // Direct ook opslaan in DB zodat het meteen bewaard blijft
+      const updated = await updateRestaurant({ menu_document_url: publicUrl });
+      setForm(updated);
+      setSaveMessage("Menu geüpload ✓");
+      setSaveStatus("success");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    } catch (e) {
+      setSaveStatus("error");
+      setSaveMessage(`Upload mislukt: ${(e as Error).message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="page-full">
       <div className="page-title">Account</div>
       <div className="page-subtitle">
-        Jouw restaurant-profiel. Hoe beter je dit invult, hoe scherper Filly
-        campagnes kan voorstellen.
+        Jouw restaurant-profiel. Hoe uitgebreider je dit invult, hoe scherper
+        Filly campagnes kan voorstellen.
       </div>
 
-      {/* Sectie 1 — Restaurant-info */}
+      {/* Sectie 1 — Basisinfo */}
       <div className="form-section">
         <div className="form-section-title">Restaurant</div>
         <div className="form-section-desc">
-          Basisinfo die Filly gebruikt voor alle campagne-teksten.
+          De hoofdlijnen — type, keuken en prijsklasse.
         </div>
         <div className="form-grid">
           <div className="form-field">
@@ -128,7 +169,7 @@ export default function AccountPage() {
               }
               placeholder="french, italian, dutch"
             />
-            <div className="hint">Komma-gescheiden, bv. &quot;french, dutch&quot;</div>
+            <div className="hint">Komma-gescheiden.</div>
           </div>
           <div className="form-field">
             <label>Prijsklasse</label>
@@ -148,21 +189,182 @@ export default function AccountPage() {
               <option value={4}>€€€€</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      {/* Sectie 2 — Identiteit (voor AI) */}
+      <div className="form-section">
+        <div className="form-section-title">Identiteit</div>
+        <div className="form-section-desc">
+          Wie ben je als restaurant? Filly leest dit voor tone, sfeer en
+          doelgroep-aanpak.
+        </div>
+        <div className="form-grid">
           <div className="form-field full">
-            <label>Beschrijving</label>
+            <label>Tagline (1 zin)</label>
+            <input
+              type="text"
+              value={form.tagline ?? ""}
+              onChange={(e) => update("tagline", e.target.value || null)}
+              placeholder="Gezellige buurtbistro in hart van Amsterdam"
+            />
+          </div>
+          <div className="form-field full">
+            <label>Volledige beschrijving</label>
             <textarea
               value={form.description ?? ""}
-              onChange={(e) => update("description", e.target.value)}
-              placeholder="Wij zijn een gezellige buurtbistro met focus op seizoensgerechten..."
+              onChange={(e) => update("description", e.target.value || null)}
+              placeholder="Vertel uitgebreid over je restaurant — geschiedenis, filosofie, waar je trots op bent..."
+              rows={4}
+            />
+          </div>
+          <div className="form-field full">
+            <label>Doelgroep</label>
+            <textarea
+              value={form.target_audience ?? ""}
+              onChange={(e) => update("target_audience", e.target.value || null)}
+              placeholder="Lokale bewoners, professionals op lunch, families in het weekend..."
+              rows={2}
+            />
+          </div>
+          <div className="form-field full">
+            <label>Sfeer &amp; interieur</label>
+            <textarea
+              value={form.atmosphere ?? ""}
+              onChange={(e) => update("atmosphere", e.target.value || null)}
+              placeholder="Warm, intiem, houten interieur, zacht jazzmuziek..."
+              rows={2}
+            />
+          </div>
+          <div className="form-field full">
+            <label>Unique selling points</label>
+            <textarea
+              value={form.unique_selling_points ?? ""}
+              onChange={(e) =>
+                update("unique_selling_points", e.target.value || null)
+              }
+              placeholder="Wat maakt jou anders? Bv: eigen kruidentuin, open keuken, wekelijks wisselend menu..."
+              rows={2}
+            />
+          </div>
+          <div className="form-field full">
+            <label>Speciale gelegenheden &amp; events</label>
+            <textarea
+              value={form.special_events ?? ""}
+              onChange={(e) => update("special_events", e.target.value || null)}
+              placeholder="Verjaardagen, bedrijfslunches, trouwdiners, privéruimte tot X personen..."
+              rows={2}
+            />
+          </div>
+          <div className="form-field full">
+            <label>Signature dishes</label>
+            <input
+              type="text"
+              value={(form.signature_dishes ?? []).join(", ")}
+              onChange={(e) =>
+                update(
+                  "signature_dishes",
+                  e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                )
+              }
+              placeholder="Kalfsstoof, Zeebaars met lenteuitjes"
+            />
+            <div className="hint">Komma-gescheiden. Filly gebruikt deze in campagne-teksten.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sectie 3 — Website & AI */}
+      <div className="form-section">
+        <div className="form-section-title">Website — Filly leest mee</div>
+        <div className="form-section-desc">
+          Geef je website-URL en laat Filly hem analyseren. Hij haalt tone of
+          voice, positionering en aanbod op, en gebruikt dat in campagnes.
+        </div>
+        <div className="form-grid">
+          <div className="form-field full">
+            <label>Website URL</label>
+            <input
+              type="url"
+              value={form.website_url ?? ""}
+              onChange={(e) => update("website_url", e.target.value || null)}
+              placeholder="https://jouwrestaurant.nl"
+            />
+          </div>
+          <div className="form-field full">
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                className="btn-primary-dash"
+                disabled
+                title="Komt beschikbaar zodra de Claude API gekoppeld is"
+              >
+                Analyseer website
+              </button>
+              <span style={{ fontSize: 12, color: "var(--tl)" }}>
+                Laatste analyse: {formatDate(form.website_last_analyzed_at)}
+              </span>
+            </div>
+          </div>
+          <div className="form-field full">
+            <label>Samenvatting (door Filly)</label>
+            <textarea
+              value={form.website_summary ?? ""}
+              onChange={(e) => update("website_summary", e.target.value || null)}
+              placeholder="Wordt automatisch gevuld na website-analyse. Je kunt daarna zelf aanpassen."
+              rows={4}
             />
             <div className="hint">
-              2-3 zinnen die jouw restaurant typeren — Filly leest dit voor tone en sfeer.
+              Deze samenvatting wordt onderdeel van de context die Filly bij
+              iedere campagne meekrijgt.
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sectie 2 — Locatie */}
+      {/* Sectie 4 — Menu upload */}
+      <div className="form-section">
+        <div className="form-section-title">Menukaart</div>
+        <div className="form-section-desc">
+          Upload je huidige menu (PDF of afbeelding). Filly leest dit om
+          concrete campagnes te schrijven (bv. &quot;asperges &amp; lamsrack voor
+          €24,50&quot;).
+        </div>
+        {form.menu_document_url ? (
+          <div style={{ marginBottom: 12 }}>
+            <a
+              href={form.menu_document_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--accent)", fontSize: 13 }}
+            >
+              📄 Huidig menu bekijken
+            </a>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 12, fontSize: 13, color: "var(--tl)" }}>
+            Nog geen menu geüpload.
+          </div>
+        )}
+        <div className="form-field">
+          <input
+            type="file"
+            accept=".pdf,image/png,image/jpeg,image/webp"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleMenuUpload(file);
+            }}
+            disabled={uploading}
+          />
+          <div className="hint">
+            {uploading ? "Uploaden..." : "Max 10 MB. PDF, PNG of JPG."}
+          </div>
+        </div>
+      </div>
+
+      {/* Sectie 5 — Locatie */}
       <div className="form-section">
         <div className="form-section-title">Locatie</div>
         <div className="form-section-desc">
@@ -196,7 +398,7 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Sectie 3 — Capaciteit */}
+      {/* Sectie 6 — Capaciteit */}
       <div className="form-section">
         <div className="form-section-title">Capaciteit</div>
         <div className="form-section-desc">
@@ -262,11 +464,11 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Sectie 4 — Branding */}
+      {/* Sectie 7 — Branding & social */}
       <div className="form-section">
-        <div className="form-section-title">Branding &amp; tone</div>
+        <div className="form-section-title">Branding &amp; social</div>
         <div className="form-section-desc">
-          Hoe Filly moet klinken in campagnes.
+          Hoe Filly moet klinken en waar hij op mag posten.
         </div>
         <div className="form-grid">
           <div className="form-field">
@@ -283,33 +485,6 @@ export default function AccountPage() {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="form-field">
-            <label>Website</label>
-            <input
-              type="url"
-              value={form.website_url ?? ""}
-              onChange={(e) => update("website_url", e.target.value || null)}
-              placeholder="https://..."
-            />
-          </div>
-          <div className="form-field full">
-            <label>Signature dishes</label>
-            <input
-              type="text"
-              value={(form.signature_dishes ?? []).join(", ")}
-              onChange={(e) =>
-                update(
-                  "signature_dishes",
-                  e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                )
-              }
-              placeholder="Kalfsstoof, Zeebaars met lenteuitjes"
-            />
-            <div className="hint">Komma-gescheiden. Filly gebruikt deze in campagne-teksten.</div>
           </div>
           <div className="form-field">
             <label>Instagram</label>
@@ -342,11 +517,11 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Sectie 5 — Abonnement */}
+      {/* Sectie 8 — Abonnement */}
       <div className="form-section">
         <div className="form-section-title">Abonnement</div>
         <div className="form-section-desc">
-          Plan, facturering en teamtoegang — facturering komt in een latere stap.
+          Plan en facturering. Facturering komt in een latere stap.
         </div>
         <div className="form-grid">
           <div className="form-field">

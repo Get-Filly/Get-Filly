@@ -79,6 +79,11 @@ export type Restaurant = {
   type: string | null;
   cuisine_style: string[] | null;
   description: string | null;
+  tagline: string | null;
+  target_audience: string | null;
+  atmosphere: string | null;
+  unique_selling_points: string | null;
+  special_events: string | null;
   address: string | null;
   city: string | null;
   postal_code: string | null;
@@ -98,6 +103,9 @@ export type Restaurant = {
   languages_spoken: string[] | null;
   social_media: Record<string, string> | null;
   website_url: string | null;
+  website_summary: string | null;
+  website_last_analyzed_at: string | null;
+  menu_document_url: string | null;
   plan: "starter" | "pro" | "enterprise";
 };
 
