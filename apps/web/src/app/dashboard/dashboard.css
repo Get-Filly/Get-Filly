@@ -217,6 +217,30 @@
 .dashboard-shell .td { color: #CC2F27; }
 .dashboard-shell .tn { color: var(--tl); }
 
+/* Weer */
+.dashboard-shell .weather-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.dashboard-shell .weather-day {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 2px;
+  text-align: center;
+}
+.dashboard-shell .weather-day.today { border: 1.5px solid var(--accent); }
+.dashboard-shell .wd-day {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--tl);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dashboard-shell .wd-icon { font-size: 20px; margin: 4px 0; }
+.dashboard-shell .wd-temp { font-size: 14px; font-weight: 600; }
+.dashboard-shell .wd-desc { font-size: 9px; color: var(--tl); margin-top: 1px; }
+
 /* Placeholder-pagina's voor Campagnes, Gasten, etc. */
 .dashboard-shell .page-ph {
   display: flex;

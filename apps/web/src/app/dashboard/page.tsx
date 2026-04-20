@@ -1,4 +1,5 @@
 import { KpiRow } from "./_components/kpi-row";
+import { WeatherForecast } from "./_components/weather-forecast";
 
 export default function DashboardPage() {
   return (
@@ -8,8 +9,9 @@ export default function DashboardPage() {
       </div>
       <div className="dash-body">
         <div className="left-col">
-          <div style={{ color: "var(--tl)", fontSize: 13, padding: "20px 0" }}>
-            Weer, kalender, detail en grafiek komen in de volgende fases.
+          <WeatherForecast />
+          <div style={{ color: "var(--tl)", fontSize: 13, padding: "8px 0" }}>
+            Kalender, detail en grafiek komen hierna.
           </div>
         </div>
         <div className="right-col">
