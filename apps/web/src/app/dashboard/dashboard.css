@@ -241,6 +241,129 @@
 .dashboard-shell .wd-temp { font-size: 14px; font-weight: 600; }
 .dashboard-shell .wd-desc { font-size: 9px; color: var(--tl); margin-top: 1px; }
 
+/* Kalender controls */
+.dashboard-shell .cal-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dashboard-shell .cal-nav { display: flex; align-items: center; gap: 10px; }
+.dashboard-shell .cal-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ts);
+}
+.dashboard-shell .cal-nav-btn:hover { background: var(--hover); }
+.dashboard-shell .cal-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 130px;
+  text-align: center;
+}
+.dashboard-shell .cal-today-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: var(--rf);
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ts);
+}
+.dashboard-shell .cal-today-btn:hover { background: var(--hover); }
+.dashboard-shell .toggle-group {
+  display: inline-flex;
+  background: var(--bg);
+  border-radius: var(--rf);
+  padding: 2px;
+  gap: 1px;
+}
+.dashboard-shell .toggle-btn {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  border-radius: var(--rf);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ts);
+  transition: all 0.15s;
+}
+.dashboard-shell .toggle-btn.active {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Kalender — vaste hoogte zodat dag/jaar-view dezelfde afmeting houden */
+.dashboard-shell .calendar-card .card-b { min-height: 360px; }
+
+/* Kalender — maand-view */
+.dashboard-shell .cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.dashboard-shell .cal-hc {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--tl);
+  padding: 10px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.dashboard-shell .cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dashboard-shell .cal-cell {
+  min-height: 54px;
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+  background: var(--white);
+  border: 1.5px solid transparent;
+}
+.dashboard-shell .cal-cell:hover { background: var(--hover); }
+.dashboard-shell .cal-cell.today .cal-dn {
+  background: var(--accent);
+  color: var(--white);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dashboard-shell .cal-cell.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+.dashboard-shell .cal-cell.empty { background: transparent; cursor: default; border: none; }
+.dashboard-shell .cal-cell.empty:hover { background: transparent; }
+.dashboard-shell .cal-dn { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+.dashboard-shell .cal-occ { font-size: 10px; font-weight: 600; }
+.dashboard-shell .cal-dots { display: flex; gap: 2px; margin-top: 2px; }
+.dashboard-shell .cal-dot { width: 4px; height: 4px; border-radius: 50%; }
+.dashboard-shell .dot-mail { background: var(--accent); }
+.dashboard-shell .dot-social { background: #AF52DE; }
+.dashboard-shell .pg { color: #1B7A2E; }
+.dashboard-shell .po { color: #995A00; }
+.dashboard-shell .pr { color: #CC2F27; }
+
 /* Placeholder-pagina's voor Campagnes, Gasten, etc. */
 .dashboard-shell .page-ph {
   display: flex;
