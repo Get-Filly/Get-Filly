@@ -272,6 +272,63 @@ export async function fetchMenu(): Promise<MenuItem[]> {
   return res.json();
 }
 
+export type ReservationStatus =
+  | "bevestigd"
+  | "geannuleerd"
+  | "no_show"
+  | "ingecheckt"
+  | "voltooid";
+
+export type Reservation = {
+  id: string;
+  guest_id: string | null;
+  guest_name: string | null;
+  guest_phone: string | null;
+  guest_email: string | null;
+  reservation_date: string;
+  reservation_time: string;
+  party_size: number;
+  status: ReservationStatus;
+  source: string | null;
+  notes: string | null;
+  special_requests: string | null;
+  table_code: string | null;
+  created_at: string;
+};
+
+export async function fetchReservations(
+  from?: string,
+  to?: string,
+): Promise<Reservation[]> {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const url = `${API_URL}/reservations${q.toString() ? "?" + q.toString() : ""}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export type ReviewSource = "google" | "tripadvisor" | "thefork" | "iens";
+
+export type Review = {
+  id: string;
+  source: ReviewSource;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  author: string | null;
+  review_date: string | null;
+  response_text: string | null;
+  responded_at: string | null;
+};
+
+export async function fetchReviews(): Promise<Review[]> {
+  const res = await fetch(`${API_URL}/reviews`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateSuggestion(
   id: string,
   status: SuggestionStatus,
