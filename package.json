@@ -2,5 +2,11 @@
   "name": "getfilly",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter web --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "build": "pnpm --recursive build"
+  }
 }
