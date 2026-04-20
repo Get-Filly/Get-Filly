@@ -13,6 +13,9 @@ const links = [
 export function Navbar() {
   const pathname = usePathname();
 
+  // Publieke navbar niet tonen op dashboard-paden — dat heeft een eigen sidebar.
+  if (pathname.startsWith("/dashboard")) return null;
+
   return (
     <div className="navbar-wrapper">
       <nav className="navbar">

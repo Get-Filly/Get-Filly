@@ -1,0 +1,196 @@
+/* Dashboard-scoped CSS. Variabelen staan op .dashboard-shell wrapper zodat
+   ze geen conflict geven met de publieke site. */
+
+.dashboard-shell {
+  /* Tokens gelijkgetrokken met huisstijl van de publieke site.
+     --blue / --bl wijzen nu naar de accent-kleur zodat UI-highlights
+     in kalender en grafiek consistent oranje zijn. */
+  --bg: #FAFAFA;
+  --white: #FFF;
+  --text: #1A1410;
+  --ts: #6E6E73;
+  --tl: #86868B;
+  --border: #E8E8ED;
+  --accent: #C8622A;
+  --accent-dark: #A34E1F;
+  --accent-light: #F2EAE3;
+  --blue: #C8622A;
+  --bl: #F2EAE3;
+  --green: #34C759;
+  --gb: #EEFBF1;
+  --orange: #FF9500;
+  --ob: #FFF6E8;
+  --red: #FF3B30;
+  --hover: #F5F5F7;
+  --r: 16px;
+  --rs: 10px;
+  --rf: 999px;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Sidebar */
+.dashboard-shell .sidebar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 220px;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+.dashboard-shell .sb-logo {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  padding: 0 12px;
+  margin-bottom: 36px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  display: block;
+}
+.dashboard-shell .sb-section { margin-bottom: 24px; }
+.dashboard-shell .sb-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--tl);
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+.dashboard-shell .sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--rs);
+  font-size: 13px;
+  font-weight: 450;
+  color: var(--ts);
+  cursor: pointer;
+  transition: all 0.12s;
+  text-decoration: none;
+}
+.dashboard-shell .sb-item:hover { background: var(--hover); color: var(--text); }
+.dashboard-shell .sb-item.active { background: var(--hover); color: var(--text); font-weight: 550; }
+.dashboard-shell .sb-icon { font-size: 16px; width: 20px; text-align: center; }
+.dashboard-shell .sb-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.dashboard-shell .sb-user { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
+.dashboard-shell .sb-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bl);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dashboard-shell .sb-uname { font-size: 13px; font-weight: 500; }
+.dashboard-shell .sb-urole { font-size: 11px; color: var(--tl); }
+
+/* Topbar */
+.dashboard-shell .topbar {
+  position: absolute;
+  top: 0;
+  left: 220px;
+  right: 0;
+  height: 56px;
+  background: rgba(246, 246, 246, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  z-index: 40;
+}
+.dashboard-shell .tb-title { font-size: 15px; font-weight: 600; }
+.dashboard-shell .tb-right { display: flex; align-items: center; gap: 12px; }
+.dashboard-shell .tb-badge { font-size: 12px; color: var(--tl); font-weight: 450; }
+.dashboard-shell .tb-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.12s;
+}
+.dashboard-shell .tb-btn:hover { background: var(--hover); }
+
+/* Main + layout */
+.dashboard-shell .main {
+  margin-left: 220px;
+  padding-top: 56px;
+  height: 100%;
+  overflow: hidden;
+}
+.dashboard-shell .page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 56px);
+}
+.dashboard-shell .dash-top { padding: 24px 28px 0; flex-shrink: 0; }
+.dashboard-shell .dash-body {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+  padding: 16px 28px 24px;
+}
+.dashboard-shell .left-col {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 24px;
+  padding-right: 4px;
+}
+.dashboard-shell .left-col::-webkit-scrollbar { width: 4px; }
+.dashboard-shell .left-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.dashboard-shell .right-col { display: flex; flex-direction: column; min-height: 0; }
+
+/* Placeholder-pagina's voor Campagnes, Gasten, etc. */
+.dashboard-shell .page-ph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+.dashboard-shell .ph-icon { font-size: 48px; margin-bottom: 20px; }
+.dashboard-shell .ph-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.dashboard-shell .ph-desc { font-size: 14px; color: var(--ts); max-width: 400px; line-height: 1.6; }
+.dashboard-shell .ph-badge {
+  margin-top: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tl);
+  background: var(--bg);
+  padding: 6px 16px;
+  border-radius: var(--rf);
+  border: 1px solid var(--border);
+}
