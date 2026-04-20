@@ -1,0 +1,39 @@
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { SupabaseService } from '../supabase/supabase.service';
+
+export type OccupancyDay = {
+  date: string; // YYYY-MM-DD
+  occupancy_pct: number;
+  estimated_guests: number;
+  estimated_revenue_cents: number;
+};
+
+const DEMO_RESTAURANT = '00000000-0000-0000-0000-000000000001';
+
+@Injectable()
+export class OccupancyService {
+  constructor(private readonly supabase: SupabaseService) {}
+
+  async getMonth(year: number, month: number): Promise<OccupancyDay[]> {
+    // month is 0-indexed (0=januari)
+    const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
+    const monthEnd = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+
+    const { data, error } = await this.supabase.client
+      .from('occupancy_days')
+      .select('date, occupancy_pct, estimated_guests, estimated_revenue_cents')
+      .eq('restaurant_id', DEMO_RESTAURANT)
+      .gte('date', monthStart)
+      .lte('date', monthEnd)
+      .order('date', { ascending: true });
+
+    if (error) throw new InternalServerErrorException(error.message);
+
+    return (data ?? []).map((d) => ({
+      date: d.date,
+      occupancy_pct: Math.round(Number(d.occupancy_pct ?? 0)),
+      estimated_guests: d.estimated_guests ?? 0,
+      estimated_revenue_cents: d.estimated_revenue_cents ?? 0,
+    }));
+  }
+}

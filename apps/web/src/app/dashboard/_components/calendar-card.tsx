@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
-  getMonthData,
+  mergeMonthData,
   occupancyClass,
   maandenNL,
 } from "../_lib/calendar-data";
+import { fetchOccupancy, type OccupancyDay } from "../../../lib/api";
 
 type View = "dag" | "maand" | "jaar";
 
@@ -32,7 +34,15 @@ export function CalendarCard({
   setSelectedDay,
 }: Props) {
   const today = new Date();
-  const cells = getMonthData(viewYear, viewMonth);
+  const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
+
+  useEffect(() => {
+    fetchOccupancy(viewYear, viewMonth)
+      .then(setOccupancy)
+      .catch(() => setOccupancy([])); // stille fallback naar mock
+  }, [viewYear, viewMonth]);
+
+  const cells = mergeMonthData(viewYear, viewMonth, occupancy);
 
   const monthName =
     maandenNL[viewMonth].charAt(0).toUpperCase() +
@@ -77,10 +87,9 @@ export function CalendarCard({
 
   const onDayClick = (day: number) => {
     setSelectedDay(day);
-    setView("dag"); // Spec: dag klikken schakelt naar dagweergave
+    setView("dag");
   };
 
-  // Mock jaaroverzicht — gemiddelde per maand
   const yearMonthlyAvg = [56, 54, 60, 66, 72, 78, 82, 80, 74, 66, 58, 64];
   const onYearMonthClick = (m: number) => {
     setViewMonth(m);

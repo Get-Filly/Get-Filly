@@ -37,3 +37,37 @@ export async function fetchGuests(): Promise<Guest[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export type Kpis = {
+  today_pct: number | null;
+  weekday_avg_pct: number | null;
+  month_avg_pct: number | null;
+  month_guests: number;
+  month_revenue_cents: number;
+  pending_suggestions: number;
+};
+
+export async function fetchKpis(): Promise<Kpis> {
+  const res = await fetch(`${API_URL}/kpi`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export type OccupancyDay = {
+  date: string;
+  occupancy_pct: number;
+  estimated_guests: number;
+  estimated_revenue_cents: number;
+};
+
+export async function fetchOccupancy(
+  year: number,
+  month: number,
+): Promise<OccupancyDay[]> {
+  const res = await fetch(
+    `${API_URL}/occupancy?year=${year}&month=${month}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}

@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import { SupabaseModule } from './supabase/supabase.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { GuestsModule } from './guests/guests.module';
+import { KpiModule } from './kpi/kpi.module';
+import { OccupancyModule } from './occupancy/occupancy.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { GuestsModule } from './guests/guests.module';
     SupabaseModule,
     CampaignsModule,
     GuestsModule,
+    KpiModule,
+    OccupancyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

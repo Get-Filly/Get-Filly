@@ -50,6 +50,29 @@ export function getMonthData(year: number, month: number) {
   return cells;
 }
 
+/**
+ * Zelfde als getMonthData, maar vervangt bezetting waar real data
+ * beschikbaar is uit de backend. Mock blijft als fallback.
+ */
+export function mergeMonthData(
+  year: number,
+  month: number,
+  realData: { date: string; occupancy_pct: number }[],
+) {
+  const cells = getMonthData(year, month);
+  const byDay = new Map<number, number>();
+  for (const d of realData) {
+    const dayNum = parseInt(d.date.slice(8, 10), 10);
+    byDay.set(dayNum, d.occupancy_pct);
+  }
+  return cells.map((cell) => {
+    if (!cell) return cell;
+    const realPct = byDay.get(cell.day);
+    if (realPct === undefined) return cell;
+    return { ...cell, occupancy: realPct };
+  });
+}
+
 export function occupancyClass(pct: number): "pg" | "po" | "pr" {
   if (pct >= 80) return "pg";
   if (pct >= 50) return "po";
