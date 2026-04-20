@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "../../../lib/supabase-browser";
 
 const menu = [
   { href: "/dashboard", icon: "📊", label: "Dashboard" },
@@ -18,6 +20,22 @@ const settings = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null);
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
@@ -62,10 +80,26 @@ export function Sidebar() {
         </Link>
         <div className="sb-user">
           <div className="sb-avatar">BH</div>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sb-uname">Bistro Het Huys</div>
-            <div className="sb-urole">Pro plan</div>
+            <div className="sb-urole" title={email ?? ""}>
+              {email ?? "Pro plan"}
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Uitloggen"
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: 16,
+              cursor: "pointer",
+              color: "var(--tl)",
+              padding: 4,
+            }}
+          >
+            ↩
+          </button>
         </div>
       </div>
     </nav>
