@@ -852,6 +852,70 @@
 .dashboard-shell .save-status.success { color: #1B7A2E; }
 .dashboard-shell .save-status.error { color: var(--red); }
 
+/* Koppelingen-pagina */
+.dashboard-shell .integrations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.dashboard-shell .integration-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dashboard-shell .int-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dashboard-shell .int-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.dashboard-shell .int-name { font-size: 14px; font-weight: 600; }
+.dashboard-shell .int-desc { font-size: 12px; color: var(--ts); line-height: 1.5; }
+.dashboard-shell .int-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.dashboard-shell .int-status {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: var(--rf);
+}
+.dashboard-shell .int-status.connected { background: var(--gb); color: #1B7A2E; }
+.dashboard-shell .int-status.disconnected { background: var(--bg); color: var(--tl); }
+.dashboard-shell .int-btn {
+  padding: 6px 14px;
+  border-radius: var(--rf);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+}
+.dashboard-shell .int-btn:hover { background: var(--hover); }
+.dashboard-shell .int-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Placeholder-pagina's voor Campagnes, Gasten, etc. */
 .dashboard-shell .page-ph {
   display: flex;

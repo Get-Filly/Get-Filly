@@ -8,6 +8,7 @@ import { GuestsModule } from './guests/guests.module';
 import { KpiModule } from './kpi/kpi.module';
 import { OccupancyModule } from './occupancy/occupancy.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
+import { WeatherModule } from './weather/weather.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RestaurantModule } from './restaurant/restaurant.module';
     KpiModule,
     OccupancyModule,
     RestaurantModule,
+    WeatherModule,
   ],
   controllers: [AppController],
   providers: [AppService],

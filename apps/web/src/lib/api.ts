@@ -126,3 +126,18 @@ export async function updateRestaurant(
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export type ForecastDay = {
+  date: string;
+  dayLabel: string;
+  tempMin: number;
+  tempMax: number;
+  icon: string;
+  description: string;
+};
+
+export async function fetchWeather(): Promise<ForecastDay[]> {
+  const res = await fetch(`${API_URL}/weather/me`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
