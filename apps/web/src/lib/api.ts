@@ -17,3 +17,23 @@ export async function fetchCampaigns(): Promise<Campaign[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export type Guest = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  birthday: string | null;
+  visit_count: number;
+  last_visit_at: string | null;
+  tags: string[];
+  mail_opt_in: boolean;
+  source: string | null;
+};
+
+export async function fetchGuests(): Promise<Guest[]> {
+  const res = await fetch(`${API_URL}/guests`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}

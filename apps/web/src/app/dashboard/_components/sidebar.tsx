@@ -56,6 +56,9 @@ export function Sidebar() {
       </div>
 
       <div className="sb-bottom">
+        <Link href="/" className="sb-site-link">
+          ← Bekijk website
+        </Link>
         <div className="sb-user">
           <div className="sb-avatar">BH</div>
           <div>
