@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 
@@ -9,5 +9,10 @@ export class CampaignsController {
   @Get()
   findAll(@RestaurantId() restaurantId: string) {
     return this.campaigns.findAll(restaurantId);
+  }
+
+  @Get(':id')
+  findOne(@RestaurantId() restaurantId: string, @Param('id') id: string) {
+    return this.campaigns.findById(restaurantId, id);
   }
 }

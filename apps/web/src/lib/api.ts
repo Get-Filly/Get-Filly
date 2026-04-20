@@ -27,6 +27,41 @@ export async function fetchCampaigns(): Promise<Campaign[]> {
   return res.json();
 }
 
+export type CampaignDetail = Campaign & {
+  subject_line: string | null;
+  body: string | null;
+  scheduled_for: string | null;
+  executed_at: string | null;
+  tags: string[] | null;
+  created_at: string;
+  content: {
+    // mail
+    subject_line?: string;
+    preheader?: string;
+    body_html?: string;
+    body_plain?: string;
+    from_name?: string;
+    reply_to?: string;
+    // social
+    caption?: string;
+    hashtags?: string[];
+    media_urls?: string[];
+    platforms?: string[];
+    cta_link?: string;
+    // whatsapp
+    message_text?: string;
+    template_name?: string;
+    // shared
+    stats?: Record<string, number>;
+  } | null;
+};
+
+export async function fetchCampaign(id: string): Promise<CampaignDetail> {
+  const res = await fetch(`${API_URL}/campaigns/${id}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export type Guest = {
   id: string;
   first_name: string | null;

@@ -26,6 +26,17 @@ export type Campaign = {
   result_stats: CampaignResultStats | null;
 };
 
+export type CampaignDetail = Campaign & {
+  subject_line: string | null;
+  body: string | null;
+  preview_data: Record<string, unknown> | null;
+  scheduled_for: string | null;
+  executed_at: string | null;
+  tags: string[] | null;
+  created_at: string;
+  content: Record<string, unknown> | null;
+};
+
 @Injectable()
 export class CampaignsService {
   constructor(private readonly supabase: SupabaseService) {}
@@ -42,5 +53,31 @@ export class CampaignsService {
     }
 
     return (data ?? []) as Campaign[];
+  }
+
+  async findById(restaurantId: string, id: string): Promise<CampaignDetail> {
+    const { data: campaign, error: campErr } = await this.supabase.client
+      .from('campaigns')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .single();
+
+    if (campErr) throw new InternalServerErrorException(campErr.message);
+
+    const table =
+      campaign.type === 'mail'
+        ? 'campaign_mail_content'
+        : campaign.type === 'social'
+          ? 'campaign_social_content'
+          : 'campaign_whatsapp_content';
+
+    const { data: content } = await this.supabase.client
+      .from(table)
+      .select('*')
+      .eq('campaign_id', id)
+      .maybeSingle();
+
+    return { ...campaign, content } as CampaignDetail;
   }
 }

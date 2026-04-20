@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { fetchCampaigns, type Campaign } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
@@ -36,6 +37,7 @@ function campaignImpactEuro(c: Campaign): number {
 }
 
 export default function CampagnesPage() {
+  const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +188,11 @@ export default function CampagnesPage() {
               const extraRes = stats.extra_reservations;
               const revenueCents = campaignImpactEuro(c);
               return (
-                <tr key={c.id}>
+                <tr
+                  key={c.id}
+                  onClick={() => router.push(`/dashboard/campagnes/${c.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   <td style={{ fontSize: 18 }}>{typeIcon[c.type]}</td>
                   <td style={{ fontWeight: 500 }}>{c.name}</td>
                   <td style={{ color: "var(--ts)", textTransform: "capitalize" }}>
