@@ -1,6 +1,7 @@
 "use client";
 
-import { aprilCampaigns, type Campaign } from "../_lib/month-campaigns";
+import { useEffect, useState } from "react";
+import { fetchCampaigns, type Campaign } from "../../../lib/api";
 import {
   getMonthData,
   maandenNL,
@@ -27,7 +28,25 @@ function iconFor(type: Campaign["type"]) {
   return type === "mail" ? "✉️" : "📱";
 }
 
-function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
+function CampaignList({
+  campaigns,
+  loading,
+  error,
+}: {
+  campaigns: Campaign[];
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) {
+    return (
+      <div style={{ color: "var(--tl)", fontSize: 12 }}>Laden...</div>
+    );
+  }
+  if (error) {
+    return (
+      <div style={{ color: "var(--red)", fontSize: 12 }}>Fout: {error}</div>
+    );
+  }
   if (campaigns.length === 0) {
     return (
       <div style={{ color: "var(--tl)", fontSize: 12 }}>
@@ -42,7 +61,7 @@ function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
           <div className={`det-ci ${c.type}`}>{iconFor(c.type)}</div>
           <div>
             <div className="det-cn">{c.name}</div>
-            <div className="det-cm">{c.meta}</div>
+            <div className="det-cm">{c.meta ?? ""}</div>
           </div>
           <div className={`det-cs ${c.status}`}>{statusLabel[c.status]}</div>
         </div>
@@ -51,9 +70,38 @@ function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
   );
 }
 
+function useCampaigns() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCampaigns()
+      .then((data) => {
+        if (!cancelled) {
+          setCampaigns(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { campaigns, loading, error };
+}
+
 export function DetailCard({ view, year, month, selectedDay }: Props) {
   const monthName =
     maandenNL[month].charAt(0).toUpperCase() + maandenNL[month].slice(1);
+  const { campaigns, loading, error } = useCampaigns();
 
   if (view === "jaar") {
     return (
@@ -80,7 +128,11 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
             </div>
           </div>
           <div className="det-section">Campagnes dit jaar</div>
-          <CampaignList campaigns={aprilCampaigns} />
+          <CampaignList
+            campaigns={campaigns}
+            loading={loading}
+            error={error}
+          />
         </div>
       </div>
     );
@@ -107,13 +159,8 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
     const cells = getMonthData(year, month);
     const dayData = cells.find((c) => c && c.day === selectedDay);
     const occ = dayData?.occupancy ?? 0;
-    // Mock: gasten + omzet afleiden uit bezetting
     const gasten = Math.round(occ * 0.85);
     const omzet = `€${(gasten * 42).toLocaleString("nl-NL")}`;
-    // Campagnes op deze dag (mock filter: check op meta tekst met dagnummer)
-    const dayCampaigns = aprilCampaigns.filter((c) =>
-      c.meta.includes(`${selectedDay} `),
-    );
 
     return (
       <div className="card">
@@ -141,13 +188,16 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
             </div>
           </div>
           <div className="det-section">Campagnes op deze dag</div>
-          <CampaignList campaigns={dayCampaigns} />
+          <CampaignList
+            campaigns={campaigns.filter((c) => (c.meta ?? "").includes(`${selectedDay} `))}
+            loading={loading}
+            error={error}
+          />
         </div>
       </div>
     );
   }
 
-  // maand-view
   return (
     <div className="card">
       <div className="card-h">
@@ -174,7 +224,7 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
           </div>
         </div>
         <div className="det-section">Campagnes deze maand</div>
-        <CampaignList campaigns={aprilCampaigns} />
+        <CampaignList campaigns={campaigns} loading={loading} error={error} />
       </div>
     </div>
   );
