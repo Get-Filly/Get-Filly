@@ -489,6 +489,149 @@
 }
 .dashboard-shell .chart-lbl { font-size: 9px; color: var(--tl); }
 
+/* Filly AI Chat */
+.dashboard-shell .chat-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dashboard-shell .chat-msgs {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.dashboard-shell .chat-msgs::-webkit-scrollbar { width: 4px; }
+.dashboard-shell .chat-msgs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.dashboard-shell .msg {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dashboard-shell .msg-ai {
+  background: var(--bg);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.dashboard-shell .msg-user {
+  background: var(--accent);
+  color: var(--white);
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.dashboard-shell .msg-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 3px;
+  color: var(--accent);
+}
+.dashboard-shell .msg-user .msg-lbl { color: rgba(255, 255, 255, 0.4); }
+.dashboard-shell .msg-card {
+  margin-top: 6px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.dashboard-shell .mc-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.dashboard-shell .mc-body { font-size: 11px; color: var(--ts); line-height: 1.5; }
+.dashboard-shell .mc-actions { display: flex; gap: 5px; margin-top: 6px; }
+.dashboard-shell .mc-btn {
+  padding: 4px 10px;
+  border-radius: var(--rf);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  color: var(--text);
+}
+.dashboard-shell .mc-btn:hover { background: var(--hover); }
+.dashboard-shell .mc-btn.p {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+.dashboard-shell .mc-btn.p:hover { background: var(--accent-dark); }
+.dashboard-shell .msg-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1B7A2E;
+  font-weight: 500;
+  margin-top: 3px;
+}
+.dashboard-shell .typing {
+  display: flex;
+  gap: 4px;
+  padding: 12px 14px;
+  align-self: flex-start;
+  background: var(--bg);
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+}
+.dashboard-shell .typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tl);
+  animation: fillyBlink 1.2s infinite;
+}
+.dashboard-shell .typing span:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-shell .typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes fillyBlink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.dashboard-shell .chat-input {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dashboard-shell .chat-iw {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border-radius: var(--rf);
+  padding: 4px 4px 4px 14px;
+}
+.dashboard-shell .chat-in {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  color: var(--text);
+}
+.dashboard-shell .chat-in::placeholder { color: var(--tl); }
+.dashboard-shell .chat-send {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.dashboard-shell .chat-send:hover { background: var(--accent-dark); }
+.dashboard-shell .chat-send:disabled { background: var(--border); cursor: not-allowed; }
+
 /* Placeholder-pagina's voor Campagnes, Gasten, etc. */
 .dashboard-shell .page-ph {
   display: flex;

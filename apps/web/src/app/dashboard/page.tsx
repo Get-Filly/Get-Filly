@@ -6,6 +6,7 @@ import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
 import { DetailCard } from "./_components/detail-card";
 import { ChartCard } from "./_components/chart-card";
+import { FillyChat } from "./_components/filly-chat";
 
 export type View = "dag" | "maand" | "jaar";
 
@@ -48,9 +49,7 @@ export default function DashboardPage() {
           />
         </div>
         <div className="right-col">
-          <div style={{ color: "var(--tl)", fontSize: 13, padding: "20px 0" }}>
-            Filly AI chat komt in Fase 5.
-          </div>
+          <FillyChat />
         </div>
       </div>
     </div>
