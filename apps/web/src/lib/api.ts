@@ -4,12 +4,21 @@ const API_URL =
 export type CampaignType = "mail" | "social";
 export type CampaignStatus = "actief" | "concept" | "ingepland" | "afgerond";
 
+export type CampaignResultStats = {
+  extra_reservations?: number;
+  extra_revenue_cents?: number;
+  retention_guests?: number;
+  impressions?: number;
+  likes?: number;
+};
+
 export type Campaign = {
   id: string;
   name: string;
   type: CampaignType;
   meta: string | null;
   status: CampaignStatus;
+  result_stats: CampaignResultStats | null;
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {

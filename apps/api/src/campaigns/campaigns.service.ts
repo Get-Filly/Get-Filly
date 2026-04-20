@@ -9,12 +9,21 @@ export type CampaignStatus =
   | 'afgerond'
   | 'gearchiveerd';
 
+export type CampaignResultStats = {
+  extra_reservations?: number;
+  extra_revenue_cents?: number;
+  retention_guests?: number;
+  impressions?: number;
+  likes?: number;
+};
+
 export type Campaign = {
   id: string;
   name: string;
   type: CampaignType;
   meta: string | null;
   status: CampaignStatus;
+  result_stats: CampaignResultStats | null;
 };
 
 @Injectable()
@@ -24,7 +33,7 @@ export class CampaignsService {
   async findAll(restaurantId: string): Promise<Campaign[]> {
     const { data, error } = await this.supabase.client
       .from('campaigns')
-      .select('id, name, type, meta, status')
+      .select('id, name, type, meta, status, result_stats')
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false });
 
