@@ -25,22 +25,24 @@ export default function DashboardPage() {
       <div className="dash-body">
         <div className="left-col">
           <WeatherForecast />
-          <CalendarCard
-            view={view}
-            setView={setView}
-            viewYear={viewYear}
-            setViewYear={setViewYear}
-            viewMonth={viewMonth}
-            setViewMonth={setViewMonth}
-            selectedDay={selectedDay}
-            setSelectedDay={setSelectedDay}
-          />
-          <DetailCard
-            view={view}
-            year={viewYear}
-            month={viewMonth}
-            selectedDay={selectedDay}
-          />
+          <div className="cal-detail-row">
+            <CalendarCard
+              view={view}
+              setView={setView}
+              viewYear={viewYear}
+              setViewYear={setViewYear}
+              viewMonth={viewMonth}
+              setViewMonth={setViewMonth}
+              selectedDay={selectedDay}
+              setSelectedDay={setSelectedDay}
+            />
+            <DetailCard
+              view={view}
+              year={viewYear}
+              month={viewMonth}
+              selectedDay={selectedDay}
+            />
+          </div>
           <ChartCard
             view={view}
             year={viewYear}

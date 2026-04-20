@@ -109,7 +109,10 @@ export function FillyChat() {
         {messages.map((m) =>
           m.role === "ai" ? (
             <div key={m.id} className="msg msg-ai">
-              <div className="msg-lbl">Filly AI</div>
+              <div className="msg-lbl">
+                <span className="msg-avatar">F</span>
+                <span>Filly AI</span>
+              </div>
               {m.status && <div className="msg-status">{m.status}</div>}
               <div>{m.text}</div>
               {m.card && (

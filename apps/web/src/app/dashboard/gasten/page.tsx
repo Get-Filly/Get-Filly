@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchGuests, type Guest } from "../../../lib/api";
+import { Skeleton } from "../_components/skeleton";
 
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -98,13 +99,38 @@ export default function GastenPage() {
       />
 
       {loading ? (
-        <div className="table-empty">Laden...</div>
+        <div className="data-table" style={{ padding: 16 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ display: "flex", gap: 16, padding: "10px 0" }}>
+              <Skeleton height={16} width="20%" />
+              <Skeleton height={16} width="30%" />
+              <Skeleton height={16} width="10%" />
+              <Skeleton height={16} width="15%" />
+              <Skeleton height={16} width="15%" />
+              <Skeleton height={16} width="8%" />
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <div className="table-empty" style={{ color: "var(--red)" }}>
           Fout: {error}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="table-empty">Geen gasten gevonden.</div>
+        query.trim() ? (
+          <div className="table-empty">
+            Geen gasten gevonden voor &quot;{query}&quot;.
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon">👥</div>
+            <div className="empty-title">Nog geen gasten</div>
+            <div className="empty-desc">
+              Importeer vanuit je reserveringsplatform (Zenchef, OpenTable,
+              SevenRooms) of voeg gasten handmatig toe.
+            </div>
+            <button className="btn-primary-dash">Gast toevoegen</button>
+          </div>
+        )
       ) : (
         <table className="data-table">
           <thead>

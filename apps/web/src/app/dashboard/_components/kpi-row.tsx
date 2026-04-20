@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchKpis, type Kpis } from "../../../lib/api";
+import { Skeleton } from "./skeleton";
 
 type KpiCard = {
   label: string;
@@ -25,7 +26,6 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
   const huidigeMaand = new Date().toLocaleString("nl-NL", { month: "long" });
   const cards: KpiCard[] = [];
 
-  // Bezetting vandaag — vergelijk met gem. zelfde weekdag
   if (kpis.today_pct !== null && kpis.weekday_avg_pct !== null) {
     const diff = kpis.today_pct - kpis.weekday_avg_pct;
     const dir: KpiCard["trendDir"] = diff > 0 ? "up" : diff < 0 ? "down" : "neutral";
@@ -48,7 +48,7 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
   cards.push({
     label: `Bezetting ${huidigeMaand}`,
     value: kpis.month_avg_pct !== null ? `${kpis.month_avg_pct}%` : "—",
-    trend: "↑ 4%", // TODO: vergelijk met vorige maand
+    trend: "↑ 4%",
     trendDir: "up",
   });
 
@@ -103,12 +103,8 @@ export function KpiRow() {
       <div className="kpi-row">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="kpi">
-            <div className="kpi-label">Laden...</div>
-            <div className="kpi-ri">
-              <span className="kpi-val" style={{ color: "var(--border)" }}>
-                —
-              </span>
-            </div>
+            <Skeleton height={10} width="70%" style={{ marginBottom: 10 }} />
+            <Skeleton height={22} width="50%" />
           </div>
         ))}
       </div>

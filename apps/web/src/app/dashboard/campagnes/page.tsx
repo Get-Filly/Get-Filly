@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchCampaigns, type Campaign } from "../../../lib/api";
+import { Skeleton } from "../_components/skeleton";
 
 type Filter = "alle" | "actief" | "ingepland" | "concept" | "afgerond";
 
@@ -67,13 +68,37 @@ export default function CampagnesPage() {
       </div>
 
       {loading ? (
-        <div className="table-empty">Laden...</div>
+        <div className="data-table" style={{ padding: 16 }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ display: "flex", gap: 16, padding: "10px 0" }}>
+              <Skeleton height={18} width={18} />
+              <Skeleton height={18} width="35%" />
+              <Skeleton height={18} width="15%" />
+              <Skeleton height={18} width="25%" />
+              <Skeleton height={18} width="10%" />
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <div className="table-empty" style={{ color: "var(--red)" }}>
           Fout: {error}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="table-empty">Geen campagnes in deze categorie.</div>
+        filter === "alle" ? (
+          <div className="empty-state">
+            <div className="empty-icon">📣</div>
+            <div className="empty-title">Nog geen campagnes</div>
+            <div className="empty-desc">
+              Laat Filly een voorstel maken of start zelf een campagne — voor
+              mail, social of WhatsApp.
+            </div>
+            <button className="btn-primary-dash">Nieuwe campagne</button>
+          </div>
+        ) : (
+          <div className="table-empty">
+            Geen campagnes met status &quot;{filter}&quot;.
+          </div>
+        )
       ) : (
         <table className="data-table">
           <thead>

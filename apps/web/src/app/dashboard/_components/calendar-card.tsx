@@ -156,6 +156,11 @@ export function CalendarCard({
                     >
                       {cell.occupancy}%
                     </div>
+                    {cell.occupancy >= 95 && (
+                      <div className="cal-hot" title="Topdag">
+                        🔥
+                      </div>
+                    )}
                     {cell.campaigns.length > 0 && (
                       <div className="cal-dots">
                         {cell.campaigns.map((c, idx) => (
