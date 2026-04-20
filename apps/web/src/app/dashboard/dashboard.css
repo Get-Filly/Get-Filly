@@ -2,36 +2,39 @@
    ze geen conflict geven met de publieke site. */
 
 .dashboard-shell {
-  /* Tokens gelijkgetrokken met huisstijl van de publieke site.
-     --blue / --bl wijzen nu naar de accent-kleur zodat UI-highlights
-     in kalender en grafiek consistent oranje zijn. */
+  /* Linear-geïnspireerd: zwart accent, neutraal grijs, subtiele shadows.
+     Dashboard-tokens zijn nu gelijkgetrokken met de publieke site. */
   --bg: #FAFAFA;
-  --white: #FFF;
-  --text: #1A1410;
-  --ts: #6E6E73;
-  --tl: #86868B;
-  --border: #E8E8ED;
-  --accent: #C8622A;
-  --accent-dark: #A34E1F;
-  --accent-light: #F2EAE3;
-  --blue: #C8622A;
-  --bl: #F2EAE3;
-  --green: #34C759;
-  --gb: #EEFBF1;
-  --orange: #FF9500;
-  --ob: #FFF6E8;
-  --red: #FF3B30;
-  --hover: #F5F5F7;
-  --r: 16px;
-  --rs: 10px;
+  --surface: #F7F7F8;
+  --white: #FFFFFF;
+  --text: #18181B;
+  --ts: #52525B;
+  --tl: #A1A1AA;
+  --border: #E4E4E7;
+  --border-soft: #F1F1F3;
+  --accent: #0F0F0F;
+  --accent-dark: #000000;
+  --accent-light: #F4F4F5;
+  --blue: #0F0F0F;
+  --bl: #F4F4F5;
+  --green: #16A34A;
+  --gb: #F0FDF4;
+  --orange: #F97316;
+  --ob: #FFF7ED;
+  --red: #DC2626;
+  --hover: #F4F4F5;
+  --r: 8px;
+  --rs: 6px;
   --rf: 999px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
 
   position: fixed;
   inset: 0;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.5;
 }
 
