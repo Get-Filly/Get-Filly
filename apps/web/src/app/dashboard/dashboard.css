@@ -759,6 +759,99 @@
   margin-right: 4px;
 }
 
+/* Formulier-elementen (gebruikt op account-pagina) */
+.dashboard-shell .form-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.dashboard-shell .form-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.dashboard-shell .form-section-desc {
+  font-size: 12px;
+  color: var(--tl);
+  margin-bottom: 16px;
+}
+.dashboard-shell .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.dashboard-shell .form-field { display: flex; flex-direction: column; }
+.dashboard-shell .form-field.full { grid-column: 1 / -1; }
+.dashboard-shell .form-field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ts);
+  margin-bottom: 6px;
+}
+.dashboard-shell .form-field input,
+.dashboard-shell .form-field select,
+.dashboard-shell .form-field textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.dashboard-shell .form-field textarea { resize: vertical; min-height: 80px; }
+.dashboard-shell .form-field input:focus,
+.dashboard-shell .form-field select:focus,
+.dashboard-shell .form-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.dashboard-shell .form-field .hint {
+  font-size: 11px;
+  color: var(--tl);
+  margin-top: 4px;
+}
+.dashboard-shell .form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dashboard-shell .form-checkbox input { width: 16px; height: 16px; }
+.dashboard-shell .btn-primary-dash {
+  padding: 10px 20px;
+  background: var(--accent);
+  color: var(--white);
+  border: none;
+  border-radius: var(--rf);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dashboard-shell .btn-primary-dash:hover { background: var(--accent-dark); }
+.dashboard-shell .btn-primary-dash:disabled {
+  background: var(--border);
+  cursor: not-allowed;
+}
+.dashboard-shell .save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.dashboard-shell .save-status { font-size: 12px; color: var(--tl); }
+.dashboard-shell .save-status.success { color: #1B7A2E; }
+.dashboard-shell .save-status.error { color: var(--red); }
+
 /* Placeholder-pagina's voor Campagnes, Gasten, etc. */
 .dashboard-shell .page-ph {
   display: flex;

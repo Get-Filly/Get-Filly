@@ -71,3 +71,50 @@ export async function fetchOccupancy(
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+export type Restaurant = {
+  id: string;
+  name: string;
+  slug: string | null;
+  type: string | null;
+  cuisine_style: string[] | null;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  price_range: number | null;
+  capacity_seats: number | null;
+  capacity_terrace: number | null;
+  has_terrace: boolean;
+  has_private_room: boolean;
+  has_kids_menu: boolean;
+  opening_hours: Record<string, { open: string; close: string }> | null;
+  closed_dates: string[] | null;
+  brand_tone: "casual" | "professional" | "playful";
+  signature_dishes: string[] | null;
+  languages_spoken: string[] | null;
+  social_media: Record<string, string> | null;
+  website_url: string | null;
+  plan: "starter" | "pro" | "enterprise";
+};
+
+export async function fetchRestaurant(): Promise<Restaurant> {
+  const res = await fetch(`${API_URL}/restaurant/me`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function updateRestaurant(
+  updates: Partial<Restaurant>,
+): Promise<Restaurant> {
+  const res = await fetch(`${API_URL}/restaurant/me`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}

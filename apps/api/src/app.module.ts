@@ -7,6 +7,7 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { GuestsModule } from './guests/guests.module';
 import { KpiModule } from './kpi/kpi.module';
 import { OccupancyModule } from './occupancy/occupancy.module';
+import { RestaurantModule } from './restaurant/restaurant.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { OccupancyModule } from './occupancy/occupancy.module';
     GuestsModule,
     KpiModule,
     OccupancyModule,
+    RestaurantModule,
   ],
   controllers: [AppController],
   providers: [AppService],
