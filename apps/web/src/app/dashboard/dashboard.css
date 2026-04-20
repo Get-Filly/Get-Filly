@@ -171,6 +171,52 @@
 .dashboard-shell .left-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .dashboard-shell .right-col { display: flex; flex-direction: column; min-height: 0; }
 
+/* Card (gedeeld — gebruikt door weer, kalender, detail, grafiek, chat) */
+.dashboard-shell .card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.dashboard-shell .card-h {
+  padding: 16px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dashboard-shell .card-t { font-size: 14px; font-weight: 600; }
+.dashboard-shell .card-st { font-size: 12px; color: var(--tl); margin-top: 1px; }
+.dashboard-shell .card-b { padding: 14px 20px 20px; }
+
+/* KPI */
+.dashboard-shell .kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.dashboard-shell .kpi {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  padding: 16px 18px;
+}
+.dashboard-shell .kpi-label { font-size: 12px; color: var(--tl); font-weight: 450; }
+.dashboard-shell .kpi-ri {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 3px;
+}
+.dashboard-shell .kpi-val {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.dashboard-shell .kpi-trend { font-size: 12px; font-weight: 500; }
+.dashboard-shell .tu { color: #1B7A2E; }
+.dashboard-shell .td { color: #CC2F27; }
+.dashboard-shell .tn { color: var(--tl); }
+
 /* Placeholder-pagina's voor Campagnes, Gasten, etc. */
 .dashboard-shell .page-ph {
   display: flex;

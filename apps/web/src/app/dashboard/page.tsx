@@ -1,10 +1,21 @@
+import { KpiRow } from "./_components/kpi-row";
+
 export default function DashboardPage() {
   return (
     <div className="page">
       <div className="dash-top">
-        <div style={{ color: "var(--tl)", fontSize: 13 }}>
-          Dashboard-content komt in de volgende fases: KPI&#39;s, weer, kalender,
-          grafiek en Filly AI chat.
+        <KpiRow />
+      </div>
+      <div className="dash-body">
+        <div className="left-col">
+          <div style={{ color: "var(--tl)", fontSize: 13, padding: "20px 0" }}>
+            Weer, kalender, detail en grafiek komen in de volgende fases.
+          </div>
+        </div>
+        <div className="right-col">
+          <div style={{ color: "var(--tl)", fontSize: 13, padding: "20px 0" }}>
+            Filly AI chat komt in fase 5.
+          </div>
         </div>
       </div>
     </div>
