@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCampaigns, type Campaign } from "../../../lib/api";
 import {
-  getMonthData,
-  maandenNL,
-  occupancyClass,
-} from "../_lib/calendar-data";
+  fetchCampaigns,
+  type Campaign,
+  type OccupancyDay,
+} from "../../../lib/api";
+import { maandenNL, occupancyClass } from "../_lib/calendar-data";
+import { Skeleton } from "./skeleton";
 
 type View = "dag" | "maand" | "jaar";
 
@@ -15,6 +16,8 @@ type Props = {
   year: number;
   month: number;
   selectedDay: number | null;
+  occupancy: OccupancyDay[];
+  occLoading: boolean;
 };
 
 const statusLabel: Record<Campaign["status"], string> = {
@@ -25,7 +28,11 @@ const statusLabel: Record<Campaign["status"], string> = {
 };
 
 function iconFor(type: Campaign["type"]) {
-  return type === "mail" ? "✉️" : "📱";
+  return type === "mail" ? "✉️" : type === "social" ? "📱" : "💬";
+}
+
+function formatEuroFromCents(cents: number): string {
+  return `€${(cents / 100).toLocaleString("nl-NL", { maximumFractionDigits: 0 })}`;
 }
 
 function CampaignList({
@@ -39,7 +46,11 @@ function CampaignList({
 }) {
   if (loading) {
     return (
-      <div style={{ color: "var(--tl)", fontSize: 12 }}>Laden...</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} height={42} />
+        ))}
+      </div>
     );
   }
   if (error) {
@@ -70,38 +81,61 @@ function CampaignList({
   );
 }
 
-function useCampaigns() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchCampaigns()
-      .then((data) => {
-        if (!cancelled) {
-          setCampaigns(data);
-          setLoading(false);
-        }
-      })
-      .catch((err: Error) => {
-        if (!cancelled) {
-          setError(err.message);
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { campaigns, loading, error };
+function StatsSkeleton() {
+  return (
+    <div className="detail-stats">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="det-stat">
+          <Skeleton height={20} width="60%" style={{ margin: "0 auto 8px" }} />
+          <Skeleton height={12} width="70%" style={{ margin: "0 auto" }} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
-export function DetailCard({ view, year, month, selectedDay }: Props) {
+export function DetailCard({
+  view,
+  year,
+  month,
+  selectedDay,
+  occupancy,
+  occLoading,
+}: Props) {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campLoading, setCampLoading] = useState(true);
+  const [campError, setCampError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCampaigns()
+      .then((d) => {
+        setCampaigns(d);
+        setCampLoading(false);
+      })
+      .catch((e: Error) => {
+        setCampError(e.message);
+        setCampLoading(false);
+      });
+  }, []);
+
   const monthName =
     maandenNL[month].charAt(0).toUpperCase() + maandenNL[month].slice(1);
-  const { campaigns, loading, error } = useCampaigns();
+
+  // Aggregaties uit occupancy (real data)
+  const monthStats = {
+    avg:
+      occupancy.length > 0
+        ? Math.round(
+            occupancy.reduce((s, d) => s + d.occupancy_pct, 0) /
+              occupancy.length,
+          )
+        : null,
+    totalGuests: occupancy.reduce((s, d) => s + d.estimated_guests, 0),
+    totalRevenue: occupancy.reduce(
+      (s, d) => s + d.estimated_revenue_cents,
+      0,
+    ),
+  };
 
   if (view === "jaar") {
     return (
@@ -130,37 +164,25 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
           <div className="det-section">Campagnes dit jaar</div>
           <CampaignList
             campaigns={campaigns}
-            loading={loading}
-            error={error}
+            loading={campLoading}
+            error={campError}
           />
         </div>
       </div>
     );
   }
 
-  if (view === "dag") {
-    if (!selectedDay) {
-      return (
-        <div className="card">
-          <div className="card-h">
-            <div>
-              <div className="card-t">Geen dag gekozen</div>
-              <div className="card-st">Klik een dag in de kalender</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div style={{ color: "var(--tl)", fontSize: 13 }}>
-              Selecteer een dag om details te zien.
-            </div>
-          </div>
-        </div>
-      );
-    }
-    const cells = getMonthData(year, month);
-    const dayData = cells.find((c) => c && c.day === selectedDay);
-    const occ = dayData?.occupancy ?? 0;
-    const gasten = Math.round(occ * 0.85);
-    const omzet = `€${(gasten * 42).toLocaleString("nl-NL")}`;
+  if (view === "dag" && selectedDay !== null) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
+    const dayData = occupancy.find((d) => d.date === dateStr);
+    const occ = dayData?.occupancy_pct ?? 0;
+    const gasten = dayData?.estimated_guests ?? 0;
+    const omzet = dayData
+      ? formatEuroFromCents(dayData.estimated_revenue_cents)
+      : "—";
+    const dayCampaigns = campaigns.filter((c) =>
+      (c.meta ?? "").includes(`${selectedDay} `),
+    );
 
     return (
       <div className="card">
@@ -173,31 +195,36 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
           </div>
         </div>
         <div className="card-b">
-          <div className="detail-stats">
-            <div className="det-stat">
-              <div className={`det-val ${occupancyClass(occ)}`}>{occ}%</div>
-              <div className="det-label">Bezetting</div>
+          {occLoading ? (
+            <StatsSkeleton />
+          ) : (
+            <div className="detail-stats">
+              <div className="det-stat">
+                <div className={`det-val ${occupancyClass(occ)}`}>{occ}%</div>
+                <div className="det-label">Bezetting</div>
+              </div>
+              <div className="det-stat">
+                <div className="det-val">{gasten}</div>
+                <div className="det-label">Gasten</div>
+              </div>
+              <div className="det-stat">
+                <div className="det-val">{omzet}</div>
+                <div className="det-label">Omzet</div>
+              </div>
             </div>
-            <div className="det-stat">
-              <div className="det-val">{gasten}</div>
-              <div className="det-label">Gasten</div>
-            </div>
-            <div className="det-stat">
-              <div className="det-val">{omzet}</div>
-              <div className="det-label">Omzet</div>
-            </div>
-          </div>
+          )}
           <div className="det-section">Campagnes op deze dag</div>
           <CampaignList
-            campaigns={campaigns.filter((c) => (c.meta ?? "").includes(`${selectedDay} `))}
-            loading={loading}
-            error={error}
+            campaigns={dayCampaigns}
+            loading={campLoading}
+            error={campError}
           />
         </div>
       </div>
     );
   }
 
+  // Maand-view (default)
   return (
     <div className="card">
       <div className="card-h">
@@ -209,22 +236,36 @@ export function DetailCard({ view, year, month, selectedDay }: Props) {
         </div>
       </div>
       <div className="card-b">
-        <div className="detail-stats">
-          <div className="det-stat">
-            <div className="det-val">68%</div>
-            <div className="det-label">Gem. bezetting</div>
+        {occLoading ? (
+          <StatsSkeleton />
+        ) : (
+          <div className="detail-stats">
+            <div className="det-stat">
+              <div className="det-val">
+                {monthStats.avg !== null ? `${monthStats.avg}%` : "—"}
+              </div>
+              <div className="det-label">Gem. bezetting</div>
+            </div>
+            <div className="det-stat">
+              <div className="det-val">
+                {monthStats.totalGuests.toLocaleString("nl-NL")}
+              </div>
+              <div className="det-label">Totaal gasten</div>
+            </div>
+            <div className="det-stat">
+              <div className="det-val">
+                {formatEuroFromCents(monthStats.totalRevenue)}
+              </div>
+              <div className="det-label">Totale omzet</div>
+            </div>
           </div>
-          <div className="det-stat">
-            <div className="det-val">1.284</div>
-            <div className="det-label">Totaal gasten</div>
-          </div>
-          <div className="det-stat">
-            <div className="det-val">€53.900</div>
-            <div className="det-label">Totale omzet</div>
-          </div>
-        </div>
+        )}
         <div className="det-section">Campagnes deze maand</div>
-        <CampaignList campaigns={campaigns} loading={loading} error={error} />
+        <CampaignList
+          campaigns={campaigns}
+          loading={campLoading}
+          error={campError}
+        />
       </div>
     </div>
   );

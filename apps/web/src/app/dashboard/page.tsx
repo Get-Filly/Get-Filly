@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KpiRow } from "./_components/kpi-row";
 import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
 import { DetailCard } from "./_components/detail-card";
 import { ChartCard } from "./_components/chart-card";
 import { FillyChat } from "./_components/filly-chat";
+import { fetchOccupancy, type OccupancyDay } from "../../lib/api";
 
 export type View = "dag" | "maand" | "jaar";
 
@@ -16,6 +17,22 @@ export default function DashboardPage() {
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
+  const [occLoading, setOccLoading] = useState(true);
+
+  // Eén bron voor kalender, detail en grafiek
+  useEffect(() => {
+    setOccLoading(true);
+    fetchOccupancy(viewYear, viewMonth)
+      .then((d) => {
+        setOccupancy(d);
+        setOccLoading(false);
+      })
+      .catch(() => {
+        setOccupancy([]);
+        setOccLoading(false);
+      });
+  }, [viewYear, viewMonth]);
 
   return (
     <div className="page">
@@ -35,12 +52,15 @@ export default function DashboardPage() {
               setViewMonth={setViewMonth}
               selectedDay={selectedDay}
               setSelectedDay={setSelectedDay}
+              occupancy={occupancy}
             />
             <DetailCard
               view={view}
               year={viewYear}
               month={viewMonth}
               selectedDay={selectedDay}
+              occupancy={occupancy}
+              occLoading={occLoading}
             />
           </div>
           <ChartCard
@@ -48,6 +68,7 @@ export default function DashboardPage() {
             year={viewYear}
             month={viewMonth}
             selectedDay={selectedDay}
+            occupancy={occupancy}
           />
         </div>
         <div className="right-col">

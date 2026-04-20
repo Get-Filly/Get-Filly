@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   mergeMonthData,
   occupancyClass,
   maandenNL,
 } from "../_lib/calendar-data";
-import { fetchOccupancy, type OccupancyDay } from "../../../lib/api";
+import type { OccupancyDay } from "../../../lib/api";
 
 type View = "dag" | "maand" | "jaar";
 
@@ -19,6 +18,7 @@ type Props = {
   setViewMonth: (n: number) => void;
   selectedDay: number | null;
   setSelectedDay: (n: number | null) => void;
+  occupancy: OccupancyDay[];
 };
 
 const weekdays = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
@@ -32,16 +32,9 @@ export function CalendarCard({
   setViewMonth,
   selectedDay,
   setSelectedDay,
+  occupancy,
 }: Props) {
   const today = new Date();
-  const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
-
-  useEffect(() => {
-    fetchOccupancy(viewYear, viewMonth)
-      .then(setOccupancy)
-      .catch(() => setOccupancy([])); // stille fallback naar mock
-  }, [viewYear, viewMonth]);
-
   const cells = mergeMonthData(viewYear, viewMonth, occupancy);
 
   const monthName =
@@ -51,6 +44,7 @@ export function CalendarCard({
     view === "jaar" ? `${viewYear}` : `${monthName} ${viewYear}`;
 
   const goPrev = () => {
+    setSelectedDay(null);
     if (view === "jaar") {
       setViewYear(viewYear - 1);
       return;
@@ -63,6 +57,7 @@ export function CalendarCard({
     }
   };
   const goNext = () => {
+    setSelectedDay(null);
     if (view === "jaar") {
       setViewYear(viewYear + 1);
       return;
@@ -85,6 +80,19 @@ export function CalendarCard({
     viewYear === today.getFullYear() && viewMonth === today.getMonth();
   const todayNum = today.getDate();
 
+  // Wanneer user op Dag-tab klikt zonder een dag gekozen: pak vandaag
+  // als die in de huidige maand valt, anders eerste dag van maand.
+  const onViewChange = (v: View) => {
+    if (v === "dag" && selectedDay === null) {
+      if (isTodayMonth) {
+        setSelectedDay(todayNum);
+      } else {
+        setSelectedDay(1);
+      }
+    }
+    setView(v);
+  };
+
   const onDayClick = (day: number) => {
     setSelectedDay(day);
     setView("dag");
@@ -93,6 +101,7 @@ export function CalendarCard({
   const yearMonthlyAvg = [56, 54, 60, 66, 72, 78, 82, 80, 74, 66, 58, 64];
   const onYearMonthClick = (m: number) => {
     setViewMonth(m);
+    setSelectedDay(null);
     setView("maand");
   };
 
@@ -117,7 +126,7 @@ export function CalendarCard({
               <button
                 key={v}
                 className={`toggle-btn ${view === v ? "active" : ""}`}
-                onClick={() => setView(v)}
+                onClick={() => onViewChange(v)}
               >
                 {v.charAt(0).toUpperCase() + v.slice(1)}
               </button>

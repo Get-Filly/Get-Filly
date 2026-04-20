@@ -1,11 +1,12 @@
 "use client";
 
-import { getMonthData, maandenNL } from "../_lib/calendar-data";
+import { maandenNL } from "../_lib/calendar-data";
 import {
   getWeekdayHistory,
   getYearMonthlyAverages,
   weekdayLabel,
 } from "../_lib/chart-data";
+import type { OccupancyDay } from "../../../lib/api";
 
 const W = 500;
 const H = 100;
@@ -31,9 +32,10 @@ type Props = {
   year: number;
   month: number;
   selectedDay: number | null;
+  occupancy: OccupancyDay[];
 };
 
-export function ChartCard({ view, year, month, selectedDay }: Props) {
+export function ChartCard({ view, year, month, selectedDay, occupancy }: Props) {
   const monthName = maandenNL[month];
 
   let values: number[] = [];
@@ -44,31 +46,37 @@ export function ChartCard({ view, year, month, selectedDay }: Props) {
   if (view === "dag" && selectedDay) {
     const jsDay = new Date(year, month, selectedDay).getDay();
     values = getWeekdayHistory(jsDay);
-    title = "Bezettingstrend";
     subtitle = `${weekdayLabel(jsDay)} — afgelopen 6 maanden`;
     labels = ["-6 mnd", "-3 mnd", "nu"];
   } else if (view === "jaar") {
     values = getYearMonthlyAverages(year);
-    title = "Bezettingstrend";
     subtitle = `Per maand — ${year}`;
     labels = ["jan", "jul", "dec"];
   } else {
-    // maand-view (of dag zonder selectie → fallback naar maand)
-    const cells = getMonthData(year, month);
-    values = cells.filter((c) => c !== null).map((c) => c!.occupancy);
-    title = "Bezettingstrend";
+    // Maand-view: gebruik echte occupancy-data
+    values = occupancy.map((d) => d.occupancy_pct);
     subtitle = `Per dag — ${monthName} ${year}`;
     const short = monthName.slice(0, 3);
-    labels = [`1 ${short}`, `${Math.round(values.length / 2)} ${short}`, `${values.length} ${short}`];
+    labels = [
+      `1 ${short}`,
+      values.length > 0
+        ? `${Math.round(values.length / 2)} ${short}`
+        : "",
+      values.length > 0 ? `${values.length} ${short}` : "",
+    ];
   }
 
-  if (view === "dag" && !selectedDay) {
+  if ((view === "dag" && !selectedDay) || values.length === 0) {
     return (
       <div className="card">
         <div className="card-h">
           <div>
             <div className="card-t">Bezettingstrend</div>
-            <div className="card-st">Selecteer een dag in de kalender</div>
+            <div className="card-st">
+              {view === "dag"
+                ? "Selecteer een dag in de kalender"
+                : "Geen data beschikbaar"}
+            </div>
           </div>
         </div>
         <div className="card-b">
@@ -103,13 +111,7 @@ export function ChartCard({ view, year, month, selectedDay }: Props) {
                 <stop offset="100%" stopColor="var(--white)" />
               </linearGradient>
             </defs>
-            <line
-              className="chart-avg"
-              x1="0"
-              y1={avgY}
-              x2={W}
-              y2={avgY}
-            />
+            <line className="chart-avg" x1="0" y1={avgY} x2={W} y2={avgY} />
             <path className="chart-area" d={area} />
             <path className="chart-line" d={line} />
           </svg>
