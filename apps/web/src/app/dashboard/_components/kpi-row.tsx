@@ -26,22 +26,21 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
   const huidigeMaand = new Date().toLocaleString("nl-NL", { month: "long" });
   const cards: KpiCard[] = [];
 
-  if (kpis.today_pct !== null && kpis.last_week_pct !== null) {
-    const diff = kpis.today_pct - kpis.last_week_pct;
-    const dir: KpiCard["trendDir"] =
-      diff > 0 ? "up" : diff < 0 ? "down" : "neutral";
+  if (kpis.today_pct !== null && kpis.weekday_avg_pct !== null) {
+    const diff = kpis.today_pct - kpis.weekday_avg_pct;
+    const dir: KpiCard["trendDir"] = diff > 0 ? "up" : diff < 0 ? "down" : "neutral";
     const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "—";
     cards.push({
       label: "Bezetting vandaag",
       value: `${kpis.today_pct}%`,
-      trend: `${arrow} ${Math.abs(diff)}% vs vorige week`,
+      trend: `${arrow} ${Math.abs(diff)}%`,
       trendDir: dir,
     });
   } else {
     cards.push({
       label: "Bezetting vandaag",
-      value: kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
-      trend: "geen vergelijking",
+      value: "—",
+      trend: "geen data",
       trendDir: "neutral",
     });
   }

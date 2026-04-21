@@ -112,7 +112,7 @@ export async function fetchGuests(): Promise<Guest[]> {
 
 export type Kpis = {
   today_pct: number | null;
-  last_week_pct: number | null;
+  weekday_avg_pct: number | null;
   month_avg_pct: number | null;
   month_guests: number;
   month_revenue_cents: number;

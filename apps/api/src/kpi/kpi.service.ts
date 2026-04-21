@@ -3,7 +3,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 
 export type Kpis = {
   today_pct: number | null;
-  last_week_pct: number | null; // bezetting dezelfde weekdag vorige week
+  weekday_avg_pct: number | null;
   month_avg_pct: number | null;
   month_guests: number;
   month_revenue_cents: number;
@@ -39,24 +39,6 @@ export class KpiService {
 
     if (sugErr) throw new InternalServerErrorException(sugErr.message);
 
-    // Bezetting 7 dagen geleden (dezelfde weekdag vorige week)
-    const lastWeek = new Date(now);
-    lastWeek.setDate(now.getDate() - 7);
-    const lastWeekStr = lastWeek.toISOString().slice(0, 10);
-
-    const { data: lastWeekData } = await this.supabase.client
-      .from('occupancy_days')
-      .select('occupancy_pct')
-      .eq('restaurant_id', restaurantId)
-      .eq('date', lastWeekStr)
-      .maybeSingle();
-
-    const last_week_pct =
-      lastWeekData?.occupancy_pct !== undefined &&
-      lastWeekData?.occupancy_pct !== null
-        ? Math.round(Number(lastWeekData.occupancy_pct))
-        : null;
-
     const days = occDays ?? [];
     const todayEntry = days.find((d) => d.date === todayStr);
     const today_pct = todayEntry?.occupancy_pct ?? null;
@@ -77,9 +59,11 @@ export class KpiService {
       0,
     );
 
+    const weekday_avg_pct = 68; // TODO Stap 8E: uit 6-maanden historie
+
     return {
       today_pct: today_pct !== null ? Math.round(Number(today_pct)) : null,
-      last_week_pct,
+      weekday_avg_pct,
       month_avg_pct,
       month_guests,
       month_revenue_cents,
