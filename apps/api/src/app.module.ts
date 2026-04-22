@@ -14,6 +14,7 @@ import { SuggestionsModule } from './suggestions/suggestions.module';
 import { MenuModule } from './menu/menu.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { MeModule } from './me/me.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     MenuModule,
     ReservationsModule,
     ReviewsModule,
+    MeModule,
   ],
   controllers: [AppController],
   // AuthGuard staat hier als provider zodat NestJS hem kan

@@ -2,25 +2,21 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { KpiService } from './kpi.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
+import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
 /**
- * KpiController — dashboard-KPI's voor het ingelogde restaurant.
+ * KpiController — dashboard-KPI's voor het actieve restaurant.
  *
- * TESTCASE voor de nieuwe AuthGuard:
- *   Dit is het EERSTE endpoint dat we onder de guard zetten. Zo testen
- *   we de end-to-end flow zonder de rest van de app te raken.
+ * Twee guards in deze volgorde:
+ *   1. AuthGuard            — verifieert JWT, zet req.user.
+ *   2. RestaurantAccessGuard — leest X-Restaurant-Id header,
+ *                              controleert dat user toegang heeft,
+ *                              zet req.restaurant.
  *
- *   Wat er nu gebeurt bij een request naar GET /kpi:
- *     1. AuthGuard fires → leest Authorization: Bearer <jwt>
- *     2. Verifieert JWT met SUPABASE_JWT_SECRET
- *     3. Zet user op req.user
- *     4. Als ALLES klopt: controller-methode draait
- *     5. Anders: 401 Unauthorized
- *
- *   @RestaurantId() werkt nog met de oude fallback naar demo-id. Die
- *   breiden we in de volgende stap uit met tenant-verificatie.
+ * @RestaurantId() leest vervolgens de restaurantId uit req.restaurant.
+ * Geen header = 400, geen toegang = 403.
  */
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('kpi')
 export class KpiController {
   constructor(private readonly kpi: KpiService) {}

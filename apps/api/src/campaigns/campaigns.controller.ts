@@ -1,7 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
+import { AuthGuard } from '../common/auth.guard';
+import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
+@UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('campaigns')
 export class CampaignsController {
   constructor(private readonly campaigns: CampaignsService) {}

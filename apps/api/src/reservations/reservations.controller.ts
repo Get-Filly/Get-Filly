@@ -1,7 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
+import { AuthGuard } from '../common/auth.guard';
+import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
+@UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('reservations')
 export class ReservationsController {
   constructor(private readonly reservations: ReservationsService) {}

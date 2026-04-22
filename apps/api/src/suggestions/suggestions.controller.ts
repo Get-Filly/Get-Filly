@@ -1,10 +1,21 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   SuggestionsService,
   type SuggestionStatus,
 } from './suggestions.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
+import { AuthGuard } from '../common/auth.guard';
+import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
+@UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('suggestions')
 export class SuggestionsController {
   constructor(private readonly suggestions: SuggestionsService) {}

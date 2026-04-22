@@ -1,46 +1,52 @@
 import { createClient } from "./supabase-browser";
+import { getActiveRestaurantIdSync } from "./restaurant-context";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
 /**
- * authedFetch — zoals `fetch`, maar stuurt automatisch de JWT mee.
+ * authedFetch — zoals `fetch`, maar stuurt automatisch mee:
+ *   - Authorization: Bearer <jwt>  → wie ben je?
+ *   - X-Restaurant-Id: <uuid>      → welk restaurant bekijk je?
  *
  * Hoe dit werkt:
- *   1. We pakken de actieve Supabase-sessie op in de browser.
- *      Supabase bewaart die in een cookie + localStorage.
- *   2. Als er een sessie is, hangen we `Authorization: Bearer <jwt>`
- *      aan de request.
- *   3. Zonder sessie: gewoon fetch zonder header. De backend geeft
- *      dan 401 terug (behalve op endpoints met @Public()).
+ *   1. Supabase-sessie uit de browser halen (cookie/localStorage).
+ *   2. Actieve restaurant-id uit localStorage halen (gezet door
+ *      RestaurantContext zodra de user is ingelogd).
+ *   3. Beide als headers meegeven aan fetch.
  *
- * Waarom niet alle fetch-calls ineens vervangen?
- *   We doen dit stap-voor-stap. Pas als een endpoint onder de AuthGuard
- *   staat, gebruiken we authedFetch. Later (als de guard globaal is)
- *   vervangen we alle fetch-calls door authedFetch in één keer.
+ * Wat als er geen sessie / geen restaurant is:
+ *   Dan stuurt hij de header niet mee. De backend geeft dan 401 of
+ *   400 terug — de component die de call deed kan dat netjes als
+ *   error tonen. Normaal gesproken gebeurt dit alleen heel kort op
+ *   de eerste render voordat RestaurantContext geladen is.
  */
-async function authedFetch(
+export async function authedFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<Response> {
-  // createClient() maakt een Supabase-client voor de browser.
-  // getSession() leest de bestaande sessie uit cookie/localStorage —
-  // doet GEEN netwerkcall, dus snel.
   const supabase = createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Bouw nieuwe headers: bestaande headers + Authorization (als er sessie is).
   const headers = new Headers(init?.headers);
   if (session?.access_token) {
     headers.set("Authorization", `Bearer ${session.access_token}`);
   }
 
+  // Voeg het actieve restaurant-id toe (als we er een hebben).
+  // Zo weet de backend welk restaurant de user op dit moment
+  // bekijkt — essentieel voor multi-tenant isolatie.
+  const restaurantId = getActiveRestaurantIdSync();
+  if (restaurantId) {
+    headers.set("X-Restaurant-Id", restaurantId);
+  }
+
   return fetch(input, { ...init, headers });
 }
 
-export type CampaignType = "mail" | "social";
+export type CampaignType = "mail" | "social" | "whatsapp";
 export type CampaignStatus = "actief" | "concept" | "ingepland" | "afgerond";
 
 export type CampaignResultStats = {
@@ -61,7 +67,7 @@ export type Campaign = {
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {
-  const res = await fetch(`${API_URL}/campaigns`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/campaigns`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -96,7 +102,7 @@ export type CampaignDetail = Campaign & {
 };
 
 export async function fetchCampaign(id: string): Promise<CampaignDetail> {
-  const res = await fetch(`${API_URL}/campaigns/${id}`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/campaigns/${id}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -144,7 +150,7 @@ export function computeCustomerStatus(g: Guest): CustomerStatus {
 }
 
 export async function fetchGuests(): Promise<Guest[]> {
-  const res = await fetch(`${API_URL}/guests`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/guests`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -178,7 +184,7 @@ export async function fetchOccupancy(
   year: number,
   month: number,
 ): Promise<OccupancyDay[]> {
-  const res = await fetch(
+  const res = await authedFetch(
     `${API_URL}/occupancy?year=${year}&month=${month}`,
     { cache: "no-store" },
   );
@@ -224,7 +230,7 @@ export type Restaurant = {
 };
 
 export async function fetchRestaurant(): Promise<Restaurant> {
-  const res = await fetch(`${API_URL}/restaurant/me`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/restaurant/me`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -232,7 +238,7 @@ export async function fetchRestaurant(): Promise<Restaurant> {
 export async function updateRestaurant(
   updates: Partial<Restaurant>,
 ): Promise<Restaurant> {
-  const res = await fetch(`${API_URL}/restaurant/me`, {
+  const res = await authedFetch(`${API_URL}/restaurant/me`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updates),
@@ -251,7 +257,7 @@ export type ForecastDay = {
 };
 
 export async function fetchWeather(): Promise<ForecastDay[]> {
-  const res = await fetch(`${API_URL}/weather/me`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/weather/me`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -290,7 +296,7 @@ export async function fetchSuggestions(
   const url = status
     ? `${API_URL}/suggestions?status=${status}`
     : `${API_URL}/suggestions`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await authedFetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -309,7 +315,7 @@ export type MenuItem = {
 };
 
 export async function fetchMenu(): Promise<MenuItem[]> {
-  const res = await fetch(`${API_URL}/menu`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/menu`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -346,7 +352,7 @@ export async function fetchReservations(
   if (from) q.set("from", from);
   if (to) q.set("to", to);
   const url = `${API_URL}/reservations${q.toString() ? "?" + q.toString() : ""}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await authedFetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -366,7 +372,7 @@ export type Review = {
 };
 
 export async function fetchReviews(): Promise<Review[]> {
-  const res = await fetch(`${API_URL}/reviews`, { cache: "no-store" });
+  const res = await authedFetch(`${API_URL}/reviews`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -376,7 +382,7 @@ export async function updateSuggestion(
   status: SuggestionStatus,
   rejection_reason?: string,
 ): Promise<AiSuggestion> {
-  const res = await fetch(`${API_URL}/suggestions/${id}`, {
+  const res = await authedFetch(`${API_URL}/suggestions/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status, rejection_reason }),

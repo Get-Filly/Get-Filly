@@ -1,31 +1,51 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { RestaurantAccess } from './restaurant-access.service';
 
 /**
- * Demo-restaurant voor MVP zonder auth.
- * Wanneer auth erbij komt vervangen we deze fallback door logica die
- * de actieve restaurant-id afleidt uit de geauthenticeerde sessie.
- */
-export const DEMO_RESTAURANT_ID = '00000000-0000-0000-0000-000000000001';
-
-/**
- * Leest de actieve restaurant-id uit de request:
- *   1. `X-Restaurant-Id` header (door frontend gezet)
- *   2. fallback: DEMO_RESTAURANT_ID
+ * ============================================================
+ * @RestaurantId() — leest de ID van het actieve restaurant
+ * ============================================================
  *
- * Gebruik in controllers:
+ * Vroeger:
+ *   Deze decorator las blind de 'X-Restaurant-Id' header en viel
+ *   terug op een demo-id. Dat was NIET veilig — iedereen kon zich
+ *   voordoen als elk restaurant.
+ *
+ * Nu:
+ *   We vertrouwen volledig op de RestaurantAccessGuard. Die:
+ *     - leest de header
+ *     - controleert dat de user bij dit restaurant hoort
+ *     - zet req.restaurant
+ *   Deze decorator leest daar alleen de ID uit. Als de guard niet
+ *   heeft gedraaid, gooien we een interne fout (500) — want dan is
+ *   er een programmeerfout in de controller-setup.
+ *
+ * Gebruik (samen met @UseGuards(AuthGuard, RestaurantAccessGuard)):
  *   @Get()
- *   getKpis(@RestaurantId() restaurantId: string) { ... }
+ *   getKpis(@RestaurantId() restaurantId: string) {
+ *     return this.service.getKpis(restaurantId);
+ *   }
  */
 export const RestaurantId = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): string => {
-    const req = ctx.switchToHttp().getRequest<{
-      headers: Record<string, string | string[] | undefined>;
-    }>();
-    const raw = req.headers['x-restaurant-id'];
-    const header = Array.isArray(raw) ? raw[0] : raw;
-    if (typeof header === 'string' && header.trim().length > 0) {
-      return header.trim();
+    const req = ctx
+      .switchToHttp()
+      .getRequest<{ restaurant?: RestaurantAccess }>();
+
+    if (!req.restaurant) {
+      // Deze fout gaat NIET naar een aanvaller — hij ziet 500 maar
+      // in de server-logs zie jij deze duidelijke melding. Fix:
+      // zet @UseGuards(AuthGuard, RestaurantAccessGuard) op de
+      // controller/methode.
+      throw new InternalServerErrorException(
+        '@RestaurantId() gebruikt zonder RestaurantAccessGuard — zet @UseGuards op de controller.',
+      );
     }
-    return DEMO_RESTAURANT_ID;
+
+    return req.restaurant.restaurantId;
   },
 );
