@@ -10,7 +10,7 @@ import {
   type Role,
   type StoredPermissions,
   resolvePermissions,
-} from './permissions';
+} from '@getfilly/shared';
 
 /**
  * ============================================================

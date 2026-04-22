@@ -1,0 +1,16 @@
+{
+  "name": "@getfilly/shared",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Gedeelde types, permissies en utilities tussen apps/api en apps/web.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

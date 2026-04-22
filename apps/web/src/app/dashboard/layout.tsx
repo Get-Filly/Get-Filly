@@ -2,14 +2,16 @@ import "./dashboard.css";
 import { Sidebar } from "./_components/sidebar";
 import { Topbar } from "./_components/topbar";
 import { DashboardProvider } from "./_components/dashboard-provider";
+import { AccessGuard } from "./_components/access-guard";
 
 /**
  * DashboardLayout — layout voor alle /dashboard/* pagina's.
  *
- * Wrapt alles in een DashboardProvider (client component) die de
- * RestaurantContext opstart. Daardoor kan elk component hieronder
- * het actieve restaurant + rol + permissies lezen via
- * useRestaurant().
+ * Structuur:
+ *   - DashboardProvider:  laadt restaurants + rol + permissies (context)
+ *   - AccessGuard:        blokkeert paginas waarop je geen rechten hebt
+ *   - Sidebar/Topbar:     standaard navigatie-chrome
+ *   - main > children:    de eigenlijke pagina-inhoud
  */
 export default function DashboardLayout({
   children,
@@ -19,7 +21,9 @@ export default function DashboardLayout({
       <div className="dashboard-shell">
         <Sidebar />
         <Topbar />
-        <main className="main">{children}</main>
+        <main className="main">
+          <AccessGuard>{children}</AccessGuard>
+        </main>
       </div>
     </DashboardProvider>
   );

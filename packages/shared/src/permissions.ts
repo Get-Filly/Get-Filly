@@ -1,27 +1,21 @@
 /**
  * ============================================================
- * Permissies-model voor Get Filly
+ * Permissies-model voor Get Filly — GEDEELD tussen backend & frontend
  * ============================================================
  *
- * Hier definiëren we:
+ * Dit bestand is de ÉÉN BRON VAN WAARHEID voor:
  *   1. Welke "modules" er zijn (pagina's/features in het dashboard).
  *   2. Welke rollen bestaan (owner/manager/staff).
  *   3. Welke modules elke rol DEFAULT mag zien.
  *   4. Hoe we uit "rol + eventuele overrides" de uiteindelijke
  *      permissies berekenen.
  *
- * Waarom dit in code (TypeScript) en niet in de database?
- *   - Makkelijker aanpasbaar: voeg een module toe → één regel hier,
- *     geen migratie nodig.
- *   - Type-safety: TypeScript checkt dat we geen typfout maken in
- *     een module-key.
- *   - Dezelfde lijst kunnen we later delen met de frontend
- *     (via packages/shared) zodat de UI en backend dezelfde waarheid
- *     gebruiken.
+ * Zowel apps/api (NestJS) als apps/web (Next.js) importeren hieruit
+ * via `@getfilly/shared`. Zo kunnen frontend en backend nooit uit
+ * sync raken qua module-keys of rol-defaults.
  *
- * In de database (restaurant_users.permissions):
- *   Alleen custom overrides per user worden opgeslagen. Als die
- *   NULL is, pakken we de default voor de rol.
+ * Wijzig je iets hier? Beide apps gebruiken automatisch de nieuwe
+ * definitie na de eerstvolgende compile / hot-reload.
  */
 
 /**
