@@ -57,6 +57,41 @@ export type InvitationRecord = {
   accepted_by: string | null;
 };
 
+/**
+ * Bouw een URL die naar onze eigen /auth/confirm-route wijst.
+ *
+ * WAAROM deze functie bestaat:
+ * Supabase's `generateLink()` geeft een `action_link` terug die
+ * verwijst naar Supabase's eigen /auth/v1/verify-endpoint. Dat
+ * endpoint triggert de oude "implicit flow" — de sessie komt dan
+ * binnen als hash (#access_token=...) in de URL. Onze web-app
+ * gebruikt `@supabase/ssr` die werkt met cookies, niet met hash-
+ * tokens; daardoor ziet de accept-pagina geen sessie en faalt de
+ * invite-afhandeling.
+ *
+ * Oplossing: we bouwen zelf een URL naar onze server-side route
+ * `/auth/confirm`, die `verifyOtp({ token_hash, type })` aanroept
+ * en de sessie netjes als cookie zet — identiek aan wat de
+ * e-mail-templates voor nieuwe users doen.
+ *
+ * De origin (host) leiden we af uit `acceptBaseUrl` zodat er geen
+ * aparte env-var voor de web-frontend nodig is.
+ */
+function buildConfirmUrl(
+  acceptBaseUrl: string,
+  redirectTo: string,
+  hashedToken: string,
+  type: 'invite' | 'magiclink',
+): string {
+  const origin = new URL(acceptBaseUrl).origin;
+  const params = new URLSearchParams({
+    token_hash: hashedToken,
+    type,
+    next: redirectTo,
+  });
+  return `${origin}/auth/confirm?${params.toString()}`;
+}
+
 @Injectable()
 export class TeamService {
   private readonly logger = new Logger(TeamService.name);
@@ -280,10 +315,18 @@ export class TeamService {
 
         if (linkErr) throw linkErr;
 
+        // Bouw een link die door ONZE /auth/confirm-route loopt
+        // (cookie-flow), niet door Supabase's oude hash-flow.
+        // Zie buildConfirmUrl hierboven voor de reden.
+        const hashedToken = link?.properties?.hashed_token;
+        const manualLink = hashedToken
+          ? buildConfirmUrl(acceptBaseUrl, redirectTo, hashedToken, 'magiclink')
+          : redirectTo;
+
         return {
           invite,
           deliveredByEmail: false,
-          manualLink: link?.properties?.action_link ?? redirectTo,
+          manualLink,
         };
       }
 
@@ -333,8 +376,11 @@ export class TeamService {
         email: invite.email,
         options: { redirectTo },
       });
-      if (!error && data?.properties?.action_link) {
-        return data.properties.action_link;
+      // We gebruiken hashed_token + onze eigen /auth/confirm-route
+      // i.p.v. Supabase's action_link — zie buildConfirmUrl boven.
+      const hashedToken = data?.properties?.hashed_token;
+      if (!error && hashedToken) {
+        return buildConfirmUrl(acceptBaseUrl, redirectTo, hashedToken, type);
       }
     }
 
