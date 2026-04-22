@@ -440,3 +440,93 @@ export async function removeTeamMember(userId: string): Promise<void> {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
+
+// ============================================================
+// Invites (team-uitnodigingen)
+// ============================================================
+
+export type InvitationRecord = {
+  id: string;
+  restaurant_id: string;
+  email: string;
+  role: Role;
+  permissions: { modules: Module[] } | null;
+  token: string;
+  invited_by: string | null;
+  expires_at: string;
+  status: "pending" | "accepted" | "revoked";
+  created_at: string;
+};
+
+export type CreateInviteResult = {
+  invite: InvitationRecord;
+  deliveredByEmail: boolean;
+  manualLink?: string;
+};
+
+export async function fetchInvites(): Promise<InvitationRecord[]> {
+  const res = await authedFetch(`${API_URL}/team/invites`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function createInvite(
+  email: string,
+  role: Role,
+  permissions?: Module[] | null,
+): Promise<CreateInviteResult> {
+  const res = await authedFetch(`${API_URL}/team/invites`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, role, permissions }),
+  });
+  if (!res.ok) {
+    // Probeer een leesbare foutmelding terug te geven voor de UI.
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}${body ? ": " + body : ""}`);
+  }
+  return res.json();
+}
+
+export async function revokeInvite(inviteId: string): Promise<void> {
+  const res = await authedFetch(`${API_URL}/team/invites/${inviteId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+/**
+ * Accepteer een invite met token — roept /api/invites/accept aan.
+ * De user moet ingelogd zijn voordat deze call werkt (magic link
+ * logt ze automatisch in).
+ */
+export async function acceptInvite(
+  token: string,
+): Promise<{ restaurantId: string; role: Role }> {
+  const res = await authedFetch(`${API_URL}/invites/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}${body ? ": " + body : ""}`);
+  }
+  return res.json();
+}
+
+/**
+ * Genereer een verse magic link voor een openstaande invite.
+ * Werkt ook als de oorspronkelijke mail niet aankwam — owner kan
+ * de link dan handmatig delen.
+ */
+export async function getInviteMagicLink(inviteId: string): Promise<string> {
+  const res = await authedFetch(`${API_URL}/team/invites/${inviteId}/magic-link`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = (await res.json()) as { link: string };
+  return data.link;
+}

@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { TeamService } from './team.service';
@@ -26,6 +27,15 @@ import type { Module, Role } from '@getfilly/shared';
  * De owner-check doen we per methode (geen aparte guard nodig voor
  * één controller).
  */
+/**
+ * Base-URL waar de frontend de invite-accept pagina host. In dev staat
+ * de web-app op localhost:3000; later zetten we dit in de env.
+ */
+const ACCEPT_BASE_URL =
+  process.env.FRONTEND_URL
+    ? `${process.env.FRONTEND_URL}/invite/accept`
+    : 'http://localhost:3000/invite/accept';
+
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('team')
 export class TeamController {
@@ -35,6 +45,60 @@ export class TeamController {
   async list(@CurrentRestaurant() ctx: RestaurantAccess) {
     this.requireOwner(ctx);
     return this.team.listMembers(ctx.restaurantId);
+  }
+
+  // ============================================================
+  // Invites (uitnodigingen via e-mail)
+  // ============================================================
+
+  @Get('invites')
+  async listInvites(@CurrentRestaurant() ctx: RestaurantAccess) {
+    this.requireOwner(ctx);
+    return this.team.listInvites(ctx.restaurantId);
+  }
+
+  @Post('invites')
+  async createInvite(
+    @CurrentRestaurant() ctx: RestaurantAccess,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { email: string; role: Role; permissions?: Module[] | null },
+  ) {
+    this.requireOwner(ctx);
+    return this.team.createInvite(
+      ctx.restaurantId,
+      user.id,
+      body,
+      ACCEPT_BASE_URL,
+    );
+  }
+
+  /**
+   * Genereer een verse magic-link voor een openstaande invite
+   * (handig als de mail niet aankomt — owner kan 'm dan handmatig
+   * delen met de collega).
+   */
+  @Post('invites/:inviteId/magic-link')
+  async getInviteLink(
+    @CurrentRestaurant() ctx: RestaurantAccess,
+    @Param('inviteId') inviteId: string,
+  ) {
+    this.requireOwner(ctx);
+    const link = await this.team.generateMagicLinkForInvite(
+      ctx.restaurantId,
+      inviteId,
+      ACCEPT_BASE_URL,
+    );
+    return { link };
+  }
+
+  @Delete('invites/:inviteId')
+  async revokeInvite(
+    @CurrentRestaurant() ctx: RestaurantAccess,
+    @Param('inviteId') inviteId: string,
+  ) {
+    this.requireOwner(ctx);
+    await this.team.revokeInvite(ctx.restaurantId, inviteId);
+    return { ok: true };
   }
 
   @Patch(':userId')

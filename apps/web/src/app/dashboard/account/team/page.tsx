@@ -5,8 +5,13 @@ import {
   fetchTeam,
   removeTeamMember,
   updateTeamMember,
+  fetchInvites,
+  revokeInvite,
+  getInviteMagicLink,
   type TeamMember,
+  type InvitationRecord,
 } from "../../../../lib/api";
+import { InviteModal } from "./invite-modal";
 import {
   DEFAULT_PERMISSIONS,
   MODULES,
@@ -57,6 +62,7 @@ const ROLE_LABELS: Record<Role, string> = {
 export default function TeamPage() {
   const { active } = useRestaurant();
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [invites, setInvites] = useState<InvitationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,13 +73,17 @@ export default function TeamPage() {
   // zodat we buttons kunnen disabled'en en feedback kunnen tonen.
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
-  // Laad teamleden bij mount + na elke change.
-  const loadMembers = async () => {
+  // Invite-modal open-state.
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Laad teamleden + openstaande invites parallel.
+  const loadAll = async () => {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchTeam();
-      setMembers(list);
+      const [ms, ins] = await Promise.all([fetchTeam(), fetchInvites()]);
+      setMembers(ms);
+      setInvites(ins);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -82,8 +92,19 @@ export default function TeamPage() {
   };
 
   useEffect(() => {
-    void loadMembers();
+    void loadAll();
   }, []);
+
+  // Invite intrekken.
+  const handleRevokeInvite = async (inviteId: string) => {
+    if (!confirm("Deze uitnodiging intrekken?")) return;
+    try {
+      await revokeInvite(inviteId);
+      setInvites((ins) => ins.filter((i) => i.id !== inviteId));
+    } catch (err) {
+      alert(`Kon invite niet intrekken: ${err instanceof Error ? err.message : err}`);
+    }
+  };
 
   // Wijzig rol van een teamlid.
   const handleRoleChange = async (userId: string, newRole: Role) => {
@@ -204,12 +225,67 @@ export default function TeamPage() {
         </div>
         <button
           className="team-invite-btn"
-          disabled
-          title="Deze functie voegen we in de volgende stap toe"
+          onClick={() => setShowInviteModal(true)}
         >
-          + Teamlid uitnodigen (binnenkort)
+          + Teamlid uitnodigen
         </button>
       </div>
+
+      {/* Openstaande uitnodigingen — zichtbaar tot ze geaccepteerd of
+          ingetrokken worden. */}
+      {invites.length > 0 && (
+        <div className="team-invites">
+          <div className="team-invites-title">Openstaande uitnodigingen</div>
+          {invites.map((inv) => {
+            return (
+              <div key={inv.id} className="team-invite-row">
+                <div className="team-who">
+                  <div className="team-name">{inv.email}</div>
+                  <div className="team-email">
+                    Rol: {inv.role} · verloopt{" "}
+                    {new Date(inv.expires_at).toLocaleDateString("nl-NL")}
+                  </div>
+                </div>
+                <span className="team-invite-pending">Wacht op acceptatie</span>
+                <button
+                  className="team-toggle-btn"
+                  onClick={async () => {
+                    try {
+                      // Backend genereert een verse Supabase magic link.
+                      // Deze werkt ook zonder dat de user ingelogd is —
+                      // klikken logt hem automatisch in en brengt hem
+                      // bij de accept-pagina.
+                      const link = await getInviteMagicLink(inv.id);
+                      await navigator.clipboard.writeText(link);
+                      alert("Magic link gekopieerd — plak 'm in een browser om de invite te accepteren.");
+                    } catch (err) {
+                      alert(
+                        `Kon geen link genereren: ${err instanceof Error ? err.message : err}`,
+                      );
+                    }
+                  }}
+                  title="Verse magic link — deel handmatig als de mail niet aankomt"
+                >
+                  Kopieer link
+                </button>
+                <button
+                  className="team-remove-btn"
+                  onClick={() => handleRevokeInvite(inv.id)}
+                >
+                  Intrekken
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showInviteModal && (
+        <InviteModal
+          onClose={() => setShowInviteModal(false)}
+          onSent={() => void loadAll()}
+        />
+      )}
 
       <div className="team-list">
         {members.map((m) => {

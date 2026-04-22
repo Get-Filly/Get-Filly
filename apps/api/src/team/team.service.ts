@@ -38,6 +38,25 @@ export type TeamMember = {
   created_at: string;
 };
 
+/**
+ * Record zoals hij in de DB (tabel public.invitations) staat.
+ * Zie migratie 0008.
+ */
+export type InvitationRecord = {
+  id: string;
+  restaurant_id: string;
+  email: string;
+  role: Role;
+  permissions: StoredPermissions | null;
+  token: string;
+  invited_by: string | null;
+  expires_at: string;
+  status: 'pending' | 'accepted' | 'revoked';
+  created_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
+};
+
 @Injectable()
 export class TeamService {
   private readonly logger = new Logger(TeamService.name);
@@ -156,6 +175,293 @@ export class TeamService {
       .eq('user_id', userId);
 
     if (error) throw error;
+  }
+
+  // ============================================================
+  // Invites (uitnodigingen via e-mail)
+  // ============================================================
+
+  /**
+   * Maak een nieuwe invite aan + stuur de uitnodigingsmail.
+   *
+   * Supabase heeft twee relevante API's:
+   *   - auth.admin.inviteUserByEmail() — werkt alleen als user nog
+   *     NIET bestaat. Supabase mailt automatisch.
+   *   - auth.admin.generateLink({type:'magiclink'}) — werkt voor
+   *     bestaande users. Geeft link terug; we moeten 'm zelf mailen.
+   *
+   * Voor MVP:
+   *   - Nieuwe user → inviteUserByEmail, Supabase stuurt de mail.
+   *   - Bestaande user → magic link genereren + URL teruggeven zodat
+   *     de owner 'm handmatig met de collega kan delen. (Later
+   *     vervangen we dit door een eigen mail-provider zoals Resend.)
+   */
+  async createInvite(
+    restaurantId: string,
+    invitedByUserId: string,
+    input: { email: string; role: Role; permissions?: Module[] | null },
+    acceptBaseUrl: string,
+  ): Promise<{
+    invite: InvitationRecord;
+    deliveredByEmail: boolean;
+    manualLink?: string;
+  }> {
+    const normalizedEmail = input.email.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      throw new BadRequestException('Geldig e-mailadres vereist.');
+    }
+
+    // Voorkom duplicaten: als er al een pending invite staat voor deze
+    // email + restaurant, gebruiken we die i.p.v. een nieuwe te maken.
+    const { data: existing, error: existErr } = await this.supabase.client
+      .from('invitations')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .eq('email', normalizedEmail)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existErr) throw existErr;
+
+    let invite: InvitationRecord;
+    if (existing) {
+      invite = existing as InvitationRecord;
+    } else {
+      // Maak nieuwe invite. Token + expires worden door DB-defaults gezet.
+      const { data: created, error: createErr } = await this.supabase.client
+        .from('invitations')
+        .insert({
+          restaurant_id: restaurantId,
+          email: normalizedEmail,
+          role: input.role,
+          permissions:
+            input.permissions && input.permissions.length > 0
+              ? { modules: input.permissions }
+              : null,
+          invited_by: invitedByUserId,
+        })
+        .select()
+        .single();
+
+      if (createErr) throw createErr;
+      invite = created as InvitationRecord;
+    }
+
+    // Bouw de accept-URL die we meesturen in de mail / link.
+    const redirectTo = `${acceptBaseUrl}?inv=${invite.token}`;
+
+    // Probeer eerst inviteUserByEmail. Als user al bestaat, valt terug
+    // op generateLink + manualLink teruggeven.
+    try {
+      const { error: inviteErr } =
+        await this.supabase.client.auth.admin.inviteUserByEmail(
+          normalizedEmail,
+          { redirectTo },
+        );
+
+      if (inviteErr) {
+        // Check of dit de "user bestaat al"-fout is.
+        const msg = (inviteErr.message || '').toLowerCase();
+        const userExists =
+          msg.includes('already been registered') ||
+          msg.includes('already registered') ||
+          msg.includes('user already exists');
+
+        if (!userExists) throw inviteErr;
+
+        // Bestaande user → genereer magic link, return 'm voor
+        // handmatig delen (tot we een eigen mail-provider hebben).
+        const { data: link, error: linkErr } =
+          await this.supabase.client.auth.admin.generateLink({
+            type: 'magiclink',
+            email: normalizedEmail,
+            options: { redirectTo },
+          });
+
+        if (linkErr) throw linkErr;
+
+        return {
+          invite,
+          deliveredByEmail: false,
+          manualLink: link?.properties?.action_link ?? redirectTo,
+        };
+      }
+
+      return { invite, deliveredByEmail: true };
+    } catch (err) {
+      this.logger.error(
+        `Fout bij versturen invite naar ${normalizedEmail}: ${err instanceof Error ? err.message : err}`,
+      );
+      throw err;
+    }
+  }
+
+  /**
+   * Genereer een verse magic-link voor een bestaande pending invite.
+   * Gebruikt wanneer de oorspronkelijke mail niet aankwam (bv. door
+   * Supabase's rate-limit) of als de owner de link handmatig wil
+   * delen via WhatsApp o.i.d.
+   *
+   * Probeert eerst 'invite' type (voor nieuwe users), valt terug op
+   * 'magiclink' (voor bestaande users). Geeft altijd een bruikbare
+   * URL terug zolang de invite nog pending is.
+   */
+  async generateMagicLinkForInvite(
+    restaurantId: string,
+    inviteId: string,
+    acceptBaseUrl: string,
+  ): Promise<string> {
+    const { data: inv, error: findErr } = await this.supabase.client
+      .from('invitations')
+      .select('*')
+      .eq('id', inviteId)
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (findErr) throw findErr;
+    if (!inv) throw new NotFoundException('Openstaande invite niet gevonden.');
+
+    const invite = inv as InvitationRecord;
+    const redirectTo = `${acceptBaseUrl}?inv=${invite.token}`;
+
+    // Probeer eerst 'magiclink' (bestaande user). Faalt die: 'invite' (nieuwe user).
+    const tryTypes: Array<'magiclink' | 'invite'> = ['magiclink', 'invite'];
+    for (const type of tryTypes) {
+      const { data, error } = await this.supabase.client.auth.admin.generateLink({
+        type,
+        email: invite.email,
+        options: { redirectTo },
+      });
+      if (!error && data?.properties?.action_link) {
+        return data.properties.action_link;
+      }
+    }
+
+    throw new BadRequestException(
+      'Kon geen magic link genereren. Controleer de Supabase redirect URLs.',
+    );
+  }
+
+  /**
+   * Lijst van openstaande (pending) invites voor een restaurant —
+   * om op de team-pagina te laten zien onder "Uitgenodigd, nog niet
+   * geaccepteerd".
+   */
+  async listInvites(restaurantId: string): Promise<InvitationRecord[]> {
+    const { data, error } = await this.supabase.client
+      .from('invitations')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []) as InvitationRecord[];
+  }
+
+  /**
+   * Intrekken van een nog niet-geaccepteerde invite.
+   */
+  async revokeInvite(restaurantId: string, inviteId: string): Promise<void> {
+    const { data, error } = await this.supabase.client
+      .from('invitations')
+      .update({ status: 'revoked' })
+      .eq('id', inviteId)
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'pending')
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) {
+      throw new NotFoundException(
+        'Invite niet gevonden of al geaccepteerd/ingetrokken.',
+      );
+    }
+  }
+
+  /**
+   * Accepteer een invite: validate token, check expires, koppel user
+   * aan restaurant, markeer invite als accepted.
+   *
+   * acceptingUserId komt uit de JWT van de ingelogde user (die net op
+   * de magic-link heeft geklikt). acceptingEmail checken we tegen de
+   * email in de invitation om te voorkomen dat iemand met z'n eigen
+   * token een invite accepteert die niet voor hem bedoeld was.
+   */
+  async acceptInvite(
+    token: string,
+    acceptingUserId: string,
+    acceptingEmail: string | null,
+  ): Promise<{ restaurantId: string; role: Role }> {
+    // Haal invite op.
+    const { data: invite, error: findErr } = await this.supabase.client
+      .from('invitations')
+      .select('*')
+      .eq('token', token)
+      .maybeSingle();
+
+    if (findErr) throw findErr;
+    if (!invite) throw new NotFoundException('Uitnodiging niet gevonden.');
+
+    const inv = invite as InvitationRecord;
+
+    if (inv.status !== 'pending') {
+      throw new BadRequestException(
+        inv.status === 'accepted'
+          ? 'Deze uitnodiging is al geaccepteerd.'
+          : 'Deze uitnodiging is ingetrokken of verlopen.',
+      );
+    }
+    if (new Date(inv.expires_at).getTime() < Date.now()) {
+      throw new BadRequestException('Deze uitnodiging is verlopen.');
+    }
+
+    // Check: e-mail van de ingelogde user moet matchen met invite's email.
+    if (
+      !acceptingEmail ||
+      acceptingEmail.toLowerCase() !== inv.email.toLowerCase()
+    ) {
+      throw new ForbiddenException(
+        'Deze uitnodiging is voor een ander e-mailadres.',
+      );
+    }
+
+    // Zorg dat er een public.users-rij bestaat voor deze user
+    // (spiegel van auth.users). Idempotent.
+    await this.supabase.client
+      .from('users')
+      .upsert({ id: acceptingUserId }, { onConflict: 'id' });
+
+    // Maak/overwrite de restaurant_users-koppeling met rol + permissies.
+    const { error: linkErr } = await this.supabase.client
+      .from('restaurant_users')
+      .upsert(
+        {
+          restaurant_id: inv.restaurant_id,
+          user_id: acceptingUserId,
+          role: inv.role,
+          permissions: inv.permissions,
+        },
+        { onConflict: 'restaurant_id,user_id' },
+      );
+
+    if (linkErr) throw linkErr;
+
+    // Markeer invite als accepted (zodat-ie niet nog eens gebruikt kan).
+    const { error: updateErr } = await this.supabase.client
+      .from('invitations')
+      .update({
+        status: 'accepted',
+        accepted_at: new Date().toISOString(),
+        accepted_by: acceptingUserId,
+      })
+      .eq('id', inv.id);
+
+    if (updateErr) throw updateErr;
+
+    return { restaurantId: inv.restaurant_id, role: inv.role };
   }
 
   /**
