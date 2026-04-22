@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Nieuwe design-tokens (kleuren, spacing, radius, typografie, shadows,
+   containers, sectie-padding). Zie tokens.css voor de spelregels.
+   OPZETTELIJK nieuwe namen (prefix --gf-, --s-, --r-, --fs-, etc.) zodat
+   de bestaande Linear-set hieronder intact blijft tot we componenten
+   migreren in een aparte fase. */
+@import "./tokens.css";
+
 :root {
   /* Linear-geïnspireerd: puur wit + off-white secties, strak zwart accent */
   --bg: #FFFFFF;
