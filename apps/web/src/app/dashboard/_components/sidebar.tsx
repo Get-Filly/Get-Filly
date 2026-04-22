@@ -32,14 +32,43 @@ const allMenuItems: MenuItem[] = [
   { href: "/dashboard/koppelingen", icon: "🔗", label: "Koppelingen", module: "koppelingen" },
 ];
 
+/**
+ * Pak initialen uit een restaurant-naam voor de mini-avatar.
+ * "Bistro Get-Filly" → "BG", "Cafe Get-Filly" → "CG",
+ * "Filly" → "FI" (eerste twee letters als er maar één woord is).
+ */
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
+/**
+ * Vertaal de rolsleutel (zoals opgeslagen in de DB) naar het
+ * NL-label dat de gebruiker ziet. Gelijkgetrokken met wat de
+ * Team-pagina toont, zodat er maar één set labels rondzwerft.
+ */
+function roleLabel(role: "owner" | "manager" | "staff"): string {
+  switch (role) {
+    case "owner":
+      return "Eigenaar";
+    case "manager":
+      return "Manager";
+    case "staff":
+      return "Medewerker";
+  }
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Actieve restaurant + permissies uit de context. Als deze nog niet
-  // geladen is (bv. bij eerste render), gebruiken we een lege lijst —
-  // dan tonen we kortstondig geen menu-items tot de context klaar is.
-  const { active, loading } = useRestaurant();
+  // Actieve restaurant + volledige lijst uit de context. De lijst
+  // gebruiken we voor de workspace-switcher; `setActive` schrijft de
+  // keuze naar localStorage zodat een refresh hem onthoudt.
+  const { active, restaurants, setActive, loading } = useRestaurant();
   const permissions = active?.permissions ?? [];
 
   // Filter het menu: toon alleen items waar de user toegang tot heeft.
@@ -88,6 +117,31 @@ export function Sidebar() {
     router.refresh();
   };
 
+  /**
+   * Wissel naar een ander restaurant.
+   *
+   * WAAROM window.location.reload():
+   *   Veel dashboard-pagina's fetchen data in een useEffect met een
+   *   lege dependency-array. Als we alleen de context updaten blijft
+   *   die data van het vórige restaurant in client-state hangen —
+   *   cross-tenant leak. Een harde reload garandeert dat álle data
+   *   vers uit de backend komt voor het nieuwe actieve restaurant.
+   *   Past bij onze "zero data-mix tussen tenants"-eis.
+   *
+   * `router.refresh()` is hier niet voldoende: dat ververst alleen
+   * server-components, niet de client-state waar de meeste fetches
+   * wonen.
+   */
+  const handleSwitchRestaurant = (id: string) => {
+    if (id === active?.id) {
+      setMenuOpen(false);
+      return;
+    }
+    setActive(id);
+    setMenuOpen(false);
+    window.location.reload();
+  };
+
   // Account-instellingen in het dropdown-menu alleen tonen als de user
   // de 'account'-module mag zien (defaults: iedereen).
   const canSeeAccount = loading || permissions.includes("account");
@@ -107,7 +161,9 @@ export function Sidebar() {
           aria-expanded={menuOpen}
           title="Account-menu"
         >
-          <div className="sb-avatar">BG</div>
+          <div className="sb-avatar">
+            {active ? getInitials(active.name) : "—"}
+          </div>
           <div className="sb-workspace-text">
             <div className="sb-uname">{active?.name ?? "—"}</div>
             <div className="sb-urole" title={email ?? ""}>
@@ -119,6 +175,46 @@ export function Sidebar() {
 
         {menuOpen && (
           <div className="sb-workspace-menu" role="menu">
+            {/* Restaurant-switcher — alleen tonen als de user toegang
+                heeft tot meer dan één restaurant, anders is dit stukje
+                visuele ruis zonder doel. */}
+            {restaurants.length > 1 && (
+              <>
+                <div className="sb-menu-label">Wissel restaurant</div>
+                {restaurants.map((r) => {
+                  const isActive = r.id === active?.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className="sb-menu-item sb-menu-restaurant"
+                      role="menuitem"
+                      onClick={() => handleSwitchRestaurant(r.id)}
+                      aria-current={isActive}
+                    >
+                      <span className="sb-menu-mini-avatar">
+                        {getInitials(r.name)}
+                      </span>
+                      <span className="sb-menu-restaurant-text">
+                        <span className="sb-menu-restaurant-name">
+                          {r.name}
+                        </span>
+                        <span className="sb-menu-restaurant-role">
+                          {roleLabel(r.role)}
+                        </span>
+                      </span>
+                      {isActive && (
+                        <span className="sb-menu-check" aria-hidden>
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                <div className="sb-menu-divider" aria-hidden />
+              </>
+            )}
+
             {canSeeAccount && (
               <Link
                 href="/dashboard/account"

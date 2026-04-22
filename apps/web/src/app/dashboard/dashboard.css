@@ -215,6 +215,82 @@
   color: #DC2626;
 }
 
+/* ============================================================
+   Restaurant-switcher in workspace-dropdown
+   ============================================================
+   Alleen zichtbaar als de user aan meer dan één restaurant
+   gekoppeld is. Elk item heeft: mini-avatar, naam + rol, en
+   een checkmark bij het actieve restaurant. Klik op een niet-
+   actief item → harde reload met nieuw actief restaurant.
+*/
+
+/* Klein "Wissel restaurant"-label boven de lijst. Zelfde stijl
+   als de sectie-labels elders in de sidebar zodat het visueel
+   thuishoort. */
+.dashboard-shell .sb-menu-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--tl);
+  padding: 6px 10px 4px;
+}
+
+/* Het item zelf — we gebruiken dezelfde basisklasse sb-menu-item,
+   deze modifier zet alleen de content-layout (twee regels tekst
+   + check rechts). */
+.dashboard-shell .sb-menu-restaurant {
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+}
+.dashboard-shell .sb-menu-restaurant[aria-current="true"] {
+  /* Actieve tenant: iets vettere tekst zodat hij opvalt. Background
+     blijft blanco — de check rechts is de primaire indicator. */
+  font-weight: 500;
+}
+
+.dashboard-shell .sb-menu-mini-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bl);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.dashboard-shell .sb-menu-restaurant-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+
+.dashboard-shell .sb-menu-restaurant-name {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-shell .sb-menu-restaurant-role {
+  font-size: 11px;
+  color: var(--tl);
+}
+
+.dashboard-shell .sb-menu-check {
+  font-size: 13px;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
 .dashboard-shell .sb-site-link {
   display: block;
   font-size: 12px;
