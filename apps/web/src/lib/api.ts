@@ -1,5 +1,44 @@
+import { createClient } from "./supabase-browser";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+
+/**
+ * authedFetch — zoals `fetch`, maar stuurt automatisch de JWT mee.
+ *
+ * Hoe dit werkt:
+ *   1. We pakken de actieve Supabase-sessie op in de browser.
+ *      Supabase bewaart die in een cookie + localStorage.
+ *   2. Als er een sessie is, hangen we `Authorization: Bearer <jwt>`
+ *      aan de request.
+ *   3. Zonder sessie: gewoon fetch zonder header. De backend geeft
+ *      dan 401 terug (behalve op endpoints met @Public()).
+ *
+ * Waarom niet alle fetch-calls ineens vervangen?
+ *   We doen dit stap-voor-stap. Pas als een endpoint onder de AuthGuard
+ *   staat, gebruiken we authedFetch. Later (als de guard globaal is)
+ *   vervangen we alle fetch-calls door authedFetch in één keer.
+ */
+async function authedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  // createClient() maakt een Supabase-client voor de browser.
+  // getSession() leest de bestaande sessie uit cookie/localStorage —
+  // doet GEEN netwerkcall, dus snel.
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // Bouw nieuwe headers: bestaande headers + Authorization (als er sessie is).
+  const headers = new Headers(init?.headers);
+  if (session?.access_token) {
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+  }
+
+  return fetch(input, { ...init, headers });
+}
 
 export type CampaignType = "mail" | "social";
 export type CampaignStatus = "actief" | "concept" | "ingepland" | "afgerond";
@@ -120,7 +159,10 @@ export type Kpis = {
 };
 
 export async function fetchKpis(): Promise<Kpis> {
-  const res = await fetch(`${API_URL}/kpi`, { cache: "no-store" });
+  // Dit is het eerste endpoint dat onder de AuthGuard staat, dus we
+  // gebruiken authedFetch (stuurt JWT mee). Zonder geldige sessie
+  // geeft de backend 401 terug en mislukt deze call.
+  const res = await authedFetch(`${API_URL}/kpi`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

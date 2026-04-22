@@ -6,89 +6,81 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import * as jwt from 'jsonwebtoken';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { AuthenticatedUser } from './current-user.decorator';
-
-/**
- * ============================================================
- * JwtPayload — wat zit er in een Supabase JWT-token?
- * ============================================================
- * Wanneer een user inlogt via Supabase Auth krijgt de frontend
- * een "JWT" terug (JSON Web Token). Dat token ziet eruit als een
- * lange tekst met puntjes erin en bevat (versleuteld onderteken)
- * gegevens over de user. De belangrijkste velden voor ons:
- *
- *   - sub:   subject → de user-id (dit is wat we echt nodig hebben)
- *   - email: e-mailadres van de user
- *   - aud:   audience → bij Supabase normaal "authenticated"
- *   - exp:   expiration → tijdstip waarop het token ongeldig wordt
- */
-type JwtPayload = {
-  sub?: string;
-  email?: string;
-  aud?: string;
-  exp?: number;
-};
 
 /**
  * ============================================================
  * AuthGuard — de poortwachter van onze API
  * ============================================================
  *
- * Een "Guard" in NestJS is een class die beslist of een request
- * mag doorgaan naar de controller. Hij wordt automatisch uitgevoerd
- * vóórdat de controller-methode draait.
+ * Wat doet een "Guard"?
+ *   Een class die in NestJS beslist of een request mag doorgaan naar
+ *   de controller. Draait automatisch vóór elke controller-methode
+ *   waarop hij is toegepast.
  *
- * Wat deze guard doet (stap voor stap):
- *   1. Is het endpoint gemarkeerd als @Public()? → direct toestaan
- *   2. Zoek de "Authorization" header op de request.
- *   3. Die header moet beginnen met "Bearer " gevolgd door het token.
- *   4. Verifieer het token met het JWT-secret uit Supabase.
- *      - Klopt de handtekening? (anders: iemand heeft 'm verzonnen)
+ * Wat we doen bij elke request (stap voor stap):
+ *   1. Is het endpoint gemarkeerd als @Public()? → direct doorlaten.
+ *   2. Zoek de "Authorization" header.
+ *   3. Die moet het formaat "Bearer <token>" hebben.
+ *   4. Verifieer het token met Supabase's publieke sleutels.
+ *      - Klopt de handtekening? (écht door Supabase uitgegeven?)
  *      - Is hij niet verlopen?
- *   5. Als alles klopt: zet user-info op req.user, request gaat door.
- *   6. Bij één fout: gooi 401 Unauthorized.
+ *   5. Zo ja: zet user-info op req.user, request mag door.
+ *   6. Bij elke fout: gooi 401 Unauthorized.
  *
- * Hoe we 'm straks aanzetten:
- *   In app.module.ts registreren we deze guard als "APP_GUARD"
- *   (globale guard). Dan draait hij op elke request automatisch,
- *   tenzij @Public() is gezet.
+ * Hoe verifiëren we de handtekening?
+ *   Supabase gebruikt tegenwoordig ES256 (asymmetric signing). Dat
+ *   betekent: Supabase tekent tokens met een privé-sleutel, en wij
+ *   verifiëren met de bijbehorende publieke sleutel. We hoeven dus
+ *   geen geheim in onze .env — we halen de publieke sleutels op van
+ *   Supabase's JWKS-endpoint (een publieke URL).
+ *
+ *   createRemoteJWKSet() uit `jose` regelt dit automatisch:
+ *   - haalt de sleutels op bij de eerste request
+ *   - cachet ze (standaard 10 minuten)
+ *   - roteert automatisch als Supabase nieuwe keys publiceert
+ *   - ondersteunt ES256, RS256, HS256 — het juiste algoritme volgt
+ *     uit het token zelf
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private readonly jwtSecret: string;
+  // De URL waar Supabase de publieke sleutels publiceert.
+  // JWKS = "JSON Web Key Set" — een gestandaardiseerd formaat.
+  private readonly jwksUrl: URL;
+
+  // Functie die een publieke sleutel levert voor een gegeven token.
+  // `jose` zorgt zelf voor caching + key-rotation.
+  private readonly getKey: ReturnType<typeof createRemoteJWKSet>;
+
+  // Voor multi-tenant: de verwachte "issuer" van tokens — dat is onze
+  // Supabase project-URL. Zo weten we dat het token niet van een
+  // ander project komt.
+  private readonly expectedIssuer: string;
 
   constructor(
     private readonly reflector: Reflector,
     config: ConfigService,
   ) {
-    // Lees het Supabase JWT-secret uit .env. Zonder dit kunnen we
-    // geen tokens verifiëren — dus we crashen hard als het ontbreekt.
-    const secret = config.get<string>('SUPABASE_JWT_SECRET');
-    if (!secret) {
+    const supabaseUrl = config.get<string>('SUPABASE_URL');
+    if (!supabaseUrl) {
       throw new Error(
-        'SUPABASE_JWT_SECRET ontbreekt in .env. ' +
-          'Haal hem op uit Supabase Project Settings → API → JWT Settings.',
+        'SUPABASE_URL ontbreekt in .env — nodig om JWT-tokens te verifiëren.',
       );
     }
-    this.jwtSecret = secret;
+
+    // Supabase publiceert z'n publieke sleutels hier.
+    // Voorbeeld: https://xxx.supabase.co/auth/v1/.well-known/jwks.json
+    this.jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl);
+    this.getKey = createRemoteJWKSet(this.jwksUrl);
+
+    // Supabase zet in het token: "iss": "https://xxx.supabase.co/auth/v1"
+    this.expectedIssuer = new URL('/auth/v1', supabaseUrl).toString();
   }
 
-  /**
-   * canActivate wordt door NestJS aangeroepen bij elke request die
-   * door een @UseGuards of globaal-geregistreerde guard komt.
-   *
-   * Retourneer true  → request mag door naar de controller.
-   * Retourneer false → request wordt geblokkeerd (403 standaard).
-   * Gooi exception   → stuur een eigen error-response (wij gebruiken 401).
-   */
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     // -------- Stap 1: endpoints met @Public() mogen overal door --------
-    // Reflector kijkt naar de metadata die we met @Public() hebben gezet.
-    // getAllAndOverride checkt zowel de methode als de class (class-niveau
-    // markering werkt ook, bijvoorbeeld een hele Health-controller als
-    // publiek markeren).
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -98,12 +90,10 @@ export class AuthGuard implements CanActivate {
     }
 
     // -------- Stap 2: haal de Authorization-header op --------
-    const req = context
-      .switchToHttp()
-      .getRequest<{
-        headers: Record<string, string | string[] | undefined>;
-        user?: AuthenticatedUser;
-      }>();
+    const req = context.switchToHttp().getRequest<{
+      headers: Record<string, string | string[] | undefined>;
+      user?: AuthenticatedUser;
+    }>();
 
     const rawHeader = req.headers['authorization'];
     const authHeader = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
@@ -112,9 +102,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Geen Authorization header aanwezig.');
     }
 
-    // -------- Stap 3: de header moet beginnen met "Bearer " --------
-    // Dit is de afgesproken manier om JWT-tokens mee te sturen:
-    //   Authorization: Bearer eyJhbGciOi...
+    // -------- Stap 3: header moet "Bearer <token>" zijn --------
     const [scheme, token] = authHeader.split(' ');
     if (scheme !== 'Bearer' || !token) {
       throw new UnauthorizedException(
@@ -123,35 +111,43 @@ export class AuthGuard implements CanActivate {
     }
 
     // -------- Stap 4: verifieer het token --------
-    // jwt.verify() doet drie dingen tegelijk:
-    //   a) decodeert het token
-    //   b) controleert of de handtekening klopt met ons JWT-secret
-    //      (dus: is dit token écht door Supabase uitgegeven?)
-    //   c) controleert of het token niet verlopen is (exp-veld)
-    // Als iets fout is, gooit het een error — die vangen we op.
-    let payload: JwtPayload;
+    // jwtVerify() doet alles in één aanroep:
+    //   - decodeert het token
+    //   - haalt de juiste publieke sleutel op via this.getKey
+    //   - controleert de handtekening
+    //   - controleert exp/nbf (verlopen/nog-niet-geldig)
+    //   - controleert issuer (optioneel)
+    // Gooit een error bij elke fout.
+    let payload: JWTPayload;
     try {
-      payload = jwt.verify(token, this.jwtSecret) as JwtPayload;
+      const result = await jwtVerify(token, this.getKey, {
+        issuer: this.expectedIssuer,
+      });
+      payload = result.payload;
     } catch (err) {
-      // We geven bewust een generieke foutmelding terug, zodat een
-      // aanvaller niet weet of het token verlopen is, ongeldig, of iets
-      // anders. Intern kunnen we later wel loggen wat er precies mis is.
+      // In development helpt het om de exacte reden te zien. In productie
+      // kunnen we dit later omzetten naar stille logging.
+      const msg = err instanceof Error ? err.message : String(err);
+      // eslint-disable-next-line no-console
+      console.error('[AuthGuard] JWT verify failed:', msg);
       throw new UnauthorizedException('Ongeldig of verlopen token.');
     }
 
-    // -------- Stap 5: haal user-id + email uit het token --------
+    // -------- Stap 5: user-id + email uit payload halen --------
     if (!payload.sub) {
       throw new UnauthorizedException('Token mist user-id (sub).');
     }
 
-    // Zet de user op het request-object zodat @CurrentUser() en
-    // @RestaurantId() straks weten wie er inlogd is.
+    // Supabase stopt het e-mailadres in "email" — we halen het eruit
+    // als string. Als het ontbreekt (zou niet moeten), zetten we null.
+    const email =
+      typeof payload.email === 'string' ? payload.email : null;
+
     req.user = {
       id: payload.sub,
-      email: payload.email ?? null,
+      email,
     };
 
-    // Alles gecheckt — request mag door.
     return true;
   }
 }
