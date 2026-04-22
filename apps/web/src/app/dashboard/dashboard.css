@@ -52,16 +52,69 @@
   flex-direction: column;
   z-index: 50;
 }
-.dashboard-shell .sb-logo {
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  padding: 0 12px;
-  margin-bottom: 36px;
+/* Oude .sb-logo is verwijderd uit de TSX. Definitie mag blijven staan
+   als andere plekken 'm ooit nog gebruiken, maar hij wordt nu niet
+   meer gerenderd in de sidebar. */
+
+/* ============================================================
+   Workspace-blok bovenin de sidebar
+   ============================================================
+   Het nieuwe "header"-element. Bevat avatar + bedrijfsnaam + e-mail.
+   Klikbaar → opent dropdown met account/uitloggen. */
+.dashboard-shell .sb-workspace-wrap {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.dashboard-shell .sb-workspace {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
-  text-decoration: none;
-  color: var(--text);
-  display: block;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.dashboard-shell .sb-workspace:hover,
+.dashboard-shell .sb-workspace.open {
+  background: var(--hover);
+  border-color: var(--border);
+}
+
+.dashboard-shell .sb-workspace-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Dropdown-menu dat NAAR BENEDEN opent (vanaf het workspace-blok). */
+.dashboard-shell .sb-workspace-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Een dun lijntje tussen menu-groepen (bv. tussen account-settings
+   en uitloggen). */
+.dashboard-shell .sb-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
 }
 .dashboard-shell .sb-section { margin-bottom: 24px; }
 .dashboard-shell .sb-label {
@@ -90,12 +143,7 @@
 .dashboard-shell .sb-item.active { background: var(--hover); color: var(--text); font-weight: 550; }
 .dashboard-shell .sb-icon { font-size: 16px; width: 20px; text-align: center; }
 .dashboard-shell .sb-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
-.dashboard-shell .sb-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-}
+
 .dashboard-shell .sb-urole {
   font-size: 11px;
   color: var(--tl);
@@ -115,8 +163,58 @@
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .dashboard-shell .sb-uname { font-size: 13px; font-weight: 500; }
+
+/* Chevron-pijltje ▾ helemaal rechts — visuele hint dat er een menu is. */
+.dashboard-shell .sb-chevron {
+  font-size: 11px;
+  color: var(--tl);
+  transition: transform 0.12s;
+}
+/* Chevron roteert 180° wanneer het workspace-menu open is. */
+.dashboard-shell .sb-workspace.open .sb-chevron {
+  transform: rotate(180deg);
+}
+
+/* Items in het menu — links én buttons krijgen dezelfde uitstraling. */
+.dashboard-shell .sb-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.dashboard-shell .sb-menu-item:hover {
+  background: var(--hover);
+}
+.dashboard-shell .sb-menu-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+}
+
+/* "Uitloggen" krijgt een subtiele rode accent op hover — duidelijk
+   signaal dat dit een "destructive" actie is (je sessie eindigt). */
+.dashboard-shell .sb-menu-danger {
+  color: var(--text-secondary, var(--tl));
+}
+.dashboard-shell .sb-menu-danger:hover {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
 .dashboard-shell .sb-site-link {
   display: block;
   font-size: 12px;
