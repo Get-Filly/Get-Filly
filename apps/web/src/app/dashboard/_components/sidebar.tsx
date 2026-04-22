@@ -83,9 +83,9 @@ export function Sidebar() {
           ← Bekijk website
         </Link>
         <div className="sb-user">
-          <div className="sb-avatar">BH</div>
+          <div className="sb-avatar">BG</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="sb-uname">Bistro Het Huys</div>
+            <div className="sb-uname">Bistro Get-Filly</div>
             <div className="sb-urole" title={email ?? ""}>
               {email ?? "Pro plan"}
             </div>

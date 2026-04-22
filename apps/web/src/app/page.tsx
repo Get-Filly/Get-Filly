@@ -174,7 +174,7 @@ export default function HomePage() {
             Wat onze klanten zeggen.
           </h2>
           <div className="logos-row">
-            <div className="logo-placeholder">Bistro Het Huys</div>
+            <div className="logo-placeholder">Bistro Get-Filly</div>
             <div className="logo-placeholder">Restaurant De Kas</div>
             <div className="logo-placeholder">Brasserie Lux</div>
             <div className="logo-placeholder">Trattoria Bella</div>
@@ -192,7 +192,7 @@ export default function HomePage() {
                 <div>
                   <div className="testimonial-name">Sophie de Vries</div>
                   <div className="testimonial-role">
-                    Eigenaar, Bistro Het Huys
+                    Eigenaar, Bistro Get-Filly
                   </div>
                 </div>
               </div>

@@ -13,7 +13,7 @@ alter table public.restaurants
   add column if not exists website_summary text,
   add column if not exists website_last_analyzed_at timestamptz;
 
--- Seed: demo-waarden voor Bistro Het Huys
+-- Seed: demo-waarden voor Bistro Get-Filly
 update public.restaurants
 set
   tagline = 'Gezellige buurtbistro in hart van Amsterdam',

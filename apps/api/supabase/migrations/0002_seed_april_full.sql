@@ -1,5 +1,5 @@
 -- ============================================================
--- Fill april 2026 met bezettingsdata voor Bistro Het Huys
+-- Fill april 2026 met bezettingsdata voor Bistro Get-Filly
 -- (vervangt eerdere 7 dagen — deze is compleet)
 -- ============================================================
 

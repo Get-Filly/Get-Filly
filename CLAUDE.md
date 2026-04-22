@@ -50,7 +50,7 @@ apps/
 ## Conventies
 - Backend-services nemen `restaurantId` als parameter (niet hardcoded). Controllers gebruiken `@RestaurantId()` decorator die de `X-Restaurant-Id` header leest of fallback naar demo-id.
 - Frontend gebruikt `fetch` via `src/lib/api.ts`.
-- Seed-restaurant-id is `00000000-0000-0000-0000-000000000001` (Bistro Het Huys).
+- Seed-restaurant-id is `00000000-0000-0000-0000-000000000001` (Bistro Get-Filly).
 - `.env`-bestanden staan in `apps/{web,api}/` — niet in Git, wel vereist voor dev.
 
 ## Wat er draait / status

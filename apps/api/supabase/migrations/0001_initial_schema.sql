@@ -581,7 +581,7 @@ create policy "weather_data_read" on public.weather_data
   for select using (true);
 
 -- ============================================================
--- SEED DATA — Bistro Het Huys
+-- SEED DATA — Bistro Get-Filly
 -- ============================================================
 -- Eén demo-restaurant met voorbeelddata zodat het dashboard
 -- meteen iets zinnigs laat zien.
@@ -596,8 +596,8 @@ insert into public.restaurants (
   social_media, website_url, plan
 ) values (
   '00000000-0000-0000-0000-000000000001',
-  'Bistro Het Huys',
-  'bistro-het-huys',
+  'Bistro Get-Filly',
+  'bistro-get-filly',
   'bistro',
   array['french','dutch'],
   'Gezellige buurtbistro met focus op seizoensgerechten en lokale leveranciers.',
@@ -609,8 +609,8 @@ insert into public.restaurants (
   '{}'::date[],
   'casual',
   array['Kalfsstoof met pommes purée','Zeebaars met lenteuitjes','Crème brûlée'],
-  '{"instagram":"@bistrohethuys","facebook":"bistrohethuys"}'::jsonb,
-  'https://bistrohethuys.example.nl',
+  '{"instagram":"@bistrogetfilly","facebook":"bistrogetfilly"}'::jsonb,
+  'https://bistrogetfilly.example.nl',
   'pro'
 );
 
@@ -650,23 +650,23 @@ insert into public.campaigns (id, restaurant_id, name, type, status, meta, tags,
 insert into public.campaign_mail_content (campaign_id, subject_line, preheader, body_html, body_plain, from_name, reply_to, stats) values
   ('00000000-0000-0000-0000-000000000101',
    '3-gangen Chef''s Lunch voor €24,50',
-   'Donderdag bij Het Huys — een warm welkom met 3 gangen',
+   'Donderdag bij Bistro Get-Filly — een warm welkom met 3 gangen',
    '<p>Beste gast,</p><p>Deze donderdag serveren we onze Chef''s Lunch: 3 gangen voor €24,50.</p><p>Tot dan!</p>',
    'Beste gast, deze donderdag serveren we onze Chef''s Lunch — 3 gangen voor €24,50. Tot dan!',
-   'Bistro Het Huys', 'info@bistrohethuys.example.nl',
+   'Bistro Get-Filly', 'info@bistrogetfilly.example.nl',
    '{"sent":248,"opened":104,"clicked":38,"bounced":2,"unsubscribed":1}'::jsonb),
   ('00000000-0000-0000-0000-000000000103',
    'Ons voorjaarsmenu staat klaar',
    'Asperges, radijzen, rabarber — kom proeven',
    '<p>De asperges zijn binnen, de radijzen en rabarber ook.</p><p>Ons nieuwe voorjaarsmenu is vanaf vrijdag te proeven.</p>',
    'De asperges zijn binnen, de radijzen en rabarber ook. Ons nieuwe voorjaarsmenu is vanaf vrijdag te proeven.',
-   'Bistro Het Huys', 'info@bistrohethuys.example.nl',
+   'Bistro Get-Filly', 'info@bistrogetfilly.example.nl',
    '{}'::jsonb);
 
 -- Social content (voor campagne 102 en 104)
 insert into public.campaign_social_content (campaign_id, caption, hashtags, media_urls, platforms, stats) values
   ('00000000-0000-0000-0000-000000000102',
-   'Pasen bij Het Huys — brunch met bubbels en lam van eigen grill. Tag iemand die erbij wil! 🌷',
+   'Pasen bij Bistro Get-Filly — brunch met bubbels en lam van eigen grill. Tag iemand die erbij wil! 🌷',
    array['pasen','brunch','amsterdam','bistro'],
    array[]::text[],
    array['instagram','facebook'],
@@ -686,11 +686,11 @@ insert into public.ai_suggestions (restaurant_id, trigger_type, trigger_context,
    'pending'),
   ('00000000-0000-0000-0000-000000000001', 'seasonal',
    '{"upcoming_event":"Koningsdag","date":"2026-04-27"}'::jsonb,
-   '{"name":"Koningsdag brunch","type":"social","caption":"Oranje bitterballen bij Het Huys 🧡"}'::jsonb,
+   '{"name":"Koningsdag brunch","type":"social","caption":"Oranje bitterballen bij Bistro Get-Filly 🧡"}'::jsonb,
    'pending'),
   ('00000000-0000-0000-0000-000000000001', 'retention',
    '{"segment":"inactief","guest_count":23}'::jsonb,
-   '{"name":"We missen je — 10% korting","type":"mail","subject":"Kom terug naar Het Huys","segment":"inactief"}'::jsonb,
+   '{"name":"We missen je — 10% korting","type":"mail","subject":"Kom terug naar Bistro Get-Filly","segment":"inactief"}'::jsonb,
    'pending');
 
 -- Chat conversatie + berichten
