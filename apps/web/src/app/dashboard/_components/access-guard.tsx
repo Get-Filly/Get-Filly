@@ -42,6 +42,10 @@ const PATH_MODULE_MAP: Array<{ prefix: string; module: Module }> = [
   { prefix: "/dashboard/menu", module: "menu" },
   { prefix: "/dashboard/rapportages", module: "rapportages" },
   { prefix: "/dashboard/koppelingen", module: "koppelingen" },
+  // Team-subpagina vereist eigen module-check (alleen owner).
+  // Moet VOOR /dashboard/account staan, anders wordt die eerder
+  // gematcht (prefix-match "startsWith").
+  { prefix: "/dashboard/account/team", module: "team" },
   { prefix: "/dashboard/account", module: "account" },
   // /dashboard zelf (zonder sub-pad) valt onder 'dashboard'.
   { prefix: "/dashboard", module: "dashboard" },

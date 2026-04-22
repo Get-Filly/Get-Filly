@@ -1235,3 +1235,180 @@
 }
 .dashboard-shell .briefing-item { display: flex; align-items: center; gap: 6px; }
 .dashboard-shell .briefing-item strong { font-weight: 600; }
+
+/* ============================================================
+   Account sub-tabs (Profiel / Team)
+   ============================================================ */
+.dashboard-shell .account-shell {
+  /* .main heeft overflow:hidden + vaste hoogte, dus deze container
+     moet zelf scrollbaar zijn anders valt inhoud onderaan weg. */
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+}
+.dashboard-shell .account-tabs,
+.dashboard-shell .account-tab-content {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.dashboard-shell .account-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.dashboard-shell .account-tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--tl);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
+}
+.dashboard-shell .account-tab:hover { color: var(--text); }
+.dashboard-shell .account-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--text);
+  font-weight: 500;
+}
+
+/* ============================================================
+   Team-pagina
+   ============================================================ */
+.dashboard-shell .team-page { display: flex; flex-direction: column; gap: 16px; }
+.dashboard-shell .team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.dashboard-shell .team-title { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+.dashboard-shell .team-subtitle {
+  font-size: 13px;
+  color: var(--tl);
+  margin: 0;
+  max-width: 520px;
+}
+.dashboard-shell .team-invite-btn {
+  padding: 8px 14px;
+  background: var(--accent, #0F0F0F);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  white-space: nowrap;
+}
+.dashboard-shell .team-invite-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dashboard-shell .team-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--tl);
+  font-size: 13px;
+}
+.dashboard-shell .team-error { color: #DC2626; }
+
+.dashboard-shell .team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dashboard-shell .team-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.12s;
+}
+.dashboard-shell .team-card.open { border-color: var(--text, #18181B); }
+
+.dashboard-shell .team-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.dashboard-shell .team-who { flex: 1; min-width: 0; }
+.dashboard-shell .team-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashboard-shell .team-email {
+  font-size: 12px;
+  color: var(--tl);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashboard-shell .team-role-select {
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg, #fff);
+  cursor: pointer;
+}
+.dashboard-shell .team-toggle-btn,
+.dashboard-shell .team-remove-btn,
+.dashboard-shell .team-reset-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.12s, border-color 0.12s;
+}
+.dashboard-shell .team-toggle-btn:hover,
+.dashboard-shell .team-reset-btn:hover { background: var(--hover); }
+.dashboard-shell .team-remove-btn { color: #DC2626; }
+.dashboard-shell .team-remove-btn:hover { background: #FEF2F2; border-color: #DC2626; }
+.dashboard-shell .team-remove-btn:disabled,
+.dashboard-shell .team-toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dashboard-shell .team-permissions {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px 16px;
+  background: #FAFAFB;
+}
+.dashboard-shell .team-permissions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--tl);
+  margin-bottom: 10px;
+}
+
+.dashboard-shell .team-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.dashboard-shell .team-module {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.dashboard-shell .team-module input { cursor: pointer; }
+.dashboard-shell .team-module.on { border-color: #0F0F0F; }
+.dashboard-shell .team-module.locked { opacity: 0.6; cursor: not-allowed; }
+.dashboard-shell .team-module.locked input { cursor: not-allowed; }

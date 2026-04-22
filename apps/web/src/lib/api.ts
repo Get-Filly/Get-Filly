@@ -390,3 +390,53 @@ export async function updateSuggestion(
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+// ============================================================
+// Team management
+// ============================================================
+// Endpoints onder /api/team voor het beheren van teamleden binnen het
+// actieve restaurant. Alleen de owner mag hier wijzigingen maken —
+// de backend weigert het voor andere rollen met 403.
+
+import type { Module, Role } from "@getfilly/shared";
+
+export type TeamMember = {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  role: Role;
+  permissions: { modules: Module[] } | null;
+  created_at: string;
+};
+
+export async function fetchTeam(): Promise<TeamMember[]> {
+  const res = await authedFetch(`${API_URL}/team`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Wijzig rol en/of custom permissies van een teamlid.
+ *   - permissions: undefined → niet meegestuurd (blijft ongewijzigd)
+ *   - permissions: null      → custom permissies UIT (terug naar rol-defaults)
+ *   - permissions: Module[]  → custom permissies aan
+ */
+export async function updateTeamMember(
+  userId: string,
+  updates: { role?: Role; permissions?: Module[] | null },
+): Promise<TeamMember> {
+  const res = await authedFetch(`${API_URL}/team/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function removeTeamMember(userId: string): Promise<void> {
+  const res = await authedFetch(`${API_URL}/team/${userId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
