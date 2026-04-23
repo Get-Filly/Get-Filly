@@ -50,6 +50,7 @@ export class ReviewsService {
   async generateReplySuggestion(
     restaurantId: string,
     reviewId: string,
+    userId: string,
   ): Promise<{ suggestion: string }> {
     const { data: review, error: reviewErr } = await this.supabase.client
       .from('reviews')
@@ -86,6 +87,11 @@ export class ReviewsService {
       // consistent voor nu.
       model: 'claude-sonnet-4-6',
       maxTokens: 400,
+      meta: {
+        restaurantId,
+        userId,
+        feature: 'review_reply',
+      },
     });
 
     return { suggestion: suggestion.trim() };

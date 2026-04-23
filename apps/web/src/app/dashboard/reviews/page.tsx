@@ -46,12 +46,31 @@ export default function ReviewsPage() {
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
   const [replyTo, setReplyTo] = useState<Review | null>(null);
   const [replyText, setReplyText] = useState("");
+  // Bewaart alle Filly-varianten PER REVIEW, op page-niveau dus niet
+  // in de modal. Bewust: als de user per ongeluk naast de modal klikt
+  // zijn de gegenereerde voorstellen (en de bijbehorende Claude-kosten)
+  // niet weg. Ze blijven staan tot de user een reactie verstuurt —
+  // dan wissen we ze pas. Page-refresh wist wel, dat vinden we prima:
+  // rate-limit op de server (100/uur) is de echte bescherming.
+  const [variantsByReview, setVariantsByReview] = useState<
+    Record<string, string[]>
+  >({});
+  // Afgeleide waarde: de varianten voor de nu-open review. Pure helper
+  // om de JSX leesbaar te houden.
+  const variants = replyTo ? (variantsByReview[replyTo.id] ?? []) : [];
   // Status van de AI-call en van het opslaan. We splitsen deze bewust
   // uit zodat de knoppen onafhankelijk van elkaar een loading-state
   // kunnen tonen (genereren vs. versturen).
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Max 3 Filly-voorstellen per review-sessie. Klikt user modal weg
+  // en opent 'm opnieuw voor dezelfde review? Dan wordt de teller
+  // gereset — dat is bewust: elke "sessie" krijgt 3 kansen, niet
+  // levenslang 3 per review. Abuse op rij-niveau vangen we al af
+  // met de server-side rate-limit (100/uur/restaurant).
+  const MAX_VARIANTS = 3;
 
   useEffect(() => {
     fetchReviews()
@@ -108,23 +127,31 @@ export default function ReviewsPage() {
   ];
 
   const openReply = (r: Review) => {
-    // We openen de modal met een leeg veld. Filly genereert alleen
-    // als de gebruiker er om vraagt — zo verspillen we geen Claude-
-    // tokens op reviews die de eigenaar zelf wil tikken.
+    // We openen de modal en pakken eventueel eerder gegenereerde
+    // varianten terug (bv. user heeft modal per ongeluk weggeklikt).
+    // Tekstveld default: laatst gekozen variant indien aanwezig,
+    // anders leeg. Filly wordt alleen aangeroepen op expliciet verzoek
+    // — we verspillen geen Claude-tokens op openen alleen.
     setReplyTo(r);
-    setReplyText("");
+    const existing = variantsByReview[r.id] ?? [];
+    setReplyText(existing[existing.length - 1] ?? "");
     setError(null);
   };
 
-  // Vraagt Filly om een suggestie en vult 'm in het tekstveld. Bij
-  // falen tonen we een korte NL-melding; de user kan dan alsnog zelf
-  // typen of opnieuw proberen.
+  // Vraagt Filly om een suggestie. Nieuwe variant wordt toegevoegd aan
+  // de per-review-lijst EN direct in het tekstveld gezet zodat de user
+  // 'm meteen kan bewerken.
   const requestFillySuggestion = async () => {
     if (!replyTo) return;
+    if (variants.length >= MAX_VARIANTS) return; // Dubbele bescherming
     setGenerating(true);
     setError(null);
     try {
       const { suggestion } = await generateReviewReply(replyTo.id);
+      setVariantsByReview((prev) => ({
+        ...prev,
+        [replyTo.id]: [...(prev[replyTo.id] ?? []), suggestion],
+      }));
       setReplyText(suggestion);
     } catch (e) {
       setError(
@@ -134,6 +161,12 @@ export default function ReviewsPage() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Klikken op een variant in de kiezer = dat voorstel overnemen in
+  // het tekstveld (overschrijft wat er stond).
+  const pickVariant = (text: string) => {
+    setReplyText(text);
   };
 
   const sendReply = async () => {
@@ -146,6 +179,13 @@ export default function ReviewsPage() {
       // zo hebben we gegarandeerd dezelfde data als de server (incl.
       // responded_at-timestamp).
       setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      // Opgeruimd: varianten voor deze review hebben we niet meer
+      // nodig, de reactie is definitief verstuurd.
+      setVariantsByReview((prev) => {
+        const next = { ...prev };
+        delete next[replyTo.id];
+        return next;
+      });
       setReplyTo(null);
       setReplyText("");
     } catch (e) {
@@ -334,31 +374,97 @@ export default function ReviewsPage() {
               </div>
             </div>
 
-            {/* Filly-banner: je kunt 'm laten schrijven of opnieuw laten
-                genereren als je het eerste voorstel niet raak vindt. */}
-            <div className="review-modal-filly-banner">
-              <div>
-                <strong>
-                  {replyText
-                    ? "Filly heeft een antwoord voorgesteld."
-                    : "Laat Filly een antwoord schrijven?"}
-                </strong>{" "}
-                {replyText
-                  ? "Pas het aan zoals je wil — jij hebt de controle."
-                  : "Of tik zelf rechtstreeks in het veld hieronder."}
+            {/* Filly-banner: tot MAX_VARIANTS voorstellen kan de user
+                laten genereren. Daarna verdwijnt de knop en krijgt de
+                user een kiezer tussen de 3 varianten. */}
+            {variants.length < MAX_VARIANTS ? (
+              <div className="review-modal-filly-banner">
+                <div>
+                  <strong>
+                    {variants.length === 0
+                      ? "Laat Filly een antwoord schrijven?"
+                      : "Filly heeft een voorstel gedaan."}
+                  </strong>{" "}
+                  {variants.length === 0
+                    ? "Of tik zelf rechtstreeks in het veld hieronder."
+                    : `Pas het aan, of probeer nog een variant (${variants.length}/${MAX_VARIANTS}).`}
+                </div>
+                <button
+                  className="sg-btn"
+                  onClick={requestFillySuggestion}
+                  disabled={generating}
+                >
+                  {generating
+                    ? "Filly denkt na…"
+                    : variants.length === 0
+                      ? "Laat Filly schrijven"
+                      : "Nog een variant"}
+                </button>
               </div>
-              <button
-                className="sg-btn"
-                onClick={requestFillySuggestion}
-                disabled={generating}
+            ) : (
+              <div className="review-modal-filly-banner">
+                <div>
+                  <strong>Je hebt {MAX_VARIANTS} voorstellen gehad.</strong>{" "}
+                  Kies hieronder je favoriet en pas 'm naar wens aan.
+                </div>
+              </div>
+            )}
+
+            {/* Kiezer: alleen zichtbaar zodra er meerdere varianten zijn.
+                Klik op een kaartje = tekstveld wordt overschreven. Het
+                actieve kaartje (= wat in het veld staat) markeren we
+                met een brand-groene rand zodat het duidelijk is. */}
+            {variants.length > 1 && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${variants.length}, 1fr)`,
+                  gap: 8,
+                  marginTop: 12,
+                }}
               >
-                {generating
-                  ? "Filly denkt na…"
-                  : replyText
-                    ? "Opnieuw genereren"
-                    : "Laat Filly schrijven"}
-              </button>
-            </div>
+                {variants.map((v, i) => {
+                  const active = v === replyText;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => pickVariant(v)}
+                      style={{
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: active
+                          ? "2px solid var(--brand, #1F4A2D)"
+                          : "1px solid var(--border, #ddd)",
+                        borderRadius: 8,
+                        background: active
+                          ? "var(--brand-soft, #eef3ee)"
+                          : "var(--surface, #fff)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        lineHeight: 1.45,
+                        color: "var(--text)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          marginBottom: 4,
+                          color: active ? "var(--brand, #1F4A2D)" : "var(--muted, #666)",
+                        }}
+                      >
+                        Variant {i + 1}
+                        {active ? " · gekozen" : ""}
+                      </div>
+                      {/* Snippet — eerste ~120 tekens zodat 3 kaartjes
+                          naast elkaar passen zonder te veel te schreeuwen. */}
+                      {v.length > 120 ? v.slice(0, 120) + "…" : v}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {error && (
               <div

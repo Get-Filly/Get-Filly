@@ -5,22 +5,37 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
+import { SupabaseService } from '../supabase/supabase.service';
 
-// Centrale wrapper rond de Anthropic SDK. Alle andere modules
-// (reviews, suggesties, chat, menu-vision) roepen via deze service
-// Claude aan, zodat we op één plek model-keuze, foutafhandeling,
-// logging en later prompt-caching beheren.
+// Metadata die elke AI-call ons moet geven — dit is verplicht zodat
+// geen enkele Filly-feature per ongeluk zonder tracking draait.
+// TypeScript dwingt de caller om restaurantId + feature mee te geven.
+export type AiCallMeta = {
+  restaurantId: string;
+  // Optioneel: scheduled jobs hebben geen user die klikt.
+  userId?: string;
+  // Snake-case identificatie van de Filly-feature.
+  // Bestaande: 'review_reply'. Binnenkort: 'chat', 'suggestion',
+  // 'menu_vision'. Eén woord per feature is genoeg.
+  feature: string;
+};
+
+// Centrale wrapper rond de Anthropic SDK. Alle Filly-features roepen
+// hier langs zodat model-keuze, foutafhandeling, usage-logging en
+// (later) prompt-caching op één plek leven.
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
 
-  // We houden de client in een veld zodat we 'm één keer initialiseren
-  // bij opstart. Null betekent: API-key ontbreekt — de app mag dan nog
-  // wel draaien (handig tijdens dev), maar elke AI-call gooit een
-  // nette error zodra ie daadwerkelijk gebruikt wordt.
+  // Client null = API-key ontbreekt. App mag draaien (handig tijdens
+  // dev voor andere modules), maar elke AI-call gooit dan een nette
+  // NL-error in plaats van te crashen op een undefined.
   private client: Anthropic | null = null;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly supabase: SupabaseService,
+  ) {
     const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
     if (apiKey) {
       this.client = new Anthropic({ apiKey });
@@ -31,9 +46,6 @@ export class AiService {
     }
   }
 
-  // Helper om de client te gebruiken. Gooit een heldere NL-error als
-  // de key ontbreekt, zodat de frontend weet wat er aan de hand is
-  // in plaats van een cryptische undefined-crash te zien.
   private getClient(): Anthropic {
     if (!this.client) {
       throw new InternalServerErrorException(
@@ -44,11 +56,11 @@ export class AiService {
   }
 
   // Generieke tekst-generatie. Elke caller geeft zijn eigen system-prompt
-  // (de "rol" die Filly speelt voor die specifieke taak) en de user-prompt
-  // (de concrete data: review, gast-info, menu, etc.).
+  // (de "rol" die Filly speelt voor die taak), user-prompt (de concrete
+  // data) én meta (wie vraagt het, voor welke feature). Zonder meta
+  // kom je niet eens door de TypeScript-check — bewust.
   //
-  // We kiezen per call welk model — default Sonnet 4.6 is de sweet spot
-  // qua kwaliteit voor NL-teksten zoals review-replies en campagne-copy.
+  // Model-default is Sonnet 4.6: balans kwaliteit/kosten voor NL-tekst.
   // Voor snelle/simpele taken kan de caller Haiku 4.5 doorgeven, voor
   // zware context-redenaties Opus 4.7.
   async generateText(opts: {
@@ -56,11 +68,13 @@ export class AiService {
     prompt: string;
     model?: string;
     maxTokens?: number;
+    meta: AiCallMeta;
   }): Promise<string> {
     const client = this.getClient();
+    const model = opts.model ?? 'claude-sonnet-4-6';
 
     const response = await client.messages.create({
-      model: opts.model ?? 'claude-sonnet-4-6',
+      model,
       max_tokens: opts.maxTokens ?? 1024,
       system: opts.system,
       messages: [{ role: 'user', content: opts.prompt }],
@@ -79,6 +93,35 @@ export class AiService {
       );
     }
 
+    // Fire-and-forget usage-logging — als dit faalt (bv. DB tijdelijk
+    // traag) MAG de call niet mislukken, de gebruiker heeft al een
+    // antwoord. We loggen een warning en gaan door.
+    void this.logUsage(opts.meta, model, response.usage).catch((err) => {
+      this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
+    });
+
     return textBlock.text;
+  }
+
+  // Insert in ai_usage. Gaat via service_role (SupabaseService gebruikt
+  // de service-key), dus RLS-policies raken dit niet.
+  private async logUsage(
+    meta: AiCallMeta,
+    model: string,
+    usage: Anthropic.Usage,
+  ): Promise<void> {
+    const { error } = await this.supabase.client.from('ai_usage').insert({
+      restaurant_id: meta.restaurantId,
+      user_id: meta.userId ?? null,
+      feature: meta.feature,
+      model,
+      // Anthropic's usage: input_tokens = NIET-gecachte input,
+      // cache_read_input_tokens = wel-gecachte. Voor nu cachen we nog
+      // niet; beide kunnen straks vol komen als we caching aanzetten.
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cached_input_tokens: usage.cache_read_input_tokens ?? null,
+    });
+    if (error) throw new Error(error.message);
   }
 }
