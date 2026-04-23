@@ -5,7 +5,6 @@ import { KpiRow } from "./_components/kpi-row";
 import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
 import { DetailCard } from "./_components/detail-card";
-import { ChartCard } from "./_components/chart-card";
 import { FillyChat } from "./_components/filly-chat";
 import { fetchOccupancy, type OccupancyDay } from "../../lib/api";
 
@@ -18,20 +17,12 @@ export default function DashboardPage() {
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
-  const [occLoading, setOccLoading] = useState(true);
 
-  // Eén bron voor kalender, detail en grafiek
+  // Eén bron voor kalender en alert-bar.
   useEffect(() => {
-    setOccLoading(true);
     fetchOccupancy(viewYear, viewMonth)
-      .then((d) => {
-        setOccupancy(d);
-        setOccLoading(false);
-      })
-      .catch(() => {
-        setOccupancy([]);
-        setOccLoading(false);
-      });
+      .then(setOccupancy)
+      .catch(() => setOccupancy([]));
   }, [viewYear, viewMonth]);
 
   // Alert-bar: dagen komende 14 dagen met bezetting onder 50%
@@ -86,17 +77,8 @@ export default function DashboardPage() {
               year={viewYear}
               month={viewMonth}
               selectedDay={selectedDay}
-              occupancy={occupancy}
-              occLoading={occLoading}
             />
           </div>
-          <ChartCard
-            view={view}
-            year={viewYear}
-            month={viewMonth}
-            selectedDay={selectedDay}
-            occupancy={occupancy}
-          />
         </div>
         <div className="right-col">
           <FillyChat />

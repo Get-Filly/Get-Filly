@@ -9,6 +9,16 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
+/**
+ * Bepaalt of een gast via Filly is binnengekomen.
+ * MOCK: deterministisch op basis van guest-id (~20%). Later: join op
+ * reservations.source of een dedicated guests.acquired_via-veld.
+ */
+function isFromFilly(g: Guest): boolean {
+  const code = g.id.charCodeAt(g.id.length - 1);
+  return code % 5 === 0;
+}
+
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
   const then = new Date(dateStr).getTime();
@@ -87,6 +97,7 @@ export default function GastenPage() {
       if (!g.birthday) return false;
       return new Date(g.birthday).getMonth() === currentMonth;
     });
+    const viaFilly = guests.filter(isFromFilly).length;
     return {
       total: guests.length,
       active90,
@@ -95,6 +106,7 @@ export default function GastenPage() {
       atRisk,
       totalLtv,
       birthdaysThisMonth,
+      viaFilly,
     };
   }, [guests]);
 
@@ -125,6 +137,10 @@ export default function GastenPage() {
         <div className="stat-card">
           <div className="stat-card-label">Totaal gasten</div>
           <div className="stat-card-val">{stats.total}</div>
+        </div>
+        <div className="stat-card stat-card-filly">
+          <div className="stat-card-label">Via Filly</div>
+          <div className="stat-card-val">{stats.viaFilly}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Actief (90 dgn)</div>
@@ -275,8 +291,23 @@ export default function GastenPage() {
                         </span>
                       )}
                       <div>
-                        <div style={{ fontWeight: 500 }}>
-                          {g.first_name} {g.last_name}
+                        <div
+                          style={{
+                            fontWeight: 500,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span>
+                            {g.first_name} {g.last_name}
+                          </span>
+                          {isFromFilly(g) && (
+                            <span className="filly-pill" title="Via een Filly-campagne binnengekomen">
+                              Via Filly
+                            </span>
+                          )}
                         </div>
                         <div style={{ color: "var(--tl)", fontSize: 11 }}>
                           {g.email ?? "—"}

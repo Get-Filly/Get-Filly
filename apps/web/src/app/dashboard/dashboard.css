@@ -2,27 +2,28 @@
    ze geen conflict geven met de publieke site. */
 
 .dashboard-shell {
-  /* Linear-geïnspireerd: zwart accent, neutraal grijs, subtiele shadows.
-     Dashboard-tokens zijn nu gelijkgetrokken met de publieke site. */
-  --bg: #FAFAFA;
-  --surface: #F7F7F8;
+  /* Gelijkgetrokken met de publieke site: papier-warm + British Racing
+     Green accent. Signaalkleuren (groen/oranje/rood voor bezetting)
+     blijven semantisch onveranderd. */
+  --bg: #FAF7F1;
+  --surface: #EFE8D8;
   --white: #FFFFFF;
   --text: #18181B;
   --ts: #52525B;
   --tl: #A1A1AA;
-  --border: #E4E4E7;
-  --border-soft: #F1F1F3;
-  --accent: #0F0F0F;
-  --accent-dark: #000000;
-  --accent-light: #F4F4F5;
-  --blue: #0F0F0F;
-  --bl: #F4F4F5;
+  --border: #E5DFD0;
+  --border-soft: #EFE8D8;
+  --accent: #1F4A2D;
+  --accent-dark: #0E2B17;
+  --accent-light: #D6E0D8;
+  --blue: #1F4A2D;
+  --bl: #D6E0D8;
   --green: #16A34A;
   --gb: #F0FDF4;
   --orange: #F97316;
   --ob: #FFF7ED;
   --red: #DC2626;
-  --hover: #F4F4F5;
+  --hover: #D6E0D8;
   --r: 8px;
   --rs: 6px;
   --rf: 999px;
@@ -38,19 +39,24 @@
   line-height: 1.5;
 }
 
-/* Sidebar */
+/* Sidebar — bosgroen (brand-accent). Alle content binnen de sidebar
+   gebruikt lichte kleuren voor contrast. De dropdown-popover daarentegen
+   blijft op lichte bg (is een overlay, niet deel van de balk). */
 .dashboard-shell .sidebar {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   width: 220px;
-  background: var(--white);
-  border-right: 1px solid var(--border);
-  padding: 24px 12px;
+  background: var(--accent);
+  border-right: 1px solid var(--accent-dark);
+  /* padding-top: 12 zodat het workspace-blok verticaal aligneert met
+     de topbar-titel aan de rechterkant. */
+  padding: 12px 12px 24px;
   display: flex;
   flex-direction: column;
   z-index: 50;
+  color: rgba(255, 255, 255, 0.75);
 }
 /* Oude .sb-logo is verwijderd uit de TSX. Definitie mag blijven staan
    als andere plekken 'm ooit nog gebruiken, maar hij wordt nu niet
@@ -83,8 +89,10 @@
 }
 .dashboard-shell .sb-workspace:hover,
 .dashboard-shell .sb-workspace.open {
-  background: var(--hover);
-  border-color: var(--border);
+  /* Op groene sidebar: iets lichtere transparante overlay i.p.v. het
+     brand-soft-hover die wit is op witte achtergrond. */
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .dashboard-shell .sb-workspace-text {
@@ -122,7 +130,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--tl);
+  /* Licht uit op groen — subtieler dan brand-groen label-zwart. */
+  color: rgba(255, 255, 255, 0.45);
   padding: 0 12px;
   margin-bottom: 8px;
 }
@@ -134,19 +143,30 @@
   border-radius: var(--rs);
   font-size: 13px;
   font-weight: 450;
-  color: var(--ts);
+  color: rgba(255, 255, 255, 0.75);
   cursor: pointer;
   transition: all 0.12s;
   text-decoration: none;
 }
-.dashboard-shell .sb-item:hover { background: var(--hover); color: var(--text); }
-.dashboard-shell .sb-item.active { background: var(--hover); color: var(--text); font-weight: 550; }
+.dashboard-shell .sb-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+.dashboard-shell .sb-item.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-weight: 550;
+}
 .dashboard-shell .sb-icon { font-size: 16px; width: 20px; text-align: center; }
-.dashboard-shell .sb-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.dashboard-shell .sb-bottom {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
 
 .dashboard-shell .sb-urole {
   font-size: 11px;
-  color: var(--tl);
+  color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -156,21 +176,23 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--bl);
-  color: var(--blue);
+  /* Crème avatar met bosgroen initialen — leest goed op de donkere
+     groene sidebar. */
+  background: var(--bg);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
 }
-.dashboard-shell .sb-uname { font-size: 13px; font-weight: 500; }
+.dashboard-shell .sb-uname { font-size: 13px; font-weight: 600; color: #ffffff; }
 
 /* Chevron-pijltje ▾ helemaal rechts — visuele hint dat er een menu is. */
 .dashboard-shell .sb-chevron {
   font-size: 11px;
-  color: var(--tl);
+  color: rgba(255, 255, 255, 0.5);
   transition: transform 0.12s;
 }
 /* Chevron roteert 180° wanneer het workspace-menu open is. */
@@ -294,12 +316,12 @@
 .dashboard-shell .sb-site-link {
   display: block;
   font-size: 12px;
-  color: var(--tl);
+  color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
   padding: 6px 12px 12px;
   transition: color 0.12s;
 }
-.dashboard-shell .sb-site-link:hover { color: var(--accent); }
+.dashboard-shell .sb-site-link:hover { color: #ffffff; }
 
 /* Topbar */
 .dashboard-shell .topbar {
@@ -307,8 +329,10 @@
   top: 0;
   left: 220px;
   right: 0;
-  height: 56px;
-  background: rgba(246, 246, 246, 0.85);
+  /* 64px zodat de titel verticaal uitlijnt met het workspace-blok in
+     de sidebar (workspace is ~40-48px, centered in 64 = ~32). */
+  height: 64px;
+  background: rgba(250, 247, 241, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
@@ -339,14 +363,15 @@
 /* Main + layout */
 .dashboard-shell .main {
   margin-left: 220px;
-  padding-top: 56px;
+  /* matcht de nieuwe topbar-hoogte (64) */
+  padding-top: 64px;
   height: 100%;
   overflow: hidden;
 }
 .dashboard-shell .page {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 56px);
+  height: calc(100% - 64px);
 }
 .dashboard-shell .dash-top { padding: 24px 28px 0; flex-shrink: 0; }
 .dashboard-shell .dash-body {
@@ -399,21 +424,166 @@
   padding: 16px 18px;
 }
 .dashboard-shell .kpi-label { font-size: 12px; color: var(--tl); font-weight: 450; }
-.dashboard-shell .kpi-ri {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 3px;
-}
 .dashboard-shell .kpi-val {
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.5px;
+  margin-top: 4px;
 }
-.dashboard-shell .kpi-trend { font-size: 12px; font-weight: 500; }
-.dashboard-shell .tu { color: #1B7A2E; }
-.dashboard-shell .td { color: #CC2F27; }
-.dashboard-shell .tn { color: var(--tl); }
+/* Filly-subtekst per KPI — groene regel die aangeeft wat Filly voor
+   deze metric heeft opgeleverd. Kernwoord: visueel signaal = brand-groen. */
+.dashboard-shell .kpi-filly {
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-top: 6px;
+  color: var(--tl);
+  letter-spacing: -0.1px;
+}
+.dashboard-shell .kpi-filly-positive { color: var(--accent); }
+
+/* "Via Filly"-pill — overal waar we attributie tonen (reserveringen,
+   gasten-rij, etc.). Kleine brand-soft badge met groene letters. */
+.dashboard-shell .filly-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--rf);
+  background: var(--hover);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* Variant op stat-card voor Filly-attributie stats. Subtiele brand-rand
+   links zodat het visueel aansluit bij andere Filly-attributie-elementen
+   op de pagina. */
+.dashboard-shell .stat-card-filly {
+  border-left: 3px solid var(--accent);
+}
+.dashboard-shell .stat-card-filly .stat-card-val {
+  color: var(--accent);
+}
+
+/* Maand-navigator boven de rapportages-pagina: ← april 2026 → + vandaag.
+   Vervangt de oude periode-tabs. Bestaande .cal-nav-btn + .cal-today-btn
+   worden hergebruikt voor visuele consistentie met de dashboard-kalender. */
+.dashboard-shell .rep-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dashboard-shell .rep-month-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  min-width: 140px;
+}
+
+/* ==== Rapport-pagina secties ====
+   Elke sectie krijgt een kopje (eyebrow + grote titel) zodat de
+   pagina niet één lange lijst kaarten wordt maar duidelijke groepen.
+   Gebruikt op /dashboard/rapportages. */
+.dashboard-shell .rep-section {
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+.dashboard-shell .rep-section-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.dashboard-shell .rep-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.dashboard-shell .rep-section-desc {
+  font-size: 12px;
+  color: var(--ts);
+  margin-bottom: 14px;
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+/* Filly-ROI mini-bar-chart: simpele flexbox-balken per maand. */
+.dashboard-shell .roi-chart {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  align-items: end;
+  height: 160px;
+  padding: 8px 0;
+}
+.dashboard-shell .roi-chart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.dashboard-shell .roi-chart-bar {
+  width: 100%;
+  max-width: 42px;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.3s;
+}
+.dashboard-shell .roi-chart-label {
+  font-size: 10px;
+  color: var(--tl);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.dashboard-shell .roi-chart-val {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Break-even callout: groen bordje met verhouding */
+.dashboard-shell .roi-breakeven {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  padding: 18px;
+  background: var(--accent-light);
+  border: 1px solid var(--hover);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r);
+  margin-top: 8px;
+}
+.dashboard-shell .roi-breakeven-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dashboard-shell .roi-breakeven-label {
+  font-size: 11px;
+  color: var(--ts);
+  font-weight: 500;
+}
+.dashboard-shell .roi-breakeven-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.4px;
+}
+.dashboard-shell .roi-breakeven-sub {
+  font-size: 11px;
+  color: var(--ts);
+}
+
 
 /* Weer */
 .dashboard-shell .weather-row {
@@ -426,6 +596,13 @@
   border-radius: 8px;
   padding: 10px 2px;
   text-align: center;
+  /* Min-height zodat de weather-kaartjes altijd dezelfde hoogte hebben
+     en content niet wegvalt als de container smaller wordt. */
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
 }
 .dashboard-shell .weather-day.today { border: 1.5px solid var(--accent); }
 .dashboard-shell .wd-day {
@@ -1370,7 +1547,7 @@
 }
 .dashboard-shell .team-invite-btn {
   padding: 8px 14px;
-  background: var(--accent, #0F0F0F);
+  background: var(--accent, #1F4A2D);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -1485,7 +1662,7 @@
   transition: border-color 0.12s, background 0.12s;
 }
 .dashboard-shell .team-module input { cursor: pointer; }
-.dashboard-shell .team-module.on { border-color: #0F0F0F; }
+.dashboard-shell .team-module.on { border-color: var(--accent); }
 .dashboard-shell .team-module.locked { opacity: 0.6; cursor: not-allowed; }
 .dashboard-shell .team-module.locked input { cursor: not-allowed; }
 
@@ -1648,7 +1825,7 @@
   display: flex;
   gap: 6px;
   align-items: stretch;
-  background: #F7F7F8;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px;

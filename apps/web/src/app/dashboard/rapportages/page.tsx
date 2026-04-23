@@ -11,20 +11,35 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
-type Period = "maand" | "kwartaal" | "jaar";
-
-const periodLabel: Record<Period, string> = {
-  maand: "Deze maand",
-  kwartaal: "Dit kwartaal",
-  jaar: "Dit jaar",
-};
-
 const dayLabels = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
+
+const maandenNL = [
+  "januari",
+  "februari",
+  "maart",
+  "april",
+  "mei",
+  "juni",
+  "juli",
+  "augustus",
+  "september",
+  "oktober",
+  "november",
+  "december",
+];
+
+function monthLabel(year: number, month: number): string {
+  const name = maandenNL[month];
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${year}`;
+}
 
 function mondayIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
 }
 
+// Bezetting-gezondheid met signaalkleuren (semantisch: rood=slecht,
+// groen=goed). Deze blijft bewust buiten de brand-kleuren want de
+// betekenis is primair status, niet brand.
 function occColor(pct: number): string {
   if (pct >= 80) return "#16A34A";
   if (pct >= 60) return "#84CC16";
@@ -32,30 +47,19 @@ function occColor(pct: number): string {
   return "#DC2626";
 }
 
+// Heatmap-intensiteit op brand-groen i.p.v. zwart. Alpha schaalt met
+// bezettingspercentage — donkere cel = druk.
 function heatmapCell(pct: number): string {
-  // Off-white → accent intensity via alpha
-  const alpha = pct / 100;
-  return `rgba(15, 15, 15, ${alpha * 0.85})`;
+  const alpha = (pct / 100) * 0.85;
+  return `rgba(31, 74, 45, ${alpha})`;
 }
 
-// Mock hourly occupancy: 7 days x 12 hours (10:00-21:00)
-const hourLabels = [
-  "11",
-  "12",
-  "13",
-  "14",
-  "15",
-  "17",
-  "18",
-  "19",
-  "20",
-  "21",
-  "22",
-];
+// Mock hourly occupancy: 7 days x 11 time-slots (11:00-22:00).
+const hourLabels = ["11", "12", "13", "14", "15", "17", "18", "19", "20", "21", "22"];
 function generateMockHourly(): number[][] {
   const baseline = [40, 75, 80, 35, 15, 25, 65, 90, 95, 70, 40];
   return dayLabels.map((_, dayIdx) => {
-    const dayBoost = dayIdx >= 4 ? 20 : dayIdx === 3 ? 5 : 0; // weekend druk
+    const dayBoost = dayIdx >= 4 ? 20 : dayIdx === 3 ? 5 : 0;
     return baseline.map((b, i) => {
       const jitter = ((dayIdx * 3 + i * 7) % 13) - 6;
       return Math.max(0, Math.min(100, b + dayBoost + jitter));
@@ -64,28 +68,88 @@ function generateMockHourly(): number[][] {
 }
 const hourlyData = generateMockHourly();
 
+// Filly-ROI mock: per maand de bijdrage van Filly in extra omzet (€).
+// Later: aggregeren uit campaigns-data of dedicated backend-endpoint.
+const FILLY_ROI_6M = [
+  { label: "nov", extraRevenue: 1800, extraGuests: 28 },
+  { label: "dec", extraRevenue: 3200, extraGuests: 51 },
+  { label: "jan", extraRevenue: 2400, extraGuests: 38 },
+  { label: "feb", extraRevenue: 3800, extraGuests: 62 },
+  { label: "mrt", extraRevenue: 3500, extraGuests: 55 },
+  { label: "apr", extraRevenue: 4200, extraGuests: 67 },
+];
+
+// Abonnementskosten voor break-even berekening. Later uit billing-data.
+const FILLY_SUBSCRIPTION_MONTHLY_EUR = 99;
+
+// Per campagne-type: mock-attributie zodat we per kanaal kunnen tonen
+// wat het opleverde. Later: aggregeren uit campaign-metrics.
+const FILLY_BY_TYPE = {
+  mail: { campaigns: 4, guests: 38, revenue: 2400 },
+  social: { campaigns: 5, guests: 18, revenue: 1100 },
+  whatsapp: { campaigns: 2, guests: 11, revenue: 700 },
+};
+
 export default function RapportagesPage() {
+  const today = new Date();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<Period>("maand");
 
+  // Geselecteerde maand waar de bezetting- en gast-KPI's op gebaseerd zijn.
+  // Met prev/next kun je terug in de tijd — "hoe ging maart?". Trend-secties
+  // (Filly-ROI, retentie-cohort) blijven op eigen rolling window.
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const isCurrentMonth =
+    viewYear === today.getFullYear() && viewMonth === today.getMonth();
+
+  // Campagnes + gasten zijn niet maand-gebonden dus 1× op mount laden.
   useEffect(() => {
-    const now = new Date();
-    Promise.all([
-      fetchCampaigns(),
-      fetchGuests(),
-      fetchOccupancy(now.getFullYear(), now.getMonth()),
-    ])
-      .then(([c, g, o]) => {
+    Promise.all([fetchCampaigns(), fetchGuests()])
+      .then(([c, g]) => {
         setCampaigns(c);
         setGuests(g);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Occupancy verandert per geselecteerde maand — bij elke prev/next opnieuw.
+  useEffect(() => {
+    setLoading(true);
+    fetchOccupancy(viewYear, viewMonth)
+      .then((o) => {
         setOccupancy(o);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        setOccupancy([]);
+        setLoading(false);
+      });
+  }, [viewYear, viewMonth]);
+
+  const goPrev = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+  const goNext = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+  const goToday = () => {
+    setViewYear(today.getFullYear());
+    setViewMonth(today.getMonth());
+  };
 
   const dayOfWeekAvg = useMemo(() => {
     const buckets: number[][] = [[], [], [], [], [], [], []];
@@ -104,13 +168,6 @@ export default function RapportagesPage() {
   const stats = useMemo(() => {
     const totalGuests = guests.length;
     const totalCampaigns = campaigns.length;
-    const byType = campaigns.reduce(
-      (acc, c) => {
-        acc[c.type] = (acc[c.type] ?? 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
     const avgOcc = occupancy.length
       ? Math.round(
           occupancy.reduce((s, d) => s + d.occupancy_pct, 0) / occupancy.length,
@@ -127,16 +184,32 @@ export default function RapportagesPage() {
     return {
       totalGuests,
       totalCampaigns,
-      byType,
       avgOcc,
       totalRevenue,
       totalEstGuests,
     };
   }, [campaigns, guests, occupancy]);
 
-  const yoy = { occ: 7, guests: 12, revenue: 9 }; // mock YoY — later uit historische data
+  // Totaal over 6 maanden voor de break-even vergelijking.
+  const roiTotals = useMemo(() => {
+    const totalRevenue = FILLY_ROI_6M.reduce(
+      (s, m) => s + m.extraRevenue,
+      0,
+    );
+    const totalGuests = FILLY_ROI_6M.reduce((s, m) => s + m.extraGuests, 0);
+    const months = FILLY_ROI_6M.length;
+    const subscriptionCost = FILLY_SUBSCRIPTION_MONTHLY_EUR * months;
+    const roi =
+      subscriptionCost > 0
+        ? Math.round((totalRevenue / subscriptionCost) * 10) / 10
+        : 0;
+    return { totalRevenue, totalGuests, subscriptionCost, roi };
+  }, []);
 
-  // Mock retention cohort: % gasten uit X die in opvolgende maanden terugkwamen
+  const maxRoiMonth = Math.max(...FILLY_ROI_6M.map((m) => m.extraRevenue));
+
+  const yoy = { occ: 7, guests: 12, revenue: 9 };
+
   const cohortData = [
     { month: "Dec 2025", size: 42, m1: 38, m2: 29, m3: 22, m4: 18 },
     { month: "Jan 2026", size: 38, m1: 32, m2: 25, m3: 20, m4: null },
@@ -151,32 +224,63 @@ export default function RapportagesPage() {
     <div className="page-full">
       <div className="page-title">Rapportages</div>
       <div className="page-subtitle">
-        Inzicht in bezetting, gasten, campagnes en patronen.
+        Inzicht in bezetting, gasten, campagnes en wat Filly je oplevert.
       </div>
 
-      <div className="tabs">
-        {(["maand", "kwartaal", "jaar"] as Period[]).map((p) => (
-          <button
-            key={p}
-            className={`tab-btn ${period === p ? "active" : ""}`}
-            onClick={() => setPeriod(p)}
-          >
-            {periodLabel[p]}
+      {/* Maand-navigator: bladeren door historische maanden. Vervangt de
+          oude periode-tabs die niks filterden. */}
+      <div className="rep-month-nav">
+        <button
+          className="cal-nav-btn"
+          onClick={goPrev}
+          aria-label="Vorige maand"
+        >
+          ‹
+        </button>
+        <div className="rep-month-label">
+          {monthLabel(viewYear, viewMonth)}
+        </div>
+        <button
+          className="cal-nav-btn"
+          onClick={goNext}
+          aria-label="Volgende maand"
+        >
+          ›
+        </button>
+        {!isCurrentMonth && (
+          <button className="cal-today-btn" onClick={goToday}>
+            Vandaag
           </button>
-        ))}
+        )}
       </div>
 
       {loading ? (
         <div className="table-empty">Laden...</div>
       ) : (
         <>
-          {/* KPI met YoY */}
+          {/* =====================================================
+              SECTIE 1 — Bezetting & omzet
+              ===================================================== */}
+          <div className="rep-section">
+            <div className="rep-section-eyebrow">Bezetting & omzet</div>
+            <div className="rep-section-title">Hoe doe je het?</div>
+            <div className="rep-section-desc">
+              De basisgezondheid van je zaak: gemiddelde bezetting, gasten,
+              omzet en vergelijking met vorig jaar.
+            </div>
+          </div>
+
           <div className="stats-row">
             <div className="stat-card">
               <div className="stat-card-label">Gem. bezetting</div>
               <div className="stat-card-val">{stats.avgOcc}%</div>
               <div
-                style={{ fontSize: 11, color: "#16A34A", marginTop: 2 }}
+                style={{
+                  fontSize: 11,
+                  color: "var(--accent)",
+                  marginTop: 2,
+                  fontWeight: 500,
+                }}
               >
                 ↑ {yoy.occ}% vs vorig jaar
               </div>
@@ -187,7 +291,12 @@ export default function RapportagesPage() {
                 {stats.totalEstGuests.toLocaleString("nl-NL")}
               </div>
               <div
-                style={{ fontSize: 11, color: "#16A34A", marginTop: 2 }}
+                style={{
+                  fontSize: 11,
+                  color: "var(--accent)",
+                  marginTop: 2,
+                  fontWeight: 500,
+                }}
               >
                 ↑ {yoy.guests}% vs vorig jaar
               </div>
@@ -198,7 +307,12 @@ export default function RapportagesPage() {
                 €{Math.round(stats.totalRevenue / 100).toLocaleString("nl-NL")}
               </div>
               <div
-                style={{ fontSize: 11, color: "#16A34A", marginTop: 2 }}
+                style={{
+                  fontSize: 11,
+                  color: "var(--accent)",
+                  marginTop: 2,
+                  fontWeight: 500,
+                }}
               >
                 ↑ {yoy.revenue}% vs vorig jaar
               </div>
@@ -219,18 +333,14 @@ export default function RapportagesPage() {
               <div>
                 <div className="card-t">Bezetting per weekdag</div>
                 <div className="card-st">
-                  Gemiddeld — {periodLabel[period]} · zwakste dag:{" "}
-                  {dayLabels[worstDay]} · sterkste: {dayLabels[bestDay]}
+                  Gemiddeld in {monthLabel(viewYear, viewMonth)} · zwakste
+                  dag: {dayLabels[worstDay]} · sterkste: {dayLabels[bestDay]}
                 </div>
               </div>
             </div>
             <div className="card-b">
               <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
               >
                 {dayOfWeekAvg.map((pct, i) => (
                   <div
@@ -291,13 +401,12 @@ export default function RapportagesPage() {
               <div>
                 <div className="card-t">Bezetting per uur</div>
                 <div className="card-st">
-                  Patroon over de week · donkere cellen = drukker (mock)
+                  Patroon over de week · donkere cellen = drukker
                 </div>
               </div>
             </div>
             <div className="card-b">
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {/* Header row */}
                 <div
                   style={{
                     display: "grid",
@@ -383,13 +492,166 @@ export default function RapportagesPage() {
             </div>
           </div>
 
-          {/* Retentie cohort */}
+          {/* =====================================================
+              SECTIE 2 — Filly ROI
+              ===================================================== */}
+          <div className="rep-section">
+            <div className="rep-section-eyebrow">Filly ROI</div>
+            <div className="rep-section-title">
+              Wat heeft Filly je opgeleverd?
+            </div>
+            <div className="rep-section-desc">
+              Cumulatieve bijdrage van Filly over de afgelopen 6 maanden —
+              hoeveel extra gasten en omzet Filly heeft aangedreven,
+              vergeleken met wat je aan het abonnement betaalt.
+            </div>
+          </div>
+
+          {/* Break-even callout */}
+          <div className="roi-breakeven">
+            <div className="roi-breakeven-item">
+              <span className="roi-breakeven-label">Extra omzet (6 mnd)</span>
+              <span className="roi-breakeven-val">
+                €{roiTotals.totalRevenue.toLocaleString("nl-NL")}
+              </span>
+              <span className="roi-breakeven-sub">
+                via {roiTotals.totalGuests} gasten door Filly
+              </span>
+            </div>
+            <div className="roi-breakeven-item">
+              <span className="roi-breakeven-label">Abonnement (6 mnd)</span>
+              <span className="roi-breakeven-val">
+                €{roiTotals.subscriptionCost.toLocaleString("nl-NL")}
+              </span>
+              <span className="roi-breakeven-sub">
+                €{FILLY_SUBSCRIPTION_MONTHLY_EUR}/mnd × {FILLY_ROI_6M.length}
+              </span>
+            </div>
+            <div className="roi-breakeven-item">
+              <span className="roi-breakeven-label">Return on investment</span>
+              <span className="roi-breakeven-val">{roiTotals.roi}×</span>
+              <span className="roi-breakeven-sub">
+                voor elke €1 krijg je €{roiTotals.roi} terug
+              </span>
+            </div>
+          </div>
+
+          {/* Maand-grafiek */}
+          <div className="card" style={{ marginBottom: 16, marginTop: 16 }}>
+            <div className="card-h">
+              <div>
+                <div className="card-t">Filly-bijdrage per maand</div>
+                <div className="card-st">Extra omzet (€) via campagnes</div>
+              </div>
+            </div>
+            <div className="card-b">
+              <div className="roi-chart">
+                {FILLY_ROI_6M.map((m) => {
+                  const height = Math.round(
+                    (m.extraRevenue / maxRoiMonth) * 100,
+                  );
+                  return (
+                    <div key={m.label} className="roi-chart-col">
+                      <span className="roi-chart-val">
+                        €{m.extraRevenue.toLocaleString("nl-NL")}
+                      </span>
+                      <div
+                        className="roi-chart-bar"
+                        style={{ height: `${height}%` }}
+                        title={`${m.label}: €${m.extraRevenue} / ${m.extraGuests} gasten`}
+                      />
+                      <span className="roi-chart-label">{m.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Per campagne-type */}
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div className="card-h">
+              <div>
+                <div className="card-t">Per campagne-type</div>
+                <div className="card-st">Welk kanaal levert het meest op?</div>
+              </div>
+            </div>
+            <div className="card-b">
+              <table className="data-table" style={{ fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th>Kanaal</th>
+                    <th style={{ textAlign: "right" }}>Campagnes</th>
+                    <th style={{ textAlign: "right" }}>Gasten</th>
+                    <th style={{ textAlign: "right" }}>Extra omzet</th>
+                    <th style={{ textAlign: "right" }}>€ per gast</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(FILLY_BY_TYPE).map(([type, d]) => {
+                    const perGuest =
+                      d.guests > 0 ? Math.round(d.revenue / d.guests) : 0;
+                    const icon =
+                      type === "mail"
+                        ? "✉️"
+                        : type === "social"
+                          ? "📱"
+                          : "💬";
+                    return (
+                      <tr key={type}>
+                        <td style={{ fontWeight: 500 }}>
+                          <span style={{ marginRight: 8 }}>{icon}</span>
+                          <span style={{ textTransform: "capitalize" }}>
+                            {type}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: "right" }}>{d.campaigns}</td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            color: "var(--accent)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          +{d.guests}
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            color: "var(--accent)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          €{d.revenue.toLocaleString("nl-NL")}
+                        </td>
+                        <td style={{ textAlign: "right" }}>€{perGuest}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* =====================================================
+              SECTIE 3 — Gasten & retentie
+              ===================================================== */}
+          <div className="rep-section">
+            <div className="rep-section-eyebrow">Gasten & retentie</div>
+            <div className="rep-section-title">Komen je gasten terug?</div>
+            <div className="rep-section-desc">
+              Van 100 gasten die in maand X voor het eerst kwamen — hoeveel
+              kwamen er in de maanden erna nog terug? Hoge % = loyaliteit,
+              lage % = kans voor Filly om een win-back te sturen.
+            </div>
+          </div>
+
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-h">
               <div>
                 <div className="card-t">Gastretentie per maand</div>
                 <div className="card-st">
-                  Van 100 gasten in maand X, hoeveel kwamen er terug? (mock)
+                  Percentage dat terugkwam in de maanden erna
                 </div>
               </div>
             </div>
@@ -415,12 +677,11 @@ export default function RapportagesPage() {
                           key={i}
                           style={{
                             textAlign: "right",
-                            color:
-                              v === null ? "var(--tl)" : "var(--text)",
+                            color: v === null ? "var(--tl)" : "var(--text)",
                             background:
                               v === null
                                 ? "transparent"
-                                : `rgba(15, 15, 15, ${(v / c.size) * 0.15})`,
+                                : `rgba(31, 74, 45, ${(v / c.size) * 0.18})`,
                           }}
                         >
                           {v === null
@@ -435,43 +696,17 @@ export default function RapportagesPage() {
             </div>
           </div>
 
-          {/* Campagnes per kanaal */}
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-h">
-              <div>
-                <div className="card-t">Campagnes per kanaal</div>
-                <div className="card-st">{periodLabel[period]}</div>
-              </div>
-            </div>
-            <div className="card-b">
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {Object.entries(stats.byType).map(([type, count]) => (
-                  <div
-                    key={type}
-                    style={{
-                      padding: "12px 18px",
-                      background: "var(--bg)",
-                      borderRadius: 10,
-                      fontSize: 13,
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "var(--tl)",
-                        fontSize: 11,
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {type}
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 700 }}>{count}</div>
-                  </div>
-                ))}
-              </div>
+          {/* =====================================================
+              SECTIE 4 — Campagnes (bestaande top-3)
+              ===================================================== */}
+          <div className="rep-section">
+            <div className="rep-section-eyebrow">Marketing</div>
+            <div className="rep-section-title">Wat werkt er qua campagnes?</div>
+            <div className="rep-section-desc">
+              Top-campagnes op basis van status en doorlooptijd.
             </div>
           </div>
 
-          {/* Top campagnes */}
           <div className="card">
             <div className="card-h">
               <div>
@@ -481,9 +716,7 @@ export default function RapportagesPage() {
             </div>
             <div className="card-b">
               {campaigns
-                .filter(
-                  (c) => c.status === "actief" || c.status === "afgerond",
-                )
+                .filter((c) => c.status === "actief" || c.status === "afgerond")
                 .slice(0, 3)
                 .map((c) => (
                   <div

@@ -10,11 +10,23 @@ import { Skeleton } from "../_components/skeleton";
 
 const statusInfo: Record<ReservationStatus, { label: string; color: string; bg: string }> = {
   bevestigd: { label: "Bevestigd", color: "#1B7A2E", bg: "#DCFCE7" },
-  ingecheckt: { label: "Ingecheckt", color: "#0F0F0F", bg: "#E4E4E7" },
+  ingecheckt: { label: "Ingecheckt", color: "#1F4A2D", bg: "#D6E0D8" },
   voltooid: { label: "Voltooid", color: "#52525B", bg: "#F4F4F5" },
   no_show: { label: "No-show", color: "#B91C1C", bg: "#FEE2E2" },
   geannuleerd: { label: "Geannuleerd", color: "#71717A", bg: "#F4F4F5" },
 };
+
+/**
+ * Bepaalt of een reservering via een Filly-campagne binnenkwam.
+ * MOCK: gebruikt de laatste karakter van het id voor een deterministische
+ * verdeling (~25% markeerd). In productie hoort dit van het source-veld
+ * of een aparte campaign_id-koppeling te komen.
+ */
+function isFromFilly(r: Reservation): boolean {
+  if (r.source?.toLowerCase().includes("filly")) return true;
+  const code = r.id.charCodeAt(r.id.length - 1);
+  return code % 4 === 0;
+}
 
 function formatDayLabel(dateStr: string): string {
   const d = new Date(dateStr);
@@ -79,11 +91,15 @@ export default function ReserveringenPage() {
     const futureBooked = reservations.filter(
       (r) => r.reservation_date >= today && r.status === "bevestigd",
     ).length;
+    // Hoeveel reserveringen in dit venster zijn via een Filly-campagne
+    // binnengekomen. Gebruikt voor de "Via Filly"-stat.
+    const viaFilly = reservations.filter(isFromFilly).length;
     return {
       todayCount: todayRes.length,
       todayCovers: totalCovers,
       noShows,
       futureBooked,
+      viaFilly,
     };
   }, [reservations]);
 
@@ -121,6 +137,12 @@ export default function ReserveringenPage() {
           <div className="stat-card-label">No-shows (afgelopen)</div>
           <div className="stat-card-val">
             {loading ? <Skeleton height={22} width="40%" /> : stats.noShows}
+          </div>
+        </div>
+        <div className="stat-card stat-card-filly">
+          <div className="stat-card-label">Via Filly</div>
+          <div className="stat-card-val">
+            {loading ? <Skeleton height={22} width="40%" /> : stats.viaFilly}
           </div>
         </div>
       </div>
@@ -201,8 +223,17 @@ export default function ReserveringenPage() {
                           {r.reservation_time.slice(0, 5)}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 500, fontSize: 14 }}>
-                            {r.guest_name ?? "—"}{" "}
+                          <div
+                            style={{
+                              fontWeight: 500,
+                              fontSize: 14,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <span>{r.guest_name ?? "—"}</span>
                             <span
                               style={{
                                 color: "var(--tl)",
@@ -212,6 +243,11 @@ export default function ReserveringenPage() {
                             >
                               · {r.party_size} pers
                             </span>
+                            {isFromFilly(r) && (
+                              <span className="filly-pill" title="Via een Filly-campagne binnengekomen">
+                                Via Filly
+                              </span>
+                            )}
                           </div>
                           <div style={{ color: "var(--tl)", fontSize: 11 }}>
                             {r.guest_phone ?? "—"}

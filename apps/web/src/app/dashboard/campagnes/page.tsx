@@ -202,7 +202,7 @@ export default function CampagnesPage() {
                   <td style={{ fontSize: 12 }}>
                     {extraRes ? (
                       <div>
-                        <div style={{ fontWeight: 600, color: "#1B7A2E" }}>
+                        <div style={{ fontWeight: 600, color: "var(--accent)" }}>
                           +{extraRes} reserveringen
                         </div>
                         <div style={{ color: "var(--tl)" }}>
