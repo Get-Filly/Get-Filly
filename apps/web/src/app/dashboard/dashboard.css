@@ -2069,6 +2069,92 @@
   color: var(--accent);
   border-bottom: 1px solid var(--border);
 }
+
+/* ==== Taken-pagina ====
+   Task-lijst met klikbare kaartjes. AI-afkomstige taken krijgen een
+   brand-soft bg + groene rand-links zodat ze visueel herkenbaar zijn
+   als Filly-input (consistent met Via Filly-taal). */
+
+.dashboard-shell .task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-shell .task-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.dashboard-shell .task-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.dashboard-shell .task-link:hover .task-card {
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px rgba(31, 74, 45, 0.06);
+}
+
+/* Filly-afkomstige task — brand-soft bg + groene rand-links. */
+.dashboard-shell .task-card-filly {
+  background: var(--accent-light);
+  border-color: var(--hover);
+  border-left: 3px solid var(--accent);
+}
+
+.dashboard-shell .task-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.dashboard-shell .task-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-shell .task-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard-shell .task-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.dashboard-shell .task-desc {
+  font-size: 12px;
+  color: var(--ts);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.dashboard-shell .task-priority {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dashboard-shell .task-priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
 .dashboard-shell .sg-actions {
   display: flex;
   gap: 8px;

@@ -16,6 +16,8 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
+type TaskCategory = "filly" | "reviews" | "reserveringen" | "insights";
+
 type TaskItem = {
   id: string;
   icon: string;
@@ -23,6 +25,7 @@ type TaskItem = {
   desc: string;
   link?: string;
   priority: "high" | "medium" | "low";
+  category: TaskCategory;
 };
 
 const priorityColor = {
@@ -31,6 +34,22 @@ const priorityColor = {
   low: "#A1A1AA",
 };
 
+const priorityLabel: Record<TaskItem["priority"], string> = {
+  high: "Nu",
+  medium: "Deze week",
+  low: "Planning",
+};
+
+type Filter = "alle" | TaskCategory;
+
+const filters: { key: Filter; label: string }[] = [
+  { key: "alle", label: "Alle" },
+  { key: "filly", label: "Filly" },
+  { key: "reviews", label: "Reviews" },
+  { key: "reserveringen", label: "Reserveringen" },
+  { key: "insights", label: "Inzichten" },
+];
+
 export default function TakenPage() {
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -38,6 +57,7 @@ export default function TakenPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Filter>("alle");
 
   useEffect(() => {
     const now = new Date();
@@ -71,7 +91,7 @@ export default function TakenPage() {
     const weekFromNow = new Date(today);
     weekFromNow.setDate(today.getDate() + 7);
 
-    // Wachtende AI-suggesties
+    // Wachtende AI-suggesties — altijd categorie "filly".
     for (const s of suggestions) {
       const name =
         (s.suggested_campaign.name as string | undefined) ??
@@ -83,6 +103,7 @@ export default function TakenPage() {
         desc: s.reasoning ?? "Open de Suggesties-pagina voor onderbouwing.",
         link: "/dashboard/suggesties",
         priority: (s.urgency ?? "medium") as TaskItem["priority"],
+        category: "filly",
       });
     }
 
@@ -106,6 +127,7 @@ export default function TakenPage() {
           .join(", "),
         link: "/dashboard",
         priority: "high",
+        category: "insights",
       });
     }
 
@@ -133,6 +155,7 @@ export default function TakenPage() {
         desc: `Tip: stuur Filly een verjaardag-uitnodiging of persoonlijke groet.`,
         link: "/dashboard/gasten",
         priority: "medium",
+        category: "insights",
       });
     }
 
@@ -148,6 +171,7 @@ export default function TakenPage() {
         desc: r.title ?? r.body?.slice(0, 100) ?? "Review vereist reactie.",
         link: "/dashboard/reviews",
         priority: "high",
+        category: "reviews",
       });
     }
 
@@ -166,6 +190,7 @@ export default function TakenPage() {
         desc: `${r.guest_name} · ${r.reservation_time.slice(0, 5)} · tafel ${r.table_code ?? "—"}${r.special_requests ? ` · "${r.special_requests}"` : ""}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
+        category: "reserveringen",
       });
     }
 
@@ -185,6 +210,7 @@ export default function TakenPage() {
         desc: `${r.reservation_time.slice(0, 5)} · ${r.special_requests}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
+        category: "reserveringen",
       });
     }
 
@@ -193,7 +219,23 @@ export default function TakenPage() {
     return out.sort((a, b) => order[a.priority] - order[b.priority]);
   }, [suggestions, guests, reservations, reviews, occupancy]);
 
-  const highCount = tasks.filter((t) => t.priority === "high").length;
+  const stats = useMemo(() => {
+    return {
+      total: tasks.length,
+      high: tasks.filter((t) => t.priority === "high").length,
+      filly: tasks.filter((t) => t.category === "filly").length,
+    };
+  }, [tasks]);
+
+  const filtered = useMemo(() => {
+    if (filter === "alle") return tasks;
+    return tasks.filter((t) => t.category === filter);
+  }, [tasks, filter]);
+
+  const countPer = (key: Filter) =>
+    key === "alle" ? tasks.length : tasks.filter((t) => t.category === key).length;
+
+  const highCount = stats.high;
 
   return (
     <div className="page-full">
@@ -202,6 +244,61 @@ export default function TakenPage() {
         Alles wat vandaag je aandacht vraagt — AI-voorstellen, reviews,
         reserveringen en alerts.
       </div>
+
+      {/* Stats-row: totaal openstaand, hoge urgentie (rood signaal) en
+          "van Filly" (brand-filly-card — aansluiting op andere pagina's). */}
+      <div className="stats-row">
+        <div className="stat-card">
+          <div className="stat-card-label">Totaal openstaand</div>
+          <div className="stat-card-val">
+            {loading ? <Skeleton height={22} width="40%" /> : stats.total}
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-label">Hoge urgentie</div>
+          <div
+            className="stat-card-val"
+            style={{
+              color:
+                !loading && stats.high > 0 ? "var(--red)" : "var(--text)",
+            }}
+          >
+            {loading ? <Skeleton height={22} width="40%" /> : stats.high}
+          </div>
+        </div>
+        <div className="stat-card stat-card-filly">
+          <div className="stat-card-label">Van Filly</div>
+          <div className="stat-card-val">
+            {loading ? <Skeleton height={22} width="40%" /> : stats.filly}
+          </div>
+        </div>
+      </div>
+
+      {highCount > 0 && !loading && (
+        <div className="alert-bar">
+          <span className="alert-icon">⚠️</span>
+          <div>
+            <strong>{highCount} taken</strong> hebben hoge urgentie — pak ze
+            eerst op.
+          </div>
+        </div>
+      )}
+
+      {/* Filter-tabs per categorie. Elke tab toont direct hoeveel taken
+          in die categorie zitten zodat je snel weet waar actie ligt. */}
+      {!loading && tasks.length > 0 && (
+        <div className="tabs">
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              className={`tab-btn ${filter === f.key ? "active" : ""}`}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label} ({countPer(f.key)})
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div>
@@ -217,90 +314,54 @@ export default function TakenPage() {
             Geen openstaande taken. Filly komt zodra er iets opduikt.
           </div>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="table-empty">
+          Geen taken in deze categorie.
+        </div>
       ) : (
-        <>
-          {highCount > 0 && (
-            <div className="alert-bar">
-              <span className="alert-icon">⚠️</span>
-              <div>
-                <strong>{highCount} taken</strong> hebben hoge urgentie — pak ze
-                eerst op.
-              </div>
-            </div>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {tasks.map((t) => {
-              const inner = (
-                <div
-                  style={{
-                    background: "var(--white)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--r)",
-                    padding: "14px 18px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    transition: "border-color 0.15s",
-                    cursor: t.link ? "pointer" : "default",
-                  }}
-                >
-                  <div style={{ fontSize: 22 }}>{t.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>
-                      {t.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--ts)",
-                        marginTop: 2,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {t.desc}
-                    </div>
+        <div className="task-list">
+          {filtered.map((t) => {
+            const inner = (
+              <div
+                className={`task-card ${
+                  t.category === "filly" ? "task-card-filly" : ""
+                }`}
+              >
+                <div className="task-icon">{t.icon}</div>
+                <div className="task-body">
+                  <div className="task-title-row">
+                    <span className="task-title">{t.title}</span>
+                    {t.category === "filly" && (
+                      <span className="filly-pill">Filly</span>
+                    )}
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 11,
-                      color: priorityColor[t.priority],
-                      fontWeight: 500,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: priorityColor[t.priority],
-                      }}
-                    />
-                    {t.priority === "high"
-                      ? "Nu"
-                      : t.priority === "medium"
-                        ? "Deze week"
-                        : "Planning"}
-                  </div>
+                  <div className="task-desc">{t.desc}</div>
                 </div>
-              );
-              return t.link ? (
-                <Link
-                  key={t.id}
-                  href={t.link}
-                  style={{ textDecoration: "none", color: "inherit" }}
+                <div
+                  className="task-priority"
+                  style={{ color: priorityColor[t.priority] }}
                 >
-                  {inner}
-                </Link>
-              ) : (
-                <div key={t.id}>{inner}</div>
-              );
-            })}
-          </div>
-        </>
+                  <span
+                    className="task-priority-dot"
+                    style={{ background: priorityColor[t.priority] }}
+                  />
+                  {priorityLabel[t.priority]}
+                </div>
+              </div>
+            );
+            return t.link ? (
+              <Link
+                key={t.id}
+                href={t.link}
+                className="task-link"
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={t.id}>{inner}</div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

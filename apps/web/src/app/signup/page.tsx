@@ -70,33 +70,15 @@ export default function SignupPage() {
             />
           </div>
 
-          {error && (
-            <div style={{ color: "#CC2F27", fontSize: 13, marginTop: 8 }}>
-              {error}
-            </div>
-          )}
-          {success && (
-            <div style={{ color: "#1B7A2E", fontSize: 13, marginTop: 8 }}>
-              {success}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
+          {success && <div className="auth-success">{success}</div>}
 
           <button className="login-btn" type="submit" disabled={loading}>
             {loading ? "Bezig..." : "Account aanmaken"}
           </button>
 
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: 20,
-              fontSize: 13,
-              color: "#6E6E73",
-            }}
-          >
-            Al een account?{" "}
-            <Link href="/login" style={{ color: "#0071E3" }}>
-              Inloggen
-            </Link>
+          <div className="auth-switch">
+            Al een account? <Link href="/login">Inloggen</Link>
           </div>
         </form>
       </div>

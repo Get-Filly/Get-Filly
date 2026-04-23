@@ -62,35 +62,15 @@ function LoginForm() {
         <a className="forgot-link">Wachtwoord vergeten?</a>
       </div>
 
-      {error && (
-        <div
-          style={{
-            color: "#CC2F27",
-            fontSize: 13,
-            marginTop: 8,
-            marginBottom: -8,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <div className="auth-error">{error}</div>}
 
       <button className="login-btn" type="submit" disabled={loading}>
         {loading ? "Bezig met inloggen..." : "Inloggen"}
       </button>
 
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: 20,
-          fontSize: 13,
-          color: "#6E6E73",
-        }}
-      >
+      <div className="auth-switch">
         Nog geen account?{" "}
-        <Link href="/signup" style={{ color: "#0071E3", fontWeight: 500 }}>
-          Maak er een aan
-        </Link>
+        <Link href="/signup">Maak er een aan</Link>
       </div>
     </form>
   );
