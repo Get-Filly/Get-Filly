@@ -377,6 +377,37 @@ export async function fetchReviews(): Promise<Review[]> {
   return res.json();
 }
 
+// Vraagt Filly (Claude) om een reply-suggestie voor een specifieke review.
+// Backend bouwt de prompt + doet de AI-call; wij krijgen alleen de tekst
+// terug. POST omdat de call side-effects heeft (tokens verbruiken, logging).
+export async function generateReviewReply(
+  reviewId: string,
+): Promise<{ suggestion: string }> {
+  const res = await authedFetch(
+    `${API_URL}/reviews/${reviewId}/reply-suggestion`,
+    { method: "POST" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Slaat het uiteindelijke antwoord op. De user kan de AI-suggestie hebben
+// overgenomen of handmatig iets hebben ingetypt — dat maakt voor dit
+// endpoint niet uit. Backend retourneert de bijgewerkte review zodat
+// de UI direct de nieuwe response_text + responded_at kan tonen.
+export async function saveReviewReply(
+  reviewId: string,
+  responseText: string,
+): Promise<Review> {
+  const res = await authedFetch(`${API_URL}/reviews/${reviewId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ response_text: responseText }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateSuggestion(
   id: string,
   status: SuggestionStatus,

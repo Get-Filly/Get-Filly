@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   fetchReviews,
+  generateReviewReply,
+  saveReviewReply,
   type Review,
   type ReviewSource,
 } from "../../../lib/api";
@@ -37,23 +39,6 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-/**
- * Genereer een mock AI-antwoord dat Filly voorstelt voor een review.
- * Basis-logica: warm-bedankt bij positieve, empathisch-excuus bij
- * negatieve review. In productie komt dit uit Claude API met context
- * over de zaak (naam, toon, signature-gerechten).
- */
-function buildFillyReply(r: Review): string {
-  const author = r.author ?? "gast";
-  if (r.rating >= 4) {
-    return `Beste ${author},\n\nDank je wel voor je mooie review! Fijn om te horen dat je zo'n prettige ervaring had. We hopen je gauw weer te mogen verwelkomen.\n\nHartelijke groet,\nHet team`;
-  }
-  if (r.rating === 3) {
-    return `Beste ${author},\n\nDank je voor je eerlijke feedback. We nemen je opmerkingen zeker mee en bespreken ze intern om de beleving volgende keer beter te maken.\n\nHartelijke groet,\nHet team`;
-  }
-  return `Beste ${author},\n\nAllereerst onze oprechte excuses dat je ervaring niet was zoals je had gehoopt. We nemen dit serieus en willen graag met je in gesprek om het goed te maken. Stuur een mail naar ons en we nemen snel contact op.\n\nHartelijke groet,\nHet team`;
-}
-
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +46,12 @@ export default function ReviewsPage() {
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
   const [replyTo, setReplyTo] = useState<Review | null>(null);
   const [replyText, setReplyText] = useState("");
+  // Status van de AI-call en van het opslaan. We splitsen deze bewust
+  // uit zodat de knoppen onafhankelijk van elkaar een loading-state
+  // kunnen tonen (genereren vs. versturen).
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReviews()
@@ -117,25 +108,52 @@ export default function ReviewsPage() {
   ];
 
   const openReply = (r: Review) => {
+    // We openen de modal met een leeg veld. Filly genereert alleen
+    // als de gebruiker er om vraagt — zo verspillen we geen Claude-
+    // tokens op reviews die de eigenaar zelf wil tikken.
     setReplyTo(r);
-    setReplyText(buildFillyReply(r));
-  };
-
-  const useFillySuggestion = () => {
-    if (replyTo) setReplyText(buildFillyReply(replyTo));
-  };
-
-  const sendReply = () => {
-    // Mock: zet de review "gereageerd" in local state. Backend-call
-    // komt later met PATCH /reviews/:id { response_text }.
-    if (!replyTo) return;
-    setReviews((prev) =>
-      prev.map((r) =>
-        r.id === replyTo.id ? { ...r, response_text: replyText } : r,
-      ),
-    );
-    setReplyTo(null);
     setReplyText("");
+    setError(null);
+  };
+
+  // Vraagt Filly om een suggestie en vult 'm in het tekstveld. Bij
+  // falen tonen we een korte NL-melding; de user kan dan alsnog zelf
+  // typen of opnieuw proberen.
+  const requestFillySuggestion = async () => {
+    if (!replyTo) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const { suggestion } = await generateReviewReply(replyTo.id);
+      setReplyText(suggestion);
+    } catch (e) {
+      setError(
+        "Filly kon geen voorstel maken. Probeer nog eens of tik zelf een antwoord.",
+      );
+      console.error(e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const sendReply = async () => {
+    if (!replyTo || !replyText.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await saveReviewReply(replyTo.id, replyText);
+      // Vervang de review in state door wat de backend teruggeeft —
+      // zo hebben we gegarandeerd dezelfde data als de server (incl.
+      // responded_at-timestamp).
+      setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setReplyTo(null);
+      setReplyText("");
+    } catch (e) {
+      setError("Opslaan is mislukt. Probeer nog eens.");
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -316,17 +334,46 @@ export default function ReviewsPage() {
               </div>
             </div>
 
-            {/* Filly-banner: laat zien dat het antwoord door AI is
-                voorgesteld. Gebruiker kan opnieuw laten genereren. */}
+            {/* Filly-banner: je kunt 'm laten schrijven of opnieuw laten
+                genereren als je het eerste voorstel niet raak vindt. */}
             <div className="review-modal-filly-banner">
               <div>
-                <strong>Filly heeft een antwoord voorgesteld.</strong>{" "}
-                Pas het aan zoals je wil — jij hebt de controle.
+                <strong>
+                  {replyText
+                    ? "Filly heeft een antwoord voorgesteld."
+                    : "Laat Filly een antwoord schrijven?"}
+                </strong>{" "}
+                {replyText
+                  ? "Pas het aan zoals je wil — jij hebt de controle."
+                  : "Of tik zelf rechtstreeks in het veld hieronder."}
               </div>
-              <button className="sg-btn" onClick={useFillySuggestion}>
-                Opnieuw genereren
+              <button
+                className="sg-btn"
+                onClick={requestFillySuggestion}
+                disabled={generating}
+              >
+                {generating
+                  ? "Filly denkt na…"
+                  : replyText
+                    ? "Opnieuw genereren"
+                    : "Laat Filly schrijven"}
               </button>
             </div>
+
+            {error && (
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: "8px 12px",
+                  background: "var(--red-soft, #fee)",
+                  color: "var(--red, #b00)",
+                  borderRadius: 6,
+                  fontSize: 13,
+                }}
+              >
+                {error}
+              </div>
+            )}
 
             <label className="review-modal-label">Jouw reactie</label>
             <textarea
@@ -334,17 +381,22 @@ export default function ReviewsPage() {
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               rows={8}
+              placeholder="Tik hier je antwoord, of laat Filly een voorstel doen."
             />
 
             <div className="sg-actions sg-modal-actions">
               <button
                 className="sg-btn primary"
                 onClick={sendReply}
-                disabled={!replyText.trim()}
+                disabled={!replyText.trim() || saving}
               >
-                Verstuur reactie
+                {saving ? "Opslaan…" : "Verstuur reactie"}
               </button>
-              <button className="sg-btn" onClick={() => setReplyTo(null)}>
+              <button
+                className="sg-btn"
+                onClick={() => setReplyTo(null)}
+                disabled={saving}
+              >
                 Annuleren
               </button>
             </div>
