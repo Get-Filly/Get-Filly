@@ -408,6 +408,49 @@ export async function saveReviewReply(
   return res.json();
 }
 
+// ============================================================
+// Filly chat — dashboard-home assistent
+// ============================================================
+
+export type ChatRole = "filly" | "user" | "system";
+
+export type ChatMessage = {
+  id: string;
+  role: ChatRole;
+  content: string;
+  created_at: string;
+};
+
+export type ActiveChatState = {
+  conversationId: string;
+  messages: ChatMessage[];
+};
+
+// Bij openen van het dashboard halen we de actieve chat op. Backend
+// maakt 'm aan als die nog niet bestaat en geeft meteen een
+// welkomstbericht van Filly.
+export async function fetchActiveChat(): Promise<ActiveChatState> {
+  const res = await authedFetch(`${API_URL}/chat/active`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Stuurt een bericht + wacht op Filly's antwoord. Backend slaat beide
+// op in chat_messages en geeft ze terug zodat we ze aan de lijst
+// kunnen toevoegen zonder opnieuw te hoeven fetchen.
+export async function sendChatMessage(
+  conversationId: string,
+  content: string,
+): Promise<{ userMessage: ChatMessage; fillyMessage: ChatMessage }> {
+  const res = await authedFetch(`${API_URL}/chat/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ conversation_id: conversationId, content }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateSuggestion(
   id: string,
   status: SuggestionStatus,

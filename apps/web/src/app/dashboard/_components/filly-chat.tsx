@@ -1,84 +1,94 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  fetchActiveChat,
+  sendChatMessage,
+  type ChatMessage,
+} from "../../../lib/api";
 
-type CampaignProposal = {
-  title: string;
-  body: string;
-};
-
-type Message =
-  | { id: string; role: "ai"; text: React.ReactNode; card?: CampaignProposal; status?: string }
-  | { id: string; role: "user"; text: string };
-
-const initialMessages: Message[] = [
-  {
-    id: "m1",
-    role: "ai",
-    text: (
-      <>
-        Goedemorgen! Ik zie dat <strong>donderdag op 38%</strong> staat en er
-        regen verwacht wordt. Wil je dat ik een campagne opstel?
-      </>
-    ),
-    card: {
-      title: "📩 Chef's Lunch — do 17 apr",
-      body: "3-gangen voor €24,50 · Mail naar 248 gasten · Verwachting: +22% bezetting",
-    },
-  },
-  { id: "m2", role: "user", text: "Ziet er goed uit. Verstuur maar!" },
-  {
-    id: "m3",
-    role: "ai",
-    text: "Ik hou de open-rate bij en geef je vanavond een update.",
-    status: "✓ Chef's Lunch goedgekeurd — mail om 10:00",
-  },
-];
-
-let idCounter = 100;
-const nextId = () => `m${++idCounter}`;
+// De backend geeft messages terug in het nette role-format
+// ('filly' | 'user' | 'system'). We renderen 'system' voorlopig
+// niet zichtbaar — het is gereserveerd voor latere notificaties
+// die we in de thread willen tonen.
 
 export function FillyChat() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
+  // We splitsen "loading" (initial fetch) van "sending" (bericht
+  // onderweg naar Filly). Dat bepaalt welke UI-toestand we tonen:
+  // initial-loading = skeleton, sending = typing-dots + input disabled.
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Bij mount: haal de actieve chat binnen. Backend maakt 'm aan bij
+  // eerste bezoek (incl. welkomstbericht) zodat we nooit een lege
+  // state hoeven te renderen.
+  useEffect(() => {
+    fetchActiveChat()
+      .then((data) => {
+        setConversationId(data.conversationId);
+        setMessages(data.messages);
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.error(e);
+        setError("Kon de chat niet laden. Probeer te verversen.");
+        setLoading(false);
+      });
+  }, []);
+
+  // Scrollt automatisch naar beneden bij nieuwe berichten + tijdens
+  // het wachten op Filly's antwoord (zodat de typing-indicator
+  // ook in beeld komt).
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, typing]);
+  }, [messages, sending]);
 
-  const sendMsg = () => {
+  const sendMsg = async () => {
     const text = input.trim();
-    if (!text) return;
-    setMessages((m) => [...m, { id: nextId(), role: "user", text }]);
-    setInput("");
-    setTyping(true);
-    // Mock-antwoord. Later vervangen door echte Claude API call via backend.
-    setTimeout(() => {
-      setTyping(false);
-      setMessages((m) => [
-        ...m,
-        {
-          id: nextId(),
-          role: "ai",
-          text: "Ik noteer het. Zodra de backend gekoppeld is, antwoord ik met echte data.",
-        },
-      ]);
-    }, 1200);
-  };
+    if (!text || !conversationId || sending) return;
 
-  const approveCard = () => {
-    setMessages((m) => [
-      ...m,
-      {
-        id: nextId(),
-        role: "ai",
-        text: "Top, ik plan de mail in voor morgenochtend 10:00.",
-        status: "✓ Campagne ingepland",
-      },
-    ]);
+    setError(null);
+    setInput("");
+    setSending(true);
+
+    // Optimistic UI: user-bericht direct zichtbaar. De server-response
+    // geeft zo meteen een echte id + timestamp waarmee we het
+    // optimistische bericht vervangen. Zo voelt de chat instant.
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: ChatMessage = {
+      id: tempId,
+      role: "user",
+      content: text,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((m) => [...m, optimistic]);
+
+    try {
+      const { userMessage, fillyMessage } = await sendChatMessage(
+        conversationId,
+        text,
+      );
+      // Vervang optimistisch bericht door server-versie + voeg Filly's
+      // antwoord toe. Eén state-update om flikkering te voorkomen.
+      setMessages((m) =>
+        m.filter((x) => x.id !== tempId).concat([userMessage, fillyMessage]),
+      );
+    } catch (e) {
+      // Optimistic bericht laten staan zodat de user ziet WAT ie
+      // probeerde te versturen, maar met een foutbanner erboven.
+      console.error(e);
+      setError(
+        "Filly kon niet antwoorden. Probeer nog eens (de rate-limit kan bereikt zijn).",
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -106,36 +116,31 @@ export function FillyChat() {
       </div>
 
       <div className="chat-msgs" ref={scrollRef}>
-        {messages.map((m) =>
-          m.role === "ai" ? (
-            <div key={m.id} className="msg msg-ai">
-              <div className="msg-lbl">
-                <span className="msg-avatar">F</span>
-                <span>Filly AI</span>
-              </div>
-              {m.status && <div className="msg-status">{m.status}</div>}
-              <div>{m.text}</div>
-              {m.card && (
-                <div className="msg-card">
-                  <div className="mc-title">{m.card.title}</div>
-                  <div className="mc-body">{m.card.body}</div>
-                  <div className="mc-actions">
-                    <button className="mc-btn p" onClick={approveCard}>
-                      Goedkeuren
-                    </button>
-                    <button className="mc-btn">Aanpassen</button>
+        {loading ? (
+          <div style={{ padding: 12, fontSize: 12, color: "var(--tl)" }}>
+            Chat laden…
+          </div>
+        ) : (
+          messages
+            .filter((m) => m.role !== "system")
+            .map((m) =>
+              m.role === "filly" ? (
+                <div key={m.id} className="msg msg-ai">
+                  <div className="msg-lbl">
+                    <span className="msg-avatar">F</span>
+                    <span>Filly AI</span>
                   </div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div key={m.id} className="msg msg-user">
-              <div className="msg-lbl">Jij</div>
-              {m.text}
-            </div>
-          ),
+              ) : (
+                <div key={m.id} className="msg msg-user">
+                  <div className="msg-lbl">Jij</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+                </div>
+              ),
+            )
         )}
-        {typing && (
+        {sending && (
           <div className="typing">
             <span></span>
             <span></span>
@@ -143,6 +148,21 @@ export function FillyChat() {
           </div>
         )}
       </div>
+
+      {error && (
+        <div
+          style={{
+            padding: "8px 12px",
+            margin: "0 12px 8px",
+            background: "var(--red-soft, #fee)",
+            color: "var(--red, #b00)",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <div className="chat-input">
         <div className="chat-iw">
@@ -153,12 +173,19 @@ export function FillyChat() {
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMsg();
             }}
-            placeholder="Vraag Filly iets..."
+            placeholder={
+              loading
+                ? "Chat laden…"
+                : sending
+                  ? "Filly denkt na…"
+                  : "Vraag Filly iets..."
+            }
+            disabled={loading || sending || !conversationId}
           />
           <button
             className="chat-send"
             onClick={sendMsg}
-            disabled={!input.trim()}
+            disabled={!input.trim() || loading || sending || !conversationId}
             aria-label="Verstuur"
           >
             ↑
