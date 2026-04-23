@@ -1551,6 +1551,573 @@
   cursor: not-allowed;
 }
 
+/* ==== Menu-pagina ==== */
+
+/* Filly-tip blok bovenaan — laat zien dat menu-data de grondstof is
+   voor campagnes die Filly voorstelt. Brand-soft bg + groene rand-
+   links, consistent met andere Filly-callouts. */
+.dashboard-shell .menu-filly-tip {
+  background: var(--accent-light);
+  border: 1px solid var(--hover);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r);
+  padding: 12px 16px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+.dashboard-shell .menu-filly-tip-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+.dashboard-shell .menu-filly-tip-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* Filter-rij bovenaan — alleen tabs, zoekveld staat er los onder. */
+.dashboard-shell .menu-filters {
+  margin-top: 16px;
+}
+
+/* Category-blok: kopje met titel + meta-tekst, gerecht-items eronder. */
+.dashboard-shell .menu-category-block {
+  margin-bottom: 28px;
+}
+.dashboard-shell .menu-category-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.dashboard-shell .menu-category-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin: 0;
+}
+.dashboard-shell .menu-category-meta {
+  font-size: 11.5px;
+  color: var(--tl);
+}
+
+.dashboard-shell .menu-list {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+/* Gerecht-item als klikbare knop. Hele rij clickable → edit-modal. */
+.dashboard-shell .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--white);
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.dashboard-shell .menu-item:first-child {
+  border-top: none;
+}
+.dashboard-shell .menu-item:hover {
+  background: var(--bg);
+}
+
+/* Uitgezet gerecht: lichter weergegeven. */
+.dashboard-shell .menu-item-unavailable {
+  opacity: 0.55;
+}
+
+.dashboard-shell .menu-item-main {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-shell .menu-item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+.dashboard-shell .menu-item-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+.dashboard-shell .menu-item-desc {
+  font-size: 12.5px;
+  color: var(--ts);
+  line-height: 1.5;
+}
+.dashboard-shell .menu-item-price {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 72px;
+  text-align: right;
+}
+
+/* Badges op gerecht-item — klein, uppercase, consistent met andere pills.
+   Signature = brand-accent vol, Season = brand-soft, Diet = grijs,
+   Soft = oranje-achtig voor "tijdelijk uit". */
+.dashboard-shell .menu-item-badge-signature,
+.dashboard-shell .menu-item-badge-season,
+.dashboard-shell .menu-item-badge-diet,
+.dashboard-shell .menu-item-badge-soft {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--rf);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.dashboard-shell .menu-item-badge-signature {
+  background: var(--accent);
+  color: var(--white);
+}
+.dashboard-shell .menu-item-badge-season {
+  background: var(--hover);
+  color: var(--accent);
+}
+.dashboard-shell .menu-item-badge-diet {
+  background: var(--bg);
+  color: var(--ts);
+  font-weight: 500;
+}
+.dashboard-shell .menu-item-badge-soft {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* ==== Menu-modal: form-styling ==== */
+.dashboard-shell .menu-form {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dashboard-shell .menu-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dashboard-shell .menu-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.dashboard-shell .menu-form-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ts);
+  font-weight: 700;
+}
+.dashboard-shell .menu-form-input {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.12s;
+  width: 100%;
+  resize: vertical;
+}
+.dashboard-shell .menu-form-input:focus {
+  border-color: var(--accent);
+}
+.dashboard-shell .menu-form-input[type="text"],
+.dashboard-shell .menu-form-input[type="number"] {
+  min-height: 38px;
+}
+/* Select krijgt native styling van de browser — genoeg voor MVP. */
+.dashboard-shell select.menu-form-input {
+  cursor: pointer;
+}
+
+/* Toggle-rij: checkbox + label, horizontaal uitgelijnd. */
+.dashboard-shell .menu-form-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+}
+.dashboard-shell .menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+.dashboard-shell .menu-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.dashboard-shell .menu-toggle-label strong {
+  font-weight: 600;
+}
+.dashboard-shell .menu-form-season {
+  margin-top: 4px;
+  padding-left: 26px;
+}
+
+/* Dieet-tag chips — multi-select pills. Active = brand-soft + accent. */
+.dashboard-shell .menu-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dashboard-shell .menu-tag-chip {
+  padding: 5px 12px;
+  border-radius: var(--rf);
+  background: var(--white);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ts);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.dashboard-shell .menu-tag-chip:hover {
+  border-color: var(--accent);
+}
+.dashboard-shell .menu-tag-chip.active {
+  background: var(--hover);
+  color: var(--accent);
+  border-color: var(--hover);
+}
+
+/* Modal-acties: delete-knop helemaal rechts, visueel gescheiden. */
+.dashboard-shell .menu-modal-actions {
+  display: flex;
+  gap: 8px;
+}
+.dashboard-shell .menu-modal-delete {
+  margin-left: auto;
+}
+
+/* Page-header-acties: secondary-knop naast primary ("Upload menu" +
+   "+ Gerecht toevoegen"). */
+.dashboard-shell .menu-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.dashboard-shell .btn-secondary-dash {
+  padding: 10px 18px;
+  background: var(--white);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--rf);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.dashboard-shell .btn-secondary-dash:hover {
+  background: var(--hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Status-banner voor geüploade menu-kaart. Brand-soft bg + groene
+   check-cirkel links, meta-info midden, vervang-knop rechts. Laat
+   direct zien dat er een actieve menu-kaart is. */
+.dashboard-shell .menu-card-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--accent-light);
+  border: 1px solid var(--hover);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r);
+  margin-top: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.dashboard-shell .menu-card-status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dashboard-shell .menu-card-status-body {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-shell .menu-card-status-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.dashboard-shell .menu-card-status-meta {
+  font-size: 12px;
+  color: var(--text);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dashboard-shell .menu-card-status-meta > span:first-child {
+  font-weight: 600;
+}
+.dashboard-shell .menu-card-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.dashboard-shell .menu-card-status-btn {
+  flex-shrink: 0;
+}
+
+/* Verwijder-link in de status-banner — ghost-stijl (geen achtergrond,
+   rode tekst op hover) zodat hij duidelijk destructief is maar niet
+   domineert naast de primaire replace-knop. */
+.dashboard-shell .menu-card-status-remove {
+  padding: 8px 14px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--rf);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ts);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.12s, background 0.12s;
+}
+.dashboard-shell .menu-card-status-remove:hover {
+  color: #CC2F27;
+  background: #FEF2F2;
+}
+
+/* NIEUW-badge voor recent geïmporteerde gerechten — brand-groen zodat
+   de gebruiker direct ziet wat uit de upload kwam. */
+.dashboard-shell .menu-item-badge-new {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--rf);
+  background: var(--accent);
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* ==== Upload-modal ==== */
+
+.dashboard-shell .menu-upload-intro {
+  font-size: 13px;
+  color: var(--ts);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+/* Dropzone — grote dashed box, klikbaar. */
+.dashboard-shell .menu-upload-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 40px 24px;
+  background: var(--bg);
+  border: 2px dashed var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dashboard-shell .menu-upload-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+.dashboard-shell .menu-upload-dropzone-icon {
+  font-size: 40px;
+  margin-bottom: 4px;
+}
+.dashboard-shell .menu-upload-dropzone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.dashboard-shell .menu-upload-dropzone-sub {
+  font-size: 12px;
+  color: var(--tl);
+}
+
+/* Processing-view. */
+.dashboard-shell .menu-upload-processing {
+  padding: 8px 0;
+}
+.dashboard-shell .menu-upload-filename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.dashboard-shell .menu-upload-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.dashboard-shell .menu-upload-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--tl);
+  transition: color 0.2s;
+}
+.dashboard-shell .menu-upload-step.active {
+  color: var(--text);
+  font-weight: 600;
+}
+.dashboard-shell .menu-upload-step.done {
+  color: var(--accent);
+  font-weight: 500;
+}
+.dashboard-shell .menu-upload-step-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tl);
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.dashboard-shell .menu-upload-step.active .menu-upload-step-indicator {
+  background: var(--white);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.dashboard-shell .menu-upload-step.done .menu-upload-step-indicator {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--white);
+}
+.dashboard-shell .menu-upload-status {
+  font-size: 12px;
+  color: var(--tl);
+  font-style: italic;
+  padding-left: 36px;
+}
+
+/* Spinner-animatie voor de huidige stap. */
+.dashboard-shell .menu-upload-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--hover);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: menu-spin 0.7s linear infinite;
+}
+@keyframes menu-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Resultaat-view: banner + lijst herkende items. */
+.dashboard-shell .menu-upload-done-banner {
+  padding: 12px 14px;
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--rs);
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.dashboard-shell .menu-upload-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 16px;
+}
+.dashboard-shell .menu-upload-result-list::-webkit-scrollbar {
+  width: 4px;
+}
+.dashboard-shell .menu-upload-result-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+.dashboard-shell .menu-upload-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+}
+.dashboard-shell .menu-upload-result-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.dashboard-shell .menu-upload-result-meta {
+  font-size: 11px;
+  color: var(--tl);
+  margin-top: 2px;
+}
+.dashboard-shell .menu-upload-result-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 /* Notitie onderaan met prioriteits-volgorde. */
 .dashboard-shell .integrations-note {
   margin-top: 32px;
