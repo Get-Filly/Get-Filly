@@ -10,5 +10,8 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
   imports: [SupabaseModule, MeModule],
   controllers: [ReservationsController],
   providers: [ReservationsService, AuthGuard, RestaurantAccessGuard],
+  // Exporteren zodat AiModule reserveringen kan ophalen voor context-
+  // injectie in Filly-prompts.
+  exports: [ReservationsService],
 })
 export class ReservationsModule {}

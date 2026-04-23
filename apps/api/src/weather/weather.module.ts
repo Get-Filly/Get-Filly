@@ -10,5 +10,8 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
   imports: [SupabaseModule, MeModule],
   controllers: [WeatherController],
   providers: [WeatherService, AuthGuard, RestaurantAccessGuard],
+  // Exporteren zodat AiModule de forecast kan ophalen voor context-
+  // injectie in Filly-prompts.
+  exports: [WeatherService],
 })
 export class WeatherModule {}

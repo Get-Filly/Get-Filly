@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
+import { RestaurantContextService } from '../ai/restaurant-context.service';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
 // 'user' = de restauranteigenaar, 'system' = interne/automatische berichten
@@ -34,6 +35,7 @@ export class ChatService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly ai: AiService,
+    private readonly context: RestaurantContextService,
   ) {}
 
   // Haalt de actieve conversatie op voor dit restaurant, of maakt er
@@ -194,16 +196,22 @@ export class ChatService {
     };
   }
 
-  // System-prompt voor chat. Hier zit Filly's persona + rol + de
-  // restaurant-identiteit. Rijkere data (bezetting, weer, reserveringen)
-  // volgt in v2 — eerst kijken of de chat zonder merkbaar tekortschiet.
+  // System-prompt voor chat: Filly's persona + restaurant-identiteit +
+  // actuele feiten (weer, bezetting, reserveringen). De feiten komen
+  // uit RestaurantContextService die ze parallel ophaalt. Eén extra
+  // ronde naar de DB (~150ms) is verwaarloosbaar op een 1-3s Claude-call
+  // en voorkomt dat Filly hallucineert over data die ze niet heeft.
   private async buildSystemPrompt(restaurantId: string): Promise<string> {
-    const { data: restaurant } = await this.supabase.client
-      .from('restaurants')
-      .select('name, type, description, brand_tone')
-      .eq('id', restaurantId)
-      .maybeSingle();
+    const [restaurantResult, contextBlock] = await Promise.all([
+      this.supabase.client
+        .from('restaurants')
+        .select('name, type, description, brand_tone')
+        .eq('id', restaurantId)
+        .maybeSingle(),
+      this.context.buildContextBlock(restaurantId),
+    ]);
 
+    const restaurant = restaurantResult.data;
     const name = restaurant?.name ?? 'de zaak';
     const type = restaurant?.type ? ` (${restaurant.type})` : '';
     const desc = restaurant?.description
@@ -226,7 +234,15 @@ Hoe je praat:
 Wat je NIET doet:
 - Beloof geen acties die je (nog) niet zelf kan uitvoeren. Zeg eerlijk "dat moet ik nog leren" als een feature er niet is.
 - Geef geen juridisch, fiscaal of medisch advies.
+- VERZIN geen cijfers. De feiten hieronder zijn je enige bron. Als je niets weet over iets, zeg dat dan.
 ${desc}
+
+---
+Hieronder staan de actuele feiten over de zaak. Gebruik deze als enige
+bron voor cijfers over bezetting, weer en reserveringen:
+
+${contextBlock}
+---
 
 Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI" — spreek gewoon als Filly.`;
   }

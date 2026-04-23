@@ -10,5 +10,8 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
   imports: [SupabaseModule, MeModule],
   controllers: [OccupancyController],
   providers: [OccupancyService, AuthGuard, RestaurantAccessGuard],
+  // Exporteren zodat AiModule de service mag hergebruiken voor
+  // context-injectie in Filly-prompts (chat, suggesties, campagnes).
+  exports: [OccupancyService],
 })
 export class OccupancyModule {}
