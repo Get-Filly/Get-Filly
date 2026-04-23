@@ -1207,6 +1207,217 @@
   background: var(--border);
   cursor: not-allowed;
 }
+
+/* Header-rij met titel links en primary CTA rechts. Gebruikt o.a.
+   op campagnes-overzicht zodat "Nieuwe campagne" direct zichtbaar is. */
+.dashboard-shell .page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Filter-rij met status-tabs (links) en type-chips (rechts). Wrap op
+   smalle schermen zodat ze niet overlappen. */
+.dashboard-shell .campagnes-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* Type-chip — kleine pill-knop met icon + label voor het filteren op
+   kanaal (mail / social / whatsapp). Actieve chip krijgt brand-soft bg. */
+.dashboard-shell .type-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dashboard-shell .type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--rf);
+  background: var(--white);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ts);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.dashboard-shell .type-chip:hover {
+  background: var(--bg);
+  border-color: var(--tl);
+}
+.dashboard-shell .type-chip.active {
+  background: var(--hover);
+  color: var(--accent);
+  border-color: var(--hover);
+}
+
+/* Herbruikbaar zoekveld — zelfde stijl voor dashboard-pagina's. */
+.dashboard-shell .search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 16px;
+  background: var(--white);
+  transition: border-color 0.12s;
+}
+.dashboard-shell .search-input:focus {
+  border-color: var(--accent);
+}
+
+/* ==== Campagne-preview mockups ====
+   Visuele voorbeelden van hoe mail / social / whatsapp eruit gaan zien.
+   Het doel is dat de gebruiker een gevoel krijgt van het kanaal, niet
+   pixel-perfect (dat is het echte versturen-platform). */
+
+.dashboard-shell .mail-preview {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  max-width: 640px;
+}
+.dashboard-shell .mail-preview-meta {
+  display: flex;
+  gap: 24px;
+  padding: 14px 18px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.dashboard-shell .mail-preview-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dashboard-shell .mail-preview-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--tl);
+  font-weight: 600;
+}
+.dashboard-shell .mail-preview-val {
+  font-size: 12px;
+  color: var(--text);
+}
+.dashboard-shell .mail-preview-subject {
+  font-size: 17px;
+  font-weight: 700;
+  padding: 18px 18px 2px;
+  letter-spacing: -0.2px;
+}
+.dashboard-shell .mail-preview-preheader {
+  font-size: 12px;
+  color: var(--tl);
+  padding: 0 18px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.dashboard-shell .mail-preview-body {
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  padding: 18px;
+  color: var(--text);
+}
+
+.dashboard-shell .social-preview {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  max-width: 380px;
+}
+.dashboard-shell .social-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.dashboard-shell .social-preview-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #D97F3C 100%);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dashboard-shell .social-preview-handle {
+  font-size: 13px;
+  font-weight: 600;
+}
+.dashboard-shell .social-preview-sub {
+  font-size: 11px;
+  color: var(--tl);
+  text-transform: capitalize;
+}
+.dashboard-shell .social-preview-image {
+  aspect-ratio: 4 / 3;
+  background: var(--hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  color: var(--accent);
+}
+.dashboard-shell .social-preview-actions {
+  display: flex;
+  gap: 14px;
+  padding: 10px 14px 4px;
+  font-size: 18px;
+}
+.dashboard-shell .social-preview-caption {
+  padding: 0 14px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dashboard-shell .social-preview-tags {
+  padding: 0 14px 14px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.dashboard-shell .whatsapp-preview {
+  padding: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  display: flex;
+  justify-content: flex-end;
+  max-width: 440px;
+}
+.dashboard-shell .whatsapp-preview-bubble {
+  background: var(--accent);
+  color: var(--white);
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 85%;
+  white-space: pre-wrap;
+}
 .dashboard-shell .save-bar {
   display: flex;
   align-items: center;
@@ -1407,7 +1618,457 @@
   color: var(--ts);
 }
 .dashboard-shell .sg-chip.type-mail { background: var(--accent-light); color: var(--accent); }
-.dashboard-shell .sg-chip.type-social { background: #F0E6FF; color: #7B2FD9; }
+.dashboard-shell .sg-chip.type-social {
+  /* Brand-consistent: brand-soft + brand-accent i.p.v. paarse off-brand. */
+  background: var(--hover);
+  color: var(--accent);
+}
+
+/* Expected-impact box in een suggestion-card. Brand-styling: groene
+   rand-links + groene waarde-kleur zodat het visueel aansluit bij de
+   "Filly-attributie"-taal op andere dashboard-pagina's. */
+.dashboard-shell .sg-impact {
+  display: flex;
+  gap: 18px;
+  padding: 12px 14px;
+  background: var(--accent-light);
+  border: 1px solid var(--hover);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--rs);
+  flex-wrap: wrap;
+}
+.dashboard-shell .sg-impact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 100px;
+}
+.dashboard-shell .sg-impact-confidence {
+  max-width: 130px;
+}
+.dashboard-shell .sg-impact-label {
+  color: var(--ts);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+.dashboard-shell .sg-impact-val {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+/* Confidence-meter: klein groen balkje dat de score visueel maakt. */
+.dashboard-shell .sg-conf-bar {
+  height: 4px;
+  background: var(--hover);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.dashboard-shell .sg-conf-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* Suggestion-card klikbaar — cursor + hover-lift zodat duidelijk is
+   dat je kunt klikken voor details. */
+.dashboard-shell .suggestion-card-clickable {
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+}
+.dashboard-shell .suggestion-card-clickable:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(31, 74, 45, 0.08);
+}
+.dashboard-shell .suggestion-card-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ==== Suggestion detail-modal ====
+   Overlay + gecentreerde kaart met volledige suggestie-inhoud. Klik
+   buiten of Escape sluit. Scroll als content te veel is. */
+.dashboard-shell .sg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 43, 23, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+  animation: sg-overlay-in 0.15s ease-out;
+}
+@keyframes sg-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.dashboard-shell .sg-modal {
+  background: var(--white);
+  border-radius: 14px;
+  max-width: 640px;
+  width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 28px 28px 24px;
+  position: relative;
+  box-shadow: 0 24px 64px rgba(14, 43, 23, 0.2);
+  animation: sg-modal-in 0.18s ease-out;
+}
+@keyframes sg-modal-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dashboard-shell .sg-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: inherit;
+}
+.dashboard-shell .sg-modal-close:hover {
+  background: var(--hover);
+}
+.dashboard-shell .sg-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-right: 40px; /* ruimte voor de close-knop */
+}
+.dashboard-shell .sg-urgency-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.dashboard-shell .sg-urgency-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.dashboard-shell .sg-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 0 0 10px;
+  line-height: 1.2;
+}
+.dashboard-shell .sg-modal-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.dashboard-shell .sg-modal-section {
+  margin-top: 18px;
+}
+.dashboard-shell .sg-modal-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.dashboard-shell .sg-modal-field {
+  margin-bottom: 12px;
+}
+.dashboard-shell .sg-modal-field-label {
+  font-size: 11px;
+  color: var(--tl);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 3px;
+}
+.dashboard-shell .sg-modal-field-val {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.dashboard-shell .sg-modal-field-body {
+  white-space: pre-wrap;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  margin-top: 4px;
+}
+.dashboard-shell .sg-modal-reasoning {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  font-style: italic;
+  padding: 12px 14px;
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--rs);
+}
+.dashboard-shell .sg-modal-actions {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ==== Dish-cards (voorgestelde invulling) ====
+   Elk gerecht krijgt een eigen kaart met bron-badge. Main dish is een
+   grote kaart, sides staan in een rij eronder als compacte kaartjes. */
+
+.dashboard-shell .dish-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+}
+
+.dashboard-shell .dish-card-main {
+  background: var(--accent-light);
+  border-color: var(--hover);
+  border-left: 3px solid var(--accent);
+}
+
+.dashboard-shell .dish-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dashboard-shell .dish-card-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.dashboard-shell .dish-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.dashboard-shell .dish-card-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ts);
+  margin-bottom: 8px;
+}
+
+.dashboard-shell .dish-card-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dashboard-shell .dish-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.dashboard-shell .dish-card-side {
+  padding: 10px 12px;
+}
+
+.dashboard-shell .dish-card-name-small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.dashboard-shell .dish-card-desc-small {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ts);
+}
+
+.dashboard-shell .dish-card-price-inline {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Bron-badges: "Uit je menu" = brand-soft groen,
+   "Nieuw voorstel" = koper-oranje (highlight) als signaal "out-of-the-box". */
+.dashboard-shell .dish-source {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--rf);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.dashboard-shell .dish-source-menu {
+  background: var(--hover);
+  color: var(--accent);
+}
+.dashboard-shell .dish-source-new {
+  background: #FDF0E5;
+  color: #B25E1E;
+}
+
+/* Meta-rij onderaan: timing + prijs-bundel. */
+.dashboard-shell .dish-meta-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--rs);
+  font-size: 12.5px;
+  color: var(--text);
+}
+.dashboard-shell .dish-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dashboard-shell .dish-meta-icon {
+  font-size: 14px;
+}
+
+/* ==== Photo-picker ====
+   Twee opties naast elkaar: Filly's voorstel (actief, brand-soft) en
+   een upload-slot (placeholder — later echte file-picker). Actieve
+   optie krijgt een check + brand-rand. */
+.dashboard-shell .photo-picker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dashboard-shell .photo-option {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dashboard-shell .photo-option-active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+.dashboard-shell .photo-option-upload {
+  background: var(--bg);
+  border-style: dashed;
+  opacity: 0.85;
+}
+.dashboard-shell .photo-option-upload:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--hover);
+  opacity: 1;
+}
+.dashboard-shell .photo-option:disabled {
+  cursor: default;
+}
+.dashboard-shell .photo-option-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--accent);
+}
+.dashboard-shell .photo-option-upload .photo-option-label {
+  color: var(--ts);
+}
+.dashboard-shell .photo-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+}
+.dashboard-shell .photo-upload-icon {
+  font-size: 14px;
+}
+.dashboard-shell .photo-frame {
+  aspect-ratio: 4 / 3;
+  background: var(--white);
+  border-radius: var(--rs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  color: var(--accent);
+}
+.dashboard-shell .photo-frame-empty {
+  background: var(--hover);
+  color: var(--tl);
+  font-size: 12px;
+}
+.dashboard-shell .photo-upload-hint {
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-shell .photo-caption-text {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ts);
+}
+
+/* Container om de kanaal-preview in de suggesties-modal. Geeft wat
+   ademruimte en max-width zodat mail-preview niet te breed wordt. */
+.dashboard-shell .channel-preview-wrap {
+  margin-top: 4px;
+}
+
+/* Optionele hero-image bovenaan een mail-preview (zodra er een foto is
+   gekozen). Past visueel bij de e-mail, verschijnt net onder de van/aan
+   meta-rij en boven het onderwerp. */
+.dashboard-shell .mail-preview-hero {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--hover) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+}
 .dashboard-shell .sg-actions {
   display: flex;
   gap: 8px;

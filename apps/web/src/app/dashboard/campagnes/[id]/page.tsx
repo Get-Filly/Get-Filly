@@ -138,15 +138,18 @@ export default function CampaignDetailPage() {
 
       <div style={{ marginBottom: 24 }} />
 
-      {/* Impact summary */}
+      {/* Impact summary — extra reserveringen + extra omzet zijn de
+          Filly-attributie-cijfers, krijgen dus stat-card-filly styling
+          (groene rand + waarde) zodat visueel direct duidelijk is dat
+          dit Filly's bijdrage is. */}
       <div className="stats-row">
-        <div className="stat-card">
+        <div className="stat-card stat-card-filly">
           <div className="stat-card-label">Extra reserveringen</div>
           <div className="stat-card-val">
             +{resultStats.extra_reservations ?? 0}
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stat-card-filly">
           <div className="stat-card-label">Extra omzet (schatting)</div>
           <div className="stat-card-val">
             {formatEuroFromCents(
@@ -237,43 +240,32 @@ export default function CampaignDetailPage() {
         </div>
         <div className="card-b">
           {isMail && (
-            <div
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r)",
-                padding: 16,
-                background: "var(--bg)",
-              }}
-            >
-              <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 8 }}>
-                <strong style={{ color: "var(--text)" }}>Van:</strong>{" "}
-                {campaign.content?.from_name ?? "—"} · <strong style={{ color: "var(--text)" }}>reply:</strong>{" "}
-                {campaign.content?.reply_to ?? "—"}
+            <div className="mail-preview">
+              <div className="mail-preview-meta">
+                <div>
+                  <span className="mail-preview-label">Van</span>
+                  <span className="mail-preview-val">
+                    {campaign.content?.from_name ?? "—"}
+                  </span>
+                </div>
+                <div>
+                  <span className="mail-preview-label">Reply-to</span>
+                  <span className="mail-preview-val">
+                    {campaign.content?.reply_to ?? "—"}
+                  </span>
+                </div>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
-                {campaign.content?.subject_line ?? campaign.subject_line ?? "—"}
+              <div className="mail-preview-subject">
+                {campaign.content?.subject_line ??
+                  campaign.subject_line ??
+                  "—"}
               </div>
               {campaign.content?.preheader && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--tl)",
-                    marginBottom: 12,
-                  }}
-                >
+                <div className="mail-preview-preheader">
                   {campaign.content.preheader}
                 </div>
               )}
-              <div
-                style={{
-                  fontSize: 13,
-                  lineHeight: 1.7,
-                  whiteSpace: "pre-wrap",
-                  marginTop: 10,
-                  paddingTop: 10,
-                  borderTop: "1px solid var(--border)",
-                }}
-              >
+              <div className="mail-preview-body">
                 {campaign.content?.body_plain ??
                   campaign.body ??
                   "Geen inhoud"}
@@ -281,60 +273,45 @@ export default function CampaignDetailPage() {
             </div>
           )}
           {isSocial && (
-            <div
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r)",
-                padding: 16,
-                background: "var(--bg)",
-              }}
-            >
-              <div
-                style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}
-              >
-                {campaign.content?.caption ??
-                  campaign.body ??
-                  "Geen caption"}
+            <div className="social-preview">
+              <div className="social-preview-header">
+                <div className="social-preview-avatar">
+                  {campaign.content?.platforms?.[0]?.slice(0, 1).toUpperCase() ??
+                    "F"}
+                </div>
+                <div>
+                  <div className="social-preview-handle">
+                    get_filly_demo
+                  </div>
+                  <div className="social-preview-sub">
+                    {campaign.content?.platforms?.join(" · ") ?? "social"}
+                  </div>
+                </div>
+              </div>
+              <div className="social-preview-image">📷</div>
+              <div className="social-preview-actions">
+                <span>❤️</span>
+                <span>💬</span>
+                <span>📤</span>
+              </div>
+              <div className="social-preview-caption">
+                {campaign.content?.caption ?? campaign.body ?? "Geen caption"}
               </div>
               {campaign.content?.hashtags &&
                 campaign.content.hashtags.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 6,
-                      flexWrap: "wrap",
-                      marginBottom: 10,
-                    }}
-                  >
+                  <div className="social-preview-tags">
                     {campaign.content.hashtags.map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          fontSize: 12,
-                          color: "var(--accent)",
-                        }}
-                      >
-                        #{t}
-                      </span>
+                      <span key={t}>#{t}</span>
                     ))}
                   </div>
                 )}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  fontSize: 11,
-                  color: "var(--tl)",
-                }}
-              >
-                Platforms:{" "}
-                {campaign.content?.platforms?.join(", ") ?? "—"}
-              </div>
             </div>
           )}
           {!isMail && !isSocial && (
-            <div style={{ fontSize: 13, color: "var(--ts)" }}>
-              {campaign.content?.message_text ?? campaign.body ?? "—"}
+            <div className="whatsapp-preview">
+              <div className="whatsapp-preview-bubble">
+                {campaign.content?.message_text ?? campaign.body ?? "—"}
+              </div>
             </div>
           )}
         </div>
