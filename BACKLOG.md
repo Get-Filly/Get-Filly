@@ -137,9 +137,9 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ## Test-data & seeds
 
-- [ ] **`seeds/test_restaurants.sql` in de repo** — de huidige "User Existence and Restaurant Access Checks"-snippet uit Supabase SQL-editor hierheen kopiëren zodat 'ie in git staat
-- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard
-- [ ] **Campagne-seed check** — de "Campaigns Table for Marketing Content"-query in Supabase ook in seeds-folder plaatsen
+- [~] **`apps/api/supabase/seeds/test_restaurants.sql`** — reconstructie aangemaakt op basis van memory + schema. **Verifieer tegen de exacte inhoud van "User Existence and Restaurant Access Checks"** in Supabase SQL-editor. Als die afwijkt: kopieer de Supabase-versie erheen en commit. Daarna mag de snippet in Supabase weg.
+- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly
+- [ ] **`apps/api/supabase/seeds/test_campaigns.sql`** — de inhoud van de "Campaigns Table for Marketing Content"-query in Supabase SQL-editor kopiëren naar dit bestand. Daarna mag de snippet in Supabase weg.
 
 ---
 
@@ -175,3 +175,6 @@ werken. Laatste audit: 2026-04-23.
 - ✅ Filly-chat met persistente `chat_messages`-historie
 - ✅ `RestaurantContextService` — herbruikbaar context-blok voor alle Filly-prompts
 - ✅ Chat v2: live weer + bezetting + reserveringen in system-prompt
+- ✅ `CLAUDE.md` bijgewerkt (was 2 dagen oud, refereerde nog aan oude huisstijl en migraties 0001-0005)
+- ✅ `docs/supabase-manual-setup.md` — alles wat niet in migraties staat: email-templates, redirect-URLs, storage-buckets, env-vars, verificatie-queries
+- ✅ `apps/api/supabase/seeds/test_restaurants.sql` (reconstructie) + seeds-README
