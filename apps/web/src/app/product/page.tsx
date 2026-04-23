@@ -1,3 +1,5 @@
+// Functies die in "Alle functies" worden getoond. Zes items in een
+// 3-koloms grid, elk met een icoon bovenaan en korte beschrijving.
 const features = [
   {
     icon: "📊",
@@ -31,6 +33,8 @@ const features = [
   },
 ];
 
+// Vier differentiators — waarom Get-Filly anders is dan de rest.
+// Genummerd 01-04, worden in een 2x2 grid getoond.
 const diffs = [
   {
     num: "01",
@@ -57,7 +61,9 @@ const diffs = [
 export default function ProductPage() {
   return (
     <>
-      <section style={{ paddingTop: 160, paddingBottom: 0 }}>
+      {/* Hero — zelfde ritme als de homepage: kleine brand-groene eyebrow,
+          grote H1, ondersteunende subtitel. Papier-warme achtergrond. */}
+      <section style={{ paddingTop: 160, paddingBottom: 80 }}>
         <div className="container">
           <p className="section-label">Product</p>
           <h1 className="section-title">
@@ -71,65 +77,28 @@ export default function ProductPage() {
         </div>
       </section>
 
-      {/* Vier differentiators */}
-      <section style={{ paddingTop: 64, paddingBottom: 64 }}>
+      {/* Differentiators — 4 redenen in 2x2 grid. Witte sectie-achtergrond
+          voor contrast met de papier-warme hero. */}
+      <section
+        style={{
+          background: "var(--true-white)",
+          paddingTop: 80,
+          paddingBottom: 80,
+        }}
+      >
         <div className="container">
           <p className="section-label">Wat Get Filly anders maakt</p>
           <h2 className="section-title" style={{ maxWidth: 720 }}>
             Vier redenen waarom dit niet &ldquo;weer een marketing-tool&rdquo; is.
           </h2>
 
-          <div
-            style={{
-              marginTop: 48,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
-              gap: 32,
-            }}
-          >
+          <div className="diff-grid">
             {diffs.map((d) => (
-              <div
-                key={d.num}
-                style={{
-                  display: "flex",
-                  gap: 20,
-                  padding: 28,
-                  background: "var(--bg)",
-                  borderRadius: "var(--radius)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 800,
-                    color: "var(--accent)",
-                    letterSpacing: "-1px",
-                    lineHeight: 1,
-                    minWidth: 48,
-                  }}
-                >
-                  {d.num}
-                </div>
+              <div key={d.num} className="info-card info-card--numbered">
+                <div className="info-card-num">{d.num}</div>
                 <div>
-                  <h3
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 700,
-                      marginBottom: 10,
-                      letterSpacing: "-0.3px",
-                    }}
-                  >
-                    {d.title}
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: 15,
-                      color: "var(--text-secondary)",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {d.desc}
-                  </p>
+                  <h3 className="info-card-title">{d.title}</h3>
+                  <p className="info-card-desc">{d.desc}</p>
                 </div>
               </div>
             ))}
@@ -137,16 +106,18 @@ export default function ProductPage() {
         </div>
       </section>
 
-      <section className="features" style={{ paddingTop: 48 }}>
+      {/* Alle functies — 6 functies in 3x2 grid met icoon-kaarten. Papier
+          achtergrond (terug naar hero-kleur) voor ritme wit → papier. */}
+      <section style={{ paddingTop: 80, paddingBottom: 112 }}>
         <div className="container">
           <p className="section-label">Alle functies</p>
           <h2 className="section-title">Wat zit er in.</h2>
-          <div className="features-grid">
+          <div className="feature-grid-3">
             {features.map((f) => (
-              <div key={f.title} className="feature-card">
-                <div className="feature-icon">{f.icon}</div>
-                <h3 className="feature-title">{f.title}</h3>
-                <p className="feature-desc">{f.desc}</p>
+              <div key={f.title} className="info-card">
+                <div className="info-card-icon">{f.icon}</div>
+                <h3 className="info-card-title">{f.title}</h3>
+                <p className="info-card-desc">{f.desc}</p>
               </div>
             ))}
           </div>

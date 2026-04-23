@@ -93,11 +93,11 @@ body {
 }
 
 .navbar {
-  /* Papier-warme achtergrond met zware blur. Kleur matcht --bg
-     (#FAF7F1). Hoge opaakheid + 40px blur = tekst eronder vervaagt. */
-  background: rgba(250, 247, 241, 0.92);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  /* Papier-warme achtergrond, bijna volledig opaak + zware blur.
+     Content eronder moet vrijwel onleesbaar zijn door de nav. */
+  background: rgba(250, 247, 241, 0.97);
+  backdrop-filter: blur(56px) saturate(180%);
+  -webkit-backdrop-filter: blur(56px) saturate(180%);
   border-bottom: 1px solid var(--border);
   width: 100%;
 }
@@ -392,14 +392,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 /* ===== FEATURES ===== */
 /* Features-sectie op witte achtergrond zodat hij contrast maakt met de
    crème-hero erboven (kleur-ritme per sectie, à la owner.com). */
-/* Features-sectie op wit. Padding drastisch ingekort zodat kaart 1
-   vrijwel direct in beeld komt zodra de hero omhoog scrolt. Geen
-   padding-bottom — na kaart 3 wil je meteen door naar "Hoe het werkt"
-   zonder lege ruimte. */
+/* Features-sectie op wit. Normale section-padding — we gebruiken geen
+   scroll-pin meer dus content kan rustig ademen boven én onder. */
 .features {
   background: var(--true-white);
-  padding-top: 40px;
-  padding-bottom: 0;
+  padding-top: 80px;
+  padding-bottom: 96px;
 }
 
 /* Stapel-kaarten carousel (Linear-stijl).
@@ -419,65 +417,35 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    padding-bottom op de stack zorgt dat de laatste kaart ~50vh lang
    blijft "plakken" voordat de pagina verder rolt — anders scrol je er
    meteen langsheen. */
-/* Sticky header houdt H2 + subtitel bovenaan terwijl de kaarten
-   doorcyclen. Padding-bottom zorgt dat de witte achtergrond doorloopt
-   tot onder de header, anders zou een kaart eronderuit steken. */
-.features-sticky-header {
-  position: sticky;
-  top: 88px;
-  background: var(--true-white);
-  padding-bottom: 20px;
-  z-index: 2;
-}
-
+/* Drie kaarten onder elkaar, elk op volle breedte. Alternerende layout
+   (kaart 2 gedraaid via --reverse) geeft visueel ritme. */
 .features-stack {
-  margin-top: 16px;
+  margin-top: 32px;
   display: flex;
   flex-direction: column;
-  /* Geen padding-bottom: kaart 3 rolt direct door naar "Hoe het werkt"
-     zodra hij in beeld is geweest. Geen lege witruimte aan het eind. */
-  padding-bottom: 0;
+  gap: 24px;
 }
 
 .feature-row {
   background: var(--surface);
-  border-radius: 28px;
-  padding: 64px;
+  border-radius: 24px;
+  padding: 56px;
+  /* Side-by-side: tekst in één kolom, mockup in de andere. Volle
+     breedte van de container geeft lucht om beide naast elkaar te
+     zetten zonder gedrongen te voelen. */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 56px;
   align-items: center;
-
-  /* Kaart-hoogte = viewport minus de ruimte van de sticky header +
-     de sticky-offset zelf. Hierdoor past elke kaart PRECIES naast de
-     header in de viewport. 360 = header (~260) + gap (~100). */
-  min-height: calc(100vh - 360px);
-
-  /* Kaarten plakken NET onder de sticky header. Top:340 geeft ~20px
-     visuele ademruimte tussen het einde van de header en de kaart. */
-  position: sticky;
-  top: 340px;
-
-  /* Margin-bottom creëert scroll-afstand tussen kaarten zodat de
-     volgende kaart niet al zichtbaar is als de huidige nog plakt.
-     40vh = volgende kaart begint net onder viewport-bodem. */
-  margin-bottom: 40vh;
-
-  /* Dubbele schaduw: opwaartse gloed + onderwaartse schaduw. De
-     opwaartse gloed is cruciaal voor het stapel-effect — zodra een
-     nieuwe kaart van onderen over de vorige schuift zie je een donkere
-     rand verschijnen, als signaal "er komt een nieuwe kaart". */
-  box-shadow:
-    0 -12px 32px rgba(31, 74, 45, 0.08),
-    0 20px 48px rgba(31, 74, 45, 0.12);
+  /* min-height zorgt dat alle 3 de kaarten dezelfde hoogte hebben,
+     onafhankelijk van hoeveel tekst of hoe groot de mockup is. Geeft
+     een strak, gelijk ritme in de bento-stack. */
+  min-height: 420px;
+  box-shadow: 0 2px 12px rgba(31, 74, 45, 0.06);
 }
 
-/* Laatste kaart hoeft geen trailing margin — anders lege ruimte na. */
-.feature-row:last-child {
-  margin-bottom: 0;
-}
-
-/* --reverse draait de kolommen om zodat rijen afwisselen in layout. */
+/* --reverse draait tekst en mockup om — kaart 2 krijgt mockup-links,
+   tekst-rechts voor alternerend visueel ritme. */
 .feature-row--reverse .feature-row-text { order: 2; }
 .feature-row--reverse .feature-row-visual { order: 1; }
 
@@ -491,21 +459,20 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 
 .feature-row-title {
-  /* Iets compacter zodat kaart-content altijd in de kaart past,
-     ook bij viewport-hoogte rond 700-800px. */
-  font-size: 32px;
+  /* Compactere titel passend bij de vaste kaart-hoogte 560px. */
+  font-size: 28px;
   font-weight: 700;
-  letter-spacing: -0.6px;
-  line-height: 1.1;
-  margin-bottom: 14px;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  margin-bottom: 12px;
   color: var(--text);
 }
 
 .feature-row-desc {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.6;
-  max-width: 420px;
+  max-width: 380px;
 }
 
 .feature-row-visual {
@@ -520,9 +487,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .fmock-chat {
   background: var(--true-white);
   border-radius: 18px;
-  padding: 22px;
+  padding: 20px;
   width: 100%;
-  max-width: 380px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -554,7 +521,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: var(--true-white);
   border-radius: 18px;
   width: 100%;
-  max-width: 320px;
+  max-width: 280px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(31, 74, 45, 0.08);
 }
@@ -588,13 +555,13 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 .fmock-social-img {
   background: var(--hover);
-  /* 4/3 i.p.v. 1/1 — sociale post is korter in hoogte zodat de mockup
-     niet uit de kaart loopt bij beperkte viewport-hoogtes. */
-  aspect-ratio: 4 / 3;
+  /* 3/2 — sociale post korter zodat alle 3 de kaarten in de features
+     stack ongeveer even hoog uitkomen (anders wordt deze te lang). */
+  aspect-ratio: 3 / 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 72px;
+  font-size: 64px;
 }
 
 .fmock-social-caption {
@@ -609,7 +576,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: var(--true-white);
   border-radius: 18px;
   width: 100%;
-  max-width: 400px;
+  max-width: 340px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(31, 74, 45, 0.08);
 }
@@ -650,29 +617,105 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   text-align: center;
 }
 
-/* Stack op smalle schermen — alleen stilistisch, responsive komt later. */
+/* Smalle schermen: side-by-side naar verticaal — tekst boven, mockup eronder. */
 @media (max-width: 880px) {
   .feature-row {
     grid-template-columns: 1fr;
-    padding: 40px;
-    gap: 40px;
-    /* Op smalle schermen stapelen we niet — gewoon onder elkaar. */
-    position: static;
-    min-height: 0;
-    margin-bottom: 24px;
+    padding: 32px;
+    gap: 32px;
   }
   .feature-row--reverse .feature-row-text { order: 1; }
   .feature-row--reverse .feature-row-visual { order: 2; }
-  .feature-row-title { font-size: 32px; }
+  .feature-row-title { font-size: 26px; }
+}
+
+/* ===== PRODUCT PAGE CARDS =====
+   Herbruikbare kaart-stijlen voor de product-pagina. Zelfde visuele
+   taal als de homepage-feature-rows (surface bg, zachte schaduw,
+   ronde hoeken) maar compacter omdat er meer kaarten in een grid
+   passen. */
+
+/* Grid met 2 kolommen voor de differentiators (4 redenen). */
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+}
+
+/* Grid met 3 kolommen voor de functies-lijst (6 functies). */
+.feature-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+}
+
+/* Basis kaart-stijl — zelfde surface-bg als de homepage feature-rows. */
+.info-card {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 2px 12px rgba(31, 74, 45, 0.04);
+}
+
+/* Differentiator-variant: groot accent-nummer links, tekst rechts. */
+.info-card--numbered {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.info-card-num {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  line-height: 1;
+  min-width: 56px;
+  flex-shrink: 0;
+}
+
+/* Icon-variant: icon in een kleine cirkel bovenaan. */
+.info-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.info-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.info-card-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 880px) {
+  .diff-grid,
+  .feature-grid-3 {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== HOW IT WORKS ===== */
-/* How-it-works op warme beige (--surface) — dit is een derde
-   onderscheidende kleur naast de papier-hero en de witte features.
-   Ritme: papier → wit → beige → wit → bosgroen. Elke sectie-overgang
-   is duidelijk zichtbaar. */
+/* How-it-works dezelfde papier-achtergrond als de hero. Ritme nu:
+   papier → wit → papier → wit → bosgroen (afwisselend, rustiger). */
 .how-it-works {
-  background: var(--surface);
+  background: var(--bg);
 }
 
 .steps {

@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Home-link weggelaten: het logo linksboven is zelf de Home-link,
-// zoals owner.com dat ook doet. Scheelt ruis in de nav.
-// "Hoe het werkt" jumplinkt naar de sectie op de homepage — past bij
-// de Owner-stijl (duidelijk uitleg-item in de hoofdnav).
+// Home-link weggelaten: het logo linksboven is zelf de Home-link.
+// Volgorde: eerst "Hoe het werkt" (jumplink naar drie-horizonnen op
+// de homepage) omdat dat uitlegt wat Filly doet, daarna Product,
+// Pricing, Over ons — verhaal → functionaliteit → kost → team.
 const links = [
-  { href: "/product", label: "Product" },
   { href: "/#hoe-het-werkt", label: "Hoe het werkt" },
+  { href: "/product", label: "Product" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "Over ons" },
 ];

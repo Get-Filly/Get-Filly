@@ -145,31 +145,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features — Get-Filly vanuit drie tijdshorizonnen.
-          Kort (vandaag) · Middel (deze week) · Lang (seizoenen).
-          Alles draait om bezettingsdata: Filly reageert direct op wat
-          vandaag misgaat, plant vooruit op weekpatronen en bouwt
-          structureel aan klantbinding. */}
-      <section className="features">
+      {/* Features = "Hoe het werkt" op de homepage. De navbar jumplinkt
+          hiernaartoe via #hoe-het-werkt. Get-Filly vanuit drie
+          tijdshorizonnen: kort (vandaag) · middel (deze week) · lang
+          (seizoenen). Alles draait om bezettingsdata. */}
+      <section id="hoe-het-werkt" className="features">
         <div className="container">
-          {/* Sticky header blijft aan de top terwijl kaarten eronder
-              cyclen. Hierdoor voelt de sectie "pinned": H2 + subtitel
-              houden context vast, de kaarten overlappen elkaar eronder. */}
-          <div className="features-sticky-header">
-            <h2 className="section-title">
-              Eén platform.
-              <br />
-              Drie horizonnen.
-            </h2>
-            <p
-              className="section-subtitle"
-              style={{ marginTop: 16, maxWidth: 640 }}
-            >
-              Filly kijkt continu naar je bezettingsdata en handelt op drie
-              termijnen: van een actie voor vandaag tot structurele groei over
-              het hele jaar.
-            </p>
-          </div>
+          {/* H2 + subtitel scrollen natuurlijk mee met de pagina — géén
+              sticky wrapper meer. Alleen de kaarten eronder pinnen. */}
+          <h2 className="section-title">
+            Eén platform.
+            <br />
+            Drie horizonnen.
+          </h2>
+          <p
+            className="section-subtitle"
+            style={{ marginTop: 16, maxWidth: 640 }}
+          >
+            Filly kijkt continu naar je bezettingsdata en handelt op drie
+            termijnen: van een actie voor vandaag tot structurele groei over
+            het hele jaar.
+          </p>
           <div className="features-stack">
             {/* Rij 1 — Korte termijn: reageer vandaag op lage bezetting. */}
             <div className="feature-row">
@@ -200,7 +196,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Rij 2 — Middellange termijn: patronen per week vooruit plannen. */}
+            {/* Rij 2 — Middellange termijn: patronen per week vooruit plannen.
+                --reverse draait tekst/mockup om voor visueel ritme. */}
             <div className="feature-row feature-row--reverse">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Deze week</p>
@@ -263,10 +260,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How it works — id matcht de jumplink "Hoe het werkt" in de navbar */}
-      <section id="hoe-het-werkt" className="how-it-works">
+      {/* Drie-stappen-sectie — geen "Hoe het werkt"-label meer; die term
+          hoort nu bij de features-sectie (drie horizonnen). Deze sectie
+          is een concrete onboarding-flow: wat doe je in week 1. */}
+      <section className="how-it-works">
         <div className="container">
-          <p className="section-label">Hoe het werkt</p>
           <h2 className="section-title">In drie stappen meer gasten.</h2>
           <div className="steps">
             <div className="step">
