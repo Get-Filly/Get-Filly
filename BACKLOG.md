@@ -137,7 +137,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ## Test-data & seeds
 
-- [~] **`apps/api/supabase/seeds/test_restaurants.sql`** — reconstructie aangemaakt op basis van memory + schema. **Verifieer tegen de exacte inhoud van "User Existence and Restaurant Access Checks"** in Supabase SQL-editor. Als die afwijkt: kopieer de Supabase-versie erheen en commit. Daarna mag de snippet in Supabase weg.
+- [x] ~~`apps/api/supabase/seeds/test_restaurants.sql`~~ — exacte inhoud uit Supabase gekopieerd (commit `TBD`). Snippet in Supabase SQL-editor mag weg.
 - [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly
 - [x] ~~`test_campaigns.sql` in seeds~~ — niet nodig: bleek bij inspectie gewoon een duplicaat van migratie 0005 (reservations + reviews schema+seed). Snippet in Supabase mag weg.
 
