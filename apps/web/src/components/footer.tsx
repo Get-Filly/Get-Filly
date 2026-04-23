@@ -65,39 +65,36 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="site-footer-cols">
-          <div className="site-footer-col">
-            <div className="site-footer-col-title">Product</div>
-            {linksProduct.map((l) => (
-              <Link key={l.label} href={l.href} className="site-footer-link">
-                {l.label}
-              </Link>
-            ))}
-          </div>
+        <div className="site-footer-col">
+          <div className="site-footer-col-title">Product</div>
+          {linksProduct.map((l) => (
+            <Link key={l.label} href={l.href} className="site-footer-link">
+              {l.label}
+            </Link>
+          ))}
+        </div>
 
-          <div className="site-footer-col">
-            <div className="site-footer-col-title">Bedrijf</div>
-            {linksBedrijf.map((l) => (
-              <Link key={l.label} href={l.href} className="site-footer-link">
-                {l.label}
-              </Link>
-            ))}
-          </div>
+        <div className="site-footer-col">
+          <div className="site-footer-col-title">Bedrijf</div>
+          {linksBedrijf.map((l) => (
+            <Link key={l.label} href={l.href} className="site-footer-link">
+              {l.label}
+            </Link>
+          ))}
+        </div>
 
-          <div className="site-footer-col">
-            <div className="site-footer-col-title">Juridisch</div>
-            {linksJuridisch.map((l) => (
-              <Link key={l.label} href={l.href} className="site-footer-link">
-                {l.label}
-              </Link>
-            ))}
-          </div>
+        <div className="site-footer-col">
+          <div className="site-footer-col-title">Juridisch</div>
+          {linksJuridisch.map((l) => (
+            <Link key={l.label} href={l.href} className="site-footer-link">
+              {l.label}
+            </Link>
+          ))}
         </div>
       </div>
 
       <div className="site-footer-bottom">
         <span>© {year} Get-Filly. Alle rechten voorbehouden.</span>
-        <span>·</span>
         <span>Gebouwd in Nederland · EU-hosting</span>
       </div>
     </footer>

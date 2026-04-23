@@ -1207,27 +1207,28 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 
 /* ===== SITE FOOTER =====
-   Publieke footer onder elke pagina behalve dashboard/auth. Alles
-   gecentreerd: logo + taglijn bovenaan, drie link-kolommen daaronder,
-   bottom-bar afsluitend. Rustig, overzichtelijk, niet dominant. */
+   Publieke footer onder elke pagina behalve dashboard/auth. Vier kolommen:
+   brand + taglijn links, drie link-kolommen rechts. Bottom-bar toont
+   copyright en een simpele statement. */
 .site-footer {
   background: var(--bg);
   border-top: 1px solid var(--border);
   padding: 64px 24px 24px;
   font-size: 14px;
-  text-align: center;
 }
 
 .site-footer-inner {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 40px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+  padding-bottom: 48px;
   border-bottom: 1px solid var(--border);
 }
 
 .site-footer-brand {
-  max-width: 420px;
-  margin: 0 auto 40px;
+  max-width: 320px;
 }
 
 .site-footer-logo {
@@ -1240,7 +1241,6 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   text-decoration: none;
   margin-bottom: 14px;
   letter-spacing: -0.3px;
-  justify-content: center;
 }
 
 .site-footer-tagline {
@@ -1249,19 +1249,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   line-height: 1.6;
 }
 
-/* De drie link-kolommen horizontaal gecentreerd op een rij. */
-.site-footer-cols {
-  display: flex;
-  justify-content: center;
-  gap: 64px;
-  flex-wrap: wrap;
-}
-
 .site-footer-col {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  align-items: center;
 }
 
 .site-footer-col-title {
@@ -1289,18 +1280,18 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   margin: 0 auto;
   padding-top: 20px;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 12px;
   font-size: 12px;
   color: var(--text-light);
 }
 
-@media (max-width: 720px) {
-  .site-footer-cols {
-    flex-direction: column;
-    gap: 28px;
+/* Op smallere schermen: kolommen onder elkaar. */
+@media (max-width: 880px) {
+  .site-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 32px;
   }
 }
 

@@ -26,21 +26,41 @@ function formatDate(s: string | null): string {
   });
 }
 
+// Sterren-component — goud-kleur (#F59E0B) is semantiek voor sterren en
+// universeel herkenbaar. Bewust geen brand-kleur: gasten verwachten goud.
 function Stars({ rating }: { rating: number }) {
   return (
-    <span style={{ color: "#F59E0B", letterSpacing: 2 }}>
+    <span className="review-stars">
       {"★".repeat(rating)}
-      <span style={{ color: "var(--border)" }}>
-        {"★".repeat(5 - rating)}
-      </span>
+      <span className="review-stars-empty">{"★".repeat(5 - rating)}</span>
     </span>
   );
+}
+
+/**
+ * Genereer een mock AI-antwoord dat Filly voorstelt voor een review.
+ * Basis-logica: warm-bedankt bij positieve, empathisch-excuus bij
+ * negatieve review. In productie komt dit uit Claude API met context
+ * over de zaak (naam, toon, signature-gerechten).
+ */
+function buildFillyReply(r: Review): string {
+  const author = r.author ?? "gast";
+  if (r.rating >= 4) {
+    return `Beste ${author},\n\nDank je wel voor je mooie review! Fijn om te horen dat je zo'n prettige ervaring had. We hopen je gauw weer te mogen verwelkomen.\n\nHartelijke groet,\nHet team`;
+  }
+  if (r.rating === 3) {
+    return `Beste ${author},\n\nDank je voor je eerlijke feedback. We nemen je opmerkingen zeker mee en bespreken ze intern om de beleving volgende keer beter te maken.\n\nHartelijke groet,\nHet team`;
+  }
+  return `Beste ${author},\n\nAllereerst onze oprechte excuses dat je ervaring niet was zoals je had gehoopt. We nemen dit serieus en willen graag met je in gesprek om het goed te maken. Stuur een mail naar ons en we nemen snel contact op.\n\nHartelijke groet,\nHet team`;
 }
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<SourceFilter>("alle");
+  // Modal-state: welke review wordt er beantwoord + de actuele tekst.
+  const [replyTo, setReplyTo] = useState<Review | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
     fetchReviews()
@@ -51,9 +71,25 @@ export default function ReviewsPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  // Escape sluit de reply-modal.
+  useEffect(() => {
+    if (!replyTo) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setReplyTo(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [replyTo]);
+
   const stats = useMemo(() => {
-    if (reviews.length === 0)
-      return { avg: 0, total: 0, perSource: {} as Record<string, { count: number; avg: number }>, needsResponse: 0 };
+    if (reviews.length === 0) {
+      return {
+        avg: 0,
+        total: 0,
+        perSource: {} as Record<string, { count: number; avg: number }>,
+        needsResponse: 0,
+      };
+    }
     const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
     const perSource: Record<string, { count: number; avg: number }> = {};
     for (const r of reviews) {
@@ -80,6 +116,28 @@ export default function ReviewsPage() {
     ...(Object.keys(sourceInfo) as ReviewSource[]),
   ];
 
+  const openReply = (r: Review) => {
+    setReplyTo(r);
+    setReplyText(buildFillyReply(r));
+  };
+
+  const useFillySuggestion = () => {
+    if (replyTo) setReplyText(buildFillyReply(replyTo));
+  };
+
+  const sendReply = () => {
+    // Mock: zet de review "gereageerd" in local state. Backend-call
+    // komt later met PATCH /reviews/:id { response_text }.
+    if (!replyTo) return;
+    setReviews((prev) =>
+      prev.map((r) =>
+        r.id === replyTo.id ? { ...r, response_text: replyText } : r,
+      ),
+    );
+    setReplyTo(null);
+    setReplyText("");
+  };
+
   return (
     <div className="page-full">
       <div className="page-title">Reviews</div>
@@ -97,7 +155,7 @@ export default function ReviewsPage() {
             ) : (
               <>
                 {stats.avg.toFixed(1)}{" "}
-                <span style={{ fontSize: 14, color: "#F59E0B" }}>★</span>
+                <span className="review-stars-inline">★</span>
               </>
             )}
           </div>
@@ -110,13 +168,19 @@ export default function ReviewsPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Reactie nodig (≤3 ★)</div>
-          <div className="stat-card-val">
+          <div
+            className="stat-card-val"
+            style={{
+              color:
+                !loading && stats.needsResponse > 0
+                  ? "var(--red)"
+                  : "var(--text)",
+            }}
+          >
             {loading ? (
               <Skeleton height={22} width="40%" />
             ) : (
-              <span style={{ color: stats.needsResponse > 0 ? "#DC2626" : "inherit" }}>
-                {stats.needsResponse}
-              </span>
+              stats.needsResponse
             )}
           </div>
         </div>
@@ -128,10 +192,9 @@ export default function ReviewsPage() {
                 {sourceInfo[src as ReviewSource]?.label ?? src}
               </div>
               <div className="stat-card-val">
-                {info.avg.toFixed(1)} ★{" "}
-                <span style={{ fontSize: 12, color: "var(--tl)", fontWeight: 400 }}>
-                  ({info.count})
-                </span>
+                {info.avg.toFixed(1)}{" "}
+                <span className="review-stars-inline">★</span>{" "}
+                <span className="review-source-count">({info.count})</span>
               </div>
             </div>
           ))}
@@ -158,102 +221,134 @@ export default function ReviewsPage() {
       ) : filtered.length === 0 ? (
         <div className="table-empty">Geen reviews in deze categorie.</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="review-list">
           {filtered.map((r) => {
             const src = sourceInfo[r.source];
             const needsResponse = r.rating <= 3 && !r.response_text;
             return (
               <div
                 key={r.id}
-                style={{
-                  background: "var(--white)",
-                  border: `1px solid ${needsResponse ? "#FCA5A5" : "var(--border)"}`,
-                  borderRadius: "var(--r)",
-                  padding: "16px 18px",
-                }}
+                className={`review-card ${needsResponse ? "review-card-needs" : ""}`}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: 6,
-                  }}
-                >
+                <div className="review-head">
                   <div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div className="review-meta-row">
                       <Stars rating={r.rating} />
-                      <span style={{ fontSize: 12, color: "var(--tl)" }}>
+                      <span className="review-source">
                         {src.icon} {src.label}
                       </span>
                       {needsResponse && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            padding: "2px 8px",
-                            borderRadius: "var(--rf)",
-                            background: "#FEE2E2",
-                            color: "#B91C1C",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.3px",
-                          }}
-                        >
+                        <span className="review-urgency-pill">
                           Actie vereist
                         </span>
                       )}
                     </div>
-                    {r.title && (
-                      <div
-                        style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}
-                      >
-                        {r.title}
-                      </div>
-                    )}
+                    {r.title && <div className="review-title">{r.title}</div>}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--tl)" }}>
-                    {formatDate(r.review_date)}
-                  </div>
+                  <div className="review-date">{formatDate(r.review_date)}</div>
                 </div>
-                {r.body && (
-                  <div
-                    style={{ fontSize: 13, color: "var(--ts)", lineHeight: 1.6 }}
-                  >
-                    {r.body}
-                  </div>
-                )}
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--tl)",
-                    marginTop: 8,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span>— {r.author ?? "Anoniem"}</span>
-                  {needsResponse ? (
+                {r.body && <div className="review-body">{r.body}</div>}
+                <div className="review-foot">
+                  <span className="review-author">— {r.author ?? "Anoniem"}</span>
+                  {r.response_text ? (
+                    <span className="review-responded">✓ Gereageerd</span>
+                  ) : (
                     <button
-                      className="sg-btn"
-                      style={{ padding: "4px 12px", fontSize: 11 }}
+                      className="sg-btn primary"
+                      style={{ padding: "4px 14px", fontSize: 11 }}
+                      onClick={() => openReply(r)}
                     >
                       Reageren
                     </button>
-                  ) : r.response_text ? (
-                    <span style={{ color: "#1B7A2E" }}>✓ Gereageerd</span>
-                  ) : null}
+                  )}
                 </div>
+                {r.response_text && (
+                  <div className="review-response">
+                    <div className="review-response-label">Jouw reactie</div>
+                    <div className="review-response-body">{r.response_text}</div>
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Reply-modal — opent bij klik op "Reageren". Filly heeft een
+          eerste voorstel geschreven, de gebruiker kan aanpassen of
+          opnieuw laten genereren. */}
+      {replyTo && (
+        <div
+          className="sg-modal-overlay"
+          onClick={() => setReplyTo(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="sg-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="sg-modal-close"
+              onClick={() => setReplyTo(null)}
+              aria-label="Sluiten"
+            >
+              ×
+            </button>
+
+            <div className="sg-modal-header">
+              <div className="sg-trigger">
+                <span>💬</span>
+                <span>Reageren op review</span>
+              </div>
+            </div>
+
+            <h2 className="sg-modal-title" style={{ fontSize: 18 }}>
+              {sourceInfo[replyTo.source].label} · {replyTo.rating} ★
+            </h2>
+
+            {/* Originele review zichtbaar ter context. */}
+            <div className="review-modal-original">
+              <div className="review-modal-quote">
+                {replyTo.title && <strong>{replyTo.title}. </strong>}
+                {replyTo.body ?? "Geen inhoud."}
+              </div>
+              <div className="review-modal-author">
+                — {replyTo.author ?? "Anoniem"} ·{" "}
+                {formatDate(replyTo.review_date)}
+              </div>
+            </div>
+
+            {/* Filly-banner: laat zien dat het antwoord door AI is
+                voorgesteld. Gebruiker kan opnieuw laten genereren. */}
+            <div className="review-modal-filly-banner">
+              <div>
+                <strong>Filly heeft een antwoord voorgesteld.</strong>{" "}
+                Pas het aan zoals je wil — jij hebt de controle.
+              </div>
+              <button className="sg-btn" onClick={useFillySuggestion}>
+                Opnieuw genereren
+              </button>
+            </div>
+
+            <label className="review-modal-label">Jouw reactie</label>
+            <textarea
+              className="review-modal-textarea"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              rows={8}
+            />
+
+            <div className="sg-actions sg-modal-actions">
+              <button
+                className="sg-btn primary"
+                onClick={sendReply}
+                disabled={!replyText.trim()}
+              >
+                Verstuur reactie
+              </button>
+              <button className="sg-btn" onClick={() => setReplyTo(null)}>
+                Annuleren
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
