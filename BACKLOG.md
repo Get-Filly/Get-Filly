@@ -82,6 +82,11 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ## P2 — Mock-features naar echt
 
+### Campagne-concept-UX (ideeën vanuit Floris-ronde 2026-04-24)
+- [ ] **3 varianten genereren per suggestie** — i.p.v. één voorstel + iteratief sparren: Filly produceert meteen 3 alternatieve versies naast elkaar. User kiest favoriet → klikt "Bewerken" (onder de gekozen variant) → aanpassen in concept-campagne-detail. Minder chat-heen-en-weer, sneller tot afgewerkte tekst.
+- [ ] **Media-upload op concept-campagne** — voor social/WhatsApp: upload eigen foto OF kies uit eerder goed-werkende afbeeldingen ("gebruik dezelfde foto als vorige campagne"). Preview-block vervangt de huidige 📷-emoji-placeholder.
+- [ ] **Bewerken-knop onder variant i.p.v. rechtsboven** — intuïtiever als de actie visueel bij de gekozen variant hoort.
+
 ### Filly AI-features (backend + prompts)
 - [x] ~~Review-reply-suggesties via Claude~~ (2026-04-23, commits `bd03246` + `21314d9`)
 - [x] ~~Filly-chat v1 met persistente historie~~ (2026-04-23, commit `53db975`)
