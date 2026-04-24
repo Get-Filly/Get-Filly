@@ -4,6 +4,10 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "../../lib/supabase-browser";
+import {
+  PasswordStrength,
+  isPasswordValid,
+} from "../../components/password-strength";
 
 // ============================================================
 // /reset-password — stap 2 van password-reset
@@ -49,8 +53,10 @@ function ResetPasswordForm() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
-      setError("Kies een wachtwoord van minstens 8 tekens.");
+    // Dezelfde check als de checklist onder het veld — zo blijven UI
+    // en validatie in sync. isPasswordValid controleert alle 4 eisen.
+    if (!isPasswordValid(password)) {
+      setError("Je wachtwoord voldoet nog niet aan alle eisen.");
       return;
     }
     if (password !== confirm) {
@@ -94,9 +100,7 @@ function ResetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <p className="login-sub">
-        Kies een nieuw wachtwoord. Minimaal 8 tekens.
-      </p>
+      <p className="login-sub">Kies een nieuw wachtwoord.</p>
 
       <div className="form-group">
         <label className="form-label">Nieuw wachtwoord</label>
@@ -108,8 +112,8 @@ function ResetPasswordForm() {
           placeholder="••••••••"
           required
           autoFocus
-          minLength={8}
         />
+        <PasswordStrength password={password} />
       </div>
 
       <div className="form-group">
@@ -121,13 +125,31 @@ function ResetPasswordForm() {
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="••••••••"
           required
-          minLength={8}
         />
+        {/* Directe feedback als de bevestiging afwijkt, zodat je niet
+            pas na submit ontdekt dat je 'n typo had. */}
+        {confirm.length > 0 && confirm !== password && (
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--red, #b00)",
+              marginTop: 4,
+            }}
+          >
+            Wachtwoorden komen niet overeen.
+          </div>
+        )}
       </div>
 
       {error && <div className="auth-error">{error}</div>}
 
-      <button className="login-btn" type="submit" disabled={loading}>
+      <button
+        className="login-btn"
+        type="submit"
+        disabled={
+          loading || !isPasswordValid(password) || password !== confirm
+        }
+      >
         {loading ? "Bezig…" : "Stel wachtwoord in"}
       </button>
     </form>

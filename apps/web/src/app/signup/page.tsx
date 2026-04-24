@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "../../lib/supabase-browser";
+import {
+  PasswordStrength,
+  isPasswordValid,
+} from "../../components/password-strength";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,8 +21,16 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setLoading(true);
 
+    // Client-side check — backend vangt het straks ook af, maar zo
+    // voorkomen we dat iemand met een zwak wachtwoord tegen Supabase
+    // aanloopt voor een cryptische foutmelding.
+    if (!isPasswordValid(password)) {
+      setError("Je wachtwoord voldoet nog niet aan alle eisen.");
+      return;
+    }
+
+    setLoading(true);
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({ email, password });
 
@@ -64,16 +76,20 @@ export default function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 6 tekens"
-              minLength={6}
+              placeholder="••••••••"
               required
             />
+            <PasswordStrength password={password} />
           </div>
 
           {error && <div className="auth-error">{error}</div>}
           {success && <div className="auth-success">{success}</div>}
 
-          <button className="login-btn" type="submit" disabled={loading}>
+          <button
+            className="login-btn"
+            type="submit"
+            disabled={loading || !isPasswordValid(password)}
+          >
             {loading ? "Bezig..." : "Account aanmaken"}
           </button>
 
