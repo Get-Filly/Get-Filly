@@ -33,6 +33,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Algemene voorwaarden** — `/voorwaarden`-route + inhoud
 - [ ] **Cookie-banner** — ePrivacy-verplicht zodra Plausible erop komt
 - [ ] **AVG-endpoints** — data-export + right-to-be-forgotten (account-delete)
+- [ ] **Data-classificatie + anonimisering-bij-delete** — groter dan de regel hierboven. Elke tabel categoriseren: (1) identificerend → harde delete, (2) business-signaal → anonimiseren + bewaren voor AI-benchmarking, (3) aggregaat → blijft. Plan: eerst `docs/data-classification.md` maken met per-tabel-categorie + PII-velden. Dán techniek kiezen (`anon_*`-tabellen vs soft-delete-mask vs hybride). Waarom belangrijk: geanonimiseerde patronen ("pizza margherita €12,50 werkte in italiaanse zaken in NH") zijn onze AI-leer-schat, maar restaurant_id+naam+foto's moeten juridisch weg. Niet blokkerend voor eerste klant, wél vóór tweede deletion.
 
 ### Billing
 - [ ] **Mollie-integratie** — SDK installeren, checkout-flow op pricing-pagina
@@ -181,6 +182,13 @@ werken. Laatste audit: 2026-04-23.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
 ## Recent voltooid
+
+### 2026-04-24 — Menu-items-insert bug fix
+- ✅ **Root-cause**: `menu_items.insert()` probeerde te schrijven naar kolom `allergens` die niet bestond (schema had alleen `dietary_tags`). Alle Vision-extracties faalden silent door `console.warn` zonder rollback, terwijl onboarding-response 'succesvol' teruggaf.
+- ✅ Migratie 0013: `menu_items.allergens text[]` toegevoegd (EU 1169/2011 allergeen-info, semantisch gescheiden van dietary_tags)
+- ✅ OnboardingService: `console.warn` → `console.error` + `menuImport: { attempted, inserted, error }` in response zodat frontend de fout kan tonen
+- ✅ Onboarding-frontend: `alert()` bij `menuImport.error` zodat user niet stil menu-items verliest
+- ✅ Geverifieerd: nieuw test-account kreeg 54 menu-items correct geïmporteerd
 
 ### 2026-04-24 — Auth + onboarding
 - ✅ Password-reset flow: `/forgot-password` + `/reset-password` + Supabase email-template (commit `335f5a1`)

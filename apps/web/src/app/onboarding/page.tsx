@@ -324,7 +324,20 @@ export default function OnboardingPage() {
         throw new Error(body.message ?? `HTTP ${res.status}`);
       }
 
-      const { restaurantId } = (await res.json()) as { restaurantId: string };
+      // Response bevat nu ook `menuImport` met status van de menu-insert.
+      // Als die gevuld is met een error, is het restaurant wél aangemaakt
+      // maar zijn de menu-items niet geland — waarschuwen zodat user niet
+      // denkt dat alles werkte.
+      const result = (await res.json()) as {
+        restaurantId: string;
+        menuImport?: {
+          attempted: number;
+          inserted: number;
+          error: string | null;
+        } | null;
+      };
+      const { restaurantId, menuImport } = result;
+
       if (typeof window !== "undefined" && restaurantId) {
         try {
           window.localStorage.setItem(
@@ -334,6 +347,16 @@ export default function OnboardingPage() {
         } catch {
           // negeer privé-modus
         }
+      }
+
+      // Menu-import mislukt? Waarschuw de user vóór de redirect. Niet
+      // blokkerend: restaurant is bruikbaar, menu kan later opnieuw
+      // via de menu-pagina. Zonder deze alert zou de user niet weten
+      // dat z'n menu ontbreekt tot hij de menu-pagina leeg ziet.
+      if (menuImport && menuImport.error) {
+        alert(
+          `Je restaurant is aangemaakt, maar het importeren van ${menuImport.attempted} menu-item(s) mislukte:\n\n${menuImport.error}\n\nJe kunt je menukaart later opnieuw uploaden via de menu-pagina.`,
+        );
       }
 
       router.push("/dashboard");

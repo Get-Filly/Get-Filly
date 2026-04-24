@@ -56,8 +56,21 @@ export type OnboardingInput = {
   }>;
 };
 
+// Resultaat van een onboarding-run. `menuImport` is alleen gevuld
+// als de wizard menu-items meestuurde. Zo kan de frontend onderscheid
+// maken tussen:
+//   - geen menu geüpload         → menuImport = null
+//   - menu geïmporteerd           → menuImport.inserted > 0, error = null
+//   - menu is mislukt (DB-fout)   → menuImport.inserted = 0, error gevuld
+// Bij een mislukte menu-import blijft het restaurant gewoon bestaan;
+// de user kan later handmatig of via menu-pagina opnieuw uploaden.
 export type OnboardingResult = {
   restaurantId: string;
+  menuImport: {
+    attempted: number;
+    inserted: number;
+    error: string | null;
+  } | null;
 };
 
 @Injectable()
@@ -170,8 +183,12 @@ export class OnboardingService {
     // Stap 6 — eventueel menu_items batch-inserten. Komt van fase C
     // (menu-Vision). Fail-soft: als deze insert flakes, hebben we nog
     // steeds een werkend restaurant — user kan menu-items later
-    // handmatig toevoegen via menu-pagina.
+    // handmatig toevoegen via menu-pagina. Maar we maken de fout
+    // wél zichtbaar in de response (menuImport.error) zodat de
+    // frontend de user kan waarschuwen i.p.v. stil verliezen.
+    let menuImport: OnboardingResult['menuImport'] = null;
     if (input.menu_items && input.menu_items.length > 0) {
+      const attempted = input.menu_items.length;
       const rows = input.menu_items.map((item) => ({
         restaurant_id: restaurant.id,
         name: item.name.trim(),
@@ -184,15 +201,19 @@ export class OnboardingService {
         .from('menu_items')
         .insert(rows);
       if (menuErr) {
-        // Niet rollbacken: restaurant is nuttig zonder menu.
-        // Wel loggen zodat we het achteraf kunnen reconstrueren.
-        console.warn(
+        // Niet rollbacken: restaurant is nuttig zonder menu. Wel
+        // console.error (niet warn) zodat we het in logs terugzien,
+        // en meenemen in de response zodat frontend kan reageren.
+        console.error(
           `Menu-items-insert gefaald voor ${restaurant.id}: ${menuErr.message}`,
         );
+        menuImport = { attempted, inserted: 0, error: menuErr.message };
+      } else {
+        menuImport = { attempted, inserted: attempted, error: null };
       }
     }
 
-    return { restaurantId: restaurant.id };
+    return { restaurantId: restaurant.id, menuImport };
   }
 }
 
