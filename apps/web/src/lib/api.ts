@@ -107,6 +107,28 @@ export async function fetchCampaign(id: string): Promise<CampaignDetail> {
   return res.json();
 }
 
+// Maakt een nieuwe campagne als 'concept' aan. Wordt aangeroepen vanaf
+// de Filly-chat na klik op "Ja, maak aan" bij een proposal-kaart.
+// Response bevat het id zodat we de user meteen kunnen doorsturen
+// naar /dashboard/campagnes/[id] voor de laatste controle.
+export async function createCampaign(input: {
+  name: string;
+  type: CampaignType;
+  subject_line?: string;
+  body: string;
+}): Promise<{ id: string }> {
+  const res = await authedFetch(`${API_URL}/campaigns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export type Guest = {
   id: string;
   first_name: string | null;
@@ -414,10 +436,24 @@ export async function saveReviewReply(
 
 export type ChatRole = "filly" | "user" | "system";
 
+// message_card hangt aan sommige Filly-berichten en bevat een voorstel
+// voor een actie. Voor v1 alleen campagne-voorstellen; later komen er
+// meer kinds (review_reply, guest_message, etc.). Frontend rendert
+// een bijpassend kaartje onder het bericht.
+export type CampaignProposalCard = {
+  kind: "campaign_proposal";
+  type: "mail" | "social" | "whatsapp";
+  name: string;
+  subject_line?: string;
+  body: string;
+};
+export type MessageCard = CampaignProposalCard;
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  message_card: MessageCard | null;
   created_at: string;
 };
 

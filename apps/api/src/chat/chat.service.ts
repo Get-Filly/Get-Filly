@@ -13,10 +13,29 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 // 'filly' en 'user' actief.
 export type ChatRole = 'filly' | 'user' | 'system';
 
+// message_card = gestructureerde payload die naast de prozatekst wordt
+// opgeslagen wanneer Filly een actie voorstelt. Voor v1 alleen
+// 'campaign_proposal'; later komen er meer (review_reply, guest_message).
+// Frontend rendert op basis van `kind` een bijpassend kaartje met
+// actieknoppen. De ruwe JSON blijft in de DB zodat we proposals later
+// kunnen audit-en en analyseren.
+export type MessageCard = CampaignProposalCard;
+
+export type CampaignProposalCard = {
+  kind: 'campaign_proposal';
+  type: 'mail' | 'social' | 'whatsapp';
+  name: string;
+  // Mail-specifiek; optioneel voor social/whatsapp.
+  subject_line?: string;
+  // Hoofdtekst van het voorstel (mail-body, caption of whatsapp-bericht).
+  body: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  message_card: MessageCard | null;
   created_at: string;
 };
 
@@ -92,7 +111,7 @@ export class ChatService {
   ): Promise<ChatMessage[]> {
     const { data, error } = await this.supabase.client
       .from('chat_messages')
-      .select('id, role, content, created_at')
+      .select('id, role, content, message_card, created_at')
       .eq('conversation_id', conversationId)
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false })
@@ -100,7 +119,10 @@ export class ChatService {
 
     if (error) throw new InternalServerErrorException(error.message);
     // Omdraaien → oudste eerst, zoals de UI 'm rendert.
-    return ((data as ChatMessage[]) ?? []).reverse();
+    // Normaliseer message_card naar null als 'm ontbreekt (legacy rijen).
+    return ((data as ChatMessage[]) ?? [])
+      .map((m) => ({ ...m, message_card: m.message_card ?? null }))
+      .reverse();
   }
 
   // Hoofd-actie: user stuurt een bericht, wij slaan het op, roepen
@@ -141,7 +163,7 @@ export class ChatService {
         role: 'user',
         content: trimmed,
       })
-      .select('id, role, content, created_at')
+      .select('id, role, content, message_card, created_at')
       .single();
     if (userErr) throw new InternalServerErrorException(userErr.message);
 
@@ -168,16 +190,24 @@ export class ChatService {
       },
     });
 
-    // 4) Filly's antwoord opslaan.
+    // 4) Filly's antwoord parsen. Als Filly een concrete campagne
+    // voorstelt, heeft hij volgens z'n system-prompt een speciaal
+    // JSON-blok achter z'n tekst geplakt: <<FILLY_PROPOSE_CAMPAIGN>>
+    // {...} <<END>>. We halen dat blok eruit zodat de user alleen
+    // de nette proza ziet, en bewaren de JSON in message_card zodat
+    // de frontend een "Zal ik deze aanmaken?"-kaartje kan tonen.
+    const parsed = extractCampaignProposal(answer);
+
     const { data: fillyMsg, error: fillyErr } = await this.supabase.client
       .from('chat_messages')
       .insert({
         conversation_id: conversationId,
         restaurant_id: restaurantId,
         role: 'filly',
-        content: answer.trim(),
+        content: parsed.cleanText,
+        message_card: parsed.proposal ?? null,
       })
-      .select('id, role, content, created_at')
+      .select('id, role, content, message_card, created_at')
       .single();
     if (fillyErr) throw new InternalServerErrorException(fillyErr.message);
 
@@ -238,6 +268,36 @@ Wat je NIET doet:
 ${desc}
 
 ---
+ACTIES DIE JE WEL KUNT UITVOEREN
+
+Je kunt een campagne voor de eigenaar aanmaken. Wanneer — en alléén
+wanneer — je in je antwoord een concrete, actionable campagne voorstelt
+(dus een mail-, social- of whatsapp-bericht waar jij de inhoud al voor
+hebt bedacht), sluit je je antwoord af met een speciaal machine-leesbaar
+blok. De eigenaar ziet dit blok niet; de frontend toont op basis daarvan
+een knop "Zal ik deze aanmaken?".
+
+Formaat (LETTERLIJK zo, één paar tags per bericht, één JSON-object):
+
+<<FILLY_PROPOSE_CAMPAIGN>>
+{"type":"mail","name":"<korte titel>","subject_line":"<onderwerp>","body":"<volledige tekst>"}
+<<END>>
+
+Regels:
+- Gebruik het blok ALLEEN als je bericht een uitgewerkte campagne bevat
+  (niet bij algemene tips of brainstorm-ideeën).
+- Eindig je gewone tekst eerst met een korte vraag als "Zal ik 'm voor
+  je aanmaken als concept?" zodat de eigenaar weet dat er een knop komt.
+- type = "mail" | "social" | "whatsapp"
+- "name" is een korte werknaam (max 60 tekens), bv. "Italiaanse avond mei"
+- "subject_line" hoort bij mail; voor social/whatsapp mag je 'm weglaten.
+- "body" bevat de volledige uitgeschreven tekst die in de campagne komt.
+- Gebruik dubbele aanhalingstekens binnen body door \\" te escapen.
+- Schrijf NOOIT het blok als de eigenaar er niet om gevraagd heeft of
+  als jij nog aan het brainstormen bent — dat leidt tot ongewenste
+  concept-campagnes.
+
+---
 Hieronder staan de actuele feiten over de zaak. Gebruik deze als enige
 bron voor cijfers over bezetting, weer en reserveringen:
 
@@ -245,5 +305,69 @@ ${contextBlock}
 ---
 
 Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI" — spreek gewoon als Filly.`;
+  }
+}
+
+// ============================================================
+// Proposal-parser
+// ============================================================
+// Filly zet achter z'n tekst een blok in het format:
+//   <<FILLY_PROPOSE_CAMPAIGN>>
+//   {"type":"mail", ...}
+//   <<END>>
+// We halen dat eruit zodat de user alleen de prozatekst ziet, en
+// valideren de JSON voordat we 'm in message_card opslaan. Bij een
+// parse- of validatie-fout geven we de volledige (ongestripte) tekst
+// terug en geen proposal — dan gedraagt de chat zich alsof er geen
+// voorstel was. Zo blokkeren we nooit een antwoord door een misvormd
+// blokje.
+
+const PROPOSAL_REGEX =
+  /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
+
+export function extractCampaignProposal(
+  raw: string,
+): { cleanText: string; proposal: CampaignProposalCard | null } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(PROPOSAL_REGEX);
+  if (!match) {
+    return { cleanText: trimmed, proposal: null };
+  }
+  const jsonPart = match[1].trim();
+  const cleanText = trimmed.replace(PROPOSAL_REGEX, '').trim();
+
+  try {
+    const parsed = JSON.parse(jsonPart) as Record<string, unknown>;
+    const type = parsed.type;
+    const name = parsed.name;
+    const body = parsed.body;
+
+    if (
+      (type !== 'mail' && type !== 'social' && type !== 'whatsapp') ||
+      typeof name !== 'string' ||
+      typeof body !== 'string' ||
+      name.trim().length === 0 ||
+      body.trim().length === 0
+    ) {
+      return { cleanText, proposal: null };
+    }
+
+    const proposal: CampaignProposalCard = {
+      kind: 'campaign_proposal',
+      type,
+      name: name.trim().slice(0, 120),
+      body: body.trim(),
+    };
+    if (
+      typeof parsed.subject_line === 'string' &&
+      parsed.subject_line.trim().length > 0
+    ) {
+      proposal.subject_line = parsed.subject_line.trim().slice(0, 200);
+    }
+    return { cleanText, proposal };
+  } catch {
+    // JSON-fout: blok negeren, tekst wél opschonen (anders ziet user
+    // het machine-formaat in zijn chat staan).
+    return { cleanText, proposal: null };
   }
 }

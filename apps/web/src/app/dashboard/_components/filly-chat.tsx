@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  createCampaign,
   fetchActiveChat,
   sendChatMessage,
   type ChatMessage,
+  type CampaignProposalCard,
 } from "../../../lib/api";
 import { useRestaurant } from "../../../lib/restaurant-context";
 
@@ -12,6 +14,20 @@ import { useRestaurant } from "../../../lib/restaurant-context";
 // ('filly' | 'user' | 'system'). We renderen 'system' voorlopig
 // niet zichtbaar — het is gereserveerd voor latere notificaties
 // die we in de thread willen tonen.
+//
+// Sommige Filly-berichten dragen een `message_card`. Voor v1 is dat
+// alleen `campaign_proposal`: Filly heeft een concrete campagne
+// bedacht en vraagt de eigenaar of hij 'm als concept mag opslaan.
+// Per proposal houden we een lokale status bij zodat de UI kan laten
+// zien of de user al heeft geklikt (maken/afwijzen) en wat het
+// resultaat was.
+
+type ProposalStatus =
+  | { state: "pending" }
+  | { state: "creating" }
+  | { state: "created"; campaignId: string }
+  | { state: "dismissed" }
+  | { state: "error"; message: string };
 
 export function FillyChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -23,6 +39,11 @@ export function FillyChat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Status per proposal-kaart. Keyen op messageId want elke Filly-
+  // bericht kan max één proposal hebben.
+  const [proposalStatus, setProposalStatus] = useState<
+    Record<string, ProposalStatus>
+  >({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
@@ -88,6 +109,7 @@ export function FillyChat() {
       id: tempId,
       role: "user",
       content: text,
+      message_card: null,
       created_at: new Date().toISOString(),
     };
     setMessages((m) => [...m, optimistic]);
@@ -112,6 +134,44 @@ export function FillyChat() {
     } finally {
       setSending(false);
     }
+  };
+
+  // Klik-handler voor "Ja, maak aan als concept". Slaat de campagne op
+  // via het /campaigns-endpoint en zet daarna de kaart in 'created'-
+  // staat zodat de user 'm kan bekijken in /dashboard/campagnes/[id].
+  const acceptProposal = async (
+    messageId: string,
+    proposal: CampaignProposalCard,
+  ) => {
+    setProposalStatus((s) => ({ ...s, [messageId]: { state: "creating" } }));
+    try {
+      const { id } = await createCampaign({
+        name: proposal.name,
+        type: proposal.type,
+        subject_line: proposal.subject_line,
+        body: proposal.body,
+      });
+      setProposalStatus((s) => ({
+        ...s,
+        [messageId]: { state: "created", campaignId: id },
+      }));
+    } catch (e) {
+      console.error(e);
+      setProposalStatus((s) => ({
+        ...s,
+        [messageId]: {
+          state: "error",
+          message:
+            e instanceof Error
+              ? e.message
+              : "Opslaan mislukt. Probeer nog eens.",
+        },
+      }));
+    }
+  };
+
+  const dismissProposal = (messageId: string) => {
+    setProposalStatus((s) => ({ ...s, [messageId]: { state: "dismissed" } }));
   };
 
   return (
@@ -154,6 +214,14 @@ export function FillyChat() {
                     <span>Filly AI</span>
                   </div>
                   <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+                  {m.message_card?.kind === "campaign_proposal" && (
+                    <ProposalCard
+                      proposal={m.message_card}
+                      status={proposalStatus[m.id] ?? { state: "pending" }}
+                      onAccept={() => acceptProposal(m.id, m.message_card as CampaignProposalCard)}
+                      onDismiss={() => dismissProposal(m.id)}
+                    />
+                  )}
                 </div>
               ) : (
                 <div key={m.id} className="msg msg-user">
@@ -215,6 +283,203 @@ export function FillyChat() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ProposalCard — inline kaartje onder een Filly-bericht dat een
+// campagne voorstelt. Toont type + titel + (bij mail) onderwerp +
+// 2 knoppen: aanmaken of afwijzen. Na klik verandert de UI naar
+// "creating"/"created"/"dismissed"/"error". De volledige body van
+// de campagne tonen we bewust NIET opnieuw — die staat al in het
+// Filly-bericht erboven.
+// ============================================================
+function ProposalCard({
+  proposal,
+  status,
+  onAccept,
+  onDismiss,
+}: {
+  proposal: CampaignProposalCard;
+  status: ProposalStatus;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  const typeLabel =
+    proposal.type === "mail"
+      ? "E-mail"
+      : proposal.type === "social"
+        ? "Social"
+        : "WhatsApp";
+
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        padding: "10px 12px",
+        border: "1px solid var(--border, #E5DFD0)",
+        borderRadius: 8,
+        background: "var(--accent-light, #D6E0D8)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 6,
+          fontSize: 11,
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          color: "var(--accent, #1F4A2D)",
+        }}
+      >
+        <span>Campagne-voorstel</span>
+        <span
+          style={{
+            padding: "1px 8px",
+            background: "var(--accent, #1F4A2D)",
+            color: "white",
+            borderRadius: 999,
+            fontSize: 10,
+            fontWeight: 500,
+          }}
+        >
+          {typeLabel}
+        </span>
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
+        {proposal.name}
+      </div>
+      {proposal.subject_line && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--text-secondary, #52525B)",
+            marginBottom: 4,
+          }}
+        >
+          Onderwerp: {proposal.subject_line}
+        </div>
+      )}
+
+      {status.state === "pending" && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginTop: 10,
+          }}
+        >
+          <button
+            onClick={onAccept}
+            style={{
+              padding: "6px 12px",
+              background: "var(--accent, #1F4A2D)",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Ja, maak aan als concept
+          </button>
+          <button
+            onClick={onDismiss}
+            style={{
+              padding: "6px 12px",
+              background: "transparent",
+              color: "var(--text-secondary, #52525B)",
+              border: "1px solid var(--border, #E5DFD0)",
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Nee, bedankt
+          </button>
+        </div>
+      )}
+
+      {status.state === "creating" && (
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 13,
+            color: "var(--text-secondary, #52525B)",
+          }}
+        >
+          Aanmaken…
+        </div>
+      )}
+
+      {status.state === "created" && (
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 13,
+            color: "var(--accent, #1F4A2D)",
+          }}
+        >
+          Concept aangemaakt.{" "}
+          <a
+            href={`/dashboard/campagnes/${status.campaignId}`}
+            style={{
+              color: "var(--accent, #1F4A2D)",
+              textDecoration: "underline",
+              fontWeight: 500,
+            }}
+          >
+            Bekijken →
+          </a>
+        </div>
+      )}
+
+      {status.state === "dismissed" && (
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 12,
+            color: "var(--text-secondary, #52525B)",
+            fontStyle: "italic",
+          }}
+        >
+          Voorstel afgewezen.
+        </div>
+      )}
+
+      {status.state === "error" && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "6px 8px",
+            background: "var(--red-soft, #fee)",
+            color: "var(--red, #b00)",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          {status.message}{" "}
+          <button
+            onClick={onAccept}
+            style={{
+              marginLeft: 4,
+              background: "none",
+              border: "none",
+              color: "var(--red, #b00)",
+              textDecoration: "underline",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            Opnieuw proberen
+          </button>
+        </div>
+      )}
     </div>
   );
 }
