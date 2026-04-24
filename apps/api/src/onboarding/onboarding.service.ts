@@ -3,8 +3,10 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { GeocodingService } from '../geocoding/geocoding.service';
 
 // ============================================================
 // OnboardingService — eerste-keer-setup voor een nieuwe user
@@ -75,7 +77,12 @@ export type OnboardingResult = {
 
 @Injectable()
 export class OnboardingService {
-  constructor(private readonly supabase: SupabaseService) {}
+  private readonly logger = new Logger(OnboardingService.name);
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly geocoding: GeocodingService,
+  ) {}
 
   async completeOnboarding(
     userId: string,
@@ -213,7 +220,53 @@ export class OnboardingService {
       }
     }
 
+    // Stap 7 — adres → coördinaten via PDOK. Fail-soft: als PDOK
+    // het adres niet kent of de call flakes, blijft lat/long null.
+    // Geen weer-forecast voor die zaak tot hij z'n adres corrigeert,
+    // maar onboarding zelf blokkeert niet. Bewust ná het aanmaken
+    // van restaurant + owner-link zodat een geocode-fout geen
+    // rollback triggert.
+    await this.geocodeAndUpdate(restaurant.id, {
+      address: input.address,
+      postal_code: input.postal_code,
+      city: input.city,
+    });
+
     return { restaurantId: restaurant.id, menuImport };
+  }
+
+  // Helper: geocode het adres en sla lat/long op het restaurant op.
+  // Géén return-value: caller hoeft niet te weten of het lukte. Bij
+  // succes: logger.log met weergavenaam. Bij falen: GeocodingService
+  // heeft al een warn gelogd — hier stil doorgaan.
+  private async geocodeAndUpdate(
+    restaurantId: string,
+    address: {
+      address?: string | null;
+      postal_code?: string | null;
+      city?: string | null;
+    },
+  ): Promise<void> {
+    const coords = await this.geocoding.geocode(address);
+    if (!coords) {
+      return;
+    }
+    const { error } = await this.supabase.client
+      .from('restaurants')
+      .update({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      })
+      .eq('id', restaurantId);
+    if (error) {
+      this.logger.warn(
+        `Coords-update gefaald voor ${restaurantId}: ${error.message}`,
+      );
+      return;
+    }
+    this.logger.log(
+      `Geocode OK voor ${restaurantId}: ${coords.matched_name} (type=${coords.match_type})`,
+    );
   }
 }
 
