@@ -139,6 +139,9 @@ export class ChatService {
 
     if (error) throw new InternalServerErrorException(error.message);
 
+    // Supabase returneert een embedded relatie altijd als array,
+    // zelfs bij een 1-op-1 FK. Dus ai_suggestion is hier een array
+    // met 0 of 1 element; we pakken het eerste.
     type RawRow = {
       id: string;
       role: ChatRole;
@@ -146,7 +149,7 @@ export class ChatService {
       message_card: MessageCard | null;
       created_at: string;
       ai_suggestion:
-        | { status: string; approved_campaign_id: string | null }
+        | Array<{ status: string; approved_campaign_id: string | null }>
         | null;
     };
 
@@ -154,17 +157,18 @@ export class ChatService {
     // z'n status + campaign_id naar message_card zodat de frontend
     // direct de juiste state kan renderen ("Concept aangemaakt →")
     // zonder een aparte roundtrip.
-    const enriched = ((data as RawRow[]) ?? []).map((m) => {
+    const enriched = ((data as unknown as RawRow[]) ?? []).map((m) => {
       const card = m.message_card ?? null;
-      if (card?.kind === 'campaign_proposal' && m.ai_suggestion) {
+      const linkedSuggestion = m.ai_suggestion?.[0] ?? null;
+      if (card?.kind === 'campaign_proposal' && linkedSuggestion) {
         return {
           id: m.id,
           role: m.role,
           content: m.content,
           message_card: {
             ...card,
-            suggestion_status: m.ai_suggestion.status,
-            approved_campaign_id: m.ai_suggestion.approved_campaign_id,
+            suggestion_status: linkedSuggestion.status,
+            approved_campaign_id: linkedSuggestion.approved_campaign_id,
           } as CampaignProposalCard,
           created_at: m.created_at,
         } satisfies ChatMessage;
