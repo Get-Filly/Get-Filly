@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -26,6 +27,26 @@ export class SuggestionsController {
     @Query('status') status?: SuggestionStatus,
   ) {
     return this.suggestions.findAll(restaurantId, status);
+  }
+
+  @Get(':id')
+  findOne(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.suggestions.findById(restaurantId, id);
+  }
+
+  // Goedkeur-flow: suggestie → campagne. Aparte POST want het is
+  // meer dan een status-update (er wordt een nieuwe resource
+  // aangemaakt). Retourneert de bijgewerkte suggestie + id van
+  // de nieuwe campagne zodat de frontend daarheen kan linken.
+  @Post(':id/approve')
+  approve(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.suggestions.approve(restaurantId, id);
   }
 
   @Patch(':id')

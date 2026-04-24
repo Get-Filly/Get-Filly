@@ -19,10 +19,14 @@ type MenuItem = {
   module: Module;
 };
 
+// "Suggesties" staat niet meer in de sidebar: de pagina /campagnes
+// toont Filly's voorstellen nu als strip bovenaan. De oude route
+// /dashboard/suggesties blijft voorlopig bestaan voor detail-views
+// (tot we de inline chat-edit hebben), maar heeft geen eigen
+// menu-item meer.
 const allMenuItems: MenuItem[] = [
   { href: "/dashboard", icon: "📊", label: "Dashboard", module: "dashboard" },
   { href: "/dashboard/taken", icon: "📥", label: "Taken", module: "taken" },
-  { href: "/dashboard/suggesties", icon: "💡", label: "Suggesties", module: "suggesties" },
   { href: "/dashboard/reserveringen", icon: "📆", label: "Reserveringen", module: "reserveringen" },
   { href: "/dashboard/campagnes", icon: "📣", label: "Campagnes", module: "campagnes" },
   { href: "/dashboard/gasten", icon: "👥", label: "Gasten", module: "gasten" },

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  createCampaign,
+  approveSuggestion,
   fetchActiveChat,
   sendChatMessage,
   type ChatMessage,
@@ -136,24 +136,21 @@ export function FillyChat() {
     }
   };
 
-  // Klik-handler voor "Ja, maak aan als concept". Slaat de campagne op
-  // via het /campaigns-endpoint en zet daarna de kaart in 'created'-
-  // staat zodat de user 'm kan bekijken in /dashboard/campagnes/[id].
+  // Klik-handler voor "Ja, maak aan als concept". Roept de
+  // approve-endpoint aan op de bij dit bericht horende suggestie
+  // (backend maakt daarbij de campagne aan + koppelt approved_
+  // campaign_id). Zet de kaart in 'created'-staat met de nieuwe
+  // campagne-id zodat de user direct kan doorlinken.
   const acceptProposal = async (
     messageId: string,
     proposal: CampaignProposalCard,
   ) => {
     setProposalStatus((s) => ({ ...s, [messageId]: { state: "creating" } }));
     try {
-      const { id } = await createCampaign({
-        name: proposal.name,
-        type: proposal.type,
-        subject_line: proposal.subject_line,
-        body: proposal.body,
-      });
+      const { campaignId } = await approveSuggestion(proposal.suggestion_id);
       setProposalStatus((s) => ({
         ...s,
-        [messageId]: { state: "created", campaignId: id },
+        [messageId]: { state: "created", campaignId },
       }));
     } catch (e) {
       console.error(e);

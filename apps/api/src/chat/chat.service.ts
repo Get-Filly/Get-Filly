@@ -6,6 +6,7 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { SuggestionsService } from '../suggestions/suggestions.service';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
 // 'user' = de restauranteigenaar, 'system' = interne/automatische berichten
@@ -23,6 +24,10 @@ export type MessageCard = CampaignProposalCard;
 
 export type CampaignProposalCard = {
   kind: 'campaign_proposal';
+  // FK naar ai_suggestions.id — gezet zodra het voorstel als
+  // pending-suggestie is opgeslagen. Frontend gebruikt deze id om
+  // door te linken naar de goedkeur-flow of om 'm af te wijzen.
+  suggestion_id: string;
   type: 'mail' | 'social' | 'whatsapp';
   name: string;
   // Mail-specifiek; optioneel voor social/whatsapp.
@@ -55,6 +60,7 @@ export class ChatService {
     private readonly supabase: SupabaseService,
     private readonly ai: AiService,
     private readonly context: RestaurantContextService,
+    private readonly suggestionsService: SuggestionsService,
   ) {}
 
   // Haalt de actieve conversatie op voor dit restaurant, of maakt er
@@ -194,9 +200,48 @@ export class ChatService {
     // voorstelt, heeft hij volgens z'n system-prompt een speciaal
     // JSON-blok achter z'n tekst geplakt: <<FILLY_PROPOSE_CAMPAIGN>>
     // {...} <<END>>. We halen dat blok eruit zodat de user alleen
-    // de nette proza ziet, en bewaren de JSON in message_card zodat
-    // de frontend een "Zal ik deze aanmaken?"-kaartje kan tonen.
+    // de nette proza ziet.
+    //
+    // Wanneer er een geldig voorstel in zit, maken we eerst een
+    // ai_suggestion-rij (status='pending', trigger_type='chat') zodat:
+    //   - hetzelfde voorstel ook zichtbaar is in de suggesties-sectie
+    //     op /dashboard/campagnes (uniforme goedkeur-flow)
+    //   - we het later via chat-edit kunnen verfijnen
+    //   - goedkeuren automatisch via ai_suggestions.approve loopt die
+    //     de campagne aanmaakt + approved_campaign_id koppelt
+    //
+    // Als de suggestie-insert faalt, vallen we terug op een
+    // proposal-loos bericht — de user ziet dan nog steeds Filly's
+    // nette antwoord, alleen mist de proposal-knop. Veiliger dan de
+    // hele chat-call laten falen.
     const parsed = extractCampaignProposal(answer);
+    let messageCard: CampaignProposalCard | null = null;
+    let suggestionId: string | null = null;
+
+    if (parsed.proposal) {
+      try {
+        const { id } = await this.suggestionsService.createFromChat(
+          restaurantId,
+          {
+            type: parsed.proposal.type,
+            name: parsed.proposal.name,
+            subject_line: parsed.proposal.subject_line,
+            body: parsed.proposal.body,
+          },
+        );
+        suggestionId = id;
+        messageCard = {
+          ...parsed.proposal,
+          suggestion_id: id,
+        };
+      } catch (err) {
+        console.error(
+          `ai_suggestion-insert gefaald (chat-proposal); chat werkt door zonder kaartje: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
 
     const { data: fillyMsg, error: fillyErr } = await this.supabase.client
       .from('chat_messages')
@@ -205,7 +250,12 @@ export class ChatService {
         restaurant_id: restaurantId,
         role: 'filly',
         content: parsed.cleanText,
-        message_card: parsed.proposal ?? null,
+        message_card: messageCard,
+        // ai_suggestion_id (bestaat sinds 0001) koppelt dit bericht
+        // aan de suggestie. Handig voor toekomstige flows zoals
+        // "toon alle chat-berichten die een bepaalde suggestie
+        // hebben opgeleverd" of chat-edit-threads per suggestie.
+        ai_suggestion_id: suggestionId,
       })
       .select('id, role, content, message_card, created_at')
       .single();
@@ -325,9 +375,14 @@ Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI" — spree
 const PROPOSAL_REGEX =
   /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
 
+// Intermediair type: de parser kent het suggestion_id nog niet (die
+// wordt pas toegekend na insert in ai_suggestions). Caller bouwt de
+// volledige CampaignProposalCard door suggestion_id toe te voegen.
+export type ParsedProposal = Omit<CampaignProposalCard, 'suggestion_id'>;
+
 export function extractCampaignProposal(
   raw: string,
-): { cleanText: string; proposal: CampaignProposalCard | null } {
+): { cleanText: string; proposal: ParsedProposal | null } {
   const trimmed = raw.trim();
   const match = trimmed.match(PROPOSAL_REGEX);
   if (!match) {
@@ -352,7 +407,7 @@ export function extractCampaignProposal(
       return { cleanText, proposal: null };
     }
 
-    const proposal: CampaignProposalCard = {
+    const proposal: ParsedProposal = {
       kind: 'campaign_proposal',
       type,
       name: name.trim().slice(0, 120),

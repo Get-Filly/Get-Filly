@@ -294,12 +294,17 @@ export type AiSuggestion = {
     name?: string;
     type?: "mail" | "social" | "whatsapp";
     subject?: string;
+    subject_line?: string;
     caption?: string;
     segment?: string;
     body?: string;
   };
   status: SuggestionStatus;
   rejection_reason: string | null;
+  // Gezet zodra deze suggestie is goedgekeurd: de id van de
+  // aangemaakte campagne. Frontend gebruikt dit om door te linken
+  // naar /dashboard/campagnes/[id].
+  approved_campaign_id: string | null;
   created_at: string;
   acted_at: string | null;
   confidence_score: number | null;
@@ -320,6 +325,23 @@ export async function fetchSuggestions(
     : `${API_URL}/suggestions`;
   const res = await authedFetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Goedkeur-flow: maakt een campagne aan uit de suggestie, zet de
+// suggestion-status op approved en koppelt approved_campaign_id.
+// Retourneert het campagne-id zodat we direct kunnen doorlinken.
+export async function approveSuggestion(
+  suggestionId: string,
+): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/approve`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
@@ -442,6 +464,11 @@ export type ChatRole = "filly" | "user" | "system";
 // een bijpassend kaartje onder het bericht.
 export type CampaignProposalCard = {
   kind: "campaign_proposal";
+  // FK naar ai_suggestions.id. Backend maakt de suggestie al aan
+  // tijdens het chat-antwoord zodat de goedkeur-flow via
+  // /api/suggestions/:id/approve loopt — zelfde endpoint als bij
+  // auto-gegenereerde suggesties die we op /campagnes tonen.
+  suggestion_id: string;
   type: "mail" | "social" | "whatsapp";
   name: string;
   subject_line?: string;
