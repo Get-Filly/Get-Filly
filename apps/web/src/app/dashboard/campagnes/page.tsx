@@ -11,6 +11,7 @@ import {
   type Campaign,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { TasksStrip } from "../_components/tasks-strip";
 
 type StatusFilter = "alle" | "actief" | "ingepland" | "concept" | "afgerond";
 type TypeFilter = "alle" | Campaign["type"];
@@ -440,7 +441,13 @@ export default function CampagnesPage() {
           </section>
         )}
 
-      {/* Campagnes-kop. Alleen als tekst-separator tussen suggesties
+      {/* Overige acties — reviews, reserverings-attenties, inzichten.
+          Eerder op /dashboard/taken, nu onder dezelfde hub als de
+          Filly-voorstellen zodat alle "wat moet ik doen"-items op één
+          plek staan. Component verbergt zichzelf als er niks is. */}
+      <TasksStrip />
+
+      {/* Campagnes-kop. Alleen als tekst-separator tussen acties
           (die boven staan als er zijn) en de campagne-tabel zelf. */}
       <div
         style={{
