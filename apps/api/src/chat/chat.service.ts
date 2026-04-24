@@ -121,16 +121,16 @@ export class ChatService {
     conversationId: string,
     restaurantId: string,
   ): Promise<ChatMessage[]> {
-    // JOIN op ai_suggestions zodat we per proposal-kaartje weten of
-    // de onderliggende suggestie al goedgekeurd of afgewezen is. Zonder
-    // deze info reset de UI bij elke re-mount naar "pending" — user
-    // zou opnieuw op "Goedkeuren" klikken en een duplicate-campagne
-    // proberen aan te maken (backend weigert, maar het is rommelig).
+    // Chat-berichten ophalen. ai_suggestion_id pakken we ook mee
+    // zodat we daarna per campaign-proposal de actuele status +
+    // approved_campaign_id kunnen verrijken via een tweede query.
+    // Bewust géén PostgREST-embed gebruikt: die is stil-foutgevoelig
+    // met aliases en schema-caches, een expliciete tweede query is
+    // 100% voorspelbaar en voegt maar ~5ms toe.
     const { data, error } = await this.supabase.client
       .from('chat_messages')
       .select(
-        `id, role, content, message_card, created_at,
-         ai_suggestion:ai_suggestions(status, approved_campaign_id)`,
+        'id, role, content, message_card, ai_suggestion_id, created_at',
       )
       .eq('conversation_id', conversationId)
       .eq('restaurant_id', restaurantId)
@@ -139,39 +139,83 @@ export class ChatService {
 
     if (error) throw new InternalServerErrorException(error.message);
 
-    // Supabase returneert een embedded relatie altijd als array,
-    // zelfs bij een 1-op-1 FK. Dus ai_suggestion is hier een array
-    // met 0 of 1 element; we pakken het eerste.
     type RawRow = {
       id: string;
       role: ChatRole;
       content: string;
       message_card: MessageCard | null;
+      ai_suggestion_id: string | null;
       created_at: string;
-      ai_suggestion:
-        | Array<{ status: string; approved_campaign_id: string | null }>
-        | null;
     };
 
-    // Per bericht: als er een gekoppelde suggestie is, kopiëren we
-    // z'n status + campaign_id naar message_card zodat de frontend
-    // direct de juiste state kan renderen ("Concept aangemaakt →")
-    // zonder een aparte roundtrip.
-    const enriched = ((data as unknown as RawRow[]) ?? []).map((m) => {
+    const rows = (data as RawRow[]) ?? [];
+
+    // Verzamel alle suggestion-ids die aan chat-berichten hangen.
+    // Unieke set — zelfde suggestie kan in theorie niet aan meerdere
+    // berichten hangen (insert is per bericht) maar we dedupliceren
+    // defensief om de in-clause compact te houden.
+    const suggestionIds = Array.from(
+      new Set(
+        rows
+          .map((r) => r.ai_suggestion_id)
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    );
+
+    // Eén extra batch-query voor alle gekoppelde suggesties. Bij geen
+    // koppelingen skippen we deze stap.
+    let statusById = new Map<
+      string,
+      { status: string; approved_campaign_id: string | null }
+    >();
+    if (suggestionIds.length > 0) {
+      const { data: suggestionRows, error: suggErr } =
+        await this.supabase.client
+          .from('ai_suggestions')
+          .select('id, status, approved_campaign_id')
+          .in('id', suggestionIds);
+      if (suggErr) {
+        // Niet fataal: we loggen en tonen dan gewoon de kaart in
+        // z'n laatst-bekende state (message_card als opgeslagen bij
+        // creation, meestal pending). Chat blijft functioneel.
+        this.logger.warn(
+          `Kon suggestie-statussen niet ophalen: ${suggErr.message}`,
+        );
+      } else {
+        statusById = new Map(
+          (suggestionRows ?? []).map((s) => [
+            s.id as string,
+            {
+              status: s.status as string,
+              approved_campaign_id: s.approved_campaign_id as string | null,
+            },
+          ]),
+        );
+      }
+    }
+
+    // Verrijk elke proposal-card met de actuele status zodat de
+    // frontend meteen de juiste UI-state kan renderen — "Concept
+    // aangemaakt →" bij approved, "Voorstel afgewezen" bij rejected.
+    const enriched: ChatMessage[] = rows.map((m) => {
       const card = m.message_card ?? null;
-      const linkedSuggestion = m.ai_suggestion?.[0] ?? null;
-      if (card?.kind === 'campaign_proposal' && linkedSuggestion) {
+      if (
+        card?.kind === 'campaign_proposal' &&
+        m.ai_suggestion_id &&
+        statusById.has(m.ai_suggestion_id)
+      ) {
+        const linked = statusById.get(m.ai_suggestion_id);
         return {
           id: m.id,
           role: m.role,
           content: m.content,
           message_card: {
             ...card,
-            suggestion_status: linkedSuggestion.status,
-            approved_campaign_id: linkedSuggestion.approved_campaign_id,
+            suggestion_status: linked!.status,
+            approved_campaign_id: linked!.approved_campaign_id,
           } as CampaignProposalCard,
           created_at: m.created_at,
-        } satisfies ChatMessage;
+        };
       }
       return {
         id: m.id,
@@ -179,7 +223,7 @@ export class ChatService {
         content: m.content,
         message_card: card,
         created_at: m.created_at,
-      } satisfies ChatMessage;
+      };
     });
 
     // Omdraaien → oudste eerst, zoals de UI 'm rendert.

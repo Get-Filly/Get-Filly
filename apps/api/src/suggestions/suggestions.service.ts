@@ -103,9 +103,28 @@ export class SuggestionsService {
     suggestionId: string,
   ): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
     const suggestion = await this.findById(restaurantId, suggestionId);
+
+    // Idempotent: als de suggestie al een keer is goedgekeurd (en de
+    // campagne bestaat), geven we dezelfde campaignId terug zonder
+    // opnieuw aan te maken. Voorkomt dubbele concept-campagnes als
+    // de frontend na een navigatie z'n lokale state kwijt is en de
+    // user opnieuw op "Goedkeuren" klikt. Stiller dan een error.
+    if (
+      suggestion.status === 'approved' &&
+      suggestion.approved_campaign_id
+    ) {
+      return {
+        suggestion,
+        campaignId: suggestion.approved_campaign_id,
+      };
+    }
+
+    // Afgewezen of verlopen → niet alsnog goedkeuren. User moet
+    // eerst handmatig 'Terugzetten op open' doen. Dit is een bewuste
+    // beslissingsgrens om stille 're-activations' te voorkomen.
     if (suggestion.status !== 'pending') {
       throw new InternalServerErrorException(
-        `Deze suggestie is al ${suggestion.status}; goedkeuren kan alleen bij 'pending'.`,
+        `Deze suggestie is ${suggestion.status}. Zet 'm eerst terug op open via de Afgewezen-tab.`,
       );
     }
 
