@@ -64,22 +64,34 @@ packages/
 - **Tweede test-restaurant**: `00000000-0000-0000-0000-000000000002` (Cafe Get-Filly, handmatig aangemaakt via seed-snippet).
 - **`.env`-bestanden** in `apps/{web,api}/` — niet in Git, wel vereist voor dev. Zie `.env.example` per app.
 
-## Wat er draait / status (2026-04-23)
+## Wat er draait / status (2026-04-24)
 
 **UI + backend**: 11 dashboard-pagina's + publieke site werken met echte data uit Supabase. Middleware-auth actief. Multi-tenant met auth-guards + rol-filter + team-invite-flow live.
+
+**Auth + onboarding live**:
+- Signup + login + logout (email/password, Supabase Auth)
+- Password-reset via `/forgot-password` + `/reset-password` (gebruikt `/auth/confirm`-SSR-route)
+- Sterk-wachtwoord-UI: `<PasswordStrength>` met live 4-checks op signup én reset
+- 3-stappen onboarding-wizard op `/onboarding` voor nieuwe users (middleware-redirect op dashboard-bezoek zonder restaurant)
+- Supabase email-templates beheer via `pnpm supabase:apply-templates` (Management API-script, geen handwerk)
 
 **Filly AI live**:
 - Review-reply-suggesties (Claude Sonnet 4.6, 3-varianten-kiezer)
 - Filly-chat op dashboard-home met persistente historie + live restaurant-context (weer/bezetting/reserveringen)
-- Usage-tracking in `ai_usage`-tabel, rate-limit 100/uur/restaurant
+- **Website-analyzer**: crawl homepage + subpagina's + Claude Sonnet-extractie van hele profiel (tagline, atmosphere, target_audience, USPs, signature_dishes, cuisine_style, website_summary, social_media)
+- **Menu-importer**: Claude Opus 4.7 Vision op geüploade PDF/JPG/PNG — extraheert gerechten + prijzen + categorieën + allergenen. Test met Bisous-kaart (403KB PDF): 54 gerechten foutloos ingelezen.
+- Usage-tracking in `ai_usage`-tabel (nu met nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
 
 **Mock nog steeds** (zie BACKLOG.md P2-sectie):
-- Suggesties-generator
-- Menu-kaart Vision-upload + menu CRUD
+- Suggesties-generator (huidige Filly-voorstellen in UI zijn nog `getMockProposal()`)
+- Menu-upload via menu-pagina (onboarding-upload werkt wel al, maar menu-pagina zelf laat alleen GET zien)
+- Menu CRUD-endpoints (POST/PATCH/DELETE nog niet gebouwd)
 - Campagne-send engine (Resend ontbreekt)
 - Alle externe integraties (Meta, Google Business, Zenchef, etc.)
 
 **Niet gedeployed** — draait lokaal. Vercel/Railway-config komt bij P1-werk (zie BACKLOG.md).
+
+**Belangrijke dev-toggle**: email-confirmation staat **UIT** in Supabase (dev-bypass). **Terug AAN zetten voordat er productie-klanten op komen** — staat als ⚠️ in BACKLOG P0.
 
 ## Handmatige Supabase-config (niet in migraties)
 

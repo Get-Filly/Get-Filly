@@ -19,17 +19,20 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## P0 — Blokkerend voor eerste klant
 
 ### Auth & onboarding
-- [ ] ⚠️ **Email-confirmation weer aanzetten** — tijdelijk UIT gezet tijdens dev (Supabase Dashboard → Authentication → Providers → Email → "Confirm email"). **Aanzetten vóór productie-launch** anders accepteert de app fake-signups. Los op met Resend SDK (hierna) zodat je niet meer tegen rate-limits aanloopt en je dit weer aan kunt hebben in dev.
+- [ ] ⚠️ **Email-confirmation weer aanzetten** — tijdelijk UIT gezet tijdens dev (Supabase Dashboard → Authentication → Providers → Email → "Confirm email"). **Aanzetten vóór productie-launch** anders accepteert de app fake-signups. Los op met Resend SMTP (hieronder) zodat je niet meer tegen rate-limits aanloopt en je dit weer aan kunt hebben in dev.
 - [ ] **Geocoding bij adres-invoer** — nieuwe restaurants hebben geen latitude/longitude (null) totdat we het adres door een geocoder sturen. Zonder coords: geen weerforecast voor die zaak. Gebruik Nominatim (gratis, OSM) of Google Maps (betaald, betere NL-postcode-lookup). Trigger bij onboarding-submit en bij adres-wijziging op de account-pagina.
 - [ ] **Empty-states-sweep dashboard** — alle dashboard-pagina's tonen nu een rode "HTTP 403/500" bij ontbrekende data. Moet worden: "Nog geen reserveringen deze maand" / "Je hebt nog geen campagnes, begin een campagne →". Per pagina pass maken.
-- [x] ~~Signup → auto-restaurant-creatie~~ — `/onboarding`-wizard live (2026-04-24)
-- [x] ~~Password-reset flow~~ — `/forgot-password` + `/reset-password` live (2026-04-24). Supabase email-template "Reset Password" moet verwijzen naar `/auth/confirm?type=recovery&next=/reset-password` — zie docs/supabase-manual-setup.md.
+- [x] ~~Signup → auto-restaurant-creatie~~ — `/onboarding`-wizard live (2026-04-24, commit `5d888c9`)
+- [x] ~~Password-reset flow~~ — `/forgot-password` + `/reset-password` live (2026-04-24, commit `335f5a1`)
+- [x] ~~Wachtwoord-eisen + confirmatie-veld~~ — signup en reset-password gebruiken herbruikbaar `<PasswordStrength>` component met live checklist (8+ tekens, letter, cijfer, speciaal teken). Submit disabled tot groen (2026-04-24, commit `15fe843`).
+- [x] ~~Supabase email-templates geautomatiseerd~~ — `pnpm supabase:apply-templates` PATCHt alle 4 templates (invite, magic-link, recovery, confirmation) via Management API. Geen handwerk meer in dashboard. (2026-04-24, commit `2775f08`)
+- [x] ~~Onboarding met Filly-auto-invul~~ — URL + menukaart → Filly vult hele profiel in (description, tagline, atmosphere, target_audience, USPs, events, signature_dishes, cuisine_style, adres, toon) + menu-items via Opus Vision. Wizard: bronnen → review → bevestig (2026-04-24, commits `b29f317` + `d909c65`).
 
 ### Legal & compliance (AVG/NL)
 - [ ] **Privacy-verklaring** — `/privacy`-route + inhoud, link in footer
 - [ ] **Algemene voorwaarden** — `/voorwaarden`-route + inhoud
-- [ ] **Cookie-banner** — ePrivacy-verplicht
-- [ ] **AVG-endpoints** — data-export + right-to-be-forgotten
+- [ ] **Cookie-banner** — ePrivacy-verplicht zodra Plausible erop komt
+- [ ] **AVG-endpoints** — data-export + right-to-be-forgotten (account-delete)
 
 ### Billing
 - [ ] **Mollie-integratie** — SDK installeren, checkout-flow op pricing-pagina
@@ -59,6 +62,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Audit-log vullen** — tabel `audit_log` bestaat sinds migratie 0001, maar wordt nergens geschreven
 - [ ] **Email-change flow** — account-pagina
 - [ ] **2FA setup** — `users.two_factor_enabled` kolom bestaat, geen UI
+- [ ] **Pre-onboarding rate-limit naar Redis** — nu in-memory Map in `OnboardingController`. Overleeft geen multi-instance deploy; vervangen door Redis/Upstash zodra api op Railway schaalt.
+
+### Email & campagnes (gepromoveerd van P2 → P1)
+- [ ] **Resend als SMTP-provider voor Supabase Auth** — configureer Resend onder Supabase Auth → SMTP Settings. Lost de 3-4/uur rate-limit op Supabase default SMTP en maakt confirmation-email weer bruikbaar in dev. Onze custom templates blijven werken; Supabase stuurt ze via Resend i.p.v. eigen SMTP.
 
 ### Site-fundamenten (publieke site)
 - [ ] **Contact/waitlist-formulier** — Resend-integratie voor notificaties
@@ -74,17 +81,18 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## P2 — Mock-features naar echt
 
 ### Filly AI-features (backend + prompts)
-- [x] ~~Review-reply-suggesties via Claude~~ (2026-04-23, commit `bd03246` + `21314d9`)
+- [x] ~~Review-reply-suggesties via Claude~~ (2026-04-23, commits `bd03246` + `21314d9`)
 - [x] ~~Filly-chat v1 met persistente historie~~ (2026-04-23, commit `53db975`)
 - [x] ~~Filly-chat v2 met live restaurant-context~~ (2026-04-23, commit `0f0e1b3`)
-- [ ] **Suggesties-generator** — `getMockProposal()` in [suggesties/page.tsx](apps/web/src/app/dashboard/suggesties/page.tsx) vervangen door Claude-call met `RestaurantContextService` + menu_items
-- [ ] **Menu-kaart Vision-upload** — foto/PDF menukaart → Claude Vision → menu_items. Migratie `menu_uploads`-tabel + Storage-bucket nodig.
-- [ ] **Menu CRUD endpoints** — POST/PATCH/DELETE op `/api/menu`. Nu alleen GET; frontend houdt wijzigingen in local state.
-- [ ] **Prompt caching activeren** — `cache_control: { type: 'ephemeral' }` op system-prompts zodra die stabiel >1024 tokens zijn
-- [ ] **Auto-title-generation voor chat-conversations** — `chat_conversations.title` blijft nu null
+- [x] ~~Website-analyzer (crawl + Claude) voor profiel-extractie~~ (2026-04-24, commit `b29f317`)
+- [x] ~~Menu-importer met Claude Opus 4.7 Vision~~ (2026-04-24, commit `b29f317`) — verwerkt PDF/JPG/PNG/WebP, max 10MB
+- [x] ~~Menu-uploads tabel + Storage-bucket met RLS~~ (migratie 0011, 2026-04-24). **NB**: onboarding-uploads gaan direct naar Vision zonder Storage-stop; pas bij heropen via menu-pagina (nog te bouwen) gebruiken we de bucket echt.
+- [ ] **Suggesties-generator** — `getMockProposal()` in [suggesties/page.tsx](apps/web/src/app/dashboard/suggesties/page.tsx) vervangen door Claude-call met `RestaurantContextService` + menu_items. Grote overlap met chat v2.
+- [ ] **Menu CRUD endpoints** — POST/PATCH/DELETE op `/api/menu`. Nu alleen GET; frontend houdt wijzigingen in local state. Opnieuw uploaden menukaart via menu-pagina (met Storage-opslag) ook hier.
+- [ ] **Prompt caching activeren** — `cache_control: { type: 'ephemeral' }` op system-prompts zodra die stabiel >1024 tokens zijn (chat v2 zit waarschijnlijk al zo hoog).
+- [ ] **Auto-title-generation voor chat-conversations** — `chat_conversations.title` blijft nu null.
 
 ### Email & campagnes
-- [ ] **Resend als SMTP-provider voor Supabase Auth** (⬆️ was P2, nu P1) — configureer Resend onder Supabase Auth → SMTP Settings. Lost de 3-4/uur rate-limit op (Supabase default SMTP) en maakt confirmation-email weer bruikbaar in dev. Onze custom templates blijven werken; Supabase stuurt ze alleen via Resend i.p.v. eigen SMTP.
 - [ ] **Campagne-send engine** — POST `/api/campaigns/:id/send` + Resend bulk + bounce-handling
 - [ ] **Migratie `campaign_sends`-tabel** — history + unsubscribe-tokens
 - [ ] **Unsubscribe-route** — GDPR-verplicht
@@ -101,12 +109,15 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **`FILLY_MOCK`** in [kpi-row.tsx:27](apps/web/src/app/dashboard/_components/kpi-row.tsx) — KPI-subregels "door Filly"
 - [ ] **`isFromFilly()`** — deterministische hash in reserveringen + gasten
 - [ ] **`FILLY_ROI_6M` + `FILLY_BY_TYPE`** in rapportages-pagina
-- [ ] **`buildFillyReply()`** — al vervangen, alleen `MOCK_RECOGNIZED` in menu-pagina rest nog
+- [x] ~~`buildFillyReply()` in reviews~~ — vervangen door echte Claude-call (2026-04-23)
+- [x] ~~`MOCK_RECOGNIZED` in menu-pagina~~ — vervangen door echte Vision-analyse tijdens onboarding (menu-pagina zelf is volgende stap)
 - [ ] **`cardItemIds`-set in memory** in menu-pagina
 - [ ] **Statische koppelingen-lijst** zonder OAuth-flow
 
 ### Database-migraties nog te maken
-- [ ] **`menu_uploads`** + Storage-bucket `menu-uploads` + FK `menu_items.menu_upload_id`
+- [x] ~~`menu_uploads` + Storage-bucket + FK menu_items.menu_upload_id~~ (migratie 0011, 2026-04-24)
+- [x] ~~ai_usage.restaurant_id nullable (pre-onboarding logging)~~ (migratie 0012, 2026-04-24)
+- [x] ~~restaurants.website_url + onboarded_at~~ (migratie 0010, 2026-04-24)
 - [ ] **`reservations.via_campaign_id`** FK (Filly-ROI meetbaar maken)
 - [ ] **`guests.acquired_via_campaign_id`** FK
 - [ ] **`campaigns.metrics` uitbreiding** — extra_reservations/revenue/retention
@@ -132,17 +143,17 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **i18n (EN)** — engels voor internationale klanten later
 
 ### Onboarding nieuwe klant
-- [ ] **Welkomst-wizard** — 3-staps flow (profiel → integraties → team)
-- [ ] **Sample-data toggle** — demo-data voor nieuwe accounts
-- [ ] **Setup-checklist** op dashboard tot alles klaar staat
+- [x] ~~3-stappen wizard met Filly-auto-invul~~ (2026-04-24)
+- [ ] **Sample-data toggle** — demo-data voor nieuwe accounts die geen website/menu hebben
+- [ ] **Setup-checklist** op dashboard tot alles klaar staat (reviews koppelen, socials, team, etc.)
 
 ---
 
 ## Test-data & seeds
 
-- [x] ~~`apps/api/supabase/seeds/test_restaurants.sql`~~ — exacte inhoud uit Supabase gekopieerd (commit `TBD`). Snippet in Supabase SQL-editor mag weg.
-- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly
-- [x] ~~`test_campaigns.sql` in seeds~~ — niet nodig: bleek bij inspectie gewoon een duplicaat van migratie 0005 (reservations + reviews schema+seed). Snippet in Supabase mag weg.
+- [x] ~~`apps/api/supabase/seeds/test_restaurants.sql`~~ — exacte inhoud uit Supabase gekopieerd (commit `699c84b`).
+- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly.
+- [x] ~~`test_campaigns.sql`~~ — niet nodig (bleek duplicaat van migratie 0005).
 
 ---
 
@@ -151,8 +162,9 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 Grep periodiek op `TODO`, `FIXME`, `MOCK`, `mock` in `apps/` om bij te
 werken. Laatste audit: 2026-04-23.
 
-- [ ] `/apps/web/src/app/dashboard/_components/filly-chat.tsx` — oud comment "Mock-antwoord. Later vervangen door echte Claude API call" is niet meer relevant sinds commit 53db975 maar de file-structuur verdient een review-pass
-- [ ] `/apps/web/src/app/dashboard/account/page.tsx` — bevat nog "Komt beschikbaar zodra de Claude API gekoppeld is"-melding die nu niet meer klopt
+- [ ] `/apps/web/src/app/dashboard/_components/filly-chat.tsx` — oud comment "Mock-antwoord. Later vervangen door echte Claude API call" is niet meer relevant sinds commit `53db975` maar de file-structuur verdient een review-pass.
+- [ ] `/apps/web/src/app/dashboard/account/page.tsx` — bevat nog "Komt beschikbaar zodra de Claude API gekoppeld is"-melding die nu niet meer klopt.
+- [ ] Next.js warning `"middleware" file convention is deprecated; use "proxy" instead` — cosmetisch, te fixen door file te hernoemen naar `proxy.ts` bij een volgende pass.
 
 ---
 
@@ -168,8 +180,23 @@ werken. Laatste audit: 2026-04-23.
 4. **Prioriteit verandert?** Verplaats naar juiste P0/P1/P2/P3-sectie.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
-## Recent voltooid (2026-04-23)
+## Recent voltooid
 
+### 2026-04-24 — Auth + onboarding
+- ✅ Password-reset flow: `/forgot-password` + `/reset-password` + Supabase email-template (commit `335f5a1`)
+- ✅ Supabase Management API-script `pnpm supabase:apply-templates` voor alle 4 email-templates (commit `2775f08`)
+- ✅ `<PasswordStrength>`-component met live 4-checks (8+, letter, cijfer, speciaal) + confirm-veld op signup én reset-password (commit `15fe843`)
+- ✅ `/onboarding` 3-stappen wizard + POST `/api/onboarding/restaurant` + dashboard-redirect-middleware (commit `5d888c9`)
+- ✅ Migratie 0010: `restaurants.website_url` + `onboarded_at`
+- ✅ `WebsiteAnalyzerService` — cheerio-crawl + Claude-analyse, vult alle profiel-velden (tagline, atmosphere, target_audience, USPs, signature_dishes, cuisine_style, website_summary, social_media) (commit `b29f317`)
+- ✅ `MenuImporterService` — Claude Opus 4.7 Vision op PDF/image, extraheert gerechten + prijzen + categorieën + allergenen (commit `b29f317`)
+- ✅ `AiService.generateFromFile` — Vision- en document-support
+- ✅ Migratie 0011: `menu_uploads`-tabel + `menu-uploads` Storage-bucket met RLS
+- ✅ Migratie 0012: `ai_usage.restaurant_id` nullable voor pre-onboarding logging
+- ✅ FillyChat wacht op RestaurantContext → eliminatie 400-race bij eerste dashboard-render (commit `b29f317`)
+- ✅ Polish-fixes: fetch-timeout 5s → 12s (Cloudflare/Wix), userId weglaten bij pre-onboarding analyses om FK-violations te vermijden (commit `d909c65`)
+
+### 2026-04-23 — Filly AI-laag
 - ✅ `0009_ai_usage.sql` — migratie voor Claude-call tracking
 - ✅ `AiService` centrale wrapper + `AiCallMeta`-type dwingt tracking af
 - ✅ `AiRateLimitGuard` — 100 calls/uur/restaurant
@@ -178,6 +205,6 @@ werken. Laatste audit: 2026-04-23.
 - ✅ Filly-chat met persistente `chat_messages`-historie
 - ✅ `RestaurantContextService` — herbruikbaar context-blok voor alle Filly-prompts
 - ✅ Chat v2: live weer + bezetting + reserveringen in system-prompt
-- ✅ `CLAUDE.md` bijgewerkt (was 2 dagen oud, refereerde nog aan oude huisstijl en migraties 0001-0005)
-- ✅ `docs/supabase-manual-setup.md` — alles wat niet in migraties staat: email-templates, redirect-URLs, storage-buckets, env-vars, verificatie-queries
-- ✅ `apps/api/supabase/seeds/test_restaurants.sql` (reconstructie) + seeds-README
+- ✅ `CLAUDE.md` bijgewerkt
+- ✅ `docs/supabase-manual-setup.md` — alles wat niet in migraties staat
+- ✅ `apps/api/supabase/seeds/test_restaurants.sql`
