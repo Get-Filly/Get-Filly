@@ -73,10 +73,23 @@ Idem:
 {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}
 ```
 
-**Waarom**: de default `action_link` uit `generateLink()` werkt niet
-met `@supabase/ssr` (die cookie-based is, niet hash-based). Onze
-`/auth/confirm`-route doet `verifyOtp({ token_hash, type })` en zet
-de sessie als cookie.
+### Template "Reset Password"
+
+Voor de password-reset-flow (pagina `/forgot-password` → `/reset-password`):
+```
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
+```
+
+De frontend zet `redirectTo` op `${origin}/reset-password` in
+`resetPasswordForEmail()`; Supabase geeft dat mee als `{{ .RedirectTo }}`.
+Wij negeren die hier bewust en forceren `/reset-password` — voorkomt
+dat een foutief redirect-param de flow breekt.
+
+**Waarom dit hele patroon**: de default `action_link` uit `generateLink()`
+werkt niet met `@supabase/ssr` (die cookie-based is, niet hash-based).
+Onze `/auth/confirm`-route doet `verifyOtp({ token_hash, type })` en zet
+de sessie als cookie. Hetzelfde fundament voor invite, magic-link, signup
+en password-reset.
 
 ---
 

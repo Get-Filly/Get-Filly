@@ -59,7 +59,9 @@ function LoginForm() {
           placeholder="••••••••"
           required
         />
-        <a className="forgot-link">Wachtwoord vergeten?</a>
+        <Link className="forgot-link" href="/forgot-password">
+          Wachtwoord vergeten?
+        </Link>
       </div>
 
       {error && <div className="auth-error">{error}</div>}

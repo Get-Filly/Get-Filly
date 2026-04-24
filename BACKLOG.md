@@ -20,7 +20,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ### Auth & onboarding
 - [ ] **Signup → auto-restaurant-creatie** — nu landt een nieuwe user op een leeg dashboard zonder restaurant. Backend-endpoint + onboarding-wizard nodig.
-- [ ] **Password-reset flow** — [login/page.tsx:62](apps/web/src/app/login/page.tsx) heeft "Wachtwoord vergeten?"-link met leeg href.
+- [x] ~~Password-reset flow~~ — `/forgot-password` + `/reset-password` live (2026-04-24). Supabase email-template "Reset Password" moet verwijzen naar `/auth/confirm?type=recovery&next=/reset-password` — zie docs/supabase-manual-setup.md.
 
 ### Legal & compliance (AVG/NL)
 - [ ] **Privacy-verklaring** — `/privacy`-route + inhoud, link in footer
