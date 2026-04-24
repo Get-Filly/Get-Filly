@@ -77,6 +77,12 @@ export class OnboardingController {
   // Claude voor profiel-extractie. Rate-limited op user-id zodat een
   // willekeurige script dat dit endpoint spamt onze Anthropic-rekening
   // niet leegtrekt.
+  //
+  // user.id wordt NIET meegegeven aan de analyzer voor ai_usage-logging:
+  // de public.users-spiegelrij bestaat pas na onboarding-complete, dus
+  // een user_id-referentie zou een FK-violation geven. We loggen deze
+  // calls als "anonymous pre-onboarding" — je ziet ze terug met
+  // restaurant_id IS NULL en user_id IS NULL in ai_usage.
   @Post('analyze-website')
   analyzeWebsite(
     @CurrentUser() user: AuthenticatedUser,
@@ -113,7 +119,10 @@ export class OnboardingController {
         mimeType: file.mimetype,
         originalName: file.originalname,
       },
-      { userId: user.id, restaurantId: '00000000-0000-0000-0000-000000000000' },
+      // userId bewust niet meegeven: public.users-spiegelrij bestaat
+      // pas na onboarding-complete, FK zou falen. Zie comment bij
+      // analyzeWebsite hierboven.
+      { restaurantId: null },
     );
   }
 }

@@ -78,7 +78,11 @@ export class WebsiteAnalyzerService {
 
   private readonly MAX_PAGES = 10;
   private readonly MAX_TOTAL_CHARS = 20_000;
-  private readonly FETCH_TIMEOUT_MS = 5_000;
+  // Veel restaurant-sites draaien achter Cloudflare/Wix/Squarespace met
+  // trage first-paint. 12s is genoeg voor de traagste CDN-cold-start,
+  // kort genoeg om de gebruiker niet te laten wachten op een site
+  // die er gewoon niet meer is.
+  private readonly FETCH_TIMEOUT_MS = 12_000;
 
   constructor(private readonly ai: AiService) {}
 
@@ -142,10 +146,10 @@ export class WebsiteAnalyzerService {
       // zodat we 't in de logs kunnen herkennen zodra we de kolom
       // nullable hebben gemaakt. Voor nu: geen DB-log, alleen console.
       meta: {
-        // HACK: restaurantId placeholder. Zie BACKLOG "ai_usage.restaurant_id
-        // nullable maken". Deze call wordt door AiService wel gelogd maar
-        // zal falen op FK → stil opgevangen door fire-and-forget.
-        restaurantId: '00000000-0000-0000-0000-000000000000',
+        // Pre-onboarding call: user heeft nog geen restaurant-id. Sinds
+        // migratie 0012 is ai_usage.restaurant_id nullable, dus deze
+        // call wordt correct gelogd als "pre-onboarding".
+        restaurantId: null,
         feature: 'analyze_website',
       },
     });

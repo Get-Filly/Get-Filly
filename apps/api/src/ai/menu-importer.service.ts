@@ -58,7 +58,7 @@ export class MenuImporterService {
 
   async analyze(
     file: { buffer: Buffer; mimeType: string; originalName?: string },
-    meta: { restaurantId: string; userId?: string },
+    meta: { restaurantId: string | null; userId?: string },
   ): Promise<ExtractedMenu> {
     // Input-validatie. Beter hier vangen dan pas bij Claude met een
     // cryptische fout.

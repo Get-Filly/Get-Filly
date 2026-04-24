@@ -9,14 +9,14 @@ import { SupabaseService } from '../supabase/supabase.service';
 
 // Metadata die elke AI-call ons moet geven — dit is verplicht zodat
 // geen enkele Filly-feature per ongeluk zonder tracking draait.
-// TypeScript dwingt de caller om restaurantId + feature mee te geven.
+// TypeScript dwingt de caller om feature mee te geven; restaurantId
+// mag null zijn voor pre-onboarding calls (user heeft nog geen zaak).
 export type AiCallMeta = {
-  restaurantId: string;
+  restaurantId: string | null;
   // Optioneel: scheduled jobs hebben geen user die klikt.
   userId?: string;
   // Snake-case identificatie van de Filly-feature.
-  // Bestaande: 'review_reply'. Binnenkort: 'chat', 'suggestion',
-  // 'menu_vision'. Eén woord per feature is genoeg.
+  // Bestaande: 'review_reply', 'chat', 'analyze_website', 'menu_vision'.
   feature: string;
 };
 
