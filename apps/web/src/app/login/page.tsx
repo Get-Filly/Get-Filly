@@ -32,6 +32,18 @@ function LoginForm() {
       return;
     }
 
+    // Clear de stored restaurant-id voordat we doorgaan. Een user die
+    // eerder op deze browser was ingelogd kan een ander restaurant
+    // actief hebben gehad dat voor deze user niet toegankelijk is;
+    // RestaurantContext kiest straks de juiste uit /me/restaurants.
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem("getfilly.activeRestaurantId");
+      } catch {
+        // localStorage kan falen in privé-modus — negeer.
+      }
+    }
+
     router.push(nextPath);
     router.refresh();
   };

@@ -19,7 +19,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## P0 — Blokkerend voor eerste klant
 
 ### Auth & onboarding
-- [ ] **Signup → auto-restaurant-creatie** — nu landt een nieuwe user op een leeg dashboard zonder restaurant. Backend-endpoint + onboarding-wizard nodig.
+- [ ] ⚠️ **Email-confirmation weer aanzetten** — tijdelijk UIT gezet tijdens dev (Supabase Dashboard → Authentication → Providers → Email → "Confirm email"). **Aanzetten vóór productie-launch** anders accepteert de app fake-signups. Los op met Resend SDK (hierna) zodat je niet meer tegen rate-limits aanloopt en je dit weer aan kunt hebben in dev.
+- [ ] **Geocoding bij adres-invoer** — nieuwe restaurants hebben geen latitude/longitude (null) totdat we het adres door een geocoder sturen. Zonder coords: geen weerforecast voor die zaak. Gebruik Nominatim (gratis, OSM) of Google Maps (betaald, betere NL-postcode-lookup). Trigger bij onboarding-submit en bij adres-wijziging op de account-pagina.
+- [ ] **Empty-states-sweep dashboard** — alle dashboard-pagina's tonen nu een rode "HTTP 403/500" bij ontbrekende data. Moet worden: "Nog geen reserveringen deze maand" / "Je hebt nog geen campagnes, begin een campagne →". Per pagina pass maken.
+- [x] ~~Signup → auto-restaurant-creatie~~ — `/onboarding`-wizard live (2026-04-24)
 - [x] ~~Password-reset flow~~ — `/forgot-password` + `/reset-password` live (2026-04-24). Supabase email-template "Reset Password" moet verwijzen naar `/auth/confirm?type=recovery&next=/reset-password` — zie docs/supabase-manual-setup.md.
 
 ### Legal & compliance (AVG/NL)
@@ -81,7 +84,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Auto-title-generation voor chat-conversations** — `chat_conversations.title` blijft nu null
 
 ### Email & campagnes
-- [ ] **Resend SDK installeren + auth-mails** — custom templates i.p.v. Supabase default SMTP
+- [ ] **Resend als SMTP-provider voor Supabase Auth** (⬆️ was P2, nu P1) — configureer Resend onder Supabase Auth → SMTP Settings. Lost de 3-4/uur rate-limit op (Supabase default SMTP) en maakt confirmation-email weer bruikbaar in dev. Onze custom templates blijven werken; Supabase stuurt ze alleen via Resend i.p.v. eigen SMTP.
 - [ ] **Campagne-send engine** — POST `/api/campaigns/:id/send` + Resend bulk + bounce-handling
 - [ ] **Migratie `campaign_sends`-tabel** — history + unsubscribe-tokens
 - [ ] **Unsubscribe-route** — GDPR-verplicht

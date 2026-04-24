@@ -13,6 +13,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,21 @@ export default function SignupPage() {
     if (!isPasswordValid(password)) {
       setError("Je wachtwoord voldoet nog niet aan alle eisen.");
       return;
+    }
+    if (password !== confirm) {
+      setError("De wachtwoorden komen niet overeen.");
+      return;
+    }
+
+    // Oude stored restaurant-id wegflikkeren zodat de nieuwe user
+    // niet per ongeluk een X-Restaurant-Id van een vorige sessie
+    // meestuurt (zou 403 geven op alle endpoints).
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem("getfilly.activeRestaurantId");
+      } catch {
+        // negeer
+      }
     }
 
     setLoading(true);
@@ -82,13 +98,38 @@ export default function SignupPage() {
             <PasswordStrength password={password} />
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Bevestig wachtwoord</label>
+            <input
+              className="form-input"
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+            {confirm.length > 0 && confirm !== password && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--red, #b00)",
+                  marginTop: 4,
+                }}
+              >
+                Wachtwoorden komen niet overeen.
+              </div>
+            )}
+          </div>
+
           {error && <div className="auth-error">{error}</div>}
           {success && <div className="auth-success">{success}</div>}
 
           <button
             className="login-btn"
             type="submit"
-            disabled={loading || !isPasswordValid(password)}
+            disabled={
+              loading || !isPasswordValid(password) || password !== confirm
+            }
           >
             {loading ? "Bezig..." : "Account aanmaken"}
           </button>

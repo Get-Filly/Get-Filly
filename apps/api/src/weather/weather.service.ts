@@ -57,10 +57,15 @@ export class WeatherService {
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
+
+    // Als coördinaten ontbreken geven we bewust een LEGE forecast
+    // terug, geen 500. Dit gebeurt standaard bij een vers onboarded
+    // restaurant waar we nog geen geocoding op het adres hebben
+    // gedaan. Zodra BACKLOG-item "geocoding bij adres-invoer" staat,
+    // krijgen nieuwe restaurants direct lat/long en komt dit pad
+    // nergens meer langs.
     if (!restaurant?.latitude || !restaurant?.longitude) {
-      throw new InternalServerErrorException(
-        'Geen coördinaten in restaurant-profiel. Vul adres in op de account-pagina.',
-      );
+      return [];
     }
 
     return this.getForecast(
