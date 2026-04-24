@@ -20,12 +20,15 @@ const linksBedrijf = [
   { href: "/about#team", label: "Team" },
 ];
 
-// Juridische links zijn placeholders — echte pagina's volgen bij launch.
-// Voor nu #-links om de layout compleet te laten voelen.
+// Juridische links. /privacy en /voorwaarden zijn live (concept-v1,
+// nog niet jurist-gereviewd — zie gele banner bovenaan elke pagina).
+// /cookies volgt zodra we Plausible o.i.d. inbouwen; tot die tijd
+// verwijst de cookies-link naar de cookies-sectie in de privacy-
+// verklaring.
 const linksJuridisch = [
-  { href: "#", label: "Privacybeleid" },
-  { href: "#", label: "Voorwaarden" },
-  { href: "#", label: "Cookies" },
+  { href: "/privacy", label: "Privacybeleid" },
+  { href: "/voorwaarden", label: "Voorwaarden" },
+  { href: "/privacy#cookies", label: "Cookies" },
 ];
 
 export function Footer() {

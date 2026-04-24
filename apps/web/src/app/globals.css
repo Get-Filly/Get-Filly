@@ -1452,6 +1452,212 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   text-decoration: underline;
 }
 
+/* ===== LEGAL PAGES (privacy, voorwaarden, cookies) =====
+   Lange tekstpagina's vragen om rustige typografie: smalle leesbreedte
+   (640px is comfortabel), genoeg ademruimte tussen secties, en een
+   duidelijke inhoudsopgave bovenaan zodat users snel naar de relevante
+   paragraaf springen. De "draft-banner" erbovenaan markeert expliciet
+   dat de tekst nog niet juridisch is gereviewd — mag bij launch weg. */
+
+.legal-page {
+  padding-top: 140px;
+  padding-bottom: 120px;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.legal-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.legal-draft-banner {
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 40px;
+  color: #78350F;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.legal-draft-banner strong {
+  font-weight: 600;
+}
+
+.legal-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.legal-title {
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.legal-lead {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin-bottom: 56px;
+}
+
+.legal-toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 64px;
+}
+
+.legal-toc-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.legal-toc ol {
+  list-style: decimal;
+  padding-left: 22px;
+  margin: 0;
+  columns: 2;
+  column-gap: 32px;
+}
+
+.legal-toc li {
+  padding: 4px 0;
+  font-size: 14px;
+  break-inside: avoid;
+}
+
+.legal-toc a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.legal-toc a:hover {
+  text-decoration: underline;
+}
+
+.legal-section {
+  margin-bottom: 48px;
+  scroll-margin-top: 100px; /* i.v.m. sticky navbar bij anchor-links */
+}
+
+.legal-section h2 {
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.legal-section h3 {
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 24px;
+  margin-bottom: 10px;
+}
+
+.legal-section p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.legal-section ul,
+.legal-section ol {
+  margin: 12px 0 20px;
+  padding-left: 22px;
+}
+
+.legal-section li {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.legal-section a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-section a:hover {
+  color: var(--accent-dark);
+}
+
+.legal-section strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.legal-placeholder {
+  background: #FEF3C7;
+  color: #78350F;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.95em;
+  font-weight: 500;
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 24px;
+  font-size: 14px;
+}
+
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.legal-table th {
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.legal-table td {
+  color: var(--text-secondary);
+}
+
+.legal-table td:first-child {
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Mobile: iets minder padding en één-koloms TOC */
+@media (max-width: 640px) {
+  .legal-page { padding-top: 110px; padding-bottom: 80px; }
+  .legal-container { padding: 0 20px; }
+  .legal-title { font-size: 32px; }
+  .legal-toc ol { columns: 1; }
+}
+
 /* ===== ANIMATIONS ===== */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }

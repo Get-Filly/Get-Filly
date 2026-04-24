@@ -29,10 +29,11 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~Onboarding met Filly-auto-invul~~ — URL + menukaart → Filly vult hele profiel in (description, tagline, atmosphere, target_audience, USPs, events, signature_dishes, cuisine_style, adres, toon) + menu-items via Opus Vision. Wizard: bronnen → review → bevestig (2026-04-24, commits `b29f317` + `d909c65`).
 
 ### Legal & compliance (AVG/NL)
-- [ ] **Privacy-verklaring** — `/privacy`-route + inhoud, link in footer
-- [ ] **Algemene voorwaarden** — `/voorwaarden`-route + inhoud
-- [ ] **Cookie-banner** — ePrivacy-verplicht zodra Plausible erop komt
-- [ ] **AVG-endpoints** — data-export + right-to-be-forgotten (account-delete)
+- [~] **Privacy-verklaring** — `/privacy` concept-v1 live (2026-04-24). Nog te doen: (1) bedrijfsgegevens invullen (`[INVULLEN:...]`-placeholders op de pagina), (2) jurist-review, (3) gele draft-banner weghalen.
+- [~] **Algemene voorwaarden** — `/voorwaarden` concept-v1 live (2026-04-24). Nog te doen: (1) bedrijfsgegevens + rechtbank + aansprakelijkheidsmax invullen, (2) jurist-review, (3) draft-banner weghalen, (4) aparte verwerkersovereenkomst opstellen (wordt in de AV naar verwezen).
+- [ ] **Jurist-review legal-teksten** — laten reviewen door privacy/SaaS-jurist vóór eerste klant. Met name: aansprakelijkheidslimiet, SLA-claim, IP-clausule AI-output, prijswijzigings-clausule.
+- [ ] **Cookie-banner** — ePrivacy-verplicht zodra Plausible/PostHog erop komt. Concept-privacy verwijst nu al vooruit naar banner.
+- [ ] **AVG-endpoints** — data-export + right-to-be-forgotten (account-delete). Zie ook data-classificatie-item hieronder.
 - [ ] **Data-classificatie + anonimisering-bij-delete** — groter dan de regel hierboven. Elke tabel categoriseren: (1) identificerend → harde delete, (2) business-signaal → anonimiseren + bewaren voor AI-benchmarking, (3) aggregaat → blijft. Plan: eerst `docs/data-classification.md` maken met per-tabel-categorie + PII-velden. Dán techniek kiezen (`anon_*`-tabellen vs soft-delete-mask vs hybride). Waarom belangrijk: geanonimiseerde patronen ("pizza margherita €12,50 werkte in italiaanse zaken in NH") zijn onze AI-leer-schat, maar restaurant_id+naam+foto's moeten juridisch weg. Niet blokkerend voor eerste klant, wél vóór tweede deletion.
 
 ### Billing
