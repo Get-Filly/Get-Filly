@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   approveSuggestion,
   fetchActiveChat,
+  fetchSuggestions,
   sendChatMessage,
   type ChatMessage,
   type CampaignProposalCard,
@@ -65,26 +66,45 @@ export function FillyChat() {
     }
 
     let cancelled = false;
-    fetchActiveChat()
-      .then((data) => {
+    // Parallel 3 dingen ophalen:
+    //   1. chat-historie (incl. message_card)
+    //   2. approved suggesties — zodat we approved chat-proposals
+    //      direct als 'created' kunnen tonen met de juiste campaign-id
+    //   3. rejected suggesties — voor 'dismissed'-state
+    // Niet dependent op backend-JOIN-enrichment in message_card:
+    // robuuster omdat het client-side werkt ongeacht schema-cache.
+    Promise.all([
+      fetchActiveChat(),
+      fetchSuggestions("approved").catch(() => []),
+      fetchSuggestions("rejected").catch(() => []),
+    ])
+      .then(([data, approvedSuggs, rejectedSuggs]) => {
         if (cancelled) return;
         setConversationId(data.conversationId);
         setMessages(data.messages);
-        // Backend levert de actuele status van elke proposal mee via
-        // message_card.suggestion_status. Bij mount zetten we daarom
-        // meteen de juiste UI-state: approved → 'created', rejected
-        // → 'dismissed'. Zonder deze stap reset de kaart naar
-        // 'pending' en zou de user opnieuw op "Goedkeuren" klikken.
+
+        // Lookup-maps per suggestion_id. Approved → we moeten óók
+        // de campaignId weten om een werkende "Bekijken →"-link te
+        // geven.
+        const approvedMap = new Map<string, string>(
+          approvedSuggs
+            .filter((s) => !!s.approved_campaign_id)
+            .map((s) => [s.id, s.approved_campaign_id as string]),
+        );
+        const rejectedSet = new Set(rejectedSuggs.map((s) => s.id));
+
         const initialStatus: Record<string, ProposalStatus> = {};
         for (const msg of data.messages) {
           const card = msg.message_card;
           if (card?.kind !== "campaign_proposal") continue;
-          if (card.suggestion_status === "approved") {
+          const suggId = card.suggestion_id;
+          if (!suggId) continue;
+          if (approvedMap.has(suggId)) {
             initialStatus[msg.id] = {
               state: "created",
-              campaignId: card.approved_campaign_id ?? "",
+              campaignId: approvedMap.get(suggId)!,
             };
-          } else if (card.suggestion_status === "rejected") {
+          } else if (rejectedSet.has(suggId)) {
             initialStatus[msg.id] = { state: "dismissed" };
           }
         }
