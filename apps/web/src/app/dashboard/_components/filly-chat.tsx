@@ -70,6 +70,25 @@ export function FillyChat() {
         if (cancelled) return;
         setConversationId(data.conversationId);
         setMessages(data.messages);
+        // Backend levert de actuele status van elke proposal mee via
+        // message_card.suggestion_status. Bij mount zetten we daarom
+        // meteen de juiste UI-state: approved → 'created', rejected
+        // → 'dismissed'. Zonder deze stap reset de kaart naar
+        // 'pending' en zou de user opnieuw op "Goedkeuren" klikken.
+        const initialStatus: Record<string, ProposalStatus> = {};
+        for (const msg of data.messages) {
+          const card = msg.message_card;
+          if (card?.kind !== "campaign_proposal") continue;
+          if (card.suggestion_status === "approved") {
+            initialStatus[msg.id] = {
+              state: "created",
+              campaignId: card.approved_campaign_id ?? "",
+            };
+          } else if (card.suggestion_status === "rejected") {
+            initialStatus[msg.id] = { state: "dismissed" };
+          }
+        }
+        setProposalStatus(initialStatus);
         setLoading(false);
       })
       .catch((e) => {

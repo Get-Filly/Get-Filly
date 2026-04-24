@@ -263,10 +263,9 @@ export default function CampagnesPage() {
       {/* Impact-blok — de twee belangrijkste Filly-metrics krijgen de
           stat-card-filly variant (groene rand links + groene waarde)
           zodat attributie visueel consistent is met andere pagina's.
-          marginBottom override: de globale stats-row heeft 20px maar
-          we laten hier direct een suggesties-strip of campagnes-kop
-          volgen, dus 10px is genoeg voor ademruimte. */}
-      <div className="stats-row" style={{ marginBottom: 10 }}>
+          marginBottom 8: veel compacter dan de default 20, want de
+          suggesties-strip eronder is visueel gescheiden door de ✨-kop. */}
+      <div className="stats-row" style={{ marginBottom: 8 }}>
         <div className="stat-card stat-card-filly">
           <div className="stat-card-label">Extra reserveringen</div>
           <div className="stat-card-val">
@@ -314,8 +313,8 @@ export default function CampagnesPage() {
           een leeg dashboard niet tegen "0 voorstellen" aanlopen. */}
       {!loading &&
         (pendingSuggestions.length > 0 || rejectedSuggestions.length > 0) && (
-          <section style={{ marginTop: 0, marginBottom: 14 }}>
-            <div style={{ marginBottom: 8 }}>
+          <section style={{ marginTop: 0, marginBottom: 10 }}>
+            <div style={{ marginBottom: 6 }}>
               <div
                 style={{
                   fontSize: 15,
@@ -401,9 +400,12 @@ export default function CampagnesPage() {
               <div
                 style={{
                   display: "grid",
+                  // min 380px, max 480px per kaart — bij weinig items
+                  // wordt de kaart niet super breed en houden we
+                  // visuele balans op brede schermen.
                   gridTemplateColumns:
-                    "repeat(auto-fill, minmax(400px, 1fr))",
-                  gap: 14,
+                    "repeat(auto-fill, minmax(380px, 480px))",
+                  gap: 12,
                 }}
               >
                 {visibleSuggestions.map((s) => (

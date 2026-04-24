@@ -34,6 +34,12 @@ export type CampaignProposalCard = {
   subject_line?: string;
   // Hoofdtekst van het voorstel (mail-body, caption of whatsapp-bericht).
   body: string;
+  // Optioneel bij het ophalen: de actuele status van de onderliggende
+  // ai_suggestion (pending/approved/rejected). Wordt door getRecent-
+  // Messages ingevuld via een JOIN zodat de UI na re-mount de juiste
+  // state toont (bv. "Concept aangemaakt →" i.p.v. de knoppen).
+  suggestion_status?: string;
+  approved_campaign_id?: string | null;
 };
 
 export type ChatMessage = {
@@ -115,20 +121,65 @@ export class ChatService {
     conversationId: string,
     restaurantId: string,
   ): Promise<ChatMessage[]> {
+    // JOIN op ai_suggestions zodat we per proposal-kaartje weten of
+    // de onderliggende suggestie al goedgekeurd of afgewezen is. Zonder
+    // deze info reset de UI bij elke re-mount naar "pending" — user
+    // zou opnieuw op "Goedkeuren" klikken en een duplicate-campagne
+    // proberen aan te maken (backend weigert, maar het is rommelig).
     const { data, error } = await this.supabase.client
       .from('chat_messages')
-      .select('id, role, content, message_card, created_at')
+      .select(
+        `id, role, content, message_card, created_at,
+         ai_suggestion:ai_suggestions(status, approved_campaign_id)`,
+      )
       .eq('conversation_id', conversationId)
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false })
       .limit(this.CONTEXT_WINDOW);
 
     if (error) throw new InternalServerErrorException(error.message);
+
+    type RawRow = {
+      id: string;
+      role: ChatRole;
+      content: string;
+      message_card: MessageCard | null;
+      created_at: string;
+      ai_suggestion:
+        | { status: string; approved_campaign_id: string | null }
+        | null;
+    };
+
+    // Per bericht: als er een gekoppelde suggestie is, kopiëren we
+    // z'n status + campaign_id naar message_card zodat de frontend
+    // direct de juiste state kan renderen ("Concept aangemaakt →")
+    // zonder een aparte roundtrip.
+    const enriched = ((data as RawRow[]) ?? []).map((m) => {
+      const card = m.message_card ?? null;
+      if (card?.kind === 'campaign_proposal' && m.ai_suggestion) {
+        return {
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          message_card: {
+            ...card,
+            suggestion_status: m.ai_suggestion.status,
+            approved_campaign_id: m.ai_suggestion.approved_campaign_id,
+          } as CampaignProposalCard,
+          created_at: m.created_at,
+        } satisfies ChatMessage;
+      }
+      return {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        message_card: card,
+        created_at: m.created_at,
+      } satisfies ChatMessage;
+    });
+
     // Omdraaien → oudste eerst, zoals de UI 'm rendert.
-    // Normaliseer message_card naar null als 'm ontbreekt (legacy rijen).
-    return ((data as ChatMessage[]) ?? [])
-      .map((m) => ({ ...m, message_card: m.message_card ?? null }))
-      .reverse();
+    return enriched.reverse();
   }
 
   // Hoofd-actie: user stuurt een bericht, wij slaan het op, roepen

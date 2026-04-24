@@ -19,16 +19,27 @@ type MenuItem = {
   module: Module;
 };
 
-// "Suggesties" staat niet meer in de sidebar: de pagina /campagnes
-// toont Filly's voorstellen nu als strip bovenaan. De oude route
-// /dashboard/suggesties blijft voorlopig bestaan voor detail-views
-// (tot we de inline chat-edit hebben), maar heeft geen eigen
-// menu-item meer.
+// Sidebar-volgorde volgt de dagelijkse flow van een horeca-ondernemer:
+//   1. Dashboard — globaal overzicht (vaste start)
+//   2. Campagnes — dé pagina, bundelt Filly's voorstellen én campagnes
+//   3. Reserveringen — wie komt er (dagelijkse operatie)
+//   4. Gasten, Reviews, Menu — aanpalende context
+//   5. Rapportages — periodieke analyse
+//   6. Koppelingen — setup, zelden aangeraakt
+//
+// Twee items verwijderd als menu-item (routes bestaan nog voor legacy-
+// links en detail-views):
+//   - /dashboard/suggesties — opgegaan in de voorstellen-strip op
+//     /dashboard/campagnes
+//   - /dashboard/taken — was een verzamelpagina van Filly-acties en
+//     review-/reserverings-/inzicht-items; voorstellen-deel zit nu
+//     onder Campagnes. Later breiden we /campagnes uit naar een
+//     volledige "Acties"-hub met review-antwoorden en gast-acties
+//     zodat Taken definitief kan verdwijnen.
 const allMenuItems: MenuItem[] = [
   { href: "/dashboard", icon: "📊", label: "Dashboard", module: "dashboard" },
-  { href: "/dashboard/taken", icon: "📥", label: "Taken", module: "taken" },
-  { href: "/dashboard/reserveringen", icon: "📆", label: "Reserveringen", module: "reserveringen" },
   { href: "/dashboard/campagnes", icon: "📣", label: "Campagnes", module: "campagnes" },
+  { href: "/dashboard/reserveringen", icon: "📆", label: "Reserveringen", module: "reserveringen" },
   { href: "/dashboard/gasten", icon: "👥", label: "Gasten", module: "gasten" },
   { href: "/dashboard/reviews", icon: "⭐", label: "Reviews", module: "reviews" },
   { href: "/dashboard/menu", icon: "🍽️", label: "Menu", module: "menu" },

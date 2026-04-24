@@ -401,6 +401,32 @@ export async function fetchReservations(
   return res.json();
 }
 
+// Handmatige reservering toevoegen (telefoon / walk-in). Backend zet
+// status automatisch op 'bevestigd' en source op 'handmatig'. Frontend
+// krijgt de volledige reservering terug zodat we 'm direct in de
+// lijst kunnen tonen zonder nog een fetch.
+export async function createReservation(input: {
+  guest_name: string;
+  reservation_date: string;
+  reservation_time: string;
+  party_size: number;
+  guest_phone?: string;
+  guest_email?: string;
+  special_requests?: string;
+  notes?: string;
+}): Promise<Reservation> {
+  const res = await authedFetch(`${API_URL}/reservations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export type ReviewSource = "google" | "tripadvisor" | "thefork" | "iens";
 
 export type Review = {
@@ -473,6 +499,12 @@ export type CampaignProposalCard = {
   name: string;
   subject_line?: string;
   body: string;
+  // Backend vult deze bij het ophalen van chat-historie vanuit de
+  // ai_suggestions-join. Zo weet de frontend na navigatie terug naar
+  // de chat of de suggestie al approved/rejected is — dan tonen we
+  // direct "Concept aangemaakt →" i.p.v. de actie-knoppen opnieuw.
+  suggestion_status?: "pending" | "approved" | "rejected" | "expired";
+  approved_campaign_id?: string | null;
 };
 export type MessageCard = CampaignProposalCard;
 
