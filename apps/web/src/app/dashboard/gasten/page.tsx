@@ -258,6 +258,12 @@ export default function GastenPage() {
         <table className="data-table">
           <thead>
             <tr>
+              {/* Via Filly bewust als eerste kolom zodat attributie
+                  meteen in het oog springt. Smalle breedte + badge-
+                  achtige weergave (groene vinkje of streepje) zodat
+                  de tabel niet te veel kolombreedte verliest aan
+                  een ja/nee-waarde. */}
+              <th style={{ width: 90 }}>Via Filly</th>
               <th>Naam</th>
               <th>Status</th>
               <th>Bezoeken</th>
@@ -271,8 +277,42 @@ export default function GastenPage() {
               const status = computeCustomerStatus(g);
               const info = statusInfo[status];
               const allergies = g.preferences?.allergies ?? [];
+              const fromFilly = isFromFilly(g);
               return (
                 <tr key={g.id}>
+                  {/* Via Filly-kolom: groene badge + "Ja" als het via
+                      een Filly-campagne binnenkwam, anders een rustig
+                      streepje. Badge-stijl matcht de rest van het
+                      dashboard (brand-groen = Filly-attributie). */}
+                  <td>
+                    {fromFilly ? (
+                      <span
+                        title="Binnengekomen via een Filly-campagne"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "2px 10px",
+                          borderRadius: "var(--rf)",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "var(--accent, #1F4A2D)",
+                          background: "var(--accent-light, #D6E0D8)",
+                        }}
+                      >
+                        ✓ Ja
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          color: "var(--tl)",
+                          fontSize: 12,
+                        }}
+                      >
+                        —
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {allergies.length > 0 && (
@@ -294,20 +334,9 @@ export default function GastenPage() {
                         <div
                           style={{
                             fontWeight: 500,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
                           }}
                         >
-                          <span>
-                            {g.first_name} {g.last_name}
-                          </span>
-                          {isFromFilly(g) && (
-                            <span className="filly-pill" title="Via een Filly-campagne binnengekomen">
-                              Via Filly
-                            </span>
-                          )}
+                          {g.first_name} {g.last_name}
                         </div>
                         <div style={{ color: "var(--tl)", fontSize: 11 }}>
                           {g.email ?? "—"}
