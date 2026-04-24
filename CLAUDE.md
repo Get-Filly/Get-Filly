@@ -29,8 +29,9 @@ apps/
       app/
         (publieke site: home, product, pricing, about, login, signup, invite/accept, auth/confirm)
         dashboard/
-          (taken, suggesties, reserveringen, campagnes[/id], gasten, reviews, menu, rapportages, koppelingen, account[/team])
-          _components/  (sidebar, topbar, kpi-row, filly-chat, skeleton, access-guard, placeholder-page, …)
+          (campagnes[/id], reserveringen, gasten, reviews, menu, rapportages, koppelingen, account[/team])
+          (legacy-routes, niet meer in sidebar: taken/, suggesties/ — detail-views + fallback-links)
+          _components/  (sidebar, topbar, kpi-row, filly-chat, tasks-strip, suggestion-detail-modal, skeleton, access-guard, …)
       components/navbar.tsx
       lib/
         api.ts              (authedFetch + alle backend-calls)
@@ -44,7 +45,7 @@ apps/
       chat/                 (Filly-chat: dashboard-home assistent)
       {campaigns,guests,kpi,occupancy,restaurant,weather,suggestions,menu,reservations,reviews,me,team}/
       supabase/
-    supabase/migrations/    (SQL 0001-0009, handmatig runnen in Supabase SQL Editor)
+    supabase/migrations/    (SQL 0001-0013, handmatig runnen in Supabase SQL Editor)
 packages/
   shared/                   (gedeelde TypeScript types + DEFAULT_PERMISSIONS per rol)
 ```
@@ -64,26 +65,49 @@ packages/
 - **Tweede test-restaurant**: `00000000-0000-0000-0000-000000000002` (Cafe Get-Filly, handmatig aangemaakt via seed-snippet).
 - **`.env`-bestanden** in `apps/{web,api}/` — niet in Git, wel vereist voor dev. Zie `.env.example` per app.
 
-## Wat er draait / status (2026-04-24)
+## Wat er draait / status (2026-04-24, einde dag)
 
-**UI + backend**: 11 dashboard-pagina's + publieke site werken met echte data uit Supabase. Middleware-auth actief. Multi-tenant met auth-guards + rol-filter + team-invite-flow live.
+**UI + backend**: dashboard + publieke site werken met echte data uit Supabase. Middleware-auth actief. Multi-tenant met auth-guards + rol-filter + team-invite-flow live.
 
 **Auth + onboarding live**:
 - Signup + login + logout (email/password, Supabase Auth)
 - Password-reset via `/forgot-password` + `/reset-password` (gebruikt `/auth/confirm`-SSR-route)
 - Sterk-wachtwoord-UI: `<PasswordStrength>` met live 4-checks op signup én reset
 - 3-stappen onboarding-wizard op `/onboarding` voor nieuwe users (middleware-redirect op dashboard-bezoek zonder restaurant)
+- **Geocoding live**: onboarding-flow zet adres → lat/long via PDOK Locatieserver (Kadaster, gratis, EU, geen API-key). Fail-soft.
 - Supabase email-templates beheer via `pnpm supabase:apply-templates` (Management API-script, geen handwerk)
 
 **Filly AI live**:
 - Review-reply-suggesties (Claude Sonnet 4.6, 3-varianten-kiezer)
 - Filly-chat op dashboard-home met persistente historie + live restaurant-context (weer/bezetting/reserveringen)
-- **Website-analyzer**: crawl homepage + subpagina's + Claude Sonnet-extractie van hele profiel (tagline, atmosphere, target_audience, USPs, signature_dishes, cuisine_style, website_summary, social_media)
-- **Menu-importer**: Claude Opus 4.7 Vision op geüploade PDF/JPG/PNG — extraheert gerechten + prijzen + categorieën + allergenen. Test met Bisous-kaart (403KB PDF): 54 gerechten foutloos ingelezen.
-- Usage-tracking in `ai_usage`-tabel (nu met nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
+- **Chat → campagne-actie**: Filly kan in chat een campagne voorstellen (machine-blok `<<FILLY_PROPOSE_CAMPAIGN>>`). Proposal-card met "Ja, maak aan / Nee, bedankt". Lineage via ai_suggestions → campaigns FK.
+- **Website-analyzer**: crawl homepage + Claude-extractie van heel profiel.
+- **Menu-importer**: Claude Opus 4.7 Vision op PDF/JPG/PNG — extraheert gerechten + prijzen + categorieën + allergenen (kolom toegevoegd in migratie 0013).
+- **Suggestion-refine**: `POST /api/suggestions/:id/refine` laat Filly pending-voorstel aanpassen op instructie van eigenaar ("maak huiselijker", "korter"). Gebruikt in SuggestionDetailModal met side-chat.
+- Usage-tracking in `ai_usage`-tabel (nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
+
+**/dashboard/campagnes is nu dé hub**:
+- Voorstellen-strip bovenaan (auto-gegenereerd + chat-voorstellen samen; tabs Open/Afgewezen met Terugzetten-knop)
+- Overige acties (TasksStrip): reviews-zonder-reactie, lage bezetting, grote reserveringen, verjaardagen
+- Campagnes-tabel daaronder (concept/ingepland/actief/afgerond + filters + zoek)
+- Concept-campagnes bewerkbaar via detail-page ("✎ Bewerken"-knop, PATCH-endpoint)
+- "Suggesties" en "Taken" zijn uit de sidebar verwijderd; routes bestaan nog als legacy
+
+**Reserveringen**:
+- Handmatige invoer via modal (naam + datum + tijd + groep verplicht, rest optioneel)
+- Filter op status + zoek op naam/telefoon/mail
+- "Via Filly"-badge consistent met gasten-pagina
+
+**Gasten**:
+- "Via Filly" als prominente eerste kolom met groene "✓ Ja"-badge
+
+**Legal (concept-v1)**:
+- `/privacy` en `/voorwaarden` live met gele draft-banner
+- Alle AVG-secties ingevuld op basis van stack (Supabase/Anthropic/Resend/Vercel/Mollie)
+- `[INVULLEN:...]`-placeholders voor bedrijfsgegevens — wacht op Floris voor invullen
+- Jurist-review als P0 in BACKLOG
 
 **Mock nog steeds** (zie BACKLOG.md P2-sectie):
-- Suggesties-generator (huidige Filly-voorstellen in UI zijn nog `getMockProposal()`)
 - Menu-upload via menu-pagina (onboarding-upload werkt wel al, maar menu-pagina zelf laat alleen GET zien)
 - Menu CRUD-endpoints (POST/PATCH/DELETE nog niet gebouwd)
 - Campagne-send engine (Resend ontbreekt)
