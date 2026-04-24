@@ -8,6 +8,7 @@
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "dev:shared": "pnpm --filter @getfilly/shared dev",
-    "build": "pnpm --recursive build"
+    "build": "pnpm --recursive build",
+    "supabase:apply-templates": "node scripts/apply-supabase-auth-config.mjs"
   }
 }

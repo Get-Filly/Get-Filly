@@ -51,44 +51,23 @@ magic-links te genereren naar niet-allowlisted URLs).
 
 ## 3. Authentication → Email Templates
 
-**Waar**: Supabase Dashboard → Authentication → Email Templates
+**Geautomatiseerd via `pnpm supabase:apply-templates`** — zie
+[scripts/README.md](../scripts/README.md) voor eenmalige setup
+(Personal Access Token aanmaken, toevoegen aan `apps/api/.env`).
 
-Twee templates moeten gewijzigd zijn om door onze SSR-cookie-flow te
-werken (i.p.v. de default hash-token-flow die niet werkt met
-`@supabase/ssr`):
+Het script zet in één keer alle 4 templates op Supabase:
+- invite, magic_link, recovery, confirmation
+- Met onderwerpen + HTML-body in Get-Filly-huisstijl
+- Alle links wijzen naar onze `/auth/confirm`-route
 
-### Template "Invite user"
+De bron-templates leven in [scripts/supabase-email-templates.mjs](../scripts/supabase-email-templates.mjs).
+Wijzig daar, run het script opnieuw. Geen git-hook voor auto-sync —
+we willen niet dat elke push naar main per ongeluk de prod-mails wijzigt.
 
-Standaard action-link vervangen door:
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next={{ .RedirectTo }}
-```
-
-Onderwerp kan blijven als: "Uitnodiging voor Get Filly".
-
-### Template "Magic Link"
-
-Idem:
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}
-```
-
-### Template "Reset Password"
-
-Voor de password-reset-flow (pagina `/forgot-password` → `/reset-password`):
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
-```
-
-De frontend zet `redirectTo` op `${origin}/reset-password` in
-`resetPasswordForEmail()`; Supabase geeft dat mee als `{{ .RedirectTo }}`.
-Wij negeren die hier bewust en forceren `/reset-password` — voorkomt
-dat een foutief redirect-param de flow breekt.
-
-**Waarom dit hele patroon**: de default `action_link` uit `generateLink()`
-werkt niet met `@supabase/ssr` (die cookie-based is, niet hash-based).
-Onze `/auth/confirm`-route doet `verifyOtp({ token_hash, type })` en zet
-de sessie als cookie. Hetzelfde fundament voor invite, magic-link, signup
+**Waarom dit hele patroon**: de default `action_link` uit Supabase werkt
+niet met `@supabase/ssr` (die cookie-based is, niet hash-based). Onze
+`/auth/confirm`-route doet `verifyOtp({ token_hash, type })` en zet de
+sessie als cookie. Hetzelfde fundament voor invite, magic-link, signup
 en password-reset.
 
 ---
