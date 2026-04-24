@@ -12,6 +12,7 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { TasksStrip } from "../_components/tasks-strip";
+import { SuggestionDetailModal } from "../_components/suggestion-detail-modal";
 
 type StatusFilter = "alle" | "actief" | "ingepland" | "concept" | "afgerond";
 type TypeFilter = "alle" | Campaign["type"];
@@ -117,6 +118,9 @@ export default function CampagnesPage() {
     Record<string, SuggestionActionState>
   >({});
   const [suggestionTab, setSuggestionTab] = useState<SuggestionTab>("open");
+  // Welke suggestie staat open in de detail-modal? Null = dicht.
+  const [detailSuggestion, setDetailSuggestion] =
+    useState<AiSuggestion | null>(null);
 
   // Bij mount halen we campagnes + pending + rejected parallel op.
   // Rejected hebben we vooraf nodig zodat we de tab-count direct
@@ -418,7 +422,7 @@ export default function CampagnesPage() {
                     onApprove={() => handleApprove(s)}
                     onReject={() => handleReject(s)}
                     onRestore={() => handleRestore(s)}
-                    onDetails={() => router.push(`/dashboard/suggesties`)}
+                    onDetails={() => setDetailSuggestion(s)}
                   />
                 ))}
               </div>
@@ -513,20 +517,21 @@ export default function CampagnesPage() {
             </div>
           ))}
         </div>
-      ) : error ? (
-        <div className="table-empty" style={{ color: "var(--red)" }}>
-          Fout: {error}
-        </div>
       ) : filtered.length === 0 ? (
         statusFilter === "alle" && typeFilter === "alle" && !query.trim() ? (
           <div className="empty-state">
             <div className="empty-icon">📣</div>
-            <div className="empty-title">Nog geen campagnes</div>
-            <div className="empty-desc">
-              Laat Filly een voorstel maken of start zelf een campagne — voor
-              mail, social of WhatsApp.
+            <div className="empty-title">
+              {error ? "Campagnes niet geladen" : "Nog geen campagnes"}
             </div>
-            <button className="btn-primary-dash">Nieuwe campagne</button>
+            <div className="empty-desc">
+              {error
+                ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
+                : "Laat Filly een voorstel maken of start zelf een campagne — voor mail, social of WhatsApp."}
+            </div>
+            {!error && (
+              <button className="btn-primary-dash">Nieuwe campagne</button>
+            )}
           </div>
         ) : (
           <div className="table-empty">
@@ -590,6 +595,38 @@ export default function CampagnesPage() {
             })}
           </tbody>
         </table>
+      )}
+
+      {/* Detail-modal voor een suggestie. Chat-editflow + actieknoppen
+          zitten in de modal zelf; hier koppelen we alleen de side-
+          effects (campagne aangemaakt, afgewezen, of inhoud bijgewerkt). */}
+      {detailSuggestion && (
+        <SuggestionDetailModal
+          suggestion={detailSuggestion}
+          onClose={() => setDetailSuggestion(null)}
+          onApproved={async (campaignId) => {
+            // Approved → suggestie uit pending-lijst, refetch
+            // campagnes, door naar de nieuwe concept-campagne.
+            setPendingSuggestions((prev) =>
+              prev.filter((x) => x.id !== detailSuggestion.id),
+            );
+            setDetailSuggestion(null);
+            const fresh = await fetchCampaigns();
+            setCampaigns(fresh);
+            router.push(`/dashboard/campagnes/${campaignId}`);
+          }}
+          onRejected={(id) => {
+            setPendingSuggestions((prev) => prev.filter((x) => x.id !== id));
+            setDetailSuggestion(null);
+          }}
+          onUpdated={(updated) => {
+            // Vervang in de pending-lijst zodat de kaart buiten de
+            // modal ook de nieuwe titel/preview toont.
+            setPendingSuggestions((prev) =>
+              prev.map((s) => (s.id === updated.id ? updated : s)),
+            );
+          }}
+        />
       )}
     </div>
   );

@@ -241,29 +241,33 @@ export default function ReserveringenPage() {
             <Skeleton key={i} height={80} style={{ marginBottom: 10 }} />
           ))}
         </div>
-      ) : error ? (
-        <div className="table-empty" style={{ color: "var(--red)" }}>
-          Fout: {error}
-        </div>
       ) : grouped.length === 0 ? (
         query.trim() || statusFilter !== "alle" ? (
           <div className="table-empty">
             Geen reserveringen gevonden met deze filters.
           </div>
         ) : (
+          // Foutstatus valt in dezelfde empty-state, alleen met andere
+          // subcopy. Rode HTTP-meldingen zijn voor de eindgebruiker
+          // betekenisloos — de dev-console houdt alles vast.
           <div className="empty-state">
             <div className="empty-icon">📆</div>
-            <div className="empty-title">Geen reserveringen</div>
-            <div className="empty-desc">
-              Koppel een reserveringsplatform of voeg zelf een boeking
-              toe via de knop rechtsboven.
+            <div className="empty-title">
+              {error ? "Reserveringen niet geladen" : "Geen reserveringen"}
             </div>
-            <button
-              className="btn-primary-dash"
-              onClick={() => setModalOpen(true)}
-            >
-              Nieuwe reservering
-            </button>
+            <div className="empty-desc">
+              {error
+                ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
+                : "Koppel een reserveringsplatform of voeg zelf een boeking toe via de knop rechtsboven."}
+            </div>
+            {!error && (
+              <button
+                className="btn-primary-dash"
+                onClick={() => setModalOpen(true)}
+              >
+                Nieuwe reservering
+              </button>
+            )}
           </div>
         )
       ) : (

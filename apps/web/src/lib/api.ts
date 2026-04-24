@@ -129,6 +129,28 @@ export async function createCampaign(input: {
   return res.json();
 }
 
+// Werkt een concept-campagne bij. Backend weigert als status niet
+// 'concept' is zodat verzonden/ingeplande campagnes immutable blijven.
+export async function updateCampaign(
+  id: string,
+  input: {
+    name?: string;
+    subject_line?: string | null;
+    body?: string;
+  },
+): Promise<{ id: string }> {
+  const res = await authedFetch(`${API_URL}/campaigns/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export type Guest = {
   id: string;
   first_name: string | null;
@@ -342,6 +364,40 @@ export async function approveSuggestion(
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);
   }
+  return res.json();
+}
+
+// Refine-flow: laat Filly de suggestie aanpassen op basis van een
+// natuurlijke-taal-instructie ("maak huiselijker", "korter"). De
+// suggestie blijft pending; inhoud wordt door Claude herschreven.
+export async function refineSuggestion(
+  suggestionId: string,
+  instruction: string,
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/refine`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instruction }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Suggestie-detail ophalen (voor bv. een detail-modal waarbij we
+// actueel de inhoud willen tonen).
+export async function fetchSuggestion(
+  suggestionId: string,
+): Promise<AiSuggestion> {
+  const res = await authedFetch(`${API_URL}/suggestions/${suggestionId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 

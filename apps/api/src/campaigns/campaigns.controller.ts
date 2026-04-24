@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -69,5 +70,23 @@ export class CampaignsController {
       subject_line: body.subject_line ?? null,
       body: content,
     });
+  }
+
+  // Update van een concept-campagne. Alleen naam, subject en body
+  // zijn te bewerken via het dashboard-formulier; status-transitions
+  // (concept → ingepland → actief) lopen via een apart endpoint
+  // straks (nog niet geïmplementeerd; verzend-logica volgt).
+  @Patch(':id')
+  update(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      subject_line?: string | null;
+      body?: string;
+    },
+  ) {
+    return this.campaigns.update(restaurantId, id, body);
   }
 }

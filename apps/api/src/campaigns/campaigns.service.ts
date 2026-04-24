@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
@@ -172,5 +176,103 @@ export class CampaignsService {
     }
 
     return { id: campaignId };
+  }
+
+  // Bijwerken van een concept-campagne. Alleen toegestaan zolang
+  // status='concept' — daarna is de campagne immutable zodat we
+  // voor audit/verzendlogica geen silent wijzigingen krijgen
+  // (een reeds verstuurde mail mag z'n body niet stiekem zien
+  // veranderen). Naast name + subject_line + body updaten we óók
+  // de content-tabel, gescheiden per type.
+  async update(
+    restaurantId: string,
+    id: string,
+    input: {
+      name?: string;
+      subject_line?: string | null;
+      body?: string;
+    },
+  ): Promise<{ id: string }> {
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (existing.status !== 'concept') {
+      throw new BadRequestException(
+        `Alleen concept-campagnes zijn te bewerken (deze is ${existing.status}).`,
+      );
+    }
+
+    // Hoofdrij: alleen name updaten als 'm meegegeven is, anders
+    // ongewijzigd. Net zo voor content-veld. updated_at zetten we
+    // handmatig ook omdat Supabase's default-now-trigger niet op
+    // elke tabel zit.
+    if (typeof input.name === 'string') {
+      const nameTrimmed = input.name.trim();
+      if (!nameTrimmed) {
+        throw new BadRequestException('Campagne-naam mag niet leeg zijn.');
+      }
+      const { error: updErr } = await this.supabase.client
+        .from('campaigns')
+        .update({ name: nameTrimmed, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('restaurant_id', restaurantId);
+      if (updErr) throw new InternalServerErrorException(updErr.message);
+    }
+
+    const body =
+      typeof input.body === 'string' ? input.body.trim() : undefined;
+    const subjectLine =
+      input.subject_line === null
+        ? null
+        : typeof input.subject_line === 'string'
+          ? input.subject_line.trim()
+          : undefined;
+
+    // Type-specifieke content-tabel bijwerken. Alleen velden waarmee
+    // de user werkt vanuit de dashboard-edit (subject, body).
+    if (body !== undefined || subjectLine !== undefined) {
+      const type = existing.type as 'mail' | 'social' | 'whatsapp';
+      if (type === 'mail') {
+        const patch: Record<string, unknown> = {};
+        if (subjectLine !== undefined) patch.subject_line = subjectLine ?? '';
+        if (body !== undefined) patch.body_plain = body;
+        patch.updated_at = new Date().toISOString();
+        const { error: contErr } = await this.supabase.client
+          .from('campaign_mail_content')
+          .update(patch)
+          .eq('campaign_id', id);
+        if (contErr) throw new InternalServerErrorException(contErr.message);
+      } else if (type === 'social') {
+        const patch: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (body !== undefined) patch.caption = body;
+        const { error: contErr } = await this.supabase.client
+          .from('campaign_social_content')
+          .update(patch)
+          .eq('campaign_id', id);
+        if (contErr) throw new InternalServerErrorException(contErr.message);
+      } else {
+        const patch: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (body !== undefined) patch.message_text = body;
+        const { error: contErr } = await this.supabase.client
+          .from('campaign_whatsapp_content')
+          .update(patch)
+          .eq('campaign_id', id);
+        if (contErr) throw new InternalServerErrorException(contErr.message);
+      }
+    }
+
+    return { id };
   }
 }

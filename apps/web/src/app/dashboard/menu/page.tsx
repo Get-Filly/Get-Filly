@@ -551,20 +551,22 @@ export default function MenuPage() {
             <Skeleton key={i} height={60} style={{ marginBottom: 8 }} />
           ))}
         </div>
-      ) : error ? (
-        <div className="table-empty" style={{ color: "var(--red)" }}>
-          Fout: {error}
-        </div>
       ) : items.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">🍽️</div>
-          <div className="empty-title">Nog geen menu</div>
-          <div className="empty-desc">
-            Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes.
+          <div className="empty-title">
+            {error ? "Menu niet geladen" : "Nog geen menu"}
           </div>
-          <button className="btn-primary-dash" onClick={openAdd}>
-            Gerecht toevoegen
-          </button>
+          <div className="empty-desc">
+            {error
+              ? "We konden het menu niet ophalen. Probeer de pagina te herladen."
+              : "Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes."}
+          </div>
+          {!error && (
+            <button className="btn-primary-dash" onClick={openAdd}>
+              Gerecht toevoegen
+            </button>
+          )}
         </div>
       ) : filtered.length === 0 ? (
         <div className="table-empty">

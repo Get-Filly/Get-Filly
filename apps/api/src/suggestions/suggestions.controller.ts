@@ -49,6 +49,19 @@ export class SuggestionsController {
     return this.suggestions.approve(restaurantId, id);
   }
 
+  // Refine-flow: laat Filly het voorstel aanpassen volgens een user-
+  // instructie ("maak huiselijker", "korter onderwerp"). Body bevat
+  // { instruction: string }. Retourneert de bijgewerkte suggestie
+  // zodat de frontend direct kan renderen.
+  @Post(':id/refine')
+  refine(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { instruction?: string },
+  ) {
+    return this.suggestions.refine(restaurantId, id, body.instruction ?? '');
+  }
+
   @Patch(':id')
   updateStatus(
     @RestaurantId() restaurantId: string,

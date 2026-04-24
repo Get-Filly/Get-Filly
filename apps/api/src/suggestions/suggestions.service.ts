@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -8,6 +9,7 @@ import {
   CampaignsService,
   type CampaignType,
 } from '../campaigns/campaigns.service';
+import { AiService } from '../ai/ai.service';
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected' | 'expired';
 
@@ -49,6 +51,7 @@ export class SuggestionsService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly campaigns: CampaignsService,
+    private readonly ai: AiService,
   ) {}
 
   async findAll(
@@ -230,6 +233,161 @@ export class SuggestionsService {
 
     if (error) throw new InternalServerErrorException(error.message);
     return data as AiSuggestion;
+  }
+
+  // Laat Filly de inhoud van een pending-suggestie aanpassen op basis
+  // van een instructie van de eigenaar. Voorbeeld: "maak de sfeer
+  // huiselijker" of "gebruik een korter onderwerp". Retourneert de
+  // bijgewerkte suggested_campaign zodat de frontend direct kan
+  // renderen zonder extra fetch. De user blijft in control: de
+  // suggestie verplaatst niet van status (blijft pending), je beslist
+  // later of je 'm goedkeurt.
+  async refine(
+    restaurantId: string,
+    suggestionId: string,
+    instruction: string,
+  ): Promise<AiSuggestion> {
+    const trimmed = instruction.trim();
+    if (!trimmed) {
+      throw new BadRequestException(
+        'Geef aan wat Filly moet aanpassen (bv. "huiselijker" of "korter onderwerp").',
+      );
+    }
+    if (trimmed.length > 1000) {
+      throw new BadRequestException(
+        'Aanpassings-instructie mag maximaal 1000 tekens zijn.',
+      );
+    }
+
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn te bewerken (deze is ${suggestion.status}).`,
+      );
+    }
+
+    const sc = suggestion.suggested_campaign ?? {};
+    const currentType =
+      typeof sc.type === 'string' ? (sc.type as string) : 'mail';
+    const currentName =
+      typeof sc.name === 'string' ? (sc.name as string) : '';
+    const currentSubject =
+      typeof sc.subject_line === 'string' && sc.subject_line
+        ? (sc.subject_line as string)
+        : typeof sc.subject === 'string'
+          ? (sc.subject as string)
+          : '';
+    const currentBody =
+      typeof sc.body === 'string' && sc.body
+        ? (sc.body as string)
+        : typeof sc.caption === 'string'
+          ? (sc.caption as string)
+          : '';
+
+    // System-prompt voor de refine-call. Claude krijgt de huidige
+    // campagne-structuur + de user-instructie en moet een volledige
+    // nieuwe versie teruggeven in hetzelfde JSON-formaat. Zo blijft
+    // de data-shape consistent (belangrijk voor approve-flow straks).
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je past een bestaande campagne aan volgens de instructie van de eigenaar.
+
+Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok, zonder uitleg eromheen:
+
+{
+  "name": "<korte werknaam, max 60 tekens>",
+  "type": "mail" | "social" | "whatsapp",
+  "subject_line": "<alleen bij mail, anders weglaten>",
+  "body": "<volledige uitgeschreven tekst>"
+}
+
+Regels:
+- Behoud het type van de campagne tenzij de instructie expliciet vraagt om te wisselen.
+- Schrijf in het Nederlands.
+- Geen dubbele aanhalingstekens in de body tenzij geëscaped met \\".
+- Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.`;
+
+    const currentPayload = JSON.stringify(
+      {
+        name: currentName,
+        type: currentType,
+        subject_line: currentSubject || undefined,
+        body: currentBody,
+      },
+      null,
+      2,
+    );
+
+    const userPrompt = `Huidige campagne:\n${currentPayload}\n\nInstructie van de eigenaar:\n${trimmed}\n\nGeef de volledige nieuwe versie van de campagne.`;
+
+    const answer = await this.ai.generateText({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 1200,
+      meta: {
+        restaurantId,
+        feature: 'suggestion_refine',
+      },
+    });
+
+    // Parse het antwoord. Als Claude er per ongeluk markdown omheen
+    // plakt, halen we het eerste { ... }-blok eruit. Bij parse-fout:
+    // niet crashen, gebruik de oude versie als fallback en gooi een
+    // begrijpelijke fout naar de caller.
+    const match = answer.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new InternalServerErrorException(
+        'Filly gaf geen leesbaar antwoord. Probeer een andere instructie.',
+      );
+    }
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(match[0]) as Record<string, unknown>;
+    } catch {
+      throw new InternalServerErrorException(
+        'Kon Filly\'s antwoord niet lezen. Probeer het opnieuw.',
+      );
+    }
+
+    const newName =
+      typeof parsed.name === 'string' && parsed.name.trim().length > 0
+        ? parsed.name.trim().slice(0, 120)
+        : currentName;
+    const newType =
+      parsed.type === 'mail' ||
+      parsed.type === 'social' ||
+      parsed.type === 'whatsapp'
+        ? parsed.type
+        : currentType;
+    const newBody =
+      typeof parsed.body === 'string' && parsed.body.trim().length > 0
+        ? parsed.body.trim()
+        : currentBody;
+    const newSubject =
+      typeof parsed.subject_line === 'string' &&
+      parsed.subject_line.trim().length > 0
+        ? parsed.subject_line.trim().slice(0, 200)
+        : undefined;
+
+    const newSuggested: SuggestedCampaign = {
+      ...sc,
+      name: newName,
+      type: newType as SuggestedCampaign['type'],
+      body: newBody,
+      subject_line: newSubject,
+    };
+
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: newSuggested })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+    return updated as AiSuggestion;
   }
 
   // Maakt een nieuwe suggestie aan. Wordt gebruikt door ChatService

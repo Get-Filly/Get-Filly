@@ -237,21 +237,25 @@ export default function GastenPage() {
             </div>
           ))}
         </div>
-      ) : error ? (
-        <div className="table-empty" style={{ color: "var(--red)" }}>
-          Fout: {error}
-        </div>
       ) : filtered.length === 0 ? (
         query.trim() || filter !== "alle" ? (
           <div className="table-empty">Geen gasten gevonden.</div>
         ) : (
+          // Bij lege staat OF fout tonen we dezelfde rustige empty-
+          // state. Een rode "Fout: HTTP 403"-banner is voor de eind-
+          // gebruiker onbegrijpelijk; eventuele fout staat al in de
+          // console voor debugging.
           <div className="empty-state">
             <div className="empty-icon">👥</div>
             <div className="empty-title">Nog geen gasten</div>
             <div className="empty-desc">
-              Importeer vanuit je reserveringsplatform of voeg handmatig toe.
+              {error
+                ? "We konden de gastenlijst niet laden. Probeer de pagina te herladen."
+                : "Importeer vanuit je reserveringsplatform of voeg handmatig toe."}
             </div>
-            <button className="btn-primary-dash">Gast toevoegen</button>
+            {!error && (
+              <button className="btn-primary-dash">Gast toevoegen</button>
+            )}
           </div>
         )
       ) : (

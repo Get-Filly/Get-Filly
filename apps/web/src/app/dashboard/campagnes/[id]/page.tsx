@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { fetchCampaign, type CampaignDetail } from "../../../../lib/api";
+import {
+  fetchCampaign,
+  updateCampaign,
+  type CampaignDetail,
+} from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
 
 function formatEuroFromCents(cents: number): string {
@@ -34,6 +38,16 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit-modus: alleen actief wanneer campaign.status === 'concept'.
+  // Bewaart de draft-velden lokaal zodat annuleren triviaal is
+  // (zet gewoon editMode=false zonder de server-staat aan te raken).
+  const [editMode, setEditMode] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftSubject, setDraftSubject] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchCampaign(id)
       .then((d) => {
@@ -45,6 +59,50 @@ export default function CampaignDetailPage() {
         setLoading(false);
       });
   }, [id]);
+
+  // Bij overgang naar edit-mode vullen we de draft-velden met de
+  // huidige waardes zodat de user vanuit de bestaande content werkt
+  // in plaats van vanuit een leeg formulier.
+  const startEdit = () => {
+    if (!campaign) return;
+    setDraftName(campaign.name);
+    setDraftSubject(
+      campaign.content?.subject_line ?? campaign.subject_line ?? "",
+    );
+    setDraftBody(
+      campaign.content?.body_plain ??
+        campaign.content?.caption ??
+        campaign.content?.message_text ??
+        campaign.body ??
+        "",
+    );
+    setEditError(null);
+    setEditMode(true);
+  };
+
+  const saveEdit = async () => {
+    if (!campaign) return;
+    setSaving(true);
+    setEditError(null);
+    try {
+      await updateCampaign(id, {
+        name: draftName,
+        // Onderwerp alleen sturen voor mail — anders heeft het geen
+        // betekenis en overschrijven we onnodig.
+        subject_line: campaign.type === "mail" ? draftSubject : undefined,
+        body: draftBody,
+      });
+      // Refetch voor verse state (incl. stats + updated_at). Eenvoudiger
+      // dan de local state handmatig patchen voor elke content-variant.
+      const fresh = await fetchCampaign(id);
+      setCampaign(fresh);
+      setEditMode(false);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : "Opslaan mislukt.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -131,10 +189,53 @@ export default function CampaignDetailPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="sg-btn">Dupliceren</button>
-          <button className="sg-btn">Bewerken</button>
+          <button className="sg-btn" disabled>
+            Dupliceren
+          </button>
+          {/* Bewerken alleen toegestaan bij 'concept'-status. Na
+              ingepland/actief/afgerond moet de inhoud immutable
+              blijven voor audit + verzend-consistentie. */}
+          {campaign.status === "concept" && !editMode && (
+            <button className="sg-btn" onClick={startEdit}>
+              ✎ Bewerken
+            </button>
+          )}
+          {editMode && (
+            <>
+              <button
+                className="sg-btn"
+                onClick={() => setEditMode(false)}
+                disabled={saving}
+              >
+                Annuleren
+              </button>
+              <button
+                className="btn-primary-dash"
+                onClick={saveEdit}
+                disabled={saving || !draftName.trim() || !draftBody.trim()}
+                style={{ padding: "6px 14px" }}
+              >
+                {saving ? "Opslaan…" : "Opslaan"}
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {editError && (
+        <div
+          style={{
+            padding: "8px 12px",
+            margin: "12px 0",
+            background: "var(--red-soft, #fee)",
+            color: "var(--red, #b00)",
+            borderRadius: 6,
+            fontSize: 13,
+          }}
+        >
+          {editError}
+        </div>
+      )}
 
       <div style={{ marginBottom: 24 }} />
 
@@ -224,11 +325,15 @@ export default function CampaignDetailPage() {
         )}
       </div>
 
-      {/* Content preview */}
+      {/* Content preview. In edit-mode vervangen door inline form
+          zodat de user direct vanaf de detail-page de velden kan
+          wijzigen zonder modal-context-switch. */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-h">
           <div>
-            <div className="card-t">Inhoud</div>
+            <div className="card-t">
+              {editMode ? "Inhoud bewerken" : "Inhoud"}
+            </div>
             <div className="card-st">
               {isMail
                 ? "Mail-preview"
@@ -239,7 +344,106 @@ export default function CampaignDetailPage() {
           </div>
         </div>
         <div className="card-b">
-          {isMail && (
+          {editMode && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+                padding: "4px 2px",
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--ts)",
+                }}
+              >
+                <span>Campagne-naam</span>
+                <input
+                  type="text"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    fontFamily: "inherit",
+                    background: "var(--white, #FFFFFF)",
+                  }}
+                />
+              </label>
+              {isMail && (
+                <label
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--ts)",
+                  }}
+                >
+                  <span>Onderwerp</span>
+                  <input
+                    type="text"
+                    value={draftSubject}
+                    onChange={(e) => setDraftSubject(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      border: "1px solid var(--border, #E5DFD0)",
+                      borderRadius: 6,
+                      fontSize: 14,
+                      fontFamily: "inherit",
+                      background: "var(--white, #FFFFFF)",
+                    }}
+                  />
+                </label>
+              )}
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--ts)",
+                }}
+              >
+                <span>
+                  {isMail
+                    ? "Mail-inhoud"
+                    : isSocial
+                      ? "Caption"
+                      : "Bericht"}
+                </span>
+                <textarea
+                  value={draftBody}
+                  onChange={(e) => setDraftBody(e.target.value)}
+                  rows={12}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    background: "var(--white, #FFFFFF)",
+                  }}
+                />
+              </label>
+            </div>
+          )}
+          {!editMode && isMail && (
             <div className="mail-preview">
               <div className="mail-preview-meta">
                 <div>
@@ -272,7 +476,7 @@ export default function CampaignDetailPage() {
               </div>
             </div>
           )}
-          {isSocial && (
+          {!editMode && isSocial && (
             <div className="social-preview">
               <div className="social-preview-header">
                 <div className="social-preview-avatar">
@@ -307,7 +511,7 @@ export default function CampaignDetailPage() {
                 )}
             </div>
           )}
-          {!isMail && !isSocial && (
+          {!editMode && !isMail && !isSocial && (
             <div className="whatsapp-preview">
               <div className="whatsapp-preview-bubble">
                 {campaign.content?.message_text ?? campaign.body ?? "—"}

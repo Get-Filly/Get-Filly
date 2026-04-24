@@ -4,15 +4,17 @@ import { SuggestionsService } from './suggestions.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { CampaignsModule } from '../campaigns/campaigns.module';
+import { AiModule } from '../ai/ai.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
-// CampaignsModule importeren zodat de approve-flow (suggestie →
-// campagne aanmaken + FK koppelen) CampaignsService kan gebruiken.
-// Export van SuggestionsService maakt 'm beschikbaar voor ChatModule
-// die bij chat-proposals nieuwe suggesties aanmaakt.
+// CampaignsModule: approve-flow (suggestie → campagne aanmaken + FK
+// koppelen).
+// AiModule: refine-flow (Filly past suggestie aan op verzoek van de
+// eigenaar via een side-chat per suggestie).
+// Export van SuggestionsService voor ChatModule.
 @Module({
-  imports: [SupabaseModule, MeModule, CampaignsModule],
+  imports: [SupabaseModule, MeModule, CampaignsModule, AiModule],
   controllers: [SuggestionsController],
   providers: [SuggestionsService, AuthGuard, RestaurantAccessGuard],
   exports: [SuggestionsService],
