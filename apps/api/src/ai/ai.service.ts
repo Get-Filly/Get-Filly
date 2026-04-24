@@ -103,6 +103,79 @@ export class AiService {
     return textBlock.text;
   }
 
+  // Vision / document-versie van generateText: accepteert een bestand
+  // (PDF, PNG, JPEG, WebP) als base64 + mime-type, plus een
+  // tekst-instructie. Claude ziet eerst het bestand en dan de
+  // instructie. Ideaal voor menu-scans, factuur-parsing, etc.
+  //
+  // Default-model is Opus 4.7: Vision-vragen vereisen vaak visueel
+  // inzicht in layout (kolommen, groeperingen bij menu's, handschrift).
+  // Sonnet 4.6 kan ook maar mist groepering eerder; Haiku is risky.
+  async generateFromFile(opts: {
+    system: string;
+    instruction: string;
+    file: { base64: string; mimeType: string };
+    model?: string;
+    maxTokens?: number;
+    meta: AiCallMeta;
+  }): Promise<string> {
+    const client = this.getClient();
+    const model = opts.model ?? 'claude-opus-4-7';
+
+    // Anthropic splitst image en document op in twee verschillende
+    // block-types. PDF = document, plaatjes = image.
+    const fileBlock =
+      opts.file.mimeType === 'application/pdf'
+        ? ({
+            type: 'document' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: 'application/pdf' as const,
+              data: opts.file.base64,
+            },
+          } satisfies Anthropic.DocumentBlockParam)
+        : ({
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: opts.file.mimeType as
+                | 'image/jpeg'
+                | 'image/png'
+                | 'image/gif'
+                | 'image/webp',
+              data: opts.file.base64,
+            },
+          } satisfies Anthropic.ImageBlockParam);
+
+    const response = await client.messages.create({
+      model,
+      max_tokens: opts.maxTokens ?? 4000,
+      system: opts.system,
+      messages: [
+        {
+          role: 'user',
+          content: [fileBlock, { type: 'text', text: opts.instruction }],
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === 'text');
+    if (!textBlock || textBlock.type !== 'text') {
+      this.logger.error(
+        `Onverwacht Claude-Vision-antwoord zonder text-block: ${JSON.stringify(response.content)}`,
+      );
+      throw new InternalServerErrorException(
+        'Filly kon het bestand niet lezen. Probeer een andere foto/PDF.',
+      );
+    }
+
+    void this.logUsage(opts.meta, model, response.usage).catch((err) => {
+      this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
+    });
+
+    return textBlock.text;
+  }
+
   // Insert in ai_usage. Gaat via service_role (SupabaseService gebruikt
   // de service-key), dus RLS-policies raken dit niet.
   private async logUsage(

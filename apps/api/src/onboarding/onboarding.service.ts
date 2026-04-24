@@ -25,17 +25,35 @@ import { SupabaseService } from '../supabase/supabase.service';
 // ============================================================
 
 export type OnboardingInput = {
+  // Basics (verplicht)
   name: string;
   type: string; // bistro/brasserie/cafe/...
-  // Adres — straat+nummer in één veld is makkelijker te verzamelen
-  // dan apart; we splitsen niet want Supabase's restaurants.address
-  // is al één text-veld.
+  // Locatie
   address?: string;
   postal_code?: string;
   city?: string;
-  website_url?: string;
-  description?: string;
+  // Branding
   brand_tone?: 'casual' | 'professional' | 'playful';
+  description?: string;
+  tagline?: string;
+  atmosphere?: string;
+  target_audience?: string;
+  unique_selling_points?: string;
+  special_events?: string;
+  signature_dishes?: string[];
+  cuisine_style?: string[];
+  // Web
+  website_url?: string;
+  website_summary?: string;
+  social_media?: Record<string, string>;
+  // Menu (uit fase C)
+  menu_items?: Array<{
+    name: string;
+    description?: string;
+    price_cents?: number;
+    category?: string;
+    allergens?: string[];
+  }>;
 };
 
 export type OnboardingResult = {
@@ -97,16 +115,30 @@ export class OnboardingService {
     const { data: restaurant, error: createErr } = await this.supabase.client
       .from('restaurants')
       .insert({
+        // Basics
         name,
         type,
         slug: slugify(name),
+        // Locatie
         address: input.address?.trim() || null,
         postal_code: input.postal_code?.trim() || null,
         city: input.city?.trim() || null,
         country: 'NL',
-        website_url: input.website_url?.trim() || null,
-        description: input.description?.trim() || null,
+        // Branding
         brand_tone: input.brand_tone ?? 'casual',
+        description: input.description?.trim() || null,
+        tagline: input.tagline?.trim() || null,
+        atmosphere: input.atmosphere?.trim() || null,
+        target_audience: input.target_audience?.trim() || null,
+        unique_selling_points: input.unique_selling_points?.trim() || null,
+        special_events: input.special_events?.trim() || null,
+        signature_dishes: nonEmptyArray(input.signature_dishes),
+        cuisine_style: nonEmptyArray(input.cuisine_style),
+        // Web
+        website_url: input.website_url?.trim() || null,
+        website_summary: input.website_summary?.trim() || null,
+        social_media: cleanSocialMedia(input.social_media),
+        // Meta
         onboarded_at: new Date().toISOString(),
       })
       .select('id')
@@ -135,8 +167,57 @@ export class OnboardingService {
       throw new InternalServerErrorException(linkErr.message);
     }
 
+    // Stap 6 — eventueel menu_items batch-inserten. Komt van fase C
+    // (menu-Vision). Fail-soft: als deze insert flakes, hebben we nog
+    // steeds een werkend restaurant — user kan menu-items later
+    // handmatig toevoegen via menu-pagina.
+    if (input.menu_items && input.menu_items.length > 0) {
+      const rows = input.menu_items.map((item) => ({
+        restaurant_id: restaurant.id,
+        name: item.name.trim(),
+        description: item.description?.trim() || null,
+        price_cents: item.price_cents ?? null,
+        category: item.category?.trim() || null,
+        allergens: nonEmptyArray(item.allergens),
+      }));
+      const { error: menuErr } = await this.supabase.client
+        .from('menu_items')
+        .insert(rows);
+      if (menuErr) {
+        // Niet rollbacken: restaurant is nuttig zonder menu.
+        // Wel loggen zodat we het achteraf kunnen reconstrueren.
+        console.warn(
+          `Menu-items-insert gefaald voor ${restaurant.id}: ${menuErr.message}`,
+        );
+      }
+    }
+
     return { restaurantId: restaurant.id };
   }
+}
+
+// Retourneer undefined (Postgres laat het dan nullable) i.p.v. een
+// lege array te inserten — anders krijg je [] in de DB waar null
+// netter is.
+function nonEmptyArray(v: string[] | undefined): string[] | null {
+  if (!v) return null;
+  const filtered = v.map((s) => s.trim()).filter((s) => s.length > 0);
+  return filtered.length > 0 ? filtered : null;
+}
+
+// social_media kolom is jsonb. We slaan alleen handles/URLs op die
+// niet leeg zijn. Leeg object → null (netter dan '{}' in DB).
+function cleanSocialMedia(
+  v: Record<string, string> | undefined,
+): Record<string, string> | null {
+  if (!v) return null;
+  const out: Record<string, string> = {};
+  for (const [k, val] of Object.entries(v)) {
+    if (typeof val === 'string' && val.trim().length > 0) {
+      out[k] = val.trim();
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 // Kleine URL-validator: alleen http(s)-schema's en een hostname.

@@ -5,34 +5,57 @@ import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase-browser";
 
 // ============================================================
-// /onboarding — 3-stappen wizard voor nieuwe restaurant
+// /onboarding — 3-stappen wizard met Filly-auto-invul
 // ============================================================
-// Flow:
-//   Stap 1 (Basis): naam, type, stad + optionele website + menu-upload
-//   Stap 2 (Karakter): omschrijving, toon (optioneel, overslaan kan)
-//   Stap 3 (Klaar): bevestiging + "Ga naar dashboard"
+// Stap 1 (bronnen):
+//   - naam + type (verplicht, vangnet als AI-analyse faalt)
+//   - website-URL (optioneel)
+//   - menukaart upload (optioneel — PDF of foto)
+//   - Grote knop "✨ Filly, vul alles in" die beide bronnen parallel
+//     analyseert (web-crawl + Vision) en alle velden vult.
 //
-// Alles op één pagina met state — minder file-overhead dan meerdere
-// routes, en de wizard is lineair dus er is geen reden om de URL
-// mee te sturen (geen deep-linking naar stap 2).
+// Stap 2 (review):
+//   Alle profiel-velden in één scrolbaar formulier. Velden die Filly
+//   heeft ingevuld krijgen een subtiel badge. User kan alles aanpassen
+//   voor het definitief wordt.
 //
-// Website-URL en menu-upload slaan we al op (datamodel staat), maar
-// doen er fase A nog niks mee. Fase B voegt de AI-analyse toe, fase C
-// de Vision-upload. De UI toont nu al de knoppen zodat we het skeleton
-// hebben en de user alvast kan experimenteren.
+// Stap 3 (bevestigen):
+//   Samenvatting + menu-items-teller → "Naar dashboard".
 // ============================================================
 
 type Step = 1 | 2 | 3;
 
+type MenuItem = {
+  name: string;
+  description?: string;
+  price_cents?: number;
+  category?: string;
+  allergens?: string[];
+};
+
 type WizardData = {
+  // Basics
   name: string;
   type: string;
+  // Locatie
   address: string;
   postal_code: string;
   city: string;
-  website_url: string;
-  description: string;
+  // Branding
   brand_tone: "casual" | "professional" | "playful";
+  description: string;
+  tagline: string;
+  atmosphere: string;
+  target_audience: string;
+  unique_selling_points: string;
+  special_events: string;
+  signature_dishes: string;
+  cuisine_style: string;
+  // Web
+  website_url: string;
+  website_summary: string;
+  // Menu
+  menu_items: MenuItem[];
 };
 
 const TYPE_OPTIONS = [
@@ -52,46 +75,215 @@ const TONE_OPTIONS: Array<{
   label: string;
   hint: string;
 }> = [
-  { value: "casual", label: "Gemoedelijk", hint: "Warm, toegankelijk, niet stoffig" },
+  {
+    value: "casual",
+    label: "Gemoedelijk",
+    hint: "Warm, toegankelijk, niet stoffig",
+  },
   {
     value: "professional",
     label: "Professioneel",
     hint: "Zakelijk, strak, hogere prijsklasse",
   },
-  { value: "playful", label: "Speels", hint: "Creatief, met knipoog, jonger publiek" },
+  {
+    value: "playful",
+    label: "Speels",
+    hint: "Creatief, met knipoog, jonger publiek",
+  },
 ];
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
+const INITIAL_DATA: WizardData = {
+  name: "",
+  type: "",
+  address: "",
+  postal_code: "",
+  city: "",
+  brand_tone: "casual",
+  description: "",
+  tagline: "",
+  atmosphere: "",
+  target_audience: "",
+  unique_selling_points: "",
+  special_events: "",
+  signature_dishes: "",
+  cuisine_style: "",
+  website_url: "",
+  website_summary: "",
+  menu_items: [],
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
+  const [data, setData] = useState<WizardData>(INITIAL_DATA);
+  const [menuFile, setMenuFile] = useState<File | null>(null);
+
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeStatus, setAnalyzeStatus] = useState<string | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [analyzeConfidence, setAnalyzeConfidence] = useState<
+    "high" | "medium" | "low" | null
+  >(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [data, setData] = useState<WizardData>({
-    name: "",
-    type: "",
-    address: "",
-    postal_code: "",
-    city: "",
-    website_url: "",
-    description: "",
-    brand_tone: "casual",
-  });
-
-  // Stap 1 is verplicht — naam + type moeten ingevuld zijn om door
-  // te kunnen. Andere stappen zijn overslaan-baar.
+  // Stap 1 is verplicht — naam + type moeten ingevuld zijn om door te kunnen.
   const canContinueFromStep1 =
     data.name.trim().length >= 2 && data.type.length > 0;
+
+  // Draait beide analyses parallel: website-crawl + menu-Vision.
+  // Vult alleen lege velden zodat handmatige invul niet overschreven wordt.
+  const analyzeAll = async () => {
+    const url = data.website_url.trim();
+    if (!url && !menuFile) {
+      setAnalyzeError(
+        "Vul een website-URL in of upload een menukaart, anders heeft Filly niks om te lezen.",
+      );
+      return;
+    }
+
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    setAnalyzeConfidence(null);
+    setAnalyzeStatus("Filly maakt zich klaar…");
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token ?? "";
+
+      const websitePromise = url
+        ? (async () => {
+            setAnalyzeStatus("Filly leest je website…");
+            const res = await fetch(`${API_URL}/onboarding/analyze-website`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ url }),
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.message ?? `website HTTP ${res.status}`);
+            }
+            return res.json();
+          })()
+        : Promise.resolve(null);
+
+      const menuPromise = menuFile
+        ? (async () => {
+            setAnalyzeStatus("Filly bekijkt je menukaart…");
+            const form = new FormData();
+            form.append("file", menuFile);
+            const res = await fetch(`${API_URL}/onboarding/analyze-menu`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: form,
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.message ?? `menu HTTP ${res.status}`);
+            }
+            return res.json();
+          })()
+        : Promise.resolve(null);
+
+      const [websiteResult, menuResult] = await Promise.all([
+        websitePromise,
+        menuPromise,
+      ]);
+
+      // Merge website-resultaat in wizard-data (niet-lege velden respecteren).
+      if (websiteResult) {
+        setData((prev) => ({
+          ...prev,
+          name: prev.name.trim() || websiteResult.name || prev.name,
+          type: prev.type || websiteResult.type || prev.type,
+          address: prev.address.trim() || websiteResult.address || prev.address,
+          postal_code:
+            prev.postal_code.trim() ||
+            websiteResult.postal_code ||
+            prev.postal_code,
+          city: prev.city.trim() || websiteResult.city || prev.city,
+          description:
+            prev.description.trim() ||
+            websiteResult.description ||
+            prev.description,
+          tagline: prev.tagline.trim() || websiteResult.tagline || prev.tagline,
+          atmosphere:
+            prev.atmosphere.trim() ||
+            websiteResult.atmosphere ||
+            prev.atmosphere,
+          target_audience:
+            prev.target_audience.trim() ||
+            websiteResult.target_audience ||
+            prev.target_audience,
+          unique_selling_points:
+            prev.unique_selling_points.trim() ||
+            websiteResult.unique_selling_points ||
+            prev.unique_selling_points,
+          special_events:
+            prev.special_events.trim() ||
+            websiteResult.special_events ||
+            prev.special_events,
+          signature_dishes:
+            prev.signature_dishes.trim() ||
+            (Array.isArray(websiteResult.signature_dishes)
+              ? websiteResult.signature_dishes.join(", ")
+              : "") ||
+            prev.signature_dishes,
+          cuisine_style:
+            prev.cuisine_style.trim() ||
+            (Array.isArray(websiteResult.cuisine_style)
+              ? websiteResult.cuisine_style.join(", ")
+              : "") ||
+            prev.cuisine_style,
+          website_summary:
+            prev.website_summary.trim() ||
+            websiteResult.website_summary ||
+            prev.website_summary,
+          brand_tone: websiteResult.brand_tone ?? prev.brand_tone,
+        }));
+      }
+
+      if (menuResult && Array.isArray(menuResult.items)) {
+        setData((prev) => ({ ...prev, menu_items: menuResult.items }));
+      }
+
+      // Confidence: als beide bronnen een score gaven, toon de laagste
+      // (dan weet user "het zwakste deel is X").
+      const scores = [websiteResult?.confidence, menuResult?.confidence].filter(
+        Boolean,
+      );
+      if (scores.includes("low")) setAnalyzeConfidence("low");
+      else if (scores.includes("medium")) setAnalyzeConfidence("medium");
+      else if (scores.length > 0) setAnalyzeConfidence("high");
+
+      setAnalyzeStatus(null);
+    } catch (e) {
+      console.error(e);
+      setAnalyzeError(
+        e instanceof Error
+          ? e.message
+          : "Filly kon niet lezen. Probeer nog eens of vul handmatig in.",
+      );
+      setAnalyzeStatus(null);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setError(null);
     setSubmitting(true);
     try {
-      // We sturen de JWT zelf mee via authedFetch-pattern; deze pagina
-      // leeft buiten de dashboard-context dus we doen het hier handmatig.
       const supabase = createClient();
       const {
         data: { session },
@@ -111,9 +303,19 @@ export default function OnboardingPage() {
           address: data.address.trim() || undefined,
           postal_code: data.postal_code.trim() || undefined,
           city: data.city.trim() || undefined,
-          website_url: data.website_url.trim() || undefined,
-          description: data.description.trim() || undefined,
           brand_tone: data.brand_tone,
+          description: data.description.trim() || undefined,
+          tagline: data.tagline.trim() || undefined,
+          atmosphere: data.atmosphere.trim() || undefined,
+          target_audience: data.target_audience.trim() || undefined,
+          unique_selling_points:
+            data.unique_selling_points.trim() || undefined,
+          special_events: data.special_events.trim() || undefined,
+          signature_dishes: splitToArray(data.signature_dishes),
+          cuisine_style: splitToArray(data.cuisine_style),
+          website_url: data.website_url.trim() || undefined,
+          website_summary: data.website_summary.trim() || undefined,
+          menu_items: data.menu_items,
         }),
       });
 
@@ -122,11 +324,6 @@ export default function OnboardingPage() {
         throw new Error(body.message ?? `HTTP ${res.status}`);
       }
 
-      // Parseer { restaurantId } zodat we 'm direct als actief restaurant
-      // kunnen vastleggen in localStorage. Dit voorkomt een 403-race:
-      // zonder dit stuurt authedFetch een oude stored restaurant-id mee
-      // bij de eerste dashboard-renders, en krijg je bij elk endpoint
-      // "Geen toegang tot dit restaurant."
       const { restaurantId } = (await res.json()) as { restaurantId: string };
       if (typeof window !== "undefined" && restaurantId) {
         try {
@@ -135,14 +332,10 @@ export default function OnboardingPage() {
             restaurantId,
           );
         } catch {
-          // localStorage kan in privé-modus falen — negeer stil.
+          // negeer privé-modus
         }
       }
 
-      // Middleware stuurt nu geen /onboarding-bezoek meer terug naar
-      // /onboarding (want we hebben nu een restaurant). Pushen naar
-      // dashboard + refresh zodat de server-components de nieuwe
-      // membership oppikken.
       router.push("/dashboard");
       router.refresh();
     } catch (e) {
@@ -150,7 +343,7 @@ export default function OnboardingPage() {
       setError(
         e instanceof Error
           ? e.message
-          : "Iets ging mis bij het opslaan. Probeer nog eens.",
+          : "Opslaan mislukt. Probeer nog eens.",
       );
       setSubmitting(false);
     }
@@ -158,15 +351,8 @@ export default function OnboardingPage() {
 
   return (
     <section className="login-section">
-      <div className="login-box" style={{ maxWidth: 520 }}>
-        {/* Voortgang-indicator bovenaan — subtiele balk, niet te luid */}
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            marginBottom: 24,
-          }}
-        >
+      <div className="login-box" style={{ maxWidth: 560 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
           {[1, 2, 3].map((s) => (
             <div
               key={s}
@@ -185,16 +371,23 @@ export default function OnboardingPage() {
         </div>
 
         {step === 1 && (
-          <Step1
+          <Step1Sources
             data={data}
             setData={setData}
+            menuFile={menuFile}
+            setMenuFile={setMenuFile}
+            analyzing={analyzing}
+            analyzeStatus={analyzeStatus}
+            analyzeError={analyzeError}
+            analyzeConfidence={analyzeConfidence}
+            onAnalyze={analyzeAll}
             onNext={() => setStep(2)}
             canContinue={canContinueFromStep1}
           />
         )}
 
         {step === 2 && (
-          <Step2
+          <Step2Review
             data={data}
             setData={setData}
             onBack={() => setStep(1)}
@@ -203,7 +396,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 3 && (
-          <Step3
+          <Step3Confirm
             data={data}
             onBack={() => setStep(2)}
             onSubmit={handleSubmit}
@@ -217,16 +410,30 @@ export default function OnboardingPage() {
 }
 
 // ============================================================
-// Stap 1 — Basis
+// Stap 1 — Bronnen + Filly-analyse
 // ============================================================
-function Step1({
+function Step1Sources({
   data,
   setData,
+  menuFile,
+  setMenuFile,
+  analyzing,
+  analyzeStatus,
+  analyzeError,
+  analyzeConfidence,
+  onAnalyze,
   onNext,
   canContinue,
 }: {
   data: WizardData;
   setData: React.Dispatch<React.SetStateAction<WizardData>>;
+  menuFile: File | null;
+  setMenuFile: (f: File | null) => void;
+  analyzing: boolean;
+  analyzeStatus: string | null;
+  analyzeError: string | null;
+  analyzeConfidence: "high" | "medium" | "low" | null;
+  onAnalyze: () => void;
   onNext: () => void;
   canContinue: boolean;
 }) {
@@ -234,28 +441,33 @@ function Step1({
     <>
       <div className="login-title">Laten we je zaak instellen</div>
       <p className="login-sub">
-        Een paar basisgegevens zodat Filly weet waar ze mee werkt.
+        Geef Filly een website of menukaart — zij vult dan alvast je
+        hele profiel in. Je kunt alles nog aanpassen in stap 2.
       </p>
 
       <div className="form-group">
-        <label className="form-label">Naam van de zaak</label>
+        <label className="form-label">
+          Naam van de zaak{" "}
+          <span style={{ color: "var(--tl, #6B6B6B)" }}>(verplicht)</span>
+        </label>
         <input
           className="form-input"
           value={data.name}
           onChange={(e) => setData({ ...data, name: e.target.value })}
           placeholder="Bistro Centraal"
           autoFocus
-          required
         />
       </div>
 
       <div className="form-group">
-        <label className="form-label">Type zaak</label>
+        <label className="form-label">
+          Type zaak{" "}
+          <span style={{ color: "var(--tl, #6B6B6B)" }}>(verplicht)</span>
+        </label>
         <select
           className="form-input"
           value={data.type}
           onChange={(e) => setData({ ...data, type: e.target.value })}
-          required
         >
           <option value="">Kies een type…</option>
           {TYPE_OPTIONS.map((opt) => (
@@ -266,97 +478,147 @@ function Step1({
         </select>
       </div>
 
-      <div className="form-group">
-        <label className="form-label">Straat en huisnummer</label>
-        <input
-          className="form-input"
-          value={data.address}
-          onChange={(e) => setData({ ...data, address: e.target.value })}
-          placeholder="Prinsengracht 263"
-        />
-      </div>
+      <hr style={{ border: 0, borderTop: "1px solid #eee", margin: "20px 0" }} />
 
-      {/* Postcode + stad als twee velden op één rij — compacter dan
-          elk op een eigen rij, en past bij hoe mensen een adres
-          mentaal groeperen. */}
-      <div className="form-group">
-        <div style={{ display: "flex", gap: 8 }}>
-          <div style={{ width: 120 }}>
-            <label className="form-label">Postcode</label>
-            <input
-              className="form-input"
-              value={data.postal_code}
-              onChange={(e) =>
-                setData({ ...data, postal_code: e.target.value })
-              }
-              placeholder="1016 GV"
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="form-label">Stad</label>
-            <input
-              className="form-input"
-              value={data.city}
-              onChange={(e) => setData({ ...data, city: e.target.value })}
-              placeholder="Amsterdam"
-            />
-          </div>
-        </div>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 600,
+          marginBottom: 4,
+          color: "var(--brand, #1F4A2D)",
+        }}
+      >
+        ✨ Laat Filly de rest invullen
       </div>
+      <p style={{ fontSize: 13, color: "var(--tl, #6B6B6B)", margin: "0 0 14px" }}>
+        Geef één of beide — Filly gebruikt ze om je adres, verhaal,
+        toon, specialiteiten en menu in te vullen.
+      </p>
 
       <div className="form-group">
-        <label className="form-label">
-          Website <span style={{ color: "var(--tl, #6B6B6B)" }}>(optioneel)</span>
-        </label>
+        <label className="form-label">Website van je zaak</label>
         <input
           className="form-input"
           type="url"
           value={data.website_url}
           onChange={(e) => setData({ ...data, website_url: e.target.value })}
           placeholder="https://jouwrestaurant.nl"
+          disabled={analyzing}
         />
-        <p
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Menukaart (foto of PDF)</label>
+        <input
+          type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
+          onChange={(e) => setMenuFile(e.target.files?.[0] ?? null)}
+          disabled={analyzing}
           style={{
-            fontSize: 12,
-            color: "var(--tl, #6B6B6B)",
-            margin: "6px 0 0",
+            display: "block",
+            fontSize: 13,
+            color: "var(--text)",
+          }}
+        />
+        {menuFile && (
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--tl, #6B6B6B)",
+              margin: "4px 0 0",
+            }}
+          >
+            {menuFile.name} · {Math.round(menuFile.size / 1024)} KB
+          </p>
+        )}
+      </div>
+
+      {(data.website_url.trim().length > 0 || menuFile) && (
+        <button
+          type="button"
+          onClick={onAnalyze}
+          disabled={analyzing}
+          style={{
+            width: "100%",
+            padding: "12px 14px",
+            borderRadius: 8,
+            background: analyzing
+              ? "var(--brand-soft, #eef3ee)"
+              : "var(--brand, #1F4A2D)",
+            color: analyzing ? "var(--brand, #1F4A2D)" : "#fff",
+            border: "none",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: analyzing ? "default" : "pointer",
+            marginTop: 4,
           }}
         >
-          Straks laat Filly je profiel automatisch invullen op basis van je site.
-        </p>
-      </div>
+          {analyzing
+            ? analyzeStatus ?? "Filly is bezig…"
+            : "✨ Filly, vul alles in"}
+        </button>
+      )}
 
-      <div
-        style={{
-          padding: "12px 14px",
-          background: "var(--brand-soft, #eef3ee)",
-          border: "1px dashed var(--brand, #1F4A2D)",
-          borderRadius: 8,
-          fontSize: 12,
-          color: "var(--text, #1A1A1A)",
-          marginBottom: 16,
-        }}
-      >
-        <strong>📎 Menu-kaart uploaden</strong> komt er zo aan — daarmee leest
-        Filly je gerechten automatisch in.
-      </div>
+      {analyzeConfidence && !analyzing && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "10px 12px",
+            borderRadius: 6,
+            background: "var(--brand-soft, #eef3ee)",
+            border: "1px solid var(--brand, #1F4A2D)",
+            color: "var(--brand, #1F4A2D)",
+            fontSize: 12,
+            lineHeight: 1.5,
+          }}
+        >
+          <strong>Filly heeft je profiel ingevuld.</strong>{" "}
+          {analyzeConfidence === "high"
+            ? "Ze was hier zeker van. Check in stap 2."
+            : analyzeConfidence === "medium"
+              ? "Redelijk beeld — loop het even na in stap 2."
+              : "Weinig vaste info gevonden; vul aan in stap 2."}
+          {data.menu_items.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              Menu: <strong>{data.menu_items.length}</strong> gerechten gelezen.
+            </div>
+          )}
+        </div>
+      )}
 
-      <button
-        className="login-btn"
-        onClick={onNext}
-        disabled={!canContinue}
-        type="button"
-      >
-        Volgende
-      </button>
+      {analyzeError && !analyzing && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "10px 12px",
+            borderRadius: 6,
+            background: "var(--red-soft, #fee)",
+            color: "var(--red, #b00)",
+            fontSize: 12,
+          }}
+        >
+          {analyzeError}
+        </div>
+      )}
+
+      <div style={{ marginTop: 20 }}>
+        <button
+          className="login-btn"
+          onClick={onNext}
+          disabled={!canContinue || analyzing}
+          type="button"
+        >
+          Volgende — review
+        </button>
+      </div>
     </>
   );
 }
 
 // ============================================================
-// Stap 2 — Karakter
+// Stap 2 — Review alle velden
 // ============================================================
-function Step2({
+function Step2Review({
   data,
   setData,
   onBack,
@@ -369,21 +631,89 @@ function Step2({
 }) {
   return (
     <>
-      <div className="login-title">Hoe voelt je zaak?</div>
+      <div className="login-title">Check en pas aan</div>
       <p className="login-sub">
-        Dit helpt Filly om in jouw stem te schrijven. Mag je overslaan.
+        Dit is wat we weten. Alles is later nog aanpasbaar via je account —
+        maar als je hier iets ziet dat niet klopt, fix het nu.
       </p>
 
-      <div className="form-group">
-        <label className="form-label">Korte omschrijving</label>
-        <textarea
-          className="form-input"
-          value={data.description}
-          onChange={(e) => setData({ ...data, description: e.target.value })}
-          placeholder="Klassieke Franse bistro in de Jordaan, nadruk op seizoensproducten en Bourgondische wijnen."
-          rows={3}
-          style={{ resize: "vertical", minHeight: 72 }}
-        />
+      <Field
+        label="Omschrijving"
+        value={data.description}
+        onChange={(v) => setData({ ...data, description: v })}
+        multiline
+        rows={3}
+        placeholder="Wat voor zaak is het, in 2-3 zinnen?"
+      />
+      <Field
+        label="Pay-off / tagline"
+        value={data.tagline}
+        onChange={(v) => setData({ ...data, tagline: v })}
+        placeholder="Korte slagzin, bv. 'Franse keuken in hart van de Jordaan'"
+      />
+      <Field
+        label="Sfeer"
+        value={data.atmosphere}
+        onChange={(v) => setData({ ...data, atmosphere: v })}
+        multiline
+        rows={2}
+        placeholder="Hoe voelt de zaak? Klein en intiem, levendig, familiair…"
+      />
+      <Field
+        label="Doelgroep"
+        value={data.target_audience}
+        onChange={(v) => setData({ ...data, target_audience: v })}
+        multiline
+        rows={2}
+        placeholder="Voor wie is jullie zaak het meest?"
+      />
+      <Field
+        label="Wat maakt jullie uniek"
+        value={data.unique_selling_points}
+        onChange={(v) => setData({ ...data, unique_selling_points: v })}
+        multiline
+        rows={2}
+        placeholder="3-5 dingen waar jullie in uitblinken"
+      />
+      <Field
+        label="Terugkerende evenementen"
+        value={data.special_events}
+        onChange={(v) => setData({ ...data, special_events: v })}
+        placeholder="Wijnavonden, live muziek, brunches…"
+      />
+      <Field
+        label="Signature-gerechten"
+        value={data.signature_dishes}
+        onChange={(v) => setData({ ...data, signature_dishes: v })}
+        placeholder="Komma-gescheiden: Kalfsstoof, Citroen-tiramisu, …"
+      />
+      <Field
+        label="Keukenstijl"
+        value={data.cuisine_style}
+        onChange={(v) => setData({ ...data, cuisine_style: v })}
+        placeholder="Komma-gescheiden: frans, seizoensgebonden, …"
+      />
+
+      <Field
+        label="Straat en huisnummer"
+        value={data.address}
+        onChange={(v) => setData({ ...data, address: v })}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ width: 130 }}>
+          <Field
+            label="Postcode"
+            value={data.postal_code}
+            onChange={(v) => setData({ ...data, postal_code: v })}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <Field
+            label="Stad"
+            value={data.city}
+            onChange={(v) => setData({ ...data, city: v })}
+          />
+        </div>
       </div>
 
       <div className="form-group">
@@ -427,7 +757,27 @@ function Step2({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
+      {data.menu_items.length > 0 && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 12,
+            background: "var(--surface-soft, #f7f5ef)",
+            borderRadius: 8,
+            fontSize: 13,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            Menu: {data.menu_items.length} gerechten
+          </div>
+          <div style={{ fontSize: 12, color: "var(--tl, #6B6B6B)" }}>
+            Filly heeft ze uit je menukaart gelezen. Je kunt ze later
+            bewerken op de menu-pagina.
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
         <button className="sg-btn" onClick={onBack} type="button">
           Terug
         </button>
@@ -437,7 +787,7 @@ function Step2({
           type="button"
           style={{ flex: 1 }}
         >
-          Volgende
+          Volgende — bevestigen
         </button>
       </div>
     </>
@@ -445,9 +795,9 @@ function Step2({
 }
 
 // ============================================================
-// Stap 3 — Klaar
+// Stap 3 — Bevestigen
 // ============================================================
-function Step3({
+function Step3Confirm({
   data,
   onBack,
   onSubmit,
@@ -464,7 +814,8 @@ function Step3({
     <>
       <div className="login-title">Klaar om te starten</div>
       <p className="login-sub">
-        Dit hebben we ingevuld. Aanpassen kan altijd via je account.
+        We maken je restaurant aan met deze gegevens. Alles is straks
+        bewerkbaar via je account.
       </p>
 
       <div
@@ -492,15 +843,22 @@ function Step3({
           />
         )}
         {data.website_url && <Row label="Website" value={data.website_url} />}
-        {data.description && (
-          <Row label="Omschrijving" value={data.description} multiline />
-        )}
+        {data.tagline && <Row label="Tagline" value={data.tagline} />}
         <Row
           label="Toon"
           value={
             TONE_OPTIONS.find((t) => t.value === data.brand_tone)?.label ?? ""
           }
         />
+        {data.description && (
+          <Row label="Omschrijving" value={data.description} multiline />
+        )}
+        {data.menu_items.length > 0 && (
+          <Row
+            label="Menu"
+            value={`${data.menu_items.length} gerechten geïmporteerd`}
+          />
+        )}
       </div>
 
       {error && (
@@ -529,6 +887,49 @@ function Step3({
         </button>
       </div>
     </>
+  );
+}
+
+// ============================================================
+// Kleine sub-componenten
+// ============================================================
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  multiline,
+  rows,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  multiline?: boolean;
+  rows?: number;
+}) {
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      {multiline ? (
+        <textarea
+          className="form-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={rows ?? 3}
+          style={{ resize: "vertical", minHeight: 60 }}
+        />
+      ) : (
+        <input
+          className="form-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      )}
+    </div>
   );
 }
 
@@ -562,4 +963,15 @@ function Row({
       </div>
     </div>
   );
+}
+
+// Splitst een komma-gescheiden string in een array, trimmt en filtert
+// lege. Gebruikt voor signature_dishes + cuisine_style die als text
+// worden ingevoerd maar als text[] worden opgeslagen.
+function splitToArray(s: string): string[] | undefined {
+  const arr = s
+    .split(",")
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0);
+  return arr.length > 0 ? arr : undefined;
 }

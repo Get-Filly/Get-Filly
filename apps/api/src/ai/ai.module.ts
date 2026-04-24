@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { RestaurantContextService } from './restaurant-context.service';
+import { WebsiteAnalyzerService } from './website-analyzer.service';
+import { MenuImporterService } from './menu-importer.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { OccupancyModule } from '../occupancy/occupancy.module';
 import { WeatherModule } from '../weather/weather.module';
@@ -20,7 +22,17 @@ import { ReservationsModule } from '../reservations/reservations.module';
     WeatherModule,
     ReservationsModule,
   ],
-  providers: [AiService, RestaurantContextService],
-  exports: [AiService, RestaurantContextService],
+  providers: [
+    AiService,
+    RestaurantContextService,
+    WebsiteAnalyzerService,
+    MenuImporterService,
+  ],
+  exports: [
+    AiService,
+    RestaurantContextService,
+    WebsiteAnalyzerService,
+    MenuImporterService,
+  ],
 })
 export class AiModule {}

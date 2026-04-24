@@ -6,6 +6,7 @@ import {
   sendChatMessage,
   type ChatMessage,
 } from "../../../lib/api";
+import { useRestaurant } from "../../../lib/restaurant-context";
 
 // De backend geeft messages terug in het nette role-format
 // ('filly' | 'user' | 'system'). We renderen 'system' voorlopig
@@ -24,22 +25,44 @@ export function FillyChat() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Bij mount: haal de actieve chat binnen. Backend maakt 'm aan bij
-  // eerste bezoek (incl. welkomstbericht) zodat we nooit een lege
-  // state hoeven te renderen.
+  // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
+  // voordat we de chat-thread ophalen. Zonder deze check vuurt fetchActiveChat
+  // soms af vóór localStorage de juiste restaurant-id heeft → leeg
+  // X-Restaurant-Id → 400 van de backend. Context.loading afwachten
+  // voorkomt die race.
+  const { active: activeRestaurant, loading: restaurantLoading } =
+    useRestaurant();
+
   useEffect(() => {
+    if (restaurantLoading) return; // context is nog aan het ophalen
+    if (!activeRestaurant) {
+      // User heeft toegang tot geen enkel restaurant (zou niet moeten
+      // kunnen gebeuren op /dashboard, maar defensief vangen).
+      setLoading(false);
+      setError("Nog geen restaurant actief — chat is pas beschikbaar na onboarding.");
+      return;
+    }
+
+    let cancelled = false;
     fetchActiveChat()
       .then((data) => {
+        if (cancelled) return;
         setConversationId(data.conversationId);
         setMessages(data.messages);
         setLoading(false);
       })
       .catch((e) => {
+        if (cancelled) return;
         console.error(e);
-        setError("Kon de chat niet laden. Probeer te verversen.");
+        setError("Kon de chat niet laden. Probeer zo opnieuw.");
         setLoading(false);
       });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+    // Herlaad chat als de user van restaurant wisselt.
+  }, [restaurantLoading, activeRestaurant?.id]);
 
   // Scrollt automatisch naar beneden bij nieuwe berichten + tijdens
   // het wachten op Filly's antwoord (zodat de typing-indicator
