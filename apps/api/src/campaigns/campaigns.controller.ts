@@ -7,8 +7,11 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   CampaignsService,
   type CampaignStatus,
@@ -151,5 +154,40 @@ export class CampaignsController {
     @Body() body: { instruction?: string },
   ) {
     return this.campaigns.refine(restaurantId, id, body.instruction);
+  }
+
+  // Upload een foto voor een concept-campagne (social of whatsapp).
+  // Multipart-upload met 1 bestand. 10MB cap, JPG/PNG/WebP/GIF.
+  // Vervangt eventueel oude foto in storage zodat we geen wezen
+  // krijgen. Returnt het pad + 1-uur signed URL.
+  @Post(':id/media')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  uploadMedia(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Geen bestand ontvangen. Selecteer een foto om te uploaden.',
+      );
+    }
+    return this.campaigns.uploadMedia(restaurantId, id, {
+      buffer: file.buffer,
+      mimeType: file.mimetype,
+      originalName: file.originalname,
+    });
+  }
+
+  @Delete(':id/media')
+  deleteMedia(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.campaigns.deleteMedia(restaurantId, id);
   }
 }

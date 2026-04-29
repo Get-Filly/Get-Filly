@@ -96,6 +96,9 @@ export type CampaignDetail = Campaign & {
     // whatsapp
     message_text?: string;
     template_name?: string;
+    // media_url is whatsapp-specifiek (1 foto/video). Backend levert
+    // hier een 1-uur signed URL voor preview, niet het ruwe storage-pad.
+    media_url?: string | null;
     // shared
     stats?: Record<string, number>;
   } | null;
@@ -202,6 +205,46 @@ export async function generateCampaignVariants(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ instruction: instruction ?? "" }),
   });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Upload foto bij concept-campagne (social/whatsapp). Multipart-form
+// met 1 file-veld 'file'. Backend valideert type + size, vervangt
+// eventueel oude foto, returnt 1-uur signed URL voor preview.
+export async function uploadCampaignMedia(
+  campaignId: string,
+  file: File,
+): Promise<{ path: string; signed_url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  // authedFetch voegt JWT + X-Restaurant-Id toe; multipart Content-
+  // Type laat browser zelf bepalen (incl. boundary).
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/media`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Verwijder huidige foto van een concept-campagne (storage + DB-veld).
+export async function deleteCampaignMedia(
+  campaignId: string,
+): Promise<{ id: string }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/media`,
+    { method: "DELETE" },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);

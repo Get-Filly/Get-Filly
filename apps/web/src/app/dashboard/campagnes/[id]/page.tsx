@@ -10,6 +10,7 @@ import {
 } from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
 import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
+import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
 
 function formatEuroFromCents(cents: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
@@ -493,7 +494,27 @@ export default function CampaignDetailPage() {
                   </div>
                 </div>
               </div>
-              <div className="social-preview-image">📷</div>
+              {/* Foto-slot vervangt de oude emoji-placeholder. Backend
+                  levert een 1-uur signed URL voor een opgeslagen foto;
+                  als die er nog niet is toont de slot een drop-zone.
+                  Editable alleen bij concept-status — verzonden
+                  campagnes zijn immutable. */}
+              <CampaignMediaSlot
+                campaignId={campaign.id}
+                signedUrl={campaign.content?.media_urls?.[0] ?? null}
+                editable={campaign.status === "concept"}
+                onMediaChanged={async () => {
+                  // Refetch zodat de signed URL vers blijft (als
+                  // we 'm in lokale state zouden zetten zit er een
+                  // tijds-bom in: 1 uur expiry).
+                  try {
+                    const fresh = await fetchCampaign(id);
+                    setCampaign(fresh);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+              />
               <div className="social-preview-actions">
                 <span>❤️</span>
                 <span>💬</span>
@@ -514,7 +535,28 @@ export default function CampaignDetailPage() {
           )}
           {!editMode && !isMail && !isSocial && (
             <div className="whatsapp-preview">
-              <div className="whatsapp-preview-bubble">
+              {/* WhatsApp ondersteunt 1 media-item per bericht. Slot
+                  toont voor de tekst zodat het visueel klopt met hoe
+                  WhatsApp Business het rendert. Aspect-ratio 4:3
+                  past beter bij chat-bericht dan vierkant. */}
+              <CampaignMediaSlot
+                campaignId={campaign.id}
+                signedUrl={campaign.content?.media_url ?? null}
+                editable={campaign.status === "concept"}
+                aspectRatio="4 / 3"
+                onMediaChanged={async () => {
+                  try {
+                    const fresh = await fetchCampaign(id);
+                    setCampaign(fresh);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+              />
+              <div
+                className="whatsapp-preview-bubble"
+                style={{ marginTop: 12 }}
+              >
                 {campaign.content?.message_text ?? campaign.body ?? "—"}
               </div>
             </div>

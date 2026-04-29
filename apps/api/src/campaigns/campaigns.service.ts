@@ -86,7 +86,37 @@ export class CampaignsService {
       .eq('campaign_id', id)
       .maybeSingle();
 
-    return { ...campaign, content } as CampaignDetail;
+    // Signed URLs voor media. We slaan paden op in de DB (niet
+    // public URLs), dus frontend krijgt voor elke render verse signed
+    // URLs. 1 uur expiry is genoeg voor dashboard-sessie. Falen we
+    // op signing? Dan tonen we 'm gewoon zonder foto — niet de hele
+    // detail-page laten crashen.
+    let signedContent = content;
+    if (content && campaign.type === 'social') {
+      const paths = Array.isArray(content.media_urls)
+        ? (content.media_urls as string[])
+        : [];
+      const signed = await Promise.all(
+        paths.map((p) =>
+          this.signMediaPath(p).catch(() => null),
+        ),
+      );
+      signedContent = {
+        ...content,
+        media_urls: signed.filter((u): u is string => !!u),
+      };
+    } else if (
+      content &&
+      campaign.type === 'whatsapp' &&
+      typeof content.media_url === 'string'
+    ) {
+      const signed = await this.signMediaPath(content.media_url).catch(
+        () => null,
+      );
+      signedContent = { ...content, media_url: signed };
+    }
+
+    return { ...campaign, content: signedContent } as CampaignDetail;
   }
 
   // Maakt een nieuwe campagne aan als 'concept'. Wordt o.a. gebruikt
@@ -598,6 +628,190 @@ Regels:
       regenerate_count: newCount,
       can_regenerate: newCount < 2,
     };
+  }
+
+  // Upload een foto en koppel 'm aan een concept-campagne. Patroon:
+  //   - Bestand wordt opgeslagen in bucket 'campaign-media' onder
+  //     <restaurant_id>/<campaign_id>/<timestamp>-<safeName>
+  //   - Voor social: vervangt media_urls[] door [path] (max 1 foto in v1)
+  //   - Voor whatsapp: zet media_url op path
+  //   - Voor mail: weigeren (header-image is later werk)
+  // Bij her-upload wissen we de oude file zodat we geen weeszooi
+  // krijgen in storage.
+  async uploadMedia(
+    restaurantId: string,
+    campaignId: string,
+    file: { buffer: Buffer; originalName: string; mimeType: string },
+  ): Promise<{
+    path: string;
+    signed_url: string;
+  }> {
+    const allowed = new Set([
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ]);
+    if (!allowed.has(file.mimeType.toLowerCase())) {
+      throw new BadRequestException(
+        `Bestandstype ${file.mimeType} wordt niet ondersteund. Upload JPG, PNG, WebP of GIF.`,
+      );
+    }
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.buffer.length > MAX_BYTES) {
+      throw new BadRequestException(
+        `Bestand is te groot (${Math.round(file.buffer.length / 1024 / 1024)}MB). Maximaal 10MB.`,
+      );
+    }
+
+    const { data: campaign, error: campErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', campaignId)
+      .maybeSingle();
+    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (!campaign) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (campaign.status !== 'concept') {
+      throw new BadRequestException(
+        `Foto's kunnen alleen bij concept-campagnes worden geüpload (deze is ${campaign.status}).`,
+      );
+    }
+    if (campaign.type === 'mail') {
+      throw new BadRequestException(
+        'Mail-campagnes ondersteunen nog geen foto-upload (komt later).',
+      );
+    }
+
+    // Oude file wissen om wees-bestanden te voorkomen.
+    await this.deleteMediaFiles(restaurantId, campaignId).catch((err) => {
+      // Niet fataal: zelfs als opruim faalt, kunnen we de nieuwe upload
+      // doorzetten. Logwaardig zodat we 't kunnen monitoren.
+      console.warn(
+        `Oude campaign-media kon niet opgeruimd worden voor ${campaignId}: ${err.message}`,
+      );
+    });
+
+    // Pad samenstellen. Sanitize de filename: alleen alfanumeriek +
+    // streepje + punt voor extensie. Te streng of te los is hier
+    // niet waardevol — we willen path-traversal voorkomen.
+    const safeName = file.originalName
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 80);
+    const path = `${restaurantId}/${campaignId}/${Date.now()}-${safeName}`;
+
+    const { error: upErr } = await this.supabase.client.storage
+      .from('campaign-media')
+      .upload(path, file.buffer, {
+        contentType: file.mimeType,
+        upsert: false,
+      });
+    if (upErr) throw new InternalServerErrorException(upErr.message);
+
+    // Path in juiste content-tabel zetten. Voor social: array met 1
+    // path. Voor whatsapp: scalar.
+    if (campaign.type === 'social') {
+      const { error: updErr } = await this.supabase.client
+        .from('campaign_social_content')
+        .update({
+          media_urls: [path],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('campaign_id', campaignId);
+      if (updErr) throw new InternalServerErrorException(updErr.message);
+    } else {
+      const { error: updErr } = await this.supabase.client
+        .from('campaign_whatsapp_content')
+        .update({
+          media_url: path,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('campaign_id', campaignId);
+      if (updErr) throw new InternalServerErrorException(updErr.message);
+    }
+
+    const signed_url = await this.signMediaPath(path);
+    return { path, signed_url };
+  }
+
+  // Wist de huidige foto van een concept-campagne (storage + DB-veld).
+  async deleteMedia(
+    restaurantId: string,
+    campaignId: string,
+  ): Promise<{ id: string }> {
+    const { data: campaign, error: campErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', campaignId)
+      .maybeSingle();
+    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (!campaign) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (campaign.status !== 'concept') {
+      throw new BadRequestException(
+        `Foto verwijderen kan alleen bij concept-campagnes (deze is ${campaign.status}).`,
+      );
+    }
+
+    await this.deleteMediaFiles(restaurantId, campaignId);
+
+    if (campaign.type === 'social') {
+      const { error: updErr } = await this.supabase.client
+        .from('campaign_social_content')
+        .update({
+          media_urls: [],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('campaign_id', campaignId);
+      if (updErr) throw new InternalServerErrorException(updErr.message);
+    } else if (campaign.type === 'whatsapp') {
+      const { error: updErr } = await this.supabase.client
+        .from('campaign_whatsapp_content')
+        .update({
+          media_url: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('campaign_id', campaignId);
+      if (updErr) throw new InternalServerErrorException(updErr.message);
+    }
+
+    return { id: campaignId };
+  }
+
+  // Helper: list + delete alle objects onder <restaurant>/<campaign>/.
+  // Gebruikt door uploadMedia (her-upload-cleanup) en deleteMedia.
+  private async deleteMediaFiles(
+    restaurantId: string,
+    campaignId: string,
+  ): Promise<void> {
+    const prefix = `${restaurantId}/${campaignId}`;
+    const { data: existing, error: listErr } =
+      await this.supabase.client.storage
+        .from('campaign-media')
+        .list(prefix, { limit: 100 });
+    if (listErr) throw new Error(listErr.message);
+    if (!existing || existing.length === 0) return;
+    const paths = existing.map((f) => `${prefix}/${f.name}`);
+    const { error: rmErr } = await this.supabase.client.storage
+      .from('campaign-media')
+      .remove(paths);
+    if (rmErr) throw new Error(rmErr.message);
+  }
+
+  // Helper: maak signed URL voor 1 storage-pad. 1 uur geldig — past
+  // bij dashboard-sessie-duur. Voor verzend-API's straks een verse
+  // URL genereren met langere expiry.
+  async signMediaPath(path: string): Promise<string> {
+    const { data, error } = await this.supabase.client.storage
+      .from('campaign-media')
+      .createSignedUrl(path, 60 * 60);
+    if (error) throw new InternalServerErrorException(error.message);
+    return data.signedUrl;
   }
 
   // Hard delete. Alleen toegestaan voor concept (nog niet verzonden)
