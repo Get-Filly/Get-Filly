@@ -170,6 +170,28 @@ export async function updateCampaignStatus(
   return res.json();
 }
 
+// Genereert 3 alternatieve versies van een concept-campagne via Filly.
+// Pure generator — geen DB-write. Frontend toont varianten en gebruikt
+// updateCampaign om de gekozen variant op te slaan. Optionele instructie
+// stuurt de varianten een richting op ("maak korter", "speelser").
+export async function generateCampaignVariants(
+  id: string,
+  instruction?: string,
+): Promise<{
+  variants: Array<{ subject_line?: string; body: string }>;
+}> {
+  const res = await authedFetch(`${API_URL}/campaigns/${id}/refine`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ instruction: instruction ?? "" }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Hard delete. Alleen toegestaan voor concept of gearchiveerd —
 // backend weigert delete op verzonden/ingeplande/actieve campagnes
 // (audit-relevant, gebruik archiveren voor het uit zicht halen).

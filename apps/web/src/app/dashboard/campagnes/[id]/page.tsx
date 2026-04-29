@@ -9,6 +9,7 @@ import {
   type CampaignDetail,
 } from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
+import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 
 function formatEuroFromCents(cents: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
@@ -520,6 +521,25 @@ export default function CampaignDetailPage() {
           )}
         </div>
       </div>
+
+      {/* "Met Filly bewerken"-paneel: 3 alternatieven + AI-instructie.
+          Alleen bij concept-status zichtbaar; eenmaal ingepland/actief
+          mag de inhoud niet meer wijzigen (audit-veiligheid). */}
+      {campaign.status === "concept" && !editMode && (
+        <CampaignRefinePanel
+          campaignId={campaign.id}
+          type={campaign.type}
+          onApplied={async () => {
+            // Refetch zodat preview de nieuwe inhoud direct toont.
+            try {
+              const fresh = await fetchCampaign(id);
+              setCampaign(fresh);
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+        />
+      )}
 
       {/* Tijdlijn + metadata */}
       <div

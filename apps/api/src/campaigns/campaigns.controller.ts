@@ -128,4 +128,16 @@ export class CampaignsController {
   ) {
     return this.campaigns.remove(restaurantId, id);
   }
+
+  // Genereert 3 alternatieve versies van een concept-campagne via
+  // Claude. Géén DB-write — frontend toont de varianten en de
+  // eigenaar kiest welke 'm via PATCH wil opslaan.
+  @Post(':id/refine')
+  refine(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { instruction?: string },
+  ) {
+    return this.campaigns.refine(restaurantId, id, body.instruction);
+  }
 }

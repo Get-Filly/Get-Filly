@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { AiService } from '../ai/ai.service';
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
 export type CampaignStatus =
@@ -43,7 +44,10 @@ export type CampaignDetail = Campaign & {
 
 @Injectable()
 export class CampaignsService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly ai: AiService,
+  ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
     const { data, error } = await this.supabase.client
@@ -333,6 +337,166 @@ export class CampaignsService {
     if (updErr) throw new InternalServerErrorException(updErr.message);
 
     return { id, status: nextStatus };
+  }
+
+  // Genereert 3 alternatieve versies van een concept-campagne. Pure
+  // generator (geen DB-write) — frontend toont de varianten en de
+  // eigenaar kiest welke 'm via PATCH wil opslaan. Alleen op concept-
+  // status; ingeplande/actieve campagnes zijn immutable.
+  //
+  // De optionele instructie ("maak korter", "speelser") stuurt de
+  // alternatieven die richting op. Zonder instructie krijg je 3
+  // gevarieerde herschrijvingen (warm/zakelijk/speels).
+  async refine(
+    restaurantId: string,
+    id: string,
+    instruction?: string,
+  ): Promise<{
+    variants: Array<{ subject_line?: string; body: string }>;
+  }> {
+    const { data: campaign, error: campErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status, name')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (!campaign) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (campaign.status !== 'concept') {
+      throw new BadRequestException(
+        `Alternatieven genereren kan alleen bij concept-campagnes (deze is ${campaign.status}).`,
+      );
+    }
+
+    const type = campaign.type as 'mail' | 'social' | 'whatsapp';
+    const contentTable =
+      type === 'mail'
+        ? 'campaign_mail_content'
+        : type === 'social'
+          ? 'campaign_social_content'
+          : 'campaign_whatsapp_content';
+
+    const { data: content, error: contentErr } = await this.supabase.client
+      .from(contentTable)
+      .select('*')
+      .eq('campaign_id', id)
+      .maybeSingle();
+
+    if (contentErr) throw new InternalServerErrorException(contentErr.message);
+
+    // Pak de huidige body + (bij mail) onderwerp uit de juiste kolom.
+    const currentBody =
+      type === 'mail'
+        ? (content?.body_plain as string) ?? ''
+        : type === 'social'
+          ? (content?.caption as string) ?? ''
+          : (content?.message_text as string) ?? '';
+    const currentSubject =
+      type === 'mail' ? ((content?.subject_line as string) ?? '') : '';
+
+    const trimmedInstruction =
+      typeof instruction === 'string' ? instruction.trim() : '';
+    if (trimmedInstruction.length > 1000) {
+      throw new BadRequestException(
+        'Instructie mag maximaal 1000 tekens zijn.',
+      );
+    }
+
+    // System-prompt: Filly krijgt de huidige campagne + (optionele)
+    // instructie en moet 3 verschillende alternatieven leveren in
+    // exact deze JSON-vorm. Net als bij chat-proposals stellen we
+    // varianten écht-verschillend qua toon: warm / zakelijk / speels.
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken.
+
+Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok, zonder uitleg eromheen:
+
+{
+  "variants": [
+    { "subject_line": "<onderwerp v1>", "body": "<tekst v1>" },
+    { "subject_line": "<onderwerp v2>", "body": "<tekst v2>" },
+    { "subject_line": "<onderwerp v3>", "body": "<tekst v3>" }
+  ]
+}
+
+Regels:
+- EXACT 3 varianten. Maak ze écht verschillend in toon/insteek/lengte
+  (bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort).
+  Niet alleen wat woorden anders.
+- Behoud de kern van de boodschap (datum, aanbod, USP) tenzij de
+  instructie expliciet vraagt om iets te wijzigen.
+- "subject_line" alleen voor mail-campagnes; voor social/whatsapp mag
+  je 'm leeg laten of weglaten.
+- "body" bevat de volledige uitgeschreven tekst.
+- Schrijf in het Nederlands.
+- Verzin geen feiten/cijfers die niet in de oorspronkelijke versie
+  stonden.`;
+
+    const currentSnapshot = {
+      name: campaign.name as string,
+      type,
+      ...(currentSubject ? { subject_line: currentSubject } : {}),
+      body: currentBody,
+    };
+
+    const userPrompt = trimmedInstruction
+      ? `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`
+      : `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
+
+    const answer = await this.ai.generateText({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 2000,
+      meta: {
+        restaurantId,
+        feature: 'campaign_refine',
+      },
+    });
+
+    // Parser: pak het JSON-blok uit het antwoord. Als Claude per
+    // ongeluk markdown gebruikt, vangen we het eerste { ... }-blok.
+    const match = answer.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new InternalServerErrorException(
+        'Filly gaf geen leesbaar antwoord. Probeer het opnieuw.',
+      );
+    }
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(match[0]) as Record<string, unknown>;
+    } catch {
+      throw new InternalServerErrorException(
+        "Kon Filly's antwoord niet lezen. Probeer het opnieuw.",
+      );
+    }
+
+    const rawVariants = Array.isArray(parsed.variants) ? parsed.variants : [];
+    const variants: Array<{ subject_line?: string; body: string }> = [];
+    for (const v of rawVariants) {
+      if (!v || typeof v !== 'object') continue;
+      const o = v as Record<string, unknown>;
+      const body = typeof o.body === 'string' ? o.body.trim() : '';
+      if (!body) continue;
+      const variant: { subject_line?: string; body: string } = { body };
+      if (
+        typeof o.subject_line === 'string' &&
+        o.subject_line.trim().length > 0
+      ) {
+        variant.subject_line = o.subject_line.trim().slice(0, 200);
+      }
+      variants.push(variant);
+    }
+
+    if (variants.length === 0) {
+      throw new InternalServerErrorException(
+        'Filly leverde geen bruikbare alternatieven. Probeer het opnieuw of geef een specifiekere instructie.',
+      );
+    }
+
+    return { variants };
   }
 
   // Hard delete. Alleen toegestaan voor concept (nog niet verzonden)
