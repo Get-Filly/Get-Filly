@@ -83,7 +83,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## P2 — Mock-features naar echt
 
 ### Campagne-concept-UX (ideeën vanuit Floris-ronde 2026-04-24)
-- [ ] **3 varianten genereren per suggestie** — i.p.v. één voorstel + iteratief sparren: Filly produceert meteen 3 alternatieve versies naast elkaar. User kiest favoriet → klikt "Bewerken" (onder de gekozen variant) → aanpassen in concept-campagne-detail. Minder chat-heen-en-weer, sneller tot afgewerkte tekst.
+- [~] **3 varianten genereren per suggestie** — gedaan 2026-04-25. Filly genereert 3 versies per chat-proposal, modal toont ze naast elkaar met selectie + refine + goedkeuren. Approve gebruikt geselecteerde variant.
 - [ ] **Media-upload op concept-campagne** — voor social/WhatsApp: upload eigen foto OF kies uit eerder goed-werkende afbeeldingen ("gebruik dezelfde foto als vorige campagne"). Preview-block vervangt de huidige 📷-emoji-placeholder.
 - [ ] **Bewerken-knop onder variant i.p.v. rechtsboven** — intuïtiever als de actie visueel bij de gekozen variant hoort.
 
@@ -188,6 +188,11 @@ werken. Laatste audit: 2026-04-23.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
 ## Recent voltooid
+
+### 2026-04-25 — Quick-actions + TasksStrip-filter + 3-varianten-flow
+- ✅ **Quick-actions in campagnes-tabel**: nieuwe kolom "Actie" rechts naast Status. Per status andere knoppen: concept → Inplannen / Verwijderen, ingepland → Activeren / Concept / Archiveer, actief → Stop, afgerond → Archiveer, gearchiveerd → Verwijderen. `PATCH /api/campaigns/:id/status` met allowed-transitions-map; `DELETE /api/campaigns/:id` alleen op concept of gearchiveerd (audit-veiligheid).
+- ✅ **TasksStrip filter + scroll**: tabs "Actie vereist (N)" / "Alle (N)" — eerste filtert op high+medium prio. Lijst krijgt `max-height: 320px` met scroll zodat lange takenlijsten de pagina niet uitrekken.
+- ✅ **3 varianten per chat-proposal**: prompt updated zodat Filly altijd 3 alternatieven naast elkaar genereert (warm/zakelijk/speels). Parser ondersteunt zowel variants[] als legacy single-body. SuggestionDetailModal rendert klikbare grid; selectie via `POST /api/suggestions/:id/select-variant`. Refine herschrijft alleen geselecteerde variant. Approve maakt campagne uit geselecteerde variant.
 
 ### 2026-04-24 — Concept-campagne bewerken + chat-refine op suggesties + empty-state-sweep
 - ✅ `PATCH /api/campaigns/:id` — updaten van concept-campagnes (name, subject_line, body). Backend weigert als status ≠ concept zodat verzonden/ingeplande campagnes immutable blijven.

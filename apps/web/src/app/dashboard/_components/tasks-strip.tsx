@@ -52,12 +52,19 @@ const priorityLabel: Record<TaskItem["priority"], string> = {
   low: "Planning",
 };
 
+// Filter-tabs in de TasksStrip. 'action' = priority high + medium
+// (de "doet er deze week toe"-categorie). 'all' toont ook low.
+type TaskFilter = "all" | "action";
+
 export function TasksStrip() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [loading, setLoading] = useState(true);
+  // Default 'action' zodat user direct ziet wat NU telt; veelal is
+  // dat ook de korte lijst die op één scherm past zonder scrollen.
+  const [filter, setFilter] = useState<TaskFilter>("action");
 
   useEffect(() => {
     const now = new Date();
@@ -203,6 +210,21 @@ export function TasksStrip() {
     return out.sort((a, b) => order[a.priority] - order[b.priority]);
   }, [guests, reservations, reviews, occupancy]);
 
+  // Counts vóór filtering — zodat de tabs altijd de juiste aantallen
+  // tonen, ook in 'action'-modus waar je low-prio niet ziet.
+  const actionCount = tasks.filter(
+    (t) => t.priority === "high" || t.priority === "medium",
+  ).length;
+  const totalCount = tasks.length;
+
+  // Toepassen van de actieve filter.
+  const visibleTasks =
+    filter === "action"
+      ? tasks.filter(
+          (t) => t.priority === "high" || t.priority === "medium",
+        )
+      : tasks;
+
   // Niet tonen tijdens loading of als er helemaal niks te doen is —
   // een lege strip met "geen taken" zou alleen visuele ruis zijn op
   // een pagina die de Filly-voorstellen en campagnes al toont.
@@ -212,32 +234,111 @@ export function TasksStrip() {
     <section style={{ marginBottom: 16 }}>
       <div
         style={{
-          fontSize: 15,
-          fontWeight: 600,
-          color: "var(--text, #18181B)",
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
           marginBottom: 2,
         }}
       >
-        Overige acties
-      </div>
-      <div
-        style={{
-          fontSize: 12,
-          color: "var(--tl)",
-          marginBottom: 10,
-        }}
-      >
-        Reviews, reserveringen en inzichten die je aandacht vragen.
+        <div>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: "var(--text, #18181B)",
+              marginBottom: 2,
+            }}
+          >
+            Overige acties
+          </div>
+          <div style={{ fontSize: 12, color: "var(--tl)" }}>
+            Reviews, reserveringen en inzichten die je aandacht vragen.
+          </div>
+        </div>
+
+        {/* Filter-tabs rechts in de header. "Actie vereist" telt high
+            + medium (oranje + rood); de pagina is daarmee direct
+            actie-gericht. Toggle naar "Alle" voor planning/low-prio. */}
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          <button
+            onClick={() => setFilter("action")}
+            style={{
+              padding: "4px 10px",
+              fontSize: 12,
+              fontWeight: filter === "action" ? 600 : 500,
+              border: "1px solid var(--border, #E5DFD0)",
+              borderRadius: 999,
+              background:
+                filter === "action"
+                  ? "var(--accent-light, #D6E0D8)"
+                  : "transparent",
+              color:
+                filter === "action"
+                  ? "var(--accent, #1F4A2D)"
+                  : "var(--ts)",
+              cursor: "pointer",
+            }}
+          >
+            Actie vereist ({actionCount})
+          </button>
+          <button
+            onClick={() => setFilter("all")}
+            style={{
+              padding: "4px 10px",
+              fontSize: 12,
+              fontWeight: filter === "all" ? 600 : 500,
+              border: "1px solid var(--border, #E5DFD0)",
+              borderRadius: 999,
+              background:
+                filter === "all"
+                  ? "var(--accent-light, #D6E0D8)"
+                  : "transparent",
+              color:
+                filter === "all" ? "var(--accent, #1F4A2D)" : "var(--ts)",
+              cursor: "pointer",
+            }}
+          >
+            Alle ({totalCount})
+          </button>
+        </div>
       </div>
 
+      <div style={{ height: 8 }} />
+
+      {/* Scroll-container: max 320px hoog zodat de pagina niet
+          eindeloos lang wordt bij veel taken. Inner-grid behoudt
+          dezelfde card-layout. Subtiele scrollbar via dashboard.css. */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 480px))",
-          gap: 10,
+          maxHeight: 320,
+          overflowY: "auto",
+          paddingRight: 4,
         }}
       >
-        {tasks.map((t) => {
+        {visibleTasks.length === 0 ? (
+          <div
+            style={{
+              padding: "16px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--tl)",
+              border: "1px dashed var(--border, #E5DFD0)",
+              borderRadius: 8,
+            }}
+          >
+            Geen taken in deze filter. Wissel naar "Alle" voor de
+            volledige lijst.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 480px))",
+              gap: 10,
+            }}
+          >
+            {visibleTasks.map((t) => {
           const inner = (
             <div
               style={{
@@ -312,6 +413,8 @@ export function TasksStrip() {
             <div key={t.id}>{inner}</div>
           );
         })}
+          </div>
+        )}
       </div>
     </section>
   );

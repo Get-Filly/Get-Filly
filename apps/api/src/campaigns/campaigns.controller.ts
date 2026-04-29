@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   CampaignsService,
+  type CampaignStatus,
   type CampaignType,
 } from './campaigns.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
@@ -88,5 +90,42 @@ export class CampaignsController {
     },
   ) {
     return this.campaigns.update(restaurantId, id, body);
+  }
+
+  // Status-transitie endpoint. Aparte route i.p.v. status-veld in
+  // de generieke PATCH zodat valideerbare lifecycle-logica niet stil
+  // kan worden omzeild (bv. concept-edit die per ongeluk een status-
+  // wijziging meestuurt).
+  @Patch(':id/status')
+  updateStatus(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { status?: string },
+  ) {
+    const status = body.status;
+    if (
+      status !== 'concept' &&
+      status !== 'ingepland' &&
+      status !== 'actief' &&
+      status !== 'afgerond' &&
+      status !== 'gearchiveerd'
+    ) {
+      throw new BadRequestException(
+        'Ongeldige status. Gebruik concept, ingepland, actief, afgerond of gearchiveerd.',
+      );
+    }
+    return this.campaigns.updateStatus(
+      restaurantId,
+      id,
+      status as CampaignStatus,
+    );
+  }
+
+  @Delete(':id')
+  remove(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.campaigns.remove(restaurantId, id);
   }
 }

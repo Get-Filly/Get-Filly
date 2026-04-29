@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   approveSuggestion,
   fetchActiveChat,
+  fetchSuggestion,
   fetchSuggestions,
   sendChatMessage,
+  type AiSuggestion,
   type ChatMessage,
   type CampaignProposalCard,
 } from "../../../lib/api";
+import { SuggestionDetailModal } from "./suggestion-detail-modal";
 import { useRestaurant } from "../../../lib/restaurant-context";
 
 // De backend geeft messages terug in het nette role-format
@@ -45,6 +48,15 @@ export function FillyChat() {
   const [proposalStatus, setProposalStatus] = useState<
     Record<string, ProposalStatus>
   >({});
+  // Welke proposal staat open in de detail-modal? Slaan de hele
+  // suggestion op zodat de modal direct kan renderen zonder eerst
+  // een fetch te doen — proposal-data uit de chat is al voldoende
+  // voor de eerste paint.
+  const [detailSuggestion, setDetailSuggestion] =
+    useState<AiSuggestion | null>(null);
+  // De messageId waar de open modal bij hoort, zodat we na approve
+  // de juiste chat-kaart op 'created' kunnen zetten.
+  const [detailMessageId, setDetailMessageId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
@@ -210,6 +222,23 @@ export function FillyChat() {
     setProposalStatus((s) => ({ ...s, [messageId]: { state: "dismissed" } }));
   };
 
+  // Modal openen voor variant-keuze + refine. We fetchen de actuele
+  // suggestion (status, current selected_index) zodat de modal niet
+  // staat te werken op stale data uit de chat-historie.
+  const openDetails = async (
+    messageId: string,
+    proposal: CampaignProposalCard,
+  ) => {
+    setDetailMessageId(messageId);
+    try {
+      const sugg = await fetchSuggestion(proposal.suggestion_id);
+      setDetailSuggestion(sugg);
+    } catch (e) {
+      console.error(e);
+      setDetailMessageId(null);
+    }
+  };
+
   return (
     <div className="card chat-card">
       <div className="card-h">
@@ -256,6 +285,12 @@ export function FillyChat() {
                       status={proposalStatus[m.id] ?? { state: "pending" }}
                       onAccept={() => acceptProposal(m.id, m.message_card as CampaignProposalCard)}
                       onDismiss={() => dismissProposal(m.id)}
+                      onOpenDetails={() =>
+                        openDetails(
+                          m.id,
+                          m.message_card as CampaignProposalCard,
+                        )
+                      }
                     />
                   )}
                 </div>
@@ -319,6 +354,40 @@ export function FillyChat() {
           </button>
         </div>
       </div>
+
+      {/* Detail-modal voor het bekijken/bewerken van varianten +
+          refine-chat. Gestart vanaf de "Bekijk versies →"-knop in
+          ProposalCard. */}
+      {detailSuggestion && detailMessageId && (
+        <SuggestionDetailModal
+          suggestion={detailSuggestion}
+          onClose={() => {
+            setDetailSuggestion(null);
+            setDetailMessageId(null);
+          }}
+          onApproved={(campaignId) => {
+            setProposalStatus((s) => ({
+              ...s,
+              [detailMessageId]: { state: "created", campaignId },
+            }));
+            setDetailSuggestion(null);
+            setDetailMessageId(null);
+          }}
+          onRejected={() => {
+            setProposalStatus((s) => ({
+              ...s,
+              [detailMessageId]: { state: "dismissed" },
+            }));
+            setDetailSuggestion(null);
+            setDetailMessageId(null);
+          }}
+          onUpdated={(updated) => {
+            // Refresh de modal-state met nieuwe variant-content of
+            // selected_index zonder de modal te sluiten.
+            setDetailSuggestion(updated);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -336,11 +405,13 @@ function ProposalCard({
   status,
   onAccept,
   onDismiss,
+  onOpenDetails,
 }: {
   proposal: CampaignProposalCard;
   status: ProposalStatus;
   onAccept: () => void;
   onDismiss: () => void;
+  onOpenDetails: () => void;
 }) {
   const typeLabel =
     proposal.type === "mail"
@@ -389,17 +460,42 @@ function ProposalCard({
       <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
         {proposal.name}
       </div>
-      {proposal.subject_line && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--text-secondary, #52525B)",
-            marginBottom: 4,
-          }}
-        >
-          Onderwerp: {proposal.subject_line}
-        </div>
-      )}
+      {/* Pak de geselecteerde variant (default 0). Toon onderwerp +
+          korte body-preview zodat user zonder modal-klik kan zien
+          wat er gemaakt wordt. */}
+      {(() => {
+        const variant =
+          proposal.variants?.[proposal.selected_index ?? 0] ?? null;
+        const subject = variant?.subject_line;
+        return (
+          <>
+            {subject && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-secondary, #52525B)",
+                  marginBottom: 4,
+                }}
+              >
+                Onderwerp: {subject}
+              </div>
+            )}
+            {proposal.variants && proposal.variants.length > 1 && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-secondary, #52525B)",
+                  marginBottom: 4,
+                  fontStyle: "italic",
+                }}
+              >
+                Filly bedacht {proposal.variants.length} versies — kies
+                je favoriet via "Bekijk versies".
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {status.state === "pending" && (
         <div
@@ -407,6 +503,7 @@ function ProposalCard({
             display: "flex",
             gap: 8,
             marginTop: 10,
+            flexWrap: "wrap",
           }}
         >
           <button
@@ -422,8 +519,25 @@ function ProposalCard({
               cursor: "pointer",
             }}
           >
-            Ja, maak aan als concept
+            Ja, maak aan
           </button>
+          {proposal.variants && proposal.variants.length > 1 && (
+            <button
+              onClick={onOpenDetails}
+              style={{
+                padding: "6px 12px",
+                background: "transparent",
+                color: "var(--accent, #1F4A2D)",
+                border: "1px solid var(--accent, #1F4A2D)",
+                borderRadius: 6,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              Bekijk versies →
+            </button>
+          )}
           <button
             onClick={onDismiss}
             style={{

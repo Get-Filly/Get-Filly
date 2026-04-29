@@ -151,6 +151,39 @@ export async function updateCampaign(
   return res.json();
 }
 
+// Status-transitie. Backend valideert toegestane mappings
+// (concept→ingepland, ingepland→actief, actief→afgerond, etc).
+// Voor Activeren wordt executed_at automatisch op now() gezet.
+export async function updateCampaignStatus(
+  id: string,
+  status: CampaignStatus,
+): Promise<{ id: string; status: CampaignStatus }> {
+  const res = await authedFetch(`${API_URL}/campaigns/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Hard delete. Alleen toegestaan voor concept of gearchiveerd —
+// backend weigert delete op verzonden/ingeplande/actieve campagnes
+// (audit-relevant, gebruik archiveren voor het uit zicht halen).
+export async function deleteCampaign(id: string): Promise<{ id: string }> {
+  const res = await authedFetch(`${API_URL}/campaigns/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export type Guest = {
   id: string;
   first_name: string | null;
@@ -315,6 +348,13 @@ export type AiSuggestion = {
   suggested_campaign: {
     name?: string;
     type?: "mail" | "social" | "whatsapp";
+    // Nieuwe shape (sinds 3-varianten-flow):
+    variants?: Array<{
+      subject_line?: string;
+      body?: string;
+    }>;
+    selected_index?: number;
+    // Legacy single-body shape (voor seed-data):
     subject?: string;
     subject_line?: string;
     caption?: string;
@@ -367,9 +407,31 @@ export async function approveSuggestion(
   return res.json();
 }
 
+// Variant-selectie: stel in welke van de 3 varianten de eigenaar
+// verkiest. Backend update selected_index op de suggestion zodat
+// approve + refine straks die variant gebruiken.
+export async function selectSuggestionVariant(
+  suggestionId: string,
+  index: number,
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/select-variant`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ index }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Refine-flow: laat Filly de suggestie aanpassen op basis van een
-// natuurlijke-taal-instructie ("maak huiselijker", "korter"). De
-// suggestie blijft pending; inhoud wordt door Claude herschreven.
+// natuurlijke-taal-instructie ("maak huiselijker", "korter"). Werkt
+// op de geselecteerde variant; andere blijven onaangetast.
 export async function refineSuggestion(
   suggestionId: string,
   instruction: string,
@@ -544,6 +606,11 @@ export type ChatRole = "filly" | "user" | "system";
 // voor een actie. Voor v1 alleen campagne-voorstellen; later komen er
 // meer kinds (review_reply, guest_message, etc.). Frontend rendert
 // een bijpassend kaartje onder het bericht.
+export type ProposalVariant = {
+  subject_line?: string;
+  body: string;
+};
+
 export type CampaignProposalCard = {
   kind: "campaign_proposal";
   // FK naar ai_suggestions.id. Backend maakt de suggestie al aan
@@ -553,8 +620,11 @@ export type CampaignProposalCard = {
   suggestion_id: string;
   type: "mail" | "social" | "whatsapp";
   name: string;
-  subject_line?: string;
-  body: string;
+  // 3 varianten naast elkaar. Frontend toont ze in een grid; user
+  // kiest favoriet (selected_index) en kan eventueel refinen voor
+  // approve.
+  variants: ProposalVariant[];
+  selected_index: number;
   // Backend vult deze bij het ophalen van chat-historie vanuit de
   // ai_suggestions-join. Zo weet de frontend na navigatie terug naar
   // de chat of de suggestie al approved/rejected is — dan tonen we

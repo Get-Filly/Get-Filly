@@ -51,8 +51,7 @@ export class SuggestionsController {
 
   // Refine-flow: laat Filly het voorstel aanpassen volgens een user-
   // instructie ("maak huiselijker", "korter onderwerp"). Body bevat
-  // { instruction: string }. Retourneert de bijgewerkte suggestie
-  // zodat de frontend direct kan renderen.
+  // { instruction: string }. Werkt op de geselecteerde variant.
   @Post(':id/refine')
   refine(
     @RestaurantId() restaurantId: string,
@@ -60,6 +59,18 @@ export class SuggestionsController {
     @Body() body: { instruction?: string },
   ) {
     return this.suggestions.refine(restaurantId, id, body.instruction ?? '');
+  }
+
+  // Variant-selectie: zet welke van de 3 varianten de eigenaar
+  // verkiest als basis voor refine/approve. Body: { index: number }.
+  @Post(':id/select-variant')
+  selectVariant(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { index?: number },
+  ) {
+    const idx = typeof body.index === 'number' ? body.index : -1;
+    return this.suggestions.selectVariant(restaurantId, id, idx);
   }
 
   @Patch(':id')

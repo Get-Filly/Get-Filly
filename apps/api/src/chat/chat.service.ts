@@ -22,22 +22,30 @@ export type ChatRole = 'filly' | 'user' | 'system';
 // kunnen audit-en en analyseren.
 export type MessageCard = CampaignProposalCard;
 
+// Eén variant van een campagne-voorstel. Filly genereert er normaal
+// drie naast elkaar zodat de eigenaar kan kiezen i.p.v. iteratief
+// blijven sparren.
+export type ProposalVariant = {
+  subject_line?: string;
+  body: string;
+};
+
 export type CampaignProposalCard = {
   kind: 'campaign_proposal';
   // FK naar ai_suggestions.id — gezet zodra het voorstel als
-  // pending-suggestie is opgeslagen. Frontend gebruikt deze id om
-  // door te linken naar de goedkeur-flow of om 'm af te wijzen.
+  // pending-suggestie is opgeslagen.
   suggestion_id: string;
   type: 'mail' | 'social' | 'whatsapp';
   name: string;
-  // Mail-specifiek; optioneel voor social/whatsapp.
-  subject_line?: string;
-  // Hoofdtekst van het voorstel (mail-body, caption of whatsapp-bericht).
-  body: string;
-  // Optioneel bij het ophalen: de actuele status van de onderliggende
-  // ai_suggestion (pending/approved/rejected). Wordt door getRecent-
-  // Messages ingevuld via een JOIN zodat de UI na re-mount de juiste
-  // state toont (bv. "Concept aangemaakt →" i.p.v. de knoppen).
+  // 3 varianten van Filly. Modal toont ze naast elkaar; eigenaar
+  // selecteert favoriet, kan vervolgens bewerken/refinen voor
+  // goedkeuren.
+  variants: ProposalVariant[];
+  // Welke variant is geselecteerd (default 0). Bij goedkeuren wordt
+  // deze gebruikt om de campagne mee te vullen.
+  selected_index: number;
+  // Optioneel bij het ophalen: actuele status van de onderliggende
+  // ai_suggestion zodat de UI na re-mount de juiste state toont.
   suggestion_status?: string;
   approved_campaign_id?: string | null;
 };
@@ -319,13 +327,16 @@ export class ChatService {
 
     if (parsed.proposal) {
       try {
+        // We slaan de hele proposal op in suggested_campaign (incl.
+        // alle varianten). Approve-flow leest later selected_index
+        // en gebruikt die variant voor de campagne-aanmaak.
         const { id } = await this.suggestionsService.createFromChat(
           restaurantId,
           {
             type: parsed.proposal.type,
             name: parsed.proposal.name,
-            subject_line: parsed.proposal.subject_line,
-            body: parsed.proposal.body,
+            variants: parsed.proposal.variants,
+            selected_index: parsed.proposal.selected_index,
           },
         );
         suggestionId = id;
@@ -424,21 +435,26 @@ wanneer — je in je antwoord een concrete, actionable campagne voorstelt
 (dus een mail-, social- of whatsapp-bericht waar jij de inhoud al voor
 hebt bedacht), sluit je je antwoord af met een speciaal machine-leesbaar
 blok. De eigenaar ziet dit blok niet; de frontend toont op basis daarvan
-een knop "Zal ik deze aanmaken?".
+drie varianten naast elkaar zodat hij/zij kan kiezen.
 
-Formaat (LETTERLIJK zo, één paar tags per bericht, één JSON-object):
+Formaat (LETTERLIJK zo, één paar tags per bericht, één JSON-object met
+EXACT 3 varianten):
 
 <<FILLY_PROPOSE_CAMPAIGN>>
-{"type":"mail","name":"<korte titel>","subject_line":"<onderwerp>","body":"<volledige tekst>"}
+{"type":"mail","name":"<korte titel>","variants":[{"subject_line":"<onderwerp v1>","body":"<volledige tekst v1>"},{"subject_line":"<onderwerp v2>","body":"<volledige tekst v2>"},{"subject_line":"<onderwerp v3>","body":"<volledige tekst v3>"}]}
 <<END>>
 
 Regels:
 - Gebruik het blok ALLEEN als je bericht een uitgewerkte campagne bevat
   (niet bij algemene tips of brainstorm-ideeën).
-- Eindig je gewone tekst eerst met een korte vraag als "Zal ik 'm voor
-  je aanmaken als concept?" zodat de eigenaar weet dat er een knop komt.
+- Eindig je gewone tekst eerst met een korte vraag als "Ik heb drie
+  versies bedacht — kies je favoriet?" zodat de eigenaar weet dat er
+  iets komt.
 - type = "mail" | "social" | "whatsapp"
 - "name" is een korte werknaam (max 60 tekens), bv. "Italiaanse avond mei"
+- 3 varianten. Maak ze écht verschillend in toon/insteek/lengte —
+  bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort.
+  Niet alleen wat woorden anders.
 - "subject_line" hoort bij mail; voor social/whatsapp mag je 'm weglaten.
 - "body" bevat de volledige uitgeschreven tekst die in de campagne komt.
 - Gebruik dubbele aanhalingstekens binnen body door \\" te escapen.
@@ -479,6 +495,22 @@ const PROPOSAL_REGEX =
 // volledige CampaignProposalCard door suggestion_id toe te voegen.
 export type ParsedProposal = Omit<CampaignProposalCard, 'suggestion_id'>;
 
+// Sanitize 1 variant. Returnt null als naam/body ontbreekt of leeg is
+// (dan is de variant onbruikbaar voor approve straks).
+function sanitizeVariant(v: unknown): ProposalVariant | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.body !== 'string' || o.body.trim().length === 0) return null;
+  const variant: ProposalVariant = { body: o.body.trim() };
+  if (
+    typeof o.subject_line === 'string' &&
+    o.subject_line.trim().length > 0
+  ) {
+    variant.subject_line = o.subject_line.trim().slice(0, 200);
+  }
+  return variant;
+}
+
 export function extractCampaignProposal(
   raw: string,
 ): { cleanText: string; proposal: ParsedProposal | null } {
@@ -494,15 +526,34 @@ export function extractCampaignProposal(
     const parsed = JSON.parse(jsonPart) as Record<string, unknown>;
     const type = parsed.type;
     const name = parsed.name;
-    const body = parsed.body;
 
     if (
       (type !== 'mail' && type !== 'social' && type !== 'whatsapp') ||
       typeof name !== 'string' ||
-      typeof body !== 'string' ||
-      name.trim().length === 0 ||
-      body.trim().length === 0
+      name.trim().length === 0
     ) {
+      return { cleanText, proposal: null };
+    }
+
+    // Twee paden: nieuwe variants[]-shape (3 varianten naast elkaar)
+    // én legacy single-body (voor backwards-compat met oude prompt-
+    // versies of als Claude per ongeluk de oude shape returnt). De
+    // legacy-shape promoten we direct naar één variant in een array
+    // zodat het downstream-model uniform is.
+    let variants: ProposalVariant[] = [];
+    if (Array.isArray(parsed.variants)) {
+      variants = parsed.variants
+        .map(sanitizeVariant)
+        .filter((v): v is ProposalVariant => v !== null);
+    } else if (typeof parsed.body === 'string' && parsed.body.trim()) {
+      const single = sanitizeVariant({
+        body: parsed.body,
+        subject_line: parsed.subject_line,
+      });
+      if (single) variants = [single];
+    }
+
+    if (variants.length === 0) {
       return { cleanText, proposal: null };
     }
 
@@ -510,14 +561,9 @@ export function extractCampaignProposal(
       kind: 'campaign_proposal',
       type,
       name: name.trim().slice(0, 120),
-      body: body.trim(),
+      variants,
+      selected_index: 0,
     };
-    if (
-      typeof parsed.subject_line === 'string' &&
-      parsed.subject_line.trim().length > 0
-    ) {
-      proposal.subject_line = parsed.subject_line.trim().slice(0, 200);
-    }
     return { cleanText, proposal };
   } catch {
     // JSON-fout: blok negeren, tekst wél opschonen (anders ziet user

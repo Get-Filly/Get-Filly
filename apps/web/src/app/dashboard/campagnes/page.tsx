@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   approveSuggestion,
+  deleteCampaign,
   fetchCampaigns,
   fetchSuggestions,
+  updateCampaignStatus,
   updateSuggestion,
   type AiSuggestion,
   type Campaign,
@@ -121,6 +123,11 @@ export default function CampagnesPage() {
   // Welke suggestie staat open in de detail-modal? Null = dicht.
   const [detailSuggestion, setDetailSuggestion] =
     useState<AiSuggestion | null>(null);
+  // Welke campagnes ondergaan op dit moment een quick-action zodat
+  // we de knoppen kunnen disablen tijdens de roundtrip naar de server.
+  const [campaignAction, setCampaignAction] = useState<
+    Record<string, "saving" | "deleting">
+  >({});
 
   // Bij mount halen we campagnes + pending + rejected parallel op.
   // Rejected hebben we vooraf nodig zodat we de tab-count direct
@@ -224,6 +231,69 @@ export default function CampagnesPage() {
           message: e instanceof Error ? e.message : "Afwijzen mislukt.",
         },
       }));
+    }
+  };
+
+  // Quick-action: campagne van status veranderen (concept → ingepland,
+  // ingepland → actief, etc). Optimistisch updaten in lokale state na
+  // succes — server is bron van waarheid maar refetch kost een extra
+  // roundtrip die we hier kunnen besparen.
+  const handleCampaignStatus = async (
+    c: Campaign,
+    next: Campaign["status"],
+  ) => {
+    setCampaignAction((m) => ({ ...m, [c.id]: "saving" }));
+    try {
+      await updateCampaignStatus(c.id, next);
+      setCampaigns((prev) =>
+        prev.map((x) => (x.id === c.id ? { ...x, status: next } : x)),
+      );
+    } catch (e) {
+      console.error(e);
+      // Eenvoudige feedback voor nu — alert is niet mooi maar
+      // duidelijk; later vervangen door inline toast-systeem.
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Status-wijziging mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setCampaignAction((m) => {
+        const copy = { ...m };
+        delete copy[c.id];
+        return copy;
+      });
+    }
+  };
+
+  // Hard-delete vraagt expliciete bevestiging — dit is onomkeerbaar.
+  // Backend laat alleen concept- of gearchiveerde campagnes wissen,
+  // dus de bevestiging kan kort blijven.
+  const handleCampaignDelete = async (c: Campaign) => {
+    if (
+      !confirm(
+        `Weet je zeker dat je '${c.name}' wilt verwijderen? Dit kan niet ongedaan worden.`,
+      )
+    ) {
+      return;
+    }
+    setCampaignAction((m) => ({ ...m, [c.id]: "deleting" }));
+    try {
+      await deleteCampaign(c.id);
+      setCampaigns((prev) => prev.filter((x) => x.id !== c.id));
+    } catch (e) {
+      console.error(e);
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Verwijderen mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setCampaignAction((m) => {
+        const copy = { ...m };
+        delete copy[c.id];
+        return copy;
+      });
     }
   };
 
@@ -548,6 +618,7 @@ export default function CampagnesPage() {
               <th>Details</th>
               <th>Impact</th>
               <th>Status</th>
+              <th style={{ width: 220 }}>Actie</th>
             </tr>
           </thead>
           <tbody>
@@ -555,6 +626,8 @@ export default function CampagnesPage() {
               const stats = c.result_stats ?? {};
               const extraRes = stats.extra_reservations;
               const revenueCents = campaignImpactEuro(c);
+              const action = campaignAction[c.id];
+              const busy = action !== undefined;
               return (
                 <tr
                   key={c.id}
@@ -589,6 +662,32 @@ export default function CampagnesPage() {
                   </td>
                   <td>
                     <span className={`badge ${c.status}`}>{c.status}</span>
+                  </td>
+                  {/* Quick-actions per status. stopPropagation zodat
+                      de row-klik (naar detail-page) niet ook afvuurt
+                      bij elke knop-klik. */}
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <CampaignActions
+                      status={c.status}
+                      busy={busy}
+                      action={action}
+                      onSchedule={() =>
+                        handleCampaignStatus(c, "ingepland")
+                      }
+                      onActivate={() =>
+                        handleCampaignStatus(c, "actief")
+                      }
+                      onPause={() =>
+                        handleCampaignStatus(c, "concept")
+                      }
+                      onComplete={() =>
+                        handleCampaignStatus(c, "afgerond")
+                      }
+                      onArchive={() =>
+                        handleCampaignStatus(c, "gearchiveerd")
+                      }
+                      onDelete={() => handleCampaignDelete(c)}
+                    />
                   </td>
                 </tr>
               );
@@ -668,8 +767,28 @@ function SuggestionCard({
   const sc = suggestion.suggested_campaign ?? {};
   const type = sc.type ?? "mail";
   const name = sc.name ?? "Naamloos voorstel";
-  const subject = sc.subject_line ?? sc.subject;
-  const body = sc.body ?? sc.caption ?? "";
+
+  // Multi-variant shape (3-varianten-flow) heeft prioriteit; we
+  // pakken de geselecteerde variant voor de preview. Legacy single-
+  // body blijft werken via fallback. Zo blijven oude seed-suggesties
+  // én nieuwe chat-proposals beide netjes renderen op de kaart.
+  const variants =
+    Array.isArray(sc.variants) && sc.variants.length > 0
+      ? sc.variants
+      : null;
+  const selectedVariantIdx =
+    typeof sc.selected_index === "number" &&
+    variants &&
+    sc.selected_index >= 0 &&
+    sc.selected_index < variants.length
+      ? sc.selected_index
+      : 0;
+  const selectedVariant = variants ? variants[selectedVariantIdx] : null;
+
+  const subject =
+    selectedVariant?.subject_line ?? sc.subject_line ?? sc.subject;
+  const body =
+    selectedVariant?.body ?? sc.body ?? sc.caption ?? "";
   const bodyPreview = body.length > 220 ? body.slice(0, 220) + "…" : body;
   const impact = suggestion.expected_impact ?? {};
   const confidence = suggestion.confidence_score
@@ -1005,4 +1124,124 @@ function SuggestionCard({
       )}
     </div>
   );
+}
+
+// ============================================================
+// CampaignActions — quick-action knoppen per row in de campagnes-tabel
+// ============================================================
+// Welke acties zichtbaar zijn hangt af van de huidige status:
+//   concept       → Inplannen (✓) + Verwijderen (✕)
+//   ingepland     → Activeren (▶) + Terug naar concept (↶) + Archiveren
+//   actief        → Stop (⏹ → afgerond)
+//   afgerond      → Archiveren
+//   gearchiveerd  → Verwijderen
+//
+// Visueel: kleine pill-knoppen, primaire actie groen (brand), des-
+// tructieve actie rood-tinted, neutrale acties grijs ghost. Buttons
+// zijn klein zodat de tabel compact blijft.
+function CampaignActions({
+  status,
+  busy,
+  action,
+  onSchedule,
+  onActivate,
+  onPause,
+  onComplete,
+  onArchive,
+  onDelete,
+}: {
+  status: Campaign["status"];
+  busy: boolean;
+  action: "saving" | "deleting" | undefined;
+  onSchedule: () => void;
+  onActivate: () => void;
+  onPause: () => void;
+  onComplete: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const baseBtn: React.CSSProperties = {
+    padding: "4px 10px",
+    fontSize: 11,
+    fontWeight: 500,
+    borderRadius: 5,
+    cursor: busy ? "not-allowed" : "pointer",
+    border: "1px solid var(--border, #E5DFD0)",
+    whiteSpace: "nowrap",
+  };
+  const primary: React.CSSProperties = {
+    ...baseBtn,
+    background: "var(--accent, #1F4A2D)",
+    color: "white",
+    border: "1px solid var(--accent, #1F4A2D)",
+  };
+  const danger: React.CSSProperties = {
+    ...baseBtn,
+    background: "transparent",
+    color: "var(--red, #DC2626)",
+  };
+  const ghost: React.CSSProperties = {
+    ...baseBtn,
+    background: "transparent",
+    color: "var(--ts)",
+  };
+
+  const isSaving = action === "saving";
+  const isDeleting = action === "deleting";
+
+  if (status === "concept") {
+    return (
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={onSchedule} disabled={busy} style={primary}>
+          {isSaving ? "…" : "✓ Inplannen"}
+        </button>
+        <button onClick={onDelete} disabled={busy} style={danger}>
+          {isDeleting ? "…" : "✕ Verwijder"}
+        </button>
+      </div>
+    );
+  }
+  if (status === "ingepland") {
+    return (
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={onActivate} disabled={busy} style={primary}>
+          {isSaving ? "…" : "▶ Activeer"}
+        </button>
+        <button onClick={onPause} disabled={busy} style={ghost}>
+          ↶ Concept
+        </button>
+        <button onClick={onArchive} disabled={busy} style={ghost}>
+          Archiveer
+        </button>
+      </div>
+    );
+  }
+  if (status === "actief") {
+    return (
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={onComplete} disabled={busy} style={primary}>
+          {isSaving ? "…" : "⏹ Stop"}
+        </button>
+      </div>
+    );
+  }
+  if (status === "afgerond") {
+    return (
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={onArchive} disabled={busy} style={ghost}>
+          Archiveer
+        </button>
+      </div>
+    );
+  }
+  if (status === "gearchiveerd") {
+    return (
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={onDelete} disabled={busy} style={danger}>
+          {isDeleting ? "…" : "✕ Verwijder"}
+        </button>
+      </div>
+    );
+  }
+  return null;
 }

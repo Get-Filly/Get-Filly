@@ -33,14 +33,28 @@ export type AiSuggestion = {
   reasoning: string | null;
 };
 
-// Structuur van ai_suggestions.suggested_campaign. We zijn hier strikt
-// in types omdat de approve-flow straks een campagne uit deze JSON
-// bouwt — onbekende velden zouden in een DB-insert-fout lopen.
+// Structuur van ai_suggestions.suggested_campaign. We ondersteunen
+// twee shapes:
+//   - Nieuw (sinds 3-varianten-flow): variants[] + selected_index
+//   - Legacy: directe subject_line/body (voor seed-data en oudere
+//     suggestion-rijen)
+// Approve- en refine-logic checken eerst variants[], vallen anders
+// terug op de legacy-velden.
 export type SuggestedCampaign = {
   type?: 'mail' | 'social' | 'whatsapp';
   name?: string;
+  // Nieuwe shape: max 3 alternatieven naast elkaar.
+  variants?: Array<{
+    subject_line?: string;
+    body?: string;
+  }>;
+  selected_index?: number;
+  // Legacy single-body shape (blijft bestaan voor seed-data).
   subject_line?: string;
+  subject?: string;
+  caption?: string;
   body?: string;
+  segment?: string;
   // Andere velden (hero_photo, dishes, timing) worden in de UI getoond
   // maar zijn optioneel voor de campagne-creatie.
   [key: string]: unknown;
@@ -135,26 +149,48 @@ export class SuggestionsService {
     const type = sc.type;
     const name = typeof sc.name === 'string' ? sc.name.trim() : '';
 
-    // Body-fallback-keten: chat-voorstellen hebben 'body' gevuld, maar
-    // seed-/auto-gegenereerde suggesties soms alleen 'subject' of
-    // 'caption'. In plaats van falen bouwen we een werkbare placeholder
-    // op uit wat we wél hebben, aangevuld met de reasoning als context.
-    // De eigenaar kan de campagne daarna editen op de concept-pagina.
+    // Variant-shape (nieuw, sinds 3-varianten-flow) wint van legacy.
+    // Pak geselecteerde variant; als selected_index out-of-range is,
+    // val terug op 0 zodat we niet falen op corrupte state.
+    let variantBody = '';
+    let variantSubject = '';
+    if (Array.isArray(sc.variants) && sc.variants.length > 0) {
+      const idx =
+        typeof sc.selected_index === 'number' &&
+        sc.selected_index >= 0 &&
+        sc.selected_index < sc.variants.length
+          ? sc.selected_index
+          : 0;
+      const variant = sc.variants[idx] ?? {};
+      variantBody =
+        typeof variant.body === 'string' ? variant.body.trim() : '';
+      variantSubject =
+        typeof variant.subject_line === 'string'
+          ? variant.subject_line.trim()
+          : '';
+    }
+
+    // Body-fallback-keten: variant → body → caption (legacy seed).
+    // Plaats een werkbare placeholder op als alles leeg is, aangevuld
+    // met reasoning als context, zodat de eigenaar in concept-edit
+    // kan voortbouwen.
     const rawBody =
-      typeof sc.body === 'string' && sc.body.trim().length > 0
+      variantBody ||
+      (typeof sc.body === 'string' && sc.body.trim().length > 0
         ? sc.body.trim()
         : typeof sc.caption === 'string' && sc.caption.trim().length > 0
           ? (sc.caption as string).trim()
-          : '';
+          : '');
 
     const rawSubject =
-      typeof sc.subject_line === 'string' &&
+      variantSubject ||
+      (typeof sc.subject_line === 'string' &&
       sc.subject_line.trim().length > 0
         ? sc.subject_line.trim()
         : typeof sc.subject === 'string' &&
             (sc.subject as string).trim().length > 0
           ? (sc.subject as string).trim()
-          : '';
+          : '');
 
     // Als er geen body is, vallen we terug op het onderwerp + reasoning
     // zodat de concept-campagne tenminste iets leesbaars bevat om vanuit
@@ -235,13 +271,49 @@ export class SuggestionsService {
     return data as AiSuggestion;
   }
 
+  // Selecteer welke variant de gebruiker als favoriet markeert.
+  // Schrijft alleen selected_index naar de DB, behoudt de andere
+  // varianten zodat user nog kan terugswitchen vóór goedkeuring.
+  async selectVariant(
+    restaurantId: string,
+    suggestionId: string,
+    index: number,
+  ): Promise<AiSuggestion> {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new BadRequestException('Variant-index moet een positief getal zijn.');
+    }
+
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    const sc = suggestion.suggested_campaign ?? {};
+    const variants = Array.isArray(sc.variants) ? sc.variants : [];
+    if (index >= variants.length) {
+      throw new BadRequestException(
+        `Geen variant op index ${index}; deze suggestie heeft er ${variants.length}.`,
+      );
+    }
+
+    const newSc: SuggestedCampaign = { ...sc, selected_index: index };
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: newSc })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+    return updated as AiSuggestion;
+  }
+
   // Laat Filly de inhoud van een pending-suggestie aanpassen op basis
   // van een instructie van de eigenaar. Voorbeeld: "maak de sfeer
-  // huiselijker" of "gebruik een korter onderwerp". Retourneert de
-  // bijgewerkte suggested_campaign zodat de frontend direct kan
-  // renderen zonder extra fetch. De user blijft in control: de
-  // suggestie verplaatst niet van status (blijft pending), je beslist
-  // later of je 'm goedkeurt.
+  // huiselijker" of "gebruik een korter onderwerp". Bij multi-variant
+  // suggesties wordt alleen de geselecteerde variant herschreven —
+  // de andere blijven beschikbaar voor terugschakelen. Retourneert
+  // de bijgewerkte suggested_campaign zodat de frontend direct kan
+  // renderen zonder extra fetch.
   async refine(
     restaurantId: string,
     suggestionId: string,
@@ -271,14 +343,29 @@ export class SuggestionsService {
       typeof sc.type === 'string' ? (sc.type as string) : 'mail';
     const currentName =
       typeof sc.name === 'string' ? (sc.name as string) : '';
-    const currentSubject =
-      typeof sc.subject_line === 'string' && sc.subject_line
+
+    // Multi-variant: pak geselecteerde variant. Legacy: pak directe
+    // velden. We werken altijd op één variant tegelijk — gebruiker
+    // kan ander variant kiezen vóór 'ie hier komt.
+    const variants = Array.isArray(sc.variants) ? sc.variants : [];
+    const selectedIdx =
+      typeof sc.selected_index === 'number' &&
+      sc.selected_index >= 0 &&
+      sc.selected_index < variants.length
+        ? sc.selected_index
+        : 0;
+    const selectedVariant = variants[selectedIdx];
+
+    const currentSubject = selectedVariant?.subject_line
+      ? (selectedVariant.subject_line as string)
+      : typeof sc.subject_line === 'string' && sc.subject_line
         ? (sc.subject_line as string)
         : typeof sc.subject === 'string'
           ? (sc.subject as string)
           : '';
-    const currentBody =
-      typeof sc.body === 'string' && sc.body
+    const currentBody = selectedVariant?.body
+      ? (selectedVariant.body as string)
+      : typeof sc.body === 'string' && sc.body
         ? (sc.body as string)
         : typeof sc.caption === 'string'
           ? (sc.caption as string)
@@ -368,13 +455,33 @@ Regels:
         ? parsed.subject_line.trim().slice(0, 200)
         : undefined;
 
-    const newSuggested: SuggestedCampaign = {
-      ...sc,
-      name: newName,
-      type: newType as SuggestedCampaign['type'],
-      body: newBody,
-      subject_line: newSubject,
-    };
+    // Twee paden: bij multi-variant overschrijven we de geselecteerde
+    // variant en behouden de andere. Bij legacy (geen variants) maken
+    // we direct de body/subject_line top-level bij. Naam + type werken
+    // we sowieso top-level bij omdat ze niet variant-specifiek zijn.
+    let newSuggested: SuggestedCampaign;
+    if (variants.length > 0) {
+      const newVariants = [...variants];
+      newVariants[selectedIdx] = {
+        ...newVariants[selectedIdx],
+        body: newBody,
+        subject_line: newSubject,
+      };
+      newSuggested = {
+        ...sc,
+        name: newName,
+        type: newType as SuggestedCampaign['type'],
+        variants: newVariants,
+      };
+    } else {
+      newSuggested = {
+        ...sc,
+        name: newName,
+        type: newType as SuggestedCampaign['type'],
+        body: newBody,
+        subject_line: newSubject,
+      };
+    }
 
     const { data: updated, error: updErr } = await this.supabase.client
       .from('ai_suggestions')
@@ -390,10 +497,10 @@ Regels:
     return updated as AiSuggestion;
   }
 
-  // Maakt een nieuwe suggestie aan. Wordt gebruikt door ChatService
-  // wanneer Filly een campagne-voorstel doet in een gesprek. Retourneert
-  // de id zodat de caller 'm kan koppelen aan het chat-bericht
-  // (chat_messages.ai_suggestion_id).
+  // Maakt een nieuwe suggestie aan vanuit een chat-proposal. Accepteert
+  // de hele suggested_campaign-shape (incl. variants) zodat we niets
+  // verliezen tussen parser en DB. Retourneert de id zodat de caller
+  // 'm kan koppelen aan het chat-bericht (chat_messages.ai_suggestion_id).
   async createFromChat(
     restaurantId: string,
     suggested: SuggestedCampaign,

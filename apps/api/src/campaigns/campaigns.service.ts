@@ -275,4 +275,101 @@ export class CampaignsService {
 
     return { id };
   }
+
+  // Status-transitie. Niet elke transitie is geldig — we modelleren
+  // de verzendlevenscyclus expliciet zodat een afgeronde campagne
+  // niet stilletjes "concept" wordt of een actieve verzending niet
+  // overgeslagen wordt. Bewust enkel deze mappings:
+  //   concept → ingepland | gearchiveerd
+  //   ingepland → actief | concept | gearchiveerd
+  //   actief → afgerond
+  //   afgerond / gearchiveerd → eindstaat (geen transitions)
+  async updateStatus(
+    restaurantId: string,
+    id: string,
+    nextStatus: CampaignStatus,
+  ): Promise<{ id: string; status: CampaignStatus }> {
+    const allowed: Record<CampaignStatus, CampaignStatus[]> = {
+      concept: ['ingepland', 'gearchiveerd'],
+      ingepland: ['actief', 'concept', 'gearchiveerd'],
+      actief: ['afgerond'],
+      afgerond: [],
+      gearchiveerd: [],
+    };
+
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+
+    const currentStatus = existing.status as CampaignStatus;
+    if (!allowed[currentStatus].includes(nextStatus)) {
+      throw new BadRequestException(
+        `Status-transitie van '${currentStatus}' naar '${nextStatus}' is niet toegestaan.`,
+      );
+    }
+
+    const updates: Record<string, unknown> = {
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    };
+    // Bij activeren leggen we de start-tijd vast voor verzend-tracking.
+    if (nextStatus === 'actief') {
+      updates.executed_at = new Date().toISOString();
+    }
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update(updates)
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return { id, status: nextStatus };
+  }
+
+  // Hard delete. Alleen toegestaan voor concept (nog niet verzonden)
+  // of gearchiveerd (al uit-actief). Verzonden campagnes (ingepland/
+  // actief/afgerond) zijn audit-relevant en mogen alleen via archive
+  // van het zicht verdwijnen, niet uit de DB.
+  async remove(restaurantId: string, id: string): Promise<{ id: string }> {
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (
+      existing.status !== 'concept' &&
+      existing.status !== 'gearchiveerd'
+    ) {
+      throw new BadRequestException(
+        `Alleen concept- of gearchiveerde campagnes zijn te verwijderen (deze is ${existing.status}). Archiveer 'm eerst.`,
+      );
+    }
+
+    // Cascade-delete: campaign_*_content + campaign_recipients gaan
+    // automatisch mee dankzij de FK-constraints in migratie 0001
+    // (on delete cascade). Geen extra cleanup nodig.
+    const { error: delErr } = await this.supabase.client
+      .from('campaigns')
+      .delete()
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (delErr) throw new InternalServerErrorException(delErr.message);
+
+    return { id };
+  }
 }
