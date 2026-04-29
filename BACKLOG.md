@@ -187,6 +187,27 @@ werken. Laatste audit: 2026-04-23.
 4. **Prioriteit verandert?** Verplaats naar juiste P0/P1/P2/P3-sectie.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
+## ⏭️ Eerstvolgende open taken (begin morgen hier)
+
+Door Floris geselecteerd aan het einde van 2026-04-29, klaar om
+direct op te pakken in de volgende sessie:
+
+1. **🔴 Privacy + AV pagina's dynamisch** — bedrijfsgegevens kunnen
+   sinds vandaag via account-pagina ingevuld worden, maar `/privacy`
+   en `/voorwaarden` renderen ze nog niet. Doel: server-component die
+   `restaurants`-rij ophaalt en `[INVULLEN:...]`-placeholders vervangt.
+   Gele draft-banner alleen tonen als KvK + legal_name leeg zijn.
+
+2. **🟡 Onboarding-checklist op dashboard-home** — banner of card-
+   sectie die voor nieuwe klanten de openstaande setup-stappen toont
+   (KvK + BTW invullen, openingstijden, logo upload, eerste campagne,
+   menukaart). Verdwijnt automatisch zodra alles compleet is.
+
+3. **🔴 Test-account FK-cascade fix** — `auth.user delete via UI laat
+   wees-restaurants achter. Migratie + wellicht trigger zodat
+   restaurant-cascade correct gaat OF documentatie + test-account-
+   reset-script. BACKLOG noemt dit al onder COO P0.
+
 ## Audit 2026-04-29 — Bevindingen per rol
 
 Markers: 🔴 P0 kritiek · 🟡 P1 productie-hygiëne · 🟢 P2 verbetering.
