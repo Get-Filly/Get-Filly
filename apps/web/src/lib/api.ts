@@ -435,6 +435,18 @@ export type Restaurant = {
   website_summary: string | null;
   website_last_analyzed_at: string | null;
   menu_document_url: string | null;
+  // Branding (bestaat sinds migratie 0001 maar nu pas in UI gebruikt).
+  logo_url: string | null;
+  brand_colors: { primary?: string; secondary?: string } | null;
+  // Bedrijfsgegevens (toegevoegd in migratie 0018) — voor mailings,
+  // privacy-verklaring en algemene voorwaarden.
+  legal_name: string | null;
+  kvk_number: string | null;
+  vat_number: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  email_from_name: string | null;
+  email_reply_to: string | null;
   plan: "starter" | "pro" | "enterprise";
 };
 
@@ -452,7 +464,23 @@ export async function updateRestaurant(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updates),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Opslaan mislukt"));
+  }
+  return res.json();
+}
+
+// Trigger handmatig de website-analyse. Backend leest de huidige
+// website_url, draait Claude, en vult tagline/sfeer/USPs/etc op het
+// restaurant. Returnt de bijgewerkte Restaurant zodat de UI de nieuwe
+// velden direct kan tonen.
+export async function analyzeRestaurantWebsite(): Promise<Restaurant> {
+  const res = await authedFetch(`${API_URL}/restaurant/me/analyze-website`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Website-analyse mislukt"));
+  }
   return res.json();
 }
 

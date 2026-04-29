@@ -1,6 +1,17 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -20,5 +31,18 @@ export class RestaurantController {
     @Body() updates: Record<string, unknown>,
   ) {
     return this.restaurant.update(restaurantId, updates);
+  }
+
+  // "Analyseer website"-knop op de account-pagina. Eigenaar slaat
+  // eerst de website-URL op via PATCH /me, en triggert vervolgens
+  // expliciet de analyse via deze POST. Bewust handmatig (niet
+  // automatisch op PATCH) zodat de Claude-call alleen draait wanneer
+  // de eigenaar het wil — voorkomt verrassings-kosten bij elke save.
+  @Post('me/analyze-website')
+  analyzeWebsite(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.restaurant.analyzeWebsite(restaurantId, user.id);
   }
 }
