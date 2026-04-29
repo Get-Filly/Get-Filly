@@ -677,9 +677,6 @@ export default function CampagnesPage() {
                       onActivate={() =>
                         handleCampaignStatus(c, "actief")
                       }
-                      onPause={() =>
-                        handleCampaignStatus(c, "concept")
-                      }
                       onComplete={() =>
                         handleCampaignStatus(c, "afgerond")
                       }
@@ -1126,22 +1123,25 @@ function SuggestionCard({
 // ============================================================
 // CampaignActions — quick-action knoppen per row in de campagnes-tabel
 // ============================================================
-// Welke acties zichtbaar zijn hangt af van de huidige status:
-//   concept    → Inplannen (✓) + Verwijderen (✕)
-//   ingepland  → Activeren (▶) + Terug naar concept (↶)
-//   actief     → Stop (⏹ → afgerond)
-//   afgerond   → Opnieuw inplannen (✓)
+// Lineaire flow per status, geen zijpaden:
+//   concept    → ✓ Inplannen   + ✕ Verwijder
+//   ingepland  → ▶ Activeer    + ✕ Verwijder
+//   actief     → ⏹ Stop        (zet 'm op afgerond)
+//   afgerond   → (geen actie — eindstaat, blijft staan voor historie)
 //
-// Visueel: kleine pill-knoppen, primaire actie groen (brand), des-
-// tructieve actie rood-tinted, neutrale acties grijs ghost. Buttons
-// zijn klein zodat de tabel compact blijft.
+// Verwijderen mag tot en met "ingepland" omdat de campagne dan nog
+// niet daadwerkelijk uitgegaan is. Daarna (actief/afgerond) is de
+// data audit-relevant en blijft de campagne staan.
+//
+// Visueel: kleine pill-knoppen, primaire actie groen (brand),
+// destructieve actie rood-tinted. Buttons zijn klein zodat de tabel
+// compact blijft.
 function CampaignActions({
   status,
   busy,
   action,
   onSchedule,
   onActivate,
-  onPause,
   onComplete,
   onDelete,
 }: {
@@ -1150,7 +1150,6 @@ function CampaignActions({
   action: "saving" | "deleting" | undefined;
   onSchedule: () => void;
   onActivate: () => void;
-  onPause: () => void;
   onComplete: () => void;
   onDelete: () => void;
 }) {
@@ -1174,11 +1173,6 @@ function CampaignActions({
     background: "transparent",
     color: "var(--red, #DC2626)",
   };
-  const ghost: React.CSSProperties = {
-    ...baseBtn,
-    background: "transparent",
-    color: "var(--ts)",
-  };
 
   const isSaving = action === "saving";
   const isDeleting = action === "deleting";
@@ -1201,8 +1195,8 @@ function CampaignActions({
         <button onClick={onActivate} disabled={busy} style={primary}>
           {isSaving ? "…" : "▶ Activeer"}
         </button>
-        <button onClick={onPause} disabled={busy} style={ghost}>
-          ↶ Concept
+        <button onClick={onDelete} disabled={busy} style={danger}>
+          {isDeleting ? "…" : "✕ Verwijder"}
         </button>
       </div>
     );
@@ -1216,17 +1210,7 @@ function CampaignActions({
       </div>
     );
   }
-  if (status === "afgerond") {
-    // Een afgeronde campagne kun je opnieuw inplannen — bv. een
-    // mail die goed werkte nogmaals versturen, of een social post
-    // die je over een paar weken weer wilt activeren.
-    return (
-      <div style={{ display: "flex", gap: 4 }}>
-        <button onClick={onSchedule} disabled={busy} style={primary}>
-          {isSaving ? "…" : "✓ Opnieuw inplannen"}
-        </button>
-      </div>
-    );
-  }
+  // Afgerond = eindstaat: geen actie-knop. Inhoud is wel nog te
+  // bekijken via row-klik op de detail-pagina.
   return null;
 }
