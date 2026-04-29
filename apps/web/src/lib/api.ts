@@ -429,6 +429,10 @@ export type Restaurant = {
   // ['morning','afternoon','evening']. Null = nog niet ingesteld.
   // Filly gebruikt dit bij weer-getriggerde campagnes.
   terrace_sun_periods: string[] | null;
+  // Soort terras: open / covered (vast overdekt) / convertible
+  // (overdekbaar: zonnescherm met regen-stand, glas-schuifwanden).
+  // Bepaalt of Filly bij regen alsnog terras kan voorstellen.
+  terrace_type: "open" | "covered" | "convertible" | null;
   opening_hours: Record<string, { open: string; close: string }> | null;
   closed_dates: string[] | null;
   brand_tone: "casual" | "professional" | "playful";

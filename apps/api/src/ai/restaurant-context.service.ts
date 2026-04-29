@@ -70,7 +70,7 @@ export class RestaurantContextService {
         city, address, postal_code, country,
         price_range, capacity_seats, capacity_terrace,
         has_terrace, has_private_room, has_kids_menu,
-        terrace_sun_periods,
+        terrace_sun_periods, terrace_type,
         opening_hours, kitchen_closing_time,
         social_media, website_url, website_summary
         `,
@@ -146,22 +146,31 @@ export class RestaurantContextService {
       lines.push(`- Faciliteiten: ${facilities.join(', ')}`);
     }
 
-    // Terras-zon: alleen relevant als has_terrace=true. Vertaal de
-    // engelstalige enum-waarden naar NL zodat Filly direct in z'n
-    // antwoord kan zeggen "terras heeft middag-zon" zonder zelf te
-    // moeten vertalen.
-    const sunPeriods = r.terrace_sun_periods as string[] | null;
-    if (r.has_terrace && sunPeriods && sunPeriods.length > 0) {
-      const labels: Record<string, string> = {
+    // Terras-eigenschappen: alleen relevant als has_terrace=true.
+    // Vertaal de enum-waarden naar NL zodat Filly direct kan zeggen
+    // "overdekt terras met middag-zon" zonder zelf te vertalen.
+    if (r.has_terrace) {
+      const sunPeriods = r.terrace_sun_periods as string[] | null;
+      const sunLabels: Record<string, string> = {
         morning: 'ochtend',
         afternoon: 'middag',
         evening: 'avond',
       };
-      const nl = sunPeriods
-        .map((p) => labels[p] ?? p)
-        .filter(Boolean);
-      if (nl.length > 0) {
-        lines.push(`- Terras-zon: ${nl.join(', ')}`);
+      if (sunPeriods && sunPeriods.length > 0) {
+        const nl = sunPeriods.map((p) => sunLabels[p] ?? p).filter(Boolean);
+        if (nl.length > 0) {
+          lines.push(`- Terras-zon: ${nl.join(', ')}`);
+        }
+      }
+
+      const terraceTypeLabels: Record<string, string> = {
+        open: 'open (alleen bij droog weer)',
+        covered: 'overdekt (ook bij regen bruikbaar)',
+        convertible: 'overdekbaar (regenstand mogelijk)',
+      };
+      const terraceType = r.terrace_type as string | null;
+      if (terraceType && terraceTypeLabels[terraceType]) {
+        lines.push(`- Terras-type: ${terraceTypeLabels[terraceType]}`);
       }
     }
 

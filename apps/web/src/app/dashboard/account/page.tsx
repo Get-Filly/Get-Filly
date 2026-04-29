@@ -722,10 +722,12 @@ export default function AccountPage() {
                 checked={form.has_terrace}
                 onChange={(e) => {
                   update("has_terrace", e.target.checked);
-                  // Terras uit → terras-zon-data ook wissen zodat
-                  // we geen rare residue-data houden.
+                  // Terras uit → ook zon-data en terras-type wissen
+                  // zodat we geen rare residue-data houden van een
+                  // terras dat niet meer bestaat.
                   if (!e.target.checked) {
                     update("terrace_sun_periods", null);
+                    update("terrace_type", null);
                   }
                 }}
               />
@@ -733,48 +735,105 @@ export default function AccountPage() {
             </label>
           </div>
           {form.has_terrace && (
-            <div className="form-field full">
-              <label>Wanneer schijnt de zon op het terras?</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {(
-                  [
-                    { code: "morning", label: "Ochtend" },
-                    { code: "afternoon", label: "Middag" },
-                    { code: "evening", label: "Avond" },
-                  ] as const
-                ).map((p) => {
-                  const active = (form.terrace_sun_periods ?? []).includes(
-                    p.code,
-                  );
-                  return (
-                    <button
-                      key={p.code}
-                      type="button"
-                      onClick={() => toggleTerraceSun(p.code)}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 999,
-                        border: active
-                          ? "1px solid var(--accent, #1F4A2D)"
-                          : "1px solid var(--border, #E5DFD0)",
-                        background: active
-                          ? "var(--accent, #1F4A2D)"
-                          : "transparent",
-                        color: active ? "white" : "var(--ts)",
-                        fontSize: 13,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
+            <>
+              <div className="form-field full">
+                <label>Wanneer schijnt de zon op het terras?</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(
+                    [
+                      { code: "morning", label: "Ochtend" },
+                      { code: "afternoon", label: "Middag" },
+                      { code: "evening", label: "Avond" },
+                    ] as const
+                  ).map((p) => {
+                    const active = (form.terrace_sun_periods ?? []).includes(
+                      p.code,
+                    );
+                    return (
+                      <button
+                        key={p.code}
+                        type="button"
+                        onClick={() => toggleTerraceSun(p.code)}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 999,
+                          border: active
+                            ? "1px solid var(--accent, #1F4A2D)"
+                            : "1px solid var(--border, #E5DFD0)",
+                          background: active
+                            ? "var(--accent, #1F4A2D)"
+                            : "transparent",
+                          color: active ? "white" : "var(--ts)",
+                          fontSize: 13,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hint">
+                  Klik aan/uit. Filly gebruikt dit voor zonnige-dag-acties op
+                  je terras.
+                </div>
               </div>
-              <div className="hint">
-                Klik aan/uit. Filly gebruikt dit voor zonnige-dag-acties op
-                je terras.
+
+              <div className="form-field full">
+                <label>Soort terras</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(
+                    [
+                      {
+                        code: "open",
+                        label: "Open",
+                        hint: "Geen overkapping",
+                      },
+                      {
+                        code: "covered",
+                        label: "Overdekt",
+                        hint: "Luifel of dak",
+                      },
+                      {
+                        code: "convertible",
+                        label: "Overdekbaar",
+                        hint: "Schuifwanden, regen-luifel",
+                      },
+                    ] as const
+                  ).map((t) => {
+                    const active = form.terrace_type === t.code;
+                    return (
+                      <button
+                        key={t.code}
+                        type="button"
+                        onClick={() => update("terrace_type", t.code)}
+                        title={t.hint}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 999,
+                          border: active
+                            ? "1px solid var(--accent, #1F4A2D)"
+                            : "1px solid var(--border, #E5DFD0)",
+                          background: active
+                            ? "var(--accent, #1F4A2D)"
+                            : "transparent",
+                          color: active ? "white" : "var(--ts)",
+                          fontSize: 13,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hint">
+                  Bepaalt of Filly bij regen toch een terras-actie kan
+                  voorstellen (overdekt/overdekbaar) of alleen bij droog
+                  weer (open).
+                </div>
               </div>
-            </div>
+            </>
           )}
           <div className="form-field full">
             <label className="form-checkbox">
