@@ -76,6 +76,10 @@ export type CampaignDetail = Campaign & {
   subject_line: string | null;
   body: string | null;
   scheduled_for: string | null;
+  // Door Filly voorgesteld tijdstip + reasoning. Frontend toont deze
+  // als "Filly stelt voor: …" en biedt accepteren/wijzigen-knoppen.
+  suggested_scheduled_for: string | null;
+  suggested_scheduled_reasoning: string | null;
   executed_at: string | null;
   tags: string[] | null;
   created_at: string;
@@ -228,6 +232,52 @@ export async function uploadCampaignMedia(
     {
       method: "POST",
       body: formData,
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Vraag Filly een verzendmoment voor te stellen. Cache-friendly:
+// herhaalde calls zonder force=true returnen het opgeslagen voorstel.
+// Met force=true overschrijft Claude de cache (kost tokens).
+export async function suggestCampaignSchedule(
+  campaignId: string,
+  force = false,
+): Promise<{
+  suggested_scheduled_for: string;
+  suggested_scheduled_reasoning: string;
+}> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/suggest-schedule`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Bevestig of override het scheduled_for-veld. Backend valideert dat
+// status concept of ingepland is.
+export async function setCampaignSchedule(
+  campaignId: string,
+  datetimeIso: string,
+): Promise<{ id: string; scheduled_for: string }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/scheduled`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datetime: datetimeIso }),
     },
   );
   if (!res.ok) {

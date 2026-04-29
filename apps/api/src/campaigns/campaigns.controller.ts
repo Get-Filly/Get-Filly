@@ -190,4 +190,35 @@ export class CampaignsController {
   ) {
     return this.campaigns.deleteMedia(restaurantId, id);
   }
+
+  // Vraag Filly om een tijdstip voor te stellen. Gebruikt cache: bij
+  // her-bezoek geen nieuwe Claude-call. Body { force: true } overschrijft
+  // de cache met een nieuw voorstel (kost extra tokens).
+  @Post(':id/suggest-schedule')
+  suggestSchedule(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { force?: boolean },
+  ) {
+    return this.campaigns.suggestSchedule(
+      restaurantId,
+      id,
+      Boolean(body.force),
+    );
+  }
+
+  // Bevestig of override het verzendmoment. Body { datetime: ISO }.
+  // Wordt aangeroepen bij accepteren van het Filly-voorstel (frontend
+  // stuurt suggested_scheduled_for) of bij handmatige edit.
+  @Patch(':id/scheduled')
+  setSchedule(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { datetime?: string },
+  ) {
+    if (!body.datetime) {
+      throw new BadRequestException('Tijdstip ontbreekt in request.');
+    }
+    return this.campaigns.setSchedule(restaurantId, id, body.datetime);
+  }
 }

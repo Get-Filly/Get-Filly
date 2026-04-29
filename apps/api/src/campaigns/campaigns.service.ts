@@ -803,6 +803,196 @@ Regels:
     if (rmErr) throw new Error(rmErr.message);
   }
 
+  // Suggesteer een verzendmoment voor een concept-campagne via Filly.
+  // Cache-check: als er al een suggested_scheduled_for in DB staat,
+  // returnen we die direct (geen Claude-call). Pas wanneer eigenaar
+  // expliciet om een nieuw voorstel vraagt (force=true) overschrijven
+  // we 'm. Reasoning komt mee zodat user weet waarom dit moment.
+  async suggestSchedule(
+    restaurantId: string,
+    id: string,
+    force: boolean = false,
+  ): Promise<{
+    suggested_scheduled_for: string;
+    suggested_scheduled_reasoning: string;
+  }> {
+    const { data: campaign, error: campErr } = await this.supabase.client
+      .from('campaigns')
+      .select(
+        'id, type, status, name, suggested_scheduled_for, suggested_scheduled_reasoning',
+      )
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (!campaign) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+
+    // Cache-hit zonder force: returnen wat er al staat.
+    if (
+      !force &&
+      campaign.suggested_scheduled_for &&
+      campaign.suggested_scheduled_reasoning
+    ) {
+      return {
+        suggested_scheduled_for: campaign.suggested_scheduled_for as string,
+        suggested_scheduled_reasoning:
+          campaign.suggested_scheduled_reasoning as string,
+      };
+    }
+
+    // Restaurant-context: type, doelgroep, brand_tone — beïnvloeden
+    // het optimale tijdstip. Bv. een fine-dining-restaurant doet
+    // andere uren dan een lunch-bar.
+    const { data: restaurant } = await this.supabase.client
+      .from('restaurants')
+      .select('name, type, target_audience, brand_tone')
+      .eq('id', restaurantId)
+      .maybeSingle();
+
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je stelt het beste verzendmoment voor een campagne voor.
+
+Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok:
+
+{
+  "datetime_iso": "<ISO 8601 datetime in Europe/Amsterdam, bv. 2026-04-30T19:00:00+02:00>",
+  "reasoning": "<korte NL-tekst, max 200 tekens, waarom dit moment>"
+}
+
+Regels voor de datum:
+- KIES een tijdstip vanaf morgen, niet vandaag (geef de eigenaar tijd om te reviewen).
+- Vandaag is ${todayIso}.
+
+Regels voor het tijdstip per type:
+- "mail" → 's ochtends 9:00–10:30 (open-rate piek voor B2C horeca) of 's avonds 19:30–20:30 (lees-piek tijdens binge-momenten).
+- "social" → 17:00–20:00 (Instagram/Facebook prime time) of weekend rond 11:00 (brunch-mood).
+- "whatsapp" → 18:00–20:30 (mensen plannen avond) — niet later dan 21:00 (te laat voelt opdringerig).
+
+Regels voor de dag:
+- Vermijd zondagochtend voor B2C-marketing (kerk-tijd, slecht open-rate).
+- Donderdag/vrijdag scoren goed voor weekend-acties.
+- Maandag is laag voor entertainment-promo's.
+
+Reasoning kort, helder, in NL. Bv. "Donderdag 19:30 — open-rates piekten op donderdagavond bij vergelijkbare bistro's."`;
+
+    const userPrompt = `Campagne:
+- Type: ${campaign.type}
+- Naam: ${campaign.name}
+
+Restaurant:
+- Naam: ${restaurant?.name ?? 'onbekend'}
+- Type: ${restaurant?.type ?? 'restaurant'}
+- Doelgroep: ${restaurant?.target_audience ?? 'algemeen publiek'}
+- Toon: ${restaurant?.brand_tone ?? 'casual'}
+
+Geef het beste verzendmoment.`;
+
+    const answer = await this.ai.generateText({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 400,
+      meta: {
+        restaurantId,
+        feature: 'schedule_suggestion',
+      },
+    });
+
+    // Parse JSON uit antwoord. Bij parse-fout: error gooien — frontend
+    // toont "kon voorstel niet genereren".
+    const match = answer.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new InternalServerErrorException(
+        'Filly gaf geen leesbaar antwoord. Probeer opnieuw.',
+      );
+    }
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(match[0]) as Record<string, unknown>;
+    } catch {
+      throw new InternalServerErrorException(
+        "Kon Filly's antwoord niet lezen. Probeer opnieuw.",
+      );
+    }
+
+    const datetimeIso =
+      typeof parsed.datetime_iso === 'string'
+        ? parsed.datetime_iso.trim()
+        : '';
+    const reasoning =
+      typeof parsed.reasoning === 'string'
+        ? parsed.reasoning.trim().slice(0, 500)
+        : '';
+
+    if (!datetimeIso || Number.isNaN(Date.parse(datetimeIso))) {
+      throw new InternalServerErrorException(
+        'Filly leverde geen geldig tijdstip. Probeer opnieuw.',
+      );
+    }
+
+    // Cache + retourneer.
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update({
+        suggested_scheduled_for: datetimeIso,
+        suggested_scheduled_reasoning: reasoning,
+      })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return {
+      suggested_scheduled_for: datetimeIso,
+      suggested_scheduled_reasoning: reasoning,
+    };
+  }
+
+  // Set de definitieve scheduled_for voor een concept-campagne.
+  // Wordt aangeroepen wanneer eigenaar het Filly-voorstel accepteert
+  // óf zelf een tijdstip kiest. Geen status-transitie hier — die
+  // gebeurt apart via updateStatus (concept → ingepland).
+  async setSchedule(
+    restaurantId: string,
+    id: string,
+    datetimeIso: string,
+  ): Promise<{ id: string; scheduled_for: string }> {
+    if (!datetimeIso || Number.isNaN(Date.parse(datetimeIso))) {
+      throw new BadRequestException('Ongeldig tijdstip.');
+    }
+
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (existing.status !== 'concept' && existing.status !== 'ingepland') {
+      throw new BadRequestException(
+        `Tijdstip aanpassen kan alleen bij concept of ingepland (deze is ${existing.status}).`,
+      );
+    }
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update({
+        scheduled_for: datetimeIso,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return { id, scheduled_for: datetimeIso };
+  }
+
   // Helper: maak signed URL voor 1 storage-pad. 1 uur geldig — past
   // bij dashboard-sessie-duur. Voor verzend-API's straks een verse
   // URL genereren met langere expiry.

@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "../../_components/skeleton";
 import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
+import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
 
 function formatEuroFromCents(cents: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
@@ -535,34 +536,70 @@ export default function CampaignDetailPage() {
           )}
           {!editMode && !isMail && !isSocial && (
             <div className="whatsapp-preview">
-              {/* WhatsApp ondersteunt 1 media-item per bericht. Slot
-                  toont voor de tekst zodat het visueel klopt met hoe
-                  WhatsApp Business het rendert. Aspect-ratio 4:3
-                  past beter bij chat-bericht dan vierkant. */}
-              <CampaignMediaSlot
-                campaignId={campaign.id}
-                signedUrl={campaign.content?.media_url ?? null}
-                editable={campaign.status === "concept"}
-                aspectRatio="4 / 3"
-                onMediaChanged={async () => {
-                  try {
-                    const fresh = await fetchCampaign(id);
-                    setCampaign(fresh);
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }}
-              />
-              <div
-                className="whatsapp-preview-bubble"
-                style={{ marginTop: 12 }}
-              >
+              <div className="whatsapp-preview-bubble">
                 {campaign.content?.message_text ?? campaign.body ?? "—"}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* WhatsApp: foto staat in een aparte card onder de Inhoud zodat
+          de chat-bubbel niet ingedrongen wordt door een groot beeld
+          ernaast. Voor social blijft de foto in de Instagram-preview
+          (visueel klopt het daar). Mail krijgt nog geen media-slot
+          (header-image is later werk). */}
+      {!isMail && !isSocial && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">Foto</div>
+              <div className="card-st">
+                Optionele afbeelding bij het WhatsApp-bericht.
+              </div>
+            </div>
+          </div>
+          <div className="card-b">
+            <CampaignMediaSlot
+              campaignId={campaign.id}
+              signedUrl={campaign.content?.media_url ?? null}
+              editable={campaign.status === "concept"}
+              aspectRatio="4 / 3"
+              onMediaChanged={async () => {
+                try {
+                  const fresh = await fetchCampaign(id);
+                  setCampaign(fresh);
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Wanneer plaatsen: voor concept én ingepland zichtbaar zodat
+          eigenaar het tijdstip kan accepteren/wijzigen. Voor afgeronde
+          campagnes verbergen we 'm — die hebben executed_at en geen
+          aanpassing meer nodig. */}
+      {(campaign.status === "concept" || campaign.status === "ingepland") &&
+        !editMode && (
+          <CampaignSchedulePanel
+            campaignId={campaign.id}
+            status={campaign.status}
+            scheduledFor={campaign.scheduled_for}
+            suggestedFor={campaign.suggested_scheduled_for}
+            suggestedReasoning={campaign.suggested_scheduled_reasoning}
+            onChanged={async () => {
+              try {
+                const fresh = await fetchCampaign(id);
+                setCampaign(fresh);
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+          />
+        )}
 
       {/* "Met Filly bewerken"-paneel: 3 alternatieven + AI-instructie.
           Alleen bij concept-status zichtbaar; eenmaal ingepland/actief
