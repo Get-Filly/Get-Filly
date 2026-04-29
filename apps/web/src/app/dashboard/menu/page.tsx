@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchMenu, type MenuItem } from "../../../lib/api";
+import {
+  fetchMenu,
+  createMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  type MenuItem,
+  type MenuItemInput,
+} from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
 const categoryOrder = [
@@ -182,6 +189,10 @@ export default function MenuPage() {
   // wordt een fresh draft gezet, bij bewerken de geselecteerde item.
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [isNew, setIsNew] = useState(false);
+  // Tijdens een API-call (POST/PATCH/DELETE) zetten we 'saving' op true
+  // zodat de modal-knoppen disabled gaan en de gebruiker niet dubbel kan
+  // klikken. Onafhankelijk van de upload-flow hieronder.
+  const [saving, setSaving] = useState(false);
 
   // Upload-flow state. Zichtbaar wanneer uploadOpen=true. Stage volgt
   // de mock-verwerking: reading → recognizing → categorizing → done.
@@ -247,28 +258,77 @@ export default function MenuPage() {
     setIsNew(false);
   };
 
-  const saveItem = () => {
+  // Vorm de UI-state om naar het input-formaat dat de backend verwacht.
+  // We sturen alleen velden die zin hebben (geen `id`); de backend
+  // valideert + normaliseert verder. is_seasonal=false → season weglaten
+  // zodat we geen ongeldige combinaties verzenden.
+  const toInput = (m: MenuItem): MenuItemInput => ({
+    name: m.name,
+    description: m.description,
+    category: m.category,
+    price_cents: m.price_cents,
+    is_signature: m.is_signature,
+    is_seasonal: m.is_seasonal,
+    season: m.is_seasonal ? m.season : null,
+    is_available: m.is_available,
+    dietary_tags: m.dietary_tags,
+  });
+
+  // Bij create én update doen we na success een verse fetchMenu(). Een
+  // round-trip extra (~50ms) is verwaarloosbaar en garandeert dat de
+  // lijst exact matcht met wat in de DB staat — inclusief sortering en
+  // server-side defaults. Filly leest dezelfde tabel, dus wat je hier
+  // ziet is precies wat hij in zijn volgende prompt mee krijgt.
+  const saveItem = async () => {
     if (!editing) return;
-    // Mock: update lokaal. Later: POST/PATCH naar backend + setItems
-    // op basis van server-response.
-    if (isNew) {
-      const withId = {
-        ...editing,
-        id: `local-${Date.now()}`,
-      };
-      setItems((prev) => [...prev, withId]);
-    } else {
-      setItems((prev) =>
-        prev.map((i) => (i.id === editing.id ? editing : i)),
+    setSaving(true);
+    try {
+      if (isNew) {
+        await createMenuItem(toInput(editing));
+      } else {
+        await updateMenuItem(editing.id, toInput(editing));
+      }
+      const fresh = await fetchMenu();
+      setItems(fresh);
+      closeModal();
+    } catch (e) {
+      // Fout-message van de backend (bv. "Naam is verplicht.") tonen.
+      // Modal blijft open zodat de gebruiker kan corrigeren zonder z'n
+      // werk te verliezen.
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
       );
+    } finally {
+      setSaving(false);
     }
-    closeModal();
   };
 
-  const deleteItem = () => {
+  const deleteItem = async () => {
     if (!editing || isNew) return;
-    setItems((prev) => prev.filter((i) => i.id !== editing.id));
-    closeModal();
+    if (
+      !window.confirm(
+        `Weet je zeker dat je '${editing.name || "dit gerecht"}' wilt verwijderen? Dit kan niet ongedaan worden.`,
+      )
+    ) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await deleteMenuItem(editing.id);
+      const fresh = await fetchMenu();
+      setItems(fresh);
+      closeModal();
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Verwijderen mislukt. Probeer het opnieuw.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Upload-flow handlers.
@@ -656,6 +716,7 @@ export default function MenuPage() {
         <MenuModal
           item={editing}
           isNew={isNew}
+          saving={saving}
           onChange={setEditing}
           onSave={saveItem}
           onDelete={deleteItem}
@@ -858,6 +919,7 @@ function Spinner() {
 function MenuModal({
   item,
   isNew,
+  saving,
   onChange,
   onSave,
   onDelete,
@@ -865,6 +927,9 @@ function MenuModal({
 }: {
   item: MenuItem;
   isNew: boolean;
+  // Tijdens een API-call (toevoegen/opslaan/verwijderen) zetten we de
+  // knoppen en inputs op disabled zodat de gebruiker niet dubbel klikt.
+  saving: boolean;
   onChange: (m: MenuItem) => void;
   onSave: () => void;
   onDelete: () => void;
@@ -1064,19 +1129,26 @@ function MenuModal({
           <button
             className="sg-btn primary"
             onClick={onSave}
-            disabled={!item.name.trim()}
+            disabled={!item.name.trim() || saving}
           >
-            {isNew ? "Toevoegen" : "Opslaan"}
+            {saving
+              ? isNew
+                ? "Toevoegen…"
+                : "Opslaan…"
+              : isNew
+                ? "Toevoegen"
+                : "Opslaan"}
           </button>
-          <button className="sg-btn" onClick={onClose}>
+          <button className="sg-btn" onClick={onClose} disabled={saving}>
             Annuleren
           </button>
           {!isNew && (
             <button
               className="sg-btn danger menu-modal-delete"
               onClick={onDelete}
+              disabled={saving}
             >
-              Verwijderen
+              {saving ? "Verwijderen…" : "Verwijderen"}
             </button>
           )}
         </div>

@@ -95,7 +95,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~Menu-importer met Claude Opus 4.7 Vision~~ (2026-04-24, commit `b29f317`) — verwerkt PDF/JPG/PNG/WebP, max 10MB
 - [x] ~~Menu-uploads tabel + Storage-bucket met RLS~~ (migratie 0011, 2026-04-24). **NB**: onboarding-uploads gaan direct naar Vision zonder Storage-stop; pas bij heropen via menu-pagina (nog te bouwen) gebruiken we de bucket echt.
 - [ ] **Suggesties-generator** — `getMockProposal()` in [suggesties/page.tsx](apps/web/src/app/dashboard/suggesties/page.tsx) vervangen door Claude-call met `RestaurantContextService` + menu_items. Grote overlap met chat v2.
-- [ ] **Menu CRUD endpoints** — POST/PATCH/DELETE op `/api/menu`. Nu alleen GET; frontend houdt wijzigingen in local state. Opnieuw uploaden menukaart via menu-pagina (met Storage-opslag) ook hier.
+- [x] ~~Menu CRUD endpoints~~ (2026-04-29) — POST/PATCH/DELETE op `/api/menu` live + menu-pagina aangesloten. Filly ziet nieuwe gerechten direct in z'n volgende prompt. **Nog open**: opnieuw uploaden menukaart via menu-pagina (mock-flow blijft alleen lokaal).
 - [ ] **Prompt caching activeren** — `cache_control: { type: 'ephemeral' }` op system-prompts zodra die stabiel >1024 tokens zijn (chat v2 zit waarschijnlijk al zo hoog).
 - [ ] **Auto-title-generation voor chat-conversations** — `chat_conversations.title` blijft nu null.
 
@@ -188,6 +188,13 @@ werken. Laatste audit: 2026-04-23.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
 ## Recent voltooid
+
+### 2026-04-29 — Menu-pagina écht aangesloten op DB
+- ✅ Backend `MenuService.create / update / remove` met validatie (NL-foutmeldingen op naam-leeg, prijs-negatief, ongeldig seizoen, te veel dieet-tags). Tenant-isolatie via dubbel `eq(restaurant_id)` bovenop de RestaurantAccessGuard.
+- ✅ Endpoints `POST /api/menu`, `PATCH /api/menu/:id`, `DELETE /api/menu/:id`.
+- ✅ Frontend `lib/api.ts`: `createMenuItem` / `updateMenuItem` / `deleteMenuItem` met `readErrorMessage`-helper voor nette NL-fouten in alerts.
+- ✅ Menu-pagina `saveItem` / `deleteItem` zijn async, doen API-call + verse `fetchMenu`-refetch zodat lokale state altijd matcht met DB. `saving`-state disablet modal-knoppen tijdens roundtrip + toont "Toevoegen…/Opslaan…/Verwijderen…".
+- ✅ **Resultaat**: nieuwe gerechten en wijzigingen verschijnen direct in Filly's volgende prompt (`buildMenuBlock` leest live uit dezelfde `menu_items`-tabel).
 
 ### 2026-04-29 — Filly weet nu profiel + menu (rijke context in chat)
 - ✅ `RestaurantContextService` opgesplitst in 3 builders:

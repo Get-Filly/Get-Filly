@@ -614,6 +614,72 @@ export async function fetchMenu(): Promise<MenuItem[]> {
   return res.json();
 }
 
+// Input voor create + update. Velden komen 1-op-1 overeen met de backend
+// MenuService. `id` ontbreekt bewust — die wordt door de DB gegenereerd
+// bij create en in de URL meegegeven bij update.
+export type MenuItemInput = {
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  price_cents?: number | null;
+  is_signature?: boolean;
+  is_seasonal?: boolean;
+  season?: string | null;
+  is_available?: boolean;
+  dietary_tags?: string[];
+};
+
+// Helper: pak de NL-foutmelding uit een non-OK response. Backend stuurt
+// `{ message: "Naam is verplicht." }`-vormige body. Bij ontbrekende of
+// niet-JSON body vallen we terug op de HTTP-status zodat we nooit een
+// leeg "Error: " in de UI tonen.
+async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (body && typeof body.message === "string") return body.message;
+  } catch {
+    // niet-JSON body — fallback gebruiken
+  }
+  return `${fallback} (HTTP ${res.status})`;
+}
+
+export async function createMenuItem(input: MenuItemInput): Promise<MenuItem> {
+  const res = await authedFetch(`${API_URL}/menu`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Toevoegen mislukt"));
+  }
+  return res.json();
+}
+
+export async function updateMenuItem(
+  id: string,
+  input: Partial<MenuItemInput>,
+): Promise<MenuItem> {
+  const res = await authedFetch(`${API_URL}/menu/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Opslaan mislukt"));
+  }
+  return res.json();
+}
+
+export async function deleteMenuItem(id: string): Promise<{ id: string }> {
+  const res = await authedFetch(`${API_URL}/menu/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Verwijderen mislukt"));
+  }
+  return res.json();
+}
+
 export type ReservationStatus =
   | "bevestigd"
   | "geannuleerd"
