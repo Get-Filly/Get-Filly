@@ -45,7 +45,7 @@ apps/
       chat/                 (Filly-chat: dashboard-home assistent)
       {campaigns,guests,kpi,occupancy,restaurant,weather,suggestions,menu,reservations,reviews,me,team}/
       supabase/
-    supabase/migrations/    (SQL 0001-0013, handmatig runnen in Supabase SQL Editor)
+    supabase/migrations/    (SQL 0001-0016, handmatig runnen in Supabase SQL Editor)
 packages/
   shared/                   (gedeelde TypeScript types + DEFAULT_PERMISSIONS per rol)
 ```
@@ -65,7 +65,7 @@ packages/
 - **Tweede test-restaurant**: `00000000-0000-0000-0000-000000000002` (Cafe Get-Filly, handmatig aangemaakt via seed-snippet).
 - **`.env`-bestanden** in `apps/{web,api}/` — niet in Git, wel vereist voor dev. Zie `.env.example` per app.
 
-## Wat er draait / status (2026-04-24, einde dag)
+## Wat er draait / status (2026-04-25, einde dag)
 
 **UI + backend**: dashboard + publieke site werken met echte data uit Supabase. Middleware-auth actief. Multi-tenant met auth-guards + rol-filter + team-invite-flow live.
 
@@ -84,13 +84,20 @@ packages/
 - **Website-analyzer**: crawl homepage + Claude-extractie van heel profiel.
 - **Menu-importer**: Claude Opus 4.7 Vision op PDF/JPG/PNG — extraheert gerechten + prijzen + categorieën + allergenen (kolom toegevoegd in migratie 0013).
 - **Suggestion-refine**: `POST /api/suggestions/:id/refine` laat Filly pending-voorstel aanpassen op instructie van eigenaar ("maak huiselijker", "korter"). Gebruikt in SuggestionDetailModal met side-chat.
+- **Chat-proposal genereert 3 varianten**: prompt-update, modal toont 3 kaarten naast elkaar, user kiest favoriet via `selectVariant`-endpoint. Refine herschrijft alleen geselecteerde variant.
+- **Campagne-refine** met cache (migratie 0014): `POST /campaigns/:id/refine` genereert 3 alternatieven + cachet in `filly_variants` jsonb. Max 2 generaties (3 + 3 = 6 versies). PATCH op body wist cache + reset count zodat varianten matchen met nieuwe inhoud.
+- **Review-reply-varianten** met zelfde cache-patroon: 3 vooraf, 1× regenerate, lock op 6.
+- **Schedule-suggestion**: `POST /campaigns/:id/suggest-schedule` met cache, leest type + restaurant-context, returnt datetime + reasoning.
 - Usage-tracking in `ai_usage`-tabel (nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
 
 **/dashboard/campagnes is nu dé hub**:
 - Voorstellen-strip bovenaan (auto-gegenereerd + chat-voorstellen samen; tabs Open/Afgewezen met Terugzetten-knop)
-- Overige acties (TasksStrip): reviews-zonder-reactie, lage bezetting, grote reserveringen, verjaardagen
-- Campagnes-tabel daaronder (concept/ingepland/actief/afgerond + filters + zoek)
+- Overige acties (TasksStrip): reviews-zonder-reactie, lage bezetting, grote reserveringen, verjaardagen — met filter "Actie vereist (high+medium)" / "Alle" en scroll-container (max 320px)
+- Campagnes-tabel daaronder (concept/ingepland/actief/afgerond + filters + zoek + **quick-actions kolom** per status: Inplannen/Verwijder/Activeer/Stop/Archiveer)
 - Concept-campagnes bewerkbaar via detail-page ("✎ Bewerken"-knop, PATCH-endpoint)
+- **"✨ Met Filly bewerken"-paneel** op detail-page: 3 alternatieven server-side gecached (DB), 1× extra regenerate-knop = 6 totaal max, daarna lock voor kostenbeheersing.
+- **Foto-upload** op social/whatsapp concept-campagnes (Supabase Storage `campaign-media`, signed URLs, 10MB cap, drag-and-drop). WhatsApp-foto in aparte card; social-foto in Instagram-preview.
+- **"📅 Wanneer plaatsen?"-card** met Filly's tijdstipsuggestie: type-specifieke regels (mail 9-10:30/19:30-20:30, social 17-20, whatsapp 18-20:30), reasoning meegeleverd. Eigenaar accepteert / wijzigt zelf / vraagt andere suggestie.
 - "Suggesties" en "Taken" zijn uit de sidebar verwijderd; routes bestaan nog als legacy
 
 **Reserveringen**:
