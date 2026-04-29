@@ -2,10 +2,77 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
+
+// Vertaal een ruwe Anthropic SDK-error naar een NL-vriendelijke
+// HTTP-exceptie. Doel: Filly-features mogen nooit een raw stacktrace
+// of cryptische Engelse error tonen aan de eigenaar — altijd iets
+// uitlegbaars met "probeer over een paar minuten opnieuw"-flow waar
+// dat past. We loggen het origineel zodat we in de api-logs nog wel
+// kunnen debuggen.
+function toNlException(
+  error: unknown,
+  feature: string,
+  logger: Logger,
+): never {
+  // Connection-fouten (netwerk, DNS, timeout) — Anthropic onbereikbaar.
+  // 503 zodat de UI duidelijk kan zeggen "even niet beschikbaar".
+  if (error instanceof Anthropic.APIConnectionError) {
+    logger.warn(`[${feature}] Anthropic onbereikbaar: ${error.message}`);
+    throw new ServiceUnavailableException(
+      'Filly is even niet bereikbaar. Probeer het over een paar minuten opnieuw.',
+    );
+  }
+
+  // Rate-limit van Anthropic (429) — niet onze rate-limit.
+  if (error instanceof Anthropic.RateLimitError) {
+    logger.warn(`[${feature}] Anthropic rate-limit: ${error.message}`);
+    throw new ServiceUnavailableException(
+      'Filly is even druk. Wacht een minuut en probeer het opnieuw.',
+    );
+  }
+
+  // Authentication / invalid-key — onze fout, niet die van de eigenaar.
+  if (error instanceof Anthropic.AuthenticationError) {
+    logger.error(
+      `[${feature}] Anthropic auth-fout: ${error.message} — controleer ANTHROPIC_API_KEY.`,
+    );
+    throw new InternalServerErrorException(
+      'Filly is verkeerd geconfigureerd. Wij zijn op de hoogte; probeer het later opnieuw.',
+    );
+  }
+
+  // Server-side fouten van Anthropic (5xx, inclusief InternalServerError
+  // en gateway-issues). Tijdelijk probleem hun kant.
+  if (error instanceof Anthropic.APIError) {
+    if (error.status && error.status >= 500) {
+      logger.warn(
+        `[${feature}] Anthropic server-error ${error.status}: ${error.message}`,
+      );
+      throw new ServiceUnavailableException(
+        'Filly heeft last van een tijdelijke storing. Probeer het zo opnieuw.',
+      );
+    }
+    // 4xx (behalve auth/rate-limit hierboven): onze request was mis,
+    // bv. ongeldige model-naam of payload-fout. Log + generieke melding.
+    logger.error(
+      `[${feature}] Anthropic API-fout ${error.status}: ${error.message}`,
+    );
+    throw new InternalServerErrorException(
+      'Er ging iets mis bij Filly. Probeer het opnieuw.',
+    );
+  }
+
+  // Onbekend — generieke fout-handler. Log de hele error voor debugging.
+  logger.error(`[${feature}] Onverwachte AI-fout: ${String(error)}`);
+  throw new InternalServerErrorException(
+    'Er ging iets mis bij Filly. Probeer het opnieuw.',
+  );
+}
 
 // Metadata die elke AI-call ons moet geven — dit is verplicht zodat
 // geen enkele Filly-feature per ongeluk zonder tracking draait.
@@ -69,16 +136,45 @@ export class AiService {
     model?: string;
     maxTokens?: number;
     meta: AiCallMeta;
+    // Activeer Anthropic prompt-caching op de system-prompt. Aanzetten
+    // wanneer de system-prompt overwegend statisch is (zelfde profile/
+    // menu/regels in opeenvolgende calls) zodat input-tokens binnen
+    // 5 min TTL voor ~10% van de normale prijs hergebruikt worden.
+    // Anthropic vereist minimaal ~1024 tokens om de cache te triggeren —
+    // anders is cache_control een no-op (geen schade, geen winst).
+    //
+    // Vuistregel:
+    //   - chat (system bevat hele profile + menu)        → true
+    //   - refine 3 varianten (zelfde profile + menu)     → true
+    //   - one-shot calls (review-reply, vision, schedule)→ false
+    cacheSystem?: boolean;
   }): Promise<string> {
     const client = this.getClient();
     const model = opts.model ?? 'claude-sonnet-4-6';
 
-    const response = await client.messages.create({
-      model,
-      max_tokens: opts.maxTokens ?? 1024,
-      system: opts.system,
-      messages: [{ role: 'user', content: opts.prompt }],
-    });
+    // Bouw het system-payload: string als geen caching, anders een
+    // array met één text-block met cache_control. SDK accepteert beide.
+    const systemParam: string | Anthropic.TextBlockParam[] = opts.cacheSystem
+      ? [
+          {
+            type: 'text',
+            text: opts.system,
+            cache_control: { type: 'ephemeral' },
+          },
+        ]
+      : opts.system;
+
+    let response;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 1024,
+        system: systemParam,
+        messages: [{ role: 'user', content: opts.prompt }],
+      });
+    } catch (err) {
+      toNlException(err, opts.meta.feature, this.logger);
+    }
 
     // Claude's response.content is een array van content-blocks. Voor
     // pure tekst-calls verwachten we één text-block; we pakken de eerste
@@ -147,17 +243,22 @@ export class AiService {
             },
           } satisfies Anthropic.ImageBlockParam);
 
-    const response = await client.messages.create({
-      model,
-      max_tokens: opts.maxTokens ?? 4000,
-      system: opts.system,
-      messages: [
-        {
-          role: 'user',
-          content: [fileBlock, { type: 'text', text: opts.instruction }],
-        },
-      ],
-    });
+    let response;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 4000,
+        system: opts.system,
+        messages: [
+          {
+            role: 'user',
+            content: [fileBlock, { type: 'text', text: opts.instruction }],
+          },
+        ],
+      });
+    } catch (err) {
+      toNlException(err, opts.meta.feature, this.logger);
+    }
 
     const textBlock = response.content.find((b) => b.type === 'text');
     if (!textBlock || textBlock.type !== 'text') {
@@ -183,15 +284,24 @@ export class AiService {
     model: string,
     usage: Anthropic.Usage,
   ): Promise<void> {
+    // Anthropic's usage:
+    //   - input_tokens             = NIET-gecachte input (vol tarief)
+    //   - cache_creation_input_tokens = ging naar cache (~125% tarief, eerste call)
+    //   - cache_read_input_tokens  = uit cache (~10% tarief, hits)
+    //   - output_tokens            = generated
+    //
+    // Voor de bestaande ai_usage-tabel houden we input_tokens als
+    // niet-gecachte input én tellen cache_creation erbij op zodat dat
+    // veld de "echte input"-kosten reflecteert. cached_input_tokens
+    // krijgt de read-hits zodat het kosten-dashboard straks per call
+    // kan zien hoeveel cache scheelde.
     const { error } = await this.supabase.client.from('ai_usage').insert({
       restaurant_id: meta.restaurantId,
       user_id: meta.userId ?? null,
       feature: meta.feature,
       model,
-      // Anthropic's usage: input_tokens = NIET-gecachte input,
-      // cache_read_input_tokens = wel-gecachte. Voor nu cachen we nog
-      // niet; beide kunnen straks vol komen als we caching aanzetten.
-      input_tokens: usage.input_tokens,
+      input_tokens:
+        usage.input_tokens + (usage.cache_creation_input_tokens ?? 0),
       output_tokens: usage.output_tokens,
       cached_input_tokens: usage.cache_read_input_tokens ?? null,
     });

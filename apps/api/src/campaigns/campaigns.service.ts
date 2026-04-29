@@ -592,6 +592,9 @@ ${menuBlock}
         restaurantId,
         feature: 'campaign_refine',
       },
+      // System bevat profile + menu — bij regenerate (1× extra binnen
+      // 5 min na initial) bespaart caching ~90% input-tokens.
+      cacheSystem: true,
     });
 
     // Parser: pak het JSON-blok uit het antwoord. Als Claude per

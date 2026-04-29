@@ -215,6 +215,9 @@ EXTRA-REGEL VOOR DEZE CALL: geef GEEN losse tekst, maar exact dit JSON-formaat (
         userId,
         feature: 'review_reply_variants',
       },
+      // System bevat profile-block — bij 1× regenerate binnen 5 min
+      // pakt caching ~90% korting.
+      cacheSystem: true,
     });
 
     // Parser. Bij parse-fout vallen we niet hard om — log en gooi

@@ -187,7 +187,91 @@ werken. Laatste audit: 2026-04-23.
 4. **Prioriteit verandert?** Verplaats naar juiste P0/P1/P2/P3-sectie.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
+## Audit 2026-04-29 — Bevindingen per rol
+
+Markers: 🔴 P0 kritiek · 🟡 P1 productie-hygiëne · 🟢 P2 verbetering.
+Items in deze sectie staan los van de hoofd-prio's hierboven; bij oppakken
+verplaatsen naar de juiste P-bucket.
+
+### Data Analyst
+- [ ] 🔴 **Mock-data van dashboard af** — `FILLY_MOCK` in [kpi-row.tsx:27](apps/web/src/app/dashboard/_components/kpi-row.tsx) toont voor élke klant exact "+2 reserveringen vandaag, 67 gasten/maand, €4.200 omzet". Vervangen door echte aggregaties of empty-states.
+- [ ] 🔴 **`isFromFilly()` is een hash-mock** — gasten + reserveringen-pagina's markeren willekeurige rows als "via Filly" op basis van UUID-laatste-karakter. Vervangen door echte attributie via `reservations.via_campaign_id`-FK.
+- [ ] 🔴 **`reservations.via_campaign_id` FK ontbreekt** — zonder deze kolom is Filly-ROI nooit te berekenen. Migratie + UI-koppeling tussen reservering en campagne nodig.
+- [ ] 🔴 **`FILLY_ROI_6M` + `FILLY_BY_TYPE` in rapportages-pagina** zijn hard-coded arrays. Aggregeren uit `campaigns.metrics` en `campaign_sends`.
+- [ ] 🟡 **`weekday_avg_pct = 68` hard-coded** in [kpi.service.ts](apps/api/src/kpi/kpi.service.ts). 6-maanden historie aggregeren.
+- [ ] 🟡 **`audit_log`-tabel wordt nergens geschreven** ondanks dat 'ie sinds migratie 0001 bestaat. Per mutatie een rij wegschrijven (subscriptions, restaurant-update, campagne-status-wijziging).
+- [ ] 🟡 **`ai_usage` tracking heeft geen dashboard** — Claude-kosten zijn alleen via DB-query zichtbaar. Mini-page voor admin om kosten per restaurant te zien.
+- [ ] 🟢 **Geen Plausible/PostHog** op publieke site — onbekend waar bezoekers afhaken.
+
+### Developer
+- [ ] 🔴 **Storage-bucket `restaurant-assets` heeft `anon insert/update/select`-policies** (migratie 0003). Iedereen kan uploaden zonder auth. Vervangen door `authenticated`-policies + eigen-restaurant-check.
+- [ ] 🔴 **Backend draait op `service_role`** → RLS bypass'd. Tenant-isolatie is alleen via TS-guards. Per-request Supabase-client met user-JWT toevoegen voor defense-in-depth (hangt aan bestaande P1).
+- [ ] 🟡 **Pre-onboarding rate-limit is in-memory Map** → overleeft geen multi-instance deploy. Naar Redis/Upstash.
+- [ ] 🟡 **Geen tests behalve `app.controller.spec.ts`** — 8.500 regels backend, één spec. Minimaal smoke-tests op auth + tenant-isolatie + key endpoints.
+- [ ] 🟡 **Geen GitHub Actions CI** — type-check + lint + build per PR ontbreekt.
+- [ ] 🟡 **WebsiteAnalyzer + MenuImporter zijn synchroon** (5-15s blocking). Bij gelijktijdige uploads loopt Node-process vast. Job-queue (BullMQ + Redis) toevoegen.
+- [ ] 🟡 **3 expliciete TODO's** in code: kpi.service.ts (weekday-avg), kpi-row.tsx (FILLY_MOCK), suggesties/page.tsx (getMockProposal).
+- [ ] 🟢 **Inline styling overal** — `style={{...}}` in elke component. Refactor naar Tailwind / CSS-modules voor onderhoudbaarheid op schaal.
+- [ ] 🟢 **`RestaurantService.update` accepteert `Record<string, unknown>`** — nieuwe forbidden-velden moet je manueel onthouden. Strict-allowlist of zod-schema toevoegen.
+- [ ] 🟢 **`@RequireModule`-decorator** voor module-permissies ontbreekt (alleen frontend-filtering).
+
+### CTO
+- [~] 🔴 **20 migraties handmatig** — setup-guide in [docs/database-migrations.md](docs/database-migrations.md). **Jouw actie**: Supabase CLI installeren + `supabase migration repair` runnen om bestaande migraties als applied te markeren.
+- [x] ~~🔴 Prompt-caching activeren~~ (2026-04-29) — `cache_control: ephemeral` actief in `AiService` op chat + campaign-refine + reviews-refine. ~90% korting op input-tokens bij recurring calls binnen 5 min cache-TTL.
+- [~] 🔴 **Sentry / error-tracking** — setup-guide in [docs/sentry-setup.md](docs/sentry-setup.md). **Jouw actie**: account aanmaken + 2 projecten + DSN's invullen.
+- [~] 🔴 **Cost-alerts Anthropic** — setup-guide in [docs/anthropic-cost-alerts.md](docs/anthropic-cost-alerts.md). **Jouw actie**: monthly spending limit + alerts in Anthropic Console + aparte API-keys per environment.
+- [~] 🟡 **Staging-omgeving** — setup-guide in [docs/staging-setup.md](docs/staging-setup.md). **Jouw actie**: 2e Supabase-project + 2e Railway-instance + Vercel preview-branch.
+- [ ] 🟡 **Geen feature-flag systeem** — bij 1000+ klanten kan een release niet veilig naar 5% eerst.
+- [~] 🟡 **Multi-instance scaling roadmap** — gedocumenteerd in [docs/scaling-roadmap.md](docs/scaling-roadmap.md). Concrete actie pas nodig bij ~100+ klanten (Redis voor rate-limits, BullMQ voor zware AI-calls).
+- [x] ~~🟢 Graceful degradation bij Claude-downtime~~ (2026-04-29) — `AiService` vangt nu Anthropic-errors specifiek af (connection / rate-limit / 5xx / auth) en gooit NL-vriendelijke `ServiceUnavailable` i.p.v. raw 500.
+- [x] ~~🟢 DB-schema-documentatie~~ (2026-04-29) — [docs/database-schema.md](docs/database-schema.md) met overzicht van alle 25 tabellen + relaties + open punten.
+
+### CEO
+- [ ] 🔴 **Mollie-billing ontbreekt** — eerste klant kan niet betalen. 4 sub-taken: SDK + checkout, subscriptions-tabel, plan-enforcement, webhook.
+- [ ] 🔴 **Privacy-verklaring + AV staan op draft** met `[INVULLEN:...]`-placeholders. Bedrijfsgegevens kunnen via account-pagina ingevuld worden — moet nog dynamisch op de publieke pagina renderen.
+- [ ] 🔴 **Cookie-banner ontbreekt** — ePrivacy-verplicht zodra analytics actief.
+- [ ] 🔴 **Geen "Start trial / Probeer gratis"-flow** vanaf pricing-pagina.
+- [ ] 🟡 **Geen onboarding-checklist op dashboard** — nieuwe klant weet niet wat als eerste te doen (KvK, menu, openingstijden, etc).
+- [ ] 🟡 **Geen referral / vriend-werft-vriend**-systeem.
+- [ ] 🟡 **About-pagina is leeg / placeholder** — geen "wie bouwt dit"-verhaal voor vertrouwen.
+- [ ] 🟡 **Geen contactformulier** op publieke site — leads zonder account hebben geen kanaal.
+- [ ] 🟢 **Concurrent-positionering** (vs. Resengo/Zenchef) onduidelijk in marketing.
+
+### COO
+- [ ] 🔴 **Geen interne admin-tooling** — klant-support gebeurt via Supabase Studio. Onhoudbaar bij 50+ klanten.
+- [ ] 🔴 **Test-account opruimen heeft FK-cascade-gotcha** — auth.user delete laat wees-restaurants achter.
+- [ ] 🟡 **Geen klanten-dashboard** ("welke klanten hebben KvK ingevuld? wie heeft Filly nooit gebruikt?").
+- [ ] 🟡 **Geen incident-response runbook** — wat doe je als Claude API down is, Supabase storage faalt?
+- [ ] 🟡 **Geen klant-data-export** (AVG-recht right-to-data-portability).
+- [ ] 🟡 **Logging is inconsistent** — soms `Logger`, soms `console.log/warn/error`. Geen log-aggregator.
+- [ ] 🟡 **Geen rate-limit per user op AI** (alleen 100/uur/restaurant). Eén user kan binnen 1 uur €5-10 verbranden.
+- [ ] 🟢 **Geen monitoring** Claude/Supabase uptime — storingen alleen via klant-mails.
+
+### Designer
+- [ ] 🔴 **Niet mobile responsive** — hele dashboard breekt onder 1024px. Voor horeca-eigenaars op smartphone kritiek.
+- [ ] 🟡 **Inline styling overal** — geen design-tokens-laag. Brand-update raakt 200+ files.
+- [ ] 🟡 **Iconen-set is volledig emoji** — per OS verschillend gerenderd, niet brand-consistent. SVG-iconen-set toevoegen.
+- [ ] 🟡 **Geen focus-states / aria-labels** op veel knoppen → WCAG-toegankelijkheid onder de maat.
+- [ ] 🟡 **`filly-chat.tsx` is 635 regels** — Single Responsibility geschonden. Splitsen in input/list/proposal-card/error-handler.
+- [ ] 🟢 **KPI-row breekt onder 1280px** — 5 cards naast elkaar werkt niet op kleinere schermen.
+- [ ] 🟢 **Geen dark-mode**, geen i18n-voorbereiding (alles hard-coded NL).
+- [ ] 🟢 **Inconsistente knop-stijlen** — `btn-primary-dash`, `sg-btn primary`, inline groene knoppen. Drie patterns voor één concept.
+- [ ] 🟢 **Geen Storybook / design-systeem documentatie**.
+
+---
+
 ## Recent voltooid
+
+### 2026-04-29 — CTO-taken: prompt-caching + graceful degradation + setup-docs
+- ✅ **Prompt-caching live** — `AiService.generateText` accepteert nu `cacheSystem: true`. Wordt gebruikt door chat (elke bericht), campaign-refine (regenerate), reviews-refine (regenerate). Anthropic prompt-caching geeft ~90% korting op input-tokens bij recurring calls binnen 5 min TTL. `ai_usage` logt nu ook `cache_creation_input_tokens` correct.
+- ✅ **Graceful Claude-downtime** — nieuwe `toNlException`-helper in `AiService` vangt `APIConnectionError` / `RateLimitError` / `AuthenticationError` / 5xx / 4xx specifiek af en gooit een NL-vriendelijke `ServiceUnavailable` ("Filly is even druk", "Filly is niet bereikbaar") i.p.v. raw 500.
+- ✅ **DB-schema-documentatie**: [docs/database-schema.md](docs/database-schema.md) met alle tabellen + relaties + storage-buckets + migratie-overzicht + open DB-punten.
+- ✅ **Setup-guides geschreven** voor de CTO-taken die externe accounts vereisen:
+  - [docs/database-migrations.md](docs/database-migrations.md) — Supabase CLI workflow
+  - [docs/sentry-setup.md](docs/sentry-setup.md) — error-tracking setup
+  - [docs/anthropic-cost-alerts.md](docs/anthropic-cost-alerts.md) — cost-control + budget-alerts
+  - [docs/staging-setup.md](docs/staging-setup.md) — 2e Supabase + Railway + Vercel preview
+  - [docs/scaling-roadmap.md](docs/scaling-roadmap.md) — multi-instance scaling per groei-fase
 
 ### 2026-04-29 — Empty-states-sweep afgerond
 - ✅ KpiRow: rode "Fout bij laden KPI's" → "Cijfers nog niet beschikbaar — zodra reserveringen en campagnes binnenkomen verschijnen ze hier."

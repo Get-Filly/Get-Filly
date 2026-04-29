@@ -304,6 +304,10 @@ export class ChatService {
         userId,
         feature: 'chat',
       },
+      // System bevat profile + menu + persona-rules — bij meerdere
+      // chat-berichten binnen 5 min levert caching ~90% korting op
+      // input-tokens.
+      cacheSystem: true,
     });
 
     // 4) Filly's antwoord parsen. Als Filly een concrete campagne
