@@ -425,6 +425,10 @@ export type Restaurant = {
   has_terrace: boolean;
   has_private_room: boolean;
   has_kids_menu: boolean;
+  // Wanneer schijnt de zon op het terras? Subset van
+  // ['morning','afternoon','evening']. Null = nog niet ingesteld.
+  // Filly gebruikt dit bij weer-getriggerde campagnes.
+  terrace_sun_periods: string[] | null;
   opening_hours: Record<string, { open: string; close: string }> | null;
   closed_dates: string[] | null;
   brand_tone: "casual" | "professional" | "playful";

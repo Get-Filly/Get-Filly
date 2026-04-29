@@ -70,6 +70,7 @@ export class RestaurantContextService {
         city, address, postal_code, country,
         price_range, capacity_seats, capacity_terrace,
         has_terrace, has_private_room, has_kids_menu,
+        terrace_sun_periods,
         opening_hours, kitchen_closing_time,
         social_media, website_url, website_summary
         `,
@@ -143,6 +144,25 @@ export class RestaurantContextService {
     if (r.has_kids_menu) facilities.push('kindermenu');
     if (facilities.length > 0) {
       lines.push(`- Faciliteiten: ${facilities.join(', ')}`);
+    }
+
+    // Terras-zon: alleen relevant als has_terrace=true. Vertaal de
+    // engelstalige enum-waarden naar NL zodat Filly direct in z'n
+    // antwoord kan zeggen "terras heeft middag-zon" zonder zelf te
+    // moeten vertalen.
+    const sunPeriods = r.terrace_sun_periods as string[] | null;
+    if (r.has_terrace && sunPeriods && sunPeriods.length > 0) {
+      const labels: Record<string, string> = {
+        morning: 'ochtend',
+        afternoon: 'middag',
+        evening: 'avond',
+      };
+      const nl = sunPeriods
+        .map((p) => labels[p] ?? p)
+        .filter(Boolean);
+      if (nl.length > 0) {
+        lines.push(`- Terras-zon: ${nl.join(', ')}`);
+      }
     }
 
     // Openingstijden compact formatteren als jsonb gevuld is.

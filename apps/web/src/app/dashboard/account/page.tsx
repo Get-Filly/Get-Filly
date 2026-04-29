@@ -238,6 +238,17 @@ export default function AccountPage() {
     update("brand_colors", { ...current, [key]: value });
   };
 
+  // Terras-zon-toggle (chip-stijl). Werkt alleen als has_terrace=true;
+  // bij uitvinken van het terras wissen we ook deze waardes zodat we
+  // geen rare residue-data houden van een terras dat niet meer bestaat.
+  const toggleTerraceSun = (period: "morning" | "afternoon" | "evening") => {
+    const current = form.terrace_sun_periods ?? [];
+    const next = current.includes(period)
+      ? current.filter((p) => p !== period)
+      : [...current, period];
+    update("terrace_sun_periods", next);
+  };
+
   return (
     <div className="page-full">
       <div className="page-title">Account</div>
@@ -709,11 +720,62 @@ export default function AccountPage() {
               <input
                 type="checkbox"
                 checked={form.has_terrace}
-                onChange={(e) => update("has_terrace", e.target.checked)}
+                onChange={(e) => {
+                  update("has_terrace", e.target.checked);
+                  // Terras uit → terras-zon-data ook wissen zodat
+                  // we geen rare residue-data houden.
+                  if (!e.target.checked) {
+                    update("terrace_sun_periods", null);
+                  }
+                }}
               />
               Heeft een terras
             </label>
           </div>
+          {form.has_terrace && (
+            <div className="form-field full">
+              <label>Wanneer schijnt de zon op het terras?</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {(
+                  [
+                    { code: "morning", label: "Ochtend" },
+                    { code: "afternoon", label: "Middag" },
+                    { code: "evening", label: "Avond" },
+                  ] as const
+                ).map((p) => {
+                  const active = (form.terrace_sun_periods ?? []).includes(
+                    p.code,
+                  );
+                  return (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => toggleTerraceSun(p.code)}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 999,
+                        border: active
+                          ? "1px solid var(--accent, #1F4A2D)"
+                          : "1px solid var(--border, #E5DFD0)",
+                        background: active
+                          ? "var(--accent, #1F4A2D)"
+                          : "transparent",
+                        color: active ? "white" : "var(--ts)",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="hint">
+                Klik aan/uit. Filly gebruikt dit voor zonnige-dag-acties op
+                je terras.
+              </div>
+            </div>
+          )}
           <div className="form-field full">
             <label className="form-checkbox">
               <input
