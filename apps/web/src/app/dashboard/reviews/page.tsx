@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  fetchReviewVariants,
   fetchReviews,
-  generateReviewReply,
+  refineReviewVariants,
   saveReviewReply,
   type Review,
   type ReviewSource,
@@ -46,31 +47,33 @@ export default function ReviewsPage() {
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
   const [replyTo, setReplyTo] = useState<Review | null>(null);
   const [replyText, setReplyText] = useState("");
-  // Bewaart alle Filly-varianten PER REVIEW, op page-niveau dus niet
-  // in de modal. Bewust: als de user per ongeluk naast de modal klikt
-  // zijn de gegenereerde voorstellen (en de bijbehorende Claude-kosten)
-  // niet weg. Ze blijven staan tot de user een reactie verstuurt —
-  // dan wissen we ze pas. Page-refresh wist wel, dat vinden we prima:
-  // rate-limit op de server (100/uur) is de echte bescherming.
+  // Filly-varianten + regen-count PER REVIEW. State leeft op page-
+  // niveau zodat een per-ongeluk-weggeklikte modal de cache niet
+  // weggooit; we cachen óók server-side in reviews.filly_variants
+  // dus deze state is in essentie een mirror van de DB voor snelle
+  // UI-renders.
   const [variantsByReview, setVariantsByReview] = useState<
-    Record<string, string[]>
+    Record<
+      string,
+      {
+        variants: string[];
+        regenerate_count: number;
+        can_regenerate: boolean;
+      }
+    >
   >({});
-  // Afgeleide waarde: de varianten voor de nu-open review. Pure helper
-  // om de JSX leesbaar te houden.
-  const variants = replyTo ? (variantsByReview[replyTo.id] ?? []) : [];
+  // Afgeleide waarden voor de nu-open review.
+  const reviewState = replyTo ? variantsByReview[replyTo.id] : undefined;
+  const variants = reviewState?.variants ?? [];
+  const regenCount = reviewState?.regenerate_count ?? 0;
+  const canRegenerate = reviewState?.can_regenerate ?? true;
   // Status van de AI-call en van het opslaan. We splitsen deze bewust
   // uit zodat de knoppen onafhankelijk van elkaar een loading-state
   // kunnen tonen (genereren vs. versturen).
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Max 3 Filly-voorstellen per review-sessie. Klikt user modal weg
-  // en opent 'm opnieuw voor dezelfde review? Dan wordt de teller
-  // gereset — dat is bewust: elke "sessie" krijgt 3 kansen, niet
-  // levenslang 3 per review. Abuse op rij-niveau vangen we al af
-  // met de server-side rate-limit (100/uur/restaurant).
-  const MAX_VARIANTS = 3;
+  const [bootstrapping, setBootstrapping] = useState(false);
 
   useEffect(() => {
     fetchReviews()
@@ -126,36 +129,59 @@ export default function ReviewsPage() {
     ...(Object.keys(sourceInfo) as ReviewSource[]),
   ];
 
-  const openReply = (r: Review) => {
-    // We openen de modal en pakken eventueel eerder gegenereerde
-    // varianten terug (bv. user heeft modal per ongeluk weggeklikt).
-    // Tekstveld default: laatst gekozen variant indien aanwezig,
-    // anders leeg. Filly wordt alleen aangeroepen op expliciet verzoek
-    // — we verspillen geen Claude-tokens op openen alleen.
+  const openReply = async (r: Review) => {
+    // Modal openen + tekstveld leegmaken (niet auto-vullen met variant
+    // — user kiest zelf welke 'ie wil hebben). Daarna fetchen we de
+    // gecachte set; als die leeg is, genereren we automatisch 3.
     setReplyTo(r);
-    const existing = variantsByReview[r.id] ?? [];
-    setReplyText(existing[existing.length - 1] ?? "");
+    setReplyText("");
     setError(null);
+
+    // Als we al state hebben in geheugen (modal-toggle binnen sessie):
+    // hoeft niet opnieuw te fetchen. Anders: fetch DB-cache.
+    if (variantsByReview[r.id]) return;
+
+    setBootstrapping(true);
+    try {
+      const cache = await fetchReviewVariants(r.id);
+      if (cache.variants.length > 0) {
+        setVariantsByReview((prev) => ({ ...prev, [r.id]: cache }));
+        setBootstrapping(false);
+        return;
+      }
+      // Cache leeg → auto-genereer 3 zodat user direct iets ziet.
+      setBootstrapping(false);
+      setGenerating(true);
+      const fresh = await refineReviewVariants(r.id);
+      setVariantsByReview((prev) => ({ ...prev, [r.id]: fresh }));
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
+      );
+      console.error(e);
+    } finally {
+      setBootstrapping(false);
+      setGenerating(false);
+    }
   };
 
-  // Vraagt Filly om een suggestie. Nieuwe variant wordt toegevoegd aan
-  // de per-review-lijst EN direct in het tekstveld gezet zodat de user
-  // 'm meteen kan bewerken.
+  // Klik "Genereer 3 nieuwe": 3 extra varianten erbij (totaal 6) +
+  // regen_count→2. Daarna disabled. State leest backend zodat client +
+  // server in sync blijven.
   const requestFillySuggestion = async () => {
-    if (!replyTo) return;
-    if (variants.length >= MAX_VARIANTS) return; // Dubbele bescherming
+    if (!replyTo || generating || !canRegenerate) return;
     setGenerating(true);
     setError(null);
     try {
-      const { suggestion } = await generateReviewReply(replyTo.id);
-      setVariantsByReview((prev) => ({
-        ...prev,
-        [replyTo.id]: [...(prev[replyTo.id] ?? []), suggestion],
-      }));
-      setReplyText(suggestion);
+      const result = await refineReviewVariants(replyTo.id);
+      setVariantsByReview((prev) => ({ ...prev, [replyTo.id]: result }));
     } catch (e) {
       setError(
-        "Filly kon geen voorstel maken. Probeer nog eens of tik zelf een antwoord.",
+        e instanceof Error
+          ? e.message
+          : "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
       );
       console.error(e);
     } finally {
@@ -374,51 +400,65 @@ export default function ReviewsPage() {
               </div>
             </div>
 
-            {/* Filly-banner: tot MAX_VARIANTS voorstellen kan de user
-                laten genereren. Daarna verdwijnt de knop en krijgt de
-                user een kiezer tussen de 3 varianten. */}
-            {variants.length < MAX_VARIANTS ? (
+            {/* Filly-banner met dynamische copy + regenerate-knop.
+                Vanaf modal-open: 3 voorstellen worden automatisch
+                gecached en getoond. Knop "Genereer 3 nieuwe" voegt
+                3 extra toe (totaal 6). Daarna disabled —
+                kostenbeheersing. Server cachet alles per review. */}
+            {bootstrapping ? (
+              <div className="review-modal-filly-banner">
+                <div>
+                  <strong>Filly bekijkt de review…</strong>{" "}
+                  Laden van eerdere voorstellen of een nieuwe set.
+                </div>
+              </div>
+            ) : canRegenerate ? (
               <div className="review-modal-filly-banner">
                 <div>
                   <strong>
                     {variants.length === 0
-                      ? "Laat Filly een antwoord schrijven?"
-                      : "Filly heeft een voorstel gedaan."}
+                      ? "Filly schrijft 3 voorstellen…"
+                      : `Filly heeft ${variants.length} versies geschreven.`}
                   </strong>{" "}
                   {variants.length === 0
-                    ? "Of tik zelf rechtstreeks in het veld hieronder."
-                    : `Pas het aan, of probeer nog een variant (${variants.length}/${MAX_VARIANTS}).`}
+                    ? "Even geduld."
+                    : regenCount === 1
+                      ? "Klik op een versie of laat 3 nieuwe maken (max 6)."
+                      : "Klik op een versie om 'm in het tekstveld te zetten."}
                 </div>
-                <button
-                  className="sg-btn"
-                  onClick={requestFillySuggestion}
-                  disabled={generating}
-                >
-                  {generating
-                    ? "Filly denkt na…"
-                    : variants.length === 0
-                      ? "Laat Filly schrijven"
-                      : "Nog een variant"}
-                </button>
+                {variants.length > 0 && (
+                  <button
+                    className="sg-btn"
+                    onClick={requestFillySuggestion}
+                    disabled={generating}
+                  >
+                    {generating ? "Filly denkt na…" : "↻ Genereer 3 nieuwe"}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="review-modal-filly-banner">
                 <div>
-                  <strong>Je hebt {MAX_VARIANTS} voorstellen gehad.</strong>{" "}
-                  Kies hieronder je favoriet en pas 'm naar wens aan.
+                  <strong>{variants.length} versies klaar.</strong>{" "}
+                  Maximum bereikt — kies hieronder je favoriet en pas
+                  'm naar wens aan.
                 </div>
               </div>
             )}
 
-            {/* Kiezer: alleen zichtbaar zodra er meerdere varianten zijn.
+            {/* Kiezer: zichtbaar zodra er varianten zijn.
                 Klik op een kaartje = tekstveld wordt overschreven. Het
                 actieve kaartje (= wat in het veld staat) markeren we
                 met een brand-groene rand zodat het duidelijk is. */}
-            {variants.length > 1 && (
+            {variants.length > 0 && (
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: `repeat(${variants.length}, 1fr)`,
+                  // Auto-fit met min 180px per card — bij 3 varianten
+                  // krijg je 3 kolommen, bij 6 wordt het automatisch
+                  // 2 of 3 rijen afhankelijk van modal-breedte.
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(180px, 1fr))",
                   gap: 8,
                   marginTop: 12,
                 }}

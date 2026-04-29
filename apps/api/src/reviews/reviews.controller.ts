@@ -50,6 +50,29 @@ export class ReviewsController {
     );
   }
 
+  // Lees gecachte filly-varianten + meta. Géén Claude-call (gratis),
+  // dus geen rate-limit guard nodig.
+  @Get(':id/variants')
+  getVariants(
+    @RestaurantId() restaurantId: string,
+    @Param('id') reviewId: string,
+  ) {
+    return this.reviews.getVariants(restaurantId, reviewId);
+  }
+
+  // Genereert 3 alternatieve reactie-varianten en cachet ze. Eerste
+  // call: 3. Tweede: 3 extra (totaal 6). Daarna BadRequest. Wel
+  // rate-limit-guard want dit is een Claude-call.
+  @UseGuards(AiRateLimitGuard)
+  @Post(':id/refine')
+  refineVariants(
+    @RestaurantId() restaurantId: string,
+    @Param('id') reviewId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.reviews.refineVariants(restaurantId, reviewId, user.id);
+  }
+
   // PATCH omdat we een bestaand record gedeeltelijk aanpassen (alleen
   // response_text + responded_at). PUT zou "vervang alles" betekenen.
   @Patch(':id')

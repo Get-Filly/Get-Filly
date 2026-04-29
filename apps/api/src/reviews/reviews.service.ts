@@ -97,6 +97,175 @@ export class ReviewsService {
     return { suggestion: suggestion.trim() };
   }
 
+  // Lees gecachte filly-varianten voor een review. Géén generatie —
+  // alleen state lezen. Frontend gebruikt dit bij modal-open om te
+  // bepalen of er al een set staat (=> tonen) of dat er gegenereerd
+  // moet (=> POST /refine).
+  async getVariants(
+    restaurantId: string,
+    reviewId: string,
+  ): Promise<{
+    variants: string[];
+    regenerate_count: number;
+    can_regenerate: boolean;
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('reviews')
+      .select('filly_variants, filly_variants_regen_count')
+      .eq('id', reviewId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) throw new NotFoundException('Review niet gevonden.');
+
+    const variants = Array.isArray(data.filly_variants)
+      ? (data.filly_variants as string[]).filter(
+          (v): v is string => typeof v === 'string',
+        )
+      : [];
+    const regenerate_count =
+      typeof data.filly_variants_regen_count === 'number'
+        ? data.filly_variants_regen_count
+        : 0;
+    return {
+      variants,
+      regenerate_count,
+      can_regenerate: regenerate_count < 2,
+    };
+  }
+
+  // Genereert 3 alternatieve reactie-versies voor een review en
+  // cachet ze. count=0 → 3 nieuwe; count=1 → 3 extra (totaal 6);
+  // count>=2 → BadRequest (kostenbeheersing).
+  async refineVariants(
+    restaurantId: string,
+    reviewId: string,
+    userId: string,
+  ): Promise<{
+    variants: string[];
+    regenerate_count: number;
+    can_regenerate: boolean;
+  }> {
+    const { data: review, error: reviewErr } = await this.supabase.client
+      .from('reviews')
+      .select(
+        'id, source, rating, title, body, author, filly_variants, filly_variants_regen_count',
+      )
+      .eq('id', reviewId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+
+    if (reviewErr) throw new InternalServerErrorException(reviewErr.message);
+    if (!review) throw new NotFoundException('Review niet gevonden.');
+
+    const currentCount =
+      typeof review.filly_variants_regen_count === 'number'
+        ? review.filly_variants_regen_count
+        : 0;
+    if (currentCount >= 2) {
+      throw new BadRequestException(
+        'Maximum aantal generaties bereikt voor deze review (3 + 3 = 6).',
+      );
+    }
+    const existingVariants = Array.isArray(review.filly_variants)
+      ? (review.filly_variants as string[]).filter(
+          (v): v is string => typeof v === 'string',
+        )
+      : [];
+
+    const { data: restaurant, error: restErr } = await this.supabase.client
+      .from('restaurants')
+      .select('name, type, description, brand_tone')
+      .eq('id', restaurantId)
+      .maybeSingle();
+
+    if (restErr) throw new InternalServerErrorException(restErr.message);
+    if (!restaurant) throw new NotFoundException('Restaurant niet gevonden.');
+
+    // System-prompt: vraag 3 alternatieven in expliciet JSON-formaat
+    // i.p.v. één string. Drie verschillende tonen (warm/zakelijk/
+    // direct-praktisch) zodat de eigenaar echt kan kiezen.
+    const baseSystem = buildReviewReplySystemPrompt(restaurant);
+    const systemPrompt = `${baseSystem}
+
+EXTRA-REGEL VOOR DEZE CALL: geef GEEN losse tekst, maar exact dit JSON-formaat (zonder markdown-codeblok):
+
+{
+  "variants": [
+    "<reactie versie 1>",
+    "<reactie versie 2>",
+    "<reactie versie 3>"
+  ]
+}
+
+3 verschillende tonen — bv. v1 warm-empathisch, v2 zakelijk-direct, v3 kort-praktisch. Niet alleen wat woorden anders.`;
+
+    const userPrompt = buildReviewReplyUserPrompt(review);
+
+    const answer = await this.ai.generateText({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 1200,
+      meta: {
+        restaurantId,
+        userId,
+        feature: 'review_reply_variants',
+      },
+    });
+
+    // Parser. Bij parse-fout vallen we niet hard om — log en gooi
+    // een gebruikerstekst-error die zegt opnieuw proberen.
+    const match = answer.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new InternalServerErrorException(
+        'Filly gaf geen leesbaar antwoord. Probeer opnieuw.',
+      );
+    }
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(match[0]) as Record<string, unknown>;
+    } catch {
+      throw new InternalServerErrorException(
+        "Kon Filly's antwoord niet lezen. Probeer opnieuw.",
+      );
+    }
+
+    const newVariants: string[] = Array.isArray(parsed.variants)
+      ? parsed.variants
+          .filter((v): v is string => typeof v === 'string')
+          .map((v) => v.trim())
+          .filter((v) => v.length > 0)
+      : [];
+
+    if (newVariants.length === 0) {
+      throw new InternalServerErrorException(
+        'Filly leverde geen bruikbare alternatieven. Probeer opnieuw.',
+      );
+    }
+
+    // Append + count++. Defensieve cap op 6 totaal.
+    const newAll = [...existingVariants, ...newVariants].slice(0, 6);
+    const newCount = currentCount + 1;
+
+    const { error: updErr } = await this.supabase.client
+      .from('reviews')
+      .update({
+        filly_variants: newAll,
+        filly_variants_regen_count: newCount,
+      })
+      .eq('id', reviewId)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return {
+      variants: newAll,
+      regenerate_count: newCount,
+      can_regenerate: newCount < 2,
+    };
+  }
+
   // Slaat het uiteindelijke antwoord op. De gebruiker kan de AI-suggestie
   // hebben overgenomen óf handmatig iets hebben ingetypt — deze functie
   // weet dat niet en boeit ook niet: we slaan gewoon op wat hij uiteindelijk

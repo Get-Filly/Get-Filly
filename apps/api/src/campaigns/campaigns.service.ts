@@ -218,14 +218,30 @@ export class CampaignsService {
     // ongewijzigd. Net zo voor content-veld. updated_at zetten we
     // handmatig ook omdat Supabase's default-now-trigger niet op
     // elke tabel zit.
-    if (typeof input.name === 'string') {
-      const nameTrimmed = input.name.trim();
-      if (!nameTrimmed) {
-        throw new BadRequestException('Campagne-naam mag niet leeg zijn.');
+    //
+    // Bij body-wijziging wissen we ook de cached filly_variants en
+    // resetten de regen-count: oude alternatieven matchen niet meer
+    // met de nieuwe inhoud, en de eigenaar mag opnieuw 6 genereren
+    // op basis van de bijgewerkte tekst.
+    const bodyChanging = typeof input.body === 'string';
+    if (typeof input.name === 'string' || bodyChanging) {
+      const updates: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (typeof input.name === 'string') {
+        const nameTrimmed = input.name.trim();
+        if (!nameTrimmed) {
+          throw new BadRequestException('Campagne-naam mag niet leeg zijn.');
+        }
+        updates.name = nameTrimmed;
+      }
+      if (bodyChanging) {
+        updates.filly_variants = [];
+        updates.filly_variants_regen_count = 0;
       }
       const { error: updErr } = await this.supabase.client
         .from('campaigns')
-        .update({ name: nameTrimmed, updated_at: new Date().toISOString() })
+        .update(updates)
         .eq('id', id)
         .eq('restaurant_id', restaurantId);
       if (updErr) throw new InternalServerErrorException(updErr.message);
@@ -339,24 +355,73 @@ export class CampaignsService {
     return { id, status: nextStatus };
   }
 
-  // Genereert 3 alternatieve versies van een concept-campagne. Pure
-  // generator (geen DB-write) — frontend toont de varianten en de
-  // eigenaar kiest welke 'm via PATCH wil opslaan. Alleen op concept-
-  // status; ingeplande/actieve campagnes zijn immutable.
+  // Lees de gecachte filly_variants + meta voor een concept-campagne.
+  // Géén generatie: alleen retournering van wat al in DB staat. Wordt
+  // door de frontend gebruikt bij page-open om te bepalen of we
+  // moeten genereren (cache leeg) of bestaande tonen.
+  async getVariants(
+    restaurantId: string,
+    id: string,
+  ): Promise<{
+    variants: Array<{ subject_line?: string; body: string }>;
+    regenerate_count: number;
+    can_regenerate: boolean;
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('campaigns')
+      .select('filly_variants, filly_variants_regen_count, status')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+
+    const variants = Array.isArray(data.filly_variants)
+      ? (data.filly_variants as Array<{
+          subject_line?: string;
+          body: string;
+        }>)
+      : [];
+    const regenerate_count =
+      typeof data.filly_variants_regen_count === 'number'
+        ? data.filly_variants_regen_count
+        : 0;
+    // Max 2 generaties (eerste set + 1× extra). Daarna moet de
+    // eigenaar handmatig bewerken — zo houden we Claude-kosten
+    // onder controle bij druk-klik-gedrag.
+    const can_regenerate =
+      data.status === 'concept' && regenerate_count < 2;
+
+    return { variants, regenerate_count, can_regenerate };
+  }
+
+  // Genereert 3 alternatieven en voegt ze toe aan de cache. Wordt
+  // gebruikt zowel voor de eerste set als voor de "Genereer 3 nieuwe"-
+  // klik. Server is bron van waarheid voor count + appended state:
+  //   count=0 → genereer 3, save, count=1
+  //   count=1 → genereer 3 extra, append, count=2 (totaal 6)
+  //   count>=2 → BadRequest (kostenbeheersing)
   //
-  // De optionele instructie ("maak korter", "speelser") stuurt de
-  // alternatieven die richting op. Zonder instructie krijg je 3
-  // gevarieerde herschrijvingen (warm/zakelijk/speels).
+  // De optionele instructie ("korter", "speelser") stuurt de varianten
+  // die kant op. Zonder instructie krijg je 3 gevarieerde versies
+  // (warm/zakelijk/speels).
   async refine(
     restaurantId: string,
     id: string,
     instruction?: string,
   ): Promise<{
     variants: Array<{ subject_line?: string; body: string }>;
+    regenerate_count: number;
+    can_regenerate: boolean;
   }> {
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, type, status, name')
+      .select(
+        'id, type, status, name, filly_variants, filly_variants_regen_count',
+      )
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
@@ -370,6 +435,22 @@ export class CampaignsService {
         `Alternatieven genereren kan alleen bij concept-campagnes (deze is ${campaign.status}).`,
       );
     }
+
+    const currentCount =
+      typeof campaign.filly_variants_regen_count === 'number'
+        ? campaign.filly_variants_regen_count
+        : 0;
+    if (currentCount >= 2) {
+      throw new BadRequestException(
+        'Maximum aantal generaties bereikt voor deze campagne (3 + 3 = 6). Bewerk handmatig of kies een bestaande versie.',
+      );
+    }
+    const existingVariants = Array.isArray(campaign.filly_variants)
+      ? (campaign.filly_variants as Array<{
+          subject_line?: string;
+          body: string;
+        }>)
+      : [];
 
     const type = campaign.type as 'mail' | 'social' | 'whatsapp';
     const contentTable =
@@ -496,7 +577,27 @@ Regels:
       );
     }
 
-    return { variants };
+    // Append aan bestaande cache + verhoog count. Behoud max 6 totaal
+    // ook als Claude er meer geeft (parser laat alleen 3 door, maar
+    // defensieve cap.)
+    const newAll = [...existingVariants, ...variants].slice(0, 6);
+    const newCount = currentCount + 1;
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update({
+        filly_variants: newAll,
+        filly_variants_regen_count: newCount,
+      })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return {
+      variants: newAll,
+      regenerate_count: newCount,
+      can_regenerate: newCount < 2,
+    };
   }
 
   // Hard delete. Alleen toegestaan voor concept (nog niet verzonden)

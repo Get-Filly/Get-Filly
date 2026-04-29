@@ -1,6 +1,7 @@
 import {
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -65,6 +66,8 @@ export type ActiveChatState = {
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   // Hoeveel berichten we meegeven als context aan Claude. 20 is genoeg
   // voor een gesprek van ~10 turns en houdt kosten in bedwang: elke
   // extra msg = ~50-150 input-tokens.

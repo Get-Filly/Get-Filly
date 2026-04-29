@@ -129,9 +129,21 @@ export class CampaignsController {
     return this.campaigns.remove(restaurantId, id);
   }
 
-  // Genereert 3 alternatieve versies van een concept-campagne via
-  // Claude. Géén DB-write — frontend toont de varianten en de
-  // eigenaar kiest welke 'm via PATCH wil opslaan.
+  // Lees gecachte filly-varianten + regen-count. Géén generatie.
+  // Frontend gebruikt dit bij page-open om te bepalen of er al
+  // varianten zijn (=> tonen) of dat een initial generate moet
+  // (=> POST /refine).
+  @Get(':id/variants')
+  getVariants(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.campaigns.getVariants(restaurantId, id);
+  }
+
+  // Genereert 3 alternatieven en cachet ze. Eerste call (count=0):
+  // 3 varianten. Tweede call (count=1): 3 extra (totaal 6). Daarna
+  // BadRequest voor kostenbeheersing.
   @Post(':id/refine')
   refine(
     @RestaurantId() restaurantId: string,

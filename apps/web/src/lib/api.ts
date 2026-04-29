@@ -170,16 +170,33 @@ export async function updateCampaignStatus(
   return res.json();
 }
 
-// Genereert 3 alternatieve versies van een concept-campagne via Filly.
-// Pure generator — geen DB-write. Frontend toont varianten en gebruikt
-// updateCampaign om de gekozen variant op te slaan. Optionele instructie
-// stuurt de varianten een richting op ("maak korter", "speelser").
+export type CampaignVariantsState = {
+  variants: Array<{ subject_line?: string; body: string }>;
+  regenerate_count: number;
+  can_regenerate: boolean;
+};
+
+// Lees de gecachte filly-varianten van een campagne. Géén generatie —
+// alleen wat al in de DB staat. Bij page-open op detail-pagina hiermee
+// checken of we initial moeten genereren of bestaande tonen.
+export async function fetchCampaignVariants(
+  id: string,
+): Promise<CampaignVariantsState> {
+  const res = await authedFetch(`${API_URL}/campaigns/${id}/variants`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Genereert 3 alternatieven en cachet ze server-side. Bij eerste call
+// krijg je 3 varianten + count=1. Bij tweede call: 3 extra (totaal 6)
+// + count=2. Daarna weigert backend (kostenbeheersing). Optionele
+// instructie stuurt de varianten een richting op.
 export async function generateCampaignVariants(
   id: string,
   instruction?: string,
-): Promise<{
-  variants: Array<{ subject_line?: string; body: string }>;
-}> {
+): Promise<CampaignVariantsState> {
   const res = await authedFetch(`${API_URL}/campaigns/${id}/refine`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -598,6 +615,38 @@ export async function generateReviewReply(
     { method: "POST" },
   );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export type ReviewVariantsState = {
+  variants: string[];
+  regenerate_count: number;
+  can_regenerate: boolean;
+};
+
+// Lees gecachte filly-varianten van een review. Géén Claude-call.
+export async function fetchReviewVariants(
+  reviewId: string,
+): Promise<ReviewVariantsState> {
+  const res = await authedFetch(`${API_URL}/reviews/${reviewId}/variants`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Genereert 3 alternatieve reactie-varianten + cachet ze. Eerste call:
+// 3. Tweede: 3 extra (totaal 6). Daarna weigert backend.
+export async function refineReviewVariants(
+  reviewId: string,
+): Promise<ReviewVariantsState> {
+  const res = await authedFetch(`${API_URL}/reviews/${reviewId}/refine`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
   return res.json();
 }
 

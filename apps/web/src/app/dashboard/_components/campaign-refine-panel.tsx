@@ -1,26 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  fetchCampaignVariants,
   generateCampaignVariants,
   updateCampaign,
 } from "../../../lib/api";
 
 // ============================================================
-// CampaignRefinePanel — 3 alternatieven + AI-chat op concept
+// CampaignRefinePanel — 3 alternatieven + 1× extra + apply
 // ============================================================
 // Inline paneel onder de "Inhoud"-card op /campagnes/[id]. Alleen
-// zichtbaar bij status='concept'. Drie scenario's:
-//   1. User klikt "Genereer 3 alternatieven" zonder instructie →
-//      Filly maakt 3 varianten in verschillende tonen (warm/zakelijk/
-//      speels) op basis van de huidige tekst.
-//   2. User typt iets als "maak korter" en klikt → Filly maakt 3
-//      versies richting die instructie.
-//   3. User klikt op een variant → die wordt de nieuwe campagne-
-//      tekst (auto-save via PATCH), andere 2 verdwijnen.
+// zichtbaar bij status='concept'.
 //
-// Geen DB-state voor varianten — alleen ephemerale UI-state. Zo blijft
-// het datamodel schoon: campagne is na save weer een snapshot.
+// Gedrag:
+//   - Bij eerste open van detail-page (cache leeg): genereer
+//     automatisch 3 alternatieven en cache ze in de DB.
+//   - Bij her-bezoek: tonen wat al gecached is, géén Claude-call.
+//   - Knop "Genereer 3 nieuwe": voegt 3 extra toe (totaal 6).
+//   - Daarna disabled: je hebt 6 versies, kies of bewerk handmatig.
+//   - Klik op een variant → wordt nieuwe campagne-body via PATCH.
+//     PATCH wist server-side de cache + reset count zodat user
+//     opnieuw 6 kan genereren op basis van de bijgewerkte tekst.
+//
+// Kostenbeheersing: max 2 Claude-generaties per item-leven (tot
+// body wijzigt).
 
 type Variant = { subject_line?: string; body: string };
 
@@ -37,23 +41,77 @@ export function CampaignRefinePanel({
 }) {
   const [instruction, setInstruction] = useState("");
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [canRegenerate, setCanRegenerate] = useState(true);
+  const [regenCount, setRegenCount] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [applyingIdx, setApplyingIdx] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(true);
 
-  const generate = async () => {
-    if (generating) return;
+  // Bootstrap: bij mount eerst kijken of er al een gecachte set staat.
+  // Zo ja → tonen. Zo nee → automatisch genereren (eerste 3). Dit
+  // gebeurt eenmalig per page-load; her-bezoek triggert geen nieuwe
+  // Claude-call.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const cache = await fetchCampaignVariants(campaignId);
+        if (cancelled) return;
+        if (cache.variants.length > 0) {
+          setVariants(cache.variants);
+          setRegenCount(cache.regenerate_count);
+          setCanRegenerate(cache.can_regenerate);
+          setBootstrapping(false);
+          return;
+        }
+        // Cache leeg → auto-genereer 3 zodat user direct iets ziet.
+        setGenerating(true);
+        setBootstrapping(false);
+        const fresh = await generateCampaignVariants(campaignId);
+        if (cancelled) return;
+        setVariants(fresh.variants);
+        setRegenCount(fresh.regenerate_count);
+        setCanRegenerate(fresh.can_regenerate);
+      } catch (e) {
+        if (cancelled) return;
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Kon alternatieven niet laden. Herlaad de pagina.",
+        );
+      } finally {
+        if (!cancelled) {
+          setGenerating(false);
+          setBootstrapping(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId]);
+
+  const regenerate = async () => {
+    if (generating || !canRegenerate) return;
     setError(null);
     setGenerating(true);
     try {
-      const { variants: result } = await generateCampaignVariants(
+      const result = await generateCampaignVariants(
         campaignId,
         instruction.trim() || undefined,
       );
-      setVariants(result);
+      setVariants(result.variants);
+      setRegenCount(result.regenerate_count);
+      setCanRegenerate(result.can_regenerate);
+      // Instruction-veld leegmaken — als user opnieuw wil itereren
+      // (volgens body-edit-flow) is dat een andere ronde.
+      setInstruction("");
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Genereren mislukt. Probeer opnieuw.",
+        e instanceof Error
+          ? e.message
+          : "Genereren mislukt. Probeer opnieuw.",
       );
     } finally {
       setGenerating(false);
@@ -73,9 +131,12 @@ export function CampaignRefinePanel({
         body: variant.body,
       });
       onApplied();
-      // Varianten leegmaken — ze zijn "verbruikt" zodra je er één
-      // koos. User kan opnieuw genereren als 'ie wil itereren.
+      // Server heeft cache geleegd + count gereset bij PATCH; lokaal
+      // ook aanpassen zodat user opnieuw kan genereren op de nieuwe
+      // body als ie wil.
       setVariants([]);
+      setRegenCount(0);
+      setCanRegenerate(true);
       setInstruction("");
     } catch (e) {
       setError(
@@ -86,86 +147,88 @@ export function CampaignRefinePanel({
     }
   };
 
-  const dismiss = () => {
-    if (applyingIdx !== null) return;
-    setVariants([]);
-    setError(null);
-  };
-
   return (
-    <div
-      className="card"
-      style={{ marginBottom: 16 }}
-    >
+    <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
         <div>
           <div className="card-t">✨ Met Filly bewerken</div>
           <div className="card-st">
-            Laat Filly 3 alternatieven schrijven, kies je favoriet.
+            {regenCount === 0
+              ? "Filly bedenkt 3 alternatieven; kies of laat 3 nieuwe maken."
+              : regenCount === 1
+                ? `${variants.length} versies — kies favoriet of laat 3 nieuwe maken.`
+                : `${variants.length} versies — kies favoriet of bewerk handmatig.`}
           </div>
         </div>
       </div>
       <div className="card-b">
-        {/* Input + generate-knop. Tekstveld is optioneel — zonder
-            instructie krijgt user 3 algemene alternatieven. */}
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "stretch",
-            marginBottom: 12,
-          }}
-        >
-          <input
-            type="text"
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !generating) generate();
-            }}
-            placeholder="Optioneel: zeg wat je anders wil ('korter', 'speelser', 'focus op terras')..."
-            disabled={generating || applyingIdx !== null}
+        {/* Input + regenerate-knop. Het tekstveld is alléén relevant
+            voor de "+3 nieuwe"-klik (instructie geeft Filly richting).
+            Eerste set is altijd zonder instructie. */}
+        {canRegenerate && (
+          <div
             style={{
-              flex: 1,
-              padding: "8px 12px",
-              border: "1px solid var(--border, #E5DFD0)",
-              borderRadius: 6,
-              fontSize: 13,
-              fontFamily: "inherit",
-              background: "var(--white, #FFFFFF)",
+              display: "flex",
+              gap: 8,
+              alignItems: "stretch",
+              marginBottom: 12,
             }}
-          />
-          <button
-            onClick={generate}
-            disabled={generating || applyingIdx !== null}
-            className="btn-primary-dash"
-            style={{ padding: "8px 14px", whiteSpace: "nowrap" }}
           >
-            {generating
-              ? "Filly bedenkt…"
-              : variants.length > 0
-                ? "↻ Opnieuw"
-                : "✨ Genereer 3 alternatieven"}
-          </button>
-          {variants.length > 0 && (
-            <button
-              onClick={dismiss}
-              disabled={applyingIdx !== null}
+            <input
+              type="text"
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !generating) regenerate();
+              }}
+              placeholder={
+                regenCount === 0
+                  ? "Optioneel: zeg wat je anders wil voordat je opnieuw genereert..."
+                  : "Optioneel: 'korter', 'speelser', 'focus op terras'..."
+              }
+              disabled={generating || applyingIdx !== null}
               style={{
+                flex: 1,
                 padding: "8px 12px",
-                background: "transparent",
-                color: "var(--ts)",
                 border: "1px solid var(--border, #E5DFD0)",
                 borderRadius: 6,
                 fontSize: 13,
-                cursor:
-                  applyingIdx !== null ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+                background: "var(--white, #FFFFFF)",
               }}
+            />
+            <button
+              onClick={regenerate}
+              disabled={
+                generating || applyingIdx !== null || bootstrapping
+              }
+              className="btn-primary-dash"
+              style={{ padding: "8px 14px", whiteSpace: "nowrap" }}
             >
-              Sluit
+              {generating
+                ? "Filly bedenkt…"
+                : regenCount === 0
+                  ? "✨ Genereer 3 alternatieven"
+                  : "↻ Genereer 3 nieuwe"}
             </button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {!canRegenerate && variants.length > 0 && (
+          <div
+            style={{
+              padding: "8px 12px",
+              background: "var(--surface, #EFE8D8)",
+              borderRadius: 6,
+              fontSize: 12,
+              color: "var(--ts)",
+              marginBottom: 12,
+            }}
+          >
+            Maximum aantal generaties bereikt (3 + 3 = 6 versies). Kies
+            er één of bewerk handmatig via "✎ Bewerken" rechtsboven.
+          </div>
+        )}
 
         {error && (
           <div
@@ -182,9 +245,8 @@ export function CampaignRefinePanel({
           </div>
         )}
 
-        {/* Loading-skelet zodat user weet dat er iets gebeurt — Claude
-            kan tot ~5s nemen voor 3 varianten. */}
-        {generating && variants.length === 0 && (
+        {/* Loading-skelet bij initiële generatie. */}
+        {(bootstrapping || (generating && variants.length === 0)) && (
           <div
             style={{
               padding: "20px",
@@ -196,7 +258,9 @@ export function CampaignRefinePanel({
               fontStyle: "italic",
             }}
           >
-            Filly schrijft 3 alternatieve versies…
+            {bootstrapping
+              ? "Bezig met laden…"
+              : "Filly schrijft 3 alternatieve versies…"}
           </div>
         )}
 
@@ -210,6 +274,9 @@ export function CampaignRefinePanel({
               }}
             >
               Klik op een versie om 'm als nieuwe inhoud op te slaan.
+              {regenCount === 1 && canRegenerate && (
+                <span> Of laat Filly 3 nieuwe maken (max 6 totaal).</span>
+              )}
             </div>
             <div
               style={{
@@ -226,7 +293,7 @@ export function CampaignRefinePanel({
                   <button
                     key={idx}
                     onClick={() => apply(idx)}
-                    disabled={applyingIdx !== null}
+                    disabled={applyingIdx !== null || generating}
                     style={{
                       textAlign: "left",
                       padding: "12px 14px",
@@ -236,7 +303,9 @@ export function CampaignRefinePanel({
                         ? "var(--accent-light, #D6E0D8)"
                         : "var(--white, #FFFFFF)",
                       cursor:
-                        applyingIdx !== null ? "not-allowed" : "pointer",
+                        applyingIdx !== null || generating
+                          ? "not-allowed"
+                          : "pointer",
                       transition: "all 0.15s",
                       opacity: isDisabled ? 0.5 : 1,
                       display: "flex",
@@ -246,7 +315,7 @@ export function CampaignRefinePanel({
                       overflowY: "auto",
                     }}
                     onMouseEnter={(e) => {
-                      if (applyingIdx === null) {
+                      if (applyingIdx === null && !generating) {
                         e.currentTarget.style.borderColor =
                           "var(--accent, #1F4A2D)";
                       }
