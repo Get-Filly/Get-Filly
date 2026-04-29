@@ -423,25 +423,64 @@ export default function OnboardingPage() {
     }
   };
 
+  // Logout vanaf onboarding. Eigenaar zit nog niet vast in een
+  // restaurant, dus signOut + redirect naar /login is genoeg —
+  // wizard-state gaat verloren maar de eigenaar kan opnieuw starten
+  // bij volgende login. Geen confirm-dialog; "Uitloggen" is een
+  // bewuste klik die meteen mag werken.
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+  };
+
   return (
     <section className="login-section">
       <div className="login-box" style={{ maxWidth: 560 }}>
-        <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              style={{
-                flex: 1,
-                height: 4,
-                borderRadius: 2,
-                background:
-                  s <= step
-                    ? "var(--brand, #1F4A2D)"
-                    : "var(--border, #e5e5e5)",
-                transition: "background 0.2s",
-              }}
-            />
-          ))}
+        {/* Header-rij met progress-bar links en logout-knop rechts.
+            Eigenaar moet altijd kunnen stoppen; zonder deze knop zit
+            'ie vast tot ie alle stappen heeft afgerond. */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                style={{
+                  flex: 1,
+                  height: 4,
+                  borderRadius: 2,
+                  background:
+                    s <= step
+                      ? "var(--brand, #1F4A2D)"
+                      : "var(--border, #e5e5e5)",
+                  transition: "background 0.2s",
+                }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--tl, #6B6F71)",
+              fontSize: 12,
+              cursor: "pointer",
+              padding: "4px 8px",
+              whiteSpace: "nowrap",
+            }}
+            title="Uitloggen en later verder gaan"
+          >
+            Uitloggen
+          </button>
         </div>
 
         {step === 1 && (
