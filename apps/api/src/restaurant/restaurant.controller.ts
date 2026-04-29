@@ -4,9 +4,12 @@ import {
   Get,
   Patch,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { RestaurantService } from './restaurant.service';
+import { DataExportService } from './data-export.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import {
   CurrentUser,
@@ -18,7 +21,10 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('restaurant')
 export class RestaurantController {
-  constructor(private readonly restaurant: RestaurantService) {}
+  constructor(
+    private readonly restaurant: RestaurantService,
+    private readonly dataExport: DataExportService,
+  ) {}
 
   @Get('me')
   getMe(@RestaurantId() restaurantId: string) {
@@ -44,5 +50,28 @@ export class RestaurantController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.restaurant.analyzeWebsite(restaurantId, user.id);
+  }
+
+  // AVG art. 20 — recht op gegevensoverdraagbaarheid. Eigenaar kan
+  // alle business-data van zijn restaurant downloaden als één JSON-
+  // bestand. Bevat profielen, gasten, reserveringen, menu, campagnes,
+  // reviews, chat-history en audit-log. Geen storage-binaries (logo's
+  // etc) — die kan eigenaar zelf via de URLs in de export ophalen.
+  @Get('me/export')
+  async exportData(
+    @RestaurantId() restaurantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.dataExport.exportRestaurantData(restaurantId);
+    // Content-Disposition zodat de browser direct een download
+    // suggesteert i.p.v. de JSON in de tab te tonen. Filename met
+    // datum zodat je oudere exports kunt onderscheiden.
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="getfilly-export-${date}.json"`,
+    );
+    return result;
   }
 }

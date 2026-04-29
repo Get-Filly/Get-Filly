@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 export type ReservationStatus =
   | 'bevestigd'
@@ -43,7 +44,10 @@ const RESERVATION_COLUMNS =
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditLogService,
+  ) {}
 
   async findRange(
     restaurantId: string,
@@ -158,6 +162,44 @@ export class ReservationsService {
     if (!data) {
       throw new NotFoundException('Reservering niet gevonden.');
     }
+
+    // Auto-tag de gast: als deze reservering aan een gast gekoppeld is
+    // én die gast nog geen acquired_via_campaign_id heeft, zetten we
+    // 'm op dezelfde campagne. Zo verschijnt de gast automatisch in de
+    // "Via Filly"-stat op de gasten-pagina + KPI-row.
+    //
+    // Niet-fataal als dit faalt: de reservering-update is al gelukt
+    // en dat is wat de gebruiker zag — we loggen alleen.
+    if (campaignId && data.guest_id) {
+      const { error: guestErr } = await this.supabase.client
+        .from('guests')
+        .update({ acquired_via_campaign_id: campaignId })
+        .eq('id', data.guest_id)
+        .eq('restaurant_id', restaurantId)
+        // Alleen overschrijven als nog niet gezet — eerste-attributie
+        // wint. Latere koppelingen veranderen niet wie de gast oorspronkelijk
+        // heeft binnengehaald.
+        .is('acquired_via_campaign_id', null);
+      if (guestErr) {
+        // Log via console; geen Logger-injectie nu om de signature
+        // klein te houden. Productie-logging gaat straks via Sentry.
+        console.warn(
+          `Guest auto-attributie faalde voor ${data.guest_id}: ${guestErr.message}`,
+        );
+      }
+    }
+
+    // Audit: attributie-wijziging — de meest cruciale logging want
+    // hierop bouwen alle Filly-ROI cijfers.
+    await this.audit.log({
+      restaurantId,
+      userId: null,
+      action: 'reservation_attribution_set',
+      entity_type: 'reservation',
+      entity_id: reservationId,
+      payload: { campaign_id: campaignId, guest_id: data.guest_id },
+    });
+
     return data as Reservation;
   }
 }

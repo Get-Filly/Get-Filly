@@ -6,6 +6,7 @@ import {
   fetchRestaurant,
   updateRestaurant,
   analyzeRestaurantWebsite,
+  downloadRestaurantExport,
   type Restaurant,
 } from "../../../lib/api";
 import { supabase } from "../../../lib/supabase";
@@ -71,6 +72,7 @@ export default function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchRestaurant()
@@ -1248,6 +1250,50 @@ export default function AccountPage() {
           <div className="form-field">
             <label>Huidig plan</label>
             <input type="text" value={form.plan} disabled />
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================
+          Sectie 15 — Data & privacy (AVG)
+          ============================================================ */}
+      <div className="form-section">
+        <div className="form-section-title">Data &amp; privacy</div>
+        <div className="form-section-desc">
+          Volgens de AVG (art. 20) heb je recht op een complete export
+          van je business-data in een leesbaar formaat.
+        </div>
+        <div className="form-field full">
+          <button
+            className="btn-secondary-dash"
+            onClick={async () => {
+              setExporting(true);
+              try {
+                await downloadRestaurantExport();
+                setSaveMessage("Export gedownload ✓");
+                setSaveStatus("success");
+                setTimeout(() => setSaveStatus("idle"), 2500);
+              } catch (e) {
+                setSaveStatus("error");
+                setSaveMessage(
+                  e instanceof Error
+                    ? e.message
+                    : "Export mislukt. Probeer opnieuw.",
+                );
+              } finally {
+                setExporting(false);
+              }
+            }}
+            disabled={exporting}
+            style={{ display: "inline-block" }}
+          >
+            {exporting ? "Exporteren…" : "⬇️ Download volledige data-export (JSON)"}
+          </button>
+          <div className="hint" style={{ marginTop: 8 }}>
+            Bevat: profielgegevens, gasten, reserveringen, menu,
+            campagnes, reviews, chat-history en audit-log. Logo&apos;s en
+            menu-PDF&apos;s staan als URL in het bestand — die kun je
+            apart downloaden.
           </div>
         </div>
       </div>

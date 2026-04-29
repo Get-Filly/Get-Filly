@@ -8,6 +8,7 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { WebsiteAnalyzerService } from '../ai/website-analyzer.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 // Velden die we NOOIT door de cliënt laten overschrijven, ongeacht wat
 // er in de PATCH-body zit. Zijn server-managed (id/created_at) of
@@ -43,6 +44,7 @@ export class RestaurantService {
     private readonly supabase: SupabaseService,
     private readonly geocoding: GeocodingService,
     private readonly websiteAnalyzer: WebsiteAnalyzerService,
+    private readonly audit: AuditLogService,
   ) {}
 
   async getById(restaurantId: string) {
@@ -126,6 +128,20 @@ export class RestaurantService {
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
+
+    // Audit: welke velden gewijzigd. We loggen alleen de keys (niet
+    // de waardes) zodat we geen PII in audit_log dumpen — namen,
+    // emails, KvK staan dan niet in dat logboek. Voor compliance is
+    // "veld X is om 14:32 aangepast" voldoende.
+    await this.audit.log({
+      restaurantId,
+      userId: null,
+      action: 'restaurant_updated',
+      entity_type: 'restaurant',
+      entity_id: restaurantId,
+      payload: { fields_changed: Object.keys(safe) },
+    });
+
     return data;
   }
 
@@ -202,6 +218,24 @@ export class RestaurantService {
     this.logger.log(
       `Website-analyse uitgevoerd voor ${restaurantId} door user ${userId}`,
     );
+
+    // Audit: handmatige website-analyse. Belangrijk omdat dit bestaande
+    // tagline/sfeer/USPs kan overschrijven — bij een klacht "mijn
+    // tagline is veranderd" weten we wie + wanneer.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'website_analyzed',
+      entity_type: 'restaurant',
+      entity_id: restaurantId,
+      payload: {
+        url,
+        confidence: profile.confidence,
+        fields_filled: Object.keys(updates).filter(
+          (k) => k !== 'website_last_analyzed_at',
+        ),
+      },
+    });
 
     return updated;
   }

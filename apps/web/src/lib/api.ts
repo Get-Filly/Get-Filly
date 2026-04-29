@@ -332,6 +332,10 @@ export type Guest = {
   lifetime_value_cents: number | null;
   preferences: { allergies?: string[]; dietary?: string[] } | null;
   notes: string | null;
+  // Filly-attributie (sinds migratie 0022). Wordt automatisch gevuld
+  // wanneer een reservering van deze gast aan een Filly-campagne
+  // wordt gekoppeld via de reserveringen-pagina.
+  acquired_via_campaign_id: string | null;
 };
 
 export type CustomerStatus =
@@ -704,6 +708,28 @@ export type MenuItemInput = {
   is_available?: boolean;
   dietary_tags?: string[];
 };
+
+// AVG-export: trigger een blob-download van de complete restaurant-
+// data-export. Gebruikt authedFetch zodat het JWT meegestuurd wordt
+// (die we via een <a href>-link niet mee kunnen geven).
+export async function downloadRestaurantExport(): Promise<void> {
+  const res = await authedFetch(`${API_URL}/restaurant/me/export`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Export mislukt (HTTP ${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `getfilly-export-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 // Helper: pak de NL-foutmelding uit een non-OK response. Backend stuurt
 // `{ message: "Naam is verplicht." }`-vormige body. Bij ontbrekende of

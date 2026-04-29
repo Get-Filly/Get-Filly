@@ -87,6 +87,11 @@ export default function GastenPage() {
       if (!g.birthday) return false;
       return new Date(g.birthday).getMonth() === currentMonth;
     });
+    // Filly-attributie: gasten waarvan de eerste reservering aan een
+    // Filly-campagne is gekoppeld (via_campaign_id-FK gevuld).
+    const viaFilly = guests.filter(
+      (g) => g.acquired_via_campaign_id !== null,
+    ).length;
     return {
       total: guests.length,
       active90,
@@ -95,6 +100,7 @@ export default function GastenPage() {
       atRisk,
       totalLtv,
       birthdaysThisMonth,
+      viaFilly,
     };
   }, [guests]);
 
@@ -125,6 +131,10 @@ export default function GastenPage() {
         <div className="stat-card">
           <div className="stat-card-label">Totaal gasten</div>
           <div className="stat-card-val">{stats.total}</div>
+        </div>
+        <div className="stat-card stat-card-filly">
+          <div className="stat-card-label">Via Filly</div>
+          <div className="stat-card-val">{stats.viaFilly}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Actief (90 dgn)</div>
@@ -246,9 +256,10 @@ export default function GastenPage() {
         <table className="data-table">
           <thead>
             <tr>
-              {/* "Via Filly"-kolom is verwijderd tot reservations.
-                  via_campaign_id-FK gevuld wordt door de send-engine.
-                  Tot die tijd is attributie niet betrouwbaar. */}
+              {/* "Via Filly" als eerste kolom — gevuld via
+                  reservations.via_campaign_id koppeling. Smalle
+                  breedte: ja/nee badge of streepje. */}
+              <th style={{ width: 90 }}>Via Filly</th>
               <th>Naam</th>
               <th>Status</th>
               <th>Bezoeken</th>
@@ -262,8 +273,38 @@ export default function GastenPage() {
               const status = computeCustomerStatus(g);
               const info = statusInfo[status];
               const allergies = g.preferences?.allergies ?? [];
+              const fromFilly = g.acquired_via_campaign_id !== null;
               return (
                 <tr key={g.id}>
+                  <td>
+                    {fromFilly ? (
+                      <span
+                        title="Eerste reservering binnengekomen via een Filly-campagne"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "2px 10px",
+                          borderRadius: "var(--rf)",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "var(--accent, #1F4A2D)",
+                          background: "var(--accent-light, #D6E0D8)",
+                        }}
+                      >
+                        ✓ Ja
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          color: "var(--tl)",
+                          fontSize: 12,
+                        }}
+                      >
+                        —
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {allergies.length > 0 && (

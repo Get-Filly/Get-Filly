@@ -199,7 +199,7 @@ verplaatsen naar de juiste P-bucket.
 - [x] ~~🔴 `reservations.via_campaign_id` FK ontbreekt~~ (2026-04-29 — migratie 0022) — ook `guests.acquired_via_campaign_id`. Reserveringen-pagina heeft nu een dropdown om handmatig te koppelen. KpiService berekent op basis van deze FK Filly-ROI; rapportages-pagina toont 6-maanden grafiek + per-campagne tabel.
 - [x] ~~🔴 `FILLY_ROI_6M` + `FILLY_BY_TYPE` in rapportages~~ (2026-04-29) — hard-coded arrays + ROI-sectie weg, vervangen door eerlijke "Filly-ROI nog niet meetbaar"-empty-state. Komt terug zodra send-engine attributie heeft.
 - [ ] 🟡 **`weekday_avg_pct = 68` hard-coded** in [kpi.service.ts](apps/api/src/kpi/kpi.service.ts). 6-maanden historie aggregeren.
-- [ ] 🟡 **`audit_log`-tabel wordt nergens geschreven** ondanks dat 'ie sinds migratie 0001 bestaat. Per mutatie een rij wegschrijven (subscriptions, restaurant-update, campagne-status-wijziging).
+- [~] 🟡 **`audit_log`-tabel** — schrijven is gedeeltelijk live (2026-04-29): `AuditLogService` in `common/`, integraties in `CampaignsService` (created/status_changed/deleted), `RestaurantService` (updated/website_analyzed) en `ReservationsService` (attribution_set). Nog uit te breiden: menu-CRUD, reviews-response, onboarding-completed. **Service-signatures geven nog `userId=null` door** — controllers moeten `@CurrentUser` doorreiken.
 - [ ] 🟡 **`ai_usage` tracking heeft geen dashboard** — Claude-kosten zijn alleen via DB-query zichtbaar. Mini-page voor admin om kosten per restaurant te zien.
 - [ ] 🟢 **Geen Plausible/PostHog** op publieke site — onbekend waar bezoekers afhaken.
 
@@ -242,7 +242,7 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🔴 **Test-account opruimen heeft FK-cascade-gotcha** — auth.user delete laat wees-restaurants achter.
 - [ ] 🟡 **Geen klanten-dashboard** ("welke klanten hebben KvK ingevuld? wie heeft Filly nooit gebruikt?").
 - [ ] 🟡 **Geen incident-response runbook** — wat doe je als Claude API down is, Supabase storage faalt?
-- [ ] 🟡 **Geen klant-data-export** (AVG-recht right-to-data-portability).
+- [x] ~~🟡 Geen klant-data-export~~ (2026-04-29) — `GET /restaurant/me/export` endpoint met blob-download via `downloadRestaurantExport`. Geeft alle business-data (restaurant, gasten, reserveringen, menu, campagnes, reviews, chat, audit-log) in één JSON-bestand. Knop op account-pagina sectie "Data & privacy".
 - [ ] 🟡 **Logging is inconsistent** — soms `Logger`, soms `console.log/warn/error`. Geen log-aggregator.
 - [ ] 🟡 **Geen rate-limit per user op AI** (alleen 100/uur/restaurant). Eén user kan binnen 1 uur €5-10 verbranden.
 - [ ] 🟢 **Geen monitoring** Claude/Supabase uptime — storingen alleen via klant-mails.
@@ -261,6 +261,13 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-04-29 — Gasten-attributie + Audit-log + Data-export (AVG)
+- ✅ **Gasten Filly-attributie**: backend selecteert `acquired_via_campaign_id`, `setReservationAttribution` zet automatisch dezelfde campagne op de gast als nog niet gevuld. Frontend toont "Via Filly"-stat-card + kolom met badge. Cijfer matcht het écht-aantal (geen mock).
+- ✅ **`AuditLogService`** (common/audit-log.service.ts + module): centrale schrijver voor de audit_log-tabel. Fail-soft: caller-actie blijft slagen ook als log mislukt.
+- ✅ Audit-writes geïntegreerd: `CampaignsService` (created/status_changed/deleted), `RestaurantService` (updated met fields_changed-keys + website_analyzed), `ReservationsService` (attribution_set). userId=null voor nu — controllers reiken nog niet door.
+- ✅ **`DataExportService` + `GET /restaurant/me/export`**: AVG art. 20 — eigenaar download alle business-data als één JSON-blob (alle directe + indirecte tabellen op restaurant-id). Knop op account-pagina.
+- ✅ Privacy-eigenschap van payload-velden: `restaurant_updated` logt alleen de keys die wijzigden, geen waardes — voorkomt dat namen/emails/KvK in de audit-log belanden.
 
 ### 2026-04-29 — Echte Filly-attributie + GitHub Actions CI
 - ✅ **Migratie 0022**: `reservations.via_campaign_id` + `guests.acquired_via_campaign_id` FKs (on delete set null) + indexes voor KPI-aggregaties.

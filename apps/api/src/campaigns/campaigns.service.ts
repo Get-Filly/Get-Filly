@@ -6,6 +6,7 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
 export type CampaignStatus =
@@ -52,6 +53,7 @@ export class CampaignsService {
     // USPs, doelgroep) en realistische tijdstip-suggesties (rekening
     // houdend met bezetting + special events).
     private readonly context: RestaurantContextService,
+    private readonly audit: AuditLogService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
@@ -213,6 +215,22 @@ export class CampaignsService {
         .eq('id', campaignId);
       throw new InternalServerErrorException(contentErr.message);
     }
+
+    // Audit: nieuwe campagne aangemaakt. userId is hier nog null omdat
+    // de service-signature 'm niet ontvangt — toekomstige verfijning
+    // (controllers reiken @CurrentUser door) kan dit aanvullen.
+    await this.audit.log({
+      restaurantId,
+      userId: null,
+      action: 'campaign_created',
+      entity_type: 'campaign',
+      entity_id: campaignId,
+      payload: {
+        name,
+        type: input.type,
+        source: input.subject_line ? 'mail-with-subject' : 'inline',
+      },
+    });
 
     return { id: campaignId };
   }
@@ -384,6 +402,18 @@ export class CampaignsService {
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
     if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    // Audit: status-overgang. Cruciaal voor debugging ("waarom staat
+    // deze campagne nu op afgerond terwijl ie nog actief had moeten
+    // zijn") en voor compliance-audit ("wie heeft de campagne stopgezet").
+    await this.audit.log({
+      restaurantId,
+      userId: null,
+      action: 'campaign_status_changed',
+      entity_type: 'campaign',
+      entity_id: id,
+      payload: { from: currentStatus, to: nextStatus },
+    });
 
     return { id, status: nextStatus };
   }
@@ -1072,6 +1102,18 @@ Geef het beste verzendmoment.`;
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
+
+    // Audit: campagne verwijderd. Onomkeerbaar dus extra belangrijk
+    // dat we 't loggen — we kunnen later aantonen dat er niets stilletjes
+    // weg is gemoffeld.
+    await this.audit.log({
+      restaurantId,
+      userId: null,
+      action: 'campaign_deleted',
+      entity_type: 'campaign',
+      entity_id: id,
+      payload: { previous_status: existing.status },
+    });
 
     return { id };
   }
