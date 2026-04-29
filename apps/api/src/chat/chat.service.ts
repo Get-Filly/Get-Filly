@@ -389,27 +389,30 @@ export class ChatService {
     };
   }
 
-  // System-prompt voor chat: Filly's persona + restaurant-identiteit +
-  // actuele feiten (weer, bezetting, reserveringen). De feiten komen
-  // uit RestaurantContextService die ze parallel ophaalt. Eén extra
-  // ronde naar de DB (~150ms) is verwaarloosbaar op een 1-3s Claude-call
-  // en voorkomt dat Filly hallucineert over data die ze niet heeft.
+  // System-prompt voor chat: Filly's persona + volledige restaurant-
+  // context (profiel + menu + actuele feiten). De context komt uit
+  // RestaurantContextService die alle blokken parallel ophaalt. ~200ms
+  // extra is verwaarloosbaar op een 1-3s Claude-call, en het verschil
+  // in antwoord-kwaliteit is groot: Filly kent nu doelgroep, USPs,
+  // menu-items + prijzen, openingstijden, socials, etc.
+  //
+  // Greet-naam: aparte mini-query naar restaurants. Klein dubbel werk
+  // met de profiel-query in buildFullContext, maar de greeting voelt
+  // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
+  // zaak". Twee queries kosten minder dan 50ms verschil.
   private async buildSystemPrompt(restaurantId: string): Promise<string> {
     const [restaurantResult, contextBlock] = await Promise.all([
       this.supabase.client
         .from('restaurants')
-        .select('name, type, description, brand_tone')
+        .select('name, type')
         .eq('id', restaurantId)
         .maybeSingle(),
-      this.context.buildContextBlock(restaurantId),
+      this.context.buildFullContext(restaurantId),
     ]);
 
     const restaurant = restaurantResult.data;
     const name = restaurant?.name ?? 'de zaak';
     const type = restaurant?.type ? ` (${restaurant.type})` : '';
-    const desc = restaurant?.description
-      ? `\nOver ${name}: ${restaurant.description}`
-      : '';
 
     return `Je bent Filly, de AI-marketingassistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.
 
@@ -427,8 +430,8 @@ Hoe je praat:
 Wat je NIET doet:
 - Beloof geen acties die je (nog) niet zelf kan uitvoeren. Zeg eerlijk "dat moet ik nog leren" als een feature er niet is.
 - Geef geen juridisch, fiscaal of medisch advies.
-- VERZIN geen cijfers. De feiten hieronder zijn je enige bron. Als je niets weet over iets, zeg dat dan.
-${desc}
+- VERZIN geen cijfers, gerechten of details. De context hieronder is je enige bron. Als iets ontbreekt, zeg dan "ik weet het niet" of stel een vervolgvraag.
+- Refereer alleen aan menu-items die letterlijk in het MENU-blok staan. Bedenk geen gerechten erbij, ook niet als ze "logisch" zouden klinken voor het restaurant-type.
 
 ---
 ACTIES DIE JE WEL KUNT UITVOEREN
@@ -458,6 +461,9 @@ Regels:
 - 3 varianten. Maak ze écht verschillend in toon/insteek/lengte —
   bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort.
   Niet alleen wat woorden anders.
+- Verwerk concrete elementen uit PROFIEL en MENU in je voorstellen
+  (bv. een signature gerecht, USP, of de specifieke doelgroep) zodat
+  de campagne herkenbaar bij DEZE zaak past.
 - "subject_line" hoort bij mail; voor social/whatsapp mag je 'm weglaten.
 - "body" bevat de volledige uitgeschreven tekst die in de campagne komt.
 - Gebruik dubbele aanhalingstekens binnen body door \\" te escapen.
@@ -466,8 +472,11 @@ Regels:
   concept-campagnes.
 
 ---
-Hieronder staan de actuele feiten over de zaak. Gebruik deze als enige
-bron voor cijfers over bezetting, weer en reserveringen:
+CONTEXT — alles wat je weet over deze zaak.
+Drie secties, gescheiden door "---":
+  1. PROFIEL — identiteit, doelgroep, USPs, faciliteiten, openingstijden, socials.
+  2. MENU — alle beschikbare gerechten met prijzen + signature-markers.
+  3. Actuele feiten — vandaag, weer, bezetting, reserveringen komende 7 dagen.
 
 ${contextBlock}
 ---
