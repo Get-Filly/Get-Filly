@@ -95,12 +95,17 @@ export function KpiRow() {
       .catch((e: Error) => setError(e.message));
   }, []);
 
+  // Bij een fout (bv. nog geen reserveringen-data, geen restaurant-
+  // koppeling) tonen we een rustige melding in plaats van een rode
+  // HTTP-fout. Eigenaar kan ondertussen verder met andere onderdelen.
   if (error) {
     return (
       <div className="kpi-row">
         <div className="kpi" style={{ gridColumn: "1 / -1" }}>
-          <div className="kpi-label" style={{ color: "var(--red)" }}>
-            Fout bij laden KPI&apos;s: {error}
+          <div className="kpi-label">Cijfers nog niet beschikbaar</div>
+          <div className="kpi-filly" style={{ marginTop: 4 }}>
+            Zodra je reserveringen en campagnes binnenkomen verschijnen
+            de KPI&apos;s hier.
           </div>
         </div>
       </div>

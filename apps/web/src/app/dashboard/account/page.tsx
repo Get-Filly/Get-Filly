@@ -82,7 +82,14 @@ export default function AccountPage() {
     return (
       <div className="page-full">
         <div className="page-title">Account</div>
-        <div style={{ color: "var(--red)" }}>Fout bij laden: {error}</div>
+        <div className="empty-state" style={{ marginTop: 16 }}>
+          <div className="empty-icon">⚙️</div>
+          <div className="empty-title">Account-gegevens niet geladen</div>
+          <div className="empty-desc">
+            We konden je profiel niet ophalen. Probeer de pagina te
+            herladen — als het probleem blijft, log dan opnieuw in.
+          </div>
+        </div>
       </div>
     );
   }

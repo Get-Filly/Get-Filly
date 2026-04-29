@@ -391,8 +391,13 @@ export default function SuggestiesPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="table-empty" style={{ color: "var(--red)" }}>
-          Fout: {error}
+        <div className="empty-state">
+          <div className="empty-icon">✨</div>
+          <div className="empty-title">Voorstellen niet beschikbaar</div>
+          <div className="empty-desc">
+            We konden de voorstellen niet ophalen. Probeer de pagina te
+            herladen.
+          </div>
         </div>
       ) : suggestions.length === 0 ? (
         tab === "pending" ? (

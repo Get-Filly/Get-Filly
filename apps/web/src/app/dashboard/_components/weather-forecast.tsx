@@ -13,14 +13,18 @@ export function WeatherForecast() {
       .catch((e: Error) => setError(e.message));
   }, []);
 
+  // Bij een fout (bv. coords missen omdat onboarding nog niet klaar is)
+  // tonen we een rustige info-melding in plaats van een rode HTTP-fout.
+  // De gebruiker kan z'n adres aanvullen op de account-pagina; tot
+  // die tijd is "weer niet beschikbaar" een prima signaal.
   if (error) {
     return (
       <div className="card">
         <div className="card-h">
           <div>
             <div className="card-t">Weersvoorspelling</div>
-            <div className="card-st" style={{ color: "var(--red)" }}>
-              Fout: {error}
+            <div className="card-st">
+              Nog niet beschikbaar — vul je adres aan op de account-pagina.
             </div>
           </div>
         </div>

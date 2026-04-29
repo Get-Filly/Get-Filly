@@ -256,6 +256,23 @@ export default function RapportagesPage() {
 
       {loading ? (
         <div className="table-empty">Laden...</div>
+      ) : guests.length === 0 &&
+        campaigns.length === 0 &&
+        occupancy.length === 0 ? (
+        // Volledige empty-state voor nieuwe klanten zonder data. Zonder
+        // deze check zien ze overal "0%" + "0 gasten" en denken ze dat
+        // er iets mis is. Beter expliciet uitleggen dat data nog moet
+        // komen.
+        <div className="empty-state" style={{ marginTop: 24 }}>
+          <div className="empty-icon">📊</div>
+          <div className="empty-title">Nog geen data om te rapporteren</div>
+          <div className="empty-desc">
+            Zodra reserveringen, gasten en campagnes binnenkomen
+            verschijnen hier de cijfers — gemiddelde bezetting, omzet,
+            Filly-ROI, retentie en meer. Begin met een eerste campagne
+            of importeer je gasten-bestand.
+          </div>
+        </div>
       ) : (
         <>
           {/* =====================================================

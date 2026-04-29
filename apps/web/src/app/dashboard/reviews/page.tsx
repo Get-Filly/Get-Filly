@@ -302,6 +302,18 @@ export default function ReviewsPage() {
             <Skeleton key={i} height={100} style={{ marginBottom: 8 }} />
           ))}
         </div>
+      ) : reviews.length === 0 ? (
+        // Volledig nieuwe klant: nog geen reviews binnen. Verwijs naar
+        // de koppelingen-pagina voor Google Business / TripAdvisor.
+        <div className="empty-state">
+          <div className="empty-icon">⭐</div>
+          <div className="empty-title">Nog geen reviews</div>
+          <div className="empty-desc">
+            Koppel je Google Business Profile of TripAdvisor om reviews
+            automatisch te importeren — Filly stelt dan voor elke review
+            direct een passend antwoord voor.
+          </div>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="table-empty">Geen reviews in deze categorie.</div>
       ) : (

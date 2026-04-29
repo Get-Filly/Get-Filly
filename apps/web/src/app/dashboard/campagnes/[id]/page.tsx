@@ -138,11 +138,13 @@ export default function CampaignDetailPage() {
         >
           ← Terug
         </Link>
-        <div
-          className="table-empty"
-          style={{ color: "var(--red)", marginTop: 16 }}
-        >
-          {error ?? "Campagne niet gevonden"}
+        <div className="empty-state" style={{ marginTop: 16 }}>
+          <div className="empty-icon">📣</div>
+          <div className="empty-title">Campagne niet gevonden</div>
+          <div className="empty-desc">
+            Deze campagne bestaat niet meer of je hebt geen toegang.
+            Ga terug naar het overzicht en kies een andere.
+          </div>
         </div>
       </div>
     );
