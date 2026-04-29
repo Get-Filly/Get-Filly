@@ -680,6 +680,73 @@ export async function deleteMenuItem(id: string): Promise<{ id: string }> {
   return res.json();
 }
 
+// ============================================================
+// Menukaart-import (PDF/foto via Claude Vision)
+// ============================================================
+
+export type ImportCardResult = {
+  upload_id: string;
+  file_name: string | null;
+  items_imported: number;
+  items: MenuItem[];
+  notes: string | null;
+  confidence: "high" | "medium" | "low";
+};
+
+export type ActiveMenuCard = {
+  id: string;
+  file_name: string | null;
+  uploaded_at: string;
+  items_count: number;
+};
+
+// Upload een menukaart-bestand. Synchrone call: backend uploadt naar
+// Storage, draait Claude Vision en schrijft alle gerechten weg
+// voordat de response terugkomt. Kan 5-15s duren bij een vol menu;
+// caller toont een progress-spinner zolang de Promise nog open is.
+export async function importMenuCard(file: File): Promise<ImportCardResult> {
+  const fd = new FormData();
+  fd.append("file", file);
+  // authedFetch zet automatisch JWT + X-Restaurant-Id; multipart
+  // Content-Type laten we aan de browser zodat de boundary klopt.
+  const res = await authedFetch(`${API_URL}/menu/import-card`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Menukaart importeren mislukt"));
+  }
+  return res.json();
+}
+
+// Welke menukaart is nu actief voor het ingelogde restaurant? null
+// als er nog geen kaart is geüpload.
+export async function fetchActiveMenuCard(): Promise<ActiveMenuCard | null> {
+  const res = await authedFetch(`${API_URL}/menu/active-card`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Kon actieve menukaart niet ophalen"));
+  }
+  // Backend stuurt ofwel een object ofwel `null` (geen kaart).
+  const json = await res.json();
+  return json ?? null;
+}
+
+// Verwijder de actieve menukaart inclusief alle items die daar uit
+// kwamen. Handmatig toegevoegde items blijven staan.
+export async function deleteMenuCard(
+  uploadId: string,
+): Promise<{ id: string; items_deleted: number }> {
+  const res = await authedFetch(`${API_URL}/menu/cards/${uploadId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Menukaart verwijderen mislukt"));
+  }
+  return res.json();
+}
+
 export type ReservationStatus =
   | "bevestigd"
   | "geannuleerd"

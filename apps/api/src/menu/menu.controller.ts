@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,14 +7,21 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   MenuService,
   type CreateMenuItemInput,
   type UpdateMenuItemInput,
 } from './menu.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -57,5 +65,59 @@ export class MenuController {
   @Delete(':id')
   remove(@RestaurantId() restaurantId: string, @Param('id') id: string) {
     return this.menu.remove(restaurantId, id);
+  }
+
+  // ============================================================
+  // Menukaart-import (Vision)
+  // ============================================================
+
+  // Upload een PDF/foto van de menukaart en laat Filly (Claude Vision)
+  // de gerechten extraheren. Opslag + Vision-call + items wegschrijven
+  // gebeuren synchroon — kan 5-15 seconden duren afhankelijk van menu-
+  // grootte. Frontend toont een spinner met "Filly leest je menu…".
+  //
+  // Limieten: 12MB op multipart-niveau (slechts iets ruimer dan de 10MB
+  // die MenuImporterService hanteert) zodat duidelijke 413-fouten ipv
+  // generieke 500 bij grote files.
+  @Post('import-card')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 12 * 1024 * 1024 },
+    }),
+  )
+  importCard(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Geen bestand ontvangen. Selecteer een PDF of foto van je menukaart.',
+      );
+    }
+    return this.menu.importCard(restaurantId, user?.id ?? null, {
+      buffer: file.buffer,
+      mimeType: file.mimetype,
+      originalName: file.originalname,
+    });
+  }
+
+  // Welke menukaart is nu actief? Wordt door de UI gebruikt om de
+  // "Menu-kaart actief"-banner te tonen na een refresh. null = geen
+  // actieve kaart, banner verbergen + upload-knop tonen.
+  @Get('active-card')
+  getActiveCard(@RestaurantId() restaurantId: string) {
+    return this.menu.getActiveCard(restaurantId);
+  }
+
+  // Verwijder een menukaart (storage + db-rij + alle gekoppelde items).
+  // Handmatig toegevoegde gerechten blijven staan — die zijn niet aan
+  // deze kaart gekoppeld.
+  @Delete('cards/:uploadId')
+  removeCard(
+    @RestaurantId() restaurantId: string,
+    @Param('uploadId') uploadId: string,
+  ) {
+    return this.menu.removeCard(restaurantId, uploadId);
   }
 }

@@ -191,7 +191,9 @@ export class RestaurantContextService {
   async buildMenuBlock(restaurantId: string): Promise<string> {
     const { data, error } = await this.supabase.client
       .from('menu_items')
-      .select('name, category, price_cents, is_signature, dietary_tags')
+      .select(
+        'name, category, price_cents, is_signature, dietary_tags, created_at',
+      )
       .eq('restaurant_id', restaurantId)
       .eq('is_available', true)
       .order('is_signature', { ascending: false })
@@ -212,6 +214,7 @@ export class RestaurantContextService {
       price_cents: number | null;
       is_signature: boolean;
       dietary_tags: string[] | null;
+      created_at: string | null;
     };
     const items = data as Item[];
     const groups = new Map<string, Item[]>();
@@ -231,9 +234,9 @@ export class RestaurantContextService {
       }
     }
 
-    // Allergenen-overzicht onderaan: aantallen per dieet-tag. Filly
-    // kan zo bij vragen "iets veganistisch erbij?" direct het juiste
-    // antwoord geven zonder de hele lijst te moeten doorgrijzen.
+    // Dieet-overzicht: aantallen per tag. Filly kan zo bij vragen
+    // "iets veganistisch erbij?" direct het juiste antwoord geven
+    // zonder de hele lijst te moeten doorgrijzen.
     const tagCounts = new Map<string, number>();
     for (const it of items) {
       for (const t of it.dietary_tags ?? []) {
@@ -247,6 +250,36 @@ export class RestaurantContextService {
         .map(([tag, n]) => `${n}× ${tag}`)
         .join(' · ');
       lines.push(`Dieet-overzicht: ${summary}`);
+    }
+
+    // Recent-toegevoegd-sectie: items < 30 dagen oud, gesorteerd op
+    // datum (nieuwste eerst). Geeft Filly een expliciet anker voor
+    // "wat is jullie nieuwste gerecht?"-vragen — zonder dit signaal
+    // ziet hij alleen een ongeordende lijst en moet hij gokken.
+    // Cap op 8 items zodat de prompt compact blijft bij een grote
+    // bulk-import.
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const recent = items
+      .filter((it) => {
+        if (!it.created_at) return false;
+        const t = Date.parse(it.created_at);
+        return Number.isFinite(t) && t >= thirtyDaysAgo;
+      })
+      .sort((a, b) => {
+        const ta = Date.parse(a.created_at ?? '');
+        const tb = Date.parse(b.created_at ?? '');
+        return tb - ta;
+      })
+      .slice(0, 8);
+    if (recent.length > 0) {
+      const recentLines = recent.map((it) => {
+        const date = formatShortDutchDate(it.created_at!);
+        const sig = it.is_signature ? ' [signature]' : '';
+        return `  - ${it.name}${sig} (toegevoegd ${date})`;
+      });
+      lines.push(
+        `Recent toegevoegd (laatste 30 dagen, nieuwste eerst):\n${recentLines.join('\n')}`,
+      );
     }
 
     return lines.join('\n');
@@ -379,6 +412,18 @@ function formatLongDate(d: Date): string {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+  });
+}
+
+// "29 apr" — korte datum zonder jaartal voor in-line gebruik in lijst-
+// context waar het jaar uit de context blijkt. Robuust tegen ongeldig
+// input: bij parse-fout valt 't terug op de ruwe string.
+function formatShortDutchDate(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return iso;
+  return new Date(t).toLocaleDateString('nl-NL', {
+    day: 'numeric',
+    month: 'short',
   });
 }
 

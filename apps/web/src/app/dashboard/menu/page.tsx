@@ -6,8 +6,12 @@ import {
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
+  importMenuCard,
+  fetchActiveMenuCard,
+  deleteMenuCard,
   type MenuItem,
   type MenuItemInput,
+  type ActiveMenuCard,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
@@ -76,107 +80,25 @@ function emptyDraft(): MenuItem {
   };
 }
 
-// Stages voor de menu-upload flow. "idle" = nog niets gedaan, daarna
-// lopen we door de processing-fases heen en eindigen in "done".
+// Stages voor de menu-upload flow.
+//   idle          — modal open, nog geen bestand gekozen
+//   reading       — bestand naar backend gestuurd
+//   recognizing   — Claude Vision is bezig (cosmetische sub-stage)
+//   categorizing  — items worden in DB weggeschreven (cosmetisch)
+//   done          — succes, items zichtbaar
+//   error         — backend gaf een fout; toon melding + "Opnieuw"-knop
+//
+// reading/recognizing/categorizing zijn één HTTP-call onder water, maar
+// we cyclen er visueel doorheen op een vaste timer zodat de gebruiker
+// vooruitgang ziet tijdens de 5-15s wachttijd. Bij eerder of later
+// resolve van de echte call springen we direct naar 'done' of 'error'.
 type UploadStage =
   | "idle"
   | "reading"
   | "recognizing"
   | "categorizing"
-  | "done";
-
-// Mock-herkende gerechten — deze "herkent" Filly uit een geüploade menu.
-// In productie komt dit uit Claude Vision API + OCR + AI-classificatie.
-const MOCK_RECOGNIZED: Omit<MenuItem, "id">[] = [
-  {
-    name: "Tomatensoep met basilicum",
-    category: "voorgerecht",
-    price_cents: 650,
-    description: "Klassiek, met croutons en een scheut room.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["vega"],
-  },
-  {
-    name: "Bruschetta met tomaat & burrata",
-    category: "voorgerecht",
-    price_cents: 850,
-    description: "Op geroosterd desembrood met verse basilicum.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["vega"],
-  },
-  {
-    name: "Osso buco met risotto milanese",
-    category: "hoofd",
-    price_cents: 2295,
-    description: "Langzaam gegaarde kalfsschenkel met safraanrisotto.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: [],
-  },
-  {
-    name: "Pappardelle met truffel",
-    category: "hoofd",
-    price_cents: 1950,
-    description: "Verse pappardelle, Italiaanse zwarte truffel, parmezaan.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["vega"],
-  },
-  {
-    name: "Gegrilde zeebaars",
-    category: "hoofd",
-    price_cents: 2495,
-    description: "Citrus-beurre blanc, seizoensgroenten, aardappelpuree.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["gluten_vrij"],
-  },
-  {
-    name: "Tiramisu",
-    category: "dessert",
-    price_cents: 795,
-    description: "Huisgemaakt, met espresso en marsala.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["vega"],
-  },
-  {
-    name: "Crème brûlée",
-    category: "dessert",
-    price_cents: 850,
-    description: "Klassiek, met vanillestokje uit Madagaskar.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["vega", "gluten_vrij"],
-  },
-  {
-    name: "Verse muntthee",
-    category: "drank",
-    price_cents: 325,
-    description: "Met honing en citroen.",
-    is_signature: false,
-    is_seasonal: false,
-    season: null,
-    is_available: true,
-    dietary_tags: ["vega", "vegan"],
-  },
-];
+  | "done"
+  | "error";
 
 export default function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -195,35 +117,31 @@ export default function MenuPage() {
   const [saving, setSaving] = useState(false);
 
   // Upload-flow state. Zichtbaar wanneer uploadOpen=true. Stage volgt
-  // de mock-verwerking: reading → recognizing → categorizing → done.
+  // de verwerking: reading → recognizing → categorizing → done|error.
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
   const [uploadFileName, setUploadFileName] = useState<string | null>(null);
-  const [recognizedItems, setRecognizedItems] = useState<
-    Omit<MenuItem, "id">[]
-  >([]);
+  // Items die zojuist door Filly zijn geïmporteerd — al in DB, met
+  // echte uuid's. Tonen we in de "✓ N gerechten herkend"-lijst zodat
+  // de eigenaar direct ziet wat er is toegevoegd.
+  const [importedItems, setImportedItems] = useState<MenuItem[]>([]);
+  const [importNotes, setImportNotes] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Ids van items die aan de huidige menu-kaart gekoppeld zijn. Deze
-  // items zijn afkomstig uit de upload en worden visueel gemarkeerd
-  // als "Nieuw". Als de gebruiker de kaart verwijdert of vervangt,
-  // worden precies deze items opgeruimd — handmatig toegevoegde
-  // gerechten blijven staan.
-  const [cardItemIds, setCardItemIds] = useState<Set<string>>(new Set());
-
-  // Metadata over de huidige geüploade menu-kaart. Null = nog geen
-  // kaart geüpload. Later: opslaan op restaurant-level (Supabase storage
-  // bucket + tabel `menu_uploads`) zodat upload vanuit instellingen
-  // hier ook zichtbaar is.
-  const [uploadedCard, setUploadedCard] = useState<{
-    fileName: string;
-    uploadedAt: string;
-    itemCount: number;
-  } | null>(null);
+  // Metadata over de huidige actieve menu-kaart, opgehaald uit
+  // menu_uploads-tabel zodat de banner ook na een F5 zichtbaar blijft.
+  // Null = nog geen kaart geüpload.
+  const [uploadedCard, setUploadedCard] = useState<ActiveMenuCard | null>(
+    null,
+  );
 
   useEffect(() => {
-    fetchMenu()
-      .then((d) => {
-        setItems(d);
+    // Bij mount: parallel ophalen van menu-items én actieve kaart.
+    // Eén roundtrip extra; minder UI-flicker dan twee aparte fetches.
+    Promise.all([fetchMenu(), fetchActiveMenuCard()])
+      .then(([menuData, card]) => {
+        setItems(menuData);
+        setUploadedCard(card);
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -336,74 +254,97 @@ export default function MenuPage() {
     setUploadOpen(true);
     setUploadStage("idle");
     setUploadFileName(null);
-    setRecognizedItems([]);
+    setImportedItems([]);
+    setImportNotes(null);
+    setUploadError(null);
   };
 
   const closeUpload = () => {
     setUploadOpen(false);
     setUploadStage("idle");
     setUploadFileName(null);
-    setRecognizedItems([]);
+    setImportedItems([]);
+    setImportNotes(null);
+    setUploadError(null);
   };
 
-  // Mock: simuleer OCR + AI-herkenning met stappen. In productie wordt
-  // het bestand naar de backend gestuurd die Claude Vision aanroept.
-  const handleFileSelected = (file: File) => {
+  // Echte upload-flow: bestand → backend → Claude Vision → menu_items.
+  // Tijdens de wachttijd (5-15s) cyclen we visueel door reading →
+  // recognizing → categorizing zodat de gebruiker vooruitgang voelt.
+  // Zodra de Promise resolve't springen we direct naar 'done' (of
+  // 'error' bij falen) en cancellen we de cosmetische timers.
+  const handleFileSelected = async (file: File) => {
     setUploadFileName(file.name);
+    setUploadError(null);
     setUploadStage("reading");
-    setTimeout(() => {
-      setUploadStage("recognizing");
-      setTimeout(() => {
-        setUploadStage("categorizing");
-        setTimeout(() => {
-          setRecognizedItems(MOCK_RECOGNIZED);
-          setUploadStage("done");
-        }, 800);
-      }, 1000);
-    }, 700);
+
+    // Cosmetische stage-rotation. Als de echte call sneller klaar is
+    // dan deze timeouts, overschrijft het 'done' / 'error'-pad gewoon
+    // de stage en clearen we de timers in finally.
+    const t1 = setTimeout(() => setUploadStage("recognizing"), 4000);
+    const t2 = setTimeout(() => setUploadStage("categorizing"), 9000);
+
+    try {
+      const result = await importMenuCard(file);
+      setImportedItems(result.items);
+      setImportNotes(result.notes);
+      setUploadStage("done");
+    } catch (e) {
+      setUploadError(
+        e instanceof Error ? e.message : "Upload mislukt — probeer opnieuw.",
+      );
+      setUploadStage("error");
+    } finally {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    }
   };
 
-  // Verwijder de kaart én de gerechten die uit de upload kwamen.
-  // Handmatig toegevoegde gerechten (niet in cardItemIds) blijven
-  // staan. Bevestigt via browser-dialog om per-ongeluk klikken te
-  // voorkomen.
-  const removeUploadedCard = () => {
+  // Sluit de upload-modal én ververs de menu-lijst + banner zodat de
+  // pagina alle nieuwe items toont (zonder F5 nodig). Wordt gebruikt
+  // op de "Klaar"-knop na een succesvolle import.
+  const closeUploadAndRefresh = async () => {
+    closeUpload();
+    try {
+      const [menuData, card] = await Promise.all([
+        fetchMenu(),
+        fetchActiveMenuCard(),
+      ]);
+      setItems(menuData);
+      setUploadedCard(card);
+    } catch (e) {
+      console.error("Refresh na upload faalde:", e);
+    }
+  };
+
+  // Verwijder de actieve menu-kaart inclusief de gerechten die er uit
+  // kwamen. Handmatig toegevoegde gerechten blijven staan (zonder
+  // menu_upload_id-link in DB). Bevestigt via browser-dialog om
+  // per-ongeluk klikken te voorkomen.
+  const removeUploadedCard = async () => {
     if (!uploadedCard) return;
-    const count = cardItemIds.size;
     const ok = window.confirm(
       `Weet je zeker dat je de menu-kaart wil verwijderen?\n\n` +
-        `De ${count} gerechten die uit deze kaart geïmporteerd zijn ` +
-        `worden ook verwijderd. Handmatig toegevoegde gerechten ` +
-        `blijven staan.`,
+        `De ${uploadedCard.items_count} gerechten die uit deze kaart ` +
+        `geïmporteerd zijn worden ook verwijderd. Handmatig toegevoegde ` +
+        `gerechten blijven staan.`,
     );
     if (!ok) return;
-    setItems((prev) => prev.filter((i) => !cardItemIds.has(i.id)));
-    setCardItemIds(new Set());
-    setUploadedCard(null);
-  };
-
-  const importRecognized = () => {
-    // Bij een nieuwe upload: verwijder eerst eventuele items van de
-    // vorige kaart (kaart wordt vervangen, items moeten mee). Daarna
-    // voeg de nieuwe items toe en track hun ids als actieve kaart-set.
-    const newIds = new Set<string>();
-    const newItems = recognizedItems.map((r) => {
-      const id = `imported-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      newIds.add(id);
-      return { ...r, id };
-    });
-    setItems((prev) => [
-      ...prev.filter((i) => !cardItemIds.has(i.id)),
-      ...newItems,
-    ]);
-    setCardItemIds(newIds);
-    // Sla kaart-metadata op zodat de status-banner zichtbaar wordt.
-    setUploadedCard({
-      fileName: uploadFileName ?? "menukaart.pdf",
-      uploadedAt: new Date().toISOString(),
-      itemCount: newItems.length,
-    });
-    closeUpload();
+    try {
+      await deleteMenuCard(uploadedCard.id);
+      const [menuData, card] = await Promise.all([
+        fetchMenu(),
+        fetchActiveMenuCard(),
+      ]);
+      setItems(menuData);
+      setUploadedCard(card);
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Verwijderen mislukt. Probeer het opnieuw.",
+      );
+    }
   };
 
   const filtered = useMemo(() => {
@@ -523,25 +464,25 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Status-banner voor geüploade menu-kaart: groene check + filename
-          + datum + "vervang"-knop. Alleen zichtbaar zodra er een kaart
-          is, vanuit deze pagina of later vanuit de instellingen. */}
+      {/* Status-banner voor de actieve menu-kaart: groene check +
+          filename + datum + acties. Data komt uit menu_uploads in de
+          DB, dus zichtbaar gebleven na een F5. */}
       {uploadedCard && (
         <div className="menu-card-status">
           <div className="menu-card-status-icon">✓</div>
           <div className="menu-card-status-body">
             <div className="menu-card-status-title">Menu-kaart actief</div>
             <div className="menu-card-status-meta">
-              <span>{uploadedCard.fileName}</span>
+              <span>{uploadedCard.file_name ?? "menukaart"}</span>
               <span>·</span>
               <span>
-                {new Date(uploadedCard.uploadedAt).toLocaleDateString(
+                {new Date(uploadedCard.uploaded_at).toLocaleDateString(
                   "nl-NL",
                   { day: "numeric", month: "long", year: "numeric" },
                 )}
               </span>
               <span>·</span>
-              <span>{uploadedCard.itemCount} gerechten geïmporteerd</span>
+              <span>{uploadedCard.items_count} gerechten geïmporteerd</span>
             </div>
           </div>
           <div className="menu-card-status-actions">
@@ -667,9 +608,6 @@ export default function MenuPage() {
                       <div className="menu-item-main">
                         <div className="menu-item-name-row">
                           <span className="menu-item-name">{item.name}</span>
-                          {cardItemIds.has(item.id) && (
-                            <span className="menu-item-badge-new">Nieuw</span>
-                          )}
                           {!item.is_available && (
                             <span className="menu-item-badge-soft">
                               Tijdelijk uit
@@ -724,16 +662,18 @@ export default function MenuPage() {
         />
       )}
 
-      {/* Upload-modal: mock AI-herkenning van een geüploade menu-kaart.
-          Flow: kies bestand → Filly "leest" → gerechten herkennen →
-          categoriseren → resultaat + toevoegen-knop. */}
+      {/* Upload-modal: echte Vision-flow.
+          Flow: kies bestand → Filly leest (5-15s) → resultaat + items
+          al in DB. "Klaar"-knop sluit + ververst de menu-lijst. */}
       {uploadOpen && (
         <UploadMenuModal
           stage={uploadStage}
           fileName={uploadFileName}
-          recognized={recognizedItems}
+          imported={importedItems}
+          notes={importNotes}
+          errorMessage={uploadError}
           onFileSelected={handleFileSelected}
-          onImport={importRecognized}
+          onDone={closeUploadAndRefresh}
           onClose={closeUpload}
         />
       )}
@@ -748,16 +688,27 @@ export default function MenuPage() {
 function UploadMenuModal({
   stage,
   fileName,
-  recognized,
+  imported,
+  notes,
+  errorMessage,
   onFileSelected,
-  onImport,
+  onDone,
   onClose,
 }: {
   stage: UploadStage;
   fileName: string | null;
-  recognized: Omit<MenuItem, "id">[];
+  // Items die al in de DB staan na een succesvolle import. Ids zijn
+  // echte uuid's, niet meer 'imported-xyz'-prefixen.
+  imported: MenuItem[];
+  // Optionele opmerkingen van Filly (bv. "wijnkaart kon ik niet
+  // helemaal lezen"). Tonen we als info-banner als 'm gevuld is.
+  notes: string | null;
+  // Backend-foutmelding bij upload-fail. Toont in de error-stage.
+  errorMessage: string | null;
   onFileSelected: (file: File) => void;
-  onImport: () => void;
+  // Klaar-knop na success: sluit modal + ververs menu-lijst op de
+  // pagina. De items zijn al weggeschreven in de DB tijdens upload.
+  onDone: () => void;
   onClose: () => void;
 }) {
   const isProcessing =
@@ -767,37 +718,45 @@ function UploadMenuModal({
 
   const stageLabel: Record<UploadStage, string> = {
     idle: "",
-    reading: "Bestand lezen…",
-    recognizing: "Gerechten herkennen…",
-    categorizing: "Categorieën indelen…",
+    reading: "Bestand uploaden…",
+    recognizing: "Filly leest je menu…",
+    categorizing: "Gerechten toevoegen aan je menu…",
     done: "Klaar",
+    error: "Mislukt",
   };
 
-  // Volgorde van de processing-stappen voor de UI-indicator.
+  // Volgorde van de verwerkingsstappen voor de UI-indicator.
   const steps: { key: UploadStage; label: string }[] = [
-    { key: "reading", label: "Bestand lezen" },
-    { key: "recognizing", label: "Gerechten herkennen" },
-    { key: "categorizing", label: "Categorieën indelen" },
+    { key: "reading", label: "Uploaden" },
+    { key: "recognizing", label: "Filly leest" },
+    { key: "categorizing", label: "Toevoegen" },
   ];
 
   const stageIndex = (s: UploadStage) =>
     s === "reading" ? 0 : s === "recognizing" ? 1 : s === "categorizing" ? 2 : 3;
 
+  // Tijdens processing willen we niet dat de gebruiker de modal sluit
+  // (request blijft dan open op de server, items komen toch in DB —
+  // verwarrend). Sluiten alleen toestaan in idle/done/error.
+  const canClose = !isProcessing;
+
   return (
     <div
       className="sg-modal-overlay"
-      onClick={onClose}
+      onClick={canClose ? onClose : undefined}
       role="dialog"
       aria-modal="true"
     >
       <div className="sg-modal" onClick={(e) => e.stopPropagation()}>
-        <button
-          className="sg-modal-close"
-          onClick={onClose}
-          aria-label="Sluiten"
-        >
-          ×
-        </button>
+        {canClose && (
+          <button
+            className="sg-modal-close"
+            onClick={onClose}
+            aria-label="Sluiten"
+          >
+            ×
+          </button>
+        )}
 
         <div className="sg-modal-header">
           <div className="sg-trigger">
@@ -808,9 +767,9 @@ function UploadMenuModal({
 
         <h2 className="sg-modal-title">Upload je menu</h2>
         <p className="menu-upload-intro">
-          Upload een PDF of foto van je menu-kaart. Filly herkent de
-          gerechten automatisch en maakt je menu compleet — je hoeft ze
-          alleen nog te controleren.
+          Upload een PDF of foto van je menu-kaart. Filly leest de
+          gerechten automatisch in en zet ze direct in je menu — je
+          hoeft ze alleen nog te controleren.
         </p>
 
         {stage === "idle" && (
@@ -829,7 +788,7 @@ function UploadMenuModal({
               Sleep hier je menu-kaart of klik om te kiezen
             </div>
             <div className="menu-upload-dropzone-sub">
-              PDF, JPG of PNG — max. 10 MB
+              PDF, JPG, PNG of WebP — max. 10 MB
             </div>
           </label>
         )}
@@ -861,18 +820,72 @@ function UploadMenuModal({
               })}
             </div>
             <div className="menu-upload-status">{stageLabel[stage]}</div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--tl)",
+                textAlign: "center",
+                marginTop: 8,
+              }}
+            >
+              Dit kan 5 tot 15 seconden duren bij een vol menu.
+            </div>
+          </div>
+        )}
+
+        {stage === "error" && (
+          <div className="menu-upload-processing">
+            <div className="menu-upload-filename">
+              <span>⚠️</span>
+              <span>{fileName ?? "bestand"}</span>
+            </div>
+            <div
+              style={{
+                padding: "12px 14px",
+                background: "var(--red-soft, #fee)",
+                color: "var(--red, #b00)",
+                borderRadius: 8,
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              {errorMessage ?? "Er ging iets mis. Probeer het opnieuw."}
+            </div>
+            <div className="sg-actions sg-modal-actions">
+              <button className="sg-btn primary" onClick={onClose}>
+                Sluiten
+              </button>
+            </div>
           </div>
         )}
 
         {stage === "done" && (
           <div>
             <div className="menu-upload-done-banner">
-              <strong>✓ {recognized.length} gerechten herkend</strong> —
-              controleer de lijst en voeg toe aan je menu.
+              <strong>✓ {imported.length} gerechten toegevoegd</strong>
+              {imported.length > 0
+                ? " — ze staan nu in je menu en Filly kent ze."
+                : " — Filly kon geen gerechten herkennen op deze kaart."}
             </div>
+            {notes && (
+              <div
+                style={{
+                  padding: "10px 12px",
+                  background: "var(--bg, #FAF7F1)",
+                  border: "1px solid var(--border, #E5DFD0)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "var(--ts)",
+                  marginBottom: 12,
+                  fontStyle: "italic",
+                }}
+              >
+                Filly merkt op: {notes}
+              </div>
+            )}
             <div className="menu-upload-result-list">
-              {recognized.map((r, i) => (
-                <div key={i} className="menu-upload-result-item">
+              {imported.map((r) => (
+                <div key={r.id} className="menu-upload-result-item">
                   <div>
                     <div className="menu-upload-result-name">{r.name}</div>
                     <div className="menu-upload-result-meta">
@@ -881,7 +894,9 @@ function UploadMenuModal({
                           r.category)}
                       {r.dietary_tags.length > 0 &&
                         " · " +
-                          r.dietary_tags.map((t) => t.replace("_", "-")).join(", ")}
+                          r.dietary_tags
+                            .map((t) => t.replace("_", "-"))
+                            .join(", ")}
                     </div>
                   </div>
                   <div className="menu-upload-result-price">
@@ -893,11 +908,8 @@ function UploadMenuModal({
               ))}
             </div>
             <div className="sg-actions sg-modal-actions">
-              <button className="sg-btn primary" onClick={onImport}>
-                Voeg toe aan menu
-              </button>
-              <button className="sg-btn" onClick={onClose}>
-                Annuleren
+              <button className="sg-btn primary" onClick={onDone}>
+                Klaar
               </button>
             </div>
           </div>
