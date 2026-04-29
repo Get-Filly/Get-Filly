@@ -302,9 +302,9 @@ export async function deleteCampaignMedia(
   return res.json();
 }
 
-// Hard delete. Alleen toegestaan voor concept of gearchiveerd —
-// backend weigert delete op verzonden/ingeplande/actieve campagnes
-// (audit-relevant, gebruik archiveren voor het uit zicht halen).
+// Hard delete. Alleen toegestaan voor concept — backend weigert
+// delete op verzonden/ingeplande/actieve/afgeronde campagnes omdat
+// die audit-relevant zijn.
 export async function deleteCampaign(id: string): Promise<{ id: string }> {
   const res = await authedFetch(`${API_URL}/campaigns/${id}`, {
     method: "DELETE",

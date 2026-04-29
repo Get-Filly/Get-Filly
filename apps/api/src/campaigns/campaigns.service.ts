@@ -11,8 +11,7 @@ export type CampaignStatus =
   | 'concept'
   | 'ingepland'
   | 'actief'
-  | 'afgerond'
-  | 'gearchiveerd';
+  | 'afgerond';
 
 export type CampaignResultStats = {
   extra_reservations?: number;
@@ -327,24 +326,23 @@ export class CampaignsService {
   }
 
   // Status-transitie. Niet elke transitie is geldig — we modelleren
-  // de verzendlevenscyclus expliciet zodat een afgeronde campagne
-  // niet stilletjes "concept" wordt of een actieve verzending niet
-  // overgeslagen wordt. Bewust enkel deze mappings:
-  //   concept → ingepland | gearchiveerd
-  //   ingepland → actief | concept | gearchiveerd
-  //   actief → afgerond
-  //   afgerond / gearchiveerd → eindstaat (geen transitions)
+  // de verzendlevenscyclus expliciet zodat we geen rare sprongen
+  // toelaten (bv. 'afgerond' direct terug naar 'concept' zou de
+  // result_stats overschrijven). Bewust enkel deze mappings:
+  //   concept   → ingepland
+  //   ingepland → actief | concept
+  //   actief    → afgerond            (Stop-knop)
+  //   afgerond  → ingepland           (campagne opnieuw inplannen)
   async updateStatus(
     restaurantId: string,
     id: string,
     nextStatus: CampaignStatus,
   ): Promise<{ id: string; status: CampaignStatus }> {
     const allowed: Record<CampaignStatus, CampaignStatus[]> = {
-      concept: ['ingepland', 'gearchiveerd'],
-      ingepland: ['actief', 'concept', 'gearchiveerd'],
+      concept: ['ingepland'],
+      ingepland: ['actief', 'concept'],
       actief: ['afgerond'],
-      afgerond: [],
-      gearchiveerd: [],
+      afgerond: ['ingepland'],
     };
 
     const { data: existing, error: fetchErr } = await this.supabase.client
@@ -1004,10 +1002,10 @@ Geef het beste verzendmoment.`;
     return data.signedUrl;
   }
 
-  // Hard delete. Alleen toegestaan voor concept (nog niet verzonden)
-  // of gearchiveerd (al uit-actief). Verzonden campagnes (ingepland/
-  // actief/afgerond) zijn audit-relevant en mogen alleen via archive
-  // van het zicht verdwijnen, niet uit de DB.
+  // Hard delete. Alleen toegestaan voor concept (nog niet verzonden).
+  // Verzonden campagnes (ingepland/actief/afgerond) zijn audit-relevant
+  // en mogen niet uit de DB. Eigenaar kan een afgeronde campagne wel
+  // opnieuw inplannen via updateStatus(afgerond → ingepland).
   async remove(restaurantId: string, id: string): Promise<{ id: string }> {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
@@ -1020,12 +1018,9 @@ Geef het beste verzendmoment.`;
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
-    if (
-      existing.status !== 'concept' &&
-      existing.status !== 'gearchiveerd'
-    ) {
+    if (existing.status !== 'concept') {
       throw new BadRequestException(
-        `Alleen concept- of gearchiveerde campagnes zijn te verwijderen (deze is ${existing.status}). Archiveer 'm eerst.`,
+        `Alleen concept-campagnes zijn te verwijderen (deze is ${existing.status}).`,
       );
     }
 

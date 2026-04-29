@@ -267,8 +267,8 @@ export default function CampagnesPage() {
   };
 
   // Hard-delete vraagt expliciete bevestiging — dit is onomkeerbaar.
-  // Backend laat alleen concept- of gearchiveerde campagnes wissen,
-  // dus de bevestiging kan kort blijven.
+  // Backend laat alleen concept-campagnes wissen, dus de bevestiging
+  // kan kort blijven.
   const handleCampaignDelete = async (c: Campaign) => {
     if (
       !confirm(
@@ -682,9 +682,6 @@ export default function CampagnesPage() {
                       }
                       onComplete={() =>
                         handleCampaignStatus(c, "afgerond")
-                      }
-                      onArchive={() =>
-                        handleCampaignStatus(c, "gearchiveerd")
                       }
                       onDelete={() => handleCampaignDelete(c)}
                     />
@@ -1130,11 +1127,10 @@ function SuggestionCard({
 // CampaignActions — quick-action knoppen per row in de campagnes-tabel
 // ============================================================
 // Welke acties zichtbaar zijn hangt af van de huidige status:
-//   concept       → Inplannen (✓) + Verwijderen (✕)
-//   ingepland     → Activeren (▶) + Terug naar concept (↶) + Archiveren
-//   actief        → Stop (⏹ → afgerond)
-//   afgerond      → Archiveren
-//   gearchiveerd  → Verwijderen
+//   concept    → Inplannen (✓) + Verwijderen (✕)
+//   ingepland  → Activeren (▶) + Terug naar concept (↶)
+//   actief     → Stop (⏹ → afgerond)
+//   afgerond   → Opnieuw inplannen (✓)
 //
 // Visueel: kleine pill-knoppen, primaire actie groen (brand), des-
 // tructieve actie rood-tinted, neutrale acties grijs ghost. Buttons
@@ -1147,7 +1143,6 @@ function CampaignActions({
   onActivate,
   onPause,
   onComplete,
-  onArchive,
   onDelete,
 }: {
   status: Campaign["status"];
@@ -1157,7 +1152,6 @@ function CampaignActions({
   onActivate: () => void;
   onPause: () => void;
   onComplete: () => void;
-  onArchive: () => void;
   onDelete: () => void;
 }) {
   const baseBtn: React.CSSProperties = {
@@ -1210,9 +1204,6 @@ function CampaignActions({
         <button onClick={onPause} disabled={busy} style={ghost}>
           ↶ Concept
         </button>
-        <button onClick={onArchive} disabled={busy} style={ghost}>
-          Archiveer
-        </button>
       </div>
     );
   }
@@ -1226,19 +1217,13 @@ function CampaignActions({
     );
   }
   if (status === "afgerond") {
+    // Een afgeronde campagne kun je opnieuw inplannen — bv. een
+    // mail die goed werkte nogmaals versturen, of een social post
+    // die je over een paar weken weer wilt activeren.
     return (
       <div style={{ display: "flex", gap: 4 }}>
-        <button onClick={onArchive} disabled={busy} style={ghost}>
-          Archiveer
-        </button>
-      </div>
-    );
-  }
-  if (status === "gearchiveerd") {
-    return (
-      <div style={{ display: "flex", gap: 4 }}>
-        <button onClick={onDelete} disabled={busy} style={danger}>
-          {isDeleting ? "…" : "✕ Verwijder"}
+        <button onClick={onSchedule} disabled={busy} style={primary}>
+          {isSaving ? "…" : "✓ Opnieuw inplannen"}
         </button>
       </div>
     );

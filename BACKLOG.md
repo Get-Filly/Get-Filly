@@ -189,6 +189,12 @@ werken. Laatste audit: 2026-04-23.
 
 ## Recent voltooid
 
+### 2026-04-29 — Status 'gearchiveerd' afgeschaft + afgerond opnieuw inplannen
+- ✅ Migratie 0017: bestaande `gearchiveerd`-rijen → `afgerond` + CHECK-constraint vernauwd tot 4 statussen (`concept`, `ingepland`, `actief`, `afgerond`).
+- ✅ Backend `CampaignStatus`-type, `updateStatus`-allowed-map en controller-validator opgeschoond. Nieuwe transitie `afgerond → ingepland` toegevoegd zodat een succesvolle campagne opnieuw kan worden ingepland.
+- ✅ `remove`: alleen `concept` mag nu nog gewist worden (verzonden/afgeronde campagnes zijn audit-relevant).
+- ✅ Frontend `CampaignActions`: alle "Archiveer"-knoppen weg, `afgerond` toont "✓ Opnieuw inplannen", legacy `gearchiveerd`-tak verwijderd. Badge-stijl `.gearchiveerd` uit dashboard.css.
+
 ### 2026-04-25 — WhatsApp-foto in eigen card + Filly-tijdstipsuggestie
 - ✅ WhatsApp-detail-layout: foto-slot uit de bubbel-preview verplaatst naar een eigen "Foto"-card direct onder Inhoud. Social-layout blijft ongewijzigd (foto in Instagram-preview is visueel correct daar).
 - ✅ Migratie 0016: `campaigns.suggested_scheduled_for` + `suggested_scheduled_reasoning` voor Filly's caching van tijd-voorstel.

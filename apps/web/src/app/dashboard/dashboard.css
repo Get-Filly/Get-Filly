@@ -1096,7 +1096,6 @@
 .dashboard-shell .badge.concept { background: var(--ob); color: #995A00; }
 .dashboard-shell .badge.ingepland { background: var(--accent-light); color: var(--accent); }
 .dashboard-shell .badge.afgerond { background: var(--bg); color: var(--tl); }
-.dashboard-shell .badge.gearchiveerd { background: var(--bg); color: var(--tl); }
 
 /* Stats row */
 .dashboard-shell .stats-row {

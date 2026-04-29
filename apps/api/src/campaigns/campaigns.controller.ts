@@ -110,11 +110,10 @@ export class CampaignsController {
       status !== 'concept' &&
       status !== 'ingepland' &&
       status !== 'actief' &&
-      status !== 'afgerond' &&
-      status !== 'gearchiveerd'
+      status !== 'afgerond'
     ) {
       throw new BadRequestException(
-        'Ongeldige status. Gebruik concept, ingepland, actief, afgerond of gearchiveerd.',
+        'Ongeldige status. Gebruik concept, ingepland, actief of afgerond.',
       );
     }
     return this.campaigns.updateStatus(
