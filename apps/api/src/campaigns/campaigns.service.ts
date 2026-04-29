@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
+import { RestaurantContextService } from '../ai/restaurant-context.service';
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
 export type CampaignStatus =
@@ -46,6 +47,11 @@ export class CampaignsService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly ai: AiService,
+    // RestaurantContextService levert profile + menu + live blocks die
+    // Filly nodig heeft voor goede campagne-varianten (echte gerechten,
+    // USPs, doelgroep) en realistische tijdstip-suggesties (rekening
+    // houdend met bezetting + special events).
+    private readonly context: RestaurantContextService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
@@ -513,11 +519,22 @@ export class CampaignsService {
       );
     }
 
+    // Profile + menu blocks ophalen: Filly weet zo welke gerechten op
+    // de kaart staan, USPs/doelgroep/sfeer/brand_tone, en kan in zijn
+    // varianten verwijzen naar échte gerechten met échte prijzen i.p.v.
+    // generieke "lekker-gerecht"-tekst. Live-block laten we weg —
+    // varianten gaan over een toekomstige verzending, niet over
+    // actuele bezetting van vandaag.
+    const [profileBlock, menuBlock] = await Promise.all([
+      this.context.buildProfileBlock(restaurantId).catch(() => ''),
+      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+    ]);
+
     // System-prompt: Filly krijgt de huidige campagne + (optionele)
-    // instructie en moet 3 verschillende alternatieven leveren in
-    // exact deze JSON-vorm. Net als bij chat-proposals stellen we
-    // varianten écht-verschillend qua toon: warm / zakelijk / speels.
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken.
+    // instructie + profiel + menu en moet 3 verschillende alternatieven
+    // leveren in exact deze JSON-vorm. Varianten écht verschillend
+    // qua toon: warm / zakelijk / speels.
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE zaak passen.
 
 Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok, zonder uitleg eromheen:
 
@@ -535,12 +552,25 @@ Regels:
   Niet alleen wat woorden anders.
 - Behoud de kern van de boodschap (datum, aanbod, USP) tenzij de
   instructie expliciet vraagt om iets te wijzigen.
+- Verwerk concrete elementen uit het profiel (USPs, doelgroep, sfeer)
+  en menu (echte gerechten + prijzen) zodat de varianten herkenbaar
+  bij DEZE zaak passen.
+- Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin
+  geen gerechten erbij, ook niet als ze "logisch" klinken.
 - "subject_line" alleen voor mail-campagnes; voor social/whatsapp mag
   je 'm leeg laten of weglaten.
 - "body" bevat de volledige uitgeschreven tekst.
-- Schrijf in het Nederlands.
+- Schrijf in het Nederlands. Match de brand_tone uit het profiel.
 - Verzin geen feiten/cijfers die niet in de oorspronkelijke versie
-  stonden.`;
+  of in het profiel/menu staan.
+
+---
+CONTEXT — alles wat je weet over deze zaak:
+
+${profileBlock}
+
+${menuBlock}
+---`;
 
     const currentSnapshot = {
       name: campaign.name as string,
@@ -839,19 +869,21 @@ Regels:
       };
     }
 
-    // Restaurant-context: type, doelgroep, brand_tone — beïnvloeden
-    // het optimale tijdstip. Bv. een fine-dining-restaurant doet
-    // andere uren dan een lunch-bar.
-    const { data: restaurant } = await this.supabase.client
-      .from('restaurants')
-      .select('name, type, target_audience, brand_tone')
-      .eq('id', restaurantId)
-      .maybeSingle();
+    // Profile + live blocks. Profile geeft Filly de identiteit (type,
+    // doelgroep, openingstijden, special events) en live-block geeft
+    // 'm de actuele bezetting komende dagen — handig om druk-bezette
+    // momenten te mijden of juist een lage-bezettingsdag te kiezen
+    // als verzenddoel. Menu-block laten we weg — irrelevant voor het
+    // tijdstip-vraagstuk.
+    const [profileBlock, liveBlock] = await Promise.all([
+      this.context.buildProfileBlock(restaurantId).catch(() => ''),
+      this.context.buildLiveBlock(restaurantId).catch(() => ''),
+    ]);
 
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
 
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je stelt het beste verzendmoment voor een campagne voor.
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je stelt het beste verzendmoment voor een campagne voor.
 
 Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok:
 
@@ -863,6 +895,9 @@ Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok:
 Regels voor de datum:
 - KIES een tijdstip vanaf morgen, niet vandaag (geef de eigenaar tijd om te reviewen).
 - Vandaag is ${todayIso}.
+- Houd rekening met de bezetting (uit het live-blok): mijd dagen die al >85% bezet zijn (zonde van de mailing) en geef juist voorrang aan dagen <50% bezetting bij activatie-campagnes.
+- Houd rekening met openingstijden uit het profiel — geen verzending plannen op een dag dat de zaak gesloten is.
+- Houd rekening met special events uit het profiel (bv. wekelijks terugkerende avonden) — die kunnen het verzendmoment juist sterker maken (verzend dezelfde dag) of zwakker (verzend ervoor zodat mensen kunnen plannen).
 
 Regels voor het tijdstip per type:
 - "mail" → 's ochtends 9:00–10:30 (open-rate piek voor B2C horeca) of 's avonds 19:30–20:30 (lees-piek tijdens binge-momenten).
@@ -874,17 +909,19 @@ Regels voor de dag:
 - Donderdag/vrijdag scoren goed voor weekend-acties.
 - Maandag is laag voor entertainment-promo's.
 
-Reasoning kort, helder, in NL. Bv. "Donderdag 19:30 — open-rates piekten op donderdagavond bij vergelijkbare bistro's."`;
+Reasoning kort, helder, in NL — verwijs naar concrete data uit profiel of bezetting. Bv. "Donderdag 19:30 — donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
+
+---
+CONTEXT — restaurant-profiel + actuele bezetting:
+
+${profileBlock}
+
+${liveBlock}
+---`;
 
     const userPrompt = `Campagne:
 - Type: ${campaign.type}
 - Naam: ${campaign.name}
-
-Restaurant:
-- Naam: ${restaurant?.name ?? 'onbekend'}
-- Type: ${restaurant?.type ?? 'restaurant'}
-- Doelgroep: ${restaurant?.target_audience ?? 'algemeen publiek'}
-- Toon: ${restaurant?.brand_tone ?? 'casual'}
 
 Geef het beste verzendmoment.`;
 

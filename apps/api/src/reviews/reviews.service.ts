@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
+import { RestaurantContextService } from '../ai/restaurant-context.service';
 
 export type ReviewSource = 'google' | 'tripadvisor' | 'thefork' | 'iens';
 
@@ -26,6 +27,11 @@ export class ReviewsService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly ai: AiService,
+    // RestaurantContextService levert het profile-block (USPs, tagline,
+    // sfeer, doelgroep, signature dishes etc). Filly gebruikt dat om
+    // het review-antwoord echt bij DEZE zaak te laten passen i.p.v.
+    // generieke "bedankt-voor-uw-bezoek"-tekst.
+    private readonly context: RestaurantContextService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Review[]> {
@@ -62,20 +68,17 @@ export class ReviewsService {
     if (reviewErr) throw new InternalServerErrorException(reviewErr.message);
     if (!review) throw new NotFoundException('Review niet gevonden.');
 
-    // Restaurant-context halen we in één keer op — naam + type + toon
-    // + beschrijving zijn genoeg om Filly's antwoord persoonlijk te
-    // maken. Later kunnen we hier signature_dishes aan toevoegen als
-    // de review een specifiek gerecht noemt.
-    const { data: restaurant, error: restErr } = await this.supabase.client
-      .from('restaurants')
-      .select('name, type, description, brand_tone')
-      .eq('id', restaurantId)
-      .maybeSingle();
+    // Volledig profile-block ophalen: naam, type, USPs, tagline, sfeer,
+    // doelgroep, signature dishes, brand_tone. Filly weet zo welke
+    // toon hij moet aanslaan en kan in zijn reactie iets specifieks
+    // noemen ("fijn dat je onze open keuken zo hebt ervaren") als de
+    // gast iets aanstipt dat in het profiel staat.
+    const profileBlock = await this.context.buildProfileBlock(restaurantId);
+    if (!profileBlock) {
+      throw new NotFoundException('Restaurant niet gevonden.');
+    }
 
-    if (restErr) throw new InternalServerErrorException(restErr.message);
-    if (!restaurant) throw new NotFoundException('Restaurant niet gevonden.');
-
-    const systemPrompt = buildReviewReplySystemPrompt(restaurant);
+    const systemPrompt = buildReviewReplySystemPrompt(profileBlock);
     const userPrompt = buildReviewReplyUserPrompt(review);
 
     const suggestion = await this.ai.generateText({
@@ -174,19 +177,18 @@ export class ReviewsService {
         )
       : [];
 
-    const { data: restaurant, error: restErr } = await this.supabase.client
-      .from('restaurants')
-      .select('name, type, description, brand_tone')
-      .eq('id', restaurantId)
-      .maybeSingle();
-
-    if (restErr) throw new InternalServerErrorException(restErr.message);
-    if (!restaurant) throw new NotFoundException('Restaurant niet gevonden.');
+    // Volledig profile-block voor toon-match + restaurant-identiteit.
+    // Zelfde context als bij de single-suggestion call, zodat alle
+    // varianten consistent klinken met de zaak.
+    const profileBlock = await this.context.buildProfileBlock(restaurantId);
+    if (!profileBlock) {
+      throw new NotFoundException('Restaurant niet gevonden.');
+    }
 
     // System-prompt: vraag 3 alternatieven in expliciet JSON-formaat
     // i.p.v. één string. Drie verschillende tonen (warm/zakelijk/
     // direct-praktisch) zodat de eigenaar echt kan kiezen.
-    const baseSystem = buildReviewReplySystemPrompt(restaurant);
+    const baseSystem = buildReviewReplySystemPrompt(profileBlock);
     const systemPrompt = `${baseSystem}
 
 EXTRA-REGEL VOOR DEZE CALL: geef GEEN losse tekst, maar exact dit JSON-formaat (zonder markdown-codeblok):
@@ -311,18 +313,13 @@ EXTRA-REGEL VOOR DEZE CALL: geef GEEN losse tekst, maar exact dit JSON-formaat (
 
 // System-prompt = Filly's "rol" voor deze specifieke taak. Hier leggen
 // we vast wat voor soort antwoord we willen: toon, lengte, stijl.
-// De restaurant-specifieke data zit erin zodat Filly zich inleeft.
-function buildReviewReplySystemPrompt(restaurant: {
-  name: string;
-  type: string | null;
-  description: string | null;
-  brand_tone: string | null;
-}): string {
+// Het profile-block onderaan geeft Filly alle restaurant-specifieke
+// context (USPs, tagline, sfeer, signature dishes) zodat de reactie
+// echt bij DEZE zaak past — i.p.v. generiek "bedankt voor uw bezoek".
+function buildReviewReplySystemPrompt(profileBlock: string): string {
   // Toon-B uit keuze-menu: gemoedelijk Nederlands, niet Amerikaans
   // enthousiast. Géén overdreven emoji of uitroeptekens, wel warm.
-  return `Je bent Filly, de AI-assistent van ${restaurant.name}${
-    restaurant.type ? ` (${restaurant.type})` : ''
-  }. Je schrijft namens de zaak een publiek antwoord op een online review.
+  return `Je bent Filly, de AI-assistent voor het hieronder beschreven restaurant. Je schrijft namens de zaak een publiek antwoord op een online review.
 
 Stijl-richtlijnen:
 - Schrijf in het Nederlands, gemoedelijk en oprecht, niet Amerikaans-enthousiast.
@@ -333,8 +330,12 @@ Stijl-richtlijnen:
 - Bij kritische reviews: erken het probleem zonder in de verdediging te schieten, geef aan wat jullie ermee doen, bied eventueel een vervolg aan.
 - Schrijf in de "wij"-vorm namens het team, niet "ik".
 - Teken NIET af met een naam of handtekening — dat doet de eigenaar zelf later.
+- Match de toon (brand_tone) en sfeer uit het profiel. Verwijs alleen naar
+  feiten die in het profiel staan — verzin geen gerechten of details.
 
-${restaurant.description ? `Context over de zaak: ${restaurant.description}` : ''}
+---
+${profileBlock}
+---
 
 Geef alleen de tekst van het antwoord terug, zonder aanhef als "Antwoord:" of extra toelichting.`;
 }
