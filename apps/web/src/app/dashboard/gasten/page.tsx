@@ -9,16 +9,6 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 
-/**
- * Bepaalt of een gast via Filly is binnengekomen.
- * MOCK: deterministisch op basis van guest-id (~20%). Later: join op
- * reservations.source of een dedicated guests.acquired_via-veld.
- */
-function isFromFilly(g: Guest): boolean {
-  const code = g.id.charCodeAt(g.id.length - 1);
-  return code % 5 === 0;
-}
-
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
   const then = new Date(dateStr).getTime();
@@ -97,7 +87,6 @@ export default function GastenPage() {
       if (!g.birthday) return false;
       return new Date(g.birthday).getMonth() === currentMonth;
     });
-    const viaFilly = guests.filter(isFromFilly).length;
     return {
       total: guests.length,
       active90,
@@ -106,7 +95,6 @@ export default function GastenPage() {
       atRisk,
       totalLtv,
       birthdaysThisMonth,
-      viaFilly,
     };
   }, [guests]);
 
@@ -137,10 +125,6 @@ export default function GastenPage() {
         <div className="stat-card">
           <div className="stat-card-label">Totaal gasten</div>
           <div className="stat-card-val">{stats.total}</div>
-        </div>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Via Filly</div>
-          <div className="stat-card-val">{stats.viaFilly}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Actief (90 dgn)</div>
@@ -262,12 +246,9 @@ export default function GastenPage() {
         <table className="data-table">
           <thead>
             <tr>
-              {/* Via Filly bewust als eerste kolom zodat attributie
-                  meteen in het oog springt. Smalle breedte + badge-
-                  achtige weergave (groene vinkje of streepje) zodat
-                  de tabel niet te veel kolombreedte verliest aan
-                  een ja/nee-waarde. */}
-              <th style={{ width: 90 }}>Via Filly</th>
+              {/* "Via Filly"-kolom is verwijderd tot reservations.
+                  via_campaign_id-FK gevuld wordt door de send-engine.
+                  Tot die tijd is attributie niet betrouwbaar. */}
               <th>Naam</th>
               <th>Status</th>
               <th>Bezoeken</th>
@@ -281,42 +262,8 @@ export default function GastenPage() {
               const status = computeCustomerStatus(g);
               const info = statusInfo[status];
               const allergies = g.preferences?.allergies ?? [];
-              const fromFilly = isFromFilly(g);
               return (
                 <tr key={g.id}>
-                  {/* Via Filly-kolom: groene badge + "Ja" als het via
-                      een Filly-campagne binnenkwam, anders een rustig
-                      streepje. Badge-stijl matcht de rest van het
-                      dashboard (brand-groen = Filly-attributie). */}
-                  <td>
-                    {fromFilly ? (
-                      <span
-                        title="Binnengekomen via een Filly-campagne"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          padding: "2px 10px",
-                          borderRadius: "var(--rf)",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "var(--accent, #1F4A2D)",
-                          background: "var(--accent-light, #D6E0D8)",
-                        }}
-                      >
-                        ✓ Ja
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          color: "var(--tl)",
-                          fontSize: 12,
-                        }}
-                      >
-                        —
-                      </span>
-                    )}
-                  </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {allergies.length > 0 && (

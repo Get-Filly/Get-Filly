@@ -28,16 +28,12 @@ const statusFilters: { key: StatusFilter; label: string }[] = [
   { key: "geannuleerd", label: "Geannuleerd" },
 ];
 
-/**
- * Bepaalt of een reservering via een Filly-campagne binnenkwam.
- * MOCK: gebruikt de laatste karakter van het id voor een deterministische
- * verdeling (~25% markeerd). In productie hoort dit van het source-veld
- * of een aparte campaign_id-koppeling te komen.
- */
+// Bepaalt of een reservering via een Filly-campagne binnenkwam,
+// op basis van het source-veld. Echte attributie via reservations.
+// via_campaign_id-FK volgt zodra de send-engine die kolom vult; tot
+// die tijd alleen "filly" in source matchen — geen hash-mock meer.
 function isFromFilly(r: Reservation): boolean {
-  if (r.source?.toLowerCase().includes("filly")) return true;
-  const code = r.id.charCodeAt(r.id.length - 1);
-  return code % 4 === 0;
+  return r.source?.toLowerCase().includes("filly") ?? false;
 }
 
 function formatDayLabel(dateStr: string): string {

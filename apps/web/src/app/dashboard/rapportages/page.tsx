@@ -68,27 +68,13 @@ function generateMockHourly(): number[][] {
 }
 const hourlyData = generateMockHourly();
 
-// Filly-ROI mock: per maand de bijdrage van Filly in extra omzet (€).
-// Later: aggregeren uit campaigns-data of dedicated backend-endpoint.
-const FILLY_ROI_6M = [
-  { label: "nov", extraRevenue: 1800, extraGuests: 28 },
-  { label: "dec", extraRevenue: 3200, extraGuests: 51 },
-  { label: "jan", extraRevenue: 2400, extraGuests: 38 },
-  { label: "feb", extraRevenue: 3800, extraGuests: 62 },
-  { label: "mrt", extraRevenue: 3500, extraGuests: 55 },
-  { label: "apr", extraRevenue: 4200, extraGuests: 67 },
-];
-
-// Abonnementskosten voor break-even berekening. Later uit billing-data.
-const FILLY_SUBSCRIPTION_MONTHLY_EUR = 99;
-
-// Per campagne-type: mock-attributie zodat we per kanaal kunnen tonen
-// wat het opleverde. Later: aggregeren uit campaign-metrics.
-const FILLY_BY_TYPE = {
-  mail: { campaigns: 4, guests: 38, revenue: 2400 },
-  social: { campaigns: 5, guests: 18, revenue: 1100 },
-  whatsapp: { campaigns: 2, guests: 11, revenue: 700 },
-};
+// Filly-ROI cijfers (per-maand bijdrage en per-kanaal-attributie)
+// werden eerder uit hard-coded mock-arrays gerenderd. Verwijderd op
+// 2026-04-29: zonder reservations.via_campaign_id-FK is er geen
+// betrouwbare manier om dit te aggregeren. De UI toont nu een
+// expliciete "wacht op echte data"-state. Zodra de send-engine de
+// FK vult komt hier een nieuwe `useFillyROI()`-hook die uit de DB
+// rekent.
 
 export default function RapportagesPage() {
   const today = new Date();
@@ -190,24 +176,8 @@ export default function RapportagesPage() {
     };
   }, [campaigns, guests, occupancy]);
 
-  // Totaal over 6 maanden voor de break-even vergelijking.
-  const roiTotals = useMemo(() => {
-    const totalRevenue = FILLY_ROI_6M.reduce(
-      (s, m) => s + m.extraRevenue,
-      0,
-    );
-    const totalGuests = FILLY_ROI_6M.reduce((s, m) => s + m.extraGuests, 0);
-    const months = FILLY_ROI_6M.length;
-    const subscriptionCost = FILLY_SUBSCRIPTION_MONTHLY_EUR * months;
-    const roi =
-      subscriptionCost > 0
-        ? Math.round((totalRevenue / subscriptionCost) * 10) / 10
-        : 0;
-    return { totalRevenue, totalGuests, subscriptionCost, roi };
-  }, []);
-
-  const maxRoiMonth = Math.max(...FILLY_ROI_6M.map((m) => m.extraRevenue));
-
+  // YoY-cijfers zijn nog placeholder — komen straks uit een
+  // `getMonthMetrics(year-1, month)`-call. Gemarkeerd als TODO.
   const yoy = { occ: 7, guests: 12, revenue: 9 };
 
   const cohortData = [
@@ -518,135 +488,20 @@ export default function RapportagesPage() {
               Wat heeft Filly je opgeleverd?
             </div>
             <div className="rep-section-desc">
-              Cumulatieve bijdrage van Filly over de afgelopen 6 maanden —
-              hoeveel extra gasten en omzet Filly heeft aangedreven,
-              vergeleken met wat je aan het abonnement betaalt.
+              Hier verschijnen straks: extra omzet per maand, ROI vs
+              abonnementskosten, en welk kanaal (mail/social/whatsapp) het
+              meest oplevert.
             </div>
           </div>
 
-          {/* Break-even callout */}
-          <div className="roi-breakeven">
-            <div className="roi-breakeven-item">
-              <span className="roi-breakeven-label">Extra omzet (6 mnd)</span>
-              <span className="roi-breakeven-val">
-                €{roiTotals.totalRevenue.toLocaleString("nl-NL")}
-              </span>
-              <span className="roi-breakeven-sub">
-                via {roiTotals.totalGuests} gasten door Filly
-              </span>
-            </div>
-            <div className="roi-breakeven-item">
-              <span className="roi-breakeven-label">Abonnement (6 mnd)</span>
-              <span className="roi-breakeven-val">
-                €{roiTotals.subscriptionCost.toLocaleString("nl-NL")}
-              </span>
-              <span className="roi-breakeven-sub">
-                €{FILLY_SUBSCRIPTION_MONTHLY_EUR}/mnd × {FILLY_ROI_6M.length}
-              </span>
-            </div>
-            <div className="roi-breakeven-item">
-              <span className="roi-breakeven-label">Return on investment</span>
-              <span className="roi-breakeven-val">{roiTotals.roi}×</span>
-              <span className="roi-breakeven-sub">
-                voor elke €1 krijg je €{roiTotals.roi} terug
-              </span>
-            </div>
-          </div>
-
-          {/* Maand-grafiek */}
-          <div className="card" style={{ marginBottom: 16, marginTop: 16 }}>
-            <div className="card-h">
-              <div>
-                <div className="card-t">Filly-bijdrage per maand</div>
-                <div className="card-st">Extra omzet (€) via campagnes</div>
-              </div>
-            </div>
-            <div className="card-b">
-              <div className="roi-chart">
-                {FILLY_ROI_6M.map((m) => {
-                  const height = Math.round(
-                    (m.extraRevenue / maxRoiMonth) * 100,
-                  );
-                  return (
-                    <div key={m.label} className="roi-chart-col">
-                      <span className="roi-chart-val">
-                        €{m.extraRevenue.toLocaleString("nl-NL")}
-                      </span>
-                      <div
-                        className="roi-chart-bar"
-                        style={{ height: `${height}%` }}
-                        title={`${m.label}: €${m.extraRevenue} / ${m.extraGuests} gasten`}
-                      />
-                      <span className="roi-chart-label">{m.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Per campagne-type */}
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-h">
-              <div>
-                <div className="card-t">Per campagne-type</div>
-                <div className="card-st">Welk kanaal levert het meest op?</div>
-              </div>
-            </div>
-            <div className="card-b">
-              <table className="data-table" style={{ fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    <th>Kanaal</th>
-                    <th style={{ textAlign: "right" }}>Campagnes</th>
-                    <th style={{ textAlign: "right" }}>Gasten</th>
-                    <th style={{ textAlign: "right" }}>Extra omzet</th>
-                    <th style={{ textAlign: "right" }}>€ per gast</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(FILLY_BY_TYPE).map(([type, d]) => {
-                    const perGuest =
-                      d.guests > 0 ? Math.round(d.revenue / d.guests) : 0;
-                    const icon =
-                      type === "mail"
-                        ? "✉️"
-                        : type === "social"
-                          ? "📱"
-                          : "💬";
-                    return (
-                      <tr key={type}>
-                        <td style={{ fontWeight: 500 }}>
-                          <span style={{ marginRight: 8 }}>{icon}</span>
-                          <span style={{ textTransform: "capitalize" }}>
-                            {type}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "right" }}>{d.campaigns}</td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            color: "var(--accent)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          +{d.guests}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            color: "var(--accent)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          €{d.revenue.toLocaleString("nl-NL")}
-                        </td>
-                        <td style={{ textAlign: "right" }}>€{perGuest}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <div className="empty-state" style={{ marginBottom: 16 }}>
+            <div className="empty-icon">📈</div>
+            <div className="empty-title">Filly-ROI nog niet meetbaar</div>
+            <div className="empty-desc">
+              Zodra je eerste campagne is verstuurd en gasten reserveringen
+              maken via Filly, koppelen we die reserveringen aan de campagne
+              en berekenen we hier de échte bijdrage. Geen schattingen of
+              gemiddelden — pure attributie.
             </div>
           </div>
 

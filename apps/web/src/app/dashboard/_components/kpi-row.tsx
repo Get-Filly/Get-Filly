@@ -19,67 +19,46 @@ function formatEuro(cents: number): string {
   return `€${euros.toLocaleString("nl-NL")}`;
 }
 
-/**
- * Mock: aantal gasten/omzet dat Filly deze maand opleverde.
- * TODO: aggregeren uit campagne-data (fetchCampaigns) of later een
- * dedicated backend-endpoint /api/kpi/filly-roi.
- */
-const FILLY_MOCK = {
-  todayExtraReservations: 2,
-  monthExtraGuests: 67,
-  monthExtraRevenueCents: 420000, // €4.200
-};
-
+// Bouwt de KPI-cards op basis van wat de backend daadwerkelijk meet.
+// De "door Filly"-onderregels die hier ooit hard-coded mock-cijfers
+// toonden zijn weg — die komen pas terug zodra:
+//   1. campaign-send engine reservations.via_campaign_id-FK vult, en
+//   2. een dedicated /api/kpi/filly-roi endpoint die joint en sommeert.
+// Tot die tijd liever niets dan onbetrouwbare cijfers.
 function kpisToCards(kpis: Kpis): KpiCard[] {
   const huidigeMaand = new Date().toLocaleString("nl-NL", { month: "long" });
   const cards: KpiCard[] = [];
 
   cards.push({
     label: "Bezetting vandaag",
-    value:
-      kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
-    fillyExtra:
-      FILLY_MOCK.todayExtraReservations > 0
-        ? `+${FILLY_MOCK.todayExtraReservations} reserveringen door Filly`
-        : null,
-    positive: true,
+    value: kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
+    fillyExtra: null,
   });
 
-  // Voor bezetting-maand rekenen we Filly's aandeel als percentage van
-  // het totaal aantal gasten. Logica: als 67 van de 977 gasten via Filly
-  // kwamen, dan is 7% van de gerealiseerde bezetting door Filly. Dat
-  // sluit aan bij hoe een ondernemer naar de getallen kijkt.
-  const fillyShare =
-    kpis.month_guests > 0
-      ? Math.round((FILLY_MOCK.monthExtraGuests / kpis.month_guests) * 100)
-      : 0;
   cards.push({
     label: `Bezetting ${huidigeMaand}`,
     value: kpis.month_avg_pct !== null ? `${kpis.month_avg_pct}%` : "—",
-    fillyExtra:
-      fillyShare > 0 ? `${fillyShare}% gerealiseerd door Filly` : null,
-    positive: true,
+    fillyExtra: null,
   });
 
   cards.push({
     label: `Gasten ${huidigeMaand}`,
     value: kpis.month_guests.toLocaleString("nl-NL"),
-    fillyExtra: `+${FILLY_MOCK.monthExtraGuests} door Filly`,
-    positive: true,
+    fillyExtra: null,
   });
 
   cards.push({
     label: "Voorgestelde campagnes",
     value: `${kpis.pending_suggestions}`,
-    fillyExtra: kpis.pending_suggestions > 0 ? "wachten op goedkeuring" : null,
+    fillyExtra:
+      kpis.pending_suggestions > 0 ? "wachten op goedkeuring" : null,
     positive: false,
   });
 
   cards.push({
     label: `Geschatte omzet ${huidigeMaand}`,
     value: formatEuro(kpis.month_revenue_cents),
-    fillyExtra: `+${formatEuro(FILLY_MOCK.monthExtraRevenueCents)} door Filly`,
-    positive: true,
+    fillyExtra: null,
   });
 
   return cards;

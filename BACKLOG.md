@@ -194,17 +194,17 @@ Items in deze sectie staan los van de hoofd-prio's hierboven; bij oppakken
 verplaatsen naar de juiste P-bucket.
 
 ### Data Analyst
-- [ ] 🔴 **Mock-data van dashboard af** — `FILLY_MOCK` in [kpi-row.tsx:27](apps/web/src/app/dashboard/_components/kpi-row.tsx) toont voor élke klant exact "+2 reserveringen vandaag, 67 gasten/maand, €4.200 omzet". Vervangen door echte aggregaties of empty-states.
-- [ ] 🔴 **`isFromFilly()` is een hash-mock** — gasten + reserveringen-pagina's markeren willekeurige rows als "via Filly" op basis van UUID-laatste-karakter. Vervangen door echte attributie via `reservations.via_campaign_id`-FK.
+- [x] ~~🔴 Mock-data van dashboard af~~ (2026-04-29) — `FILLY_MOCK` weggehaald uit kpi-row, alle "door Filly"-onderregels weg. Komen pas terug als reservations.via_campaign_id-FK gevuld wordt door de send-engine.
+- [x] ~~🔴 `isFromFilly()` is een hash-mock~~ (2026-04-29) — gasten-pagina: hele "Via Filly"-kolom + stat-card weg. Reserveringen-pagina: nu gebaseerd op echte `source`-veld (alleen "filly"-source matcht), niet meer op hash.
 - [ ] 🔴 **`reservations.via_campaign_id` FK ontbreekt** — zonder deze kolom is Filly-ROI nooit te berekenen. Migratie + UI-koppeling tussen reservering en campagne nodig.
-- [ ] 🔴 **`FILLY_ROI_6M` + `FILLY_BY_TYPE` in rapportages-pagina** zijn hard-coded arrays. Aggregeren uit `campaigns.metrics` en `campaign_sends`.
+- [x] ~~🔴 `FILLY_ROI_6M` + `FILLY_BY_TYPE` in rapportages~~ (2026-04-29) — hard-coded arrays + ROI-sectie weg, vervangen door eerlijke "Filly-ROI nog niet meetbaar"-empty-state. Komt terug zodra send-engine attributie heeft.
 - [ ] 🟡 **`weekday_avg_pct = 68` hard-coded** in [kpi.service.ts](apps/api/src/kpi/kpi.service.ts). 6-maanden historie aggregeren.
 - [ ] 🟡 **`audit_log`-tabel wordt nergens geschreven** ondanks dat 'ie sinds migratie 0001 bestaat. Per mutatie een rij wegschrijven (subscriptions, restaurant-update, campagne-status-wijziging).
 - [ ] 🟡 **`ai_usage` tracking heeft geen dashboard** — Claude-kosten zijn alleen via DB-query zichtbaar. Mini-page voor admin om kosten per restaurant te zien.
 - [ ] 🟢 **Geen Plausible/PostHog** op publieke site — onbekend waar bezoekers afhaken.
 
 ### Developer
-- [ ] 🔴 **Storage-bucket `restaurant-assets` heeft `anon insert/update/select`-policies** (migratie 0003). Iedereen kan uploaden zonder auth. Vervangen door `authenticated`-policies + eigen-restaurant-check.
+- [x] ~~🔴 Storage-bucket `restaurant-assets` had `anon insert/update`-policies~~ (2026-04-29 — migratie 0021) — nu alleen `authenticated`-rol mag schrijven. Anon-read blijft (publieke logo-vertoning in mail-templates). Toekomst: per-restaurant path-prefix RLS.
 - [ ] 🔴 **Backend draait op `service_role`** → RLS bypass'd. Tenant-isolatie is alleen via TS-guards. Per-request Supabase-client met user-JWT toevoegen voor defense-in-depth (hangt aan bestaande P1).
 - [ ] 🟡 **Pre-onboarding rate-limit is in-memory Map** → overleeft geen multi-instance deploy. Naar Redis/Upstash.
 - [ ] 🟡 **Geen tests behalve `app.controller.spec.ts`** — 8.500 regels backend, één spec. Minimaal smoke-tests op auth + tenant-isolatie + key endpoints.
@@ -229,7 +229,7 @@ verplaatsen naar de juiste P-bucket.
 ### CEO
 - [ ] 🔴 **Mollie-billing ontbreekt** — eerste klant kan niet betalen. 4 sub-taken: SDK + checkout, subscriptions-tabel, plan-enforcement, webhook.
 - [ ] 🔴 **Privacy-verklaring + AV staan op draft** met `[INVULLEN:...]`-placeholders. Bedrijfsgegevens kunnen via account-pagina ingevuld worden — moet nog dynamisch op de publieke pagina renderen.
-- [ ] 🔴 **Cookie-banner ontbreekt** — ePrivacy-verplicht zodra analytics actief.
+- [x] ~~🔴 Cookie-banner ontbreekt~~ (2026-04-29) — `<CookieBanner />` in root-layout, accept/reject keuze in localStorage. Klaar voor wanneer Plausible/PostHog wordt aangezet (analytics-init achter consent-check).
 - [ ] 🔴 **Geen "Start trial / Probeer gratis"-flow** vanaf pricing-pagina.
 - [ ] 🟡 **Geen onboarding-checklist op dashboard** — nieuwe klant weet niet wat als eerste te doen (KvK, menu, openingstijden, etc).
 - [ ] 🟡 **Geen referral / vriend-werft-vriend**-systeem.
@@ -261,6 +261,13 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-04-29 — Mock-data eruit + Storage-policies + Cookie-banner
+- ✅ **`FILLY_MOCK` uit kpi-row** verwijderd. Geen "+2 reserveringen door Filly"-fake meer op het dashboard. Cards tonen alleen de echte cijfers tot de send-engine attributie levert.
+- ✅ **`isFromFilly()` weggehaald** in gasten (kolom + stat-card weg), in reserveringen vervangen door check op echt `source`-veld. Geen hash-mock meer.
+- ✅ **`FILLY_ROI_6M` + `FILLY_BY_TYPE` uit rapportages** verwijderd. Hele Filly-ROI-sectie vervangen door eerlijke "nog niet meetbaar — wacht op send-engine"-empty-state.
+- ✅ **Migratie 0021**: storage-bucket `restaurant-assets` policies aangescherpt — `anon insert/update/delete` weg, alleen `authenticated`-rol mag nog schrijven. Lek dichtgezet.
+- ✅ **Cookie-banner** (`apps/web/src/components/cookie-banner.tsx`) in root-layout. Eerste bezoek → keuze accepteer/weiger, opgeslagen in localStorage. Klaar voor analytics-integratie.
 
 ### 2026-04-29 — CTO-taken: prompt-caching + graceful degradation + setup-docs
 - ✅ **Prompt-caching live** — `AiService.generateText` accepteert nu `cacheSystem: true`. Wordt gebruikt door chat (elke bericht), campaign-refine (regenerate), reviews-refine (regenerate). Anthropic prompt-caching geeft ~90% korting op input-tokens bij recurring calls binnen 5 min TTL. `ai_usage` logt nu ook `cache_creation_input_tokens` correct.
