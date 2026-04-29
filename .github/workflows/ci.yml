@@ -1,0 +1,75 @@
+# ============================================================
+# GitHub Actions — Continuous Integration
+# ============================================================
+# Draait op elke PR naar main + elke push naar main zelf. Doel:
+# voorkomen dat code die niet typecheckt of niet bouwt in productie
+# belandt. Geen tests nog (BACKLOG-item) — alleen typecheck + build.
+#
+# Performance: pnpm-cache is essentieel — eerste run ~3 min, daarna
+# 30-60s. Free-tier minutes (2000/maand) volstaan voor solo-MVP.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel oudere runs op dezelfde branch zodra een nieuwe push komt.
+# Anders stapelt de CI-queue op bij snelle commits achter elkaar.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck-and-build:
+    name: Typecheck + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # Pin op de versie uit package.json packageManager-veld
+          # zodat lokale dev en CI exact gelijk blijven.
+          version: 10.33.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        # --frozen-lockfile zorgt dat we exact installeren wat in
+        # pnpm-lock.yaml staat — geen surprise upgrades in CI.
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        # Shared types moeten eerst gebouwd zijn voordat web/api ze
+        # kunnen importeren (TypeScript path-resolving).
+        run: pnpm --filter @getfilly/shared build
+
+      - name: Typecheck API
+        run: pnpm --filter api exec tsc --noEmit
+
+      - name: Typecheck Web
+        run: pnpm --filter web exec tsc --noEmit
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Build Web
+        # Next.js build vereist environment-variables die in productie
+        # uit Vercel komen. Voor CI vullen we ze met dummy-waarden zodat
+        # de build slaagt — runtime-env wordt op Vercel ingesteld.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://dummy.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+          NEXT_PUBLIC_API_URL: https://dummy-api.example.com/api
+        run: pnpm --filter web build

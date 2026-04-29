@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -53,5 +55,23 @@ export class ReservationsController {
     },
   ) {
     return this.reservations.create(restaurantId, body);
+  }
+
+  // Koppel reservering aan een Filly-campagne (handmatig vanuit de UI)
+  // of ontkoppel door campaign_id=null te sturen. Hierop bouwen alle
+  // Filly-ROI-aggregaties (KpiService, rapportages-pagina). Tot er
+  // automatische attributie via send-engine is, is dit de enige manier
+  // om data in de attributie-FK te krijgen.
+  @Patch(':id/attribution')
+  setAttribution(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { campaign_id: string | null },
+  ) {
+    return this.reservations.setAttribution(
+      restaurantId,
+      id,
+      body.campaign_id,
+    );
   }
 }

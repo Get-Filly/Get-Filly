@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -26,8 +27,19 @@ export type Reservation = {
   notes: string | null;
   special_requests: string | null;
   table_code: string | null;
+  // Filly-attributie (sinds migratie 0022). Null = geen koppeling
+  // (default), gevuld = uuid van de campagne waaruit deze reservering
+  // is voortgekomen. Nu nog handmatig zetbaar via UI; wordt straks
+  // automatisch gevuld door de send-engine als een gast op een
+  // campagne-link klikt.
+  via_campaign_id: string | null;
   created_at: string;
 };
+
+// Selectie-string die we overal hergebruiken zodat we niet vergeten
+// een nieuw veld in elk select-statement toe te voegen.
+const RESERVATION_COLUMNS =
+  'id, guest_id, guest_name, guest_phone, guest_email, reservation_date, reservation_time, party_size, status, source, notes, special_requests, table_code, via_campaign_id, created_at';
 
 @Injectable()
 export class ReservationsService {
@@ -40,9 +52,7 @@ export class ReservationsService {
   ): Promise<Reservation[]> {
     const { data, error } = await this.supabase.client
       .from('reservations')
-      .select(
-        'id, guest_id, guest_name, guest_phone, guest_email, reservation_date, reservation_time, party_size, status, source, notes, special_requests, table_code, created_at',
-      )
+      .select(RESERVATION_COLUMNS)
       .eq('restaurant_id', restaurantId)
       .gte('reservation_date', from)
       .lte('reservation_date', to)
@@ -102,12 +112,52 @@ export class ReservationsService {
         status: 'bevestigd',
         source: 'handmatig',
       })
-      .select(
-        'id, guest_id, guest_name, guest_phone, guest_email, reservation_date, reservation_time, party_size, status, source, notes, special_requests, table_code, created_at',
-      )
+      .select(RESERVATION_COLUMNS)
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
+    return data as Reservation;
+  }
+
+  // Koppel (of ontkoppel) een reservering aan een Filly-campagne.
+  // Wordt aangeroepen vanuit de reserveringen-pagina met een dropdown
+  // ("Via campagne…"). campaignId=null betekent "ontkoppelen".
+  //
+  // Validatie:
+  //   - Reservering moet bij dit restaurant horen (tenant-isolatie).
+  //   - Als campaignId gegeven: moet ook bij dit restaurant horen
+  //     (anders zou je via een ID-gok een vreemde campagne kunnen
+  //     koppelen — defense-in-depth bovenop de auth-guards).
+  async setAttribution(
+    restaurantId: string,
+    reservationId: string,
+    campaignId: string | null,
+  ): Promise<Reservation> {
+    if (campaignId) {
+      const { data: campaign, error: campErr } = await this.supabase.client
+        .from('campaigns')
+        .select('id')
+        .eq('id', campaignId)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+      if (campErr) throw new InternalServerErrorException(campErr.message);
+      if (!campaign) {
+        throw new BadRequestException('Campagne niet gevonden.');
+      }
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('reservations')
+      .update({ via_campaign_id: campaignId })
+      .eq('id', reservationId)
+      .eq('restaurant_id', restaurantId)
+      .select(RESERVATION_COLUMNS)
+      .maybeSingle();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) {
+      throw new NotFoundException('Reservering niet gevonden.');
+    }
     return data as Reservation;
   }
 }

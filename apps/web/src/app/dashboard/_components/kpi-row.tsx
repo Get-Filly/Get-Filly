@@ -20,11 +20,9 @@ function formatEuro(cents: number): string {
 }
 
 // Bouwt de KPI-cards op basis van wat de backend daadwerkelijk meet.
-// De "door Filly"-onderregels die hier ooit hard-coded mock-cijfers
-// toonden zijn weg — die komen pas terug zodra:
-//   1. campaign-send engine reservations.via_campaign_id-FK vult, en
-//   2. een dedicated /api/kpi/filly-roi endpoint die joint en sommeert.
-// Tot die tijd liever niets dan onbetrouwbare cijfers.
+// De "door Filly"-onderregels worden gevuld uit de echte attributie
+// (reservations.via_campaign_id, sinds migratie 0022). Geen mock-data
+// meer — null betekent letterlijk "geen koppelingen deze maand".
 function kpisToCards(kpis: Kpis): KpiCard[] {
   const huidigeMaand = new Date().toLocaleString("nl-NL", { month: "long" });
   const cards: KpiCard[] = [];
@@ -38,13 +36,21 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
   cards.push({
     label: `Bezetting ${huidigeMaand}`,
     value: kpis.month_avg_pct !== null ? `${kpis.month_avg_pct}%` : "—",
-    fillyExtra: null,
+    fillyExtra:
+      kpis.month_filly_share_pct !== null && kpis.month_filly_share_pct > 0
+        ? `${kpis.month_filly_share_pct}% via Filly`
+        : null,
+    positive: true,
   });
 
   cards.push({
     label: `Gasten ${huidigeMaand}`,
     value: kpis.month_guests.toLocaleString("nl-NL"),
-    fillyExtra: null,
+    fillyExtra:
+      kpis.month_filly_guests > 0
+        ? `+${kpis.month_filly_guests} via Filly`
+        : null,
+    positive: true,
   });
 
   cards.push({
@@ -58,7 +64,11 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
   cards.push({
     label: `Geschatte omzet ${huidigeMaand}`,
     value: formatEuro(kpis.month_revenue_cents),
-    fillyExtra: null,
+    fillyExtra:
+      kpis.month_filly_revenue_cents > 0
+        ? `+${formatEuro(kpis.month_filly_revenue_cents)} via Filly`
+        : null,
+    positive: true,
   });
 
   return cards;

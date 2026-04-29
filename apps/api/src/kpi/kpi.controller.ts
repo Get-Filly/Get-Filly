@@ -25,4 +25,18 @@ export class KpiController {
   getKpis(@RestaurantId() restaurantId: string) {
     return this.kpi.getKpis(restaurantId);
   }
+
+  // Filly-ROI: per-campagne aggregaties van deze maand. Door rapportages
+  // gebruikt voor de "per kanaal"-tabel. Alleen campagnes waar minstens
+  // 1 reservering aan gekoppeld is verschijnen — geen lege rijen.
+  @Get('filly-attribution')
+  getCampaignAttribution(@RestaurantId() restaurantId: string) {
+    return this.kpi.getCampaignAttributionThisMonth(restaurantId);
+  }
+
+  // Filly-ROI: 6-maanden bucket-data voor de bar-grafiek op rapportages.
+  @Get('filly-roi-6m')
+  getFillyRoi6Months(@RestaurantId() restaurantId: string) {
+    return this.kpi.getFillyRoi6Months(restaurantId);
+  }
 }

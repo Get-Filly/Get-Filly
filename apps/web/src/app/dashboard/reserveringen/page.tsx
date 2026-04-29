@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createReservation,
+  fetchCampaigns,
   fetchReservations,
+  setReservationAttribution,
+  type Campaign,
   type Reservation,
   type ReservationStatus,
 } from "../../../lib/api";
@@ -28,11 +31,12 @@ const statusFilters: { key: StatusFilter; label: string }[] = [
   { key: "geannuleerd", label: "Geannuleerd" },
 ];
 
-// Bepaalt of een reservering via een Filly-campagne binnenkwam,
-// op basis van het source-veld. Echte attributie via reservations.
-// via_campaign_id-FK volgt zodra de send-engine die kolom vult; tot
-// die tijd alleen "filly" in source matchen — geen hash-mock meer.
+// Bepaalt of een reservering via een Filly-campagne binnenkwam.
+// Sinds migratie 0022 doen we dit op basis van de echte FK
+// via_campaign_id (handmatig gezet of straks automatisch door de
+// send-engine). Source-veld als fallback voor legacy-data.
 function isFromFilly(r: Reservation): boolean {
+  if (r.via_campaign_id) return true;
   return r.source?.toLowerCase().includes("filly") ?? false;
 }
 
@@ -60,26 +64,35 @@ function todayIso(): string {
 
 export default function ReserveringenPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("alle");
   const [modalOpen, setModalOpen] = useState(false);
+  // Tijdens een attributie-PATCH zetten we de reservation-id hier zodat
+  // de UI kan disablen + een spinner kan tonen.
+  const [attributing, setAttributing] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch 3 dagen geleden t/m 14 dagen vooruit
+    // Fetch 3 dagen geleden t/m 14 dagen vooruit + alle campagnes
+    // (voor de "koppel aan campagne"-dropdown).
     const today = new Date();
     const from = new Date(today);
     from.setDate(today.getDate() - 3);
     const to = new Date(today);
     to.setDate(today.getDate() + 14);
 
-    fetchReservations(
-      from.toISOString().slice(0, 10),
-      to.toISOString().slice(0, 10),
-    )
-      .then((d) => {
-        setReservations(d);
+    Promise.all([
+      fetchReservations(
+        from.toISOString().slice(0, 10),
+        to.toISOString().slice(0, 10),
+      ),
+      fetchCampaigns(),
+    ])
+      .then(([res, camps]) => {
+        setReservations(res);
+        setCampaigns(camps);
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -87,6 +100,39 @@ export default function ReserveringenPage() {
         setLoading(false);
       });
   }, []);
+
+  // Handler voor het wijzigen van de attributie. Optimistisch updaten:
+  // we vervangen de rij meteen in lokale state, doen daarna de PATCH;
+  // bij fout zetten we 'm terug en tonen een alert. Snelle UX.
+  const handleAttributionChange = async (
+    reservationId: string,
+    campaignId: string | null,
+  ) => {
+    const original = reservations.find((r) => r.id === reservationId);
+    if (!original) return;
+
+    setAttributing(reservationId);
+    setReservations((prev) =>
+      prev.map((r) =>
+        r.id === reservationId ? { ...r, via_campaign_id: campaignId } : r,
+      ),
+    );
+    try {
+      await setReservationAttribution(reservationId, campaignId);
+    } catch (e) {
+      // Rollback bij fout zodat lokale state weer overeenkomt met DB.
+      setReservations((prev) =>
+        prev.map((r) => (r.id === reservationId ? original : r)),
+      );
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Koppelen mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setAttributing(null);
+    }
+  };
 
   // Filter + zoek. Query matcht op naam, telefoon of mail — typisch
   // wat een medewerker tikt als hij/zij iemand zoekt ("Jansen", of
@@ -307,7 +353,6 @@ export default function ReserveringenPage() {
                 >
                   {list.map((r, idx) => {
                     const info = statusInfo[r.status];
-                    const fromFilly = isFromFilly(r);
                     return (
                       <div
                         key={r.id}
@@ -369,30 +414,20 @@ export default function ReserveringenPage() {
                           )}
                         </div>
 
-                        {/* Via Filly-badge — zelfde visuele stijl als
-                            op /gasten zodat attributie consistent is
-                            door het dashboard. Alleen tonen als true;
-                            anders kolombreedte minimaal houden. */}
-                        <div>
-                          {fromFilly ? (
-                            <span
-                              title="Via een Filly-campagne binnengekomen"
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                padding: "2px 10px",
-                                borderRadius: "var(--rf)",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color: "var(--accent, #1F4A2D)",
-                                background: "var(--accent-light, #D6E0D8)",
-                              }}
-                            >
-                              ✓ Via Filly
-                            </span>
-                          ) : null}
-                        </div>
+                        {/* Filly-attributie: dropdown om handmatig aan
+                            een campagne te koppelen. Als gekoppeld: groene
+                            badge met campagnenaam + "x"-knop om los te
+                            koppelen. Tot send-engine click-tracking
+                            heeft, is dit de manier om Filly-ROI-cijfers
+                            in het dashboard te krijgen. */}
+                        <FillyAttributionControl
+                          reservation={r}
+                          campaigns={campaigns}
+                          busy={attributing === r.id}
+                          onChange={(campId) =>
+                            handleAttributionChange(r.id, campId)
+                          }
+                        />
 
                         <span
                           style={{
@@ -707,3 +742,138 @@ const inputStyle: React.CSSProperties = {
   background: "var(--white, #FFFFFF)",
   color: "var(--text, #18181B)",
 };
+
+
+// ============================================================
+// FillyAttributionControl — koppel reservering aan campagne
+// ============================================================
+// Twee modi:
+//   - Niet gekoppeld → kleine "+ Filly"-button die een dropdown
+//     opent met alle campagnes van het restaurant.
+//   - Wel gekoppeld → groene badge met campagnenaam + "×"-knop om
+//     te ontkoppelen.
+//
+// Dropdown filtert op niet-gearchiveerde campagnes (afgerond + actief
+// + ingepland + concept) zodat oude testcampagnes niet blijven hangen.
+function FillyAttributionControl({
+  reservation,
+  campaigns,
+  busy,
+  onChange,
+}: {
+  reservation: Reservation;
+  campaigns: Campaign[];
+  busy: boolean;
+  onChange: (campaignId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const linkedCampaign = reservation.via_campaign_id
+    ? campaigns.find((c) => c.id === reservation.via_campaign_id)
+    : null;
+
+  if (linkedCampaign) {
+    return (
+      <span
+        title={`Toegeschreven aan campagne: ${linkedCampaign.name}`}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "2px 4px 2px 10px",
+          borderRadius: "var(--rf)",
+          fontSize: 11,
+          fontWeight: 600,
+          color: "var(--accent, #1F4A2D)",
+          background: "var(--accent-light, #D6E0D8)",
+          maxWidth: 200,
+        }}
+      >
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ✓ {linkedCampaign.name}
+        </span>
+        <button
+          onClick={() => onChange(null)}
+          disabled={busy}
+          aria-label="Loskoppelen van campagne"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--accent, #1F4A2D)",
+            cursor: busy ? "not-allowed" : "pointer",
+            fontSize: 14,
+            lineHeight: 1,
+            padding: "0 4px",
+          }}
+        >
+          ×
+        </button>
+      </span>
+    );
+  }
+
+  if (campaigns.length === 0) {
+    // Geen campagnes om aan te koppelen — niet relevant om de knop
+    // te tonen. Eigenaar moet eerst een campagne aanmaken.
+    return null;
+  }
+
+  if (open) {
+    return (
+      <select
+        autoFocus
+        defaultValue=""
+        disabled={busy}
+        onChange={(e) => {
+          const v = e.target.value;
+          setOpen(false);
+          if (v) onChange(v);
+        }}
+        onBlur={() => setOpen(false)}
+        style={{
+          padding: "2px 6px",
+          fontSize: 11,
+          border: "1px solid var(--accent, #1F4A2D)",
+          borderRadius: 6,
+          maxWidth: 200,
+        }}
+      >
+        <option value="" disabled>
+          Kies campagne…
+        </option>
+        {campaigns.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setOpen(true)}
+      disabled={busy}
+      style={{
+        padding: "2px 10px",
+        fontSize: 11,
+        fontWeight: 500,
+        color: "var(--ts)",
+        background: "transparent",
+        border: "1px dashed var(--border, #E5DFD0)",
+        borderRadius: "var(--rf)",
+        cursor: busy ? "not-allowed" : "pointer",
+        whiteSpace: "nowrap",
+      }}
+      title="Koppel deze reservering aan een Filly-campagne"
+    >
+      + Filly-koppeling
+    </button>
+  );
+}
+

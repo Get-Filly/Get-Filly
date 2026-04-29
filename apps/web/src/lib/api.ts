@@ -371,6 +371,12 @@ export type Kpis = {
   month_guests: number;
   month_revenue_cents: number;
   pending_suggestions: number;
+  // Filly-attributie deze maand. Null voor share als er nog geen
+  // totaal-aantal is om tegen af te zetten.
+  month_filly_reservations: number;
+  month_filly_guests: number;
+  month_filly_share_pct: number | null;
+  month_filly_revenue_cents: number;
 };
 
 export async function fetchKpis(): Promise<Kpis> {
@@ -378,6 +384,40 @@ export async function fetchKpis(): Promise<Kpis> {
   // gebruiken authedFetch (stuurt JWT mee). Zonder geldige sessie
   // geeft de backend 401 terug en mislukt deze call.
   const res = await authedFetch(`${API_URL}/kpi`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Per-campagne attributie deze maand — voor rapportages (per kanaal).
+export type CampaignAttribution = {
+  campaign_id: string;
+  campaign_name: string;
+  campaign_type: "mail" | "social" | "whatsapp";
+  reservations: number;
+  guests: number;
+  estimated_revenue_cents: number;
+};
+
+export async function fetchFillyAttribution(): Promise<CampaignAttribution[]> {
+  const res = await authedFetch(`${API_URL}/kpi/filly-attribution`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// 6-maanden Filly-ROI buckets voor de bar-grafiek.
+export type FillyRoiMonth = {
+  month: string; // "YYYY-MM"
+  reservations: number;
+  guests: number;
+  estimated_revenue_cents: number;
+};
+
+export async function fetchFillyRoi6Months(): Promise<FillyRoiMonth[]> {
+  const res = await authedFetch(`${API_URL}/kpi/filly-roi-6m`, {
+    cache: "no-store",
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -804,6 +844,11 @@ export type Reservation = {
   notes: string | null;
   special_requests: string | null;
   table_code: string | null;
+  // Filly-attributie (sinds migratie 0022). Null = niet gekoppeld
+  // aan een campagne. Als gevuld: uuid van de campagne. Eigenaar
+  // kan dit handmatig zetten via dropdown op reserveringen-pagina;
+  // straks automatisch via send-engine click-tracking.
+  via_campaign_id: string | null;
   created_at: string;
 };
 
@@ -842,6 +887,26 @@ export async function createReservation(input: {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Koppel of ontkoppel een reservering aan een Filly-campagne.
+// campaignId=null = ontkoppelen. Returnt de bijgewerkte reservering.
+export async function setReservationAttribution(
+  reservationId: string,
+  campaignId: string | null,
+): Promise<Reservation> {
+  const res = await authedFetch(
+    `${API_URL}/reservations/${reservationId}/attribution`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaign_id: campaignId }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Koppelen mislukt"));
   }
   return res.json();
 }
