@@ -68,8 +68,11 @@ jobs:
         # Next.js build vereist environment-variables die in productie
         # uit Vercel komen. Voor CI vullen we ze met dummy-waarden zodat
         # de build slaagt — runtime-env wordt op Vercel ingesteld.
+        # Belangrijk: env-naam moet exact matchen met wat lib/supabase.ts
+        # leest (PUBLISHABLE_KEY, niet ANON_KEY) — anders throw'd de
+        # module-init tijdens prerender van /dashboard/account.
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://dummy.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: dummy-publishable-key
           NEXT_PUBLIC_API_URL: https://dummy-api.example.com/api
         run: pnpm --filter web build
