@@ -48,6 +48,14 @@ export type OnboardingInput = {
   website_url?: string;
   website_summary?: string;
   social_media?: Record<string, string>;
+  // Operationele velden die WebsiteAnalyzer kan vinden op horeca-sites.
+  // Allemaal optioneel — wizard stuurt ze alleen mee als Filly ze
+  // daadwerkelijk extracted heeft, anders blijft de DB-kolom null en
+  // vult de eigenaar 't later in via /dashboard/account.
+  opening_hours?: Record<string, { open: string; close: string }>;
+  contact_email?: string;
+  contact_phone?: string;
+  legal_name?: string;
   // Menu (uit fase C)
   menu_items?: Array<{
     name: string;
@@ -158,6 +166,16 @@ export class OnboardingService {
         website_url: input.website_url?.trim() || null,
         website_summary: input.website_summary?.trim() || null,
         social_media: cleanSocialMedia(input.social_media),
+        // Operationeel + zakelijk — door WebsiteAnalyzer gevuld als
+        // Filly ze op de site kan vinden. Anders null en de eigenaar
+        // vult ze later in /dashboard/account.
+        opening_hours:
+          input.opening_hours && Object.keys(input.opening_hours).length > 0
+            ? input.opening_hours
+            : null,
+        contact_email: input.contact_email?.trim() || null,
+        contact_phone: input.contact_phone?.trim() || null,
+        legal_name: input.legal_name?.trim() || null,
         // Meta
         onboarded_at: new Date().toISOString(),
       })

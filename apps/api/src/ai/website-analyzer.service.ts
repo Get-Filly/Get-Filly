@@ -54,6 +54,16 @@ export type ExtractedProfile = {
     tiktok?: string;
     linkedin?: string;
   };
+  // Openingstijden — staan vaak gewoon op horeca-sites en zijn dus
+  // goed te extraheren. Format strikt: per dag-key open + close in
+  // HH:MM (24-uurs). Dagen die ontbreken = gesloten. Lege object =
+  // niet gevonden op de site.
+  opening_hours?: Record<string, { open: string; close: string }>;
+  // Contact-info uit footer of contact-pagina
+  contact_email?: string;
+  contact_phone?: string;
+  // Juridische naam (vaak in footer: "Bistro X B.V." of "Bistro X V.O.F.")
+  legal_name?: string;
   confidence: 'high' | 'medium' | 'low';
   notes?: string;
 };
@@ -232,6 +242,20 @@ Geef ALLEEN een JSON-object terug zonder uitleg, zonder markdown-codeblok eromhe
     "linkedin": "<handle of URL>"
   },
 
+  "opening_hours": {
+    "mon": { "open": "<HH:MM>", "close": "<HH:MM>" },
+    "tue": { "open": "<HH:MM>", "close": "<HH:MM>" },
+    "wed": { "open": "<HH:MM>", "close": "<HH:MM>" },
+    "thu": { "open": "<HH:MM>", "close": "<HH:MM>" },
+    "fri": { "open": "<HH:MM>", "close": "<HH:MM>" },
+    "sat": { "open": "<HH:MM>", "close": "<HH:MM>" },
+    "sun": { "open": "<HH:MM>", "close": "<HH:MM>" }
+  },
+
+  "contact_email": "<info@... als je 't ziet, anders weglaten>",
+  "contact_phone": "<vast of mobiel, format zoals op site, anders weglaten>",
+  "legal_name": "<juridische bedrijfsnaam zoals 'Bistro X B.V.' of 'Bistro X V.O.F.', alleen als je die letterlijk vindt>",
+
   "confidence": "<high | medium | low>",
   "notes": "<wat miste je, wat is onzeker>"
 }
@@ -247,6 +271,14 @@ Harde regels:
 - cuisine_style: lowercase woorden, bv. ["frans", "seizoensgebonden"], ["italiaans", "pizza"], ["nederlands", "brasserie"].
 - social_media: alleen URLs of handles die daadwerkelijk op de site linken. Als alleen een algemene ig-link in footer, handle is genoeg.
 - website_summary: dit is GEEN marketing-copy maar een interne notitie voor Filly zelf — schrijf zakelijk en feitelijk, max 300 tekens.
+- opening_hours:
+    * Strict format: per dag een object { "open": "HH:MM", "close": "HH:MM" } in 24-uurs notatie.
+    * Voor dagen die op de site als gesloten zijn aangeduid: laat de dag-key WEG (niet { "open":"", "close":"" } sturen).
+    * "Half 12" → "11:30". "12u" → "12:00". "vanaf 11u tot middernacht" → "11:00" / "00:00".
+    * Bij dubbele openings-blokken (bv. lunch + diner met onderbreking): pak de breedste range (eerste open → laatste close).
+    * Als de site geen openingstijden noemt: laat het hele opening_hours-object weg.
+- contact_email/contact_phone: alleen als ze letterlijk op de site staan, geen gokken op basis van domein.
+- legal_name: alleen pakken als je 'm in een footer of "over ons"-pagina ziet staan ("BV", "VOF", "h.o.d.n."). Niet hetzelfde als de gewone restaurant-naam.
 - confidence: "low" als je op losse flarden moest gissen, "medium" als het meeste klopte maar je twijfelde op sommige velden, "high" als alles expliciet stond.`;
   }
 }
@@ -375,6 +407,10 @@ function parseProfile(raw: string): ExtractedProfile {
       cuisine_style: asStringArray(parsed.cuisine_style),
       website_summary: asTrimmedString(parsed.website_summary)?.slice(0, 400),
       social_media: asSocialMedia(parsed.social_media),
+      opening_hours: asOpeningHours(parsed.opening_hours),
+      contact_email: asTrimmedString(parsed.contact_email),
+      contact_phone: asTrimmedString(parsed.contact_phone),
+      legal_name: asTrimmedString(parsed.legal_name),
       confidence:
         parsed.confidence === 'high' || parsed.confidence === 'medium'
           ? parsed.confidence
@@ -427,5 +463,32 @@ function asSocialMedia(
     const val = asTrimmedString(o[k]);
     if (val) out[k] = val;
   }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+// Strikte validatie van openings-uren. Claude moet HH:MM in 24-uurs
+// notatie aanleveren — alles wat daarvan afwijkt gooien we weg in
+// plaats van halve data door te schuiven naar de DB. Dagen zonder
+// geldige open+close worden uitgefilterd zodat de UI later "Gesloten"
+// toont voor die dag.
+function asOpeningHours(
+  v: unknown,
+): ExtractedProfile['opening_hours'] | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Record<string, unknown>;
+  const validDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const out: Record<string, { open: string; close: string }> = {};
+
+  for (const day of validDays) {
+    const entry = o[day];
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const open = typeof e.open === 'string' ? e.open.trim() : '';
+    const close = typeof e.close === 'string' ? e.close.trim() : '';
+    if (!HHMM.test(open) || !HHMM.test(close)) continue;
+    out[day] = { open, close };
+  }
+
   return Object.keys(out).length > 0 ? out : undefined;
 }

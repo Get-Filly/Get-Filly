@@ -54,6 +54,15 @@ type WizardData = {
   // Web
   website_url: string;
   website_summary: string;
+  // Operationele velden — door WebsiteAnalyzer gevuld als Filly ze
+  // op de site vindt. Géén UI-veld in de wizard zelf om 'm kort te
+  // houden; eigenaar ziet/bewerkt ze later in /dashboard/account.
+  opening_hours: Record<string, { open: string; close: string }> | null;
+  contact_email: string;
+  contact_phone: string;
+  legal_name: string;
+  // Social media (gevuld door analyzer)
+  social_media: Record<string, string>;
   // Menu
   menu_items: MenuItem[];
 };
@@ -112,6 +121,11 @@ const INITIAL_DATA: WizardData = {
   cuisine_style: "",
   website_url: "",
   website_summary: "",
+  opening_hours: null,
+  contact_email: "",
+  contact_phone: "",
+  legal_name: "",
+  social_media: {},
   menu_items: [],
 };
 
@@ -250,6 +264,28 @@ export default function OnboardingPage() {
             websiteResult.website_summary ||
             prev.website_summary,
           brand_tone: websiteResult.brand_tone ?? prev.brand_tone,
+          // Operationele velden — alleen overnemen als Filly ze vond
+          // én de wizard ze nog niet leeg heeft (geen overschrijven van
+          // wat de eigenaar zelf invulde).
+          opening_hours:
+            prev.opening_hours ?? websiteResult.opening_hours ?? null,
+          contact_email:
+            prev.contact_email.trim() ||
+            websiteResult.contact_email ||
+            prev.contact_email,
+          contact_phone:
+            prev.contact_phone.trim() ||
+            websiteResult.contact_phone ||
+            prev.contact_phone,
+          legal_name:
+            prev.legal_name.trim() ||
+            websiteResult.legal_name ||
+            prev.legal_name,
+          // Social handles uit analyzer als de wizard er nog geen heeft.
+          social_media: {
+            ...(websiteResult.social_media ?? {}),
+            ...prev.social_media,
+          },
         }));
       }
 
@@ -315,6 +351,21 @@ export default function OnboardingPage() {
           cuisine_style: splitToArray(data.cuisine_style),
           website_url: data.website_url.trim() || undefined,
           website_summary: data.website_summary.trim() || undefined,
+          // Operationele velden door analyzer gevuld. Alleen meesturen
+          // als ze daadwerkelijk waarde hebben — undefined → backend
+          // zet ze op null.
+          opening_hours:
+            data.opening_hours &&
+            Object.keys(data.opening_hours).length > 0
+              ? data.opening_hours
+              : undefined,
+          contact_email: data.contact_email.trim() || undefined,
+          contact_phone: data.contact_phone.trim() || undefined,
+          legal_name: data.legal_name.trim() || undefined,
+          social_media:
+            Object.keys(data.social_media).length > 0
+              ? data.social_media
+              : undefined,
           menu_items: data.menu_items,
         }),
       });

@@ -178,6 +178,18 @@ export class RestaurantService {
     if (profile.social_media && Object.keys(profile.social_media).length > 0) {
       updates.social_media = profile.social_media;
     }
+    // Nieuwe velden uit de uitgebreide analyzer (commit 2026-04-29).
+    // Alleen wegschrijven als Filly ze daadwerkelijk vond — bestaande
+    // ingevulde velden mogen niet worden overschreven met null.
+    if (
+      profile.opening_hours &&
+      Object.keys(profile.opening_hours).length > 0
+    ) {
+      updates.opening_hours = profile.opening_hours;
+    }
+    if (profile.contact_email) updates.contact_email = profile.contact_email;
+    if (profile.contact_phone) updates.contact_phone = profile.contact_phone;
+    if (profile.legal_name) updates.legal_name = profile.legal_name;
 
     const { data: updated, error: updErr } = await this.supabase.client
       .from('restaurants')
