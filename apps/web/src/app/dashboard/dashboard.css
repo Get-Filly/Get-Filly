@@ -3426,3 +3426,165 @@
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* ============================================================
+   RESPONSIVE — fase 1 (fundamenten + dashboard)
+   ============================================================
+   Breakpoints:
+     1024px = tablet/laptop overgang (sidebar wordt offcanvas)
+     768px  = mobile (alle kolommen stacken, padding krimpt)
+     480px  = klein telefoonscherm (alleen finetune)
+   ============================================================ */
+
+/* Burger-knop in topbar — alleen zichtbaar onder 1024px. */
+.dashboard-shell .tb-burger {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  font-size: 16px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dashboard-shell .tb-burger:hover { background: var(--hover); }
+
+/* Backdrop achter de sidebar op mobile. Standaard verborgen; alleen
+   zichtbaar wanneer body.mobile-nav-open. Klik op de backdrop
+   sluit de nav. */
+.dashboard-shell .sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.45);
+  border: none;
+  cursor: pointer;
+  z-index: 45;
+  padding: 0;
+}
+
+/* ====== ≤ 1024px : tablet + mobile ====== */
+@media (max-width: 1024px) {
+  /* Sidebar slidet weg naar links; reappears als body.mobile-nav-open. */
+  .dashboard-shell .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    width: min(280px, 80vw);
+  }
+  body.mobile-nav-open .dashboard-shell .sidebar {
+    transform: translateX(0);
+  }
+  body.mobile-nav-open .dashboard-shell .sidebar-backdrop {
+    display: block;
+  }
+
+  /* Topbar + main schuiven mee — geen 220px-offset meer. */
+  .dashboard-shell .topbar { left: 0; padding: 0 16px; }
+  .dashboard-shell .main { margin-left: 0; }
+
+  /* Burger-knop tonen. */
+  .dashboard-shell .tb-burger { display: inline-flex; }
+
+  /* Dash-body: enkele kolom — chat onder de calendar ipv ernaast. */
+  .dashboard-shell .dash-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px 16px 24px;
+  }
+
+  /* Right-col vaste max-height zodat de chat-card niet pagina-hoog
+     wordt op mobile. Eigen scroll als content groter is. */
+  .dashboard-shell .right-col {
+    max-height: 70vh;
+    min-height: 320px;
+  }
+
+  /* Dash-top minder padding. */
+  .dashboard-shell .dash-top { padding: 16px 16px 0; }
+
+  /* Page-full container op detail-paginas: minder padding. */
+  .dashboard-shell .page-full { padding: 16px; }
+}
+
+/* ====== ≤ 768px : mobile ====== */
+@media (max-width: 768px) {
+  /* Topbar-tekst kleiner, sync-badge verbergen. */
+  .dashboard-shell .topbar { height: 56px; padding: 0 12px; }
+  .dashboard-shell .tb-title { font-size: 14px; }
+  .dashboard-shell .tb-badge-desktop { display: none; }
+  .dashboard-shell .main { padding-top: 56px; }
+  .dashboard-shell .page { height: calc(100% - 56px); }
+
+  /* KPI-row: 2 kolommen op mobiel zodat ze niet smaller dan 140px
+     worden. (default auto-fit minmax(170px, 1fr) maakt ze meestal 1
+     kolom op telefoon — 2 kolommen leest beter.) */
+  .dashboard-shell .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .dashboard-shell .kpi { padding: 12px 14px; }
+  .dashboard-shell .kpi-val { font-size: 20px; }
+
+  /* Weather: auto-fit zodat de 7 dagen wrappen i.p.v. doormidden
+     gesneden worden. minmax(80px, 1fr) past goed: 4 dagen op de eerste
+     rij, 3 op de tweede bij ~360px viewport. */
+  .dashboard-shell .weather-row {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
+  .dashboard-shell .weather-day { min-height: 84px; padding: 8px 4px; }
+
+  /* Cal-detail al op 1280 → 1fr. Geen extra rule nodig hier. */
+
+  /* Page-header rij: titel + CTA's stacken. */
+  .dashboard-shell .page-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* Stats-row (op detail-paginas): 2 kolommen. */
+  .dashboard-shell .stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  /* Page-titel iets kleiner. */
+  .dashboard-shell .page-title { font-size: 22px; }
+  .dashboard-shell .page-subtitle { font-size: 12px; margin-bottom: 14px; }
+
+  /* Form-section: minder padding. */
+  .dashboard-shell .form-section { padding: 16px; }
+
+  /* Page-full: minder padding nog verder. */
+  .dashboard-shell .page-full { padding: 12px; }
+
+  /* Right-col chat: korter zodat er ruimte blijft voor andere content
+     boven én geen gigantische witruimte als chat leeg is. */
+  .dashboard-shell .right-col { max-height: 60vh; }
+}
+
+/* ====== ≤ 480px : kleine telefoonschermen ====== */
+@media (max-width: 480px) {
+  /* KPI-row terug naar 1 kolom op echt kleine schermen — 2 kolommen
+     levert te smal cijfer-vlak. */
+  .dashboard-shell .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-shell .stats-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Topbar nog compacter. */
+  .dashboard-shell .topbar { padding: 0 8px; }
+  .dashboard-shell .tb-right { gap: 6px; }
+  .dashboard-shell .tb-btn { width: 30px; height: 30px; font-size: 12px; }
+
+  /* Alert-bar wraps de knop onder de tekst. */
+  .dashboard-shell .alert-bar {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+}

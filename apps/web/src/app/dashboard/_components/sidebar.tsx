@@ -164,8 +164,32 @@ export function Sidebar() {
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
+  // Sluit de mobile-nav (offcanvas-mode <1024px) na klik op een
+  // menu-link. Op desktop heeft het geen effect want body.mobile-
+  // nav-open is dan toch nooit gezet.
+  const closeMobileNav = () => {
+    if (typeof document !== "undefined") {
+      document.body.classList.remove("mobile-nav-open");
+    }
+  };
+
   return (
-    <nav className="sidebar">
+    <>
+      {/* Backdrop achter de sidebar op mobile. Klik = nav sluiten. */}
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        aria-label="Menu sluiten"
+        onClick={closeMobileNav}
+      />
+      <nav className="sidebar" onClick={(e) => {
+        // Klik op een Link → sluit nav. We checken of de target
+        // een <a> of binnen een <a> zit; alleen dan sluiten zodat
+        // klikken op de workspace-button of dropdown niet de hele
+        // nav dichtklapt.
+        const target = e.target as HTMLElement;
+        if (target.closest("a")) closeMobileNav();
+      }}>
       {/* Workspace-blok bovenin — klikbaar, opent account-dropdown. */}
       <div className="sb-workspace-wrap" ref={menuRef}>
         <button
@@ -274,6 +298,7 @@ export function Sidebar() {
           ← Bekijk website
         </Link>
       </div>
-    </nav>
+      </nav>
+    </>
   );
 }
