@@ -13,8 +13,13 @@ import {
   type SuggestionStatus,
 } from './suggestions.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('suggestions')
@@ -46,6 +51,19 @@ export class SuggestionsController {
     @Param('id') id: string,
   ) {
     return this.suggestions.getProposalDetails(restaurantId, id);
+  }
+
+  // Filly aan het werk-knop: genereert 3-5 nieuwe voorstellen op
+  // basis van profiel + menu + bezetting/weer. AiRateLimitGuard
+  // hangt erop zodat een eigenaar niet 100x per minuut kan klikken
+  // (per-restaurant 100 calls/uur, voor alle Claude-features samen).
+  @Post('generate')
+  @UseGuards(AiRateLimitGuard)
+  generate(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.suggestions.generateOnDemand(restaurantId, user.id);
   }
 
   // Goedkeur-flow: suggestie → campagne. Aparte POST want het is

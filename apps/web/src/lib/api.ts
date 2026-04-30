@@ -643,6 +643,26 @@ export async function fetchProposalDetails(
   return res.json();
 }
 
+// "Vraag Filly om voorstellen"-knop op /campagnes. Triggert backend
+// om 3-5 nieuwe ai_suggestions te genereren op basis van profile +
+// menu + actuele bezetting/weer. Werkt vanaf seconde 1 na onboarding
+// zolang er minimaal 3 menu-items zijn — anders BadRequest met een
+// helpende NL-foutmelding.
+export async function generateSuggestions(): Promise<{
+  created: number;
+  suggestions: AiSuggestion[];
+}> {
+  const res = await authedFetch(`${API_URL}/suggestions/generate`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Voorstellen genereren mislukt"),
+    );
+  }
+  return res.json();
+}
+
 // Goedkeur-flow: maakt een campagne aan uit de suggestie, zet de
 // suggestion-status op approved en koppelt approved_campaign_id.
 // Retourneert het campagne-id zodat we direct kunnen doorlinken.

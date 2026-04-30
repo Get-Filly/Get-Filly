@@ -7,6 +7,7 @@ import {
   deleteCampaign,
   fetchCampaigns,
   fetchSuggestions,
+  generateSuggestions,
   updateCampaignStatus,
   updateSuggestion,
   type AiSuggestion,
@@ -128,6 +129,31 @@ export default function CampagnesPage() {
   const [campaignAction, setCampaignAction] = useState<
     Record<string, "saving" | "deleting">
   >({});
+
+  // "Vraag Filly om voorstellen"-state. Loading = knop disabled +
+  // spinner-tekst. Error = niet-modaal flash bij fout (bv. "vul
+  // eerst je menu in").
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const handleGenerateSuggestions = async () => {
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      await generateSuggestions();
+      // Pendings opnieuw ophalen zodat de strip direct bijwerkt.
+      const fresh = await fetchSuggestions("pending");
+      setPendingSuggestions(fresh);
+    } catch (e) {
+      setGenerateError(
+        e instanceof Error
+          ? e.message
+          : "Voorstellen genereren mislukt. Probeer het zo opnieuw.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   // Bij mount halen we campagnes + pending + rejected parallel op.
   // Rejected hebben we vooraf nodig zodat we de tab-count direct
@@ -332,8 +358,40 @@ export default function CampagnesPage() {
             Voorstellen van Filly én actieve campagnes — op één plek.
           </div>
         </div>
-        <button className="btn-primary-dash">＋ Nieuwe campagne</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* Filly aan het werk-knop. Werkt zodra er ≥3 menu-items zijn
+              (anders BadRequest met helpende tekst). Pakt elke klik
+              een nieuwe set voorstellen — eerder gegeneerde blijven
+              staan tot de eigenaar ze afhandelt. */}
+          <button
+            type="button"
+            className="btn-secondary-dash"
+            disabled={generating}
+            onClick={handleGenerateSuggestions}
+            title="Filly bekijkt je profiel + menu en genereert 3-5 nieuwe voorstellen"
+          >
+            {generating
+              ? "✨ Filly denkt na…"
+              : "✨ Vraag Filly om voorstellen"}
+          </button>
+          <button className="btn-primary-dash">＋ Nieuwe campagne</button>
+        </div>
       </div>
+      {generateError && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: "10px 12px",
+            background: "var(--surface, #efe8d8)",
+            border: "1px solid var(--border, #e5dfd0)",
+            borderRadius: 6,
+            fontSize: 13,
+            color: "var(--text-secondary, #52525B)",
+          }}
+        >
+          {generateError}
+        </div>
+      )}
 
       {/* Impact-blok — de twee belangrijkste Filly-metrics krijgen de
           stat-card-filly variant (groene rand links + groene waarde)

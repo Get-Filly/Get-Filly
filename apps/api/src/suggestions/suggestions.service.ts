@@ -108,6 +108,84 @@ type ProposalDetailsFromTool = {
   };
 };
 
+// ============================================================
+// On-demand suggesties-generator (Filly aan het werk-knop)
+// ============================================================
+// Schema voor `generate_proactive_suggestions`: Claude levert 3-5
+// nieuwe campagne-voorstellen op basis van profile + menu + actuele
+// bezetting/weer. Elke suggestie krijgt zijn eigen trigger_type
+// zodat de UI 'm correct labelt (lage bezetting, weer, seizoen, etc).
+const GENERATE_SUGGESTIONS_SCHEMA = {
+  type: 'object',
+  properties: {
+    suggestions: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 5,
+      items: {
+        type: 'object',
+        properties: {
+          trigger_type: {
+            type: 'string',
+            enum: [
+              'low_occupancy',
+              'weather',
+              'seasonal',
+              'retention',
+              'birthday',
+              'general',
+            ],
+          },
+          urgency: { type: 'string', enum: ['low', 'medium', 'high'] },
+          campaign_type: {
+            type: 'string',
+            enum: ['mail', 'social', 'whatsapp'],
+          },
+          name: { type: 'string' },
+          subject_line: { type: 'string' },
+          body: { type: 'string' },
+          reasoning: { type: 'string' },
+          confidence: { type: 'number' },
+          expected_extra_reservations: { type: 'integer' },
+          expected_extra_revenue_cents: { type: 'integer' },
+        },
+        required: [
+          'trigger_type',
+          'urgency',
+          'campaign_type',
+          'name',
+          'body',
+          'reasoning',
+        ],
+      },
+    },
+  },
+  required: ['suggestions'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type GeneratedSuggestionFromTool = {
+  trigger_type:
+    | 'low_occupancy'
+    | 'weather'
+    | 'seasonal'
+    | 'retention'
+    | 'birthday'
+    | 'general';
+  urgency: 'low' | 'medium' | 'high';
+  campaign_type: 'mail' | 'social' | 'whatsapp';
+  name: string;
+  subject_line?: string;
+  body: string;
+  reasoning: string;
+  confidence?: number;
+  expected_extra_reservations?: number;
+  expected_extra_revenue_cents?: number;
+};
+
+type GenerateSuggestionsFromTool = {
+  suggestions: GeneratedSuggestionFromTool[];
+};
+
 // Public-shape die de UI (camelCase) verwacht. Verschilt van de
 // tool-shape (snake_case voor consistentie met Anthropic-conventies).
 export type ProposalDetails = {
@@ -228,6 +306,160 @@ export class SuggestionsService {
     if (error) throw new InternalServerErrorException(error.message);
     if (!data) throw new NotFoundException('Suggestie niet gevonden.');
     return data as AiSuggestion;
+  }
+
+  // Filly aan het werk-knop: genereert 3-5 nieuwe campagne-voorstellen
+  // op basis van het restaurant-profiel + menu + actuele bezetting +
+  // weer. Wordt aangeroepen wanneer de eigenaar op /dashboard/campagnes
+  // op "Vraag Filly om voorstellen" klikt.
+  //
+  // Werkt ook voor net-nieuwe accounts waar nog geen reserveringen of
+  // bezettings-data beschikbaar is — Filly valt dan terug op profile +
+  // menu + seizoen, wat al genoeg is voor zinvolle voorstellen.
+  //
+  // Wel een minimum-check: zonder restaurant-naam OF zonder menu-items
+  // zijn de voorstellen te generiek om waardevol te zijn → BadRequest
+  // met een helpende NL-foutmelding.
+  async generateOnDemand(
+    restaurantId: string,
+    userId: string | null,
+  ): Promise<{ created: number; suggestions: AiSuggestion[] }> {
+    // Stap 1 — minimaal restaurant-naam + ≥3 menu-items vereist.
+    const { data: restaurantRow, error: restErr } = await this.supabase.client
+      .from('restaurants')
+      .select('id, name')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    if (restErr) throw new InternalServerErrorException(restErr.message);
+    if (!restaurantRow) {
+      throw new NotFoundException('Restaurant niet gevonden.');
+    }
+
+    const { count: menuCount } = await this.supabase.client
+      .from('menu_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('is_available', true);
+
+    if (!menuCount || menuCount < 3) {
+      throw new BadRequestException(
+        'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
+      );
+    }
+
+    // Stap 2 — context bouwen. Profile + menu zijn altijd nodig; live-
+    // block is optioneel (lege string als bezetting/weer onbekend).
+    const [profileBlock, menuBlock, liveBlock] = await Promise.all([
+      this.context.buildProfileBlock(restaurantId).catch(() => ''),
+      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+      this.context.buildLiveBlock(restaurantId).catch(() => ''),
+    ]);
+
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+    const monthName = today.toLocaleString('nl-NL', { month: 'long' });
+
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
+
+Je antwoord komt via de tool 'generate_proactive_suggestions'. Vul de tool-args met 3-5 verschillende voorstellen die elk een eigen invalshoek hebben.
+
+Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
+- low_occupancy: een vooruitkijkende campagne om een rustige dag/avond op te vullen (alleen als je dat in de live-data ziet, of als seizoens-tip).
+- weather: speel in op weer-thema (regen → comfort food binnen, zon → terras-aanbod).
+- seasonal: huidige maand is ${monthName} — pak iets dat past bij dit seizoen.
+- retention: vaste-gasten-segment activeren met iets exclusiefs.
+- birthday: birthday-segment uitnodigen (alleen als zinvol bij dit type zaak).
+- general: een sterk concept dat los staat van een specifieke trigger — een signature-event of menu-launch.
+
+Inhoudsregels:
+- Schrijf alles in het Nederlands. Match de brand_tone uit het profiel.
+- Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten — gebruik échte namen + prijzen voor concreetheid.
+- Per voorstel: kies één campagne_type (mail, social, of whatsapp) dat past bij de doelgroep van die specifieke campagne. Mix de types over de 3-5 voorstellen.
+- subject_line: alleen voor mail-campagnes; voor social/whatsapp laat je 'm weg.
+- body: volledige uitgeschreven tekst, klaar om te versturen.
+- name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
+- reasoning: 1-2 zinnen NL waarom dit voorstel nu past — verwijs naar concrete signalen uit profile/menu/live-data.
+- confidence: 0.0-1.0 hoe zeker je bent dat dit voorstel werkt voor deze zaak.
+- expected_extra_reservations / expected_extra_revenue_cents: ruwe schatting; mag null/0 als je geen basis hebt.
+
+Vandaag is ${todayIso}.
+
+---
+CONTEXT — alles wat je weet over deze zaak:
+
+${profileBlock}
+
+${menuBlock}
+
+${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
+---`;
+
+    const userPrompt = `Geef 3-5 voorstellen voor de komende 2-4 weken die concreet passen bij dit restaurant.`;
+
+    const raw = await this.ai.generateStructured<GenerateSuggestionsFromTool>({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 4000,
+      toolName: 'generate_proactive_suggestions',
+      toolDescription:
+        'Lever 3-5 concrete campagne-voorstellen voor dit restaurant op basis van profiel, menu en actuele context.',
+      inputSchema: GENERATE_SUGGESTIONS_SCHEMA,
+      meta: {
+        restaurantId,
+        userId: userId ?? undefined,
+        feature: 'suggestions_generate',
+      },
+      cacheSystem: true,
+    });
+
+    // Stap 3 — wegschrijven als ai_suggestions-rijen. Elk voorstel
+    // krijgt zijn eigen rij met status='pending' zodat ze direct in de
+    // /campagnes-strip verschijnen. We slaan de proposal_details niet
+    // in dezelfde call op — die wordt later gegenereerd wanneer de
+    // eigenaar op de detail-knop klikt (lazy-load = geen extra Claude-
+    // calls voor voorstellen die hij toch overslaat).
+    const rows = raw.suggestions.map((s) => ({
+      restaurant_id: restaurantId,
+      trigger_type: s.trigger_type,
+      trigger_context: {
+        generated_on: todayIso,
+        reason: s.reasoning,
+      },
+      suggested_campaign: {
+        type: s.campaign_type,
+        name: s.name,
+        subject_line: s.subject_line,
+        body: s.body,
+      },
+      status: 'pending',
+      urgency: s.urgency,
+      confidence_score:
+        typeof s.confidence === 'number' &&
+        s.confidence >= 0 &&
+        s.confidence <= 1
+          ? s.confidence
+          : null,
+      reasoning: s.reasoning,
+      expected_impact: {
+        extra_reservations: s.expected_extra_reservations ?? 0,
+        extra_revenue_cents: s.expected_extra_revenue_cents ?? 0,
+      },
+    }));
+
+    const { data: inserted, error: insErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .insert(rows)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      );
+
+    if (insErr) throw new InternalServerErrorException(insErr.message);
+
+    return {
+      created: inserted?.length ?? 0,
+      suggestions: (inserted ?? []) as AiSuggestion[],
+    };
   }
 
   // Genereert de proposal-details voor één suggestie: hoofdgerecht +
