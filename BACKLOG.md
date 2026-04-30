@@ -333,17 +333,89 @@ verplaatsen naar de juiste P-bucket.
 ### Designer
 - [x] ~~🔴 Niet mobile responsive~~ (2026-04-30) — alle 5 fasen afgerond. Zie hoofdsectie "Dashboard algemeen → Mobile responsive pass".
 - [x] ~~🟢 KPI-row breekt onder 1280px~~ (2026-04-30) — KPI-row 5→2→1 cols via responsive pass.
-- [~] 🟡 **Inline styling overal — design-tokens-laag toegevoegd** (2026-04-30 fase 1) — `tokens.css` is nu single source-of-truth (kleuren, spacing, radii, shadows, typography). globals.css + dashboard.css duplicaten weg; oude korte aliases (`--ts`/`--bl`/`--blue`/`--r`) blijven werken via aliases zodat 5438 CSS-regels niet hoeven te herschrijven. Brand-update is nu één file. **Nog open**: incidenteel inline `style={{...}}` vervangen wanneer je toch in een file zit.
-- [ ] 🟡 **Iconen-set is volledig emoji** — per OS verschillend gerenderd, niet brand-consistent. SVG-iconen-set toevoegen.
+- [~] 🟡 **Inline styling overal — design-tokens-laag toegevoegd** (2026-04-30 fase 1+2+3) — `tokens.css` is nu single source-of-truth (kleuren, spacing, radii, shadows, typography). globals.css + dashboard.css duplicaten weg; oude korte aliases (`--ts`/`--bl`/`--blue`/`--r`) blijven werken via aliases. Spacing-pas op dashboard-home + account-formulieren naar 8px-grid. **Nog open**: incidenteel inline `style={{...}}` vervangen wanneer je toch in een file zit.
+- [~] 🟡 **Iconen-set is volledig emoji** (2026-04-30) — Lucide-react geïnstalleerd; selectief gemigreerd voor functionele controls (chat-send, modal-close, photo-replace, topbar burger/bell/search). Brand-decoratieve emoji's (✨ Filly-sparkle, 📷, 📄, 🍷, ⚠️ + sidebar-iconen) blijven bewust staan.
 - [ ] 🟡 **Geen focus-states / aria-labels** op veel knoppen → WCAG-toegankelijkheid onder de maat.
 - [x] ~~🟡 **`filly-chat.tsx` is 635 regels**~~ (2026-04-30) — gesplitst zoals voorgesteld; orchestrator nu 331 regels, sub-components gemiddeld <100 regels.
 - [ ] 🟢 **Geen dark-mode**, geen i18n-voorbereiding (alles hard-coded NL).
-- [~] 🟢 **Inconsistente knop-stijlen — base-component toegevoegd** (2026-04-30 fase 1) — `<Button variant="primary|secondary|ghost|danger" size="sm|md">` in `components/ui/button.tsx`. Vervangt op termijn `.btn-primary-dash` + `.sg-btn` + inline knoppen. Save-bar account-pagina is eerste migratie als bewijs; rest doen we incidenteel.
-- [~] 🟢 **Geen Storybook / design-systeem documentatie** (2026-04-30) — light-weight reference-pagina op `/dashboard/design-system` toont alle tokens + Button/Badge/Card-variants. Echte Storybook later als de component-library groeit.
+- [x] ~~🟢 **Inconsistente knop-stijlen — base-component toegevoegd**~~ (2026-04-30 fase 1+2A) — `<Button variant="primary|secondary|ghost|danger" size="sm|md">` in `components/ui/button.tsx` + `<ButtonLink>` voor Link-as-button. **35 dashboard-knoppen gemigreerd** in 12 files (dashboard/account/campagnes/menu/gasten/reserveringen + 3 modal-components). `.btn-primary-dash` / `.btn-secondary-dash` CSS-classes blijven bestaan voor de paar resterende plekken (legacy onbelangrijke knoppen).
+- [~] 🟢 **Geen Storybook / design-systeem documentatie** (2026-04-30) — light-weight reference-pagina op `/dashboard/design-system` toont alle tokens + 8 base-components (Button/ButtonLink/Badge/Card/PageHeader/EmptyState/Tabs/Input+Textarea) met live demos. Echte Storybook later als de component-library groeit.
 
 ---
 
 ## Recent voltooid
+
+### 2026-04-30 — Design-system: tokens + 8 base-components + sweep-migraties
+
+Grote UI-investeringssessie verspreid over 8 commits. Doel: van
+"inline styling overal + 3 button-patterns + 5 inline empty-state-
+patterns" naar één design-tokens-laag + composable component-library.
+
+**Foundation** (commit `2492c15`):
+- ✅ `apps/web/src/app/tokens.css` als single source-of-truth voor
+  kleuren, spacing (8px-grid: --space-1 t/m --space-8), radii,
+  shadows, typography. Oude korte aliases (--ts/--bl/--blue/--r/etc)
+  blijven werken.
+- ✅ `globals.css` + `dashboard.css` :root-blokken weg (waren duplicaten).
+  Brand-update is nu één file.
+- ✅ Eerste 3 base-components: `<Button>` (4 variants × 2 sizes +
+  loading-spinner + iconLeft/iconRight), `<Badge>` (6 variants +
+  optionele dot), `<Card>` + sub-components.
+- ✅ `/dashboard/design-system` reference-pagina met live demos.
+
+**Sweep-migraties** (commits `f8be354`/`06ea968`/`c29fc2f`):
+- ✅ 35 dashboard-knoppen `.btn-primary-dash` / `.btn-secondary-dash`
+  → `<Button>` (12 files).
+- ✅ Lucide-iconen voor functionele controls: chat-send (↑→Send),
+  modal-close (✕→X), photo-replace (↻→RefreshCw). Topbar later mee.
+- ✅ Spacing-pas naar tokens: dashboard-home + page-full + form-section/
+  grid/field + alert-bar. KPI-row gap 14→16, card-padding 20→24.
+
+**Alignment-fixes + 3 nieuwe components** (commit `5da5a85`):
+- ✅ `<PageHeader>` — vervangt 9 inconsistente page-header-row patterns
+  (sommige met page-header-row wrapper, anderen stacked). Alle
+  dashboard-pagina's nu uniform.
+- ✅ `<EmptyState>` — 10 inline empty-state-instances → 1 component.
+  Variërende margin-overrides verdwenen; topGap-prop voor expliciete
+  intentie.
+- ✅ `<ButtonLink>` — Button-stijl op Next.js Link. 2 plekken
+  gemigreerd (account menu-link + account-verwijderd home-link).
+
+**Topbar Lucide + 2 nieuwe components** (commit `6964503`):
+- ✅ Topbar burger ☰→Menu, 🔔→Bell, 🔍→Search. <div>→<button> voor
+  semantiek + aria-labels.
+- ✅ `<Tabs items active onChange>` met optionele count-badge.
+  5 tab-migraties: campagnes / reviews / reserveringen /
+  suggesties / taken.
+- ✅ `<Input>` + `<Textarea>` met label/hint/error en a11y-koppeling
+  (htmlFor + id auto). Component paste-klaar voor account-pagina.
+
+**Chips + account-pagina input-migratie** (commit `6daef9e`):
+- ✅ `<Chips items active onChange>` voor pill-stijl filter (campagnes
+  type-filter mail/social/whatsapp).
+- ✅ Account-pagina: 25 form-velden gemigreerd naar `<Input>` /
+  `<Textarea>`. Hint-tekst zit nu in een prop, label krijgt
+  automatische htmlFor + id.
+- Bewust niet gemigreerd: selects (4), custom chip-pickers (talen,
+  terras-zon), color-pickers, openingstijden-grid, sluitingsdata-
+  chips, logo-upload, delete-modal-confirm — die hebben eigen UI.
+
+**Eindstaat na deze sessie** (`apps/web/src/components/ui/`):
+- button.tsx + button-link.tsx
+- badge.tsx
+- card.tsx
+- page-header.tsx
+- empty-state.tsx
+- tabs.tsx
+- chips.tsx
+- input.tsx (Input + Textarea)
+- ui.css (alle component-stijlen op één plek)
+
+**Wat er voor de volgende UI-sessie open staat**:
+- Select-component (4 plekken in account-pagina, drempelwaarde net niet)
+- Sidebar CSS-tokenisering (lage impact)
+- Alert-bar als Card-variant (lage prio)
+- Echte Storybook (later wanneer component-library groeit)
 
 ### 2026-04-30 — Audit-log compleet (Fase A van P1-#2)
 
