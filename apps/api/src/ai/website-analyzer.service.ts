@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import * as cheerio from 'cheerio';
+import type Anthropic from '@anthropic-ai/sdk';
 import { AiService } from './ai.service';
 
 // ============================================================
@@ -144,17 +145,20 @@ export class WebsiteAnalyzerService {
       .join('\n\n')
       .slice(0, this.MAX_TOTAL_CHARS);
 
-    // Stap 5: Claude vragen om het profiel te extraheren als JSON.
-    const raw = await this.ai.generateText({
+    // Stap 5: Claude vragen om het profiel te extraheren via tool-use.
+    // Het JSON-schema garandeert geldige output — geen JSON.parse-fouten
+    // meer op markdown-codeblokken of trailing comma's. Het schema
+    // beschrijft alle velden + enum-keuzes voor type/brand_tone/confidence
+    // zodat Claude geen verzonnen waarden kan teruggeven.
+    const raw = await this.ai.generateStructured<RawProfileFromTool>({
       system: this.buildSystemPrompt(),
       prompt: `URL: ${startUrl}\n\nSite-inhoud (max 20k tekens, mogelijk afgekapt):\n\n${combined}`,
       model: 'claude-sonnet-4-6',
-      maxTokens: 800,
-      // Pre-onboarding call: user heeft nog geen restaurant, dus we
-      // kunnen niet in ai_usage loggen (restaurant_id is NOT NULL).
-      // Scope op de user zelf, met een speciale "pre_onboarding"-marker
-      // zodat we 't in de logs kunnen herkennen zodra we de kolom
-      // nullable hebben gemaakt. Voor nu: geen DB-log, alleen console.
+      maxTokens: 1500,
+      toolName: 'extract_restaurant_profile',
+      toolDescription:
+        'Vul het restaurant-profiel in op basis van de meegegeven website-inhoud. Verzin niets — laat velden weg als je ze niet kunt afleiden.',
+      inputSchema: WEBSITE_PROFILE_SCHEMA,
       meta: {
         // Pre-onboarding call: user heeft nog geen restaurant-id. Sinds
         // migratie 0012 is ai_usage.restaurant_id nullable, dus deze
@@ -164,7 +168,7 @@ export class WebsiteAnalyzerService {
       },
     });
 
-    return parseProfile(raw);
+    return coerceProfile(raw);
   }
 
   // Haal één pagina op met een korte timeout. Retourneert null bij
@@ -212,57 +216,11 @@ export class WebsiteAnalyzerService {
   private buildSystemPrompt(): string {
     return `Je bent Filly. De gebruiker heeft zijn restaurant-website gegeven en jij vult het volledige account-profiel in voor de onboarding.
 
-Geef ALLEEN een JSON-object terug zonder uitleg, zonder markdown-codeblok eromheen. Gebruik deze exacte keys (leeg laten mag als je iets niet kunt afleiden):
+Je geeft je antwoord via de tool 'extract_restaurant_profile'. Het schema bepaalt de structuur — jij bepaalt de inhoud.
 
-{
-  "name": "<naam van het restaurant>",
-  "type": "<een van: bistro, brasserie, fine_dining, trattoria, café, bar, hotel_restaurant, event_locatie, anders>",
-  "description": "<2-4 zinnen NL over de zaak: wat is het, wat maakt het bijzonder>",
-  "brand_tone": "<casual | professional | playful>",
-
-  "address": "<straat + huisnummer>",
-  "postal_code": "<postcode>",
-  "city": "<stad>",
-
-  "tagline": "<korte pay-off / slagzin, max 10 woorden>",
-  "atmosphere": "<1-2 zinnen NL over sfeer en interieur>",
-  "target_audience": "<1-2 zinnen NL over voor wie dit restaurant is>",
-  "unique_selling_points": "<puntsgewijs of komma-gescheiden: 3-5 dingen die deze zaak onderscheiden>",
-  "special_events": "<evenementen of terugkerende concepten: wijnavonden, live muziek, brunches, etc. Leeg als niet genoemd.>",
-
-  "signature_dishes": ["<gerecht>", "<gerecht>", "<gerecht>"],
-  "cuisine_style": ["<keukenstijl>", "<keukenstijl>"],
-
-  "website_summary": "<max 300 tekens NL samenvatting die Filly zelf later hergebruikt als context bij het schrijven van campagnes>",
-
-  "social_media": {
-    "instagram": "<handle of URL als je 't vindt>",
-    "facebook": "<handle of URL>",
-    "tiktok": "<handle of URL>",
-    "linkedin": "<handle of URL>"
-  },
-
-  "opening_hours": {
-    "mon": { "open": "<HH:MM>", "close": "<HH:MM>" },
-    "tue": { "open": "<HH:MM>", "close": "<HH:MM>" },
-    "wed": { "open": "<HH:MM>", "close": "<HH:MM>" },
-    "thu": { "open": "<HH:MM>", "close": "<HH:MM>" },
-    "fri": { "open": "<HH:MM>", "close": "<HH:MM>" },
-    "sat": { "open": "<HH:MM>", "close": "<HH:MM>" },
-    "sun": { "open": "<HH:MM>", "close": "<HH:MM>" }
-  },
-
-  "contact_email": "<info@... als je 't ziet, anders weglaten>",
-  "contact_phone": "<vast of mobiel, format zoals op site, anders weglaten>",
-  "legal_name": "<juridische bedrijfsnaam zoals 'Bistro X B.V.' of 'Bistro X V.O.F.', alleen als je die letterlijk vindt>",
-
-  "confidence": "<high | medium | low>",
-  "notes": "<wat miste je, wat is onzeker>"
-}
-
-Harde regels:
+Inhoudsregels:
 - ALLES in het Nederlands, ongeacht taal van de site. Keuken- en sfeer-termen vertalen.
-- Verzin NIETS. Als je een veld niet kunt afleiden uit de content, laat het leeg (lege string, lege array, weglaten) — liever niks dan bluf.
+- Verzin NIETS. Als je een veld niet kunt afleiden uit de content, laat het weg (gebruik tool-args alleen als je daadwerkelijk iets te zeggen hebt).
 - brand_tone:
     * casual = gemoedelijk, buurt-gevoel, toegankelijk
     * professional = verfijnd, strak, hogere prijsklasse
@@ -273,15 +231,114 @@ Harde regels:
 - website_summary: dit is GEEN marketing-copy maar een interne notitie voor Filly zelf — schrijf zakelijk en feitelijk, max 300 tekens.
 - opening_hours:
     * Strict format: per dag een object { "open": "HH:MM", "close": "HH:MM" } in 24-uurs notatie.
-    * Voor dagen die op de site als gesloten zijn aangeduid: laat de dag-key WEG (niet { "open":"", "close":"" } sturen).
+    * Voor dagen die op de site als gesloten zijn aangeduid: laat de dag-key WEG.
     * "Half 12" → "11:30". "12u" → "12:00". "vanaf 11u tot middernacht" → "11:00" / "00:00".
-    * Bij dubbele openings-blokken (bv. lunch + diner met onderbreking): pak de breedste range (eerste open → laatste close).
+    * Bij dubbele openings-blokken (bv. lunch + diner met onderbreking): pak de breedste range.
     * Als de site geen openingstijden noemt: laat het hele opening_hours-object weg.
 - contact_email/contact_phone: alleen als ze letterlijk op de site staan, geen gokken op basis van domein.
 - legal_name: alleen pakken als je 'm in een footer of "over ons"-pagina ziet staan ("BV", "VOF", "h.o.d.n."). Niet hetzelfde als de gewone restaurant-naam.
 - confidence: "low" als je op losse flarden moest gissen, "medium" als het meeste klopte maar je twijfelde op sommige velden, "high" als alles expliciet stond.`;
   }
 }
+
+// ============================================================
+// JSON-schema voor extract_restaurant_profile (tool-use)
+// ============================================================
+// De Anthropic API valideert hier op: type-checks, enums (type,
+// brand_tone, confidence) en object-shapes. Géén verplichte velden
+// behalve confidence — Claude moet altijd zijn eigen onzekerheid
+// kunnen aangeven, ook bij een lege site. Pattern-validation voor
+// HH:MM doen we pas in coerceProfile (extra defensief).
+const WEBSITE_PROFILE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    type: {
+      type: 'string',
+      enum: [
+        'bistro',
+        'brasserie',
+        'fine_dining',
+        'trattoria',
+        'café',
+        'bar',
+        'hotel_restaurant',
+        'event_locatie',
+        'anders',
+      ],
+    },
+    description: { type: 'string' },
+    brand_tone: {
+      type: 'string',
+      enum: ['casual', 'professional', 'playful'],
+    },
+    address: { type: 'string' },
+    postal_code: { type: 'string' },
+    city: { type: 'string' },
+    tagline: { type: 'string' },
+    atmosphere: { type: 'string' },
+    target_audience: { type: 'string' },
+    unique_selling_points: { type: 'string' },
+    special_events: { type: 'string' },
+    signature_dishes: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    cuisine_style: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    website_summary: { type: 'string' },
+    social_media: {
+      type: 'object',
+      properties: {
+        instagram: { type: 'string' },
+        facebook: { type: 'string' },
+        tiktok: { type: 'string' },
+        linkedin: { type: 'string' },
+      },
+    },
+    opening_hours: {
+      type: 'object',
+      properties: {
+        mon: openingDayShape(),
+        tue: openingDayShape(),
+        wed: openingDayShape(),
+        thu: openingDayShape(),
+        fri: openingDayShape(),
+        sat: openingDayShape(),
+        sun: openingDayShape(),
+      },
+    },
+    contact_email: { type: 'string' },
+    contact_phone: { type: 'string' },
+    legal_name: { type: 'string' },
+    confidence: {
+      type: 'string',
+      enum: ['low', 'medium', 'high'],
+    },
+    notes: { type: 'string' },
+  },
+  required: ['confidence'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+function openingDayShape() {
+  return {
+    type: 'object' as const,
+    properties: {
+      open: { type: 'string' as const },
+      close: { type: 'string' as const },
+    },
+    required: ['open', 'close'] as const,
+  };
+}
+
+// Wat Claude via tool-use teruggeeft — alle velden optioneel,
+// behalve confidence. Identiek aan ExtractedProfile maar met
+// tussenstap zodat we expliciet maken dat dit nog ruwe data is.
+type RawProfileFromTool = Partial<ExtractedProfile> & {
+  confidence: ExtractedProfile['confidence'];
+};
 
 // ============================================================
 // Helpers
@@ -378,67 +435,49 @@ function extractText(html: string): string {
     .trim();
 }
 
-// Claude retourneert JSON als string — parse veilig. Bij malformed
-// JSON vallen we terug op een lege profile met confidence="low".
-function parseProfile(raw: string): ExtractedProfile {
-  const trimmed = raw.trim();
-  // Soms komt Claude met ```json ... ``` ondanks de prompt-instructie.
-  // Strip dat eerst: pak het grootste {...}-blok.
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return { confidence: 'low', notes: 'Geen JSON gevonden in AI-respons.' };
-  }
-  try {
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-    return {
-      name: asTrimmedString(parsed.name),
-      type: asTrimmedString(parsed.type),
-      description: asTrimmedString(parsed.description),
-      brand_tone: asBrandTone(parsed.brand_tone),
-      address: asTrimmedString(parsed.address),
-      postal_code: asTrimmedString(parsed.postal_code),
-      city: asTrimmedString(parsed.city),
-      tagline: asTrimmedString(parsed.tagline),
-      atmosphere: asTrimmedString(parsed.atmosphere),
-      target_audience: asTrimmedString(parsed.target_audience),
-      unique_selling_points: asTrimmedString(parsed.unique_selling_points),
-      special_events: asTrimmedString(parsed.special_events),
-      signature_dishes: asStringArray(parsed.signature_dishes),
-      cuisine_style: asStringArray(parsed.cuisine_style),
-      website_summary: asTrimmedString(parsed.website_summary)?.slice(0, 400),
-      social_media: asSocialMedia(parsed.social_media),
-      opening_hours: asOpeningHours(parsed.opening_hours),
-      contact_email: asTrimmedString(parsed.contact_email),
-      contact_phone: asTrimmedString(parsed.contact_phone),
-      legal_name: asTrimmedString(parsed.legal_name),
-      confidence:
-        parsed.confidence === 'high' || parsed.confidence === 'medium'
-          ? parsed.confidence
-          : 'low',
-      notes: asTrimmedString(parsed.notes),
-    };
-  } catch (err) {
-    throw new InternalServerErrorException(
-      `Kon Filly's antwoord niet lezen: ${String(err)}`,
-    );
-  }
+// Tool-use garandeert al dat we een gevalideerd JSON-object krijgen.
+// Wat we hier nog wél doen: lege strings → undefined coercen (Claude
+// stuurt soms `""` ondanks instructie), HH:MM-format-validatie op
+// opening_hours (schema kent geen pattern-validation cross-day) en
+// website_summary cap op 400 tekens als safety-net.
+function coerceProfile(raw: RawProfileFromTool): ExtractedProfile {
+  return {
+    name: trimToUndefined(raw.name),
+    type: trimToUndefined(raw.type),
+    description: trimToUndefined(raw.description),
+    brand_tone: raw.brand_tone,
+    address: trimToUndefined(raw.address),
+    postal_code: trimToUndefined(raw.postal_code),
+    city: trimToUndefined(raw.city),
+    tagline: trimToUndefined(raw.tagline),
+    atmosphere: trimToUndefined(raw.atmosphere),
+    target_audience: trimToUndefined(raw.target_audience),
+    unique_selling_points: trimToUndefined(raw.unique_selling_points),
+    special_events: trimToUndefined(raw.special_events),
+    signature_dishes: cleanStringArray(raw.signature_dishes),
+    cuisine_style: cleanStringArray(raw.cuisine_style),
+    website_summary: trimToUndefined(raw.website_summary)?.slice(0, 400),
+    social_media: cleanSocialMedia(raw.social_media),
+    opening_hours: validateOpeningHours(raw.opening_hours),
+    contact_email: trimToUndefined(raw.contact_email),
+    contact_phone: trimToUndefined(raw.contact_phone),
+    legal_name: trimToUndefined(raw.legal_name),
+    confidence: raw.confidence,
+    notes: trimToUndefined(raw.notes),
+  };
 }
 
-// Kleine type-coercers om de parsed JSON defensief in te dikken.
-// Claude kan een leeg array terugstuuren als "[]" of een lege string —
-// wij normaliseren allemaal naar undefined zodat caller één check doet.
-function asTrimmedString(v: unknown): string | undefined {
+// Lege string of niet-string → undefined. Tool-use forceert het type
+// al, maar Claude levert nog steeds soms `""` voor "ik weet 't niet".
+function trimToUndefined(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const t = v.trim();
   return t.length > 0 ? t : undefined;
 }
 
-function asBrandTone(v: unknown): ExtractedProfile['brand_tone'] {
-  if (v === 'casual' || v === 'professional' || v === 'playful') return v;
-  return undefined;
-}
-
-function asStringArray(v: unknown): string[] | undefined {
+// Filter lege strings + duplicaten uit een array. Schema garandeert
+// het type al, maar lege strings haal je het beste alsnog weg.
+function cleanStringArray(v: unknown): string[] | undefined {
   if (!Array.isArray(v)) return undefined;
   const cleaned = v
     .filter((x): x is string => typeof x === 'string')
@@ -447,7 +486,7 @@ function asStringArray(v: unknown): string[] | undefined {
   return cleaned.length > 0 ? cleaned : undefined;
 }
 
-function asSocialMedia(
+function cleanSocialMedia(
   v: unknown,
 ): ExtractedProfile['social_media'] | undefined {
   if (!v || typeof v !== 'object') return undefined;
@@ -460,18 +499,16 @@ function asSocialMedia(
     'linkedin',
   ];
   for (const k of keys) {
-    const val = asTrimmedString(o[k]);
+    const val = trimToUndefined(o[k]);
     if (val) out[k] = val;
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-// Strikte validatie van openings-uren. Claude moet HH:MM in 24-uurs
-// notatie aanleveren — alles wat daarvan afwijkt gooien we weg in
-// plaats van halve data door te schuiven naar de DB. Dagen zonder
-// geldige open+close worden uitgefilterd zodat de UI later "Gesloten"
-// toont voor die dag.
-function asOpeningHours(
+// HH:MM-validatie als safety-net. Schema kent geen pattern-property,
+// dus dagen die niet kloppen filteren we hier weg ipv halve data
+// door te sluizen naar de DB.
+function validateOpeningHours(
   v: unknown,
 ): ExtractedProfile['opening_hours'] | undefined {
   if (!v || typeof v !== 'object') return undefined;

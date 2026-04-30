@@ -1,9 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import type Anthropic from '@anthropic-ai/sdk';
 import { AiService } from './ai.service';
 
 // ============================================================
@@ -81,15 +77,23 @@ export class MenuImporterService {
 
     const base64 = file.buffer.toString('base64');
 
-    const raw = await this.ai.generateFromFile({
+    // Tool-use met expliciet schema garandeert geldige output: geen
+    // JSON.parse-fouten meer op markdown-codeblok-resten of trailing
+    // comma's. De Anthropic API valideert het schema vóór de respons
+    // bij ons aankomt.
+    const raw = await this.ai.generateStructuredFromFile<RawMenuFromTool>({
       system: this.buildSystemPrompt(),
       instruction:
-        'Dit is de menukaart. Extract alle gerechten volgens het JSON-schema.',
+        'Dit is de menukaart. Vul de tool-args in met alle zichtbare gerechten.',
       file: { base64, mimeType: mime },
       // Opus 4.7: menu's hebben vaak complexe layouts (kolommen,
       // groeperingen, kleine lettertjes). Opus is hier merkbaar beter.
       model: 'claude-opus-4-7',
-      maxTokens: 6000, // genoeg voor ~50-80 gerechten
+      maxTokens: 8000, // genoeg voor ~50-80 gerechten + tool-overhead
+      toolName: 'extract_menu_items',
+      toolDescription:
+        'Extract alle gerechten van de meegeleverde menukaart als gestructureerde lijst.',
+      inputSchema: MENU_EXTRACTION_SCHEMA,
       meta: {
         restaurantId: meta.restaurantId,
         userId: meta.userId,
@@ -97,32 +101,17 @@ export class MenuImporterService {
       },
     });
 
-    return parseMenu(raw);
+    return coerceMenu(raw);
   }
 
   private buildSystemPrompt(): string {
     return `Je bent Filly. Je kijkt naar een foto of PDF van een menukaart en extraheert alle gerechten.
 
-Geef ALLEEN een JSON-object terug, zonder markdown-codeblok, zonder commentaar:
+Je antwoord komt via de tool 'extract_menu_items'. Het schema bepaalt de structuur — jij bepaalt wat je ziet.
 
-{
-  "items": [
-    {
-      "name": "<naam van het gerecht>",
-      "description": "<omschrijving indien aanwezig>",
-      "price_cents": <prijs in centen, dus 1250 voor €12,50, weglaten als geen prijs>,
-      "category": "<categorie zoals op de kaart: 'voorgerecht', 'hoofdgerecht', 'nagerecht', 'drank', 'wijn', 'bier', 'borrelhap', 'lunch', 'brunch', 'pizza', 'salade', enz. Gebruik de NL-termen die op de kaart staan.>",
-      "allergens": ["<allergeen-code of woord>", ...]
-    }
-  ],
-  "categories_detected": ["<alle categorieën die je op de kaart zag>"],
-  "confidence": "<high | medium | low>",
-  "notes": "<wat was onduidelijk, ontbrekende prijzen, etc. Leeg als alles duidelijk was.>"
-}
-
-Regels:
+Inhoudsregels:
 - Alle tekst in het Nederlands, ongeacht taal van het menu. Als het menu Engels is, vertaal je namen naar NL waar natuurlijk (bv. 'Chicken' → 'Kip'), behoud originele fantasienamen ('Carpaccio', 'Tiramisu').
-- price_cents = integer. €12,50 = 1250. €12 = 1200. Geen decimalen. Geen prijs op de kaart = weglaten, NIET raden.
+- price_cents = integer. €12,50 = 1250. €12 = 1200. Geen decimalen. Geen prijs op de kaart = veld weglaten, NIET raden.
 - Allergens: alleen als legenda of icoontje op de kaart staat. Standaard EU-codes (A=gluten, B=schaaldieren, C=ei, ...) of volledige namen (gluten, noten, melk). Leeg = geen expliciete aanduiding.
 - Verzin GEEN gerechten. Als tekst onleesbaar is, noteer in "notes" welk deel onduidelijk was.
 - Categorie-namen: blijf bij wat op de kaart staat. Als er geen kopjes zijn, gebruik "anders" of laat weg.
@@ -133,89 +122,106 @@ Regels:
 }
 
 // ============================================================
-// Parsing helpers
+// JSON-schema voor extract_menu_items (tool-use)
+// ============================================================
+const MENU_EXTRACTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          price_cents: { type: 'integer' },
+          category: { type: 'string' },
+          allergens: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        required: ['name'],
+      },
+    },
+    categories_detected: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    confidence: {
+      type: 'string',
+      enum: ['low', 'medium', 'high'],
+    },
+    notes: { type: 'string' },
+  },
+  required: ['items', 'confidence'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type RawMenuFromTool = {
+  items: Array<{
+    name: string;
+    description?: string;
+    price_cents?: number;
+    category?: string;
+    allergens?: string[];
+  }>;
+  categories_detected?: string[];
+  confidence: 'low' | 'medium' | 'high';
+  notes?: string;
+};
+
+// ============================================================
+// Post-processing: tool-use levert al gevalideerde JSON, maar we
+// strippen lege strings, lowercasen categorieën en filteren items
+// zonder naam (kunnen we toch niets mee in de DB).
 // ============================================================
 
-function parseMenu(raw: string): ExtractedMenu {
-  const trimmed = raw.trim();
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return {
-      items: [],
-      categories_detected: [],
-      confidence: 'low',
-      notes: 'Kon Filly-antwoord niet als JSON parsen.',
-    };
+function coerceMenu(raw: RawMenuFromTool): ExtractedMenu {
+  const items: ExtractedMenuItem[] = [];
+  for (const it of raw.items) {
+    const cleaned = coerceMenuItem(it);
+    if (cleaned) items.push(cleaned);
   }
-  try {
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
 
-    const itemsRaw = Array.isArray(parsed.items) ? parsed.items : [];
-    const items: ExtractedMenuItem[] = [];
-    for (const raw of itemsRaw) {
-      const it = asMenuItem(raw);
-      if (it) items.push(it);
-    }
-
-    const categories =
-      Array.isArray(parsed.categories_detected)
-        ? parsed.categories_detected.filter(
-            (c): c is string => typeof c === 'string',
-          )
-        : [];
-
-    return {
-      items,
-      categories_detected: categories,
-      confidence:
-        parsed.confidence === 'high' || parsed.confidence === 'medium'
-          ? parsed.confidence
-          : 'low',
-      notes:
-        typeof parsed.notes === 'string' && parsed.notes.trim().length > 0
-          ? parsed.notes.trim()
-          : undefined,
-    };
-  } catch (err) {
-    throw new InternalServerErrorException(
-      `Kon Filly's antwoord niet lezen: ${String(err)}`,
-    );
-  }
+  return {
+    items,
+    categories_detected: (raw.categories_detected ?? [])
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0),
+    confidence: raw.confidence,
+    notes:
+      raw.notes && raw.notes.trim().length > 0 ? raw.notes.trim() : undefined,
+  };
 }
 
-function asMenuItem(v: unknown): ExtractedMenuItem | null {
-  if (!v || typeof v !== 'object') return null;
-  const o = v as Record<string, unknown>;
-  const name = typeof o.name === 'string' ? o.name.trim() : '';
+function coerceMenuItem(it: RawMenuFromTool['items'][number]): ExtractedMenuItem | null {
+  const name = it.name?.trim();
   if (!name) return null; // gerecht zonder naam is nutteloos
 
   const price =
-    typeof o.price_cents === 'number' && Number.isFinite(o.price_cents)
-      ? Math.round(o.price_cents)
+    typeof it.price_cents === 'number' && Number.isFinite(it.price_cents)
+      ? Math.round(it.price_cents)
       : undefined;
 
   const description =
-    typeof o.description === 'string' && o.description.trim().length > 0
-      ? o.description.trim()
+    it.description && it.description.trim().length > 0
+      ? it.description.trim()
       : undefined;
 
   const category =
-    typeof o.category === 'string' && o.category.trim().length > 0
-      ? o.category.trim().toLowerCase()
+    it.category && it.category.trim().length > 0
+      ? it.category.trim().toLowerCase()
       : undefined;
 
-  const allergens = Array.isArray(o.allergens)
-    ? o.allergens
-        .filter((a): a is string => typeof a === 'string')
-        .map((a) => a.trim())
-        .filter((a) => a.length > 0)
-    : undefined;
+  const allergens = (it.allergens ?? [])
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0);
 
   return {
     name,
     description,
     price_cents: price,
     category,
-    allergens: allergens && allergens.length > 0 ? allergens : undefined,
+    allergens: allergens.length > 0 ? allergens : undefined,
   };
 }

@@ -277,6 +277,177 @@ export class AiService {
     return textBlock.text;
   }
 
+  // ============================================================
+  // Structured output via tool-use (gegarandeerd geldige JSON)
+  // ============================================================
+  // Anthropic tool-use dwingt Claude om een JSON-output te bouwen
+  // die voldoet aan een vooraf gedefinieerd JSON-schema. De API
+  // valideert het schema voordat de respons terugkomt — daardoor
+  // hebben wij NOOIT meer een `JSON.parse`-fout te pakken op
+  // halfgeparste markdown-codeblokken of trailing comma's.
+  //
+  // Hoe te gebruiken:
+  //   const profile = await ai.generateStructured<MyType>({
+  //     system: '...',
+  //     prompt: '...',
+  //     toolName: 'extract_profile',
+  //     toolDescription: 'Extract the restaurant profile...',
+  //     inputSchema: { type: 'object', properties: {...} },
+  //     meta: {...},
+  //   });
+  //
+  // Caller blijft verantwoordelijk voor het samenstellen van een
+  // duidelijke system+prompt — schema-driven output is geen excuus
+  // voor een vage prompt. Type-coercie naar `T` gebeurt alleen
+  // op compile-time; runtime-shape volgt het schema dat de SDK
+  // afdwingt.
+  async generateStructured<T>(opts: {
+    system: string;
+    prompt: string;
+    toolName: string;
+    toolDescription: string;
+    inputSchema: Anthropic.Tool.InputSchema;
+    model?: string;
+    maxTokens?: number;
+    meta: AiCallMeta;
+    cacheSystem?: boolean;
+  }): Promise<T> {
+    const client = this.getClient();
+    const model = opts.model ?? 'claude-sonnet-4-6';
+
+    const systemParam: string | Anthropic.TextBlockParam[] = opts.cacheSystem
+      ? [
+          {
+            type: 'text',
+            text: opts.system,
+            cache_control: { type: 'ephemeral' },
+          },
+        ]
+      : opts.system;
+
+    let response;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 4096,
+        system: systemParam,
+        messages: [{ role: 'user', content: opts.prompt }],
+        tools: [
+          {
+            name: opts.toolName,
+            description: opts.toolDescription,
+            input_schema: opts.inputSchema,
+          },
+        ],
+        // Forceer Claude tot exact deze tool — anders zou hij ook
+        // een gewone text-respons mogen geven en zijn we terug bij
+        // af. `disable_parallel_tool_use` is hier impliciet (één tool).
+        tool_choice: { type: 'tool', name: opts.toolName },
+      });
+    } catch (err) {
+      toNlException(err, opts.meta.feature, this.logger);
+    }
+
+    const toolBlock = response.content.find((b) => b.type === 'tool_use');
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      this.logger.error(
+        `Onverwacht Claude-antwoord zonder tool_use-block (feature=${opts.meta.feature}): ${JSON.stringify(response.content)}`,
+      );
+      throw new InternalServerErrorException(
+        'Filly gaf geen gestructureerd antwoord terug. Probeer het nog eens.',
+      );
+    }
+
+    void this.logUsage(opts.meta, model, response.usage).catch((err) => {
+      this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
+    });
+
+    return toolBlock.input as T;
+  }
+
+  // Vision/document-versie van generateStructured. Combineert het
+  // file-block uit generateFromFile met de tool-use-flow van
+  // generateStructured. Cruciaal voor menu-importer: PDFs/images van
+  // menukaarten waarvan we een gestructureerde gerechtenlijst willen.
+  async generateStructuredFromFile<T>(opts: {
+    system: string;
+    instruction: string;
+    file: { base64: string; mimeType: string };
+    toolName: string;
+    toolDescription: string;
+    inputSchema: Anthropic.Tool.InputSchema;
+    model?: string;
+    maxTokens?: number;
+    meta: AiCallMeta;
+  }): Promise<T> {
+    const client = this.getClient();
+    const model = opts.model ?? 'claude-opus-4-7';
+
+    const fileBlock =
+      opts.file.mimeType === 'application/pdf'
+        ? ({
+            type: 'document' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: 'application/pdf' as const,
+              data: opts.file.base64,
+            },
+          } satisfies Anthropic.DocumentBlockParam)
+        : ({
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: opts.file.mimeType as
+                | 'image/jpeg'
+                | 'image/png'
+                | 'image/gif'
+                | 'image/webp',
+              data: opts.file.base64,
+            },
+          } satisfies Anthropic.ImageBlockParam);
+
+    let response;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 4096,
+        system: opts.system,
+        messages: [
+          {
+            role: 'user',
+            content: [fileBlock, { type: 'text', text: opts.instruction }],
+          },
+        ],
+        tools: [
+          {
+            name: opts.toolName,
+            description: opts.toolDescription,
+            input_schema: opts.inputSchema,
+          },
+        ],
+        tool_choice: { type: 'tool', name: opts.toolName },
+      });
+    } catch (err) {
+      toNlException(err, opts.meta.feature, this.logger);
+    }
+
+    const toolBlock = response.content.find((b) => b.type === 'tool_use');
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      this.logger.error(
+        `Onverwacht Claude-Vision-antwoord zonder tool_use-block (feature=${opts.meta.feature}): ${JSON.stringify(response.content)}`,
+      );
+      throw new InternalServerErrorException(
+        'Filly kon het bestand niet als gestructureerde data lezen. Probeer een andere foto/PDF.',
+      );
+    }
+
+    void this.logUsage(opts.meta, model, response.usage).catch((err) => {
+      this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
+    });
+
+    return toolBlock.input as T;
+  }
+
   // Insert in ai_usage. Gaat via service_role (SupabaseService gebruikt
   // de service-key), dus RLS-policies raken dit niet.
   private async logUsage(
