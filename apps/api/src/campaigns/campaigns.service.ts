@@ -199,6 +199,12 @@ export class CampaignsService {
       type: CampaignType;
       subject_line?: string | null;
       body: string;
+      // Optioneel: bij approve van een chat-suggestion (waar Filly
+      // al 3 varianten genereerde) geven we die door als startset
+      // van filly_variants. Voorkomt dat CampaignRefinePanel ze
+      // bij eerste open opnieuw genereert (= dubbele kosten +
+      // 6 ipv 3 opties zichtbaar).
+      seed_variants?: Array<{ subject_line?: string; body: string }>;
     },
   ): Promise<{ id: string }> {
     const name = input.name.trim();
@@ -212,6 +218,16 @@ export class CampaignsService {
       );
     }
 
+    // Sanitize seed-variants: alleen entries met body, en plak een
+    // cap op om ongegrenste payloads te voorkomen.
+    const seededVariants = (input.seed_variants ?? [])
+      .filter((v) => typeof v.body === 'string' && v.body.trim().length > 0)
+      .map((v) => ({
+        body: v.body.trim(),
+        subject_line: v.subject_line?.trim() || undefined,
+      }))
+      .slice(0, 6);
+
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .insert({
@@ -224,6 +240,15 @@ export class CampaignsService {
         // ziet dat Filly 'm heeft aangedragen. Kan later een nette
         // badge worden i.p.v. tekst.
         meta: 'Voorgesteld door Filly',
+        // Variants meegegeven via approve? Schrijf 'm direct als
+        // cache zodat de detail-pagina geen nieuwe Claude-call doet.
+        // regen_count = 1 (NIET 0) wanneer er seeds zijn: de chat-3
+        // tellen al als de eerste round. Eigenaar mag dan nog 1×
+        // regenerate (count → 2, can_regenerate=false bij count>=2).
+        // Totaal max = chat-3 + regen-3 = 6 alternatieven, zoals in
+        // de oorspronkelijke 0014-design bedoeld.
+        filly_variants: seededVariants.length > 0 ? seededVariants : null,
+        filly_variants_regen_count: seededVariants.length > 0 ? 1 : 0,
       })
       .select('id')
       .single();

@@ -678,6 +678,24 @@ Maak dit tastbaar volgens de regels.`;
 
     const subject_line = rawSubject || null;
 
+    // Variants uit de chat-flow meegeven als seed voor
+    // campaigns.filly_variants. Zo gebruikt de detail-pagina (Met
+    // Filly bewerken) deze drie als basis ipv 3 nieuwe te genereren.
+    // Eigenaar kan daarna 1× regenerate → totaal max 6 alternatieven
+    // (zoals oorspronkelijk bedoeld in migratie 0014).
+    const seedVariants =
+      Array.isArray(sc.variants) && sc.variants.length > 0
+        ? sc.variants
+            .filter(
+              (v): v is { body: string; subject_line?: string } =>
+                typeof v?.body === 'string' && v.body.trim().length > 0,
+            )
+            .map((v) => ({
+              body: v.body.trim(),
+              subject_line: v.subject_line?.trim(),
+            }))
+        : [];
+
     // Campagne aanmaken als concept. CampaignsService rolt zelf terug
     // bij content-insert-fout; hier hoeven we daar niet nog een laag
     // omheen.
@@ -686,6 +704,7 @@ Maak dit tastbaar volgens de regels.`;
       type: type as CampaignType,
       subject_line,
       body,
+      seed_variants: seedVariants,
     });
 
     // Suggestie naar approved + FK koppelen.
