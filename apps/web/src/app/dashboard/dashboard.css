@@ -3566,6 +3566,120 @@
   .dashboard-shell .right-col { max-height: 60vh; }
 }
 
+/* ====== Lijst- en detail-paginas onder 1024px ====== */
+@media (max-width: 1024px) {
+  /* Data-tables (gasten/reserveringen/reviews-overzichten):
+     horizontaal scrollbaar in een wrapper. Voorkomt dat de hele
+     pagina horizontaal moet scrollen — alleen de tabel zelf. */
+  .dashboard-shell .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dashboard-shell .data-table thead,
+  .dashboard-shell .data-table tbody,
+  .dashboard-shell .data-table tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  /* Filter-tabs (campagnes/menu/etc): horizontaal scrollen ipv
+     wrappen. Zie 't als chips die zijwaarts scrollen op mobile. */
+  .dashboard-shell .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .dashboard-shell .tabs::-webkit-scrollbar { height: 0; }
+  .dashboard-shell .tab-btn { flex-shrink: 0; }
+}
+
+/* ====== Forms + modals onder 768px ====== */
+@media (max-width: 768px) {
+  /* Form-grid: 2 kolommen → 1 kolom op mobile. Voorkomt
+     micro-velden die niet leesbaar/typeabaar zijn. */
+  .dashboard-shell .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Save-bar onderaan account-pagina: sticky bottom op mobile zodat
+     'ie altijd zichtbaar is bij scrollen door 14 secties. */
+  .dashboard-shell .save-bar {
+    position: sticky;
+    bottom: 0;
+    margin: 16px -12px -12px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    z-index: 20;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  /* Modals — full-screen op mobile zodat alle content past en de
+     close-knop niet net buiten de viewport valt. */
+  .dashboard-shell .sg-modal-overlay {
+    padding: 0;
+    align-items: flex-start;
+  }
+  .dashboard-shell .sg-modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 20px 16px 16px;
+  }
+  .dashboard-shell .sg-modal-close {
+    top: 12px;
+    right: 12px;
+  }
+
+  /* Filter-tabs: padding krimpt op mobile. */
+  .dashboard-shell .tab-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  /* Menu-item knoppen: minder padding zodat content meer ruimte
+     krijgt op telefoon. */
+  .dashboard-shell .menu-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .dashboard-shell .menu-item-name { font-size: 14px; }
+  .dashboard-shell .menu-item-price { font-size: 13px; }
+
+  /* Detail-pagina header: action-buttons onder elkaar. */
+  .dashboard-shell .menu-header-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dashboard-shell .menu-header-actions button {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  /* Menu-card-status-banner (active-card): action-knoppen onder
+     elkaar zodat ze leesbaar blijven. */
+  .dashboard-shell .menu-card-status {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .dashboard-shell .menu-card-status-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .dashboard-shell .menu-card-status-actions button {
+    width: 100%;
+  }
+}
+
 /* ====== ≤ 480px : kleine telefoonschermen ====== */
 @media (max-width: 480px) {
   /* KPI-row terug naar 1 kolom op echt kleine schermen — 2 kolommen

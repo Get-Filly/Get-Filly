@@ -1658,6 +1658,65 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   .legal-toc ol { columns: 1; }
 }
 
+/* ============================================================
+   Publieke site — responsive (navbar, login, signup)
+   ============================================================ */
+
+/* Onder 768px: navbar compacter, links kunnen wrappen of scrollen. */
+@media (max-width: 768px) {
+  .navbar-inner {
+    padding: 0 16px;
+  }
+  .nav-links {
+    gap: 2px;
+  }
+  .nav-link {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Login/signup-box vol-breedte met wat padding zodat 'ie niet
+     uitlijnt met de smalle viewport. */
+  .login-section {
+    padding: 80px 16px 40px;
+  }
+  .login-box {
+    padding: 24px 20px;
+  }
+  .login-title {
+    font-size: 24px;
+  }
+
+  /* Legal pages padding krimpt ook al via de 640px breakpoint
+     hieronder; deze regel maakt 't iets vroeger fluid voor tablet. */
+  .legal-container {
+    padding: 0 24px;
+  }
+  .legal-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Onder 480px: navbar gaat in compact-mode, evt logo + 1-2 actie. */
+@media (max-width: 480px) {
+  .navbar {
+    height: 56px;
+  }
+  .nav-link {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .login-box {
+    padding: 20px 16px;
+  }
+  .login-title {
+    font-size: 20px;
+  }
+}
+
 /* ===== ANIMATIONS ===== */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
