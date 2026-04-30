@@ -416,9 +416,15 @@ export class AiService {
             },
           } satisfies Anthropic.ImageBlockParam);
 
-    let response;
+    // Vision-calls met hoge max_tokens (drankkaarten op 24k) overschrijden
+    // Anthropic's 10-minuten-grens voor non-streaming requests. Daarom
+    // gebruiken we de stream-API: SDK streamt onder water en .finalMessage()
+    // geeft hetzelfde Message-object terug als messages.create() zou doen.
+    // Voor kleinere calls (menu_vision op 16k) werkt streaming ook prima —
+    // dus consistent gebruiken voor alle Vision-calls.
+    let response: Anthropic.Message;
     try {
-      response = await client.messages.create({
+      const stream = client.messages.stream({
         model,
         max_tokens: opts.maxTokens ?? 4096,
         system: opts.system,
@@ -437,6 +443,7 @@ export class AiService {
         ],
         tool_choice: { type: 'tool', name: opts.toolName },
       });
+      response = await stream.finalMessage();
     } catch (err) {
       toNlException(err, opts.meta.feature, this.logger);
     }
