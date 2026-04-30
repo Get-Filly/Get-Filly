@@ -180,7 +180,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 Grep periodiek op `TODO`, `FIXME`, `MOCK`, `mock` in `apps/` om bij te
 werken. Laatste audit: 2026-04-30.
 
-- [ ] `/apps/web/src/app/dashboard/_components/filly-chat.tsx` — 635 regels lang (zie Designer-audit). Splitsen in input/list/proposal-card/error-handler. Oud comment "Mock-antwoord" is hierin nog niet opgeruimd.
+- [x] ~~`/apps/web/src/app/dashboard/_components/filly-chat.tsx` — 635 regels~~ (2026-04-30) — gesplitst in 5 files: orchestrator (`filly-chat.tsx` 331r), `filly-chat-message-list`, `filly-chat-input`, `filly-chat-proposal-card`, `filly-chat-error-banner`, `filly-chat-types`. Geen file meer >350 regels. Logica letterlijk verplaatst, geen gedrag-wijziging.
 - [ ] `/apps/web/src/app/dashboard/account/page.tsx` — bevat nog "Komt beschikbaar zodra de Claude API gekoppeld is"-melding die nu niet meer klopt.
 - [ ] Next.js warning `"middleware" file convention is deprecated; use "proxy" instead` — cosmetisch, te fixen door file te hernoemen naar `proxy.ts` bij een volgende pass.
 - [ ] [kpi.service.ts](apps/api/src/kpi/kpi.service.ts) — `weekday_avg_pct = 68` hard-coded. 6-maanden historie aggregeren (zie Data Analyst-audit).
@@ -336,7 +336,7 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🟡 **Inline styling overal** — geen design-tokens-laag. Brand-update raakt 200+ files.
 - [ ] 🟡 **Iconen-set is volledig emoji** — per OS verschillend gerenderd, niet brand-consistent. SVG-iconen-set toevoegen.
 - [ ] 🟡 **Geen focus-states / aria-labels** op veel knoppen → WCAG-toegankelijkheid onder de maat.
-- [ ] 🟡 **`filly-chat.tsx` is 635 regels** — Single Responsibility geschonden. Splitsen in input/list/proposal-card/error-handler.
+- [x] ~~🟡 **`filly-chat.tsx` is 635 regels**~~ (2026-04-30) — gesplitst zoals voorgesteld; orchestrator nu 331 regels, sub-components gemiddeld <100 regels.
 - [ ] 🟢 **Geen dark-mode**, geen i18n-voorbereiding (alles hard-coded NL).
 - [ ] 🟢 **Inconsistente knop-stijlen** — `btn-primary-dash`, `sg-btn primary`, inline groene knoppen. Drie patterns voor één concept.
 - [ ] 🟢 **Geen Storybook / design-systeem documentatie**.
