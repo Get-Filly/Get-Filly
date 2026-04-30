@@ -114,9 +114,14 @@ Inhoudsregels:
 - price_cents = integer. €12,50 = 1250. €12 = 1200. Geen decimalen. Geen prijs op de kaart = veld weglaten, NIET raden.
 - Allergens: alleen als legenda of icoontje op de kaart staat. Standaard EU-codes (A=gluten, B=schaaldieren, C=ei, ...) of volledige namen (gluten, noten, melk). Leeg = geen expliciete aanduiding.
 - Verzin GEEN gerechten. Als tekst onleesbaar is, noteer in "notes" welk deel onduidelijk was.
-- Categorie-namen: blijf bij wat op de kaart staat. Als er geen kopjes zijn, gebruik "anders" of laat weg.
+- Categorie-keuze (verplicht, kies één van de 6):
+    * "voorgerecht"  — voorgerechten, starters, amuses, borrelhappen
+    * "tussen"       — tussengerechten / middelgerechten (klassiek menu)
+    * "hoofd"        — hoofdgerechten, vis-/vlees-/vega-mains, pasta, pizza, salades, bijgerechten
+    * "dessert"      — nagerechten, zoete afsluiters, kaasplanken
+    * "drank"        — wijnen, bieren, cocktails, koffie/thee, alcoholvrij
+    * "overig"       — alles wat niet in bovenstaande 5 past (gebruik dit spaarzaam)
 - Gerechten die duidelijk een variant zijn (bv. "met biefstuk €18, met zalm €16"): 2 items maken.
-- Wijnkaart/drankenkaart meenemen als ze er staan — prijs per glas of per fles.
 - Als het bestand geen menukaart lijkt maar iets anders: geef een lege items-array en zet notes = "Dit lijkt geen menukaart te zijn".`;
   }
 }
@@ -124,6 +129,20 @@ Inhoudsregels:
 // ============================================================
 // JSON-schema voor extract_menu_items (tool-use)
 // ============================================================
+// category-enum sluit aan op de 6 UI-tabs op /dashboard/menu
+// (voorgerecht / tussen / hoofd / dessert / drank / overig).
+// Claude kan dus geen "voor", "tussen", "hoofdgerechten" of
+// andere variaties returnen — de Anthropic API valideert het
+// schema, dus afwijkingen komen sowieso niet bij ons aan.
+const MENU_CATEGORIES = [
+  'voorgerecht',
+  'tussen',
+  'hoofd',
+  'dessert',
+  'drank',
+  'overig',
+] as const;
+
 const MENU_EXTRACTION_SCHEMA = {
   type: 'object',
   properties: {
@@ -135,13 +154,16 @@ const MENU_EXTRACTION_SCHEMA = {
           name: { type: 'string' },
           description: { type: 'string' },
           price_cents: { type: 'integer' },
-          category: { type: 'string' },
+          category: {
+            type: 'string',
+            enum: MENU_CATEGORIES,
+          },
           allergens: {
             type: 'array',
             items: { type: 'string' },
           },
         },
-        required: ['name'],
+        required: ['name', 'category'],
       },
     },
     categories_detected: {

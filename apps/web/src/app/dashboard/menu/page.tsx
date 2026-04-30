@@ -17,6 +17,7 @@ import { Skeleton } from "../_components/skeleton";
 
 const categoryOrder = [
   "voorgerecht",
+  "tussen",
   "hoofd",
   "dessert",
   "drank",
@@ -28,11 +29,79 @@ type CategoryFilter = "alle" | Category;
 
 const categoryLabel: Record<Category, string> = {
   voorgerecht: "Voorgerechten",
+  tussen: "Tussengerechten",
   hoofd: "Hoofdgerechten",
   dessert: "Desserts",
   drank: "Dranken",
   overig: "Overig",
 };
+
+// Filly (en handmatige invoer) levert soms variaties op de
+// categorie-naam aan. Deze mapping normaliseert wat binnenkomt
+// zodat de tabs/teller op alle items grip houden, ook als Claude
+// of een eigenaar afwijkt van de standaardvocabulaire.
+const CATEGORY_ALIASES: Record<string, Category> = {
+  voor: "voorgerecht",
+  voorgerecht: "voorgerecht",
+  voorgerechten: "voorgerecht",
+  starter: "voorgerecht",
+  starters: "voorgerecht",
+  amuse: "voorgerecht",
+  borrel: "voorgerecht",
+  borrelhap: "voorgerecht",
+  borrelhapje: "voorgerecht",
+  borrelhapjes: "voorgerecht",
+
+  tussen: "tussen",
+  tussengerecht: "tussen",
+  tussengerechten: "tussen",
+  middel: "tussen",
+  middelgerecht: "tussen",
+
+  hoofd: "hoofd",
+  hoofdgerecht: "hoofd",
+  hoofdgerechten: "hoofd",
+  main: "hoofd",
+  mains: "hoofd",
+  vis: "hoofd",
+  vlees: "hoofd",
+  vegetarisch: "hoofd",
+  pasta: "hoofd",
+  pizza: "hoofd",
+  salade: "hoofd",
+  salades: "hoofd",
+  bijgerecht: "hoofd",
+  bijgerechten: "hoofd",
+
+  dessert: "dessert",
+  desserts: "dessert",
+  nagerecht: "dessert",
+  nagerechten: "dessert",
+  desert: "dessert",
+  zoet: "dessert",
+
+  drank: "drank",
+  dranken: "drank",
+  drinks: "drank",
+  wijn: "drank",
+  wijnen: "drank",
+  wijnkaart: "drank",
+  bier: "drank",
+  bieren: "drank",
+  cocktail: "drank",
+  cocktails: "drank",
+  alcoholvrij: "drank",
+  koffie: "drank",
+  thee: "drank",
+};
+
+// Normaliseert wat in de DB staat naar één van de 6 UI-categorieën.
+// Onbekend → "overig" zodat het item nooit uit de tabs wegvalt.
+function normalizeCategory(raw: string | null | undefined): Category {
+  if (!raw) return "overig";
+  const key = raw.trim().toLowerCase();
+  return CATEGORY_ALIASES[key] ?? "overig";
+}
 
 const seasonLabel: Record<string, string> = {
   spring: "Lente",
@@ -350,7 +419,9 @@ export default function MenuPage() {
   const filtered = useMemo(() => {
     let out = items;
     if (filter !== "alle") {
-      out = out.filter((i) => i.category === filter);
+      // Vergelijk via normalize zodat varianten als "voor" of
+      // "hoofdgerechten" toch in de juiste tab vallen.
+      out = out.filter((i) => normalizeCategory(i.category) === filter);
     }
     if (query.trim()) {
       const q = query.toLowerCase();
@@ -364,7 +435,7 @@ export default function MenuPage() {
   const grouped = useMemo(() => {
     const map = new Map<string, MenuItem[]>();
     for (const item of filtered) {
-      const cat = item.category ?? "overig";
+      const cat = normalizeCategory(item.category);
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(item);
     }
@@ -402,7 +473,7 @@ export default function MenuPage() {
 
   const countPer = (c: CategoryFilter) => {
     if (c === "alle") return items.length;
-    return items.filter((i) => i.category === c).length;
+    return items.filter((i) => normalizeCategory(i.category) === c).length;
   };
 
   return (
