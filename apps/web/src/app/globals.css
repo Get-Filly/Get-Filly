@@ -1,70 +1,14 @@
 @import "tailwindcss";
 
-/* Get-Filly brand palette, beschikbaar gemaakt als Tailwind utilities.
-   Gebruik: bg-brand, text-brand, border-brand-soft, text-ink-soft, enz.
-   Dit is de Tailwind v4 manier om custom kleuren in te hangen zonder
-   aparte tokens-file of import-chain. */
-@theme {
-  /* Brand = British Racing Green-achtige diepe groen. Klassieker en
-     gentleman-achtiger dan de oude forest-tint, blijft leesbaar op
-     warme papier-achtergrond. */
-  --color-brand: #1F4A2D;
-  --color-brand-hover: #0E2B17;
-  --color-brand-soft: #D6E0D8;
-  --color-brand-deep: #0E2B17;
+/* Design-tokens single source-of-truth — kleuren, spacing, radii, shadows,
+ * typography. Vervangt de oude :root + @theme blokken die hier stonden.
+ * Bij brand-update of palet-wijziging: open tokens.css, niet deze file. */
+@import "./tokens.css";
 
-  --color-highlight: #D97F3C;
-  --color-highlight-soft: #FDF0E5;
-
-  --color-ink: #18181B;
-  --color-ink-soft: #52525B;
-  --color-ink-muted: #71717A;
-
-  /* Warm papier (Optie 1). Geen koude SaaS-grijs, geen geelverzadigd
-     crème. Surface dieper voor accent-cards en secundaire secties. */
-  --color-cream: #FAF7F1;
-  --color-surface: #EFE8D8;
-
-  --color-success: #16A34A;
-  --color-warning: #D4A24C;
-  --color-danger: #C73E3E;
-}
-
-:root {
-  /* Get-Filly huisstijl: warm papier (off-white met subtiele geel-warmte)
-     + British-Racing-Green accent. Accent is #1F4A2D — donker en klassiek,
-     zonder dat het zwart aanvoelt. Hover nog iets dieper. */
-  --bg: #FAF7F1;
-  --surface: #EFE8D8;
-  --white: #FFFFFF;
-  --true-white: #FFFFFF;
-  --text: #18181B;
-  --text-secondary: #52525B;
-  --text-light: #A1A1AA;
-  --border: #E5DFD0;
-  --border-soft: #EFE8D8;
-  --accent: #1F4A2D;
-  --accent-dark: #0E2B17;
-  --accent-light: #D6E0D8;
-  --accent-blue: #0071E3;
-  --green: #16A34A;
-  --green-bg: #F0FDF4;
-  --orange: #F97316;
-  --red: #DC2626;
-  --hover: #D6E0D8;
-  --radius: 8px;
-  --radius-sm: 6px;
-  --radius-full: 999px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.08);
-}
-
-@theme inline {
-  --color-background: var(--white);
-  --color-foreground: var(--text);
-  --font-sans: var(--font-inter);
-}
+/* Base-component stijlen (Button, Badge, Card). Co-located bij de
+ * componenten in src/components/ui/ zodat één plek beide TSX en CSS
+ * heeft per component-set. */
+@import "../components/ui/ui.css";
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 

@@ -1,35 +1,16 @@
-/* Dashboard-scoped CSS. Variabelen staan op .dashboard-shell wrapper zodat
-   ze geen conflict geven met de publieke site. */
-
+/* Dashboard-scoped CSS.
+ *
+ * Design-tokens (kleuren, spacing, radii, etc) komen nu uit tokens.css
+ * dat globaal geladen wordt via globals.css. De vroegere lokale
+ * --bg/--accent/--ts/etc-overrides hier zijn weg — ze waren duplicaten
+ * met dezelfde waarden, dus verwijderen geeft zelfde visuele resultaat
+ * met één bron-van-waarheid.
+ *
+ * Aliassen zoals --ts/--bl/--blue/--r/--rf blijven werken via aliases
+ * in tokens.css. Bij herwerk van een file: vervang door de canonical
+ * --color-text-soft/--color-brand-soft/--radius-full/etc.
+ */
 .dashboard-shell {
-  /* Gelijkgetrokken met de publieke site: papier-warm + British Racing
-     Green accent. Signaalkleuren (groen/oranje/rood voor bezetting)
-     blijven semantisch onveranderd. */
-  --bg: #FAF7F1;
-  --surface: #EFE8D8;
-  --white: #FFFFFF;
-  --text: #18181B;
-  --ts: #52525B;
-  --tl: #A1A1AA;
-  --border: #E5DFD0;
-  --border-soft: #EFE8D8;
-  --accent: #1F4A2D;
-  --accent-dark: #0E2B17;
-  --accent-light: #D6E0D8;
-  --blue: #1F4A2D;
-  --bl: #D6E0D8;
-  --green: #16A34A;
-  --gb: #F0FDF4;
-  --orange: #F97316;
-  --ob: #FFF7ED;
-  --red: #DC2626;
-  --hover: #D6E0D8;
-  --r: 8px;
-  --rs: 6px;
-  --rf: 999px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-
   position: fixed;
   inset: 0;
   overflow: hidden;

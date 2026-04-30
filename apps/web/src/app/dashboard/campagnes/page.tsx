@@ -16,6 +16,25 @@ import {
 import { Skeleton } from "../_components/skeleton";
 import { TasksStrip } from "../_components/tasks-strip";
 import { SuggestionDetailModal } from "../_components/suggestion-detail-modal";
+import { Badge, type BadgeVariant } from "../../../components/ui/badge";
+
+// Map campagne-status → semantische Badge-variant. Eén plek waar
+// "wat betekent deze status visueel" beslist wordt — als we later
+// kleur-mapping willen wijzigen (bv. ingepland van neutral naar info)
+// hoeft dat hier maar 1 keer.
+const statusBadgeVariant: Record<Campaign["status"], BadgeVariant> = {
+  concept: "neutral",
+  ingepland: "info",
+  actief: "success",
+  afgerond: "brand",
+};
+
+const statusLabel: Record<Campaign["status"], string> = {
+  concept: "Concept",
+  ingepland: "Ingepland",
+  actief: "Actief",
+  afgerond: "Afgerond",
+};
 
 type StatusFilter = "alle" | "actief" | "ingepland" | "concept" | "afgerond";
 type TypeFilter = "alle" | Campaign["type"];
@@ -719,7 +738,12 @@ export default function CampagnesPage() {
                     )}
                   </td>
                   <td>
-                    <span className={`badge ${c.status}`}>{c.status}</span>
+                    <Badge
+                      variant={statusBadgeVariant[c.status]}
+                      withDot
+                    >
+                      {statusLabel[c.status]}
+                    </Badge>
                   </td>
                   {/* Quick-actions per status. stopPropagation zodat
                       de row-klik (naar detail-page) niet ook afvuurt

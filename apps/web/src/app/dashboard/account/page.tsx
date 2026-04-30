@@ -13,6 +13,7 @@ import {
 } from "../../../lib/api";
 import { supabase } from "../../../lib/supabase";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
+import { Button } from "../../../components/ui/button";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -1568,13 +1569,17 @@ export default function AccountPage() {
         >
           {saveMessage ?? ""}
         </div>
-        <button
-          className="btn-primary-dash"
+        {/* Migrated naar <Button> design-system component (2026-04-30) —
+            vervangt de oude .btn-primary-dash inline-styled knop. Loading-
+            state wordt nu nette spinner i.p.v. tekst-flicker tussen
+            "Opslaan..." en "Wijzigingen opslaan". */}
+        <Button
+          variant="primary"
           onClick={handleSave}
-          disabled={saveStatus === "saving"}
+          loading={saveStatus === "saving"}
         >
-          {saveStatus === "saving" ? "Opslaan..." : "Wijzigingen opslaan"}
-        </button>
+          Wijzigingen opslaan
+        </Button>
       </div>
     </div>
   );

@@ -333,13 +333,13 @@ verplaatsen naar de juiste P-bucket.
 ### Designer
 - [x] ~~🔴 Niet mobile responsive~~ (2026-04-30) — alle 5 fasen afgerond. Zie hoofdsectie "Dashboard algemeen → Mobile responsive pass".
 - [x] ~~🟢 KPI-row breekt onder 1280px~~ (2026-04-30) — KPI-row 5→2→1 cols via responsive pass.
-- [ ] 🟡 **Inline styling overal** — geen design-tokens-laag. Brand-update raakt 200+ files.
+- [~] 🟡 **Inline styling overal — design-tokens-laag toegevoegd** (2026-04-30 fase 1) — `tokens.css` is nu single source-of-truth (kleuren, spacing, radii, shadows, typography). globals.css + dashboard.css duplicaten weg; oude korte aliases (`--ts`/`--bl`/`--blue`/`--r`) blijven werken via aliases zodat 5438 CSS-regels niet hoeven te herschrijven. Brand-update is nu één file. **Nog open**: incidenteel inline `style={{...}}` vervangen wanneer je toch in een file zit.
 - [ ] 🟡 **Iconen-set is volledig emoji** — per OS verschillend gerenderd, niet brand-consistent. SVG-iconen-set toevoegen.
 - [ ] 🟡 **Geen focus-states / aria-labels** op veel knoppen → WCAG-toegankelijkheid onder de maat.
 - [x] ~~🟡 **`filly-chat.tsx` is 635 regels**~~ (2026-04-30) — gesplitst zoals voorgesteld; orchestrator nu 331 regels, sub-components gemiddeld <100 regels.
 - [ ] 🟢 **Geen dark-mode**, geen i18n-voorbereiding (alles hard-coded NL).
-- [ ] 🟢 **Inconsistente knop-stijlen** — `btn-primary-dash`, `sg-btn primary`, inline groene knoppen. Drie patterns voor één concept.
-- [ ] 🟢 **Geen Storybook / design-systeem documentatie**.
+- [~] 🟢 **Inconsistente knop-stijlen — base-component toegevoegd** (2026-04-30 fase 1) — `<Button variant="primary|secondary|ghost|danger" size="sm|md">` in `components/ui/button.tsx`. Vervangt op termijn `.btn-primary-dash` + `.sg-btn` + inline knoppen. Save-bar account-pagina is eerste migratie als bewijs; rest doen we incidenteel.
+- [~] 🟢 **Geen Storybook / design-systeem documentatie** (2026-04-30) — light-weight reference-pagina op `/dashboard/design-system` toont alle tokens + Button/Badge/Card-variants. Echte Storybook later als de component-library groeit.
 
 ---
 

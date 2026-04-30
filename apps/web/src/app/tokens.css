@@ -1,0 +1,215 @@
+/* ============================================================
+ * tokens.css — design-tokens single source-of-truth voor Get Filly
+ * ============================================================
+ *
+ * Bevat ALLE kleuren, spacing, radii, shadows, typography als CSS-
+ * custom-properties. Wordt geïmporteerd door globals.css en
+ * dashboard.css zodat publieke site én dashboard uit hetzelfde
+ * palet putten.
+ *
+ * Naam-conventie:
+ *   --color-*    kleuren (brand, surface, text, status)
+ *   --space-*    spacing (8px-grid, met 4px tussenstap)
+ *   --radius-*   border-radii
+ *   --shadow-*   box-shadows
+ *   --font-*     typography (size, line-height, family, weight)
+ *
+ * Filosofie:
+ *   - Brand: papier-warm cream (#FAF7F1) + British Racing Green (#1F4A2D).
+ *   - Tekst-grijzen volgen Tailwind's neutral-schaal voor
+ *     herkenbare contrast-stappen.
+ *   - Status-kleuren zijn vibrant (warning=#F97316, danger=#DC2626)
+ *     voor zichtbaarheid; brand-highlight is warmer (#D97F3C).
+ *
+ * Onderaan: DEPRECATED aliases voor de korte/oude namen die nog in
+ * de codebase staan (--ts, --bl, --blue, --r, etc). Aliassen blijven
+ * werken zodat we niet 5438 CSS-regels hoeven te herschrijven; nieuwe
+ * code gebruikt de --color-/--space-/etc varianten.
+ * ============================================================ */
+
+:root {
+  /* ----------------------------------------------------------
+   * KLEUREN — BRAND
+   * ----------------------------------------------------------
+   * British Racing Green (1F4A2D) is de primaire actie-kleur.
+   * Deep is hover/active. Soft is voor backgrounds (banners,
+   * geselecteerde knop-states, illustraties).
+   */
+  --color-brand: #1F4A2D;
+  --color-brand-deep: #0E2B17;
+  --color-brand-soft: #D6E0D8;
+
+  /* Highlight: warmere oranje voor brand-accenten (illustraties,
+   * onboarding-stappen, attentie-vragende tekst). NIET dezelfde als
+   * status-warning — die is vibranter. */
+  --color-highlight: #D97F3C;
+  --color-highlight-soft: #FDF0E5;
+
+  /* ----------------------------------------------------------
+   * KLEUREN — SURFACE & STRUCTUUR
+   * ----------------------------------------------------------
+   * Page-background = cream. Cards/elevated content = surface.
+   * White voor inputs, modals, en plekken waar maximaal contrast
+   * met de cream-achtergrond nodig is.
+   */
+  --color-cream: #FAF7F1;
+  --color-surface: #EFE8D8;
+  --color-white: #FFFFFF;
+
+  /* Borders: hoofd-border voor cards/inputs, soft voor sub-divisies. */
+  --color-border: #E5DFD0;
+  --color-border-soft: #EFE8D8;
+
+  /* ----------------------------------------------------------
+   * KLEUREN — TEKST
+   * ----------------------------------------------------------
+   * Vier-staps hierarchie:
+   *   text       primaire tekst (titels, body)
+   *   text-soft  secundaire (subtitels, metadata)
+   *   text-muted onbenadrukt (timestamps, hints)
+   *   text-disabled inactieve elementen (placeholder, disabled)
+   */
+  --color-text: #18181B;
+  --color-text-soft: #52525B;
+  --color-text-muted: #71717A;
+  --color-text-disabled: #A1A1AA;
+
+  /* ----------------------------------------------------------
+   * KLEUREN — STATUS
+   * ----------------------------------------------------------
+   * Elke status heeft een vol + soft pair. Vol voor iconen/badges
+   * met witte tekst; soft voor subtiele achtergronden (banner-bg)
+   * met de volle kleur als tekst/icon erop.
+   */
+  --color-success: #16A34A;
+  --color-success-soft: #F0FDF4;
+  --color-warning: #F97316;
+  --color-warning-soft: #FFF7ED;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEE2E2;
+  --color-info: #0071E3;
+  --color-info-soft: #EFF6FF;
+
+  /* ----------------------------------------------------------
+   * SPACING — 8px-grid met 4px tussenstap voor fine-tuning
+   * ----------------------------------------------------------
+   * Gebruik:   padding: var(--space-3) var(--space-4);
+   * Vermijd:   padding: 12px 16px;  ← maakt brand-spacing-tweaks pijnlijk
+   */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ----------------------------------------------------------
+   * RADII
+   * ----------------------------------------------------------
+   * sm voor kleine elementen (badges, kleine knoppen).
+   * default voor inputs/cards.
+   * lg voor modals/grote panels.
+   * full voor pills + circulaire knoppen.
+   */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+
+  /* ----------------------------------------------------------
+   * SHADOWS
+   * ----------------------------------------------------------
+   * Subtle by default — papier-warm look hoort niet zwaar te oogen.
+   * sm voor klein-verheven elementen (toasts, dropdowns).
+   * md voor cards.
+   * lg voor modals + popovers.
+   */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+  /* ----------------------------------------------------------
+   * TYPOGRAPHY
+   * ----------------------------------------------------------
+   * Grootte-schaal: xs..2xl. Gebruik --font-size-md als body-default.
+   * Line-heights: tight voor headings, normal voor body, relaxed
+   * voor lange leestekst (legal-pagina's).
+   */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Family: --font-inter wordt geïnjecteerd door next/font in layout.tsx
+   * (zie globals.css). Hier alleen het abstracte pointer-token zodat
+   * bij font-wissel maar één plek hoeft te veranderen. */
+  --font-sans: var(--font-inter, system-ui, -apple-system, sans-serif);
+
+  /* ============================================================
+   * DEPRECATED ALIASES
+   * ============================================================
+   * Deze namen staan nog op honderden plekken in de codebase. Ze
+   * blijven werken via deze aliases zodat we nu géén massale rewrite
+   * nodig hebben — nieuwe code gebruikt de --color-/--space-/etc
+   * varianten hierboven.
+   *
+   * Bij refactor van een file: vervang waar je toch al bezig bent.
+   * Eindstaat: alle aliases hieronder zijn weg en geen file gebruikt
+   * ze nog. Dat is een opruim-pad, geen vandaag-werk.
+   * ============================================================ */
+
+  /* Surface & basis */
+  --bg: var(--color-cream);
+  --surface: var(--color-surface);
+  --white: var(--color-white);
+  --true-white: var(--color-white);
+
+  /* Tekst */
+  --text: var(--color-text);
+  --text-secondary: var(--color-text-soft);
+  --text-light: var(--color-text-disabled);
+  --ts: var(--color-text-soft); /* dashboard short-name */
+  --tl: var(--color-text-disabled); /* dashboard short-name */
+
+  /* Borders */
+  --border: var(--color-border);
+  --border-soft: var(--color-border-soft);
+
+  /* Brand */
+  --accent: var(--color-brand);
+  --accent-dark: var(--color-brand-deep);
+  --accent-light: var(--color-brand-soft);
+  --hover: var(--color-brand-soft);
+  /* Erfenis vóór de rebrand: --blue/--bl heten zo maar zijn groen.
+   * Niet hernoemen om geen visuele bugs te introduceren — laat de
+   * naam staan als alias en mark als deprecated. */
+  --blue: var(--color-brand);
+  --bl: var(--color-brand-soft);
+  --accent-blue: var(--color-info);
+
+  /* Status (oude losse namen) */
+  --green: var(--color-success);
+  --green-bg: var(--color-success-soft);
+  --gb: var(--color-success-soft); /* dashboard short */
+  --orange: var(--color-warning);
+  --ob: var(--color-warning-soft); /* dashboard short */
+  --red: var(--color-danger);
+
+  /* Radii (oude korte namen in dashboard.css) */
+  --r: var(--radius);
+  --rs: var(--radius-sm);
+  --rf: var(--radius-full);
+}
