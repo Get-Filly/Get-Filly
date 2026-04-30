@@ -791,9 +791,6 @@ export default function MenuPage() {
                   </div>
                 </div>
                 {drinkSubGroups ? (
-                  // Sub-headers per drank-subcategorie. Volgorde is
-                  // vast (DRINK_SUBCATEGORY_ORDER) zodat wijnen vooraan
-                  // komen.
                   DRINK_SUBCATEGORY_ORDER.map((sub) => {
                     const subList = drinkSubGroups.get(sub);
                     if (!subList || subList.length === 0) return null;

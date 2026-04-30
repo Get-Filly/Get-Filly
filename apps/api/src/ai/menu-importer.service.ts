@@ -299,20 +299,28 @@ type RawMenuFromTool = {
 // ============================================================
 
 function coerceMenu(raw: RawMenuFromTool, kind: CardKind): ExtractedMenu {
+  // Schema markeert items als required, maar Claude kan bij edge
+  // cases (helemaal lege kaart, bestand niet leesbaar) een lege
+  // array of geen veld terugsturen. Defensief naar [] coercen.
+  const rawItems = Array.isArray(raw?.items) ? raw.items : [];
   const items: ExtractedMenuItem[] = [];
-  for (const it of raw.items) {
+  for (const it of rawItems) {
     const cleaned = coerceMenuItem(it, kind);
     if (cleaned) items.push(cleaned);
   }
 
   return {
     items,
-    categories_detected: (raw.categories_detected ?? [])
+    categories_detected: (raw?.categories_detected ?? [])
       .map((c) => c.trim())
       .filter((c) => c.length > 0),
-    confidence: raw.confidence,
+    // Confidence is required maar ook hier defensief — bij rare
+    // tool-use-respons valt 'm terug op 'low'.
+    confidence: raw?.confidence ?? 'low',
     notes:
-      raw.notes && raw.notes.trim().length > 0 ? raw.notes.trim() : undefined,
+      raw?.notes && raw.notes.trim().length > 0
+        ? raw.notes.trim()
+        : undefined,
   };
 }
 
