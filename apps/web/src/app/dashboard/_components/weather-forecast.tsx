@@ -3,29 +3,37 @@
 import { useEffect, useState } from "react";
 import { fetchWeather, type ForecastDay } from "../../../lib/api";
 
+type Status = "loading" | "ok" | "empty" | "error";
+
 export function WeatherForecast() {
   const [days, setDays] = useState<ForecastDay[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>("loading");
 
   useEffect(() => {
     fetchWeather()
-      .then(setDays)
-      .catch((e: Error) => setError(e.message));
+      .then((d) => {
+        setDays(d);
+        setStatus(d.length > 0 ? "ok" : "empty");
+      })
+      .catch(() => setStatus("error"));
   }, []);
 
-  // Bij een fout (bv. coords missen omdat onboarding nog niet klaar is)
-  // tonen we een rustige info-melding in plaats van een rode HTTP-fout.
-  // De gebruiker kan z'n adres aanvullen op de account-pagina; tot
-  // die tijd is "weer niet beschikbaar" een prima signaal.
-  if (error) {
+  // Niet-OK states (loading/empty/error) renderen we als één compacte
+  // card-rij. Voorkomt dat we 7 lege dag-vakjes onder elkaar krijgen
+  // als de data nog niet binnen is of helemaal ontbreekt.
+  if (status !== "ok") {
+    const subtitle =
+      status === "loading"
+        ? "Filly haalt het weer op…"
+        : status === "empty"
+          ? "Geen weer-data beschikbaar — controleer je adres op de account-pagina."
+          : "Nog niet beschikbaar — vul je adres aan op de account-pagina.";
     return (
       <div className="card">
         <div className="card-h">
           <div>
             <div className="card-t">Weersvoorspelling</div>
-            <div className="card-st">
-              Nog niet beschikbaar — vul je adres aan op de account-pagina.
-            </div>
+            <div className="card-st">{subtitle}</div>
           </div>
         </div>
       </div>
@@ -37,9 +45,7 @@ export function WeatherForecast() {
       <div className="card-h">
         <div>
           <div className="card-t">Weersvoorspelling</div>
-          <div className="card-st">
-            {days.length ? "Aankomende 7 dagen · Open-Meteo" : "Laden..."}
-          </div>
+          <div className="card-st">Aankomende 7 dagen · Open-Meteo</div>
         </div>
       </div>
       <div className="card-b">
