@@ -297,8 +297,12 @@ export function CampaignRefinePanel({
                 const isDisabled = applyingIdx !== null && !isApplying;
                 // Actieve variant = body matcht met campaign.body.
                 // Trim om kleine whitespace-verschillen te negeren.
+                // Defensief: undefined kan voorkomen bij verse cache-
+                // entries waar 'body' nog niet uit de tool-respons is
+                // ge-coërced.
                 const isActive =
-                  currentBody !== null &&
+                  typeof currentBody === "string" &&
+                  typeof v.body === "string" &&
                   v.body.trim() === currentBody.trim();
                 return (
                   <button
@@ -379,7 +383,7 @@ export function CampaignRefinePanel({
                         whiteSpace: "pre-wrap",
                       }}
                     >
-                      {v.body}
+                      {v.body ?? ""}
                     </div>
                   </button>
                 );
