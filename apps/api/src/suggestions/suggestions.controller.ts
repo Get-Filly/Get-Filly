@@ -37,6 +37,17 @@ export class SuggestionsController {
     return this.suggestions.findById(restaurantId, id);
   }
 
+  // Detail-modal: hoofdgerecht + bijgerechten + timing + bundle-prijs
+  // + hero-foto-suggestie. Eerste call genereert via Claude (~2s),
+  // daarna gecachet op de suggestie (instant).
+  @Get(':id/proposal-details')
+  getProposalDetails(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.suggestions.getProposalDetails(restaurantId, id);
+  }
+
   // Goedkeur-flow: suggestie → campagne. Aparte POST want het is
   // meer dan een status-update (er wordt een nieuwe resource
   // aangemaakt). Retourneert de bijgewerkte suggestie + id van

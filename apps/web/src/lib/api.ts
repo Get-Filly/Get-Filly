@@ -602,6 +602,47 @@ export async function fetchSuggestions(
   return res.json();
 }
 
+// Proposal-details: tastbare invulling van een suggestie
+// (hoofdgerecht + bijgerechten + timing + bundle-prijs +
+// hero-foto-suggestie). Backend genereert via Claude bij eerste
+// call (~2s) en cachet daarna op de suggestie zelf.
+export type ProposalDetails = {
+  mainDish?: {
+    name: string;
+    description: string;
+    source: "menu" | "new";
+    priceCents?: number;
+  };
+  sides?: Array<{
+    name: string;
+    description: string;
+    source: "menu" | "new";
+    priceCents?: number;
+  }>;
+  timing?: string;
+  priceBundleCents?: number;
+  priceBundleLabel?: string;
+  heroImage?: {
+    emoji: string;
+    description: string;
+  };
+};
+
+export async function fetchProposalDetails(
+  suggestionId: string,
+): Promise<ProposalDetails> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/proposal-details`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Kon Filly's voorstel niet ophalen"),
+    );
+  }
+  return res.json();
+}
+
 // Goedkeur-flow: maakt een campagne aan uit de suggestie, zet de
 // suggestion-status op approved en koppelt approved_campaign_id.
 // Retourneert het campagne-id zodat we direct kunnen doorlinken.

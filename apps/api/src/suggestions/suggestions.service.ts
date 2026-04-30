@@ -11,6 +11,7 @@ import {
   type CampaignType,
 } from '../campaigns/campaigns.service';
 import { AiService } from '../ai/ai.service';
+import { RestaurantContextService } from '../ai/restaurant-context.service';
 
 // JSON-schema voor de suggestion-refine tool. Forceert dat Claude
 // een geldige campagne-shape teruggeeft (type uit de 3 enum-waarden,
@@ -31,6 +32,104 @@ type RefinedCampaignFromTool = {
   type: 'mail' | 'social' | 'whatsapp';
   subject_line?: string;
   body: string;
+};
+
+// Schema voor proposal-details: hoofdgerecht + bijgerechten + timing
+// + bundle-prijs + hero-foto. Maakt een suggestie tastbaar — eigenaar
+// ziet niet alleen "comfort food campagne" maar ook "Rundersukade
+// €18,95 met aardappelpuree, rode kool, spruitjes als 3-gangen €24,50".
+//
+// Het 'source'-veld op elk dish-object dwingt Claude expliciet aan te
+// geven of een gerecht uit de bestaande menukaart komt OF een nieuwe
+// suggestie is — voorkomt dat Filly stilletjes namen verzint die niet
+// op de kaart staan.
+const PROPOSAL_DETAILS_SCHEMA = {
+  type: 'object',
+  properties: {
+    main_dish: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        description: { type: 'string' },
+        source: { type: 'string', enum: ['menu', 'new'] },
+        price_cents: { type: 'integer' },
+      },
+      required: ['name', 'description', 'source'],
+    },
+    sides: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          source: { type: 'string', enum: ['menu', 'new'] },
+          price_cents: { type: 'integer' },
+        },
+        required: ['name', 'description', 'source'],
+      },
+    },
+    timing: { type: 'string' },
+    price_bundle_cents: { type: 'integer' },
+    price_bundle_label: { type: 'string' },
+    hero_image: {
+      type: 'object',
+      properties: {
+        emoji: { type: 'string' },
+        description: { type: 'string' },
+      },
+      required: ['emoji', 'description'],
+    },
+  },
+  // Niets verplicht — een suggestie kan ook prima bestaan zonder
+  // bundel-prijs of zonder bijgerechten (bv. een social-post zonder
+  // gerecht-context).
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type ProposalDetailsFromTool = {
+  main_dish?: {
+    name: string;
+    description: string;
+    source: 'menu' | 'new';
+    price_cents?: number;
+  };
+  sides?: Array<{
+    name: string;
+    description: string;
+    source: 'menu' | 'new';
+    price_cents?: number;
+  }>;
+  timing?: string;
+  price_bundle_cents?: number;
+  price_bundle_label?: string;
+  hero_image?: {
+    emoji: string;
+    description: string;
+  };
+};
+
+// Public-shape die de UI (camelCase) verwacht. Verschilt van de
+// tool-shape (snake_case voor consistentie met Anthropic-conventies).
+export type ProposalDetails = {
+  mainDish?: {
+    name: string;
+    description: string;
+    source: 'menu' | 'new';
+    priceCents?: number;
+  };
+  sides?: Array<{
+    name: string;
+    description: string;
+    source: 'menu' | 'new';
+    priceCents?: number;
+  }>;
+  timing?: string;
+  priceBundleCents?: number;
+  priceBundleLabel?: string;
+  heroImage?: {
+    emoji: string;
+    description: string;
+  };
 };
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected' | 'expired';
@@ -88,6 +187,10 @@ export class SuggestionsService {
     private readonly supabase: SupabaseService,
     private readonly campaigns: CampaignsService,
     private readonly ai: AiService,
+    // Voor de proposal-details-call: Filly heeft profile + menu-block
+    // nodig zodat hij kan refereren aan échte gerechten met échte
+    // prijzen ipv generieke "lekker comfort food"-tekst.
+    private readonly context: RestaurantContextService,
   ) {}
 
   async findAll(
@@ -125,6 +228,114 @@ export class SuggestionsService {
     if (error) throw new InternalServerErrorException(error.message);
     if (!data) throw new NotFoundException('Suggestie niet gevonden.');
     return data as AiSuggestion;
+  }
+
+  // Genereert de proposal-details voor één suggestie: hoofdgerecht +
+  // bijgerechten + timing + bundle-prijs + hero-foto. Maakt een
+  // suggestie tastbaar voor de eigenaar in de detail-modal.
+  //
+  // Cache: na 1× generation slaan we het resultaat op in
+  // `suggested_campaign.proposal_details`. Volgende keer dat de modal
+  // opent → 0 Claude-calls. Cache wordt ongeldig als de eigenaar de
+  // campagne aanpast (refine-flow), want dan komt er een ander
+  // hoofdgerecht-voorstel bij passen.
+  async getProposalDetails(
+    restaurantId: string,
+    suggestionId: string,
+  ): Promise<ProposalDetails> {
+    const suggestion = await this.findById(restaurantId, suggestionId);
+
+    // Cache-hit: eerder gegenereerd, geen Claude-call nodig.
+    const cached = (suggestion.suggested_campaign as SuggestedCampaign)
+      .proposal_details as ProposalDetails | undefined;
+    if (cached && cached.mainDish) {
+      return cached;
+    }
+
+    // Bouw rijke context: profile (sfeer/USPs/doelgroep) + menu
+    // (echte gerechten met prijzen) + live-block (huidige bezetting,
+    // weer) zodat Filly's voorstel past bij DEZE zaak op DIT moment.
+    const [profileBlock, menuBlock] = await Promise.all([
+      this.context.buildProfileBlock(restaurantId).catch(() => ''),
+      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+    ]);
+
+    const sc = suggestion.suggested_campaign;
+    const campaignSnapshot = JSON.stringify(
+      {
+        type: sc.type,
+        name: sc.name,
+        body: sc.body || sc.variants?.[0]?.body,
+        subject: sc.subject_line || sc.subject || sc.variants?.[0]?.subject_line,
+      },
+      null,
+      2,
+    );
+
+    const systemPrompt = `Je bent Filly. Je krijgt een campagne-voorstel voor een specifiek restaurant en moet het concreet maken: welk hoofdgerecht past, welke bijgerechten, welk tijdstip, welke bundle-prijs, welke foto.
+
+Je antwoord komt via de tool 'build_proposal_details'. Vul de tool-args in met een tastbare invulling van het voorstel.
+
+Inhoudsregels:
+- Schrijf in het Nederlands. Match de brand_tone uit het profiel.
+- main_dish en sides: GEBRUIK BIJ VOORKEUR gerechten uit MENU (zie context). Zet source='menu' en pak de échte naam, beschrijving en prijs uit MENU.
+- Alleen als geen passend menu-gerecht beschikbaar is, mag je een nieuw gerecht voorstellen met source='new'. Beschrijf het concreet (ingrediënten, bereiding) zodat de eigenaar weet wat hij zou koken.
+- Maximaal 3 bijgerechten/sides. Geen losse drankjes als sides — alleen bij eet-gerechten relevant.
+- timing: korte zin met dag(en) + tijdstip ("Donderdag t/m zondag · 17:00–22:00").
+- price_bundle_cents: optioneel — alleen als een 2- of 3-gangen-bundel logisch is bij dit voorstel. In centen.
+- price_bundle_label: zoals "3-gangen menu" of "2-gangen lunch". Korte tekst.
+- hero_image: een passende emoji (1 stuk) + een korte fotoregie-beschrijving (max 100 tekens) die een fotograaf zou kunnen gebruiken. Géén foto-URL — die maken we later via een image-API.
+- Als het voorstel een social-only post is zonder gerecht-context, mag je main_dish/sides leeg laten en alleen timing + hero_image vullen.
+
+---
+CONTEXT — alles wat je weet over deze zaak:
+
+${profileBlock}
+
+${menuBlock}
+---`;
+
+    const userPrompt = `Campagne-voorstel:
+${campaignSnapshot}
+
+Maak dit tastbaar volgens de regels.`;
+
+    const raw = await this.ai.generateStructured<ProposalDetailsFromTool>({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 1500,
+      toolName: 'build_proposal_details',
+      toolDescription:
+        'Bouw een tastbare invulling van een campagne-voorstel: hoofdgerecht, bijgerechten, timing, bundle-prijs en hero-foto-suggestie.',
+      inputSchema: PROPOSAL_DETAILS_SCHEMA,
+      meta: {
+        restaurantId,
+        feature: 'suggestion_proposal_details',
+      },
+      // Profile + menu in system-prompt → caching pakt korting bij
+      // her-bezoek of bij meerdere suggesties achter elkaar bekijken.
+      cacheSystem: true,
+    });
+
+    const proposal = toProposalDetails(raw);
+
+    // Cache schrijven. We mergen 'm in de bestaande suggested_campaign-
+    // jsonb zodat alle andere velden (variants, body, etc) ongewijzigd
+    // blijven. Stille fail: als update flakes, retourneer toch het
+    // resultaat — de eigenaar ziet 'm gewoon, alleen volgende keer
+    // wordt 'ie opnieuw berekend.
+    const updatedCampaign: SuggestedCampaign = {
+      ...sc,
+      proposal_details: proposal,
+    };
+    await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: updatedCampaign })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId);
+
+    return proposal;
   }
 
   // Goedkeur-flow: zet status op approved, maak een campagne aan uit
@@ -513,4 +724,51 @@ Inhoudsregels:
     if (error) throw new InternalServerErrorException(error.message);
     return { id: data.id as string };
   }
+}
+
+// Converteert de tool-shape (snake_case zoals Anthropic-conventie
+// voorschrijft voor JSON-schema's) naar de UI-shape (camelCase zoals
+// we elders in de frontend gebruiken). Filters lege strings + caps
+// price_cents op niet-negatieve integers als safety-net.
+function toProposalDetails(raw: ProposalDetailsFromTool): ProposalDetails {
+  const trim = (s?: string) =>
+    s && s.trim().length > 0 ? s.trim() : undefined;
+  const safePrice = (p?: number) =>
+    typeof p === 'number' && p >= 0 ? Math.round(p) : undefined;
+
+  const out: ProposalDetails = {};
+
+  if (raw.main_dish && raw.main_dish.name?.trim()) {
+    out.mainDish = {
+      name: raw.main_dish.name.trim(),
+      description: raw.main_dish.description?.trim() ?? '',
+      source: raw.main_dish.source,
+      priceCents: safePrice(raw.main_dish.price_cents),
+    };
+  }
+
+  if (raw.sides && raw.sides.length > 0) {
+    const sides = raw.sides
+      .filter((s) => s.name?.trim())
+      .map((s) => ({
+        name: s.name.trim(),
+        description: s.description?.trim() ?? '',
+        source: s.source,
+        priceCents: safePrice(s.price_cents),
+      }));
+    if (sides.length > 0) out.sides = sides;
+  }
+
+  out.timing = trim(raw.timing);
+  out.priceBundleCents = safePrice(raw.price_bundle_cents);
+  out.priceBundleLabel = trim(raw.price_bundle_label);
+
+  if (raw.hero_image && raw.hero_image.emoji?.trim()) {
+    out.heroImage = {
+      emoji: raw.hero_image.emoji.trim(),
+      description: raw.hero_image.description?.trim() ?? '',
+    };
+  }
+
+  return out;
 }

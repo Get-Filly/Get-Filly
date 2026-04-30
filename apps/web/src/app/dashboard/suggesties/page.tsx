@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   fetchSuggestions,
   updateSuggestion,
+  fetchProposalDetails,
   type AiSuggestion,
+  type ProposalDetails,
   type SuggestionStatus,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
@@ -55,206 +57,11 @@ function formatPrice(cents?: number): string {
   return `€${euros}`;
 }
 
-// ============================================================
-// Mock-proposal generator
-// ============================================================
-// Op basis van het campagne-voorstel genereren we een concreet voorbeeld:
-// hoofdgerecht, bijgerechten, timing en een suggestie-prijs. Dit maakt
-// "brunch" of "stoofschotel" tastbaar. Elke dish heeft een `source`:
-// "menu" (Uit je menu) of "new" (Nieuw voorstel — out of the box).
-// TODO: in productie zou dit uit Claude + menu_items-tabel komen.
+// Proposal-shape (hoofdgerecht/bijgerechten/timing/bundle-prijs/foto)
+// komt uit `lib/api.ts` als ProposalDetails — zelfde shape als wat
+// Claude via tool-use teruggeeft. Laden gebeurt via fetchProposalDetails
+// op het moment dat de detail-modal opent (zie useEffect op `selected`).
 
-type ProposalDish = {
-  name: string;
-  description: string;
-  source: "menu" | "new";
-  priceCents?: number;
-};
-
-type CampaignProposal = {
-  mainDish?: ProposalDish;
-  sides?: ProposalDish[];
-  timing?: string;
-  priceBundleCents?: number;
-  priceBundleLabel?: string;
-  // Hero-foto die Filly voorstelt. Mock: een emoji + beschrijving als
-  // placeholder voor een echte AI-gegenereerde of gematchte foto.
-  heroImage?: {
-    emoji: string;
-    description: string;
-  };
-};
-
-function getMockProposal(s: AiSuggestion): CampaignProposal | null {
-  const sc = s.suggested_campaign;
-  const text = `${sc.name ?? ""} ${sc.subject ?? ""} ${sc.body ?? ""} ${sc.caption ?? ""}`.toLowerCase();
-
-  if (text.includes("stoof") || text.includes("comfort")) {
-    return {
-      mainDish: {
-        name: "Rundersukade in rode wijn",
-        description:
-          "Langzaam gegaard met winterwortelen, pastinaak en rozemarijn — minimaal 4 uur op lage temperatuur.",
-        source: "menu",
-        priceCents: 1895,
-      },
-      sides: [
-        {
-          name: "Aardappelpuree met truffel",
-          description: "Romige puree, vleugje truffelolie, gesneden bieslook.",
-          source: "menu",
-          priceCents: 650,
-        },
-        {
-          name: "Rode kool met appel",
-          description: "Klassiek zoetzuur met kaneel en laurier.",
-          source: "menu",
-          priceCents: 550,
-        },
-        {
-          name: "Spruitjes met pancetta & kastanje",
-          description:
-            "Krokant gebakken — buiten het menu maar past perfect bij deze winteractie.",
-          source: "new",
-          priceCents: 750,
-        },
-      ],
-      timing: "Donderdag t/m zondag · 17:00–22:00",
-      priceBundleCents: 2450,
-      priceBundleLabel: "3-gangen menu",
-      heroImage: {
-        emoji: "🥘",
-        description:
-          "Stijlvolle foto van de stoofschotel in een gietijzeren pan, warm belicht — herfstsfeer.",
-      },
-    };
-  }
-
-  if (text.includes("brunch")) {
-    return {
-      mainDish: {
-        name: "Eggs Benedict met wilde zalm",
-        description:
-          "Pochade eieren, huisgemaakte hollandaise, English muffin, gerookte zalm.",
-        source: "menu",
-        priceCents: 1650,
-      },
-      sides: [
-        {
-          name: "Avocado toast met feta",
-          description:
-            "Sourdough, geroosterde tomaten, za'atar en olijfolie.",
-          source: "menu",
-          priceCents: 950,
-        },
-        {
-          name: "Pancakes met bosvruchten",
-          description: "Amerikaans-dikke pancakes, mascarpone, ahornsiroop.",
-          source: "menu",
-          priceCents: 1150,
-        },
-        {
-          name: "Shakshuka voor vegetariërs",
-          description:
-            "Out-of-the-box optie voor gasten die iets uitdagenders willen.",
-          source: "new",
-          priceCents: 1395,
-        },
-      ],
-      timing: "Zaterdag & zondag · 10:00–14:00",
-      priceBundleCents: 2950,
-      priceBundleLabel: "Unlimited brunch",
-      heroImage: {
-        emoji: "🥞",
-        description:
-          "Plat-gefotografeerde brunch-tafel met pancakes, eggs benedict en verse bloemen — natuurlijk licht.",
-      },
-    };
-  }
-
-  if (text.includes("lunch")) {
-    return {
-      mainDish: {
-        name: "Gegrilde kip-club sandwich",
-        description:
-          "Op desembrood met avocado, bacon, tomaat en chipotle-mayo.",
-        source: "menu",
-        priceCents: 1350,
-      },
-      sides: [
-        {
-          name: "Soep van de dag",
-          description: "Wisselend — in deze periode pompoen-gember.",
-          source: "menu",
-          priceCents: 750,
-        },
-        {
-          name: "Geroosterde bietensalade",
-          description: "Ziggeitenkaas, walnoten, honing-mosterd dressing.",
-          source: "menu",
-          priceCents: 1250,
-        },
-        {
-          name: "Grain bowl met falafel",
-          description: "Freekeh, hummus, gepickelde rode ui — nieuwe variant.",
-          source: "new",
-          priceCents: 1450,
-        },
-      ],
-      timing: "Maandag t/m vrijdag · 12:00–15:00",
-      priceBundleCents: 1850,
-      priceBundleLabel: "Lunch-deal: hoofd + drank + koffie",
-      heroImage: {
-        emoji: "🥪",
-        description:
-          "Close-up van de club sandwich met soep ernaast — strak gestyled, zakelijke lunch-vibe.",
-      },
-    };
-  }
-
-  if (text.includes("valentijn") || text.includes("romantisch")) {
-    return {
-      mainDish: {
-        name: "Tournedos Rossini",
-        description:
-          "Runderhaas met gebraden foie gras, truffeljus en gegrilde brioche.",
-        source: "menu",
-        priceCents: 3450,
-      },
-      sides: [
-        {
-          name: "Gepocheerde peer met blauwkaas",
-          description: "Als voorgerecht — rode wijn, walnoten, veldsla.",
-          source: "menu",
-          priceCents: 1450,
-        },
-        {
-          name: "Chocolade fondant voor twee",
-          description: "Warme kern, framboos-sorbet, amandel-crumble.",
-          source: "menu",
-          priceCents: 1650,
-        },
-        {
-          name: "Welkomstglas champagne",
-          description: "Voor elk koppel als extra touch.",
-          source: "new",
-          priceCents: 850,
-        },
-      ],
-      timing: "Vrijdag 14 februari · 18:00 & 20:30",
-      priceBundleCents: 7950,
-      priceBundleLabel: "3-gangen Valentijnsmenu voor 2",
-      heroImage: {
-        emoji: "🌹",
-        description:
-          "Sfeerfoto: twee wijnglazen, rozen en kaarsen op de tafel — intiem, warm licht.",
-      },
-    };
-  }
-
-  // Geen specifieke match — geen concrete proposal genereren.
-  return null;
-}
 
 export default function SuggestiesPage() {
   const [tab, setTab] = useState<Tab>("pending");
@@ -267,6 +74,43 @@ export default function SuggestiesPage() {
   const [pendingCount, setPendingCount] = useState<number>(0);
   // Geselecteerde suggestie voor detail-modal. Null = modal dicht.
   const [selected, setSelected] = useState<AiSuggestion | null>(null);
+  // Proposal-details: hoofdgerecht/bijgerechten/etc. Wordt bij open
+  // van de modal opgehaald — eerste call ~2s (Claude), daarna gecachet
+  // op de suggestie. Loading-state om de skeleton te tonen.
+  const [proposal, setProposal] = useState<ProposalDetails | null>(null);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
+
+  // Bij elke nieuwe `selected`: reset proposal-state en fetch opnieuw.
+  // Race-condition-bescherming via een `cancelled`-flag — als de
+  // gebruiker snel klikt naar een andere suggestie wordt de oude
+  // response genegeerd.
+  useEffect(() => {
+    if (!selected) {
+      setProposal(null);
+      setProposalLoading(false);
+      setProposalError(null);
+      return;
+    }
+    let cancelled = false;
+    setProposal(null);
+    setProposalError(null);
+    setProposalLoading(true);
+    fetchProposalDetails(selected.id)
+      .then((p) => {
+        if (cancelled) return;
+        setProposal(p);
+        setProposalLoading(false);
+      })
+      .catch((e: Error) => {
+        if (cancelled) return;
+        setProposalError(e.message);
+        setProposalLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   useEffect(() => {
     setLoading(true);
@@ -594,8 +438,6 @@ export default function SuggestiesPage() {
         const typeLabel = sc.type
           ? sc.type.charAt(0).toUpperCase() + sc.type.slice(1)
           : null;
-        const proposal = getMockProposal(s);
-
         return (
           <div
             className="sg-modal-overlay"
@@ -680,7 +522,49 @@ export default function SuggestiesPage() {
               {/* Voorgestelde invulling — concreet: welk hoofdgerecht,
                   welke bijgerechten, wanneer, voor welke prijs. Dit is
                   het verschil tussen "brunch"-idee en een actieklaar
-                  voorstel dat de eigenaar meteen kan goedkeuren. */}
+                  voorstel dat de eigenaar meteen kan goedkeuren.
+                  Wordt door Filly via tool-use gegenereerd op basis
+                  van het profiel + actueel menu — eerste open ~2s,
+                  daarna gecachet. */}
+              {proposalLoading && (
+                <div className="sg-modal-section">
+                  <div className="sg-modal-section-title">
+                    Voorgestelde invulling
+                  </div>
+                  <div
+                    style={{
+                      padding: 16,
+                      background: "var(--surface, #efe8d8)",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      color: "var(--text-secondary, #52525B)",
+                    }}
+                  >
+                    🍳 Filly bedenkt een tastbare invulling op basis
+                    van je menu en sfeer…
+                  </div>
+                </div>
+              )}
+              {proposalError && !proposalLoading && (
+                <div className="sg-modal-section">
+                  <div className="sg-modal-section-title">
+                    Voorgestelde invulling
+                  </div>
+                  <div
+                    style={{
+                      padding: 12,
+                      background: "var(--surface, #efe8d8)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "var(--text-secondary, #52525B)",
+                    }}
+                  >
+                    Filly kon nu geen tastbare invulling bedenken
+                    ({proposalError}). De campagne-tekst hierboven
+                    blijft gewoon bruikbaar.
+                  </div>
+                </div>
+              )}
               {proposal && (
                 <div className="sg-modal-section">
                   <div className="sg-modal-section-title">
