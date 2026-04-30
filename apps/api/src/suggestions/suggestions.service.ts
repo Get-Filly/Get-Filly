@@ -186,6 +186,60 @@ type GenerateSuggestionsFromTool = {
   suggestions: GeneratedSuggestionFromTool[];
 };
 
+// ============================================================
+// Low-occupancy detect-and-generate
+// ============================================================
+// Schema voor `generate_low_occupancy_campaign`: voor één specifieke
+// rustige dag genereert Filly één toegespitst voorstel. Elke dag
+// krijgt een eigen Claude-call zodat het advies écht past bij die
+// weekdag, dat weer en de actuele bezetting.
+const LOW_OCCUPANCY_SCHEMA = {
+  type: 'object',
+  properties: {
+    campaign_type: { type: 'string', enum: ['mail', 'social', 'whatsapp'] },
+    name: { type: 'string' },
+    subject_line: { type: 'string' },
+    body: { type: 'string' },
+    target_segment: { type: 'string' },
+    reasoning: { type: 'string' },
+    confidence: { type: 'number' },
+    expected_extra_reservations: { type: 'integer' },
+    expected_extra_revenue_cents: { type: 'integer' },
+  },
+  required: ['campaign_type', 'name', 'body', 'reasoning'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type LowOccupancyCampaignFromTool = {
+  campaign_type: 'mail' | 'social' | 'whatsapp';
+  name: string;
+  subject_line?: string;
+  body: string;
+  target_segment?: string;
+  reasoning: string;
+  confidence?: number;
+  expected_extra_reservations?: number;
+  expected_extra_revenue_cents?: number;
+};
+
+// Drempel: een dag is "rustig" als de geschatte bezetting hier-onder
+// ligt. V1 hard-coded; v2 instelbaar per restaurant via de account-
+// pagina (zie BACKLOG).
+const LOW_OCCUPANCY_THRESHOLD_PCT = 50;
+// Window: dagen 2-14 vooruit. Vandaag/morgen overslaan want dan is
+// een marketing-actie te laat om effect te hebben. >14 dagen heeft
+// te onbetrouwbare bezettings-voorspelling.
+const LOW_OCCUPANCY_WINDOW_MIN_DAYS = 2;
+const LOW_OCCUPANCY_WINDOW_MAX_DAYS = 14;
+const WEEKDAY_NL = [
+  'zondag',
+  'maandag',
+  'dinsdag',
+  'woensdag',
+  'donderdag',
+  'vrijdag',
+  'zaterdag',
+];
+
 // Public-shape die de UI (camelCase) verwacht. Verschilt van de
 // tool-shape (snake_case voor consistentie met Anthropic-conventies).
 export type ProposalDetails = {
@@ -459,6 +513,285 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     return {
       created: inserted?.length ?? 0,
       suggestions: (inserted ?? []) as AiSuggestion[],
+    };
+  }
+
+  // Detect-and-generate flow voor lage bezetting. Eigenaar klikt op
+  // de alert-bar bovenaan het dashboard ("3 rustige dagen — laat
+  // Filly voorstellen doen"); deze method bekijkt welke dagen in de
+  // 2-14 dagen window nog onder de drempel zitten en genereert per
+  // dag één toegespitst voorstel.
+  //
+  // Per dag een aparte Claude-call zodat de prompt rijk is met
+  // dag-specifieke context (weekdag, weer-voorspelling, hoeveel
+  // onder gemiddelde, of het dag-na-feestdag is). Eén generieke
+  // call zou tot 3-5 voorstellen leiden die te abstract zijn —
+  // "maandag" is geen "donderdag", die hebben elk eigen winning
+  // segments en thema's.
+  //
+  // Skip-regel: dagen waarvoor al een PENDING low_occupancy-suggestie
+  // bestaat slaan we over (anti-spam). Pas als de eigenaar de eerdere
+  // suggestie heeft afgehandeld (approve/reject) komt 'ie weer in
+  // aanmerking.
+  //
+  // Returnt het aantal nieuwe suggesties + de gegenereerde rijen
+  // zodat de UI direct kan navigeren of een notificatie tonen.
+  async detectAndGenerateLowOccupancy(
+    restaurantId: string,
+    userId: string | null,
+  ): Promise<{
+    detected: number;
+    generated: number;
+    skipped: number;
+    suggestions: AiSuggestion[];
+  }> {
+    // Stap 1 — Pre-flight: minstens 3 menu-items zodat Filly concrete
+    // gerechten kan noemen. Zelfde guard als generateOnDemand.
+    const { count: menuCount } = await this.supabase.client
+      .from('menu_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('is_available', true);
+
+    if (!menuCount || menuCount < 3) {
+      throw new BadRequestException(
+        'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
+      );
+    }
+
+    // Stap 2 — kandidaat-dagen ophalen: occupancy_days in window
+    // 2-14 dagen vooruit, percentage onder drempel.
+    const today = new Date();
+    const fromDate = new Date(today);
+    fromDate.setDate(today.getDate() + LOW_OCCUPANCY_WINDOW_MIN_DAYS);
+    const toDate = new Date(today);
+    toDate.setDate(today.getDate() + LOW_OCCUPANCY_WINDOW_MAX_DAYS);
+    const fromIso = fromDate.toISOString().slice(0, 10);
+    const toIso = toDate.toISOString().slice(0, 10);
+
+    const { data: rawCandidates, error: occErr } = await this.supabase.client
+      .from('occupancy_days')
+      .select('date, occupancy_pct, estimated_guests, reservations_count')
+      .eq('restaurant_id', restaurantId)
+      .gte('date', fromIso)
+      .lte('date', toIso)
+      .lt('occupancy_pct', LOW_OCCUPANCY_THRESHOLD_PCT)
+      .order('date', { ascending: true });
+
+    if (occErr) throw new InternalServerErrorException(occErr.message);
+
+    const candidates = (rawCandidates ?? []) as Array<{
+      date: string;
+      occupancy_pct: number | null;
+      estimated_guests: number | null;
+      reservations_count: number | null;
+    }>;
+    const detected = candidates.length;
+
+    if (detected === 0) {
+      return { detected: 0, generated: 0, skipped: 0, suggestions: [] };
+    }
+
+    // Stap 3 — dedupliceer: dagen waarvoor al een PENDING low-
+    // occupancy-suggestie bestaat slaan we over.
+    const { data: existing, error: existErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .select('trigger_context')
+      .eq('restaurant_id', restaurantId)
+      .eq('trigger_type', 'low_occupancy')
+      .eq('status', 'pending');
+
+    if (existErr) throw new InternalServerErrorException(existErr.message);
+
+    const alreadyHandled = new Set<string>();
+    for (const row of existing ?? []) {
+      const ctx = row.trigger_context as { target_date?: string } | null;
+      if (ctx?.target_date) alreadyHandled.add(ctx.target_date);
+    }
+
+    const todoDays = candidates.filter((c) => !alreadyHandled.has(c.date));
+    const skipped = candidates.length - todoDays.length;
+
+    if (todoDays.length === 0) {
+      return {
+        detected,
+        generated: 0,
+        skipped,
+        suggestions: [],
+      };
+    }
+
+    // Stap 4 — context-blocks ophalen die voor alle dagen herbruikt
+    // worden (profile + menu). Live-block laten we weg — vervangen
+    // door per-dag-context die we zelf opbouwen.
+    const [profileBlock, menuBlock] = await Promise.all([
+      this.context.buildProfileBlock(restaurantId).catch(() => ''),
+      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+    ]);
+
+    // Stap 5 — segment-counts voor extra context (welke segmenten
+    // zijn beschikbaar als doelgroep voor mail/whatsapp).
+    const { data: guestStats } = await this.supabase.client
+      .from('guests')
+      .select('mail_opt_in, whatsapp_opt_in, tags')
+      .eq('restaurant_id', restaurantId);
+
+    const guestPool = (guestStats ?? []) as Array<{
+      mail_opt_in: boolean | null;
+      whatsapp_opt_in: boolean | null;
+      tags: string[] | null;
+    }>;
+    const segmentCounts = {
+      mail_opt_in: guestPool.filter((g) => g.mail_opt_in).length,
+      whatsapp_opt_in: guestPool.filter((g) => g.whatsapp_opt_in).length,
+      vaste_gast: guestPool.filter((g) =>
+        (g.tags ?? []).includes('vaste_gast'),
+      ).length,
+      vip: guestPool.filter((g) => (g.tags ?? []).includes('vip')).length,
+      inactief: guestPool.filter((g) => (g.tags ?? []).includes('inactief'))
+        .length,
+    };
+
+    // Stap 6 — per dag een Claude-call met dag-specifieke context.
+    // Sequentieel zodat we de rate-limit niet over de kop laten
+    // gaan; bij 5+ kandidaat-dagen pakt elk z'n turn op de cache
+    // (profile+menu zit in cacheSystem zodat dit goedkoop is).
+    const generatedSuggestions: AiSuggestion[] = [];
+
+    for (const day of todoDays) {
+      const dateObj = new Date(day.date);
+      const weekdayNl = WEEKDAY_NL[dateObj.getUTCDay()];
+      const daysFromNow = Math.ceil(
+        (dateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      const dayContext = `RUSTIGE DAG OM TE ACTIVEREN:
+- Datum: ${day.date} (${weekdayNl}, over ${daysFromNow} dagen)
+- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${LOW_OCCUPANCY_THRESHOLD_PCT}%)
+- Geschat aantal gasten: ${day.estimated_guests ?? '?'}
+- Reserveringen tot nu: ${day.reservations_count ?? 0}
+
+GASTEN-SEGMENTEN VOOR ACTIVATIE:
+- Mail-opt-in: ${segmentCounts.mail_opt_in} gasten
+- WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
+- Vaste gasten: ${segmentCounts.vaste_gast}
+- VIP: ${segmentCounts.vip}
+- Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
+
+      const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Voor één specifieke rustige dag in de komende 2 weken bedenk je het beste activatie-voorstel.
+
+Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel — campagne-type, naam, body, doelgroep en verwacht effect.
+
+Inhoudsregels:
+- Schrijf in het Nederlands. Match de brand_tone.
+- Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
+- Kies campagne-type op basis van weekdag + segment:
+  * vaste-gast/VIP-segment + acute dag (<5 dagen) → whatsapp (snel, persoonlijk)
+  * brede zaal/weekend → social (zichtbaar, sfeervol)
+  * 5-14 dagen vooruit + nieuwsbrief-segment → mail (uitgewerkter)
+- Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
+- reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt — verwijs naar concrete getallen.
+- expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
+
+---
+CONTEXT — restaurant-profiel + menu:
+
+${profileBlock}
+
+${menuBlock}
+
+---
+${dayContext}`;
+
+      const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${day.date}.`;
+
+      try {
+        const raw =
+          await this.ai.generateStructured<LowOccupancyCampaignFromTool>({
+            system: systemPrompt,
+            prompt: userPrompt,
+            model: 'claude-sonnet-4-6',
+            maxTokens: 1500,
+            toolName: 'generate_low_occupancy_campaign',
+            toolDescription:
+              'Lever één toegespitst marketing-voorstel om de bezetting van een rustige dag te verhogen.',
+            inputSchema: LOW_OCCUPANCY_SCHEMA,
+            meta: {
+              restaurantId,
+              userId: userId ?? undefined,
+              feature: 'low_occupancy_detect',
+            },
+            cacheSystem: true,
+          });
+
+        const row = {
+          restaurant_id: restaurantId,
+          trigger_type: 'low_occupancy' as const,
+          trigger_context: {
+            target_date: day.date,
+            weekday: weekdayNl,
+            occupancy_pct: day.occupancy_pct,
+            estimated_guests: day.estimated_guests,
+            target_segment: raw.target_segment,
+          },
+          suggested_campaign: {
+            type: raw.campaign_type,
+            name: raw.name,
+            subject_line: raw.subject_line,
+            body: raw.body,
+          },
+          status: 'pending' as const,
+          urgency: daysFromNow <= 4 ? 'high' : 'medium',
+          confidence_score:
+            typeof raw.confidence === 'number' &&
+            raw.confidence >= 0 &&
+            raw.confidence <= 1
+              ? raw.confidence
+              : null,
+          reasoning: raw.reasoning,
+          expected_impact: {
+            extra_reservations: raw.expected_extra_reservations ?? 0,
+            extra_revenue_cents: raw.expected_extra_revenue_cents ?? 0,
+          },
+        };
+
+        const { data: inserted, error: insErr } = await this.supabase.client
+          .from('ai_suggestions')
+          .insert(row)
+          .select(
+            'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+          )
+          .single();
+
+        if (insErr) {
+          // Eén dag mislukt mag niet de hele batch breken; loggen
+          // en doorgaan met de volgende dag.
+          // eslint-disable-next-line no-console
+          console.warn(
+            `low_occupancy insert faalde voor ${day.date}: ${insErr.message}`,
+          );
+          continue;
+        }
+
+        generatedSuggestions.push(inserted as AiSuggestion);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `low_occupancy Claude-call faalde voor ${day.date}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        // Volgende dag proberen — partiële resultaten zijn beter
+        // dan helemaal niets bij rate-limit of tijdelijke API-hick.
+        continue;
+      }
+    }
+
+    return {
+      detected,
+      generated: generatedSuggestions.length,
+      skipped,
+      suggestions: generatedSuggestions,
     };
   }
 

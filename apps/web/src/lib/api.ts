@@ -650,6 +650,28 @@ export async function fetchProposalDetails(
   return res.json();
 }
 
+// "Filly bekijkt rustige dagen"-knop in de dashboard alert-bar.
+// Detecteert dagen <50% in window 2-14 dagen + genereert per dag
+// 1 toegespitste suggestie. Dagen met al een pending suggestie
+// worden overgeslagen (anti-spam).
+export async function detectLowOccupancySuggestions(): Promise<{
+  detected: number;
+  generated: number;
+  skipped: number;
+  suggestions: AiSuggestion[];
+}> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/detect-low-occupancy`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Detectie lage bezetting mislukt"),
+    );
+  }
+  return res.json();
+}
+
 // "Vraag Filly om voorstellen"-knop op /campagnes. Triggert backend
 // om 3-5 nieuwe ai_suggestions te genereren op basis van profile +
 // menu + actuele bezetting/weer. Werkt vanaf seconde 1 na onboarding

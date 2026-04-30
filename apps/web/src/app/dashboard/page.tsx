@@ -1,22 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { KpiRow } from "./_components/kpi-row";
 import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
 import { DetailCard } from "./_components/detail-card";
 import { FillyChat } from "./_components/filly-chat";
-import { fetchOccupancy, type OccupancyDay } from "../../lib/api";
+import {
+  detectLowOccupancySuggestions,
+  fetchOccupancy,
+  type OccupancyDay,
+} from "../../lib/api";
 
 export type View = "dag" | "maand" | "jaar";
 
 export default function DashboardPage() {
   const today = new Date();
+  const router = useRouter();
   const [view, setView] = useState<View>("maand");
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
+
+  // Low-occupancy-detectie: state + handler.
+  const [lowOccDetecting, setLowOccDetecting] = useState(false);
+  const [lowOccMessage, setLowOccMessage] = useState<string | null>(null);
 
   // Eén bron voor kalender en alert-bar.
   useEffect(() => {
@@ -25,7 +35,7 @@ export default function DashboardPage() {
       .catch(() => setOccupancy([]));
   }, [viewYear, viewMonth]);
 
-  // Alert-bar: dagen komende 14 dagen met bezetting onder 50%
+  // Alert-bar: dagen komende 14 dagen met bezetting onder 50%.
   const todayStr = today.toISOString().slice(0, 10);
   const fortnight = new Date(today);
   fortnight.setDate(today.getDate() + 14);
@@ -35,14 +45,59 @@ export default function DashboardPage() {
     return d.occupancy_pct < 50;
   });
 
+  const handleDetectLowOccupancy = async () => {
+    setLowOccDetecting(true);
+    setLowOccMessage(null);
+    try {
+      const result = await detectLowOccupancySuggestions();
+      // Vier mogelijke uitkomsten:
+      //  - generated > 0: nieuwe voorstellen → navigeer naar campagnes
+      //  - generated 0 & skipped > 0: alle dagen al voorstel → toon
+      //    melding maar navigeer toch zodat eigenaar de bestaande ziet
+      //  - generated 0 & skipped 0 & detected > 0: alle Claude-calls
+      //    faalden (zeldzaam) → tonen
+      //  - detected 0: geen rustige dagen meer in window → tonen
+      if (result.generated > 0) {
+        setLowOccMessage(
+          `${result.generated} ${result.generated === 1 ? "voorstel" : "voorstellen"} klaar! Filly stuurt je door…`,
+        );
+        setTimeout(() => router.push("/dashboard/campagnes"), 1200);
+      } else if (result.skipped > 0) {
+        setLowOccMessage(
+          `Voor alle ${result.skipped} rustige dagen wachten al voorstellen op je goedkeuring.`,
+        );
+      } else if (result.detected === 0) {
+        setLowOccMessage(
+          "Geen rustige dagen meer in de komende 2 weken — top!",
+        );
+      } else {
+        setLowOccMessage(
+          "Filly kon op dit moment geen voorstellen maken. Probeer het zo opnieuw.",
+        );
+      }
+    } catch (e) {
+      setLowOccMessage(
+        e instanceof Error
+          ? e.message
+          : "Detectie mislukt. Probeer het opnieuw.",
+      );
+    } finally {
+      setLowOccDetecting(false);
+    }
+  };
+
   return (
     <div className="page">
       <div className="dash-top">
         {criticalDays.length > 0 && (
           <div className="alert-bar">
             <span className="alert-icon">⚠️</span>
-            <div>
-              <strong>{criticalDays.length} rustige dag{criticalDays.length > 1 ? "en" : ""}</strong> in de komende 2 weken
+            <div style={{ flex: 1 }}>
+              <strong>
+                {criticalDays.length} rustige dag
+                {criticalDays.length > 1 ? "en" : ""}
+              </strong>{" "}
+              in de komende 2 weken
               {" — "}
               {criticalDays
                 .slice(0, 3)
@@ -51,8 +106,31 @@ export default function DashboardPage() {
                   return `${date.getDate()} ${date.toLocaleString("nl-NL", { month: "short" })} (${d.occupancy_pct}%)`;
                 })
                 .join(", ")}
-              {criticalDays.length > 3 && "…"} — laat Filly voorstellen doen.
+              {criticalDays.length > 3 && "…"}
+              {lowOccMessage && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 12,
+                    color: "var(--text-secondary, #52525B)",
+                  }}
+                >
+                  {lowOccMessage}
+                </div>
+              )}
             </div>
+            <button
+              type="button"
+              onClick={handleDetectLowOccupancy}
+              disabled={lowOccDetecting}
+              className="btn-primary-dash"
+              style={{ padding: "6px 14px", flexShrink: 0 }}
+              title="Filly bedenkt per dag een specifiek activatie-voorstel"
+            >
+              {lowOccDetecting
+                ? "✨ Filly denkt na…"
+                : "✨ Filly maakt voorstellen"}
+            </button>
           </div>
         )}
         <KpiRow />

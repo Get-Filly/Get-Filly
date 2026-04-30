@@ -66,6 +66,22 @@ export class SuggestionsController {
     return this.suggestions.generateOnDemand(restaurantId, user.id);
   }
 
+  // "Filly bekijkt rustige dagen"-knop in de dashboard alert-bar.
+  // Detecteert dagen met < 50% bezetting in window 2-14 dagen vooruit
+  // en genereert per dag een toegespitst voorstel. Skipt dagen die
+  // al een pending low-occupancy-suggestie hebben.
+  @Post('detect-low-occupancy')
+  @UseGuards(AiRateLimitGuard)
+  detectLowOccupancy(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.suggestions.detectAndGenerateLowOccupancy(
+      restaurantId,
+      user.id,
+    );
+  }
+
   // Goedkeur-flow: suggestie → campagne. Aparte POST want het is
   // meer dan een status-update (er wordt een nieuwe resource
   // aangemaakt). Retourneert de bijgewerkte suggestie + id van
