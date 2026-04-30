@@ -5,36 +5,19 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ZodError } from 'zod';
 import { SupabaseService } from '../supabase/supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { WebsiteAnalyzerService } from '../ai/website-analyzer.service';
 import { AuditLogService } from '../common/audit-log.service';
-
-// Velden die we NOOIT door de cliënt laten overschrijven, ongeacht wat
-// er in de PATCH-body zit. Zijn server-managed (id/created_at) of
-// expliciet beheerd via dedicated endpoints (plan/abonnement).
-const FORBIDDEN_PATCH_FIELDS = new Set([
-  'id',
-  'created_at',
-  'updated_at',
-  'plan',
-  'slug',
-  // lat/long zetten we zelf bij geocoding — niet via direct edit.
-  'latitude',
-  'longitude',
-]);
+import {
+  RestaurantUpdateSchema,
+  firstZodMessage,
+} from './restaurant-update.schema';
 
 // Velden die geocoding triggeren als ze wijzigen. Bij een wijziging
 // op een van deze sleutels halen we automatisch nieuwe lat/long op.
 const ADDRESS_FIELDS = new Set(['address', 'postal_code', 'city']);
-
-// Eenvoudige regex-validators. Bewust niet super-streng: we willen
-// "het ziet er ongeveer goed uit" toetsen om typo's te vangen, niet
-// een exhaustive RFC-parser zijn. Voor productie-mailings doen
-// strengere check op verzendmoment.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const KVK_RE = /^\d{8}$/; // NL KvK = 8 cijfers
-const VAT_RE_NL = /^NL\d{9}B\d{2}$/i; // NL btw-nummer
 
 @Injectable()
 export class RestaurantService {
@@ -59,34 +42,60 @@ export class RestaurantService {
   }
 
   // PATCH-flow:
-  //   1. Forbidden velden eruit filteren (id, created_at, plan, lat/long).
-  //   2. Lichte validatie op nieuwe velden (kvk = 8 cijfers, btw = NL...,
-  //      e-mail = ongeveer-formaat). Strenge checks gebeuren bij echt
-  //      gebruik (verzendmoment).
-  //   3. Adres gewijzigd? Trigger PDOK-geocoding en zet lat/long mee
+  //   1. Zod-schema parsen → keurt onbekende velden af (allowlist) +
+  //      valideert formaten (KvK = 8 cijfers, e-mail-regex, etc).
+  //   2. Adres gewijzigd? Trigger PDOK-geocoding en zet lat/long mee
   //      in dezelfde update. Mislukt geocoding (geen match, netwerk-
   //      probleem)? Dan zetten we lat/long op null zodat de eigenaar
   //      ziet dat het niet meer klopt — geen oude coords laten staan
   //      die fout zijn.
+  //
+  // Het zod-schema (RestaurantUpdateSchema) is .strict() — een veld
+  // dat niet expliciet is toegestaan wordt geweigerd, in plaats van
+  // dat we een handmatige denylist moeten onderhouden. Bij elke nieuwe
+  // DB-kolom: voeg toe aan het schema (bewuste keuze) of houd 'm
+  // server-managed (default).
   async update(
     restaurantId: string,
     updates: Record<string, unknown>,
     userId: string,
   ) {
-    // 1) Forbidden velden weren.
-    const safe: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(updates)) {
-      if (!FORBIDDEN_PATCH_FIELDS.has(k)) safe[k] = v;
+    // 1) Schema-parse. Bij een ZodError werpen we BadRequest met de
+    // eerste foutmelding in NL — UI toont 'm direct boven het veld.
+    let safe: Record<string, unknown>;
+    try {
+      // .parse() retourneert een nieuw object met alleen toegestane
+      // velden + ge-transformeerde waardes (bv. KvK gestripped van
+      // streepjes/spaties). Onbekende keys worden stilletjes weggehaald
+      // (.strip is default zod-gedrag) — zie schema-comments voor de
+      // afweging. Hieronder loggen we welke keys we wegfilterden,
+      // zodat we hygiëne-visibiliteit houden zonder de frontend te breken.
+      safe = RestaurantUpdateSchema.parse(updates) as Record<string, unknown>;
+    } catch (e) {
+      if (e instanceof ZodError) {
+        throw new BadRequestException(firstZodMessage(e));
+      }
+      throw e;
     }
 
-    // 2) Validatie. Werpen op formaat-fouten geeft de UI een nette
-    // NL-melding; veld blijft onveranderd zodat eigenaar kan corrigeren.
-    this.validate(safe);
+    // Hygiëne-log: welke keys hebben we weggefilterd? Een handvol
+    // is normaal (id, plan, latitude — de frontend stuurt het hele
+    // form-object). Iets onverwachts → reden om schema te checken.
+    const stripped = Object.keys(updates).filter(
+      (k) => !(k in safe) && updates[k] !== undefined,
+    );
+    if (stripped.length > 0) {
+      this.logger.debug(
+        `Restaurant ${restaurantId} update: gefilterde velden ${stripped.join(', ')}`,
+      );
+    }
 
-    // 3) Geocoding-trigger. We checken of een van de adres-velden in
+    // 2) Geocoding-trigger. We checken of een van de adres-velden in
     // de patch zit; zo ja, halen we de huidige rij op om het volledige
     // adres samen te stellen (de PATCH kan partial zijn — alleen city
-    // bv.) en doen één geocode-call.
+    // bv.) en doen één geocode-call. Lat/long worden hier server-side
+    // toegevoegd aan `safe` — die staan bewust NIET in het zod-schema
+    // (cliënt kan ze nooit zelf zetten).
     const addressChanging = Object.keys(safe).some((k) =>
       ADDRESS_FIELDS.has(k),
     );
@@ -244,85 +253,8 @@ export class RestaurantService {
     return updated;
   }
 
-  // Validatie van patch-velden. Werpt BadRequestException met NL-tekst
-  // bij formaat-fouten zodat de UI ze 1-op-1 kan tonen. Lege strings
-  // ("") worden behandeld als "leegmaken" — toegestaan, geen validatie.
-  private validate(body: Record<string, unknown>): void {
-    if ('contact_email' in body) {
-      const v = body.contact_email;
-      if (v !== null && typeof v === 'string' && v.trim().length > 0) {
-        if (!EMAIL_RE.test(v.trim())) {
-          throw new BadRequestException(
-            'Contact-e-mail lijkt geen geldig adres.',
-          );
-        }
-      }
-    }
-    if ('email_reply_to' in body) {
-      const v = body.email_reply_to;
-      if (v !== null && typeof v === 'string' && v.trim().length > 0) {
-        if (!EMAIL_RE.test(v.trim())) {
-          throw new BadRequestException(
-            'Reply-to-adres lijkt geen geldig e-mailadres.',
-          );
-        }
-      }
-    }
-    if ('kvk_number' in body) {
-      const v = body.kvk_number;
-      if (v !== null && typeof v === 'string' && v.trim().length > 0) {
-        // Sta toe dat eigenaar 'm met spaties of streepjes invoert,
-        // we strippen die eruit voordat we toetsen.
-        const stripped = v.replace(/[\s.-]/g, '');
-        if (!KVK_RE.test(stripped)) {
-          throw new BadRequestException(
-            'KvK-nummer moet 8 cijfers zijn.',
-          );
-        }
-        body.kvk_number = stripped;
-      }
-    }
-    if ('vat_number' in body) {
-      const v = body.vat_number;
-      if (v !== null && typeof v === 'string' && v.trim().length > 0) {
-        const stripped = v.replace(/[\s.-]/g, '').toUpperCase();
-        if (!VAT_RE_NL.test(stripped)) {
-          throw new BadRequestException(
-            'BTW-nummer moet NL-formaat zijn (NL123456789B01).',
-          );
-        }
-        body.vat_number = stripped;
-      }
-    }
-    if ('contact_phone' in body) {
-      const v = body.contact_phone;
-      if (v !== null && typeof v === 'string' && v.trim().length > 0) {
-        // Heel licht: alleen checken dat er minstens 8 cijfers in zitten.
-        // Internationale nummers (+31...) en NL-nummers (06-, 020-)
-        // moeten beide door.
-        const digits = v.replace(/\D/g, '');
-        if (digits.length < 8) {
-          throw new BadRequestException(
-            'Contact-telefoon lijkt te kort. Gebruik bv. 020-1234567 of +31201234567.',
-          );
-        }
-      }
-    }
-    if ('email_from_name' in body) {
-      const v = body.email_from_name;
-      if (v !== null && typeof v === 'string' && v.length > 100) {
-        throw new BadRequestException(
-          'Afzender-naam mag maximaal 100 tekens zijn.',
-        );
-      }
-    }
-    if ('legal_name' in body) {
-      const v = body.legal_name;
-      if (v !== null && typeof v === 'string' && v.length > 200) {
-        throw new BadRequestException(
-          'Juridische bedrijfsnaam mag maximaal 200 tekens zijn.',
-        );
-      }
-    }
-  }
+  // Note: validatie + formaat-stripping (KvK-spaties, VAT-uppercase,
+  // e-mail-regex etc) draait nu in RestaurantUpdateSchema (zie
+  // restaurant-update.schema.ts). Eén schema = single source of truth
+  // voor "wat mag eigenaar wijzigen + in welk formaat".
 }
