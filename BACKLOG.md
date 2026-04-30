@@ -169,7 +169,8 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## Test-data & seeds
 
 - [x] ~~`apps/api/supabase/seeds/test_restaurants.sql`~~ — exacte inhoud uit Supabase gekopieerd (commit `699c84b`).
-- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly.
+- [x] ~~Demo-account voor klant-demos~~ (2026-04-30) — `floriskoevermans@outlook.com` / restaurant_id `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` gevuld via SQL-snippet (in chat-historie); 18 gasten, 30 reserveringen, 31 occupancy-dagen, 10 reviews, 5 campagnes, 3 pending suggesties. Snippet niet in repo — bewust ad-hoc voor jouw demo, geen UI-toggle voor klanten.
+- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly. Niet relevant voor `floriskoevermans@outlook.com`-demo (die heeft eigen seed) maar wel voor toekomstige seed-restaurants.
 - [x] ~~`test_campaigns.sql`~~ — niet nodig (bleek duplicaat van migratie 0005).
 
 ---
@@ -177,11 +178,12 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## Bekende kleine bugs / TODO-markers in code
 
 Grep periodiek op `TODO`, `FIXME`, `MOCK`, `mock` in `apps/` om bij te
-werken. Laatste audit: 2026-04-23.
+werken. Laatste audit: 2026-04-30.
 
-- [ ] `/apps/web/src/app/dashboard/_components/filly-chat.tsx` — oud comment "Mock-antwoord. Later vervangen door echte Claude API call" is niet meer relevant sinds commit `53db975` maar de file-structuur verdient een review-pass.
+- [ ] `/apps/web/src/app/dashboard/_components/filly-chat.tsx` — 635 regels lang (zie Designer-audit). Splitsen in input/list/proposal-card/error-handler. Oud comment "Mock-antwoord" is hierin nog niet opgeruimd.
 - [ ] `/apps/web/src/app/dashboard/account/page.tsx` — bevat nog "Komt beschikbaar zodra de Claude API gekoppeld is"-melding die nu niet meer klopt.
 - [ ] Next.js warning `"middleware" file convention is deprecated; use "proxy" instead` — cosmetisch, te fixen door file te hernoemen naar `proxy.ts` bij een volgende pass.
+- [ ] [kpi.service.ts](apps/api/src/kpi/kpi.service.ts) — `weekday_avg_pct = 68` hard-coded. 6-maanden historie aggregeren (zie Data Analyst-audit).
 
 ---
 
