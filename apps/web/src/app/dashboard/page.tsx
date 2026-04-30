@@ -116,7 +116,7 @@ export default function DashboardPage() {
   // chat-sidebar) als binnen de left-col (lijnt netjes uit met
   // weersvoorspelling + kalender).
   const alertBar = criticalDays.length > 0 && (
-    <div className="alert-bar" style={{ marginBottom: 16 }}>
+    <div className="alert-bar" style={{ marginBottom: "var(--space-4)" }}>
       <span className="alert-icon">⚠️</span>
       <div style={{ flex: 1 }}>
         <strong>
