@@ -476,6 +476,9 @@ export type Restaurant = {
   has_terrace: boolean;
   has_private_room: boolean;
   has_kids_menu: boolean;
+  // Eigenaar-doel voor doordeweekse bezetting (KPI-row). Sinds
+  // migratie 0027. Null = gebruik 6-maanden-historie of fallback 68.
+  target_weekday_occupancy_pct: number | null;
   // Wanneer schijnt de zon op het terras? Subset van
   // ['morning','afternoon','evening']. Null = nog niet ingesteld.
   // Filly gebruikt dit bij weer-getriggerde campagnes.

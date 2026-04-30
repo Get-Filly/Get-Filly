@@ -54,14 +54,23 @@ export class KpiService {
     const todayStr = now.toISOString().slice(0, 10);
     const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
     const monthEnd = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+    // 6 maanden terug voor de doordeweekse-bezetting-aggregatie. We
+    // pakken bewust geen rolling 180 dagen maar precies 6 hele
+    // maanden zodat seizoens-effecten gemiddeld worden.
+    const sixMonthsAgo = new Date(year, month - 6, 1)
+      .toISOString()
+      .slice(0, 10);
 
-    // Parallel ophalen: bezetting + suggesties + Filly-attributie.
-    // Drie queries i.p.v. één join zodat elk stuk z'n eigen index
-    // gebruikt en we kort blijven (~50-100ms totaal).
+    // Parallel ophalen: bezetting + suggesties + Filly-attributie +
+    // 6-maanden weekday-historie + restaurant-target. Vijf queries
+    // i.p.v. één join zodat elk stuk z'n eigen index gebruikt en we
+    // kort blijven (~50-100ms totaal).
     const [
       { data: occDays, error: occErr },
       { data: suggestions, error: sugErr },
       { data: fillyRes, error: fillyErr },
+      { data: weekdayHistory, error: whErr },
+      { data: restaurant, error: rErr },
     ] = await Promise.all([
       this.supabase.client
         .from('occupancy_days')
@@ -83,11 +92,24 @@ export class KpiService {
         .gte('reservation_date', monthStart)
         .lte('reservation_date', monthEnd)
         .not('via_campaign_id', 'is', null),
+      this.supabase.client
+        .from('occupancy_days')
+        .select('date, occupancy_pct')
+        .eq('restaurant_id', restaurantId)
+        .gte('date', sixMonthsAgo)
+        .lt('date', monthStart), // <-- alleen historie, niet huidige maand
+      this.supabase.client
+        .from('restaurants')
+        .select('target_weekday_occupancy_pct')
+        .eq('id', restaurantId)
+        .maybeSingle(),
     ]);
 
     if (occErr) throw new InternalServerErrorException(occErr.message);
     if (sugErr) throw new InternalServerErrorException(sugErr.message);
     if (fillyErr) throw new InternalServerErrorException(fillyErr.message);
+    if (whErr) throw new InternalServerErrorException(whErr.message);
+    if (rErr) throw new InternalServerErrorException(rErr.message);
 
     const days = occDays ?? [];
     const todayEntry = days.find((d) => d.date === todayStr);
@@ -126,7 +148,16 @@ export class KpiService {
       month_guests > 0 ? Math.round(month_revenue_cents / month_guests) : 0;
     const month_filly_revenue_cents = month_filly_guests * avgSpendCents;
 
-    const weekday_avg_pct = 68; // TODO: uit 6-maanden historie
+    // Cascade voor de doordeweekse-bezetting-KPI:
+    //   1. Eigenaar-target gezet → die tonen (eigenaar stuurt op doel).
+    //   2. ≥30 weekday-data-punten in historie → echt 6-maanden gemiddelde.
+    //   3. Anders → fallback 68 (oude default voor lege accounts).
+    // Drempel 30 voorkomt dat 1 uitschieter op 3 dagen historie de
+    // KPI rare waarden geeft bij net-onboarded klanten.
+    const weekday_avg_pct = computeWeekdayAvgPct(
+      restaurant?.target_weekday_occupancy_pct ?? null,
+      weekdayHistory ?? [],
+    );
 
     return {
       today_pct: today_pct !== null ? Math.round(Number(today_pct)) : null,
@@ -284,4 +315,54 @@ export class KpiService {
 
     return Array.from(buckets.values());
   }
+}
+
+// ============================================================
+// computeWeekdayAvgPct — gemiddeld bezetting-% op werkdagen (ma-vr)
+// ============================================================
+//
+// Drie-staps cascade:
+//   1. Eigenaar heeft een target ingesteld → return die. Geeft de
+//      eigenaar de mogelijkheid om sturing op een doel te tonen
+//      ("we mikken op 75%") i.p.v. terugblikken naar wat het was.
+//   2. ≥30 dagen weekday-historie aanwezig → return echt gemiddelde.
+//      30-drempel voorkomt dat 1 uitschieter de KPI verstoort bij
+//      een net-gestarte klant.
+//   3. Te weinig data → return 68 (legacy fallback). Geeft nieuwe
+//      accounts een redelijk benchmarkgetal totdat ze data hebben
+//      opgebouwd.
+//
+// Alleen ma-vr wordt meegenomen (date.getDay() in [1..5]). Weekend
+// is per definitie hoger en zou de "doordeweekse"-KPI vertekenen.
+//
+// Geïnjecteerd als helper-functie (niet als methode op de service)
+// zodat 'm makkelijk testbaar is en geen state nodig heeft.
+function computeWeekdayAvgPct(
+  target: number | null,
+  history: Array<{ date: string; occupancy_pct: number | string | null }>,
+): number {
+  // 1) Eigenaar-override
+  if (target !== null && target !== undefined) {
+    return target;
+  }
+
+  // 2) Filter op werkdagen + valide bezettings-cijfer
+  const weekdays = history.filter((d) => {
+    // new Date('2026-04-30') geeft 1=ma .. 5=vr (UTC-correct want
+    // we werken met YYYY-MM-DD en die wordt als UTC-midnight geparsed).
+    const day = new Date(d.date).getUTCDay();
+    return day >= 1 && day <= 5;
+  });
+
+  // 3) Drempel-check + gemiddelde of fallback
+  const WEEKDAY_HISTORY_THRESHOLD = 30;
+  if (weekdays.length < WEEKDAY_HISTORY_THRESHOLD) {
+    return 68;
+  }
+
+  const sum = weekdays.reduce(
+    (s, d) => s + Number(d.occupancy_pct ?? 0),
+    0,
+  );
+  return Math.round(sum / weekdays.length);
 }

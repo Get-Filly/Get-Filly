@@ -742,6 +742,33 @@ export default function AccountPage() {
               }
             />
           </div>
+          {/* ----- Doel voor doordeweekse bezetting -----
+              Optioneel veld. Lege waarde = Filly berekent het uit
+              6-maanden-historie (zie KpiService cascade). Met een
+              waarde stuurt de eigenaar de KPI-row op een doel
+              i.p.v. terugblik. */}
+          <div className="form-field full">
+            <label>Doel doordeweekse bezetting (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              placeholder="bv. 75"
+              value={form.target_weekday_occupancy_pct ?? ""}
+              onChange={(e) =>
+                update(
+                  "target_weekday_occupancy_pct",
+                  e.target.value ? parseInt(e.target.value, 10) : null,
+                )
+              }
+            />
+            <div className="hint">
+              Optioneel doel voor de bezetting-KPI op je dashboard.
+              Laat leeg om Filly's berekening uit je 6-maanden-historie
+              te gebruiken (of de standaard 68% als je nog geen historie
+              hebt opgebouwd).
+            </div>
+          </div>
           <div className="form-field full">
             <label className="form-checkbox">
               <input
