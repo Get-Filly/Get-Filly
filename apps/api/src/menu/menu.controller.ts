@@ -95,11 +95,47 @@ export class MenuController {
         'Geen bestand ontvangen. Selecteer een PDF of foto van je menukaart.',
       );
     }
-    return this.menu.importCard(restaurantId, user?.id ?? null, {
-      buffer: file.buffer,
-      mimeType: file.mimetype,
-      originalName: file.originalname,
-    });
+    return this.menu.importCard(
+      restaurantId,
+      user?.id ?? null,
+      {
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        originalName: file.originalname,
+      },
+      'menu',
+    );
+  }
+
+  // Drankkaart-upload: zelfde flow als import-card maar gebruikt het
+  // drank-Vision-schema (subcategorie wijn-rood/bier/cocktail/etc) en
+  // forceert server-side category='drank' op alle items.
+  @Post('import-drinks-card')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 12 * 1024 * 1024 },
+    }),
+  )
+  importDrinksCard(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Geen bestand ontvangen. Selecteer een PDF of foto van je drankkaart.',
+      );
+    }
+    return this.menu.importCard(
+      restaurantId,
+      user?.id ?? null,
+      {
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        originalName: file.originalname,
+      },
+      'drinks',
+    );
   }
 
   // Welke menukaart is nu actief? Wordt door de UI gebruikt om de

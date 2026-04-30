@@ -123,6 +123,38 @@ export class OnboardingController {
       // pas na onboarding-complete, FK zou falen. Zie comment bij
       // analyzeWebsite hierboven.
       { restaurantId: null },
+      'menu',
+    );
+  }
+
+  // Analyseert een geüploade DRANKKAART via Claude Vision. Zelfde
+  // upload-pattern als analyze-menu maar gebruikt een ander tool-
+  // schema (subcategory-enum: wijn-rood/bier/cocktail/etc.) en
+  // forceert server-side category='drank' op alle items.
+  @Post('analyze-drinks')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  analyzeDrinks(
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Geen bestand ontvangen. Upload een foto of PDF van je drankkaart.',
+      );
+    }
+    enforceAiRateLimit(user.id);
+    return this.menuImporter.analyze(
+      {
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        originalName: file.originalname,
+      },
+      { restaurantId: null },
+      'drinks',
     );
   }
 }

@@ -30,7 +30,16 @@ type MenuItem = {
   description?: string;
   price_cents?: number;
   category?: string;
+  subcategory?: string;
   allergens?: string[];
+};
+
+type DrinkItem = {
+  name: string;
+  description?: string;
+  price_cents?: number;
+  // wijn-rood / wijn-wit / bier / cocktail / etc.
+  subcategory?: string;
 };
 
 type WizardData = {
@@ -65,6 +74,8 @@ type WizardData = {
   social_media: Record<string, string>;
   // Menu
   menu_items: MenuItem[];
+  // Drankkaart (parallelle upload). Server-side category='drank'.
+  drink_items: DrinkItem[];
 };
 
 const TYPE_OPTIONS = [
@@ -127,6 +138,7 @@ const INITIAL_DATA: WizardData = {
   legal_name: "",
   social_media: {},
   menu_items: [],
+  drink_items: [],
 };
 
 export default function OnboardingPage() {
@@ -134,6 +146,10 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>(1);
   const [data, setData] = useState<WizardData>(INITIAL_DATA);
   const [menuFile, setMenuFile] = useState<File | null>(null);
+  // Drankkaart als aparte upload — meeste horeca scheidt menu en
+  // drank fysiek, en de Vision-prompt is anders (subcategorie
+  // wijn-rood/bier/cocktail/etc).
+  const [drinksFile, setDrinksFile] = useState<File | null>(null);
 
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeStatus, setAnalyzeStatus] = useState<string | null>(null);
@@ -153,9 +169,9 @@ export default function OnboardingPage() {
   // Vult alleen lege velden zodat handmatige invul niet overschreven wordt.
   const analyzeAll = async () => {
     const url = data.website_url.trim();
-    if (!url && !menuFile) {
+    if (!url && !menuFile && !drinksFile) {
       setAnalyzeError(
-        "Vul een website-URL in of upload een menukaart, anders heeft Filly niks om te lezen.",
+        "Vul een website-URL in of upload een menu/drankkaart, anders heeft Filly niks om te lezen.",
       );
       return;
     }
@@ -209,9 +225,28 @@ export default function OnboardingPage() {
           })()
         : Promise.resolve(null);
 
-      const [websiteResult, menuResult] = await Promise.all([
+      const drinksPromise = drinksFile
+        ? (async () => {
+            setAnalyzeStatus("Filly bekijkt je drankkaart…");
+            const form = new FormData();
+            form.append("file", drinksFile);
+            const res = await fetch(`${API_URL}/onboarding/analyze-drinks`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: form,
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.message ?? `drinks HTTP ${res.status}`);
+            }
+            return res.json();
+          })()
+        : Promise.resolve(null);
+
+      const [websiteResult, menuResult, drinksResult] = await Promise.all([
         websitePromise,
         menuPromise,
+        drinksPromise,
       ]);
 
       // Merge website-resultaat in wizard-data (niet-lege velden respecteren).
@@ -293,11 +328,32 @@ export default function OnboardingPage() {
         setData((prev) => ({ ...prev, menu_items: menuResult.items }));
       }
 
-      // Confidence: als beide bronnen een score gaven, toon de laagste
-      // (dan weet user "het zwakste deel is X").
-      const scores = [websiteResult?.confidence, menuResult?.confidence].filter(
-        Boolean,
-      );
+      if (drinksResult && Array.isArray(drinksResult.items)) {
+        // Items uit Vision zonder category-veld — backend dwingt
+        // category='drank' af bij de uiteindelijke insert. Wij slaan
+        // alleen de drank-relevante velden hier op.
+        const items: DrinkItem[] = drinksResult.items.map(
+          (it: {
+            name: string;
+            description?: string;
+            price_cents?: number;
+            subcategory?: string;
+          }) => ({
+            name: it.name,
+            description: it.description,
+            price_cents: it.price_cents,
+            subcategory: it.subcategory,
+          }),
+        );
+        setData((prev) => ({ ...prev, drink_items: items }));
+      }
+
+      // Confidence: als bronnen een score gaven, toon de laagste.
+      const scores = [
+        websiteResult?.confidence,
+        menuResult?.confidence,
+        drinksResult?.confidence,
+      ].filter(Boolean);
       if (scores.includes("low")) setAnalyzeConfidence("low");
       else if (scores.includes("medium")) setAnalyzeConfidence("medium");
       else if (scores.length > 0) setAnalyzeConfidence("high");
@@ -367,6 +423,7 @@ export default function OnboardingPage() {
               ? data.social_media
               : undefined,
           menu_items: data.menu_items,
+          drink_items: data.drink_items,
         }),
       });
 
@@ -379,15 +436,17 @@ export default function OnboardingPage() {
       // Als die gevuld is met een error, is het restaurant wél aangemaakt
       // maar zijn de menu-items niet geland — waarschuwen zodat user niet
       // denkt dat alles werkte.
+      type ImportStatus = {
+        attempted: number;
+        inserted: number;
+        error: string | null;
+      };
       const result = (await res.json()) as {
         restaurantId: string;
-        menuImport?: {
-          attempted: number;
-          inserted: number;
-          error: string | null;
-        } | null;
+        menuImport?: ImportStatus | null;
+        drinkImport?: ImportStatus | null;
       };
-      const { restaurantId, menuImport } = result;
+      const { restaurantId, menuImport, drinkImport } = result;
 
       if (typeof window !== "undefined" && restaurantId) {
         try {
@@ -407,6 +466,12 @@ export default function OnboardingPage() {
       if (menuImport && menuImport.error) {
         alert(
           `Je restaurant is aangemaakt, maar het importeren van ${menuImport.attempted} menu-item(s) mislukte:\n\n${menuImport.error}\n\nJe kunt je menukaart later opnieuw uploaden via de menu-pagina.`,
+        );
+      }
+
+      if (drinkImport && drinkImport.error) {
+        alert(
+          `Je restaurant is aangemaakt, maar het importeren van ${drinkImport.attempted} drank-item(s) mislukte:\n\n${drinkImport.error}\n\nJe kunt je drankkaart later opnieuw uploaden via de menu-pagina.`,
         );
       }
 
@@ -489,6 +554,8 @@ export default function OnboardingPage() {
             setData={setData}
             menuFile={menuFile}
             setMenuFile={setMenuFile}
+            drinksFile={drinksFile}
+            setDrinksFile={setDrinksFile}
             analyzing={analyzing}
             analyzeStatus={analyzeStatus}
             analyzeError={analyzeError}
@@ -530,6 +597,8 @@ function Step1Sources({
   setData,
   menuFile,
   setMenuFile,
+  drinksFile,
+  setDrinksFile,
   analyzing,
   analyzeStatus,
   analyzeError,
@@ -542,6 +611,8 @@ function Step1Sources({
   setData: React.Dispatch<React.SetStateAction<WizardData>>;
   menuFile: File | null;
   setMenuFile: (f: File | null) => void;
+  drinksFile: File | null;
+  setDrinksFile: (f: File | null) => void;
   analyzing: boolean;
   analyzeStatus: string | null;
   analyzeError: string | null;
@@ -646,7 +717,46 @@ function Step1Sources({
         )}
       </div>
 
-      {(data.website_url.trim().length > 0 || menuFile) && (
+      <div className="form-group">
+        <label className="form-label">
+          Drankkaart (optioneel — foto of PDF)
+        </label>
+        <input
+          type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
+          onChange={(e) => setDrinksFile(e.target.files?.[0] ?? null)}
+          disabled={analyzing}
+          style={{
+            display: "block",
+            fontSize: 13,
+            color: "var(--text)",
+          }}
+        />
+        {drinksFile && (
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--tl, #6B6B6B)",
+              margin: "4px 0 0",
+            }}
+          >
+            {drinksFile.name} · {Math.round(drinksFile.size / 1024)} KB
+          </p>
+        )}
+        <p
+          style={{
+            fontSize: 11,
+            color: "var(--tl, #6B6B6B)",
+            margin: "4px 0 0",
+            fontStyle: "italic",
+          }}
+        >
+          Filly groepeert je dranken automatisch op type
+          (wijn, bier, cocktail, koffie, etc.).
+        </p>
+      </div>
+
+      {(data.website_url.trim().length > 0 || menuFile || drinksFile) && (
         <button
           type="button"
           onClick={onAnalyze}
@@ -694,6 +804,11 @@ function Step1Sources({
           {data.menu_items.length > 0 && (
             <div style={{ marginTop: 4 }}>
               Menu: <strong>{data.menu_items.length}</strong> gerechten gelezen.
+            </div>
+          )}
+          {data.drink_items.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              Drankkaart: <strong>{data.drink_items.length}</strong> drankjes gelezen.
             </div>
           )}
         </div>
@@ -886,6 +1001,26 @@ function Step2Review({
           <div style={{ fontSize: 12, color: "var(--tl, #6B6B6B)" }}>
             Filly heeft ze uit je menukaart gelezen. Je kunt ze later
             bewerken op de menu-pagina.
+          </div>
+        </div>
+      )}
+
+      {data.drink_items.length > 0 && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: 12,
+            background: "var(--surface-soft, #f7f5ef)",
+            borderRadius: 8,
+            fontSize: 13,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            Drankkaart: {data.drink_items.length} drankjes
+          </div>
+          <div style={{ fontSize: 12, color: "var(--tl, #6B6B6B)" }}>
+            Gegroepeerd op type (wijn-rood/wit/rosé/mousserend, bier,
+            cocktail, sterke drank, koffie, fris).
           </div>
         </div>
       )}

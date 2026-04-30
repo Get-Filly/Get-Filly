@@ -680,6 +680,9 @@ export type MenuItem = {
   name: string;
   description: string | null;
   category: string | null;
+  // Sub-categorie. Voor drank-items: wijn-rood/bier/cocktail/etc.
+  // Voor menu-items momenteel ongebruikt.
+  subcategory: string | null;
   price_cents: number | null;
   is_signature: boolean;
   is_seasonal: boolean;
@@ -701,6 +704,7 @@ export type MenuItemInput = {
   name: string;
   description?: string | null;
   category?: string | null;
+  subcategory?: string | null;
   price_cents?: number | null;
   is_signature?: boolean;
   is_seasonal?: boolean;
@@ -842,6 +846,26 @@ export async function importMenuCard(file: File): Promise<ImportCardResult> {
   });
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Menukaart importeren mislukt"));
+  }
+  return res.json();
+}
+
+// Drankkaart-upload — zelfde flow als importMenuCard maar gebruikt
+// het drank-Vision-schema (wijn-rood/bier/cocktail/etc subcategorie)
+// en forceert server-side category='drank' op alle items.
+export async function importDrinksCard(
+  file: File,
+): Promise<ImportCardResult> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await authedFetch(`${API_URL}/menu/import-drinks-card`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Drankkaart importeren mislukt"),
+    );
   }
   return res.json();
 }

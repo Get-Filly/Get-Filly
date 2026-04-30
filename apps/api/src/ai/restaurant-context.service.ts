@@ -221,13 +221,13 @@ export class RestaurantContextService {
     const { data, error } = await this.supabase.client
       .from('menu_items')
       .select(
-        'name, category, price_cents, is_signature, dietary_tags, created_at',
+        'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
       )
       .eq('restaurant_id', restaurantId)
       .eq('is_available', true)
       .order('is_signature', { ascending: false })
       .order('display_order', { ascending: true })
-      .limit(60);
+      .limit(80); // ruimer dan 60 omdat drankkaarten ook in deze tabel zitten
 
     if (error) {
       this.logger.warn(`Menu niet beschikbaar: ${error.message}`);
@@ -235,39 +235,87 @@ export class RestaurantContextService {
     }
     if (!data || data.length === 0) return '';
 
-    // Groeperen per categorie. Items zonder categorie komen onderaan
-    // onder "Overig" zodat ze niet stilletjes verdwijnen.
     type Item = {
       name: string;
       category: string | null;
+      subcategory: string | null;
       price_cents: number | null;
       is_signature: boolean;
       dietary_tags: string[] | null;
       created_at: string | null;
     };
-    const items = data as Item[];
-    const groups = new Map<string, Item[]>();
-    for (const it of items) {
-      const cat = it.category?.trim() || 'Overig';
-      if (!groups.has(cat)) groups.set(cat, []);
-      groups.get(cat)!.push(it);
+    const allItems = data as Item[];
+
+    // Splits in eet-items vs drank-items zodat we ze als 2 aparte
+    // secties kunnen presenteren. Filly kan dan in campagnes gericht
+    // verwijzen naar gerechten ('signature carpaccio') OF dranken
+    // ('onze huiswijn') zonder ze door elkaar te halen.
+    const foodItems = allItems.filter((it) => it.category !== 'drank');
+    const drinkItems = allItems.filter((it) => it.category === 'drank');
+
+    const lines: string[] = [];
+
+    // -------- MENU --------
+    if (foodItems.length > 0) {
+      lines.push(`MENU (${foodItems.length} gerechten)`);
+      const foodGroups = new Map<string, Item[]>();
+      for (const it of foodItems) {
+        const cat = it.category?.trim() || 'Overig';
+        if (!foodGroups.has(cat)) foodGroups.set(cat, []);
+        foodGroups.get(cat)!.push(it);
+      }
+      for (const [cat, list] of foodGroups) {
+        lines.push(`${cat}:`);
+        for (const it of list) {
+          const price = formatPrice(it.price_cents);
+          const sig = it.is_signature ? ' [signature]' : '';
+          lines.push(`  - ${it.name}${price ? ` — ${price}` : ''}${sig}`);
+        }
+      }
     }
 
-    const lines: string[] = [`MENU (${items.length} items)`];
-    for (const [cat, list] of groups) {
-      lines.push(`${cat}:`);
-      for (const it of list) {
-        const price = formatPrice(it.price_cents);
-        const sig = it.is_signature ? ' [signature]' : '';
-        lines.push(`  - ${it.name}${price ? ` — ${price}` : ''}${sig}`);
+    // -------- DRANKKAART --------
+    if (drinkItems.length > 0) {
+      lines.push('');
+      lines.push(`DRANKKAART (${drinkItems.length} drankjes)`);
+      const drinkGroups = new Map<string, Item[]>();
+      for (const it of drinkItems) {
+        const sub = it.subcategory?.trim() || 'overig';
+        if (!drinkGroups.has(sub)) drinkGroups.set(sub, []);
+        drinkGroups.get(sub)!.push(it);
+      }
+      // Vaste volgorde voor leesbaarheid in Filly's prompt — wijnen
+      // eerst, daarna bier/cocktails/sterk, dan koffie/thee/fris.
+      const drinkOrder = [
+        'wijn-rood',
+        'wijn-wit',
+        'wijn-rose',
+        'wijn-mousserend',
+        'bier',
+        'cocktail',
+        'sterke-drank',
+        'koffie-thee',
+        'fris',
+        'overig',
+      ];
+      for (const sub of drinkOrder) {
+        const list = drinkGroups.get(sub);
+        if (!list || list.length === 0) continue;
+        lines.push(`${sub}:`);
+        for (const it of list) {
+          const price = formatPrice(it.price_cents);
+          lines.push(`  - ${it.name}${price ? ` — ${price}` : ''}`);
+        }
       }
     }
 
     // Dieet-overzicht: aantallen per tag. Filly kan zo bij vragen
     // "iets veganistisch erbij?" direct het juiste antwoord geven
-    // zonder de hele lijst te moeten doorgrijzen.
+    // zonder de hele lijst te moeten doorgrijzen. Alleen op food-
+    // items — drank-tags zijn er nog niet en zouden onzinnige
+    // counts geven.
     const tagCounts = new Map<string, number>();
-    for (const it of items) {
+    for (const it of foodItems) {
       for (const t of it.dietary_tags ?? []) {
         if (!t) continue;
         tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
@@ -288,7 +336,7 @@ export class RestaurantContextService {
     // Cap op 8 items zodat de prompt compact blijft bij een grote
     // bulk-import.
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const recent = items
+    const recent = allItems
       .filter((it) => {
         if (!it.created_at) return false;
         const t = Date.parse(it.created_at);

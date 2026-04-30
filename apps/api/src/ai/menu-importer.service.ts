@@ -36,6 +36,9 @@ export type ExtractedMenuItem = {
   description?: string;
   price_cents?: number;
   category?: string;
+  // Sub-categorie. Voor drankkaart: wijn-rood, wijn-wit, bier, etc.
+  // Voor reguliere menukaart momenteel ongebruikt.
+  subcategory?: string;
   allergens?: string[];
 };
 
@@ -46,6 +49,13 @@ export type ExtractedMenu = {
   notes?: string;
 };
 
+// Wat voor type kaart we analyseren. Bepaalt welke prompt + welk
+// JSON-schema Claude krijgt:
+//   - 'menu'   → reguliere menukaart, category-enum [voorgerecht..]
+//   - 'drinks' → drankkaart, alle items category='drank',
+//                subcategory-enum [wijn-rood, bier, ..]
+export type CardKind = 'menu' | 'drinks';
+
 @Injectable()
 export class MenuImporterService {
   private readonly logger = new Logger(MenuImporterService.name);
@@ -55,6 +65,7 @@ export class MenuImporterService {
   async analyze(
     file: { buffer: Buffer; mimeType: string; originalName?: string },
     meta: { restaurantId: string | null; userId?: string },
+    kind: CardKind = 'menu',
   ): Promise<ExtractedMenu> {
     // Input-validatie. Beter hier vangen dan pas bij Claude met een
     // cryptische fout.
@@ -81,31 +92,41 @@ export class MenuImporterService {
     // JSON.parse-fouten meer op markdown-codeblok-resten of trailing
     // comma's. De Anthropic API valideert het schema vóór de respons
     // bij ons aankomt.
+    const isDrinks = kind === 'drinks';
     const raw = await this.ai.generateStructuredFromFile<RawMenuFromTool>({
-      system: this.buildSystemPrompt(),
-      instruction:
-        'Dit is de menukaart. Vul de tool-args in met alle zichtbare gerechten.',
+      system: isDrinks ? buildDrinksSystemPrompt() : buildMenuSystemPrompt(),
+      instruction: isDrinks
+        ? 'Dit is de drankkaart. Vul de tool-args in met alle zichtbare drankjes.'
+        : 'Dit is de menukaart. Vul de tool-args in met alle zichtbare gerechten.',
       file: { base64, mimeType: mime },
-      // Opus 4.7: menu's hebben vaak complexe layouts (kolommen,
-      // groeperingen, kleine lettertjes). Opus is hier merkbaar beter.
+      // Opus 4.7: menu/drank-kaarten hebben vaak complexe layouts
+      // (kolommen, groeperingen, kleine lettertjes). Opus is hier
+      // merkbaar beter.
       model: 'claude-opus-4-7',
-      maxTokens: 8000, // genoeg voor ~50-80 gerechten + tool-overhead
-      toolName: 'extract_menu_items',
-      toolDescription:
-        'Extract alle gerechten van de meegeleverde menukaart als gestructureerde lijst.',
-      inputSchema: MENU_EXTRACTION_SCHEMA,
+      maxTokens: 8000, // genoeg voor ~50-80 items + tool-overhead
+      toolName: isDrinks ? 'extract_drink_items' : 'extract_menu_items',
+      toolDescription: isDrinks
+        ? 'Extract alle drankjes van de meegeleverde drankkaart als gestructureerde lijst, met subcategorie (wijn-rood, bier, etc).'
+        : 'Extract alle gerechten van de meegeleverde menukaart als gestructureerde lijst.',
+      inputSchema: isDrinks
+        ? DRINK_EXTRACTION_SCHEMA
+        : MENU_EXTRACTION_SCHEMA,
       meta: {
         restaurantId: meta.restaurantId,
         userId: meta.userId,
-        feature: 'menu_vision',
+        feature: isDrinks ? 'drinks_vision' : 'menu_vision',
       },
     });
 
-    return coerceMenu(raw);
+    return coerceMenu(raw, kind);
   }
+}
 
-  private buildSystemPrompt(): string {
-    return `Je bent Filly. Je kijkt naar een foto of PDF van een menukaart en extraheert alle gerechten.
+// ============================================================
+// System prompt voor reguliere menukaart
+// ============================================================
+function buildMenuSystemPrompt(): string {
+  return `Je bent Filly. Je kijkt naar een foto of PDF van een menukaart en extraheert alle gerechten.
 
 Je antwoord komt via de tool 'extract_menu_items'. Het schema bepaalt de structuur — jij bepaalt wat je ziet.
 
@@ -119,11 +140,37 @@ Inhoudsregels:
     * "tussen"       — tussengerechten / middelgerechten (klassiek menu)
     * "hoofd"        — hoofdgerechten, vis-/vlees-/vega-mains, pasta, pizza, salades, bijgerechten
     * "dessert"      — nagerechten, zoete afsluiters, kaasplanken
-    * "drank"        — wijnen, bieren, cocktails, koffie/thee, alcoholvrij
+    * "drank"        — wijnen, bieren, cocktails, koffie/thee, alcoholvrij (NB: drankkaarten worden via een aparte upload-flow ingelezen — als deze upload alleen drankjes bevat, gebruik dan toch category=drank)
     * "overig"       — alles wat niet in bovenstaande 5 past (gebruik dit spaarzaam)
 - Gerechten die duidelijk een variant zijn (bv. "met biefstuk €18, met zalm €16"): 2 items maken.
 - Als het bestand geen menukaart lijkt maar iets anders: geef een lege items-array en zet notes = "Dit lijkt geen menukaart te zijn".`;
-  }
+}
+
+// ============================================================
+// System prompt voor drankkaart
+// ============================================================
+function buildDrinksSystemPrompt(): string {
+  return `Je bent Filly. Je kijkt naar een foto of PDF van een DRANKKAART en extraheert alle drankjes.
+
+Je antwoord komt via de tool 'extract_drink_items'. Het schema bepaalt de structuur — jij bepaalt wat je ziet.
+
+Inhoudsregels:
+- Alle tekst in het Nederlands, ongeacht taal van de kaart. Behoud originele namen voor wijnen ('Sancerre', 'Barolo'), bieren ('Tripel Karmeliet') en cocktails ('Negroni').
+- price_cents = integer in centen. €4,50 = 450. €12 = 1200. Geen decimalen. Geen prijs = veld weglaten, NIET raden. Bij dranken die per glas én per fles verkocht worden: kies de prijs-per-glas (de gebruikelijke "drink-prijs") en zet de fles-info in description (bv. "fles €38").
+- Verzin GEEN drankjes. Als tekst onleesbaar is, noteer in "notes" welk deel onduidelijk was.
+- Subcategorie-keuze (verplicht, kies één van de 10):
+    * "wijn-rood"        — rode wijnen
+    * "wijn-wit"         — witte wijnen
+    * "wijn-rose"        — rosé-wijnen
+    * "wijn-mousserend"  — champagne, prosecco, cava, crémant en andere bubbels
+    * "bier"             — pils, tap-/fles-bieren, speciaalbieren
+    * "cocktail"         — gemixte cocktails (Negroni, Aperol Spritz, etc.)
+    * "sterke-drank"     — gin, whisky, rum, jenever, port, sherry, likeur
+    * "koffie-thee"      — koffie, thee, warme dranken
+    * "fris"             — frisdranken, sappen, water, alcoholvrij
+    * "overig"           — alles wat niet in bovenstaande 9 past (gebruik dit spaarzaam)
+- description: handig voor wijn-info zoals druif/regio/jaargang ('Pinot Noir, Bourgogne 2021') of voor bier ('blond, 6.5%').
+- Als het bestand geen drankkaart lijkt maar iets anders: geef een lege items-array en zet notes = "Dit lijkt geen drankkaart te zijn".`;
 }
 
 // ============================================================
@@ -179,12 +226,65 @@ const MENU_EXTRACTION_SCHEMA = {
   required: ['items', 'confidence'],
 } as const satisfies Anthropic.Tool.InputSchema;
 
+// ============================================================
+// JSON-schema voor extract_drink_items (drankkaart tool-use)
+// ============================================================
+// Subcategory-enum sluit aan op de visuele groepering binnen de
+// "drank"-tab op /dashboard/menu. Category zelf zit niet in dit
+// schema — server-side forceren we 'm op 'drank' (alle items van
+// een drankkaart belanden per definitie in die tab).
+const DRINK_SUBCATEGORIES = [
+  'wijn-rood',
+  'wijn-wit',
+  'wijn-rose',
+  'wijn-mousserend',
+  'bier',
+  'cocktail',
+  'sterke-drank',
+  'koffie-thee',
+  'fris',
+  'overig',
+] as const;
+
+const DRINK_EXTRACTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          price_cents: { type: 'integer' },
+          subcategory: {
+            type: 'string',
+            enum: DRINK_SUBCATEGORIES,
+          },
+        },
+        required: ['name', 'subcategory'],
+      },
+    },
+    categories_detected: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    confidence: {
+      type: 'string',
+      enum: ['low', 'medium', 'high'],
+    },
+    notes: { type: 'string' },
+  },
+  required: ['items', 'confidence'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
 type RawMenuFromTool = {
   items: Array<{
     name: string;
     description?: string;
     price_cents?: number;
     category?: string;
+    subcategory?: string;
     allergens?: string[];
   }>;
   categories_detected?: string[];
@@ -198,10 +298,10 @@ type RawMenuFromTool = {
 // zonder naam (kunnen we toch niets mee in de DB).
 // ============================================================
 
-function coerceMenu(raw: RawMenuFromTool): ExtractedMenu {
+function coerceMenu(raw: RawMenuFromTool, kind: CardKind): ExtractedMenu {
   const items: ExtractedMenuItem[] = [];
   for (const it of raw.items) {
-    const cleaned = coerceMenuItem(it);
+    const cleaned = coerceMenuItem(it, kind);
     if (cleaned) items.push(cleaned);
   }
 
@@ -216,7 +316,10 @@ function coerceMenu(raw: RawMenuFromTool): ExtractedMenu {
   };
 }
 
-function coerceMenuItem(it: RawMenuFromTool['items'][number]): ExtractedMenuItem | null {
+function coerceMenuItem(
+  it: RawMenuFromTool['items'][number],
+  kind: CardKind,
+): ExtractedMenuItem | null {
   const name = it.name?.trim();
   if (!name) return null; // gerecht zonder naam is nutteloos
 
@@ -230,9 +333,19 @@ function coerceMenuItem(it: RawMenuFromTool['items'][number]): ExtractedMenuItem
       ? it.description.trim()
       : undefined;
 
+  // Bij drankkaart-import forceren we category='drank' — alle items
+  // van een drankkaart belanden per definitie in de drank-tab.
+  // Bij menu-import gebruiken we wat Claude teruggaf.
   const category =
-    it.category && it.category.trim().length > 0
-      ? it.category.trim().toLowerCase()
+    kind === 'drinks'
+      ? 'drank'
+      : it.category && it.category.trim().length > 0
+        ? it.category.trim().toLowerCase()
+        : undefined;
+
+  const subcategory =
+    it.subcategory && it.subcategory.trim().length > 0
+      ? it.subcategory.trim().toLowerCase()
       : undefined;
 
   const allergens = (it.allergens ?? [])
@@ -244,6 +357,7 @@ function coerceMenuItem(it: RawMenuFromTool['items'][number]): ExtractedMenuItem
     description,
     price_cents: price,
     category,
+    subcategory,
     allergens: allergens.length > 0 ? allergens : undefined,
   };
 }

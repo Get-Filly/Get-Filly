@@ -7,6 +7,7 @@ import {
   updateMenuItem,
   deleteMenuItem,
   importMenuCard,
+  importDrinksCard,
   fetchActiveMenuCard,
   deleteMenuCard,
   type MenuItem,
@@ -33,6 +34,35 @@ const categoryLabel: Record<Category, string> = {
   hoofd: "Hoofdgerechten",
   dessert: "Desserts",
   drank: "Dranken",
+  overig: "Overig",
+};
+
+// Sub-categorieën voor de drank-tab. Visuele groepering in de UI;
+// vaste volgorde zodat wijnen + champagnes als blok bovenaan staan,
+// daarna bier/cocktail/sterk, dan koffie/thee/fris.
+const DRINK_SUBCATEGORY_ORDER = [
+  "wijn-rood",
+  "wijn-wit",
+  "wijn-rose",
+  "wijn-mousserend",
+  "bier",
+  "cocktail",
+  "sterke-drank",
+  "koffie-thee",
+  "fris",
+  "overig",
+] as const;
+
+const DRINK_SUBCATEGORY_LABEL: Record<string, string> = {
+  "wijn-rood": "Rode wijnen",
+  "wijn-wit": "Witte wijnen",
+  "wijn-rose": "Rosé wijnen",
+  "wijn-mousserend": "Mousserend",
+  bier: "Bieren",
+  cocktail: "Cocktails",
+  "sterke-drank": "Sterke drank",
+  "koffie-thee": "Koffie & thee",
+  fris: "Fris & alcoholvrij",
   overig: "Overig",
 };
 
@@ -103,6 +133,22 @@ function normalizeCategory(raw: string | null | undefined): Category {
   return CATEGORY_ALIASES[key] ?? "overig";
 }
 
+// Groepeert drank-items op subcategory voor de visuele groepering
+// in de drank-tab. Onbekende of lege subcategories vallen in "overig"
+// zodat de items zichtbaar blijven.
+function groupBySubcategory(items: MenuItem[]): Map<string, MenuItem[]> {
+  const groups = new Map<string, MenuItem[]>();
+  for (const item of items) {
+    const sub = item.subcategory?.trim().toLowerCase() || "overig";
+    const key = (DRINK_SUBCATEGORY_ORDER as readonly string[]).includes(sub)
+      ? sub
+      : "overig";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(item);
+  }
+  return groups;
+}
+
 const seasonLabel: Record<string, string> = {
   spring: "Lente",
   summer: "Zomer",
@@ -140,6 +186,7 @@ function emptyDraft(): MenuItem {
     name: "",
     description: null,
     category: "hoofd",
+    subcategory: null,
     price_cents: null,
     is_signature: false,
     is_seasonal: false,
@@ -187,7 +234,10 @@ export default function MenuPage() {
 
   // Upload-flow state. Zichtbaar wanneer uploadOpen=true. Stage volgt
   // de verwerking: reading → recognizing → categorizing → done|error.
+  // uploadKind bepaalt of we de menu-kaart of de drank-kaart importeren
+  // (verschillende endpoints, prompts en tabel-mapping op de backend).
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadKind, setUploadKind] = useState<"menu" | "drinks">("menu");
   const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
   const [uploadFileName, setUploadFileName] = useState<string | null>(null);
   // Items die zojuist door Filly zijn geïmporteerd — al in DB, met
@@ -319,7 +369,8 @@ export default function MenuPage() {
   };
 
   // Upload-flow handlers.
-  const openUpload = () => {
+  const openUpload = (kind: "menu" | "drinks" = "menu") => {
+    setUploadKind(kind);
     setUploadOpen(true);
     setUploadStage("idle");
     setUploadFileName(null);
@@ -354,7 +405,10 @@ export default function MenuPage() {
     const t2 = setTimeout(() => setUploadStage("categorizing"), 9000);
 
     try {
-      const result = await importMenuCard(file);
+      const result =
+        uploadKind === "drinks"
+          ? await importDrinksCard(file)
+          : await importMenuCard(file);
       setImportedItems(result.items);
       setImportNotes(result.notes);
       setUploadStage("done");
@@ -476,6 +530,48 @@ export default function MenuPage() {
     return items.filter((i) => normalizeCategory(i.category) === c).length;
   };
 
+  // Helper voor 1 menu-item-rij. Wordt vanuit twee plekken gerenderd:
+  // platte category-block (alle non-drank-tabs) én sub-grouped drank-
+  // block (waar de items per wijn-rood/bier/etc gegroepeerd staan).
+  const renderMenuItem = (item: MenuItem) => (
+    <button
+      key={item.id}
+      className={`menu-item ${
+        !item.is_available ? "menu-item-unavailable" : ""
+      }`}
+      onClick={() => openEdit(item)}
+      type="button"
+    >
+      <div className="menu-item-main">
+        <div className="menu-item-name-row">
+          <span className="menu-item-name">{item.name}</span>
+          {!item.is_available && (
+            <span className="menu-item-badge-soft">Tijdelijk uit</span>
+          )}
+          {item.is_signature && (
+            <span className="menu-item-badge-signature">Signature</span>
+          )}
+          {item.is_seasonal && item.season && (
+            <span className="menu-item-badge-season">
+              {seasonLabel[item.season]}
+            </span>
+          )}
+          {item.dietary_tags.map((t) => (
+            <span key={t} className="menu-item-badge-diet">
+              {t.replace("_", "-")}
+            </span>
+          ))}
+        </div>
+        {item.description && (
+          <div className="menu-item-desc">{item.description}</div>
+        )}
+      </div>
+      <div className="menu-item-price">
+        {formatEuroFromCents(item.price_cents)}
+      </div>
+    </button>
+  );
+
   return (
     <div className="page-full">
       {/* Titel-rij met primary-CTA rechts: "+ Gerecht toevoegen" is de
@@ -490,13 +586,24 @@ export default function MenuPage() {
           </div>
         </div>
         <div className="menu-header-actions">
-          {/* Upload-knop alleen wanneer er nog geen menu-kaart is.
-              Na upload is de status-banner hieronder de plek om te
-              vervangen — voorkomt dubbele knoppen. */}
+          {/* Twee aparte upload-knoppen — meeste horeca scheidt
+              menu en drank fysiek, en ze hebben verschillende
+              Vision-prompts (subcategorie wijn/bier/etc voor drank). */}
           {!uploadedCard && (
-            <button className="btn-secondary-dash" onClick={openUpload}>
-              📄 Upload menu-kaart
-            </button>
+            <>
+              <button
+                className="btn-secondary-dash"
+                onClick={() => openUpload("menu")}
+              >
+                📄 Menu-kaart uploaden
+              </button>
+              <button
+                className="btn-secondary-dash"
+                onClick={() => openUpload("drinks")}
+              >
+                🍷 Drankkaart uploaden
+              </button>
+            </>
           )}
           <button className="btn-primary-dash" onClick={openAdd}>
             ＋ Gerecht toevoegen
@@ -559,9 +666,15 @@ export default function MenuPage() {
           <div className="menu-card-status-actions">
             <button
               className="btn-secondary-dash menu-card-status-btn"
-              onClick={openUpload}
+              onClick={() => openUpload("menu")}
             >
-              Nieuwe menu-kaart uploaden
+              📄 Nieuwe menu-kaart
+            </button>
+            <button
+              className="btn-secondary-dash menu-card-status-btn"
+              onClick={() => openUpload("drinks")}
+            >
+              🍷 Drankkaart uploaden
             </button>
             <button
               className="menu-card-status-remove"
@@ -656,62 +769,69 @@ export default function MenuPage() {
                       list.length,
                   )
                 : 0;
+
+            // Drank-tab: extra sub-groepering op subcategory zodat
+            // wijnen/bier/cocktails visueel uit elkaar getrokken
+            // worden. Andere categorieën blijven plat.
+            const isDrinks = cat === "drank";
+            const drinkSubGroups = isDrinks
+              ? groupBySubcategory(list)
+              : null;
+            const noun = isDrinks
+              ? list.length === 1 ? "drankje" : "drankjes"
+              : list.length === 1 ? "gerecht" : "gerechten";
+
             return (
               <div key={cat} className="menu-category-block">
                 <div className="menu-category-head">
                   <h3 className="menu-category-title">{catLabel}</h3>
                   <div className="menu-category-meta">
-                    {list.length}{" "}
-                    {list.length === 1 ? "gerecht" : "gerechten"} · gem.{" "}
+                    {list.length} {noun} · gem.{" "}
                     {formatEuroFromCents(catAvg)}
                   </div>
                 </div>
-                <div className="menu-list">
-                  {list.map((item) => (
-                    <button
-                      key={item.id}
-                      className={`menu-item ${
-                        !item.is_available ? "menu-item-unavailable" : ""
-                      }`}
-                      onClick={() => openEdit(item)}
-                      type="button"
-                    >
-                      <div className="menu-item-main">
-                        <div className="menu-item-name-row">
-                          <span className="menu-item-name">{item.name}</span>
-                          {!item.is_available && (
-                            <span className="menu-item-badge-soft">
-                              Tijdelijk uit
-                            </span>
-                          )}
-                          {item.is_signature && (
-                            <span className="menu-item-badge-signature">
-                              Signature
-                            </span>
-                          )}
-                          {item.is_seasonal && item.season && (
-                            <span className="menu-item-badge-season">
-                              {seasonLabel[item.season]}
-                            </span>
-                          )}
-                          {item.dietary_tags.map((t) => (
-                            <span key={t} className="menu-item-badge-diet">
-                              {t.replace("_", "-")}
-                            </span>
-                          ))}
+                {drinkSubGroups ? (
+                  // Sub-headers per drank-subcategorie. Volgorde is
+                  // vast (DRINK_SUBCATEGORY_ORDER) zodat wijnen vooraan
+                  // komen.
+                  DRINK_SUBCATEGORY_ORDER.map((sub) => {
+                    const subList = drinkSubGroups.get(sub);
+                    if (!subList || subList.length === 0) return null;
+                    return (
+                      <div key={sub} className="menu-subcategory-block">
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--text-secondary)",
+                            margin: "12px 0 6px 0",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {DRINK_SUBCATEGORY_LABEL[sub] ?? sub}
+                          <span
+                            style={{
+                              marginLeft: 8,
+                              fontWeight: 400,
+                              textTransform: "none",
+                              letterSpacing: 0,
+                            }}
+                          >
+                            ({subList.length})
+                          </span>
                         </div>
-                        {item.description && (
-                          <div className="menu-item-desc">
-                            {item.description}
-                          </div>
-                        )}
+                        <div className="menu-list">
+                          {subList.map((item) => renderMenuItem(item))}
+                        </div>
                       </div>
-                      <div className="menu-item-price">
-                        {formatEuroFromCents(item.price_cents)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                    );
+                  })
+                ) : (
+                  <div className="menu-list">
+                    {list.map((item) => renderMenuItem(item))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -738,6 +858,7 @@ export default function MenuPage() {
           al in DB. "Klaar"-knop sluit + ververst de menu-lijst. */}
       {uploadOpen && (
         <UploadMenuModal
+          kind={uploadKind}
           stage={uploadStage}
           fileName={uploadFileName}
           imported={importedItems}
@@ -757,6 +878,7 @@ export default function MenuPage() {
 // ============================================================
 
 function UploadMenuModal({
+  kind,
   stage,
   fileName,
   imported,
@@ -766,6 +888,9 @@ function UploadMenuModal({
   onDone,
   onClose,
 }: {
+  // Bepaalt copy + icoon: 'menu' = standaard menu-kaart, 'drinks' =
+  // drankkaart (subcategorie wijn-rood/bier/etc).
+  kind: "menu" | "drinks";
   stage: UploadStage;
   fileName: string | null;
   // Items die al in de DB staan na een succesvolle import. Ids zijn
@@ -782,6 +907,10 @@ function UploadMenuModal({
   onDone: () => void;
   onClose: () => void;
 }) {
+  const isDrinks = kind === "drinks";
+  const cardLabel = isDrinks ? "drank-kaart" : "menu-kaart";
+  const cardIcon = isDrinks ? "🍷" : "📄";
+  const itemNoun = isDrinks ? "drankjes" : "gerechten";
   const isProcessing =
     stage === "reading" ||
     stage === "recognizing" ||
@@ -790,8 +919,10 @@ function UploadMenuModal({
   const stageLabel: Record<UploadStage, string> = {
     idle: "",
     reading: "Bestand uploaden…",
-    recognizing: "Filly leest je menu…",
-    categorizing: "Gerechten toevoegen aan je menu…",
+    recognizing: isDrinks
+      ? "Filly leest je drankkaart…"
+      : "Filly leest je menu…",
+    categorizing: `${itemNoun.charAt(0).toUpperCase() + itemNoun.slice(1)} toevoegen aan je menu…`,
     done: "Klaar",
     error: "Mislukt",
   };
@@ -831,16 +962,24 @@ function UploadMenuModal({
 
         <div className="sg-modal-header">
           <div className="sg-trigger">
-            <span>📄</span>
-            <span>Menu-kaart importeren</span>
+            <span>{cardIcon}</span>
+            <span>
+              {isDrinks
+                ? "Drankkaart importeren"
+                : "Menu-kaart importeren"}
+            </span>
           </div>
         </div>
 
-        <h2 className="sg-modal-title">Upload je menu</h2>
+        <h2 className="sg-modal-title">
+          {isDrinks ? "Upload je drankkaart" : "Upload je menu"}
+        </h2>
         <p className="menu-upload-intro">
-          Upload een PDF of foto van je menu-kaart. Filly leest de
-          gerechten automatisch in en zet ze direct in je menu — je
-          hoeft ze alleen nog te controleren.
+          Upload een PDF of foto van je {cardLabel}. Filly leest de{" "}
+          {itemNoun} automatisch in
+          {isDrinks
+            ? " en groepeert ze op type (wijn, bier, cocktail, etc.) — je hoeft ze alleen nog te controleren."
+            : " en zet ze direct in je menu — je hoeft ze alleen nog te controleren."}
         </p>
 
         {stage === "idle" && (

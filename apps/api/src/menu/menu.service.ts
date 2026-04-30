@@ -14,6 +14,9 @@ export type MenuItem = {
   name: string;
   description: string | null;
   category: string | null;
+  // Sub-categorie. Voor drank-items: wijn-rood, bier, cocktail, etc.
+  // Voor menu-items momenteel ongebruikt (null).
+  subcategory: string | null;
   price_cents: number | null;
   is_signature: boolean;
   is_seasonal: boolean;
@@ -30,6 +33,7 @@ export type CreateMenuItemInput = {
   name: string;
   description?: string | null;
   category?: string | null;
+  subcategory?: string | null;
   price_cents?: number | null;
   is_signature?: boolean;
   is_seasonal?: boolean;
@@ -87,7 +91,7 @@ export class MenuService {
     const { data, error } = await this.supabase.client
       .from('menu_items')
       .select(
-        'id, name, description, category, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
+        'id, name, description, category, subcategory, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
       )
       .eq('restaurant_id', restaurantId)
       .order('category', { ascending: true });
@@ -113,7 +117,7 @@ export class MenuService {
         ...payload,
       })
       .select(
-        'id, name, description, category, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
+        'id, name, description, category, subcategory, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
       )
       .single();
 
@@ -143,7 +147,7 @@ export class MenuService {
       .eq('id', id)
       .eq('restaurant_id', restaurantId)
       .select(
-        'id, name, description, category, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
+        'id, name, description, category, subcategory, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
       )
       .maybeSingle();
 
@@ -214,6 +218,14 @@ export class MenuService {
       const v = input.category;
       out.category =
         typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
+    }
+
+    if ('subcategory' in input) {
+      const v = input.subcategory;
+      out.subcategory =
+        typeof v === 'string' && v.trim().length > 0
+          ? v.trim().slice(0, 50)
+          : null;
     }
 
     if ('price_cents' in input) {
@@ -300,6 +312,7 @@ export class MenuService {
     restaurantId: string,
     userId: string | null,
     file: { buffer: Buffer; originalName: string; mimeType: string },
+    kind: 'menu' | 'drinks' = 'menu',
   ): Promise<ImportCardResult> {
     // 1) Pad samenstellen + bestand uploaden. Sanitize de filename
     // (alleen alfanumeriek + ._-) zodat we geen path-traversal of
@@ -358,6 +371,7 @@ export class MenuService {
           originalName: file.originalName,
         },
         { restaurantId, userId: userId ?? undefined },
+        kind,
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Onbekende fout.';
@@ -382,7 +396,15 @@ export class MenuService {
         menu_upload_id: uploadId,
         name: it.name.trim().slice(0, 200),
         description: it.description?.trim() || null,
-        category: it.category?.trim().slice(0, 50) || null,
+        // Drankkaart-import → server-side dwingen we category='drank'
+        // ongeacht wat Claude eventueel teruggaf. Voor menukaart
+        // gebruiken we wat de Vision-tool koos (al gevalideerd via
+        // de enum in MENU_EXTRACTION_SCHEMA).
+        category:
+          kind === 'drinks'
+            ? 'drank'
+            : (it.category?.trim().slice(0, 50) || null),
+        subcategory: it.subcategory?.trim().slice(0, 50) || null,
         price_cents:
           typeof it.price_cents === 'number' && it.price_cents >= 0
             ? Math.round(it.price_cents)
@@ -403,7 +425,7 @@ export class MenuService {
         .from('menu_items')
         .insert(rowsToInsert)
         .select(
-          'id, name, description, category, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
+          'id, name, description, category, subcategory, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
         );
       if (itemsErr) {
         const msg = `${itemsErr.message} (na succesvolle Vision-analyse)`;

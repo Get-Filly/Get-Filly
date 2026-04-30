@@ -62,7 +62,17 @@ export type OnboardingInput = {
     description?: string;
     price_cents?: number;
     category?: string;
+    subcategory?: string;
     allergens?: string[];
+  }>;
+  // Drankkaart (parallelle upload naast menukaart). Server-side
+  // dwingen we category='drank' af; de subcategory komt uit Vision
+  // (wijn-rood/wijn-wit/bier/cocktail/etc).
+  drink_items?: Array<{
+    name: string;
+    description?: string;
+    price_cents?: number;
+    subcategory?: string;
   }>;
 };
 
@@ -74,13 +84,16 @@ export type OnboardingInput = {
 //   - menu is mislukt (DB-fout)   → menuImport.inserted = 0, error gevuld
 // Bij een mislukte menu-import blijft het restaurant gewoon bestaan;
 // de user kan later handmatig of via menu-pagina opnieuw uploaden.
+type ImportResult = {
+  attempted: number;
+  inserted: number;
+  error: string | null;
+};
+
 export type OnboardingResult = {
   restaurantId: string;
-  menuImport: {
-    attempted: number;
-    inserted: number;
-    error: string | null;
-  } | null;
+  menuImport: ImportResult | null;
+  drinkImport: ImportResult | null;
 };
 
 @Injectable()
@@ -220,6 +233,7 @@ export class OnboardingService {
         description: item.description?.trim() || null,
         price_cents: item.price_cents ?? null,
         category: item.category?.trim() || null,
+        subcategory: item.subcategory?.trim() || null,
         allergens: nonEmptyArray(item.allergens),
       }));
       const { error: menuErr } = await this.supabase.client
@@ -238,6 +252,34 @@ export class OnboardingService {
       }
     }
 
+    // Stap 6b — drank_items batch-inserten als de wizard een
+    // drankkaart heeft meegestuurd. Identieke menu_items-tabel
+    // (zelfde Filly-context, zelfde menu-pagina) maar met server-
+    // side category='drank'. Fail-soft, identiek aan menu hierboven.
+    let drinkImport: OnboardingResult['drinkImport'] = null;
+    if (input.drink_items && input.drink_items.length > 0) {
+      const attempted = input.drink_items.length;
+      const rows = input.drink_items.map((item) => ({
+        restaurant_id: restaurant.id,
+        name: item.name.trim(),
+        description: item.description?.trim() || null,
+        price_cents: item.price_cents ?? null,
+        category: 'drank', // server-side gedwongen
+        subcategory: item.subcategory?.trim() || null,
+      }));
+      const { error: drinkErr } = await this.supabase.client
+        .from('menu_items')
+        .insert(rows);
+      if (drinkErr) {
+        console.error(
+          `Drink-items-insert gefaald voor ${restaurant.id}: ${drinkErr.message}`,
+        );
+        drinkImport = { attempted, inserted: 0, error: drinkErr.message };
+      } else {
+        drinkImport = { attempted, inserted: attempted, error: null };
+      }
+    }
+
     // Stap 7 — adres → coördinaten via PDOK. Fail-soft: als PDOK
     // het adres niet kent of de call flakes, blijft lat/long null.
     // Geen weer-forecast voor die zaak tot hij z'n adres corrigeert,
@@ -250,7 +292,7 @@ export class OnboardingService {
       city: input.city,
     });
 
-    return { restaurantId: restaurant.id, menuImport };
+    return { restaurantId: restaurant.id, menuImport, drinkImport };
   }
 
   // Helper: geocode het adres en sla lat/long op het restaurant op.
