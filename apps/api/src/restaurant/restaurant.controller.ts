@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -10,6 +11,7 @@ import {
 import type { Response } from 'express';
 import { RestaurantService } from './restaurant.service';
 import { DataExportService } from './data-export.service';
+import { AccountDeletionService } from './account-deletion.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import {
   CurrentUser,
@@ -24,6 +26,7 @@ export class RestaurantController {
   constructor(
     private readonly restaurant: RestaurantService,
     private readonly dataExport: DataExportService,
+    private readonly accountDeletion: AccountDeletionService,
   ) {}
 
   @Get('me')
@@ -73,5 +76,26 @@ export class RestaurantController {
       `attachment; filename="getfilly-export-${date}.json"`,
     );
     return result;
+  }
+
+  // AVG art. 17 — recht op vergetelheid. Verwijdert permanent:
+  //   - Alle restaurants waar de ingelogde user 'owner' is, incl.
+  //     gasten, reserveringen, menu, campagnes, reviews, chat,
+  //     audit-log (cascade via FK on delete cascade)
+  //   - De user zelf (auth.users + public.users + restaurant_users)
+  //
+  // Vóór delete worden afgeronde campagnes geanonimiseerd weggeschreven
+  // naar `campaign_benchmarks` zodat Filly's leer-loop niet lijdt
+  // onder verwijderingen — geen restaurant_id, geen body-tekst, geen
+  // PII (Recital 26 GDPR).
+  //
+  // Body: { confirmation: "VERWIJDER" }. Check is letterlijk —
+  // voorkomt accidentele DELETE-requests vanuit ander UI of API-test.
+  @Delete('me/account')
+  deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { confirmation?: string },
+  ) {
+    return this.accountDeletion.deleteAccount(user.id, body?.confirmation ?? '');
   }
 }

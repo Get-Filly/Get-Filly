@@ -29,12 +29,12 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~Onboarding met Filly-auto-invul~~ — URL + menukaart → Filly vult hele profiel in (description, tagline, atmosphere, target_audience, USPs, events, signature_dishes, cuisine_style, adres, toon) + menu-items via Opus Vision. Wizard: bronnen → review → bevestig (2026-04-24, commits `b29f317` + `d909c65`).
 
 ### Legal & compliance (AVG/NL)
-- [~] **Privacy-verklaring** — `/privacy` concept-v1 live (2026-04-24). Nog te doen: (1) bedrijfsgegevens invullen (`[INVULLEN:...]`-placeholders op de pagina), (2) jurist-review, (3) gele draft-banner weghalen.
-- [~] **Algemene voorwaarden** — `/voorwaarden` concept-v1 live (2026-04-24). Nog te doen: (1) bedrijfsgegevens + rechtbank + aansprakelijkheidsmax invullen, (2) jurist-review, (3) draft-banner weghalen, (4) aparte verwerkersovereenkomst opstellen (wordt in de AV naar verwezen).
+- [~] **Privacy-verklaring** — `/privacy` concept-v1 live (2026-04-24). **Per 2026-04-30**: dynamisch rendering geactiveerd via `apps/web/src/config/company.ts` + `<LegalField>`. Banner + placeholders verdwijnen automatisch zodra `legalName` + `kvk` zijn gevuld. Nog te doen: (1) bedrijfsgegevens invullen in `config/company.ts` zodra KvK-inschrijving rond is, (2) jurist-review.
+- [~] **Algemene voorwaarden** — `/voorwaarden` concept-v1 live (2026-04-24). **Per 2026-04-30**: dynamisch rendering via `config/company.ts` (zelfde flow als privacy). Nog te doen: (1) bedrijfsgegevens + rechtbank + aansprakelijkheidsmax invullen in `config/company.ts`, (2) jurist-review, (3) aparte verwerkersovereenkomst opstellen (wordt in de AV naar verwezen).
 - [ ] **Jurist-review legal-teksten** — laten reviewen door privacy/SaaS-jurist vóór eerste klant. Met name: aansprakelijkheidslimiet, SLA-claim, IP-clausule AI-output, prijswijzigings-clausule.
 - [ ] **Cookie-banner** — ePrivacy-verplicht zodra Plausible/PostHog erop komt. Concept-privacy verwijst nu al vooruit naar banner.
-- [ ] **AVG-endpoints** — data-export + right-to-be-forgotten (account-delete). Zie ook data-classificatie-item hieronder.
-- [ ] **Data-classificatie + anonimisering-bij-delete** — groter dan de regel hierboven. Elke tabel categoriseren: (1) identificerend → harde delete, (2) business-signaal → anonimiseren + bewaren voor AI-benchmarking, (3) aggregaat → blijft. Plan: eerst `docs/data-classification.md` maken met per-tabel-categorie + PII-velden. Dán techniek kiezen (`anon_*`-tabellen vs soft-delete-mask vs hybride). Waarom belangrijk: geanonimiseerde patronen ("pizza margherita €12,50 werkte in italiaanse zaken in NH") zijn onze AI-leer-schat, maar restaurant_id+naam+foto's moeten juridisch weg. Niet blokkerend voor eerste klant, wél vóór tweede deletion.
+- [x] ~~**AVG-endpoints** — data-export~~ (2026-04-29) + ~~right-to-be-forgotten (account-delete)~~ (2026-04-30). Account-delete via `DELETE /restaurant/me/account` met `{ confirmation: "VERWIJDER" }`-body. UI-knop op account-pagina sectie "Data & privacy". Verwijdert auth.users + alle owner-restaurants → cascade business-data; blokkeert als andere team-members bestaan. Bewijs-rij in `account_deletions`-tabel (geen PII).
+- [~] **Data-classificatie + anonimisering-bij-delete** — fase 1 live per 2026-04-30: continue benchmark-anonymisering bij `campaign.status → afgerond` schrijft een rij in `campaign_benchmarks` (cuisine + region=provincie + capacity-bucket + month + theme + result-metrics, géén body, géén FK, GDPR Recital 26). Laatste-vangnet bij delete via `AnonymizationService.benchmarkAllCompletedFor()`. **Fase 2 nog open**: (1) body-templates extraheren met LLM-stripping van eigennamen, (2) menu-pattern-aggregatie, (3) `docs/data-classification.md` met per-tabel-categorie, (4) Filly's prompts verrijken met benchmark-queries.
 
 ### Billing
 - [ ] **Mollie-integratie** — SDK installeren, checkout-flow op pricing-pagina
@@ -122,6 +122,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Statische koppelingen-lijst** zonder OAuth-flow
 
 ### Database-migraties nog te maken
+- [x] ~~`campaign_benchmarks` + `account_deletions` (anonymisering + AVG art. 17)~~ (migratie 0023, 2026-04-30)
 - [x] ~~`menu_uploads` + Storage-bucket + FK menu_items.menu_upload_id~~ (migratie 0011, 2026-04-24)
 - [x] ~~ai_usage.restaurant_id nullable (pre-onboarding logging)~~ (migratie 0012, 2026-04-24)
 - [x] ~~restaurants.website_url + onboarded_at~~ (migratie 0010, 2026-04-24)
@@ -192,11 +193,16 @@ werken. Laatste audit: 2026-04-23.
 Door Floris geselecteerd aan het einde van 2026-04-29, klaar om
 direct op te pakken in de volgende sessie:
 
-1. **🔴 Privacy + AV pagina's dynamisch** — bedrijfsgegevens kunnen
-   sinds vandaag via account-pagina ingevuld worden, maar `/privacy`
-   en `/voorwaarden` renderen ze nog niet. Doel: server-component die
-   `restaurants`-rij ophaalt en `[INVULLEN:...]`-placeholders vervangt.
-   Gele draft-banner alleen tonen als KvK + legal_name leeg zijn.
+1. ~~**🔴 Privacy + AV pagina's dynamisch**~~ ✅ (2026-04-30) —
+   `apps/web/src/config/company.ts` is dé centrale plek voor
+   Get-Filly's eigen bedrijfsgegevens (handelsnaam, legal name,
+   KvK, adres, rechtbank, aansprakelijkheidsmax). `<LegalField>`-
+   component vervangt placeholders door waardes en valt anders
+   netjes terug op een gele "[NOG IN TE VULLEN: ...]". Banner op
+   `/privacy` en `/voorwaarden` verdwijnt automatisch zodra
+   `legalName` + `kvk` gevuld zijn. NB: bevat Get-Filly's eigen
+   gegevens, NIET de `restaurants`-rij — dat zou een denkfout
+   zijn (restaurants = klanten, niet de SaaS-aanbieder).
 
 2. **🟡 Onboarding-checklist op dashboard-home** — banner of card-
    sectie die voor nieuwe klanten de openstaande setup-stappen toont

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   fetchRestaurant,
   updateRestaurant,
   analyzeRestaurantWebsite,
   downloadRestaurantExport,
+  deleteAccount,
   type Restaurant,
 } from "../../../lib/api";
 import { supabase } from "../../../lib/supabase";
@@ -73,6 +75,15 @@ export default function AccountPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Account-delete-modal-state. Modal verschijnt pas als gebruiker
+  // expliciet op de rode knop klikt; "VERWIJDER"-bevestiging staat
+  // aan client-zijde EN backend-zijde — defense in depth.
+  const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRestaurant()
@@ -1296,7 +1307,217 @@ export default function AccountPage() {
             apart downloaden.
           </div>
         </div>
+
+        {/* AVG art. 17 — recht op vergetelheid. Bewust onder de export-
+            knop zodat een gebruiker eerst zijn data kan downloaden
+            voordat hij alles weggooit. */}
+        <div
+          className="form-field full"
+          style={{
+            marginTop: 24,
+            paddingTop: 24,
+            borderTop: "1px solid #f0e6d6",
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 600,
+              color: "#7a2222",
+              marginBottom: 6,
+              fontSize: 14,
+            }}
+          >
+            Account permanent verwijderen
+          </div>
+          <div className="hint" style={{ marginBottom: 12 }}>
+            Wist je restaurant + alle gasten, reserveringen, menu, campagnes
+            en chat-history. Daarna verdwijnt ook je inlog-account. Deze
+            actie is onomkeerbaar — download eerst je data-export
+            hierboven als je iets wilt bewaren.
+          </div>
+          <button
+            type="button"
+            className="btn-secondary-dash"
+            onClick={() => {
+              setDeleteConfirm("");
+              setDeleteError(null);
+              setShowDeleteModal(true);
+            }}
+            style={{
+              borderColor: "#c44",
+              color: "#a22",
+              display: "inline-block",
+            }}
+          >
+            🗑 Account permanent verwijderen
+          </button>
+        </div>
       </div>
+
+      {/* ============================================================
+          Modal: account-delete-bevestiging
+          ============================================================
+          Bewust een full-screen overlay zodat de gebruiker echt even
+          moet pauzeren. "VERWIJDER" intypen voorkomt accidentele
+          double-clicks of muscle-memory-bevestiging. */}
+      {showDeleteModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(20, 20, 20, 0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 24,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleting) {
+              setShowDeleteModal(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              background: "#fdf9f0",
+              borderRadius: 12,
+              padding: 28,
+              maxWidth: 520,
+              width: "100%",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#7a2222",
+                marginBottom: 12,
+              }}
+            >
+              Weet je het zeker?
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                color: "#3a3a3a",
+                marginBottom: 16,
+                lineHeight: 1.5,
+              }}
+            >
+              Je staat op het punt om <strong>je hele account</strong> te
+              verwijderen. Dit betekent:
+            </div>
+            <ul
+              style={{
+                fontSize: 13,
+                color: "#3a3a3a",
+                marginBottom: 18,
+                lineHeight: 1.6,
+                paddingLeft: 20,
+              }}
+            >
+              <li>Je restaurant + alle profielgegevens worden gewist</li>
+              <li>Alle gasten, reserveringen, menu en campagnes verdwijnen</li>
+              <li>Reviews, chat-history en audit-log worden verwijderd</li>
+              <li>Je inlog-account (e-mail + wachtwoord) wordt gewist</li>
+              <li>
+                Anonieme leerdata (cuisine + regio + campagne-resultaten,
+                géén namen of adressen) blijft bewaard om Filly te trainen —
+                conform AVG Recital 26.
+              </li>
+            </ul>
+            <div
+              style={{
+                fontSize: 13,
+                color: "#3a3a3a",
+                marginBottom: 8,
+              }}
+            >
+              Type <strong>VERWIJDER</strong> om door te gaan:
+            </div>
+            <input
+              type="text"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              disabled={deleting}
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                fontSize: 14,
+                border: "1px solid #d8c8a8",
+                borderRadius: 6,
+                marginBottom: 12,
+                background: "#fff",
+              }}
+              placeholder="VERWIJDER"
+            />
+            {deleteError && (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#a22",
+                  marginBottom: 12,
+                  background: "#fde7e7",
+                  padding: 10,
+                  borderRadius: 6,
+                }}
+              >
+                {deleteError}
+              </div>
+            )}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="button"
+                className="btn-secondary-dash"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+              >
+                Annuleren
+              </button>
+              <button
+                type="button"
+                className="btn-primary-dash"
+                disabled={deleting || deleteConfirm !== "VERWIJDER"}
+                onClick={async () => {
+                  setDeleting(true);
+                  setDeleteError(null);
+                  try {
+                    await deleteAccount(deleteConfirm);
+                    // Lokale Supabase-sessie opruimen zodat het JWT niet
+                    // achterblijft in localStorage.
+                    await supabase.auth.signOut();
+                    router.push("/account-verwijderd");
+                  } catch (e) {
+                    setDeleteError(
+                      e instanceof Error
+                        ? e.message
+                        : "Verwijderen mislukt — probeer opnieuw of neem contact op met support.",
+                    );
+                    setDeleting(false);
+                  }
+                }}
+                style={{
+                  background: "#a22",
+                  borderColor: "#a22",
+                }}
+              >
+                {deleting
+                  ? "Verwijderen…"
+                  : "Ja, verwijder mijn account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================
           Globale save-bar onderaan

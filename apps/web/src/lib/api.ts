@@ -731,6 +731,31 @@ export async function downloadRestaurantExport(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+// AVG art. 17 — recht op vergetelheid. Verwijdert de ingelogde
+// user permanent inclusief alle owner-restaurants en gerelateerde
+// data. Vereist letterlijke "VERWIJDER"-bevestiging — anders weigert
+// de backend met BadRequest. Op succes returnt de backend een
+// telling van wat is verwijderd; de frontend signt daarna direct uit.
+export type AccountDeletionResult = {
+  deleted_user_id: string;
+  restaurants_deleted: number;
+  campaigns_anonymized: number;
+};
+
+export async function deleteAccount(
+  confirmation: string,
+): Promise<AccountDeletionResult> {
+  const res = await authedFetch(`${API_URL}/restaurant/me/account`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirmation }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Verwijderen mislukt"));
+  }
+  return res.json();
+}
+
 // Helper: pak de NL-foutmelding uit een non-OK response. Backend stuurt
 // `{ message: "Naam is verplicht." }`-vormige body. Bij ontbrekende of
 // niet-JSON body vallen we terug op de HTTP-status zodat we nooit een

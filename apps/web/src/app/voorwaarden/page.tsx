@@ -5,7 +5,9 @@
 // het Get-Filly SaaS-platform door zakelijke klanten (B2B).
 //
 // Dit is een CONCEPT v1, zoals privacy.tsx — gele draft-banner
-// bovenaan. Placeholders: zoek `[INVULLEN:`.
+// verdwijnt automatisch zodra `legalName` + `kvk` zijn gevuld in
+// `apps/web/src/config/company.ts`. Lege velden tonen tot dan
+// een "[NOG IN TE VULLEN: ...]"-placeholder via <LegalField/>.
 //
 // Uitgangspunten van deze voorwaarden:
 //   - B2B — klanten zijn horeca/wellness/hotel-ondernemers
@@ -24,6 +26,12 @@
 // ============================================================
 
 import type { Metadata } from "next";
+import {
+  COMPANY,
+  formatLegalIdentifier,
+  isLegalDataComplete,
+} from "@/config/company";
+import { LegalField } from "@/components/legal-field";
 
 export const metadata: Metadata = {
   title: "Algemene voorwaarden — Get-Filly",
@@ -35,16 +43,23 @@ const LAST_UPDATED = "24 april 2026";
 const VERSION = "v1 (concept)";
 
 export default function VoorwaardenPage() {
+  // Zelfde logica als op /privacy: zolang KvK + legal_name in
+  // de centrale config leeg zijn blijft de gele draft-banner staan.
+  const showDraftBanner = !isLegalDataComplete();
+  const legalIdentifier = formatLegalIdentifier();
+
   return (
     <section className="legal-page">
       <div className="legal-container">
-        <div className="legal-draft-banner">
-          <strong>Concept — nog niet juridisch gereviewd.</strong> Deze
-          tekst is een eerste versie. Vóór we klanten accepteren laten
-          we 'm controleren door een advocaat en vullen we de ontbrekende
-          bedrijfsgegevens in. Tot die tijd gelden deze voorwaarden niet
-          als bindende overeenkomst.
-        </div>
+        {showDraftBanner && (
+          <div className="legal-draft-banner">
+            <strong>Concept — nog niet juridisch gereviewd.</strong> Deze
+            tekst is een eerste versie. Vóór we klanten accepteren laten
+            we 'm controleren door een advocaat en vullen we de ontbrekende
+            bedrijfsgegevens in. Tot die tijd gelden deze voorwaarden niet
+            als bindende overeenkomst.
+          </div>
+        )}
 
         <p className="legal-meta">
           Laatst bijgewerkt: {LAST_UPDATED} · {VERSION}
@@ -84,11 +99,16 @@ export default function VoorwaardenPage() {
           <ul>
             <li>
               <strong>Get-Filly / wij / ons</strong> —{" "}
-              <span className="legal-placeholder">
-                [INVULLEN: volledige bedrijfsnaam + KvK-nummer]
-              </span>
+              <LegalField
+                value={legalIdentifier}
+                placeholder="volledige bedrijfsnaam + KvK-nummer"
+              />
               , gevestigd te{" "}
-              <span className="legal-placeholder">[INVULLEN: vestigingsplaats]</span>.
+              <LegalField
+                value={COMPANY.addressCity}
+                placeholder="vestigingsplaats"
+              />
+              .
             </li>
             <li>
               <strong>Klant / jij / je</strong> — de natuurlijke persoon
@@ -338,8 +358,11 @@ export default function VoorwaardenPage() {
             gebeurtenissen is beperkt tot het bedrag dat je in de
             voorafgaande twaalf maanden aan abonnementskosten aan ons hebt
             betaald, met een absolute maximum van{" "}
-            <span className="legal-placeholder">[INVULLEN: bedrag, bv. € 25.000]</span>{" "}
-            per kalenderjaar.
+            <LegalField
+              value={COMPANY.liabilityCap}
+              placeholder="bedrag, bv. € 25.000"
+            />
+            {" "}per kalenderjaar.
           </p>
           <p>
             <strong>Uitgesloten schade.</strong> Wij zijn niet aansprakelijk
@@ -419,8 +442,11 @@ export default function VoorwaardenPage() {
             Voordat een geschil aan de rechter wordt voorgelegd, zullen
             partijen in overleg treden om tot een oplossing te komen.
             Lukt dat niet, dan is de rechter van de rechtbank{" "}
-            <span className="legal-placeholder">[INVULLEN: rechtbank, bv. Amsterdam]</span>{" "}
-            bij uitsluiting bevoegd om kennis te nemen van het geschil,
+            <LegalField
+              value={COMPANY.court}
+              placeholder="rechtbank, bv. Amsterdam"
+            />
+            {" "}bij uitsluiting bevoegd om kennis te nemen van het geschil,
             tenzij dwingend recht een andere rechter aanwijst.
           </p>
         </div>

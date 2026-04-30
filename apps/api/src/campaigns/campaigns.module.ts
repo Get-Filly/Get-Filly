@@ -5,6 +5,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
 import { AuditLogModule } from '../common/audit-log.module';
+import { AnonymizationModule } from '../anonymization/anonymization.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -17,7 +18,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 // AiModule is nodig voor de refine-generator: 3 alternatieven uit
 // een bestaande concept-campagne genereren via Claude.
 @Module({
-  imports: [SupabaseModule, MeModule, AiModule, AuditLogModule],
+  imports: [SupabaseModule, MeModule, AiModule, AuditLogModule, AnonymizationModule],
   controllers: [CampaignsController],
   providers: [CampaignsService, AuthGuard, RestaurantAccessGuard],
   exports: [CampaignsService],

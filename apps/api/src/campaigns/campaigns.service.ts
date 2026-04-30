@@ -7,6 +7,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
+import { AnonymizationService } from '../anonymization/anonymization.service';
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
 export type CampaignStatus =
@@ -54,6 +55,10 @@ export class CampaignsService {
     // houdend met bezetting + special events).
     private readonly context: RestaurantContextService,
     private readonly audit: AuditLogService,
+    // AnonymizationService bouwt bij `status → afgerond` een
+    // geanonimiseerde benchmark-rij op (Recital 26 GDPR). Fail-soft
+    // — een falende benchmark mag de status-overgang nooit blokkeren.
+    private readonly anonymization: AnonymizationService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
@@ -414,6 +419,15 @@ export class CampaignsService {
       entity_id: id,
       payload: { from: currentStatus, to: nextStatus },
     });
+
+    // Bij afronding: schrijf een geanonimiseerde benchmark-rij weg
+    // zodat Filly deze ervaring later kan gebruiken om voorstellen
+    // te onderbouwen ("voor italiaanse zaken in NH werkte thema X").
+    // Fail-soft via de service zelf — gebruiker merkt nooit als 'm
+    // faalt; alleen logger.warn in de backend.
+    if (nextStatus === 'afgerond') {
+      await this.anonymization.benchmarkCampaign(id);
+    }
 
     return { id, status: nextStatus };
   }

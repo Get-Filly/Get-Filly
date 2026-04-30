@@ -5,10 +5,11 @@
 // verwerken, waarom, met wie we ze delen en welke rechten
 // betrokkenen hebben (AVG art. 13/14).
 //
-// Dit is een CONCEPT v1. Geel draft-banner staat bovenaan en moet
-// pas weg als een jurist de tekst heeft gereviewd + de bedrijfs-
-// gegevens (KvK, adres, etc.) zijn ingevuld. Zoek op
-// `[INVULLEN:` om de placeholders te vinden.
+// Dit is een CONCEPT v1. De gele draft-banner verdwijnt
+// automatisch zodra de bedrijfsgegevens (KvK + legalName) in
+// `apps/web/src/config/company.ts` zijn ingevuld. Tot die tijd
+// vallen ontbrekende velden hieronder netjes terug op een
+// "[NOG IN TE VULLEN: ...]"-placeholder via <LegalField/>.
 //
 // Bronnen van de tekst: AVG (GDPR), Uitvoeringswet AVG (NL),
 // Autoriteit Persoonsgegevens "Voorbeeldtekst privacyverklaring"
@@ -17,6 +18,12 @@
 // ============================================================
 
 import type { Metadata } from "next";
+import {
+  COMPANY,
+  formatFullAddress,
+  isLegalDataComplete,
+} from "@/config/company";
+import { LegalField } from "@/components/legal-field";
 
 export const metadata: Metadata = {
   title: "Privacyverklaring — Get-Filly",
@@ -30,18 +37,25 @@ const LAST_UPDATED = "24 april 2026";
 const VERSION = "v1 (concept)";
 
 export default function PrivacyPage() {
+  // Banner verschijnt zolang KvK + legal_name nog niet centraal in
+  // `apps/web/src/config/company.ts` zijn ingevuld. Zodra dat
+  // gebeurt verdwijnt de banner automatisch én vallen alle
+  // [INVULLEN]-placeholders hieronder terug op de echte waarde.
+  const showDraftBanner = !isLegalDataComplete();
+  const fullAddress = formatFullAddress();
+
   return (
     <section className="legal-page">
       <div className="legal-container">
-        {/* Draft-banner: weghalen zodra jurist akkoord + alle
-            [INVULLEN]-placeholders zijn vervangen. */}
-        <div className="legal-draft-banner">
-          <strong>Concept — nog niet juridisch gereviewd.</strong> Deze
-          tekst is een eerste versie. Vóór we klanten accepteren laten
-          we 'm controleren door een privacy-jurist en vullen we de
-          ontbrekende bedrijfsgegevens in. Gebruik deze verklaring niet
-          als leidraad voor juridische beslissingen.
-        </div>
+        {showDraftBanner && (
+          <div className="legal-draft-banner">
+            <strong>Concept — nog niet juridisch gereviewd.</strong> Deze
+            tekst is een eerste versie. Vóór we klanten accepteren laten
+            we 'm controleren door een privacy-jurist en vullen we de
+            ontbrekende bedrijfsgegevens in. Gebruik deze verklaring niet
+            als leidraad voor juridische beslissingen.
+          </div>
+        )}
 
         <p className="legal-meta">
           Laatst bijgewerkt: {LAST_UPDATED} · {VERSION}
@@ -86,18 +100,30 @@ export default function PrivacyPage() {
           <ul>
             <li>
               <strong>
-                <span className="legal-placeholder">[INVULLEN: volledige bedrijfsnaam]</span>
+                <LegalField
+                  value={COMPANY.legalName}
+                  placeholder="volledige bedrijfsnaam"
+                />
               </strong>
               {" "}(hierna: "Get-Filly", "wij" of "ons")
             </li>
             <li>
-              Bedrijfsvorm: <span className="legal-placeholder">[INVULLEN: eenmanszaak / VOF / BV]</span>
+              Bedrijfsvorm:{" "}
+              <LegalField
+                value={COMPANY.businessForm}
+                placeholder="eenmanszaak / VOF / BV"
+              />
             </li>
             <li>
-              KvK-nummer: <span className="legal-placeholder">[INVULLEN: KvK-nummer]</span>
+              KvK-nummer:{" "}
+              <LegalField value={COMPANY.kvk} placeholder="KvK-nummer" />
             </li>
             <li>
-              Vestigingsadres: <span className="legal-placeholder">[INVULLEN: straat + nummer, postcode, plaats]</span>
+              Vestigingsadres:{" "}
+              <LegalField
+                value={fullAddress}
+                placeholder="straat + nummer, postcode, plaats"
+              />
             </li>
             <li>
               E-mail voor privacy-vragen:{" "}
