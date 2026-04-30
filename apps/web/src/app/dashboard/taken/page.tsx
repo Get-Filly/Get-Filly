@@ -15,6 +15,8 @@ import {
   type OccupancyDay,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 type TaskCategory = "filly" | "reviews" | "reserveringen" | "insights";
 
@@ -239,11 +241,10 @@ export default function TakenPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Taken</div>
-      <div className="page-subtitle">
-        Alles wat vandaag je aandacht vraagt — AI-voorstellen, reviews,
-        reserveringen en alerts.
-      </div>
+      <PageHeader
+        title="Taken"
+        subtitle="Alles wat vandaag je aandacht vraagt — AI-voorstellen, reviews, reserveringen en alerts."
+      />
 
       {/* Stats-row: totaal openstaand, hoge urgentie (rood signaal) en
           "van Filly" (brand-filly-card — aansluiting op andere pagina's). */}
@@ -307,13 +308,11 @@ export default function TakenPage() {
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">✨</div>
-          <div className="empty-title">Alles onder controle</div>
-          <div className="empty-desc">
-            Geen openstaande taken. Filly komt zodra er iets opduikt.
-          </div>
-        </div>
+        <EmptyState
+          icon="✨"
+          title="Alles onder controle"
+          description="Geen openstaande taken. Filly komt zodra er iets opduikt."
+        />
       ) : filtered.length === 0 ? (
         <div className="table-empty">
           Geen taken in deze categorie.

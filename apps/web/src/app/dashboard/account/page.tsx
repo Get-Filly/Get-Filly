@@ -14,6 +14,9 @@ import {
 import { supabase } from "../../../lib/supabase";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { Button } from "../../../components/ui/button";
+import { ButtonLink } from "../../../components/ui/button-link";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -96,15 +99,13 @@ export default function AccountPage() {
   if (error) {
     return (
       <div className="page-full">
-        <div className="page-title">Account</div>
-        <div className="empty-state" style={{ marginTop: 16 }}>
-          <div className="empty-icon">⚙️</div>
-          <div className="empty-title">Account-gegevens niet geladen</div>
-          <div className="empty-desc">
-            We konden je profiel niet ophalen. Probeer de pagina te
-            herladen — als het probleem blijft, log dan opnieuw in.
-          </div>
-        </div>
+        <PageHeader title="Account" />
+        <EmptyState
+          topGap
+          icon="⚙️"
+          title="Account-gegevens niet geladen"
+          description="We konden je profiel niet ophalen. Probeer de pagina te herladen — als het probleem blijft, log dan opnieuw in."
+        />
       </div>
     );
   }
@@ -112,8 +113,8 @@ export default function AccountPage() {
   if (!form) {
     return (
       <div className="page-full">
-        <div className="page-title">Account</div>
-        <div style={{ color: "var(--tl)" }}>Laden...</div>
+        <PageHeader title="Account" />
+        <div style={{ color: "var(--color-text-disabled)" }}>Laden...</div>
       </div>
     );
   }
@@ -273,11 +274,10 @@ export default function AccountPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Account</div>
-      <div className="page-subtitle">
-        Jouw restaurant-profiel. Hoe uitgebreider je dit invult, hoe scherper
-        Filly campagnes kan voorstellen en versturen.
-      </div>
+      <PageHeader
+        title="Account"
+        subtitle="Jouw restaurant-profiel. Hoe uitgebreider je dit invult, hoe scherper Filly campagnes kan voorstellen en versturen."
+      />
 
       {/* Onboarding-checklist: dismissable, verbergt zich automatisch
           zodra alle items op ✓ staan. De meeste items linken terug
@@ -1275,13 +1275,9 @@ export default function AccountPage() {
           Beheer alle gerechten + de menukaart-upload op de menu-pagina.
         </div>
         <div className="form-field full">
-          <Link
-            href="/dashboard/menu"
-            className="btn-secondary-dash"
-            style={{ display: "inline-block" }}
-          >
+          <ButtonLink href="/dashboard/menu" variant="secondary">
             🍽️ Open menu-pagina →
-          </Link>
+          </ButtonLink>
         </div>
       </div>
 

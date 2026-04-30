@@ -12,6 +12,8 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { Button } from "../../../components/ui/button";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 const statusInfo: Record<ReservationStatus, { label: string; color: string; bg: string }> = {
   bevestigd: { label: "Bevestigd", color: "#1B7A2E", bg: "#DCFCE7" },
@@ -193,17 +195,15 @@ export default function ReserveringenPage() {
 
   return (
     <div className="page-full">
-      <div className="page-header-row">
-        <div>
-          <div className="page-title">Reserveringen</div>
-          <div className="page-subtitle">
-            Overzicht van wie wanneer komt, bijzonderheden en tafel-assignment.
-          </div>
-        </div>
-        <Button variant="primary" onClick={() => setModalOpen(true)}>
-          ＋ Nieuwe reservering
-        </Button>
-      </div>
+      <PageHeader
+        title="Reserveringen"
+        subtitle="Overzicht van wie wanneer komt, bijzonderheden en tafel-assignment."
+        actions={
+          <Button variant="primary" onClick={() => setModalOpen(true)}>
+            ＋ Nieuwe reservering
+          </Button>
+        }
+      />
 
       <div className="stats-row">
         <div className="stat-card">
@@ -290,22 +290,24 @@ export default function ReserveringenPage() {
           // Foutstatus valt in dezelfde empty-state, alleen met andere
           // subcopy. Rode HTTP-meldingen zijn voor de eindgebruiker
           // betekenisloos — de dev-console houdt alles vast.
-          <div className="empty-state">
-            <div className="empty-icon">📆</div>
-            <div className="empty-title">
-              {error ? "Reserveringen niet geladen" : "Geen reserveringen"}
-            </div>
-            <div className="empty-desc">
-              {error
+          <EmptyState
+            icon="📆"
+            title={
+              error ? "Reserveringen niet geladen" : "Geen reserveringen"
+            }
+            description={
+              error
                 ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
-                : "Koppel een reserveringsplatform of voeg zelf een boeking toe via de knop rechtsboven."}
-            </div>
-            {!error && (
-              <Button variant="primary" onClick={() => setModalOpen(true)}>
-                Nieuwe reservering
-              </Button>
-            )}
-          </div>
+                : "Koppel een reserveringsplatform of voeg zelf een boeking toe via de knop rechtsboven."
+            }
+            action={
+              !error && (
+                <Button variant="primary" onClick={() => setModalOpen(true)}>
+                  Nieuwe reservering
+                </Button>
+              )
+            }
+          />
         )
       ) : (
         <div>

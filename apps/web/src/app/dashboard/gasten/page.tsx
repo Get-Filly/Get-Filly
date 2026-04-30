@@ -9,6 +9,8 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { Button } from "../../../components/ui/button";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -123,10 +125,10 @@ export default function GastenPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Gasten</div>
-      <div className="page-subtitle">
-        Wie jouw restaurant bezoekt — met voorkeuren, allergieën en waarde.
-      </div>
+      <PageHeader
+        title="Gasten"
+        subtitle="Wie jouw restaurant bezoekt — met voorkeuren, allergieën en waarde."
+      />
 
       <div className="stats-row">
         <div className="stat-card">
@@ -240,16 +242,18 @@ export default function GastenPage() {
           // state. Een rode "Fout: HTTP 403"-banner is voor de eind-
           // gebruiker onbegrijpelijk; eventuele fout staat al in de
           // console voor debugging.
-          <div className="empty-state">
-            <div className="empty-icon">👥</div>
-            <div className="empty-title">Nog geen gasten</div>
-            <div className="empty-desc">
-              {error
+          <EmptyState
+            icon="👥"
+            title="Nog geen gasten"
+            description={
+              error
                 ? "We konden de gastenlijst niet laden. Probeer de pagina te herladen."
-                : "Importeer vanuit je reserveringsplatform of voeg handmatig toe."}
-            </div>
-            {!error && <Button variant="primary">Gast toevoegen</Button>}
-          </div>
+                : "Importeer vanuit je reserveringsplatform of voeg handmatig toe."
+            }
+            action={
+              !error && <Button variant="primary">Gast toevoegen</Button>
+            }
+          />
         )
       ) : (
         <table className="data-table">

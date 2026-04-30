@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "../../../components/ui/page-header";
+
 type IntegrationCategory =
   | "reserveringen"
   | "vindbaarheid"
@@ -134,11 +136,10 @@ export default function KoppelingenPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Koppelingen</div>
-      <div className="page-subtitle">
-        Verbind externe diensten om Filly toegang te geven tot data, kanalen en
-        automatisering.
-      </div>
+      <PageHeader
+        title="Koppelingen"
+        subtitle="Verbind externe diensten om Filly toegang te geven tot data, kanalen en automatisering."
+      />
 
       {/* Stats-row: hoeveel werkend, hoeveel nog nodig, totaal. Connected
           count krijgt brand-filly-styling zodat actieve koppelingen

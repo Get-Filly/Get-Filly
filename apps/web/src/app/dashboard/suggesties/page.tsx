@@ -10,6 +10,7 @@ import {
   type SuggestionStatus,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 type Tab = "pending" | "approved" | "rejected";
 
@@ -235,24 +236,18 @@ export default function SuggestiesPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="empty-state">
-          <div className="empty-icon">✨</div>
-          <div className="empty-title">Voorstellen niet beschikbaar</div>
-          <div className="empty-desc">
-            We konden de voorstellen niet ophalen. Probeer de pagina te
-            herladen.
-          </div>
-        </div>
+        <EmptyState
+          icon="✨"
+          title="Voorstellen niet beschikbaar"
+          description="We konden de voorstellen niet ophalen. Probeer de pagina te herladen."
+        />
       ) : suggestions.length === 0 ? (
         tab === "pending" ? (
-          <div className="empty-state">
-            <div className="empty-icon">✨</div>
-            <div className="empty-title">Alles bijgewerkt</div>
-            <div className="empty-desc">
-              Geen voorstellen wachtend. Filly laat het weten zodra er wat
-              opduikt.
-            </div>
-          </div>
+          <EmptyState
+            icon="✨"
+            title="Alles bijgewerkt"
+            description="Geen voorstellen wachtend. Filly laat het weten zodra er wat opduikt."
+          />
         ) : (
           <div className="table-empty">
             Geen {tab === "approved" ? "goedgekeurde" : "afgewezen"}{" "}

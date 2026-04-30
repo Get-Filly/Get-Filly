@@ -14,6 +14,8 @@ import {
   type OccupancyDay,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 const dayLabels = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
 
@@ -210,10 +212,10 @@ export default function RapportagesPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Rapportages</div>
-      <div className="page-subtitle">
-        Inzicht in bezetting, gasten, campagnes en wat Filly je oplevert.
-      </div>
+      <PageHeader
+        title="Rapportages"
+        subtitle="Inzicht in bezetting, gasten, campagnes en wat Filly je oplevert."
+      />
 
       {/* Maand-navigator: bladeren door historische maanden. Vervangt de
           oude periode-tabs die niks filterden. */}
@@ -251,16 +253,12 @@ export default function RapportagesPage() {
         // deze check zien ze overal "0%" + "0 gasten" en denken ze dat
         // er iets mis is. Beter expliciet uitleggen dat data nog moet
         // komen.
-        <div className="empty-state" style={{ marginTop: 24 }}>
-          <div className="empty-icon">📊</div>
-          <div className="empty-title">Nog geen data om te rapporteren</div>
-          <div className="empty-desc">
-            Zodra reserveringen, gasten en campagnes binnenkomen
-            verschijnen hier de cijfers — gemiddelde bezetting, omzet,
-            Filly-ROI, retentie en meer. Begin met een eerste campagne
-            of importeer je gasten-bestand.
-          </div>
-        </div>
+        <EmptyState
+          topGap
+          icon="📊"
+          title="Nog geen data om te rapporteren"
+          description="Zodra reserveringen, gasten en campagnes binnenkomen verschijnen hier de cijfers — gemiddelde bezetting, omzet, Filly-ROI, retentie en meer. Begin met een eerste campagne of importeer je gasten-bestand."
+        />
       ) : (
         <>
           {/* =====================================================
@@ -534,19 +532,11 @@ export default function RapportagesPage() {
                 </div>
 
                 {!hasFillyData ? (
-                  <div className="empty-state" style={{ marginBottom: 16 }}>
-                    <div className="empty-icon">📈</div>
-                    <div className="empty-title">
-                      Nog geen reserveringen via Filly gekoppeld
-                    </div>
-                    <div className="empty-desc">
-                      Koppel reserveringen aan een Filly-campagne op de
-                      reserveringen-pagina (of wacht tot de send-engine
-                      automatisch attribuueert) — dan verschijnen hier
-                      cumulatieve cijfers, een 6-maanden grafiek en een
-                      per-kanaal vergelijking.
-                    </div>
-                  </div>
+                  <EmptyState
+                    icon="📈"
+                    title="Nog geen reserveringen via Filly gekoppeld"
+                    description="Koppel reserveringen aan een Filly-campagne op de reserveringen-pagina (of wacht tot de send-engine automatisch attribueert) — dan verschijnen hier cumulatieve cijfers, een 6-maanden grafiek en een per-kanaal vergelijking."
+                  />
                 ) : (
                   <>
                     {/* Totalen-callout: 3 kerncijfers naast elkaar */}

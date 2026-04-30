@@ -10,6 +10,8 @@ import {
   type ReviewSource,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 const sourceInfo: Record<ReviewSource, { label: string; icon: string }> = {
   google: { label: "Google", icon: "🔎" },
@@ -224,11 +226,10 @@ export default function ReviewsPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Reviews</div>
-      <div className="page-subtitle">
-        Wat gasten zeggen op Google, TripAdvisor en The Fork. Reageer snel op
-        lage scores.
-      </div>
+      <PageHeader
+        title="Reviews"
+        subtitle="Wat gasten zeggen op Google, TripAdvisor en The Fork. Reageer snel op lage scores."
+      />
 
       <div className="stats-row">
         <div className="stat-card">
@@ -305,15 +306,11 @@ export default function ReviewsPage() {
       ) : reviews.length === 0 ? (
         // Volledig nieuwe klant: nog geen reviews binnen. Verwijs naar
         // de koppelingen-pagina voor Google Business / TripAdvisor.
-        <div className="empty-state">
-          <div className="empty-icon">⭐</div>
-          <div className="empty-title">Nog geen reviews</div>
-          <div className="empty-desc">
-            Koppel je Google Business Profile of TripAdvisor om reviews
-            automatisch te importeren — Filly stelt dan voor elke review
-            direct een passend antwoord voor.
-          </div>
-        </div>
+        <EmptyState
+          icon="⭐"
+          title="Nog geen reviews"
+          description="Koppel je Google Business Profile of TripAdvisor om reviews automatisch te importeren — Filly stelt dan voor elke review direct een passend antwoord voor."
+        />
       ) : filtered.length === 0 ? (
         <div className="table-empty">Geen reviews in deze categorie.</div>
       ) : (

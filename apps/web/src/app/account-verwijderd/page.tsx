@@ -16,6 +16,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ButtonLink } from "../../components/ui/button-link";
 
 export const metadata: Metadata = {
   title: "Account verwijderd — Get-Filly",
@@ -109,9 +110,7 @@ export default function AccountVerwijderdPage() {
           className="legal-section"
           style={{ display: "flex", gap: 12, marginTop: 32 }}
         >
-          <Link href="/" className="btn-primary-dash">
-            Terug naar de homepage
-          </Link>
+          <ButtonLink href="/">Terug naar de homepage</ButtonLink>
         </div>
       </div>
     </section>

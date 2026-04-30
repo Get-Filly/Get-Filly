@@ -11,6 +11,7 @@ import {
 } from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
 import { Button } from "../../../../components/ui/button";
+import { EmptyState } from "../../../../components/ui/empty-state";
 import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
 import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
@@ -172,14 +173,12 @@ export default function CampaignDetailPage() {
         >
           ← Terug
         </Link>
-        <div className="empty-state" style={{ marginTop: 16 }}>
-          <div className="empty-icon">📣</div>
-          <div className="empty-title">Campagne niet gevonden</div>
-          <div className="empty-desc">
-            Deze campagne bestaat niet meer of je hebt geen toegang.
-            Ga terug naar het overzicht en kies een andere.
-          </div>
-        </div>
+        <EmptyState
+          topGap
+          icon="📣"
+          title="Campagne niet gevonden"
+          description="Deze campagne bestaat niet meer of je hebt geen toegang. Ga terug naar het overzicht en kies een andere."
+        />
       </div>
     );
   }

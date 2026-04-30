@@ -17,6 +17,8 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { Button } from "../../../components/ui/button";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 const categoryOrder = [
   "voorgerecht",
@@ -594,34 +596,39 @@ export default function MenuPage() {
     <div className="page-full">
       {/* Titel-rij met primary-CTA rechts: "+ Gerecht toevoegen" is de
           belangrijkste actie op deze pagina, altijd direct zichtbaar. */}
-      <div className="page-header-row">
-        <div>
-          <div className="page-title">Menu</div>
-          <div className="page-subtitle">
+      <PageHeader
+        title="Menu"
+        subtitle={
+          <>
             Jouw huidige kaart. Filly gebruikt deze gerechten in
             campagne-teksten — dus &quot;3-gangen met asperges voor
             €24,50&quot; i.p.v. generieke tekst.
-          </div>
-        </div>
-        <div className="menu-header-actions">
-          {/* Header-knoppen tonen alléén het type kaart dat nog niet
-              actief is — als je beide al hebt geüpload, zit de
-              "vervangen"-actie in de banner zelf. */}
-          {!menuCard && (
-            <Button variant="secondary" onClick={() => openUpload("menu")}>
-              📄 Menu-kaart uploaden
+          </>
+        }
+        actions={
+          <>
+            {/* Header-knoppen tonen alléén het type kaart dat nog niet
+                actief is — als je beide al hebt geüpload, zit de
+                "vervangen"-actie in de banner zelf. */}
+            {!menuCard && (
+              <Button variant="secondary" onClick={() => openUpload("menu")}>
+                📄 Menu-kaart uploaden
+              </Button>
+            )}
+            {!drinksCard && (
+              <Button
+                variant="secondary"
+                onClick={() => openUpload("drinks")}
+              >
+                🍷 Drankkaart uploaden
+              </Button>
+            )}
+            <Button variant="primary" onClick={openAdd}>
+              ＋ Gerecht toevoegen
             </Button>
-          )}
-          {!drinksCard && (
-            <Button variant="secondary" onClick={() => openUpload("drinks")}>
-              🍷 Drankkaart uploaden
-            </Button>
-          )}
-          <Button variant="primary" onClick={openAdd}>
-            ＋ Gerecht toevoegen
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="stats-row">
         <div className="stat-card">
@@ -727,22 +734,22 @@ export default function MenuPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">🍽️</div>
-          <div className="empty-title">
-            {error ? "Menu niet geladen" : "Nog geen menu"}
-          </div>
-          <div className="empty-desc">
-            {error
+        <EmptyState
+          icon="🍽️"
+          title={error ? "Menu niet geladen" : "Nog geen menu"}
+          description={
+            error
               ? "We konden het menu niet ophalen. Probeer de pagina te herladen."
-              : "Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes."}
-          </div>
-          {!error && (
-            <Button variant="primary" onClick={openAdd}>
-              Gerecht toevoegen
-            </Button>
-          )}
-        </div>
+              : "Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes."
+          }
+          action={
+            !error && (
+              <Button variant="primary" onClick={openAdd}>
+                Gerecht toevoegen
+              </Button>
+            )
+          }
+        />
       ) : filtered.length === 0 ? (
         <div className="table-empty">
           Geen gerechten gevonden met deze filters.

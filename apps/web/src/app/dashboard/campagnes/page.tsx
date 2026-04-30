@@ -18,6 +18,8 @@ import { TasksStrip } from "../_components/tasks-strip";
 import { SuggestionDetailModal } from "../_components/suggestion-detail-modal";
 import { Badge, type BadgeVariant } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
 
 // Map campagne-status → semantische Badge-variant. Eén plek waar
 // "wat betekent deze status visueel" beslist wordt — als we later
@@ -371,29 +373,25 @@ export default function CampagnesPage() {
     <div className="page-full">
       {/* Titel-rij met "Nieuwe campagne"-CTA rechts zodat de primaire
           actie altijd zichtbaar is op de overzichtspagina. */}
-      <div className="page-header-row">
-        <div>
-          <div className="page-title">Campagnes</div>
-          <div className="page-subtitle">
-            Voorstellen van Filly én actieve campagnes — op één plek.
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {/* Filly aan het werk-knop. Werkt zodra er ≥3 menu-items zijn
-              (anders BadRequest met helpende tekst). Pakt elke klik
-              een nieuwe set voorstellen — eerder gegeneerde blijven
-              staan tot de eigenaar ze afhandelt. */}
-          <Button
-            variant="secondary"
-            loading={generating}
-            onClick={handleGenerateSuggestions}
-            title="Filly bekijkt je profiel + menu en genereert 3-5 nieuwe voorstellen"
-          >
-            ✨ Vraag Filly om voorstellen
-          </Button>
-          <Button variant="primary">＋ Nieuwe campagne</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Campagnes"
+        subtitle="Voorstellen van Filly én actieve campagnes — op één plek."
+        actions={
+          <>
+            {/* Filly aan het werk-knop. Werkt zodra er ≥3 menu-items zijn
+                (anders BadRequest met helpende tekst). */}
+            <Button
+              variant="secondary"
+              loading={generating}
+              onClick={handleGenerateSuggestions}
+              title="Filly bekijkt je profiel + menu en genereert 3-5 nieuwe voorstellen"
+            >
+              ✨ Vraag Filly om voorstellen
+            </Button>
+            <Button variant="primary">＋ Nieuwe campagne</Button>
+          </>
+        }
+      />
       {generateError && (
         <div
           style={{
@@ -664,18 +662,18 @@ export default function CampagnesPage() {
         </div>
       ) : filtered.length === 0 ? (
         statusFilter === "alle" && typeFilter === "alle" && !query.trim() ? (
-          <div className="empty-state">
-            <div className="empty-icon">📣</div>
-            <div className="empty-title">
-              {error ? "Campagnes niet geladen" : "Nog geen campagnes"}
-            </div>
-            <div className="empty-desc">
-              {error
+          <EmptyState
+            icon="📣"
+            title={error ? "Campagnes niet geladen" : "Nog geen campagnes"}
+            description={
+              error
                 ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
-                : "Laat Filly een voorstel maken of start zelf een campagne — voor mail, social of WhatsApp."}
-            </div>
-            {!error && <Button variant="primary">Nieuwe campagne</Button>}
-          </div>
+                : "Laat Filly een voorstel maken of start zelf een campagne — voor mail, social of WhatsApp."
+            }
+            action={
+              !error && <Button variant="primary">Nieuwe campagne</Button>
+            }
+          />
         ) : (
           <div className="table-empty">
             Geen campagnes gevonden met deze filters.
