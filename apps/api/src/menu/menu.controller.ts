@@ -138,12 +138,22 @@ export class MenuController {
     );
   }
 
-  // Welke menukaart is nu actief? Wordt door de UI gebruikt om de
-  // "Menu-kaart actief"-banner te tonen na een refresh. null = geen
-  // actieve kaart, banner verbergen + upload-knop tonen.
-  @Get('active-card')
-  getActiveCard(@RestaurantId() restaurantId: string) {
-    return this.menu.getActiveCard(restaurantId);
+  // Welke kaarten zijn nu actief? UI gebruikt dit om twee aparte
+  // banners te tonen — één voor de menukaart en één voor de
+  // drankkaart, met elk hun eigen "vervangen" / "verwijderen"-acties.
+  @Get('active-cards')
+  getActiveCards(@RestaurantId() restaurantId: string) {
+    return this.menu.getActiveCards(restaurantId);
+  }
+
+  // Genereert een 1-uur signed URL voor het bron-bestand van een
+  // upload zodat de UI 'm in een nieuw tabblad kan openen.
+  @Get('cards/:uploadId/url')
+  getCardUrl(
+    @RestaurantId() restaurantId: string,
+    @Param('uploadId') uploadId: string,
+  ) {
+    return this.menu.getCardSignedUrl(restaurantId, uploadId);
   }
 
   // Verwijder een menukaart (storage + db-rij + alle gekoppelde items).

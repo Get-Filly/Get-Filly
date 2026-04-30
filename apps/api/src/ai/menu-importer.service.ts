@@ -103,7 +103,10 @@ export class MenuImporterService {
       // (kolommen, groeperingen, kleine lettertjes). Opus is hier
       // merkbaar beter.
       model: 'claude-opus-4-7',
-      maxTokens: 8000, // genoeg voor ~50-80 items + tool-overhead
+      // 16k geeft headroom voor uitgebreide wijnkaarten (100+ items
+      // met description per wijn). Cap, geen gegarandeerd verbruik —
+      // kleine menukaarten kosten niet meer omdat de cap hoger staat.
+      maxTokens: 16000,
       toolName: isDrinks ? 'extract_drink_items' : 'extract_menu_items',
       toolDescription: isDrinks
         ? 'Extract alle drankjes van de meegeleverde drankkaart als gestructureerde lijst, met subcategorie (wijn-rood, bier, etc).'

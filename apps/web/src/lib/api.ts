@@ -826,6 +826,9 @@ export type ImportCardResult = {
 
 export type ActiveMenuCard = {
   id: string;
+  // 'menu' = regulier menukaart, 'drinks' = drankkaart. Bepaalt
+  // welke banner de UI toont en welk type acties beschikbaar zijn.
+  kind: "menu" | "drinks";
   file_name: string | null;
   uploaded_at: string;
   items_count: number;
@@ -870,18 +873,37 @@ export async function importDrinksCard(
   return res.json();
 }
 
-// Welke menukaart is nu actief voor het ingelogde restaurant? null
-// als er nog geen kaart is geüpload.
-export async function fetchActiveMenuCard(): Promise<ActiveMenuCard | null> {
-  const res = await authedFetch(`${API_URL}/menu/active-card`, {
+// Welke kaarten zijn nu actief? Returnt 0-2 cards: maximaal 1
+// menu-kaart + 1 drankkaart, beide de meest recent succesvol
+// verwerkte upload van dat type.
+export async function fetchActiveCards(): Promise<ActiveMenuCard[]> {
+  const res = await authedFetch(`${API_URL}/menu/active-cards`, {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(await readErrorMessage(res, "Kon actieve menukaart niet ophalen"));
+    throw new Error(
+      await readErrorMessage(res, "Kon actieve kaarten niet ophalen"),
+    );
   }
-  // Backend stuurt ofwel een object ofwel `null` (geen kaart).
-  const json = await res.json();
-  return json ?? null;
+  return (await res.json()) as ActiveMenuCard[];
+}
+
+// Genereert een 1-uur signed URL voor een kaart-upload zodat de UI
+// 'm in een nieuw tabblad kan openen ("klik op banner om je
+// geüploade kaart te bekijken").
+export async function fetchCardSignedUrl(
+  uploadId: string,
+): Promise<string> {
+  const res = await authedFetch(`${API_URL}/menu/cards/${uploadId}/url`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Kon kaart-link niet ophalen"),
+    );
+  }
+  const json = (await res.json()) as { url: string };
+  return json.url;
 }
 
 // Verwijder de actieve menukaart inclusief alle items die daar uit

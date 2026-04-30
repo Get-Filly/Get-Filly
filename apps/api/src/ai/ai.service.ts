@@ -358,6 +358,16 @@ export class AiService {
       );
     }
 
+    // Diagnostic: bij stop_reason='max_tokens' heeft Claude midden
+    // in zijn tool-call gestopt. De input is dan vaak incompleet
+    // (lege of half-gevulde array). Loggen zodat we kunnen zien of
+    // we de cap moeten ophogen voor specifieke features.
+    if (response.stop_reason === 'max_tokens') {
+      this.logger.warn(
+        `max_tokens bereikt (feature=${opts.meta.feature}, cap=${opts.maxTokens ?? 4096}, output=${response.usage.output_tokens}). Tool-call mogelijk incompleet — overweeg cap te verhogen.`,
+      );
+    }
+
     void this.logUsage(opts.meta, model, response.usage).catch((err) => {
       this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
     });
@@ -438,6 +448,15 @@ export class AiService {
       );
       throw new InternalServerErrorException(
         'Filly kon het bestand niet als gestructureerde data lezen. Probeer een andere foto/PDF.',
+      );
+    }
+
+    // Cap-bereikt-warning, identiek aan generateStructured. Vooral
+    // relevant bij vision: grote menu/wijnkaarten kunnen de output-
+    // cap raken en eindigen in een halfgevuld items-array.
+    if (response.stop_reason === 'max_tokens') {
+      this.logger.warn(
+        `max_tokens bereikt bij Vision (feature=${opts.meta.feature}, cap=${opts.maxTokens ?? 4096}, output=${response.usage.output_tokens}). Tool-call mogelijk incompleet — overweeg cap te verhogen.`,
       );
     }
 

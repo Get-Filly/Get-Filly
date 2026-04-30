@@ -73,6 +73,9 @@ export type ImportCardResult = {
 // returnen we null.
 export type ActiveMenuCard = {
   id: string;
+  // 'menu' (regulier menukaart) of 'drinks' (drankkaart). Bepaalt
+  // welke banner de UI toont — Menu-kaart actief vs Drankkaart actief.
+  kind: 'menu' | 'drinks';
   file_name: string | null;
   uploaded_at: string;
   items_count: number;
@@ -346,6 +349,7 @@ export class MenuService {
         file_size_bytes: file.buffer.length,
         mime_type: file.mimeType,
         uploaded_by: userId,
+        kind, // 'menu' | 'drinks' — bepaalt welke banner de UI toont
       })
       .select('id, file_name, created_at')
       .single();
@@ -464,30 +468,72 @@ export class MenuService {
     };
   }
 
-  // Welke menukaart is op dit moment "actief" voor dit restaurant?
-  // Definitie: de meest recent succesvol verwerkte upload. Wordt door
-  // de UI gebruikt om de "Menu-kaart actief"-banner te tonen na een
-  // page-refresh.
-  async getActiveCard(restaurantId: string): Promise<ActiveMenuCard | null> {
-    const { data, error } = await this.supabase.client
-      .from('menu_uploads')
-      .select('id, file_name, created_at, extracted_items_count')
-      .eq('restaurant_id', restaurantId)
-      .not('processed_at', 'is', null)
-      .is('processing_error', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  // Welke kaarten zijn op dit moment "actief" voor dit restaurant?
+  // Returnt maximaal twee rijen: 1 menu-kaart + 1 drankkaart, beide
+  // de meest recent succesvol verwerkte upload van dat type. UI
+  // gebruikt deze info om twee aparte banners te tonen.
+  async getActiveCards(restaurantId: string): Promise<ActiveMenuCard[]> {
+    const fetchByKind = async (
+      kind: 'menu' | 'drinks',
+    ): Promise<ActiveMenuCard | null> => {
+      const { data, error } = await this.supabase.client
+        .from('menu_uploads')
+        .select('id, kind, file_name, created_at, extracted_items_count')
+        .eq('restaurant_id', restaurantId)
+        .eq('kind', kind)
+        .not('processed_at', 'is', null)
+        .is('processing_error', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (error) throw new InternalServerErrorException(error.message);
-    if (!data) return null;
+      if (error) throw new InternalServerErrorException(error.message);
+      if (!data) return null;
 
-    return {
-      id: data.id as string,
-      file_name: (data.file_name as string | null) ?? null,
-      uploaded_at: data.created_at as string,
-      items_count: (data.extracted_items_count as number | null) ?? 0,
+      return {
+        id: data.id as string,
+        kind: data.kind as 'menu' | 'drinks',
+        file_name: (data.file_name as string | null) ?? null,
+        uploaded_at: data.created_at as string,
+        items_count: (data.extracted_items_count as number | null) ?? 0,
+      };
     };
+
+    const [menu, drinks] = await Promise.all([
+      fetchByKind('menu'),
+      fetchByKind('drinks'),
+    ]);
+    return [menu, drinks].filter((c): c is ActiveMenuCard => c !== null);
+  }
+
+  // Genereert een 1-uur signed URL voor het bron-bestand van een
+  // upload zodat de UI 'm in een nieuw tabblad kan openen ("klik op
+  // banner om te zien wat je destijds hebt geüpload"). Tenant-check
+  // hier expliciet — anders zou een gebruiker een upload-id van een
+  // andere zaak kunnen raden en de URL claimen.
+  async getCardSignedUrl(
+    restaurantId: string,
+    uploadId: string,
+  ): Promise<{ url: string }> {
+    const { data: row, error: fetchErr } = await this.supabase.client
+      .from('menu_uploads')
+      .select('file_path, restaurant_id')
+      .eq('id', uploadId)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!row || row.restaurant_id !== restaurantId) {
+      throw new InternalServerErrorException('Upload niet gevonden.');
+    }
+
+    const { data: signed, error: urlErr } = await this.supabase.client.storage
+      .from(MENU_UPLOADS_BUCKET)
+      .createSignedUrl(row.file_path as string, 3600); // 1 uur
+    if (urlErr || !signed?.signedUrl) {
+      throw new InternalServerErrorException(
+        urlErr?.message ?? 'Kon download-link niet genereren.',
+      );
+    }
+    return { url: signed.signedUrl };
   }
 
   // Verwijder een menukaart inclusief de gerechten die eruit kwamen.

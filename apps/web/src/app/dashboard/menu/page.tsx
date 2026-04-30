@@ -8,7 +8,8 @@ import {
   deleteMenuItem,
   importMenuCard,
   importDrinksCard,
-  fetchActiveMenuCard,
+  fetchActiveCards,
+  fetchCardSignedUrl,
   deleteMenuCard,
   type MenuItem,
   type MenuItemInput,
@@ -247,20 +248,20 @@ export default function MenuPage() {
   const [importNotes, setImportNotes] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Metadata over de huidige actieve menu-kaart, opgehaald uit
-  // menu_uploads-tabel zodat de banner ook na een F5 zichtbaar blijft.
-  // Null = nog geen kaart geüpload.
-  const [uploadedCard, setUploadedCard] = useState<ActiveMenuCard | null>(
-    null,
-  );
+  // Actieve kaarten — maximaal 2: 1 menu-kaart + 1 drankkaart.
+  // Gevuld vanuit menu_uploads-tabel zodat de banners ook na een F5
+  // zichtbaar blijven.
+  const [uploadedCards, setUploadedCards] = useState<ActiveMenuCard[]>([]);
+  const menuCard = uploadedCards.find((c) => c.kind === "menu") ?? null;
+  const drinksCard = uploadedCards.find((c) => c.kind === "drinks") ?? null;
 
   useEffect(() => {
-    // Bij mount: parallel ophalen van menu-items én actieve kaart.
+    // Bij mount: parallel ophalen van menu-items én actieve kaarten.
     // Eén roundtrip extra; minder UI-flicker dan twee aparte fetches.
-    Promise.all([fetchMenu(), fetchActiveMenuCard()])
-      .then(([menuData, card]) => {
+    Promise.all([fetchMenu(), fetchActiveCards()])
+      .then(([menuData, cards]) => {
         setItems(menuData);
-        setUploadedCard(card);
+        setUploadedCards(cards);
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -429,43 +430,59 @@ export default function MenuPage() {
   const closeUploadAndRefresh = async () => {
     closeUpload();
     try {
-      const [menuData, card] = await Promise.all([
+      const [menuData, cards] = await Promise.all([
         fetchMenu(),
-        fetchActiveMenuCard(),
+        fetchActiveCards(),
       ]);
       setItems(menuData);
-      setUploadedCard(card);
+      setUploadedCards(cards);
     } catch (e) {
       console.error("Refresh na upload faalde:", e);
     }
   };
 
-  // Verwijder de actieve menu-kaart inclusief de gerechten die er uit
-  // kwamen. Handmatig toegevoegde gerechten blijven staan (zonder
-  // menu_upload_id-link in DB). Bevestigt via browser-dialog om
-  // per-ongeluk klikken te voorkomen.
-  const removeUploadedCard = async () => {
-    if (!uploadedCard) return;
+  // Verwijder een specifieke kaart-upload (menu OF drank) inclusief
+  // de items die er uit kwamen. Handmatig toegevoegde items blijven
+  // staan (geen menu_upload_id-link in DB).
+  const removeUploadedCard = async (card: ActiveMenuCard) => {
+    const cardLabel = card.kind === "drinks" ? "drankkaart" : "menu-kaart";
+    const itemNoun = card.kind === "drinks" ? "drankjes" : "gerechten";
     const ok = window.confirm(
-      `Weet je zeker dat je de menu-kaart wil verwijderen?\n\n` +
-        `De ${uploadedCard.items_count} gerechten die uit deze kaart ` +
+      `Weet je zeker dat je deze ${cardLabel} wil verwijderen?\n\n` +
+        `De ${card.items_count} ${itemNoun} die uit deze kaart ` +
         `geïmporteerd zijn worden ook verwijderd. Handmatig toegevoegde ` +
-        `gerechten blijven staan.`,
+        `items blijven staan.`,
     );
     if (!ok) return;
     try {
-      await deleteMenuCard(uploadedCard.id);
-      const [menuData, card] = await Promise.all([
+      await deleteMenuCard(card.id);
+      const [menuData, cards] = await Promise.all([
         fetchMenu(),
-        fetchActiveMenuCard(),
+        fetchActiveCards(),
       ]);
       setItems(menuData);
-      setUploadedCard(card);
+      setUploadedCards(cards);
     } catch (e) {
       alert(
         e instanceof Error
           ? e.message
           : "Verwijderen mislukt. Probeer het opnieuw.",
+      );
+    }
+  };
+
+  // Open het bron-bestand van een upload in een nieuw tabblad. Vraagt
+  // een 1-uur signed URL aan bij de backend (alleen toegankelijk voor
+  // de eigenaar dankzij tenant-check op de upload-id).
+  const openUploadedCard = async (card: ActiveMenuCard) => {
+    try {
+      const url = await fetchCardSignedUrl(card.id);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Kon de kaart niet openen. Probeer het opnieuw.",
       );
     }
   };
@@ -586,24 +603,24 @@ export default function MenuPage() {
           </div>
         </div>
         <div className="menu-header-actions">
-          {/* Twee aparte upload-knoppen — meeste horeca scheidt
-              menu en drank fysiek, en ze hebben verschillende
-              Vision-prompts (subcategorie wijn/bier/etc voor drank). */}
-          {!uploadedCard && (
-            <>
-              <button
-                className="btn-secondary-dash"
-                onClick={() => openUpload("menu")}
-              >
-                📄 Menu-kaart uploaden
-              </button>
-              <button
-                className="btn-secondary-dash"
-                onClick={() => openUpload("drinks")}
-              >
-                🍷 Drankkaart uploaden
-              </button>
-            </>
+          {/* Header-knoppen tonen alléén het type kaart dat nog niet
+              actief is — als je beide al hebt geüpload, zit de
+              "vervangen"-actie in de banner zelf. */}
+          {!menuCard && (
+            <button
+              className="btn-secondary-dash"
+              onClick={() => openUpload("menu")}
+            >
+              📄 Menu-kaart uploaden
+            </button>
+          )}
+          {!drinksCard && (
+            <button
+              className="btn-secondary-dash"
+              onClick={() => openUpload("drinks")}
+            >
+              🍷 Drankkaart uploaden
+            </button>
           )}
           <button className="btn-primary-dash" onClick={openAdd}>
             ＋ Gerecht toevoegen
@@ -642,48 +659,26 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Status-banner voor de actieve menu-kaart: groene check +
-          filename + datum + acties. Data komt uit menu_uploads in de
-          DB, dus zichtbaar gebleven na een F5. */}
-      {uploadedCard && (
-        <div className="menu-card-status">
-          <div className="menu-card-status-icon">✓</div>
-          <div className="menu-card-status-body">
-            <div className="menu-card-status-title">Menu-kaart actief</div>
-            <div className="menu-card-status-meta">
-              <span>{uploadedCard.file_name ?? "menukaart"}</span>
-              <span>·</span>
-              <span>
-                {new Date(uploadedCard.uploaded_at).toLocaleDateString(
-                  "nl-NL",
-                  { day: "numeric", month: "long", year: "numeric" },
-                )}
-              </span>
-              <span>·</span>
-              <span>{uploadedCard.items_count} gerechten geïmporteerd</span>
-            </div>
-          </div>
-          <div className="menu-card-status-actions">
-            <button
-              className="btn-secondary-dash menu-card-status-btn"
-              onClick={() => openUpload("menu")}
-            >
-              📄 Nieuwe menu-kaart
-            </button>
-            <button
-              className="btn-secondary-dash menu-card-status-btn"
-              onClick={() => openUpload("drinks")}
-            >
-              🍷 Drankkaart uploaden
-            </button>
-            <button
-              className="menu-card-status-remove"
-              onClick={removeUploadedCard}
-            >
-              Verwijderen
-            </button>
-          </div>
-        </div>
+      {/* Status-banners voor actieve kaarten: één voor de menu-kaart,
+          één voor de drankkaart. Beide tonen filename (klikbaar →
+          opent het bron-PDF/foto in een nieuw tabblad), datum en
+          aantal items + per-banner acties. Data komt uit menu_uploads
+          in de DB, dus zichtbaar gebleven na een F5. */}
+      {menuCard && (
+        <CardStatusBanner
+          card={menuCard}
+          onOpen={() => openUploadedCard(menuCard)}
+          onReplace={() => openUpload("menu")}
+          onRemove={() => removeUploadedCard(menuCard)}
+        />
+      )}
+      {drinksCard && (
+        <CardStatusBanner
+          card={drinksCard}
+          onOpen={() => openUploadedCard(drinksCard)}
+          onReplace={() => openUpload("drinks")}
+          onRemove={() => removeUploadedCard(drinksCard)}
+        />
       )}
 
       {/* Filly-tip blok: laat zien dat het menu de "grondstof" is voor
@@ -866,6 +861,88 @@ export default function MenuPage() {
           onClose={closeUpload}
         />
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// CardStatusBanner — toont een actieve menu/drank-kaart
+// ============================================================
+// Eén component voor beide kaart-types. UI-tekst en icoon switchen
+// op `card.kind`. Bestandsnaam is klikbaar → opent het bron-bestand
+// in een nieuw tabblad via een 1-uur signed URL.
+function CardStatusBanner({
+  card,
+  onOpen,
+  onReplace,
+  onRemove,
+}: {
+  card: ActiveMenuCard;
+  onOpen: () => void;
+  onReplace: () => void;
+  onRemove: () => void;
+}) {
+  const isDrinks = card.kind === "drinks";
+  const title = isDrinks ? "Drankkaart actief" : "Menu-kaart actief";
+  const replaceLabel = isDrinks ? "🍷 Nieuwe drankkaart" : "📄 Nieuwe menu-kaart";
+  const itemsCount = card.items_count;
+  const noun =
+    itemsCount === 1
+      ? isDrinks
+        ? "drankje"
+        : "gerecht"
+      : isDrinks
+        ? "drankjes"
+        : "gerechten";
+
+  return (
+    <div className="menu-card-status">
+      <div className="menu-card-status-icon">✓</div>
+      <div className="menu-card-status-body">
+        <div className="menu-card-status-title">{title}</div>
+        <div className="menu-card-status-meta">
+          <button
+            type="button"
+            onClick={onOpen}
+            title="Open de geüploade kaart in een nieuw tabblad"
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "inherit",
+              fontSize: "inherit",
+              cursor: "pointer",
+              textDecoration: "underline",
+              fontFamily: "inherit",
+            }}
+          >
+            {card.file_name ?? (isDrinks ? "drankkaart" : "menukaart")}
+          </button>
+          <span>·</span>
+          <span>
+            {new Date(card.uploaded_at).toLocaleDateString("nl-NL", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+          <span>·</span>
+          <span>
+            {itemsCount} {noun} geïmporteerd
+          </span>
+        </div>
+      </div>
+      <div className="menu-card-status-actions">
+        <button
+          className="btn-secondary-dash menu-card-status-btn"
+          onClick={onReplace}
+        >
+          {replaceLabel}
+        </button>
+        <button className="menu-card-status-remove" onClick={onRemove}>
+          Verwijderen
+        </button>
+      </div>
     </div>
   );
 }
