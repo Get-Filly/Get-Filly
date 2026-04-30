@@ -1,5 +1,7 @@
 "use client";
 
+import { Send } from "lucide-react";
+
 // ============================================================
 // FillyChatInput — text-input + verzend-knop voor de Filly-chat.
 //
@@ -56,7 +58,10 @@ export function FillyChatInput({
           disabled={!value.trim() || disabled}
           aria-label="Verstuur"
         >
-          ↑
+          {/* Lucide Send-icon i.p.v. unicode ↑. Schaalt scherp op
+              alle DPRs en is brand-consistent met de rest van de
+              UI-iconen. */}
+          <Send size={16} strokeWidth={2.25} />
         </button>
       </div>
     </div>

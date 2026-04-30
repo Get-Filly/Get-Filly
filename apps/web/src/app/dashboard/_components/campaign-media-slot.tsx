@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { RefreshCw, X } from "lucide-react";
 import {
   deleteCampaignMedia,
   uploadCampaignMedia,
@@ -175,25 +176,35 @@ export function CampaignMediaSlot({
                 boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
               }}
             >
-              {uploading ? "Uploaden…" : "↻ Vervang"}
+              {uploading ? (
+                "Uploaden…"
+              ) : (
+                <>
+                  <RefreshCw size={12} style={{ marginRight: 4 }} />
+                  Vervang
+                </>
+              )}
             </button>
             <button
               onClick={remove}
               disabled={busy}
               title="Verwijderen"
+              aria-label="Foto verwijderen"
               style={{
                 padding: "6px 10px",
                 background: "rgba(255,255,255,0.92)",
-                color: "var(--red, #DC2626)",
+                color: "var(--color-danger)",
                 border: "none",
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 500,
                 cursor: busy ? "not-allowed" : "pointer",
                 boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              {deleting ? "…" : "✕"}
+              {deleting ? "…" : <X size={14} />}
             </button>
           </div>
         )}

@@ -39,6 +39,7 @@ const DISMISS_KEY = "getfilly_onboarding_checklist_dismissed_v1";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import {
   fetchCampaigns,
   fetchMenu,
@@ -224,20 +225,21 @@ export function OnboardingChecklist() {
         <button
           type="button"
           onClick={handleDismiss}
-          aria-label="Checklist verbergen"
           title="Checklist verbergen"
+          aria-label="Checklist verbergen"
           style={{
             background: "transparent",
             border: "none",
             cursor: "pointer",
-            color: "var(--text-light)",
-            fontSize: 18,
-            lineHeight: 1,
-            padding: "2px 6px",
-            borderRadius: 4,
+            color: "var(--color-text-disabled)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 4,
+            borderRadius: "var(--radius-sm)",
           }}
         >
-          ✕
+          <X size={16} />
         </button>
       </div>
 
