@@ -4,9 +4,29 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import type Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+
+// Schema voor de 3-varianten-tool. minItems/maxItems forceert
+// precies 3 alternatieven — Claude kan er geen 1 of 5 maken.
+const REVIEW_REPLY_VARIANTS_SCHEMA = {
+  type: 'object',
+  properties: {
+    variants: {
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 3,
+      maxItems: 3,
+    },
+  },
+  required: ['variants'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type ReviewReplyVariantsFromTool = {
+  variants: string[];
+};
 
 export type ReviewSource = 'google' | 'tripadvisor' | 'thefork' | 'iens';
 
@@ -185,64 +205,40 @@ export class ReviewsService {
       throw new NotFoundException('Restaurant niet gevonden.');
     }
 
-    // System-prompt: vraag 3 alternatieven in expliciet JSON-formaat
-    // i.p.v. één string. Drie verschillende tonen (warm/zakelijk/
-    // direct-praktisch) zodat de eigenaar echt kan kiezen.
+    // System-prompt: vraag 3 alternatieven via tool-use. Schema dwingt
+    // precies 3 strings af in de variants-array.
     const baseSystem = buildReviewReplySystemPrompt(profileBlock);
     const systemPrompt = `${baseSystem}
 
-EXTRA-REGEL VOOR DEZE CALL: geef GEEN losse tekst, maar exact dit JSON-formaat (zonder markdown-codeblok):
-
-{
-  "variants": [
-    "<reactie versie 1>",
-    "<reactie versie 2>",
-    "<reactie versie 3>"
-  ]
-}
-
-3 verschillende tonen — bv. v1 warm-empathisch, v2 zakelijk-direct, v3 kort-praktisch. Niet alleen wat woorden anders.`;
+EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply_variants'. Geef precies 3 verschillende reacties — bv. v1 warm-empathisch, v2 zakelijk-direct, v3 kort-praktisch. Niet alleen wat woorden anders.`;
 
     const userPrompt = buildReviewReplyUserPrompt(review);
 
-    const answer = await this.ai.generateText({
-      system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-sonnet-4-6',
-      maxTokens: 1200,
-      meta: {
-        restaurantId,
-        userId,
-        feature: 'review_reply_variants',
-      },
-      // System bevat profile-block — bij 1× regenerate binnen 5 min
-      // pakt caching ~90% korting.
-      cacheSystem: true,
-    });
+    const parsed =
+      await this.ai.generateStructured<ReviewReplyVariantsFromTool>({
+        system: systemPrompt,
+        prompt: userPrompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 1500,
+        toolName: 'generate_review_reply_variants',
+        toolDescription:
+          'Lever 3 verschillende reactie-varianten op de gegeven review met onderling andere tonen.',
+        inputSchema: REVIEW_REPLY_VARIANTS_SCHEMA,
+        meta: {
+          restaurantId,
+          userId,
+          feature: 'review_reply_variants',
+        },
+        // System bevat profile-block — bij 1× regenerate binnen 5 min
+        // pakt caching ~90% korting.
+        cacheSystem: true,
+      });
 
-    // Parser. Bij parse-fout vallen we niet hard om — log en gooi
-    // een gebruikerstekst-error die zegt opnieuw proberen.
-    const match = answer.match(/\{[\s\S]*\}/);
-    if (!match) {
-      throw new InternalServerErrorException(
-        'Filly gaf geen leesbaar antwoord. Probeer opnieuw.',
-      );
-    }
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(match[0]) as Record<string, unknown>;
-    } catch {
-      throw new InternalServerErrorException(
-        "Kon Filly's antwoord niet lezen. Probeer opnieuw.",
-      );
-    }
-
-    const newVariants: string[] = Array.isArray(parsed.variants)
-      ? parsed.variants
-          .filter((v): v is string => typeof v === 'string')
-          .map((v) => v.trim())
-          .filter((v) => v.length > 0)
-      : [];
+    // Schema heeft minItems=3 maxItems=3, maar we zeven nog wel
+    // lege strings eruit voor het geval Claude ergens "" heeft staan.
+    const newVariants = parsed.variants
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0);
 
     if (newVariants.length === 0) {
       throw new InternalServerErrorException(

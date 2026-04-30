@@ -8,6 +8,59 @@ import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
+import type Anthropic from '@anthropic-ai/sdk';
+
+// Schema voor 3-varianten-tool. minItems/maxItems forceert
+// precies 3 alternatieven, schema garandeert dat elke variant
+// een body heeft.
+const CAMPAIGN_VARIANTS_SCHEMA = {
+  type: 'object',
+  properties: {
+    variants: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        properties: {
+          subject_line: { type: 'string' },
+          body: { type: 'string' },
+        },
+        required: ['body'],
+      },
+    },
+  },
+  required: ['variants'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type CampaignVariantsFromTool = {
+  variants: Array<{ subject_line?: string; body: string }>;
+};
+
+// Schema voor tijdstip-suggestie. Strikt ISO-8601 datetime in
+// Europe/Amsterdam (zelfde format als de DB verwacht) + korte
+// reasoning die we tonen aan de eigenaar.
+const CAMPAIGN_SCHEDULE_SUGGESTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    datetime_iso: {
+      type: 'string',
+      description:
+        'ISO-8601 datetime in Europe/Amsterdam, bv. "2026-05-12T19:30:00+02:00".',
+    },
+    reasoning: {
+      type: 'string',
+      description:
+        'Korte NL-uitleg (max 200 tekens) waarom dit tijdstip past.',
+    },
+  },
+  required: ['datetime_iso', 'reasoning'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type CampaignScheduleSuggestionFromTool = {
+  datetime_iso: string;
+  reasoning: string;
+};
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
 export type CampaignStatus =
@@ -576,22 +629,14 @@ export class CampaignsService {
 
     // System-prompt: Filly krijgt de huidige campagne + (optionele)
     // instructie + profiel + menu en moet 3 verschillende alternatieven
-    // leveren in exact deze JSON-vorm. Varianten écht verschillend
-    // qua toon: warm / zakelijk / speels.
+    // leveren via tool 'generate_campaign_variants'. Schema dwingt
+    // precies 3 varianten af; toon-verschillen sturen we hier in tekst.
     const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE zaak passen.
 
-Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok, zonder uitleg eromheen:
+Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
 
-{
-  "variants": [
-    { "subject_line": "<onderwerp v1>", "body": "<tekst v1>" },
-    { "subject_line": "<onderwerp v2>", "body": "<tekst v2>" },
-    { "subject_line": "<onderwerp v3>", "body": "<tekst v3>" }
-  ]
-}
-
-Regels:
-- EXACT 3 varianten. Maak ze écht verschillend in toon/insteek/lengte
+Inhoudsregels:
+- Maak de 3 varianten écht verschillend in toon/insteek/lengte
   (bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort).
   Niet alleen wat woorden anders.
 - Behoud de kern van de boodschap (datum, aanbod, USP) tenzij de
@@ -601,9 +646,9 @@ Regels:
   bij DEZE zaak passen.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin
   geen gerechten erbij, ook niet als ze "logisch" klinken.
-- "subject_line" alleen voor mail-campagnes; voor social/whatsapp mag
-  je 'm leeg laten of weglaten.
-- "body" bevat de volledige uitgeschreven tekst.
+- subject_line alleen voor mail-campagnes; voor social/whatsapp laat
+  je 'm weg.
+- body bevat de volledige uitgeschreven tekst.
 - Schrijf in het Nederlands. Match de brand_tone uit het profiel.
 - Verzin geen feiten/cijfers die niet in de oorspronkelijke versie
   of in het profiel/menu staan.
@@ -627,11 +672,15 @@ ${menuBlock}
       ? `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`
       : `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
 
-    const answer = await this.ai.generateText({
+    const parsed = await this.ai.generateStructured<CampaignVariantsFromTool>({
       system: systemPrompt,
       prompt: userPrompt,
       model: 'claude-sonnet-4-6',
-      maxTokens: 2000,
+      maxTokens: 3000,
+      toolName: 'generate_campaign_variants',
+      toolDescription:
+        'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
+      inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
       meta: {
         restaurantId,
         feature: 'campaign_refine',
@@ -641,36 +690,15 @@ ${menuBlock}
       cacheSystem: true,
     });
 
-    // Parser: pak het JSON-blok uit het antwoord. Als Claude per
-    // ongeluk markdown gebruikt, vangen we het eerste { ... }-blok.
-    const match = answer.match(/\{[\s\S]*\}/);
-    if (!match) {
-      throw new InternalServerErrorException(
-        'Filly gaf geen leesbaar antwoord. Probeer het opnieuw.',
-      );
-    }
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(match[0]) as Record<string, unknown>;
-    } catch {
-      throw new InternalServerErrorException(
-        "Kon Filly's antwoord niet lezen. Probeer het opnieuw.",
-      );
-    }
-
-    const rawVariants = Array.isArray(parsed.variants) ? parsed.variants : [];
+    // Schema garandeert dat variants een array van 3 is met body.
+    // We trimmen body en cappen subject_line op 200 voor DB-veiligheid.
     const variants: Array<{ subject_line?: string; body: string }> = [];
-    for (const v of rawVariants) {
-      if (!v || typeof v !== 'object') continue;
-      const o = v as Record<string, unknown>;
-      const body = typeof o.body === 'string' ? o.body.trim() : '';
+    for (const v of parsed.variants) {
+      const body = v.body.trim();
       if (!body) continue;
       const variant: { subject_line?: string; body: string } = { body };
-      if (
-        typeof o.subject_line === 'string' &&
-        o.subject_line.trim().length > 0
-      ) {
-        variant.subject_line = o.subject_line.trim().slice(0, 200);
+      if (v.subject_line && v.subject_line.trim().length > 0) {
+        variant.subject_line = v.subject_line.trim().slice(0, 200);
       }
       variants.push(variant);
     }
@@ -932,12 +960,7 @@ ${menuBlock}
 
     const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je stelt het beste verzendmoment voor een campagne voor.
 
-Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok:
-
-{
-  "datetime_iso": "<ISO 8601 datetime in Europe/Amsterdam, bv. 2026-04-30T19:00:00+02:00>",
-  "reasoning": "<korte NL-tekst, max 200 tekens, waarom dit moment>"
-}
+Je antwoord komt via de tool 'suggest_campaign_schedule'. Vul datetime_iso (ISO-8601 in Europe/Amsterdam) en een korte reasoning.
 
 Regels voor de datum:
 - KIES een tijdstip vanaf morgen, niet vandaag (geef de eigenaar tijd om te reviewen).
@@ -972,42 +995,27 @@ ${liveBlock}
 
 Geef het beste verzendmoment.`;
 
-    const answer = await this.ai.generateText({
-      system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-sonnet-4-6',
-      maxTokens: 400,
-      meta: {
-        restaurantId,
-        feature: 'schedule_suggestion',
-      },
-    });
+    const parsed =
+      await this.ai.generateStructured<CampaignScheduleSuggestionFromTool>({
+        system: systemPrompt,
+        prompt: userPrompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 600,
+        toolName: 'suggest_campaign_schedule',
+        toolDescription:
+          'Stel het beste verzendmoment voor de campagne voor, met argumentatie.',
+        inputSchema: CAMPAIGN_SCHEDULE_SUGGESTION_SCHEMA,
+        meta: {
+          restaurantId,
+          feature: 'schedule_suggestion',
+        },
+      });
 
-    // Parse JSON uit antwoord. Bij parse-fout: error gooien — frontend
-    // toont "kon voorstel niet genereren".
-    const match = answer.match(/\{[\s\S]*\}/);
-    if (!match) {
-      throw new InternalServerErrorException(
-        'Filly gaf geen leesbaar antwoord. Probeer opnieuw.',
-      );
-    }
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(match[0]) as Record<string, unknown>;
-    } catch {
-      throw new InternalServerErrorException(
-        "Kon Filly's antwoord niet lezen. Probeer opnieuw.",
-      );
-    }
-
-    const datetimeIso =
-      typeof parsed.datetime_iso === 'string'
-        ? parsed.datetime_iso.trim()
-        : '';
-    const reasoning =
-      typeof parsed.reasoning === 'string'
-        ? parsed.reasoning.trim().slice(0, 500)
-        : '';
+    // Schema garandeert dat datetime_iso een string is, maar of 'm
+    // ook een GELDIGE date-string is moeten we hier zelf checken
+    // (JSON-schema kent format: 'date-time' niet uniform overal).
+    const datetimeIso = parsed.datetime_iso.trim();
+    const reasoning = parsed.reasoning.trim().slice(0, 500);
 
     if (!datetimeIso || Number.isNaN(Date.parse(datetimeIso))) {
       throw new InternalServerErrorException(

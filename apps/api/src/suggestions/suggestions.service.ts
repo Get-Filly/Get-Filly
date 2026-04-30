@@ -4,12 +4,34 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import type Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   CampaignsService,
   type CampaignType,
 } from '../campaigns/campaigns.service';
 import { AiService } from '../ai/ai.service';
+
+// JSON-schema voor de suggestion-refine tool. Forceert dat Claude
+// een geldige campagne-shape teruggeeft (type uit de 3 enum-waarden,
+// geen verzonnen velden, geen markdown-codeblok-rest).
+const SUGGESTION_REFINE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    type: { type: 'string', enum: ['mail', 'social', 'whatsapp'] },
+    subject_line: { type: 'string' },
+    body: { type: 'string' },
+  },
+  required: ['type', 'body'],
+} as const satisfies Anthropic.Tool.InputSchema;
+
+type RefinedCampaignFromTool = {
+  name?: string;
+  type: 'mail' | 'social' | 'whatsapp';
+  subject_line?: string;
+  body: string;
+};
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected' | 'expired';
 
@@ -371,26 +393,18 @@ export class SuggestionsService {
           ? (sc.caption as string)
           : '';
 
-    // System-prompt voor de refine-call. Claude krijgt de huidige
-    // campagne-structuur + de user-instructie en moet een volledige
-    // nieuwe versie teruggeven in hetzelfde JSON-formaat. Zo blijft
-    // de data-shape consistent (belangrijk voor approve-flow straks).
+    // System-prompt voor de refine-call. Tool-use forceert het JSON-
+    // schema, dus we hoeven de structuur hier niet meer in tekst uit
+    // te leggen — alleen de inhoudelijke regels blijven.
     const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je past een bestaande campagne aan volgens de instructie van de eigenaar.
 
-Geef ALTIJD exact dit JSON-formaat terug, zonder markdown-codeblok, zonder uitleg eromheen:
+Je antwoord komt via de tool 'refine_campaign'. Vul de tool-args in met de volledige nieuwe versie van de campagne.
 
-{
-  "name": "<korte werknaam, max 60 tekens>",
-  "type": "mail" | "social" | "whatsapp",
-  "subject_line": "<alleen bij mail, anders weglaten>",
-  "body": "<volledige uitgeschreven tekst>"
-}
-
-Regels:
+Inhoudsregels:
 - Behoud het type van de campagne tenzij de instructie expliciet vraagt om te wisselen.
 - Schrijf in het Nederlands.
-- Geen dubbele aanhalingstekens in de body tenzij geëscaped met \\".
-- Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.`;
+- Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.
+- Bij type=mail vul je ook subject_line; bij social/whatsapp laat je subject_line weg.`;
 
     const currentPayload = JSON.stringify(
       {
@@ -405,53 +419,33 @@ Regels:
 
     const userPrompt = `Huidige campagne:\n${currentPayload}\n\nInstructie van de eigenaar:\n${trimmed}\n\nGeef de volledige nieuwe versie van de campagne.`;
 
-    const answer = await this.ai.generateText({
+    const parsed = await this.ai.generateStructured<RefinedCampaignFromTool>({
       system: systemPrompt,
       prompt: userPrompt,
       model: 'claude-sonnet-4-6',
-      maxTokens: 1200,
+      maxTokens: 1500,
+      toolName: 'refine_campaign',
+      toolDescription:
+        'Lever de aangepaste campagne aan op basis van de instructie van de eigenaar.',
+      inputSchema: SUGGESTION_REFINE_SCHEMA,
       meta: {
         restaurantId,
         feature: 'suggestion_refine',
       },
     });
 
-    // Parse het antwoord. Als Claude er per ongeluk markdown omheen
-    // plakt, halen we het eerste { ... }-blok eruit. Bij parse-fout:
-    // niet crashen, gebruik de oude versie als fallback en gooi een
-    // begrijpelijke fout naar de caller.
-    const match = answer.match(/\{[\s\S]*\}/);
-    if (!match) {
-      throw new InternalServerErrorException(
-        'Filly gaf geen leesbaar antwoord. Probeer een andere instructie.',
-      );
-    }
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(match[0]) as Record<string, unknown>;
-    } catch {
-      throw new InternalServerErrorException(
-        'Kon Filly\'s antwoord niet lezen. Probeer het opnieuw.',
-      );
-    }
-
+    // Schema garandeert al dat type een geldige enum is en body/type
+    // aanwezig zijn. Wij voegen alleen de fallbacks toe op velden die
+    // optioneel zijn én lengte-caps voor DB-veiligheid.
     const newName =
-      typeof parsed.name === 'string' && parsed.name.trim().length > 0
+      parsed.name && parsed.name.trim().length > 0
         ? parsed.name.trim().slice(0, 120)
         : currentName;
-    const newType =
-      parsed.type === 'mail' ||
-      parsed.type === 'social' ||
-      parsed.type === 'whatsapp'
-        ? parsed.type
-        : currentType;
+    const newType = parsed.type;
     const newBody =
-      typeof parsed.body === 'string' && parsed.body.trim().length > 0
-        ? parsed.body.trim()
-        : currentBody;
+      parsed.body.trim().length > 0 ? parsed.body.trim() : currentBody;
     const newSubject =
-      typeof parsed.subject_line === 'string' &&
-      parsed.subject_line.trim().length > 0
+      parsed.subject_line && parsed.subject_line.trim().length > 0
         ? parsed.subject_line.trim().slice(0, 200)
         : undefined;
 
