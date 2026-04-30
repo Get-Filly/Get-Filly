@@ -6,6 +6,7 @@ import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
 import { DetailCard } from "./_components/detail-card";
 import { FillyChat } from "./_components/filly-chat";
+import { OnboardingChecklist } from "./_components/onboarding-checklist";
 import { fetchOccupancy, type OccupancyDay } from "../../lib/api";
 
 export type View = "dag" | "maand" | "jaar";
@@ -38,6 +39,10 @@ export default function DashboardPage() {
   return (
     <div className="page">
       <div className="dash-top">
+        {/* Onboarding-checklist staat bovenaan zolang het restaurant
+            nog niet alle setup-stappen heeft afgevinkt. Verbergt zich
+            automatisch zodra alles op ✓ staat. */}
+        <OnboardingChecklist />
         {criticalDays.length > 0 && (
           <div className="alert-bar">
             <span className="alert-icon">⚠️</span>

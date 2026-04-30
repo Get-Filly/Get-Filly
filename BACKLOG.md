@@ -204,10 +204,13 @@ direct op te pakken in de volgende sessie:
    gegevens, NIET de `restaurants`-rij — dat zou een denkfout
    zijn (restaurants = klanten, niet de SaaS-aanbieder).
 
-2. **🟡 Onboarding-checklist op dashboard-home** — banner of card-
-   sectie die voor nieuwe klanten de openstaande setup-stappen toont
-   (KvK + BTW invullen, openingstijden, logo upload, eerste campagne,
-   menukaart). Verdwijnt automatisch zodra alles compleet is.
+2. ~~**🟡 Onboarding-checklist op dashboard-home**~~ ✅ (2026-04-30) —
+   `OnboardingChecklist`-component bovenaan `dash-top`. 6 items:
+   profielbasis, openingstijden, logo, menukaart, eerste campagne,
+   bedrijfsgegevens (legal name + KvK). Progress-bar + per-item link
+   naar de plek om in te vullen. Verbergt zich automatisch zodra
+   alles op ✓ staat. Frontend-only (geen extra endpoints — leest
+   uit fetchRestaurant + fetchMenu + fetchCampaigns).
 
 3. **🔴 Test-account FK-cascade fix** — `auth.user delete via UI laat
    wees-restaurants achter. Migratie + wellicht trigger zodat
@@ -258,7 +261,7 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🔴 **Privacy-verklaring + AV staan op draft** met `[INVULLEN:...]`-placeholders. Bedrijfsgegevens kunnen via account-pagina ingevuld worden — moet nog dynamisch op de publieke pagina renderen.
 - [x] ~~🔴 Cookie-banner ontbreekt~~ (2026-04-29) — `<CookieBanner />` in root-layout, accept/reject keuze in localStorage. Klaar voor wanneer Plausible/PostHog wordt aangezet (analytics-init achter consent-check).
 - [ ] 🔴 **Geen "Start trial / Probeer gratis"-flow** vanaf pricing-pagina.
-- [ ] 🟡 **Geen onboarding-checklist op dashboard** — nieuwe klant weet niet wat als eerste te doen (KvK, menu, openingstijden, etc).
+- [x] ~~🟡 Geen onboarding-checklist op dashboard~~ (2026-04-30) — `OnboardingChecklist` bovenaan dashboard-home toont 6 setup-stappen met progress-bar; verbergt zich zodra alles ✓.
 - [ ] 🟡 **Geen referral / vriend-werft-vriend**-systeem.
 - [ ] 🟡 **About-pagina is leeg / placeholder** — geen "wie bouwt dit"-verhaal voor vertrouwen.
 - [ ] 🟡 **Geen contactformulier** op publieke site — leads zonder account hebben geen kanaal.
