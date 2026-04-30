@@ -10,6 +10,7 @@ import {
   type CampaignDetail,
 } from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
+import { Button } from "../../../../components/ui/button";
 import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
 import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
@@ -242,27 +243,25 @@ export default function CampaignDetailPage() {
               eigenaar tevreden is met inhoud + tijdstip. Disabled als
               er nog geen scheduled_for is, met uitleg in de title. */}
           {campaign.status === "concept" && !editMode && (
-            <button
-              className="btn-primary-dash"
+            <Button
               onClick={handlePlanCampaign}
-              disabled={statusActing || !campaign.scheduled_for}
+              loading={statusActing}
+              disabled={!campaign.scheduled_for}
               title={
                 !campaign.scheduled_for
                   ? "Stel eerst een tijdstip in via 'Wanneer plaatsen'"
                   : `Plan in voor ${formatDate(campaign.scheduled_for)}`
               }
-              style={{ padding: "6px 14px" }}
             >
-              {statusActing ? "Inplannen…" : "📅 Inplannen"}
-            </button>
+              📅 Inplannen
+            </Button>
           )}
           {/* Bij ingepland → activeren (= NU starten met verzenden /
               direct plaatsen voor social/whatsapp). Voor mail wacht
               de send-engine straks op scheduled_for; activeren markeert
               alleen dat 'ie ready-to-send is. */}
           {campaign.status === "ingepland" && (
-            <button
-              className="btn-primary-dash"
+            <Button
               onClick={async () => {
                 if (!campaign) return;
                 if (
@@ -287,33 +286,29 @@ export default function CampaignDetailPage() {
                   setStatusActing(false);
                 }
               }}
-              disabled={statusActing}
-              style={{ padding: "6px 14px" }}
+              loading={statusActing}
             >
-              {statusActing
-                ? "Activeren…"
-                : campaign.type === "mail"
-                  ? "▶ Activeer (verstuur op tijd)"
-                  : "▶ Plaats nu"}
-            </button>
+              {campaign.type === "mail"
+                ? "▶ Activeer (verstuur op tijd)"
+                : "▶ Plaats nu"}
+            </Button>
           )}
           {editMode && (
             <>
-              <button
-                className="sg-btn"
+              <Button
+                variant="secondary"
                 onClick={() => setEditMode(false)}
                 disabled={saving}
               >
                 Annuleren
-              </button>
-              <button
-                className="btn-primary-dash"
+              </Button>
+              <Button
                 onClick={saveEdit}
-                disabled={saving || !draftName.trim() || !draftBody.trim()}
-                style={{ padding: "6px 14px" }}
+                loading={saving}
+                disabled={!draftName.trim() || !draftBody.trim()}
               >
-                {saving ? "Opslaan…" : "Opslaan"}
-              </button>
+                Opslaan
+              </Button>
             </>
           )}
         </div>

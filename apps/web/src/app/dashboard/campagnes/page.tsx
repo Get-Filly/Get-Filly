@@ -17,6 +17,7 @@ import { Skeleton } from "../_components/skeleton";
 import { TasksStrip } from "../_components/tasks-strip";
 import { SuggestionDetailModal } from "../_components/suggestion-detail-modal";
 import { Badge, type BadgeVariant } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
 
 // Map campagne-status → semantische Badge-variant. Eén plek waar
 // "wat betekent deze status visueel" beslist wordt — als we later
@@ -382,18 +383,15 @@ export default function CampagnesPage() {
               (anders BadRequest met helpende tekst). Pakt elke klik
               een nieuwe set voorstellen — eerder gegeneerde blijven
               staan tot de eigenaar ze afhandelt. */}
-          <button
-            type="button"
-            className="btn-secondary-dash"
-            disabled={generating}
+          <Button
+            variant="secondary"
+            loading={generating}
             onClick={handleGenerateSuggestions}
             title="Filly bekijkt je profiel + menu en genereert 3-5 nieuwe voorstellen"
           >
-            {generating
-              ? "✨ Filly denkt na…"
-              : "✨ Vraag Filly om voorstellen"}
-          </button>
-          <button className="btn-primary-dash">＋ Nieuwe campagne</button>
+            ✨ Vraag Filly om voorstellen
+          </Button>
+          <Button variant="primary">＋ Nieuwe campagne</Button>
         </div>
       </div>
       {generateError && (
@@ -676,9 +674,7 @@ export default function CampagnesPage() {
                 ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
                 : "Laat Filly een voorstel maken of start zelf een campagne — voor mail, social of WhatsApp."}
             </div>
-            {!error && (
-              <button className="btn-primary-dash">Nieuwe campagne</button>
-            )}
+            {!error && <Button variant="primary">Nieuwe campagne</Button>}
           </div>
         ) : (
           <div className="table-empty">
@@ -1131,57 +1127,55 @@ function SuggestionCard({
           zonder eerst her-evaluatie. */}
       {mode === "open" ? (
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-          <button
-            className="btn-primary-dash"
+          <Button
+            size="sm"
+            variant="primary"
             onClick={onApprove}
+            loading={action.state === "approving"}
             disabled={busy}
             style={{ flex: 1 }}
           >
-            {action.state === "approving" ? "Goedkeuren…" : "✓ Goedkeuren"}
-          </button>
-          <button
-            className="btn-secondary-dash"
+            ✓ Goedkeuren
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={onDetails}
             disabled={busy}
           >
             Details
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={onReject}
+            loading={action.state === "rejecting"}
             disabled={busy}
-            style={{
-              padding: "6px 12px",
-              background: "transparent",
-              color: "var(--red, #DC2626)",
-              border: "1px solid var(--border, #E5DFD0)",
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: busy ? "not-allowed" : "pointer",
-            }}
+            style={{ color: "var(--color-danger)" }}
           >
-            {action.state === "rejecting" ? "Afwijzen…" : "✕ Afwijzen"}
-          </button>
+            ✕ Afwijzen
+          </Button>
         </div>
       ) : (
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-          <button
-            className="btn-secondary-dash"
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={onRestore}
+            loading={action.state === "restoring"}
             disabled={busy}
             style={{ flex: 1 }}
           >
-            {action.state === "restoring"
-              ? "Terugzetten…"
-              : "↩ Terugzetten op open"}
-          </button>
-          <button
-            className="btn-secondary-dash"
+            ↩ Terugzetten op open
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={onDetails}
             disabled={busy}
           >
             Details
-          </button>
+          </Button>
         </div>
       )}
 

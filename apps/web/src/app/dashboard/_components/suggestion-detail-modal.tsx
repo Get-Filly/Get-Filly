@@ -8,6 +8,7 @@ import {
   updateSuggestion,
   type AiSuggestion,
 } from "../../../lib/api";
+import { Button } from "../../../components/ui/button";
 
 // ============================================================
 // SuggestionDetailModal — detail + chat-edit voor een suggestie
@@ -573,30 +574,23 @@ export function SuggestionDetailModal({
           )}
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button
+            <Button
+              variant="secondary"
               onClick={handleReject}
+              loading={rejecting}
               disabled={busy}
-              style={{
-                padding: "8px 14px",
-                background: "transparent",
-                color: "var(--red, #DC2626)",
-                border: "1px solid var(--border, #E5DFD0)",
-                borderRadius: 6,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: busy ? "not-allowed" : "pointer",
-              }}
+              style={{ color: "var(--color-danger)" }}
             >
-              {rejecting ? "Afwijzen…" : "✕ Afwijzen"}
-            </button>
-            <button
+              ✕ Afwijzen
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleApprove}
+              loading={approving}
               disabled={busy}
-              className="btn-primary-dash"
-              style={{ padding: "8px 16px" }}
             >
-              {approving ? "Goedkeuren…" : "✓ Goedkeuren & maak concept"}
-            </button>
+              ✓ Goedkeuren &amp; maak concept
+            </Button>
           </div>
         </div>
       </div>

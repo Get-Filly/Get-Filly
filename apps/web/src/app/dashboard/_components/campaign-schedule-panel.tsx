@@ -5,6 +5,7 @@ import {
   setCampaignSchedule,
   suggestCampaignSchedule,
 } from "../../../lib/api";
+import { Button } from "../../../components/ui/button";
 
 // ============================================================
 // CampaignSchedulePanel — Filly stelt verzendmoment voor + accept/edit
@@ -215,21 +216,20 @@ export function CampaignSchedulePanel({
               />
             </label>
             <div style={{ display: "flex", gap: 8 }}>
-              <button
+              <Button
                 onClick={saveEdit}
-                disabled={!draftDatetime || loading}
-                className="btn-primary-dash"
-                style={{ padding: "6px 14px" }}
+                disabled={!draftDatetime}
+                loading={loading}
               >
-                {loading ? "Opslaan…" : "Opslaan"}
-              </button>
-              <button
+                Opslaan
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => setEditing(false)}
                 disabled={loading}
-                className="btn-secondary-dash"
               >
                 Annuleren
-              </button>
+              </Button>
             </div>
           </div>
         ) : scheduledFor ? (
@@ -249,13 +249,13 @@ export function CampaignSchedulePanel({
               {formatDutchDateTime(scheduledFor)}
             </div>
             {status === "concept" && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={startEdit}
-                className="btn-secondary-dash"
                 disabled={loading}
               >
                 ✎ Wijzig
-              </button>
+              </Button>
             )}
           </div>
         ) : suggestedFor ? (
@@ -295,21 +295,16 @@ export function CampaignSchedulePanel({
                 flexWrap: "wrap",
               }}
             >
-              <button
-                onClick={accept}
-                disabled={loading}
-                className="btn-primary-dash"
-                style={{ padding: "6px 14px" }}
-              >
-                {loading ? "Bezig…" : "✓ Accepteer dit moment"}
-              </button>
-              <button
+              <Button onClick={accept} loading={loading}>
+                ✓ Accepteer dit moment
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={startEdit}
                 disabled={loading}
-                className="btn-secondary-dash"
               >
                 ✎ Wijzig zelf
-              </button>
+              </Button>
               <button
                 onClick={regenerate}
                 disabled={loading}

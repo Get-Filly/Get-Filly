@@ -8,6 +8,7 @@ import {
   type CustomerStatus,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { Button } from "../../../components/ui/button";
 
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -247,9 +248,7 @@ export default function GastenPage() {
                 ? "We konden de gastenlijst niet laden. Probeer de pagina te herladen."
                 : "Importeer vanuit je reserveringsplatform of voeg handmatig toe."}
             </div>
-            {!error && (
-              <button className="btn-primary-dash">Gast toevoegen</button>
-            )}
+            {!error && <Button variant="primary">Gast toevoegen</Button>}
           </div>
         )
       ) : (

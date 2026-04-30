@@ -12,6 +12,7 @@ import {
   fetchOccupancy,
   type OccupancyDay,
 } from "../../lib/api";
+import { Button } from "../../components/ui/button";
 
 export type View = "dag" | "maand" | "jaar";
 
@@ -144,18 +145,15 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-      <button
-        type="button"
+      <Button
+        size="sm"
         onClick={handleDetectLowOccupancy}
-        disabled={lowOccDetecting}
-        className="btn-primary-dash"
-        style={{ padding: "6px 14px", flexShrink: 0 }}
+        loading={lowOccDetecting}
+        style={{ flexShrink: 0 }}
         title="Filly bedenkt per dag een specifiek activatie-voorstel"
       >
-        {lowOccDetecting
-          ? "✨ Filly denkt na…"
-          : "✨ Filly maakt voorstellen"}
-      </button>
+        ✨ Filly maakt voorstellen
+      </Button>
     </div>
   );
 

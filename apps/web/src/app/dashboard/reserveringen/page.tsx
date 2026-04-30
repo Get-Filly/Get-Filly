@@ -11,6 +11,7 @@ import {
   type ReservationStatus,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { Button } from "../../../components/ui/button";
 
 const statusInfo: Record<ReservationStatus, { label: string; color: string; bg: string }> = {
   bevestigd: { label: "Bevestigd", color: "#1B7A2E", bg: "#DCFCE7" },
@@ -199,12 +200,9 @@ export default function ReserveringenPage() {
             Overzicht van wie wanneer komt, bijzonderheden en tafel-assignment.
           </div>
         </div>
-        <button
-          className="btn-primary-dash"
-          onClick={() => setModalOpen(true)}
-        >
+        <Button variant="primary" onClick={() => setModalOpen(true)}>
           ＋ Nieuwe reservering
-        </button>
+        </Button>
       </div>
 
       <div className="stats-row">
@@ -303,12 +301,9 @@ export default function ReserveringenPage() {
                 : "Koppel een reserveringsplatform of voeg zelf een boeking toe via de knop rechtsboven."}
             </div>
             {!error && (
-              <button
-                className="btn-primary-dash"
-                onClick={() => setModalOpen(true)}
-              >
+              <Button variant="primary" onClick={() => setModalOpen(true)}>
                 Nieuwe reservering
-              </button>
+              </Button>
             )}
           </div>
         )
@@ -682,21 +677,20 @@ function NewReservationModal({
             marginTop: 4,
           }}
         >
-          <button
-            type="button"
-            className="btn-secondary-dash"
+          <Button
+            variant="secondary"
             onClick={onClose}
             disabled={submitting}
           >
             Annuleren
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className="btn-primary-dash"
-            disabled={submitting}
+            variant="primary"
+            loading={submitting}
           >
-            {submitting ? "Opslaan…" : "Reservering aanmaken"}
-          </button>
+            Reservering aanmaken
+          </Button>
         </div>
       </form>
     </div>

@@ -16,6 +16,7 @@ import {
   type ActiveMenuCard,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
+import { Button } from "../../../components/ui/button";
 
 const categoryOrder = [
   "voorgerecht",
@@ -607,24 +608,18 @@ export default function MenuPage() {
               actief is — als je beide al hebt geüpload, zit de
               "vervangen"-actie in de banner zelf. */}
           {!menuCard && (
-            <button
-              className="btn-secondary-dash"
-              onClick={() => openUpload("menu")}
-            >
+            <Button variant="secondary" onClick={() => openUpload("menu")}>
               📄 Menu-kaart uploaden
-            </button>
+            </Button>
           )}
           {!drinksCard && (
-            <button
-              className="btn-secondary-dash"
-              onClick={() => openUpload("drinks")}
-            >
+            <Button variant="secondary" onClick={() => openUpload("drinks")}>
               🍷 Drankkaart uploaden
-            </button>
+            </Button>
           )}
-          <button className="btn-primary-dash" onClick={openAdd}>
+          <Button variant="primary" onClick={openAdd}>
             ＋ Gerecht toevoegen
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -743,9 +738,9 @@ export default function MenuPage() {
               : "Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes."}
           </div>
           {!error && (
-            <button className="btn-primary-dash" onClick={openAdd}>
+            <Button variant="primary" onClick={openAdd}>
               Gerecht toevoegen
-            </button>
+            </Button>
           )}
         </div>
       ) : filtered.length === 0 ? (
@@ -933,12 +928,14 @@ function CardStatusBanner({
         </div>
       </div>
       <div className="menu-card-status-actions">
-        <button
-          className="btn-secondary-dash menu-card-status-btn"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={onReplace}
+          className="menu-card-status-btn"
         >
           {replaceLabel}
-        </button>
+        </Button>
         <button className="menu-card-status-remove" onClick={onRemove}>
           Verwijderen
         </button>

@@ -465,18 +465,19 @@ export default function AccountPage() {
           </div>
           <div className="form-field full">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button
-                className="btn-primary-dash"
+              <Button
+                variant="primary"
+                loading={analyzing}
+                disabled={!form.website_url}
                 onClick={handleAnalyzeWebsite}
-                disabled={analyzing || !form.website_url}
                 title={
                   !form.website_url
                     ? "Vul eerst een website-URL in en sla op."
                     : "Filly leest de website en vult tagline/sfeer/USPs in."
                 }
               >
-                {analyzing ? "Analyseren…" : "Analyseer website"}
-              </button>
+                Analyseer website
+              </Button>
               <span style={{ fontSize: 12, color: "var(--tl)" }}>
                 Laatste analyse: {formatDate(form.website_last_analyzed_at)}
               </span>
@@ -1310,8 +1311,9 @@ export default function AccountPage() {
           van je business-data in een leesbaar formaat.
         </div>
         <div className="form-field full">
-          <button
-            className="btn-secondary-dash"
+          <Button
+            variant="secondary"
+            loading={exporting}
             onClick={async () => {
               setExporting(true);
               try {
@@ -1330,11 +1332,9 @@ export default function AccountPage() {
                 setExporting(false);
               }
             }}
-            disabled={exporting}
-            style={{ display: "inline-block" }}
           >
-            {exporting ? "Exporteren…" : "⬇️ Download volledige data-export (JSON)"}
-          </button>
+            ⬇️ Download volledige data-export (JSON)
+          </Button>
           <div className="hint" style={{ marginTop: 8 }}>
             Bevat: profielgegevens, gasten, reserveringen, menu,
             campagnes, reviews, chat-history en audit-log. Logo&apos;s en
@@ -1370,22 +1370,16 @@ export default function AccountPage() {
             actie is onomkeerbaar — download eerst je data-export
             hierboven als je iets wilt bewaren.
           </div>
-          <button
-            type="button"
-            className="btn-secondary-dash"
+          <Button
+            variant="danger"
             onClick={() => {
               setDeleteConfirm("");
               setDeleteError(null);
               setShowDeleteModal(true);
             }}
-            style={{
-              borderColor: "#c44",
-              color: "#a22",
-              display: "inline-block",
-            }}
           >
             🗑 Account permanent verwijderen
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1510,18 +1504,17 @@ export default function AccountPage() {
                 justifyContent: "flex-end",
               }}
             >
-              <button
-                type="button"
-                className="btn-secondary-dash"
+              <Button
+                variant="secondary"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={deleting}
               >
                 Annuleren
-              </button>
-              <button
-                type="button"
-                className="btn-primary-dash"
-                disabled={deleting || deleteConfirm !== "VERWIJDER"}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={deleteConfirm !== "VERWIJDER"}
+                loading={deleting}
                 onClick={async () => {
                   setDeleting(true);
                   setDeleteError(null);
@@ -1540,15 +1533,9 @@ export default function AccountPage() {
                     setDeleting(false);
                   }
                 }}
-                style={{
-                  background: "#a22",
-                  borderColor: "#a22",
-                }}
               >
-                {deleting
-                  ? "Verwijderen…"
-                  : "Ja, verwijder mijn account"}
-              </button>
+                Ja, verwijder mijn account
+              </Button>
             </div>
           </div>
         </div>

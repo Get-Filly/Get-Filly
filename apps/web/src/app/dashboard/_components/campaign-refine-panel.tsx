@@ -6,6 +6,7 @@ import {
   generateCampaignVariants,
   updateCampaign,
 } from "../../../lib/api";
+import { Button } from "../../../components/ui/button";
 
 // ============================================================
 // CampaignRefinePanel — 3 alternatieven + 1× extra + wisselen
@@ -202,20 +203,16 @@ export function CampaignRefinePanel({
                 background: "var(--white, #FFFFFF)",
               }}
             />
-            <button
+            <Button
               onClick={regenerate}
-              disabled={
-                generating || applyingIdx !== null || bootstrapping
-              }
-              className="btn-primary-dash"
-              style={{ padding: "8px 14px", whiteSpace: "nowrap" }}
+              loading={generating}
+              disabled={applyingIdx !== null || bootstrapping}
+              style={{ whiteSpace: "nowrap" }}
             >
-              {generating
-                ? "Filly bedenkt…"
-                : regenCount === 0
-                  ? "✨ Genereer 3 alternatieven"
-                  : "↻ Genereer 3 nieuwe"}
-            </button>
+              {regenCount === 0
+                ? "✨ Genereer 3 alternatieven"
+                : "↻ Genereer 3 nieuwe"}
+            </Button>
           </div>
         )}
 
