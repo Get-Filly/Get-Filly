@@ -995,11 +995,11 @@ ${menuBlock}
         }>)
       : [];
 
-    // Cyclen-pad: als we al 3 unieke alternatieven hadden (current +
-    // 2 in history), generen we niet meer. Pak de oudste uit history,
-    // schuif de huidige current naar het einde — round-robin door de
-    // 3 alternatieven heen. Geen Claude-call.
-    const MAX_UNIQUE_BEFORE_CYCLE = 2; // history-cap; 2 + current = 3 totaal
+    // Cyclen-pad: na 4 unieke alternatieven (current + 3 in history)
+    // genereren we niet meer. Round-robin door de 4 alternatieven —
+    // pak oudste uit history, schuif huidige current naar einde.
+    // Geen Claude-call.
+    const MAX_UNIQUE_BEFORE_CYCLE = 3; // history-cap; 3 + current = 4 totaal
     if (
       force &&
       history.length >= MAX_UNIQUE_BEFORE_CYCLE &&

@@ -8,7 +8,7 @@ import {
 } from "../../../lib/api";
 
 // ============================================================
-// CampaignRefinePanel — 3 alternatieven + 1× extra + apply
+// CampaignRefinePanel — 3 alternatieven + 1× extra + wisselen
 // ============================================================
 // Inline paneel onder de "Inhoud"-card op /campagnes/[id]. Alleen
 // zichtbaar bij status='concept'.
@@ -19,22 +19,29 @@ import {
 //   - Bij her-bezoek: tonen wat al gecached is, géén Claude-call.
 //   - Knop "Genereer 3 nieuwe": voegt 3 extra toe (totaal 6).
 //   - Daarna disabled: je hebt 6 versies, kies of bewerk handmatig.
-//   - Klik op een variant → wordt nieuwe campagne-body via PATCH.
-//     PATCH wist server-side de cache + reset count zodat user
-//     opnieuw 6 kan genereren op basis van de bijgewerkte tekst.
+//   - Klik op een variant → body wordt geüpdatet (from_variant=true
+//     zodat de cache NIET wordt gewist). Eigenaar kan vrij blijven
+//     wisselen tussen de varianten — preview-sectie volgt elke klik.
+//   - Actieve variant krijgt een ✓-highlight zodat duidelijk is
+//     welke nu in de uiting-preview staat.
 //
-// Kostenbeheersing: max 2 Claude-generaties per item-leven (tot
-// body wijzigt).
+// Kostenbeheersing: max 2 Claude-generaties per campagne (= 6
+// alternatieven), daarna alleen wisselen tussen bestaande.
 
 type Variant = { subject_line?: string; body: string };
 
 export function CampaignRefinePanel({
   campaignId,
   type,
+  currentBody,
   onApplied,
 }: {
   campaignId: string;
   type: "mail" | "social" | "whatsapp";
+  // Huidige body op de campagne. Gebruikt om te markeren welke
+  // variant nu de actieve preview-content is. Null als de campagne
+  // nog geen body heeft.
+  currentBody: string | null;
   // Wordt aangeroepen na succesvol toepassen van een variant zodat
   // de parent-page de campagne kan refetchen voor verse content.
   onApplied: () => void;
@@ -271,9 +278,10 @@ export function CampaignRefinePanel({
                 marginBottom: 8,
               }}
             >
-              Klik op een versie om 'm als nieuwe inhoud op te slaan.
+              Klik op een versie om 'm in de uiting-preview te zetten.
+              Wisselen kan zoveel je wilt.
               {regenCount === 1 && canRegenerate && (
-                <span> Of laat Filly 3 nieuwe maken (max 6 totaal).</span>
+                <span> Filly kan nog 3 nieuwe maken (max 6 totaal).</span>
               )}
             </div>
             <div
@@ -287,6 +295,11 @@ export function CampaignRefinePanel({
               {variants.map((v, idx) => {
                 const isApplying = applyingIdx === idx;
                 const isDisabled = applyingIdx !== null && !isApplying;
+                // Actieve variant = body matcht met campaign.body.
+                // Trim om kleine whitespace-verschillen te negeren.
+                const isActive =
+                  currentBody !== null &&
+                  v.body.trim() === currentBody.trim();
                 return (
                   <button
                     key={idx}
@@ -296,10 +309,14 @@ export function CampaignRefinePanel({
                       textAlign: "left",
                       padding: "12px 14px",
                       borderRadius: 8,
-                      border: "1px solid var(--border, #E5DFD0)",
+                      border: isActive
+                        ? "2px solid var(--accent, #1F4A2D)"
+                        : "1px solid var(--border, #E5DFD0)",
                       background: isApplying
                         ? "var(--accent-light, #D6E0D8)"
-                        : "var(--white, #FFFFFF)",
+                        : isActive
+                          ? "var(--accent-light, #D6E0D8)"
+                          : "var(--white, #FFFFFF)",
                       cursor:
                         applyingIdx !== null || generating
                           ? "not-allowed"
@@ -311,6 +328,7 @@ export function CampaignRefinePanel({
                       gap: 6,
                       maxHeight: 280,
                       overflowY: "auto",
+                      position: "relative",
                     }}
                     onMouseEnter={(e) => {
                       if (applyingIdx === null && !generating) {
@@ -319,8 +337,9 @@ export function CampaignRefinePanel({
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "var(--border, #E5DFD0)";
+                      e.currentTarget.style.borderColor = isActive
+                        ? "var(--accent, #1F4A2D)"
+                        : "var(--border, #E5DFD0)";
                     }}
                   >
                     <div
@@ -330,9 +349,16 @@ export function CampaignRefinePanel({
                         textTransform: "uppercase",
                         letterSpacing: "0.05em",
                         color: "var(--accent, #1F4A2D)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
                       }}
                     >
-                      {isApplying ? "Toepassen…" : `Versie ${idx + 1}`}
+                      {isApplying
+                        ? "Toepassen…"
+                        : isActive
+                          ? `✓ Versie ${idx + 1} (actief)`
+                          : `Versie ${idx + 1}`}
                     </div>
                     {v.subject_line && (
                       <div

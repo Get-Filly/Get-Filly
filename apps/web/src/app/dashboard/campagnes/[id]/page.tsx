@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import {
   fetchCampaign,
   updateCampaign,
+  updateCampaignStatus,
   type CampaignDetail,
 } from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
@@ -50,6 +51,38 @@ export default function CampaignDetailPage() {
   const [draftBody, setDraftBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  // Status-actie (bv. concept → ingepland). Aparte state zodat we de
+  // knop kunnen disablen tijdens de roundtrip én een nette spinner-
+  // tekst kunnen tonen.
+  const [statusActing, setStatusActing] = useState(false);
+
+  // Schakelt status van concept naar ingepland. Vereist dat
+  // scheduled_for is gezet (anders weigert de UI met een uitleg).
+  // Voor onmiddelijke verzending kan dezelfde flow ingepland → actief
+  // doen — dat is een aparte transitie die we hier later toevoegen.
+  const handlePlanCampaign = async () => {
+    if (!campaign) return;
+    if (!campaign.scheduled_for) {
+      window.alert(
+        "Stel eerst een tijdstip in via 'Wanneer plaatsen' voordat je inplant.",
+      );
+      return;
+    }
+    setStatusActing(true);
+    try {
+      await updateCampaignStatus(campaign.id, "ingepland");
+      const fresh = await fetchCampaign(id);
+      setCampaign(fresh);
+    } catch (e) {
+      window.alert(
+        e instanceof Error
+          ? e.message
+          : "Inplannen mislukt. Probeer het opnieuw.",
+      );
+    } finally {
+      setStatusActing(false);
+    }
+  };
 
   useEffect(() => {
     fetchCampaign(id)
@@ -203,6 +236,65 @@ export default function CampaignDetailPage() {
           {campaign.status === "concept" && !editMode && (
             <button className="sg-btn" onClick={startEdit}>
               ✎ Bewerken
+            </button>
+          )}
+          {/* Inplannen-knop: zet status concept → ingepland zodra de
+              eigenaar tevreden is met inhoud + tijdstip. Disabled als
+              er nog geen scheduled_for is, met uitleg in de title. */}
+          {campaign.status === "concept" && !editMode && (
+            <button
+              className="btn-primary-dash"
+              onClick={handlePlanCampaign}
+              disabled={statusActing || !campaign.scheduled_for}
+              title={
+                !campaign.scheduled_for
+                  ? "Stel eerst een tijdstip in via 'Wanneer plaatsen'"
+                  : `Plan in voor ${formatDate(campaign.scheduled_for)}`
+              }
+              style={{ padding: "6px 14px" }}
+            >
+              {statusActing ? "Inplannen…" : "📅 Inplannen"}
+            </button>
+          )}
+          {/* Bij ingepland → activeren (= NU starten met verzenden /
+              direct plaatsen voor social/whatsapp). Voor mail wacht
+              de send-engine straks op scheduled_for; activeren markeert
+              alleen dat 'ie ready-to-send is. */}
+          {campaign.status === "ingepland" && (
+            <button
+              className="btn-primary-dash"
+              onClick={async () => {
+                if (!campaign) return;
+                if (
+                  !window.confirm(
+                    "Campagne nu activeren? Voor social/whatsapp wordt 'ie direct geplaatst, voor mail gaat 'ie op het ingestelde tijdstip uit.",
+                  )
+                ) {
+                  return;
+                }
+                setStatusActing(true);
+                try {
+                  await updateCampaignStatus(campaign.id, "actief");
+                  const fresh = await fetchCampaign(id);
+                  setCampaign(fresh);
+                } catch (e) {
+                  window.alert(
+                    e instanceof Error
+                      ? e.message
+                      : "Activeren mislukt. Probeer het opnieuw.",
+                  );
+                } finally {
+                  setStatusActing(false);
+                }
+              }}
+              disabled={statusActing}
+              style={{ padding: "6px 14px" }}
+            >
+              {statusActing
+                ? "Activeren…"
+                : campaign.type === "mail"
+                  ? "▶ Activeer (verstuur op tijd)"
+                  : "▶ Plaats nu"}
             </button>
           )}
           {editMode && (
@@ -604,19 +696,15 @@ export default function CampaignDetailPage() {
         )}
 
       {/* "Met Filly bewerken"-paneel: 3 alternatieven + AI-instructie.
-          Verbergen wanneer:
-          - status ≠ concept (audit-veiligheid: ingepland/actief mag
-            niet meer wijzigen)
-          - editMode aan (eigen handmatige edit-flow gebruikt)
-          - variant_applied_at gezet (eigenaar heeft al een variant
-            toegepast → geen oneindig nieuwe alternatieven binnen 1
-            campagne) */}
-      {campaign.status === "concept" &&
-        !editMode &&
-        !campaign.variant_applied_at && (
+          Altijd zichtbaar bij concept-status zodat de eigenaar kan
+          blijven wisselen tussen alternatieven. Bij ingepland/actief
+          verbergen we 'm voor audit-veiligheid (inhoud mag dan niet
+          meer wijzigen). */}
+      {campaign.status === "concept" && !editMode && (
         <CampaignRefinePanel
           campaignId={campaign.id}
           type={campaign.type}
+          currentBody={campaign.body}
           onApplied={async () => {
             // Refetch zodat preview de nieuwe inhoud direct toont.
             try {
