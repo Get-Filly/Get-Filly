@@ -387,10 +387,159 @@ export class ChatService {
       .eq('id', conversationId)
       .then(() => undefined);
 
+    // 6) Auto-title-generation. Wordt in de achtergrond afgevuurd zodat
+    // de gebruiker NIET op de extra Claude-call hoeft te wachten —
+    // de chat-response gaat al terug. Loopt alleen als de title nog
+    // niet gezet is. Zie maybeGenerateTitle voor de drempel + flow.
+    void this.maybeGenerateTitle(restaurantId, userId, conversationId).catch(
+      (e) => {
+        this.logger.warn(
+          `Auto-title gefaald voor conversation ${conversationId}: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+      },
+    );
+
     return {
       userMessage: userMsg as ChatMessage,
       fillyMessage: fillyMsg as ChatMessage,
     };
+  }
+
+  // ============================================================
+  // maybeGenerateTitle — Filly bedenkt een korte titel voor de chat
+  // ============================================================
+  //
+  // Wanneer:
+  //   - chat_conversations.title is nog null
+  //   - er zijn ≥3 user-messages in deze conversatie (genoeg context)
+  //
+  // Drempel 3 user-messages:
+  //   1 = "hi" — te weinig om een goede titel te bedenken
+  //   2 = vaak nog small-talk
+  //   3 = onderwerp is duidelijk
+  //
+  // Fire-and-forget vanuit sendMessage. Faalt het? logger.warn + door.
+  // De volgende keer dat een user-bericht binnenkomt proberen we 't
+  // gewoon weer.
+  //
+  // Tool-use (geen JSON.parse-Russische-roulette zoals voor 2026-04-30
+  // de norm was): één tool met `title` als enige property. Claude moet
+  // 'm vullen, anders krijgen we geen response. Conform het tool-use-
+  // pattern dat sinds 2026-04-30 voor alle Filly-flows geldt.
+  private async maybeGenerateTitle(
+    restaurantId: string,
+    userId: string,
+    conversationId: string,
+  ): Promise<void> {
+    // 1) Quick-check: is er al een titel? Zo ja, niets te doen.
+    const { data: conv, error: convErr } = await this.supabase.client
+      .from('chat_conversations')
+      .select('title')
+      .eq('id', conversationId)
+      .maybeSingle();
+    if (convErr || !conv) return;
+    if (conv.title) return; // Al gezet — niet overschrijven.
+
+    // 2) Tel user-messages in deze conversatie. .head=true + count
+    // betekent: geen rijen ophalen, alleen de count terug. Goedkoop.
+    const { count, error: countErr } = await this.supabase.client
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', conversationId)
+      .eq('role', 'user');
+    if (countErr) return;
+
+    const USER_MSG_THRESHOLD = 3;
+    if ((count ?? 0) < USER_MSG_THRESHOLD) return;
+
+    // 3) Pak de eerste 3 user-berichten + 3 filly-antwoorden als
+    // context. Eerste berichten zijn meestal het meest indicatief
+    // voor het onderwerp (latere chat dwaalt af). 6 berichten →
+    // ~300-600 input-tokens, kost <€0,001 per call.
+    const { data: msgs, error: msgsErr } = await this.supabase.client
+      .from('chat_messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(6);
+    if (msgsErr || !msgs || msgs.length === 0) return;
+
+    const transcript = msgs
+      .map(
+        (m) =>
+          `${m.role === 'user' ? 'Eigenaar' : 'Filly'}: ${(m.content as string) ?? ''}`,
+      )
+      .join('\n');
+
+    // 4) Claude-call met tool-use. Schema dwingt af dat we een title
+    // krijgen, max 60 tekens (past in een sidebar-listitem).
+    let result: { title: string };
+    try {
+      result = await this.ai.generateStructured<{ title: string }>({
+        system:
+          'Je bedenkt een korte, beschrijvende NL-titel voor een chat-' +
+          'gesprek tussen een restauranteigenaar en zijn AI-marketing-' +
+          'assistent Filly. De titel komt in een lijst met andere ' +
+          'gesprekken — moet in 1 oogopslag duidelijk maken waar het ' +
+          'over ging. Max 60 tekens. Geen aanhalingstekens, geen punt ' +
+          'aan het eind. Voorbeelden: "Lente-actie voor terras", ' +
+          '"Reactie op 1-ster review", "Inplannen wijnproeverij".',
+        prompt: `Hier zijn de eerste berichten:\n\n${transcript}\n\nBedenk de titel.`,
+        // Haiku 4.5 is snel + goedkoop, ruim voldoende voor een
+        // 5-woorden titel. ~€0,001 per call vs ~€0,02 met Sonnet.
+        model: 'claude-haiku-4-5-20251001',
+        maxTokens: 100,
+        meta: {
+          restaurantId,
+          userId,
+          feature: 'chat-title',
+        },
+        toolName: 'set_title',
+        toolDescription:
+          'Sla de bedachte titel op voor deze chat-conversatie.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description:
+                'Korte NL-titel, max 60 tekens, geen aanhalings-' +
+                'tekens of trailing punt.',
+              maxLength: 60,
+            },
+          },
+          required: ['title'],
+        },
+      });
+    } catch (e) {
+      // generateStructured gooit al een specifieke fout — we vangen
+      // 'm op zodat de fire-and-forget-call niet ergens crasht.
+      this.logger.warn(
+        `Title-generatie Claude-call gefaald: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
+      return;
+    }
+
+    const title = result.title?.trim().slice(0, 60);
+    if (!title) return;
+
+    // 5) Wegschrijven. Geen race-conditie afvangen: als er ondertussen
+    // (zeer onwaarschijnlijk) iemand anders al een titel zette, mag
+    // de nieuwe gewoon overschrijven — of we kunnen 'm conditioneel
+    // schrijven met .is('title', null). Doen we voor zekerheid.
+    await this.supabase.client
+      .from('chat_conversations')
+      .update({ title })
+      .eq('id', conversationId)
+      .is('title', null);
+
+    this.logger.log(
+      `Auto-title gezet voor conversation ${conversationId}: "${title}"`,
+    );
   }
 
   // System-prompt voor chat: Filly's persona + volledige restaurant-
