@@ -162,11 +162,11 @@ export default function DashboardPage() {
   return (
     <div className="page">
       <div className="dash-top">
+        {alertBar}
         <KpiRow />
       </div>
       <div className="dash-body">
         <div className="left-col">
-          {alertBar}
           <WeatherForecast />
           <div className="cal-detail-row">
             <CalendarCard
