@@ -103,10 +103,13 @@ export class MenuImporterService {
       // (kolommen, groeperingen, kleine lettertjes). Opus is hier
       // merkbaar beter.
       model: 'claude-opus-4-7',
-      // 16k geeft headroom voor uitgebreide wijnkaarten (100+ items
-      // met description per wijn). Cap, geen gegarandeerd verbruik —
-      // kleine menukaarten kosten niet meer omdat de cap hoger staat.
-      maxTokens: 16000,
+      // Per-kind cap: drankkaarten hebben vaak 100+ items met
+      // descriptions (druif/regio/jaargang per wijn) en raken bij
+      // 16k de cap. Menu-kaarten zijn doorgaans 30-60 items en
+      // passen ruim in 16k.
+      // Caps zijn cap, géén gegarandeerd verbruik — kleine kaarten
+      // kosten niet meer omdat de cap hoger staat.
+      maxTokens: isDrinks ? 24000 : 16000,
       toolName: isDrinks ? 'extract_drink_items' : 'extract_menu_items',
       toolDescription: isDrinks
         ? 'Extract alle drankjes van de meegeleverde drankkaart als gestructureerde lijst, met subcategorie (wijn-rood, bier, etc).'
@@ -172,7 +175,12 @@ Inhoudsregels:
     * "koffie-thee"      — koffie, thee, warme dranken
     * "fris"             — frisdranken, sappen, water, alcoholvrij
     * "overig"           — alles wat niet in bovenstaande 9 past (gebruik dit spaarzaam)
-- description: handig voor wijn-info zoals druif/regio/jaargang ('Pinot Noir, Bourgogne 2021') of voor bier ('blond, 6.5%').
+- description: KORT EN COMPACT — max 60 tekens, geen volzinnen.
+    * Wijn: druif + regio + jaargang ('Pinot Noir, Bourgogne 2021', 'Sangiovese, Toscane 2020').
+    * Bier: stijl + alc ('blond, 6,5%', 'IPA, 7%').
+    * Cocktail: 2-3 hoofdingrediënten ('gin, tonic, citroen').
+    * Niet vermelden in welke sectie van de kaart 'm staat — sectie-info hoort niet in description.
+- Als een wijn in meerdere secties staat (by-the-glass + flessenkaart): pak 'm 1× op met de prijs-per-glas. Vermeld fles-prijs alleen als die uniek is voor de fles-sectie.
 - Als het bestand geen drankkaart lijkt maar iets anders: geef een lege items-array en zet notes = "Dit lijkt geen drankkaart te zijn".`;
 }
 
