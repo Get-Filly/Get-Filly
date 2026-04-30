@@ -50,17 +50,27 @@ export function WeatherForecast() {
       </div>
       <div className="card-b">
         <div className="weather-row">
-          {days.map((w, i) => (
-            <div
-              key={w.date}
-              className={`weather-day ${i === 0 ? "today" : ""}`}
-            >
-              <div className="wd-day">{w.dayLabel}</div>
-              <div className="wd-icon">{w.icon}</div>
-              <div className="wd-temp">{w.tempMax}°</div>
-              <div className="wd-desc">{w.description}</div>
-            </div>
-          ))}
+          {days.map((w, i) => {
+            // Defensief: tempMax kan undefined/null zijn als Open-Meteo
+            // geen volledig respons gaf (bv. coords ontbreken). Toon
+            // dan een streepje ipv kale "°".
+            const hasTemp =
+              typeof w.tempMax === "number" && Number.isFinite(w.tempMax);
+            const hasDesc =
+              typeof w.description === "string" &&
+              w.description.trim().length > 0;
+            return (
+              <div
+                key={w.date}
+                className={`weather-day ${i === 0 ? "today" : ""}`}
+              >
+                <div className="wd-day">{w.dayLabel}</div>
+                <div className="wd-icon">{w.icon}</div>
+                <div className="wd-temp">{hasTemp ? `${w.tempMax}°` : "—"}</div>
+                {hasDesc && <div className="wd-desc">{w.description}</div>}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
