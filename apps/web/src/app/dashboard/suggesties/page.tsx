@@ -11,6 +11,7 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { Tabs } from "../../../components/ui/tabs";
 
 type Tab = "pending" | "approved" | "rejected";
 
@@ -208,17 +209,11 @@ export default function SuggestiesPage() {
         </div>
       </div>
 
-      <div className="tabs">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={`tab-btn ${tab === t.key ? "active" : ""}`}
-            onClick={() => setTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={tabs.map((t) => ({ key: t.key, label: t.label }))}
+        active={tab}
+        onChange={setTab}
+      />
 
       {loading ? (
         <div className="suggestions-grid">

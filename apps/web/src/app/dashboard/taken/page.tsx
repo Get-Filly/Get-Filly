@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "../_components/skeleton";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { Tabs } from "../../../components/ui/tabs";
 
 type TaskCategory = "filly" | "reviews" | "reserveringen" | "insights";
 
@@ -288,17 +289,15 @@ export default function TakenPage() {
       {/* Filter-tabs per categorie. Elke tab toont direct hoeveel taken
           in die categorie zitten zodat je snel weet waar actie ligt. */}
       {!loading && tasks.length > 0 && (
-        <div className="tabs">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              className={`tab-btn ${filter === f.key ? "active" : ""}`}
-              onClick={() => setFilter(f.key)}
-            >
-              {f.label} ({countPer(f.key)})
-            </button>
-          ))}
-        </div>
+        <Tabs
+          items={filters.map((f) => ({
+            key: f.key,
+            label: f.label,
+            count: countPer(f.key),
+          }))}
+          active={filter}
+          onChange={setFilter}
+        />
       )}
 
       {loading ? (

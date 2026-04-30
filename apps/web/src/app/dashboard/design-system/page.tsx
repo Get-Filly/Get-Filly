@@ -19,9 +19,15 @@
 // opnieuw omdat niemand wist dat het bestond.
 // ============================================================
 
+import { useState } from "react";
 import { Button } from "../../../components/ui/button";
+import { ButtonLink } from "../../../components/ui/button-link";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardHeader, CardBody, CardFooter } from "../../../components/ui/card";
+import { PageHeader } from "../../../components/ui/page-header";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { Tabs } from "../../../components/ui/tabs";
+import { Input, Textarea } from "../../../components/ui/input";
 
 // Hulpje: kleine sectie-wrapper met titel zodat de pagina visueel
 // eenduidig oogt zonder dat we een echt section-component nodig
@@ -113,6 +119,11 @@ function Swatch({ name, value }: { name: string; value: string }) {
 }
 
 export default function DesignSystemPage() {
+  // Lokale state voor de live-demos (Tabs, Input). Resetting bij refresh
+  // is OK — dit is een ontwikkelpagina.
+  const [demoTab, setDemoTab] = useState<"a" | "b" | "c">("a");
+  const [demoText, setDemoText] = useState("");
+
   return (
     <div
       style={{
@@ -400,6 +411,133 @@ export default function DesignSystemPage() {
               <Button variant="primary">Opslaan</Button>
             </CardFooter>
           </Card>
+        </div>
+      </Section>
+
+      {/* ============================================================
+          PAGE-HEADER
+          ============================================================ */}
+      <Section
+        title="PageHeader"
+        description="Uniforme titel-rij voor dashboard-pagina's. Title verplicht, subtitle + actions optioneel."
+      >
+        <div
+          style={{
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius)",
+            padding: "var(--space-5)",
+            background: "var(--color-white)",
+            marginBottom: "var(--space-3)",
+          }}
+        >
+          <PageHeader
+            title="Voorbeeld zonder actions"
+            subtitle="Subtitle blijft optioneel — alleen title is verplicht."
+          />
+        </div>
+        <div
+          style={{
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius)",
+            padding: "var(--space-5)",
+            background: "var(--color-white)",
+          }}
+        >
+          <PageHeader
+            title="Voorbeeld met actions"
+            subtitle="Met een primaire CTA rechts uitgelijnd."
+            actions={
+              <>
+                <Button variant="secondary">Importeer</Button>
+                <Button variant="primary">＋ Nieuw</Button>
+              </>
+            }
+          />
+        </div>
+      </Section>
+
+      {/* ============================================================
+          EMPTY STATE
+          ============================================================ */}
+      <Section
+        title="EmptyState"
+        description="Voor lege lijsten en laad-fouten. Action-slot voor een CTA."
+      >
+        <EmptyState
+          icon="📭"
+          title="Voorbeeld van een lege staat"
+          description="Beschrijving die uitlegt wat de gebruiker kan doen om dit te vullen."
+          action={<Button variant="primary">Eerste actie</Button>}
+        />
+      </Section>
+
+      {/* ============================================================
+          TABS
+          ============================================================ */}
+      <Section
+        title="Tabs"
+        description="Filter-tabs met onderstreping voor actief. Optionele count-badge per tab."
+      >
+        <Tabs
+          items={[
+            { key: "a", label: "Alle", count: 42 },
+            { key: "b", label: "Actief", count: 7 },
+            { key: "c", label: "Afgerond", count: 35 },
+          ]}
+          active={demoTab}
+          onChange={setDemoTab}
+        />
+      </Section>
+
+      {/* ============================================================
+          INPUT
+          ============================================================ */}
+      <Section
+        title="Input + Textarea"
+        description="Gelabelde form-velden met optionele hint en error-state."
+      >
+        <div className="form-grid">
+          <Input
+            label="Standaard input"
+            placeholder="bv. Bistro Get Filly"
+            value={demoText}
+            onChange={(e) => setDemoText(e.target.value)}
+            hint="Een hint onder het veld voor extra uitleg."
+          />
+          <Input
+            label="Met error-state"
+            placeholder="bv. 12345678"
+            error="KvK moet 8 cijfers zijn."
+          />
+          <Textarea
+            full
+            label="Textarea (full-width)"
+            placeholder="Langere beschrijving…"
+            hint="Past de hele rij in een form-grid via de full-prop."
+          />
+        </div>
+      </Section>
+
+      {/* ============================================================
+          BUTTON-LINK
+          ============================================================ */}
+      <Section
+        title="ButtonLink"
+        description="Voor navigatie-acties die er als knop uitzien (rechtsklik 'open in nieuw tabblad' werkt)."
+      >
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <ButtonLink href="/dashboard">Naar dashboard</ButtonLink>
+          <ButtonLink href="/dashboard/menu" variant="secondary">
+            Naar menu
+          </ButtonLink>
+          <ButtonLink
+            href="https://anthropic.com"
+            variant="ghost"
+            external
+            iconRight="↗"
+          >
+            Externe link
+          </ButtonLink>
         </div>
       </Section>
 

@@ -14,6 +14,7 @@ import { Skeleton } from "../_components/skeleton";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { Tabs } from "../../../components/ui/tabs";
 
 const statusInfo: Record<ReservationStatus, { label: string; color: string; bg: string }> = {
   bevestigd: { label: "Bevestigd", color: "#1B7A2E", bg: "#DCFCE7" },
@@ -254,17 +255,12 @@ export default function ReserveringenPage() {
           marginBottom: 10,
         }}
       >
-        <div className="tabs" style={{ marginBottom: 0 }}>
-          {statusFilters.map((f) => (
-            <button
-              key={f.key}
-              className={`tab-btn ${statusFilter === f.key ? "active" : ""}`}
-              onClick={() => setStatusFilter(f.key)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          items={statusFilters.map((f) => ({ key: f.key, label: f.label }))}
+          active={statusFilter}
+          onChange={setStatusFilter}
+          className="tabs--inline"
+        />
       </div>
 
       <input

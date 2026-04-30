@@ -1026,8 +1026,13 @@
 .dashboard-shell .tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   border-bottom: 1px solid var(--border);
+}
+/* Modifier voor tabs binnen een filter-rij (reserveringen-pagina):
+ * geen extra margin-bottom omdat de container al spacing levert. */
+.dashboard-shell .tabs.tabs--inline {
+  margin-bottom: 0;
 }
 .dashboard-shell .tab-btn {
   background: none;

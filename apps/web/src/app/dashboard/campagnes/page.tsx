@@ -20,6 +20,7 @@ import { Badge, type BadgeVariant } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { Tabs } from "../../../components/ui/tabs";
 
 // Map campagne-status → semantische Badge-variant. Eén plek waar
 // "wat betekent deze status visueel" beslist wordt — als we later
@@ -610,17 +611,15 @@ export default function CampagnesPage() {
 
       {/* Filters-rij: status-tabs (links) + type-chips (rechts). */}
       <div className="campagnes-filters">
-        <div className="tabs">
-          {statusFilters.map((f) => (
-            <button
-              key={f.key}
-              className={`tab-btn ${statusFilter === f.key ? "active" : ""}`}
-              onClick={() => setStatusFilter(f.key)}
-            >
-              {f.label} ({count(f.key)})
-            </button>
-          ))}
-        </div>
+        <Tabs
+          items={statusFilters.map((f) => ({
+            key: f.key,
+            label: f.label,
+            count: count(f.key),
+          }))}
+          active={statusFilter}
+          onChange={setStatusFilter}
+        />
         <div className="type-chips">
           {typeFilterOptions.map((t) => (
             <button

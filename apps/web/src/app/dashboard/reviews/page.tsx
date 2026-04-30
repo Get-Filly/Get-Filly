@@ -12,6 +12,7 @@ import {
 import { Skeleton } from "../_components/skeleton";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { Tabs } from "../../../components/ui/tabs";
 
 const sourceInfo: Record<ReviewSource, { label: string; icon: string }> = {
   google: { label: "Google", icon: "🔎" },
@@ -285,17 +286,14 @@ export default function ReviewsPage() {
           ))}
       </div>
 
-      <div className="tabs">
-        {sourceFilters.map((f) => (
-          <button
-            key={f}
-            className={`tab-btn ${filter === f ? "active" : ""}`}
-            onClick={() => setFilter(f)}
-          >
-            {f === "alle" ? "Alle" : sourceInfo[f].label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={sourceFilters.map((f) => ({
+          key: f,
+          label: f === "alle" ? "Alle" : sourceInfo[f].label,
+        }))}
+        active={filter}
+        onChange={setFilter}
+      />
 
       {loading ? (
         <div>

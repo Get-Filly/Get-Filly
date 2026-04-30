@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { Bell, Menu, Search } from "lucide-react";
 
 const titleFor: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -31,7 +32,7 @@ export function Topbar() {
 
   return (
     <div className="topbar">
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
         {/* Burger-knop alleen zichtbaar onder 1024px (CSS-controlled).
             Klik toggle't .mobile-nav-open op body — sidebar slidet erin. */}
         <button
@@ -40,7 +41,7 @@ export function Topbar() {
           aria-label="Menu"
           onClick={toggleMobileNav}
         >
-          ☰
+          <Menu size={18} />
         </button>
         <div className="tb-title">{title}</div>
       </div>
@@ -48,8 +49,15 @@ export function Topbar() {
         <span className="tb-badge tb-badge-desktop">
           Laatste sync: 2 min geleden
         </span>
-        <div className="tb-btn">🔔</div>
-        <div className="tb-btn">🔍</div>
+        {/* Notificaties + zoeken zijn nog placeholder — komen straks
+            (zie backlog P3). Lucide-iconen i.p.v. emoji's zodat de
+            chrome er nu al consistent uitziet met de rest van de UI. */}
+        <button type="button" className="tb-btn" aria-label="Notificaties">
+          <Bell size={16} />
+        </button>
+        <button type="button" className="tb-btn" aria-label="Zoeken">
+          <Search size={16} />
+        </button>
       </div>
     </div>
   );
