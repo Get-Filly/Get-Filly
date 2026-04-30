@@ -110,57 +110,63 @@ export default function DashboardPage() {
     }
   };
 
+  // Alert-bar gerenderd als losse component zodat we 'm zowel
+  // bovenaan kunnen tonen (volle breedte zou kapot zijn met de
+  // chat-sidebar) als binnen de left-col (lijnt netjes uit met
+  // weersvoorspelling + kalender).
+  const alertBar = criticalDays.length > 0 && (
+    <div className="alert-bar" style={{ marginBottom: 16 }}>
+      <span className="alert-icon">⚠️</span>
+      <div style={{ flex: 1 }}>
+        <strong>
+          {criticalDays.length} rustige dag
+          {criticalDays.length > 1 ? "en" : ""}
+        </strong>{" "}
+        in de komende 2 weken
+        {" — "}
+        {criticalDays
+          .slice(0, 3)
+          .map((d) => {
+            const date = new Date(d.date);
+            return `${date.getDate()} ${date.toLocaleString("nl-NL", { month: "short" })} (${d.occupancy_pct}%)`;
+          })
+          .join(", ")}
+        {criticalDays.length > 3 && "…"}
+        {lowOccMessage && (
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 12,
+              color: "var(--text-secondary, #52525B)",
+            }}
+          >
+            {lowOccMessage}
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={handleDetectLowOccupancy}
+        disabled={lowOccDetecting}
+        className="btn-primary-dash"
+        style={{ padding: "6px 14px", flexShrink: 0 }}
+        title="Filly bedenkt per dag een specifiek activatie-voorstel"
+      >
+        {lowOccDetecting
+          ? "✨ Filly denkt na…"
+          : "✨ Filly maakt voorstellen"}
+      </button>
+    </div>
+  );
+
   return (
     <div className="page">
       <div className="dash-top">
-        {criticalDays.length > 0 && (
-          <div className="alert-bar">
-            <span className="alert-icon">⚠️</span>
-            <div style={{ flex: 1 }}>
-              <strong>
-                {criticalDays.length} rustige dag
-                {criticalDays.length > 1 ? "en" : ""}
-              </strong>{" "}
-              in de komende 2 weken
-              {" — "}
-              {criticalDays
-                .slice(0, 3)
-                .map((d) => {
-                  const date = new Date(d.date);
-                  return `${date.getDate()} ${date.toLocaleString("nl-NL", { month: "short" })} (${d.occupancy_pct}%)`;
-                })
-                .join(", ")}
-              {criticalDays.length > 3 && "…"}
-              {lowOccMessage && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 12,
-                    color: "var(--text-secondary, #52525B)",
-                  }}
-                >
-                  {lowOccMessage}
-                </div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={handleDetectLowOccupancy}
-              disabled={lowOccDetecting}
-              className="btn-primary-dash"
-              style={{ padding: "6px 14px", flexShrink: 0 }}
-              title="Filly bedenkt per dag een specifiek activatie-voorstel"
-            >
-              {lowOccDetecting
-                ? "✨ Filly denkt na…"
-                : "✨ Filly maakt voorstellen"}
-            </button>
-          </div>
-        )}
         <KpiRow />
       </div>
       <div className="dash-body">
         <div className="left-col">
+          {alertBar}
           <WeatherForecast />
           <div className="cal-detail-row">
             <CalendarCard
