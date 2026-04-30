@@ -78,6 +78,7 @@ export class ReviewsController {
   @Patch(':id')
   updateResponse(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') reviewId: string,
     @Body() body: { response_text: string },
   ) {
@@ -85,6 +86,7 @@ export class ReviewsController {
       restaurantId,
       reviewId,
       body.response_text,
+      user.id,
     );
   }
 }

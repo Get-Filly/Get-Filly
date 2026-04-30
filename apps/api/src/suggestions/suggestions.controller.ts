@@ -89,9 +89,13 @@ export class SuggestionsController {
   @Post(':id/approve')
   approve(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.suggestions.approve(restaurantId, id);
+    // userId mee zodat de campagne-create die hieruit volgt geen
+    // null-actor in de audit-log laat — bij een team weten we dan
+    // wié op "Goedkeuren" klikte.
+    return this.suggestions.approve(restaurantId, id, user.id);
   }
 
   // Refine-flow: laat Filly het voorstel aanpassen volgens een user-

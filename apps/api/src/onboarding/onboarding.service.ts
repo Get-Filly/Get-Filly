@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 // ============================================================
 // OnboardingService — eerste-keer-setup voor een nieuwe user
@@ -103,6 +104,7 @@ export class OnboardingService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly geocoding: GeocodingService,
+    private readonly audit: AuditLogService,
   ) {}
 
   async completeOnboarding(
@@ -290,6 +292,25 @@ export class OnboardingService {
       address: input.address,
       postal_code: input.postal_code,
       city: input.city,
+    });
+
+    // Audit: onboarding-afgerond. Markeert het moment waarop een
+    // user een betalende-klant-kandidaat wordt — input voor "gemiddelde
+    // tijd-tot-onboarded" en voor support ("wanneer is deze klant
+    // begonnen?"). Inclusief telling van geïmporteerde items zodat
+    // we kunnen zien hoe rijk de start-data was.
+    await this.audit.log({
+      restaurantId: restaurant.id,
+      userId,
+      action: 'onboarding_completed',
+      entity_type: 'restaurant',
+      entity_id: restaurant.id,
+      payload: {
+        type,
+        had_website: Boolean(input.website_url),
+        menu_items_imported: menuImport?.inserted ?? 0,
+        drink_items_imported: drinkImport?.inserted ?? 0,
+      },
     });
 
     return { restaurantId: restaurant.id, menuImport, drinkImport };

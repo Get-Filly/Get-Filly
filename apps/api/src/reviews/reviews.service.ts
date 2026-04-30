@@ -8,6 +8,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 // Schema voor de 3-varianten-tool. minItems/maxItems forceert
 // precies 3 alternatieven — Claude kan er geen 1 of 5 maken.
@@ -52,6 +53,7 @@ export class ReviewsService {
     // het review-antwoord echt bij DEZE zaak te laten passen i.p.v.
     // generieke "bedankt-voor-uw-bezoek"-tekst.
     private readonly context: RestaurantContextService,
+    private readonly audit: AuditLogService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Review[]> {
@@ -277,6 +279,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
     restaurantId: string,
     reviewId: string,
     responseText: string,
+    userId: string,
   ): Promise<Review> {
     const trimmed = responseText.trim();
     if (!trimmed) {
@@ -305,6 +308,23 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
 
     if (error) throw new InternalServerErrorException(error.message);
     if (!data) throw new NotFoundException('Review niet gevonden.');
+
+    // Audit: review-antwoord opgeslagen. We loggen lengte + bron i.p.v.
+    // de tekst zelf — voorkomt dat klant-namen of klacht-details in
+    // het audit-logboek belanden. De DB-rij zelf bevat het volledige
+    // antwoord nog, dus reconstructie is altijd mogelijk via de review.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'review_response_updated',
+      entity_type: 'review',
+      entity_id: reviewId,
+      payload: {
+        source: data.source,
+        rating: data.rating,
+        response_length: trimmed.length,
+      },
+    });
 
     return data as Review;
   }

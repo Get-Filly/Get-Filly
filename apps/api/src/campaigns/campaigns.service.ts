@@ -210,6 +210,11 @@ export class CampaignsService {
       // 6 ipv 3 opties zichtbaar).
       seed_variants?: Array<{ subject_line?: string; body: string }>;
     },
+    // userId is verplicht: zonder actor in de audit-log verliezen we
+    // bij klant-support traceerbaarheid ("wie heeft die campagne
+    // aangemaakt?"). Beide callers (controller-direct + via
+    // SuggestionsService.approve) reiken 'm door.
+    userId: string,
   ): Promise<{ id: string }> {
     const name = input.name.trim();
     const body = input.body.trim();
@@ -303,12 +308,10 @@ export class CampaignsService {
       throw new InternalServerErrorException(contentErr.message);
     }
 
-    // Audit: nieuwe campagne aangemaakt. userId is hier nog null omdat
-    // de service-signature 'm niet ontvangt — toekomstige verfijning
-    // (controllers reiken @CurrentUser door) kan dit aanvullen.
+    // Audit: nieuwe campagne aangemaakt door een specifieke user.
     await this.audit.log({
       restaurantId,
-      userId: null,
+      userId,
       action: 'campaign_created',
       entity_type: 'campaign',
       entity_id: campaignId,
@@ -460,6 +463,7 @@ export class CampaignsService {
     restaurantId: string,
     id: string,
     nextStatus: CampaignStatus,
+    userId: string,
   ): Promise<{ id: string; status: CampaignStatus }> {
     const allowed: Record<CampaignStatus, CampaignStatus[]> = {
       concept: ['ingepland'],
@@ -508,7 +512,7 @@ export class CampaignsService {
     // zijn") en voor compliance-audit ("wie heeft de campagne stopgezet").
     await this.audit.log({
       restaurantId,
-      userId: null,
+      userId,
       action: 'campaign_status_changed',
       entity_type: 'campaign',
       entity_id: id,
@@ -1204,7 +1208,11 @@ Geef het beste verzendmoment.`;
   // campagne is nog niet uitgegaan, dus verwijderen heeft geen audit-
   // impact (geen ontvangers, geen meet-data). Actieve en afgeronde
   // campagnes zijn audit-relevant: die blijven in de DB staan.
-  async remove(restaurantId: string, id: string): Promise<{ id: string }> {
+  async remove(
+    restaurantId: string,
+    id: string,
+    userId: string,
+  ): Promise<{ id: string }> {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, status')
@@ -1237,7 +1245,7 @@ Geef het beste verzendmoment.`;
     // weg is gemoffeld.
     await this.audit.log({
       restaurantId,
-      userId: null,
+      userId,
       action: 'campaign_deleted',
       entity_type: 'campaign',
       entity_id: id,

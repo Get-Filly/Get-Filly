@@ -4,6 +4,7 @@ import { MenuService } from './menu.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
+import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -11,8 +12,11 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 // geüploade menukaart. Wordt gebruikt door MenuService.importCard om
 // gerechten uit een PDF/foto te extraheren en als menu_items weg te
 // schrijven.
+// AuditLogModule logt menu-mutaties (gerecht toegevoegd / aangepast /
+// verwijderd, kaart geïmporteerd / verwijderd) voor compliance en
+// klant-support traceerbaarheid.
 @Module({
-  imports: [SupabaseModule, MeModule, AiModule],
+  imports: [SupabaseModule, MeModule, AiModule, AuditLogModule],
   controllers: [MenuController],
   providers: [MenuService, AuthGuard, RestaurantAccessGuard],
 })

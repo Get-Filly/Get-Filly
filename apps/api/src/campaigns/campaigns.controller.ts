@@ -20,6 +20,10 @@ import {
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../common/current-user.decorator';
 
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('campaigns')
@@ -45,6 +49,7 @@ export class CampaignsController {
   @Post()
   create(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     body: {
       name?: string;
@@ -69,12 +74,16 @@ export class CampaignsController {
       );
     }
 
-    return this.campaigns.create(restaurantId, {
-      name,
-      type: type as CampaignType,
-      subject_line: body.subject_line ?? null,
-      body: content,
-    });
+    return this.campaigns.create(
+      restaurantId,
+      {
+        name,
+        type: type as CampaignType,
+        subject_line: body.subject_line ?? null,
+        body: content,
+      },
+      user.id,
+    );
   }
 
   // Update van een concept-campagne. Alleen naam, subject en body
@@ -103,6 +112,7 @@ export class CampaignsController {
   @Patch(':id/status')
   updateStatus(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { status?: string },
   ) {
@@ -121,15 +131,19 @@ export class CampaignsController {
       restaurantId,
       id,
       status as CampaignStatus,
+      user.id,
     );
   }
 
   @Delete(':id')
   remove(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.campaigns.remove(restaurantId, id);
+    // userId mee zodat audit-log laat zien wié verwijderde — onomkeerbaar
+    // dus extra belangrijk dat de actor traceerbaar is.
+    return this.campaigns.remove(restaurantId, id, user.id);
   }
 
   // Lees gecachte filly-varianten + regen-count. Géén generatie.

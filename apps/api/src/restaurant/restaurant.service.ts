@@ -68,7 +68,11 @@ export class RestaurantService {
   //      probleem)? Dan zetten we lat/long op null zodat de eigenaar
   //      ziet dat het niet meer klopt — geen oude coords laten staan
   //      die fout zijn.
-  async update(restaurantId: string, updates: Record<string, unknown>) {
+  async update(
+    restaurantId: string,
+    updates: Record<string, unknown>,
+    userId: string,
+  ) {
     // 1) Forbidden velden weren.
     const safe: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(updates)) {
@@ -135,7 +139,7 @@ export class RestaurantService {
     // "veld X is om 14:32 aangepast" voldoende.
     await this.audit.log({
       restaurantId,
-      userId: null,
+      userId,
       action: 'restaurant_updated',
       entity_type: 'restaurant',
       entity_id: restaurantId,

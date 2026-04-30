@@ -12,6 +12,10 @@ import { ReservationsService } from './reservations.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../common/current-user.decorator';
 
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('reservations')
@@ -65,13 +69,18 @@ export class ReservationsController {
   @Patch(':id/attribution')
   setAttribution(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { campaign_id: string | null },
   ) {
+    // userId mee zodat audit-log per team-member traceerbaar blijft
+    // welke reservering aan welke campagne gekoppeld is — Filly-ROI
+    // staat of valt met deze attributie, dus auditbaarheid is cruciaal.
     return this.reservations.setAttribution(
       restaurantId,
       id,
       body.campaign_id,
+      user.id,
     );
   }
 }

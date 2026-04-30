@@ -136,6 +136,7 @@ export class ReservationsService {
     restaurantId: string,
     reservationId: string,
     campaignId: string | null,
+    userId: string,
   ): Promise<Reservation> {
     if (campaignId) {
       const { data: campaign, error: campErr } = await this.supabase.client
@@ -193,7 +194,7 @@ export class ReservationsService {
     // hierop bouwen alle Filly-ROI cijfers.
     await this.audit.log({
       restaurantId,
-      userId: null,
+      userId,
       action: 'reservation_attribution_set',
       entity_type: 'reservation',
       entity_id: reservationId,

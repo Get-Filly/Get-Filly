@@ -45,9 +45,10 @@ export class MenuController {
   @Post()
   create(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() body: CreateMenuItemInput,
   ) {
-    return this.menu.create(restaurantId, body);
+    return this.menu.create(restaurantId, body, user.id);
   }
 
   // Gerecht bewerken. PATCH (niet PUT) omdat we partial-updates
@@ -56,15 +57,20 @@ export class MenuController {
   @Patch(':id')
   update(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: UpdateMenuItemInput,
   ) {
-    return this.menu.update(restaurantId, id, body);
+    return this.menu.update(restaurantId, id, body, user.id);
   }
 
   @Delete(':id')
-  remove(@RestaurantId() restaurantId: string, @Param('id') id: string) {
-    return this.menu.remove(restaurantId, id);
+  remove(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.menu.remove(restaurantId, id, user.id);
   }
 
   // ============================================================
@@ -162,8 +168,9 @@ export class MenuController {
   @Delete('cards/:uploadId')
   removeCard(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('uploadId') uploadId: string,
   ) {
-    return this.menu.removeCard(restaurantId, uploadId);
+    return this.menu.removeCard(restaurantId, uploadId, user.id);
   }
 }

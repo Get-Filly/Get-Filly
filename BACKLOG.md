@@ -61,7 +61,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ### Security hardening (multi-tenant, 1000+ klanten)
 - [ ] **Per-request Supabase-client met user-JWT** — defense-in-depth op RLS. Nu bypasst backend RLS via service_role.
 - [ ] **`@RequireModule`-decorator** — backend enforced per-module permissies (nu alleen frontend-filter op sidebar)
-- [ ] **Audit-log vullen** — tabel `audit_log` bestaat sinds migratie 0001, maar wordt nergens geschreven
+- [x] ~~**Audit-log vullen**~~ (2026-04-30) — alle 6 service-domeinen schrijven nu naar `audit_log` met echte `userId`. Zie Data Analyst-sectie voor exhaustief overzicht.
 - [ ] **Email-change flow** — account-pagina
 - [ ] **2FA setup** — `users.two_factor_enabled` kolom bestaat, geen UI
 - [ ] **Pre-onboarding rate-limit naar Redis** — nu in-memory Map in `OnboardingController`. Overleeft geen multi-instance deploy; vervangen door Redis/Upstash zodra api op Railway schaalt.
@@ -224,15 +224,18 @@ account, en mobile-responsive over de hele app klaar zijn).
    per plan), Mollie webhook voor status-changes (trial → active →
    cancelled). **Vereist**: Mollie-account aanmaken (zakelijk).
 
-2. **🟡 P1: Audit-log compleet maken + per-request Supabase-client**
-   met user-JWT — twee security-en-hygiëne items die samen passen.
-   `AuditLogService` schrijft nu CampaignsService/RestaurantService/
-   ReservationsService events maar mist nog menu-CRUD, reviews-response,
-   onboarding-completed. Plus: alle service-signatures geven nog
-   `userId=null` door — controllers moeten `@CurrentUser` doorreiken.
-   En: backend draait nu op `service_role` (RLS-bypass). Per-request
-   Supabase-client met user-JWT toevoegen voor defense-in-depth bij
-   1000+ klanten. **Geen externe accounts nodig**.
+2. **🟡 P1: Per-request Supabase-client met user-JWT** — fase A
+   (audit-log compleet) is afgerond op 2026-04-30. Alle 6 service-
+   domeinen schrijven naar `audit_log` met echte userId. **Fase B is
+   nog open**: backend draait nog op `service_role` (RLS-bypass).
+   Toe te voegen: `RequestSupabaseService` (Scope.REQUEST) die het
+   user-JWT uit de Authorization-header pakt en als
+   `global.headers.Authorization` doorgeeft aan een nieuwe Supabase-
+   client per request. Daarna gefaseerde adoptie per service (start
+   bij MenuService als pilot) zodat RLS daadwerkelijk getest wordt.
+   `SupabaseService` (service_role) blijft voor admin-flows die
+   bewust RLS bypassen (bv. ai_usage logging zonder restaurant_id).
+   **Geen externe accounts nodig**.
 
 3. **🟡 P1: Site-fundamenten (publieke site)** — voor zodra je
    iemand naar `get-filly.com` stuurt. Contact/waitlist-formulier
@@ -279,7 +282,7 @@ verplaatsen naar de juiste P-bucket.
 - [x] ~~🔴 `reservations.via_campaign_id` FK ontbreekt~~ (2026-04-29 — migratie 0022) — ook `guests.acquired_via_campaign_id`. Reserveringen-pagina heeft nu een dropdown om handmatig te koppelen. KpiService berekent op basis van deze FK Filly-ROI; rapportages-pagina toont 6-maanden grafiek + per-campagne tabel.
 - [x] ~~🔴 `FILLY_ROI_6M` + `FILLY_BY_TYPE` in rapportages~~ (2026-04-29) — hard-coded arrays + ROI-sectie weg, vervangen door eerlijke "Filly-ROI nog niet meetbaar"-empty-state. Komt terug zodra send-engine attributie heeft.
 - [ ] 🟡 **`weekday_avg_pct = 68` hard-coded** in [kpi.service.ts](apps/api/src/kpi/kpi.service.ts). 6-maanden historie aggregeren.
-- [~] 🟡 **`audit_log`-tabel** — schrijven is gedeeltelijk live (2026-04-29): `AuditLogService` in `common/`, integraties in `CampaignsService` (created/status_changed/deleted), `RestaurantService` (updated/website_analyzed) en `ReservationsService` (attribution_set). Nog uit te breiden: menu-CRUD, reviews-response, onboarding-completed. **Service-signatures geven nog `userId=null` door** — controllers moeten `@CurrentUser` doorreiken.
+- [x] ~~🟡 **`audit_log`-tabel** — alle relevante writes live~~ (2026-04-30 fase A). `AuditLogService` integraties: `CampaignsService` (created/status_changed/deleted), `RestaurantService` (updated/website_analyzed), `ReservationsService` (attribution_set), `MenuService` (item_created/updated/deleted + card_imported/removed), `ReviewsService` (response_updated), `OnboardingService` (onboarding_completed). Alle service-signatures ontvangen nu een echte `userId` (controllers reiken `@CurrentUser` door). Bij menu-card-import kan userId null zijn (pre-onboarding-uploads).
 - [ ] 🟡 **`ai_usage` tracking heeft geen dashboard** — Claude-kosten zijn alleen via DB-query zichtbaar. Mini-page voor admin om kosten per restaurant te zien.
 - [ ] 🟢 **Geen Plausible/PostHog** op publieke site — onbekend waar bezoekers afhaken.
 
@@ -341,6 +344,52 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-04-30 — Audit-log compleet (Fase A van P1-#2)
+
+Alle service-mutaties die een eindgebruiker via het dashboard kan
+triggeren schrijven nu naar `audit_log` mét echte `userId`. Drie
+soorten werk:
+
+**A1 — userId doorgereikt in 5 bestaande audit-calls** (waar voorheen
+`userId: null` stond):
+- ✅ `RestaurantService.update` — controller `@Patch('me')` reikt
+  `@CurrentUser` door; service-signature heeft nu `userId: string`.
+- ✅ `ReservationsService.setAttribution` — `@Patch(':id/attribution')`
+  reikt user door zodat Filly-ROI-attributie traceerbaar is.
+- ✅ `CampaignsService.create` / `updateStatus` / `remove` — alle 3
+  controllers + de SuggestionsService.approve-flow geven userId mee.
+  `campaigns.create(restaurantId, input, userId: string)` is nu
+  strict (geen optionele null meer).
+- ✅ `SuggestionsController.approve` reikt user door naar
+  `SuggestionsService.approve(restaurantId, suggestionId, userId)` →
+  `CampaignsService.create(...)` zodat ook chat-approve-flow audit
+  heeft.
+
+**A2 — audit-writes toegevoegd op 4 ontbrekende plekken**:
+- ✅ `MenuService.create/update/remove` → `menu_item_created/updated/deleted`.
+  Update logt alleen `fields_changed` (keys), delete pakt `name` mee
+  voor support, create pakt `name + category + is_signature` mee.
+- ✅ `MenuService.importCard` → `menu_card_imported` met
+  `kind + file_name + items_imported + confidence`. Eén import kan
+  50+ gerechten in één klap toevoegen.
+- ✅ `MenuService.removeCard` → `menu_card_removed` met `items_deleted`
+  zodat we cascade-impact kunnen herleiden.
+- ✅ `ReviewsService.updateResponse` → `review_response_updated`. Logt
+  `source + rating + response_length` (niet de tekst zelf — voorkomt
+  klant-namen in audit-log; tekst zit nog in de DB-rij zelf).
+- ✅ `OnboardingService.completeOnboarding` → `onboarding_completed`
+  met `type + had_website + menu_items_imported + drink_items_imported`.
+  Markeer-moment voor "klant-since"-metrics.
+
+**Module-imports**: `MenuModule`, `ReviewsModule`, `OnboardingModule`
+importeren nu `AuditLogModule` (was alleen Restaurant + Reservations +
+Campaigns).
+
+**Wat is NIET gedaan deze sessie**:
+- Per-request Supabase-client met user-JWT (Fase B). Bewust uitgesteld
+  omdat dat een echte test-pas met RLS-validatie nodig heeft —
+  vergeten policy = klant uit eigen data gesloten. Volgt in eigen sessie.
 
 ### 2026-04-30 — AVG, drankkaart, on-demand suggesties, tool-use, mobile-responsive
 

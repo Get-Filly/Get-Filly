@@ -8,6 +8,7 @@ import {
 import { randomUUID } from 'crypto';
 import { SupabaseService } from '../supabase/supabase.service';
 import { MenuImporterService } from '../ai/menu-importer.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 export type MenuItem = {
   id: string;
@@ -88,6 +89,7 @@ export class MenuService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly importer: MenuImporterService,
+    private readonly audit: AuditLogService,
   ) {}
 
   async findAll(restaurantId: string): Promise<MenuItem[]> {
@@ -110,6 +112,7 @@ export class MenuService {
   async create(
     restaurantId: string,
     input: CreateMenuItemInput,
+    userId: string,
   ): Promise<MenuItem> {
     const payload = this.normalizeInput(input, /* requireName */ true);
 
@@ -125,6 +128,23 @@ export class MenuService {
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
+
+    // Audit: nieuw menu-item. Filly's prompts gebruiken menu_items als
+    // bron — bij een klacht "Filly noemt een gerecht dat niet bestaat"
+    // kunnen we via audit-log zien wie wanneer wat heeft toegevoegd.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'menu_item_created',
+      entity_type: 'menu_item',
+      entity_id: data.id as string,
+      payload: {
+        name: data.name,
+        category: data.category,
+        is_signature: data.is_signature,
+      },
+    });
+
     return data as MenuItem;
   }
 
@@ -135,6 +155,7 @@ export class MenuService {
     restaurantId: string,
     id: string,
     input: UpdateMenuItemInput,
+    userId: string,
   ): Promise<MenuItem> {
     const payload = this.normalizeInput(input, /* requireName */ false);
     if (Object.keys(payload).length === 0) {
@@ -158,19 +179,36 @@ export class MenuService {
     if (!data) {
       throw new NotFoundException('Gerecht niet gevonden.');
     }
+
+    // Audit: alleen welke keys gewijzigd, niet de waardes — voorkomt
+    // dat we prijs- of beschrijvings-history in audit_log dumpen.
+    // Voor "wat is veranderd?" hebben we daarna nog de DB-row zelf.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'menu_item_updated',
+      entity_type: 'menu_item',
+      entity_id: id,
+      payload: { fields_changed: Object.keys(payload) },
+    });
+
     return data as MenuItem;
   }
 
   async remove(
     restaurantId: string,
     id: string,
+    userId: string,
   ): Promise<{ id: string }> {
     // Bevestig eerst dat 't bestaat én bij deze tenant hoort. Een 404
     // is voor de UI duidelijker dan een silent succes op een delete
     // die niets raakte.
+    // We selecteren ook `name` mee zodat we 'm in de audit-payload
+    // kunnen loggen — handig bij support ("wat heette dat gerecht
+    // dat is verwijderd?") zonder dat we de DB-rij zelf nog hebben.
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('menu_items')
-      .select('id')
+      .select('id, name')
       .eq('id', id)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
@@ -185,6 +223,18 @@ export class MenuService {
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
+
+    // Audit: gerecht verwijderd. Onomkeerbaar — bij een klacht
+    // ("waarom is mijn signature dish weg?") moeten we kunnen zien
+    // wie het heeft weggehaald en wanneer.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'menu_item_deleted',
+      entity_type: 'menu_item',
+      entity_id: id,
+      payload: { name: existing.name },
+    });
 
     return { id };
   }
@@ -458,6 +508,24 @@ export class MenuService {
       `Menu-kaart geïmporteerd voor restaurant ${restaurantId}: ${insertedItems.length} items uit ${file.originalName}`,
     );
 
+    // Audit: succesvolle kaart-import. Belangrijk omdat één import 50+
+    // gerechten in één klap kan toevoegen — bij een klacht "mijn menu
+    // heeft ineens veel meer items" zien we precies welke upload de
+    // bron was. userId kan null zijn bij pre-onboarding-uploads.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'menu_card_imported',
+      entity_type: 'menu_upload',
+      entity_id: uploadId,
+      payload: {
+        kind,
+        file_name: file.originalName,
+        items_imported: insertedItems.length,
+        confidence: extracted.confidence,
+      },
+    });
+
     return {
       upload_id: uploadId,
       file_name: uploadRow.file_name as string | null,
@@ -543,11 +611,13 @@ export class MenuService {
   async removeCard(
     restaurantId: string,
     uploadId: string,
+    userId: string,
   ): Promise<{ id: string; items_deleted: number }> {
-    // 1) Bestaan + tenant-check.
+    // 1) Bestaan + tenant-check. Pakken ook file_name + kind zodat de
+    // audit-payload (na cleanup) nog kan loggen wélke kaart het was.
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('menu_uploads')
-      .select('id, file_path')
+      .select('id, file_path, file_name, kind')
       .eq('id', uploadId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
@@ -597,6 +667,22 @@ export class MenuService {
       .eq('id', uploadId)
       .eq('restaurant_id', restaurantId);
     if (delUpErr) throw new InternalServerErrorException(delUpErr.message);
+
+    // Audit: kaart verwijderd. Kan tientallen items in één klap weghalen
+    // (cascade) — bij een klacht "ineens is mijn halve menu weg" zien
+    // we wié de kaart-delete heeft gedaan en hoeveel items eraan hingen.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'menu_card_removed',
+      entity_type: 'menu_upload',
+      entity_id: uploadId,
+      payload: {
+        kind: existing.kind,
+        file_name: existing.file_name,
+        items_deleted: itemsCount ?? 0,
+      },
+    });
 
     return { id: uploadId, items_deleted: itemsCount ?? 0 };
   }

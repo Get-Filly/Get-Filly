@@ -37,9 +37,14 @@ export class RestaurantController {
   @Patch('me')
   updateMe(
     @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() updates: Record<string, unknown>,
   ) {
-    return this.restaurant.update(restaurantId, updates);
+    // userId doorreiken naar de service zodat de audit-log weet wié
+    // de wijziging deed (niet alleen wélk restaurant). Vereist voor
+    // klant-support: bij een team van 5 weet je anders niet wie
+    // bedrijfsgegevens of branding heeft aangepast.
+    return this.restaurant.update(restaurantId, updates, user.id);
   }
 
   // "Analyseer website"-knop op de account-pagina. Eigenaar slaat

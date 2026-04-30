@@ -916,6 +916,7 @@ Maak dit tastbaar volgens de regels.`;
   async approve(
     restaurantId: string,
     suggestionId: string,
+    userId: string,
   ): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
     const suggestion = await this.findById(restaurantId, suggestionId);
 
@@ -1032,13 +1033,17 @@ Maak dit tastbaar volgens de regels.`;
     // Campagne aanmaken als concept. CampaignsService rolt zelf terug
     // bij content-insert-fout; hier hoeven we daar niet nog een laag
     // omheen.
-    const { id: campaignId } = await this.campaigns.create(restaurantId, {
-      name,
-      type: type as CampaignType,
-      subject_line,
-      body,
-      seed_variants: seedVariants,
-    });
+    const { id: campaignId } = await this.campaigns.create(
+      restaurantId,
+      {
+        name,
+        type: type as CampaignType,
+        subject_line,
+        body,
+        seed_variants: seedVariants,
+      },
+      userId,
+    );
 
     // Suggestie naar approved + FK koppelen.
     const { data: updated, error: updateErr } = await this.supabase.client
