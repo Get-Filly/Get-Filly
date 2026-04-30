@@ -20,9 +20,10 @@ function formatEuro(cents: number): string {
 }
 
 // Bouwt de KPI-cards op basis van wat de backend daadwerkelijk meet.
-// De "door Filly"-onderregels worden gevuld uit de echte attributie
+// De "via Filly"-onderregels worden gevuld uit de echte attributie
 // (reservations.via_campaign_id, sinds migratie 0022). Geen mock-data
-// meer — null betekent letterlijk "geen koppelingen deze maand".
+// meer — bij 0 tonen we de regel nog steeds, alleen in grijs zodat
+// eigenaar ziet dát de feature bestaat en wacht op koppelingen.
 function kpisToCards(kpis: Kpis): KpiCard[] {
   const huidigeMaand = new Date().toLocaleString("nl-NL", { month: "long" });
   const cards: KpiCard[] = [];
@@ -30,27 +31,30 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
   cards.push({
     label: "Bezetting vandaag",
     value: kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
+    // Bewust geen Filly-onderregel: vandaag-bezetting is een momentopname,
+    // niet maandelijks geaggregeerd.
     fillyExtra: null,
   });
 
+  // Bezetting maand — bij geen attributie nog 0%.
+  const fillyShare = kpis.month_filly_share_pct ?? 0;
   cards.push({
     label: `Bezetting ${huidigeMaand}`,
     value: kpis.month_avg_pct !== null ? `${kpis.month_avg_pct}%` : "—",
-    fillyExtra:
-      kpis.month_filly_share_pct !== null && kpis.month_filly_share_pct > 0
-        ? `${kpis.month_filly_share_pct}% via Filly`
-        : null,
-    positive: true,
+    fillyExtra: `${fillyShare}% via Filly`,
+    positive: fillyShare > 0,
   });
 
+  // Gasten maand — bij 0 dropt de plus-prefix zodat "+0" niet
+  // misleidend overkomt (suggereert toename die er niet is).
   cards.push({
     label: `Gasten ${huidigeMaand}`,
     value: kpis.month_guests.toLocaleString("nl-NL"),
     fillyExtra:
       kpis.month_filly_guests > 0
         ? `+${kpis.month_filly_guests} via Filly`
-        : null,
-    positive: true,
+        : `0 via Filly`,
+    positive: kpis.month_filly_guests > 0,
   });
 
   cards.push({
@@ -61,14 +65,15 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
     positive: false,
   });
 
+  // Geschatte omzet — zelfde plus-prefix-logica als gasten.
   cards.push({
     label: `Geschatte omzet ${huidigeMaand}`,
     value: formatEuro(kpis.month_revenue_cents),
     fillyExtra:
       kpis.month_filly_revenue_cents > 0
         ? `+${formatEuro(kpis.month_filly_revenue_cents)} via Filly`
-        : null,
-    positive: true,
+        : `${formatEuro(0)} via Filly`,
+    positive: kpis.month_filly_revenue_cents > 0,
   });
 
   return cards;
