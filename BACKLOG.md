@@ -32,7 +32,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [~] **Privacy-verklaring** — `/privacy` concept-v1 live (2026-04-24). **Per 2026-04-30**: dynamisch rendering geactiveerd via `apps/web/src/config/company.ts` + `<LegalField>`. Banner + placeholders verdwijnen automatisch zodra `legalName` + `kvk` zijn gevuld. Nog te doen: (1) bedrijfsgegevens invullen in `config/company.ts` zodra KvK-inschrijving rond is, (2) jurist-review.
 - [~] **Algemene voorwaarden** — `/voorwaarden` concept-v1 live (2026-04-24). **Per 2026-04-30**: dynamisch rendering via `config/company.ts` (zelfde flow als privacy). Nog te doen: (1) bedrijfsgegevens + rechtbank + aansprakelijkheidsmax invullen in `config/company.ts`, (2) jurist-review, (3) aparte verwerkersovereenkomst opstellen (wordt in de AV naar verwezen).
 - [ ] **Jurist-review legal-teksten** — laten reviewen door privacy/SaaS-jurist vóór eerste klant. Met name: aansprakelijkheidslimiet, SLA-claim, IP-clausule AI-output, prijswijzigings-clausule.
-- [ ] **Cookie-banner** — ePrivacy-verplicht zodra Plausible/PostHog erop komt. Concept-privacy verwijst nu al vooruit naar banner.
+- [x] ~~**Cookie-banner**~~ (2026-04-29) — `<CookieBanner />` in root-layout, accept/reject in localStorage. Klaar voor wanneer Plausible/PostHog erbij komt (analytics-init achter consent-check).
 - [x] ~~**AVG-endpoints** — data-export~~ (2026-04-29) + ~~right-to-be-forgotten (account-delete)~~ (2026-04-30). Account-delete via `DELETE /restaurant/me/account` met `{ confirmation: "VERWIJDER" }`-body. UI-knop op account-pagina sectie "Data & privacy". Verwijdert auth.users + alle owner-restaurants → cascade business-data; blokkeert als andere team-members bestaan. Bewijs-rij in `account_deletions`-tabel (geen PII).
 - [~] **Data-classificatie + anonimisering-bij-delete** — fase 1 live per 2026-04-30: continue benchmark-anonymisering bij `campaign.status → afgerond` schrijft een rij in `campaign_benchmarks` (cuisine + region=provincie + capacity-bucket + month + theme + result-metrics, géén body, géén FK, GDPR Recital 26). Laatste-vangnet bij delete via `AnonymizationService.benchmarkAllCompletedFor()`. **Fase 2 nog open**: (1) body-templates extraheren met LLM-stripping van eigennamen, (2) menu-pattern-aggregatie, (3) `docs/data-classification.md` met per-tabel-categorie, (4) Filly's prompts verrijken met benchmark-queries.
 
@@ -97,8 +97,12 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~**Suggesties-generator** — `getMockProposal()`~~ (2026-04-30) — vervangen door echte Claude-call via tool-use. `SuggestionsService.getProposalDetails()` levert mainDish/sides/timing/bundle-prijs/heroImage op basis van profile + menu, gecachet in `suggested_campaign.proposal_details`. Frontend laadt via `GET /api/suggestions/:id/proposal-details` met loading-skeleton.
 - [x] ~~**On-demand suggesties-generator** — "Vraag Filly om voorstellen"-knop op /campagnes~~ (2026-04-30) — `SuggestionsService.generateOnDemand()` bouwt context (profile + menu + live-block) → Claude tool-use → 3-5 nieuwe ai_suggestions met trigger_type-enum (low_occupancy/weather/seasonal/retention/birthday/general). Werkt vanaf seconde 1 na onboarding zolang ≥3 menu-items. Vervangt het cron-vraagstuk: eigenaar drukt knop wanneer hij wil ipv passief wachten op auto-trigger.
 - [x] ~~Menu CRUD endpoints~~ (2026-04-29) — POST/PATCH/DELETE op `/api/menu` live + menu-pagina aangesloten. Filly ziet nieuwe gerechten direct in z'n volgende prompt. **Nog open**: opnieuw uploaden menukaart via menu-pagina (mock-flow blijft alleen lokaal).
-- [ ] **Prompt caching activeren** — `cache_control: { type: 'ephemeral' }` op system-prompts zodra die stabiel >1024 tokens zijn (chat v2 zit waarschijnlijk al zo hoog).
+- [x] ~~**Prompt caching activeren**~~ (2026-04-29) — `cache_control: ephemeral` actief in `AiService` op chat + campaign-refine + reviews-refine. Plus per-2026-04-30: ook gebruikt voor proposal-details + on-demand suggesties + low-occupancy detect.
 - [ ] **Auto-title-generation voor chat-conversations** — `chat_conversations.title` blijft nu null.
+- [x] ~~**Tool-use migratie voor alle Filly-flows**~~ (2026-04-30) — alle 5 plekken die voorheen `JSON.parse(claude.text)` deden gemigreerd naar Anthropic tool-use met expliciete JSON-schema's. Geen "Kon Filly's antwoord niet lezen"-fouten meer mogelijk. Geraakt: website-analyzer, menu-importer, campagne-refine (3 varianten), suggestion-refine, reviews-refine, schedule-suggestion. `AiService.generateStructured<T>` + `generateStructuredFromFile<T>` als centrale wrappers. Vision-calls gebruiken streaming-API (`messages.stream().finalMessage()`) zodat 24k-cap-bij-Opus geen 10-min-pre-flight-blokkade veroorzaakt.
+- [x] ~~**Drankkaart-upload via Vision**~~ (2026-04-30) — aparte flow naast menukaart. `MenuImporterService.analyze(file, meta, kind)` met `kind='menu'|'drinks'`. Drank-tool-schema dwingt subcategory-enum af (wijn-rood/wit/rose/mousserend, bier, cocktail, sterke-drank, koffie-thee, fris). UI: 2 banners + signed-URL-link op bestandsnaam. Migraties 0024 (`menu_items.subcategory`) + 0025 (`menu_uploads.kind`).
+- [x] ~~**Lage-bezetting-detect-and-generate**~~ (2026-04-30) — alert-bar bovenaan dashboard heeft nu actie-knop. `SuggestionsService.detectAndGenerateLowOccupancy()` window 2-14 dagen, drempel <50%, per-dag Claude-call met dag-context (weekdag, weer, segment-counts). Skip-regel: dagen met al pending suggestie worden overgeslagen. POST `/api/suggestions/detect-low-occupancy`.
+- [x] ~~**Variant-flow + schedule-cyclen**~~ (2026-04-30) — migratie 0026: `campaigns.variant_applied_at` + `scheduling_history`. Suggestion-detail-modal gebruikt echte Claude-call voor proposal_details (geen mock meer). Approve-flow geeft chat-varianten door als seed naar campaigns.filly_variants zodat detail-pagina geen tweede generation triggert (3+3=6 max). Schedule-suggestie-knop cyclet door history na 4 unieke alternatieven. Inplannen + Plaats nu/Activeer-knoppen op detail-pagina header.
 - [ ] **Platform-specifieke output per social-media-post** — bepalen wat voor output Filly per kanaal moet leveren, zo compleet mogelijk: per platform (Instagram feed, Instagram Reels, Instagram Stories, Facebook post, TikTok, LinkedIn) de juiste **caption-lengte** (IG ~125 tekens optimum, FB tot 80 woorden, TikTok 100-150, LinkedIn 150-300), **hashtag-strategie** (IG 3-5 mix branded+niche, TikTok 3-5 trending+specific, FB minimaal/geen, LinkedIn 3 max professioneel), **foto-/video-formaten** (IG 1:1 of 4:5, Reels 9:16, Stories 9:16, FB 1.91:1, TikTok 9:16, LinkedIn 1.91:1 of 1:1), **tone** (IG visueel-persoonlijk, FB community-conversational, TikTok energiek-trending, LinkedIn professioneel-storytelling), **call-to-action stijl** (IG "link in bio", FB direct link, TikTok "swipe up" of "comment", LinkedIn discussie-vraag), **emoji-density**, **mention-/tag-strategie**, **alt-text-vereisten**, **publicatie-tijdstip per platform** (zit deels al in suggestSchedule maar moet platform-specifiek). Resultaat: tool-schema + system-prompt per `campaign_type` + nieuw veld `social_platform` (instagram/facebook/tiktok/linkedin) zodat Filly weet voor welk kanaal hij genereert. Eigenaar kiest platform tijdens campagne-aanmaak; UI gebruikt verschillende preview-rendering per platform.
 
 ### Email & campagnes
@@ -115,22 +119,25 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Webhook-receivers** per integratie met rijtests
 
 ### Mock-data in frontend (opruimen zodra backend er is)
-- [ ] **`FILLY_MOCK`** in [kpi-row.tsx:27](apps/web/src/app/dashboard/_components/kpi-row.tsx) — KPI-subregels "door Filly"
-- [ ] **`isFromFilly()`** — deterministische hash in reserveringen + gasten
-- [ ] **`FILLY_ROI_6M` + `FILLY_BY_TYPE`** in rapportages-pagina
+- [x] ~~**`FILLY_MOCK`** in kpi-row.tsx~~ (2026-04-29) — verwijderd, alleen echte attributie via `reservations.via_campaign_id`-FK.
+- [x] ~~**`isFromFilly()`**~~ (2026-04-29) — kolom + stat-card weg uit gasten-pagina; reserveringen-pagina nu op echte `source`-veld.
+- [x] ~~**`FILLY_ROI_6M` + `FILLY_BY_TYPE`** in rapportages~~ (2026-04-29) — vervangen door echte 6-mnd grafiek + per-campagne tabel.
 - [x] ~~`buildFillyReply()` in reviews~~ — vervangen door echte Claude-call (2026-04-23)
-- [x] ~~`MOCK_RECOGNIZED` in menu-pagina~~ — vervangen door echte Vision-analyse tijdens onboarding (menu-pagina zelf is volgende stap)
-- [ ] **`cardItemIds`-set in memory** in menu-pagina
-- [ ] **Statische koppelingen-lijst** zonder OAuth-flow
+- [x] ~~`MOCK_RECOGNIZED` in menu-pagina~~ — vervangen door echte Vision-analyse tijdens onboarding.
+- [x] ~~`getMockProposal()` in suggesties-detail-modal~~ (2026-04-30) — vervangen door echte Claude-call via tool-use op `/api/suggestions/:id/proposal-details`.
+- [ ] **`cardItemIds`-set in memory** in menu-pagina — UI-state voor net-toegevoegde items, hoort uit DB-flow te komen.
+- [ ] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen)
 
 ### Database-migraties nog te maken
-- [x] ~~`campaign_benchmarks` + `account_deletions` (anonymisering + AVG art. 17)~~ (migratie 0023, 2026-04-30)
+- [x] ~~0026: `campaigns.variant_applied_at` + `scheduling_history`~~ (2026-04-30) — verbergt refine-sectie na variant-keuze; cyclen door schedule-history zonder Claude-calls.
+- [x] ~~0025: `menu_uploads.kind` ('menu' \| 'drinks')~~ (2026-04-30) — onderscheid menu-kaart vs drankkaart in UI-banners.
+- [x] ~~0024: `menu_items.subcategory`~~ (2026-04-30) — drank-detail (wijn-rood, bier, cocktail, etc.) voor visuele groepering binnen drank-tab.
+- [x] ~~0023: `campaign_benchmarks` + `account_deletions` (anonymisering + AVG art. 17)~~ (2026-04-30)
+- [x] ~~`reservations.via_campaign_id` + `guests.acquired_via_campaign_id`~~ (migratie 0022, 2026-04-29)
 - [x] ~~`menu_uploads` + Storage-bucket + FK menu_items.menu_upload_id~~ (migratie 0011, 2026-04-24)
 - [x] ~~ai_usage.restaurant_id nullable (pre-onboarding logging)~~ (migratie 0012, 2026-04-24)
 - [x] ~~restaurants.website_url + onboarded_at~~ (migratie 0010, 2026-04-24)
-- [ ] **`reservations.via_campaign_id`** FK (Filly-ROI meetbaar maken)
-- [ ] **`guests.acquired_via_campaign_id`** FK
-- [ ] **`campaigns.metrics` uitbreiding** — extra_reservations/revenue/retention
+- [ ] **`campaigns.metrics` uitbreiding** — extra_reservations/revenue/retention als typed columns ipv result_stats jsonb (handiger voor analytics).
 - [ ] **`subscriptions`** (billing)
 - [ ] **`campaign_sends`** (email-history)
 - [ ] **`guest_segments`** (doelgroep-segmentatie)
@@ -149,13 +156,13 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Notifications-bell** werkend
 - [ ] **Keyboard shortcuts** overzicht
 - [ ] **Export CSV/PDF** per pagina (gasten, reserveringen, rapportages)
-- [ ] **Mobile responsive pass** — nu desktop-only
+- [x] ~~**Mobile responsive pass**~~ (2026-04-30) — alle 5 fasen afgerond. Sidebar wordt offcanvas onder 1024px (☰-burger in topbar), dash-body 1-kolom op tablet, KPI-row 5→2→1 cols, weather-row auto-fit (geen doormidden gesneden dagen meer), tabellen horizontaal scrollbaar binnen container, modals full-screen onder 768px, save-bar sticky bottom op mobile, publieke site (navbar/login/legal) ook mee. Breakpoints: 1024 / 768 / 480.
 - [ ] **i18n (EN)** — engels voor internationale klanten later
 
 ### Onboarding nieuwe klant
 - [x] ~~3-stappen wizard met Filly-auto-invul~~ (2026-04-24)
-- [ ] **Sample-data toggle** — demo-data voor nieuwe accounts die geen website/menu hebben
-- [ ] **Setup-checklist** op dashboard tot alles klaar staat (reviews koppelen, socials, team, etc.)
+- [x] ~~**Sample-data via SQL voor demo-account**~~ (2026-04-30) — geen UI-toggle (bewust om Filly's promise schoon te houden); aparte SQL-snippet in chat die het demo-account `floriskoevermans@outlook.com` (restaurant_id `a462cf39-...`) vult met 18 gasten, 30 reserveringen, 31 occupancy-dagen, 10 reviews, 5 campagnes (mix statussen), 3 pending suggesties. Voor échte klanten: "✨ Vraag Filly om voorstellen"-knop op /campagnes geeft direct waarde zonder fake data.
+- [x] ~~**Setup-checklist** op account-pagina~~ (2026-04-30) — `OnboardingChecklist`-component met 6 items + progress-bar + ✕-dismiss (localStorage). Bewust op account-pagina, niet dashboard (waar het andere KPI's zou wegduwen).
 
 ---
 
@@ -190,34 +197,73 @@ werken. Laatste audit: 2026-04-23.
 4. **Prioriteit verandert?** Verplaats naar juiste P0/P1/P2/P3-sectie.
 5. **Commit deze file mee** bij elke wijziging — geen aparte PR.
 
-## ⏭️ Eerstvolgende open taken (begin morgen hier)
+## ⏭️ Eerstvolgende open taken (begin volgende chat hier)
 
-Door Floris geselecteerd aan het einde van 2026-04-29, klaar om
-direct op te pakken in de volgende sessie:
+Door Floris geselecteerd aan het einde van 2026-04-30 (na een
+intensieve sessie waarin AVG, drankkaart-flow, on-demand
+suggesties, lage-bezetting-detectie, tool-use migratie, demo-
+account, en mobile-responsive over de hele app klaar zijn).
 
-1. ~~**🔴 Privacy + AV pagina's dynamisch**~~ ✅ (2026-04-30) —
-   `apps/web/src/config/company.ts` is dé centrale plek voor
-   Get-Filly's eigen bedrijfsgegevens (handelsnaam, legal name,
-   KvK, adres, rechtbank, aansprakelijkheidsmax). `<LegalField>`-
-   component vervangt placeholders door waardes en valt anders
-   netjes terug op een gele "[NOG IN TE VULLEN: ...]". Banner op
-   `/privacy` en `/voorwaarden` verdwijnt automatisch zodra
-   `legalName` + `kvk` gevuld zijn. NB: bevat Get-Filly's eigen
-   gegevens, NIET de `restaurants`-rij — dat zou een denkfout
-   zijn (restaurants = klanten, niet de SaaS-aanbieder).
+**State op dit moment**:
+- Demo-account `floriskoevermans@outlook.com` met restaurant_id
+  `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` is gevuld met realistische
+  data (18 gasten, 30 reserveringen, 31 occupancy-dagen, 10 reviews,
+  5 campagnes incl. 2 afgeronde, 3 pending suggesties).
+- Migraties t/m 0026 zijn gerund.
+- App is volledig responsive (1024 / 768 / 480 breakpoints).
+- Tool-use migratie compleet — geen JSON.parse-fouten meer mogelijk.
 
-2. ~~**🟡 Onboarding-checklist op dashboard-home**~~ ✅ (2026-04-30) —
-   `OnboardingChecklist`-component bovenaan `dash-top`. 6 items:
-   profielbasis, openingstijden, logo, menukaart, eerste campagne,
-   bedrijfsgegevens (legal name + KvK). Progress-bar + per-item link
-   naar de plek om in te vullen. Verbergt zich automatisch zodra
-   alles op ✓ staat. Frontend-only (geen extra endpoints — leest
-   uit fetchRestaurant + fetchMenu + fetchCampaigns).
+### Volgende sessie — kies één van deze drie
 
-3. **🔴 Test-account FK-cascade fix** — `auth.user delete via UI laat
-   wees-restaurants achter. Migratie + wellicht trigger zodat
-   restaurant-cascade correct gaat OF documentatie + test-account-
-   reset-script. BACKLOG noemt dit al onder COO P0.
+1. **🔴 P0: Mollie-billing flow** — eerste klant kan niet betalen
+   zonder. 4 sub-taken: SDK installeren + checkout-flow op pricing-
+   pagina, migratie `subscriptions`-tabel (plan/status/mollie_customer_id),
+   plan-enforcement in backend (limieten op AI-calls/campagnes/teamleden
+   per plan), Mollie webhook voor status-changes (trial → active →
+   cancelled). **Vereist**: Mollie-account aanmaken (zakelijk).
+
+2. **🟡 P1: Audit-log compleet maken + per-request Supabase-client**
+   met user-JWT — twee security-en-hygiëne items die samen passen.
+   `AuditLogService` schrijft nu CampaignsService/RestaurantService/
+   ReservationsService events maar mist nog menu-CRUD, reviews-response,
+   onboarding-completed. Plus: alle service-signatures geven nog
+   `userId=null` door — controllers moeten `@CurrentUser` doorreiken.
+   En: backend draait nu op `service_role` (RLS-bypass). Per-request
+   Supabase-client met user-JWT toevoegen voor defense-in-depth bij
+   1000+ klanten. **Geen externe accounts nodig**.
+
+3. **🟡 P1: Site-fundamenten (publieke site)** — voor zodra je
+   iemand naar `get-filly.com` stuurt. Contact/waitlist-formulier
+   met Resend, 404-pagina, sitemap.xml, robots.txt, og-images per
+   pagina, About-pagina met Floris-verhaal, footer invullen.
+   **Vereist**: Resend-account voor het contact-formulier (ook
+   nodig voor Supabase Auth SMTP straks).
+
+### Mijn aanbeveling
+
+**Begin met #2** (audit-log + per-request Supabase). Geen externe
+accounts, technisch beheersbaar in 1 sessie, raakt direct de
+productie-readiness voor schaal. Mollie en site-fundamenten
+hebben beide externe afhankelijkheden waar je eerst account-werk
+voor moet doen.
+
+### Andere vermeldenswaardige open punten
+
+- **🔴 Test-account FK-cascade fix** (COO P0) — `auth.user` delete
+  laat wees-restaurants achter. Of DB-trigger + cascade, of een
+  reset-script. Niet acuut want we gebruiken nu het demo-account
+  vanuit `floriskoevermans@outlook.com`.
+- **🟡 Resend SMTP voor Supabase Auth** — lost de 3-4/uur rate-
+  limit op. Email-confirmation kan dan weer aan in dev. Vereist
+  Resend-account.
+- **🟡 Geocoding-backfill-script** — bestaande restaurants zonder
+  lat/long. Bij demo-account: gebruik `update restaurants set
+  latitude=..., longitude=... where id='...'`-snippet als de
+  WeatherForecast-card '—' toont.
+- **🟢 Platform-specifieke output per social-media-post** (P2 in
+  Filly AI-features) — Floris-verzoek 2026-04-30 om te bepalen
+  welke output per kanaal optimaal is. Vereist tool-schema +
+  prompt per campaign_type + nieuw social_platform-veld.
 
 ## Audit 2026-04-29 — Bevindingen per rol
 
@@ -242,7 +288,7 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🟡 **Geen tests behalve `app.controller.spec.ts`** — 8.500 regels backend, één spec. Minimaal smoke-tests op auth + tenant-isolatie + key endpoints.
 - [x] ~~🟡 Geen GitHub Actions CI~~ (2026-04-29) — `.github/workflows/ci.yml` toegevoegd: typecheck (api + web) + build (shared + api + web) per PR + push naar main. pnpm cache + concurrency-cancel voor snelle runs.
 - [ ] 🟡 **WebsiteAnalyzer + MenuImporter zijn synchroon** (5-15s blocking). Bij gelijktijdige uploads loopt Node-process vast. Job-queue (BullMQ + Redis) toevoegen.
-- [ ] 🟡 **3 expliciete TODO's** in code: kpi.service.ts (weekday-avg), kpi-row.tsx (FILLY_MOCK), suggesties/page.tsx (getMockProposal).
+- [~] 🟡 **TODO's in code** — kpi.service.ts (weekday-avg) staat nog open. kpi-row.tsx (FILLY_MOCK) en suggesties/page.tsx (getMockProposal) zijn beide opgeruimd 2026-04-29 / 2026-04-30.
 - [ ] 🟢 **Inline styling overal** — `style={{...}}` in elke component. Refactor naar Tailwind / CSS-modules voor onderhoudbaarheid op schaal.
 - [ ] 🟢 **`RestaurantService.update` accepteert `Record<string, unknown>`** — nieuwe forbidden-velden moet je manueel onthouden. Strict-allowlist of zod-schema toevoegen.
 - [ ] 🟢 **`@RequireModule`-decorator** voor module-permissies ontbreekt (alleen frontend-filtering).
@@ -260,7 +306,7 @@ verplaatsen naar de juiste P-bucket.
 
 ### CEO
 - [ ] 🔴 **Mollie-billing ontbreekt** — eerste klant kan niet betalen. 4 sub-taken: SDK + checkout, subscriptions-tabel, plan-enforcement, webhook.
-- [ ] 🔴 **Privacy-verklaring + AV staan op draft** met `[INVULLEN:...]`-placeholders. Bedrijfsgegevens kunnen via account-pagina ingevuld worden — moet nog dynamisch op de publieke pagina renderen.
+- [~] 🔴 **Privacy-verklaring + AV** — dynamisch rendering live (2026-04-30) via `apps/web/src/config/company.ts`. Banner verdwijnt zodra `legalName + kvk` ingevuld zijn. **Jouw actie**: KvK-inschrijving + bedrijfsgegevens invullen in `config/company.ts` + jurist-review boeken.
 - [x] ~~🔴 Cookie-banner ontbreekt~~ (2026-04-29) — `<CookieBanner />` in root-layout, accept/reject keuze in localStorage. Klaar voor wanneer Plausible/PostHog wordt aangezet (analytics-init achter consent-check).
 - [ ] 🔴 **Geen "Start trial / Probeer gratis"-flow** vanaf pricing-pagina.
 - [x] ~~🟡 Geen onboarding-checklist op dashboard~~ (2026-04-30) — `OnboardingChecklist` bovenaan dashboard-home toont 6 setup-stappen met progress-bar; verbergt zich zodra alles ✓.
@@ -280,12 +326,12 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🟢 **Geen monitoring** Claude/Supabase uptime — storingen alleen via klant-mails.
 
 ### Designer
-- [ ] 🔴 **Niet mobile responsive** — hele dashboard breekt onder 1024px. Voor horeca-eigenaars op smartphone kritiek.
+- [x] ~~🔴 Niet mobile responsive~~ (2026-04-30) — alle 5 fasen afgerond. Zie hoofdsectie "Dashboard algemeen → Mobile responsive pass".
+- [x] ~~🟢 KPI-row breekt onder 1280px~~ (2026-04-30) — KPI-row 5→2→1 cols via responsive pass.
 - [ ] 🟡 **Inline styling overal** — geen design-tokens-laag. Brand-update raakt 200+ files.
 - [ ] 🟡 **Iconen-set is volledig emoji** — per OS verschillend gerenderd, niet brand-consistent. SVG-iconen-set toevoegen.
 - [ ] 🟡 **Geen focus-states / aria-labels** op veel knoppen → WCAG-toegankelijkheid onder de maat.
 - [ ] 🟡 **`filly-chat.tsx` is 635 regels** — Single Responsibility geschonden. Splitsen in input/list/proposal-card/error-handler.
-- [ ] 🟢 **KPI-row breekt onder 1280px** — 5 cards naast elkaar werkt niet op kleinere schermen.
 - [ ] 🟢 **Geen dark-mode**, geen i18n-voorbereiding (alles hard-coded NL).
 - [ ] 🟢 **Inconsistente knop-stijlen** — `btn-primary-dash`, `sg-btn primary`, inline groene knoppen. Drie patterns voor één concept.
 - [ ] 🟢 **Geen Storybook / design-systeem documentatie**.
@@ -293,6 +339,54 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-04-30 — AVG, drankkaart, on-demand suggesties, tool-use, mobile-responsive
+
+Grote sessie met ~20 commits. Hoofdpunten:
+
+**AVG & legal**:
+- ✅ `apps/web/src/config/company.ts` als centrale plek voor Get-Filly's eigen bedrijfsgegevens; `<LegalField>`-component op `/privacy` en `/voorwaarden`. Banner + placeholders verdwijnen automatisch zodra `legalName + kvk` ingevuld.
+- ✅ AVG art. 17 (right to be forgotten): `DELETE /restaurant/me/account` met "VERWIJDER"-bevestiging. UI op account-pagina sectie "Data & privacy". Cascade-delete van auth.users + alle owner-restaurants. Bewijs-rij in nieuwe `account_deletions`-tabel.
+- ✅ Migratie 0023: `campaign_benchmarks` + `account_deletions`. Anonimisering bij `campaign.status → afgerond` schrijft GDPR Recital 26-conforme rij (cuisine + region=provincie + capacity-bucket + month + theme + result-metrics, géén body, géén FK). Filly's leerschat groeit zonder PII-lekken.
+
+**Tool-use migratie (alle Filly-flows)**:
+- ✅ `AiService.generateStructured<T>` + `generateStructuredFromFile<T>` als centrale wrappers met Anthropic tool-use. Vision-calls gebruiken streaming-API zodat 24k-cap niet de 10-min-pre-flight raakt.
+- ✅ Gemigreerd: website-analyzer, menu-importer, campagne-refine (3 varianten + minItems=3 maxItems=3), suggestion-refine, reviews-refine, schedule-suggestion. Geen JSON.parse-fouten meer mogelijk.
+- ✅ Diagnostic: `max_tokens bereikt`-warning in logs zodat we caps tijdig kunnen ophogen.
+
+**Drankkaart-flow**:
+- ✅ Migratie 0024 (`menu_items.subcategory`) + 0025 (`menu_uploads.kind`). Drank-tool-schema dwingt subcategory-enum af (wijn-rood/wit/rose/mousserend, bier, cocktail, sterke-drank, koffie-thee, fris). Cap 24k voor drank, 16k voor menu — drank heeft langere description (druif/regio/jaargang).
+- ✅ UI: 2 aparte upload-knoppen (📄 Menu / 🍷 Drank), 2 banners onder elkaar, klik op bestandsnaam opent signed URL.
+- ✅ Onboarding-wizard heeft 2e file-input naast menu.
+- ✅ `RestaurantContextService.buildMenuBlock` heeft nu aparte `MENU` en `DRANKKAART` secties zodat Filly wijnen niet door gerechten haalt.
+
+**Suggesties-flow productie-waardig**:
+- ✅ `getMockProposal()` weg. `SuggestionsService.getProposalDetails()` levert mainDish/sides/timing/bundle-prijs/heroImage via Claude tool-use, gecachet in `suggested_campaign.proposal_details`.
+- ✅ "✨ Vraag Filly om voorstellen"-knop op /campagnes. `generateOnDemand()` → 3-5 suggesties met trigger_type-enum.
+- ✅ Lage-bezetting-detect-and-generate: alert-bar bovenaan dashboard heeft actieknop. Window 2-14 dagen, drempel <50%, per-dag Claude-call met dag-context (weekdag, weer, segment-counts). Skip-regel: dagen met al pending suggestie worden overgeslagen.
+
+**Variant-flow + schedule-cyclen**:
+- ✅ Migratie 0026: `campaigns.variant_applied_at` + `scheduling_history`. Refine-sectie verbergt na variant-keuze; chat-varianten worden seed voor `filly_variants` (geen dubbele 3+3 generatie). Schedule-suggestie-knop cyclet door history na 4 unieke alternatieven (geen Claude-calls bij cycle).
+- ✅ "📅 Inplannen" + "▶ Plaats nu / Activeer"-knoppen op detail-pagina header.
+
+**Demo-account opgezet**:
+- ✅ Radical-reset SQL voor schoon DB. Demo-account `floriskoevermans@outlook.com` (restaurant_id `a462cf39-ef9b-49cb-bd8e-a84a10a3f888`) gevuld met 18 gasten, 30 reserveringen, 31 occupancy-dagen, 10 reviews (mix Google/TripAdvisor/IENS), 5 campagnes (1 concept, 1 ingepland, 1 actief, 2 afgerond), 3 pending AI-suggesties met realistische triggers + 6 reservations gekoppeld aan afgeronde campagnes voor Filly-ROI.
+
+**Onboarding-checklist**:
+- ✅ `OnboardingChecklist`-component op account-pagina (NIET dashboard, want daar duwde 'ie KPI's weg). 6 items + progress-bar + ✕-dismiss (localStorage).
+
+**Mobile-responsive (volledig)**:
+- ✅ Fase 1: sidebar wordt offcanvas onder 1024px (☰-burger in topbar, backdrop, klik-buiten-sluit).
+- ✅ Fase 2: dashboard-pagina — KPI-row 5→2→1 cols, weather auto-fit, dash-body 1-kolom op tablet.
+- ✅ Fase 3: lijst-paginas — tabellen horizontaal scrollbaar, filter-tabs zijwaarts scrollen.
+- ✅ Fase 4: detail-paginas + modals — form-grid 2→1 col, save-bar sticky bottom, modals full-screen onder 768px.
+- ✅ Fase 5: publieke site — navbar/login/legal-tables responsive.
+- ✅ Breakpoints: 1024 (tablet), 768 (telefoon), 480 (klein).
+
+**KPI's & UX-tweaks**:
+- ✅ KPI-row "via Filly"-regel altijd zichtbaar (ook bij 0).
+- ✅ Menu-categorieën: 6e tab "Tussengerechten" toegevoegd, normalize-mapper voor ~20 alias-strings (zodat Vision niet kan ontsnappen aan de 6 UI-keys).
+- ✅ WeatherForecast: nette empty-state ipv 7 lege dag-vakjes.
 
 ### 2026-04-29 — Gasten-attributie + Audit-log + Data-export (AVG)
 - ✅ **Gasten Filly-attributie**: backend selecteert `acquired_via_campaign_id`, `setReservationAttribution` zet automatisch dezelfde campagne op de gast als nog niet gevuld. Frontend toont "Via Filly"-stat-card + kolom met badge. Cijfer matcht het écht-aantal (geen mock).
