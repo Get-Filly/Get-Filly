@@ -3,25 +3,39 @@
 // ============================================================
 // OnboardingChecklist — setup-stappen voor nieuwe klanten
 // ============================================================
-// Verschijnt bovenaan dashboard-home zolang het restaurant nog
-// niet alle basis-instellingen heeft afgevinkt. Items die op ✓
-// staan vervagen; items op ○ blijven prominent zichtbaar met
-// een rechtstreekse link naar de plek waar je ze invult.
+// Wordt op de account-pagina ingehangen (bovenaan, onder de
+// page-subtitle). De meeste items linken naar diezelfde pagina,
+// dus de checklist staat letterlijk naast het invul-werk. Bewust
+// NIET op het dashboard zelf — daar leidt 'ie alleen maar af van
+// de echte content (KPI's, kalender, AI-assistent).
 //
-// Doel: nieuwe klant weet wat er nog moet gebeuren zonder dat
-// we hem dwingen door een onboarding-tunnel; hij kan stap voor
-// stap aftikken in zijn eigen tempo.
+// Items die op ✓ staan vervagen; items op ○ blijven prominent
+// zichtbaar met een rechtstreekse link naar de plek waar je ze
+// invult.
 //
 // Render-logica:
 //   - Geen data binnen → niets renderen (vermijdt flash bij load)
 //   - Alle items ✓ → niets renderen (verbergt zich vanzelf)
-//   - Anders: progress-bar + lijst
+//   - Eerder weggeklikt → niets renderen (localStorage-flag)
+//   - Anders: progress-bar + lijst + ✕-dismiss-knop
+//
+// Dismiss is per-browser via localStorage. Bewust geen DB-veld
+// zodat we geen migratie nodig hebben en dismiss niet over
+// devices heen kruipt — als je 'm op je werk-laptop wegklikt
+// blijft 'ie op je telefoon nog zichtbaar (handig: dubbele kans
+// om te zien dat er nog wat openstaat).
 //
 // Aanvullende items toevoegen in de toekomst:
 //   - Voeg een entry toe aan `buildChecklist`. Geen state, geen
 //     extra fetch nodig zolang het uit Restaurant + menu + campagnes
 //     af te leiden is.
 // ============================================================
+
+// localStorage-key. Bump het versie-suffix als je de items zo
+// drastisch wijzigt dat eerdere dismiss-keuzes niet meer passen
+// (bv. een belangrijk nieuw item toegevoegd) — bestaande users
+// krijgen dan opnieuw de checklist te zien.
+const DISMISS_KEY = "getfilly_onboarding_checklist_dismissed_v1";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -117,22 +131,47 @@ function buildChecklist(
 
 export function OnboardingChecklist() {
   const [items, setItems] = useState<ChecklistItem[] | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Drie endpoints parallel; allemaal endpoints die het dashboard
-    // toch al kent (geen extra fetch-load voor de klant).
+    // Eerst dismiss-keuze uit localStorage lezen — als die er is,
+    // hoeven we niet eens de fetches te doen. localStorage bestaat
+    // alleen client-side; SSR-veilig met try-catch.
+    try {
+      if (localStorage.getItem(DISMISS_KEY) === "true") {
+        setDismissed(true);
+        return;
+      }
+    } catch {
+      // localStorage geblokkeerd (privacy-mode, embedded webview):
+      // gewoon doorgaan alsof er geen dismiss is.
+    }
+
+    // Drie endpoints parallel; allemaal endpoints die de account-
+    // pagina toch al kent (geen extra fetch-load voor de klant).
     Promise.all([fetchRestaurant(), fetchMenu(), fetchCampaigns()])
       .then(([restaurant, menu, campaigns]) => {
         setItems(buildChecklist(restaurant, menu.length, campaigns.length));
       })
       .catch(() => {
-        // Fail-soft: bij fout verbergt de checklist zich. Het dashboard
+        // Fail-soft: bij fout verbergt de checklist zich. De pagina
         // mag nooit kapot gaan door een onboarding-component.
         setItems(null);
       });
   }, []);
 
+  function handleDismiss() {
+    try {
+      localStorage.setItem(DISMISS_KEY, "true");
+    } catch {
+      // localStorage niet beschikbaar — dan dismist 'ie alleen voor
+      // deze sessie (in-memory state). Niet ideaal maar acceptabel.
+    }
+    setDismissed(true);
+  }
+
   // Niets renderen tot data binnen is — voorkomt flash bij load.
+  if (dismissed) return null;
   if (!items) return null;
 
   const doneCount = items.filter((i) => i.done).length;
@@ -157,39 +196,60 @@ export function OnboardingChecklist() {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "baseline",
+          alignItems: "center",
+          gap: 12,
           marginBottom: 6,
         }}
       >
         <div
           style={{
-            fontWeight: 700,
+            fontWeight: 600,
             color: "var(--accent-dark)",
-            fontSize: 15,
+            fontSize: 14,
           }}
         >
           Filly aan het werk zetten
+          <span
+            style={{
+              fontSize: 12,
+              color: "var(--text-secondary)",
+              fontWeight: 500,
+              fontVariantNumeric: "tabular-nums",
+              marginLeft: 8,
+            }}
+          >
+            · {doneCount} van {total} klaar
+          </span>
         </div>
-        <div
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label="Checklist verbergen"
+          title="Checklist verbergen"
           style={{
-            fontSize: 13,
-            color: "var(--text-secondary)",
-            fontVariantNumeric: "tabular-nums",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--text-light)",
+            fontSize: 18,
+            lineHeight: 1,
+            padding: "2px 6px",
+            borderRadius: 4,
           }}
         >
-          {doneCount} van {total} klaar
-        </div>
+          ✕
+        </button>
       </div>
 
       <div
         style={{
-          fontSize: 13,
+          fontSize: 12,
           color: "var(--text-secondary)",
           marginBottom: 12,
         }}
       >
         Vink deze setup-stappen af zodat Filly betere voorstellen kan
-        doen. De lijst verdwijnt automatisch zodra alles klaar is.
+        doen. De lijst verdwijnt vanzelf zodra alles ✓ is.
       </div>
 
       {/* Progress-bar */}

@@ -12,6 +12,7 @@ import {
   type Restaurant,
 } from "../../../lib/api";
 import { supabase } from "../../../lib/supabase";
+import { OnboardingChecklist } from "../_components/onboarding-checklist";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -276,6 +277,12 @@ export default function AccountPage() {
         Jouw restaurant-profiel. Hoe uitgebreider je dit invult, hoe scherper
         Filly campagnes kan voorstellen en versturen.
       </div>
+
+      {/* Onboarding-checklist: dismissable, verbergt zich automatisch
+          zodra alle items op ✓ staan. De meeste items linken terug
+          naar plekken op deze pagina, dus visueel is dit de logische
+          plek (vlak boven het invul-werk). */}
+      <OnboardingChecklist />
 
       {/* ============================================================
           Sectie 1 — Restaurant
