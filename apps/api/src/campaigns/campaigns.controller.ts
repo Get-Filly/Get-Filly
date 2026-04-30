@@ -90,6 +90,7 @@ export class CampaignsController {
       name?: string;
       subject_line?: string | null;
       body?: string;
+      from_variant?: boolean;
     },
   ) {
     return this.campaigns.update(restaurantId, id, body);

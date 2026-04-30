@@ -95,6 +95,10 @@ export type CampaignDetail = Campaign & {
   tags: string[] | null;
   created_at: string;
   content: Record<string, unknown> | null;
+  // Tijdstip waarop een Filly-variant is toegepast op deze campagne.
+  // Null = nog geen variant gekozen. UI verbergt op basis hiervan
+  // de "Met Filly bewerken"-sectie.
+  variant_applied_at: string | null;
 };
 
 @Injectable()
@@ -331,6 +335,11 @@ export class CampaignsService {
       name?: string;
       subject_line?: string | null;
       body?: string;
+      // Als true: deze update komt voort uit "Pas variant toe"-knop.
+      // We resetten dan NIET filly_variants/regen_count en zetten
+      // variant_applied_at op now() zodat de UI de "Met Filly
+      // bewerken"-sectie definitief verbergt voor deze campagne.
+      from_variant?: boolean;
     },
   ): Promise<{ id: string }> {
     const { data: existing, error: fetchErr } = await this.supabase.client
@@ -355,10 +364,12 @@ export class CampaignsService {
     // handmatig ook omdat Supabase's default-now-trigger niet op
     // elke tabel zit.
     //
-    // Bij body-wijziging wissen we ook de cached filly_variants en
-    // resetten de regen-count: oude alternatieven matchen niet meer
-    // met de nieuwe inhoud, en de eigenaar mag opnieuw 6 genereren
-    // op basis van de bijgewerkte tekst.
+    // Bij handmatige body-wijziging (from_variant=false) wissen we
+    // de cached filly_variants en resetten regen-count: oude
+    // alternatieven matchen niet meer met de nieuwe inhoud.
+    // Bij variant-apply (from_variant=true): NIET wissen — variant is
+    // gekozen, klaar, en variant_applied_at gaat aan zodat de UI de
+    // refine-sectie verbergt.
     const bodyChanging = typeof input.body === 'string';
     if (typeof input.name === 'string' || bodyChanging) {
       const updates: Record<string, unknown> = {
@@ -372,8 +383,14 @@ export class CampaignsService {
         updates.name = nameTrimmed;
       }
       if (bodyChanging) {
-        updates.filly_variants = [];
-        updates.filly_variants_regen_count = 0;
+        if (input.from_variant) {
+          // Variant gekozen — markeer en behoud cache.
+          updates.variant_applied_at = new Date().toISOString();
+        } else {
+          // Handmatige edit — cache wissen.
+          updates.filly_variants = [];
+          updates.filly_variants_regen_count = 0;
+        }
       }
       const { error: updErr } = await this.supabase.client
         .from('campaigns')
@@ -946,7 +963,7 @@ ${menuBlock}
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .select(
-        'id, type, status, name, suggested_scheduled_for, suggested_scheduled_reasoning',
+        'id, type, status, name, suggested_scheduled_for, suggested_scheduled_reasoning, scheduling_history',
       )
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
@@ -968,6 +985,69 @@ ${menuBlock}
           campaign.suggested_scheduled_reasoning as string,
       };
     }
+
+    // History-state lezen voor de cycle-logic.
+    const history = Array.isArray(campaign.scheduling_history)
+      ? (campaign.scheduling_history as Array<{
+          datetime_iso: string;
+          reasoning: string;
+          generated_at?: string;
+        }>)
+      : [];
+
+    // Cyclen-pad: als we al 3 unieke alternatieven hadden (current +
+    // 2 in history), generen we niet meer. Pak de oudste uit history,
+    // schuif de huidige current naar het einde — round-robin door de
+    // 3 alternatieven heen. Geen Claude-call.
+    const MAX_UNIQUE_BEFORE_CYCLE = 2; // history-cap; 2 + current = 3 totaal
+    if (
+      force &&
+      history.length >= MAX_UNIQUE_BEFORE_CYCLE &&
+      campaign.suggested_scheduled_for &&
+      campaign.suggested_scheduled_reasoning
+    ) {
+      const next = history[0];
+      const newHistory = [
+        ...history.slice(1),
+        {
+          datetime_iso: campaign.suggested_scheduled_for as string,
+          reasoning: campaign.suggested_scheduled_reasoning as string,
+          generated_at: new Date().toISOString(),
+        },
+      ];
+      const { error: cycleErr } = await this.supabase.client
+        .from('campaigns')
+        .update({
+          suggested_scheduled_for: next.datetime_iso,
+          suggested_scheduled_reasoning: next.reasoning,
+          scheduling_history: newHistory,
+        })
+        .eq('id', id)
+        .eq('restaurant_id', restaurantId);
+      if (cycleErr) throw new InternalServerErrorException(cycleErr.message);
+
+      return {
+        suggested_scheduled_for: next.datetime_iso,
+        suggested_scheduled_reasoning: next.reasoning,
+      };
+    }
+
+    // Generate-pad: genereer nieuwe via Claude. De huidige current
+    // (als die er is) gaat eerst naar history zodat we 'm later
+    // kunnen recyclen.
+    const newHistory =
+      force &&
+      campaign.suggested_scheduled_for &&
+      campaign.suggested_scheduled_reasoning
+        ? [
+            ...history,
+            {
+              datetime_iso: campaign.suggested_scheduled_for as string,
+              reasoning: campaign.suggested_scheduled_reasoning as string,
+              generated_at: new Date().toISOString(),
+            },
+          ].slice(-MAX_UNIQUE_BEFORE_CYCLE)
+        : history;
 
     // Profile + live blocks. Profile geeft Filly de identiteit (type,
     // doelgroep, openingstijden, special events) en live-block geeft
@@ -1048,12 +1128,14 @@ Geef het beste verzendmoment.`;
       );
     }
 
-    // Cache + retourneer.
+    // Cache + retourneer. scheduling_history is hierboven al
+    // opnieuw opgebouwd (current → history bij force=true).
     const { error: updErr } = await this.supabase.client
       .from('campaigns')
       .update({
         suggested_scheduled_for: datetimeIso,
         suggested_scheduled_reasoning: reasoning,
+        scheduling_history: newHistory,
       })
       .eq('id', id)
       .eq('restaurant_id', restaurantId);

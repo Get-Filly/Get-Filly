@@ -81,6 +81,10 @@ export type CampaignDetail = Campaign & {
   suggested_scheduled_for: string | null;
   suggested_scheduled_reasoning: string | null;
   executed_at: string | null;
+  // Tijdstip waarop een Filly-variant is toegepast. Null = nog niet
+  // gekozen → "Met Filly bewerken"-sectie wel zichtbaar. Niet-null →
+  // sectie verbergen, geen verdere alternatieven mogelijk.
+  variant_applied_at: string | null;
   tags: string[] | null;
   created_at: string;
   content: {
@@ -144,6 +148,9 @@ export async function updateCampaign(
     name?: string;
     subject_line?: string | null;
     body?: string;
+    // Markeer als variant-apply zodat backend variant_applied_at zet
+    // en de UI de "Met Filly bewerken"-sectie verbergt.
+    from_variant?: boolean;
   },
 ): Promise<{ id: string }> {
   const res = await authedFetch(`${API_URL}/campaigns/${id}`, {

@@ -604,9 +604,16 @@ export default function CampaignDetailPage() {
         )}
 
       {/* "Met Filly bewerken"-paneel: 3 alternatieven + AI-instructie.
-          Alleen bij concept-status zichtbaar; eenmaal ingepland/actief
-          mag de inhoud niet meer wijzigen (audit-veiligheid). */}
-      {campaign.status === "concept" && !editMode && (
+          Verbergen wanneer:
+          - status ≠ concept (audit-veiligheid: ingepland/actief mag
+            niet meer wijzigen)
+          - editMode aan (eigen handmatige edit-flow gebruikt)
+          - variant_applied_at gezet (eigenaar heeft al een variant
+            toegepast → geen oneindig nieuwe alternatieven binnen 1
+            campagne) */}
+      {campaign.status === "concept" &&
+        !editMode &&
+        !campaign.variant_applied_at && (
         <CampaignRefinePanel
           campaignId={campaign.id}
           type={campaign.type}

@@ -129,15 +129,13 @@ export function CampaignRefinePanel({
         // geen betekenis (negeren = backend laat ongewijzigd).
         subject_line: type === "mail" ? variant.subject_line ?? "" : undefined,
         body: variant.body,
+        // Markeer als variant-apply: backend zet variant_applied_at,
+        // detail-pagina rerendert en verbergt deze sectie volledig.
+        from_variant: true,
       });
       onApplied();
-      // Server heeft cache geleegd + count gereset bij PATCH; lokaal
-      // ook aanpassen zodat user opnieuw kan genereren op de nieuwe
-      // body als ie wil.
-      setVariants([]);
-      setRegenCount(0);
-      setCanRegenerate(true);
-      setInstruction("");
+      // Geen lokale reset nodig — parent unmount deze component
+      // zodra de rerender variant_applied_at ziet.
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Toepassen mislukt. Probeer opnieuw.",
