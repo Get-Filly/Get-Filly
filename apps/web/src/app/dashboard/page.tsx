@@ -23,23 +23,47 @@ export default function DashboardPage() {
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
+  // Alert-bar werkt op een fixed 14-dagen-window vooruit, ongeacht
+  // welke maand de eigenaar in de kalender bekijkt. Eigen state
+  // zodat we 'm los van het kalender-view kunnen verversen — anders
+  // mist de alert-bar dagen in de volgende maand wanneer current
+  // tegen het einde van de maand zit.
+  const [windowOccupancy, setWindowOccupancy] = useState<OccupancyDay[]>([]);
 
   // Low-occupancy-detectie: state + handler.
   const [lowOccDetecting, setLowOccDetecting] = useState(false);
   const [lowOccMessage, setLowOccMessage] = useState<string | null>(null);
 
-  // Eén bron voor kalender en alert-bar.
+  // Kalender-bron: maand-bij-maand zoals de eigenaar bladert.
   useEffect(() => {
     fetchOccupancy(viewYear, viewMonth)
       .then(setOccupancy)
       .catch(() => setOccupancy([]));
   }, [viewYear, viewMonth]);
 
+  // Alert-bar-bron: huidige maand + volgende maand parallel zodat
+  // het 14-dagen-window altijd dekkend is, ook als vandaag tegen
+  // het einde van de maand zit.
+  useEffect(() => {
+    const nextMonth = today.getMonth() === 11 ? 0 : today.getMonth() + 1;
+    const nextYear =
+      today.getMonth() === 11 ? today.getFullYear() + 1 : today.getFullYear();
+    Promise.all([
+      fetchOccupancy(today.getFullYear(), today.getMonth()),
+      fetchOccupancy(nextYear, nextMonth),
+    ])
+      .then(([cur, nxt]) => setWindowOccupancy([...cur, ...nxt]))
+      .catch(() => setWindowOccupancy([]));
+    // Bewust geen deps — bij dashboard-mount eenmalig; dagen
+    // veranderen niet binnen sessie.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Alert-bar: dagen komende 14 dagen met bezetting onder 50%.
   const todayStr = today.toISOString().slice(0, 10);
   const fortnight = new Date(today);
   fortnight.setDate(today.getDate() + 14);
-  const criticalDays = occupancy.filter((d) => {
+  const criticalDays = windowOccupancy.filter((d) => {
     if (d.date <= todayStr) return false;
     if (d.date > fortnight.toISOString().slice(0, 10)) return false;
     return d.occupancy_pct < 50;
