@@ -21,6 +21,7 @@ import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Tabs } from "../../../components/ui/tabs";
+import { Chips } from "../../../components/ui/chips";
 
 // Map campagne-status → semantische Badge-variant. Eén plek waar
 // "wat betekent deze status visueel" beslist wordt — als we later
@@ -620,17 +621,11 @@ export default function CampagnesPage() {
           active={statusFilter}
           onChange={setStatusFilter}
         />
-        <div className="type-chips">
-          {typeFilterOptions.map((t) => (
-            <button
-              key={t.key}
-              className={`type-chip ${typeFilter === t.key ? "active" : ""}`}
-              onClick={() => setTypeFilter(t.key)}
-            >
-              <span>{t.icon}</span> {t.label}
-            </button>
-          ))}
-        </div>
+        <Chips
+          items={typeFilterOptions}
+          active={typeFilter}
+          onChange={setTypeFilter}
+        />
       </div>
 
       {/* Zoekveld: snel op naam of meta filteren — zelfde stijl als op

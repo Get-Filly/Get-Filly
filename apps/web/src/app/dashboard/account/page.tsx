@@ -17,6 +17,7 @@ import { Button } from "../../../components/ui/button";
 import { ButtonLink } from "../../../components/ui/button-link";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { Input, Textarea } from "../../../components/ui/input";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -294,14 +295,12 @@ export default function AccountPage() {
           De hoofdlijnen — type, keuken en prijsklasse.
         </div>
         <div className="form-grid">
-          <div className="form-field">
-            <label>Naam</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => update("name", e.target.value)}
-            />
-          </div>
+          <Input
+            label="Naam"
+            type="text"
+            value={form.name}
+            onChange={(e) => update("name", e.target.value)}
+          />
           <div className="form-field">
             <label>Type</label>
             <select
@@ -316,24 +315,22 @@ export default function AccountPage() {
               ))}
             </select>
           </div>
-          <div className="form-field">
-            <label>Keukenstijl</label>
-            <input
-              type="text"
-              value={(form.cuisine_style ?? []).join(", ")}
-              onChange={(e) =>
-                update(
-                  "cuisine_style",
-                  e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                )
-              }
-              placeholder="french, italian, dutch"
-            />
-            <div className="hint">Komma-gescheiden.</div>
-          </div>
+          <Input
+            label="Keukenstijl"
+            type="text"
+            value={(form.cuisine_style ?? []).join(", ")}
+            onChange={(e) =>
+              update(
+                "cuisine_style",
+                e.target.value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              )
+            }
+            placeholder="french, italian, dutch"
+            hint="Komma-gescheiden."
+          />
           <div className="form-field">
             <label>Prijsklasse</label>
             <select
@@ -365,82 +362,77 @@ export default function AccountPage() {
           doelgroep-aanpak.
         </div>
         <div className="form-grid">
-          <div className="form-field full">
-            <label>Tagline (1 zin)</label>
-            <input
-              type="text"
-              value={form.tagline ?? ""}
-              onChange={(e) => update("tagline", e.target.value || null)}
-              placeholder="Gezellige buurtbistro in hart van Amsterdam"
-            />
-          </div>
-          <div className="form-field full">
-            <label>Volledige beschrijving</label>
-            <textarea
-              value={form.description ?? ""}
-              onChange={(e) => update("description", e.target.value || null)}
-              placeholder="Vertel uitgebreid over je restaurant — geschiedenis, filosofie, waar je trots op bent..."
-              rows={4}
-            />
-          </div>
-          <div className="form-field full">
-            <label>Doelgroep</label>
-            <textarea
-              value={form.target_audience ?? ""}
-              onChange={(e) => update("target_audience", e.target.value || null)}
-              placeholder="Lokale bewoners, professionals op lunch, families in het weekend..."
-              rows={2}
-            />
-          </div>
-          <div className="form-field full">
-            <label>Sfeer &amp; interieur</label>
-            <textarea
-              value={form.atmosphere ?? ""}
-              onChange={(e) => update("atmosphere", e.target.value || null)}
-              placeholder="Warm, intiem, houten interieur, zacht jazzmuziek..."
-              rows={2}
-            />
-          </div>
-          <div className="form-field full">
-            <label>Unique selling points</label>
-            <textarea
-              value={form.unique_selling_points ?? ""}
-              onChange={(e) =>
-                update("unique_selling_points", e.target.value || null)
-              }
-              placeholder="Wat maakt jou anders? Bv: eigen kruidentuin, open keuken, wekelijks wisselend menu..."
-              rows={2}
-            />
-          </div>
-          <div className="form-field full">
-            <label>Speciale gelegenheden &amp; events</label>
-            <textarea
-              value={form.special_events ?? ""}
-              onChange={(e) => update("special_events", e.target.value || null)}
-              placeholder="Verjaardagen, bedrijfslunches, trouwdiners, privéruimte tot X personen..."
-              rows={2}
-            />
-          </div>
-          <div className="form-field full">
-            <label>Signature dishes</label>
-            <input
-              type="text"
-              value={(form.signature_dishes ?? []).join(", ")}
-              onChange={(e) =>
-                update(
-                  "signature_dishes",
-                  e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                )
-              }
-              placeholder="Kalfsstoof, Zeebaars met lenteuitjes"
-            />
-            <div className="hint">
-              Komma-gescheiden. Filly gebruikt deze in campagne-teksten.
-            </div>
-          </div>
+          <Input
+            full
+            label="Tagline (1 zin)"
+            type="text"
+            value={form.tagline ?? ""}
+            onChange={(e) => update("tagline", e.target.value || null)}
+            placeholder="Gezellige buurtbistro in hart van Amsterdam"
+          />
+          <Textarea
+            full
+            label="Volledige beschrijving"
+            value={form.description ?? ""}
+            onChange={(e) => update("description", e.target.value || null)}
+            placeholder="Vertel uitgebreid over je restaurant — geschiedenis, filosofie, waar je trots op bent..."
+            rows={4}
+          />
+          <Textarea
+            full
+            label="Doelgroep"
+            value={form.target_audience ?? ""}
+            onChange={(e) =>
+              update("target_audience", e.target.value || null)
+            }
+            placeholder="Lokale bewoners, professionals op lunch, families in het weekend..."
+            rows={2}
+          />
+          <Textarea
+            full
+            label="Sfeer & interieur"
+            value={form.atmosphere ?? ""}
+            onChange={(e) => update("atmosphere", e.target.value || null)}
+            placeholder="Warm, intiem, houten interieur, zacht jazzmuziek..."
+            rows={2}
+          />
+          <Textarea
+            full
+            label="Unique selling points"
+            value={form.unique_selling_points ?? ""}
+            onChange={(e) =>
+              update("unique_selling_points", e.target.value || null)
+            }
+            placeholder="Wat maakt jou anders? Bv: eigen kruidentuin, open keuken, wekelijks wisselend menu..."
+            rows={2}
+          />
+          <Textarea
+            full
+            label="Speciale gelegenheden & events"
+            value={form.special_events ?? ""}
+            onChange={(e) =>
+              update("special_events", e.target.value || null)
+            }
+            placeholder="Verjaardagen, bedrijfslunches, trouwdiners, privéruimte tot X personen..."
+            rows={2}
+          />
+          <Input
+            full
+            label="Signature dishes"
+            type="text"
+            value={(form.signature_dishes ?? []).join(", ")}
+            onChange={(e) =>
+              update(
+                "signature_dishes",
+                e.target.value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              )
+            }
+            placeholder="Kalfsstoof, Zeebaars met lenteuitjes"
+            hint="Komma-gescheiden. Filly gebruikt deze in campagne-teksten."
+          />
         </div>
       </div>
 
@@ -454,15 +446,14 @@ export default function AccountPage() {
           positionering en aanbod op en gebruikt dat overal in campagnes.
         </div>
         <div className="form-grid">
-          <div className="form-field full">
-            <label>Website URL</label>
-            <input
-              type="url"
-              value={form.website_url ?? ""}
-              onChange={(e) => update("website_url", e.target.value || null)}
-              placeholder="https://jouwrestaurant.nl"
-            />
-          </div>
+          <Input
+            full
+            label="Website URL"
+            type="url"
+            value={form.website_url ?? ""}
+            onChange={(e) => update("website_url", e.target.value || null)}
+            placeholder="https://jouwrestaurant.nl"
+          />
           <div className="form-field full">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Button
@@ -483,19 +474,17 @@ export default function AccountPage() {
               </span>
             </div>
           </div>
-          <div className="form-field full">
-            <label>Samenvatting (door Filly)</label>
-            <textarea
-              value={form.website_summary ?? ""}
-              onChange={(e) => update("website_summary", e.target.value || null)}
-              placeholder="Wordt automatisch gevuld na website-analyse. Je kunt daarna zelf aanpassen."
-              rows={4}
-            />
-            <div className="hint">
-              Deze samenvatting wordt onderdeel van de context die Filly bij
-              iedere campagne meekrijgt.
-            </div>
-          </div>
+          <Textarea
+            full
+            label="Samenvatting (door Filly)"
+            value={form.website_summary ?? ""}
+            onChange={(e) =>
+              update("website_summary", e.target.value || null)
+            }
+            placeholder="Wordt automatisch gevuld na website-analyse. Je kunt daarna zelf aanpassen."
+            rows={4}
+            hint="Deze samenvatting wordt onderdeel van de context die Filly bij iedere campagne meekrijgt."
+          />
         </div>
       </div>
 
@@ -509,32 +498,27 @@ export default function AccountPage() {
           weer-integratie en lokale campagnes.
         </div>
         <div className="form-grid">
-          <div className="form-field full">
-            <label>Adres</label>
-            <input
-              type="text"
-              value={form.address ?? ""}
-              onChange={(e) => update("address", e.target.value)}
-              placeholder="Hoofdstraat 12"
-            />
-          </div>
-          <div className="form-field">
-            <label>Plaats</label>
-            <input
-              type="text"
-              value={form.city ?? ""}
-              onChange={(e) => update("city", e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label>Postcode</label>
-            <input
-              type="text"
-              value={form.postal_code ?? ""}
-              onChange={(e) => update("postal_code", e.target.value)}
-              placeholder="1012 AB"
-            />
-          </div>
+          <Input
+            full
+            label="Adres"
+            type="text"
+            value={form.address ?? ""}
+            onChange={(e) => update("address", e.target.value)}
+            placeholder="Hoofdstraat 12"
+          />
+          <Input
+            label="Plaats"
+            type="text"
+            value={form.city ?? ""}
+            onChange={(e) => update("city", e.target.value)}
+          />
+          <Input
+            label="Postcode"
+            type="text"
+            value={form.postal_code ?? ""}
+            onChange={(e) => update("postal_code", e.target.value)}
+            placeholder="1012 AB"
+          />
           {form.latitude !== null && form.longitude !== null && (
             <div className="form-field full">
               <div className="hint">
@@ -636,19 +620,18 @@ export default function AccountPage() {
           Filly mijdt deze voor mailings en reservering-suggesties.
         </div>
         <div className="form-grid">
-          <div className="form-field full">
-            <label>Voeg een datum toe</label>
-            <input
-              type="date"
-              onChange={(e) => {
-                if (e.target.value) {
-                  addClosedDate(e.target.value);
-                  e.target.value = "";
-                }
-              }}
-              style={{ maxWidth: 220 }}
-            />
-          </div>
+          <Input
+            full
+            label="Voeg een datum toe"
+            type="date"
+            onChange={(e) => {
+              if (e.target.value) {
+                addClosedDate(e.target.value);
+                e.target.value = "";
+              }
+            }}
+            style={{ maxWidth: 220 }}
+          />
           {(form.closed_dates ?? []).length > 0 ? (
             <div className="form-field full">
               <div
@@ -718,59 +701,47 @@ export default function AccountPage() {
           Bezettings-percentages worden hierop gebaseerd.
         </div>
         <div className="form-grid">
-          <div className="form-field">
-            <label>Stoelen binnen</label>
-            <input
-              type="number"
-              value={form.capacity_seats ?? ""}
-              onChange={(e) =>
-                update(
-                  "capacity_seats",
-                  e.target.value ? parseInt(e.target.value, 10) : null,
-                )
-              }
-            />
-          </div>
-          <div className="form-field">
-            <label>Stoelen op terras</label>
-            <input
-              type="number"
-              value={form.capacity_terrace ?? ""}
-              onChange={(e) =>
-                update(
-                  "capacity_terrace",
-                  e.target.value ? parseInt(e.target.value, 10) : null,
-                )
-              }
-            />
-          </div>
+          <Input
+            label="Stoelen binnen"
+            type="number"
+            value={form.capacity_seats ?? ""}
+            onChange={(e) =>
+              update(
+                "capacity_seats",
+                e.target.value ? parseInt(e.target.value, 10) : null,
+              )
+            }
+          />
+          <Input
+            label="Stoelen op terras"
+            type="number"
+            value={form.capacity_terrace ?? ""}
+            onChange={(e) =>
+              update(
+                "capacity_terrace",
+                e.target.value ? parseInt(e.target.value, 10) : null,
+              )
+            }
+          />
           {/* ----- Doel voor doordeweekse bezetting -----
               Optioneel veld. Lege waarde = Filly berekent het uit
-              6-maanden-historie (zie KpiService cascade). Met een
-              waarde stuurt de eigenaar de KPI-row op een doel
-              i.p.v. terugblik. */}
-          <div className="form-field full">
-            <label>Doel doordeweekse bezetting (%)</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              placeholder="bv. 75"
-              value={form.target_weekday_occupancy_pct ?? ""}
-              onChange={(e) =>
-                update(
-                  "target_weekday_occupancy_pct",
-                  e.target.value ? parseInt(e.target.value, 10) : null,
-                )
-              }
-            />
-            <div className="hint">
-              Optioneel doel voor de bezetting-KPI op je dashboard.
-              Laat leeg om Filly's berekening uit je 6-maanden-historie
-              te gebruiken (of de standaard 68% als je nog geen historie
-              hebt opgebouwd).
-            </div>
-          </div>
+              6-maanden-historie (zie KpiService cascade). */}
+          <Input
+            full
+            label="Doel doordeweekse bezetting (%)"
+            type="number"
+            min={0}
+            max={100}
+            placeholder="bv. 75"
+            value={form.target_weekday_occupancy_pct ?? ""}
+            onChange={(e) =>
+              update(
+                "target_weekday_occupancy_pct",
+                e.target.value ? parseInt(e.target.value, 10) : null,
+              )
+            }
+            hint="Optioneel doel voor de bezetting-KPI op je dashboard. Laat leeg om Filly's berekening uit je 6-maanden-historie te gebruiken (of de standaard 68% als je nog geen historie hebt opgebouwd)."
+          />
           <div className="form-field full">
             <label className="form-checkbox">
               <input
@@ -1103,62 +1074,54 @@ export default function AccountPage() {
           footers.
         </div>
         <div className="form-grid">
-          <div className="form-field">
-            <label>Instagram</label>
-            <input
-              type="text"
-              value={form.social_media?.instagram ?? ""}
-              onChange={(e) =>
-                update("social_media", {
-                  ...(form.social_media ?? {}),
-                  instagram: e.target.value,
-                })
-              }
-              placeholder="@restaurantnaam"
-            />
-          </div>
-          <div className="form-field">
-            <label>Facebook</label>
-            <input
-              type="text"
-              value={form.social_media?.facebook ?? ""}
-              onChange={(e) =>
-                update("social_media", {
-                  ...(form.social_media ?? {}),
-                  facebook: e.target.value,
-                })
-              }
-              placeholder="restaurantnaam"
-            />
-          </div>
-          <div className="form-field">
-            <label>TikTok</label>
-            <input
-              type="text"
-              value={form.social_media?.tiktok ?? ""}
-              onChange={(e) =>
-                update("social_media", {
-                  ...(form.social_media ?? {}),
-                  tiktok: e.target.value,
-                })
-              }
-              placeholder="@restaurantnaam"
-            />
-          </div>
-          <div className="form-field">
-            <label>LinkedIn</label>
-            <input
-              type="text"
-              value={form.social_media?.linkedin ?? ""}
-              onChange={(e) =>
-                update("social_media", {
-                  ...(form.social_media ?? {}),
-                  linkedin: e.target.value,
-                })
-              }
-              placeholder="restaurant-naam"
-            />
-          </div>
+          <Input
+            label="Instagram"
+            type="text"
+            value={form.social_media?.instagram ?? ""}
+            onChange={(e) =>
+              update("social_media", {
+                ...(form.social_media ?? {}),
+                instagram: e.target.value,
+              })
+            }
+            placeholder="@restaurantnaam"
+          />
+          <Input
+            label="Facebook"
+            type="text"
+            value={form.social_media?.facebook ?? ""}
+            onChange={(e) =>
+              update("social_media", {
+                ...(form.social_media ?? {}),
+                facebook: e.target.value,
+              })
+            }
+            placeholder="restaurantnaam"
+          />
+          <Input
+            label="TikTok"
+            type="text"
+            value={form.social_media?.tiktok ?? ""}
+            onChange={(e) =>
+              update("social_media", {
+                ...(form.social_media ?? {}),
+                tiktok: e.target.value,
+              })
+            }
+            placeholder="@restaurantnaam"
+          />
+          <Input
+            label="LinkedIn"
+            type="text"
+            value={form.social_media?.linkedin ?? ""}
+            onChange={(e) =>
+              update("social_media", {
+                ...(form.social_media ?? {}),
+                linkedin: e.target.value,
+              })
+            }
+            placeholder="restaurant-naam"
+          />
         </div>
       </div>
 
@@ -1172,58 +1135,46 @@ export default function AccountPage() {
           verklaring en algemene voorwaarden.
         </div>
         <div className="form-grid">
-          <div className="form-field full">
-            <label>Volledige bedrijfsnaam (juridisch)</label>
-            <input
-              type="text"
-              value={form.legal_name ?? ""}
-              onChange={(e) => update("legal_name", e.target.value || null)}
-              placeholder="Bistro Get-Filly B.V."
-            />
-            <div className="hint">
-              Zoals geregistreerd bij de KvK. Verschijnt in de footer van
-              mailings.
-            </div>
-          </div>
-          <div className="form-field">
-            <label>KvK-nummer</label>
-            <input
-              type="text"
-              value={form.kvk_number ?? ""}
-              onChange={(e) => update("kvk_number", e.target.value || null)}
-              placeholder="12345678"
-            />
-            <div className="hint">8 cijfers.</div>
-          </div>
-          <div className="form-field">
-            <label>BTW-nummer</label>
-            <input
-              type="text"
-              value={form.vat_number ?? ""}
-              onChange={(e) => update("vat_number", e.target.value || null)}
-              placeholder="NL123456789B01"
-            />
-            <div className="hint">Formaat: NL + 9 cijfers + B + 2 cijfers.</div>
-          </div>
-          <div className="form-field">
-            <label>Contact-e-mail</label>
-            <input
-              type="email"
-              value={form.contact_email ?? ""}
-              onChange={(e) => update("contact_email", e.target.value || null)}
-              placeholder="info@jouwrestaurant.nl"
-            />
-            <div className="hint">Het officiële klantcontactadres.</div>
-          </div>
-          <div className="form-field">
-            <label>Contact-telefoon</label>
-            <input
-              type="tel"
-              value={form.contact_phone ?? ""}
-              onChange={(e) => update("contact_phone", e.target.value || null)}
-              placeholder="020-1234567 of +31201234567"
-            />
-          </div>
+          <Input
+            full
+            label="Volledige bedrijfsnaam (juridisch)"
+            type="text"
+            value={form.legal_name ?? ""}
+            onChange={(e) => update("legal_name", e.target.value || null)}
+            placeholder="Bistro Get-Filly B.V."
+            hint="Zoals geregistreerd bij de KvK. Verschijnt in de footer van mailings."
+          />
+          <Input
+            label="KvK-nummer"
+            type="text"
+            value={form.kvk_number ?? ""}
+            onChange={(e) => update("kvk_number", e.target.value || null)}
+            placeholder="12345678"
+            hint="8 cijfers."
+          />
+          <Input
+            label="BTW-nummer"
+            type="text"
+            value={form.vat_number ?? ""}
+            onChange={(e) => update("vat_number", e.target.value || null)}
+            placeholder="NL123456789B01"
+            hint="Formaat: NL + 9 cijfers + B + 2 cijfers."
+          />
+          <Input
+            label="Contact-e-mail"
+            type="email"
+            value={form.contact_email ?? ""}
+            onChange={(e) => update("contact_email", e.target.value || null)}
+            placeholder="info@jouwrestaurant.nl"
+            hint="Het officiële klantcontactadres."
+          />
+          <Input
+            label="Contact-telefoon"
+            type="tel"
+            value={form.contact_phone ?? ""}
+            onChange={(e) => update("contact_phone", e.target.value || null)}
+            placeholder="020-1234567 of +31201234567"
+          />
         </div>
       </div>
 
@@ -1236,33 +1187,26 @@ export default function AccountPage() {
           Bepaalt hoe campagne-mails er voor de ontvanger uitzien.
         </div>
         <div className="form-grid">
-          <div className="form-field">
-            <label>Afzender-naam</label>
-            <input
-              type="text"
-              value={form.email_from_name ?? ""}
-              onChange={(e) =>
-                update("email_from_name", e.target.value || null)
-              }
-              placeholder="Bistro Get-Filly"
-            />
-            <div className="hint">
-              Verschijnt in de inbox van de ontvanger als &quot;van&quot;.
-            </div>
-          </div>
-          <div className="form-field">
-            <label>Reply-to adres</label>
-            <input
-              type="email"
-              value={form.email_reply_to ?? ""}
-              onChange={(e) => update("email_reply_to", e.target.value || null)}
-              placeholder="reservaties@jouwrestaurant.nl"
-            />
-            <div className="hint">
-              Waar antwoorden van ontvangers naartoe komen. Mag hetzelfde zijn
-              als contact-e-mail.
-            </div>
-          </div>
+          <Input
+            label="Afzender-naam"
+            type="text"
+            value={form.email_from_name ?? ""}
+            onChange={(e) =>
+              update("email_from_name", e.target.value || null)
+            }
+            placeholder="Bistro Get-Filly"
+            hint="Verschijnt in de inbox van de ontvanger als &ldquo;van&rdquo;."
+          />
+          <Input
+            label="Reply-to adres"
+            type="email"
+            value={form.email_reply_to ?? ""}
+            onChange={(e) =>
+              update("email_reply_to", e.target.value || null)
+            }
+            placeholder="reservaties@jouwrestaurant.nl"
+            hint="Waar antwoorden van ontvangers naartoe komen. Mag hetzelfde zijn als contact-e-mail."
+          />
         </div>
       </div>
 
@@ -1290,10 +1234,7 @@ export default function AccountPage() {
           Plan en facturering. Facturering komt in een latere stap.
         </div>
         <div className="form-grid">
-          <div className="form-field">
-            <label>Huidig plan</label>
-            <input type="text" value={form.plan} disabled />
-          </div>
+          <Input label="Huidig plan" type="text" value={form.plan} disabled />
         </div>
       </div>
 
