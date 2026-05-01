@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KpiRow } from "./_components/kpi-row";
-import { WeatherForecast } from "./_components/weather-forecast";
 import { CalendarCard } from "./_components/calendar-card";
-import { DetailCard } from "./_components/detail-card";
 import { FillyChat } from "./_components/filly-chat";
 import {
   detectLowOccupancySuggestions,
@@ -165,26 +163,21 @@ export default function DashboardPage() {
       </div>
       <div className="dash-body">
         <div className="left-col">
-          <WeatherForecast />
-          <div className="cal-detail-row">
-            <CalendarCard
-              view={view}
-              setView={setView}
-              viewYear={viewYear}
-              setViewYear={setViewYear}
-              viewMonth={viewMonth}
-              setViewMonth={setViewMonth}
-              selectedDay={selectedDay}
-              setSelectedDay={setSelectedDay}
-              occupancy={occupancy}
-            />
-            <DetailCard
-              view={view}
-              year={viewYear}
-              month={viewMonth}
-              selectedDay={selectedDay}
-            />
-          </div>
+          {/* Weersvoorspelling bewust niet op het dashboard: ondernemers
+              weten zelf wel of het gaat regenen. Filly krijgt het weer
+              nog wél mee in zijn chat-context (RestaurantContextService
+              op de api), zodat advies blijft kloppen. */}
+          <CalendarCard
+            view={view}
+            setView={setView}
+            viewYear={viewYear}
+            setViewYear={setViewYear}
+            viewMonth={viewMonth}
+            setViewMonth={setViewMonth}
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+            occupancy={occupancy}
+          />
         </div>
         <div className="right-col">
           <FillyChat />

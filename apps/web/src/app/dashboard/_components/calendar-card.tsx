@@ -23,6 +23,25 @@ type Props = {
 
 const weekdays = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
 
+/**
+ * Map occupancy-percentage naar één van vijf heatmap-tiers.
+ *   <40%  = lvl-0 (rood)        — kritiek
+ *   40-65 = lvl-1 (koper licht) — onder verwachting
+ *   65-80 = lvl-2 (koper)       — gemiddeld
+ *   80-95 = lvl-3 (groen licht) — goed
+ *   95+   = lvl-4 (groen vol)   — topdag
+ *
+ * Zelfde tiers als de mini-dashboard op de landingspagina, zodat de
+ * kalender op het echte dashboard er identiek uitziet.
+ */
+function occupancyTier(pct: number): number {
+  if (pct < 40) return 0;
+  if (pct < 65) return 1;
+  if (pct < 80) return 2;
+  if (pct < 95) return 3;
+  return 4;
+}
+
 export function CalendarCard({
   view,
   setView,
@@ -151,10 +170,11 @@ export function CalendarCard({
                   return <div key={`e-${i}`} className="cal-cell empty" />;
                 const isToday = isTodayMonth && cell.day === todayNum;
                 const isSelected = selectedDay === cell.day;
+                const tier = occupancyTier(cell.occupancy);
                 return (
                   <div
                     key={cell.day}
-                    className={`cal-cell ${isToday ? "today" : ""} ${
+                    className={`cal-cell lvl-${tier} ${isToday ? "today" : ""} ${
                       isSelected ? "selected" : ""
                     }`}
                     onClick={() => onDayClick(cell.day)}
