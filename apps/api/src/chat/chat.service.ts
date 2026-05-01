@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -8,6 +9,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
+import { ChatMemoryService } from './chat-memory.service';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
 // 'user' = de restauranteigenaar, 'system' = interne/automatische berichten
@@ -62,22 +64,56 @@ export type ChatMessage = {
 export type ActiveChatState = {
   conversationId: string;
   messages: ChatMessage[];
+  // Aantal berichten in deze conversatie (cap = 20). Gebruikt door de
+  // frontend om "Bericht X / 20"-indicator + cap-bereikt-CTA te tonen.
+  messageCount: number;
+};
+
+// Lijst-item voor het chat-history-overzicht in de frontend (dropdown
+// in chat-card-header). Bevat alleen wat de UI direct nodig heeft —
+// geen messages of memory_summary, die laden we lazy bij switch.
+export type ChatConversationSummary = {
+  id: string;
+  // Auto-gegenereerd door ChatService.maybeGenerateTitle (2026-04-30)
+  // na 3+ user-messages. Null als de conversatie nog te kort is voor
+  // titel-generatie — UI toont dan een fallback ("Nieuw gesprek" of
+  // "{datum}").
+  title: string | null;
+  message_count: number;
+  updated_at: string;
 };
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  // Hoeveel berichten we meegeven als context aan Claude. 20 is genoeg
-  // voor een gesprek van ~10 turns en houdt kosten in bedwang: elke
-  // extra msg = ~50-150 input-tokens.
+  // Hoeveel berichten we meegeven als context aan Claude. 20 matcht de
+  // CONVERSATION_CAP — de hele conversatie past dus per definitie in
+  // het context-window van Claude. Lange chats vermijden we via de
+  // cap (eigenaar moet nieuw gesprek starten zodra 'ie vol is).
   private readonly CONTEXT_WINDOW = 20;
+
+  // Maximum berichten per conversatie (user + filly + system samen).
+  // Kostenbescherming: bij elke chat-call sturen we de volledige
+  // history mee, dus elke extra turn vergroot de input-tokens.
+  // Combineert met chat-memory: bij cap-bereikt vat Filly de
+  // conversatie samen en slaat 'm op in restaurant_chat_memory zodat
+  // geleerde voorkeuren bewaard blijven voor volgende chats.
+  private readonly CONVERSATION_CAP = 20;
+
+  // Hoeveel recente memories meelopen in de system-prompt van een
+  // nieuwe chat. 5 is een afweging: te weinig = Filly vergeet snel,
+  // te veel = prompt-bloat (elke memory ~30-100 woorden). Cacheable
+  // in prompt-cache zodat herhaalde chat-calls de memories niet
+  // opnieuw doorpushen naar Anthropic.
+  private readonly MEMORY_CONTEXT_LIMIT = 5;
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly ai: AiService,
     private readonly context: RestaurantContextService,
     private readonly suggestionsService: SuggestionsService,
+    private readonly memory: ChatMemoryService,
   ) {}
 
   // Haalt de actieve conversatie op voor dit restaurant, of maakt er
@@ -101,31 +137,141 @@ export class ChatService {
     if (existing) {
       conversationId = existing.id;
     } else {
-      // Eerste bezoek ooit: maak een lege conversatie aan + plaats een
-      // welkomstbericht. Zonder die eerste regel voelt de chat leeg bij
-      // eerste keer openen. Het welkomstbericht is gewoon een DB-rij,
-      // dus geen Claude-call en dus ook geen kosten.
-      const { data: created, error: createErr } = await this.supabase.client
-        .from('chat_conversations')
-        .insert({ restaurant_id: restaurantId })
-        .select('id')
-        .single();
-      if (createErr) throw new InternalServerErrorException(createErr.message);
-      conversationId = created.id;
-
-      await this.supabase.client.from('chat_messages').insert({
-        conversation_id: conversationId,
-        restaurant_id: restaurantId,
-        role: 'filly',
-        content:
-          'Hoi! Ik ben Filly, je marketing-assistent. Vraag me iets over je bezetting, gasten, reviews of campagnes — of over wat je deze week kan doen.',
-      });
+      conversationId = await this.createConversationRow(restaurantId);
     }
 
-    // Laatste N berichten ophalen, aflopend gesorteerd, daarna in code
-    // weer omdraaien zodat oudste eerst staat (hoe een chat-UI 'm toont).
-    const messages = await this.getRecentMessages(conversationId, restaurantId);
-    return { conversationId, messages };
+    return this.loadConversationState(restaurantId, conversationId);
+  }
+
+  // Switcht naar een specifieke conversatie. Gebruikt door de chat-
+  // history-dropdown op de frontend wanneer de eigenaar een eerdere
+  // conversatie aanklikt. Verifieert tenant-isolatie (dubbel scopen op
+  // restaurant_id) zodat niemand een conversation-id van een andere
+  // tenant kan opvragen door 'm te raden.
+  async getConversation(
+    restaurantId: string,
+    conversationId: string,
+  ): Promise<ActiveChatState> {
+    const { data: conv, error: fetchErr } = await this.supabase.client
+      .from('chat_conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!conv) throw new NotFoundException('Gesprek niet gevonden.');
+
+    return this.loadConversationState(restaurantId, conversationId);
+  }
+
+  // Lijst van alle conversaties voor dit restaurant, gesorteerd op
+  // meest-recente-eerst. Wordt door de chat-history-dropdown gebruikt
+  // om titels te tonen. Limit 50 want oudere conversaties zijn
+  // visueel niet bereikbaar in een dropdown — wie écht ver wil
+  // teruggraven kan in een latere iteratie een "load more"-knop
+  // krijgen. Voor nu: 50 is genoeg voor maanden actieve chat.
+  async listConversations(
+    restaurantId: string,
+  ): Promise<ChatConversationSummary[]> {
+    const { data, error } = await this.supabase.client
+      .from('chat_conversations')
+      .select('id, title, updated_at')
+      .eq('restaurant_id', restaurantId)
+      .order('updated_at', { ascending: false })
+      .limit(50);
+    if (error) throw new InternalServerErrorException(error.message);
+
+    const conversations = (data ?? []) as Array<{
+      id: string;
+      title: string | null;
+      updated_at: string;
+    }>;
+    if (conversations.length === 0) return [];
+
+    // Batch-count: één query voor message_counts van álle conversaties
+    // i.p.v. 50 losse SELECTs. PostgREST heeft geen GROUP BY; we doen
+    // 't client-side door alle conversation_ids in één keer op te halen.
+    const ids = conversations.map((c) => c.id);
+    const { data: msgRows, error: msgErr } = await this.supabase.client
+      .from('chat_messages')
+      .select('conversation_id')
+      .in('conversation_id', ids);
+    if (msgErr) throw new InternalServerErrorException(msgErr.message);
+
+    const counts = new Map<string, number>();
+    for (const row of msgRows ?? []) {
+      const cid = row.conversation_id as string;
+      counts.set(cid, (counts.get(cid) ?? 0) + 1);
+    }
+
+    return conversations.map((c) => ({
+      id: c.id,
+      title: c.title,
+      message_count: counts.get(c.id) ?? 0,
+      updated_at: c.updated_at,
+    }));
+  }
+
+  // Start expliciet een nieuwe lege conversatie. Door eigenaar
+  // aangeroepen via "+ Nieuw gesprek"-knop in de dropdown, OF
+  // automatisch wanneer de cap bereikt is op de huidige conversatie.
+  // Krijgt direct het welkomstbericht zodat de UI nooit leeg oogt.
+  async createConversation(restaurantId: string): Promise<ActiveChatState> {
+    const conversationId = await this.createConversationRow(restaurantId);
+    return this.loadConversationState(restaurantId, conversationId);
+  }
+
+  // Privé helper: maakt rij in chat_conversations + welkomstbericht.
+  // Gedeeld tussen getOrCreateActiveConversation en createConversation
+  // zodat het welkomstbericht-template één plek heeft.
+  private async createConversationRow(restaurantId: string): Promise<string> {
+    const { data: created, error: createErr } = await this.supabase.client
+      .from('chat_conversations')
+      .insert({ restaurant_id: restaurantId })
+      .select('id')
+      .single();
+    if (createErr) throw new InternalServerErrorException(createErr.message);
+    const conversationId = created.id as string;
+
+    // Welkomstbericht is gewoon een DB-rij, geen Claude-call. Voorkomt
+    // dat een net-aangemaakte chat als lege canvas voelt.
+    await this.supabase.client.from('chat_messages').insert({
+      conversation_id: conversationId,
+      restaurant_id: restaurantId,
+      role: 'filly',
+      content:
+        'Hoi! Ik ben Filly, je marketing-assistent. Vraag me iets over je bezetting, gasten, reviews of campagnes — of over wat je deze week kan doen.',
+    });
+
+    return conversationId;
+  }
+
+  // Privé helper: bouwt een ActiveChatState (messages + count) voor
+  // een gegeven conversation. Gedeeld tussen getOrCreateActive,
+  // getConversation, createConversation.
+  private async loadConversationState(
+    restaurantId: string,
+    conversationId: string,
+  ): Promise<ActiveChatState> {
+    const messages = await this.getRecentMessages(
+      conversationId,
+      restaurantId,
+    );
+    const messageCount = await this.countMessages(conversationId);
+    return { conversationId, messages, messageCount };
+  }
+
+  // Telt alle berichten in een conversation. Wordt gebruikt voor:
+  //   1. ActiveChatState.messageCount (UI-indicator)
+  //   2. cap-check in sendMessage (block bij ≥ CONVERSATION_CAP)
+  // Gebruikt count-only query (head=true) — geen rijen, alleen aantal.
+  private async countMessages(conversationId: string): Promise<number> {
+    const { count, error } = await this.supabase.client
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', conversationId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return count ?? 0;
   }
 
   private async getRecentMessages(
@@ -268,6 +414,25 @@ export class ChatService {
     if (convErr) throw new InternalServerErrorException(convErr.message);
     if (!conv) throw new NotFoundException('Gesprek niet gevonden.');
 
+    // Cap-check: tel bestaande berichten. Als we deze user-msg + Filly's
+    // antwoord erbij optellen en boven CONVERSATION_CAP komen → blokkeer
+    // met een NL-foutmelding zodat de UI een "+ Nieuw gesprek"-CTA
+    // kan tonen. Reden: kosten-bescherming. Elke chat-call stuurt de
+    // hele history mee aan Claude; we willen voorkomen dat eigenaars
+    // 100-berichten-conversaties krijgen die per turn dure input-tokens
+    // verbruiken.
+    //
+    // We checken op `>= CAP - 1` zodat de huidige user-msg + Filly's
+    // antwoord (samen +2) niet over de grens schieten. Bij CAP=20:
+    //   count = 18 → user wordt 19, Filly wordt 20 → toegestaan
+    //   count = 19 → user wordt 20, Filly zou 21 worden → blokkeren
+    const existingCount = await this.countMessages(conversationId);
+    if (existingCount >= this.CONVERSATION_CAP - 1) {
+      throw new BadRequestException(
+        `Dit gesprek heeft de grens van ${this.CONVERSATION_CAP} berichten bereikt. Start een nieuw gesprek — Filly onthoudt wat 'ie hier heeft geleerd.`,
+      );
+    }
+
     // 1) User-bericht opslaan VOOR we Claude aanroepen. Zo blijft
     // het bericht staan ook als Claude faalt — de user ziet 'm dan
     // wel in zijn history en kan later opnieuw proberen.
@@ -400,6 +565,25 @@ export class ChatService {
         );
       },
     );
+
+    // 7) Cap-bereikt? Trigger memory-summary in de achtergrond. Na deze
+    // turn zijn er user+filly = 2 berichten meer dan vóór deze call,
+    // dus existingCount + 2 = totaal-na-turn. Bij CAP=20 geldt:
+    //   existingCount = 18 → 18+2 = 20 → cap exact bereikt → summarize
+    //   existingCount < 18 → nog ruimte → niet summarize
+    // Idempotent: ChatMemoryService.summarizeAndSave checkt zelf of er
+    // al een memory voor deze conversation bestaat.
+    if (existingCount + 2 >= this.CONVERSATION_CAP) {
+      void this.memory
+        .summarizeAndSave({ restaurantId, userId, conversationId })
+        .catch((e) => {
+          this.logger.warn(
+            `Memory-summary gefaald voor conv ${conversationId}: ${
+              e instanceof Error ? e.message : String(e)
+            }`,
+          );
+        });
+    }
 
     return {
       userMessage: userMsg as ChatMessage,
@@ -554,18 +738,25 @@ export class ChatService {
   // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
   // zaak". Twee queries kosten minder dan 50ms verschil.
   private async buildSystemPrompt(restaurantId: string): Promise<string> {
-    const [restaurantResult, contextBlock] = await Promise.all([
+    const [restaurantResult, contextBlock, memories] = await Promise.all([
       this.supabase.client
         .from('restaurants')
         .select('name, type')
         .eq('id', restaurantId)
         .maybeSingle(),
       this.context.buildFullContext(restaurantId),
+      // Laatste N memories ophalen — Filly's leerschat uit afgesloten
+      // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
+      // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
+      // Cacheable in prompt-cache (dezelfde memories voor meerdere
+      // chat-calls binnen 5 min).
+      this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
     ]);
 
     const restaurant = restaurantResult.data;
     const name = restaurant?.name ?? 'de zaak';
     const type = restaurant?.type ? ` (${restaurant.type})` : '';
+    const memoryBlock = this.memory.formatMemoryBlock(memories);
 
     return `Je bent Filly, de AI-marketingassistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.
 
@@ -633,7 +824,7 @@ Drie secties, gescheiden door "---":
 
 ${contextBlock}
 ---
-
+${memoryBlock ? `\n${memoryBlock}\n---\n` : ''}
 Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI" — spreek gewoon als Filly.`;
   }
 }

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -22,10 +23,37 @@ export class ChatController {
 
   // Haalt de actieve chat-thread op bij dashboard-open. Maakt bij
   // eerste bezoek een lege conversation aan. Returnt conversationId +
-  // laatste 20 berichten zodat de UI de history direct kan renderen.
+  // laatste 20 berichten + messageCount zodat de UI de history direct
+  // kan renderen + cap-indicator kan tonen.
   @Get('active')
   getActive(@RestaurantId() restaurantId: string) {
     return this.chat.getOrCreateActiveConversation(restaurantId);
+  }
+
+  // Lijst van alle conversaties voor de chat-history-dropdown. Title +
+  // message_count + updated_at — geen messages of memory-summaries
+  // (die zijn lazy bij switch).
+  @Get('conversations')
+  listConversations(@RestaurantId() restaurantId: string) {
+    return this.chat.listConversations(restaurantId);
+  }
+
+  // Switcht naar een specifieke conversatie. Frontend roept dit aan
+  // wanneer de eigenaar een titel aanklikt in de dropdown.
+  @Get('conversations/:id')
+  getConversation(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.chat.getConversation(restaurantId, id);
+  }
+
+  // Start expliciet een nieuwe lege conversatie. Aangeroepen via
+  // "+ Nieuw gesprek"-knop in de dropdown, OF wanneer de eigenaar
+  // bij een vol-gesprek op "Start nieuw gesprek"-CTA klikt.
+  @Post('conversations')
+  createConversation(@RestaurantId() restaurantId: string) {
+    return this.chat.createConversation(restaurantId);
   }
 
   // Bericht sturen. Rate-limit-guard draait hier extra bovenop de

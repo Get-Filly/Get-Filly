@@ -147,8 +147,8 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## P3 — UX-verfijningen
 
 ### Chat
-- [ ] **Nieuw-gesprek-knop** in filly-chat + seed-cleanup (oude mock-berichten uit 0001 opruimen)
-- [ ] **Chat-geschiedenis overzicht** (meerdere threads per restaurant)
+- [x] ~~**Nieuw-gesprek-knop** in filly-chat + seed-cleanup~~ (2026-05-01) — `+ Nieuw gesprek` in dropdown + automatische CTA bij cap-bereikt. Seed-cleanup via migratie 0028 (`delete from chat_conversations where created_at < '2026-01-01'`).
+- [x] ~~**Chat-geschiedenis overzicht**~~ (2026-05-01) — `FillyChatHistoryMenu` dropdown in chat-card-header. Toont titels (uit auto-title), `message_count/20`, switch-flow met optimistic state-replace. Endpoint `GET /chat/conversations`. Optimaal voor de nieuwe 20-berichten-cap (kostenbescherming).
 - [ ] **Streaming** — woord-voor-woord antwoorden (SSE)
 
 ### Dashboard algemeen
@@ -170,7 +170,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 - [x] ~~`apps/api/supabase/seeds/test_restaurants.sql`~~ — exacte inhoud uit Supabase gekopieerd (commit `699c84b`).
 - [x] ~~Demo-account voor klant-demos~~ (2026-04-30) — `floriskoevermans@outlook.com` / restaurant_id `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` gevuld via SQL-snippet (in chat-historie); 18 gasten, 30 reserveringen, 31 occupancy-dagen, 10 reviews, 5 campagnes, 3 pending suggesties. Snippet niet in repo — bewust ad-hoc voor jouw demo, geen UI-toggle voor klanten.
-- [ ] **Mock-chat-berichten uit 0001-seed opruimen** — momenteel zien we die donderdag/38% demo-conversatie op het dashboard van Bistro Get-Filly. Niet relevant voor `floriskoevermans@outlook.com`-demo (die heeft eigen seed) maar wel voor toekomstige seed-restaurants.
+- [x] ~~**Mock-chat-berichten uit 0001-seed opruimen**~~ (2026-05-01) — onderdeel van migratie 0028: `delete from chat_conversations where created_at < '2026-01-01'`. Cascade verwijdert ook gekoppelde chat_messages.
 - [x] ~~`test_campaigns.sql`~~ — niet nodig (bleek duplicaat van migratie 0005).
 
 ---
@@ -344,6 +344,65 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-01 — Chat-history + 20-bericht cap + chat-memory (kostenbescherming)
+
+**Probleem dat dit oplost**: lange chats stapelen input-tokens op (elke
+nieuwe user-msg stuurt de hele history mee aan Claude). Tegelijk wil je
+NIET dat Filly geleerde voorkeuren ("vermijd het woord 'gezellig'",
+"geen €-prefix") vergeet als je een nieuwe chat begint.
+
+**Architectuur**: hybrid summary-based memory (NIET vector DB — overkill
+voor huidige schaal). Bij chat-cap (20 berichten) vat Haiku 4.5 de chat
+samen + slaat op in `restaurant_chat_memory`. Volgende chats krijgen de
+laatste 5 memories als blok in de system-prompt (cacheable in
+prompt-cache).
+
+**Migratie 0028**:
+- `restaurant_chat_memory` tabel + RLS-policies (drop+create voor
+  re-run-idempotency)
+- Index op `chat_messages.conversation_id` voor de cap-count query
+- Seed-cleanup: oude mock-conversaties van vóór 2026-01-01 weg
+  (donderdag/38%-demo uit 0001-seed)
+
+**Backend**:
+- `ChatMemoryService` (nieuw) — `summarizeAndSave` (Haiku tool-use met
+  `has_learning`-flag voor skip bij niet-leerzame chats) +
+  `getRecentMemories` + `formatMemoryBlock`
+- `ChatService.CONVERSATION_CAP = 20` constante
+- `ChatService.sendMessage` — cap-check werpt 400 met NL-tekst zodra
+  count + 2 ≥ cap; bij cap-bereikt fire-and-forget memory-summary
+- `ChatService.listConversations` (max 50) + `getConversation` +
+  `createConversation` voor de history-flow
+- `ActiveChatState.messageCount` toegevoegd (UI-indicator)
+- `buildSystemPrompt` injecteert `=== EERDER GELEERD ===`-blok met
+  laatste 5 memories
+- 3 nieuwe endpoints: `GET /chat/conversations`, `GET /chat/conversations/:id`,
+  `POST /chat/conversations`
+
+**Frontend**:
+- `FillyChatHistoryMenu` (nieuw) — dropdown in chat-card-header met
+  conversatie-lijst + "+ Nieuw gesprek" + active-marker
+- `lib/api.ts` uitgebreid: `fetchChatConversations` + `fetchChatConversation`
+  + `createChatConversation`. `sendChatMessage` parst nu de NL-error
+  message uit response body voor cap-detection.
+- `FillyChat` orchestrator: `messageCount`-state + `capReached`-derived
+  + `switchConversation` + `startNewConversation` handlers
+- Indicator "Bericht X / 20" in card-subtitle vanaf 10 berichten
+  (oranje vanaf 15, rood-zone gevoel)
+- Bij cap-bereikt: input verbergt, vervangen door brand-soft CTA-block
+  met "Filly onthoudt wat 'ie heeft geleerd"-tekst + nieuw-gesprek-knop
+
+**Cost analysis** voor memory-systeem:
+- Haiku 4.5 summary call: ~€0.001 per chat-cap-event
+- Actieve klant met 1-2 cap-events/dag = ~€0.06/maand aan memory-kosten
+- Memory in system-prompt = +200-500 tokens, cacheable
+- Veel goedkoper dan vector DB (geen embedding-kosten + geen retrieval-tuning)
+
+**Wat NOG niet gedaan** (voor later):
+- Expliciete UI op account-pagina ("Verboden woorden", "Style notes")
+- Vector DB (pas relevant bij 100+ memories per klant)
+- Streaming chat (P3 backlog)
 
 ### 2026-04-30 — Design-system: tokens + 8 base-components + sweep-migraties
 

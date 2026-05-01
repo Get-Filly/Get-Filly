@@ -3,11 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import {
   approveSuggestion,
+  createChatConversation,
   fetchActiveChat,
+  fetchChatConversation,
+  fetchChatConversations,
   fetchSuggestion,
   fetchSuggestions,
   sendChatMessage,
+  CHAT_CONVERSATION_CAP,
   type AiSuggestion,
+  type ChatConversationSummary,
   type ChatMessage,
   type CampaignProposalCard,
 } from "../../../lib/api";
@@ -17,6 +22,7 @@ import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatMessageList } from "./filly-chat-message-list";
 import { FillyChatInput } from "./filly-chat-input";
 import { FillyChatErrorBanner } from "./filly-chat-error-banner";
+import { FillyChatHistoryMenu } from "./filly-chat-history-menu";
 
 // ============================================================
 // FillyChat — orchestrator-component voor de Filly-chat-card op het
@@ -42,6 +48,10 @@ import { FillyChatErrorBanner } from "./filly-chat-error-banner";
 export function FillyChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messageCount, setMessageCount] = useState(0);
+  const [conversations, setConversations] = useState<
+    ChatConversationSummary[]
+  >([]);
   const [input, setInput] = useState("");
   // We splitsen "loading" (initial fetch) van "sending" (bericht
   // onderweg naar Filly). Dat bepaalt welke UI-toestand we tonen:
@@ -49,6 +59,12 @@ export function FillyChat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Cap-bereikt detector: zodra de conversatie aan z'n max berichten
+  // zit (CHAT_CONVERSATION_CAP=20) togglen we naar een "vol"-mode
+  // waar de input verdwijnt en een "+ Nieuw gesprek"-CTA verschijnt.
+  // Wordt gezet wanneer messageCount >= cap NA een succesvolle send,
+  // óf wanneer backend een 400 met cap-bereikt-tekst gooit (defensief).
+  const capReached = messageCount >= CHAT_CONVERSATION_CAP;
   // Status per proposal-kaart. Keyen op messageId want elk Filly-
   // bericht kan max één proposal hebben.
   const [proposalStatus, setProposalStatus] = useState<
@@ -86,22 +102,23 @@ export function FillyChat() {
     }
 
     let cancelled = false;
-    // Parallel 3 dingen ophalen:
-    //   1. chat-historie (incl. message_card)
-    //   2. approved suggesties — zodat we approved chat-proposals
-    //      direct als 'created' kunnen tonen met de juiste campaign-id
+    // Parallel 4 dingen ophalen:
+    //   1. chat-historie (incl. message_card + messageCount)
+    //   2. approved suggesties — voor 'created'-state op proposal-cards
     //   3. rejected suggesties — voor 'dismissed'-state
-    // Niet dependent op backend-JOIN-enrichment in message_card:
-    // robuuster omdat het client-side werkt ongeacht schema-cache.
+    //   4. lijst conversaties — voor de history-dropdown in de header
     Promise.all([
       fetchActiveChat(),
       fetchSuggestions("approved").catch(() => []),
       fetchSuggestions("rejected").catch(() => []),
+      fetchChatConversations().catch(() => []),
     ])
-      .then(([data, approvedSuggs, rejectedSuggs]) => {
+      .then(([data, approvedSuggs, rejectedSuggs, convs]) => {
         if (cancelled) return;
         setConversationId(data.conversationId);
         setMessages(data.messages);
+        setMessageCount(data.messageCount);
+        setConversations(convs);
 
         // Lookup-maps per suggestion_id. Approved → we moeten óók
         // de campaignId weten om een werkende "Bekijken →"-link te
@@ -183,15 +200,82 @@ export function FillyChat() {
       setMessages((m) =>
         m.filter((x) => x.id !== tempId).concat([userMessage, fillyMessage]),
       );
+      // Counter +2 (user + filly). Bij cap-bereikt togglet capReached
+      // automatisch via de derived constant — geen aparte setter nodig.
+      setMessageCount((c) => c + 2);
+      // Conversations-lijst refresh (titel kan net gegenereerd zijn,
+      // counts kloppen). Fire-and-forget; faalt het, dan toont de
+      // dropdown gewoon stale data tot volgende navigatie.
+      void fetchChatConversations()
+        .then(setConversations)
+        .catch(() => undefined);
     } catch (e) {
-      // Optimistic bericht laten staan zodat de user ziet WAT ie
-      // probeerde te versturen, maar met een foutbanner erboven.
-      console.error(e);
-      setError(
-        "Filly kon niet antwoorden. Probeer nog eens (de rate-limit kan bereikt zijn).",
-      );
+      // Twee soorten fouten:
+      //   1. Cap-bereikt (400 met specifieke NL-tekst): user mocht
+      //      niet sturen, optimistisch bericht weghalen + capReached
+      //      forceren door messageCount op cap te zetten.
+      //   2. Andere fout (rate-limit, Claude down): optimistisch
+      //      bericht laten staan + foutbanner erboven.
+      const errMsg = e instanceof Error ? e.message : "Onbekende fout.";
+      const isCap = errMsg.includes("grens van 20") || errMsg.includes("nieuw gesprek");
+      if (isCap) {
+        setMessages((m) => m.filter((x) => x.id !== tempId));
+        setMessageCount(CHAT_CONVERSATION_CAP);
+        setError(errMsg);
+      } else {
+        console.error(e);
+        setError(
+          "Filly kon niet antwoorden. Probeer nog eens (de rate-limit kan bereikt zijn).",
+        );
+      }
     } finally {
       setSending(false);
+    }
+  };
+
+  // Switch naar een andere conversatie via de history-dropdown.
+  // Vervangt messages/count, refresh proposal-statussen niet (die
+  // worden uit message_card gelezen — bij switch krijgen we al
+  // de juiste data terug).
+  const switchConversation = async (id: string) => {
+    if (id === conversationId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchChatConversation(id);
+      setConversationId(data.conversationId);
+      setMessages(data.messages);
+      setMessageCount(data.messageCount);
+      // Proposal-statussen resetten naar leeg; ze worden uit message_card
+      // bij volgende render afgeleid (pending = default als geen entry).
+      setProposalStatus({});
+    } catch (e) {
+      console.error(e);
+      setError("Kon dit gesprek niet laden.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Start een nieuw leeg gesprek. Aangeroepen door dropdown OR door
+  // de "+ Nieuw gesprek"-knop bij cap-bereikt. Refresh de lijst
+  // achteraf zodat 't nieuwe gesprek bovenaan komt.
+  const startNewConversation = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await createChatConversation();
+      setConversationId(data.conversationId);
+      setMessages(data.messages);
+      setMessageCount(data.messageCount);
+      setProposalStatus({});
+      const convs = await fetchChatConversations().catch(() => []);
+      setConversations(convs);
+    } catch (e) {
+      console.error(e);
+      setError("Kon geen nieuw gesprek starten.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -252,22 +336,53 @@ export function FillyChat() {
       <div className="card-h">
         <div>
           <div className="card-t">Filly AI</div>
-          <div className="card-st">Marketing-assistent</div>
+          <div className="card-st">
+            Marketing-assistent
+            {/* Bericht-X-van-20-indicator. Alleen bij ≥10 berichten
+                tonen — anders is 't visuele ruis. Geel/oranje vanaf
+                15 zodat de eigenaar ziet dat 'ie tegen de cap aanloopt. */}
+            {messageCount >= 10 && (
+              <span
+                style={{
+                  marginLeft: 8,
+                  color:
+                    messageCount >= 15
+                      ? "var(--color-warning)"
+                      : "var(--color-text-disabled)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                · Bericht {messageCount} / {CHAT_CONVERSATION_CAP}
+              </span>
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "var(--green)",
-            }}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <FillyChatHistoryMenu
+            conversations={conversations}
+            activeConversationId={conversationId}
+            onSwitch={switchConversation}
+            onNew={startNewConversation}
           />
-          <span
-            style={{ fontSize: 11, color: "var(--tl)", fontWeight: 500 }}
-          >
-            Online
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "var(--color-success)",
+              }}
+            />
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--color-text-disabled)",
+                fontWeight: 500,
+              }}
+            >
+              Online
+            </span>
+          </div>
         </div>
       </div>
 
@@ -284,14 +399,52 @@ export function FillyChat() {
 
       {error && <FillyChatErrorBanner message={error} />}
 
-      <FillyChatInput
-        value={input}
-        loading={loading}
-        sending={sending}
-        canSend={!!conversationId}
-        onChange={setInput}
-        onSend={sendMsg}
-      />
+      {capReached ? (
+        // Cap-bereikt: input verbergen, vervangen door duidelijke CTA.
+        // Filly heeft de chat al samengevat in restaurant_chat_memory
+        // (background-call bij cap-bereikt) — vandaar de "onthoudt
+        // wat 'ie heeft geleerd"-tekst.
+        <div
+          style={{
+            padding: "var(--space-3) var(--space-4)",
+            margin: "0 var(--space-3) var(--space-3)",
+            background: "var(--color-brand-soft)",
+            borderRadius: "var(--radius)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-2)",
+            alignItems: "flex-start",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "var(--font-size-sm)",
+              color: "var(--color-brand-deep)",
+            }}
+          >
+            Dit gesprek heeft de grens van {CHAT_CONVERSATION_CAP} berichten
+            bereikt. Filly onthoudt wat 'ie hier heeft geleerd voor volgende
+            gesprekken.
+          </div>
+          <button
+            type="button"
+            onClick={startNewConversation}
+            disabled={loading}
+            className="ui-btn ui-btn--primary ui-btn--sm"
+          >
+            ＋ Nieuw gesprek starten
+          </button>
+        </div>
+      ) : (
+        <FillyChatInput
+          value={input}
+          loading={loading}
+          sending={sending}
+          canSend={!!conversationId}
+          onChange={setInput}
+          onSend={sendMsg}
+        />
+      )}
 
       {/* Detail-modal voor het bekijken/bewerken van varianten +
           refine-chat. Gestart vanaf de "Bekijk versies →"-knop in

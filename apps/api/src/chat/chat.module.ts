@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
+import { ChatMemoryService } from './chat-memory.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
@@ -16,10 +17,18 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 // - SuggestionsModule: chat-proposals landen als ai_suggestion (niet
 //   direct als campagne) zodat ze ook in de /campagnes-suggesties-
 //   sectie zichtbaar zijn en de goedkeur-flow uniform loopt
+// - ChatMemoryService: vat chats samen bij cap-bereikt + voedt de
+//   system-prompt van toekomstige chats met geleerde voorkeuren
 // - Guards: standaard auth + tenant-isolation + AI-rate-limit
 @Module({
   imports: [SupabaseModule, MeModule, AiModule, SuggestionsModule],
   controllers: [ChatController],
-  providers: [ChatService, AuthGuard, RestaurantAccessGuard, AiRateLimitGuard],
+  providers: [
+    ChatService,
+    ChatMemoryService,
+    AuthGuard,
+    RestaurantAccessGuard,
+    AiRateLimitGuard,
+  ],
 })
 export class ChatModule {}

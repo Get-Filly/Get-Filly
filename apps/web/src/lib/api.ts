@@ -1233,7 +1233,25 @@ export type ChatMessage = {
 export type ActiveChatState = {
   conversationId: string;
   messages: ChatMessage[];
+  // Aantal berichten in deze conversatie. Cap = 20. UI gebruikt dit
+  // voor "Bericht X / 20"-indicator + cap-bereikt-CTA.
+  messageCount: number;
 };
+
+// Lijst-item voor het chat-history-overzicht in de chat-card-header.
+// Title kan null zijn als de conversatie nog te kort is voor de auto-
+// title-generator (drempel = 3 user-messages).
+export type ChatConversationSummary = {
+  id: string;
+  title: string | null;
+  message_count: number;
+  updated_at: string;
+};
+
+// Cap = 20 berichten per conversatie. Gedeeld constant tussen frontend
+// en backend (in backend: ChatService.CONVERSATION_CAP). UI gebruikt 'm
+// voor de "Bericht X / 20"-indicator.
+export const CHAT_CONVERSATION_CAP = 20;
 
 // Bij openen van het dashboard halen we de actieve chat op. Backend
 // maakt 'm aan als die nog niet bestaat en geeft meteen een
@@ -1244,9 +1262,50 @@ export async function fetchActiveChat(): Promise<ActiveChatState> {
   return res.json();
 }
 
+// Lijst van alle conversaties voor de chat-history-dropdown. Limit 50
+// in de backend; oudere conversaties zijn niet meer bereikbaar via UI
+// (bewust — Filly's memory-systeem onthoudt geleerde voorkeuren in
+// restaurant_chat_memory, dus oude chats hoeven niet doorzoekbaar).
+export async function fetchChatConversations(): Promise<
+  ChatConversationSummary[]
+> {
+  const res = await authedFetch(`${API_URL}/chat/conversations`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Switch naar een specifieke conversatie. Returnt full state zodat UI
+// de huidige messages kan vervangen + cap-indicator kan updaten.
+export async function fetchChatConversation(
+  conversationId: string,
+): Promise<ActiveChatState> {
+  const res = await authedFetch(
+    `${API_URL}/chat/conversations/${conversationId}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Start een nieuwe lege conversatie. Gebruikt door "+ Nieuw gesprek"-
+// knop in de dropdown EN door de cap-bereikt-CTA. Returnt direct de
+// full state met welkomstbericht zodat UI naadloos kan switchen.
+export async function createChatConversation(): Promise<ActiveChatState> {
+  const res = await authedFetch(`${API_URL}/chat/conversations`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 // Stuurt een bericht + wacht op Filly's antwoord. Backend slaat beide
 // op in chat_messages en geeft ze terug zodat we ze aan de lijst
 // kunnen toevoegen zonder opnieuw te hoeven fetchen.
+//
+// Bij cap-bereikt: backend gooit 400 BadRequest met NL-tekst. Caller
+// vangt 'm op en toont "+ Nieuw gesprek"-CTA.
 export async function sendChatMessage(
   conversationId: string,
   content: string,
@@ -1256,7 +1315,15 @@ export async function sendChatMessage(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ conversation_id: conversationId, content }),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    // Probeer de NL-foutmelding van de backend te lezen — die bevat
+    // bij cap-bereikt de duidelijke "Start een nieuw gesprek"-tekst.
+    const body = await res.json().catch(() => null);
+    const msg = body?.message ?? `HTTP ${res.status}`;
+    const err = new Error(msg) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
