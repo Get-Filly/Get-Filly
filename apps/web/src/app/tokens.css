@@ -193,6 +193,19 @@
   --accent-dark: var(--color-brand-deep);
   --accent-light: var(--color-brand-soft);
   --hover: var(--color-brand-soft);
+
+  /* Copper-aliases — warmer tweede-accent (avatar-gradients,
+   * Filly-attributie op landingspage). Mappen op --color-highlight
+   * zodat één palet de hele site stuurt. */
+  --copper: var(--color-highlight);
+  --copper-soft: var(--color-highlight-soft);
+
+  /* --highlight expliciet aliasen voor leesbaarheid in landings-CSS. */
+  --highlight: var(--color-highlight);
+
+  /* Section-bg variant — voor tussen-secties die net iets warmer
+   * mogen zijn dan de pure --bg. Op dit moment = cream. */
+  --section: var(--color-cream);
   /* Erfenis vóór de rebrand: --blue/--bl heten zo maar zijn groen.
    * Niet hernoemen om geen visuele bugs te introduceren — laat de
    * naam staan als alias en mark als deprecated. */
