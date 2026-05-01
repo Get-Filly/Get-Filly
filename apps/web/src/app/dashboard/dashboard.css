@@ -604,37 +604,6 @@
 }
 
 
-/* Weer */
-.dashboard-shell .weather-row {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-.dashboard-shell .weather-day {
-  background: var(--bg);
-  border-radius: 8px;
-  padding: 10px 2px;
-  text-align: center;
-  /* Min-height zodat de weather-kaartjes altijd dezelfde hoogte hebben
-     en content niet wegvalt als de container smaller wordt. */
-  min-height: 92px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-.dashboard-shell .weather-day.today { border: 1.5px solid var(--accent); }
-.dashboard-shell .wd-day {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--tl);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.dashboard-shell .wd-icon { font-size: 20px; margin: 4px 0; }
-.dashboard-shell .wd-temp { font-size: 14px; font-weight: 600; }
-.dashboard-shell .wd-desc { font-size: 9px; color: var(--tl); margin-top: 1px; }
-
 /* Kalender controls */
 .dashboard-shell .cal-controls {
   display: flex;
@@ -829,75 +798,6 @@
 .dashboard-shell .cal-emoji {
   display: inline-block;
 }
-.dashboard-shell .pg { color: #1B7A2E; }
-.dashboard-shell .po { color: #995A00; }
-.dashboard-shell .pr { color: #CC2F27; }
-
-/* Detail */
-.dashboard-shell .detail-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.dashboard-shell .det-stat {
-  background: var(--bg);
-  border-radius: 8px;
-  padding: 12px;
-  text-align: center;
-}
-.dashboard-shell .det-val { font-size: 20px; font-weight: 700; }
-.dashboard-shell .det-label { font-size: 11px; color: var(--tl); margin-top: 2px; }
-.dashboard-shell .det-section {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  margin-top: 2px;
-}
-.dashboard-shell .det-camp {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: var(--bg);
-  border-radius: 8px;
-  margin-bottom: 4px;
-}
-.dashboard-shell .det-ci {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-}
-.dashboard-shell .det-ci.mail { background: var(--accent-light); }
-.dashboard-shell .det-ci.social { background: #F0E6FF; }
-.dashboard-shell .det-cn { font-size: 12px; font-weight: 500; }
-.dashboard-shell .det-cm { font-size: 11px; color: var(--tl); }
-.dashboard-shell .det-cs {
-  margin-left: auto;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: var(--rf);
-}
-.dashboard-shell .det-cs.actief { background: var(--gb); color: #1B7A2E; }
-.dashboard-shell .det-cs.concept { background: var(--ob); color: #995A00; }
-.dashboard-shell .det-cs.ingepland { background: var(--accent-light); color: var(--accent); }
-.dashboard-shell .det-cs.afgerond { background: var(--bg); color: var(--tl); }
-
-.dashboard-shell .detail-campaigns {
-  max-height: 240px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.dashboard-shell .detail-campaigns::-webkit-scrollbar { width: 4px; }
-.dashboard-shell .detail-campaigns::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
 
 /* ============================================================
    Kalender — dag-view (uur-staafdiagram)
@@ -970,13 +870,6 @@
 .dashboard-shell .day-hour-bar.lvl-2 { background: rgb(217, 150, 70); }
 .dashboard-shell .day-hour-bar.lvl-3 { background: rgb(45, 90, 63); }
 .dashboard-shell .day-hour-bar.lvl-4 { background: rgb(31, 74, 45); }
-/* No-data variant: gebruikt in week-view voor dagen die buiten de
-   opgehaalde maand vallen (occupancy-prop levert 1 maand). Lichtgrijs
-   = "we hebben deze data nog niet", niet "0% bezetting". */
-.dashboard-shell .day-hour-bar.no-data {
-  background: var(--border);
-  opacity: 0.5;
-}
 .dashboard-shell .day-hour-label {
   font-size: 11px;
   color: var(--tl);
@@ -3781,14 +3674,6 @@
   }
   .dashboard-shell .kpi { padding: 12px 14px; }
   .dashboard-shell .kpi-val { font-size: 20px; }
-
-  /* Weather: auto-fit zodat de 7 dagen wrappen i.p.v. doormidden
-     gesneden worden. minmax(80px, 1fr) past goed: 4 dagen op de eerste
-     rij, 3 op de tweede bij ~360px viewport. */
-  .dashboard-shell .weather-row {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  }
-  .dashboard-shell .weather-day { min-height: 84px; padding: 8px 4px; }
 
   /* Cal-detail al op 1280 → 1fr. Geen extra rule nodig hier. */
 

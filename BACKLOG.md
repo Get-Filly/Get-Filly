@@ -345,6 +345,60 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-05-01 — Publieke marketing-site herbouw + dashboard-redesign
+
+**Publieke site (commit `e1789ed`)**: alle 4 marketing-pagina's
+(home/product/pricing/about) overgezet naar het Claude Design-prototype.
+`apps/web/src/app/landing.css` is een 1-op-1 kopie van het design's
+`styles.css` (zonder body/navbar/footer-overrides die met
+dashboard/auth zouden conflicteren). Bij toekomstige design-update:
+file overschrijven, niet handmatig vertalen — voorkomt kleur/vorm-
+afwijkingen die we zagen tijdens de eerste poging.
+
+**Dashboard layout-pas (commits `7598270`, `e27a8b9`)**:
+- Weersvoorspelling weg uit UI (component verwijderd 2026-05-01).
+  Backend `WeatherService` blijft draaien voor Filly's chat-context.
+- "Campagnes deze maand"-DetailCard naast kalender weg (component
+  verwijderd 2026-05-01).
+- Sidebar herkleurd: van donkergroen naar wit met groen-soft active-
+  pill — match met de mini-dashboard mockup van de landingspagina.
+- Workspace-dropdown wit i.p.v. papier-warm.
+- Kalender-cellen krijgen heatmap-bg op basis van occupancy-tier
+  (rood < 40%, koper midden, groen 80%+); tekst altijd zwart;
+  vandaag = groene outline-ring i.p.v. pill rond dag-nummer.
+- Campagne-emoji's (✉️/📱/💬) per cel i.p.v. gekleurde stippen.
+- Dag-view: nieuwe uur-staafdiagram 11:00-22:00 (mock data tot een
+  `/occupancy/hours`-endpoint via reserveringsplatform-integraties).
+- Week-view: nieuw tussen Dag en Maand — 7 staven Ma-Zo met dezelfde
+  fallback-keten als de maand-view (`seededOccupancy`) zodat
+  percentages tussen views identiek zijn.
+- Jaar-view: cellen vullen volle hoogte van de card.
+- KPI-onderregels donkergroen, alert-bar rood (was geel).
+
+**Campagnes-pagina (commit `f209e86`)**:
+- Verlopen-tab toegevoegd naast Open/Afgewezen, met frontend-detectie
+  via `target_date` in `trigger_context`. Drie tabs altijd zichtbaar.
+- Verlopen-kaart: gedimd, alleen Details-actie (niet meer goedkeurbaar).
+- Afgewezen-kaart: impact-blok grijs i.p.v. groen — niet meer alsof
+  de impact nog gaat komen.
+- Voorstellen-grid: `minmax(380px, 1fr)` zodat kaarten breedte vullen.
+- Internal scroll op Voorstellen-strip + Overige acties (max-height
+  + overflow-y: auto), zelfde grid-breedte zodat ze uitlijnen.
+- Drie subkoppen (Voorstellen van Filly / Overige acties / Campagnes)
+  uniform: zwart, fontSize 15, geen ✨-emoji meer.
+- WhatsApp-detail: Inhoud-card + Foto-card naast elkaar in 2-koloms
+  grid (1fr + 320px), default grid-stretch zodat onderkanten gelijk
+  uitlijnen.
+- Witregel-fix: `landing.css` definieert globaal
+  `section { padding: 112px 24px }` — dat lekte door naar het
+  dashboard. Override in `dashboard.css`: `.dashboard-shell section
+  { padding: 0 }`.
+
+**Opruim 2026-05-01**: WeatherForecast + DetailCard components verwijderd,
+bijhorende CSS (`.weather-row`, `.weather-day`, `.det-*`,
+`.detail-campaigns`, `.pg/.po/.pr`) opgeruimd. `occupancyClass`-helper
+weg (vervangen door tier-classes op cell-niveau).
+
 ### 2026-05-01 — Chat-history + 20-bericht cap + chat-memory (kostenbescherming)
 
 **Probleem dat dit oplost**: lange chats stapelen input-tokens op (elke

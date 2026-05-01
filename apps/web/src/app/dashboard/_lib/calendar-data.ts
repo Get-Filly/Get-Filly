@@ -76,12 +76,6 @@ export function mergeMonthData(
   });
 }
 
-export function occupancyClass(pct: number): "pg" | "po" | "pr" {
-  if (pct >= 80) return "pg";
-  if (pct >= 50) return "po";
-  return "pr";
-}
-
 export const maandenNL = [
   "januari", "februari", "maart", "april", "mei", "juni",
   "juli", "augustus", "september", "oktober", "november", "december",
