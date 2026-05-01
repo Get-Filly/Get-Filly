@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase-browser";
 
@@ -147,7 +147,12 @@ const INITIAL_DATA: WizardData = {
   drink_items: [],
 };
 
-export default function OnboardingPage() {
+// De inhoud zelf — gebruikt useSearchParams() en moet daarom binnen
+// een <Suspense>-boundary leven. Next.js's static-prerender draait
+// anders tegen "missing-suspense-with-csr-bailout" tijdens `next build`.
+// De default-export hieronder doet de wrap; deze functie houdt alle
+// wizard-logica.
+function OnboardingPageContent() {
   const router = useRouter();
   // Detecteer of dit de eerste-keer-onboarding is (geen flag) of een
   // bestaande eigenaar die een 2e/3e zaak toevoegt (?mode=add). Beide
@@ -1293,4 +1298,17 @@ function splitToArray(s: string): string[] | undefined {
     .map((x) => x.trim())
     .filter((x) => x.length > 0);
   return arr.length > 0 ? arr : undefined;
+}
+
+// Default export wrapt de inhoud in <Suspense> zodat useSearchParams()
+// niet faalt tijdens Next.js's static prerender (build-tijd-fout sinds
+// Next.js 14: "missing-suspense-with-csr-bailout"). Fallback is null —
+// de page is sowieso volledig client-rendered, een spinner zou alleen
+// een microseconde flikkering geven.
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingPageContent />
+    </Suspense>
+  );
 }
