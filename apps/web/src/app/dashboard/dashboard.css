@@ -970,6 +970,13 @@
 .dashboard-shell .day-hour-bar.lvl-2 { background: rgb(217, 150, 70); }
 .dashboard-shell .day-hour-bar.lvl-3 { background: rgb(45, 90, 63); }
 .dashboard-shell .day-hour-bar.lvl-4 { background: rgb(31, 74, 45); }
+/* No-data variant: gebruikt in week-view voor dagen die buiten de
+   opgehaalde maand vallen (occupancy-prop levert 1 maand). Lichtgrijs
+   = "we hebben deze data nog niet", niet "0% bezetting". */
+.dashboard-shell .day-hour-bar.no-data {
+  background: var(--border);
+  opacity: 0.5;
+}
 .dashboard-shell .day-hour-label {
   font-size: 11px;
   color: var(--tl);

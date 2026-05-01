@@ -12,7 +12,7 @@ import {
 } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 
-export type View = "dag" | "maand" | "jaar";
+export type View = "dag" | "week" | "maand" | "jaar";
 
 export default function DashboardPage() {
   const today = new Date();

@@ -1,9 +1,14 @@
 "use client";
 
-import { mergeMonthData, maandenNL } from "../_lib/calendar-data";
+import {
+  mergeMonthData,
+  maandenNL,
+  seededOccupancy,
+  mondayIndex,
+} from "../_lib/calendar-data";
 import type { OccupancyDay } from "../../../lib/api";
 
-type View = "dag" | "maand" | "jaar";
+type View = "dag" | "week" | "maand" | "jaar";
 
 type Props = {
   view: View;
@@ -44,6 +49,20 @@ function occupancyTier(pct: number): number {
  * er op een dag staat (mail / social / whatsapp), niet alleen dat er
  * iets staat.
  */
+/**
+ * Format een week-range als "5 - 11 mei" of "27 apr - 3 mei" (over
+ * maand-grens). Gebruikt door de prev/next-label in week-view.
+ */
+function formatWeekRange(start: Date, end: Date): string {
+  const fmt = new Intl.DateTimeFormat("nl-NL", { month: "short" });
+  const sMonth = fmt.format(start);
+  const eMonth = fmt.format(end);
+  if (sMonth === eMonth) {
+    return `${start.getDate()} - ${end.getDate()} ${eMonth}`;
+  }
+  return `${start.getDate()} ${sMonth} - ${end.getDate()} ${eMonth}`;
+}
+
 function campaignEmoji(type: string): string {
   if (type === "mail") return "✉️";
   if (type === "social") return "📱";
@@ -96,15 +115,42 @@ export function CalendarCard({
   const monthName =
     maandenNL[viewMonth].charAt(0).toUpperCase() +
     maandenNL[viewMonth].slice(1);
+
+  // Bepaal de Maandag van de week waar selectedDay (of vandaag) in valt.
+  // Gebruikt door week-view om de 7 dagen Ma-Zo te tonen, en door
+  // prev/next om per week te schuiven.
+  const weekAnchor = new Date(
+    viewYear,
+    viewMonth,
+    selectedDay ?? todayNumLocal(),
+  );
+  const weekDayOffset = (weekAnchor.getDay() + 6) % 7; // 0=Ma, 6=Zo
+  const weekStart = new Date(weekAnchor);
+  weekStart.setDate(weekAnchor.getDate() - weekDayOffset);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  // Label-tekst boven prev/next: jaar voor jaar-view, "5 - 11 mei" voor
+  // week-view, "Mei 2026" voor dag/maand-view.
   const label =
-    view === "jaar" ? `${viewYear}` : `${monthName} ${viewYear}`;
+    view === "jaar"
+      ? `${viewYear}`
+      : view === "week"
+        ? formatWeekRange(weekStart, weekEnd)
+        : `${monthName} ${viewYear}`;
 
   const goPrev = () => {
-    setSelectedDay(null);
     if (view === "jaar") {
       setViewYear(viewYear - 1);
+      setSelectedDay(null);
       return;
     }
+    if (view === "week") {
+      // 7 dagen terug, met overflow-handling naar vorige maand/jaar.
+      shiftSelectedDay(-7);
+      return;
+    }
+    setSelectedDay(null);
     if (viewMonth === 0) {
       setViewMonth(11);
       setViewYear(viewYear - 1);
@@ -113,11 +159,16 @@ export function CalendarCard({
     }
   };
   const goNext = () => {
-    setSelectedDay(null);
     if (view === "jaar") {
       setViewYear(viewYear + 1);
+      setSelectedDay(null);
       return;
     }
+    if (view === "week") {
+      shiftSelectedDay(7);
+      return;
+    }
+    setSelectedDay(null);
     if (viewMonth === 11) {
       setViewMonth(0);
       setViewYear(viewYear + 1);
@@ -125,6 +176,26 @@ export function CalendarCard({
       setViewMonth(viewMonth + 1);
     }
   };
+
+  // Helper voor week-navigatie: schuif selectedDay (of vandaag-day) met
+  // ±7 dagen, en update viewMonth/viewYear als we over een maandgrens
+  // gaan. Zo blijft de occupancy-prop (per maand opgehaald) consistent
+  // met wat de week-view toont.
+  function shiftSelectedDay(deltaDays: number): void {
+    const base = new Date(
+      viewYear,
+      viewMonth,
+      selectedDay ?? todayNumLocal(),
+    );
+    base.setDate(base.getDate() + deltaDays);
+    setViewYear(base.getFullYear());
+    setViewMonth(base.getMonth());
+    setSelectedDay(base.getDate());
+  }
+
+  function todayNumLocal(): number {
+    return today.getDate();
+  }
   const goToday = () => {
     setViewYear(today.getFullYear());
     setViewMonth(today.getMonth());
@@ -178,7 +249,7 @@ export function CalendarCard({
             </button>
           </div>
           <div className="toggle-group">
-            {(["dag", "maand", "jaar"] as View[]).map((v) => (
+            {(["dag", "week", "maand", "jaar"] as View[]).map((v) => (
               <button
                 key={v}
                 className={`toggle-btn ${view === v ? "active" : ""}`}
@@ -276,6 +347,84 @@ export function CalendarCard({
                         />
                       </div>
                       <div className="day-hour-label">{HOUR_LABELS[i]}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {view === "week" && (() => {
+          // Bouw 7 dag-objecten Ma t/m Zo, beginnend bij weekStart.
+          // Bezettings-% komt uit dezelfde bron als de maand-view: real
+          // data uit de occupancy-prop wanneer beschikbaar, anders de
+          // deterministische seededOccupancy-fallback. Zonder die
+          // fallback toonde week-view 0% voor dagen buiten de geladen
+          // maand terwijl maand-view zelf wel een mock-percentage liet
+          // zien — percentages moeten matchen tussen views.
+          const dayLabels = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+          const todayStr = today.toISOString().slice(0, 10);
+          const days = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(weekStart);
+            d.setDate(weekStart.getDate() + i);
+            const dateStr = d.toISOString().slice(0, 10);
+            const cell = occupancy.find((o) => o.date === dateStr);
+            const fallbackPct = seededOccupancy(
+              d.getDate(),
+              mondayIndex(d.getDay()),
+            );
+            return {
+              date: d,
+              dateStr,
+              pct: cell?.occupancy_pct ?? fallbackPct,
+              isToday: dateStr === todayStr,
+            };
+          });
+          return (
+            <div className="day-view">
+              <div className="day-view-head">
+                <div className="day-view-title">
+                  {formatWeekRange(weekStart, weekEnd)}
+                </div>
+                <div className="day-view-sub">Bezetting per dag</div>
+              </div>
+              <div className="day-hours" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+                {days.map((d, i) => {
+                  const tier = occupancyTier(d.pct);
+                  return (
+                    <div
+                      key={d.dateStr}
+                      className="day-hour"
+                      onClick={() => {
+                        // Klik = ga naar dag-view voor die specifieke dag.
+                        // Update viewMonth/Year als de dag in een andere
+                        // maand valt dan momenteel geladen.
+                        setViewYear(d.date.getFullYear());
+                        setViewMonth(d.date.getMonth());
+                        setSelectedDay(d.date.getDate());
+                        setView("dag");
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <div className="day-hour-pct">{d.pct}%</div>
+                      <div className="day-hour-track">
+                        <div
+                          className={`day-hour-bar lvl-${tier}`}
+                          style={{ height: `${Math.max(d.pct, 4)}%` }}
+                        />
+                      </div>
+                      <div
+                        className="day-hour-label"
+                        style={{
+                          fontWeight: d.isToday ? 700 : 500,
+                          color: d.isToday
+                            ? "var(--accent)"
+                            : "var(--tl)",
+                        }}
+                      >
+                        {dayLabels[i]} {d.date.getDate()}
+                      </div>
                     </div>
                   );
                 })}

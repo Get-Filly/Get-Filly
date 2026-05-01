@@ -10,7 +10,10 @@ export type DayData = {
 
 // Geeft een deterministisch "realistisch" bezettings% terug per weekdag.
 // weekday: 0=ma, 1=di, ..., 6=zo
-function seededOccupancy(day: number, weekday: number): number {
+// Geëxporteerd zodat de week-view in calendar-card.tsx exact dezelfde
+// fallback kan gebruiken als de maand-view; anders zien dezelfde dagen
+// er anders uit per view.
+export function seededOccupancy(day: number, weekday: number): number {
   const seed = (day * 37 + weekday * 11) % 100;
   if (weekday >= 4) return 78 + (seed % 22); // vr/za/zo: 78-99
   if (weekday === 3) return 55 + (seed % 25); // do: 55-79
@@ -25,7 +28,7 @@ function seededCampaigns(day: number): CampaignMark[] {
 }
 
 /** JS Date.getDay(): 0=zo, 1=ma, ..., 6=za. Onze grid start op ma, dus: */
-function mondayIndex(jsDay: number): number {
+export function mondayIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
 }
 
