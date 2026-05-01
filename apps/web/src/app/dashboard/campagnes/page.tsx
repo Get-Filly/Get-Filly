@@ -121,16 +121,51 @@ type SuggestionActionState =
   | { state: "restoring" }
   | { state: "error"; message: string };
 
-// Tabs binnen de suggesties-strip. 'open' = pending (wachten op actie),
-// 'rejected' = eerder afgewezen maar herstelbaar. We tonen dit bewust
-// als tab binnen de strip (niet verspreid) zodat user per ongeluk
-// weggeklikte voorstellen snel terug kan vinden.
-type SuggestionTab = "open" | "rejected";
+// Tabs binnen de suggesties-strip:
+//   - 'open'     = pending én nog niet verlopen (wachten op actie)
+//   - 'expired'  = pending maar de target-datum is voorbij
+//   - 'rejected' = eerder afgewezen, herstelbaar via "Terugzetten"
+// Zo kan de eigenaar weggeklikte of te-laat-bekeken voorstellen terug-
+// vinden zonder de active "open"-lijst te vervuilen.
+type SuggestionTab = "open" | "expired" | "rejected";
+
+/**
+ * Detecteer of een pending suggestie inmiddels verlopen is op basis van
+ * de target-datum in trigger_context. We gebruiken `target_date` (ISO
+ * yyyy-mm-dd, gebruikt door low_occupancy-trigger). Als die ontbreekt
+ * vallen we terug op `created_at + 14 dagen` als veilige default.
+ *
+ * Frontend-detectie i.p.v. wachten op een backend-job: zo zijn de tabs
+ * meteen correct, ook als er nog geen cron-marker draait. Wanneer de
+ * api `status: "expired"` daadwerkelijk gaat schrijven, blijft deze
+ * functie kloppen — we kijken naar pending én expired-status hieronder.
+ */
+function isSuggestionExpired(s: AiSuggestion): boolean {
+  const ctx = s.trigger_context as { target_date?: string } | null;
+  const target = ctx?.target_date;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (target) return target < todayStr;
+  // Geen target-datum: zacht-verloop na 14 dagen om de open-lijst niet
+  // oneindig vol te laten lopen met oude voorstellen.
+  const created = new Date(s.created_at);
+  const expireAt = new Date(created);
+  expireAt.setDate(created.getDate() + 14);
+  return expireAt < new Date();
+}
 
 export default function CampagnesPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  // Alle pending suggesties uit de backend; we splitsen ze hieronder
+  // lokaal in "open" (target-datum nog actueel) en "expired" (datum
+  // voorbij) via isSuggestionExpired.
   const [pendingSuggestions, setPendingSuggestions] = useState<AiSuggestion[]>(
+    [],
+  );
+  // Suggesties die backend zélf op status="expired" heeft gezet (via
+  // toekomstige cron). Worden bij de lokaal-verlopen pending's gevoegd
+  // op de Verlopen-tab.
+  const [expiredFromBackend, setExpiredFromBackend] = useState<AiSuggestion[]>(
     [],
   );
   const [rejectedSuggestions, setRejectedSuggestions] = useState<
@@ -179,18 +214,22 @@ export default function CampagnesPage() {
     }
   };
 
-  // Bij mount halen we campagnes + pending + rejected parallel op.
-  // Rejected hebben we vooraf nodig zodat we de tab-count direct
-  // kunnen tonen ("Afgewezen (3)"), niet pas na tab-click.
+  // Bij mount halen we campagnes + alle 3 suggestion-emmers parallel
+  // op. Rejected en expired hebben we vooraf nodig zodat we de tab-
+  // counts direct kunnen tonen, niet pas na tab-click. fetchSuggestions
+  // met "expired" geeft alleen wat backend zelf op die status heeft
+  // gezet; lokaal-verlopen pending's voegen we hieronder toe.
   useEffect(() => {
     Promise.all([
       fetchCampaigns(),
       fetchSuggestions("pending"),
+      fetchSuggestions("expired"),
       fetchSuggestions("rejected"),
     ])
-      .then(([c, pend, rej]) => {
+      .then(([c, pend, exp, rej]) => {
         setCampaigns(c);
         setPendingSuggestions(pend);
+        setExpiredFromBackend(exp);
         setRejectedSuggestions(rej);
         setLoading(false);
       })
@@ -200,9 +239,28 @@ export default function CampagnesPage() {
       });
   }, []);
 
+  // Splits pending in echt-open vs lokaal-verlopen (target-datum
+  // voorbij). Combineer lokaal-verlopen met backend-expired voor de
+  // Verlopen-tab.
+  const openSuggestions = useMemo(
+    () => pendingSuggestions.filter((s) => !isSuggestionExpired(s)),
+    [pendingSuggestions],
+  );
+  const expiredSuggestions = useMemo(
+    () => [
+      ...pendingSuggestions.filter(isSuggestionExpired),
+      ...expiredFromBackend,
+    ],
+    [pendingSuggestions, expiredFromBackend],
+  );
+
   // Welke suggesties we nú tonen hangt af van de actieve tab.
   const visibleSuggestions =
-    suggestionTab === "open" ? pendingSuggestions : rejectedSuggestions;
+    suggestionTab === "open"
+      ? openSuggestions
+      : suggestionTab === "expired"
+        ? expiredSuggestions
+        : rejectedSuggestions;
 
   const filtered = useMemo(() => {
     let out = campaigns;
@@ -413,9 +471,9 @@ export default function CampagnesPage() {
       {/* Impact-blok — de twee belangrijkste Filly-metrics krijgen de
           stat-card-filly variant (groene rand links + groene waarde)
           zodat attributie visueel consistent is met andere pagina's.
-          marginBottom 8: veel compacter dan de default 20, want de
-          suggesties-strip eronder is visueel gescheiden door de ✨-kop. */}
-      <div className="stats-row" style={{ marginBottom: 8 }}>
+          marginBottom 20: ruimte tussen KPI's en de Voorstellen-strip
+          die matcht met de andere section-marges op deze pagina. */}
+      <div className="stats-row" style={{ marginBottom: 20 }}>
         <div className="stat-card stat-card-filly">
           <div className="stat-card-label">Extra reserveringen</div>
           <div className="stat-card-val">
@@ -452,110 +510,104 @@ export default function CampagnesPage() {
             {loading ? (
               <Skeleton height={22} width="30%" />
             ) : (
-              pendingSuggestions.length
+              openSuggestions.length
             )}
           </div>
         </div>
       </div>
 
-      {/* Suggesties-sectie — tonen zodra er pending of rejected is.
-          Anders verbergen we de hele strip zodat nieuwe klanten met
-          een leeg dashboard niet tegen "0 voorstellen" aanlopen. */}
+      {/* Suggesties-sectie — tonen zodra er ergens een voorstel zit
+          (open, verlopen, of afgewezen). Anders verbergen we de hele
+          strip zodat nieuwe klanten met een leeg dashboard niet tegen
+          "0 voorstellen" aanlopen. */}
       {!loading &&
-        (pendingSuggestions.length > 0 || rejectedSuggestions.length > 0) && (
+        (openSuggestions.length > 0 ||
+          expiredSuggestions.length > 0 ||
+          rejectedSuggestions.length > 0) && (
           <section style={{ marginTop: 0, marginBottom: 10 }}>
             <div style={{ marginBottom: 6 }}>
+              {/* Sub-kop: zelfde stijl als "Overige acties" en
+                  "Campagnes" hieronder — zwart, fontSize 15, geen
+                  emoji. Visuele uniformiteit tussen de drie blokken
+                  op deze pagina. */}
               <div
                 style={{
                   fontSize: 15,
                   fontWeight: 600,
-                  color: "var(--accent, #1F4A2D)",
+                  color: "var(--text, #18181B)",
                   marginBottom: 2,
                 }}
               >
-                ✨ Voorstellen van Filly
+                Voorstellen van Filly
               </div>
               <div style={{ fontSize: 12, color: "var(--tl)" }}>
                 {suggestionTab === "open"
-                  ? pendingSuggestions.length === 0
+                  ? openSuggestions.length === 0
                     ? "Geen open voorstellen — alles is afgehandeld."
-                    : pendingSuggestions.length === 1
+                    : openSuggestions.length === 1
                       ? "1 voorstel wacht op jouw goedkeuring."
-                      : `${pendingSuggestions.length} voorstellen wachten op jouw goedkeuring.`
-                  : rejectedSuggestions.length === 0
-                    ? "Nog geen afgewezen voorstellen."
-                    : "Eerder afgewezen. Klik 'Terugzetten' om er alsnog mee door te gaan."}
+                      : `${openSuggestions.length} voorstellen wachten op jouw goedkeuring.`
+                  : suggestionTab === "expired"
+                    ? expiredSuggestions.length === 0
+                      ? "Geen verlopen voorstellen."
+                      : "Voorbije datum — niet meer goedkeurbaar maar bewaard ter referentie."
+                    : rejectedSuggestions.length === 0
+                      ? "Nog geen afgewezen voorstellen."
+                      : "Eerder afgewezen. Klik 'Terugzetten' om er alsnog mee door te gaan."}
               </div>
             </div>
 
-            {/* Tabs — alleen "Afgewezen" laten zien als er iets in zit,
-                anders werkt de tab als niet-functionele knop. */}
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                marginBottom: 10,
-                borderBottom: "1px solid var(--border, #E5DFD0)",
-              }}
-            >
-              <button
-                onClick={() => setSuggestionTab("open")}
-                style={{
-                  padding: "8px 14px",
-                  background: "transparent",
-                  border: "none",
-                  borderBottom:
-                    suggestionTab === "open"
-                      ? "2px solid var(--accent, #1F4A2D)"
-                      : "2px solid transparent",
-                  color:
-                    suggestionTab === "open"
-                      ? "var(--accent, #1F4A2D)"
-                      : "var(--tl)",
-                  fontWeight: suggestionTab === "open" ? 600 : 500,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  marginBottom: -1,
-                }}
-              >
-                Open ({pendingSuggestions.length})
-              </button>
-              {rejectedSuggestions.length > 0 && (
+            {/* Tabs — Open / Verlopen / Afgewezen altijd zichtbaar zodat
+                de structuur stabiel blijft, ook als één emmer (tijdelijk)
+                leeg is. Active-state via groene onderlijn. */}
+            <div className="suggestion-tabs">
+              {(
+                [
+                  { key: "open", label: "Open", count: openSuggestions.length },
+                  {
+                    key: "expired",
+                    label: "Verlopen",
+                    count: expiredSuggestions.length,
+                  },
+                  {
+                    key: "rejected",
+                    label: "Afgewezen",
+                    count: rejectedSuggestions.length,
+                  },
+                ] as { key: SuggestionTab; label: string; count: number }[]
+              ).map((t) => (
                 <button
-                  onClick={() => setSuggestionTab("rejected")}
-                  style={{
-                    padding: "8px 14px",
-                    background: "transparent",
-                    border: "none",
-                    borderBottom:
-                      suggestionTab === "rejected"
-                        ? "2px solid var(--accent, #1F4A2D)"
-                        : "2px solid transparent",
-                    color:
-                      suggestionTab === "rejected"
-                        ? "var(--accent, #1F4A2D)"
-                        : "var(--tl)",
-                    fontWeight: suggestionTab === "rejected" ? 600 : 500,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    marginBottom: -1,
-                  }}
+                  key={t.key}
+                  onClick={() => setSuggestionTab(t.key)}
+                  className={`suggestion-tab ${
+                    suggestionTab === t.key ? "active" : ""
+                  }`}
                 >
-                  Afgewezen ({rejectedSuggestions.length})
+                  {t.label} ({t.count})
                 </button>
-              )}
+              ))}
             </div>
 
             {visibleSuggestions.length > 0 ? (
               <div
                 style={{
                   display: "grid",
-                  // min 380px, max 480px per kaart — bij weinig items
-                  // wordt de kaart niet super breed en houden we
-                  // visuele balans op brede schermen.
+                  // 1fr-max zodat kaarten de volle beschikbare breedte
+                  // vullen — bij brede schermen geen lege ruimte rechts
+                  // meer doordat de oude max van 480px begrenste.
                   gridTemplateColumns:
-                    "repeat(auto-fill, minmax(380px, 480px))",
+                    "repeat(auto-fill, minmax(380px, 1fr))",
                   gap: 12,
+                  // Max ~2 rijen zichtbaar (kaart ~360px + 12px gap),
+                  // daarna interne scroll. Voorkomt dat de hele pagina
+                  // mee scrollt door 8+ voorstellen — overzichtelijker
+                  // én de KPI-rij blijft in beeld bij scrollen door de
+                  // lijst.
+                  maxHeight: 760,
+                  overflowY: "auto",
+                  // Ruimte rechts voor de scrollbar zodat 'ie niet
+                  // over de card-content valt.
+                  paddingRight: 8,
                 }}
               >
                 {visibleSuggestions.map((s) => (
@@ -875,6 +927,11 @@ function SuggestionCard({
   );
 
   const isRejected = mode === "rejected";
+  const isExpired = mode === "expired";
+  // Beide inactieve states krijgen dezelfde gedimde achtergrond zodat
+  // de eigenaar in één oogopslag ziet welke kaarten geen actie meer
+  // vragen (zonder ze te verbergen — soms wil je zien wat je miste).
+  const isInactive = isRejected || isExpired;
 
   return (
     <div
@@ -882,11 +939,13 @@ function SuggestionCard({
         padding: 16,
         border: "1px solid var(--border, #E5DFD0)",
         borderRadius: 10,
-        background: isRejected ? "var(--bg, #FAF7F1)" : "var(--white, #FFFFFF)",
+        background: isInactive ? "var(--bg, #FAF7F1)" : "var(--white, #FFFFFF)",
+        // Expired iets sterker gedimd dan rejected (verlopen = 100% niet
+        // meer actionable, afgewezen = nog wel via Terugzetten).
+        opacity: isExpired ? 0.7 : isRejected ? 0.75 : 1,
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        opacity: isRejected ? 0.75 : 1,
       }}
     >
       {/* Header: trigger (emoji + label) links, urgency-dot rechts */}
@@ -983,14 +1042,21 @@ function SuggestionCard({
       )}
 
       {/* Expected-impact blok — alleen tonen als we cijfers hebben.
-          Groene rand links visueel consistent met andere Filly-
-          elementen (attributie = brand-groen). */}
+          Op open-kaart: groen (brand-groen = "wat Filly belooft").
+          Op afgewezen/verlopen-kaart: neutraal grijs zodat de cijfers
+          niet meer alsof het nog gaat gebeuren ogen — dat is moot
+          want de eigenaar heeft de campagne afgewezen of de datum is
+          voorbij. */}
       {hasImpact && (
         <div
           style={{
             padding: "8px 10px",
-            background: "var(--accent-light, #D6E0D8)",
-            borderLeft: "3px solid var(--accent, #1F4A2D)",
+            background: isInactive
+              ? "var(--white, #FFFFFF)"
+              : "var(--accent-light, #D6E0D8)",
+            borderLeft: `3px solid ${
+              isInactive ? "var(--border, #E5DFD0)" : "var(--accent, #1F4A2D)"
+            }`,
             borderRadius: 4,
             display: "flex",
             flexWrap: "wrap",
@@ -1015,7 +1081,9 @@ function SuggestionCard({
               <div
                 style={{
                   fontWeight: 600,
-                  color: "var(--accent, #1F4A2D)",
+                  color: isInactive
+                    ? "var(--text-secondary, #52525B)"
+                    : "var(--accent, #1F4A2D)",
                   fontSize: 13,
                 }}
               >
@@ -1040,7 +1108,9 @@ function SuggestionCard({
               <div
                 style={{
                   fontWeight: 600,
-                  color: "var(--accent, #1F4A2D)",
+                  color: isInactive
+                    ? "var(--text-secondary, #52525B)"
+                    : "var(--accent, #1F4A2D)",
                   fontSize: 13,
                 }}
               >
@@ -1113,11 +1183,12 @@ function SuggestionCard({
         </div>
       )}
 
-      {/* Actie-knoppen. In 'open'-mode krijg je Goedkeuren + Details
-          + Afwijzen. In 'rejected'-mode alleen Terugzetten zodat de
-          user de kaart niet per ongeluk opnieuw afwijst of goedkeurt
-          zonder eerst her-evaluatie. */}
-      {mode === "open" ? (
+      {/* Actie-knoppen — afhankelijk van mode:
+            open     = Goedkeuren / Details / Afwijzen
+            rejected = Terugzetten / Details
+            expired  = alleen Details — voorbije datum kun je niet meer
+                       goedkeuren, en terugzetten heeft geen zin */}
+      {mode === "open" && (
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
           <Button
             size="sm"
@@ -1148,7 +1219,8 @@ function SuggestionCard({
             ✕ Afwijzen
           </Button>
         </div>
-      ) : (
+      )}
+      {mode === "rejected" && (
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
           <Button
             size="sm"
@@ -1167,6 +1239,18 @@ function SuggestionCard({
             disabled={busy}
           >
             Details
+          </Button>
+        </div>
+      )}
+      {mode === "expired" && (
+        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={onDetails}
+            style={{ flex: 1 }}
+          >
+            Details bekijken
           </Button>
         </div>
       )}

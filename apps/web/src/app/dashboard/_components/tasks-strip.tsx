@@ -306,14 +306,15 @@ export function TasksStrip() {
 
       <div style={{ height: 8 }} />
 
-      {/* Scroll-container: max 320px hoog zodat de pagina niet
-          eindeloos lang wordt bij veel taken. Inner-grid behoudt
-          dezelfde card-layout. Subtiele scrollbar via dashboard.css. */}
+      {/* Scroll-container: max 320px hoog (≈ 4-5 taken zichtbaar)
+          zodat de pagina niet eindeloos lang wordt. Padding-right
+          matcht met de Voorstellen-strip zodat scrollbars op gelijke
+          afstand van de card-content zitten. */}
       <div
         style={{
           maxHeight: 320,
           overflowY: "auto",
-          paddingRight: 4,
+          paddingRight: 8,
         }}
       >
         {visibleTasks.length === 0 ? (
@@ -334,8 +335,12 @@ export function TasksStrip() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 480px))",
-              gap: 10,
+              // Zelfde grid-breedte als de Voorstellen-strip op deze
+              // pagina (minmax(380px, 1fr)) zodat de cards visueel
+              // uitlijnen kolom-voor-kolom. Geen 480px-max meer want
+              // dat liet rechts ruimte open op brede schermen.
+              gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
+              gap: 12,
             }}
           >
             {visibleTasks.map((t) => {

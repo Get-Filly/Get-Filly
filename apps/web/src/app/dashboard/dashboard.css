@@ -20,6 +20,16 @@
   line-height: 1.5;
 }
 
+/* landing.css definieert globaal `section { padding: 112px 24px; }`
+   voor de publieke marketing-site. Dat lekt door naar het dashboard
+   en geeft elke `<section>` daar 112px verticale padding (= 200px
+   witregel onder de KPI's op /campagnes). Deze override neutraliseert
+   dat binnen de dashboard-shell. */
+.dashboard-shell section {
+  padding: 0;
+  scroll-margin-top: 0;
+}
+
 /* Sidebar — bosgroen (brand-accent). Alle content binnen de sidebar
    gebruikt lichte kleuren voor contrast. De dropdown-popover daarentegen
    blijft op lichte bg (is een overlay, niet deel van de balk). */
@@ -1271,18 +1281,68 @@
 .dashboard-shell .badge.ingepland { background: var(--accent-light); color: var(--accent); }
 .dashboard-shell .badge.afgerond { background: var(--bg); color: var(--tl); }
 
-/* Stats row */
+/* Stats row — kleinere bottom-marge zodat de strip eronder
+   (suggesties / filter-tabs) compact aansluit op de KPI's. */
 .dashboard-shell .stats-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-3);
 }
 .dashboard-shell .stat-card {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--rs);
   padding: var(--space-3) var(--space-4);
+}
+
+/* WhatsApp campagne-detail: Inhoud-card en Foto-card naast elkaar.
+   Foto-kolom heeft een vaste niet-te-grote breedte (320px); de Inhoud-
+   card krijgt de rest. Geen align-items: start — default grid-stretch
+   zorgt dat beide cards zelfde hoogte krijgen, zodat onderkanten
+   netjes uitlijnen ook als de chat-bubbel kort is. */
+.dashboard-shell .campaign-content-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+@media (max-width: 880px) {
+  .dashboard-shell .campaign-content-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Suggestion-tabs — onderlijn-stijl voor Open/Verlopen/Afgewezen op
+   de campagnes-pagina. Drie tabs altijd zichtbaar zodat de structuur
+   stabiel blijft, ook als één emmer leeg is. Active = groene
+   onderlijn + groene tekst, inactive = grijze tekst. */
+.dashboard-shell .suggestion-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.dashboard-shell .suggestion-tab {
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--tl);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+.dashboard-shell .suggestion-tab:hover {
+  color: var(--text);
+}
+.dashboard-shell .suggestion-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
 }
 .dashboard-shell .stat-card-label { font-size: 12px; color: var(--tl); }
 .dashboard-shell .stat-card-val { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-top: 2px; }
@@ -1387,13 +1447,14 @@
 }
 
 /* Header-rij met titel links en primary CTA rechts. Gebruikt o.a.
-   op campagnes-overzicht zodat "Nieuwe campagne" direct zichtbaar is. */
+   op campagnes-overzicht zodat "Nieuwe campagne" direct zichtbaar is.
+   Compacte bottom-marge zodat de KPI-rij er strak onder zit. */
 .dashboard-shell .page-header-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-4);
 }
 
 /* Filter-rij met status-tabs (links) en type-chips (rechts). Wrap op

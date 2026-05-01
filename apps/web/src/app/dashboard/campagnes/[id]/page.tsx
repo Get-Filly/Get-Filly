@@ -416,6 +416,11 @@ export default function CampaignDetailPage() {
         )}
       </div>
 
+      {/* WhatsApp toont Inhoud + Foto in een 2-koloms grid zodat ze
+          naast elkaar staan (chat-bubbel links, foto-slot rechts).
+          Mail/social blijven full-width — die hebben hun eigen
+          preview-layout. */}
+      <div className={!isMail && !isSocial ? "campaign-content-row" : ""}>
       {/* Content preview. In edit-mode vervangen door inline form
           zodat de user direct vanaf de detail-page de velden kan
           wijzigen zonder modal-context-switch. */}
@@ -632,11 +637,9 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* WhatsApp: foto staat in een aparte card onder de Inhoud zodat
-          de chat-bubbel niet ingedrongen wordt door een groot beeld
-          ernaast. Voor social blijft de foto in de Instagram-preview
-          (visueel klopt het daar). Mail krijgt nog geen media-slot
-          (header-image is later werk). */}
+      {/* WhatsApp: foto-card naast de Inhoud-card via campaign-content-row
+          grid (zie wrapper hierboven). Voor social blijft de foto in de
+          Instagram-preview. Mail krijgt nog geen media-slot. */}
       {!isMail && !isSocial && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-h">
@@ -665,6 +668,7 @@ export default function CampaignDetailPage() {
           </div>
         </div>
       )}
+      </div>{/* /campaign-content-row */}
 
       {/* Wanneer plaatsen: voor concept én ingepland zichtbaar zodat
           eigenaar het tijdstip kan accepteren/wijzigen. Voor afgeronde
