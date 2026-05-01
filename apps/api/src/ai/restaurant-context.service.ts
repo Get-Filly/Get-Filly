@@ -219,23 +219,6 @@ export class RestaurantContextService {
   // exploderen. Signature dishes en de eerste items per categorie
   // krijgen voorrang via display_order.
   async buildMenuBlock(restaurantId: string): Promise<string> {
-    const { data, error } = await this.supabase.client
-      .from('menu_items')
-      .select(
-        'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
-      )
-      .eq('restaurant_id', restaurantId)
-      .eq('is_available', true)
-      .order('is_signature', { ascending: false })
-      .order('display_order', { ascending: true })
-      .limit(80); // ruimer dan 60 omdat drankkaarten ook in deze tabel zitten
-
-    if (error) {
-      this.logger.warn(`Menu niet beschikbaar: ${error.message}`);
-      return '';
-    }
-    if (!data || data.length === 0) return '';
-
     type Item = {
       name: string;
       category: string | null;
@@ -245,14 +228,58 @@ export class RestaurantContextService {
       dietary_tags: string[] | null;
       created_at: string | null;
     };
-    const allItems = data as Item[];
 
-    // Splits in eet-items vs drank-items zodat we ze als 2 aparte
-    // secties kunnen presenteren. Filly kan dan in campagnes gericht
-    // verwijzen naar gerechten ('signature carpaccio') OF dranken
-    // ('onze huiswijn') zonder ze door elkaar te halen.
-    const foodItems = allItems.filter((it) => it.category !== 'drank');
-    const drinkItems = allItems.filter((it) => it.category === 'drank');
+    // Twee aparte queries — één voor food, één voor drank — met elk
+    // een eigen quotum. Zonder deze splitsing kon een grote drankkaart
+    // (50+ items) de selectie van food-items wegduwen, waardoor net-
+    // toegevoegde gerechten buiten Filly's prompt vielen.
+    //
+    // Sort: is_signature desc, daarna created_at desc. Het tweede
+    // criterium garandeert dat een vers toegevoegd gerecht boven oude
+    // niet-signature items uitkomt — vroeger sorteerden we op
+    // display_order, maar dat is in de praktijk overal 0 (default,
+    // niemand zet 't handmatig) waardoor de fallback-volgorde
+    // willekeurig was en nieuwe items achteraan landden.
+    const FOOD_LIMIT = 60;
+    const DRINK_LIMIT = 40;
+
+    const [foodResult, drinkResult] = await Promise.all([
+      this.supabase.client
+        .from('menu_items')
+        .select(
+          'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
+        )
+        .eq('restaurant_id', restaurantId)
+        .eq('is_available', true)
+        .neq('category', 'drank')
+        .order('is_signature', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(FOOD_LIMIT),
+      this.supabase.client
+        .from('menu_items')
+        .select(
+          'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
+        )
+        .eq('restaurant_id', restaurantId)
+        .eq('is_available', true)
+        .eq('category', 'drank')
+        .order('is_signature', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(DRINK_LIMIT),
+    ]);
+
+    if (foodResult.error) {
+      this.logger.warn(`Food-query faalde: ${foodResult.error.message}`);
+    }
+    if (drinkResult.error) {
+      this.logger.warn(`Drink-query faalde: ${drinkResult.error.message}`);
+    }
+
+    const foodItems = (foodResult.data ?? []) as Item[];
+    const drinkItems = (drinkResult.data ?? []) as Item[];
+    const allItems = [...foodItems, ...drinkItems];
+
+    if (allItems.length === 0) return '';
 
     const lines: string[] = [];
 
