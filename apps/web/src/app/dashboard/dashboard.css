@@ -71,9 +71,10 @@
 }
 .dashboard-shell .sb-workspace:hover,
 .dashboard-shell .sb-workspace.open {
-  /* Witte sidebar: papier-warme hover-bg met zachte border. */
-  background: var(--bg);
-  border-color: var(--border);
+  /* Witte sidebar: groen-soft hover-bg, past bij active-pill van de
+     menu-items eronder. Geeft consistent groene "hot zone" in nav. */
+  background: var(--accent-light);
+  border-color: var(--accent-light);
 }
 
 .dashboard-shell .sb-workspace-text {
@@ -81,13 +82,15 @@
   min-width: 0;
 }
 
-/* Dropdown-menu dat NAAR BENEDEN opent (vanaf het workspace-blok). */
+/* Dropdown-menu dat NAAR BENEDEN opent (vanaf het workspace-blok).
+   Wit i.p.v. papier-warm zodat 'ie helder afsteekt tegen de witte
+   sidebar erachter en niet bruinig overkomt. */
 .dashboard-shell .sb-workspace-menu {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: var(--bg);
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px;
@@ -130,8 +133,11 @@
   text-decoration: none;
 }
 .dashboard-shell .sb-item:hover {
-  background: var(--bg);
-  color: var(--text);
+  /* Groen-soft hover, zelfde kleur als de active-pill maar zonder de
+     vette tekst — voelt aan als één visuele familie i.p.v. twee
+     verschillende states (papier-warm vs groen). */
+  background: var(--accent-light);
+  color: var(--accent);
 }
 /* Actieve menu-item: groene-soft pill met groene tekst — zelfde patroon
    als in de mini-dashboard mockup en op de publieke landingspagina. */
@@ -378,7 +384,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding-bottom: var(--space-5);
+  /* Géén padding-bottom: anders eindigt de calendar-card 24px hoger
+     dan de chat-card ernaast en is de bottom-rand niet uitgelijnd.
+     De dash-body heeft zelf al een buitenste padding-bottom. */
   /* 4px om de scrollbar (4px wide, hieronder gedefinieerd) niet
    * over de card-content heen te laten lopen. */
   padding-right: 4px;
@@ -431,16 +439,16 @@
   letter-spacing: -0.5px;
   margin-top: 4px;
 }
-/* Filly-subtekst per KPI — groene regel die aangeeft wat Filly voor
-   deze metric heeft opgeleverd. Kernwoord: visueel signaal = brand-groen. */
+/* Filly-subtekst per KPI — donkergroen voor zowel neutrale als
+   positieve regels. Past bij brand en valt rustiger op dan grijs. */
 .dashboard-shell .kpi-filly {
   font-size: 11.5px;
   font-weight: 500;
   margin-top: 6px;
-  color: var(--tl);
+  color: var(--accent-dark);
   letter-spacing: -0.1px;
 }
-.dashboard-shell .kpi-filly-positive { color: var(--accent); }
+.dashboard-shell .kpi-filly-positive { color: var(--accent-dark); font-weight: 600; }
 
 /* "Via Filly"-pill — overal waar we attributie tonen (reserveringen,
    gasten-rij, etc.). Kleine brand-soft badge met groene letters. */
@@ -681,8 +689,31 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-/* Kalender — vaste hoogte zodat dag/jaar-view dezelfde afmeting houden */
-.dashboard-shell .calendar-card .card-b { min-height: 360px; }
+/* Kalender vult de volle hoogte van de left-col zodat hij verticaal
+   uitlijnt met de Filly-chat in de right-col. Body groeit mee, grid
+   van cellen vult zelf de body op (cellen worden iets hoger op grote
+   schermen — voelt rustiger aan dan een kalender met lege ruimte
+   onderaan en een chat die er ver overheen steekt). */
+.dashboard-shell .calendar-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dashboard-shell .calendar-card .card-b {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+.dashboard-shell .calendar-card .cal-grid {
+  flex: 1;
+}
+.dashboard-shell .calendar-card .cal-cell {
+  /* min-height verlagen want grid mag rekken; te hoge floor verhindert
+     dat cellen mooi uitvullen op een lange kalender-card. */
+  min-height: 56px;
+}
 
 /* Kalender — maand-view */
 .dashboard-shell .cal-header {
@@ -701,12 +732,21 @@
 .dashboard-shell .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  /* 1fr-rows zorgen dat de cellen de volle hoogte van de card-body
+     gelijk verdelen i.p.v. op natural-content-hoogte te blijven. Zo
+     loopt de kalender visueel door tot dezelfde bottom als de
+     Filly-chat ernaast (mits .calendar-card flex: 1 heeft). */
+  grid-auto-rows: 1fr;
   gap: 2px;
 }
-/* Kalender-cel — mockup-stijl: heatmap-tile met dag-nummer linksboven
-   en bezettings-percentage rechtsonder. De achtergrondkleur komt uit de
-   .lvl-0 .. .lvl-4 modifier (zie hieronder), dezelfde tiers als op de
-   landingspagina-mockup. */
+/* Kalender-cel — heatmap-tile met absolute-positioned kinderen voor
+   strakke uitlijning, ongeacht of er campagne-emoji's bij zitten:
+     - dag-nummer       linksboven
+     - bezettings-%     rechtsonder
+     - campagne-emoji's linksonder (optioneel)
+     - hot-badge 🔥     rechtsboven (op topdagen, optioneel)
+   Achtergrondkleur uit .lvl-0..lvl-4 modifier; tiers matchen mini-dash
+   op de landingspagina maar met meer diepte (zie hieronder). */
 .dashboard-shell .cal-cell {
   min-height: 64px;
   border-radius: 8px;
@@ -714,20 +754,14 @@
   cursor: pointer;
   transition: filter 0.12s, outline-color 0.12s;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   outline: 2px solid transparent;
   outline-offset: -2px;
 }
 .dashboard-shell .cal-cell:hover { filter: brightness(0.96); }
-/* Vandaag = groene outline-ring, geen pill rond het dagnummer (zoals
-   in de mockup). */
+/* Vandaag = groene outline-ring (geen pill rond dagnummer). */
 .dashboard-shell .cal-cell.today {
   outline-color: var(--accent);
 }
-/* Geselecteerde dag krijgt iets fellere outline + lichte ring; de
-   tier-bg blijft de occupancy-kleur. */
 .dashboard-shell .cal-cell.selected {
   outline-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-light);
@@ -740,31 +774,51 @@
 .dashboard-shell .cal-cell.empty:hover { filter: none; }
 
 .dashboard-shell .cal-dn {
+  position: absolute;
+  top: 6px;
+  left: 8px;
   font-size: 12px;
   font-weight: 600;
 }
 .dashboard-shell .cal-occ {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
   font-size: 11px;
   font-weight: 600;
-  align-self: flex-end;
   opacity: 0.85;
 }
 
-/* Heatmap-tiers — zelfde palette als landing.css mini-dash:
-     lvl-0  <40%   rood-soft       kritiek
-     lvl-1  40-65  koper licht     onder verwachting
-     lvl-2  65-80  koper           gemiddeld
-     lvl-3  80-95  groen licht     goed
-     lvl-4  95+    groen vol       topdag                              */
-.dashboard-shell .cal-cell.lvl-0 { background: rgba(176, 87, 79, 0.18);  color: #7a3a36; }
-.dashboard-shell .cal-cell.lvl-1 { background: rgba(217, 127, 60, 0.18); color: #8a4a1c; }
-.dashboard-shell .cal-cell.lvl-2 { background: rgba(217, 127, 60, 0.32); color: #6a3a14; }
-.dashboard-shell .cal-cell.lvl-3 { background: rgba(45, 90, 63, 0.20);   color: #1f4a2d; }
-.dashboard-shell .cal-cell.lvl-4 { background: rgba(45, 90, 63, 0.40);   color: #0e2b17; }
-.dashboard-shell .cal-dots { display: flex; gap: 2px; margin-top: 2px; }
-.dashboard-shell .cal-dot { width: 4px; height: 4px; border-radius: 50%; }
-.dashboard-shell .dot-mail { background: var(--accent); }
-.dashboard-shell .dot-social { background: #AF52DE; }
+/* Heatmap-tiers — meer diepte en duidelijker contrast tussen rood en
+   groen. Tekst is OVERAL var(--text) (bijna-zwart) voor consistente
+   leesbaarheid; lvl-4 is daarom iets minder donker dan ideaal-vol-
+   groen-zou-zijn — zwart-op-zwart-groen leest niet.
+     lvl-0  <40%   rood diep       kritiek
+     lvl-1  40-65  rood-koper      onder verwachting
+     lvl-2  65-80  koper warm      gemiddeld
+     lvl-3  80-95  groen mid       goed
+     lvl-4  95+    groen diep      topdag
+*/
+.dashboard-shell .cal-cell.lvl-0 { background: rgba(192, 70, 60, 0.32);  color: var(--text); }
+.dashboard-shell .cal-cell.lvl-1 { background: rgba(208, 110, 65, 0.26); color: var(--text); }
+.dashboard-shell .cal-cell.lvl-2 { background: rgba(217, 150, 70, 0.30); color: var(--text); }
+.dashboard-shell .cal-cell.lvl-3 { background: rgba(45, 90, 63, 0.32);   color: var(--text); }
+.dashboard-shell .cal-cell.lvl-4 { background: rgba(31, 74, 45, 0.42);   color: var(--text); }
+/* Campagne-emoji's per dag — kleine rij linksonder in de cel.
+   Vervangt de oude cal-dots zodat eigenaar direct ziet wát er op die
+   dag staat (✉️ mail / 📱 social / 💬 whatsapp) i.p.v. alleen "iets". */
+.dashboard-shell .cal-emojis {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  display: flex;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1;
+}
+.dashboard-shell .cal-emoji {
+  display: inline-block;
+}
 .dashboard-shell .pg { color: #1B7A2E; }
 .dashboard-shell .po { color: #995A00; }
 .dashboard-shell .pr { color: #CC2F27; }
@@ -835,11 +889,93 @@
   border-radius: 2px;
 }
 
-/* Kalender — jaar-view */
+/* ============================================================
+   Kalender — dag-view (uur-staafdiagram)
+   ------------------------------------------------------------
+   Wordt actief wanneer de eigenaar op de "Dag"-tab klikt of een
+   specifieke dag aanklikt in de maand-view. 12 staven (11:00-22:00)
+   met bezetting-% per uur. Mock-data tot reserveringsplatform-
+   integraties echte uur-aggregaten leveren.
+   ============================================================ */
+.dashboard-shell .day-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+.dashboard-shell .day-view-head {
+  flex-shrink: 0;
+}
+.dashboard-shell .day-view-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.dashboard-shell .day-view-sub {
+  font-size: 12px;
+  color: var(--tl);
+  margin-top: 2px;
+}
+.dashboard-shell .day-hours {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.dashboard-shell .day-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+}
+.dashboard-shell .day-hour-pct {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+/* Track is de volle "kolom" — staaf groeit vanaf onderaan. */
+.dashboard-shell .day-hour-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: var(--bg);
+  border-radius: 6px;
+  overflow: hidden;
+  min-height: 0;
+}
+.dashboard-shell .day-hour-bar {
+  width: 100%;
+  background: var(--accent);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.2s;
+}
+/* Per-uur tier: zelfde diepte-palette als de heatmap-cellen. */
+.dashboard-shell .day-hour-bar.lvl-0 { background: rgb(192, 70, 60); }
+.dashboard-shell .day-hour-bar.lvl-1 { background: rgb(208, 110, 65); }
+.dashboard-shell .day-hour-bar.lvl-2 { background: rgb(217, 150, 70); }
+.dashboard-shell .day-hour-bar.lvl-3 { background: rgb(45, 90, 63); }
+.dashboard-shell .day-hour-bar.lvl-4 { background: rgb(31, 74, 45); }
+.dashboard-shell .day-hour-label {
+  font-size: 11px;
+  color: var(--tl);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Kalender — jaar-view. 4 kolommen × 3 rijen die de volle hoogte van
+   de card-body gelijk verdelen (zelfde 1fr-aanpak als de maand-grid). */
 .dashboard-shell .year-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 .dashboard-shell .yr-cell {
   background: var(--bg);
@@ -849,6 +985,9 @@
   cursor: pointer;
   border: 1.5px solid transparent;
   transition: all 0.12s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .dashboard-shell .yr-cell:hover { border-color: var(--border); }
 .dashboard-shell .yr-cell.current { border-color: var(--accent); }
@@ -3084,13 +3223,16 @@
  * Amber-gele palet bewust niet uit de orange-warning-tokens (die
  * zijn vibranter). Voor soft-attention past amber beter; één
  * speciale plek dus hard-coded acceptabel. */
+/* Rustige-dagen-waarschuwing: rood-soft i.p.v. amber zodat de attentie
+   onmiskenbaar is — een dip in bezetting is geen "let op", het is een
+   actiepunt. Kleur uit onze danger-tokens (--color-danger / -soft). */
 .dashboard-shell .alert-bar {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background: #FEF3C7;
-  border: 1px solid #FDE68A;
-  color: #92400E;
+  background: var(--color-danger-soft);
+  border: 1px solid #FCA5A5;
+  color: #7F1D1D;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--rs);
   font-size: 13px;

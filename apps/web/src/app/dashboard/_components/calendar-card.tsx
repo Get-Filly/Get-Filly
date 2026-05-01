@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  mergeMonthData,
-  occupancyClass,
-  maandenNL,
-} from "../_lib/calendar-data";
+import { mergeMonthData, maandenNL } from "../_lib/calendar-data";
 import type { OccupancyDay } from "../../../lib/api";
 
 type View = "dag" | "maand" | "jaar";
@@ -40,6 +36,47 @@ function occupancyTier(pct: number): number {
   if (pct < 80) return 2;
   if (pct < 95) return 3;
   return 4;
+}
+
+/**
+ * Emoji per campagne-type voor de kalender-cel. Vervangt de oude
+ * cal-dots zodat de eigenaar in één oogopslag ziet wélk soort campagne
+ * er op een dag staat (mail / social / whatsapp), niet alleen dat er
+ * iets staat.
+ */
+function campaignEmoji(type: string): string {
+  if (type === "mail") return "✉️";
+  if (type === "social") return "📱";
+  if (type === "whatsapp") return "💬";
+  return "•";
+}
+
+/**
+ * Mock uurbezetting voor de dag-view. We hebben (nog) geen echte
+ * hourly-data — die komt via reserveringsplatform-integraties (Zenchef
+ * etc.). Tot die tijd genereren we een realistische horeca-dag-shape:
+ * lunch-piek 12-14u, dip 15-17u, diner-piek 18-21u. We schalen het
+ * geheel met de dag-bezetting van de geselecteerde dag zodat een
+ * rustige dinsdag (38%) overal lager uitkomt dan een drukke vrijdag
+ * (95%). Variatie per uur via dayIdx-jitter zodat dezelfde dag-pct
+ * niet op elke datum identiek is.
+ *
+ * Vervang deze functie zodra de api een /occupancy/hours endpoint
+ * heeft (per-restaurant-per-dag uur-aggregaten van reservations).
+ */
+const HOUR_LABELS = ["11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"];
+const HOUR_BASELINE = [25, 70, 85, 60, 25, 15, 35, 70, 95, 90, 65, 35];
+
+function mockHourlyForDay(dayPct: number, dayIdx: number): number[] {
+  // Schalen rond gemiddelde — als dayPct hoog is wordt elk uur hoger,
+  // als dayPct laag is, lager. Houd hoofd-shape (lunch/diner) intact.
+  const target = dayPct || 50;
+  const baselineAvg = HOUR_BASELINE.reduce((a, b) => a + b, 0) / HOUR_BASELINE.length;
+  const factor = target / baselineAvg;
+  return HOUR_BASELINE.map((b, i) => {
+    const jitter = ((dayIdx * 3 + i * 7) % 9) - 4;
+    return Math.max(0, Math.min(100, Math.round(b * factor) + jitter));
+  });
 }
 
 export function CalendarCard({
@@ -155,7 +192,7 @@ export function CalendarCard({
       </div>
 
       <div className="card-b">
-        {(view === "maand" || view === "dag") && (
+        {view === "maand" && (
           <>
             <div className="cal-header">
               {weekdays.map((d) => (
@@ -180,20 +217,18 @@ export function CalendarCard({
                     onClick={() => onDayClick(cell.day)}
                   >
                     <div className="cal-dn">{cell.day}</div>
-                    <div
-                      className={`cal-occ ${occupancyClass(cell.occupancy)}`}
-                    >
-                      {cell.occupancy}%
-                    </div>
+                    <div className="cal-occ">{cell.occupancy}%</div>
                     {cell.occupancy >= 95 && (
                       <div className="cal-hot" title="Topdag">
                         🔥
                       </div>
                     )}
                     {cell.campaigns.length > 0 && (
-                      <div className="cal-dots">
+                      <div className="cal-emojis">
                         {cell.campaigns.map((c, idx) => (
-                          <div key={idx} className={`cal-dot dot-${c}`} />
+                          <span key={idx} className="cal-emoji" title={c}>
+                            {campaignEmoji(c)}
+                          </span>
                         ))}
                       </div>
                     )}
@@ -203,6 +238,51 @@ export function CalendarCard({
             </div>
           </>
         )}
+
+        {view === "dag" && (() => {
+          // Vind de bezetting van de geselecteerde dag (default 50% als
+          // de dag niet in de occupancy-array zit). De staafdiagram
+          // schaalt rond dat percentage; mock-data tot er hourly-data
+          // uit reserveringsplatform-koppelingen komt.
+          const selected = selectedDay ?? todayNum;
+          const dayCell = cells.find((c) => c && c.day === selected);
+          const dayPct = dayCell?.occupancy ?? 50;
+          const hours = mockHourlyForDay(dayPct, selected);
+          const dayName = new Date(viewYear, viewMonth, selected).toLocaleString(
+            "nl-NL",
+            { weekday: "long" },
+          );
+          return (
+            <div className="day-view">
+              <div className="day-view-head">
+                <div className="day-view-title">
+                  {dayName.charAt(0).toUpperCase() + dayName.slice(1)}{" "}
+                  {selected} {monthName.toLowerCase()}
+                </div>
+                <div className="day-view-sub">
+                  Bezetting per uur · totaal {dayPct}%
+                </div>
+              </div>
+              <div className="day-hours">
+                {hours.map((pct, i) => {
+                  const tier = occupancyTier(pct);
+                  return (
+                    <div key={HOUR_LABELS[i]} className="day-hour">
+                      <div className="day-hour-pct">{pct}%</div>
+                      <div className="day-hour-track">
+                        <div
+                          className={`day-hour-bar lvl-${tier}`}
+                          style={{ height: `${Math.max(pct, 4)}%` }}
+                        />
+                      </div>
+                      <div className="day-hour-label">{HOUR_LABELS[i]}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {view === "jaar" && (
           <div className="year-grid">
