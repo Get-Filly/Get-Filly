@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 export type Guest = {
   id: string;
@@ -26,7 +27,7 @@ export type Guest = {
 
 @Injectable()
 export class GuestsService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(private readonly supabase: RequestSupabaseService) {}
 
   async findAll(restaurantId: string): Promise<Guest[]> {
     const { data, error } = await this.supabase.client

@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 export type ForecastDay = {
   date: string;
@@ -47,7 +48,7 @@ type OpenMeteoResponse = {
 
 @Injectable()
 export class WeatherService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(private readonly supabase: RequestSupabaseService) {}
 
   async getForecastForRestaurant(restaurantId: string): Promise<ForecastDay[]> {
     const { data: restaurant, error } = await this.supabase.client

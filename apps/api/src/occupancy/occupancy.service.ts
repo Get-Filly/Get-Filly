@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 export type OccupancyDay = {
   date: string;
@@ -10,7 +11,7 @@ export type OccupancyDay = {
 
 @Injectable()
 export class OccupancyService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(private readonly supabase: RequestSupabaseService) {}
 
   async getMonth(
     restaurantId: string,

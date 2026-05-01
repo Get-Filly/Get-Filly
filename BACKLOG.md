@@ -59,7 +59,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Cost-alerts Anthropic** — mail als daglimiet overschreden
 
 ### Security hardening (multi-tenant, 1000+ klanten)
-- [ ] **Per-request Supabase-client met user-JWT** — defense-in-depth op RLS. Nu bypasst backend RLS via service_role.
+- [x] ~~**Per-request Supabase-client met user-JWT**~~ (2026-05-01) — `RequestSupabaseService` (Scope.REQUEST) bouwt per HTTP-call een Supabase-client met het user-JWT uit de Authorization-header. RLS-policies pakken het via `auth.uid()`. AuthGuard zet `req.accessToken` na verify. 13 services gemigreerd: Menu/Reviews/Guests/Reservations/Occupancy/Kpi/Campaigns/Suggestions/Chat/ChatMemory/Restaurant/DataExport/Weather/RestaurantContext. **Bewust op service_role gebleven**: AuditLog (audit-integriteit), Anonymization (background), AccountDeletion (raakt auth.users), Onboarding (restaurant_users-link bestaat nog niet), AiService (alleen ai_usage-logging), TeamService (gebruikt auth.admin.inviteUser/generateLink). RLS-tests bewezen op DB-niveau: cross-tenant SELECT → `[]`, cross-tenant INSERT → HTTP 403 + `new row violates row-level security policy`.
 - [ ] **`@RequireModule`-decorator** — backend enforced per-module permissies (nu alleen frontend-filter op sidebar)
 - [x] ~~**Audit-log vullen**~~ (2026-04-30) — alle 6 service-domeinen schrijven nu naar `audit_log` met echte `userId`. Zie Data Analyst-sectie voor exhaustief overzicht.
 - [ ] **Email-change flow** — account-pagina
@@ -201,19 +201,21 @@ werken. Laatste audit: 2026-04-30.
 
 ## ⏭️ Eerstvolgende open taken (begin volgende chat hier)
 
-Door Floris geselecteerd aan het einde van 2026-04-30 (na een
-intensieve sessie waarin AVG, drankkaart-flow, on-demand
-suggesties, lage-bezetting-detectie, tool-use migratie, demo-
-account, en mobile-responsive over de hele app klaar zijn).
+Door Floris geselecteerd aan het einde van 2026-05-01 (na de
+sessie waarin de per-request Supabase-client met user-JWT
+volledig is uitgerold — RLS-policies zijn nu defense-in-depth
+actief op DB-niveau voor 13 services).
 
 **State op dit moment**:
 - Demo-account `floriskoevermans@outlook.com` met restaurant_id
-  `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` is gevuld met realistische
-  data (18 gasten, 30 reserveringen, 31 occupancy-dagen, 10 reviews,
-  5 campagnes incl. 2 afgeronde, 3 pending suggesties).
-- Migraties t/m 0026 zijn gerund.
+  `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` gevuld met realistische
+  data.
+- Migraties t/m 0028 zijn gerund.
 - App is volledig responsive (1024 / 768 / 480 breakpoints).
 - Tool-use migratie compleet — geen JSON.parse-fouten meer mogelijk.
+- **Per-request Supabase-client live (2026-05-01)** — RLS-policies
+  blokkeren cross-tenant reads/writes hard op DB-niveau. Alleen
+  bewuste admin-flows draaien nog op service_role.
 
 ### Volgende sessie — kies één van deze drie
 
@@ -224,33 +226,28 @@ account, en mobile-responsive over de hele app klaar zijn).
    per plan), Mollie webhook voor status-changes (trial → active →
    cancelled). **Vereist**: Mollie-account aanmaken (zakelijk).
 
-2. **🟡 P1: Per-request Supabase-client met user-JWT** — fase A
-   (audit-log compleet) is afgerond op 2026-04-30. Alle 6 service-
-   domeinen schrijven naar `audit_log` met echte userId. **Fase B is
-   nog open**: backend draait nog op `service_role` (RLS-bypass).
-   Toe te voegen: `RequestSupabaseService` (Scope.REQUEST) die het
-   user-JWT uit de Authorization-header pakt en als
-   `global.headers.Authorization` doorgeeft aan een nieuwe Supabase-
-   client per request. Daarna gefaseerde adoptie per service (start
-   bij MenuService als pilot) zodat RLS daadwerkelijk getest wordt.
-   `SupabaseService` (service_role) blijft voor admin-flows die
-   bewust RLS bypassen (bv. ai_usage logging zonder restaurant_id).
-   **Geen externe accounts nodig**.
-
-3. **🟡 P1: Site-fundamenten (publieke site)** — voor zodra je
+2. **🟡 P1: Site-fundamenten (publieke site)** — voor zodra je
    iemand naar `get-filly.com` stuurt. Contact/waitlist-formulier
    met Resend, 404-pagina, sitemap.xml, robots.txt, og-images per
    pagina, About-pagina met Floris-verhaal, footer invullen.
    **Vereist**: Resend-account voor het contact-formulier (ook
    nodig voor Supabase Auth SMTP straks).
 
+3. **🟡 P1: Resend SMTP + email-confirmation weer aan** — Resend
+   onder Supabase Auth → SMTP Settings configureren. Lost 3-4/uur
+   rate-limit op. Daarna `Confirm email` weer aanzetten in Supabase
+   Dashboard zodat fake-signups in productie geweerd worden.
+   **Vereist**: Resend-account (overlap met taak #2).
+
 ### Mijn aanbeveling
 
-**Begin met #2** (audit-log + per-request Supabase). Geen externe
-accounts, technisch beheersbaar in 1 sessie, raakt direct de
-productie-readiness voor schaal. Mollie en site-fundamenten
-hebben beide externe afhankelijkheden waar je eerst account-werk
-voor moet doen.
+**Begin met #1 (Mollie-billing)**. Het is de enige resterende
+P0-blokker voor de eerste betalende klant — zonder kun je niet
+live. Accountwerk (Mollie zakelijk) is sowieso onvermijdelijk en
+kan parallel met de technische implementatie.
+
+Site-fundamenten en Resend hangen aan een Resend-account — die
+kun je in één keer doen zodra dat account er is.
 
 ### Andere vermeldenswaardige open punten
 
@@ -288,7 +285,7 @@ verplaatsen naar de juiste P-bucket.
 
 ### Developer
 - [x] ~~🔴 Storage-bucket `restaurant-assets` had `anon insert/update`-policies~~ (2026-04-29 — migratie 0021) — nu alleen `authenticated`-rol mag schrijven. Anon-read blijft (publieke logo-vertoning in mail-templates). Toekomst: per-restaurant path-prefix RLS.
-- [ ] 🔴 **Backend draait op `service_role`** → RLS bypass'd. Tenant-isolatie is alleen via TS-guards. Per-request Supabase-client met user-JWT toevoegen voor defense-in-depth (hangt aan bestaande P1).
+- [x] ~~🔴 **Backend draait op `service_role`** → RLS bypass'd~~ (2026-05-01) — `RequestSupabaseService` (Scope.REQUEST) live; 13 services gemigreerd. RLS-policies nu defense-in-depth actief. Test bewees: cross-tenant SELECT → `[]`, cross-tenant INSERT → HTTP 403. Bewust op service_role gebleven: AuditLog/Anonymization/AccountDeletion/Onboarding/AiService(ai_usage)/TeamService(auth.admin).
 - [ ] 🟡 **Pre-onboarding rate-limit is in-memory Map** → overleeft geen multi-instance deploy. Naar Redis/Upstash.
 - [ ] 🟡 **Geen tests behalve `app.controller.spec.ts`** — 8.500 regels backend, één spec. Minimaal smoke-tests op auth + tenant-isolatie + key endpoints.
 - [x] ~~🟡 Geen GitHub Actions CI~~ (2026-04-29) — `.github/workflows/ci.yml` toegevoegd: typecheck (api + web) + build (shared + api + web) per PR + push naar main. pnpm cache + concurrency-cancel voor snelle runs.
@@ -344,6 +341,128 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-01 — Filly menu-suggesties (nieuwe gerechten + Afgewezen-tab)
+
+**Probleem dat dit oplost**: chefs willen soms een externe blik op hun
+menu — een gat dat ze zelf niet zien, een seizoens-impuls, of een
+gewaagd "out of the box"-idee dat hun eigen denken doorbreekt. Geen
+tool die als sparring-partner werkt zonder je menu vol te stoppen.
+
+**Migratie 0029**: nieuwe tabel `suggested_menu_items` (los van
+`menu_items` zodat voorstellen niet meetellen in Filly's eigen
+prompts, exports, KPI-counts tot acceptatie). Lifecycle:
+pending → accepted/rejected/refined_into/expired. Lazy expire op 30
+dagen voor pending, 90 dagen retention voor rejected. RLS-policy
+zelfde pattern als menu_items.
+
+**Backend** ([apps/api/src/menu-suggestions/](apps/api/src/menu-suggestions/)):
+- `MenuSuggestionsService` met generate/list/accept/reject/refine.
+  Sonnet 4.6 tool-use voor 3 voorstellen per batch met enum
+  `confidence: high|medium|low` waarbij `low` = "Out of the box"
+  (positief avontuurlijk, niet "twijfel" — Filly krijgt expliciete
+  prompt-instructie hierover).
+- **Daily cap**: 1× per dag per restaurant via `audit_log`-lookup
+  (`action='menu_suggestions_generated'` op `>= start of UTC day`).
+  Bij overschrijding: NL 400 "Filly is bewust een creatieve sparring-
+  tool, geen oneindige bron".
+- **Refine cap**: 3 varianten per origineel-voorstel. Refine-flow
+  geeft Claude het origineel + alle eerdere varianten mee zodat 'ie
+  niet hetzelfde uitspuugt.
+- Accept-flow: insert in `menu_items` met midden van prijs-range,
+  voorstel op `accepted` met FK naar nieuwe item. Reject = soft
+  (status='rejected') — chef kan in Afgewezen-tab alsnog accepteren.
+
+**Frontend** ([apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx](apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx)):
+- "Voorgesteld"-tab direct na Overig in de filter-rij + "Afgewezen"-tab
+  daarnaast. Beide met aantal-tellers in de label.
+- Voorgesteld-tab: brand-soft banner met generate-knop, grid van
+  3 kaarten met source-badge (Gat/Past/Seizoen/Variant), confidence-
+  dot (groen/geel/paars-out-of-the-box), prijs-range, dietary tags,
+  reasoning-blok, acties: Toevoegen aan menu / Andere variant / ✕.
+- Afgewezen-tab: read-only banner ("laatste 90 dagen"), zelfde
+  kaarten maar alleen "Toch toevoegen"-knop.
+
+### 2026-05-01 — Tweede restaurant toevoegen + workspace-switcher uitgebreid
+
+**Probleem dat dit oplost**: eigenaar met meerdere zaken
+(vestigingen, 2e concept) had geen manier om vanuit een actieve
+sessie een nieuwe zaak aan te maken. `OnboardingService` blokkeerde
+hard met `ConflictException` als er al een `restaurant_users`-rij
+bestond, en de middleware redirecte `/onboarding` direct terug naar
+`/dashboard`.
+
+**Wijzigingen**:
+- `OnboardingService.completeOnboarding`: `ConflictException` weg.
+  Vervangen door count-query + `is_additional_restaurant`-flag in
+  audit-log + `sequence_index` zodat we kunnen herleiden hoeveelste
+  zaak het is voor deze eigenaar.
+- `apps/web/src/middleware.ts`: bypass `?mode=add` voor de
+  "user heeft al restaurant → redirect"-regel. Bestaande gebruikers
+  die per ongeluk `/onboarding` bookmarken worden nog steeds
+  teruggestuurd.
+- `/onboarding`-page: detecteert `mode=add` via `useSearchParams`.
+  Andere kop-banner ("Nieuwe zaak toevoegen"), "Annuleren" i.p.v.
+  "Uitloggen" rechtsboven, en bij succes `window.location.assign('/dashboard')`
+  i.p.v. soft `router.push` zodat alle dashboard-state vers mount
+  voor de nieuwe tenant (zelfde reden als bij workspace-switcher).
+- Account-pagina: brand-soft banner met "+ Nieuwe zaak"-knop bovenaan
+  Restaurant-sectie.
+- Sidebar workspace-dropdown: "+ Nieuwe zaak toevoegen"-item, altijd
+  zichtbaar (ook bij 1 restaurant).
+
+### 2026-05-01 — Per-request Supabase-client met user-JWT (RLS defense-in-depth)
+
+**Probleem dat dit oplost**: backend draaide op `service_role`,
+wat RLS volledig bypasst. Tenant-isolatie hing alleen aan TS-guards
+(`RestaurantAccessGuard` + `.eq('restaurant_id', ...)`-filters in
+service-code). Eén bug of vergeten guard = potentiële cross-tenant
+data-lek bij 1000+ klanten.
+
+**Oplossing**: per HTTP-request bouwt NestJS een verse Supabase-
+client met het user-JWT in de Authorization-header. PostgREST ziet
+het token, draait de query als die user, en RLS-policies pakken
+het via `auth.uid()`. Defense-in-depth bovenop bestaande TS-guards.
+
+**Foundation**:
+- `AuthGuard` zet `req.accessToken` na JWT-verify (was eerder
+  weggegooid).
+- Nieuwe `RequestSupabaseService` met `Scope.REQUEST` — leest
+  `req.accessToken` lazy bij eerste `.client`-toegang en bouwt een
+  Supabase-client met `global.headers.Authorization` + de
+  publishable-key (sb_publishable_...).
+- `SupabaseModule` exporteert beide services. NestJS scope-bubbles
+  REQUEST-scope automatisch op door de provider-keten.
+- Nieuwe env-var: `SUPABASE_PUBLISHABLE_KEY` (publieke "anon"-key
+  in nieuwe naamgeving).
+
+**Sweep — 13 services gemigreerd**:
+- MenuService (pilot, met DB-niveau RLS-tests + browser happy-path)
+- Read-heavy: Reviews, Guests, Reservations, Occupancy, Kpi
+- Write-heavy: Campaigns, Suggestions, Chat, ChatMemory, Restaurant,
+  DataExport, Weather
+- AI-context: RestaurantContextService
+
+**Bewust op `SupabaseService` (service_role) gebleven**:
+- `AuditLogService` — audit moet altijd schrijven, ook bij blokkade
+- `AnonymizationService` — background-flow, geen user-context
+- `AccountDeletionService` — verwijdert auth.users, vereist admin
+- `OnboardingService` — creëert restaurant vóór `restaurant_users`-link
+- `AiService` (alleen `ai_usage`-logging) — kan null restaurant_id
+  bij pre-onboarding
+- `TeamService` — gebruikt `auth.admin.inviteUserByEmail` +
+  `generateLink`, vereist admin-API-toegang
+- `AiRateLimitGuard` — kan pre-auth draaien
+
+**Validatie via 4 RLS-tests met tijdelijke testgebruiker** (zelf
+opgezet via Admin API + cleanup):
+- Cross-tenant SELECT → `[]` ✅
+- Eigen tenant SELECT → 3 gerechten ✅
+- SELECT zonder filter → alleen rijen van eigen restaurant_id ✅
+- Cross-tenant INSERT → **HTTP 403** + `new row violates row-level
+  security policy for table "menu_items"` ✅
+
+Plus browser-rooktest op alle 10 dashboard-pagina's groen.
 
 ### 2026-05-01 — Publieke marketing-site herbouw + dashboard-redesign
 

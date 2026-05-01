@@ -6,7 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ZodError } from 'zod';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { WebsiteAnalyzerService } from '../ai/website-analyzer.service';
 import { AuditLogService } from '../common/audit-log.service';
@@ -24,7 +25,7 @@ export class RestaurantService {
   private readonly logger = new Logger(RestaurantService.name);
 
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly geocoding: GeocodingService,
     private readonly websiteAnalyzer: WebsiteAnalyzerService,
     private readonly audit: AuditLogService,

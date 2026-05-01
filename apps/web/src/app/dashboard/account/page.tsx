@@ -294,6 +294,39 @@ export default function AccountPage() {
         <div className="form-section-desc">
           De hoofdlijnen — type, keuken en prijsklasse.
         </div>
+
+        {/* Eigenaar met meerdere zaken (vestigingen, 2e concept) kan
+            hier een nieuwe zaak aanmaken. Hergebruikt de onboarding-
+            wizard met ?mode=add — backend laat sinds 2026-05-01
+            meerdere restaurant_users-rijen per user toe. Wisselen tussen
+            zaken na aanmaken kan via het account-menu linksboven
+            (workspace-dropdown). */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 14px",
+            marginBottom: 16,
+            background: "var(--brand-soft, #EDF2EE)",
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
+            <strong>Meerdere zaken?</strong> Voeg een tweede vestiging
+            of nieuw concept toe — je kunt tussen ze wisselen via het
+            account-menu linksboven.
+          </div>
+          <ButtonLink
+            href="/onboarding?mode=add"
+            variant="secondary"
+            size="sm"
+          >
+            + Nieuwe zaak
+          </ButtonLink>
+        </div>
+
         <div className="form-grid">
           <Input
             label="Naam"

@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type Anthropic from '@anthropic-ai/sdk';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import {
   CampaignsService,
   type CampaignType,
@@ -316,7 +317,7 @@ export type SuggestedCampaign = {
 @Injectable()
 export class SuggestionsService {
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly campaigns: CampaignsService,
     private readonly ai: AiService,
     // Voor de proposal-details-call: Filly heeft profile + menu-block

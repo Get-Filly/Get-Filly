@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 // Volledig data-export voor één restaurant. Voldoet aan AVG art. 20
 // (recht op gegevensoverdraagbaarheid): de eigenaar moet zijn data in
@@ -27,7 +28,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class DataExportService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(private readonly supabase: RequestSupabaseService) {}
 
   async exportRestaurantData(restaurantId: string): Promise<{
     exported_at: string;

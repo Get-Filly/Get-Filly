@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase-browser";
+
+// Localstorage-key die de RestaurantContext gebruikt om de actieve
+// zaak te onthouden tussen sessies. Bij het toevoegen van een 2e zaak
+// (mode=add) zetten we 'm direct na succes zodat de eigenaar in z'n
+// nieuwe restaurant landt zonder eerst handmatig te switchen.
+const ACTIVE_RESTAURANT_LS_KEY = "getfilly.activeRestaurantId";
 
 // ============================================================
 // /onboarding — 3-stappen wizard met Filly-auto-invul
@@ -143,6 +149,13 @@ const INITIAL_DATA: WizardData = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  // Detecteer of dit de eerste-keer-onboarding is (geen flag) of een
+  // bestaande eigenaar die een 2e/3e zaak toevoegt (?mode=add). Beide
+  // gebruiken dezelfde wizard-content; alleen kop, redirect-target en
+  // afsluit-knop verschillen. Default = false zodat een afwijkende
+  // querystring nooit per ongeluk add-mode triggert.
+  const searchParams = useSearchParams();
+  const isAddMode = searchParams.get("mode") === "add";
   const [step, setStep] = useState<Step>(1);
   const [data, setData] = useState<WizardData>(INITIAL_DATA);
   const [menuFile, setMenuFile] = useState<File | null>(null);
@@ -451,7 +464,7 @@ export default function OnboardingPage() {
       if (typeof window !== "undefined" && restaurantId) {
         try {
           window.localStorage.setItem(
-            "getfilly.activeRestaurantId",
+            ACTIVE_RESTAURANT_LS_KEY,
             restaurantId,
           );
         } catch {
@@ -475,8 +488,20 @@ export default function OnboardingPage() {
         );
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      // Add-mode: harde reload nodig zodat de RestaurantContext + alle
+      // dashboard-pagina's vers mounten voor de nieuwe tenant. Een
+      // soft router.push houdt useEffect-gefetchte data van het oude
+      // restaurant in client-state hangen — zelfde issue als bij de
+      // workspace-switcher in sidebar.tsx (zie comment daar over
+      // window.location.reload).
+      // First-time mode: soft push is genoeg, er is nog geen oude
+      // tenant-state om weg te flushen.
+      if (isAddMode) {
+        window.location.assign("/dashboard");
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (e) {
       console.error(e);
       setError(
@@ -530,23 +555,69 @@ export default function OnboardingPage() {
               />
             ))}
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--tl, #6B6F71)",
-              fontSize: 12,
-              cursor: "pointer",
-              padding: "4px 8px",
-              whiteSpace: "nowrap",
-            }}
-            title="Uitloggen en later verder gaan"
-          >
-            Uitloggen
-          </button>
+          {/* In add-mode toont de eigenaar geen "Uitloggen" maar
+              "Annuleren" — terug naar zijn bestaande dashboard zonder
+              wizard-state te bewaren. Uitloggen heeft geen zin: hij is
+              al ingelogd én heeft al een actief restaurant. */}
+          {isAddMode ? (
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--tl, #6B6F71)",
+                fontSize: 12,
+                cursor: "pointer",
+                padding: "4px 8px",
+                whiteSpace: "nowrap",
+              }}
+              title="Terug naar dashboard zonder restaurant toe te voegen"
+            >
+              Annuleren
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--tl, #6B6F71)",
+                fontSize: 12,
+                cursor: "pointer",
+                padding: "4px 8px",
+                whiteSpace: "nowrap",
+              }}
+              title="Uitloggen en later verder gaan"
+            >
+              Uitloggen
+            </button>
+          )}
         </div>
+
+        {/* Add-mode-banner: maakt direct duidelijk dat de eigenaar bezig
+            is met een nieuwe zaak, niet de eerste-keer-onboarding. Bewust
+            géén apart "Welkom"-blok — dat zou misleidend zijn voor een
+            bestaande klant. */}
+        {isAddMode && (
+          <div
+            style={{
+              marginBottom: 20,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "var(--brand-soft, #EDF2EE)",
+              color: "var(--brand, #1F4A2D)",
+              fontSize: 13,
+              lineHeight: 1.5,
+            }}
+          >
+            <strong>Nieuwe zaak toevoegen.</strong> Doorloop de wizard
+            opnieuw. Na succes word je automatisch in de nieuwe zaak
+            geplaatst — wisselen tussen je zaken kan via het account-
+            menu linksboven.
+          </div>
+        )}
 
         {step === 1 && (
           <Step1Sources

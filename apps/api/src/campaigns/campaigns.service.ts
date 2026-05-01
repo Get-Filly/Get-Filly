@@ -3,7 +3,8 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
@@ -104,7 +105,7 @@ export type CampaignDetail = Campaign & {
 @Injectable()
 export class CampaignsService {
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
     // RestaurantContextService levert profile + menu + live blocks die
     // Filly nodig heeft voor goede campagne-varianten (echte gerechten,

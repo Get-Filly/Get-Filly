@@ -11,14 +11,17 @@ import {
   fetchActiveCards,
   fetchCardSignedUrl,
   deleteMenuCard,
+  fetchMenuSuggestions,
   type MenuItem,
   type MenuItemInput,
   type ActiveMenuCard,
+  type SuggestedMenuItem,
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { MenuSuggestionsTab } from "./_components/menu-suggestions-tab";
 
 const categoryOrder = [
   "voorgerecht",
@@ -30,7 +33,11 @@ const categoryOrder = [
 ] as const;
 
 type Category = (typeof categoryOrder)[number];
-type CategoryFilter = "alle" | Category;
+// "voorgesteld" en "afgewezen" zijn aparte views — tonen
+// suggested_menu_items met respectievelijk status='pending' of
+// 'rejected'. Gebundeld in dezelfde filter-state zodat de UI maar
+// één active-tab tegelijk heeft.
+type CategoryFilter = "alle" | "voorgesteld" | "afgewezen" | Category;
 
 const categoryLabel: Record<Category, string> = {
   voorgerecht: "Voorgerechten",
@@ -258,20 +265,74 @@ export default function MenuPage() {
   const menuCard = uploadedCards.find((c) => c.kind === "menu") ?? null;
   const drinksCard = uploadedCards.find((c) => c.kind === "drinks") ?? null;
 
+  // Filly-voorstellen voor nieuwe gerechten. Aparte tabel
+  // (suggested_menu_items) zodat ze niet meetellen in echte menu_items
+  // tot acceptatie. Twee aparte lijsten: pending (Voorgesteld-tab) en
+  // rejected (Afgewezen-tab). Lazy-fetch bij mount + opnieuw na elke
+  // mutation.
+  const [suggestions, setSuggestions] = useState<SuggestedMenuItem[]>([]);
+  const [rejectedSuggestions, setRejectedSuggestions] = useState<
+    SuggestedMenuItem[]
+  >([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [rejectedLoading, setRejectedLoading] = useState(true);
+
+  const reloadSuggestions = async () => {
+    try {
+      const [fresh, rej] = await Promise.all([
+        fetchMenuSuggestions("pending"),
+        fetchMenuSuggestions("rejected"),
+      ]);
+      setSuggestions(fresh);
+      setRejectedSuggestions(rej);
+    } catch {
+      // Niet-fataal — UI toont laatste cached lijst. Echte fout zien
+      // we al via de generate/accept/reject-handlers in de tab zelf.
+    }
+  };
+
   useEffect(() => {
-    // Bij mount: parallel ophalen van menu-items én actieve kaarten.
-    // Eén roundtrip extra; minder UI-flicker dan twee aparte fetches.
-    Promise.all([fetchMenu(), fetchActiveCards()])
-      .then(([menuData, cards]) => {
+    // Bij mount: parallel ophalen van menu-items, actieve kaarten,
+    // pending én rejected Filly-voorstellen. Vier roundtrips parallel;
+    // minder UI-flicker dan sequentieel.
+    Promise.all([
+      fetchMenu(),
+      fetchActiveCards(),
+      fetchMenuSuggestions("pending"),
+      fetchMenuSuggestions("rejected"),
+    ])
+      .then(([menuData, cards, suggs, rejected]) => {
         setItems(menuData);
         setUploadedCards(cards);
+        setSuggestions(suggs);
+        setRejectedSuggestions(rejected);
         setLoading(false);
+        setSuggestionsLoading(false);
+        setRejectedLoading(false);
       })
       .catch((e: Error) => {
         setError(e.message);
         setLoading(false);
+        setSuggestionsLoading(false);
+        setRejectedLoading(false);
       });
   }, []);
+
+  // Wordt aangeroepen door MenuSuggestionsTab na elke mutation.
+  // menuChanged=true → ook de echte menu-items opnieuw fetchen
+  // zodat een net-geaccepteerd voorstel meteen onder Alle/Hoofd/etc
+  // verschijnt.
+  const handleSuggestionsMutated = async (menuChanged: boolean) => {
+    await reloadSuggestions();
+    if (menuChanged) {
+      try {
+        const fresh = await fetchMenu();
+        setItems(fresh);
+      } catch {
+        // niet-fataal
+      }
+    }
+  };
 
   // Escape sluit de modal.
   useEffect(() => {
@@ -703,7 +764,10 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* Filter-rij: categorie-tabs links, zoekveld rechts */}
+      {/* Filter-rij: categorie-tabs (Alle/Voorgerecht/.../Overig),
+          gevolgd door Voorgesteld + Afgewezen — Filly's tabs sluiten
+          aan op de categorie-rij zodat de chef ze als natuurlijk
+          verlengstuk ervaart, niet als losse balk. */}
       <div className="menu-filters">
         <div className="tabs">
           {(["alle", ...categoryOrder] as CategoryFilter[]).map((c) => (
@@ -716,18 +780,51 @@ export default function MenuPage() {
               {countPer(c)})
             </button>
           ))}
+          <button
+            className={`tab-btn ${filter === "voorgesteld" ? "active" : ""}`}
+            onClick={() => setFilter("voorgesteld")}
+            title="Filly's gerecht-voorstellen — 1× per dag, 3 voorstellen"
+          >
+            Voorgesteld ({suggestions.length})
+          </button>
+          <button
+            className={`tab-btn ${filter === "afgewezen" ? "active" : ""}`}
+            onClick={() => setFilter("afgewezen")}
+            title="Eerder afgewezen voorstellen — laatste 90 dagen"
+          >
+            Afgewezen ({rejectedSuggestions.length})
+          </button>
         </div>
       </div>
 
-      <input
-        type="search"
-        placeholder="Zoek gerecht op naam of beschrijving..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="search-input"
-      />
+      {/* Zoekveld alleen bij echte menu-tabs. Voorgesteld/Afgewezen
+          hebben eigen interactie en zoeken op 3 voorstellen heeft
+          geen zin. */}
+      {filter !== "voorgesteld" && filter !== "afgewezen" && (
+        <input
+          type="search"
+          placeholder="Zoek gerecht op naam of beschrijving..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="search-input"
+        />
+      )}
 
-      {loading ? (
+      {filter === "voorgesteld" ? (
+        <MenuSuggestionsTab
+          mode="pending"
+          items={suggestions}
+          loading={suggestionsLoading}
+          onMutate={handleSuggestionsMutated}
+        />
+      ) : filter === "afgewezen" ? (
+        <MenuSuggestionsTab
+          mode="rejected"
+          items={rejectedSuggestions}
+          loading={rejectedLoading}
+          onMutate={handleSuggestionsMutated}
+        />
+      ) : loading ? (
         <div>
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} height={60} style={{ marginBottom: 8 }} />

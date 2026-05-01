@@ -806,6 +806,124 @@ export type MenuItemInput = {
   dietary_tags?: string[];
 };
 
+// ============================================================
+// Menu-suggesties (Filly-gerecht-voorstellen)
+// ============================================================
+// Voorstellen leven in een aparte tabel `suggested_menu_items` zodat
+// ze niet meetellen in de echte menu_items tot de eigenaar accepteert.
+// Lifecycle: pending → accepted/rejected/refined_into/expired.
+
+export type SuggestedMenuItemSourceType =
+  | "gap_analysis"
+  | "profile_based"
+  | "seasonal"
+  | "refined";
+
+export type SuggestedMenuItemConfidence = "high" | "medium" | "low";
+
+export type SuggestedMenuItemStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "refined_into"
+  | "expired";
+
+export type SuggestedMenuItem = {
+  id: string;
+  source_type: SuggestedMenuItemSourceType;
+  name: string;
+  description: string | null;
+  category: string | null;
+  subcategory: string | null;
+  // Filly geeft een prijs-RANGE (low/high in centen). Backend pakt
+  // automatisch het midden bij accept; eigenaar kan 'm daarna in de
+  // menu-pagina bijstellen.
+  price_cents_low: number | null;
+  price_cents_high: number | null;
+  dietary_tags: string[];
+  reasoning: string | null;
+  confidence: SuggestedMenuItemConfidence;
+  status: SuggestedMenuItemStatus;
+  refined_from_id: string | null;
+  refine_count: number;
+  created_at: string;
+};
+
+// status default 'pending' (de Voorgesteld-tab); 'rejected' voor de
+// Afgewezen-tab. Backend valideert; andere waardes geven 400.
+export async function fetchMenuSuggestions(
+  status: "pending" | "rejected" = "pending",
+): Promise<SuggestedMenuItem[]> {
+  const url = `${API_URL}/menu-suggestions?status=${status}`;
+  const res = await authedFetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Voorstellen ophalen mislukt"));
+  }
+  return res.json();
+}
+
+// "✨ Vraag Filly om gerecht-voorstellen". Backend doet de Claude-call
+// (Sonnet 4.6, ~3500 tokens) en returnt 3-5 nieuwe pending-rijen.
+// Rate-limited op restaurant-niveau via AiRateLimitGuard.
+export async function generateMenuSuggestions(): Promise<SuggestedMenuItem[]> {
+  const res = await authedFetch(`${API_URL}/menu-suggestions/generate`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Filly kon geen voorstellen maken"),
+    );
+  }
+  return res.json();
+}
+
+// 1-klik accept: voorstel → echt menu_item. Returnt de id van het
+// nieuwe menu_item zodat de UI eventueel naar dat item kan scrollen.
+export async function acceptMenuSuggestion(
+  suggestionId: string,
+): Promise<{ menu_item_id: string }> {
+  const res = await authedFetch(
+    `${API_URL}/menu-suggestions/${suggestionId}/accept`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Accepteren mislukt"));
+  }
+  return res.json();
+}
+
+// Soft-reject: status='rejected' (niet hard-deleten zodat we kunnen
+// leren welke voorstellen werden afgewezen).
+export async function rejectMenuSuggestion(
+  suggestionId: string,
+): Promise<{ id: string }> {
+  const res = await authedFetch(
+    `${API_URL}/menu-suggestions/${suggestionId}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Verwijderen mislukt"));
+  }
+  return res.json();
+}
+
+// "Andere variant": Filly genereert één wezenlijk andere variant.
+// Cap van 3 refines per origineel-voorstel — daarna geeft de backend
+// een 400 met NL-tekst. Het oude voorstel wordt op 'refined_into'
+// gezet en de nieuwe variant verschijnt als pending.
+export async function refineMenuSuggestion(
+  suggestionId: string,
+): Promise<SuggestedMenuItem> {
+  const res = await authedFetch(
+    `${API_URL}/menu-suggestions/${suggestionId}/refine`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Variant maken mislukt"));
+  }
+  return res.json();
+}
+
 // AVG-export: trigger een blob-download van de complete restaurant-
 // data-export. Gebruikt authedFetch zodat het JWT meegestuurd wordt
 // (die we via een <a href>-link niet mee kunnen geven).

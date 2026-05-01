@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type Anthropic from '@anthropic-ai/sdk';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+// Fire-and-forget summarizeAndSave-calls werken: Node houdt deze instance
+// in leven zolang de async-call referenties heeft op `this.supabase`.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 
 // ============================================================
@@ -71,7 +74,7 @@ export class ChatMemoryService {
   private readonly logger = new Logger(ChatMemoryService.name);
 
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
   ) {}
 

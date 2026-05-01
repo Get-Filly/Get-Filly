@@ -3,7 +3,8 @@ import { OccupancyService, type OccupancyDay } from '../occupancy/occupancy.serv
 import { WeatherService, type ForecastDay } from '../weather/weather.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import type { Reservation } from '../reservations/reservations.service';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 // ============================================================
 // RestaurantContextService — feiten + identiteit voor AI-prompts
@@ -47,7 +48,7 @@ export class RestaurantContextService {
     private readonly occupancy: OccupancyService,
     private readonly weather: WeatherService,
     private readonly reservations: ReservationsService,
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
   ) {}
 
   // ============================================================

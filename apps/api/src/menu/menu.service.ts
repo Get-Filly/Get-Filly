@@ -6,7 +6,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { SupabaseService } from '../supabase/supabase.service';
+// PILOT (2026-05-01): MenuService is de eerste service die de
+// per-request user-JWT-client gebruikt i.p.v. het service-role-singleton.
+// Daarmee draaien alle queries via RLS-policies en kan een user van
+// restaurant A nooit menu_items van restaurant B lezen — óók niet als
+// onze TS-guards onverhoopt zouden falen (defense-in-depth).
+//
+// SupabaseService blijft beschikbaar voor admin-flows die bewust RLS
+// bypassen (audit-log, anonymization, account-deletion). MenuService
+// gebruikt 'm hier expres NIET — alle reads/writes horen onder de
+// permissies van de ingelogde user te draaien.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { MenuImporterService } from '../ai/menu-importer.service';
 import { AuditLogService } from '../common/audit-log.service';
 
@@ -87,7 +97,12 @@ export class MenuService {
   private readonly logger = new Logger(MenuService.name);
 
   constructor(
-    private readonly supabase: SupabaseService,
+    // RequestSupabaseService is Scope.REQUEST: NestJS bouwt 'm vers per
+    // inkomende HTTP-call. MenuService + MenuController erven dit scope
+    // automatisch — niet expliciet @Injectable({ scope: Scope.REQUEST })
+    // op MenuService nodig, NestJS doet "scope bubbling" via de
+    // dependency-graph.
+    private readonly supabase: RequestSupabaseService,
     private readonly importer: MenuImporterService,
     private readonly audit: AuditLogService,
   ) {}

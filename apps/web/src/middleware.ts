@@ -49,9 +49,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Onboarding-gate: een ingelogde user kan in 2 staten zijn:
+  // Onboarding-gate: een ingelogde user kan in 3 staten zijn:
   //   A. Nog geen restaurant → moet naar /onboarding
-  //   B. Wel een restaurant → mag niet meer naar /onboarding
+  //   B. Wel een restaurant + bezoekt /onboarding zonder ?mode=add
+  //      → terug naar dashboard (per ongeluk daar beland)
+  //   C. Wel een restaurant + bezoekt /onboarding?mode=add
+  //      → laat door (eigenaar wil 2e/3e zaak toevoegen, sinds 2026-05-01)
   // We checken dat door te vragen of er een restaurant_users-rij is
   // voor deze user. Dankzij RLS (user_id = auth.uid()) hoeven we geen
   // service_role te gebruiken: de user mag z'n eigen koppeling zien.
@@ -64,13 +67,19 @@ export async function middleware(request: NextRequest) {
       .maybeSingle();
 
     const hasRestaurant = !!membership;
+    // Bewust opt-in via expliciete query-flag: voorkomt dat een
+    // gebookmarkte /onboarding-URL of een rondhangende tab bestaande
+    // gebruikers ineens weer in de wizard zet. De flag wordt door de
+    // "+ Nieuw restaurant"-knoppen meegestuurd (account-pagina +
+    // workspace-dropdown).
+    const wantsAdd = request.nextUrl.searchParams.get("mode") === "add";
 
     if (isDashboard && !hasRestaurant) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
       return NextResponse.redirect(url);
     }
-    if (isOnboarding && hasRestaurant) {
+    if (isOnboarding && hasRestaurant && !wantsAdd) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);

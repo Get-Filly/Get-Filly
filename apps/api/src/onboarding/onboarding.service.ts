@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -126,21 +125,19 @@ export class OnboardingService {
       );
     }
 
-    // Stap 2 — bestaat er al een koppeling voor deze user? Dan is hij
-    // al door onboarding heen. Niet opnieuw een restaurant maken.
-    const { data: existing, error: existErr } = await this.supabase.client
+    // Stap 2 — bestaat er al een koppeling voor deze user?
+    // Sinds 2026-05-01 mag een eigenaar meerdere zaken hebben (vestigingen,
+    // 2e zaak, etc.). Vroeger blokkeerden we hier hard met een 409 om
+    // accidentele dubbele wizard-runs af te vangen — die bescherming
+    // verhuist nu naar de frontend (button-disable na submit + redirect-
+    // away na succes). Backend houdt alleen een count voor de audit-log
+    // zodat we kunnen zien hoeveelste zaak dit was voor deze eigenaar.
+    const { count: existingCount, error: countErr } = await this.supabase.client
       .from('restaurant_users')
-      .select('restaurant_id')
-      .eq('user_id', userId)
-      .limit(1)
-      .maybeSingle();
-
-    if (existErr) throw new InternalServerErrorException(existErr.message);
-    if (existing) {
-      throw new ConflictException(
-        'Je hebt al een restaurant gekoppeld. Herlaad het dashboard.',
-      );
-    }
+      .select('restaurant_id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    if (countErr) throw new InternalServerErrorException(countErr.message);
+    const isAdditionalRestaurant = (existingCount ?? 0) > 0;
 
     // Stap 3 — FIRST public.users-spiegel-rij aanmaken (idempotent).
     // Zonder deze rij faalt de restaurant_users-insert later op zijn
@@ -310,6 +307,10 @@ export class OnboardingService {
         had_website: Boolean(input.website_url),
         menu_items_imported: menuImport?.inserted ?? 0,
         drink_items_imported: drinkImport?.inserted ?? 0,
+        // Hoeveelste zaak van deze eigenaar — voor support ("klant
+        // breidt uit naar 3e vestiging") en cohort-analyse.
+        sequence_index: (existingCount ?? 0) + 1,
+        is_additional_restaurant: isAdditionalRestaurant,
       },
     });
 

@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 export type Kpis = {
   today_pct: number | null;
@@ -45,7 +46,7 @@ export type FillyRoiMonth = {
 
 @Injectable()
 export class KpiService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(private readonly supabase: RequestSupabaseService) {}
 
   async getKpis(restaurantId: string): Promise<Kpis> {
     const now = new Date();

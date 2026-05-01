@@ -5,7 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
@@ -109,7 +110,7 @@ export class ChatService {
   private readonly MEMORY_CONTEXT_LIMIT = 5;
 
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
     private readonly context: RestaurantContextService,
     private readonly suggestionsService: SuggestionsService,

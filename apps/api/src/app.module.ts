@@ -12,6 +12,7 @@ import { RestaurantModule } from './restaurant/restaurant.module';
 import { WeatherModule } from './weather/weather.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { MenuModule } from './menu/menu.module';
+import { MenuSuggestionsModule } from './menu-suggestions/menu-suggestions.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { MeModule } from './me/me.module';
@@ -32,6 +33,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     WeatherModule,
     SuggestionsModule,
     MenuModule,
+    MenuSuggestionsModule,
     ReservationsModule,
     ReviewsModule,
     MeModule,

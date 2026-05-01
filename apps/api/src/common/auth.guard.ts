@@ -93,6 +93,11 @@ export class AuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<{
       headers: Record<string, string | string[] | undefined>;
       user?: AuthenticatedUser;
+      // Het rauwe Bearer-token bewaren we ook op het request-object.
+      // Reden: de `RequestSupabaseService` (Scope.REQUEST) leest dit
+      // straks om een per-request Supabase-client te bouwen die als
+      // de ingelogde user opereert (RLS-policies pakken dan auth.uid()).
+      accessToken?: string;
     }>();
 
     const rawHeader = req.headers['authorization'];
@@ -147,6 +152,11 @@ export class AuthGuard implements CanActivate {
       id: payload.sub,
       email,
     };
+
+    // Bewaar het rauwe token zodat de RequestSupabaseService er straks
+    // bij kan om een per-request user-scoped client te bouwen. Het
+    // token is op dit punt al geverifieerd — we vertrouwen het.
+    req.accessToken = token;
 
     return true;
   }

@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type Anthropic from '@anthropic-ai/sdk';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
@@ -46,7 +47,7 @@ export type Review = {
 @Injectable()
 export class ReviewsService {
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
     // RestaurantContextService levert het profile-block (USPs, tagline,
     // sfeer, doelgroep, signature dishes etc). Filly gebruikt dat om

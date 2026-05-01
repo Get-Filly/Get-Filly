@@ -250,9 +250,25 @@ export function Sidebar() {
                     </button>
                   );
                 })}
-                <div className="sb-menu-divider" aria-hidden />
               </>
             )}
+
+            {/* "+ Nieuwe zaak" — altijd zichtbaar (ook bij 1 restaurant),
+                zodat de toevoeg-actie ontdekbaar is zonder eerst naar
+                de account-pagina te hoeven. Hergebruikt de bestaande
+                onboarding-wizard met ?mode=add (sinds 2026-05-01). Na
+                succes wordt de eigenaar automatisch in de nieuwe zaak
+                geplaatst. */}
+            <Link
+              href="/onboarding?mode=add"
+              className="sb-menu-item"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span className="sb-menu-icon">+</span>
+              Nieuwe zaak toevoegen
+            </Link>
+            <div className="sb-menu-divider" aria-hidden />
 
             {canSeeAccount && (
               <Link

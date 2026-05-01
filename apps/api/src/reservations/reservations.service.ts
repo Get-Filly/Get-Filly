@@ -4,7 +4,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+// Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
+import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 export type ReservationStatus =
@@ -45,7 +46,7 @@ const RESERVATION_COLUMNS =
 @Injectable()
 export class ReservationsService {
   constructor(
-    private readonly supabase: SupabaseService,
+    private readonly supabase: RequestSupabaseService,
     private readonly audit: AuditLogService,
   ) {}
 
