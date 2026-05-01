@@ -240,29 +240,49 @@ export class RestaurantContextService {
     // display_order, maar dat is in de praktijk overal 0 (default,
     // niemand zet 't handmatig) waardoor de fallback-volgorde
     // willekeurig was en nieuwe items achteraan landden.
-    const FOOD_LIMIT = 60;
-    const DRINK_LIMIT = 40;
+    //
+    // Caps zijn ruim genoeg voor 99% van horeca-zaken: bistro/brasserie
+    // 30-60 food, fine-dining 20-30 food + 50-100 drank, hotel-restaurant
+    // tot 100+ food. Sonnet 4.6 heeft 200k context en met prompt-caching
+    // (cache_control: ephemeral) kost de menu-block ~10% van de normale
+    // input-prijs bij hits — token-impact is marginaal.
+    //
+    // Bij overflow (meer items dan de cap) telt buildMenuBlock dat ook
+    // op en zet 't in de prompt-output, zodat Filly transparant is dat
+    // 'ie maar een deel ziet ipv blind te aannemen "dit is alles".
+    const FOOD_LIMIT = 150;
+    const DRINK_LIMIT = 100;
 
-    const [foodResult, drinkResult] = await Promise.all([
+    // count-queries draaien in dezelfde Promise.all zodat we maar één
+    // roundtrip-tijdvenster hebben. head:true → geen rijen, alleen het
+    // totaal-getal; geen extra DB-werk.
+    const baseFood = () =>
       this.supabase.client
         .from('menu_items')
         .select(
           'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
+          { count: 'exact' },
         )
         .eq('restaurant_id', restaurantId)
         .eq('is_available', true)
-        .neq('category', 'drank')
+        .neq('category', 'drank');
+    const baseDrink = () =>
+      this.supabase.client
+        .from('menu_items')
+        .select(
+          'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
+          { count: 'exact' },
+        )
+        .eq('restaurant_id', restaurantId)
+        .eq('is_available', true)
+        .eq('category', 'drank');
+
+    const [foodResult, drinkResult] = await Promise.all([
+      baseFood()
         .order('is_signature', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(FOOD_LIMIT),
-      this.supabase.client
-        .from('menu_items')
-        .select(
-          'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
-        )
-        .eq('restaurant_id', restaurantId)
-        .eq('is_available', true)
-        .eq('category', 'drank')
+      baseDrink()
         .order('is_signature', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(DRINK_LIMIT),
@@ -281,11 +301,25 @@ export class RestaurantContextService {
 
     if (allItems.length === 0) return '';
 
+    // Echte totalen op de zaak — voor de overflow-melding aan Filly.
+    // count is null als de query geen count meegaf; dan vallen we
+    // terug op het aantal gefetchte items (geen overflow zichtbaar
+    // maar ook geen foute claim).
+    const foodTotal = foodResult.count ?? foodItems.length;
+    const drinkTotal = drinkResult.count ?? drinkItems.length;
+
     const lines: string[] = [];
 
     // -------- MENU --------
+    // Bij overflow eerlijk vermelden: "selectie van X totaal" zodat
+    // Filly weet dat hij niet het hele menu ziet en in z'n antwoord
+    // kan compenseren ("er zijn nog meer gerechten die ik nu niet zie").
     if (foodItems.length > 0) {
-      lines.push(`MENU (${foodItems.length} gerechten)`);
+      const foodHeader =
+        foodTotal > foodItems.length
+          ? `MENU (selectie van ${foodTotal} gerechten — ${foodItems.length} hier zichtbaar; signature + meest recente eerst)`
+          : `MENU (${foodItems.length} gerechten)`;
+      lines.push(foodHeader);
       const foodGroups = new Map<string, Item[]>();
       for (const it of foodItems) {
         const cat = it.category?.trim() || 'Overig';
@@ -305,7 +339,11 @@ export class RestaurantContextService {
     // -------- DRANKKAART --------
     if (drinkItems.length > 0) {
       lines.push('');
-      lines.push(`DRANKKAART (${drinkItems.length} drankjes)`);
+      const drinkHeader =
+        drinkTotal > drinkItems.length
+          ? `DRANKKAART (selectie van ${drinkTotal} drankjes — ${drinkItems.length} hier zichtbaar; signature + meest recente eerst)`
+          : `DRANKKAART (${drinkItems.length} drankjes)`;
+      lines.push(drinkHeader);
       const drinkGroups = new Map<string, Item[]>();
       for (const it of drinkItems) {
         const sub = it.subcategory?.trim() || 'overig';
