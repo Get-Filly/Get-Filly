@@ -30,8 +30,19 @@ export class SuggestionsController {
   findAll(
     @RestaurantId() restaurantId: string,
     @Query('status') status?: SuggestionStatus,
+    // 'exclude' kan een comma-gescheiden lijst trigger_types zijn die
+    // niet getoond moeten worden. Gebruikt door /dashboard/campagnes
+    // om chat_bundle-suggesties uit te sluiten — die horen alleen in
+    // de chat-flow zelf, niet als losse suggestie-kaart.
+    @Query('exclude') exclude?: string,
   ) {
-    return this.suggestions.findAll(restaurantId, status);
+    const excludeList = exclude
+      ? exclude
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      : undefined;
+    return this.suggestions.findAll(restaurantId, status, excludeList);
   }
 
   @Get(':id')

@@ -718,9 +718,16 @@ export type AiSuggestion = {
 
 export async function fetchSuggestions(
   status?: SuggestionStatus,
+  excludeTriggerTypes?: string[],
 ): Promise<AiSuggestion[]> {
-  const url = status
-    ? `${API_URL}/suggestions?status=${status}`
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (excludeTriggerTypes && excludeTriggerTypes.length > 0) {
+    params.set("exclude", excludeTriggerTypes.join(","));
+  }
+  const qs = params.toString();
+  const url = qs
+    ? `${API_URL}/suggestions?${qs}`
     : `${API_URL}/suggestions`;
   const res = await authedFetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -329,6 +329,7 @@ export class SuggestionsService {
   async findAll(
     restaurantId: string,
     status?: SuggestionStatus,
+    excludeTriggerTypes?: string[],
   ): Promise<AiSuggestion[]> {
     let query = this.supabase.client
       .from('ai_suggestions')
@@ -339,6 +340,19 @@ export class SuggestionsService {
       .order('created_at', { ascending: false });
 
     if (status) query = query.eq('status', status);
+
+    // Sinds 2026-05-04: chat_bundle-suggesties horen niet thuis in
+    // de campagnes-pagina (geen approve-bundle-knop daar). Caller
+    // kan ze uitsluiten via excludeTriggerTypes=['chat_bundle'].
+    // Default niet filteren — chat-flow heeft 'm wél nodig voor de
+    // bundle-card-state-detectie bij chat-history-load.
+    if (excludeTriggerTypes && excludeTriggerTypes.length > 0) {
+      query = query.not(
+        'trigger_type',
+        'in',
+        `(${excludeTriggerTypes.map((t) => `"${t}"`).join(',')})`,
+      );
+    }
 
     const { data, error } = await query;
     if (error) throw new InternalServerErrorException(error.message);

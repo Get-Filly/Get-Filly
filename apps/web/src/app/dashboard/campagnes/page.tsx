@@ -201,7 +201,7 @@ export default function CampagnesPage() {
     try {
       await generateSuggestions();
       // Pendings opnieuw ophalen zodat de strip direct bijwerkt.
-      const fresh = await fetchSuggestions("pending");
+      const fresh = await fetchSuggestions("pending", ["chat_bundle"]);
       setPendingSuggestions(fresh);
     } catch (e) {
       setGenerateError(
@@ -220,11 +220,13 @@ export default function CampagnesPage() {
   // met "expired" geeft alleen wat backend zelf op die status heeft
   // gezet; lokaal-verlopen pending's voegen we hieronder toe.
   useEffect(() => {
+    // chat_bundle-suggesties uitsluiten: die horen alleen in de chat-
+    // flow (bundle-card), niet als losse suggestie op deze pagina.
     Promise.all([
       fetchCampaigns(),
-      fetchSuggestions("pending"),
-      fetchSuggestions("expired"),
-      fetchSuggestions("rejected"),
+      fetchSuggestions("pending", ["chat_bundle"]),
+      fetchSuggestions("expired", ["chat_bundle"]),
+      fetchSuggestions("rejected", ["chat_bundle"]),
     ])
       .then(([c, pend, exp, rej]) => {
         setCampaigns(c);

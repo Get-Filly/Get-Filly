@@ -116,7 +116,8 @@ export default function SuggestiesPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetchSuggestions(tab)
+    // chat_bundle-suggesties horen alleen in de chat-flow (bundle-card)
+    fetchSuggestions(tab, ["chat_bundle"])
       .then((d) => {
         setSuggestions(d);
         if (tab === "pending") {

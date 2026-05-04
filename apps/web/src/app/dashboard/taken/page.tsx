@@ -65,7 +65,8 @@ export default function TakenPage() {
   useEffect(() => {
     const now = new Date();
     Promise.all([
-      fetchSuggestions("pending"),
+      // chat_bundle-suggesties horen alleen in de chat-flow (bundle-card)
+      fetchSuggestions("pending", ["chat_bundle"]),
       fetchGuests(),
       fetchReservations(
         now.toISOString().slice(0, 10),
