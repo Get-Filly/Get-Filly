@@ -2,11 +2,23 @@
 
 import { forwardRef } from "react";
 import type {
+  BundleChannel,
   ChatMessage,
   CampaignProposalCard,
+  CampaignBundleCard,
+  ChannelChoiceCard,
 } from "../../../lib/api";
 import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatProposalCard } from "./filly-chat-proposal-card";
+import {
+  FillyChatBundleCard,
+  type BundleStatus,
+} from "./filly-chat-bundle-card";
+import {
+  FillyChatChoiceCard,
+  type ChannelChoice,
+  type ChoiceState,
+} from "./filly-chat-choice-card";
 
 // ============================================================
 // FillyChatMessageList — render-loop voor de chat-thread.
@@ -28,6 +40,7 @@ type Props = {
   sending: boolean;
   messages: ChatMessage[];
   proposalStatus: Record<string, ProposalStatus>;
+  bundleStatus: Record<string, BundleStatus>;
   onAcceptProposal: (
     messageId: string,
     proposal: CampaignProposalCard,
@@ -37,6 +50,17 @@ type Props = {
     messageId: string,
     proposal: CampaignProposalCard,
   ) => void;
+  onAcceptBundle: (
+    messageId: string,
+    bundle: CampaignBundleCard,
+    channels: BundleChannel[],
+  ) => void;
+  onDismissBundle: (messageId: string) => void;
+  choiceState: Record<
+    string,
+    { state: ChoiceState; chosen?: ChannelChoice }
+  >;
+  onChooseChannel: (messageId: string, choices: ChannelChoice[]) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -46,9 +70,14 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
       sending,
       messages,
       proposalStatus,
+      bundleStatus,
+      choiceState,
       onAcceptProposal,
       onDismissProposal,
       onOpenProposalDetails,
+      onAcceptBundle,
+      onDismissBundle,
+      onChooseChannel,
     },
     scrollRef,
   ) {
@@ -86,6 +115,28 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                           m.message_card as CampaignProposalCard,
                         )
                       }
+                    />
+                  )}
+                  {m.message_card?.kind === "campaign_bundle" && (
+                    <FillyChatBundleCard
+                      bundle={m.message_card}
+                      status={bundleStatus[m.id] ?? { state: "pending" }}
+                      onAccept={(channels) =>
+                        onAcceptBundle(
+                          m.id,
+                          m.message_card as CampaignBundleCard,
+                          channels,
+                        )
+                      }
+                      onDismiss={() => onDismissBundle(m.id)}
+                    />
+                  )}
+                  {m.message_card?.kind === "channel_choice" && (
+                    <FillyChatChoiceCard
+                      card={m.message_card}
+                      state={choiceState[m.id]?.state ?? "pending"}
+                      chosen={choiceState[m.id]?.chosen}
+                      onChoose={(choices) => onChooseChannel(m.id, choices)}
                     />
                   )}
                 </div>

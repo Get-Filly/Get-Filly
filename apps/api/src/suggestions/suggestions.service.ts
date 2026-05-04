@@ -1066,6 +1066,252 @@ Maak dit tastbaar volgens de regels.`;
     return { suggestion: updated as AiSuggestion, campaignId };
   }
 
+  // ============================================================
+  // APPROVE BUNDLE — multi-channel uit chat → 1 group + 3 campaigns
+  // ============================================================
+  // Specifiek voor ai_suggestions met trigger_type='chat_bundle'.
+  // Maakt:
+  //   - 1 campaign_groups-rij (de bundle)
+  //   - 3 campaigns met dezelfde group_id:
+  //       * type='mail'   met subject_line + body in campaign_mail_content
+  //       * type='social' platforms=['instagram'] in campaign_social_content
+  //       * type='social' platforms=['facebook']  in campaign_social_content
+  //   - ai_suggestions: status=approved, approved_campaign_id wijst
+  //     naar de mail-campagne (anker; andere twee zijn via group_id
+  //     vindbaar)
+  // Idempotent: bij al-approved bundle returnen we de bestaande state.
+  async approveBundle(
+    restaurantId: string,
+    suggestionId: string,
+    userId: string,
+    // Welke kanalen wil de eigenaar daadwerkelijk aanmaken? Default
+    // alle 3. Eigenaar kan in de chat-bundle-kaart vinkjes uitzetten
+    // om bv. alleen mail + IG te kiezen, geen FB.
+    channels: Array<'mail' | 'instagram' | 'facebook'> = [
+      'mail',
+      'instagram',
+      'facebook',
+    ],
+  ): Promise<{
+    suggestion: AiSuggestion;
+    groupId: string;
+    mailCampaignId: string | null;
+    instagramCampaignId: string | null;
+    facebookCampaignId: string | null;
+  }> {
+    const suggestion = await this.findById(restaurantId, suggestionId);
+
+    if (suggestion.trigger_type !== 'chat_bundle') {
+      throw new InternalServerErrorException(
+        'Deze suggestie is geen multi-channel-bundle. Gebruik approve i.p.v. approveBundle.',
+      );
+    }
+
+    if (
+      suggestion.status === 'approved' &&
+      suggestion.approved_campaign_id
+    ) {
+      // Bestaande state ophalen — bij dubbele klik na navigation.
+      // Group-id achterhalen via campaigns.group_id van de mail-campagne.
+      const { data: mailCamp } = await this.supabase.client
+        .from('campaigns')
+        .select('id, group_id, type')
+        .eq('id', suggestion.approved_campaign_id)
+        .maybeSingle();
+      if (mailCamp?.group_id) {
+        const { data: siblings } = await this.supabase.client
+          .from('campaigns')
+          .select('id, type, campaign_social_content(platforms)')
+          .eq('group_id', mailCamp.group_id);
+        const ig = (siblings ?? []).find((s) => {
+          const pl = (s.campaign_social_content as
+            | { platforms?: string[] }[]
+            | { platforms?: string[] }
+            | null
+            | undefined);
+          const platforms = Array.isArray(pl)
+            ? pl[0]?.platforms
+            : pl?.platforms;
+          return s.type === 'social' && platforms?.includes('instagram');
+        });
+        const fb = (siblings ?? []).find((s) => {
+          const pl = (s.campaign_social_content as
+            | { platforms?: string[] }[]
+            | { platforms?: string[] }
+            | null
+            | undefined);
+          const platforms = Array.isArray(pl)
+            ? pl[0]?.platforms
+            : pl?.platforms;
+          return s.type === 'social' && platforms?.includes('facebook');
+        });
+        return {
+          suggestion,
+          groupId: mailCamp.group_id as string,
+          mailCampaignId: (mailCamp.id as string | undefined) ?? null,
+          instagramCampaignId: (ig?.id as string | undefined) ?? null,
+          facebookCampaignId: (fb?.id as string | undefined) ?? null,
+        };
+      }
+    }
+
+    if (suggestion.status !== 'pending') {
+      throw new InternalServerErrorException(
+        `Deze bundle is ${suggestion.status}. Zet 'm eerst terug op open via de Afgewezen-tab.`,
+      );
+    }
+
+    // Bundle-payload uit suggested_campaign-jsonb. Validatie hier
+    // omdat de jsonb in theorie alles kan bevatten — bij corruptie
+    // nette NL-foutmelding ipv crash.
+    const sc = suggestion.suggested_campaign as
+      | {
+          name?: string;
+          theme?: string;
+          channels?: {
+            mail?: { subject_line?: string; body?: string };
+            instagram?: { caption?: string; hashtags?: string[] };
+            facebook?: { caption?: string };
+          };
+        }
+      | null;
+
+    const bundleName =
+      typeof sc?.name === 'string' && sc.name.trim()
+        ? sc.name.trim().slice(0, 120)
+        : 'Multi-channel campagne';
+    const theme =
+      typeof sc?.theme === 'string' ? sc.theme.trim().slice(0, 280) : null;
+    const mailContent = sc?.channels?.mail;
+    const igContent = sc?.channels?.instagram;
+    const fbContent = sc?.channels?.facebook;
+
+    // Validatie: voor elk GEKOZEN kanaal moet de bundle-payload de
+    // bijbehorende content hebben. Niet-gekozen kanalen valideren we
+    // niet — eigenaar wil ze toch niet aanmaken.
+    if (channels.length === 0) {
+      throw new InternalServerErrorException(
+        'Selecteer minimaal één kanaal om aan te maken.',
+      );
+    }
+    if (
+      channels.includes('mail') &&
+      (!mailContent?.subject_line?.trim() || !mailContent.body?.trim())
+    ) {
+      throw new InternalServerErrorException(
+        'Mail-content ontbreekt in deze bundle.',
+      );
+    }
+    if (channels.includes('instagram') && !igContent?.caption?.trim()) {
+      throw new InternalServerErrorException(
+        'Instagram-content ontbreekt in deze bundle.',
+      );
+    }
+    if (channels.includes('facebook') && !fbContent?.caption?.trim()) {
+      throw new InternalServerErrorException(
+        'Facebook-content ontbreekt in deze bundle.',
+      );
+    }
+
+    // 1) Group aanmaken — altijd, ongeacht aantal kanalen. Maakt het
+    // makkelijk om later een ontbrekend kanaal toe te voegen via een
+    // tweede approve-bundle-call.
+    const { data: group, error: groupErr } = await this.supabase.client
+      .from('campaign_groups')
+      .insert({
+        restaurant_id: restaurantId,
+        name: bundleName,
+        theme,
+        created_by: userId,
+      })
+      .select('id')
+      .single();
+    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    const groupId = group.id as string;
+
+    // 2) Per gekozen kanaal een campagne aanmaken via CampaignsService.create.
+    // Niet-gekozen kanalen krijgen null als ID — frontend toont dan de
+    // checkbox als grijs i.p.v. een doorlink.
+    let mailCampaignId: string | null = null;
+    let instagramCampaignId: string | null = null;
+    let facebookCampaignId: string | null = null;
+
+    if (channels.includes('mail') && mailContent) {
+      const { id } = await this.campaigns.create(
+        restaurantId,
+        {
+          name: `${bundleName} — mail`,
+          type: 'mail',
+          subject_line: mailContent.subject_line!.trim().slice(0, 200),
+          body: mailContent.body!.trim(),
+          group_id: groupId,
+        },
+        userId,
+      );
+      mailCampaignId = id;
+    }
+
+    if (channels.includes('instagram') && igContent) {
+      const { id } = await this.campaigns.create(
+        restaurantId,
+        {
+          name: `${bundleName} — Instagram`,
+          type: 'social',
+          body: igContent.caption!.trim(),
+          social_platforms: ['instagram'],
+          social_hashtags: igContent.hashtags ?? [],
+          group_id: groupId,
+        },
+        userId,
+      );
+      instagramCampaignId = id;
+    }
+
+    if (channels.includes('facebook') && fbContent) {
+      const { id } = await this.campaigns.create(
+        restaurantId,
+        {
+          name: `${bundleName} — Facebook`,
+          type: 'social',
+          body: fbContent.caption!.trim(),
+          social_platforms: ['facebook'],
+          group_id: groupId,
+        },
+        userId,
+      );
+      facebookCampaignId = id;
+    }
+
+    // 3) Suggestie afsluiten. Approved_campaign_id wijst naar het eerste
+    // beschikbare kanaal (mail als 't gekozen is, anders IG, anders FB)
+    // zodat we tenminste één anker hebben voor de "bekijk campagne"-link.
+    const anchorCampaignId =
+      mailCampaignId ?? instagramCampaignId ?? facebookCampaignId;
+
+    const { data: updated, error: updateErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({
+        status: 'approved',
+        acted_at: new Date().toISOString(),
+        approved_campaign_id: anchorCampaignId,
+      })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+    if (updateErr) throw new InternalServerErrorException(updateErr.message);
+
+    return {
+      suggestion: updated as AiSuggestion,
+      groupId,
+      mailCampaignId,
+      instagramCampaignId,
+      facebookCampaignId,
+    };
+  }
+
   async updateStatus(
     restaurantId: string,
     suggestionId: string,
@@ -1306,6 +1552,45 @@ Inhoudsregels:
         restaurant_id: restaurantId,
         trigger_type: 'chat',
         suggested_campaign: suggested,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    return { id: data.id as string };
+  }
+
+  // ============================================================
+  // BUNDLE — multi-channel proposal vanuit chat (mail + IG + FB)
+  // ============================================================
+  // Sinds 2026-05-04: Filly kan in chat een bundle voorstellen — één
+  // thema over drie kanalen tegelijk. Slaan we op als één
+  // ai_suggestions-rij met trigger_type='chat_bundle' en de hele
+  // bundle in suggested_campaign-jsonb. Approve-flow detecteert het
+  // trigger_type en maakt:
+  //   - 1 campaign_groups-rij (de bundel)
+  //   - 3 campaigns met dezelfde group_id (mail / social-IG / social-FB)
+  //   - 3 content-rijen (campaign_mail_content + 2× campaign_social_content)
+  // Eigenaar kan elk kanaal individueel pushen of inplannen daarna.
+  async createBundleFromChat(
+    restaurantId: string,
+    bundle: {
+      name: string;
+      theme: string;
+      channels: {
+        mail: { subject_line: string; body: string };
+        instagram: { caption: string; hashtags?: string[] };
+        facebook: { caption: string };
+      };
+    },
+  ): Promise<{ id: string }> {
+    const { data, error } = await this.supabase.client
+      .from('ai_suggestions')
+      .insert({
+        restaurant_id: restaurantId,
+        trigger_type: 'chat_bundle',
+        suggested_campaign: bundle,
         status: 'pending',
       })
       .select('id')

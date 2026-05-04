@@ -210,6 +210,16 @@ export class CampaignsService {
       // bij eerste open opnieuw genereert (= dubbele kosten +
       // 6 ipv 3 opties zichtbaar).
       seed_variants?: Array<{ subject_line?: string; body: string }>;
+      // Sinds 2026-05-04: bij multi-channel-bundle approves geven
+      // we een group_id mee zodat alle 3 sub-campagnes onder
+      // hetzelfde campaign_groups-anker hangen. Single-channel
+      // creates laten 'm null.
+      group_id?: string;
+      // Voor type='social' campagnes uit een bundle: kanaal-
+      // specifieke metadata. platforms vult campaign_social_content.
+      // hashtags optioneel (FB heeft er meestal geen, IG wel).
+      social_platforms?: string[];
+      social_hashtags?: string[];
     },
     // userId is verplicht: zonder actor in de audit-log verliezen we
     // bij klant-support traceerbaarheid ("wie heeft die campagne
@@ -259,6 +269,8 @@ export class CampaignsService {
         // de oorspronkelijke 0014-design bedoeld.
         filly_variants: seededVariants.length > 0 ? seededVariants : null,
         filly_variants_regen_count: seededVariants.length > 0 ? 1 : 0,
+        // Bundle-anker (sinds mig 0032). Null voor single-channel.
+        group_id: input.group_id ?? null,
       })
       .select('id')
       .single();
@@ -286,6 +298,16 @@ export class CampaignsService {
         .insert({
           campaign_id: campaignId,
           caption: body,
+          // platforms en hashtags alleen vullen als meegegeven
+          // (bundle-flow); anders default uit DB-schema (lege arrays).
+          platforms:
+            input.social_platforms && input.social_platforms.length > 0
+              ? input.social_platforms
+              : undefined,
+          hashtags:
+            input.social_hashtags && input.social_hashtags.length > 0
+              ? input.social_hashtags
+              : undefined,
         });
       contentErr = error;
     } else {

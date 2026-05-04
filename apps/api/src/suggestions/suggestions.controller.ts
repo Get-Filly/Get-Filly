@@ -98,9 +98,37 @@ export class SuggestionsController {
     return this.suggestions.approve(restaurantId, id, user.id);
   }
 
+  // Goedkeur-flow voor multi-channel-bundle (sinds 2026-05-04).
+  // Werkt alleen op suggesties met trigger_type='chat_bundle'. Maakt
+  // 1 campaign_groups + 3 campaigns (mail / IG / FB) tegelijk en geeft
+  // alle 4 IDs terug zodat de frontend de drie campagne-detail-links
+  // kan tonen.
+  @Post(':id/approve-bundle')
+  approveBundle(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body()
+    body: { channels?: Array<'mail' | 'instagram' | 'facebook'> } | undefined,
+  ) {
+    // Frontend stuurt 'channels' vanuit de checkboxes mee; ongeselecteerde
+    // kanalen worden niet aangemaakt. Validatie van de waardes gebeurt
+    // in de service zodat we daar een nette NL-foutmelding produceren.
+    const validChannels = (body?.channels ?? []).filter(
+      (c): c is 'mail' | 'instagram' | 'facebook' =>
+        c === 'mail' || c === 'instagram' || c === 'facebook',
+    );
+    return this.suggestions.approveBundle(
+      restaurantId,
+      id,
+      user.id,
+      validChannels.length > 0 ? validChannels : undefined,
+    );
+  }
+
   // Refine-flow: laat Filly het voorstel aanpassen volgens een user-
-  // instructie ("maak huiselijker", "korter onderwerp"). Body bevat
-  // { instruction: string }. Werkt op de geselecteerde variant.
+  // instructie ("maak huiselijker", "korter onderwerp"). Werkt alleen
+  // op single-channel proposals.
   @Post(':id/refine')
   refine(
     @RestaurantId() restaurantId: string,

@@ -827,6 +827,39 @@ export async function approveSuggestion(
   return res.json();
 }
 
+// Multi-channel bundle goedkeuren (sinds 2026-05-04). Maakt 1 group
+// + per gekozen kanaal een campagne aan. Eigenaar selecteert in de
+// chat-card welke kanalen hij wil; backend slaat ongekozen kanalen
+// over (returnt null voor die IDs).
+export type BundleChannel = "mail" | "instagram" | "facebook";
+
+export type ApproveBundleResult = {
+  suggestion: AiSuggestion;
+  groupId: string;
+  mailCampaignId: string | null;
+  instagramCampaignId: string | null;
+  facebookCampaignId: string | null;
+};
+
+export async function approveBundleSuggestion(
+  suggestionId: string,
+  channels: BundleChannel[],
+): Promise<ApproveBundleResult> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/approve-bundle`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channels }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Variant-selectie: stel in welke van de 3 varianten de eigenaar
 // verkiest. Backend update selected_index op de suggestion zodat
 // approve + refine straks die variant gebruiken.
@@ -1511,7 +1544,38 @@ export type CampaignProposalCard = {
   suggestion_status?: "pending" | "approved" | "rejected" | "expired";
   approved_campaign_id?: string | null;
 };
-export type MessageCard = CampaignProposalCard;
+
+// Multi-channel bundle (sinds 2026-05-04). Filly genereert mail + IG
+// + FB onder één thema; eigenaar kan ze als bundle accepteren via
+// approveBundleSuggestion. Frontend rendert 'm als 3 collapsibles
+// onder elkaar met per-kanaal "Push"-knop.
+export type CampaignBundleCard = {
+  kind: "campaign_bundle";
+  suggestion_id: string;
+  name: string;
+  theme: string;
+  channels: {
+    mail: { subject_line: string; body: string };
+    instagram: { caption: string; hashtags?: string[] };
+    facebook: { caption: string };
+  };
+  suggestion_status?: "pending" | "approved" | "rejected" | "expired";
+  approved_group_id?: string | null;
+};
+
+// Channel-choice — Filly's keuzeprompt vóór 'ie een campagne genereert.
+// Geen ai_suggestion erachter; bij klik op een knop verstuurt frontend
+// automatisch een user-bericht ("Maak een mail-campagne") zodat Filly
+// in de volgende beurt het juiste formaat (proposal of bundle) levert.
+export type ChannelChoiceCard = {
+  kind: "channel_choice";
+  question: string;
+};
+
+export type MessageCard =
+  | CampaignProposalCard
+  | CampaignBundleCard
+  | ChannelChoiceCard;
 
 export type ChatMessage = {
   id: string;

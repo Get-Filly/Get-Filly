@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  approveBundleSuggestion,
   approveSuggestion,
   createChatConversation,
   fetchActiveChat,
@@ -12,10 +13,18 @@ import {
   sendChatMessage,
   CHAT_CONVERSATION_CAP,
   type AiSuggestion,
+  type BundleChannel,
+  type CampaignBundleCard,
+  type ChannelChoiceCard,
   type ChatConversationSummary,
   type ChatMessage,
   type CampaignProposalCard,
 } from "../../../lib/api";
+import type { BundleStatus } from "./filly-chat-bundle-card";
+import type {
+  ChannelChoice,
+  ChoiceState,
+} from "./filly-chat-choice-card";
 import { SuggestionDetailModal } from "./suggestion-detail-modal";
 import { useRestaurant } from "../../../lib/restaurant-context";
 import type { ProposalStatus } from "./filly-chat-types";
@@ -69,6 +78,17 @@ export function FillyChat() {
   // bericht kan max één proposal hebben.
   const [proposalStatus, setProposalStatus] = useState<
     Record<string, ProposalStatus>
+  >({});
+  // Status per bundle-card (multi-channel proposal). Keyen op
+  // messageId zodat één bericht ook hier max één bundle heeft.
+  const [bundleStatus, setBundleStatus] = useState<
+    Record<string, BundleStatus>
+  >({});
+  // Status per choice-card (kanaal-keuze-vraag). Keyen op messageId.
+  // Bij klik op een knop sturen we een follow-up user-msg en zetten
+  // de keuze op 'submitting' tot de Filly-roundtrip klaar is.
+  const [choiceState, setChoiceState] = useState<
+    Record<string, { state: ChoiceState; chosen?: ChannelChoice }>
   >({});
   // Welke proposal staat open in de detail-modal? Slaan de hele
   // suggestion op zodat de modal direct kan renderen zonder eerst
@@ -131,21 +151,44 @@ export function FillyChat() {
         const rejectedSet = new Set(rejectedSuggs.map((s) => s.id));
 
         const initialStatus: Record<string, ProposalStatus> = {};
+        // Aparte map voor bundle-cards. Net als bij single-channel
+        // proposals: na page-reload moet de UI weten welke bundles al
+        // geaccepteerd waren (anders kan eigenaar 'm 2× accepteren).
+        const initialBundleStatus: Record<string, BundleStatus> = {};
+
         for (const msg of data.messages) {
           const card = msg.message_card;
-          if (card?.kind !== "campaign_proposal") continue;
+          if (!card) continue;
+          // channel_choice heeft geen ai_suggestion erachter — skip.
+          if (card.kind === "channel_choice") continue;
           const suggId = card.suggestion_id;
           if (!suggId) continue;
-          if (approvedMap.has(suggId)) {
-            initialStatus[msg.id] = {
-              state: "created",
-              campaignId: approvedMap.get(suggId)!,
-            };
-          } else if (rejectedSet.has(suggId)) {
-            initialStatus[msg.id] = { state: "dismissed" };
+
+          if (card.kind === "campaign_proposal") {
+            if (approvedMap.has(suggId)) {
+              initialStatus[msg.id] = {
+                state: "created",
+                campaignId: approvedMap.get(suggId)!,
+              };
+            } else if (rejectedSet.has(suggId)) {
+              initialStatus[msg.id] = { state: "dismissed" };
+            }
+          } else if (card.kind === "campaign_bundle") {
+            if (approvedMap.has(suggId)) {
+              // Bundle is al geaccepteerd — toon "approved_existing"-state
+              // met anker naar de mail-campagne. De andere 2 sub-campagnes
+              // zijn via campagnes-pagina (group_id) bereikbaar.
+              initialBundleStatus[msg.id] = {
+                state: "approved_existing",
+                anchorCampaignId: approvedMap.get(suggId)!,
+              };
+            } else if (rejectedSet.has(suggId)) {
+              initialBundleStatus[msg.id] = { state: "dismissed" };
+            }
           }
         }
         setProposalStatus(initialStatus);
+        setBundleStatus(initialBundleStatus);
         setLoading(false);
       })
       .catch((e) => {
@@ -169,12 +212,13 @@ export function FillyChat() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
 
-  const sendMsg = async () => {
-    const text = input.trim();
+  // Refactored 2026-05-04: send-logica in een herbruikbare sendText(text)
+  // zodat de choice-card-handler ('chooseChannel') 'm ook kan triggeren
+  // zonder dat de eigenaar via de input-veld hoeft te typen.
+  const sendText = async (text: string) => {
     if (!text || !conversationId || sending) return;
 
     setError(null);
-    setInput("");
     setSending(true);
 
     // Optimistic UI: user-bericht direct zichtbaar. De server-response
@@ -230,6 +274,73 @@ export function FillyChat() {
       }
     } finally {
       setSending(false);
+    }
+  };
+
+  // Wrapper voor de input-veld-flow: pak input, leeg 't, stuur.
+  const sendMsg = async () => {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    await sendText(text);
+  };
+
+  // Eigenaar klikt op Verstuur in een ChannelChoiceCard met 1+ keuzes.
+  // We bouwen een passende follow-up-tekst voor Filly:
+  //   - 1 single-kanaal  → "Maak een [kanaal]-campagne/post"
+  //   - 2+ kanalen       → "Maak een bundel-campagne (...)"
+  // Filly's server-side hint herkent de keywords en stuurt het juiste
+  // formaat (single proposal of bundle) terug.
+  const chooseChannel = async (
+    messageId: string,
+    choices: ChannelChoice[],
+  ) => {
+    if (choices.length === 0) return;
+
+    setChoiceState((s) => ({
+      ...s,
+      [messageId]: { state: "submitting", chosen: choices[0] },
+    }));
+
+    let promptText: string;
+    if (choices.length === 1) {
+      const single = choices[0];
+      promptText =
+        single === "mail"
+          ? "Maak een mail-campagne"
+          : single === "instagram"
+            ? "Maak een Instagram-post"
+            : single === "facebook"
+              ? "Maak een Facebook-post"
+              : "Maak een WhatsApp-bericht";
+    } else {
+      // 2+ kanalen → bundel. We benoemen welke kanalen zodat Filly
+      // ze in z'n proza kan aankondigen; de bundle-card-prompt zelf
+      // genereert standaard mail+IG+FB. Eigenaar kan in de bundle-
+      // card alsnog uitvinken bij Accepteer.
+      const labels = choices.map((c) =>
+        c === "mail"
+          ? "mail"
+          : c === "instagram"
+            ? "Instagram"
+            : c === "facebook"
+              ? "Facebook"
+              : "WhatsApp",
+      );
+      promptText = `Maak een bundel-campagne voor ${labels.join(", ")}`;
+    }
+
+    try {
+      await sendText(promptText);
+      setChoiceState((s) => ({
+        ...s,
+        [messageId]: { state: "chosen", chosen: choices[0] },
+      }));
+    } catch {
+      setChoiceState((s) => ({
+        ...s,
+        [messageId]: { state: "pending", chosen: undefined },
+      }));
     }
   };
 
@@ -308,6 +419,48 @@ export function FillyChat() {
         },
       }));
     }
+  };
+
+  // Bundle-accept: zelfde pattern als proposal, maar via approve-bundle
+  // endpoint. Returnt 3 campaign-IDs + 1 group-id zodat de kaart
+  // doorlinks naar elk kanaal kan tonen.
+  const acceptBundle = async (
+    messageId: string,
+    bundle: CampaignBundleCard,
+    channels: BundleChannel[],
+  ) => {
+    setBundleStatus((s) => ({ ...s, [messageId]: { state: "creating" } }));
+    try {
+      const result = await approveBundleSuggestion(
+        bundle.suggestion_id,
+        channels,
+      );
+      setBundleStatus((s) => ({
+        ...s,
+        [messageId]: {
+          state: "created",
+          mailCampaignId: result.mailCampaignId,
+          instagramCampaignId: result.instagramCampaignId,
+          facebookCampaignId: result.facebookCampaignId,
+        },
+      }));
+    } catch (e) {
+      console.error(e);
+      setBundleStatus((s) => ({
+        ...s,
+        [messageId]: {
+          state: "error",
+          message:
+            e instanceof Error
+              ? e.message
+              : "Bundle-aanmaken mislukt. Probeer nog eens.",
+        },
+      }));
+    }
+  };
+
+  const dismissBundle = (messageId: string) => {
+    setBundleStatus((s) => ({ ...s, [messageId]: { state: "dismissed" } }));
   };
 
   const dismissProposal = (messageId: string) => {
@@ -392,9 +545,14 @@ export function FillyChat() {
         sending={sending}
         messages={messages}
         proposalStatus={proposalStatus}
+        bundleStatus={bundleStatus}
+        choiceState={choiceState}
         onAcceptProposal={acceptProposal}
         onDismissProposal={dismissProposal}
         onOpenProposalDetails={openDetails}
+        onAcceptBundle={acceptBundle}
+        onDismissBundle={dismissBundle}
+        onChooseChannel={chooseChannel}
       />
 
       {error && <FillyChatErrorBanner message={error} />}

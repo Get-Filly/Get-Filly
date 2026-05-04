@@ -347,6 +347,74 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-05-04 — Foto-bibliotheek + multi-channel campagne-bundles + chat keuze-kaart
+
+Drie features in één sessie, opgebouwd op de mail-flow van eerder
+deze dag.
+
+**Foto-bibliotheek per restaurant** ([apps/api/src/restaurant-media/](apps/api/src/restaurant-media/)):
+- Migratie 0031: `restaurant_media`-tabel + RLS. Cap 20 foto's, 5MB
+  per stuk, JPEG/PNG/WebP.
+- `MediaTaggerService`: Haiku 4.5 Vision genereert NL-beschrijving +
+  3-5 tags per upload. Eenmalig ~€0.005/foto, daarna geen runtime-
+  cost meer omdat tekst opgeslagen blijft.
+- `RestaurantMediaService` met list/upload/remove via Storage bucket
+  `restaurant-assets`. Public-URL i.p.v. signed (anon-read-policy uit
+  mig 0003 was al actief voor logo's).
+- Frontend `RestaurantMediaSection` op account-pagina: grid met
+  thumbnails + cap-warning + delete.
+- `MediaLibraryPicker`-modal hergebruikt door `CampaignMediaSlot`
+  (campagne-foto kan nu ook uit bibliotheek worden gekozen — frontend
+  fetcht de URL als blob en uploadt 'm naar campaign-media zonder
+  backend-wijziging).
+- `RestaurantContextService.buildPhotosBlock`: Filly krijgt 20 foto's
+  met description + tags in indices [1]-[20] in z'n campagne-context
+  zodat 'ie kan suggereren welke foto past.
+
+**Multi-channel campaign-bundles** ([apps/api/src/chat/](apps/api/src/chat/) + [campaigns/](apps/api/src/campaigns/) + [suggestions/](apps/api/src/suggestions/)):
+- Migratie 0032: `campaign_groups` + `campaigns.group_id`. Optie A
+  uit overleg: bestaande campaigns-rijen blijven single-type, group
+  is alleen aggregaat-anker voor UI en accept-flow.
+- Filly-prompt uitgebreid met FORMAAT 2 (BUNDLE) — 1 thema, 3 kanalen
+  (mail + IG + FB) met aparte caption-stijlen (lengte, hashtags, tone).
+- `<<FILLY_PROPOSE_BUNDLE>>` parser-tag + `extractCampaignBundle`-
+  parser parallel aan single-channel proposal.
+- `SuggestionsService.createBundleFromChat` slaat bundle op als
+  ai_suggestions-rij met `trigger_type='chat_bundle'`.
+- `SuggestionsService.approveBundle` accepteert optioneel
+  `channels: ('mail'|'instagram'|'facebook')[]` zodat eigenaar
+  per kanaal kan kiezen welke wel/niet aangemaakt moet worden.
+- `CampaignsService.create` uitgebreid met `group_id`, `social_platforms`,
+  `social_hashtags` zonder bestaande callers te raken.
+- Frontend `FillyChatBundleCard`: 3 collapsibles met checkbox per
+  kanaal (default alle 3 aangevinkt, eigenaar kan uitvinken). Knop-
+  label is dynamisch ("Maak 2 campagnes aan" / "Maak 3 campagnes aan").
+  Bij accept: 3 doorlinks naar de aangemaakte campagne-detail-pagina's.
+- Idempotency-fix: bij chat-history-load detecteert orchestrator of
+  bundle al approved is via `approvedMap` en zet bundle-card op
+  `approved_existing`-state met "✓ Bundle al aangemaakt" + open-link.
+  Voorkomt dubbele aanmaak na page-reload.
+- Bumped `maxTokens` voor chat-call van 600 → 2000: bundle-output
+  (3 kanaal-versies + JSON) was te groot voor 600, kreeg truncated
+  antwoord en daardoor failed parser.
+
+**Channel-choice-kaart** ([apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx](apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx)):
+- Nieuwe `<<FILLY_PROPOSE_CHOICE>>` tag — Filly stelt eerst een keuze-
+  vraag aan eigenaar i.p.v. zelf het kanaal te beslissen.
+- Multi-select met 4 checkboxes (Mail / Instagram / Facebook / WhatsApp)
+  + "Selecteer alles"-toggle + Verstuur-knop met dynamic label.
+- Submit-logica: 1 keuze → single proposal voor dat kanaal; 2+ keuzes
+  → bundel.
+- Server-side `detectChannelHint` in [chat.service.ts](apps/api/src/chat/chat.service.ts):
+  scant user-message op kanaal-keywords en injecteert keiharde
+  routing-instructie in de Claude-prompt ("Gebruik FORMAAT 0 — NIET
+  direct een proposal/bundle"). Voorkomt dat Claude de prompt-regels
+  negeert. Als de eigenaar een specifiek kanaal noemt → skip
+  keuze-vraag direct.
+- Refactor `sendMsg` → `sendText(text)` zodat de choice-handler
+  automatisch een follow-up user-bericht naar Filly kan sturen na
+  klik op Verstuur.
+
 ### 2026-05-04 — Mail-flow live (Resend SDK + send + unsubscribe + eigen domein)
 
 **Probleem dat dit oplost**: campagne-mails stonden alleen als concept
