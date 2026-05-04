@@ -14,6 +14,7 @@ import {
 import { supabase } from "../../../lib/supabase";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { MailDomainSection } from "../_components/mail-domain-section";
+import { RestaurantMediaSection } from "../_components/restaurant-media-section";
 import { Button } from "../../../components/ui/button";
 import { ButtonLink } from "../../../components/ui/button-link";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -394,6 +395,14 @@ export default function AccountPage() {
           gebeurt direct via de eigen endpoints, geen interactie met de
           rest van de save-flow. */}
       <MailDomainSection />
+
+      {/* ============================================================
+          Sectie 1c — Foto-bibliotheek
+          ============================================================
+          Eigen state-management (upload/list/delete via REST). Filly
+          gebruikt deze foto's bij campagne-suggesties via de description
+          + tags die bij upload door Haiku Vision worden gegenereerd. */}
+      <RestaurantMediaSection />
 
       {/* ============================================================
           Sectie 2 — Identiteit (voor AI)

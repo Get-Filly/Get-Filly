@@ -433,6 +433,54 @@ export class RestaurantContextService {
   // ============================================================
   // Dynamisch deel: wijzigt continu en wordt elke prompt vers
   // opgehaald. Niet cachen.
+  // ============================================================
+  // FOTO-BIBLIOTHEEK — beschikbare foto's voor Filly's suggesties
+  // ============================================================
+  // Foto's met description + tags worden bij upload gegenereerd door
+  // MediaTaggerService (Haiku Vision). Filly krijgt ze in de context
+  // mee zodat 'ie in campagne-voorstellen kan refereren naar een
+  // specifieke foto ("voor deze pasta-campagne past foto 3").
+  //
+  // Cap: 20 foto's (komt overeen met service-cap). Indices [1]-[20]
+  // ipv UUIDs in de prompt om tokens te besparen — wij mappen het
+  // server-side terug bij accept-flow indien nodig.
+  //
+  // Bij 0 foto's: lege string. Filly krijgt dan geen FOTO'S-sectie
+  // en weet dat 'r geen referenties mogelijk zijn.
+  async buildPhotosBlock(restaurantId: string): Promise<string> {
+    const { data, error } = await this.supabase.client
+      .from('restaurant_media')
+      .select('id, description, tags, uploaded_at')
+      .eq('restaurant_id', restaurantId)
+      .order('uploaded_at', { ascending: false })
+      .limit(20);
+    if (error) {
+      this.logger.warn(`Foto's-blok faalde: ${error.message}`);
+      return '';
+    }
+    if (!data || data.length === 0) return '';
+
+    type Item = {
+      id: string;
+      description: string | null;
+      tags: string[] | null;
+    };
+    const items = data as Item[];
+
+    const lines = items.map((it, idx) => {
+      const num = idx + 1;
+      const desc = (it.description ?? '').trim() || '(geen beschrijving)';
+      const tags = (it.tags ?? []).join(', ');
+      return `[${num}] ${desc}${tags ? ` — tags: ${tags}` : ''}`;
+    });
+
+    return [
+      `FOTO-BIBLIOTHEEK (${items.length} beschikbaar)`,
+      'Refereer naar een foto met het nummer tussen blokhaken (bv. "foto [3]") wanneer je een passende foto suggereert voor een campagne. Als geen enkele foto past, suggereer dan geen foto.',
+      ...lines,
+    ].join('\n');
+  }
+
   async buildLiveBlock(restaurantId: string): Promise<string> {
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
@@ -515,7 +563,7 @@ export class RestaurantContextService {
   // we ze later kunnen laten cachen door Anthropic prompt-caching.
   // Live-data komt onderaan zodat alleen dat deel "vers" hoeft.
   async buildFullContext(restaurantId: string): Promise<string> {
-    const [profile, menu, live] = await Promise.all([
+    const [profile, menu, photos, live] = await Promise.all([
       this.buildProfileBlock(restaurantId).catch((e) => {
         this.logger.warn(`Profiel-blok faalde: ${String(e)}`);
         return '';
@@ -524,13 +572,17 @@ export class RestaurantContextService {
         this.logger.warn(`Menu-blok faalde: ${String(e)}`);
         return '';
       }),
+      this.buildPhotosBlock(restaurantId).catch((e) => {
+        this.logger.warn(`Foto's-blok faalde: ${String(e)}`);
+        return '';
+      }),
       this.buildLiveBlock(restaurantId).catch((e) => {
         this.logger.warn(`Live-blok faalde: ${String(e)}`);
         return '';
       }),
     ]);
 
-    const blocks = [profile, menu, live].filter((b) => b.length > 0);
+    const blocks = [profile, menu, photos, live].filter((b) => b.length > 0);
     return blocks.join('\n\n---\n\n');
   }
 

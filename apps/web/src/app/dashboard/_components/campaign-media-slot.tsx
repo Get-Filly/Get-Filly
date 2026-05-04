@@ -5,7 +5,9 @@ import { RefreshCw, X } from "lucide-react";
 import {
   deleteCampaignMedia,
   uploadCampaignMedia,
+  type RestaurantMediaItem,
 } from "../../../lib/api";
+import { MediaLibraryPicker } from "./media-library-picker";
 
 // ============================================================
 // CampaignMediaSlot — upload + preview voor campagne-foto
@@ -54,8 +56,40 @@ export function CampaignMediaSlot({
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Picker-modal voor "Kies uit bibliotheek"-flow. Modal regelt z'n
+  // eigen fetch — wij krijgen alleen het gekozen item terug en
+  // converteren 't naar een upload via campaign-media-flow.
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const busy = uploading || deleting;
+
+  // Bibliotheek-foto → fetch URL → blob → File → bestaande upload-
+  // flow. Geen backend-wijziging nodig: de campagne krijgt een eigen
+  // kopie in campaign_media en de bibliotheek-rij blijft intact voor
+  // hergebruik.
+  const useFromLibrary = async (item: RestaurantMediaItem) => {
+    setPickerOpen(false);
+    if (!item.url) {
+      setError("Foto kon niet geladen worden uit de bibliotheek.");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const blob = await fetch(item.url).then((r) => r.blob());
+      const file = new File([blob], item.file_name, { type: item.mime_type });
+      const { signed_url } = await uploadCampaignMedia(campaignId, file);
+      onMediaChanged(signed_url);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Foto uit bibliotheek kopiëren mislukt.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const validate = (file: File): string | null => {
     if (!file.type.startsWith("image/")) {
@@ -161,6 +195,24 @@ export function CampaignMediaSlot({
             }}
           >
             <button
+              onClick={() => setPickerOpen(true)}
+              disabled={busy}
+              title="Kies uit bibliotheek"
+              style={{
+                padding: "6px 10px",
+                background: "rgba(255,255,255,0.92)",
+                color: "var(--text)",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: busy ? "not-allowed" : "pointer",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+              }}
+            >
+              Bibliotheek
+            </button>
+            <button
               onClick={() => inputRef.current?.click()}
               disabled={busy}
               title="Vervangen"
@@ -232,6 +284,11 @@ export function CampaignMediaSlot({
             {error}
           </div>
         )}
+        <MediaLibraryPicker
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onPick={useFromLibrary}
+        />
       </div>
     );
   }
@@ -264,7 +321,10 @@ export function CampaignMediaSlot({
   return (
     <div
       style={baseStyle}
-      onClick={() => editable && !busy && inputRef.current?.click()}
+      // Container-click triggert NIET de file-picker meer; eigenaar
+      // kiest expliciet via een van de twee knoppen onderaan. Dat
+      // voorkomt dat een klik op "Bibliotheek" ook de upload-flow
+      // start (event-bubble).
       onDragOver={(e) => {
         e.preventDefault();
         if (editable && !busy) setDragOver(true);
@@ -278,10 +338,53 @@ export function CampaignMediaSlot({
           <div style={{ fontSize: 13, fontWeight: 500 }}>
             {uploading
               ? "Uploaden…"
-              : "Sleep een foto hierheen of klik om te uploaden"}
+              : "Sleep een foto hierheen, kies uit bibliotheek of klik om te uploaden"}
           </div>
           <div style={{ fontSize: 11, color: "var(--tl)" }}>
             JPG, PNG, WebP of GIF · max 10MB
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              marginTop: 8,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              disabled={busy}
+              style={{
+                padding: "6px 12px",
+                background: "white",
+                color: "var(--brand, #1F4A2D)",
+                border: "1px solid var(--brand, #1F4A2D)",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: busy ? "not-allowed" : "pointer",
+              }}
+            >
+              Kies uit bibliotheek
+            </button>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy}
+              style={{
+                padding: "6px 12px",
+                background: "var(--brand, #1F4A2D)",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: busy ? "not-allowed" : "pointer",
+              }}
+            >
+              Upload nieuw
+            </button>
           </div>
         </>
       ) : (
@@ -307,6 +410,11 @@ export function CampaignMediaSlot({
           {error}
         </div>
       )}
+      <MediaLibraryPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={useFromLibrary}
+      />
     </div>
   );
 }

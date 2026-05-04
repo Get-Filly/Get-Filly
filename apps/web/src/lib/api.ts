@@ -1039,6 +1039,64 @@ export async function refineMenuSuggestion(
   return res.json();
 }
 
+// ============================================================
+// Restaurant media-bibliotheek (foto's per restaurant)
+// ============================================================
+// Eigenaar uploadt foto's via account-pagina; gebruikt door
+// CampaignMediaSlot ("Kies uit bibliotheek") en straks door Filly's
+// suggesties. Cap: 20 foto's per restaurant. Vision-tag bij upload
+// (Haiku 4.5) genereert description + tags voor matching.
+
+export type RestaurantMediaItem = {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  description: string | null;
+  tags: string[];
+  uploaded_at: string;
+  // Signed URL met 1u TTL — voor weergave in <img>-tags. Backend
+  // re-genereert per list-call.
+  url: string;
+};
+
+export async function fetchRestaurantMedia(): Promise<RestaurantMediaItem[]> {
+  const res = await authedFetch(`${API_URL}/restaurant-media`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Foto's ophalen mislukt"));
+  }
+  return res.json();
+}
+
+export async function uploadRestaurantMedia(
+  file: File,
+): Promise<RestaurantMediaItem> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await authedFetch(`${API_URL}/restaurant-media`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Upload mislukt"));
+  }
+  return res.json();
+}
+
+export async function deleteRestaurantMedia(
+  id: string,
+): Promise<{ id: string }> {
+  const res = await authedFetch(`${API_URL}/restaurant-media/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Verwijderen mislukt"));
+  }
+  return res.json();
+}
+
 // AVG-export: trigger een blob-download van de complete restaurant-
 // data-export. Gebruikt authedFetch zodat het JWT meegestuurd wordt
 // (die we via een <a href>-link niet mee kunnen geven).
