@@ -106,9 +106,14 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] **Platform-specifieke output per social-media-post** — bepalen wat voor output Filly per kanaal moet leveren, zo compleet mogelijk: per platform (Instagram feed, Instagram Reels, Instagram Stories, Facebook post, TikTok, LinkedIn) de juiste **caption-lengte** (IG ~125 tekens optimum, FB tot 80 woorden, TikTok 100-150, LinkedIn 150-300), **hashtag-strategie** (IG 3-5 mix branded+niche, TikTok 3-5 trending+specific, FB minimaal/geen, LinkedIn 3 max professioneel), **foto-/video-formaten** (IG 1:1 of 4:5, Reels 9:16, Stories 9:16, FB 1.91:1, TikTok 9:16, LinkedIn 1.91:1 of 1:1), **tone** (IG visueel-persoonlijk, FB community-conversational, TikTok energiek-trending, LinkedIn professioneel-storytelling), **call-to-action stijl** (IG "link in bio", FB direct link, TikTok "swipe up" of "comment", LinkedIn discussie-vraag), **emoji-density**, **mention-/tag-strategie**, **alt-text-vereisten**, **publicatie-tijdstip per platform** (zit deels al in suggestSchedule maar moet platform-specifiek). Resultaat: tool-schema + system-prompt per `campaign_type` + nieuw veld `social_platform` (instagram/facebook/tiktok/linkedin) zodat Filly weet voor welk kanaal hij genereert. Eigenaar kiest platform tijdens campagne-aanmaak; UI gebruikt verschillende preview-rendering per platform.
 
 ### Email & campagnes
-- [ ] **Campagne-send engine** — POST `/api/campaigns/:id/send` + Resend bulk + bounce-handling
-- [ ] **Migratie `campaign_sends`-tabel** — history + unsubscribe-tokens
-- [ ] **Unsubscribe-route** — GDPR-verplicht
+- [x] ~~**Campagne-send engine**~~ (2026-05-04) — `MailService.sendCampaignByMode` met test-modus + all_opted_in. Resend SDK + batches van 100. From=`<restaurant-naam> <social@get-filly.com>` of klant-eigen domein als verified. Reply-to via `restaurant.contact_email`. Pre-flight check op subject_line + body_html/body_plain. Webhook-handler updatet sends-rij bij delivered/bounced/opened/clicked. UI: `CampaignSendModal` met test/echt-toggle + confirm-on-name voor echt versturen.
+- [x] ~~**Migratie 0030 (`campaign_sends` + `unsubscribe_tokens` + restaurants.mail_*)**~~ (2026-05-04)
+- [x] ~~**Unsubscribe-route**~~ (2026-05-04) — Public `/u/[token]`-pagina + backend `POST/GET /public/unsubscribe/:token`. RFC 8058 List-Unsubscribe headers in elke mail (Gmail/Outlook tonen native unsubscribe-link). Idempotent.
+- [x] ~~**Eigen-domein per klant**~~ (2026-05-04) — `MailDomainService` met Resend Domains API (create/verify/get/remove). UI: `<MailDomainSection>` op account-pagina met DNS-records-tabel + copy-knoppen + status-polling. Bij verified: mail komt van klant's eigen `mail_from_address` ipv default. Stay safe naast bestaande mail-providers (DKIM op subdomains).
+- [ ] **DNS help-flow voor klanten** — stappenplan + per-registrar uitleg (TransIP / Versio / Hostnet / Namecheap / GoDaddy) + "wat doen die records"-helper voor klanten die DNS niet snappen
+- [ ] **Resend webhook signature-validatie** — Svix-signature header checken in `MailController.receiveWebhook`. Nu accepteren we alle calls op die endpoint. Voor productie verplicht.
+- [ ] **Resend webhook URL configureren** in Resend dashboard zodra api publiek bereikbaar is (deploy)
+- [ ] **Legal: DPA-template** — Verwerkersovereenkomst met klant. Resend + Anthropic + Supabase als sub-verwerkers vermelden in privacy-pagina.
 
 ### Integraties (OAuth)
 - [ ] **Facebook/Instagram OAuth** — Meta Graph API, `pages_manage_posts` + `instagram_content_publish` (vereist App Review, 2-8 weken)
@@ -341,6 +346,64 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-04 — Mail-flow live (Resend SDK + send + unsubscribe + eigen domein)
+
+**Probleem dat dit oplost**: campagne-mails stonden alleen als concept
+in de DB. Geen daadwerkelijke verzending naar klant-gasten mogelijk —
+de "actief"-status in Filly's flow betekende niets praktisch.
+
+**Foundation** ([apps/api/src/mail/](apps/api/src/mail/)):
+- `MailService` met Resend SDK. From-header `<restaurant-naam> <social@get-filly.com>`
+  als default, klant-eigen `mail_from_address` zodra geverifieerd.
+- Reply-to via `restaurant.contact_email` zodat replies bij de klant
+  terechtkomen ondanks Get-Filly als afzender.
+- Per recipient: token genereren + `campaign_sends` insert + Resend
+  batch.send (max 100 per call). HTML-wrapper met footer + unsubscribe-link.
+- RFC 8058 List-Unsubscribe headers (Gmail/Outlook tonen native
+  unsubscribe-knop bovenaan de mail — deliverability-boost + GDPR).
+- Pre-flight check op `subject_line` + `body_html`/`body_plain` uit
+  `campaign_mail_content`-tabel; nette NL-foutmelding bij ontbrekende
+  content.
+
+**Migratie 0030**:
+- `campaign_sends` met status-enum (queued/sent/delivered/bounced/
+  complained/opened/clicked/failed) + Resend message_id voor
+  webhook-koppeling
+- `unsubscribe_tokens` (256-bit random, idempotent gebruik)
+- `restaurants.mail_*`-velden voor stap 2 (eigen domein)
+
+**Webhook-flow**:
+- `POST /webhooks/resend` (publiek) handelt delivered/bounced/opened/
+  clicked/complained af. Match op resend_message_id. Signature-
+  validatie (Svix) staat als TODO voor productie.
+- `POST/GET /public/unsubscribe/:token` voor one-click + RFC 8058
+
+**Frontend**:
+- `<CampaignSendModal>` op campagne-detail-pagina. Twee modes: "Test
+  naar mezelf" (eigenaar checkt visuele inhoud) + "Echt verzenden"
+  (vereist overtypen van campagne-naam ter bevestiging — onomkeerbaar).
+- Resultaat-view toont sent/failed counts + lijst van mislukte adressen.
+- Publieke `/u/[token]`-pagina met "Je bent uitgeschreven van X"-melding.
+
+**Stap 2 — eigen domein per klant**:
+- `MailDomainService` met Resend Domains API (create/verify/get/remove).
+  Zet records op subdomains zodat bestaande mailbox-flow van klant
+  intact blijft (DKIM op `resend._domainkey.<domein>`, MX+SPF op
+  `send.<domein>`).
+- `<MailDomainSection>` op account-pagina met:
+  - 4 status-states (none/pending/verified/failed)
+  - DNS-records-tabel met copy-knoppen
+  - Auto-polling elke 12s in pending-state tot Resend status syncs
+  - "Verifieer"/"Loskoppelen"-acties
+- Bij verified status: `MailService.resolveFromAddress` switcht
+  automatisch naar klant-domein als afzender.
+
+**Bekend voor productie** (op backlog gezet):
+- Resend webhook signature-validatie (Svix-secret)
+- Resend webhook URL in dashboard configureren bij deploy
+- DNS help-flow voor klanten die records niet snappen
+- DPA-template + privacy-update voor sub-verwerkers (Resend / Anthropic / Supabase)
 
 ### 2026-05-01 — Filly menu-suggesties (nieuwe gerechten + Afgewezen-tab)
 

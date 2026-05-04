@@ -15,6 +15,7 @@ import { EmptyState } from "../../../../components/ui/empty-state";
 import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
 import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
+import { CampaignSendModal } from "../../_components/campaign-send-modal";
 
 function formatEuroFromCents(cents: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
@@ -57,6 +58,9 @@ export default function CampaignDetailPage() {
   // knop kunnen disablen tijdens de roundtrip én een nette spinner-
   // tekst kunnen tonen.
   const [statusActing, setStatusActing] = useState(false);
+  // Send-modal: open/dicht voor de "Verstuur"-flow (mail-campagnes,
+  // via Resend). Toont test- of all-opted-in-mode.
+  const [sendModalOpen, setSendModalOpen] = useState(false);
 
   // Schakelt status van concept naar ingepland. Vereist dat
   // scheduled_for is gezet (anders weigert de UI met een uitleg).
@@ -238,6 +242,21 @@ export default function CampaignDetailPage() {
               ✎ Bewerken
             </button>
           )}
+          {/* Verstuur-knop voor mail-campagnes. Werkt op elk niet-
+              afgerond status — eigenaar kan vanuit concept al een
+              test-mail naar zichzelf sturen om de inhoud te checken,
+              en vanuit elke status echt verzenden naar opt-in gasten.
+              Stuurt direct via Resend; geen scheduling-laag. */}
+          {campaign.type === "mail" &&
+            campaign.status !== "afgerond" &&
+            !editMode && (
+              <Button
+                variant="primary"
+                onClick={() => setSendModalOpen(true)}
+              >
+                ✉️ Verstuur
+              </Button>
+            )}
           {/* Inplannen-knop: zet status concept → ingepland zodra de
               eigenaar tevreden is met inhoud + tijdstip. Disabled als
               er nog geen scheduled_for is, met uitleg in de title. */}
@@ -827,6 +846,18 @@ export default function CampaignDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Send-modal — alleen gerenderd bij open. Sluiten via Esc/klik-
+          buiten/Annuleren-knop in de modal. Bij succes blijft modal
+          open zodat de eigenaar het resultaat ziet, en sluit via "Klaar". */}
+      {sendModalOpen && (
+        <CampaignSendModal
+          campaignId={campaign.id}
+          campaignName={campaign.name}
+          campaignType={campaign.type}
+          onClose={() => setSendModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   type CampaignStatus,
   type CampaignType,
 } from './campaigns.service';
+import { MailService } from '../mail/mail.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
@@ -28,7 +29,13 @@ import {
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('campaigns')
 export class CampaignsController {
-  constructor(private readonly campaigns: CampaignsService) {}
+  constructor(
+    private readonly campaigns: CampaignsService,
+    // MailService wordt vanuit MailModule geïnjecteerd. Bedoeling: alle
+    // mail-flow-logica (recipients resolven, Resend-call, audit) blijft
+    // in MailService; de controller is alleen entry-point + validatie.
+    private readonly mail: MailService,
+  ) {}
 
   @Get()
   findAll(@RestaurantId() restaurantId: string) {
@@ -234,5 +241,44 @@ export class CampaignsController {
       throw new BadRequestException('Tijdstip ontbreekt in request.');
     }
     return this.campaigns.setSchedule(restaurantId, id, body.datetime);
+  }
+
+  // ============================================================
+  // POST /campaigns/:id/send
+  // ============================================================
+  // Verstuurt een mail-campagne via Resend. Twee modes:
+  //   - 'test' → 1 mail naar opgegeven testEmail (eigenaar gebruikt
+  //     z'n eigen adres om de visuele inhoud te checken voor de
+  //     echte send-batch)
+  //   - 'all_opted_in' → alle gasten van het restaurant met
+  //     mail_opt_in=true en geldig e-mailadres
+  //
+  // Pre-flight checks zitten in MailService.sendCampaignByMode:
+  //   - campagne moet type='mail' zijn
+  //   - mail-content moet ingevuld zijn (subject + body)
+  //   - bij 'all_opted_in': minimaal 1 opt-in gast vereist
+  // Onomkeerbaar — front toont een confirm-modal voordat 'ie deze
+  // call doet.
+  @Post(':id/send')
+  send(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body()
+    body: { mode?: 'test' | 'all_opted_in'; testEmail?: string },
+  ) {
+    const mode = body?.mode ?? 'test';
+    if (mode !== 'test' && mode !== 'all_opted_in') {
+      throw new BadRequestException(
+        "Ongeldige mode. Gebruik 'test' of 'all_opted_in'.",
+      );
+    }
+    return this.mail.sendCampaignByMode(
+      restaurantId,
+      id,
+      mode,
+      { testEmail: body?.testEmail },
+      user.id,
+    );
   }
 }

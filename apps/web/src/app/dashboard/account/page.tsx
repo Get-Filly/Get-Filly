@@ -13,6 +13,7 @@ import {
 } from "../../../lib/api";
 import { supabase } from "../../../lib/supabase";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
+import { MailDomainSection } from "../_components/mail-domain-section";
 import { Button } from "../../../components/ui/button";
 import { ButtonLink } from "../../../components/ui/button-link";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -384,6 +385,15 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* ============================================================
+          Sectie 1b — Mail-instellingen (eigen domein optioneel)
+          ============================================================
+          Eigen module met eigen state-management — bewust niet in het
+          form-state-blok van deze pagina. Aanmaken/verifiëren/verwijderen
+          gebeurt direct via de eigen endpoints, geen interactie met de
+          rest van de save-flow. */}
+      <MailDomainSection />
 
       {/* ============================================================
           Sectie 2 — Identiteit (voor AI)
