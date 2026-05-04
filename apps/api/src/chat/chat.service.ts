@@ -140,7 +140,10 @@ export class ChatService {
   // Combineert met chat-memory: bij cap-bereikt vat Filly de
   // conversatie samen en slaat 'm op in restaurant_chat_memory zodat
   // geleerde voorkeuren bewaard blijven voor volgende chats.
-  private readonly CONVERSATION_CAP = 20;
+  // Bumped 20 → 30 (2026-05-04): meer ruimte voor uitgebreide gesprekken,
+  // vooral handig bij multi-channel-bundels die meer turns vragen
+  // (keuze-vraag → bundle → varianten-aanpassing).
+  private readonly CONVERSATION_CAP = 30;
 
   // Hoeveel recente memories meelopen in de system-prompt van een
   // nieuwe chat. 5 is een afweging: te weinig = Filly vergeet snel,
@@ -260,6 +263,67 @@ export class ChatService {
   async createConversation(restaurantId: string): Promise<ActiveChatState> {
     const conversationId = await this.createConversationRow(restaurantId);
     return this.loadConversationState(restaurantId, conversationId);
+  }
+
+  // ============================================================
+  // DELETE CONVERSATION — chat verwijderen + memory bewaren
+  // ============================================================
+  // Eigenaar wil oude chats kunnen opruimen, maar Filly's geleerde
+  // voorkeuren (toon-correcties, woord-afwijzingen) moeten behouden
+  // blijven voor volgende gesprekken. Daarom:
+  //   1. Voor delete: probeer `summarizeAndSave` te draaien zodat
+  //      eventuele leerpunten in `restaurant_chat_memory` landen.
+  //      Idempotent — bij 2e poging skipt 'ie zichzelf.
+  //   2. Daarna delete chat_conversations. CASCADE op chat_messages
+  //      ruimt de berichten zelf op.
+  //
+  // Fail-soft op stap 1: als de Haiku-summary faalt (rate-limit,
+  // Claude down) deleten we toch — eigenaar wil 't weg en wachten op
+  // Anthropic-uptime is een slechte UX. Niet-kritieke data-loss.
+  async deleteConversation(
+    restaurantId: string,
+    conversationId: string,
+    userId: string,
+  ): Promise<{ id: string }> {
+    // Bestaan + tenant-check. RLS dwingt al af dat je alleen eigen
+    // restaurant kunt raken, maar deze check geeft een nette
+    // NotFoundException ipv silent succes.
+    const { data: conv, error: fetchErr } = await this.supabase.client
+      .from('chat_conversations')
+      .select('id, restaurant_id')
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!conv) {
+      throw new InternalServerErrorException('Gesprek niet gevonden.');
+    }
+
+    // Memory eerst — fail-soft. Bij geen-leerzame-chat skipt de
+    // service zelf via has_learning-flag.
+    try {
+      await this.memory.summarizeAndSave({
+        restaurantId,
+        userId,
+        conversationId,
+      });
+    } catch (e) {
+      this.logger.warn(
+        `Memory-summary faalde voor conversation ${conversationId}, delete gaat door: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
+    }
+
+    // Delete — chat_messages cascadet via FK on delete cascade.
+    const { error: delErr } = await this.supabase.client
+      .from('chat_conversations')
+      .delete()
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId);
+    if (delErr) throw new InternalServerErrorException(delErr.message);
+
+    return { id: conversationId };
   }
 
   // Privé helper: maakt rij in chat_conversations + welkomstbericht.

@@ -5,6 +5,7 @@ import {
   approveBundleSuggestion,
   approveSuggestion,
   createChatConversation,
+  deleteChatConversation,
   fetchActiveChat,
   fetchChatConversation,
   fetchChatConversations,
@@ -390,6 +391,33 @@ export function FillyChat() {
     }
   };
 
+  // Verwijder een conversatie. Backend bewaart eerst de Haiku-summary
+  // in restaurant_chat_memory zodat geleerde voorkeuren behouden
+  // blijven. Bij delete van de actieve conversatie: switch automatisch
+  // naar een nieuwe lege chat, anders zou eigenaar in een 404-state
+  // belanden.
+  const deleteConversation = async (id: string) => {
+    const wasActive = id === conversationId;
+    try {
+      await deleteChatConversation(id);
+      // Lijst opnieuw ophalen — minst foutgevoelige aanpak.
+      const convs = await fetchChatConversations().catch(() => []);
+      setConversations(convs);
+      // Bij delete van de actieve: nieuw gesprek starten zodat de
+      // chat-card niet leeg blijft hangen.
+      if (wasActive) {
+        await startNewConversation();
+      }
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Verwijderen mislukt. Probeer 't opnieuw.",
+      );
+    }
+  };
+
   // Klik-handler voor "Ja, maak aan als concept". Roept de
   // approve-endpoint aan op de bij dit bericht horende suggestie
   // (backend maakt daarbij de campagne aan + koppelt approved_
@@ -516,6 +544,7 @@ export function FillyChat() {
             activeConversationId={conversationId}
             onSwitch={switchConversation}
             onNew={startNewConversation}
+            onDelete={deleteConversation}
           />
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div

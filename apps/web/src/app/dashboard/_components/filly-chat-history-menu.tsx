@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
-import type { ChatConversationSummary } from "../../../lib/api";
+import { Plus, Trash2 } from "lucide-react";
+import {
+  CHAT_CONVERSATION_CAP,
+  type ChatConversationSummary,
+} from "../../../lib/api";
 
 // ============================================================
 // FillyChatHistoryMenu — dropdown in chat-card-header met conversaties
@@ -30,6 +33,7 @@ type Props = {
   activeConversationId: string | null;
   onSwitch: (conversationId: string) => void;
   onNew: () => void;
+  onDelete: (conversationId: string) => void;
 };
 
 function formatRelativeDate(iso: string): string {
@@ -53,6 +57,7 @@ export function FillyChatHistoryMenu({
   activeConversationId,
   onSwitch,
   onNew,
+  onDelete,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -178,10 +183,19 @@ export function FillyChatHistoryMenu({
             const isActive = c.id === activeConversationId;
             const title =
               c.title ?? `Gesprek van ${formatRelativeDate(c.updated_at)}`;
+            const handleDelete = (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (
+                window.confirm(
+                  `"${title}" verwijderen? Filly bewaart geleerde voorkeuren maar de chat-berichten gaan weg.`,
+                )
+              ) {
+                onDelete(c.id);
+              }
+            };
             return (
-              <button
+              <div
                 key={c.id}
-                type="button"
                 role="menuitem"
                 aria-current={isActive}
                 onClick={() => handleSwitch(c.id)}
@@ -189,18 +203,16 @@ export function FillyChatHistoryMenu({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: 8,
+                  gap: 4,
                   width: "100%",
                   padding: "8px 10px",
                   background: isActive
                     ? "var(--color-brand-soft)"
                     : "transparent",
-                  border: "none",
                   borderRadius: "var(--radius-sm)",
                   cursor: "pointer",
                   fontSize: "var(--font-size-sm)",
                   color: "var(--color-text)",
-                  textAlign: "left",
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
@@ -220,6 +232,7 @@ export function FillyChatHistoryMenu({
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
                     flex: 1,
+                    textAlign: "left",
                   }}
                 >
                   {title}
@@ -231,9 +244,36 @@ export function FillyChatHistoryMenu({
                     flexShrink: 0,
                   }}
                 >
-                  {c.message_count}/20
+                  {c.message_count}/{CHAT_CONVERSATION_CAP}
                 </span>
-              </button>
+                {/* Delete-knop — stopPropagation voorkomt dat de
+                    parent-row-onClick (switch) ook wordt afgevuurd. */}
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  aria-label={`${title} verwijderen`}
+                  title="Verwijder gesprek"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--color-text-disabled)",
+                    cursor: "pointer",
+                    padding: 4,
+                    borderRadius: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-danger, #B3261E)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--color-text-disabled)";
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             );
           })}
         </div>

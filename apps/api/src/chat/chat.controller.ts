@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -54,6 +55,18 @@ export class ChatController {
   @Post('conversations')
   createConversation(@RestaurantId() restaurantId: string) {
     return this.chat.createConversation(restaurantId);
+  }
+
+  // Verwijder een conversatie + bijhorende berichten. Voor delete
+  // probeert ChatService eerst de Haiku-summary op te slaan zodat
+  // geleerde voorkeuren bewaard blijven in restaurant_chat_memory.
+  @Delete('conversations/:id')
+  deleteConversation(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.chat.deleteConversation(restaurantId, id, user.id);
   }
 
   // Bericht sturen. Rate-limit-guard draait hier extra bovenop de

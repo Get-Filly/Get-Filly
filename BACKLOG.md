@@ -347,6 +347,22 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-05-04 — Chat-delete + cap 20→30
+
+Eigenaar kan oude gesprekken nu verwijderen via een 🗑-knop in de
+history-dropdown. Voor delete probeert backend de Haiku-summary op
+te slaan (fail-soft) zodat Filly's geleerde voorkeuren in
+`restaurant_chat_memory` bewaard blijven — alleen de chat-berichten
+zelf gaan weg.
+
+- `ChatService.deleteConversation` met memory-first-save + cascade-delete
+- `DELETE /chat/conversations/:id` endpoint
+- `Trash2`-icoon per rij in `FillyChatHistoryMenu` (rood-highlight bij
+  hover) + confirm-dialog
+- Bij delete van actieve conversatie: orchestrator start automatisch
+  een nieuw gesprek
+- `CONVERSATION_CAP` 20 → 30 (zowel backend als frontend constant)
+
 ### 2026-05-04 — Foto-bibliotheek + multi-channel campagne-bundles + chat keuze-kaart
 
 Drie features in één sessie, opgebouwd op de mail-flow van eerder

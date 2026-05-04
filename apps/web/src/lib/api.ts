@@ -1606,7 +1606,7 @@ export type ChatConversationSummary = {
 // Cap = 20 berichten per conversatie. Gedeeld constant tussen frontend
 // en backend (in backend: ChatService.CONVERSATION_CAP). UI gebruikt 'm
 // voor de "Bericht X / 20"-indicator.
-export const CHAT_CONVERSATION_CAP = 20;
+export const CHAT_CONVERSATION_CAP = 30;
 
 // Bij openen van het dashboard halen we de actieve chat op. Backend
 // maakt 'm aan als die nog niet bestaat en geeft meteen een
@@ -1652,6 +1652,23 @@ export async function createChatConversation(): Promise<ActiveChatState> {
     method: "POST",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Verwijder een conversatie + bijhorende berichten. Voor delete probeert
+// backend de Haiku-summary op te slaan zodat geleerde voorkeuren in
+// restaurant_chat_memory bewaard blijven.
+export async function deleteChatConversation(
+  conversationId: string,
+): Promise<{ id: string }> {
+  const res = await authedFetch(
+    `${API_URL}/chat/conversations/${conversationId}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
