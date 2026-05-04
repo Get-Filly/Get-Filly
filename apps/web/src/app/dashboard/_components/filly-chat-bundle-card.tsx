@@ -143,7 +143,6 @@ export function FillyChatBundleCard({
         <ChannelRow
           icon="✉️"
           title="Mail"
-          summary={bundle.channels.mail.subject_line}
           open={openChannel === "mail"}
           onToggle={() => toggle("mail")}
           checked={selected.mail}
@@ -167,7 +166,6 @@ export function FillyChatBundleCard({
         <ChannelRow
           icon="📷"
           title="Instagram"
-          summary={truncate(bundle.channels.instagram.caption, 60)}
           open={openChannel === "instagram"}
           onToggle={() => toggle("instagram")}
           checked={selected.instagram}
@@ -208,7 +206,6 @@ export function FillyChatBundleCard({
         <ChannelRow
           icon="📘"
           title="Facebook"
-          summary={truncate(bundle.channels.facebook.caption, 60)}
           open={openChannel === "facebook"}
           onToggle={() => toggle("facebook")}
           checked={selected.facebook}
@@ -387,7 +384,6 @@ export function FillyChatBundleCard({
 function ChannelRow({
   icon,
   title,
-  summary,
   open,
   onToggle,
   checked,
@@ -397,7 +393,6 @@ function ChannelRow({
 }: {
   icon: string;
   title: string;
-  summary: string;
   open: boolean;
   onToggle: () => void;
   checked: boolean;
@@ -441,37 +436,26 @@ function ChannelRow({
         />
         <span>{icon}</span>
         <strong style={{ minWidth: 80 }}>{title}</strong>
-        {/* Klikbaar gebied voor expand/collapse — alleen de tekst en
-            chevron, niet de checkbox. */}
+        {/* Klikbaar gebied voor expand/collapse — alleen het pijltje
+            rechts. Geen preview-tekst, eigenaar klikt op pijltje om
+            de inhoud uit te klappen. */}
         <button
           type="button"
           onClick={onToggle}
+          aria-label={`${title} ${open ? "inklappen" : "uitklappen"}`}
           style={{
-            flex: 1,
+            marginLeft: "auto",
             background: "transparent",
             border: "none",
-            textAlign: "left",
             cursor: "pointer",
-            padding: 0,
+            padding: "2px 6px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            fontSize: 12,
-            color: "inherit",
+            color: "var(--tl, #9CA3AF)",
+            fontSize: 14,
           }}
         >
-          <span
-            style={{
-              color: "var(--tl, #6B6F71)",
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {summary}
-          </span>
-          <span style={{ color: "var(--tl, #9CA3AF)" }}>{open ? "▾" : "▸"}</span>
+          {open ? "▾" : "▸"}
         </button>
       </div>
       {open && (
@@ -487,8 +471,4 @@ function ChannelRow({
       )}
     </div>
   );
-}
-
-function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max).trim() + "…" : s;
 }
