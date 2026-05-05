@@ -82,6 +82,18 @@ type WizardData = {
   menu_items: MenuItem[];
   // Drankkaart (parallelle upload). Server-side category='drank'.
   drink_items: DrinkItem[];
+  // Google Business Profile (fase B). Filly stelt na website-analyse
+  // automatisch een match voor; eigenaar bevestigt/wijzigt/skipt in
+  // stap 2. Bij submit gaat alleen google_place_id mee naar de
+  // backend; google_place_match is UI-only state voor de preview-card.
+  google_place_id: string | null;
+  google_place_match: {
+    placeId: string;
+    displayName: string;
+    formattedAddress: string;
+    rating: number | null;
+    userRatingCount: number | null;
+  } | null;
 };
 
 const TYPE_OPTIONS = [
@@ -145,6 +157,8 @@ const INITIAL_DATA: WizardData = {
   social_media: {},
   menu_items: [],
   drink_items: [],
+  google_place_id: null,
+  google_place_match: null,
 };
 
 // De inhoud zelf — gebruikt useSearchParams() en moet daarom binnen
@@ -339,6 +353,13 @@ function OnboardingPageContent() {
             ...(websiteResult.social_media ?? {}),
             ...prev.social_media,
           },
+          // Filly's Google-match (kan null zijn als Places niks vond
+          // of er geen naam was om mee te zoeken). Auto-select de top-1
+          // match: google_place_id wordt direct gezet zodat 'klaar'-pad
+          // gewoon doorgaat. Eigenaar kan in stap 2 overslaan of
+          // wijzigen — dan wordt 'ie weer null.
+          google_place_match: websiteResult.place_match ?? null,
+          google_place_id: websiteResult.place_match?.placeId ?? null,
         }));
       }
 
@@ -442,6 +463,10 @@ function OnboardingPageContent() {
               : undefined,
           menu_items: data.menu_items,
           drink_items: data.drink_items,
+          // Optioneel — alleen meesturen als eigenaar Filly's match
+          // heeft bevestigd of zelf een place heeft gekozen. Bij
+          // 'sla over' is dit null en doet de backend niks.
+          google_place_id: data.google_place_id ?? undefined,
         }),
       });
 
@@ -998,6 +1023,8 @@ function Step2Review({
         placeholder="Komma-gescheiden: frans, seizoensgebonden, …"
       />
 
+      <GooglePlaceMatchSection data={data} setData={setData} />
+
       <Field
         label="Straat en huisnummer"
         value={data.address}
@@ -1287,6 +1314,339 @@ function Row({
       </div>
     </div>
   );
+}
+
+// ============================================================
+// <GooglePlaceMatchSection> — Filly's Google-match in stap 2
+// ============================================================
+//
+// Drie states:
+//   1. Filly heeft een match gevonden EN auto-bevestigd
+//      → blauwe info-card met "Wijzig" + "Sla over"
+//   2. Eigenaar heeft 'sla over' geklikt OF Filly vond niks
+//      → grijze "geen koppeling"-card met "Zoek zelf"-knop
+//   3. Eigenaar klikt op Wijzig/Zoek zelf
+//      → expand inline-search: input + "Zoek"-knop + result-lijst
+//
+// Behaviour:
+//   - Bij selectie van een result: place_id update + section collapsed
+//   - Bij Sla over: place_id wordt null + match blijft in state (zodat
+//     "Toch koppelen" mogelijk blijft als 'ie zich bedenkt)
+//   - Submit (stap 3) stuurt ALLEEN google_place_id naar de backend.
+//     Match-data is UI-only en wordt door de connect-call opnieuw
+//     opgehaald (via Places API) — single source of truth.
+// ============================================================
+function GooglePlaceMatchSection({
+  data,
+  setData,
+}: {
+  data: WizardData;
+  setData: React.Dispatch<React.SetStateAction<WizardData>>;
+}) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    Array<{
+      placeId: string;
+      displayName: string;
+      formattedAddress: string;
+      rating: number | null;
+      userRatingCount: number | null;
+    }>
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Auto-fill zoek-veld met huidige restaurant-naam zodra de eigenaar
+  // op Wijzigen klikt — bespaart hem typewerk in 80% van de gevallen.
+  function openSearch() {
+    setSearchQuery(`${data.name} ${data.city}`.trim());
+    setSearchOpen(true);
+  }
+
+  async function runSearch() {
+    if (searchQuery.trim().length < 3) return;
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch(`${API_URL}/onboarding/google-search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token ?? ""}`,
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `HTTP ${res.status}`);
+      }
+      const results = await res.json();
+      setSearchResults(Array.isArray(results) ? results : []);
+    } catch (err) {
+      setSearchError(
+        err instanceof Error ? err.message : "Zoeken niet gelukt.",
+      );
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function selectPlace(place: (typeof searchResults)[number]) {
+    setData((prev) => ({
+      ...prev,
+      google_place_id: place.placeId,
+      google_place_match: place,
+    }));
+    setSearchOpen(false);
+    setSearchResults([]);
+  }
+
+  function skipMatch() {
+    setData((prev) => ({ ...prev, google_place_id: null }));
+  }
+
+  // Visuele staat: 'connected' = eigenaar heeft een match geselecteerd,
+  // 'skipped' = eigenaar heeft overgeslagen of Filly vond niks.
+  const isConnected = data.google_place_id && data.google_place_match;
+  const match = data.google_place_match;
+
+  return (
+    <div
+      style={{
+        marginBottom: 16,
+        padding: 16,
+        borderRadius: 8,
+        border: `1px solid ${
+          isConnected ? "#1F4A2D40" : "var(--bl, #E0E0E0)"
+        }`,
+        backgroundColor: isConnected ? "#F0F7F2" : "#FAFAFA",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 8,
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        <span aria-hidden>🔵</span>
+        <span>Google Business Profile</span>
+        {isConnected && (
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: 12,
+              color: "#1F4A2D",
+              fontWeight: 500,
+            }}
+          >
+            ✓ Filly heeft je profiel gevonden
+          </span>
+        )}
+      </div>
+
+      {isConnected && match && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>
+            {match.displayName}
+          </div>
+          <div
+            style={{ fontSize: 13, color: "var(--tl, #6B6B6B)", marginTop: 2 }}
+          >
+            {match.formattedAddress}
+          </div>
+          {match.rating !== null && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--tl, #6B6B6B)",
+                marginTop: 4,
+              }}
+            >
+              ⭐ {match.rating.toFixed(1)}
+              {match.userRatingCount !== null &&
+                ` (${match.userRatingCount.toLocaleString("nl-NL")} reviews)`}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isConnected && (
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--tl, #6B6B6B)",
+            marginBottom: 8,
+            lineHeight: 1.5,
+          }}
+        >
+          {match
+            ? "Je hebt de match overgeslagen. Je kunt later koppelen via de Google Business-pagina."
+            : "Filly kon je profiel niet automatisch vinden. Je kunt zelf zoeken of overslaan en later koppelen."}
+        </div>
+      )}
+
+      {/* Action-buttons: laten we plain <button> gebruiken voor
+          consistentie met de rest van deze wizard (die gebruikt geen
+          shared <Button>-component voor secundaire knoppen). */}
+      {!searchOpen && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {isConnected ? (
+            <>
+              <button
+                type="button"
+                onClick={openSearch}
+                style={btnStyle(false)}
+              >
+                Wijzigen
+              </button>
+              <button
+                type="button"
+                onClick={skipMatch}
+                style={btnStyle(false)}
+              >
+                Sla over
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={openSearch} style={btnStyle(true)}>
+              {match ? "Toch koppelen" : "Zoek zelf"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {searchOpen && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  runSearch();
+                }
+              }}
+              placeholder="Naam + stad, bv. 'De Kas Amsterdam'"
+              style={{
+                flex: 1,
+                padding: "8px 10px",
+                fontSize: 14,
+                border: "1px solid var(--bl, #E0E0E0)",
+                borderRadius: 6,
+              }}
+            />
+            <button
+              type="button"
+              onClick={runSearch}
+              disabled={searching || searchQuery.trim().length < 3}
+              style={btnStyle(true)}
+            >
+              {searching ? "Zoeken…" : "Zoek"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen(false);
+                setSearchResults([]);
+              }}
+              style={btnStyle(false)}
+            >
+              Annuleer
+            </button>
+          </div>
+
+          {searchError && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "#B00020",
+                marginBottom: 8,
+              }}
+            >
+              {searchError}
+            </div>
+          )}
+
+          {searchResults.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {searchResults.map((r) => (
+                <button
+                  key={r.placeId}
+                  type="button"
+                  onClick={() => selectPlace(r)}
+                  style={{
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    border: "1px solid var(--bl, #E0E0E0)",
+                    borderRadius: 6,
+                    backgroundColor: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    {r.displayName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--tl, #6B6B6B)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {r.formattedAddress}
+                    {r.rating !== null && (
+                      <span style={{ marginLeft: 8 }}>
+                        ⭐ {r.rating.toFixed(1)}
+                        {r.userRatingCount !== null &&
+                          ` (${r.userRatingCount})`}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {searchResults.length === 0 && !searching && !searchError && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--tl, #6B6B6B)",
+                fontStyle: "italic",
+              }}
+            >
+              Typ een zoekopdracht en klik Zoek.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Mini-helper om de inline knop-stijl niet 4× te dupliceren in
+// de section hierboven. Primair = brand-groen, secundair = grijs.
+function btnStyle(primary: boolean): React.CSSProperties {
+  return {
+    padding: "6px 12px",
+    fontSize: 13,
+    fontWeight: 500,
+    borderRadius: 6,
+    border: primary ? "none" : "1px solid var(--bl, #E0E0E0)",
+    backgroundColor: primary ? "#1F4A2D" : "white",
+    color: primary ? "white" : "var(--text, #1A1A1A)",
+    cursor: "pointer",
+  };
 }
 
 // Splitst een komma-gescheiden string in een array, trimmt en filtert

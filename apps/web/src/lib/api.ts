@@ -1859,3 +1859,186 @@ export async function getInviteMagicLink(inviteId: string): Promise<string> {
   const data = (await res.json()) as { link: string };
   return data.link;
 }
+
+// ============================================================
+// Google Business Profile (fase B, 2026-05-05)
+// ============================================================
+
+// Subset van de Places-API velden die we in de UI gebruiken. Spiegelt
+// PlaceDetails in apps/api/src/google-profile/types.ts — uitbreiden bij
+// nieuwe features (let er dan ook op dat de backend FieldMask de
+// velden meeneemt). Velden die Google soms weglaat staan als optional.
+export type GooglePlaceDetails = {
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  postalAddress: {
+    streetAddress: string | null;
+    locality: string | null;
+    postalCode: string | null;
+    administrativeArea: string | null;
+    country: string | null;
+  } | null;
+  location: { latitude: number; longitude: number } | null;
+  rating: number | null;
+  userRatingCount: number | null;
+  types: string[];
+  primaryType: string | null;
+  priceLevel: string | null;
+  websiteUri: string | null;
+  internationalPhoneNumber: string | null;
+  regularOpeningHours: {
+    weekdayDescriptions: string[];
+    openNow: boolean | null;
+  } | null;
+  photos: Array<{ name: string; widthPx: number; heightPx: number }>;
+  businessStatus: string | null;
+  editorialSummary: string | null;
+};
+
+export type GoogleProfileMine = {
+  connected: boolean;
+  data: GooglePlaceDetails | null;
+  syncedAt: string | null;
+};
+
+export type GooglePlaceSearchResult = {
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  rating: number | null;
+  userRatingCount: number | null;
+};
+
+// Lees gecachete Google-profile-data voor het actieve restaurant.
+// connected=false → restaurant heeft nog geen koppeling. UI toont
+// dan de "Koppel met Google"-flow.
+export async function fetchGoogleProfileMine(): Promise<GoogleProfileMine> {
+  const res = await authedFetch(`${API_URL}/google-profile/me`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Tekst-zoekopdracht naar Google Places. Werkt ALLEEN voor klanten met
+// een actief restaurant (RestaurantAccessGuard op de hub-route).
+// Voor de onboarding-wizard gebruiken we /onboarding/google-search.
+export async function searchGoogleProfile(
+  query: string,
+): Promise<GooglePlaceSearchResult[]> {
+  const res = await authedFetch(`${API_URL}/google-profile/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Koppel een place_id aan het actieve restaurant. Backend fetcht direct
+// de details om de cache te vullen — wij krijgen 'm in de response
+// terug zodat de UI direct kan switchen naar de connected-state.
+export async function connectGoogleProfile(
+  placeId: string,
+): Promise<{ data: GooglePlaceDetails; syncedAt: string }> {
+  const res = await authedFetch(`${API_URL}/google-profile/me/connect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ placeId }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Force-refresh van de cached profile-data. Bypasst de 24u-TTL.
+export async function refreshGoogleProfile(): Promise<{
+  data: GooglePlaceDetails;
+  syncedAt: string;
+}> {
+  const res = await authedFetch(`${API_URL}/google-profile/me/refresh`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Ontkoppel het Google-profiel. Wist place_id + cache + synced_at.
+// Klant kan later opnieuw koppelen.
+export async function disconnectGoogleProfile(): Promise<{ ok: true }> {
+  const res = await authedFetch(`${API_URL}/google-profile/me`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ---- Profiel-audit (fase B) ----
+
+export type AuditSeverity = "critical" | "warning" | "tip";
+
+export type AuditFinding = {
+  code: string;
+  severity: AuditSeverity;
+  title: string;
+  description: string;
+  actionHint: string;
+};
+
+export type AuditResult = {
+  generatedAt: string;
+  findings: AuditFinding[];
+  summary: { critical: number; warning: number; tip: number };
+};
+
+// Backend-rules-engine die ~12 checks loopt over de gecachete profile-
+// data. Vereist een actieve Google-koppeling — zonder geeft 404.
+export async function fetchGoogleProfileAudit(): Promise<AuditResult> {
+  const res = await authedFetch(`${API_URL}/google-profile/me/audit`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ---- Concurrent-benchmark (fase B) ----
+
+export type CompetitorPlace = {
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  rating: number | null;
+  userRatingCount: number | null;
+  primaryType: string | null;
+  distanceMeters: number | null;
+  photoCount: number;
+};
+
+// Buurt-vergelijking. Default 1km radius; UI mag dit later parametrisch
+// maken (slider 250m-3km bv).
+export async function fetchGoogleProfileCompetitors(
+  radiusMeters: number = 1000,
+): Promise<CompetitorPlace[]> {
+  const res = await authedFetch(
+    `${API_URL}/google-profile/me/competitors?radius=${radiusMeters}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+

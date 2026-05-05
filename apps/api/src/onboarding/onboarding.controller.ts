@@ -13,7 +13,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { OnboardingService, type OnboardingInput } from './onboarding.service';
 import { WebsiteAnalyzerService } from '../ai/website-analyzer.service';
 import { MenuImporterService } from '../ai/menu-importer.service';
+import { GoogleProfileService } from '../google-profile/google-profile.service';
+import type { PlaceSearchResult } from '../google-profile/types';
 import { AuthGuard } from '../common/auth.guard';
+import { Logger } from '@nestjs/common';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -59,10 +62,16 @@ function enforceAiRateLimit(userId: string): void {
 @UseGuards(AuthGuard)
 @Controller('onboarding')
 export class OnboardingController {
+  private readonly logger = new Logger(OnboardingController.name);
+
   constructor(
     private readonly onboarding: OnboardingService,
     private readonly analyzer: WebsiteAnalyzerService,
     private readonly menuImporter: MenuImporterService,
+    // Voor de Filly-Google-match na website-analyse (fase B,
+    // 2026-05-05). searchByText doet géén DB-call dus het werkt
+    // ook tijdens onboarding (geen restaurant_id nodig).
+    private readonly googleProfile: GoogleProfileService,
   ) {}
 
   @Post('restaurant')
@@ -84,12 +93,65 @@ export class OnboardingController {
   // calls als "anonymous pre-onboarding" — je ziet ze terug met
   // restaurant_id IS NULL en user_id IS NULL in ai_usage.
   @Post('analyze-website')
-  analyzeWebsite(
+  async analyzeWebsite(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { url: string },
   ) {
     enforceAiRateLimit(user.id);
-    return this.analyzer.analyze(body.url);
+    const result = await this.analyzer.analyze(body.url);
+
+    // Filly-Google-match: als WebsiteAnalyzer een naam + adres of
+    // stad heeft kunnen vinden, zoeken we direct in Google Places naar
+    // de bijbehorende business. Top-1 match komt mee in de response
+    // zodat de wizard 'm in stap 2 kan tonen.
+    //
+    // Fail-soft op alle fronten:
+    //   - Geen naam? skip (geen zoekquery mogelijk).
+    //   - Places-API down? skip + log warning.
+    //   - Geen match? `place_match: null`.
+    let placeMatch: PlaceSearchResult | null = null;
+    if (result.name) {
+      // Bouw query op basis van naam + locatie. Zonder locatie krijgt
+      // Google bij gewone restaurant-namen (Bistro, De Kas, etc.) vaak
+      // een match in de verkeerde stad — vandaar het belang van
+      // adres/stad in de query.
+      const locationHint = [result.address, result.postal_code, result.city]
+        .filter(Boolean)
+        .join(' ');
+      const query = locationHint
+        ? `${result.name} ${locationHint}`
+        : result.name;
+      try {
+        const matches = await this.googleProfile.searchByText(query);
+        placeMatch = matches[0] ?? null;
+      } catch (err) {
+        this.logger.warn(
+          `Filly-Google-match faalde voor query "${query}": ${(err as Error).message}. Wizard gaat door zonder.`,
+        );
+      }
+    }
+
+    return { ...result, place_match: placeMatch };
+  }
+
+  // Search-endpoint specifiek voor de onboarding-wizard. Wordt
+  // aangeroepen door de "Wijzigen"-knop bij Filly's Google-match —
+  // eigenaar typt z'n eigen zoekopdracht en kiest uit max 5
+  // alternatieven. Geen RestaurantAccessGuard want het restaurant
+  // bestaat nog niet; alleen AuthGuard via klasse-niveau.
+  //
+  // Gebruikt dezelfde rate-limit als de andere AI-endpoints zodat
+  // een script dat dit spamt onze Places-API-quota niet leegtrekt.
+  @Post('google-search')
+  async googleSearch(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { query: string },
+  ) {
+    if (!body?.query || typeof body.query !== 'string') {
+      throw new BadRequestException('Body moet een `query` (string) bevatten.');
+    }
+    enforceAiRateLimit(user.id);
+    return this.googleProfile.searchByText(body.query);
   }
 
   // Analyseert een geüploade menukaart via Claude Vision. Multipart-

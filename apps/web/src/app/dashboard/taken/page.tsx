@@ -173,7 +173,7 @@ export default function TakenPage() {
         icon: "⭐",
         title: `${r.rating}-ster review op ${r.source}`,
         desc: r.title ?? r.body?.slice(0, 100) ?? "Review vereist reactie.",
-        link: "/dashboard/reviews",
+        link: "/dashboard/google-business/reviews",
         priority: "high",
         category: "reviews",
       });

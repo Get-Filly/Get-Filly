@@ -38,7 +38,11 @@ const PATH_MODULE_MAP: Array<{ prefix: string; module: Module }> = [
   { prefix: "/dashboard/reserveringen", module: "reserveringen" },
   { prefix: "/dashboard/campagnes", module: "campagnes" },
   { prefix: "/dashboard/gasten", module: "gasten" },
-  { prefix: "/dashboard/reviews", module: "reviews" },
+  // /dashboard/google-business (en alle sub-routes /reviews, /audit,
+  // /posts, etc.) vallen onder de google_business-module. De oude
+  // /dashboard/reviews-route bestaat nog als server-side redirect-
+  // stub, maar wordt nooit gerenderd — dus geen guard nodig.
+  { prefix: "/dashboard/google-business", module: "google_business" },
   { prefix: "/dashboard/menu", module: "menu" },
   { prefix: "/dashboard/rapportages", module: "rapportages" },
   { prefix: "/dashboard/koppelingen", module: "koppelingen" },

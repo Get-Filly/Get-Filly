@@ -117,11 +117,83 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ### Integraties (OAuth)
 - [ ] **Facebook/Instagram OAuth** — Meta Graph API, `pages_manage_posts` + `instagram_content_publish` (vereist App Review, 2-8 weken)
-- [ ] **Google Business Profile** — reviews importeren + posten
+- [~] **Google Business Profile** — multi-fase implementatie (zie sectie hieronder)
 - [ ] **Zenchef OAuth** — reserveringen syncen
 - [ ] **OpenTable / SevenRooms / Resengo** — volgorde bepalen met klantvraag
 - [ ] **TripAdvisor / The Fork / IENS** — reviews importeren
 - [ ] **Webhook-receivers** per integratie met rijtests
+
+#### Google Business Profile — fase-overzicht (besluit 2026-05-05)
+
+Reviews-sectie is uitgebreid tot een hub. Reviews zijn een sub-feature
+van Google Business Profile (GBP) — naast profiel-audit, posts, foto-sync,
+profiel-edits en inzichten. Fase A is af; fase B-F staan open.
+
+- [x] ~~**Fase A — Skelet + rename**~~ (2026-05-05). Sidebar `Reviews` →
+  `Google Business`, route `/dashboard/reviews` → `/dashboard/google-business`
+  (oude route blijft als 308-redirect-stub). Module-key in
+  `@getfilly/shared` van `reviews` naar `google_business`. Migratie 0033
+  heeft bestaande `restaurant_users.permissions`-jsonb ook bijgewerkt.
+  Nieuwe hub-pagina toont 7 cards: Reviews (live, klikbaar), Profiel-audit,
+  Concurrent-benchmark, Filly-posts (copy-paste), Profiel-edits, Foto-sync,
+  Inzichten — laatste 6 met "Coming Soon"-badge. Status-banner bovenaan
+  toont "niet gekoppeld met Google" (hardcoded tot fase D).
+
+- [x] ~~**Fase B — Places-API laag (geen klant-actie nodig)**~~
+  (2026-05-05). Google Cloud project `Get-Filly GBP` onder organisatie
+  `get-filly.com`, Places API (New) actief, key in `GOOGLE_PLACES_API_KEY`
+  met API-restrictie naar alleen Places (New). Migratie 0034 heeft
+  `restaurants.google_place_id` + `google_place_data` jsonb-cache (24u
+  TTL) toegevoegd. `GoogleProfileModule` (apps/api/src/google-profile/)
+  met 6 endpoints: search/connect/me/refresh/disconnect/audit/competitors.
+  Onboarding-wizard auto-detect via place-search na WebsiteAnalyzer met
+  "Wijzigen / Sla over"-flow in stap 2. Hub-pagina dynamisch met status-
+  banner (gekoppeld vs niet) + connect-modal + ontkoppel-knop voor
+  bestaande klanten. Twee feature-pagina's live:
+  - **/dashboard/google-business/audit** — 12+ deterministische rules
+    (telefoon, website, openingstijden, foto-volume, review-volume,
+    rating-coaching, weekend-uren, business-status, categorie). Gratis,
+    geen Claude-call. Sortering critical → warning → tip met
+    actie-hints per finding.
+  - **/dashboard/google-business/benchmark** — buurt-vergelijking met
+    radius-selector (250m-3km). 3 KPI-tegels (rating/reviews/foto's
+    vs mediaan). Tabel met jouw zaak gehighlight + concurrenten
+    gesorteerd op afstand. Mediaan i.p.v. gemiddelde voor robuustheid.
+  - ~~Filly-posts (copy-paste)~~ — 2026-05-05 verwijderd na review:
+    overlapt met de bestaande Filly-chat (eigenaar kan in chat al
+    "schrijf me een Google-post" vragen). Posts verdwijnen na 7 dagen
+    in Google + beperkte SEO-impact. Eventueel later integreren als
+    extra channel in de chat-bundel-flow naast Mail/IG/FB.
+
+- [~] **Fase C — Google Business Profile API approval-aanvraag**.
+  Doc-stub klaar: [docs/google-business-approval.md](docs/google-business-approval.md)
+  met voorbereidingsstappen + invul-tekst voor het formulier. **Jouw
+  actie**: APIs enablen in Cloud Console (5 stuks), OAuth consent screen
+  configureren, formulier indienen. Wachttijd 2-6 weken voor approval.
+
+- [ ] **Fase D — OAuth-foundation** (generiek, ook bruikbaar voor Meta/Zenchef).
+  Migratie 0035: `oauth_connections`-tabel (provider, encrypted refresh-token,
+  scopes, expires_at). Generieke `OAuthModule` met google-business-strategy.
+  `/api/oauth/google-business/authorize` + `/callback` endpoints.
+  Knop "Koppel met Google" op de hub-pagina. Status-banner switcht
+  naar "Gekoppeld ✓" wanneer er een rij is voor restaurant_id +
+  provider='google_business'.
+
+- [ ] **Fase E — Reviews écht uit Google ophalen** (na approval).
+  Sync-job 1× per uur per gekoppelde klant via
+  `accounts.locations.reviews.list`. Bestaande reply-engine
+  (`ReviewsService.refineVariants` etc — al klaar!) hergebruiken,
+  alleen nieuwe push-stap naar Google's `accounts.locations.reviews.reply`.
+  Migratie 0036: `reviews.google_review_id` + `responded_to_google_at`.
+  Bestaande handmatig-ingevoerde reviews migreren / opruimen.
+
+- [ ] **Fase F — Profiel-edits + foto-sync + Q&A**.
+  Edit-queue met twee gates: eigenaar approves in Filly → push naar
+  Google → Google's eigen review-queue (sommige velden direct live,
+  andere door moderation). Foto-sync: media-library uit migratie 0031
+  (al klaar!) + push naar `accounts.locations.media.create`. Q&A
+  monitoring + Filly-antwoord-suggesties via
+  `accounts.locations.questions.list`.
 
 ### Mock-data in frontend (opruimen zodra backend er is)
 - [x] ~~**`FILLY_MOCK`** in kpi-row.tsx~~ (2026-04-29) — verwijderd, alleen echte attributie via `reservations.via_campaign_id`-FK.
@@ -346,6 +418,102 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-05 — GBP fase B: Places-API + audit + benchmark + posts
+
+**Probleem dat dit oplost**: de hub-pagina had alleen "Coming Soon"-
+cards. Eigenaar kon nog niks met Filly's Google-features. Vereist een
+Google Cloud-koppeling die voor klanten zonder approval-wachttijd
+direct waarde geeft — dat is precies wat de Places API mogelijk maakt.
+
+**Setup buiten code** (door Floris):
+- Google Cloud project `Get-Filly GBP` onder organisatie `get-filly.com`
+- $300 free trial credit (90 dagen) + $200/mnd Maps-credit doorlopend
+- API-key met restricties: alleen Places API (New), geen IP-restrictie
+  voor lokaal dev (productie krijgt Railway-IP later)
+- `.env`-var: `GOOGLE_PLACES_API_KEY`
+
+**Backend** ([apps/api/src/google-profile/](apps/api/src/google-profile/)):
+- `GoogleProfileModule` + `GoogleProfileService` met 7 public methods:
+  searchByText, connect, getMine, refresh, disconnect, getAudit,
+  getCompetitors, generatePostVariants.
+- Cache-strategie: 24u TTL in `restaurants.google_place_data` jsonb.
+  Stale-refresh fail-soft (toon oude data + log warning bij API-fout).
+- `audit.ts`: 12 deterministische regels (geen Claude-call, gratis,
+  sub-ms runtime). Severities: critical / warning / tip met
+  actionHints in NL voor de eigenaar.
+- Migratie 0034: `restaurants.google_place_id` (text) + `google_place_data`
+  (jsonb) + `google_place_synced_at` (timestamptz) + index op place_id.
+
+**Frontend** ([apps/web/src/app/dashboard/google-business/](apps/web/src/app/dashboard/google-business/)):
+- Hub van server-component naar client-component met `GET /me` fetch
+  bij mount. Drie banner-states (loading/connected/disconnected).
+  `GoogleConnectModal` voor de "Koppel met Google"-flow met search
+  → kies → connect.
+- 2 sub-routes:
+  - `/audit` — severity-checklist met 3 KPI-tegels + finding-cards
+  - `/benchmark` — KPI's (jouw vs mediaan in buurt) + tabel met radius-
+    selector
+  - ~~`/posts`~~ — gebouwd maar dezelfde dag verwijderd na review.
+    Overlap met Filly-chat ("schrijf een Google-post") + posts in
+    Google verdwijnen na 7 dagen + beperkte SEO-impact. Eventueel
+    later als 4e channel in de chat-bundel-flow.
+
+**Onboarding-integratie**:
+- `OnboardingController.analyzeWebsite` → na WebsiteAnalyzer ook
+  `googleProfile.searchByText(name + adres)` → top-1 als `place_match`
+  in de response.
+- Wizard stap 2 toont nieuwe sectie "Filly heeft je profiel gevonden"
+  met confirm/wijzig/skip. Wijzigen-flow heeft inline-search.
+- `OnboardingService.completeOnboarding`: na restaurant-create + link
+  → optionele `googleProfile.connect()` als wizard place_id meestuurt.
+  Fail-soft.
+- Nieuwe endpoint `/onboarding/google-search` (alleen AuthGuard, geen
+  RestaurantAccessGuard) voor de wijzigen-flow tijdens onboarding.
+
+**Bekend voor productie** (op backlog):
+- IP-restrictie op API-key zetten zodra Railway-IP bekend (productie
+  deploy)
+- Aparte dev-key zonder IP-restrictie voor lokale ontwikkeling
+
+### 2026-05-05 — Google Business Profile-hub (fase A: skelet + rename)
+
+**Probleem dat dit oplost**: de oude "Reviews"-sectie suggereerde dat
+Filly alleen iets met reviews kan, terwijl reviews één van de zeven
+sub-features van een volledige Google Business Profile-integratie zijn.
+De rename + hub-pagina maken duidelijk waar we naartoe gaan en wat
+er nog komt — fase B-F kunnen nu één voor één live zonder de
+navigatie steeds te wijzigen.
+
+**Wijzigingen**:
+- Sidebar: `Reviews` ⭐ → `Google Business` 🔵
+- Route: `/dashboard/reviews` → `/dashboard/google-business` (oude
+  route blijft als 308-redirect-stub voor bookmarks/audit-log-links)
+- Reviews-pagina verhuisd naar sub-route `/dashboard/google-business/reviews`
+- Module-key in `@getfilly/shared`: `reviews` → `google_business`
+  (MODULES + DEFAULT_PERMISSIONS owner/manager)
+- Migratie 0033: bestaande `restaurant_users.permissions`-jsonb
+  bijgewerkt + audit-log-entry voor traceerbaarheid
+- AccessGuard PATH_MODULE_MAP + topbar title-mapping bijgewerkt
+- Tasks-strip + taken/page deep-links direct naar nieuwe locatie
+  (geen onnodige redirect-hop)
+- Team-pagina MODULE_LABELS bijgewerkt
+- Hub-pagina (`/dashboard/google-business/page.tsx`) met 7 cards:
+  - 🟢 **Reviews** (live, klikbaar — werkt met handmatige data tot
+    fase E synchronisatie aanzet)
+  - 🔵 **Profiel-audit** (Coming Soon, fase B)
+  - 🔵 **Concurrent-benchmark** (Coming Soon, fase B)
+  - 🔵 **Filly-posts (copy-paste)** (Coming Soon, fase B)
+  - ⚪ **Profiel-edits** (Coming Soon, fase F — vereist OAuth)
+  - ⚪ **Foto-sync naar Google** (Coming Soon, fase F)
+  - ⚪ **Inzichten** (Coming Soon, fase F)
+- Status-banner bovenaan: "Niet gekoppeld met Google" (hardcoded
+  tot fase D `oauth_connections` live is)
+- Responsive grid (`auto-fill, minmax(280px, 1fr)`) — geen breakpoints
+  nodig, vult de rij vanzelf op
+
+**Volgende fase**: B (Places-API laag) — vereist Google Cloud
+project + Places API-key. Geen klant-actie of approval-wachttijd.
 
 ### 2026-05-04 — Chat-delete + cap 20→30
 

@@ -32,7 +32,11 @@ export const MODULES = [
   'reserveringen',
   'campagnes',
   'gasten',
-  'reviews',
+  // 'google_business' was 'reviews' tot 2026-05-05. Reviews zijn een
+  // sub-feature van Google Business Profile, dus de hele sectie is
+  // hernoemd naar de bredere hub. Migratie 0033 heeft bestaande
+  // jsonb-permissions ook bijgewerkt.
+  'google_business',
   'menu',
   'rapportages',
   'koppelingen',
@@ -75,7 +79,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, readonly Module[]> = {
     'reserveringen',
     'campagnes',
     'gasten',
-    'reviews',
+    'google_business',
     'menu',
     'rapportages',
     'koppelingen',
@@ -89,7 +93,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, readonly Module[]> = {
     'reserveringen',
     'campagnes',
     'gasten',
-    'reviews',
+    'google_business',
     'menu',
     'rapportages',
     'account',

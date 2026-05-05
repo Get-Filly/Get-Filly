@@ -23,7 +23,7 @@ type MenuItem = {
 //   1. Dashboard — globaal overzicht (vaste start)
 //   2. Campagnes — dé pagina, bundelt Filly's voorstellen én campagnes
 //   3. Reserveringen — wie komt er (dagelijkse operatie)
-//   4. Gasten, Reviews, Menu — aanpalende context
+//   4. Gasten, Google Business, Menu — aanpalende context
 //   5. Rapportages — periodieke analyse
 //   6. Koppelingen — setup, zelden aangeraakt
 //
@@ -36,12 +36,19 @@ type MenuItem = {
 //     onder Campagnes. Later breiden we /campagnes uit naar een
 //     volledige "Acties"-hub met review-antwoorden en gast-acties
 //     zodat Taken definitief kan verdwijnen.
+//
+// Per 2026-05-05: 'Reviews' (⭐) is hernoemd naar 'Google Business'
+// (🔵). Reviews zijn een sub-feature van Google Business Profile —
+// de hub bevat straks ook profiel-audit, foto-sync, posts, Q&A en
+// inzichten. Migratie 0033 heeft de module-key in DB-permissions
+// bijgewerkt. Het Google-G-icoon vervangt later het emoji als we
+// fase D (OAuth) live zetten.
 const allMenuItems: MenuItem[] = [
   { href: "/dashboard", icon: "📊", label: "Dashboard", module: "dashboard" },
   { href: "/dashboard/campagnes", icon: "📣", label: "Campagnes", module: "campagnes" },
   { href: "/dashboard/reserveringen", icon: "📆", label: "Reserveringen", module: "reserveringen" },
   { href: "/dashboard/gasten", icon: "👥", label: "Gasten", module: "gasten" },
-  { href: "/dashboard/reviews", icon: "⭐", label: "Reviews", module: "reviews" },
+  { href: "/dashboard/google-business", icon: "🔵", label: "Google Business", module: "google_business" },
   { href: "/dashboard/menu", icon: "🍽️", label: "Menu", module: "menu" },
   { href: "/dashboard/rapportages", icon: "📈", label: "Rapportages", module: "rapportages" },
   { href: "/dashboard/koppelingen", icon: "🔗", label: "Koppelingen", module: "koppelingen" },

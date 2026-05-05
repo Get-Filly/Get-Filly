@@ -7,6 +7,7 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { AuditLogService } from '../common/audit-log.service';
+import { GoogleProfileService } from '../google-profile/google-profile.service';
 
 // ============================================================
 // OnboardingService — eerste-keer-setup voor een nieuwe user
@@ -48,6 +49,11 @@ export type OnboardingInput = {
   website_url?: string;
   website_summary?: string;
   social_media?: Record<string, string>;
+  // Google Business Profile (fase B). Optioneel — wizard zet 'm pas
+  // als de eigenaar Filly's match-suggestie heeft bevestigd of een
+  // andere uit de lijst heeft gekozen. Bij 'overslaan' blijft 'ie
+  // null; eigenaar kan later koppelen via de hub.
+  google_place_id?: string | null;
   // Operationele velden die WebsiteAnalyzer kan vinden op horeca-sites.
   // Allemaal optioneel — wizard stuurt ze alleen mee als Filly ze
   // daadwerkelijk extracted heeft, anders blijft de DB-kolom null en
@@ -94,6 +100,11 @@ export type OnboardingResult = {
   restaurantId: string;
   menuImport: ImportResult | null;
   drinkImport: ImportResult | null;
+  // True als Filly's Google-match is geaccepteerd én de connect-call
+  // is gelukt. False bij overslaan of bij Places-API-fouten (fail-soft).
+  // Frontend kan dit gebruiken voor een "✓ Google-profiel ook gekoppeld"-
+  // confirmatie op het succes-scherm.
+  googlePlaceConnected: boolean;
 };
 
 @Injectable()
@@ -104,6 +115,9 @@ export class OnboardingService {
     private readonly supabase: SupabaseService,
     private readonly geocoding: GeocodingService,
     private readonly audit: AuditLogService,
+    // GoogleProfileService voor de optionele place_id-koppeling die
+    // Filly tijdens stap 2 van de wizard heeft voorgesteld.
+    private readonly googleProfile: GoogleProfileService,
   ) {}
 
   async completeOnboarding(
@@ -291,6 +305,31 @@ export class OnboardingService {
       city: input.city,
     });
 
+    // Stap 8 — Google Business Profile koppelen als de eigenaar een
+    // place_id heeft bevestigd in stap 2 van de wizard. Fail-soft:
+    // als de Places-API down is of het place_id ongeldig blijkt, gaat
+    // onboarding gewoon door. Eigenaar kan later via de hub alsnog
+    // koppelen.
+    //
+    // Bewust ná de restaurant_users-link zodat connect() (die
+    // RequestSupabaseService met user-JWT gebruikt) de update
+    // mag uitvoeren — RLS-policy ziet de net-aangemaakte link.
+    let googlePlaceConnected = false;
+    if (input.google_place_id) {
+      try {
+        await this.googleProfile.connect(
+          restaurant.id,
+          userId,
+          input.google_place_id,
+        );
+        googlePlaceConnected = true;
+      } catch (err) {
+        this.logger.warn(
+          `Google-profiel-koppeling tijdens onboarding faalde voor restaurant ${restaurant.id}: ${(err as Error).message}. Eigenaar kan later via de hub koppelen.`,
+        );
+      }
+    }
+
     // Audit: onboarding-afgerond. Markeert het moment waarop een
     // user een betalende-klant-kandidaat wordt — input voor "gemiddelde
     // tijd-tot-onboarded" en voor support ("wanneer is deze klant
@@ -311,10 +350,16 @@ export class OnboardingService {
         // breidt uit naar 3e vestiging") en cohort-analyse.
         sequence_index: (existingCount ?? 0) + 1,
         is_additional_restaurant: isAdditionalRestaurant,
+        google_place_connected: googlePlaceConnected,
       },
     });
 
-    return { restaurantId: restaurant.id, menuImport, drinkImport };
+    return {
+      restaurantId: restaurant.id,
+      menuImport,
+      drinkImport,
+      googlePlaceConnected,
+    };
   }
 
   // Helper: geocode het adres en sla lat/long op het restaurant op.
