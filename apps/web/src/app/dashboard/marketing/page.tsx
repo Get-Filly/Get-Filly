@@ -96,6 +96,7 @@ export default function MarketingHubPage() {
     {
       key: "instagram",
       name: "Instagram",
+      href: "/dashboard/marketing/instagram",
       description:
         "Bereik, engagement, top-posts en beste posttijd zodra je via OAuth koppelt.",
       status: "coming-soon",
@@ -103,6 +104,7 @@ export default function MarketingHubPage() {
     {
       key: "facebook",
       name: "Facebook",
+      href: "/dashboard/marketing/facebook",
       description:
         "Page-bereik, post-engagement en publiek-demografie via Meta Graph API.",
       status: "coming-soon",
@@ -110,6 +112,7 @@ export default function MarketingHubPage() {
     {
       key: "tiktok",
       name: "TikTok",
+      href: "/dashboard/marketing/tiktok",
       description:
         "Plays, watch-time, shares en for-you-ratio via TikTok Marketing API.",
       status: "coming-soon",
@@ -127,7 +130,7 @@ export default function MarketingHubPage() {
   const totalChannels = channels.filter((c) => c.status !== "future").length;
 
   return (
-    <>
+    <div className="page-full">
       <PageHeader
         title="Marketing"
         subtitle="Hoe presteren je kanalen? Filly meet, vergelijkt en stelt verbeteringen voor."
@@ -249,7 +252,7 @@ export default function MarketingHubPage() {
           <ChannelCard key={c.key} channel={c} loading={loading} />
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -260,7 +263,13 @@ function ChannelCard({
   channel: Channel;
   loading: boolean;
 }) {
-  const isClickable = channel.status === "live" && !!channel.href;
+  // Klikbaar als de pagina bestaat — ook voor Coming Soon, want die
+  // pagina's tonen óf een preview met voorbeeld-data (Instagram) óf
+  // een nette uitleg "wat krijg je straks". Future-status (WhatsApp)
+  // heeft géén pagina dus blijft niet-klikbaar.
+  const isClickable =
+    (channel.status === "live" || channel.status === "coming-soon") &&
+    !!channel.href;
   const cardContent = (
     <Card
       elevated

@@ -222,7 +222,7 @@ export default function GoogleBusinessHubPage() {
     : "";
 
   return (
-    <>
+    <div className="page-full">
       <PageHeader
         title="Google Business Profile"
         subtitle="Beheer je profiel, reviews en zichtbaarheid in Google — Filly helpt mee."
@@ -467,6 +467,6 @@ export default function GoogleBusinessHubPage() {
         onConnected={handleConnected}
         initialQuery={initialSearchQuery}
       />
-    </>
+    </div>
   );
 }

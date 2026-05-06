@@ -32,7 +32,7 @@ export function ComingSoonChannel({
   features,
 }: Props) {
   return (
-    <>
+    <div className="page-full">
       <PageHeader
         title={`${channelName}-prestaties`}
         subtitle={`Bereik, engagement en publiek-data — beschikbaar zodra ${channelName} gekoppeld is.`}
@@ -125,6 +125,6 @@ export function ComingSoonChannel({
           <Button variant="primary">Bekijk Mail (werkt al)</Button>
         </Link>
       </div>
-    </>
+    </div>
   );
 }

@@ -68,7 +68,7 @@ export default function MailMarketingPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Mail-prestaties"
           subtitle="Open rates, click rates en industrie-vergelijking — uit je Resend-data."
@@ -84,13 +84,13 @@ export default function MailMarketingPage() {
         >
           Statistieken laden…
         </div>
-      </>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader title="Mail-prestaties" />
         <div
           style={{
@@ -104,13 +104,13 @@ export default function MailMarketingPage() {
         >
           {error}
         </div>
-      </>
+      </div>
     );
   }
 
   if (!stats || stats.sent === 0) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Mail-prestaties"
           subtitle="Open rates, click rates en industrie-vergelijking — uit je Resend-data."
@@ -125,12 +125,12 @@ export default function MailMarketingPage() {
             </Link>
           }
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="page-full">
       <PageHeader
         title="Mail-prestaties"
         subtitle={`${stats.sent.toLocaleString("nl-NL")} verzonden mails over ${stats.campaignCount} campagne${stats.campaignCount === 1 ? "" : "s"} — laatste ${stats.periodDays} dagen.`}
@@ -316,7 +316,7 @@ export default function MailMarketingPage() {
         meer dan 10 campagnes hebt verzonden — anders zegt het beeld
         weinig.
       </div>
-    </>
+    </div>
   );
 }
 

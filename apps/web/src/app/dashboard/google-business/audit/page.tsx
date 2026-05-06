@@ -77,7 +77,7 @@ export default function ProfielAuditPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Profiel-audit"
           subtitle="Filly checkt wat er ontbreekt op je Google Business Profile."
@@ -93,13 +93,13 @@ export default function ProfielAuditPage() {
         >
           Audit laden…
         </div>
-      </>
+      </div>
     );
   }
 
   if (notConnected) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Profiel-audit"
           subtitle="Filly checkt wat er ontbreekt op je Google Business Profile."
@@ -114,13 +114,13 @@ export default function ProfielAuditPage() {
             </Link>
           }
         />
-      </>
+      </div>
     );
   }
 
   if (error || !audit) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Profiel-audit"
           subtitle="Filly checkt wat er ontbreekt op je Google Business Profile."
@@ -137,7 +137,7 @@ export default function ProfielAuditPage() {
         >
           {error ?? "Audit niet beschikbaar."}
         </div>
-      </>
+      </div>
     );
   }
 
@@ -147,7 +147,7 @@ export default function ProfielAuditPage() {
     audit.summary.tip === 0;
 
   return (
-    <>
+    <div className="page-full">
       <PageHeader
         title="Profiel-audit"
         subtitle="Filly checkt wat er ontbreekt op je Google Business Profile."
@@ -247,7 +247,7 @@ export default function ProfielAuditPage() {
         . Wijzigingen op je Google-profiel kunnen tot 24 uur duren voordat
         ze hier zichtbaar zijn (cache).
       </div>
-    </>
+    </div>
   );
 }
 

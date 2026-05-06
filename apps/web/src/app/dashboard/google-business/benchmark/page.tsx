@@ -91,7 +91,7 @@ export default function ConcurrentBenchmarkPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Concurrent-benchmark"
           subtitle="Hoe scoor je versus restaurants in je buurt?"
@@ -107,13 +107,13 @@ export default function ConcurrentBenchmarkPage() {
         >
           Concurrenten laden…
         </div>
-      </>
+      </div>
     );
   }
 
   if (notConnected) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Concurrent-benchmark"
           subtitle="Hoe scoor je versus restaurants in je buurt?"
@@ -128,13 +128,13 @@ export default function ConcurrentBenchmarkPage() {
             </Link>
           }
         />
-      </>
+      </div>
     );
   }
 
   if (error || !mine) {
     return (
-      <>
+      <div className="page-full">
         <PageHeader
           title="Concurrent-benchmark"
           subtitle="Hoe scoor je versus restaurants in je buurt?"
@@ -151,7 +151,7 @@ export default function ConcurrentBenchmarkPage() {
         >
           {error ?? "Benchmark niet beschikbaar."}
         </div>
-      </>
+      </div>
     );
   }
 
@@ -170,7 +170,7 @@ export default function ConcurrentBenchmarkPage() {
   const medianPhotos = median(photoCounts);
 
   return (
-    <>
+    <div className="page-full">
       <PageHeader
         title="Concurrent-benchmark"
         subtitle={`${competitors.length} restaurant${competitors.length === 1 ? "" : "s"} binnen ${radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}.`}
@@ -411,7 +411,7 @@ export default function ConcurrentBenchmarkPage() {
         Mediaan is robuuster dan gemiddelde — één hele goede of slechte
         zaak vertekent het beeld minder.
       </div>
-    </>
+    </div>
   );
 }
 
