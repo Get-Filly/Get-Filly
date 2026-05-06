@@ -900,10 +900,17 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .product-walkthrough > *,
 .product-diff > * { position: relative; z-index: 1; }
 
-/* ===== Hero differentiators (4-column strip under product hero) ===== */
+/* ===== Hero differentiators (4-column strip under product hero) =====
+   Per 2026-05-06: subgrid-row-alignment toegevoegd. Probleem was dat
+   een kaart met een 2-regel titel ('AI dóet het werk. Jij keurt goed.')
+   de desc lager duwde dan de andere drie kaarten. Door 3 vaste rijen
+   te definiëren (cirkel, titel, desc) en elke .hero-diff via subgrid
+   die rijen te laten erven, lijnen alle drie de elementen netjes uit
+   over de kaarten heen, ongeacht hoeveel regels de titel beslaat. */
 .hero-diffs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto auto;
   gap: 32px;
   margin-top: 64px;
   padding-top: 40px;
@@ -919,8 +926,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   border-top: 1px solid var(--border);
 }
 .hero-diff {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
   gap: 8px;
 }
 /* Per 2026-05-06: hero-diff-nummers waren klein mono-tekst ('01');
@@ -950,15 +958,37 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   letter-spacing: -0.2px;
   color: var(--text);
   margin: 0;
+  /* Voorkom orphans op meerdere kaarten waarvan de titel net niet
+     op één regel past. */
+  text-wrap: pretty;
 }
 .hero-diff-desc {
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--text-secondary);
   margin: 0;
+  /* Per 2026-05-06: text-wrap:balance verdeelt álle regels gelijk
+     over de beschikbare breedte (i.p.v. greedy wrapping dat lange-
+     korte-lange-korte regels gaf). Browsers cappen balance op 4-6
+     regels; bij langere paragrafen valt het terug op normaal en is
+     het effect minimaal. Voor onze omschrijvingen (3-5 regels) past
+     het precies. */
+  text-wrap: balance;
 }
 
-/* ===== Walkthrough step badge (under feature-row text) ===== */
+/* ===== Walkthrough step badge (boven feature-row text) =====
+   Per 2026-05-06 verplaatst van ONDER de desc naar BOVEN de titel,
+   naast het tijd-eyebrow ('Maandag · 09:14'). De .step-meta wrapper
+   doet dat: flex-row met badge links + tijd rechts ernaast. */
+.step-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.step-meta .walk-step { margin-top: 0; }
+.step-meta .feature-eyebrow { margin-bottom: 0; }
+
 .walk-step {
   display: inline-flex; align-items: center; gap: 10px;
   margin-top: 20px;

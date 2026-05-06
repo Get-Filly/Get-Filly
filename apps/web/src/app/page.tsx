@@ -196,7 +196,7 @@ export default function HomePage() {
         <div className="container">
           <h2 className="section-title">Eén platform.<br />Drie strategieën.</h2>
           <p className="section-subtitle" style={{ marginTop: 16, maxWidth: 640 }}>
-            Filly analyseert continu je bezetting en social-media-data en handelt op drie strategische termijnen: van een gerichte actie voor vandaag tot structurele groei over het hele jaar.
+            Filly analyseert continu je bezetting en social media data en handelt op drie strategische termijnen: van een gerichte actie voor vandaag tot structurele groei over het hele jaar.
           </p>
           <div className="features-stack">
             {/* Rij 1, design heeft hier inline width:1100/textAlign:left/fontWeight:100.
