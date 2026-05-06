@@ -339,21 +339,26 @@ export default function HomePage() {
       <section className="how-it-works">
         <div className="container">
           <h2 className="section-title">In drie stappen meer gasten.</h2>
-          <div className="steps">
-            <div className="step">
-              <div className="step-number">1</div>
-              <h3 className="step-title">Koppel je reserveringssysteem</h3>
-              <p className="step-desc">Verbind Zenchef, OpenTable, SevenRooms of een ander platform. Get-Filly importeert je data automatisch.</p>
+          {/* Per 2026-05-06: 'step' (groene cirkel + gecentreerde tekst) is
+              vervangen door 'hero-diff' (klein '01'-nummer + links-uitgelijnd),
+              zelfde format als de differentiator-strip op /product. Grid is
+              standaard 4-koloms, hier overschreven naar 3-koloms via inline
+              style omdat we maar drie stappen hebben. */}
+          <div className="hero-diffs" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <div className="hero-diff">
+              <div className="hero-diff-num">01</div>
+              <h3 className="hero-diff-title">Koppel je reserveringssysteem</h3>
+              <p className="hero-diff-desc">Verbind Zenchef, OpenTable, SevenRooms of een ander platform. Get-Filly importeert je data automatisch.</p>
             </div>
-            <div className="step">
-              <div className="step-number">2</div>
-              <h3 className="step-title">Bekijk je bezetting</h3>
-              <p className="step-desc">Zie per dag en week hoe vol je zit, historisch en actueel. De AI signaleert waar je omzet laat liggen.</p>
+            <div className="hero-diff">
+              <div className="hero-diff-num">02</div>
+              <h3 className="hero-diff-title">Bekijk je bezetting</h3>
+              <p className="hero-diff-desc">Zie per dag en week hoe vol je zit, historisch en actueel. De AI signaleert waar je omzet laat liggen.</p>
             </div>
-            <div className="step">
-              <div className="step-number">3</div>
-              <h3 className="step-title">Laat Filly het oplossen</h3>
-              <p className="step-desc">De AI stelt campagnes voor, maakt ze, en verstuurt ze. Jij keurt goed, Filly doet de rest.</p>
+            <div className="hero-diff">
+              <div className="hero-diff-num">03</div>
+              <h3 className="hero-diff-title">Laat Filly het oplossen</h3>
+              <p className="hero-diff-desc">De AI stelt campagnes voor, maakt ze, en verstuurt ze. Jij keurt goed, Filly doet de rest.</p>
             </div>
           </div>
         </div>
