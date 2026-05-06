@@ -1276,14 +1276,12 @@ function UploadCard({
         {subLabel && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: "var(--tl, #6B6B6B)",
               fontWeight: 400,
-              textTransform: "uppercase",
-              letterSpacing: 0.4,
             }}
           >
-            {subLabel}
+            ({subLabel})
           </span>
         )}
         {isUploaded && (
