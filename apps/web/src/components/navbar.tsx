@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,6 +18,19 @@ const links = [
 
 export function Navbar() {
   const pathname = usePathname();
+
+  // Hash-tracking: usePathname() ziet de URL-hash niet, dus voor links
+  // als '/#hoe-het-werkt' moet je window.location.hash apart uitlezen om
+  // de active-state te kunnen bepalen. We re-lezen hem bij elke route-
+  // wissel én abonneren op het 'hashchange'-event voor clicks binnen
+  // dezelfde pagina (bv. op de homepage zelf op 'Hoe het werkt' klikken).
+  const [hash, setHash] = useState<string>("");
+  useEffect(() => {
+    setHash(window.location.hash);
+    const updateHash = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
+  }, [pathname]);
 
   // Publieke navbar niet tonen op dashboard-paden, dat heeft een eigen sidebar.
   if (pathname.startsWith("/dashboard")) return null;
@@ -59,8 +73,20 @@ export function Navbar() {
         </Link>
         <div className="nav-links">
           {links.map(({ href, label }) => {
+            // Active-logica:
+            //  - '/' alleen exact op homepage
+            //  - hash-links ('/#...') als we op de homepage zijn EN de
+            //    huidige hash matcht (anders zou 'Hoe het werkt' altijd
+            //    op de homepage actief blijven, ook zonder klik)
+            //  - reguliere routes via prefix-match (zodat /product/x ook
+            //    'Oplossing' actief houdt)
+            const isHashLink = href.startsWith("/#");
             const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+              href === "/"
+                ? pathname === "/"
+                : isHashLink
+                  ? pathname === "/" && href === `/${hash}`
+                  : pathname.startsWith(href);
             return (
               <Link
                 key={href}
