@@ -48,7 +48,7 @@ export default function AboutPage() {
             <li className="zig-item zig-left active">
               <div className="zig-card">
                 <div className="zig-card-badge">Nu</div>
-                <h3 className="zig-card-title">Hoofdstuk 1 &mdash; Founded</h3>
+                <h3 className="zig-card-title">Hoofdstuk 1, Founded</h3>
                 <ul className="zig-card-list">
                   <li>Get-Filly opgericht door twee Nyenrode-alumni</li>
                   <li>Eerste klanten onboarden in Amsterdam &amp; Utrecht</li>
@@ -61,17 +61,17 @@ export default function AboutPage() {
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2027</span></div>
               <div className="zig-card">
-                <h3 className="zig-card-title">Hoofdstuk 2 &mdash; Eerste 100 klanten</h3>
+                <h3 className="zig-card-title">Hoofdstuk 2, Eerste 100 klanten</h3>
                 <ul className="zig-card-list">
                   <li>Filly nationaal uitrollen in heel Nederland</li>
-                  <li>Alle horeca-types &mdash; van bistro tot brasserie</li>
+                  <li>Alle horeca-types, van bistro tot brasserie</li>
                 </ul>
               </div>
             </li>
 
             <li className="zig-item zig-left">
               <div className="zig-card">
-                <h3 className="zig-card-title">Hoofdstuk 3 &mdash; Internationale uitrol</h3>
+                <h3 className="zig-card-title">Hoofdstuk 3, Internationale uitrol</h3>
                 <ul className="zig-card-list">
                   <li>Eerst BeNeLux, daarna DACH-regio</li>
                   <li>Lokale teams, lokale data</li>
@@ -83,7 +83,7 @@ export default function AboutPage() {
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2029</span></div>
               <div className="zig-card">
-                <h3 className="zig-card-title">Hoofdstuk 4 &mdash; Benchmarks &amp; community</h3>
+                <h3 className="zig-card-title">Hoofdstuk 4, Benchmarks &amp; community</h3>
                 <ul className="zig-card-list">
                   <li>Restaurants vergelijken met peers</li>
                   <li>Best practices delen tussen ondernemingen onderling</li>

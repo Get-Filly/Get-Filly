@@ -70,13 +70,13 @@ export default function PricingPage() {
         <div className="container">
           <p className="section-label">Pricing</p>
           <h1 className="section-title">Kies wat past bij je onderneming.</h1>
-          <p className="section-subtitle">Geen verborgen kosten, geen jaarcontracten. Probeer Filly 14 dagen gratis &mdash; betaal pas als het werkt voor je onderneming.</p>
+          <p className="section-subtitle">Geen verborgen kosten, geen jaarcontracten. Probeer Filly 14 dagen gratis, betaal pas als het werkt voor je onderneming.</p>
 
           <div className="hero-diffs">
             <div className="hero-diff">
               <div className="hero-diff-num">01</div>
               <h3 className="hero-diff-title">14 dagen gratis proberen.</h3>
-              <p className="hero-diff-desc">Geen creditcard vooraf. Stop wanneer je wilt &mdash; niets dichtbinden, niets vooraf betalen.</p>
+              <p className="hero-diff-desc">Geen creditcard vooraf. Stop wanneer je wilt, niets dichtbinden, niets vooraf betalen.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">02</div>
@@ -86,12 +86,12 @@ export default function PricingPage() {
             <div className="hero-diff">
               <div className="hero-diff-num">03</div>
               <h3 className="hero-diff-title">Alle data in de EU.</h3>
-              <p className="hero-diff-desc">Servers in Frankfurt. Jouw bezetting en gastenlijst blijven van jou &mdash; geen doorverkoop, geen lock-in.</p>
+              <p className="hero-diff-desc">Servers in Frankfurt. Jouw bezetting en gastenlijst blijven van jou, geen doorverkoop, geen lock-in.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">04</div>
               <h3 className="hero-diff-title">Onboarding in 15 minuten.</h3>
-              <p className="hero-diff-desc">Koppel je reserveringssysteem, bevestig je menu &mdash; Filly gaat dezelfde dag aan de slag.</p>
+              <p className="hero-diff-desc">Koppel je reserveringssysteem, bevestig je menu, Filly gaat dezelfde dag aan de slag.</p>
             </div>
           </div>
 

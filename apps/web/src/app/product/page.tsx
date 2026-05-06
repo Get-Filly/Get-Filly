@@ -18,7 +18,7 @@ export default function ProductPage() {
     <>
       <section className="product-hero">
         <div className="container">
-          <p className="section-label">Product</p>
+          <p className="section-label">Oplossing</p>
           <h1 className="section-title">Jouw AI-assistent voor de horeca.</h1>
           <p className="section-subtitle">Get Filly combineert je reserveringsdata met AI om automatisch campagnes te draaien die lege stoelen vullen. Je chat, Filly doet de rest.</p>
 
@@ -26,22 +26,22 @@ export default function ProductPage() {
             <div className="hero-diff">
               <div className="hero-diff-num">01</div>
               <h3 className="hero-diff-title">AI d&oacute;et het werk. Jij keurt goed.</h3>
-              <p className="hero-diff-desc">Andere tools assisteren. Filly schrijft, plant en verstuurt &mdash; jij klikt alleen op goedkeuren.</p>
+              <p className="hero-diff-desc">Andere tools assisteren. Filly schrijft, plant en verstuurt, jij klikt alleen op goedkeuren.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">02</div>
               <h3 className="hero-diff-title">Geen marketingkennis nodig.</h3>
-              <p className="hero-diff-desc">Geen segmenten, geen A/B-tests, geen open-rates uitpluizen. Filly beslist wat werkt &mdash; jij ziet de uitkomst.</p>
+              <p className="hero-diff-desc">Geen segmenten, geen A/B-tests, geen open-rates uitpluizen. Filly beslist wat werkt, jij ziet de uitkomst.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">03</div>
               <h3 className="hero-diff-title">Plakt op wat je al hebt.</h3>
-              <p className="hero-diff-desc">Je reserveringsplatform, POS en socials houd je. Filly integreert in een paar klikken &mdash; geen overstap.</p>
+              <p className="hero-diff-desc">Je reserveringsplatform, POS en socials houd je. Filly integreert in een paar klikken, geen overstap.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">04</div>
               <h3 className="hero-diff-title">Meet wat &eacute;cht werkt.</h3>
-              <p className="hero-diff-desc">Geen open-rates of clicks &mdash; wel &lsquo;+12 reserveringen, &euro;540 omzet&rsquo;. Per campagne, in euro&rsquo;s.</p>
+              <p className="hero-diff-desc">Geen open-rates of clicks, wel &lsquo;+12 reserveringen, &euro;540 omzet&rsquo;. Per campagne, in euro&rsquo;s.</p>
             </div>
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function ProductPage() {
       <section className="product-walkthrough">
         <div className="container">
           <p className="section-label">Hoe het werkt</p>
-          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly &mdash; van lege stoelen naar een volle onderneming.</h2>
+          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly, van lege stoelen naar een volle onderneming.</h2>
           <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg &eacute;&eacute;n campagne van begin tot eind. Drie minuten werk op maandag, twaalf extra reserveringen op vrijdag.</p>
 
           <div className="features-stack" style={{ marginTop: 56 }}>
@@ -60,7 +60,7 @@ export default function ProductPage() {
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:14</p>
                 <h3 className="feature-row-title">Filly ziet een dip die jij nog niet had opgemerkt.</h3>
-                <p className="feature-row-desc">Filly kijkt continu naar je reserveringsdata. Een dinsdagavond op 38% is geen ramp &mdash; mits je het op tijd weet. Filly stuurt je &eacute;&eacute;n bericht: &ldquo;Dinsdag loopt achter, zal ik iets uitzetten?&rdquo;</p>
+                <p className="feature-row-desc">Filly kijkt continu naar je reserveringsdata. Een dinsdagavond op 38% is geen ramp, mits je het op tijd weet. Filly stuurt je &eacute;&eacute;n bericht: &ldquo;Dinsdag loopt achter, zal ik iets uitzetten?&rdquo;</p>
                 <div className="walk-step">
                   <span className="walk-step-num">01</span>
                   <span className="walk-step-label">Detectie</span>
@@ -109,8 +109,8 @@ export default function ProductPage() {
             <div className="feature-row feature-row--reverse">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:15</p>
-                <h3 className="feature-row-title">Drie kanalen, &eacute;&eacute;n voorstel &mdash; klaar binnen een minuut.</h3>
-                <p className="feature-row-desc">Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste klanten. Tone-of-voice, beeld en timing &mdash; alles afgestemd op je onderneming.</p>
+                <h3 className="feature-row-title">Drie kanalen, &eacute;&eacute;n voorstel, klaar binnen een minuut.</h3>
+                <p className="feature-row-desc">Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste klanten. Tone-of-voice, beeld en timing, alles afgestemd op je onderneming.</p>
                 <div className="walk-step">
                   <span className="walk-step-num">02</span>
                   <span className="walk-step-label">Voorstel</span>
@@ -120,7 +120,7 @@ export default function ProductPage() {
                 <div className="pmock-channels">
                   <div className="pmock-channels-head">
                     <span className="pmock-f-badge">F</span>
-                    <span className="pmock-channels-title">Filly stelt voor &mdash; 3 kanalen</span>
+                    <span className="pmock-channels-title">Filly stelt voor, 3 kanalen</span>
                   </div>
                   <div className="pmock-channels-list">
                     <div className="pmock-ch">
@@ -160,7 +160,7 @@ export default function ProductPage() {
                       </div>
                       <div className="pmock-ch-body">
                         <div className="pmock-ch-label">WhatsApp &middot; top 40 vaste gasten</div>
-                        <div className="pmock-ch-preview">&ldquo;Hoi! Morgen nog plek aan onze keukentafel &mdash; reserveer hier.&rdquo;</div>
+                        <div className="pmock-ch-preview">&ldquo;Hoi! Morgen nog plek aan onze keukentafel, reserveer hier.&rdquo;</div>
                       </div>
                       <div className="pmock-ch-meta">di 09:30</div>
                     </div>
@@ -180,8 +180,8 @@ export default function ProductPage() {
             <div className="feature-row">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:16</p>
-                <h3 className="feature-row-title">Eén klik &mdash; en alle drie de berichten staan klaar.</h3>
-                <p className="feature-row-desc">Geen toolswitchen, geen agenda&rsquo;s plannen, geen exports importeren. Filly verstuurt en plant alles in tegelijk. Je houdt &eacute;&eacute;n contactmoment per campagne &mdash; precies wat je nu ook al doet, alleen sneller.</p>
+                <h3 className="feature-row-title">Eén klik, en alle drie de berichten staan klaar.</h3>
+                <p className="feature-row-desc">Geen toolswitchen, geen agenda&rsquo;s plannen, geen exports importeren. Filly verstuurt en plant alles in tegelijk. Je houdt &eacute;&eacute;n contactmoment per campagne, precies wat je nu ook al doet, alleen sneller.</p>
                 <div className="walk-step">
                   <span className="walk-step-num">03</span>
                   <span className="walk-step-label">Goedkeuring</span>
@@ -229,7 +229,7 @@ export default function ProductPage() {
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Vrijdag &middot; 23:00</p>
                 <h3 className="feature-row-title">Resultaat: 12 extra reserveringen, &euro;540 omzet.</h3>
-                <p className="feature-row-desc">Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat ze volgende keer anders zou doen. Geen dashboards uitpluizen &mdash; gewoon &eacute;&eacute;n bericht.</p>
+                <p className="feature-row-desc">Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat ze volgende keer anders zou doen. Geen dashboards uitpluizen, gewoon &eacute;&eacute;n bericht.</p>
                 <div className="walk-step">
                   <span className="walk-step-num">04</span>
                   <span className="walk-step-label">Resultaat</span>
@@ -239,7 +239,7 @@ export default function ProductPage() {
                 <div className="pmock-result">
                   <div className="pmock-result-head">
                     <div className="pmock-result-eyebrow">DINSDAG-CAMPAGNE &middot; AFGEROND</div>
-                    <div className="pmock-result-headline">Dinsdagavond &mdash; van 38% naar 84%</div>
+                    <div className="pmock-result-headline">Dinsdagavond, van 38% naar 84%</div>
                   </div>
                   <div className="pmock-result-stats">
                     <div className="pmock-result-stat">
@@ -275,7 +275,7 @@ export default function ProductPage() {
                   </div>
                   <div className="pmock-result-note">
                     <span className="pmock-f-badge">F</span>
-                    <span>E-mail werkte het best &mdash; volgende keer schaal ik die als eerste op.</span>
+                    <span>E-mail werkte het best, volgende keer schaal ik die als eerste op.</span>
                   </div>
                 </div>
               </div>
