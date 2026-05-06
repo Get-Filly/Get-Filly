@@ -274,7 +274,7 @@ export function Sidebar() {
               onClick={() => setMenuOpen(false)}
             >
               <span className="sb-menu-icon">+</span>
-              Nieuwe zaak toevoegen
+              Nieuwe onderneming toevoegen
             </Link>
             <div className="sb-menu-divider" aria-hidden />
 

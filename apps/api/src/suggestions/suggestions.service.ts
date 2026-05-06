@@ -437,7 +437,7 @@ Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 - weather: speel in op weer-thema (regen → comfort food binnen, zon → terras-aanbod).
 - seasonal: huidige maand is ${monthName} — pak iets dat past bij dit seizoen.
 - retention: vaste-gasten-segment activeren met iets exclusiefs.
-- birthday: birthday-segment uitnodigen (alleen als zinvol bij dit type zaak).
+- birthday: birthday-segment uitnodigen (alleen als zinvol bij dit type onderneming).
 - general: een sterk concept dat los staat van een specifieke trigger — een signature-event of menu-launch.
 
 Inhoudsregels:
@@ -448,13 +448,13 @@ Inhoudsregels:
 - body: volledige uitgeschreven tekst, klaar om te versturen.
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
 - reasoning: 1-2 zinnen NL waarom dit voorstel nu past — verwijs naar concrete signalen uit profile/menu/live-data.
-- confidence: 0.0-1.0 hoe zeker je bent dat dit voorstel werkt voor deze zaak.
+- confidence: 0.0-1.0 hoe zeker je bent dat dit voorstel werkt voor deze onderneming.
 - expected_extra_reservations / expected_extra_revenue_cents: ruwe schatting; mag null/0 als je geen basis hebt.
 
 Vandaag is ${todayIso}.
 
 ---
-CONTEXT — alles wat je weet over deze zaak:
+CONTEXT — alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -882,7 +882,7 @@ Inhoudsregels:
 - Als het voorstel een social-only post is zonder gerecht-context, mag je main_dish/sides leeg laten en alleen timing + hero_image vullen.
 
 ---
-CONTEXT — alles wat je weet over deze zaak:
+CONTEXT — alles wat je weet over deze onderneming:
 
 ${profileBlock}
 

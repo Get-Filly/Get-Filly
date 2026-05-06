@@ -3,7 +3,7 @@
 // =============================================================================
 
 const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De eigenaar van een zaak heeft geen tijd voor marketing-knoppen draaien. Filly doet het werk en laat hem of haar focussen op gasten en gerechten." },
+  { title: "Ondernemer eerst", desc: "De eigenaar van een onderneming heeft geen tijd voor marketing-knoppen draaien. Filly doet het werk en laat hem of haar focussen op gasten en gerechten." },
   { title: "Geen hype, wel resultaat", desc: "Geen AI om de AI. We meten het alleen aan extra reserveringen en omzet. Als het dat niet oplevert, stopt het." },
   { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en klantenlijst zijn van jou. Geen doorverkoop, geen vendor lock-in, alles te exporteren." },
 ];
@@ -16,7 +16,7 @@ export default function AboutPage() {
           <p className="section-label">Over ons</p>
           <h1 className="section-title">Van idee naar impact.</h1>
           <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
-            Get-Filly is opgericht door twee ondernemers met één missie: zaken helpen om slimmer te vullen — zonder dat je er uren aan marketing aan kwijt bent.
+            Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen om slimmer te vullen — zonder dat je er uren aan marketing aan kwijt bent.
           </p>
 
           <div className="about-intro-divider"></div>
@@ -86,7 +86,7 @@ export default function AboutPage() {
                 <h3 className="zig-card-title">Hoofdstuk 4 &mdash; Benchmarks &amp; community</h3>
                 <ul className="zig-card-list">
                   <li>Restaurants vergelijken met peers</li>
-                  <li>Best practices delen tussen zaken onderling</li>
+                  <li>Best practices delen tussen ondernemingen onderling</li>
                 </ul>
               </div>
             </li>

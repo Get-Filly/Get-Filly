@@ -128,10 +128,10 @@ export class OnboardingService {
     const name = input.name?.trim();
     const type = input.type?.trim();
     if (!name || name.length < 2) {
-      throw new BadRequestException('Naam van de zaak is verplicht.');
+      throw new BadRequestException('Naam van de onderneming is verplicht.');
     }
     if (!type) {
-      throw new BadRequestException('Type zaak is verplicht.');
+      throw new BadRequestException('Type onderneming is verplicht.');
     }
     if (input.website_url && !isValidUrl(input.website_url)) {
       throw new BadRequestException(

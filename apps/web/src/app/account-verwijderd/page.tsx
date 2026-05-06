@@ -81,7 +81,7 @@ export default function AccountVerwijderdPage() {
             </li>
             <li>
               Geen vrije tekst, geen fotos, geen identificeerbare relatie
-              terug naar jou of jouw zaak
+              terug naar jou of jouw onderneming
             </li>
           </ul>
           <p>

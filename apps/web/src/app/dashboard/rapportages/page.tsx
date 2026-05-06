@@ -268,7 +268,7 @@ export default function RapportagesPage() {
             <div className="rep-section-eyebrow">Bezetting & omzet</div>
             <div className="rep-section-title">Hoe doe je het?</div>
             <div className="rep-section-desc">
-              De basisgezondheid van je zaak: gemiddelde bezetting, gasten,
+              De basisgezondheid van je onderneming: gemiddelde bezetting, gasten,
               omzet en vergelijking met vorig jaar.
             </div>
           </div>

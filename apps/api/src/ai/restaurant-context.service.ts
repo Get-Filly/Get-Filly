@@ -85,7 +85,7 @@ export class RestaurantContextService {
     }
 
     const lines: string[] = [];
-    const name = (r.name as string) ?? 'de zaak';
+    const name = (r.name as string) ?? 'de onderneming';
     lines.push(`PROFIEL — ${name}`);
 
     const type = r.type as string | null;

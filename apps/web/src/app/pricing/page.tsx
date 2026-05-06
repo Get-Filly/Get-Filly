@@ -59,7 +59,7 @@ const faqs = [
   { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
   { q: "Wat als ik over de campagne-limiet heen ga?", a: "Je krijgt een seintje bij 80% en 95% van je limiet. Daarna kun je óf upgraden, óf extra campagnes bijkopen per stuk (€15 per mail, €8 per social post)." },
   { q: "Hoelang duurt de onboarding?", a: "Gemiddeld 15 minuten. Je koppelt je reserveringssysteem (Zenchef, OpenTable, SevenRooms of andere), bevestigt je menu en Filly gaat aan de slag." },
-  { q: "Werkt Filly ook voor andere branches dan horeca?", a: "De core werkt voor elke zaak met variabele bezetting — hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
+  { q: "Werkt Filly ook voor andere branches dan horeca?", a: "De core werkt voor elke onderneming met variabele bezetting — hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
   { q: "Waar staat mijn data?", a: "Alles binnen de EU (Frankfurt, Supabase). We delen géén data met derden, verkopen niks door en exporteren is altijd gratis mogelijk." },
 ];
 
@@ -69,8 +69,8 @@ export default function PricingPage() {
       <section className="pricing-hero">
         <div className="container">
           <p className="section-label">Pricing</p>
-          <h1 className="section-title">Kies wat past bij je zaak.</h1>
-          <p className="section-subtitle">Geen verborgen kosten, geen jaarcontracten. Probeer Filly 14 dagen gratis &mdash; betaal pas als het werkt voor je zaak.</p>
+          <h1 className="section-title">Kies wat past bij je onderneming.</h1>
+          <p className="section-subtitle">Geen verborgen kosten, geen jaarcontracten. Probeer Filly 14 dagen gratis &mdash; betaal pas als het werkt voor je onderneming.</p>
 
           <div className="hero-diffs">
             <div className="hero-diff">

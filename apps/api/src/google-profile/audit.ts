@@ -134,7 +134,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
       severity: 'tip',
       title: 'Geen Google-beschrijving zichtbaar',
       description:
-        "Google toont een korte 'Over deze zaak'-beschrijving bij grotere plekken. Bij jouw zaak is die nog niet aanwezig — meestal komt die vanzelf zodra je profiel meer foto's en reviews heeft.",
+        "Google toont een korte 'Over deze onderneming'-beschrijving bij grotere plekken. Bij jouw onderneming is die nog niet aanwezig — meestal komt die vanzelf zodra je profiel meer foto's en reviews heeft.",
       actionHint:
         "Werk regelmatig je profiel bij. Google's editorial summary verschijnt automatisch zodra je profiel volwassener wordt.",
     });

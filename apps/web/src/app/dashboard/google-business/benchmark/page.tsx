@@ -409,7 +409,7 @@ export default function ConcurrentBenchmarkPage() {
       >
         Mediaan-cijfers berekend over {competitors.length} concurrenten.
         Mediaan is robuuster dan gemiddelde — één hele goede of slechte
-        zaak vertekent het beeld minder.
+        onderneming vertekent het beeld minder.
       </div>
     </div>
   );

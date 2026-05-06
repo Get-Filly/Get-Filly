@@ -316,7 +316,7 @@ export default function AccountPage() {
           }}
         >
           <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
-            <strong>Meerdere zaken?</strong> Voeg een tweede vestiging
+            <strong>Meerdere ondernemingen?</strong> Voeg een tweede vestiging
             of nieuw concept toe — je kunt tussen ze wisselen via het
             account-menu linksboven.
           </div>
@@ -325,7 +325,7 @@ export default function AccountPage() {
             variant="secondary"
             size="sm"
           >
-            + Nieuwe zaak
+            + Nieuwe onderneming
           </ButtonLink>
         </div>
 
@@ -668,7 +668,7 @@ export default function AccountPage() {
       <div className="form-section">
         <div className="form-section-title">Sluitingsdata &amp; vakanties</div>
         <div className="form-section-desc">
-          Specifieke dagen waarop de zaak dicht is (vakanties, feestdagen).
+          Specifieke dagen waarop de onderneming dicht is (vakanties, feestdagen).
           Filly mijdt deze voor mailings en reservering-suggesties.
         </div>
         <div className="form-grid">

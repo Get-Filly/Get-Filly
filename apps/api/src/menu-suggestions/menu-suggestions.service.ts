@@ -351,7 +351,7 @@ Confidence — KRITISCH om correct in te vullen:
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone uit het profiel (casual/professional/playful).
 - Verzin NIET wat al op het menu staat. Lees MENU goed door — voorstel moet écht een toevoeging zijn, geen variant van een bestaand gerecht.
-- Prijs als realistische range (low/high in centen) op basis van price_range van de zaak.
+- Prijs als realistische range (low/high in centen) op basis van price_range van de onderneming.
 - Beschrijving zoals 'ie op een echte menukaart staat: hoofdingrediënt + bereidingswijze. Géén marketingteksten als "heerlijk", "speciaal", "uniek".
 - dietary_tags: alleen vullen als zeker. Bv. een gerecht met room is NIET lactose_free.
 - reasoning (max 200 tekens): één zin waarom dit voorstel past — verwijs concreet naar profile of menu. Voor 'low'-voorstellen mag je hier juist benadrukken WAAROM het gewaagd is en welke gast het zou aanspreken.
@@ -359,7 +359,7 @@ Inhoudsregels:
 Vandaag is ${todayIso}.
 
 ---
-CONTEXT — alles wat je weet over deze zaak:
+CONTEXT — alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -638,7 +638,7 @@ Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone.
 - VERMIJD de hoofdingrediënt en bereidingswijze van het oorspronkelijke voorstel — eigenaar zoekt iets anders.
 - Verzin NIET wat al op het menu staat (zie MENU).
-- Prijs realistisch op basis van de zaak's price_range.
+- Prijs realistisch op basis van de onderneming's price_range.
 - reasoning: 1 zin waarom DEZE variant beter past dan het oorspronkelijke voorstel.
 - Huidig seizoen: ${season}.
 
@@ -650,7 +650,7 @@ OORSPRONKELIJK VOORSTEL (vermijd vergelijkbare invulling):
 
 ${previousList ? `EERDERE VARIANTEN die je AL hebt voorgesteld (verzin niet hetzelfde):\n${previousList}\n` : ''}
 ---
-CONTEXT — alles wat je weet over deze zaak:
+CONTEXT — alles wat je weet over deze onderneming:
 
 ${profileBlock}
 

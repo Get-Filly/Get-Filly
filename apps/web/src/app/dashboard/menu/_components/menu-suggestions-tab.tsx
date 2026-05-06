@@ -205,7 +205,7 @@ export function MenuSuggestionsTab({
           }
           description={
             mode === "pending"
-              ? "Klik hierboven op 'Vraag Filly om voorstellen' en hij komt met 3 nieuwe gerechten die passen bij jouw zaak."
+              ? "Klik hierboven op 'Vraag Filly om voorstellen' en hij komt met 3 nieuwe gerechten die passen bij jouw onderneming."
               : "Voorstellen die je hierboven verwijdert komen hier terecht — zo kun je later nog terugkomen op een voorstel."
           }
         />
@@ -406,7 +406,7 @@ function SourceBadge({
     { label: string; bg: string; fg: string }
   > = {
     gap_analysis: { label: "Gat in menu", bg: "#FEF3E0", fg: "#8A5300" },
-    profile_based: { label: "Past bij zaak", bg: "#EDF2EE", fg: "#1F4A2D" },
+    profile_based: { label: "Past bij onderneming", bg: "#EDF2EE", fg: "#1F4A2D" },
     seasonal: { label: "Seizoen", bg: "#E8F0FE", fg: "#0F4C81" },
     refined: { label: "Variant", bg: "#F2EAFD", fg: "#5C2D9C" },
   };

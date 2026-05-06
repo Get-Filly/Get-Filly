@@ -64,7 +64,7 @@ export function Footer() {
             <span>Get-Filly</span>
           </Link>
           <p className="site-footer-tagline">
-            AI-marketingassistent voor zaken met variabele bezetting.
+            AI-marketingassistent voor ondernemingen met variabele bezetting.
           </p>
         </div>
 

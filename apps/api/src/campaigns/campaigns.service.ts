@@ -700,7 +700,7 @@ export class CampaignsService {
     // instructie + profiel + menu en moet 3 verschillende alternatieven
     // leveren via tool 'generate_campaign_variants'. Schema dwingt
     // precies 3 varianten af; toon-verschillen sturen we hier in tekst.
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE zaak passen.
+    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
 
 Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
 
@@ -712,7 +712,7 @@ Inhoudsregels:
   instructie expliciet vraagt om iets te wijzigen.
 - Verwerk concrete elementen uit het profiel (USPs, doelgroep, sfeer)
   en menu (echte gerechten + prijzen) zodat de varianten herkenbaar
-  bij DEZE zaak passen.
+  bij DEZE onderneming passen.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin
   geen gerechten erbij, ook niet als ze "logisch" klinken.
 - subject_line alleen voor mail-campagnes; voor social/whatsapp laat
@@ -723,7 +723,7 @@ Inhoudsregels:
   of in het profiel/menu staan.
 
 ---
-CONTEXT — alles wat je weet over deze zaak:
+CONTEXT — alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -1098,7 +1098,7 @@ Regels voor de datum:
 - KIES een tijdstip vanaf morgen, niet vandaag (geef de eigenaar tijd om te reviewen).
 - Vandaag is ${todayIso}.
 - Houd rekening met de bezetting (uit het live-blok): mijd dagen die al >85% bezet zijn (zonde van de mailing) en geef juist voorrang aan dagen <50% bezetting bij activatie-campagnes.
-- Houd rekening met openingstijden uit het profiel — geen verzending plannen op een dag dat de zaak gesloten is.
+- Houd rekening met openingstijden uit het profiel — geen verzending plannen op een dag dat de onderneming gesloten is.
 - Houd rekening met special events uit het profiel (bv. wekelijks terugkerende avonden) — die kunnen het verzendmoment juist sterker maken (verzend dezelfde dag) of zwakker (verzend ervoor zodat mensen kunnen plannen).
 
 Regels voor het tijdstip per type:

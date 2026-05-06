@@ -173,7 +173,7 @@ export default function HomePage() {
             Meer klanten.<br />Minder lege momenten.
           </h1>
           <p className="section-subtitle fade-up d2">
-            Get-Filly analyseert je bezettingsdata en zet AI in om op korte, middellange en lange termijn campagnes te draaien die je zaak voller maken.
+            Get-Filly analyseert je bezettingsdata en zet AI in om op korte, middellange en lange termijn campagnes te draaien die je onderneming voller maken.
           </p>
           <div className="hero-cta fade-up d3">
             <Link href="/signup" className="btn-primary">Vraag een demo</Link>
@@ -392,8 +392,8 @@ export default function HomePage() {
       </section>
 
       <section className="cta-section">
-        <h2 className="section-title">Klaar om je zaak voller te krijgen?</h2>
-        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw zaak kan doen.</p>
+        <h2 className="section-title">Klaar om je onderneming voller te krijgen?</h2>
+        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
         <Link href="/pricing" className="cta-btn">Vraag een demo aan</Link>
       </section>
     </>

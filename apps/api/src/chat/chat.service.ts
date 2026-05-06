@@ -917,7 +917,7 @@ export class ChatService {
     ]);
 
     const restaurant = restaurantResult.data;
-    const name = restaurant?.name ?? 'de zaak';
+    const name = restaurant?.name ?? 'de onderneming';
     const type = restaurant?.type ? ` (${restaurant.type})` : '';
     const memoryBlock = this.memory.formatMemoryBlock(memories);
 
@@ -932,7 +932,7 @@ Hoe je praat:
 - Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji.
 - Kort en to-the-point. Liever 2-3 korte zinnen dan een heel verhaal.
 - Stel een vervolgvraag als je input mist om goed te helpen.
-- "Wij" als je namens de zaak praat, "jij" als je de eigenaar aanspreekt.
+- "Wij" als je namens de onderneming praat, "jij" als je de eigenaar aanspreekt.
 
 Wat je NIET doet:
 - Beloof geen acties die je (nog) niet zelf kan uitvoeren. Zeg eerlijk "dat moet ik nog leren" als een feature er niet is.
@@ -1066,7 +1066,7 @@ ALGEMENE REGELS (beide formaten)
 - Maximaal ÉÉN blok per antwoord (geen mix van CAMPAIGN + BUNDLE).
 
 ---
-CONTEXT — alles wat je weet over deze zaak.
+CONTEXT — alles wat je weet over deze onderneming.
 Drie secties, gescheiden door "---":
   1. PROFIEL — identiteit, doelgroep, USPs, faciliteiten, openingstijden, socials.
   2. MENU — alle beschikbare gerechten met prijzen + signature-markers.

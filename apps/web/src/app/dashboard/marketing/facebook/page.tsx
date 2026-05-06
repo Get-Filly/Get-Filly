@@ -174,7 +174,7 @@ const PREVIEW = {
       hint: "Vervang link-only-posts door foto's met de link in de comment. FB-algoritme straft externe links zwaar.",
     },
   ],
-  fillyAnalysis: `Je page-likes zijn stabiel met een lichte groei (+12 deze week). FB-publiek voor jouw zaak is ouder dan op IG (zwaartepunt 35-54), wat past bij hogere besteed-power maar minder engagement-rate. Twee dingen vallen op: events presteren consistent dubbel zo goed als foto's — daar zou ik op blijven inzetten. En je doet erg weinig op zaterdagochtend, terwijl je publiek daar piek-actief is.`,
+  fillyAnalysis: `Je page-likes zijn stabiel met een lichte groei (+12 deze week). FB-publiek voor jouw onderneming is ouder dan op IG (zwaartepunt 35-54), wat past bij hogere besteed-power maar minder engagement-rate. Twee dingen vallen op: events presteren consistent dubbel zo goed als foto's — daar zou ik op blijven inzetten. En je doet erg weinig op zaterdagochtend, terwijl je publiek daar piek-actief is.`,
 };
 
 export default function FacebookMarketingPage() {

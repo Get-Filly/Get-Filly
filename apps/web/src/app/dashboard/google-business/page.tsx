@@ -58,7 +58,7 @@ const features: Feature[] = [
     icon: "⭐",
     title: "Reviews",
     description:
-      "Bekijk reviews en laat Filly antwoord-suggesties schrijven die passen bij jouw zaak.",
+      "Bekijk reviews en laat Filly antwoord-suggesties schrijven die passen bij jouw onderneming.",
     href: "/dashboard/google-business/reviews",
     status: "live",
     phaseLabel: "Beschikbaar",
@@ -106,7 +106,7 @@ const features: Feature[] = [
     icon: "📈",
     title: "Inzichten",
     description:
-      "Hoeveel mensen zoeken jouw zaak, klikken naar je website of bellen je nummer — direct uit Google.",
+      "Hoeveel mensen zoeken jouw onderneming, klikken naar je website of bellen je nummer — direct uit Google.",
     status: "coming-soon-oauth",
     phaseLabel: "Vereist Google-koppeling",
   },

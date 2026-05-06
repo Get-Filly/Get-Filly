@@ -214,7 +214,7 @@ export default function VoorwaardenPage() {
           </p>
           <p>Je garandeert dat je:</p>
           <ul>
-            <li>Juiste en actuele gegevens over jouw zaak opgeeft</li>
+            <li>Juiste en actuele gegevens over jouw onderneming opgeeft</li>
             <li>Alleen content uploadt waar jij de rechten op hebt (menukaarten, foto's, teksten)</li>
             <li>Het platform niet gebruikt voor onrechtmatige of misleidende communicatie</li>
             <li>Geen pogingen doet om het platform, onze beveiliging of onze AI-systemen te misbruiken</li>

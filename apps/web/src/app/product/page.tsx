@@ -50,7 +50,7 @@ export default function ProductPage() {
       <section className="product-walkthrough">
         <div className="container">
           <p className="section-label">Hoe het werkt</p>
-          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly &mdash; van lege stoelen naar een volle zaak.</h2>
+          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly &mdash; van lege stoelen naar een volle onderneming.</h2>
           <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg &eacute;&eacute;n campagne van begin tot eind. Drie minuten werk op maandag, twaalf extra reserveringen op vrijdag.</p>
 
           <div className="features-stack" style={{ marginTop: 56 }}>
@@ -110,7 +110,7 @@ export default function ProductPage() {
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:15</p>
                 <h3 className="feature-row-title">Drie kanalen, &eacute;&eacute;n voorstel &mdash; klaar binnen een minuut.</h3>
-                <p className="feature-row-desc">Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste klanten. Tone-of-voice, beeld en timing &mdash; alles afgestemd op je zaak.</p>
+                <p className="feature-row-desc">Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste klanten. Tone-of-voice, beeld en timing &mdash; alles afgestemd op je onderneming.</p>
                 <div className="walk-step">
                   <span className="walk-step-num">02</span>
                   <span className="walk-step-label">Voorstel</span>
@@ -302,8 +302,8 @@ export default function ProductPage() {
       </section>
 
       <section className="cta-section">
-        <h2 className="section-title">Klaar om je zaak voller te krijgen?</h2>
-        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw zaak kan doen.</p>
+        <h2 className="section-title">Klaar om je onderneming voller te krijgen?</h2>
+        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
         <Link className="cta-btn" href="/pricing">Vraag een demo aan</Link>
       </section>
     </>

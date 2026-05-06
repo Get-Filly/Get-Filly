@@ -339,7 +339,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
 function buildReviewReplySystemPrompt(profileBlock: string): string {
   // Toon-B uit keuze-menu: gemoedelijk Nederlands, niet Amerikaans
   // enthousiast. Géén overdreven emoji of uitroeptekens, wel warm.
-  return `Je bent Filly, de AI-assistent voor het hieronder beschreven restaurant. Je schrijft namens de zaak een publiek antwoord op een online review.
+  return `Je bent Filly, de AI-assistent voor het hieronder beschreven restaurant. Je schrijft namens de onderneming een publiek antwoord op een online review.
 
 Stijl-richtlijnen:
 - Schrijf in het Nederlands, gemoedelijk en oprecht, niet Amerikaans-enthousiast.

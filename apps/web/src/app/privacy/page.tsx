@@ -150,18 +150,18 @@ export default function PrivacyPage() {
           <ul>
             <li>Naam en e-mailadres (om in te loggen en contact te hebben)</li>
             <li>Wachtwoord (versleuteld opgeslagen — wij zien het nooit)</li>
-            <li>Rol binnen de zaak (eigenaar, manager, medewerker)</li>
+            <li>Rol binnen de onderneming (eigenaar, manager, medewerker)</li>
             <li>Telefoonnummer, alleen als je dit zelf invult</li>
             <li>Tijdstippen van inloggen en gebruik (voor beveiliging en foutopsporing)</li>
           </ul>
 
-          <h3>2.2 Gegevens over je zaak</h3>
+          <h3>2.2 Gegevens over je onderneming</h3>
           <p>
             Om Filly zinvolle suggesties te laten doen hebben we gegevens
-            over de zaak zelf nodig:
+            over de onderneming zelf nodig:
           </p>
           <ul>
-            <li>Naam, type, adres en openingstijden van de zaak</li>
+            <li>Naam, type, adres en openingstijden van de onderneming</li>
             <li>Website-inhoud (automatisch gelezen tijdens onboarding)</li>
             <li>Menukaart, keuken-stijl, signatuur-gerechten</li>
             <li>Reserveringen, bezetting en weer-data per dag</li>
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
           <ul>
             <li>Type actie (review-antwoord, campagne-suggestie, chat, menu-scan)</li>
             <li>Aantal tokens per call en gebruikte model</li>
-            <li>Tijdstip en gekoppelde zaak</li>
+            <li>Tijdstip en gekoppelde onderneming</li>
             <li>De inhoud van jouw vraag of bestand, voor zover Claude die nodig heeft voor het antwoord</li>
           </ul>
 
