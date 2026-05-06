@@ -310,7 +310,7 @@ export default function ProductPage() {
       </section>
 
       <section className="cta-section">
-        <h2 className="section-title">Klaar om je onderneming voller te krijgen?</h2>
+        <h2 className="section-title">Klaar om rustige momenten om te zetten in omzet?</h2>
         <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
         <Link className="cta-btn" href="/pricing">Vraag een demo aan</Link>
       </section>

@@ -92,6 +92,14 @@ export function Navbar() {
                 key={href}
                 href={href}
                 className={`nav-link ${active ? "active" : ""}`}
+                onClick={
+                  // Next.js Link voor een hash-link triggert niet altijd de
+                  // 'hashchange'-event (history.pushState wijzigt alleen de
+                  // URL zonder native event te firen). Daarom updaten we de
+                  // hash-state hier direct bij klik, anders zou de active-
+                  // state pas bij een page-refresh zichtbaar worden.
+                  isHashLink ? () => setHash(href.replace("/", "")) : undefined
+                }
               >
                 {label}
               </Link>

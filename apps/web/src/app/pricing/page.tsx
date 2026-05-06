@@ -2,65 +2,67 @@
 // PRICING-PAGINA, 1-op-1 conversie van Claude Design app.jsx → PricingPage.
 // =============================================================================
 
-const plans = [
+type PlanFeature = { text: string; disabled?: boolean };
+type Plan = {
+  name: string;
+  desc: string;
+  price: string;
+  popular?: boolean;
+  features: PlanFeature[];
+  ctaText: string;
+};
+const plans: Plan[] = [
   {
-    name: "Starter",
-    desc: "Data-inzicht + basis AI-marketing",
-    price: "€120",
+    name: "Basic",
+    desc: "Voor ondernemingen die starten met data-gestuurde marketing",
+    price: "€99",
     features: [
-      { text: "Bezettingsdashboard (realtime)" },
-      { text: "Koppeling met 1 reserveringsplatform" },
-      { text: "Historische data & vergelijkingen" },
-      { text: "AI-chatbot" },
-      { text: "Tot 4 e-mailcampagnes per maand" },
-      { text: "Tot 8 social media posts per maand" },
-      { text: "WhatsApp-campagnes", disabled: true },
-      { text: "Dedicated accountmanager", disabled: true },
+      { text: "Bezettingsanalyse + patroonherkenning" },
+      { text: "CRM & POS-koppeling" },
+      { text: "Max. 4 Filly AI-campagne suggesties per dag" },
+      { text: "500 e-mails, 100 WhatsApp, 5 social ads" },
+      { text: "A/B testing + last-minute boost" },
+      { text: "Externe data" },
+      { text: "Standaard support" },
     ],
-    ctaText: "Start met Starter",
+    ctaText: "Start met Basic",
+  },
+  {
+    name: "Growth",
+    desc: "Voor ondernemingen die opschalen naar meerdere kanalen",
+    price: "€169",
+    popular: true,
+    features: [
+      { text: "Alles van Basic" },
+      { text: "Max. 6 Filly AI-campagne suggesties per dag" },
+      { text: "2.000 e-mails, 500 WhatsApp, 10 social ads" },
+      { text: "Google Business optimalisatie" },
+      { text: "AI-vindbaarheid" },
+    ],
+    ctaText: "Start met Growth",
   },
   {
     name: "Pro",
-    desc: "Meer campagnes, meer kanalen",
-    price: "€189",
-    popular: true,
+    desc: "Voor ondernemingen met hoge campagne-volumes en focus op marge",
+    price: "€249",
     features: [
-      { text: "Alles van Starter" },
-      { text: "Tot 12 e-mailcampagnes per maand" },
-      { text: "Tot 20 social media posts per maand" },
-      { text: "Seizoenssuggesties & planning" },
-      { text: "Koppeling met 3 reserveringsplatforms" },
-      { text: "WhatsApp-campagnes naar gasten" },
-      { text: "Dedicated accountmanager", disabled: true },
-      { text: "Maatwerk integraties", disabled: true },
+      { text: "Alles van Growth" },
+      { text: "Max. 8 Filly AI-campagne suggesties per dag" },
+      { text: "Onbeperkte e-mails, WhatsApp en social ads" },
+      { text: "Margin-aware campagnes" },
+      { text: "Priority support" },
     ],
     ctaText: "Start met Pro",
-  },
-  {
-    name: "Enterprise",
-    desc: "Alles onbeperkt + persoonlijke begeleiding",
-    price: "€299",
-    features: [
-      { text: "Alles van Pro, onbeperkt" },
-      { text: "Onbeperkte e-mailcampagnes" },
-      { text: "Onbeperkte social media posts" },
-      { text: "Onbeperkte WhatsApp-campagnes" },
-      { text: "Onbeperkte platformkoppelingen" },
-      { text: "Dedicated accountmanager" },
-      { text: "Prioriteit bij nieuwe features" },
-      { text: "Maatwerk integraties" },
-    ],
-    ctaText: "Neem contact op",
   },
 ];
 
 const faqs = [
-  { q: "Wat gebeurt er na de 14-dagen proefperiode?", a: "Je gaat automatisch naar het plan dat je gekozen hebt. Tijdens de proef kun je zonder kosten opzeggen, we vragen geen creditcard vooraf." },
+  { q: "Hoelang duurt de onboarding?", a: "Gemiddeld 15 minuten. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Filly gaat dezelfde dag aan de slag." },
+  { q: "Welke kanalen gebruikt Filly?", a: "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep." },
+  { q: "Houd ik controle over wat Filly verstuurt?", a: "Ja. Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
+  { q: "Hoe weet Filly welke actie ze moet voorstellen?", a: "Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
   { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
-  { q: "Wat als ik over de campagne-limiet heen ga?", a: "Je krijgt een seintje bij 80% en 95% van je limiet. Daarna kun je óf upgraden, óf extra campagnes bijkopen per stuk (€15 per mail, €8 per social post)." },
-  { q: "Hoelang duurt de onboarding?", a: "Gemiddeld 15 minuten. Je koppelt je reserveringssysteem (Zenchef, OpenTable, SevenRooms of andere), bevestigt je menu en Filly gaat aan de slag." },
-  { q: "Werkt Filly ook voor andere branches dan horeca?", a: "De core werkt voor elke onderneming met variabele bezetting, hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
-  { q: "Waar staat mijn data?", a: "Alles binnen de EU (Frankfurt, Supabase). We delen géén data met derden, verkopen niks door en exporteren is altijd gratis mogelijk." },
+  { q: "Voor welke branches werkt Filly?", a: "De core werkt voor elke onderneming met variabele bezetting: hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
 ];
 
 export default function PricingPage() {
@@ -70,30 +72,7 @@ export default function PricingPage() {
         <div className="container">
           <p className="section-label">Pricing</p>
           <h1 className="section-title">Kies wat past bij je onderneming.</h1>
-          <p className="section-subtitle">Geen verborgen kosten, geen jaarcontracten. Probeer Filly 14 dagen gratis, betaal pas als het werkt voor je onderneming.</p>
-
-          <div className="hero-diffs">
-            <div className="hero-diff">
-              <div className="hero-diff-num">01</div>
-              <h3 className="hero-diff-title">14 dagen gratis proberen.</h3>
-              <p className="hero-diff-desc">Geen creditcard vooraf. Stop wanneer je wilt, niets dichtbinden, niets vooraf betalen.</p>
-            </div>
-            <div className="hero-diff">
-              <div className="hero-diff-num">02</div>
-              <h3 className="hero-diff-title">Maandelijks opzegbaar.</h3>
-              <p className="hero-diff-desc">Geen jaarcontracten, geen kleine lettertjes. Wisselen van plan kan op elk moment.</p>
-            </div>
-            <div className="hero-diff">
-              <div className="hero-diff-num">03</div>
-              <h3 className="hero-diff-title">Alle data in de EU.</h3>
-              <p className="hero-diff-desc">Servers in Frankfurt. Jouw bezetting en gastenlijst blijven van jou, geen doorverkoop, geen lock-in.</p>
-            </div>
-            <div className="hero-diff">
-              <div className="hero-diff-num">04</div>
-              <h3 className="hero-diff-title">Onboarding in 15 minuten.</h3>
-              <p className="hero-diff-desc">Koppel je reserveringssysteem, bevestig je menu, Filly gaat dezelfde dag aan de slag.</p>
-            </div>
-          </div>
+          <p className="section-subtitle" style={{ maxWidth: "none" }}>Geen verborgen kosten, maandelijks opzegbaar en onboarding in 15 minuten.</p>
 
           <div className="pricing-grid">
             {plans.map((p) => (
@@ -102,6 +81,7 @@ export default function PricingPage() {
                 <div className="pricing-name">{p.name}</div>
                 <div className="pricing-desc">{p.desc}</div>
                 <div className="pricing-price">{p.price}<span>/maand</span></div>
+                <div className="pricing-fee">+ 5% performance fee op extra omzet</div>
                 <ul className="pricing-features">
                   {p.features.map((f) => (
                     <li key={f.text} className={f.disabled ? "disabled" : ""}>{f.text}</li>

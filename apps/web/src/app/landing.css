@@ -1447,6 +1447,11 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   position: relative; overflow: hidden;
   background: var(--true-white);
 }
+/* Per 2026-05-06: container breder gemaakt voor de pricing-pagina
+   zodat de drie kaarten meer ruimte hebben en alle feature-regels
+   op één regel passen (i.p.v. wrappen op 350px). 1240px bij 3
+   kolommen geeft ~400px per kaart. */
+.pricing-hero .container { max-width: 1240px; }
 .pricing-hero::before {
   content: '';
   position: absolute; inset: 0;
@@ -1471,7 +1476,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 .pricing-card {
   background: var(--white); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 32px 28px;
+  border-radius: var(--radius);
+  /* Smallere horizontale padding (was 28px) zodat de feature-tekst
+     meer breedte krijgt en niet meer wrapped op één regel. */
+  padding: 32px 22px;
   display: flex; flex-direction: column;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -1488,10 +1496,18 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .pricing-desc { font-size: 13px; color: var(--text-light); margin-bottom: 24px; }
 .pricing-price { font-size: 38px; font-weight: 700; letter-spacing: -1px; }
 .pricing-price span { font-size: 15px; font-weight: 400; color: var(--text-light); }
+/* Performance-fee toelichting onder de prijs, vóór de border-top
+   die boven de features-lijst staat. Klein lettertype zodat het
+   visueel onder de hoofdprijs past zonder af te leiden. */
+.pricing-fee {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
 
 .pricing-features { list-style: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); flex: 1; }
 .pricing-features li {
-  padding: 7px 0; font-size: 13.5px; color: var(--text-secondary);
+  padding: 7px 0; font-size: 13px; color: var(--text-secondary);
   display: flex; align-items: center; gap: 10px;
 }
 .pricing-features li::before { content: '✓'; font-weight: 700; color: var(--accent); font-size: 13px; }
