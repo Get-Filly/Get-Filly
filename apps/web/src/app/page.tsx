@@ -329,9 +329,6 @@ export default function HomePage() {
                     Als welkom-terug bieden we je <strong>een glas wijn van het huis</strong> aan bij je volgende bezoek.
                   </div>
                   <div className="fmock-email-cta" style={{ fontSize: "10px" }}>Reserveer mijn tafel</div>
-                  <div className="fmock-email-foot" style={{ backgroundColor: "rgb(214, 224, 216)" }}>
-                    <span style={{ color: "#52525b" }}>Verstuurd door Filly · 1 van 64 win-back e-mails deze week</span>
-                  </div>
                 </div>
               </div>
             </div>
