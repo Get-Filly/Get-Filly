@@ -34,7 +34,7 @@ function wrap(contentHtml) {
           <table role="presentation" cellpadding="0" cellspacing="0" width="520" style="max-width:520px;background:#ffffff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
             <tr>
               <td>
-                <div style="font-size:14px;font-weight:600;color:#1F4A2D;letter-spacing:0.02em;margin-bottom:24px;">GET&nbsp;FILLY</div>
+                <div style="font-size:14px;font-weight:600;color:#1F4A2D;letter-spacing:0.02em;margin-bottom:24px;">Get-Filly</div>
                 ${contentHtml}
                 <hr style="border:0;border-top:1px solid #eee;margin:32px 0 16px;" />
                 <div style="font-size:12px;color:#6B6B6B;line-height:1.5;">
@@ -45,7 +45,7 @@ function wrap(contentHtml) {
             </tr>
           </table>
           <div style="font-size:11px;color:#6B6B6B;margin-top:16px;">
-            Get Filly · AI-marketingassistent voor horeca
+            Get-Filly · AI-marketingassistent voor horeca
           </div>
         </td>
       </tr>
@@ -81,11 +81,11 @@ export const templates = {
   // naar /invite/accept?inv=<ourToken>. We geven 'm dus dynamisch
   // mee via {{ .RedirectTo }}.
   invite: {
-    subject: 'Uitnodiging voor Get Filly',
+    subject: 'Uitnodiging voor Get-Filly',
     content: wrap(`
       <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Je bent uitgenodigd</h1>
       <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 24px;">
-        Iemand heeft je uitgenodigd om mee te werken op Get Filly, een
+        Iemand heeft je uitgenodigd om mee te werken op Get-Filly, een
         AI-marketingassistent voor horecazaken. Klik op de knop om je
         account te activeren en in te loggen.
       </p>
@@ -101,9 +101,9 @@ export const templates = {
   // 2. MAGIC LINK — passwordloos inloggen / her-activeren
   // --------------------------------------------------------
   magic_link: {
-    subject: 'Je login-link voor Get Filly',
+    subject: 'Je login-link voor Get-Filly',
     content: wrap(`
-      <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Log in op Get Filly</h1>
+      <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Log in op Get-Filly</h1>
       <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 24px;">
         Klik op de knop hieronder om meteen in te loggen. De link is
         éénmalig te gebruiken en verloopt na een uur.
@@ -123,7 +123,7 @@ export const templates = {
   // doorgeeft. Dat voorkomt dat een foutieve redirect-param de flow
   // breekt of gebruikt wordt voor open-redirect-poging.
   recovery: {
-    subject: 'Reset je Get Filly-wachtwoord',
+    subject: 'Reset je Get-Filly-wachtwoord',
     content: wrap(`
       <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Wachtwoord resetten</h1>
       <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 24px;">
@@ -146,9 +146,9 @@ export const templates = {
   // verplaatst dit naar `next=/onboarding` (zodat de user na
   // email-verify eerst zijn restaurant aanmaakt).
   confirmation: {
-    subject: 'Bevestig je Get Filly-account',
+    subject: 'Bevestig je Get-Filly-account',
     content: wrap(`
-      <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Welkom bij Get Filly</h1>
+      <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Welkom bij Get-Filly</h1>
       <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 24px;">
         Bedankt voor je aanmelding. Bevestig je e-mailadres zodat we
         zeker weten dat jij het bent — daarna kan je direct aan de slag.
