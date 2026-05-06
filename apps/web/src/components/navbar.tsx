@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Home-link weggelaten: het logo linksboven is zelf de Home-link.
-// Volgorde: eerst "Hoe het werkt" (jumplink naar drie-horizonnen op
-// de homepage) omdat dat uitlegt wat Filly doet, daarna Product,
-// Pricing, Over ons — verhaal → functionaliteit → kost → team.
+// Volgorde: eerst "Hoe het werkt" (jumplink naar de drie-strategieën-
+// sectie op de homepage) omdat dat uitlegt wat Filly doet, daarna
+// Product, Pricing, Over ons — verhaal → functionaliteit → kost → team.
 const links = [
   { href: "/#hoe-het-werkt", label: "Hoe het werkt" },
   { href: "/product", label: "Product" },
