@@ -5,7 +5,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 
 /**
  * ============================================================
- * GET /auth/confirm — server-side OTP-verificatie
+ * GET /auth/confirm, server-side OTP-verificatie
  * ============================================================
  *
  * Dit is de *enige* plek waar we Supabase-magic-links afhandelen.
@@ -20,7 +20,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
  *   2. Supabase server-client opzetten met cookies uit het verzoek.
  *   3. `verifyOtp({ token_hash, type })` omwisselt de éénmalige hash
  *      voor een échte sessie; Supabase schrijft die in onze cookies.
- *   4. Doorgeredirect naar `next` — of bij fout naar dezelfde
+ *   4. Doorgeredirect naar `next`, of bij fout naar dezelfde
  *      `next` mét een `auth_error`-param zodat de bestemmingspagina
  *      een nette melding kan tonen.
  *
@@ -35,7 +35,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
  */
 
 // Welke OTP-types accepteren we? Alleen die we daadwerkelijk
-// ondersteunen — zo kan iemand met een geknutselde URL geen
+// ondersteunen, zo kan iemand met een geknutselde URL geen
 // onbedoelde flow triggeren.
 const ALLOWED_TYPES = new Set<EmailOtpType>([
   "invite",
@@ -53,7 +53,7 @@ const ALLOWED_TYPES = new Set<EmailOtpType>([
 // We accepteren twee vormen:
 //   1. Relatieve paden zoals `/invite/accept?inv=abc`
 //   2. Absolute URLs die naar dezelfde origin wijzen als het
-//      inkomende verzoek — Supabase geeft namelijk `{{ .RedirectTo }}`
+//      inkomende verzoek, Supabase geeft namelijk `{{ .RedirectTo }}`
 //      als absolute URL door aan onze template.
 //
 // Alles wat naar een andere host wijst of niet goed parseert →
@@ -71,7 +71,7 @@ function parseSafeNext(
     if (parsed.origin !== origin) return null; // cross-origin → blok
     return parsed.pathname + parsed.search;
   } catch {
-    // Ongeldige URL-vorm — weigeren.
+    // Ongeldige URL-vorm, weigeren.
     return null;
   }
 }
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
   // Veilige default als `next` ontbreekt of niet te vertrouwen is.
   const safeNext = parseSafeNext(nextParam, origin) ?? "/dashboard";
 
-  // Validatie — we loggen bewust NIETS van de token_hash.
+  // Validatie, we loggen bewust NIETS van de token_hash.
   // Loggen van de volledige URL (zoals Next.js/Vercel default doet)
   // kan tokens blootstellen aan iedereen met log-toegang.
   if (!token_hash) {
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(all) {
-          // Onthoud de cookies — we zetten ze straks op de redirect-response.
+          // Onthoud de cookies, we zetten ze straks op de redirect-response.
           cookiesToSet = all;
         },
       },
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     // Mogelijke oorzaken: token verlopen, al gebruikt, of ongeldig.
-    // De bestemmingspagina beslist wat voor UI ze toont — wij
+    // De bestemmingspagina beslist wat voor UI ze toont, wij
     // geven alleen een reden mee.
     const reason =
       error.message.toLowerCase().includes("expired")
@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(errorUrl);
   }
 
-  // Succes — cookies die Supabase heeft gezet op de response meegeven.
+  // Succes, cookies die Supabase heeft gezet op de response meegeven.
   const response = NextResponse.redirect(new URL(safeNext, origin));
   for (const c of cookiesToSet) {
     response.cookies.set(c.name, c.value, c.options);

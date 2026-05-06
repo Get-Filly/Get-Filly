@@ -12,7 +12,7 @@ import {
 
 /**
  * ============================================================
- * RestaurantContext — actief restaurant + rol + permissies
+ * RestaurantContext, actief restaurant + rol + permissies
  * ============================================================
  *
  * Wat is een "Context" in React?
@@ -28,7 +28,7 @@ import {
  *   - Helper om van restaurant te wisselen
  *
  * Waar wordt deze context geladen?
- *   In het dashboard-layout — zodra je op /dashboard/* bent, zit je
+ *   In het dashboard-layout, zodra je op /dashboard/* bent, zit je
  *   onder deze provider. Op de publieke site hebben we dit niet
  *   nodig.
  *
@@ -54,13 +54,13 @@ type RestaurantContextValue = {
   setActive: (id: string) => void;
   /** Ingevuld tijdens de initiële fetch naar /me/restaurants. */
   loading: boolean;
-  /** Error bij laden — null als alles goed ging. */
+  /** Error bij laden, null als alles goed ging. */
   error: string | null;
 };
 
 /**
  * Default-waarde voor de context. Deze zie je alleen als een
- * component buiten de Provider wordt gebruikt — dan is er geen
+ * component buiten de Provider wordt gebruikt, dan is er geen
  * echte data, maar ook geen crash.
  */
 const RestaurantContext = createContext<RestaurantContextValue>({
@@ -94,12 +94,12 @@ function writeStoredActiveId(id: string): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, id);
   } catch {
-    // localStorage kan falen in privé-modus — negeer stil.
+    // localStorage kan falen in privé-modus, negeer stil.
   }
 }
 
 /**
- * Provider-component — zet deze om de dashboard-layout heen.
+ * Provider-component, zet deze om de dashboard-layout heen.
  * Laadt bij mount de lijst van restaurants via /me/restaurants.
  */
 export function RestaurantProvider({
@@ -127,7 +127,7 @@ export function RestaurantProvider({
       try {
         const token = await jwt();
         if (!token) {
-          // Geen sessie — de middleware stuurt de user sowieso weg van
+          // Geen sessie, de middleware stuurt de user sowieso weg van
           // /dashboard/*, maar we zetten loading af zodat er geen
           // oneindig spinner blijft draaien.
           setLoading(false);
@@ -206,7 +206,7 @@ export function useRestaurant(): RestaurantContextValue {
 }
 
 /**
- * Kleine helper om het actieve restaurant-id synchroon te lezen —
+ * Kleine helper om het actieve restaurant-id synchroon te lezen,
  * bedoeld voor authedFetch in api.ts. We lezen direct uit localStorage
  * omdat die functie buiten React-componenten draait (geen hooks).
  *

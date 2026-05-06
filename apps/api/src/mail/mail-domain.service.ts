@@ -11,7 +11,7 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 // ============================================================
-// MailDomainService — eigen-domein-flow via Resend Domains API
+// MailDomainService, eigen-domein-flow via Resend Domains API
 // ============================================================
 //
 // Stap 2 van de mail-feature: een restaurant kan z'n eigen domein
@@ -32,7 +32,7 @@ import { AuditLogService } from '../common/audit-log.service';
 //   4. eigenaar: GET /restaurant/me/mail-domain (frontend pollt)
 //      → wij roepen resend.domains.get(id) en geven status terug
 //   5. zodra verified: MailService gebruikt mail_from_address i.p.v.
-//      social@get-filly.com — pure klant-branding zonder "via Get Filly"
+//      social@get-filly.com, pure klant-branding zonder "via Get Filly"
 //
 // Mapping: Resend's status (not_started/pending/verified/failed) →
 // onze enum (pending/verified/failed). 'not_started' = direct na
@@ -80,7 +80,7 @@ export class MailDomainService {
   }
 
   // ============================================================
-  // GET STATUS — voor "Mail-instellingen"-sectie op account-pagina
+  // GET STATUS, voor "Mail-instellingen"-sectie op account-pagina
   // ============================================================
   // Returnt huidige domein-staat + altijd-actuele DNS-records.
   // Bij 'pending' pollt frontend deze endpoint elke ~10s totdat
@@ -151,7 +151,7 @@ export class MailDomainService {
   }
 
   // ============================================================
-  // REGISTER — domein aanmaken bij Resend + opslaan
+  // REGISTER, domein aanmaken bij Resend + opslaan
   // ============================================================
   async register(
     restaurantId: string,
@@ -173,7 +173,7 @@ export class MailDomainService {
       );
     }
 
-    // Check of er al een domein staat — voorkom dat we een tweede
+    // Check of er al een domein staat, voorkom dat we een tweede
     // Resend-domain aanmaken zonder de oude eerst op te ruimen.
     const { data: existing, error: exErr } = await this.supabase.client
       .from('restaurants')
@@ -187,7 +187,7 @@ export class MailDomainService {
       );
     }
 
-    // Resend domains.create — region zelfde als ons hoofd-domein (EU).
+    // Resend domains.create, region zelfde als ons hoofd-domein (EU).
     const created = await this.resend.domains.create({
       name: cleanDomain,
       region: 'eu-west-1',
@@ -201,7 +201,7 @@ export class MailDomainService {
 
     const resendDomainId = created.data.id;
 
-    // Opslaan in restaurants. Status begint op 'pending' — eigenaar
+    // Opslaan in restaurants. Status begint op 'pending', eigenaar
     // heeft nog geen DNS-records geplakt.
     const { error: updErr } = await this.supabase.client
       .from('restaurants')
@@ -238,7 +238,7 @@ export class MailDomainService {
   }
 
   // ============================================================
-  // VERIFY — Resend laat DNS opnieuw controleren
+  // VERIFY, Resend laat DNS opnieuw controleren
   // ============================================================
   async verify(
     restaurantId: string,
@@ -285,7 +285,7 @@ export class MailDomainService {
   }
 
   // ============================================================
-  // REMOVE — koppeling verbreken
+  // REMOVE, koppeling verbreken
   // ============================================================
   // Verwijdert het domein bij Resend en leegt onze velden. Daarna
   // valt de send-flow automatisch terug op social@get-filly.com.
@@ -310,7 +310,7 @@ export class MailDomainService {
       // Niet-fataal: misschien is het domein bij Resend al weg. We
       // ruimen lokaal hoe dan ook op zodat de UI niet vastzit.
       this.logger.warn(
-        `Resend domain.remove faalde: ${removed.error.message} — lokaal toch opruimen.`,
+        `Resend domain.remove faalde: ${removed.error.message}, lokaal toch opruimen.`,
       );
     }
 

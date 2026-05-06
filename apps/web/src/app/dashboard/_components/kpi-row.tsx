@@ -22,7 +22,7 @@ function formatEuro(cents: number): string {
 // Bouwt de KPI-cards op basis van wat de backend daadwerkelijk meet.
 // De "via Filly"-onderregels worden gevuld uit de echte attributie
 // (reservations.via_campaign_id, sinds migratie 0022). Geen mock-data
-// meer — bij 0 tonen we de regel nog steeds, alleen in grijs zodat
+// meer, bij 0 tonen we de regel nog steeds, alleen in grijs zodat
 // eigenaar ziet dát de feature bestaat en wacht op koppelingen.
 function kpisToCards(kpis: Kpis): KpiCard[] {
   const huidigeMaand = new Date().toLocaleString("nl-NL", { month: "long" });
@@ -36,7 +36,7 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
     fillyExtra: null,
   });
 
-  // Bezetting maand — bij geen attributie nog 0%.
+  // Bezetting maand, bij geen attributie nog 0%.
   const fillyShare = kpis.month_filly_share_pct ?? 0;
   cards.push({
     label: `Bezetting ${huidigeMaand}`,
@@ -45,7 +45,7 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
     positive: fillyShare > 0,
   });
 
-  // Gasten maand — bij 0 dropt de plus-prefix zodat "+0" niet
+  // Gasten maand, bij 0 dropt de plus-prefix zodat "+0" niet
   // misleidend overkomt (suggereert toename die er niet is).
   cards.push({
     label: `Gasten ${huidigeMaand}`,
@@ -65,7 +65,7 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
     positive: false,
   });
 
-  // Geschatte omzet — zelfde plus-prefix-logica als gasten.
+  // Geschatte omzet, zelfde plus-prefix-logica als gasten.
   cards.push({
     label: `Geschatte omzet ${huidigeMaand}`,
     value: formatEuro(kpis.month_revenue_cents),

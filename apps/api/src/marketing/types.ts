@@ -6,7 +6,7 @@
  * Per-kanaal heeft eigen relevante metrics. We typen ze hier zodat
  * frontend + backend gegarandeerd dezelfde shape gebruiken.
  *
- * Voor nu alleen Mail-types — sociale kanalen (IG/FB/TikTok) volgen
+ * Voor nu alleen Mail-types, sociale kanalen (IG/FB/TikTok) volgen
  * pas na approvals (fase 5).
  * ============================================================
  */
@@ -28,7 +28,7 @@ export interface MailStats {
   complained: number; // Spam-rapportage
   unsubscribed: number; // Uitgeschreven via link in mail
 
-  // Ratio's (0-1, in UI als % te tonen). Null als de noemer 0 is —
+  // Ratio's (0-1, in UI als % te tonen). Null als de noemer 0 is,
   // een lege "delivered" geeft geen zinvolle open-rate.
   openRate: number | null;
   clickRate: number | null;
@@ -48,12 +48,12 @@ export interface MailStats {
   campaignCount: number;
 }
 
-// Per-campagne stats — gebruikt in de mail-detail-pagina-tabel zodat
+// Per-campagne stats, gebruikt in de mail-detail-pagina-tabel zodat
 // de eigenaar kan zien welke campagne het beste presteerde.
 export interface CampaignMailStats {
   campaignId: string;
   campaignName: string;
-  campaignType: string; // mail / social / whatsapp — alleen 'mail' relevant hier
+  campaignType: string; // mail / social / whatsapp, alleen 'mail' relevant hier
   status: string; // afgerond / actief / etc.
   scheduledFor: string | null;
   executedAt: string | null;

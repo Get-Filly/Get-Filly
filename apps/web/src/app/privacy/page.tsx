@@ -1,5 +1,5 @@
 // ============================================================
-// Privacy-verklaring — /privacy
+// Privacy-verklaring, /privacy
 // ============================================================
 // Publieke pagina die beschrijft welke persoonsgegevens we
 // verwerken, waarom, met wie we ze delen en welke rechten
@@ -26,13 +26,13 @@ import {
 import { LegalField } from "@/components/legal-field";
 
 export const metadata: Metadata = {
-  title: "Privacyverklaring — Get-Filly",
+  title: "Privacyverklaring, Get-Filly",
   description:
     "Hoe Get-Filly jouw persoonsgegevens verwerkt, met wie we die delen en welke rechten je hebt.",
 };
 
 // Laatste inhoudelijke wijziging van deze pagina. Bij elke materiële
-// aanpassing bijwerken — users moeten kunnen zien welke versie gold.
+// aanpassing bijwerken, users moeten kunnen zien welke versie gold.
 const LAST_UPDATED = "24 april 2026";
 const VERSION = "v1 (concept)";
 
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
       <div className="legal-container">
         {showDraftBanner && (
           <div className="legal-draft-banner">
-            <strong>Concept — nog niet juridisch gereviewd.</strong> Deze
+            <strong>Concept, nog niet juridisch gereviewd.</strong> Deze
             tekst is een eerste versie. Vóór we klanten accepteren laten
             we 'm controleren door een privacy-jurist en vullen we de
             ontbrekende bedrijfsgegevens in. Gebruik deze verklaring niet
@@ -64,12 +64,12 @@ export default function PrivacyPage() {
         <p className="legal-lead">
           Get-Filly helpt horeca-, wellness- en hotelondernemers slimmer te
           vullen met AI-marketing. Om dat werk te doen, verwerken we
-          persoonsgegevens — van jou als ondernemer en soms ook van jouw
+          persoonsgegevens, van jou als ondernemer en soms ook van jouw
           gasten. Op deze pagina leggen we uit welke gegevens dat zijn,
           waarom we ze gebruiken en wat jouw rechten zijn.
         </p>
 
-        {/* Inhoudsopgave — anchor-links in twee kolommen zodat de
+        {/* Inhoudsopgave, anchor-links in twee kolommen zodat de
             pagina snel navigeerbaar is bij een concrete vraag. */}
         <nav className="legal-toc" aria-label="Inhoudsopgave">
           <div className="legal-toc-title">Inhoud</div>
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
           </ol>
         </nav>
 
-        {/* 1. Wie zijn wij — verwerkingsverantwoordelijke. Dit is de
+        {/* 1. Wie zijn wij, verwerkingsverantwoordelijke. Dit is de
             wettelijke identificatie-sectie; alle placeholders moeten
             vóór launch ingevuld zijn. */}
         <div id="wie" className="legal-section">
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
           </p>
           <ul>
             <li>Naam en e-mailadres (om in te loggen en contact te hebben)</li>
-            <li>Wachtwoord (versleuteld opgeslagen — wij zien het nooit)</li>
+            <li>Wachtwoord (versleuteld opgeslagen, wij zien het nooit)</li>
             <li>Rol binnen de onderneming (eigenaar, manager, medewerker)</li>
             <li>Telefoonnummer, alleen als je dit zelf invult</li>
             <li>Tijdstippen van inloggen en gebruik (voor beveiliging en foutopsporing)</li>
@@ -166,7 +166,7 @@ export default function PrivacyPage() {
             <li>Menukaart, keuken-stijl, signatuur-gerechten</li>
             <li>Reserveringen, bezetting en weer-data per dag</li>
             <li>Reviews, foto's en teksten die je deelt op jouw kanalen</li>
-            <li>Koppelingen met externe tools (reserverings-systeem, social media) — alleen als je die expliciet zelf maakt</li>
+            <li>Koppelingen met externe tools (reserverings-systeem, social media), alleen als je die expliciet zelf maakt</li>
           </ul>
 
           <h3>2.3 Gegevens over jouw gasten</h3>
@@ -174,7 +174,7 @@ export default function PrivacyPage() {
             Als je een reserverings-systeem koppelt of gasten-lijsten
             importeert, verwerken wij persoonsgegevens van jouw gasten.
             <strong> In die verhouding ben jij de verwerkingsverantwoordelijke
-            en wij de verwerker</strong> — jij bepaalt wat ermee gebeurt,
+            en wij de verwerker</strong>, jij bepaalt wat ermee gebeurt,
             wij voeren dat uit volgens onze verwerkersovereenkomst.
           </p>
           <ul>
@@ -242,7 +242,7 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td>Nieuwsbrieven en marketing-mails</td>
-                <td>Toestemming (art. 6 lid 1 sub a AVG) — altijd intrekbaar via uitschrijflink</td>
+                <td>Toestemming (art. 6 lid 1 sub a AVG), altijd intrekbaar via uitschrijflink</td>
               </tr>
               <tr>
                 <td>Verplichte administratie (bv. belastingdienst)</td>
@@ -277,7 +277,7 @@ export default function PrivacyPage() {
               <tr>
                 <td>Anthropic, PBC</td>
                 <td>AI-model (Claude) voor suggesties, chat en menu-analyse</td>
-                <td>VS — via EU-standaardcontractbepalingen</td>
+                <td>VS, via EU-standaardcontractbepalingen</td>
               </tr>
               <tr>
                 <td>Resend, Inc.</td>
@@ -348,7 +348,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             Als je er bezwaar tegen hebt dat jouw gegevens naar de VS gaan
-            voor AI-verwerking, kun je dat aangeven — we onderzoeken dan of
+            voor AI-verwerking, kun je dat aangeven, we onderzoeken dan of
             een EU-alternatief beschikbaar is (op dit moment is dat voor
             het prestatie-niveau van Claude niet het geval).
           </p>
@@ -419,7 +419,7 @@ export default function PrivacyPage() {
           </p>
           <ul>
             <li>Versleuteling onderweg (TLS 1.2+) en in rust</li>
-            <li>Strikte toegangscontrole via row-level-security op database-niveau — data van verschillende klanten zijn technisch gescheiden</li>
+            <li>Strikte toegangscontrole via row-level-security op database-niveau, data van verschillende klanten zijn technisch gescheiden</li>
             <li>Wachtwoorden opgeslagen als éénrichtings-hash (bcrypt)</li>
             <li>Tweede authenticatie-factor beschikbaar voor account-eigenaren</li>
             <li>Logging van privilege-acties (wie heeft wat gewijzigd)</li>
@@ -428,12 +428,12 @@ export default function PrivacyPage() {
           </ul>
           <p>
             Ontdek je toch een kwetsbaarheid? Laat het ons weten via{" "}
-            <a href="mailto:security@get-filly.com">security@get-filly.com</a> —
+            <a href="mailto:security@get-filly.com">security@get-filly.com</a>,
             we nemen elk signaal serieus.
           </p>
         </div>
 
-        {/* 8. Cookies — kort. Zodra we Plausible/analytics inbouwen
+        {/* 8. Cookies, kort. Zodra we Plausible/analytics inbouwen
             breiden we dit uit naar een aparte /cookies-pagina. */}
         <div id="cookies" className="legal-section">
           <h2>8. Cookies en meetinstrumenten</h2>
@@ -463,36 +463,36 @@ export default function PrivacyPage() {
           </p>
           <ul>
             <li>
-              <strong>Inzage</strong> — een kopie opvragen van de gegevens
+              <strong>Inzage</strong>, een kopie opvragen van de gegevens
               die we over jou hebben
             </li>
             <li>
-              <strong>Rectificatie</strong> — onjuiste of onvolledige
+              <strong>Rectificatie</strong>, onjuiste of onvolledige
               gegevens laten corrigeren
             </li>
             <li>
-              <strong>Verwijdering (vergetelheid)</strong> — vragen om
+              <strong>Verwijdering (vergetelheid)</strong>, vragen om
               verwijdering van jouw gegevens, behalve waar wij een
               wettelijke bewaarplicht hebben
             </li>
             <li>
-              <strong>Beperking</strong> — vragen om tijdelijke stopzetting
+              <strong>Beperking</strong>, vragen om tijdelijke stopzetting
               van de verwerking (bijvoorbeeld tijdens een geschil)
             </li>
             <li>
-              <strong>Overdraagbaarheid</strong> — jouw gegevens ontvangen
+              <strong>Overdraagbaarheid</strong>, jouw gegevens ontvangen
               in een gangbaar, machine-leesbaar formaat
             </li>
             <li>
-              <strong>Bezwaar</strong> — bezwaar maken tegen verwerking op
+              <strong>Bezwaar</strong>, bezwaar maken tegen verwerking op
               basis van gerechtvaardigd belang
             </li>
             <li>
-              <strong>Intrekking toestemming</strong> — eerder gegeven
+              <strong>Intrekking toestemming</strong>, eerder gegeven
               toestemming weer intrekken (bijv. voor marketing-mails)
             </li>
             <li>
-              <strong>Niet onderworpen aan automatische besluitvorming</strong> —
+              <strong>Niet onderworpen aan automatische besluitvorming</strong>,
               je kunt vragen om menselijke tussenkomst bij beslissingen
               die uitsluitend door AI zouden worden genomen
             </li>

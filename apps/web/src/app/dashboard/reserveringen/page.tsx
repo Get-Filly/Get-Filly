@@ -138,7 +138,7 @@ export default function ReserveringenPage() {
     }
   };
 
-  // Filter + zoek. Query matcht op naam, telefoon of mail — typisch
+  // Filter + zoek. Query matcht op naam, telefoon of mail, typisch
   // wat een medewerker tikt als hij/zij iemand zoekt ("Jansen", of
   // het laatste stuk van een telefoonnummer).
   const filtered = useMemo(() => {
@@ -243,7 +243,7 @@ export default function ReserveringenPage() {
         </div>
       </div>
 
-      {/* Filter-/zoekrij — status-tabs links, zoekveld daarnaast.
+      {/* Filter-/zoekrij, status-tabs links, zoekveld daarnaast.
           Zelfde visuele taal als op /campagnes en /gasten zodat
           dashboard consistent voelt. */}
       <div
@@ -285,7 +285,7 @@ export default function ReserveringenPage() {
         ) : (
           // Foutstatus valt in dezelfde empty-state, alleen met andere
           // subcopy. Rode HTTP-meldingen zijn voor de eindgebruiker
-          // betekenisloos — de dev-console houdt alles vast.
+          // betekenisloos, de dev-console houdt alles vast.
           <EmptyState
             icon="📆"
             title={
@@ -469,7 +469,7 @@ export default function ReserveringenPage() {
 }
 
 // ============================================================
-// NewReservationModal — handmatige reservering toevoegen
+// NewReservationModal, handmatige reservering toevoegen
 // ============================================================
 // Overlay-modal met formulier. Gebruikt native date/time-input en
 // submit via createReservation. Minimaal: naam + datum + tijd + groep.
@@ -737,7 +737,7 @@ const inputStyle: React.CSSProperties = {
 
 
 // ============================================================
-// FillyAttributionControl — koppel reservering aan campagne
+// FillyAttributionControl, koppel reservering aan campagne
 // ============================================================
 // Twee modi:
 //   - Niet gekoppeld → kleine "+ Filly"-button die een dropdown
@@ -810,7 +810,7 @@ function FillyAttributionControl({
   }
 
   if (campaigns.length === 0) {
-    // Geen campagnes om aan te koppelen — niet relevant om de knop
+    // Geen campagnes om aan te koppelen, niet relevant om de knop
     // te tonen. Eigenaar moet eerst een campagne aanmaken.
     return null;
   }

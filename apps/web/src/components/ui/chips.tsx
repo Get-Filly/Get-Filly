@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 
 // ============================================================
-// <Chips> — pill-stijl filter-knoppen (multi-keuze of single-select)
+// <Chips>, pill-stijl filter-knoppen (multi-keuze of single-select)
 // ============================================================
 //
 // Verschilt van <Tabs> in twee opzichten:
 //   1. Visueel: rounded-pills met border (horizontaal scrollbaar
 //      indien nodig), niet onderstreping-stijl.
-//   2. Optionele icon per chip — handig voor type-filters waarbij
+//   2. Optionele icon per chip, handig voor type-filters waarbij
 //      de eigenaar visueel snel "mail vs social vs whatsapp" wil
 //      onderscheiden.
 //
@@ -30,7 +30,7 @@ import type { ReactNode } from "react";
 //     onChange={setTypeFilter}
 //   />
 //
-// Hergebruikt bestaande .type-chips + .type-chip CSS — geen
+// Hergebruikt bestaande .type-chips + .type-chip CSS, geen
 // styling-drift.
 // ============================================================
 

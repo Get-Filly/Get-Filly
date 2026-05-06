@@ -18,7 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Called from Server Component — veilig te negeren (middleware ververst sessie).
+            // Called from Server Component, veilig te negeren (middleware ververst sessie).
           }
         },
       },

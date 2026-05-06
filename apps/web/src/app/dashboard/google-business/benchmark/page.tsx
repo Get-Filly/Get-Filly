@@ -155,7 +155,7 @@ export default function ConcurrentBenchmarkPage() {
     );
   }
 
-  // Statistieken berekenen op de competitors-set (zonder jouzelf —
+  // Statistieken berekenen op de competitors-set (zonder jouzelf,
   // backend filtert eigen place_id al uit de response).
   const ratings = competitors
     .map((c) => c.rating)
@@ -176,7 +176,7 @@ export default function ConcurrentBenchmarkPage() {
         subtitle={`${competitors.length} restaurant${competitors.length === 1 ? "" : "s"} binnen ${radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}.`}
       />
 
-      {/* Radius-selector boven de KPI-tegels — verandert direct de
+      {/* Radius-selector boven de KPI-tegels, verandert direct de
           fetch via useEffect-dep. */}
       <div
         style={{
@@ -255,7 +255,7 @@ export default function ConcurrentBenchmarkPage() {
         />
       </div>
 
-      {/* Tabel — eerst jouw eigen zaak (highlight), dan de buren
+      {/* Tabel, eerst jouw eigen zaak (highlight), dan de buren
           gesorteerd op afstand. Backend levert al gesorteerd. */}
       <Card noPadding>
         <div style={{ overflowX: "auto" }}>
@@ -408,7 +408,7 @@ export default function ConcurrentBenchmarkPage() {
         }}
       >
         Mediaan-cijfers berekend over {competitors.length} concurrenten.
-        Mediaan is robuuster dan gemiddelde — één hele goede of slechte
+        Mediaan is robuuster dan gemiddelde, één hele goede of slechte
         onderneming vertekent het beeld minder.
       </div>
     </div>

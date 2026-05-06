@@ -10,7 +10,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 
 // Vertaal een ruwe Anthropic SDK-error naar een NL-vriendelijke
 // HTTP-exceptie. Doel: Filly-features mogen nooit een raw stacktrace
-// of cryptische Engelse error tonen aan de eigenaar — altijd iets
+// of cryptische Engelse error tonen aan de eigenaar, altijd iets
 // uitlegbaars met "probeer over een paar minuten opnieuw"-flow waar
 // dat past. We loggen het origineel zodat we in de api-logs nog wel
 // kunnen debuggen.
@@ -19,7 +19,7 @@ function toNlException(
   feature: string,
   logger: Logger,
 ): never {
-  // Connection-fouten (netwerk, DNS, timeout) — Anthropic onbereikbaar.
+  // Connection-fouten (netwerk, DNS, timeout), Anthropic onbereikbaar.
   // 503 zodat de UI duidelijk kan zeggen "even niet beschikbaar".
   if (error instanceof Anthropic.APIConnectionError) {
     logger.warn(`[${feature}] Anthropic onbereikbaar: ${error.message}`);
@@ -28,7 +28,7 @@ function toNlException(
     );
   }
 
-  // Rate-limit van Anthropic (429) — niet onze rate-limit.
+  // Rate-limit van Anthropic (429), niet onze rate-limit.
   if (error instanceof Anthropic.RateLimitError) {
     logger.warn(`[${feature}] Anthropic rate-limit: ${error.message}`);
     throw new ServiceUnavailableException(
@@ -36,10 +36,10 @@ function toNlException(
     );
   }
 
-  // Authentication / invalid-key — onze fout, niet die van de eigenaar.
+  // Authentication / invalid-key, onze fout, niet die van de eigenaar.
   if (error instanceof Anthropic.AuthenticationError) {
     logger.error(
-      `[${feature}] Anthropic auth-fout: ${error.message} — controleer ANTHROPIC_API_KEY.`,
+      `[${feature}] Anthropic auth-fout: ${error.message}, controleer ANTHROPIC_API_KEY.`,
     );
     throw new InternalServerErrorException(
       'Filly is verkeerd geconfigureerd. Wij zijn op de hoogte; probeer het later opnieuw.',
@@ -67,14 +67,14 @@ function toNlException(
     );
   }
 
-  // Onbekend — generieke fout-handler. Log de hele error voor debugging.
+  // Onbekend, generieke fout-handler. Log de hele error voor debugging.
   logger.error(`[${feature}] Onverwachte AI-fout: ${String(error)}`);
   throw new InternalServerErrorException(
     'Er ging iets mis bij Filly. Probeer het opnieuw.',
   );
 }
 
-// Metadata die elke AI-call ons moet geven — dit is verplicht zodat
+// Metadata die elke AI-call ons moet geven, dit is verplicht zodat
 // geen enkele Filly-feature per ongeluk zonder tracking draait.
 // TypeScript dwingt de caller om feature mee te geven; restaurantId
 // mag null zijn voor pre-onboarding calls (user heeft nog geen zaak).
@@ -108,7 +108,7 @@ export class AiService {
       this.client = new Anthropic({ apiKey });
     } else {
       this.logger.warn(
-        'ANTHROPIC_API_KEY ontbreekt in env — Filly-AI endpoints geven een 500 tot de key is toegevoegd.',
+        'ANTHROPIC_API_KEY ontbreekt in env, Filly-AI endpoints geven een 500 tot de key is toegevoegd.',
       );
     }
   }
@@ -125,7 +125,7 @@ export class AiService {
   // Generieke tekst-generatie. Elke caller geeft zijn eigen system-prompt
   // (de "rol" die Filly speelt voor die taak), user-prompt (de concrete
   // data) én meta (wie vraagt het, voor welke feature). Zonder meta
-  // kom je niet eens door de TypeScript-check — bewust.
+  // kom je niet eens door de TypeScript-check, bewust.
   //
   // Model-default is Sonnet 4.6: balans kwaliteit/kosten voor NL-tekst.
   // Voor snelle/simpele taken kan de caller Haiku 4.5 doorgeven, voor
@@ -140,7 +140,7 @@ export class AiService {
     // wanneer de system-prompt overwegend statisch is (zelfde profile/
     // menu/regels in opeenvolgende calls) zodat input-tokens binnen
     // 5 min TTL voor ~10% van de normale prijs hergebruikt worden.
-    // Anthropic vereist minimaal ~1024 tokens om de cache te triggeren —
+    // Anthropic vereist minimaal ~1024 tokens om de cache te triggeren,
     // anders is cache_control een no-op (geen schade, geen winst).
     //
     // Vuistregel:
@@ -189,7 +189,7 @@ export class AiService {
       );
     }
 
-    // Fire-and-forget usage-logging — als dit faalt (bv. DB tijdelijk
+    // Fire-and-forget usage-logging, als dit faalt (bv. DB tijdelijk
     // traag) MAG de call niet mislukken, de gebruiker heeft al een
     // antwoord. We loggen een warning en gaan door.
     void this.logUsage(opts.meta, model, response.usage).catch((err) => {
@@ -282,7 +282,7 @@ export class AiService {
   // ============================================================
   // Anthropic tool-use dwingt Claude om een JSON-output te bouwen
   // die voldoet aan een vooraf gedefinieerd JSON-schema. De API
-  // valideert het schema voordat de respons terugkomt — daardoor
+  // valideert het schema voordat de respons terugkomt, daardoor
   // hebben wij NOOIT meer een `JSON.parse`-fout te pakken op
   // halfgeparste markdown-codeblokken of trailing comma's.
   //
@@ -297,7 +297,7 @@ export class AiService {
   //   });
   //
   // Caller blijft verantwoordelijk voor het samenstellen van een
-  // duidelijke system+prompt — schema-driven output is geen excuus
+  // duidelijke system+prompt, schema-driven output is geen excuus
   // voor een vage prompt. Type-coercie naar `T` gebeurt alleen
   // op compile-time; runtime-shape volgt het schema dat de SDK
   // afdwingt.
@@ -339,7 +339,7 @@ export class AiService {
             input_schema: opts.inputSchema,
           },
         ],
-        // Forceer Claude tot exact deze tool — anders zou hij ook
+        // Forceer Claude tot exact deze tool, anders zou hij ook
         // een gewone text-respons mogen geven en zijn we terug bij
         // af. `disable_parallel_tool_use` is hier impliciet (één tool).
         tool_choice: { type: 'tool', name: opts.toolName },
@@ -364,7 +364,7 @@ export class AiService {
     // we de cap moeten ophogen voor specifieke features.
     if (response.stop_reason === 'max_tokens') {
       this.logger.warn(
-        `max_tokens bereikt (feature=${opts.meta.feature}, cap=${opts.maxTokens ?? 4096}, output=${response.usage.output_tokens}). Tool-call mogelijk incompleet — overweeg cap te verhogen.`,
+        `max_tokens bereikt (feature=${opts.meta.feature}, cap=${opts.maxTokens ?? 4096}, output=${response.usage.output_tokens}). Tool-call mogelijk incompleet, overweeg cap te verhogen.`,
       );
     }
 
@@ -420,7 +420,7 @@ export class AiService {
     // Anthropic's 10-minuten-grens voor non-streaming requests. Daarom
     // gebruiken we de stream-API: SDK streamt onder water en .finalMessage()
     // geeft hetzelfde Message-object terug als messages.create() zou doen.
-    // Voor kleinere calls (menu_vision op 16k) werkt streaming ook prima —
+    // Voor kleinere calls (menu_vision op 16k) werkt streaming ook prima,
     // dus consistent gebruiken voor alle Vision-calls.
     let response: Anthropic.Message;
     try {
@@ -463,7 +463,7 @@ export class AiService {
     // cap raken en eindigen in een halfgevuld items-array.
     if (response.stop_reason === 'max_tokens') {
       this.logger.warn(
-        `max_tokens bereikt bij Vision (feature=${opts.meta.feature}, cap=${opts.maxTokens ?? 4096}, output=${response.usage.output_tokens}). Tool-call mogelijk incompleet — overweeg cap te verhogen.`,
+        `max_tokens bereikt bij Vision (feature=${opts.meta.feature}, cap=${opts.maxTokens ?? 4096}, output=${response.usage.output_tokens}). Tool-call mogelijk incompleet, overweeg cap te verhogen.`,
       );
     }
 

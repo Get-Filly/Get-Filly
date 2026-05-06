@@ -1,24 +1,24 @@
 // ============================================================
-// Algemene voorwaarden — /voorwaarden
+// Algemene voorwaarden, /voorwaarden
 // ============================================================
 // Publieke pagina met onze algemene voorwaarden voor gebruik van
 // het Get-Filly SaaS-platform door zakelijke klanten (B2B).
 //
-// Dit is een CONCEPT v1, zoals privacy.tsx — gele draft-banner
+// Dit is een CONCEPT v1, zoals privacy.tsx, gele draft-banner
 // verdwijnt automatisch zodra `legalName` + `kvk` zijn gevuld in
 // `apps/web/src/config/company.ts`. Lege velden tonen tot dan
 // een "[NOG IN TE VULLEN: ...]"-placeholder via <LegalField/>.
 //
 // Uitgangspunten van deze voorwaarden:
-//   - B2B — klanten zijn horeca/wellness/hotel-ondernemers
-//   - SaaS-model — maandelijks/jaarlijks abonnement via Mollie
+//   - B2B, klanten zijn horeca/wellness/hotel-ondernemers
+//   - SaaS-model, maandelijks/jaarlijks abonnement via Mollie
 //   - Data-eigendom blijft bij de klant
 //   - Wij zijn verwerker van gasten-data (AVG art. 28)
 //   - Nederlands recht + bevoegde rechter Amsterdam
 //
 // Aandachtspunten die een jurist moet checken vóór launch:
 //   - Aansprakelijkheidslimiet (nu: 12 maanden abonnement)
-//   - SLA-toezegging (nu: "streven naar 99%" — geen harde claim)
+//   - SLA-toezegging (nu: "streven naar 99%", geen harde claim)
 //   - IP-constructie voor AI-output (klant krijgt output, wij
 //     behouden de techniek)
 //   - Prijswijzigings-clausule
@@ -34,7 +34,7 @@ import {
 import { LegalField } from "@/components/legal-field";
 
 export const metadata: Metadata = {
-  title: "Algemene voorwaarden — Get-Filly",
+  title: "Algemene voorwaarden, Get-Filly",
   description:
     "De voorwaarden waaronder je Get-Filly kunt gebruiken, inclusief abonnement, aansprakelijkheid en opzegging.",
 };
@@ -53,7 +53,7 @@ export default function VoorwaardenPage() {
       <div className="legal-container">
         {showDraftBanner && (
           <div className="legal-draft-banner">
-            <strong>Concept — nog niet juridisch gereviewd.</strong> Deze
+            <strong>Concept, nog niet juridisch gereviewd.</strong> Deze
             tekst is een eerste versie. Vóór we klanten accepteren laten
             we 'm controleren door een advocaat en vullen we de ontbrekende
             bedrijfsgegevens in. Tot die tijd gelden deze voorwaarden niet
@@ -98,7 +98,7 @@ export default function VoorwaardenPage() {
           <p>In deze voorwaarden wordt verstaan onder:</p>
           <ul>
             <li>
-              <strong>Get-Filly / wij / ons</strong> —{" "}
+              <strong>Get-Filly / wij / ons</strong>,{" "}
               <LegalField
                 value={legalIdentifier}
                 placeholder="volledige bedrijfsnaam + KvK-nummer"
@@ -111,31 +111,31 @@ export default function VoorwaardenPage() {
               .
             </li>
             <li>
-              <strong>Klant / jij / je</strong> — de natuurlijke persoon
+              <strong>Klant / jij / je</strong>, de natuurlijke persoon
               of rechtspersoon die met Get-Filly een overeenkomst sluit
               voor het gebruik van het platform, handelend in de
               uitoefening van beroep of bedrijf.
             </li>
             <li>
-              <strong>Platform</strong> — de website, applicatie en
+              <strong>Platform</strong>, de website, applicatie en
               bijbehorende diensten van Get-Filly, bereikbaar via
               get-filly.com en app.get-filly.com.
             </li>
             <li>
-              <strong>Filly</strong> — de AI-marketingassistent binnen het
+              <strong>Filly</strong>, de AI-marketingassistent binnen het
               platform, die gebruik maakt van large language models van
               onze sub-verwerker Anthropic.
             </li>
             <li>
-              <strong>Account</strong> — het persoonlijke toegangsprofiel
+              <strong>Account</strong>, het persoonlijke toegangsprofiel
               van een gebruiker tot het platform.
             </li>
             <li>
-              <strong>Abonnement</strong> — de door de klant gekozen
+              <strong>Abonnement</strong>, de door de klant gekozen
               betaalde dienstverlening met bijbehorende periode en prijs.
             </li>
             <li>
-              <strong>Gastgegevens</strong> — persoonsgegevens van derden
+              <strong>Gastgegevens</strong>, persoonsgegevens van derden
               (eindgasten van de klant) die de klant via het platform
               verwerkt.
             </li>
@@ -147,7 +147,7 @@ export default function VoorwaardenPage() {
           <p>
             Deze voorwaarden zijn van toepassing op alle aanbiedingen van
             en overeenkomsten met Get-Filly, en op elk gebruik van het
-            platform — ongeacht of je een betaald abonnement hebt of niet.
+            platform, ongeacht of je een betaald abonnement hebt of niet.
           </p>
           <p>
             Afwijkingen van deze voorwaarden zijn alleen geldig als wij
@@ -218,11 +218,11 @@ export default function VoorwaardenPage() {
             <li>Alleen content uploadt waar jij de rechten op hebt (menukaarten, foto's, teksten)</li>
             <li>Het platform niet gebruikt voor onrechtmatige of misleidende communicatie</li>
             <li>Geen pogingen doet om het platform, onze beveiliging of onze AI-systemen te misbruiken</li>
-            <li>Voldoet aan wetgeving bij het verwerken van gastgegevens — met name AVG, ePrivacy en ondernemingsspecifieke regels (horeca, alcohol, kansspelen waar van toepassing)</li>
+            <li>Voldoet aan wetgeving bij het verwerken van gastgegevens, met name AVG, ePrivacy en ondernemingsspecifieke regels (horeca, alcohol, kansspelen waar van toepassing)</li>
           </ul>
           <p>
             Bij oneigenlijk gebruik kunnen we het account (tijdelijk)
-            blokkeren en — bij een ernstige schending — de overeenkomst
+            blokkeren en, bij een ernstige schending, de overeenkomst
             per direct beëindigen zonder recht op restitutie.
           </p>
         </div>
@@ -238,7 +238,7 @@ export default function VoorwaardenPage() {
           <p>
             Betaling verloopt via onze betaalpartner Mollie B.V. (iDEAL,
             creditcard, SEPA-incasso). Het abonnementsbedrag wordt
-            vooruit per periode afgeschreven — maandelijks of jaarlijks,
+            vooruit per periode afgeschreven, maandelijks of jaarlijks,
             afhankelijk van de door jou gekozen termijn.
           </p>
           <h3>6.2 Bij niet-betaling</h3>
@@ -321,9 +321,9 @@ export default function VoorwaardenPage() {
         <div id="ip" className="legal-section">
           <h2>9. Intellectueel eigendom</h2>
           <p>
-            Alle intellectuele eigendomsrechten op het platform — de
+            Alle intellectuele eigendomsrechten op het platform, de
             software, het ontwerp, de teksten, de Filly-merknaam en
-            bijbehorende logo's — berusten bij Get-Filly of haar
+            bijbehorende logo's, berusten bij Get-Filly of haar
             licentiegevers. Niets in deze voorwaarden draagt enig
             eigendom aan jou over.
           </p>
@@ -335,7 +335,7 @@ export default function VoorwaardenPage() {
           <p>
             <strong>AI-output.</strong> Teksten, afbeeldingen en andere
             inhoud die Filly op basis van jouw invoer genereert (de
-            "output") mag je vrij gebruiken binnen jouw onderneming —
+            "output") mag je vrij gebruiken binnen jouw onderneming,
             zowel tijdens als na het abonnement. Houd er rekening mee dat
             AI-output in uitzonderlijke gevallen overeenkomsten kan
             vertonen met bestaand werk van derden. Jij beoordeelt vóór
@@ -376,8 +376,8 @@ export default function VoorwaardenPage() {
             aansprakelijkheids-beperkingen niet.
           </p>
           <p>
-            Je vrijwaart ons voor aanspraken van derden — waaronder
-            gastgegevens-betrokkenen — die voortkomen uit jouw gebruik van
+            Je vrijwaart ons voor aanspraken van derden, waaronder
+            gastgegevens-betrokkenen, die voortkomen uit jouw gebruik van
             het platform in strijd met de wet of deze voorwaarden.
           </p>
         </div>
@@ -386,8 +386,8 @@ export default function VoorwaardenPage() {
           <h2>11. Geheimhouding</h2>
           <p>
             Beide partijen houden vertrouwelijke informatie die ze van de
-            ander ontvangen — zoals prijzen, roadmap-informatie,
-            zakelijke gegevens en gastenlijsten — geheim, tenzij
+            ander ontvangen, zoals prijzen, roadmap-informatie,
+            zakelijke gegevens en gastenlijsten, geheim, tenzij
             openbaarmaking wettelijk verplicht is of schriftelijk
             toestemming is gegeven.
           </p>
@@ -451,13 +451,13 @@ export default function VoorwaardenPage() {
           </p>
         </div>
 
-        {/* Afsluitende contact-alinea zonder nummer — voor als een klant
+        {/* Afsluitende contact-alinea zonder nummer, voor als een klant
             niet weet waar hij moet beginnen. Belangrijk voor bereikbaar-
             heid; klanten lezen deze pagina vaak pas wanneer er iets is. */}
         <div className="legal-section">
           <p>
             <strong>Vragen?</strong> Stuur een mail naar{" "}
-            <a href="mailto:hi@get-filly.com">hi@get-filly.com</a> — we
+            <a href="mailto:hi@get-filly.com">hi@get-filly.com</a>, we
             nemen contact op binnen één werkdag.
           </p>
         </div>

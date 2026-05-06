@@ -10,7 +10,7 @@ import {
 import { MediaLibraryPicker } from "./media-library-picker";
 
 // ============================================================
-// CampaignMediaSlot — upload + preview voor campagne-foto
+// CampaignMediaSlot, upload + preview voor campagne-foto
 // ============================================================
 // Vervangt de 📷-emoji-placeholder in de social-preview. Twee
 // states:
@@ -57,7 +57,7 @@ export function CampaignMediaSlot({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Picker-modal voor "Kies uit bibliotheek"-flow. Modal regelt z'n
-  // eigen fetch — wij krijgen alleen het gekozen item terug en
+  // eigen fetch, wij krijgen alleen het gekozen item terug en
   // converteren 't naar een upload via campaign-media-flow.
   const [pickerOpen, setPickerOpen] = useState(false);
 

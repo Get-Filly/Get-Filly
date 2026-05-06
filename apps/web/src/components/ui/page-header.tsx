@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // ============================================================
-// <PageHeader> — uniforme titel-rij voor dashboard-pagina's
+// <PageHeader>, uniforme titel-rij voor dashboard-pagina's
 // ============================================================
 //
 // Lost een alignment-inconsistentie op die in de codebase zat:
@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 // Deze component verbergt dat verschil. Je geeft altijd:
 //   - title       (verplicht)
 //   - subtitle    (optioneel)
-//   - actions     (optioneel — knoppen / dropdowns rechts uitgelijnd)
+//   - actions     (optioneel, knoppen / dropdowns rechts uitgelijnd)
 //
 // Bij geen actions stacked het automatisch (wat visueel gelijk is
 // aan een title-only header). Bij wél actions wordt het een row.

@@ -4,7 +4,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { RestaurantAccessService } from '../common/restaurant-access.service';
 
 /**
- * MeModule — bevat endpoints over de ingelogde user.
+ * MeModule, bevat endpoints over de ingelogde user.
  * Heeft SupabaseModule nodig omdat RestaurantAccessService de DB
  * aanspreekt om te weten bij welke restaurants de user hoort.
  */

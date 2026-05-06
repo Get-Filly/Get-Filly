@@ -20,7 +20,7 @@ import type { Module, Role } from '@getfilly/shared';
 
 /**
  * ============================================================
- * TeamController — endpoints voor team-management
+ * TeamController, endpoints voor team-management
  * ============================================================
  *
  * Alle endpoints vereisen AuthGuard + RestaurantAccessGuard + rol "owner".
@@ -74,7 +74,7 @@ export class TeamController {
 
   /**
    * Genereer een verse magic-link voor een openstaande invite
-   * (handig als de mail niet aankomt — owner kan 'm dan handmatig
+   * (handig als de mail niet aankomt, owner kan 'm dan handmatig
    * delen met de collega).
    */
   @Post('invites/:inviteId/magic-link')
@@ -120,7 +120,7 @@ export class TeamController {
     this.requireOwner(ctx);
 
     // Extra vangnet: je mag jezelf niet verwijderen (dan lock je
-    // jezelf buiten het restaurant — ook als er nog andere owners zijn,
+    // jezelf buiten het restaurant, ook als er nog andere owners zijn,
     // willen we dit expliciet niet toestaan via de UI). Wil de owner
     // echt weg? Dan eerst iemand anders owner maken, daarna loguit.
     if (userId === user.id) {

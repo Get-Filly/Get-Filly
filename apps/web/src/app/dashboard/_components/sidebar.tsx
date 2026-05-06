@@ -9,7 +9,7 @@ import { useRestaurant } from "../../../lib/restaurant-context";
 
 /**
  * Menu-definitie met een module-key per item.
- * De module-keys komen uit @getfilly/shared — zo zijn ze exact gelijk
+ * De module-keys komen uit @getfilly/shared, zo zijn ze exact gelijk
  * aan wat de backend kent. Geen typfouten mogelijk.
  */
 type MenuItem = {
@@ -22,20 +22,20 @@ type MenuItem = {
 };
 
 // Sidebar-volgorde (per 2026-05-05 herzien):
-//   1. Dashboard       — globaal overzicht (vaste start)
-//   2. Campagnes       — dé pagina, bundelt Filly's voorstellen
-//   3. Google Business — profiel + reviews + audit + benchmark
-//   4. Reserveringen   — dagelijkse operatie
-//   5. Gasten          — wie zijn de stamgasten
-//   6. Menu            — gerechten + drank + Filly's voorstellen
-//   7. Rapportages     — periodieke analyse
-//   8. Koppelingen     — setup, zelden aangeraakt
+//   1. Dashboard      , globaal overzicht (vaste start)
+//   2. Campagnes      , dé pagina, bundelt Filly's voorstellen
+//   3. Google Business, profiel + reviews + audit + benchmark
+//   4. Reserveringen  , dagelijkse operatie
+//   5. Gasten         , wie zijn de stamgasten
+//   6. Menu           , gerechten + drank + Filly's voorstellen
+//   7. Rapportages    , periodieke analyse
+//   8. Koppelingen    , setup, zelden aangeraakt
 //
 // Twee items zijn eerder verwijderd als menu-item (routes bestaan nog
 // voor legacy-links + detail-views):
-//   - /dashboard/suggesties — opgegaan in de voorstellen-strip op
+//   - /dashboard/suggesties, opgegaan in de voorstellen-strip op
 //     /dashboard/campagnes
-//   - /dashboard/taken — verzamelpagina van Filly-acties die deels
+//   - /dashboard/taken, verzamelpagina van Filly-acties die deels
 //     onder Campagnes is opgegaan. Latere "Acties"-hub vervangt 'm.
 const allMenuItems: MenuItem[] = [
   { href: "/dashboard", label: "Dashboard", module: "dashboard", icon: "📊" },
@@ -90,7 +90,7 @@ export function Sidebar() {
 
   // Filter het menu: toon alleen items waar de user toegang tot heeft.
   // Tijdens laden tonen we ALLE items (optimistisch) om flikkering te
-  // voorkomen — ze zijn toch niet klikbaar als de backend ze zou
+  // voorkomen, ze zijn toch niet klikbaar als de backend ze zou
   // weigeren.
   const menuItems = loading
     ? allMenuItems
@@ -140,7 +140,7 @@ export function Sidebar() {
    * WAAROM window.location.reload():
    *   Veel dashboard-pagina's fetchen data in een useEffect met een
    *   lege dependency-array. Als we alleen de context updaten blijft
-   *   die data van het vórige restaurant in client-state hangen —
+   *   die data van het vórige restaurant in client-state hangen,
    *   cross-tenant leak. Een harde reload garandeert dat álle data
    *   vers uit de backend komt voor het nieuwe actieve restaurant.
    *   Past bij onze "zero data-mix tussen tenants"-eis.
@@ -192,7 +192,7 @@ export function Sidebar() {
         const target = e.target as HTMLElement;
         if (target.closest("a")) closeMobileNav();
       }}>
-      {/* Workspace-blok bovenin — klikbaar, opent account-dropdown. */}
+      {/* Workspace-blok bovenin, klikbaar, opent account-dropdown. */}
       <div className="sb-workspace-wrap" ref={menuRef}>
         <button
           type="button"
@@ -216,7 +216,7 @@ export function Sidebar() {
 
         {menuOpen && (
           <div className="sb-workspace-menu" role="menu">
-            {/* Restaurant-switcher — alleen tonen als de user toegang
+            {/* Restaurant-switcher, alleen tonen als de user toegang
                 heeft tot meer dan één restaurant, anders is dit stukje
                 visuele ruis zonder doel. */}
             {restaurants.length > 1 && (
@@ -255,7 +255,7 @@ export function Sidebar() {
               </>
             )}
 
-            {/* "+ Nieuwe zaak" — altijd zichtbaar (ook bij 1 restaurant),
+            {/* "+ Nieuwe zaak", altijd zichtbaar (ook bij 1 restaurant),
                 zodat de toevoeg-actie ontdekbaar is zonder eerst naar
                 de account-pagina te hoeven. Hergebruikt de bestaande
                 onboarding-wizard met ?mode=add (sinds 2026-05-01). Na

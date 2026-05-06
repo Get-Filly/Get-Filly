@@ -9,7 +9,7 @@ import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
-// AuditLogModule logt het opslaan van een review-antwoord — straks
+// AuditLogModule logt het opslaan van een review-antwoord, straks
 // (zodra OAuth-publish leeft) ook publiek zichtbaar, dus auditbaarheid
 // is belangrijk om te kunnen zien wié welk antwoord publiceerde.
 @Module({

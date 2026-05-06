@@ -24,7 +24,7 @@ export type ChatRole = 'filly' | 'user' | 'system';
 //                            met 3 varianten van dezelfde tekst
 //   - 'campaign_bundle'   : multi-channel (mail + IG + FB) onder 1 thema,
 //                            elk met eigen caption-stijl
-//   - 'channel_choice'    : Filly vraagt eerst welk kanaal — 4 knoppen
+//   - 'channel_choice'    : Filly vraagt eerst welk kanaal, 4 knoppen
 //                            (mail/social/whatsapp/bundle). Bij klik
 //                            stuurt frontend automatisch een user-msg
 //                            terug naar Filly zodat 'ie het juiste
@@ -37,13 +37,13 @@ export type MessageCard =
   | CampaignBundleCard
   | ChannelChoiceCard;
 
-// Channel-choice — geen ai_suggestion-rij erachter (geen suggestion_id),
+// Channel-choice, geen ai_suggestion-rij erachter (geen suggestion_id),
 // puur een UI-prompt waarbij eigenaar door op een knop te klikken
 // automatisch een follow-up-bericht naar Filly stuurt.
 export type ChannelChoiceCard = {
   kind: 'channel_choice';
   question: string;
-  // Volgorde + welke opties beschikbaar zijn — Filly bepaalt zelf.
+  // Volgorde + welke opties beschikbaar zijn, Filly bepaalt zelf.
   // Voor V1 standaard alle 4: mail/social/whatsapp/bundle.
 };
 
@@ -76,7 +76,7 @@ export type ProposalVariant = {
 
 export type CampaignProposalCard = {
   kind: 'campaign_proposal';
-  // FK naar ai_suggestions.id — gezet zodra het voorstel als
+  // FK naar ai_suggestions.id, gezet zodra het voorstel als
   // pending-suggestie is opgeslagen.
   suggestion_id: string;
   type: 'mail' | 'social' | 'whatsapp';
@@ -111,13 +111,13 @@ export type ActiveChatState = {
 };
 
 // Lijst-item voor het chat-history-overzicht in de frontend (dropdown
-// in chat-card-header). Bevat alleen wat de UI direct nodig heeft —
+// in chat-card-header). Bevat alleen wat de UI direct nodig heeft,
 // geen messages of memory_summary, die laden we lazy bij switch.
 export type ChatConversationSummary = {
   id: string;
   // Auto-gegenereerd door ChatService.maybeGenerateTitle (2026-04-30)
   // na 3+ user-messages. Null als de conversatie nog te kort is voor
-  // titel-generatie — UI toont dan een fallback ("Nieuw gesprek" of
+  // titel-generatie, UI toont dan een fallback ("Nieuw gesprek" of
   // "{datum}").
   title: string | null;
   message_count: number;
@@ -129,7 +129,7 @@ export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
   // Hoeveel berichten we meegeven als context aan Claude. 20 matcht de
-  // CONVERSATION_CAP — de hele conversatie past dus per definitie in
+  // CONVERSATION_CAP, de hele conversatie past dus per definitie in
   // het context-window van Claude. Lange chats vermijden we via de
   // cap (eigenaar moet nieuw gesprek starten zodra 'ie vol is).
   private readonly CONTEXT_WINDOW = 20;
@@ -211,7 +211,7 @@ export class ChatService {
   // Lijst van alle conversaties voor dit restaurant, gesorteerd op
   // meest-recente-eerst. Wordt door de chat-history-dropdown gebruikt
   // om titels te tonen. Limit 50 want oudere conversaties zijn
-  // visueel niet bereikbaar in een dropdown — wie écht ver wil
+  // visueel niet bereikbaar in een dropdown, wie écht ver wil
   // teruggraven kan in een latere iteratie een "load more"-knop
   // krijgen. Voor nu: 50 is genoeg voor maanden actieve chat.
   async listConversations(
@@ -266,19 +266,19 @@ export class ChatService {
   }
 
   // ============================================================
-  // DELETE CONVERSATION — chat verwijderen + memory bewaren
+  // DELETE CONVERSATION, chat verwijderen + memory bewaren
   // ============================================================
   // Eigenaar wil oude chats kunnen opruimen, maar Filly's geleerde
   // voorkeuren (toon-correcties, woord-afwijzingen) moeten behouden
   // blijven voor volgende gesprekken. Daarom:
   //   1. Voor delete: probeer `summarizeAndSave` te draaien zodat
   //      eventuele leerpunten in `restaurant_chat_memory` landen.
-  //      Idempotent — bij 2e poging skipt 'ie zichzelf.
+  //      Idempotent, bij 2e poging skipt 'ie zichzelf.
   //   2. Daarna delete chat_conversations. CASCADE op chat_messages
   //      ruimt de berichten zelf op.
   //
   // Fail-soft op stap 1: als de Haiku-summary faalt (rate-limit,
-  // Claude down) deleten we toch — eigenaar wil 't weg en wachten op
+  // Claude down) deleten we toch, eigenaar wil 't weg en wachten op
   // Anthropic-uptime is een slechte UX. Niet-kritieke data-loss.
   async deleteConversation(
     restaurantId: string,
@@ -299,7 +299,7 @@ export class ChatService {
       throw new InternalServerErrorException('Gesprek niet gevonden.');
     }
 
-    // Memory eerst — fail-soft. Bij geen-leerzame-chat skipt de
+    // Memory eerst, fail-soft. Bij geen-leerzame-chat skipt de
     // service zelf via has_learning-flag.
     try {
       await this.memory.summarizeAndSave({
@@ -315,7 +315,7 @@ export class ChatService {
       );
     }
 
-    // Delete — chat_messages cascadet via FK on delete cascade.
+    // Delete, chat_messages cascadet via FK on delete cascade.
     const { error: delErr } = await this.supabase.client
       .from('chat_conversations')
       .delete()
@@ -345,7 +345,7 @@ export class ChatService {
       restaurant_id: restaurantId,
       role: 'filly',
       content:
-        'Hoi! Ik ben Filly, je marketing-assistent. Vraag me iets over je bezetting, gasten, reviews of campagnes — of over wat je deze week kan doen.',
+        'Hoi! Ik ben Filly, je marketing-assistent. Vraag me iets over je bezetting, gasten, reviews of campagnes, of over wat je deze week kan doen.',
     });
 
     return conversationId;
@@ -369,7 +369,7 @@ export class ChatService {
   // Telt alle berichten in een conversation. Wordt gebruikt voor:
   //   1. ActiveChatState.messageCount (UI-indicator)
   //   2. cap-check in sendMessage (block bij ≥ CONVERSATION_CAP)
-  // Gebruikt count-only query (head=true) — geen rijen, alleen aantal.
+  // Gebruikt count-only query (head=true), geen rijen, alleen aantal.
   private async countMessages(conversationId: string): Promise<number> {
     const { count, error } = await this.supabase.client
       .from('chat_messages')
@@ -413,7 +413,7 @@ export class ChatService {
     const rows = (data as RawRow[]) ?? [];
 
     // Verzamel alle suggestion-ids die aan chat-berichten hangen.
-    // Unieke set — zelfde suggestie kan in theorie niet aan meerdere
+    // Unieke set, zelfde suggestie kan in theorie niet aan meerdere
     // berichten hangen (insert is per bericht) maar we dedupliceren
     // defensief om de in-clause compact te houden.
     const suggestionIds = Array.from(
@@ -457,7 +457,7 @@ export class ChatService {
     }
 
     // Verrijk elke proposal-card met de actuele status zodat de
-    // frontend meteen de juiste UI-state kan renderen — "Concept
+    // frontend meteen de juiste UI-state kan renderen, "Concept
     // aangemaakt →" bij approved, "Voorstel afgewezen" bij rejected.
     const enriched: ChatMessage[] = rows.map((m) => {
       const card = m.message_card ?? null;
@@ -494,7 +494,7 @@ export class ChatService {
 
   // Hoofd-actie: user stuurt een bericht, wij slaan het op, roepen
   // Claude aan met de context, slaan het antwoord op, sturen beide
-  // terug. Bewust NIET streaming voor v1 — simpeler, goed genoeg.
+  // terug. Bewust NIET streaming voor v1, simpeler, goed genoeg.
   async sendMessage(
     restaurantId: string,
     userId: string,
@@ -534,12 +534,12 @@ export class ChatService {
     const existingCount = await this.countMessages(conversationId);
     if (existingCount >= this.CONVERSATION_CAP - 1) {
       throw new BadRequestException(
-        `Dit gesprek heeft de grens van ${this.CONVERSATION_CAP} berichten bereikt. Start een nieuw gesprek — Filly onthoudt wat 'ie hier heeft geleerd.`,
+        `Dit gesprek heeft de grens van ${this.CONVERSATION_CAP} berichten bereikt. Start een nieuw gesprek, Filly onthoudt wat 'ie hier heeft geleerd.`,
       );
     }
 
     // 1) User-bericht opslaan VOOR we Claude aanroepen. Zo blijft
-    // het bericht staan ook als Claude faalt — de user ziet 'm dan
+    // het bericht staan ook als Claude faalt, de user ziet 'm dan
     // wel in zijn history en kan later opnieuw proberen.
     const { data: userMsg, error: userErr } = await this.supabase.client
       .from('chat_messages')
@@ -568,7 +568,7 @@ export class ChatService {
     // alsnog direct een BUNDLE genereert bij een open vraag.
     const hint = detectChannelHint(content);
     const guardedPrompt = hint
-      ? `${historyPrompt}\n\n[INTERN ROUTING-SIGNAAL — niet voor de gebruiker zichtbaar]\n${hint}`
+      ? `${historyPrompt}\n\n[INTERN ROUTING-SIGNAAL, niet voor de gebruiker zichtbaar]\n${hint}`
       : historyPrompt;
 
     // 3) Claude-call via onze wrapper. Auto-logging in ai_usage gebeurt
@@ -588,7 +588,7 @@ export class ChatService {
         userId,
         feature: 'chat',
       },
-      // System bevat profile + menu + persona-rules — bij meerdere
+      // System bevat profile + menu + persona-rules, bij meerdere
       // chat-berichten binnen 5 min levert caching ~90% korting op
       // input-tokens.
       cacheSystem: true,
@@ -609,11 +609,11 @@ export class ChatService {
     //     de campagne aanmaakt + approved_campaign_id koppelt
     //
     // Als de suggestie-insert faalt, vallen we terug op een
-    // proposal-loos bericht — de user ziet dan nog steeds Filly's
+    // proposal-loos bericht, de user ziet dan nog steeds Filly's
     // nette antwoord, alleen mist de proposal-knop. Veiliger dan de
     // hele chat-call laten falen.
     // Drie mogelijke kaartjes (in volgorde van detectie):
-    //   1. CHOICE (vraag eerst kanaal) — geen ai_suggestion-rij
+    //   1. CHOICE (vraag eerst kanaal), geen ai_suggestion-rij
     //   2. CAMPAIGN (single-channel proposal)
     //   3. BUNDLE (multi-channel)
     // Filly schrijft er nooit meerdere; bij geen match → gewoon tekst.
@@ -632,7 +632,7 @@ export class ChatService {
 
     if (parsedChoice.choice) {
       cleanText = parsedChoice.cleanText;
-      // Geen ai_suggestion — kaart is puur UI-prompt. Frontend
+      // Geen ai_suggestion, kaart is puur UI-prompt. Frontend
       // verstuurt bij klik automatisch een follow-up user-bericht.
       messageCard = parsedChoice.choice;
     } else if (parsedSingle.proposal) {
@@ -716,7 +716,7 @@ export class ChatService {
       .then(() => undefined);
 
     // 6) Auto-title-generation. Wordt in de achtergrond afgevuurd zodat
-    // de gebruiker NIET op de extra Claude-call hoeft te wachten —
+    // de gebruiker NIET op de extra Claude-call hoeft te wachten,
     // de chat-response gaat al terug. Loopt alleen als de title nog
     // niet gezet is. Zie maybeGenerateTitle voor de drempel + flow.
     void this.maybeGenerateTitle(restaurantId, userId, conversationId).catch(
@@ -755,7 +755,7 @@ export class ChatService {
   }
 
   // ============================================================
-  // maybeGenerateTitle — Filly bedenkt een korte titel voor de chat
+  // maybeGenerateTitle, Filly bedenkt een korte titel voor de chat
   // ============================================================
   //
   // Wanneer:
@@ -763,7 +763,7 @@ export class ChatService {
   //   - er zijn ≥3 user-messages in deze conversatie (genoeg context)
   //
   // Drempel 3 user-messages:
-  //   1 = "hi" — te weinig om een goede titel te bedenken
+  //   1 = "hi", te weinig om een goede titel te bedenken
   //   2 = vaak nog small-talk
   //   3 = onderwerp is duidelijk
   //
@@ -787,7 +787,7 @@ export class ChatService {
       .eq('id', conversationId)
       .maybeSingle();
     if (convErr || !conv) return;
-    if (conv.title) return; // Al gezet — niet overschrijven.
+    if (conv.title) return; // Al gezet, niet overschrijven.
 
     // 2) Tel user-messages in deze conversatie. .head=true + count
     // betekent: geen rijen ophalen, alleen de count terug. Goedkoop.
@@ -829,7 +829,7 @@ export class ChatService {
           'Je bedenkt een korte, beschrijvende NL-titel voor een chat-' +
           'gesprek tussen een restauranteigenaar en zijn AI-marketing-' +
           'assistent Filly. De titel komt in een lijst met andere ' +
-          'gesprekken — moet in 1 oogopslag duidelijk maken waar het ' +
+          'gesprekken, moet in 1 oogopslag duidelijk maken waar het ' +
           'over ging. Max 60 tekens. Geen aanhalingstekens, geen punt ' +
           'aan het eind. Voorbeelden: "Lente-actie voor terras", ' +
           '"Reactie op 1-ster review", "Inplannen wijnproeverij".',
@@ -861,7 +861,7 @@ export class ChatService {
         },
       });
     } catch (e) {
-      // generateStructured gooit al een specifieke fout — we vangen
+      // generateStructured gooit al een specifieke fout, we vangen
       // 'm op zodat de fire-and-forget-call niet ergens crasht.
       this.logger.warn(
         `Title-generatie Claude-call gefaald: ${
@@ -876,7 +876,7 @@ export class ChatService {
 
     // 5) Wegschrijven. Geen race-conditie afvangen: als er ondertussen
     // (zeer onwaarschijnlijk) iemand anders al een titel zette, mag
-    // de nieuwe gewoon overschrijven — of we kunnen 'm conditioneel
+    // de nieuwe gewoon overschrijven, of we kunnen 'm conditioneel
     // schrijven met .is('title', null). Doen we voor zekerheid.
     await this.supabase.client
       .from('chat_conversations')
@@ -908,7 +908,7 @@ export class ChatService {
         .eq('id', restaurantId)
         .maybeSingle(),
       this.context.buildFullContext(restaurantId),
-      // Laatste N memories ophalen — Filly's leerschat uit afgesloten
+      // Laatste N memories ophalen, Filly's leerschat uit afgesloten
       // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
       // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
       // Cacheable in prompt-cache (dezelfde memories voor meerdere
@@ -943,17 +943,17 @@ Wat je NIET doet:
 ---
 ACTIES DIE JE WEL KUNT UITVOEREN
 
-Je kunt een campagne voor de eigenaar aanmaken. Wanneer — en alléén
-wanneer — je in je antwoord een concrete, actionable campagne voorstelt
+Je kunt een campagne voor de eigenaar aanmaken. Wanneer, en alléén
+wanneer, je in je antwoord een concrete, actionable campagne voorstelt
 (dus een mail-, social- of whatsapp-bericht waar jij de inhoud al voor
 hebt bedacht), sluit je je antwoord af met een speciaal machine-leesbaar
 blok. De eigenaar ziet dit blok niet; de frontend toont op basis daarvan
 drie varianten naast elkaar zodat hij/zij kan kiezen.
 
-Drie voorstel-formaten — KIES STRIKT VOLGENS DEZE BESLISBOOM:
+Drie voorstel-formaten, KIES STRIKT VOLGENS DEZE BESLISBOOM:
 
 ╔════════════════════════════════════════════════════════════╗
-║  HARDE REGEL — kies precies 1 van de 3 formaten:           ║
+║  HARDE REGEL, kies precies 1 van de 3 formaten:           ║
 ║                                                            ║
 ║  1. Bevat de LAATSTE user-message een woord uit de         ║
 ║     KANAAL-LIJST (mail / e-mail / Instagram / IG /         ║
@@ -965,7 +965,7 @@ Drie voorstel-formaten — KIES STRIKT VOLGENS DEZE BESLISBOOM:
 ║     breed inzetten / multi-channel / overal)?              ║
 ║       JA → FORMAAT 2 (bundle)                              ║
 ║                                                            ║
-║  3. Eigenaar antwoordde net op de keuze-knoppen — z'n      ║
+║  3. Eigenaar antwoordde net op de keuze-knoppen, z'n      ║
 ║     vorige user-message luidt EXACT "Maak een              ║
 ║     mail/social/whatsapp/bundel-campagne"?                 ║
 ║       JA → respectievelijk FORMAAT 1 of 2 met dat type     ║
@@ -989,7 +989,7 @@ VOORBEELDEN:
                                          → FORMAAT 2
 
 ────────────────────────────────────────
-FORMAAT 0 — KEUZE-VRAAG (default bij niet-specifieke campagne-aanvraag)
+FORMAAT 0, KEUZE-VRAAG (default bij niet-specifieke campagne-aanvraag)
 ────────────────────────────────────────
 Korte proza-aankondiging (1 zin, bv. "Voor welk kanaal zal ik 'm maken?")
 gevolgd door:
@@ -999,14 +999,14 @@ gevolgd door:
 <<END>>
 
 ────────────────────────────────────────
-FORMAAT 1 — SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
+FORMAAT 1, SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
 ────────────────────────────────────────
 Gebruik dit als de eigenaar één specifiek kanaal noemt of net op
 de keuze-vraag een single-channel-keuze (mail/social/whatsapp) heeft
 gemaakt.
 
 ────────────────────────────────────────
-FORMAAT 1 — SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
+FORMAAT 1, SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
 ────────────────────────────────────────
 Gebruik dit als de eigenaar één specifiek kanaal noemt ("stuur een
 mail aan de vaste gasten", "een Instagram-post over...") of bij kleine
@@ -1023,7 +1023,7 @@ Regels:
 - "body" bevat de volledige uitgeschreven tekst.
 
 ────────────────────────────────────────
-FORMAAT 2 — MULTI-CHANNEL BUNDLE (één thema, 3 kanalen)
+FORMAAT 2, MULTI-CHANNEL BUNDLE (één thema, 3 kanalen)
 ────────────────────────────────────────
 Gebruik dit alleen wanneer eigenaar expliciet "bundel" / "alle
 kanalen" / "breed inzetten" noemt, OF wanneer 'ie net op de keuze-
@@ -1042,7 +1042,7 @@ met EIGEN toon/lengte/structuur passend bij dat platform:
 Regels bundle:
 - "name": korte werknaam voor hele bundel, bv. "Moederdag-bundel mei"
 - "theme": 1 zin die alle drie de kanaal-versies verbindt
-- ALLE drie kanalen moeten aanwezig zijn — laat geen kanaal weg
+- ALLE drie kanalen moeten aanwezig zijn, laat geen kanaal weg
 - Captions per platform aangepast (NIET dezelfde tekst gekopieerd)
 - IG-caption: emoji's mag, laat dingen visueel klinken
 - FB-caption: warmer, meer storytelling, geen hashtags
@@ -1051,31 +1051,31 @@ Regels bundle:
 ────────────────────────────────────────
 ALGEMENE REGELS (beide formaten)
 ────────────────────────────────────────
-- KORTE proza-aankondiging vóór het blok — máximaal 2-3 zinnen.
+- KORTE proza-aankondiging vóór het blok, máximaal 2-3 zinnen.
   Bij BUNDLE: "Ik heb een bundel klaar voor mail, Instagram en
   Facebook. Klik op een kanaal om te bekijken." NIET de hele
-  inhoud opnieuw in proza herhalen — die staat al in het blok en
+  inhoud opnieuw in proza herhalen, die staat al in het blok en
   de UI toont 'm in collapsibles. Lange proza + lange JSON =
   truncated antwoord.
 - Verwerk concrete elementen uit PROFIEL en MENU (signature gerecht,
   USP, specifieke doelgroep) zodat de campagne herkenbaar past.
 - Gebruik dubbele aanhalingstekens binnen tekst door \\" te escapen.
 - Schrijf NOOIT een blok als de eigenaar er niet om gevraagd heeft of
-  als jij nog aan het brainstormen bent — dat leidt tot ongewenste
+  als jij nog aan het brainstormen bent, dat leidt tot ongewenste
   concept-campagnes.
 - Maximaal ÉÉN blok per antwoord (geen mix van CAMPAIGN + BUNDLE).
 
 ---
-CONTEXT — alles wat je weet over deze onderneming.
+CONTEXT, alles wat je weet over deze onderneming.
 Drie secties, gescheiden door "---":
-  1. PROFIEL — identiteit, doelgroep, USPs, faciliteiten, openingstijden, socials.
-  2. MENU — alle beschikbare gerechten met prijzen + signature-markers.
-  3. Actuele feiten — vandaag, weer, bezetting, reserveringen komende 7 dagen.
+  1. PROFIEL, identiteit, doelgroep, USPs, faciliteiten, openingstijden, socials.
+  2. MENU, alle beschikbare gerechten met prijzen + signature-markers.
+  3. Actuele feiten, vandaag, weer, bezetting, reserveringen komende 7 dagen.
 
 ${contextBlock}
 ---
 ${memoryBlock ? `\n${memoryBlock}\n---\n` : ''}
-Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI" — spreek gewoon als Filly.`;
+Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI", spreek gewoon als Filly.`;
   }
 }
 
@@ -1089,7 +1089,7 @@ Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI" — spree
 // We halen dat eruit zodat de user alleen de prozatekst ziet, en
 // valideren de JSON voordat we 'm in message_card opslaan. Bij een
 // parse- of validatie-fout geven we de volledige (ongestripte) tekst
-// terug en geen proposal — dan gedraagt de chat zich alsof er geen
+// terug en geen proposal, dan gedraagt de chat zich alsof er geen
 // voorstel was. Zo blokkeren we nooit een antwoord door een misvormd
 // blokje.
 
@@ -1293,7 +1293,7 @@ export function extractCampaignBundle(
 }
 
 // ============================================================
-// detectChannelHint — server-side routing-signaal voor Filly
+// detectChannelHint, server-side routing-signaal voor Filly
 // ============================================================
 // We scannen het laatste user-bericht op kanaal-keywords en sturen
 // een keiharde "USE FORMAAT X"-instructie mee in de Claude-prompt.
@@ -1329,7 +1329,7 @@ const CHOICE_FOLLOWUP_PATTERNS = [
 function detectChannelHint(userMessage: string): string | null {
   const trimmed = userMessage.trim();
 
-  // 1. Volgt op de keuze-knoppen — exacte tekst die de frontend
+  // 1. Volgt op de keuze-knoppen, exacte tekst die de frontend
   // automatisch verstuurt. Dwingt direct het juiste formaat af.
   for (const pat of CHOICE_FOLLOWUP_PATTERNS) {
     if (pat.test(trimmed)) {
@@ -1365,7 +1365,7 @@ function detectChannelHint(userMessage: string): string | null {
     return 'Het bericht vraagt om een campagne maar noemt GEEN specifiek kanaal en GEEN bundel. Gebruik FORMAAT 0 (KEUZE-VRAAG met <<FILLY_PROPOSE_CHOICE>>). NIET direct een proposal of bundle genereren.';
   }
 
-  // Geen detectie — Claude beslist zelf (geen campagne-intent waarschijnlijk)
+  // Geen detectie, Claude beslist zelf (geen campagne-intent waarschijnlijk)
   return null;
 }
 

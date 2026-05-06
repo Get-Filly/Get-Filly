@@ -20,9 +20,9 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 //   - audit-log
 //
 // Wat zit er NIET in:
-//   - storage-binaries (logo's, menu-PDFs) — staan in Supabase
+//   - storage-binaries (logo's, menu-PDFs), staan in Supabase
 //     Storage; URLs zijn meegenomen, eigenaar kan ze zelf downloaden.
-//   - andere restaurants als de user toegang heeft tot meerdere — per
+//   - andere restaurants als de user toegang heeft tot meerdere, per
 //     restaurant 1 export.
 //   - tokens / API-keys.
 
@@ -63,7 +63,7 @@ export class DataExportService {
 
     // Per tabel: select * where restaurant_id = X. Sommige tabellen
     // (campaign_*_content, chat_messages, campaign_recipients) hebben
-    // geen directe restaurant_id-kolom — die filteren we via een join
+    // geen directe restaurant_id-kolom, die filteren we via een join
     // op campaign-id of conversation-id van wat we al hebben.
 
     // Direct gerelateerd aan restaurant_id

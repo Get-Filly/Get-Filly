@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // ============================================================
-// <Tabs> — filter-tabs met onderstreping voor de actieve tab
+// <Tabs>, filter-tabs met onderstreping voor de actieve tab
 // ============================================================
 //
 // Vervangt het 5-regels-per-gebruik patroon dat in de codebase staat:
@@ -28,7 +28,7 @@ export type TabItem<K extends string = string> = {
   key: K;
   label: ReactNode;
   // Optioneel cijfer dat naast de label getoond wordt. Vaak een
-  // count uit een filter ("Actief (3)") — handig om de eigenaar
+  // count uit een filter ("Actief (3)"), handig om de eigenaar
   // te laten zien hoeveel rijen achter elke tab schuilgaan.
   count?: number;
 };

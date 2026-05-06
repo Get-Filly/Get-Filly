@@ -15,7 +15,7 @@ import { RequestSupabaseService } from './request-supabase.service';
  *                                Defense-in-depth bovenop de TS-guards.
  *
  * Services die de RequestSupabaseService injecteren worden zelf ook
- * REQUEST-scoped (NestJS regelt dit automatisch — de "scope bubbles up"
+ * REQUEST-scoped (NestJS regelt dit automatisch, de "scope bubbles up"
  * door de provider-keten heen).
  */
 @Module({

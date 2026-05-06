@@ -23,7 +23,7 @@ export default function SignupPage() {
     setError(null);
     setSuccess(null);
 
-    // Client-side check — backend vangt het straks ook af, maar zo
+    // Client-side check, backend vangt het straks ook af, maar zo
     // voorkomen we dat iemand met een zwak wachtwoord tegen Supabase
     // aanloopt voor een cryptische foutmelding.
     if (!isPasswordValid(password)) {

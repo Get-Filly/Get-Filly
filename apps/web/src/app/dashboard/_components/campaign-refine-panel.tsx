@@ -9,7 +9,7 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// CampaignRefinePanel — 3 alternatieven + 1× extra + wisselen
+// CampaignRefinePanel, 3 alternatieven + 1× extra + wisselen
 // ============================================================
 // Inline paneel onder de "Inhoud"-card op /campagnes/[id]. Alleen
 // zichtbaar bij status='concept'.
@@ -22,7 +22,7 @@ import { Button } from "../../../components/ui/button";
 //   - Daarna disabled: je hebt 6 versies, kies of bewerk handmatig.
 //   - Klik op een variant → body wordt geüpdatet (from_variant=true
 //     zodat de cache NIET wordt gewist). Eigenaar kan vrij blijven
-//     wisselen tussen de varianten — preview-sectie volgt elke klik.
+//     wisselen tussen de varianten, preview-sectie volgt elke klik.
 //   - Actieve variant krijgt een ✓-highlight zodat duidelijk is
 //     welke nu in de uiting-preview staat.
 //
@@ -112,7 +112,7 @@ export function CampaignRefinePanel({
       setVariants(result.variants);
       setRegenCount(result.regenerate_count);
       setCanRegenerate(result.can_regenerate);
-      // Instruction-veld leegmaken — als user opnieuw wil itereren
+      // Instruction-veld leegmaken, als user opnieuw wil itereren
       // (volgens body-edit-flow) is dat een andere ronde.
       setInstruction("");
     } catch (e) {
@@ -142,7 +142,7 @@ export function CampaignRefinePanel({
         from_variant: true,
       });
       onApplied();
-      // Geen lokale reset nodig — parent unmount deze component
+      // Geen lokale reset nodig, parent unmount deze component
       // zodra de rerender variant_applied_at ziet.
     } catch (e) {
       setError(
@@ -162,8 +162,8 @@ export function CampaignRefinePanel({
             {regenCount === 0
               ? "Filly bedenkt 3 alternatieven; kies of laat 3 nieuwe maken."
               : regenCount === 1
-                ? `${variants.length} versies — kies favoriet of laat 3 nieuwe maken.`
-                : `${variants.length} versies — kies favoriet of bewerk handmatig.`}
+                ? `${variants.length} versies, kies favoriet of laat 3 nieuwe maken.`
+                : `${variants.length} versies, kies favoriet of bewerk handmatig.`}
           </div>
         </div>
       </div>

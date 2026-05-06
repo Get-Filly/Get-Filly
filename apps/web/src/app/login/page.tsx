@@ -40,7 +40,7 @@ function LoginForm() {
       try {
         window.localStorage.removeItem("getfilly.activeRestaurantId");
       } catch {
-        // localStorage kan falen in privé-modus — negeer.
+        // localStorage kan falen in privé-modus, negeer.
       }
     }
 

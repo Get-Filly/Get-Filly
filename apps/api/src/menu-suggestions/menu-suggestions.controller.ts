@@ -43,7 +43,7 @@ export class MenuSuggestionsController {
   }
 
   // "✨ Vraag Filly om gerecht-voorstellen". AiRateLimitGuard staat
-  // alleen voor de generate + refine endpoints — list/accept/reject
+  // alleen voor de generate + refine endpoints, list/accept/reject
   // doen geen AI-calls dus die hoeven niet rate-limited.
   @Post('generate')
   @UseGuards(AiRateLimitGuard)

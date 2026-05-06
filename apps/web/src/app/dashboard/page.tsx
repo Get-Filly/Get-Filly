@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   // Alert-bar werkt op een fixed 14-dagen-window vooruit, ongeacht
   // welke maand de eigenaar in de kalender bekijkt. Eigen state
-  // zodat we 'm los van het kalender-view kunnen verversen — anders
+  // zodat we 'm los van het kalender-view kunnen verversen, anders
   // mist de alert-bar dagen in de volgende maand wanneer current
   // tegen het einde van de maand zit.
   const [windowOccupancy, setWindowOccupancy] = useState<OccupancyDay[]>([]);
@@ -53,7 +53,7 @@ export default function DashboardPage() {
     ])
       .then(([cur, nxt]) => setWindowOccupancy([...cur, ...nxt]))
       .catch(() => setWindowOccupancy([]));
-    // Bewust geen deps — bij dashboard-mount eenmalig; dagen
+    // Bewust geen deps, bij dashboard-mount eenmalig; dagen
     // veranderen niet binnen sessie.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,7 +91,7 @@ export default function DashboardPage() {
         );
       } else if (result.detected === 0) {
         setLowOccMessage(
-          "Geen rustige dagen meer in de komende 2 weken — top!",
+          "Geen rustige dagen meer in de komende 2 weken, top!",
         );
       } else {
         setLowOccMessage(
@@ -122,7 +122,7 @@ export default function DashboardPage() {
           {criticalDays.length > 1 ? "en" : ""}
         </strong>{" "}
         in de komende 2 weken
-        {" — "}
+        {", "}
         {criticalDays
           .slice(0, 3)
           .map((d) => {

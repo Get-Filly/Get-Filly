@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design-tokens single source-of-truth — kleuren, spacing, radii, shadows,
+/* Design-tokens single source-of-truth, kleuren, spacing, radii, shadows,
  * typography. Vervangt de oude :root + @theme blokken die hier stonden.
  * Bij brand-update of palet-wijziging: open tokens.css, niet deze file. */
 @import "./tokens.css";
@@ -12,7 +12,7 @@
 
 /* Page-specifieke styling voor de publieke marketing-pagina's
  * (home/product/pricing/about). Letterlijke kopie van het Claude
- * Design-prototype — bij design-update overschrijven we deze file
+ * Design-prototype, bij design-update overschrijven we deze file
  * 1-op-1 zodat de site visueel synchroon blijft. */
 @import "./landing.css";
 
@@ -224,7 +224,7 @@ body {
 
 .login-btn:hover { background: var(--accent-dark); }
 
-/* Auth helper-classes — herbruikt op login/signup voor foutmeldingen
+/* Auth helper-classes, herbruikt op login/signup voor foutmeldingen
    en de "al een account?" / "nog geen account?" switch-link. */
 .auth-error {
   color: #CC2F27;
@@ -460,7 +460,7 @@ body {
 }
 
 /* ============================================================
-   Publieke site — responsive (navbar + login)
+   Publieke site, responsive (navbar + login)
    ============================================================ */
 
 @media (max-width: 768px) {

@@ -31,7 +31,7 @@ import { useRestaurant } from "../../../../lib/restaurant-context";
  *   - Custom permissies aan/uit vinken per user
  *   - Een teamlid verwijderen
  *
- * Uitnodigen-knop is voorlopig nog leeg — die flow komt in stap 5
+ * Uitnodigen-knop is voorlopig nog leeg, die flow komt in stap 5
  * (invite via e-mail).
  */
 
@@ -232,7 +232,7 @@ export default function TeamPage() {
         </button>
       </div>
 
-      {/* Openstaande uitnodigingen — zichtbaar tot ze geaccepteerd of
+      {/* Openstaande uitnodigingen, zichtbaar tot ze geaccepteerd of
           ingetrokken worden. */}
       {invites.length > 0 && (
         <div className="team-invites">
@@ -253,19 +253,19 @@ export default function TeamPage() {
                   onClick={async () => {
                     try {
                       // Backend genereert een verse Supabase magic link.
-                      // Deze werkt ook zonder dat de user ingelogd is —
+                      // Deze werkt ook zonder dat de user ingelogd is,
                       // klikken logt hem automatisch in en brengt hem
                       // bij de accept-pagina.
                       const link = await getInviteMagicLink(inv.id);
                       await navigator.clipboard.writeText(link);
-                      alert("Magic link gekopieerd — plak 'm in een browser om de invite te accepteren.");
+                      alert("Magic link gekopieerd, plak 'm in een browser om de invite te accepteren.");
                     } catch (err) {
                       alert(
                         `Kon geen link genereren: ${err instanceof Error ? err.message : err}`,
                       );
                     }
                   }}
-                  title="Verse magic link — deel handmatig als de mail niet aankomt"
+                  title="Verse magic link, deel handmatig als de mail niet aankomt"
                 >
                   Kopieer link
                 </button>

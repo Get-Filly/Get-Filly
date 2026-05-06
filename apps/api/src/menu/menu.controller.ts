@@ -27,7 +27,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
 // AuthGuard verifieert het Supabase-JWT; RestaurantAccessGuard zorgt dat
 // de huidige gebruiker bij dit restaurant hoort. Beide guards op klasse-
-// niveau zodat álle endpoints automatisch beschermd zijn — een nieuwe
+// niveau zodat álle endpoints automatisch beschermd zijn, een nieuwe
 // route per ongeluk vergeten beveiligen kán hier niet meer.
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('menu')
@@ -52,7 +52,7 @@ export class MenuController {
   }
 
   // Gerecht bewerken. PATCH (niet PUT) omdat we partial-updates
-  // ondersteunen — de UI kan bv. alleen `is_available` toggelen
+  // ondersteunen, de UI kan bv. alleen `is_available` toggelen
   // zonder de hele set velden mee te sturen.
   @Patch(':id')
   update(
@@ -79,7 +79,7 @@ export class MenuController {
 
   // Upload een PDF/foto van de menukaart en laat Filly (Claude Vision)
   // de gerechten extraheren. Opslag + Vision-call + items wegschrijven
-  // gebeuren synchroon — kan 5-15 seconden duren afhankelijk van menu-
+  // gebeuren synchroon, kan 5-15 seconden duren afhankelijk van menu-
   // grootte. Frontend toont een spinner met "Filly leest je menu…".
   //
   // Limieten: 12MB op multipart-niveau (slechts iets ruimer dan de 10MB
@@ -145,7 +145,7 @@ export class MenuController {
   }
 
   // Welke kaarten zijn nu actief? UI gebruikt dit om twee aparte
-  // banners te tonen — één voor de menukaart en één voor de
+  // banners te tonen, één voor de menukaart en één voor de
   // drankkaart, met elk hun eigen "vervangen" / "verwijderen"-acties.
   @Get('active-cards')
   getActiveCards(@RestaurantId() restaurantId: string) {
@@ -163,7 +163,7 @@ export class MenuController {
   }
 
   // Verwijder een menukaart (storage + db-rij + alle gekoppelde items).
-  // Handmatig toegevoegde gerechten blijven staan — die zijn niet aan
+  // Handmatig toegevoegde gerechten blijven staan, die zijn niet aan
   // deze kaart gekoppeld.
   @Delete('cards/:uploadId')
   removeCard(

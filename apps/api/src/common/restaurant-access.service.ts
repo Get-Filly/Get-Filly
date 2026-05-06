@@ -56,7 +56,7 @@ export class RestaurantAccessService {
    */
   async getUserRestaurants(userId: string): Promise<RestaurantAccess[]> {
     // We joinen restaurant_users met restaurants zodat we de naam
-    // meteen meekrijgen — scheelt een tweede query.
+    // meteen meekrijgen, scheelt een tweede query.
     //
     // Supabase's JS-SDK gebruikt de PostgREST-syntax voor joins:
     //   select('role, permissions, restaurants(id, name)')
@@ -147,7 +147,7 @@ export class RestaurantAccessService {
     }
     if (!link) {
       // Bewust generieke boodschap zonder te lekken of het restaurant
-      // bestaat — alleen "geen toegang".
+      // bestaat, alleen "geen toegang".
       throw new ForbiddenException(
         'Geen toegang tot dit restaurant.',
       );

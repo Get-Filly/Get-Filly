@@ -1,5 +1,5 @@
 // =============================================================================
-// PRICING-PAGINA — 1-op-1 conversie van Claude Design app.jsx → PricingPage.
+// PRICING-PAGINA, 1-op-1 conversie van Claude Design app.jsx → PricingPage.
 // =============================================================================
 
 const plans = [
@@ -41,7 +41,7 @@ const plans = [
     desc: "Alles onbeperkt + persoonlijke begeleiding",
     price: "€299",
     features: [
-      { text: "Alles van Pro — onbeperkt" },
+      { text: "Alles van Pro, onbeperkt" },
       { text: "Onbeperkte e-mailcampagnes" },
       { text: "Onbeperkte social media posts" },
       { text: "Onbeperkte WhatsApp-campagnes" },
@@ -55,11 +55,11 @@ const plans = [
 ];
 
 const faqs = [
-  { q: "Wat gebeurt er na de 14-dagen proefperiode?", a: "Je gaat automatisch naar het plan dat je gekozen hebt. Tijdens de proef kun je zonder kosten opzeggen — we vragen geen creditcard vooraf." },
+  { q: "Wat gebeurt er na de 14-dagen proefperiode?", a: "Je gaat automatisch naar het plan dat je gekozen hebt. Tijdens de proef kun je zonder kosten opzeggen, we vragen geen creditcard vooraf." },
   { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
   { q: "Wat als ik over de campagne-limiet heen ga?", a: "Je krijgt een seintje bij 80% en 95% van je limiet. Daarna kun je óf upgraden, óf extra campagnes bijkopen per stuk (€15 per mail, €8 per social post)." },
   { q: "Hoelang duurt de onboarding?", a: "Gemiddeld 15 minuten. Je koppelt je reserveringssysteem (Zenchef, OpenTable, SevenRooms of andere), bevestigt je menu en Filly gaat aan de slag." },
-  { q: "Werkt Filly ook voor andere branches dan horeca?", a: "De core werkt voor elke onderneming met variabele bezetting — hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
+  { q: "Werkt Filly ook voor andere branches dan horeca?", a: "De core werkt voor elke onderneming met variabele bezetting, hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
   { q: "Waar staat mijn data?", a: "Alles binnen de EU (Frankfurt, Supabase). We delen géén data met derden, verkopen niks door en exporteren is altijd gratis mogelijk." },
 ];
 

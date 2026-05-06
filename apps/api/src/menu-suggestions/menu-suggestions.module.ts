@@ -10,7 +10,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
 // SupabaseModule levert RequestSupabaseService (RLS-active) +
-// SupabaseService (admin) — wij gebruiken RequestSupabaseService.
+// SupabaseService (admin), wij gebruiken RequestSupabaseService.
 // AiModule levert AiService + RestaurantContextService voor de
 // generate/refine-flows.
 // AuditLogModule logt elke generate/accept/reject/refine zodat we

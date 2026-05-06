@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
  * via deze stub.
  *
  * NB: dit is een server-component (geen "use client") zodat de redirect
- * server-side gebeurt vóór de pagina-render — geen flicker bij de
+ * server-side gebeurt vóór de pagina-render, geen flicker bij de
  * gebruiker en zoekmachines volgen de 308 keurig.
  */
 export default function ReviewsRedirectPage() {

@@ -11,7 +11,7 @@ import { Button } from "../../../../components/ui/button";
  * Instagram-marketing-pagina (preview met voorbeeld-data)
  * ============================================================
  *
- * Volledig uitgewerkte UI zoals 't straks gaat zijn — gevuld met
+ * Volledig uitgewerkte UI zoals 't straks gaat zijn, gevuld met
  * realistische mock-data zodat eigenaar (en wij) visueel kunnen zien
  * hoe de pagina werkt voordat de echte Meta-API-koppeling klaar is.
  *
@@ -61,7 +61,7 @@ const PREVIEW = {
     {
       type: "reel" as const,
       thumbnail: "🎬",
-      caption: "Open keuken op donderdagavond — zo komen onze tagliatelle tot stand",
+      caption: "Open keuken op donderdagavond, zo komen onze tagliatelle tot stand",
       reach: 4128,
       engagementRate: 8.4,
       likes: 287,
@@ -85,7 +85,7 @@ const PREVIEW = {
     {
       type: "photo" as const,
       thumbnail: "🍝",
-      caption: "Burrata met truffel-pasta, dichtbij — close-up van het bord",
+      caption: "Burrata met truffel-pasta, dichtbij, close-up van het bord",
       reach: 1842,
       engagementRate: 6.1,
       likes: 89,
@@ -97,7 +97,7 @@ const PREVIEW = {
     {
       type: "reel" as const,
       thumbnail: "🍷",
-      caption: "Wijnpairing-avond: 4 wijnen, 4 gangen — 12-seconden timelapse",
+      caption: "Wijnpairing-avond: 4 wijnen, 4 gangen, 12-seconden timelapse",
       reach: 1604,
       engagementRate: 5.8,
       likes: 76,
@@ -156,25 +156,25 @@ const PREVIEW = {
       severity: "warning" as const,
       title: "Reels-momentum vasthouden",
       description:
-        "Je laatste Reel was 4 dagen geleden. Het IG-algoritme straft inactiviteit binnen kanalen — verwacht 20-30% reach-daling als je deze week niets nieuws maakt.",
+        "Je laatste Reel was 4 dagen geleden. Het IG-algoritme straft inactiviteit binnen kanalen, verwacht 20-30% reach-daling als je deze week niets nieuws maakt.",
       hint: "Maak voor zaterdag een nieuwe Reel. Behind-the-scenes uit de keuken werkt voor jou consistent goed.",
     },
     {
       severity: "tip" as const,
       title: "Onderbenutte tijdslot",
       description:
-        "Woensdag 18:00-19:30 — je publiek is dan piek-actief, maar je hebt deze maand 0 posts in dat slot.",
+        "Woensdag 18:00-19:30, je publiek is dan piek-actief, maar je hebt deze maand 0 posts in dat slot.",
       hint: "Plan komende woensdag een Story of Reel om dit gat te vullen.",
     },
     {
       severity: "tip" as const,
       title: "Hashtag-experiment",
       description:
-        "#amsterdamfoodie heeft je 3 keer 2× boven-gemiddeld bereik gegeven. Andere hashtags presteren minder — maar je gebruikt 'm maar bij 1 op de 5 posts.",
+        "#amsterdamfoodie heeft je 3 keer 2× boven-gemiddeld bereik gegeven. Andere hashtags presteren minder, maar je gebruikt 'm maar bij 1 op de 5 posts.",
       hint: "Zet 'm consistent in op je top-5 hashtags.",
     },
   ],
-  fillyAnalysis: `Je groei zit in een goede flow — +34 volgers deze week (+2.8%). Reels presteren consistent 4× beter dan foto's, dus daar zou ik op blijven zetten. Twee dingen vallen op: tussen 18:00-19:30 op woensdag is je publiek het meest online maar je post er nooit, en je laatste Reel was 4 dagen geleden — algoritme-momentum begint te slippen.`,
+  fillyAnalysis: `Je groei zit in een goede flow, +34 volgers deze week (+2.8%). Reels presteren consistent 4× beter dan foto's, dus daar zou ik op blijven zetten. Twee dingen vallen op: tussen 18:00-19:30 op woensdag is je publiek het meest online maar je post er nooit, en je laatste Reel was 4 dagen geleden, algoritme-momentum begint te slippen.`,
 };
 
 export default function InstagramMarketingPage() {
@@ -182,7 +182,7 @@ export default function InstagramMarketingPage() {
     <div className="page-full">
       <PageHeader
         title={`Instagram · ${PREVIEW.account.handle}`}
-        subtitle="Bereik, engagement en publiek — afgelopen 30 dagen."
+        subtitle="Bereik, engagement en publiek, afgelopen 30 dagen."
         actions={
           <>
             <Button variant="secondary" size="sm" disabled title="Beschikbaar na Meta-koppeling">
@@ -195,7 +195,7 @@ export default function InstagramMarketingPage() {
         }
       />
 
-      {/* Preview-banner — duidelijk zichtbaar dat dit voorbeeld-data is */}
+      {/* Preview-banner, duidelijk zichtbaar dat dit voorbeeld-data is */}
       <div
         style={{
           padding: "var(--space-3) var(--space-4)",
@@ -217,7 +217,7 @@ export default function InstagramMarketingPage() {
         </div>
       </div>
 
-      {/* Filly's analyse — bovenaan zodat 't direct opvalt. Past bij
+      {/* Filly's analyse, bovenaan zodat 't direct opvalt. Past bij
           Filly-eerst architectuur die we hebben afgesproken. */}
       <Card>
         <CardBody>
@@ -287,7 +287,7 @@ export default function InstagramMarketingPage() {
         />
       </div>
 
-      {/* Engagement-grafiek (30 dgn) — simpele SVG area-chart */}
+      {/* Engagement-grafiek (30 dgn), simpele SVG area-chart */}
       <Card>
         <CardBody>
           <div
@@ -550,7 +550,7 @@ export default function InstagramMarketingPage() {
         </CardBody>
       </Card>
 
-      {/* Filly's actie-voorstellen — bottom van de pagina, "wat doe ik nu?" */}
+      {/* Filly's actie-voorstellen, bottom van de pagina, "wat doe ik nu?" */}
       <div style={{ marginTop: "var(--space-5)" }}>
         <div
           style={{
@@ -740,7 +740,7 @@ function KpiTileWithBenchmark({
   );
 }
 
-// SVG-area-chart voor reach-trend. Voor MVP zonder library — eenvoudige
+// SVG-area-chart voor reach-trend. Voor MVP zonder library, eenvoudige
 // path-string vanuit data-array. 30 datapunten stretched over breedte.
 function ReachTrendChart({ data }: { data: number[] }) {
   const width = 800;

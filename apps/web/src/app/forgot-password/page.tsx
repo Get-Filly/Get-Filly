@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "../../lib/supabase-browser";
 
 // ============================================================
-// /forgot-password — stap 1 van password-reset
+// /forgot-password, stap 1 van password-reset
 // ============================================================
 // Flow:
 //   1. User typt email → klik "Verstuur reset-link"
@@ -17,7 +17,7 @@ import { createClient } from "../../lib/supabase-browser";
 //
 // Security-noot:
 //   - We laten NIET weten of het email-adres bestaat. Ook bij een
-//     onbekend adres tonen we "we hebben een mail gestuurd" — zo
+//     onbekend adres tonen we "we hebben een mail gestuurd", zo
 //     kan een aanvaller niet ontdekken welke adressen wel een account
 //     hebben (user enumeration). Supabase handelt dit zelf netjes af
 //     door geen fout te gooien op onbekende emails.

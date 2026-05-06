@@ -6,19 +6,19 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
 /**
  * ============================================================
- * MarketingController — read-only stats voor de Marketing-hub
+ * MarketingController, read-only stats voor de Marketing-hub
  * ============================================================
  *
  * Voor MVP alleen mail-stats. Sociale kanalen (IG/FB/TikTok) krijgen
  * later aparte endpoints zodra OAuth + API-koppelingen live zijn.
  *
  * Endpoints:
- *   GET /marketing/mail/stats?days=30        — aggregaat metrics
- *   GET /marketing/mail/campaigns?days=90    — per-campagne tabel
+ *   GET /marketing/mail/stats?days=30       , aggregaat metrics
+ *   GET /marketing/mail/campaigns?days=90   , per-campagne tabel
  *
  * Default-perioden bewust verschillend:
- *   stats: 30 dagen — voor bovenste KPI-tegels (recent + actueel)
- *   campaigns: 90 dagen — wil je voor de tabel meer historie zien
+ *   stats: 30 dagen, voor bovenste KPI-tegels (recent + actueel)
+ *   campaigns: 90 dagen, wil je voor de tabel meer historie zien
  * ============================================================
  */
 @UseGuards(AuthGuard, RestaurantAccessGuard)

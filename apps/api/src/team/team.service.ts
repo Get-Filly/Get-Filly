@@ -10,7 +10,7 @@ import type { Module, Role, StoredPermissions } from '@getfilly/shared';
 
 /**
  * ============================================================
- * TeamService — beheer van teamleden binnen een restaurant
+ * TeamService, beheer van teamleden binnen een restaurant
  * ============================================================
  *
  * Deze service is de plek voor alle team-management-logica:
@@ -20,7 +20,7 @@ import type { Module, Role, StoredPermissions } from '@getfilly/shared';
  *
  * Veiligheids-regels:
  *   - Alleen owners mogen wijzigingen maken (check doet de controller).
- *   - Je kunt jezelf niet verwijderen — dat doet de controller ook.
+ *   - Je kunt jezelf niet verwijderen, dat doet de controller ook.
  *   - Het laatste owner-account mag niet op een lagere rol gezet
  *     of verwijderd worden (anders is er niemand meer die het team
  *     kan beheren). Die check doet deze service zelf.
@@ -63,7 +63,7 @@ export type InvitationRecord = {
  * WAAROM deze functie bestaat:
  * Supabase's `generateLink()` geeft een `action_link` terug die
  * verwijst naar Supabase's eigen /auth/v1/verify-endpoint. Dat
- * endpoint triggert de oude "implicit flow" — de sessie komt dan
+ * endpoint triggert de oude "implicit flow", de sessie komt dan
  * binnen als hash (#access_token=...) in de URL. Onze web-app
  * gebruikt `@supabase/ssr` die werkt met cookies, niet met hash-
  * tokens; daardoor ziet de accept-pagina geen sessie en faalt de
@@ -71,7 +71,7 @@ export type InvitationRecord = {
  *
  * Oplossing: we bouwen zelf een URL naar onze server-side route
  * `/auth/confirm`, die `verifyOtp({ token_hash, type })` aanroept
- * en de sessie netjes als cookie zet — identiek aan wat de
+ * en de sessie netjes als cookie zet, identiek aan wat de
  * e-mail-templates voor nieuwe users doen.
  *
  * De origin (host) leiden we af uit `acceptBaseUrl` zodat er geen
@@ -100,7 +100,7 @@ export class TeamService {
 
   /**
    * Haalt alle teamleden voor een restaurant op.
-   * Roept de get_restaurant_members RPC aan (zie migratie 0007) —
+   * Roept de get_restaurant_members RPC aan (zie migratie 0007),
    * die joint restaurant_users met public.users en auth.users.
    */
   async listMembers(restaurantId: string): Promise<TeamMember[]> {
@@ -185,7 +185,7 @@ export class TeamService {
 
   /**
    * Verwijder een user uit het team. Owner kan niet zichzelf verwijderen
-   * — dat doet de controller (kent current user). Hier checken we dat
+   *, dat doet de controller (kent current user). Hier checken we dat
    * we niet de laatste owner ontkoppelen.
    */
   async removeMember(restaurantId: string, userId: string): Promise<void> {
@@ -220,9 +220,9 @@ export class TeamService {
    * Maak een nieuwe invite aan + stuur de uitnodigingsmail.
    *
    * Supabase heeft twee relevante API's:
-   *   - auth.admin.inviteUserByEmail() — werkt alleen als user nog
+   *   - auth.admin.inviteUserByEmail(), werkt alleen als user nog
    *     NIET bestaat. Supabase mailt automatisch.
-   *   - auth.admin.generateLink({type:'magiclink'}) — werkt voor
+   *   - auth.admin.generateLink({type:'magiclink'}), werkt voor
    *     bestaande users. Geeft link terug; we moeten 'm zelf mailen.
    *
    * Voor MVP:
@@ -377,7 +377,7 @@ export class TeamService {
         options: { redirectTo },
       });
       // We gebruiken hashed_token + onze eigen /auth/confirm-route
-      // i.p.v. Supabase's action_link — zie buildConfirmUrl boven.
+      // i.p.v. Supabase's action_link, zie buildConfirmUrl boven.
       const hashedToken = data?.properties?.hashed_token;
       if (!error && hashedToken) {
         return buildConfirmUrl(acceptBaseUrl, redirectTo, hashedToken, type);
@@ -390,7 +390,7 @@ export class TeamService {
   }
 
   /**
-   * Lijst van openstaande (pending) invites voor een restaurant —
+   * Lijst van openstaande (pending) invites voor een restaurant,
    * om op de team-pagina te laten zien onder "Uitgenodigd, nog niet
    * geaccepteerd".
    */

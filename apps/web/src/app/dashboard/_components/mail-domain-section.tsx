@@ -13,7 +13,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 
 // ============================================================
-// MailDomainSection — "Mail-instellingen" op account-pagina
+// MailDomainSection, "Mail-instellingen" op account-pagina
 // ============================================================
 //
 // Drie views afhankelijk van status:
@@ -187,7 +187,7 @@ export function MailDomainSection() {
             sub={
               data.status === "pending"
                 ? "Voeg de onderstaande records toe bij je DNS-host. Klik daarna op 'Verifieer'. DNS-propagatie kan 5-30 minuten duren."
-                : "Controleer dat alle records exact zijn overgenomen. Sommige DNS-hosts voegen automatisch het domein achter de hostname toe — corrigeer dan zo nodig."
+                : "Controleer dat alle records exact zijn overgenomen. Sommige DNS-hosts voegen automatisch het domein achter de hostname toe, corrigeer dan zo nodig."
             }
           />
           <DnsRecordsTable records={data.records} />
@@ -207,7 +207,7 @@ export function MailDomainSection() {
         </div>
       )}
 
-      {/* ---------- NONE — default ---------- */}
+      {/* ---------- NONE, default ---------- */}
       {data.status === "none" && !setupMode && (
         <div>
           <StatusRow
@@ -224,7 +224,7 @@ export function MailDomainSection() {
         </div>
       )}
 
-      {/* ---------- NONE — setup-modus ---------- */}
+      {/* ---------- NONE, setup-modus ---------- */}
       {data.status === "none" && setupMode && (
         <div>
           <h4 style={{ margin: "0 0 12px", fontSize: 14 }}>
@@ -236,7 +236,7 @@ export function MailDomainSection() {
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
             placeholder="bistrodemo.nl"
-            hint="Zonder http:// of www. — alleen de domeinnaam."
+            hint="Zonder http:// of www., alleen de domeinnaam."
           />
           <div style={{ marginTop: 12 }}>
             <Input
@@ -271,7 +271,7 @@ export function MailDomainSection() {
           >
             Na aanmaken krijg je 4 DNS-records die je bij je DNS-host
             (TransIP / Versio / Namecheap / etc.) moet toevoegen. Daarna
-            kun je verifiëren — duurt meestal 5-15 minuten na DNS-update.
+            kun je verifiëren, duurt meestal 5-15 minuten na DNS-update.
           </p>
         </div>
       )}
@@ -340,7 +340,7 @@ function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
     try {
       await navigator.clipboard.writeText(s);
     } catch {
-      // privé-modus / geen permissie — negeren
+      // privé-modus / geen permissie, negeren
     }
   };
 
@@ -462,7 +462,7 @@ function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
       >
         Hostname-tip: bij sommige DNS-hosts hoef je{" "}
         <code>.jouw-domein.nl</code> niet zelf achter de hostname te
-        zetten — die voegt 'm zelf toe. Bij andere moet je de volledige
+        zetten, die voegt 'm zelf toe. Bij andere moet je de volledige
         hostname (bv. <code>resend._domainkey.jouw-domein.nl</code>)
         invoeren.
       </p>

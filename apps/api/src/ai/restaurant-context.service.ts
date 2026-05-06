@@ -7,19 +7,19 @@ import type { Reservation } from '../reservations/reservations.service';
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 // ============================================================
-// RestaurantContextService — feiten + identiteit voor AI-prompts
+// RestaurantContextService, feiten + identiteit voor AI-prompts
 // ============================================================
 //
 // Bouwt drie verschillende NL-tekstblokken die Filly nodig heeft om
 // goede antwoorden en suggesties te geven:
 //
-//   1. PROFIEL  — wie is dit restaurant? Type, doelgroep, USPs,
+//   1. PROFIEL , wie is dit restaurant? Type, doelgroep, USPs,
 //                 sfeer, openingstijden, faciliteiten, socials.
 //                 Statische data, wijzigt zelden → geschikt voor
 //                 prompt-caching (komt later).
-//   2. MENU     — wat staat er op de kaart? Gerechten + prijzen +
+//   2. MENU    , wat staat er op de kaart? Gerechten + prijzen +
 //                 categorieën + signature-markers. Ook statisch.
-//   3. ACTUEEL  — weer, bezetting, reserveringen komende 7 dagen.
+//   3. ACTUEEL , weer, bezetting, reserveringen komende 7 dagen.
 //                 Wijzigt continu, niet cache-baar.
 //
 // Filly-features mogen één of meerdere blokken oppakken al naar
@@ -36,7 +36,7 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 //     Filly merkt zelf of iets ontbreekt en vraagt ernaar.
 //   - Compact formatteren: elk extra token in input kost geld. We
 //     geven één regel per item, geen lange beschrijvingen.
-//   - Lege velden weglaten — een lege "Doelgroep:" verwart Filly
+//   - Lege velden weglaten, een lege "Doelgroep:" verwart Filly
 //     en kost tokens zonder waarde.
 // ============================================================
 
@@ -52,7 +52,7 @@ export class RestaurantContextService {
   ) {}
 
   // ============================================================
-  // PROFIEL — identiteit + operationele kenmerken van de zaak
+  // PROFIEL, identiteit + operationele kenmerken van de zaak
   // ============================================================
   // Pakt alle profiel-velden op in één query en formatteert ze als
   // bullet-lijst. Lege velden worden overgeslagen zodat Filly geen
@@ -63,7 +63,7 @@ export class RestaurantContextService {
       .from('restaurants')
       .select(
         // Alle velden uit restaurants + onboarding-extensies (0003).
-        // Bewust géén logo_url / brand_colors — irrelevant voor tekst-LLM.
+        // Bewust géén logo_url / brand_colors, irrelevant voor tekst-LLM.
         `
         name, type, cuisine_style, description, tagline,
         target_audience, atmosphere, unique_selling_points,
@@ -86,7 +86,7 @@ export class RestaurantContextService {
 
     const lines: string[] = [];
     const name = (r.name as string) ?? 'de onderneming';
-    lines.push(`PROFIEL — ${name}`);
+    lines.push(`PROFIEL, ${name}`);
 
     const type = r.type as string | null;
     const cuisine = (r.cuisine_style as string[] | null)?.filter(Boolean);
@@ -115,7 +115,7 @@ export class RestaurantContextService {
 
     // Locatie kort: stad volstaat voor de meeste prompts. Volledig
     // adres alleen tonen als 't ergens voor nodig is (bv. afstands-
-    // berekening) — voorlopig laten we 'm weg om tokens te besparen.
+    // berekening), voorlopig laten we 'm weg om tokens te besparen.
     if (r.city) {
       const country = (r.country as string) ?? 'NL';
       const loc = country === 'NL' ? r.city : `${r.city} (${country})`;
@@ -205,14 +205,14 @@ export class RestaurantContextService {
   }
 
   // ============================================================
-  // MENU — gerechten gegroepeerd per categorie
+  // MENU, gerechten gegroepeerd per categorie
   // ============================================================
   // Filly weet hierdoor concreet wat er op de kaart staat zodat
   // suggesties refereren aan échte gerechten ("kom de tagliata
   // proeven") in plaats van algemeen ("een lekker hoofdgerecht").
   //
   // Compact format: per item alleen naam + prijs + signature-marker.
-  // Description weglaten — die zijn vaak lang en kosten te veel
+  // Description weglaten, die zijn vaak lang en kosten te veel
   // tokens voor de marginale waarde. Filly mag de naam interpreteren.
   //
   // Cap op 60 items om bij grote menu's de prompt niet te laten
@@ -229,14 +229,14 @@ export class RestaurantContextService {
       created_at: string | null;
     };
 
-    // Twee aparte queries — één voor food, één voor drank — met elk
+    // Twee aparte queries, één voor food, één voor drank, met elk
     // een eigen quotum. Zonder deze splitsing kon een grote drankkaart
     // (50+ items) de selectie van food-items wegduwen, waardoor net-
     // toegevoegde gerechten buiten Filly's prompt vielen.
     //
     // Sort: is_signature desc, daarna created_at desc. Het tweede
     // criterium garandeert dat een vers toegevoegd gerecht boven oude
-    // niet-signature items uitkomt — vroeger sorteerden we op
+    // niet-signature items uitkomt, vroeger sorteerden we op
     // display_order, maar dat is in de praktijk overal 0 (default,
     // niemand zet 't handmatig) waardoor de fallback-volgorde
     // willekeurig was en nieuwe items achteraan landden.
@@ -245,7 +245,7 @@ export class RestaurantContextService {
     // 30-60 food, fine-dining 20-30 food + 50-100 drank, hotel-restaurant
     // tot 100+ food. Sonnet 4.6 heeft 200k context en met prompt-caching
     // (cache_control: ephemeral) kost de menu-block ~10% van de normale
-    // input-prijs bij hits — token-impact is marginaal.
+    // input-prijs bij hits, token-impact is marginaal.
     //
     // Bij overflow (meer items dan de cap) telt buildMenuBlock dat ook
     // op en zet 't in de prompt-output, zodat Filly transparant is dat
@@ -301,7 +301,7 @@ export class RestaurantContextService {
 
     if (allItems.length === 0) return '';
 
-    // Echte totalen op de zaak — voor de overflow-melding aan Filly.
+    // Echte totalen op de zaak, voor de overflow-melding aan Filly.
     // count is null als de query geen count meegaf; dan vallen we
     // terug op het aantal gefetchte items (geen overflow zichtbaar
     // maar ook geen foute claim).
@@ -317,7 +317,7 @@ export class RestaurantContextService {
     if (foodItems.length > 0) {
       const foodHeader =
         foodTotal > foodItems.length
-          ? `MENU (selectie van ${foodTotal} gerechten — ${foodItems.length} hier zichtbaar; signature + meest recente eerst)`
+          ? `MENU (selectie van ${foodTotal} gerechten, ${foodItems.length} hier zichtbaar; signature + meest recente eerst)`
           : `MENU (${foodItems.length} gerechten)`;
       lines.push(foodHeader);
       const foodGroups = new Map<string, Item[]>();
@@ -331,7 +331,7 @@ export class RestaurantContextService {
         for (const it of list) {
           const price = formatPrice(it.price_cents);
           const sig = it.is_signature ? ' [signature]' : '';
-          lines.push(`  - ${it.name}${price ? ` — ${price}` : ''}${sig}`);
+          lines.push(`  - ${it.name}${price ? `, ${price}` : ''}${sig}`);
         }
       }
     }
@@ -341,7 +341,7 @@ export class RestaurantContextService {
       lines.push('');
       const drinkHeader =
         drinkTotal > drinkItems.length
-          ? `DRANKKAART (selectie van ${drinkTotal} drankjes — ${drinkItems.length} hier zichtbaar; signature + meest recente eerst)`
+          ? `DRANKKAART (selectie van ${drinkTotal} drankjes, ${drinkItems.length} hier zichtbaar; signature + meest recente eerst)`
           : `DRANKKAART (${drinkItems.length} drankjes)`;
       lines.push(drinkHeader);
       const drinkGroups = new Map<string, Item[]>();
@@ -350,7 +350,7 @@ export class RestaurantContextService {
         if (!drinkGroups.has(sub)) drinkGroups.set(sub, []);
         drinkGroups.get(sub)!.push(it);
       }
-      // Vaste volgorde voor leesbaarheid in Filly's prompt — wijnen
+      // Vaste volgorde voor leesbaarheid in Filly's prompt, wijnen
       // eerst, daarna bier/cocktails/sterk, dan koffie/thee/fris.
       const drinkOrder = [
         'wijn-rood',
@@ -370,7 +370,7 @@ export class RestaurantContextService {
         lines.push(`${sub}:`);
         for (const it of list) {
           const price = formatPrice(it.price_cents);
-          lines.push(`  - ${it.name}${price ? ` — ${price}` : ''}`);
+          lines.push(`  - ${it.name}${price ? `, ${price}` : ''}`);
         }
       }
     }
@@ -378,7 +378,7 @@ export class RestaurantContextService {
     // Dieet-overzicht: aantallen per tag. Filly kan zo bij vragen
     // "iets veganistisch erbij?" direct het juiste antwoord geven
     // zonder de hele lijst te moeten doorgrijzen. Alleen op food-
-    // items — drank-tags zijn er nog niet en zouden onzinnige
+    // items, drank-tags zijn er nog niet en zouden onzinnige
     // counts geven.
     const tagCounts = new Map<string, number>();
     for (const it of foodItems) {
@@ -397,7 +397,7 @@ export class RestaurantContextService {
 
     // Recent-toegevoegd-sectie: items < 30 dagen oud, gesorteerd op
     // datum (nieuwste eerst). Geeft Filly een expliciet anker voor
-    // "wat is jullie nieuwste gerecht?"-vragen — zonder dit signaal
+    // "wat is jullie nieuwste gerecht?"-vragen, zonder dit signaal
     // ziet hij alleen een ongeordende lijst en moet hij gokken.
     // Cap op 8 items zodat de prompt compact blijft bij een grote
     // bulk-import.
@@ -429,12 +429,12 @@ export class RestaurantContextService {
   }
 
   // ============================================================
-  // ACTUEEL — weer / bezetting / reserveringen komende 7 dagen
+  // ACTUEEL, weer / bezetting / reserveringen komende 7 dagen
   // ============================================================
   // Dynamisch deel: wijzigt continu en wordt elke prompt vers
   // opgehaald. Niet cachen.
   // ============================================================
-  // FOTO-BIBLIOTHEEK — beschikbare foto's voor Filly's suggesties
+  // FOTO-BIBLIOTHEEK, beschikbare foto's voor Filly's suggesties
   // ============================================================
   // Foto's met description + tags worden bij upload gegenereerd door
   // MediaTaggerService (Haiku Vision). Filly krijgt ze in de context
@@ -442,7 +442,7 @@ export class RestaurantContextService {
   // specifieke foto ("voor deze pasta-campagne past foto 3").
   //
   // Cap: 20 foto's (komt overeen met service-cap). Indices [1]-[20]
-  // ipv UUIDs in de prompt om tokens te besparen — wij mappen het
+  // ipv UUIDs in de prompt om tokens te besparen, wij mappen het
   // server-side terug bij accept-flow indien nodig.
   //
   // Bij 0 foto's: lege string. Filly krijgt dan geen FOTO'S-sectie
@@ -471,7 +471,7 @@ export class RestaurantContextService {
       const num = idx + 1;
       const desc = (it.description ?? '').trim() || '(geen beschrijving)';
       const tags = (it.tags ?? []).join(', ');
-      return `[${num}] ${desc}${tags ? ` — tags: ${tags}` : ''}`;
+      return `[${num}] ${desc}${tags ? `, tags: ${tags}` : ''}`;
     });
 
     return [
@@ -490,7 +490,7 @@ export class RestaurantContextService {
 
     // Parallel ophalen. Elke bron heeft zijn eigen catch zodat één
     // falende service (bv. weer zonder coords) niet het hele block
-    // laat sneuvelen — Filly ziet dan simpelweg minder data.
+    // laat sneuvelen, Filly ziet dan simpelweg minder data.
     const [occ, weather, reservations] = await Promise.all<
       [Promise<OccupancyDay[]>, Promise<ForecastDay[]>, Promise<Reservation[]>]
     >([
@@ -556,7 +556,7 @@ export class RestaurantContextService {
   }
 
   // ============================================================
-  // FULL — alle drie blokken samen, voor Filly-features die
+  // FULL, alle drie blokken samen, voor Filly-features die
   // volledige context nodig hebben (chat, suggesties, refine).
   // ============================================================
   // Volgorde matters: profiel + menu (statisch) komen eerst zodat
@@ -610,7 +610,7 @@ function formatLongDate(d: Date): string {
   });
 }
 
-// "29 apr" — korte datum zonder jaartal voor in-line gebruik in lijst-
+// "29 apr", korte datum zonder jaartal voor in-line gebruik in lijst-
 // context waar het jaar uit de context blijkt. Robuust tegen ongeldig
 // input: bij parse-fout valt 't terug op de ruwe string.
 function formatShortDutchDate(iso: string): string {

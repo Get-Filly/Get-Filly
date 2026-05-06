@@ -13,7 +13,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 // CampaignsService wordt ook gebruikt door SuggestionsService (voor de
 // approve-flow: suggestie → campagne aanmaken + FK koppelen) en door
 // ChatService (chat-proposals landen eerst als suggestie, niet direct
-// als campagne — maar we houden de export generiek voor toekomstige
+// als campagne, maar we houden de export generiek voor toekomstige
 // cross-module-gebruik).
 //
 // AiModule is nodig voor de refine-generator: 3 alternatieven uit

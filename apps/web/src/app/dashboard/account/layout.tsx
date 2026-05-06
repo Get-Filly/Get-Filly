@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useRestaurant } from "../../../lib/restaurant-context";
 
 /**
- * AccountLayout — sub-navigatie voor Account-instellingen.
+ * AccountLayout, sub-navigatie voor Account-instellingen.
  *
  * Boven de pagina-inhoud staat een smalle tab-balk. De Team-tab
  * verschijnt alleen als de ingelogde user de 'team'-module mag zien

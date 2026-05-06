@@ -35,7 +35,7 @@ import { FillyChatErrorBanner } from "./filly-chat-error-banner";
 import { FillyChatHistoryMenu } from "./filly-chat-history-menu";
 
 // ============================================================
-// FillyChat — orchestrator-component voor de Filly-chat-card op het
+// FillyChat, orchestrator-component voor de Filly-chat-card op het
 // dashboard.
 //
 // Verantwoordelijkheden in dit bestand:
@@ -93,7 +93,7 @@ export function FillyChat() {
   >({});
   // Welke proposal staat open in de detail-modal? Slaan de hele
   // suggestion op zodat de modal direct kan renderen zonder eerst
-  // een fetch te doen — proposal-data uit de chat is al voldoende
+  // een fetch te doen, proposal-data uit de chat is al voldoende
   // voor de eerste paint.
   const [detailSuggestion, setDetailSuggestion] =
     useState<AiSuggestion | null>(null);
@@ -117,7 +117,7 @@ export function FillyChat() {
       // kunnen gebeuren op /dashboard, maar defensief vangen).
       setLoading(false);
       setError(
-        "Nog geen restaurant actief — chat is pas beschikbaar na onboarding.",
+        "Nog geen restaurant actief, chat is pas beschikbaar na onboarding.",
       );
       return;
     }
@@ -125,9 +125,9 @@ export function FillyChat() {
     let cancelled = false;
     // Parallel 4 dingen ophalen:
     //   1. chat-historie (incl. message_card + messageCount)
-    //   2. approved suggesties — voor 'created'-state op proposal-cards
-    //   3. rejected suggesties — voor 'dismissed'-state
-    //   4. lijst conversaties — voor de history-dropdown in de header
+    //   2. approved suggesties, voor 'created'-state op proposal-cards
+    //   3. rejected suggesties, voor 'dismissed'-state
+    //   4. lijst conversaties, voor de history-dropdown in de header
     Promise.all([
       fetchActiveChat(),
       fetchSuggestions("approved").catch(() => []),
@@ -160,7 +160,7 @@ export function FillyChat() {
         for (const msg of data.messages) {
           const card = msg.message_card;
           if (!card) continue;
-          // channel_choice heeft geen ai_suggestion erachter — skip.
+          // channel_choice heeft geen ai_suggestion erachter, skip.
           if (card.kind === "channel_choice") continue;
           const suggId = card.suggestion_id;
           if (!suggId) continue;
@@ -176,7 +176,7 @@ export function FillyChat() {
             }
           } else if (card.kind === "campaign_bundle") {
             if (approvedMap.has(suggId)) {
-              // Bundle is al geaccepteerd — toon "approved_existing"-state
+              // Bundle is al geaccepteerd, toon "approved_existing"-state
               // met anker naar de mail-campagne. De andere 2 sub-campagnes
               // zijn via campagnes-pagina (group_id) bereikbaar.
               initialBundleStatus[msg.id] = {
@@ -246,7 +246,7 @@ export function FillyChat() {
         m.filter((x) => x.id !== tempId).concat([userMessage, fillyMessage]),
       );
       // Counter +2 (user + filly). Bij cap-bereikt togglet capReached
-      // automatisch via de derived constant — geen aparte setter nodig.
+      // automatisch via de derived constant, geen aparte setter nodig.
       setMessageCount((c) => c + 2);
       // Conversations-lijst refresh (titel kan net gegenereerd zijn,
       // counts kloppen). Fire-and-forget; faalt het, dan toont de
@@ -347,7 +347,7 @@ export function FillyChat() {
 
   // Switch naar een andere conversatie via de history-dropdown.
   // Vervangt messages/count, refresh proposal-statussen niet (die
-  // worden uit message_card gelezen — bij switch krijgen we al
+  // worden uit message_card gelezen, bij switch krijgen we al
   // de juiste data terug).
   const switchConversation = async (id: string) => {
     if (id === conversationId) return;
@@ -400,7 +400,7 @@ export function FillyChat() {
     const wasActive = id === conversationId;
     try {
       await deleteChatConversation(id);
-      // Lijst opnieuw ophalen — minst foutgevoelige aanpak.
+      // Lijst opnieuw ophalen, minst foutgevoelige aanpak.
       const convs = await fetchChatConversations().catch(() => []);
       setConversations(convs);
       // Bij delete van de actieve: nieuw gesprek starten zodat de
@@ -520,7 +520,7 @@ export function FillyChat() {
           <div className="card-st">
             Marketing-assistent
             {/* Bericht-X-van-20-indicator. Alleen bij ≥10 berichten
-                tonen — anders is 't visuele ruis. Geel/oranje vanaf
+                tonen, anders is 't visuele ruis. Geel/oranje vanaf
                 15 zodat de eigenaar ziet dat 'ie tegen de cap aanloopt. */}
             {messageCount >= 10 && (
               <span
@@ -589,7 +589,7 @@ export function FillyChat() {
       {capReached ? (
         // Cap-bereikt: input verbergen, vervangen door duidelijke CTA.
         // Filly heeft de chat al samengevat in restaurant_chat_memory
-        // (background-call bij cap-bereikt) — vandaar de "onthoudt
+        // (background-call bij cap-bereikt), vandaar de "onthoudt
         // wat 'ie heeft geleerd"-tekst.
         <div
           style={{

@@ -10,7 +10,7 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// RestaurantMediaSection — foto-bibliotheek op account-pagina
+// RestaurantMediaSection, foto-bibliotheek op account-pagina
 // ============================================================
 //
 // Toont een grid van geüploade foto's met thumbnail, beschrijving en
@@ -134,7 +134,7 @@ export function RestaurantMediaSection() {
             disabled={isFull || uploading}
             title={
               isFull
-                ? "Je bibliotheek zit vol — verwijder eerst een foto"
+                ? "Je bibliotheek zit vol, verwijder eerst een foto"
                 : "Upload een nieuwe foto"
             }
             loading={uploading}
@@ -173,7 +173,7 @@ export function RestaurantMediaSection() {
             lineHeight: 1.5,
           }}
         >
-          Nog geen foto's. Upload je eerste foto — Filly genereert er
+          Nog geen foto's. Upload je eerste foto, Filly genereert er
           automatisch een beschrijving + tags bij zodat 'ie ze kan
           gebruiken in campagnes.
         </div>
@@ -200,7 +200,7 @@ export function RestaurantMediaSection() {
 }
 
 // ============================================================
-// MediaCard — een tegel in de grid
+// MediaCard, een tegel in de grid
 // ============================================================
 
 function MediaCard({

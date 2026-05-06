@@ -11,7 +11,7 @@ export type Kpis = {
   pending_suggestions: number;
   // Filly-attributie deze maand. Gebaseerd op
   // reservations.via_campaign_id (sinds migratie 0022). Geeft 0 terug
-  // als nog geen enkele reservering aan een campagne is gekoppeld —
+  // als nog geen enkele reservering aan een campagne is gekoppeld,
   // niet null, zodat de UI een "0 via Filly" kan tonen.
   month_filly_reservations: number;
   month_filly_guests: number;
@@ -25,7 +25,7 @@ export type Kpis = {
   month_filly_revenue_cents: number;
 };
 
-// Aggregaat per campagne — voor de rapportages-pagina ROI-sectie.
+// Aggregaat per campagne, voor de rapportages-pagina ROI-sectie.
 export type CampaignAttribution = {
   campaign_id: string;
   campaign_name: string;
@@ -227,7 +227,7 @@ export class KpiService {
     const map = new Map<string, CampaignAttribution>();
     for (const row of data ?? []) {
       // Supabase returnt embedded relations als array of object;
-      // bij `to-one` is het een object — we narrowen het naar
+      // bij `to-one` is het een object, we narrowen het naar
       // het eerste element als 't toevallig array is.
       const camp = Array.isArray(row.campaign) ? row.campaign[0] : row.campaign;
       if (!camp) continue;
@@ -319,7 +319,7 @@ export class KpiService {
 }
 
 // ============================================================
-// computeWeekdayAvgPct — gemiddeld bezetting-% op werkdagen (ma-vr)
+// computeWeekdayAvgPct, gemiddeld bezetting-% op werkdagen (ma-vr)
 // ============================================================
 //
 // Drie-staps cascade:

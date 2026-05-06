@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 // =============================================================================
-// HOMEPAGE — 1-op-1 conversie van het Claude Design-prototype.
+// HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
 // Bron: Desktop/Website Get-Filly/app.jsx → HomePage + MiniDashboard.
 //
 // Vertaalslag JSX → Next.js TSX:
@@ -10,7 +10,7 @@ import Link from "next/link";
 //   - "images/..." paths          → "/images/..." (leading slash voor /public)
 //   - className-attribuut blijft identiek
 //   - inline style={{...}} blijft 1-op-1 overgenomen (ook als ze redundant
-//     lijken — design is leidend, geen "verbeteringen")
+//     lijken, design is leidend, geen "verbeteringen")
 // =============================================================================
 
 const TESTIMONIALS = [
@@ -19,13 +19,13 @@ const TESTIMONIALS = [
   { quote: "De seizoenscampagnes zijn briljant. Filly stelde een Paasbrunch voor, maakte de mail, en we zaten binnen twee dagen vol.", name: "Lisa van den Berg", role: "Manager, Brasserie Lux" },
   { quote: "We hebben 20% meer last-minute boekingen dankzij de dag-acties. Filly spot de rustige momenten voordat ik ze zelf door heb.", name: "Thomas Jansen", role: "Directeur, Boutique Hotel De Linde" },
   { quote: "Mijn agenda zat vol met gaten op donderdag. Binnen een maand waren die weg, omdat Filly gerichte kortingen aan stamklanten stuurt.", name: "Nadia El Amrani", role: "Eigenaar, Wellness Studio Orchid" },
-  { quote: "Ik hoef geen posts meer zelf te maken. Filly matcht campagnes op onze bezettingsdata en plant ze vooruit — scheelt me uren per week.", name: "Jeroen Bakker", role: "Operations, Cafe Central" },
+  { quote: "Ik hoef geen posts meer zelf te maken. Filly matcht campagnes op onze bezettingsdata en plant ze vooruit, scheelt me uren per week.", name: "Jeroen Bakker", role: "Operations, Cafe Central" },
   { quote: "Voor onze zalenverhuur zijn de lange-termijn campagnes goud waard. Filly bouwt systematisch aan onze terugkerende klanten.", name: "Annemarie Post", role: "Manager, Eventlocatie De Schuur" },
   { quote: "Wat ik waardeer: Filly stuurt geen spam. Elke mail is afgestemd op de klant én onze bezetting. Dat voelt persoonlijk.", name: "Kevin de Groot", role: "Eigenaar, Restaurant Zeezicht" },
 ];
 
 // =============================================================================
-// MiniDashboard — visuele namaak van het echte Filly-dashboard,
+// MiniDashboard, visuele namaak van het echte Filly-dashboard,
 // gerenderd binnen het MacBook-scherm in de hero.
 // =============================================================================
 function MiniDashboard() {
@@ -199,7 +199,7 @@ export default function HomePage() {
             Filly analyseert continu je bezetting en social-media-data en handelt op drie strategische termijnen: van een gerichte actie voor vandaag tot structurele groei over het hele jaar.
           </p>
           <div className="features-stack">
-            {/* Rij 1 — design heeft hier inline width:1100/textAlign:left/fontWeight:100. */}
+            {/* Rij 1, design heeft hier inline width:1100/textAlign:left/fontWeight:100. */}
             <div className="feature-row" style={{ width: "1100px", textAlign: "left", fontWeight: "100" }}>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Vandaag</p>
@@ -218,7 +218,7 @@ export default function HomePage() {
                   <div className="fmock-chat-thread">
                     <div className="fmock-bubble fmock-bubble-user">
                       <div className="fmock-bubble-eyebrow">JIJ</div>
-                      <div>Donderdag staat op 38% — wat zou je voorstellen?</div>
+                      <div>Donderdag staat op 38%, wat zou je voorstellen?</div>
                     </div>
 
                     <div className="fmock-bubble fmock-bubble-ai">
@@ -227,7 +227,7 @@ export default function HomePage() {
                         FILLY AI
                       </div>
                       <div className="fmock-bubble-text">
-                        Op basis van je vaste klanten stel ik een 3-gangen lunchactie voor. Ik heb drie versies uitgewerkt — kies je favoriet.
+                        Op basis van je vaste klanten stel ik een 3-gangen lunchactie voor. Ik heb drie versies uitgewerkt, kies je favoriet.
                       </div>
                       <div className="fmock-proposal">
                         <div className="fmock-proposal-head">
@@ -236,7 +236,7 @@ export default function HomePage() {
                         </div>
                         <div className="fmock-proposal-title">Donderdag-lunch · 3 gangen €24,50</div>
                         <div className="fmock-proposal-sub">Onderwerp: Een rustige donderdag? Kom lunchen voor €24,50.</div>
-                        <div className="fmock-proposal-note">Filly bedacht 3 versies — kies je favoriet via &ldquo;Bekijk versies&rdquo;.</div>
+                        <div className="fmock-proposal-note">Filly bedacht 3 versies, kies je favoriet via &ldquo;Bekijk versies&rdquo;.</div>
                         <div className="fmock-proposal-action">Concept aangemaakt. <span className="fmock-proposal-link">Bekijken →</span></div>
                       </div>
                     </div>
@@ -308,7 +308,7 @@ export default function HomePage() {
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Seizoenen</p>
                 <h3 className="feature-row-title">Bouw aan structurele groei</h3>
-                <p className="feature-row-desc">Terugkerende campagnes, loyaliteitsprogramma&rsquo;s en jaarlijkse patronen. Filly werkt op de achtergrond aan je lange-termijn klantbasis — elk seizoen voller dan het vorige.</p>
+                <p className="feature-row-desc">Terugkerende campagnes, loyaliteitsprogramma&rsquo;s en jaarlijkse patronen. Filly werkt op de achtergrond aan je lange-termijn klantbasis, elk seizoen voller dan het vorige.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="fmock-email">
@@ -317,7 +317,7 @@ export default function HomePage() {
                       <div className="fmock-email-from">Bistro Get-Filly</div>
                       <div className="fmock-email-time" style={{ color: "rgb(82, 82, 91)" }}>vandaag · 10:14</div>
                     </div>
-                    <div className="fmock-email-subject">We hebben je al een tijdje niet gezien — kom weer eens langs</div>
+                    <div className="fmock-email-subject">We hebben je al een tijdje niet gezien, kom weer eens langs</div>
                     <div className="fmock-email-to" style={{ color: "rgb(82, 82, 91)" }}>aan: marieke@voorbeeld.nl</div>
                   </div>
                   <div className="fmock-email-body">
@@ -348,12 +348,12 @@ export default function HomePage() {
             <div className="step">
               <div className="step-number">2</div>
               <h3 className="step-title">Bekijk je bezetting</h3>
-              <p className="step-desc">Zie per dag en week hoe vol je zit — historisch en actueel. De AI signaleert waar je omzet laat liggen.</p>
+              <p className="step-desc">Zie per dag en week hoe vol je zit, historisch en actueel. De AI signaleert waar je omzet laat liggen.</p>
             </div>
             <div className="step">
               <div className="step-number">3</div>
               <h3 className="step-title">Laat Filly het oplossen</h3>
-              <p className="step-desc">De AI stelt campagnes voor, maakt ze, en verstuurt ze. Jij keurt goed — Filly doet de rest.</p>
+              <p className="step-desc">De AI stelt campagnes voor, maakt ze, en verstuurt ze. Jij keurt goed, Filly doet de rest.</p>
             </div>
           </div>
         </div>

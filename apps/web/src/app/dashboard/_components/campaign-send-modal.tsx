@@ -8,7 +8,7 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// CampaignSendModal — verstuur een mail-campagne via Resend
+// CampaignSendModal, verstuur een mail-campagne via Resend
 // ============================================================
 //
 // Twee modes:
@@ -46,7 +46,7 @@ export function CampaignSendModal({
   const [error, setError] = useState<string | null>(null);
 
   // Mail-campagne is een vereiste voor deze flow. Niet-mail
-  // (social/whatsapp) hoort niet eens deze modal te zien — defense
+  // (social/whatsapp) hoort niet eens deze modal te zien, defense
   // tegen verkeerd gebruik vanuit de pagina.
   if (campaignType !== "mail") {
     return (
@@ -81,7 +81,7 @@ export function CampaignSendModal({
   };
 
   // Voor "echt verzenden" eisen we dat de eigenaar de campagne-naam
-  // overtypt — onomkeerbare actie, voorkomt accidentele klik op
+  // overtypt, onomkeerbare actie, voorkomt accidentele klik op
   // grote actie-knop.
   const allReadyToSend =
     mode === "test"
@@ -138,7 +138,7 @@ export function CampaignSendModal({
             color: "var(--tl, #6B6F71)",
           }}
         >
-          Resend bevestigt aankomst via webhooks (delivered/bounced) — die
+          Resend bevestigt aankomst via webhooks (delivered/bounced), die
           status verschijnt zo bij de campagne-stats.
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>

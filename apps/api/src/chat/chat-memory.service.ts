@@ -7,19 +7,19 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 
 // ============================================================
-// ChatMemoryService — Filly's leerschat per restaurant
+// ChatMemoryService, Filly's leerschat per restaurant
 // ============================================================
 //
 // Probleem dat dit oplost:
-//   Een chat heeft een cap van 20 berichten (kostenbescherming —
+//   Een chat heeft een cap van 20 berichten (kostenbescherming,
 //   anders worden de input-tokens per turn duurder bij elke nieuwe
 //   user-msg). Maar als de eigenaar in chat #1 zegt "ik vind die
 //   formele toon niks, gebruik 'jij' niet 'u'", moet Filly dat in
-//   chat #2 + #3 + #4 nog wéten — anders herhaalt 'ie de fout
+//   chat #2 + #3 + #4 nog wéten, anders herhaalt 'ie de fout
 //   eindeloos.
 //
 // Oplossing:
-//   Bij cap-bereikt vat Haiku 4.5 de afgesloten chat samen — wat heeft
+//   Bij cap-bereikt vat Haiku 4.5 de afgesloten chat samen, wat heeft
 //   de eigenaar geprefereerd / afgewezen / geleerd. Die samenvatting
 //   gaat in restaurant_chat_memory en wordt in de system-prompt van
 //   álle volgende chats meegegeven (laatste 5 memories, cacheable).
@@ -37,7 +37,7 @@ import { AiService } from '../ai/ai.service';
 //   dezelfde conversatie via de unique source_conversation_id-check).
 // ============================================================
 
-// Tool-use schema voor Haiku. Forceer Claude tot exact dit formaat —
+// Tool-use schema voor Haiku. Forceer Claude tot exact dit formaat,
 // geen JSON-parse-roulette zoals voor 2026-04-30 de norm was.
 const SUMMARY_SCHEMA = {
   type: 'object',
@@ -80,11 +80,11 @@ export class ChatMemoryService {
 
   // Haalt de laatste N memories op voor een restaurant. Wordt door
   // ChatService.buildSystemPrompt gebruikt om de chat-prompt te
-  // verrijken met geleerde voorkeuren. Limit-default 5 — meer geeft
+  // verrijken met geleerde voorkeuren. Limit-default 5, meer geeft
   // prompt-bloat zonder veel kwaliteit-winst (Filly wegen recente
   // signalen vanzelf zwaarder als ze in dezelfde context staan).
   //
-  // Geeft een lege array bij geen memories — caller moet daar tegen
+  // Geeft een lege array bij geen memories, caller moet daar tegen
   // kunnen (geen "Eerder geleerd"-blok in de prompt is OK).
   async getRecentMemories(
     restaurantId: string,
@@ -110,7 +110,7 @@ export class ChatMemoryService {
   // system-prompt. Format:
   //   === EERDER GELEERD ===
   //   - 2026-04-28: Eigenaar wijst formele toon af, prefereert 'jij'
-  //   - 2026-04-25: 'Gezellig' wordt te vaak gebruikt — vermijden
+  //   - 2026-04-25: 'Gezellig' wordt te vaak gebruikt, vermijden
   //
   // Geeft lege string bij geen memories zodat caller 'm zonder
   // conditionals in de prompt kan plakken.
@@ -127,7 +127,7 @@ export class ChatMemoryService {
     return [
       '=== EERDER GELEERD (uit afgesloten chats) ===',
       'De eigenaar heeft in eerdere chats het volgende uitgesproken.',
-      'Houd hier rekening mee — herhaal niet wat hij al heeft afgewezen.',
+      'Houd hier rekening mee, herhaal niet wat hij al heeft afgewezen.',
       '',
       ...lines,
     ].join('\n');
@@ -161,7 +161,7 @@ export class ChatMemoryService {
         return;
       }
       if (existing) {
-        // Memory voor deze chat bestaat al — niets te doen.
+        // Memory voor deze chat bestaat al, niets te doen.
         return;
       }
 
@@ -193,7 +193,7 @@ export class ChatMemoryService {
         .join('\n');
 
       // 3) Haiku-call met tool-use. has_learning-flag voorkomt dat we
-      // alle chats samenvatten — alleen die met écht voorkeur-signaal.
+      // alle chats samenvatten, alleen die met écht voorkeur-signaal.
       const result = await this.ai.generateStructured<SummaryResult>({
         system:
           'Je analyseert een afgesloten chat-gesprek tussen een restauran' +
@@ -203,7 +203,7 @@ export class ChatMemoryService {
           'vragen ("hoe was de bezetting gisteren?") tellen NIET als ' +
           'leerpunt. Geef has_learning=false als er niets duurzaams is.',
         prompt: `Hier is het volledige gesprek:\n\n${transcript}\n\nVat samen wat duurzaam relevant is.`,
-        // Haiku 4.5 — snel + goedkoop, ruim voldoende voor samenvatten.
+        // Haiku 4.5, snel + goedkoop, ruim voldoende voor samenvatten.
         // ~€0.001 per call vs ~€0.02 met Sonnet.
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 400,
@@ -218,7 +218,7 @@ export class ChatMemoryService {
         inputSchema: SUMMARY_SCHEMA,
       });
 
-      // 4) Skip als geen leerpunt — voorkomt prompt-bloat met "geen
+      // 4) Skip als geen leerpunt, voorkomt prompt-bloat met "geen
       // voorkeuren uitgesproken"-rijen in toekomstige chats.
       if (!result.has_learning || !result.summary?.trim()) {
         this.logger.log(

@@ -1,5 +1,5 @@
 /* ============================================================
- * tokens.css — design-tokens single source-of-truth voor Get Filly
+ * tokens.css, design-tokens single source-of-truth voor Get Filly
  * ============================================================
  *
  * Bevat ALLE kleuren, spacing, radii, shadows, typography als CSS-
@@ -29,7 +29,7 @@
 
 :root {
   /* ----------------------------------------------------------
-   * KLEUREN — BRAND
+   * KLEUREN, BRAND
    * ----------------------------------------------------------
    * British Racing Green (1F4A2D) is de primaire actie-kleur.
    * Deep is hover/active. Soft is voor backgrounds (banners,
@@ -41,12 +41,12 @@
 
   /* Highlight: warmere oranje voor brand-accenten (illustraties,
    * onboarding-stappen, attentie-vragende tekst). NIET dezelfde als
-   * status-warning — die is vibranter. */
+   * status-warning, die is vibranter. */
   --color-highlight: #D97F3C;
   --color-highlight-soft: #FDF0E5;
 
   /* ----------------------------------------------------------
-   * KLEUREN — SURFACE & STRUCTUUR
+   * KLEUREN, SURFACE & STRUCTUUR
    * ----------------------------------------------------------
    * Page-background = cream. Cards/elevated content = surface.
    * White voor inputs, modals, en plekken waar maximaal contrast
@@ -61,7 +61,7 @@
   --color-border-soft: #EFE8D8;
 
   /* ----------------------------------------------------------
-   * KLEUREN — TEKST
+   * KLEUREN, TEKST
    * ----------------------------------------------------------
    * Vier-staps hierarchie:
    *   text       primaire tekst (titels, body)
@@ -75,7 +75,7 @@
   --color-text-disabled: #A1A1AA;
 
   /* ----------------------------------------------------------
-   * KLEUREN — STATUS
+   * KLEUREN, STATUS
    * ----------------------------------------------------------
    * Elke status heeft een vol + soft pair. Vol voor iconen/badges
    * met witte tekst; soft voor subtiele achtergronden (banner-bg)
@@ -91,7 +91,7 @@
   --color-info-soft: #EFF6FF;
 
   /* ----------------------------------------------------------
-   * SPACING — 8px-grid met 4px tussenstap voor fine-tuning
+   * SPACING, 8px-grid met 4px tussenstap voor fine-tuning
    * ----------------------------------------------------------
    * Gebruik:   padding: var(--space-3) var(--space-4);
    * Vermijd:   padding: 12px 16px;  ← maakt brand-spacing-tweaks pijnlijk
@@ -121,7 +121,7 @@
   /* ----------------------------------------------------------
    * SHADOWS
    * ----------------------------------------------------------
-   * Subtle by default — papier-warm look hoort niet zwaar te oogen.
+   * Subtle by default, papier-warm look hoort niet zwaar te oogen.
    * sm voor klein-verheven elementen (toasts, dropdowns).
    * md voor cards.
    * lg voor modals + popovers.
@@ -163,7 +163,7 @@
    * ============================================================
    * Deze namen staan nog op honderden plekken in de codebase. Ze
    * blijven werken via deze aliases zodat we nu géén massale rewrite
-   * nodig hebben — nieuwe code gebruikt de --color-/--space-/etc
+   * nodig hebben, nieuwe code gebruikt de --color-/--space-/etc
    * varianten hierboven.
    *
    * Bij refactor van een file: vervang waar je toch al bezig bent.
@@ -194,7 +194,7 @@
   --accent-light: var(--color-brand-soft);
   --hover: var(--color-brand-soft);
 
-  /* Copper-aliases — warmer tweede-accent (avatar-gradients,
+  /* Copper-aliases, warmer tweede-accent (avatar-gradients,
    * Filly-attributie op landingspage). Mappen op --color-highlight
    * zodat één palet de hele site stuurt. */
   --copper: var(--color-highlight);
@@ -203,11 +203,11 @@
   /* --highlight expliciet aliasen voor leesbaarheid in landings-CSS. */
   --highlight: var(--color-highlight);
 
-  /* Section-bg variant — voor tussen-secties die net iets warmer
+  /* Section-bg variant, voor tussen-secties die net iets warmer
    * mogen zijn dan de pure --bg. Op dit moment = cream. */
   --section: var(--color-cream);
   /* Erfenis vóór de rebrand: --blue/--bl heten zo maar zijn groen.
-   * Niet hernoemen om geen visuele bugs te introduceren — laat de
+   * Niet hernoemen om geen visuele bugs te introduceren, laat de
    * naam staan als alias en mark als deprecated. */
   --blue: var(--color-brand);
   --bl: var(--color-brand-soft);

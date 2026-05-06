@@ -4,7 +4,7 @@
  * ============================================================
  *
  * Wat hier staat is een SUBSET van de officiële Places-API-response.
- * We typen alleen wat we daadwerkelijk gebruiken — niet de volledige
+ * We typen alleen wat we daadwerkelijk gebruiken, niet de volledige
  * 100+ velden uit de Google-spec. Bij uitbreiding voeg je toe wat
  * je nieuwe feature nodig heeft.
  *
@@ -14,9 +14,9 @@
  * Field-mask conventie:
  *   Bij elke API-call MOET je een `X-Goog-FieldMask`-header meesturen.
  *   Daarmee zeg je "geef me alleen deze velden". Dat heeft TWEE doelen:
- *     1. Kosten-optimalisatie — Google rekent per veld-categorie
+ *     1. Kosten-optimalisatie, Google rekent per veld-categorie
  *        (Basic, Pro, Enterprise). Smaller mask = goedkoper.
- *     2. Response-grootte — minder velden = sneller, minder bandbreedte.
+ *     2. Response-grootte, minder velden = sneller, minder bandbreedte.
  *   We kiezen overal voor een minimaal-praktische mask.
  * ============================================================
  */
@@ -49,14 +49,14 @@ export const SEARCH_FIELD_MASK = [
 // Het volledige profile-object dat we cachen in
 // `restaurants.google_place_data`. Bij uitbreiding van de hub-features
 // voegen we hier velden toe (bv. `editorialSummary`, `attributes`,
-// `accessibilityOptions` etc.) — let op: elke uitbreiding moet ook
+// `accessibilityOptions` etc.), let op: elke uitbreiding moet ook
 // in DETAILS_FIELD_MASK hieronder.
 export interface PlaceDetails {
   placeId: string;
   displayName: string;
   formattedAddress: string;
   // Postal-address is gestructureerd (straat / huisnr / stad / postcode
-  // / land) — handiger dan formattedAddress voor regio-vergelijking.
+  // / land), handiger dan formattedAddress voor regio-vergelijking.
   postalAddress: {
     streetAddress: string | null;
     locality: string | null;
@@ -77,7 +77,7 @@ export interface PlaceDetails {
   priceLevel: string | null;
   websiteUri: string | null;
   internationalPhoneNumber: string | null;
-  // Openingstijden — Google levert ze als gestructureerde array per
+  // Openingstijden, Google levert ze als gestructureerde array per
   // weekdag. We bewaren de raw `weekdayDescriptions` (al opgemaakte
   // strings in lokale taal) en `periods` (machine-leesbaar).
   regularOpeningHours: {
@@ -92,12 +92,12 @@ export interface PlaceDetails {
     widthPx: number;
     heightPx: number;
   }>;
-  // Bedrijfsstatus — OPERATIONAL / CLOSED_TEMPORARILY / CLOSED_PERMANENTLY.
+  // Bedrijfsstatus, OPERATIONAL / CLOSED_TEMPORARILY / CLOSED_PERMANENTLY.
   // Belangrijk voor de profiel-audit ("je profiel staat als 'tijdelijk
-  // gesloten' — wist je dat?").
+  // gesloten', wist je dat?").
   businessStatus: string | null;
   // Korte editorial summary van Google (maar paar regels). Niet altijd
-  // aanwezig — vooral bij grotere/bekende plekken.
+  // aanwezig, vooral bij grotere/bekende plekken.
   editorialSummary: string | null;
 }
 
@@ -125,7 +125,7 @@ export const DETAILS_FIELD_MASK = [
 // ---------- Nearby-search (concurrent-benchmark) ----------
 
 // Voor de buurt-vergelijking willen we per concurrent: rating, count,
-// foto-volume. Geen openingstijden of beschrijving — we tonen alleen
+// foto-volume. Geen openingstijden of beschrijving, we tonen alleen
 // de hoofdstatistieken in een tabel.
 export interface NearbyPlace {
   placeId: string;
@@ -134,7 +134,7 @@ export interface NearbyPlace {
   rating: number | null;
   userRatingCount: number | null;
   primaryType: string | null;
-  // Distance in meter — niet door Google geleverd, berekenen wij zelf
+  // Distance in meter, niet door Google geleverd, berekenen wij zelf
   // op basis van lat/lng en het centrum-punt van de zoekopdracht.
   distanceMeters: number | null;
   photoCount: number;

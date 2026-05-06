@@ -1,15 +1,15 @@
 // ============================================================
-// Get-Filly bedrijfsgegevens — centrale config
+// Get-Filly bedrijfsgegevens, centrale config
 // ============================================================
 // Deze file bevat de bedrijfsgegevens van Get-Filly als SaaS-
-// aanbieder zelf (NIET die van de restaurants/klanten — die
+// aanbieder zelf (NIET die van de restaurants/klanten, die
 // staan in de `restaurants`-tabel). Wordt gebruikt op de
 // publieke /privacy- en /voorwaarden-pagina's om de
 // `[INVULLEN:...]`-placeholders te vervangen.
 //
 // **Wijzig dit éénmalig zodra de KvK-inschrijving rond is.**
 // Zolang `legalName` + `kvk` leeg zijn, tonen de legal-pagina's
-// automatisch de gele "concept — nog niet juridisch gereviewd"-
+// automatisch de gele "concept, nog niet juridisch gereviewd"-
 // banner én vallen alle nog niet ingevulde plekken terug op een
 // duidelijke placeholder.
 //
@@ -17,7 +17,7 @@
 // ============================================================
 
 export type CompanyInfo = {
-  // Handelsnaam — gebruikt in marketing en titels. Mag al gevuld
+  // Handelsnaam, gebruikt in marketing en titels. Mag al gevuld
   // zonder KvK-inschrijving.
   tradeName: string;
 
@@ -37,7 +37,7 @@ export type CompanyInfo = {
   // voor toekomstig gebruik (footer, facturen, etc.).
   vatNumber: string | null;
 
-  // Vestigingsadres — uitgesplitst zodat we 'm flexibel kunnen
+  // Vestigingsadres, uitgesplitst zodat we 'm flexibel kunnen
   // formatteren (compleet adres OF alleen vestigingsplaats).
   addressStreet: string | null;
   addressPostcode: string | null;
@@ -45,7 +45,7 @@ export type CompanyInfo = {
 
   // Rechtbank die bij geschillen bevoegd is (algemene
   // voorwaarden art. 14). Default-keuze hangt vaak samen met de
-  // vestigingsplaats — laat een jurist hier nog naar kijken.
+  // vestigingsplaats, laat een jurist hier nog naar kijken.
   court: string | null;
 
   // Maximale aansprakelijkheid per kalenderjaar (algemene
@@ -77,7 +77,7 @@ export function isLegalDataComplete(c: CompanyInfo = COMPANY): boolean {
 }
 
 // Formatteert het adres als één leesbare regel. Returnt null
-// als het adres nog niet (volledig) is ingevuld — pagina toont
+// als het adres nog niet (volledig) is ingevuld, pagina toont
 // dan de placeholder.
 export function formatFullAddress(c: CompanyInfo = COMPANY): string | null {
   if (!c.addressStreet || !c.addressPostcode || !c.addressCity) return null;

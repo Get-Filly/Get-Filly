@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Get-Filly — Meer gasten, minder lege stoelen",
+  title: "Get-Filly, Meer gasten, minder lege stoelen",
   description:
     "Get-Filly analyseert je bezettingsdata en zet AI in om automatisch campagnes te draaien die je restaurant voller maken.",
 };

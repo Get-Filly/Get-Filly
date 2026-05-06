@@ -12,7 +12,7 @@ import { AuthenticatedUser } from './current-user.decorator';
 
 /**
  * ============================================================
- * AuthGuard — de poortwachter van onze API
+ * AuthGuard, de poortwachter van onze API
  * ============================================================
  *
  * Wat doet een "Guard"?
@@ -34,27 +34,27 @@ import { AuthenticatedUser } from './current-user.decorator';
  *   Supabase gebruikt tegenwoordig ES256 (asymmetric signing). Dat
  *   betekent: Supabase tekent tokens met een privé-sleutel, en wij
  *   verifiëren met de bijbehorende publieke sleutel. We hoeven dus
- *   geen geheim in onze .env — we halen de publieke sleutels op van
+ *   geen geheim in onze .env, we halen de publieke sleutels op van
  *   Supabase's JWKS-endpoint (een publieke URL).
  *
  *   createRemoteJWKSet() uit `jose` regelt dit automatisch:
  *   - haalt de sleutels op bij de eerste request
  *   - cachet ze (standaard 10 minuten)
  *   - roteert automatisch als Supabase nieuwe keys publiceert
- *   - ondersteunt ES256, RS256, HS256 — het juiste algoritme volgt
+ *   - ondersteunt ES256, RS256, HS256, het juiste algoritme volgt
  *     uit het token zelf
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
   // De URL waar Supabase de publieke sleutels publiceert.
-  // JWKS = "JSON Web Key Set" — een gestandaardiseerd formaat.
+  // JWKS = "JSON Web Key Set", een gestandaardiseerd formaat.
   private readonly jwksUrl: URL;
 
   // Functie die een publieke sleutel levert voor een gegeven token.
   // `jose` zorgt zelf voor caching + key-rotation.
   private readonly getKey: ReturnType<typeof createRemoteJWKSet>;
 
-  // Voor multi-tenant: de verwachte "issuer" van tokens — dat is onze
+  // Voor multi-tenant: de verwachte "issuer" van tokens, dat is onze
   // Supabase project-URL. Zo weten we dat het token niet van een
   // ander project komt.
   private readonly expectedIssuer: string;
@@ -66,7 +66,7 @@ export class AuthGuard implements CanActivate {
     const supabaseUrl = config.get<string>('SUPABASE_URL');
     if (!supabaseUrl) {
       throw new Error(
-        'SUPABASE_URL ontbreekt in .env — nodig om JWT-tokens te verifiëren.',
+        'SUPABASE_URL ontbreekt in .env, nodig om JWT-tokens te verifiëren.',
       );
     }
 
@@ -143,7 +143,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Token mist user-id (sub).');
     }
 
-    // Supabase stopt het e-mailadres in "email" — we halen het eruit
+    // Supabase stopt het e-mailadres in "email", we halen het eruit
     // als string. Als het ontbreekt (zou niet moeten), zetten we null.
     const email =
       typeof payload.email === 'string' ? payload.email : null;
@@ -155,7 +155,7 @@ export class AuthGuard implements CanActivate {
 
     // Bewaar het rauwe token zodat de RequestSupabaseService er straks
     // bij kan om een per-request user-scoped client te bouwen. Het
-    // token is op dit punt al geverifieerd — we vertrouwen het.
+    // token is op dit punt al geverifieerd, we vertrouwen het.
     req.accessToken = token;
 
     return true;

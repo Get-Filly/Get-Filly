@@ -9,7 +9,7 @@ import { AuthenticatedUser } from './current-user.decorator';
 
 /**
  * ============================================================
- * RestaurantAccessGuard — controleert toegang tot een restaurant
+ * RestaurantAccessGuard, controleert toegang tot een restaurant
  * ============================================================
  *
  * Volgorde-afspraak:
@@ -31,7 +31,7 @@ import { AuthenticatedUser } from './current-user.decorator';
  *   @Controller('kpi')
  *   export class KpiController { ... }
  *
- *   Of voor het hele systeem globaal via APP_GUARD in AppModule —
+ *   Of voor het hele systeem globaal via APP_GUARD in AppModule,
  *   dan geldt het automatisch overal (behalve op @Public endpoints).
  */
 @Injectable()
@@ -50,7 +50,7 @@ export class RestaurantAccessGuard implements CanActivate {
     // gedraaid. Zo niet: developer-fout in de guard-volgorde.
     if (!req.user) {
       throw new BadRequestException(
-        'RestaurantAccessGuard draait zonder AuthGuard — developer-fout.',
+        'RestaurantAccessGuard draait zonder AuthGuard, developer-fout.',
       );
     }
 

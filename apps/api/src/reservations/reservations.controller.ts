@@ -74,7 +74,7 @@ export class ReservationsController {
     @Body() body: { campaign_id: string | null },
   ) {
     // userId mee zodat audit-log per team-member traceerbaar blijft
-    // welke reservering aan welke campagne gekoppeld is — Filly-ROI
+    // welke reservering aan welke campagne gekoppeld is, Filly-ROI
     // staat of valt met deze attributie, dus auditbaarheid is cruciaal.
     return this.reservations.setAttribution(
       restaurantId,

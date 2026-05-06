@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
 // ============================================================
-// <Card> — neutrale wrapper met consistente padding/border/shadow
+// <Card>, neutrale wrapper met consistente padding/border/shadow
 // ============================================================
 //
 // In de codebase staan tientallen `<div className="card">` met telkens
@@ -9,10 +9,10 @@ import type { HTMLAttributes, ReactNode } from "react";
 // brand-spacing-tweak (bv. radius van 8px → 10px) op één plek hoeft.
 //
 // Sub-components:
-//   <Card>          — wrapper
-//   <CardHeader>    — titel + optionele subtitle + optionele rechter-actie
-//   <CardBody>      — content-area
-//   <CardFooter>    — actie-rij onderaan
+//   <Card>         , wrapper
+//   <CardHeader>   , titel + optionele subtitle + optionele rechter-actie
+//   <CardBody>     , content-area
+//   <CardFooter>   , actie-rij onderaan
 //
 // Padding is consistent (--space-5). Voor andere padding: pass `noPadding`
 // en zet zelf padding op de child (bijv. tabellen die edge-to-edge moeten).

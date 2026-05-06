@@ -1,12 +1,12 @@
 "use client";
 
 // ============================================================
-// OnboardingChecklist — setup-stappen voor nieuwe klanten
+// OnboardingChecklist, setup-stappen voor nieuwe klanten
 // ============================================================
 // Wordt op de account-pagina ingehangen (bovenaan, onder de
 // page-subtitle). De meeste items linken naar diezelfde pagina,
 // dus de checklist staat letterlijk naast het invul-werk. Bewust
-// NIET op het dashboard zelf — daar leidt 'ie alleen maar af van
+// NIET op het dashboard zelf, daar leidt 'ie alleen maar af van
 // de echte content (KPI's, kalender, AI-assistent).
 //
 // Items die op ✓ staan vervagen; items op ○ blijven prominent
@@ -21,7 +21,7 @@
 //
 // Dismiss is per-browser via localStorage. Bewust geen DB-veld
 // zodat we geen migratie nodig hebben en dismiss niet over
-// devices heen kruipt — als je 'm op je werk-laptop wegklikt
+// devices heen kruipt, als je 'm op je werk-laptop wegklikt
 // blijft 'ie op je telefoon nog zichtbaar (handig: dubbele kans
 // om te zien dat er nog wat openstaat).
 //
@@ -33,7 +33,7 @@
 
 // localStorage-key. Bump het versie-suffix als je de items zo
 // drastisch wijzigt dat eerdere dismiss-keuzes niet meer passen
-// (bv. een belangrijk nieuw item toegevoegd) — bestaande users
+// (bv. een belangrijk nieuw item toegevoegd), bestaande users
 // krijgen dan opnieuw de checklist te zien.
 const DISMISS_KEY = "getfilly_onboarding_checklist_dismissed_v1";
 
@@ -79,7 +79,7 @@ function buildChecklist(
 
   const logoDone = !!restaurant.logo_url;
 
-  // KvK + legal_name samen — handig voor mailings en verplicht
+  // KvK + legal_name samen, handig voor mailings en verplicht
   // op verloop voor verzonden marketing-uitingen.
   const businessDetailsDone =
     !!restaurant.legal_name && !!restaurant.kvk_number;
@@ -135,7 +135,7 @@ export function OnboardingChecklist() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Eerst dismiss-keuze uit localStorage lezen — als die er is,
+    // Eerst dismiss-keuze uit localStorage lezen, als die er is,
     // hoeven we niet eens de fetches te doen. localStorage bestaat
     // alleen client-side; SSR-veilig met try-catch.
     try {
@@ -165,13 +165,13 @@ export function OnboardingChecklist() {
     try {
       localStorage.setItem(DISMISS_KEY, "true");
     } catch {
-      // localStorage niet beschikbaar — dan dismist 'ie alleen voor
+      // localStorage niet beschikbaar, dan dismist 'ie alleen voor
       // deze sessie (in-memory state). Niet ideaal maar acceptabel.
     }
     setDismissed(true);
   }
 
-  // Niets renderen tot data binnen is — voorkomt flash bij load.
+  // Niets renderen tot data binnen is, voorkomt flash bij load.
   if (dismissed) return null;
   if (!items) return null;
 

@@ -17,7 +17,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 // SupabaseModule levert beide supabase-clients (admin voor webhook,
 // request-scoped voor send + domein-flow).
 @Module({
-  // MeModule levert RestaurantAccessService — die de
+  // MeModule levert RestaurantAccessService, die de
   // RestaurantAccessGuard gebruikt om tenant-toegang te checken op de
   // domein-endpoints.
   imports: [SupabaseModule, AuditLogModule, MeModule],

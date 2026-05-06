@@ -32,7 +32,7 @@ export class ChatController {
   }
 
   // Lijst van alle conversaties voor de chat-history-dropdown. Title +
-  // message_count + updated_at — geen messages of memory-summaries
+  // message_count + updated_at, geen messages of memory-summaries
   // (die zijn lazy bij switch).
   @Get('conversations')
   listConversations(@RestaurantId() restaurantId: string) {

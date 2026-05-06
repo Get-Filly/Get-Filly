@@ -5,7 +5,7 @@ import { DashboardProvider } from "./_components/dashboard-provider";
 import { AccessGuard } from "./_components/access-guard";
 
 /**
- * DashboardLayout — layout voor alle /dashboard/* pagina's.
+ * DashboardLayout, layout voor alle /dashboard/* pagina's.
  *
  * Structuur:
  *   - DashboardProvider:  laadt restaurants + rol + permissies (context)

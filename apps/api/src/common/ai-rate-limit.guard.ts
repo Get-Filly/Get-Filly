@@ -11,7 +11,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import type { RestaurantAccess } from './restaurant-access.service';
 
 // ============================================================
-// AiRateLimitGuard — beschermt AI-endpoints tegen runaway-kosten
+// AiRateLimitGuard, beschermt AI-endpoints tegen runaway-kosten
 // ============================================================
 //
 // Draait PAS NA de AuthGuard + RestaurantAccessGuard zodat
@@ -29,7 +29,7 @@ import type { RestaurantAccess } from './restaurant-access.service';
 // De limiet (100 per uur per restaurant) is bewust ruim voor echte
 // gebruikers maar dood voor scripts. Straks, bij billing:
 // per plan andere limieten (Starter 50/u, Pro 200/u, Enterprise
-// bv. 1000/u). Voor nu één vaste waarde — die hangt aan de env-var
+// bv. 1000/u). Voor nu één vaste waarde, die hangt aan de env-var
 // AI_HOURLY_LIMIT_PER_RESTAURANT zodat we 'm per deploy kunnen
 // tunen zonder code-deploy.
 // ============================================================
@@ -47,7 +47,7 @@ export class AiRateLimitGuard implements CanActivate {
 
     if (!req.restaurant) {
       throw new InternalServerErrorException(
-        'AiRateLimitGuard draait zonder RestaurantAccessGuard — developer-fout.',
+        'AiRateLimitGuard draait zonder RestaurantAccessGuard, developer-fout.',
       );
     }
 

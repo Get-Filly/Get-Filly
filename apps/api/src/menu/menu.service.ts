@@ -9,12 +9,12 @@ import { randomUUID } from 'crypto';
 // PILOT (2026-05-01): MenuService is de eerste service die de
 // per-request user-JWT-client gebruikt i.p.v. het service-role-singleton.
 // Daarmee draaien alle queries via RLS-policies en kan een user van
-// restaurant A nooit menu_items van restaurant B lezen — óók niet als
+// restaurant A nooit menu_items van restaurant B lezen, óók niet als
 // onze TS-guards onverhoopt zouden falen (defense-in-depth).
 //
 // SupabaseService blijft beschikbaar voor admin-flows die bewust RLS
 // bypassen (audit-log, anonymization, account-deletion). MenuService
-// gebruikt 'm hier expres NIET — alle reads/writes horen onder de
+// gebruikt 'm hier expres NIET, alle reads/writes horen onder de
 // permissies van de ingelogde user te draaien.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { MenuImporterService } from '../ai/menu-importer.service';
@@ -38,7 +38,7 @@ export type MenuItem = {
 
 // Input voor create. Alle velden behalve `name` zijn optioneel; defaults
 // worden door de DB gezet (is_available=true, is_signature=false, etc.).
-// Bewust geen `id` of `restaurant_id` — die zetten we server-side zodat
+// Bewust geen `id` of `restaurant_id`, die zetten we server-side zodat
 // de cliënt nooit kan schrijven naar een andere tenant.
 export type CreateMenuItemInput = {
   name: string;
@@ -53,7 +53,7 @@ export type CreateMenuItemInput = {
   dietary_tags?: string[];
 };
 
-// Update: alle velden optioneel — caller stuurt alleen wat hij wil
+// Update: alle velden optioneel, caller stuurt alleen wat hij wil
 // wijzigen. Lege strings → null voor description/category/season zodat
 // de UI consistent omgaat met "leegmaken".
 export type UpdateMenuItemInput = Partial<CreateMenuItemInput>;
@@ -85,7 +85,7 @@ export type ImportCardResult = {
 export type ActiveMenuCard = {
   id: string;
   // 'menu' (regulier menukaart) of 'drinks' (drankkaart). Bepaalt
-  // welke banner de UI toont — Menu-kaart actief vs Drankkaart actief.
+  // welke banner de UI toont, Menu-kaart actief vs Drankkaart actief.
   kind: 'menu' | 'drinks';
   file_name: string | null;
   uploaded_at: string;
@@ -99,7 +99,7 @@ export class MenuService {
   constructor(
     // RequestSupabaseService is Scope.REQUEST: NestJS bouwt 'm vers per
     // inkomende HTTP-call. MenuService + MenuController erven dit scope
-    // automatisch — niet expliciet @Injectable({ scope: Scope.REQUEST })
+    // automatisch, niet expliciet @Injectable({ scope: Scope.REQUEST })
     // op MenuService nodig, NestJS doet "scope bubbling" via de
     // dependency-graph.
     private readonly supabase: RequestSupabaseService,
@@ -145,7 +145,7 @@ export class MenuService {
     if (error) throw new InternalServerErrorException(error.message);
 
     // Audit: nieuw menu-item. Filly's prompts gebruiken menu_items als
-    // bron — bij een klacht "Filly noemt een gerecht dat niet bestaat"
+    // bron, bij een klacht "Filly noemt een gerecht dat niet bestaat"
     // kunnen we via audit-log zien wie wanneer wat heeft toegevoegd.
     await this.audit.log({
       restaurantId,
@@ -195,7 +195,7 @@ export class MenuService {
       throw new NotFoundException('Gerecht niet gevonden.');
     }
 
-    // Audit: alleen welke keys gewijzigd, niet de waardes — voorkomt
+    // Audit: alleen welke keys gewijzigd, niet de waardes, voorkomt
     // dat we prijs- of beschrijvings-history in audit_log dumpen.
     // Voor "wat is veranderd?" hebben we daarna nog de DB-row zelf.
     await this.audit.log({
@@ -219,7 +219,7 @@ export class MenuService {
     // is voor de UI duidelijker dan een silent succes op een delete
     // die niets raakte.
     // We selecteren ook `name` mee zodat we 'm in de audit-payload
-    // kunnen loggen — handig bij support ("wat heette dat gerecht
+    // kunnen loggen, handig bij support ("wat heette dat gerecht
     // dat is verwijderd?") zonder dat we de DB-rij zelf nog hebben.
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('menu_items')
@@ -239,7 +239,7 @@ export class MenuService {
       .eq('restaurant_id', restaurantId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
 
-    // Audit: gerecht verwijderd. Onomkeerbaar — bij een klacht
+    // Audit: gerecht verwijderd. Onomkeerbaar, bij een klacht
     // ("waarom is mijn signature dish weg?") moeten we kunnen zien
     // wie het heeft weggehaald en wanneer.
     await this.audit.log({
@@ -256,7 +256,7 @@ export class MenuService {
 
   // Validatie + normalisatie van input. Accepteert zowel create- als
   // update-payloads (verschil zit in `requireName`). Geeft alleen de
-  // velden terug die daadwerkelijk meekomen — geen impliciete defaults
+  // velden terug die daadwerkelijk meekomen, geen impliciete defaults
   // bij update zodat een PATCH op alleen `is_available` niet per ongeluk
   // ook andere velden overschrijft.
   private normalizeInput(
@@ -303,7 +303,7 @@ export class MenuService {
       } else if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) {
         throw new BadRequestException('Prijs moet 0 of hoger zijn.');
       } else if (v > 100_000_00) {
-        // 100k euro cap — voorkomt dat een typo €1.000.000 invoert.
+        // 100k euro cap, voorkomt dat een typo €1.000.000 invoert.
         throw new BadRequestException('Prijs mag maximaal €100.000 zijn.');
       } else {
         out.price_cents = Math.round(v);
@@ -316,7 +316,7 @@ export class MenuService {
     if ('is_seasonal' in input) {
       out.is_seasonal = Boolean(input.is_seasonal);
       // Seizoen wordt alléén bewaard als is_seasonal=true. Anders forceren
-      // we 'm op null — voorkomt rare combinaties als "niet seizoens­
+      // we 'm op null, voorkomt rare combinaties als "niet seizoens­
       // gebonden, maar wel lente" die de UI later kunnen verwarren.
       if (!out.is_seasonal) out.season = null;
     }
@@ -350,7 +350,7 @@ export class MenuService {
             'Maximaal 20 dieet-tags per gerecht.',
           );
         }
-        // Dedupe maar behoud volgorde — eerste voorkomen wint.
+        // Dedupe maar behoud volgorde, eerste voorkomen wint.
         out.dietary_tags = Array.from(new Set(cleaned));
       }
     }
@@ -414,7 +414,7 @@ export class MenuService {
         file_size_bytes: file.buffer.length,
         mime_type: file.mimeType,
         uploaded_by: userId,
-        kind, // 'menu' | 'drinks' — bepaalt welke banner de UI toont
+        kind, // 'menu' | 'drinks', bepaalt welke banner de UI toont
       })
       .select('id, file_name, created_at')
       .single();
@@ -429,7 +429,7 @@ export class MenuService {
     const uploadId = uploadRow.id as string;
 
     // 3) Vision-call. Bij fout: markeer upload als mislukt en gooi error
-    // door — we laten het bron-bestand én de upload-rij staan zodat de
+    // door, we laten het bron-bestand én de upload-rij staan zodat de
     // eigenaar via de UI kan zien dat het mis ging.
     let extracted;
     try {
@@ -456,7 +456,7 @@ export class MenuService {
 
     // 4) Items wegschrijven. We zetten allemaal in één bulk-insert zodat
     // de roundtrip kort blijft. Op individuele item-fouten gooien we
-    // niet — Postgres geeft een aggregated error en we melden dat
+    // niet, Postgres geeft een aggregated error en we melden dat
     // generiek met aantal items.
     const rowsToInsert = extracted.items
       .filter((it) => it.name && it.name.trim().length > 0)
@@ -524,7 +524,7 @@ export class MenuService {
     );
 
     // Audit: succesvolle kaart-import. Belangrijk omdat één import 50+
-    // gerechten in één klap kan toevoegen — bij een klacht "mijn menu
+    // gerechten in één klap kan toevoegen, bij een klacht "mijn menu
     // heeft ineens veel meer items" zien we precies welke upload de
     // bron was. userId kan null zijn bij pre-onboarding-uploads.
     await this.audit.log({
@@ -592,7 +592,7 @@ export class MenuService {
   // Genereert een 1-uur signed URL voor het bron-bestand van een
   // upload zodat de UI 'm in een nieuw tabblad kan openen ("klik op
   // banner om te zien wat je destijds hebt geüpload"). Tenant-check
-  // hier expliciet — anders zou een gebruiker een upload-id van een
+  // hier expliciet, anders zou een gebruiker een upload-id van een
   // andere zaak kunnen raden en de URL claimen.
   async getCardSignedUrl(
     restaurantId: string,
@@ -622,7 +622,7 @@ export class MenuService {
   // Verwijder een menukaart inclusief de gerechten die eruit kwamen.
   // Storage-bestand + menu_uploads-rij + alle gekoppelde menu_items
   // gaan weg. Handmatig toegevoegde gerechten (zonder menu_upload_id)
-  // blijven staan — die zijn niet aan deze kaart gebonden.
+  // blijven staan, die zijn niet aan deze kaart gebonden.
   async removeCard(
     restaurantId: string,
     uploadId: string,
@@ -684,7 +684,7 @@ export class MenuService {
     if (delUpErr) throw new InternalServerErrorException(delUpErr.message);
 
     // Audit: kaart verwijderd. Kan tientallen items in één klap weghalen
-    // (cascade) — bij een klacht "ineens is mijn halve menu weg" zien
+    // (cascade), bij een klacht "ineens is mijn halve menu weg" zien
     // we wié de kaart-delete heeft gedaan en hoeveel items eraan hingen.
     await this.audit.log({
       restaurantId,

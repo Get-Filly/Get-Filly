@@ -1,13 +1,13 @@
-/* Get-Filly — recreatie van huidige site styles.
+/* Get-Filly, recreatie van huidige site styles.
    Bron: tokens.css + globals.css uit de live codebase, samengevoegd. */
 
 /* Design-specifieke tokens. We laten brand-, text-, radius- en shadow-
  * tokens uit tokens.css staan (die zijn identiek). Alleen wat het Claude-
  * Design-prototype daadwerkelijk anders heeft (papier-warm bg, koper-
- * accent, section-bg variant) zetten we hier expliciet — passend bij
+ * accent, section-bg variant) zetten we hier expliciet, passend bij
  * de TweaksPanel-runtime van het prototype:
  *   --bg:        #FAF7F1   (papier-warm, NIET wit zoals styles.css default)
- *   --surface:   #EFE8D8   (warmer crème — onze tokens-waarde)
+ *   --surface:   #EFE8D8   (warmer crème, onze tokens-waarde)
  *   --section:   #FAF7F1   (papier voor tussen-secties)
  *   --copper:    #B86A36   (donker koper voor avatar-gradients)
  *   --highlight: #D97F3C   (lichtere oranje voor brand-accenten)
@@ -21,7 +21,7 @@
   --highlight: #D97F3C;
 }
 
-/* Reset / body / navbar zijn weggelaten — die staan al in globals.css en
+/* Reset / body / navbar zijn weggelaten, die staan al in globals.css en
  * onze eigen Navbar-component. Deze file levert alleen de page-specifieke
  * styling van de publieke marketing-pagina's (home/product/pricing/about). */
 
@@ -120,7 +120,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   position: relative;
 }
 
-/* Camera bovenaan — klein wit puntje in de bezel */
+/* Camera bovenaan, klein wit puntje in de bezel */
 .mac-camera {
   position: absolute;
   top: 6px;
@@ -141,7 +141,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: #5a5a5e;
 }
 
-/* Het scherm zelf — bevat het dashboard */
+/* Het scherm zelf, bevat het dashboard */
 .mac-screen {
   background: var(--bg);
   border-radius: 4px;
@@ -372,7 +372,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   align-self: flex-end;
   opacity: 0.85;
 }
-/* Color tiers — match dashboard heatmap */
+/* Color tiers, match dashboard heatmap */
 .md-cal-day.lvl-0 { background: rgba(176,87,79,0.18); color: #7a3a36; } /* < 40% */
 .md-cal-day.lvl-1 { background: rgba(217,127,60,0.18); color: #8a4a1c; } /* 40-65 */
 .md-cal-day.lvl-2 { background: rgba(217,127,60,0.32); color: #6a3a14; } /* 65-80 */
@@ -534,7 +534,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .feature-row-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 380px; }
 .feature-row-visual { display: flex; align-items: center; justify-content: center; }
 
-/* ===== Filly chat mock (card 1) — chat-window chrome + product-style bubbles ===== */
+/* ===== Filly chat mock (card 1), chat-window chrome + product-style bubbles ===== */
 .fmock-chat {
   width: 100%;
   max-width: 380px;
@@ -959,7 +959,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   text-transform: uppercase; color: var(--accent-dark);
 }
 
-/* ===== STAP 1 — Bezetting tile ===== */
+/* ===== STAP 1, Bezetting tile ===== */
 .pmock-occ {
   width: 100%; max-width: 420px;
   background: var(--white);
@@ -1050,7 +1050,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-size: 12px; color: #8A2E15; opacity: 0.75; margin-top: 2px;
 }
 
-/* ===== STAP 2 — Channel proposal ===== */
+/* ===== STAP 2, Channel proposal ===== */
 .pmock-channels {
   width: 100%; max-width: 440px;
   background: var(--white);
@@ -1129,7 +1129,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .pmock-channels-cta svg { width: 16px; height: 16px; }
 
-/* ===== STAP 3 — Approve / scheduled ===== */
+/* ===== STAP 3, Approve / scheduled ===== */
 .pmock-approve {
   width: 100%; max-width: 420px;
   background: var(--white);
@@ -1190,7 +1190,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-style: italic;
 }
 
-/* ===== STAP 4 — Result card ===== */
+/* ===== STAP 4, Result card ===== */
 .pmock-result {
   width: 100%; max-width: 440px;
   background: var(--white);
@@ -1989,7 +1989,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .journey-future-dot { width: 11px; height: 11px; border-radius: 50%; border: 2px dashed var(--border); background: var(--white); flex-shrink: 0; position: relative; z-index: 1; }
 .journey-future-label { font-size: 13.5px; color: var(--text-light); letter-spacing: 0.1px; }
 
-/* Site-footer styling weggelaten — onze eigen Footer-component
+/* Site-footer styling weggelaten, onze eigen Footer-component
  * heeft die already in globals.css. */
 
 /* ===== CTA ===== */

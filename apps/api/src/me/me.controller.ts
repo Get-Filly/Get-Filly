@@ -6,16 +6,16 @@ import { RestaurantAccessService } from '../common/restaurant-access.service';
 
 /**
  * ============================================================
- * MeController — endpoints over de ingelogde user zelf
+ * MeController, endpoints over de ingelogde user zelf
  * ============================================================
  *
  * Deze controller gaat NIET over één restaurant, maar over de user
  * en zijn relaties tot zijn restaurants. Daarom gebruiken we hier
- * alleen de AuthGuard, niet de RestaurantAccessGuard — de user hoeft
+ * alleen de AuthGuard, niet de RestaurantAccessGuard, de user hoeft
  * nog geen actief restaurant te hebben gekozen.
  *
  * Endpoints:
- *   GET /me/restaurants — lijst van restaurants waar de user toegang
+ *   GET /me/restaurants, lijst van restaurants waar de user toegang
  *                         toe heeft, met rol en permissies.
  *
  * De frontend gebruikt dit bij het inloggen om:
@@ -35,7 +35,7 @@ export class MeController {
     // restaurant inmiddels verwijderd is) er al uit.
     const list = await this.access.getUserRestaurants(user.id);
 
-    // We geven alleen wat de frontend nodig heeft terug — geen
+    // We geven alleen wat de frontend nodig heeft terug, geen
     // interne velden, geen stale data.
     return list.map((item) => ({
       id: item.restaurantId,

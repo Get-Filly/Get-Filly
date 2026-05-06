@@ -10,7 +10,7 @@ import {
 } from "../../components/password-strength";
 
 // ============================================================
-// /reset-password — stap 2 van password-reset
+// /reset-password, stap 2 van password-reset
 // ============================================================
 // Flow:
 //   User komt hier na klik op reset-link → /auth/confirm heeft de OTP
@@ -33,7 +33,7 @@ function ResetPasswordForm() {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   // Check of er een geldige sessie is. Zonder sessie kan je geen
-  // wachtwoord updaten — user is dan hier beland zonder via een
+  // wachtwoord updaten, user is dan hier beland zonder via een
   // geldige reset-link te komen.
   useEffect(() => {
     const authError = params.get("auth_error");
@@ -53,7 +53,7 @@ function ResetPasswordForm() {
     e.preventDefault();
     setError(null);
 
-    // Dezelfde check als de checklist onder het veld — zo blijven UI
+    // Dezelfde check als de checklist onder het veld, zo blijven UI
     // en validatie in sync. isPasswordValid controleert alle 4 eisen.
     if (!isPasswordValid(password)) {
       setError("Je wachtwoord voldoet nog niet aan alle eisen.");
@@ -74,7 +74,7 @@ function ResetPasswordForm() {
       return;
     }
 
-    // Succes — meteen naar dashboard. User is al ingelogd via de
+    // Succes, meteen naar dashboard. User is al ingelogd via de
     // recovery-sessie die Supabase heeft gezet.
     router.push("/dashboard");
     router.refresh();

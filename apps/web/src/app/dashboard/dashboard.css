@@ -2,7 +2,7 @@
  *
  * Design-tokens (kleuren, spacing, radii, etc) komen nu uit tokens.css
  * dat globaal geladen wordt via globals.css. De vroegere lokale
- * --bg/--accent/--ts/etc-overrides hier zijn weg — ze waren duplicaten
+ * --bg/--accent/--ts/etc-overrides hier zijn weg, ze waren duplicaten
  * met dezelfde waarden, dus verwijderen geeft zelfde visuele resultaat
  * met één bron-van-waarheid.
  *
@@ -30,7 +30,7 @@
   scroll-margin-top: 0;
 }
 
-/* Sidebar — bosgroen (brand-accent). Alle content binnen de sidebar
+/* Sidebar, bosgroen (brand-accent). Alle content binnen de sidebar
    gebruikt lichte kleuren voor contrast. De dropdown-popover daarentegen
    blijft op lichte bg (is een overlay, niet deel van de balk). */
 .dashboard-shell .sidebar {
@@ -144,12 +144,12 @@
 }
 .dashboard-shell .sb-item:hover {
   /* Groen-soft hover, zelfde kleur als de active-pill maar zonder de
-     vette tekst — voelt aan als één visuele familie i.p.v. twee
+     vette tekst, voelt aan als één visuele familie i.p.v. twee
      verschillende states (papier-warm vs groen). */
   background: var(--accent-light);
   color: var(--accent);
 }
-/* Actieve menu-item: groene-soft pill met groene tekst — zelfde patroon
+/* Actieve menu-item: groene-soft pill met groene tekst, zelfde patroon
    als in de mini-dashboard mockup en op de publieke landingspagina. */
 .dashboard-shell .sb-item.active {
   background: var(--accent-light);
@@ -188,7 +188,7 @@
 }
 .dashboard-shell .sb-uname { font-size: 13px; font-weight: 600; color: var(--text); }
 
-/* Chevron-pijltje ▾ helemaal rechts — visuele hint dat er een menu is. */
+/* Chevron-pijltje ▾ helemaal rechts, visuele hint dat er een menu is. */
 .dashboard-shell .sb-chevron {
   font-size: 11px;
   color: var(--tl);
@@ -199,7 +199,7 @@
   transform: rotate(180deg);
 }
 
-/* Items in het menu — links én buttons krijgen dezelfde uitstraling. */
+/* Items in het menu, links én buttons krijgen dezelfde uitstraling. */
 .dashboard-shell .sb-menu-item {
   display: flex;
   align-items: center;
@@ -226,7 +226,7 @@
   text-align: center;
 }
 
-/* "Uitloggen" krijgt een subtiele rode accent op hover — duidelijk
+/* "Uitloggen" krijgt een subtiele rode accent op hover, duidelijk
    signaal dat dit een "destructive" actie is (je sessie eindigt). */
 .dashboard-shell .sb-menu-danger {
   color: var(--text-secondary, var(--tl));
@@ -257,7 +257,7 @@
   padding: 6px 10px 4px;
 }
 
-/* Het item zelf — we gebruiken dezelfde basisklasse sb-menu-item,
+/* Het item zelf, we gebruiken dezelfde basisklasse sb-menu-item,
    deze modifier zet alleen de content-layout (twee regels tekst
    + check rechts). */
 .dashboard-shell .sb-menu-restaurant {
@@ -267,7 +267,7 @@
 }
 .dashboard-shell .sb-menu-restaurant[aria-current="true"] {
   /* Actieve tenant: iets vettere tekst zodat hij opvalt. Background
-     blijft blanco — de check rechts is de primaire indicator. */
+     blijft blanco, de check rechts is de primaire indicator. */
   font-weight: 500;
 }
 
@@ -372,7 +372,7 @@
   flex-direction: column;
   height: calc(100% - 64px);
 }
-/* Dashboard-layout — spacing-tokens i.p.v. hard-coded px (2026-04-30
+/* Dashboard-layout, spacing-tokens i.p.v. hard-coded px (2026-04-30
  * fase 2C). Was 24/28/16 mix met inconsistente ritmes; nu strict op
  * de 8px-grid: space-4 (16) / space-5 (24) / space-6 (32). De
  * horizontale 28px → 32px geeft net iets meer ademruimte aan
@@ -405,7 +405,7 @@
 .dashboard-shell .left-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .dashboard-shell .right-col { display: flex; flex-direction: column; min-height: 0; }
 
-/* Card (gedeeld — gebruikt door weer, kalender, detail, grafiek, chat) */
+/* Card (gedeeld, gebruikt door weer, kalender, detail, grafiek, chat) */
 .dashboard-shell .card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -413,7 +413,7 @@
   overflow: hidden;
 }
 /* Card-padding ritme: header heeft alleen top (geen bottom) zodat
- * body-padding 't ritme bepaalt — voorkomt dubbele luchtruimte
+ * body-padding 't ritme bepaalt, voorkomt dubbele luchtruimte
  * tussen titel en eerste content-regel. Horizontale 24px = space-5
  * (was 20). Body krijgt 16px-top + 24px-bottom → asymmetrisch maar
  * bewust: visuele rust onderaan een card is fijner dan strakke
@@ -428,7 +428,7 @@
 .dashboard-shell .card-st { font-size: 12px; color: var(--tl); margin-top: 2px; }
 .dashboard-shell .card-b { padding: var(--space-4) var(--space-5) var(--space-5); }
 
-/* KPI — responsief: wrapt naar meerdere rijen op smalle schermen.
+/* KPI, responsief: wrapt naar meerdere rijen op smalle schermen.
  * Gap was 14px (geen token); naar space-4 (16) voor de 8px-grid en
  * iets meer adem tussen kaartjes. */
 .dashboard-shell .kpi-row {
@@ -449,7 +449,7 @@
   letter-spacing: -0.5px;
   margin-top: 4px;
 }
-/* Filly-subtekst per KPI — donkergroen voor zowel neutrale als
+/* Filly-subtekst per KPI, donkergroen voor zowel neutrale als
    positieve regels. Past bij brand en valt rustiger op dan grijs. */
 .dashboard-shell .kpi-filly {
   font-size: 11.5px;
@@ -460,7 +460,7 @@
 }
 .dashboard-shell .kpi-filly-positive { color: var(--accent-dark); font-weight: 600; }
 
-/* "Via Filly"-pill — overal waar we attributie tonen (reserveringen,
+/* "Via Filly"-pill, overal waar we attributie tonen (reserveringen,
    gasten-rij, etc.). Kleine brand-soft badge met groene letters. */
 .dashboard-shell .filly-pill {
   display: inline-flex;
@@ -671,7 +671,7 @@
 /* Kalender vult de volle hoogte van de left-col zodat hij verticaal
    uitlijnt met de Filly-chat in de right-col. Body groeit mee, grid
    van cellen vult zelf de body op (cellen worden iets hoger op grote
-   schermen — voelt rustiger aan dan een kalender met lege ruimte
+   schermen, voelt rustiger aan dan een kalender met lege ruimte
    onderaan en een chat die er ver overheen steekt). */
 .dashboard-shell .calendar-card {
   flex: 1;
@@ -694,7 +694,7 @@
   min-height: 56px;
 }
 
-/* Kalender — maand-view */
+/* Kalender, maand-view */
 .dashboard-shell .cal-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -718,7 +718,7 @@
   grid-auto-rows: 1fr;
   gap: 2px;
 }
-/* Kalender-cel — heatmap-tile met absolute-positioned kinderen voor
+/* Kalender-cel, heatmap-tile met absolute-positioned kinderen voor
    strakke uitlijning, ongeacht of er campagne-emoji's bij zitten:
      - dag-nummer       linksboven
      - bezettings-%     rechtsonder
@@ -768,10 +768,10 @@
   opacity: 0.85;
 }
 
-/* Heatmap-tiers — meer diepte en duidelijker contrast tussen rood en
+/* Heatmap-tiers, meer diepte en duidelijker contrast tussen rood en
    groen. Tekst is OVERAL var(--text) (bijna-zwart) voor consistente
    leesbaarheid; lvl-4 is daarom iets minder donker dan ideaal-vol-
-   groen-zou-zijn — zwart-op-zwart-groen leest niet.
+   groen-zou-zijn, zwart-op-zwart-groen leest niet.
      lvl-0  <40%   rood diep       kritiek
      lvl-1  40-65  rood-koper      onder verwachting
      lvl-2  65-80  koper warm      gemiddeld
@@ -783,7 +783,7 @@
 .dashboard-shell .cal-cell.lvl-2 { background: rgba(217, 150, 70, 0.30); color: var(--text); }
 .dashboard-shell .cal-cell.lvl-3 { background: rgba(45, 90, 63, 0.32);   color: var(--text); }
 .dashboard-shell .cal-cell.lvl-4 { background: rgba(31, 74, 45, 0.42);   color: var(--text); }
-/* Campagne-emoji's per dag — kleine rij linksonder in de cel.
+/* Campagne-emoji's per dag, kleine rij linksonder in de cel.
    Vervangt de oude cal-dots zodat eigenaar direct ziet wát er op die
    dag staat (✉️ mail / 📱 social / 💬 whatsapp) i.p.v. alleen "iets". */
 .dashboard-shell .cal-emojis {
@@ -800,7 +800,7 @@
 }
 
 /* ============================================================
-   Kalender — dag-view (uur-staafdiagram)
+   Kalender, dag-view (uur-staafdiagram)
    ------------------------------------------------------------
    Wordt actief wanneer de eigenaar op de "Dag"-tab klikt of een
    specifieke dag aanklikt in de maand-view. 12 staven (11:00-22:00)
@@ -847,7 +847,7 @@
   color: var(--text);
   flex-shrink: 0;
 }
-/* Track is de volle "kolom" — staaf groeit vanaf onderaan. */
+/* Track is de volle "kolom", staaf groeit vanaf onderaan. */
 .dashboard-shell .day-hour-track {
   flex: 1;
   width: 100%;
@@ -877,7 +877,7 @@
   flex-shrink: 0;
 }
 
-/* Kalender — jaar-view. 4 kolommen × 3 rijen die de volle hoogte van
+/* Kalender, jaar-view. 4 kolommen × 3 rijen die de volle hoogte van
    de card-body gelijk verdelen (zelfde 1fr-aanpak als de maand-grid). */
 .dashboard-shell .year-grid {
   display: grid;
@@ -1181,7 +1181,7 @@
 .dashboard-shell .badge.ingepland { background: var(--accent-light); color: var(--accent); }
 .dashboard-shell .badge.afgerond { background: var(--bg); color: var(--tl); }
 
-/* Stats row — kleinere bottom-marge zodat de strip eronder
+/* Stats row, kleinere bottom-marge zodat de strip eronder
    (suggesties / filter-tabs) compact aansluit op de KPI's. */
 .dashboard-shell .stats-row {
   display: grid;
@@ -1198,7 +1198,7 @@
 
 /* WhatsApp campagne-detail: Inhoud-card en Foto-card naast elkaar.
    Foto-kolom heeft een vaste niet-te-grote breedte (320px); de Inhoud-
-   card krijgt de rest. Geen align-items: start — default grid-stretch
+   card krijgt de rest. Geen align-items: start, default grid-stretch
    zorgt dat beide cards zelfde hoogte krijgen, zodat onderkanten
    netjes uitlijnen ook als de chat-bubbel kort is. */
 .dashboard-shell .campaign-content-row {
@@ -1213,7 +1213,7 @@
   }
 }
 
-/* Suggestion-tabs — onderlijn-stijl voor Open/Verlopen/Afgewezen op
+/* Suggestion-tabs, onderlijn-stijl voor Open/Verlopen/Afgewezen op
    de campagnes-pagina. Drie tabs altijd zichtbaar zodat de structuur
    stabiel blijft, ook als één emmer leeg is. Active = groene
    onderlijn + groene tekst, inactive = grijze tekst. */
@@ -1368,7 +1368,7 @@
   margin-bottom: 10px;
 }
 
-/* Type-chip — kleine pill-knop met icon + label voor het filteren op
+/* Type-chip, kleine pill-knop met icon + label voor het filteren op
    kanaal (mail / social / whatsapp). Actieve chip krijgt brand-soft bg. */
 .dashboard-shell .type-chips {
   display: flex;
@@ -1400,7 +1400,7 @@
   border-color: var(--hover);
 }
 
-/* Herbruikbaar zoekveld — zelfde stijl voor dashboard-pagina's. */
+/* Herbruikbaar zoekveld, zelfde stijl voor dashboard-pagina's. */
 .dashboard-shell .search-input {
   width: 100%;
   padding: 10px 14px;
@@ -1606,7 +1606,7 @@
   gap: 8px;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
-/* Actieve koppeling — brand-soft bg + groene rand-links zodat hij
+/* Actieve koppeling, brand-soft bg + groene rand-links zodat hij
    direct opvalt tussen de "nog te koppelen"-kaarten. */
 .dashboard-shell .integration-card-active {
   background: var(--accent-light);
@@ -1692,7 +1692,7 @@
 
 /* ==== Menu-pagina ==== */
 
-/* Filly-tip blok bovenaan — laat zien dat menu-data de grondstof is
+/* Filly-tip blok bovenaan, laat zien dat menu-data de grondstof is
    voor campagnes die Filly voorstelt. Brand-soft bg + groene rand-
    links, consistent met andere Filly-callouts. */
 .dashboard-shell .menu-filly-tip {
@@ -1718,7 +1718,7 @@
   line-height: 1.5;
 }
 
-/* Filter-rij bovenaan — alleen tabs, zoekveld staat er los onder. */
+/* Filter-rij bovenaan, alleen tabs, zoekveld staat er los onder. */
 .dashboard-shell .menu-filters {
   margin-top: 16px;
 }
@@ -1808,7 +1808,7 @@
   text-align: right;
 }
 
-/* Badges op gerecht-item — klein, uppercase, consistent met andere pills.
+/* Badges op gerecht-item, klein, uppercase, consistent met andere pills.
    Signature = brand-accent vol, Season = brand-soft, Diet = grijs,
    Soft = oranje-achtig voor "tijdelijk uit". */
 .dashboard-shell .menu-item-badge-signature,
@@ -1885,7 +1885,7 @@
 .dashboard-shell .menu-form-input[type="number"] {
   min-height: 38px;
 }
-/* Select krijgt native styling van de browser — genoeg voor MVP. */
+/* Select krijgt native styling van de browser, genoeg voor MVP. */
 .dashboard-shell select.menu-form-input {
   cursor: pointer;
 }
@@ -1922,7 +1922,7 @@
   padding-left: 26px;
 }
 
-/* Dieet-tag chips — multi-select pills. Active = brand-soft + accent. */
+/* Dieet-tag chips, multi-select pills. Active = brand-soft + accent. */
 .dashboard-shell .menu-tag-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2044,7 +2044,7 @@
   flex-shrink: 0;
 }
 
-/* Verwijder-link in de status-banner — ghost-stijl (geen achtergrond,
+/* Verwijder-link in de status-banner, ghost-stijl (geen achtergrond,
    rode tekst op hover) zodat hij duidelijk destructief is maar niet
    domineert naast de primaire replace-knop. */
 .dashboard-shell .menu-card-status-remove {
@@ -2064,7 +2064,7 @@
   background: #FEF2F2;
 }
 
-/* NIEUW-badge voor recent geïmporteerde gerechten — brand-groen zodat
+/* NIEUW-badge voor recent geïmporteerde gerechten, brand-groen zodat
    de gebruiker direct ziet wat uit de upload kwam. */
 .dashboard-shell .menu-item-badge-new {
   font-size: 10px;
@@ -2087,7 +2087,7 @@
   margin-bottom: 18px;
 }
 
-/* Dropzone — grote dashed box, klikbaar. */
+/* Dropzone, grote dashed box, klikbaar. */
 .dashboard-shell .menu-upload-dropzone {
   display: flex;
   flex-direction: column;
@@ -2451,7 +2451,7 @@
   transition: width 0.3s;
 }
 
-/* Suggestion-card klikbaar — cursor + hover-lift zodat duidelijk is
+/* Suggestion-card klikbaar, cursor + hover-lift zodat duidelijk is
    dat je kunt klikken voor details. */
 .dashboard-shell .suggestion-card-clickable {
   cursor: pointer;
@@ -2735,7 +2735,7 @@
 
 /* ==== Photo-picker ====
    Twee opties naast elkaar: Filly's voorstel (actief, brand-soft) en
-   een upload-slot (placeholder — later echte file-picker). Actieve
+   een upload-slot (placeholder, later echte file-picker). Actieve
    optie krijgt een check + brand-rand. */
 .dashboard-shell .photo-picker {
   display: grid;
@@ -2877,7 +2877,7 @@
   box-shadow: 0 2px 12px rgba(31, 74, 45, 0.06);
 }
 
-/* Filly-afkomstige task — brand-soft bg + groene rand-links. */
+/* Filly-afkomstige task, brand-soft bg + groene rand-links. */
 .dashboard-shell .task-card-filly {
   background: var(--accent-light);
   border-color: var(--hover);
@@ -2934,7 +2934,7 @@
 
 /* ==== Reviews-pagina ==== */
 
-/* Sterren — semantisch goud (#F59E0B); bewust geen brand-kleur. */
+/* Sterren, semantisch goud (#F59E0B); bewust geen brand-kleur. */
 .dashboard-shell .review-stars {
   color: #F59E0B;
   letter-spacing: 2px;
@@ -3042,7 +3042,7 @@
   font-weight: 600;
 }
 
-/* Reactie die je hebt gestuurd — brand-soft blok met label zodat
+/* Reactie die je hebt gestuurd, brand-soft blok met label zodat
    duidelijk is dat dit jouw reply is. */
 .dashboard-shell .review-response {
   margin-top: 12px;
@@ -3185,7 +3185,7 @@
  * zijn vibranter). Voor soft-attention past amber beter; één
  * speciale plek dus hard-coded acceptabel. */
 /* Rustige-dagen-waarschuwing: rood-soft i.p.v. amber zodat de attentie
-   onmiskenbaar is — een dip in bezetting is geen "let op", het is een
+   onmiskenbaar is, een dip in bezetting is geen "let op", het is een
    actiepunt. Kleur uit onze danger-tokens (--color-danger / -soft). */
 .dashboard-shell .alert-bar {
   display: flex;
@@ -3575,7 +3575,7 @@
 }
 
 /* ============================================================
-   RESPONSIVE — fase 1 (fundamenten + dashboard)
+   RESPONSIVE, fase 1 (fundamenten + dashboard)
    ============================================================
    Breakpoints:
      1024px = tablet/laptop overgang (sidebar wordt offcanvas)
@@ -3583,7 +3583,7 @@
      480px  = klein telefoonscherm (alleen finetune)
    ============================================================ */
 
-/* Burger-knop in topbar — alleen zichtbaar onder 1024px. */
+/* Burger-knop in topbar, alleen zichtbaar onder 1024px. */
 .dashboard-shell .tb-burger {
   display: none;
   width: 36px;
@@ -3628,14 +3628,14 @@
     display: block;
   }
 
-  /* Topbar + main schuiven mee — geen 220px-offset meer. */
+  /* Topbar + main schuiven mee, geen 220px-offset meer. */
   .dashboard-shell .topbar { left: 0; padding: 0 16px; }
   .dashboard-shell .main { margin-left: 0; }
 
   /* Burger-knop tonen. */
   .dashboard-shell .tb-burger { display: inline-flex; }
 
-  /* Dash-body: enkele kolom — chat onder de calendar ipv ernaast. */
+  /* Dash-body: enkele kolom, chat onder de calendar ipv ernaast. */
   .dashboard-shell .dash-body {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -3667,7 +3667,7 @@
 
   /* KPI-row: 2 kolommen op mobiel zodat ze niet smaller dan 140px
      worden. (default auto-fit minmax(170px, 1fr) maakt ze meestal 1
-     kolom op telefoon — 2 kolommen leest beter.) */
+     kolom op telefoon, 2 kolommen leest beter.) */
   .dashboard-shell .kpi-row {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
@@ -3709,7 +3709,7 @@
 @media (max-width: 1024px) {
   /* Data-tables (gasten/reserveringen/reviews-overzichten):
      horizontaal scrollbaar in een wrapper. Voorkomt dat de hele
-     pagina horizontaal moet scrollen — alleen de tabel zelf. */
+     pagina horizontaal moet scrollen, alleen de tabel zelf. */
   .dashboard-shell .data-table {
     display: block;
     overflow-x: auto;
@@ -3759,7 +3759,7 @@
     gap: 8px;
   }
 
-  /* Modals — full-screen op mobile zodat alle content past en de
+  /* Modals, full-screen op mobile zodat alle content past en de
      close-knop niet net buiten de viewport valt. */
   .dashboard-shell .sg-modal-overlay {
     padding: 0;
@@ -3821,7 +3821,7 @@
 
 /* ====== ≤ 480px : kleine telefoonschermen ====== */
 @media (max-width: 480px) {
-  /* KPI-row terug naar 1 kolom op echt kleine schermen — 2 kolommen
+  /* KPI-row terug naar 1 kolom op echt kleine schermen, 2 kolommen
      levert te smal cijfer-vlak. */
   .dashboard-shell .kpi-row {
     grid-template-columns: 1fr;

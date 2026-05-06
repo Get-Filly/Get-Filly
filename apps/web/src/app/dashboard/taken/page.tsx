@@ -95,7 +95,7 @@ export default function TakenPage() {
     const weekFromNow = new Date(today);
     weekFromNow.setDate(today.getDate() + 7);
 
-    // Wachtende AI-suggesties — altijd categorie "filly".
+    // Wachtende AI-suggesties, altijd categorie "filly".
     for (const s of suggestions) {
       const name =
         (s.suggested_campaign.name as string | undefined) ??
@@ -190,7 +190,7 @@ export default function TakenPage() {
       out.push({
         id: `big-res-${r.id}`,
         icon: "👥",
-        title: `Groepsreservering vandaag — ${r.party_size} personen`,
+        title: `Groepsreservering vandaag, ${r.party_size} personen`,
         desc: `${r.guest_name} · ${r.reservation_time.slice(0, 5)} · tafel ${r.table_code ?? "—"}${r.special_requests ? ` · "${r.special_requests}"` : ""}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
@@ -210,7 +210,7 @@ export default function TakenPage() {
       out.push({
         id: `sp-${r.id}`,
         icon: "💬",
-        title: `Speciaal verzoek — ${r.guest_name}`,
+        title: `Speciaal verzoek, ${r.guest_name}`,
         desc: `${r.reservation_time.slice(0, 5)} · ${r.special_requests}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
@@ -245,11 +245,11 @@ export default function TakenPage() {
     <div className="page-full">
       <PageHeader
         title="Taken"
-        subtitle="Alles wat vandaag je aandacht vraagt — AI-voorstellen, reviews, reserveringen en alerts."
+        subtitle="Alles wat vandaag je aandacht vraagt, AI-voorstellen, reviews, reserveringen en alerts."
       />
 
       {/* Stats-row: totaal openstaand, hoge urgentie (rood signaal) en
-          "van Filly" (brand-filly-card — aansluiting op andere pagina's). */}
+          "van Filly" (brand-filly-card, aansluiting op andere pagina's). */}
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-card-label">Totaal openstaand</div>
@@ -281,7 +281,7 @@ export default function TakenPage() {
         <div className="alert-bar">
           <span className="alert-icon">⚠️</span>
           <div>
-            <strong>{highCount} taken</strong> hebben hoge urgentie — pak ze
+            <strong>{highCount} taken</strong> hebben hoge urgentie, pak ze
             eerst op.
           </div>
         </div>

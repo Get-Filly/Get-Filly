@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Design-System Reference — /dashboard/design-system
+// Design-System Reference, /dashboard/design-system
 // ============================================================
 //
 // Eigen mini-Storybook zonder de Storybook-overhead. Toont alle
@@ -9,7 +9,7 @@
 // UI-werk snel kan zien wat er beschikbaar is + welke variant het
 // dichtst bij je bedoeling ligt.
 //
-// **Niet gelinkt vanuit de sidebar** — bookmark de URL. Pagina is
+// **Niet gelinkt vanuit de sidebar**, bookmark de URL. Pagina is
 // technisch reachable voor elke ingelogde user, maar onzichtbaar
 // voor klanten zolang we 'm niet linken. Optioneel later beperken
 // tot een admin-email-check als we klanten gaan onboarden.
@@ -31,7 +31,7 @@ import { Input, Textarea } from "../../../components/ui/input";
 
 // Hulpje: kleine sectie-wrapper met titel zodat de pagina visueel
 // eenduidig oogt zonder dat we een echt section-component nodig
-// hebben — dit is alleen een dev-pagina.
+// hebben, dit is alleen een dev-pagina.
 function Section({
   title,
   description,
@@ -120,7 +120,7 @@ function Swatch({ name, value }: { name: string; value: string }) {
 
 export default function DesignSystemPage() {
   // Lokale state voor de live-demos (Tabs, Input). Resetting bij refresh
-  // is OK — dit is een ontwikkelpagina.
+  // is OK, dit is een ontwikkelpagina.
   const [demoTab, setDemoTab] = useState<"a" | "b" | "c">("a");
   const [demoText, setDemoText] = useState("");
 
@@ -432,7 +432,7 @@ export default function DesignSystemPage() {
         >
           <PageHeader
             title="Voorbeeld zonder actions"
-            subtitle="Subtitle blijft optioneel — alleen title is verplicht."
+            subtitle="Subtitle blijft optioneel, alleen title is verplicht."
           />
         </div>
         <div

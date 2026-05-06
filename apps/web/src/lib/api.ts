@@ -5,7 +5,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
 /**
- * authedFetch — zoals `fetch`, maar stuurt automatisch mee:
+ * authedFetch, zoals `fetch`, maar stuurt automatisch mee:
  *   - Authorization: Bearer <jwt>  → wie ben je?
  *   - X-Restaurant-Id: <uuid>      → welk restaurant bekijk je?
  *
@@ -17,7 +17,7 @@ const API_URL =
  *
  * Wat als er geen sessie / geen restaurant is:
  *   Dan stuurt hij de header niet mee. De backend geeft dan 401 of
- *   400 terug — de component die de call deed kan dat netjes als
+ *   400 terug, de component die de call deed kan dat netjes als
  *   error tonen. Normaal gesproken gebeurt dit alleen heel kort op
  *   de eerste render voordat RestaurantContext geladen is.
  */
@@ -37,7 +37,7 @@ export async function authedFetch(
 
   // Voeg het actieve restaurant-id toe (als we er een hebben).
   // Zo weet de backend welk restaurant de user op dit moment
-  // bekijkt — essentieel voor multi-tenant isolatie.
+  // bekijkt, essentieel voor multi-tenant isolatie.
   const restaurantId = getActiveRestaurantIdSync();
   if (restaurantId) {
     headers.set("X-Restaurant-Id", restaurantId);
@@ -190,7 +190,7 @@ export type CampaignVariantsState = {
   can_regenerate: boolean;
 };
 
-// Lees de gecachte filly-varianten van een campagne. Géén generatie —
+// Lees de gecachte filly-varianten van een campagne. Géén generatie,
 // alleen wat al in de DB staat. Bij page-open op detail-pagina hiermee
 // checken of we initial moeten genereren of bestaande tonen.
 export async function fetchCampaignVariants(
@@ -309,7 +309,7 @@ export async function deleteCampaignMedia(
   return res.json();
 }
 
-// Hard delete. Alleen toegestaan voor concept — backend weigert
+// Hard delete. Alleen toegestaan voor concept, backend weigert
 // delete op verzonden/ingeplande/actieve/afgeronde campagnes omdat
 // die audit-relevant zijn.
 export async function deleteCampaign(id: string): Promise<{ id: string }> {
@@ -411,7 +411,7 @@ export async function registerMailDomain(
 }
 
 // Wordt aangeroepen wanneer eigenaar op "Ik heb de records toegevoegd"
-// klikt — Resend checkt DNS opnieuw en geeft binnen ~1s een nieuwe
+// klikt, Resend checkt DNS opnieuw en geeft binnen ~1s een nieuwe
 // status terug. Bij 'pending' moet de eigenaar even later opnieuw
 // proberen (DNS-propagatie 5-30 min).
 export async function verifyMailDomain(): Promise<MailDomainStatus> {
@@ -425,7 +425,7 @@ export async function verifyMailDomain(): Promise<MailDomainStatus> {
   return res.json();
 }
 
-// Domein loskoppelen — bij Resend wordt 'ie verwijderd, lokaal worden
+// Domein loskoppelen, bij Resend wordt 'ie verwijderd, lokaal worden
 // de mail-velden geleegd. Vanaf dat moment valt mail-flow weer terug
 // op social@get-filly.com.
 export async function removeMailDomain(): Promise<{ removed: true }> {
@@ -514,7 +514,7 @@ export async function fetchKpis(): Promise<Kpis> {
   return res.json();
 }
 
-// Per-campagne attributie deze maand — voor rapportages (per kanaal).
+// Per-campagne attributie deze maand, voor rapportages (per kanaal).
 export type CampaignAttribution = {
   campaign_id: string;
   campaign_name: string;
@@ -615,7 +615,7 @@ export type Restaurant = {
   // Branding (bestaat sinds migratie 0001 maar nu pas in UI gebruikt).
   logo_url: string | null;
   brand_colors: { primary?: string; secondary?: string } | null;
-  // Bedrijfsgegevens (toegevoegd in migratie 0018) — voor mailings,
+  // Bedrijfsgegevens (toegevoegd in migratie 0018), voor mailings,
   // privacy-verklaring en algemene voorwaarden.
   legal_name: string | null;
   kvk_number: string | null;
@@ -800,7 +800,7 @@ export async function detectLowOccupancySuggestions(): Promise<{
 // "Vraag Filly om voorstellen"-knop op /campagnes. Triggert backend
 // om 3-5 nieuwe ai_suggestions te genereren op basis van profile +
 // menu + actuele bezetting/weer. Werkt vanaf seconde 1 na onboarding
-// zolang er minimaal 3 menu-items zijn — anders BadRequest met een
+// zolang er minimaal 3 menu-items zijn, anders BadRequest met een
 // helpende NL-foutmelding.
 export async function generateSuggestions(): Promise<{
   created: number;
@@ -946,7 +946,7 @@ export async function fetchMenu(): Promise<MenuItem[]> {
 }
 
 // Input voor create + update. Velden komen 1-op-1 overeen met de backend
-// MenuService. `id` ontbreekt bewust — die wordt door de DB gegenereerd
+// MenuService. `id` ontbreekt bewust, die wordt door de DB gegenereerd
 // bij create en in de URL meegegeven bij update.
 export type MenuItemInput = {
   name: string;
@@ -1063,7 +1063,7 @@ export async function rejectMenuSuggestion(
 }
 
 // "Andere variant": Filly genereert één wezenlijk andere variant.
-// Cap van 3 refines per origineel-voorstel — daarna geeft de backend
+// Cap van 3 refines per origineel-voorstel, daarna geeft de backend
 // een 400 met NL-tekst. Het oude voorstel wordt op 'refined_into'
 // gezet en de nieuwe variant verschijnt als pending.
 export async function refineMenuSuggestion(
@@ -1095,7 +1095,7 @@ export type RestaurantMediaItem = {
   description: string | null;
   tags: string[];
   uploaded_at: string;
-  // Signed URL met 1u TTL — voor weergave in <img>-tags. Backend
+  // Signed URL met 1u TTL, voor weergave in <img>-tags. Backend
   // re-genereert per list-call.
   url: string;
 };
@@ -1159,9 +1159,9 @@ export async function downloadRestaurantExport(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-// AVG art. 17 — recht op vergetelheid. Verwijdert de ingelogde
+// AVG art. 17, recht op vergetelheid. Verwijdert de ingelogde
 // user permanent inclusief alle owner-restaurants en gerelateerde
-// data. Vereist letterlijke "VERWIJDER"-bevestiging — anders weigert
+// data. Vereist letterlijke "VERWIJDER"-bevestiging, anders weigert
 // de backend met BadRequest. Op succes returnt de backend een
 // telling van wat is verwijderd; de frontend signt daarna direct uit.
 export type AccountDeletionResult = {
@@ -1193,7 +1193,7 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
     const body = await res.json();
     if (body && typeof body.message === "string") return body.message;
   } catch {
-    // niet-JSON body — fallback gebruiken
+    // niet-JSON body, fallback gebruiken
   }
   return `${fallback} (HTTP ${res.status})`;
 }
@@ -1277,7 +1277,7 @@ export async function importMenuCard(file: File): Promise<ImportCardResult> {
   return res.json();
 }
 
-// Drankkaart-upload — zelfde flow als importMenuCard maar gebruikt
+// Drankkaart-upload, zelfde flow als importMenuCard maar gebruikt
 // het drank-Vision-schema (wijn-rood/bier/cocktail/etc subcategorie)
 // en forceert server-side category='drank' op alle items.
 export async function importDrinksCard(
@@ -1499,7 +1499,7 @@ export async function refineReviewVariants(
 }
 
 // Slaat het uiteindelijke antwoord op. De user kan de AI-suggestie hebben
-// overgenomen of handmatig iets hebben ingetypt — dat maakt voor dit
+// overgenomen of handmatig iets hebben ingetypt, dat maakt voor dit
 // endpoint niet uit. Backend retourneert de bijgewerkte review zodat
 // de UI direct de nieuwe response_text + responded_at kan tonen.
 export async function saveReviewReply(
@@ -1516,7 +1516,7 @@ export async function saveReviewReply(
 }
 
 // ============================================================
-// Filly chat — dashboard-home assistent
+// Filly chat, dashboard-home assistent
 // ============================================================
 
 export type ChatRole = "filly" | "user" | "system";
@@ -1534,7 +1534,7 @@ export type CampaignProposalCard = {
   kind: "campaign_proposal";
   // FK naar ai_suggestions.id. Backend maakt de suggestie al aan
   // tijdens het chat-antwoord zodat de goedkeur-flow via
-  // /api/suggestions/:id/approve loopt — zelfde endpoint als bij
+  // /api/suggestions/:id/approve loopt, zelfde endpoint als bij
   // auto-gegenereerde suggesties die we op /campagnes tonen.
   suggestion_id: string;
   type: "mail" | "social" | "whatsapp";
@@ -1546,7 +1546,7 @@ export type CampaignProposalCard = {
   selected_index: number;
   // Backend vult deze bij het ophalen van chat-historie vanuit de
   // ai_suggestions-join. Zo weet de frontend na navigatie terug naar
-  // de chat of de suggestie al approved/rejected is — dan tonen we
+  // de chat of de suggestie al approved/rejected is, dan tonen we
   // direct "Concept aangemaakt →" i.p.v. de actie-knoppen opnieuw.
   suggestion_status?: "pending" | "approved" | "rejected" | "expired";
   approved_campaign_id?: string | null;
@@ -1570,7 +1570,7 @@ export type CampaignBundleCard = {
   approved_group_id?: string | null;
 };
 
-// Channel-choice — Filly's keuzeprompt vóór 'ie een campagne genereert.
+// Channel-choice, Filly's keuzeprompt vóór 'ie een campagne genereert.
 // Geen ai_suggestion erachter; bij klik op een knop verstuurt frontend
 // automatisch een user-bericht ("Maak een mail-campagne") zodat Filly
 // in de volgende beurt het juiste formaat (proposal of bundle) levert.
@@ -1626,7 +1626,7 @@ export async function fetchActiveChat(): Promise<ActiveChatState> {
 
 // Lijst van alle conversaties voor de chat-history-dropdown. Limit 50
 // in de backend; oudere conversaties zijn niet meer bereikbaar via UI
-// (bewust — Filly's memory-systeem onthoudt geleerde voorkeuren in
+// (bewust, Filly's memory-systeem onthoudt geleerde voorkeuren in
 // restaurant_chat_memory, dus oude chats hoeven niet doorzoekbaar).
 export async function fetchChatConversations(): Promise<
   ChatConversationSummary[]
@@ -1695,7 +1695,7 @@ export async function sendChatMessage(
     body: JSON.stringify({ conversation_id: conversationId, content }),
   });
   if (!res.ok) {
-    // Probeer de NL-foutmelding van de backend te lezen — die bevat
+    // Probeer de NL-foutmelding van de backend te lezen, die bevat
     // bij cap-bereikt de duidelijke "Start een nieuw gesprek"-tekst.
     const body = await res.json().catch(() => null);
     const msg = body?.message ?? `HTTP ${res.status}`;
@@ -1724,7 +1724,7 @@ export async function updateSuggestion(
 // Team management
 // ============================================================
 // Endpoints onder /api/team voor het beheren van teamleden binnen het
-// actieve restaurant. Alleen de owner mag hier wijzigingen maken —
+// actieve restaurant. Alleen de owner mag hier wijzigingen maken,
 // de backend weigert het voor andere rollen met 403.
 
 import type { Module, Role } from "@getfilly/shared";
@@ -1827,7 +1827,7 @@ export async function revokeInvite(inviteId: string): Promise<void> {
 }
 
 /**
- * Accepteer een invite met token — roept /api/invites/accept aan.
+ * Accepteer een invite met token, roept /api/invites/accept aan.
  * De user moet ingelogd zijn voordat deze call werkt (magic link
  * logt ze automatisch in).
  */
@@ -1848,7 +1848,7 @@ export async function acceptInvite(
 
 /**
  * Genereer een verse magic link voor een openstaande invite.
- * Werkt ook als de oorspronkelijke mail niet aankwam — owner kan
+ * Werkt ook als de oorspronkelijke mail niet aankwam, owner kan
  * de link dan handmatig delen.
  */
 export async function getInviteMagicLink(inviteId: string): Promise<string> {
@@ -1865,7 +1865,7 @@ export async function getInviteMagicLink(inviteId: string): Promise<string> {
 // ============================================================
 
 // Subset van de Places-API velden die we in de UI gebruiken. Spiegelt
-// PlaceDetails in apps/api/src/google-profile/types.ts — uitbreiden bij
+// PlaceDetails in apps/api/src/google-profile/types.ts, uitbreiden bij
 // nieuwe features (let er dan ook op dat de backend FieldMask de
 // velden meeneemt). Velden die Google soms weglaat staan als optional.
 export type GooglePlaceDetails = {
@@ -1940,7 +1940,7 @@ export async function searchGoogleProfile(
 }
 
 // Koppel een place_id aan het actieve restaurant. Backend fetcht direct
-// de details om de cache te vullen — wij krijgen 'm in de response
+// de details om de cache te vullen, wij krijgen 'm in de response
 // terug zodat de UI direct kan switchen naar de connected-state.
 export async function connectGoogleProfile(
   placeId: string,
@@ -2001,7 +2001,7 @@ export type AuditResult = {
 };
 
 // Backend-rules-engine die ~12 checks loopt over de gecachete profile-
-// data. Vereist een actieve Google-koppeling — zonder geeft 404.
+// data. Vereist een actieve Google-koppeling, zonder geeft 404.
 export async function fetchGoogleProfileAudit(): Promise<AuditResult> {
   const res = await authedFetch(`${API_URL}/google-profile/me/audit`, {
     cache: "no-store",
@@ -2082,7 +2082,7 @@ export async function fetchMarketingMailStats(
   return res.json();
 }
 
-// Per-campagne tabel — default 90 dagen voor wat meer historie.
+// Per-campagne tabel, default 90 dagen voor wat meer historie.
 export async function fetchMarketingMailCampaigns(
   days: number = 90,
 ): Promise<CampaignMailStats[]> {

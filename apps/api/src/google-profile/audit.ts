@@ -2,7 +2,7 @@ import type { PlaceDetails } from './types';
 
 /**
  * ============================================================
- * Profiel-audit — deterministische rules-engine
+ * Profiel-audit, deterministische rules-engine
  * ============================================================
  *
  * Loopt ~12 checks over de Place-details en levert een lijst
@@ -17,7 +17,7 @@ import type { PlaceDetails } from './types';
  *   - Elke finding heeft `code`, `severity`, `title`, `description`,
  *     en `actionHint`. Frontend kan op `code` matchen voor speciale
  *     visualisaties; rest is plain tekst.
- *   - Geen scoring (5/10) — een numerieke score nodigt uit tot
+ *   - Geen scoring (5/10), een numerieke score nodigt uit tot
  *     gaming en zegt weinig over kwaliteit. We laten de gebruiker
  *     focussen op concrete acties.
  *
@@ -39,7 +39,7 @@ export interface AuditFinding {
 }
 
 export interface AuditResult {
-  // Tijdstempel van wanneer deze audit is gedraaid (= nu) — handig
+  // Tijdstempel van wanneer deze audit is gedraaid (= nu), handig
   // voor de UI om "uitgevoerd om 14:32" te tonen, en als het over
   // gecachete profile-data gaat herinnert de stale-tijd ook hier mee.
   generatedAt: string;
@@ -57,7 +57,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
 
   // ---- Critical checks ----
   // Bedrijfsstatus is hoofdzakelijk OPERATIONAL. Andere waarden
-  // betekenen dat Google denkt dat je dicht bent — direct rampzalig
+  // betekenen dat Google denkt dat je dicht bent, direct rampzalig
   // voor zichtbaarheid, dus critical.
   if (profile.businessStatus && profile.businessStatus !== 'OPERATIONAL') {
     const labelMap: Record<string, string> = {
@@ -69,14 +69,14 @@ export function runAudit(profile: PlaceDetails): AuditResult {
       severity: 'critical',
       title: `Google denkt dat je ${labelMap[profile.businessStatus] ?? 'gesloten'} bent`,
       description:
-        'Je profiel staat als gesloten gemarkeerd. Bezoekers zien dit direct in Maps en zoekresultaten — kan een grote impact hebben op klanten.',
+        'Je profiel staat als gesloten gemarkeerd. Bezoekers zien dit direct in Maps en zoekresultaten, kan een grote impact hebben op klanten.',
       actionHint:
         'Ga naar je Google Business Profile (business.google.com) en zet de status terug op "open". Controleer of er niet per ongeluk een sluitingsdatum is ingevoerd.',
     });
   }
 
   // ---- Warning checks ----
-  // Telefoon ontbreekt — gasten kunnen je niet bellen voor een
+  // Telefoon ontbreekt, gasten kunnen je niet bellen voor een
   // reservering of vraag. Klassieke "low hanging fruit".
   if (!profile.internationalPhoneNumber) {
     findings.push({
@@ -90,7 +90,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     });
   }
 
-  // Website ontbreekt — gemiste click-out naar je eigen reserveringen.
+  // Website ontbreekt, gemiste click-out naar je eigen reserveringen.
   if (!profile.websiteUri) {
     findings.push({
       code: 'missing_website',
@@ -103,7 +103,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     });
   }
 
-  // Openingstijden ontbreken volledig — Google toont dan "geen
+  // Openingstijden ontbreken volledig, Google toont dan "geen
   // openingstijden bekend", wat verwarrend is en gasten weghoudt.
   if (
     !profile.regularOpeningHours ||
@@ -120,12 +120,12 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     });
   }
 
-  // Beschrijving ontbreekt — Google toont dan niks bij "Over deze
+  // Beschrijving ontbreekt, Google toont dan niks bij "Over deze
   // zaak". Gemiste sales-pitch in zoekresultaten.
   if (!profile.editorialSummary && !profile.displayName) {
     // We hebben geen toegang tot de eigenaar's eigen beschrijving via
     // Places API; alleen Google's editorial. Dit is daarom een 'tip'
-    // tier — gewoonlijk is editorialSummary alleen aanwezig bij grote
+    // tier, gewoonlijk is editorialSummary alleen aanwezig bij grote
     // of bekende plekken.
   }
   if (!profile.editorialSummary) {
@@ -134,13 +134,13 @@ export function runAudit(profile: PlaceDetails): AuditResult {
       severity: 'tip',
       title: 'Geen Google-beschrijving zichtbaar',
       description:
-        "Google toont een korte 'Over deze onderneming'-beschrijving bij grotere plekken. Bij jouw onderneming is die nog niet aanwezig — meestal komt die vanzelf zodra je profiel meer foto's en reviews heeft.",
+        "Google toont een korte 'Over deze onderneming'-beschrijving bij grotere plekken. Bij jouw onderneming is die nog niet aanwezig, meestal komt die vanzelf zodra je profiel meer foto's en reviews heeft.",
       actionHint:
         "Werk regelmatig je profiel bij. Google's editorial summary verschijnt automatisch zodra je profiel volwassener wordt.",
     });
   }
 
-  // Geen primaire categorie of generieke 'establishment' — Google
+  // Geen primaire categorie of generieke 'establishment', Google
   // weet niet hoe het je moet categoriseren in zoekresultaten.
   if (
     !profile.primaryType ||
@@ -159,7 +159,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
   }
 
   // ---- Tip checks ----
-  // Foto-volume — meer foto's = meer profiel-views. Onder 10 is
+  // Foto-volume, meer foto's = meer profiel-views. Onder 10 is
   // mager, onder 5 echt arm. Concurrenten hebben gemiddeld 24 foto's.
   const photoCount = profile.photos.length;
   if (photoCount < 5) {
@@ -176,14 +176,14 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     findings.push({
       code: 'low_photo_count',
       severity: 'tip',
-      title: `${photoCount} foto's — kan beter`,
+      title: `${photoCount} foto's, kan beter`,
       description:
         "Je hebt al wat foto's, maar 10+ is het optimum voor maximale views.",
       actionHint: `Voeg ${10 - photoCount} foto's toe. Mix: gerechten, interieur, exterieur, team.`,
     });
   }
 
-  // Review-volume — onder 10 reviews ben je voor nieuwe gasten een
+  // Review-volume, onder 10 reviews ben je voor nieuwe gasten een
   // gokje. Mediaan-restaurant in Nederland heeft ~50 reviews.
   if (profile.userRatingCount === null || profile.userRatingCount < 10) {
     findings.push({
@@ -199,7 +199,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     findings.push({
       code: 'low_review_count',
       severity: 'tip',
-      title: `${profile.userRatingCount} reviews — bouw door`,
+      title: `${profile.userRatingCount} reviews, bouw door`,
       description:
         'Je hebt een basis, maar 30+ reviews wekt veel meer vertrouwen.',
       actionHint:
@@ -207,12 +207,12 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     });
   }
 
-  // Lage rating — geen oordeel, alleen een nudge naar de eigenaar.
+  // Lage rating, geen oordeel, alleen een nudge naar de eigenaar.
   if (profile.rating !== null && profile.rating < 4.0 && profile.userRatingCount && profile.userRatingCount >= 10) {
     findings.push({
       code: 'rating_below_4',
       severity: 'tip',
-      title: `Gemiddelde rating ${profile.rating.toFixed(1)} — onder 4.0`,
+      title: `Gemiddelde rating ${profile.rating.toFixed(1)}, onder 4.0`,
       description:
         'Onder 4.0 sterren scrollen veel gasten door naar concurrenten. Vaak gaat het om 1-2 negatieve reviews die de rest neertrekken.',
       actionHint:
@@ -220,7 +220,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
     });
   }
 
-  // Openingstijden missen weekend — vaak vergeten bij nieuwe profielen
+  // Openingstijden missen weekend, vaak vergeten bij nieuwe profielen
   if (
     profile.regularOpeningHours &&
     profile.regularOpeningHours.weekdayDescriptions.length > 0 &&
@@ -230,7 +230,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
       code: 'incomplete_opening_hours',
       severity: 'warning',
       title: 'Niet alle weekdagen ingevuld',
-      description: `Je hebt ${profile.regularOpeningHours.weekdayDescriptions.length} van 7 dagen ingevuld. Voor de ontbrekende dagen toont Google "gesloten" — ook als je open bent.`,
+      description: `Je hebt ${profile.regularOpeningHours.weekdayDescriptions.length} van 7 dagen ingevuld. Voor de ontbrekende dagen toont Google "gesloten", ook als je open bent.`,
       actionHint:
         'Vul ook de gesloten-dagen expliciet in (als "Gesloten") via Google Business Profile → Openingstijden.',
     });
@@ -247,7 +247,7 @@ export function runAudit(profile: PlaceDetails): AuditResult {
   };
 }
 
-// Critical eerst, dan warning, dan tip — past bij hoe de UI ze toont.
+// Critical eerst, dan warning, dan tip, past bij hoe de UI ze toont.
 const SEVERITY_ORDER: Record<AuditSeverity, number> = {
   critical: 0,
   warning: 1,

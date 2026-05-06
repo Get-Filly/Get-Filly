@@ -7,7 +7,7 @@ import { useRestaurant } from "../../../lib/restaurant-context";
 
 /**
  * ============================================================
- * AccessGuard — beschermt dashboard-pagina's tegen ongeoorloofde toegang
+ * AccessGuard, beschermt dashboard-pagina's tegen ongeoorloofde toegang
  * ============================================================
  *
  * Hoe het werkt:
@@ -24,7 +24,7 @@ import { useRestaurant } from "../../../lib/restaurant-context";
  * Belangrijk:
  *   Dit is de FRONTEND-guard. De échte beveiliging gebeurt op de
  *   backend (AuthGuard + RestaurantAccessGuard). Deze component is
- *   puur voor UX — voorkomen dat iemand een pagina ziet waar hij
+ *   puur voor UX, voorkomen dat iemand een pagina ziet waar hij
  *   toch geen data op kan zien.
  */
 
@@ -41,7 +41,7 @@ const PATH_MODULE_MAP: Array<{ prefix: string; module: Module }> = [
   // /dashboard/google-business (en alle sub-routes /reviews, /audit,
   // /posts, etc.) vallen onder de google_business-module. De oude
   // /dashboard/reviews-route bestaat nog als server-side redirect-
-  // stub, maar wordt nooit gerenderd — dus geen guard nodig.
+  // stub, maar wordt nooit gerenderd, dus geen guard nodig.
   { prefix: "/dashboard/google-business", module: "google_business" },
   // Marketing-hub + sub-routes (mail/instagram/facebook/tiktok).
   { prefix: "/dashboard/marketing", module: "marketing" },
@@ -100,7 +100,7 @@ export function AccessGuard({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  // User heeft geen toegang — toon nette boodschap.
+  // User heeft geen toegang, toon nette boodschap.
   return (
     <div
       style={{

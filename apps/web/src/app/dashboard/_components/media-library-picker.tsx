@@ -8,7 +8,7 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// MediaLibraryPicker — modal voor "Kies uit bibliotheek"
+// MediaLibraryPicker, modal voor "Kies uit bibliotheek"
 // ============================================================
 //
 // Toont alle foto's uit restaurant_media in een grid. Bij selectie
@@ -16,7 +16,7 @@ import { Button } from "../../../components/ui/button";
 // daarna wat er gebeurt (bv. uploaden naar campaign_media via
 // fetch-as-blob).
 //
-// Geen filteren/zoeken voor MVP — bij 20 foto's max past 't allemaal
+// Geen filteren/zoeken voor MVP, bij 20 foto's max past 't allemaal
 // op één scherm. Uploadknop verwijst naar de account-pagina (niet
 // dubbel implementeren met de RestaurantMediaSection).
 // ============================================================

@@ -11,17 +11,17 @@ import { AuditLogService } from '../common/audit-log.service';
 import { MediaTaggerService } from './media-tagger.service';
 
 // ============================================================
-// RestaurantMediaService — foto-bibliotheek per restaurant
+// RestaurantMediaService, foto-bibliotheek per restaurant
 // ============================================================
 //
 // Eigenaar uploadt foto's via account-pagina. Maximaal 20 foto's per
-// restaurant — gecapt om Filly's prompt-context behapbaar te houden
+// restaurant, gecapt om Filly's prompt-context behapbaar te houden
 // en storage-kosten te beperken. Bestanden komen in de bestaande
 // 'restaurant-assets' bucket onder pad <restaurant_id>/photos/<uuid>.
 //
 // Bij elke upload: synchrone Vision-tag-call via MediaTaggerService.
 // Eigenaar wacht ~3-5s maar krijgt direct een foto met description +
-// tags zichtbaar — Filly kan 'm dan al gebruiken in volgende
+// tags zichtbaar, Filly kan 'm dan al gebruiken in volgende
 // campagne-suggesties zonder vertraging.
 // ============================================================
 
@@ -58,7 +58,7 @@ export class RestaurantMediaService {
   ) {}
 
   // ============================================================
-  // LIST — alle foto's van een restaurant + public URLs
+  // LIST, alle foto's van een restaurant + public URLs
   // ============================================================
   // We gebruiken getPublicUrl ipv createSignedUrl omdat de bucket
   // 'restaurant-assets' al een anon-read-policy heeft (sinds mig 0003,
@@ -99,14 +99,14 @@ export class RestaurantMediaService {
   }
 
   // ============================================================
-  // UPLOAD — nieuwe foto + Vision-tag
+  // UPLOAD, nieuwe foto + Vision-tag
   // ============================================================
   async upload(
     restaurantId: string,
     userId: string,
     file: { buffer: Buffer; originalName: string; mimeType: string },
   ): Promise<RestaurantMediaItem> {
-    // Stap 1 — input-validatie. Eigenaar krijgt een nette NL-melding
+    // Stap 1, input-validatie. Eigenaar krijgt een nette NL-melding
     // ipv ruwe Multer/Supabase-fouten bij verkeerde mime-types of
     // te grote files.
     if (!ALLOWED_MIME_TYPES.has(file.mimeType)) {
@@ -120,7 +120,7 @@ export class RestaurantMediaService {
       );
     }
 
-    // Stap 2 — cap-check. Eigenaar moet eerst opruimen voordat 'ie
+    // Stap 2, cap-check. Eigenaar moet eerst opruimen voordat 'ie
     // de 21e foto kan uploaden. Cap helpt ook Filly's prompt-context
     // behapbaar te houden bij campagne-suggesties.
     const { count, error: countErr } = await this.supabase.client
@@ -134,7 +134,7 @@ export class RestaurantMediaService {
       );
     }
 
-    // Stap 3 — file-pad samenstellen. UUID-prefix voorkomt collisions
+    // Stap 3, file-pad samenstellen. UUID-prefix voorkomt collisions
     // en raden van paden. Sanitize de filename om path-traversal
     // tegen te gaan.
     const ext = pickExtension(file.mimeType);
@@ -143,7 +143,7 @@ export class RestaurantMediaService {
       .slice(0, 80) || `photo${ext}`;
     const path = `${restaurantId}/photos/${randomUUID()}${ext}`;
 
-    // Stap 4 — Storage upload. Bij fout: nette NL-melding, geen DB-rij.
+    // Stap 4, Storage upload. Bij fout: nette NL-melding, geen DB-rij.
     const { error: upErr } = await this.supabase.client.storage
       .from(BUCKET)
       .upload(path, file.buffer, {
@@ -156,15 +156,15 @@ export class RestaurantMediaService {
       );
     }
 
-    // Stap 5 — Vision-tag (Haiku 4.5). Sync zodat de UI direct met
+    // Stap 5, Vision-tag (Haiku 4.5). Sync zodat de UI direct met
     // description + tags terug krijgt. Bij fout van de tagger valt
-    // 'ie zelf terug op lege defaults — upload slaagt sowieso.
+    // 'ie zelf terug op lege defaults, upload slaagt sowieso.
     const tagResult = await this.tagger.tag(
       { buffer: file.buffer, mimeType: file.mimeType },
       { restaurantId, userId },
     );
 
-    // Stap 6 — DB-rij. Bij DB-fout rollback we de Storage-upload zodat
+    // Stap 6, DB-rij. Bij DB-fout rollback we de Storage-upload zodat
     // we geen weeszooi krijgen.
     const { data: row, error: insErr } = await this.supabase.client
       .from('restaurant_media')
@@ -190,7 +190,7 @@ export class RestaurantMediaService {
       throw new InternalServerErrorException(insErr.message);
     }
 
-    // Stap 7 — audit-log voor traceerbaarheid bij latere AVG-vragen
+    // Stap 7, audit-log voor traceerbaarheid bij latere AVG-vragen
     // ("welke foto's zijn er ooit van mij geüpload?").
     await this.audit.log({
       restaurantId,
@@ -205,7 +205,7 @@ export class RestaurantMediaService {
       },
     });
 
-    // Stap 8 — public URL voor directe weergave in de UI (zie list-
+    // Stap 8, public URL voor directe weergave in de UI (zie list-
     // commentaar over waarom public ipv signed).
     const { data: pub } = this.supabase.client.storage
       .from(BUCKET)
@@ -224,7 +224,7 @@ export class RestaurantMediaService {
   }
 
   // ============================================================
-  // REMOVE — foto definitief verwijderen
+  // REMOVE, foto definitief verwijderen
   // ============================================================
   async remove(
     restaurantId: string,
@@ -240,9 +240,9 @@ export class RestaurantMediaService {
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!row) throw new NotFoundException('Foto niet gevonden.');
 
-    // Storage eerst — als die faalt willen we niet de DB-rij weg
+    // Storage eerst, als die faalt willen we niet de DB-rij weg
     // hebben en het bestand laten staan. Andersom: als DB-delete faalt
-    // staat er een wees-bestand — minder erg, kunnen we cron-cleanen.
+    // staat er een wees-bestand, minder erg, kunnen we cron-cleanen.
     const { error: rmErr } = await this.supabase.client.storage
       .from(BUCKET)
       .remove([row.file_path as string]);

@@ -28,7 +28,7 @@ const titleFor: Record<string, string> = {
 };
 
 // Toggle de mobile-nav via een class op <body>. Geen Context/Provider
-// nodig — sidebar reageert via dezelfde body-class. Bij eerste klik
+// nodig, sidebar reageert via dezelfde body-class. Bij eerste klik
 // op een desktop heeft de class geen effect (CSS-rules met breakpoints
 // kicken pas in onder 1024px).
 function toggleMobileNav() {
@@ -44,7 +44,7 @@ export function Topbar() {
     <div className="topbar">
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
         {/* Burger-knop alleen zichtbaar onder 1024px (CSS-controlled).
-            Klik toggle't .mobile-nav-open op body — sidebar slidet erin. */}
+            Klik toggle't .mobile-nav-open op body, sidebar slidet erin. */}
         <button
           type="button"
           className="tb-burger"
@@ -59,7 +59,7 @@ export function Topbar() {
         <span className="tb-badge tb-badge-desktop">
           Laatste sync: 2 min geleden
         </span>
-        {/* Notificaties + zoeken zijn nog placeholder — komen straks
+        {/* Notificaties + zoeken zijn nog placeholder, komen straks
             (zie backlog P3). Lucide-iconen i.p.v. emoji's zodat de
             chrome er nu al consistent uitziet met de rest van de UI. */}
         <button type="button" className="tb-btn" aria-label="Notificaties">

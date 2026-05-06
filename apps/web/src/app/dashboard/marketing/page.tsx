@@ -13,15 +13,15 @@ import { useRestaurant } from "../../../lib/restaurant-context";
 
 /**
  * ============================================================
- * Marketing-hub — overkoepelende statistieken per kanaal
+ * Marketing-hub, overkoepelende statistieken per kanaal
  * ============================================================
  *
  * Vier kanaal-cards (en later WhatsApp). Mail is direct beschikbaar
  * omdat we al `campaign_sends`-data hebben sinds 2026-05-04. IG/FB/
- * TikTok zijn Coming Soon — wachten op Meta + TikTok approval.
+ * TikTok zijn Coming Soon, wachten op Meta + TikTok approval.
  *
  * Filly's wekelijkse rapport bovenaan: vanaf 1 actief kanaal.
- * Voor MVP: tekst-placeholder met Mail-aggregaat — Claude-call voor
+ * Voor MVP: tekst-placeholder met Mail-aggregaat, Claude-call voor
  * echte cross-channel-analyse komt in fase 6.
  * ============================================================
  */
@@ -70,9 +70,9 @@ export default function MarketingHubPage() {
       name: "Mail",
       href: "/dashboard/marketing/mail",
       description:
-        "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden — direct uit Resend.",
+        "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden, direct uit Resend.",
       status: "live",
-      // Geen miniStats hier — eigenaar ziet de echte cijfers op de
+      // Geen miniStats hier, eigenaar ziet de echte cijfers op de
       // detail-pagina. Cards op de hub blijven schoon en uniform met
       // de Coming-Soon-cards die ook geen cijfers tonen.
     },
@@ -119,7 +119,7 @@ export default function MarketingHubPage() {
         subtitle="Hoe presteren je kanalen? Filly meet, vergelijkt en stelt verbeteringen voor."
       />
 
-      {/* Status-banner — bovenaan om direct context te geven. */}
+      {/* Status-banner, bovenaan om direct context te geven. */}
       <div
         style={{
           display: "flex",
@@ -167,7 +167,7 @@ export default function MarketingHubPage() {
         </div>
       </div>
 
-      {/* Filly's wekelijks rapport — voor MVP eenvoudig: een tekst-blok
+      {/* Filly's wekelijks rapport, voor MVP eenvoudig: een tekst-blok
           met de belangrijkste mail-takeaway. Echte Claude-call met
           cross-channel-analyse komt in fase 6. */}
       {liveCount > 0 && mailStats && (
@@ -240,7 +240,7 @@ export default function MarketingHubPage() {
 }
 
 function ChannelCard({ channel }: { channel: Channel }) {
-  // Klikbaar als de pagina bestaat — ook voor Coming Soon, want die
+  // Klikbaar als de pagina bestaat, ook voor Coming Soon, want die
   // pagina's tonen óf een preview met voorbeeld-data (Instagram) óf
   // een nette uitleg "wat krijg je straks". Future-status (WhatsApp)
   // heeft géén pagina dus blijft niet-klikbaar.
@@ -303,7 +303,7 @@ function ChannelCard({ channel }: { channel: Channel }) {
         >
           {channel.description}
         </div>
-        {/* Geen mini-stats meer op de hub — alle cards uniform.
+        {/* Geen mini-stats meer op de hub, alle cards uniform.
             Detail-pagina toont de echte cijfers. */}
       </CardBody>
     </Card>
@@ -322,7 +322,7 @@ function ChannelCard({ channel }: { channel: Channel }) {
   return <div>{cardContent}</div>;
 }
 
-// Filly's eenvoudige rapport-tekst voor MVP. Geen Claude-call —
+// Filly's eenvoudige rapport-tekst voor MVP. Geen Claude-call,
 // deterministische samenvatting met conditionele highlights. Echte
 // AI-rapport komt in fase 6 (cron + Sonnet 4.6 met cross-channel-data).
 function buildFillyMailSummary(stats: MailStats): string {
@@ -344,7 +344,7 @@ function buildFillyMailSummary(stats: MailStats): string {
   if (openVsBenchmark !== null) {
     if (openVsBenchmark >= 2) {
       parts.push(
-        `Je open rate van ${(stats.openRate! * 100).toFixed(1)}% zit ${openVsBenchmark.toFixed(1)}% boven de horeca-mediaan — sterk.`,
+        `Je open rate van ${(stats.openRate! * 100).toFixed(1)}% zit ${openVsBenchmark.toFixed(1)}% boven de horeca-mediaan, sterk.`,
       );
     } else if (openVsBenchmark <= -3) {
       parts.push(
@@ -364,14 +364,14 @@ function buildFillyMailSummary(stats: MailStats): string {
       );
     } else if (clickVsBenchmark <= -1) {
       parts.push(
-        `Click rate van ${(stats.clickRate! * 100).toFixed(1)}% is laag — duidelijke CTA toevoegen?`,
+        `Click rate van ${(stats.clickRate! * 100).toFixed(1)}% is laag, duidelijke CTA toevoegen?`,
       );
     }
   }
 
   if (stats.bounceRate !== null && stats.bounceRate > 0.03) {
     parts.push(
-      `Let op: bounce rate is ${(stats.bounceRate * 100).toFixed(1)}% — hoger dan ideaal (<2%). Lijst opschonen.`,
+      `Let op: bounce rate is ${(stats.bounceRate * 100).toFixed(1)}%, hoger dan ideaal (<2%). Lijst opschonen.`,
     );
   }
 

@@ -33,7 +33,7 @@ const categoryOrder = [
 ] as const;
 
 type Category = (typeof categoryOrder)[number];
-// "voorgesteld" en "afgewezen" zijn aparte views — tonen
+// "voorgesteld" en "afgewezen" zijn aparte views, tonen
 // suggested_menu_items met respectievelijk status='pending' of
 // 'rejected'. Gebundeld in dezelfde filter-state zodat de UI maar
 // één active-tab tegelijk heeft.
@@ -190,7 +190,7 @@ function formatEuroFromCents(cents: number | null): string {
   return `€${(cents / 100).toFixed(2).replace(".", ",")}`;
 }
 
-// Lege template voor een nieuw gerecht — gebruikt bij "+ Toevoegen".
+// Lege template voor een nieuw gerecht, gebruikt bij "+ Toevoegen".
 function emptyDraft(): MenuItem {
   return {
     id: "",
@@ -208,12 +208,12 @@ function emptyDraft(): MenuItem {
 }
 
 // Stages voor de menu-upload flow.
-//   idle          — modal open, nog geen bestand gekozen
-//   reading       — bestand naar backend gestuurd
-//   recognizing   — Claude Vision is bezig (cosmetische sub-stage)
-//   categorizing  — items worden in DB weggeschreven (cosmetisch)
-//   done          — succes, items zichtbaar
-//   error         — backend gaf een fout; toon melding + "Opnieuw"-knop
+//   idle         , modal open, nog geen bestand gekozen
+//   reading      , bestand naar backend gestuurd
+//   recognizing  , Claude Vision is bezig (cosmetische sub-stage)
+//   categorizing , items worden in DB weggeschreven (cosmetisch)
+//   done         , succes, items zichtbaar
+//   error        , backend gaf een fout; toon melding + "Opnieuw"-knop
 //
 // reading/recognizing/categorizing zijn één HTTP-call onder water, maar
 // we cyclen er visueel doorheen op een vaste timer zodat de gebruiker
@@ -251,14 +251,14 @@ export default function MenuPage() {
   const [uploadKind, setUploadKind] = useState<"menu" | "drinks">("menu");
   const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
   const [uploadFileName, setUploadFileName] = useState<string | null>(null);
-  // Items die zojuist door Filly zijn geïmporteerd — al in DB, met
+  // Items die zojuist door Filly zijn geïmporteerd, al in DB, met
   // echte uuid's. Tonen we in de "✓ N gerechten herkend"-lijst zodat
   // de eigenaar direct ziet wat er is toegevoegd.
   const [importedItems, setImportedItems] = useState<MenuItem[]>([]);
   const [importNotes, setImportNotes] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Actieve kaarten — maximaal 2: 1 menu-kaart + 1 drankkaart.
+  // Actieve kaarten, maximaal 2: 1 menu-kaart + 1 drankkaart.
   // Gevuld vanuit menu_uploads-tabel zodat de banners ook na een F5
   // zichtbaar blijven.
   const [uploadedCards, setUploadedCards] = useState<ActiveMenuCard[]>([]);
@@ -286,7 +286,7 @@ export default function MenuPage() {
       setSuggestions(fresh);
       setRejectedSuggestions(rej);
     } catch {
-      // Niet-fataal — UI toont laatste cached lijst. Echte fout zien
+      // Niet-fataal, UI toont laatste cached lijst. Echte fout zien
       // we al via de generate/accept/reject-handlers in de tab zelf.
     }
   };
@@ -378,7 +378,7 @@ export default function MenuPage() {
 
   // Bij create én update doen we na success een verse fetchMenu(). Een
   // round-trip extra (~50ms) is verwaarloosbaar en garandeert dat de
-  // lijst exact matcht met wat in de DB staat — inclusief sortering en
+  // lijst exact matcht met wat in de DB staat, inclusief sortering en
   // server-side defaults. Filly leest dezelfde tabel, dus wat je hier
   // ziet is precies wat hij in zijn volgende prompt mee krijgt.
   const saveItem = async () => {
@@ -479,7 +479,7 @@ export default function MenuPage() {
       setUploadStage("done");
     } catch (e) {
       setUploadError(
-        e instanceof Error ? e.message : "Upload mislukt — probeer opnieuw.",
+        e instanceof Error ? e.message : "Upload mislukt, probeer opnieuw.",
       );
       setUploadStage("error");
     } finally {
@@ -601,7 +601,7 @@ export default function MenuPage() {
   }, [items]);
 
   // Top-3 signature gerechten die Filly het vaakst in zijn voorstellen
-  // gebruikt — mock, maar geeft een concreet "Filly waardeert dit"-signaal.
+  // gebruikt, mock, maar geeft een concreet "Filly waardeert dit"-signaal.
   const fillyTop = useMemo(() => {
     return items.filter((i) => i.is_signature).slice(0, 3);
   }, [items]);
@@ -662,14 +662,14 @@ export default function MenuPage() {
         subtitle={
           <>
             Jouw huidige kaart. Filly gebruikt deze gerechten in
-            campagne-teksten — dus &quot;3-gangen met asperges voor
+            campagne-teksten, dus &quot;3-gangen met asperges voor
             €24,50&quot; i.p.v. generieke tekst.
           </>
         }
         actions={
           <>
             {/* Header-knoppen tonen alléén het type kaart dat nog niet
-                actief is — als je beide al hebt geüpload, zit de
+                actief is, als je beide al hebt geüpload, zit de
                 "vervangen"-actie in de banner zelf. */}
             {!menuCard && (
               <Button variant="secondary" onClick={() => openUpload("menu")}>
@@ -745,7 +745,7 @@ export default function MenuPage() {
       )}
 
       {/* Filly-tip blok: laat zien dat het menu de "grondstof" is voor
-          wat Filly in campagnes gebruikt — signaleert belang van goed
+          wat Filly in campagnes gebruikt, signaleert belang van goed
           onderhouden menu-data. */}
       {!loading && fillyTop.length > 0 && (
         <div className="menu-filly-tip">
@@ -765,7 +765,7 @@ export default function MenuPage() {
       )}
 
       {/* Filter-rij: categorie-tabs (Alle/Voorgerecht/.../Overig),
-          gevolgd door Voorgesteld + Afgewezen — Filly's tabs sluiten
+          gevolgd door Voorgesteld + Afgewezen, Filly's tabs sluiten
           aan op de categorie-rij zodat de chef ze als natuurlijk
           verlengstuk ervaart, niet als losse balk. */}
       <div className="menu-filters">
@@ -783,14 +783,14 @@ export default function MenuPage() {
           <button
             className={`tab-btn ${filter === "voorgesteld" ? "active" : ""}`}
             onClick={() => setFilter("voorgesteld")}
-            title="Filly's gerecht-voorstellen — 1× per dag, 3 voorstellen"
+            title="Filly's gerecht-voorstellen, 1× per dag, 3 voorstellen"
           >
             Voorgesteld ({suggestions.length})
           </button>
           <button
             className={`tab-btn ${filter === "afgewezen" ? "active" : ""}`}
             onClick={() => setFilter("afgewezen")}
-            title="Eerder afgewezen voorstellen — laatste 90 dagen"
+            title="Eerder afgewezen voorstellen, laatste 90 dagen"
           >
             Afgewezen ({rejectedSuggestions.length})
           </button>
@@ -965,7 +965,7 @@ export default function MenuPage() {
 }
 
 // ============================================================
-// CardStatusBanner — toont een actieve menu/drank-kaart
+// CardStatusBanner, toont een actieve menu/drank-kaart
 // ============================================================
 // Eén component voor beide kaart-types. UI-tekst en icoon switchen
 // op `card.kind`. Bestandsnaam is klikbaar → opent het bron-bestand
@@ -1113,7 +1113,7 @@ function UploadMenuModal({
     s === "reading" ? 0 : s === "recognizing" ? 1 : s === "categorizing" ? 2 : 3;
 
   // Tijdens processing willen we niet dat de gebruiker de modal sluit
-  // (request blijft dan open op de server, items komen toch in DB —
+  // (request blijft dan open op de server, items komen toch in DB,
   // verwarrend). Sluiten alleen toestaan in idle/done/error.
   const canClose = !isProcessing;
 
@@ -1153,8 +1153,8 @@ function UploadMenuModal({
           Upload een PDF of foto van je {cardLabel}. Filly leest de{" "}
           {itemNoun} automatisch in
           {isDrinks
-            ? " en groepeert ze op type (wijn, bier, cocktail, etc.) — je hoeft ze alleen nog te controleren."
-            : " en zet ze direct in je menu — je hoeft ze alleen nog te controleren."}
+            ? " en groepeert ze op type (wijn, bier, cocktail, etc.), je hoeft ze alleen nog te controleren."
+            : " en zet ze direct in je menu, je hoeft ze alleen nog te controleren."}
         </p>
 
         {stage === "idle" && (
@@ -1173,7 +1173,7 @@ function UploadMenuModal({
               Sleep hier je menu-kaart of klik om te kiezen
             </div>
             <div className="menu-upload-dropzone-sub">
-              PDF, JPG, PNG of WebP — max. 10 MB
+              PDF, JPG, PNG of WebP, max. 10 MB
             </div>
           </label>
         )}
@@ -1249,8 +1249,8 @@ function UploadMenuModal({
             <div className="menu-upload-done-banner">
               <strong>✓ {imported.length} gerechten toegevoegd</strong>
               {imported.length > 0
-                ? " — ze staan nu in je menu en Filly kent ze."
-                : " — Filly kon geen gerechten herkennen op deze kaart."}
+                ? ", ze staan nu in je menu en Filly kent ze."
+                : ", Filly kon geen gerechten herkennen op deze kaart."}
             </div>
             {notes && (
               <div
@@ -1434,7 +1434,7 @@ function MenuModal({
               onChange={(e) =>
                 onChange({ ...item, description: e.target.value || null })
               }
-              placeholder="Korte omschrijving — wordt door Filly gebruikt in campagne-teksten."
+              placeholder="Korte omschrijving, wordt door Filly gebruikt in campagne-teksten."
             />
           </div>
 
@@ -1450,7 +1450,7 @@ function MenuModal({
                 }
               />
               <span className="menu-toggle-label">
-                <strong>Signature</strong> — onze handtekening
+                <strong>Signature</strong>, onze handtekening
               </span>
             </label>
             <label className="menu-toggle">
@@ -1496,7 +1496,7 @@ function MenuModal({
                 }
               />
               <span className="menu-toggle-label">
-                <strong>Beschikbaar</strong> — staat op de kaart
+                <strong>Beschikbaar</strong>, staat op de kaart
               </span>
             </label>
           </div>

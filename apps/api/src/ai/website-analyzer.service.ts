@@ -9,7 +9,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { AiService } from './ai.service';
 
 // ============================================================
-// WebsiteAnalyzerService — "Filly leest je website en vult je profiel"
+// WebsiteAnalyzerService, "Filly leest je website en vult je profiel"
 // ============================================================
 // Eigenaar geeft URL → we fetchen de homepage + een handvol interne
 // subpagina's → combineren de text → sturen naar Claude met een
@@ -37,7 +37,7 @@ export type ExtractedProfile = {
   address?: string;
   postal_code?: string;
   city?: string;
-  // Branding & verhaal — voeden account-pagina-secties
+  // Branding & verhaal, voeden account-pagina-secties
   tagline?: string;
   atmosphere?: string;
   target_audience?: string;
@@ -48,14 +48,14 @@ export type ExtractedProfile = {
   // Korte samenvatting die Filly zelf hergebruikt in chat-context.
   // Max ~300 tekens; anders bloat 't onze prompts overal.
   website_summary?: string;
-  // Socials — optioneel, alleen als expliciet in site-HTML
+  // Socials, optioneel, alleen als expliciet in site-HTML
   social_media?: {
     instagram?: string;
     facebook?: string;
     tiktok?: string;
     linkedin?: string;
   };
-  // Openingstijden — staan vaak gewoon op horeca-sites en zijn dus
+  // Openingstijden, staan vaak gewoon op horeca-sites en zijn dus
   // goed te extraheren. Format strikt: per dag-key open + close in
   // HH:MM (24-uurs). Dagen die ontbreken = gesloten. Lege object =
   // niet gevonden op de site.
@@ -100,7 +100,7 @@ export class WebsiteAnalyzerService {
   // Publieke entry-point. Gooit BadRequestException bij ongeldige URL,
   // InternalServerErrorException bij netwerkfouten die we niet zinvol
   // kunnen afhandelen. Geeft altijd een ExtractedProfile terug als de
-  // crawl minstens 1 pagina oplevert — Claude vult in wat ie kan.
+  // crawl minstens 1 pagina oplevert, Claude vult in wat ie kan.
   async analyze(rawUrl: string): Promise<ExtractedProfile> {
     const startUrl = normalizeUrl(rawUrl);
     if (!startUrl) {
@@ -146,7 +146,7 @@ export class WebsiteAnalyzerService {
       .slice(0, this.MAX_TOTAL_CHARS);
 
     // Stap 5: Claude vragen om het profiel te extraheren via tool-use.
-    // Het JSON-schema garandeert geldige output — geen JSON.parse-fouten
+    // Het JSON-schema garandeert geldige output, geen JSON.parse-fouten
     // meer op markdown-codeblokken of trailing comma's. Het schema
     // beschrijft alle velden + enum-keuzes voor type/brand_tone/confidence
     // zodat Claude geen verzonnen waarden kan teruggeven.
@@ -157,7 +157,7 @@ export class WebsiteAnalyzerService {
       maxTokens: 1500,
       toolName: 'extract_restaurant_profile',
       toolDescription:
-        'Vul het restaurant-profiel in op basis van de meegegeven website-inhoud. Verzin niets — laat velden weg als je ze niet kunt afleiden.',
+        'Vul het restaurant-profiel in op basis van de meegegeven website-inhoud. Verzin niets, laat velden weg als je ze niet kunt afleiden.',
       inputSchema: WEBSITE_PROFILE_SCHEMA,
       meta: {
         // Pre-onboarding call: user heeft nog geen restaurant-id. Sinds
@@ -172,7 +172,7 @@ export class WebsiteAnalyzerService {
   }
 
   // Haal één pagina op met een korte timeout. Retourneert null bij
-  // netwerkfout, niet-html content-type, of non-2xx status — dan
+  // netwerkfout, niet-html content-type, of non-2xx status, dan
   // slaan we die pagina gewoon over en gaan door met de volgende.
   private async fetchPage(
     url: string,
@@ -205,7 +205,7 @@ export class WebsiteAnalyzerService {
       const html = await res.text();
       return { html };
     } catch (err) {
-      // Timeout, DNS, connection refused, etc. — gewoon skippen.
+      // Timeout, DNS, connection refused, etc., gewoon skippen.
       this.logger.debug(`Skip ${url}: ${String(err)}`);
       return null;
     } finally {
@@ -216,7 +216,7 @@ export class WebsiteAnalyzerService {
   private buildSystemPrompt(): string {
     return `Je bent Filly. De gebruiker heeft zijn restaurant-website gegeven en jij vult het volledige account-profiel in voor de onboarding.
 
-Je geeft je antwoord via de tool 'extract_restaurant_profile'. Het schema bepaalt de structuur — jij bepaalt de inhoud.
+Je geeft je antwoord via de tool 'extract_restaurant_profile'. Het schema bepaalt de structuur, jij bepaalt de inhoud.
 
 Inhoudsregels:
 - ALLES in het Nederlands, ongeacht taal van de site. Keuken- en sfeer-termen vertalen.
@@ -228,7 +228,7 @@ Inhoudsregels:
 - signature_dishes: alleen ALS er op de site expliciet "onze specialiteit" / "signature" / "huis-" wordt genoemd, of als specifieke gerechten steeds terugkomen. Max 5.
 - cuisine_style: lowercase woorden, bv. ["frans", "seizoensgebonden"], ["italiaans", "pizza"], ["nederlands", "brasserie"].
 - social_media: alleen URLs of handles die daadwerkelijk op de site linken. Als alleen een algemene ig-link in footer, handle is genoeg.
-- website_summary: dit is GEEN marketing-copy maar een interne notitie voor Filly zelf — schrijf zakelijk en feitelijk, max 300 tekens.
+- website_summary: dit is GEEN marketing-copy maar een interne notitie voor Filly zelf, schrijf zakelijk en feitelijk, max 300 tekens.
 - opening_hours:
     * Strict format: per dag een object { "open": "HH:MM", "close": "HH:MM" } in 24-uurs notatie.
     * Voor dagen die op de site als gesloten zijn aangeduid: laat de dag-key WEG.
@@ -246,7 +246,7 @@ Inhoudsregels:
 // ============================================================
 // De Anthropic API valideert hier op: type-checks, enums (type,
 // brand_tone, confidence) en object-shapes. Géén verplichte velden
-// behalve confidence — Claude moet altijd zijn eigen onzekerheid
+// behalve confidence, Claude moet altijd zijn eigen onzekerheid
 // kunnen aangeven, ook bij een lege site. Pattern-validation voor
 // HH:MM doen we pas in coerceProfile (extra defensief).
 const WEBSITE_PROFILE_SCHEMA = {
@@ -333,7 +333,7 @@ function openingDayShape() {
   };
 }
 
-// Wat Claude via tool-use teruggeeft — alle velden optioneel,
+// Wat Claude via tool-use teruggeeft, alle velden optioneel,
 // behalve confidence. Identiek aan ExtractedProfile maar met
 // tussenstap zodat we expliciet maken dat dit nog ruwe data is.
 type RawProfileFromTool = Partial<ExtractedProfile> & {
@@ -355,7 +355,7 @@ function normalizeUrl(raw: string): string | null {
   try {
     const u = new URL(withProtocol);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
-    // Strip hash fragments — die hebben geen server-content.
+    // Strip hash fragments, die hebben geen server-content.
     u.hash = '';
     return u.toString();
   } catch {

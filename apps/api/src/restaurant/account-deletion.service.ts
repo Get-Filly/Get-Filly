@@ -9,21 +9,21 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 
 // ============================================================
-// AccountDeletionService — AVG art. 17 (right to be forgotten)
+// AccountDeletionService, AVG art. 17 (right to be forgotten)
 // ============================================================
 // Verwijdert een gebruiker permanent uit het systeem, inclusief
 // alle restaurants waarin diegene de eigenaar is en alle data
 // die daaraan vasthangt (gasten, reserveringen, menu, campagnes,
 // reviews, chat, audit-log).
 //
-// Volgorde — bewust eerst anonymiseren, dan deleten:
+// Volgorde, bewust eerst anonymiseren, dan deleten:
 //   1. Confirmation-check ("VERWIJDER" letterlijk)
 //   2. Verzamel alle restaurants waar user 'owner' is
 //   3. Per restaurant: blokkeer als er andere actieve members
 //      bestaan (manager/staff). Eigenaar moet eerst zelf zijn
 //      team verwijderen of een andere eigenaar aanwijzen.
 //   4. Vóór delete: voor elk restaurant alle 'afgerond'-campagnes
-//      door AnonymizationService laten benchmarken — laatste kans
+//      door AnonymizationService laten benchmarken, laatste kans
 //      om leerwaarde te bewaren voordat de FK-cascade alles wist.
 //   5. Delete restaurants → cascade alle business-data
 //   6. Delete auth.users via Supabase Admin API → cascade
@@ -87,7 +87,7 @@ export class AccountDeletionService {
     );
 
     // Stap 3: per restaurant checken op andere actieve members.
-    // Eigenaar mag niet wegrennen met team's data — eerst manager/
+    // Eigenaar mag niet wegrennen met team's data, eerst manager/
     // staff verwijderen of overdracht regelen (later P3).
     if (ownerRestaurantIds.length > 0) {
       const { data: otherMembers, error: omErr } = await this.supabase.client
@@ -150,7 +150,7 @@ export class AccountDeletionService {
       userId,
     );
     if (authErr) {
-      // Restaurants zijn al weg op dit punt — user staat dan in
+      // Restaurants zijn al weg op dit punt, user staat dan in
       // weeskind-staat in auth.users zonder profile. Loggen + 500
       // zodat support kan ingrijpen.
       this.logger.error(
@@ -170,7 +170,7 @@ export class AccountDeletionService {
         reason: 'self_service',
       });
     if (proofErr) {
-      // Geen show-stopper — primaire delete is gelukt; alleen
+      // Geen show-stopper, primaire delete is gelukt; alleen
       // de bewijs-rij ontbreekt. Loggen voor handmatige correctie.
       this.logger.warn(
         `account_deletions insert faalde (delete zelf wel succesvol): ${proofErr.message}`,

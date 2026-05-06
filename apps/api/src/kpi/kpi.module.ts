@@ -6,7 +6,7 @@ import { MeModule } from '../me/me.module';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
 /**
- * KpiModule — dashboard-KPI's voor het actieve restaurant.
+ * KpiModule, dashboard-KPI's voor het actieve restaurant.
  *
  * Imports MeModule om RestaurantAccessService te krijgen (die de
  * tenant-check doet). Dat scheelt duplicatie als we later meer

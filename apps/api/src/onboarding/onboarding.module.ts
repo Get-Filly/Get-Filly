@@ -8,14 +8,14 @@ import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
 import { GoogleProfileModule } from '../google-profile/google-profile.module';
 
-// OnboardingModule — aparte module omdat het endpoint BUITEN de
+// OnboardingModule, aparte module omdat het endpoint BUITEN de
 // RestaurantAccessGuard-keten valt (user heeft nog geen restaurant).
 // Alleen AuthGuard is nodig: de user moet ingelogd zijn.
 // AiModule is nodig voor het website-analyse-endpoint.
 // GeocodingModule zet adres → lat/long om na het aanmaken van het
 // restaurant zodat we direct weer-forecast kunnen ophalen.
 // AuditLogModule logt het moment waarop een nieuwe klant 't proces
-// heeft afgerond — startpunt voor "klant-since"-metrics en support.
+// heeft afgerond, startpunt voor "klant-since"-metrics en support.
 @Module({
   imports: [
     SupabaseModule,

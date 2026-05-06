@@ -65,7 +65,7 @@ export default function CampaignDetailPage() {
   // Schakelt status van concept naar ingepland. Vereist dat
   // scheduled_for is gezet (anders weigert de UI met een uitleg).
   // Voor onmiddelijke verzending kan dezelfde flow ingepland → actief
-  // doen — dat is een aparte transitie die we hier later toevoegen.
+  // doen, dat is een aparte transitie die we hier later toevoegen.
   const handlePlanCampaign = async () => {
     if (!campaign) return;
     if (!campaign.scheduled_for) {
@@ -129,7 +129,7 @@ export default function CampaignDetailPage() {
     try {
       await updateCampaign(id, {
         name: draftName,
-        // Onderwerp alleen sturen voor mail — anders heeft het geen
+        // Onderwerp alleen sturen voor mail, anders heeft het geen
         // betekenis en overschrijven we onnodig.
         subject_line: campaign.type === "mail" ? draftSubject : undefined,
         body: draftBody,
@@ -243,7 +243,7 @@ export default function CampaignDetailPage() {
             </button>
           )}
           {/* Verstuur-knop voor mail-campagnes. Werkt op elk niet-
-              afgerond status — eigenaar kan vanuit concept al een
+              afgerond status, eigenaar kan vanuit concept al een
               test-mail naar zichzelf sturen om de inhoud te checken,
               en vanuit elke status echt verzenden naar opt-in gasten.
               Stuurt direct via Resend; geen scheduling-laag. */}
@@ -349,7 +349,7 @@ export default function CampaignDetailPage() {
 
       <div style={{ marginBottom: 24 }} />
 
-      {/* Impact summary — extra reserveringen + extra omzet zijn de
+      {/* Impact summary, extra reserveringen + extra omzet zijn de
           Filly-attributie-cijfers, krijgen dus stat-card-filly styling
           (groene rand + waarde) zodat visueel direct duidelijk is dat
           dit Filly's bijdrage is. */}
@@ -437,7 +437,7 @@ export default function CampaignDetailPage() {
 
       {/* WhatsApp toont Inhoud + Foto in een 2-koloms grid zodat ze
           naast elkaar staan (chat-bubbel links, foto-slot rechts).
-          Mail/social blijven full-width — die hebben hun eigen
+          Mail/social blijven full-width, die hebben hun eigen
           preview-layout. */}
       <div className={!isMail && !isSocial ? "campaign-content-row" : ""}>
       {/* Content preview. In edit-mode vervangen door inline form
@@ -610,7 +610,7 @@ export default function CampaignDetailPage() {
               {/* Foto-slot vervangt de oude emoji-placeholder. Backend
                   levert een 1-uur signed URL voor een opgeslagen foto;
                   als die er nog niet is toont de slot een drop-zone.
-                  Editable alleen bij concept-status — verzonden
+                  Editable alleen bij concept-status, verzonden
                   campagnes zijn immutable. */}
               <CampaignMediaSlot
                 campaignId={campaign.id}
@@ -691,7 +691,7 @@ export default function CampaignDetailPage() {
 
       {/* Wanneer plaatsen: voor concept én ingepland zichtbaar zodat
           eigenaar het tijdstip kan accepteren/wijzigen. Voor afgeronde
-          campagnes verbergen we 'm — die hebben executed_at en geen
+          campagnes verbergen we 'm, die hebben executed_at en geen
           aanpassing meer nodig. */}
       {(campaign.status === "concept" || campaign.status === "ingepland") &&
         !editMode && (
@@ -847,7 +847,7 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Send-modal — alleen gerenderd bij open. Sluiten via Esc/klik-
+      {/* Send-modal, alleen gerenderd bij open. Sluiten via Esc/klik-
           buiten/Annuleren-knop in de modal. Bij succes blijft modal
           open zodat de eigenaar het resultaat ziet, en sluit via "Klaar". */}
       {sendModalOpen && (

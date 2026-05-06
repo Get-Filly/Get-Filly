@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { BundleChannel, CampaignBundleCard } from "../../../lib/api";
 
 // ============================================================
-// FillyChatBundleCard — multi-channel-voorstel kaart in chat
+// FillyChatBundleCard, multi-channel-voorstel kaart in chat
 // ============================================================
 //
 // Wordt onder Filly-berichten getoond wanneer message_card.kind ===
@@ -62,7 +62,7 @@ export function FillyChatBundleCard({
 }: Props) {
   const [openChannel, setOpenChannel] = useState<BundleChannel | null>(null);
 
-  // Welke kanalen heeft eigenaar aangevinkt? Default alle 3 — meest
+  // Welke kanalen heeft eigenaar aangevinkt? Default alle 3, meest
   // gangbare keuze. Bij uitvinken zien we direct dat de campagne dan
   // niet aangemaakt zal worden.
   const [selected, setSelected] = useState<Record<BundleChannel, boolean>>({
@@ -124,7 +124,7 @@ export function FillyChatBundleCard({
         {bundle.theme}
       </div>
 
-      {/* Drie collapsibles, één per kanaal — met checkbox voor selectie.
+      {/* Drie collapsibles, één per kanaal, met checkbox voor selectie.
           Default alle 3 aangevinkt; eigenaar kan uitvinken om dat kanaal
           over te slaan bij Accepteren. Kies-tekst alleen tonen bij pending. */}
       {status.state === "pending" && (
@@ -218,7 +218,7 @@ export function FillyChatBundleCard({
         </ChannelRow>
       </div>
 
-      {/* Acties — verschilt per status */}
+      {/* Acties, verschilt per status */}
       <div
         style={{
           marginTop: 12,
@@ -378,7 +378,7 @@ export function FillyChatBundleCard({
 }
 
 // ============================================================
-// ChannelRow — collapsible per kanaal
+// ChannelRow, collapsible per kanaal
 // ============================================================
 
 function ChannelRow({
@@ -421,7 +421,7 @@ function ChannelRow({
           fontSize: 12,
         }}
       >
-        {/* Checkbox links — eigen click-handler zodat klikken hier
+        {/* Checkbox links, eigen click-handler zodat klikken hier
             niet ook de collapsible toggle triggert. */}
         <input
           type="checkbox"
@@ -436,7 +436,7 @@ function ChannelRow({
         />
         <span>{icon}</span>
         <strong style={{ minWidth: 80 }}>{title}</strong>
-        {/* Klikbaar gebied voor expand/collapse — alleen het pijltje
+        {/* Klikbaar gebied voor expand/collapse, alleen het pijltje
             rechts. Geen preview-tekst, eigenaar klikt op pijltje om
             de inhoud uit te klappen. */}
         <button

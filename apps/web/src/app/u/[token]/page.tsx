@@ -3,11 +3,11 @@
 import { use, useEffect, useState } from "react";
 
 // ============================================================
-// /u/[token] — publieke unsubscribe-pagina
+// /u/[token], publieke unsubscribe-pagina
 // ============================================================
 //
 // Wordt geopend wanneer een gast op de "Uitschrijven"-link klikt in
-// een campagne-mail. Geen auth nodig — de token zelf is het auth-
+// een campagne-mail. Geen auth nodig, de token zelf is het auth-
 // mechanisme (256 bits random).
 //
 // Flow:

@@ -12,7 +12,7 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 // Schema voor de 3-varianten-tool. minItems/maxItems forceert
-// precies 3 alternatieven — Claude kan er geen 1 of 5 maken.
+// precies 3 alternatieven, Claude kan er geen 1 of 5 maken.
 const REVIEW_REPLY_VARIANTS_SCHEMA = {
   type: 'object',
   properties: {
@@ -71,7 +71,7 @@ export class ReviewsService {
   }
 
   // Genereert een reply-voorstel via Claude. We scopen bewust op BEIDE
-  // id's (review-id + restaurant-id) in de DB-query — zo kan een
+  // id's (review-id + restaurant-id) in de DB-query, zo kan een
   // kwaadwillende gebruiker niet iemand anders zijn review-id opsturen
   // en een suggestie afdwingen met zijn eigen X-Restaurant-Id header.
   // De tenant-isolation zit dus niet alleen in de guard, maar ook in
@@ -107,7 +107,7 @@ export class ReviewsService {
     const suggestion = await this.ai.generateText({
       system: systemPrompt,
       prompt: userPrompt,
-      // Sonnet 4.6 is hier de juiste keus — reply moet genuanceerd zijn,
+      // Sonnet 4.6 is hier de juiste keus, reply moet genuanceerd zijn,
       // toon-register raken, en iets van empathie tonen bij kritiek.
       // Haiku zou voor 5-sterren-bedankjes kunnen, maar we houden het
       // consistent voor nu.
@@ -123,7 +123,7 @@ export class ReviewsService {
     return { suggestion: suggestion.trim() };
   }
 
-  // Lees gecachte filly-varianten voor een review. Géén generatie —
+  // Lees gecachte filly-varianten voor een review. Géén generatie,
   // alleen state lezen. Frontend gebruikt dit bij modal-open om te
   // bepalen of er al een set staat (=> tonen) of dat er gegenereerd
   // moet (=> POST /refine).
@@ -213,7 +213,7 @@ export class ReviewsService {
     const baseSystem = buildReviewReplySystemPrompt(profileBlock);
     const systemPrompt = `${baseSystem}
 
-EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply_variants'. Geef precies 3 verschillende reacties — bv. v1 warm-empathisch, v2 zakelijk-direct, v3 kort-praktisch. Niet alleen wat woorden anders.`;
+EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply_variants'. Geef precies 3 verschillende reacties, bv. v1 warm-empathisch, v2 zakelijk-direct, v3 kort-praktisch. Niet alleen wat woorden anders.`;
 
     const userPrompt = buildReviewReplyUserPrompt(review);
 
@@ -232,7 +232,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
           userId,
           feature: 'review_reply_variants',
         },
-        // System bevat profile-block — bij 1× regenerate binnen 5 min
+        // System bevat profile-block, bij 1× regenerate binnen 5 min
         // pakt caching ~90% korting.
         cacheSystem: true,
       });
@@ -271,7 +271,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
   }
 
   // Slaat het uiteindelijke antwoord op. De gebruiker kan de AI-suggestie
-  // hebben overgenomen óf handmatig iets hebben ingetypt — deze functie
+  // hebben overgenomen óf handmatig iets hebben ingetypt, deze functie
   // weet dat niet en boeit ook niet: we slaan gewoon op wat hij uiteindelijk
   // wil publiceren. Publicatie naar Google/Tripadvisor/etc. is later
   // werk (OAuth + platform-specifieke API's); voor nu is dit puur
@@ -292,7 +292,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
 
     // Weer dubbel scopen op review-id + restaurant-id. Als de update
     // 0 rijen raakt (id bestaat niet of hoort bij andere tenant) dan
-    // geeft Supabase geen error maar wel een lege data-array — daarom
+    // geeft Supabase geen error maar wel een lege data-array, daarom
     // gebruiken we .select().single() achteraan om dat te detecteren.
     const { data, error } = await this.supabase.client
       .from('reviews')
@@ -311,7 +311,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
     if (!data) throw new NotFoundException('Review niet gevonden.');
 
     // Audit: review-antwoord opgeslagen. We loggen lengte + bron i.p.v.
-    // de tekst zelf — voorkomt dat klant-namen of klacht-details in
+    // de tekst zelf, voorkomt dat klant-namen of klacht-details in
     // het audit-logboek belanden. De DB-rij zelf bevat het volledige
     // antwoord nog, dus reconstructie is altijd mogelijk via de review.
     await this.audit.log({
@@ -335,7 +335,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
 // we vast wat voor soort antwoord we willen: toon, lengte, stijl.
 // Het profile-block onderaan geeft Filly alle restaurant-specifieke
 // context (USPs, tagline, sfeer, signature dishes) zodat de reactie
-// echt bij DEZE zaak past — i.p.v. generiek "bedankt voor uw bezoek".
+// echt bij DEZE zaak past, i.p.v. generiek "bedankt voor uw bezoek".
 function buildReviewReplySystemPrompt(profileBlock: string): string {
   // Toon-B uit keuze-menu: gemoedelijk Nederlands, niet Amerikaans
   // enthousiast. Géén overdreven emoji of uitroeptekens, wel warm.
@@ -349,9 +349,9 @@ Stijl-richtlijnen:
 - Bij positieve reviews: bedank oprecht, pik iets specifieks uit wat ze noemden, nodig ze uit om terug te komen.
 - Bij kritische reviews: erken het probleem zonder in de verdediging te schieten, geef aan wat jullie ermee doen, bied eventueel een vervolg aan.
 - Schrijf in de "wij"-vorm namens het team, niet "ik".
-- Teken NIET af met een naam of handtekening — dat doet de eigenaar zelf later.
+- Teken NIET af met een naam of handtekening, dat doet de eigenaar zelf later.
 - Match de toon (brand_tone) en sfeer uit het profiel. Verwijs alleen naar
-  feiten die in het profiel staan — verzin geen gerechten of details.
+  feiten die in het profiel staan, verzin geen gerechten of details.
 
 ---
 ${profileBlock}

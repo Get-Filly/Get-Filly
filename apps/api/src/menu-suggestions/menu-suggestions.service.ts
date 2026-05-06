@@ -12,7 +12,7 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 // ============================================================
-// MenuSuggestionsService — Filly-gerecht-voorstellen
+// MenuSuggestionsService, Filly-gerecht-voorstellen
 // ============================================================
 //
 // Wat doet dit:
@@ -41,7 +41,7 @@ import { AuditLogService } from '../common/audit-log.service';
 // ============================================================
 
 // Schema voor de generate-call. minItems/maxItems forceert exact 3
-// voorstellen — Claude kan er geen 1 of 5 maken. Bewust niet hoger:
+// voorstellen, Claude kan er geen 1 of 5 maken. Bewust niet hoger:
 // dit is een dure call (Sonnet 4.6, ~3500 tokens output) en max 1×
 // per dag per restaurant. 3 voorstellen geeft een chef genoeg
 // invalshoeken zonder de tokens te laten exploderen.
@@ -223,12 +223,12 @@ export class MenuSuggestionsService {
   ) {}
 
   // ============================================================
-  // LIST — voorstellen tonen, default pending
+  // LIST, voorstellen tonen, default pending
   // ============================================================
   // status='pending' (default) → de "Voorgesteld"-tab. Lazy expire:
   //   voorstellen ouder dan PENDING_TTL_DAYS krijgen status='expired'
   //   zodat de UI alleen actuele voorstellen ziet.
-  // status='rejected' → de "Afgewezen"-tab. Geen lazy expire — een
+  // status='rejected' → de "Afgewezen"-tab. Geen lazy expire, een
   //   chef wil terug kunnen kijken wat ie eerder afwees, en eventueel
   //   alsnog accepteren.
   async list(
@@ -240,7 +240,7 @@ export class MenuSuggestionsService {
         Date.now() - PENDING_TTL_DAYS * 24 * 60 * 60 * 1000,
       ).toISOString();
 
-      // Lazy-expire — niet-fataal als deze update faalt; de
+      // Lazy-expire, niet-fataal als deze update faalt; de
       // selectiequery werkt sowieso, en een mislukte cleanup betekent
       // alleen dat oude voorstellen even blijven hangen.
       await this.supabase.client
@@ -252,7 +252,7 @@ export class MenuSuggestionsService {
     }
 
     // Voor de Afgewezen-tab pakken we alleen recente afwijzingen
-    // (laatste 90 dagen) — anders kan die lijst eindeloos groeien
+    // (laatste 90 dagen), anders kan die lijst eindeloos groeien
     // en wordt 'ie onhanteerbaar voor zaken die maandenlang
     // voorstellen genereren.
     let query = this.supabase.client
@@ -277,13 +277,13 @@ export class MenuSuggestionsService {
   }
 
   // ============================================================
-  // GENERATE — nieuwe voorstellen op basis van menu + profiel
+  // GENERATE, nieuwe voorstellen op basis van menu + profiel
   // ============================================================
   async generate(
     restaurantId: string,
     userId: string,
   ): Promise<SuggestedMenuItem[]> {
-    // Stap 0 — daily cap. Eén batch per kalenderdag per restaurant.
+    // Stap 0, daily cap. Eén batch per kalenderdag per restaurant.
     // We kijken naar audit_log ipv suggested_menu_items zelf zodat
     // ook accepteren/verwijderen van gisteren's voorstellen geen
     // invloed heeft op vandaag's cap. Tijd-vergelijking in UTC zodat
@@ -301,11 +301,11 @@ export class MenuSuggestionsService {
 
     if ((todaysGenerations ?? 0) >= GENERATE_LIMIT_PER_DAY) {
       throw new BadRequestException(
-        'Je hebt vandaag al voorstellen gegenereerd. Filly is bewust een creatieve sparring-tool, geen oneindige bron — kom morgen terug voor nieuwe ideeën.',
+        'Je hebt vandaag al voorstellen gegenereerd. Filly is bewust een creatieve sparring-tool, geen oneindige bron, kom morgen terug voor nieuwe ideeën.',
       );
     }
 
-    // Stap 1 — drempel: minimaal 3 gerechten in menu zodat Filly een
+    // Stap 1, drempel: minimaal 3 gerechten in menu zodat Filly een
     // basis heeft voor gat-analyse + tone-matching. Onder die drempel
     // krijgen we generieke "duidelijke comfort-food"-voorstellen
     // ipv echte aanvulling.
@@ -322,7 +322,7 @@ export class MenuSuggestionsService {
       );
     }
 
-    // Stap 2 — context. Profile + menu via dezelfde blocks die ook
+    // Stap 2, context. Profile + menu via dezelfde blocks die ook
     // de chat en campagne-flow gebruiken (consistente persona).
     const [profileBlock, menuBlock] = await Promise.all([
       this.context.buildProfileBlock(restaurantId).catch(() => ''),
@@ -334,39 +334,39 @@ export class MenuSuggestionsService {
     const monthName = today.toLocaleString('nl-NL', { month: 'long' });
     const season = currentSeasonNL(today);
 
-    const systemPrompt = `Je bent Filly, een AI-sparring-partner voor de chef van het hieronder beschreven restaurant. Hij drukt op "Vraag Filly om voorstellen" om EEN ANDERE INVALSHOEK te zien voor zijn menu — niet om automatisch z'n menu te laten vullen. Geef hem precies 3 voorstellen met elk een DUIDELIJK ANDERE invalshoek.
+    const systemPrompt = `Je bent Filly, een AI-sparring-partner voor de chef van het hieronder beschreven restaurant. Hij drukt op "Vraag Filly om voorstellen" om EEN ANDERE INVALSHOEK te zien voor zijn menu, niet om automatisch z'n menu te laten vullen. Geef hem precies 3 voorstellen met elk een DUIDELIJK ANDERE invalshoek.
 
 Je antwoord komt via de tool 'generate_menu_suggestions'.
 
-Strategie voor variëteit — kies 3 invalshoeken die niet overlappen:
-- gap_analysis: vul een GAT in het bestaande menu — bv. eigenaar heeft geen visgerecht / geen vegetarisch hoofd / geen kinder-optie / geen dessert. Refereer in 'reasoning' EXPLICIET naar wat er ontbreekt.
+Strategie voor variëteit, kies 3 invalshoeken die niet overlappen:
+- gap_analysis: vul een GAT in het bestaande menu, bv. eigenaar heeft geen visgerecht / geen vegetarisch hoofd / geen kinder-optie / geen dessert. Refereer in 'reasoning' EXPLICIET naar wat er ontbreekt.
 - profile_based: past bij cuisine_style + USPs + sfeer + doelgroep. Bv. een Frans bistrootje met lokaal-product-USP → suet-dessert met streekfruit.
 - seasonal: huidig seizoen is ${season} (maand ${monthName}). Pak een gerecht met seizoens-ingrediënten of -bereiding.
 
-Confidence — KRITISCH om correct in te vullen:
+Confidence, KRITISCH om correct in te vullen:
 - 'high' = "Sterke match". Past logisch bij dit restaurant; veilige aanvulling die zo op het menu past.
 - 'medium' = "Redelijke match". Zou kunnen werken, vraagt iets meer overtuiging van de chef.
-- 'low' = "Out of the box". Een gewaagd, onverwacht of avontuurlijk voorstel — niet wat een chef zelf zou bedenken, juist daarom interessant. Probeer minimaal één voorstel met 'low' te maken zodat de chef écht iets nieuws ziet (een ongebruikelijke combinatie, een trend uit een andere keuken, een onverwacht ingrediënt). 'low' is hier POSITIEF; het betekent niet "twijfel".
+- 'low' = "Out of the box". Een gewaagd, onverwacht of avontuurlijk voorstel, niet wat een chef zelf zou bedenken, juist daarom interessant. Probeer minimaal één voorstel met 'low' te maken zodat de chef écht iets nieuws ziet (een ongebruikelijke combinatie, een trend uit een andere keuken, een onverwacht ingrediënt). 'low' is hier POSITIEF; het betekent niet "twijfel".
 
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone uit het profiel (casual/professional/playful).
-- Verzin NIET wat al op het menu staat. Lees MENU goed door — voorstel moet écht een toevoeging zijn, geen variant van een bestaand gerecht.
+- Verzin NIET wat al op het menu staat. Lees MENU goed door, voorstel moet écht een toevoeging zijn, geen variant van een bestaand gerecht.
 - Prijs als realistische range (low/high in centen) op basis van price_range van de onderneming.
 - Beschrijving zoals 'ie op een echte menukaart staat: hoofdingrediënt + bereidingswijze. Géén marketingteksten als "heerlijk", "speciaal", "uniek".
 - dietary_tags: alleen vullen als zeker. Bv. een gerecht met room is NIET lactose_free.
-- reasoning (max 200 tekens): één zin waarom dit voorstel past — verwijs concreet naar profile of menu. Voor 'low'-voorstellen mag je hier juist benadrukken WAAROM het gewaagd is en welke gast het zou aanspreken.
+- reasoning (max 200 tekens): één zin waarom dit voorstel past, verwijs concreet naar profile of menu. Voor 'low'-voorstellen mag je hier juist benadrukken WAAROM het gewaagd is en welke gast het zou aanspreken.
 
 Vandaag is ${todayIso}.
 
 ---
-CONTEXT — alles wat je weet over deze onderneming:
+CONTEXT, alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
 ${menuBlock}
 ---`;
 
-    const userPrompt = `Geef 3 voorstellen met verschillende invalshoeken — minimaal één 'high' en idealiter één 'low' (out of the box) zodat de chef ook iets onverwachts ziet.`;
+    const userPrompt = `Geef 3 voorstellen met verschillende invalshoeken, minimaal één 'high' en idealiter één 'low' (out of the box) zodat de chef ook iets onverwachts ziet.`;
 
     const raw = await this.ai.generateStructured<GenerateResult>({
       system: systemPrompt,
@@ -382,7 +382,7 @@ ${menuBlock}
         userId,
         feature: 'menu_suggestions_generate',
       },
-      // Cache de system-prompt — bij dezelfde zaak binnen 5 min
+      // Cache de system-prompt, bij dezelfde zaak binnen 5 min
       // (bv. eigenaar drukt nogmaals na refine) krijgen we ~90%
       // korting op input-tokens.
       cacheSystem: true,
@@ -394,7 +394,7 @@ ${menuBlock}
       );
     }
 
-    // Stap 3 — wegschrijven als pending-rijen. Bulk-insert; bij DB-fout
+    // Stap 3, wegschrijven als pending-rijen. Bulk-insert; bij DB-fout
     // gaat alles tegelijk terug en krijgt de UI een nette foutmelding.
     const rows = raw.suggestions.map((s) => ({
       restaurant_id: restaurantId,
@@ -417,7 +417,7 @@ ${menuBlock}
       .select(SUGGESTED_COLUMNS);
     if (insErr) throw new InternalServerErrorException(insErr.message);
 
-    // Audit: één rij per generate-batch, niet per voorstel — 5 voorstellen
+    // Audit: één rij per generate-batch, niet per voorstel, 5 voorstellen
     // ineens is één eigenaars-actie, niet 5 verschillende beslissingen.
     await this.audit.log({
       restaurantId,
@@ -439,14 +439,14 @@ ${menuBlock}
   }
 
   // ============================================================
-  // ACCEPT — voorstel → echt menu_item
+  // ACCEPT, voorstel → echt menu_item
   // ============================================================
   async accept(
     restaurantId: string,
     suggestionId: string,
     userId: string,
   ): Promise<{ menu_item_id: string }> {
-    // Stap 1 — voorstel ophalen + status-check. RLS dwingt al af dat
+    // Stap 1, voorstel ophalen + status-check. RLS dwingt al af dat
     // je alleen je eigen voorstellen ziet, maar status-validatie hier
     // zodat we een nette foutmelding kunnen geven ipv een silent insert.
     const { data: sugg, error: fetchErr } = await this.supabase.client
@@ -465,14 +465,14 @@ ${menuBlock}
       );
     }
 
-    // Stap 2 — als prijs een range is, pak het midden als startwaarde.
+    // Stap 2, als prijs een range is, pak het midden als startwaarde.
     // Eigenaar kan 'm daarna in de menu-pagina aanpassen.
     const startPrice = midPrice(
       sugg.price_cents_low as number | null,
       sugg.price_cents_high as number | null,
     );
 
-    // Stap 3 — insert in menu_items.
+    // Stap 3, insert in menu_items.
     const { data: newItem, error: insErr } = await this.supabase.client
       .from('menu_items')
       .insert({
@@ -488,9 +488,9 @@ ${menuBlock}
       .single();
     if (insErr) throw new InternalServerErrorException(insErr.message);
 
-    // Stap 4 — voorstel markeren als accepted + FK naar nieuwe item.
+    // Stap 4, voorstel markeren als accepted + FK naar nieuwe item.
     // Als deze update faalt staat er een dubbel item zonder back-ref;
-    // niet ideaal maar het bestaande gerecht is wel toegevoegd —
+    // niet ideaal maar het bestaande gerecht is wel toegevoegd,
     // eigenaar ziet 't gewoon en de UI re-fetcht alles.
     const { error: updErr } = await this.supabase.client
       .from('suggested_menu_items')
@@ -520,7 +520,7 @@ ${menuBlock}
   }
 
   // ============================================================
-  // REJECT — voorstel afwijzen (status='rejected')
+  // REJECT, voorstel afwijzen (status='rejected')
   // ============================================================
   async reject(
     restaurantId: string,
@@ -561,7 +561,7 @@ ${menuBlock}
   }
 
   // ============================================================
-  // REFINE — vraag een variant van het voorstel
+  // REFINE, vraag een variant van het voorstel
   // ============================================================
   // Filly krijgt het oorspronkelijke voorstel + alle eerdere refines
   // mee als context, met instructie "geef een wezenlijk andere kant
@@ -636,7 +636,7 @@ Je antwoord komt via de tool 'refine_menu_suggestion' met één voorstel.
 
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone.
-- VERMIJD de hoofdingrediënt en bereidingswijze van het oorspronkelijke voorstel — eigenaar zoekt iets anders.
+- VERMIJD de hoofdingrediënt en bereidingswijze van het oorspronkelijke voorstel, eigenaar zoekt iets anders.
 - Verzin NIET wat al op het menu staat (zie MENU).
 - Prijs realistisch op basis van de onderneming's price_range.
 - reasoning: 1 zin waarom DEZE variant beter past dan het oorspronkelijke voorstel.
@@ -650,7 +650,7 @@ OORSPRONKELIJK VOORSTEL (vermijd vergelijkbare invulling):
 
 ${previousList ? `EERDERE VARIANTEN die je AL hebt voorgesteld (verzin niet hetzelfde):\n${previousList}\n` : ''}
 ---
-CONTEXT — alles wat je weet over deze onderneming:
+CONTEXT, alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -701,7 +701,7 @@ ${menuBlock}
     if (insErr) throw new InternalServerErrorException(insErr.message);
 
     // Het oude voorstel markeren als refined_into zodat de UI 'm uit
-    // de "actieve voorstellen"-lijst kan halen — eigenaar werkt nu
+    // de "actieve voorstellen"-lijst kan halen, eigenaar werkt nu
     // met de nieuwe variant.
     const { error: oldUpdErr } = await this.supabase.client
       .from('suggested_menu_items')

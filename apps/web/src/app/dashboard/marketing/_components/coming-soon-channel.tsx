@@ -5,7 +5,7 @@ import { Button } from "../../../../components/ui/button";
 
 /**
  * ============================================================
- * <ComingSoonChannel> — gedeeld template voor IG/FB/TikTok-pagina's
+ * <ComingSoonChannel>, gedeeld template voor IG/FB/TikTok-pagina's
  * ============================================================
  *
  * Toont een placeholder met:
@@ -35,7 +35,7 @@ export function ComingSoonChannel({
     <div className="page-full">
       <PageHeader
         title={`${channelName}-prestaties`}
-        subtitle={`Bereik, engagement en publiek-data — beschikbaar zodra ${channelName} gekoppeld is.`}
+        subtitle={`Bereik, engagement en publiek-data, beschikbaar zodra ${channelName} gekoppeld is.`}
       />
 
       {/* Status-banner met uitleg waarom nog niet werkt. Vergelijkbaar

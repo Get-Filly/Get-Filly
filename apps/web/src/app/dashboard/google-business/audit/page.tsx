@@ -25,11 +25,11 @@ import { useRestaurant } from "../../../../lib/restaurant-context";
  * concrete actie-hints per finding.
  *
  * Drie visuele groepen, in deze volgorde:
- *   1. Critical — rode banner, max-impact issues (bv. profiel staat
+ *   1. Critical, rode banner, max-impact issues (bv. profiel staat
  *      op "tijdelijk gesloten")
- *   2. Warning — oranje, kerninfo ontbreekt (telefoon, website,
+ *   2. Warning, oranje, kerninfo ontbreekt (telefoon, website,
  *      openingstijden, te weinig foto's of reviews)
- *   3. Tip — blauw, verbeterruimte (rating-coaching, weekend-uren etc)
+ *   3. Tip, blauw, verbeterruimte (rating-coaching, weekend-uren etc)
  *
  * Bij geen koppeling: empty-state die naar /dashboard/google-business
  * verwijst voor de connect-flow.
@@ -58,7 +58,7 @@ export default function ProfielAuditPage() {
       .catch((err) => {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : "Onbekende fout";
-        // Backend geeft NotFound met "Geen Google-koppeling" — vangen
+        // Backend geeft NotFound met "Geen Google-koppeling", vangen
         // we apart op zodat de empty-state een nette CTA kan tonen i.p.v.
         // een rode error-banner.
         if (msg.includes("Geen Google-koppeling")) {

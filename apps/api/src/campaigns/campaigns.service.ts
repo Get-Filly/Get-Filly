@@ -115,7 +115,7 @@ export class CampaignsService {
     private readonly audit: AuditLogService,
     // AnonymizationService bouwt bij `status → afgerond` een
     // geanonimiseerde benchmark-rij op (Recital 26 GDPR). Fail-soft
-    // — een falende benchmark mag de status-overgang nooit blokkeren.
+    //, een falende benchmark mag de status-overgang nooit blokkeren.
     private readonly anonymization: AnonymizationService,
   ) {}
 
@@ -159,7 +159,7 @@ export class CampaignsService {
     // Signed URLs voor media. We slaan paden op in de DB (niet
     // public URLs), dus frontend krijgt voor elke render verse signed
     // URLs. 1 uur expiry is genoeg voor dashboard-sessie. Falen we
-    // op signing? Dan tonen we 'm gewoon zonder foto — niet de hele
+    // op signing? Dan tonen we 'm gewoon zonder foto, niet de hele
     // detail-page laten crashen.
     let signedContent = content;
     if (content && campaign.type === 'social') {
@@ -283,7 +283,7 @@ export class CampaignsService {
     if (input.type === 'mail') {
       // Mail-tabel eist subject_line NOT NULL. Als Filly 'm niet gaf
       // (wat niet zou moeten bij type=mail), vallen we terug op de
-      // campagne-naam — beter een zinvol onderwerp dan een DB-fout.
+      // campagne-naam, beter een zinvol onderwerp dan een DB-fout.
       const { error } = await this.supabase.client
         .from('campaign_mail_content')
         .insert({
@@ -349,7 +349,7 @@ export class CampaignsService {
   }
 
   // Bijwerken van een concept-campagne. Alleen toegestaan zolang
-  // status='concept' — daarna is de campagne immutable zodat we
+  // status='concept', daarna is de campagne immutable zodat we
   // voor audit/verzendlogica geen silent wijzigingen krijgen
   // (een reeds verstuurde mail mag z'n body niet stiekem zien
   // veranderen). Naast name + subject_line + body updaten we óók
@@ -393,7 +393,7 @@ export class CampaignsService {
     // Bij handmatige body-wijziging (from_variant=false) wissen we
     // de cached filly_variants en resetten regen-count: oude
     // alternatieven matchen niet meer met de nieuwe inhoud.
-    // Bij variant-apply (from_variant=true): NIET wissen — variant is
+    // Bij variant-apply (from_variant=true): NIET wissen, variant is
     // gekozen, klaar, en variant_applied_at gaat aan zodat de UI de
     // refine-sectie verbergt.
     const bodyChanging = typeof input.body === 'string';
@@ -410,10 +410,10 @@ export class CampaignsService {
       }
       if (bodyChanging) {
         if (input.from_variant) {
-          // Variant gekozen — markeer en behoud cache.
+          // Variant gekozen, markeer en behoud cache.
           updates.variant_applied_at = new Date().toISOString();
         } else {
-          // Handmatige edit — cache wissen.
+          // Handmatige edit, cache wissen.
           updates.filly_variants = [];
           updates.filly_variants_regen_count = 0;
         }
@@ -545,7 +545,7 @@ export class CampaignsService {
     // Bij afronding: schrijf een geanonimiseerde benchmark-rij weg
     // zodat Filly deze ervaring later kan gebruiken om voorstellen
     // te onderbouwen ("voor italiaanse zaken in NH werkte thema X").
-    // Fail-soft via de service zelf — gebruiker merkt nooit als 'm
+    // Fail-soft via de service zelf, gebruiker merkt nooit als 'm
     // faalt; alleen logger.warn in de backend.
     if (nextStatus === 'afgerond') {
       await this.anonymization.benchmarkCampaign(id);
@@ -589,7 +589,7 @@ export class CampaignsService {
         ? data.filly_variants_regen_count
         : 0;
     // Max 2 generaties (eerste set + 1× extra). Daarna moet de
-    // eigenaar handmatig bewerken — zo houden we Claude-kosten
+    // eigenaar handmatig bewerken, zo houden we Claude-kosten
     // onder controle bij druk-klik-gedrag.
     const can_regenerate =
       data.status === 'concept' && regenerate_count < 2;
@@ -688,7 +688,7 @@ export class CampaignsService {
     // Profile + menu blocks ophalen: Filly weet zo welke gerechten op
     // de kaart staan, USPs/doelgroep/sfeer/brand_tone, en kan in zijn
     // varianten verwijzen naar échte gerechten met échte prijzen i.p.v.
-    // generieke "lekker-gerecht"-tekst. Live-block laten we weg —
+    // generieke "lekker-gerecht"-tekst. Live-block laten we weg,
     // varianten gaan over een toekomstige verzending, niet over
     // actuele bezetting van vandaag.
     const [profileBlock, menuBlock] = await Promise.all([
@@ -723,7 +723,7 @@ Inhoudsregels:
   of in het profiel/menu staan.
 
 ---
-CONTEXT — alles wat je weet over deze onderneming:
+CONTEXT, alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -754,7 +754,7 @@ ${menuBlock}
         restaurantId,
         feature: 'campaign_refine',
       },
-      // System bevat profile + menu — bij regenerate (1× extra binnen
+      // System bevat profile + menu, bij regenerate (1× extra binnen
       // 5 min na initial) bespaart caching ~90% input-tokens.
       cacheSystem: true,
     });
@@ -868,7 +868,7 @@ ${menuBlock}
 
     // Pad samenstellen. Sanitize de filename: alleen alfanumeriek +
     // streepje + punt voor extensie. Te streng of te los is hier
-    // niet waardevol — we willen path-traversal voorkomen.
+    // niet waardevol, we willen path-traversal voorkomen.
     const safeName = file.originalName
       .replace(/[^a-zA-Z0-9._-]/g, '_')
       .slice(0, 80);
@@ -1023,7 +1023,7 @@ ${menuBlock}
       : [];
 
     // Cyclen-pad: na 4 unieke alternatieven (current + 3 in history)
-    // genereren we niet meer. Round-robin door de 4 alternatieven —
+    // genereren we niet meer. Round-robin door de 4 alternatieven,
     // pak oudste uit history, schuif huidige current naar einde.
     // Geen Claude-call.
     const MAX_UNIQUE_BEFORE_CYCLE = 3; // history-cap; 3 + current = 4 totaal
@@ -1078,9 +1078,9 @@ ${menuBlock}
 
     // Profile + live blocks. Profile geeft Filly de identiteit (type,
     // doelgroep, openingstijden, special events) en live-block geeft
-    // 'm de actuele bezetting komende dagen — handig om druk-bezette
+    // 'm de actuele bezetting komende dagen, handig om druk-bezette
     // momenten te mijden of juist een lage-bezettingsdag te kiezen
-    // als verzenddoel. Menu-block laten we weg — irrelevant voor het
+    // als verzenddoel. Menu-block laten we weg, irrelevant voor het
     // tijdstip-vraagstuk.
     const [profileBlock, liveBlock] = await Promise.all([
       this.context.buildProfileBlock(restaurantId).catch(() => ''),
@@ -1098,23 +1098,23 @@ Regels voor de datum:
 - KIES een tijdstip vanaf morgen, niet vandaag (geef de eigenaar tijd om te reviewen).
 - Vandaag is ${todayIso}.
 - Houd rekening met de bezetting (uit het live-blok): mijd dagen die al >85% bezet zijn (zonde van de mailing) en geef juist voorrang aan dagen <50% bezetting bij activatie-campagnes.
-- Houd rekening met openingstijden uit het profiel — geen verzending plannen op een dag dat de onderneming gesloten is.
-- Houd rekening met special events uit het profiel (bv. wekelijks terugkerende avonden) — die kunnen het verzendmoment juist sterker maken (verzend dezelfde dag) of zwakker (verzend ervoor zodat mensen kunnen plannen).
+- Houd rekening met openingstijden uit het profiel, geen verzending plannen op een dag dat de onderneming gesloten is.
+- Houd rekening met special events uit het profiel (bv. wekelijks terugkerende avonden), die kunnen het verzendmoment juist sterker maken (verzend dezelfde dag) of zwakker (verzend ervoor zodat mensen kunnen plannen).
 
 Regels voor het tijdstip per type:
 - "mail" → 's ochtends 9:00–10:30 (open-rate piek voor B2C horeca) of 's avonds 19:30–20:30 (lees-piek tijdens binge-momenten).
 - "social" → 17:00–20:00 (Instagram/Facebook prime time) of weekend rond 11:00 (brunch-mood).
-- "whatsapp" → 18:00–20:30 (mensen plannen avond) — niet later dan 21:00 (te laat voelt opdringerig).
+- "whatsapp" → 18:00–20:30 (mensen plannen avond), niet later dan 21:00 (te laat voelt opdringerig).
 
 Regels voor de dag:
 - Vermijd zondagochtend voor B2C-marketing (kerk-tijd, slecht open-rate).
 - Donderdag/vrijdag scoren goed voor weekend-acties.
 - Maandag is laag voor entertainment-promo's.
 
-Reasoning kort, helder, in NL — verwijs naar concrete data uit profiel of bezetting. Bv. "Donderdag 19:30 — donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
+Reasoning kort, helder, in NL, verwijs naar concrete data uit profiel of bezetting. Bv. "Donderdag 19:30, donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
 
 ---
-CONTEXT — restaurant-profiel + actuele bezetting:
+CONTEXT, restaurant-profiel + actuele bezetting:
 
 ${profileBlock}
 
@@ -1176,7 +1176,7 @@ Geef het beste verzendmoment.`;
 
   // Set de definitieve scheduled_for voor een concept-campagne.
   // Wordt aangeroepen wanneer eigenaar het Filly-voorstel accepteert
-  // óf zelf een tijdstip kiest. Geen status-transitie hier — die
+  // óf zelf een tijdstip kiest. Geen status-transitie hier, die
   // gebeurt apart via updateStatus (concept → ingepland).
   async setSchedule(
     restaurantId: string,
@@ -1216,7 +1216,7 @@ Geef het beste verzendmoment.`;
     return { id, scheduled_for: datetimeIso };
   }
 
-  // Helper: maak signed URL voor 1 storage-pad. 1 uur geldig — past
+  // Helper: maak signed URL voor 1 storage-pad. 1 uur geldig, past
   // bij dashboard-sessie-duur. Voor verzend-API's straks een verse
   // URL genereren met langere expiry.
   async signMediaPath(path: string): Promise<string> {
@@ -1227,7 +1227,7 @@ Geef het beste verzendmoment.`;
     return data.signedUrl;
   }
 
-  // Hard delete. Toegestaan voor concept én ingepland — een ingeplande
+  // Hard delete. Toegestaan voor concept én ingepland, een ingeplande
   // campagne is nog niet uitgegaan, dus verwijderen heeft geen audit-
   // impact (geen ontvangers, geen meet-data). Actieve en afgeronde
   // campagnes zijn audit-relevant: die blijven in de DB staan.
@@ -1264,7 +1264,7 @@ Geef het beste verzendmoment.`;
     if (delErr) throw new InternalServerErrorException(delErr.message);
 
     // Audit: campagne verwijderd. Onomkeerbaar dus extra belangrijk
-    // dat we 't loggen — we kunnen later aantonen dat er niets stilletjes
+    // dat we 't loggen, we kunnen later aantonen dat er niets stilletjes
     // weg is gemoffeld.
     await this.audit.log({
       restaurantId,

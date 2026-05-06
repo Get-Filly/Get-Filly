@@ -26,11 +26,11 @@ const weekdays = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
 
 /**
  * Map occupancy-percentage naar één van vijf heatmap-tiers.
- *   <40%  = lvl-0 (rood)        — kritiek
- *   40-65 = lvl-1 (koper licht) — onder verwachting
- *   65-80 = lvl-2 (koper)       — gemiddeld
- *   80-95 = lvl-3 (groen licht) — goed
- *   95+   = lvl-4 (groen vol)   — topdag
+ *   <40%  = lvl-0 (rood)       , kritiek
+ *   40-65 = lvl-1 (koper licht), onder verwachting
+ *   65-80 = lvl-2 (koper)      , gemiddeld
+ *   80-95 = lvl-3 (groen licht), goed
+ *   95+   = lvl-4 (groen vol)  , topdag
  *
  * Zelfde tiers als de mini-dashboard op de landingspagina, zodat de
  * kalender op het echte dashboard er identiek uitziet.
@@ -72,7 +72,7 @@ function campaignEmoji(type: string): string {
 
 /**
  * Mock uurbezetting voor de dag-view. We hebben (nog) geen echte
- * hourly-data — die komt via reserveringsplatform-integraties (Zenchef
+ * hourly-data, die komt via reserveringsplatform-integraties (Zenchef
  * etc.). Tot die tijd genereren we een realistische horeca-dag-shape:
  * lunch-piek 12-14u, dip 15-17u, diner-piek 18-21u. We schalen het
  * geheel met de dag-bezetting van de geselecteerde dag zodat een
@@ -87,7 +87,7 @@ const HOUR_LABELS = ["11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
 const HOUR_BASELINE = [25, 70, 85, 60, 25, 15, 35, 70, 95, 90, 65, 35];
 
 function mockHourlyForDay(dayPct: number, dayIdx: number): number[] {
-  // Schalen rond gemiddelde — als dayPct hoog is wordt elk uur hoger,
+  // Schalen rond gemiddelde, als dayPct hoog is wordt elk uur hoger,
   // als dayPct laag is, lager. Houd hoofd-shape (lunch/diner) intact.
   const target = dayPct || 50;
   const baselineAvg = HOUR_BASELINE.reduce((a, b) => a + b, 0) / HOUR_BASELINE.length;
@@ -362,7 +362,7 @@ export function CalendarCard({
           // deterministische seededOccupancy-fallback. Zonder die
           // fallback toonde week-view 0% voor dagen buiten de geladen
           // maand terwijl maand-view zelf wel een mock-percentage liet
-          // zien — percentages moeten matchen tussen views.
+          // zien, percentages moeten matchen tussen views.
           const dayLabels = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
           const todayStr = today.toISOString().slice(0, 10);
           const days = Array.from({ length: 7 }, (_, i) => {

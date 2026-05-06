@@ -21,7 +21,7 @@ import {
 } from "./filly-chat-choice-card";
 
 // ============================================================
-// FillyChatMessageList — render-loop voor de chat-thread.
+// FillyChatMessageList, render-loop voor de chat-thread.
 //
 // Verantwoordelijkheden:
 //   1. Loading-state ("Chat laden…") tijdens initial fetch

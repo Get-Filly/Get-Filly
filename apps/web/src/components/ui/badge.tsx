@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 
 // ============================================================
-// <Badge> — pill-stijl status-indicator
+// <Badge>, pill-stijl status-indicator
 // ============================================================
 //
 // Gebruik voor: campagne-status (concept/ingepland/actief/afgerond),
@@ -9,18 +9,18 @@ import type { HTMLAttributes } from "react";
 // en ander "type-of-thing"-labels.
 //
 // Variants:
-//   neutral   — grijs, voor type-labels zonder status-betekenis
-//   brand     — groen, voor brand-attributie ("via Filly")
-//   success   — groen, voor positieve status (bevestigd, voltooid)
-//   warning   — oranje, voor attention (no_show, ingeplande maar laat)
-//   danger    — rood, voor problemen (geannuleerd, mislukt)
-//   info      — blauw, voor neutrale info (nieuw, beta)
+//   neutral  , grijs, voor type-labels zonder status-betekenis
+//   brand    , groen, voor brand-attributie ("via Filly")
+//   success  , groen, voor positieve status (bevestigd, voltooid)
+//   warning  , oranje, voor attention (no_show, ingeplande maar laat)
+//   danger   , rood, voor problemen (geannuleerd, mislukt)
+//   info     , blauw, voor neutrale info (nieuw, beta)
 //
 // Stijl-keuzes:
 //   - Soft-color background + vol-color tekst geeft een papier-warme
 //     uitstraling i.p.v. een vol-color block.
 //   - Optioneel een puntje (●) ervoor voor extra zichtbaarheid bij
-//     status-indicatoren — handig in tabellen.
+//     status-indicatoren, handig in tabellen.
 // ============================================================
 
 export type BadgeVariant =

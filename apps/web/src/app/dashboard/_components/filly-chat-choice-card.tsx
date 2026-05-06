@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ChannelChoiceCard } from "../../../lib/api";
 
 // ============================================================
-// FillyChatChoiceCard — kanaal-keuze-vraag in chat (multi-select)
+// FillyChatChoiceCard, kanaal-keuze-vraag in chat (multi-select)
 // ============================================================
 //
 // Wordt onder Filly's bericht getoond wanneer message_card.kind ===
@@ -15,7 +15,7 @@ import type { ChannelChoiceCard } from "../../../lib/api";
 //
 // Submit-logica (in parent):
 //   - 1 single-kanaal aangevinkt   → FORMAAT 1 (single proposal)
-//   - 2+ kanalen aangevinkt        → FORMAAT 2 (bundle — Filly genereert
+//   - 2+ kanalen aangevinkt        → FORMAAT 2 (bundle, Filly genereert
 //                                    altijd alle 3 standaard-kanalen
 //                                    mail+IG+FB; eigenaar kan in de
 //                                    bundle-card alsnog wegvinken)
@@ -58,7 +58,7 @@ export function FillyChatChoiceCard({
   state,
   onChoose,
 }: Props) {
-  // Multi-select state — alle 4 starten uitgevinkt zodat eigenaar
+  // Multi-select state, alle 4 starten uitgevinkt zodat eigenaar
   // bewust een keuze maakt (geen accidentele submit-bij-default).
   const [selected, setSelected] = useState<Record<ChannelChoice, boolean>>({
     mail: false,
@@ -98,7 +98,7 @@ export function FillyChatChoiceCard({
     });
   };
 
-  // Knop-label hangt af van de combinatie — geeft eigenaar voor klikken
+  // Knop-label hangt af van de combinatie, geeft eigenaar voor klikken
   // duidelijkheid wat er gaat gebeuren.
   const buttonLabel =
     chosenCount === 0

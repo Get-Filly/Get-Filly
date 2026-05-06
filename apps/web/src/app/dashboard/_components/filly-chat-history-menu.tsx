@@ -8,7 +8,7 @@ import {
 } from "../../../lib/api";
 
 // ============================================================
-// FillyChatHistoryMenu — dropdown in chat-card-header met conversaties
+// FillyChatHistoryMenu, dropdown in chat-card-header met conversaties
 // ============================================================
 //
 // Toont een list van eerdere chat-conversaties + "+ Nieuw gesprek"-
@@ -24,7 +24,7 @@ import {
 //   - Klik op een titel of "+ Nieuw gesprek"
 //
 // Lege staat: bij 0 conversaties tonen we alleen de "+ Nieuw gesprek"-
-// item — geen "geen conversaties"-boodschap, want de gebruiker zit
+// item, geen "geen conversaties"-boodschap, want de gebruiker zit
 // per definitie al in een conversatie als 'ie de menu opent.
 // ============================================================
 
@@ -246,7 +246,7 @@ export function FillyChatHistoryMenu({
                 >
                   {c.message_count}/{CHAT_CONVERSATION_CAP}
                 </span>
-                {/* Delete-knop — stopPropagation voorkomt dat de
+                {/* Delete-knop, stopPropagation voorkomt dat de
                     parent-row-onClick (switch) ook wordt afgevuurd. */}
                 <button
                   type="button"

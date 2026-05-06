@@ -21,7 +21,7 @@ import { useRestaurant } from "../../../../lib/restaurant-context";
  * ============================================================
  *
  * Volledig live met `campaign_sends`-data uit Resend webhooks.
- * Geen approval nodig — dit werkt vandaag al.
+ * Geen approval nodig, dit werkt vandaag al.
  *
  * Layout:
  *   - 5 KPI-tegels (verzonden / open / click / bounce / unsubscribe)
@@ -29,7 +29,7 @@ import { useRestaurant } from "../../../../lib/restaurant-context";
  *   - Per-campagne tabel (laatste 90 dagen)
  *   - Empty-state als nog geen mail verzonden
  *
- * Heatmap (beste verzendmoment) en trends-grafiek volgen later —
+ * Heatmap (beste verzendmoment) en trends-grafiek volgen later,
  * pas relevant als klant >10 campagnes heeft verzonden.
  * ============================================================
  */
@@ -71,7 +71,7 @@ export default function MailMarketingPage() {
       <div className="page-full">
         <PageHeader
           title="Mail-prestaties"
-          subtitle="Open rates, click rates en industrie-vergelijking — uit je Resend-data."
+          subtitle="Open rates, click rates en industrie-vergelijking, uit je Resend-data."
         />
         <div
           style={{
@@ -113,7 +113,7 @@ export default function MailMarketingPage() {
       <div className="page-full">
         <PageHeader
           title="Mail-prestaties"
-          subtitle="Open rates, click rates en industrie-vergelijking — uit je Resend-data."
+          subtitle="Open rates, click rates en industrie-vergelijking, uit je Resend-data."
         />
         <EmptyState
           icon="📧"
@@ -133,10 +133,10 @@ export default function MailMarketingPage() {
     <div className="page-full">
       <PageHeader
         title="Mail-prestaties"
-        subtitle={`${stats.sent.toLocaleString("nl-NL")} verzonden mails over ${stats.campaignCount} campagne${stats.campaignCount === 1 ? "" : "s"} — laatste ${stats.periodDays} dagen.`}
+        subtitle={`${stats.sent.toLocaleString("nl-NL")} verzonden mails over ${stats.campaignCount} campagne${stats.campaignCount === 1 ? "" : "s"}, laatste ${stats.periodDays} dagen.`}
       />
 
-      {/* KPI-tegels — 4 hoofd-metrics naast elkaar. Open + click hebben
+      {/* KPI-tegels, 4 hoofd-metrics naast elkaar. Open + click hebben
           benchmark-vergelijking; bounce + unsubscribe alleen waarschuwing
           als boven drempel. */}
       <div
@@ -181,7 +181,7 @@ export default function MailMarketingPage() {
         />
       </div>
 
-      {/* Industrie-bron transparant tonen — credibility. */}
+      {/* Industrie-bron transparant tonen, credibility. */}
       <div
         style={{
           fontSize: 11,
@@ -193,7 +193,7 @@ export default function MailMarketingPage() {
         Mediaan-cijfers uit {stats.benchmark.source}
       </div>
 
-      {/* Per-campagne tabel — sorteer op datum aflopend (recent eerst) */}
+      {/* Per-campagne tabel, sorteer op datum aflopend (recent eerst) */}
       <Card noPadding>
         <div style={{ overflowX: "auto" }}>
           <table
@@ -313,7 +313,7 @@ export default function MailMarketingPage() {
         }}
       >
         Heatmap (beste verzendmoment) en trends-grafiek volgen zodra je
-        meer dan 10 campagnes hebt verzonden — anders zegt het beeld
+        meer dan 10 campagnes hebt verzonden, anders zegt het beeld
         weinig.
       </div>
     </div>

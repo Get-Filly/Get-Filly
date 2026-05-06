@@ -8,7 +8,7 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// CampaignSchedulePanel — Filly stelt verzendmoment voor + accept/edit
+// CampaignSchedulePanel, Filly stelt verzendmoment voor + accept/edit
 // ============================================================
 // Inline card op /campagnes/[id] (concept of ingepland). Drie states:
 //   - Geen scheduled_for + geen suggested → bootstrap (auto-trigger

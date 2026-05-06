@@ -3,7 +3,7 @@ import { RestaurantAccess } from './restaurant-access.service';
 
 /**
  * ============================================================
- * @CurrentRestaurant() — alle info over het actieve restaurant
+ * @CurrentRestaurant(), alle info over het actieve restaurant
  * ============================================================
  *
  * Gebruik:

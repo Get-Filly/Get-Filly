@@ -11,7 +11,7 @@ import { Button } from "../../../../components/ui/button";
  * Facebook-marketing-pagina (preview met voorbeeld-data)
  * ============================================================
  *
- * Volledig uitgewerkte UI zoals 't straks gaat zijn — gevuld met
+ * Volledig uitgewerkte UI zoals 't straks gaat zijn, gevuld met
  * realistische horeca-cijfers. Verschilt van de Instagram-pagina:
  *
  *   - Reactions-mix (👍❤️😂😮😢😡) i.p.v. likes
@@ -46,7 +46,7 @@ const PREVIEW = {
     engagementRate: 0.034,
     source: "Horeca-mediaan FB (Hootsuite 2024)",
   },
-  // 30 dagen reach-data — FB heeft minder weekend-piek dan IG, vlakker
+  // 30 dagen reach-data, FB heeft minder weekend-piek dan IG, vlakker
   // pattern, kleine spikes op evenement-aankondigingen.
   reachTrend: [
     220, 245, 215, 265, 280, 305, 290,
@@ -59,7 +59,7 @@ const PREVIEW = {
     {
       type: "event" as const,
       thumbnail: "🎉",
-      caption: "Wijn-pairing-avond — beperkt aantal plekken",
+      caption: "Wijn-pairing-avond, beperkt aantal plekken",
       reach: 6128,
       engagementRate: 7.8,
       reactions: { like: 145, love: 87, wow: 23, haha: 4, sad: 0, angry: 0 },
@@ -70,7 +70,7 @@ const PREVIEW = {
     {
       type: "photo" as const,
       thumbnail: "🍝",
-      caption: "Verse pasta — handgemaakt, dagelijks vers in onze open keuken",
+      caption: "Verse pasta, handgemaakt, dagelijks vers in onze open keuken",
       reach: 3216,
       engagementRate: 5.4,
       reactions: { like: 98, love: 54, wow: 12, haha: 2, sad: 0, angry: 0 },
@@ -81,7 +81,7 @@ const PREVIEW = {
     {
       type: "video" as const,
       thumbnail: "🎬",
-      caption: "Behind the scenes — chef Marco bereidt het seizoenmenu",
+      caption: "Behind the scenes, chef Marco bereidt het seizoenmenu",
       reach: 2842,
       engagementRate: 4.6,
       reactions: { like: 67, love: 41, wow: 18, haha: 1, sad: 0, angry: 0 },
@@ -156,7 +156,7 @@ const PREVIEW = {
       severity: "tip" as const,
       title: "Events presteren bovengemiddeld",
       description:
-        "Je 2 events (Wijn-pairing en eerder Asperge-week) scoorden 8.0% engagement — boven je FB-gemiddelde van 4.5%. Deze content-vorm pakt je publiek aan.",
+        "Je 2 events (Wijn-pairing en eerder Asperge-week) scoorden 8.0% engagement, boven je FB-gemiddelde van 4.5%. Deze content-vorm pakt je publiek aan.",
       hint: "Plan komende maand 1-2 events. Een 'live cooking-demo' of 'wijn-pairing met de chef' past goed bij je profiel.",
     },
     {
@@ -164,17 +164,17 @@ const PREVIEW = {
       title: "Lunch-piek beter benutten",
       description:
         "Tussen 12:00-13:00 is je publiek het meest actief op zaterdag, maar je post er nooit. Mensen plannen daar hun avond.",
-      hint: "Probeer een zaterdagochtend-post om 11:30 of 12:00 — maakt de avondreservering al hot voordat ze hun zoektocht beginnen.",
+      hint: "Probeer een zaterdagochtend-post om 11:30 of 12:00, maakt de avondreservering al hot voordat ze hun zoektocht beginnen.",
     },
     {
       severity: "warning" as const,
       title: "Engagement onder mediaan",
       description:
-        "2.9% vs horeca-mediaan 3.4% — niet alarmerend, wel verbeterruimte. Vooral je linkshares zijn zwak (2.8%).",
+        "2.9% vs horeca-mediaan 3.4%, niet alarmerend, wel verbeterruimte. Vooral je linkshares zijn zwak (2.8%).",
       hint: "Vervang link-only-posts door foto's met de link in de comment. FB-algoritme straft externe links zwaar.",
     },
   ],
-  fillyAnalysis: `Je page-likes zijn stabiel met een lichte groei (+12 deze week). FB-publiek voor jouw onderneming is ouder dan op IG (zwaartepunt 35-54), wat past bij hogere besteed-power maar minder engagement-rate. Twee dingen vallen op: events presteren consistent dubbel zo goed als foto's — daar zou ik op blijven inzetten. En je doet erg weinig op zaterdagochtend, terwijl je publiek daar piek-actief is.`,
+  fillyAnalysis: `Je page-likes zijn stabiel met een lichte groei (+12 deze week). FB-publiek voor jouw onderneming is ouder dan op IG (zwaartepunt 35-54), wat past bij hogere besteed-power maar minder engagement-rate. Twee dingen vallen op: events presteren consistent dubbel zo goed als foto's, daar zou ik op blijven inzetten. En je doet erg weinig op zaterdagochtend, terwijl je publiek daar piek-actief is.`,
 };
 
 export default function FacebookMarketingPage() {
@@ -187,7 +187,7 @@ export default function FacebookMarketingPage() {
     <div className="page-full">
       <PageHeader
         title={`Facebook · ${PREVIEW.page.name}`}
-        subtitle="Page-bereik, reactions en publiek-data — afgelopen 30 dagen."
+        subtitle="Page-bereik, reactions en publiek-data, afgelopen 30 dagen."
         actions={
           <>
             <Button variant="secondary" size="sm" disabled title="Beschikbaar na Meta-koppeling">
@@ -324,7 +324,7 @@ export default function FacebookMarketingPage() {
         </CardBody>
       </Card>
 
-      {/* Reactions-mix — FB-specifiek, IG heeft alleen likes */}
+      {/* Reactions-mix, FB-specifiek, IG heeft alleen likes */}
       <Card style={{ marginTop: "var(--space-5)" }}>
         <CardBody>
           <div
@@ -345,7 +345,7 @@ export default function FacebookMarketingPage() {
               lineHeight: 1.5,
             }}
           >
-            {totalReactions} reacties op je posts — verdeling laat zien hoe je publiek emotioneel reageert.
+            {totalReactions} reacties op je posts, verdeling laat zien hoe je publiek emotioneel reageert.
           </div>
           <div
             style={{
@@ -401,7 +401,7 @@ export default function FacebookMarketingPage() {
           >
             <strong style={{ color: "#1F4A2D" }}>Filly's patroon:</strong>{" "}
             Events &gt; Video's &gt; Foto's &gt; Links voor jouw publiek.
-            Sterk gevoel-element ('love'-reacties hoog) — content met
+            Sterk gevoel-element ('love'-reacties hoog), content met
             warmte/menselijkheid pakt het beste.
           </div>
         </CardBody>

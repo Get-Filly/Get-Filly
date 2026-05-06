@@ -3,15 +3,15 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { AiService } from '../ai/ai.service';
 
 // ============================================================
-// MediaTaggerService — Vision-tag bij foto-upload
+// MediaTaggerService, Vision-tag bij foto-upload
 // ============================================================
 //
 // Wordt eenmalig per upload aangeroepen door RestaurantMediaService.
 // Genereert een korte Nederlandse beschrijving + 3-5 tags die Filly
 // later gebruikt om foto's voor te stellen bij campagne-creatie
-// ("voor de pasta-campagne past foto X — beschrijving: ...").
+// ("voor de pasta-campagne past foto X, beschrijving: ...").
 //
-// Cost-strategie: Haiku 4.5 Vision — ~€0.005 per foto. 20 foto's per
+// Cost-strategie: Haiku 4.5 Vision, ~€0.005 per foto. 20 foto's per
 // restaurant = €0.10 eenmalig. Geen runtime-cost tijdens campagnes
 // omdat de tekst opgeslagen blijft in restaurant_media.description.
 // ============================================================
@@ -23,7 +23,7 @@ const TAG_SCHEMA = {
       type: 'string',
       description:
         'Beknopte Nederlandse beschrijving van de foto (max 150 tekens). ' +
-        'Beschrijf wat er feitelijk te zien is — geen marketingfluff. ' +
+        'Beschrijf wat er feitelijk te zien is, geen marketingfluff. ' +
         'Bv. "Pasta carbonara met spek en parmezaan op een houten tafel" of ' +
         '"Buitenkant van het terras met tafels in de avondzon".',
       maxLength: 200,
@@ -56,7 +56,7 @@ export class MediaTaggerService {
   constructor(private readonly ai: AiService) {}
 
   // Foto → description + tags. Bij Claude-fout returnen we lege defaults
-  // zodat de upload niet faalt — eigenaar kan handmatig een description
+  // zodat de upload niet faalt, eigenaar kan handmatig een description
   // bewerken later (TODO: edit-flow op restaurant_media).
   async tag(
     file: { buffer: Buffer; mimeType: string },
@@ -81,7 +81,7 @@ export class MediaTaggerService {
         toolDescription:
           'Lever een Nederlandse beschrijving + tags voor een restaurant-foto.',
         inputSchema: TAG_SCHEMA,
-        // Haiku 4.5 voor cost — beeld-tagging is geen high-stakes redenering.
+        // Haiku 4.5 voor cost, beeld-tagging is geen high-stakes redenering.
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 250,
         meta: {

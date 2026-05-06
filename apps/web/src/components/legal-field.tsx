@@ -1,12 +1,12 @@
 // ============================================================
-// LegalField — toont een waarde óf een placeholder
+// LegalField, toont een waarde óf een placeholder
 // ============================================================
 // Gebruikt op /privacy en /voorwaarden om elk veld uit
 // `COMPANY` te renderen. Zolang de bedrijfsgegevens nog niet
 // zijn ingevuld (KvK, adres, etc.) ziet de bezoeker een
 // gele highlight met "[NOG IN TE VULLEN: ...]" zodat duidelijk
 // is welke onderdelen van de juridische tekst nog onvolledig
-// zijn — én zodat we tijdens de jurist-review snel kunnen
+// zijn, én zodat we tijdens de jurist-review snel kunnen
 // scannen welke plekken nog gevuld moeten worden.
 //
 // Zodra het bijbehorende veld in `apps/web/src/config/company.ts`
@@ -17,7 +17,7 @@
 import type { ReactNode } from "react";
 
 type Props = {
-  // Actuele waarde uit de config. Mag null zijn — dan toont
+  // Actuele waarde uit de config. Mag null zijn, dan toont
   // de component de placeholder.
   value: string | null;
 

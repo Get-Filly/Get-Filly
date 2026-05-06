@@ -148,7 +148,7 @@ export class CampaignsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    // userId mee zodat audit-log laat zien wié verwijderde — onomkeerbaar
+    // userId mee zodat audit-log laat zien wié verwijderde, onomkeerbaar
     // dus extra belangrijk dat de actor traceerbaar is.
     return this.campaigns.remove(restaurantId, id, user.id);
   }
@@ -257,7 +257,7 @@ export class CampaignsController {
   //   - campagne moet type='mail' zijn
   //   - mail-content moet ingevuld zijn (subject + body)
   //   - bij 'all_opted_in': minimaal 1 opt-in gast vereist
-  // Onomkeerbaar — front toont een confirm-modal voordat 'ie deze
+  // Onomkeerbaar, front toont een confirm-modal voordat 'ie deze
   // call doet.
   @Post(':id/send')
   send(

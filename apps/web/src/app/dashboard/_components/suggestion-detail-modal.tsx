@@ -11,10 +11,10 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// SuggestionDetailModal — uitgebreide weergave + regenerate
+// SuggestionDetailModal, uitgebreide weergave + regenerate
 // ============================================================
 // Sinds 2026-05-06 single-column layout. De chat-edit-flow (rechter
-// panel met "Praat met Filly") is verwijderd — vooral verwarring
+// panel met "Praat met Filly") is verwijderd, vooral verwarring
 // gaf (eigenaar dacht dat 'ie tegen Filly kon praten zoals in de
 // dashboard-chat). Vervangen door één duidelijke 'Genereer nieuwe
 // versies'-knop die 3 alternatieve varianten ophaalt via dezelfde
@@ -217,7 +217,7 @@ export function SuggestionDetailModal({
           </button>
         </div>
 
-        {/* Body: single column sinds 2026-05-06 — chat-edit-flow weg.
+        {/* Body: single column sinds 2026-05-06, chat-edit-flow weg.
             Variant-kaarten + reasoning + regenerate-knop onder elkaar. */}
         <div
           style={{
@@ -245,7 +245,7 @@ export function SuggestionDetailModal({
             >
               {variants.length === 1
                 ? "Voorstel"
-                : `Filly bedacht ${variants.length} versies — kies je favoriet`}
+                : `Filly bedacht ${variants.length} versies, kies je favoriet`}
             </div>
 
             <div
@@ -282,7 +282,7 @@ export function SuggestionDetailModal({
                       flexDirection: "column",
                       gap: 6,
                       // Vermijd dat een lange variant de modal verticaal
-                      // uit balans haalt — vaste max-hoogte met scroll.
+                      // uit balans haalt, vaste max-hoogte met scroll.
                       maxHeight: 280,
                       overflowY: "auto",
                     }}
@@ -406,7 +406,7 @@ export function SuggestionDetailModal({
                 }}
               >
                 Niet helemaal je smaak? Filly schrijft drie nieuwe varianten
-                in andere tonen. De datum laten we staan — die heeft Filly
+                in andere tonen. De datum laten we staan, die heeft Filly
                 gekozen op basis van bezetting.
               </div>
             </div>

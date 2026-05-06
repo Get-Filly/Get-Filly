@@ -36,13 +36,13 @@ type RefinedCampaignFromTool = {
 };
 
 // Schema voor proposal-details: hoofdgerecht + bijgerechten + timing
-// + bundle-prijs + hero-foto. Maakt een suggestie tastbaar — eigenaar
+// + bundle-prijs + hero-foto. Maakt een suggestie tastbaar, eigenaar
 // ziet niet alleen "comfort food campagne" maar ook "Rundersukade
 // €18,95 met aardappelpuree, rode kool, spruitjes als 3-gangen €24,50".
 //
 // Het 'source'-veld op elk dish-object dwingt Claude expliciet aan te
 // geven of een gerecht uit de bestaande menukaart komt OF een nieuwe
-// suggestie is — voorkomt dat Filly stilletjes namen verzint die niet
+// suggestie is, voorkomt dat Filly stilletjes namen verzint die niet
 // op de kaart staan.
 const PROPOSAL_DETAILS_SCHEMA = {
   type: 'object',
@@ -82,7 +82,7 @@ const PROPOSAL_DETAILS_SCHEMA = {
       required: ['emoji', 'description'],
     },
   },
-  // Niets verplicht — een suggestie kan ook prima bestaan zonder
+  // Niets verplicht, een suggestie kan ook prima bestaan zonder
   // bundel-prijs of zonder bijgerechten (bv. een social-post zonder
   // gerecht-context).
 } as const satisfies Anthropic.Tool.InputSchema;
@@ -344,7 +344,7 @@ export class SuggestionsService {
     // Sinds 2026-05-04: chat_bundle-suggesties horen niet thuis in
     // de campagnes-pagina (geen approve-bundle-knop daar). Caller
     // kan ze uitsluiten via excludeTriggerTypes=['chat_bundle'].
-    // Default niet filteren — chat-flow heeft 'm wél nodig voor de
+    // Default niet filteren, chat-flow heeft 'm wél nodig voor de
     // bundle-card-state-detectie bij chat-history-load.
     if (excludeTriggerTypes && excludeTriggerTypes.length > 0) {
       query = query.not(
@@ -383,7 +383,7 @@ export class SuggestionsService {
   // op "Vraag Filly om voorstellen" klikt.
   //
   // Werkt ook voor net-nieuwe accounts waar nog geen reserveringen of
-  // bezettings-data beschikbaar is — Filly valt dan terug op profile +
+  // bezettings-data beschikbaar is, Filly valt dan terug op profile +
   // menu + seizoen, wat al genoeg is voor zinvolle voorstellen.
   //
   // Wel een minimum-check: zonder restaurant-naam OF zonder menu-items
@@ -393,7 +393,7 @@ export class SuggestionsService {
     restaurantId: string,
     userId: string | null,
   ): Promise<{ created: number; suggestions: AiSuggestion[] }> {
-    // Stap 1 — minimaal restaurant-naam + ≥3 menu-items vereist.
+    // Stap 1, minimaal restaurant-naam + ≥3 menu-items vereist.
     const { data: restaurantRow, error: restErr } = await this.supabase.client
       .from('restaurants')
       .select('id, name')
@@ -416,7 +416,7 @@ export class SuggestionsService {
       );
     }
 
-    // Stap 2 — context bouwen. Profile + menu zijn altijd nodig; live-
+    // Stap 2, context bouwen. Profile + menu zijn altijd nodig; live-
     // block is optioneel (lege string als bezetting/weer onbekend).
     const [profileBlock, menuBlock, liveBlock] = await Promise.all([
       this.context.buildProfileBlock(restaurantId).catch(() => ''),
@@ -435,26 +435,26 @@ Je antwoord komt via de tool 'generate_proactive_suggestions'. Vul de tool-args 
 Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 - low_occupancy: een vooruitkijkende campagne om een rustige dag/avond op te vullen (alleen als je dat in de live-data ziet, of als seizoens-tip).
 - weather: speel in op weer-thema (regen → comfort food binnen, zon → terras-aanbod).
-- seasonal: huidige maand is ${monthName} — pak iets dat past bij dit seizoen.
+- seasonal: huidige maand is ${monthName}, pak iets dat past bij dit seizoen.
 - retention: vaste-gasten-segment activeren met iets exclusiefs.
 - birthday: birthday-segment uitnodigen (alleen als zinvol bij dit type onderneming).
-- general: een sterk concept dat los staat van een specifieke trigger — een signature-event of menu-launch.
+- general: een sterk concept dat los staat van een specifieke trigger, een signature-event of menu-launch.
 
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone uit het profiel.
-- Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten — gebruik échte namen + prijzen voor concreetheid.
+- Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
 - Per voorstel: kies één campagne_type (mail, social, of whatsapp) dat past bij de doelgroep van die specifieke campagne. Mix de types over de 3-5 voorstellen.
 - subject_line: alleen voor mail-campagnes; voor social/whatsapp laat je 'm weg.
 - body: volledige uitgeschreven tekst, klaar om te versturen.
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
-- reasoning: 1-2 zinnen NL waarom dit voorstel nu past — verwijs naar concrete signalen uit profile/menu/live-data.
+- reasoning: 1-2 zinnen NL waarom dit voorstel nu past, verwijs naar concrete signalen uit profile/menu/live-data.
 - confidence: 0.0-1.0 hoe zeker je bent dat dit voorstel werkt voor deze onderneming.
 - expected_extra_reservations / expected_extra_revenue_cents: ruwe schatting; mag null/0 als je geen basis hebt.
 
 Vandaag is ${todayIso}.
 
 ---
-CONTEXT — alles wat je weet over deze onderneming:
+CONTEXT, alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -482,10 +482,10 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       cacheSystem: true,
     });
 
-    // Stap 3 — wegschrijven als ai_suggestions-rijen. Elk voorstel
+    // Stap 3, wegschrijven als ai_suggestions-rijen. Elk voorstel
     // krijgt zijn eigen rij met status='pending' zodat ze direct in de
     // /campagnes-strip verschijnen. We slaan de proposal_details niet
-    // in dezelfde call op — die wordt later gegenereerd wanneer de
+    // in dezelfde call op, die wordt later gegenereerd wanneer de
     // eigenaar op de detail-knop klikt (lazy-load = geen extra Claude-
     // calls voor voorstellen die hij toch overslaat).
     //
@@ -493,13 +493,13 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     // tool-use response, of model retry-failure) krijgen we hier geen
     // array. Beter een nette NL-fout dan een 500 met cryptic stacktrace.
     if (!raw || !Array.isArray(raw.suggestions) || raw.suggestions.length === 0) {
-      // Geen logger in deze service — gebruik console.warn (consistent
+      // Geen logger in deze service, gebruik console.warn (consistent
       // met andere fail-soft-handlers elders in dezelfde file).
       console.warn(
         `Filly's voorstellen-tool gaf geen geldige array terug voor restaurant ${restaurantId}. Raw response: ${JSON.stringify(raw)?.slice(0, 300)}`,
       );
       throw new InternalServerErrorException(
-        'Filly kon nu geen voorstellen genereren. Dat gebeurt soms — probeer het over een minuut opnieuw.',
+        'Filly kon nu geen voorstellen genereren. Dat gebeurt soms, probeer het over een minuut opnieuw.',
       );
     }
     const rows = raw.suggestions.map((s) => ({
@@ -546,7 +546,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
   }
 
   // Detect-and-generate flow voor lage bezetting. Eigenaar klikt op
-  // de alert-bar bovenaan het dashboard ("3 rustige dagen — laat
+  // de alert-bar bovenaan het dashboard ("3 rustige dagen, laat
   // Filly voorstellen doen"); deze method bekijkt welke dagen in de
   // 2-14 dagen window nog onder de drempel zitten en genereert per
   // dag één toegespitst voorstel.
@@ -554,7 +554,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
   // Per dag een aparte Claude-call zodat de prompt rijk is met
   // dag-specifieke context (weekdag, weer-voorspelling, hoeveel
   // onder gemiddelde, of het dag-na-feestdag is). Eén generieke
-  // call zou tot 3-5 voorstellen leiden die te abstract zijn —
+  // call zou tot 3-5 voorstellen leiden die te abstract zijn,
   // "maandag" is geen "donderdag", die hebben elk eigen winning
   // segments en thema's.
   //
@@ -574,7 +574,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     skipped: number;
     suggestions: AiSuggestion[];
   }> {
-    // Stap 1 — Pre-flight: minstens 3 menu-items zodat Filly concrete
+    // Stap 1, Pre-flight: minstens 3 menu-items zodat Filly concrete
     // gerechten kan noemen. Zelfde guard als generateOnDemand.
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
@@ -588,7 +588,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       );
     }
 
-    // Stap 2 — kandidaat-dagen ophalen: occupancy_days in window
+    // Stap 2, kandidaat-dagen ophalen: occupancy_days in window
     // 2-14 dagen vooruit, percentage onder drempel.
     const today = new Date();
     const fromDate = new Date(today);
@@ -621,7 +621,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       return { detected: 0, generated: 0, skipped: 0, suggestions: [] };
     }
 
-    // Stap 3 — dedupliceer: dagen waarvoor al een PENDING low-
+    // Stap 3, dedupliceer: dagen waarvoor al een PENDING low-
     // occupancy-suggestie bestaat slaan we over.
     const { data: existing, error: existErr } = await this.supabase.client
       .from('ai_suggestions')
@@ -650,15 +650,15 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       };
     }
 
-    // Stap 4 — context-blocks ophalen die voor alle dagen herbruikt
-    // worden (profile + menu). Live-block laten we weg — vervangen
+    // Stap 4, context-blocks ophalen die voor alle dagen herbruikt
+    // worden (profile + menu). Live-block laten we weg, vervangen
     // door per-dag-context die we zelf opbouwen.
     const [profileBlock, menuBlock] = await Promise.all([
       this.context.buildProfileBlock(restaurantId).catch(() => ''),
       this.context.buildMenuBlock(restaurantId).catch(() => ''),
     ]);
 
-    // Stap 5 — segment-counts voor extra context (welke segmenten
+    // Stap 5, segment-counts voor extra context (welke segmenten
     // zijn beschikbaar als doelgroep voor mail/whatsapp).
     const { data: guestStats } = await this.supabase.client
       .from('guests')
@@ -681,7 +681,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         .length,
     };
 
-    // Stap 6 — per dag een Claude-call met dag-specifieke context.
+    // Stap 6, per dag een Claude-call met dag-specifieke context.
     // Sequentieel zodat we de rate-limit niet over de kop laten
     // gaan; bij 5+ kandidaat-dagen pakt elk z'n turn op de cache
     // (profile+menu zit in cacheSystem zodat dit goedkoop is).
@@ -709,7 +709,7 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 
       const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Voor één specifieke rustige dag in de komende 2 weken bedenk je het beste activatie-voorstel.
 
-Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel — campagne-type, naam, body, doelgroep en verwacht effect.
+Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
 Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone.
@@ -719,11 +719,11 @@ Inhoudsregels:
   * brede zaal/weekend → social (zichtbaar, sfeervol)
   * 5-14 dagen vooruit + nieuwsbrief-segment → mail (uitgewerkter)
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
-- reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt — verwijs naar concrete getallen.
+- reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt, verwijs naar concrete getallen.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
 ---
-CONTEXT — restaurant-profiel + menu:
+CONTEXT, restaurant-profiel + menu:
 
 ${profileBlock}
 
@@ -810,7 +810,7 @@ ${dayContext}`;
             err instanceof Error ? err.message : String(err)
           }`,
         );
-        // Volgende dag proberen — partiële resultaten zijn beter
+        // Volgende dag proberen, partiële resultaten zijn beter
         // dan helemaal niets bij rate-limit of tijdelijke API-hick.
         continue;
       }
@@ -874,15 +874,15 @@ Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone uit het profiel.
 - main_dish en sides: GEBRUIK BIJ VOORKEUR gerechten uit MENU (zie context). Zet source='menu' en pak de échte naam, beschrijving en prijs uit MENU.
 - Alleen als geen passend menu-gerecht beschikbaar is, mag je een nieuw gerecht voorstellen met source='new'. Beschrijf het concreet (ingrediënten, bereiding) zodat de eigenaar weet wat hij zou koken.
-- Maximaal 3 bijgerechten/sides. Geen losse drankjes als sides — alleen bij eet-gerechten relevant.
+- Maximaal 3 bijgerechten/sides. Geen losse drankjes als sides, alleen bij eet-gerechten relevant.
 - timing: korte zin met dag(en) + tijdstip ("Donderdag t/m zondag · 17:00–22:00").
-- price_bundle_cents: optioneel — alleen als een 2- of 3-gangen-bundel logisch is bij dit voorstel. In centen.
+- price_bundle_cents: optioneel, alleen als een 2- of 3-gangen-bundel logisch is bij dit voorstel. In centen.
 - price_bundle_label: zoals "3-gangen menu" of "2-gangen lunch". Korte tekst.
-- hero_image: een passende emoji (1 stuk) + een korte fotoregie-beschrijving (max 100 tekens) die een fotograaf zou kunnen gebruiken. Géén foto-URL — die maken we later via een image-API.
+- hero_image: een passende emoji (1 stuk) + een korte fotoregie-beschrijving (max 100 tekens) die een fotograaf zou kunnen gebruiken. Géén foto-URL, die maken we later via een image-API.
 - Als het voorstel een social-only post is zonder gerecht-context, mag je main_dish/sides leeg laten en alleen timing + hero_image vullen.
 
 ---
-CONTEXT — alles wat je weet over deze onderneming:
+CONTEXT, alles wat je weet over deze onderneming:
 
 ${profileBlock}
 
@@ -917,7 +917,7 @@ Maak dit tastbaar volgens de regels.`;
     // Cache schrijven. We mergen 'm in de bestaande suggested_campaign-
     // jsonb zodat alle andere velden (variants, body, etc) ongewijzigd
     // blijven. Stille fail: als update flakes, retourneer toch het
-    // resultaat — de eigenaar ziet 'm gewoon, alleen volgende keer
+    // resultaat, de eigenaar ziet 'm gewoon, alleen volgende keer
     // wordt 'ie opnieuw berekend.
     const updatedCampaign: SuggestedCampaign = {
       ...sc,
@@ -940,7 +940,7 @@ Maak dit tastbaar volgens de regels.`;
   // Transactioneel-achtig: als het aanmaken van de campagne faalt,
   // blijft de suggestie 'pending' (geen half-geupdatete state). Als
   // de status-update faalt nadat de campagne al bestaat, loggen we
-  // het probleem maar rollen de campagne niet terug — hij is dan al
+  // het probleem maar rollen de campagne niet terug, hij is dan al
   // zichtbaar in /campagnes en kan de gebruiker handmatig doorlopen.
   async approve(
     restaurantId: string,
@@ -1028,7 +1028,7 @@ Maak dit tastbaar volgens de regels.`;
       [rawSubject, suggestion.reasoning]
         .filter((x): x is string => typeof x === 'string' && x.length > 0)
         .join('\n\n') ||
-      'Deze campagne is nog niet inhoudelijk uitgewerkt — klik op bewerken om de tekst toe te voegen.';
+      'Deze campagne is nog niet inhoudelijk uitgewerkt, klik op bewerken om de tekst toe te voegen.';
 
     if (
       (type !== 'mail' && type !== 'social' && type !== 'whatsapp') ||
@@ -1095,7 +1095,7 @@ Maak dit tastbaar volgens de regels.`;
   }
 
   // ============================================================
-  // APPROVE BUNDLE — multi-channel uit chat → 1 group + 3 campaigns
+  // APPROVE BUNDLE, multi-channel uit chat → 1 group + 3 campaigns
   // ============================================================
   // Specifiek voor ai_suggestions met trigger_type='chat_bundle'.
   // Maakt:
@@ -1139,7 +1139,7 @@ Maak dit tastbaar volgens de regels.`;
       suggestion.status === 'approved' &&
       suggestion.approved_campaign_id
     ) {
-      // Bestaande state ophalen — bij dubbele klik na navigation.
+      // Bestaande state ophalen, bij dubbele klik na navigation.
       // Group-id achterhalen via campaigns.group_id van de mail-campagne.
       const { data: mailCamp } = await this.supabase.client
         .from('campaigns')
@@ -1190,7 +1190,7 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     // Bundle-payload uit suggested_campaign-jsonb. Validatie hier
-    // omdat de jsonb in theorie alles kan bevatten — bij corruptie
+    // omdat de jsonb in theorie alles kan bevatten, bij corruptie
     // nette NL-foutmelding ipv crash.
     const sc = suggestion.suggested_campaign as
       | {
@@ -1216,7 +1216,7 @@ Maak dit tastbaar volgens de regels.`;
 
     // Validatie: voor elk GEKOZEN kanaal moet de bundle-payload de
     // bijbehorende content hebben. Niet-gekozen kanalen valideren we
-    // niet — eigenaar wil ze toch niet aanmaken.
+    // niet, eigenaar wil ze toch niet aanmaken.
     if (channels.length === 0) {
       throw new InternalServerErrorException(
         'Selecteer minimaal één kanaal om aan te maken.',
@@ -1241,7 +1241,7 @@ Maak dit tastbaar volgens de regels.`;
       );
     }
 
-    // 1) Group aanmaken — altijd, ongeacht aantal kanalen. Maakt het
+    // 1) Group aanmaken, altijd, ongeacht aantal kanalen. Maakt het
     // makkelijk om later een ontbrekend kanaal toe te voegen via een
     // tweede approve-bundle-call.
     const { data: group, error: groupErr } = await this.supabase.client
@@ -1258,7 +1258,7 @@ Maak dit tastbaar volgens de regels.`;
     const groupId = group.id as string;
 
     // 2) Per gekozen kanaal een campagne aanmaken via CampaignsService.create.
-    // Niet-gekozen kanalen krijgen null als ID — frontend toont dan de
+    // Niet-gekozen kanalen krijgen null als ID, frontend toont dan de
     // checkbox als grijs i.p.v. een doorlink.
     let mailCampaignId: string | null = null;
     let instagramCampaignId: string | null = null;
@@ -1268,7 +1268,7 @@ Maak dit tastbaar volgens de regels.`;
       const { id } = await this.campaigns.create(
         restaurantId,
         {
-          name: `${bundleName} — mail`,
+          name: `${bundleName}, mail`,
           type: 'mail',
           subject_line: mailContent.subject_line!.trim().slice(0, 200),
           body: mailContent.body!.trim(),
@@ -1283,7 +1283,7 @@ Maak dit tastbaar volgens de regels.`;
       const { id } = await this.campaigns.create(
         restaurantId,
         {
-          name: `${bundleName} — Instagram`,
+          name: `${bundleName}, Instagram`,
           type: 'social',
           body: igContent.caption!.trim(),
           social_platforms: ['instagram'],
@@ -1299,7 +1299,7 @@ Maak dit tastbaar volgens de regels.`;
       const { id } = await this.campaigns.create(
         restaurantId,
         {
-          name: `${bundleName} — Facebook`,
+          name: `${bundleName}, Facebook`,
           type: 'social',
           body: fbContent.caption!.trim(),
           social_platforms: ['facebook'],
@@ -1407,7 +1407,7 @@ Maak dit tastbaar volgens de regels.`;
   // Laat Filly de inhoud van een pending-suggestie aanpassen op basis
   // van een instructie van de eigenaar. Voorbeeld: "maak de sfeer
   // huiselijker" of "gebruik een korter onderwerp". Bij multi-variant
-  // suggesties wordt alleen de geselecteerde variant herschreven —
+  // suggesties wordt alleen de geselecteerde variant herschreven,
   // de andere blijven beschikbaar voor terugschakelen. Retourneert
   // de bijgewerkte suggested_campaign zodat de frontend direct kan
   // renderen zonder extra fetch.
@@ -1442,7 +1442,7 @@ Maak dit tastbaar volgens de regels.`;
       typeof sc.name === 'string' ? (sc.name as string) : '';
 
     // Multi-variant: pak geselecteerde variant. Legacy: pak directe
-    // velden. We werken altijd op één variant tegelijk — gebruiker
+    // velden. We werken altijd op één variant tegelijk, gebruiker
     // kan ander variant kiezen vóór 'ie hier komt.
     const variants = Array.isArray(sc.variants) ? sc.variants : [];
     const selectedIdx =
@@ -1470,7 +1470,7 @@ Maak dit tastbaar volgens de regels.`;
 
     // System-prompt voor de refine-call. Tool-use forceert het JSON-
     // schema, dus we hoeven de structuur hier niet meer in tekst uit
-    // te leggen — alleen de inhoudelijke regels blijven.
+    // te leggen, alleen de inhoudelijke regels blijven.
     const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je past een bestaande campagne aan volgens de instructie van de eigenaar.
 
 Je antwoord komt via de tool 'refine_campaign'. Vul de tool-args in met de volledige nieuwe versie van de campagne.
@@ -1590,9 +1590,9 @@ Inhoudsregels:
   }
 
   // ============================================================
-  // BUNDLE — multi-channel proposal vanuit chat (mail + IG + FB)
+  // BUNDLE, multi-channel proposal vanuit chat (mail + IG + FB)
   // ============================================================
-  // Sinds 2026-05-04: Filly kan in chat een bundle voorstellen — één
+  // Sinds 2026-05-04: Filly kan in chat een bundle voorstellen, één
   // thema over drie kanalen tegelijk. Slaan we op als één
   // ai_suggestions-rij met trigger_type='chat_bundle' en de hele
   // bundle in suggested_campaign-jsonb. Approve-flow detecteert het

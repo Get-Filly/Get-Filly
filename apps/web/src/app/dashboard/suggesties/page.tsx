@@ -52,7 +52,7 @@ function formatEuro(cents?: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
 }
 
-// Concreet prijsformaat met decimalen — voor gerecht-kaartjes.
+// Concreet prijsformaat met decimalen, voor gerecht-kaartjes.
 function formatPrice(cents?: number): string {
   if (!cents) return "—";
   const euros = (cents / 100).toFixed(2).replace(".", ",");
@@ -60,7 +60,7 @@ function formatPrice(cents?: number): string {
 }
 
 // Proposal-shape (hoofdgerecht/bijgerechten/timing/bundle-prijs/foto)
-// komt uit `lib/api.ts` als ProposalDetails — zelfde shape als wat
+// komt uit `lib/api.ts` als ProposalDetails, zelfde shape als wat
 // Claude via tool-use teruggeeft. Laden gebeurt via fetchProposalDetails
 // op het moment dat de detail-modal opent (zie useEffect op `selected`).
 
@@ -71,20 +71,20 @@ export default function SuggestiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
-  // Count van pending-voorstellen voor de stats-row — blijft zichtbaar
+  // Count van pending-voorstellen voor de stats-row, blijft zichtbaar
   // ook wanneer de gebruiker naar "Goedgekeurd/Afgewezen" tab wisselt.
   const [pendingCount, setPendingCount] = useState<number>(0);
   // Geselecteerde suggestie voor detail-modal. Null = modal dicht.
   const [selected, setSelected] = useState<AiSuggestion | null>(null);
   // Proposal-details: hoofdgerecht/bijgerechten/etc. Wordt bij open
-  // van de modal opgehaald — eerste call ~2s (Claude), daarna gecachet
+  // van de modal opgehaald, eerste call ~2s (Claude), daarna gecachet
   // op de suggestie. Loading-state om de skeleton te tonen.
   const [proposal, setProposal] = useState<ProposalDetails | null>(null);
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposalError, setProposalError] = useState<string | null>(null);
 
   // Bij elke nieuwe `selected`: reset proposal-state en fetch opnieuw.
-  // Race-condition-bescherming via een `cancelled`-flag — als de
+  // Race-condition-bescherming via een `cancelled`-flag, als de
   // gebruiker snel klikt naar een andere suggestie wordt de oude
   // response genegeerd.
   useEffect(() => {
@@ -157,7 +157,7 @@ export default function SuggestiesPage() {
     }
   };
 
-  // Escape-toets sluit de detail-modal — handige keyboard-affordance
+  // Escape-toets sluit de detail-modal, handige keyboard-affordance
   // bij popovers en drawers.
   useEffect(() => {
     if (!selected) return;
@@ -172,7 +172,7 @@ export default function SuggestiesPage() {
     <div className="page-full">
       <div className="page-title">Suggesties</div>
       <div className="page-subtitle">
-        Voorstellen van Filly — met onderbouwing én verwachte impact. Keur goed
+        Voorstellen van Filly, met onderbouwing én verwachte impact. Keur goed
         → wordt een campagne.
       </div>
 
@@ -324,7 +324,7 @@ export default function SuggestiesPage() {
                   </div>
                 )}
 
-                {/* Expected Impact box — brand-styling met groene rand
+                {/* Expected Impact box, brand-styling met groene rand
                     links zodat visueel duidelijk is dat dit Filly's
                     voorspelling is (consistent met andere Filly-elementen). */}
                 {(impact.extra_reservations || impact.extra_revenue_cents) && (
@@ -410,7 +410,7 @@ export default function SuggestiesPage() {
         </div>
       )}
 
-      {/* Detail-modal — opent bij klik op een kaart. Toont ALLE velden
+      {/* Detail-modal, opent bij klik op een kaart. Toont ALLE velden
           (volledige campagne-body, trigger-context, segment, timing,
           reasoning en impact) plus een concrete invulling (hoofdgerecht
           + bijgerechten) zodat "brunch" of "stoofschotel" tastbaar wordt. */}
@@ -510,12 +510,12 @@ export default function SuggestiesPage() {
                 </div>
               )}
 
-              {/* Voorgestelde invulling — concreet: welk hoofdgerecht,
+              {/* Voorgestelde invulling, concreet: welk hoofdgerecht,
                   welke bijgerechten, wanneer, voor welke prijs. Dit is
                   het verschil tussen "brunch"-idee en een actieklaar
                   voorstel dat de eigenaar meteen kan goedkeuren.
                   Wordt door Filly via tool-use gegenereerd op basis
-                  van het profiel + actueel menu — eerste open ~2s,
+                  van het profiel + actueel menu, eerste open ~2s,
                   daarna gecachet. */}
               {proposalLoading && (
                 <div className="sg-modal-section">
@@ -646,7 +646,7 @@ export default function SuggestiesPage() {
                 </div>
               )}
 
-              {/* Hoe Filly dit plaatst — kanaal-specifieke preview +
+              {/* Hoe Filly dit plaatst, kanaal-specifieke preview +
                   foto-selector. De gebruiker ziet hier concreet wat er
                   verstuurd of gepost wordt, en kan kiezen tussen Filly's
                   voorgestelde foto of een eigen upload. */}
@@ -657,7 +657,7 @@ export default function SuggestiesPage() {
                   </div>
 
                   {/* Foto-selector: Filly's voorstel links, upload-knop rechts.
-                      Upload is nu mock/niet-actief — komt later met een
+                      Upload is nu mock/niet-actief, komt later met een
                       echte file-picker en image-storage. */}
                   {proposal?.heroImage && (
                     <div className="photo-picker">
@@ -762,7 +762,7 @@ export default function SuggestiesPage() {
                 </div>
               )}
 
-              {/* Volledige campagne-inhoud — de tekst waarin je Filly's
+              {/* Volledige campagne-inhoud, de tekst waarin je Filly's
                   voorstel leest (onderwerp, caption, body). */}
               <div className="sg-modal-section">
                 <div className="sg-modal-section-title">Inhoud van de campagne</div>

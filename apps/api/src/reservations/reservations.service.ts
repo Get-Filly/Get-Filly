@@ -132,7 +132,7 @@ export class ReservationsService {
   //   - Reservering moet bij dit restaurant horen (tenant-isolatie).
   //   - Als campaignId gegeven: moet ook bij dit restaurant horen
   //     (anders zou je via een ID-gok een vreemde campagne kunnen
-  //     koppelen — defense-in-depth bovenop de auth-guards).
+  //     koppelen, defense-in-depth bovenop de auth-guards).
   async setAttribution(
     restaurantId: string,
     reservationId: string,
@@ -171,14 +171,14 @@ export class ReservationsService {
     // "Via Filly"-stat op de gasten-pagina + KPI-row.
     //
     // Niet-fataal als dit faalt: de reservering-update is al gelukt
-    // en dat is wat de gebruiker zag — we loggen alleen.
+    // en dat is wat de gebruiker zag, we loggen alleen.
     if (campaignId && data.guest_id) {
       const { error: guestErr } = await this.supabase.client
         .from('guests')
         .update({ acquired_via_campaign_id: campaignId })
         .eq('id', data.guest_id)
         .eq('restaurant_id', restaurantId)
-        // Alleen overschrijven als nog niet gezet — eerste-attributie
+        // Alleen overschrijven als nog niet gezet, eerste-attributie
         // wint. Latere koppelingen veranderen niet wie de gast oorspronkelijk
         // heeft binnengehaald.
         .is('acquired_via_campaign_id', null);
@@ -191,7 +191,7 @@ export class ReservationsService {
       }
     }
 
-    // Audit: attributie-wijziging — de meest cruciale logging want
+    // Audit: attributie-wijziging, de meest cruciale logging want
     // hierop bouwen alle Filly-ROI cijfers.
     await this.audit.log({
       restaurantId,

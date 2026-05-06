@@ -13,7 +13,7 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 // ============================================================
-// MailService — uitgaande mail via Resend
+// MailService, uitgaande mail via Resend
 // ============================================================
 //
 // Stap 1 (default): mail komt van social@get-filly.com met
@@ -23,20 +23,20 @@ import { AuditLogService } from '../common/audit-log.service';
 //
 // Stap 2 (eigen domein): zodra restaurant.mail_domain_status =
 //   'verified' valt de send-flow over op restaurant.mail_from_address
-//   als From — pure klant-branding.
+//   als From, pure klant-branding.
 //
 // Twee Supabase-clients gebruikt:
-// - RequestSupabaseService voor de send-flow (RLS via user-JWT — alleen
+// - RequestSupabaseService voor de send-flow (RLS via user-JWT, alleen
 //   eigen restaurant kan campagnes versturen)
 // - SupabaseService voor de webhook-handler (Resend stuurt events zonder
-//   user-context — admin-flow)
+//   user-context, admin-flow)
 // ============================================================
 
 const DEFAULT_FROM_ADDRESS = 'social@get-filly.com';
 const RESEND_BATCH_SIZE = 100; // Resend's max per batch.send
 
 // Hoe een mail-recipient eruit ziet voor de send-flow. guestId is
-// optioneel — eigenaar kan handmatig 1-op-1 mailen aan een adres dat
+// optioneel, eigenaar kan handmatig 1-op-1 mailen aan een adres dat
 // niet als gast geregistreerd staat (bv. lead-flow), maar voor
 // campagnes is 't bijna altijd gevuld.
 export type MailRecipient = {
@@ -68,7 +68,7 @@ export class MailService {
     const apiKey = config.get<string>('RESEND_API_KEY');
     if (!apiKey) {
       throw new Error(
-        'RESEND_API_KEY ontbreekt in .env — zonder kunnen we geen campagne-mails versturen.',
+        'RESEND_API_KEY ontbreekt in .env, zonder kunnen we geen campagne-mails versturen.',
       );
     }
     this.resend = new Resend(apiKey);
@@ -77,7 +77,7 @@ export class MailService {
   }
 
   // ============================================================
-  // SEND BY MODE — resolved recipients + send-flow
+  // SEND BY MODE, resolved recipients + send-flow
   // ============================================================
   // Wordt vanuit de campagne-controller aangeroepen. Mode bepaalt
   // wie de mail krijgt:
@@ -143,7 +143,7 @@ export class MailService {
   }
 
   // ============================================================
-  // SEND — verstuur een campagne naar een lijst recipients
+  // SEND, verstuur een campagne naar een lijst recipients
   // ============================================================
   // Flow per recipient:
   //   1. Genereer unsubscribe-token (random 32 bytes hex) en sla op
@@ -154,7 +154,7 @@ export class MailService {
   //   6. Update rijen met resend_message_id + status='sent'
   //
   // Bij Resend-fout: status='failed' + error-detail. Geen partial
-  // rollback van de hele campagne — gefaalde recipients zien we via
+  // rollback van de hele campagne, gefaalde recipients zien we via
   // status, eigenaar kan ze later opnieuw proberen.
   async sendCampaign(
     restaurantId: string,
@@ -166,9 +166,9 @@ export class MailService {
       throw new BadRequestException('Geen ontvangers opgegeven.');
     }
 
-    // Stap 1 — campagne ophalen incl. content. Doen we via user-scoped
+    // Stap 1, campagne ophalen incl. content. Doen we via user-scoped
     // client zodat RLS controleert dat de user toegang heeft. Kolommen:
-    // subject_line + body_html (of body_plain als fallback) — komen uit
+    // subject_line + body_html (of body_plain als fallback), komen uit
     // campaign_mail_content-tabel (zie migratie 0001).
     const { data: campaign, error: campErr } = await this.userScoped.client
       .from('campaigns')
@@ -202,7 +202,7 @@ export class MailService {
       );
     }
 
-    // Stap 2 — restaurant ophalen voor From-naam, reply-to en
+    // Stap 2, restaurant ophalen voor From-naam, reply-to en
     // eigen-domein-status. Geen restaurant gevonden = niet je tenant
     // (RLS); onmogelijk te bereiken vanaf de controllers, defense-in-depth.
     const { data: restaurant, error: restErr } = await this.userScoped.client
@@ -215,7 +215,7 @@ export class MailService {
     if (restErr) throw new InternalServerErrorException(restErr.message);
     if (!restaurant) throw new NotFoundException('Restaurant niet gevonden.');
 
-    // Stap 3 — bepaal From + Reply-To. Eigen domein verified → klant-
+    // Stap 3, bepaal From + Reply-To. Eigen domein verified → klant-
     // adres als From, geen reply-to nodig (replies komen direct binnen
     // bij klant). Anders default-vlow met social@get-filly.com.
     const fromAddress = this.resolveFromAddress(restaurant);
@@ -225,7 +225,7 @@ export class MailService {
         ? undefined
         : (restaurant.contact_email as string | null) ?? undefined;
 
-    // Stap 4 — per recipient: token + send-rij. Bulk-insert beide
+    // Stap 4, per recipient: token + send-rij. Bulk-insert beide
     // tabellen voor efficiency.
     const tokens = recipients.map(() => randomBytes(24).toString('hex'));
     const tokenRows = recipients.map((r, i) => ({
@@ -273,7 +273,7 @@ export class MailService {
       tokenByEmail.set(r.email.toLowerCase().trim(), tokens[i]);
     });
 
-    // Stap 5 — bouw payload + verstuur in batches. Resend.batch.send
+    // Stap 5, bouw payload + verstuur in batches. Resend.batch.send
     // accepteert tot 100 mails per call; bij meer recipients chunks
     // we de array.
     const failures: Array<{ email: string; error: string }> = [];
@@ -295,7 +295,7 @@ export class MailService {
           ),
           replyTo,
           // List-Unsubscribe headers (RFC 8058). Gmail/Outlook tonen
-          // dan een native "Unsubscribe"-link bovenaan de mail —
+          // dan een native "Unsubscribe"-link bovenaan de mail,
           // aanzienlijke deliverability-boost en GDPR-compliant.
           headers: {
             'List-Unsubscribe': `<${unsubscribeUrl}>`,
@@ -347,7 +347,7 @@ export class MailService {
       }
     }
 
-    // Stap 6 — audit-log. Eén event per send-batch (niet per recipient)
+    // Stap 6, audit-log. Eén event per send-batch (niet per recipient)
     // zodat het audit-log behapbaar blijft. Detail-info per recipient
     // staat in campaign_sends zelf.
     await this.audit.log({
@@ -378,7 +378,7 @@ export class MailService {
   }
 
   // ============================================================
-  // HANDLEWEBHOOK — Resend-events binnen-update campaign_sends
+  // HANDLEWEBHOOK, Resend-events binnen-update campaign_sends
   // ============================================================
   // Resend stuurt events naar onze webhook bij delivered/bounced/
   // opened/clicked/complained. Gebruikt admin-client want geen user-
@@ -436,11 +436,11 @@ export class MailService {
   }
 
   // ============================================================
-  // UNSUBSCRIBE — token → opt-out + token markeren als gebruikt
+  // UNSUBSCRIBE, token → opt-out + token markeren als gebruikt
   // ============================================================
   // Publieke route: gast klikt link in mail → /u/<token>. Geen auth.
   // Effect: guests.mail_opt_in = false + token.used_at = now.
-  // Idempotent — herhaaldelijk klikken doet niets nieuws.
+  // Idempotent, herhaaldelijk klikken doet niets nieuws.
   async unsubscribeByToken(
     token: string,
   ): Promise<{ restaurantName: string }> {
@@ -452,9 +452,9 @@ export class MailService {
     if (tokErr) throw new InternalServerErrorException(tokErr.message);
     if (!tokenRow) throw new NotFoundException('Onbekende unsubscribe-link.');
 
-    // Markeer guest als opted-out (als 'ie nog bestaat — bij
+    // Markeer guest als opted-out (als 'ie nog bestaat, bij
     // right-to-be-forgotten kan guest_id null zijn dankzij ON DELETE
-    // SET NULL — dan slaan we de guest-update over).
+    // SET NULL, dan slaan we de guest-update over).
     if (tokenRow.guest_id) {
       await this.admin.client
         .from('guests')
@@ -462,14 +462,14 @@ export class MailService {
         .eq('id', tokenRow.guest_id);
     }
 
-    // Token markeren (idempotent — 2e klik mag, geen actie nodig)
+    // Token markeren (idempotent, 2e klik mag, geen actie nodig)
     if (!tokenRow.used_at) {
       await this.admin.client
         .from('unsubscribe_tokens')
         .update({ used_at: new Date().toISOString() })
         .eq('token', token);
 
-      // Recente sends voor deze gast als 'unsubscribed' markeren —
+      // Recente sends voor deze gast als 'unsubscribed' markeren,
       // niet kritisch maar handig voor reporting.
       await this.admin.client
         .from('campaign_sends')
@@ -509,7 +509,7 @@ export class MailService {
   }
 
   // Wrap de campagne-body in een minimale HTML-template met footer.
-  // De body komt van de eigenaar / Filly en kan al HTML zijn —
+  // De body komt van de eigenaar / Filly en kan al HTML zijn,
   // we nesten 'm in een container met de unsubscribe-link onderaan.
   private wrapHtml(
     body: string,
@@ -549,7 +549,7 @@ function escapeQuotes(s: string): string {
 }
 
 // Lichtgewicht email-validator. Strenger valideren is in alle praktische
-// gevallen onnodig — Resend valideert nogmaals voordat 'ie verstuurt.
+// gevallen onnodig, Resend valideert nogmaals voordat 'ie verstuurt.
 function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 }

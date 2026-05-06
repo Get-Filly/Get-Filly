@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // ============================================================
-// <EmptyState> — uniforme lege-staat voor lijsten/pagina's
+// <EmptyState>, uniforme lege-staat voor lijsten/pagina's
 // ============================================================
 //
 // In de codebase staan ~10 instances van het patroon
@@ -16,10 +16,10 @@ import type { ReactNode } from "react";
 // design-tweak één plek aangeraakt hoeft.
 //
 // Variants:
-//   default   — voor "nog geen data" (witte bg, dashed border)
-//   error     — voor laad-fouten (zelfde structuur, alleen visueel
+//   default  , voor "nog geen data" (witte bg, dashed border)
+//   error    , voor laad-fouten (zelfde structuur, alleen visueel
 //               iets anders te onderscheiden via een optionele
-//               error-prefix in de title — kleur blijft hetzelfde
+//               error-prefix in de title, kleur blijft hetzelfde
 //               omdat we eerder besloten dat empty-states rustig
 //               ogen, niet alarmerend; rode banners alleen voor
 //               user-action-fouten)

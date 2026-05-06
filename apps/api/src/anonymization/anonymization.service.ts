@@ -6,13 +6,13 @@ import { SupabaseService } from '../supabase/supabase.service';
 // ============================================================
 // Bouwt geanonimiseerde benchmark-rijen op basis van afgeronde
 // campagnes. GDPR Recital 26: alleen geaggregeerde / generieke
-// velden — géén restaurant_id, géén naam/adres, géén body-tekst.
+// velden, géén restaurant_id, géén naam/adres, géén body-tekst.
 //
 // Wordt aangeroepen op twee momenten:
-//   1. Bij `CampaignsService.updateStatus(... → 'afgerond')` —
+//   1. Bij `CampaignsService.updateStatus(... → 'afgerond')`,
 //      continu opbouwen, fail-soft (status-overgang faalt nooit
 //      door benchmark-fout).
-//   2. Bij `AccountDeletionService.deleteAccount()` — laatste
+//   2. Bij `AccountDeletionService.deleteAccount()`, laatste
 //      kans om afgeronde campagnes (die om wat voor reden niet
 //      eerder zijn gebenchmarkt) alsnog te bewaren vóór de
 //      restaurant-rij gecascade-delete wordt.
@@ -24,7 +24,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 // ============================================================
 
 // Eerste cijfer van NL-postcode → benaderende provincie. Bewust
-// grof — voldoende voor Filly's pattern-leren ("italiaanse zaken
+// grof, voldoende voor Filly's pattern-leren ("italiaanse zaken
 // in Brabant-regio") zonder herleidbaarheid (1 cijfer dekt
 // duizenden adressen).
 const REGION_BY_PC_FIRST_DIGIT: Record<string, string> = {
@@ -86,7 +86,7 @@ export class AnonymizationService {
 
       // Datum waarop de campagne is uitgevoerd (executed_at) of
       // anders aangemaakt (created_at). We gebruiken alleen
-      // maand + weekdag — niet de exacte datum.
+      // maand + weekdag, niet de exacte datum.
       const sentAt = new Date(
         (campaign.executed_at as string | null) ??
           (campaign.created_at as string),

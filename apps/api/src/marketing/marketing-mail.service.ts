@@ -6,17 +6,17 @@ import type { MailStats, CampaignMailStats } from './types';
 
 /**
  * ============================================================
- * MarketingMailService — aggregeert mail-prestaties uit campaign_sends
+ * MarketingMailService, aggregeert mail-prestaties uit campaign_sends
  * ============================================================
  *
- * Doet GEEN nieuwe mail-verzendingen — daarvoor is MailService al
+ * Doet GEEN nieuwe mail-verzendingen, daarvoor is MailService al
  * verantwoordelijk (sinds 2026-05-04). Deze service is read-only en
  * berekent metrics voor de Marketing-hub-pagina /dashboard/marketing/mail.
  *
  * Strategy:
  *   - Tellen via SQL count(*) filter where status = 'X', niet via
  *     full-table-scan in JS. Schaalbaar naar 1000+ klanten.
- *   - Periode standaard 30 dagen — ruim genoeg voor zinvolle trends,
+ *   - Periode standaard 30 dagen, ruim genoeg voor zinvolle trends,
  *     niet zo lang dat data muffig wordt.
  *   - Industrie-mediaan voor MVP hardcoded per cuisine-type. Bij
  *     1000+ klanten vervangen door dynamische `campaign_benchmarks`-
@@ -30,7 +30,7 @@ export class MarketingMailService {
   /**
    * Aggregaat-stats voor mail over de afgelopen N dagen.
    *
-   * `periodDays` default 30 — sweet spot voor zichtbare trends zonder
+   * `periodDays` default 30, sweet spot voor zichtbare trends zonder
    * te veel ruis.
    */
   async getMailStats(
@@ -58,7 +58,7 @@ export class MarketingMailService {
     }
 
     // Stap 2: alle sends voor deze campagnes ophalen (alleen de
-    // status-velden — geen email-adressen of inhoud). Gegroepeerd
+    // status-velden, geen email-adressen of inhoud). Gegroepeerd
     // tellen via JS is voor MVP prima; bij 100k+ sends per restaurant
     // vervangen door SQL-aggregate functions of materialized views.
     const { data: sends, error: sendsErr } = await this.supabase.client
@@ -92,7 +92,7 @@ export class MarketingMailService {
 
   /**
    * Per-campagne stats voor de tabel op de mail-detail-pagina.
-   * Eigenaar kan hier zien welke campagne goed/slecht presteerde —
+   * Eigenaar kan hier zien welke campagne goed/slecht presteerde,
    * input voor toekomstige Filly-analyse ("vergelijk je beste 3").
    */
   async getCampaignMailStats(
@@ -116,7 +116,7 @@ export class MarketingMailService {
     if (campErr) throw new InternalServerErrorException(campErr.message);
     if (!campaigns || campaigns.length === 0) return [];
 
-    // Sends voor al deze campagnes in 1 query — zuiniger dan N+1.
+    // Sends voor al deze campagnes in 1 query, zuiniger dan N+1.
     const campaignIds = campaigns.map((c) => c.id);
     const { data: sends, error: sendsErr } = await this.supabase.client
       .from('campaign_sends')
@@ -176,7 +176,7 @@ interface Counts {
 }
 
 // Telt sends per status. Belangrijk: 'opened' en 'clicked' zijn
-// terminale statussen — een mail die geopend is, IS ook delivered.
+// terminale statussen, een mail die geopend is, IS ook delivered.
 // Daarom tellen we delivered+opened+clicked allemaal mee in 'delivered'.
 function countByStatus(sends: SendRow[]): Counts {
   const counts: Counts = {
@@ -200,7 +200,7 @@ function countByStatus(sends: SendRow[]): Counts {
     ) {
       counts.sent++;
     }
-    // 'delivered' = aangekomen — opened/clicked tellen ook (zijn ook delivered)
+    // 'delivered' = aangekomen, opened/clicked tellen ook (zijn ook delivered)
     if (
       s.status === 'delivered' ||
       s.status === 'opened' ||
@@ -217,7 +217,7 @@ function countByStatus(sends: SendRow[]): Counts {
   return counts;
 }
 
-// Veilige ratio-berekening — null bij divide-by-zero zodat we in de UI
+// Veilige ratio-berekening, null bij divide-by-zero zodat we in de UI
 // "—" kunnen tonen i.p.v. een misleidende 0%.
 function ratio(numerator: number, denominator: number): number | null {
   if (denominator === 0) return null;
@@ -255,8 +255,8 @@ function emptyStats(
 // MVP volstaat dit; bij ≥100 actieve klanten vervangen door dynamische
 // berekening uit eigen `campaign_benchmarks`-data (bestaat sinds mig 0023).
 const HORECA_MAIL_BENCHMARK = {
-  openRate: 0.22, // 22% — typisch goed voor restaurants
-  clickRate: 0.031, // 3.1% — relatief laag want eten is meestal beslist op rate
-  bounceRate: 0.018, // 1.8% — onder 2% is gezond
+  openRate: 0.22, // 22%, typisch goed voor restaurants
+  clickRate: 0.031, // 3.1%, relatief laag want eten is meestal beslist op rate
+  bounceRate: 0.018, // 1.8%, onder 2% is gezond
   source: 'Horeca-mediaan (Mailchimp 2024-2025 benchmark)',
 };

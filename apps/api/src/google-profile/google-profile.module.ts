@@ -8,17 +8,17 @@ import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
 /**
- * GoogleProfileModule — wrapper rond Google Places API (New).
+ * GoogleProfileModule, wrapper rond Google Places API (New).
  *
  * Imports:
- *   - SupabaseModule       — voor RequestSupabaseService (per-request
+ *   - SupabaseModule      , voor RequestSupabaseService (per-request
  *                            user-JWT-client met RLS-defense-in-depth).
- *   - AuditLogModule       — connect/refresh/disconnect worden gelogd.
- *   - MeModule             — levert RestaurantAccessService voor de
+ *   - AuditLogModule      , connect/refresh/disconnect worden gelogd.
+ *   - MeModule            , levert RestaurantAccessService voor de
  *                            RestaurantAccessGuard.
  *
  * Exports:
- *   GoogleProfileService — zodat de OnboardingModule (later) hem kan
+ *   GoogleProfileService, zodat de OnboardingModule (later) hem kan
  *   gebruiken voor auto-detect tijdens onboarding-stap 2.
  */
 @Module({

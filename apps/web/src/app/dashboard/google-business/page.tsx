@@ -18,20 +18,20 @@ import { GoogleConnectModal } from "./_components/google-connect-modal";
 
 /**
  * ============================================================
- * Google Business Profile — hub-pagina (dynamisch sinds 2026-05-05)
+ * Google Business Profile, hub-pagina (dynamisch sinds 2026-05-05)
  * ============================================================
  *
  * Drie visuele states bovenaan, gestuurd door GET /google-profile/me:
- *   - loading        — skelet met grijze blokjes
- *   - !connected     — blauwe banner + "Koppel met Google"-knop
- *   - connected      — groene banner + profielinfo + Vernieuw + Ontkoppel
+ *   - loading       , skelet met grijze blokjes
+ *   - !connected    , blauwe banner + "Koppel met Google"-knop
+ *   - connected     , groene banner + profielinfo + Vernieuw + Ontkoppel
  *
  * 7 feature-cards eronder. De drie fase-B-features (audit / benchmark /
  * posts) worden klikbaar zodra connected; daarvoor blijven ze Coming Soon.
  * De drie fase-F-features (edits / foto-sync / inzichten) blijven Coming
  * Soon tot fase D-F live gaan (vereist OAuth + Google approval).
  *
- * Reviews-card werkt onafhankelijk van de Google-koppeling — Filly's
+ * Reviews-card werkt onafhankelijk van de Google-koppeling, Filly's
  * reply-engine draait al op handmatig ingevoerde reviews. Pas in fase E
  * komt automatische review-sync vanuit Google.
  * ============================================================
@@ -88,7 +88,7 @@ const features: Feature[] = [
     icon: "✍️",
     title: "Profiel-edits",
     description:
-      "Wijzigingen aan openingstijden, beschrijving en attributen rechtstreeks pushen naar Google — met jouw goedkeuring.",
+      "Wijzigingen aan openingstijden, beschrijving en attributen rechtstreeks pushen naar Google, met jouw goedkeuring.",
     status: "coming-soon-oauth",
     phaseLabel: "Vereist Google-koppeling",
   },
@@ -106,7 +106,7 @@ const features: Feature[] = [
     icon: "📈",
     title: "Inzichten",
     description:
-      "Hoeveel mensen zoeken jouw onderneming, klikken naar je website of bellen je nummer — direct uit Google.",
+      "Hoeveel mensen zoeken jouw onderneming, klikken naar je website of bellen je nummer, direct uit Google.",
     status: "coming-soon-oauth",
     phaseLabel: "Vereist Google-koppeling",
   },
@@ -168,7 +168,7 @@ export default function GoogleBusinessHubPage() {
     });
   }
 
-  // Ontkoppel-flow: native confirm i.p.v. custom modal — past bij de
+  // Ontkoppel-flow: native confirm i.p.v. custom modal, past bij de
   // andere "delete-flow"-patronen in de codebase (gasten-pagina,
   // chat-history etc.) en is goed genoeg voor een eigenaar-actie die
   // niet vaak voorkomt. Bij een bredere "delete-actions"-design-pas
@@ -225,10 +225,10 @@ export default function GoogleBusinessHubPage() {
     <div className="page-full">
       <PageHeader
         title="Google Business Profile"
-        subtitle="Beheer je profiel, reviews en zichtbaarheid in Google — Filly helpt mee."
+        subtitle="Beheer je profiel, reviews en zichtbaarheid in Google, Filly helpt mee."
       />
 
-      {/* Status-banner — drie states. Loading toont neutrale skelet,
+      {/* Status-banner, drie states. Loading toont neutrale skelet,
           de andere twee zijn vol-gekleurd om de huidige situatie
           herkenbaar te maken. */}
       {loading ? (
@@ -280,7 +280,7 @@ export default function GoogleBusinessHubPage() {
                 lineHeight: 1.5,
               }}
             >
-              <strong>{profile.displayName}</strong> — {profile.formattedAddress}
+              <strong>{profile.displayName}</strong>, {profile.formattedAddress}
               {profile.rating !== null && (
                 <>
                   <br />⭐ {profile.rating.toFixed(1)}

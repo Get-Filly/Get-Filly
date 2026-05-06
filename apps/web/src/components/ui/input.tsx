@@ -6,7 +6,7 @@ import {
 } from "react";
 
 // ============================================================
-// <Input> + <Textarea> — gelabelde form-velden met optionele hint/error
+// <Input> + <Textarea>, gelabelde form-velden met optionele hint/error
 // ============================================================
 //
 // Vervangt op termijn het manual-pattern in account-pagina:
@@ -31,7 +31,7 @@ import {
 //   - `full` prop maakt de field grid-column: 1 / -1 (form-grid)
 //   - Spread van standard <input>-attributes blijft werken
 //
-// Houdt bestaande .form-field/.form-field input CSS-classes — geen
+// Houdt bestaande .form-field/.form-field input CSS-classes, geen
 // styling-drift met de rest van de pagina.
 // ============================================================
 

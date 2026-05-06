@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // ============================================================
-// RestaurantUpdateSchema — strikte allowlist voor PATCH /restaurant/me
+// RestaurantUpdateSchema, strikte allowlist voor PATCH /restaurant/me
 // ============================================================
 //
 // Waarom een schema in plaats van handmatig FORBIDDEN_PATCH_FIELDS?
@@ -30,11 +30,11 @@ import { z } from 'zod';
 //     achteraf overschrijven via dit endpoint, maar de meta-velden niet)
 //   - target_audience, atmosphere, etc. die WebsiteAnalyzer ook vult
 //     mogen eigenaar wél overschrijven (komt straks ook nog uit account-
-//     pagina) — staan dus wél in dit schema.
+//     pagina), staan dus wél in dit schema.
 //
 
 // ------------------------------------------------------------
-// Helpers — herbruikbare validators
+// Helpers, herbruikbare validators
 // ------------------------------------------------------------
 
 const KVK_RE = /^\d{8}$/; // NL KvK = 8 cijfers
@@ -65,7 +65,7 @@ const optionalStringArray = (maxItems: number, maxItemLength: number) =>
 // ------------------------------------------------------------
 
 // Openingstijden: per dag een open/close-tijd of null (gesloten).
-// We zijn bewust permissief — de UI valideert het formaat veel
+// We zijn bewust permissief, de UI valideert het formaat veel
 // stricter en backend hoeft alleen te beschermen tegen kwaadwillig
 // invoer. z.record() laat alle dag-keys toe (mon, tue, wo, etc).
 const OpeningHoursSchema = z.record(
@@ -80,7 +80,7 @@ const OpeningHoursSchema = z.record(
 );
 
 // Brand-kleuren: { primary, secondary, accent } maar elke key is
-// optioneel. Hex-string check is licht — UI rendert color-picker
+// optioneel. Hex-string check is licht, UI rendert color-picker
 // dus formaat is gestandaardiseerd vanuit daar.
 const BrandColorsSchema = z.record(
   z.string(),
@@ -266,7 +266,7 @@ export const RestaurantUpdateSchema = z
   // plan, latitude, etc). Met .strict() zou élke save 400 geven.
   //
   // RestaurantService.update detecteert + logt welke keys gestripped
-  // zijn zodat we visibiliteit houden — en bij een nieuwe DB-kolom
+  // zijn zodat we visibiliteit houden, en bij een nieuwe DB-kolom
   // die per ongeluk in de Restaurant-type belandt zonder schema-update,
   // zien we 't in de logs i.p.v. dat een eigenaar een gat ontdekt.
   //

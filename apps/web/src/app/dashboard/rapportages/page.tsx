@@ -54,7 +54,7 @@ function occColor(pct: number): string {
 }
 
 // Heatmap-intensiteit op brand-groen i.p.v. zwart. Alpha schaalt met
-// bezettingspercentage — donkere cel = druk.
+// bezettingspercentage, donkere cel = druk.
 function heatmapCell(pct: number): string {
   const alpha = (pct / 100) * 0.85;
   return `rgba(31, 74, 45, ${alpha})`;
@@ -97,7 +97,7 @@ export default function RapportagesPage() {
   const [loading, setLoading] = useState(true);
 
   // Geselecteerde maand waar de bezetting- en gast-KPI's op gebaseerd zijn.
-  // Met prev/next kun je terug in de tijd — "hoe ging maart?". Trend-secties
+  // Met prev/next kun je terug in de tijd, "hoe ging maart?". Trend-secties
   // (Filly-ROI, retentie-cohort) blijven op eigen rolling window.
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -122,7 +122,7 @@ export default function RapportagesPage() {
       .catch(() => {});
   }, []);
 
-  // Occupancy verandert per geselecteerde maand — bij elke prev/next opnieuw.
+  // Occupancy verandert per geselecteerde maand, bij elke prev/next opnieuw.
   useEffect(() => {
     setLoading(true);
     fetchOccupancy(viewYear, viewMonth)
@@ -196,7 +196,7 @@ export default function RapportagesPage() {
     };
   }, [campaigns, guests, occupancy]);
 
-  // YoY-cijfers zijn nog placeholder — komen straks uit een
+  // YoY-cijfers zijn nog placeholder, komen straks uit een
   // `getMonthMetrics(year-1, month)`-call. Gemarkeerd als TODO.
   const yoy = { occ: 7, guests: 12, revenue: 9 };
 
@@ -257,12 +257,12 @@ export default function RapportagesPage() {
           topGap
           icon="📊"
           title="Nog geen data om te rapporteren"
-          description="Zodra reserveringen, gasten en campagnes binnenkomen verschijnen hier de cijfers — gemiddelde bezetting, omzet, Filly-ROI, retentie en meer. Begin met een eerste campagne of importeer je gasten-bestand."
+          description="Zodra reserveringen, gasten en campagnes binnenkomen verschijnen hier de cijfers, gemiddelde bezetting, omzet, Filly-ROI, retentie en meer. Begin met een eerste campagne of importeer je gasten-bestand."
         />
       ) : (
         <>
           {/* =====================================================
-              SECTIE 1 — Bezetting & omzet
+              SECTIE 1, Bezetting & omzet
               ===================================================== */}
           <div className="rep-section">
             <div className="rep-section-eyebrow">Bezetting & omzet</div>
@@ -454,7 +454,7 @@ export default function RapportagesPage() {
                     {row.map((pct, hIdx) => (
                       <div
                         key={hIdx}
-                        title={`${dayLabels[dIdx]} ${hourLabels[hIdx]}:00 — ${pct}%`}
+                        title={`${dayLabels[dIdx]} ${hourLabels[hIdx]}:00, ${pct}%`}
                         style={{
                           height: 22,
                           background: heatmapCell(pct),
@@ -496,7 +496,7 @@ export default function RapportagesPage() {
           </div>
 
           {/* =====================================================
-              SECTIE 2 — Filly ROI
+              SECTIE 2, Filly ROI
               ===================================================== */}
           {(() => {
             const totalReservations = fillyRoi6m.reduce(
@@ -526,7 +526,7 @@ export default function RapportagesPage() {
                   </div>
                   <div className="rep-section-desc">
                     Cumulatieve bijdrage van Filly over de afgelopen 6
-                    maanden — gebaseerd op reserveringen die handmatig of
+                    maanden, gebaseerd op reserveringen die handmatig of
                     automatisch zijn gekoppeld aan een Filly-campagne.
                   </div>
                 </div>
@@ -535,7 +535,7 @@ export default function RapportagesPage() {
                   <EmptyState
                     icon="📈"
                     title="Nog geen reserveringen via Filly gekoppeld"
-                    description="Koppel reserveringen aan een Filly-campagne op de reserveringen-pagina (of wacht tot de send-engine automatisch attribueert) — dan verschijnen hier cumulatieve cijfers, een 6-maanden grafiek en een per-kanaal vergelijking."
+                    description="Koppel reserveringen aan een Filly-campagne op de reserveringen-pagina (of wacht tot de send-engine automatisch attribueert), dan verschijnen hier cumulatieve cijfers, een 6-maanden grafiek en een per-kanaal vergelijking."
                   />
                 ) : (
                   <>
@@ -630,7 +630,7 @@ export default function RapportagesPage() {
                       </div>
                     </div>
 
-                    {/* Per campagne — alleen tonen als er data is */}
+                    {/* Per campagne, alleen tonen als er data is */}
                     {fillyByCampaign.length > 0 && (
                       <div className="card" style={{ marginBottom: 16 }}>
                         <div className="card-h">
@@ -725,13 +725,13 @@ export default function RapportagesPage() {
           })()}
 
           {/* =====================================================
-              SECTIE 3 — Gasten & retentie
+              SECTIE 3, Gasten & retentie
               ===================================================== */}
           <div className="rep-section">
             <div className="rep-section-eyebrow">Gasten & retentie</div>
             <div className="rep-section-title">Komen je gasten terug?</div>
             <div className="rep-section-desc">
-              Van 100 gasten die in maand X voor het eerst kwamen — hoeveel
+              Van 100 gasten die in maand X voor het eerst kwamen, hoeveel
               kwamen er in de maanden erna nog terug? Hoge % = loyaliteit,
               lage % = kans voor Filly om een win-back te sturen.
             </div>
@@ -788,7 +788,7 @@ export default function RapportagesPage() {
           </div>
 
           {/* =====================================================
-              SECTIE 4 — Campagnes (bestaande top-3)
+              SECTIE 4, Campagnes (bestaande top-3)
               ===================================================== */}
           <div className="rep-section">
             <div className="rep-section-eyebrow">Marketing</div>

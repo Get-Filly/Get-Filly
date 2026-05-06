@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 // =============================================================================
-// PRODUCT-PAGINA — 1-op-1 conversie van Claude Design app.jsx → ProductPage.
+// PRODUCT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → ProductPage.
 // =============================================================================
 
 const features = [
@@ -9,7 +9,7 @@ const features = [
   { title: "AI-chatbot", desc: "Chat met Filly zoals je met een collega praat. Hij kent je data, doet voorstellen, en voert ze uit na jouw goedkeuring." },
   { title: "E-mailcampagnes", desc: "Van concept tot verzending in één chat. Filly schrijft de mail, selecteert de juiste gasten, en stuurt op het beste moment." },
   { title: "Social media posts", desc: "Filly maakt posts voor Instagram en Facebook. Afgestemd op je merk, je aanbod, en de dagen die gevuld moeten worden." },
-  { title: "Seizoensstrategie", desc: "Valentijnsdag, Koningsdag, kerst — Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren." },
+  { title: "Seizoensstrategie", desc: "Valentijnsdag, Koningsdag, kerst, Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren." },
   { title: "Koppelingen", desc: "Verbind met Zenchef, OpenTable, SevenRooms en andere platforms. Eenmalig instellen, daarna draait alles automatisch." },
 ];
 
@@ -55,7 +55,7 @@ export default function ProductPage() {
 
           <div className="features-stack" style={{ marginTop: 56 }}>
 
-            {/* STAP 1 — Filly ziet de dip */}
+            {/* STAP 1, Filly ziet de dip */}
             <div className="feature-row">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:14</p>
@@ -105,7 +105,7 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* STAP 2 — Filly stelt drie kanalen voor */}
+            {/* STAP 2, Filly stelt drie kanalen voor */}
             <div className="feature-row feature-row--reverse">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:15</p>
@@ -176,7 +176,7 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* STAP 3 — Eén klik */}
+            {/* STAP 3, Eén klik */}
             <div className="feature-row">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Maandag &middot; 09:16</p>
@@ -224,7 +224,7 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* STAP 4 — Resultaat */}
+            {/* STAP 4, Resultaat */}
             <div className="feature-row feature-row--reverse">
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Vrijdag &middot; 23:00</p>

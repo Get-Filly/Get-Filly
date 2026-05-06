@@ -5,13 +5,13 @@ import { createInvite, type CreateInviteResult } from "../../../../lib/api";
 import { type Role } from "@getfilly/shared";
 
 const ROLE_LABELS: Record<Role, string> = {
-  owner: "Eigenaar — alles mag",
-  manager: "Manager — dagelijks werk",
-  staff: "Medewerker — beperkt",
+  owner: "Eigenaar, alles mag",
+  manager: "Manager, dagelijks werk",
+  staff: "Medewerker, beperkt",
 };
 
 /**
- * InviteModal — simpele dialog om iemand uit te nodigen.
+ * InviteModal, simpele dialog om iemand uit te nodigen.
  *
  * Minimaal form:
  *   - e-mail
@@ -124,7 +124,7 @@ export function InviteModal({
                 <div className="invite-success-icon">📎</div>
                 <p>
                   Deze persoon heeft al een Get-Filly-account. Deel de onderstaande
-                  link met hem of haar — klikken = direct binnen.
+                  link met hem of haar, klikken = direct binnen.
                 </p>
                 <div className="invite-link-box">
                   <code>{result.manualLink}</code>

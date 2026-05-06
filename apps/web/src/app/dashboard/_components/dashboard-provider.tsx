@@ -5,7 +5,7 @@ import { RestaurantProvider } from "../../../lib/restaurant-context";
 import { createClient } from "../../../lib/supabase-browser";
 
 /**
- * DashboardProvider — client-wrapper die RestaurantProvider opstart.
+ * DashboardProvider, client-wrapper die RestaurantProvider opstart.
  *
  * Waarom een apart component?
  *   De layout zelf is een Server Component. RestaurantProvider is
@@ -15,7 +15,7 @@ import { createClient } from "../../../lib/supabase-browser";
  *
  * Wat doet deze provider:
  *   Geeft een JWT-getter door aan RestaurantProvider. Die getter
- *   haalt bij elke aanroep de actuele Supabase-sessie op — zo heeft
+ *   haalt bij elke aanroep de actuele Supabase-sessie op, zo heeft
  *   de provider altijd een verse token, ook na reconnect.
  */
 export function DashboardProvider({ children }: { children: ReactNode }) {

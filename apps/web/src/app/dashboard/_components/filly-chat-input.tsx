@@ -3,7 +3,7 @@
 import { Send } from "lucide-react";
 
 // ============================================================
-// FillyChatInput — text-input + verzend-knop voor de Filly-chat.
+// FillyChatInput, text-input + verzend-knop voor de Filly-chat.
 //
 // Bewust een controlled component (waarde komt van de orchestrator)
 // zodat we vanuit de orchestrator kunnen leeghalen na succesvolle

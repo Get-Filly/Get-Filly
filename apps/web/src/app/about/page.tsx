@@ -1,5 +1,5 @@
 // =============================================================================
-// ABOUT-PAGINA — 1-op-1 conversie van Claude Design app.jsx → AboutPage.
+// ABOUT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → AboutPage.
 // =============================================================================
 
 const missionPillars = [
@@ -16,7 +16,7 @@ export default function AboutPage() {
           <p className="section-label">Over ons</p>
           <h1 className="section-title">Van idee naar impact.</h1>
           <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
-            Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen om slimmer te vullen — zonder dat je er uren aan marketing aan kwijt bent.
+            Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen om slimmer te vullen, zonder dat je er uren aan marketing aan kwijt bent.
           </p>
 
           <div className="about-intro-divider"></div>

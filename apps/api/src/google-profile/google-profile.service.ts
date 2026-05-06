@@ -24,7 +24,7 @@ import { runAudit, type AuditResult } from './audit';
 
 /**
  * ============================================================
- * GoogleProfileService — wrapper rond Google Places API (New)
+ * GoogleProfileService, wrapper rond Google Places API (New)
  * ============================================================
  *
  * Drie verantwoordelijkheden, in deze volgorde van complexiteit:
@@ -46,7 +46,7 @@ import { runAudit, type AuditResult } from './audit';
  *
  * Geen retry-logic ingebouwd. Places API is doorgaans betrouwbaar;
  * bij uitval krijgt de gebruiker een nette NL-foutmelding en kan 'ie
- * later opnieuw proberen. Rate-limits zien we in metrics — die
+ * later opnieuw proberen. Rate-limits zien we in metrics, die
  * pakken we pas aan als ze bestaan.
  * ============================================================
  */
@@ -61,7 +61,7 @@ export class GoogleProfileService {
     private readonly supabase: RequestSupabaseService,
     private readonly audit: AuditLogService,
   ) {
-    // Bewust hard-faal als de key ontbreekt — dat is een config-fout
+    // Bewust hard-faal als de key ontbreekt, dat is een config-fout
     // die direct gevangen moet worden, niet pas bij de eerste echte
     // API-call. Zo crasht de Nest-bootstrap met een duidelijke melding
     // i.p.v. dat de hub-pagina later mysterieuze 500's geeft.
@@ -81,7 +81,7 @@ export class GoogleProfileService {
    * mijn zaak") en voor concurrent-toevoegen later.
    *
    * Returns max 5 matches, gesorteerd op relevantie (Google's eigen
-   * ranking — meestal: hoogste rating + dichtstbijzijnde adres-match
+   * ranking, meestal: hoogste rating + dichtstbijzijnde adres-match
    * eerst).
    */
   async searchByText(
@@ -96,7 +96,7 @@ export class GoogleProfileService {
     }
 
     // Body-shape volgt de Places API (New) spec. `locationBias`
-    // is optioneel — geven we mee als de eigenaar al een adres
+    // is optioneel, geven we mee als de eigenaar al een adres
     // heeft (verhoogt match-precisie aanzienlijk).
     const body: Record<string, unknown> = {
       textQuery: trimmed,
@@ -137,7 +137,7 @@ export class GoogleProfileService {
     placeId: string,
   ): Promise<{ data: PlaceDetails; syncedAt: string }> {
     if (!placeId.startsWith('ChIJ') && !placeId.startsWith('GhIJ')) {
-      // Google place_id's beginnen met "ChIJ" of "GhIJ" — een ruwe
+      // Google place_id's beginnen met "ChIJ" of "GhIJ", een ruwe
       // sanity-check tegen typo's en onbedoelde input.
       throw new BadRequestException('Ongeldig Google place_id-formaat.');
     }
@@ -157,7 +157,7 @@ export class GoogleProfileService {
     if (error) throw new InternalServerErrorException(error.message);
 
     // Audit: wie koppelde welk place_id wanneer. Niet de hele blob
-    // loggen — alleen de identifier zodat het log compact blijft.
+    // loggen, alleen de identifier zodat het log compact blijft.
     await this.audit.log({
       restaurantId,
       userId,
@@ -178,7 +178,7 @@ export class GoogleProfileService {
    * automatisch als de cache ouder is dan TTL.
    *
    * Returnt `connected: false` als het restaurant geen place_id heeft
-   * — dat is GEEN error, dat is gewoon de "nog niet gekoppeld"-state.
+   *, dat is GEEN error, dat is gewoon de "nog niet gekoppeld"-state.
    */
   async getMine(restaurantId: string): Promise<{
     connected: boolean;
@@ -208,7 +208,7 @@ export class GoogleProfileService {
       try {
         return await this.refreshInternal(restaurantId, row.google_place_id);
       } catch (err) {
-        // Refresh-fout is niet kritiek — return de stale cache met een
+        // Refresh-fout is niet kritiek, return de stale cache met een
         // log-warning. Beter oude data dan helemaal niks.
         this.logger.warn(
           `Stale-refresh voor restaurant ${restaurantId} faalde: ${(err as Error).message}. Toon cached.`,
@@ -224,7 +224,7 @@ export class GoogleProfileService {
   }
 
   /**
-   * Force-refresh van de profiel-data — gebruikt door de "Vernieuw"-
+   * Force-refresh van de profiel-data, gebruikt door de "Vernieuw"-
    * knop op de hub. Bypasst de TTL-check.
    */
   async refresh(
@@ -259,11 +259,11 @@ export class GoogleProfileService {
 
   /**
    * Profiel-audit: doorlopen 12+ deterministische regels op de
-   * gecachete place-data. Geen Claude-call — runtime is sub-ms en
+   * gecachete place-data. Geen Claude-call, runtime is sub-ms en
    * gratis. Voor klanten zonder koppeling: NotFound.
    *
    * Verloopt door `getMine()` zodat we de dezelfde TTL-refresh-logica
-   * krijgen — dus altijd recent data tenzij Places API down is.
+   * krijgen, dus altijd recent data tenzij Places API down is.
    */
   async getAudit(restaurantId: string): Promise<AuditResult> {
     const me = await this.getMine(restaurantId);
@@ -282,7 +282,7 @@ export class GoogleProfileService {
    * call om coords op te halen). Filtert het eigen restaurant uit het
    * resultaat zodat je niet jezelf in de tabel ziet.
    *
-   * Geen cache hier — wordt zelden opgevraagd (1× per week per klant
+   * Geen cache hier, wordt zelden opgevraagd (1× per week per klant
    * volgens schatting), en concurrent-data verandert wat sneller dan
    * je eigen profiel.
    */
@@ -343,7 +343,7 @@ export class GoogleProfileService {
         photoCount: Array.isArray(p.photos) ? p.photos.length : 0,
       }))
       // Sorteer op afstand zodat de dichtstbijzijnde concurrenten
-      // bovenaan staan — meest relevant voor de eigenaar.
+      // bovenaan staan, meest relevant voor de eigenaar.
       .sort((a, b) => (a.distanceMeters ?? 9e9) - (b.distanceMeters ?? 9e9));
 
     return competitors;
@@ -442,7 +442,7 @@ export class GoogleProfileService {
 
   /**
    * Haal volledige place-details op en mappen naar onze interne shape.
-   * Geen cache-check — caller bepaalt of refresh nodig is.
+   * Geen cache-check, caller bepaalt of refresh nodig is.
    */
   private async fetchPlaceDetails(placeId: string): Promise<PlaceDetails> {
     const raw = await this.callPlaces<RawPlace>(
@@ -478,7 +478,7 @@ export class GoogleProfileService {
 }
 
 // ============================================================
-// Helpers buiten de class — pure functies, makkelijker te testen
+// Helpers buiten de class, pure functies, makkelijker te testen
 // ============================================================
 
 // Raw shape uit Places API. We typen 'm zo strict mogelijk maar Google

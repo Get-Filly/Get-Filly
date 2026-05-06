@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 // ============================================================
-// <Button> — base-component voor de Get Filly UI
+// <Button>, base-component voor de Get Filly UI
 // ============================================================
 //
 // Vervangt 3 oude patterns die door de codebase verspreid stonden:
@@ -10,14 +10,14 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 //   - inline groene knoppen (style={{ background: 'var(--accent)' ... }})
 //
 // Variants:
-//   primary    — groene CTA (hoofd-actie per scherm/sectie)
-//   secondary  — grijze rand, transparante achtergrond (alternatief)
-//   ghost      — geen rand/bg, alleen tekst (links-achtige knoppen)
-//   danger     — rode CTA (verwijder, annuleer-irreversible)
+//   primary   , groene CTA (hoofd-actie per scherm/sectie)
+//   secondary , grijze rand, transparante achtergrond (alternatief)
+//   ghost     , geen rand/bg, alleen tekst (links-achtige knoppen)
+//   danger    , rode CTA (verwijder, annuleer-irreversible)
 //
 // Sizes:
-//   sm  — kleinere knoppen voor inline-acties (in tabel, in card-header)
-//   md  — default, gebruikt door 90% van de knoppen
+//   sm , kleinere knoppen voor inline-acties (in tabel, in card-header)
+//   md , default, gebruikt door 90% van de knoppen
 //
 // Belangrijk:
 //   - type="button" is de DEFAULT (HTML's default is "submit", veroorzaakt
@@ -37,7 +37,7 @@ export type ButtonSize = "sm" | "md";
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  // Optioneel icon LINKS van de tekst. Alleen rendering — caller zorgt
+  // Optioneel icon LINKS van de tekst. Alleen rendering, caller zorgt
   // dat het icon de juiste kleur heeft (currentColor werkt vanzelf).
   iconLeft?: React.ReactNode;
   // Idem rechts. Voor pijltjes als "Bekijken →" of "Volgende ▶".

@@ -6,7 +6,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  * ============================================================
  * Beschrijft welke velden we van een ingelogde user hebben nadat
  * de AuthGuard zijn JWT heeft gecontroleerd. Dit is een subset
- * van wat Supabase in het token stopt — we nemen alleen wat we
+ * van wat Supabase in het token stopt, we nemen alleen wat we
  * echt nodig hebben.
  *
  *   - id:    de unieke gebruikers-id (uuid, dezelfde als in auth.users)
@@ -19,7 +19,7 @@ export type AuthenticatedUser = {
 
 /**
  * ============================================================
- * @CurrentUser() — haal de ingelogde user op in een controller
+ * @CurrentUser(), haal de ingelogde user op in een controller
  * ============================================================
  *
  * Wat doet dit:
@@ -41,7 +41,7 @@ export type AuthenticatedUser = {
  *
  * Belangrijk:
  *   Dit werkt alleen als de AuthGuard eerder is gedraaid. Op een
- *   endpoint met @Public() bestaat req.user niet — dan krijg je
+ *   endpoint met @Public() bestaat req.user niet, dan krijg je
  *   undefined.
  */
 export const CurrentUser = createParamDecorator(

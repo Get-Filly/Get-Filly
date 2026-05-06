@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 // ============================================================
-// GeocodingService — adres → coördinaten via PDOK Locatieserver
+// GeocodingService, adres → coördinaten via PDOK Locatieserver
 // ============================================================
 // We gebruiken de PDOK Locatieserver van het Kadaster, de officiële
 // Nederlandse adres-zoek-API. Redenen:
@@ -26,7 +26,7 @@ import { Injectable, Logger } from '@nestjs/common';
 //   { response: { numFound: 0, docs: [] } }
 //
 // Bij fouten (netwerk, 5xx, parse): loggen en null terugrechter van
-// de caller. Onboarding blijft doorgaan — lat/long mag ook null
+// de caller. Onboarding blijft doorgaan, lat/long mag ook null
 // zijn, we missen dan alleen de weer-forecast voor die zaak.
 // ============================================================
 
@@ -40,7 +40,7 @@ export type GeocodeResult = {
   // Weergavenaam = het gestandaardiseerde adres zoals PDOK het kent.
   // Handig voor logs/debug, niet opslaan (wij hebben al adres-velden).
   matched_name: string;
-  // type = 'adres' | 'postcode' | 'woonplaats' | 'weg' — zegt iets over
+  // type = 'adres' | 'postcode' | 'woonplaats' | 'weg', zegt iets over
   // de precisie van de match. 'adres' = huisnummer-niveau (best),
   // 'postcode' = straatniveau, 'woonplaats' = heel grof.
   match_type: string;
@@ -76,7 +76,7 @@ export class GeocodingService {
 
     // AbortController voor timeout. PDOK is meestal <500ms, maar bij
     // piek-momenten of een congestie kan het uitlopen. 10s is een
-    // ruime bovengrens — langer zou onboarding onnodig vertragen.
+    // ruime bovengrens, langer zou onboarding onnodig vertragen.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -155,7 +155,7 @@ function buildQuery(input: {
 }
 
 // Parsed "POINT(4.899553 52.372937)" naar { longitude, latitude }.
-// Let op: WKT is (lng lat) — longitude komt eerst, dat is geen typo.
+// Let op: WKT is (lng lat), longitude komt eerst, dat is geen typo.
 function parsePoint(
   wkt: string,
 ): { latitude: number; longitude: number } | null {

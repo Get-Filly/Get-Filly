@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Footer voor de publieke site. Niet zichtbaar op /dashboard/* en op
-// de auth-paden — die hebben hun eigen layout. Zelfde patroon als de
+// de auth-paden, die hebben hun eigen layout. Zelfde patroon als de
 // Navbar, dus de footer verschijnt alleen waar hij hoort.
 const HIDDEN_PATHS = ["/dashboard", "/login", "/signup", "/auth", "/invite"];
 
@@ -21,7 +21,7 @@ const linksBedrijf = [
 ];
 
 // Juridische links. /privacy en /voorwaarden zijn live (concept-v1,
-// nog niet jurist-gereviewd — zie gele banner bovenaan elke pagina).
+// nog niet jurist-gereviewd, zie gele banner bovenaan elke pagina).
 // /cookies volgt zodra we Plausible o.i.d. inbouwen; tot die tijd
 // verwijst de cookies-link naar de cookies-sectie in de privacy-
 // verklaring.
@@ -42,7 +42,7 @@ export function Footer() {
       <div className="site-footer-inner">
         <div className="site-footer-brand">
           <Link href="/" className="site-footer-logo">
-            {/* Zelfde tijdelijke SVG als in de navbar — consistent tot de
+            {/* Zelfde tijdelijke SVG als in de navbar, consistent tot de
                 echte designer-versie er is. */}
             <svg
               className="nav-logo-mark"

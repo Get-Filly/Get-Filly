@@ -14,7 +14,7 @@ import {
 } from "../../../lib/api";
 
 // ============================================================
-// TasksStrip — "overige acties" voor Filly's verzamelpagina
+// TasksStrip, "overige acties" voor Filly's verzamelpagina
 // ============================================================
 // Dynamische takenlijst op basis van de actuele data in het platform.
 // Bevat geen Filly-suggesties (die hebben hun eigen strip bovenaan),
@@ -90,7 +90,7 @@ export function TasksStrip() {
   }, []);
 
   // Takenberekening. Ordening van sterkste signaal (hoge urgentie)
-  // naar zwakste. Alle logica is deterministisch — geen extra
+  // naar zwakste. Alle logica is deterministisch, geen extra
   // AI-calls nodig, data komt rechtstreeks uit de platform-tabellen.
   const tasks = useMemo((): TaskItem[] => {
     const out: TaskItem[] = [];
@@ -115,7 +115,7 @@ export function TasksStrip() {
       });
     }
 
-    // Lage bezetting komende week — insight met actie-potentie.
+    // Lage bezetting komende week, insight met actie-potentie.
     const lowDays = occupancy.filter((d) => {
       if (d.date <= todayStr) return false;
       if (d.date > weekFromNow.toISOString().slice(0, 10)) return false;
@@ -139,7 +139,7 @@ export function TasksStrip() {
       });
     }
 
-    // Vandaag's grote reserveringen (6+ personen) — medium urgent.
+    // Vandaag's grote reserveringen (6+ personen), medium urgent.
     const bigReservationsToday = reservations.filter(
       (r) =>
         r.reservation_date === todayStr &&
@@ -150,7 +150,7 @@ export function TasksStrip() {
       out.push({
         id: `big-res-${r.id}`,
         icon: "👥",
-        title: `Groepsreservering vandaag — ${r.party_size} personen`,
+        title: `Groepsreservering vandaag, ${r.party_size} personen`,
         desc: `${r.guest_name} · ${r.reservation_time.slice(0, 5)} · tafel ${r.table_code ?? "—"}${r.special_requests ? ` · "${r.special_requests}"` : ""}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
@@ -170,7 +170,7 @@ export function TasksStrip() {
       out.push({
         id: `sp-${r.id}`,
         icon: "💬",
-        title: `Speciaal verzoek — ${r.guest_name}`,
+        title: `Speciaal verzoek, ${r.guest_name}`,
         desc: `${r.reservation_time.slice(0, 5)} · ${r.special_requests}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
@@ -178,7 +178,7 @@ export function TasksStrip() {
       });
     }
 
-    // Verjaardagen komende 7 dagen — planning-taak.
+    // Verjaardagen komende 7 dagen, planning-taak.
     const upcomingBirthdays = guests.filter((g) => {
       if (!g.birthday) return false;
       const bday = new Date(g.birthday);
@@ -210,7 +210,7 @@ export function TasksStrip() {
     return out.sort((a, b) => order[a.priority] - order[b.priority]);
   }, [guests, reservations, reviews, occupancy]);
 
-  // Counts vóór filtering — zodat de tabs altijd de juiste aantallen
+  // Counts vóór filtering, zodat de tabs altijd de juiste aantallen
   // tonen, ook in 'action'-modus waar je low-prio niet ziet.
   const actionCount = tasks.filter(
     (t) => t.priority === "high" || t.priority === "medium",
@@ -225,7 +225,7 @@ export function TasksStrip() {
         )
       : tasks;
 
-  // Niet tonen tijdens loading of als er helemaal niks te doen is —
+  // Niet tonen tijdens loading of als er helemaal niks te doen is,
   // een lege strip met "geen taken" zou alleen visuele ruis zijn op
   // een pagina die de Filly-voorstellen en campagnes al toont.
   if (loading || tasks.length === 0) return null;

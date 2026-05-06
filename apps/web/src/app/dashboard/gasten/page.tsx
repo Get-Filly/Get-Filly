@@ -127,7 +127,7 @@ export default function GastenPage() {
     <div className="page-full">
       <PageHeader
         title="Gasten"
-        subtitle="Wie jouw restaurant bezoekt — met voorkeuren, allergieën en waarde."
+        subtitle="Wie jouw restaurant bezoekt, met voorkeuren, allergieën en waarde."
       />
 
       <div className="stats-row">
@@ -259,7 +259,7 @@ export default function GastenPage() {
         <table className="data-table">
           <thead>
             <tr>
-              {/* "Via Filly" als eerste kolom — gevuld via
+              {/* "Via Filly" als eerste kolom, gevuld via
                   reservations.via_campaign_id koppeling. Smalle
                   breedte: ja/nee badge of streepje. */}
               <th style={{ width: 90 }}>Via Filly</th>
@@ -304,7 +304,7 @@ export default function GastenPage() {
                           fontSize: 12,
                         }}
                       >
-                        —
+                       ,
                       </span>
                     )}
                   </td>

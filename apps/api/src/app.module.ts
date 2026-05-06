@@ -54,7 +54,7 @@ import { MarketingModule } from './marketing/marketing.module';
   // AuthGuard staat hier als provider zodat NestJS hem kan
   // "injecteren" (Reflector + ConfigService) wanneer een controller
   // hem gebruikt via @UseGuards(AuthGuard). Hij is NOG NIET globaal
-  // geactiveerd — dat gebeurt pas via APP_GUARD in een later stadium.
+  // geactiveerd, dat gebeurt pas via APP_GUARD in een later stadium.
   providers: [AppService, AuthGuard],
 })
 export class AppModule {}

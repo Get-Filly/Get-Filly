@@ -1,9 +1,9 @@
 "use client";
 
-// FillyChatErrorBanner — rode banner boven het input-veld voor
+// FillyChatErrorBanner, rode banner boven het input-veld voor
 // transient fouten (verzending mislukt, rate-limit bereikt, etc).
 // Geen close-knop: het bericht verdwijnt zodra de eigenaar opnieuw
-// een bericht stuurt — orchestrator zet error op null bij sendMsg-
+// een bericht stuurt, orchestrator zet error op null bij sendMsg-
 // start. Bewust geen empty-state hier (return null bij ontbrekende
 // message): de orchestrator beslist of het component überhaupt
 // gerenderd wordt.

@@ -13,7 +13,7 @@ import { EmptyState } from "../../../../components/ui/empty-state";
 import { Skeleton } from "../../_components/skeleton";
 
 // ============================================================
-// MenuSuggestionsTab — "Voorgesteld" view op /dashboard/menu
+// MenuSuggestionsTab, "Voorgesteld" view op /dashboard/menu
 // ============================================================
 //
 // Rendert een grid van Filly-voorstellen met per kaart:
@@ -27,7 +27,7 @@ import { Skeleton } from "../../_components/skeleton";
 //
 // De parent (menu-page) levert items + onMutate zodat we na een actie
 // (accept/reject/refine) direct de menu-items-state in de page kunnen
-// laten herladen — een geaccepteerd voorstel verschijnt dan ook
+// laten herladen, een geaccepteerd voorstel verschijnt dan ook
 // meteen in de Alle/Voorgerecht/etc-tabs.
 // ============================================================
 
@@ -121,7 +121,7 @@ export function MenuSuggestionsTab({
   return (
     <div>
       {/* Top-rij: pending-mode toont de generate-knop en uitleg.
-          Rejected-mode toont alleen een korte intro — geen knop,
+          Rejected-mode toont alleen een korte intro, geen knop,
           want afgewezen voorstellen worden niet opnieuw gegenereerd. */}
       {mode === "pending" ? (
         <div
@@ -138,7 +138,7 @@ export function MenuSuggestionsTab({
         >
           <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
             <strong>Filly als sparring-partner.</strong> 3 voorstellen,
-            1× per dag — bedoeld om jou als chef andere invalshoeken
+            1× per dag, bedoeld om jou als chef andere invalshoeken
             te laten zien, niet om je menu vol te stoppen. Voorstellen
             verschijnen niet in je echte menu tot jij ze accepteert.
           </div>
@@ -206,7 +206,7 @@ export function MenuSuggestionsTab({
           description={
             mode === "pending"
               ? "Klik hierboven op 'Vraag Filly om voorstellen' en hij komt met 3 nieuwe gerechten die passen bij jouw onderneming."
-              : "Voorstellen die je hierboven verwijdert komen hier terecht — zo kun je later nog terugkomen op een voorstel."
+              : "Voorstellen die je hierboven verwijdert komen hier terecht, zo kun je later nog terugkomen op een voorstel."
           }
         />
       ) : (
@@ -255,7 +255,7 @@ function SuggestionCard({
   onReject,
   onRefine,
 }: CardProps) {
-  // Refines beperkt tot 3 — toon de teller zodat eigenaar weet hoeveel
+  // Refines beperkt tot 3, toon de teller zodat eigenaar weet hoeveel
   // er nog over zijn. Cap-bereikt = button disabled met tooltip.
   const refineCapReached = item.refine_count >= 3;
   // Alleen het wortel-voorstel (geen refined_from_id) of de meest
@@ -342,7 +342,7 @@ function SuggestionCard({
 
       {/* Acties onderaan. Pending: primary "Toevoegen" + ghost
           "Andere variant" + ghost "✕". Rejected: alleen één
-          "Toch toevoegen"-actie — geen variant (al rejected, niet
+          "Toch toevoegen"-actie, geen variant (al rejected, niet
           de moeite waard om er Claude-tokens aan te verbranden) en
           geen verwijder-knop (al rejected). */}
       <div
@@ -370,7 +370,7 @@ function SuggestionCard({
               disabled={busy || refineCapReached}
               title={
                 refineCapReached
-                  ? "Maximum 3 varianten bereikt — accepteer er een of vraag een nieuw voorstel"
+                  ? "Maximum 3 varianten bereikt, accepteer er een of vraag een nieuw voorstel"
                   : "Vraag Filly om een wezenlijk andere variant"
               }
             >
@@ -433,7 +433,7 @@ function ConfidenceDot({
   confidence: SuggestedMenuItem["confidence"];
 }) {
   // 'low' is bewust hernoemd naar "Out of the box" (positief
-  // avontuurlijk, geen twijfel) — Filly krijgt daar in de prompt
+  // avontuurlijk, geen twijfel), Filly krijgt daar in de prompt
   // ook expliciet over uitleg. Paarse kleur in plaats van grijs
   // zodat 't visueel als "interessant ander idee" leest, niet als
   // "minder waardevol".

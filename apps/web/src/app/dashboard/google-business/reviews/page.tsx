@@ -32,7 +32,7 @@ function formatDate(s: string | null): string {
   });
 }
 
-// Sterren-component — goud-kleur (#F59E0B) is semantiek voor sterren en
+// Sterren-component, goud-kleur (#F59E0B) is semantiek voor sterren en
 // universeel herkenbaar. Bewust geen brand-kleur: gasten verwachten goud.
 function Stars({ rating }: { rating: number }) {
   return (
@@ -134,7 +134,7 @@ export default function ReviewsPage() {
 
   const openReply = async (r: Review) => {
     // Modal openen + tekstveld leegmaken (niet auto-vullen met variant
-    // — user kiest zelf welke 'ie wil hebben). Daarna fetchen we de
+    //, user kiest zelf welke 'ie wil hebben). Daarna fetchen we de
     // gecachte set; als die leeg is, genereren we automatisch 3.
     setReplyTo(r);
     setReplyText("");
@@ -204,7 +204,7 @@ export default function ReviewsPage() {
     setError(null);
     try {
       const updated = await saveReviewReply(replyTo.id, replyText);
-      // Vervang de review in state door wat de backend teruggeeft —
+      // Vervang de review in state door wat de backend teruggeeft,
       // zo hebben we gegarandeerd dezelfde data als de server (incl.
       // responded_at-timestamp).
       setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
@@ -307,7 +307,7 @@ export default function ReviewsPage() {
         <EmptyState
           icon="⭐"
           title="Nog geen reviews"
-          description="Koppel je Google Business Profile of TripAdvisor om reviews automatisch te importeren — Filly stelt dan voor elke review direct een passend antwoord voor."
+          description="Koppel je Google Business Profile of TripAdvisor om reviews automatisch te importeren, Filly stelt dan voor elke review direct een passend antwoord voor."
         />
       ) : filtered.length === 0 ? (
         <div className="table-empty">Geen reviews in deze categorie.</div>
@@ -340,7 +340,7 @@ export default function ReviewsPage() {
                 </div>
                 {r.body && <div className="review-body">{r.body}</div>}
                 <div className="review-foot">
-                  <span className="review-author">— {r.author ?? "Anoniem"}</span>
+                  <span className="review-author">{r.author ?? "Anoniem"}</span>
                   {r.response_text ? (
                     <span className="review-responded">✓ Gereageerd</span>
                   ) : (
@@ -365,7 +365,7 @@ export default function ReviewsPage() {
         </div>
       )}
 
-      {/* Reply-modal — opent bij klik op "Reageren". Filly heeft een
+      {/* Reply-modal, opent bij klik op "Reageren". Filly heeft een
           eerste voorstel geschreven, de gebruiker kan aanpassen of
           opnieuw laten genereren. */}
       {replyTo && (
@@ -402,7 +402,7 @@ export default function ReviewsPage() {
                 {replyTo.body ?? "Geen inhoud."}
               </div>
               <div className="review-modal-author">
-                — {replyTo.author ?? "Anoniem"} ·{" "}
+               , {replyTo.author ?? "Anoniem"} ·{" "}
                 {formatDate(replyTo.review_date)}
               </div>
             </div>
@@ -410,7 +410,7 @@ export default function ReviewsPage() {
             {/* Filly-banner met dynamische copy + regenerate-knop.
                 Vanaf modal-open: 3 voorstellen worden automatisch
                 gecached en getoond. Knop "Genereer 3 nieuwe" voegt
-                3 extra toe (totaal 6). Daarna disabled —
+                3 extra toe (totaal 6). Daarna disabled,
                 kostenbeheersing. Server cachet alles per review. */}
             {bootstrapping ? (
               <div className="review-modal-filly-banner">
@@ -447,7 +447,7 @@ export default function ReviewsPage() {
               <div className="review-modal-filly-banner">
                 <div>
                   <strong>{variants.length} versies klaar.</strong>{" "}
-                  Maximum bereikt — kies hieronder je favoriet en pas
+                  Maximum bereikt, kies hieronder je favoriet en pas
                   'm naar wens aan.
                 </div>
               </div>
@@ -461,7 +461,7 @@ export default function ReviewsPage() {
               <div
                 style={{
                   display: "grid",
-                  // Auto-fit met min 180px per card — bij 3 varianten
+                  // Auto-fit met min 180px per card, bij 3 varianten
                   // krijg je 3 kolommen, bij 6 wordt het automatisch
                   // 2 of 3 rijen afhankelijk van modal-breedte.
                   gridTemplateColumns:
@@ -504,7 +504,7 @@ export default function ReviewsPage() {
                         Variant {i + 1}
                         {active ? " · gekozen" : ""}
                       </div>
-                      {/* Snippet — eerste ~120 tekens zodat 3 kaartjes
+                      {/* Snippet, eerste ~120 tekens zodat 3 kaartjes
                           naast elkaar passen zonder te veel te schreeuwen. */}
                       {v.length > 120 ? v.slice(0, 120) + "…" : v}
                     </button>

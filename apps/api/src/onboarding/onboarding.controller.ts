@@ -23,11 +23,11 @@ import {
 } from '../common/current-user.decorator';
 
 // ============================================================
-// /api/onboarding — eenmalige setup voor nieuwe users
+// /api/onboarding, eenmalige setup voor nieuwe users
 // ============================================================
 // Deze controller staat BEWUST buiten de RestaurantAccessGuard-keten
 // (anders dan alle andere restaurant-endpoints). Reden: tijdens
-// onboarding HEEFT de user nog geen restaurant — hij maakt 'm net
+// onboarding HEEFT de user nog geen restaurant, hij maakt 'm net
 // aan. Dus we kunnen niet eisen dat X-Restaurant-Id meegestuurd wordt.
 //
 // Wel AuthGuard: de user moet ingelogd zijn (JWT valide).
@@ -90,7 +90,7 @@ export class OnboardingController {
   // user.id wordt NIET meegegeven aan de analyzer voor ai_usage-logging:
   // de public.users-spiegelrij bestaat pas na onboarding-complete, dus
   // een user_id-referentie zou een FK-violation geven. We loggen deze
-  // calls als "anonymous pre-onboarding" — je ziet ze terug met
+  // calls als "anonymous pre-onboarding", je ziet ze terug met
   // restaurant_id IS NULL en user_id IS NULL in ai_usage.
   @Post('analyze-website')
   async analyzeWebsite(
@@ -113,7 +113,7 @@ export class OnboardingController {
     if (result.name) {
       // Bouw query op basis van naam + locatie. Zonder locatie krijgt
       // Google bij gewone restaurant-namen (Bistro, De Kas, etc.) vaak
-      // een match in de verkeerde stad — vandaar het belang van
+      // een match in de verkeerde stad, vandaar het belang van
       // adres/stad in de query.
       const locationHint = [result.address, result.postal_code, result.city]
         .filter(Boolean)
@@ -135,7 +135,7 @@ export class OnboardingController {
   }
 
   // Search-endpoint specifiek voor de onboarding-wizard. Wordt
-  // aangeroepen door de "Wijzigen"-knop bij Filly's Google-match —
+  // aangeroepen door de "Wijzigen"-knop bij Filly's Google-match,
   // eigenaar typt z'n eigen zoekopdracht en kiest uit max 5
   // alternatieven. Geen RestaurantAccessGuard want het restaurant
   // bestaat nog niet; alleen AuthGuard via klasse-niveau.
@@ -156,7 +156,7 @@ export class OnboardingController {
 
   // Analyseert een geüploade menukaart via Claude Vision. Multipart-
   // upload met 1 bestand (PDF of foto). Tijdens onboarding bewaren we
-  // het bronbestand NIET in Storage — user heeft nog geen restaurant-id,
+  // het bronbestand NIET in Storage, user heeft nog geen restaurant-id,
   // dus geen pad waar we 'm kunnen opslaan. Bij heropen vanuit de
   // menu-pagina gaat het wél naar Storage (fase later).
   @Post('analyze-menu')

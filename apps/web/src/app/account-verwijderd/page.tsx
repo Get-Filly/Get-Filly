@@ -1,10 +1,10 @@
 // ============================================================
-// /account-verwijderd — bevestigingspagina na AVG-delete
+// /account-verwijderd, bevestigingspagina na AVG-delete
 // ============================================================
 // Landingspagina nadat een gebruiker via de account-pagina zijn
 // account permanent heeft laten verwijderen. Bewust publiek (geen
 // auth-gate) want na de delete is de gebruiker uitgelogd én bestaat
-// het auth-account niet meer — dashboard is onbereikbaar.
+// het auth-account niet meer, dashboard is onbereikbaar.
 //
 // Doel:
 //   1. Bevestigen dat de actie is uitgevoerd
@@ -19,7 +19,7 @@ import Link from "next/link";
 import { ButtonLink } from "../../components/ui/button-link";
 
 export const metadata: Metadata = {
-  title: "Account verwijderd — Get-Filly",
+  title: "Account verwijderd, Get-Filly",
   description: "Je Get-Filly-account en alle bijbehorende data zijn verwijderd.",
 };
 
@@ -31,7 +31,7 @@ export default function AccountVerwijderdPage() {
         <p className="legal-lead">
           Bedankt dat je Get-Filly hebt geprobeerd. Je account en alle
           bijbehorende business-data zijn permanent gewist conform jouw
-          verzoek (AVG art. 17 — recht op vergetelheid).
+          verzoek (AVG art. 17, recht op vergetelheid).
         </p>
 
         <div className="legal-section">
@@ -63,7 +63,7 @@ export default function AccountVerwijderdPage() {
             voor andere ondernemers betere voorstellen kan blijven doen.
             Onder Recital 26 van de AVG/GDPR vallen{" "}
             <em>volledig anonieme</em> gegevens niet langer onder de
-            verordening — we doen ons uiterste best om dat hier zo te
+            verordening, we doen ons uiterste best om dat hier zo te
             houden:
           </p>
           <ul>
@@ -75,8 +75,8 @@ export default function AccountVerwijderdPage() {
               capaciteit-categorie en maand van het jaar
             </li>
             <li>
-              Wel: type campagne (mail / social / whatsapp), thema en —
-              indien beschikbaar — het succes-signaal (extra reserveringen,
+              Wel: type campagne (mail / social / whatsapp), thema en,
+              indien beschikbaar, het succes-signaal (extra reserveringen,
               omzet-impact)
             </li>
             <li>
@@ -85,8 +85,8 @@ export default function AccountVerwijderdPage() {
             </li>
           </ul>
           <p>
-            Daarnaast houden we een anonieme bewijsregel bij — alleen
-            datum + tellers — zodat we kunnen aantonen dat we je
+            Daarnaast houden we een anonieme bewijsregel bij, alleen
+            datum + tellers, zodat we kunnen aantonen dat we je
             verwijderverzoek hebben uitgevoerd (AVG art. 30
             verantwoordingsplicht). Geen persoonsgegevens.
           </p>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ButtonVariant, ButtonSize } from "./button";
 
 // ============================================================
-// <ButtonLink> — Button-stijl op een Next.js Link
+// <ButtonLink>, Button-stijl op een Next.js Link
 // ============================================================
 //
 // Voor gevallen waar je SEMANTISCH een navigatie-link nodig hebt
@@ -21,7 +21,7 @@ import type { ButtonVariant, ButtonSize } from "./button";
 //   - href is verplicht
 //
 // Hergebruikt dezelfde .ui-btn--*-classes uit ui.css zodat de
-// styling exact gelijk is — geen risico op visuele drift tussen
+// styling exact gelijk is, geen risico op visuele drift tussen
 // een knop en een link-as-knop.
 // ============================================================
 

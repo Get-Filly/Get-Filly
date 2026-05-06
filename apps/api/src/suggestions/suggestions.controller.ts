@@ -32,7 +32,7 @@ export class SuggestionsController {
     @Query('status') status?: SuggestionStatus,
     // 'exclude' kan een comma-gescheiden lijst trigger_types zijn die
     // niet getoond moeten worden. Gebruikt door /dashboard/campagnes
-    // om chat_bundle-suggesties uit te sluiten — die horen alleen in
+    // om chat_bundle-suggesties uit te sluiten, die horen alleen in
     // de chat-flow zelf, niet als losse suggestie-kaart.
     @Query('exclude') exclude?: string,
   ) {
@@ -104,7 +104,7 @@ export class SuggestionsController {
     @Param('id') id: string,
   ) {
     // userId mee zodat de campagne-create die hieruit volgt geen
-    // null-actor in de audit-log laat — bij een team weten we dan
+    // null-actor in de audit-log laat, bij een team weten we dan
     // wié op "Goedkeuren" klikte.
     return this.suggestions.approve(restaurantId, id, user.id);
   }

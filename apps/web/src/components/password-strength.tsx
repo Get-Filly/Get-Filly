@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// PasswordStrength — checklist onder een wachtwoord-input
+// PasswordStrength, checklist onder een wachtwoord-input
 // ============================================================
 // Toont live welke eisen wel/niet voldaan zijn terwijl de user tikt.
 // Eenzelfde component voor /signup én /reset-password zodat de
@@ -16,7 +16,7 @@
 // willen (bv. 12+ tekens als bonus) voegen we een tweede tier toe.
 // ============================================================
 
-// Eén bron van waarheid voor de regels — zowel UI als validatie
+// Eén bron van waarheid voor de regels, zowel UI als validatie
 // gebruiken deze array zodat ze niet uit de pas kunnen lopen.
 const REQUIREMENTS: Array<{
   id: string;

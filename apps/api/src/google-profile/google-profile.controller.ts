@@ -19,17 +19,17 @@ import {
 
 /**
  * ============================================================
- * GoogleProfileController — REST-endpoints voor de GBP-hub
+ * GoogleProfileController, REST-endpoints voor de GBP-hub
  * ============================================================
  *
  * Endpoints (allemaal beschermd door AuthGuard + RestaurantAccessGuard):
  *
- *   POST   /google-profile/search          — text-search (onboarding-detect)
- *   GET    /google-profile/me              — gecachete profile-data
- *   POST   /google-profile/me/connect      — koppel een place_id
- *   POST   /google-profile/me/refresh      — force-refresh cache
- *   DELETE /google-profile/me              — ontkoppel (place_id wissen)
- *   GET    /google-profile/me/competitors  — buurt-vergelijking (?radius=1000)
+ *   POST   /google-profile/search         , text-search (onboarding-detect)
+ *   GET    /google-profile/me             , gecachete profile-data
+ *   POST   /google-profile/me/connect     , koppel een place_id
+ *   POST   /google-profile/me/refresh     , force-refresh cache
+ *   DELETE /google-profile/me             , ontkoppel (place_id wissen)
+ *   GET    /google-profile/me/competitors , buurt-vergelijking (?radius=1000)
  *
  * Alle endpoints retourneren JSON met de PlaceDetails-shape uit
  * `types.ts`. Front-end kan deze direct in de hub-pagina renderen.
@@ -86,7 +86,7 @@ export class GoogleProfileController {
     return this.service.getAudit(restaurantId);
   }
 
-  // ?radius=1000 (in meter). Default 1km — past bij stadsbuurten;
+  // ?radius=1000 (in meter). Default 1km, past bij stadsbuurten;
   // voor grotere steden kan de eigenaar straks 2km/3km kiezen via UI.
   @Get('me/competitors')
   getCompetitors(

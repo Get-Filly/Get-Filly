@@ -86,7 +86,7 @@ export default function AccountPage() {
 
   // Account-delete-modal-state. Modal verschijnt pas als gebruiker
   // expliciet op de rode knop klikt; "VERWIJDER"-bevestiging staat
-  // aan client-zijde EN backend-zijde — defense in depth.
+  // aan client-zijde EN backend-zijde, defense in depth.
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -107,7 +107,7 @@ export default function AccountPage() {
           topGap
           icon="⚙️"
           title="Account-gegevens niet geladen"
-          description="We konden je profiel niet ophalen. Probeer de pagina te herladen — als het probleem blijft, log dan opnieuw in."
+          description="We konden je profiel niet ophalen. Probeer de pagina te herladen, als het probleem blijft, log dan opnieuw in."
         />
       </div>
     );
@@ -174,7 +174,7 @@ export default function AccountPage() {
   };
 
   // Website-analyse handmatig triggeren. Bevestigt eerst dat de eigenaar
-  // weet dat z'n bestaande tagline/sfeer/USPs overschreven worden — Filly
+  // weet dat z'n bestaande tagline/sfeer/USPs overschreven worden, Filly
   // schrijft alleen velden waar hij wat over vond, maar als je een
   // tagline al goed had vinden we belangrijk dat je 't expliciet wilt.
   const handleAnalyzeWebsite = async () => {
@@ -200,7 +200,7 @@ export default function AccountPage() {
       const updated = await analyzeRestaurantWebsite();
       setForm(updated);
       setSaveStatus("success");
-      setSaveMessage("Website geanalyseerd ✓ — bekijk en pas zo nodig aan.");
+      setSaveMessage("Website geanalyseerd ✓, bekijk en pas zo nodig aan.");
       setTimeout(() => setSaveStatus("idle"), 4000);
     } catch (e) {
       setSaveStatus("error");
@@ -258,7 +258,7 @@ export default function AccountPage() {
     update("languages_spoken", next);
   };
 
-  // Brand-color setter — schrijft naar brand_colors.{primary|secondary}.
+  // Brand-color setter, schrijft naar brand_colors.{primary|secondary}.
   const setBrandColor = (key: "primary" | "secondary", value: string) => {
     const current = form.brand_colors ?? {};
     update("brand_colors", { ...current, [key]: value });
@@ -289,17 +289,17 @@ export default function AccountPage() {
       <OnboardingChecklist />
 
       {/* ============================================================
-          Sectie 1 — Restaurant
+          Sectie 1, Restaurant
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Restaurant</div>
         <div className="form-section-desc">
-          De hoofdlijnen — type, keuken en prijsklasse.
+          De hoofdlijnen, type, keuken en prijsklasse.
         </div>
 
         {/* Eigenaar met meerdere zaken (vestigingen, 2e concept) kan
             hier een nieuwe zaak aanmaken. Hergebruikt de onboarding-
-            wizard met ?mode=add — backend laat sinds 2026-05-01
+            wizard met ?mode=add, backend laat sinds 2026-05-01
             meerdere restaurant_users-rijen per user toe. Wisselen tussen
             zaken na aanmaken kan via het account-menu linksboven
             (workspace-dropdown). */}
@@ -317,7 +317,7 @@ export default function AccountPage() {
         >
           <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
             <strong>Meerdere ondernemingen?</strong> Voeg een tweede vestiging
-            of nieuw concept toe — je kunt tussen ze wisselen via het
+            of nieuw concept toe, je kunt tussen ze wisselen via het
             account-menu linksboven.
           </div>
           <ButtonLink
@@ -388,16 +388,16 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 1b — Mail-instellingen (eigen domein optioneel)
+          Sectie 1b, Mail-instellingen (eigen domein optioneel)
           ============================================================
-          Eigen module met eigen state-management — bewust niet in het
+          Eigen module met eigen state-management, bewust niet in het
           form-state-blok van deze pagina. Aanmaken/verifiëren/verwijderen
           gebeurt direct via de eigen endpoints, geen interactie met de
           rest van de save-flow. */}
       <MailDomainSection />
 
       {/* ============================================================
-          Sectie 1c — Foto-bibliotheek
+          Sectie 1c, Foto-bibliotheek
           ============================================================
           Eigen state-management (upload/list/delete via REST). Filly
           gebruikt deze foto's bij campagne-suggesties via de description
@@ -405,7 +405,7 @@ export default function AccountPage() {
       <RestaurantMediaSection />
 
       {/* ============================================================
-          Sectie 2 — Identiteit (voor AI)
+          Sectie 2, Identiteit (voor AI)
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Identiteit</div>
@@ -427,7 +427,7 @@ export default function AccountPage() {
             label="Volledige beschrijving"
             value={form.description ?? ""}
             onChange={(e) => update("description", e.target.value || null)}
-            placeholder="Vertel uitgebreid over je restaurant — geschiedenis, filosofie, waar je trots op bent..."
+            placeholder="Vertel uitgebreid over je restaurant, geschiedenis, filosofie, waar je trots op bent..."
             rows={4}
           />
           <Textarea
@@ -489,10 +489,10 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 3 — Website (Filly leest mee)
+          Sectie 3, Website (Filly leest mee)
           ============================================================ */}
       <div className="form-section">
-        <div className="form-section-title">Website — Filly leest mee</div>
+        <div className="form-section-title">Website, Filly leest mee</div>
         <div className="form-section-desc">
           Geef je website-URL en laat Filly hem analyseren. Hij haalt tone,
           positionering en aanbod op en gebruikt dat overal in campagnes.
@@ -541,7 +541,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 4 — Locatie
+          Sectie 4, Locatie
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Locatie</div>
@@ -583,7 +583,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 5 — Openingstijden
+          Sectie 5, Openingstijden
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Openingstijden</div>
@@ -663,7 +663,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 6 — Sluitingsdata / vakanties
+          Sectie 6, Sluitingsdata / vakanties
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Sluitingsdata &amp; vakanties</div>
@@ -745,7 +745,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 7 — Capaciteit
+          Sectie 7, Capaciteit
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Capaciteit</div>
@@ -938,7 +938,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 8 — Talen
+          Sectie 8, Talen
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Talen die je personeel spreekt</div>
@@ -978,7 +978,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 9 — Branding (logo, kleuren, toon)
+          Sectie 9, Branding (logo, kleuren, toon)
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Branding</div>
@@ -1117,7 +1117,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 10 — Social media
+          Sectie 10, Social media
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Social media</div>
@@ -1178,7 +1178,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 11 — Bedrijfsgegevens (P0 voor mailings + legal)
+          Sectie 11, Bedrijfsgegevens (P0 voor mailings + legal)
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Bedrijfsgegevens</div>
@@ -1231,7 +1231,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 12 — E-mailinstellingen (mailings)
+          Sectie 12, E-mailinstellingen (mailings)
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">E-mailinstellingen voor mailings</div>
@@ -1263,7 +1263,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 13 — Menukaart (link naar dedicated pagina)
+          Sectie 13, Menukaart (link naar dedicated pagina)
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Menukaart</div>
@@ -1278,7 +1278,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 14 — Abonnement
+          Sectie 14, Abonnement
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Abonnement</div>
@@ -1291,7 +1291,7 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 15 — Data & privacy (AVG)
+          Sectie 15, Data & privacy (AVG)
           ============================================================ */}
       <div className="form-section">
         <div className="form-section-title">Data &amp; privacy</div>
@@ -1327,12 +1327,12 @@ export default function AccountPage() {
           <div className="hint" style={{ marginTop: 8 }}>
             Bevat: profielgegevens, gasten, reserveringen, menu,
             campagnes, reviews, chat-history en audit-log. Logo&apos;s en
-            menu-PDF&apos;s staan als URL in het bestand — die kun je
+            menu-PDF&apos;s staan als URL in het bestand, die kun je
             apart downloaden.
           </div>
         </div>
 
-        {/* AVG art. 17 — recht op vergetelheid. Bewust onder de export-
+        {/* AVG art. 17, recht op vergetelheid. Bewust onder de export-
             knop zodat een gebruiker eerst zijn data kan downloaden
             voordat hij alles weggooit. */}
         <div
@@ -1356,7 +1356,7 @@ export default function AccountPage() {
           <div className="hint" style={{ marginBottom: 12 }}>
             Wist je restaurant + alle gasten, reserveringen, menu, campagnes
             en chat-history. Daarna verdwijnt ook je inlog-account. Deze
-            actie is onomkeerbaar — download eerst je data-export
+            actie is onomkeerbaar, download eerst je data-export
             hierboven als je iets wilt bewaren.
           </div>
           <Button
@@ -1442,7 +1442,7 @@ export default function AccountPage() {
               <li>Je inlog-account (e-mail + wachtwoord) wordt gewist</li>
               <li>
                 Anonieme leerdata (cuisine + regio + campagne-resultaten,
-                géén namen of adressen) blijft bewaard om Filly te trainen —
+                géén namen of adressen) blijft bewaard om Filly te trainen,
                 conform AVG Recital 26.
               </li>
             </ul>
@@ -1517,7 +1517,7 @@ export default function AccountPage() {
                     setDeleteError(
                       e instanceof Error
                         ? e.message
-                        : "Verwijderen mislukt — probeer opnieuw of neem contact op met support.",
+                        : "Verwijderen mislukt, probeer opnieuw of neem contact op met support.",
                     );
                     setDeleting(false);
                   }
@@ -1545,7 +1545,7 @@ export default function AccountPage() {
         >
           {saveMessage ?? ""}
         </div>
-        {/* Migrated naar <Button> design-system component (2026-04-30) —
+        {/* Migrated naar <Button> design-system component (2026-04-30),
             vervangt de oude .btn-primary-dash inline-styled knop. Loading-
             state wordt nu nette spinner i.p.v. tekst-flicker tussen
             "Opslaan..." en "Wijzigingen opslaan". */}

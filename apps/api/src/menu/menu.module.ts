@@ -8,7 +8,7 @@ import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
-// AiModule levert MenuImporterService — Claude Vision-analyse van een
+// AiModule levert MenuImporterService, Claude Vision-analyse van een
 // geüploade menukaart. Wordt gebruikt door MenuService.importCard om
 // gerechten uit een PDF/foto te extraheren en als menu_items weg te
 // schrijven.

@@ -7,7 +7,7 @@ import { acceptInvite } from "../../../lib/api";
 
 /**
  * ============================================================
- * /invite/accept — bestemming ná /auth/confirm
+ * /invite/accept, bestemming ná /auth/confirm
  * ============================================================
  *
  * Flow vanuit de uitnodigingsmail:
@@ -15,7 +15,7 @@ import { acceptInvite } from "../../../lib/api";
  *      &next=/invite/accept?inv=<ourToken>
  *   2. /auth/confirm verifieert de hash server-side en zet de
  *      Supabase-sessie in cookies. Daarna: redirect hierheen.
- *   3. Hier op de pagina is de sessie dus al aanwezig — we hoeven
+ *   3. Hier op de pagina is de sessie dus al aanwezig, we hoeven
  *      alleen nog onze eigen invite-token (`inv`) te valideren
  *      via POST /api/invites/accept.
  *
@@ -32,7 +32,7 @@ import { acceptInvite } from "../../../lib/api";
  * door naar /dashboard.
  */
 
-// Sleutel die RestaurantContext gebruikt — zie restaurant-context.tsx.
+// Sleutel die RestaurantContext gebruikt, zie restaurant-context.tsx.
 // Door deze hier óók te zetten hoeft de gebruiker niet handmatig
 // van restaurant te wisselen na accept.
 const ACTIVE_RESTAURANT_STORAGE_KEY = "getfilly.activeRestaurantId";
@@ -65,7 +65,7 @@ function AcceptInner() {
         return;
       }
 
-      // 3. Sessie moet aanwezig zijn — /auth/confirm heeft 'm net
+      // 3. Sessie moet aanwezig zijn, /auth/confirm heeft 'm net
       //    gezet via cookies. Eén getSession-call volstaat; geen
       //    poll-loop nodig zoals voorheen.
       const supabase = createClient();
@@ -96,11 +96,11 @@ function AcceptInner() {
             restaurantId,
           );
         } catch {
-          // localStorage kan in privé-modus falen — geen blocker.
+          // localStorage kan in privé-modus falen, geen blocker.
         }
 
         setStatus("success");
-        setMessage("Welkom — je bent toegevoegd aan het team.");
+        setMessage("Welkom, je bent toegevoegd aan het team.");
         setTimeout(() => router.replace("/dashboard"), 1200);
       } catch (err) {
         setStatus("accept-error");
@@ -160,7 +160,7 @@ function mapAuthError(reason: string): string {
     case "already_used":
       return "Deze uitnodigingslink is al eerder gebruikt.";
     case "missing_token":
-      return "De link is incompleet — er ontbreekt een verificatiecode.";
+      return "De link is incompleet, er ontbreekt een verificatiecode.";
     case "invalid_type":
       return "De link is niet geldig voor deze actie.";
     case "verify_failed":

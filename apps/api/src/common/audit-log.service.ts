@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
-// Veelvoorkomende audit-actions. Geen exhaustive enum — services
+// Veelvoorkomende audit-actions. Geen exhaustive enum, services
 // mogen ook custom strings gebruiken zolang ze snake_case zijn en
 // duidelijk welke entity ze raken (`<entity>_<verb>`).
 export type AuditAction =
@@ -34,7 +34,7 @@ export type AuditEntityType =
   | 'ai_suggestion'
   | string;
 
-// AuditLogService — centrale schrijver voor de audit_log-tabel.
+// AuditLogService, centrale schrijver voor de audit_log-tabel.
 //
 // Gebruik:
 //   constructor(private readonly audit: AuditLogService) {}
@@ -55,7 +55,7 @@ export type AuditEntityType =
 //     is voordat iets stuk ging ("die campagne is om 14:32 op
 //     ingepland gezet, daarna terug naar concept om 14:35").
 //   - **Filly-feedback**: welke voorstellen worden vaakst goedgekeurd
-//     vs. afgewezen — input voor prompt-tuning.
+//     vs. afgewezen, input voor prompt-tuning.
 //
 // Fail-soft: als de audit-write faalt mag dat de hoofd-actie niet
 // breken. We loggen een warning en gaan door. Beter een gemiste log
@@ -93,7 +93,7 @@ export class AuditLogService {
         );
       }
     } catch (e) {
-      // Onverwachte fout (netwerk, etc) — log + door. Niet throwen
+      // Onverwachte fout (netwerk, etc), log + door. Niet throwen
       // want dat zou de hoofd-actie van de caller stuk maken.
       this.logger.warn(
         `audit_log throw voor action=${opts.action}: ${String(e)}`,

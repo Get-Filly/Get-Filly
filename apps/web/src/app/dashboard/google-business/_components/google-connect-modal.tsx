@@ -11,7 +11,7 @@ import { Button } from "../../../../components/ui/button";
 
 /**
  * ============================================================
- * GoogleConnectModal — koppel een Google Business Profile vanuit hub
+ * GoogleConnectModal, koppel een Google Business Profile vanuit hub
  * ============================================================
  *
  * Wordt geopend via de "Koppel met Google"-knop in de hub-status-banner.
@@ -27,7 +27,7 @@ import { Button } from "../../../../components/ui/button";
  * zit en compact moet blijven. Hier in de hub hebben we ruimte voor
  * een echte modal-overlay met focus-trap (Escape-key, klik-buiten).
  *
- * Geen react-helpers/portal — de codebase doet dit overal met een
+ * Geen react-helpers/portal, de codebase doet dit overal met een
  * fixed-position div op het body-niveau. Past bij de andere modals
  * (campaign-send-modal, menu-upload-modal).
  * ============================================================
@@ -41,7 +41,7 @@ export function GoogleConnectModal({
   open: boolean;
   onClose: () => void;
   onConnected: (data: GooglePlaceDetails) => void;
-  // Optionele pre-fill — bv. de restaurant-naam uit z'n profiel zodat
+  // Optionele pre-fill, bv. de restaurant-naam uit z'n profiel zodat
   // de eerste zoekopdracht direct relevant is.
   initialQuery?: string;
 }) {
@@ -70,7 +70,7 @@ export function GoogleConnectModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Escape-key sluit modal — past bij de andere dashboard-modals
+  // Escape-key sluit modal, past bij de andere dashboard-modals
   // (campaign-send-modal etc.) qua keyboard-gedrag.
   useEffect(() => {
     if (!open) return;

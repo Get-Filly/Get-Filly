@@ -4,12 +4,12 @@ import type { CampaignProposalCard } from "../../../lib/api";
 import type { ProposalStatus } from "./filly-chat-types";
 
 // ============================================================
-// FillyChatProposalCard — inline kaartje onder een Filly-bericht dat
+// FillyChatProposalCard, inline kaartje onder een Filly-bericht dat
 // een campagne voorstelt. Toont type + titel + (bij mail) onderwerp +
 // 2-3 knoppen: aanmaken, afwijzen, eventueel "Bekijk versies" (alleen
 // bij meerdere varianten). Na klik verandert de UI naar een van de
 // 5 ProposalStatus-states. De volledige body van de campagne tonen
-// we bewust NIET opnieuw — die staat al in het Filly-bericht erboven.
+// we bewust NIET opnieuw, die staat al in het Filly-bericht erboven.
 // ============================================================
 export function FillyChatProposalCard({
   proposal,
@@ -100,7 +100,7 @@ export function FillyChatProposalCard({
                   fontStyle: "italic",
                 }}
               >
-                Filly bedacht {proposal.variants.length} versies — kies
+                Filly bedacht {proposal.variants.length} versies, kies
                 je favoriet via "Bekijk versies".
               </div>
             )}

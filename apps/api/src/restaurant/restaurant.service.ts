@@ -48,10 +48,10 @@ export class RestaurantService {
   //   2. Adres gewijzigd? Trigger PDOK-geocoding en zet lat/long mee
   //      in dezelfde update. Mislukt geocoding (geen match, netwerk-
   //      probleem)? Dan zetten we lat/long op null zodat de eigenaar
-  //      ziet dat het niet meer klopt — geen oude coords laten staan
+  //      ziet dat het niet meer klopt, geen oude coords laten staan
   //      die fout zijn.
   //
-  // Het zod-schema (RestaurantUpdateSchema) is .strict() — een veld
+  // Het zod-schema (RestaurantUpdateSchema) is .strict(), een veld
   // dat niet expliciet is toegestaan wordt geweigerd, in plaats van
   // dat we een handmatige denylist moeten onderhouden. Bij elke nieuwe
   // DB-kolom: voeg toe aan het schema (bewuste keuze) of houd 'm
@@ -62,13 +62,13 @@ export class RestaurantService {
     userId: string,
   ) {
     // 1) Schema-parse. Bij een ZodError werpen we BadRequest met de
-    // eerste foutmelding in NL — UI toont 'm direct boven het veld.
+    // eerste foutmelding in NL, UI toont 'm direct boven het veld.
     let safe: Record<string, unknown>;
     try {
       // .parse() retourneert een nieuw object met alleen toegestane
       // velden + ge-transformeerde waardes (bv. KvK gestripped van
       // streepjes/spaties). Onbekende keys worden stilletjes weggehaald
-      // (.strip is default zod-gedrag) — zie schema-comments voor de
+      // (.strip is default zod-gedrag), zie schema-comments voor de
       // afweging. Hieronder loggen we welke keys we wegfilterden,
       // zodat we hygiëne-visibiliteit houden zonder de frontend te breken.
       safe = RestaurantUpdateSchema.parse(updates) as Record<string, unknown>;
@@ -80,7 +80,7 @@ export class RestaurantService {
     }
 
     // Hygiëne-log: welke keys hebben we weggefilterd? Een handvol
-    // is normaal (id, plan, latitude — de frontend stuurt het hele
+    // is normaal (id, plan, latitude, de frontend stuurt het hele
     // form-object). Iets onverwachts → reden om schema te checken.
     const stripped = Object.keys(updates).filter(
       (k) => !(k in safe) && updates[k] !== undefined,
@@ -93,9 +93,9 @@ export class RestaurantService {
 
     // 2) Geocoding-trigger. We checken of een van de adres-velden in
     // de patch zit; zo ja, halen we de huidige rij op om het volledige
-    // adres samen te stellen (de PATCH kan partial zijn — alleen city
+    // adres samen te stellen (de PATCH kan partial zijn, alleen city
     // bv.) en doen één geocode-call. Lat/long worden hier server-side
-    // toegevoegd aan `safe` — die staan bewust NIET in het zod-schema
+    // toegevoegd aan `safe`, die staan bewust NIET in het zod-schema
     // (cliënt kan ze nooit zelf zetten).
     const addressChanging = Object.keys(safe).some((k) =>
       ADDRESS_FIELDS.has(k),
@@ -129,7 +129,7 @@ export class RestaurantService {
         safe.latitude = null;
         safe.longitude = null;
         this.logger.warn(
-          `Geocode mislukt voor ${restaurantId} — coords gereset.`,
+          `Geocode mislukt voor ${restaurantId}, coords gereset.`,
         );
       }
     }
@@ -144,7 +144,7 @@ export class RestaurantService {
     if (error) throw new InternalServerErrorException(error.message);
 
     // Audit: welke velden gewijzigd. We loggen alleen de keys (niet
-    // de waardes) zodat we geen PII in audit_log dumpen — namen,
+    // de waardes) zodat we geen PII in audit_log dumpen, namen,
     // emails, KvK staan dan niet in dat logboek. Voor compliance is
     // "veld X is om 14:32 aangepast" voldoende.
     await this.audit.log({
@@ -162,7 +162,7 @@ export class RestaurantService {
   // Analyseer de website van het restaurant via Claude en sla het
   // resultaat op in de restaurant-rij. Gebruikt door de "Analyseer
   // website"-knop op de account-pagina. Endpoint vraagt expliciet
-  // om analyse — niet automatisch, want website-analyse kost een
+  // om analyse, niet automatisch, want website-analyse kost een
   // Claude-call (~€0,05) en eigenaar moet bewust kiezen.
   async analyzeWebsite(restaurantId: string, userId: string) {
     // Pak de huidige website_url op. Geen URL = duidelijke fout.
@@ -181,7 +181,7 @@ export class RestaurantService {
     }
 
     // De analyzer doet zelf de Claude-call + parsing. We loggen het
-    // resultaat in ai_usage (auto via AiService) — geen extra werk.
+    // resultaat in ai_usage (auto via AiService), geen extra werk.
     const profile = await this.websiteAnalyzer.analyze(url);
 
     // Map de extracted profile-velden naar onze DB-kolommen. Alleen
@@ -209,7 +209,7 @@ export class RestaurantService {
       updates.social_media = profile.social_media;
     }
     // Nieuwe velden uit de uitgebreide analyzer (commit 2026-04-29).
-    // Alleen wegschrijven als Filly ze daadwerkelijk vond — bestaande
+    // Alleen wegschrijven als Filly ze daadwerkelijk vond, bestaande
     // ingevulde velden mogen niet worden overschreven met null.
     if (
       profile.opening_hours &&
@@ -234,7 +234,7 @@ export class RestaurantService {
     );
 
     // Audit: handmatige website-analyse. Belangrijk omdat dit bestaande
-    // tagline/sfeer/USPs kan overschrijven — bij een klacht "mijn
+    // tagline/sfeer/USPs kan overschrijven, bij een klacht "mijn
     // tagline is veranderd" weten we wie + wanneer.
     await this.audit.log({
       restaurantId,

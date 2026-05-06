@@ -16,7 +16,7 @@ import {
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 
-// Endpoints onder /restaurant/me/mail-domain — vereist auth + tenant.
+// Endpoints onder /restaurant/me/mail-domain, vereist auth + tenant.
 // Hoort logisch bij de restaurant-instellingen, vandaar de URL-prefix.
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('restaurant/me/mail-domain')

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 // LocalStorage-sleutel voor de keuze van de bezoeker. Bewust geen
-// cookie zelf — een cookie zou ironisch zijn voordat de gebruiker
+// cookie zelf, een cookie zou ironisch zijn voordat de gebruiker
 // expliciet toestemt. localStorage valt buiten ePrivacy/AVG-cookie-
 // regels (geldt alleen voor strikt-noodzakelijke storage zoals
 // authenticatie).
@@ -18,7 +18,7 @@ type Consent = "accepted" | "rejected";
 //   - "Weigeren" is even prominent als "accepteren" (geen dark-pattern)
 //   - Geen analytics/tracking-scripts laden voordat consent gegeven
 //
-// Op dit moment doet Get-Filly nog geen analytics — banner staat klaar
+// Op dit moment doet Get-Filly nog geen analytics, banner staat klaar
 // voor wanneer Plausible/PostHog wordt aangezet. Plaatsing-conditie:
 // `process.env.NEXT_PUBLIC_HAS_ANALYTICS === 'true'` zodat we 'm
 // zonder reden niet voor onze testers tonen.
@@ -39,7 +39,7 @@ export function CookieBanner() {
     localStorage.setItem(CONSENT_KEY, next);
     setConsent(next);
     // Bij 'accepted': hier zou je dispatchEvent doen of analytics
-    // initialiseren. Voor nu nog niets — klaar voor zodra Plausible
+    // initialiseren. Voor nu nog niets, klaar voor zodra Plausible
     // wordt toegevoegd.
   };
 
@@ -71,7 +71,7 @@ export function CookieBanner() {
     >
       <div style={{ marginBottom: 12, color: "var(--text, #18181B)" }}>
         We gebruiken cookies en vergelijkbare technieken voor het
-        functioneren van de site én — alleen met jouw toestemming —
+        functioneren van de site én, alleen met jouw toestemming,
         voor analytics zodat we Get-Filly kunnen verbeteren. Geen
         tracking voor advertenties, geen verkoop van data aan derden.{" "}
         <Link

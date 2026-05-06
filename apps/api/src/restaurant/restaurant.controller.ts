@@ -51,7 +51,7 @@ export class RestaurantController {
   // eerst de website-URL op via PATCH /me, en triggert vervolgens
   // expliciet de analyse via deze POST. Bewust handmatig (niet
   // automatisch op PATCH) zodat de Claude-call alleen draait wanneer
-  // de eigenaar het wil — voorkomt verrassings-kosten bij elke save.
+  // de eigenaar het wil, voorkomt verrassings-kosten bij elke save.
   @Post('me/analyze-website')
   analyzeWebsite(
     @RestaurantId() restaurantId: string,
@@ -60,11 +60,11 @@ export class RestaurantController {
     return this.restaurant.analyzeWebsite(restaurantId, user.id);
   }
 
-  // AVG art. 20 — recht op gegevensoverdraagbaarheid. Eigenaar kan
+  // AVG art. 20, recht op gegevensoverdraagbaarheid. Eigenaar kan
   // alle business-data van zijn restaurant downloaden als één JSON-
   // bestand. Bevat profielen, gasten, reserveringen, menu, campagnes,
   // reviews, chat-history en audit-log. Geen storage-binaries (logo's
-  // etc) — die kan eigenaar zelf via de URLs in de export ophalen.
+  // etc), die kan eigenaar zelf via de URLs in de export ophalen.
   @Get('me/export')
   async exportData(
     @RestaurantId() restaurantId: string,
@@ -83,7 +83,7 @@ export class RestaurantController {
     return result;
   }
 
-  // AVG art. 17 — recht op vergetelheid. Verwijdert permanent:
+  // AVG art. 17, recht op vergetelheid. Verwijdert permanent:
   //   - Alle restaurants waar de ingelogde user 'owner' is, incl.
   //     gasten, reserveringen, menu, campagnes, reviews, chat,
   //     audit-log (cascade via FK on delete cascade)
@@ -91,10 +91,10 @@ export class RestaurantController {
   //
   // Vóór delete worden afgeronde campagnes geanonimiseerd weggeschreven
   // naar `campaign_benchmarks` zodat Filly's leer-loop niet lijdt
-  // onder verwijderingen — geen restaurant_id, geen body-tekst, geen
+  // onder verwijderingen, geen restaurant_id, geen body-tekst, geen
   // PII (Recital 26 GDPR).
   //
-  // Body: { confirmation: "VERWIJDER" }. Check is letterlijk —
+  // Body: { confirmation: "VERWIJDER" }. Check is letterlijk,
   // voorkomt accidentele DELETE-requests vanuit ander UI of API-test.
   @Delete('me/account')
   deleteAccount(

@@ -11,12 +11,12 @@ import { createClient } from "../../lib/supabase-browser";
 const ACTIVE_RESTAURANT_LS_KEY = "getfilly.activeRestaurantId";
 
 // ============================================================
-// /onboarding — 3-stappen wizard met Filly-auto-invul
+// /onboarding, 3-stappen wizard met Filly-auto-invul
 // ============================================================
 // Stap 1 (bronnen):
 //   - naam + type (verplicht, vangnet als AI-analyse faalt)
 //   - website-URL (optioneel)
-//   - menukaart upload (optioneel — PDF of foto)
+//   - menukaart upload (optioneel, PDF of foto)
 //   - Grote knop "✨ Filly, vul alles in" die beide bronnen parallel
 //     analyseert (web-crawl + Vision) en alle velden vult.
 //
@@ -69,7 +69,7 @@ type WizardData = {
   // Web
   website_url: string;
   website_summary: string;
-  // Operationele velden — door WebsiteAnalyzer gevuld als Filly ze
+  // Operationele velden, door WebsiteAnalyzer gevuld als Filly ze
   // op de site vindt. Géén UI-veld in de wizard zelf om 'm kort te
   // houden; eigenaar ziet/bewerkt ze later in /dashboard/account.
   opening_hours: Record<string, { open: string; close: string }> | null;
@@ -161,7 +161,7 @@ const INITIAL_DATA: WizardData = {
   google_place_match: null,
 };
 
-// De inhoud zelf — gebruikt useSearchParams() en moet daarom binnen
+// De inhoud zelf, gebruikt useSearchParams() en moet daarom binnen
 // een <Suspense>-boundary leven. Next.js's static-prerender draait
 // anders tegen "missing-suspense-with-csr-bailout" tijdens `next build`.
 // De default-export hieronder doet de wrap; deze functie houdt alle
@@ -178,7 +178,7 @@ function OnboardingPageContent() {
   const [step, setStep] = useState<Step>(1);
   const [data, setData] = useState<WizardData>(INITIAL_DATA);
   const [menuFile, setMenuFile] = useState<File | null>(null);
-  // Drankkaart als aparte upload — meeste horeca scheidt menu en
+  // Drankkaart als aparte upload, meeste horeca scheidt menu en
   // drank fysiek, en de Vision-prompt is anders (subcategorie
   // wijn-rood/bier/cocktail/etc).
   const [drinksFile, setDrinksFile] = useState<File | null>(null);
@@ -193,7 +193,7 @@ function OnboardingPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Stap 1 is verplicht — naam + type moeten ingevuld zijn om door te kunnen.
+  // Stap 1 is verplicht, naam + type moeten ingevuld zijn om door te kunnen.
   const canContinueFromStep1 =
     data.name.trim().length >= 2 && data.type.length > 0;
 
@@ -331,7 +331,7 @@ function OnboardingPageContent() {
             websiteResult.website_summary ||
             prev.website_summary,
           brand_tone: websiteResult.brand_tone ?? prev.brand_tone,
-          // Operationele velden — alleen overnemen als Filly ze vond
+          // Operationele velden, alleen overnemen als Filly ze vond
           // én de wizard ze nog niet leeg heeft (geen overschrijven van
           // wat de eigenaar zelf invulde).
           opening_hours:
@@ -357,7 +357,7 @@ function OnboardingPageContent() {
           // of er geen naam was om mee te zoeken). Auto-select de top-1
           // match: google_place_id wordt direct gezet zodat 'klaar'-pad
           // gewoon doorgaat. Eigenaar kan in stap 2 overslaan of
-          // wijzigen — dan wordt 'ie weer null.
+          // wijzigen, dan wordt 'ie weer null.
           google_place_match: websiteResult.place_match ?? null,
           google_place_id: websiteResult.place_match?.placeId ?? null,
         }));
@@ -368,7 +368,7 @@ function OnboardingPageContent() {
       }
 
       if (drinksResult && Array.isArray(drinksResult.items)) {
-        // Items uit Vision zonder category-veld — backend dwingt
+        // Items uit Vision zonder category-veld, backend dwingt
         // category='drank' af bij de uiteindelijke insert. Wij slaan
         // alleen de drank-relevante velden hier op.
         const items: DrinkItem[] = drinksResult.items.map(
@@ -447,7 +447,7 @@ function OnboardingPageContent() {
           website_url: data.website_url.trim() || undefined,
           website_summary: data.website_summary.trim() || undefined,
           // Operationele velden door analyzer gevuld. Alleen meesturen
-          // als ze daadwerkelijk waarde hebben — undefined → backend
+          // als ze daadwerkelijk waarde hebben, undefined → backend
           // zet ze op null.
           opening_hours:
             data.opening_hours &&
@@ -463,7 +463,7 @@ function OnboardingPageContent() {
               : undefined,
           menu_items: data.menu_items,
           drink_items: data.drink_items,
-          // Optioneel — alleen meesturen als eigenaar Filly's match
+          // Optioneel, alleen meesturen als eigenaar Filly's match
           // heeft bevestigd of zelf een place heeft gekozen. Bij
           // 'sla over' is dit null en doet de backend niks.
           google_place_id: data.google_place_id ?? undefined,
@@ -477,7 +477,7 @@ function OnboardingPageContent() {
 
       // Response bevat nu ook `menuImport` met status van de menu-insert.
       // Als die gevuld is met een error, is het restaurant wél aangemaakt
-      // maar zijn de menu-items niet geland — waarschuwen zodat user niet
+      // maar zijn de menu-items niet geland, waarschuwen zodat user niet
       // denkt dat alles werkte.
       type ImportStatus = {
         attempted: number;
@@ -521,7 +521,7 @@ function OnboardingPageContent() {
       // Add-mode: harde reload nodig zodat de RestaurantContext + alle
       // dashboard-pagina's vers mounten voor de nieuwe tenant. Een
       // soft router.push houdt useEffect-gefetchte data van het oude
-      // restaurant in client-state hangen — zelfde issue als bij de
+      // restaurant in client-state hangen, zelfde issue als bij de
       // workspace-switcher in sidebar.tsx (zie comment daar over
       // window.location.reload).
       // First-time mode: soft push is genoeg, er is nog geen oude
@@ -544,7 +544,7 @@ function OnboardingPageContent() {
   };
 
   // Logout vanaf onboarding. Eigenaar zit nog niet vast in een
-  // restaurant, dus signOut + redirect naar /login is genoeg —
+  // restaurant, dus signOut + redirect naar /login is genoeg,
   // wizard-state gaat verloren maar de eigenaar kan opnieuw starten
   // bij volgende login. Geen confirm-dialog; "Uitloggen" is een
   // bewuste klik die meteen mag werken.
@@ -586,7 +586,7 @@ function OnboardingPageContent() {
             ))}
           </div>
           {/* In add-mode toont de eigenaar geen "Uitloggen" maar
-              "Annuleren" — terug naar zijn bestaande dashboard zonder
+              "Annuleren", terug naar zijn bestaande dashboard zonder
               wizard-state te bewaren. Uitloggen heeft geen zin: hij is
               al ingelogd én heeft al een actief restaurant. */}
           {isAddMode ? (
@@ -628,7 +628,7 @@ function OnboardingPageContent() {
 
         {/* Add-mode-banner: maakt direct duidelijk dat de eigenaar bezig
             is met een nieuwe zaak, niet de eerste-keer-onboarding. Bewust
-            géén apart "Welkom"-blok — dat zou misleidend zijn voor een
+            géén apart "Welkom"-blok, dat zou misleidend zijn voor een
             bestaande klant. */}
         {isAddMode && (
           <div
@@ -644,7 +644,7 @@ function OnboardingPageContent() {
           >
             <strong>Nieuwe onderneming toevoegen.</strong> Doorloop de wizard
             opnieuw. Na succes word je automatisch in de nieuwe onderneming
-            geplaatst — wisselen tussen je ondernemingen kan via het account-
+            geplaatst, wisselen tussen je ondernemingen kan via het account-
             menu linksboven.
           </div>
         )}
@@ -691,7 +691,7 @@ function OnboardingPageContent() {
 }
 
 // ============================================================
-// Stap 1 — Bronnen + Filly-analyse
+// Stap 1, Bronnen + Filly-analyse
 // ============================================================
 function Step1Sources({
   data,
@@ -810,7 +810,7 @@ function Step1Sources({
             - heeft input (URL of file) → donker-groen + clickable
             - bezig met analyseren → lichtgroen + status-tekst
           Hierdoor "fadet" de knop visueel in zodra er iets te analyseren
-          is — duidelijke uitnodiging zonder uitleg-tekst. */}
+          is, duidelijke uitnodiging zonder uitleg-tekst. */}
       {(() => {
         const hasInput =
           data.website_url.trim().length > 0 || !!menuFile || !!drinksFile;
@@ -859,7 +859,7 @@ function Step1Sources({
           {analyzeConfidence === "high"
             ? "Ze was hier zeker van. Check in stap 2."
             : analyzeConfidence === "medium"
-              ? "Redelijk beeld — loop het even na in stap 2."
+              ? "Redelijk beeld, loop het even na in stap 2."
               : "Weinig vaste info gevonden; vul aan in stap 2."}
           {data.menu_items.length > 0 && (
             <div style={{ marginTop: 4 }}>
@@ -889,7 +889,7 @@ function Step1Sources({
         </div>
       )}
 
-      {/* .login-btn heeft ingebouwde margin-top:24px in globals.css —
+      {/* .login-btn heeft ingebouwde margin-top:24px in globals.css,
           die overriden we hier inline naar 16px zodat de gap gelijk
           is aan die boven de Filly-knop. Geen wrapper-div nodig. */}
       <button
@@ -906,7 +906,7 @@ function Step1Sources({
 }
 
 // ============================================================
-// Stap 2 — Review alle velden
+// Stap 2, Review alle velden
 // ============================================================
 function Step2Review({
   data,
@@ -923,7 +923,7 @@ function Step2Review({
     <>
       <div className="login-title">Check en pas aan</div>
       <p className="login-sub">
-        Dit is wat we weten. Alles is later nog aanpasbaar via je account —
+        Dit is wat we weten. Alles is later nog aanpasbaar via je account,
         maar als je hier iets ziet dat niet klopt, fix het nu.
       </p>
 
@@ -1099,7 +1099,7 @@ function Step2Review({
           type="button"
           style={{ flex: 1 }}
         >
-          Volgende — bevestigen
+          Volgende, bevestigen
         </button>
       </div>
     </>
@@ -1107,7 +1107,7 @@ function Step2Review({
 }
 
 // ============================================================
-// Stap 3 — Bevestigen
+// Stap 3, Bevestigen
 // ============================================================
 function Step3Confirm({
   data,
@@ -1207,7 +1207,7 @@ function Step3Confirm({
 // ============================================================
 
 /**
- * <UploadCard> — gestileerde file-upload-tegel voor menu + drankkaart
+ * <UploadCard>, gestileerde file-upload-tegel voor menu + drankkaart
  *
  * Vervangt sinds 2026-05-06 de rauwe <input type="file"> die per
  * browser anders renderde. Twee staten:
@@ -1247,7 +1247,7 @@ function UploadCard({
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      {/* Hidden file-input — gekoppeld aan de label hieronder via htmlFor */}
+      {/* Hidden file-input, gekoppeld aan de label hieronder via htmlFor */}
       <input
         id={inputId}
         type="file"
@@ -1448,7 +1448,7 @@ function Row({
 }
 
 // ============================================================
-// <GooglePlaceMatchSection> — Filly's Google-match in stap 2
+// <GooglePlaceMatchSection>, Filly's Google-match in stap 2
 // ============================================================
 //
 // Drie states:
@@ -1465,7 +1465,7 @@ function Row({
 //     "Toch koppelen" mogelijk blijft als 'ie zich bedenkt)
 //   - Submit (stap 3) stuurt ALLEEN google_place_id naar de backend.
 //     Match-data is UI-only en wordt door de connect-call opnieuw
-//     opgehaald (via Places API) — single source of truth.
+//     opgehaald (via Places API), single source of truth.
 // ============================================================
 function GooglePlaceMatchSection({
   data,
@@ -1489,7 +1489,7 @@ function GooglePlaceMatchSection({
   const [searchError, setSearchError] = useState<string | null>(null);
 
   // Auto-fill zoek-veld met huidige restaurant-naam zodra de eigenaar
-  // op Wijzigen klikt — bespaart hem typewerk in 80% van de gevallen.
+  // op Wijzigen klikt, bespaart hem typewerk in 80% van de gevallen.
   function openSearch() {
     setSearchQuery(`${data.name} ${data.city}`.trim());
     setSearchOpen(true);
@@ -1793,7 +1793,7 @@ function splitToArray(s: string): string[] | undefined {
 
 // Default export wrapt de inhoud in <Suspense> zodat useSearchParams()
 // niet faalt tijdens Next.js's static prerender (build-tijd-fout sinds
-// Next.js 14: "missing-suspense-with-csr-bailout"). Fallback is null —
+// Next.js 14: "missing-suspense-with-csr-bailout"). Fallback is null,
 // de page is sowieso volledig client-rendered, een spinner zou alleen
 // een microseconde flikkering geven.
 export default function OnboardingPage() {

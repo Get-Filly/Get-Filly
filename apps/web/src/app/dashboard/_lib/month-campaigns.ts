@@ -14,7 +14,7 @@ export const aprilCampaigns: Campaign[] = [
   {
     id: "c1",
     type: "mail",
-    name: "Chef's Lunch — donderdag",
+    name: "Chef's Lunch, donderdag",
     meta: "17 apr · 248 gasten",
     status: "actief",
   },

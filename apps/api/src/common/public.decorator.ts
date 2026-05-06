@@ -2,7 +2,7 @@ import { SetMetadata } from '@nestjs/common';
 
 /**
  * ============================================================
- * @Public() — markering voor endpoints zonder login-check
+ * @Public(), markering voor endpoints zonder login-check
  * ============================================================
  *
  * Wat is een "decorator"?
@@ -13,7 +13,7 @@ import { SetMetadata } from '@nestjs/common';
  * Waarom deze decorator bestaat:
  *   Straks zetten we een globale AuthGuard aan die op álle requests
  *   controleert of er een geldige login is. Maar sommige endpoints
- *   moeten bereikbaar zijn zónder login — bijvoorbeeld een
+ *   moeten bereikbaar zijn zónder login, bijvoorbeeld een
  *   health-check die door monitoring-tools wordt gepingd, of een
  *   publiek statusendpoint.
  *
@@ -31,7 +31,7 @@ import { SetMetadata } from '@nestjs/common';
  *   SetMetadata slaat een sleutel/waarde-paar op bij de methode.
  *   De AuthGuard leest die metadata later via de Reflector.
  *
- * IS_PUBLIC_KEY is de sleutel waaronder we de markering opslaan —
+ * IS_PUBLIC_KEY is de sleutel waaronder we de markering opslaan,
  * moet dezelfde zijn als de key die de guard gebruikt om te lezen.
  */
 export const IS_PUBLIC_KEY = 'isPublic';

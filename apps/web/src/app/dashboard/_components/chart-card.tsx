@@ -46,16 +46,16 @@ export function ChartCard({ view, year, month, selectedDay, occupancy }: Props) 
   if (view === "dag" && selectedDay) {
     const jsDay = new Date(year, month, selectedDay).getDay();
     values = getWeekdayHistory(jsDay);
-    subtitle = `${weekdayLabel(jsDay)} — afgelopen 6 maanden`;
+    subtitle = `${weekdayLabel(jsDay)}, afgelopen 6 maanden`;
     labels = ["-6 mnd", "-3 mnd", "nu"];
   } else if (view === "jaar") {
     values = getYearMonthlyAverages(year);
-    subtitle = `Per maand — ${year}`;
+    subtitle = `Per maand, ${year}`;
     labels = ["jan", "jul", "dec"];
   } else {
     // Maand-view: gebruik echte occupancy-data
     values = occupancy.map((d) => d.occupancy_pct);
-    subtitle = `Per dag — ${monthName} ${year}`;
+    subtitle = `Per dag, ${monthName} ${year}`;
     const short = monthName.slice(0, 3);
     labels = [
       `1 ${short}`,

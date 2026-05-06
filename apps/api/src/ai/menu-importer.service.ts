@@ -3,7 +3,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { AiService } from './ai.service';
 
 // ============================================================
-// MenuImporterService — Vision-analyse van een menukaart
+// MenuImporterService, Vision-analyse van een menukaart
 // ============================================================
 // Accepteert een PDF of foto en laat Claude Opus 4.7 de gerechten
 // extraheren. Retourneert een gestructureerde lijst die direct als
@@ -15,7 +15,7 @@ import { AiService } from './ai.service';
 //   - Pakt prijzen ook in weird notaties ("€12,50", "12.50", "12,-")
 //   - Detecteert allergenen-codes als ze in legenda staan
 // Kosten: ~€0,15-0,30 per menu afhankelijk van pagina's en detail.
-// Eenmalig per restaurant (of bij heropen) — dus totaal peanuts.
+// Eenmalig per restaurant (of bij heropen), dus totaal peanuts.
 // ============================================================
 
 const SUPPORTED_MIME_TYPES = new Set([
@@ -82,7 +82,7 @@ export class MenuImporterService {
     }
     if (file.buffer.length < 1024) {
       throw new BadRequestException(
-        'Dit bestand is erg klein — mogelijk corrupt of leeg.',
+        'Dit bestand is erg klein, mogelijk corrupt of leeg.',
       );
     }
 
@@ -107,7 +107,7 @@ export class MenuImporterService {
       // descriptions (druif/regio/jaargang per wijn) en raken bij
       // 16k de cap. Menu-kaarten zijn doorgaans 30-60 items en
       // passen ruim in 16k.
-      // Caps zijn cap, géén gegarandeerd verbruik — kleine kaarten
+      // Caps zijn cap, géén gegarandeerd verbruik, kleine kaarten
       // kosten niet meer omdat de cap hoger staat.
       maxTokens: isDrinks ? 24000 : 16000,
       toolName: isDrinks ? 'extract_drink_items' : 'extract_menu_items',
@@ -134,7 +134,7 @@ export class MenuImporterService {
 function buildMenuSystemPrompt(): string {
   return `Je bent Filly. Je kijkt naar een foto of PDF van een menukaart en extraheert alle gerechten.
 
-Je antwoord komt via de tool 'extract_menu_items'. Het schema bepaalt de structuur — jij bepaalt wat je ziet.
+Je antwoord komt via de tool 'extract_menu_items'. Het schema bepaalt de structuur, jij bepaalt wat je ziet.
 
 Inhoudsregels:
 - Alle tekst in het Nederlands, ongeacht taal van het menu. Als het menu Engels is, vertaal je namen naar NL waar natuurlijk (bv. 'Chicken' → 'Kip'), behoud originele fantasienamen ('Carpaccio', 'Tiramisu').
@@ -142,12 +142,12 @@ Inhoudsregels:
 - Allergens: alleen als legenda of icoontje op de kaart staat. Standaard EU-codes (A=gluten, B=schaaldieren, C=ei, ...) of volledige namen (gluten, noten, melk). Leeg = geen expliciete aanduiding.
 - Verzin GEEN gerechten. Als tekst onleesbaar is, noteer in "notes" welk deel onduidelijk was.
 - Categorie-keuze (verplicht, kies één van de 6):
-    * "voorgerecht"  — voorgerechten, starters, amuses, borrelhappen
-    * "tussen"       — tussengerechten / middelgerechten (klassiek menu)
-    * "hoofd"        — hoofdgerechten, vis-/vlees-/vega-mains, pasta, pizza, salades, bijgerechten
-    * "dessert"      — nagerechten, zoete afsluiters, kaasplanken
-    * "drank"        — wijnen, bieren, cocktails, koffie/thee, alcoholvrij (NB: drankkaarten worden via een aparte upload-flow ingelezen — als deze upload alleen drankjes bevat, gebruik dan toch category=drank)
-    * "overig"       — alles wat niet in bovenstaande 5 past (gebruik dit spaarzaam)
+    * "voorgerecht" , voorgerechten, starters, amuses, borrelhappen
+    * "tussen"      , tussengerechten / middelgerechten (klassiek menu)
+    * "hoofd"       , hoofdgerechten, vis-/vlees-/vega-mains, pasta, pizza, salades, bijgerechten
+    * "dessert"     , nagerechten, zoete afsluiters, kaasplanken
+    * "drank"       , wijnen, bieren, cocktails, koffie/thee, alcoholvrij (NB: drankkaarten worden via een aparte upload-flow ingelezen, als deze upload alleen drankjes bevat, gebruik dan toch category=drank)
+    * "overig"      , alles wat niet in bovenstaande 5 past (gebruik dit spaarzaam)
 - Gerechten die duidelijk een variant zijn (bv. "met biefstuk €18, met zalm €16"): 2 items maken.
 - Als het bestand geen menukaart lijkt maar iets anders: geef een lege items-array en zet notes = "Dit lijkt geen menukaart te zijn".`;
 }
@@ -158,28 +158,28 @@ Inhoudsregels:
 function buildDrinksSystemPrompt(): string {
   return `Je bent Filly. Je kijkt naar een foto of PDF van een DRANKKAART en extraheert alle drankjes.
 
-Je antwoord komt via de tool 'extract_drink_items'. Het schema bepaalt de structuur — jij bepaalt wat je ziet.
+Je antwoord komt via de tool 'extract_drink_items'. Het schema bepaalt de structuur, jij bepaalt wat je ziet.
 
 Inhoudsregels:
 - Alle tekst in het Nederlands, ongeacht taal van de kaart. Behoud originele namen voor wijnen ('Sancerre', 'Barolo'), bieren ('Tripel Karmeliet') en cocktails ('Negroni').
 - price_cents = integer in centen. €4,50 = 450. €12 = 1200. Geen decimalen. Geen prijs = veld weglaten, NIET raden. Bij dranken die per glas én per fles verkocht worden: kies de prijs-per-glas (de gebruikelijke "drink-prijs") en zet de fles-info in description (bv. "fles €38").
 - Verzin GEEN drankjes. Als tekst onleesbaar is, noteer in "notes" welk deel onduidelijk was.
 - Subcategorie-keuze (verplicht, kies één van de 10):
-    * "wijn-rood"        — rode wijnen
-    * "wijn-wit"         — witte wijnen
-    * "wijn-rose"        — rosé-wijnen
-    * "wijn-mousserend"  — champagne, prosecco, cava, crémant en andere bubbels
-    * "bier"             — pils, tap-/fles-bieren, speciaalbieren
-    * "cocktail"         — gemixte cocktails (Negroni, Aperol Spritz, etc.)
-    * "sterke-drank"     — gin, whisky, rum, jenever, port, sherry, likeur
-    * "koffie-thee"      — koffie, thee, warme dranken
-    * "fris"             — frisdranken, sappen, water, alcoholvrij
-    * "overig"           — alles wat niet in bovenstaande 9 past (gebruik dit spaarzaam)
-- description: KORT EN COMPACT — max 60 tekens, geen volzinnen.
+    * "wijn-rood"       , rode wijnen
+    * "wijn-wit"        , witte wijnen
+    * "wijn-rose"       , rosé-wijnen
+    * "wijn-mousserend" , champagne, prosecco, cava, crémant en andere bubbels
+    * "bier"            , pils, tap-/fles-bieren, speciaalbieren
+    * "cocktail"        , gemixte cocktails (Negroni, Aperol Spritz, etc.)
+    * "sterke-drank"    , gin, whisky, rum, jenever, port, sherry, likeur
+    * "koffie-thee"     , koffie, thee, warme dranken
+    * "fris"            , frisdranken, sappen, water, alcoholvrij
+    * "overig"          , alles wat niet in bovenstaande 9 past (gebruik dit spaarzaam)
+- description: KORT EN COMPACT, max 60 tekens, geen volzinnen.
     * Wijn: druif + regio + jaargang ('Pinot Noir, Bourgogne 2021', 'Sangiovese, Toscane 2020').
     * Bier: stijl + alc ('blond, 6,5%', 'IPA, 7%').
     * Cocktail: 2-3 hoofdingrediënten ('gin, tonic, citroen').
-    * Niet vermelden in welke sectie van de kaart 'm staat — sectie-info hoort niet in description.
+    * Niet vermelden in welke sectie van de kaart 'm staat, sectie-info hoort niet in description.
 - Als een wijn in meerdere secties staat (by-the-glass + flessenkaart): pak 'm 1× op met de prijs-per-glas. Vermeld fles-prijs alleen als die uniek is voor de fles-sectie.
 - Als het bestand geen drankkaart lijkt maar iets anders: geef een lege items-array en zet notes = "Dit lijkt geen drankkaart te zijn".`;
 }
@@ -190,7 +190,7 @@ Inhoudsregels:
 // category-enum sluit aan op de 6 UI-tabs op /dashboard/menu
 // (voorgerecht / tussen / hoofd / dessert / drank / overig).
 // Claude kan dus geen "voor", "tussen", "hoofdgerechten" of
-// andere variaties returnen — de Anthropic API valideert het
+// andere variaties returnen, de Anthropic API valideert het
 // schema, dus afwijkingen komen sowieso niet bij ons aan.
 const MENU_CATEGORIES = [
   'voorgerecht',
@@ -242,7 +242,7 @@ const MENU_EXTRACTION_SCHEMA = {
 // ============================================================
 // Subcategory-enum sluit aan op de visuele groepering binnen de
 // "drank"-tab op /dashboard/menu. Category zelf zit niet in dit
-// schema — server-side forceren we 'm op 'drank' (alle items van
+// schema, server-side forceren we 'm op 'drank' (alle items van
 // een drankkaart belanden per definitie in die tab).
 const DRINK_SUBCATEGORIES = [
   'wijn-rood',
@@ -325,7 +325,7 @@ function coerceMenu(raw: RawMenuFromTool, kind: CardKind): ExtractedMenu {
     categories_detected: (raw?.categories_detected ?? [])
       .map((c) => c.trim())
       .filter((c) => c.length > 0),
-    // Confidence is required maar ook hier defensief — bij rare
+    // Confidence is required maar ook hier defensief, bij rare
     // tool-use-respons valt 'm terug op 'low'.
     confidence: raw?.confidence ?? 'low',
     notes:
@@ -352,7 +352,7 @@ function coerceMenuItem(
       ? it.description.trim()
       : undefined;
 
-  // Bij drankkaart-import forceren we category='drank' — alle items
+  // Bij drankkaart-import forceren we category='drank', alle items
   // van een drankkaart belanden per definitie in de drank-tab.
   // Bij menu-import gebruiken we wat Claude teruggaf.
   const category =

@@ -24,7 +24,7 @@ import { Tabs } from "../../../components/ui/tabs";
 import { Chips } from "../../../components/ui/chips";
 
 // Map campagne-status → semantische Badge-variant. Eén plek waar
-// "wat betekent deze status visueel" beslist wordt — als we later
+// "wat betekent deze status visueel" beslist wordt, als we later
 // kleur-mapping willen wijzigen (bv. ingepland van neutral naar info)
 // hoeft dat hier maar 1 keer.
 const statusBadgeVariant: Record<Campaign["status"], BadgeVariant> = {
@@ -94,7 +94,7 @@ const urgencyLabel: Record<string, string> = {
   low: "Planning",
 };
 
-// Gemiddelde besteding per gast — gebruikt om een omzet-schatting te maken
+// Gemiddelde besteding per gast, gebruikt om een omzet-schatting te maken
 // als de campagne geen concrete extra_revenue_cents heeft.
 const AVG_SPEND_CENTS = 4500;
 
@@ -138,7 +138,7 @@ type SuggestionTab = "open" | "expired" | "rejected";
  * Frontend-detectie i.p.v. wachten op een backend-job: zo zijn de tabs
  * meteen correct, ook als er nog geen cron-marker draait. Wanneer de
  * api `status: "expired"` daadwerkelijk gaat schrijven, blijft deze
- * functie kloppen — we kijken naar pending én expired-status hieronder.
+ * functie kloppen, we kijken naar pending én expired-status hieronder.
  */
 function isSuggestionExpired(s: AiSuggestion): boolean {
   const ctx = s.trigger_context as { target_date?: string } | null;
@@ -346,7 +346,7 @@ export default function CampagnesPage() {
 
   // Quick-action: campagne van status veranderen (concept → ingepland,
   // ingepland → actief, etc). Optimistisch updaten in lokale state na
-  // succes — server is bron van waarheid maar refetch kost een extra
+  // succes, server is bron van waarheid maar refetch kost een extra
   // roundtrip die we hier kunnen besparen.
   const handleCampaignStatus = async (
     c: Campaign,
@@ -360,7 +360,7 @@ export default function CampagnesPage() {
       );
     } catch (e) {
       console.error(e);
-      // Eenvoudige feedback voor nu — alert is niet mooi maar
+      // Eenvoudige feedback voor nu, alert is niet mooi maar
       // duidelijk; later vervangen door inline toast-systeem.
       alert(
         e instanceof Error
@@ -376,7 +376,7 @@ export default function CampagnesPage() {
     }
   };
 
-  // Hard-delete vraagt expliciete bevestiging — dit is onomkeerbaar.
+  // Hard-delete vraagt expliciete bevestiging, dit is onomkeerbaar.
   // Backend laat alleen concept-campagnes wissen, dus de bevestiging
   // kan kort blijven.
   const handleCampaignDelete = async (c: Campaign) => {
@@ -417,7 +417,7 @@ export default function CampagnesPage() {
       setRejectedSuggestions((prev) => prev.filter((x) => x.id !== s.id));
       setPendingSuggestions((prev) => [updated, ...prev]);
       // Automatisch terug naar de open-tab zodat user de herstelde
-      // suggestie meteen ziet — anders lijkt het alsof er niks is
+      // suggestie meteen ziet, anders lijkt het alsof er niks is
       // gebeurd.
       setSuggestionTab("open");
     } catch (e) {
@@ -437,7 +437,7 @@ export default function CampagnesPage() {
           actie altijd zichtbaar is op de overzichtspagina. */}
       <PageHeader
         title="Campagnes"
-        subtitle="Voorstellen van Filly én actieve campagnes — op één plek."
+        subtitle="Voorstellen van Filly én actieve campagnes, op één plek."
         actions={
           <>
             {/* Filly aan het werk-knop. Werkt zodra er ≥3 menu-items zijn
@@ -472,7 +472,7 @@ export default function CampagnesPage() {
         </div>
       )}
 
-      {/* Impact-blok — de twee belangrijkste Filly-metrics krijgen de
+      {/* Impact-blok, de twee belangrijkste Filly-metrics krijgen de
           stat-card-filly variant (groene rand links + groene waarde)
           zodat attributie visueel consistent is met andere pagina's.
           marginBottom 20: ruimte tussen KPI's en de Voorstellen-strip
@@ -520,7 +520,7 @@ export default function CampagnesPage() {
         </div>
       </div>
 
-      {/* Suggesties-sectie — tonen zodra er ergens een voorstel zit
+      {/* Suggesties-sectie, tonen zodra er ergens een voorstel zit
           (open, verlopen, of afgewezen). Anders verbergen we de hele
           strip zodat nieuwe klanten met een leeg dashboard niet tegen
           "0 voorstellen" aanlopen. */}
@@ -531,7 +531,7 @@ export default function CampagnesPage() {
           <section style={{ marginTop: 0, marginBottom: 10 }}>
             <div style={{ marginBottom: 6 }}>
               {/* Sub-kop: zelfde stijl als "Overige acties" en
-                  "Campagnes" hieronder — zwart, fontSize 15, geen
+                  "Campagnes" hieronder, zwart, fontSize 15, geen
                   emoji. Visuele uniformiteit tussen de drie blokken
                   op deze pagina. */}
               <div
@@ -547,21 +547,21 @@ export default function CampagnesPage() {
               <div style={{ fontSize: 12, color: "var(--tl)" }}>
                 {suggestionTab === "open"
                   ? openSuggestions.length === 0
-                    ? "Geen open voorstellen — alles is afgehandeld."
+                    ? "Geen open voorstellen, alles is afgehandeld."
                     : openSuggestions.length === 1
                       ? "1 voorstel wacht op jouw goedkeuring."
                       : `${openSuggestions.length} voorstellen wachten op jouw goedkeuring.`
                   : suggestionTab === "expired"
                     ? expiredSuggestions.length === 0
                       ? "Geen verlopen voorstellen."
-                      : "Voorbije datum — niet meer goedkeurbaar maar bewaard ter referentie."
+                      : "Voorbije datum, niet meer goedkeurbaar maar bewaard ter referentie."
                     : rejectedSuggestions.length === 0
                       ? "Nog geen afgewezen voorstellen."
                       : "Eerder afgewezen. Klik 'Terugzetten' om er alsnog mee door te gaan."}
               </div>
             </div>
 
-            {/* Tabs — Open / Verlopen / Afgewezen altijd zichtbaar zodat
+            {/* Tabs, Open / Verlopen / Afgewezen altijd zichtbaar zodat
                 de structuur stabiel blijft, ook als één emmer (tijdelijk)
                 leeg is. Active-state via groene onderlijn. */}
             <div className="suggestion-tabs">
@@ -597,14 +597,14 @@ export default function CampagnesPage() {
                 style={{
                   display: "grid",
                   // 1fr-max zodat kaarten de volle beschikbare breedte
-                  // vullen — bij brede schermen geen lege ruimte rechts
+                  // vullen, bij brede schermen geen lege ruimte rechts
                   // meer doordat de oude max van 480px begrenste.
                   gridTemplateColumns:
                     "repeat(auto-fill, minmax(380px, 1fr))",
                   gap: 12,
                   // Max ~2 rijen zichtbaar (kaart ~360px + 12px gap),
                   // daarna interne scroll. Voorkomt dat de hele pagina
-                  // mee scrollt door 8+ voorstellen — overzichtelijker
+                  // mee scrollt door 8+ voorstellen, overzichtelijker
                   // én de KPI-rij blijft in beeld bij scrollen door de
                   // lijst.
                   maxHeight: 760,
@@ -646,7 +646,7 @@ export default function CampagnesPage() {
           </section>
         )}
 
-      {/* Overige acties — reviews, reserverings-attenties, inzichten.
+      {/* Overige acties, reviews, reserverings-attenties, inzichten.
           Eerder op /dashboard/taken, nu onder dezelfde hub als de
           Filly-voorstellen zodat alle "wat moet ik doen"-items op één
           plek staan. Component verbergt zichzelf als er niks is. */}
@@ -684,7 +684,7 @@ export default function CampagnesPage() {
         />
       </div>
 
-      {/* Zoekveld: snel op naam of meta filteren — zelfde stijl als op
+      {/* Zoekveld: snel op naam of meta filteren, zelfde stijl als op
           gasten-pagina zodat dashboard consistent voelt. */}
       <input
         type="search"
@@ -718,7 +718,7 @@ export default function CampagnesPage() {
             description={
               error
                 ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
-                : "Laat Filly een voorstel maken of start zelf een campagne — voor mail, social of WhatsApp."
+                : "Laat Filly een voorstel maken of start zelf een campagne, voor mail, social of WhatsApp."
             }
             action={
               !error && <Button variant="primary">Nieuwe campagne</Button>
@@ -852,7 +852,7 @@ export default function CampagnesPage() {
 }
 
 // ============================================================
-// SuggestionCard — compacte kaart bovenaan de campagnes-pagina
+// SuggestionCard, compacte kaart bovenaan de campagnes-pagina
 // ============================================================
 // Toont één voorstel van Filly met genoeg context om direct te
 // kunnen beslissen zonder door te klikken:
@@ -913,7 +913,7 @@ function SuggestionCard({
   // Volledige body staat in de detail-modal achter de Details-knop.
   const bodyPreview = body.length > 140 ? body.slice(0, 140) + "…" : body;
   // expected_impact en confidence_score blijven beschikbaar voor de
-  // detail-modal — niet meer op de kaart sinds 2026-05-06 (compacter).
+  // detail-modal, niet meer op de kaart sinds 2026-05-06 (compacter).
 
   const typeLabel =
     type === "mail" ? "E-mail" : type === "social" ? "Social" : "WhatsApp";
@@ -930,7 +930,7 @@ function SuggestionCard({
   const isExpired = mode === "expired";
   // Beide inactieve states krijgen dezelfde gedimde achtergrond zodat
   // de eigenaar in één oogopslag ziet welke kaarten geen actie meer
-  // vragen (zonder ze te verbergen — soms wil je zien wat je miste).
+  // vragen (zonder ze te verbergen, soms wil je zien wat je miste).
   const isInactive = isRejected || isExpired;
 
   return (
@@ -1043,14 +1043,14 @@ function SuggestionCard({
 
       {/* Detail-impact (verwacht reserveringen / omzet / confidence) en
           uitgebreide reasoning zijn weggehaald van de kaart per
-          2026-05-06 — eigenaar wilde compactere voorstellen. Volledige
+          2026-05-06, eigenaar wilde compactere voorstellen. Volledige
           impact-cijfers + lange reasoning staan in de detail-modal
           achter de Details-knop. */}
 
-      {/* Actie-knoppen — afhankelijk van mode:
+      {/* Actie-knoppen, afhankelijk van mode:
             open     = Goedkeuren / Details / Afwijzen
             rejected = Terugzetten / Details
-            expired  = alleen Details — voorbije datum kun je niet meer
+            expired  = alleen Details, voorbije datum kun je niet meer
                        goedkeuren, en terugzetten heeft geen zin */}
       {mode === "open" && (
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -1133,7 +1133,7 @@ function SuggestionCard({
         </div>
       )}
 
-      {/* Korte 'waarom'-tekst onder de knoppen — max ~140 chars zodat
+      {/* Korte 'waarom'-tekst onder de knoppen, max ~140 chars zodat
           'ie 2 regels blijft. Volledige reasoning + impact-cijfers
           staan in de detail-modal. */}
       {suggestion.reasoning && (
@@ -1156,13 +1156,13 @@ function SuggestionCard({
 }
 
 // ============================================================
-// CampaignActions — quick-action knoppen per row in de campagnes-tabel
+// CampaignActions, quick-action knoppen per row in de campagnes-tabel
 // ============================================================
 // Lineaire flow per status, geen zijpaden:
 //   concept    → ✓ Inplannen   + ✕ Verwijder
 //   ingepland  → ▶ Activeer    + ✕ Verwijder
 //   actief     → ⏹ Stop        (zet 'm op afgerond)
-//   afgerond   → (geen actie — eindstaat, blijft staan voor historie)
+//   afgerond   → (geen actie, eindstaat, blijft staan voor historie)
 //
 // Verwijderen mag tot en met "ingepland" omdat de campagne dan nog
 // niet daadwerkelijk uitgegaan is. Daarna (actief/afgerond) is de

@@ -1,14 +1,14 @@
 /* ============================================================
- * ui.css — stijlen voor de design-system base-components
+ * ui.css, stijlen voor de design-system base-components
  * ============================================================
  *
  * Bevat:
- *   .ui-btn      — Button (4 variants × 2 sizes + loading-state)
- *   .ui-badge    — Badge (6 variants + optional dot)
- *   .ui-card     — Card + CardHeader + CardBody + CardFooter
+ *   .ui-btn     , Button (4 variants × 2 sizes + loading-state)
+ *   .ui-badge   , Badge (6 variants + optional dot)
+ *   .ui-card    , Card + CardHeader + CardBody + CardFooter
  *
  * Ge-import door globals.css zodat de classes overal beschikbaar zijn
- * (publieke site én dashboard). Tokens komen uit tokens.css —
+ * (publieke site én dashboard). Tokens komen uit tokens.css,
  * GEEN hard-coded waardes in deze file.
  * ============================================================ */
 
@@ -36,9 +36,9 @@
     transform 80ms ease;
   /* Voorkomt dat tekst-decoratie van een omringende <a>-context
    * onderaan de label-tekst lekt (bv. wanneer een Button INSIDE
-   * een link gebruikt wordt — komt voor in chat-card-flow). */
+   * een link gebruikt wordt, komt voor in chat-card-flow). */
   text-decoration: none;
-  /* Knop-tekst nooit afbreken — irritante UX. Caller mag een
+  /* Knop-tekst nooit afbreken, irritante UX. Caller mag een
    * korte tekst kiezen die past. */
   white-space: nowrap;
   /* Disabled-cursor + opacity in z'n eigen rule onderaan zodat
@@ -51,7 +51,7 @@
 }
 
 /* Focus-ring voor toetsenbord-navigatie. Bewust :focus-visible
- * (niet :focus) zodat muis-clicks geen ring tonen — anders ziet
+ * (niet :focus) zodat muis-clicks geen ring tonen, anders ziet
  * elke knop er na klik permanent geactiveerd uit. */
 .ui-btn:focus-visible {
   outline: 2px solid var(--color-brand);
@@ -78,7 +78,7 @@
 
 /* ----- VARIANTS ----- */
 
-/* PRIMARY — hoofd-CTA, brand-groen vol */
+/* PRIMARY, hoofd-CTA, brand-groen vol */
 .ui-btn--primary {
   background: var(--color-brand);
   color: var(--color-white);
@@ -87,7 +87,7 @@
   background: var(--color-brand-deep);
 }
 
-/* SECONDARY — neutraal alternatief, alleen border */
+/* SECONDARY, neutraal alternatief, alleen border */
 .ui-btn--secondary {
   background: transparent;
   color: var(--color-text);
@@ -99,7 +99,7 @@
   color: var(--color-brand-deep);
 }
 
-/* GHOST — geen bg, geen border, alleen tekst (bv. "Annuleer"-acties
+/* GHOST, geen bg, geen border, alleen tekst (bv. "Annuleer"-acties
  * naast een primary CTA). Hover krijgt een lichte tint zodat 'ie
  * voelbaar interactief is. */
 .ui-btn--ghost {
@@ -111,13 +111,13 @@
   color: var(--color-brand-deep);
 }
 
-/* DANGER — destructieve actie (verwijderen, archiveren) */
+/* DANGER, destructieve actie (verwijderen, archiveren) */
 .ui-btn--danger {
   background: var(--color-danger);
   color: var(--color-white);
 }
 .ui-btn--danger:not(:disabled):hover {
-  background: #B91C1C; /* één tint dieper — geen aparte token waard voor
+  background: #B91C1C; /* één tint dieper, geen aparte token waard voor
                           één gebruik. Hard-coded als lokaal detail. */
 }
 
@@ -127,7 +127,7 @@
   align-items: center;
   font-size: var(--font-size-sm);
   /* line-height 1 zodat emoji-icons (◆/▶/✕) niet de knop-hoogte
-   * uittrekken — een bekend probleem in de oude inline-styled knoppen. */
+   * uittrekken, een bekend probleem in de oude inline-styled knoppen. */
   line-height: 1;
 }
 
@@ -278,7 +278,7 @@
 }
 
 .ui-card__body {
-  /* Geen extra padding — zit al in .ui-card. Body is voor caller-
+  /* Geen extra padding, zit al in .ui-card. Body is voor caller-
    * controlled content-flow (lists, forms, illustraties). */
 }
 

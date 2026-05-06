@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 // Home-link weggelaten: het logo linksboven is zelf de Home-link.
 // Volgorde: eerst "Hoe het werkt" (jumplink naar de drie-strategieën-
 // sectie op de homepage) omdat dat uitlegt wat Filly doet, daarna
-// Product, Pricing, Over ons — verhaal → functionaliteit → kost → team.
+// Product, Pricing, Over ons, verhaal → functionaliteit → kost → team.
 const links = [
   { href: "/#hoe-het-werkt", label: "Hoe het werkt" },
   { href: "/product", label: "Product" },
@@ -17,7 +17,7 @@ const links = [
 export function Navbar() {
   const pathname = usePathname();
 
-  // Publieke navbar niet tonen op dashboard-paden — dat heeft een eigen sidebar.
+  // Publieke navbar niet tonen op dashboard-paden, dat heeft een eigen sidebar.
   if (pathname.startsWith("/dashboard")) return null;
 
   return (
@@ -27,7 +27,7 @@ export function Navbar() {
         <Link href="/" className="nav-logo">
           {/* Tijdelijke SVG-benadering van het logo uit de brandguide:
               onvolledige cirkel (C-vorm, open aan de rechterkant) met
-              vier oplopende staven in verschillende groentinten — de
+              vier oplopende staven in verschillende groentinten, de
               hoogste komt net door de opening. Later vervangen door de
               definitieve designer-versie. */}
           <svg

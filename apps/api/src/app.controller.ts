@@ -4,7 +4,7 @@ import { SupabaseService } from './supabase/supabase.service';
 import { Public } from './common/public.decorator';
 
 /**
- * AppController — basis-endpoints van de API.
+ * AppController, basis-endpoints van de API.
  *
  * Deze endpoints zijn publiek: ze vereisen GEEN login. Dat doen we
  * met de @Public()-decorator (zie public.decorator.ts). Zonder die
@@ -13,7 +13,7 @@ import { Public } from './common/public.decorator';
  * Waarom publiek?
  *   - /hello:            simpel "leeft de server?"-controlepunt
  *   - /supabase-status:  controleert DB-verbinding, wordt gebruikt bij
- *                        development en monitoring — moet zonder login
+ *                        development en monitoring, moet zonder login
  *                        bereikbaar zijn zodat tools kunnen pingen.
  */
 @Controller()
@@ -33,7 +33,7 @@ export class AppController {
   @Get('supabase-status')
   async supabaseStatus() {
     // Simpele ping: vraag een niet-bestaande tabel op. Een "table not found"
-    // fout betekent dat de verbinding + auth werken — dan zijn we goed.
+    // fout betekent dat de verbinding + auth werken, dan zijn we goed.
     const { error } = await this.supabase.client
       .from('__ping__')
       .select('*')

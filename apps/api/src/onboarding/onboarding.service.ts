@@ -10,7 +10,7 @@ import { AuditLogService } from '../common/audit-log.service';
 import { GoogleProfileService } from '../google-profile/google-profile.service';
 
 // ============================================================
-// OnboardingService — eerste-keer-setup voor een nieuwe user
+// OnboardingService, eerste-keer-setup voor een nieuwe user
 // ============================================================
 // Runt éénmalig per user bij het afronden van de onboarding-wizard:
 //   1. Valideert de input (naam + type zijn minimaal nodig).
@@ -49,13 +49,13 @@ export type OnboardingInput = {
   website_url?: string;
   website_summary?: string;
   social_media?: Record<string, string>;
-  // Google Business Profile (fase B). Optioneel — wizard zet 'm pas
+  // Google Business Profile (fase B). Optioneel, wizard zet 'm pas
   // als de eigenaar Filly's match-suggestie heeft bevestigd of een
   // andere uit de lijst heeft gekozen. Bij 'overslaan' blijft 'ie
   // null; eigenaar kan later koppelen via de hub.
   google_place_id?: string | null;
   // Operationele velden die WebsiteAnalyzer kan vinden op horeca-sites.
-  // Allemaal optioneel — wizard stuurt ze alleen mee als Filly ze
+  // Allemaal optioneel, wizard stuurt ze alleen mee als Filly ze
   // daadwerkelijk extracted heeft, anders blijft de DB-kolom null en
   // vult de eigenaar 't later in via /dashboard/account.
   opening_hours?: Record<string, { open: string; close: string }>;
@@ -124,7 +124,7 @@ export class OnboardingService {
     userId: string,
     input: OnboardingInput,
   ): Promise<OnboardingResult> {
-    // Stap 1 — validatie. Frontend doet dit ook, maar dubbel is veilig.
+    // Stap 1, validatie. Frontend doet dit ook, maar dubbel is veilig.
     const name = input.name?.trim();
     const type = input.type?.trim();
     if (!name || name.length < 2) {
@@ -139,10 +139,10 @@ export class OnboardingService {
       );
     }
 
-    // Stap 2 — bestaat er al een koppeling voor deze user?
+    // Stap 2, bestaat er al een koppeling voor deze user?
     // Sinds 2026-05-01 mag een eigenaar meerdere zaken hebben (vestigingen,
     // 2e zaak, etc.). Vroeger blokkeerden we hier hard met een 409 om
-    // accidentele dubbele wizard-runs af te vangen — die bescherming
+    // accidentele dubbele wizard-runs af te vangen, die bescherming
     // verhuist nu naar de frontend (button-disable na submit + redirect-
     // away na succes). Backend houdt alleen een count voor de audit-log
     // zodat we kunnen zien hoeveelste zaak dit was voor deze eigenaar.
@@ -153,18 +153,18 @@ export class OnboardingService {
     if (countErr) throw new InternalServerErrorException(countErr.message);
     const isAdditionalRestaurant = (existingCount ?? 0) > 0;
 
-    // Stap 3 — FIRST public.users-spiegel-rij aanmaken (idempotent).
+    // Stap 3, FIRST public.users-spiegel-rij aanmaken (idempotent).
     // Zonder deze rij faalt de restaurant_users-insert later op zijn
     // FK (restaurant_users.user_id → public.users.id). Deze rij hoort
     // normaal door /auth/confirm of een trigger gezet te worden, maar
     // bij disabled email-confirmation is er nooit een moment waarop
-    // dat gebeurt — dus zelf verzekeren hier.
+    // dat gebeurt, dus zelf verzekeren hier.
     const { error: userErr } = await this.supabase.client
       .from('users')
       .upsert({ id: userId }, { onConflict: 'id', ignoreDuplicates: true });
     if (userErr) throw new InternalServerErrorException(userErr.message);
 
-    // Stap 4 — maak het restaurant aan met de ingevulde basics.
+    // Stap 4, maak het restaurant aan met de ingevulde basics.
     // onboarded_at vullen we direct: dit ís het einde van de wizard.
     const { data: restaurant, error: createErr } = await this.supabase.client
       .from('restaurants')
@@ -192,7 +192,7 @@ export class OnboardingService {
         website_url: input.website_url?.trim() || null,
         website_summary: input.website_summary?.trim() || null,
         social_media: cleanSocialMedia(input.social_media),
-        // Operationeel + zakelijk — door WebsiteAnalyzer gevuld als
+        // Operationeel + zakelijk, door WebsiteAnalyzer gevuld als
         // Filly ze op de site kan vinden. Anders null en de eigenaar
         // vult ze later in /dashboard/account.
         opening_hours:
@@ -210,7 +210,7 @@ export class OnboardingService {
 
     if (createErr) throw new InternalServerErrorException(createErr.message);
 
-    // Stap 5 — de user als owner koppelen. Dat is het moment waarop
+    // Stap 5, de user als owner koppelen. Dat is het moment waarop
     // RestaurantAccessGuard vanaf nu groen zal zeggen op het dashboard.
     const { error: linkErr } = await this.supabase.client
       .from('restaurant_users')
@@ -231,9 +231,9 @@ export class OnboardingService {
       throw new InternalServerErrorException(linkErr.message);
     }
 
-    // Stap 6 — eventueel menu_items batch-inserten. Komt van fase C
+    // Stap 6, eventueel menu_items batch-inserten. Komt van fase C
     // (menu-Vision). Fail-soft: als deze insert flakes, hebben we nog
-    // steeds een werkend restaurant — user kan menu-items later
+    // steeds een werkend restaurant, user kan menu-items later
     // handmatig toevoegen via menu-pagina. Maar we maken de fout
     // wél zichtbaar in de response (menuImport.error) zodat de
     // frontend de user kan waarschuwen i.p.v. stil verliezen.
@@ -265,7 +265,7 @@ export class OnboardingService {
       }
     }
 
-    // Stap 6b — drank_items batch-inserten als de wizard een
+    // Stap 6b, drank_items batch-inserten als de wizard een
     // drankkaart heeft meegestuurd. Identieke menu_items-tabel
     // (zelfde Filly-context, zelfde menu-pagina) maar met server-
     // side category='drank'. Fail-soft, identiek aan menu hierboven.
@@ -293,7 +293,7 @@ export class OnboardingService {
       }
     }
 
-    // Stap 7 — adres → coördinaten via PDOK. Fail-soft: als PDOK
+    // Stap 7, adres → coördinaten via PDOK. Fail-soft: als PDOK
     // het adres niet kent of de call flakes, blijft lat/long null.
     // Geen weer-forecast voor die zaak tot hij z'n adres corrigeert,
     // maar onboarding zelf blokkeert niet. Bewust ná het aanmaken
@@ -305,7 +305,7 @@ export class OnboardingService {
       city: input.city,
     });
 
-    // Stap 8 — Google Business Profile koppelen als de eigenaar een
+    // Stap 8, Google Business Profile koppelen als de eigenaar een
     // place_id heeft bevestigd in stap 2 van de wizard. Fail-soft:
     // als de Places-API down is of het place_id ongeldig blijkt, gaat
     // onboarding gewoon door. Eigenaar kan later via de hub alsnog
@@ -313,7 +313,7 @@ export class OnboardingService {
     //
     // Bewust ná de restaurant_users-link zodat connect() (die
     // RequestSupabaseService met user-JWT gebruikt) de update
-    // mag uitvoeren — RLS-policy ziet de net-aangemaakte link.
+    // mag uitvoeren, RLS-policy ziet de net-aangemaakte link.
     let googlePlaceConnected = false;
     if (input.google_place_id) {
       try {
@@ -331,7 +331,7 @@ export class OnboardingService {
     }
 
     // Audit: onboarding-afgerond. Markeert het moment waarop een
-    // user een betalende-klant-kandidaat wordt — input voor "gemiddelde
+    // user een betalende-klant-kandidaat wordt, input voor "gemiddelde
     // tijd-tot-onboarded" en voor support ("wanneer is deze klant
     // begonnen?"). Inclusief telling van geïmporteerde items zodat
     // we kunnen zien hoe rijk de start-data was.
@@ -346,7 +346,7 @@ export class OnboardingService {
         had_website: Boolean(input.website_url),
         menu_items_imported: menuImport?.inserted ?? 0,
         drink_items_imported: drinkImport?.inserted ?? 0,
-        // Hoeveelste zaak van deze eigenaar — voor support ("klant
+        // Hoeveelste zaak van deze eigenaar, voor support ("klant
         // breidt uit naar 3e vestiging") en cohort-analyse.
         sequence_index: (existingCount ?? 0) + 1,
         is_additional_restaurant: isAdditionalRestaurant,
@@ -365,7 +365,7 @@ export class OnboardingService {
   // Helper: geocode het adres en sla lat/long op het restaurant op.
   // Géén return-value: caller hoeft niet te weten of het lukte. Bij
   // succes: logger.log met weergavenaam. Bij falen: GeocodingService
-  // heeft al een warn gelogd — hier stil doorgaan.
+  // heeft al een warn gelogd, hier stil doorgaan.
   private async geocodeAndUpdate(
     restaurantId: string,
     address: {
@@ -398,7 +398,7 @@ export class OnboardingService {
 }
 
 // Retourneer undefined (Postgres laat het dan nullable) i.p.v. een
-// lege array te inserten — anders krijg je [] in de DB waar null
+// lege array te inserten, anders krijg je [] in de DB waar null
 // netter is.
 function nonEmptyArray(v: string[] | undefined): string[] | null {
   if (!v) return null;
