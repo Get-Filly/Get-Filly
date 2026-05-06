@@ -20,7 +20,7 @@ export default function ProductPage() {
         <div className="container">
           <p className="section-label">Oplossing</p>
           <h1 className="section-title">Jouw AI-assistent voor de horeca.</h1>
-          <p className="section-subtitle">Get Filly combineert je reserveringsdata met AI om automatisch campagnes te draaien die lege stoelen vullen. Je chat, Filly doet de rest.</p>
+          <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie, selecteert de juiste doelgroep uit bestaande klantdata en zet automatisch campagnes met jouw goedkeuring live zodat je meer reserveringen krijgt.</p>
 
           <div className="hero-diffs">
             <div className="hero-diff">
