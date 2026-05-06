@@ -923,13 +923,25 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   flex-direction: column;
   gap: 8px;
 }
+/* Per 2026-05-06: hero-diff-nummers waren klein mono-tekst ('01');
+   nu een groene cirkel met wit cijfer erin, zelfde stijl als de
+   '.step-number'-cirkels op de homepage. align-self:flex-start
+   houdt de cirkel op natuurlijke grootte (anders stretcht hij
+   door het column-flex op .hero-diff). */
 .hero-diff-num {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 11px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--true-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--accent);
-  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  align-self: flex-start;
+  margin-bottom: 12px;
 }
 .hero-diff-title {
   font-size: 17px;
