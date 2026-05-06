@@ -348,17 +348,17 @@ export default function HomePage() {
             <div className="hero-diff">
               <div className="hero-diff-num">01</div>
               <h3 className="hero-diff-title">Koppel je reserveringssysteem</h3>
-              <p className="hero-diff-desc">Verbind Zenchef, OpenTable, SevenRooms of een ander platform. Get-Filly importeert je data automatisch.</p>
+              <p className="hero-diff-desc">Verbind met je reserveringssysteem, CRM, POS of een ander platform. Get-Filly importeert je data automatisch.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">02</div>
               <h3 className="hero-diff-title">Bekijk je bezetting</h3>
-              <p className="hero-diff-desc">Zie per dag en week hoe vol je zit, historisch en actueel. De AI signaleert waar je omzet laat liggen.</p>
+              <p className="hero-diff-desc">Zie per dag en week je bezetting, historisch en actueel. De AI signaleert waar je omzet laat liggen.</p>
             </div>
             <div className="hero-diff">
               <div className="hero-diff-num">03</div>
               <h3 className="hero-diff-title">Laat Filly het oplossen</h3>
-              <p className="hero-diff-desc">De AI stelt campagnes voor, maakt ze, en verstuurt ze. Jij keurt goed, Filly doet de rest.</p>
+              <p className="hero-diff-desc">De AI genereert campagnes, jij keurt goed of past aan, Filly doet de rest.</p>
             </div>
           </div>
         </div>
