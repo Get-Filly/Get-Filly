@@ -419,6 +419,88 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-05-06 — Sessie afronding: UX-cleanup + IG/FB full-preview + content-fixes
+
+**Onboarding stap 1 — visuele fine-tuning**:
+- Subtitle: "in stap 2" → "in de volgende stap" + komma toegevoegd
+  voor "dan" (grammaticaal correct als-dan-constructie)
+- "✨ Laat Filly de rest invullen"-kop weggehaald
+- UploadCard-component voor menu + drankkaart (papier-warm bg,
+  brand-groen border bij upload, 'Vervangen'/'Verwijderen'-acties)
+- "Filly, vul alles in" altijd zichtbaar (was alleen bij input):
+  lichtgroen disabled bij geen input, brand-groen clickable bij input
+- "Volgende — review" → "Volgende"
+- Bruine kleur voor Filly-knop verworpen, brand-groen bleef passender
+- Spacing-fix: `.login-btn`-class had ingebakken margin-top:24px die
+  conflicteerde met inline marginTop — beide gaps nu gelijk op 16px
+
+**'zaak' → 'onderneming' (23 files, sweep)**:
+- Alle user-facing strings in apps/web (marketing/legal/dashboard)
+  + Filly's system-prompts in apps/api (chat/suggestions/menu-
+  suggestions/campaigns/reviews/restaurant-context). Code-comments
+  + technische type-namen blijven 'zaak' (intern).
+
+**Email-templates**:
+- `GET FILLY` (uppercase, hardcoded) → `Get-Filly` in header-logo
+  van alle 4 auth-mails (invite/magic_link/recovery/confirmation)
+- Alle subjects + body-teksten ook met streepje
+- `pnpm supabase:apply-templates` gerund — live op Supabase
+
+**Marketing-hub fixes**:
+- IG/FB/TikTok-cards op de hub waren niet klikbaar; nu wel
+- Mini-stats (Verzonden + Open rate) van Mail-card weggehaald —
+  alle 5 cards uniform
+- Layout-fix: alle Marketing- en Google Business-pagina's gewrapt
+  in `<div className="page-full">` zodat ze dezelfde links/rechts
+  marge hebben als Koppelingen
+
+**Instagram & Facebook full-preview** (na keuze A):
+- /dashboard/marketing/instagram volledig uitgewerkt met realistische
+  voorbeeld-data: 4 KPI-tegels, SVG-bereik-grafiek, top 5 posts,
+  posttijd-heatmap, content-mix-tabel, publiek-demografie, Filly-
+  acties. Gele preview-banner duidelijk zichtbaar.
+- /dashboard/marketing/facebook idem maar met FB-specifieke metrics:
+  page-likes, reactions-mix (👍❤️😮😂😢😡), Foto/Video/Event/Link-
+  content-types, lunch-piek-pattern in heatmap, ouder publiek
+  (zwaartepunt 35-54).
+
+**Filly-voorstellen — compactere kaart + opgeschoonde modal**:
+- Kaart op /campagnes: body-preview 220→140 chars, hele Expected-
+  impact-blok weggehaald (+ reserveringen / Geschatte omzet /
+  Confidence-bar), reasoning naar onder de actie-knoppen verplaatst
+- Detail-modal: chat-edit-flow ('Praat met Filly'-rechterkolom) weg
+  — verwarrend tov dashboard-chat. Single-column layout. Nieuwe
+  'Genereer nieuwe versies'-knop hergebruikt refineSuggestion-API.
+  -256 regels code (modal werd veel cleaner).
+
+**Bug-fixes onderweg**:
+- SuggestionsService.generateOnDemand crash bij Claude-tool-use-
+  failure: defensieve `Array.isArray(raw.suggestions)` guard +
+  nette NL-melding ipv 500-stacktrace.
+
+**Demo-account herstel**:
+- Floris had per ongeluk `floriskoevermans@outlook.com` verwijderd
+  via account-delete (UX-issue: niet duidelijk dat 't álle restaurants
+  weghaalt). Geen Pro-plan = geen Supabase backups beschikbaar.
+- Opgelost: nieuwe signup + SQL-snippet die 8 gasten / 15 reserveringen
+  / 14 occupancy-dagen / 6 reviews / 4 campagnes / 2 ai_suggesties /
+  5 menu-items invoegt (auto user-id-lookup via email).
+- Op backlog: soft-delete met 7-day window om dit nooit meer te
+  laten gebeuren bij echte klanten.
+
+**Memory bijgewerkt**:
+- `feedback_auto_push.md` — workflow: na elke afgeronde wijziging
+  automatisch commit + push (geen vooraf-vraag meer)
+- Project-state-memory bijgewerkt met sessie-state
+
+**Nog open na deze sessie**:
+- TikTok-pagina full-preview (zelfde patroon als IG/FB) — niet
+  gevraagd om nu te doen
+- Soft-delete account met 7-day window (UX-fix)
+- KvK-inschrijving (Floris's actie)
+- Meta + TikTok approval-aanvragen indienen (na KvK)
+- GBP approval-aanvraag indienen (na KvK)
+
 ### 2026-05-06 — Marketing-hub fase 1 (Mail live + IG/FB/TikTok placeholders)
 
 **Probleem dat dit oplost**: klanten hadden geen overkoepelend overzicht
