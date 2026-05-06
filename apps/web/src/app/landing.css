@@ -869,7 +869,16 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .product-hero > * { position: relative; z-index: 1; }
 .product-hero .section-title { max-width: 900px; }
-.product-hero .section-subtitle { max-width: 680px; margin-top: 20px; }
+/* Per 2026-05-06: lange subtitel ('Get-Filly detecteert rustige
+   momenten...') brak rafelig af, met losse korte woorden op de
+   laatste regel. text-wrap: pretty herverdeelt de regels en
+   voorkomt orphans, max-width iets ruimer (720px) zodat de zin
+   minder regels nodig heeft. */
+.product-hero .section-subtitle {
+  max-width: 720px;
+  margin-top: 20px;
+  text-wrap: pretty;
+}
 
 .product-walkthrough,
 .product-diff {
