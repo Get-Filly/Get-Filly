@@ -199,12 +199,65 @@ export default function HomePage() {
             Filly analyseert continu je bezetting en social-media-data en handelt op drie strategische termijnen: van een gerichte actie voor vandaag tot structurele groei over het hele jaar.
           </p>
           <div className="features-stack">
-            {/* Rij 1, design heeft hier inline width:1100/textAlign:left/fontWeight:100. */}
+            {/* Rij 1, design heeft hier inline width:1100/textAlign:left/fontWeight:100.
+                Visuals van rij 1 + 2 zijn per 2026-05-06 omgewisseld: 'Vandaag'
+                toont nu de Instagram-uiting (snelle social-post), 'Deze week'
+                toont de Filly-chat met de campagne-voorstel-flow. */}
             <div className="feature-row" style={{ width: "1100px", textAlign: "left", fontWeight: "100" }}>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">Vandaag</p>
                 <h3 className="feature-row-title">Vul lege dagen direct in</h3>
-                <p className="feature-row-desc">Filly spot dagen waarop je bezetting onverwacht laag is en zet binnen minuten een gerichte actie uit naar de juiste klanten. Geen lege stoelen meer door een rustige donderdag.</p>
+                <p className="feature-row-desc">Filly spot dagen waarop je bezetting onverwacht laag is en zet binnen minuten een gerichte actie uit naar de juiste klanten. Geen lege stoelen meer door een rustige woensdag middag.</p>
+              </div>
+              <div className="feature-row-visual">
+                <div className="fmock-social">
+                  <div className="fmock-social-header">
+                    <div className="fmock-avatar"></div>
+                    <div className="fmock-social-headtxt">
+                      <div className="fmock-handle">bistro_getfilly</div>
+                      <div className="fmock-location" style={{ color: "rgb(82, 82, 91)" }}>Amsterdam · Centrum</div>
+                    </div>
+                    <div className="fmock-dots" style={{ backgroundColor: "rgb(250, 247, 241)" }}>⋯</div>
+                  </div>
+                  <div className="fmock-social-img">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/amsterdam-terras.avif"
+                      alt="Terras aan de Amsterdamse grachten"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="fmock-social-actions">
+                    <div className="fmock-icons">
+                      <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Vind ik leuk">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                      <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Reageer">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                      </svg>
+                      <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Deel">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                    </div>
+                    <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Opslaan">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </div>
+                  <div className="fmock-social-likes">142 vind-ik-leuks</div>
+                  <div className="fmock-social-caption">
+                    <strong>bistro_getfilly</strong> Er zijn nog plekken op het terras, kom bij ons genieten van het mooie weer ☀️
+                  </div>
+                  <div className="fmock-social-meta" style={{ color: "rgb(82, 82, 91)" }}>Gepland · dinsdag 11:00 via Filly</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="feature-row feature-row--reverse">
+              <div className="feature-row-text">
+                <p className="feature-eyebrow">Deze week</p>
+                <h3 className="feature-row-title">Stuur je bezetting bij</h3>
+                <p className="feature-row-desc">Patronen per week worden zichtbaar: een dip op dinsdag, een drukke vrijdag. Filly plant dagen vooruit met gerichte posts en campagnes zodat je week in balans komt.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="fmock-chat">
@@ -250,56 +303,6 @@ export default function HomePage() {
                       </svg>
                     </button>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="feature-row feature-row--reverse">
-              <div className="feature-row-text">
-                <p className="feature-eyebrow">Deze week</p>
-                <h3 className="feature-row-title">Stuur je bezetting bij</h3>
-                <p className="feature-row-desc">Patronen per week worden zichtbaar: een dip op dinsdag, een drukke vrijdag. Filly plant dagen vooruit met gerichte posts en campagnes zodat je week in balans komt.</p>
-              </div>
-              <div className="feature-row-visual">
-                <div className="fmock-social">
-                  <div className="fmock-social-header">
-                    <div className="fmock-avatar"></div>
-                    <div className="fmock-social-headtxt">
-                      <div className="fmock-handle">bistro_getfilly</div>
-                      <div className="fmock-location" style={{ color: "rgb(82, 82, 91)" }}>Amsterdam · Centrum</div>
-                    </div>
-                    <div className="fmock-dots" style={{ backgroundColor: "rgb(250, 247, 241)" }}>⋯</div>
-                  </div>
-                  <div className="fmock-social-img">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/images/amsterdam-terras.avif"
-                      alt="Terras aan de Amsterdamse grachten"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="fmock-social-actions">
-                    <div className="fmock-icons">
-                      <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Vind ik leuk">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
-                      <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Reageer">
-                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                      </svg>
-                      <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Deel">
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                    </div>
-                    <svg className="fmock-ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Opslaan">
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                    </svg>
-                  </div>
-                  <div className="fmock-social-likes">142 vind-ik-leuks</div>
-                  <div className="fmock-social-caption">
-                    <strong>bistro_getfilly</strong> Er zijn nog plekken op het terras, kom bij ons genieten van het mooie weer ☀️
-                  </div>
-                  <div className="fmock-social-meta" style={{ color: "rgb(82, 82, 91)" }}>Gepland · dinsdag 11:00 via Filly</div>
                 </div>
               </div>
             </div>
