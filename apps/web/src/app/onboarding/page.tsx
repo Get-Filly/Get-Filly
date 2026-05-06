@@ -803,35 +803,44 @@ function Step1Sources({
         />
       </div>
 
-      {(data.website_url.trim().length > 0 || menuFile || drinksFile) && (
-        <button
-          type="button"
-          onClick={onAnalyze}
-          disabled={analyzing}
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            borderRadius: 8,
-            // Bruinige kleur (taupe/khaki) — past bij het papier-warm
-            // palet en onderscheidt deze hulp-actie visueel van de
-            // brand-groene 'Volgende'-primaire actie hieronder.
-            background: analyzing ? "#F5EBE0" : "#8B6F47",
-            color: analyzing ? "#8B6F47" : "#fff",
-            border: "none",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: analyzing ? "default" : "pointer",
-            // Meer ruimte tussen upload-blokken en deze knop dan
-            // tussen knop en Volgende-knop hieronder, zodat de
-            // visuele relatie (upload → analyseren → volgende) klopt.
-            marginTop: 16,
-          }}
-        >
-          {analyzing
-            ? analyzeStatus ?? "Filly is bezig…"
-            : "Filly, vul alles in"}
-        </button>
-      )}
+      {/* 'Filly, vul alles in' is altijd zichtbaar zoals 'Volgende',
+          zodat de eigenaar direct ziet dat de optie er is. Twee states
+          visueel:
+            - geen input én niet bezig → lichtgroen + disabled
+            - heeft input (URL of file) → donker-groen + clickable
+            - bezig met analyseren → lichtgroen + status-tekst
+          Hierdoor "fadet" de knop visueel in zodra er iets te analyseren
+          is — duidelijke uitnodiging zonder uitleg-tekst. */}
+      {(() => {
+        const hasInput =
+          data.website_url.trim().length > 0 || !!menuFile || !!drinksFile;
+        const isActive = hasInput && !analyzing;
+        return (
+          <button
+            type="button"
+            onClick={onAnalyze}
+            disabled={!hasInput || analyzing}
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 8,
+              background: isActive
+                ? "var(--brand, #1F4A2D)"
+                : "var(--brand-soft, #eef3ee)",
+              color: isActive ? "#fff" : "var(--brand, #1F4A2D)",
+              border: "none",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: isActive ? "pointer" : "default",
+              marginTop: 16,
+            }}
+          >
+            {analyzing
+              ? analyzeStatus ?? "Filly is bezig…"
+              : "Filly, vul alles in"}
+          </button>
+        );
+      })()}
 
       {analyzeConfidence && !analyzing && (
         <div
@@ -887,7 +896,7 @@ function Step1Sources({
           disabled={!canContinue || analyzing}
           type="button"
         >
-          Volgende — review
+          Volgende
         </button>
       </div>
     </>
