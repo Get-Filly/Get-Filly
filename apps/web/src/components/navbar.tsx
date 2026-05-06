@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 // Home-link weggelaten: het logo linksboven is zelf de Home-link.
 // Volgorde: eerst "Hoe het werkt" (jumplink naar de drie-strategieën-
 // sectie op de homepage) omdat dat uitlegt wat Filly doet, daarna
-// Product, Pricing, Over ons, verhaal → functionaliteit → kost → team.
+// Oplossing, Pricing, Over ons, verhaal → functionaliteit → kost → team.
+// Route blijft /product om redirects te voorkomen, label is 'Oplossing'.
 const links = [
   { href: "/#hoe-het-werkt", label: "Hoe het werkt" },
-  { href: "/product", label: "Product" },
+  { href: "/product", label: "Oplossing" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "Over ons" },
 ];
