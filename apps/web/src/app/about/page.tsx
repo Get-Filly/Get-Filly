@@ -52,7 +52,7 @@ export default function AboutPage() {
                 <ul className="zig-card-list">
                   <li>Get-Filly opgericht door twee Nyenrode-alumni</li>
                   <li>Eerste klanten onboarden in Amsterdam &amp; Utrecht</li>
-                  <li>AI-marketingassistent voor de horeca live</li>
+                  <li>AI-assistent voor de horeca live</li>
                 </ul>
               </div>
               <div className="zig-marker"><span>2026</span></div>

@@ -122,7 +122,7 @@ export default function VoorwaardenPage() {
               get-filly.com en app.get-filly.com.
             </li>
             <li>
-              <strong>Filly</strong>, de AI-marketingassistent binnen het
+              <strong>Filly</strong>, de AI-assistent binnen het
               platform, die gebruik maakt van large language models van
               onze sub-verwerker Anthropic.
             </li>

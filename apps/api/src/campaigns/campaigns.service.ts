@@ -700,7 +700,7 @@ export class CampaignsService {
     // instructie + profiel + menu en moet 3 verschillende alternatieven
     // leveren via tool 'generate_campaign_variants'. Schema dwingt
     // precies 3 varianten af; toon-verschillen sturen we hier in tekst.
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
 
 Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
 
@@ -1090,7 +1090,7 @@ ${menuBlock}
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
 
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Je stelt het beste verzendmoment voor een campagne voor.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je stelt het beste verzendmoment voor een campagne voor.
 
 Je antwoord komt via de tool 'suggest_campaign_schedule'. Vul datetime_iso (ISO-8601 in Europe/Amsterdam) en een korte reasoning.
 

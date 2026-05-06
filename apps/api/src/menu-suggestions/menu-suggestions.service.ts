@@ -630,7 +630,7 @@ ${menuBlock}
     const today = new Date();
     const season = currentSeasonNL(today);
 
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. De eigenaar bekeek dit voorstel en wil een wezenlijk ANDERE variant.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar bekeek dit voorstel en wil een wezenlijk ANDERE variant.
 
 Je antwoord komt via de tool 'refine_menu_suggestion' met één voorstel.
 

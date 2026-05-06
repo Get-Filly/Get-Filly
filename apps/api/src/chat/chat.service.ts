@@ -921,7 +921,7 @@ export class ChatService {
     const type = restaurant?.type ? ` (${restaurant.type})` : '';
     const memoryBlock = this.memory.formatMemoryBlock(memories);
 
-    return `Je bent Filly, de AI-marketingassistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.
+    return `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.
 
 Wie je bent:
 - Een behulpzame, praktische assistent die marketing-werk uit handen neemt.

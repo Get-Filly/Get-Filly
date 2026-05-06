@@ -428,7 +428,7 @@ export class SuggestionsService {
     const todayIso = today.toISOString().slice(0, 10);
     const monthName = today.toLocaleString('nl-NL', { month: 'long' });
 
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
 
 Je antwoord komt via de tool 'generate_proactive_suggestions'. Vul de tool-args met 3-5 verschillende voorstellen die elk een eigen invalshoek hebben.
 
@@ -707,7 +707,7 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
-      const systemPrompt = `Je bent Filly, een AI-marketingassistent voor het hieronder beschreven restaurant. Voor één specifieke rustige dag in de komende 2 weken bedenk je het beste activatie-voorstel.
+      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke rustige dag in de komende 2 weken bedenk je het beste activatie-voorstel.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
@@ -1471,7 +1471,7 @@ Maak dit tastbaar volgens de regels.`;
     // System-prompt voor de refine-call. Tool-use forceert het JSON-
     // schema, dus we hoeven de structuur hier niet meer in tekst uit
     // te leggen, alleen de inhoudelijke regels blijven.
-    const systemPrompt = `Je bent Filly, een AI-marketingassistent voor de horeca. Je past een bestaande campagne aan volgens de instructie van de eigenaar.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor de horeca. Je past een bestaande campagne aan volgens de instructie van de eigenaar.
 
 Je antwoord komt via de tool 'refine_campaign'. Vul de tool-args in met de volledige nieuwe versie van de campagne.
 

@@ -197,7 +197,7 @@ export class ChatMemoryService {
       const result = await this.ai.generateStructured<SummaryResult>({
         system:
           'Je analyseert een afgesloten chat-gesprek tussen een restauran' +
-          'teigenaar en zijn AI-marketing-assistent Filly. Je doel: extra' +
+          'teigenaar en zijn AI-assistent Filly. Je doel: extra' +
           'heer alleen DUURZAME voorkeuren (woordkeuze, thema-afwijzingen, ' +
           'tone-correcties, specifieke instructies). Eenmalige feitelijke ' +
           'vragen ("hoe was de bezetting gisteren?") tellen NIET als ' +
