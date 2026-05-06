@@ -14,44 +14,45 @@ import { useRestaurant } from "../../../lib/restaurant-context";
  */
 type MenuItem = {
   href: string;
-  icon: string;
   label: string;
   module: Module;
+  // icon is per 2026-05-05 weggehaald uit de sidebar. Veld blijft
+  // als optioneel staan voor het geval een latere design-pas alsnog
+  // Lucide-icons wil invoeren — dan hoeft alleen de array opnieuw
+  // gevuld te worden.
+  icon?: string;
 };
 
-// Sidebar-volgorde volgt de dagelijkse flow van een horeca-ondernemer:
-//   1. Dashboard — globaal overzicht (vaste start)
-//   2. Campagnes — dé pagina, bundelt Filly's voorstellen én campagnes
-//   3. Reserveringen — wie komt er (dagelijkse operatie)
-//   4. Gasten, Google Business, Menu — aanpalende context
-//   5. Rapportages — periodieke analyse
-//   6. Koppelingen — setup, zelden aangeraakt
+// Sidebar-volgorde (per 2026-05-05 herzien):
+//   1. Dashboard       — globaal overzicht (vaste start)
+//   2. Campagnes       — dé pagina, bundelt Filly's voorstellen
+//   3. Google Business — profiel + reviews + audit + benchmark
+//   4. Reserveringen   — dagelijkse operatie
+//   5. Gasten          — wie zijn de stamgasten
+//   6. Menu            — gerechten + drank + Filly's voorstellen
+//   7. Rapportages     — periodieke analyse
+//   8. Koppelingen     — setup, zelden aangeraakt
 //
-// Twee items verwijderd als menu-item (routes bestaan nog voor legacy-
-// links en detail-views):
+// Geen emoji-iconen meer in de sidebar (per 2026-05-05). De volledige
+// rij is nu cleaner tekst-gebaseerd; bij een latere design-pas kunnen
+// we Lucide-icons selectief invoeren als dat gewenst is.
+//
+// Twee items zijn eerder verwijderd als menu-item (routes bestaan nog
+// voor legacy-links + detail-views):
 //   - /dashboard/suggesties — opgegaan in de voorstellen-strip op
 //     /dashboard/campagnes
-//   - /dashboard/taken — was een verzamelpagina van Filly-acties en
-//     review-/reserverings-/inzicht-items; voorstellen-deel zit nu
-//     onder Campagnes. Later breiden we /campagnes uit naar een
-//     volledige "Acties"-hub met review-antwoorden en gast-acties
-//     zodat Taken definitief kan verdwijnen.
-//
-// Per 2026-05-05: 'Reviews' (⭐) is hernoemd naar 'Google Business'
-// (🔵). Reviews zijn een sub-feature van Google Business Profile —
-// de hub bevat straks ook profiel-audit, foto-sync, posts, Q&A en
-// inzichten. Migratie 0033 heeft de module-key in DB-permissions
-// bijgewerkt. Het Google-G-icoon vervangt later het emoji als we
-// fase D (OAuth) live zetten.
+//   - /dashboard/taken — verzamelpagina van Filly-acties die deels
+//     onder Campagnes is opgegaan. Latere "Acties"-hub vervangt 'm.
 const allMenuItems: MenuItem[] = [
-  { href: "/dashboard", icon: "📊", label: "Dashboard", module: "dashboard" },
-  { href: "/dashboard/campagnes", icon: "📣", label: "Campagnes", module: "campagnes" },
-  { href: "/dashboard/reserveringen", icon: "📆", label: "Reserveringen", module: "reserveringen" },
-  { href: "/dashboard/gasten", icon: "👥", label: "Gasten", module: "gasten" },
-  { href: "/dashboard/google-business", icon: "🔵", label: "Google Business", module: "google_business" },
-  { href: "/dashboard/menu", icon: "🍽️", label: "Menu", module: "menu" },
-  { href: "/dashboard/rapportages", icon: "📈", label: "Rapportages", module: "rapportages" },
-  { href: "/dashboard/koppelingen", icon: "🔗", label: "Koppelingen", module: "koppelingen" },
+  { href: "/dashboard", label: "Dashboard", module: "dashboard" },
+  { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes" },
+  { href: "/dashboard/marketing", label: "Marketing", module: "marketing" },
+  { href: "/dashboard/google-business", label: "Google Business", module: "google_business" },
+  { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen" },
+  { href: "/dashboard/gasten", label: "Gasten", module: "gasten" },
+  { href: "/dashboard/menu", label: "Menu", module: "menu" },
+  { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages" },
+  { href: "/dashboard/koppelingen", label: "Koppelingen", module: "koppelingen" },
 ];
 
 /**
@@ -310,7 +311,6 @@ export function Sidebar() {
             href={item.href}
             className={`sb-item ${isActive(item.href) ? "active" : ""}`}
           >
-            <span className="sb-icon">{item.icon}</span>
             {item.label}
           </Link>
         ))}

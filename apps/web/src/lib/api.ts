@@ -2026,6 +2026,78 @@ export type CompetitorPlace = {
   photoCount: number;
 };
 
+// ============================================================
+// Marketing-hub (fase 1, 2026-05-06)
+// ============================================================
+
+export type MailStats = {
+  periodDays: number;
+  periodStart: string;
+  periodEnd: string;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  complained: number;
+  unsubscribed: number;
+  openRate: number | null;
+  clickRate: number | null;
+  bounceRate: number | null;
+  unsubscribeRate: number | null;
+  benchmark: {
+    openRate: number;
+    clickRate: number;
+    bounceRate: number;
+    source: string;
+  };
+  campaignCount: number;
+};
+
+export type CampaignMailStats = {
+  campaignId: string;
+  campaignName: string;
+  campaignType: string;
+  status: string;
+  scheduledFor: string | null;
+  executedAt: string | null;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  unsubscribed: number;
+  openRate: number | null;
+  clickRate: number | null;
+};
+
+// Aggregaat-stats over de afgelopen N dagen (default 30).
+export async function fetchMarketingMailStats(
+  days: number = 30,
+): Promise<MailStats> {
+  const res = await authedFetch(`${API_URL}/marketing/mail/stats?days=${days}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Per-campagne tabel — default 90 dagen voor wat meer historie.
+export async function fetchMarketingMailCampaigns(
+  days: number = 90,
+): Promise<CampaignMailStats[]> {
+  const res = await authedFetch(
+    `${API_URL}/marketing/mail/campaigns?days=${days}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ============================================================
+// Google Business Profile competitors
+// ============================================================
+
 // Buurt-vergelijking. Default 1km radius; UI mag dit later parametrisch
 // maken (slider 250m-3km bv).
 export async function fetchGoogleProfileCompetitors(

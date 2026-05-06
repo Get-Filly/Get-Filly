@@ -61,6 +61,14 @@ const integrations: Integration[] = [
     category: "communicatie",
   },
   {
+    key: "tiktok",
+    icon: "🎵",
+    name: "TikTok for Business",
+    desc: "Video-posts via TikTok Marketing API. Filly schrijft pakkende captions en suggereert het beste moment om te posten — vooral relevant als jouw doelgroep onder de 35 zit.",
+    status: "disconnected",
+    category: "communicatie",
+  },
+  {
     key: "google_business",
     icon: "📍",
     name: "Google Business Profile",

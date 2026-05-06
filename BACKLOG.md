@@ -419,6 +419,58 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-05-06 — Marketing-hub fase 1 (Mail live + IG/FB/TikTok placeholders)
+
+**Probleem dat dit oplost**: klanten hadden geen overkoepelend overzicht
+van hun marketing-prestaties per kanaal. Mail-data zat verstopt op
+campagne-detail-pagina's, sociale kanalen waren überhaupt nog niet
+beschikbaar. Nu één hub waar Filly later cross-channel kan adviseren.
+
+**Architectuur**:
+- Sidebar-entry "Marketing" tussen Campagnes en Google Business
+- Hub: `/dashboard/marketing` met status-banner ("X van 4 kanalen
+  actief"), Filly's wekelijks rapport (vanaf 1 actief kanaal),
+  4 kanaal-cards (Mail / IG / FB / TikTok) + WhatsApp als "Later"
+- Module-key `marketing` in `@getfilly/shared` (default-permissions
+  voor owner + manager). Geen migratie nodig — bestaande klanten
+  zonder custom permissions krijgen 'm automatisch.
+
+**Mail-pagina LIVE** ([apps/web/.../marketing/mail/](apps/web/src/app/dashboard/marketing/mail/)):
+- 5 KPI-tegels: verzonden / open rate / click rate / bounce rate /
+  unsubscribes
+- Industrie-mediaan-vergelijking (horeca-benchmark, hardcoded uit
+  Mailchimp 2024-2025 industry-report)
+- Per-campagne tabel (laatste 90 dagen) met clickable links naar
+  campagne-detail
+- Backend: [apps/api/src/marketing/](apps/api/src/marketing/) met
+  `MarketingMailService` die `campaign_sends`-data aggregeert.
+  Endpoints `/marketing/mail/stats` en `/marketing/mail/campaigns`.
+- Empty-state als nog geen mail verzonden — verwijst naar /campagnes
+
+**Coming Soon-pagina's** (IG / FB / TikTok):
+- Gedeeld `<ComingSoonChannel>`-template
+- Per platform een lijst van wat er straks komt (mockup-beschrijving)
+- "Naar de hub"-link + "Bekijk Mail (werkt al)"-link
+
+**Filly's wekelijks rapport** (eenvoudige versie):
+- Deterministische tekst-samenvatting op basis van mail-stats
+- Vergelijking met benchmark + suggesties bij outliers (bounce >3%,
+  click <1% etc.)
+- Echte Claude-call met cross-channel-analyse komt in fase 6
+
+**LinkedIn**: bewust uit scope. Voor horeca lage relevantie. Mochten
+hotel-restaurants of event-locaties klanten worden, kan 't later als
+extra kanaal-card.
+
+**Volgende fases (in BACKLOG, niet vandaag)**:
+- Fase 2: `docs/meta-app-review.md` schrijven met invul-tekst
+- Fase 3: Floris dient Meta + TikTok-aanvragen in (parallel aan KvK)
+- Fase 4: OAuth-foundation (migraties 0035/0036, generieke OAuthService)
+- Fase 5: Insights API-koppelingen (na approvals)
+- Fase 6: Filly AI-laag (cron rapport + per-platform analyse +
+  action-detector + anomalie-detect)
+- Fase 7: WhatsApp (apart Meta-traject)
+
 ### 2026-05-05 — GBP fase B: Places-API + audit + benchmark + posts
 
 **Probleem dat dit oplost**: de hub-pagina had alleen "Coming Soon"-

@@ -488,6 +488,20 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     // in dezelfde call op — die wordt later gegenereerd wanneer de
     // eigenaar op de detail-knop klikt (lazy-load = geen extra Claude-
     // calls voor voorstellen die hij toch overslaat).
+    //
+    // Defensieve guard: in zeldzame gevallen (token-cap-hit, malformed
+    // tool-use response, of model retry-failure) krijgen we hier geen
+    // array. Beter een nette NL-fout dan een 500 met cryptic stacktrace.
+    if (!raw || !Array.isArray(raw.suggestions) || raw.suggestions.length === 0) {
+      // Geen logger in deze service — gebruik console.warn (consistent
+      // met andere fail-soft-handlers elders in dezelfde file).
+      console.warn(
+        `Filly's voorstellen-tool gaf geen geldige array terug voor restaurant ${restaurantId}. Raw response: ${JSON.stringify(raw)?.slice(0, 300)}`,
+      );
+      throw new InternalServerErrorException(
+        'Filly kon nu geen voorstellen genereren. Dat gebeurt soms — probeer het over een minuut opnieuw.',
+      );
+    }
     const rows = raw.suggestions.map((s) => ({
       restaurant_id: restaurantId,
       trigger_type: s.trigger_type,

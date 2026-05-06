@@ -147,7 +147,7 @@ export function MenuSuggestionsTab({
             onClick={handleGenerate}
             disabled={generating}
           >
-            {generating ? "Filly denkt na…" : "✨ Vraag Filly om voorstellen"}
+            {generating ? "Filly denkt na…" : "Vraag Filly om voorstellen"}
           </Button>
         </div>
       ) : (

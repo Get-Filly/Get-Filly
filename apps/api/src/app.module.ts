@@ -23,6 +23,7 @@ import { AiModule } from './ai/ai.module';
 import { ChatModule } from './chat/chat.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { GoogleProfileModule } from './google-profile/google-profile.module';
+import { MarketingModule } from './marketing/marketing.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { GoogleProfileModule } from './google-profile/google-profile.module';
     ChatModule,
     OnboardingModule,
     GoogleProfileModule,
+    MarketingModule,
   ],
   controllers: [AppController],
   // AuthGuard staat hier als provider zodat NestJS hem kan

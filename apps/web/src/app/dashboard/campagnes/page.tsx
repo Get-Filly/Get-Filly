@@ -441,16 +441,18 @@ export default function CampagnesPage() {
         actions={
           <>
             {/* Filly aan het werk-knop. Werkt zodra er ≥3 menu-items zijn
-                (anders BadRequest met helpende tekst). */}
+                (anders BadRequest met helpende tekst). Per 2026-05-05:
+                primary-variant (brand-groen) + zonder ✨-emoji voor
+                een schonere look. */}
             <Button
-              variant="secondary"
+              variant="primary"
               loading={generating}
               onClick={handleGenerateSuggestions}
               title="Filly bekijkt je profiel + menu en genereert 3-5 nieuwe voorstellen"
             >
-              ✨ Vraag Filly om voorstellen
+              Vraag Filly om voorstellen
             </Button>
-            <Button variant="primary">＋ Nieuwe campagne</Button>
+            <Button variant="secondary">＋ Nieuwe campagne</Button>
           </>
         }
       />

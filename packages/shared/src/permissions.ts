@@ -32,6 +32,11 @@ export const MODULES = [
   'reserveringen',
   'campagnes',
   'gasten',
+  // 'marketing' (per 2026-05-06): overkoepelende hub voor alle
+  // marketing-kanalen (mail, IG, FB, TikTok, later WhatsApp). Mail is
+  // direct live via campaign_sends-data; sociale kanalen volgen na
+  // Meta + TikTok approval.
+  'marketing',
   // 'google_business' was 'reviews' tot 2026-05-05. Reviews zijn een
   // sub-feature van Google Business Profile, dus de hele sectie is
   // hernoemd naar de bredere hub. Migratie 0033 heeft bestaande
@@ -79,6 +84,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, readonly Module[]> = {
     'reserveringen',
     'campagnes',
     'gasten',
+    'marketing',
     'google_business',
     'menu',
     'rapportages',
@@ -93,6 +99,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, readonly Module[]> = {
     'reserveringen',
     'campagnes',
     'gasten',
+    'marketing',
     'google_business',
     'menu',
     'rapportages',

@@ -15,6 +15,12 @@ const titleFor: Record<string, string> = {
   // is bewust kort ("Google Business" past in de smalle topbar).
   "/dashboard/google-business": "Google Business",
   "/dashboard/google-business/reviews": "Google Business · Reviews",
+  // Marketing-hub + sub-routes per kanaal.
+  "/dashboard/marketing": "Marketing",
+  "/dashboard/marketing/mail": "Marketing · Mail",
+  "/dashboard/marketing/instagram": "Marketing · Instagram",
+  "/dashboard/marketing/facebook": "Marketing · Facebook",
+  "/dashboard/marketing/tiktok": "Marketing · TikTok",
   "/dashboard/menu": "Menu",
   "/dashboard/rapportages": "Rapportages",
   "/dashboard/koppelingen": "Koppelingen",

@@ -88,7 +88,7 @@ function MiniDashboard() {
             <div className="md-page-title">Dashboard</div>
             <div className="md-page-sub">Woensdag 16 april · Filly draait 3 campagnes</div>
           </div>
-          <div className="md-pill">✨ Filly maakt voorstellen</div>
+          <div className="md-pill">Filly maak voorstellen</div>
         </div>
 
         <div className="md-kpi-row">

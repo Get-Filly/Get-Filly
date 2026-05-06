@@ -150,7 +150,7 @@ export default function DashboardPage() {
         style={{ flexShrink: 0 }}
         title="Filly bedenkt per dag een specifiek activatie-voorstel"
       >
-        ✨ Filly maakt voorstellen
+        Filly maak voorstellen
       </Button>
     </div>
   );

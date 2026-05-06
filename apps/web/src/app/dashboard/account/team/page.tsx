@@ -45,6 +45,7 @@ const MODULE_LABELS: Record<Module, string> = {
   reserveringen: "Reserveringen",
   campagnes: "Campagnes",
   gasten: "Gasten",
+  marketing: "Marketing",
   google_business: "Google Business",
   menu: "Menu",
   rapportages: "Rapportages",
