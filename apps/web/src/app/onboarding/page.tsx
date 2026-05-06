@@ -642,9 +642,9 @@ function OnboardingPageContent() {
               lineHeight: 1.5,
             }}
           >
-            <strong>Nieuwe zaak toevoegen.</strong> Doorloop de wizard
-            opnieuw. Na succes word je automatisch in de nieuwe zaak
-            geplaatst — wisselen tussen je zaken kan via het account-
+            <strong>Nieuwe onderneming toevoegen.</strong> Doorloop de wizard
+            opnieuw. Na succes word je automatisch in de nieuwe onderneming
+            geplaatst — wisselen tussen je ondernemingen kan via het account-
             menu linksboven.
           </div>
         )}
@@ -724,15 +724,15 @@ function Step1Sources({
 }) {
   return (
     <>
-      <div className="login-title">Laten we je zaak instellen</div>
+      <div className="login-title">Laten we je onderneming instellen</div>
       <p className="login-sub">
-        Geef Filly een website of menukaart dan vult hij alvast je hele
+        Geef Filly een website of menukaart, dan vult hij alvast je hele
         profiel in. Je kunt alles nog aanpassen in de volgende stap.
       </p>
 
       <div className="form-group">
         <label className="form-label">
-          Naam van de zaak{" "}
+          Naam van de onderneming{" "}
           <span style={{ color: "var(--tl, #6B6B6B)" }}>(verplicht)</span>
         </label>
         <input
@@ -746,7 +746,7 @@ function Step1Sources({
 
       <div className="form-group">
         <label className="form-label">
-          Type zaak{" "}
+          Type onderneming{" "}
           <span style={{ color: "var(--tl, #6B6B6B)" }}>(verplicht)</span>
         </label>
         <select
@@ -766,7 +766,7 @@ function Step1Sources({
       <hr style={{ border: 0, borderTop: "1px solid #eee", margin: "20px 0" }} />
 
       <div className="form-group">
-        <label className="form-label">Website van je zaak</label>
+        <label className="form-label">Website van je onderneming</label>
         <input
           className="form-input"
           type="url"
@@ -933,7 +933,7 @@ function Step2Review({
         onChange={(v) => setData({ ...data, description: v })}
         multiline
         rows={3}
-        placeholder="Wat voor zaak is het, in 2-3 zinnen?"
+        placeholder="Wat voor onderneming is het, in 2-3 zinnen?"
       />
       <Field
         label="Pay-off / tagline"
@@ -947,7 +947,7 @@ function Step2Review({
         onChange={(v) => setData({ ...data, atmosphere: v })}
         multiline
         rows={2}
-        placeholder="Hoe voelt de zaak? Klein en intiem, levendig, familiair…"
+        placeholder="Hoe voelt de onderneming? Klein en intiem, levendig, familiair…"
       />
       <Field
         label="Doelgroep"
@@ -955,7 +955,7 @@ function Step2Review({
         onChange={(v) => setData({ ...data, target_audience: v })}
         multiline
         rows={2}
-        placeholder="Voor wie is jullie zaak het meest?"
+        placeholder="Voor wie is jullie onderneming het meest?"
       />
       <Field
         label="Wat maakt jullie uniek"
