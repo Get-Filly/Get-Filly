@@ -34,11 +34,6 @@ type Channel = {
   href?: string;
   description: string;
   status: ChannelStatus;
-  // Mini-stats getoond op de card als 'ie live is. Berekend on-demand.
-  miniStats?: {
-    primary: { label: string; value: string };
-    secondary?: { label: string; value: string };
-  };
 };
 
 export default function MarketingHubPage() {
@@ -77,21 +72,9 @@ export default function MarketingHubPage() {
       description:
         "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden — direct uit Resend.",
       status: "live",
-      miniStats: mailStats
-        ? {
-            primary: {
-              label: "Verzonden (30 dgn)",
-              value: mailStats.sent.toLocaleString("nl-NL"),
-            },
-            secondary: {
-              label: "Open rate",
-              value:
-                mailStats.openRate !== null
-                  ? `${(mailStats.openRate * 100).toFixed(1)}%`
-                  : "—",
-            },
-          }
-        : undefined,
+      // Geen miniStats hier — eigenaar ziet de echte cijfers op de
+      // detail-pagina. Cards op de hub blijven schoon en uniform met
+      // de Coming-Soon-cards die ook geen cijfers tonen.
     },
     {
       key: "instagram",
@@ -249,20 +232,14 @@ export default function MarketingHubPage() {
         }}
       >
         {channels.map((c) => (
-          <ChannelCard key={c.key} channel={c} loading={loading} />
+          <ChannelCard key={c.key} channel={c} />
         ))}
       </div>
     </div>
   );
 }
 
-function ChannelCard({
-  channel,
-  loading,
-}: {
-  channel: Channel;
-  loading: boolean;
-}) {
+function ChannelCard({ channel }: { channel: Channel }) {
   // Klikbaar als de pagina bestaat — ook voor Coming Soon, want die
   // pagina's tonen óf een preview met voorbeeld-data (Instagram) óf
   // een nette uitleg "wat krijg je straks". Future-status (WhatsApp)
@@ -322,93 +299,12 @@ function ChannelCard({
             fontSize: 13,
             color: "var(--text-secondary, #52525B)",
             lineHeight: 1.5,
-            marginBottom: channel.miniStats ? "var(--space-3)" : 0,
           }}
         >
           {channel.description}
         </div>
-
-        {channel.status === "live" && (
-          <div
-            style={{
-              borderTop: "1px solid var(--color-border, #E4E4E7)",
-              paddingTop: "var(--space-3)",
-              marginTop: "var(--space-3)",
-              display: "flex",
-              gap: "var(--space-4)",
-              flexWrap: "wrap",
-            }}
-          >
-            {loading ? (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-secondary, #52525B)",
-                  fontStyle: "italic",
-                }}
-              >
-                Stats laden…
-              </div>
-            ) : channel.miniStats ? (
-              <>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-secondary, #52525B)",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    {channel.miniStats.primary.label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: "var(--text, #18181B)",
-                    }}
-                  >
-                    {channel.miniStats.primary.value}
-                  </div>
-                </div>
-                {channel.miniStats.secondary && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-secondary, #52525B)",
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      {channel.miniStats.secondary.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: "var(--text, #18181B)",
-                      }}
-                    >
-                      {channel.miniStats.secondary.value}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-secondary, #52525B)",
-                  fontStyle: "italic",
-                }}
-              >
-                Nog geen verzonden mails — verstuur eerst een campagne.
-              </div>
-            )}
-          </div>
-        )}
+        {/* Geen mini-stats meer op de hub — alle cards uniform.
+            Detail-pagina toont de echte cijfers. */}
       </CardBody>
     </Card>
   );
