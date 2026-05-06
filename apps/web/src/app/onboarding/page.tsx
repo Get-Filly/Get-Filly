@@ -889,16 +889,18 @@ function Step1Sources({
         </div>
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <button
-          className="login-btn"
-          onClick={onNext}
-          disabled={!canContinue || analyzing}
-          type="button"
-        >
-          Volgende
-        </button>
-      </div>
+      {/* .login-btn heeft ingebouwde margin-top:24px in globals.css —
+          die overriden we hier inline naar 16px zodat de gap gelijk
+          is aan die boven de Filly-knop. Geen wrapper-div nodig. */}
+      <button
+        className="login-btn"
+        onClick={onNext}
+        disabled={!canContinue || analyzing}
+        type="button"
+        style={{ marginTop: 16 }}
+      >
+        Volgende
+      </button>
     </>
   );
 }
