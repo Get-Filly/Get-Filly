@@ -765,21 +765,6 @@ function Step1Sources({
 
       <hr style={{ border: 0, borderTop: "1px solid #eee", margin: "20px 0" }} />
 
-      <div
-        style={{
-          fontSize: 14,
-          fontWeight: 600,
-          marginBottom: 4,
-          color: "var(--brand, #1F4A2D)",
-        }}
-      >
-        ✨ Laat Filly de rest invullen
-      </div>
-      <p style={{ fontSize: 13, color: "var(--tl, #6B6B6B)", margin: "0 0 14px" }}>
-        Geef één of beide — Filly gebruikt ze om je adres, verhaal,
-        toon, specialiteiten en menu in te vullen.
-      </p>
-
       <div className="form-group">
         <label className="form-label">Website van je zaak</label>
         <input
@@ -805,7 +790,6 @@ function Step1Sources({
       >
         <UploadCard
           label="Menukaart"
-          hint="Foto of PDF — Filly leest gerechten + prijzen"
           file={menuFile}
           onFileChange={setMenuFile}
           disabled={analyzing}
@@ -813,7 +797,6 @@ function Step1Sources({
         <UploadCard
           label="Drankkaart"
           subLabel="optioneel"
-          hint="Filly groepeert automatisch op type (wijn, bier, cocktail…)"
           file={drinksFile}
           onFileChange={setDrinksFile}
           disabled={analyzing}
@@ -829,20 +812,24 @@ function Step1Sources({
             width: "100%",
             padding: "12px 14px",
             borderRadius: 8,
-            background: analyzing
-              ? "var(--brand-soft, #eef3ee)"
-              : "var(--brand, #1F4A2D)",
-            color: analyzing ? "var(--brand, #1F4A2D)" : "#fff",
+            // Bruinige kleur (taupe/khaki) — past bij het papier-warm
+            // palet en onderscheidt deze hulp-actie visueel van de
+            // brand-groene 'Volgende'-primaire actie hieronder.
+            background: analyzing ? "#F5EBE0" : "#8B6F47",
+            color: analyzing ? "#8B6F47" : "#fff",
             border: "none",
             fontSize: 14,
             fontWeight: 600,
             cursor: analyzing ? "default" : "pointer",
-            marginTop: 4,
+            // Meer ruimte tussen upload-blokken en deze knop dan
+            // tussen knop en Volgende-knop hieronder, zodat de
+            // visuele relatie (upload → analyseren → volgende) klopt.
+            marginTop: 16,
           }}
         >
           {analyzing
             ? analyzeStatus ?? "Filly is bezig…"
-            : "✨ Filly, vul alles in"}
+            : "Filly, vul alles in"}
         </button>
       )}
 
@@ -893,7 +880,7 @@ function Step1Sources({
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: 12 }}>
         <button
           className="login-btn"
           onClick={onNext}
@@ -1222,14 +1209,12 @@ function Step3Confirm({
 function UploadCard({
   label,
   subLabel,
-  hint,
   file,
   onFileChange,
   disabled,
 }: {
   label: string;
   subLabel?: string;
-  hint: string;
   file: File | null;
   onFileChange: (f: File | null) => void;
   disabled?: boolean;
@@ -1305,35 +1290,24 @@ function UploadCard({
       </div>
 
       {!isUploaded && (
-        <>
-          <div
-            style={{
-              fontSize: 12,
-              color: "var(--tl, #6B6B6B)",
-              marginBottom: 10,
-              lineHeight: 1.4,
-            }}
-          >
-            {hint}
-          </div>
-          <label
-            htmlFor={inputId}
-            style={{
-              display: "inline-block",
-              padding: "8px 14px",
-              fontSize: 13,
-              fontWeight: 500,
-              borderRadius: 6,
-              border: "1px solid var(--bl, #E0E0E0)",
-              backgroundColor: "white",
-              color: "var(--text, #1A1A1A)",
-              cursor: disabled ? "not-allowed" : "pointer",
-              userSelect: "none",
-            }}
-          >
-            Bestand kiezen
-          </label>
-        </>
+        <label
+          htmlFor={inputId}
+          style={{
+            display: "inline-block",
+            padding: "8px 14px",
+            fontSize: 13,
+            fontWeight: 500,
+            borderRadius: 6,
+            border: "1px solid var(--bl, #E0E0E0)",
+            backgroundColor: "white",
+            color: "var(--text, #1A1A1A)",
+            cursor: disabled ? "not-allowed" : "pointer",
+            userSelect: "none",
+            marginTop: 4,
+          }}
+        >
+          Bestand kiezen
+        </label>
       )}
 
       {isUploaded && file && (
