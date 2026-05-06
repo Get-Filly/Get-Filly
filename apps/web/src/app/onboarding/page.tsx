@@ -726,8 +726,8 @@ function Step1Sources({
     <>
       <div className="login-title">Laten we je zaak instellen</div>
       <p className="login-sub">
-        Geef Filly een website of menukaart — zij vult dan alvast je
-        hele profiel in. Je kunt alles nog aanpassen in stap 2.
+        Geef Filly een website of menukaart dan vult hij alvast je hele
+        profiel in. Je kunt alles nog aanpassen in de volgende stap.
       </p>
 
       <div className="form-group">
