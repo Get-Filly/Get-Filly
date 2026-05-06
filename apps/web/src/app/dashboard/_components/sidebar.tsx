@@ -16,11 +16,9 @@ type MenuItem = {
   href: string;
   label: string;
   module: Module;
-  // icon is per 2026-05-05 weggehaald uit de sidebar. Veld blijft
-  // als optioneel staan voor het geval een latere design-pas alsnog
-  // Lucide-icons wil invoeren — dan hoeft alleen de array opnieuw
-  // gevuld te worden.
-  icon?: string;
+  // Emoji-icoon links naast het label. Per 2026-05-06 weer
+  // ingevoerd nadat de tekst-only variant te kaal aanvoelde.
+  icon: string;
 };
 
 // Sidebar-volgorde (per 2026-05-05 herzien):
@@ -33,10 +31,6 @@ type MenuItem = {
 //   7. Rapportages     — periodieke analyse
 //   8. Koppelingen     — setup, zelden aangeraakt
 //
-// Geen emoji-iconen meer in de sidebar (per 2026-05-05). De volledige
-// rij is nu cleaner tekst-gebaseerd; bij een latere design-pas kunnen
-// we Lucide-icons selectief invoeren als dat gewenst is.
-//
 // Twee items zijn eerder verwijderd als menu-item (routes bestaan nog
 // voor legacy-links + detail-views):
 //   - /dashboard/suggesties — opgegaan in de voorstellen-strip op
@@ -44,15 +38,15 @@ type MenuItem = {
 //   - /dashboard/taken — verzamelpagina van Filly-acties die deels
 //     onder Campagnes is opgegaan. Latere "Acties"-hub vervangt 'm.
 const allMenuItems: MenuItem[] = [
-  { href: "/dashboard", label: "Dashboard", module: "dashboard" },
-  { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes" },
-  { href: "/dashboard/marketing", label: "Marketing", module: "marketing" },
-  { href: "/dashboard/google-business", label: "Google Business", module: "google_business" },
-  { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen" },
-  { href: "/dashboard/gasten", label: "Gasten", module: "gasten" },
-  { href: "/dashboard/menu", label: "Menu", module: "menu" },
-  { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages" },
-  { href: "/dashboard/koppelingen", label: "Koppelingen", module: "koppelingen" },
+  { href: "/dashboard", label: "Dashboard", module: "dashboard", icon: "📊" },
+  { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes", icon: "📣" },
+  { href: "/dashboard/marketing", label: "Marketing", module: "marketing", icon: "🎯" },
+  { href: "/dashboard/google-business", label: "Google Business", module: "google_business", icon: "💼" },
+  { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: "📅" },
+  { href: "/dashboard/gasten", label: "Gasten", module: "gasten", icon: "👥" },
+  { href: "/dashboard/menu", label: "Menu", module: "menu", icon: "🍽️" },
+  { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: "📈" },
+  { href: "/dashboard/koppelingen", label: "Koppelingen", module: "koppelingen", icon: "🔌" },
 ];
 
 /**
@@ -311,6 +305,7 @@ export function Sidebar() {
             href={item.href}
             className={`sb-item ${isActive(item.href) ? "active" : ""}`}
           >
+            <span className="sb-icon" aria-hidden>{item.icon}</span>
             {item.label}
           </Link>
         ))}
