@@ -11,26 +11,21 @@ import {
 import { Button } from "../../../components/ui/button";
 
 // ============================================================
-// SuggestionDetailModal — detail + chat-edit voor een suggestie
+// SuggestionDetailModal — uitgebreide weergave + regenerate
 // ============================================================
-// Modal met twee kolommen (op brede schermen):
-//   - Links: volledige campagne-inhoud (naam, onderwerp, body, impact)
-//   - Rechts: chat-panel waar je met Filly kunt praten om aanpassingen
-//     te vragen ("maak huiselijker", "andere foto", "korter").
+// Sinds 2026-05-06 single-column layout. De chat-edit-flow (rechter
+// panel met "Praat met Filly") is verwijderd — vooral verwarring
+// gaf (eigenaar dacht dat 'ie tegen Filly kon praten zoals in de
+// dashboard-chat). Vervangen door één duidelijke 'Genereer nieuwe
+// versies'-knop die 3 alternatieve varianten ophaalt via dezelfde
+// refineSuggestion-API.
 //
-// Iedere instruction-turn triggert een refine-call op de backend die
-// Claude de campagne laat herschrijven. Nieuwe versie verschijnt
-// direct links. Chat-geschiedenis is lokaal (geen DB-persist nodig
-// voor v1; de data-log zit in ai_usage voor kosten-tracking).
+// Geen tijdstip-aanpassing: Filly heeft de actie-datum al gekozen op
+// basis van bezetting + weer. Aanpassen daarvan zou de target-context
+// breken.
 //
 // Acties onderin: Goedkeuren (maakt concept-campagne + sluit modal)
 // of Afwijzen (markeer rejected + sluit).
-
-type ChatTurn = {
-  id: string;
-  role: "user" | "filly" | "system";
-  content: string;
-};
 
 export function SuggestionDetailModal({
   suggestion: initialSuggestion,
@@ -46,15 +41,6 @@ export function SuggestionDetailModal({
   onUpdated: (updated: AiSuggestion) => void;
 }) {
   const [suggestion, setSuggestion] = useState(initialSuggestion);
-  const [instruction, setInstruction] = useState("");
-  const [turns, setTurns] = useState<ChatTurn[]>([
-    {
-      id: "welcome",
-      role: "filly",
-      content:
-        "Vertel me wat je anders wil. Bv. 'maak het huiselijker', 'kortere onderwerpregel' of 'focus meer op families'.",
-    },
-  ]);
   const [refining, setRefining] = useState(false);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -112,37 +98,24 @@ export function SuggestionDetailModal({
     }
   };
 
-  const sendInstruction = async () => {
-    const trimmed = instruction.trim();
-    if (!trimmed || busy) return;
+  // Genereer 3 nieuwe varianten in andere tonen. Hergebruikt de
+  // refineSuggestion-API met een vaste instructie zodat we geen extra
+  // backend-endpoint nodig hebben. Filly krijgt opdracht om de eerdere
+  // varianten als 'vermijd-lijst' te zien en 3 frisse alternatieven
+  // te leveren.
+  const handleRegenerate = async () => {
+    if (busy) return;
     setError(null);
-    setInstruction("");
-    const userTurn: ChatTurn = {
-      id: `u-${Date.now()}`,
-      role: "user",
-      content: trimmed,
-    };
-    setTurns((t) => [...t, userTurn]);
     setRefining(true);
     try {
-      const updated = await refineSuggestion(suggestion.id, trimmed);
+      const updated = await refineSuggestion(
+        suggestion.id,
+        "Genereer 3 volledig nieuwe varianten met andere tonen en invalshoeken dan de huidige. Vermijd herhaling van de eerdere versies.",
+      );
       setSuggestion(updated);
       onUpdated(updated);
-      setTurns((t) => [
-        ...t,
-        {
-          id: `f-${Date.now()}`,
-          role: "filly",
-          content: "Klaar. Je ziet de nieuwe versie hiernaast.",
-        },
-      ]);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Aanpassen mislukt.";
-      setTurns((t) => [
-        ...t,
-        { id: `err-${Date.now()}`, role: "system", content: msg },
-      ]);
-      setError(msg);
+      setError(e instanceof Error ? e.message : "Genereren mislukt.");
     } finally {
       setRefining(false);
     }
@@ -244,25 +217,20 @@ export function SuggestionDetailModal({
           </button>
         </div>
 
-        {/* Body: twee kolommen — campagne-inhoud links, refine-chat rechts */}
+        {/* Body: single column sinds 2026-05-06 — chat-edit-flow weg.
+            Variant-kaarten + reasoning + regenerate-knop onder elkaar. */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 360px",
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
           }}
         >
-          {/* Links: 3 variant-kaarten naast elkaar (op breed scherm)
-              of onder elkaar (op smal). Geselecteerde variant heeft
-              brand-rand + lichte highlight zodat duidelijk is welke
-              gebruikt wordt bij approve/refine. */}
           <div
             style={{
               padding: 20,
               overflowY: "auto",
-              borderRight: "1px solid var(--border, #E5DFD0)",
+              height: "100%",
             }}
           >
             <div
@@ -402,146 +370,45 @@ export function SuggestionDetailModal({
                 <div
                   style={{
                     fontSize: 13,
-                    fontStyle: "italic",
                     color: "var(--ts)",
-                    lineHeight: 1.5,
+                    lineHeight: 1.6,
                   }}
                 >
                   {suggestion.reasoning}
                 </div>
               </>
             )}
-          </div>
 
-          {/* Rechts: refine-chat */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              background: "var(--bg, #FAF7F1)",
-              minHeight: 0,
-            }}
-          >
+            {/* Genereer-knop onder de varianten + reasoning. Hergebruikt
+                de refineSuggestion-API met een vaste instructie. Filly
+                bedenkt 3 nieuwe varianten in andere tonen. */}
             <div
               style={{
-                padding: "14px 16px 6px",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--accent, #1F4A2D)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              ✨ Praat met Filly
-            </div>
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "6px 16px 12px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-              {turns.map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    alignSelf:
-                      t.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: "85%",
-                    background:
-                      t.role === "user"
-                        ? "var(--accent, #1F4A2D)"
-                        : t.role === "system"
-                          ? "var(--red-soft, #fee)"
-                          : "var(--white, #FFFFFF)",
-                    color:
-                      t.role === "user"
-                        ? "white"
-                        : t.role === "system"
-                          ? "var(--red, #b00)"
-                          : "var(--text)",
-                    border:
-                      t.role === "filly"
-                        ? "1px solid var(--border, #E5DFD0)"
-                        : "none",
-                  }}
-                >
-                  {t.content}
-                </div>
-              ))}
-              {refining && (
-                <div
-                  style={{
-                    alignSelf: "flex-start",
-                    fontSize: 12,
-                    color: "var(--tl)",
-                    fontStyle: "italic",
-                    padding: "4px 12px",
-                  }}
-                >
-                  Filly past aan…
-                </div>
-              )}
-            </div>
-
-            <div
-              style={{
-                padding: "10px 14px",
+                marginTop: 20,
+                paddingTop: 16,
                 borderTop: "1px solid var(--border, #E5DFD0)",
-                display: "flex",
-                gap: 6,
-                background: "var(--white, #FFFFFF)",
               }}
             >
-              <input
-                type="text"
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendInstruction();
-                  }
-                }}
-                placeholder={
-                  refining ? "Filly denkt na…" : "Hoe zou je het willen?"
-                }
+              <Button
+                variant="secondary"
+                onClick={handleRegenerate}
+                loading={refining}
                 disabled={busy}
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  border: "1px solid var(--border, #E5DFD0)",
-                  borderRadius: 6,
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                }}
-              />
-              <button
-                onClick={sendInstruction}
-                disabled={!instruction.trim() || busy}
-                style={{
-                  padding: "6px 14px",
-                  background: "var(--accent, #1F4A2D)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor:
-                    !instruction.trim() || busy ? "not-allowed" : "pointer",
-                  opacity: !instruction.trim() || busy ? 0.5 : 1,
-                }}
-                aria-label="Verstuur"
               >
-                ↑
-              </button>
+                {refining ? "Filly schrijft…" : "Genereer nieuwe versies"}
+              </Button>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--tl)",
+                  marginTop: 8,
+                  lineHeight: 1.5,
+                }}
+              >
+                Niet helemaal je smaak? Filly schrijft drie nieuwe varianten
+                in andere tonen. De datum laten we staan — die heeft Filly
+                gekozen op basis van bezetting.
+              </div>
             </div>
           </div>
         </div>
@@ -568,9 +435,7 @@ export function SuggestionDetailModal({
               {error}
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: "var(--tl)" }}>
-              Wijzigingen worden direct opgeslagen bij de suggestie.
-            </div>
+            <div style={{ fontSize: 12, color: "var(--tl)" }} />
           )}
 
           <div style={{ display: "flex", gap: 8 }}>

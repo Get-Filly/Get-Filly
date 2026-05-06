@@ -909,11 +909,11 @@ function SuggestionCard({
     selectedVariant?.subject_line ?? sc.subject_line ?? sc.subject;
   const body =
     selectedVariant?.body ?? sc.body ?? sc.caption ?? "";
-  const bodyPreview = body.length > 220 ? body.slice(0, 220) + "…" : body;
-  const impact = suggestion.expected_impact ?? {};
-  const confidence = suggestion.confidence_score
-    ? Math.round(suggestion.confidence_score * 100)
-    : null;
+  // Compacte preview: ~140 chars zorgt voor max 2 zinnen op de kaart.
+  // Volledige body staat in de detail-modal achter de Details-knop.
+  const bodyPreview = body.length > 140 ? body.slice(0, 140) + "…" : body;
+  // expected_impact en confidence_score blijven beschikbaar voor de
+  // detail-modal — niet meer op de kaart sinds 2026-05-06 (compacter).
 
   const typeLabel =
     type === "mail" ? "E-mail" : type === "social" ? "Social" : "WhatsApp";
@@ -926,10 +926,6 @@ function SuggestionCard({
     action.state === "approving" ||
     action.state === "rejecting" ||
     action.state === "restoring";
-  const hasImpact = Boolean(
-    impact.extra_reservations || impact.extra_revenue_cents,
-  );
-
   const isRejected = mode === "rejected";
   const isExpired = mode === "expired";
   // Beide inactieve states krijgen dezelfde gedimde achtergrond zodat
@@ -1045,147 +1041,11 @@ function SuggestionCard({
         </div>
       )}
 
-      {/* Expected-impact blok — alleen tonen als we cijfers hebben.
-          Op open-kaart: groen (brand-groen = "wat Filly belooft").
-          Op afgewezen/verlopen-kaart: neutraal grijs zodat de cijfers
-          niet meer alsof het nog gaat gebeuren ogen — dat is moot
-          want de eigenaar heeft de campagne afgewezen of de datum is
-          voorbij. */}
-      {hasImpact && (
-        <div
-          style={{
-            padding: "8px 10px",
-            background: isInactive
-              ? "var(--white, #FFFFFF)"
-              : "var(--accent-light, #D6E0D8)",
-            borderLeft: `3px solid ${
-              isInactive ? "var(--border, #E5DFD0)" : "var(--accent, #1F4A2D)"
-            }`,
-            borderRadius: 4,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 14,
-            fontSize: 11,
-          }}
-        >
-          {typeof impact.extra_reservations === "number" && (
-            <div>
-              <div
-                style={{
-                  color: "var(--ts)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  fontSize: 9,
-                  fontWeight: 600,
-                  marginBottom: 2,
-                }}
-              >
-                Verwacht extra
-              </div>
-              <div
-                style={{
-                  fontWeight: 600,
-                  color: isInactive
-                    ? "var(--text-secondary, #52525B)"
-                    : "var(--accent, #1F4A2D)",
-                  fontSize: 13,
-                }}
-              >
-                +{impact.extra_reservations} reserveringen
-              </div>
-            </div>
-          )}
-          {typeof impact.extra_revenue_cents === "number" && (
-            <div>
-              <div
-                style={{
-                  color: "var(--ts)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  fontSize: 9,
-                  fontWeight: 600,
-                  marginBottom: 2,
-                }}
-              >
-                Geschatte omzet
-              </div>
-              <div
-                style={{
-                  fontWeight: 600,
-                  color: isInactive
-                    ? "var(--text-secondary, #52525B)"
-                    : "var(--accent, #1F4A2D)",
-                  fontSize: 13,
-                }}
-              >
-                +{formatEuroShort(impact.extra_revenue_cents)}
-              </div>
-            </div>
-          )}
-          {confidence !== null && (
-            <div style={{ marginLeft: "auto" }}>
-              <div
-                style={{
-                  color: "var(--ts)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  fontSize: 9,
-                  fontWeight: 600,
-                  marginBottom: 2,
-                }}
-              >
-                Confidence
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <div
-                  style={{
-                    width: 48,
-                    height: 4,
-                    background: "var(--border, #E5DFD0)",
-                    borderRadius: 2,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${confidence}%`,
-                      height: "100%",
-                      background: "var(--accent, #1F4A2D)",
-                    }}
-                  />
-                </div>
-                <span style={{ fontWeight: 600, fontSize: 12 }}>
-                  {confidence}%
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Reasoning — Filly's uitleg waarom hij dit voorstelt. Cursief
-          + borderTop markeert dat het de "waarom" is, niet campagne-
-          content. */}
-      {suggestion.reasoning && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--ts)",
-            fontStyle: "italic",
-            lineHeight: 1.5,
-            paddingTop: 8,
-            borderTop: "1px solid var(--border-soft, #EFE8D8)",
-          }}
-        >
-          {suggestion.reasoning}
-        </div>
-      )}
+      {/* Detail-impact (verwacht reserveringen / omzet / confidence) en
+          uitgebreide reasoning zijn weggehaald van de kaart per
+          2026-05-06 — eigenaar wilde compactere voorstellen. Volledige
+          impact-cijfers + lange reasoning staan in de detail-modal
+          achter de Details-knop. */}
 
       {/* Actie-knoppen — afhankelijk van mode:
             open     = Goedkeuren / Details / Afwijzen
@@ -1270,6 +1130,25 @@ function SuggestionCard({
           }}
         >
           {action.message}
+        </div>
+      )}
+
+      {/* Korte 'waarom'-tekst onder de knoppen — max ~140 chars zodat
+          'ie 2 regels blijft. Volledige reasoning + impact-cijfers
+          staan in de detail-modal. */}
+      {suggestion.reasoning && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--ts)",
+            lineHeight: 1.5,
+            paddingTop: 8,
+            borderTop: "1px solid var(--border-soft, #EFE8D8)",
+          }}
+        >
+          {suggestion.reasoning.length > 140
+            ? suggestion.reasoning.slice(0, 140) + "…"
+            : suggestion.reasoning}
         </div>
       )}
     </div>
