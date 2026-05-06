@@ -792,69 +792,32 @@ function Step1Sources({
         />
       </div>
 
-      <div className="form-group">
-        <label className="form-label">Menukaart (foto of PDF)</label>
-        <input
-          type="file"
-          accept="application/pdf,image/jpeg,image/png,image/webp"
-          onChange={(e) => setMenuFile(e.target.files?.[0] ?? null)}
+      {/* Twee nette upload-cards naast elkaar (op desktop) of onder
+          elkaar (mobile). Vervangt de oude rauwe <input type="file">-
+          weergave die er anders uitziet per browser. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+          marginTop: 12,
+        }}
+      >
+        <UploadCard
+          label="Menukaart"
+          hint="Foto of PDF — Filly leest gerechten + prijzen"
+          file={menuFile}
+          onFileChange={setMenuFile}
           disabled={analyzing}
-          style={{
-            display: "block",
-            fontSize: 13,
-            color: "var(--text)",
-          }}
         />
-        {menuFile && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--tl, #6B6B6B)",
-              margin: "4px 0 0",
-            }}
-          >
-            {menuFile.name} · {Math.round(menuFile.size / 1024)} KB
-          </p>
-        )}
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">
-          Drankkaart (optioneel — foto of PDF)
-        </label>
-        <input
-          type="file"
-          accept="application/pdf,image/jpeg,image/png,image/webp"
-          onChange={(e) => setDrinksFile(e.target.files?.[0] ?? null)}
+        <UploadCard
+          label="Drankkaart"
+          subLabel="optioneel"
+          hint="Filly groepeert automatisch op type (wijn, bier, cocktail…)"
+          file={drinksFile}
+          onFileChange={setDrinksFile}
           disabled={analyzing}
-          style={{
-            display: "block",
-            fontSize: 13,
-            color: "var(--text)",
-          }}
         />
-        {drinksFile && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--tl, #6B6B6B)",
-              margin: "4px 0 0",
-            }}
-          >
-            {drinksFile.name} · {Math.round(drinksFile.size / 1024)} KB
-          </p>
-        )}
-        <p
-          style={{
-            fontSize: 11,
-            color: "var(--tl, #6B6B6B)",
-            margin: "4px 0 0",
-            fontStyle: "italic",
-          }}
-        >
-          Filly groepeert je dranken automatisch op type
-          (wijn, bier, cocktail, koffie, etc.).
-        </p>
       </div>
 
       {(data.website_url.trim().length > 0 || menuFile || drinksFile) && (
@@ -1244,6 +1207,191 @@ function Step3Confirm({
 // ============================================================
 // Kleine sub-componenten
 // ============================================================
+
+/**
+ * <UploadCard> — gestileerde file-upload-tegel voor menu + drankkaart
+ *
+ * Vervangt sinds 2026-05-06 de rauwe <input type="file"> die per
+ * browser anders renderde. Twee staten:
+ *   - leeg: dropzone-stijl met "Bestand kiezen"-knop + hint-tekst
+ *   - geüpload: groene check + filename + size + "Vervangen"-link
+ *
+ * Native click-via-label-pattern: hidden input + label that proxies
+ * de click. Werkt zonder JavaScript-tricks en met keyboard-focus.
+ */
+function UploadCard({
+  label,
+  subLabel,
+  hint,
+  file,
+  onFileChange,
+  disabled,
+}: {
+  label: string;
+  subLabel?: string;
+  hint: string;
+  file: File | null;
+  onFileChange: (f: File | null) => void;
+  disabled?: boolean;
+}) {
+  const inputId = `upload-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const isUploaded = !!file;
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        padding: 14,
+        borderRadius: 10,
+        border: `1.5px ${isUploaded ? "solid" : "dashed"} ${
+          isUploaded ? "var(--brand, #1F4A2D)" : "var(--bl, #E0E0E0)"
+        }`,
+        backgroundColor: isUploaded ? "#F0F7F2" : "var(--surface, #FAF7F1)",
+        transition: "border-color 120ms ease, background-color 120ms ease",
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      {/* Hidden file-input — gekoppeld aan de label hieronder via htmlFor */}
+      <input
+        id={inputId}
+        type="file"
+        accept="application/pdf,image/jpeg,image/png,image/webp"
+        onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+        disabled={disabled}
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+      />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span
+          style={{
+            fontWeight: 600,
+            fontSize: 14,
+            color: "var(--text, #1A1A1A)",
+          }}
+        >
+          {label}
+        </span>
+        {subLabel && (
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--tl, #6B6B6B)",
+              fontWeight: 400,
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+            }}
+          >
+            {subLabel}
+          </span>
+        )}
+        {isUploaded && (
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: 12,
+              color: "var(--brand, #1F4A2D)",
+              fontWeight: 600,
+            }}
+          >
+            ✓ gekozen
+          </span>
+        )}
+      </div>
+
+      {!isUploaded && (
+        <>
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--tl, #6B6B6B)",
+              marginBottom: 10,
+              lineHeight: 1.4,
+            }}
+          >
+            {hint}
+          </div>
+          <label
+            htmlFor={inputId}
+            style={{
+              display: "inline-block",
+              padding: "8px 14px",
+              fontSize: 13,
+              fontWeight: 500,
+              borderRadius: 6,
+              border: "1px solid var(--bl, #E0E0E0)",
+              backgroundColor: "white",
+              color: "var(--text, #1A1A1A)",
+              cursor: disabled ? "not-allowed" : "pointer",
+              userSelect: "none",
+            }}
+          >
+            Bestand kiezen
+          </label>
+        </>
+      )}
+
+      {isUploaded && file && (
+        <>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--text, #1A1A1A)",
+              marginBottom: 4,
+              wordBreak: "break-all",
+            }}
+          >
+            {file.name}
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--tl, #6B6B6B)",
+              marginBottom: 10,
+            }}
+          >
+            {Math.round(file.size / 1024)} KB
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <label
+              htmlFor={inputId}
+              style={{
+                fontSize: 12,
+                color: "var(--brand, #1F4A2D)",
+                cursor: disabled ? "not-allowed" : "pointer",
+                textDecoration: "underline",
+                userSelect: "none",
+              }}
+            >
+              Vervangen
+            </label>
+            <button
+              type="button"
+              onClick={() => onFileChange(null)}
+              disabled={disabled}
+              style={{
+                fontSize: 12,
+                color: "var(--tl, #6B6B6B)",
+                background: "none",
+                border: "none",
+                cursor: disabled ? "not-allowed" : "pointer",
+                textDecoration: "underline",
+                padding: 0,
+              }}
+            >
+              Verwijderen
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function Field({
   label,
