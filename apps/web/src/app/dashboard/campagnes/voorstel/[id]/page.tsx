@@ -637,14 +637,16 @@ export default function VoorstelDetailPage() {
               variant="primary"
               onClick={handleApprove}
               loading={approving}
-              disabled={busy || channels.length > 1}
+              disabled={busy}
               title={
                 channels.length > 1
-                  ? "Multi-channel-goedkeuren komt binnenkort. Verwijder eerst extra kanalen."
+                  ? `Maak ${channels.length} concept-campagnes (1 per kanaal) onder 1 bundle`
                   : "Maak een concept-campagne van dit voorstel"
               }
             >
-              ✓ Goedkeuren &amp; maak concept
+              {channels.length > 1
+                ? `✓ Goedkeuren als ${channels.length} campagnes`
+                : "✓ Goedkeuren & maak concept"}
             </Button>
           </div>
         )}
@@ -769,15 +771,15 @@ export default function VoorstelDetailPage() {
                   fontSize: 12,
                   color: "var(--ts)",
                   lineHeight: 1.5,
-                  background: "#FEF7E6",
-                  border: "1px solid #FCE5B0",
+                  background: "var(--accent-light, #D6E0D8)",
                   padding: "8px 12px",
                   borderRadius: 6,
                 }}
               >
-                Per-kanaal inhoud + tijd kun je in deze versie nog niet
-                apart aanpassen, dat volgt binnenkort. De huidige inhoud
-                + tijd worden bij goedkeuring naar elk kanaal gekopieerd.
+                Bij goedkeuring maakt Filly {channels.length} concept-
+                campagnes onder 1 bundle, één per kanaal. Tip: tijd en
+                content per kanaal apart aanpassen kan in een volgende
+                versie van deze pagina (binnenkort).
               </div>
             )}
           </div>

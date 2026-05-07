@@ -155,25 +155,32 @@ export class SuggestionsController {
   selectVariant(
     @RestaurantId() restaurantId: string,
     @Param('id') id: string,
-    @Body() body: { index?: number },
+    @Body() body: { index?: number; channel_id?: string },
   ) {
     const idx = typeof body.index === 'number' ? body.index : -1;
-    return this.suggestions.selectVariant(restaurantId, id, idx);
+    return this.suggestions.selectVariant(
+      restaurantId,
+      id,
+      idx,
+      body.channel_id,
+    );
   }
 
   // Per 2026-05-07: eigenaar zet zelf een verzendmoment op een pending
   // suggestie vóór goedkeuring. ISO-datum verplicht; backend valideert
-  // toekomst + max 1 jaar vooruit.
+  // toekomst + max 1 jaar vooruit. Per fase 2c: optioneel channel_id
+  // voor multi-channel-voorstellen.
   @Post(':id/scheduled')
   setScheduled(
     @RestaurantId() restaurantId: string,
     @Param('id') id: string,
-    @Body() body: { scheduled_for?: string },
+    @Body() body: { scheduled_for?: string; channel_id?: string },
   ) {
     return this.suggestions.setScheduled(
       restaurantId,
       id,
       body.scheduled_for ?? '',
+      body.channel_id,
     );
   }
 
@@ -216,12 +223,13 @@ export class SuggestionsController {
   setMedia(
     @RestaurantId() restaurantId: string,
     @Param('id') id: string,
-    @Body() body: { media_id?: string | null },
+    @Body() body: { media_id?: string | null; channel_id?: string },
   ) {
     return this.suggestions.setMedia(
       restaurantId,
       id,
       body.media_id ?? null,
+      body.channel_id,
     );
   }
 
@@ -237,13 +245,20 @@ export class SuggestionsController {
       index?: number;
       subject_line?: string | null;
       body?: string;
+      channel_id?: string;
     },
   ) {
     const idx = typeof body.index === 'number' ? body.index : -1;
-    return this.suggestions.editVariant(restaurantId, id, idx, {
-      subject_line: body.subject_line,
-      body: body.body,
-    });
+    return this.suggestions.editVariant(
+      restaurantId,
+      id,
+      idx,
+      {
+        subject_line: body.subject_line,
+        body: body.body,
+      },
+      body.channel_id,
+    );
   }
 
   @Patch(':id')

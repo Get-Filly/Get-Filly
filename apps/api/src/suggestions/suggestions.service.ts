@@ -1126,13 +1126,11 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     const sc = suggestion.suggested_campaign ?? {};
-    // Per 2026-05-07 fase 2b: multi-channel-approve nog niet geïmplementeerd.
-    // Block met heldere fout zodat eigenaar weet wat te doen. Volgt in
-    // fase 2c (campaign_groups + per-channel campagne-aanmaak).
+    // Per 2026-05-07 fase 2c: multi-channel-approve. Wanneer de
+    // suggestion meerdere kanalen heeft, route naar approveMultiChannel
+    // die N campagnes onder 1 campaign_groups-anker maakt.
     if (Array.isArray(sc.channels) && sc.channels.length > 1) {
-      throw new BadRequestException(
-        'Multi-channel goedkeuren komt binnenkort. Verwijder voorlopig de extra kanalen, of laat 1 kanaal staan.',
-      );
+      return this.approveMultiChannel(restaurantId, suggestionId, userId);
     }
     const type = sc.type;
     const name = typeof sc.name === 'string' ? sc.name.trim() : '';
@@ -1330,6 +1328,147 @@ Maak dit tastbaar volgens de regels.`;
     if (updateErr) throw new InternalServerErrorException(updateErr.message);
 
     return { suggestion: updated as AiSuggestion, campaignId };
+  }
+
+  // ============================================================
+  // APPROVE MULTI-CHANNEL, channels[]-array → 1 group + N campaigns
+  // ============================================================
+  // Per 2026-05-07 fase 2c: voor pending-suggesties met channels[].length > 1.
+  // Wordt automatisch geroepen vanuit approve() als die multi-channel
+  // detecteert. Maakt:
+  //   - 1 campaign_groups-rij (anker)
+  //   - N campaigns met dezelfde group_id, één per kanaal in channels[]
+  //   - Per kanaal: scheduled_for + foto-koppeling overgenomen
+  //   - approved_campaign_id wijst naar de eerste campagne (anker voor
+  //     de "bekijk campagne"-link in de UI)
+  // De UI op /campagnes/voorstel/[id] route na approve naar de eerste
+  // campagne; van daaruit kan eigenaar via bundle-navigation de andere
+  // bekijken (campagne-detail toont de groep).
+  private async approveMultiChannel(
+    restaurantId: string,
+    suggestionId: string,
+    userId: string,
+  ): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const channels = ensureChannels(sc);
+    const bundleName =
+      typeof sc.name === 'string' && sc.name.trim().length > 0
+        ? sc.name.trim().slice(0, 120)
+        : 'Multi-channel campagne';
+
+    // 1) Group aanmaken als anker.
+    const { data: group, error: groupErr } = await this.supabase.client
+      .from('campaign_groups')
+      .insert({
+        restaurant_id: restaurantId,
+        name: bundleName,
+        theme: suggestion.trigger_type ?? 'multi_channel',
+        created_by: userId,
+      })
+      .select('id')
+      .single();
+    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    const groupId = group.id as string;
+
+    // 2) Per kanaal: campagne aanmaken met channel-specifieke content.
+    // Kanaalvolgorde = de volgorde in channels[]; eerste kanaal = anker.
+    const createdCampaignIds: string[] = [];
+    for (const channel of channels) {
+      const variant =
+        channel.variants[
+          Math.min(
+            Math.max(channel.selected_index ?? 0, 0),
+            channel.variants.length - 1,
+          )
+        ];
+      const body = (variant?.body ?? '').trim();
+      const subject = (variant?.subject_line ?? '').trim();
+      const campaignType = platformToCampaignType(channel.platform);
+      const channelName = `${bundleName}, ${channel.platform.charAt(0).toUpperCase()}${channel.platform.slice(1)}`;
+
+      const { id: campaignId } = await this.campaigns.create(
+        restaurantId,
+        {
+          name: channelName.slice(0, 120),
+          type: campaignType,
+          subject_line: subject || null,
+          body: body || 'Inhoud volgt — bewerk deze campagne.',
+          group_id: groupId,
+          social_platforms:
+            campaignType === 'social' ? [channel.platform] : undefined,
+        },
+        userId,
+      );
+
+      // Per-kanaal scheduled_for overnemen.
+      if (channel.scheduled_for) {
+        try {
+          await this.campaigns.setSchedule(
+            restaurantId,
+            campaignId,
+            channel.scheduled_for,
+          );
+        } catch {
+          // Niet fataal: campagne staat als concept zonder tijd,
+          // eigenaar kan in detail-pagina alsnog kiezen.
+        }
+      }
+
+      // Foto kopiëren naar campaign-media (alleen non-mail).
+      if (channel.restaurant_media_id && campaignType !== 'mail') {
+        try {
+          const { data: mediaRow } = await this.supabase.client
+            .from('restaurant_media')
+            .select('file_path, file_name, mime_type')
+            .eq('id', channel.restaurant_media_id)
+            .eq('restaurant_id', restaurantId)
+            .maybeSingle();
+          if (mediaRow?.file_path) {
+            const { data: blob } = await this.supabase.client.storage
+              .from('restaurant-assets')
+              .download(mediaRow.file_path as string);
+            if (blob) {
+              const buffer = Buffer.from(await blob.arrayBuffer());
+              await this.campaigns.uploadMedia(restaurantId, campaignId, {
+                buffer,
+                originalName:
+                  (mediaRow.file_name as string) ?? 'photo.jpg',
+                mimeType:
+                  (mediaRow.mime_type as string) ?? 'image/jpeg',
+              });
+            }
+          }
+        } catch {
+          // Niet fataal.
+        }
+      }
+
+      createdCampaignIds.push(campaignId);
+    }
+
+    const anchorCampaignId = createdCampaignIds[0];
+
+    // 3) Suggestie afsluiten + anker koppelen.
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({
+        status: 'approved',
+        acted_at: new Date().toISOString(),
+        approved_campaign_id: anchorCampaignId,
+      })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return {
+      suggestion: updated as AiSuggestion,
+      campaignId: anchorCampaignId,
+    };
   }
 
   // ============================================================
@@ -1606,40 +1745,66 @@ Maak dit tastbaar volgens de regels.`;
     return data as AiSuggestion;
   }
 
+  // Helper voor de 4 channel-aware mutaties (selectVariant, editVariant,
+  // setScheduled, setMedia). Leest channels[] via ensureChannels, vindt
+  // het doel-kanaal op basis van channelId (default = primair kanaal),
+  // past het mutator-callback toe en schrijft via persistChannels weg.
+  // Centraliseert de read-find-mutate-write flow zodat 4 methodes niet
+  // ieder hun eigen pad hoeven te onderhouden.
+  private async mutateChannel(
+    restaurantId: string,
+    suggestionId: string,
+    channelId: string | undefined,
+    mutator: (channel: SuggestionChannel) => SuggestionChannel,
+  ): Promise<AiSuggestion> {
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
+      );
+    }
+    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const channels = ensureChannels(sc);
+    const targetIdx = channelId
+      ? channels.findIndex((c) => c.id === channelId)
+      : 0;
+    if (targetIdx < 0) {
+      throw new BadRequestException(`Kanaal niet gevonden: ${channelId}.`);
+    }
+    const newChannels = channels.map((c, i) =>
+      i === targetIdx ? mutator(c) : c,
+    );
+    const newSc: SuggestedCampaign = { ...sc, channels: newChannels };
+    return this.persistChannels(restaurantId, suggestionId, newSc);
+  }
+
   // Selecteer welke variant de gebruiker als favoriet markeert.
   // Schrijft alleen selected_index naar de DB, behoudt de andere
   // varianten zodat user nog kan terugswitchen vóór goedkeuring.
+  // Per 2026-05-07 fase 2c: channel-aware (default = primair kanaal).
   async selectVariant(
     restaurantId: string,
     suggestionId: string,
     index: number,
+    channelId?: string,
   ): Promise<AiSuggestion> {
     if (!Number.isInteger(index) || index < 0) {
       throw new BadRequestException('Variant-index moet een positief getal zijn.');
     }
 
-    const suggestion = await this.findById(restaurantId, suggestionId);
-    const sc = suggestion.suggested_campaign ?? {};
-    const variants = Array.isArray(sc.variants) ? sc.variants : [];
-    if (index >= variants.length) {
-      throw new BadRequestException(
-        `Geen variant op index ${index}; deze suggestie heeft er ${variants.length}.`,
-      );
-    }
-
-    const newSc: SuggestedCampaign = { ...sc, selected_index: index };
-    const { data: updated, error: updErr } = await this.supabase.client
-      .from('ai_suggestions')
-      .update({ suggested_campaign: newSc })
-      .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
-      .select(
-        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
-      )
-      .single();
-
-    if (updErr) throw new InternalServerErrorException(updErr.message);
-    return updated as AiSuggestion;
+    return this.mutateChannel(
+      restaurantId,
+      suggestionId,
+      channelId,
+      (channel) => {
+        if (index >= channel.variants.length) {
+          throw new BadRequestException(
+            `Geen variant op index ${index}; dit kanaal heeft er ${channel.variants.length}.`,
+          );
+        }
+        return { ...channel, selected_index: index };
+      },
+    );
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -1762,30 +1927,16 @@ Maak dit tastbaar volgens de regels.`;
   // Bij goedkeuring kopieert approve() het bestand van restaurant-
   // assets naar de campaign-media bucket zodat de campagne een eigen
   // kopie heeft (los van bibliotheek-deletions).
+  // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
+  // Mail-kanalen weigeren we (consistent met campaigns.uploadMedia).
   async setMedia(
     restaurantId: string,
     suggestionId: string,
     mediaId: string | null,
+    channelId?: string,
   ): Promise<AiSuggestion> {
-    const suggestion = await this.findById(restaurantId, suggestionId);
-    if (suggestion.status !== 'pending') {
-      throw new BadRequestException(
-        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
-      );
-    }
-    const sc = suggestion.suggested_campaign ?? {};
-    const type = sc.type;
-    if (type === 'mail') {
-      throw new BadRequestException(
-        "Mail-suggesties ondersteunen nog geen foto's.",
-      );
-    }
-
     let validatedId: string | null = null;
     if (mediaId) {
-      // Check dat de media-rij bestaat en bij dit restaurant hoort.
-      // Voorkomt dat eigenaar een vreemde id naar binnen kan smokkelen
-      // of dat we straks bij approve een dangling-FK hebben.
       const { data: row, error: lookupErr } = await this.supabase.client
         .from('restaurant_media')
         .select('id')
@@ -1801,34 +1952,30 @@ Maak dit tastbaar volgens de regels.`;
       validatedId = row.id as string;
     }
 
-    const newSc = {
-      ...sc,
-      restaurant_media_id: validatedId,
-    } as SuggestedCampaign & { restaurant_media_id?: string | null };
-
-    const { data: updated, error: updErr } = await this.supabase.client
-      .from('ai_suggestions')
-      .update({ suggested_campaign: newSc })
-      .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
-      .select(
-        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
-      )
-      .single();
-
-    if (updErr) throw new InternalServerErrorException(updErr.message);
-    return updated as AiSuggestion;
+    return this.mutateChannel(
+      restaurantId,
+      suggestionId,
+      channelId,
+      (channel) => {
+        if (channel.platform === 'mail') {
+          throw new BadRequestException(
+            "Mail-kanalen ondersteunen nog geen foto's.",
+          );
+        }
+        return { ...channel, restaurant_media_id: validatedId };
+      },
+    );
   }
 
-  // Per 2026-05-07: eigenaar kan vóór goedkeuring de inhoud van een
-  // specifieke variant zelf bewerken (subject + body). Geldig op
-  // pending-suggestion. Werkt alleen op multi-variant shape; legacy
-  // single-body wordt eerst gepromoot tot 1-variant-array.
+  // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
+  // subject_line patch-semantiek: undefined = laat staan, null/lege
+  // string = wis, niet-lege string = vervang.
   async editVariant(
     restaurantId: string,
     suggestionId: string,
     index: number,
     patch: { subject_line?: string | null; body?: string },
+    channelId?: string,
   ): Promise<AiSuggestion> {
     if (!Number.isInteger(index) || index < 0) {
       throw new BadRequestException(
@@ -1836,101 +1983,41 @@ Maak dit tastbaar volgens de regels.`;
       );
     }
 
-    const suggestion = await this.findById(restaurantId, suggestionId);
-    if (suggestion.status !== 'pending') {
-      throw new BadRequestException(
-        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
-      );
-    }
-
-    const sc = suggestion.suggested_campaign ?? {};
-    // Promoot legacy single-body naar 1-variant-array zodat onze
-    // edit-logica uniform is. Daarna kan de eigenaar ook in legacy-
-    // suggesties een variant bewerken zonder dat we extra code-paden
-    // hoeven te onderhouden.
-    let variants: Array<{ subject_line?: string; body: string }> =
-      Array.isArray(sc.variants) && sc.variants.length > 0
-        ? sc.variants
-            .filter(
-              (v): v is { body: string; subject_line?: string } =>
-                typeof v?.body === 'string' && v.body.length > 0,
-            )
-            .map((v) => ({ body: v.body, subject_line: v.subject_line }))
-        : (() => {
-            const legacyBody =
-              typeof sc.body === 'string' && sc.body.length > 0
-                ? sc.body
-                : typeof sc.caption === 'string'
-                  ? sc.caption
-                  : '';
-            const legacySubject =
-              typeof sc.subject_line === 'string'
-                ? sc.subject_line
-                : typeof sc.subject === 'string'
-                  ? sc.subject
-                  : undefined;
-            return legacyBody
-              ? [{ body: legacyBody, subject_line: legacySubject }]
-              : [];
-          })();
-
-    if (index >= variants.length) {
-      throw new BadRequestException(
-        `Geen variant op index ${index}; deze suggestie heeft er ${variants.length}.`,
-      );
-    }
-
-    const newBody =
-      typeof patch.body === 'string' && patch.body.trim().length > 0
-        ? patch.body.trim().slice(0, 5000)
-        : variants[index].body;
-    if (!newBody) {
-      throw new BadRequestException('Body mag niet leeg zijn.');
-    }
-
-    // subject_line patch-semantiek: undefined = laat staan, null/lege
-    // string = wis, niet-lege string = vervang. Zo kan eigenaar een
-    // mail-onderwerp ook expliciet weghalen voor social/whatsapp.
-    let newSubject: string | undefined = variants[index].subject_line;
-    if (patch.subject_line === null || patch.subject_line === '') {
-      newSubject = undefined;
-    } else if (
-      typeof patch.subject_line === 'string' &&
-      patch.subject_line.trim().length > 0
-    ) {
-      newSubject = patch.subject_line.trim().slice(0, 200);
-    }
-
-    variants = variants.map((v, i) =>
-      i === index
-        ? { body: newBody, subject_line: newSubject }
-        : v,
+    return this.mutateChannel(
+      restaurantId,
+      suggestionId,
+      channelId,
+      (channel) => {
+        if (index >= channel.variants.length) {
+          throw new BadRequestException(
+            `Geen variant op index ${index}; dit kanaal heeft er ${channel.variants.length}.`,
+          );
+        }
+        const current = channel.variants[index];
+        const newBody =
+          typeof patch.body === 'string' && patch.body.trim().length > 0
+            ? patch.body.trim().slice(0, 5000)
+            : (current.body ?? '');
+        if (!newBody) {
+          throw new BadRequestException('Body mag niet leeg zijn.');
+        }
+        let newSubject: string | undefined = current.subject_line;
+        if (patch.subject_line === null || patch.subject_line === '') {
+          newSubject = undefined;
+        } else if (
+          typeof patch.subject_line === 'string' &&
+          patch.subject_line.trim().length > 0
+        ) {
+          newSubject = patch.subject_line.trim().slice(0, 200);
+        }
+        const newVariants = channel.variants.map((v, i) =>
+          i === index
+            ? { body: newBody, subject_line: newSubject }
+            : v,
+        );
+        return { ...channel, variants: newVariants };
+      },
     );
-
-    const newSuggested: SuggestedCampaign = {
-      ...sc,
-      variants,
-      // Sync top-level body/subject met de geselecteerde variant zodat
-      // legacy-readers (kaart-preview) ook de bewerkte inhoud zien.
-      ...(typeof sc.selected_index === 'number' &&
-        sc.selected_index === index && {
-          body: newBody,
-          subject_line: newSubject,
-        }),
-    };
-
-    const { data: updated, error: updErr } = await this.supabase.client
-      .from('ai_suggestions')
-      .update({ suggested_campaign: newSuggested })
-      .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
-      .select(
-        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
-      )
-      .single();
-
-    if (updErr) throw new InternalServerErrorException(updErr.message);
-    return updated as AiSuggestion;
   }
 
   // Per 2026-05-07: eigenaar kan vóór goedkeuring zelf het verzendmoment
@@ -1940,10 +2027,12 @@ Maak dit tastbaar volgens de regels.`;
   // eigenaar afwijkt. Slaat de keuze op in suggested_campaign.scheduled_for
   // (jsonb-veld, geen migratie nodig). De approve-flow leest dit veld en
   // neemt 'm over op de aangemaakte campagne.
+  // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
   async setScheduled(
     restaurantId: string,
     suggestionId: string,
     scheduledForIso: string,
+    channelId?: string,
   ): Promise<AiSuggestion> {
     const trimmed = scheduledForIso?.trim();
     if (!trimmed) {
@@ -1969,30 +2058,12 @@ Maak dit tastbaar volgens de regels.`;
       );
     }
 
-    const suggestion = await this.findById(restaurantId, suggestionId);
-    if (suggestion.status !== 'pending') {
-      throw new BadRequestException(
-        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
-      );
-    }
-
-    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign & {
-      scheduled_for?: string;
-    };
-    const newSc = { ...sc, scheduled_for: dt.toISOString() };
-
-    const { data: updated, error: updErr } = await this.supabase.client
-      .from('ai_suggestions')
-      .update({ suggested_campaign: newSc })
-      .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
-      .select(
-        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
-      )
-      .single();
-
-    if (updErr) throw new InternalServerErrorException(updErr.message);
-    return updated as AiSuggestion;
+    return this.mutateChannel(
+      restaurantId,
+      suggestionId,
+      channelId,
+      (channel) => ({ ...channel, scheduled_for: dt.toISOString() }),
+    );
   }
 
   // Per 2026-05-07: 'refine' herzien van 1-variant-replace naar 3-
