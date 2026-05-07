@@ -279,22 +279,30 @@ export default function VoorstelDetailPage() {
   // morgen + standaard-uur als de suggestie geen target_date heeft.
   // Zo verschijnt de Wanneer plaatsen-card altijd, eigenaar kan dan
   // alsnog een tijd kiezen.
-  // fillyIso baseert zich op het ACTIEVE kanaal-platform, niet op het
-  // primaire — anders zou een Instagram-tab een mail-default-tijd
-  // (11:00) tonen. Voor de fallback (geen target_date): morgen +
-  // standaard-uur per actief platform.
+  // fillyIso: Filly's voorgestelde tijd voor het actieve kanaal.
+  // Prioriteit:
+  //   1. activeChannel.filly_scheduled_for (Filly heeft expliciet een
+  //      tijd + reasoning gegeven, fase 3+)
+  //   2. target_date + standaard-uur per platform (legacy)
+  //   3. morgen + standaard-uur per platform (fallback bij geen target)
   const activePlatformType: "mail" | "social" | "whatsapp" =
     activePlatform === "mail" || activePlatform === "whatsapp"
       ? activePlatform
       : "social";
   const fillyIso = useMemo(() => {
+    if (activeChannel?.filly_scheduled_for) {
+      return activeChannel.filly_scheduled_for;
+    }
     const fromTarget = fillySuggestedIso(targetDate, activePlatformType);
     if (fromTarget) return fromTarget;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
     return fillySuggestedIso(ymd, activePlatformType);
-  }, [targetDate, activePlatformType]);
+  }, [activeChannel?.filly_scheduled_for, targetDate, activePlatformType]);
+  // Filly's per-kanaal redenering (fase 3+). Null = generieke
+  // fallback-tijd, geen specifieke uitleg beschikbaar.
+  const fillyReasoning = activeChannel?.filly_scheduled_reasoning ?? null;
   const customIso = activeChannel?.scheduled_for ?? null;
   const effectiveIso = customIso ?? fillyIso;
   const isCustomTime =
@@ -1417,6 +1425,22 @@ export default function VoorstelDetailPage() {
                     ? formatDutchDateTime(effectiveIso)
                     : "Nog niet gekozen"}
                 </div>
+                {/* Filly's per-kanaal redenering. Alleen tonen bij
+                    Filly's eigen voorstel (niet wanneer eigenaar
+                    afwijkt — dan is de waarschuwing leidend). */}
+                {!isCustomTime && fillyReasoning && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontStyle: "italic",
+                      color: "var(--ts)",
+                      lineHeight: 1.5,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {fillyReasoning}
+                  </div>
+                )}
                 {isCustomTime && fillyIso && (
                   <div
                     style={{

@@ -191,6 +191,21 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
           subject_line: { type: 'string' },
           body: { type: 'string' },
           reasoning: { type: 'string' },
+          // Per 2026-05-07 fase 3: Filly geeft een per-platform-tijdstip
+          // mee + uitleg waarom dít moment voor dít kanaal werkt. Zo
+          // ziet eigenaar 'Instagram-feed peakt 17:00 voor late
+          // beslissers' i.p.v. een generieke fallback. Format: ISO-
+          // datetime, max 1 jaar vooruit. Reasoning ≤ 200 tekens.
+          scheduled_for: {
+            type: 'string',
+            description:
+              'ISO-datetime voor verzending van DIT voorstel. Bv. "2026-05-08T11:00:00+02:00". Moet in de toekomst liggen, max 60 dagen vooruit. Kies het uur dat past bij het platform én het type campagne.',
+          },
+          scheduled_reasoning: {
+            type: 'string',
+            description:
+              'Korte uitleg (≤200 tekens NL) waarom dit specifieke tijdstip werkt voor dit kanaal en deze doelgroep. Bv. "Instagram-feed peakt rond 17:00, mensen kijken op weg naar huis voor weekendplannen."',
+          },
           confidence: { type: 'number' },
           expected_extra_reservations: { type: 'integer' },
           expected_extra_revenue_cents: { type: 'integer' },
@@ -202,6 +217,8 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
           'name',
           'body',
           'reasoning',
+          'scheduled_for',
+          'scheduled_reasoning',
         ],
       },
     },
@@ -223,6 +240,8 @@ type GeneratedSuggestionFromTool = {
   subject_line?: string;
   body: string;
   reasoning: string;
+  scheduled_for: string;
+  scheduled_reasoning: string;
   confidence?: number;
   expected_extra_reservations?: number;
   expected_extra_revenue_cents?: number;
@@ -574,6 +593,15 @@ Inhoudsregels:
   - tiktok: jong (<25), trendy, korte zinnen, alleen als de tone-of-voice past.
   Mix platforms over de 3-5 voorstellen.
 - subject_line: alleen voor mail; voor whatsapp/instagram/facebook/tiktok laat je 'm weg.
+
+Tijdstip-keuze (scheduled_for + scheduled_reasoning), kies bewust per platform:
+- mail: 09:00-10:00 op weekdag (ochtend-coffee-moment voor B2C inbox-checken). Voor zondag-actie kun je vrijdag 11:00 versturen zodat 't in de inbox blijft staan voor weekend-plannen.
+- whatsapp: 11:00-13:00 of 17:00-18:30 (lunch-bel of na-werk-momentum, persoonlijke tijd-window).
+- instagram (feed): 17:00-19:00 (peak engagement na werk, mensen scrollen voor weekend-inspiratie).
+- instagram (story): 's ochtends 08:00-09:30 (pre-werk-inspiratie) of 21:00-22:00 (avond-binge).
+- facebook: 13:00-15:00 weekdag (lunchpauze-scrollen, oudere doelgroep) of zaterdag 10:00-12:00.
+- tiktok: 19:00-22:00 (avond-binge-tijd, jongere doelgroep).
+Geef in scheduled_reasoning een 1-zin uitleg WAAROM dit moment past bij dit platform én deze specifieke campagne (bv. "Vrijdag 9:30 = pre-weekend mail-check, mensen plannen hun zaterdag-uitje").
 - body: volledige uitgeschreven tekst, klaar om te versturen.
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
 - reasoning: 1-2 zinnen NL waarom dit voorstel nu past, verwijs naar concrete signalen uit profile/menu/live-data.
@@ -650,37 +678,82 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         'Filly kon nu geen voorstellen genereren. Dat gebeurt soms, probeer het over een minuut opnieuw.',
       );
     }
-    const rows = suggestionsArr.map((s) => ({
-      restaurant_id: restaurantId,
-      trigger_type: s.trigger_type,
-      trigger_context: {
-        generated_on: todayIso,
-        reason: s.reasoning,
-      },
-      suggested_campaign: {
-        // Behoud 'type' voor backwards-compat met bestaande readers
-        // (kaart-preview, oude approve-flow). 'platform' is het nieuwe
-        // veld dat specifieker is dan 'social'.
-        type: platformToCampaignType(s.platform),
-        platform: s.platform,
-        name: s.name,
-        subject_line: s.subject_line,
-        body: s.body,
-      },
-      status: 'pending',
-      urgency: s.urgency,
-      confidence_score:
-        typeof s.confidence === 'number' &&
-        s.confidence >= 0 &&
-        s.confidence <= 1
-          ? s.confidence
-          : null,
-      reasoning: s.reasoning,
-      expected_impact: {
-        extra_reservations: s.expected_extra_reservations ?? 0,
-        extra_revenue_cents: s.expected_extra_revenue_cents ?? 0,
-      },
-    }));
+    const rows = suggestionsArr.map((s) => {
+      // Sanitize Filly's voorgestelde tijdstip: alleen accepteren als
+      // het een valide ISO-string is die in de toekomst ligt en max
+      // 60 dagen vooruit. Anders fallback naar undefined zodat de UI
+      // de generieke fallback-tijd toont.
+      let validatedScheduledFor: string | undefined;
+      if (typeof s.scheduled_for === 'string') {
+        const dt = new Date(s.scheduled_for);
+        const now = Date.now();
+        if (
+          !isNaN(dt.getTime()) &&
+          dt.getTime() > now - 60 * 1000 &&
+          dt.getTime() < now + 60 * 24 * 60 * 60 * 1000
+        ) {
+          validatedScheduledFor = dt.toISOString();
+        }
+      }
+      const validatedReasoning =
+        typeof s.scheduled_reasoning === 'string' &&
+        s.scheduled_reasoning.trim().length > 0
+          ? s.scheduled_reasoning.trim().slice(0, 200)
+          : undefined;
+
+      return {
+        restaurant_id: restaurantId,
+        trigger_type: s.trigger_type,
+        trigger_context: {
+          generated_on: todayIso,
+          reason: s.reasoning,
+        },
+        suggested_campaign: {
+          // Behoud 'type' voor backwards-compat met bestaande readers
+          // (kaart-preview, oude approve-flow). 'platform' is het nieuwe
+          // veld dat specifieker is dan 'social'.
+          type: platformToCampaignType(s.platform),
+          platform: s.platform,
+          name: s.name,
+          subject_line: s.subject_line,
+          body: s.body,
+          // Per 2026-05-07 fase 3: Filly's per-kanaal scheduled_for +
+          // reasoning meteen in channels[] opslaan zodat de UI die kan
+          // tonen onder 'Wanneer plaatsen?' i.p.v. een generieke fallback.
+          // Single-channel = 1-item channels-array; multi-channel komt
+          // in fase 3b als Filly meerdere kanalen per voorstel kan
+          // suggereren.
+          channels: [
+            {
+              id: `${s.platform}-0`,
+              platform: s.platform,
+              variants: [
+                {
+                  body: s.body,
+                  subject_line: s.subject_line,
+                },
+              ],
+              selected_index: 0,
+              filly_scheduled_for: validatedScheduledFor,
+              filly_scheduled_reasoning: validatedReasoning,
+            },
+          ],
+        },
+        status: 'pending',
+        urgency: s.urgency,
+        confidence_score:
+          typeof s.confidence === 'number' &&
+          s.confidence >= 0 &&
+          s.confidence <= 1
+            ? s.confidence
+            : null,
+        reasoning: s.reasoning,
+        expected_impact: {
+          extra_reservations: s.expected_extra_reservations ?? 0,
+          extra_revenue_cents: s.expected_extra_revenue_cents ?? 0,
+        },
+      };
+    });
 
     const { data: inserted, error: insErr } = await this.supabase.client
       .from('ai_suggestions')
