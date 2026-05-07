@@ -85,13 +85,17 @@ export type Campaign = {
   meta: string | null;
   status: CampaignStatus;
   result_stats: CampaignResultStats | null;
+  // Per 2026-05-07 fase 4: group_id om bundle-membership te bepalen
+  // op de /campagnes-list. Null = stand-alone campagne.
+  group_id: string | null;
+  scheduled_for: string | null;
 };
 
 export type CampaignDetail = Campaign & {
   subject_line: string | null;
   body: string | null;
   preview_data: Record<string, unknown> | null;
-  scheduled_for: string | null;
+  // scheduled_for zit nu in Campaign (per 2026-05-07).
   executed_at: string | null;
   tags: string[] | null;
   created_at: string;
@@ -122,7 +126,12 @@ export class CampaignsService {
   async findAll(restaurantId: string): Promise<Campaign[]> {
     const { data, error } = await this.supabase.client
       .from('campaigns')
-      .select('id, name, type, meta, status, result_stats')
+      .select(
+        // Per 2026-05-07 fase 4: group_id mee zodat de frontend
+        // multi-channel-bundles als één rij kan tonen op /campagnes
+        // i.p.v. als losse campagnes.
+        'id, name, type, meta, status, result_stats, group_id, scheduled_for',
+      )
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false });
 
@@ -131,6 +140,49 @@ export class CampaignsService {
     }
 
     return (data ?? []) as Campaign[];
+  }
+
+  // Per 2026-05-07 fase 4: bundle-detail ophalen. Retourneert de
+  // campaign_groups-rij + alle gekoppelde campagnes (gefilterd op
+  // restaurant_id voor tenant-veiligheid). Frontend gebruikt dit om
+  // een multi-channel-bundle-pagina te renderen waarin eigenaar
+  // tussen de kanalen kan switchen.
+  async findBundle(
+    restaurantId: string,
+    groupId: string,
+  ): Promise<{
+    group: { id: string; name: string; theme: string | null };
+    campaigns: Campaign[];
+  }> {
+    const { data: group, error: groupErr } = await this.supabase.client
+      .from('campaign_groups')
+      .select('id, name, theme')
+      .eq('id', groupId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    if (!group) {
+      throw new BadRequestException('Bundle niet gevonden.');
+    }
+
+    const { data: campaigns, error: campsErr } = await this.supabase.client
+      .from('campaigns')
+      .select(
+        'id, name, type, meta, status, result_stats, group_id, scheduled_for',
+      )
+      .eq('restaurant_id', restaurantId)
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: true });
+    if (campsErr) throw new InternalServerErrorException(campsErr.message);
+
+    return {
+      group: {
+        id: group.id as string,
+        name: group.name as string,
+        theme: (group.theme as string | null) ?? null,
+      },
+      campaigns: (campaigns ?? []) as Campaign[],
+    };
   }
 
   async findById(restaurantId: string, id: string): Promise<CampaignDetail> {

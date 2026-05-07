@@ -286,6 +286,50 @@ export default function CampagnesPage() {
       ? campaigns.length
       : campaigns.filter((c) => c.status === status).length;
 
+  // Per 2026-05-07 fase 4: groepeer campagnes per group_id zodat
+  // multi-channel-bundles als één rij verschijnen op /campagnes
+  // (i.p.v. 3 losse rows). Groepen met maar 1 lid behandelen we als
+  // stand-alone, anders krijg je nutteloze 'bundles van 1'-rijen.
+  type ListItem =
+    | { kind: "campaign"; campaign: Campaign }
+    | { kind: "bundle"; groupId: string; campaigns: Campaign[] };
+  const listItems = useMemo<ListItem[]>(() => {
+    const byGroup = new Map<string, Campaign[]>();
+    const standalone: Campaign[] = [];
+    for (const c of filtered) {
+      if (c.group_id) {
+        const arr = byGroup.get(c.group_id) ?? [];
+        arr.push(c);
+        byGroup.set(c.group_id, arr);
+      } else {
+        standalone.push(c);
+      }
+    }
+    // Bouw items in oorspronkelijke (created_at-desc) volgorde. We
+    // gebruiken de positie van het EERSTE lid van een groep als
+    // anker zodat een bundle op de juiste plek in de lijst staat.
+    const seen = new Set<string>();
+    const items: ListItem[] = [];
+    for (const c of filtered) {
+      if (c.group_id) {
+        if (seen.has(c.group_id)) continue;
+        seen.add(c.group_id);
+        const groupCampaigns = byGroup.get(c.group_id) ?? [];
+        if (groupCampaigns.length > 1) {
+          items.push({
+            kind: "bundle",
+            groupId: c.group_id,
+            campaigns: groupCampaigns,
+          });
+          continue;
+        }
+      }
+      items.push({ kind: "campaign", campaign: c });
+    }
+    void standalone; // alleen voor type-check, items komt uit de loop
+    return items;
+  }, [filtered]);
+
   const totalImpact = useMemo(() => {
     return campaigns.reduce(
       (acc, c) => {
@@ -745,7 +789,112 @@ export default function CampagnesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => {
+            {listItems.map((item) => {
+              if (item.kind === "bundle") {
+                // Bundle-rij: aggregeer impact + bepaal dominante status
+                // + toon kanaal-icoontjes.
+                const totalRes = item.campaigns.reduce(
+                  (acc, c) =>
+                    acc + (c.result_stats?.extra_reservations ?? 0),
+                  0,
+                );
+                const totalRevenueCents = item.campaigns.reduce(
+                  (acc, c) => acc + campaignImpactEuro(c),
+                  0,
+                );
+                // Status-mix: als alle gelijk → die status, anders 'mixed'
+                // (= toon de eerste, met label '+ N'). Voor MVP: toon
+                // gewoon eerste campagne's status.
+                const firstStatus = item.campaigns[0].status;
+                // Bundle-naam: strip channel-suffix van eerste campagne
+                // (bv. 'Pasta-week, mail' → 'Pasta-week'). Werkt voor
+                // bundles aangemaakt door approveMultiChannel/Bundle.
+                const baseName = item.campaigns[0].name.replace(
+                  /,\s+(mail|whatsapp|instagram|facebook|tiktok)$/i,
+                  "",
+                );
+                return (
+                  <tr
+                    key={`bundle-${item.groupId}`}
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/campagnes/bundle/${item.groupId}`,
+                      )
+                    }
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td style={{ fontSize: 14 }}>
+                      {/* Stack van kanaal-iconen, max 4 zichtbaar */}
+                      <span style={{ display: "inline-flex", gap: 2 }}>
+                        {item.campaigns.slice(0, 4).map((c, i) => (
+                          <span key={i}>{typeIcon[c.type]}</span>
+                        ))}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 500 }}>
+                      {baseName}
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "var(--white, #FFFFFF)",
+                          background: "var(--accent, #1F4A2D)",
+                          padding: "2px 6px",
+                          borderRadius: 999,
+                        }}
+                      >
+                        Bundel
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        color: "var(--ts)",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {item.campaigns.length} kanalen
+                    </td>
+                    <td style={{ color: "var(--tl)", fontSize: 12 }}>
+                      {item.campaigns.map((c) => c.type).join(" · ")}
+                    </td>
+                    <td style={{ fontSize: 12 }}>
+                      {totalRes > 0 ? (
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: "var(--accent)",
+                            }}
+                          >
+                            +{totalRes} reserveringen
+                          </div>
+                          <div style={{ color: "var(--tl)" }}>
+                            {formatEuroFromCents(totalRevenueCents)} extra
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: "var(--tl)" }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <Badge
+                        variant={statusBadgeVariant[firstStatus]}
+                        withDot
+                      >
+                        {statusLabel[firstStatus]}
+                      </Badge>
+                    </td>
+                    <td style={{ color: "var(--tl)", fontSize: 12 }}>
+                      Open bundel →
+                    </td>
+                  </tr>
+                );
+              }
+
+              const c = item.campaign;
               const stats = c.result_stats ?? {};
               const extraRes = stats.extra_reservations;
               const revenueCents = campaignImpactEuro(c);

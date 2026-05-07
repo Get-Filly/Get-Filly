@@ -64,11 +64,36 @@ export type Campaign = {
   meta: string | null;
   status: CampaignStatus;
   result_stats: CampaignResultStats | null;
+  // Per 2026-05-07 fase 4: group_id om bundle-rendering op
+  // /campagnes mogelijk te maken. Null = stand-alone, niet-null +
+  // groep heeft >1 leden = render als bundle-rij.
+  group_id: string | null;
+  scheduled_for: string | null;
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {
   const res = await authedFetch(`${API_URL}/campaigns`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Per 2026-05-07 fase 4: bundle-detail ophalen voor de bundle-pagina.
+// Retourneert het campaign_groups record + alle gekoppelde campagnes.
+export type CampaignBundle = {
+  group: { id: string; name: string; theme: string | null };
+  campaigns: Campaign[];
+};
+
+export async function fetchCampaignBundle(
+  groupId: string,
+): Promise<CampaignBundle> {
+  const res = await authedFetch(`${API_URL}/campaigns/bundle/${groupId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
   return res.json();
 }
 

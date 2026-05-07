@@ -42,6 +42,17 @@ export class CampaignsController {
     return this.campaigns.findAll(restaurantId);
   }
 
+  // Per 2026-05-07 fase 4: bundle-detail. Retourneert de campaign_groups
+  // rij + alle gekoppelde campagnes zodat de frontend een multi-channel
+  // bundle-pagina kan tonen waarin eigenaar tussen kanalen kan switchen.
+  @Get('bundle/:groupId')
+  findBundle(
+    @RestaurantId() restaurantId: string,
+    @Param('groupId') groupId: string,
+  ) {
+    return this.campaigns.findBundle(restaurantId, groupId);
+  }
+
   @Get(':id')
   findOne(@RestaurantId() restaurantId: string, @Param('id') id: string) {
     return this.campaigns.findById(restaurantId, id);
