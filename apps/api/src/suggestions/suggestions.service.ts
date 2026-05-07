@@ -158,6 +158,11 @@ function platformToCampaignType(
   return 'social';
 }
 
+// Per 2026-05-07 fase 3b: per voorstel een channels-array i.p.v. een
+// enkel platform. Filly kiest 1 of meerdere kanalen voor hetzelfde
+// voorstel (bv. mail + Instagram + WhatsApp voor een seizoens-actie),
+// en levert per kanaal eigen content + timing + reasoning. Cap = 5
+// (= 1 per platform-type, geen dubbele Instagrams binnen één voorstel).
 const GENERATE_SUGGESTIONS_SCHEMA = {
   type: 'object',
   properties: {
@@ -180,51 +185,63 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
             ],
           },
           urgency: { type: 'string', enum: ['low', 'medium', 'high'] },
-          // Specifieke platforms i.p.v. de oude 3 ('mail'/'social'/
-          // 'whatsapp'). Filly kiest het kanaal dat het beste bij de
-          // doelgroep + tone-of-voice past.
-          platform: {
-            type: 'string',
-            enum: SUGGESTION_PLATFORMS,
-          },
           name: { type: 'string' },
-          subject_line: { type: 'string' },
-          body: { type: 'string' },
           reasoning: { type: 'string' },
-          // Per 2026-05-07 fase 3: Filly geeft een per-platform-tijdstip
-          // mee + uitleg waarom dít moment voor dít kanaal werkt. Zo
-          // ziet eigenaar 'Instagram-feed peakt 17:00 voor late
-          // beslissers' i.p.v. een generieke fallback. Format: ISO-
-          // datetime, max 1 jaar vooruit. Reasoning ≤ 200 tekens.
-          scheduled_for: {
-            type: 'string',
-            description:
-              'ISO-datetime voor verzending van DIT voorstel. Bv. "2026-05-08T11:00:00+02:00". Moet in de toekomst liggen, max 60 dagen vooruit. Kies het uur dat past bij het platform én het type campagne.',
-          },
-          scheduled_reasoning: {
-            type: 'string',
-            description:
-              'Korte uitleg (≤200 tekens NL) waarom dit specifieke tijdstip werkt voor dit kanaal en deze doelgroep. Bv. "Instagram-feed peakt rond 17:00, mensen kijken op weg naar huis voor weekendplannen."',
-          },
           confidence: { type: 'number' },
           expected_extra_reservations: { type: 'integer' },
           expected_extra_revenue_cents: { type: 'integer' },
+          channels: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 5,
+            description:
+              'Eén of meerdere kanalen voor dit voorstel. Voor tactische/snelle triggers (low_occupancy met urgency=high, weather) volstaat 1 kanaal. Voor seizoen/retentie/general met breder bereik kun je 2-3 kanalen kiezen.',
+            items: {
+              type: 'object',
+              properties: {
+                platform: { type: 'string', enum: SUGGESTION_PLATFORMS },
+                subject_line: { type: 'string' },
+                body: { type: 'string' },
+                scheduled_for: {
+                  type: 'string',
+                  description:
+                    'ISO-datetime voor DIT kanaal. Bv. "2026-05-08T17:00:00+02:00". Toekomst, max 60 dagen vooruit.',
+                },
+                scheduled_reasoning: {
+                  type: 'string',
+                  description:
+                    'Korte uitleg (≤200 tekens NL) waarom dit moment past bij dit kanaal én de doelgroep.',
+                },
+              },
+              required: [
+                'platform',
+                'body',
+                'scheduled_for',
+                'scheduled_reasoning',
+              ],
+            },
+          },
         },
         required: [
           'trigger_type',
           'urgency',
-          'platform',
           'name',
-          'body',
           'reasoning',
-          'scheduled_for',
-          'scheduled_reasoning',
+          'channels',
         ],
       },
     },
   },
   required: ['suggestions'],
 } as const satisfies Anthropic.Tool.InputSchema;
+
+type GeneratedChannelFromTool = {
+  platform: SuggestionPlatform;
+  subject_line?: string;
+  body: string;
+  scheduled_for: string;
+  scheduled_reasoning: string;
+};
 
 type GeneratedSuggestionFromTool = {
   trigger_type:
@@ -235,16 +252,12 @@ type GeneratedSuggestionFromTool = {
     | 'birthday'
     | 'general';
   urgency: 'low' | 'medium' | 'high';
-  platform: SuggestionPlatform;
   name: string;
-  subject_line?: string;
-  body: string;
   reasoning: string;
-  scheduled_for: string;
-  scheduled_reasoning: string;
   confidence?: number;
   expected_extra_reservations?: number;
   expected_extra_revenue_cents?: number;
+  channels: GeneratedChannelFromTool[];
 };
 
 type GenerateSuggestionsFromTool = {
@@ -585,24 +598,31 @@ Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone uit het profiel.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
-- Per voorstel: kies één platform dat het beste past bij de doelgroep en het type bericht:
-  - mail: lange-vorm, voor vaste klanten met opt-in (formeler, persoonlijker).
+- Per voorstel: kies 1-3 KANALEN waarop dit voorstel uit moet gaan. Niet elk voorstel hoeft multi-channel te zijn:
+  - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 mail of 1 whatsapp aan vaste gasten), of zeer kanaal-specifiek concept.
+  - 2 kanalen: standaardmix voor seizoen/event (bv. mail aan vaste gasten + Instagram-post voor bredere awareness).
+  - 3 kanalen: brede pushes (bv. seizoenslancering: mail + Instagram + Facebook).
+
+Platform-keuze per kanaal:
+  - mail: lange-vorm, voor vaste klanten met opt-in (formeler, persoonlijker, klikbare CTA).
   - whatsapp: kort en direct, voor topgasten met telefoonnummer (vriendelijke top-tafel-aanpak).
-  - instagram: visueel, voor jongere doelgroep (foto-first, korte caption, hashtags).
+  - instagram: visueel, jongere doelgroep (foto-first, korte caption, hashtags).
   - facebook: bredere doelgroep + lokale buurt, iets meer tekst dan Instagram.
   - tiktok: jong (<25), trendy, korte zinnen, alleen als de tone-of-voice past.
-  Mix platforms over de 3-5 voorstellen.
-- subject_line: alleen voor mail; voor whatsapp/instagram/facebook/tiktok laat je 'm weg.
 
-Tijdstip-keuze (scheduled_for + scheduled_reasoning), kies bewust per platform:
-- mail: 09:00-10:00 op weekdag (ochtend-coffee-moment voor B2C inbox-checken). Voor zondag-actie kun je vrijdag 11:00 versturen zodat 't in de inbox blijft staan voor weekend-plannen.
-- whatsapp: 11:00-13:00 of 17:00-18:30 (lunch-bel of na-werk-momentum, persoonlijke tijd-window).
-- instagram (feed): 17:00-19:00 (peak engagement na werk, mensen scrollen voor weekend-inspiratie).
-- instagram (story): 's ochtends 08:00-09:30 (pre-werk-inspiratie) of 21:00-22:00 (avond-binge).
-- facebook: 13:00-15:00 weekdag (lunchpauze-scrollen, oudere doelgroep) of zaterdag 10:00-12:00.
-- tiktok: 19:00-22:00 (avond-binge-tijd, jongere doelgroep).
-Geef in scheduled_reasoning een 1-zin uitleg WAAROM dit moment past bij dit platform én deze specifieke campagne (bv. "Vrijdag 9:30 = pre-weekend mail-check, mensen plannen hun zaterdag-uitje").
-- body: volledige uitgeschreven tekst, klaar om te versturen.
+Per channel-object in 'channels':
+- platform: één van de bovenstaande, geen dubbele platforms binnen 1 voorstel.
+- body: volledige uitgeschreven tekst voor DIT kanaal (mail = langer, social = korter), klaar om te versturen. SCHRIJF voor elk kanaal een eigen variant — kopieer niet zomaar dezelfde body.
+- subject_line: alleen voor mail-kanalen; voor whatsapp/instagram/facebook/tiktok laat je 'm weg.
+- scheduled_for + scheduled_reasoning, kies bewust per platform:
+  - mail: 09:00-10:00 weekdag (ochtend-coffee-moment voor inbox-checken). Voor zondag-actie kun je vrijdag versturen zodat 't in de inbox blijft staan.
+  - whatsapp: 11:00-13:00 of 17:00-18:30 (lunch-bel of na-werk).
+  - instagram (feed): 17:00-19:00 (peak engagement na werk).
+  - facebook: 13:00-15:00 weekdag of zaterdag 10:00-12:00.
+  - tiktok: 19:00-22:00 (avond-binge).
+  In scheduled_reasoning een 1-zin uitleg WAAROM dit moment past bij dit kanaal én deze campagne (bv. "Vrijdag 9:30 = pre-weekend mail-check, mensen plannen hun zaterdag-uitje").
+
+Per voorstel-niveau:
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
 - reasoning: 1-2 zinnen NL waarom dit voorstel nu past, verwijs naar concrete signalen uit profile/menu/live-data.
 - confidence: 0.0-1.0 hoe zeker je bent dat dit voorstel werkt voor deze onderneming.
@@ -678,82 +698,107 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         'Filly kon nu geen voorstellen genereren. Dat gebeurt soms, probeer het over een minuut opnieuw.',
       );
     }
-    const rows = suggestionsArr.map((s) => {
-      // Sanitize Filly's voorgestelde tijdstip: alleen accepteren als
-      // het een valide ISO-string is die in de toekomst ligt en max
-      // 60 dagen vooruit. Anders fallback naar undefined zodat de UI
-      // de generieke fallback-tijd toont.
-      let validatedScheduledFor: string | undefined;
-      if (typeof s.scheduled_for === 'string') {
-        const dt = new Date(s.scheduled_for);
-        const now = Date.now();
-        if (
-          !isNaN(dt.getTime()) &&
-          dt.getTime() > now - 60 * 1000 &&
-          dt.getTime() < now + 60 * 24 * 60 * 60 * 1000
-        ) {
-          validatedScheduledFor = dt.toISOString();
+    const rows = suggestionsArr
+      .map((s) => {
+        // Per 2026-05-07 fase 3b: Filly levert nu een channels[]-array
+        // per voorstel (1-3 kanalen). Per kanaal: platform + body +
+        // scheduled_for + scheduled_reasoning. Wij valideren elk kanaal
+        // en bouwen de SuggestionChannel-shape op met stable ids.
+        const rawChannels = Array.isArray(s.channels) ? s.channels : [];
+        if (rawChannels.length === 0) {
+          // Geen kanalen → voorstel skippen (defensief, schema vereist
+          // minItems=1 maar Claude levert soms toch een lege array bij
+          // edge-cases).
+          return null;
         }
-      }
-      const validatedReasoning =
-        typeof s.scheduled_reasoning === 'string' &&
-        s.scheduled_reasoning.trim().length > 0
-          ? s.scheduled_reasoning.trim().slice(0, 200)
-          : undefined;
+        const seenPlatforms = new Set<SuggestionPlatform>();
+        const validatedChannels: SuggestionChannel[] = [];
+        for (let i = 0; i < rawChannels.length; i++) {
+          const c = rawChannels[i];
+          if (
+            !c ||
+            !SUGGESTION_PLATFORMS.includes(c.platform) ||
+            seenPlatforms.has(c.platform)
+          ) {
+            continue;
+          }
+          seenPlatforms.add(c.platform);
+          const body =
+            typeof c.body === 'string' ? c.body.trim().slice(0, 5000) : '';
+          if (!body) continue;
+          const subject =
+            c.platform === 'mail' &&
+            typeof c.subject_line === 'string' &&
+            c.subject_line.trim().length > 0
+              ? c.subject_line.trim().slice(0, 200)
+              : undefined;
 
-      return {
-        restaurant_id: restaurantId,
-        trigger_type: s.trigger_type,
-        trigger_context: {
-          generated_on: todayIso,
-          reason: s.reasoning,
-        },
-        suggested_campaign: {
-          // Behoud 'type' voor backwards-compat met bestaande readers
-          // (kaart-preview, oude approve-flow). 'platform' is het nieuwe
-          // veld dat specifieker is dan 'social'.
-          type: platformToCampaignType(s.platform),
-          platform: s.platform,
-          name: s.name,
-          subject_line: s.subject_line,
-          body: s.body,
-          // Per 2026-05-07 fase 3: Filly's per-kanaal scheduled_for +
-          // reasoning meteen in channels[] opslaan zodat de UI die kan
-          // tonen onder 'Wanneer plaatsen?' i.p.v. een generieke fallback.
-          // Single-channel = 1-item channels-array; multi-channel komt
-          // in fase 3b als Filly meerdere kanalen per voorstel kan
-          // suggereren.
-          channels: [
-            {
-              id: `${s.platform}-0`,
-              platform: s.platform,
-              variants: [
-                {
-                  body: s.body,
-                  subject_line: s.subject_line,
-                },
-              ],
-              selected_index: 0,
-              filly_scheduled_for: validatedScheduledFor,
-              filly_scheduled_reasoning: validatedReasoning,
-            },
-          ],
-        },
-        status: 'pending',
-        urgency: s.urgency,
-        confidence_score:
-          typeof s.confidence === 'number' &&
-          s.confidence >= 0 &&
-          s.confidence <= 1
-            ? s.confidence
-            : null,
-        reasoning: s.reasoning,
-        expected_impact: {
-          extra_reservations: s.expected_extra_reservations ?? 0,
-          extra_revenue_cents: s.expected_extra_revenue_cents ?? 0,
-        },
-      };
-    });
+          let scheduledForIso: string | undefined;
+          if (typeof c.scheduled_for === 'string') {
+            const dt = new Date(c.scheduled_for);
+            const now = Date.now();
+            if (
+              !isNaN(dt.getTime()) &&
+              dt.getTime() > now - 60 * 1000 &&
+              dt.getTime() < now + 60 * 24 * 60 * 60 * 1000
+            ) {
+              scheduledForIso = dt.toISOString();
+            }
+          }
+          const scheduledReasoning =
+            typeof c.scheduled_reasoning === 'string' &&
+            c.scheduled_reasoning.trim().length > 0
+              ? c.scheduled_reasoning.trim().slice(0, 200)
+              : undefined;
+
+          validatedChannels.push({
+            id: `${c.platform}-${i}`,
+            platform: c.platform,
+            variants: [{ body, subject_line: subject }],
+            selected_index: 0,
+            filly_scheduled_for: scheduledForIso,
+            filly_scheduled_reasoning: scheduledReasoning,
+          });
+        }
+
+        if (validatedChannels.length === 0) return null;
+        const primaryChannel = validatedChannels[0];
+        const primaryVariant = primaryChannel.variants[0];
+
+        return {
+          restaurant_id: restaurantId,
+          trigger_type: s.trigger_type,
+          trigger_context: {
+            generated_on: todayIso,
+            reason: s.reasoning,
+          },
+          suggested_campaign: {
+            // Top-level type/platform/body sync'en met het primaire
+            // kanaal voor backwards-compat met de kaart-preview op
+            // /campagnes en de approve-flow.
+            type: platformToCampaignType(primaryChannel.platform),
+            platform: primaryChannel.platform,
+            name: s.name,
+            subject_line: primaryVariant.subject_line,
+            body: primaryVariant.body,
+            channels: validatedChannels,
+          },
+          status: 'pending',
+          urgency: s.urgency,
+          confidence_score:
+            typeof s.confidence === 'number' &&
+            s.confidence >= 0 &&
+            s.confidence <= 1
+              ? s.confidence
+              : null,
+          reasoning: s.reasoning,
+          expected_impact: {
+            extra_reservations: s.expected_extra_reservations ?? 0,
+            extra_revenue_cents: s.expected_extra_revenue_cents ?? 0,
+          },
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
 
     const { data: inserted, error: insErr } = await this.supabase.client
       .from('ai_suggestions')
