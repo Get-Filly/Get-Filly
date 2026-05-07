@@ -3,9 +3,9 @@
 // =============================================================================
 
 const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De eigenaar van een onderneming heeft geen tijd voor marketing-knoppen draaien. Filly doet het werk en laat hem of haar focussen op gasten en gerechten." },
-  { title: "Geen hype, wel resultaat", desc: "Geen AI om de AI. We meten het alleen aan extra reserveringen en omzet. Als het dat niet oplevert, stopt het." },
-  { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en klantenlijst zijn van jou. Geen doorverkoop, geen vendor lock-in, alles te exporteren." },
+  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en klanten." },
+  { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en klantenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
+  { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen. Levert het niets op, dan stopt het." },
 ];
 
 export default function AboutPage() {
@@ -16,7 +16,7 @@ export default function AboutPage() {
           <p className="section-label">Over ons</p>
           <h1 className="section-title">Van idee naar impact.</h1>
           <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
-            Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen om slimmer te vullen, zonder dat je er uren aan marketing aan kwijt bent.
+            Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen hun rustige momenten om te zetten in omzet, zonder dat je er uren of grote bedragen aan marketing en website-optimalisatie kwijt bent.
           </p>
 
           <div className="about-intro-divider"></div>
@@ -50,9 +50,9 @@ export default function AboutPage() {
                 <div className="zig-card-badge">Nu</div>
                 <h3 className="zig-card-title">Hoofdstuk 1, Founded</h3>
                 <ul className="zig-card-list">
-                  <li>Get-Filly opgericht door twee Nyenrode-alumni</li>
-                  <li>Eerste klanten onboarden in Amsterdam &amp; Utrecht</li>
-                  <li>AI-assistent voor de horeca live</li>
+                  <li>Get-Filly opgericht door twee ambitieuze vrienden</li>
+                  <li>MVP live</li>
+                  <li>Eerste klanten aan boord</li>
                 </ul>
               </div>
               <div className="zig-marker"><span>2026</span></div>
@@ -64,7 +64,6 @@ export default function AboutPage() {
                 <h3 className="zig-card-title">Hoofdstuk 2, Eerste 100 klanten</h3>
                 <ul className="zig-card-list">
                   <li>Filly nationaal uitrollen in heel Nederland</li>
-                  <li>Alle horeca-types, van bistro tot brasserie</li>
                 </ul>
               </div>
             </li>
@@ -83,10 +82,9 @@ export default function AboutPage() {
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2029</span></div>
               <div className="zig-card">
-                <h3 className="zig-card-title">Hoofdstuk 4, Benchmarks &amp; community</h3>
+                <h3 className="zig-card-title">Hoofdstuk 4</h3>
                 <ul className="zig-card-list">
-                  <li>Restaurants vergelijken met peers</li>
-                  <li>Best practices delen tussen ondernemingen onderling</li>
+                  <li>Wordt vervolgd&hellip;</li>
                 </ul>
               </div>
             </li>
