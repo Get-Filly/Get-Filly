@@ -42,10 +42,12 @@ const TYPE_ICON: Record<string, string> = {
   whatsapp: "💬",
 };
 
+// Per 2026-05-07: 'social' krijgt voorlopig label 'Social-post' (Instagram /
+// Facebook / TikTok worden in fase 2 als specifieke kanalen gesplitst).
 const TYPE_LABEL: Record<string, string> = {
   mail: "E-mail",
-  social: "Social",
-  whatsapp: "WhatsApp",
+  social: "Social-post",
+  whatsapp: "WhatsApp-bericht",
 };
 
 // Filly's voorgestelde tijdstip = trigger_context.target_date + standaard
@@ -180,7 +182,18 @@ export default function VoorstelDetailPage() {
     typeof suggestion?.trigger_context?.target_date === "string"
       ? (suggestion.trigger_context.target_date as string)
       : undefined;
-  const fillyIso = fillySuggestedIso(targetDate, type);
+  // Filly's voorstel: target_date + standaard-uur, of fallback naar
+  // morgen + standaard-uur als de suggestie geen target_date heeft.
+  // Zo verschijnt de Wanneer plaatsen-card altijd, eigenaar kan dan
+  // alsnog een tijd kiezen.
+  const fillyIso = useMemo(() => {
+    const fromTarget = fillySuggestedIso(targetDate, type);
+    if (fromTarget) return fromTarget;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    return fillySuggestedIso(ymd, type);
+  }, [targetDate, type]);
   const customIso = sc.scheduled_for ?? null;
   const effectiveIso = customIso ?? fillyIso;
   const isCustomTime =
@@ -571,56 +584,10 @@ export default function VoorstelDetailPage() {
 
       <div style={{ marginBottom: 24 }} />
 
-      {/* Verwachte impact als KPI-row, parallel met campagne-detail.
-          Voorstel = schatting; Campagne = werkelijk. Zelfde visuele
-          gewicht zodat het 'Goedkeuren' geen sprong is in info. */}
-      <div className="stats-row">
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Verwacht extra reserveringen</div>
-          <div className="stat-card-val">
-            {expected?.extra_reservations
-              ? `+${expected.extra_reservations}`
-              : "—"}
-          </div>
-        </div>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Verwacht extra omzet</div>
-          <div className="stat-card-val">
-            {typeof expected?.extra_revenue_cents === "number"
-              ? formatEuroFromCents(expected.extra_revenue_cents)
-              : "—"}
-          </div>
-        </div>
-        {expected?.retention_guests ? (
-          <div className="stat-card">
-            <div className="stat-card-label">Slapende gasten terug</div>
-            <div className="stat-card-val">{expected.retention_guests}</div>
-          </div>
-        ) : null}
-        {suggestion.urgency && (
-          <div className="stat-card">
-            <div className="stat-card-label">Urgentie</div>
-            <div className="stat-card-val" style={{ textTransform: "capitalize" }}>
-              {suggestion.urgency === "high"
-                ? "Hoog"
-                : suggestion.urgency === "medium"
-                  ? "Gemiddeld"
-                  : "Laag"}
-            </div>
-          </div>
-        )}
-        {suggestion.confidence_score !== null &&
-          suggestion.confidence_score !== undefined && (
-            <div className="stat-card">
-              <div className="stat-card-label">Filly-zekerheid</div>
-              <div className="stat-card-val">
-                {Math.round(suggestion.confidence_score * 100)}%
-              </div>
-            </div>
-          )}
-      </div>
-
-      <div style={{ marginBottom: 24 }} />
+      {/* KPI-row weggehaald per 2026-05-07 — voor een voorstel zijn de
+          'verwacht'-cijfers vooral gokwerk. Reasoning + concrete inhoud
+          spreken voor zich; eigenaar wil snel kunnen beslissen, niet
+          eerst door 5 stat-cards heen lezen. */}
 
       {/* Foto-card, alleen voor social/whatsapp. Mail ondersteunt nog
           geen media (consistent met campaigns.uploadMedia). */}
@@ -1002,9 +969,10 @@ export default function VoorstelDetailPage() {
 
       {/* Wanneer plaatsen-card. Zelfde patroon als CampaignSchedule-
           Panel maar wired naar suggestion-API. Bij afwijking van Filly's
-          voorgestelde tijd verschijnt een rode banner. */}
-      {effectiveIso && (
-        <div className="card" style={{ marginBottom: 16 }}>
+          voorgestelde tijd verschijnt een rode banner. Per 2026-05-07
+          altijd zichtbaar, ook zonder target_date (fillyIso valt dan
+          terug op morgen + standaard-uur). */}
+      <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-h">
             <div>
               <div className="card-t">📅 Wanneer plaatsen?</div>
@@ -1089,7 +1057,9 @@ export default function VoorstelDetailPage() {
                     textTransform: "capitalize",
                   }}
                 >
-                  {formatDutchDateTime(effectiveIso)}
+                  {effectiveIso
+                    ? formatDutchDateTime(effectiveIso)
+                    : "Nog niet gekozen"}
                 </div>
                 {isCustomTime && fillyIso && (
                   <div
@@ -1133,7 +1103,6 @@ export default function VoorstelDetailPage() {
             )}
           </div>
         </div>
-      )}
 
       {/* Waarom dit voorstel-card, transparante motivatie van Filly. */}
       {suggestion.reasoning && (
