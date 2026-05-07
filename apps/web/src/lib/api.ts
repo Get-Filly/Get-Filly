@@ -906,17 +906,19 @@ export async function approveBundleSuggestion(
 
 // Variant-selectie: stel in welke van de 3 varianten de eigenaar
 // verkiest. Backend update selected_index op de suggestion zodat
-// approve + refine straks die variant gebruiken.
+// approve + refine straks die variant gebruiken. Per 2026-05-07
+// fase 2c: optioneel channel_id voor multi-channel.
 export async function selectSuggestionVariant(
   suggestionId: string,
   index: number,
+  channelId?: string,
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
     `${API_URL}/suggestions/${suggestionId}/select-variant`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index }),
+      body: JSON.stringify({ index, channel_id: channelId }),
     },
   );
   if (!res.ok) {
@@ -976,13 +978,14 @@ export async function removeSuggestionChannel(
 export async function setSuggestionMedia(
   suggestionId: string,
   mediaId: string | null,
+  channelId?: string,
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
     `${API_URL}/suggestions/${suggestionId}/media`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ media_id: mediaId }),
+      body: JSON.stringify({ media_id: mediaId, channel_id: channelId }),
     },
   );
   if (!res.ok) {
@@ -999,13 +1002,14 @@ export async function editSuggestionVariant(
   suggestionId: string,
   index: number,
   patch: { subject_line?: string | null; body?: string },
+  channelId?: string,
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
     `${API_URL}/suggestions/${suggestionId}/edit-variant`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index, ...patch }),
+      body: JSON.stringify({ index, channel_id: channelId, ...patch }),
     },
   );
   if (!res.ok) {
@@ -1022,13 +1026,17 @@ export async function editSuggestionVariant(
 export async function setSuggestionScheduled(
   suggestionId: string,
   scheduledForIso: string,
+  channelId?: string,
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
     `${API_URL}/suggestions/${suggestionId}/scheduled`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduled_for: scheduledForIso }),
+      body: JSON.stringify({
+        scheduled_for: scheduledForIso,
+        channel_id: channelId,
+      }),
     },
   );
   if (!res.ok) {

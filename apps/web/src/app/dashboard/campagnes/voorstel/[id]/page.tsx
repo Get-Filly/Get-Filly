@@ -151,8 +151,12 @@ export default function VoorstelDetailPage() {
 
   // Per 2026-05-07 fase 2b: multi-channel-toggle. Eigenaar kan extra
   // kanalen aan een voorstel toevoegen via add/remove-endpoints.
-  // Per-kanaal editing van inhoud/tijd volgt in fase 2c.
   const [savingChannel, setSavingChannel] = useState(false);
+  // Per 2026-05-07 fase 2d: actief kanaal voor de inhoud/foto/schedule-
+  // sectie. Default = eerste kanaal. Bij multi-channel zijn er pillen
+  // onder de Kanalen-card waarmee eigenaar kan switchen; alle sectie-
+  // edits onder gaan over het actieve kanaal.
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
 
   // ────────────────────────────────────────────────────────────
   // Initial load
@@ -210,6 +214,63 @@ export default function VoorstelDetailPage() {
     platform === "mail" || platform === "whatsapp" ? platform : "social";
   const name = sc.name ?? "Naamloos voorstel";
 
+  // Per 2026-05-07 fase 2d: channels[]-array. Backwards-compat:
+  // synthesize 1 kanaal uit legacy fields als channels[] niet bestaat.
+  // Hier vroeg in de component gedefinieerd zodat de afgeleide
+  // (variants/scheduled/media) verder beneden naar activeChannel
+  // kunnen verwijzen.
+  const fullChannels = useMemo(() => {
+    if (Array.isArray(sc.channels) && sc.channels.length > 0) {
+      return sc.channels;
+    }
+    return [
+      {
+        id: `${platform}-0`,
+        platform,
+        variants:
+          Array.isArray(sc.variants) && sc.variants.length > 0
+            ? sc.variants
+            : [
+                {
+                  body: sc.body ?? sc.caption ?? "",
+                  subject_line: sc.subject_line ?? sc.subject,
+                },
+              ],
+        selected_index:
+          typeof sc.selected_index === "number" ? sc.selected_index : 0,
+        scheduled_for: sc.scheduled_for,
+        restaurant_media_id: sc.restaurant_media_id ?? null,
+      },
+    ];
+  }, [
+    sc.channels,
+    platform,
+    sc.variants,
+    sc.body,
+    sc.caption,
+    sc.subject_line,
+    sc.subject,
+    sc.selected_index,
+    sc.scheduled_for,
+    sc.restaurant_media_id,
+  ]);
+
+  const channels = fullChannels.map((c) => ({
+    id: c.id,
+    platform: c.platform,
+  }));
+  const activePlatforms = new Set(channels.map((c) => c.platform));
+
+  // Actieve kanaal-resolution: door eigenaar gekozen via tab-pill,
+  // val terug op eerste kanaal als de keuze niet meer in channels[]
+  // bestaat (bv. door remove-actie).
+  const activeChannel = useMemo(() => {
+    const found = fullChannels.find((c) => c.id === activeChannelId);
+    return found ?? fullChannels[0];
+  }, [fullChannels, activeChannelId]);
+  const activeId = activeChannel?.id;
+  const activePlatform = activeChannel?.platform ?? platform;
+
   const targetDate =
     typeof suggestion?.trigger_context?.target_date === "string"
       ? (suggestion.trigger_context.target_date as string)
@@ -218,37 +279,44 @@ export default function VoorstelDetailPage() {
   // morgen + standaard-uur als de suggestie geen target_date heeft.
   // Zo verschijnt de Wanneer plaatsen-card altijd, eigenaar kan dan
   // alsnog een tijd kiezen.
+  // fillyIso baseert zich op het ACTIEVE kanaal-platform, niet op het
+  // primaire — anders zou een Instagram-tab een mail-default-tijd
+  // (11:00) tonen. Voor de fallback (geen target_date): morgen +
+  // standaard-uur per actief platform.
+  const activePlatformType: "mail" | "social" | "whatsapp" =
+    activePlatform === "mail" || activePlatform === "whatsapp"
+      ? activePlatform
+      : "social";
   const fillyIso = useMemo(() => {
-    const fromTarget = fillySuggestedIso(targetDate, type);
+    const fromTarget = fillySuggestedIso(targetDate, activePlatformType);
     if (fromTarget) return fromTarget;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-    return fillySuggestedIso(ymd, type);
-  }, [targetDate, type]);
-  const customIso = sc.scheduled_for ?? null;
+    return fillySuggestedIso(ymd, activePlatformType);
+  }, [targetDate, activePlatformType]);
+  const customIso = activeChannel?.scheduled_for ?? null;
   const effectiveIso = customIso ?? fillyIso;
   const isCustomTime =
     !!customIso && !timesEqualToMinute(customIso, fillyIso);
 
-  const variants =
-    Array.isArray(sc.variants) && sc.variants.length > 0
-      ? sc.variants
-      : [
-          {
-            subject_line: sc.subject_line ?? sc.subject,
-            body: sc.body ?? sc.caption ?? "",
-          },
-        ];
+  // Variants/selected_index van het actieve kanaal. Multi-channel:
+  // elk kanaal heeft eigen variants en eigen selected_index.
+  const variants = activeChannel?.variants ?? [];
   const selectedIndex =
-    typeof sc.selected_index === "number" &&
-    sc.selected_index >= 0 &&
-    sc.selected_index < variants.length
-      ? sc.selected_index
+    typeof activeChannel?.selected_index === "number" &&
+    activeChannel.selected_index >= 0 &&
+    activeChannel.selected_index < variants.length
+      ? activeChannel.selected_index
       : 0;
 
-  const supportsMedia = type === "social" || type === "whatsapp";
-  const mediaId = sc.restaurant_media_id ?? null;
+  // Foto-koppeling per kanaal. Mail-kanalen ondersteunen geen foto.
+  const supportsMedia =
+    activePlatform === "instagram" ||
+    activePlatform === "facebook" ||
+    activePlatform === "tiktok" ||
+    activePlatform === "whatsapp";
+  const mediaId = activeChannel?.restaurant_media_id ?? null;
   const currentMediaItem = useMemo(
     () => mediaLibrary.find((m) => m.id === mediaId) ?? null,
     [mediaLibrary, mediaId],
@@ -263,20 +331,6 @@ export default function VoorstelDetailPage() {
     savingEdit ||
     savingMedia ||
     savingChannel;
-
-  // Channels-array uit suggested_campaign halen (multi-channel).
-  // Backwards-compat: synthesize 1 kanaal uit legacy fields als
-  // channels[] niet bestaat.
-  const channels = useMemo(() => {
-    if (Array.isArray(sc.channels) && sc.channels.length > 0) {
-      return sc.channels.map((c) => ({
-        id: c.id,
-        platform: c.platform,
-      }));
-    }
-    return [{ id: `${platform}-0`, platform }];
-  }, [sc.channels, platform]);
-  const activePlatforms = new Set(channels.map((c) => c.platform));
 
   const handleAddChannel = async (newPlatform: Platform) => {
     if (!suggestion || busy) return;
@@ -339,7 +393,11 @@ export default function VoorstelDetailPage() {
   const handleSelectVariant = async (idx: number) => {
     if (!suggestion || busy || idx === selectedIndex) return;
     try {
-      const updated = await selectSuggestionVariant(suggestion.id, idx);
+      const updated = await selectSuggestionVariant(
+        suggestion.id,
+        idx,
+        activeId,
+      );
       refresh(updated);
     } catch (e) {
       setActionError(
@@ -416,7 +474,11 @@ export default function VoorstelDetailPage() {
     setSavingSchedule(true);
     try {
       const localIso = new Date(draftDatetime).toISOString();
-      const updated = await setSuggestionScheduled(suggestion.id, localIso);
+      const updated = await setSuggestionScheduled(
+        suggestion.id,
+        localIso,
+        activeId,
+      );
       refresh(updated);
       setEditingSchedule(false);
     } catch (e) {
@@ -433,7 +495,11 @@ export default function VoorstelDetailPage() {
     setActionError(null);
     setSavingSchedule(true);
     try {
-      const updated = await setSuggestionScheduled(suggestion.id, fillyIso);
+      const updated = await setSuggestionScheduled(
+        suggestion.id,
+        fillyIso,
+        activeId,
+      );
       refresh(updated);
       setEditingSchedule(false);
     } catch (e) {
@@ -477,6 +543,7 @@ export default function VoorstelDetailPage() {
           subject_line: draftSubject.trim() || null,
           body: draftBody.trim(),
         },
+        activeId,
       );
       refresh(updated);
       setEditingVariantIdx(null);
@@ -495,7 +562,11 @@ export default function VoorstelDetailPage() {
     setActionError(null);
     setSavingMedia(true);
     try {
-      const updated = await setSuggestionMedia(suggestion.id, item.id);
+      const updated = await setSuggestionMedia(
+        suggestion.id,
+        item.id,
+        activeId,
+      );
       refresh(updated);
     } catch (e) {
       setActionError(
@@ -511,7 +582,7 @@ export default function VoorstelDetailPage() {
     setActionError(null);
     setSavingMedia(true);
     try {
-      const updated = await setSuggestionMedia(suggestion.id, null);
+      const updated = await setSuggestionMedia(suggestion.id, null, activeId);
       refresh(updated);
     } catch (e) {
       setActionError(
@@ -765,22 +836,85 @@ export default function VoorstelDetailPage() {
               })}
             </div>
             {channels.length > 1 && (
-              <div
-                style={{
-                  marginTop: 12,
-                  fontSize: 12,
-                  color: "var(--ts)",
-                  lineHeight: 1.5,
-                  background: "var(--accent-light, #D6E0D8)",
-                  padding: "8px 12px",
-                  borderRadius: 6,
-                }}
-              >
-                Bij goedkeuring maakt Filly {channels.length} concept-
-                campagnes onder 1 bundle, één per kanaal. Tip: tijd en
-                content per kanaal apart aanpassen kan in een volgende
-                versie van deze pagina (binnenkort).
-              </div>
+              <>
+                <div
+                  style={{
+                    marginTop: 16,
+                    paddingTop: 12,
+                    borderTop: "1px solid var(--border, #E5DFD0)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: "var(--ts)",
+                    marginBottom: 8,
+                  }}
+                >
+                  Bewerken voor:
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {channels.map((c) => {
+                    const isActive = c.id === activeId;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          if (busy) return;
+                          // Bij channel-switch: open edit-states sluiten
+                          // zodat we geen draft-data van het ene kanaal
+                          // op het andere plakken.
+                          setEditingVariantIdx(null);
+                          setEditingSchedule(false);
+                          setActiveChannelId(c.id);
+                        }}
+                        disabled={busy}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "5px 12px",
+                          borderRadius: 999,
+                          border: isActive
+                            ? "2px solid var(--accent, #1F4A2D)"
+                            : "1px solid var(--border, #E5DFD0)",
+                          background: isActive
+                            ? "var(--accent-light, #D6E0D8)"
+                            : "var(--white, #FFFFFF)",
+                          color: "var(--text)",
+                          fontSize: 12,
+                          fontWeight: isActive ? 700 : 500,
+                          cursor: busy ? "default" : "pointer",
+                        }}
+                      >
+                        <span>{PLATFORM_ICON[c.platform]}</span>
+                        <span>{PLATFORM_LABEL[c.platform]
+                          .replace("-post", "")
+                          .replace("-bericht", "")
+                          .replace("-video", "")}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: "var(--ts)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Hieronder bewerk je inhoud, foto en tijd voor het
+                  geselecteerde kanaal. Bij goedkeuring maakt Filly{" "}
+                  {channels.length} concept-campagnes onder 1 bundle.
+                </div>
+              </>
             )}
           </div>
         </div>
