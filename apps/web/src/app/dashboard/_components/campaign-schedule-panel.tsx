@@ -44,6 +44,18 @@ function toDatetimeLocalValue(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Vergelijk op MINUUT-precisie: input type=datetime-local gaat niet
+// dieper, dus seconden-verschil zou een vals-positieve afwijking
+// triggeren als de eigenaar de Filly-tijd 1-op-1 oversaved.
+function timesEqualToMinute(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    Math.floor(da.getTime() / 60000) === Math.floor(db.getTime() / 60000)
+  );
+}
+
 export function CampaignSchedulePanel({
   campaignId,
   status,
@@ -248,6 +260,27 @@ export function CampaignSchedulePanel({
             >
               {formatDutchDateTime(scheduledFor)}
             </div>
+            {/* Per 2026-05-07: waarschuwing tonen wanneer de bevestigde
+                tijd afwijkt van wat Filly oorspronkelijk voorstelde. Geen
+                blocker, just info, eigenaar weet wat 'ie doet. */}
+            {suggestedFor &&
+              !timesEqualToMinute(scheduledFor, suggestedFor) && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#B91C1C",
+                    background: "#FEF2F2",
+                    border: "1px solid #FECACA",
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    marginBottom: 8,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Je wijkt af van Filly&rsquo;s voorstel (
+                  {formatDutchDateTime(suggestedFor)}).
+                </div>
+              )}
             {status === "concept" && (
               <Button
                 variant="secondary"

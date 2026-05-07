@@ -3,12 +3,65 @@
 import { useEffect, useState } from "react";
 import {
   approveSuggestion,
+  editSuggestionVariant,
   refineSuggestion,
   selectSuggestionVariant,
+  setSuggestionScheduled,
   updateSuggestion,
   type AiSuggestion,
 } from "../../../lib/api";
 import { Button } from "../../../components/ui/button";
+
+// ============================================================
+// Date-utility helpers, gedeeld met campagne-edit panel-pattern
+// ============================================================
+// Filly's voorgestelde tijdstip leiden we af uit trigger_context
+// .target_date plus een type-afhankelijke standaardtijd:
+//   mail/whatsapp = 11:00 (lunch-bel-momentum)
+//   social        = 17:00 (after-work attention-window)
+// We doen dit in de browser-timezone zodat de eigenaar de tijd ziet
+// die past bij z'n locatie (klanten zijn NL-only, dus Europe/Amsterdam
+// in de praktijk).
+function fillySuggestedIso(
+  targetDate: string | undefined,
+  type: "mail" | "social" | "whatsapp",
+): string | null {
+  if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) return null;
+  const hour = type === "social" ? 17 : 11;
+  const [y, m, d] = targetDate.split("-").map((s) => parseInt(s, 10));
+  const dt = new Date(y, m - 1, d, hour, 0, 0, 0);
+  return dt.toISOString();
+}
+
+function formatDutchDateTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString("nl-NL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Naive-local-string voor <input type="datetime-local">.
+function toDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Datums vergelijken op MINUUT-precisie. Seconden + ms negeren we
+// omdat de datetime-local input alleen tot minuten gaat. Voorkomt
+// vals-positieve waarschuwingen door ronding.
+function timesEqualToMinute(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    Math.floor(da.getTime() / 60000) === Math.floor(db.getTime() / 60000)
+  );
+}
 
 // ============================================================
 // SuggestionDetailModal, uitgebreide weergave + regenerate
@@ -20,9 +73,12 @@ import { Button } from "../../../components/ui/button";
 // versies'-knop die 3 alternatieve varianten ophaalt via dezelfde
 // refineSuggestion-API.
 //
-// Geen tijdstip-aanpassing: Filly heeft de actie-datum al gekozen op
-// basis van bezetting + weer. Aanpassen daarvan zou de target-context
-// breken.
+// Per 2026-05-07: tijdstip wél aanpasbaar. Filly stelt een tijd voor
+// op basis van trigger_context.target_date + standaard-uur per type
+// (mail/whatsapp 11:00, social 17:00). Eigenaar kan dat overschrijven
+// via de datetime-input; bij afwijking verschijnt een rode waarschuwing
+// 'Je wijkt af van Filly's voorstel'. Bij goedkeuring wordt de eigen
+// keuze automatisch toegepast op de aangemaakte campagne.
 //
 // Acties onderin: Goedkeuren (maakt concept-campagne + sluit modal)
 // of Afwijzen (markeer rejected + sluit).
@@ -44,24 +100,66 @@ export function SuggestionDetailModal({
   const [refining, setRefining] = useState(false);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  // Per 2026-05-07: na een 'Genereer nieuwe versies'-actie onthouden
+  // we vanaf welke variant-index de set 'Nieuw' is. Indices ≥ deze
+  // waarde krijgen een 'Nieuw'-label in de UI tot eigenaar erop klikt.
+  // selected_index blijft staan zodat de oorspronkelijke keuze
+  // ongewijzigd blijft, eigenaar moet bewust kiezen voor een nieuwe
+  // versie. Null = geen recente regenerate, alle varianten 'normaal'.
+  const [newVariantsFromIndex, setNewVariantsFromIndex] = useState<
+    number | null
+  >(null);
+  // Per 2026-05-07: edit-mode voor de geselecteerde variant. Eigenaar
+  // klikt 'Bewerk' → subject + body worden inputs → 'Opslaan' commit.
+  // editingVariantIdx = welke index, null = niemand actief in edit.
+  const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(
+    null,
+  );
+  const [draftSubject, setDraftSubject] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Per 2026-05-07: schedule-edit-state in de modal. 'editingSchedule'
+  // bepaalt of de datetime-input zichtbaar is, draftDatetime is de
+  // working copy in datetime-local-formaat.
+  const [editingSchedule, setEditingSchedule] = useState(false);
+  const [draftDatetime, setDraftDatetime] = useState("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Escape = sluiten.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !refining && !approving && !rejecting) {
+      if (
+        e.key === "Escape" &&
+        !refining &&
+        !approving &&
+        !rejecting &&
+        !savingSchedule
+      ) {
         onClose();
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, refining, approving, rejecting]);
+  }, [onClose, refining, approving, rejecting, savingSchedule]);
 
   const sc = suggestion.suggested_campaign ?? {};
   const type = sc.type ?? "mail";
   const typeLabel =
     type === "mail" ? "E-mail" : type === "social" ? "Social" : "WhatsApp";
   const name = sc.name ?? "Naamloos voorstel";
+
+  // Filly's voorgestelde tijd, afgeleid van trigger_context.target_date
+  // + standaard-uur per type. Eigen-keuze (sc.scheduled_for) heeft
+  // voorrang boven dit voorstel.
+  const targetDate =
+    typeof suggestion.trigger_context?.target_date === "string"
+      ? (suggestion.trigger_context.target_date as string)
+      : undefined;
+  const fillyIso = fillySuggestedIso(targetDate, type);
+  const customIso = sc.scheduled_for ?? null;
+  const effectiveIso = customIso ?? fillyIso;
+  const isCustom = !!customIso && !timesEqualToMinute(customIso, fillyIso);
 
   // Multi-variant shape (nieuwste flow). Legacy single-body wordt
   // gepromoot tot 1-variant-array zodat de UI uniform is.
@@ -80,7 +178,108 @@ export function SuggestionDetailModal({
       ? sc.selected_index
       : 0;
 
-  const busy = refining || approving || rejecting;
+  const busy =
+    refining || approving || rejecting || savingSchedule || savingEdit;
+
+  const handleStartEditVariant = (idx: number) => {
+    if (busy) return;
+    const v = variants[idx];
+    setDraftSubject(v?.subject_line ?? "");
+    setDraftBody(v?.body ?? "");
+    setEditingVariantIdx(idx);
+    setError(null);
+  };
+
+  const handleCancelEditVariant = () => {
+    if (savingEdit) return;
+    setEditingVariantIdx(null);
+    setDraftSubject("");
+    setDraftBody("");
+  };
+
+  const handleSaveEditVariant = async () => {
+    if (editingVariantIdx === null || busy) return;
+    if (!draftBody.trim()) {
+      setError("Body mag niet leeg zijn.");
+      return;
+    }
+    setError(null);
+    setSavingEdit(true);
+    try {
+      const updated = await editSuggestionVariant(
+        suggestion.id,
+        editingVariantIdx,
+        {
+          // Mail = subject verplicht zichtbaar; social/whatsapp = wis
+          // door null te sturen als 't input-veld leeg is.
+          subject_line: draftSubject.trim() || null,
+          body: draftBody.trim(),
+        },
+      );
+      setSuggestion(updated);
+      onUpdated(updated);
+      setEditingVariantIdx(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bewerken mislukt.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleStartEditSchedule = () => {
+    if (busy) return;
+    setError(null);
+    setDraftDatetime(
+      toDatetimeLocalValue(effectiveIso ?? new Date().toISOString()),
+    );
+    setEditingSchedule(true);
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!draftDatetime || busy) return;
+    setError(null);
+    setSavingSchedule(true);
+    try {
+      const localIso = new Date(draftDatetime).toISOString();
+      const updated = await setSuggestionScheduled(suggestion.id, localIso);
+      setSuggestion(updated);
+      onUpdated(updated);
+      setEditingSchedule(false);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Verzendmoment opslaan mislukt.",
+      );
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const handleCancelEditSchedule = () => {
+    if (savingSchedule) return;
+    setEditingSchedule(false);
+    setDraftDatetime("");
+  };
+
+  // 'Reset naar Filly' = gewoon scheduled_for op fillyIso terugzetten
+  // (niet leegmaken, want backend kent geen 'wis'-status). Eigenaar
+  // ziet daarna geen waarschuwing meer want custom == filly.
+  const handleResetToFilly = async () => {
+    if (!fillyIso || busy) return;
+    setError(null);
+    setSavingSchedule(true);
+    try {
+      const updated = await setSuggestionScheduled(suggestion.id, fillyIso);
+      setSuggestion(updated);
+      onUpdated(updated);
+      setEditingSchedule(false);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Resetten naar Filly mislukt.",
+      );
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
 
   // Klik op een variant-kaart selecteert 'm. We slaan dat ook
   // server-side op zodat refine + approve op de juiste variant
@@ -98,22 +297,26 @@ export function SuggestionDetailModal({
     }
   };
 
-  // Genereer 3 nieuwe varianten in andere tonen. Hergebruikt de
-  // refineSuggestion-API met een vaste instructie zodat we geen extra
-  // backend-endpoint nodig hebben. Filly krijgt opdracht om de eerdere
-  // varianten als 'vermijd-lijst' te zien en 3 frisse alternatieven
-  // te leveren.
+  // Per 2026-05-07: 'Genereer nieuwe versies' triggert de backend om
+  // 3 alternatieven te APPENDEN aan de variants-array (in plaats van
+  // de geselecteerde te overschrijven). Frontend onthoudt vanaf welke
+  // index de varianten 'Nieuw' zijn zodat we ze kunnen labelen.
+  // selected_index blijft staan zodat de oorspronkelijke selectie
+  // niet zomaar weggeklikt wordt; eigenaar moet zelf op een van de
+  // nieuwe versies klikken om die over te nemen.
   const handleRegenerate = async () => {
     if (busy) return;
     setError(null);
     setRefining(true);
     try {
-      const updated = await refineSuggestion(
-        suggestion.id,
-        "Genereer 3 volledig nieuwe varianten met andere tonen en invalshoeken dan de huidige. Vermijd herhaling van de eerdere versies.",
-      );
+      const beforeCount = variants.length;
+      const updated = await refineSuggestion(suggestion.id, "");
       setSuggestion(updated);
       onUpdated(updated);
+      // Markeer alle indices ≥ beforeCount als 'Nieuw'. We gebruiken
+      // de meest recente regenerate-grens, eerdere ronden zijn dus
+      // niet meer 'Nieuw' (UX-keuze: alleen de meest verse 3 highlighten).
+      setNewVariantsFromIndex(beforeCount);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Genereren mislukt.");
     } finally {
@@ -233,6 +436,141 @@ export function SuggestionDetailModal({
               height: "100%",
             }}
           >
+            {/* Verzendmoment-sectie. Toont Filly's voorstel of de
+                eigen keuze + waarschuwing als die afwijkt. Eigenaar
+                kan vrij kiezen of terugzetten naar Filly's voorstel. */}
+            {effectiveIso && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: "var(--bg, #FAF7F1)",
+                  border: "1px solid var(--border, #E5DFD0)",
+                  borderRadius: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: "var(--ts)",
+                    marginBottom: 6,
+                  }}
+                >
+                  Verzendmoment
+                </div>
+                {editingSchedule ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <input
+                      type="datetime-local"
+                      value={draftDatetime}
+                      onChange={(e) => setDraftDatetime(e.target.value)}
+                      style={{
+                        padding: "8px 10px",
+                        border: "1px solid var(--border, #E5DFD0)",
+                        borderRadius: 6,
+                        fontSize: 14,
+                        fontFamily: "inherit",
+                        background: "var(--white, #FFFFFF)",
+                        maxWidth: 280,
+                      }}
+                    />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveSchedule}
+                        disabled={!draftDatetime}
+                        loading={savingSchedule}
+                      >
+                        Opslaan
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleCancelEditSchedule}
+                        disabled={savingSchedule}
+                      >
+                        Annuleren
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: "var(--text)",
+                        textTransform: "capitalize",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {formatDutchDateTime(effectiveIso)}
+                    </div>
+                    {!isCustom && fillyIso && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--tl)",
+                          fontStyle: "italic",
+                          marginBottom: 8,
+                        }}
+                      >
+                        Voorgesteld door Filly op basis van type campagne
+                        en doelgroep.
+                      </div>
+                    )}
+                    {isCustom && fillyIso && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#B91C1C",
+                          background: "#FEF2F2",
+                          border: "1px solid #FECACA",
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          marginBottom: 8,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Je wijkt af van Filly&rsquo;s voorstel (
+                        {formatDutchDateTime(fillyIso)}).
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleStartEditSchedule}
+                        disabled={busy}
+                      >
+                        ✎ Wijzig
+                      </Button>
+                      {isCustom && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleResetToFilly}
+                          disabled={busy}
+                          loading={savingSchedule}
+                        >
+                          ↺ Terug naar Filly&rsquo;s voorstel
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div
               style={{
                 fontSize: 11,
@@ -261,30 +599,127 @@ export function SuggestionDetailModal({
             >
               {variants.map((v, idx) => {
                 const isSelected = idx === selectedIndex;
+                const isNew =
+                  newVariantsFromIndex !== null &&
+                  idx >= newVariantsFromIndex &&
+                  !isSelected;
+                const isEditing = editingVariantIdx === idx;
+                const cardStyle: React.CSSProperties = {
+                  textAlign: "left",
+                  padding: "12px 14px",
+                  borderRadius: 8,
+                  border: isEditing
+                    ? "2px solid var(--accent, #1F4A2D)"
+                    : isSelected
+                      ? "2px solid var(--accent, #1F4A2D)"
+                      : isNew
+                        ? "1.5px dashed var(--accent, #1F4A2D)"
+                        : "1px solid var(--border, #E5DFD0)",
+                  background: isSelected
+                    ? "var(--accent-light, #D6E0D8)"
+                    : "var(--white, #FFFFFF)",
+                  transition: "all 0.15s",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  maxHeight: isEditing ? "none" : 280,
+                  overflowY: isEditing ? "visible" : "auto",
+                };
+
+                // Edit-mode rendert als <div> met inputs binnenin (geen
+                // button-wrapper, anders trigger elke klik op input een
+                // select-variant). Read-mode blijft een button voor de
+                // klikbare select-variant-actie.
+                if (isEditing) {
+                  return (
+                    <div key={idx} style={cardStyle}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: "var(--accent, #1F4A2D)",
+                          }}
+                        >
+                          Versie {idx + 1} bewerken
+                        </span>
+                      </div>
+                      {/* Subject-line alleen invullen relevant voor mail.
+                          Voor social/whatsapp wist 'm leeglaten. */}
+                      {type === "mail" && (
+                        <input
+                          type="text"
+                          value={draftSubject}
+                          onChange={(e) => setDraftSubject(e.target.value)}
+                          placeholder="Onderwerp"
+                          maxLength={200}
+                          style={{
+                            padding: "8px 10px",
+                            border: "1px solid var(--border, #E5DFD0)",
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontFamily: "inherit",
+                            background: "var(--white, #FFFFFF)",
+                          }}
+                        />
+                      )}
+                      <textarea
+                        value={draftBody}
+                        onChange={(e) => setDraftBody(e.target.value)}
+                        placeholder="Bericht-inhoud"
+                        maxLength={5000}
+                        rows={6}
+                        style={{
+                          padding: "8px 10px",
+                          border: "1px solid var(--border, #E5DFD0)",
+                          borderRadius: 6,
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          fontFamily: "inherit",
+                          background: "var(--white, #FFFFFF)",
+                          resize: "vertical",
+                          minHeight: 100,
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveEditVariant}
+                          loading={savingEdit}
+                          disabled={busy && !savingEdit}
+                        >
+                          Opslaan
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleCancelEditVariant}
+                          disabled={savingEdit}
+                        >
+                          Annuleren
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <button
                     key={idx}
                     onClick={() => handleSelectVariant(idx)}
                     disabled={busy}
                     style={{
-                      textAlign: "left",
-                      padding: "12px 14px",
-                      borderRadius: 8,
-                      border: isSelected
-                        ? "2px solid var(--accent, #1F4A2D)"
-                        : "1px solid var(--border, #E5DFD0)",
-                      background: isSelected
-                        ? "var(--accent-light, #D6E0D8)"
-                        : "var(--white, #FFFFFF)",
+                      ...cardStyle,
                       cursor: busy ? "not-allowed" : "pointer",
-                      transition: "all 0.15s",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                      // Vermijd dat een lange variant de modal verticaal
-                      // uit balans haalt, vaste max-hoogte met scroll.
-                      maxHeight: 280,
-                      overflowY: "auto",
                     }}
                   >
                     <div
@@ -308,21 +743,71 @@ export function SuggestionDetailModal({
                       >
                         Versie {idx + 1}
                       </span>
-                      {isSelected && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: "var(--accent, #1F4A2D)",
-                            padding: "1px 6px",
-                            background: "var(--white, #FFFFFF)",
-                            borderRadius: 999,
-                            border: "1px solid var(--accent, #1F4A2D)",
-                          }}
-                        >
-                          ✓ Gekozen
-                        </span>
-                      )}
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {isNew && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: "var(--white, #FFFFFF)",
+                              padding: "1px 6px",
+                              background: "var(--accent, #1F4A2D)",
+                              borderRadius: 999,
+                            }}
+                          >
+                            Nieuw
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: "var(--accent, #1F4A2D)",
+                              padding: "1px 6px",
+                              background: "var(--white, #FFFFFF)",
+                              borderRadius: 999,
+                              border: "1px solid var(--accent, #1F4A2D)",
+                            }}
+                          >
+                            ✓ Gekozen
+                          </span>
+                        )}
+                        {/* Bewerk-knop alleen op de geselecteerde variant
+                            zodat eigenaar eerst kiest welke versie de
+                            basis is, dan bewerkt. Voorkomt verwarring
+                            met meerdere parallelle bewerkingen. */}
+                        {isSelected && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEditVariant(idx);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleStartEditVariant(idx);
+                              }
+                            }}
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: "var(--accent, #1F4A2D)",
+                              padding: "1px 8px",
+                              background: "var(--white, #FFFFFF)",
+                              borderRadius: 999,
+                              border: "1px solid var(--accent, #1F4A2D)",
+                              cursor: busy ? "not-allowed" : "pointer",
+                              opacity: busy ? 0.5 : 1,
+                            }}
+                          >
+                            ✎ Bewerk
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {v.subject_line && (
                       <div
@@ -379,9 +864,10 @@ export function SuggestionDetailModal({
               </>
             )}
 
-            {/* Genereer-knop onder de varianten + reasoning. Hergebruikt
-                de refineSuggestion-API met een vaste instructie. Filly
-                bedenkt 3 nieuwe varianten in andere tonen. */}
+            {/* Per 2026-05-07: 'Genereer nieuwe versies' append 3 nieuwe
+                varianten aan de bestaande set. Cap = 6 totaal (init 3 +
+                1 ronde van 3). Bij max bereikt → knop disabled, eigenaar
+                kiest tussen wat er is. */}
             <div
               style={{
                 marginTop: 20,
@@ -393,9 +879,13 @@ export function SuggestionDetailModal({
                 variant="secondary"
                 onClick={handleRegenerate}
                 loading={refining}
-                disabled={busy}
+                disabled={busy || variants.length >= 6}
               >
-                {refining ? "Filly schrijft…" : "Genereer nieuwe versies"}
+                {refining
+                  ? "Filly schrijft…"
+                  : variants.length >= 6
+                    ? "Maximum aantal versies bereikt"
+                    : "Genereer 3 nieuwe versies"}
               </Button>
               <div
                 style={{
@@ -405,9 +895,9 @@ export function SuggestionDetailModal({
                   lineHeight: 1.5,
                 }}
               >
-                Niet helemaal je smaak? Filly schrijft drie nieuwe varianten
-                in andere tonen. De datum laten we staan, die heeft Filly
-                gekozen op basis van bezetting.
+                {variants.length >= 6
+                  ? "Je hebt 6 versies, kies een variant of pas 'm handmatig aan."
+                  : "Filly schrijft drie nieuwe varianten naast de bestaande. Klik op een versie om die over te nemen, het origineel blijft beschikbaar."}
               </div>
             </div>
           </div>

@@ -933,8 +933,20 @@ function SuggestionCard({
   // vragen (zonder ze te verbergen, soms wil je zien wat je miste).
   const isInactive = isRejected || isExpired;
 
+  // Klik op de hele card opent de detail-modal. Klikken op de
+  // actie-knoppen (Goedkeur / Details / Afwijzen / Terugzetten)
+  // mag niet óók de modal openen, dus we negeren bubbled clicks
+  // die binnen een <button> origineel zijn. Per 2026-05-07.
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (busy) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) return;
+    onDetails();
+  };
+
   return (
     <div
+      onClick={handleCardClick}
       style={{
         padding: 16,
         border: "1px solid var(--border, #E5DFD0)",
@@ -946,6 +958,7 @@ function SuggestionCard({
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        cursor: busy ? "default" : "pointer",
       }}
     >
       {/* Header: trigger (emoji + label) links, urgency-dot rechts */}

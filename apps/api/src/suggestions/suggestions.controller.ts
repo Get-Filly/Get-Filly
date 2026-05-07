@@ -161,6 +161,43 @@ export class SuggestionsController {
     return this.suggestions.selectVariant(restaurantId, id, idx);
   }
 
+  // Per 2026-05-07: eigenaar zet zelf een verzendmoment op een pending
+  // suggestie vóór goedkeuring. ISO-datum verplicht; backend valideert
+  // toekomst + max 1 jaar vooruit.
+  @Post(':id/scheduled')
+  setScheduled(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { scheduled_for?: string },
+  ) {
+    return this.suggestions.setScheduled(
+      restaurantId,
+      id,
+      body.scheduled_for ?? '',
+    );
+  }
+
+  // Per 2026-05-07: eigenaar bewerkt vóór goedkeuring een specifieke
+  // variant (subject + body). Verplicht: index. Optioneel: subject_line
+  // (null/lege string = wis), body (lege body = blijft staan).
+  @Post(':id/edit-variant')
+  editVariant(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      index?: number;
+      subject_line?: string | null;
+      body?: string;
+    },
+  ) {
+    const idx = typeof body.index === 'number' ? body.index : -1;
+    return this.suggestions.editVariant(restaurantId, id, idx, {
+      subject_line: body.subject_line,
+      body: body.body,
+    });
+  }
+
   @Patch(':id')
   updateStatus(
     @RestaurantId() restaurantId: string,

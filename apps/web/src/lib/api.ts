@@ -697,6 +697,11 @@ export type AiSuggestion = {
     caption?: string;
     segment?: string;
     body?: string;
+    // Per 2026-05-07: eigenaar zet zelf een verzendmoment vóór
+    // goedkeuring. ISO-datum, gevuld via /suggestions/:id/scheduled.
+    // Bij approve overgenomen op de aangemaakte campagne. Null/undef =
+    // nog niet gezet, CampaignSchedulePanel doet voorstel post-approve.
+    scheduled_for?: string;
   };
   status: SuggestionStatus;
   rejection_reason: string | null;
@@ -880,6 +885,52 @@ export async function selectSuggestionVariant(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Per 2026-05-07: eigenaar bewerkt vóór goedkeuring de inhoud van
+// een specifieke variant (subject + body). subject_line=null wist het.
+// body lege string laat de oorspronkelijke staan (backend negeert).
+export async function editSuggestionVariant(
+  suggestionId: string,
+  index: number,
+  patch: { subject_line?: string | null; body?: string },
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/edit-variant`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ index, ...patch }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Per 2026-05-07: eigenaar zet zelf een verzendmoment op een pending
+// suggestie vóór goedkeuring. Bij goedkeuring wordt deze waarde
+// gespiegeld naar campaigns.scheduled_for. Backend valideert dat de
+// datum in de toekomst ligt en max 1 jaar vooruit.
+export async function setSuggestionScheduled(
+  suggestionId: string,
+  scheduledForIso: string,
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/scheduled`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduled_for: scheduledForIso }),
     },
   );
   if (!res.ok) {

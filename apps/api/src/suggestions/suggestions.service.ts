@@ -14,26 +14,38 @@ import {
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 
-// JSON-schema voor de suggestion-refine tool. Forceert dat Claude
-// een geldige campagne-shape teruggeeft (type uit de 3 enum-waarden,
-// geen verzonnen velden, geen markdown-codeblok-rest).
+// JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
+// 1-variant-replace naar 3-variants-append. Eigenaar krijgt 3 nieuwe
+// alternatieven naast de bestaande zodat 'ie kan vergelijken en terug
+// kan naar de origineel-set door op een eerdere variant te klikken.
 const SUGGESTION_REFINE_SCHEMA = {
   type: 'object',
   properties: {
-    name: { type: 'string' },
-    type: { type: 'string', enum: ['mail', 'social', 'whatsapp'] },
-    subject_line: { type: 'string' },
-    body: { type: 'string' },
+    variants: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        properties: {
+          subject_line: { type: 'string' },
+          body: { type: 'string' },
+        },
+        required: ['body'],
+      },
+    },
   },
-  required: ['type', 'body'],
+  required: ['variants'],
 } as const satisfies Anthropic.Tool.InputSchema;
 
 type RefinedCampaignFromTool = {
-  name?: string;
-  type: 'mail' | 'social' | 'whatsapp';
-  subject_line?: string;
-  body: string;
+  variants: Array<{ subject_line?: string; body: string }>;
 };
+
+// Cap op totaal aantal varianten per suggestie. Init = 3 (uit chat-
+// flow), 1 refine-ronde voegt er 3 bij = 6 max. Daarna disabled,
+// zelfde patroon als CampaignRefinePanel.
+const SUGGESTION_VARIANTS_MAX = 6;
 
 // Schema voor proposal-details: hoofdgerecht + bijgerechten + timing
 // + bundle-prijs + hero-foto. Maakt een suggestie tastbaar, eigenaar
@@ -1074,6 +1086,30 @@ Maak dit tastbaar volgens de regels.`;
       userId,
     );
 
+    // Per 2026-05-07: als de eigenaar vóór goedkeuring een eigen
+    // verzendmoment heeft gezet (via /scheduled-endpoint), dan nemen
+    // we dat over op de aangemaakte campagne. Anders blijft 't aan
+    // CampaignSchedulePanel om alsnog een voorstel te genereren bij
+    // eerste bezoek aan de detail-pagina.
+    const customScheduledFor =
+      typeof (sc as { scheduled_for?: string }).scheduled_for === 'string'
+        ? ((sc as { scheduled_for?: string }).scheduled_for as string)
+        : null;
+    if (customScheduledFor) {
+      try {
+        await this.campaigns.setSchedule(
+          restaurantId,
+          campaignId,
+          customScheduledFor,
+        );
+      } catch {
+        // Niet fataal: als om wat voor reden de schedule-set faalt,
+        // staat de campagne als concept zonder tijd, eigenaar kan 'm
+        // alsnog op de detail-pagina aanpassen. Suggestie blijft wel
+        // approved (geen rollback). Schedule-fout zelden voor.
+      }
+    }
+
     // Suggestie naar approved + FK koppelen.
     const { data: updated, error: updateErr } = await this.supabase.client
       .from('ai_suggestions')
@@ -1404,24 +1440,194 @@ Maak dit tastbaar volgens de regels.`;
     return updated as AiSuggestion;
   }
 
-  // Laat Filly de inhoud van een pending-suggestie aanpassen op basis
-  // van een instructie van de eigenaar. Voorbeeld: "maak de sfeer
-  // huiselijker" of "gebruik een korter onderwerp". Bij multi-variant
-  // suggesties wordt alleen de geselecteerde variant herschreven,
-  // de andere blijven beschikbaar voor terugschakelen. Retourneert
-  // de bijgewerkte suggested_campaign zodat de frontend direct kan
-  // renderen zonder extra fetch.
+  // Per 2026-05-07: eigenaar kan vóór goedkeuring de inhoud van een
+  // specifieke variant zelf bewerken (subject + body). Geldig op
+  // pending-suggestion. Werkt alleen op multi-variant shape; legacy
+  // single-body wordt eerst gepromoot tot 1-variant-array.
+  async editVariant(
+    restaurantId: string,
+    suggestionId: string,
+    index: number,
+    patch: { subject_line?: string | null; body?: string },
+  ): Promise<AiSuggestion> {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new BadRequestException(
+        'Variant-index moet een positief getal zijn.',
+      );
+    }
+
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
+      );
+    }
+
+    const sc = suggestion.suggested_campaign ?? {};
+    // Promoot legacy single-body naar 1-variant-array zodat onze
+    // edit-logica uniform is. Daarna kan de eigenaar ook in legacy-
+    // suggesties een variant bewerken zonder dat we extra code-paden
+    // hoeven te onderhouden.
+    let variants: Array<{ subject_line?: string; body: string }> =
+      Array.isArray(sc.variants) && sc.variants.length > 0
+        ? sc.variants
+            .filter(
+              (v): v is { body: string; subject_line?: string } =>
+                typeof v?.body === 'string' && v.body.length > 0,
+            )
+            .map((v) => ({ body: v.body, subject_line: v.subject_line }))
+        : (() => {
+            const legacyBody =
+              typeof sc.body === 'string' && sc.body.length > 0
+                ? sc.body
+                : typeof sc.caption === 'string'
+                  ? sc.caption
+                  : '';
+            const legacySubject =
+              typeof sc.subject_line === 'string'
+                ? sc.subject_line
+                : typeof sc.subject === 'string'
+                  ? sc.subject
+                  : undefined;
+            return legacyBody
+              ? [{ body: legacyBody, subject_line: legacySubject }]
+              : [];
+          })();
+
+    if (index >= variants.length) {
+      throw new BadRequestException(
+        `Geen variant op index ${index}; deze suggestie heeft er ${variants.length}.`,
+      );
+    }
+
+    const newBody =
+      typeof patch.body === 'string' && patch.body.trim().length > 0
+        ? patch.body.trim().slice(0, 5000)
+        : variants[index].body;
+    if (!newBody) {
+      throw new BadRequestException('Body mag niet leeg zijn.');
+    }
+
+    // subject_line patch-semantiek: undefined = laat staan, null/lege
+    // string = wis, niet-lege string = vervang. Zo kan eigenaar een
+    // mail-onderwerp ook expliciet weghalen voor social/whatsapp.
+    let newSubject: string | undefined = variants[index].subject_line;
+    if (patch.subject_line === null || patch.subject_line === '') {
+      newSubject = undefined;
+    } else if (
+      typeof patch.subject_line === 'string' &&
+      patch.subject_line.trim().length > 0
+    ) {
+      newSubject = patch.subject_line.trim().slice(0, 200);
+    }
+
+    variants = variants.map((v, i) =>
+      i === index
+        ? { body: newBody, subject_line: newSubject }
+        : v,
+    );
+
+    const newSuggested: SuggestedCampaign = {
+      ...sc,
+      variants,
+      // Sync top-level body/subject met de geselecteerde variant zodat
+      // legacy-readers (kaart-preview) ook de bewerkte inhoud zien.
+      ...(typeof sc.selected_index === 'number' &&
+        sc.selected_index === index && {
+          body: newBody,
+          subject_line: newSubject,
+        }),
+    };
+
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: newSuggested })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+    return updated as AiSuggestion;
+  }
+
+  // Per 2026-05-07: eigenaar kan vóór goedkeuring zelf het verzendmoment
+  // aanpassen op een pending-suggestie. Filly's oorspronkelijke voorstel
+  // (gebaseerd op target_date + standaard-tijd per type) blijft als
+  // referentie zichtbaar in de modal zodat we kunnen waarschuwen als de
+  // eigenaar afwijkt. Slaat de keuze op in suggested_campaign.scheduled_for
+  // (jsonb-veld, geen migratie nodig). De approve-flow leest dit veld en
+  // neemt 'm over op de aangemaakte campagne.
+  async setScheduled(
+    restaurantId: string,
+    suggestionId: string,
+    scheduledForIso: string,
+  ): Promise<AiSuggestion> {
+    const trimmed = scheduledForIso?.trim();
+    if (!trimmed) {
+      throw new BadRequestException('scheduled_for is verplicht.');
+    }
+    const dt = new Date(trimmed);
+    if (isNaN(dt.getTime())) {
+      throw new BadRequestException(
+        'Ongeldige datum/tijd. Verwacht ISO-formaat.',
+      );
+    }
+    const now = Date.now();
+    if (dt.getTime() < now - 60 * 1000) {
+      throw new BadRequestException(
+        'Verzendmoment moet in de toekomst liggen.',
+      );
+    }
+    // Veiligheidsmarge: niet verder dan een jaar vooruit, anders is er
+    // waarschijnlijk een typo/UI-fout.
+    if (dt.getTime() > now + 365 * 24 * 60 * 60 * 1000) {
+      throw new BadRequestException(
+        'Verzendmoment ligt te ver in de toekomst (max 1 jaar).',
+      );
+    }
+
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
+      );
+    }
+
+    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign & {
+      scheduled_for?: string;
+    };
+    const newSc = { ...sc, scheduled_for: dt.toISOString() };
+
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: newSc })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+    return updated as AiSuggestion;
+  }
+
+  // Per 2026-05-07: 'refine' herzien van 1-variant-replace naar 3-
+  // variants-append. Eigenaar krijgt 3 nieuwe alternatieven naast de
+  // bestaande zodat 'ie kan kiezen of terug kan naar de origineel-set
+  // door op een eerdere variant te klikken. Cap = 6 totaal (init 3 +
+  // 1 refine-ronde van 3), zelfde patroon als CampaignRefinePanel.
+  // Instructie blijft optioneel, default genereert Filly fris in
+  // andere tonen/invalshoeken dan de bestaande set.
   async refine(
     restaurantId: string,
     suggestionId: string,
     instruction: string,
   ): Promise<AiSuggestion> {
     const trimmed = instruction.trim();
-    if (!trimmed) {
-      throw new BadRequestException(
-        'Geef aan wat Filly moet aanpassen (bv. "huiselijker" of "korter onderwerp").',
-      );
-    }
     if (trimmed.length > 1000) {
       throw new BadRequestException(
         'Aanpassings-instructie mag maximaal 1000 tekens zijn.',
@@ -1436,72 +1642,79 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     const sc = suggestion.suggested_campaign ?? {};
-    const currentType =
-      typeof sc.type === 'string' ? (sc.type as string) : 'mail';
+    const currentType: 'mail' | 'social' | 'whatsapp' =
+      sc.type === 'mail' || sc.type === 'social' || sc.type === 'whatsapp'
+        ? sc.type
+        : 'mail';
     const currentName =
       typeof sc.name === 'string' ? (sc.name as string) : '';
 
-    // Multi-variant: pak geselecteerde variant. Legacy: pak directe
-    // velden. We werken altijd op één variant tegelijk, gebruiker
-    // kan ander variant kiezen vóór 'ie hier komt.
-    const variants = Array.isArray(sc.variants) ? sc.variants : [];
-    const selectedIdx =
-      typeof sc.selected_index === 'number' &&
-      sc.selected_index >= 0 &&
-      sc.selected_index < variants.length
-        ? sc.selected_index
-        : 0;
-    const selectedVariant = variants[selectedIdx];
+    // Bestaande varianten ophalen. Bij legacy (geen variants-array) bouwen
+    // we 1 synthetische variant uit de top-level body/subject zodat we
+    // ook daar 3 alternatieven naast kunnen zetten in een uniforme array.
+    const existingVariants: Array<{ subject_line?: string; body: string }> =
+      Array.isArray(sc.variants) && sc.variants.length > 0
+        ? sc.variants
+            .filter(
+              (v): v is { body: string; subject_line?: string } =>
+                typeof v?.body === 'string' && v.body.length > 0,
+            )
+            .map((v) => ({
+              body: v.body,
+              subject_line: v.subject_line,
+            }))
+        : (() => {
+            const legacyBody =
+              typeof sc.body === 'string' && sc.body.length > 0
+                ? sc.body
+                : typeof sc.caption === 'string'
+                  ? sc.caption
+                  : '';
+            const legacySubject =
+              typeof sc.subject_line === 'string'
+                ? sc.subject_line
+                : typeof sc.subject === 'string'
+                  ? sc.subject
+                  : undefined;
+            return legacyBody
+              ? [{ body: legacyBody, subject_line: legacySubject }]
+              : [];
+          })();
 
-    const currentSubject = selectedVariant?.subject_line
-      ? (selectedVariant.subject_line as string)
-      : typeof sc.subject_line === 'string' && sc.subject_line
-        ? (sc.subject_line as string)
-        : typeof sc.subject === 'string'
-          ? (sc.subject as string)
-          : '';
-    const currentBody = selectedVariant?.body
-      ? (selectedVariant.body as string)
-      : typeof sc.body === 'string' && sc.body
-        ? (sc.body as string)
-        : typeof sc.caption === 'string'
-          ? (sc.caption as string)
-          : '';
+    if (existingVariants.length >= SUGGESTION_VARIANTS_MAX) {
+      throw new BadRequestException(
+        `Maximum aantal versies (${SUGGESTION_VARIANTS_MAX}) bereikt. Kies een bestaande variant of pas 'm handmatig aan.`,
+      );
+    }
 
-    // System-prompt voor de refine-call. Tool-use forceert het JSON-
-    // schema, dus we hoeven de structuur hier niet meer in tekst uit
-    // te leggen, alleen de inhoudelijke regels blijven.
-    const systemPrompt = `Je bent Filly, een AI-assistent voor de horeca. Je past een bestaande campagne aan volgens de instructie van de eigenaar.
+    // Tool-use forceert het JSON-schema (3 variants exact). Wij geven
+    // Filly het bestaande materiaal mee als 'vermijd-lijst' zodat de
+    // alternatieven inhoudelijk anders zijn dan wat al gegenereerd is.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor de horeca. Je krijgt een bestaande campagne en moet drie alternatieve versies bedenken die wezenlijk anders zijn van toon en invalshoek.
 
-Je antwoord komt via de tool 'refine_campaign'. Vul de tool-args in met de volledige nieuwe versie van de campagne.
+Je antwoord komt via de tool 'generate_alternatives'. Lever exact 3 varianten.
 
 Inhoudsregels:
-- Behoud het type van de campagne tenzij de instructie expliciet vraagt om te wisselen.
-- Schrijf in het Nederlands.
+- Schrijf in het Nederlands, in dezelfde campagne-context (zelfde gerecht/aanbod).
+- Drie tonen: bv. zakelijk-professioneel, warm-persoonlijk, kort-prikkelend. Onderling duidelijk verschillend.
 - Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.
-- Bij type=mail vul je ook subject_line; bij social/whatsapp laat je subject_line weg.`;
+- Bij type=mail vul je per variant ook subject_line; bij social/whatsapp laat je subject_line weg.
+- Vermijd de exacte zinnen uit de bestaande varianten.`;
 
-    const currentPayload = JSON.stringify(
-      {
-        name: currentName,
-        type: currentType,
-        subject_line: currentSubject || undefined,
-        body: currentBody,
-      },
-      null,
-      2,
-    );
-
-    const userPrompt = `Huidige campagne:\n${currentPayload}\n\nInstructie van de eigenaar:\n${trimmed}\n\nGeef de volledige nieuwe versie van de campagne.`;
+    const existingPayload = JSON.stringify(existingVariants, null, 2);
+    const instructionLine = trimmed
+      ? `Extra instructie van de eigenaar: ${trimmed}`
+      : 'Geen specifieke instructie van de eigenaar, ga voor brede variatie in toon.';
+    const userPrompt = `Campagne-naam: ${currentName}\nType: ${currentType}\n\nBestaande versies (vermijd herhaling):\n${existingPayload}\n\n${instructionLine}\n\nGeef drie nieuwe varianten via 'generate_alternatives'.`;
 
     const parsed = await this.ai.generateStructured<RefinedCampaignFromTool>({
       system: systemPrompt,
       prompt: userPrompt,
       model: 'claude-sonnet-4-6',
-      maxTokens: 1500,
-      toolName: 'refine_campaign',
+      maxTokens: 2500,
+      toolName: 'generate_alternatives',
       toolDescription:
-        'Lever de aangepaste campagne aan op basis van de instructie van de eigenaar.',
+        'Lever exact drie alternatieve versies van de campagne, in andere tonen/invalshoeken dan de bestaande set.',
       inputSchema: SUGGESTION_REFINE_SCHEMA,
       meta: {
         restaurantId,
@@ -1509,48 +1722,35 @@ Inhoudsregels:
       },
     });
 
-    // Schema garandeert al dat type een geldige enum is en body/type
-    // aanwezig zijn. Wij voegen alleen de fallbacks toe op velden die
-    // optioneel zijn én lengte-caps voor DB-veiligheid.
-    const newName =
-      parsed.name && parsed.name.trim().length > 0
-        ? parsed.name.trim().slice(0, 120)
-        : currentName;
-    const newType = parsed.type;
-    const newBody =
-      parsed.body.trim().length > 0 ? parsed.body.trim() : currentBody;
-    const newSubject =
-      parsed.subject_line && parsed.subject_line.trim().length > 0
-        ? parsed.subject_line.trim().slice(0, 200)
-        : undefined;
+    const newAlternatives = (parsed.variants ?? [])
+      .map((v) => ({
+        body:
+          typeof v.body === 'string' ? v.body.trim().slice(0, 5000) : '',
+        subject_line:
+          typeof v.subject_line === 'string' && v.subject_line.trim().length > 0
+            ? v.subject_line.trim().slice(0, 200)
+            : undefined,
+      }))
+      .filter((v) => v.body.length > 0)
+      // Cap zodat we nooit over de max heen gaan, ook als de claude-
+      // call meer zou opleveren dan 3.
+      .slice(0, SUGGESTION_VARIANTS_MAX - existingVariants.length);
 
-    // Twee paden: bij multi-variant overschrijven we de geselecteerde
-    // variant en behouden de andere. Bij legacy (geen variants) maken
-    // we direct de body/subject_line top-level bij. Naam + type werken
-    // we sowieso top-level bij omdat ze niet variant-specifiek zijn.
-    let newSuggested: SuggestedCampaign;
-    if (variants.length > 0) {
-      const newVariants = [...variants];
-      newVariants[selectedIdx] = {
-        ...newVariants[selectedIdx],
-        body: newBody,
-        subject_line: newSubject,
-      };
-      newSuggested = {
-        ...sc,
-        name: newName,
-        type: newType as SuggestedCampaign['type'],
-        variants: newVariants,
-      };
-    } else {
-      newSuggested = {
-        ...sc,
-        name: newName,
-        type: newType as SuggestedCampaign['type'],
-        body: newBody,
-        subject_line: newSubject,
-      };
+    if (newAlternatives.length === 0) {
+      throw new InternalServerErrorException(
+        'Filly leverde geen bruikbare alternatieven, probeer opnieuw.',
+      );
     }
+
+    const newVariants = [...existingVariants, ...newAlternatives];
+    // selected_index ongewijzigd zodat de eigenaar de oorspronkelijk
+    // gekozen variant blijft zien als 'actief'. Eigenaar klikt zelf
+    // op een nieuwe versie om die over te nemen.
+    const newSuggested: SuggestedCampaign = {
+      ...sc,
+      type: currentType,
+      variants: newVariants,
+    };
 
     const { data: updated, error: updErr } = await this.supabase.client
       .from('ai_suggestions')
