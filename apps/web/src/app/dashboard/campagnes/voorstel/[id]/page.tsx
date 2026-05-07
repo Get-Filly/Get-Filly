@@ -607,7 +607,7 @@ export default function VoorstelDetailPage() {
 
   if (loading) {
     return (
-      <div className="page" style={{ padding: 32 }}>
+      <div className="page-full">
         <Skeleton style={{ height: 32, width: 240, marginBottom: 16 }} />
         <Skeleton style={{ height: 120, marginBottom: 12 }} />
         <Skeleton style={{ height: 320 }} />
@@ -617,7 +617,7 @@ export default function VoorstelDetailPage() {
 
   if (error || !suggestion) {
     return (
-      <div className="page" style={{ padding: 32 }}>
+      <div className="page-full">
         <Link
           href="/dashboard/campagnes"
           style={{
@@ -642,7 +642,7 @@ export default function VoorstelDetailPage() {
   const isPending = suggestion.status === "pending";
 
   return (
-    <div className="page" style={{ padding: 32 }}>
+    <div className="page-full">
       <Link
         href="/dashboard/campagnes"
         style={{

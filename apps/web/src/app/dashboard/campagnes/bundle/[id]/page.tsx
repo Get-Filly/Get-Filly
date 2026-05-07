@@ -84,7 +84,7 @@ export default function CampaignBundlePage() {
 
   if (loading) {
     return (
-      <div className="page" style={{ padding: 32 }}>
+      <div className="page-full">
         <Skeleton style={{ height: 32, width: 240, marginBottom: 16 }} />
         <Skeleton style={{ height: 80, marginBottom: 12 }} />
         <Skeleton style={{ height: 200 }} />
@@ -94,7 +94,7 @@ export default function CampaignBundlePage() {
 
   if (error || !bundle) {
     return (
-      <div className="page" style={{ padding: 32 }}>
+      <div className="page-full">
         <Link
           href="/dashboard/campagnes"
           style={{
@@ -127,7 +127,7 @@ export default function CampaignBundlePage() {
   );
 
   return (
-    <div className="page" style={{ padding: 32 }}>
+    <div className="page-full">
       <Link
         href="/dashboard/campagnes"
         style={{
