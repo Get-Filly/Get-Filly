@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   approveSuggestion,
   editSuggestionVariant,
+  fetchRestaurantMedia,
   refineSuggestion,
   selectSuggestionVariant,
+  setSuggestionMedia,
   setSuggestionScheduled,
   updateSuggestion,
   type AiSuggestion,
+  type RestaurantMediaItem,
 } from "../../../lib/api";
 import { Button } from "../../../components/ui/button";
+import { MediaLibraryPicker } from "./media-library-picker";
 
 // ============================================================
 // Date-utility helpers, gedeeld met campagne-edit panel-pattern
@@ -118,6 +122,13 @@ export function SuggestionDetailModal({
   const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  // Per 2026-05-07: media-koppeling voor social/whatsapp. We laden
+  // de hele bibliotheek bij open zodat we de huidige foto kunnen
+  // tonen zonder een aparte fetch + zodat de picker direct bruikbaar
+  // is. Cap = 20 foto's per restaurant, dus payload klein.
+  const [mediaLibrary, setMediaLibrary] = useState<RestaurantMediaItem[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [savingMedia, setSavingMedia] = useState(false);
   // Per 2026-05-07: schedule-edit-state in de modal. 'editingSchedule'
   // bepaalt of de datetime-input zichtbaar is, draftDatetime is de
   // working copy in datetime-local-formaat.
@@ -179,7 +190,72 @@ export function SuggestionDetailModal({
       : 0;
 
   const busy =
-    refining || approving || rejecting || savingSchedule || savingEdit;
+    refining ||
+    approving ||
+    rejecting ||
+    savingSchedule ||
+    savingEdit ||
+    savingMedia;
+
+  // Foto-sectie alleen voor social/whatsapp; mail ondersteunt nog
+  // geen media (consistent met campaigns.uploadMedia).
+  const supportsMedia = type === "social" || type === "whatsapp";
+  const mediaId = sc.restaurant_media_id ?? null;
+  const currentMediaItem = useMemo(
+    () => mediaLibrary.find((m) => m.id === mediaId) ?? null,
+    [mediaLibrary, mediaId],
+  );
+
+  // Bibliotheek lazy laden bij modal-open zodat we 't pas fetchen als
+  // de eigenaar dit specifieke voorstel opent. mailtypes slaan we
+  // over want daar tonen we de sectie sowieso niet.
+  useEffect(() => {
+    if (!supportsMedia) return;
+    let cancelled = false;
+    fetchRestaurantMedia()
+      .then((items) => {
+        if (!cancelled) setMediaLibrary(items);
+      })
+      .catch(() => {
+        // Stille fail: zonder bibliotheek werkt de picker niet maar
+        // de rest van de modal blijft bruikbaar. Eigenaar krijgt het
+        // op de account-pagina alsnog te zien.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supportsMedia]);
+
+  const handlePickMedia = async (item: RestaurantMediaItem) => {
+    setPickerOpen(false);
+    if (busy) return;
+    setError(null);
+    setSavingMedia(true);
+    try {
+      const updated = await setSuggestionMedia(suggestion.id, item.id);
+      setSuggestion(updated);
+      onUpdated(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Foto koppelen mislukt.");
+    } finally {
+      setSavingMedia(false);
+    }
+  };
+
+  const handleRemoveMedia = async () => {
+    if (busy) return;
+    setError(null);
+    setSavingMedia(true);
+    try {
+      const updated = await setSuggestionMedia(suggestion.id, null);
+      setSuggestion(updated);
+      onUpdated(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Foto verwijderen mislukt.");
+    } finally {
+      setSavingMedia(false);
+    }
+  };
 
   const handleStartEditVariant = (idx: number) => {
     if (busy) return;
@@ -571,6 +647,123 @@ export function SuggestionDetailModal({
               </div>
             )}
 
+            {/* Per 2026-05-07: foto-sectie. Alleen voor social/whatsapp,
+                mail ondersteunt nog geen media. Eigenaar kiest uit de
+                restaurant-bibliotheek; bij goedkeuring kopieert backend
+                het bestand naar campaign-media zodat de campagne een
+                eigen kopie heeft. */}
+            {supportsMedia && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: "var(--bg, #FAF7F1)",
+                  border: "1px solid var(--border, #E5DFD0)",
+                  borderRadius: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: "var(--ts)",
+                    marginBottom: 8,
+                  }}
+                >
+                  Foto
+                </div>
+                {currentMediaItem ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={currentMediaItem.url}
+                      alt={currentMediaItem.file_name}
+                      style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 6,
+                        objectFit: "cover",
+                        border: "1px solid var(--border, #E5DFD0)",
+                      }}
+                    />
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: 12,
+                        color: "var(--ts)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          color: "var(--text)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {currentMediaItem.file_name}
+                      </div>
+                      <div style={{ fontSize: 11, marginTop: 2 }}>
+                        Wordt gekoppeld bij goedkeuring.
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setPickerOpen(true)}
+                        disabled={busy}
+                      >
+                        Wijzig
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleRemoveMedia}
+                        disabled={busy}
+                        loading={savingMedia}
+                        style={{ color: "var(--color-danger)" }}
+                      >
+                        Verwijder
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, color: "var(--ts)" }}>
+                      Nog geen foto gekoppeld.
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setPickerOpen(true)}
+                      disabled={busy}
+                      loading={savingMedia}
+                    >
+                      Kies uit bibliotheek
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div
               style={{
                 fontSize: 11,
@@ -949,6 +1142,15 @@ export function SuggestionDetailModal({
           </div>
         </div>
       </div>
+
+      {/* MediaLibraryPicker buiten de modal-content geplaatst; rendert
+          z'n eigen overlay-dialog. We vangen de keuze hier af en sturen
+          'm naar de backend via setSuggestionMedia. */}
+      <MediaLibraryPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={handlePickMedia}
+      />
     </div>
   );
 }

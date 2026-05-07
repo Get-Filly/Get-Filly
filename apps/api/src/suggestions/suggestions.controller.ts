@@ -177,6 +177,22 @@ export class SuggestionsController {
     );
   }
 
+  // Per 2026-05-07: eigenaar koppelt vóór goedkeuring een foto uit
+  // de bibliotheek aan een suggestie. Alleen voor social/whatsapp.
+  // media_id=null verbreekt de koppeling.
+  @Post(':id/media')
+  setMedia(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { media_id?: string | null },
+  ) {
+    return this.suggestions.setMedia(
+      restaurantId,
+      id,
+      body.media_id ?? null,
+    );
+  }
+
   // Per 2026-05-07: eigenaar bewerkt vóór goedkeuring een specifieke
   // variant (subject + body). Verplicht: index. Optioneel: subject_line
   // (null/lege string = wis), body (lege body = blijft staan).

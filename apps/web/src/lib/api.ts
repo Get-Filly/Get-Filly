@@ -702,6 +702,10 @@ export type AiSuggestion = {
     // Bij approve overgenomen op de aangemaakte campagne. Null/undef =
     // nog niet gezet, CampaignSchedulePanel doet voorstel post-approve.
     scheduled_for?: string;
+    // Per 2026-05-07: eigenaar koppelt een foto uit de bibliotheek
+    // aan de suggestie. Alleen voor social/whatsapp. Bij approve
+    // wordt het bestand gekopieerd naar campaign-media.
+    restaurant_media_id?: string | null;
   };
   status: SuggestionStatus;
   rejection_reason: string | null;
@@ -885,6 +889,29 @@ export async function selectSuggestionVariant(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Per 2026-05-07: eigenaar koppelt een foto uit de bibliotheek aan
+// een pending suggestie (alleen social/whatsapp). mediaId=null verbreekt
+// de koppeling. Bij approve wordt het bestand server-side gekopieerd
+// naar campaign-media zodat de campagne een eigen kopie heeft.
+export async function setSuggestionMedia(
+  suggestionId: string,
+  mediaId: string | null,
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/media`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ media_id: mediaId }),
     },
   );
   if (!res.ok) {

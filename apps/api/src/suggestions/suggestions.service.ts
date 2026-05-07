@@ -1110,6 +1110,45 @@ Maak dit tastbaar volgens de regels.`;
       }
     }
 
+    // Per 2026-05-07: foto kopiëren van restaurant-assets bucket naar
+    // campaign-media bucket. We downloaden de bytes server-side en
+    // re-uploaden via campaigns.uploadMedia, identiek aan de "Kies uit
+    // bibliotheek"-flow op de campagne-detail-pagina. Werkt alleen voor
+    // social/whatsapp (campaigns.uploadMedia weigert mail expliciet).
+    const customMediaId =
+      typeof (sc as { restaurant_media_id?: string | null })
+        .restaurant_media_id === 'string'
+        ? ((sc as { restaurant_media_id?: string }).restaurant_media_id as string)
+        : null;
+    if (customMediaId && (type === 'social' || type === 'whatsapp')) {
+      try {
+        const { data: mediaRow } = await this.supabase.client
+          .from('restaurant_media')
+          .select('file_path, file_name, mime_type')
+          .eq('id', customMediaId)
+          .eq('restaurant_id', restaurantId)
+          .maybeSingle();
+        if (mediaRow?.file_path) {
+          const { data: blob, error: dlErr } =
+            await this.supabase.client.storage
+              .from('restaurant-assets')
+              .download(mediaRow.file_path as string);
+          if (!dlErr && blob) {
+            const buffer = Buffer.from(await blob.arrayBuffer());
+            await this.campaigns.uploadMedia(restaurantId, campaignId, {
+              buffer,
+              originalName: (mediaRow.file_name as string) ?? 'photo.jpg',
+              mimeType:
+                (mediaRow.mime_type as string) ?? 'image/jpeg',
+            });
+          }
+        }
+      } catch {
+        // Niet fataal: campagne is aangemaakt, eigenaar kan op de
+        // detail-pagina de foto alsnog kiezen via de bestaande flow.
+      }
+    }
+
     // Suggestie naar approved + FK koppelen.
     const { data: updated, error: updateErr } = await this.supabase.client
       .from('ai_suggestions')
@@ -1426,6 +1465,71 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     const newSc: SuggestedCampaign = { ...sc, selected_index: index };
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: newSc })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
+
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+    return updated as AiSuggestion;
+  }
+
+  // Per 2026-05-07: eigenaar koppelt vóór goedkeuring een foto uit de
+  // restaurant-bibliotheek aan een pending-suggestie. Alleen voor
+  // social/whatsapp-types; mail ondersteunt nog geen media (consistent
+  // met campaigns.uploadMedia). mediaId=null wist de koppeling.
+  // Bij goedkeuring kopieert approve() het bestand van restaurant-
+  // assets naar de campaign-media bucket zodat de campagne een eigen
+  // kopie heeft (los van bibliotheek-deletions).
+  async setMedia(
+    restaurantId: string,
+    suggestionId: string,
+    mediaId: string | null,
+  ): Promise<AiSuggestion> {
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
+      );
+    }
+    const sc = suggestion.suggested_campaign ?? {};
+    const type = sc.type;
+    if (type === 'mail') {
+      throw new BadRequestException(
+        "Mail-suggesties ondersteunen nog geen foto's.",
+      );
+    }
+
+    let validatedId: string | null = null;
+    if (mediaId) {
+      // Check dat de media-rij bestaat en bij dit restaurant hoort.
+      // Voorkomt dat eigenaar een vreemde id naar binnen kan smokkelen
+      // of dat we straks bij approve een dangling-FK hebben.
+      const { data: row, error: lookupErr } = await this.supabase.client
+        .from('restaurant_media')
+        .select('id')
+        .eq('id', mediaId)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+      if (lookupErr) throw new InternalServerErrorException(lookupErr.message);
+      if (!row) {
+        throw new BadRequestException(
+          'Foto niet gevonden in jouw bibliotheek.',
+        );
+      }
+      validatedId = row.id as string;
+    }
+
+    const newSc = {
+      ...sc,
+      restaurant_media_id: validatedId,
+    } as SuggestedCampaign & { restaurant_media_id?: string | null };
+
     const { data: updated, error: updErr } = await this.supabase.client
       .from('ai_suggestions')
       .update({ suggested_campaign: newSc })
