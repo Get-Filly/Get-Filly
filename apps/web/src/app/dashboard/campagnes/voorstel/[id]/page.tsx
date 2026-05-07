@@ -745,6 +745,31 @@ export default function VoorstelDetailPage() {
           spreken voor zich; eigenaar wil snel kunnen beslissen, niet
           eerst door 5 stat-cards heen lezen. */}
 
+      {/* Per 2026-05-07 fase 2d: 'Waarom dit voorstel' bovenaan zodat
+          eigenaar Filly's redenering ziet vóór 'ie kanalen kiest of de
+          inhoud bewerkt. Context-eerst i.p.v. diep onder. */}
+      {suggestion.reasoning && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">Waarom dit voorstel</div>
+              <div className="card-st">Filly&rsquo;s redenering.</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div
+              style={{
+                fontSize: 14,
+                color: "var(--ts)",
+                lineHeight: 1.6,
+              }}
+            >
+              {suggestion.reasoning}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Kanaal-toggle (fase 2b) — eigenaar kiest welke kanalen dit
           voorstel gebruikt. Active = pill met groene fill, inactive =
           omlijnd. Per-kanaal inhoud-editing volgt in fase 2c; voor nu
@@ -1434,29 +1459,6 @@ export default function VoorstelDetailPage() {
             )}
           </div>
         </div>
-
-      {/* Waarom dit voorstel-card, transparante motivatie van Filly. */}
-      {suggestion.reasoning && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-h">
-            <div>
-              <div className="card-t">Waarom dit voorstel</div>
-              <div className="card-st">Filly&rsquo;s redenering.</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div
-              style={{
-                fontSize: 14,
-                color: "var(--ts)",
-                lineHeight: 1.6,
-              }}
-            >
-              {suggestion.reasoning}
-            </div>
-          </div>
-        </div>
-      )}
 
       <MediaLibraryPicker
         open={pickerOpen}
