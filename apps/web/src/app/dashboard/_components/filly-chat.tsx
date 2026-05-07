@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   approveBundleSuggestion,
   approveSuggestion,
@@ -9,11 +10,9 @@ import {
   fetchActiveChat,
   fetchChatConversation,
   fetchChatConversations,
-  fetchSuggestion,
   fetchSuggestions,
   sendChatMessage,
   CHAT_CONVERSATION_CAP,
-  type AiSuggestion,
   type BundleChannel,
   type CampaignBundleCard,
   type ChannelChoiceCard,
@@ -26,7 +25,6 @@ import type {
   ChannelChoice,
   ChoiceState,
 } from "./filly-chat-choice-card";
-import { SuggestionDetailModal } from "./suggestion-detail-modal";
 import { useRestaurant } from "../../../lib/restaurant-context";
 import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatMessageList } from "./filly-chat-message-list";
@@ -91,15 +89,10 @@ export function FillyChat() {
   const [choiceState, setChoiceState] = useState<
     Record<string, { state: ChoiceState; chosen?: ChannelChoice }>
   >({});
-  // Welke proposal staat open in de detail-modal? Slaan de hele
-  // suggestion op zodat de modal direct kan renderen zonder eerst
-  // een fetch te doen, proposal-data uit de chat is al voldoende
-  // voor de eerste paint.
-  const [detailSuggestion, setDetailSuggestion] =
-    useState<AiSuggestion | null>(null);
-  // De messageId waar de open modal bij hoort, zodat we na approve
-  // de juiste chat-kaart op 'created' kunnen zetten.
-  const [detailMessageId, setDetailMessageId] = useState<string | null>(null);
+  // Per 2026-05-07: detail-modal-state weg, voorstel-detail is nu een
+  // eigen route /dashboard/campagnes/voorstel/[id]. We navigeren bij
+  // klik op 'Bekijk versies' rechtstreeks via router.push.
+  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
@@ -495,21 +488,17 @@ export function FillyChat() {
     setProposalStatus((s) => ({ ...s, [messageId]: { state: "dismissed" } }));
   };
 
-  // Modal openen voor variant-keuze + refine. We fetchen de actuele
-  // suggestion (status, current selected_index) zodat de modal niet
-  // staat te werken op stale data uit de chat-historie.
-  const openDetails = async (
-    messageId: string,
+  // Per 2026-05-07: voorstel-detail is nu een eigen route i.p.v. een
+  // modal binnen de chat. We navigeren rechtstreeks; de chat-side-
+  // effects (proposal-status updaten na approve/reject) gebeuren
+  // wanneer de eigenaar weer in de chat terug-komt en de pending-list
+  // refresht. Dit is een tijdelijke regressie; in fase 2 koppelen we
+  // chat-status weer terug via een refresh-on-return.
+  const openDetails = (
+    _messageId: string,
     proposal: CampaignProposalCard,
   ) => {
-    setDetailMessageId(messageId);
-    try {
-      const sugg = await fetchSuggestion(proposal.suggestion_id);
-      setDetailSuggestion(sugg);
-    } catch (e) {
-      console.error(e);
-      setDetailMessageId(null);
-    }
+    router.push(`/dashboard/campagnes/voorstel/${proposal.suggestion_id}`);
   };
 
   return (
@@ -633,39 +622,8 @@ export function FillyChat() {
         />
       )}
 
-      {/* Detail-modal voor het bekijken/bewerken van varianten +
-          refine-chat. Gestart vanaf de "Bekijk versies →"-knop in
-          ProposalCard. */}
-      {detailSuggestion && detailMessageId && (
-        <SuggestionDetailModal
-          suggestion={detailSuggestion}
-          onClose={() => {
-            setDetailSuggestion(null);
-            setDetailMessageId(null);
-          }}
-          onApproved={(campaignId) => {
-            setProposalStatus((s) => ({
-              ...s,
-              [detailMessageId]: { state: "created", campaignId },
-            }));
-            setDetailSuggestion(null);
-            setDetailMessageId(null);
-          }}
-          onRejected={() => {
-            setProposalStatus((s) => ({
-              ...s,
-              [detailMessageId]: { state: "dismissed" },
-            }));
-            setDetailSuggestion(null);
-            setDetailMessageId(null);
-          }}
-          onUpdated={(updated) => {
-            // Refresh de modal-state met nieuwe variant-content of
-            // selected_index zonder de modal te sluiten.
-            setDetailSuggestion(updated);
-          }}
-        />
-      )}
+      {/* Per 2026-05-07: SuggestionDetailModal hier verwijderd. 'Bekijk
+          versies →' navigeert nu naar /campagnes/voorstel/[id]. */}
     </div>
   );
 }

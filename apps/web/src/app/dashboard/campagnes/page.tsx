@@ -15,7 +15,8 @@ import {
 } from "../../../lib/api";
 import { Skeleton } from "../_components/skeleton";
 import { TasksStrip } from "../_components/tasks-strip";
-import { SuggestionDetailModal } from "../_components/suggestion-detail-modal";
+// SuggestionDetailModal vervangen door /campagnes/voorstel/[id]-route
+// per 2026-05-07.
 import { Badge, type BadgeVariant } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -180,9 +181,8 @@ export default function CampagnesPage() {
     Record<string, SuggestionActionState>
   >({});
   const [suggestionTab, setSuggestionTab] = useState<SuggestionTab>("open");
-  // Welke suggestie staat open in de detail-modal? Null = dicht.
-  const [detailSuggestion, setDetailSuggestion] =
-    useState<AiSuggestion | null>(null);
+  // Detail-modal-state per 2026-05-07 verwijderd; voorstel-detail is
+  // nu een eigen route. SuggestionCard.onDetails navigeert direct.
   // Welke campagnes ondergaan op dit moment een quick-action zodat
   // we de knoppen kunnen disablen tijdens de roundtrip naar de server.
   const [campaignAction, setCampaignAction] = useState<
@@ -623,7 +623,9 @@ export default function CampagnesPage() {
                     onApprove={() => handleApprove(s)}
                     onReject={() => handleReject(s)}
                     onRestore={() => handleRestore(s)}
-                    onDetails={() => setDetailSuggestion(s)}
+                    onDetails={() =>
+                      router.push(`/dashboard/campagnes/voorstel/${s.id}`)
+                    }
                   />
                 ))}
               </div>
@@ -816,37 +818,9 @@ export default function CampagnesPage() {
         </table>
       )}
 
-      {/* Detail-modal voor een suggestie. Chat-editflow + actieknoppen
-          zitten in de modal zelf; hier koppelen we alleen de side-
-          effects (campagne aangemaakt, afgewezen, of inhoud bijgewerkt). */}
-      {detailSuggestion && (
-        <SuggestionDetailModal
-          suggestion={detailSuggestion}
-          onClose={() => setDetailSuggestion(null)}
-          onApproved={async (campaignId) => {
-            // Approved → suggestie uit pending-lijst, refetch
-            // campagnes, door naar de nieuwe concept-campagne.
-            setPendingSuggestions((prev) =>
-              prev.filter((x) => x.id !== detailSuggestion.id),
-            );
-            setDetailSuggestion(null);
-            const fresh = await fetchCampaigns();
-            setCampaigns(fresh);
-            router.push(`/dashboard/campagnes/${campaignId}`);
-          }}
-          onRejected={(id) => {
-            setPendingSuggestions((prev) => prev.filter((x) => x.id !== id));
-            setDetailSuggestion(null);
-          }}
-          onUpdated={(updated) => {
-            // Vervang in de pending-lijst zodat de kaart buiten de
-            // modal ook de nieuwe titel/preview toont.
-            setPendingSuggestions((prev) =>
-              prev.map((s) => (s.id === updated.id ? updated : s)),
-            );
-          }}
-        />
-      )}
+      {/* Per 2026-05-07: SuggestionDetailModal verwijderd. Voorstel-
+          detail is nu een eigen route /dashboard/campagnes/voorstel/[id]
+          (matched het patroon van /campagnes/[id] qua UX). */}
     </div>
   );
 }
