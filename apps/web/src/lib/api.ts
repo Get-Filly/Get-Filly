@@ -694,6 +694,25 @@ export type AiSuggestion = {
       | "instagram"
       | "facebook"
       | "tiktok";
+    // Per 2026-05-07 fase 2b: multi-channel-array. Wanneer aanwezig,
+    // bron-van-waarheid voor de UI; legacy top-level velden zijn dan
+    // niet meer direct relevant maar worden gesynced met channels[0]
+    // door de backend.
+    channels?: Array<{
+      id: string;
+      platform:
+        | "mail"
+        | "whatsapp"
+        | "instagram"
+        | "facebook"
+        | "tiktok";
+      variants: Array<{ subject_line?: string; body?: string }>;
+      selected_index: number;
+      scheduled_for?: string;
+      filly_scheduled_for?: string;
+      filly_scheduled_reasoning?: string;
+      restaurant_media_id?: string | null;
+    }>;
     // Nieuwe shape (sinds 3-varianten-flow):
     variants?: Array<{
       subject_line?: string;
@@ -898,6 +917,49 @@ export async function selectSuggestionVariant(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Per 2026-05-07 fase 2b: voeg een extra kanaal toe aan een pending
+// suggestie. Wordt gebruikt voor multi-channel-voorstellen: eigenaar
+// kiest 'Instagram + WhatsApp' i.p.v. één kanaal. Backend syntheseert
+// het kanaal met de body van het primaire kanaal als seed.
+export async function addSuggestionChannel(
+  suggestionId: string,
+  platform: "mail" | "whatsapp" | "instagram" | "facebook" | "tiktok",
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/channels`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Verwijder een kanaal uit een pending-suggestie. Het laatste kanaal
+// is niet verwijderbaar.
+export async function removeSuggestionChannel(
+  suggestionId: string,
+  channelId: string,
+): Promise<AiSuggestion> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/${suggestionId}/channels/${channelId}/remove`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
     },
   );
   if (!res.ok) {

@@ -339,6 +339,27 @@ export type AiSuggestion = {
 //     suggestion-rijen)
 // Approve- en refine-logic checken eerst variants[], vallen anders
 // terug op de legacy-velden.
+// Per 2026-05-07 fase 2b: per-kanaal-shape voor multi-channel-voorstellen.
+// Eén SuggestedCampaign kan nu N kanalen bevatten (mail + Instagram
+// + WhatsApp bv.) met elk eigen variants, scheduling, foto. Bij approve
+// wordt elk kanaal een aparte campagne; multi-channel = bundle via
+// campaign_groups.
+export type SuggestionChannel = {
+  // Stable id binnen de suggestion zodat de frontend de juiste kanaal
+  // kan refereren bij edits. Ge-genereerd bij addChannel.
+  id: string;
+  platform: SuggestionPlatform;
+  variants: Array<{ subject_line?: string; body?: string }>;
+  selected_index: number;
+  // Eigenaar's gekozen tijd (override van Filly's voorstel).
+  scheduled_for?: string;
+  // Filly's voorgestelde tijd + reasoning voor dít kanaal. Per kanaal
+  // verschillend (mail werkt 's ochtends, social 17:00 etc).
+  filly_scheduled_for?: string;
+  filly_scheduled_reasoning?: string;
+  restaurant_media_id?: string | null;
+};
+
 export type SuggestedCampaign = {
   type?: 'mail' | 'social' | 'whatsapp';
   // Per 2026-05-07: specifieker platform-veld naast 'type'. 'type' blijft
@@ -346,6 +367,11 @@ export type SuggestedCampaign = {
   // beide. Voor 'social'-campaigns specificeert platform welk netwerk
   // (instagram/facebook/tiktok), zodat de UI de juiste preview kan tonen.
   platform?: SuggestionPlatform;
+  // Per 2026-05-07 fase 2b: multi-channel-array. Wanneer aanwezig is
+  // dit de bron-van-waarheid; legacy top-level velden (variants/body/
+  // scheduled_for/etc.) worden genegeerd. Bij read normaliseren we
+  // naar deze shape via ensureChannels().
+  channels?: SuggestionChannel[];
   name?: string;
   // Nieuwe shape: max 3 alternatieven naast elkaar.
   variants?: Array<{
@@ -363,6 +389,53 @@ export type SuggestedCampaign = {
   // maar zijn optioneel voor de campagne-creatie.
   [key: string]: unknown;
 };
+
+// Helper: lever altijd een channels[]-array. Als de suggestion al de
+// nieuwe shape heeft → return as-is. Anders synthesize 1 kanaal uit de
+// legacy top-level velden (type/variants/scheduled_for/etc.).
+export function ensureChannels(sc: SuggestedCampaign): SuggestionChannel[] {
+  if (Array.isArray(sc.channels) && sc.channels.length > 0) {
+    return sc.channels;
+  }
+  // Backwards-compat: bouw 1 kanaal uit de oude shape.
+  const platform: SuggestionPlatform =
+    sc.platform &&
+    ['mail', 'whatsapp', 'instagram', 'facebook', 'tiktok'].includes(
+      sc.platform,
+    )
+      ? sc.platform
+      : sc.type === 'mail' || sc.type === 'whatsapp'
+        ? sc.type
+        : 'instagram';
+  const variants =
+    Array.isArray(sc.variants) && sc.variants.length > 0
+      ? sc.variants
+      : [
+          {
+            body: sc.body ?? sc.caption ?? '',
+            subject_line: sc.subject_line ?? sc.subject,
+          },
+        ];
+  return [
+    {
+      id: `${platform}-0`,
+      platform,
+      variants,
+      selected_index:
+        typeof sc.selected_index === 'number' ? sc.selected_index : 0,
+      scheduled_for:
+        typeof (sc as { scheduled_for?: string }).scheduled_for === 'string'
+          ? ((sc as { scheduled_for?: string }).scheduled_for as string)
+          : undefined,
+      restaurant_media_id:
+        typeof (sc as { restaurant_media_id?: string | null })
+          .restaurant_media_id !== 'undefined'
+          ? ((sc as { restaurant_media_id?: string | null })
+              .restaurant_media_id ?? null)
+          : null,
+    },
+  ];
+}
 
 @Injectable()
 export class SuggestionsService {
@@ -1053,6 +1126,14 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     const sc = suggestion.suggested_campaign ?? {};
+    // Per 2026-05-07 fase 2b: multi-channel-approve nog niet geïmplementeerd.
+    // Block met heldere fout zodat eigenaar weet wat te doen. Volgt in
+    // fase 2c (campaign_groups + per-channel campagne-aanmaak).
+    if (Array.isArray(sc.channels) && sc.channels.length > 1) {
+      throw new BadRequestException(
+        'Multi-channel goedkeuren komt binnenkort. Verwijder voorlopig de extra kanalen, of laat 1 kanaal staan.',
+      );
+    }
     const type = sc.type;
     const name = typeof sc.name === 'string' ? sc.name.trim() : '';
 
@@ -1557,6 +1638,119 @@ Maak dit tastbaar volgens de regels.`;
       )
       .single();
 
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+    return updated as AiSuggestion;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Per 2026-05-07 fase 2b: multi-channel-helpers
+  // ─────────────────────────────────────────────────────────────
+  //
+  // addChannel / removeChannel manipuleren de channels[]-array op de
+  // suggested_campaign zodat eigenaar voor één voorstel meerdere
+  // kanalen kan kiezen. Bij first-call zetten we de bestaande legacy-
+  // shape via ensureChannels() om naar een 1-item-array, voegen daarna
+  // pas het nieuwe kanaal toe. Zo werkt het ook op suggesties die
+  // vóór deze migratie zijn gegenereerd.
+
+  async addChannel(
+    restaurantId: string,
+    suggestionId: string,
+    platform: SuggestionPlatform,
+  ): Promise<AiSuggestion> {
+    if (!SUGGESTION_PLATFORMS.includes(platform)) {
+      throw new BadRequestException(
+        `Onbekend platform: ${platform}. Geldig: ${SUGGESTION_PLATFORMS.join(', ')}.`,
+      );
+    }
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
+      );
+    }
+    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const existing = ensureChannels(sc);
+    if (existing.find((c) => c.platform === platform)) {
+      throw new BadRequestException(
+        'Dit platform staat al in het voorstel.',
+      );
+    }
+    if (existing.length >= 5) {
+      throw new BadRequestException(
+        'Een voorstel kan maximaal 5 kanalen bevatten.',
+      );
+    }
+    // Nieuwe kanaal start met de body van het primaire kanaal als
+    // seed (zodat eigenaar een uitgangspunt heeft) maar zonder
+    // gekoppelde foto en met een lege scheduled_for. Filly genereert
+    // pas concrete content + per-channel timing in fase 3.
+    const seed = existing[0];
+    const newChannel: SuggestionChannel = {
+      id: `${platform}-${Date.now()}`,
+      platform,
+      variants:
+        seed && seed.variants.length > 0
+          ? [{ ...seed.variants[seed.selected_index ?? 0] }]
+          : [{ body: '' }],
+      selected_index: 0,
+      restaurant_media_id: null,
+    };
+    const newChannels = [...existing, newChannel];
+    const newSc: SuggestedCampaign = { ...sc, channels: newChannels };
+    return this.persistChannels(restaurantId, suggestionId, newSc);
+  }
+
+  async removeChannel(
+    restaurantId: string,
+    suggestionId: string,
+    channelId: string,
+  ): Promise<AiSuggestion> {
+    const suggestion = await this.findById(restaurantId, suggestionId);
+    if (suggestion.status !== 'pending') {
+      throw new BadRequestException(
+        `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
+      );
+    }
+    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const existing = ensureChannels(sc);
+    if (existing.length <= 1) {
+      throw new BadRequestException(
+        'Een voorstel moet minimaal 1 kanaal hebben.',
+      );
+    }
+    const filtered = existing.filter((c) => c.id !== channelId);
+    if (filtered.length === existing.length) {
+      throw new BadRequestException('Kanaal niet gevonden.');
+    }
+    const newSc: SuggestedCampaign = { ...sc, channels: filtered };
+    return this.persistChannels(restaurantId, suggestionId, newSc);
+  }
+
+  // Helper voor channel-mutaties: schrijft de hele channels-array weg.
+  // Houdt 'type' top-level in sync met het primaire kanaal (= channels[0])
+  // zodat oude readers (kaart-preview) niet kapot gaan.
+  private async persistChannels(
+    restaurantId: string,
+    suggestionId: string,
+    newSc: SuggestedCampaign,
+  ): Promise<AiSuggestion> {
+    const channels = newSc.channels ?? [];
+    const primary = channels[0];
+    const syncedSc: SuggestedCampaign = {
+      ...newSc,
+      type: primary ? platformToCampaignType(primary.platform) : newSc.type,
+      platform: primary?.platform ?? newSc.platform,
+    };
+    const { data: updated, error: updErr } = await this.supabase.client
+      .from('ai_suggestions')
+      .update({ suggested_campaign: syncedSc })
+      .eq('id', suggestionId)
+      .eq('restaurant_id', restaurantId)
+      .select(
+        'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
+      )
+      .single();
     if (updErr) throw new InternalServerErrorException(updErr.message);
     return updated as AiSuggestion;
   }

@@ -177,6 +177,38 @@ export class SuggestionsController {
     );
   }
 
+  // Per 2026-05-07 fase 2b: eigenaar voegt een extra kanaal toe aan
+  // een pending-suggestie (multi-channel). Body { platform: 'mail' |
+  // 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' }.
+  @Post(':id/channels')
+  addChannel(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { platform?: string },
+  ) {
+    return this.suggestions.addChannel(
+      restaurantId,
+      id,
+      (body.platform ?? '') as
+        | 'mail'
+        | 'whatsapp'
+        | 'instagram'
+        | 'facebook'
+        | 'tiktok',
+    );
+  }
+
+  // Verwijder een kanaal uit een pending-suggestie. Het laatste kanaal
+  // mag niet verwijderd worden (dan zou er geen voorstel meer zijn).
+  @Post(':id/channels/:channelId/remove')
+  removeChannel(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Param('channelId') channelId: string,
+  ) {
+    return this.suggestions.removeChannel(restaurantId, id, channelId);
+  }
+
   // Per 2026-05-07: eigenaar koppelt vóór goedkeuring een foto uit
   // de bibliotheek aan een suggestie. Alleen voor social/whatsapp.
   // media_id=null verbreekt de koppeling.

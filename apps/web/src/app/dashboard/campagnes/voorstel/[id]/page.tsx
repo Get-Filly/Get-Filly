@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
+  addSuggestionChannel,
   approveSuggestion,
   editSuggestionVariant,
   fetchRestaurantMedia,
   fetchSuggestion,
   refineSuggestion,
+  removeSuggestionChannel,
   selectSuggestionVariant,
   setSuggestionMedia,
   setSuggestionScheduled,
@@ -147,6 +149,11 @@ export default function VoorstelDetailPage() {
   const [mediaLibrary, setMediaLibrary] = useState<RestaurantMediaItem[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  // Per 2026-05-07 fase 2b: multi-channel-toggle. Eigenaar kan extra
+  // kanalen aan een voorstel toevoegen via add/remove-endpoints.
+  // Per-kanaal editing van inhoud/tijd volgt in fase 2c.
+  const [savingChannel, setSavingChannel] = useState(false);
+
   // ────────────────────────────────────────────────────────────
   // Initial load
   // ────────────────────────────────────────────────────────────
@@ -254,7 +261,54 @@ export default function VoorstelDetailPage() {
     rejecting ||
     savingSchedule ||
     savingEdit ||
-    savingMedia;
+    savingMedia ||
+    savingChannel;
+
+  // Channels-array uit suggested_campaign halen (multi-channel).
+  // Backwards-compat: synthesize 1 kanaal uit legacy fields als
+  // channels[] niet bestaat.
+  const channels = useMemo(() => {
+    if (Array.isArray(sc.channels) && sc.channels.length > 0) {
+      return sc.channels.map((c) => ({
+        id: c.id,
+        platform: c.platform,
+      }));
+    }
+    return [{ id: `${platform}-0`, platform }];
+  }, [sc.channels, platform]);
+  const activePlatforms = new Set(channels.map((c) => c.platform));
+
+  const handleAddChannel = async (newPlatform: Platform) => {
+    if (!suggestion || busy) return;
+    setActionError(null);
+    setSavingChannel(true);
+    try {
+      const updated = await addSuggestionChannel(suggestion.id, newPlatform);
+      refresh(updated);
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Kanaal toevoegen mislukt.",
+      );
+    } finally {
+      setSavingChannel(false);
+    }
+  };
+
+  const handleRemoveChannel = async (channelId: string) => {
+    if (!suggestion || busy) return;
+    setActionError(null);
+    setSavingChannel(true);
+    try {
+      const updated = await removeSuggestionChannel(suggestion.id, channelId);
+      refresh(updated);
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Kanaal verwijderen mislukt.",
+      );
+    } finally {
+      setSavingChannel(false);
+    }
+  };
 
   // Bibliotheek lazy laden zodra we weten dat dit voorstel media
   // ondersteunt. Mail-suggesties slaan we over.
@@ -583,7 +637,12 @@ export default function VoorstelDetailPage() {
               variant="primary"
               onClick={handleApprove}
               loading={approving}
-              disabled={busy}
+              disabled={busy || channels.length > 1}
+              title={
+                channels.length > 1
+                  ? "Multi-channel-goedkeuren komt binnenkort. Verwijder eerst extra kanalen."
+                  : "Maak een concept-campagne van dit voorstel"
+              }
             >
               ✓ Goedkeuren &amp; maak concept
             </Button>
@@ -612,6 +671,118 @@ export default function VoorstelDetailPage() {
           'verwacht'-cijfers vooral gokwerk. Reasoning + concrete inhoud
           spreken voor zich; eigenaar wil snel kunnen beslissen, niet
           eerst door 5 stat-cards heen lezen. */}
+
+      {/* Kanaal-toggle (fase 2b) — eigenaar kiest welke kanalen dit
+          voorstel gebruikt. Active = pill met groene fill, inactive =
+          omlijnd. Per-kanaal inhoud-editing volgt in fase 2c; voor nu
+          wordt nieuwe content geseed met de body van het primaire
+          kanaal en kan eigenaar zelf aanpassen na goedkeuring. */}
+      {isPending && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">Kanalen</div>
+              <div className="card-st">
+                Kies via welke kanalen dit voorstel uitgaat. Bij
+                goedkeuring wordt elk kanaal een aparte campagne.
+              </div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {(
+                [
+                  "mail",
+                  "whatsapp",
+                  "instagram",
+                  "facebook",
+                  "tiktok",
+                ] as Platform[]
+              ).map((p) => {
+                const isActive = activePlatforms.has(p);
+                const channel = channels.find((c) => c.platform === p);
+                const onClick = () => {
+                  if (busy) return;
+                  if (isActive && channel) {
+                    if (channels.length <= 1) return;
+                    handleRemoveChannel(channel.id);
+                  } else {
+                    handleAddChannel(p);
+                  }
+                };
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={onClick}
+                    disabled={busy || (isActive && channels.length <= 1)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      border: isActive
+                        ? "2px solid var(--accent, #1F4A2D)"
+                        : "1px solid var(--border, #E5DFD0)",
+                      background: isActive
+                        ? "var(--accent, #1F4A2D)"
+                        : "var(--white, #FFFFFF)",
+                      color: isActive
+                        ? "var(--white, #FFFFFF)"
+                        : "var(--text)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor:
+                        busy || (isActive && channels.length <= 1)
+                          ? "default"
+                          : "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span>{PLATFORM_ICON[p]}</span>
+                    <span>{PLATFORM_LABEL[p].replace("-post", "").replace("-bericht", "").replace("-video", "")}</span>
+                    {isActive && channels.length > 1 && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          opacity: 0.8,
+                        }}
+                      >
+                        ✕
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {channels.length > 1 && (
+              <div
+                style={{
+                  marginTop: 12,
+                  fontSize: 12,
+                  color: "var(--ts)",
+                  lineHeight: 1.5,
+                  background: "#FEF7E6",
+                  border: "1px solid #FCE5B0",
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                }}
+              >
+                Per-kanaal inhoud + tijd kun je in deze versie nog niet
+                apart aanpassen, dat volgt binnenkort. De huidige inhoud
+                + tijd worden bij goedkeuring naar elk kanaal gekopieerd.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Foto-card, alleen voor social/whatsapp. Mail ondersteunt nog
           geen media (consistent met campaigns.uploadMedia). */}
