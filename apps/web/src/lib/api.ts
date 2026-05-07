@@ -685,6 +685,15 @@ export type AiSuggestion = {
   suggested_campaign: {
     name?: string;
     type?: "mail" | "social" | "whatsapp";
+    // Per 2026-05-07: specifieker platform-veld dan 'type'. 'type' blijft
+    // voor backwards-compat met legacy seed-data. Voor social-campagnes
+    // specificeert 'platform' welk netwerk (instagram/facebook/tiktok).
+    platform?:
+      | "mail"
+      | "whatsapp"
+      | "instagram"
+      | "facebook"
+      | "tiktok";
     // Nieuwe shape (sinds 3-varianten-flow):
     variants?: Array<{
       subject_line?: string;

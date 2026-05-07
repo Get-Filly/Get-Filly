@@ -128,6 +128,36 @@ type ProposalDetailsFromTool = {
 // nieuwe campagne-voorstellen op basis van profile + menu + actuele
 // bezetting/weer. Elke suggestie krijgt zijn eigen trigger_type
 // zodat de UI 'm correct labelt (lage bezetting, weer, seizoen, etc).
+// Per 2026-05-07: 'social' is gesplitst in specifieke platforms
+// (instagram/facebook/tiktok) zodat Filly per platform kan kiezen.
+// 'mail' en 'whatsapp' blijven 1-op-1. Backwards-compat: oude
+// suggestions met campaign_type='social' worden bij read genormaliseerd
+// naar platform='instagram' (default).
+export type SuggestionPlatform =
+  | 'mail'
+  | 'whatsapp'
+  | 'instagram'
+  | 'facebook'
+  | 'tiktok';
+
+const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
+  'mail',
+  'whatsapp',
+  'instagram',
+  'facebook',
+  'tiktok',
+];
+
+// Mapper: SuggestionPlatform → campaigns.type. Specifieke socials gaan
+// naar campaign.type='social' met platforms=[platform] in social_content
+// zodat de bestaande campagne-data-laag niet hoeft te veranderen.
+function platformToCampaignType(
+  p: SuggestionPlatform,
+): 'mail' | 'social' | 'whatsapp' {
+  if (p === 'mail' || p === 'whatsapp') return p;
+  return 'social';
+}
+
 const GENERATE_SUGGESTIONS_SCHEMA = {
   type: 'object',
   properties: {
@@ -150,9 +180,12 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
             ],
           },
           urgency: { type: 'string', enum: ['low', 'medium', 'high'] },
-          campaign_type: {
+          // Specifieke platforms i.p.v. de oude 3 ('mail'/'social'/
+          // 'whatsapp'). Filly kiest het kanaal dat het beste bij de
+          // doelgroep + tone-of-voice past.
+          platform: {
             type: 'string',
-            enum: ['mail', 'social', 'whatsapp'],
+            enum: SUGGESTION_PLATFORMS,
           },
           name: { type: 'string' },
           subject_line: { type: 'string' },
@@ -165,7 +198,7 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
         required: [
           'trigger_type',
           'urgency',
-          'campaign_type',
+          'platform',
           'name',
           'body',
           'reasoning',
@@ -185,7 +218,7 @@ type GeneratedSuggestionFromTool = {
     | 'birthday'
     | 'general';
   urgency: 'low' | 'medium' | 'high';
-  campaign_type: 'mail' | 'social' | 'whatsapp';
+  platform: SuggestionPlatform;
   name: string;
   subject_line?: string;
   body: string;
@@ -308,6 +341,11 @@ export type AiSuggestion = {
 // terug op de legacy-velden.
 export type SuggestedCampaign = {
   type?: 'mail' | 'social' | 'whatsapp';
+  // Per 2026-05-07: specifieker platform-veld naast 'type'. 'type' blijft
+  // voor backwards-compat met legacy seed-data; nieuwe suggesties zetten
+  // beide. Voor 'social'-campaigns specificeert platform welk netwerk
+  // (instagram/facebook/tiktok), zodat de UI de juiste preview kan tonen.
+  platform?: SuggestionPlatform;
   name?: string;
   // Nieuwe shape: max 3 alternatieven naast elkaar.
   variants?: Array<{
@@ -455,8 +493,14 @@ Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone uit het profiel.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
-- Per voorstel: kies één campagne_type (mail, social, of whatsapp) dat past bij de doelgroep van die specifieke campagne. Mix de types over de 3-5 voorstellen.
-- subject_line: alleen voor mail-campagnes; voor social/whatsapp laat je 'm weg.
+- Per voorstel: kies één platform dat het beste past bij de doelgroep en het type bericht:
+  - mail: lange-vorm, voor vaste klanten met opt-in (formeler, persoonlijker).
+  - whatsapp: kort en direct, voor topgasten met telefoonnummer (vriendelijke top-tafel-aanpak).
+  - instagram: visueel, voor jongere doelgroep (foto-first, korte caption, hashtags).
+  - facebook: bredere doelgroep + lokale buurt, iets meer tekst dan Instagram.
+  - tiktok: jong (<25), trendy, korte zinnen, alleen als de tone-of-voice past.
+  Mix platforms over de 3-5 voorstellen.
+- subject_line: alleen voor mail; voor whatsapp/instagram/facebook/tiktok laat je 'm weg.
 - body: volledige uitgeschreven tekst, klaar om te versturen.
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
 - reasoning: 1-2 zinnen NL waarom dit voorstel nu past, verwijs naar concrete signalen uit profile/menu/live-data.
@@ -541,7 +585,11 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         reason: s.reasoning,
       },
       suggested_campaign: {
-        type: s.campaign_type,
+        // Behoud 'type' voor backwards-compat met bestaande readers
+        // (kaart-preview, oude approve-flow). 'platform' is het nieuwe
+        // veld dat specifieker is dan 'social'.
+        type: platformToCampaignType(s.platform),
+        platform: s.platform,
         name: s.name,
         subject_line: s.subject_line,
         body: s.body,
@@ -1090,6 +1138,20 @@ Maak dit tastbaar volgens de regels.`;
             }))
         : [];
 
+    // Per 2026-05-07: als de suggestie een specifiek platform heeft
+    // (instagram/facebook/tiktok), zetten we 'platforms' op de social-
+    // content zodat de campagne weet via welk netwerk 'ie gepost wordt.
+    // Default 'instagram' als platform niet expliciet gezet is maar
+    // type wel 'social' is (legacy fallback).
+    const scWithPlatform = sc as { platform?: SuggestionPlatform };
+    const socialPlatforms: string[] | undefined =
+      type === 'social'
+        ? scWithPlatform.platform &&
+          ['instagram', 'facebook', 'tiktok'].includes(scWithPlatform.platform)
+          ? [scWithPlatform.platform]
+          : ['instagram']
+        : undefined;
+
     // Campagne aanmaken als concept. CampaignsService rolt zelf terug
     // bij content-insert-fout; hier hoeven we daar niet nog een laag
     // omheen.
@@ -1101,6 +1163,7 @@ Maak dit tastbaar volgens de regels.`;
         subject_line,
         body,
         seed_variants: seedVariants,
+        social_platforms: socialPlatforms,
       },
       userId,
     );

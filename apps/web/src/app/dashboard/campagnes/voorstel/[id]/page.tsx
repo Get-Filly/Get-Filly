@@ -36,18 +36,30 @@ import { MediaLibraryPicker } from "../../../_components/media-library-picker";
 // Fase 1: single-channel-equivalent. Multi-channel + per-kanaal-timing
 // volgt in fase 2 (data-model uitbreiding + channel-tabs).
 
-const TYPE_ICON: Record<string, string> = {
+// Per 2026-05-07 fase 2: specifieker platform-label gebaseerd op
+// suggested_campaign.platform. Backwards-compat: oude suggesties zonder
+// platform-veld vallen terug op 'type' met 'social' → 'Social-post'.
+type Platform =
+  | "mail"
+  | "whatsapp"
+  | "instagram"
+  | "facebook"
+  | "tiktok";
+
+const PLATFORM_ICON: Record<Platform, string> = {
   mail: "✉️",
-  social: "📱",
   whatsapp: "💬",
+  instagram: "📷",
+  facebook: "👥",
+  tiktok: "🎬",
 };
 
-// Per 2026-05-07: 'social' krijgt voorlopig label 'Social-post' (Instagram /
-// Facebook / TikTok worden in fase 2 als specifieke kanalen gesplitst).
-const TYPE_LABEL: Record<string, string> = {
+const PLATFORM_LABEL: Record<Platform, string> = {
   mail: "E-mail",
-  social: "Social-post",
   whatsapp: "WhatsApp-bericht",
+  instagram: "Instagram-post",
+  facebook: "Facebook-post",
+  tiktok: "TikTok-video",
 };
 
 // Filly's voorgestelde tijdstip = trigger_context.target_date + standaard
@@ -91,10 +103,6 @@ function timesEqualToMinute(a: string | null, b: string | null): boolean {
   return (
     Math.floor(da.getTime() / 60000) === Math.floor(db.getTime() / 60000)
   );
-}
-
-function formatEuroFromCents(cents: number): string {
-  return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
 }
 
 export default function VoorstelDetailPage() {
@@ -171,11 +179,28 @@ export default function VoorstelDetailPage() {
   // Afgeleide waarden (memo waar zinnig om re-renders te beperken)
   // ────────────────────────────────────────────────────────────
   const sc = suggestion?.suggested_campaign ?? {};
+  // Backwards-compat: gebruik 'platform' als die gezet is, anders val
+  // terug op 'type'. 'type=social' zonder platform → instagram (default)
+  // zodat oude suggesties niet als generic 'social' blijven hangen.
+  const platform: Platform = (() => {
+    if (
+      sc.platform === "mail" ||
+      sc.platform === "whatsapp" ||
+      sc.platform === "instagram" ||
+      sc.platform === "facebook" ||
+      sc.platform === "tiktok"
+    ) {
+      return sc.platform;
+    }
+    if (sc.type === "mail" || sc.type === "whatsapp") return sc.type;
+    if (sc.type === "social") return "instagram";
+    return "mail";
+  })();
+  const platformLabel = PLATFORM_LABEL[platform];
+  // 'type' (mail/social/whatsapp) is wat de variant-rendering en de
+  // foto-flow nog gebruiken; mappen vanuit platform.
   const type: "mail" | "social" | "whatsapp" =
-    sc.type === "mail" || sc.type === "social" || sc.type === "whatsapp"
-      ? sc.type
-      : "mail";
-  const typeLabel = TYPE_LABEL[type];
+    platform === "mail" || platform === "whatsapp" ? platform : "social";
   const name = sc.name ?? "Naamloos voorstel";
 
   const targetDate =
@@ -481,7 +506,6 @@ export default function VoorstelDetailPage() {
     );
   }
 
-  const expected = suggestion.expected_impact;
   const isPending = suggestion.status === "pending";
 
   return (
@@ -511,7 +535,7 @@ export default function VoorstelDetailPage() {
           marginBottom: 8,
         }}
       >
-        <div style={{ fontSize: 28 }}>{TYPE_ICON[type]}</div>
+        <div style={{ fontSize: 28 }}>{PLATFORM_ICON[platform]}</div>
         <div style={{ flex: 1 }}>
           <div className="page-title" style={{ marginBottom: 4 }}>
             {name}
@@ -529,7 +553,7 @@ export default function VoorstelDetailPage() {
                 borderRadius: 999,
               }}
             >
-              Voorstel · {typeLabel}
+              Voorstel · {platformLabel}
             </span>
             {!isPending && (
               <span style={{ color: "var(--tl)", fontSize: 12 }}>

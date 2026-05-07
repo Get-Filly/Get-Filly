@@ -889,8 +889,26 @@ function SuggestionCard({
   // expected_impact en confidence_score blijven beschikbaar voor de
   // detail-modal, niet meer op de kaart sinds 2026-05-06 (compacter).
 
+  // Per 2026-05-07: specifieker label gebaseerd op platform. Backwards-
+  // compat: als geen platform, val terug op type (social → Instagram).
+  const platform =
+    typeof (sc as { platform?: string }).platform === "string"
+      ? ((sc as { platform: string }).platform as string)
+      : type === "social"
+        ? "instagram"
+        : type;
   const typeLabel =
-    type === "mail" ? "E-mail" : type === "social" ? "Social" : "WhatsApp";
+    platform === "mail"
+      ? "E-mail"
+      : platform === "whatsapp"
+        ? "WhatsApp"
+        : platform === "instagram"
+          ? "Instagram"
+          : platform === "facebook"
+            ? "Facebook"
+            : platform === "tiktok"
+              ? "TikTok"
+              : "Social";
   const trigger = triggerLabel[suggestion.trigger_type] ?? {
     icon: "💡",
     text: suggestion.trigger_type,
