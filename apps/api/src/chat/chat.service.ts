@@ -1146,9 +1146,22 @@ export function extractCampaignProposal(
     // versies of als Claude per ongeluk de oude shape returnt). De
     // legacy-shape promoten we direct naar één variant in een array
     // zodat het downstream-model uniform is.
+    //
+    // Defensief: Claude geeft soms (zeldzame quirk, waargenomen
+    // 2026-05-07) een array-veld als JSON-encoded string terug i.p.v.
+    // een echte array. We parsen de string defensief vóór de check.
+    let rawVariants: unknown = parsed.variants;
+    if (typeof rawVariants === 'string') {
+      try {
+        const decoded = JSON.parse(rawVariants);
+        if (Array.isArray(decoded)) rawVariants = decoded;
+      } catch {
+        // Onparseable → laat staan, valt door naar legacy-pad.
+      }
+    }
     let variants: ProposalVariant[] = [];
-    if (Array.isArray(parsed.variants)) {
-      variants = parsed.variants
+    if (Array.isArray(rawVariants)) {
+      variants = rawVariants
         .map(sanitizeVariant)
         .filter((v): v is ProposalVariant => v !== null);
     } else if (typeof parsed.body === 'string' && parsed.body.trim()) {

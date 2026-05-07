@@ -501,10 +501,29 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     // eigenaar op de detail-knop klikt (lazy-load = geen extra Claude-
     // calls voor voorstellen die hij toch overslaat).
     //
-    // Defensieve guard: in zeldzame gevallen (token-cap-hit, malformed
-    // tool-use response, of model retry-failure) krijgen we hier geen
-    // array. Beter een nette NL-fout dan een 500 met cryptic stacktrace.
-    if (!raw || !Array.isArray(raw.suggestions) || raw.suggestions.length === 0) {
+    // Defensieve guard: in zeldzame gevallen krijgen we hier geen
+    // array. Twee scenarios:
+    //   1) Tool-use parse-fail: raw is null/undefined.
+    //   2) Quirk waargenomen 2026-05-07: Claude levert 'suggestions'
+    //      als JSON-encoded string i.p.v. een echte array. Dat
+    //      'overleeft' het JSON-schema kennelijk niet altijd. We
+    //      normaliseren door de string te parsen voordat we falen.
+    let suggestionsArr: GeneratedSuggestionFromTool[] | null = null;
+    const rawSuggestions = (raw as unknown as { suggestions?: unknown })
+      ?.suggestions;
+    if (Array.isArray(rawSuggestions)) {
+      suggestionsArr = rawSuggestions as GeneratedSuggestionFromTool[];
+    } else if (typeof rawSuggestions === 'string') {
+      try {
+        const parsed = JSON.parse(rawSuggestions);
+        if (Array.isArray(parsed)) {
+          suggestionsArr = parsed as GeneratedSuggestionFromTool[];
+        }
+      } catch {
+        // Onparseable → val door naar de error-flow hieronder.
+      }
+    }
+    if (!suggestionsArr || suggestionsArr.length === 0) {
       // Geen logger in deze service, gebruik console.warn (consistent
       // met andere fail-soft-handlers elders in dezelfde file).
       console.warn(
@@ -514,7 +533,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         'Filly kon nu geen voorstellen genereren. Dat gebeurt soms, probeer het over een minuut opnieuw.',
       );
     }
-    const rows = raw.suggestions.map((s) => ({
+    const rows = suggestionsArr.map((s) => ({
       restaurant_id: restaurantId,
       trigger_type: s.trigger_type,
       trigger_context: {

@@ -313,10 +313,27 @@ function coerceMenu(raw: RawMenuFromTool, kind: CardKind): ExtractedMenu {
   // Schema markeert items als required, maar Claude kan bij edge
   // cases (helemaal lege kaart, bestand niet leesbaar) een lege
   // array of geen veld terugsturen. Defensief naar [] coercen.
-  const rawItems = Array.isArray(raw?.items) ? raw.items : [];
+  //
+  // Daarnaast: Claude geeft array-velden soms (zeldzame quirk,
+  // waargenomen 2026-05-07) als JSON-encoded string terug i.p.v.
+  // een echte array. Probeer eerst te parsen voordat we naar []
+  // vallen.
+  let rawItemsRaw: unknown = raw?.items;
+  if (typeof rawItemsRaw === 'string') {
+    try {
+      const decoded = JSON.parse(rawItemsRaw);
+      if (Array.isArray(decoded)) rawItemsRaw = decoded;
+    } catch {
+      // Onparseable → val door naar [].
+    }
+  }
+  const rawItems: unknown[] = Array.isArray(rawItemsRaw) ? rawItemsRaw : [];
   const items: ExtractedMenuItem[] = [];
   for (const it of rawItems) {
-    const cleaned = coerceMenuItem(it, kind);
+    const cleaned = coerceMenuItem(
+      it as RawMenuFromTool['items'][number],
+      kind,
+    );
     if (cleaned) items.push(cleaned);
   }
 
