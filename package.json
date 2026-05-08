@@ -10,5 +10,14 @@
     "dev:shared": "pnpm --filter @getfilly/shared dev",
     "build": "pnpm --recursive build",
     "supabase:apply-templates": "node scripts/apply-supabase-auth-config.mjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@swc/core",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
