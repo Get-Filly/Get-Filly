@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   fetchRestaurant,
@@ -15,6 +15,7 @@ import { supabase } from "../../../lib/supabase";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { MailDomainSection } from "../_components/mail-domain-section";
 import { RestaurantMediaSection } from "../_components/restaurant-media-section";
+import { ConnectionsSection } from "../_components/account-connections";
 import { Button } from "../../../components/ui/button";
 import { ButtonLink } from "../../../components/ui/button-link";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -23,6 +24,11 @@ import { Input, Textarea } from "../../../components/ui/input";
 import { ServicePeriodsEditor } from "../../../components/service-periods-editor";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
+
+// Sub-tabs binnen account/Profiel (Floris-redesign 2026-05-12).
+// 3 tabs: Algemeen / Identiteit / Koppelingen. URL-gedreven via
+// `?tab=identiteit` zodat refresh stabiel is en de tab deelbaar.
+type AccountTab = "algemeen" | "identiteit" | "koppelingen";
 
 const restaurantTypes = [
   "bistro",
@@ -80,6 +86,34 @@ export default function AccountPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // ============================================================
+  // Sub-tabs binnen account/Profiel (Floris-redesign 2026-05-12)
+  // ============================================================
+  // 3 tabs: Algemeen / Identiteit / Koppelingen. URL-gedreven via
+  // `?tab=...` zodat refresh stabiel is en de tab deelbaar is via
+  // link (bv. een mail-link "klik hier voor je koppelingen").
+  // BELANGRIJK: hooks moeten vóór de early returns (loading/error)
+  // anders verspringt de hook-volgorde tussen renders.
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab: AccountTab =
+    tabParam === "identiteit" || tabParam === "koppelingen"
+      ? tabParam
+      : "algemeen";
+  const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
+  // URL bijwerken zonder full reload bij tab-wissel.
+  const switchTab = (next: AccountTab) => {
+    setActiveTab(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "algemeen") {
+      params.delete("tab");
+    } else {
+      params.set("tab", next);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/dashboard/account?${qs}` : "/dashboard/account");
+  };
 
   useEffect(() => {
     fetchRestaurant()
@@ -243,20 +277,73 @@ export default function AccountPage() {
 
   return (
     <div className="page-full">
-      <PageHeader
-        title="Account"
-        subtitle="Jouw restaurant-profiel. Hoe uitgebreider je dit invult, hoe scherper Filly campagnes kan voorstellen en versturen."
-      />
+      <PageHeader title="Account" />
 
-      {/* Onboarding-checklist: dismissable, verbergt zich automatisch
-          zodra alle items op ✓ staan. De meeste items linken terug
-          naar plekken op deze pagina, dus visueel is dit de logische
-          plek (vlak boven het invul-werk). */}
-      <OnboardingChecklist />
+      {/* Sub-tab-balk: Algemeen / Identiteit / Koppelingen.
+          Direct onder PageHeader zodat eigenaar eerst kiest wáár
+          'ie is, daarna pas de content ziet. OnboardingChecklist
+          verhuist naar binnen de Algemeen-tab. */}
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: "var(--space-5)",
+          borderBottom: "1px solid var(--border, #E5DFD0)",
+        }}
+      >
+        {(
+          [
+            { key: "algemeen", label: "Algemeen" },
+            { key: "identiteit", label: "Identiteit" },
+            { key: "koppelingen", label: "Koppelingen" },
+          ] as Array<{ key: AccountTab; label: string }>
+        ).map(({ key, label }) => {
+          const active = activeTab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => switchTab(key)}
+              style={{
+                padding: "10px 16px",
+                border: "none",
+                background: "transparent",
+                borderBottom: active
+                  ? "2px solid var(--brand, #1F4A2D)"
+                  : "2px solid transparent",
+                color: active ? "var(--brand, #1F4A2D)" : "var(--tl)",
+                fontSize: 14,
+                fontWeight: active ? 600 : 500,
+                cursor: "pointer",
+                marginBottom: -1,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* ============================================================
-          Sectie 1, Restaurant
+          Per sectie staat hieronder een `{activeTab === "..." && ...}`
+          wrapper. Algemeen / Identiteit / Koppelingen verdelen de
+          secties als volgt (zie comments per sectie):
+          - Algemeen: 1, 4, 6, 7, 7b, 8, 11, 12b, 14, 15
+          - Identiteit: 1c, 2, 3, 9, 10, 13
+          - Koppelingen: 1b (mail-domein) + 12 (mail-afzender) + alle
+            externe integraties (Reserveringen, Google Business,
+            Social, Reviews, Data)
           ============================================================ */}
+
+      {/* OnboardingChecklist: zit binnen Algemeen-tab. De checklist
+          verwijst meestal naar items in deze tab; op Identiteit /
+          Koppelingen voegt 'ie alleen ruis toe. */}
+      {activeTab === "algemeen" && <OnboardingChecklist />}
+
+      {/* ============================================================
+          Sectie 1, Restaurant — ALGEMEEN
+          ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Restaurant</div>
         <div className="form-section-desc">
@@ -352,27 +439,26 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 1b, Mail-instellingen (eigen domein optioneel)
+          Sectie 1b, Mail-instellingen — KOPPELINGEN
           ============================================================
           Eigen module met eigen state-management, bewust niet in het
-          form-state-blok van deze pagina. Aanmaken/verifiëren/verwijderen
-          gebeurt direct via de eigen endpoints, geen interactie met de
-          rest van de save-flow. */}
-      <MailDomainSection />
+          form-state-blok van deze pagina. */}
+      {activeTab === "koppelingen" && <MailDomainSection />}
 
       {/* ============================================================
-          Sectie 1c, Foto-bibliotheek
+          Sectie 1c, Foto-bibliotheek — IDENTITEIT
           ============================================================
           Eigen state-management (upload/list/delete via REST). Filly
-          gebruikt deze foto's bij campagne-suggesties via de description
-          + tags die bij upload door Haiku Vision worden gegenereerd. */}
-      <RestaurantMediaSection />
+          gebruikt deze foto's bij campagne-suggesties. */}
+      {activeTab === "identiteit" && <RestaurantMediaSection />}
 
       {/* ============================================================
-          Sectie 2, Identiteit (voor AI)
+          Sectie 2, Identiteit — IDENTITEIT
           ============================================================ */}
+      {activeTab === "identiteit" && (
       <div className="form-section">
         <div className="form-section-title">Identiteit</div>
         <div className="form-section-desc">
@@ -453,10 +539,12 @@ export default function AccountPage() {
           />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 3, Website (Filly leest mee)
+          Sectie 3, Website — IDENTITEIT
           ============================================================ */}
+      {activeTab === "identiteit" && (
       <div className="form-section">
         <div className="form-section-title">Website, Filly leest mee</div>
         <div className="form-section-desc">
@@ -505,10 +593,12 @@ export default function AccountPage() {
           />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 4, Locatie
+          Sectie 4, Locatie — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Locatie</div>
         <div className="form-section-desc">
@@ -547,16 +637,15 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* Sectie 5 (Openingstijden) verwijderd 2026-05-12: vervangen door
-          sectie 7b (Service-tijden), die per-dag en per-service-periode
-          fijnmaziger is. DB-kolom `opening_hours` blijft bestaan voor
-          backwards-compat met TasksStrip's isOpenOn-filter; eigenaar
-          beheert openingstijden voortaan impliciet via service-tijden. */}
+          sectie 7b (Service-tijden). */}
 
       {/* ============================================================
-          Sectie 6, Sluitingsdata / vakanties
+          Sectie 6, Sluitingsdata — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Sluitingsdata &amp; vakanties</div>
         <div className="form-section-desc">
@@ -635,10 +724,12 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 7, Capaciteit
+          Sectie 7, Capaciteit — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Capaciteit</div>
         <div className="form-section-desc">
@@ -828,13 +919,12 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 7b, Service-tijden (sinds mig 0038)
-          ============================================================
-          Per-dag ontbijt/lunch/diner-tijden + aantal zittingen.
-          Bepaalt de structuur van de dashboard week/dag-views en de
-          KPI-aggregaten per service-periode. */}
+          Sectie 7b, Service-tijden — ALGEMEEN
+          ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Service-tijden</div>
         <div className="form-section-desc">
@@ -849,10 +939,12 @@ export default function AccountPage() {
           />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 8, Talen
+          Sectie 8, Talen — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Talen die je personeel spreekt</div>
         <div className="form-section-desc">
@@ -889,10 +981,12 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 9, Branding (logo, kleuren, toon)
+          Sectie 9, Branding — IDENTITEIT
           ============================================================ */}
+      {activeTab === "identiteit" && (
       <div className="form-section">
         <div className="form-section-title">Branding</div>
         <div className="form-section-desc">
@@ -1028,10 +1122,12 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 10, Social media
+          Sectie 10, Social media — IDENTITEIT
           ============================================================ */}
+      {activeTab === "identiteit" && (
       <div className="form-section">
         <div className="form-section-title">Social media</div>
         <div className="form-section-desc">
@@ -1089,10 +1185,12 @@ export default function AccountPage() {
           />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 11, Bedrijfsgegevens (P0 voor mailings + legal)
+          Sectie 11, Bedrijfsgegevens — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Bedrijfsgegevens</div>
         <div className="form-section-desc">
@@ -1142,10 +1240,12 @@ export default function AccountPage() {
           />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 12, E-mailinstellingen (mailings)
+          Sectie 12, E-mailinstellingen — KOPPELINGEN
           ============================================================ */}
+      {activeTab === "koppelingen" && (
       <div className="form-section">
         <div className="form-section-title">E-mailinstellingen voor mailings</div>
         <div className="form-section-desc">
@@ -1174,13 +1274,12 @@ export default function AccountPage() {
           />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 12b, Meldingen
-          ============================================================
-          Bepaalt wanneer reviews en lage-bezetting-dagen als actie
-          verschijnen in de overige-acties-strip op /dashboard/campagnes.
-          Mig 0036 (reviews) + 0037 (bezetting). */}
+          Sectie 12b, Meldingen — ALGEMEEN
+          ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Meldingen</div>
         <div className="form-section-desc">
@@ -1283,10 +1382,12 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 13, Menukaart (link naar dedicated pagina)
+          Sectie 13, Menukaart — IDENTITEIT
           ============================================================ */}
+      {activeTab === "identiteit" && (
       <div className="form-section">
         <div className="form-section-title">Menukaart</div>
         <div className="form-section-desc">
@@ -1298,10 +1399,12 @@ export default function AccountPage() {
           </ButtonLink>
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 14, Abonnement
+          Sectie 14, Abonnement — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Abonnement</div>
         <div className="form-section-desc">
@@ -1311,10 +1414,12 @@ export default function AccountPage() {
           <Input label="Huidig plan" type="text" value={form.plan} disabled />
         </div>
       </div>
+      )}
 
       {/* ============================================================
-          Sectie 15, Data & privacy (AVG)
+          Sectie 15, Data & privacy — ALGEMEEN
           ============================================================ */}
+      {activeTab === "algemeen" && (
       <div className="form-section">
         <div className="form-section-title">Data &amp; privacy</div>
         <div className="form-section-desc">
@@ -1393,6 +1498,14 @@ export default function AccountPage() {
           </Button>
         </div>
       </div>
+      )}
+
+      {/* ============================================================
+          KOPPELINGEN-TAB: integraties als cards per categorie
+          ============================================================ */}
+      {activeTab === "koppelingen" && (
+        <ConnectionsSection />
+      )}
 
       {/* ============================================================
           Modal: account-delete-bevestiging

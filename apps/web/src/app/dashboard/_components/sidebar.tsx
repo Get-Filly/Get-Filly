@@ -40,13 +40,18 @@ type MenuItem = {
 const allMenuItems: MenuItem[] = [
   { href: "/dashboard", label: "Dashboard", module: "dashboard", icon: "📊" },
   { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes", icon: "📣" },
-  { href: "/dashboard/marketing", label: "Marketing", module: "marketing", icon: "🎯" },
+  // Marketing-hub uit sidebar verwijderd 2026-05-12: kanaal-overzicht
+  // is verhuisd naar /dashboard/rapportages (top-blokken). Route
+  // /dashboard/marketing bestaat nog voor backwards-compat met
+  // bestaande deep-links; kan in latere cleanup-sessie weg.
   { href: "/dashboard/google-business", label: "Google Business", module: "google_business", icon: "💼" },
   { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: "📅" },
   { href: "/dashboard/gasten", label: "Gasten", module: "gasten", icon: "👥" },
   { href: "/dashboard/menu", label: "Menu", module: "menu", icon: "🍽️" },
   { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: "📈" },
-  { href: "/dashboard/koppelingen", label: "Koppelingen", module: "koppelingen", icon: "🔌" },
+  // Koppelingen-hub uit sidebar verwijderd 2026-05-12: alle integraties
+  // zitten nu in account → Profiel → Koppelingen-tab. Route
+  // /dashboard/koppelingen bestaat nog voor backwards-compat.
 ];
 
 /**
