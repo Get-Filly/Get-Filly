@@ -1,302 +1,165 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
+  approveBundleSuggestion,
   approveSuggestion,
-  deleteCampaign,
   fetchCampaigns,
   fetchSuggestions,
-  generateSuggestions,
-  updateCampaignStatus,
   updateSuggestion,
   type AiSuggestion,
   type Campaign,
 } from "../../../lib/api";
-import { Skeleton } from "../_components/skeleton";
 import { TasksStrip } from "../_components/tasks-strip";
-// SuggestionDetailModal vervangen door /campagnes/voorstel/[id]-route
-// per 2026-05-07.
-import { Badge, type BadgeVariant } from "../../../components/ui/badge";
-import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
-import { EmptyState } from "../../../components/ui/empty-state";
-import { Tabs } from "../../../components/ui/tabs";
-import { Chips } from "../../../components/ui/chips";
+import { Button } from "../../../components/ui/button";
+import { Skeleton } from "../_components/skeleton";
 
-// Map campagne-status → semantische Badge-variant. Eén plek waar
-// "wat betekent deze status visueel" beslist wordt, als we later
-// kleur-mapping willen wijzigen (bv. ingepland van neutral naar info)
-// hoeft dat hier maar 1 keer.
-const statusBadgeVariant: Record<Campaign["status"], BadgeVariant> = {
-  concept: "neutral",
-  ingepland: "info",
-  actief: "success",
-  afgerond: "brand",
+// ============================================================
+// /dashboard/campagnes — kanban-bord met 4 fase-kolommen
+// ============================================================
+// Floris-redesign 2026-05-12: 4 kolommen voor de campagne-flow:
+//   - Voorstel  : pending ai_suggestions (single + chat_bundle)
+//   - Concept   : campaigns met status='concept'
+//   - Ingepland : campaigns met status='ingepland'
+//   - Actief    : campaigns met status='actief'
+// Voltooide campagnes verhuizen naar /campagnes/history.
+//
+// Bundle-handling: multi-channel-suggestions (trigger_type=
+// 'chat_bundle') én campaigns met dezelfde group_id worden als één
+// expand-bare bundle-card getoond. Klik op de chevron = uitklap met
+// per-kanaal mini-rijen.
+//
+// TasksStrip (Overige acties) blijft staan onderaan tot Floris
+// besloten heeft hoe daar verder mee om te gaan.
+
+type KanbanColumn = {
+  key: "voorstel" | "concept" | "ingepland" | "actief";
+  label: string;
+  description: string;
 };
 
-const statusLabel: Record<Campaign["status"], string> = {
-  concept: "Concept",
-  ingepland: "Ingepland",
-  actief: "Actief",
-  afgerond: "Afgerond",
-};
-
-type StatusFilter = "alle" | "actief" | "ingepland" | "concept" | "afgerond";
-type TypeFilter = "alle" | Campaign["type"];
-
-const statusFilters: { key: StatusFilter; label: string }[] = [
-  { key: "alle", label: "Alle" },
-  { key: "actief", label: "Actief" },
-  { key: "ingepland", label: "Ingepland" },
-  { key: "concept", label: "Concept" },
-  { key: "afgerond", label: "Afgerond" },
+const COLUMNS: KanbanColumn[] = [
+  { key: "voorstel", label: "Voorstel", description: "Wachten op je goedkeuring" },
+  { key: "concept", label: "Concept", description: "Nog in te plannen" },
+  { key: "ingepland", label: "Ingepland", description: "Wachten op verzendmoment" },
+  { key: "actief", label: "Actief", description: "Loopt nu" },
 ];
 
-const typeFilterOptions: { key: TypeFilter; label: string; icon: string }[] = [
-  { key: "alle", label: "Alle types", icon: "·" },
-  { key: "mail", label: "Mail", icon: "✉️" },
-  { key: "social", label: "Social", icon: "📱" },
-  { key: "whatsapp", label: "WhatsApp", icon: "💬" },
-];
+// Eén item op het bord: of een suggestion (voorstel-kolom) of een
+// campagne / bundle (overige kolommen).
+type BoardItem =
+  | { kind: "suggestion"; data: AiSuggestion }
+  | { kind: "bundle-suggestion"; data: AiSuggestion }
+  | { kind: "campaign"; data: Campaign }
+  | { kind: "bundle-campaign"; groupId: string; campaigns: Campaign[] };
 
-const typeIcon: Record<Campaign["type"], string> = {
-  mail: "✉️",
-  social: "📱",
-  whatsapp: "💬",
-};
-
-// Vertaling van ai_suggestions.trigger_type naar een herkenbare
-// visuele context. Emoji + korte label. 'chat' = voortgekomen uit
-// een gesprek met Filly, rest komt uit Filly's auto-detectie.
-const triggerLabel: Record<string, { icon: string; text: string }> = {
-  chat: { icon: "💬", text: "Uit chat" },
-  low_occupancy: { icon: "📉", text: "Lage bezetting" },
-  weather: { icon: "🌧️", text: "Weer" },
-  seasonal: { icon: "📅", text: "Seizoen" },
-  birthday: { icon: "🎂", text: "Verjaardag" },
-  retention: { icon: "💔", text: "Retentie" },
-};
-
-function formatEuroShort(cents?: number): string {
-  if (!cents) return "—";
-  return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
+function typeIcon(t: string | undefined | null): string {
+  if (!t) return "📋";
+  if (t === "mail") return "✉️";
+  if (t === "whatsapp") return "💬";
+  if (t === "instagram") return "📱";
+  if (t === "facebook") return "👥";
+  if (t === "tiktok") return "🎵";
+  return "📱";
 }
 
-const urgencyColor: Record<string, string> = {
-  high: "#DC2626",
-  medium: "#F97316",
-  low: "#A1A1AA",
-};
-
-const urgencyLabel: Record<string, string> = {
-  high: "Hoge urgentie",
-  medium: "Deze week",
-  low: "Planning",
-};
-
-// Gemiddelde besteding per gast, gebruikt om een omzet-schatting te maken
-// als de campagne geen concrete extra_revenue_cents heeft.
-const AVG_SPEND_CENTS = 4500;
-
-function formatEuroFromCents(cents: number): string {
-  return `€${(cents / 100).toLocaleString("nl-NL", { maximumFractionDigits: 0 })}`;
+function suggestionDisplayName(s: AiSuggestion): string {
+  return s.suggested_campaign.name ?? "Voorstel";
 }
 
-function campaignImpactEuro(c: Campaign): number {
-  const stats = c.result_stats ?? {};
-  if (typeof stats.extra_revenue_cents === "number") {
-    return stats.extra_revenue_cents;
+function suggestionDisplayType(s: AiSuggestion): string {
+  return (
+    s.suggested_campaign.platform ??
+    s.suggested_campaign.type ??
+    s.suggested_campaign.channels?.[0]?.platform ??
+    "campagne"
+  );
+}
+
+function suggestionReasoning(s: AiSuggestion): string | null {
+  if (s.reasoning) return s.reasoning;
+  const ctx = s.trigger_context;
+  if (!ctx) return null;
+  if (typeof ctx === "object" && "target_date" in ctx) {
+    const date = (ctx as { target_date?: string }).target_date;
+    return date ? `Voor ${date}` : null;
   }
-  const res = stats.extra_reservations ?? 0;
-  return res * AVG_SPEND_CENTS;
+  return null;
 }
 
-// Lokale status per suggestie-kaartje zodat de UI kan laten zien dat
-// er iets in behandeling is (goedkeuren duurt een korte moment omdat
-// de backend ook een campagne aanmaakt).
-type SuggestionActionState =
-  | { state: "idle" }
-  | { state: "approving" }
-  | { state: "rejecting" }
-  | { state: "restoring" }
-  | { state: "error"; message: string };
-
-// Tabs binnen de suggesties-strip:
-//   - 'open'     = pending én nog niet verlopen (wachten op actie)
-//   - 'expired'  = pending maar de target-datum is voorbij
-//   - 'rejected' = eerder afgewezen, herstelbaar via "Terugzetten"
-// Zo kan de eigenaar weggeklikte of te-laat-bekeken voorstellen terug-
-// vinden zonder de active "open"-lijst te vervuilen.
-type SuggestionTab = "open" | "expired" | "rejected";
-
-/**
- * Detecteer of een pending suggestie inmiddels verlopen is op basis van
- * de target-datum in trigger_context. We gebruiken `target_date` (ISO
- * yyyy-mm-dd, gebruikt door low_occupancy-trigger). Als die ontbreekt
- * vallen we terug op `created_at + 14 dagen` als veilige default.
- *
- * Frontend-detectie i.p.v. wachten op een backend-job: zo zijn de tabs
- * meteen correct, ook als er nog geen cron-marker draait. Wanneer de
- * api `status: "expired"` daadwerkelijk gaat schrijven, blijft deze
- * functie kloppen, we kijken naar pending én expired-status hieronder.
- */
-function isSuggestionExpired(s: AiSuggestion): boolean {
-  const ctx = s.trigger_context as { target_date?: string } | null;
-  const target = ctx?.target_date;
-  const todayStr = new Date().toISOString().slice(0, 10);
-  if (target) return target < todayStr;
-  // Geen target-datum: zacht-verloop na 14 dagen om de open-lijst niet
-  // oneindig vol te laten lopen met oude voorstellen.
-  const created = new Date(s.created_at);
-  const expireAt = new Date(created);
-  expireAt.setDate(created.getDate() + 14);
-  return expireAt < new Date();
+function formatRelativeDate(iso: string | null): string {
+  if (!iso) return "Geen datum";
+  const target = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetMidnight = new Date(target);
+  targetMidnight.setHours(0, 0, 0, 0);
+  const diff = Math.round(
+    (targetMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const dayLabel = target.toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+  });
+  if (diff < 0) return `${dayLabel} (verleden)`;
+  if (diff === 0) return `${dayLabel} (vandaag)`;
+  if (diff === 1) return `${dayLabel} (morgen)`;
+  return `${dayLabel} (over ${diff} dgn)`;
 }
 
 export default function CampagnesPage() {
-  const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  // Alle pending suggesties uit de backend; we splitsen ze hieronder
-  // lokaal in "open" (target-datum nog actueel) en "expired" (datum
-  // voorbij) via isSuggestionExpired.
-  const [pendingSuggestions, setPendingSuggestions] = useState<AiSuggestion[]>(
-    [],
-  );
-  // Suggesties die backend zélf op status="expired" heeft gezet (via
-  // toekomstige cron). Worden bij de lokaal-verlopen pending's gevoegd
-  // op de Verlopen-tab.
-  const [expiredFromBackend, setExpiredFromBackend] = useState<AiSuggestion[]>(
-    [],
-  );
-  const [rejectedSuggestions, setRejectedSuggestions] = useState<
-    AiSuggestion[]
-  >([]);
+  const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("alle");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("alle");
-  const [query, setQuery] = useState("");
-  const [suggestionAction, setSuggestionAction] = useState<
-    Record<string, SuggestionActionState>
-  >({});
-  const [suggestionTab, setSuggestionTab] = useState<SuggestionTab>("open");
-  // Detail-modal-state per 2026-05-07 verwijderd; voorstel-detail is
-  // nu een eigen route. SuggestionCard.onDetails navigeert direct.
-  // Welke campagnes ondergaan op dit moment een quick-action zodat
-  // we de knoppen kunnen disablen tijdens de roundtrip naar de server.
-  const [campaignAction, setCampaignAction] = useState<
-    Record<string, "saving" | "deleting">
-  >({});
+  // Per-item actie-state (approve / reject pending).
+  const [busyId, setBusyId] = useState<string | null>(null);
+  // Expanded bundle-cards.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // "Vraag Filly om voorstellen"-state. Loading = knop disabled +
-  // spinner-tekst. Error = niet-modaal flash bij fout (bv. "vul
-  // eerst je menu in").
-  const [generating, setGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
-
-  const handleGenerateSuggestions = async () => {
-    setGenerating(true);
-    setGenerateError(null);
+  const refetch = async () => {
     try {
-      await generateSuggestions();
-      // Pendings opnieuw ophalen zodat de strip direct bijwerkt.
-      const fresh = await fetchSuggestions("pending", ["chat_bundle"]);
-      setPendingSuggestions(fresh);
-    } catch (e) {
-      setGenerateError(
-        e instanceof Error
-          ? e.message
-          : "Voorstellen genereren mislukt. Probeer het zo opnieuw.",
-      );
-    } finally {
-      setGenerating(false);
+      const [camps, suggs] = await Promise.all([
+        fetchCampaigns(),
+        fetchSuggestions("pending"),
+      ]);
+      setCampaigns(camps);
+      setSuggestions(suggs);
+    } catch {
+      // Stille fail: lege state zorgt voor empty-state per kolom.
     }
   };
 
-  // Bij mount halen we campagnes + alle 3 suggestion-emmers parallel
-  // op. Rejected en expired hebben we vooraf nodig zodat we de tab-
-  // counts direct kunnen tonen, niet pas na tab-click. fetchSuggestions
-  // met "expired" geeft alleen wat backend zelf op die status heeft
-  // gezet; lokaal-verlopen pending's voegen we hieronder toe.
   useEffect(() => {
-    // chat_bundle-suggesties uitsluiten: die horen alleen in de chat-
-    // flow (bundle-card), niet als losse suggestie op deze pagina.
-    Promise.all([
-      fetchCampaigns(),
-      fetchSuggestions("pending", ["chat_bundle"]),
-      fetchSuggestions("expired", ["chat_bundle"]),
-      fetchSuggestions("rejected", ["chat_bundle"]),
-    ])
-      .then(([c, pend, exp, rej]) => {
-        setCampaigns(c);
-        setPendingSuggestions(pend);
-        setExpiredFromBackend(exp);
-        setRejectedSuggestions(rej);
-        setLoading(false);
-      })
-      .catch((e: Error) => {
-        setError(e.message);
-        setLoading(false);
-      });
+    setLoading(true);
+    refetch().finally(() => setLoading(false));
   }, []);
 
-  // Splits pending in echt-open vs lokaal-verlopen (target-datum
-  // voorbij). Combineer lokaal-verlopen met backend-expired voor de
-  // Verlopen-tab.
-  const openSuggestions = useMemo(
-    () => pendingSuggestions.filter((s) => !isSuggestionExpired(s)),
-    [pendingSuggestions],
-  );
-  const expiredSuggestions = useMemo(
-    () => [
-      ...pendingSuggestions.filter(isSuggestionExpired),
-      ...expiredFromBackend,
-    ],
-    [pendingSuggestions, expiredFromBackend],
-  );
+  // Verdeel items over de 4 kolommen.
+  const columns = useMemo(() => {
+    const result: Record<KanbanColumn["key"], BoardItem[]> = {
+      voorstel: [],
+      concept: [],
+      ingepland: [],
+      actief: [],
+    };
 
-  // Welke suggesties we nú tonen hangt af van de actieve tab.
-  const visibleSuggestions =
-    suggestionTab === "open"
-      ? openSuggestions
-      : suggestionTab === "expired"
-        ? expiredSuggestions
-        : rejectedSuggestions;
-
-  const filtered = useMemo(() => {
-    let out = campaigns;
-    if (statusFilter !== "alle") {
-      out = out.filter((c) => c.status === statusFilter);
+    // Voorstel-kolom: ai_suggestions, split op trigger_type voor bundles.
+    for (const s of suggestions) {
+      if (s.trigger_type === "chat_bundle") {
+        result.voorstel.push({ kind: "bundle-suggestion", data: s });
+      } else {
+        result.voorstel.push({ kind: "suggestion", data: s });
+      }
     }
-    if (typeFilter !== "alle") {
-      out = out.filter((c) => c.type === typeFilter);
-    }
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      out = out.filter((c) =>
-        `${c.name} ${c.meta ?? ""}`.toLowerCase().includes(q),
-      );
-    }
-    return out;
-  }, [campaigns, statusFilter, typeFilter, query]);
 
-  const count = (status: StatusFilter) =>
-    status === "alle"
-      ? campaigns.length
-      : campaigns.filter((c) => c.status === status).length;
-
-  // Per 2026-05-07 fase 4: groepeer campagnes per group_id zodat
-  // multi-channel-bundles als één rij verschijnen op /campagnes
-  // (i.p.v. 3 losse rows). Groepen met maar 1 lid behandelen we als
-  // stand-alone, anders krijg je nutteloze 'bundles van 1'-rijen.
-  type ListItem =
-    | { kind: "campaign"; campaign: Campaign }
-    | { kind: "bundle"; groupId: string; campaigns: Campaign[] };
-  const listItems = useMemo<ListItem[]>(() => {
+    // Campagne-kolommen: groepeer per group_id. Afgeronde campagnes
+    // skippen (verhuisden naar /history-route).
     const byGroup = new Map<string, Campaign[]>();
     const standalone: Campaign[] = [];
-    for (const c of filtered) {
+    for (const c of campaigns) {
+      if (c.status === "afgerond") continue;
       if (c.group_id) {
         const arr = byGroup.get(c.group_id) ?? [];
         arr.push(c);
@@ -305,1101 +168,610 @@ export default function CampagnesPage() {
         standalone.push(c);
       }
     }
-    // Bouw items in oorspronkelijke (created_at-desc) volgorde. We
-    // gebruiken de positie van het EERSTE lid van een groep als
-    // anker zodat een bundle op de juiste plek in de lijst staat.
-    const seen = new Set<string>();
-    const items: ListItem[] = [];
-    for (const c of filtered) {
-      if (c.group_id) {
-        if (seen.has(c.group_id)) continue;
-        seen.add(c.group_id);
-        const groupCampaigns = byGroup.get(c.group_id) ?? [];
-        if (groupCampaigns.length > 1) {
-          items.push({
-            kind: "bundle",
-            groupId: c.group_id,
-            campaigns: groupCampaigns,
-          });
-          continue;
-        }
-      }
-      items.push({ kind: "campaign", campaign: c });
+    // Standalone: gewoon op status mappen.
+    for (const c of standalone) {
+      if (c.status === "concept") result.concept.push({ kind: "campaign", data: c });
+      else if (c.status === "ingepland")
+        result.ingepland.push({ kind: "campaign", data: c });
+      else if (c.status === "actief")
+        result.actief.push({ kind: "campaign", data: c });
     }
-    void standalone; // alleen voor type-check, items komt uit de loop
-    return items;
-  }, [filtered]);
+    // Bundles: status-bepaling op meest 'dominante' status binnen
+    // de groep. Conservatief: concept > ingepland > actief (toon in
+    // de vroegste fase als 'er nog iets te doen is').
+    for (const [groupId, group] of byGroup.entries()) {
+      if (group.length === 0) continue;
+      const statuses = new Set(group.map((c) => c.status));
+      let target: KanbanColumn["key"] | null = null;
+      if (statuses.has("concept")) target = "concept";
+      else if (statuses.has("ingepland")) target = "ingepland";
+      else if (statuses.has("actief")) target = "actief";
+      if (target) {
+        result[target].push({
+          kind: "bundle-campaign",
+          groupId,
+          campaigns: group,
+        });
+      }
+    }
 
-  const totalImpact = useMemo(() => {
-    return campaigns.reduce(
-      (acc, c) => {
-        const stats = c.result_stats ?? {};
-        acc.reservations += stats.extra_reservations ?? 0;
-        acc.revenue += campaignImpactEuro(c);
-        acc.retention += stats.retention_guests ?? 0;
-        return acc;
-      },
-      { reservations: 0, revenue: 0, retention: 0 },
-    );
-  }, [campaigns]);
+    return result;
+  }, [campaigns, suggestions]);
 
-  // Goedkeur-handler: ai_suggestion → campagne. Backend regelt de
-  // volledige flow (create campaign + update suggestion status +
-  // link approved_campaign_id). Na succes: suggestie uit de lijst,
-  // refetch campagnes zodat de nieuwe direct in de tabel staat.
+  const toggleExpand = (key: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const handleApprove = async (s: AiSuggestion) => {
-    setSuggestionAction((m) => ({ ...m, [s.id]: { state: "approving" } }));
+    setBusyId(s.id);
     try {
-      const { campaignId } = await approveSuggestion(s.id);
-      setPendingSuggestions((prev) => prev.filter((x) => x.id !== s.id));
-      // Refetch zodat de nieuwe campagne in de lijst en stats verschijnt.
-      const fresh = await fetchCampaigns();
-      setCampaigns(fresh);
-      // Direct door naar de nieuwe campagne zodat de eigenaar 'm
-      // kan checken / editen vóór verzending.
-      router.push(`/dashboard/campagnes/${campaignId}`);
+      if (s.trigger_type === "chat_bundle") {
+        // Default: alle 3 kanalen meenemen (mail + instagram + facebook).
+        // Bundle-detail-pagina laat eigenaar straks per kanaal opt-in/out.
+        await approveBundleSuggestion(s.id, ["mail", "instagram", "facebook"]);
+      } else {
+        await approveSuggestion(s.id);
+      }
+      await refetch();
     } catch (e) {
-      setSuggestionAction((m) => ({
-        ...m,
-        [s.id]: {
-          state: "error",
-          message: e instanceof Error ? e.message : "Goedkeuren mislukt.",
-        },
-      }));
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Goedkeuren mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setBusyId(null);
     }
   };
 
   const handleReject = async (s: AiSuggestion) => {
-    setSuggestionAction((m) => ({ ...m, [s.id]: { state: "rejecting" } }));
+    setBusyId(s.id);
     try {
-      const updated = await updateSuggestion(s.id, "rejected");
-      setPendingSuggestions((prev) => prev.filter((x) => x.id !== s.id));
-      // Direct naar de "afgewezen"-emmer verplaatsen zodat user
-      // via de tab kan terugvinden wat hij net weggeklikt heeft.
-      setRejectedSuggestions((prev) => [updated, ...prev]);
+      await updateSuggestion(s.id, "rejected");
+      await refetch();
     } catch (e) {
-      setSuggestionAction((m) => ({
-        ...m,
-        [s.id]: {
-          state: "error",
-          message: e instanceof Error ? e.message : "Afwijzen mislukt.",
-        },
-      }));
-    }
-  };
-
-  // Quick-action: campagne van status veranderen (concept → ingepland,
-  // ingepland → actief, etc). Optimistisch updaten in lokale state na
-  // succes, server is bron van waarheid maar refetch kost een extra
-  // roundtrip die we hier kunnen besparen.
-  const handleCampaignStatus = async (
-    c: Campaign,
-    next: Campaign["status"],
-  ) => {
-    setCampaignAction((m) => ({ ...m, [c.id]: "saving" }));
-    try {
-      await updateCampaignStatus(c.id, next);
-      setCampaigns((prev) =>
-        prev.map((x) => (x.id === c.id ? { ...x, status: next } : x)),
-      );
-    } catch (e) {
-      console.error(e);
-      // Eenvoudige feedback voor nu, alert is niet mooi maar
-      // duidelijk; later vervangen door inline toast-systeem.
       alert(
         e instanceof Error
           ? e.message
-          : "Status-wijziging mislukt. Probeer opnieuw.",
+          : "Afwijzen mislukt. Probeer opnieuw.",
       );
     } finally {
-      setCampaignAction((m) => {
-        const copy = { ...m };
-        delete copy[c.id];
-        return copy;
-      });
-    }
-  };
-
-  // Hard-delete vraagt expliciete bevestiging, dit is onomkeerbaar.
-  // Backend laat alleen concept-campagnes wissen, dus de bevestiging
-  // kan kort blijven.
-  const handleCampaignDelete = async (c: Campaign) => {
-    if (
-      !confirm(
-        `Weet je zeker dat je '${c.name}' wilt verwijderen? Dit kan niet ongedaan worden.`,
-      )
-    ) {
-      return;
-    }
-    setCampaignAction((m) => ({ ...m, [c.id]: "deleting" }));
-    try {
-      await deleteCampaign(c.id);
-      setCampaigns((prev) => prev.filter((x) => x.id !== c.id));
-    } catch (e) {
-      console.error(e);
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Verwijderen mislukt. Probeer opnieuw.",
-      );
-    } finally {
-      setCampaignAction((m) => {
-        const copy = { ...m };
-        delete copy[c.id];
-        return copy;
-      });
-    }
-  };
-
-  // Herstel-handler: afgewezen → pending. Gebruikt voor "per ongeluk
-  // afgewezen"-gevallen. Endpoint is dezelfde updateSuggestion-PATCH
-  // zodat we geen apart restore-endpoint nodig hebben.
-  const handleRestore = async (s: AiSuggestion) => {
-    setSuggestionAction((m) => ({ ...m, [s.id]: { state: "restoring" } }));
-    try {
-      const updated = await updateSuggestion(s.id, "pending");
-      setRejectedSuggestions((prev) => prev.filter((x) => x.id !== s.id));
-      setPendingSuggestions((prev) => [updated, ...prev]);
-      // Automatisch terug naar de open-tab zodat user de herstelde
-      // suggestie meteen ziet, anders lijkt het alsof er niks is
-      // gebeurd.
-      setSuggestionTab("open");
-    } catch (e) {
-      setSuggestionAction((m) => ({
-        ...m,
-        [s.id]: {
-          state: "error",
-          message: e instanceof Error ? e.message : "Terugzetten mislukt.",
-        },
-      }));
+      setBusyId(null);
     }
   };
 
   return (
     <div className="page-full">
-      {/* Titel-rij met "Nieuwe campagne"-CTA rechts zodat de primaire
-          actie altijd zichtbaar is op de overzichtspagina. */}
       <PageHeader
         title="Campagnes"
-        subtitle="Voorstellen van Filly én actieve campagnes, op één plek."
         actions={
-          <>
-            {/* Filly aan het werk-knop. Werkt zodra er ≥3 menu-items zijn
-                (anders BadRequest met helpende tekst). Per 2026-05-05:
-                primary-variant (brand-groen) + zonder ✨-emoji voor
-                een schonere look. */}
-            <Button
-              variant="primary"
-              loading={generating}
-              onClick={handleGenerateSuggestions}
-              title="Filly bekijkt je profiel + menu en genereert 3-5 nieuwe voorstellen"
-            >
-              Vraag Filly om voorstellen
-            </Button>
-            <Button variant="secondary">＋ Nieuwe campagne</Button>
-          </>
+          <Link
+            href="/dashboard/campagnes/history"
+            style={{ textDecoration: "none" }}
+          >
+            <Button variant="brand-soft">📦 Historie</Button>
+          </Link>
         }
       />
-      {generateError && (
-        <div
-          style={{
-            marginTop: 8,
-            padding: "10px 12px",
-            background: "var(--surface, #efe8d8)",
-            border: "1px solid var(--border, #e5dfd0)",
-            borderRadius: 6,
-            fontSize: 13,
-            color: "var(--text-secondary, #52525B)",
-          }}
-        >
-          {generateError}
-        </div>
-      )}
 
-      {/* Impact-blok, de twee belangrijkste Filly-metrics krijgen de
-          stat-card-filly variant (groene rand links + groene waarde)
-          zodat attributie visueel consistent is met andere pagina's.
-          marginBottom 20: ruimte tussen KPI's en de Voorstellen-strip
-          die matcht met de andere section-marges op deze pagina. */}
-      <div className="stats-row" style={{ marginBottom: 20 }}>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Extra reserveringen</div>
-          <div className="stat-card-val">
-            {loading ? (
-              <Skeleton height={22} width="50%" />
-            ) : (
-              `+${totalImpact.reservations}`
-            )}
-          </div>
-        </div>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Extra omzet</div>
-          <div className="stat-card-val">
-            {loading ? (
-              <Skeleton height={22} width="60%" />
-            ) : (
-              formatEuroFromCents(totalImpact.revenue)
-            )}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Slapende gasten terug</div>
-          <div className="stat-card-val">
-            {loading ? (
-              <Skeleton height={22} width="40%" />
-            ) : (
-              totalImpact.retention
-            )}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Voorstellen open</div>
-          <div className="stat-card-val">
-            {loading ? (
-              <Skeleton height={22} width="30%" />
-            ) : (
-              openSuggestions.length
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Suggesties-sectie, tonen zodra er ergens een voorstel zit
-          (open, verlopen, of afgewezen). Anders verbergen we de hele
-          strip zodat nieuwe klanten met een leeg dashboard niet tegen
-          "0 voorstellen" aanlopen. */}
-      {!loading &&
-        (openSuggestions.length > 0 ||
-          expiredSuggestions.length > 0 ||
-          rejectedSuggestions.length > 0) && (
-          <section style={{ marginTop: 0, marginBottom: 10 }}>
-            <div style={{ marginBottom: 6 }}>
-              {/* Sub-kop: zelfde stijl als "Overige acties" en
-                  "Campagnes" hieronder, zwart, fontSize 15, geen
-                  emoji. Visuele uniformiteit tussen de drie blokken
-                  op deze pagina. */}
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "var(--text, #18181B)",
-                  marginBottom: 2,
-                }}
-              >
-                Voorstellen van Filly
-              </div>
-              <div style={{ fontSize: 12, color: "var(--tl)" }}>
-                {suggestionTab === "open"
-                  ? openSuggestions.length === 0
-                    ? "Geen open voorstellen, alles is afgehandeld."
-                    : openSuggestions.length === 1
-                      ? "1 voorstel wacht op jouw goedkeuring."
-                      : `${openSuggestions.length} voorstellen wachten op jouw goedkeuring.`
-                  : suggestionTab === "expired"
-                    ? expiredSuggestions.length === 0
-                      ? "Geen verlopen voorstellen."
-                      : "Voorbije datum, niet meer goedkeurbaar maar bewaard ter referentie."
-                    : rejectedSuggestions.length === 0
-                      ? "Nog geen afgewezen voorstellen."
-                      : "Eerder afgewezen. Klik 'Terugzetten' om er alsnog mee door te gaan."}
-              </div>
-            </div>
-
-            {/* Tabs, Open / Verlopen / Afgewezen altijd zichtbaar zodat
-                de structuur stabiel blijft, ook als één emmer (tijdelijk)
-                leeg is. Active-state via groene onderlijn. */}
-            <div className="suggestion-tabs">
-              {(
-                [
-                  { key: "open", label: "Open", count: openSuggestions.length },
-                  {
-                    key: "expired",
-                    label: "Verlopen",
-                    count: expiredSuggestions.length,
-                  },
-                  {
-                    key: "rejected",
-                    label: "Afgewezen",
-                    count: rejectedSuggestions.length,
-                  },
-                ] as { key: SuggestionTab; label: string; count: number }[]
-              ).map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setSuggestionTab(t.key)}
-                  className={`suggestion-tab ${
-                    suggestionTab === t.key ? "active" : ""
-                  }`}
-                >
-                  {t.label} ({t.count})
-                </button>
-              ))}
-            </div>
-
-            {visibleSuggestions.length > 0 ? (
-              <div
-                style={{
-                  display: "grid",
-                  // 1fr-max zodat kaarten de volle beschikbare breedte
-                  // vullen, bij brede schermen geen lege ruimte rechts
-                  // meer doordat de oude max van 480px begrenste.
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(380px, 1fr))",
-                  gap: 12,
-                  // Max ~2 rijen zichtbaar (kaart ~360px + 12px gap),
-                  // daarna interne scroll. Voorkomt dat de hele pagina
-                  // mee scrollt door 8+ voorstellen, overzichtelijker
-                  // én de KPI-rij blijft in beeld bij scrollen door de
-                  // lijst.
-                  maxHeight: 760,
-                  overflowY: "auto",
-                  // Ruimte rechts voor de scrollbar zodat 'ie niet
-                  // over de card-content valt.
-                  paddingRight: 8,
-                }}
-              >
-                {visibleSuggestions.map((s) => (
-                  <SuggestionCard
-                    key={s.id}
-                    suggestion={s}
-                    action={suggestionAction[s.id] ?? { state: "idle" }}
-                    mode={suggestionTab}
-                    onApprove={() => handleApprove(s)}
-                    onReject={() => handleReject(s)}
-                    onRestore={() => handleRestore(s)}
-                    onDetails={() =>
-                      router.push(`/dashboard/campagnes/voorstel/${s.id}`)
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: "20px 16px",
-                  color: "var(--tl)",
-                  fontSize: 13,
-                  textAlign: "center",
-                  border: "1px dashed var(--border, #E5DFD0)",
-                  borderRadius: 8,
-                }}
-              >
-                {suggestionTab === "open"
-                  ? "Geen voorstellen open."
-                  : "Geen afgewezen voorstellen."}
-              </div>
-            )}
-          </section>
-        )}
-
-      {/* Overige acties, reviews, reserverings-attenties, inzichten.
-          Eerder op /dashboard/taken, nu onder dezelfde hub als de
-          Filly-voorstellen zodat alle "wat moet ik doen"-items op één
-          plek staan. Component verbergt zichzelf als er niks is. */}
-      <TasksStrip />
-
-      {/* Campagnes-kop. Alleen als tekst-separator tussen acties
-          (die boven staan als er zijn) en de campagne-tabel zelf. */}
+      {/* Kanban-bord. Op desktop: 4 kolommen naast elkaar. Op mobile
+          (< 900px): kolommen onder elkaar (stack) zodat scrollen
+          natuurlijk verticaal is. */}
       <div
         style={{
-          marginTop: 0,
-          marginBottom: 8,
-          fontSize: 15,
-          fontWeight: 600,
-          color: "var(--text, #18181B)",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+          marginBottom: 24,
         }}
       >
-        Campagnes
+        {COLUMNS.map((col) => {
+          const items = columns[col.key];
+          return (
+            <KanbanColumn
+              key={col.key}
+              column={col}
+              items={items}
+              loading={loading}
+              busyId={busyId}
+              expanded={expanded}
+              onToggleExpand={toggleExpand}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          );
+        })}
       </div>
 
-      {/* Filters-rij: status-tabs (links) + type-chips (rechts). */}
-      <div className="campagnes-filters">
-        <Tabs
-          items={statusFilters.map((f) => ({
-            key: f.key,
-            label: f.label,
-            count: count(f.key),
-          }))}
-          active={statusFilter}
-          onChange={setStatusFilter}
-        />
-        <Chips
-          items={typeFilterOptions}
-          active={typeFilter}
-          onChange={setTypeFilter}
-        />
-      </div>
-
-      {/* Zoekveld: snel op naam of meta filteren, zelfde stijl als op
-          gasten-pagina zodat dashboard consistent voelt. */}
-      <input
-        type="search"
-        placeholder="Zoek op campagne-naam..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="search-input"
-      />
-
-      {loading ? (
-        <div className="data-table" style={{ padding: 16 }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{ display: "flex", gap: 16, padding: "10px 0" }}
-            >
-              <Skeleton height={18} width={18} />
-              <Skeleton height={18} width="30%" />
-              <Skeleton height={18} width="15%" />
-              <Skeleton height={18} width="20%" />
-              <Skeleton height={18} width="15%" />
-              <Skeleton height={18} width="10%" />
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        statusFilter === "alle" && typeFilter === "alle" && !query.trim() ? (
-          <EmptyState
-            icon="📣"
-            title={error ? "Campagnes niet geladen" : "Nog geen campagnes"}
-            description={
-              error
-                ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
-                : "Laat Filly een voorstel maken of start zelf een campagne, voor mail, social of WhatsApp."
-            }
-            action={
-              !error && <Button variant="primary">Nieuwe campagne</Button>
-            }
-          />
-        ) : (
-          <div className="table-empty">
-            Geen campagnes gevonden met deze filters.
-          </div>
-        )
-      ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}></th>
-              <th>Naam</th>
-              <th>Type</th>
-              <th>Details</th>
-              <th>Impact</th>
-              <th>Status</th>
-              <th style={{ width: 220 }}>Actie</th>
-            </tr>
-          </thead>
-          <tbody>
-            {listItems.map((item) => {
-              if (item.kind === "bundle") {
-                // Bundle-rij: aggregeer impact + bepaal dominante status
-                // + toon kanaal-icoontjes.
-                const totalRes = item.campaigns.reduce(
-                  (acc, c) =>
-                    acc + (c.result_stats?.extra_reservations ?? 0),
-                  0,
-                );
-                const totalRevenueCents = item.campaigns.reduce(
-                  (acc, c) => acc + campaignImpactEuro(c),
-                  0,
-                );
-                // Status-mix: als alle gelijk → die status, anders 'mixed'
-                // (= toon de eerste, met label '+ N'). Voor MVP: toon
-                // gewoon eerste campagne's status.
-                const firstStatus = item.campaigns[0].status;
-                // Bundle-naam: strip channel-suffix van eerste campagne
-                // (bv. 'Pasta-week, mail' → 'Pasta-week'). Werkt voor
-                // bundles aangemaakt door approveMultiChannel/Bundle.
-                const baseName = item.campaigns[0].name.replace(
-                  /,\s+(mail|whatsapp|instagram|facebook|tiktok)$/i,
-                  "",
-                );
-                return (
-                  <tr
-                    key={`bundle-${item.groupId}`}
-                    onClick={() =>
-                      router.push(
-                        `/dashboard/campagnes/bundle/${item.groupId}`,
-                      )
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td style={{ fontSize: 14 }}>
-                      {/* Stack van kanaal-iconen, max 4 zichtbaar */}
-                      <span style={{ display: "inline-flex", gap: 2 }}>
-                        {item.campaigns.slice(0, 4).map((c, i) => (
-                          <span key={i}>{typeIcon[c.type]}</span>
-                        ))}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>
-                      {baseName}
-                      <span
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 10,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          color: "var(--white, #FFFFFF)",
-                          background: "var(--accent, #1F4A2D)",
-                          padding: "2px 6px",
-                          borderRadius: 999,
-                        }}
-                      >
-                        Bundel
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        color: "var(--ts)",
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {item.campaigns.length} kanalen
-                    </td>
-                    <td style={{ color: "var(--tl)", fontSize: 12 }}>
-                      {item.campaigns.map((c) => c.type).join(" · ")}
-                    </td>
-                    <td style={{ fontSize: 12 }}>
-                      {totalRes > 0 ? (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              color: "var(--accent)",
-                            }}
-                          >
-                            +{totalRes} reserveringen
-                          </div>
-                          <div style={{ color: "var(--tl)" }}>
-                            {formatEuroFromCents(totalRevenueCents)} extra
-                          </div>
-                        </div>
-                      ) : (
-                        <span style={{ color: "var(--tl)" }}>—</span>
-                      )}
-                    </td>
-                    <td>
-                      <Badge
-                        variant={statusBadgeVariant[firstStatus]}
-                        withDot
-                      >
-                        {statusLabel[firstStatus]}
-                      </Badge>
-                    </td>
-                    <td style={{ color: "var(--tl)", fontSize: 12 }}>
-                      Open bundel →
-                    </td>
-                  </tr>
-                );
-              }
-
-              const c = item.campaign;
-              const stats = c.result_stats ?? {};
-              const extraRes = stats.extra_reservations;
-              const revenueCents = campaignImpactEuro(c);
-              const action = campaignAction[c.id];
-              const busy = action !== undefined;
-              return (
-                <tr
-                  key={c.id}
-                  onClick={() => router.push(`/dashboard/campagnes/${c.id}`)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <td style={{ fontSize: 18 }}>{typeIcon[c.type]}</td>
-                  <td style={{ fontWeight: 500 }}>{c.name}</td>
-                  <td style={{ color: "var(--ts)", textTransform: "capitalize" }}>
-                    {c.type}
-                  </td>
-                  <td style={{ color: "var(--tl)", fontSize: 12 }}>{c.meta}</td>
-                  <td style={{ fontSize: 12 }}>
-                    {extraRes ? (
-                      <div>
-                        <div style={{ fontWeight: 600, color: "var(--accent)" }}>
-                          +{extraRes} reserveringen
-                        </div>
-                        <div style={{ color: "var(--tl)" }}>
-                          {formatEuroFromCents(revenueCents)} extra
-                        </div>
-                      </div>
-                    ) : c.status === "ingepland" ? (
-                      <span style={{ color: "var(--tl)" }}>
-                        Nog niet verstuurd
-                      </span>
-                    ) : c.status === "concept" ? (
-                      <span style={{ color: "var(--tl)" }}>—</span>
-                    ) : (
-                      <span style={{ color: "var(--tl)" }}>Nog niet gemeten</span>
-                    )}
-                  </td>
-                  <td>
-                    <Badge
-                      variant={statusBadgeVariant[c.status]}
-                      withDot
-                    >
-                      {statusLabel[c.status]}
-                    </Badge>
-                  </td>
-                  {/* Quick-actions per status. stopPropagation zodat
-                      de row-klik (naar detail-page) niet ook afvuurt
-                      bij elke knop-klik. */}
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <CampaignActions
-                      status={c.status}
-                      busy={busy}
-                      action={action}
-                      onSchedule={() =>
-                        handleCampaignStatus(c, "ingepland")
-                      }
-                      onActivate={() =>
-                        handleCampaignStatus(c, "actief")
-                      }
-                      onComplete={() =>
-                        handleCampaignStatus(c, "afgerond")
-                      }
-                      onDelete={() => handleCampaignDelete(c)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-
-      {/* Per 2026-05-07: SuggestionDetailModal verwijderd. Voorstel-
-          detail is nu een eigen route /dashboard/campagnes/voorstel/[id]
-          (matched het patroon van /campagnes/[id] qua UX). */}
+      {/* Overige acties (TasksStrip): blijft voorlopig — Floris
+          beslist later hoe dit blok evolueert. */}
+      <TasksStrip />
     </div>
   );
 }
 
 // ============================================================
-// SuggestionCard, compacte kaart bovenaan de campagnes-pagina
+// KanbanColumn, één kolom met kop + cards
 // ============================================================
-// Toont één voorstel van Filly met genoeg context om direct te
-// kunnen beslissen zonder door te klikken:
-//   - bron (chat / lage bezetting / weer / ...)
-//   - type (mail / social / whatsapp)
-//   - titel + optionele onderwerp-regel + body-preview
-//   - urgentie
-//   - 3 acties: Goedkeuren / Details / Afwijzen
-// Goedkeuren maakt direct een campagne aan en navigeert erheen;
-// Details opent /dashboard/suggesties (voorlopig, tot chat-edit
-// inline beschikbaar is in blok 3).
-function SuggestionCard({
-  suggestion,
-  action,
-  mode,
+type ColumnProps = {
+  column: KanbanColumn;
+  items: BoardItem[];
+  loading: boolean;
+  busyId: string | null;
+  expanded: Set<string>;
+  onToggleExpand: (key: string) => void;
+  onApprove: (s: AiSuggestion) => void;
+  onReject: (s: AiSuggestion) => void;
+};
+
+function KanbanColumn({
+  column,
+  items,
+  loading,
+  busyId,
+  expanded,
+  onToggleExpand,
   onApprove,
   onReject,
-  onRestore,
-  onDetails,
-}: {
-  suggestion: AiSuggestion;
-  action: SuggestionActionState;
-  // 'open' = pending, toont Goedkeur/Afwijs-knoppen.
-  // 'rejected' = toont alleen 'Terugzetten'-knop zodat de user
-  // per ongeluk weggeklikte voorstellen kan herstellen.
-  mode: SuggestionTab;
-  onApprove: () => void;
-  onReject: () => void;
-  onRestore: () => void;
-  onDetails: () => void;
-}) {
-  const sc = suggestion.suggested_campaign ?? {};
-  const type = sc.type ?? "mail";
-  const name = sc.name ?? "Naamloos voorstel";
-
-  // Multi-variant shape (3-varianten-flow) heeft prioriteit; we
-  // pakken de geselecteerde variant voor de preview. Legacy single-
-  // body blijft werken via fallback. Zo blijven oude seed-suggesties
-  // én nieuwe chat-proposals beide netjes renderen op de kaart.
-  const variants =
-    Array.isArray(sc.variants) && sc.variants.length > 0
-      ? sc.variants
-      : null;
-  const selectedVariantIdx =
-    typeof sc.selected_index === "number" &&
-    variants &&
-    sc.selected_index >= 0 &&
-    sc.selected_index < variants.length
-      ? sc.selected_index
-      : 0;
-  const selectedVariant = variants ? variants[selectedVariantIdx] : null;
-
-  const subject =
-    selectedVariant?.subject_line ?? sc.subject_line ?? sc.subject;
-  const body =
-    selectedVariant?.body ?? sc.body ?? sc.caption ?? "";
-  // Compacte preview: ~140 chars zorgt voor max 2 zinnen op de kaart.
-  // Volledige body staat in de detail-modal achter de Details-knop.
-  const bodyPreview = body.length > 140 ? body.slice(0, 140) + "…" : body;
-  // expected_impact en confidence_score blijven beschikbaar voor de
-  // detail-modal, niet meer op de kaart sinds 2026-05-06 (compacter).
-
-  // Per 2026-05-07: specifieker label gebaseerd op platform. Backwards-
-  // compat: als geen platform, val terug op type (social → Instagram).
-  const platform =
-    typeof (sc as { platform?: string }).platform === "string"
-      ? ((sc as { platform: string }).platform as string)
-      : type === "social"
-        ? "instagram"
-        : type;
-  const typeLabel =
-    platform === "mail"
-      ? "E-mail"
-      : platform === "whatsapp"
-        ? "WhatsApp"
-        : platform === "instagram"
-          ? "Instagram"
-          : platform === "facebook"
-            ? "Facebook"
-            : platform === "tiktok"
-              ? "TikTok"
-              : "Social";
-  const trigger = triggerLabel[suggestion.trigger_type] ?? {
-    icon: "💡",
-    text: suggestion.trigger_type,
-  };
-
-  const busy =
-    action.state === "approving" ||
-    action.state === "rejecting" ||
-    action.state === "restoring";
-  const isRejected = mode === "rejected";
-  const isExpired = mode === "expired";
-  // Beide inactieve states krijgen dezelfde gedimde achtergrond zodat
-  // de eigenaar in één oogopslag ziet welke kaarten geen actie meer
-  // vragen (zonder ze te verbergen, soms wil je zien wat je miste).
-  const isInactive = isRejected || isExpired;
-
-  // Klik op de hele card opent de detail-modal. Klikken op de
-  // actie-knoppen (Goedkeur / Details / Afwijzen / Terugzetten)
-  // mag niet óók de modal openen, dus we negeren bubbled clicks
-  // die binnen een <button> origineel zijn. Per 2026-05-07.
-  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (busy) return;
-    const target = e.target as HTMLElement;
-    if (target.closest("button")) return;
-    onDetails();
-  };
-
+}: ColumnProps) {
   return (
     <div
-      onClick={handleCardClick}
       style={{
-        padding: 16,
+        background: "var(--bg-soft, #FAF7F1)",
         border: "1px solid var(--border, #E5DFD0)",
         borderRadius: 10,
-        background: isInactive ? "var(--bg, #FAF7F1)" : "var(--white, #FFFFFF)",
-        // Expired iets sterker gedimd dan rejected (verlopen = 100% niet
-        // meer actionable, afgewezen = nog wel via Terugzetten).
-        opacity: isExpired ? 0.7 : isRejected ? 0.75 : 1,
+        padding: 12,
         display: "flex",
         flexDirection: "column",
-        gap: 10,
-        cursor: busy ? "default" : "pointer",
+        minHeight: 200,
       }}
     >
-      {/* Header: trigger (emoji + label) links, urgency-dot rechts */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <div style={{ marginBottom: 10 }}>
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 11,
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            color: "var(--accent, #1F4A2D)",
+            alignItems: "baseline",
+            gap: 8,
+            justifyContent: "space-between",
           }}
         >
-          <span style={{ fontSize: 14 }}>{trigger.icon}</span>
-          <span>{trigger.text}</span>
-          <span
-            style={{
-              padding: "1px 8px",
-              background: "var(--accent, #1F4A2D)",
-              color: "white",
-              borderRadius: 999,
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: "normal",
-              textTransform: "none",
-              marginLeft: 4,
-            }}
-          >
-            {typeLabel}
-          </span>
-        </div>
-        {suggestion.urgency && (
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 11,
-              color: urgencyColor[suggestion.urgency],
-              fontWeight: 500,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--text, #18181B)",
             }}
           >
-            <div
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: urgencyColor[suggestion.urgency],
-              }}
-            />
-            {urgencyLabel[suggestion.urgency]}
+            {column.label}
           </div>
-        )}
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--tl)",
+              background: "var(--white, #FFFFFF)",
+              border: "1px solid var(--border, #E5DFD0)",
+              padding: "2px 8px",
+              borderRadius: 999,
+            }}
+          >
+            {items.length}
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--tl)",
+            marginTop: 2,
+          }}
+        >
+          {column.description}
+        </div>
       </div>
 
-      {/* Titel + onderwerp */}
-      <div>
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
-          {name}
-        </div>
-        {subject && (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          flex: 1,
+        }}
+      >
+        {loading ? (
+          [1, 2].map((i) => (
+            <Skeleton key={i} height={86} style={{ borderRadius: 8 }} />
+          ))
+        ) : items.length === 0 ? (
           <div
             style={{
               fontSize: 12,
-              color: "var(--ts)",
+              color: "var(--tl)",
+              padding: "16px 8px",
+              textAlign: "center",
+              border: "1px dashed var(--border, #E5DFD0)",
+              borderRadius: 8,
             }}
           >
-            Onderwerp: {subject}
+            Niks in deze kolom
           </div>
+        ) : (
+          items.map((item) => (
+            <BoardCard
+              key={cardKey(item)}
+              item={item}
+              busy={busyId === itemSuggestionId(item)}
+              isExpanded={expanded.has(cardKey(item))}
+              onToggleExpand={() => onToggleExpand(cardKey(item))}
+              onApprove={onApprove}
+              onReject={onReject}
+            />
+          ))
         )}
       </div>
-
-      {/* Body-preview (altijd tonen als er body is) */}
-      {bodyPreview && (
-        <div
-          style={{
-            fontSize: 13,
-            color: "var(--tl)",
-            lineHeight: 1.55,
-            flex: 1,
-          }}
-        >
-          {bodyPreview}
-        </div>
-      )}
-
-      {/* Detail-impact (verwacht reserveringen / omzet / confidence) en
-          uitgebreide reasoning zijn weggehaald van de kaart per
-          2026-05-06, eigenaar wilde compactere voorstellen. Volledige
-          impact-cijfers + lange reasoning staan in de detail-modal
-          achter de Details-knop. */}
-
-      {/* Actie-knoppen, afhankelijk van mode:
-            open     = Goedkeuren / Details / Afwijzen
-            rejected = Terugzetten / Details
-            expired  = alleen Details, voorbije datum kun je niet meer
-                       goedkeuren, en terugzetten heeft geen zin */}
-      {mode === "open" && (
-        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={onApprove}
-            loading={action.state === "approving"}
-            disabled={busy}
-            style={{ flex: 1 }}
-          >
-            ✓ Goedkeuren
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={onDetails}
-            disabled={busy}
-          >
-            Details
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={onReject}
-            loading={action.state === "rejecting"}
-            disabled={busy}
-            style={{ color: "var(--color-danger)" }}
-          >
-            ✕ Afwijzen
-          </Button>
-        </div>
-      )}
-      {mode === "rejected" && (
-        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={onRestore}
-            loading={action.state === "restoring"}
-            disabled={busy}
-            style={{ flex: 1 }}
-          >
-            ↩ Terugzetten op open
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={onDetails}
-            disabled={busy}
-          >
-            Details
-          </Button>
-        </div>
-      )}
-      {mode === "expired" && (
-        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={onDetails}
-            style={{ flex: 1 }}
-          >
-            Details bekijken
-          </Button>
-        </div>
-      )}
-
-      {action.state === "error" && (
-        <div
-          style={{
-            padding: "6px 10px",
-            background: "var(--red-soft, #fee)",
-            color: "var(--red, #b00)",
-            borderRadius: 6,
-            fontSize: 12,
-          }}
-        >
-          {action.message}
-        </div>
-      )}
-
-      {/* Korte 'waarom'-tekst onder de knoppen, max ~140 chars zodat
-          'ie 2 regels blijft. Volledige reasoning + impact-cijfers
-          staan in de detail-modal. */}
-      {suggestion.reasoning && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--ts)",
-            lineHeight: 1.5,
-            paddingTop: 8,
-            borderTop: "1px solid var(--border-soft, #EFE8D8)",
-          }}
-        >
-          {suggestion.reasoning.length > 140
-            ? suggestion.reasoning.slice(0, 140) + "…"
-            : suggestion.reasoning}
-        </div>
-      )}
     </div>
   );
 }
 
-// ============================================================
-// CampaignActions, quick-action knoppen per row in de campagnes-tabel
-// ============================================================
-// Lineaire flow per status, geen zijpaden:
-//   concept    → ✓ Inplannen   + ✕ Verwijder
-//   ingepland  → ▶ Activeer    + ✕ Verwijder
-//   actief     → ⏹ Stop        (zet 'm op afgerond)
-//   afgerond   → (geen actie, eindstaat, blijft staan voor historie)
-//
-// Verwijderen mag tot en met "ingepland" omdat de campagne dan nog
-// niet daadwerkelijk uitgegaan is. Daarna (actief/afgerond) is de
-// data audit-relevant en blijft de campagne staan.
-//
-// Visueel: kleine pill-knoppen, primaire actie groen (brand),
-// destructieve actie rood-tinted. Buttons zijn klein zodat de tabel
-// compact blijft.
-function CampaignActions({
-  status,
-  busy,
-  action,
-  onSchedule,
-  onActivate,
-  onComplete,
-  onDelete,
-}: {
-  status: Campaign["status"];
-  busy: boolean;
-  action: "saving" | "deleting" | undefined;
-  onSchedule: () => void;
-  onActivate: () => void;
-  onComplete: () => void;
-  onDelete: () => void;
-}) {
-  const baseBtn: React.CSSProperties = {
-    padding: "4px 10px",
-    fontSize: 11,
-    fontWeight: 500,
-    borderRadius: 5,
-    cursor: busy ? "not-allowed" : "pointer",
-    border: "1px solid var(--border, #E5DFD0)",
-    whiteSpace: "nowrap",
-  };
-  const primary: React.CSSProperties = {
-    ...baseBtn,
-    background: "var(--accent, #1F4A2D)",
-    color: "white",
-    border: "1px solid var(--accent, #1F4A2D)",
-  };
-  const danger: React.CSSProperties = {
-    ...baseBtn,
-    background: "transparent",
-    color: "var(--red, #DC2626)",
-  };
+function cardKey(item: BoardItem): string {
+  if (item.kind === "bundle-campaign") return `bundle-camp-${item.groupId}`;
+  if (item.kind === "bundle-suggestion") return `bundle-sug-${item.data.id}`;
+  if (item.kind === "suggestion") return `sug-${item.data.id}`;
+  return `camp-${item.data.id}`;
+}
 
-  const isSaving = action === "saving";
-  const isDeleting = action === "deleting";
-
-  if (status === "concept") {
-    return (
-      <div style={{ display: "flex", gap: 4 }}>
-        <button onClick={onSchedule} disabled={busy} style={primary}>
-          {isSaving ? "…" : "✓ Inplannen"}
-        </button>
-        <button onClick={onDelete} disabled={busy} style={danger}>
-          {isDeleting ? "…" : "✕ Verwijder"}
-        </button>
-      </div>
-    );
-  }
-  if (status === "ingepland") {
-    return (
-      <div style={{ display: "flex", gap: 4 }}>
-        <button onClick={onActivate} disabled={busy} style={primary}>
-          {isSaving ? "…" : "▶ Activeer"}
-        </button>
-        <button onClick={onDelete} disabled={busy} style={danger}>
-          {isDeleting ? "…" : "✕ Verwijder"}
-        </button>
-      </div>
-    );
-  }
-  if (status === "actief") {
-    return (
-      <div style={{ display: "flex", gap: 4 }}>
-        <button onClick={onComplete} disabled={busy} style={primary}>
-          {isSaving ? "…" : "⏹ Stop"}
-        </button>
-      </div>
-    );
-  }
-  // Afgerond = eindstaat: geen actie-knop. Inhoud is wel nog te
-  // bekijken via row-klik op de detail-pagina.
+function itemSuggestionId(item: BoardItem): string | null {
+  if (item.kind === "suggestion" || item.kind === "bundle-suggestion")
+    return item.data.id;
   return null;
 }
+
+// ============================================================
+// BoardCard, één kaart op het bord
+// ============================================================
+type CardProps = {
+  item: BoardItem;
+  busy: boolean;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onApprove: (s: AiSuggestion) => void;
+  onReject: (s: AiSuggestion) => void;
+};
+
+function BoardCard({
+  item,
+  busy,
+  isExpanded,
+  onToggleExpand,
+  onApprove,
+  onReject,
+}: CardProps) {
+  // Voorstel (single-channel): naam · kanaal-icon · reden · ✓/✗.
+  if (item.kind === "suggestion") {
+    const s = item.data;
+    const reason = suggestionReasoning(s);
+    return (
+      <Link
+        href={`/dashboard/campagnes/voorstel/${s.id}`}
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <div style={cardStyle}>
+          <div style={cardHeaderRow}>
+            <span style={{ fontSize: 16 }}>
+              {typeIcon(suggestionDisplayType(s))}
+            </span>
+            <span style={cardTitle}>{suggestionDisplayName(s)}</span>
+          </div>
+          {reason && <div style={cardSubtle}>{reason}</div>}
+          <div
+            style={{ display: "flex", gap: 6, marginTop: 8 }}
+            onClick={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApprove(s);
+              }}
+              style={btnApprove}
+            >
+              {busy ? "..." : "✓ Goedkeur"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                onReject(s);
+              }}
+              style={btnReject}
+            >
+              ✗ Wijs af
+            </button>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Bundle-voorstel: 1 card met 3 channel-icons + expand.
+  if (item.kind === "bundle-suggestion") {
+    const s = item.data;
+    const channels = s.suggested_campaign.channels ?? [];
+    return (
+      <div style={cardStyle}>
+        <div style={cardHeaderRow}>
+          <span style={{ fontSize: 16 }}>🎁</span>
+          <span style={cardTitle}>{suggestionDisplayName(s)}</span>
+          <span style={bundlePill}>Bundle</span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            marginTop: 6,
+            fontSize: 14,
+          }}
+        >
+          {channels.map((ch, i) => (
+            <span key={i} title={ch.platform}>
+              {typeIcon(ch.platform)}
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onApprove(s)}
+            style={btnApprove}
+          >
+            {busy ? "..." : "✓ Goedkeur"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onReject(s)}
+            style={btnReject}
+          >
+            ✗ Wijs af
+          </button>
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            style={btnGhost}
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? "▴" : "▾"}
+          </button>
+        </div>
+        {isExpanded && channels.length > 0 && (
+          <div style={expandWrap}>
+            {channels.map((ch, i) => (
+              <div key={i} style={expandRow}>
+                <span style={{ fontSize: 14 }}>{typeIcon(ch.platform)}</span>
+                <span style={{ flex: 1, textTransform: "capitalize" }}>
+                  {ch.platform}
+                </span>
+                <span style={{ fontSize: 10, color: "var(--tl)" }}>
+                  {ch.scheduled_for
+                    ? new Date(ch.scheduled_for).toLocaleDateString("nl-NL", {
+                        day: "numeric",
+                        month: "short",
+                      })
+                    : "geen datum"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Bundle-campagne: 1 card met channel-icons, expand toont mini-rijen
+  // per kanaal-campagne. Klik op de naam = naar bundle-detail.
+  if (item.kind === "bundle-campaign") {
+    const first = item.campaigns[0];
+    const name =
+      first.name.replace(/\s*[—\-·]\s*(mail|instagram|facebook|tiktok|whatsapp)\s*$/i, "") ||
+      first.name;
+    return (
+      <div style={cardStyle}>
+        <Link
+          href={`/dashboard/campagnes/bundle/${item.groupId}`}
+          style={{
+            textDecoration: "none",
+            color: "inherit",
+            display: "block",
+          }}
+        >
+          <div style={cardHeaderRow}>
+            <span style={{ fontSize: 16 }}>🎁</span>
+            <span style={cardTitle}>{name}</span>
+            <span style={bundlePill}>Bundle</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              marginTop: 6,
+              fontSize: 14,
+            }}
+          >
+            {item.campaigns.map((c) => (
+              <span key={c.id} title={c.type}>
+                {typeIcon(c.type)}
+              </span>
+            ))}
+          </div>
+        </Link>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          style={{ ...btnGhost, marginTop: 8, width: "100%" }}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? "▴ Inklappen" : "▾ Per kanaal"}
+        </button>
+        {isExpanded && (
+          <div style={expandWrap}>
+            {item.campaigns.map((c) => (
+              <Link
+                key={c.id}
+                href={`/dashboard/campagnes/${c.id}`}
+                style={{
+                  ...expandRow,
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{typeIcon(c.type)}</span>
+                <span style={{ flex: 1, textTransform: "capitalize" }}>
+                  {c.type}
+                </span>
+                <span style={{ fontSize: 10, color: "var(--tl)" }}>
+                  {c.scheduled_for
+                    ? new Date(c.scheduled_for).toLocaleDateString("nl-NL", {
+                        day: "numeric",
+                        month: "short",
+                      })
+                    : "geen datum"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Standalone campagne: link naar detail. Per status andere meta-info.
+  const c = item.data;
+  const stats = c.result_stats ?? {};
+  return (
+    <Link
+      href={`/dashboard/campagnes/${c.id}`}
+      style={{ textDecoration: "none", color: "inherit" }}
+    >
+      <div style={cardStyle}>
+        <div style={cardHeaderRow}>
+          <span style={{ fontSize: 16 }}>{typeIcon(c.type)}</span>
+          <span style={cardTitle}>{c.name}</span>
+        </div>
+        {c.status === "ingepland" && c.scheduled_for && (
+          <div style={cardSubtle}>{formatRelativeDate(c.scheduled_for)}</div>
+        )}
+        {c.status === "concept" && (
+          <div style={cardSubtle}>Nog niet ingepland</div>
+        )}
+        {c.status === "actief" && (
+          <div style={cardSubtle}>
+            {stats.extra_reservations != null && stats.extra_reservations > 0
+              ? `+${stats.extra_reservations} reserveringen`
+              : "Loopt nu"}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// ============================================================
+// Shared card styles
+// ============================================================
+const cardStyle: React.CSSProperties = {
+  background: "var(--white, #FFFFFF)",
+  border: "1px solid var(--border, #E5DFD0)",
+  borderRadius: 8,
+  padding: "10px 12px",
+  fontSize: 12,
+  cursor: "pointer",
+  transition: "box-shadow 0.15s ease",
+};
+const cardHeaderRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  marginBottom: 4,
+};
+const cardTitle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--text, #18181B)",
+  flex: 1,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+const cardSubtle: React.CSSProperties = {
+  fontSize: 11,
+  color: "var(--tl)",
+  marginTop: 2,
+};
+const bundlePill: React.CSSProperties = {
+  fontSize: 9,
+  fontWeight: 600,
+  color: "var(--brand-deep, #1F4A2D)",
+  background: "var(--brand-soft, #D6E0D8)",
+  padding: "2px 6px",
+  borderRadius: 999,
+  textTransform: "uppercase",
+  letterSpacing: 0.3,
+  flexShrink: 0,
+};
+const btnApprove: React.CSSProperties = {
+  flex: 1,
+  padding: "5px 8px",
+  fontSize: 11,
+  fontWeight: 500,
+  border: "1px solid var(--brand, #1F4A2D)",
+  background: "var(--brand, #1F4A2D)",
+  color: "#FFFFFF",
+  borderRadius: 5,
+  cursor: "pointer",
+};
+const btnReject: React.CSSProperties = {
+  flex: 1,
+  padding: "5px 8px",
+  fontSize: 11,
+  fontWeight: 500,
+  border: "1px solid var(--border, #E5DFD0)",
+  background: "transparent",
+  color: "var(--tl)",
+  borderRadius: 5,
+  cursor: "pointer",
+};
+const btnGhost: React.CSSProperties = {
+  padding: "5px 8px",
+  fontSize: 11,
+  fontWeight: 500,
+  border: "1px solid var(--border, #E5DFD0)",
+  background: "transparent",
+  color: "var(--tl)",
+  borderRadius: 5,
+  cursor: "pointer",
+  flexShrink: 0,
+};
+const expandWrap: React.CSSProperties = {
+  marginTop: 8,
+  paddingTop: 8,
+  borderTop: "1px solid var(--border, #E5DFD0)",
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+  fontSize: 11,
+};
+const expandRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "4px 6px",
+  borderRadius: 4,
+  background: "var(--bg-soft, #FAF7F1)",
+};
