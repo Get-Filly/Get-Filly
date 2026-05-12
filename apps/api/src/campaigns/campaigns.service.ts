@@ -94,6 +94,9 @@ export type Campaign = {
   // social uit campaign_social_content.caption. Null als de
   // campagne nog geen content heeft (verse concept).
   body_preview: string | null;
+  // Per 2026-05-12 (mig 0040): soft-delete-tijdstip. Optional want
+  // findAll() filtert deze al weg; alleen findDeleted() vult 'm.
+  deleted_at?: string | null;
 };
 
 export type CampaignDetail = Campaign & {
@@ -133,6 +136,10 @@ export class CampaignsService {
     // tabellen (mail + social). Per type pakken we de juiste snippet
     // en koppelen 'm aan de campaign-id. WhatsApp heeft nog geen
     // content-tabel; daar blijft body_preview null.
+    //
+    // Per 2026-05-12 (mig 0040): soft-delete via deleted_at. Standaard
+    // lijst toont alleen actieve campagnes; verwijderde zijn alleen
+    // via findDeleted() te bereiken (Verwijderd-tab in /history).
     const { data, error } = await this.supabase.client
       .from('campaigns')
       .select(
@@ -142,6 +149,7 @@ export class CampaignsService {
         'id, name, type, meta, status, result_stats, group_id, scheduled_for',
       )
       .eq('restaurant_id', restaurantId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -223,6 +231,7 @@ export class CampaignsService {
       )
       .eq('restaurant_id', restaurantId)
       .eq('group_id', groupId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: true });
     if (campsErr) throw new InternalServerErrorException(campsErr.message);
 
@@ -1343,7 +1352,7 @@ Geef het beste verzendmoment.`;
   ): Promise<{ id: string }> {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, status')
+      .select('id, status, deleted_at')
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
@@ -1352,34 +1361,62 @@ Geef het beste verzendmoment.`;
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
+    if (existing.deleted_at) {
+      // Idempotent: al verwijderd → success, geen 4xx.
+      return { id };
+    }
     if (existing.status !== 'concept' && existing.status !== 'ingepland') {
       throw new BadRequestException(
         `Alleen concept- of ingeplande campagnes zijn te verwijderen (deze is ${existing.status}).`,
       );
     }
 
-    // Cascade-delete: campaign_*_content + campaign_recipients gaan
-    // automatisch mee dankzij de FK-constraints in migratie 0001
-    // (on delete cascade). Geen extra cleanup nodig.
+    // Per 2026-05-12 (mig 0040): soft-delete via deleted_at. De rij
+    // blijft staan zodat eigenaar 'm terugvindt in /campagnes/history
+    // → Verwijderd-tab. Content-tabellen + recipients blijven daardoor
+    // ook bestaan (geen cascade-effect bij UPDATE).
     const { error: delErr } = await this.supabase.client
       .from('campaigns')
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
 
-    // Audit: campagne verwijderd. Onomkeerbaar dus extra belangrijk
-    // dat we 't loggen, we kunnen later aantonen dat er niets stilletjes
-    // weg is gemoffeld.
     await this.audit.log({
       restaurantId,
       userId,
       action: 'campaign_deleted',
       entity_type: 'campaign',
       entity_id: id,
-      payload: { previous_status: existing.status },
+      payload: { previous_status: existing.status, soft: true },
     });
 
     return { id };
+  }
+
+  // Verwijderde campagnes voor de Verwijderd-tab op /campagnes/history.
+  // Zelfde shape als findAll, maar gefilterd op deleted_at IS NOT NULL.
+  // Geen body_preview-join: voor de archief-view voldoet de naam + datum.
+  async findDeleted(restaurantId: string): Promise<Campaign[]> {
+    const { data, error } = await this.supabase.client
+      .from('campaigns')
+      .select(
+        'id, name, type, meta, status, result_stats, group_id, scheduled_for, deleted_at',
+      )
+      .eq('restaurant_id', restaurantId)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    return (data ?? []).map((r) => ({
+      ...r,
+      body_preview: null,
+    })) as Campaign[];
   }
 }

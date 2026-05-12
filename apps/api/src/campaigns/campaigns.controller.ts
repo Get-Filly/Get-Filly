@@ -42,6 +42,15 @@ export class CampaignsController {
     return this.campaigns.findAll(restaurantId);
   }
 
+  // Per 2026-05-12 (mig 0040): verwijderde (soft-deleted) campagnes
+  // voor de Verwijderd-tab op /campagnes/history. Aparte route i.p.v.
+  // query-param zodat URLs zelf-documenterend zijn en RLS makkelijk
+  // te lezen blijft.
+  @Get('deleted')
+  findDeleted(@RestaurantId() restaurantId: string) {
+    return this.campaigns.findDeleted(restaurantId);
+  }
+
   // Per 2026-05-07 fase 4: bundle-detail. Retourneert de campaign_groups
   // rij + alle gekoppelde campagnes zodat de frontend een multi-channel
   // bundle-pagina kan tonen waarin eigenaar tussen kanalen kan switchen.

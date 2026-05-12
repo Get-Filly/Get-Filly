@@ -73,10 +73,24 @@ export type Campaign = {
   // Backend joint campaign_mail_content / campaign_social_content
   // op type. Null als de campagne nog geen content heeft.
   body_preview: string | null;
+  // Per 2026-05-12 (mig 0040): soft-delete-timestamp. Alleen gevuld
+  // door fetchDeletedCampaigns(); standaard fetchCampaigns() filtert
+  // deze al uit. Optional zodat normale flows er niks van merken.
+  deleted_at?: string | null;
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {
   const res = await authedFetch(`${API_URL}/campaigns`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Per 2026-05-12 (mig 0040): verwijderde campagnes voor de Verwijderd-
+// tab op /campagnes/history. Backend filtert `deleted_at IS NOT NULL`.
+export async function fetchDeletedCampaigns(): Promise<Campaign[]> {
+  const res = await authedFetch(`${API_URL}/campaigns/deleted`, {
+    cache: "no-store",
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
