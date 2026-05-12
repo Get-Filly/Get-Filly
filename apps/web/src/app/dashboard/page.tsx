@@ -1,37 +1,57 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { KpiRow } from "./_components/kpi-row";
 import { CalendarCard } from "./_components/calendar-card";
 import { FillyChat } from "./_components/filly-chat";
+import { FillySuggestionsPopover } from "./_components/filly-suggestions-popover";
 import {
-  detectLowOccupancySuggestions,
   fetchOccupancy,
+  fetchRestaurant,
   type OccupancyDay,
+  type Restaurant,
 } from "../../lib/api";
-import { Button } from "../../components/ui/button";
+import {
+  getUpcomingSpecialDays,
+  type SpecialDay,
+} from "../../lib/special-days";
+import {
+  buildWindowOccupancy,
+  isOpenOn,
+} from "../../lib/occupancy-window";
 
 export type View = "dag" | "week" | "maand" | "jaar";
 
+// Hoeveel weken vooruit speciale dagen tonen. 6 wkn = genoeg om
+// Moederdag/Vaderdag-campagnes ruim voor te bereiden, niet zo ver
+// dat de strook eindeloos vol komt te zitten.
+const SPECIAL_DAYS_WEEKS_AHEAD = 6;
+// Hoeveel dagen vooruit voor de rode "rustige dagen"-strook.
+const LOW_OCCUPANCY_WINDOW_DAYS = 14;
+
+function formatDayNl(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 export default function DashboardPage() {
   const today = new Date();
-  const router = useRouter();
   const [view, setView] = useState<View>("maand");
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
-  // Alert-bar werkt op een fixed 14-dagen-window vooruit, ongeacht
+  // Stroken-data werkt op een fixed 14-dagen-window vooruit, ongeacht
   // welke maand de eigenaar in de kalender bekijkt. Eigen state
   // zodat we 'm los van het kalender-view kunnen verversen, anders
-  // mist de alert-bar dagen in de volgende maand wanneer current
-  // tegen het einde van de maand zit.
+  // missen we dagen in de volgende maand wanneer current tegen het
+  // einde van de maand zit.
   const [windowOccupancy, setWindowOccupancy] = useState<OccupancyDay[]>([]);
-
-  // Low-occupancy-detectie: state + handler.
-  const [lowOccDetecting, setLowOccDetecting] = useState(false);
-  const [lowOccMessage, setLowOccMessage] = useState<string | null>(null);
+  // Restaurant-config voor de bezetting-drempel + sluitingsdagen.
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
 
   // Kalender-bron: maand-bij-maand zoals de eigenaar bladert.
   useEffect(() => {
@@ -40,9 +60,9 @@ export default function DashboardPage() {
       .catch(() => setOccupancy([]));
   }, [viewYear, viewMonth]);
 
-  // Alert-bar-bron: huidige maand + volgende maand parallel zodat
+  // Stroken-bron: huidige maand + volgende maand parallel zodat
   // het 14-dagen-window altijd dekkend is, ook als vandaag tegen
-  // het einde van de maand zit.
+  // het einde van de maand zit. Plus restaurant-config voor drempel.
   useEffect(() => {
     const nextMonth = today.getMonth() === 11 ? 0 : today.getMonth() + 1;
     const nextYear =
@@ -50,115 +70,157 @@ export default function DashboardPage() {
     Promise.all([
       fetchOccupancy(today.getFullYear(), today.getMonth()),
       fetchOccupancy(nextYear, nextMonth),
+      fetchRestaurant(),
     ])
-      .then(([cur, nxt]) => setWindowOccupancy([...cur, ...nxt]))
+      .then(([cur, nxt, r]) => {
+        setWindowOccupancy([...cur, ...nxt]);
+        setRestaurant(r);
+      })
       .catch(() => setWindowOccupancy([]));
     // Bewust geen deps, bij dashboard-mount eenmalig; dagen
     // veranderen niet binnen sessie.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Alert-bar: dagen komende 14 dagen met bezetting onder 50%.
-  const todayStr = today.toISOString().slice(0, 10);
-  const fortnight = new Date(today);
-  fortnight.setDate(today.getDate() + 14);
-  const criticalDays = windowOccupancy.filter((d) => {
-    if (d.date <= todayStr) return false;
-    if (d.date > fortnight.toISOString().slice(0, 10)) return false;
-    return d.occupancy_pct < 50;
+  // Rode strook: rustige dagen komende 14 dagen.
+  // - Drempel uit restaurant.low_occupancy_threshold (default 50)
+  // - Skip sluitingsdagen (closed_dates + vaste wekelijkse sluiting)
+  // - Mock-fallback via buildWindowOccupancy zodat de strook
+  //   consistent is met de kalender óók als occupancy_days nog
+  //   niet gevuld is (nieuwe accounts / demo).
+  const occupancyThreshold = restaurant?.low_occupancy_threshold ?? 50;
+  const windowDays = buildWindowOccupancy(
+    windowOccupancy,
+    today,
+    LOW_OCCUPANCY_WINDOW_DAYS,
+  );
+
+  const criticalDays = windowDays.filter((d) => {
+    if (d.occupancy_pct >= occupancyThreshold) return false;
+    if (!isOpenOn(restaurant, d.date)) return false;
+    return true;
   });
 
-  const handleDetectLowOccupancy = async () => {
-    setLowOccDetecting(true);
-    setLowOccMessage(null);
-    try {
-      const result = await detectLowOccupancySuggestions();
-      // Vier mogelijke uitkomsten:
-      //  - generated > 0: nieuwe voorstellen → navigeer naar campagnes
-      //  - generated 0 & skipped > 0: alle dagen al voorstel → toon
-      //    melding maar navigeer toch zodat eigenaar de bestaande ziet
-      //  - generated 0 & skipped 0 & detected > 0: alle Claude-calls
-      //    faalden (zeldzaam) → tonen
-      //  - detected 0: geen rustige dagen meer in window → tonen
-      if (result.generated > 0) {
-        setLowOccMessage(
-          `${result.generated} ${result.generated === 1 ? "voorstel" : "voorstellen"} klaar! Filly stuurt je door…`,
-        );
-        setTimeout(() => router.push("/dashboard/campagnes"), 1200);
-      } else if (result.skipped > 0) {
-        setLowOccMessage(
-          `Voor alle ${result.skipped} rustige dagen wachten al voorstellen op je goedkeuring.`,
-        );
-      } else if (result.detected === 0) {
-        setLowOccMessage(
-          "Geen rustige dagen meer in de komende 2 weken, top!",
-        );
-      } else {
-        setLowOccMessage(
-          "Filly kon op dit moment geen voorstellen maken. Probeer het zo opnieuw.",
-        );
-      }
-    } catch (e) {
-      setLowOccMessage(
-        e instanceof Error
-          ? e.message
-          : "Detectie mislukt. Probeer het opnieuw.",
-      );
-    } finally {
-      setLowOccDetecting(false);
-    }
-  };
+  // Gele strook: speciale dagen komende 6 weken. Filtert sluitingsdagen
+  // niet — een feestdag op een wekelijkse sluitingsdag is juist
+  // interessant (extra reden om open te zijn / op te speken).
+  const upcomingSpecial: SpecialDay[] = getUpcomingSpecialDays(
+    today,
+    SPECIAL_DAYS_WEEKS_AHEAD,
+  );
 
-  // Alert-bar gerenderd als losse component zodat we 'm zowel
-  // bovenaan kunnen tonen (volle breedte zou kapot zijn met de
-  // chat-sidebar) als binnen de left-col (lijnt netjes uit met
-  // weersvoorspelling + kalender).
-  const alertBar = criticalDays.length > 0 && (
-    <div className="alert-bar" style={{ marginBottom: "var(--space-4)" }}>
-      <span className="alert-icon">⚠️</span>
-      <div style={{ flex: 1 }}>
+  // Wrapper alleen tonen als er iets is om te laten zien, anders
+  // is 't visuele ruis op een leeg dashboard.
+  const hasAnyAction =
+    criticalDays.length > 0 || upcomingSpecial.length > 0;
+
+  // Strook-styling: rood-soft voor critical (urgentie), amber-soft
+  // voor special (kans). Inline-styling want éénmalig op deze plek.
+  const redStrip = criticalDays.length > 0 && (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "10px 12px",
+        background: "var(--color-danger-soft, #FEE2E2)",
+        border: "1px solid #FCA5A5",
+        color: "#7F1D1D",
+        borderRadius: "var(--rs, 8px)",
+        fontSize: 13,
+        lineHeight: 1.4,
+      }}
+    >
+      <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <strong>
           {criticalDays.length} rustige dag
           {criticalDays.length > 1 ? "en" : ""}
         </strong>{" "}
-        in de komende 2 weken
-        {", "}
+        komende 2 weken:{" "}
         {criticalDays
-          .slice(0, 3)
-          .map((d) => {
-            const date = new Date(d.date);
-            return `${date.getDate()} ${date.toLocaleString("nl-NL", { month: "short" })} (${d.occupancy_pct}%)`;
-          })
+          .slice(0, 5)
+          .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
           .join(", ")}
-        {criticalDays.length > 3 && "…"}
-        {lowOccMessage && (
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 12,
-              color: "var(--text-secondary, #52525B)",
-            }}
-          >
-            {lowOccMessage}
-          </div>
-        )}
+        {criticalDays.length > 5 && `, +${criticalDays.length - 5} meer`}
       </div>
-      <Button
-        size="sm"
-        onClick={handleDetectLowOccupancy}
-        loading={lowOccDetecting}
-        style={{ flexShrink: 0 }}
-        title="Filly bedenkt per dag een specifiek activatie-voorstel"
+    </div>
+  );
+
+  const yellowStrip = upcomingSpecial.length > 0 && (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "10px 12px",
+        background: "#FEF3C7",
+        border: "1px solid #FCD34D",
+        color: "#78350F",
+        borderRadius: "var(--rs, 8px)",
+        fontSize: 13,
+        lineHeight: 1.4,
+      }}
+    >
+      <span style={{ fontSize: 16, flexShrink: 0 }}>🎉</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <strong>
+          {upcomingSpecial.length} speciale dag
+          {upcomingSpecial.length > 1 ? "en" : ""}
+        </strong>{" "}
+        komende 6 weken:{" "}
+        {upcomingSpecial
+          .slice(0, 5)
+          .map((s) => `${s.name} (${formatDayNl(s.date)})`)
+          .join(", ")}
+        {upcomingSpecial.length > 5 &&
+          `, +${upcomingSpecial.length - 5} meer`}
+      </div>
+    </div>
+  );
+
+  // Stroken-blok + groene knop rechts. Layout via CSS-grid met
+  // 5 even brede kolommen die exact matchen met de KPI-rij eronder:
+  //   [ rode strook (span 4) ............ ] [ groene knop ]
+  //   [ gele strook (span 4) ............ ] [   (vol hoog) ]
+  // De groene knop is een card-mode tile die span 2 rijen pakt,
+  // even breed als één KPI-blok.
+  const actionBlock = hasAnyAction && (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(5, 1fr)",
+        gap: "var(--space-4)",
+        marginBottom: "var(--space-4)",
+      }}
+    >
+      <div
+        style={{
+          gridColumn: "1 / span 4",
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
       >
-        Filly maak voorstellen
-      </Button>
+        {redStrip}
+        {yellowStrip}
+      </div>
+      <div style={{ gridColumn: "5 / span 1", minWidth: 0 }}>
+        <FillySuggestionsPopover
+          lowOccupancyDays={criticalDays}
+          specialDays={upcomingSpecial}
+          occupancyThreshold={occupancyThreshold}
+          triggerMode="card"
+        />
+      </div>
     </div>
   );
 
   return (
     <div className="page">
       <div className="dash-top">
-        {alertBar}
+        {actionBlock}
         <KpiRow />
       </div>
       <div className="dash-body">

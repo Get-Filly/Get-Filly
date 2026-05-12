@@ -381,15 +381,24 @@
   padding: var(--space-5) var(--space-6) 0;
   flex-shrink: 0;
 }
+/* dash-body gebruikt hetzelfde 5-koloms-raster als de KPI-rij +
+   de actie-stroken zodat alles visueel uitlijnt:
+     [kalender (3 cols) ........] [filly chat (2 cols) ........]
+     Lijnt op KPI-rij: Bezetting | Bezetting mei | Gasten mei
+     | Voorgestelde campagnes | Geschatte omzet mei.
+   Op smalle viewports (zie media-query verderop) stacken kolommen
+   onder elkaar. */
 .dashboard-shell .dash-body {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: var(--space-5);
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-4);
   flex: 1;
   min-height: 0;
   padding: var(--space-4) var(--space-6) var(--space-5);
 }
 .dashboard-shell .left-col {
+  grid-column: span 3;
+  min-width: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -403,7 +412,13 @@
 }
 .dashboard-shell .left-col::-webkit-scrollbar { width: 4px; }
 .dashboard-shell .left-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.dashboard-shell .right-col { display: flex; flex-direction: column; min-height: 0; }
+.dashboard-shell .right-col {
+  grid-column: span 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
 /* Card (gedeeld, gebruikt door weer, kalender, detail, grafiek, chat) */
 .dashboard-shell .card {
@@ -3640,6 +3655,10 @@
     grid-template-columns: 1fr;
     gap: 16px;
     padding: 16px 16px 24px;
+  }
+  .dashboard-shell .left-col,
+  .dashboard-shell .right-col {
+    grid-column: auto;
   }
 
   /* Right-col vaste max-height zodat de chat-card niet pagina-hoog

@@ -867,6 +867,40 @@ export async function detectLowOccupancySuggestions(): Promise<{
   return res.json();
 }
 
+// "Vraag Filly om voorstellen"-knop op het dashboard (popover met
+// dag-multi-select). Stuurt expliciete dag-selectie naar backend
+// (mix van low_occupancy + special_day items). Per item genereert
+// Filly één voorstel + slaat 'm op in ai_suggestions.
+export type GenerateForDatesItem = {
+  date: string;
+  kind: "low_occupancy" | "special_day";
+  // Voor special_day: naam van de feestdag (Vaderdag, Kerst, etc).
+  // Voor low_occupancy: niet gebruikt.
+  name?: string;
+};
+
+export async function generateSuggestionsForDates(
+  items: GenerateForDatesItem[],
+): Promise<{
+  generated: number;
+  suggestions: AiSuggestion[];
+}> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/generate-for-dates`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Voorstellen genereren mislukt"),
+    );
+  }
+  return res.json();
+}
+
 // "Vraag Filly om voorstellen"-knop op /campagnes. Triggert backend
 // om 3-5 nieuwe ai_suggestions te genereren op basis van profile +
 // menu + actuele bezetting/weer. Werkt vanaf seconde 1 na onboarding

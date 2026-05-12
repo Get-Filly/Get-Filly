@@ -93,6 +93,50 @@ export class SuggestionsController {
     );
   }
 
+  // Aangesloten op de groene "Vraag Filly om voorstellen"-knop op
+  // het dashboard (popover met dag-multi-select). Accepteert een
+  // expliciete lijst items met kind low_occupancy | special_day.
+  // Genereert per item een toegespitst voorstel.
+  @Post('generate-for-dates')
+  @UseGuards(AiRateLimitGuard)
+  generateForDates(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body()
+    body: {
+      items?: Array<{
+        date?: unknown;
+        kind?: unknown;
+        name?: unknown;
+      }>;
+    },
+  ) {
+    // Lichte input-sanitisatie: shape afdwingen, rest valideert de
+    // service zelf (count, menu-pre-flight, etc).
+    type SanitizedItem = {
+      date: string;
+      kind: 'low_occupancy' | 'special_day';
+      name?: string;
+    };
+    const rawItems = Array.isArray(body?.items) ? body.items : [];
+    const items: SanitizedItem[] = [];
+    for (const r of rawItems) {
+      if (typeof r?.date !== 'string') continue;
+      if (r?.kind !== 'low_occupancy' && r?.kind !== 'special_day') {
+        continue;
+      }
+      const item: SanitizedItem = { date: r.date, kind: r.kind };
+      if (typeof r.name === 'string') item.name = r.name;
+      items.push(item);
+    }
+
+    return this.suggestions.generateForSelectedDates(
+      restaurantId,
+      user.id,
+      items,
+    );
+  }
+
   // Goedkeur-flow: suggestie → campagne. Aparte POST want het is
   // meer dan een status-update (er wordt een nieuwe resource
   // aangemaakt). Retourneert de bijgewerkte suggestie + id van

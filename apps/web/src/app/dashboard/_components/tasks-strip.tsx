@@ -10,6 +10,10 @@ import {
   type Restaurant,
   type Review,
 } from "../../../lib/api";
+import {
+  buildWindowOccupancy,
+  isOpenOn,
+} from "../../../lib/occupancy-window";
 
 // ============================================================
 // TasksStrip, "overige acties" voor Filly's verzamelpagina
@@ -21,13 +25,24 @@ import {
 //   1. Lage reviews zonder reactie (drempel = restaurant.low_review_threshold)
 //   2. Rustige dagen komende 14 dgn (drempel = restaurant.low_occupancy_threshold)
 //
-// Sluitingsdagen worden expliciet gefilterd:
+// Sluitingsdagen worden expliciet gefilterd via isOpenOn-helper:
 //   - Datums in restaurant.closed_dates (vakantie, etc)
 //   - Vaste sluitingsdagen via opening_hours[weekday] = null
+//   - Missing keys / leeg opening_hours → assume open (anders zou
+//     een nieuw account met onvolledige config niks zien)
+//
+// Bezetting komt uit buildWindowOccupancy: real data waar
+// beschikbaar, seededOccupancy-fallback anders, zodat de strip
+// consistent is met de kalender ook op nieuwe accounts.
 //
 // Zodra een dag boven de bezetting-drempel komt (bv. nieuwe reserveringen)
 // verdwijnt 'ie automatisch uit het lijstje — er is geen "afgehandeld"-
 // state, de strip leest gewoon de actuele bezetting.
+
+// Window voor lage-bezetting-scan: 14 dgn vooruit, matcht het
+// rode-strook-venster op het dashboard zodat eigenaar consistente
+// signalen krijgt.
+const LOW_OCCUPANCY_WINDOW_DAYS = 14;
 
 type TaskItem = {
   id: string;
@@ -49,11 +64,6 @@ const priorityLabel: Record<TaskItem["priority"], string> = {
   medium: "Deze week",
   low: "Planning",
 };
-
-// Mapping van JS-weekday (0=zondag, 1=maandag, ...) naar de keys die
-// we in opening_hours gebruiken. Datums in opening_hours zijn engels
-// (mon/tue/wed/thu/fri/sat/sun), JS Date.getDay() begint bij zondag=0.
-const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 export function TasksStrip() {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -109,28 +119,20 @@ export function TasksStrip() {
     }
 
     // ----- 2. Lage bezetting komende 14 dagen -----
+    // Window opbouwen met seeded-fallback waar real data ontbreekt
+    // (zelfde patroon als dashboard rode strook), dan filteren op
+    // drempel + sluitingsdagen via gedeelde helpers.
     const occupancyThreshold = restaurant.low_occupancy_threshold ?? 50;
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-    const cutoff = new Date(today);
-    cutoff.setDate(today.getDate() + 14);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    const closedDatesSet = new Set(restaurant.closed_dates ?? []);
-    const openingHours = restaurant.opening_hours ?? {};
+    const windowDays = buildWindowOccupancy(
+      occupancy,
+      today,
+      LOW_OCCUPANCY_WINDOW_DAYS,
+    );
 
-    const lowDays = occupancy.filter((d) => {
-      // Voorbij of vandaag → niet meer relevant als "actie".
-      if (d.date <= todayStr) return false;
-      // Buiten 14-daagse venster.
-      if (d.date > cutoffStr) return false;
-      // Bezetting boven drempel → "halen we, geen zorg".
+    const lowDays = windowDays.filter((d) => {
       if (d.occupancy_pct >= occupancyThreshold) return false;
-      // Sluitingsdag (vakantie, ad hoc gesloten).
-      if (closedDatesSet.has(d.date)) return false;
-      // Vaste wekelijkse sluiting (opening_hours[mon..sun] = null).
-      const weekday = WEEKDAY_KEYS[new Date(d.date + "T00:00:00").getDay()];
-      const hours = openingHours[weekday];
-      if (hours === null || hours === undefined) return false;
+      if (!isOpenOn(restaurant, d.date)) return false;
       return true;
     });
 
