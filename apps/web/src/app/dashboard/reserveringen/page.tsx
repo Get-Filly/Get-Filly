@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  createReservation,
   fetchCampaigns,
   fetchGuests,
   fetchReservations,
@@ -38,15 +37,6 @@ const statusFilters: { key: StatusFilter; label: string }[] = [
   { key: "geannuleerd", label: "Geannuleerd" },
 ];
 
-// Bepaalt of een reservering via een Filly-campagne binnenkwam.
-// Sinds migratie 0022 doen we dit op basis van de echte FK
-// via_campaign_id (handmatig gezet of straks automatisch door de
-// send-engine). Source-veld als fallback voor legacy-data.
-function isFromFilly(r: Reservation): boolean {
-  if (r.via_campaign_id) return true;
-  return r.source?.toLowerCase().includes("filly") ?? false;
-}
-
 function formatDayLabel(dateStr: string): string {
   const d = new Date(dateStr);
   const today = new Date();
@@ -64,9 +54,57 @@ function formatDayLabel(dateStr: string): string {
   });
 }
 
-// Default-datum voor de "nieuwe reservering"-modal: vandaag in YYYY-MM-DD.
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+// ============================================================
+// exportGuestsToCsv, download gast-lijst als CSV
+// ============================================================
+// Excel-friendly: BOM-prefix zodat ä/é/etc niet als rommel verschijnen
+// bij dubbelklik in Excel. Quote-escape per cel zodat komma's of
+// regel-eindes in een notitie de CSV niet breken.
+function exportGuestsToCsv(guests: Guest[]) {
+  if (guests.length === 0) return;
+  const headers = [
+    "Naam",
+    "Email",
+    "Telefoon",
+    "Bezoeken",
+    "Laatste bezoek",
+    "Verjaardag",
+    "Tags",
+    "Mail-opt-in",
+  ];
+  const rows = guests.map((g) => {
+    const name = [g.first_name, g.last_name].filter(Boolean).join(" ") || "—";
+    const lastVisit = g.last_visit_at
+      ? new Date(g.last_visit_at).toISOString().slice(0, 10)
+      : "";
+    return [
+      name,
+      g.email ?? "",
+      g.phone ?? "",
+      String(g.visit_count),
+      lastVisit,
+      g.birthday ?? "",
+      (g.tags ?? []).join("; "),
+      g.mail_opt_in ? "ja" : "nee",
+    ];
+  });
+  const escape = (cell: string) => `"${cell.replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows]
+    .map((r) => r.map(escape).join(","))
+    .join("\n");
+
+  // BOM (﻿) zorgt dat Excel UTF-8 herkent.
+  const blob = new Blob(["﻿" + csv], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `klanten-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export default function ReserveringenPage() {
@@ -79,44 +117,53 @@ export default function ReserveringenPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("alle");
-  const [modalOpen, setModalOpen] = useState(false);
   // Tijdens een attributie-PATCH zetten we de reservation-id hier zodat
   // de UI kan disablen + een spinner kan tonen.
   const [attributing, setAttributing] = useState<string | null>(null);
   // Idem voor status-mutatie (Inchecken-knop).
   const [statusBusy, setStatusBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Fetch 3 dagen geleden t/m 14 dagen vooruit + alle campagnes
-    // (voor de "koppel aan campagne"-dropdown) + alle gasten (voor
-    // de visit_count/last_visit_at-info per reservering-rij).
-    const today = new Date();
-    const from = new Date(today);
-    from.setDate(today.getDate() - 3);
-    const to = new Date(today);
-    to.setDate(today.getDate() + 14);
+  // Datum-range voor de reservering-lijst. Default: 3 dgn geleden t/m
+  // 14 dgn vooruit (zelfde als vroeger). Eigenaar kan in de filter-rij
+  // zelf andere datums kiezen.
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toISOString().slice(0, 10);
+  });
 
-    Promise.all([
-      fetchReservations(
-        from.toISOString().slice(0, 10),
-        to.toISOString().slice(0, 10),
-      ),
-      fetchCampaigns(),
-      fetchGuests(),
-    ])
-      .then(([res, camps, guests]) => {
-        setReservations(res);
+  // Campagnes + gasten: 1× ophalen bij mount, blijft hetzelfde
+  // ongeacht datum-filter.
+  useEffect(() => {
+    Promise.all([fetchCampaigns(), fetchGuests()])
+      .then(([camps, guests]) => {
         setCampaigns(camps);
         const map = new Map<string, Guest>();
         for (const g of guests) map.set(g.id, g);
         setGuestsById(map);
+      })
+      .catch((e: Error) => setError(e.message));
+  }, []);
+
+  // Reserveringen: opnieuw fetchen wanneer eigenaar datum-range wisselt.
+  useEffect(() => {
+    if (!dateFrom || !dateTo) return;
+    setLoading(true);
+    fetchReservations(dateFrom, dateTo)
+      .then((res) => {
+        setReservations(res);
         setLoading(false);
       })
       .catch((e: Error) => {
         setError(e.message);
         setLoading(false);
       });
-  }, []);
+  }, [dateFrom, dateTo]);
 
   // Inchecken-handler: zet status van 'bevestigd' → 'ingecheckt'.
   // Optimistisch updaten, rollback bij fout.
@@ -206,85 +253,24 @@ export default function ReserveringenPage() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  const stats = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const todayRes = reservations.filter(
-      (r) => r.reservation_date === today && r.status === "bevestigd",
-    );
-    const totalCovers = todayRes.reduce((s, r) => s + r.party_size, 0);
-    const noShows = reservations.filter((r) => r.status === "no_show").length;
-    const futureBooked = reservations.filter(
-      (r) => r.reservation_date >= today && r.status === "bevestigd",
-    ).length;
-    const viaFilly = reservations.filter(isFromFilly).length;
-    return {
-      todayCount: todayRes.length,
-      todayCovers: totalCovers,
-      noShows,
-      futureBooked,
-      viaFilly,
-    };
-  }, [reservations]);
-
-  // Callback voor de modal: nieuwe reservering in de state zetten
-  // zodat 'ie direct in de lijst verschijnt zonder refetch. De
-  // sortering in `grouped` regelt de juiste datum-plek.
-  const handleCreated = (created: Reservation) => {
-    setReservations((prev) => [...prev, created]);
-    setModalOpen(false);
-  };
 
   return (
     <div className="page-full">
       <PageHeader
         title="Reserveringen"
         actions={
-          <Button variant="primary" onClick={() => setModalOpen(true)}>
-            ＋ Nieuwe reservering
+          <Button
+            variant="primary"
+            onClick={() => exportGuestsToCsv(Array.from(guestsById.values()))}
+            disabled={guestsById.size === 0}
+          >
+            ⬇ Exporteer klanten
           </Button>
         }
       />
 
-      <div className="stats-row">
-        <div className="stat-card">
-          <div className="stat-card-label">Vandaag</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.todayCount}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Covers vandaag</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.todayCovers}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Komend (14 dgn)</div>
-          <div className="stat-card-val">
-            {loading ? (
-              <Skeleton height={22} width="40%" />
-            ) : (
-              stats.futureBooked
-            )}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">No-shows (afgelopen)</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.noShows}
-          </div>
-        </div>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Via Filly</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.viaFilly}
-          </div>
-        </div>
-      </div>
-
-      {/* Filter-/zoekrij, status-tabs links, zoekveld daarnaast.
-          Zelfde visuele taal als op /campagnes en /gasten zodat
-          dashboard consistent voelt. */}
+      {/* Filter-/zoekrij + datum-range. Floris-keuze 2026-05-12:
+          stats-row eruit, datums kunnen zelf gekozen worden. */}
       <div
         style={{
           display: "flex",
@@ -300,6 +286,41 @@ export default function ReserveringenPage() {
           onChange={setStatusFilter}
           className="tabs--inline"
         />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginLeft: "auto",
+            fontSize: 12,
+            color: "var(--tl)",
+          }}
+        >
+          <span>Periode:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={{
+              padding: "4px 8px",
+              border: "1px solid var(--border, #E5DFD0)",
+              borderRadius: 6,
+              fontSize: 12,
+            }}
+          />
+          <span>tot</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            style={{
+              padding: "4px 8px",
+              border: "1px solid var(--border, #E5DFD0)",
+              borderRadius: 6,
+              fontSize: 12,
+            }}
+          />
+        </div>
       </div>
 
       <input
@@ -333,14 +354,7 @@ export default function ReserveringenPage() {
             description={
               error
                 ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
-                : "Koppel een reserveringsplatform of voeg zelf een boeking toe via de knop rechtsboven."
-            }
-            action={
-              !error && (
-                <Button variant="primary" onClick={() => setModalOpen(true)}>
-                  Nieuwe reservering
-                </Button>
-              )
+                : "Koppel een reserveringsplatform om reserveringen automatisch te importeren."
             }
           />
         )
@@ -543,282 +557,9 @@ export default function ReserveringenPage() {
         </div>
       )}
 
-      {modalOpen && (
-        <NewReservationModal
-          onClose={() => setModalOpen(false)}
-          onCreated={handleCreated}
-        />
-      )}
     </div>
   );
 }
-
-// ============================================================
-// NewReservationModal, handmatige reservering toevoegen
-// ============================================================
-// Overlay-modal met formulier. Gebruikt native date/time-input en
-// submit via createReservation. Minimaal: naam + datum + tijd + groep.
-// Bij succes roept de parent-callback handleCreated die de nieuwe
-// reservering in de lijst zet. Op annuleren/Escape dicht zonder save.
-function NewReservationModal({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void;
-  onCreated: (r: Reservation) => void;
-}) {
-  const [name, setName] = useState("");
-  const [date, setDate] = useState(todayIso());
-  const [time, setTime] = useState("19:00");
-  const [partySize, setPartySize] = useState(2);
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [specialRequests, setSpecialRequests] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  // Escape-key = annuleren. Vaste affordance voor modals.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    if (!name.trim()) {
-      setFormError("Naam van de gast is verplicht.");
-      return;
-    }
-    if (partySize < 1) {
-      setFormError("Groepsgrootte moet minimaal 1 zijn.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const created = await createReservation({
-        guest_name: name.trim(),
-        reservation_date: date,
-        reservation_time: time,
-        party_size: partySize,
-        guest_phone: phone.trim() || undefined,
-        guest_email: email.trim() || undefined,
-        special_requests: specialRequests.trim() || undefined,
-      });
-      onCreated(created);
-    } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : "Opslaan mislukt.",
-      );
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.35)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        padding: 20,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        style={{
-          background: "var(--white, #FFFFFF)",
-          borderRadius: 12,
-          width: "100%",
-          maxWidth: 520,
-          padding: 24,
-          boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 600,
-            marginBottom: 4,
-          }}
-        >
-          Nieuwe reservering
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--tl)",
-            marginTop: -8,
-            marginBottom: 4,
-          }}
-        >
-          Voor telefoon- of walk-in-boekingen. Wordt direct op
-          'bevestigd' gezet.
-        </div>
-
-        <FormField label="Naam van de gast *">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-            placeholder="bv. Familie Jansen"
-            style={inputStyle}
-          />
-        </FormField>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <FormField label="Datum *" style={{ flex: 1 }}>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              style={inputStyle}
-            />
-          </FormField>
-          <FormField label="Tijd *" style={{ flex: 1 }}>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              style={inputStyle}
-            />
-          </FormField>
-          <FormField label="Personen *" style={{ width: 100 }}>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={partySize}
-              onChange={(e) => setPartySize(parseInt(e.target.value, 10) || 1)}
-              style={inputStyle}
-            />
-          </FormField>
-        </div>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <FormField label="Telefoon" style={{ flex: 1 }}>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="bv. 06 12345678"
-              style={inputStyle}
-            />
-          </FormField>
-          <FormField label="E-mail" style={{ flex: 1 }}>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="optioneel"
-              style={inputStyle}
-            />
-          </FormField>
-        </div>
-
-        <FormField label="Bijzonderheden">
-          <textarea
-            value={specialRequests}
-            onChange={(e) => setSpecialRequests(e.target.value)}
-            rows={2}
-            placeholder="Allergieën, verjaardag, rolstoel, kinderstoel..."
-            style={{ ...inputStyle, resize: "vertical", minHeight: 52 }}
-          />
-        </FormField>
-
-        {formError && (
-          <div
-            style={{
-              padding: "8px 10px",
-              background: "var(--red-soft, #fee)",
-              color: "var(--red, #b00)",
-              borderRadius: 6,
-              fontSize: 12,
-            }}
-          >
-            {formError}
-          </div>
-        )}
-
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            justifyContent: "flex-end",
-            marginTop: 4,
-          }}
-        >
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            Annuleren
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            loading={submitting}
-          >
-            Reservering aanmaken
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-// Kleine helper: labeled form-veld. Houdt label + input consistent
-// uitgelijnd zodat we niet in elke row dezelfde inline styling herhalen.
-function FormField({
-  label,
-  children,
-  style,
-}: {
-  label: string;
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <label
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        fontSize: 12,
-        fontWeight: 500,
-        color: "var(--ts)",
-        ...style,
-      }}
-    >
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 10px",
-  border: "1px solid var(--border, #E5DFD0)",
-  borderRadius: 6,
-  fontSize: 14,
-  fontFamily: "inherit",
-  background: "var(--white, #FFFFFF)",
-  color: "var(--text, #18181B)",
-};
 
 
 // ============================================================
