@@ -36,6 +36,17 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~**AVG-endpoints** — data-export~~ (2026-04-29) + ~~right-to-be-forgotten (account-delete)~~ (2026-04-30). Account-delete via `DELETE /restaurant/me/account` met `{ confirmation: "VERWIJDER" }`-body. UI-knop op account-pagina sectie "Data & privacy". Verwijdert auth.users + alle owner-restaurants → cascade business-data; blokkeert als andere team-members bestaan. Bewijs-rij in `account_deletions`-tabel (geen PII).
 - [~] **Data-classificatie + anonimisering-bij-delete** — fase 1 live per 2026-04-30: continue benchmark-anonymisering bij `campaign.status → afgerond` schrijft een rij in `campaign_benchmarks` (cuisine + region=provincie + capacity-bucket + month + theme + result-metrics, géén body, géén FK, GDPR Recital 26). Laatste-vangnet bij delete via `AnonymizationService.benchmarkAllCompletedFor()`. **Fase 2 nog open**: (1) body-templates extraheren met LLM-stripping van eigennamen, (2) menu-pattern-aggregatie, (3) `docs/data-classification.md` met per-tabel-categorie, (4) Filly's prompts verrijken met benchmark-queries.
 
+### Vercel-deploy (2026-05-08)
+- [~] **Frontend live op `get-filly-web.vercel.app`** — gedeployed 2026-05-08, beschermd met basic-auth middleware via env-vars `DEMO_AUTH_USERNAME` + `DEMO_AUTH_PASSWORD`. Vercel Hobby (geen native password-protection). URL kan privé gedeeld worden, browser-popup voor login.
+- [ ] **API-deploy `get-filly-api` fix** — build faalt op `Cannot find module '@getfilly/shared'` in 3 files (`restaurant-access.service.ts`, `team/team.controller.ts`, `team/team.service.ts`). De web-build heeft dezelfde issue, opgelost door `pnpm --filter @getfilly/shared build` als prebuild-step. API doet dit ook maar nest-build heeft extra typecheck-pass die packages/shared/dist nog niet ziet. Mogelijke fixes: (1) `nest build` met `--watch=false` + delay, (2) tsconfig paths-aliases in apps/api, (3) shared-package main → src/index.ts (geen dist nodig). Onderzoeken bij volgende deploy-poging.
+- [ ] **Bundle '+ Kanaal toevoegen' (fase 4b)** — op `/campagnes/bundle/[id]` staat de knop nu disabled. Implementatie: POST `/campaigns/bundle/:groupId/channels` met `{platform, body, subject_line?, scheduled_for?}` → maakt nieuwe campagne onder dezelfde group_id. UI: platform-keuze-modal of toggle-pillen zoals voorstel-pagina. Optioneel Filly-tekst-generate voor het nieuwe kanaal.
+
+### Autonome detectie + push-meldingen (concept-flow, 2026-05-08)
+Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform), spot rustige dagen op basis van threshold, push-melding naar eigenaar → klik → genereer voorstel → bundle ontstaat in /campagnes.
+- [ ] **Low-occupancy threshold per restaurant** — nieuw veld `low_occupancy_threshold_pct` op restaurants-tabel + slider in account-settings. Default 50%. Vervangt hardcoded waarde in `detectAndGenerateLowOccupancy`.
+- [ ] **Autonome detectie** — bij data-event vanuit reserveringsplatform (Zenchef etc.) automatisch `detectAndGenerateLowOccupancy` triggeren (i.p.v. handmatige knop). NB: per memory géén interne cron, alléén event-driven.
+- [ ] **Push-meldingen** — opties: (a) Email-interim via Resend (snel, 2-3u), (b) Web Push via PWA (10-12u, werkt cross-platform), (c) Mobile app + native push (weken, App Store). Sprint-keuze: start met (a), later (b).
+
 ### Billing
 - [ ] **Mollie-integratie** — SDK installeren, checkout-flow op pricing-pagina
 - [ ] **Migratie `subscriptions`-tabel** — plan + status + mollie_customer_id
