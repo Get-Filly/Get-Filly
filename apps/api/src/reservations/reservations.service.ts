@@ -204,4 +204,57 @@ export class ReservationsService {
 
     return data as Reservation;
   }
+
+  // ============================================================
+  // setStatus, status-overgang voor een reservering
+  // ============================================================
+  // Gebruikt door de 'Inchecken'-knop op /dashboard/reserveringen
+  // (bevestigd → ingecheckt). Strict enum-check zodat een typo niet
+  // de DB-check-constraint hoeft te triggeren.
+  async setStatus(
+    restaurantId: string,
+    reservationId: string,
+    status: string,
+    userId: string,
+  ): Promise<Reservation> {
+    const allowed: ReservationStatus[] = [
+      'bevestigd',
+      'geannuleerd',
+      'no_show',
+      'ingecheckt',
+      'voltooid',
+    ];
+    if (!allowed.includes(status as ReservationStatus)) {
+      throw new BadRequestException(
+        `Ongeldige status. Toegestaan: ${allowed.join(', ')}.`,
+      );
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('reservations')
+      .update({ status })
+      .eq('id', reservationId)
+      .eq('restaurant_id', restaurantId)
+      .select(RESERVATION_COLUMNS)
+      .maybeSingle();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) {
+      throw new NotFoundException('Reservering niet gevonden.');
+    }
+
+    // Audit-log voor traceability (welk teamlid heeft wanneer welke
+    // status gezet). Niet kritiek voor business-flow maar wel voor
+    // ondersteuning bij gast-disputen.
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'reservation_status_set',
+      entity_type: 'reservation',
+      entity_id: reservationId,
+      payload: { status },
+    });
+
+    return data as Reservation;
+  }
 }

@@ -1684,6 +1684,26 @@ export async function setReservationAttribution(
   return res.json();
 }
 
+// Status-overgang voor een reservering (bv. 'bevestigd' → 'ingecheckt').
+// Wordt aangeroepen door de Inchecken-knop op /dashboard/reserveringen.
+export async function setReservationStatus(
+  reservationId: string,
+  status: ReservationStatus,
+): Promise<Reservation> {
+  const res = await authedFetch(
+    `${API_URL}/reservations/${reservationId}/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Status wijzigen mislukt"));
+  }
+  return res.json();
+}
+
 export type ReviewSource = "google" | "tripadvisor" | "thefork" | "iens";
 
 export type Review = {

@@ -46,7 +46,9 @@ const allMenuItems: MenuItem[] = [
   // bestaande deep-links; kan in latere cleanup-sessie weg.
   { href: "/dashboard/google-business", label: "Google Business", module: "google_business", icon: "💼" },
   { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: "📅" },
-  { href: "/dashboard/gasten", label: "Gasten", module: "gasten", icon: "👥" },
+  // Gasten-pagina uit sidebar verwijderd 2026-05-12: gast-info zit
+  // nu inline in elke reservering-rij (totaal bezoeken, laatste
+  // bezoek). Route /dashboard/gasten blijft bestaan voor deep-links.
   { href: "/dashboard/menu", label: "Menu", module: "menu", icon: "🍽️" },
   { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: "📈" },
   // Koppelingen-hub uit sidebar verwijderd 2026-05-12: alle integraties

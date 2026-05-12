@@ -83,4 +83,23 @@ export class ReservationsController {
       user.id,
     );
   }
+
+  // Status-wijziging voor een reservering. Vooral gebruikt voor
+  // 'bevestigd' → 'ingecheckt' wanneer de gast binnenkomt. Frontend-
+  // knop op /dashboard/reserveringen. Body-validatie houdt 'm bij de
+  // 5 toegestane enum-values.
+  @Patch(':id/status')
+  setStatus(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.reservations.setStatus(
+      restaurantId,
+      id,
+      body.status,
+      user.id,
+    );
+  }
 }

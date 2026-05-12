@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createReservation,
   fetchCampaigns,
+  fetchGuests,
   fetchReservations,
   setReservationAttribution,
+  setReservationStatus,
   type Campaign,
+  type Guest,
   type Reservation,
   type ReservationStatus,
 } from "../../../lib/api";
@@ -69,6 +72,9 @@ function todayIso(): string {
 export default function ReserveringenPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  // Gast-map keyed op guest.id zodat we per reservering snel visit_count
+  // en last_visit_at kunnen opzoeken zonder N+1 queries.
+  const [guestsById, setGuestsById] = useState<Map<string, Guest>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -77,10 +83,13 @@ export default function ReserveringenPage() {
   // Tijdens een attributie-PATCH zetten we de reservation-id hier zodat
   // de UI kan disablen + een spinner kan tonen.
   const [attributing, setAttributing] = useState<string | null>(null);
+  // Idem voor status-mutatie (Inchecken-knop).
+  const [statusBusy, setStatusBusy] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch 3 dagen geleden t/m 14 dagen vooruit + alle campagnes
-    // (voor de "koppel aan campagne"-dropdown).
+    // (voor de "koppel aan campagne"-dropdown) + alle gasten (voor
+    // de visit_count/last_visit_at-info per reservering-rij).
     const today = new Date();
     const from = new Date(today);
     from.setDate(today.getDate() - 3);
@@ -93,10 +102,14 @@ export default function ReserveringenPage() {
         to.toISOString().slice(0, 10),
       ),
       fetchCampaigns(),
+      fetchGuests(),
     ])
-      .then(([res, camps]) => {
+      .then(([res, camps, guests]) => {
         setReservations(res);
         setCampaigns(camps);
+        const map = new Map<string, Guest>();
+        for (const g of guests) map.set(g.id, g);
+        setGuestsById(map);
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -104,6 +117,33 @@ export default function ReserveringenPage() {
         setLoading(false);
       });
   }, []);
+
+  // Inchecken-handler: zet status van 'bevestigd' → 'ingecheckt'.
+  // Optimistisch updaten, rollback bij fout.
+  const handleCheckIn = async (reservationId: string) => {
+    const original = reservations.find((r) => r.id === reservationId);
+    if (!original) return;
+    setStatusBusy(reservationId);
+    setReservations((prev) =>
+      prev.map((r) =>
+        r.id === reservationId ? { ...r, status: "ingecheckt" } : r,
+      ),
+    );
+    try {
+      await setReservationStatus(reservationId, "ingecheckt");
+    } catch (e) {
+      setReservations((prev) =>
+        prev.map((r) => (r.id === reservationId ? original : r)),
+      );
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Inchecken mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setStatusBusy(null);
+    }
+  };
 
   // Handler voor het wijzigen van de attributie. Optimistisch updaten:
   // we vervangen de rij meteen in lokale state, doen daarna de PATCH;
@@ -198,7 +238,6 @@ export default function ReserveringenPage() {
     <div className="page-full">
       <PageHeader
         title="Reserveringen"
-        subtitle="Overzicht van wie wanneer komt, bijzonderheden en tafel-assignment."
         actions={
           <Button variant="primary" onClick={() => setModalOpen(true)}>
             ＋ Nieuwe reservering
@@ -352,7 +391,7 @@ export default function ReserveringenPage() {
                         style={{
                           display: "grid",
                           gridTemplateColumns:
-                            "80px 1fr auto auto auto auto",
+                            "80px 1fr auto auto auto",
                           gap: 14,
                           padding: "14px 18px",
                           borderTop:
@@ -390,6 +429,51 @@ export default function ReserveringenPage() {
                             {r.source && ` · via ${r.source}`}
                             {r.table_code && ` · tafel ${r.table_code}`}
                           </div>
+                          {/* Gast-stats: totaal bezoeken + laatste bezoek.
+                              Alleen tonen als de reservering aan een gast
+                              gekoppeld is én we de gast-data hebben.
+                              "Nieuwe gast" wanneer visit_count = 0/1. */}
+                          {r.guest_id && guestsById.has(r.guest_id) && (() => {
+                            const g = guestsById.get(r.guest_id)!;
+                            const lastVisit = g.last_visit_at
+                              ? new Date(g.last_visit_at).toLocaleDateString(
+                                  "nl-NL",
+                                  { day: "numeric", month: "short" },
+                                )
+                              : null;
+                            const isNew = g.visit_count <= 1;
+                            return (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "var(--tl)",
+                                  marginTop: 4,
+                                  display: "flex",
+                                  gap: 10,
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <span>
+                                  🔁 {g.visit_count}
+                                  {g.visit_count === 1 ? " bezoek" : " bezoeken"}
+                                  {isNew && (
+                                    <span
+                                      style={{
+                                        marginLeft: 4,
+                                        color: "var(--accent, #1F4A2D)",
+                                        fontWeight: 500,
+                                      }}
+                                    >
+                                      · Nieuwe gast
+                                    </span>
+                                  )}
+                                </span>
+                                {lastVisit && (
+                                  <span>📅 Laatste: {lastVisit}</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {r.special_requests && (
                             <div
                               style={{
@@ -434,20 +518,21 @@ export default function ReserveringenPage() {
                         >
                           {info.label}
                         </span>
-                        <button
-                          className="sg-btn"
-                          disabled
-                          style={{ padding: "4px 10px", fontSize: 11 }}
-                        >
-                          Bellen
-                        </button>
-                        <button
-                          className="sg-btn"
-                          disabled
-                          style={{ padding: "4px 10px", fontSize: 11 }}
-                        >
-                          Details
-                        </button>
+                        {/* Inchecken-knop: alleen tonen voor 'bevestigd'-
+                            status. Klik = PATCH naar status='ingecheckt'.
+                            Optimistic update + rollback in handleCheckIn. */}
+                        {r.status === "bevestigd" ? (
+                          <button
+                            className="sg-btn primary"
+                            disabled={statusBusy === r.id}
+                            onClick={() => handleCheckIn(r.id)}
+                            style={{ padding: "4px 12px", fontSize: 11 }}
+                          >
+                            {statusBusy === r.id ? "..." : "Inchecken"}
+                          </button>
+                        ) : (
+                          <div style={{ width: 78 }} />
+                        )}
                       </div>
                     );
                   })}
