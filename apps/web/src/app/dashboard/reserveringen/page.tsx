@@ -122,6 +122,18 @@ export default function ReserveringenPage() {
   const [attributing, setAttributing] = useState<string | null>(null);
   // Idem voor status-mutatie (Inchecken-knop).
   const [statusBusy, setStatusBusy] = useState<string | null>(null);
+  // Welke rijen zijn uitgevouwen? Klik op de rij toggle't expand met
+  // klant-info + speciaal-verzoek + Inchecken-knop. Lokaal, geen
+  // URL-sync — eigenaar scrolt door de lijst en klapt af-en-aan.
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Datum-range voor de reservering-lijst. Default: 3 dgn geleden t/m
   // 14 dgn vooruit (zelfde als vroeger). Eigenaar kan in de filter-rij
@@ -369,25 +381,13 @@ export default function ReserveringenPage() {
               <div key={date} style={{ marginBottom: 20 }}>
                 <div
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: "capitalize",
                     marginBottom: 8,
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {dayLabel}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--tl)" }}>
-                    {list.length} reservering{list.length > 1 ? "en" : ""} ·{" "}
-                    {dayCovers} covers
-                  </div>
+                  {dayLabel}
                 </div>
                 <div
                   style={{
@@ -398,156 +398,26 @@ export default function ReserveringenPage() {
                   }}
                 >
                   {list.map((r, idx) => {
-                    const info = statusInfo[r.status];
+                    const isExpanded = expandedRows.has(r.id);
+                    const guest = r.guest_id
+                      ? guestsById.get(r.guest_id) ?? null
+                      : null;
                     return (
-                      <div
+                      <ReservationRow
                         key={r.id}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "80px 1fr auto auto auto",
-                          gap: 14,
-                          padding: "14px 18px",
-                          borderTop:
-                            idx === 0 ? "none" : "1px solid var(--border-soft)",
-                          alignItems: "center",
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>
-                          {r.reservation_time.slice(0, 5)}
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 500,
-                              fontSize: 14,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span>{r.guest_name ?? "—"}</span>
-                            <span
-                              style={{
-                                color: "var(--tl)",
-                                fontWeight: 400,
-                                fontSize: 12,
-                              }}
-                            >
-                              · {r.party_size} pers
-                            </span>
-                          </div>
-                          <div style={{ color: "var(--tl)", fontSize: 11 }}>
-                            {r.guest_phone ?? "—"}
-                            {r.source && ` · via ${r.source}`}
-                            {r.table_code && ` · tafel ${r.table_code}`}
-                          </div>
-                          {/* Gast-stats: totaal bezoeken + laatste bezoek.
-                              Alleen tonen als de reservering aan een gast
-                              gekoppeld is én we de gast-data hebben.
-                              "Nieuwe gast" wanneer visit_count = 0/1. */}
-                          {r.guest_id && guestsById.has(r.guest_id) && (() => {
-                            const g = guestsById.get(r.guest_id)!;
-                            const lastVisit = g.last_visit_at
-                              ? new Date(g.last_visit_at).toLocaleDateString(
-                                  "nl-NL",
-                                  { day: "numeric", month: "short" },
-                                )
-                              : null;
-                            const isNew = g.visit_count <= 1;
-                            return (
-                              <div
-                                style={{
-                                  fontSize: 11,
-                                  color: "var(--tl)",
-                                  marginTop: 4,
-                                  display: "flex",
-                                  gap: 10,
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <span>
-                                  🔁 {g.visit_count}
-                                  {g.visit_count === 1 ? " bezoek" : " bezoeken"}
-                                  {isNew && (
-                                    <span
-                                      style={{
-                                        marginLeft: 4,
-                                        color: "var(--accent, #1F4A2D)",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      · Nieuwe gast
-                                    </span>
-                                  )}
-                                </span>
-                                {lastVisit && (
-                                  <span>📅 Laatste: {lastVisit}</span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                          {r.special_requests && (
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: "#B45309",
-                                background: "#FEF3C7",
-                                padding: "2px 8px",
-                                borderRadius: 4,
-                                marginTop: 4,
-                                display: "inline-block",
-                              }}
-                            >
-                              💬 {r.special_requests}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Filly-attributie: dropdown om handmatig aan
-                            een campagne te koppelen. Als gekoppeld: groene
-                            badge met campagnenaam + "x"-knop om los te
-                            koppelen. Tot send-engine click-tracking
-                            heeft, is dit de manier om Filly-ROI-cijfers
-                            in het dashboard te krijgen. */}
-                        <FillyAttributionControl
-                          reservation={r}
-                          campaigns={campaigns}
-                          busy={attributing === r.id}
-                          onChange={(campId) =>
-                            handleAttributionChange(r.id, campId)
-                          }
-                        />
-
-                        <span
-                          style={{
-                            padding: "2px 10px",
-                            borderRadius: "var(--rf)",
-                            fontSize: 11,
-                            fontWeight: 500,
-                            color: info.color,
-                            background: info.bg,
-                          }}
-                        >
-                          {info.label}
-                        </span>
-                        {/* Inchecken-knop: alleen tonen voor 'bevestigd'-
-                            status. Klik = PATCH naar status='ingecheckt'.
-                            Optimistic update + rollback in handleCheckIn. */}
-                        {r.status === "bevestigd" ? (
-                          <button
-                            className="sg-btn primary"
-                            disabled={statusBusy === r.id}
-                            onClick={() => handleCheckIn(r.id)}
-                            style={{ padding: "4px 12px", fontSize: 11 }}
-                          >
-                            {statusBusy === r.id ? "..." : "Inchecken"}
-                          </button>
-                        ) : (
-                          <div style={{ width: 78 }} />
-                        )}
-                      </div>
+                        reservation={r}
+                        guest={guest}
+                        campaigns={campaigns}
+                        isExpanded={isExpanded}
+                        onToggleExpand={() => toggleExpanded(r.id)}
+                        attributing={attributing === r.id}
+                        onAttributionChange={(campId) =>
+                          handleAttributionChange(r.id, campId)
+                        }
+                        statusBusy={statusBusy === r.id}
+                        onCheckIn={() => handleCheckIn(r.id)}
+                        showTopBorder={idx !== 0}
+                      />
                     );
                   })}
                 </div>
@@ -695,3 +565,299 @@ function FillyAttributionControl({
   );
 }
 
+// ============================================================
+// ReservationRow, collapsed/expanded reservering-rij
+// ============================================================
+// Per Floris-redesign 2026-05-12 (v2):
+// - Hoofdrij toont alleen: tijd · naam · "X pers" + (geel rondje als
+//   er een speciaal verzoek is) · Filly-koppeling-dropdown.
+// - Klik op de rij → expand: speciaal verzoek vooraan (geel-balk),
+//   dan klant-stats (email, telefoon, verjaardag, bezoeken, laatste
+//   bezoek, tags), dan status + Inchecken-knop (voor bevestigd).
+// - Bevestigd-badge + Inchecken-knop niet meer in hoofdrij.
+
+type ReservationRowProps = {
+  reservation: Reservation;
+  guest: Guest | null;
+  campaigns: Campaign[];
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  attributing: boolean;
+  onAttributionChange: (campaignId: string | null) => void;
+  statusBusy: boolean;
+  onCheckIn: () => void;
+  showTopBorder: boolean;
+};
+
+function ReservationRow({
+  reservation: r,
+  guest,
+  campaigns,
+  isExpanded,
+  onToggleExpand,
+  attributing,
+  onAttributionChange,
+  statusBusy,
+  onCheckIn,
+  showTopBorder,
+}: ReservationRowProps) {
+  const hasSpecial = !!r.special_requests;
+  const info = statusInfo[r.status];
+
+  return (
+    <div
+      style={{
+        borderTop: showTopBorder ? "1px solid var(--border-soft)" : "none",
+      }}
+    >
+      {/* Hoofdrij: klikbaar (toggle). Filly-dropdown is een stop-
+          propagation-zone zodat de dropdown open kan zonder dat de
+          rij in-/uitklapt. */}
+      <div
+        onClick={onToggleExpand}
+        role="button"
+        aria-expanded={isExpanded}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "80px 1fr auto",
+          gap: 14,
+          padding: "14px 18px",
+          alignItems: "center",
+          cursor: "pointer",
+          background: isExpanded ? "var(--bg-soft, #FAF7F1)" : "transparent",
+        }}
+      >
+        <div style={{ fontWeight: 600, fontSize: 14 }}>
+          {r.reservation_time.slice(0, 5)}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontWeight: 500,
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <span>{r.guest_name ?? "—"}</span>
+            <span
+              style={{
+                color: "var(--tl)",
+                fontWeight: 400,
+                fontSize: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              · {r.party_size} pers
+              {hasSpecial && (
+                <span
+                  title={`Speciaal verzoek: ${r.special_requests}`}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "#F59E0B",
+                    display: "inline-block",
+                  }}
+                  aria-label="Speciaal verzoek"
+                />
+              )}
+            </span>
+          </div>
+          <div style={{ color: "var(--tl)", fontSize: 11 }}>
+            {r.guest_phone ?? "—"}
+            {r.source && ` · via ${r.source}`}
+            {r.table_code && ` · tafel ${r.table_code}`}
+          </div>
+        </div>
+        {/* Filly-koppeling: klik-events stoppen zodat de dropdown
+            werkt zonder dat de rij toggle't. */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <FillyAttributionControl
+            reservation={r}
+            campaigns={campaigns}
+            busy={attributing}
+            onChange={onAttributionChange}
+          />
+        </div>
+      </div>
+
+      {/* Expand-detail. Speciaal verzoek vooraan (geel-balk), daarna
+          klant-stats, daarna status + Inchecken-actie. */}
+      {isExpanded && (
+        <div
+          style={{
+            padding: "0 18px 16px 18px",
+            background: "var(--bg-soft, #FAF7F1)",
+            borderTop: "1px solid var(--border-soft, #E5DFD0)",
+          }}
+        >
+          {hasSpecial && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "#92400E",
+                background: "#FEF3C7",
+                border: "1px solid #FCD34D",
+                padding: "10px 14px",
+                borderRadius: 6,
+                marginTop: 12,
+                marginBottom: 12,
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>💬</span>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  Speciaal verzoek
+                </div>
+                <div style={{ lineHeight: 1.4 }}>{r.special_requests}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Klant-info-grid: 2 kolommen voor de standaard-velden. */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "10px 24px",
+              fontSize: 12,
+              marginTop: hasSpecial ? 0 : 12,
+            }}
+          >
+            <DetailField label="Naam" value={fullGuestName(r, guest)} />
+            <DetailField
+              label="E-mail"
+              value={guest?.email ?? r.guest_email ?? "—"}
+            />
+            <DetailField
+              label="Telefoon"
+              value={guest?.phone ?? r.guest_phone ?? "—"}
+            />
+            <DetailField
+              label="Verjaardag"
+              value={
+                guest?.birthday
+                  ? new Date(guest.birthday).toLocaleDateString("nl-NL", {
+                      day: "numeric",
+                      month: "long",
+                    })
+                  : "—"
+              }
+            />
+            <DetailField
+              label="Totaal bezoeken"
+              value={
+                guest
+                  ? `${guest.visit_count}${guest.visit_count <= 1 ? " (nieuwe gast)" : ""}`
+                  : "—"
+              }
+            />
+            <DetailField
+              label="Laatste bezoek"
+              value={
+                guest?.last_visit_at
+                  ? new Date(guest.last_visit_at).toLocaleDateString("nl-NL", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "—"
+              }
+            />
+            <DetailField
+              label="Tafel"
+              value={r.table_code ?? "—"}
+            />
+            <DetailField
+              label="Bron"
+              value={r.source ?? "—"}
+            />
+            {guest && guest.tags && guest.tags.length > 0 && (
+              <DetailField label="Tags" value={guest.tags.join(", ")} />
+            )}
+            {guest && guest.notes && (
+              <DetailField label="Notities" value={guest.notes} />
+            )}
+          </div>
+
+          {/* Status + Inchecken-knop onderaan. */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 16,
+              paddingTop: 12,
+              borderTop: "1px solid var(--border-soft, #E5DFD0)",
+            }}
+          >
+            <span
+              style={{
+                padding: "3px 10px",
+                borderRadius: "var(--rf)",
+                fontSize: 11,
+                fontWeight: 500,
+                color: info.color,
+                background: info.bg,
+              }}
+            >
+              {info.label}
+            </span>
+            {r.status === "bevestigd" && (
+              <button
+                className="sg-btn primary"
+                disabled={statusBusy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCheckIn();
+                }}
+                style={{ padding: "5px 14px", fontSize: 12 }}
+              >
+                {statusBusy ? "..." : "Inchecken"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function fullGuestName(r: Reservation, guest: Guest | null): string {
+  if (guest) {
+    const composed = [guest.first_name, guest.last_name]
+      .filter(Boolean)
+      .join(" ");
+    if (composed) return composed;
+  }
+  return r.guest_name ?? "—";
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: 10,
+          color: "var(--tl)",
+          textTransform: "uppercase",
+          letterSpacing: 0.3,
+          marginBottom: 2,
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 13, color: "var(--text, #18181B)" }}>
+        {value}
+      </div>
+    </div>
+  );
+}
