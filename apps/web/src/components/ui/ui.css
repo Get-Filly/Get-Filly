@@ -143,30 +143,30 @@
  * data-active="true" voor de actieve filter-state (zichtbaar selected). */
 .ui-channel-chip {
   /* Even hoog als ui-btn--md (36px) zodat chips visueel uitlijnen
-     met de Historie-knop ernaast. Breedte iets ruimer dan default
-     button-padding zodat een enkel emoji centraal staat. */
+     met de Historie-knop ernaast. Toont icon + tekst naast elkaar. */
   padding: var(--space-2) var(--space-3);
   min-height: 36px;
-  min-width: 36px;
-  font-size: 16px;
   line-height: 1;
   border: 1px solid var(--color-brand);
   background: var(--color-brand-soft);
+  color: var(--color-brand-deep);
   border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   transition: background 0.12s ease, border-color 0.12s ease,
-    transform 0.06s ease;
+    color 0.12s ease;
 }
 .ui-channel-chip:hover {
   background: var(--color-brand-deep);
   border-color: var(--color-brand-deep);
+  color: var(--color-white);
 }
 .ui-channel-chip[data-active="true"] {
   background: var(--color-brand);
   border-color: var(--color-brand);
+  color: var(--color-white);
   box-shadow: 0 0 0 2px rgba(31, 74, 45, 0.15);
 }
 .ui-channel-chip[data-active="true"]:hover {

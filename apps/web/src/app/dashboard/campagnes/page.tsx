@@ -63,6 +63,7 @@ function typeIcon(t: string | undefined | null): string {
   if (t === "instagram") return "📱";
   if (t === "facebook") return "👥";
   if (t === "tiktok") return "🎵";
+  if (t === "google_business") return "📍";
   return "📱";
 }
 
@@ -418,14 +419,14 @@ export default function CampagnesPage() {
                   { key: "facebook", icon: "👥", label: "Facebook" },
                   { key: "tiktok", icon: "🎵", label: "TikTok" },
                   { key: "whatsapp", icon: "💬", label: "WhatsApp" },
-                  { key: "social", icon: "📱", label: "Social (legacy)" },
+                  {
+                    key: "google_business",
+                    icon: "📍",
+                    label: "Google Business",
+                  },
                 ] as const
               ).map((ch) => {
                 const active = channelFilter.has(ch.key);
-                // 'social' is een legacy-type voor campagnes vóór de
-                // platform-split (2026-05-07). Toon 'm niet apart in
-                // de UI tenzij eigenaar hem al gebruikt heeft.
-                if (ch.key === "social") return null;
                 return (
                   <button
                     key={ch.key}
@@ -436,7 +437,18 @@ export default function CampagnesPage() {
                     data-active={active ? "true" : "false"}
                     aria-pressed={active}
                   >
-                    {ch.icon}
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>
+                      {ch.icon}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {ch.label}
+                    </span>
                   </button>
                 );
               })}
