@@ -10,15 +10,14 @@ import { useState } from "react";
 // uitleg-tekst per integratie. Eigenaar plakt API-key (of klikt
 // OAuth-connect) en is klaar.
 //
-// Twee soorten koppelingen:
-//   - apikey  : eigenaar plakt z'n eigen API-key/token
-//   - oauth   : "Verbind"-knop opent OAuth-flow (volgende stap)
-//   - auto    : geen actie nodig (bv. weer-integratie via locatie)
+// Twee modi:
+//   - apikey : default — eigenaar klikt 'Verbind', rij vouwt open
+//              met een input-veld voor de API-key/token + Opslaan-knop.
+//   - auto   : geen actie nodig (bv. weer-integratie via locatie).
 //
 // API-key-storage is voorlopig UI-only. De daadwerkelijke
 // credential-tabel + encrypt-at-rest komt in volgende sessie
-// (mig 0039 + encryption-helper). Voor nu kan eigenaar 'm intypen
-// en zien dat het werkt visueel.
+// (mig 0039 + encryption-helper).
 
 type IntegrationCategory =
   | "reserveringen"
@@ -27,7 +26,7 @@ type IntegrationCategory =
   | "reviews"
   | "data";
 
-type ConnectionMethod = "apikey" | "oauth" | "auto";
+type ConnectionMethod = "apikey" | "auto";
 
 type Integration = {
   key: string;
@@ -48,36 +47,41 @@ const integrations: Integration[] = [
     key: "zenchef",
     icon: "🍽️",
     name: "Zenchef",
-    method: "oauth",
+    method: "apikey",
     category: "reserveringen",
+    keyPlaceholder: "Zenchef API-token",
   },
   {
     key: "opentable",
     icon: "🍽️",
     name: "OpenTable",
-    method: "oauth",
+    method: "apikey",
     category: "reserveringen",
+    keyPlaceholder: "OpenTable API-token",
   },
   {
     key: "sevenrooms",
     icon: "🍽️",
     name: "SevenRooms",
-    method: "oauth",
+    method: "apikey",
     category: "reserveringen",
+    keyPlaceholder: "SevenRooms API-token",
   },
   {
     key: "resengo",
     icon: "🍽️",
     name: "Resengo",
-    method: "oauth",
+    method: "apikey",
     category: "reserveringen",
+    keyPlaceholder: "Resengo API-token",
   },
   {
     key: "google_business",
     icon: "📍",
     name: "Google Business Profile",
-    method: "oauth",
+    method: "apikey",
     category: "vindbaarheid",
+    keyPlaceholder: "Google API-token",
   },
   {
     key: "resend",
@@ -99,15 +103,17 @@ const integrations: Integration[] = [
     key: "instagram",
     icon: "📱",
     name: "Instagram",
-    method: "oauth",
+    method: "apikey",
     category: "communicatie",
+    keyPlaceholder: "Instagram access token",
   },
   {
     key: "facebook",
     icon: "👥",
     name: "Facebook",
-    method: "oauth",
+    method: "apikey",
     category: "communicatie",
+    keyPlaceholder: "Meta Graph API token",
   },
   {
     key: "tiktok",
@@ -129,15 +135,17 @@ const integrations: Integration[] = [
     key: "tripadvisor",
     icon: "🧳",
     name: "TripAdvisor",
-    method: "oauth",
+    method: "apikey",
     category: "reviews",
+    keyPlaceholder: "TripAdvisor API-token",
   },
   {
     key: "thefork",
     icon: "🍴",
     name: "The Fork",
-    method: "oauth",
+    method: "apikey",
     category: "reviews",
+    keyPlaceholder: "The Fork API-token",
   },
   {
     key: "lightspeed",
@@ -177,13 +185,12 @@ export function ConnectionsSection() {
   // Lokale state per integratie: ingevoerde API-key. Storage volgt
   // in volgende sessie (DB-tabel + encrypt). Voor nu: UI-only.
   const [keys, setKeys] = useState<Record<string, string>>({});
-  // Welke OAuth-integraties heeft de eigenaar aangeklikt? UI-only,
-  // toont aan eigenaar dat 'ie deze wil gebruiken — echte OAuth-flow
-  // komt in latere stap. Reset bij refresh.
-  const [requested, setRequested] = useState<Set<string>>(new Set());
+  // Welke integraties zijn uitgevouwen? Klik op 'Verbind' opent
+  // het API-key-invul-veld onder de rij. Lokaal, geen persistence.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const toggleRequested = (key: string) => {
-    setRequested((prev) => {
+  const toggleExpanded = (key: string) => {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -227,8 +234,8 @@ export function ConnectionsSection() {
                   onApiKeyChange={(v) =>
                     setKeys((prev) => ({ ...prev, [i.key]: v }))
                   }
-                  isRequested={requested.has(i.key)}
-                  onRequest={() => toggleRequested(i.key)}
+                  isExpanded={expanded.has(i.key)}
+                  onToggleExpand={() => toggleExpanded(i.key)}
                   isLast={idx === group.length - 1}
                 />
               ))}
@@ -244,8 +251,8 @@ type IntegrationRowProps = {
   integration: Integration;
   apiKey: string;
   onApiKeyChange: (v: string) => void;
-  isRequested: boolean;
-  onRequest: () => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
   isLast: boolean;
 };
 
@@ -253,46 +260,117 @@ function IntegrationRow({
   integration,
   apiKey,
   onApiKeyChange,
-  isRequested,
-  onRequest,
+  isExpanded,
+  onToggleExpand,
   isLast,
 }: IntegrationRowProps) {
+  // Auto-integraties (weer): één enkele rij zonder expand. Geen knop,
+  // geen input, alleen status-tekst.
+  if (integration.method === "auto") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 14px",
+          borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
+        }}
+      >
+        <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
+          {integration.icon}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text, #18181B)",
+            flex: 1,
+          }}
+        >
+          {integration.name}
+        </div>
+        <span
+          style={{
+            fontSize: 12,
+            color: "var(--accent, #1F4A2D)",
+            fontWeight: 500,
+            flexShrink: 0,
+          }}
+        >
+          ✓ Actief via locatie
+        </span>
+      </div>
+    );
+  }
+
+  // API-key-integraties: collapsed by default, klik 'Verbind' → expand
+  // met input-veld + Opslaan-knop. Klik nogmaals = collapse.
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
         borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
-        background: isRequested
-          ? "var(--brand-soft, #eef3ee)"
-          : "transparent",
       }}
     >
-      <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
-        {integration.icon}
-      </div>
+      {/* Hoofdrij: icon + naam + Verbind/Annuleer-knop */}
       <div
         style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text, #18181B)",
-          flexShrink: 0,
-          minWidth: 200,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 14px",
         }}
       >
-        {integration.name}
+        <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
+          {integration.icon}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text, #18181B)",
+            flex: 1,
+          }}
+        >
+          {integration.name}
+        </div>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          style={{
+            padding: "6px 14px",
+            fontSize: 12,
+            fontWeight: 500,
+            border: "1px solid var(--border, #E5DFD0)",
+            background: isExpanded
+              ? "var(--bg-soft, #FAF7F1)"
+              : "transparent",
+            color: "var(--text, #18181B)",
+            borderRadius: 6,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          {isExpanded ? "Annuleer" : "Verbind"}
+        </button>
       </div>
 
-      {/* Actie-deel: per methode iets anders. */}
-      {integration.method === "apikey" && (
-        <>
+      {/* Expand-deel: API-key input + Opslaan-knop */}
+      {isExpanded && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 14px 12px 46px",
+          }}
+        >
           <input
             type="password"
-            placeholder={integration.keyPlaceholder ?? "API-key"}
+            placeholder={integration.keyPlaceholder ?? "API-key / token"}
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
+            autoFocus
             style={{
               flex: 1,
               padding: "6px 10px",
@@ -308,8 +386,7 @@ function IntegrationRow({
             disabled={!apiKey.trim()}
             onClick={() => {
               // TODO: save naar backend (DB-tabel volgt in volgende
-              // sessie). Voor nu: toon "Opgeslagen"-feedback in een
-              // toast of inline-state.
+              // sessie). Voor nu: alleen UI-feedback.
               alert(
                 "Storage komt binnenkort. Voor nu kan je de key alleen invullen.",
               );
@@ -330,55 +407,7 @@ function IntegrationRow({
           >
             Opslaan
           </button>
-        </>
-      )}
-
-      {integration.method === "oauth" && (
-        <>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            onClick={onRequest}
-            style={{
-              padding: "6px 14px",
-              fontSize: 12,
-              fontWeight: 500,
-              border: isRequested
-                ? "1px solid var(--accent, #1F4A2D)"
-                : "1px solid var(--border, #E5DFD0)",
-              background: isRequested
-                ? "var(--accent, #1F4A2D)"
-                : "transparent",
-              color: isRequested ? "#FFFFFF" : "var(--text, #18181B)",
-              borderRadius: 6,
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-            title={
-              isRequested
-                ? "Klik nogmaals om te annuleren"
-                : "Selecteer als je deze koppeling wilt gebruiken"
-            }
-          >
-            {isRequested ? "✓ Geselecteerd" : "Verbind"}
-          </button>
-        </>
-      )}
-
-      {integration.method === "auto" && (
-        <>
-          <div style={{ flex: 1 }} />
-          <span
-            style={{
-              fontSize: 12,
-              color: "var(--accent, #1F4A2D)",
-              fontWeight: 500,
-              flexShrink: 0,
-            }}
-          >
-            ✓ Actief via locatie
-          </span>
-        </>
+        </div>
       )}
     </div>
   );
