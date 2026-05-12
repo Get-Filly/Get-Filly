@@ -78,15 +78,82 @@ function suggestionDisplayType(s: AiSuggestion): string {
   );
 }
 
-function suggestionReasoning(s: AiSuggestion): string | null {
-  if (s.reasoning) return s.reasoning;
+// Body-snippet voor de preview op de kaart. Single = body uit eerste
+// variant of legacy body-veld. Bundle = theme als 'ie er is, anders
+// de body van het eerste kanaal.
+function suggestionSnippet(s: AiSuggestion): string | null {
+  const sc = s.suggested_campaign;
+  // Bundle (multi-channel): theme heeft prioriteit, dat is 1 zin
+  // die alle kanalen samen beschrijft.
+  if (sc.channels && sc.channels.length > 0) {
+    const theme = (sc as { theme?: string }).theme;
+    if (theme) return truncate(theme, 100);
+    const first = sc.channels[0]?.variants?.[0]?.body;
+    if (first) return truncate(first, 100);
+    return null;
+  }
+  // Single: variants[selected_index].body, anders eerste variant,
+  // anders legacy body-veld.
+  if (sc.variants && sc.variants.length > 0) {
+    const idx = sc.selected_index ?? 0;
+    const v = sc.variants[idx] ?? sc.variants[0];
+    if (v?.body) return truncate(v.body, 100);
+  }
+  if (sc.body) return truncate(sc.body, 100);
+  if (sc.caption) return truncate(sc.caption, 100);
+  return null;
+}
+
+// Doelgroep-label uit trigger_context.target_segment (gezet door
+// Filly bij het genereren). Kan null zijn voor oudere suggesties.
+function suggestionSegment(s: AiSuggestion): string | null {
   const ctx = s.trigger_context;
-  if (!ctx) return null;
-  if (typeof ctx === "object" && "target_date" in ctx) {
-    const date = (ctx as { target_date?: string }).target_date;
-    return date ? `Voor ${date}` : null;
+  if (ctx && typeof ctx === "object" && "target_segment" in ctx) {
+    const seg = (ctx as { target_segment?: string }).target_segment;
+    if (typeof seg === "string" && seg.trim()) return seg.trim();
   }
   return null;
+}
+
+// Datum-regel: voor single = 1 datum, voor bundle = "✉️ 10 mei · 📱 11 mei".
+function suggestionDateLabel(s: AiSuggestion): string | null {
+  const sc = s.suggested_campaign;
+  if (sc.channels && sc.channels.length > 0) {
+    const parts: string[] = [];
+    for (const ch of sc.channels) {
+      const when = ch.scheduled_for ?? ch.filly_scheduled_for;
+      if (!when) continue;
+      parts.push(
+        `${typeIcon(ch.platform)} ${new Date(when).toLocaleDateString("nl-NL", {
+          day: "numeric",
+          month: "short",
+        })}`,
+      );
+    }
+    if (parts.length > 0) return parts.join(" · ");
+  }
+  if (sc.scheduled_for) {
+    return new Date(sc.scheduled_for).toLocaleDateString("nl-NL", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+  const ctx = s.trigger_context;
+  if (ctx && typeof ctx === "object" && "target_date" in ctx) {
+    const date = (ctx as { target_date?: string }).target_date;
+    if (date) {
+      return new Date(date).toLocaleDateString("nl-NL", {
+        day: "numeric",
+        month: "short",
+      });
+    }
+  }
+  return null;
+}
+
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max).trimEnd() + "…";
 }
 
 function formatRelativeDate(iso: string | null): string {
@@ -450,10 +517,13 @@ function BoardCard({
   onApprove,
   onReject,
 }: CardProps) {
-  // Voorstel (single-channel): naam · kanaal-icon · reden · ✓/✗.
+  // Voorstel (single-channel): naam + kanaal + datum + snippet +
+  // doelgroep + acties. Uniforme template binnen de Voorstel-kolom.
   if (item.kind === "suggestion") {
     const s = item.data;
-    const reason = suggestionReasoning(s);
+    const date = suggestionDateLabel(s);
+    const snippet = suggestionSnippet(s);
+    const segment = suggestionSegment(s);
     return (
       <Link
         href={`/dashboard/campagnes/voorstel/${s.id}`}
@@ -466,9 +536,11 @@ function BoardCard({
             </span>
             <span style={cardTitle}>{suggestionDisplayName(s)}</span>
           </div>
-          {reason && <div style={cardSubtle}>{reason}</div>}
+          {date && <div style={cardSubtle}>{date}</div>}
+          {snippet && <div style={cardSnippet}>{snippet}</div>}
+          {segment && <div style={cardSegment}>👥 {segment}</div>}
           <div
-            style={{ display: "flex", gap: 6, marginTop: 8 }}
+            style={{ display: "flex", gap: 6, marginTop: 10 }}
             onClick={(e) => e.preventDefault()}
           >
             <button
@@ -499,159 +571,113 @@ function BoardCard({
     );
   }
 
-  // Bundle-voorstel: 1 card met 3 channel-icons + expand.
+  // Bundle-voorstel: zelfde template als single-voorstel, maar met
+  // multi-kanaal-datum-regel + BUNDLE-pill. Klik op de card-body (niet
+  // op de knoppen) navigeert naar voorstel-detail.
   if (item.kind === "bundle-suggestion") {
     const s = item.data;
+    const date = suggestionDateLabel(s);
+    const snippet = suggestionSnippet(s);
+    const segment = suggestionSegment(s);
     const channels = s.suggested_campaign.channels ?? [];
     return (
-      <div style={cardStyle}>
-        <div style={cardHeaderRow}>
-          <span style={{ fontSize: 16 }}>🎁</span>
-          <span style={cardTitle}>{suggestionDisplayName(s)}</span>
-          <span style={bundlePill}>Bundle</span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            marginTop: 6,
-            fontSize: 14,
-          }}
-        >
-          {channels.map((ch, i) => (
-            <span key={i} title={ch.platform}>
-              {typeIcon(ch.platform)}
-            </span>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onApprove(s)}
-            style={btnApprove}
-          >
-            {busy ? "..." : "✓ Goedkeur"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onReject(s)}
-            style={btnReject}
-          >
-            ✗ Wijs af
-          </button>
-          <button
-            type="button"
-            onClick={onToggleExpand}
-            style={btnGhost}
-            aria-expanded={isExpanded}
-          >
-            {isExpanded ? "▴" : "▾"}
-          </button>
-        </div>
-        {isExpanded && channels.length > 0 && (
-          <div style={expandWrap}>
-            {channels.map((ch, i) => (
-              <div key={i} style={expandRow}>
-                <span style={{ fontSize: 14 }}>{typeIcon(ch.platform)}</span>
-                <span style={{ flex: 1, textTransform: "capitalize" }}>
-                  {ch.platform}
-                </span>
-                <span style={{ fontSize: 10, color: "var(--tl)" }}>
-                  {ch.scheduled_for
-                    ? new Date(ch.scheduled_for).toLocaleDateString("nl-NL", {
-                        day: "numeric",
-                        month: "short",
-                      })
-                    : "geen datum"}
-                </span>
-              </div>
-            ))}
+      <Link
+        href={`/dashboard/campagnes/voorstel/${s.id}`}
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <div style={cardStyle}>
+          <div style={cardHeaderRow}>
+            <span style={{ fontSize: 16 }}>🎁</span>
+            <span style={cardTitle}>{suggestionDisplayName(s)}</span>
+            <span style={bundlePill}>Bundle</span>
           </div>
-        )}
-      </div>
+          {date ? (
+            <div style={cardSubtle}>{date}</div>
+          ) : (
+            channels.length > 0 && (
+              <div style={cardSubtle}>
+                {channels.map((ch) => typeIcon(ch.platform)).join(" · ")}
+              </div>
+            )
+          )}
+          {snippet && <div style={cardSnippet}>{snippet}</div>}
+          {segment && <div style={cardSegment}>👥 {segment}</div>}
+          <div
+            style={{ display: "flex", gap: 6, marginTop: 10 }}
+            onClick={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApprove(s);
+              }}
+              style={btnApprove}
+            >
+              {busy ? "..." : "✓ Goedkeur"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                onReject(s);
+              }}
+              style={btnReject}
+            >
+              ✗ Wijs af
+            </button>
+          </div>
+        </div>
+      </Link>
     );
   }
 
-  // Bundle-campagne: 1 card met channel-icons, expand toont mini-rijen
-  // per kanaal-campagne. Klik op de naam = naar bundle-detail.
+  // Bundle-campagne: 1 card met multi-kanaal-datum-regel. Klik =
+  // navigeer naar bundle-detail. Geen expand-knop meer (per kanaal
+  // zie je daar). Body-snippet/segment tonen we hier nog niet voor
+  // campagnes (komt zodra backend list-response uitgebreid is).
   if (item.kind === "bundle-campaign") {
     const first = item.campaigns[0];
     const name =
-      first.name.replace(/\s*[—\-·]\s*(mail|instagram|facebook|tiktok|whatsapp)\s*$/i, "") ||
-      first.name;
+      first.name.replace(
+        /\s*[—\-·]\s*(mail|instagram|facebook|tiktok|whatsapp)\s*$/i,
+        "",
+      ) || first.name;
+    const dateLabel = item.campaigns
+      .map((c) => {
+        if (!c.scheduled_for) return null;
+        return `${typeIcon(c.type)} ${new Date(c.scheduled_for).toLocaleDateString(
+          "nl-NL",
+          { day: "numeric", month: "short" },
+        )}`;
+      })
+      .filter((s): s is string => !!s)
+      .join(" · ");
     return (
-      <div style={cardStyle}>
-        <Link
-          href={`/dashboard/campagnes/bundle/${item.groupId}`}
-          style={{
-            textDecoration: "none",
-            color: "inherit",
-            display: "block",
-          }}
-        >
+      <Link
+        href={`/dashboard/campagnes/bundle/${item.groupId}`}
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <div style={cardStyle}>
           <div style={cardHeaderRow}>
             <span style={{ fontSize: 16 }}>🎁</span>
             <span style={cardTitle}>{name}</span>
             <span style={bundlePill}>Bundle</span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              marginTop: 6,
-              fontSize: 14,
-            }}
-          >
-            {item.campaigns.map((c) => (
-              <span key={c.id} title={c.type}>
-                {typeIcon(c.type)}
-              </span>
-            ))}
+          <div style={cardSubtle}>
+            {dateLabel ||
+              item.campaigns.map((c) => typeIcon(c.type)).join(" · ")}
           </div>
-        </Link>
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          style={{ ...btnGhost, marginTop: 8, width: "100%" }}
-          aria-expanded={isExpanded}
-        >
-          {isExpanded ? "▴ Inklappen" : "▾ Per kanaal"}
-        </button>
-        {isExpanded && (
-          <div style={expandWrap}>
-            {item.campaigns.map((c) => (
-              <Link
-                key={c.id}
-                href={`/dashboard/campagnes/${c.id}`}
-                style={{
-                  ...expandRow,
-                  textDecoration: "none",
-                  color: "inherit",
-                }}
-              >
-                <span style={{ fontSize: 14 }}>{typeIcon(c.type)}</span>
-                <span style={{ flex: 1, textTransform: "capitalize" }}>
-                  {c.type}
-                </span>
-                <span style={{ fontSize: 10, color: "var(--tl)" }}>
-                  {c.scheduled_for
-                    ? new Date(c.scheduled_for).toLocaleDateString("nl-NL", {
-                        day: "numeric",
-                        month: "short",
-                      })
-                    : "geen datum"}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      </Link>
     );
   }
 
-  // Standalone campagne: link naar detail. Per status andere meta-info.
+  // Standalone campagne: naam + kanaal + datum/status. Body-snippet
+  // + segment komen pas zodra backend de list-response uitbreidt
+  // met preview-data.
   const c = item.data;
   const stats = c.result_stats ?? {};
   return (
@@ -713,6 +739,24 @@ const cardSubtle: React.CSSProperties = {
   fontSize: 11,
   color: "var(--tl)",
   marginTop: 2,
+};
+const cardSnippet: React.CSSProperties = {
+  fontSize: 11,
+  color: "var(--text-secondary, #52525B)",
+  marginTop: 6,
+  lineHeight: 1.4,
+  // 2 regels max bij heel lange snippets — voorkomt dat 1 card de
+  // hele kolom overneemt.
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
+const cardSegment: React.CSSProperties = {
+  fontSize: 10,
+  color: "var(--accent, #1F4A2D)",
+  marginTop: 6,
+  fontWeight: 500,
 };
 const bundlePill: React.CSSProperties = {
   fontSize: 9,
