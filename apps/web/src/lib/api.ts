@@ -69,6 +69,10 @@ export type Campaign = {
   // groep heeft >1 leden = render als bundle-rij.
   group_id: string | null;
   scheduled_for: string | null;
+  // Per 2026-05-12: body-snippet (~140 chars) voor de kanban-cards.
+  // Backend joint campaign_mail_content / campaign_social_content
+  // op type. Null als de campagne nog geen content heeft.
+  body_preview: string | null;
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {

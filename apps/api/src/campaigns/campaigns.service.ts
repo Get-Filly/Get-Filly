@@ -89,6 +89,11 @@ export type Campaign = {
   // op de /campagnes-list. Null = stand-alone campagne.
   group_id: string | null;
   scheduled_for: string | null;
+  // Per 2026-05-12: korte body-preview voor de kanban-cards.
+  // Komt voor mail uit campaign_mail_content.body_plain, voor
+  // social uit campaign_social_content.caption. Null als de
+  // campagne nog geen content heeft (verse concept).
+  body_preview: string | null;
 };
 
 export type CampaignDetail = Campaign & {
@@ -124,6 +129,10 @@ export class CampaignsService {
   ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
+    // Eerst de campagne-rijen, daarna 2 batch-queries voor de content-
+    // tabellen (mail + social). Per type pakken we de juiste snippet
+    // en koppelen 'm aan de campaign-id. WhatsApp heeft nog geen
+    // content-tabel; daar blijft body_preview null.
     const { data, error } = await this.supabase.client
       .from('campaigns')
       .select(
@@ -139,7 +148,49 @@ export class CampaignsService {
       throw new InternalServerErrorException(error.message);
     }
 
-    return (data ?? []) as Campaign[];
+    const rows = (data ?? []) as Array<Omit<Campaign, 'body_preview'>>;
+    if (rows.length === 0) return [];
+
+    const mailIds = rows.filter((r) => r.type === 'mail').map((r) => r.id);
+    const socialIds = rows
+      .filter((r) => r.type === 'social')
+      .map((r) => r.id);
+
+    const previewMap = new Map<string, string>();
+    const truncate = (s: string | null | undefined, max = 140): string | null => {
+      if (!s) return null;
+      const trimmed = s.replace(/\s+/g, ' ').trim();
+      if (!trimmed) return null;
+      return trimmed.length > max
+        ? trimmed.slice(0, max).trimEnd() + '…'
+        : trimmed;
+    };
+
+    if (mailIds.length > 0) {
+      const { data: mailRows } = await this.supabase.client
+        .from('campaign_mail_content')
+        .select('campaign_id, body_plain, subject_line')
+        .in('campaign_id', mailIds);
+      for (const m of mailRows ?? []) {
+        const preview = truncate(m.body_plain) ?? truncate(m.subject_line);
+        if (preview) previewMap.set(m.campaign_id as string, preview);
+      }
+    }
+    if (socialIds.length > 0) {
+      const { data: socialRows } = await this.supabase.client
+        .from('campaign_social_content')
+        .select('campaign_id, caption')
+        .in('campaign_id', socialIds);
+      for (const s of socialRows ?? []) {
+        const preview = truncate(s.caption);
+        if (preview) previewMap.set(s.campaign_id as string, preview);
+      }
+    }
+
+    return rows.map((r) => ({
+      ...r,
+      body_preview: previewMap.get(r.id) ?? null,
+    })) as Campaign[];
   }
 
   // Per 2026-05-07 fase 4: bundle-detail ophalen. Retourneert de

@@ -182,8 +182,18 @@ export default function CampagnesPage() {
   const [loading, setLoading] = useState(true);
   // Per-item actie-state (approve / reject pending).
   const [busyId, setBusyId] = useState<string | null>(null);
-  // Expanded bundle-cards.
+  // Expanded bundle-cards (legacy, ongebruikt sinds card-revisie).
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Filter op kanaal. Lege set = alles tonen. Klik op chip = toggle.
+  const [channelFilter, setChannelFilter] = useState<Set<string>>(new Set());
+  const toggleChannel = (key: string) => {
+    setChannelFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const refetch = async () => {
     try {
@@ -205,6 +215,13 @@ export default function CampagnesPage() {
 
   // Verdeel items over de 4 kolommen.
   const columns = useMemo(() => {
+    // Helper: matched een item de actieve kanaal-filter?
+    // Lege filter = alles tonen. Bij multi-select = OR-match (heeft
+    // minstens 1 van de geselecteerde kanalen).
+    const matchesFilter = (channels: string[]): boolean => {
+      if (channelFilter.size === 0) return true;
+      return channels.some((c) => channelFilter.has(c));
+    };
     const result: Record<KanbanColumn["key"], BoardItem[]> = {
       voorstel: [],
       concept: [],
@@ -214,6 +231,12 @@ export default function CampagnesPage() {
 
     // Voorstel-kolom: ai_suggestions, split op trigger_type voor bundles.
     for (const s of suggestions) {
+      const sc = s.suggested_campaign;
+      const channels =
+        sc.channels && sc.channels.length > 0
+          ? sc.channels.map((ch) => ch.platform)
+          : [sc.platform ?? sc.type ?? "mail"];
+      if (!matchesFilter(channels)) continue;
       if (s.trigger_type === "chat_bundle") {
         result.voorstel.push({ kind: "bundle-suggestion", data: s });
       } else {
@@ -235,8 +258,9 @@ export default function CampagnesPage() {
         standalone.push(c);
       }
     }
-    // Standalone: gewoon op status mappen.
+    // Standalone: gewoon op status mappen + kanaal-filter.
     for (const c of standalone) {
+      if (!matchesFilter([c.type])) continue;
       if (c.status === "concept") result.concept.push({ kind: "campaign", data: c });
       else if (c.status === "ingepland")
         result.ingepland.push({ kind: "campaign", data: c });
@@ -248,6 +272,8 @@ export default function CampagnesPage() {
     // de vroegste fase als 'er nog iets te doen is').
     for (const [groupId, group] of byGroup.entries()) {
       if (group.length === 0) continue;
+      const groupChannels = group.map((c) => c.type);
+      if (!matchesFilter(groupChannels)) continue;
       const statuses = new Set(group.map((c) => c.status));
       let target: KanbanColumn["key"] | null = null;
       if (statuses.has("concept")) target = "concept";
@@ -263,7 +289,7 @@ export default function CampagnesPage() {
     }
 
     return result;
-  }, [campaigns, suggestions]);
+  }, [campaigns, suggestions, channelFilter]);
 
   const toggleExpand = (key: string) => {
     setExpanded((prev) => {
@@ -317,12 +343,90 @@ export default function CampagnesPage() {
       <PageHeader
         title="Campagnes"
         actions={
-          <Link
-            href="/dashboard/campagnes/history"
-            style={{ textDecoration: "none" }}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
           >
-            <Button variant="brand-soft">📦 Historie</Button>
-          </Link>
+            {/* Kanaal-filter-chips. Klik = toggle. Leeg = alles tonen. */}
+            <div
+              style={{
+                display: "flex",
+                gap: 4,
+                paddingRight: 8,
+                borderRight: "1px solid var(--border, #E5DFD0)",
+                marginRight: 4,
+              }}
+            >
+              {(
+                [
+                  { key: "mail", icon: "✉️", label: "Mail" },
+                  { key: "instagram", icon: "📱", label: "Instagram" },
+                  { key: "facebook", icon: "👥", label: "Facebook" },
+                  { key: "tiktok", icon: "🎵", label: "TikTok" },
+                  { key: "whatsapp", icon: "💬", label: "WhatsApp" },
+                  { key: "social", icon: "📱", label: "Social (legacy)" },
+                ] as const
+              ).map((ch) => {
+                const active = channelFilter.has(ch.key);
+                // 'social' is een legacy-type voor campagnes vóór de
+                // platform-split (2026-05-07). Toon 'm niet apart in
+                // de UI tenzij eigenaar hem al gebruikt heeft.
+                if (ch.key === "social") return null;
+                return (
+                  <button
+                    key={ch.key}
+                    type="button"
+                    onClick={() => toggleChannel(ch.key)}
+                    title={`Filter op ${ch.label}`}
+                    style={{
+                      padding: "6px 10px",
+                      fontSize: 14,
+                      lineHeight: 1,
+                      border: active
+                        ? "1px solid var(--brand, #1F4A2D)"
+                        : "1px solid var(--border, #E5DFD0)",
+                      background: active
+                        ? "var(--brand-soft, #D6E0D8)"
+                        : "transparent",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
+                    aria-pressed={active}
+                  >
+                    {ch.icon}
+                  </button>
+                );
+              })}
+              {channelFilter.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setChannelFilter(new Set())}
+                  title="Filter wissen"
+                  style={{
+                    padding: "6px 8px",
+                    fontSize: 11,
+                    border: "1px solid transparent",
+                    background: "transparent",
+                    color: "var(--tl)",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <Link
+              href="/dashboard/campagnes/history"
+              style={{ textDecoration: "none" }}
+            >
+              <Button variant="brand-soft">📦 Historie</Button>
+            </Link>
+          </div>
         }
       />
 
@@ -523,7 +627,6 @@ function BoardCard({
     const s = item.data;
     const date = suggestionDateLabel(s);
     const snippet = suggestionSnippet(s);
-    const segment = suggestionSegment(s);
     return (
       <Link
         href={`/dashboard/campagnes/voorstel/${s.id}`}
@@ -538,7 +641,6 @@ function BoardCard({
           </div>
           {date && <div style={cardSubtle}>{date}</div>}
           {snippet && <div style={cardSnippet}>{snippet}</div>}
-          {segment && <div style={cardSegment}>👥 {segment}</div>}
           <div
             style={{ display: "flex", gap: 6, marginTop: 10 }}
             onClick={(e) => e.preventDefault()}
@@ -578,7 +680,6 @@ function BoardCard({
     const s = item.data;
     const date = suggestionDateLabel(s);
     const snippet = suggestionSnippet(s);
-    const segment = suggestionSegment(s);
     const channels = s.suggested_campaign.channels ?? [];
     return (
       <Link
@@ -601,7 +702,6 @@ function BoardCard({
             )
           )}
           {snippet && <div style={cardSnippet}>{snippet}</div>}
-          {segment && <div style={cardSegment}>👥 {segment}</div>}
           <div
             style={{ display: "flex", gap: 6, marginTop: 10 }}
             onClick={(e) => e.preventDefault()}
@@ -655,6 +755,10 @@ function BoardCard({
       })
       .filter((s): s is string => !!s)
       .join(" · ");
+    // Body-preview: pak de eerste campagne in de groep die er een
+    // heeft (vaak de mail-versie heeft de rijkste tekst).
+    const snippet =
+      item.campaigns.find((c) => c.body_preview)?.body_preview ?? null;
     return (
       <Link
         href={`/dashboard/campagnes/bundle/${item.groupId}`}
@@ -670,16 +774,28 @@ function BoardCard({
             {dateLabel ||
               item.campaigns.map((c) => typeIcon(c.type)).join(" · ")}
           </div>
+          {snippet && <div style={cardSnippet}>{snippet}</div>}
         </div>
       </Link>
     );
   }
 
-  // Standalone campagne: naam + kanaal + datum/status. Body-snippet
-  // + segment komen pas zodra backend de list-response uitbreidt
-  // met preview-data.
+  // Standalone campagne: zelfde template als voorstel-card (naam +
+  // kanaal-icon + datum/status + body-snippet). Body komt uit
+  // backend campaign-list met joined content (mail / social).
   const c = item.data;
   const stats = c.result_stats ?? {};
+  let dateLine: string | null = null;
+  if (c.status === "ingepland" && c.scheduled_for) {
+    dateLine = formatRelativeDate(c.scheduled_for);
+  } else if (c.status === "concept") {
+    dateLine = "Nog niet ingepland";
+  } else if (c.status === "actief") {
+    dateLine =
+      stats.extra_reservations != null && stats.extra_reservations > 0
+        ? `+${stats.extra_reservations} reserveringen`
+        : "Loopt nu";
+  }
   return (
     <Link
       href={`/dashboard/campagnes/${c.id}`}
@@ -690,18 +806,9 @@ function BoardCard({
           <span style={{ fontSize: 16 }}>{typeIcon(c.type)}</span>
           <span style={cardTitle}>{c.name}</span>
         </div>
-        {c.status === "ingepland" && c.scheduled_for && (
-          <div style={cardSubtle}>{formatRelativeDate(c.scheduled_for)}</div>
-        )}
-        {c.status === "concept" && (
-          <div style={cardSubtle}>Nog niet ingepland</div>
-        )}
-        {c.status === "actief" && (
-          <div style={cardSubtle}>
-            {stats.extra_reservations != null && stats.extra_reservations > 0
-              ? `+${stats.extra_reservations} reserveringen`
-              : "Loopt nu"}
-          </div>
+        {dateLine && <div style={cardSubtle}>{dateLine}</div>}
+        {c.body_preview && (
+          <div style={cardSnippet}>{c.body_preview}</div>
         )}
       </div>
     </Link>
