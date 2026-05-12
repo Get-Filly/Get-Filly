@@ -578,11 +578,13 @@ export class CampaignsService {
     return { id };
   }
 
-  // Status-transitie. Lineaire levenscyclus zonder zijpaden:
-  //   concept   → ingepland          (Inplannen-knop)
-  //   ingepland → actief             (Activeer-knop)
-  //   actief    → afgerond           (Stop-knop)
-  //   afgerond  → eindstaat          (geen verdere actie mogelijk)
+  // Status-transitie. Levenscyclus met twee bewuste "shortcuts":
+  //   concept   → ingepland   (Plan in-knop op /campagnes)
+  //   concept   → actief      (▶ Direct activeren — versturen NU)
+  //   ingepland → actief      (Activeer-knop)
+  //   ingepland → concept     (↩ Terugtrekken vanaf /campagnes)
+  //   actief    → afgerond    (Stop-knop)
+  //   afgerond  → eindstaat   (geen verdere actie mogelijk)
   // Verwijderen gebeurt apart via remove() en mag op concept of
   // ingepland (zolang de campagne nog niet daadwerkelijk uitgegaan is).
   async updateStatus(
@@ -592,8 +594,8 @@ export class CampaignsService {
     userId: string,
   ): Promise<{ id: string; status: CampaignStatus }> {
     const allowed: Record<CampaignStatus, CampaignStatus[]> = {
-      concept: ['ingepland'],
-      ingepland: ['actief'],
+      concept: ['ingepland', 'actief'],
+      ingepland: ['actief', 'concept'],
       actief: ['afgerond'],
       afgerond: [],
     };

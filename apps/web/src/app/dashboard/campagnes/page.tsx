@@ -1,18 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   approveBundleSuggestion,
   approveSuggestion,
+  deleteCampaign,
   fetchCampaigns,
   fetchSuggestions,
   updateCampaignStatus,
   updateSuggestion,
   type AiSuggestion,
+  type BundleChannel,
   type Campaign,
 } from "../../../lib/api";
+import {
+  GENERIC_MISSING_LABEL,
+  PLATFORM_LABEL,
+  getChannelMissing,
+  toBundleChannel,
+  type MissingField,
+} from "../../../lib/campaign-checks";
 import { TasksStrip } from "../_components/tasks-strip";
+import { UpcomingActionsBlock } from "../_components/upcoming-actions-block";
 import { PageHeader } from "../../../components/ui/page-header";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../_components/skeleton";
@@ -80,43 +91,6 @@ function suggestionDisplayType(s: AiSuggestion): string {
   );
 }
 
-// Body-snippet voor de preview op de kaart. Single = body uit eerste
-// variant of legacy body-veld. Bundle = theme als 'ie er is, anders
-// de body van het eerste kanaal.
-function suggestionSnippet(s: AiSuggestion): string | null {
-  const sc = s.suggested_campaign;
-  // Bundle (multi-channel): theme heeft prioriteit, dat is 1 zin
-  // die alle kanalen samen beschrijft.
-  if (sc.channels && sc.channels.length > 0) {
-    const theme = (sc as { theme?: string }).theme;
-    if (theme) return truncate(theme, 100);
-    const first = sc.channels[0]?.variants?.[0]?.body;
-    if (first) return truncate(first, 100);
-    return null;
-  }
-  // Single: variants[selected_index].body, anders eerste variant,
-  // anders legacy body-veld.
-  if (sc.variants && sc.variants.length > 0) {
-    const idx = sc.selected_index ?? 0;
-    const v = sc.variants[idx] ?? sc.variants[0];
-    if (v?.body) return truncate(v.body, 100);
-  }
-  if (sc.body) return truncate(sc.body, 100);
-  if (sc.caption) return truncate(sc.caption, 100);
-  return null;
-}
-
-// Doelgroep-label uit trigger_context.target_segment (gezet door
-// Filly bij het genereren). Kan null zijn voor oudere suggesties.
-function suggestionSegment(s: AiSuggestion): string | null {
-  const ctx = s.trigger_context;
-  if (ctx && typeof ctx === "object" && "target_segment" in ctx) {
-    const seg = (ctx as { target_segment?: string }).target_segment;
-    if (typeof seg === "string" && seg.trim()) return seg.trim();
-  }
-  return null;
-}
-
 // Korte datum + tijd: "13 mei 09:00". HH:MM alleen tonen als de
 // timestamp ook een uur bevat (niet bij target_date pure datum).
 function shortDateTime(iso: string, includeTime: boolean): string {
@@ -133,40 +107,276 @@ function shortDateTime(iso: string, includeTime: boolean): string {
   return `${date} ${time}`;
 }
 
-// Datum-regel: altijd kanaal-icon vooraan + datum (+ tijd). Voor
-// bundle: per kanaal eigen icon-datum, gescheiden door ·.
-function suggestionDateLabel(s: AiSuggestion): string | null {
-  const sc = s.suggested_campaign;
-  if (sc.channels && sc.channels.length > 0) {
-    const parts: string[] = [];
-    for (const ch of sc.channels) {
-      const when = ch.scheduled_for ?? ch.filly_scheduled_for;
-      if (!when) continue;
-      parts.push(
-        `${typeIcon(ch.platform)} ${shortDateTime(when, true)}`,
-      );
-    }
-    if (parts.length > 0) return parts.join(" · ");
-  }
-  // Single channel: pak het type/platform-icon vooraan.
-  const channelIcon = typeIcon(suggestionDisplayType(s));
-  if (sc.scheduled_for) {
-    return `${channelIcon} ${shortDateTime(sc.scheduled_for, true)}`;
-  }
+// Stelt een datum/tijd-tekst samen voor een card-regel. Returnt
+// "Geen datum" als er niks bekend is — bewust een tekst-fallback i.p.v.
+// null zodat de kolom-uitlijning ook bij ontbrekende velden klopt.
+function formatScheduled(
+  iso: string | null | undefined,
+  includeTime = true,
+): string {
+  if (!iso) return "Geen datum";
+  return shortDateTime(iso, includeTime);
+}
+
+// "Target date" uit suggestion.trigger_context — fallback wanneer een
+// voorstel nog geen concrete scheduled_for heeft maar wel een
+// gewenste dag (bv. "13 mei").
+function getSuggestionTargetDate(s: AiSuggestion): string | null {
   const ctx = s.trigger_context;
   if (ctx && typeof ctx === "object" && "target_date" in ctx) {
     const date = (ctx as { target_date?: string }).target_date;
-    if (date) {
-      // target_date is een pure datum (YYYY-MM-DD), geen tijd erbij.
-      return `${channelIcon} ${shortDateTime(date, false)}`;
-    }
+    if (date) return date;
   }
   return null;
 }
 
-function truncate(s: string, max: number): string {
-  if (s.length <= max) return s;
-  return s.slice(0, max).trimEnd() + "…";
+// ============================================================
+// Inplan-vereisten per kanaal (zie ../lib/campaign-checks.ts)
+// ============================================================
+// De helpers (getChannelMissing, PLATFORM_LABEL, etc.) zijn gedeeld
+// met de detail-pagina zodat de "wat mist er nog?"-logica op één
+// plek staat en niet uit elkaar kan lopen.
+
+// Eén entry per kanaal-check. Voor single-suggesties is dit een
+// 1-elementen-array; voor bundles 1 entry per channel.
+type ChannelCheck = {
+  // Stabiele key voor React + voor de "enabled"-set. Voor bundles
+  // = channel.id; voor single = "single".
+  id: string;
+  platform: string;
+  label: string;
+  // Voor bundle-approve hebben we de BundleChannel-string nodig
+  // (mail|instagram|facebook). null = dit kanaal kan niet via
+  // approveBundleSuggestion mee (bv. tiktok/whatsapp ondersteund
+  // de backend nog niet). UI verbergt 'm dan niet, maar Plan in
+  // werkt alleen voor de wél-ondersteunde channels.
+  bundleChannel: BundleChannel | null;
+  missing: MissingField[];
+};
+
+function computeSuggestionChecks(s: AiSuggestion): ChannelCheck[] {
+  const sc = s.suggested_campaign;
+  if (sc.channels && sc.channels.length > 0) {
+    return sc.channels.map((ch) => {
+      const v = ch.variants[ch.selected_index] ?? ch.variants[0];
+      return {
+        id: ch.id,
+        platform: ch.platform,
+        label: PLATFORM_LABEL[ch.platform] ?? ch.platform,
+        bundleChannel: toBundleChannel(ch.platform),
+        missing: getChannelMissing(
+          ch.platform,
+          v?.body,
+          v?.subject_line,
+          ch.scheduled_for ?? ch.filly_scheduled_for,
+          ch.restaurant_media_id,
+        ),
+      };
+    });
+  }
+  const platform = sc.platform ?? sc.type ?? "mail";
+  const v = sc.variants?.[sc.selected_index ?? 0] ?? sc.variants?.[0];
+  return [
+    {
+      id: "single",
+      platform,
+      label: PLATFORM_LABEL[platform] ?? platform,
+      bundleChannel: toBundleChannel(platform),
+      missing: getChannelMissing(
+        platform,
+        v?.body ?? sc.body ?? sc.caption,
+        v?.subject_line ?? sc.subject_line ?? sc.subject,
+        sc.scheduled_for,
+        sc.restaurant_media_id,
+      ),
+    },
+  ];
+}
+
+// ============================================================
+// ChannelRow, unified data-model per kanaal-regel op de card
+// ============================================================
+// Eén regel per kanaal: kanaal-icon · datum/tijd · rechts-status.
+// De rechts-status verschilt per fase:
+//
+//   - missing : "⚠ Foto" / "⚠ Datum" (suggesties + concept-cards)
+//   - ready   : "✓" (alles compleet)
+//   - planned : "📅 over 3 dgn" (ingepland)
+//   - running : "🟢 Loopt nu" (actief, geen reservering-stats)
+//   - stats   : "+3 reserveringen" (actief, met data)
+//
+// Door dezelfde rij-structuur over alle 4 kolommen te gebruiken
+// houden we het visueel consistent: alleen de rechter-status-pill
+// verandert, layout blijft.
+
+type ChannelRow = {
+  id: string;
+  platform: string;
+  // Datum/tijd-tekst (al geformatteerd, of "Geen datum").
+  whenText: string;
+  status: ChannelStatus;
+};
+
+type ChannelStatus =
+  | { kind: "missing"; fields: MissingField[] }
+  | { kind: "ready" }
+  | { kind: "planned"; relativeText: string }
+  | { kind: "running" }
+  | { kind: "stats"; extraReservations: number };
+
+// Bouw ChannelRow-array voor een suggestion (voorstel-kolom).
+// Bundle = 1 entry per channel; single = 1 entry totaal.
+function buildSuggestionRows(s: AiSuggestion): ChannelRow[] {
+  const checks = computeSuggestionChecks(s);
+  const sc = s.suggested_campaign;
+  // Voor display van datum: probeer eerst scheduled_for, anders
+  // target_date uit trigger_context (pure datum, geen tijd).
+  const targetDate = getSuggestionTargetDate(s);
+  return checks.map((c, idx) => {
+    let whenIso: string | undefined | null = null;
+    let includeTime = true;
+    if (sc.channels && sc.channels.length > 0) {
+      const ch = sc.channels[idx];
+      whenIso = ch?.scheduled_for ?? ch?.filly_scheduled_for ?? null;
+    } else {
+      whenIso = sc.scheduled_for ?? null;
+    }
+    // Fallback op target_date (pure datum) als er geen scheduled_for is.
+    if (!whenIso && targetDate) {
+      whenIso = targetDate;
+      includeTime = false;
+    }
+    return {
+      id: c.id,
+      platform: c.platform,
+      whenText: formatScheduled(whenIso, includeTime),
+      status:
+        c.missing.length === 0
+          ? { kind: "ready" }
+          : { kind: "missing", fields: c.missing },
+    };
+  });
+}
+
+// Voor een Campaign (concept/ingepland/actief): één row per campagne.
+// Bundle-campaign roept dit per campagne aan en concatenate.
+function buildCampaignRow(c: Campaign): ChannelRow {
+  const status: ChannelStatus = (() => {
+    if (c.status === "actief") {
+      const extra = c.result_stats?.extra_reservations ?? 0;
+      return extra > 0
+        ? { kind: "stats", extraReservations: extra }
+        : { kind: "running" };
+    }
+    if (c.status === "ingepland" && c.scheduled_for) {
+      return { kind: "planned", relativeText: relativeSuffix(c.scheduled_for) };
+    }
+    // Concept: check datum + tekst (rest is sowieso al gevuld bij approve).
+    // Subject/foto-check zou backend-list-uitbreiding nodig hebben — voor
+    // nu pragmatisch beperkt tot wat we wél weten.
+    if (c.status === "concept") {
+      const missing: MissingField[] = [];
+      if (!c.scheduled_for) missing.push("date");
+      if (!c.body_preview || !c.body_preview.trim()) missing.push("body");
+      return missing.length === 0
+        ? { kind: "ready" }
+        : { kind: "missing", fields: missing };
+    }
+    // Default (bv. ingepland zonder scheduled_for, niet mogelijk maar safe).
+    return { kind: "ready" };
+  })();
+  return {
+    id: c.id,
+    platform: c.type,
+    whenText: formatScheduled(c.scheduled_for, true),
+    status,
+  };
+}
+
+// Is een set ChannelRow's "ready" om in te plannen / activeren?
+// Datum + alle missing-fields moeten weg zijn.
+function rowsReady(rows: ChannelRow[]): boolean {
+  if (rows.length === 0) return false;
+  return rows.every((r) => r.status.kind === "ready");
+}
+
+// ============================================================
+// Card-aggregate helpers (samenvatting over alle kanalen)
+// ============================================================
+// Op een kanban-card tonen we alleen samenvattende info:
+//   - welke kanalen meedoen (chips)
+//   - de eerste/enige scheduled-datum
+//   - statusindicator: ✓ Alles compleet of ⚠ ontbrekende velden
+
+// Verzamel alle unieke ontbrekende velden over alle kanaal-rijen.
+// Volgorde: date → body → subject → photo (zodat de zin lekker loopt).
+function getAllMissing(rows: ChannelRow[]): MissingField[] {
+  const fields = new Set<MissingField>();
+  for (const row of rows) {
+    if (row.status.kind === "missing") {
+      for (const f of row.status.fields) fields.add(f);
+    }
+  }
+  const order: MissingField[] = ["date", "body", "subject", "photo"];
+  return order.filter((f) => fields.has(f));
+}
+
+// Welke platforms zitten in dit item? Voor de chip-rij bovenaan
+// de card. Voor bundles meerdere; voor single 1.
+function getItemPlatforms(item: BoardItem): string[] {
+  if (item.kind === "suggestion") {
+    const sc = item.data.suggested_campaign;
+    return [sc.platform ?? sc.type ?? "mail"];
+  }
+  if (item.kind === "bundle-suggestion") {
+    const channels = item.data.suggested_campaign.channels ?? [];
+    return channels.map((c) => c.platform);
+  }
+  if (item.kind === "campaign") {
+    return [item.data.type];
+  }
+  // bundle-campaign: uniek + in stabiele volgorde (volgorde van campagnes).
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of item.campaigns) {
+    if (!seen.has(c.type)) {
+      seen.add(c.type);
+      out.push(c.type);
+    }
+  }
+  return out;
+}
+
+// Vroegste scheduled-datum binnen het item. Voor bundles met meerdere
+// momenten "vanaf X mei" tonen we apart (multiple=true).
+function getEarliestScheduled(item: BoardItem): {
+  iso: string | null;
+  multiple: boolean;
+} {
+  const isos: string[] = [];
+  if (item.kind === "suggestion") {
+    if (item.data.suggested_campaign.scheduled_for) {
+      isos.push(item.data.suggested_campaign.scheduled_for);
+    } else {
+      // Fallback op target_date uit trigger_context (pure datum).
+      const target = getSuggestionTargetDate(item.data);
+      if (target) isos.push(target);
+    }
+  } else if (item.kind === "bundle-suggestion") {
+    for (const ch of item.data.suggested_campaign.channels ?? []) {
+      const when = ch.scheduled_for ?? ch.filly_scheduled_for;
+      if (when) isos.push(when);
+    }
+  } else if (item.kind === "campaign") {
+    if (item.data.scheduled_for) isos.push(item.data.scheduled_for);
+  } else {
+    for (const c of item.campaigns) {
+      if (c.scheduled_for) isos.push(c.scheduled_for);
+    }
+  }
+  if (isos.length === 0) return { iso: null, multiple: false };
+  isos.sort();
+  return { iso: isos[0], multiple: isos.length > 1 };
 }
 
 function relativeSuffix(iso: string): string {
@@ -205,10 +415,9 @@ export default function CampagnesPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
-  // Per-item actie-state (approve / reject pending).
+  // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
+  // campaigns als bundles (group_id) een uniek busy-veld krijgen.
   const [busyId, setBusyId] = useState<string | null>(null);
-  // Expanded bundle-cards (legacy, ongebruikt sinds card-revisie).
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Filter op kanaal. Lege set = alles tonen. Klik op chip = toggle.
   const [channelFilter, setChannelFilter] = useState<Set<string>>(new Set());
   const toggleChannel = (key: string) => {
@@ -316,77 +525,121 @@ export default function CampagnesPage() {
     return result;
   }, [campaigns, suggestions, channelFilter]);
 
-  const toggleExpand = (key: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  // ============================================================
+  // Polymorfe handlers — werken op elk BoardItem-kind
+  // ============================================================
+  // Per actie 1 handler die zelf uitzoekt of het een single-suggestion,
+  // bundle-suggestion, single-campaign of bundle-campaign is. Voor
+  // bundles loopt 'ie parallel over alle items in de groep.
+
+  // Wrapper om error-handling + busy-state niet 6× te dupliceren.
+  const runAction = async (
+    item: BoardItem,
+    actionLabel: string,
+    fn: () => Promise<void>,
+  ) => {
+    setBusyId(cardKey(item));
+    try {
+      await fn();
+      await refetch();
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : `${actionLabel} mislukt. Probeer opnieuw.`,
+      );
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const handleApprove = async (s: AiSuggestion) => {
-    setBusyId(s.id);
-    try {
-      if (s.trigger_type === "chat_bundle") {
-        // Default: alle 3 kanalen meenemen (mail + instagram + facebook).
-        // Bundle-detail-pagina laat eigenaar straks per kanaal opt-in/out.
-        await approveBundleSuggestion(s.id, ["mail", "instagram", "facebook"]);
-      } else {
-        await approveSuggestion(s.id);
+  // Default kanalen bij bundle-approve. Backend ondersteunt momenteel
+  // alleen mail/instagram/facebook in approve-bundle; tiktok/whatsapp
+  // komen via aparte single-suggestions binnen.
+  const DEFAULT_BUNDLE: BundleChannel[] = ["mail", "instagram", "facebook"];
+
+  // Goedkeur: voorstel → concept. Niet voor campaign-items.
+  const handleApprove = (item: BoardItem) =>
+    runAction(item, "Goedkeuren", async () => {
+      if (item.kind === "bundle-suggestion") {
+        await approveBundleSuggestion(item.data.id, DEFAULT_BUNDLE);
+      } else if (item.kind === "suggestion") {
+        await approveSuggestion(item.data.id);
       }
-      await refetch();
-    } catch (e) {
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Goedkeuren mislukt. Probeer opnieuw.",
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
+    });
 
-  const handleReject = async (s: AiSuggestion) => {
-    setBusyId(s.id);
-    try {
-      await updateSuggestion(s.id, "rejected");
-      await refetch();
-    } catch (e) {
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Afwijzen mislukt. Probeer opnieuw.",
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
+  // Afwijs: voorstel → rejected. Bundle = enige record (de suggestion
+  // zelf), kanaal-records hangen daar onder.
+  const handleReject = (item: BoardItem) =>
+    runAction(item, "Afwijzen", async () => {
+      if (item.kind === "suggestion" || item.kind === "bundle-suggestion") {
+        await updateSuggestion(item.data.id, "rejected");
+      }
+    });
 
-  // Concept-campagne goedkeuren: status → ingepland. Vereist dat
-  // scheduled_for al gezet is (anders weet de backend niet wanneer
-  // 'm te versturen). Als die ontbreekt: toon foutmelding + leid
-  // door naar de detail-page om eerst een datum te kiezen.
-  const handleApproveConcept = async (c: Campaign) => {
-    if (!c.scheduled_for) {
-      alert(
-        "Stel eerst een verzendmoment in voordat je de campagne goedkeurt.",
-      );
-      return;
-    }
-    setBusyId(c.id);
-    try {
-      await updateCampaignStatus(c.id, "ingepland");
-      await refetch();
-    } catch (e) {
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Goedkeuren mislukt. Probeer opnieuw.",
-      );
-    } finally {
-      setBusyId(null);
-    }
+  // Plan in: zet campagne(s) op ingepland. Voorstel = approve + meteen
+  // ingepland, campagne = directe status-overgang.
+  const handlePlan = (item: BoardItem) =>
+    runAction(item, "Inplannen", async () => {
+      if (item.kind === "suggestion") {
+        const { campaignId } = await approveSuggestion(item.data.id);
+        await updateCampaignStatus(campaignId, "ingepland");
+      } else if (item.kind === "bundle-suggestion") {
+        const result = await approveBundleSuggestion(
+          item.data.id,
+          DEFAULT_BUNDLE,
+        );
+        const ids = [
+          result.mailCampaignId,
+          result.instagramCampaignId,
+          result.facebookCampaignId,
+        ].filter((id): id is string => !!id);
+        await Promise.all(
+          ids.map((id) => updateCampaignStatus(id, "ingepland")),
+        );
+      } else if (item.kind === "campaign") {
+        await updateCampaignStatus(item.data.id, "ingepland");
+      } else if (item.kind === "bundle-campaign") {
+        await Promise.all(
+          item.campaigns.map((c) =>
+            updateCampaignStatus(c.id, "ingepland"),
+          ),
+        );
+      }
+    });
+
+  // (Activeer-nu zit voortaan op de detail-pagina, niet meer op de
+  // kanban-card; handler-implementatie komt terug zodra detail-page
+  // die actie aanbiedt.)
+
+  // Terugtrekken: ingeplande campagne(s) terug naar concept zodat
+  // eigenaar 'm nog kan aanpassen of verwijderen.
+  const handleRetract = (item: BoardItem) =>
+    runAction(item, "Terugtrekken", async () => {
+      if (item.kind === "campaign") {
+        await updateCampaignStatus(item.data.id, "concept");
+      } else if (item.kind === "bundle-campaign") {
+        await Promise.all(
+          item.campaigns.map((c) => updateCampaignStatus(c.id, "concept")),
+        );
+      }
+    });
+
+  // Verwijderen: hard-delete. Backend staat 't alleen toe op concept
+  // of ingepland (zodat actief/verzonden campagnes immutable zijn).
+  const handleDelete = (item: BoardItem) => {
+    const isBundle = item.kind === "bundle-campaign";
+    const msg = isBundle
+      ? "Verwijder alle campagnes in deze bundle? Dit is permanent."
+      : "Verwijder deze campagne? Dit is permanent.";
+    if (!window.confirm(msg)) return Promise.resolve();
+    return runAction(item, "Verwijderen", async () => {
+      if (item.kind === "campaign") {
+        await deleteCampaign(item.data.id);
+      } else if (item.kind === "bundle-campaign") {
+        await Promise.all(item.campaigns.map((c) => deleteCampaign(c.id)));
+      }
+    });
   };
 
   return (
@@ -414,16 +667,12 @@ export default function CampagnesPage() {
             >
               {(
                 [
-                  { key: "mail", icon: "✉️", label: "Mail" },
-                  { key: "instagram", icon: "📱", label: "Instagram" },
-                  { key: "facebook", icon: "👥", label: "Facebook" },
-                  { key: "tiktok", icon: "🎵", label: "TikTok" },
-                  { key: "whatsapp", icon: "💬", label: "WhatsApp" },
-                  {
-                    key: "google_business",
-                    icon: "📍",
-                    label: "Google Business",
-                  },
+                  { key: "mail", label: "Mail" },
+                  { key: "instagram", label: "Instagram" },
+                  { key: "facebook", label: "Facebook" },
+                  { key: "tiktok", label: "TikTok" },
+                  { key: "whatsapp", label: "WhatsApp" },
+                  { key: "google_business", label: "Google Business" },
                 ] as const
               ).map((ch) => {
                 const active = channelFilter.has(ch.key);
@@ -437,9 +686,6 @@ export default function CampagnesPage() {
                     data-active={active ? "true" : "false"}
                     aria-pressed={active}
                   >
-                    <span style={{ fontSize: 16, lineHeight: 1 }}>
-                      {ch.icon}
-                    </span>
                     <span
                       style={{
                         fontSize: 13,
@@ -481,6 +727,12 @@ export default function CampagnesPage() {
         }
       />
 
+      {/* Alert-block: rustige + speciale dagen + "Vraag Filly om
+          voorstellen"-knop. Zelfde block als op het dashboard, hier
+          plek-relevant want eigenaar landt op /campagnes als hij iets
+          met die dagen wil doen. */}
+      <UpcomingActionsBlock layout="flex" />
+
       {/* Kanban-bord. Op desktop: 4 kolommen naast elkaar. Op mobile
           (< 900px): kolommen onder elkaar (stack) zodat scrollen
           natuurlijk verticaal is. */}
@@ -501,11 +753,11 @@ export default function CampagnesPage() {
               items={items}
               loading={loading}
               busyId={busyId}
-              expanded={expanded}
-              onToggleExpand={toggleExpand}
               onApprove={handleApprove}
               onReject={handleReject}
-              onApproveConcept={handleApproveConcept}
+              onPlan={handlePlan}
+              onRetract={handleRetract}
+              onDelete={handleDelete}
             />
           );
         })}
@@ -526,23 +778,25 @@ type ColumnProps = {
   items: BoardItem[];
   loading: boolean;
   busyId: string | null;
-  expanded: Set<string>;
-  onToggleExpand: (key: string) => void;
-  onApprove: (s: AiSuggestion) => void;
-  onReject: (s: AiSuggestion) => void;
-  onApproveConcept: (c: Campaign) => void;
+  onApprove: ActionHandler;
+  onReject: ActionHandler;
+  onPlan: ActionHandler;
+  onRetract: ActionHandler;
+  onDelete: ActionHandler;
 };
+
+type ActionHandler = (item: BoardItem) => void | Promise<void>;
 
 function KanbanColumn({
   column,
   items,
   loading,
   busyId,
-  expanded,
-  onToggleExpand,
   onApprove,
   onReject,
-  onApproveConcept,
+  onPlan,
+  onRetract,
+  onDelete,
 }: ColumnProps) {
   return (
     <div
@@ -625,26 +879,18 @@ function KanbanColumn({
             Niks in deze kolom
           </div>
         ) : (
-          items.map((item) => {
-            const sid = itemSuggestionId(item);
-            const cid =
-              item.kind === "campaign" ? item.data.id : null;
-            return (
-              <BoardCard
-                key={cardKey(item)}
-                item={item}
-                busy={
-                  (sid != null && busyId === sid) ||
-                  (cid != null && busyId === cid)
-                }
-                isExpanded={expanded.has(cardKey(item))}
-                onToggleExpand={() => onToggleExpand(cardKey(item))}
-                onApprove={onApprove}
-                onReject={onReject}
-                onApproveConcept={onApproveConcept}
-              />
-            );
-          })
+          items.map((item) => (
+            <BoardCard
+              key={cardKey(item)}
+              item={item}
+              busy={busyId === cardKey(item)}
+              onApprove={onApprove}
+              onReject={onReject}
+              onPlan={onPlan}
+              onRetract={onRetract}
+              onDelete={onDelete}
+            />
+          ))
         )}
       </div>
     </div>
@@ -658,241 +904,391 @@ function cardKey(item: BoardItem): string {
   return `camp-${item.data.id}`;
 }
 
-function itemSuggestionId(item: BoardItem): string | null {
+// Detail-URL per item-kind. Voorstel-cards linken naar de
+// voorstel-pagina, campagne-cards naar de campagne-detail of
+// bundle-detail.
+function cardHref(item: BoardItem): string {
   if (item.kind === "suggestion" || item.kind === "bundle-suggestion")
-    return item.data.id;
-  return null;
+    return `/dashboard/campagnes/voorstel/${item.data.id}`;
+  if (item.kind === "bundle-campaign")
+    return `/dashboard/campagnes/bundle/${item.groupId}`;
+  return `/dashboard/campagnes/${item.data.id}`;
+}
+
+// Status van het item, ongeacht of het een suggestion of campaign is.
+// Voor suggestion → "voorstel"; voor campaign-bundle → meest "vroege"
+// fase (zelfde logica als in de kolom-distributie).
+function itemStatus(
+  item: BoardItem,
+): "voorstel" | "concept" | "ingepland" | "actief" {
+  if (item.kind === "suggestion" || item.kind === "bundle-suggestion")
+    return "voorstel";
+  if (item.kind === "campaign") {
+    if (item.data.status === "ingepland") return "ingepland";
+    if (item.data.status === "actief") return "actief";
+    return "concept";
+  }
+  // bundle-campaign: domineer op concept > ingepland > actief.
+  const statuses = new Set(item.campaigns.map((c) => c.status));
+  if (statuses.has("concept")) return "concept";
+  if (statuses.has("ingepland")) return "ingepland";
+  return "actief";
+}
+
+// Titel + bundle-pill voor de card-header. Voor bundles strippen we
+// de eventuele "— mail/instagram/..."-suffix op de eerste campagne-
+// naam zodat de bundle-titel niet platform-specifiek leest.
+function cardTitleText(item: BoardItem): {
+  text: string;
+  isBundle: boolean;
+} {
+  if (item.kind === "suggestion") {
+    return { text: suggestionDisplayName(item.data), isBundle: false };
+  }
+  if (item.kind === "bundle-suggestion") {
+    return { text: suggestionDisplayName(item.data), isBundle: true };
+  }
+  if (item.kind === "bundle-campaign") {
+    const first = item.campaigns[0];
+    const cleaned =
+      first.name.replace(
+        /\s*[—\-·]\s*(mail|instagram|facebook|tiktok|whatsapp)\s*$/i,
+        "",
+      ) || first.name;
+    return { text: cleaned, isBundle: true };
+  }
+  return { text: item.data.name, isBundle: false };
+}
+
+// Rij(en) per kanaal voor de card. Voor suggestion: per channel-check;
+// voor campaign (bundle) per campaign-record.
+function buildItemRows(item: BoardItem): ChannelRow[] {
+  if (item.kind === "suggestion" || item.kind === "bundle-suggestion") {
+    return buildSuggestionRows(item.data);
+  }
+  if (item.kind === "campaign") {
+    return [buildCampaignRow(item.data)];
+  }
+  return item.campaigns.map(buildCampaignRow);
 }
 
 // ============================================================
 // BoardCard, één kaart op het bord
 // ============================================================
+// Unified layout door alle 4 statussen heen:
+//   - cardHeader  : icon + titel + (optioneel) bundle-pill
+//   - channelRows : 1 regel per kanaal (kanaal-icon · datum · status)
+//   - actions     : status-specifieke knoppen via <CardActions>
 type CardProps = {
   item: BoardItem;
   busy: boolean;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onApprove: (s: AiSuggestion) => void;
-  onReject: (s: AiSuggestion) => void;
-  onApproveConcept: (c: Campaign) => void;
+  onApprove: ActionHandler;
+  onReject: ActionHandler;
+  onPlan: ActionHandler;
+  onRetract: ActionHandler;
+  onDelete: ActionHandler;
 };
 
 function BoardCard({
   item,
   busy,
-  isExpanded,
-  onToggleExpand,
   onApprove,
   onReject,
-  onApproveConcept,
+  onPlan,
+  onRetract,
+  onDelete,
 }: CardProps) {
-  // Voorstel (single-channel): naam + kanaal + datum + snippet +
-  // doelgroep + acties. Uniforme template binnen de Voorstel-kolom.
-  if (item.kind === "suggestion") {
-    const s = item.data;
-    const date = suggestionDateLabel(s);
-    const snippet = suggestionSnippet(s);
-    return (
-      <Link
-        href={`/dashboard/campagnes/voorstel/${s.id}`}
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <div style={cardStyle}>
-          <div style={cardHeaderRow}>
-            <span style={{ fontSize: 16 }}>
-              {typeIcon(suggestionDisplayType(s))}
-            </span>
-            <span style={cardTitle}>{suggestionDisplayName(s)}</span>
-          </div>
-          {date && <div style={cardSubtle}>{date}</div>}
-          {snippet && <div style={cardSnippet}>{snippet}</div>}
-          <div
-            style={{ display: "flex", gap: 6, marginTop: 10 }}
-            onClick={(e) => e.preventDefault()}
-          >
-            <button
-              type="button"
-              disabled={busy}
-              onClick={(e) => {
-                e.stopPropagation();
-                onApprove(s);
-              }}
-              style={btnApprove}
-            >
-              {busy ? "..." : "✓ Goedkeur"}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={(e) => {
-                e.stopPropagation();
-                onReject(s);
-              }}
-              style={btnReject}
-            >
-              ✗ Wijs af
-            </button>
-          </div>
-        </div>
-      </Link>
-    );
-  }
-
-  // Bundle-voorstel: zelfde template als single-voorstel, maar met
-  // multi-kanaal-datum-regel + BUNDLE-pill. Klik op de card-body (niet
-  // op de knoppen) navigeert naar voorstel-detail.
-  if (item.kind === "bundle-suggestion") {
-    const s = item.data;
-    const date = suggestionDateLabel(s);
-    const snippet = suggestionSnippet(s);
-    const channels = s.suggested_campaign.channels ?? [];
-    return (
-      <Link
-        href={`/dashboard/campagnes/voorstel/${s.id}`}
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <div style={cardStyle}>
-          <div style={cardHeaderRow}>
-            <span style={{ fontSize: 16 }}>🎁</span>
-            <span style={cardTitle}>{suggestionDisplayName(s)}</span>
-            <span style={bundlePill}>Bundle</span>
-          </div>
-          {date ? (
-            <div style={cardSubtle}>{date}</div>
-          ) : (
-            channels.length > 0 && (
-              <div style={cardSubtle}>
-                {channels.map((ch) => typeIcon(ch.platform)).join(" · ")}
-              </div>
-            )
-          )}
-          {snippet && <div style={cardSnippet}>{snippet}</div>}
-          <div
-            style={{ display: "flex", gap: 6, marginTop: 10 }}
-            onClick={(e) => e.preventDefault()}
-          >
-            <button
-              type="button"
-              disabled={busy}
-              onClick={(e) => {
-                e.stopPropagation();
-                onApprove(s);
-              }}
-              style={btnApprove}
-            >
-              {busy ? "..." : "✓ Goedkeur"}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={(e) => {
-                e.stopPropagation();
-                onReject(s);
-              }}
-              style={btnReject}
-            >
-              ✗ Wijs af
-            </button>
-          </div>
-        </div>
-      </Link>
-    );
-  }
-
-  // Bundle-campagne: 1 card met multi-kanaal-datum-regel. Klik =
-  // navigeer naar bundle-detail. Geen expand-knop meer (per kanaal
-  // zie je daar). Body-snippet/segment tonen we hier nog niet voor
-  // campagnes (komt zodra backend list-response uitgebreid is).
-  if (item.kind === "bundle-campaign") {
-    const first = item.campaigns[0];
-    const name =
-      first.name.replace(
-        /\s*[—\-·]\s*(mail|instagram|facebook|tiktok|whatsapp)\s*$/i,
-        "",
-      ) || first.name;
-    const dateLabel = item.campaigns
-      .map((c) => {
-        if (!c.scheduled_for) return null;
-        return `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true)}`;
-      })
-      .filter((s): s is string => !!s)
-      .join(" · ");
-    // Body-preview: pak de eerste campagne in de groep die er een
-    // heeft (vaak de mail-versie heeft de rijkste tekst).
-    const snippet =
-      item.campaigns.find((c) => c.body_preview)?.body_preview ?? null;
-    return (
-      <Link
-        href={`/dashboard/campagnes/bundle/${item.groupId}`}
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <div style={cardStyle}>
-          <div style={cardHeaderRow}>
-            <span style={{ fontSize: 16 }}>🎁</span>
-            <span style={cardTitle}>{name}</span>
-            <span style={bundlePill}>Bundle</span>
-          </div>
-          <div style={cardSubtle}>
-            {dateLabel ||
-              item.campaigns.map((c) => typeIcon(c.type)).join(" · ")}
-          </div>
-          {snippet && <div style={cardSnippet}>{snippet}</div>}
-        </div>
-      </Link>
-    );
-  }
-
-  // Standalone campagne: zelfde template als voorstel-card (naam +
-  // kanaal-icon + datum/status + body-snippet). Body komt uit
-  // backend campaign-list met joined content (mail / social).
-  // Concept-cards krijgen extra '✓ Goedkeur'-knop die status →
-  // ingepland zet (vereist scheduled_for op de campagne).
-  const c = item.data;
-  const isApprovableConcept =
-    c.status === "concept" && !!c.scheduled_for;
+  const title = cardTitleText(item);
+  const rows = buildItemRows(item);
+  const status = itemStatus(item);
+  const platforms = getItemPlatforms(item);
+  const sched = getEarliestScheduled(item);
+  // Voor single (1 kanaal) tonen we het kanaal-icon in de header
+  // ipv 🎁. Voor bundle altijd 🎁 + pill.
+  const headerIcon = title.isBundle ? "🎁" : typeIcon(platforms[0] ?? "");
   return (
     <Link
-      href={`/dashboard/campagnes/${c.id}`}
+      href={cardHref(item)}
       style={{ textDecoration: "none", color: "inherit" }}
     >
       <div style={cardStyle}>
         <div style={cardHeaderRow}>
-          <span style={{ fontSize: 16 }}>{typeIcon(c.type)}</span>
-          <span style={cardTitle}>{c.name}</span>
+          <span style={{ fontSize: 16 }}>{headerIcon}</span>
+          <span style={cardTitle}>{title.text}</span>
+          {title.isBundle && <span style={bundlePill}>Bundle</span>}
         </div>
-        <div style={cardSubtle}>
-          {c.status === "ingepland" && c.scheduled_for
-            ? `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true)} · ${relativeSuffix(c.scheduled_for)}`
-            : campaignDateLine(c)}
-        </div>
-        {c.body_preview && (
-          <div style={cardSnippet}>{c.body_preview}</div>
-        )}
-        {c.status === "concept" && (
-          <div
-            style={{ marginTop: 10 }}
-            onClick={(e) => e.preventDefault()}
-          >
-            <button
-              type="button"
-              disabled={busy || !isApprovableConcept}
-              onClick={(e) => {
-                e.stopPropagation();
-                onApproveConcept(c);
-              }}
-              title={
-                isApprovableConcept
-                  ? "Verplaats naar Ingepland — campagne loopt mee op het gezette moment"
-                  : "Zet eerst een verzendmoment op de detail-pagina"
-              }
-              style={{ ...btnApprove, width: "100%" }}
-            >
-              {busy ? "..." : "✓ Goedkeur & plan in"}
-            </button>
-          </div>
-        )}
+        <ScheduledLine sched={sched} status={status} />
+        <ChannelChips platforms={platforms} />
+        <CardStatusBlock status={status} rows={rows} item={item} />
+        <CardActions
+          item={item}
+          status={status}
+          rows={rows}
+          busy={busy}
+          onApprove={onApprove}
+          onReject={onReject}
+          onPlan={onPlan}
+          onRetract={onRetract}
+          onDelete={onDelete}
+        />
       </div>
     </Link>
+  );
+}
+
+// ============================================================
+// ChannelChips, lichtgroene chip-rij met platform-namen
+// ============================================================
+// Toont per platform een chip ("📩 Mail"). Wraps op smalle kolommen.
+function ChannelChips({ platforms }: { platforms: string[] }) {
+  if (platforms.length === 0) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        marginTop: 6,
+      }}
+    >
+      {platforms.map((p) => (
+        <span key={p} style={channelChipStyle}>
+          {PLATFORM_LABEL[p] ?? p}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// ScheduledLine, datum/tijd-regel op de card
+// ============================================================
+// Voor Ingepland tonen we ook de relatieve tijd ("over 3 dgn").
+// Voor bundle met meerdere momenten "vanaf X mei".
+function ScheduledLine({
+  sched,
+  status,
+}: {
+  sched: { iso: string | null; multiple: boolean };
+  status: "voorstel" | "concept" | "ingepland" | "actief";
+}) {
+  if (!sched.iso) {
+    if (status === "actief") return null;
+    return <div style={cardDatePrimary}>📅 Geen datum</div>;
+  }
+  // Pure datum (YYYY-MM-DD) vs. timestamp herkennen — pure datum
+  // tonen we zonder tijd-suffix.
+  const hasTime = sched.iso.includes("T") || sched.iso.includes(" ");
+  const text = shortDateTime(sched.iso, hasTime);
+  if (status === "ingepland") {
+    return (
+      <div style={cardDatePrimary}>
+        📅 {text}{" "}
+        <span style={{ fontWeight: 400, color: "var(--tl)" }}>
+          · {relativeSuffix(sched.iso)}
+        </span>
+      </div>
+    );
+  }
+  if (sched.multiple) {
+    return <div style={cardDatePrimary}>📅 vanaf {text}</div>;
+  }
+  return <div style={cardDatePrimary}>📅 {text}</div>;
+}
+
+// ============================================================
+// CardStatusBlock, samenvatting boven de knoppen
+// ============================================================
+// - Voorstel/Concept : "✓ Alles compleet" of "⚠ Datum, Foto"
+// - Ingepland       : geen indicator (alles is per definitie compleet,
+//                     datum staat al in ScheduledLine erboven)
+// - Actief          : "🟢 Loopt" of "+3 reserveringen" pill
+function CardStatusBlock({
+  status,
+  rows,
+  item,
+}: {
+  status: "voorstel" | "concept" | "ingepland" | "actief";
+  rows: ChannelRow[];
+  item: BoardItem;
+}) {
+  if (status === "ingepland") return null;
+  if (status === "actief") {
+    // Pak result_stats van de eerste campagne; bundles aggregaten
+    // we voor nu niet (gebeurt bij echte verzend-tracking).
+    const extra =
+      item.kind === "campaign"
+        ? item.data.result_stats?.extra_reservations ?? 0
+        : item.kind === "bundle-campaign"
+          ? item.campaigns.reduce(
+              (sum, c) => sum + (c.result_stats?.extra_reservations ?? 0),
+              0,
+            )
+          : 0;
+    return (
+      <div style={{ marginTop: 8 }}>
+        <span style={statusReadyPill}>
+          {extra > 0 ? `+${extra} reserveringen` : "🟢 Loopt"}
+        </span>
+      </div>
+    );
+  }
+  // voorstel / concept
+  const missing = getAllMissing(rows);
+  if (missing.length === 0) {
+    return (
+      <div style={{ marginTop: 8 }}>
+        <span style={statusReadyPill}>✓ Alles compleet</span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ marginTop: 8 }}>
+      <span style={statusMissingPill}>
+        ⚠ {missing.map((f) => GENERIC_MISSING_LABEL[f]).join(", ")}
+      </span>
+    </div>
+  );
+}
+
+// ============================================================
+// CardActions, status-specifieke knoppensets (simpel)
+// ============================================================
+// Voorstel : ✓ Goedkeur + × Afwijzen          (Goedkeur disabled tot ready)
+// Concept  : 📅 Plan in + × Verwijderen        (Plan in disabled tot ready)
+// Ingepland: ↩ Terugtrekken (full-width)
+// Actief   : geen knoppen (read-only)
+//
+// Plan in en Activeer nu zitten voortaan op de detail-pagina; de card
+// is bewust een quick-approve/reject UI. Eigenaar klikt op de card-body
+// (Link) om naar detail te gaan voor extra acties.
+type CardActionsProps = {
+  item: BoardItem;
+  status: "voorstel" | "concept" | "ingepland" | "actief";
+  rows: ChannelRow[];
+  busy: boolean;
+  onApprove: ActionHandler;
+  onReject: ActionHandler;
+  onPlan: ActionHandler;
+  onRetract: ActionHandler;
+  onDelete: ActionHandler;
+};
+
+function CardActions({
+  item,
+  status,
+  rows,
+  busy,
+  onApprove,
+  onReject,
+  onPlan,
+  onRetract,
+  onDelete,
+}: CardActionsProps) {
+  const router = useRouter();
+  const ready = rowsReady(rows);
+
+  if (status === "actief") return null;
+
+  const stop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  // Klik op de grijze hoofdknop (Goedkeur / Plan in) bij missing velden
+  // navigeert naar de detail-pagina zodat eigenaar daar kan aanvullen.
+  const handleMain = (action: () => void) => (e: React.MouseEvent) => {
+    stop(e);
+    if (busy) return;
+    if (ready) action();
+    else router.push(cardHref(item));
+  };
+
+  if (status === "voorstel") {
+    return (
+      <div style={actionsContainer} onClick={stop}>
+        <div style={actionRow}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleMain(() => onApprove(item))}
+            style={ready ? btnPrimaryReady : btnPrimaryGrey}
+            title={
+              ready
+                ? "Voorstel goedkeuren — wordt concept"
+                : "Vul eerst de ontbrekende velden in — klik om naar het voorstel te gaan"
+            }
+          >
+            {busy ? "..." : "✓ Goedkeur"}
+          </button>
+          <Button
+            variant="danger-soft"
+            size="sm"
+            disabled={busy}
+            onClick={(e) => {
+              stop(e);
+              onReject(item);
+            }}
+            style={{ flex: 1 }}
+          >
+            × Afwijzen
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "concept") {
+    return (
+      <div style={actionsContainer} onClick={stop}>
+        <div style={actionRow}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleMain(() => onPlan(item))}
+            style={ready ? btnPrimaryReady : btnPrimaryGrey}
+            title={
+              ready
+                ? "Plan deze campagne in op het ingestelde moment"
+                : "Vul eerst de ontbrekende velden in — klik om naar de campagne te gaan"
+            }
+          >
+            {busy ? "..." : "📅 Plan in"}
+          </button>
+          <Button
+            variant="danger-soft"
+            size="sm"
+            disabled={busy}
+            onClick={(e) => {
+              stop(e);
+              onDelete(item);
+            }}
+            style={{ flex: 1 }}
+          >
+            × Verwijderen
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // status === "ingepland"
+  return (
+    <div style={actionsContainer} onClick={stop}>
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={busy}
+        onClick={(e) => {
+          stop(e);
+          onRetract(item);
+        }}
+        style={{ width: "100%" }}
+        title="Terug naar concept zodat je 'm kunt aanpassen of verwijderen"
+      >
+        ↩ Terugtrekken
+      </Button>
+    </div>
   );
 }
 
@@ -928,23 +1324,17 @@ const cardSubtle: React.CSSProperties = {
   color: "var(--tl)",
   marginTop: 2,
 };
-const cardSnippet: React.CSSProperties = {
-  fontSize: 11,
-  color: "var(--text-secondary, #52525B)",
-  marginTop: 6,
-  lineHeight: 1.4,
-  // 2 regels max bij heel lange snippets — voorkomt dat 1 card de
-  // hele kolom overneemt.
-  display: "-webkit-box",
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
-};
-const cardSegment: React.CSSProperties = {
-  fontSize: 10,
-  color: "var(--accent, #1F4A2D)",
-  marginTop: 6,
-  fontWeight: 500,
+// Prominente datum-regel direct onder de titel. Iets groter dan de
+// subtle-stijl en eigen kleur (var(--text)) zodat 'ie als hoofd-info
+// leest, niet als bijschrift.
+const cardDatePrimary: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--text, #18181B)",
+  marginTop: 4,
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
 };
 const bundlePill: React.CSSProperties = {
   fontSize: 9,
@@ -957,53 +1347,92 @@ const bundlePill: React.CSSProperties = {
   letterSpacing: 0.3,
   flexShrink: 0,
 };
-const btnApprove: React.CSSProperties = {
-  flex: 1,
-  padding: "5px 8px",
-  fontSize: 11,
-  fontWeight: 500,
-  border: "1px solid var(--brand, #1F4A2D)",
-  background: "var(--brand, #1F4A2D)",
-  color: "#FFFFFF",
-  borderRadius: 5,
-  cursor: "pointer",
-};
-const btnReject: React.CSSProperties = {
-  flex: 1,
-  padding: "5px 8px",
-  fontSize: 11,
-  fontWeight: 500,
-  border: "1px solid var(--border, #E5DFD0)",
-  background: "transparent",
-  color: "var(--tl)",
-  borderRadius: 5,
-  cursor: "pointer",
-};
-const btnGhost: React.CSSProperties = {
-  padding: "5px 8px",
-  fontSize: 11,
-  fontWeight: 500,
-  border: "1px solid var(--border, #E5DFD0)",
-  background: "transparent",
-  color: "var(--tl)",
-  borderRadius: 5,
-  cursor: "pointer",
-  flexShrink: 0,
-};
-const expandWrap: React.CSSProperties = {
-  marginTop: 8,
-  paddingTop: 8,
-  borderTop: "1px solid var(--border, #E5DFD0)",
-  display: "flex",
-  flexDirection: "column",
+// Kanaal-chip: lichtgroen pill met platform-naam, gebruikt onder de
+// kaart-titel. Bundle = meerdere chips naast elkaar (wraps op smalle
+// kolommen).
+const channelChipStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
   gap: 4,
   fontSize: 11,
+  fontWeight: 500,
+  padding: "2px 8px",
+  borderRadius: 6,
+  background: "var(--color-brand-soft, #D6E0D8)",
+  color: "var(--color-brand-deep, #1F4A2D)",
+  border: "1px solid var(--color-brand, #1F4A2D)",
+  whiteSpace: "nowrap",
 };
-const expandRow: React.CSSProperties = {
-  display: "flex",
+
+// Status-pill boven de knoppen. Ready = lichtgroen ("Alles compleet"
+// of "Loopt"/stats voor actief); missing = amber met ontbrekende
+// velden achter ⚠.
+const statusReadyPill: React.CSSProperties = {
+  display: "inline-flex",
   alignItems: "center",
-  gap: 8,
-  padding: "4px 6px",
-  borderRadius: 4,
-  background: "var(--bg-soft, #FAF7F1)",
+  gap: 4,
+  fontSize: 11,
+  fontWeight: 600,
+  padding: "3px 8px",
+  borderRadius: 6,
+  background: "var(--color-brand-soft, #D6E0D8)",
+  color: "var(--color-brand-deep, #1F4A2D)",
+  border: "1px solid var(--color-brand, #1F4A2D)",
+};
+const statusMissingPill: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  fontSize: 11,
+  fontWeight: 500,
+  padding: "3px 8px",
+  borderRadius: 6,
+  background: "#FEF3C7",
+  color: "#92400E",
+  border: "1px solid #FCD34D",
+};
+
+// Acties-container + horizontale rij voor Goedkeur/Afwijzen (of
+// Plan-in/Verwijderen op concept).
+const actionsContainer: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  marginTop: 10,
+};
+const actionRow: React.CSSProperties = {
+  display: "flex",
+  gap: 6,
+};
+
+// Hoofdknop (Goedkeur / Plan in). Twee staten:
+//   - ready : brand-soft groen (zoals Button variant="brand-soft")
+//   - grey  : grijs maar klikbaar — klik navigeert naar detail-pagina
+//             zodat eigenaar de ontbrekende velden kan invullen.
+// Bewust een raw <button> ipv Button-component want we willen "grijs
+// maar klikbaar" — disabled=true zou de klik blokkeren.
+const btnPrimaryReady: React.CSSProperties = {
+  flex: 1,
+  minHeight: 28,
+  padding: "5px 12px",
+  fontSize: 13,
+  fontWeight: 500,
+  border: "1px solid var(--color-brand, #1F4A2D)",
+  background: "var(--color-brand-soft, #D6E0D8)",
+  color: "var(--color-brand-deep, #1F4A2D)",
+  borderRadius: "var(--radius, 6px)",
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 4,
+  whiteSpace: "nowrap",
+  transition:
+    "background 120ms ease, border-color 120ms ease, color 120ms ease",
+};
+const btnPrimaryGrey: React.CSSProperties = {
+  ...btnPrimaryReady,
+  background: "#F4F4F5",
+  border: "1px solid #D4D4D8",
+  color: "#71717A",
 };

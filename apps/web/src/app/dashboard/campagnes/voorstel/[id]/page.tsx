@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   addSuggestionChannel,
+  approveBundleSuggestion,
   approveSuggestion,
   editSuggestionVariant,
   fetchRestaurantMedia,
@@ -14,14 +15,23 @@ import {
   selectSuggestionVariant,
   setSuggestionMedia,
   setSuggestionScheduled,
+  updateCampaignStatus,
   updateSuggestion,
   type AiSuggestion,
+  type BundleChannel,
   type RestaurantMediaItem,
 } from "../../../../../lib/api";
 import { Skeleton } from "../../../_components/skeleton";
 import { Button } from "../../../../../components/ui/button";
 import { EmptyState } from "../../../../../components/ui/empty-state";
 import { MediaLibraryPicker } from "../../../_components/media-library-picker";
+import {
+  PLATFORM_LABEL as SHORT_PLATFORM_LABEL,
+  getChannelMissing,
+  getMissingLabel,
+  toBundleChannel,
+  type MissingField,
+} from "../../../../../lib/campaign-checks";
 
 // ============================================================
 // VoorstelDetailPage, eigen pagina voor een Filly-voorstel
@@ -120,6 +130,7 @@ export default function VoorstelDetailPage() {
   const [refining, setRefining] = useState(false);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [planning, setPlanning] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [savingMedia, setSavingMedia] = useState(false);
@@ -261,6 +272,32 @@ export default function VoorstelDetailPage() {
   }));
   const activePlatforms = new Set(channels.map((c) => c.platform));
 
+  // Missing-status per kanaal + aggregate over alle kanalen.
+  const perChannelMissing = useMemo(() => {
+    return fullChannels.map((c) => {
+      const v = c.variants[c.selected_index] ?? c.variants[0];
+      const missing = getChannelMissing(
+        c.platform,
+        v?.body,
+        v?.subject_line,
+        c.scheduled_for,
+        c.restaurant_media_id,
+      );
+      return { id: c.id, platform: c.platform, missing };
+    });
+  }, [fullChannels]);
+  const allMissing: MissingField[] = useMemo(() => {
+    const order: MissingField[] = ["date", "body", "subject", "photo"];
+    const set = new Set<MissingField>();
+    for (const c of perChannelMissing) {
+      for (const m of c.missing) set.add(m);
+    }
+    return order.filter((f) => set.has(f));
+  }, [perChannelMissing]);
+  const channelsWithMissing = perChannelMissing.filter(
+    (c) => c.missing.length > 0,
+  );
+
   // Actieve kanaal-resolution: door eigenaar gekozen via tab-pill,
   // val terug op eerste kanaal als de keuze niet meer in channels[]
   // bestaat (bv. door remove-actie).
@@ -335,6 +372,7 @@ export default function VoorstelDetailPage() {
     refining ||
     approving ||
     rejecting ||
+    planning ||
     savingSchedule ||
     savingEdit ||
     savingMedia ||
@@ -464,6 +502,67 @@ export default function VoorstelDetailPage() {
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Afwijzen mislukt.");
       setRejecting(false);
+    }
+  };
+
+  // Direct inplannen: goedkeuren + status meteen op "ingepland" zetten.
+  // Vereist dat alle kanalen compleet zijn (datum, tekst, foto-indien-
+  // nodig). Toont 2e-niveau "weet je het zeker?"-confirm omdat dit
+  // de campagne in de planning zet zonder verdere bewerking.
+  const handleDirectPlan = async () => {
+    if (!suggestion || busy) return;
+    if (allMissing.length > 0) {
+      setActionError(
+        "Vul eerst de ontbrekende velden in voordat je direct inplant.",
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        "Weet je zeker dat je dit voorstel direct wil inplannen? De campagne wordt automatisch verstuurd op het ingestelde moment.",
+      )
+    ) {
+      return;
+    }
+    setPlanning(true);
+    setActionError(null);
+    try {
+      const isBundle = suggestion.trigger_type === "chat_bundle";
+      if (isBundle) {
+        // Alle actieve kanalen meenemen die de bundle-API ondersteunt
+        // (mail/instagram/facebook). Tiktok/whatsapp in een bundle
+        // ondersteunt de backend nog niet.
+        const channels = fullChannels
+          .map((c) => toBundleChannel(c.platform))
+          .filter((c): c is BundleChannel => c !== null);
+        if (channels.length === 0) {
+          throw new Error(
+            "Geen ondersteunde kanalen voor bundle-inplannen.",
+          );
+        }
+        const result = await approveBundleSuggestion(
+          suggestion.id,
+          channels,
+        );
+        const ids = [
+          result.mailCampaignId,
+          result.instagramCampaignId,
+          result.facebookCampaignId,
+        ].filter((id): id is string => !!id);
+        await Promise.all(
+          ids.map((id) => updateCampaignStatus(id, "ingepland")),
+        );
+        router.push("/dashboard/campagnes");
+      } else {
+        const { campaignId } = await approveSuggestion(suggestion.id);
+        await updateCampaignStatus(campaignId, "ingepland");
+        router.push("/dashboard/campagnes");
+      }
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Inplannen mislukt.",
+      );
+      setPlanning(false);
     }
   };
 
@@ -702,29 +801,55 @@ export default function VoorstelDetailPage() {
           </div>
         </div>
         {isPending && (
-          <div style={{ display: "flex", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              alignItems: "stretch",
+              minWidth: 280,
+            }}
+          >
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button
+                variant="danger-soft"
+                onClick={handleReject}
+                loading={rejecting}
+                disabled={busy}
+                style={{ flex: 1 }}
+              >
+                ✕ Afwijzen
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleApprove}
+                loading={approving}
+                disabled={busy}
+                title={
+                  channels.length > 1
+                    ? `Maak ${channels.length} concept-campagnes (1 per kanaal) onder 1 bundle`
+                    : "Maak een concept-campagne van dit voorstel"
+                }
+                style={{ flex: 1 }}
+              >
+                {channels.length > 1
+                  ? `✓ Goedkeuren als ${channels.length} campagnes`
+                  : "✓ Goedkeuren & maak concept"}
+              </Button>
+            </div>
             <Button
-              variant="danger-soft"
-              onClick={handleReject}
-              loading={rejecting}
-              disabled={busy}
-            >
-              ✕ Afwijzen
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleApprove}
-              loading={approving}
-              disabled={busy}
+              variant="brand-soft"
+              onClick={handleDirectPlan}
+              loading={planning}
+              disabled={busy || allMissing.length > 0}
               title={
-                channels.length > 1
-                  ? `Maak ${channels.length} concept-campagnes (1 per kanaal) onder 1 bundle`
-                  : "Maak een concept-campagne van dit voorstel"
+                allMissing.length > 0
+                  ? "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)"
+                  : "Goedkeuren en direct in de planning zetten"
               }
+              style={{ width: "100%" }}
             >
-              {channels.length > 1
-                ? `✓ Goedkeuren als ${channels.length} campagnes`
-                : "✓ Goedkeuren & maak concept"}
+              📅 Direct inplannen
             </Button>
           </div>
         )}
@@ -772,6 +897,82 @@ export default function VoorstelDetailPage() {
               }}
             >
               {suggestion.reasoning}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missende aspecten — per actief kanaal de ontbrekende velden.
+          Alleen tonen als er minstens 1 kanaal iets mist; bij "alles
+          compleet" is dit blok overbodig (status-pill in de header
+          zegt 't al). Niet meer tonen na goedkeuring/afwijzing. */}
+      {isPending && channelsWithMissing.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">Missende aspecten</div>
+              <div className="card-st">
+                Vul deze velden in voordat je het voorstel goedkeurt.
+              </div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              {channelsWithMissing.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "10px 12px",
+                    background: "#FEF3C7",
+                    border: "1px solid #FCD34D",
+                    borderRadius: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--color-brand-deep, #1F4A2D)",
+                      minWidth: 90,
+                    }}
+                  >
+                    {SHORT_PLATFORM_LABEL[c.platform] ?? c.platform}
+                  </div>
+                  <ul
+                    style={{
+                      margin: 0,
+                      padding: 0,
+                      listStyle: "none",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 3,
+                      flex: 1,
+                    }}
+                  >
+                    {c.missing.map((m) => (
+                      <li
+                        key={m}
+                        style={{
+                          fontSize: 13,
+                          color: "#78350F",
+                          fontWeight: 500,
+                        }}
+                      >
+                        ⚠ {getMissingLabel(m, c.platform)} ontbreekt
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </div>
