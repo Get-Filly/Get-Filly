@@ -248,6 +248,16 @@ export const RestaurantUpdateSchema = z
       .optional()
       .transform((v) => (v === '' ? null : v)),
 
+    // ----- Reviews-voorkeuren -----
+    // Vanaf welke sterren-rating verschijnt een review in de overige-
+    // acties-strip op /dashboard/campagnes. Default 3 (mig 0036).
+    low_review_threshold: z
+      .number()
+      .int()
+      .min(1, 'Drempel moet 1-5 zijn.')
+      .max(5, 'Drempel moet 1-5 zijn.')
+      .optional(),
+
     // ----- E-mailinstellingen -----
     email_from_name: optionalText(100),
     email_reply_to: z

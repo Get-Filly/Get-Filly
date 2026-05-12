@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   fetchReviewVariants,
   fetchReviews,
@@ -44,6 +45,18 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default function ReviewsPage() {
+  // Deep-link-support: TasksStrip op /dashboard/campagnes linkt naar
+  // `/dashboard/google-business/reviews?openReply=<id>`. We lezen de
+  // query-param hieronder en openen automatisch de reply-modal voor
+  // die specifieke review + scrollen 'm in beeld.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const openReplyId = searchParams.get("openReply");
+  // Ref bijhouden of we de auto-open al een keer hebben uitgevoerd
+  // voor deze param-waarde, anders triggert 'ie bij elke re-render
+  // opnieuw (en sluiten van de modal zou direct heropenen).
+  const autoOpenedRef = useRef<string | null>(null);
+
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<SourceFilter>("alle");
@@ -96,6 +109,52 @@ export default function ReviewsPage() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [replyTo]);
+
+  // ============================================================
+  // Deep-link auto-open: ?openReply=<id>
+  // ============================================================
+  // Triggert na het laden van reviews (zodat we de juiste review uit
+  // de lijst kunnen pakken). Doet 3 dingen:
+  //   1. Filter resetten naar "alle" zodat de bron-filter de doel-
+  //      review niet wegfiltert.
+  //   2. Scroll de review-kaart in beeld + flash-highlight.
+  //   3. openReply() aanroepen → modal + variant-generatie.
+  // Daarna strippen we de query-param uit de URL zodat een refresh
+  // niet onverwachts opnieuw de modal opent.
+  useEffect(() => {
+    if (!openReplyId) return;
+    if (loading) return;
+    if (autoOpenedRef.current === openReplyId) return;
+
+    const target = reviews.find((r) => r.id === openReplyId);
+    if (!target) {
+      // Review niet in de lijst (verwijderd of niet meer zichtbaar
+      // voor deze tenant). Stille fallback: param weghalen, gebruiker
+      // ziet de algemene lijst.
+      autoOpenedRef.current = openReplyId;
+      router.replace("/dashboard/google-business/reviews");
+      return;
+    }
+
+    autoOpenedRef.current = openReplyId;
+    setFilter("alle");
+
+    // Scroll + flash in de volgende frame, na DOM-render van de
+    // huidige filter-state. Element-id staat op de review-card hieronder.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`review-${openReplyId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    void openReply(target);
+
+    // URL opschonen: ?openReply= eruit halen zodat refresh / share-
+    // link gedrag voorspelbaar blijft.
+    router.replace("/dashboard/google-business/reviews");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openReplyId, loading, reviews]);
 
   const stats = useMemo(() => {
     if (reviews.length === 0) {
@@ -319,6 +378,7 @@ export default function ReviewsPage() {
             return (
               <div
                 key={r.id}
+                id={`review-${r.id}`}
                 className={`review-card ${needsResponse ? "review-card-needs" : ""}`}
               >
                 <div className="review-head">

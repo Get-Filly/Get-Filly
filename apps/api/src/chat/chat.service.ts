@@ -128,10 +128,13 @@ export type ChatConversationSummary = {
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  // Hoeveel berichten we meegeven als context aan Claude. 20 matcht de
-  // CONVERSATION_CAP, de hele conversatie past dus per definitie in
-  // het context-window van Claude. Lange chats vermijden we via de
-  // cap (eigenaar moet nieuw gesprek starten zodra 'ie vol is).
+  // Hoeveel berichten we meegeven als context aan Claude. Bewust lager
+  // dan CONVERSATION_CAP: bij een lange chat (>20 berichten) krijgt
+  // Filly alleen de laatste 20 turns mee, wat input-tokens beheersbaar
+  // houdt. Trade-off: hij vergeet het allereerste deel van het gesprek.
+  // Voor 1000+ klanten weegt cost-control zwaarder dan totaal-recall;
+  // de memory-summary (zie ChatMemoryService) vangt geleerde voorkeuren
+  // alsnog op aan het einde van een conversatie.
   private readonly CONTEXT_WINDOW = 20;
 
   // Maximum berichten per conversatie (user + filly + system samen).
@@ -140,10 +143,10 @@ export class ChatService {
   // Combineert met chat-memory: bij cap-bereikt vat Filly de
   // conversatie samen en slaat 'm op in restaurant_chat_memory zodat
   // geleerde voorkeuren bewaard blijven voor volgende chats.
-  // Bumped 20 → 30 (2026-05-04): meer ruimte voor uitgebreide gesprekken,
-  // vooral handig bij multi-channel-bundels die meer turns vragen
-  // (keuze-vraag → bundle → varianten-aanpassing).
-  private readonly CONVERSATION_CAP = 30;
+  // Bumped 30 → 50 (2026-05-12): ruimere chat zodat eigenaars meerdere
+  // bundle-iteraties achter elkaar kunnen doen zonder steeds een
+  // nieuw gesprek te moeten starten.
+  private readonly CONVERSATION_CAP = 50;
 
   // Hoeveel recente memories meelopen in de system-prompt van een
   // nieuwe chat. 5 is een afweging: te weinig = Filly vergeet snel,

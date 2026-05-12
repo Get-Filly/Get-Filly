@@ -1263,6 +1263,67 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
+          Sectie 12b, Reviews-meldingen
+          ============================================================
+          Bepaalt vanaf welke sterren-rating een review als "lage
+          review" verschijnt in de overige-acties-strip op
+          /dashboard/campagnes. Hardcoded was 3, sinds mig 0036
+          per-restaurant instelbaar. */}
+      <div className="form-section">
+        <div className="form-section-title">Reviews-meldingen</div>
+        <div className="form-section-desc">
+          Bepaal wanneer een lage review als actie verschijnt op je
+          campagnes-pagina.
+        </div>
+        <div className="form-grid">
+          <div className="form-field full">
+            <label htmlFor="low-review-threshold">
+              Reviews onder of gelijk aan deze sterren-rating tonen als actie
+            </label>
+            <select
+              id="low-review-threshold"
+              value={form.low_review_threshold ?? 3}
+              onChange={(e) =>
+                update(
+                  "low_review_threshold",
+                  parseInt(e.target.value, 10),
+                )
+              }
+              style={{
+                padding: "8px 12px",
+                border: "1px solid var(--border, #E5DFD0)",
+                borderRadius: 6,
+                fontSize: 14,
+                background: "var(--white, #FFFFFF)",
+                color: "var(--text, #18181B)",
+                width: "100%",
+                maxWidth: 280,
+              }}
+            >
+              <option value={1}>★☆☆☆☆ – Alleen 1-ster reviews</option>
+              <option value={2}>★★☆☆☆ – 1 en 2 sterren</option>
+              <option value={3}>★★★☆☆ – 1 t/m 3 sterren (standaard)</option>
+              <option value={4}>★★★★☆ – 1 t/m 4 sterren</option>
+              <option value={5}>★★★★★ – Alle reviews</option>
+            </select>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              Reviews die nog geen reactie hebben en onder deze drempel
+              vallen, verschijnen automatisch in &ldquo;Overige
+              acties&rdquo;. Standaard is 3 sterren, zodat alleen echte
+              problemen je aandacht vragen.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================
           Sectie 13, Menukaart (link naar dedicated pagina)
           ============================================================ */}
       <div className="form-section">

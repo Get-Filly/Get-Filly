@@ -649,6 +649,10 @@ export type Restaurant = {
   contact_phone: string | null;
   email_from_name: string | null;
   email_reply_to: string | null;
+  // Vanaf welke sterren-rating telt een review als "lage review" en
+  // verschijnt 'ie in de overige-acties-strip op /dashboard/campagnes.
+  // Range 1-5, default 3 (sinds mig 0036).
+  low_review_threshold: number;
   plan: "starter" | "pro" | "enterprise";
 };
 
@@ -1792,10 +1796,11 @@ export type ChatConversationSummary = {
   updated_at: string;
 };
 
-// Cap = 20 berichten per conversatie. Gedeeld constant tussen frontend
+// Cap = 50 berichten per conversatie. Gedeeld constant tussen frontend
 // en backend (in backend: ChatService.CONVERSATION_CAP). UI gebruikt 'm
-// voor de "Bericht X / 20"-indicator.
-export const CHAT_CONVERSATION_CAP = 30;
+// voor de "Bericht X / 50"-indicator. Bij wijziging: ook backend
+// bijwerken zodat de cap-check consistent blijft.
+export const CHAT_CONVERSATION_CAP = 50;
 
 // Bij openen van het dashboard halen we de actieve chat op. Backend
 // maakt 'm aan als die nog niet bestaat en geeft meteen een
