@@ -132,8 +132,8 @@ function shortDateTime(iso: string, includeTime: boolean): string {
   return `${date} ${time}`;
 }
 
-// Datum-regel: voor single = 1 datum-tijd, voor bundle =
-// "✉️ 10 mei 09:00 · 📱 11 mei 17:00".
+// Datum-regel: altijd kanaal-icon vooraan + datum (+ tijd). Voor
+// bundle: per kanaal eigen icon-datum, gescheiden door ·.
 function suggestionDateLabel(s: AiSuggestion): string | null {
   const sc = s.suggested_campaign;
   if (sc.channels && sc.channels.length > 0) {
@@ -147,15 +147,17 @@ function suggestionDateLabel(s: AiSuggestion): string | null {
     }
     if (parts.length > 0) return parts.join(" · ");
   }
+  // Single channel: pak het type/platform-icon vooraan.
+  const channelIcon = typeIcon(suggestionDisplayType(s));
   if (sc.scheduled_for) {
-    return shortDateTime(sc.scheduled_for, true);
+    return `${channelIcon} ${shortDateTime(sc.scheduled_for, true)}`;
   }
   const ctx = s.trigger_context;
   if (ctx && typeof ctx === "object" && "target_date" in ctx) {
     const date = (ctx as { target_date?: string }).target_date;
     if (date) {
       // target_date is een pure datum (YYYY-MM-DD), geen tijd erbij.
-      return shortDateTime(date, false);
+      return `${channelIcon} ${shortDateTime(date, false)}`;
     }
   }
   return null;
@@ -166,8 +168,7 @@ function truncate(s: string, max: number): string {
   return s.slice(0, max).trimEnd() + "…";
 }
 
-function formatRelativeDate(iso: string | null): string {
-  if (!iso) return "Geen datum";
+function relativeSuffix(iso: string): string {
   const target = new Date(iso);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -176,11 +177,10 @@ function formatRelativeDate(iso: string | null): string {
   const diff = Math.round(
     (targetMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
-  const dayTime = shortDateTime(iso, true);
-  if (diff < 0) return `${dayTime} · verleden`;
-  if (diff === 0) return `${dayTime} · vandaag`;
-  if (diff === 1) return `${dayTime} · morgen`;
-  return `${dayTime} · over ${diff} dgn`;
+  if (diff < 0) return "verleden";
+  if (diff === 0) return "vandaag";
+  if (diff === 1) return "morgen";
+  return `over ${diff} dgn`;
 }
 
 // Wat tonen we op een campagne-card als datum-regel? Bij ingepland +
@@ -850,7 +850,7 @@ function BoardCard({
         </div>
         <div style={cardSubtle}>
           {c.status === "ingepland" && c.scheduled_for
-            ? formatRelativeDate(c.scheduled_for)
+            ? `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true)} · ${relativeSuffix(c.scheduled_for)}`
             : campaignDateLine(c)}
         </div>
         {c.body_preview && (
