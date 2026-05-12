@@ -99,6 +99,22 @@
   color: var(--color-brand-deep);
 }
 
+/* BRAND-SOFT, licht-groene CTA met merkmatige feel. Default-state
+ * gebruikt brand-soft-bg (papier-warm-groen) + brand-deep-tekst,
+ * border in brand-groen. Bij hover wisselt het naar vol brand-groen
+ * met witte tekst — dezelfde "fill"-overgang die de primary-knop
+ * eindstate heeft. */
+.ui-btn--brand-soft {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-deep);
+  border-color: var(--color-brand);
+}
+.ui-btn--brand-soft:not(:disabled):hover {
+  background: var(--color-brand-deep);
+  color: var(--color-white);
+  border-color: var(--color-brand-deep);
+}
+
 /* GHOST, geen bg, geen border, alleen tekst (bv. "Annuleer"-acties
  * naast een primary CTA). Hover krijgt een lichte tint zodat 'ie
  * voelbaar interactief is. */

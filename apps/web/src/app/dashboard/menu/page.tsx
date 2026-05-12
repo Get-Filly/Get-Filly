@@ -585,21 +585,6 @@ export default function MenuPage() {
     return sorted;
   }, [filtered]);
 
-  const stats = useMemo(() => {
-    return {
-      total: items.length,
-      signature: items.filter((i) => i.is_signature).length,
-      seasonal: items.filter((i) => i.is_seasonal).length,
-      avgPrice:
-        items.length > 0
-          ? Math.round(
-              items.reduce((s, i) => s + (i.price_cents ?? 0), 0) /
-                items.length,
-            )
-          : 0,
-    };
-  }, [items]);
-
   // Top-3 signature gerechten die Filly het vaakst in zijn voorstellen
   // gebruikt, mock, maar geeft een concreet "Filly waardeert dit"-signaal.
   const fillyTop = useMemo(() => {
@@ -659,26 +644,22 @@ export default function MenuPage() {
           belangrijkste actie op deze pagina, altijd direct zichtbaar. */}
       <PageHeader
         title="Menu"
-        subtitle={
-          <>
-            Jouw huidige kaart. Filly gebruikt deze gerechten in
-            campagne-teksten, dus &quot;3-gangen met asperges voor
-            €24,50&quot; i.p.v. generieke tekst.
-          </>
-        }
         actions={
           <>
             {/* Header-knoppen tonen alléén het type kaart dat nog niet
-                actief is, als je beide al hebt geüpload, zit de
-                "vervangen"-actie in de banner zelf. */}
+                actief is. Brand-soft-variant: licht-groen default,
+                donker-groen op hover (Floris-keuze 2026-05-12). */}
             {!menuCard && (
-              <Button variant="secondary" onClick={() => openUpload("menu")}>
+              <Button
+                variant="brand-soft"
+                onClick={() => openUpload("menu")}
+              >
                 📄 Menu-kaart uploaden
               </Button>
             )}
             {!drinksCard && (
               <Button
-                variant="secondary"
+                variant="brand-soft"
                 onClick={() => openUpload("drinks")}
               >
                 🍷 Drankkaart uploaden
@@ -690,37 +671,6 @@ export default function MenuPage() {
           </>
         }
       />
-
-      <div className="stats-row">
-        <div className="stat-card">
-          <div className="stat-card-label">Totaal gerechten</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.total}
-          </div>
-        </div>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Signature dishes</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.signature}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Seizoensgerechten</div>
-          <div className="stat-card-val">
-            {loading ? <Skeleton height={22} width="40%" /> : stats.seasonal}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Gem. prijs</div>
-          <div className="stat-card-val">
-            {loading ? (
-              <Skeleton height={22} width="50%" />
-            ) : (
-              formatEuroFromCents(stats.avgPrice)
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Status-banners voor actieve kaarten: één voor de menu-kaart,
           één voor de drankkaart. Beide tonen filename (klikbaar →

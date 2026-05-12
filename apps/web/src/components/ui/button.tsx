@@ -31,7 +31,16 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 // niet bij elke gebruik opnieuw geschreven hoeven worden.
 // ============================================================
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "danger"
+  // brand-soft: licht-groene achtergrond (brand-soft) met donker-
+  // groene tekst en border. Bij hover wisselt naar vol brand-groen
+  // + wit tekst. Gebruikt voor secundaire CTA's die wel "merkmatig"
+  // willen voelen (bv. menu-/drank-upload-knoppen op de menu-pagina).
+  | "brand-soft";
 export type ButtonSize = "sm" | "md";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
