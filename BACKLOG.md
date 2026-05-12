@@ -228,6 +228,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen)
 
 ### Database-migraties nog te maken
+- [x] ~~0040: `campaigns.deleted_at` (soft-delete)~~ (2026-05-12, commit `1df6037`) — `× Verwijderen` op concept-cards doet nu UPDATE deleted_at=NOW(); verwijderde campagnes komen terug in `/campagnes/history` onder de tab Verwijderd. Partial index op deleted_at IS NOT NULL.
 - [x] ~~0026: `campaigns.variant_applied_at` + `scheduling_history`~~ (2026-04-30) — verbergt refine-sectie na variant-keuze; cyclen door schedule-history zonder Claude-calls.
 - [x] ~~0025: `menu_uploads.kind` ('menu' \| 'drinks')~~ (2026-04-30) — onderscheid menu-kaart vs drankkaart in UI-banners.
 - [x] ~~0024: `menu_items.subcategory`~~ (2026-04-30) — drank-detail (wijn-rood, bier, cocktail, etc.) voor visuele groepering binnen drank-tab.
@@ -300,21 +301,43 @@ werken. Laatste audit: 2026-04-30.
 
 ## ⏭️ Eerstvolgende open taken (begin volgende chat hier)
 
-Door Floris geselecteerd aan het einde van 2026-05-01 (na de
-sessie waarin de per-request Supabase-client met user-JWT
-volledig is uitgerold — RLS-policies zijn nu defense-in-depth
-actief op DB-niveau voor 13 services).
+Laatst bijgewerkt einde sessie 2026-05-12 (campagnes-revisie +
+soft-delete).
 
 **State op dit moment**:
 - Demo-account `floriskoevermans@outlook.com` met restaurant_id
   `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` gevuld met realistische
   data.
-- Migraties t/m 0028 zijn gerund.
+- Migraties t/m **0040** in repo. **NB: 0039 bestaat niet** (gereserveerd
+  voor toekomstige encrypted API-key-storage); volgende vrije nummer is 0041.
 - App is volledig responsive (1024 / 768 / 480 breakpoints).
 - Tool-use migratie compleet — geen JSON.parse-fouten meer mogelijk.
 - **Per-request Supabase-client live (2026-05-01)** — RLS-policies
   blokkeren cross-tenant reads/writes hard op DB-niveau. Alleen
   bewuste admin-flows draaien nog op service_role.
+- **Campagnes-revisie 2026-05-12 (commits `720ae5a` + `1df6037`)**:
+  - Unified kanban-card-layout door alle 4 statussen heen: titel +
+    prominente datum onder titel + lichtgroene kanaal-chips + status-pill
+    (✓ Alles compleet / ⚠ wat mist) + status-specifieke knoppen.
+  - Acties per status: Voorstel = ✓ Goedkeur + × Afwijzen; Concept =
+    📅 Plan in + × Verwijderen; Ingepland = ↩ Terugtrekken; Actief =
+    read-only. Hoofdknop disabled tot ready; klik op grijs navigeert
+    naar detail.
+  - Detail-page voorstel: nieuw "Missende aspecten"-blok per kanaal
+    + 📅 Direct inplannen-knop met confirm onder Goedkeur/Afwijzen.
+  - Backend status-transities uitgebreid: concept→actief (voor "Activeer
+    nu" toekomstig) en ingepland→concept (voor Terugtrekken).
+  - Migratie 0040: soft-delete via `campaigns.deleted_at`. Verwijderde
+    campagnes verschijnen in `/campagnes/history` onder tab "Verwijderd"
+    naast "Afgerond".
+  - Shared lib `apps/web/src/lib/campaign-checks.ts` met missing-field-
+    logica (date/body/subject/photo); foto-vereiste alleen IG + TikTok.
+  - UpcomingActionsBlock extracted naar shared component (gebruikt op
+    dashboard + /campagnes).
+  - MediaLibraryPicker upload + drag-drop direct in de modal ipv
+    doorverwijzing naar Account-pagina.
+- **Migratie 0040 nog draaien in Supabase Dashboard** (SQL staat in chat-
+  historie en in `apps/api/supabase/migrations/0040_campaigns_soft_delete.sql`).
 
 ### Volgende sessie — kies één van deze drie
 
