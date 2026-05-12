@@ -653,6 +653,10 @@ export type Restaurant = {
   // verschijnt 'ie in de overige-acties-strip op /dashboard/campagnes.
   // Range 1-5, default 3 (sinds mig 0036).
   low_review_threshold: number;
+  // Vanaf welk bezetting-percentage telt een dag als "rustig" en
+  // verschijnt 'ie in de overige-acties-strip (14 dgn vooruit).
+  // Range 10-100, default 50 (sinds mig 0037).
+  low_occupancy_threshold: number;
   plan: "starter" | "pro" | "enterprise";
 };
 

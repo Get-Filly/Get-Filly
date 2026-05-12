@@ -248,7 +248,7 @@ export const RestaurantUpdateSchema = z
       .optional()
       .transform((v) => (v === '' ? null : v)),
 
-    // ----- Reviews-voorkeuren -----
+    // ----- Meldingen-drempels -----
     // Vanaf welke sterren-rating verschijnt een review in de overige-
     // acties-strip op /dashboard/campagnes. Default 3 (mig 0036).
     low_review_threshold: z
@@ -256,6 +256,15 @@ export const RestaurantUpdateSchema = z
       .int()
       .min(1, 'Drempel moet 1-5 zijn.')
       .max(5, 'Drempel moet 1-5 zijn.')
+      .optional(),
+    // Vanaf welk bezetting-percentage telt een dag als "rustig" en
+    // verschijnt 'ie in de overige-acties-strip (14 dgn vooruit).
+    // Default 50 (mig 0037).
+    low_occupancy_threshold: z
+      .number()
+      .int()
+      .min(10, 'Drempel moet 10-100 zijn.')
+      .max(100, 'Drempel moet 10-100 zijn.')
       .optional(),
 
     // ----- E-mailinstellingen -----

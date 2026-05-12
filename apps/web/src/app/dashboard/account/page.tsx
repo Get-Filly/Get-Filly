@@ -1263,17 +1263,16 @@ export default function AccountPage() {
       </div>
 
       {/* ============================================================
-          Sectie 12b, Reviews-meldingen
+          Sectie 12b, Meldingen
           ============================================================
-          Bepaalt vanaf welke sterren-rating een review als "lage
-          review" verschijnt in de overige-acties-strip op
-          /dashboard/campagnes. Hardcoded was 3, sinds mig 0036
-          per-restaurant instelbaar. */}
+          Bepaalt wanneer reviews en lage-bezetting-dagen als actie
+          verschijnen in de overige-acties-strip op /dashboard/campagnes.
+          Mig 0036 (reviews) + 0037 (bezetting). */}
       <div className="form-section">
-        <div className="form-section-title">Reviews-meldingen</div>
+        <div className="form-section-title">Meldingen</div>
         <div className="form-section-desc">
-          Bepaal wanneer een lage review als actie verschijnt op je
-          campagnes-pagina.
+          Bepaal wanneer reviews en rustige dagen als actie verschijnen
+          op je campagnes-pagina.
         </div>
         <div className="form-grid">
           <div className="form-field full">
@@ -1318,6 +1317,55 @@ export default function AccountPage() {
               vallen, verschijnen automatisch in &ldquo;Overige
               acties&rdquo;. Standaard is 3 sterren, zodat alleen echte
               problemen je aandacht vragen.
+            </div>
+          </div>
+
+          <div className="form-field full">
+            <label htmlFor="low-occupancy-threshold">
+              Bezetting onder deze drempel telt als rustige dag
+            </label>
+            <select
+              id="low-occupancy-threshold"
+              value={form.low_occupancy_threshold ?? 50}
+              onChange={(e) =>
+                update(
+                  "low_occupancy_threshold",
+                  parseInt(e.target.value, 10),
+                )
+              }
+              style={{
+                padding: "8px 12px",
+                border: "1px solid var(--border, #E5DFD0)",
+                borderRadius: 6,
+                fontSize: 14,
+                background: "var(--white, #FFFFFF)",
+                color: "var(--text, #18181B)",
+                width: "100%",
+                maxWidth: 280,
+              }}
+            >
+              <option value={20}>Onder 20%</option>
+              <option value={30}>Onder 30%</option>
+              <option value={40}>Onder 40%</option>
+              <option value={50}>Onder 50% (standaard)</option>
+              <option value={60}>Onder 60%</option>
+              <option value={70}>Onder 70%</option>
+              <option value={80}>Onder 80%</option>
+              <option value={90}>Onder 90%</option>
+            </select>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              Filly scant de komende 14 dagen op rustige dagen en zet ze
+              in &ldquo;Overige acties&rdquo;. Zodra de bezetting van een
+              dag de drempel haalt (bv. door nieuwe reserveringen),
+              verdwijnt 'ie automatisch uit het lijstje. Sluitingsdagen
+              worden niet getoond.
             </div>
           </div>
         </div>
