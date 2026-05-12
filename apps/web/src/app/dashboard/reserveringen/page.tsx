@@ -6,7 +6,6 @@ import {
   fetchGuests,
   fetchReservations,
   setReservationAttribution,
-  setReservationStatus,
   type Campaign,
   type Guest,
   type Reservation,
@@ -17,14 +16,6 @@ import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Tabs } from "../../../components/ui/tabs";
-
-const statusInfo: Record<ReservationStatus, { label: string; color: string; bg: string }> = {
-  bevestigd: { label: "Bevestigd", color: "#1B7A2E", bg: "#DCFCE7" },
-  ingecheckt: { label: "Ingecheckt", color: "#1F4A2D", bg: "#D6E0D8" },
-  voltooid: { label: "Voltooid", color: "#52525B", bg: "#F4F4F5" },
-  no_show: { label: "No-show", color: "#B91C1C", bg: "#FEE2E2" },
-  geannuleerd: { label: "Geannuleerd", color: "#71717A", bg: "#F4F4F5" },
-};
 
 type StatusFilter = "alle" | ReservationStatus;
 
@@ -120,8 +111,6 @@ export default function ReserveringenPage() {
   // Tijdens een attributie-PATCH zetten we de reservation-id hier zodat
   // de UI kan disablen + een spinner kan tonen.
   const [attributing, setAttributing] = useState<string | null>(null);
-  // Idem voor status-mutatie (Inchecken-knop).
-  const [statusBusy, setStatusBusy] = useState<string | null>(null);
   // Welke rijen zijn uitgevouwen? Klik op de rij toggle't expand met
   // klant-info + speciaal-verzoek + Inchecken-knop. Lokaal, geen
   // URL-sync — eigenaar scrolt door de lijst en klapt af-en-aan.
@@ -176,33 +165,6 @@ export default function ReserveringenPage() {
         setLoading(false);
       });
   }, [dateFrom, dateTo]);
-
-  // Inchecken-handler: zet status van 'bevestigd' → 'ingecheckt'.
-  // Optimistisch updaten, rollback bij fout.
-  const handleCheckIn = async (reservationId: string) => {
-    const original = reservations.find((r) => r.id === reservationId);
-    if (!original) return;
-    setStatusBusy(reservationId);
-    setReservations((prev) =>
-      prev.map((r) =>
-        r.id === reservationId ? { ...r, status: "ingecheckt" } : r,
-      ),
-    );
-    try {
-      await setReservationStatus(reservationId, "ingecheckt");
-    } catch (e) {
-      setReservations((prev) =>
-        prev.map((r) => (r.id === reservationId ? original : r)),
-      );
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Inchecken mislukt. Probeer opnieuw.",
-      );
-    } finally {
-      setStatusBusy(null);
-    }
-  };
 
   // Handler voor het wijzigen van de attributie. Optimistisch updaten:
   // we vervangen de rij meteen in lokale state, doen daarna de PATCH;
@@ -414,8 +376,6 @@ export default function ReserveringenPage() {
                         onAttributionChange={(campId) =>
                           handleAttributionChange(r.id, campId)
                         }
-                        statusBusy={statusBusy === r.id}
-                        onCheckIn={() => handleCheckIn(r.id)}
                         showTopBorder={idx !== 0}
                       />
                     );
@@ -584,8 +544,6 @@ type ReservationRowProps = {
   onToggleExpand: () => void;
   attributing: boolean;
   onAttributionChange: (campaignId: string | null) => void;
-  statusBusy: boolean;
-  onCheckIn: () => void;
   showTopBorder: boolean;
 };
 
@@ -597,12 +555,9 @@ function ReservationRow({
   onToggleExpand,
   attributing,
   onAttributionChange,
-  statusBusy,
-  onCheckIn,
   showTopBorder,
 }: ReservationRowProps) {
   const hasSpecial = !!r.special_requests;
-  const info = statusInfo[r.status];
 
   return (
     <div
@@ -788,43 +743,9 @@ function ReservationRow({
             )}
           </div>
 
-          {/* Status + Inchecken-knop onderaan. */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginTop: 16,
-              paddingTop: 12,
-              borderTop: "1px solid var(--border-soft, #E5DFD0)",
-            }}
-          >
-            <span
-              style={{
-                padding: "3px 10px",
-                borderRadius: "var(--rf)",
-                fontSize: 11,
-                fontWeight: 500,
-                color: info.color,
-                background: info.bg,
-              }}
-            >
-              {info.label}
-            </span>
-            {r.status === "bevestigd" && (
-              <button
-                className="sg-btn primary"
-                disabled={statusBusy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCheckIn();
-                }}
-                style={{ padding: "5px 14px", fontSize: 12 }}
-              >
-                {statusBusy ? "..." : "Inchecken"}
-              </button>
-            )}
-          </div>
+          {/* Status komt straks automatisch uit de Zenchef-sync.
+              In de UI niet handmatig wijzigbaar; per-status filteren
+              kan wel via de tabs bovenaan de pagina. */}
         </div>
       )}
     </div>
