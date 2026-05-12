@@ -40,7 +40,11 @@ export type ButtonVariant =
   // groene tekst en border. Bij hover wisselt naar vol brand-groen
   // + wit tekst. Gebruikt voor secundaire CTA's die wel "merkmatig"
   // willen voelen (bv. menu-/drank-upload-knoppen op de menu-pagina).
-  | "brand-soft";
+  | "brand-soft"
+  // danger-soft: licht-rode achtergrond met donker-rode tekst, hover
+  // wisselt naar vol-rood + wit. Voor destructieve secundaire acties
+  // (Afwijzen op voorstellen) die nog niet definitief verwijderen.
+  | "danger-soft";
 export type ButtonSize = "sm" | "md";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -137,6 +137,50 @@
                           één gebruik. Hard-coded als lokaal detail. */
 }
 
+/* CHANNEL-CHIP, kleine filter-knop met kanaal-emoji op de campagnes-
+ * pagina. Default: licht-groen bg (brand-soft) met groene rand. Hover
+ * en active-state krijgen vol brand-groen + lichtere icon-rendering.
+ * data-active="true" voor de actieve filter-state (zichtbaar selected). */
+.ui-channel-chip {
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1;
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease,
+    transform 0.06s ease;
+}
+.ui-channel-chip:hover {
+  background: var(--color-brand-deep);
+  border-color: var(--color-brand-deep);
+}
+.ui-channel-chip[data-active="true"] {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px rgba(31, 74, 45, 0.15);
+}
+.ui-channel-chip[data-active="true"]:hover {
+  background: var(--color-brand-deep);
+}
+
+/* DANGER-SOFT, niet-definitieve destructieve actie (bv. Afwijzen op
+ * een voorstel — eigenaar kan 'm later terugzetten). Lichte rood-tint
+ * met donker-rode tekst; hover wisselt naar vol-rood + wit zoals een
+ * danger-knop. Past bij merk-vriendelijke 'soft' default + duidelijke
+ * intent op hover. */
+.ui-btn--danger-soft {
+  background: #FEE2E2; /* rood-50 */
+  color: #B91C1C;       /* rood-700 */
+  border-color: #FCA5A5; /* rood-300 */
+}
+.ui-btn--danger-soft:not(:disabled):hover {
+  background: #B91C1C;
+  color: var(--color-white);
+  border-color: #B91C1C;
+}
+
 /* ----- ICONS ----- */
 .ui-btn__icon {
   display: inline-flex;

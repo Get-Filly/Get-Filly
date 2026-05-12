@@ -7,6 +7,7 @@ import {
   approveSuggestion,
   fetchCampaigns,
   fetchSuggestions,
+  updateCampaignStatus,
   updateSuggestion,
   type AiSuggestion,
   type Campaign,
@@ -115,7 +116,24 @@ function suggestionSegment(s: AiSuggestion): string | null {
   return null;
 }
 
-// Datum-regel: voor single = 1 datum, voor bundle = "✉️ 10 mei · 📱 11 mei".
+// Korte datum + tijd: "13 mei 09:00". HH:MM alleen tonen als de
+// timestamp ook een uur bevat (niet bij target_date pure datum).
+function shortDateTime(iso: string, includeTime: boolean): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+  });
+  if (!includeTime) return date;
+  const time = d.toLocaleTimeString("nl-NL", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} ${time}`;
+}
+
+// Datum-regel: voor single = 1 datum-tijd, voor bundle =
+// "✉️ 10 mei 09:00 · 📱 11 mei 17:00".
 function suggestionDateLabel(s: AiSuggestion): string | null {
   const sc = s.suggested_campaign;
   if (sc.channels && sc.channels.length > 0) {
@@ -124,28 +142,20 @@ function suggestionDateLabel(s: AiSuggestion): string | null {
       const when = ch.scheduled_for ?? ch.filly_scheduled_for;
       if (!when) continue;
       parts.push(
-        `${typeIcon(ch.platform)} ${new Date(when).toLocaleDateString("nl-NL", {
-          day: "numeric",
-          month: "short",
-        })}`,
+        `${typeIcon(ch.platform)} ${shortDateTime(when, true)}`,
       );
     }
     if (parts.length > 0) return parts.join(" · ");
   }
   if (sc.scheduled_for) {
-    return new Date(sc.scheduled_for).toLocaleDateString("nl-NL", {
-      day: "numeric",
-      month: "short",
-    });
+    return shortDateTime(sc.scheduled_for, true);
   }
   const ctx = s.trigger_context;
   if (ctx && typeof ctx === "object" && "target_date" in ctx) {
     const date = (ctx as { target_date?: string }).target_date;
     if (date) {
-      return new Date(date).toLocaleDateString("nl-NL", {
-        day: "numeric",
-        month: "short",
-      });
+      // target_date is een pure datum (YYYY-MM-DD), geen tijd erbij.
+      return shortDateTime(date, false);
     }
   }
   return null;
@@ -166,14 +176,28 @@ function formatRelativeDate(iso: string | null): string {
   const diff = Math.round(
     (targetMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
-  const dayLabel = target.toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "short",
-  });
-  if (diff < 0) return `${dayLabel} (verleden)`;
-  if (diff === 0) return `${dayLabel} (vandaag)`;
-  if (diff === 1) return `${dayLabel} (morgen)`;
-  return `${dayLabel} (over ${diff} dgn)`;
+  const dayTime = shortDateTime(iso, true);
+  if (diff < 0) return `${dayTime} · verleden`;
+  if (diff === 0) return `${dayTime} · vandaag`;
+  if (diff === 1) return `${dayTime} · morgen`;
+  return `${dayTime} · over ${diff} dgn`;
+}
+
+// Wat tonen we op een campagne-card als datum-regel? Bij ingepland +
+// concept met scheduled_for: kanaal-icon + datum + tijd. Anders een
+// status-zin ("Nog niet ingepland" / "Loopt nu" / "+12 reserveringen").
+function campaignDateLine(c: Campaign): string {
+  const stats = c.result_stats ?? {};
+  if (c.scheduled_for) {
+    return `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true)}`;
+  }
+  if (c.status === "concept") return "Nog niet ingepland";
+  if (c.status === "actief") {
+    return stats.extra_reservations != null && stats.extra_reservations > 0
+      ? `+${stats.extra_reservations} reserveringen`
+      : "Loopt nu";
+  }
+  return "Geen datum";
 }
 
 export default function CampagnesPage() {
@@ -338,6 +362,32 @@ export default function CampagnesPage() {
     }
   };
 
+  // Concept-campagne goedkeuren: status → ingepland. Vereist dat
+  // scheduled_for al gezet is (anders weet de backend niet wanneer
+  // 'm te versturen). Als die ontbreekt: toon foutmelding + leid
+  // door naar de detail-page om eerst een datum te kiezen.
+  const handleApproveConcept = async (c: Campaign) => {
+    if (!c.scheduled_for) {
+      alert(
+        "Stel eerst een verzendmoment in voordat je de campagne goedkeurt.",
+      );
+      return;
+    }
+    setBusyId(c.id);
+    try {
+      await updateCampaignStatus(c.id, "ingepland");
+      await refetch();
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Goedkeuren mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="page-full">
       <PageHeader
@@ -382,19 +432,8 @@ export default function CampagnesPage() {
                     type="button"
                     onClick={() => toggleChannel(ch.key)}
                     title={`Filter op ${ch.label}`}
-                    style={{
-                      padding: "6px 10px",
-                      fontSize: 14,
-                      lineHeight: 1,
-                      border: active
-                        ? "1px solid var(--brand, #1F4A2D)"
-                        : "1px solid var(--border, #E5DFD0)",
-                      background: active
-                        ? "var(--brand-soft, #D6E0D8)"
-                        : "transparent",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                    }}
+                    className="ui-channel-chip"
+                    data-active={active ? "true" : "false"}
                     aria-pressed={active}
                   >
                     {ch.icon}
@@ -454,6 +493,7 @@ export default function CampagnesPage() {
               onToggleExpand={toggleExpand}
               onApprove={handleApprove}
               onReject={handleReject}
+              onApproveConcept={handleApproveConcept}
             />
           );
         })}
@@ -478,6 +518,7 @@ type ColumnProps = {
   onToggleExpand: (key: string) => void;
   onApprove: (s: AiSuggestion) => void;
   onReject: (s: AiSuggestion) => void;
+  onApproveConcept: (c: Campaign) => void;
 };
 
 function KanbanColumn({
@@ -489,6 +530,7 @@ function KanbanColumn({
   onToggleExpand,
   onApprove,
   onReject,
+  onApproveConcept,
 }: ColumnProps) {
   return (
     <div
@@ -571,17 +613,26 @@ function KanbanColumn({
             Niks in deze kolom
           </div>
         ) : (
-          items.map((item) => (
-            <BoardCard
-              key={cardKey(item)}
-              item={item}
-              busy={busyId === itemSuggestionId(item)}
-              isExpanded={expanded.has(cardKey(item))}
-              onToggleExpand={() => onToggleExpand(cardKey(item))}
-              onApprove={onApprove}
-              onReject={onReject}
-            />
-          ))
+          items.map((item) => {
+            const sid = itemSuggestionId(item);
+            const cid =
+              item.kind === "campaign" ? item.data.id : null;
+            return (
+              <BoardCard
+                key={cardKey(item)}
+                item={item}
+                busy={
+                  (sid != null && busyId === sid) ||
+                  (cid != null && busyId === cid)
+                }
+                isExpanded={expanded.has(cardKey(item))}
+                onToggleExpand={() => onToggleExpand(cardKey(item))}
+                onApprove={onApprove}
+                onReject={onReject}
+                onApproveConcept={onApproveConcept}
+              />
+            );
+          })
         )}
       </div>
     </div>
@@ -611,6 +662,7 @@ type CardProps = {
   onToggleExpand: () => void;
   onApprove: (s: AiSuggestion) => void;
   onReject: (s: AiSuggestion) => void;
+  onApproveConcept: (c: Campaign) => void;
 };
 
 function BoardCard({
@@ -620,6 +672,7 @@ function BoardCard({
   onToggleExpand,
   onApprove,
   onReject,
+  onApproveConcept,
 }: CardProps) {
   // Voorstel (single-channel): naam + kanaal + datum + snippet +
   // doelgroep + acties. Uniforme template binnen de Voorstel-kolom.
@@ -748,10 +801,7 @@ function BoardCard({
     const dateLabel = item.campaigns
       .map((c) => {
         if (!c.scheduled_for) return null;
-        return `${typeIcon(c.type)} ${new Date(c.scheduled_for).toLocaleDateString(
-          "nl-NL",
-          { day: "numeric", month: "short" },
-        )}`;
+        return `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true)}`;
       })
       .filter((s): s is string => !!s)
       .join(" · ");
@@ -783,19 +833,11 @@ function BoardCard({
   // Standalone campagne: zelfde template als voorstel-card (naam +
   // kanaal-icon + datum/status + body-snippet). Body komt uit
   // backend campaign-list met joined content (mail / social).
+  // Concept-cards krijgen extra '✓ Goedkeur'-knop die status →
+  // ingepland zet (vereist scheduled_for op de campagne).
   const c = item.data;
-  const stats = c.result_stats ?? {};
-  let dateLine: string | null = null;
-  if (c.status === "ingepland" && c.scheduled_for) {
-    dateLine = formatRelativeDate(c.scheduled_for);
-  } else if (c.status === "concept") {
-    dateLine = "Nog niet ingepland";
-  } else if (c.status === "actief") {
-    dateLine =
-      stats.extra_reservations != null && stats.extra_reservations > 0
-        ? `+${stats.extra_reservations} reserveringen`
-        : "Loopt nu";
-  }
+  const isApprovableConcept =
+    c.status === "concept" && !!c.scheduled_for;
   return (
     <Link
       href={`/dashboard/campagnes/${c.id}`}
@@ -806,9 +848,36 @@ function BoardCard({
           <span style={{ fontSize: 16 }}>{typeIcon(c.type)}</span>
           <span style={cardTitle}>{c.name}</span>
         </div>
-        {dateLine && <div style={cardSubtle}>{dateLine}</div>}
+        <div style={cardSubtle}>
+          {c.status === "ingepland" && c.scheduled_for
+            ? formatRelativeDate(c.scheduled_for)
+            : campaignDateLine(c)}
+        </div>
         {c.body_preview && (
           <div style={cardSnippet}>{c.body_preview}</div>
+        )}
+        {c.status === "concept" && (
+          <div
+            style={{ marginTop: 10 }}
+            onClick={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              disabled={busy || !isApprovableConcept}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApproveConcept(c);
+              }}
+              title={
+                isApprovableConcept
+                  ? "Verplaats naar Ingepland — campagne loopt mee op het gezette moment"
+                  : "Zet eerst een verzendmoment op de detail-pagina"
+              }
+              style={{ ...btnApprove, width: "100%" }}
+            >
+              {busy ? "..." : "✓ Goedkeur & plan in"}
+            </button>
+          </div>
         )}
       </div>
     </Link>

@@ -704,11 +704,10 @@ export default function VoorstelDetailPage() {
         {isPending && (
           <div style={{ display: "flex", gap: 8 }}>
             <Button
-              variant="secondary"
+              variant="danger-soft"
               onClick={handleReject}
               loading={rejecting}
               disabled={busy}
-              style={{ color: "var(--color-danger)" }}
             >
               ✕ Afwijzen
             </Button>
