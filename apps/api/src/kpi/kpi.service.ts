@@ -9,6 +9,18 @@ export type Kpis = {
   month_guests: number;
   month_revenue_cents: number;
   pending_suggestions: number;
+  // Aantal campagnes dat momenteel "loopt" voor de eigenaar = status
+  // 'ingepland' of 'actief'. Concept (= nog niet gepubliceerd) en
+  // afgerond (= verleden tijd) tellen niet mee.
+  active_campaigns: number;
+  // Geschatte gasten vandaag (totaal, alle reserveringen) uit
+  // occupancy_days.estimated_guests. Voor het dashboard-KPI-blok
+  // "Gasten vandaag" met Filly-deel als subregel.
+  today_guests: number;
+  // Subset van today_guests: gasten van vandaag die via een Filly-
+  // campagne kwamen (reservations.via_campaign_id NOT NULL,
+  // party_size sum). 0 wanneer er nog niks gekoppeld is.
+  today_filly_guests: number;
   // Filly-attributie deze maand. Gebaseerd op
   // reservations.via_campaign_id (sinds migratie 0022). Geeft 0 terug
   // als nog geen enkele reservering aan een campagne is gekoppeld,
@@ -63,15 +75,17 @@ export class KpiService {
       .slice(0, 10);
 
     // Parallel ophalen: bezetting + suggesties + Filly-attributie +
-    // 6-maanden weekday-historie + restaurant-target. Vijf queries
-    // i.p.v. één join zodat elk stuk z'n eigen index gebruikt en we
-    // kort blijven (~50-100ms totaal).
+    // 6-maanden weekday-historie + restaurant-target + Filly-vandaag
+    // + lopende campagnes. Aparte queries zodat elk stuk z'n eigen
+    // index gebruikt en we kort blijven (~50-100ms totaal).
     const [
       { data: occDays, error: occErr },
       { data: suggestions, error: sugErr },
       { data: fillyRes, error: fillyErr },
       { data: weekdayHistory, error: whErr },
       { data: restaurant, error: rErr },
+      { data: fillyTodayRes, error: fillyTodayErr },
+      { count: activeCampaignsCount, error: campErr },
     ] = await Promise.all([
       this.supabase.client
         .from('occupancy_days')
@@ -104,6 +118,25 @@ export class KpiService {
         .select('target_weekday_occupancy_pct')
         .eq('id', restaurantId)
         .maybeSingle(),
+      // Filly-attributie ALLEEN vandaag, voor het dashboard-KPI-blok.
+      // Aparte query van de maand-Filly om geen client-side filter te
+      // hoeven doen en gebruik te kunnen maken van de eq op
+      // reservation_date.
+      this.supabase.client
+        .from('reservations')
+        .select('id, party_size')
+        .eq('restaurant_id', restaurantId)
+        .eq('reservation_date', todayStr)
+        .not('via_campaign_id', 'is', null),
+      // Lopende campagnes = status ingepland of actief (concept en
+      // afgerond tellen niet). count-only query, geen rijen-data
+      // nodig. Index `idx_campaigns_restaurant_status` (mig 0001)
+      // pakt dit efficiënt op.
+      this.supabase.client
+        .from('campaigns')
+        .select('id', { count: 'exact', head: true })
+        .eq('restaurant_id', restaurantId)
+        .in('status', ['ingepland', 'actief']),
     ]);
 
     if (occErr) throw new InternalServerErrorException(occErr.message);
@@ -111,10 +144,15 @@ export class KpiService {
     if (fillyErr) throw new InternalServerErrorException(fillyErr.message);
     if (whErr) throw new InternalServerErrorException(whErr.message);
     if (rErr) throw new InternalServerErrorException(rErr.message);
+    if (fillyTodayErr)
+      throw new InternalServerErrorException(fillyTodayErr.message);
+    if (campErr) throw new InternalServerErrorException(campErr.message);
 
     const days = occDays ?? [];
     const todayEntry = days.find((d) => d.date === todayStr);
     const today_pct = todayEntry?.occupancy_pct ?? null;
+    // Totaal gasten vandaag, uit dezelfde occupancy_days-rij.
+    const today_guests = todayEntry?.estimated_guests ?? 0;
 
     const month_avg_pct = days.length
       ? Math.round(
@@ -136,6 +174,13 @@ export class KpiService {
     const fillyReservationsList = fillyRes ?? [];
     const month_filly_reservations = fillyReservationsList.length;
     const month_filly_guests = fillyReservationsList.reduce(
+      (s, r) => s + (Number(r.party_size) || 0),
+      0,
+    );
+    // Filly-attributie ALLEEN vandaag (subset van de maand-query
+    // hierboven zou ook gekund hebben maar met aparte query is dit
+    // robuuster + onafhankelijk filter).
+    const today_filly_guests = (fillyTodayRes ?? []).reduce(
       (s, r) => s + (Number(r.party_size) || 0),
       0,
     );
@@ -167,6 +212,9 @@ export class KpiService {
       month_guests,
       month_revenue_cents,
       pending_suggestions: suggestions?.length ?? 0,
+      active_campaigns: activeCampaignsCount ?? 0,
+      today_guests,
+      today_filly_guests,
       month_filly_reservations,
       month_filly_guests,
       month_filly_share_pct,

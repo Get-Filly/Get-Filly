@@ -59,6 +59,14 @@ export type OnboardingInput = {
   // daadwerkelijk extracted heeft, anders blijft de DB-kolom null en
   // vult de eigenaar 't later in via /dashboard/account.
   opening_hours?: Record<string, { open: string; close: string }>;
+  // Service-tijden (ontbijt/lunch/diner per dag). Sinds mig 0038.
+  // Wizard stuurt altijd de eigenaar-bevestigde config mee (defaults
+  // of overschreven) zodat de DB-default niet stilletjes blijft staan
+  // wanneer eigenaar in stap 2 wijzigingen maakt.
+  service_periods?: Record<
+    string,
+    Record<string, { start: string; end: string; session_count: number } | null>
+  >;
   contact_email?: string;
   contact_phone?: string;
   legal_name?: string;
@@ -199,6 +207,13 @@ export class OnboardingService {
           input.opening_hours && Object.keys(input.opening_hours).length > 0
             ? input.opening_hours
             : null,
+        // service_periods: bewust GEEN fallback naar null. Wanneer
+        // input.service_periods undefined is, laten we de kolom
+        // weg uit de insert zodat de DB-default (mig 0038) wordt
+        // gebruikt. Met null zouden we de defaults wegblazen.
+        ...(input.service_periods
+          ? { service_periods: input.service_periods }
+          : {}),
         contact_email: input.contact_email?.trim() || null,
         contact_phone: input.contact_phone?.trim() || null,
         legal_name: input.legal_name?.trim() || null,

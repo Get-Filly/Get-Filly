@@ -20,6 +20,7 @@ import { ButtonLink } from "../../../components/ui/button-link";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Input, Textarea } from "../../../components/ui/input";
+import { ServicePeriodsEditor } from "../../../components/service-periods-editor";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -49,19 +50,6 @@ const LANGUAGE_OPTIONS: { code: string; label: string }[] = [
   { code: "fr", label: "Frans" },
   { code: "es", label: "Spaans" },
   { code: "it", label: "Italiaans" },
-];
-
-// Vaste volgorde van de week voor de openingstijden-editor. Sleutels
-// matchen met wat in opening_hours-jsonb wordt opgeslagen + wat de
-// backend RestaurantContextService verwacht voor het profile-block.
-const WEEKDAYS: { key: string; label: string }[] = [
-  { key: "mon", label: "Maandag" },
-  { key: "tue", label: "Dinsdag" },
-  { key: "wed", label: "Woensdag" },
-  { key: "thu", label: "Donderdag" },
-  { key: "fri", label: "Vrijdag" },
-  { key: "sat", label: "Zaterdag" },
-  { key: "sun", label: "Zondag" },
 ];
 
 function formatDate(d: string | null): string {
@@ -208,28 +196,6 @@ export default function AccountPage() {
     } finally {
       setAnalyzing(false);
     }
-  };
-
-  // Helpers voor de openingstijden-editor. opening_hours is jsonb in
-  // DB met sleutels mon..sun. Lege/ontbrekende dag = "gesloten".
-  const hoursFor = (key: string) => {
-    return form.opening_hours?.[key] ?? null;
-  };
-  const setHoursFor = (
-    key: string,
-    next: { open: string; close: string } | null,
-  ) => {
-    const current = form.opening_hours ?? {};
-    const newHours = { ...current };
-    if (next === null) {
-      delete newHours[key];
-    } else {
-      newHours[key] = next;
-    }
-    update(
-      "opening_hours",
-      Object.keys(newHours).length > 0 ? newHours : null,
-    );
   };
 
   // Sluitingsdata-helpers. closed_dates is text[] (ISO YYYY-MM-DD).
@@ -582,85 +548,11 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* ============================================================
-          Sectie 5, Openingstijden
-          ============================================================ */}
-      <div className="form-section">
-        <div className="form-section-title">Openingstijden</div>
-        <div className="form-section-desc">
-          Filly gebruikt dit om geen mailings te plannen op gesloten dagen en
-          om reserveringen-suggesties realistisch te maken.
-        </div>
-        <div className="form-grid">
-          {WEEKDAYS.map((d) => {
-            const h = hoursFor(d.key);
-            const closed = !h;
-            return (
-              <div
-                key={d.key}
-                className="form-field full"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "120px 1fr",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <label style={{ marginBottom: 0 }}>{d.label}</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <label className="form-checkbox" style={{ marginBottom: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={!closed}
-                      onChange={(e) =>
-                        setHoursFor(
-                          d.key,
-                          e.target.checked
-                            ? { open: "11:00", close: "23:00" }
-                            : null,
-                        )
-                      }
-                    />
-                    Open
-                  </label>
-                  {!closed && (
-                    <>
-                      <input
-                        type="time"
-                        value={h?.open ?? ""}
-                        onChange={(e) =>
-                          setHoursFor(d.key, {
-                            open: e.target.value,
-                            close: h?.close ?? "23:00",
-                          })
-                        }
-                        style={{ width: 110 }}
-                      />
-                      <span style={{ color: "var(--tl)" }}>tot</span>
-                      <input
-                        type="time"
-                        value={h?.close ?? ""}
-                        onChange={(e) =>
-                          setHoursFor(d.key, {
-                            open: h?.open ?? "11:00",
-                            close: e.target.value,
-                          })
-                        }
-                        style={{ width: 110 }}
-                      />
-                    </>
-                  )}
-                  {closed && (
-                    <span style={{ color: "var(--tl)", fontSize: 13 }}>
-                      Gesloten
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Sectie 5 (Openingstijden) verwijderd 2026-05-12: vervangen door
+          sectie 7b (Service-tijden), die per-dag en per-service-periode
+          fijnmaziger is. DB-kolom `opening_hours` blijft bestaan voor
+          backwards-compat met TasksStrip's isOpenOn-filter; eigenaar
+          beheert openingstijden voortaan impliciet via service-tijden. */}
 
       {/* ============================================================
           Sectie 6, Sluitingsdata / vakanties
@@ -934,6 +826,27 @@ export default function AccountPage() {
               Heeft een kindermenu
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* ============================================================
+          Sectie 7b, Service-tijden (sinds mig 0038)
+          ============================================================
+          Per-dag ontbijt/lunch/diner-tijden + aantal zittingen.
+          Bepaalt de structuur van de dashboard week/dag-views en de
+          KPI-aggregaten per service-periode. */}
+      <div className="form-section">
+        <div className="form-section-title">Service-tijden</div>
+        <div className="form-section-desc">
+          Per dag aangeven wanneer je ontbijt, lunch en diner serveert.
+          Eén of meerdere shifts, jij bepaalt. Dashboard gebruikt deze
+          tijden voor de week- en dag-bezetting per service.
+        </div>
+        <div className="form-field full">
+          <ServicePeriodsEditor
+            value={form.service_periods}
+            onChange={(next) => update("service_periods", next)}
+          />
         </div>
       </div>
 

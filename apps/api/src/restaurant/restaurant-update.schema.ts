@@ -53,12 +53,18 @@ const optionalText = (max: number) =>
 // Optionele lijst van strings (cuisine_style, signature_dishes,
 // languages_spoken, terrace_sun_periods). Trim per entry, drop lege
 // strings, dedupe, max-lengte op de array zelf om wildgroei te voorkomen.
+// .nullable() omdat de UI bij "veld leegmaken" expliciet null stuurt
+// (bv. terras uitzetten → terrace_sun_periods=null). Zonder dit
+// gooit zod een "expected array, received null"-fout.
 const optionalStringArray = (maxItems: number, maxItemLength: number) =>
   z
     .array(z.string().trim().max(maxItemLength).min(1))
     .max(maxItems, `Maximaal ${maxItems} entries.`)
+    .nullable()
     .optional()
-    .transform((arr) => (arr ? Array.from(new Set(arr)) : arr));
+    .transform((arr) =>
+      arr === null || arr === undefined ? arr : Array.from(new Set(arr)),
+    );
 
 // ------------------------------------------------------------
 // Sub-schema's voor jsonb-velden
@@ -92,6 +98,42 @@ const BrandColorsSchema = z.record(
 const SocialMediaSchema = z.record(
   z.string(),
   z.string().trim().max(200),
+);
+
+// ------------------------------------------------------------
+// Service-periods (mig 0038): per-dag ontbijt/lunch/diner-config
+// ------------------------------------------------------------
+// Shape: { breakfast: { mon: null | {start,end,session_count}, ... }, lunch: ..., dinner: ... }
+// - null per dag = service niet actief die dag
+// - object = { start: "HH:MM", end: "HH:MM", session_count: 1-4 }
+//
+// We zijn permissief op het top-level (z.record + z.string) zodat
+// toekomstige services (bv. 'late_night', 'brunch') automatisch
+// werken zonder schema-update. Dat is gewenst flexibiliteit voor
+// pilot-features. De waarde-validatie blijft wel strict.
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM 24h
+
+const ServicePeriodDaySchema = z.union([
+  z.null(),
+  z.object({
+    start: z
+      .string()
+      .regex(TIME_RE, 'Tijd moet formaat HH:MM hebben.'),
+    end: z
+      .string()
+      .regex(TIME_RE, 'Tijd moet formaat HH:MM hebben.'),
+    session_count: z
+      .number()
+      .int()
+      .min(1, 'Shifts moet 1-4 zijn.')
+      .max(4, 'Shifts moet 1-4 zijn.'),
+  }),
+]);
+
+const ServicePeriodsSchema = z.record(
+  z.string(),
+  z.record(z.string(), ServicePeriodDaySchema),
 );
 
 // ------------------------------------------------------------
@@ -130,6 +172,12 @@ export const RestaurantUpdateSchema = z
     opening_hours: z.union([OpeningHoursSchema, z.null()]).optional(),
     kitchen_closing_time: z.union([OpeningHoursSchema, z.null()]).optional(),
     closed_dates: z.array(z.string()).max(365).optional(),
+
+    // ----- Service-tijden (mig 0038): ontbijt/lunch/diner per dag -----
+    // Gebruikt door dashboard week/dag-view + KPI-aggregaten.
+    service_periods: z
+      .union([ServicePeriodsSchema, z.null()])
+      .optional(),
 
     // ----- Capaciteit + faciliteiten -----
     price_range: z

@@ -6,7 +6,18 @@ import {
   seededOccupancy,
   mondayIndex,
 } from "../_lib/calendar-data";
-import type { OccupancyDay } from "../../../lib/api";
+import {
+  TABLE_TYPES,
+  TABLE_LABELS,
+  activeServicesForDate,
+  occupancyForServiceOnDay,
+  occupancyForTableService,
+  serviceTimesForDay,
+  serviceTimesForRange,
+  type ServiceKey,
+} from "../_lib/hour-heatmap";
+import { ServiceGrid, type ServiceGridRow } from "./service-grid";
+import type { OccupancyDay, Restaurant } from "../../../lib/api";
 
 type View = "dag" | "week" | "maand" | "jaar";
 
@@ -20,6 +31,10 @@ type Props = {
   selectedDay: number | null;
   setSelectedDay: (n: number | null) => void;
   occupancy: OccupancyDay[];
+  // Restaurant-config: dashboard week/dag-view leest service_periods
+  // om te bepalen welke kolommen (ontbijt/lunch/diner) te tonen per
+  // dag. Null tijdens initial-load → fallback naar lunch + diner.
+  restaurant: Restaurant | null;
 };
 
 const weekdays = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
@@ -70,33 +85,10 @@ function campaignEmoji(type: string): string {
   return "•";
 }
 
-/**
- * Mock uurbezetting voor de dag-view. We hebben (nog) geen echte
- * hourly-data, die komt via reserveringsplatform-integraties (Zenchef
- * etc.). Tot die tijd genereren we een realistische horeca-dag-shape:
- * lunch-piek 12-14u, dip 15-17u, diner-piek 18-21u. We schalen het
- * geheel met de dag-bezetting van de geselecteerde dag zodat een
- * rustige dinsdag (38%) overal lager uitkomt dan een drukke vrijdag
- * (95%). Variatie per uur via dayIdx-jitter zodat dezelfde dag-pct
- * niet op elke datum identiek is.
- *
- * Vervang deze functie zodra de api een /occupancy/hours endpoint
- * heeft (per-restaurant-per-dag uur-aggregaten van reservations).
- */
-const HOUR_LABELS = ["11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"];
-const HOUR_BASELINE = [25, 70, 85, 60, 25, 15, 35, 70, 95, 90, 65, 35];
-
-function mockHourlyForDay(dayPct: number, dayIdx: number): number[] {
-  // Schalen rond gemiddelde, als dayPct hoog is wordt elk uur hoger,
-  // als dayPct laag is, lager. Houd hoofd-shape (lunch/diner) intact.
-  const target = dayPct || 50;
-  const baselineAvg = HOUR_BASELINE.reduce((a, b) => a + b, 0) / HOUR_BASELINE.length;
-  const factor = target / baselineAvg;
-  return HOUR_BASELINE.map((b, i) => {
-    const jitter = ((dayIdx * 3 + i * 7) % 9) - 4;
-    return Math.max(0, Math.min(100, Math.round(b * factor) + jitter));
-  });
-}
+// Uur-data voor dag/week-view komt uit _lib/hour-heatmap (gedeeld met
+// rapportages-pagina). Zodra reserveringsplatform-koppelingen
+// (Zenchef etc.) echte hourly-data leveren, vervangen we de
+// `hourlyForDay`-mock door een echte fetch op die plek.
 
 export function CalendarCard({
   view,
@@ -107,6 +99,7 @@ export function CalendarCard({
   setViewMonth,
   selectedDay,
   setSelectedDay,
+  restaurant,
   occupancy,
 }: Props) {
   const today = new Date();
@@ -311,18 +304,41 @@ export function CalendarCard({
         )}
 
         {view === "dag" && (() => {
-          // Vind de bezetting van de geselecteerde dag (default 50% als
-          // de dag niet in de occupancy-array zit). De staafdiagram
-          // schaalt rond dat percentage; mock-data tot er hourly-data
-          // uit reserveringsplatform-koppelingen komt.
+          // Dag-view per service-periode (Floris-redesign 2026-05-12):
+          // 5 tafel-rijen × N actieve services voor deze dag. Per cel
+          // de bezetting voor die (tafeltype × service)-combinatie,
+          // gebaseerd op dag-overall-pct + tafel-service-multiplier.
+          // Geeft eigenaar inzicht: drukke 4-pers tafels op diner?
+          // Volle bar op late-shift?
           const selected = selectedDay ?? todayNum;
           const dayCell = cells.find((c) => c && c.day === selected);
           const dayPct = dayCell?.occupancy ?? 50;
-          const hours = mockHourlyForDay(dayPct, selected);
-          const dayName = new Date(viewYear, viewMonth, selected).toLocaleString(
-            "nl-NL",
-            { weekday: "long" },
+          const dayObj = new Date(viewYear, viewMonth, selected);
+          const dayName = dayObj.toLocaleString("nl-NL", { weekday: "long" });
+          const activeServices = activeServicesForDate(
+            restaurant?.service_periods,
+            dayObj,
           );
+          const rows: ServiceGridRow[] = TABLE_TYPES.map((t) => ({
+            label: TABLE_LABELS[t],
+            cells: Object.fromEntries(
+              activeServices.map((s) => [
+                s,
+                occupancyForTableService(dayPct, t, s, selected),
+              ]),
+            ),
+          }));
+          // Sublabels: tijden voor deze specifieke dag per actieve
+          // service. Bv. "12:00 – 15:00 · 2 shifts" onder "Lunch".
+          const sublabels: Partial<Record<ServiceKey, string>> = {};
+          for (const s of activeServices) {
+            const t = serviceTimesForDay(
+              restaurant?.service_periods,
+              s,
+              dayObj,
+            );
+            if (t) sublabels[s] = t;
+          }
           return (
             <div className="day-view">
               <div className="day-view-head">
@@ -330,42 +346,40 @@ export function CalendarCard({
                   {dayName.charAt(0).toUpperCase() + dayName.slice(1)}{" "}
                   {selected} {monthName.toLowerCase()}
                 </div>
-                <div className="day-view-sub">
-                  Bezetting per uur · totaal {dayPct}%
-                </div>
               </div>
-              <div className="day-hours">
-                {hours.map((pct, i) => {
-                  const tier = occupancyTier(pct);
-                  return (
-                    <div key={HOUR_LABELS[i]} className="day-hour">
-                      <div className="day-hour-pct">{pct}%</div>
-                      <div className="day-hour-track">
-                        <div
-                          className={`day-hour-bar lvl-${tier}`}
-                          style={{ height: `${Math.max(pct, 4)}%` }}
-                        />
-                      </div>
-                      <div className="day-hour-label">{HOUR_LABELS[i]}</div>
-                    </div>
-                  );
-                })}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  padding: "8px 4px 4px",
+                }}
+              >
+                <ServiceGrid
+                  fillHeight
+                  serviceKeys={activeServices}
+                  rows={rows}
+                  serviceSublabels={sublabels}
+                  labelColumnWidth="72px"
+                />
               </div>
             </div>
           );
         })()}
 
         {view === "week" && (() => {
-          // Bouw 7 dag-objecten Ma t/m Zo, beginnend bij weekStart.
-          // Bezettings-% komt uit dezelfde bron als de maand-view: real
-          // data uit de occupancy-prop wanneer beschikbaar, anders de
-          // deterministische seededOccupancy-fallback. Zonder die
-          // fallback toonde week-view 0% voor dagen buiten de geladen
-          // maand terwijl maand-view zelf wel een mock-percentage liet
-          // zien, percentages moeten matchen tussen views.
-          const dayLabels = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+          // Week-view per service-periode (Floris-redesign 2026-05-12):
+          // 7 dag-rijen × N actieve services (max 3: ontbijt/lunch/
+          // diner). Per cel: bezet-% voor die service op die dag,
+          // gebaseerd op dag-overall-pct + service-multiplier.
+          // Kolommen = unie van alle actieve services in de week:
+          // dagen waar een service inactief is krijgen lege cel.
+          const dayLabels = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
           const todayStr = today.toISOString().slice(0, 10);
-          const days = Array.from({ length: 7 }, (_, i) => {
+          const allServices: ServiceKey[] = [];
+          const seenServices = new Set<ServiceKey>();
+          const rowDays = Array.from({ length: 7 }, (_, i) => {
             const d = new Date(weekStart);
             d.setDate(weekStart.getDate() + i);
             const dateStr = d.toISOString().slice(0, 10);
@@ -374,60 +388,76 @@ export function CalendarCard({
               d.getDate(),
               mondayIndex(d.getDay()),
             );
+            const pct = cell?.occupancy_pct ?? fallbackPct;
+            const activeServices = activeServicesForDate(
+              restaurant?.service_periods,
+              d,
+            );
+            for (const s of activeServices) {
+              if (!seenServices.has(s)) {
+                seenServices.add(s);
+                allServices.push(s);
+              }
+            }
             return {
               date: d,
               dateStr,
-              pct: cell?.occupancy_pct ?? fallbackPct,
+              pct,
+              activeServices,
               isToday: dateStr === todayStr,
+              dayLabel: dayLabels[i],
             };
           });
+          // Stabiele service-volgorde: ontbijt → lunch → diner.
+          const serviceOrder: ServiceKey[] = ["breakfast", "lunch", "dinner"];
+          const serviceKeys = serviceOrder.filter((s) =>
+            seenServices.has(s),
+          );
+          const rows: ServiceGridRow[] = rowDays.map((rd) => ({
+            label: rd.dayLabel,
+            emphasis: rd.isToday,
+            cells: Object.fromEntries(
+              rd.activeServices.map((s) => [
+                s,
+                occupancyForServiceOnDay(rd.pct, s, rd.date.getDate()),
+              ]),
+            ),
+          }));
+          // Sublabels: representatieve tijden voor elke service over
+          // de hele week (meest-voorkomende start/eind/shifts).
+          const datesArr = rowDays.map((rd) => rd.date);
+          const sublabels: Partial<Record<ServiceKey, string>> = {};
+          for (const s of serviceKeys) {
+            const t = serviceTimesForRange(
+              restaurant?.service_periods,
+              s,
+              datesArr,
+            );
+            if (t) sublabels[s] = t;
+          }
           return (
             <div className="day-view">
               <div className="day-view-head">
                 <div className="day-view-title">
                   {formatWeekRange(weekStart, weekEnd)}
                 </div>
-                <div className="day-view-sub">Bezetting per dag</div>
               </div>
-              <div className="day-hours" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-                {days.map((d, i) => {
-                  const tier = occupancyTier(d.pct);
-                  return (
-                    <div
-                      key={d.dateStr}
-                      className="day-hour"
-                      onClick={() => {
-                        // Klik = ga naar dag-view voor die specifieke dag.
-                        // Update viewMonth/Year als de dag in een andere
-                        // maand valt dan momenteel geladen.
-                        setViewYear(d.date.getFullYear());
-                        setViewMonth(d.date.getMonth());
-                        setSelectedDay(d.date.getDate());
-                        setView("dag");
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="day-hour-pct">{d.pct}%</div>
-                      <div className="day-hour-track">
-                        <div
-                          className={`day-hour-bar lvl-${tier}`}
-                          style={{ height: `${Math.max(d.pct, 4)}%` }}
-                        />
-                      </div>
-                      <div
-                        className="day-hour-label"
-                        style={{
-                          fontWeight: d.isToday ? 700 : 500,
-                          color: d.isToday
-                            ? "var(--accent)"
-                            : "var(--tl)",
-                        }}
-                      >
-                        {dayLabels[i]} {d.date.getDate()}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  padding: "8px 4px 4px",
+                }}
+              >
+                <ServiceGrid
+                  fillHeight
+                  serviceKeys={serviceKeys}
+                  rows={rows}
+                  serviceSublabels={sublabels}
+                  labelColumnWidth="40px"
+                />
               </div>
             </div>
           );

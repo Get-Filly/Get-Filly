@@ -180,23 +180,24 @@ export default function DashboardPage() {
   );
 
   // Stroken-blok + groene knop rechts. Layout via CSS-grid met
-  // 5 even brede kolommen die exact matchen met de KPI-rij eronder:
-  //   [ rode strook (span 4) ............ ] [ groene knop ]
-  //   [ gele strook (span 4) ............ ] [   (vol hoog) ]
+  // 4 even brede kolommen die exact matchen met de KPI-rij eronder:
+  //   [ rode strook (span 3) ........ ] [ groene knop ]
+  //   [ gele strook (span 3) ........ ] [   (vol hoog) ]
   // De groene knop is een card-mode tile die span 2 rijen pakt,
-  // even breed als één KPI-blok.
+  // even breed als één KPI-blok ("Voorgestelde campagnes").
+  // 2026-05-12: van 5→4 cols na KPI-revisie.
   const actionBlock = hasAnyAction && (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
+        gridTemplateColumns: "repeat(4, 1fr)",
         gap: "var(--space-4)",
         marginBottom: "var(--space-4)",
       }}
     >
       <div
         style={{
-          gridColumn: "1 / span 4",
+          gridColumn: "1 / span 3",
           minWidth: 0,
           display: "flex",
           flexDirection: "column",
@@ -206,7 +207,7 @@ export default function DashboardPage() {
         {redStrip}
         {yellowStrip}
       </div>
-      <div style={{ gridColumn: "5 / span 1", minWidth: 0 }}>
+      <div style={{ gridColumn: "4 / span 1", minWidth: 0 }}>
         <FillySuggestionsPopover
           lowOccupancyDays={criticalDays}
           specialDays={upcomingSpecial}
@@ -239,6 +240,7 @@ export default function DashboardPage() {
             selectedDay={selectedDay}
             setSelectedDay={setSelectedDay}
             occupancy={occupancy}
+            restaurant={restaurant}
           />
         </div>
         <div className="right-col">

@@ -522,6 +522,12 @@ export type Kpis = {
   month_guests: number;
   month_revenue_cents: number;
   pending_suggestions: number;
+  // Lopende campagnes (status 'ingepland' of 'actief').
+  active_campaigns: number;
+  // Totaal gasten vandaag (estimated_guests).
+  today_guests: number;
+  // Subset: gasten via Filly vandaag (reservations met via_campaign_id).
+  today_filly_guests: number;
   // Filly-attributie deze maand. Null voor share als er nog geen
   // totaal-aantal is om tegen af te zetten.
   month_filly_reservations: number;
@@ -592,6 +598,24 @@ export async function fetchOccupancy(
   return res.json();
 }
 
+// Service-periode-config per dag. Gebruikt door dashboard week/dag-
+// view + KPI-aggregaten + Filly-context. Mig 0038.
+// - Top-level keys: vrije strings (default: breakfast/lunch/dinner)
+// - Dag-keys: engels 3-letter (mon/tue/wed/thu/fri/sat/sun), zelfde
+//   als opening_hours
+// - Waarde per dag: null = niet actief, of:
+//     { start: "HH:MM", end: "HH:MM", session_count: 1-4 }
+export type ServicePeriodDay = {
+  start: string;
+  end: string;
+  session_count: number;
+};
+export type ServicePeriods = {
+  [serviceKey: string]: {
+    [weekdayKey: string]: ServicePeriodDay | null;
+  };
+};
+
 export type Restaurant = {
   id: string;
   name: string;
@@ -629,6 +653,10 @@ export type Restaurant = {
   terrace_type: "open" | "covered" | "convertible" | null;
   opening_hours: Record<string, { open: string; close: string }> | null;
   closed_dates: string[] | null;
+  // Per-dag service-tijden (ontbijt/lunch/diner). Sinds mig 0038.
+  // Top-level keys: breakfast/lunch/dinner. Dag-keys: mon..sun.
+  // Waarde per dag: null (niet actief) of { start, end, session_count }.
+  service_periods: ServicePeriods | null;
   brand_tone: "casual" | "professional" | "playful";
   signature_dishes: string[] | null;
   languages_spoken: string[] | null;

@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase-browser";
+import { ServicePeriodsEditor } from "../../components/service-periods-editor";
 
 // Localstorage-key die de RestaurantContext gebruikt om de actieve
 // zaak te onthouden tussen sessies. Bij het toevoegen van een 2e zaak
@@ -73,6 +74,10 @@ type WizardData = {
   // op de site vindt. Géén UI-veld in de wizard zelf om 'm kort te
   // houden; eigenaar ziet/bewerkt ze later in /dashboard/account.
   opening_hours: Record<string, { open: string; close: string }> | null;
+  // Service-tijden (ontbijt/lunch/diner per dag). Wordt voorgevuld
+  // met sensible defaults zodat eigenaar bij twijfel direct door kan;
+  // editor in stap 2 laat 'm tunen.
+  service_periods: import("../../lib/api").ServicePeriods;
   contact_email: string;
   contact_phone: string;
   legal_name: string;
@@ -151,6 +156,37 @@ const INITIAL_DATA: WizardData = {
   website_url: "",
   website_summary: "",
   opening_hours: null,
+  // Default service-tijden (zelfde als mig 0038 DB-default): ontbijt
+  // weekend, lunch + diner alle dagen. Eigenaar tunet in stap 2.
+  service_periods: {
+    breakfast: {
+      mon: null,
+      tue: null,
+      wed: null,
+      thu: null,
+      fri: null,
+      sat: { start: "09:00", end: "11:30", session_count: 1 },
+      sun: { start: "09:00", end: "11:30", session_count: 1 },
+    },
+    lunch: {
+      mon: { start: "12:00", end: "15:00", session_count: 2 },
+      tue: { start: "12:00", end: "15:00", session_count: 2 },
+      wed: { start: "12:00", end: "15:00", session_count: 2 },
+      thu: { start: "12:00", end: "15:00", session_count: 2 },
+      fri: { start: "12:00", end: "15:00", session_count: 2 },
+      sat: { start: "12:00", end: "16:00", session_count: 2 },
+      sun: { start: "12:00", end: "16:00", session_count: 2 },
+    },
+    dinner: {
+      mon: { start: "17:30", end: "22:30", session_count: 2 },
+      tue: { start: "17:30", end: "22:30", session_count: 2 },
+      wed: { start: "17:30", end: "22:30", session_count: 2 },
+      thu: { start: "17:30", end: "22:30", session_count: 2 },
+      fri: { start: "17:30", end: "23:00", session_count: 2 },
+      sat: { start: "17:30", end: "23:00", session_count: 2 },
+      sun: { start: "17:30", end: "22:30", session_count: 2 },
+    },
+  },
   contact_email: "",
   contact_phone: "",
   legal_name: "",
@@ -454,6 +490,11 @@ function OnboardingPageContent() {
             Object.keys(data.opening_hours).length > 0
               ? data.opening_hours
               : undefined,
+          // Service-tijden altijd meesturen, ook bij defaults — zo
+          // krijgt de backend de eigenaar-bevestigde config i.p.v.
+          // alleen de DB-defaults. Eigenaar kan in account-pagina
+          // later aanpassen.
+          service_periods: data.service_periods,
           contact_email: data.contact_email.trim() || undefined,
           contact_phone: data.contact_phone.trim() || undefined,
           legal_name: data.legal_name.trim() || undefined,
@@ -1006,6 +1047,29 @@ function Step2Review({
             onChange={(v) => setData({ ...data, city: v })}
           />
         </div>
+      </div>
+
+      {/* Service-tijden (sinds mig 0038). Sectie in stap 2 zodat
+          eigenaar tijdens onboarding direct ontbijt/lunch/diner per
+          dag kan tunen. Defaults zijn al ingevuld via INITIAL_DATA. */}
+      <div className="form-group">
+        <label className="form-label">Service-tijden</label>
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--tl, #6B6B6B)",
+            marginTop: 0,
+            marginBottom: 10,
+          }}
+        >
+          Geef per dag aan wanneer je ontbijt, lunch en diner serveert.
+          Eén of meerdere shifts, jij bepaalt. Defaults zijn ingevuld
+          &mdash; tunen kan altijd later via je account.
+        </p>
+        <ServicePeriodsEditor
+          value={data.service_periods}
+          onChange={(next) => setData({ ...data, service_periods: next })}
+        />
       </div>
 
       <div className="form-group">

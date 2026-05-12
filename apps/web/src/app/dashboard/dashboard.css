@@ -381,23 +381,25 @@
   padding: var(--space-5) var(--space-6) 0;
   flex-shrink: 0;
 }
-/* dash-body gebruikt hetzelfde 5-koloms-raster als de KPI-rij +
+/* dash-body gebruikt hetzelfde 4-koloms-raster als de KPI-rij +
    de actie-stroken zodat alles visueel uitlijnt:
-     [kalender (3 cols) ........] [filly chat (2 cols) ........]
-     Lijnt op KPI-rij: Bezetting | Bezetting mei | Gasten mei
-     | Voorgestelde campagnes | Geschatte omzet mei.
-   Op smalle viewports (zie media-query verderop) stacken kolommen
-   onder elkaar. */
+     [kalender (2 cols) .....] [filly chat (2 cols) .....]
+     Lijnt op KPI-rij: Bezetting | Filly-gasten | Lopend |
+     Voorgesteld. Op smalle viewports (zie media-query verderop)
+     stacken kolommen onder elkaar.
+   2026-05-12: ratio aangepast van 5→4 cols (KPI-row van 5 naar
+   4 KPI's, Geschatte omzet eruit). Chat naar 50% want bij span 1
+   wordt 'ie te smal om in te lezen/typen. */
 .dashboard-shell .dash-body {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
   flex: 1;
   min-height: 0;
   padding: var(--space-4) var(--space-6) var(--space-5);
 }
 .dashboard-shell .left-col {
-  grid-column: span 3;
+  grid-column: span 2;
   min-width: 0;
   overflow-y: auto;
   display: flex;
@@ -774,13 +776,18 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* Bezettings-% in het midden van de cel, groot weergegeven voor
+   direct overzicht (Floris-keuze 2026-05-12). Dagnummer blijft
+   linksboven, campagne-emojis rechtsonder, vuur-emoji rechtsboven
+   — die overlappen niet met deze centered tekst. */
 .dashboard-shell .cal-occ {
   position: absolute;
-  bottom: 6px;
-  right: 8px;
-  font-size: 11px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
   font-weight: 600;
-  opacity: 0.85;
+  opacity: 0.92;
 }
 
 /* Heatmap-tiers, meer diepte en duidelijker contrast tussen rood en
