@@ -579,7 +579,6 @@ function ReservationRow({
           padding: "14px 18px",
           alignItems: "center",
           cursor: "pointer",
-          background: isExpanded ? "var(--bg-soft, #FAF7F1)" : "transparent",
         }}
       >
         <div style={{ fontWeight: 600, fontSize: 14 }}>
@@ -642,12 +641,12 @@ function ReservationRow({
       </div>
 
       {/* Expand-detail. Speciaal verzoek vooraan (geel-balk), daarna
-          klant-stats, daarna status + Inchecken-actie. */}
+          klant-stats. Wit-achtergrond gehouden zodat 't dezelfde
+          visuele taal heeft als de hoofdrij en andere panelen. */}
       {isExpanded && (
         <div
           style={{
             padding: "0 18px 16px 18px",
-            background: "var(--bg-soft, #FAF7F1)",
             borderTop: "1px solid var(--border-soft, #E5DFD0)",
           }}
         >
