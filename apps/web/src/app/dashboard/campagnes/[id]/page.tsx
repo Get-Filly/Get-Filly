@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   fetchCampaign,
+  fetchCampaignBundle,
   updateCampaign,
   updateCampaignStatus,
+  type Campaign,
   type CampaignDetail,
 } from "../../../../lib/api";
 import { Skeleton } from "../../_components/skeleton";
@@ -16,6 +18,17 @@ import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
 import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
 import { CampaignSendModal } from "../../_components/campaign-send-modal";
+
+// Korte platform-naam voor de sibling-kanaal-tabs. Mail/social/whatsapp
+// is een te smal vocabulair zodra we weten via welk specifiek netwerk
+// een social-campagne uitgaat (instagram/facebook/tiktok). Voor MVP
+// houden we de generieke labels; later kunnen we content.platforms[0]
+// erbij betrekken voor een specifieker label.
+const PLATFORM_LABEL: Record<string, string> = {
+  mail: "Mail",
+  social: "Social",
+  whatsapp: "WhatsApp",
+};
 
 function formatEuroFromCents(cents: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
@@ -44,6 +57,10 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Sibling-campagnes: andere campagnes met dezelfde group_id (een
+  // bundle). Eigenaar kan via de tab-rij bovenin door de kanalen
+  // bladeren zonder elke keer terug naar /campagnes te hoeven.
+  const [siblings, setSiblings] = useState<Campaign[]>([]);
 
   // Edit-modus: alleen actief wanneer campaign.status === 'concept'.
   // Bewaart de draft-velden lokaal zodat annuleren triviaal is
@@ -101,6 +118,29 @@ export default function CampaignDetailPage() {
         setLoading(false);
       });
   }, [id]);
+
+  // Bij een bundle-campagne (group_id niet null) halen we de siblings
+  // op zodat de tab-rij bovenaan tussen kanalen kan switchen. Fail-
+  // soft: bij een API-fout blijft de tab-rij gewoon verborgen.
+  useEffect(() => {
+    const groupId = campaign?.group_id;
+    if (!groupId) {
+      setSiblings([]);
+      return;
+    }
+    let cancelled = false;
+    fetchCampaignBundle(groupId)
+      .then((b) => {
+        if (cancelled) return;
+        setSiblings(b.campaigns);
+      })
+      .catch(() => {
+        if (!cancelled) setSiblings([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign?.group_id]);
 
   // Bij overgang naar edit-mode vullen we de draft-velden met de
   // huidige waardes zodat de user vanuit de bestaande content werkt
@@ -206,6 +246,69 @@ export default function CampaignDetailPage() {
       >
         ← Terug naar campagnes
       </Link>
+
+      {/* Bundle-kanaal-tabs — alleen tonen als deze campagne onderdeel
+          is van een bundle (group_id niet null) én er minstens 2 siblings
+          zijn. Klik = navigeer naar de andere kanaal-campagne in de
+          bundel. Stijl: chip-rij met huidige actief gemarkeerd. */}
+      {siblings.length > 1 && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 6,
+            marginBottom: 16,
+            paddingBottom: 12,
+            borderBottom: "1px solid var(--border, #E5DFD0)",
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--tl)",
+              alignSelf: "center",
+              marginRight: 4,
+            }}
+          >
+            Bundle:
+          </span>
+          {siblings.map((s) => {
+            const isActive = s.id === campaign.id;
+            return (
+              <Link
+                key={s.id}
+                href={`/dashboard/campagnes/${s.id}`}
+                style={{ textDecoration: "none" }}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    borderRadius: 6,
+                    cursor: isActive ? "default" : "pointer",
+                    background: isActive
+                      ? "var(--color-brand, #1F4A2D)"
+                      : "var(--color-white, #FFFFFF)",
+                    color: isActive
+                      ? "var(--color-white, #FFFFFF)"
+                      : "var(--text, #18181B)",
+                    border: isActive
+                      ? "1px solid var(--color-brand, #1F4A2D)"
+                      : "1px solid var(--border, #E5DFD0)",
+                  }}
+                >
+                  <span>{typeIcon[s.type]}</span>
+                  <span>{PLATFORM_LABEL[s.type] ?? s.type}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* Header */}
       <div
