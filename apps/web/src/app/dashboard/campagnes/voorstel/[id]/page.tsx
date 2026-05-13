@@ -1341,7 +1341,7 @@ export default function VoorstelDetailPage() {
                 }}
               >
                 <div style={{ fontSize: 14, color: "var(--ts)" }}>
-                  Nog geen foto gekoppeld.
+                  Nog geen foto of video gekoppeld.
                 </div>
                 {isPending && (
                   <Button
@@ -1697,11 +1697,8 @@ export default function VoorstelDetailPage() {
               <div>
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                    color: "var(--accent, #1F4A2D)",
+                    fontSize: 12,
+                    color: "var(--tl)",
                     marginBottom: 4,
                   }}
                 >
@@ -1709,11 +1706,10 @@ export default function VoorstelDetailPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: 600,
-                    marginBottom: 8,
+                    marginBottom: 10,
                     color: "var(--text)",
-                    textTransform: "capitalize",
                   }}
                 >
                   {effectiveIso

@@ -38,12 +38,6 @@ function formatDate(s: string | null | undefined): string {
   });
 }
 
-function typeIcon(t: Campaign["type"]): string {
-  if (t === "mail") return "✉️";
-  if (t === "whatsapp") return "💬";
-  return "📱";
-}
-
 export default function CampagnesHistoryPage() {
   const [done, setDone] = useState<Campaign[]>([]);
   const [deleted, setDeleted] = useState<Campaign[]>([]);
@@ -153,7 +147,7 @@ export default function CampagnesHistoryPage() {
                 href={`/dashboard/campagnes/${c.id}`}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "32px 1fr auto auto",
+                  gridTemplateColumns: "1fr auto",
                   gap: 14,
                   padding: "14px 18px",
                   alignItems: "center",
@@ -167,9 +161,6 @@ export default function CampagnesHistoryPage() {
                   opacity: isDeleted ? 0.85 : 1,
                 }}
               >
-                <div style={{ fontSize: 20, lineHeight: 1 }}>
-                  {typeIcon(c.type)}
-                </div>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
@@ -190,16 +181,6 @@ export default function CampagnesHistoryPage() {
                     +{stats.extra_reservations} reserveringen
                   </div>
                 )}
-                {isDeleted && <div />}
-                <div
-                  style={
-                    isDeleted
-                      ? statusPillDeleted
-                      : statusPillDone
-                  }
-                >
-                  {isDeleted ? "Verwijderd" : "Afgerond"}
-                </div>
               </Link>
             );
           })}
@@ -209,20 +190,3 @@ export default function CampagnesHistoryPage() {
   );
 }
 
-const statusPillDone: React.CSSProperties = {
-  padding: "3px 10px",
-  fontSize: 11,
-  fontWeight: 500,
-  background: "#F4F4F5",
-  color: "#52525B",
-  borderRadius: 999,
-};
-const statusPillDeleted: React.CSSProperties = {
-  padding: "3px 10px",
-  fontSize: 11,
-  fontWeight: 500,
-  background: "#FEE2E2",
-  color: "#991B1B",
-  border: "1px solid #FCA5A5",
-  borderRadius: 999,
-};
