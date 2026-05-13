@@ -1006,19 +1006,29 @@ function BoardCard({
   // Voor single (1 kanaal) tonen we het kanaal-icon in de header
   // ipv 🎁. Voor bundle altijd 🎁 + pill.
   const headerIcon = title.isBundle ? "🎁" : typeIcon(platforms[0] ?? "");
+  // Status-kleur stuurt de 4px linker-streep — 1 kleur-accent per card
+  // ipv meerdere gekleurde pillen. Box-shadow inset zodat de uniforme
+  // 1px border eromheen niet hoeft te breken.
+  const statusBarColor = cardStatusColor(status, rows);
   return (
     <Link
       href={cardHref(item)}
       style={{ textDecoration: "none", color: "inherit" }}
     >
-      <div style={cardStyle}>
+      <div
+        style={{
+          ...cardStyle,
+          boxShadow: `inset 4px 0 0 0 ${statusBarColor}`,
+          paddingLeft: 14,
+        }}
+      >
         <div style={cardHeaderRow}>
           <span style={{ fontSize: 16 }}>{headerIcon}</span>
           <span style={cardTitle}>{title.text}</span>
           {title.isBundle && <span style={bundlePill}>Bundle</span>}
         </div>
         <ScheduledLine sched={sched} status={status} />
-        <ChannelChips platforms={platforms} />
+        <ChannelLine platforms={platforms} />
         <CardStatusBlock status={status} rows={rows} item={item} />
         <CardActions
           item={item}
@@ -1037,25 +1047,22 @@ function BoardCard({
 }
 
 // ============================================================
-// ChannelChips, lichtgroene chip-rij met platform-namen
+// ChannelLine, platte tekst met platform-namen
 // ============================================================
-// Toont per platform een chip ("📩 Mail"). Wraps op smalle kolommen.
-function ChannelChips({ platforms }: { platforms: string[] }) {
+// Was eerst een chip-rij maar dat voelde te kleurrijk; nu één regel
+// "Mail · Instagram · Facebook" in subtiele grijze tekst — read-only
+// info hoort geen kleur-vlak op te eisen.
+function ChannelLine({ platforms }: { platforms: string[] }) {
   if (platforms.length === 0) return null;
   return (
     <div
       style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 4,
-        marginTop: 6,
+        fontSize: 11,
+        color: "var(--tl)",
+        marginTop: 4,
       }}
     >
-      {platforms.map((p) => (
-        <span key={p} style={channelChipStyle}>
-          {PLATFORM_LABEL[p] ?? p}
-        </span>
-      ))}
+      {platforms.map((p) => PLATFORM_LABEL[p] ?? p).join(" · ")}
     </div>
   );
 }
@@ -1099,10 +1106,12 @@ function ScheduledLine({
 // ============================================================
 // CardStatusBlock, samenvatting boven de knoppen
 // ============================================================
-// - Voorstel/Concept : "✓ Alles compleet" of "⚠ Datum, Foto"
-// - Ingepland       : geen indicator (alles is per definitie compleet,
-//                     datum staat al in ScheduledLine erboven)
-// - Actief          : "🟢 Loopt" of "+3 reserveringen" pill
+// Platte tekst i.p.v. pill — minder visuele ruis. Kleur komt uit de
+// statusColor() helper en stuurt zowel deze tekst-kleur als de
+// linker-streep op de card.
+// - Voorstel/Concept : "Alles compleet" of "Datum, Foto ontbreken"
+// - Ingepland       : geen indicator (datum staat al in ScheduledLine)
+// - Actief          : "Loopt" of "+3 reserveringen"
 function CardStatusBlock({
   status,
   rows,
@@ -1114,8 +1123,6 @@ function CardStatusBlock({
 }) {
   if (status === "ingepland") return null;
   if (status === "actief") {
-    // Pak result_stats van de eerste campagne; bundles aggregaten
-    // we voor nu niet (gebeurt bij echte verzend-tracking).
     const extra =
       item.kind === "campaign"
         ? item.data.result_stats?.extra_reservations ?? 0
@@ -1126,29 +1133,36 @@ function CardStatusBlock({
             )
           : 0;
     return (
-      <div style={{ marginTop: 8 }}>
-        <span style={statusReadyPill}>
-          {extra > 0 ? `+${extra} reserveringen` : "🟢 Loopt"}
-        </span>
+      <div style={statusTextReady}>
+        {extra > 0 ? `+${extra} reserveringen` : "Loopt"}
       </div>
     );
   }
   // voorstel / concept
   const missing = getAllMissing(rows);
   if (missing.length === 0) {
-    return (
-      <div style={{ marginTop: 8 }}>
-        <span style={statusReadyPill}>✓ Alles compleet</span>
-      </div>
-    );
+    return <div style={statusTextReady}>Alles compleet</div>;
   }
+  const list = missing.map((f) => GENERIC_MISSING_LABEL[f]).join(", ");
+  const verb = missing.length === 1 ? "ontbreekt" : "ontbreken";
   return (
-    <div style={{ marginTop: 8 }}>
-      <span style={statusMissingPill}>
-        ⚠ {missing.map((f) => GENERIC_MISSING_LABEL[f]).join(", ")}
-      </span>
+    <div style={statusTextMissing}>
+      {list} {verb}
     </div>
   );
+}
+
+// Status-kleur per card. Stuurt linker-streep + status-tekst-kleur.
+function cardStatusColor(
+  status: "voorstel" | "concept" | "ingepland" | "actief",
+  rows: ChannelRow[],
+): string {
+  if (status === "actief") return "var(--color-brand-deep, #1F4A2D)";
+  if (status === "ingepland") return "#94A3B8"; // slate-400, neutraal
+  // voorstel / concept: ready = brand-groen; missing = amber
+  return getAllMissing(rows).length === 0
+    ? "var(--color-brand, #1F4A2D)"
+    : "#F59E0B"; // amber-500
 }
 
 // ============================================================
@@ -1219,20 +1233,19 @@ function CardActions({
                 : "Vul eerst de ontbrekende velden in — klik om naar het voorstel te gaan"
             }
           >
-            {busy ? "..." : "✓ Goedkeur"}
+            {busy ? "..." : "Goedkeur"}
           </button>
-          <Button
-            variant="danger-soft"
-            size="sm"
+          <button
+            type="button"
             disabled={busy}
             onClick={(e) => {
               stop(e);
               onReject(item);
             }}
-            style={{ flex: 1 }}
+            style={btnDangerGhost}
           >
-            × Afwijzen
-          </Button>
+            Afwijzen
+          </button>
         </div>
       </div>
     );
@@ -1253,20 +1266,19 @@ function CardActions({
                 : "Vul eerst de ontbrekende velden in — klik om naar de campagne te gaan"
             }
           >
-            {busy ? "..." : "📅 Plan in"}
+            {busy ? "..." : "Plan in"}
           </button>
-          <Button
-            variant="danger-soft"
-            size="sm"
+          <button
+            type="button"
             disabled={busy}
             onClick={(e) => {
               stop(e);
               onDelete(item);
             }}
-            style={{ flex: 1 }}
+            style={btnDangerGhost}
           >
-            × Verwijderen
-          </Button>
+            Verwijderen
+          </button>
         </div>
       </div>
     );
@@ -1275,19 +1287,18 @@ function CardActions({
   // status === "ingepland"
   return (
     <div style={actionsContainer} onClick={stop}>
-      <Button
-        variant="secondary"
-        size="sm"
+      <button
+        type="button"
         disabled={busy}
         onClick={(e) => {
           stop(e);
           onRetract(item);
         }}
-        style={{ width: "100%" }}
+        style={btnSecondaryFull}
         title="Terug naar concept zodat je 'm kunt aanpassen of verwijderen"
       >
-        ↩ Terugtrekken
-      </Button>
+        Terugtrekken
+      </button>
     </div>
   );
 }
@@ -1347,49 +1358,21 @@ const bundlePill: React.CSSProperties = {
   letterSpacing: 0.3,
   flexShrink: 0,
 };
-// Kanaal-chip: lichtgroen pill met platform-naam, gebruikt onder de
-// kaart-titel. Bundle = meerdere chips naast elkaar (wraps op smalle
-// kolommen).
-const channelChipStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  fontSize: 11,
-  fontWeight: 500,
-  padding: "2px 8px",
-  borderRadius: 6,
-  background: "var(--color-brand-soft, #D6E0D8)",
-  color: "var(--color-brand-deep, #1F4A2D)",
-  border: "1px solid var(--color-brand, #1F4A2D)",
-  whiteSpace: "nowrap",
-};
-
-// Status-pill boven de knoppen. Ready = lichtgroen ("Alles compleet"
-// of "Loopt"/stats voor actief); missing = amber met ontbrekende
-// velden achter ⚠.
-const statusReadyPill: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
+// Status-tekst onder de kanalen. Geen gekleurde pill meer (was te
+// kleurrijk over 6 cards heen); platte tekst met kleur-letters past
+// professioneler. De 4px linker-streep op de card draagt de visuele
+// status zodat deze regel klein mag blijven.
+const statusTextReady: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
-  padding: "3px 8px",
-  borderRadius: 6,
-  background: "var(--color-brand-soft, #D6E0D8)",
   color: "var(--color-brand-deep, #1F4A2D)",
-  border: "1px solid var(--color-brand, #1F4A2D)",
+  marginTop: 6,
 };
-const statusMissingPill: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
+const statusTextMissing: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 500,
-  padding: "3px 8px",
-  borderRadius: 6,
-  background: "#FEF3C7",
-  color: "#92400E",
-  border: "1px solid #FCD34D",
+  color: "#92400E", // amber-800
+  marginTop: 6,
 };
 
 // Acties-container + horizontale rij voor Goedkeur/Afwijzen (of
@@ -1405,21 +1388,19 @@ const actionRow: React.CSSProperties = {
   gap: 6,
 };
 
-// Hoofdknop (Goedkeur / Plan in). Twee staten:
-//   - ready : brand-soft groen (zoals Button variant="brand-soft")
-//   - grey  : grijs maar klikbaar — klik navigeert naar detail-pagina
-//             zodat eigenaar de ontbrekende velden kan invullen.
-// Bewust een raw <button> ipv Button-component want we willen "grijs
-// maar klikbaar" — disabled=true zou de klik blokkeren.
-const btnPrimaryReady: React.CSSProperties = {
+// Basis voor alle card-knoppen: witte bg, dunne grijze border, donker
+// label, neutrale rust-state. Kleur komt pas op hover. Geïnspireerd
+// op de bestaande Button variant="secondary" maar dan via inline-style
+// zodat we kleur-overrides (Afwijzen rood) makkelijk kunnen toepassen.
+const btnBase: React.CSSProperties = {
   flex: 1,
   minHeight: 28,
   padding: "5px 12px",
   fontSize: 13,
   fontWeight: 500,
-  border: "1px solid var(--color-brand, #1F4A2D)",
-  background: "var(--color-brand-soft, #D6E0D8)",
-  color: "var(--color-brand-deep, #1F4A2D)",
+  background: "var(--color-white, #FFFFFF)",
+  color: "var(--text, #18181B)",
+  border: "1px solid var(--color-border, #E5DFD0)",
   borderRadius: "var(--radius, 6px)",
   cursor: "pointer",
   display: "inline-flex",
@@ -1430,9 +1411,28 @@ const btnPrimaryReady: React.CSSProperties = {
   transition:
     "background 120ms ease, border-color 120ms ease, color 120ms ease",
 };
+// Goedkeur / Plan in: ready = donker-groene tekst (de actie heeft
+// merkbetekenis). Hover wisselt naar brand-soft fill via :hover in
+// een eventueel later CSS-bestand; voor nu blijft 'ie rustig wit.
+const btnPrimaryReady: React.CSSProperties = {
+  ...btnBase,
+  color: "var(--color-brand-deep, #1F4A2D)",
+  borderColor: "var(--color-brand, #1F4A2D)",
+};
 const btnPrimaryGrey: React.CSSProperties = {
-  ...btnPrimaryReady,
-  background: "#F4F4F5",
-  border: "1px solid #D4D4D8",
-  color: "#71717A",
+  ...btnBase,
+  color: "#A1A1AA",
+};
+// Afwijzen / Verwijderen: zelfde rustige basis, alleen donker-rode
+// tekst om destructieve intent te tonen. Geen lichtrode achtergrond
+// in rust — die zou de card weer kleurrijk maken.
+const btnDangerGhost: React.CSSProperties = {
+  ...btnBase,
+  color: "#B91C1C", // rood-700
+};
+// Volledig-brede secondary, voor Terugtrekken op Ingepland.
+const btnSecondaryFull: React.CSSProperties = {
+  ...btnBase,
+  flex: undefined,
+  width: "100%",
 };

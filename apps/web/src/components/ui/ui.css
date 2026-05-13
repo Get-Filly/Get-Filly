@@ -137,19 +137,20 @@
                           één gebruik. Hard-coded als lokaal detail. */
 }
 
-/* CHANNEL-CHIP, kleine filter-knop met kanaal-emoji op de campagnes-
- * pagina. Default: licht-groen bg (brand-soft) met groene rand. Hover
- * en active-state krijgen vol brand-groen + lichtere icon-rendering.
- * data-active="true" voor de actieve filter-state (zichtbaar selected). */
+/* CHANNEL-CHIP, kleine filter-knop op de campagnes-pagina. Default:
+ * neutraal (witte bg + grijze border + donkere tekst) zodat de filter-
+ * rij niet alle aandacht trekt; hover en active krijgen brand-soft
+ * en brand-fill respectievelijk. data-active="true" voor de actieve
+ * filter-state (zichtbaar selected). */
 .ui-channel-chip {
   /* Even hoog als ui-btn--md (36px) zodat chips visueel uitlijnen
-     met de Historie-knop ernaast. Toont icon + tekst naast elkaar. */
+     met de Historie-knop ernaast. */
   padding: var(--space-2) var(--space-3);
   min-height: 36px;
   line-height: 1;
-  border: 1px solid var(--color-brand);
-  background: var(--color-brand-soft);
-  color: var(--color-brand-deep);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text);
   border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
@@ -159,18 +160,18 @@
     color 0.12s ease;
 }
 .ui-channel-chip:hover {
-  background: var(--color-brand-deep);
-  border-color: var(--color-brand-deep);
-  color: var(--color-white);
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand);
+  color: var(--color-brand-deep);
 }
 .ui-channel-chip[data-active="true"] {
   background: var(--color-brand);
   border-color: var(--color-brand);
   color: var(--color-white);
-  box-shadow: 0 0 0 2px rgba(31, 74, 45, 0.15);
 }
 .ui-channel-chip[data-active="true"]:hover {
   background: var(--color-brand-deep);
+  border-color: var(--color-brand-deep);
 }
 
 /* DANGER-SOFT, niet-definitieve destructieve actie (bv. Afwijzen op

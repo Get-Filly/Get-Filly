@@ -103,28 +103,36 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
     criticalDays.length > 0 || upcomingSpecial.length > 0;
   if (!hasAnyAction) return null;
 
+  // Strook-styling: lichte neutrale bg met dunne 4px linker-kleurstreep.
+  // Voorheen volledig gekleurde vlakken; nu rustiger zodat de "Vraag
+  // Filly om voorstellen"-CTA aandacht krijgt en het scherm niet als
+  // alarm-paneel oogt.
+  const stripBase: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 14px",
+    background: "var(--bg-soft, #FAF7F1)",
+    border: "1px solid var(--border, #E5DFD0)",
+    color: "var(--text, #18181B)",
+    borderRadius: "var(--rs, 8px)",
+    fontSize: 13,
+    lineHeight: 1.4,
+  };
+
   const redStrip = criticalDays.length > 0 && (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "10px 12px",
-        background: "var(--color-danger-soft, #FEE2E2)",
-        border: "1px solid #FCA5A5",
-        color: "#7F1D1D",
-        borderRadius: "var(--rs, 8px)",
-        fontSize: 13,
-        lineHeight: 1.4,
+        ...stripBase,
+        boxShadow: "inset 4px 0 0 0 #B91C1C", // rood-700, dunne accentstreep
       }}
     >
-      <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong>
+        <strong style={{ color: "#7F1D1D" }}>
           {criticalDays.length} rustige dag
           {criticalDays.length > 1 ? "en" : ""}
         </strong>{" "}
-        komende 2 weken:{" "}
+        <span style={{ color: "var(--tl)" }}>komende 2 weken:</span>{" "}
         {criticalDays
           .slice(0, 5)
           .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
@@ -137,25 +145,16 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
   const yellowStrip = upcomingSpecial.length > 0 && (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "10px 12px",
-        background: "#FEF3C7",
-        border: "1px solid #FCD34D",
-        color: "#78350F",
-        borderRadius: "var(--rs, 8px)",
-        fontSize: 13,
-        lineHeight: 1.4,
+        ...stripBase,
+        boxShadow: "inset 4px 0 0 0 #D97706", // amber-600, dunne accentstreep
       }}
     >
-      <span style={{ fontSize: 16, flexShrink: 0 }}>🎉</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong>
+        <strong style={{ color: "#78350F" }}>
           {upcomingSpecial.length} speciale dag
           {upcomingSpecial.length > 1 ? "en" : ""}
         </strong>{" "}
-        komende 6 weken:{" "}
+        <span style={{ color: "var(--tl)" }}>komende 6 weken:</span>{" "}
         {upcomingSpecial
           .slice(0, 5)
           .map((s) => `${s.name} (${formatDayNl(s.date)})`)
