@@ -801,16 +801,24 @@ function KanbanColumn({
   return (
     <div
       style={{
-        background: "var(--bg-soft, #FAF7F1)",
-        border: "1px solid var(--border, #E5DFD0)",
-        borderRadius: 10,
-        padding: 12,
         display: "flex",
         flexDirection: "column",
+        gap: 8,
         minHeight: 200,
       }}
     >
-      <div style={{ marginBottom: 10 }}>
+      {/* Kolom-header in eigen witte sub-card. Titel + counter rechts,
+          subtitle eronder. Bewust geen kolom-bg meer eromheen zodat
+          de pagina-layout strakker oogt — header + cards zijn nu
+          allebei losse witte blokken, geen verzamelde kaart-binnen-kaart. */}
+      <div
+        style={{
+          background: "var(--white, #FFFFFF)",
+          border: "1px solid var(--border, #E5DFD0)",
+          borderRadius: 8,
+          padding: "12px 14px",
+        }}
+      >
         <div
           style={{
             display: "flex",
@@ -821,22 +829,20 @@ function KanbanColumn({
         >
           <div
             style={{
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 700,
               color: "var(--text, #18181B)",
+              letterSpacing: "-0.01em",
             }}
           >
             {column.label}
           </div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 600,
               color: "var(--tl)",
-              background: "var(--white, #FFFFFF)",
-              border: "1px solid var(--border, #E5DFD0)",
-              padding: "2px 8px",
-              borderRadius: 999,
+              fontVariantNumeric: "tabular-nums",
             }}
           >
             {items.length}
@@ -846,7 +852,7 @@ function KanbanColumn({
           style={{
             fontSize: 11,
             color: "var(--tl)",
-            marginTop: 2,
+            marginTop: 4,
           }}
         >
           {column.description}
@@ -1003,9 +1009,6 @@ function BoardCard({
   const status = itemStatus(item);
   const platforms = getItemPlatforms(item);
   const sched = getEarliestScheduled(item);
-  // Voor single (1 kanaal) tonen we het kanaal-icon in de header
-  // ipv 🎁. Voor bundle altijd 🎁 + pill.
-  const headerIcon = title.isBundle ? "🎁" : typeIcon(platforms[0] ?? "");
   // Status-kleur stuurt de 4px linker-streep — 1 kleur-accent per card
   // ipv meerdere gekleurde pillen. Box-shadow inset zodat de uniforme
   // 1px border eromheen niet hoeft te breken.
@@ -1023,7 +1026,6 @@ function BoardCard({
         }}
       >
         <div style={cardHeaderRow}>
-          <span style={{ fontSize: 16 }}>{headerIcon}</span>
           <span style={cardTitle}>{title.text}</span>
           {title.isBundle && <span style={bundlePill}>Bundle</span>}
         </div>
@@ -1081,7 +1083,7 @@ function ScheduledLine({
 }) {
   if (!sched.iso) {
     if (status === "actief") return null;
-    return <div style={cardDatePrimary}>📅 Geen datum</div>;
+    return <div style={cardDatePrimary}>Geen datum</div>;
   }
   // Pure datum (YYYY-MM-DD) vs. timestamp herkennen — pure datum
   // tonen we zonder tijd-suffix.
@@ -1090,7 +1092,7 @@ function ScheduledLine({
   if (status === "ingepland") {
     return (
       <div style={cardDatePrimary}>
-        📅 {text}{" "}
+        {text}{" "}
         <span style={{ fontWeight: 400, color: "var(--tl)" }}>
           · {relativeSuffix(sched.iso)}
         </span>
@@ -1098,9 +1100,9 @@ function ScheduledLine({
     );
   }
   if (sched.multiple) {
-    return <div style={cardDatePrimary}>📅 vanaf {text}</div>;
+    return <div style={cardDatePrimary}>vanaf {text}</div>;
   }
-  return <div style={cardDatePrimary}>📅 {text}</div>;
+  return <div style={cardDatePrimary}>{text}</div>;
 }
 
 // ============================================================

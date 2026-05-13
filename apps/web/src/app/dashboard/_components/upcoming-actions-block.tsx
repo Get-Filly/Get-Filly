@@ -103,36 +103,31 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
     criticalDays.length > 0 || upcomingSpecial.length > 0;
   if (!hasAnyAction) return null;
 
-  // Strook-styling: lichte neutrale bg met dunne 4px linker-kleurstreep.
-  // Voorheen volledig gekleurde vlakken; nu rustiger zodat de "Vraag
-  // Filly om voorstellen"-CTA aandacht krijgt en het scherm niet als
-  // alarm-paneel oogt.
+  // Strook-styling: witte bg, dunne 4px rode kleurstreep links, zwarte
+  // tekst. Voorheen volledig gekleurde vlakken (rood/geel); nu rustig
+  // wit zodat de "Vraag Filly om voorstellen"-CTA de focus pakt.
   const stripBase: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: 10,
     padding: "10px 14px",
-    background: "var(--bg-soft, #FAF7F1)",
+    background: "var(--color-white, #FFFFFF)",
     border: "1px solid var(--border, #E5DFD0)",
     color: "var(--text, #18181B)",
     borderRadius: "var(--rs, 8px)",
     fontSize: 13,
     lineHeight: 1.4,
+    boxShadow: "inset 4px 0 0 0 #B91C1C", // rood-700, dunne accentstreep
   };
 
   const redStrip = criticalDays.length > 0 && (
-    <div
-      style={{
-        ...stripBase,
-        boxShadow: "inset 4px 0 0 0 #B91C1C", // rood-700, dunne accentstreep
-      }}
-    >
+    <div style={stripBase}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong style={{ color: "#7F1D1D" }}>
+        <strong>
           {criticalDays.length} rustige dag
           {criticalDays.length > 1 ? "en" : ""}
         </strong>{" "}
-        <span style={{ color: "var(--tl)" }}>komende 2 weken:</span>{" "}
+        komende 2 weken:{" "}
         {criticalDays
           .slice(0, 5)
           .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
@@ -143,18 +138,13 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
   );
 
   const yellowStrip = upcomingSpecial.length > 0 && (
-    <div
-      style={{
-        ...stripBase,
-        boxShadow: "inset 4px 0 0 0 #D97706", // amber-600, dunne accentstreep
-      }}
-    >
+    <div style={stripBase}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong style={{ color: "#78350F" }}>
+        <strong>
           {upcomingSpecial.length} speciale dag
           {upcomingSpecial.length > 1 ? "en" : ""}
         </strong>{" "}
-        <span style={{ color: "var(--tl)" }}>komende 6 weken:</span>{" "}
+        komende 6 weken:{" "}
         {upcomingSpecial
           .slice(0, 5)
           .map((s) => `${s.name} (${formatDayNl(s.date)})`)
