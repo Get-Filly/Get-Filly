@@ -910,14 +910,16 @@ function cardKey(item: BoardItem): string {
   return `camp-${item.data.id}`;
 }
 
-// Detail-URL per item-kind. Voorstel-cards linken naar de
-// voorstel-pagina, campagne-cards naar de campagne-detail of
-// bundle-detail.
+// Detail-URL per item-kind. Per 2026-05-13 (unified-detail-page):
+// alle Campaign-cards (single én bundle) gaan naar dezelfde URL
+// /campagnes/[id], waarbij [id] een campaign-id of group-id mag
+// zijn (backend smart-detect). Alleen voorstellen blijven op
+// /voorstel/[id] omdat dat een suggestion-id is met aparte fetch.
 function cardHref(item: BoardItem): string {
   if (item.kind === "suggestion" || item.kind === "bundle-suggestion")
     return `/dashboard/campagnes/voorstel/${item.data.id}`;
   if (item.kind === "bundle-campaign")
-    return `/dashboard/campagnes/bundle/${item.groupId}`;
+    return `/dashboard/campagnes/${item.groupId}`;
   return `/dashboard/campagnes/${item.data.id}`;
 }
 
@@ -1027,7 +1029,10 @@ function BoardCard({
       >
         <div style={cardHeaderRow}>
           <span style={cardTitle}>{title.text}</span>
-          {title.isBundle && <span style={bundlePill}>Bundle</span>}
+          {/* Bundle-pill verwijderd per 2026-05-13 op verzoek:
+              de "WhatsApp · social · Mail"-regel hieronder geeft
+              al aan dat het multi-channel is, een extra label
+              zou alleen ruis zijn. */}
         </div>
         <ScheduledLine sched={sched} status={status} />
         <ChannelLine platforms={platforms} />
@@ -1140,17 +1145,15 @@ function CardStatusBlock({
       </div>
     );
   }
-  // voorstel / concept
+  // voorstel / concept — per 2026-05-13 op verzoek van Floris:
+  // alleen 'Compleet' (groen) of 'Incompleet' (amber). De
+  // specifieke veldnamen tonen we niet meer; eigenaar ziet die
+  // wel op de detail-pagina (Missende aspecten-card).
   const missing = getAllMissing(rows);
-  if (missing.length === 0) {
-    return <div style={statusTextReady}>Alles compleet</div>;
-  }
-  const list = missing.map((f) => GENERIC_MISSING_LABEL[f]).join(", ");
-  const verb = missing.length === 1 ? "ontbreekt" : "ontbreken";
-  return (
-    <div style={statusTextMissing}>
-      {list} {verb}
-    </div>
+  return missing.length === 0 ? (
+    <div style={statusTextReady}>Compleet</div>
+  ) : (
+    <div style={statusTextIncomplete}>Incompleet</div>
   );
 }
 
@@ -1374,6 +1377,15 @@ const statusTextMissing: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 500,
   color: "var(--text, #18181B)",
+  marginTop: 6,
+};
+// Per 2026-05-13: 'Incompleet'-label in amber. Compleet hergebruikt
+// statusTextReady (groen) hierboven. Detail vind eigenaar op de
+// detail-pagina (Missende aspecten-card).
+const statusTextIncomplete: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: "#B45309", // amber-700 — sterke leesbaarheid op licht canvas
   marginTop: 6,
 };
 

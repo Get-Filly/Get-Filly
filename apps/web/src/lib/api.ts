@@ -96,24 +96,39 @@ export async function fetchDeletedCampaigns(): Promise<Campaign[]> {
 }
 
 // Per 2026-05-07 fase 4: bundle-detail ophalen voor de bundle-pagina.
-// Retourneert het campaign_groups record + alle gekoppelde campagnes.
+// Per 2026-05-13 (fase C unified-detail-page):
+//   - campaigns is nu CampaignDetail[] (incl. variants, content,
+//     scheduled, reasoning) zodat 1 call alles oplevert voor de
+//     unified-detail-page.
+//   - id-param mag een group-id OF een campaign-id zijn (smart-
+//     detect aan backend-kant). Bij een single-channel campaign
+//     zonder group_id krijg je { group: null, campaigns: [detail] }.
 export type CampaignBundle = {
-  group: { id: string; name: string; theme: string | null };
-  campaigns: Campaign[];
+  group: { id: string; name: string; theme: string | null } | null;
+  campaigns: CampaignDetail[];
 };
 
 export async function fetchCampaignBundle(
-  groupId: string,
+  idOrGroupId: string,
 ): Promise<CampaignBundle> {
-  const res = await authedFetch(`${API_URL}/campaigns/bundle/${groupId}`, {
-    cache: "no-store",
-  });
+  const res = await authedFetch(
+    `${API_URL}/campaigns/bundle/${idOrGroupId}`,
+    { cache: "no-store" },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);
   }
   return res.json();
 }
+
+// Per 2026-05-13 (mig 0041): shape van een enkele variant. Identiek
+// aan ai_suggestions.suggested_campaign.channels[].variants zodat
+// dezelfde frontend-component beide kan renderen.
+export type CampaignVariant = {
+  subject_line?: string | null;
+  body: string;
+};
 
 export type CampaignDetail = Campaign & {
   subject_line: string | null;
@@ -133,6 +148,12 @@ export type CampaignDetail = Campaign & {
   // handmatig aangemaakt of voorstel is verwijderd. Concept-detail
   // toont 'Waarom dit voorstel'-card als deze gevuld is.
   reasoning: string | null;
+  // Per 2026-05-13 (mig 0041): alle versies + welke Gekozen is.
+  // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
+  // body/subject_line hierboven zijn afgeleid van
+  // variants[selected_variant_index].
+  variants: CampaignVariant[];
+  selected_variant_index: number;
   tags: string[] | null;
   created_at: string;
   content: {
@@ -264,6 +285,73 @@ export async function generateCampaignVariants(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ instruction: instruction ?? "" }),
   });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================================
+// VARIANT-ENDPOINTS (per 2026-05-13, mig 0041)
+// ============================================================
+// Bron-van-waarheid: campaigns.variants + selected_variant_index.
+// Backend handhaaft status='concept' — anders 400. Frontend gates
+// daarom de knoppen al via canEdit op de unified-detail-page.
+
+// Wisselen welke versie 'Gekozen' is. Sync body/subject in
+// campaign_*_content aan backend-kant.
+export async function selectCampaignVariant(
+  campaignId: string,
+  index: number,
+): Promise<{ id: string; selected_variant_index: number }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/variants/${index}/select`,
+    { method: "PATCH" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Eén specifieke versie bewerken. Als idx == selected_variant_index
+// wordt campaign_*_content ook gesynced (backend doet dit).
+export async function editCampaignVariant(
+  campaignId: string,
+  index: number,
+  patch: { subject_line?: string | null; body: string },
+): Promise<{ id: string; variants: CampaignVariant[] }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/variants/${index}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// 3 nieuwe versies genereren door Filly. Cap op 6 totaal — daarna
+// weigert backend (kostenbeheersing, zelfde grens als /refine).
+export async function generateMoreCampaignVariants(
+  campaignId: string,
+  instruction?: string,
+): Promise<{ id: string; variants: CampaignVariant[] }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/variants`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instruction: instruction ?? "" }),
+    },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);

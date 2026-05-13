@@ -197,6 +197,81 @@ export class CampaignsController {
     return this.campaigns.refine(restaurantId, id, body.instruction);
   }
 
+  // ============================================================
+  // VARIANT-ENDPOINTS (per 2026-05-13, mig 0041)
+  // ============================================================
+  // Bron-van-waarheid is campaigns.variants + selected_variant_index.
+  // Drie endpoints, allemaal beperkt tot status='concept' (service-
+  // laag handhaaft).
+  //
+  // URL-structuur kiezen we zo dat ':idx' altijd een getal is (geen
+  // ambiguïteit met sub-actions zoals '/select'). Daarom plakt /select
+  // er als suffix achter en is /variants zonder idx alleen voor POST
+  // (genereren) — botst niet met de bestaande GET /variants (oude
+  // legacy-route, andere HTTP-methode).
+  //
+  //   PATCH /campaigns/:id/variants/:idx/select  → flip Gekozen
+  //   PATCH /campaigns/:id/variants/:idx         → edit een versie
+  //   POST  /campaigns/:id/variants              → genereer 3 nieuwe
+  //
+  // De oude /refine-endpoint blijft tijdelijk bestaan voor de oude
+  // detail-pagina; wordt in fase G uitgefaseerd.
+
+  @Patch(':id/variants/:idx/select')
+  selectVariant(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('idx') idxParam: string,
+  ) {
+    const idx = Number.parseInt(idxParam, 10);
+    if (!Number.isFinite(idx)) {
+      throw new BadRequestException(
+        'Variant-index in URL moet een geheel getal zijn.',
+      );
+    }
+    return this.campaigns.selectVariant(restaurantId, id, idx, user.id);
+  }
+
+  @Patch(':id/variants/:idx')
+  editVariant(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('idx') idxParam: string,
+    @Body() body: { subject_line?: string | null; body?: string },
+  ) {
+    const idx = Number.parseInt(idxParam, 10);
+    if (!Number.isFinite(idx)) {
+      throw new BadRequestException(
+        'Variant-index in URL moet een geheel getal zijn.',
+      );
+    }
+    return this.campaigns.editVariant(
+      restaurantId,
+      id,
+      idx,
+      {
+        subject_line: body?.subject_line,
+        body: body?.body,
+      },
+      user.id,
+    );
+  }
+
+  @Post(':id/variants')
+  generateMoreVariants(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { instruction?: string },
+  ) {
+    return this.campaigns.generateMoreVariants(
+      restaurantId,
+      id,
+      body?.instruction,
+    );
+  }
+
   // Upload een foto voor een concept-campagne (social of whatsapp).
   // Multipart-upload met 1 bestand. 10MB cap, JPG/PNG/WebP/GIF.
   // Vervangt eventueel oude foto in storage zodat we geen wezen

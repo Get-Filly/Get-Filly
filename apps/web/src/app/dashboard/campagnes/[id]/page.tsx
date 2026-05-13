@@ -1,371 +1,480 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   deleteCampaign,
-  fetchCampaign,
+  editCampaignVariant,
   fetchCampaignBundle,
-  updateCampaign,
+  generateMoreCampaignVariants,
+  selectCampaignVariant,
+  setCampaignSchedule,
   updateCampaignStatus,
-  type Campaign,
+  type CampaignBundle,
   type CampaignDetail,
+  type CampaignStatus,
 } from "../../../../lib/api";
+import {
+  bundleToView,
+  type UnifiedDetailView,
+} from "../../../../lib/campaign-detail-adapter";
 import { Skeleton } from "../../_components/skeleton";
 import { Button } from "../../../../components/ui/button";
 import { EmptyState } from "../../../../components/ui/empty-state";
-import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
-import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
-import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
-import { CampaignSendModal } from "../../_components/campaign-send-modal";
 import {
-  getMissingLabel,
-  type ChecklistItem,
-} from "../../../../lib/campaign-checks";
+  SECTION_ID,
+  fillySuggestedIso,
+  platformToType,
+  timesEqualToMinute,
+  toDatetimeLocalValue,
+} from "../../_components/campaign-detail/types";
+import { WaaromCard } from "../../_components/campaign-detail/waarom-card";
+import { MissendeAspectenCard } from "../../_components/campaign-detail/missende-aspecten-card";
+import { KanalenCard } from "../../_components/campaign-detail/kanalen-card";
+import { InhoudCard } from "../../_components/campaign-detail/inhoud-card";
+import { WanneerCard } from "../../_components/campaign-detail/wanneer-card";
+import { FotoCard } from "../../_components/campaign-detail/foto-card";
+import type { MissingField } from "../../../../lib/campaign-checks";
 
-function formatEuroFromCents(cents: number): string {
-  return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
-}
+// ============================================================
+// UnifiedDetailPage, één pagina voor alle campagne-statussen
+// ============================================================
+//
+// Per 2026-05-13 vervangt deze pagina de aparte single-channel
+// (oude /[id]) én multi-channel (oude /bundle/[id]) detail-pages.
+// Reden: layout-divergentie tussen Voorstel-detail en Campagne-
+// detail leverde "alles verandert na goedkeuren"-syndroom op.
+//
+// Strategie:
+//   - GET /campaigns/bundle/:id smart-detect: id = group_id OF
+//     campaign_id, retourneert altijd { group, campaigns[] }.
+//   - Adapter (lib/campaign-detail-adapter) zet die om naar
+//     UnifiedDetailView in dezelfde shape die de 5 voorstel-
+//     componenten al kennen.
+//   - Componenten zijn dezelfde als op /voorstel/[id], alleen
+//     de wire-up (callbacks → variant-endpoints) verschilt.
+//   - canEdit = status === 'concept'. Ingepland/actief = readonly;
+//     eigenaar moet eerst 'Terug naar concept' om verder te
+//     bewerken (backend handhaaft de regel ook).
+//
+// Add/remove kanalen op campagne-bundles: nog niet ondersteund
+// door backend (zou een nieuwe campaign in dezelfde group moeten
+// aanmaken). Voor nu disabled — komt in een latere fase.
 
-function formatDate(s: string | null | undefined): string {
-  if (!s) return "—";
-  return new Date(s).toLocaleString("nl-NL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const STATUS_LABEL: Record<CampaignStatus, string> = {
+  concept: "Concept",
+  ingepland: "Ingepland",
+  actief: "Actief",
+  afgerond: "Afgerond",
+};
 
-function relativeDays(iso: string): string {
-  const target = new Date(iso);
-  const now = new Date();
-  const diffMs = target.getTime() - now.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-  if (Math.abs(diffDays) < 1) {
-    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
-    if (diffHours === 0) return "nu";
-    return diffHours > 0
-      ? `over ${diffHours} uur`
-      : `${Math.abs(diffHours)} uur geleden`;
-  }
-  if (diffDays === 1) return "morgen";
-  if (diffDays === -1) return "gisteren";
-  return diffDays > 0
-    ? `over ${diffDays} dagen`
-    : `${Math.abs(diffDays)} dagen geleden`;
-}
-
-// Wat is er nog niet ingevuld op deze campagne? Gebruikt door de
-// progress-bar + Missende aspecten-card op concept-detail. Lichtere
-// variant van getChannelChecklist uit lib/campaign-checks omdat we
-// hier met CampaignDetail (al opgesplitst per kanaal) werken.
-function getCampaignChecklist(c: CampaignDetail): ChecklistItem[] {
-  const items: ChecklistItem[] = [];
-  if (!c.scheduled_for) items.push({ field: "date", required: true });
-  const body =
-    c.body ??
-    c.content?.body_plain ??
-    c.content?.caption ??
-    c.content?.message_text;
-  if (!body || (typeof body === "string" && !body.trim())) {
-    items.push({ field: "body", required: true });
-  }
-  if (c.type === "mail") {
-    const subject = c.subject_line ?? c.content?.subject_line;
-    if (!subject || (typeof subject === "string" && !subject.trim())) {
-      items.push({ field: "subject", required: true });
-    }
-  }
-  if (c.type === "social") {
-    const hasMedia = (c.content?.media_urls?.length ?? 0) > 0;
-    if (!hasMedia) {
-      // Platforms-array uit content bepaalt of foto vereist (IG/TikTok)
-      // of optioneel (FB/GB). Geen platforms = unknown, default vereist.
-      const platforms = c.content?.platforms ?? [];
-      const required =
-        platforms.length === 0 ||
-        platforms.some((p) => p === "instagram" || p === "tiktok");
-      items.push({ field: "photo", required });
-    }
-  }
-  return items;
-}
-
-// Status-chip in de header. Voor concept/ingepland/actief: brand-soft-
-// stijl (witte bg + brand-border). Voor afgerond: neutraal grijs.
-function statusChipLabel(status: CampaignDetail["status"]): string {
-  switch (status) {
-    case "concept":
-      return "Concept";
-    case "ingepland":
-      return "Ingepland";
-    case "actief":
-      return "Actief";
-    case "afgerond":
-      return "Afgerond";
-    default:
-      return status;
-  }
-}
-
-function detailStatusChip(
-  status: CampaignDetail["status"],
-): React.CSSProperties {
-  const base: React.CSSProperties = {
+const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
+  const palette: Record<CampaignStatus, { bg: string; fg: string }> = {
+    concept: { bg: "#FFFFFF", fg: "#1F4A2D" },
+    ingepland: { bg: "#1F4A2D", fg: "#FFFFFF" },
+    actief: { bg: "#1F4A2D", fg: "#FFFFFF" },
+    afgerond: { bg: "#E5DFD0", fg: "#6B6F71" },
+  };
+  const c = palette[status];
+  return {
     display: "inline-flex",
     alignItems: "center",
     fontSize: 12,
     fontWeight: 500,
     padding: "3px 10px",
     borderRadius: 6,
+    background: c.bg,
+    color: c.fg,
+    border: `1px solid ${c.fg === "#FFFFFF" ? c.bg : c.fg}`,
   };
-  if (status === "afgerond") {
-    return {
-      ...base,
-      background: "var(--color-white, #FFFFFF)",
-      color: "#52525B",
-      border: "1px solid #D4D4D8",
-    };
-  }
-  // concept / ingepland / actief / overige → brand-stijl
-  return {
-    ...base,
-    background: "var(--color-white, #FFFFFF)",
-    color: "var(--color-brand-deep, #1F4A2D)",
-    border: "1px solid var(--color-brand, #1F4A2D)",
-  };
-}
+};
 
-export default function CampaignDetailPage() {
+export default function UnifiedDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
+
+  const [bundle, setBundle] = useState<CampaignBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Sibling-campagnes — andere kanalen onder dezelfde bundle (group_id).
-  // Wordt boven de header als chip-rij gerenderd zodat eigenaar tussen
-  // kanalen kan switchen (zoals de multi-channel-toggle op voorstel).
-  const [siblings, setSiblings] = useState<Campaign[]>([]);
 
-  // Edit-modus: alleen actief wanneer campaign.status === 'concept'.
-  // Bewaart de draft-velden lokaal zodat annuleren triviaal is
-  // (zet gewoon editMode=false zonder de server-staat aan te raken).
-  const [editMode, setEditMode] = useState(false);
-  const [draftName, setDraftName] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [savingVariant, setSavingVariant] = useState(false);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+
+  // Variant-edit-draftstate. Eigenaar bewerkt de Gekozen versie
+  // (of een specifieke index).
+  const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(
+    null,
+  );
   const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
-  // Status-actie (bv. concept → ingepland). Aparte state zodat we de
-  // knop kunnen disablen tijdens de roundtrip én een nette spinner-
-  // tekst kunnen tonen.
-  const [statusActing, setStatusActing] = useState(false);
-  // Send-modal: open/dicht voor de "Verstuur"-flow (mail-campagnes,
-  // via Resend). Toont test- of all-opted-in-mode.
-  const [sendModalOpen, setSendModalOpen] = useState(false);
 
-  // Schakelt status van concept naar ingepland. Vereist dat
-  // scheduled_for is gezet (anders weigert de UI met een uitleg).
-  // Voor onmiddelijke verzending kan dezelfde flow ingepland → actief
-  // doen, dat is een aparte transitie die we hier later toevoegen.
-  const handlePlanCampaign = async () => {
-    if (!campaign) return;
-    if (!campaign.scheduled_for) {
-      window.alert(
-        "Stel eerst een tijdstip in via 'Wanneer plaatsen' voordat je inplant.",
-      );
-      return;
-    }
-    setStatusActing(true);
+  // Schedule-edit-state.
+  const [editingSchedule, setEditingSchedule] = useState(false);
+  const [draftDatetime, setDraftDatetime] = useState("");
+
+  // ────────────────────────────────────────────────────────────
+  // Initial load + refetch helper
+  // ────────────────────────────────────────────────────────────
+  const load = useCallback(async () => {
     try {
-      await updateCampaignStatus(campaign.id, "ingepland");
-      const fresh = await fetchCampaign(id);
-      setCampaign(fresh);
+      const next = await fetchCampaignBundle(id);
+      setBundle(next);
+      // Active channel intelligent default: behoud current als 'ie
+      // nog bestaat, anders eerste kanaal.
+      setActiveChannelId((prev) => {
+        if (prev && next.campaigns.some((c) => c.id === prev)) return prev;
+        return next.campaigns[0]?.id ?? null;
+      });
+      setError(null);
     } catch (e) {
-      window.alert(
+      setError(
         e instanceof Error
           ? e.message
-          : "Inplannen mislukt. Probeer het opnieuw.",
+          : "Campagne niet gevonden of niet meer beschikbaar.",
       );
-    } finally {
-      setStatusActing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchCampaign(id)
-      .then((d) => {
-        setCampaign(d);
-        setLoading(false);
-      })
-      .catch((e: Error) => {
-        setError(e.message);
-        setLoading(false);
-      });
   }, [id]);
 
-  // Bundle-siblings ophalen wanneer group_id niet null. Fail-soft: bij
-  // API-fout blijft de Kanalen-card verborgen.
   useEffect(() => {
-    const groupId = campaign?.group_id;
-    if (!groupId) {
-      setSiblings([]);
-      return;
-    }
     let cancelled = false;
-    fetchCampaignBundle(groupId)
-      .then((b) => {
-        if (cancelled) return;
-        setSiblings(b.campaigns);
-      })
-      .catch(() => {
-        if (!cancelled) setSiblings([]);
-      });
+    setLoading(true);
+    load().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [campaign?.group_id]);
+  }, [load]);
 
-  // Bij overgang naar edit-mode vullen we de draft-velden met de
-  // huidige waardes zodat de user vanuit de bestaande content werkt
-  // in plaats van vanuit een leeg formulier.
-  const startEdit = () => {
-    if (!campaign) return;
-    setDraftName(campaign.name);
-    setDraftSubject(
-      campaign.content?.subject_line ?? campaign.subject_line ?? "",
-    );
-    setDraftBody(
-      campaign.content?.body_plain ??
-        campaign.content?.caption ??
-        campaign.content?.message_text ??
-        campaign.body ??
-        "",
-    );
-    setEditError(null);
-    setEditMode(true);
-  };
-
-  const saveEdit = async () => {
-    if (!campaign) return;
-    setSaving(true);
-    setEditError(null);
+  // ────────────────────────────────────────────────────────────
+  // Afgeleide view via adapter
+  // ────────────────────────────────────────────────────────────
+  const view: UnifiedDetailView | null = useMemo(() => {
+    if (!bundle) return null;
     try {
-      await updateCampaign(id, {
-        name: draftName,
-        // Onderwerp alleen sturen voor mail, anders heeft het geen
-        // betekenis en overschrijven we onnodig.
-        subject_line: campaign.type === "mail" ? draftSubject : undefined,
-        body: draftBody,
+      return bundleToView(bundle);
+    } catch {
+      return null;
+    }
+  }, [bundle]);
+
+  const activeChannel = useMemo(() => {
+    if (!view) return null;
+    const found = view.channels.find((c) => c.id === activeChannelId);
+    return found ?? view.channels[0] ?? null;
+  }, [view, activeChannelId]);
+
+  const activeCampaign: CampaignDetail | null = useMemo(() => {
+    if (!view || !activeChannel) return null;
+    return view.campaignsByChannelId[activeChannel.id] ?? null;
+  }, [view, activeChannel]);
+
+  // Status-derived flags.
+  const status = view?.status ?? "concept";
+  const canEdit = status === "concept";
+  const busy =
+    loading ||
+    savingVariant ||
+    savingSchedule ||
+    refining ||
+    changingStatus ||
+    deleting;
+
+  // ────────────────────────────────────────────────────────────
+  // Wanneer-card afgeleiden — analoog aan voorstel-page
+  // ────────────────────────────────────────────────────────────
+  const activePlatform = activeChannel?.platform ?? "mail";
+  const activePlatformType = platformToType(activePlatform);
+
+  // Filly's voorgestelde tijd voor het actieve kanaal.
+  const fillyIso = useMemo(() => {
+    if (!activeChannel) return null;
+    if (activeChannel.filly_scheduled_for) {
+      return activeChannel.filly_scheduled_for;
+    }
+    // Geen Filly-tijd → fallback: morgen + standaard uur per type.
+    // Zelfde patroon als voorstel-page om de WanneerCard altijd
+    // betekenisvol te laten zijn.
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    return fillySuggestedIso(ymd, activePlatformType);
+  }, [activeChannel, activePlatformType]);
+  const fillyReasoning =
+    activeChannel?.filly_scheduled_reasoning ?? null;
+  const customIso = activeChannel?.scheduled_for ?? null;
+  const effectiveIso = customIso ?? fillyIso;
+  const isCustomTime =
+    !!customIso && !timesEqualToMinute(customIso, fillyIso);
+
+  // ────────────────────────────────────────────────────────────
+  // Variant-handlers
+  // ────────────────────────────────────────────────────────────
+  const variants = activeChannel?.variants ?? [];
+  const selectedIndex = activeChannel?.selected_index ?? 0;
+
+  const handleSelectVariant = useCallback(
+    async (idx: number) => {
+      if (!activeChannel || busy || !canEdit) return;
+      if (idx === selectedIndex) return;
+      setActionError(null);
+      setSavingVariant(true);
+      try {
+        await selectCampaignVariant(activeChannel.id, idx);
+        await load();
+      } catch (e) {
+        setActionError(
+          e instanceof Error ? e.message : "Versie-selectie mislukt.",
+        );
+      } finally {
+        setSavingVariant(false);
+      }
+    },
+    [activeChannel, busy, canEdit, selectedIndex, load],
+  );
+
+  const handleStartEditVariant = useCallback(
+    (idx: number) => {
+      if (busy || !canEdit) return;
+      const v = variants[idx];
+      setDraftSubject(v?.subject_line ?? "");
+      setDraftBody(v?.body ?? "");
+      setEditingVariantIdx(idx);
+      setActionError(null);
+    },
+    [busy, canEdit, variants],
+  );
+
+  const handleCancelEditVariant = useCallback(() => {
+    if (savingVariant) return;
+    setEditingVariantIdx(null);
+    setDraftSubject("");
+    setDraftBody("");
+  }, [savingVariant]);
+
+  const handleSaveEditVariant = useCallback(async () => {
+    if (!activeChannel || editingVariantIdx === null || busy) return;
+    if (!draftBody.trim()) {
+      setActionError("Body mag niet leeg zijn.");
+      return;
+    }
+    setActionError(null);
+    setSavingVariant(true);
+    try {
+      await editCampaignVariant(activeChannel.id, editingVariantIdx, {
+        subject_line: draftSubject.trim() || null,
+        body: draftBody.trim(),
       });
-      // Refetch voor verse state (incl. stats + updated_at). Eenvoudiger
-      // dan de local state handmatig patchen voor elke content-variant.
-      const fresh = await fetchCampaign(id);
-      setCampaign(fresh);
-      setEditMode(false);
+      await load();
+      setEditingVariantIdx(null);
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : "Opslaan mislukt.");
+      setActionError(e instanceof Error ? e.message : "Bewerken mislukt.");
     } finally {
-      setSaving(false);
+      setSavingVariant(false);
     }
-  };
+  }, [
+    activeChannel,
+    editingVariantIdx,
+    busy,
+    draftBody,
+    draftSubject,
+    load,
+  ]);
 
-  // Generieke status-actie-wrapper: refetch na succes, error in
-  // editError tonen (zelfde banner als edit-fouten).
-  const runStatusAction = async (
-    fn: () => Promise<unknown>,
-    failMessage: string,
-  ) => {
-    setStatusActing(true);
-    setEditError(null);
+  const handleRegenerate = useCallback(async () => {
+    if (!activeChannel || busy || !canEdit) return;
+    setActionError(null);
+    setRefining(true);
     try {
-      await fn();
-      const fresh = await fetchCampaign(id);
-      setCampaign(fresh);
+      await generateMoreCampaignVariants(activeChannel.id);
+      await load();
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : failMessage);
+      setActionError(
+        e instanceof Error ? e.message : "Genereren mislukt.",
+      );
     } finally {
-      setStatusActing(false);
+      setRefining(false);
     }
-  };
+  }, [activeChannel, busy, canEdit, load]);
 
-  // Direct activeren: concept → actief (backend staat dit toe sinds
-  // mig 0040). Slaat ingepland over zodat eigenaar niet via 2 calls
-  // hoeft. Voor concept met missende vereiste velden is de knop
-  // disabled, dus we hoeven hier geen extra check te doen.
-  const handleActivate = () => {
-    if (!campaign) return;
-    if (
-      !window.confirm(
-        campaign.type === "mail"
-          ? "Campagne nu direct activeren? De mail wordt zo snel mogelijk verstuurd."
-          : "Campagne nu direct activeren? De post gaat zo snel mogelijk live.",
-      )
-    ) {
-      return;
-    }
-    runStatusAction(
-      () => updateCampaignStatus(campaign.id, "actief"),
-      "Activeren mislukt. Probeer het opnieuw.",
+  // ────────────────────────────────────────────────────────────
+  // Schedule-handlers
+  // ────────────────────────────────────────────────────────────
+  const handleStartEditSchedule = useCallback(() => {
+    if (busy || !canEdit) return;
+    setActionError(null);
+    setDraftDatetime(
+      toDatetimeLocalValue(effectiveIso ?? new Date().toISOString()),
     );
-  };
+    setEditingSchedule(true);
+  }, [busy, canEdit, effectiveIso]);
 
-  // Ingepland → terug naar concept (sinds mig 0040). Eigenaar wil
-  // 'm aanpassen of verwijderen.
-  const handleRetract = () => {
-    if (!campaign) return;
-    runStatusAction(
-      () => updateCampaignStatus(campaign.id, "concept"),
-      "Terugtrekken mislukt. Probeer het opnieuw.",
-    );
-  };
-
-  // Actief → afgerond (Stop-knop). Confirm + status-transitie.
-  const handleStop = () => {
-    if (!campaign) return;
-    if (
-      !window.confirm(
-        "Campagne stoppen? Hij wordt naar 'afgerond' verplaatst en verdwijnt uit het actieve overzicht.",
-      )
-    ) {
-      return;
-    }
-    runStatusAction(
-      () => updateCampaignStatus(campaign.id, "afgerond"),
-      "Stoppen mislukt. Probeer het opnieuw.",
-    );
-  };
-
-  // Soft-delete (mig 0040): UPDATE deleted_at=NOW(). Daarna terug
-  // naar /campagnes — campagne is daar niet meer zichtbaar, vindt 'm
-  // terug in /campagnes/history → Verwijderd-tab.
-  const handleDelete = async () => {
-    if (!campaign) return;
-    if (
-      !window.confirm(
-        "Campagne verwijderen? Hij wordt verplaatst naar de Verwijderd-tab in de campagne-historie.",
-      )
-    ) {
-      return;
-    }
-    setStatusActing(true);
-    setEditError(null);
+  const handleSaveSchedule = useCallback(async () => {
+    if (!activeChannel || !draftDatetime || busy) return;
+    setActionError(null);
+    setSavingSchedule(true);
     try {
-      await deleteCampaign(campaign.id);
+      const localIso = new Date(draftDatetime).toISOString();
+      await setCampaignSchedule(activeChannel.id, localIso);
+      await load();
+      setEditingSchedule(false);
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Verzendmoment opslaan mislukt.",
+      );
+    } finally {
+      setSavingSchedule(false);
+    }
+  }, [activeChannel, draftDatetime, busy, load]);
+
+  const handleResetToFilly = useCallback(async () => {
+    if (!activeChannel || !fillyIso || busy) return;
+    setActionError(null);
+    setSavingSchedule(true);
+    try {
+      await setCampaignSchedule(activeChannel.id, fillyIso);
+      await load();
+      setEditingSchedule(false);
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Reset naar Filly's voorstel mislukt.",
+      );
+    } finally {
+      setSavingSchedule(false);
+    }
+  }, [activeChannel, fillyIso, busy, load]);
+
+  // ────────────────────────────────────────────────────────────
+  // Status-transitie + verwijder
+  // ────────────────────────────────────────────────────────────
+  // Bundle-niveau: alle campaigns krijgen dezelfde status-overgang
+  // tegelijk (Promise.all). Bij single-channel = 1 call.
+  const handleStatusChange = useCallback(
+    async (next: CampaignStatus) => {
+      if (!view || busy) return;
+      // Destructieve acties: confirmatie. Activeren = direct
+      // versturen — eigenaar moet dit bewust kiezen.
+      if (next === "actief") {
+        if (
+          !window.confirm(
+            "Weet je zeker dat je deze campagne nu wil activeren? Mail/social-posts worden direct verstuurd.",
+          )
+        ) {
+          return;
+        }
+      }
+      setActionError(null);
+      setChangingStatus(true);
+      try {
+        await Promise.all(
+          view.channels.map((c) => updateCampaignStatus(c.id, next)),
+        );
+        await load();
+      } catch (e) {
+        setActionError(
+          e instanceof Error ? e.message : "Status-overgang mislukt.",
+        );
+      } finally {
+        setChangingStatus(false);
+      }
+    },
+    [view, busy, load],
+  );
+
+  // Delete: alleen op concept (backend handhaaft). Multi-channel:
+  // alle campaigns van de bundle weg. Eigenaar krijgt confirmatie.
+  const handleDelete = useCallback(async () => {
+    if (!view || busy) return;
+    if (status !== "concept") return;
+    if (
+      !window.confirm(
+        view.channels.length > 1
+          ? `Weet je zeker dat je deze bundle (${view.channels.length} kanalen) wil verwijderen?`
+          : "Weet je zeker dat je deze concept-campagne wil verwijderen?",
+      )
+    ) {
+      return;
+    }
+    setActionError(null);
+    setDeleting(true);
+    try {
+      await Promise.all(view.channels.map((c) => deleteCampaign(c.id)));
       router.push("/dashboard/campagnes");
     } catch (e) {
-      setEditError(
+      setActionError(
         e instanceof Error ? e.message : "Verwijderen mislukt.",
       );
-      setStatusActing(false);
+      setDeleting(false);
     }
-  };
+  }, [view, busy, status, router]);
 
-  if (loading) {
+  // ────────────────────────────────────────────────────────────
+  // Voortgangsbar — uit channelsChecklist
+  // ────────────────────────────────────────────────────────────
+  const progress = useMemo(() => {
+    if (!view) return { total: 0, completed: 0, percentage: 100 };
+    let total = 0;
+    let missing = 0;
+    for (const c of view.channels) {
+      total += 2; // datum + body altijd
+      if (c.platform === "mail") total += 1;
+      if (c.platform === "instagram" || c.platform === "tiktok") total += 1;
+    }
+    for (const c of view.channelsChecklist) {
+      for (const item of c.items) {
+        if (item.required) missing += 1;
+      }
+    }
+    const completed = Math.max(0, total - missing);
+    return {
+      total,
+      completed,
+      percentage:
+        total === 0 ? 100 : Math.round((completed / total) * 100),
+    };
+  }, [view]);
+
+  // Jump-to-fix vanuit Missende aspecten → activeer kanaal + scroll.
+  const handleJumpToFix = useCallback(
+    (field: MissingField, channelId: string) => {
+      setActiveChannelId(channelId);
+      const targetId =
+        field === "date"
+          ? SECTION_ID.schedule
+          : field === "photo"
+            ? SECTION_ID.foto
+            : SECTION_ID.inhoud;
+      setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    },
+    [],
+  );
+
+  // ────────────────────────────────────────────────────────────
+  // Render
+  // ────────────────────────────────────────────────────────────
+
+  if (loading && !view) {
+    return (
+      <div className="page-full">
+        <Skeleton style={{ height: 32, width: 240, marginBottom: 16 }} />
+        <Skeleton style={{ height: 120, marginBottom: 12 }} />
+        <Skeleton style={{ height: 320 }} />
+      </div>
+    );
+  }
+
+  if (error || !view) {
     return (
       <div className="page-full">
         <Link
@@ -374,62 +483,109 @@ export default function CampaignDetailPage() {
             fontSize: 13,
             color: "var(--ts)",
             textDecoration: "none",
-            marginBottom: 16,
+            marginBottom: 14,
             display: "inline-block",
           }}
         >
           ← Terug naar campagnes
         </Link>
-        <Skeleton height={28} width="40%" style={{ marginBottom: 12 }} />
-        <Skeleton height={14} width="60%" style={{ marginBottom: 24 }} />
-        <Skeleton height={240} />
-      </div>
-    );
-  }
-
-  if (error || !campaign) {
-    return (
-      <div className="page-full">
-        <Link
-          href="/dashboard/campagnes"
-          style={{ fontSize: 13, color: "var(--ts)" }}
-        >
-          ← Terug
-        </Link>
         <EmptyState
-          topGap
-          icon="📣"
-          title="Campagne niet gevonden"
-          description="Deze campagne bestaat niet meer of je hebt geen toegang. Ga terug naar het overzicht en kies een andere."
+          icon="—"
+          title="Campagne niet beschikbaar"
+          description={error ?? "Deze campagne bestaat niet meer."}
         />
       </div>
     );
   }
 
-  const stats = (campaign.content?.stats ?? {}) as Record<string, number>;
-  const resultStats = campaign.result_stats ?? {};
-  const isMail = campaign.type === "mail";
-  const isSocial = campaign.type === "social";
-  const isConcept = campaign.status === "concept";
-  const isPlanned = campaign.status === "ingepland";
-  const isActive = campaign.status === "actief";
-  const isDone = campaign.status === "afgerond";
+  const supportsMedia =
+    activePlatform === "instagram" ||
+    activePlatform === "facebook" ||
+    activePlatform === "tiktok" ||
+    activePlatform === "whatsapp";
 
-  // Missende velden + voortgang (alleen relevant voor concept).
-  const checklist = getCampaignChecklist(campaign);
-  const missingRequired = checklist.filter((c) => c.required).length;
-  // Totaal vereiste velden per type: mail = 3 (date/body/subject),
-  // social = 3 (date/body + foto-required-mits-IG/TT), whatsapp = 2.
-  const totalRequired = (() => {
-    if (campaign.type === "mail") return 3;
-    if (campaign.type === "social") return 3;
-    return 2;
-  })();
-  const completedRequired = Math.max(0, totalRequired - missingRequired);
-  const progressPct = Math.round(
-    (completedRequired / totalRequired) * 100,
-  );
-  const allReady = missingRequired === 0;
+  // Actie-knoppen per status. Volgorde rechts→links: destructief
+  // links, primair rechts.
+  const renderActions = () => {
+    if (status === "concept") {
+      return (
+        <>
+          <Button
+            variant="secondary"
+            onClick={handleDelete}
+            loading={deleting}
+            disabled={busy}
+            style={{ color: "#B91C1C" }}
+          >
+            Verwijderen
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => handleStatusChange("actief")}
+            disabled={busy || progress.percentage < 100}
+            title={
+              progress.percentage < 100
+                ? "Vul eerst alle vereiste velden in"
+                : "Activeer nu — direct versturen"
+            }
+          >
+            Activeer nu
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => handleStatusChange("ingepland")}
+            loading={changingStatus}
+            disabled={busy || progress.percentage < 100}
+            title={
+              progress.percentage < 100
+                ? "Vul eerst alle vereiste velden in"
+                : "Plan in voor het ingestelde verzendmoment"
+            }
+          >
+            Plan in
+          </Button>
+        </>
+      );
+    }
+    if (status === "ingepland") {
+      return (
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => handleStatusChange("concept")}
+            loading={changingStatus}
+            disabled={busy}
+            title="Annuleer planning, terug naar concept zodat je weer kan bewerken"
+          >
+            Terug naar concept
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => handleStatusChange("actief")}
+            disabled={busy}
+            title="Activeer nu — vervroeg de planning en stuur direct"
+          >
+            Activeer nu
+          </Button>
+        </>
+      );
+    }
+    if (status === "actief") {
+      return (
+        <Button
+          variant="secondary"
+          onClick={() => handleStatusChange("afgerond")}
+          loading={changingStatus}
+          disabled={busy}
+          style={{ color: "#B91C1C" }}
+        >
+          Stop campagne
+        </Button>
+      );
+    }
+    // afgerond: geen acties
+    return null;
+  };
 
   return (
     <div className="page-full">
@@ -446,11 +602,9 @@ export default function CampaignDetailPage() {
         ← Terug naar campagnes
       </Link>
 
-      {/* Sticky header: titel + status-chip + actie-knoppen rechts.
-          Layout en gedrag spiegelen de voorstel-detail-pagina zodat
-          de campagne visueel doorloopt van Voorstel → Concept zonder
-          een ander template. Voor ingepland/actief/afgerond is alles
-          read-only, alleen de status-acties zijn nog beschikbaar. */}
+      {/* Sticky header: titel + status + voortgang + actie-knoppen.
+          Blijft tijdens scrollen aan de top zodat eigenaar vanuit
+          elke sectie kan beslissen. */}
       <div
         style={{
           position: "sticky",
@@ -472,117 +626,26 @@ export default function CampaignDetailPage() {
         >
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="page-title" style={{ marginBottom: 6 }}>
-              {campaign.name}
+              {view.name}
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={detailStatusChip(campaign.status)}>
-                {statusChipLabel(campaign.status)}
+              <span style={statusChipStyle(status)}>
+                {STATUS_LABEL[status]}
               </span>
-              {campaign.meta && (
+              {view.bundleName && view.channels.length > 1 && (
                 <span style={{ color: "var(--tl)", fontSize: 12 }}>
-                  {campaign.meta}
+                  {view.channels.length} kanalen
                 </span>
               )}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {/* Concept (niet edit): Verwijderen · Activeer nu · Plan in */}
-            {isConcept && !editMode && (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={handleDelete}
-                  disabled={statusActing}
-                  style={{ color: "#B91C1C" }}
-                >
-                  Verwijderen
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleActivate}
-                  disabled={statusActing || !allReady}
-                  loading={statusActing}
-                  title={
-                    !allReady
-                      ? "Vul eerst de ontbrekende velden in"
-                      : "Direct activeren — campagne gaat zo snel mogelijk uit"
-                  }
-                >
-                  Activeer nu
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handlePlanCampaign}
-                  loading={statusActing}
-                  disabled={statusActing || !allReady}
-                  title={
-                    !allReady
-                      ? "Vul eerst de ontbrekende velden in"
-                      : `Plan in voor ${formatDate(campaign.scheduled_for)}`
-                  }
-                >
-                  Plan in
-                </Button>
-              </>
-            )}
-            {/* Concept (edit-mode): Annuleren + Opslaan */}
-            {isConcept && editMode && (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={() => setEditMode(false)}
-                  disabled={saving}
-                >
-                  Annuleren
-                </Button>
-                <Button
-                  onClick={saveEdit}
-                  loading={saving}
-                  disabled={!draftName.trim() || !draftBody.trim()}
-                >
-                  Opslaan
-                </Button>
-              </>
-            )}
-            {/* Ingepland: Terugtrekken · Activeer nu */}
-            {isPlanned && (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={handleRetract}
-                  disabled={statusActing}
-                  loading={statusActing}
-                  title="Terug naar concept zodat je 'm kunt aanpassen of verwijderen"
-                >
-                  Terugtrekken
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleActivate}
-                  disabled={statusActing}
-                  loading={statusActing}
-                >
-                  Activeer nu
-                </Button>
-              </>
-            )}
-            {/* Actief: Stop */}
-            {isActive && (
-              <Button
-                variant="secondary"
-                onClick={handleStop}
-                disabled={statusActing}
-                loading={statusActing}
-                style={{ color: "#B91C1C" }}
-              >
-                Stop campagne
-              </Button>
-            )}
-            {/* Afgerond: geen knoppen */}
+            {renderActions()}
           </div>
         </div>
-        {/* Voortgangsbalk — alleen op concept, niet in edit-mode. */}
-        {isConcept && !editMode && (
+        {/* Voortgang alleen tonen in concept-fase, daarna is alles
+            sowieso vastgezet en zou een 100%-balk verwarrend ogen. */}
+        {status === "concept" && progress.total > 0 && (
           <div
             style={{
               marginTop: 12,
@@ -602,11 +665,12 @@ export default function CampaignDetailPage() {
             >
               <div
                 style={{
-                  width: `${progressPct}%`,
+                  width: `${progress.percentage}%`,
                   height: "100%",
-                  background: allReady
-                    ? "var(--color-brand, #1F4A2D)"
-                    : "#F59E0B",
+                  background:
+                    progress.percentage === 100
+                      ? "var(--color-brand, #1F4A2D)"
+                      : "#F59E0B",
                   transition: "width 200ms ease, background 200ms ease",
                 }}
               />
@@ -616,31 +680,17 @@ export default function CampaignDetailPage() {
                 fontSize: 12,
                 color: "var(--tl)",
                 fontVariantNumeric: "tabular-nums",
-                minWidth: 130,
+                minWidth: 110,
                 textAlign: "right",
               }}
             >
-              {completedRequired} van {totalRequired} velden compleet
+              {progress.completed} van {progress.total} velden compleet
             </div>
-          </div>
-        )}
-        {/* "Verstuur"-quick-action (mail) — als secundaire optie naast
-            de status-knoppen. Voor concept/ingepland/actief beschikbaar
-            (test-mail of echt-verzenden). */}
-        {isMail && !isDone && !editMode && (
-          <div style={{ marginTop: 10 }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSendModalOpen(true)}
-            >
-              ✉️ Verstuur (test of echt)
-            </Button>
           </div>
         )}
       </div>
 
-      {editError && (
+      {actionError && (
         <div
           style={{
             padding: "8px 12px",
@@ -651,613 +701,101 @@ export default function CampaignDetailPage() {
             fontSize: 13,
           }}
         >
-          {editError}
+          {actionError}
         </div>
       )}
 
-      {/* Waarom dit voorstel — Filly's reasoning uit het oorspronkelijke
-          voorstel. Identiek aan de voorstel-detail-pagina. Toon op
-          concept + ingepland zodat eigenaar de context van Filly's
-          keuze ook na approve nog kan teruglezen. */}
-      {campaign.reasoning && !editMode && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-h">
-            <div>
-              <div className="card-t">Waarom dit voorstel</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div
-              style={{
-                fontSize: 14,
-                color: "var(--ts)",
-                lineHeight: 1.6,
-              }}
-            >
-              {campaign.reasoning}
-            </div>
-          </div>
-        </div>
-      )}
+      <div style={{ marginBottom: 24 }} />
 
-      {/* Missende aspecten — alleen op concept en buiten edit-mode.
-          Platte tabel zonder kleurige sub-blokken; ●/○-markering toont
-          vereist vs. optioneel. Klik op item navigeert intern naar
-          de Bewerken-knop zodat eigenaar in 1 klik aan de slag kan. */}
-      {isConcept && !editMode && checklist.length > 0 && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-h">
-            <div>
-              <div className="card-t">Missende aspecten</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 14,
-                fontSize: 13,
-              }}
-            >
-              {checklist.map((item) => (
-                <span
-                  key={item.field}
-                  title={
-                    item.required
-                      ? "Vereist veld"
-                      : "Optioneel — aanbeveling"
-                  }
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    color: item.required
-                      ? "var(--text, #18181B)"
-                      : "var(--tl, #6B6F71)",
-                    fontWeight: item.required ? 500 : 400,
-                  }}
-                >
-                  <span style={{ fontSize: 8, lineHeight: 1 }}>
-                    {item.required ? "●" : "○"}
-                  </span>
-                  {getMissingLabel(item.field, campaign.type)}
-                </span>
-              ))}
-            </div>
-            <div
-              style={{
-                marginTop: 10,
-                paddingTop: 10,
-                borderTop: "1px solid var(--border, #E5DFD0)",
-                fontSize: 11,
-                color: "var(--tl)",
-                display: "flex",
-                gap: 16,
-              }}
-            >
-              <span>
-                <span style={{ color: "var(--text)", fontSize: 12 }}>●</span>{" "}
-                vereist
-              </span>
-              <span>
-                <span style={{ color: "var(--tl)", fontSize: 12 }}>○</span>{" "}
-                optioneel
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      <WaaromCard reasoning={view.reasoning} />
 
-      {/* Schedule-banner voor ingepland (read-only). Toont wanneer
-          'ie eruit gaat + relatieve tijd. */}
-      {isPlanned && campaign.scheduled_for && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-b">
-            <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 4 }}>
-              Wordt verstuurd op
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>
-              {formatDate(campaign.scheduled_for)}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--tl)", marginTop: 2 }}>
-              {relativeDays(campaign.scheduled_for)}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Schedule-banner voor actief + afgerond (read-only). Toont
-          verstuur-moment + relatieve tijd. */}
-      {(isActive || isDone) && campaign.executed_at && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-b">
-            <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 4 }}>
-              {isActive ? "Verstuurd op" : "Afgerond op"}
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>
-              {formatDate(campaign.executed_at)}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--tl)", marginTop: 2 }}>
-              {relativeDays(campaign.executed_at)}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stats-row — alleen tonen bij actief + afgerond (waar verzending
-          heeft plaatsgevonden). Voor concept/ingepland is alles nog 0 dus
-          ruis. */}
-      {(isActive || isDone) && (
-        <div className="stats-row">
-          <div className="stat-card stat-card-filly">
-            <div className="stat-card-label">Extra reserveringen</div>
-            <div className="stat-card-val">
-              +{resultStats.extra_reservations ?? 0}
-            </div>
-          </div>
-          <div className="stat-card stat-card-filly">
-            <div className="stat-card-label">Extra omzet (schatting)</div>
-            <div className="stat-card-val">
-              {formatEuroFromCents(
-                resultStats.extra_revenue_cents ??
-                  (resultStats.extra_reservations ?? 0) * 4500,
-              )}
-            </div>
-          </div>
-          {isMail && (
-            <>
-              <div className="stat-card">
-                <div className="stat-card-label">Verstuurd</div>
-                <div className="stat-card-val">{stats.sent ?? "—"}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-card-label">Geopend</div>
-                <div className="stat-card-val">
-                  {stats.opened ?? 0}
-                  {stats.sent ? (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "var(--tl)",
-                        marginLeft: 6,
-                        fontWeight: 400,
-                      }}
-                    >
-                      ({Math.round(((stats.opened ?? 0) / stats.sent) * 100)}%)
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-card-label">Geklikt</div>
-                <div className="stat-card-val">
-                  {stats.clicked ?? 0}
-                  {stats.sent ? (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "var(--tl)",
-                        marginLeft: 6,
-                        fontWeight: 400,
-                      }}
-                    >
-                      ({Math.round(((stats.clicked ?? 0) / stats.sent) * 100)}%)
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-card-label">Afmeldingen</div>
-                <div className="stat-card-val">{stats.unsubscribed ?? 0}</div>
-              </div>
-            </>
-          )}
-          {isSocial && (
-            <>
-              <div className="stat-card">
-                <div className="stat-card-label">Impressies</div>
-                <div className="stat-card-val">{stats.impressions ?? "—"}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-card-label">Likes</div>
-                <div className="stat-card-val">{stats.likes ?? 0}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-card-label">Reacties</div>
-                <div className="stat-card-val">{stats.comments ?? 0}</div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Kanalen — chip-rij met sibling-campagnes uit dezelfde bundle.
-          Voor single-campagne (geen group_id) tonen we 1 read-only chip
-          met het eigen platform. Voor bundle: alle kanalen klikbaar,
-          actief = vol brand-groen. Spiegelt het Kanalen-blok op de
-          voorstel-detail. */}
-      {!editMode && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-h">
-            <div>
-              <div className="card-t">Kanalen</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-              }}
-            >
-              {(siblings.length > 1 ? siblings : [campaign]).map((s) => {
-                const isActive = s.id === campaign.id;
-                const isBundleSibling = siblings.length > 1;
-                const inner = (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 14px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      borderRadius: 6,
-                      cursor:
-                        isBundleSibling && !isActive ? "pointer" : "default",
-                      background: isActive
-                        ? "var(--color-brand, #1F4A2D)"
-                        : "var(--color-white, #FFFFFF)",
-                      color: isActive
-                        ? "var(--color-white, #FFFFFF)"
-                        : "var(--text, #18181B)",
-                      border: isActive
-                        ? "1px solid var(--color-brand, #1F4A2D)"
-                        : "1px solid var(--border, #E5DFD0)",
-                    }}
-                  >
-                    <span>
-                      {s.type === "mail"
-                        ? "✉️"
-                        : s.type === "whatsapp"
-                          ? "💬"
-                          : "📱"}
-                    </span>
-                    <span>
-                      {s.type === "mail"
-                        ? "E-mail"
-                        : s.type === "whatsapp"
-                          ? "WhatsApp"
-                          : "Social"}
-                    </span>
-                  </span>
-                );
-                if (!isBundleSibling || isActive) {
-                  return <span key={s.id}>{inner}</span>;
-                }
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/dashboard/campagnes/${s.id}`}
-                    style={{ textDecoration: "none" }}
-                  >
-                    {inner}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Foto of video — voor social/whatsapp. Mail krijgt nog geen
-          media-slot. Wordt vóór Inhoud gerenderd zodat eigenaar eerst
-          de visual ziet en daarna de tekst (volgorde uit voorstel-
-          detail). */}
-      {!isMail && !editMode && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-h">
-            <div>
-              <div className="card-t">Foto of video</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <CampaignMediaSlot
-              campaignId={campaign.id}
-              signedUrl={
-                isSocial
-                  ? campaign.content?.media_urls?.[0] ?? null
-                  : campaign.content?.media_url ?? null
-              }
-              editable={campaign.status === "concept"}
-              aspectRatio={isSocial ? undefined : "4 / 3"}
-              onMediaChanged={async () => {
-                try {
-                  const fresh = await fetchCampaign(id);
-                  setCampaign(fresh);
-                } catch (e) {
-                  console.error(e);
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Inhoud (subject + tekst voor mail; caption voor social;
-          bericht voor whatsapp). In edit-mode vervangen door inline
-          form. */}
-      <div>
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div
-          className="card-h"
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div>
-            <div className="card-t">
-              {editMode ? "Inhoud bewerken" : "Inhoud"}
-            </div>
-          </div>
-          {isConcept && !editMode && (
-            <Button variant="secondary" size="sm" onClick={startEdit}>
-              ✎ Bewerken
-            </Button>
-          )}
-        </div>
-        <div className="card-b">
-          {editMode && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-                padding: "4px 2px",
-              }}
-            >
-              <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "var(--ts)",
-                }}
-              >
-                <span>Campagne-naam</span>
-                <input
-                  type="text"
-                  value={draftName}
-                  onChange={(e) => setDraftName(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px 10px",
-                    border: "1px solid var(--border, #E5DFD0)",
-                    borderRadius: 6,
-                    fontSize: 14,
-                    fontFamily: "inherit",
-                    background: "var(--white, #FFFFFF)",
-                  }}
-                />
-              </label>
-              {isMail && (
-                <label
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--ts)",
-                  }}
-                >
-                  <span>Onderwerp</span>
-                  <input
-                    type="text"
-                    value={draftSubject}
-                    onChange={(e) => setDraftSubject(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      border: "1px solid var(--border, #E5DFD0)",
-                      borderRadius: 6,
-                      fontSize: 14,
-                      fontFamily: "inherit",
-                      background: "var(--white, #FFFFFF)",
-                    }}
-                  />
-                </label>
-              )}
-              <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "var(--ts)",
-                }}
-              >
-                <span>
-                  {isMail
-                    ? "Mail-inhoud"
-                    : isSocial
-                      ? "Caption"
-                      : "Bericht"}
-                </span>
-                <textarea
-                  value={draftBody}
-                  onChange={(e) => setDraftBody(e.target.value)}
-                  rows={12}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid var(--border, #E5DFD0)",
-                    borderRadius: 6,
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    fontFamily: "inherit",
-                    resize: "vertical",
-                    background: "var(--white, #FFFFFF)",
-                  }}
-                />
-              </label>
-            </div>
-          )}
-          {/* Read-only inhoud. Geen mock-mail/IG/WhatsApp-frame meer
-              (Floris-feedback: de tekst + foto spreken voor zich). Voor
-              mail tonen we onderwerp + body, voor social/whatsapp alleen
-              de caption/bericht-tekst. De Foto-card komt apart eronder
-              voor social/whatsapp (zie volgende sectie). */}
-          {!editMode && isMail && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--tl)",
-                    marginBottom: 4,
-                  }}
-                >
-                  Onderwerp
-                </div>
-                <div
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: "var(--text)",
-                  }}
-                >
-                  {campaign.content?.subject_line ??
-                    campaign.subject_line ??
-                    "—"}
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--tl)",
-                    marginBottom: 4,
-                  }}
-                >
-                  Tekst
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: "var(--text)",
-                    lineHeight: 1.6,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {campaign.content?.body_plain ??
-                    campaign.body ??
-                    "Geen inhoud"}
-                </div>
-              </div>
-            </div>
-          )}
-          {!editMode && isSocial && (
-            <div
-              style={{
-                fontSize: 14,
-                color: "var(--text)",
-                lineHeight: 1.6,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {campaign.content?.caption ?? campaign.body ?? "Geen caption"}
-            </div>
-          )}
-          {!editMode && !isMail && !isSocial && (
-            <div
-              style={{
-                fontSize: 14,
-                color: "var(--text)",
-                lineHeight: 1.6,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {campaign.content?.message_text ?? campaign.body ?? "—"}
-            </div>
-          )}
-        </div>
-      </div>
-
-      </div>{/* /Inhoud-wrapper */}
-
-      {/* "Met Filly bewerken"-paneel direct onder de Inhoud — zelfde
-          volgorde als op voorstel-detail (Inhoud → variants → Wanneer
-          plaatsen). Alleen op concept zichtbaar; ingepland/actief is
-          inhoud immutable voor audit. */}
-      {campaign.status === "concept" && !editMode && (
-        <CampaignRefinePanel
-          campaignId={campaign.id}
-          type={campaign.type}
-          currentBody={campaign.body}
-          onApplied={async () => {
-            try {
-              const fresh = await fetchCampaign(id);
-              setCampaign(fresh);
-            } catch (e) {
-              console.error(e);
-            }
-          }}
+      {/* Missende aspecten alleen in concept-fase: in latere fases
+          is de campagne immutable, een lijst missende velden is
+          dan moot. */}
+      {status === "concept" && (
+        <MissendeAspectenCard
+          channels={view.channelsChecklist}
+          onJumpTo={handleJumpToFix}
         />
       )}
 
-      {/* Wanneer plaatsen: voor concept én ingepland zichtbaar zodat
-          eigenaar het tijdstip kan accepteren/wijzigen. Voor afgeronde
-          campagnes verbergen we 'm, die hebben executed_at en geen
-          aanpassing meer nodig. */}
-      {(campaign.status === "concept" || campaign.status === "ingepland") &&
-        !editMode && (
-          <CampaignSchedulePanel
-            campaignId={campaign.id}
-            status={campaign.status}
-            scheduledFor={campaign.scheduled_for}
-            suggestedFor={campaign.suggested_scheduled_for}
-            suggestedReasoning={campaign.suggested_scheduled_reasoning}
-            onChanged={async () => {
-              try {
-                const fresh = await fetchCampaign(id);
-                setCampaign(fresh);
-              } catch (e) {
-                console.error(e);
-              }
+      {/* Kanalen-card: toont actieve kanalen + 'bewerken-voor'-tabs.
+          canEdit=false → add/remove disabled. Komt later. */}
+      <KanalenCard
+        channels={view.channels.map((c) => ({
+          id: c.id,
+          platform: c.platform,
+        }))}
+        activeChannelId={activeChannel?.id}
+        busy={busy}
+        canEdit={false}
+        onAddChannel={() => {
+          // No-op tot fase 'channel add/remove op campagnes' geland is.
+        }}
+        onRemoveChannel={() => {
+          // No-op tot fase 'channel add/remove op campagnes' geland is.
+        }}
+        onSetActive={(channelId) => {
+          setEditingVariantIdx(null);
+          setEditingSchedule(false);
+          setActiveChannelId(channelId);
+        }}
+      />
+
+      {/* Foto-card. Alleen non-mail. Editable als concept. Compacte
+          variant (thumbnail + knoppen) zodat de pagina niet
+          gedomineerd wordt door een grote dropzone. */}
+      {supportsMedia && activeCampaign && (
+        <div id={SECTION_ID.foto} style={{ scrollMarginTop: 120 }}>
+          <FotoCard
+            campaignId={activeCampaign.id}
+            signedUrl={activeChannel?.media_url ?? null}
+            canEdit={canEdit}
+            onMediaChanged={() => {
+              void load();
             }}
           />
-        )}
-
-      {/* Tijdlijn + Metadata-cards bewust weggehaald (2026-05-12) —
-          voorstel-detail heeft die ook niet. Aangemaakt-datum + status
-          zijn al zichtbaar via de chip en de schedule-banner. */}
-
-      {/* Send-modal, alleen gerenderd bij open. Sluiten via Esc/klik-
-          buiten/Annuleren-knop in de modal. Bij succes blijft modal
-          open zodat de eigenaar het resultaat ziet, en sluit via "Klaar". */}
-      {sendModalOpen && (
-        <CampaignSendModal
-          campaignId={campaign.id}
-          campaignName={campaign.name}
-          campaignType={campaign.type}
-          onClose={() => setSendModalOpen(false)}
-        />
+        </div>
       )}
+
+      <InhoudCard
+        sectionId={SECTION_ID.inhoud}
+        variants={variants}
+        selectedIndex={selectedIndex}
+        type={activePlatformType}
+        canEdit={canEdit}
+        busy={busy}
+        editingVariantIdx={editingVariantIdx}
+        draftSubject={draftSubject}
+        draftBody={draftBody}
+        savingEdit={savingVariant}
+        refining={refining}
+        onSelectVariant={handleSelectVariant}
+        onStartEditVariant={handleStartEditVariant}
+        onCancelEditVariant={handleCancelEditVariant}
+        onSaveEditVariant={handleSaveEditVariant}
+        onDraftSubjectChange={setDraftSubject}
+        onDraftBodyChange={setDraftBody}
+        onRegenerate={handleRegenerate}
+      />
+
+      <WanneerCard
+        sectionId={SECTION_ID.schedule}
+        effectiveIso={effectiveIso}
+        fillyIso={fillyIso}
+        isCustomTime={isCustomTime}
+        fillyReasoning={fillyReasoning}
+        canEdit={canEdit}
+        busy={busy}
+        editingSchedule={editingSchedule}
+        draftDatetime={draftDatetime}
+        savingSchedule={savingSchedule}
+        onStartEditSchedule={handleStartEditSchedule}
+        onCancelEditSchedule={() => setEditingSchedule(false)}
+        onSaveSchedule={handleSaveSchedule}
+        onResetToFilly={handleResetToFilly}
+        onDraftDatetimeChange={setDraftDatetime}
+      />
     </div>
   );
 }

@@ -99,6 +99,15 @@ export type Campaign = {
   deleted_at?: string | null;
 };
 
+// Shape van een enkele variant binnen campaigns.variants[]. Identiek
+// aan ai_suggestions.suggested_campaign.channels[].variants zodat de
+// unified-detail-page één component over voorstel én campagne kan
+// renderen.
+export type CampaignVariant = {
+  subject_line?: string | null;
+  body: string;
+};
+
 export type CampaignDetail = Campaign & {
   subject_line: string | null;
   body: string | null;
@@ -118,6 +127,12 @@ export type CampaignDetail = Campaign & {
   // of het voorstel is intussen verwijderd). Detail-pagina toont
   // een "Waarom dit voorstel"-card als deze gevuld is.
   reasoning: string | null;
+  // Per 2026-05-13 (mig 0041): alle versies + welke 'Gekozen' is.
+  // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
+  // body/subject_line hierboven zijn afgeleid van
+  // variants[selected_variant_index].
+  variants: CampaignVariant[];
+  selected_variant_index: number;
 };
 
 @Injectable()
@@ -207,48 +222,112 @@ export class CampaignsService {
     })) as Campaign[];
   }
 
-  // Per 2026-05-07 fase 4: bundle-detail ophalen. Retourneert de
-  // campaign_groups-rij + alle gekoppelde campagnes (gefilterd op
-  // restaurant_id voor tenant-veiligheid). Frontend gebruikt dit om
-  // een multi-channel-bundle-pagina te renderen waarin eigenaar
-  // tussen de kanalen kan switchen.
+  // Per 2026-05-07 fase 4: bundle-detail ophalen.
+  // Per 2026-05-13 (fase C unified-detail-page):
+  //   - Retourneert CampaignDetail[] (volledige inhoud + variants +
+  //     signed media + reasoning) i.p.v. light Campaign[]. Zo kan de
+  //     unified-frontend met 1 call alles tonen zonder N+1-fetches
+  //     per kanaal.
+  //   - Smart-detect: param mag óók een campaign-id zijn. Dan
+  //     resolven we 'm naar zijn group (als die bestaat) of
+  //     retourneren we 'm als standalone bundle van 1. Hierdoor kan
+  //     de frontend dezelfde URL/route gebruiken voor single- én
+  //     multi-channel campagnes.
+  //   - group is nullable: null = standalone campagne zonder group.
   async findBundle(
     restaurantId: string,
-    groupId: string,
+    idOrGroupId: string,
   ): Promise<{
-    group: { id: string; name: string; theme: string | null };
-    campaigns: Campaign[];
+    group: { id: string; name: string; theme: string | null } | null;
+    campaigns: CampaignDetail[];
   }> {
-    const { data: group, error: groupErr } = await this.supabase.client
+    // Stap 1 — proberen het id als group_id te resolven.
+    const { data: groupRow, error: groupErr } = await this.supabase.client
       .from('campaign_groups')
       .select('id, name, theme')
-      .eq('id', groupId)
+      .eq('id', idOrGroupId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
     if (groupErr) throw new InternalServerErrorException(groupErr.message);
-    if (!group) {
-      throw new BadRequestException('Bundle niet gevonden.');
+
+    let resolvedGroupId: string | null = null;
+    let groupMeta: {
+      id: string;
+      name: string;
+      theme: string | null;
+    } | null = null;
+
+    if (groupRow) {
+      resolvedGroupId = groupRow.id as string;
+      groupMeta = {
+        id: groupRow.id as string,
+        name: groupRow.name as string,
+        theme: (groupRow.theme as string | null) ?? null,
+      };
+    } else {
+      // Niet gevonden als group — probeer als campaign_id. Als die
+      // ook niet bestaat → 404 (de id is nergens van).
+      const { data: campRow, error: campRowErr } = await this.supabase.client
+        .from('campaigns')
+        .select('id, group_id')
+        .eq('id', idOrGroupId)
+        .eq('restaurant_id', restaurantId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (campRowErr)
+        throw new InternalServerErrorException(campRowErr.message);
+      if (!campRow) {
+        throw new BadRequestException('Campagne of bundle niet gevonden.');
+      }
+
+      const campGroupId = (campRow.group_id as string | null) ?? null;
+      if (campGroupId) {
+        // Resolve de group van deze campaign. Als 'm intussen
+        // verwijderd is behandelen we 'm als standalone.
+        const { data: g } = await this.supabase.client
+          .from('campaign_groups')
+          .select('id, name, theme')
+          .eq('id', campGroupId)
+          .eq('restaurant_id', restaurantId)
+          .maybeSingle();
+        if (g) {
+          resolvedGroupId = g.id as string;
+          groupMeta = {
+            id: g.id as string,
+            name: g.name as string,
+            theme: (g.theme as string | null) ?? null,
+          };
+        }
+      }
+
+      // Standalone-pad: campagne hoort bij geen (bestaande) group.
+      // Retourneer direct 1 detail; geen tweede round-trip nodig.
+      if (!resolvedGroupId) {
+        const detail = await this.findById(restaurantId, idOrGroupId);
+        return { group: null, campaigns: [detail] };
+      }
     }
 
-    const { data: campaigns, error: campsErr } = await this.supabase.client
+    // Stap 2 — alle campaign-ids in deze group ophalen.
+    const { data: rows, error: rowsErr } = await this.supabase.client
       .from('campaigns')
-      .select(
-        'id, name, type, meta, status, result_stats, group_id, scheduled_for',
-      )
+      .select('id')
       .eq('restaurant_id', restaurantId)
-      .eq('group_id', groupId)
+      .eq('group_id', resolvedGroupId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true });
-    if (campsErr) throw new InternalServerErrorException(campsErr.message);
+    if (rowsErr) throw new InternalServerErrorException(rowsErr.message);
 
-    return {
-      group: {
-        id: group.id as string,
-        name: group.name as string,
-        theme: (group.theme as string | null) ?? null,
-      },
-      campaigns: (campaigns ?? []) as Campaign[],
-    };
+    // Stap 3 — per campaign de volledige detail enrichen (parallel).
+    // findById doet content + signed media + reasoning. Bundles
+    // hebben typisch 1-4 kanalen, parallel is dus geen overload.
+    const details = await Promise.all(
+      (rows ?? []).map((r) =>
+        this.findById(restaurantId, r.id as string),
+      ),
+    );
+
+    return { group: groupMeta, campaigns: details };
   }
 
   async findById(restaurantId: string, id: string): Promise<CampaignDetail> {
@@ -347,7 +426,24 @@ export class CampaignsService {
       // van filly_variants. Voorkomt dat CampaignRefinePanel ze
       // bij eerste open opnieuw genereert (= dubbele kosten +
       // 6 ipv 3 opties zichtbaar).
-      seed_variants?: Array<{ subject_line?: string; body: string }>;
+      // LEGACY (pre mig 0041) — wordt nog gevuld voor backwards-compat
+      // met de oude `/refine`-flow. Nieuwe approves vullen óók
+      // `variants` hieronder, dat is de bron-van-waarheid voor de
+      // unified-detail-page.
+      seed_variants?: Array<{
+        subject_line?: string | null;
+        body: string;
+      }>;
+      // Per 2026-05-13 (mig 0041): volledige versies-set incl. de
+      // gekozen versie. Wanneer meegegeven hoeven we 'variants' niet
+      // post-hoc te backfillen vanuit body/subject. selected_index
+      // wijst naar de versie die in campaign_*_content terechtkomt.
+      variants?: Array<{ subject_line?: string | null; body: string }>;
+      selected_variant_index?: number;
+      // Per 2026-05-13: bron-suggestion-id voor de 'Waarom dit voorstel'-
+      // join in findById. Zonder deze koppeling toont concept-detail
+      // geen reasoning, ook al kwam de campagne uit een approve-call.
+      ai_suggestion_id?: string;
       // Sinds 2026-05-04: bij multi-channel-bundle approves geven
       // we een group_id mee zodat alle 3 sub-campagnes onder
       // hetzelfde campaign_groups-anker hangen. Single-channel
@@ -386,6 +482,50 @@ export class CampaignsService {
       }))
       .slice(0, 6);
 
+    // Per 2026-05-13 (mig 0041): variants is bron-van-waarheid voor
+    // de versies-grid. Wanneer caller 'm meegeeft schrijven we 'm
+    // direct; anders backfillen we met 1 variant uit body/subject zodat
+    // de DB-default (`[]`) niet leeg blijft staan voor nieuwe rijen.
+    // Subject_line wordt op `null` genormaliseerd voor niet-mail
+    // campagnes om het lezen aan frontend-kant rust te geven.
+    const rawVariants = Array.isArray(input.variants)
+      ? input.variants
+      : [{ subject_line: input.subject_line ?? null, body }];
+    const sanitizedVariants = rawVariants
+      .filter((v) => typeof v.body === 'string' && v.body.trim().length > 0)
+      .map((v) => ({
+        subject_line:
+          typeof v.subject_line === 'string' && v.subject_line.trim().length > 0
+            ? v.subject_line.trim()
+            : null,
+        body: v.body.trim(),
+      }))
+      .slice(0, 6);
+    // Fallback voor de edge-case 'caller gaf alleen lege variants':
+    // we maken 1 entry uit body/subject zodat we nooit met
+    // variants=[] eindigen (zou later sync-issues geven).
+    const variantsToWrite =
+      sanitizedVariants.length > 0
+        ? sanitizedVariants
+        : [
+            {
+              subject_line:
+                typeof input.subject_line === 'string' &&
+                input.subject_line.trim().length > 0
+                  ? input.subject_line.trim()
+                  : null,
+              body,
+            },
+          ];
+    const selectedIdxRaw =
+      typeof input.selected_variant_index === 'number'
+        ? input.selected_variant_index
+        : 0;
+    const selectedIdx = Math.min(
+      Math.max(selectedIdxRaw, 0),
+      variantsToWrite.length - 1,
+    );
+
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .insert({
@@ -398,17 +538,20 @@ export class CampaignsService {
         // ziet dat Filly 'm heeft aangedragen. Kan later een nette
         // badge worden i.p.v. tekst.
         meta: 'Voorgesteld door Filly',
-        // Variants meegegeven via approve? Schrijf 'm direct als
-        // cache zodat de detail-pagina geen nieuwe Claude-call doet.
-        // regen_count = 1 (NIET 0) wanneer er seeds zijn: de chat-3
-        // tellen al als de eerste round. Eigenaar mag dan nog 1×
-        // regenerate (count → 2, can_regenerate=false bij count>=2).
-        // Totaal max = chat-3 + regen-3 = 6 alternatieven, zoals in
-        // de oorspronkelijke 0014-design bedoeld.
+        // LEGACY: filly_variants blijft gevuld voor backwards-compat
+        // met de oude /refine-flow. Wordt in fase G uitgefaseerd
+        // zodra de unified-detail-page de oude page heeft vervangen.
         filly_variants: seededVariants.length > 0 ? seededVariants : null,
         filly_variants_regen_count: seededVariants.length > 0 ? 1 : 0,
+        // Per 2026-05-13 (mig 0041): nieuwe bron-van-waarheid.
+        variants: variantsToWrite,
+        selected_variant_index: selectedIdx,
         // Bundle-anker (sinds mig 0032). Null voor single-channel.
         group_id: input.group_id ?? null,
+        // Per 2026-05-13: koppeling naar het bron-voorstel zodat de
+        // detail-page "Waarom dit voorstel"-card kan tonen via de
+        // ai_suggestions.reasoning-join.
+        ai_suggestion_id: input.ai_suggestion_id ?? null,
       })
       .select('id')
       .single();
@@ -939,6 +1082,368 @@ ${menuBlock}
       regenerate_count: newCount,
       can_regenerate: newCount < 2,
     };
+  }
+
+  // ============================================================
+  // VARIANT-OPERATIES (mig 0041 — nieuwe bron-van-waarheid)
+  // ============================================================
+  // Drie methodes voor de unified-detail-page:
+  //   selectVariant(idx)     — flip selected_variant_index + sync content
+  //   editVariant(idx, …)    — wijzig één entry, sync content als idx=selected
+  //   generateMoreVariants() — Claude levert 3 nieuwe, append tot max 6
+  //
+  // De oude refine() blijft tijdelijk bestaan voor de oude detail-pagina
+  // die nog filly_variants gebruikt. Beide paden raken elkaar niet.
+
+  // Helper: sync campaign_*_content uit variants[selectedIdx]. Wordt
+  // gebruikt na elke selectVariant + na editVariant op de geselecteerde
+  // entry. Houdt de "afgeleide" body/subject in de content-tabel in
+  // lijn met de bron-van-waarheid op campaigns.variants[].
+  private async syncContentFromVariant(
+    id: string,
+    type: 'mail' | 'social' | 'whatsapp',
+    variant: CampaignVariant,
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    if (type === 'mail') {
+      // Mail.subject_line is NOT NULL in DB: lege subject vallen we
+      // terug op de campagne-naam om DB-constraint-fout te voorkomen.
+      // Dat is vrijwel altijd ondergeschikt (concept-fase, eigenaar
+      // bewerkt 't toch nog).
+      const { data: existingName } = await this.supabase.client
+        .from('campaigns')
+        .select('name')
+        .eq('id', id)
+        .maybeSingle();
+      const fallback =
+        existingName?.name && typeof existingName.name === 'string'
+          ? (existingName.name as string)
+          : 'Concept';
+      const { error } = await this.supabase.client
+        .from('campaign_mail_content')
+        .update({
+          subject_line: variant.subject_line ?? fallback,
+          body_plain: variant.body,
+          updated_at: now,
+        })
+        .eq('campaign_id', id);
+      if (error) throw new InternalServerErrorException(error.message);
+    } else if (type === 'social') {
+      const { error } = await this.supabase.client
+        .from('campaign_social_content')
+        .update({ caption: variant.body, updated_at: now })
+        .eq('campaign_id', id);
+      if (error) throw new InternalServerErrorException(error.message);
+    } else {
+      const { error } = await this.supabase.client
+        .from('campaign_whatsapp_content')
+        .update({ message_text: variant.body, updated_at: now })
+        .eq('campaign_id', id);
+      if (error) throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  // selectVariant — eigenaar klikt op een andere "Versie N"-card.
+  // We flippen selected_variant_index én syncen de campaign_*_content
+  // zodat downstream-systemen (e-mail-send, social-publish) altijd
+  // werken met de geselecteerde tekst. Alleen toegestaan op concept;
+  // immutable na ingepland.
+  async selectVariant(
+    restaurantId: string,
+    id: string,
+    index: number,
+    userId: string,
+  ): Promise<{ id: string; selected_variant_index: number }> {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new BadRequestException('Variant-index moet >= 0 zijn.');
+    }
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status, variants, selected_variant_index')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (existing.status !== 'concept') {
+      throw new BadRequestException(
+        `Versie wisselen kan alleen bij concept-campagnes (deze is ${existing.status}).`,
+      );
+    }
+    const variants = Array.isArray(existing.variants)
+      ? (existing.variants as CampaignVariant[])
+      : [];
+    if (index >= variants.length) {
+      throw new BadRequestException(
+        `Variant-index ${index} buiten bereik (${variants.length} versies).`,
+      );
+    }
+    // Idempotent: dezelfde index opnieuw kiezen is geen fout, voorkomt
+    // race-condities waarin een dubbel-klik 2 audit-entries oplevert.
+    if (existing.selected_variant_index === index) {
+      return { id, selected_variant_index: index };
+    }
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update({
+        selected_variant_index: index,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    await this.syncContentFromVariant(
+      id,
+      existing.type as 'mail' | 'social' | 'whatsapp',
+      variants[index],
+    );
+
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'campaign_variant_selected',
+      entity_type: 'campaign',
+      entity_id: id,
+      payload: { from: existing.selected_variant_index, to: index },
+    });
+
+    return { id, selected_variant_index: index };
+  }
+
+  // editVariant — eigenaar bewerkt een specifieke versie. Update
+  // variants[idx] in place. Als idx==selected_variant_index syncen
+  // we ook de content-tabel zodat de "Gekozen" versie matched.
+  async editVariant(
+    restaurantId: string,
+    id: string,
+    index: number,
+    patch: { subject_line?: string | null; body?: string },
+    userId: string,
+  ): Promise<{ id: string; variants: CampaignVariant[] }> {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new BadRequestException('Variant-index moet >= 0 zijn.');
+    }
+    if (typeof patch.body !== 'string' || patch.body.trim().length === 0) {
+      throw new BadRequestException('Body mag niet leeg zijn.');
+    }
+    // Subject_line beperken op 200 zoals refine() doet — zelfde DB-
+    // veiligheid, zelfde mail-norm.
+    if (
+      typeof patch.subject_line === 'string' &&
+      patch.subject_line.length > 200
+    ) {
+      throw new BadRequestException(
+        'Onderwerp mag maximaal 200 tekens zijn.',
+      );
+    }
+
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status, variants, selected_variant_index')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (existing.status !== 'concept') {
+      throw new BadRequestException(
+        `Versie bewerken kan alleen bij concept-campagnes (deze is ${existing.status}).`,
+      );
+    }
+    const variants = Array.isArray(existing.variants)
+      ? (existing.variants as CampaignVariant[])
+      : [];
+    if (index >= variants.length) {
+      throw new BadRequestException(
+        `Variant-index ${index} buiten bereik (${variants.length} versies).`,
+      );
+    }
+
+    // Patch in place: behoud bestaande velden tenzij overschreven.
+    const updated: CampaignVariant = {
+      body: patch.body.trim(),
+      subject_line:
+        patch.subject_line === null
+          ? null
+          : typeof patch.subject_line === 'string' &&
+              patch.subject_line.trim().length > 0
+            ? patch.subject_line.trim()
+            : (variants[index].subject_line ?? null),
+    };
+    const newVariants = variants.map((v, i) => (i === index ? updated : v));
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update({
+        variants: newVariants,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    // Alleen content-tabel syncen als de bewerkte entry óók de
+    // geselecteerde is — anders is dit een "stille" alternatief-edit
+    // die de huidige tekst niet raakt.
+    if (existing.selected_variant_index === index) {
+      await this.syncContentFromVariant(
+        id,
+        existing.type as 'mail' | 'social' | 'whatsapp',
+        updated,
+      );
+    }
+
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'campaign_variant_edited',
+      entity_type: 'campaign',
+      entity_id: id,
+      payload: { index, was_selected: existing.selected_variant_index === index },
+    });
+
+    return { id, variants: newVariants };
+  }
+
+  // generateMoreVariants — Filly genereert 3 nieuwe versies en hangt
+  // ze achter de bestaande aan. Cap op 6 totaal (zelfde grens als
+  // refine()). Optionele instructie stuurt de stijl. Werkt vanuit
+  // de huidige Gekozen-versie als basis.
+  async generateMoreVariants(
+    restaurantId: string,
+    id: string,
+    instruction: string | undefined,
+  ): Promise<{ id: string; variants: CampaignVariant[] }> {
+    const trimmedInstruction =
+      typeof instruction === 'string' ? instruction.trim() : '';
+    if (trimmedInstruction.length > 1000) {
+      throw new BadRequestException(
+        'Instructie mag maximaal 1000 tekens zijn.',
+      );
+    }
+
+    const { data: campaign, error: campErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type, status, name, variants, selected_variant_index')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (!campaign) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (campaign.status !== 'concept') {
+      throw new BadRequestException(
+        `Nieuwe versies genereren kan alleen bij concept-campagnes (deze is ${campaign.status}).`,
+      );
+    }
+    const existingVariants = Array.isArray(campaign.variants)
+      ? (campaign.variants as CampaignVariant[])
+      : [];
+    if (existingVariants.length >= 6) {
+      throw new BadRequestException(
+        'Maximum aantal versies bereikt (6). Bewerk een bestaande versie of verwijder er een.',
+      );
+    }
+
+    // Huidige (Gekozen) versie als 'huidige snapshot' voor Filly's prompt.
+    const selectedIdx = Math.min(
+      Math.max(campaign.selected_variant_index ?? 0, 0),
+      Math.max(existingVariants.length - 1, 0),
+    );
+    const current = existingVariants[selectedIdx] ?? {
+      body: '',
+      subject_line: null,
+    };
+
+    const type = campaign.type as 'mail' | 'social' | 'whatsapp';
+    const [profileBlock, menuBlock] = await Promise.all([
+      this.context.buildProfileBlock(restaurantId).catch(() => ''),
+      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+    ]);
+
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
+
+Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
+
+Inhoudsregels:
+- Maak de 3 varianten écht verschillend in toon/insteek/lengte
+  (bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort).
+- Behoud de kern van de boodschap (datum, aanbod, USP) tenzij de
+  instructie expliciet vraagt om iets te wijzigen.
+- Verwerk concrete elementen uit het profiel (USPs, doelgroep, sfeer)
+  en menu (echte gerechten + prijzen).
+- Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
+- subject_line alleen voor mail-campagnes.
+- Schrijf in het Nederlands.
+
+---
+CONTEXT, alles wat je weet over deze onderneming:
+
+${profileBlock}
+
+${menuBlock}
+---`;
+
+    const currentSnapshot = {
+      name: campaign.name as string,
+      type,
+      ...(current.subject_line ? { subject_line: current.subject_line } : {}),
+      body: current.body,
+    };
+    const userPrompt = trimmedInstruction
+      ? `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`
+      : `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
+
+    const parsed = await this.ai.generateStructured<CampaignVariantsFromTool>({
+      system: systemPrompt,
+      prompt: userPrompt,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 3000,
+      toolName: 'generate_campaign_variants',
+      toolDescription:
+        'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
+      inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
+      meta: { restaurantId, feature: 'campaign_variants_more' },
+      cacheSystem: true,
+    });
+
+    // Parse + sanitize zelfde regels als refine()
+    const fresh: CampaignVariant[] = [];
+    for (const v of parsed.variants) {
+      const body = v.body.trim();
+      if (!body) continue;
+      const variant: CampaignVariant = { body, subject_line: null };
+      if (v.subject_line && v.subject_line.trim().length > 0) {
+        variant.subject_line = v.subject_line.trim().slice(0, 200);
+      }
+      fresh.push(variant);
+    }
+    if (fresh.length === 0) {
+      throw new InternalServerErrorException(
+        'Filly leverde geen bruikbare versies. Probeer het opnieuw of geef een specifiekere instructie.',
+      );
+    }
+
+    const newAll = [...existingVariants, ...fresh].slice(0, 6);
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update({
+        variants: newAll,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    return { id, variants: newAll };
   }
 
   // Upload een foto en koppel 'm aan een concept-campagne. Patroon:

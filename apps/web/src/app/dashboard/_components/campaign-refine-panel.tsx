@@ -36,6 +36,7 @@ export function CampaignRefinePanel({
   type,
   currentBody,
   onApplied,
+  embedded = false,
 }: {
   campaignId: string;
   type: "mail" | "social" | "whatsapp";
@@ -46,6 +47,11 @@ export function CampaignRefinePanel({
   // Wordt aangeroepen na succesvol toepassen van een variant zodat
   // de parent-page de campagne kan refetchen voor verse content.
   onApplied: () => void;
+  // Per 2026-05-12: embedded-mode laat de buitenste card-wrapper
+  // weg zodat dit paneel binnen een andere card gerenderd kan worden
+  // (bv. de "Inhoud"-card op /campagnes/[id] zodat variants + Genereer
+  // visueel identiek zijn aan de voorstel-detail-layout).
+  embedded?: boolean;
 }) {
   const [instruction, setInstruction] = useState("");
   const [variants, setVariants] = useState<Variant[]>([]);
@@ -55,6 +61,65 @@ export function CampaignRefinePanel({
   const [applyingIdx, setApplyingIdx] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
+
+  // Per 2026-05-12: inline edit-flow per variant. Eigenaar klikt
+  // "✎ Bewerk" rechtsbovenin op een variant → die variant verandert
+  // in een form (subject + body), klik op Opslaan → updateCampaign
+  // met de nieuwe tekst + from_variant=true. Variant in lokale state
+  // bijwerken zodat de UI direct de nieuwe tekst toont zonder refetch.
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [draftSubject, setDraftSubject] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = (idx: number) => {
+    const v = variants[idx];
+    if (!v) return;
+    setError(null);
+    setDraftSubject(v.subject_line ?? "");
+    setDraftBody(v.body ?? "");
+    setEditingIdx(idx);
+  };
+
+  const cancelEdit = () => {
+    setEditingIdx(null);
+    setDraftSubject("");
+    setDraftBody("");
+  };
+
+  const saveEdit = async () => {
+    if (editingIdx === null) return;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      await updateCampaign(campaignId, {
+        subject_line: type === "mail" ? draftSubject : undefined,
+        body: draftBody,
+        from_variant: true,
+      });
+      // Variant in lokale state updaten zodat de grid direct de
+      // nieuwe tekst toont.
+      setVariants((prev) =>
+        prev.map((v, i) =>
+          i === editingIdx
+            ? { subject_line: draftSubject, body: draftBody }
+            : v,
+        ),
+      );
+      onApplied();
+      setEditingIdx(null);
+      setDraftSubject("");
+      setDraftBody("");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Bewerken mislukt. Probeer opnieuw.",
+      );
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   // Bootstrap: bij mount eerst kijken of er al een gecachte set staat.
   // Zo ja → tonen. Zo nee → automatisch genereren (eerste 3). Dit
@@ -153,21 +218,12 @@ export function CampaignRefinePanel({
     }
   };
 
-  return (
-    <div className="card" style={{ marginBottom: 16 }}>
-      <div className="card-h">
-        <div>
-          <div className="card-t">✨ Met Filly bewerken</div>
-          <div className="card-st">
-            {regenCount === 0
-              ? "Filly bedenkt 3 alternatieven; kies of laat 3 nieuwe maken."
-              : regenCount === 1
-                ? `${variants.length} versies, kies favoriet of laat 3 nieuwe maken.`
-                : `${variants.length} versies, kies favoriet of bewerk handmatig.`}
-          </div>
-        </div>
-      </div>
-      <div className="card-b">
+  // Body-renderer: alle interactie (input, regenerate-knop, variants,
+  // error/loading) blijft hetzelfde tussen card-mode en embedded-mode.
+  // Alleen de buitenste card-wrapper verschilt.
+  const body = (
+    <>
+{/* >>> body-start */}
         {/* Input + regenerate-knop. Het tekstveld is alléén relevant
             voor de "+3 nieuwe"-klik (instructie geeft Filly richting).
             Eerste set is altijd zonder instructie. */}
@@ -292,74 +348,209 @@ export function CampaignRefinePanel({
               {variants.map((v, idx) => {
                 const isApplying = applyingIdx === idx;
                 const isDisabled = applyingIdx !== null && !isApplying;
-                // Actieve variant = body matcht met campaign.body.
-                // Trim om kleine whitespace-verschillen te negeren.
-                // Defensief: undefined kan voorkomen bij verse cache-
-                // entries waar 'body' nog niet uit de tool-respons is
-                // ge-coërced.
                 const isActive =
                   typeof currentBody === "string" &&
                   typeof v.body === "string" &&
                   v.body.trim() === currentBody.trim();
+                const isEditing = editingIdx === idx;
+                const cardStyle: React.CSSProperties = {
+                  padding: "14px 16px",
+                  borderRadius: 8,
+                  border:
+                    isEditing || isActive
+                      ? "2px solid var(--accent, #1F4A2D)"
+                      : "1px solid var(--border, #E5DFD0)",
+                  background:
+                    isApplying || isActive
+                      ? "var(--accent-light, #D6E0D8)"
+                      : "var(--white, #FFFFFF)",
+                  transition: "all 0.15s",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                };
+
+                // Edit-mode: variant wordt een form (subject + body)
+                if (isEditing) {
+                  return (
+                    <div key={idx} style={cardStyle}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "var(--accent, #1F4A2D)",
+                        }}
+                      >
+                        Versie {idx + 1} bewerken
+                      </div>
+                      {type === "mail" && (
+                        <input
+                          type="text"
+                          value={draftSubject}
+                          onChange={(e) => setDraftSubject(e.target.value)}
+                          placeholder="Onderwerp"
+                          maxLength={200}
+                          style={{
+                            padding: "8px 10px",
+                            border: "1px solid var(--border, #E5DFD0)",
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontFamily: "inherit",
+                            background: "var(--white, #FFFFFF)",
+                          }}
+                        />
+                      )}
+                      <textarea
+                        value={draftBody}
+                        onChange={(e) => setDraftBody(e.target.value)}
+                        placeholder="Bericht-inhoud"
+                        maxLength={5000}
+                        rows={8}
+                        style={{
+                          padding: "8px 10px",
+                          border: "1px solid var(--border, #E5DFD0)",
+                          borderRadius: 6,
+                          fontSize: 13,
+                          lineHeight: 1.55,
+                          fontFamily: "inherit",
+                          background: "var(--white, #FFFFFF)",
+                          resize: "vertical",
+                          minHeight: 140,
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <Button
+                          size="sm"
+                          onClick={saveEdit}
+                          loading={savingEdit}
+                          disabled={!draftBody.trim()}
+                        >
+                          Opslaan
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={cancelEdit}
+                          disabled={savingEdit}
+                        >
+                          Annuleren
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Display-mode: klikbaar om te selecteren + Bewerk-knop
                 return (
-                  <button
+                  <div
                     key={idx}
-                    onClick={() => apply(idx)}
-                    disabled={applyingIdx !== null || generating}
                     style={{
-                      textAlign: "left",
-                      padding: "12px 14px",
-                      borderRadius: 8,
-                      border: isActive
-                        ? "2px solid var(--accent, #1F4A2D)"
-                        : "1px solid var(--border, #E5DFD0)",
-                      background: isApplying
-                        ? "var(--accent-light, #D6E0D8)"
-                        : isActive
-                          ? "var(--accent-light, #D6E0D8)"
-                          : "var(--white, #FFFFFF)",
+                      ...cardStyle,
                       cursor:
                         applyingIdx !== null || generating
                           ? "not-allowed"
                           : "pointer",
-                      transition: "all 0.15s",
                       opacity: isDisabled ? 0.5 : 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                      maxHeight: 280,
-                      overflowY: "auto",
-                      position: "relative",
                     }}
-                    onMouseEnter={(e) => {
-                      if (applyingIdx === null && !generating) {
-                        e.currentTarget.style.borderColor =
-                          "var(--accent, #1F4A2D)";
+                    onClick={() => {
+                      if (applyingIdx === null && !generating && !isActive) {
+                        apply(idx);
                       }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = isActive
-                        ? "var(--accent, #1F4A2D)"
-                        : "var(--border, #E5DFD0)";
                     }}
                   >
                     <div
                       style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        color: "var(--accent, #1F4A2D)",
                         display: "flex",
+                        justifyContent: "space-between",
                         alignItems: "center",
-                        gap: 6,
+                        gap: 8,
                       }}
                     >
-                      {isApplying
-                        ? "Toepassen…"
-                        : isActive
-                          ? `✓ Versie ${idx + 1} (actief)`
-                          : `Versie ${idx + 1}`}
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: isActive
+                            ? "var(--accent, #1F4A2D)"
+                            : "var(--tl)",
+                        }}
+                      >
+                        Versie {idx + 1}
+                      </span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {isApplying && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontStyle: "italic",
+                              color: "var(--tl)",
+                            }}
+                          >
+                            Toepassen…
+                          </span>
+                        )}
+                        {isActive && !isApplying && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: "var(--accent, #1F4A2D)",
+                              padding: "1px 6px",
+                              background: "var(--white, #FFFFFF)",
+                              borderRadius: 999,
+                              border:
+                                "1px solid var(--accent, #1F4A2D)",
+                            }}
+                          >
+                            ✓ Gekozen
+                          </span>
+                        )}
+                        {!isApplying && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (applyingIdx === null && !generating) {
+                                startEdit(idx);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (applyingIdx === null && !generating) {
+                                  startEdit(idx);
+                                }
+                              }
+                            }}
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: "var(--accent, #1F4A2D)",
+                              padding: "1px 8px",
+                              background: "var(--white, #FFFFFF)",
+                              borderRadius: 999,
+                              border:
+                                "1px solid var(--accent, #1F4A2D)",
+                              cursor:
+                                applyingIdx !== null || generating
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity:
+                                applyingIdx !== null || generating
+                                  ? 0.5
+                                  : 1,
+                            }}
+                          >
+                            ✎ Bewerk
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {v.subject_line && (
                       <div
@@ -382,13 +573,38 @@ export function CampaignRefinePanel({
                     >
                       {v.body ?? ""}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
           </>
         )}
+{/* >>> body-end */}
+    </>
+  );
+
+  // Embedded-mode: render alleen de body. De parent (bv. de Inhoud-
+  // card op /campagnes/[id]) zorgt voor het card-frame.
+  if (embedded) {
+    return body;
+  }
+
+  // Standalone-mode: eigen card-wrapper met titel + subtitle.
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card-h">
+        <div>
+          <div className="card-t">✨ Met Filly bewerken</div>
+          <div className="card-st">
+            {regenCount === 0
+              ? "Filly bedenkt 3 alternatieven; kies of laat 3 nieuwe maken."
+              : regenCount === 1
+                ? `${variants.length} versies, kies favoriet of laat 3 nieuwe maken.`
+                : `${variants.length} versies, kies favoriet of bewerk handmatig.`}
+          </div>
+        </div>
       </div>
+      <div className="card-b">{body}</div>
     </div>
   );
 }

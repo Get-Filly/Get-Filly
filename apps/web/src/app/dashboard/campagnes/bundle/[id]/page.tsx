@@ -153,7 +153,7 @@ export default function CampaignBundlePage() {
         <div style={{ fontSize: 28 }}>📦</div>
         <div style={{ flex: 1 }}>
           <div className="page-title" style={{ marginBottom: 4 }}>
-            {bundle.group.name}
+            {bundle.group?.name ?? "Campagne"}
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span
@@ -170,7 +170,7 @@ export default function CampaignBundlePage() {
             >
               Bundel · {campaigns.length} kanalen
             </span>
-            {bundle.group.theme && (
+            {bundle.group?.theme && (
               <span style={{ color: "var(--tl)", fontSize: 12 }}>
                 {bundle.group.theme}
               </span>
