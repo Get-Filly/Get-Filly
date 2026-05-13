@@ -46,6 +46,12 @@ export function getMissingLabel(
 // Mail + WhatsApp: tekst-only kanalen.
 export const PHOTO_REQUIRED = new Set(["instagram", "tiktok"]);
 
+// Kanalen waarbij foto/video optioneel is — niet blokkerend, wel
+// aanbevolen (een Facebook-post zonder beeld presteert minder). De
+// UI toont deze velden in Missende aspecten als ○ (open bolletje)
+// i.p.v. ● (gevuld = vereist) zodat eigenaar het verschil ziet.
+export const PHOTO_OPTIONAL = new Set(["facebook", "google_business"]);
+
 // Mens-leesbare labels voor de chips en de Missende aspecten-koppen.
 export const PLATFORM_LABEL: Record<string, string> = {
   mail: "Mail",
@@ -74,6 +80,7 @@ export function toBundleChannel(
 // Kernfunctie: gegeven een kanaal-config, retourneer welke velden
 // nog niet ingevuld zijn. Volgorde van push() bepaalt de volgorde
 // waarin de fields in de UI verschijnen (date → body → subject → photo).
+// Telt alleen VEREISTE velden — voor de Goedkeur/Plan-in-blokking.
 export function getChannelMissing(
   platform: string,
   body: string | undefined | null,
@@ -91,4 +98,35 @@ export function getChannelMissing(
     missing.push("photo");
   }
   return missing;
+}
+
+// Uitgebreide check: retourneert ALLE relevante velden (vereist +
+// optioneel) met hun status. Voor de Missende aspecten-card op de
+// voorstel-detail-pagina zodat we zowel ● vereist als ○ optioneel
+// kunnen tonen. Items die al ingevuld zijn worden niet teruggegeven —
+// we tonen alleen wat nog actie nodig heeft.
+export type ChecklistItem = {
+  field: MissingField;
+  required: boolean;
+};
+
+export function getChannelChecklist(
+  platform: string,
+  body: string | undefined | null,
+  subject: string | undefined | null,
+  scheduled: string | undefined | null,
+  mediaId: string | undefined | null,
+): ChecklistItem[] {
+  const items: ChecklistItem[] = [];
+  if (!scheduled) items.push({ field: "date", required: true });
+  if (!body || !body.trim()) items.push({ field: "body", required: true });
+  if (platform === "mail" && (!subject || !subject.trim())) {
+    items.push({ field: "subject", required: true });
+  }
+  if (PHOTO_REQUIRED.has(platform) && !mediaId) {
+    items.push({ field: "photo", required: true });
+  } else if (PHOTO_OPTIONAL.has(platform) && !mediaId) {
+    items.push({ field: "photo", required: false });
+  }
+  return items;
 }

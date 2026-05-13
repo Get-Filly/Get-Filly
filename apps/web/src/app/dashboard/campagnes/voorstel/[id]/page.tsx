@@ -27,9 +27,10 @@ import { EmptyState } from "../../../../../components/ui/empty-state";
 import { MediaLibraryPicker } from "../../../_components/media-library-picker";
 import {
   PLATFORM_LABEL as SHORT_PLATFORM_LABEL,
-  getChannelMissing,
+  getChannelChecklist,
   getMissingLabel,
   toBundleChannel,
+  type ChecklistItem,
   type MissingField,
 } from "../../../../../lib/campaign-checks";
 
@@ -295,54 +296,63 @@ export default function VoorstelDetailPage() {
   }));
   const activePlatforms = new Set(channels.map((c) => c.platform));
 
-  // Missing-status per kanaal + aggregate over alle kanalen.
-  const perChannelMissing = useMemo(() => {
+  // Missing-status per kanaal: checklist met vereiste + optionele
+  // items die nog actie nodig hebben. Compleet ingevulde velden worden
+  // niet teruggegeven.
+  const perChannelChecklist = useMemo(() => {
     return fullChannels.map((c) => {
       const v = c.variants[c.selected_index] ?? c.variants[0];
-      const missing = getChannelMissing(
+      const items = getChannelChecklist(
         c.platform,
         v?.body,
         v?.subject_line,
         c.scheduled_for,
         c.restaurant_media_id,
       );
-      return { id: c.id, platform: c.platform, missing };
+      return { id: c.id, platform: c.platform, items };
     });
   }, [fullChannels]);
+  // Voor de blokkering (Goedkeur/Direct inplannen disabled) tellen
+  // alleen de VEREISTE missende velden — optionele zijn aanbevelingen.
   const allMissing: MissingField[] = useMemo(() => {
     const order: MissingField[] = ["date", "body", "subject", "photo"];
     const set = new Set<MissingField>();
-    for (const c of perChannelMissing) {
-      for (const m of c.missing) set.add(m);
+    for (const c of perChannelChecklist) {
+      for (const item of c.items) {
+        if (item.required) set.add(item.field);
+      }
     }
     return order.filter((f) => set.has(f));
-  }, [perChannelMissing]);
-  const channelsWithMissing = perChannelMissing.filter(
-    (c) => c.missing.length > 0,
+  }, [perChannelChecklist]);
+  // Kanalen met actie-items (vereist of optioneel) — voor het renderen
+  // van de Missende aspecten-card. Als 'ie helemaal leeg is verbergt
+  // de card zich vanzelf.
+  const channelsWithChecklist = perChannelChecklist.filter(
+    (c) => c.items.length > 0,
   );
 
-  // Voortgang voor de progress-bar bovenaan. Telt vereiste velden per
-  // kanaal: scheduled, body, (subject voor mail), (photo voor IG/TT).
-  // Compleet = totaal - missing.
+  // Voortgang voor de progress-bar bovenaan. Telt alleen VEREISTE
+  // velden per kanaal (datum, tekst, onderwerp voor mail, foto voor
+  // IG/TT). Optionele velden tellen niet mee — die zouden 100%-streven
+  // verstoren ook als eigenaar legitiem geen foto toevoegt op Facebook.
   const progress = useMemo(() => {
     let total = 0;
     let missing = 0;
     for (const c of fullChannels) {
-      // Basis: datum + tekst voor elk kanaal
-      total += 2;
-      // Onderwerp alleen voor mail
-      if (c.platform === "mail") total += 1;
-      // Foto voor IG/TikTok (vereist)
-      if (c.platform === "instagram" || c.platform === "tiktok") total += 1;
+      total += 2; // datum + tekst voor elk kanaal
+      if (c.platform === "mail") total += 1; // onderwerp
+      if (c.platform === "instagram" || c.platform === "tiktok") total += 1; // foto
     }
-    for (const c of perChannelMissing) {
-      missing += c.missing.length;
+    for (const c of perChannelChecklist) {
+      for (const item of c.items) {
+        if (item.required) missing += 1;
+      }
     }
     const completed = Math.max(0, total - missing);
     const percentage =
       total === 0 ? 100 : Math.round((completed / total) * 100);
     return { total, completed, percentage };
-  }, [fullChannels, perChannelMissing]);
+  }, [fullChannels, perChannelChecklist]);
 
   // Klik op "Foto ontbreekt" in Missende aspecten → activeer juiste
   // kanaal + scroll naar de juiste sectie. Korte setTimeout zodat
@@ -1000,11 +1010,13 @@ export default function VoorstelDetailPage() {
         </div>
       )}
 
-      {/* Missende aspecten — per actief kanaal de ontbrekende velden.
-          Platte lijst zonder gekleurde sub-blokken; missende items zijn
-          klikbaar en springen direct naar de juiste sectie (Wanneer
-          plaatsen / Foto / Inhoud) met het juiste kanaal geactiveerd. */}
-      {isPending && channelsWithMissing.length > 0 && (
+      {/* Missende aspecten — per actief kanaal de openstaande velden.
+          Visuele markering: ● gevulde bolletje = vereist (blokkeert
+          Goedkeuren), ○ open bolletje = optioneel (mag overgeslagen).
+          Items zijn klikbaar en springen direct naar de juiste sectie
+          (Wanneer plaatsen / Foto / Inhoud) met het juiste kanaal
+          geactiveerd. */}
+      {isPending && channelsWithChecklist.length > 0 && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-h">
             <div>
@@ -1018,7 +1030,7 @@ export default function VoorstelDetailPage() {
                 flexDirection: "column",
               }}
             >
-              {channelsWithMissing.map((c, idx) => (
+              {channelsWithChecklist.map((c, idx) => (
                 <div
                   key={c.id}
                   style={{
@@ -1047,37 +1059,43 @@ export default function VoorstelDetailPage() {
                     style={{
                       display: "flex",
                       flexWrap: "wrap",
-                      gap: 6,
+                      gap: 14,
                       flex: 1,
                     }}
                   >
-                    {c.missing.map((m, i) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => handleJumpToFix(m, c.id)}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          padding: 0,
-                          fontSize: 13,
-                          color: "#92400E",
-                          fontWeight: 500,
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          textUnderlineOffset: 2,
-                          textDecorationColor:
-                            "rgba(146, 64, 14, 0.3)",
-                        }}
-                        title="Klik om dit veld in te vullen"
-                      >
-                        {getMissingLabel(m, c.platform)}
-                        {i < c.missing.length - 1 ? " ·" : ""}
-                      </button>
+                    {c.items.map((item) => (
+                      <ChecklistButton
+                        key={item.field}
+                        item={item}
+                        platform={c.platform}
+                        onClick={() => handleJumpToFix(item.field, c.id)}
+                      />
                     ))}
                   </div>
                 </div>
               ))}
+            </div>
+            {/* Mini-uitleg onderaan: legenda voor de ●/○-conventie zodat
+                eigenaar weet dat optioneel niet blokkeert. */}
+            <div
+              style={{
+                marginTop: 12,
+                paddingTop: 10,
+                borderTop: "1px solid var(--border, #E5DFD0)",
+                fontSize: 11,
+                color: "var(--tl)",
+                display: "flex",
+                gap: 16,
+              }}
+            >
+              <span>
+                <span style={{ color: "var(--text)", fontSize: 12 }}>●</span>{" "}
+                vereist
+              </span>
+              <span>
+                <span style={{ color: "var(--tl)", fontSize: 12 }}>○</span>{" "}
+                optioneel
+              </span>
             </div>
           </div>
         </div>
@@ -1236,18 +1254,6 @@ export default function VoorstelDetailPage() {
                     );
                   })}
                 </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 12,
-                    color: "var(--ts)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Hieronder bewerk je inhoud, foto en tijd voor het
-                  geselecteerde kanaal. Bij goedkeuring maakt Filly{" "}
-                  {channels.length} concept-campagnes onder 1 bundle.
-                </div>
               </>
             )}
           </div>
@@ -1264,7 +1270,7 @@ export default function VoorstelDetailPage() {
         >
           <div className="card-h">
             <div>
-              <div className="card-t">Foto</div>
+              <div className="card-t">Foto of video</div>
             </div>
           </div>
           <div className="card-b">
@@ -1615,18 +1621,6 @@ export default function VoorstelDetailPage() {
                     ? "Maximum aantal versies bereikt"
                     : "Genereer 3 nieuwe versies"}
               </Button>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--tl)",
-                  marginTop: 8,
-                  lineHeight: 1.5,
-                }}
-              >
-                {variants.length >= 6
-                  ? "Je hebt 6 versies, kies een variant of pas 'm handmatig aan."
-                  : "Filly schrijft drie nieuwe varianten naast de bestaande. Klik op een versie om die over te nemen, het origineel blijft beschikbaar."}
-              </div>
             </div>
           )}
         </div>
@@ -1711,7 +1705,7 @@ export default function VoorstelDetailPage() {
                     marginBottom: 4,
                   }}
                 >
-                  {isCustomTime ? "Jouw keuze" : "✨ Filly stelt voor"}
+                  {isCustomTime ? "Jouw keuze" : "Filly stelt voor"}
                 </div>
                 <div
                   style={{
@@ -1791,5 +1785,60 @@ export default function VoorstelDetailPage() {
         onPick={handlePickMedia}
       />
     </div>
+  );
+}
+
+// ============================================================
+// ChecklistButton, één openstaand veld in Missende aspecten
+// ============================================================
+// ● = vereist (donkere bolletje + zwarte tekst, blokkeert Goedkeuren)
+// ○ = optioneel (grijze bolletje + grijze tekst, aanbeveling)
+// Klik = jump-to-fix naar de juiste sectie.
+function ChecklistButton({
+  item,
+  platform,
+  onClick,
+}: {
+  item: ChecklistItem;
+  platform: string;
+  onClick: () => void;
+}) {
+  const bullet = item.required ? "●" : "○";
+  const color = item.required
+    ? "var(--text, #18181B)"
+    : "var(--tl, #6B6F71)";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        fontSize: 13,
+        color,
+        fontWeight: item.required ? 500 : 400,
+        cursor: "pointer",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+      title={
+        item.required
+          ? "Vereist — klik om in te vullen"
+          : "Optioneel — klik om in te vullen"
+      }
+    >
+      <span style={{ fontSize: 8, lineHeight: 1 }}>{bullet}</span>
+      <span
+        style={{
+          textDecoration: "underline",
+          textUnderlineOffset: 2,
+          textDecorationColor: "rgba(24, 24, 27, 0.3)",
+        }}
+      >
+        {getMissingLabel(item.field, platform)}
+      </span>
+    </button>
   );
 }
