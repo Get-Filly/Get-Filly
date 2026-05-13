@@ -106,6 +106,29 @@ function toDatetimeLocalValue(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Voorstel-pill onder de titel. Subtiel: witte bg + dunne brand-border
+// + donkergroene tekst, geen UPPERCASE. Maakt duidelijk dat 't een
+// voorstel is zonder het scherm te overschreeuwen.
+const voorstelChipStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  fontSize: 12,
+  fontWeight: 500,
+  padding: "3px 10px",
+  borderRadius: 6,
+  background: "var(--color-white, #FFFFFF)",
+  color: "var(--color-brand-deep, #1F4A2D)",
+  border: "1px solid var(--color-brand, #1F4A2D)",
+};
+
+// Section-IDs voor jump-to-fix vanuit Missende aspecten. Klik op
+// "Foto ontbreekt" → element.scrollIntoView() naar de juiste sectie.
+const SECTION_ID = {
+  schedule: "section-schedule",
+  foto: "section-foto",
+  inhoud: "section-inhoud",
+} as const;
+
 // Vergelijk op MINUUT-precisie (datetime-local gaat niet dieper, dus
 // seconden-verschil zou een vals-positieve afwijking-banner triggeren).
 function timesEqualToMinute(a: string | null, b: string | null): boolean {
@@ -297,6 +320,49 @@ export default function VoorstelDetailPage() {
   const channelsWithMissing = perChannelMissing.filter(
     (c) => c.missing.length > 0,
   );
+
+  // Voortgang voor de progress-bar bovenaan. Telt vereiste velden per
+  // kanaal: scheduled, body, (subject voor mail), (photo voor IG/TT).
+  // Compleet = totaal - missing.
+  const progress = useMemo(() => {
+    let total = 0;
+    let missing = 0;
+    for (const c of fullChannels) {
+      // Basis: datum + tekst voor elk kanaal
+      total += 2;
+      // Onderwerp alleen voor mail
+      if (c.platform === "mail") total += 1;
+      // Foto voor IG/TikTok (vereist)
+      if (c.platform === "instagram" || c.platform === "tiktok") total += 1;
+    }
+    for (const c of perChannelMissing) {
+      missing += c.missing.length;
+    }
+    const completed = Math.max(0, total - missing);
+    const percentage =
+      total === 0 ? 100 : Math.round((completed / total) * 100);
+    return { total, completed, percentage };
+  }, [fullChannels, perChannelMissing]);
+
+  // Klik op "Foto ontbreekt" in Missende aspecten → activeer juiste
+  // kanaal + scroll naar de juiste sectie. Korte setTimeout zodat
+  // React de active-channel-state al heeft gepropageerd voor de scroll.
+  const handleJumpToFix = (
+    field: MissingField,
+    channelId: string,
+  ) => {
+    setActiveChannelId(channelId);
+    const targetId =
+      field === "date"
+        ? SECTION_ID.schedule
+        : field === "photo"
+          ? SECTION_ID.foto
+          : SECTION_ID.inhoud;
+    setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
 
   // Actieve kanaal-resolution: door eigenaar gekozen via tab-pill,
   // val terug op eerste kanaal als de keuze niet meer in channels[]
@@ -755,102 +821,135 @@ export default function VoorstelDetailPage() {
         ← Terug naar campagnes
       </Link>
 
-      {/* Header met titel + status + actie-knoppen rechts. Zelfde
-          patroon als /dashboard/campagnes/[id] zodat de voorstel-
-          pagina visueel een eerstegraads neef is van de campagne-
-          pagina, niet een aparte vreemde modal. */}
+      {/* Sticky header: titel + voortgangsbalk + 3 actie-knoppen op één
+          rij. Blijft tijdens scrollen aan de top zodat eigenaar vanuit
+          elke sectie kan beslissen zonder terug-naar-boven scrollen. */}
       <div
         style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 14,
-          marginBottom: 8,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          background: "var(--bg, #FAF7F1)",
+          paddingTop: 8,
+          paddingBottom: 12,
+          marginBottom: 16,
         }}
       >
-        <div style={{ fontSize: 28 }}>{PLATFORM_ICON[platform]}</div>
-        <div style={{ flex: 1 }}>
-          <div className="page-title" style={{ marginBottom: 4 }}>
-            {name}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="page-title" style={{ marginBottom: 6 }}>
+              {name}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={voorstelChipStyle}>Voorstel</span>
+              {!isPending && (
+                <span style={{ color: "var(--tl)", fontSize: 12 }}>
+                  {suggestion.status === "approved"
+                    ? "Reeds goedgekeurd"
+                    : suggestion.status === "rejected"
+                      ? "Afgewezen"
+                      : suggestion.status === "expired"
+                        ? "Verlopen"
+                        : suggestion.status}
+                </span>
+              )}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                padding: "3px 8px",
-                background: "var(--accent, #1F4A2D)",
-                color: "var(--white, #FFFFFF)",
-                borderRadius: 999,
-              }}
-            >
-              Voorstel · {platformLabel}
-            </span>
-            {!isPending && (
-              <span style={{ color: "var(--tl)", fontSize: 12 }}>
-                {suggestion.status === "approved"
-                  ? "Reeds goedgekeurd"
-                  : suggestion.status === "rejected"
-                    ? "Afgewezen"
-                    : suggestion.status === "expired"
-                      ? "Verlopen"
-                      : suggestion.status}
-              </span>
-            )}
-          </div>
-        </div>
-        {isPending && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              alignItems: "stretch",
-              minWidth: 280,
-            }}
-          >
-            <div style={{ display: "flex", gap: 8 }}>
+          {isPending && (
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
               <Button
-                variant="danger-soft"
+                variant="secondary"
                 onClick={handleReject}
                 loading={rejecting}
                 disabled={busy}
-                style={{ flex: 1 }}
+                style={{ color: "#B91C1C" }}
               >
-                ✕ Afwijzen
+                Afwijzen
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleDirectPlan}
+                loading={planning}
+                disabled={busy || allMissing.length > 0}
+                title={
+                  allMissing.length > 0
+                    ? "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)"
+                    : "Goedkeuren en direct in de planning zetten"
+                }
+              >
+                Direct inplannen
               </Button>
               <Button
                 variant="primary"
                 onClick={handleApprove}
                 loading={approving}
-                disabled={busy}
+                disabled={busy || allMissing.length > 0}
                 title={
-                  channels.length > 1
-                    ? `Maak ${channels.length} concept-campagnes (1 per kanaal) onder 1 bundle`
-                    : "Maak een concept-campagne van dit voorstel"
+                  allMissing.length > 0
+                    ? "Vul eerst de ontbrekende velden in"
+                    : channels.length > 1
+                      ? `Maak ${channels.length} concept-campagnes onder 1 bundle`
+                      : "Maak een concept-campagne van dit voorstel"
                 }
-                style={{ flex: 1 }}
               >
                 {channels.length > 1
-                  ? `✓ Goedkeuren als ${channels.length} campagnes`
-                  : "✓ Goedkeuren & maak concept"}
+                  ? `Goedkeuren · ${channels.length} campagnes`
+                  : "Goedkeuren"}
               </Button>
             </div>
-            <Button
-              variant="brand-soft"
-              onClick={handleDirectPlan}
-              loading={planning}
-              disabled={busy || allMissing.length > 0}
-              title={
-                allMissing.length > 0
-                  ? "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)"
-                  : "Goedkeuren en direct in de planning zetten"
-              }
-              style={{ width: "100%" }}
+          )}
+        </div>
+        {/* Voortgangsbalk: aantal compleet/totaal vereiste velden over
+            alle actieve kanalen. Direct visueel zien hoever je bent
+            zonder naar Missende aspecten te scrollen. */}
+        {isPending && progress.total > 0 && (
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                height: 6,
+                background: "var(--border, #E5DFD0)",
+                borderRadius: 999,
+                overflow: "hidden",
+              }}
             >
-              📅 Direct inplannen
-            </Button>
+              <div
+                style={{
+                  width: `${progress.percentage}%`,
+                  height: "100%",
+                  background:
+                    progress.percentage === 100
+                      ? "var(--color-brand, #1F4A2D)"
+                      : "#F59E0B",
+                  transition: "width 200ms ease, background 200ms ease",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--tl)",
+                fontVariantNumeric: "tabular-nums",
+                minWidth: 110,
+                textAlign: "right",
+              }}
+            >
+              {progress.completed} van {progress.total} velden compleet
+            </div>
           </div>
         )}
       </div>
@@ -885,7 +984,6 @@ export default function VoorstelDetailPage() {
           <div className="card-h">
             <div>
               <div className="card-t">Waarom dit voorstel</div>
-              <div className="card-st">Filly&rsquo;s redenering.</div>
             </div>
           </div>
           <div className="card-b">
@@ -903,17 +1001,14 @@ export default function VoorstelDetailPage() {
       )}
 
       {/* Missende aspecten — per actief kanaal de ontbrekende velden.
-          Alleen tonen als er minstens 1 kanaal iets mist; bij "alles
-          compleet" is dit blok overbodig (status-pill in de header
-          zegt 't al). Niet meer tonen na goedkeuring/afwijzing. */}
+          Platte lijst zonder gekleurde sub-blokken; missende items zijn
+          klikbaar en springen direct naar de juiste sectie (Wanneer
+          plaatsen / Foto / Inhoud) met het juiste kanaal geactiveerd. */}
       {isPending && channelsWithMissing.length > 0 && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-h">
             <div>
               <div className="card-t">Missende aspecten</div>
-              <div className="card-st">
-                Vul deze velden in voordat je het voorstel goedkeurt.
-              </div>
             </div>
           </div>
           <div className="card-b">
@@ -921,56 +1016,66 @@ export default function VoorstelDetailPage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 10,
               }}
             >
-              {channelsWithMissing.map((c) => (
+              {channelsWithMissing.map((c, idx) => (
                 <div
                   key={c.id}
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: 10,
-                    padding: "10px 12px",
-                    background: "#FEF3C7",
-                    border: "1px solid #FCD34D",
-                    borderRadius: 8,
+                    gap: 16,
+                    padding: "10px 0",
+                    borderTop:
+                      idx === 0
+                        ? "none"
+                        : "1px solid var(--border, #E5DFD0)",
                   }}
                 >
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 600,
-                      color: "var(--color-brand-deep, #1F4A2D)",
-                      minWidth: 90,
+                      color: "var(--text, #18181B)",
+                      minWidth: 110,
+                      flexShrink: 0,
                     }}
                   >
                     {SHORT_PLATFORM_LABEL[c.platform] ?? c.platform}
                   </div>
-                  <ul
+                  <div
                     style={{
-                      margin: 0,
-                      padding: 0,
-                      listStyle: "none",
                       display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
+                      flexWrap: "wrap",
+                      gap: 6,
                       flex: 1,
                     }}
                   >
-                    {c.missing.map((m) => (
-                      <li
+                    {c.missing.map((m, i) => (
+                      <button
                         key={m}
+                        type="button"
+                        onClick={() => handleJumpToFix(m, c.id)}
                         style={{
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
                           fontSize: 13,
-                          color: "#78350F",
+                          color: "#92400E",
                           fontWeight: 500,
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          textUnderlineOffset: 2,
+                          textDecorationColor:
+                            "rgba(146, 64, 14, 0.3)",
                         }}
+                        title="Klik om dit veld in te vullen"
                       >
-                        ⚠ {getMissingLabel(m, c.platform)} ontbreekt
-                      </li>
+                        {getMissingLabel(m, c.platform)}
+                        {i < c.missing.length - 1 ? " ·" : ""}
+                      </button>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ))}
             </div>
@@ -988,10 +1093,6 @@ export default function VoorstelDetailPage() {
           <div className="card-h">
             <div>
               <div className="card-t">Kanalen</div>
-              <div className="card-st">
-                Kies via welke kanalen dit voorstel uitgaat. Bij
-                goedkeuring wordt elk kanaal een aparte campagne.
-              </div>
             </div>
           </div>
           <div className="card-b">
@@ -1156,13 +1257,14 @@ export default function VoorstelDetailPage() {
       {/* Foto-card, alleen voor social/whatsapp. Mail ondersteunt nog
           geen media (consistent met campaigns.uploadMedia). */}
       {supportsMedia && (
-        <div className="card" style={{ marginBottom: 16 }}>
+        <div
+          id={SECTION_ID.foto}
+          className="card"
+          style={{ marginBottom: 16, scrollMarginTop: 120 }}
+        >
           <div className="card-h">
             <div>
               <div className="card-t">Foto</div>
-              <div className="card-st">
-                Wordt bij goedkeuring gekoppeld aan de campagne.
-              </div>
             </div>
           </div>
           <div className="card-b">
@@ -1252,15 +1354,14 @@ export default function VoorstelDetailPage() {
       )}
 
       {/* Inhoud-card: variants-grid + bewerken + genereer nieuwe */}
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div
+        id={SECTION_ID.inhoud}
+        className="card"
+        style={{ marginBottom: 16, scrollMarginTop: 120 }}
+      >
         <div className="card-h">
           <div>
             <div className="card-t">Inhoud</div>
-            <div className="card-st">
-              {variants.length === 1
-                ? "Voorstel"
-                : `Filly bedacht ${variants.length} versies, kies je favoriet`}
-            </div>
           </div>
         </div>
         <div className="card-b">
@@ -1536,14 +1637,14 @@ export default function VoorstelDetailPage() {
           voorgestelde tijd verschijnt een rode banner. Per 2026-05-07
           altijd zichtbaar, ook zonder target_date (fillyIso valt dan
           terug op morgen + standaard-uur). */}
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div
+        id={SECTION_ID.schedule}
+        className="card"
+        style={{ marginBottom: 16, scrollMarginTop: 120 }}
+      >
           <div className="card-h">
             <div>
-              <div className="card-t">📅 Wanneer plaatsen?</div>
-              <div className="card-st">
-                Filly stelt het beste moment voor op basis van type campagne
-                en jouw doelgroep.
-              </div>
+              <div className="card-t">Wanneer plaatsen</div>
             </div>
           </div>
           <div className="card-b">
