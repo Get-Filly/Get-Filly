@@ -627,6 +627,31 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
+      {/* Waarom dit voorstel — Filly's reasoning uit het oorspronkelijke
+          voorstel. Identiek aan de voorstel-detail-pagina. Toon op
+          concept + ingepland zodat eigenaar de context van Filly's
+          keuze ook na approve nog kan teruglezen. */}
+      {campaign.reasoning && !editMode && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">Waarom dit voorstel</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div
+              style={{
+                fontSize: 14,
+                color: "var(--ts)",
+                lineHeight: 1.6,
+              }}
+            >
+              {campaign.reasoning}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Missende aspecten — alleen op concept en buiten edit-mode.
           Platte tabel zonder kleurige sub-blokken; ●/○-markering toont
           vereist vs. optioneel. Klik op item navigeert intern naar
@@ -948,120 +973,113 @@ export default function CampaignDetailPage() {
               </label>
             </div>
           )}
+          {/* Read-only inhoud. Geen mock-mail/IG/WhatsApp-frame meer
+              (Floris-feedback: de tekst + foto spreken voor zich). Voor
+              mail tonen we onderwerp + body, voor social/whatsapp alleen
+              de caption/bericht-tekst. De Foto-card komt apart eronder
+              voor social/whatsapp (zie volgende sectie). */}
           {!editMode && isMail && (
-            <div className="mail-preview">
-              <div className="mail-preview-meta">
-                <div>
-                  <span className="mail-preview-label">Van</span>
-                  <span className="mail-preview-val">
-                    {campaign.content?.from_name ?? "—"}
-                  </span>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--tl)",
+                    marginBottom: 4,
+                  }}
+                >
+                  Onderwerp
                 </div>
-                <div>
-                  <span className="mail-preview-label">Reply-to</span>
-                  <span className="mail-preview-val">
-                    {campaign.content?.reply_to ?? "—"}
-                  </span>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                  }}
+                >
+                  {campaign.content?.subject_line ??
+                    campaign.subject_line ??
+                    "—"}
                 </div>
               </div>
-              <div className="mail-preview-subject">
-                {campaign.content?.subject_line ??
-                  campaign.subject_line ??
-                  "—"}
-              </div>
-              {campaign.content?.preheader && (
-                <div className="mail-preview-preheader">
-                  {campaign.content.preheader}
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--tl)",
+                    marginBottom: 4,
+                  }}
+                >
+                  Tekst
                 </div>
-              )}
-              <div className="mail-preview-body">
-                {campaign.content?.body_plain ??
-                  campaign.body ??
-                  "Geen inhoud"}
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: "var(--text)",
+                    lineHeight: 1.6,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {campaign.content?.body_plain ??
+                    campaign.body ??
+                    "Geen inhoud"}
+                </div>
               </div>
             </div>
           )}
           {!editMode && isSocial && (
-            <div className="social-preview">
-              <div className="social-preview-header">
-                <div className="social-preview-avatar">
-                  {campaign.content?.platforms?.[0]?.slice(0, 1).toUpperCase() ??
-                    "F"}
-                </div>
-                <div>
-                  <div className="social-preview-handle">
-                    get_filly_demo
-                  </div>
-                  <div className="social-preview-sub">
-                    {campaign.content?.platforms?.join(" · ") ?? "social"}
-                  </div>
-                </div>
-              </div>
-              {/* Foto-slot vervangt de oude emoji-placeholder. Backend
-                  levert een 1-uur signed URL voor een opgeslagen foto;
-                  als die er nog niet is toont de slot een drop-zone.
-                  Editable alleen bij concept-status, verzonden
-                  campagnes zijn immutable. */}
-              <CampaignMediaSlot
-                campaignId={campaign.id}
-                signedUrl={campaign.content?.media_urls?.[0] ?? null}
-                editable={campaign.status === "concept"}
-                onMediaChanged={async () => {
-                  // Refetch zodat de signed URL vers blijft (als
-                  // we 'm in lokale state zouden zetten zit er een
-                  // tijds-bom in: 1 uur expiry).
-                  try {
-                    const fresh = await fetchCampaign(id);
-                    setCampaign(fresh);
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }}
-              />
-              <div className="social-preview-actions">
-                <span>❤️</span>
-                <span>💬</span>
-                <span>📤</span>
-              </div>
-              <div className="social-preview-caption">
-                {campaign.content?.caption ?? campaign.body ?? "Geen caption"}
-              </div>
-              {campaign.content?.hashtags &&
-                campaign.content.hashtags.length > 0 && (
-                  <div className="social-preview-tags">
-                    {campaign.content.hashtags.map((t) => (
-                      <span key={t}>#{t}</span>
-                    ))}
-                  </div>
-                )}
+            <div
+              style={{
+                fontSize: 14,
+                color: "var(--text)",
+                lineHeight: 1.6,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {campaign.content?.caption ?? campaign.body ?? "Geen caption"}
             </div>
           )}
           {!editMode && !isMail && !isSocial && (
-            <div className="whatsapp-preview">
-              <div className="whatsapp-preview-bubble">
-                {campaign.content?.message_text ?? campaign.body ?? "—"}
-              </div>
+            <div
+              style={{
+                fontSize: 14,
+                color: "var(--text)",
+                lineHeight: 1.6,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {campaign.content?.message_text ?? campaign.body ?? "—"}
             </div>
           )}
         </div>
       </div>
 
-      {/* WhatsApp: foto-card naast de Inhoud-card via campaign-content-row
-          grid (zie wrapper hierboven). Voor social blijft de foto in de
-          Instagram-preview. Mail krijgt nog geen media-slot. */}
-      {!isMail && !isSocial && (
+      {/* Foto-card voor social (was eerder ingebouwd in de IG-preview-
+          frame) + whatsapp. Mail krijgt nog geen media-slot. Title is
+          'Foto of video' consistent met voorstel-detail. */}
+      {!isMail && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-h">
             <div>
-              <div className="card-t">Foto</div>
+              <div className="card-t">Foto of video</div>
             </div>
           </div>
           <div className="card-b">
             <CampaignMediaSlot
               campaignId={campaign.id}
-              signedUrl={campaign.content?.media_url ?? null}
+              signedUrl={
+                isSocial
+                  ? campaign.content?.media_urls?.[0] ?? null
+                  : campaign.content?.media_url ?? null
+              }
               editable={campaign.status === "concept"}
-              aspectRatio="4 / 3"
+              aspectRatio={isSocial ? undefined : "4 / 3"}
               onMediaChanged={async () => {
                 try {
                   const fresh = await fetchCampaign(id);
@@ -1075,6 +1093,26 @@ export default function CampaignDetailPage() {
         </div>
       )}
       </div>{/* /campaign-content-row */}
+
+      {/* "Met Filly bewerken"-paneel direct onder de Inhoud — zelfde
+          volgorde als op voorstel-detail (Inhoud → variants → Wanneer
+          plaatsen). Alleen op concept zichtbaar; ingepland/actief is
+          inhoud immutable voor audit. */}
+      {campaign.status === "concept" && !editMode && (
+        <CampaignRefinePanel
+          campaignId={campaign.id}
+          type={campaign.type}
+          currentBody={campaign.body}
+          onApplied={async () => {
+            try {
+              const fresh = await fetchCampaign(id);
+              setCampaign(fresh);
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+        />
+      )}
 
       {/* Wanneer plaatsen: voor concept én ingepland zichtbaar zodat
           eigenaar het tijdstip kan accepteren/wijzigen. Voor afgeronde
@@ -1099,138 +1137,9 @@ export default function CampaignDetailPage() {
           />
         )}
 
-      {/* "Met Filly bewerken"-paneel: 3 alternatieven + AI-instructie.
-          Altijd zichtbaar bij concept-status zodat de eigenaar kan
-          blijven wisselen tussen alternatieven. Bij ingepland/actief
-          verbergen we 'm voor audit-veiligheid (inhoud mag dan niet
-          meer wijzigen). */}
-      {campaign.status === "concept" && !editMode && (
-        <CampaignRefinePanel
-          campaignId={campaign.id}
-          type={campaign.type}
-          currentBody={campaign.body}
-          onApplied={async () => {
-            // Refetch zodat preview de nieuwe inhoud direct toont.
-            try {
-              const fresh = await fetchCampaign(id);
-              setCampaign(fresh);
-            } catch (e) {
-              console.error(e);
-            }
-          }}
-        />
-      )}
-
-      {/* Tijdlijn + metadata */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-        }}
-      >
-        <div className="card">
-          <div className="card-h">
-            <div>
-              <div className="card-t">Tijdlijn</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: 10 }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "var(--tl)" }}>Aangemaakt</span>
-                <span>{formatDate(campaign.created_at)}</span>
-              </div>
-              {campaign.scheduled_for && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ color: "var(--tl)" }}>Gepland voor</span>
-                  <span>{formatDate(campaign.scheduled_for)}</span>
-                </div>
-              )}
-              {campaign.executed_at && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ color: "var(--tl)" }}>Uitgevoerd op</span>
-                  <span>{formatDate(campaign.executed_at)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-h">
-            <div>
-              <div className="card-t">Metadata</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: 10 }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "var(--tl)" }}>Type</span>
-                <span style={{ textTransform: "capitalize" }}>
-                  {campaign.type}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "var(--tl)" }}>Status</span>
-                <span className={`badge ${campaign.status}`}>
-                  {campaign.status}
-                </span>
-              </div>
-              {campaign.tags && campaign.tags.length > 0 && (
-                <div style={{ fontSize: 13 }}>
-                  <span
-                    style={{ color: "var(--tl)", display: "block", marginBottom: 4 }}
-                  >
-                    Tags
-                  </span>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {campaign.tags.map((t) => (
-                      <span key={t} className="tag-chip">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Tijdlijn + Metadata-cards bewust weggehaald (2026-05-12) —
+          voorstel-detail heeft die ook niet. Aangemaakt-datum + status
+          zijn al zichtbaar via de chip en de schedule-banner. */}
 
       {/* Send-modal, alleen gerenderd bij open. Sluiten via Esc/klik-
           buiten/Annuleren-knop in de modal. Bij succes blijft modal

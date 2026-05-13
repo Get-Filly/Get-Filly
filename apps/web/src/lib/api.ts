@@ -128,6 +128,11 @@ export type CampaignDetail = Campaign & {
   // gekozen → "Met Filly bewerken"-sectie wel zichtbaar. Niet-null →
   // sectie verbergen, geen verdere alternatieven mogelijk.
   variant_applied_at: string | null;
+  // Per 2026-05-12: Filly's reasoning uit het bijbehorende voorstel
+  // (gejoined via campaigns.ai_suggestion_id). Null = campagne is
+  // handmatig aangemaakt of voorstel is verwijderd. Concept-detail
+  // toont 'Waarom dit voorstel'-card als deze gevuld is.
+  reasoning: string | null;
   tags: string[] | null;
   created_at: string;
   content: {

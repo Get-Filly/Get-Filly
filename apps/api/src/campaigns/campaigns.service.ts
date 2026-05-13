@@ -112,6 +112,12 @@ export type CampaignDetail = Campaign & {
   // Null = nog geen variant gekozen. UI verbergt op basis hiervan
   // de "Met Filly bewerken"-sectie.
   variant_applied_at: string | null;
+  // Per 2026-05-12: Filly's reasoning uit het bijbehorende voorstel.
+  // Wordt gejoined via campaigns.ai_suggestion_id → ai_suggestions.
+  // Null = campagne komt niet uit een voorstel (handmatig aangemaakt
+  // of het voorstel is intussen verwijderd). Detail-pagina toont
+  // een "Waarom dit voorstel"-card als deze gevuld is.
+  reasoning: string | null;
 };
 
 @Injectable()
@@ -298,7 +304,27 @@ export class CampaignsService {
       signedContent = { ...content, media_url: signed };
     }
 
-    return { ...campaign, content: signedContent } as CampaignDetail;
+    // Filly's reasoning uit het bijbehorende voorstel ophalen wanneer
+    // beschikbaar. Frontend toont 'm op de Concept-detail-pagina als
+    // "Waarom dit voorstel"-card, identiek aan de voorstel-detail.
+    let reasoning: string | null = null;
+    if (campaign.ai_suggestion_id) {
+      const { data: suggestion } = await this.supabase.client
+        .from('ai_suggestions')
+        .select('reasoning')
+        .eq('id', campaign.ai_suggestion_id)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+      if (suggestion && typeof suggestion.reasoning === 'string') {
+        reasoning = suggestion.reasoning;
+      }
+    }
+
+    return {
+      ...campaign,
+      content: signedContent,
+      reasoning,
+    } as CampaignDetail;
   }
 
   // Maakt een nieuwe campagne aan als 'concept'. Wordt o.a. gebruikt
