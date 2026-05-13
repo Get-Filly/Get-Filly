@@ -1373,7 +1373,7 @@ const statusTextReady: React.CSSProperties = {
 const statusTextMissing: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 500,
-  color: "#92400E", // amber-800
+  color: "var(--text, #18181B)",
   marginTop: 6,
 };
 

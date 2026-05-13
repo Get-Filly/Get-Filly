@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
+  deleteCampaign,
   fetchCampaign,
   updateCampaign,
   updateCampaignStatus,
@@ -16,6 +17,10 @@ import { CampaignRefinePanel } from "../../_components/campaign-refine-panel";
 import { CampaignMediaSlot } from "../../_components/campaign-media-slot";
 import { CampaignSchedulePanel } from "../../_components/campaign-schedule-panel";
 import { CampaignSendModal } from "../../_components/campaign-send-modal";
+import {
+  getMissingLabel,
+  type ChecklistItem,
+} from "../../../../lib/campaign-checks";
 
 function formatEuroFromCents(cents: number): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
@@ -32,14 +37,109 @@ function formatDate(s: string | null | undefined): string {
   });
 }
 
-const typeIcon: Record<string, string> = {
-  mail: "✉️",
-  social: "📱",
-  whatsapp: "💬",
-};
+function relativeDays(iso: string): string {
+  const target = new Date(iso);
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (Math.abs(diffDays) < 1) {
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+    if (diffHours === 0) return "nu";
+    return diffHours > 0
+      ? `over ${diffHours} uur`
+      : `${Math.abs(diffHours)} uur geleden`;
+  }
+  if (diffDays === 1) return "morgen";
+  if (diffDays === -1) return "gisteren";
+  return diffDays > 0
+    ? `over ${diffDays} dagen`
+    : `${Math.abs(diffDays)} dagen geleden`;
+}
+
+// Wat is er nog niet ingevuld op deze campagne? Gebruikt door de
+// progress-bar + Missende aspecten-card op concept-detail. Lichtere
+// variant van getChannelChecklist uit lib/campaign-checks omdat we
+// hier met CampaignDetail (al opgesplitst per kanaal) werken.
+function getCampaignChecklist(c: CampaignDetail): ChecklistItem[] {
+  const items: ChecklistItem[] = [];
+  if (!c.scheduled_for) items.push({ field: "date", required: true });
+  const body =
+    c.body ??
+    c.content?.body_plain ??
+    c.content?.caption ??
+    c.content?.message_text;
+  if (!body || (typeof body === "string" && !body.trim())) {
+    items.push({ field: "body", required: true });
+  }
+  if (c.type === "mail") {
+    const subject = c.subject_line ?? c.content?.subject_line;
+    if (!subject || (typeof subject === "string" && !subject.trim())) {
+      items.push({ field: "subject", required: true });
+    }
+  }
+  if (c.type === "social") {
+    const hasMedia = (c.content?.media_urls?.length ?? 0) > 0;
+    if (!hasMedia) {
+      // Platforms-array uit content bepaalt of foto vereist (IG/TikTok)
+      // of optioneel (FB/GB). Geen platforms = unknown, default vereist.
+      const platforms = c.content?.platforms ?? [];
+      const required =
+        platforms.length === 0 ||
+        platforms.some((p) => p === "instagram" || p === "tiktok");
+      items.push({ field: "photo", required });
+    }
+  }
+  return items;
+}
+
+// Status-chip in de header. Voor concept/ingepland/actief: brand-soft-
+// stijl (witte bg + brand-border). Voor afgerond: neutraal grijs.
+function statusChipLabel(status: CampaignDetail["status"]): string {
+  switch (status) {
+    case "concept":
+      return "Concept";
+    case "ingepland":
+      return "Ingepland";
+    case "actief":
+      return "Actief";
+    case "afgerond":
+      return "Afgerond";
+    default:
+      return status;
+  }
+}
+
+function detailStatusChip(
+  status: CampaignDetail["status"],
+): React.CSSProperties {
+  const base: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 12,
+    fontWeight: 500,
+    padding: "3px 10px",
+    borderRadius: 6,
+  };
+  if (status === "afgerond") {
+    return {
+      ...base,
+      background: "var(--color-white, #FFFFFF)",
+      color: "#52525B",
+      border: "1px solid #D4D4D8",
+    };
+  }
+  // concept / ingepland / actief / overige → brand-stijl
+  return {
+    ...base,
+    background: "var(--color-white, #FFFFFF)",
+    color: "var(--color-brand-deep, #1F4A2D)",
+    border: "1px solid var(--color-brand, #1F4A2D)",
+  };
+}
 
 export default function CampaignDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,6 +246,97 @@ export default function CampaignDetailPage() {
     }
   };
 
+  // Generieke status-actie-wrapper: refetch na succes, error in
+  // editError tonen (zelfde banner als edit-fouten).
+  const runStatusAction = async (
+    fn: () => Promise<unknown>,
+    failMessage: string,
+  ) => {
+    setStatusActing(true);
+    setEditError(null);
+    try {
+      await fn();
+      const fresh = await fetchCampaign(id);
+      setCampaign(fresh);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : failMessage);
+    } finally {
+      setStatusActing(false);
+    }
+  };
+
+  // Direct activeren: concept → actief (backend staat dit toe sinds
+  // mig 0040). Slaat ingepland over zodat eigenaar niet via 2 calls
+  // hoeft. Voor concept met missende vereiste velden is de knop
+  // disabled, dus we hoeven hier geen extra check te doen.
+  const handleActivate = () => {
+    if (!campaign) return;
+    if (
+      !window.confirm(
+        campaign.type === "mail"
+          ? "Campagne nu direct activeren? De mail wordt zo snel mogelijk verstuurd."
+          : "Campagne nu direct activeren? De post gaat zo snel mogelijk live.",
+      )
+    ) {
+      return;
+    }
+    runStatusAction(
+      () => updateCampaignStatus(campaign.id, "actief"),
+      "Activeren mislukt. Probeer het opnieuw.",
+    );
+  };
+
+  // Ingepland → terug naar concept (sinds mig 0040). Eigenaar wil
+  // 'm aanpassen of verwijderen.
+  const handleRetract = () => {
+    if (!campaign) return;
+    runStatusAction(
+      () => updateCampaignStatus(campaign.id, "concept"),
+      "Terugtrekken mislukt. Probeer het opnieuw.",
+    );
+  };
+
+  // Actief → afgerond (Stop-knop). Confirm + status-transitie.
+  const handleStop = () => {
+    if (!campaign) return;
+    if (
+      !window.confirm(
+        "Campagne stoppen? Hij wordt naar 'afgerond' verplaatst en verdwijnt uit het actieve overzicht.",
+      )
+    ) {
+      return;
+    }
+    runStatusAction(
+      () => updateCampaignStatus(campaign.id, "afgerond"),
+      "Stoppen mislukt. Probeer het opnieuw.",
+    );
+  };
+
+  // Soft-delete (mig 0040): UPDATE deleted_at=NOW(). Daarna terug
+  // naar /campagnes — campagne is daar niet meer zichtbaar, vindt 'm
+  // terug in /campagnes/history → Verwijderd-tab.
+  const handleDelete = async () => {
+    if (!campaign) return;
+    if (
+      !window.confirm(
+        "Campagne verwijderen? Hij wordt verplaatst naar de Verwijderd-tab in de campagne-historie.",
+      )
+    ) {
+      return;
+    }
+    setStatusActing(true);
+    setEditError(null);
+    try {
+      await deleteCampaign(campaign.id);
+      router.push("/dashboard/campagnes");
+    } catch (e) {
+      setEditError(
+        e instanceof Error ? e.message : "Verwijderen mislukt.",
+      );
+      setStatusActing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-full">
@@ -191,6 +382,26 @@ export default function CampaignDetailPage() {
   const resultStats = campaign.result_stats ?? {};
   const isMail = campaign.type === "mail";
   const isSocial = campaign.type === "social";
+  const isConcept = campaign.status === "concept";
+  const isPlanned = campaign.status === "ingepland";
+  const isActive = campaign.status === "actief";
+  const isDone = campaign.status === "afgerond";
+
+  // Missende velden + voortgang (alleen relevant voor concept).
+  const checklist = getCampaignChecklist(campaign);
+  const missingRequired = checklist.filter((c) => c.required).length;
+  // Totaal vereiste velden per type: mail = 3 (date/body/subject),
+  // social = 3 (date/body + foto-required-mits-IG/TT), whatsapp = 2.
+  const totalRequired = (() => {
+    if (campaign.type === "mail") return 3;
+    if (campaign.type === "social") return 3;
+    return 2;
+  })();
+  const completedRequired = Math.max(0, totalRequired - missingRequired);
+  const progressPct = Math.round(
+    (completedRequired / totalRequired) * 100,
+  );
+  const allReady = missingRequired === 0;
 
   return (
     <div className="page-full">
@@ -207,129 +418,198 @@ export default function CampaignDetailPage() {
         ← Terug naar campagnes
       </Link>
 
-      {/* Header */}
+      {/* Sticky header: titel + status-chip + actie-knoppen rechts.
+          Layout en gedrag spiegelen de voorstel-detail-pagina zodat
+          de campagne visueel doorloopt van Voorstel → Concept zonder
+          een ander template. Voor ingepland/actief/afgerond is alles
+          read-only, alleen de status-acties zijn nog beschikbaar. */}
       <div
         style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 14,
-          marginBottom: 8,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          background: "var(--bg, #FAF7F1)",
+          paddingTop: 8,
+          paddingBottom: 12,
+          marginBottom: 16,
         }}
       >
-        <div style={{ fontSize: 28 }}>{typeIcon[campaign.type]}</div>
-        <div style={{ flex: 1 }}>
-          <div className="page-title" style={{ marginBottom: 4 }}>
-            {campaign.name}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="page-title" style={{ marginBottom: 6 }}>
+              {campaign.name}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={detailStatusChip(campaign.status)}>
+                {statusChipLabel(campaign.status)}
+              </span>
+              {campaign.meta && (
+                <span style={{ color: "var(--tl)", fontSize: 12 }}>
+                  {campaign.meta}
+                </span>
+              )}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span className={`badge ${campaign.status}`}>
-              {campaign.status}
-            </span>
-            <span style={{ color: "var(--tl)", fontSize: 12 }}>
-              {campaign.meta ?? "—"}
-            </span>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="sg-btn" disabled>
-            Dupliceren
-          </button>
-          {/* Bewerken alleen toegestaan bij 'concept'-status. Na
-              ingepland/actief/afgerond moet de inhoud immutable
-              blijven voor audit + verzend-consistentie. */}
-          {campaign.status === "concept" && !editMode && (
-            <button className="sg-btn" onClick={startEdit}>
-              ✎ Bewerken
-            </button>
-          )}
-          {/* Verstuur-knop voor mail-campagnes. Werkt op elk niet-
-              afgerond status, eigenaar kan vanuit concept al een
-              test-mail naar zichzelf sturen om de inhoud te checken,
-              en vanuit elke status echt verzenden naar opt-in gasten.
-              Stuurt direct via Resend; geen scheduling-laag. */}
-          {campaign.type === "mail" &&
-            campaign.status !== "afgerond" &&
-            !editMode && (
-              <Button
-                variant="primary"
-                onClick={() => setSendModalOpen(true)}
-              >
-                ✉️ Verstuur
-              </Button>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            {/* Concept (niet edit): Verwijderen · Activeer nu · Plan in */}
+            {isConcept && !editMode && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={handleDelete}
+                  disabled={statusActing}
+                  style={{ color: "#B91C1C" }}
+                >
+                  Verwijderen
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleActivate}
+                  disabled={statusActing || !allReady}
+                  loading={statusActing}
+                  title={
+                    !allReady
+                      ? "Vul eerst de ontbrekende velden in"
+                      : "Direct activeren — campagne gaat zo snel mogelijk uit"
+                  }
+                >
+                  Activeer nu
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handlePlanCampaign}
+                  loading={statusActing}
+                  disabled={statusActing || !allReady}
+                  title={
+                    !allReady
+                      ? "Vul eerst de ontbrekende velden in"
+                      : `Plan in voor ${formatDate(campaign.scheduled_for)}`
+                  }
+                >
+                  Plan in
+                </Button>
+              </>
             )}
-          {/* Inplannen-knop: zet status concept → ingepland zodra de
-              eigenaar tevreden is met inhoud + tijdstip. Disabled als
-              er nog geen scheduled_for is, met uitleg in de title. */}
-          {campaign.status === "concept" && !editMode && (
-            <Button
-              onClick={handlePlanCampaign}
-              loading={statusActing}
-              disabled={!campaign.scheduled_for}
-              title={
-                !campaign.scheduled_for
-                  ? "Stel eerst een tijdstip in via 'Wanneer plaatsen'"
-                  : `Plan in voor ${formatDate(campaign.scheduled_for)}`
-              }
-            >
-              📅 Inplannen
-            </Button>
-          )}
-          {/* Bij ingepland → activeren (= NU starten met verzenden /
-              direct plaatsen voor social/whatsapp). Voor mail wacht
-              de send-engine straks op scheduled_for; activeren markeert
-              alleen dat 'ie ready-to-send is. */}
-          {campaign.status === "ingepland" && (
-            <Button
-              onClick={async () => {
-                if (!campaign) return;
-                if (
-                  !window.confirm(
-                    "Campagne nu activeren? Voor social/whatsapp wordt 'ie direct geplaatst, voor mail gaat 'ie op het ingestelde tijdstip uit.",
-                  )
-                ) {
-                  return;
-                }
-                setStatusActing(true);
-                try {
-                  await updateCampaignStatus(campaign.id, "actief");
-                  const fresh = await fetchCampaign(id);
-                  setCampaign(fresh);
-                } catch (e) {
-                  window.alert(
-                    e instanceof Error
-                      ? e.message
-                      : "Activeren mislukt. Probeer het opnieuw.",
-                  );
-                } finally {
-                  setStatusActing(false);
-                }
-              }}
-              loading={statusActing}
-            >
-              {campaign.type === "mail"
-                ? "▶ Activeer (verstuur op tijd)"
-                : "▶ Plaats nu"}
-            </Button>
-          )}
-          {editMode && (
-            <>
+            {/* Concept (edit-mode): Annuleren + Opslaan */}
+            {isConcept && editMode && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => setEditMode(false)}
+                  disabled={saving}
+                >
+                  Annuleren
+                </Button>
+                <Button
+                  onClick={saveEdit}
+                  loading={saving}
+                  disabled={!draftName.trim() || !draftBody.trim()}
+                >
+                  Opslaan
+                </Button>
+              </>
+            )}
+            {/* Ingepland: Terugtrekken · Activeer nu */}
+            {isPlanned && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={handleRetract}
+                  disabled={statusActing}
+                  loading={statusActing}
+                  title="Terug naar concept zodat je 'm kunt aanpassen of verwijderen"
+                >
+                  Terugtrekken
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleActivate}
+                  disabled={statusActing}
+                  loading={statusActing}
+                >
+                  Activeer nu
+                </Button>
+              </>
+            )}
+            {/* Actief: Stop */}
+            {isActive && (
               <Button
                 variant="secondary"
-                onClick={() => setEditMode(false)}
-                disabled={saving}
+                onClick={handleStop}
+                disabled={statusActing}
+                loading={statusActing}
+                style={{ color: "#B91C1C" }}
               >
-                Annuleren
+                Stop campagne
               </Button>
-              <Button
-                onClick={saveEdit}
-                loading={saving}
-                disabled={!draftName.trim() || !draftBody.trim()}
-              >
-                Opslaan
-              </Button>
-            </>
-          )}
+            )}
+            {/* Afgerond: geen knoppen */}
+          </div>
         </div>
+        {/* Voortgangsbalk — alleen op concept, niet in edit-mode. */}
+        {isConcept && !editMode && (
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                height: 6,
+                background: "var(--border, #E5DFD0)",
+                borderRadius: 999,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: allReady
+                    ? "var(--color-brand, #1F4A2D)"
+                    : "#F59E0B",
+                  transition: "width 200ms ease, background 200ms ease",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--tl)",
+                fontVariantNumeric: "tabular-nums",
+                minWidth: 130,
+                textAlign: "right",
+              }}
+            >
+              {completedRequired} van {totalRequired} velden compleet
+            </div>
+          </div>
+        )}
+        {/* "Verstuur"-quick-action (mail) — als secundaire optie naast
+            de status-knoppen. Voor concept/ingepland/actief beschikbaar
+            (test-mail of echt-verzenden). */}
+        {isMail && !isDone && !editMode && (
+          <div style={{ marginTop: 10 }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSendModalOpen(true)}
+            >
+              ✉️ Verstuur (test of echt)
+            </Button>
+          </div>
+        )}
       </div>
 
       {editError && (
@@ -347,93 +627,197 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: 24 }} />
+      {/* Missende aspecten — alleen op concept en buiten edit-mode.
+          Platte tabel zonder kleurige sub-blokken; ●/○-markering toont
+          vereist vs. optioneel. Klik op item navigeert intern naar
+          de Bewerken-knop zodat eigenaar in 1 klik aan de slag kan. */}
+      {isConcept && !editMode && checklist.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">Missende aspecten</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 14,
+                fontSize: 13,
+              }}
+            >
+              {checklist.map((item) => (
+                <span
+                  key={item.field}
+                  title={
+                    item.required
+                      ? "Vereist veld"
+                      : "Optioneel — aanbeveling"
+                  }
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: item.required
+                      ? "var(--text, #18181B)"
+                      : "var(--tl, #6B6F71)",
+                    fontWeight: item.required ? 500 : 400,
+                  }}
+                >
+                  <span style={{ fontSize: 8, lineHeight: 1 }}>
+                    {item.required ? "●" : "○"}
+                  </span>
+                  {getMissingLabel(item.field, campaign.type)}
+                </span>
+              ))}
+            </div>
+            <div
+              style={{
+                marginTop: 10,
+                paddingTop: 10,
+                borderTop: "1px solid var(--border, #E5DFD0)",
+                fontSize: 11,
+                color: "var(--tl)",
+                display: "flex",
+                gap: 16,
+              }}
+            >
+              <span>
+                <span style={{ color: "var(--text)", fontSize: 12 }}>●</span>{" "}
+                vereist
+              </span>
+              <span>
+                <span style={{ color: "var(--tl)", fontSize: 12 }}>○</span>{" "}
+                optioneel
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Impact summary, extra reserveringen + extra omzet zijn de
-          Filly-attributie-cijfers, krijgen dus stat-card-filly styling
-          (groene rand + waarde) zodat visueel direct duidelijk is dat
-          dit Filly's bijdrage is. */}
-      <div className="stats-row">
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Extra reserveringen</div>
-          <div className="stat-card-val">
-            +{resultStats.extra_reservations ?? 0}
+      {/* Schedule-banner voor ingepland (read-only). Toont wanneer
+          'ie eruit gaat + relatieve tijd. */}
+      {isPlanned && campaign.scheduled_for && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-b">
+            <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 4 }}>
+              Wordt verstuurd op
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 600 }}>
+              {formatDate(campaign.scheduled_for)}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--tl)", marginTop: 2 }}>
+              {relativeDays(campaign.scheduled_for)}
+            </div>
           </div>
         </div>
-        <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Extra omzet (schatting)</div>
-          <div className="stat-card-val">
-            {formatEuroFromCents(
-              resultStats.extra_revenue_cents ??
-                (resultStats.extra_reservations ?? 0) * 4500,
-            )}
+      )}
+
+      {/* Schedule-banner voor actief + afgerond (read-only). Toont
+          verstuur-moment + relatieve tijd. */}
+      {(isActive || isDone) && campaign.executed_at && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-b">
+            <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 4 }}>
+              {isActive ? "Verstuurd op" : "Afgerond op"}
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 600 }}>
+              {formatDate(campaign.executed_at)}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--tl)", marginTop: 2 }}>
+              {relativeDays(campaign.executed_at)}
+            </div>
           </div>
         </div>
-        {isMail && (
-          <>
-            <div className="stat-card">
-              <div className="stat-card-label">Verstuurd</div>
-              <div className="stat-card-val">{stats.sent ?? "—"}</div>
+      )}
+
+      {/* Stats-row — alleen tonen bij actief + afgerond (waar verzending
+          heeft plaatsgevonden). Voor concept/ingepland is alles nog 0 dus
+          ruis. */}
+      {(isActive || isDone) && (
+        <div className="stats-row">
+          <div className="stat-card stat-card-filly">
+            <div className="stat-card-label">Extra reserveringen</div>
+            <div className="stat-card-val">
+              +{resultStats.extra_reservations ?? 0}
             </div>
-            <div className="stat-card">
-              <div className="stat-card-label">Geopend</div>
-              <div className="stat-card-val">
-                {stats.opened ?? 0}
-                {stats.sent ? (
-                  <span
-                    style={{
-                      fontSize: 13,
-                      color: "var(--tl)",
-                      marginLeft: 6,
-                      fontWeight: 400,
-                    }}
-                  >
-                    ({Math.round(((stats.opened ?? 0) / stats.sent) * 100)}%)
-                  </span>
-                ) : null}
+          </div>
+          <div className="stat-card stat-card-filly">
+            <div className="stat-card-label">Extra omzet (schatting)</div>
+            <div className="stat-card-val">
+              {formatEuroFromCents(
+                resultStats.extra_revenue_cents ??
+                  (resultStats.extra_reservations ?? 0) * 4500,
+              )}
+            </div>
+          </div>
+          {isMail && (
+            <>
+              <div className="stat-card">
+                <div className="stat-card-label">Verstuurd</div>
+                <div className="stat-card-val">{stats.sent ?? "—"}</div>
               </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-label">Geklikt</div>
-              <div className="stat-card-val">
-                {stats.clicked ?? 0}
-                {stats.sent ? (
-                  <span
-                    style={{
-                      fontSize: 13,
-                      color: "var(--tl)",
-                      marginLeft: 6,
-                      fontWeight: 400,
-                    }}
-                  >
-                    ({Math.round(((stats.clicked ?? 0) / stats.sent) * 100)}%)
-                  </span>
-                ) : null}
+              <div className="stat-card">
+                <div className="stat-card-label">Geopend</div>
+                <div className="stat-card-val">
+                  {stats.opened ?? 0}
+                  {stats.sent ? (
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: "var(--tl)",
+                        marginLeft: 6,
+                        fontWeight: 400,
+                      }}
+                    >
+                      ({Math.round(((stats.opened ?? 0) / stats.sent) * 100)}%)
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-label">Afmeldingen</div>
-              <div className="stat-card-val">{stats.unsubscribed ?? 0}</div>
-            </div>
-          </>
-        )}
-        {isSocial && (
-          <>
-            <div className="stat-card">
-              <div className="stat-card-label">Impressies</div>
-              <div className="stat-card-val">{stats.impressions ?? "—"}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-label">Likes</div>
-              <div className="stat-card-val">{stats.likes ?? 0}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-label">Reacties</div>
-              <div className="stat-card-val">{stats.comments ?? 0}</div>
-            </div>
-          </>
-        )}
-      </div>
+              <div className="stat-card">
+                <div className="stat-card-label">Geklikt</div>
+                <div className="stat-card-val">
+                  {stats.clicked ?? 0}
+                  {stats.sent ? (
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: "var(--tl)",
+                        marginLeft: 6,
+                        fontWeight: 400,
+                      }}
+                    >
+                      ({Math.round(((stats.clicked ?? 0) / stats.sent) * 100)}%)
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-card-label">Afmeldingen</div>
+                <div className="stat-card-val">{stats.unsubscribed ?? 0}</div>
+              </div>
+            </>
+          )}
+          {isSocial && (
+            <>
+              <div className="stat-card">
+                <div className="stat-card-label">Impressies</div>
+                <div className="stat-card-val">{stats.impressions ?? "—"}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-card-label">Likes</div>
+                <div className="stat-card-val">{stats.likes ?? 0}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-card-label">Reacties</div>
+                <div className="stat-card-val">{stats.comments ?? 0}</div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* WhatsApp toont Inhoud + Foto in een 2-koloms grid zodat ze
           naast elkaar staan (chat-bubbel links, foto-slot rechts).
@@ -444,19 +828,25 @@ export default function CampaignDetailPage() {
           zodat de user direct vanaf de detail-page de velden kan
           wijzigen zonder modal-context-switch. */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-h">
+        <div
+          className="card-h"
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
           <div>
             <div className="card-t">
               {editMode ? "Inhoud bewerken" : "Inhoud"}
             </div>
-            <div className="card-st">
-              {isMail
-                ? "Mail-preview"
-                : isSocial
-                  ? "Social-post"
-                  : "WhatsApp-bericht"}
-            </div>
           </div>
+          {isConcept && !editMode && (
+            <Button variant="secondary" size="sm" onClick={startEdit}>
+              ✎ Bewerken
+            </Button>
+          )}
         </div>
         <div className="card-b">
           {editMode && (
@@ -664,9 +1054,6 @@ export default function CampaignDetailPage() {
           <div className="card-h">
             <div>
               <div className="card-t">Foto</div>
-              <div className="card-st">
-                Optionele afbeelding bij het WhatsApp-bericht.
-              </div>
             </div>
           </div>
           <div className="card-b">
@@ -746,7 +1133,6 @@ export default function CampaignDetailPage() {
           <div className="card-h">
             <div>
               <div className="card-t">Tijdlijn</div>
-              <div className="card-st">Belangrijke momenten</div>
             </div>
           </div>
           <div className="card-b">
@@ -795,7 +1181,6 @@ export default function CampaignDetailPage() {
           <div className="card-h">
             <div>
               <div className="card-t">Metadata</div>
-              <div className="card-st">Tags &amp; eigenschappen</div>
             </div>
           </div>
           <div className="card-b">
