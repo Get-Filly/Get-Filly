@@ -1,10 +1,17 @@
 // =============================================================================
-// PRICING-PAGINA, 1-op-1 conversie van Claude Design app.jsx → PricingPage.
+// PRICING-PAGINA — per 2026-05-13 herzien naar 2 pakketten (was 3):
+//   - Growth (€99)   = vindbaarheid + zichtbaarheid
+//   - Ultimate (€169) = alles van Growth + bereikbaarheid (e-mail + WhatsApp
+//                       campagnes op basis van bezettingsdata)
+// Floris heeft de tekst aangeleverd; tagline is nieuw veld per plan.
 // =============================================================================
+
+import Link from "next/link";
 
 type PlanFeature = { text: string; disabled?: boolean };
 type Plan = {
   name: string;
+  tagline: string;
   desc: string;
   price: string;
   popular?: boolean;
@@ -13,46 +20,37 @@ type Plan = {
 };
 const plans: Plan[] = [
   {
-    name: "Basic",
-    desc: "Voor ondernemingen die starten met data-gestuurde marketing",
+    name: "Growth",
+    tagline: "Word gevonden en blijf zichtbaar.",
+    desc: "Voor restaurants die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media — zonder er zelf tijd in te steken.",
     price: "€99",
     features: [
-      { text: "Bezettingsanalyse + patroonherkenning" },
-      { text: "CRM & POS-koppeling" },
-      { text: "Max. 4 Filly AI-campagne suggesties per dag" },
-      { text: "500 e-mails, 100 WhatsApp, 5 social ads" },
-      { text: "A/B testing + last-minute boost" },
-      { text: "Externe data" },
-      { text: "Standaard support" },
-    ],
-    ctaText: "Start met Basic",
-  },
-  {
-    name: "Growth",
-    desc: "Voor ondernemingen die opschalen naar meerdere kanalen",
-    price: "€169",
-    popular: true,
-    features: [
-      { text: "Alles van Basic" },
-      { text: "Max. 6 Filly AI-campagne suggesties per dag" },
-      { text: "2.000 e-mails, 500 WhatsApp, 10 social ads" },
-      { text: "Google Business optimalisatie" },
-      { text: "AI-vindbaarheid" },
+      { text: "Google Business optimalisatie en beheer" },
+      { text: "Automatisch beantwoorden van reviews" },
+      { text: "Verbeterde vindbaarheid in Google door SEO optimalisatie" },
+      { text: "Vindbaarheid TripAdvisor, TheFork en OpenTable" },
+      { text: "Vindbaarheid in AI-zoekmachines zoals ChatGPT, Claude en Gemini" },
+      { text: "Contentplanning voor Instagram, TikTok en Facebook" },
+      { text: "AI-gegenereerde posts in tone-of-voice van jouw restaurant" },
+      { text: "Live dashboard met rapportage over vindbaarheid en bereik" },
     ],
     ctaText: "Start met Growth",
   },
   {
-    name: "Pro",
-    desc: "Voor ondernemingen met hoge campagne-volumes en focus op marge",
-    price: "€249",
+    name: "Ultimate",
+    tagline: "Vul je lege tafels automatisch.",
+    desc: "Alles van Growth, plus directe campagnes via e-mail en WhatsApp op basis van jouw bezettingsdata. Inclusief koppeling met jouw reserveringssysteem.",
+    price: "€169",
+    popular: true,
     features: [
-      { text: "Alles van Growth" },
-      { text: "Max. 8 Filly AI-campagne suggesties per dag" },
-      { text: "Onbeperkte e-mails, WhatsApp en social ads" },
-      { text: "Margin-aware campagnes" },
-      { text: "Priority support" },
+      { text: "Alles uit het Growth pakket" },
+      { text: "Koppeling met Zenchef, TheFork of Guestplan" },
+      { text: "Automatische e-mailcampagnes op basis van bezetting" },
+      { text: "WhatsApp campagnes voor last-minute reserveringen" },
+      { text: "Segmentatie op vaste, nieuwe en slapende gasten" },
+      { text: "Gepersonaliseerde e-mail en WhatsApp campagnes in de tone-of-voice van jouw restaurant" },
     ],
-    ctaText: "Start met Pro",
+    ctaText: "Start met Ultimate",
   },
 ];
 
@@ -70,18 +68,23 @@ export default function PricingPage() {
     <>
       <section className="pricing-hero">
         <div className="container">
-          <p className="section-label">Pricing</p>
-          <h1 className="section-title">Kies wat past bij je onderneming.</h1>
-          <p className="section-subtitle" style={{ maxWidth: "none" }}>Geen verborgen kosten, maandelijks opzegbaar en onboarding in 15 minuten.</p>
+          {/* Sectie-intro gecentreerd zodat de pagina als geheel
+              symmetrisch oogt — pakketten staan ook centraal met
+              max-width, en de afsluitende CTA evenzo. Het 'Prijzen'-
+              label is per 2026-05-13 weggehaald omdat de navbar
+              actief-state + URL al duidelijk maken op welke pagina
+              je bent; de titel hieronder spreekt voor zichzelf. */}
+          <h1 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Kies het pakket dat bij jouw restaurant past.</h1>
+          <p className="section-subtitle" style={{ maxWidth: 640, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>Geen verborgen kosten. Geen lange contracten. Gewoon meer gasten aan tafel.</p>
 
-          <div className="pricing-grid">
+          <div className="pricing-grid pricing-grid--two">
             {plans.map((p) => (
               <div key={p.name} className={`pricing-card ${p.popular ? "popular" : ""}`} style={{ backgroundColor: "rgb(250, 247, 241)" }}>
                 {p.popular && <div className="popular-badge">Meest gekozen</div>}
                 <div className="pricing-name">{p.name}</div>
+                <div className="pricing-tagline">{p.tagline}</div>
                 <div className="pricing-desc">{p.desc}</div>
                 <div className="pricing-price">{p.price}<span>/maand</span></div>
-                <div className="pricing-fee">+ 5% performance fee op extra omzet</div>
                 <ul className="pricing-features">
                   {p.features.map((f) => (
                     <li key={f.text} className={f.disabled ? "disabled" : ""}>{f.text}</li>
@@ -90,6 +93,20 @@ export default function PricingPage() {
                 <button className="pricing-btn">{p.ctaText}</button>
               </div>
             ))}
+          </div>
+
+          {/* Afsluitend CTA-blok onder de pakketten. Compactere
+              variant (.pillars-cta--compact) — kleiner dan de
+              homepage-CTA omdat dit een 'hulp-CTA' is, geen
+              merk-finale. Max-width 980px zodat 't visueel
+              uitgelijnd staat met de twee pakketten erboven. */}
+          <div
+            className="pillars-cta pillars-cta--compact"
+            style={{ marginTop: 56, marginBottom: 0, maxWidth: 980 }}
+          >
+            <h3 className="pillars-cta-title">Niet zeker welk pakket past?</h3>
+            <p className="pillars-cta-sub">Plan een gratis kennismaking en we kijken het samen met je door.</p>
+            <Link href="/signup" className="cta-btn">Plan een gratis kennismaking</Link>
           </div>
         </div>
       </section>

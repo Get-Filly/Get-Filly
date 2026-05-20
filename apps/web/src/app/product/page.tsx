@@ -20,7 +20,7 @@ export default function ProductPage() {
         <div className="container">
           <p className="section-label">Oplossing</p>
           <h1 className="section-title">Jouw AI-assistent voor de horeca.</h1>
-          <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie en selecteert de juiste doelgroep uit bestaande klantdata. Met jouw goedkeuring zet Get-Filly automatisch campagnes live, zodat je meer reserveringen krijgt.</p>
+          <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie en selecteert de juiste doelgroep uit bestaande gastendata. Met jouw goedkeuring zet Get-Filly automatisch campagnes live, zodat je meer reserveringen krijgt.</p>
 
           <div className="hero-diffs">
             <div className="hero-diff">
@@ -118,7 +118,7 @@ export default function ProductPage() {
                   <p className="feature-eyebrow">Maandag &middot; 09:15</p>
                 </div>
                 <h3 className="feature-row-title">Drie kanalen, &eacute;&eacute;n voorstel, klaar binnen een minuut.</h3>
-                <p className="feature-row-desc">Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste klanten. Tone-of-voice, beeld en timing, alles afgestemd op je onderneming.</p>
+                <p className="feature-row-desc">Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste gasten. Tone-of-voice, beeld en timing, alles afgestemd op je onderneming.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="pmock-channels">
@@ -191,7 +191,7 @@ export default function ProductPage() {
                   <p className="feature-eyebrow">Maandag &middot; 09:16</p>
                 </div>
                 <h3 className="feature-row-title">Eén goedkeuring, Filly doet de rest.</h3>
-                <p className="feature-row-desc">Filly verstuurt en plant alle drie de berichten op het juiste moment, op het juiste kanaal en naar de juiste klanten. Jij geeft &eacute;&eacute;n keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen.</p>
+                <p className="feature-row-desc">Filly verstuurt en plant alle drie de berichten op het juiste moment, op het juiste kanaal en naar de juiste gasten. Jij geeft &eacute;&eacute;n keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="pmock-approve">

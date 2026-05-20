@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Home-link weggelaten: het logo linksboven is zelf de Home-link.
-// Volgorde: eerst "Hoe het werkt" (jumplink naar de drie-strategieën-
-// sectie op de homepage) omdat dat uitlegt wat Filly doet, daarna
-// Oplossing, Pricing, Over ons, verhaal → functionaliteit → kost → team.
-// Route blijft /product om redirects te voorkomen, label is 'Oplossing'.
+// Per 2026-05-13: 'Hoe het werkt' vervangen door 'Home' (verwijst
+// naar /, dus de bovenkant van de homepage waar de hero staat). Het
+// logo linksboven blijft óók een Home-link maar Floris wil de Home-
+// link expliciet in de nav-balk. Verdere volgorde: Oplossing →
+// Pricing → Over ons. Route /product blijft (label 'Oplossing').
 const links = [
-  { href: "/#hoe-het-werkt", label: "Hoe het werkt" },
+  { href: "/", label: "Home" },
   { href: "/product", label: "Oplossing" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/pricing", label: "Prijzen" },
   { href: "/about", label: "Over ons" },
 ];
 

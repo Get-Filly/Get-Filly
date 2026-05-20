@@ -486,6 +486,40 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== FEATURES ===== */
 .features { background: var(--true-white); padding-top: 80px; padding-bottom: 96px; position: relative; overflow: hidden; }
+/* Per 2026-05-13: pijlers, pillars-CTA en testimonials zijn
+   samengevoegd in deze .features-section. De wazige groene
+   gradient die voorheen op .social-proof::before stond is hier
+   overgezet, gepositioneerd op de onderste helft zodat 'ie pas
+   begint waar de feature-rows eindigen en doorloopt achter de
+   CTA + testimonials. Pointer-events: none zodat klikken niet
+   geblokkeerd worden; z-index 0 zodat alle content (die we via
+   .features > * { z-index: 1 } omhoog tillen) erboven blijft. */
+.features::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 45%;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 800px 350px at 50% 0%, rgba(31,74,45,0.10), transparent 70%),
+    radial-gradient(ellipse 700px 400px at 30% 50%, rgba(31,74,45,0.12), transparent 65%),
+    radial-gradient(ellipse 600px 350px at 70% 90%, rgba(31,74,45,0.10), transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Alle directe content-children van .features hebben z-index 1
+   zodat ze de groene gradient eronder NIET wegduwen maar er
+   wel boven liggen. */
+.features > * { position: relative; z-index: 1; }
+
+/* Testimonials-cluster binnen de samengevoegde features-section:
+   gecentreerde tekst (label + titel + logos + carrousel) met
+   ruime margin naar de pillars-CTA erboven. */
+.features-testimonials {
+  margin-top: 96px;
+  text-align: center;
+}
 .features::before {
   content: '';
   position: absolute;
@@ -527,12 +561,176 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-size: 12px; font-weight: 600; color: var(--accent);
   text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
 }
+/* Per 2026-05-13: pill-variant voor de 3 homepage-pijlers
+   (Vindbaarheid/Zichtbaarheid/Bereikbaarheid). Licht-groene pill
+   met witte cirkel-nummer + label, geïnspireerd op het Get-Filly-
+   Design-prototype. Alleen via deze --pill modifier zodat andere
+   plekken die .feature-eyebrow gebruiken (product-page eyebrows
+   met datum/tijd) ongewijzigd blijven. */
+.feature-eyebrow--pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px 5px 5px;
+  background: var(--accent-light, #D6E0D8);
+  border-radius: 999px;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.feature-eyebrow-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--white, #FFFFFF);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
 .feature-row-title {
   font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
   line-height: 1.15; margin-bottom: 12px; color: var(--text);
 }
-.feature-row-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 380px; }
+.feature-row-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 420px; }
 .feature-row-visual { display: flex; align-items: center; justify-content: center; }
+
+/* Per 2026-05-13: <img> in .feature-row-visual voor de pijler-
+   illustraties (Vindbaarheid + Zichtbaarheid). Gepresenteerd als
+   eigen 'mockup-card' zodat de witte bron-achtergrond niet meer
+   los op de cream feature-row drijft. Resultaat: card-in-card
+   layout — cream feature-row buitenkant, witte mockup-card voor
+   de visual, lijkt op het Spotlight-design dat Floris als
+   referentie deelde. */
+.feature-row-img {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  background: var(--white, #FFFFFF);
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid var(--border, #E5DFD0);
+  /* Soft shadow zoals de feature-row zelf, iets lichter zodat de
+     binnen-card ondergeschikt blijft aan de buitenste card. */
+  box-shadow:
+    0 1px 2px rgba(24,24,27,0.04),
+    0 12px 32px -16px rgba(31,74,45,0.18);
+}
+
+/* Per 2026-05-13: voorkomen dat één enkel woord ('weeskind') op een
+   eigen regel eindigt in koppen en paragrafen. 'balance' verdeelt
+   regels gelijkmatig in titels; 'pretty' voorkomt rivers + losse
+   woorden in body-tekst. Beide modern, fallback = normaal wrap. */
+.section-title,
+.feature-row-title,
+.pillars-cta-title,
+.pillars-cta-sub {
+  text-wrap: balance;
+}
+.section-subtitle,
+.feature-row-desc {
+  text-wrap: pretty;
+}
+.feature-bullets li {
+  text-wrap: pretty;
+}
+
+/* Per 2026-05-13: bulletpoint-lijst onder feature-row-desc voor de
+   3-pijler-sectie op de homepage (Vindbaarheid/Zichtbaarheid/
+   Bereikbaarheid). Subtiele dash-prefix, geen bullet-dots, rustige
+   spacing zodat het de visual rechts niet wegduwt. */
+.feature-bullets {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  max-width: 460px;
+}
+.feature-bullets li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.feature-bullets li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Pijlers-CTA — brand-groen actie-blok. Per 2026-05-13 verhuisd
+   naar binnen .social-proof zodat de groene kaart op de wazige
+   groene-blob-gradient van .social-proof::before ligt. Daardoor
+   loopt het groen visueel door in plaats van een harde rand op
+   wit. cta-btn-stijl (wit met groene tekst) houdt contrast.
+   margin-bottom geeft ademruimte naar de "Wat onze klanten
+   zeggen"-titel eronder. */
+.pillars-cta {
+  padding: 56px 40px;
+  /* Per 2026-05-13: margin-top zodat de CTA-kaart NIET tegen de
+     laatste feature-row (Bereikbaarheid) aan plakt. 64px geeft
+     visuele ademruimte zonder de "één geheel"-gevoel met de
+     testimonials eronder te breken (margin-bottom: 80px). */
+  margin-top: 64px;
+  margin-bottom: 80px;
+  text-align: center;
+  background: var(--accent);
+  border-radius: 16px;
+  position: relative;
+  z-index: 2;
+  /* Subtiele schaduw naar onderen om de overgang naar de wazige
+     groene gradient te verzachten — geen harde rand. */
+  box-shadow: 0 24px 48px -20px rgba(31, 74, 45, 0.35);
+}
+.pillars-cta-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  margin: 0 0 12px;
+  color: var(--white, #FFFFFF);
+}
+.pillars-cta-sub {
+  font-size: 16px;
+  /* Lichte tint van wit zodat de sub iets ondergeschikt is aan
+     de koptekst, maar nog leesbaar op brand-groen. */
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin: 0 auto 28px;
+  max-width: 520px;
+}
+
+/* Compacte variant — bv. de "Niet zeker welk pakket past?"-CTA op
+   /pricing. Kleiner dan de homepage-CTA omdat dit een hulp-actie
+   is, geen merk-finale. Smaller padding, kleinere titel, knop
+   krijgt minder margin-bottom. */
+.pillars-cta--compact {
+  padding: 36px 32px;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.pillars-cta--compact .pillars-cta-title {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+.pillars-cta--compact .pillars-cta-sub {
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.pillars-cta--compact .cta-btn {
+  font-size: 14px;
+  padding: 10px 22px;
+}
 
 /* ===== Filly chat mock (card 1), chat-window chrome + product-style bubbles ===== */
 .fmock-chat {
@@ -1406,6 +1604,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== SOCIAL PROOF ===== */
 .social-proof { background: var(--white); text-align: center; overflow: hidden; }
+/* Per 2026-05-13: kleinere padding-top dan de generieke card-overlap-
+   regel (96px) zodat de pillars-CTA binnen .social-proof dichter op
+   de pijler-rij eindigt. De gradient van .features::after vloeit dan
+   direct door in de .social-proof::before groene blobs — geen brede
+   witte zone meer ertussen. */
+.social-proof { padding-top: 40px; }
 .social-proof::before {
   content: '';
   position: absolute;
@@ -1473,6 +1677,28 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .pricing { background: var(--surface); }
 .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 56px; }
+/* Per 2026-05-13: 2-pakketten-variant (Growth + Ultimate). 2 kolommen
+   met max-width zodat de cards niet de hele container vullen, maar
+   wél breder dan eerste poging (820 → 980) zodat features-tekst meer
+   ademruimte krijgt en de cards niet te krap ogen. */
+.pricing-grid--two {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
+  gap: 28px;
+}
+
+/* Tagline boven de omschrijving. Brand-groen, ietsje groter dan
+   desc om de pakket-belofte direct te accentueren. */
+.pricing-tagline {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 12px;
+  letter-spacing: -0.2px;
+  line-height: 1.4;
+}
 
 .pricing-card {
   background: var(--white); border: 1px solid var(--border);

@@ -3,8 +3,8 @@
 // =============================================================================
 
 const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en klanten." },
-  { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en klantenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
+  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en gasten." },
+  { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
   { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen. Levert het niets op, dan stopt het." },
 ];
 

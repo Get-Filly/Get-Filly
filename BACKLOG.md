@@ -80,6 +80,27 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 ### Email & campagnes (gepromoveerd van P2 → P1)
 - [ ] **Resend als SMTP-provider voor Supabase Auth** — configureer Resend onder Supabase Auth → SMTP Settings. Lost de 3-4/uur rate-limit op Supabase default SMTP en maakt confirmation-email weer bruikbaar in dev. Onze custom templates blijven werken; Supabase stuurt ze via Resend i.p.v. eigen SMTP.
 
+### Campagne-flow cleanup (post-unification, 2026-05-13)
+Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d26ed) heeft `/campagnes/[id]` één gedeelde detail-view (status-aware) die identiek is aan `/voorstel/[id]`. Mig 0041 + 0042 zijn live, smart-detect op bundle-API werkt, 5 gedeelde componenten in `_components/campaign-detail/`. Hieronder de openstaande punten uit de data-analyst-review.
+
+**Bugs (urgent):**
+- [ ] ⚠️ **"Activeer nu" stuurt mail niet daadwerkelijk** — `handleStatusChange('actief')` in `apps/web/src/app/dashboard/campagnes/[id]/page.tsx` doet alleen `updateCampaignStatus`. De echte mail-send zit op `POST /campaigns/:id/send` (`apps/api/src/mail/mail.service.ts:91`) en wordt nergens aangeroepen. Stille no-send. **Fix**: bij type='mail' óók `sendCampaignByMode` aanroepen of confirm-modal terugzetten (CampaignSendModal bestaat nog).
+- [ ] **InhoudCard `originalIdxRef` reset niet** bij client-side nav tussen 2 verschillende campagnes (zelfde route, ander `[id]`) → ✕-knop wijst naar de oude origineel. Fix in `apps/web/src/app/dashboard/_components/campaign-detail/inhoud-card.tsx:80`: reset op `sectionId`-of-`variants`-prop-change.
+- [ ] **Multi-channel status-overgang heeft geen rollback** — `Promise.all(updateCampaignStatus)` over kanalen. Bij partial failure: halfgeplaatste bundle. **Fix**: nieuw endpoint `PATCH /campaigns/bundle/:id/status` met transactionele update over alle siblings.
+
+**Dead code (na refactor niemand importeert het meer):**
+- [ ] **4 components slopen** — `campaign-refine-panel.tsx` (22 KB), `campaign-schedule-panel.tsx` (13 KB), `campaign-media-slot.tsx` (13 KB). `campaign-send-modal.tsx` (9 KB) alléén slopen ná de "Activeer-stuurt-mail"-fix; deze is misschien juist nodig.
+- [ ] **Dode API-functies in `apps/web/src/lib/api.ts` schrappen** — `fetchCampaignVariants`, `generateCampaignVariants`, `updateCampaign`, `suggestCampaignSchedule`.
+- [ ] **Dode backend-endpoints + service-methodes schrappen** — `GET /campaigns/:id/variants`, `POST /:id/refine`, `PATCH /:id`, `POST /:id/suggest-schedule` + `service.getVariants/refine/update/suggestSchedule`.
+- [ ] **Oude `/campagnes/bundle/[id]/page.tsx` slopen** (354 regels) — geen kanban-route gaat er nog naartoe.
+- [ ] **Mig 0043: DB-schema cleanup** — drop `campaigns.filly_variants`, `campaigns.filly_variants_regen_count`, `campaigns.variant_applied_at` ná het verwijderen van alle write-paden. Bewaar als 2-stap (eerst writes weg in code, sessie later columns droppen) om mid-refactor data-verlies te voorkomen.
+
+**Polish (nice-to-have):**
+- [ ] **Approve-redirects consistent** — "Direct inplannen" + `approveBundleSuggestion` (chat_bundle) navigeren nu naar `/campagnes` (kanban). Voor consistentie: naar `/campagnes/${anchorCampaignId}` zodat eigenaar de net-gemaakte campagne meteen ziet.
+- [ ] **Variant-delete knop** — eigenaar kan via "Genereer 3 nieuwe" tot 6 versies opbouwen, daarna zit-ie vast. Voeg ✕-knop op alternatief-blokken (alleen op concept) toe → `DELETE /campaigns/:id/variants/:idx`.
+- [ ] **`findBundle` N+1 → batch** — per content-tabel 1 SELECT met `IN (campaign_ids)` ipv `findById` per kanaal. Geen blocker voor 1-5 kanalen, wel voor toekomstige >10-kanaal-bundles.
+- [ ] **KanalenCard add/remove voor concept-bundles** — staat nu `canEdit=false` omdat de backend geen "add channel to bundle"-endpoint heeft. Vereist nieuw `POST /campaigns/bundle/:id/channels` dat een nieuwe campaign in dezelfde group_id aanmaakt.
+
 ### Site-fundamenten (publieke site)
 - [ ] **Contact/waitlist-formulier** — Resend-integratie voor notificaties
 - [ ] **404-pagina** — custom error-page
