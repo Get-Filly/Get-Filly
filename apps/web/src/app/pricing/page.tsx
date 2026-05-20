@@ -22,7 +22,7 @@ const plans: Plan[] = [
   {
     name: "Growth",
     tagline: "Word gevonden en blijf zichtbaar.",
-    desc: "Voor restaurants die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media — zonder er zelf tijd in te steken.",
+    desc: "Voor restaurants die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media, zonder er zelf tijd in te steken.",
     price: "€99",
     features: [
       { text: "Google Business optimalisatie en beheer" },
@@ -45,6 +45,7 @@ const plans: Plan[] = [
     features: [
       { text: "Alles uit het Growth pakket" },
       { text: "Koppeling met Zenchef, TheFork of Guestplan" },
+      { text: "Koppeling met POS-systeem" },
       { text: "Automatische e-mailcampagnes op basis van bezetting" },
       { text: "WhatsApp campagnes voor last-minute reserveringen" },
       { text: "Segmentatie op vaste, nieuwe en slapende gasten" },

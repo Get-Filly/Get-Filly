@@ -255,11 +255,11 @@ export default function HomePage() {
                   <span>Zichtbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">Blijf in beeld. Ook als ze niet reserveren.</h3>
-                <p className="feature-row-desc">Gasten die jou kennen maar nog niet hebben gereserveerd, heb je nodig op stille avonden. Wij zorgen dat jij top of mind blijft via sociale media — automatisch en in jouw stijl.</p>
+                <p className="feature-row-desc">Gasten die jou kennen maar nog niet hebben gereserveerd, heb je nodig op stille avonden. Wij zorgen dat jij top of mind blijft via sociale media, automatisch en in jouw stijl.</p>
                 <ul className="feature-bullets">
                   <li>Automatische contentplanning voor Instagram en Facebook op basis van jouw bezettingsdata</li>
                   <li>AI-gegenereerde content volledig in de stijl en toon van jouw restaurant</li>
-                  <li>Strategische timing gebaseerd op data — meer zichtbaarheid op dagen dat het rustig is</li>
+                  <li>Strategische timing gebaseerd op data, meer zichtbaarheid op dagen dat het rustig is</li>
                   <li>Suggesties voor stories en reels afgestemd op jouw regio en doelgroep</li>
                   <li>Alles white-label, gasten zien jouw naam, niet die van ons</li>
                   <li>Jij keurt elk bericht goed voordat het verstuurd wordt</li>
