@@ -36,9 +36,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~**AVG-endpoints** — data-export~~ (2026-04-29) + ~~right-to-be-forgotten (account-delete)~~ (2026-04-30). Account-delete via `DELETE /restaurant/me/account` met `{ confirmation: "VERWIJDER" }`-body. UI-knop op account-pagina sectie "Data & privacy". Verwijdert auth.users + alle owner-restaurants → cascade business-data; blokkeert als andere team-members bestaan. Bewijs-rij in `account_deletions`-tabel (geen PII).
 - [~] **Data-classificatie + anonimisering-bij-delete** — fase 1 live per 2026-04-30: continue benchmark-anonymisering bij `campaign.status → afgerond` schrijft een rij in `campaign_benchmarks` (cuisine + region=provincie + capacity-bucket + month + theme + result-metrics, géén body, géén FK, GDPR Recital 26). Laatste-vangnet bij delete via `AnonymizationService.benchmarkAllCompletedFor()`. **Fase 2 nog open**: (1) body-templates extraheren met LLM-stripping van eigennamen, (2) menu-pattern-aggregatie, (3) `docs/data-classification.md` met per-tabel-categorie, (4) Filly's prompts verrijken met benchmark-queries.
 
-### Vercel-deploy (2026-05-08)
-- [~] **Frontend live op `get-filly-web.vercel.app`** — gedeployed 2026-05-08, beschermd met basic-auth middleware via env-vars `DEMO_AUTH_USERNAME` + `DEMO_AUTH_PASSWORD`. Vercel Hobby (geen native password-protection). URL kan privé gedeeld worden, browser-popup voor login.
-- [ ] **API-deploy `get-filly-api` fix** — build faalt op `Cannot find module '@getfilly/shared'` in 3 files (`restaurant-access.service.ts`, `team/team.controller.ts`, `team/team.service.ts`). De web-build heeft dezelfde issue, opgelost door `pnpm --filter @getfilly/shared build` als prebuild-step. API doet dit ook maar nest-build heeft extra typecheck-pass die packages/shared/dist nog niet ziet. Mogelijke fixes: (1) `nest build` met `--watch=false` + delay, (2) tsconfig paths-aliases in apps/api, (3) shared-package main → src/index.ts (geen dist nodig). Onderzoeken bij volgende deploy-poging.
+### Hosting-deploy (2026-05-08 → 2026-05-21 compleet)
+- [x] ~~**Frontend live op `get-filly-web.vercel.app`**~~ — gedeployed 2026-05-08, beschermd met basic-auth middleware via env-vars `DEMO_AUTH_USERNAME` + `DEMO_AUTH_PASSWORD`. Vercel Hobby (geen native password-protection). URL kan privé gedeeld worden, browser-popup voor login.
+- [x] ~~**API live op Railway** `api-production-9682.up.railway.app/api`~~ (2026-05-21, commits `d9d61f6` + `881fac1` + `15a5e7b` + `551177c`). Vercel-route afgeschreven (Nest = persistent server, niet serverless). Railway-config: `railway.json` in repo root met `pnpm install --filter "api..."` + `pnpm --filter api build` + `start:prod`. **Node 22.x verplicht** (engines + .nvmrc) — jose@6 is ESM-only en `require(esm)` is pas default vanaf Node 22. CORS in `apps/api/src/main.ts` leest `WEB_URL` + `CORS_ORIGINS` uit env. Watch Paths leeg = redeploy bij elke main-push. Env-vars 1-op-1 uit lokale `.env` overgezet, behalve `WEB_URL` (lokaal localhost:3000 → prod Vercel-URL). Bewezen werking: `curl /api/hello` → 200, login + dashboard zonder Geen-toegang-melding.
+- [x] ~~**CI Suspense-fix**~~ (2026-05-21, commit `28bdfe2`) — Next.js 15+ vereist `<Suspense>`-wrapper rond `useSearchParams()` voor prerender. Account-page + google-business/reviews waren broken; refactor: inner-component houdt hooks, default-export wikkelt 'm in `<Suspense fallback={null}>`. Vercel-build was groen sindsdien.
 - [ ] **Bundle '+ Kanaal toevoegen' (fase 4b)** — op `/campagnes/bundle/[id]` staat de knop nu disabled. Implementatie: POST `/campaigns/bundle/:groupId/channels` met `{platform, body, subject_line?, scheduled_for?}` → maakt nieuwe campagne onder dezelfde group_id. UI: platform-keuze-modal of toggle-pillen zoals voorstel-pagina. Optioneel Filly-tekst-generate voor het nieuwe kanaal.
 
 ### Autonome detectie + push-meldingen (concept-flow, 2026-05-08)
@@ -249,6 +250,8 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen)
 
 ### Database-migraties nog te maken
+- [x] ~~0042: backfill `campaigns.ai_suggestion_id`~~ (2026-05-21) — historische campagnes hadden alleen `ai_suggestions.approved_campaign_id` ingevuld, niet de FK terug. Twee UPDATE-passes (anker + bundle-siblings via group_id) vullen het netjes in.
+- [x] ~~0041: `campaigns.variants` + `selected_variant_index`~~ (2026-05-21) — bron-van-waarheid voor versies-grid op unified detail-page. Backfill voor mail/social/whatsapp: huidige content = Versie 1, oude `filly_variants` worden Versie 2..N. Was niet eerder gedraaid → fix voor "selected_variant_index column not found"-error in Filly-chat goedkeuren-flow.
 - [x] ~~0040: `campaigns.deleted_at` (soft-delete)~~ (2026-05-12, commit `1df6037`) — `× Verwijderen` op concept-cards doet nu UPDATE deleted_at=NOW(); verwijderde campagnes komen terug in `/campagnes/history` onder de tab Verwijderd. Partial index op deleted_at IS NOT NULL.
 - [x] ~~0026: `campaigns.variant_applied_at` + `scheduling_history`~~ (2026-04-30) — verbergt refine-sectie na variant-keuze; cyclen door schedule-history zonder Claude-calls.
 - [x] ~~0025: `menu_uploads.kind` ('menu' \| 'drinks')~~ (2026-04-30) — onderscheid menu-kaart vs drankkaart in UI-banners.
@@ -322,15 +325,22 @@ werken. Laatste audit: 2026-04-30.
 
 ## ⏭️ Eerstvolgende open taken (begin volgende chat hier)
 
-Laatst bijgewerkt einde sessie 2026-05-12 (campagnes-revisie +
-soft-delete).
+Laatst bijgewerkt einde sessie 2026-05-21 (hosting compleet + mig 0041/0042).
 
 **State op dit moment**:
 - Demo-account `floriskoevermans@outlook.com` met restaurant_id
   `a462cf39-ef9b-49cb-bd8e-a84a10a3f888` gevuld met realistische
   data.
-- Migraties t/m **0040** in repo. **NB: 0039 bestaat niet** (gereserveerd
-  voor toekomstige encrypted API-key-storage); volgende vrije nummer is 0041.
+- **Migraties t/m 0042 in productie** (NB: 0039 bestaat niet,
+  gereserveerd voor encrypted API-key-storage; volgende vrije = 0043).
+- **Hosting compleet** (2026-05-21):
+  - Frontend Vercel: `https://get-filly-web.vercel.app` (basic-auth
+    `DEMO_AUTH_USERNAME` + `DEMO_AUTH_PASSWORD`).
+  - Backend Railway: `https://api-production-9682.up.railway.app/api`.
+  - `railway.json` in root, **Node 22.x verplicht** (engines + .nvmrc)
+    voor jose@6 ESM-only. CORS leest `WEB_URL` + `CORS_ORIGINS` uit env.
+  - Vercel env `NEXT_PUBLIC_API_URL` wijst naar Railway-URL.
+  - CI groen sinds Suspense-fix `28bdfe2`.
 - App is volledig responsive (1024 / 768 / 480 breakpoints).
 - Tool-use migratie compleet — geen JSON.parse-fouten meer mogelijk.
 - **Per-request Supabase-client live (2026-05-01)** — RLS-policies
@@ -357,8 +367,6 @@ soft-delete).
     dashboard + /campagnes).
   - MediaLibraryPicker upload + drag-drop direct in de modal ipv
     doorverwijzing naar Account-pagina.
-- **Migratie 0040 nog draaien in Supabase Dashboard** (SQL staat in chat-
-  historie en in `apps/api/supabase/migrations/0040_campaigns_soft_delete.sql`).
 
 ### Volgende sessie — kies één van deze drie
 
@@ -484,6 +492,76 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-21 — Hosting compleet (Vercel + Railway) + CI-fix + mig 0041/0042
+
+**Wat is er gebeurd**: alles wat tot vandaag alleen lokaal werkte
+loopt nu volledig op de cloud — frontend op Vercel, backend op
+Railway. Plus twee migraties bijgewerkt die nooit waren gedraaid
+(Filly-chat crashte op "selected_variant_index column not found").
+
+**Frontend Vercel** (`https://get-filly-web.vercel.app`):
+- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+  + `NEXT_PUBLIC_API_URL` (= Railway-URL) gezet in Vercel UI.
+  Onder "Sensitive" gemarkeerd; bij wijzigen redeploy nodig want
+  `NEXT_PUBLIC_*`-vars worden in build ge-baked.
+- Eerdere fetch-error "Invalid value" was een corrupte env-value
+  (URL met `/rest/v1/` erachter). Gefixt door clean overnieuw plakken.
+
+**Backend Railway** (`https://api-production-9682.up.railway.app/api`):
+- Routekeuze: Vercel-API-pad afgeschreven omdat Nest een persistent
+  server is, niet serverless. Vercel Hobby 10s-timeout zou Vision-
+  flow breken (Opus-menukaart-upload duurt 30-60s).
+- `railway.json` in repo root:
+  ```json
+  {
+    "$schema": "https://railway.com/railway.schema.json",
+    "build": {
+      "builder": "NIXPACKS",
+      "buildCommand": "pnpm install --frozen-lockfile --filter \"api...\" && pnpm --filter api build"
+    },
+    "deploy": {
+      "startCommand": "pnpm --filter api start:prod",
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 3
+    }
+  }
+  ```
+- **Node 22.x verplicht**. Railway pakte default Node 18 (jose@6
+  crashte met `ERR_REQUIRE_ESM`). Met `engines.node: "22.x"` in
+  root `package.json` + `.nvmrc=22` koos Nixpacks Node 22.18.1.
+  jose@6 is ESM-only; `require(esm)` is pas standaard vanaf Node 22.
+- CORS in `apps/api/src/main.ts` leest nu env-vars i.p.v. hardcoded
+  localhost:3000 — `WEB_URL` (single) + optioneel `CORS_ORIGINS`
+  (comma-list). `credentials: true` voor Authorization-header.
+- Env-vars 1-op-1 uit lokale `apps/api/.env` overgezet (Supabase
+  + Anthropic + Resend + Google Places + access-tokens), behalve
+  `WEB_URL` (lokaal localhost → prod Vercel-URL).
+- Railway service-config: Watch Paths leeg = redeploy bij élke
+  main-push. Service heet `api`, port 8080 (via PORT env-var),
+  publieke URL via Generate Domain.
+
+**CI-fix** (commit `28bdfe2`):
+- `useSearchParams()` was unwrapped op `/dashboard/account` +
+  `/dashboard/google-business/reviews` — Next.js 15+ vereist
+  `<Suspense>`-boundary anders crasht production-build met
+  CSR-bailout-error.
+- Refactor patroon: inner-component houdt hooks/UI, default-export
+  wikkelt 'm in `<Suspense fallback={null}>`. Lokaal getest met
+  `next build` voor push.
+
+**Database — mig 0041 + 0042 gedraaid**:
+- 0041 ontbrak in productie. Backend probeerde
+  `selected_variant_index` te schrijven bij chat-bundle approve →
+  PGRST204 schema-cache-error → Filly-flow brak op stap 2.
+- Diagnose-query op `information_schema.columns` bevestigde dat
+  alleen 0041 (variants + selected_variant_index) ontbrak; alle
+  andere kolommen t/m 0040 stonden goed.
+- Gecombineerde idempotente SQL gerund: ADD COLUMN IF NOT EXISTS +
+  backfill per type (mail/social/whatsapp). Tested: chat-approve
+  werkt nu end-to-end.
+
+**Commits**: `28bdfe2`, `d9d61f6`, `881fac1`, `15a5e7b`, `551177c`.
 
 ### 2026-05-06 — Sessie afronding: UX-cleanup + IG/FB full-preview + content-fixes
 
