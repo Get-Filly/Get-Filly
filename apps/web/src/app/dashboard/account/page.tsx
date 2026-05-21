@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   fetchRestaurant,
   updateRestaurant,
@@ -69,7 +69,12 @@ function formatDate(d: string | null): string {
   });
 }
 
-export default function AccountPage() {
+// Next.js 15+: elke client-component die `useSearchParams()` gebruikt
+// moet in een <Suspense>-boundary staan, anders weigert de production-
+// build te prerenderen (CSR-bailout-error). Vandaar de splitsing:
+// `AccountPageInner` houdt alle hooks + UI; de exported `AccountPage`
+// wikkelt 'm in Suspense zodat de prerender-fase een fallback krijgt.
+function AccountPageInner() {
   const [form, setForm] = useState<Restaurant | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -1693,5 +1698,13 @@ export default function AccountPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountPageInner />
+    </Suspense>
   );
 }

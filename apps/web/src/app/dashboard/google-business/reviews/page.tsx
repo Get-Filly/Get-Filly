@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   fetchReviewVariants,
@@ -44,7 +44,10 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-export default function ReviewsPage() {
+// Next.js 15+: `useSearchParams()` moet binnen een <Suspense>-boundary
+// staan, anders weigert de production-build te prerenderen. Inner-component
+// houdt de hooks; default-export wikkelt 'm in Suspense.
+function ReviewsPageInner() {
   // Deep-link-support: TasksStrip op /dashboard/campagnes linkt naar
   // `/dashboard/google-business/reviews?openReply=<id>`. We lezen de
   // query-param hieronder en openen automatisch de reply-modal voor
@@ -617,5 +620,13 @@ export default function ReviewsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReviewsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReviewsPageInner />
+    </Suspense>
   );
 }
