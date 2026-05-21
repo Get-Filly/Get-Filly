@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VindbaarheidVisualizer } from "../components/vindbaarheid-visualizer";
 
 // =============================================================================
 // HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
@@ -208,8 +209,8 @@ export default function HomePage() {
                 Kaarten, ChatGPT, Claude, Gemini). Per 2026-05-13
                 op verzoek van Floris vervangt deze de oude
                 Instagram-mockup. */}
-            <div className="feature-row" style={{ width: "1100px", textAlign: "left", fontWeight: "100" }}>
-              <div className="feature-row-text">
+            <div className="feature-row feature-row--split">
+              <div className="feature-row-text feature-row-text--card">
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">01</span>
                   <span>Vindbaarheid</span>
@@ -225,21 +226,12 @@ export default function HomePage() {
                   <li>Live dashboard met rapportage over jouw zichtbaarheid in zoekmachines</li>
                 </ul>
               </div>
-              <div className="feature-row-visual">
-                {/* Get-Filly-platform-mind-map: toont Get-Filly als
-                    hub met integraties (Google Business, Tripadvisor,
-                    TheFork, Kaarten, OpenTable, ChatGPT, Claude,
-                    Gemini). Visualiseert de Vindbaarheid-pijler.
-                    TODO: zet de afbeelding op
-                    apps/web/public/images/get-filly-platform.png
-                    (de mind-map die Floris in chat deelde). */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/images/get-filly-platform.png"
-                  alt="Get-Filly verbonden met Google Business, Tripadvisor, TheFork, OpenTable, Kaarten, ChatGPT, Claude en Gemini"
-                  loading="lazy"
-                  className="feature-row-img"
-                />
+              <div className="feature-row-visual feature-row-visual--card">
+                {/* Geanimeerde Get-Filly hub die cyclisch verbinding
+                    maakt met de 8 zoek/AI-platforms. Letter-cirkels
+                    zijn placeholder; latere fase kan ze door echte
+                    SVG-brand-logos vervangen. */}
+                <VindbaarheidVisualizer />
               </div>
             </div>
 
