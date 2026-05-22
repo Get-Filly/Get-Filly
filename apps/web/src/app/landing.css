@@ -572,7 +572,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .feature-row-text--card {
   background: var(--section);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  /* Per 2026-05-21: bumped van 20px naar 24px voor consistentie met
+     andere landing-cards (zig-card, pricing-card). */
+  border-radius: 24px;
   padding: 48px;
   box-shadow:
     0 1px 2px rgba(24,24,27,0.04),
@@ -604,9 +606,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    en een infinite pulse-loop. */
 .vh-container {
   width: 100%;
-  max-width: 640px;
-  aspect-ratio: 720 / 420;
+  /* Per 2026-05-21 (v4): cirkel-layout vereist een vierkante
+     viewport zodat de hub-cirkel niet uitgerekt wordt. */
+  max-width: 560px;
+  aspect-ratio: 1 / 1;
   position: relative;
+  margin: 0 auto;
 }
 .vh-svg {
   width: 100%;
@@ -631,30 +636,37 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   transform-origin: center;
 }
 
-/* Aderen (bg-lijnen) komen in fase 2, na de logo's. Subtiele
-   tint zodat de groene pulsen er duidelijk overheen vallen. */
+/* Aderen (bg-lijnen) tekenen uit vanaf de hub-kant nadat alle 8
+   logo's gepoppt zijn. Truc: stroke-dasharray = lijn-lengte +
+   initial stroke-dashoffset = lijn-lengte → lijn onzichtbaar.
+   Animeren naar dashoffset=0 → lijn "groeit" vanaf start-punt
+   (= hub) naar eind-punt (= logo). Solide doorgetrokken lijn,
+   geen stippels (per Floris-feedback 2026-05-21).
+   Timing: start na NODES_DONE+0.15s = 2.65s, duration 0.9s. */
 .vh-line-bg {
-  opacity: 0;
-  --vh-opacity: 0.45;
-  animation: vh-fade-in 0.7s ease-out 0.7s forwards;
+  opacity: 0.32;
+  stroke-dasharray: var(--vh-line-len, 200);
+  stroke-dashoffset: var(--vh-line-len, 200);
+  animation: vh-line-draw 0.9s ease-out 2.65s forwards;
+}
+@keyframes vh-line-draw {
+  to { stroke-dashoffset: 0; }
 }
 
-/* Puls (bloeddruppel) — kort segment groen op een lange dash-gap
-   die langer is dan de lijn zelf. stroke-dashoffset loopt van
-   0 naar -90 (lijnlengte) zodat één puls van partner naar hub
-   reist, daarna onzichtbaar de cyclus opnieuw start.
-   Verschillende animation-delay per lijn (via inline style)
-   geeft een natuurlijke versprongen ritme i.p.v. alle 8 in sync. */
+/* Puls (bloeddruppel) — kort segment groen op een lange dash-gap.
+   Lijn-richting in de component is hub→logo, dus negative
+   dashoffset beweegt de puls vanaf Filly naar het partner-logo
+   (bloed stroomt naar buiten). Verschillende animation-delay per
+   lijn (via inline style) geeft een natuurlijke versprongen
+   ritme i.p.v. alle 8 in sync.
+   Timing: pulsen starten na LINES_DELAY+LINES_DURATION = 3.55s
+   (pas wanneer alle aders volledig getekend zijn). */
 .vh-pulse {
   opacity: 0;
   --vh-opacity: 1;
-  /* --vh-line-len wordt per <line> ge-set in de component (de
-     exacte lijn-lengte in SVG-coords). Daardoor stuurt elke
-     puls precies één lijnlengte ver en eindigt 'ie netjes op
-     de hub. */
   animation:
-    vh-fade-in 0.4s ease-out 1.4s forwards,
-    vh-pulse-flow 2.4s linear 1.4s infinite;
+    vh-fade-in 0.3s ease-out 3.55s forwards,
+    vh-pulse-flow 2.4s linear 3.55s infinite;
 }
 @keyframes vh-pulse-flow {
   from { stroke-dashoffset: 0; }
@@ -663,12 +675,202 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* Respect prefers-reduced-motion: zet alle animations stil
    maar laat de eind-toestand zien (logo's + aderlijnen blijven
-   zichtbaar, geen puls-flow). */
+   zichtbaar, geen puls-flow). Voor de bg-lijn moet dashoffset
+   expliciet op 0 — anders blijft de lijn verborgen omdat de
+   initial state (dashoffset = lijn-lengte) hem onzichtbaar
+   maakt. */
 @media (prefers-reduced-motion: reduce) {
   .vh-node,
   .vh-line-bg,
   .vh-pulse {
     opacity: var(--vh-opacity, 1);
+    animation: none !important;
+  }
+  .vh-line-bg {
+    opacity: 0.32;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ============================================================
+   ZichtbaarheidVisualizer (pijler 2) — hybride HTML+SVG
+   ============================================================
+   Per 2026-05-21 (v3, matcht originele PNG):
+   - Filly als grote witte cirkel centraal
+   - 3 grote platform-cirkels rondom met echte brand-logos
+   - 3 mini-cards naast de platforms met bullets
+   - SVG-overlay: korte stippellijn Filly → platform +
+     gebogen pijl-arc met pulserende content-stream
+   - Animatie: sequentiële pop-in van platforms+cards, daarna
+     arcs die uittekenen + continue pulsen langs de arcs.
+
+   Container = 4:3 ratio zodat IG/FB links/rechts naast Filly
+   passen + TikTok+card eronder. Alle posities in %, absolute
+   positioning translate-centreert om hun anker. */
+.zb-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+}
+.zb-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Filly-hub: grote witte cirkel met logo + naam erin. Vorm
+   matcht de originele PNG: cirkel met box-shadow, geen
+   border-color. */
+.zb-hub-circle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 30%;
+  aspect-ratio: 1 / 1;
+  background: var(--true-white);
+  border: 1px solid rgba(31,74,45,0.05);
+  border-radius: 50%;
+  box-shadow:
+    0 8px 24px rgba(31,74,45,0.12),
+    0 2px 8px rgba(31,74,45,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+.zb-hub-glyph {
+  width: 70%;
+  height: auto;
+  display: block;
+}
+
+/* Platform-cirkel: grote witte cirkel met brand-logo binnen. */
+.zb-platform-circle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 11%;
+  aspect-ratio: 1 / 1;
+  background: var(--true-white);
+  border: 1px solid rgba(31,74,45,0.06);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(31,74,45,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  opacity: 0;
+  animation: vh-fade-in 0.5s ease-out 0s forwards;
+  --vh-opacity: 1;
+}
+.zb-platform-logo {
+  width: 60%;
+  height: 60%;
+  display: block;
+}
+
+/* Mini-card naast elk platform met bullets. */
+.zb-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: var(--true-white);
+  border: 1px solid rgba(31,74,45,0.1);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 14px rgba(31,74,45,0.10);
+  width: 170px;
+  z-index: 2;
+  opacity: 0;
+  animation: vh-fade-in 0.5s ease-out 0s forwards;
+  --vh-opacity: 1;
+}
+.zb-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.zb-card-persons {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.zb-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.zb-card-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.zb-card-bullets li {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  padding-left: 10px;
+  position: relative;
+}
+.zb-card-bullets li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* SVG-elementen: stippel-lijn, arc-pad, pulse. Animaties
+   verwijzen naar dezelfde keyframes als de Vindbaarheid
+   (vh-fade-in, vh-line-draw, vh-pulse-flow). */
+.zb-dotline {
+  opacity: 0;
+  --vh-opacity: 1;
+  animation: vh-fade-in 0.6s ease-out 0s forwards;
+}
+.zb-arc {
+  opacity: 0.55;
+  stroke-dasharray: var(--vh-line-len, 100);
+  stroke-dashoffset: var(--vh-line-len, 100);
+  animation: vh-line-draw 1.0s ease-out 0s forwards;
+}
+.zb-pulse {
+  opacity: 0;
+  --vh-opacity: 1;
+  animation:
+    vh-fade-in 0.3s ease-out 0s forwards,
+    vh-pulse-flow 2.4s linear 0s infinite;
+}
+
+/* Mobile: cards iets kleiner zodat 't past op smal scherm. */
+@media (max-width: 640px) {
+  .zb-card {
+    width: 130px;
+    padding: 10px 12px;
+  }
+  .zb-card-name { font-size: 12px; }
+  .zb-card-bullets li { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zb-card,
+  .zb-platform-circle,
+  .zb-dotline,
+  .zb-pulse {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+  .zb-arc {
+    opacity: 0.55;
+    stroke-dashoffset: 0;
     animation: none !important;
   }
 }
@@ -1752,7 +1954,8 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 .testimonial {
   background: var(--true-white); border: 1px solid var(--border);
-  border-radius: 16px; padding: 28px; text-align: left;
+  /* Per 2026-05-21: bumped van 16px naar 20px. */
+  border-radius: 20px; padding: 28px; text-align: left;
   flex: 0 0 360px; box-shadow: 0 2px 12px rgba(31,74,45,0.04);
 }
 .testimonial-quote { font-size: 14px; line-height: 1.7; color: var(--text); }
@@ -1818,7 +2021,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 .pricing-card {
   background: var(--white); border: 1px solid var(--border);
-  border-radius: var(--radius);
+  /* Per 2026-05-21: bumped van var(--radius)=8px naar 20px voor
+     visuele rust + match met andere landing-cards. */
+  border-radius: 20px;
   /* Smallere horizontale padding (was 28px) zodat de feature-tekst
      meer breedte krijgt en niet meer wrapped op één regel. */
   padding: 32px 22px;
@@ -1869,7 +2074,8 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 .pricing-faq { padding-top: 80px; padding-bottom: 112px; }
 .faq-list { margin-top: 32px; display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
-.faq-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color .15s; }
+/* Per 2026-05-21: bumped van var(--radius)=8px naar 16px. */
+.faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color .15s; }
 .faq-item[open] { border-color: var(--accent); background: var(--true-white); }
 .faq-q {
   display: flex; justify-content: space-between; align-items: center;
@@ -2249,7 +2455,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .zig-card {
   background: var(--true-white);
   border: 1.5px solid var(--accent);
-  border-radius: 12px;
+  /* Per 2026-05-21: bumped van 12px naar 24px zodat de zig-cards
+     visueel in lijn lopen met de 32px-radius op .cta-section. */
+  border-radius: 24px;
   padding: 22px 26px;
   position: relative;
 }

@@ -44,7 +44,12 @@ const allMenuItems: MenuItem[] = [
   // is verhuisd naar /dashboard/rapportages (top-blokken). Route
   // /dashboard/marketing bestaat nog voor backwards-compat met
   // bestaande deep-links; kan in latere cleanup-sessie weg.
-  { href: "/dashboard/google-business", label: "Google Business", module: "google_business", icon: "💼" },
+  // Per 2026-05-21: label "Google Business" → "Vindbaarheid". Sluit aan
+  // bij pijler 1 op de marketing-site. GBP is één onderdeel binnen
+  // vindbaarheid (audit, reviews, benchmark); de overkoepelende naam
+  // dekt de lading beter. Route + module-key blijven google-business /
+  // google_business voor backwards-compat met deep-links + permissies.
+  { href: "/dashboard/google-business", label: "Vindbaarheid", module: "google_business", icon: "🔍" },
   { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: "📅" },
   // Gasten-pagina uit sidebar verwijderd 2026-05-12: gast-info zit
   // nu inline in elke reservering-rij (totaal bezoeken, laatste

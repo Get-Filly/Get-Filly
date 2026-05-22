@@ -2,19 +2,29 @@
 // VindbaarheidVisualizer — Get-Filly hub + 8 partner-merken
 // ============================================================
 //
-// Per 2026-05-13 (iteratie 3, op verzoek van Floris):
-//   - Layout: Get-Filly hub bovenaan, 8 echte brand-logo's in
-//     één horizontale rij onderaan, rechte stralen ertussen
-//     (zoals het Spotlight-design dat Floris als referentie
-//     deelde).
-//   - Animatie: alle 8 logo's faden tegelijk in vanaf
-//     onzichtbaar. Daarna verschijnen de stippel-aderen tussen
-//     hub en elke logo. Daarna pulsen er continu groene
-//     bloeddruppels door elke ader, van logo naar hub.
-//   - Logo's: echte brand-SVGs via <BrandLogo> (zie brand-
-//     logos.tsx). Vereenvoudigd maar herkenbaar.
+// Per 2026-05-21 (iteratie 4, op verzoek van Floris):
+//   1) Layout: Filly centraal, 8 echte brand-logo's in een
+//      cirkel eromheen (12/1:30/3/4:30/6/7:30/9/10:30).
+//   2) Animatie in 3 fases:
+//      a. Logos popen sequentieel in (Google → TheFork →
+//         ChatGPT → Tripadvisor → Claude → OpenTable →
+//         Gemini → Maps), 0.3s per logo.
+//      b. Wanneer alle 8 zichtbaar zijn, tekenen de 8 aderen
+//         tegelijk uit vanaf Filly naar elk logo (solid line,
+//         stroke-dashoffset draw-out trick).
+//      c. Daarna pulseren continu groene bloeddruppels vanaf
+//         Filly naar elk logo (richting omgekeerd t.o.v. v3).
+//   3) Aders: doorgetrokken (solid), opacity ~0.32, geen
+//      stippels meer (per Floris-feedback "geen stippels,
+//      echte aders").
 //
-// Geen state of useEffect — alles via CSS keyframes.
+// Implementatie: lijn-richting van hub naar logo (x1=hubX,
+// x2=logoX). De stroke-dashoffset truc voor draw-out begint
+// vanaf het start-punt = hub-kant, dus de lijn lijkt vanaf
+// Filly naar buiten te groeien. Pulse-richting volgt dezelfde
+// lijn-richting → pulsen lopen van Filly naar logo's.
+//
+// Geen useState/useEffect — alle timing via CSS keyframes.
 
 import { BrandLogo, type BrandId } from "./brand-logos";
 
@@ -23,58 +33,79 @@ type Partner = {
   name: string;
 };
 
-// Volgorde van links naar rechts. Bewust gemixt: 'sterkste'
-// merken (Google, ChatGPT, Tripadvisor) afgewisseld met
-// minder bekende zodat de rij visueel evenwichtig oogt.
+// Reveal-volgorde: bovenaan starten en klokwijs rond, met de
+// merken die Floris vooraan wilde zien.
 const PARTNERS: Partner[] = [
-  { id: "google",      name: "Google Business" },
-  { id: "tripadvisor", name: "Tripadvisor" },
-  { id: "chatgpt",     name: "ChatGPT" },
-  { id: "thefork",     name: "TheFork" },
-  { id: "claude",      name: "Claude" },
-  { id: "maps",        name: "Kaarten" },
-  { id: "opentable",   name: "OpenTable" },
-  { id: "gemini",      name: "Gemini" },
+  { id: "google",      name: "Google Business" }, // 12 uur
+  { id: "thefork",     name: "TheFork" },          //  1:30
+  { id: "chatgpt",     name: "ChatGPT" },          //  3
+  { id: "tripadvisor", name: "Tripadvisor" },      //  4:30
+  { id: "claude",      name: "Claude" },           //  6
+  { id: "opentable",   name: "OpenTable" },        //  7:30
+  { id: "gemini",      name: "Gemini" },           //  9
+  { id: "maps",        name: "Kaarten" },          // 10:30
 ];
 
-// SVG-viewport. Compacter dan vorige iteratie (520→420) want
-// horizontale rij neemt geen extra hoogte.
-const VB_W = 720;
-const VB_H = 420;
-// Hub: rechthoek-card bovenaan met logo + naam, gecentreerd.
-const HUB_W = 200;
-const HUB_H = 80;
-const HUB_X = (VB_W - HUB_W) / 2;
-const HUB_Y = 28;
-const HUB_BOTTOM_X = VB_W / 2;
-const HUB_BOTTOM_Y = HUB_Y + HUB_H;
-// Logos-rij onderaan. 8 partners evenly gespaceerd over de
-// volle width minus 40px marge aan elke kant.
-const LOGO_ROW_Y = 320;
-const LOGO_SIZE = 44;
-const LOGO_MARGIN = 56;
-const LOGO_STEP = (VB_W - 2 * LOGO_MARGIN) / (PARTNERS.length - 1);
+// Animatie-fases (sec). Eén plek aanpassen = hele timeline
+// schuift mee.
+const NODE_STAGGER = 0.3;                                   // tussen 2 logo-pops
+const NODE_DURATION = 0.4;                                  // 1 logo's fade-in
+const NODES_DONE = (PARTNERS.length - 1) * NODE_STAGGER + NODE_DURATION; // = 2.5s
+const LINES_DELAY = NODES_DONE + 0.15;                      // start net na laatste logo
+const LINES_DURATION = 0.9;                                 // alle aders tegelijk
+const PULSES_DELAY = LINES_DELAY + LINES_DURATION;          // pulsen starten als aders klaar zijn
 
+// SVG-viewport: vierkant zodat de cirkel niet uitgerekt wordt.
+const VB = 600;
+const CX = VB / 2;
+const CY = VB / 2;
+// Hub: kleinere card (geen brede titel meer nodig — logo + naam
+// passen comfortabel binnen 180x76px). Centraal geplaatst.
+const HUB_W = 180;
+const HUB_H = 76;
+// Cirkel-radius waar de logo-centers op liggen. Gekozen zodat
+// de logo's net buiten de hub vallen + voldoende ruimte voor
+// de aders ertussen.
+const LOGO_RADIUS = 220;
+const LOGO_SIZE = 56;
+
+// Bereken (x, y) voor logo op idx rond de cirkel. Start op -90°
+// (bovenaan), klokwijs in stappen van 45°.
 function logoPosition(idx: number) {
+  const angleDeg = -90 + idx * (360 / PARTNERS.length);
+  const angleRad = (angleDeg * Math.PI) / 180;
   return {
-    x: LOGO_MARGIN + idx * LOGO_STEP,
-    y: LOGO_ROW_Y,
+    x: CX + LOGO_RADIUS * Math.cos(angleRad),
+    y: CY + LOGO_RADIUS * Math.sin(angleRad),
   };
 }
 
-// Lijn-eindpunt: net boven de logo zodat hij niet door de
-// cirkel heen loopt.
-function lineEndY(logoY: number) {
-  return logoY - LOGO_SIZE / 2 - 4;
+// Eindpunten van de ader: start op hub-rand, eindigt op logo-rand
+// (niet door het logo of de hub heen). De hub benaderen we als
+// ellips (HUB_W/2 × HUB_H/2 + 6px marge); logo-rand is de witte
+// cirkel rond het brand-icoon.
+function lineEndpoints(idx: number) {
+  const pos = logoPosition(idx);
+  const dx = pos.x - CX;
+  const dy = pos.y - CY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / dist; // unit-vector richting logo
+  const uy = dy / dist;
+  const a = HUB_W / 2 + 6;
+  const b = HUB_H / 2 + 6;
+  const tHub = 1 / Math.sqrt((ux * ux) / (a * a) + (uy * uy) / (b * b));
+  const hubX = CX + ux * tHub;
+  const hubY = CY + uy * tHub;
+  const logoR = LOGO_SIZE / 2 + 6;
+  const logoX = pos.x - ux * logoR;
+  const logoY = pos.y - uy * logoR;
+  return { hubX, hubY, logoX, logoY };
 }
 
-// Lijnlengte per partner — verschilt omdat ze niet allemaal
-// even ver van de hub-bottom liggen. We hebben deze nodig om
-// de puls-dasharray correct te maken (1 puls per lijnlengte).
 function lineLength(idx: number) {
-  const pos = logoPosition(idx);
-  const dx = pos.x - HUB_BOTTOM_X;
-  const dy = lineEndY(pos.y) - HUB_BOTTOM_Y;
+  const { hubX, hubY, logoX, logoY } = lineEndpoints(idx);
+  const dx = logoX - hubX;
+  const dy = logoY - hubY;
   return Math.sqrt(dx * dx + dy * dy);
 }
 
@@ -83,56 +114,63 @@ export function VindbaarheidVisualizer() {
     <div className="vh-container" aria-hidden="true">
       <svg
         className="vh-svg"
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        viewBox={`0 0 ${VB} ${VB}`}
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
           <filter id="vh-hub-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#1F4A2D" floodOpacity="0.18" />
+            <feDropShadow dx="0" dy="6" stdDeviation="12" floodColor="#1F4A2D" floodOpacity="0.18" />
+          </filter>
+          <filter id="vh-logo-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="6" floodColor="#1F4A2D" floodOpacity="0.12" />
           </filter>
         </defs>
 
         {/* ──────────────────────────────────────────────────
-            Aderen + pulsen tussen hub-onderkant en elk logo.
-            Per partner: 2 lijnen (bg + puls), staggered delays.
+            Fase 2 + 3: aderen (solid, draw-out vanaf hub)
+            + continue pulsen (van hub naar logo).
+            Lijn-richting: x1=hubX → x2=logoX zodat de
+            stroke-dashoffset truc de lijn vanaf de hub-kant
+            "uittekent" en de puls in dezelfde richting loopt.
         ────────────────────────────────────────────────── */}
         {PARTNERS.map((p, idx) => {
-          const pos = logoPosition(idx);
-          const x1 = HUB_BOTTOM_X;
-          const y1 = HUB_BOTTOM_Y;
-          const x2 = pos.x;
-          const y2 = lineEndY(pos.y);
+          const { hubX, hubY, logoX, logoY } = lineEndpoints(idx);
           const len = lineLength(idx);
-          const pulseLen = 14;
-          // Stagger per partner zodat pulsen niet synchroon
-          // door alle 8 aderen tegelijk lopen.
-          const pulseDelay = `${1.4 + idx * 0.18}s`;
+          const pulseLen = 18;
+          const pulseStagger = `${PULSES_DELAY + idx * 0.16}s`;
           return (
             <g key={`line-${p.id}`}>
-              {/* Aderlijn — vaste gestippelde achtergrond,
-                  loopt van logo naar hub (x1→x2 omgekeerd zou
-                  pulsrichting omkeren). */}
+              {/* Solide aderlijn van hub naar logo. Initial
+                  stroke-dashoffset = lijn-lengte (= verborgen),
+                  animeert naar 0 (= volledig getekend). */}
               <line
-                x1={x2} y1={y2} x2={x1} y2={y1}
+                x1={hubX}
+                y1={hubY}
+                x2={logoX}
+                y2={logoY}
                 stroke="#1F4A2D"
-                strokeWidth={1.4}
-                strokeDasharray="3 6"
+                strokeWidth={1.6}
                 strokeLinecap="round"
                 className="vh-line-bg"
+                style={{
+                  ["--vh-line-len" as string]: `${len}`,
+                }}
               />
-              {/* Puls — kort groen segment dat van logo naar
-                  hub reist (stroke-dashoffset wordt negatief). */}
+              {/* Pulserend segment van hub naar logo. Dezelfde
+                  lijn-richting → puls reist van Filly naar de
+                  partner. */}
               <line
-                x1={x2} y1={y2} x2={x1} y2={y1}
+                x1={hubX}
+                y1={hubY}
+                x2={logoX}
+                y2={logoY}
                 stroke="var(--accent)"
                 strokeWidth={3}
                 strokeDasharray={`${pulseLen} ${len - pulseLen}`}
                 strokeLinecap="round"
                 className="vh-pulse"
                 style={{
-                  animationDelay: `0.7s, ${pulseDelay}`,
-                  // CSS-var voor de keyframe: hoeveel ver de
-                  // stroke-dashoffset moet schuiven = 1 lijnlengte.
+                  animationDelay: `${pulseStagger}, ${pulseStagger}`,
                   ["--vh-line-len" as string]: `${len}`,
                 }}
               />
@@ -141,12 +179,12 @@ export function VindbaarheidVisualizer() {
         })}
 
         {/* ──────────────────────────────────────────────────
-            Get-Filly hub — rechthoek-card bovenaan met logo
-            + naam. Geen animatie.
+            Get-Filly hub — centraal in de cirkel. Altijd
+            zichtbaar (geen animatie).
         ────────────────────────────────────────────────── */}
         <rect
-          x={HUB_X}
-          y={HUB_Y}
+          x={CX - HUB_W / 2}
+          y={CY - HUB_H / 2}
           width={HUB_W}
           height={HUB_H}
           rx={20}
@@ -155,8 +193,7 @@ export function VindbaarheidVisualizer() {
           strokeWidth={1}
           filter="url(#vh-hub-shadow)"
         />
-        {/* Logo + tekst horizontaal gecentreerd in de hub-card. */}
-        <g transform={`translate(${HUB_X + 30}, ${HUB_Y + 50})`}>
+        <g transform={`translate(${CX - 56}, ${CY + 6})`}>
           <path
             d="M 19 -8 A 11 11 0 1 0 19 3"
             fill="none"
@@ -181,20 +218,19 @@ export function VindbaarheidVisualizer() {
         </g>
 
         {/* ──────────────────────────────────────────────────
-            8 partner-logo's in een rij onderaan. Stagger
-            fade-in voor natuurlijk ritme.
+            Fase 1: 8 partner-logo's in cirkel rond de hub.
+            Sequentieel popen in via NODE_STAGGER-delay. Geen
+            tekst-labels onder de logo's (Floris-feedback).
         ────────────────────────────────────────────────── */}
         {PARTNERS.map((p, idx) => {
           const pos = logoPosition(idx);
-          const nodeDelay = `${idx * 0.06}s`;
+          const nodeDelay = `${idx * NODE_STAGGER}s`;
           return (
             <g
               key={`node-${p.id}`}
               className="vh-node"
               style={{ animationDelay: nodeDelay }}
             >
-              {/* Lichte ring/shadow rond de logo zodat 't 'card'
-                  voelt en boven de aderen contrasteert. */}
               <circle
                 cx={pos.x}
                 cy={pos.y}
@@ -202,22 +238,9 @@ export function VindbaarheidVisualizer() {
                 fill="#FFFFFF"
                 stroke="rgba(31,74,45,0.08)"
                 strokeWidth={1}
-                filter="url(#vh-hub-shadow)"
+                filter="url(#vh-logo-shadow)"
               />
-              {/* Echte brand-SVG */}
               <BrandLogo id={p.id} x={pos.x} y={pos.y} size={LOGO_SIZE} />
-              {/* Naam-label */}
-              <text
-                x={pos.x}
-                y={pos.y + LOGO_SIZE / 2 + 22}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={600}
-                fill="var(--text)"
-                fontFamily="inherit"
-              >
-                {p.name}
-              </text>
             </g>
           );
         })}

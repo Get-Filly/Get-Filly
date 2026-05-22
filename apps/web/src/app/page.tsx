@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VindbaarheidVisualizer } from "../components/vindbaarheid-visualizer";
+import { ZichtbaarheidVisualizer } from "../components/zichtbaarheid-visualizer";
 
 // =============================================================================
 // HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
@@ -236,12 +237,14 @@ export default function HomePage() {
             </div>
 
             {/* Pijler 2 — Zichtbaarheid (social media, content,
-                white-label). Visual: Get-Filly-social-hub afbeelding
-                (Instagram + Facebook + TikTok met chips per
-                platform). TODO: zet afbeelding op
-                apps/web/public/images/get-filly-social.png. */}
-            <div className="feature-row feature-row--reverse">
-              <div className="feature-row-text">
+                white-label). Per 2026-05-21: tekst en visual
+                staan nu elk in een eigen --card (zelfde patroon
+                als pijler 1) + de visual is een dynamische
+                hybride HTML+SVG-component met platform-mini-
+                cards die sequentieel popen + groene content-
+                pulsen vanaf Filly. */}
+            <div className="feature-row feature-row--reverse feature-row--split">
+              <div className="feature-row-text feature-row-text--card">
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">02</span>
                   <span>Zichtbaarheid</span>
@@ -258,25 +261,17 @@ export default function HomePage() {
                   <li>Live dashboard rapportage over bereik, engagement en doorkliks</li>
                 </ul>
               </div>
-              <div className="feature-row-visual">
-                {/* Get-Filly-social-hub: Get-Filly als centrum met
-                    Instagram / Facebook / TikTok als platformen
-                    (foto 2 die Floris in chat deelde). */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/images/get-filly-social.png"
-                  alt="Get-Filly als hub voor Instagram, Facebook en TikTok met content-doelen per platform"
-                  loading="lazy"
-                  className="feature-row-img"
-                />
+              <div className="feature-row-visual feature-row-visual--card">
+                <ZichtbaarheidVisualizer />
               </div>
             </div>
 
             {/* Pijler 3 — Bereikbaarheid (e-mail, WhatsApp,
-                segmentatie). Visual: e-mail-mockup past inhoudelijk
-                perfect bij deze pijler, kan blijven. */}
-            <div className="feature-row" style={{ padding: "56px" }}>
-              <div className="feature-row-text">
+                segmentatie). Per 2026-05-21: tekst + visual nu in
+                hetzelfde --split-patroon als pijler 1 + 2 zodat
+                alle 3 pijlers visueel consistent zijn. */}
+            <div className="feature-row feature-row--split">
+              <div className="feature-row-text feature-row-text--card">
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">03</span>
                   <span>Bereikbaarheid</span>
@@ -291,7 +286,7 @@ export default function HomePage() {
                   <li>Jij keurt elk bericht goed voordat het verstuurd wordt</li>
                 </ul>
               </div>
-              <div className="feature-row-visual">
+              <div className="feature-row-visual feature-row-visual--card">
                 <div className="fmock-email">
                   <div className="fmock-email-header">
                     <div className="fmock-email-meta">

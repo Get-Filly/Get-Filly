@@ -10,11 +10,12 @@ const titleFor: Record<string, string> = {
   "/dashboard/reserveringen": "Reserveringen",
   "/dashboard/campagnes": "Campagnes",
   "/dashboard/gasten": "Gasten",
-  // Google Business-hub + sub-routes. De reviews-sub-pagina krijgt
-  // een eigen titel zodat de breadcrumb-context klopt; de hub-titel
-  // is bewust kort ("Google Business" past in de smalle topbar).
-  "/dashboard/google-business": "Google Business",
-  "/dashboard/google-business/reviews": "Google Business · Reviews",
+  // Vindbaarheid-hub + sub-routes (per 2026-05-21 hernoemd van
+  // "Google Business" naar "Vindbaarheid" — GBP is één onderdeel
+  // binnen vindbaarheid, en de naam sluit aan op pijler 1 op de
+  // marketing-site).
+  "/dashboard/google-business": "Vindbaarheid",
+  "/dashboard/google-business/reviews": "Vindbaarheid · Reviews",
   // Marketing-hub + sub-routes per kanaal.
   "/dashboard/marketing": "Marketing",
   "/dashboard/marketing/mail": "Marketing · Mail",
