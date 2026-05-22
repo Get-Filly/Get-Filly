@@ -325,7 +325,8 @@ werken. Laatste audit: 2026-04-30.
 
 ## ⏭️ Eerstvolgende open taken (begin volgende chat hier)
 
-Laatst bijgewerkt einde sessie 2026-05-21 (hosting compleet + mig 0041/0042).
+Laatst bijgewerkt einde sessie 2026-05-21 (avond) — campagne-flow
+fixes + GBP-channel + sticky UI + landing-design pass.
 
 **State op dit moment**:
 - Demo-account `floriskoevermans@outlook.com` met restaurant_id
@@ -492,6 +493,78 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-21 (avond) — Campagne-flow fixes + GBP-channel + sticky UI
+
+**Vijf samenhangende verbeteringen** (commit `fd05949`, voorafgegaan
+door `94ebb7f` met landing-design pass + visualizer-rebuilds).
+
+**Multi-channel refine bug fix** (HTTP 400 "max reached"):
+- Backend `refine()` in `apps/api/src/suggestions/suggestions.service.ts`
+  leest + schrijft nu `channels[i].variants` i.p.v. legacy
+  `sc.variants`. Bij channels[]-suggesties target het de actieve
+  channel via `body.channel_id`; bij legacy single-channel werkt
+  het op sc.variants (backwards-compat).
+- Controller accepteert nieuw veld `channel_id`.
+- Frontend `refineSuggestion(suggestionId, instruction, channelId?)`
+  + voorstel-page `handleRegenerate()` passt `activeChannel.id` door.
+- Persistence werkt automatisch: nieuwe varianten worden in DB
+  opgeslagen → blijven zichtbaar bij refresh + navigatie.
+
+**Google Business als 6e campagne-kanaal**:
+- Backend `SuggestionPlatform` + `SUGGESTION_PLATFORMS` uitgebreid met
+  `'google_business'`. `platformToCampaignType` mapt 'm naar `'social'`
+  (hergebruikt bestaande `campaign_social_content`-tabel; geen
+  migratie nodig — `platforms text[]` accepteert nieuwe waarde).
+- Frontend Platform-type + PLATFORM_ICON (🔍) + PLATFORM_LABEL
+  ("Google Business-post") toegevoegd in
+  `_components/campaign-detail/types.ts`.
+- KanalenCard `ALL_PLATFORMS` bevat nu ook `google_business` als
+  6e toggle-pill naast Mail/WhatsApp/IG/FB/TikTok.
+- Concept-fase volledig functioneel (Filly genereert, eigenaar
+  bewerkt + plant in, status werkt). Auto-publish via GBP-API wacht
+  op approval (BACKLOG fase F). Eigenaar kopieert handmatig naar
+  Google Business tot dan toe.
+
+**`channels.map is not a function` crash op /campagnes**:
+- `getItemPlatforms` + dates-helper checken nu `Array.isArray()`
+  i.p.v. alleen `?? []`. Legacy bundle-suggestions hadden channels
+  als object opgeslagen wat `.map()` crashte.
+
+**Kanban-sortering op datum**:
+- Elke kolom (Voorstel/Concept/Ingepland/Actief) sorteert op
+  vroegste scheduled-datum oplopend. Items zonder datum naar
+  onderaan zodat geplande dingen prominent zijn.
+
+**Sticky-header detail-pages** (`/campagnes/[id]` + `/voorstel/[id]`):
+- Eén sticky-blok van "Terug naar campagnes" t/m de progress-balk
+  plakt nu onder de dashboard-topbar tijdens scrollen.
+- `.page-full` krijgt inline `paddingTop:0` zodat sticky met `top:0`
+  flush onder topbar pint (anders 24px gap door de standaard
+  page-full padding; negatieve top clipt de sticky boven de
+  scroll-area).
+- Topbar zelf: `rgba(.88) + backdrop-blur` → fully opaque
+  `var(--bg)` zodat content niet meer doorschemert bij scrollen
+  (was zichtbaar tussen topbar en sticky-blok).
+
+**Sidebar/topbar label "Google Business" → "Vindbaarheid"** (commit
+`94ebb7f`):
+- `_components/sidebar.tsx`: label + icoon 💼 → 🔍.
+- `_components/topbar.tsx`: page-title-map bijgewerkt.
+- Route + module-key (`google-business` / `google_business`) blijven
+  voor backwards-compat met deep-links + permissies.
+
+**Landing-design pass** (commit `94ebb7f`):
+- Border-radius bumped: zig-card 12→24, pricing-card 8→20, faq-item
+  8→16, feature-row-text--card 20→24, testimonial 16→20.
+- VindbaarheidVisualizer v4: cirkel-layout rond Filly met 8 echte
+  brand-SVGs (Simple-Icons paths + custom voor TheFork/ChatGPT/Maps).
+  Solide aderen, sequentiële reveal, pulsen Filly → logo.
+- ZichtbaarheidVisualizer v3: hybride HTML+SVG met grote Filly-cirkel
+  centraal + IG/FB/TikTok platform-cirkels + mini-cards met bullets
+  (matcht originele PNG). Gebogen pijl-arcs met pulsen.
+- Pijler 3 (Bereikbaarheid) ook in `--split`-patroon (tekst-card +
+  transparante visual) voor consistentie met pijler 1 + 2.
 
 ### 2026-05-21 — Hosting compleet (Vercel + Railway) + CI-fix + mig 0041/0042
 
