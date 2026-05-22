@@ -133,12 +133,20 @@ type ProposalDetailsFromTool = {
 // 'mail' en 'whatsapp' blijven 1-op-1. Backwards-compat: oude
 // suggestions met campaign_type='social' worden bij read genormaliseerd
 // naar platform='instagram' (default).
+//
+// Per 2026-05-21: 'google_business' toegevoegd als channel. Concept-
+// fase werkt volledig (Filly genereert GBP-post-style content,
+// eigenaar keurt goed, plant in); auto-publish wacht op Google's
+// GBP-API-approval (BACKLOG fase F). De content-shape (caption +
+// media + scheduled_for) matcht social, dus de bestaande
+// campaign_social_content-tabel volstaat met platform='google_business'.
 export type SuggestionPlatform =
   | 'mail'
   | 'whatsapp'
   | 'instagram'
   | 'facebook'
-  | 'tiktok';
+  | 'tiktok'
+  | 'google_business';
 
 const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
   'mail',
@@ -146,6 +154,7 @@ const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
   'instagram',
   'facebook',
   'tiktok',
+  'google_business',
 ];
 
 // Mapper: SuggestionPlatform → campaigns.type. Specifieke socials gaan
@@ -2534,6 +2543,7 @@ Maak dit tastbaar volgens de regels.`;
     restaurantId: string,
     suggestionId: string,
     instruction: string,
+    channelId?: string,
   ): Promise<AiSuggestion> {
     const trimmed = instruction.trim();
     if (trimmed.length > 1000) {
@@ -2550,44 +2560,99 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     const sc = suggestion.suggested_campaign ?? {};
-    const currentType: 'mail' | 'social' | 'whatsapp' =
-      sc.type === 'mail' || sc.type === 'social' || sc.type === 'whatsapp'
-        ? sc.type
-        : 'mail';
     const currentName =
       typeof sc.name === 'string' ? (sc.name as string) : '';
 
-    // Bestaande varianten ophalen. Bij legacy (geen variants-array) bouwen
-    // we 1 synthetische variant uit de top-level body/subject zodat we
-    // ook daar 3 alternatieven naast kunnen zetten in een uniforme array.
+    // ============================================================
+    // Multi-channel detection (per 2026-05-21)
+    // ============================================================
+    // Vanaf Filly v3 (2026-05-07) leven varianten onder
+    // sc.channels[i].variants. De legacy sc.variants is op die
+    // voorstellen orphan-data (kan oude top-level data bevatten van
+    // pre-multi-channel refines). Voor multi-channel pakken we de
+    // varianten van het target-kanaal i.p.v. de top-level array.
+    const channels =
+      Array.isArray(sc.channels) && sc.channels.length > 0
+        ? sc.channels
+        : null;
+    const isMultiChannel = channels !== null;
+
+    let targetChannelIdx = -1;
+    if (isMultiChannel) {
+      // Zoek het kanaal via id; fallback naar 't eerste als geen
+      // match (voorkomt dat we falen op een verouderde frontend).
+      if (channelId) {
+        targetChannelIdx = channels.findIndex((c) => c?.id === channelId);
+      }
+      if (targetChannelIdx < 0) {
+        targetChannelIdx = 0;
+      }
+    }
+
+    // Bepaal type per pad. Multi-channel = type van het target-kanaal
+    // (mail/instagram/facebook/tiktok/whatsapp) naar de drie generieke
+    // soorten (mail/social/whatsapp) voor de Claude-prompt.
+    let currentType: 'mail' | 'social' | 'whatsapp';
+    if (isMultiChannel) {
+      const platform = channels[targetChannelIdx]?.platform ?? 'mail';
+      currentType =
+        platform === 'mail'
+          ? 'mail'
+          : platform === 'whatsapp'
+            ? 'whatsapp'
+            : 'social';
+    } else {
+      currentType =
+        sc.type === 'mail' || sc.type === 'social' || sc.type === 'whatsapp'
+          ? sc.type
+          : 'mail';
+    }
+
+    // Bestaande varianten — voor multi-channel uit het target-kanaal,
+    // voor legacy uit sc.variants (of synthetisch uit sc.body/caption).
     const existingVariants: Array<{ subject_line?: string; body: string }> =
-      Array.isArray(sc.variants) && sc.variants.length > 0
-        ? sc.variants
-            .filter(
-              (v): v is { body: string; subject_line?: string } =>
-                typeof v?.body === 'string' && v.body.length > 0,
-            )
-            .map((v) => ({
-              body: v.body,
-              subject_line: v.subject_line,
-            }))
-        : (() => {
-            const legacyBody =
-              typeof sc.body === 'string' && sc.body.length > 0
-                ? sc.body
-                : typeof sc.caption === 'string'
-                  ? sc.caption
-                  : '';
-            const legacySubject =
-              typeof sc.subject_line === 'string'
-                ? sc.subject_line
-                : typeof sc.subject === 'string'
-                  ? sc.subject
-                  : undefined;
-            return legacyBody
-              ? [{ body: legacyBody, subject_line: legacySubject }]
+      isMultiChannel
+        ? (() => {
+            const chanVariants = channels[targetChannelIdx]?.variants;
+            return Array.isArray(chanVariants)
+              ? chanVariants
+                  .filter(
+                    (v): v is { body: string; subject_line?: string } =>
+                      typeof v?.body === 'string' && v.body.length > 0,
+                  )
+                  .map((v) => ({
+                    body: v.body,
+                    subject_line: v.subject_line,
+                  }))
               : [];
-          })();
+          })()
+        : Array.isArray(sc.variants) && sc.variants.length > 0
+          ? sc.variants
+              .filter(
+                (v): v is { body: string; subject_line?: string } =>
+                  typeof v?.body === 'string' && v.body.length > 0,
+              )
+              .map((v) => ({
+                body: v.body,
+                subject_line: v.subject_line,
+              }))
+          : (() => {
+              const legacyBody =
+                typeof sc.body === 'string' && sc.body.length > 0
+                  ? sc.body
+                  : typeof sc.caption === 'string'
+                    ? sc.caption
+                    : '';
+              const legacySubject =
+                typeof sc.subject_line === 'string'
+                  ? sc.subject_line
+                  : typeof sc.subject === 'string'
+                    ? sc.subject
+                    : undefined;
+              return legacyBody
+                ? [{ body: legacyBody, subject_line: legacySubject }]
+                : [];
+            })();
 
     if (existingVariants.length >= SUGGESTION_VARIANTS_MAX) {
       throw new BadRequestException(
@@ -2654,11 +2719,27 @@ Inhoudsregels:
     // selected_index ongewijzigd zodat de eigenaar de oorspronkelijk
     // gekozen variant blijft zien als 'actief'. Eigenaar klikt zelf
     // op een nieuwe versie om die over te nemen.
-    const newSuggested: SuggestedCampaign = {
-      ...sc,
-      type: currentType,
-      variants: newVariants,
-    };
+    let newSuggested: SuggestedCampaign;
+    if (isMultiChannel) {
+      // Schrijf de nieuwe varianten naar channels[idx].variants. De
+      // top-level sc.variants laten we ongewijzigd (orphan, maar
+      // breken niets — toekomstige cleanup-migratie haalt 'm weg).
+      const updatedChannels = channels.map((c, i) =>
+        i === targetChannelIdx
+          ? { ...c, variants: newVariants }
+          : c,
+      );
+      newSuggested = {
+        ...sc,
+        channels: updatedChannels,
+      };
+    } else {
+      newSuggested = {
+        ...sc,
+        type: currentType,
+        variants: newVariants,
+      };
+    }
 
     const { data: updated, error: updErr } = await this.supabase.client
       .from('ai_suggestions')

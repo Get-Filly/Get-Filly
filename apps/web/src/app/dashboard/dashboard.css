@@ -331,9 +331,11 @@
   /* 64px zodat de titel verticaal uitlijnt met het workspace-blok in
      de sidebar (workspace is ~40-48px, centered in 64 = ~32). */
   height: 64px;
-  background: rgba(250, 247, 241, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* Per 2026-05-21: van rgba(.88) + backdrop-blur naar fully opaque.
+     De semi-transparente versie liet content erachter doorschemeren
+     bij scrollen (op detail-pagina's zag je tekst tussen topbar en
+     de sticky-header). Opaque = clean afsluiting. */
+  background: var(--bg, #FAF7F1);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;

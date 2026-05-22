@@ -28,6 +28,9 @@ const ALL_PLATFORMS: Platform[] = [
   "instagram",
   "facebook",
   "tiktok",
+  // Per 2026-05-21 toegevoegd. Concept-fase werkt; auto-publish wacht
+  // op Google's GBP-API-approval (BACKLOG fase F).
+  "google_business",
 ];
 
 export type KanalenCardChannel = {

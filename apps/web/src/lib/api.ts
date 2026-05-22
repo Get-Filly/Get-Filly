@@ -1140,7 +1140,13 @@ export async function selectSuggestionVariant(
 // het kanaal met de body van het primaire kanaal als seed.
 export async function addSuggestionChannel(
   suggestionId: string,
-  platform: "mail" | "whatsapp" | "instagram" | "facebook" | "tiktok",
+  platform:
+    | "mail"
+    | "whatsapp"
+    | "instagram"
+    | "facebook"
+    | "tiktok"
+    | "google_business",
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
     `${API_URL}/suggestions/${suggestionId}/channels`,
@@ -1255,16 +1261,24 @@ export async function setSuggestionScheduled(
 // Refine-flow: laat Filly de suggestie aanpassen op basis van een
 // natuurlijke-taal-instructie ("maak huiselijker", "korter"). Werkt
 // op de geselecteerde variant; andere blijven onaangetast.
+//
+// Per 2026-05-21 multi-channel-aware: voor channels[]-voorstellen
+// target backend de varianten van het opgegeven channel_id. Bij
+// legacy single-channel voorstellen mag channel_id leeg blijven.
 export async function refineSuggestion(
   suggestionId: string,
   instruction: string,
+  channelId?: string,
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
     `${API_URL}/suggestions/${suggestionId}/refine`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instruction }),
+      body: JSON.stringify({
+        instruction,
+        ...(channelId ? { channel_id: channelId } : {}),
+      }),
     },
   );
   if (!res.ok) {

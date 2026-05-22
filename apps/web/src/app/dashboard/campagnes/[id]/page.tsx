@@ -588,67 +588,73 @@ export default function UnifiedDetailPage() {
   };
 
   return (
-    <div className="page-full">
-      <Link
-        href="/dashboard/campagnes"
-        style={{
-          fontSize: 13,
-          color: "var(--ts)",
-          textDecoration: "none",
-          marginBottom: 14,
-          display: "inline-block",
-        }}
-      >
-        ← Terug naar campagnes
-      </Link>
-
-      {/* Sticky header: titel + status + voortgang + actie-knoppen.
-          Blijft tijdens scrollen aan de top zodat eigenaar vanuit
-          elke sectie kan beslissen. */}
+    // paddingTop: 0 overrulet de standaard 24px van .page-full
+    // zodat de sticky-bar hieronder flush onder de dashboard-topbar
+    // kan pinnen (top: 0 i.p.v. negatieve offsets die clipping
+    // veroorzaken).
+    <div className="page-full" style={{ paddingTop: 0 }}>
+      {/* STICKY-blok: alles van 'Terug naar campagnes' t/m de
+          voortgangsbalk blijft kleven onder de dashboard-topbar
+          tijdens scrollen (per Floris-feedback 2026-05-21).
+          top: 0 pint nu netjes onder de topbar omdat .page-full
+          paddingTop op 0 staat (zie wrapper hierboven). */}
       <div
         style={{
           position: "sticky",
           top: 0,
           zIndex: 20,
           background: "var(--bg, #FAF7F1)",
-          paddingTop: 8,
+          paddingTop: 16,
           paddingBottom: 12,
           marginBottom: 16,
+          borderBottom: "1px solid var(--border, #E5DFD0)",
         }}
       >
+        <Link
+          href="/dashboard/campagnes"
+          style={{
+            fontSize: 13,
+            color: "var(--ts)",
+            textDecoration: "none",
+            marginBottom: 10,
+            display: "inline-block",
+          }}
+        >
+          ← Terug naar campagnes
+        </Link>
+        <div className="page-title" style={{ marginBottom: 6 }}>
+          {view.name}
+        </div>
         <div
           style={{
             display: "flex",
-            alignItems: "flex-start",
-            gap: 16,
-            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            marginBottom: 12,
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="page-title" style={{ marginBottom: 6 }}>
-              {view.name}
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={statusChipStyle(status)}>
-                {STATUS_LABEL[status]}
-              </span>
-              {view.bundleName && view.channels.length > 1 && (
-                <span style={{ color: "var(--tl)", fontSize: 12 }}>
-                  {view.channels.length} kanalen
-                </span>
-              )}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {renderActions()}
-          </div>
+          <span style={statusChipStyle(status)}>
+            {STATUS_LABEL[status]}
+          </span>
+          {view.bundleName && view.channels.length > 1 && (
+            <span style={{ color: "var(--tl)", fontSize: 12 }}>
+              {view.channels.length} kanalen
+            </span>
+          )}
         </div>
-        {/* Voortgang alleen tonen in concept-fase, daarna is alles
-            sowieso vastgezet en zou een 100%-balk verwarrend ogen. */}
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            marginBottom: status === "concept" && progress.total > 0 ? 12 : 0,
+          }}
+        >
+          {renderActions()}
+        </div>
         {status === "concept" && progress.total > 0 && (
           <div
             style={{
-              marginTop: 12,
               display: "flex",
               alignItems: "center",
               gap: 10,

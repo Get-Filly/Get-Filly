@@ -329,7 +329,13 @@ function getItemPlatforms(item: BoardItem): string[] {
     return [sc.platform ?? sc.type ?? "mail"];
   }
   if (item.kind === "bundle-suggestion") {
-    const channels = item.data.suggested_campaign.channels ?? [];
+    // Defensive: ?? [] vangt alleen null/undefined op. Bij oude
+    // bundle-suggestions kon channels een object zijn (legacy shape
+    // van vóór 2026-05-07 fase 2d) — dan zou .map() crashen met
+    // "channels.map is not a function". Array.isArray-check is
+    // veilig voor elke historische shape.
+    const channels = item.data.suggested_campaign.channels;
+    if (!Array.isArray(channels)) return [];
     return channels.map((c) => c.platform);
   }
   if (item.kind === "campaign") {
@@ -363,9 +369,13 @@ function getEarliestScheduled(item: BoardItem): {
       if (target) isos.push(target);
     }
   } else if (item.kind === "bundle-suggestion") {
-    for (const ch of item.data.suggested_campaign.channels ?? []) {
-      const when = ch.scheduled_for ?? ch.filly_scheduled_for;
-      if (when) isos.push(when);
+    // Array.isArray-guard tegen legacy bundle-shapes met channels=object.
+    const chs = item.data.suggested_campaign.channels;
+    if (Array.isArray(chs)) {
+      for (const ch of chs) {
+        const when = ch.scheduled_for ?? ch.filly_scheduled_for;
+        if (when) isos.push(when);
+      }
     }
   } else if (item.kind === "campaign") {
     if (item.data.scheduled_for) isos.push(item.data.scheduled_for);
@@ -520,6 +530,22 @@ export default function CampagnesPage() {
           campaigns: group,
         });
       }
+    }
+
+    // Per 2026-05-21: sorteer elke kolom op vroegste scheduled-datum
+    // oplopend (eerstvolgende bovenaan). Items zonder datum (bv. een
+    // voorstel waar Filly nog geen tijdstip aan koppelde) belanden
+    // onderaan zodat de eigenaar de geplande dingen vooraan ziet.
+    const sortByDate = (a: BoardItem, b: BoardItem) => {
+      const da = getEarliestScheduled(a).iso;
+      const db = getEarliestScheduled(b).iso;
+      if (!da && !db) return 0;
+      if (!da) return 1;  // a heeft geen datum → naar achter
+      if (!db) return -1; // b heeft geen datum → b naar achter
+      return da.localeCompare(db); // ISO-strings zijn lexicografisch sorteer-baar
+    };
+    for (const key of ["voorstel", "concept", "ingepland", "actief"] as const) {
+      result[key].sort(sortByDate);
     }
 
     return result;

@@ -465,7 +465,15 @@ export default function VoorstelDetailPage() {
     setActionError(null);
     setRefining(true);
     try {
-      const updated = await refineSuggestion(suggestion.id, "");
+      // Multi-channel: backend moet weten welk kanaal de nieuwe
+      // varianten moet krijgen (anders raakt 't de eerste of de
+      // verkeerde). activeChannel.id wordt door de voorstel-route
+      // gesynced met de 'Bewerken voor:'-tab in de UI.
+      const updated = await refineSuggestion(
+        suggestion.id,
+        "",
+        activeChannel?.id,
+      );
       refresh(updated);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Genereren mislukt.");
@@ -747,112 +755,117 @@ export default function VoorstelDetailPage() {
   const isPending = suggestion.status === "pending";
 
   return (
-    <div className="page-full">
-      <Link
-        href="/dashboard/campagnes"
-        style={{
-          fontSize: 13,
-          color: "var(--ts)",
-          textDecoration: "none",
-          marginBottom: 14,
-          display: "inline-block",
-        }}
-      >
-        ← Terug naar campagnes
-      </Link>
-
-      {/* Sticky header: titel + voortgangsbalk + 3 actie-knoppen op één
-          rij. Blijft tijdens scrollen aan de top zodat eigenaar vanuit
-          elke sectie kan beslissen zonder terug-naar-boven scrollen. */}
+    // paddingTop: 0 overrulet de standaard 24px van .page-full
+    // zodat de sticky-bar hieronder flush onder de dashboard-topbar
+    // kan pinnen (top: 0 i.p.v. negatieve offsets die clipping
+    // veroorzaken). Horizontale padding behouden via paddingLeft/Right.
+    <div className="page-full" style={{ paddingTop: 0 }}>
+      {/* STICKY-blok: alles van 'Terug naar campagnes' t/m de
+          voortgangsbalk blijft kleven onder de dashboard-topbar
+          tijdens scrollen (per Floris-feedback 2026-05-21).
+          top: 0 pint nu netjes onder de topbar omdat .page-full
+          paddingTop op 0 staat (zie wrapper hierboven). */}
       <div
         style={{
           position: "sticky",
           top: 0,
           zIndex: 20,
           background: "var(--bg, #FAF7F1)",
-          paddingTop: 8,
+          paddingTop: 16,
           paddingBottom: 12,
           marginBottom: 16,
+          borderBottom: "1px solid var(--border, #E5DFD0)",
         }}
       >
+        <Link
+          href="/dashboard/campagnes"
+          style={{
+            fontSize: 13,
+            color: "var(--ts)",
+            textDecoration: "none",
+            marginBottom: 10,
+            display: "inline-block",
+          }}
+        >
+          ← Terug naar campagnes
+        </Link>
+        <div className="page-title" style={{ marginBottom: 6 }}>
+          {name}
+        </div>
         <div
           style={{
             display: "flex",
-            alignItems: "flex-start",
-            gap: 16,
-            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            marginBottom: 12,
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="page-title" style={{ marginBottom: 6 }}>
-              {name}
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={voorstelChipStyle}>Voorstel</span>
-              {!isPending && (
-                <span style={{ color: "var(--tl)", fontSize: 12 }}>
-                  {suggestion.status === "approved"
-                    ? "Reeds goedgekeurd"
-                    : suggestion.status === "rejected"
-                      ? "Afgewezen"
-                      : suggestion.status === "expired"
-                        ? "Verlopen"
-                        : suggestion.status}
-                </span>
-              )}
-            </div>
-          </div>
-          {isPending && (
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <Button
-                variant="secondary"
-                onClick={handleReject}
-                loading={rejecting}
-                disabled={busy}
-                style={{ color: "#B91C1C" }}
-              >
-                Afwijzen
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handleDirectPlan}
-                loading={planning}
-                disabled={busy || allMissing.length > 0}
-                title={
-                  allMissing.length > 0
-                    ? "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)"
-                    : "Goedkeuren en direct in de planning zetten"
-                }
-              >
-                Direct inplannen
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleApprove}
-                loading={approving}
-                disabled={busy || allMissing.length > 0}
-                title={
-                  allMissing.length > 0
-                    ? "Vul eerst de ontbrekende velden in"
-                    : channels.length > 1
-                      ? `Maak ${channels.length} concept-campagnes onder 1 bundle`
-                      : "Maak een concept-campagne van dit voorstel"
-                }
-              >
-                {channels.length > 1
-                  ? `Goedkeuren · ${channels.length} campagnes`
-                  : "Goedkeuren"}
-              </Button>
-            </div>
+          <span style={voorstelChipStyle}>Voorstel</span>
+          {!isPending && (
+            <span style={{ color: "var(--tl)", fontSize: 12 }}>
+              {suggestion.status === "approved"
+                ? "Reeds goedgekeurd"
+                : suggestion.status === "rejected"
+                  ? "Afgewezen"
+                  : suggestion.status === "expired"
+                    ? "Verlopen"
+                    : suggestion.status}
+            </span>
           )}
         </div>
-        {/* Voortgangsbalk: aantal compleet/totaal vereiste velden over
-            alle actieve kanalen. Direct visueel zien hoever je bent
-            zonder naar Missende aspecten te scrollen. */}
+        {isPending && (
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              marginBottom: 12,
+            }}
+          >
+            <Button
+              variant="secondary"
+              onClick={handleReject}
+              loading={rejecting}
+              disabled={busy}
+              style={{ color: "#B91C1C" }}
+            >
+              Afwijzen
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleDirectPlan}
+              loading={planning}
+              disabled={busy || allMissing.length > 0}
+              title={
+                allMissing.length > 0
+                  ? "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)"
+                  : "Goedkeuren en direct in de planning zetten"
+              }
+            >
+              Direct inplannen
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleApprove}
+              loading={approving}
+              disabled={busy || allMissing.length > 0}
+              title={
+                allMissing.length > 0
+                  ? "Vul eerst de ontbrekende velden in"
+                  : channels.length > 1
+                    ? `Maak ${channels.length} concept-campagnes onder 1 bundle`
+                    : "Maak een concept-campagne van dit voorstel"
+              }
+            >
+              {channels.length > 1
+                ? `Goedkeuren · ${channels.length} campagnes`
+                : "Goedkeuren"}
+            </Button>
+          </div>
+        )}
         {isPending && progress.total > 0 && (
           <div
             style={{
-              marginTop: 12,
               display: "flex",
               alignItems: "center",
               gap: 10,

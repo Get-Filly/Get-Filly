@@ -182,15 +182,22 @@ export class SuggestionsController {
   }
 
   // Refine-flow: laat Filly het voorstel aanpassen volgens een user-
-  // instructie ("maak huiselijker", "korter onderwerp"). Werkt alleen
-  // op single-channel proposals.
+  // instructie ("maak huiselijker", "korter onderwerp"). Per 2026-05-21
+  // multi-channel-aware: bij channels[]-suggesties target de service
+  // het kanaal via body.channel_id; bij legacy single-channel werkt
+  // het op sc.variants (geen channel_id nodig).
   @Post(':id/refine')
   refine(
     @RestaurantId() restaurantId: string,
     @Param('id') id: string,
-    @Body() body: { instruction?: string },
+    @Body() body: { instruction?: string; channel_id?: string },
   ) {
-    return this.suggestions.refine(restaurantId, id, body.instruction ?? '');
+    return this.suggestions.refine(
+      restaurantId,
+      id,
+      body.instruction ?? '',
+      body.channel_id,
+    );
   }
 
   // Variant-selectie: zet welke van de 3 varianten de eigenaar
