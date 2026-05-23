@@ -48,7 +48,7 @@ function Stars({ rating }: { rating: number }) {
 // staan, anders weigert de production-build te prerenderen. Inner-component
 // houdt de hooks; default-export wikkelt 'm in Suspense.
 function ReviewsPageInner() {
-  // Deep-link-support: TasksStrip op /dashboard/campagnes linkt naar
+  // Deep-link-support: andere pagina's kunnen linken naar
   // `/dashboard/google-business/reviews?openReply=<id>`. We lezen de
   // query-param hieronder en openen automatisch de reply-modal voor
   // die specifieke review + scrollen 'm in beeld.

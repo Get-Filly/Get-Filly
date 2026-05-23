@@ -3,7 +3,6 @@
 // ============================================================
 // Gebruikt door:
 //   - dashboard/page.tsx (rode strook + popover-data)
-//   - dashboard/_components/tasks-strip.tsx (overige-acties op /campagnes)
 //
 // Twee helpers die samen één consistent antwoord geven:
 //   1. buildWindowOccupancy: vult een 14-daagse window met real data

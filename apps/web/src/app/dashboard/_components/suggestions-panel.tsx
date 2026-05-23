@@ -13,16 +13,14 @@ import { Button } from "../../../components/ui/button";
 // SuggestionsPanel, multi-select + Filly-genereer-knop
 // ============================================================
 // Headless-ish UI-blok dat de dag-selectie + generate-action levert.
-// Gebruikt door 2 callers met verschillende presentatie:
-//   1. FillySuggestionsPopover (dashboard groene tile) wrapt 'm in
-//      een absolute-positioned dropdown.
-//   2. TasksStrip op /campagnes wrapt 'm inline onder de uitgeklapte
-//      "X rustige dagen"-kaart.
+// Per 2026-05-21: alleen nog gebruikt door FillySuggestionsPopover
+// op het dashboard (groene tile → dropdown). De TasksStrip op
+// /campagnes is verwijderd; deze panel was de gedeelde UI maar
+// is na de verwijdering single-caller geworden.
 //
 // De caller bepaalt wat er na succes gebeurt via onSuccess (bv.
-// navigeren naar /campagnes, of router.refresh() als je er al
-// bent), en wat er bij cancel gebeurt via onCancel (popover sluiten
-// vs. inline-expand collapsen).
+// navigeren naar /campagnes) en wat er bij cancel gebeurt via
+// onCancel (popover sluiten).
 
 type Props = {
   lowOccupancyDays: OccupancyDay[];

@@ -22,7 +22,6 @@ import {
   toBundleChannel,
   type MissingField,
 } from "../../../lib/campaign-checks";
-import { TasksStrip } from "../_components/tasks-strip";
 import { UpcomingActionsBlock } from "../_components/upcoming-actions-block";
 import { PageHeader } from "../../../components/ui/page-header";
 import { Button } from "../../../components/ui/button";
@@ -43,8 +42,11 @@ import { Skeleton } from "../_components/skeleton";
 // expand-bare bundle-card getoond. Klik op de chevron = uitklap met
 // per-kanaal mini-rijen.
 //
-// TasksStrip (Overige acties) blijft staan onderaan tot Floris
-// besloten heeft hoe daar verder mee om te gaan.
+// Per 2026-05-21: TasksStrip (Overige acties) is verwijderd uit de
+// campagnes-pagina. Reviews leven nu op /dashboard/vindbaarheid en
+// GBP-posts komen in een toekomstige uitgebreide Vindbaarheid-hub.
+// Low-occupancy-suggesties zijn al via de rode strook op het
+// dashboard + de groene Filly-tile beschikbaar.
 
 type KanbanColumn = {
   key: "voorstel" | "concept" | "ingepland" | "actief";
@@ -789,9 +791,6 @@ export default function CampagnesPage() {
         })}
       </div>
 
-      {/* Overige acties (TasksStrip): blijft voorlopig — Floris
-          beslist later hoe dit blok evolueert. */}
-      <TasksStrip />
     </div>
   );
 }
