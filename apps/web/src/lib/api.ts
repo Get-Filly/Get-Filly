@@ -2550,3 +2550,119 @@ export async function fetchGoogleProfileCompetitors(
   return res.json();
 }
 
+// ============================================================
+// Health-score (vindbaarheid: SEO + GBP + Reviews + GEO)
+// ============================================================
+//
+// Drie endpoints:
+//   - POST /health/run        , trigger nieuwe audit, returnt snapshot
+//   - GET  /health/latest     , laatste snapshot + findings + concurrenten
+//   - GET  /health/history    , laatste N snapshots zonder findings (trend)
+//
+// Types matchen 1:1 met apps/api/src/health/types.ts (camelCased).
+
+export type HealthCategory = "seo" | "gbp" | "reviews" | "geo";
+
+export type HealthSeverity =
+  | "info"
+  | "low"
+  | "medium"
+  | "high"
+  | "critical";
+
+export type HealthRunSource = "manual" | "cron" | "onboarding";
+
+export interface HealthFinding {
+  id: string;
+  healthScoreId: string;
+  restaurantId: string;
+  category: HealthCategory;
+  checkKey: string;
+  passed: boolean;
+  severity: HealthSeverity;
+  pointsLost: number;
+  title: string;
+  description: string | null;
+  fixSuggestion: string | null;
+  fixLink: string | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface HealthCompetitor {
+  id: string;
+  healthScoreId: string;
+  restaurantId: string;
+  placeId: string;
+  name: string;
+  distanceM: number;
+  scoreTotal: number | null;
+  scoreGbp: number | null;
+  scoreReviews: number | null;
+  rawData: Record<string, unknown> | null;
+  rankInRadius: number;
+}
+
+export interface HealthSnapshot {
+  id: string;
+  restaurantId: string;
+  scoreTotal: number;
+  scoreSeo: number;
+  scoreGbp: number;
+  scoreReviews: number;
+  scoreGeo: number;
+  ranAt: string;
+  runDurationMs: number | null;
+  runSource: HealthRunSource;
+  runnerVersion: string;
+}
+
+export interface HealthSnapshotFull extends HealthSnapshot {
+  findings: HealthFinding[];
+  competitors: HealthCompetitor[];
+}
+
+/** Start een nieuwe health-audit. Backend retourneert het complete snapshot. */
+export async function runHealthAudit(): Promise<HealthSnapshotFull> {
+  const res = await authedFetch(`${API_URL}/health/run`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Laatste snapshot of null als er nog nooit een audit is gedraaid. */
+export async function fetchHealthLatest(): Promise<HealthSnapshotFull | null> {
+  const res = await authedFetch(`${API_URL}/health/latest`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  // Backend kan letterlijk `null` returnen → JSON.parse maakt dat ook null.
+  return res.json();
+}
+
+/**
+ * Trend-data: laatste N snapshots (zonder findings/concurrenten).
+ * Default 12 ≈ 3 maanden wekelijks.
+ */
+export async function fetchHealthHistory(
+  limit: number = 12,
+): Promise<HealthSnapshot[]> {
+  const res = await authedFetch(
+    `${API_URL}/health/history?limit=${limit}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+

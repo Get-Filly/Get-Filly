@@ -73,12 +73,14 @@ const features: Feature[] = [
   },
   {
     key: "audit",
-    title: "Profiel-audit",
+    title: "Health-score",
     description:
-      "Filly checkt automatisch wat ontbreekt op je Google-profiel: foto's, openingstijden, beschrijving, attributen.",
+      "Compleet vindbaarheids-rapport: SEO van je website, kwaliteit van je Google Business Profile, reviews, AI-zichtbaarheid en concurrentie in 500m straal.",
     href: "/dashboard/google-business/audit",
-    status: "live-when-connected",
-    phaseLabel: "Beschikbaar na koppeling",
+    // SEO + GEO werken óók zonder GBP-koppeling, dus altijd klikbaar.
+    // GBP-checks tonen dan een fix-link naar Account → Koppelingen.
+    status: "live",
+    phaseLabel: "Beschikbaar",
   },
   {
     key: "benchmark",
