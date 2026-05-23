@@ -250,6 +250,8 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen)
 
 ### Database-migraties nog te maken
+- [x] ~~0044: identiteit-uitbreiding (8 nieuwe kolommen op restaurants)~~ (2026-05-21) — `location_description`, `keywords`, `default_hashtags`, `tone_of_voice`, `do_not_mention`, `brand_story`, `awards`, `target_audience_segments`. Voedt Filly's posts vanuit `/dashboard/vindbaarheid/identiteit`. Geen RLS-wijziging.
+- [x] ~~0043: pg_cron auto-archive verstreken campagnes~~ (2026-05-21) — dagelijks om 03:17 UTC zet status='afgerond' op campagnes met scheduled_for in het verleden. Frontend filtert óók read-time als safety-net.
 - [x] ~~0042: backfill `campaigns.ai_suggestion_id`~~ (2026-05-21) — historische campagnes hadden alleen `ai_suggestions.approved_campaign_id` ingevuld, niet de FK terug. Twee UPDATE-passes (anker + bundle-siblings via group_id) vullen het netjes in.
 - [x] ~~0041: `campaigns.variants` + `selected_variant_index`~~ (2026-05-21) — bron-van-waarheid voor versies-grid op unified detail-page. Backfill voor mail/social/whatsapp: huidige content = Versie 1, oude `filly_variants` worden Versie 2..N. Was niet eerder gedraaid → fix voor "selected_variant_index column not found"-error in Filly-chat goedkeuren-flow.
 - [x] ~~0040: `campaigns.deleted_at` (soft-delete)~~ (2026-05-12, commit `1df6037`) — `× Verwijderen` op concept-cards doet nu UPDATE deleted_at=NOW(); verwijderde campagnes komen terug in `/campagnes/history` onder de tab Verwijderd. Partial index op deleted_at IS NOT NULL.
@@ -325,8 +327,9 @@ werken. Laatste audit: 2026-04-30.
 
 ## ⏭️ Eerstvolgende open taken (begin volgende chat hier)
 
-Laatst bijgewerkt einde sessie 2026-05-21 (avond) — campagne-flow
-fixes + GBP-channel + sticky UI + landing-design pass.
+Laatst bijgewerkt einde sessie 2026-05-21 (laat) — Vindbaarheid-hub
++ Identiteit-verhuizing + auto-archive + restore-uit-historie +
+progress-checklists herschreven.
 
 **State op dit moment**:
 - Demo-account `floriskoevermans@outlook.com` met restaurant_id
@@ -493,6 +496,104 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-05-21 (laat) — Vindbaarheid-hub + Identiteit-verhuizing + progress-checklists
+
+Commit `64e9875`. Vindbaarheid is nu het knooppunt voor alle posts-input.
+
+**Verstreken campagnes auto naar historie** (item 2):
+- **Migratie 0043**: pg_cron-job `cleanup_expired_campaigns` dagelijks
+  03:17 UTC migreert non-afgeronde campagnes met `scheduled_for` in
+  het verleden naar `status='afgerond'`. SECURITY DEFINER + search_path,
+  idempotent re-runnable (drop+create job).
+- Frontend kanban `/campagnes` + history-page filteren ook read-time
+  (Array.isArray-safe + scheduled_for<nu) zodat de UI tussen cron-runs
+  consistent is. History-tab 'Afgerond' toont nu OOK verstreken-niet-
+  afgerond als safety-net.
+
+**Restore-uit-historie** (item 3):
+- Backend `POST /campaigns/:id/restore` + `restoreFromHistory()` met
+  validatie: status concept|ingepland|actief, scheduled_for in toekomst
+  (60-sec marge), bron is echt historie (status='afgerond' OR expired).
+  Bij restore: `executed_at` op null + audit-log met from/to-status.
+- Frontend `restoreCampaignFromHistory()` in api.ts.
+- History-pagina krijgt 'Terugzetten'-knop per Afgerond-rij + modal met
+  status-radios (concept/ingepland/actief, default ingepland) +
+  datetime-picker met min=nu.
+
+**Dagen filteren waar al voorstel/campagne staat** (item 1):
+- `UpcomingActionsBlock` fetcht nu ook `fetchSuggestions("pending")` +
+  `fetchCampaigns()`, bouwt `coveredDates`-Set van YYYY-MM-DD-strings
+  (target_date uit pending suggesties + scheduled_for date-portie uit
+  non-afgeronde campagnes) en filtert beide stroken + de popover.
+- Variabelnamen `redStrip`/`yellowStrip` hernoemd naar `occupancyStrip`/
+  `specialStrip` (legacy naming verwarde — beide stroken hebben al
+  dezelfde rode accent-streep).
+
+**Vindbaarheid-Identiteit verhuizing** (Floris-redesign):
+- **Migratie 0044**: 8 nieuwe kolommen op restaurants — `location_description`,
+  `keywords`, `default_hashtags`, `tone_of_voice`, `do_not_mention`,
+  `brand_story`, `awards`, `target_audience_segments`. Zod-schema in
+  `restaurant-update.schema.ts` uitgebreid.
+- Nieuwe pagina `/dashboard/vindbaarheid/identiteit` (route slug
+  google-business/identiteit voor backwards-compat) met 5 sub-tabs:
+  Basics / Toon / SEO / Menu / Online.
+- **Filly-analyse-banner** bovenaan Basics/Toon/SEO triggert bestaande
+  `analyzeRestaurantWebsite()` voor auto-invul. Disabled als website-URL
+  ontbreekt; geen valse dirty-state na analyse.
+- **Menu-tab**: `MenuPage` accepteert nu `embedded?: boolean`-prop —
+  bij true skip page-shell (page-full wrapper + PageHeader), upload-
+  acties inline boven menu-lijst. Identiteit-Menu-tab rendert
+  `<MenuPage embedded />` direct.
+- **Foto-bibliotheek + branding** verhuisd van Visueel-tab naar Basics-
+  tab (Visueel-tab vervallen). Logo + brand-kleuren inline-velden,
+  RestaurantMediaSection als embedded sectie.
+- Sidebar Menu-item weggehaald. Route `/dashboard/menu` blijft als
+  standalone bestaan voor deep-link-compat.
+
+**Account-page grote opruim**:
+- AccountTab: `algemeen | identiteit | koppelingen` → `algemeen |
+  koppelingen`. `?tab=identiteit` valt nu terug op Algemeen voor
+  bookmark-compat.
+- **445 regels weggehaald**: 5 sub-secties (foto-bibliotheek,
+  identiteit-velden, website, branding, social media, menu-link) +
+  dode helpers (`setBrandColor`, `handleAnalyzeWebsite`, `handleLogoUpload`,
+  `toneOptions`, `formatDate`) + ongebruikte imports.
+
+**Vindbaarheid-hub (`google-business/page.tsx`) cleanup**:
+- PageHeader-title `"Google Business Profile"` → `"Vindbaarheid"`,
+  subtitle weg.
+- Koppeling-status-banner + `GoogleConnectModal` verwijderd. De
+  koppeling beheert eigenaar nu uitsluitend via Account > Koppelingen
+  (item `google_business` in `account-connections.tsx` bestond al,
+  API-token-flow).
+- Feature-cards: emoji-icoon weggehaald, layout naar "titel links +
+  status-badge rechts".
+- Identiteit toegevoegd als EERSTE card.
+
+**Progress-checklists herschreven**:
+- Nieuwe gedeelde `<ProgressChecklist>` in `_components/`:
+  - Done items verdwijnen uit lijst (niet line-through)
+  - Max 4 open items zichtbaar + "Toon nog N items ↓"-knop
+  - Chevron-toggle voor inklappen (collapse-state in localStorage
+    per `collapseKey`) vervangt permanente dismiss-X
+  - Progress-bar altijd zichtbaar, ook bij ingeklapt
+  - Verdwijnt alleen bij 100% complete
+- `OnboardingChecklist` (account): 6 items → 4 items (logo + menu
+  weggevallen, hoorden naar Vindbaarheid).
+- `IdentiteitChecklist` per sub-tab: Basics (10 items), Toon (8 items),
+  SEO (2 items) met builders die kijken naar de mig-0044-velden.
+
+**TasksStrip "Overige acties"** vervangen door deze checklist-flow —
+was al verwijderd in commit `167c7ea` (eerder vandaag).
+
+**Emoji-cleanup**:
+- 8 feature-card-emoji's weg uit Vindbaarheid-hub.
+- ✨ + 📭 weg uit menu-suggestions empty-state.
+
+**Vereiste hand-actie**: migratie 0043 + 0044 SQL in Supabase
+draaien (beide al door Floris ge-run, bevestigd via "schaduled 3"-
+return van pg_cron + "heb hem gerund").
 
 ### 2026-05-21 (avond) — Campagne-flow fixes + GBP-channel + sticky UI
 
