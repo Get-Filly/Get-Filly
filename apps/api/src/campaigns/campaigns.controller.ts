@@ -339,6 +339,43 @@ export class CampaignsController {
   }
 
   // ============================================================
+  // POST /campaigns/:id/restore
+  // ============================================================
+  // Per 2026-05-21 (Floris-feedback): historie-campagnes terughalen
+  // naar de kanban met nieuwe datum. Validaties zitten in de service
+  // (status mag alleen concept/ingepland/actief, scheduled_for moet
+  // in de toekomst, bron-campagne moet daadwerkelijk in de historie
+  // zitten).
+  @Post(':id/restore')
+  restore(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() body: { status?: string; scheduled_for?: string },
+  ) {
+    const status = body.status;
+    if (
+      status !== 'concept' &&
+      status !== 'ingepland' &&
+      status !== 'actief'
+    ) {
+      throw new BadRequestException(
+        'Ongeldige status. Gebruik concept, ingepland of actief.',
+      );
+    }
+    if (!body.scheduled_for) {
+      throw new BadRequestException('Nieuwe datum ontbreekt in request.');
+    }
+    return this.campaigns.restoreFromHistory(
+      restaurantId,
+      id,
+      status,
+      body.scheduled_for,
+      user.id,
+    );
+  }
+
+  // ============================================================
   // POST /campaigns/:id/send
   // ============================================================
   // Verstuurt een mail-campagne via Resend. Twee modes:

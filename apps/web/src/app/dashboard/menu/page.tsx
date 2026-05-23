@@ -227,7 +227,16 @@ type UploadStage =
   | "done"
   | "error";
 
-export default function MenuPage() {
+// Per 2026-05-21: MenuPage accepteert nu een `embedded`-prop zodat
+// dezelfde component zowel als standalone-route (/dashboard/menu)
+// als embedded in /dashboard/vindbaarheid/identiteit?subtab=menu
+// gebruikt kan worden. Bij embedded=true skippen we de page-shell
+// (page-full wrapper + PageHeader met titel) zodat de identiteit-
+// pagina-header bovenaan blijft staan en de upload-actions in een
+// inline-rij verschijnen.
+type MenuPageProps = { embedded?: boolean };
+
+export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -638,39 +647,52 @@ export default function MenuPage() {
     </button>
   );
 
+  // Upload + add-actie-knoppen. Worden bij standalone-route in de
+  // PageHeader-rechts geplaatst, bij embedded in een inline-rij.
+  const headerActions = (
+    <>
+      {/* Header-knoppen tonen alléén het type kaart dat nog niet
+          actief is. Brand-soft-variant: licht-groen default,
+          donker-groen op hover (Floris-keuze 2026-05-12). */}
+      {!menuCard && (
+        <Button variant="brand-soft" onClick={() => openUpload("menu")}>
+          📄 Menu-kaart uploaden
+        </Button>
+      )}
+      {!drinksCard && (
+        <Button variant="brand-soft" onClick={() => openUpload("drinks")}>
+          🍷 Drankkaart uploaden
+        </Button>
+      )}
+      <Button variant="primary" onClick={openAdd}>
+        ＋ Gerecht toevoegen
+      </Button>
+    </>
+  );
+
+  // Wrapper-element: bij standalone gebruiken we .page-full voor
+  // padding + scroll. Bij embedded gewone <div> zodat de parent-
+  // pagina (Vindbaarheid > Identiteit > Menu-tab) z'n eigen
+  // padding/scroll-context behoudt.
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    embedded ? <div>{children}</div> : <div className="page-full">{children}</div>;
+
   return (
-    <div className="page-full">
-      {/* Titel-rij met primary-CTA rechts: "+ Gerecht toevoegen" is de
-          belangrijkste actie op deze pagina, altijd direct zichtbaar. */}
-      <PageHeader
-        title="Menu"
-        actions={
-          <>
-            {/* Header-knoppen tonen alléén het type kaart dat nog niet
-                actief is. Brand-soft-variant: licht-groen default,
-                donker-groen op hover (Floris-keuze 2026-05-12). */}
-            {!menuCard && (
-              <Button
-                variant="brand-soft"
-                onClick={() => openUpload("menu")}
-              >
-                📄 Menu-kaart uploaden
-              </Button>
-            )}
-            {!drinksCard && (
-              <Button
-                variant="brand-soft"
-                onClick={() => openUpload("drinks")}
-              >
-                🍷 Drankkaart uploaden
-              </Button>
-            )}
-            <Button variant="primary" onClick={openAdd}>
-              ＋ Gerecht toevoegen
-            </Button>
-          </>
-        }
-      />
+    <Wrapper>
+      {!embedded && <PageHeader title="Menu" actions={headerActions} />}
+      {embedded && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+            marginBottom: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          {headerActions}
+        </div>
+      )}
 
       {/* Status-banners voor actieve kaarten: één voor de menu-kaart,
           één voor de drankkaart. Beide tonen filename (klikbaar →
@@ -910,7 +932,7 @@ export default function MenuPage() {
           onClose={closeUpload}
         />
       )}
-    </div>
+    </Wrapper>
   );
 }
 

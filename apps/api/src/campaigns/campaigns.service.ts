@@ -837,6 +837,127 @@ export class CampaignsService {
     return { id, status: nextStatus };
   }
 
+  // ============================================================
+  // restoreFromHistory — campagne uit historie terughalen
+  // ============================================================
+  // Per 2026-05-21 (Floris-feedback): eigenaar moet een afgeronde
+  // OF verstreken-niet-afgeronde campagne kunnen terugzetten naar
+  // concept/ingepland/actief, MET een nieuwe datum die in de
+  // toekomst ligt.
+  //
+  // Verschilt van updateStatus (die werkt op transitie-tabel) op
+  // twee punten:
+  //   1. Bron-status mag 'afgerond' zijn of een willekeurige status
+  //      met scheduled_for < nu (= 'effectief verlopen').
+  //   2. scheduled_for wordt ALTIJD opnieuw gezet (verplicht), niet
+  //      optioneel zoals bij setSchedule.
+  //
+  // executed_at wordt expliciet op null gezet — anders denkt de
+  // backend later dat de campagne al een keer is afgevuurd, wat
+  // verwarring geeft in stats + retentie-analyse.
+  async restoreFromHistory(
+    restaurantId: string,
+    id: string,
+    nextStatus: 'concept' | 'ingepland' | 'actief',
+    scheduledFor: string,
+    userId: string,
+  ): Promise<{ id: string; status: CampaignStatus }> {
+    // Valideer status (overbodig met TS-typing, maar verdedigend
+    // voor de Body-payload die als string binnenkomt).
+    if (
+      nextStatus !== 'concept' &&
+      nextStatus !== 'ingepland' &&
+      nextStatus !== 'actief'
+    ) {
+      throw new BadRequestException(
+        'Ongeldige status. Gebruik concept, ingepland of actief.',
+      );
+    }
+
+    // Valideer datum — moet parsebaar zijn EN in de toekomst.
+    // We accepteren een marge van 60 sec (zodat de eigenaar op
+    // 17:00:00 klikt voor 17:00 vandaag en de submit-roundtrip
+    // niet alsnog op 'verleden' uitkomt).
+    const newSched = new Date(scheduledFor);
+    if (Number.isNaN(newSched.getTime())) {
+      throw new BadRequestException('Ongeldige datum-waarde.');
+    }
+    const minFuture = Date.now() - 60 * 1000;
+    if (newSched.getTime() < minFuture) {
+      throw new BadRequestException(
+        'Nieuwe datum moet in de toekomst liggen.',
+      );
+    }
+
+    // Haal de campagne op + verifieer dat hij in de historie hoort.
+    const { data: existing, error: fetchErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, status, scheduled_for, deleted_at')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (!existing) {
+      throw new BadRequestException('Campagne niet gevonden.');
+    }
+    if (existing.deleted_at) {
+      throw new BadRequestException(
+        'Verwijderde campagnes kunnen niet via deze flow teruggezet worden.',
+      );
+    }
+
+    // "In de historie" = status='afgerond' OF verstreken (scheduled_for
+    // < nu, ongeacht status). Anders zou eigenaar een lopende campagne
+    // via deze endpoint kunnen "resetten" — niet de bedoeling.
+    const isAfgerond = existing.status === 'afgerond';
+    const nowIso = new Date().toISOString();
+    const isExpired =
+      typeof existing.scheduled_for === 'string' &&
+      existing.scheduled_for < nowIso;
+    if (!isAfgerond && !isExpired) {
+      throw new BadRequestException(
+        'Deze campagne staat niet in de historie. Gebruik de gewone status-acties op /campagnes.',
+      );
+    }
+
+    const previousStatus = existing.status as CampaignStatus;
+    const previousSchedule = existing.scheduled_for;
+
+    const updates: Record<string, unknown> = {
+      status: nextStatus,
+      scheduled_for: newSched.toISOString(),
+      // Reset executed_at zodat retentie-stats + benchmarks niet
+      // doen alsof de campagne al gedraaid heeft.
+      executed_at: null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: updErr } = await this.supabase.client
+      .from('campaigns')
+      .update(updates)
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    if (updErr) throw new InternalServerErrorException(updErr.message);
+
+    // Audit: wie heeft een historie-campagne weer actief gemaakt?
+    // Verwarring later voorkomen ("dachten dat 'ie al klaar was").
+    await this.audit.log({
+      restaurantId,
+      userId,
+      action: 'campaign_restored_from_history',
+      entity_type: 'campaign',
+      entity_id: id,
+      payload: {
+        from_status: previousStatus,
+        to_status: nextStatus,
+        old_scheduled_for: previousSchedule,
+        new_scheduled_for: newSched.toISOString(),
+      },
+    });
+
+    return { id, status: nextStatus };
+  }
+
   // Lees de gecachte filly_variants + meta voor een concept-campagne.
   // Géén generatie: alleen retournering van wat al in DB staat. Wordt
   // door de frontend gebruikt bij page-open om te bepalen of we

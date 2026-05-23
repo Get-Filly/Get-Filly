@@ -492,10 +492,20 @@ export default function CampagnesPage() {
 
     // Campagne-kolommen: groepeer per group_id. Afgeronde campagnes
     // skippen (verhuisden naar /history-route).
+    //
+    // Per 2026-05-21: ook campagnes met scheduled_for < nu als
+    // 'verlopen' behandelen — die horen óók in history (zelfs als
+    // status nog op concept/ingepland/actief staat omdat pg_cron-job
+    // 0043 nog niet gedraaid heeft sinds verstrijken). Safety-net
+    // tegen de gap tussen verstrijken en nightly cleanup.
+    const nowIso = new Date().toISOString();
+    const isExpired = (c: Campaign) =>
+      typeof c.scheduled_for === "string" && c.scheduled_for < nowIso;
     const byGroup = new Map<string, Campaign[]>();
     const standalone: Campaign[] = [];
     for (const c of campaigns) {
       if (c.status === "afgerond") continue;
+      if (isExpired(c)) continue;
       if (c.group_id) {
         const arr = byGroup.get(c.group_id) ?? [];
         arr.push(c);

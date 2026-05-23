@@ -54,7 +54,10 @@ const allMenuItems: MenuItem[] = [
   // Gasten-pagina uit sidebar verwijderd 2026-05-12: gast-info zit
   // nu inline in elke reservering-rij (totaal bezoeken, laatste
   // bezoek). Route /dashboard/gasten blijft bestaan voor deep-links.
-  { href: "/dashboard/menu", label: "Menu", module: "menu", icon: "🍽️" },
+  // Menu-pagina uit sidebar verwijderd 2026-05-21: menu-beheer is
+  // verplaatst naar Vindbaarheid → Identiteit (Menu-subtab), waar
+  // het samen met andere identiteit-velden zit die Filly gebruikt
+  // voor posts. Route /dashboard/menu blijft bestaan voor deep-links.
   { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: "📈" },
   // Koppelingen-hub uit sidebar verwijderd 2026-05-12: alle integraties
   // zitten nu in account → Profiel → Koppelingen-tab. Route

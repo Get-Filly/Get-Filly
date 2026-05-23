@@ -5,79 +5,48 @@
 // ============================================================
 // Wordt op de account-pagina ingehangen (bovenaan, onder de
 // page-subtitle). De meeste items linken naar diezelfde pagina,
-// dus de checklist staat letterlijk naast het invul-werk. Bewust
-// NIET op het dashboard zelf, daar leidt 'ie alleen maar af van
-// de echte content (KPI's, kalender, AI-assistent).
+// dus de checklist staat letterlijk naast het invul-werk.
 //
-// Items die op ✓ staan vervagen; items op ○ blijven prominent
-// zichtbaar met een rechtstreekse link naar de plek waar je ze
-// invult.
+// Per 2026-05-21 (Floris-feedback): UI/UX is verhuisd naar de
+// gedeelde <ProgressChecklist /> zodat account + Vindbaarheid
+// dezelfde look hebben. Dismiss-flag is vervangen door collapse-
+// flag: eigenaar kan 'm inklappen maar niet meer permanent
+// wegklikken. Pas bij 100% verdwijnt de hele checklist vanzelf.
 //
-// Render-logica:
-//   - Geen data binnen → niets renderen (vermijdt flash bij load)
-//   - Alle items ✓ → niets renderen (verbergt zich vanzelf)
-//   - Eerder weggeklikt → niets renderen (localStorage-flag)
-//   - Anders: progress-bar + lijst + ✕-dismiss-knop
-//
-// Dismiss is per-browser via localStorage. Bewust geen DB-veld
-// zodat we geen migratie nodig hebben en dismiss niet over
-// devices heen kruipt, als je 'm op je werk-laptop wegklikt
-// blijft 'ie op je telefoon nog zichtbaar (handig: dubbele kans
-// om te zien dat er nog wat openstaat).
-//
-// Aanvullende items toevoegen in de toekomst:
-//   - Voeg een entry toe aan `buildChecklist`. Geen state, geen
-//     extra fetch nodig zolang het uit Restaurant + menu + campagnes
-//     af te leiden is.
-// ============================================================
+// Items die op /vindbaarheid/identiteit thuishoren (logo + menu
+// + identiteit-velden) zijn weggevallen — die staan nu daar in
+// hun eigen per-tab checklist.
 
-// localStorage-key. Bump het versie-suffix als je de items zo
-// drastisch wijzigt dat eerdere dismiss-keuzes niet meer passen
-// (bv. een belangrijk nieuw item toegevoegd), bestaande users
-// krijgen dan opnieuw de checklist te zien.
-const DISMISS_KEY = "getfilly_onboarding_checklist_dismissed_v1";
-
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import {
   fetchCampaigns,
-  fetchMenu,
   fetchRestaurant,
   type Restaurant,
 } from "../../../lib/api";
-
-type ChecklistItem = {
-  id: string;
-  label: string;
-  hint: string;
-  href: string;
-  done: boolean;
-};
+import {
+  ProgressChecklist,
+  type ProgressChecklistItem,
+} from "./progress-checklist";
 
 function buildChecklist(
   restaurant: Restaurant,
-  menuCount: number,
   campaignCount: number,
-): ChecklistItem[] {
-  // Profielbasis: minimum dat Filly nodig heeft voor ZINVOLLE
-  // voorstellen. Mist één van deze velden, dan zijn campagne-
-  // suggesties oppervlakkig of generiek.
+): ProgressChecklistItem[] {
+  // Per 2026-05-21: alleen items die nog ONDER Account vallen.
+  // Logo + menukaart + identiteit-velden zijn verhuisd naar
+  // /dashboard/vindbaarheid/identiteit en krijgen daar hun eigen
+  // checklist per sub-tab.
   const profileBasicsDone =
     !!restaurant.name &&
     !!restaurant.type &&
     !!restaurant.address &&
     !!restaurant.postal_code &&
     !!restaurant.city &&
-    Array.isArray(restaurant.cuisine_style) &&
-    restaurant.cuisine_style.length > 0 &&
     restaurant.capacity_seats != null;
 
   const openingHoursDone =
     restaurant.opening_hours != null &&
     Object.keys(restaurant.opening_hours).length > 0;
-
-  const logoDone = !!restaurant.logo_url;
 
   // KvK + legal_name samen, handig voor mailings en verplicht
   // op verloop voor verzonden marketing-uitingen.
@@ -87,7 +56,7 @@ function buildChecklist(
   return [
     {
       id: "profile",
-      label: "Profielbasis: type, keuken, adres en capaciteit",
+      label: "Profielbasis: type, adres en capaciteit",
       hint: "Zonder dit kan Filly geen voorstellen op maat doen.",
       href: "/dashboard/account",
       done: profileBasicsDone,
@@ -98,20 +67,6 @@ function buildChecklist(
       hint: "Voorkomt dat Filly mailings verstuurt op gesloten dagen.",
       href: "/dashboard/account",
       done: openingHoursDone,
-    },
-    {
-      id: "logo",
-      label: "Logo uploaden",
-      hint: "Verschijnt in mail-headers en social-previews.",
-      href: "/dashboard/account",
-      done: logoDone,
-    },
-    {
-      id: "menu",
-      label: "Menukaart toevoegen of importeren",
-      hint: "Filly leert je gerechten kennen en kan ze in campagnes noemen.",
-      href: "/dashboard/menu",
-      done: menuCount > 0,
     },
     {
       id: "campaign",
@@ -131,28 +86,14 @@ function buildChecklist(
 }
 
 export function OnboardingChecklist() {
-  const [items, setItems] = useState<ChecklistItem[] | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [items, setItems] = useState<ProgressChecklistItem[] | null>(null);
 
   useEffect(() => {
-    // Eerst dismiss-keuze uit localStorage lezen, als die er is,
-    // hoeven we niet eens de fetches te doen. localStorage bestaat
-    // alleen client-side; SSR-veilig met try-catch.
-    try {
-      if (localStorage.getItem(DISMISS_KEY) === "true") {
-        setDismissed(true);
-        return;
-      }
-    } catch {
-      // localStorage geblokkeerd (privacy-mode, embedded webview):
-      // gewoon doorgaan alsof er geen dismiss is.
-    }
-
-    // Drie endpoints parallel; allemaal endpoints die de account-
+    // Twee endpoints parallel; beide endpoints die de account-
     // pagina toch al kent (geen extra fetch-load voor de klant).
-    Promise.all([fetchRestaurant(), fetchMenu(), fetchCampaigns()])
-      .then(([restaurant, menu, campaigns]) => {
-        setItems(buildChecklist(restaurant, menu.length, campaigns.length));
+    Promise.all([fetchRestaurant(), fetchCampaigns()])
+      .then(([restaurant, campaigns]) => {
+        setItems(buildChecklist(restaurant, campaigns.length));
       })
       .catch(() => {
         // Fail-soft: bij fout verbergt de checklist zich. De pagina
@@ -161,209 +102,14 @@ export function OnboardingChecklist() {
       });
   }, []);
 
-  function handleDismiss() {
-    try {
-      localStorage.setItem(DISMISS_KEY, "true");
-    } catch {
-      // localStorage niet beschikbaar, dan dismist 'ie alleen voor
-      // deze sessie (in-memory state). Niet ideaal maar acceptabel.
-    }
-    setDismissed(true);
-  }
-
-  // Niets renderen tot data binnen is, voorkomt flash bij load.
-  if (dismissed) return null;
   if (!items) return null;
 
-  const doneCount = items.filter((i) => i.done).length;
-  const total = items.length;
-
-  // Alles klaar? Component verbergt zichzelf voor altijd.
-  if (doneCount === total) return null;
-
-  const percent = Math.round((doneCount / total) * 100);
-
   return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius)",
-        padding: 20,
-        marginBottom: 16,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 6,
-        }}
-      >
-        <div
-          style={{
-            fontWeight: 600,
-            color: "var(--accent-dark)",
-            fontSize: 14,
-          }}
-        >
-          Filly aan het werk zetten
-          <span
-            style={{
-              fontSize: 12,
-              color: "var(--text-secondary)",
-              fontWeight: 500,
-              fontVariantNumeric: "tabular-nums",
-              marginLeft: 8,
-            }}
-          >
-            · {doneCount} van {total} klaar
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleDismiss}
-          title="Checklist verbergen"
-          aria-label="Checklist verbergen"
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--color-text-disabled)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 4,
-            borderRadius: "var(--radius-sm)",
-          }}
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div
-        style={{
-          fontSize: 12,
-          color: "var(--text-secondary)",
-          marginBottom: 12,
-        }}
-      >
-        Vink deze setup-stappen af zodat Filly betere voorstellen kan
-        doen. De lijst verdwijnt vanzelf zodra alles ✓ is.
-      </div>
-
-      {/* Progress-bar */}
-      <div
-        style={{
-          height: 6,
-          background: "var(--border)",
-          borderRadius: 999,
-          overflow: "hidden",
-          marginBottom: 16,
-        }}
-      >
-        <div
-          style={{
-            width: `${percent}%`,
-            height: "100%",
-            background: "var(--accent)",
-            transition: "width 0.4s ease",
-          }}
-        />
-      </div>
-
-      {/* Items */}
-      <ul
-        style={{
-          listStyle: "none",
-          padding: 0,
-          margin: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        {items.map((item) => (
-          <li
-            key={item.id}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 12,
-              padding: "10px 12px",
-              background: "var(--white)",
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--border-soft)",
-              opacity: item.done ? 0.55 : 1,
-            }}
-          >
-            <div
-              aria-hidden
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                flexShrink: 0,
-                marginTop: 2,
-                background: item.done ? "var(--green)" : "var(--bg)",
-                border: item.done
-                  ? "1px solid var(--green)"
-                  : "1px solid var(--border)",
-                color: "var(--white)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              {item.done ? "✓" : ""}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: item.done
-                    ? "var(--text-secondary)"
-                    : "var(--text)",
-                  textDecoration: item.done ? "line-through" : "none",
-                }}
-              >
-                {item.label}
-              </div>
-              {!item.done && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-secondary)",
-                    marginTop: 2,
-                  }}
-                >
-                  {item.hint}
-                </div>
-              )}
-            </div>
-            {!item.done && (
-              <Link
-                href={item.href}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--accent)",
-                  textDecoration: "none",
-                  flexShrink: 0,
-                  alignSelf: "center",
-                }}
-              >
-                Instellen →
-              </Link>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ProgressChecklist
+      title="Filly aan het werk zetten"
+      hint="Vink deze setup-stappen af zodat Filly betere voorstellen kan doen. De lijst verdwijnt vanzelf zodra alles ✓ is."
+      items={items}
+      collapseKey="getfilly_onboarding_checklist_collapsed_v1"
+    />
   );
 }

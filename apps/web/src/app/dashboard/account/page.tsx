@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   fetchRestaurant,
   updateRestaurant,
-  analyzeRestaurantWebsite,
   downloadRestaurantExport,
   deleteAccount,
   type Restaurant,
@@ -20,7 +18,7 @@ import { Button } from "../../../components/ui/button";
 import { ButtonLink } from "../../../components/ui/button-link";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
-import { Input, Textarea } from "../../../components/ui/input";
+import { Input } from "../../../components/ui/input";
 import { ServicePeriodsEditor } from "../../../components/service-periods-editor";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
@@ -28,7 +26,12 @@ type SaveStatus = "idle" | "saving" | "success" | "error";
 // Sub-tabs binnen account/Profiel (Floris-redesign 2026-05-12).
 // 3 tabs: Algemeen / Identiteit / Koppelingen. URL-gedreven via
 // `?tab=identiteit` zodat refresh stabiel is en de tab deelbaar.
-type AccountTab = "algemeen" | "identiteit" | "koppelingen";
+// Per 2026-05-21: "identiteit" verwijderd uit AccountTab. Alle
+// identiteit-velden (tagline, beschrijving, doelgroep, sfeer,
+// USPs, foto-bibliotheek, branding, website, social handles) zijn
+// verhuisd naar /dashboard/vindbaarheid/identiteit waar ze
+// inhoudelijk thuishoren — Filly's posts baseren zich erop.
+type AccountTab = "algemeen" | "koppelingen";
 
 const restaurantTypes = [
   "bistro",
@@ -38,12 +41,6 @@ const restaurantTypes = [
   "café",
   "gastropub",
   "other",
-];
-
-const toneOptions: Restaurant["brand_tone"][] = [
-  "casual",
-  "professional",
-  "playful",
 ];
 
 // Multi-select chip-opties voor talen die het personeel spreekt.
@@ -58,17 +55,6 @@ const LANGUAGE_OPTIONS: { code: string; label: string }[] = [
   { code: "it", label: "Italiaans" },
 ];
 
-function formatDate(d: string | null): string {
-  if (!d) return "—";
-  return new Date(d).toLocaleString("nl-NL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 // Next.js 15+: elke client-component die `useSearchParams()` gebruikt
 // moet in een <Suspense>-boundary staan, anders weigert de production-
 // build te prerenderen (CSR-bailout-error). Vandaar de splitsing:
@@ -79,8 +65,6 @@ function AccountPageInner() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   // Account-delete-modal-state. Modal verschijnt pas als gebruiker
@@ -95,17 +79,17 @@ function AccountPageInner() {
   // ============================================================
   // Sub-tabs binnen account/Profiel (Floris-redesign 2026-05-12)
   // ============================================================
-  // 3 tabs: Algemeen / Identiteit / Koppelingen. URL-gedreven via
-  // `?tab=...` zodat refresh stabiel is en de tab deelbaar is via
-  // link (bv. een mail-link "klik hier voor je koppelingen").
+  // 2 tabs: Algemeen / Koppelingen. Identiteit-tab is per 2026-05-21
+  // verhuisd naar /dashboard/vindbaarheid/identiteit; ?tab=identiteit
+  // valt nu terug op Algemeen (oude bookmarks blijven werken zonder
+  // 404, eigenaar ziet wel z'n algemene gegevens en kan via sidebar
+  // naar Vindbaarheid > Identiteit voor de Filly-content).
   // BELANGRIJK: hooks moeten vóór de early returns (loading/error)
   // anders verspringt de hook-volgorde tussen renders.
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const initialTab: AccountTab =
-    tabParam === "identiteit" || tabParam === "koppelingen"
-      ? tabParam
-      : "algemeen";
+    tabParam === "koppelingen" ? "koppelingen" : "algemeen";
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   // URL bijwerken zonder full reload bij tab-wissel.
   const switchTab = (next: AccountTab) => {
@@ -169,74 +153,6 @@ function AccountPageInner() {
     }
   };
 
-  // Logo-upload via de restaurant-assets storage bucket. Direct van
-  // client → Supabase Storage (RLS-policies staan dat toe sinds migratie
-  // 0003). Na upload halen we de public URL op en slaan die direct in
-  // de DB op zodat we 'm niet kwijtraken bij een verkeerde "Annuleer".
-  const handleLogoUpload = async (file: File) => {
-    setUploadingLogo(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `logos/${form.id}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("restaurant-assets")
-        .upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("restaurant-assets").getPublicUrl(path);
-
-      const updated = await updateRestaurant({ logo_url: publicUrl });
-      setForm(updated);
-      setSaveMessage("Logo geüpload ✓");
-      setSaveStatus("success");
-      setTimeout(() => setSaveStatus("idle"), 2500);
-    } catch (e) {
-      setSaveStatus("error");
-      setSaveMessage(`Logo-upload mislukt: ${(e as Error).message}`);
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  // Website-analyse handmatig triggeren. Bevestigt eerst dat de eigenaar
-  // weet dat z'n bestaande tagline/sfeer/USPs overschreven worden, Filly
-  // schrijft alleen velden waar hij wat over vond, maar als je een
-  // tagline al goed had vinden we belangrijk dat je 't expliciet wilt.
-  const handleAnalyzeWebsite = async () => {
-    if (!form.website_url || !form.website_url.trim()) {
-      setSaveStatus("error");
-      setSaveMessage(
-        "Vul eerst een website-URL in en sla op voordat je laat analyseren.",
-      );
-      return;
-    }
-    const ok = window.confirm(
-      `Filly leest je website (${form.website_url}) en vult automatisch ` +
-        `tagline, sfeer, doelgroep, USPs, signature dishes en socials in.\n\n` +
-        `Bestaande velden die nu al ingevuld zijn worden overschreven ` +
-        `als Filly nieuwe info vindt. Doorgaan?`,
-    );
-    if (!ok) return;
-
-    setAnalyzing(true);
-    setSaveStatus("saving");
-    setSaveMessage("Filly analyseert je website (kan 10-20 sec duren)…");
-    try {
-      const updated = await analyzeRestaurantWebsite();
-      setForm(updated);
-      setSaveStatus("success");
-      setSaveMessage("Website geanalyseerd ✓, bekijk en pas zo nodig aan.");
-      setTimeout(() => setSaveStatus("idle"), 4000);
-    } catch (e) {
-      setSaveStatus("error");
-      setSaveMessage(`Website-analyse mislukt: ${(e as Error).message}`);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
   // Sluitingsdata-helpers. closed_dates is text[] (ISO YYYY-MM-DD).
   const addClosedDate = (iso: string) => {
     if (!iso) return;
@@ -261,12 +177,6 @@ function AccountPageInner() {
       ? current.filter((c) => c !== code)
       : [...current, code];
     update("languages_spoken", next);
-  };
-
-  // Brand-color setter, schrijft naar brand_colors.{primary|secondary}.
-  const setBrandColor = (key: "primary" | "secondary", value: string) => {
-    const current = form.brand_colors ?? {};
-    update("brand_colors", { ...current, [key]: value });
   };
 
   // Terras-zon-toggle (chip-stijl). Werkt alleen als has_terrace=true;
@@ -299,7 +209,6 @@ function AccountPageInner() {
         {(
           [
             { key: "algemeen", label: "Algemeen" },
-            { key: "identiteit", label: "Identiteit" },
             { key: "koppelingen", label: "Koppelingen" },
           ] as Array<{ key: AccountTab; label: string }>
         ).map(({ key, label }) => {
@@ -453,152 +362,13 @@ function AccountPageInner() {
           form-state-blok van deze pagina. */}
       {activeTab === "koppelingen" && <MailDomainSection />}
 
-      {/* ============================================================
-          Sectie 1c, Foto-bibliotheek — IDENTITEIT
-          ============================================================
-          Eigen state-management (upload/list/delete via REST). Filly
-          gebruikt deze foto's bij campagne-suggesties. */}
-      {activeTab === "identiteit" && <RestaurantMediaSection />}
+      {/* Foto-bibliotheek + Identiteit-velden (tagline, beschrijving,
+          doelgroep, sfeer, USPs, special_events, signature_dishes) zijn
+          per 2026-05-21 verhuisd naar /dashboard/vindbaarheid/identiteit
+          (Basics-tab voor foto-bibliotheek, Basics + Toon voor de velden). */}
+      {/* Sectie 'Identiteit' verhuisd naar /dashboard/vindbaarheid/identiteit (2026-05-21). */}
 
-      {/* ============================================================
-          Sectie 2, Identiteit — IDENTITEIT
-          ============================================================ */}
-      {activeTab === "identiteit" && (
-      <div className="form-section">
-        <div className="form-section-title">Identiteit</div>
-        <div className="form-section-desc">
-          Wie ben je als restaurant? Filly leest dit voor toon, sfeer en
-          doelgroep-aanpak.
-        </div>
-        <div className="form-grid">
-          <Input
-            full
-            label="Tagline (1 zin)"
-            type="text"
-            value={form.tagline ?? ""}
-            onChange={(e) => update("tagline", e.target.value || null)}
-            placeholder="Gezellige buurtbistro in hart van Amsterdam"
-          />
-          <Textarea
-            full
-            label="Volledige beschrijving"
-            value={form.description ?? ""}
-            onChange={(e) => update("description", e.target.value || null)}
-            placeholder="Vertel uitgebreid over je restaurant, geschiedenis, filosofie, waar je trots op bent..."
-            rows={4}
-          />
-          <Textarea
-            full
-            label="Doelgroep"
-            value={form.target_audience ?? ""}
-            onChange={(e) =>
-              update("target_audience", e.target.value || null)
-            }
-            placeholder="Lokale bewoners, professionals op lunch, families in het weekend..."
-            rows={2}
-          />
-          <Textarea
-            full
-            label="Sfeer & interieur"
-            value={form.atmosphere ?? ""}
-            onChange={(e) => update("atmosphere", e.target.value || null)}
-            placeholder="Warm, intiem, houten interieur, zacht jazzmuziek..."
-            rows={2}
-          />
-          <Textarea
-            full
-            label="Unique selling points"
-            value={form.unique_selling_points ?? ""}
-            onChange={(e) =>
-              update("unique_selling_points", e.target.value || null)
-            }
-            placeholder="Wat maakt jou anders? Bv: eigen kruidentuin, open keuken, wekelijks wisselend menu..."
-            rows={2}
-          />
-          <Textarea
-            full
-            label="Speciale gelegenheden & events"
-            value={form.special_events ?? ""}
-            onChange={(e) =>
-              update("special_events", e.target.value || null)
-            }
-            placeholder="Verjaardagen, bedrijfslunches, trouwdiners, privéruimte tot X personen..."
-            rows={2}
-          />
-          <Input
-            full
-            label="Signature dishes"
-            type="text"
-            value={(form.signature_dishes ?? []).join(", ")}
-            onChange={(e) =>
-              update(
-                "signature_dishes",
-                e.target.value
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              )
-            }
-            placeholder="Kalfsstoof, Zeebaars met lenteuitjes"
-            hint="Komma-gescheiden. Filly gebruikt deze in campagne-teksten."
-          />
-        </div>
-      </div>
-      )}
-
-      {/* ============================================================
-          Sectie 3, Website — IDENTITEIT
-          ============================================================ */}
-      {activeTab === "identiteit" && (
-      <div className="form-section">
-        <div className="form-section-title">Website, Filly leest mee</div>
-        <div className="form-section-desc">
-          Geef je website-URL en laat Filly hem analyseren. Hij haalt tone,
-          positionering en aanbod op en gebruikt dat overal in campagnes.
-        </div>
-        <div className="form-grid">
-          <Input
-            full
-            label="Website URL"
-            type="url"
-            value={form.website_url ?? ""}
-            onChange={(e) => update("website_url", e.target.value || null)}
-            placeholder="https://jouwrestaurant.nl"
-          />
-          <div className="form-field full">
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Button
-                variant="primary"
-                loading={analyzing}
-                disabled={!form.website_url}
-                onClick={handleAnalyzeWebsite}
-                title={
-                  !form.website_url
-                    ? "Vul eerst een website-URL in en sla op."
-                    : "Filly leest de website en vult tagline/sfeer/USPs in."
-                }
-              >
-                Analyseer website
-              </Button>
-              <span style={{ fontSize: 12, color: "var(--tl)" }}>
-                Laatste analyse: {formatDate(form.website_last_analyzed_at)}
-              </span>
-            </div>
-          </div>
-          <Textarea
-            full
-            label="Samenvatting (door Filly)"
-            value={form.website_summary ?? ""}
-            onChange={(e) =>
-              update("website_summary", e.target.value || null)
-            }
-            placeholder="Wordt automatisch gevuld na website-analyse. Je kunt daarna zelf aanpassen."
-            rows={4}
-            hint="Deze samenvatting wordt onderdeel van de context die Filly bij iedere campagne meekrijgt."
-          />
-        </div>
-      </div>
-      )}
+      {/* Sectie 'Website + Filly-analyse' verhuisd naar /dashboard/vindbaarheid/identiteit (2026-05-21). */}
 
       {/* ============================================================
           Sectie 4, Locatie — ALGEMEEN
@@ -988,209 +758,9 @@ function AccountPageInner() {
       </div>
       )}
 
-      {/* ============================================================
-          Sectie 9, Branding — IDENTITEIT
-          ============================================================ */}
-      {activeTab === "identiteit" && (
-      <div className="form-section">
-        <div className="form-section-title">Branding</div>
-        <div className="form-section-desc">
-          Logo en huiskleuren voor in mail-templates en campagne-grafiek.
-        </div>
-        <div className="form-grid">
-          <div className="form-field full">
-            <label>Logo</label>
-            <div
-              style={{ display: "flex", alignItems: "center", gap: 16 }}
-            >
-              {form.logo_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={form.logo_url}
-                  alt="Logo"
-                  style={{
-                    width: 64,
-                    height: 64,
-                    objectFit: "contain",
-                    borderRadius: 8,
-                    border: "1px solid var(--border, #E5DFD0)",
-                    background: "var(--bg, #FAF7F1)",
-                    padding: 6,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 8,
-                    border: "1px dashed var(--border, #E5DFD0)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--tl)",
-                    fontSize: 11,
-                    textAlign: "center",
-                    padding: 4,
-                  }}
-                >
-                  Geen logo
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void handleLogoUpload(f);
-                }}
-                disabled={uploadingLogo}
-              />
-            </div>
-            <div className="hint">
-              {uploadingLogo
-                ? "Uploaden…"
-                : "PNG, JPG, WebP of SVG. Bij voorkeur transparante achtergrond."}
-            </div>
-          </div>
+      {/* Sectie 'Branding' verhuisd naar /dashboard/vindbaarheid/identiteit (2026-05-21). */}
 
-          <div className="form-field">
-            <label>Primaire kleur</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="color"
-                value={form.brand_colors?.primary ?? "#1F4A2D"}
-                onChange={(e) => setBrandColor("primary", e.target.value)}
-                style={{
-                  width: 48,
-                  height: 36,
-                  padding: 2,
-                  border: "1px solid var(--border, #E5DFD0)",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                }}
-              />
-              <input
-                type="text"
-                value={form.brand_colors?.primary ?? ""}
-                onChange={(e) => setBrandColor("primary", e.target.value)}
-                placeholder="#1F4A2D"
-                style={{ flex: 1, fontFamily: "monospace" }}
-              />
-            </div>
-          </div>
-
-          <div className="form-field">
-            <label>Secundaire kleur</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="color"
-                value={form.brand_colors?.secondary ?? "#FAF7F1"}
-                onChange={(e) => setBrandColor("secondary", e.target.value)}
-                style={{
-                  width: 48,
-                  height: 36,
-                  padding: 2,
-                  border: "1px solid var(--border, #E5DFD0)",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                }}
-              />
-              <input
-                type="text"
-                value={form.brand_colors?.secondary ?? ""}
-                onChange={(e) => setBrandColor("secondary", e.target.value)}
-                placeholder="#FAF7F1"
-                style={{ flex: 1, fontFamily: "monospace" }}
-              />
-            </div>
-          </div>
-
-          <div className="form-field full">
-            <label>Tone of voice</label>
-            <select
-              value={form.brand_tone}
-              onChange={(e) =>
-                update("brand_tone", e.target.value as Restaurant["brand_tone"])
-              }
-            >
-              {toneOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </option>
-              ))}
-            </select>
-            <div className="hint">
-              Bepaalt hoe Filly schrijft in mailings, social posts en
-              review-antwoorden.
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
-
-      {/* ============================================================
-          Sectie 10, Social media — IDENTITEIT
-          ============================================================ */}
-      {activeTab === "identiteit" && (
-      <div className="form-section">
-        <div className="form-section-title">Social media</div>
-        <div className="form-section-desc">
-          Vul je handles in. Filly verwerkt deze in social-campagnes en mail-
-          footers.
-        </div>
-        <div className="form-grid">
-          <Input
-            label="Instagram"
-            type="text"
-            value={form.social_media?.instagram ?? ""}
-            onChange={(e) =>
-              update("social_media", {
-                ...(form.social_media ?? {}),
-                instagram: e.target.value,
-              })
-            }
-            placeholder="@restaurantnaam"
-          />
-          <Input
-            label="Facebook"
-            type="text"
-            value={form.social_media?.facebook ?? ""}
-            onChange={(e) =>
-              update("social_media", {
-                ...(form.social_media ?? {}),
-                facebook: e.target.value,
-              })
-            }
-            placeholder="restaurantnaam"
-          />
-          <Input
-            label="TikTok"
-            type="text"
-            value={form.social_media?.tiktok ?? ""}
-            onChange={(e) =>
-              update("social_media", {
-                ...(form.social_media ?? {}),
-                tiktok: e.target.value,
-              })
-            }
-            placeholder="@restaurantnaam"
-          />
-          <Input
-            label="LinkedIn"
-            type="text"
-            value={form.social_media?.linkedin ?? ""}
-            onChange={(e) =>
-              update("social_media", {
-                ...(form.social_media ?? {}),
-                linkedin: e.target.value,
-              })
-            }
-            placeholder="restaurant-naam"
-          />
-        </div>
-      </div>
-      )}
+      {/* Sectie 'Social media' verhuisd naar /dashboard/vindbaarheid/identiteit (2026-05-21). */}
 
       {/* ============================================================
           Sectie 11, Bedrijfsgegevens — ALGEMEEN
@@ -1389,22 +959,7 @@ function AccountPageInner() {
       </div>
       )}
 
-      {/* ============================================================
-          Sectie 13, Menukaart — IDENTITEIT
-          ============================================================ */}
-      {activeTab === "identiteit" && (
-      <div className="form-section">
-        <div className="form-section-title">Menukaart</div>
-        <div className="form-section-desc">
-          Beheer alle gerechten + de menukaart-upload op de menu-pagina.
-        </div>
-        <div className="form-field full">
-          <ButtonLink href="/dashboard/menu" variant="secondary">
-            🍽️ Open menu-pagina →
-          </ButtonLink>
-        </div>
-      </div>
-      )}
+      {/* Sectie 'Menukaart' verhuisd naar /dashboard/vindbaarheid/identiteit (2026-05-21). */}
 
       {/* ============================================================
           Sectie 14, Abonnement — ALGEMEEN

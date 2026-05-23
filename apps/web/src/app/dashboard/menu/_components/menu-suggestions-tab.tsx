@@ -197,7 +197,6 @@ export function MenuSuggestionsTab({
         </div>
       ) : items.length === 0 ? (
         <EmptyState
-          icon={mode === "pending" ? "✨" : "📭"}
           title={
             mode === "pending"
               ? "Nog geen voorstellen"

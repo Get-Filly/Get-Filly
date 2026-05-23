@@ -430,6 +430,32 @@ export async function setCampaignSchedule(
   return res.json();
 }
 
+// Per 2026-05-21: historie-campagne terugzetten naar de kanban met
+// nieuwe datum. Validatie zit aan de backend-kant (status-keuze,
+// toekomst-check, bron-campagne is echt historie).
+export async function restoreCampaignFromHistory(
+  campaignId: string,
+  newStatus: "concept" | "ingepland" | "actief",
+  scheduledForIso: string,
+): Promise<{ id: string; status: CampaignStatus }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/restore`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: newStatus,
+        scheduled_for: scheduledForIso,
+      }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Verwijder huidige foto van een concept-campagne (storage + DB-veld).
 export async function deleteCampaignMedia(
   campaignId: string,
@@ -797,6 +823,18 @@ export type Restaurant = {
   // Range 10-100, default 50 (sinds mig 0037).
   low_occupancy_threshold: number;
   plan: "starter" | "pro" | "enterprise";
+  // ----- Identiteit uitbreiding (mig 0044, 2026-05-21) -----
+  // Bron-van-waarheid voor Filly's posts. Verhuist samen met de andere
+  // identiteit-velden naar /dashboard/vindbaarheid/identiteit (was
+  // /dashboard/account?tab=identiteit).
+  location_description: string | null;
+  keywords: string[] | null;
+  default_hashtags: string[] | null;
+  tone_of_voice: string | null;
+  do_not_mention: string | null;
+  brand_story: string | null;
+  awards: string[] | null;
+  target_audience_segments: string[] | null;
 };
 
 export async function fetchRestaurant(): Promise<Restaurant> {

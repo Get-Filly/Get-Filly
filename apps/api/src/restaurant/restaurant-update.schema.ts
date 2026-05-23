@@ -156,6 +156,18 @@ export const RestaurantUpdateSchema = z
     special_events: optionalText(1000),
     signature_dishes: optionalStringArray(20, 100),
 
+    // ----- Identiteit uitbreiding (mig 0044, 2026-05-21) -----
+    // Bron-van-waarheid voor Filly's posts. Onderverdeeld in toon,
+    // SEO en sociale-proof zodat de prompts gerichter kunnen putten.
+    location_description: optionalText(1000),
+    keywords: optionalStringArray(30, 60),
+    default_hashtags: optionalStringArray(20, 50),
+    tone_of_voice: optionalText(500),
+    do_not_mention: optionalText(1000),
+    brand_story: optionalText(2000),
+    awards: optionalStringArray(20, 100),
+    target_audience_segments: optionalStringArray(10, 60),
+
     // ----- Website -----
     website_url: optionalText(500),
     // website_summary mag de eigenaar wel handmatig wijzigen
