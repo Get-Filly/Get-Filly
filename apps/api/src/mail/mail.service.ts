@@ -140,7 +140,7 @@ export class MailService {
       }));
     }
 
-    return this.sendCampaign(restaurantId, campaignId, recipients, userId);
+    return this.sendCampaign(restaurantId, campaignId, recipients, userId, mode);
   }
 
   // ============================================================
@@ -223,6 +223,11 @@ export class MailService {
     campaignId: string,
     recipients: MailRecipient[],
     userId: string,
+    // send_mode bepaalt of deze rijen meetellen voor het 'Verstuurd'-
+    // status-label én voor campaign_performance-aggregatie. Test-mails
+    // (mode='test') worden uitgesloten zodat een eigenaar onbeperkt
+    // mag testen zonder de stats te vervuilen.
+    sendMode: 'test' | 'all_opted_in' = 'all_opted_in',
   ): Promise<SendCampaignResult> {
     if (recipients.length === 0) {
       throw new BadRequestException('Geen ontvangers opgegeven.');
@@ -323,6 +328,7 @@ export class MailService {
       guest_id: r.guestId ?? null,
       recipient_email: r.email.toLowerCase().trim(),
       status: 'queued' as const,
+      send_mode: sendMode,
     }));
     const { data: insertedSends, error: sendErr } = await this.admin.client
       .from('campaign_sends')
@@ -503,7 +509,7 @@ export class MailService {
       .from('campaign_sends')
       .update(update)
       .eq('resend_message_id', messageId)
-      .select('campaign_id')
+      .select('campaign_id, send_mode')
       .maybeSingle();
     if (error) {
       this.logger.warn(
@@ -515,8 +521,14 @@ export class MailService {
     // Aggregeer ook in campaign_performance (filly-brein hfst 9.1).
     // Idempotente increment per event-type. Buiten try/catch want
     // performance-tracking mag de mail-flow nooit blokkeren.
-    const campaignId = (sendRow as { campaign_id?: string } | null)?.campaign_id;
-    if (campaignId) {
+    // Test-mails (send_mode='test') sluiten we uit zodat de eigenaar
+    // onbeperkt mag testen zonder de echte stats te vervuilen.
+    const row = sendRow as
+      | { campaign_id?: string; send_mode?: string }
+      | null;
+    const campaignId = row?.campaign_id;
+    const sendMode = row?.send_mode;
+    if (campaignId && sendMode !== 'test') {
       const perfField = this.mapWebhookEventToPerfField(payload.type);
       if (perfField) {
         await this.incrementCampaignPerformance(campaignId, perfField).catch(

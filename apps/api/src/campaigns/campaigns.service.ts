@@ -421,12 +421,16 @@ export class CampaignsService {
     // verzending" zolang sent_count=0, anders "Verstuurd"). Voor
     // niet-mail-campagnes blijft het altijd 0 — daar is sent geen
     // concept (social/GBP gaan via OAuth-post-flow die we apart loggen).
+    //
+    // Test-mails (send_mode='test') tellen NIET mee — eigenaar mag
+    // onbeperkt testen zonder dat het status-label op 'Verstuurd' springt.
     let sentCount = 0;
     if (campaign.type === 'mail') {
       const { count } = await this.supabase.client
         .from('campaign_sends')
         .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', id);
+        .eq('campaign_id', id)
+        .eq('send_mode', 'all_opted_in');
       sentCount = count ?? 0;
     }
 
