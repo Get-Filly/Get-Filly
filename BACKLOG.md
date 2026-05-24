@@ -158,13 +158,13 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 **Het document `docs/filly-brein.docx` is de bron-van-waarheid voor onderstaande taken. Open dat eerst.**
 
 #### Filly-brain config + prompts (geen externe afhankelijkheden)
-- [ ] **filly-brain.config.ts** (hoofdstuk 20 van het doc) — typed `CHANNEL_RULES` per kanaal: lengte (woorden/chars), hashtag-strategie, optimale tijden, minLeadTimeHours + optimalLeadTimeHoursRange, tone-modulatie. Bron-van-waarheid voor chat.service + suggestions.service prompts.
-- [ ] **System-prompts migreren naar config** — chat.service.ts (FORMAAT 1/2 per-kanaal-regels) + suggestions.service.ts gebruiken CHANNEL_RULES i.p.v. hardcoded waarden. Tool-input-schema vereist `funnel_stage` + `tone_signature` + `length_target` per variant.
-- [ ] **suggestSchedule met urgency-logica** (hfst 7) — bereken tijd_tot_doel, kies sweet-spot binnen optimum-interval, anders zo dichtbij nu mogelijk, log reden in `scheduled_reasoning`. Skip kanalen onder minimum.
-- [ ] **campaign_style_fingerprints-tabel** (hfst 8) — migratie + extractor in approve-flow. RLS via restaurant_id-denormalize.
-- [ ] **Anti-repetitie-context loader** (hfst 8) — `loadRecentFingerprints(restaurantId, channel, n=10)` aanroepen vóór elke generation. Anker-keywords uit restaurants.keywords + cuisine_style + city worden uitgesloten van overlap-check.
-- [ ] **Post-generatie-validatie** (hfst 8.6) — Jaccard hashtag-overlap + opening-overlap + cta-template-frequency. Bij overschrijding: warning in UI naast variant, geen auto-regenerate.
-- [ ] **3-varianten-3-tone-signatures afgedwongen** (hfst 8.4) — tool-schema verplicht: variant 1 = feit-eerst kort, variant 2 = verhaal-eerst middel, variant 3 = vraag-eerst lang.
+- [x] ~~**filly-brain.config.ts**~~ (2026-05-24) — typed `CHANNEL_RULES` voor 8 kanalen met copyLength/hashtags/bestTimes/leadTime/frequency/visual/tone/cta + `CHANNEL_MIX_PER_THEME` + `FUNNEL_STAGE_TO_CHANNELS` + `PERSUASION_EXAMPLES` (Cialdini 6) + `DEFAULT_RATE_LIMITS` + `SUCCESS_SCORE_THRESHOLDS` + `ANTI_REPETITION_THRESHOLDS`. Helpers `buildAllChannelsBlock` + `classifyLeadTime` + `planChannelPlacement` + `buildAnchorKeywords`. `CHANNEL_RULES_VERSION = 'v1'`.
+- [x] ~~**System-prompts migreren naar config**~~ (2026-05-24) — chat.service.ts + suggestions.service.ts injecteren `buildAllChannelsBlock()` vóór CONTEXT-sectie; "VARIATIE OVER 3 VARIANTEN"-regels dwingen 3 verschillende tone-signatures af. Bestaande FORMAAT 1/2-templates blijven (centrale regels leidend bij conflict). Tool-schema-uitbreiding met `funnel_stage`/`tone_signature`/`length_target` nog open (vereist Anthropic tool-use migratie van bestaande text-blokken).
+- [ ] **suggestSchedule met urgency-logica** (hfst 7) — bereken tijd_tot_doel, kies sweet-spot binnen optimum-interval, anders zo dichtbij nu mogelijk, log reden in `scheduled_reasoning`. Skip kanalen onder minimum. `planChannelPlacement()` helper bestaat al in filly-brain.config; alleen suggestSchedule-prompt aansluiten.
+- [x] ~~**campaign_style_fingerprints-tabel**~~ (2026-05-24, mig 0048) — opening_pattern / hashtag_set / cta_template (enum) / theme / primary_dish_mentioned / tone_signature (enum) per kanaal. RLS via user_has_restaurant_access + restaurant_id-denormalize.
+- [x] ~~**Anti-repetitie-context loader**~~ (2026-05-24) — `CampaignFingerprintService.buildLearningContextBlock()` laadt top-3 winners + top-3 underperformers per kanaal via JOIN met campaign_performance, plakt 'm in chat + suggestions-prompts als "SUCCESSFUL/AVOID PATTERNS". Anker-keywords-helper aanwezig in filly-brain.config maar nog niet actief gebruikt in similarity-check (komt bij anti-repetitie post-generation v2).
+- [ ] **Post-generatie-validatie** (hfst 8.6) — Jaccard hashtag-overlap + opening-overlap + cta-template-frequency. Bij overschrijding: warning in UI naast variant, geen auto-regenerate. Drempels staan al in `ANTI_REPETITION_THRESHOLDS`.
+- [ ] **3-varianten-3-tone-signatures afgedwongen via tool-schema** (hfst 8.4) — Filly-prompts hebben nu instructie in tekst maar tool-schema dwingt het niet hard af; migreer van `<<FILLY_PROPOSE_CAMPAIGN>>`-text-blokken naar Anthropic tool-use voor strikte validation.
 - [ ] **Brand-archetype + do/don't-velden** (hfst 15) — nieuwe kolommen `restaurants.brand_archetype` (enum 12) + `brand_voice_do[]` + `brand_voice_dont[]`. UI in identiteit-tab. Filly krijgt ze als harde constraint in prompt.
 - [ ] **B1/B2-taalniveau-instelling** (hfst 15.3) — `restaurants.language_level` enum. Default B1.
 - [ ] **Cialdini-power-woorden-bibliotheek** (hfst 13.6) — opt-in lijst per restaurant; Filly verwerkt structureel scarcity/authority/social-proof als toepasselijk.
@@ -183,16 +183,21 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **Lifecycle-classificatie** — auto-update `guests.computed_segment` dagelijks via pg_cron (nieuw / verse gast / terugkeerder / vaste / slapend / verloren).
 
 #### Performance-tracking (deels nu, deels OAuth-afhankelijk)
-- [ ] **campaign_performance-tabel** (hfst 9.10) — migratie + service-laag. Per-kanaal nullable velden.
-- [ ] **Resend webhooks uitbreiden voor campagne-mail** — open/click/bounce-events naar campaign_performance.
-- [ ] **UTM-helper-functie** (hfst 14.1) — `buildUtmUrl(base, params)` in apps/api/src/common/. Vaste structuur source/medium/campaign/content.
-- [ ] **Reservation-attributie-hook** (hfst 14.3) — `/reserveren?utm_*` doorgeven aan booking-form; bij submit `via_campaign_id` invullen.
-- [ ] **Nightly performance-scoring-job** (hfst 9.10) — pg_cron scant meet-window-verstreken campagnes, berekent success_score, classification.
-- [ ] **Per-restaurant-benchmarks vanaf 20+ campagnes** (hfst 9.4) — eigen mediaan i.p.v. industry-default.
-- [ ] **Success/underperformer-injectie in prompts** (hfst 9.5) — top-3 winners + top-3 underperformers per kanaal in system-prompt vóór generation.
-- [ ] **Kennis-fasen-display** (hfst 9.6) — UI toont eigenaar in welke leer-fase z'n data zit (1: industry-only, 2: tentative, 3: eigen, 4: cross-restaurant).
-- [ ] **Outlier-markering** (hfst 9.7) — knop "viel buiten controle" met redenen (slecht weer / staking / atypisch). Excludeert uit leerloop.
+- [x] ~~**campaign_performance-tabel**~~ (2026-05-24, mig 0046) — alle kanalen-kolommen (mail/social/whatsapp/gbp) nullable, plus reservations_attributed, success_score, classification, outlier-flag, measurement_complete_at. RLS via user_has_restaurant_access.
+- [x] ~~**Resend webhooks uitbreiden voor campagne-mail**~~ (2026-05-24) — MailService.handleWebhook aggregeert delivered/opened/clicked/bounced auto in campaign_performance. Test-mails (send_mode='test') uitgesloten via mig 0049.
+- [x] ~~**UTM-helper-functie**~~ (2026-05-24) — `apps/api/src/common/utm.ts` met `buildUtmUrl`, `slugify`, `defaultMedium`, `parseUtmFromUrl`, `addUtmToAllLinks` (idempotent). MailService.sendCampaign tagt nu auto alle URLs in body bij send-time.
+- [ ] **Reservation-form-UTM-hook** (hfst 14.3) — `/reserveren?utm_*` URL-params doorgeven aan booking-form; bij submit `via_campaign_id` matchen op utm_campaign-slug en auto-zetten. Nu alleen handmatig via UI op /reserveringen.
+- [x] ~~**Nightly performance-scoring-job**~~ (2026-05-24, mig 0047) — pg_cron daily 03:17 UTC roept `classify_campaign_performance()` PL/pgSQL-functie aan. Scoort mail-campagnes >14d oud via formule open_rate*30+click_rate*50+conv_rate*20.
+- [ ] **Per-restaurant-benchmarks vanaf 20+ campagnes** (hfst 9.4) — eigen mediaan i.p.v. industry-default. Drempel zit in `SUCCESS_SCORE_THRESHOLDS` maar de mediaan-berekening + override-logica nog niet.
+- [x] ~~**Success/underperformer-injectie in prompts**~~ (2026-05-24) — `CampaignFingerprintService.buildLearningContextBlock()` laadt top-3 winners + top-3 underperformers per kanaal via JOIN met campaign_performance, plakt in chat.service + suggestions.service prompts.
+- [ ] **Kennis-fasen-display** (hfst 9.6) — UI toont eigenaar in welke leer-fase z'n data zit (1: industry-only, 2: tentative, 3: eigen, 4: cross-restaurant). Logica zit in doc, UI nog niet.
+- [x] ~~**Outlier-markering**~~ (2026-05-24) — knop in CampaignPerformanceCard met reden-input. POST/DELETE /campaigns/:id/performance/outlier. Excludeert uit getTopWinners/Underperformers-queries.
 - [ ] **Channel-fatigue tracking** (hfst 14.7) — rolling 30-d frequency × engagement; alarm bij stijgende frequentie + dalende engagement.
+- [x] ~~**campaign_sends.send_mode**~~ (2026-05-24, mig 0049) — test vs all_opted_in. Test-mails niet meegerekend in sent_count én geskipt in performance-aggregatie.
+- [x] ~~**CampaignPerformanceCard UI**~~ (2026-05-24) — op /campagnes/[id] detail-page: score 0-100 + classification-badge + mail-breakdown (delivered/opens-rate/clicks-rate/bounces) + conversie (reservations/gasten) + outlier-markering inline.
+- [x] ~~**CampaignSendCard UI**~~ (2026-05-24) — voor mail-campagnes: opt-in count + sample-namen + test-mail-input voorgevuld met restaurant.contact_email + verstuur-naar-alle-opt-in met confirm.
+- [x] ~~**ensureRow bij status→actief**~~ (2026-05-24) — CampaignsService.updateStatus roept performance.ensureRow + fingerprint.extractFromCampaign aan.
+- [x] ~~**Mail-status-label**~~ (2026-05-24) — getDisplayStatus helper: 'actief'+mail+sent_count=0 → "Klaar voor verzending"; sent_count>0 → "Verstuurd"; andere → bestaande STATUS_LABEL.
 
 #### Website-laag (P0, geen OAuth nodig)
 - [ ] **Meta Pixel JS-snippet** (hfst 14.2 + 19.1) — install in Next.js layout. Events: PageView, ViewContent, Lead, Reserve. Pixel-ID per restaurant.
@@ -334,6 +339,10 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen)
 
 ### Database-migraties nog te maken
+- [x] ~~0049: campaign_sends.send_mode (test vs all_opted_in)~~ (2026-05-24) — test-mails tellen niet in sent_count en worden geskipt in campaign_performance-aggregatie. Index op (campaign_id, send_mode) voor snelle count-by-mode-query.
+- [x] ~~0048: campaign_style_fingerprints (anti-repetitie + leerloop)~~ (2026-05-24) — opening_pattern / hashtag_set / cta_template (enum) / theme / primary_dish_mentioned / tone_signature (enum) per kanaal. UNIQUE op campaign_id voor idempotente upserts. RLS via user_has_restaurant_access.
+- [x] ~~0047: classify_campaign_performance() PL/pgSQL + pg_cron 03:17 UTC~~ (2026-05-24) — nightly scoring van campagnes >14d oud via open_rate*30+click_rate*50+conv_rate*20. Set classification = winner/average/underperformer/no_data + success_score + measurement_complete_at. Idempotent: skipt rijen met classification al gezet of marked_outlier=true.
+- [x] ~~0046: campaign_performance-tabel~~ (2026-05-24) — alle kanalen-kolommen (mail/social/whatsapp/gbp) nullable + reservations_attributed + guests_attributed + revenue_attributed_cents + success_score + classification + outlier-flag + measurement_complete_at. RLS via user_has_restaurant_access; trigger op updated_at.
 - [x] ~~0045: health_scores + health_findings + health_competitors (vindbaarheid-health-score v1)~~ (2026-05-23) — drie tabellen voor de Health-score op `/dashboard/google-business/audit`. Snapshots per audit-run + alle findings + top-10 concurrenten in 500m straal. RLS via `user_has_restaurant_access`. SQL was al in-Studio gerund door Floris vóór file-commit; file is voor productie-environments.
 - [x] ~~0044: identiteit-uitbreiding (8 nieuwe kolommen op restaurants)~~ (2026-05-21) — `location_description`, `keywords`, `default_hashtags`, `tone_of_voice`, `do_not_mention`, `brand_story`, `awards`, `target_audience_segments`. Voedt Filly's posts vanuit `/dashboard/vindbaarheid/identiteit`. Geen RLS-wijziging.
 - [x] ~~0043: pg_cron auto-archive verstreken campagnes~~ (2026-05-21) — dagelijks om 03:17 UTC zet status='afgerond' op campagnes met scheduled_for in het verleden. Frontend filtert óók read-time als safety-net.
