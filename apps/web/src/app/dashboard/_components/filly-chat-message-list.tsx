@@ -19,6 +19,10 @@ import {
   type ChannelChoice,
   type ChoiceState,
 } from "./filly-chat-choice-card";
+import {
+  FillyChatDateCard,
+  type DateChoiceState,
+} from "./filly-chat-date-card";
 
 // ============================================================
 // FillyChatMessageList, render-loop voor de chat-thread.
@@ -61,6 +65,8 @@ type Props = {
     { state: ChoiceState; chosen?: ChannelChoice }
   >;
   onChooseChannel: (messageId: string, choices: ChannelChoice[]) => void;
+  dateChoiceState: Record<string, { state: DateChoiceState }>;
+  onChooseDate: (messageId: string, followUpText: string) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -72,12 +78,14 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
       proposalStatus,
       bundleStatus,
       choiceState,
+      dateChoiceState,
       onAcceptProposal,
       onDismissProposal,
       onOpenProposalDetails,
       onAcceptBundle,
       onDismissBundle,
       onChooseChannel,
+      onChooseDate,
     },
     scrollRef,
   ) {
@@ -137,6 +145,15 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                       state={choiceState[m.id]?.state ?? "pending"}
                       chosen={choiceState[m.id]?.chosen}
                       onChoose={(choices) => onChooseChannel(m.id, choices)}
+                    />
+                  )}
+                  {m.message_card?.kind === "date_choice" && (
+                    <FillyChatDateCard
+                      card={m.message_card}
+                      state={dateChoiceState[m.id]?.state ?? "pending"}
+                      onChoose={(followUpText) =>
+                        onChooseDate(m.id, followUpText)
+                      }
                     />
                   )}
                 </div>

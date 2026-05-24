@@ -36,7 +36,8 @@ export type ChatRole = 'filly' | 'user' | 'system';
 export type MessageCard =
   | CampaignProposalCard
   | CampaignBundleCard
-  | ChannelChoiceCard;
+  | ChannelChoiceCard
+  | DateChoiceCard;
 
 // Channel-choice, geen ai_suggestion-rij erachter (geen suggestion_id),
 // puur een UI-prompt waarbij eigenaar door op een knop te klikken
@@ -45,7 +46,18 @@ export type ChannelChoiceCard = {
   kind: 'channel_choice';
   question: string;
   // Volgorde + welke opties beschikbaar zijn, Filly bepaalt zelf.
-  // Voor V1 standaard alle 4: mail/social/whatsapp/bundle.
+  // Voor V1 standaard alle 5: mail/instagram/facebook/whatsapp/google_business.
+};
+
+// Date-choice, sinds 2026-05-24: Filly vraagt eerst voor welke dag of
+// gelegenheid (vóór de kanaal-keuze). Reden: kanaal is afgeleid van
+// doel-deadline (zie filly-brein hoofdstuk 7 urgentie-vs-optimum).
+// Bij klik op een snelle-keuze of datum: orchestrator stuurt een
+// follow-up-bericht "Voor [datum-context]" zodat Filly de keuze in
+// de volgende beurt meeneemt.
+export type DateChoiceCard = {
+  kind: 'date_choice';
+  question: string;
 };
 
 // Bundle-versie van CampaignProposalCard. Wordt opgeslagen in
@@ -628,16 +640,30 @@ export class ChatService {
     let suggestionId: string | null = null;
     let cleanText = answer.trim();
 
-    const parsedChoice = extractCampaignChoice(answer);
-    const parsedSingle = parsedChoice.choice
-      ? { cleanText: parsedChoice.cleanText, proposal: null }
-      : extractCampaignProposal(answer);
+    // Parser-volgorde: date-choice eerst (komt vroegst in de flow),
+    // dan channel-choice, dan single proposal, dan bundle. Filly mag
+    // er per bericht maximaal één produceren — bij meerdere is de
+    // eerste hier in volgorde leidend.
+    const parsedDateChoice = extractDateChoice(answer);
+    const parsedChoice = parsedDateChoice.choice
+      ? { cleanText: parsedDateChoice.cleanText, choice: null }
+      : extractCampaignChoice(answer);
+    const parsedSingle =
+      parsedDateChoice.choice || parsedChoice.choice
+        ? { cleanText: parsedChoice.cleanText, proposal: null }
+        : extractCampaignProposal(answer);
     const parsedBundle =
-      parsedChoice.choice || parsedSingle.proposal
+      parsedDateChoice.choice || parsedChoice.choice || parsedSingle.proposal
         ? { cleanText: parsedSingle.cleanText, bundle: null }
         : extractCampaignBundle(answer);
 
-    if (parsedChoice.choice) {
+    if (parsedDateChoice.choice) {
+      cleanText = parsedDateChoice.cleanText;
+      // Geen ai_suggestion; frontend verstuurt bij klik een follow-up
+      // "Voor [gekozen datum/gelegenheid]" zodat Filly's volgende
+      // beurt dit als gekozen target heeft.
+      messageCard = parsedDateChoice.choice;
+    } else if (parsedChoice.choice) {
       cleanText = parsedChoice.cleanText;
       // Geen ai_suggestion, kaart is puur UI-prompt. Frontend
       // verstuurt bij klik automatisch een follow-up user-bericht.
@@ -957,10 +983,10 @@ hebt bedacht), sluit je je antwoord af met een speciaal machine-leesbaar
 blok. De eigenaar ziet dit blok niet; de frontend toont op basis daarvan
 drie varianten naast elkaar zodat hij/zij kan kiezen.
 
-Drie voorstel-formaten, KIES STRIKT VOLGENS DEZE BESLISBOOM:
+Vier voorstel-formaten, KIES STRIKT VOLGENS DEZE BESLISBOOM:
 
 ╔════════════════════════════════════════════════════════════╗
-║  HARDE REGEL, kies precies 1 van de 3 formaten:           ║
+║  HARDE REGEL, kies precies 1 van de 4 formaten:           ║
 ║                                                            ║
 ║  1. Bevat de LAATSTE user-message een woord uit de         ║
 ║     KANAAL-LIJST (mail / e-mail / Instagram / IG /         ║
@@ -978,10 +1004,21 @@ Drie voorstel-formaten, KIES STRIKT VOLGENS DEZE BESLISBOOM:
 ║     mail/social/whatsapp/bundel-campagne"?                 ║
 ║       JA → respectievelijk FORMAAT 1 of 2 met dat type     ║
 ║                                                            ║
-║  4. ANDERS (default) → FORMAAT 0 (KEUZE-VRAAG)             ║
+║  4. Bevat de bericht-historie GEEN datum/dag/gelegenheid   ║
+║     én is dit een ambigue campagne-aanvraag                ║
+║     ("bedenk een campagne", "iets voor binnenkort")?       ║
+║       JA → FORMAAT 0A (DATUM-KEUZE) eerst                  ║
+║                                                            ║
+║  5. Is de datum/gelegenheid wél bekend (uit eerdere msg    ║
+║     zoals "Voor zaterdag", "Voor Moederdag") maar          ║
+║     het kanaal NIET?                                       ║
+║       JA → FORMAAT 0B (KANAAL-KEUZE)                       ║
 ║                                                            ║
 ║  NOOIT FORMAAT 1 of 2 zonder dat 1, 2 of 3 hierboven       ║
-║  onmiskenbaar van toepassing is. Bij twijfel: FORMAAT 0.   ║
+║  onmiskenbaar van toepassing is. Bij twijfel: 4 of 5.      ║
+║                                                            ║
+║  Volgorde van filly bij een vraag-uit-niets:               ║
+║    "bedenk een campagne" → 4 (datum) → 5 (kanaal) → 1/2    ║
 ╚════════════════════════════════════════════════════════════╝
 
 VOORBEELDEN:
@@ -998,8 +1035,26 @@ VOORBEELDEN:
                                          → FORMAAT 2
 
 ────────────────────────────────────────
-FORMAAT 0, KEUZE-VRAAG (default bij niet-specifieke campagne-aanvraag)
+FORMAAT 0A, DATUM-KEUZE (eerste stap bij ambigue campagne-aanvraag)
 ────────────────────────────────────────
+Bij een vraag-uit-niets ("bedenk een campagne", "iets voor binnenkort"):
+vraag EERST voor welke dag of gelegenheid. Reden: het kanaal volgt
+uit hoeveel tijd er nog is tot het doel (urgentie-vs-optimum).
+
+Korte proza-aankondiging (1 zin, bv. "Voor welke dag of gelegenheid
+zal ik 'm maken?") gevolgd door:
+
+<<FILLY_PROPOSE_DATE_CHOICE>>
+{"question":"Voor welke dag of gelegenheid?"}
+<<END>>
+
+────────────────────────────────────────
+FORMAAT 0B, KANAAL-KEUZE (na datum-keuze, of bij specifieke gelegenheid)
+────────────────────────────────────────
+Wanneer de datum/gelegenheid bekend is uit eerdere user-msg ("Voor
+zaterdag", "Voor Moederdag", "Komend weekend") maar het kanaal NIET,
+vraag dan het kanaal.
+
 Korte proza-aankondiging (1 zin, bv. "Voor welk kanaal zal ik 'm maken?")
 gevolgd door:
 
@@ -1449,6 +1504,54 @@ export function extractCampaignChoice(
       cleanText,
       choice: {
         kind: 'channel_choice',
+        question: question.trim().slice(0, 200),
+      },
+    };
+  } catch {
+    return { cleanText, choice: null };
+  }
+}
+
+// ============================================================
+// DATE-CHOICE-parser (datum-vraag, sinds 2026-05-24)
+// ============================================================
+// Format:
+//   <<FILLY_PROPOSE_DATE_CHOICE>>
+//   {"question":"Voor welke dag of gelegenheid?"}
+//   <<END>>
+// Filly stelt deze vraag EERST bij een ambigue campagne-aanvraag,
+// vóór de kanaal-keuze. Reden: kanaal-keuze is afgeleid van de
+// doel-deadline (zie filly-brein hoofdstuk 7 urgentie-vs-optimum).
+
+const DATE_CHOICE_REGEX =
+  /<<FILLY_PROPOSE_DATE_CHOICE>>\s*([\s\S]*?)\s*<<END>>/i;
+
+export type ParsedDateChoice = {
+  kind: 'date_choice';
+  question: string;
+};
+
+export function extractDateChoice(
+  raw: string,
+): { cleanText: string; choice: ParsedDateChoice | null } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(DATE_CHOICE_REGEX);
+  if (!match) {
+    return { cleanText: trimmed, choice: null };
+  }
+  const jsonPart = match[1].trim();
+  const cleanText = trimmed.replace(DATE_CHOICE_REGEX, '').trim();
+
+  try {
+    const parsed = JSON.parse(jsonPart) as Record<string, unknown>;
+    const question = parsed.question;
+    if (typeof question !== 'string' || !question.trim()) {
+      return { cleanText, choice: null };
+    }
+    return {
+      cleanText,
+      choice: {
+        kind: 'date_choice',
         question: question.trim().slice(0, 200),
       },
     };

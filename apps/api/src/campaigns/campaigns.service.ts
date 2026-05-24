@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
@@ -9,6 +10,7 @@ import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
+import { CampaignPerformanceService } from './campaign-performance.service';
 import type Anthropic from '@anthropic-ai/sdk';
 
 // Schema voor 3-varianten-tool. minItems/maxItems forceert
@@ -137,6 +139,8 @@ export type CampaignDetail = Campaign & {
 
 @Injectable()
 export class CampaignsService {
+  private readonly logger = new Logger(CampaignsService.name);
+
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
@@ -150,6 +154,10 @@ export class CampaignsService {
     // geanonimiseerde benchmark-rij op (Recital 26 GDPR). Fail-soft
     //, een falende benchmark mag de status-overgang nooit blokkeren.
     private readonly anonymization: AnonymizationService,
+    // CampaignPerformanceService: bij status→actief maken we een
+    // performance-rij aan zodat alle webhook-events (delivered/opened/
+    // clicked) en attributies een doel hebben om bij te werken.
+    private readonly performance: CampaignPerformanceService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
@@ -832,6 +840,23 @@ export class CampaignsService {
     // faalt; alleen logger.warn in de backend.
     if (nextStatus === 'afgerond') {
       await this.anonymization.benchmarkCampaign(id);
+    }
+
+    // Bij activatie: zorg dat campaign_performance-rij bestaat zodat
+    // alle inkomende webhook-events (delivered/opened/clicked) en
+    // attributies een rij vinden om bij te werken. Idempotent.
+    // Fire-and-forget; performance-tracking mag de status-flow niet
+    // blokkeren.
+    if (nextStatus === 'actief') {
+      void this.performance
+        .ensureRow({ campaignId: id, restaurantId })
+        .catch((err) =>
+          this.logger.warn(
+            `campaign_performance.ensureRow gefaald voor ${id}: ${
+              err instanceof Error ? err.message : err
+            }`,
+          ),
+        );
     }
 
     return { id, status: nextStatus };

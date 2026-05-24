@@ -35,6 +35,7 @@ import { KanalenCard } from "../../_components/campaign-detail/kanalen-card";
 import { InhoudCard } from "../../_components/campaign-detail/inhoud-card";
 import { WanneerCard } from "../../_components/campaign-detail/wanneer-card";
 import { FotoCard } from "../../_components/campaign-detail/foto-card";
+import { CampaignPerformanceCard } from "./_components/campaign-performance-card";
 import type { MissingField } from "../../../../lib/campaign-checks";
 
 // ============================================================
@@ -802,6 +803,10 @@ export default function UnifiedDetailPage() {
         onResetToFilly={handleResetToFilly}
         onDraftDatetimeChange={setDraftDatetime}
       />
+
+      {/* Performance: score + breakdown + outlier-knop. Toont alleen
+          relevante info na status→'actief'; daarvóór "Nog geen meet-data". */}
+      <CampaignPerformanceCard campaignId={id} />
     </div>
   );
 }

@@ -2014,10 +2014,19 @@ export type ChannelChoiceCard = {
   question: string;
 };
 
+// Date-choice, sinds 2026-05-24. Filly vraagt eerst voor welke dag of
+// gelegenheid (vóór de kanaal-keuze). Frontend stuurt bij keuze een
+// follow-up "Voor [datum/gelegenheid]" zodat Filly het target meeneemt.
+export type DateChoiceCard = {
+  kind: "date_choice";
+  question: string;
+};
+
 export type MessageCard =
   | CampaignProposalCard
   | CampaignBundleCard
-  | ChannelChoiceCard;
+  | ChannelChoiceCard
+  | DateChoiceCard;
 
 export type ChatMessage = {
   id: string;
@@ -2666,3 +2675,107 @@ export async function fetchHealthHistory(
   return res.json();
 }
 
+// ============================================================
+// Campaign performance (filly-brein hfst 9)
+// ============================================================
+//
+// Per campagne: opens/clicks/reservations + success_score 0-100 +
+// classification (winner/average/underperformer/no_data). null als
+// er nog geen performance-rij is (campagne nog niet 'actief' geweest).
+
+export type CampaignClassification =
+  | "winner"
+  | "average"
+  | "underperformer"
+  | "no_data";
+
+export interface CampaignPerformance {
+  id: string;
+  campaign_id: string;
+  restaurant_id: string;
+
+  mail_delivered: number | null;
+  mail_opened: number | null;
+  mail_clicked: number | null;
+  mail_bounced: number | null;
+  mail_unsubscribed: number | null;
+
+  social_reach: number | null;
+  social_impressions: number | null;
+  social_engagement: number | null;
+  social_saves: number | null;
+  social_video_views: number | null;
+  social_watch_time_seconds: number | null;
+
+  whatsapp_delivered: number | null;
+  whatsapp_read: number | null;
+  whatsapp_clicked: number | null;
+
+  gbp_impressions: number | null;
+  gbp_clicks: number | null;
+  gbp_calls: number | null;
+  gbp_directions: number | null;
+
+  reservations_attributed: number;
+  guests_attributed: number;
+  revenue_attributed_cents: number;
+
+  measurement_complete_at: string | null;
+  success_score: number | null;
+  classification: CampaignClassification | null;
+  confounding_factors: Record<string, unknown> | null;
+
+  marked_outlier: boolean;
+  marked_outlier_reason: string | null;
+  marked_outlier_at: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchCampaignPerformance(
+  campaignId: string,
+): Promise<CampaignPerformance | null> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/performance`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function markCampaignOutlier(
+  campaignId: string,
+  reason: string,
+): Promise<{ ok: true }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/performance/outlier`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function unmarkCampaignOutlier(
+  campaignId: string,
+): Promise<{ ok: true }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/performance/outlier`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}

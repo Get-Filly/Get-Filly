@@ -25,6 +25,7 @@ import type {
   ChannelChoice,
   ChoiceState,
 } from "./filly-chat-choice-card";
+import type { DateChoiceState } from "./filly-chat-date-card";
 import { useRestaurant } from "../../../lib/restaurant-context";
 import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatMessageList } from "./filly-chat-message-list";
@@ -88,6 +89,12 @@ export function FillyChat() {
   // de keuze op 'submitting' tot de Filly-roundtrip klaar is.
   const [choiceState, setChoiceState] = useState<
     Record<string, { state: ChoiceState; chosen?: ChannelChoice }>
+  >({});
+  // Per 2026-05-24: date-choice voor de kanaal-keuze. Bij klik op een
+  // datum-knop sturen we een follow-up "Voor [datum]" zodat Filly de
+  // gekozen target meeneemt in de volgende beurt.
+  const [dateChoiceState, setDateChoiceState] = useState<
+    Record<string, { state: DateChoiceState }>
   >({});
   // Per 2026-05-07: detail-modal-state weg, voorstel-detail is nu een
   // eigen route /dashboard/campagnes/voorstel/[id]. We navigeren bij
@@ -153,8 +160,10 @@ export function FillyChat() {
         for (const msg of data.messages) {
           const card = msg.message_card;
           if (!card) continue;
-          // channel_choice heeft geen ai_suggestion erachter, skip.
-          if (card.kind === "channel_choice") continue;
+          // channel_choice + date_choice hebben geen ai_suggestion
+          // erachter, skip.
+          if (card.kind === "channel_choice" || card.kind === "date_choice")
+            continue;
           const suggId = card.suggestion_id;
           if (!suggId) continue;
 
@@ -359,6 +368,21 @@ export function FillyChat() {
         ...s,
         [messageId]: { state: "pending", chosen: undefined },
       }));
+    }
+  };
+
+  // Eigenaar klikt op een knop in een DateChoiceCard. We sturen de
+  // bijbehorende follow-up-tekst ("Voor zaterdag" / "Voor 10 mei 2026")
+  // als gewoon user-bericht; Filly's volgende beurt is dan ofwel een
+  // kanaal-keuze-card (FORMAAT 0B) of direct een proposal (FORMAAT 1/2).
+  const chooseDate = async (messageId: string, followUpText: string) => {
+    if (!followUpText.trim()) return;
+    setDateChoiceState((s) => ({ ...s, [messageId]: { state: "submitting" } }));
+    try {
+      await sendText(followUpText);
+      setDateChoiceState((s) => ({ ...s, [messageId]: { state: "chosen" } }));
+    } catch {
+      setDateChoiceState((s) => ({ ...s, [messageId]: { state: "pending" } }));
     }
   };
 
@@ -589,6 +613,8 @@ export function FillyChat() {
         proposalStatus={proposalStatus}
         bundleStatus={bundleStatus}
         choiceState={choiceState}
+        dateChoiceState={dateChoiceState}
+        onChooseDate={chooseDate}
         onAcceptProposal={acceptProposal}
         onDismissProposal={dismissProposal}
         onOpenProposalDetails={openDetails}

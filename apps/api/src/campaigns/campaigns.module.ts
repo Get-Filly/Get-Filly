@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CampaignsController } from './campaigns.controller';
 import { CampaignsService } from './campaigns.service';
+import { CampaignPerformanceService } from './campaign-performance.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
@@ -28,7 +29,12 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     MailModule,
   ],
   controllers: [CampaignsController],
-  providers: [CampaignsService, AuthGuard, RestaurantAccessGuard],
-  exports: [CampaignsService],
+  providers: [
+    CampaignsService,
+    CampaignPerformanceService,
+    AuthGuard,
+    RestaurantAccessGuard,
+  ],
+  exports: [CampaignsService, CampaignPerformanceService],
 })
 export class CampaignsModule {}

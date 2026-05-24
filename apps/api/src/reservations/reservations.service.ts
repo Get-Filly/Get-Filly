@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
+// Service-role-client voor de campaign_performance-increment; nodig om
+// ook bij webhook-flows zonder user-context te kunnen schrijven (Zenchef-
+// sync e.d. zal hier later doorheen lopen).
+import { SupabaseService } from '../supabase/supabase.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 export type ReservationStatus =
@@ -47,8 +51,66 @@ const RESERVATION_COLUMNS =
 export class ReservationsService {
   constructor(
     private readonly supabase: RequestSupabaseService,
+    private readonly serviceSupabase: SupabaseService,
     private readonly audit: AuditLogService,
   ) {}
+
+  /**
+   * Increment campaign_performance.reservations_attributed +
+   * guests_attributed. Revenue voorlopig op 0 zolang we nog geen
+   * avg_check_cents per restaurant hebben (P2-backlog).
+   *
+   * Non-fataal: een gefaalde performance-write mag de reserverings-
+   * flow nooit blokkeren. We loggen via console.warn (geen Logger-
+   * injectie omdat 'ie nu nog niet in deze service zit).
+   */
+  private async incrementCampaignAttribution(
+    campaignId: string,
+    partySize: number,
+  ): Promise<void> {
+    try {
+      // Eerst campaign + restaurant_id ophalen.
+      const { data: campaign, error: campErr } = await this.serviceSupabase.client
+        .from('campaigns')
+        .select('restaurant_id')
+        .eq('id', campaignId)
+        .maybeSingle();
+      if (campErr || !campaign) return;
+
+      // Upsert performance-rij idempotent.
+      await this.serviceSupabase.client.from('campaign_performance').upsert(
+        {
+          campaign_id: campaignId,
+          restaurant_id: (campaign as { restaurant_id: string }).restaurant_id,
+        },
+        { onConflict: 'campaign_id', ignoreDuplicates: true },
+      );
+
+      // Read-modify-write. Bij hoog volume migreren naar Postgres RPC
+      // voor atomic increment; voor v1 acceptabel.
+      const { data: row } = await this.serviceSupabase.client
+        .from('campaign_performance')
+        .select('reservations_attributed, guests_attributed')
+        .eq('campaign_id', campaignId)
+        .maybeSingle();
+      if (!row) return;
+
+      const r = row as { reservations_attributed: number; guests_attributed: number };
+      await this.serviceSupabase.client
+        .from('campaign_performance')
+        .update({
+          reservations_attributed: r.reservations_attributed + 1,
+          guests_attributed: r.guests_attributed + partySize,
+        })
+        .eq('campaign_id', campaignId);
+    } catch (err) {
+      console.warn(
+        `Campaign-attributie increment gefaald voor ${campaignId}: ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+    }
+  }
 
   async findRange(
     restaurantId: string,
@@ -201,6 +263,15 @@ export class ReservationsService {
       entity_id: reservationId,
       payload: { campaign_id: campaignId, guest_id: data.guest_id },
     });
+
+    // Performance-aggregatie: campaign_performance bijwerken (hfst 9).
+    // Fire-and-forget; non-fataal als 't faalt.
+    if (campaignId) {
+      void this.incrementCampaignAttribution(
+        campaignId,
+        data.party_size ?? 0,
+      );
+    }
 
     return data as Reservation;
   }

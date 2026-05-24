@@ -11,6 +11,7 @@ import { Resend } from 'resend';
 import { SupabaseService } from '../supabase/supabase.service';
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AuditLogService } from '../common/audit-log.service';
+import { addUtmToAllLinks } from '../common/utm';
 
 // ============================================================
 // MailService, uitgaande mail via Resend
@@ -195,12 +196,25 @@ export class MailService {
     const subject = mailContent?.subject_line as string | null | undefined;
     const bodyHtml = mailContent?.body_html as string | null | undefined;
     const bodyPlain = mailContent?.body_plain as string | null | undefined;
-    const body = bodyHtml ?? (bodyPlain ? plainToHtml(bodyPlain) : null);
-    if (!subject || !body) {
+    const rawBody = bodyHtml ?? (bodyPlain ? plainToHtml(bodyPlain) : null);
+    if (!subject || !rawBody) {
       throw new BadRequestException(
         'Mail-onderwerp of -tekst ontbreekt. Vul de campagne eerst aan vóór versturen.',
       );
     }
+
+    // Tag alle URLs in de body met consistente UTM-parameters
+    // (filly-brein hfst 14.1). Idempotent: URLs die al utm_source
+    // hebben blijven onveranderd. Doen we hier bij send-time zodat
+    // de tagging altijd matched met de actuele campaign-naam, ook
+    // na rename. Plain-text bodies worden eerst naar HTML omgezet,
+    // dus dezelfde transformatie werkt op beide.
+    const body = addUtmToAllLinks(rawBody, {
+      source: 'mail',
+      medium: 'newsletter',
+      campaign: (campaign.name as string) ?? campaignId,
+      content: campaignId, // unieke identifier; later: variant-index
+    });
 
     // Stap 2, restaurant ophalen voor From-naam, reply-to en
     // eigen-domein-status. Geen restaurant gevonden = niet je tenant
@@ -424,15 +438,115 @@ export class MailService {
         return;
     }
 
-    const { error } = await this.admin.client
+    const { data: sendRow, error } = await this.admin.client
       .from('campaign_sends')
       .update(update)
-      .eq('resend_message_id', messageId);
+      .eq('resend_message_id', messageId)
+      .select('campaign_id')
+      .maybeSingle();
     if (error) {
       this.logger.warn(
         `Webhook-update faalde voor message ${messageId}: ${error.message}`,
       );
+      return;
     }
+
+    // Aggregeer ook in campaign_performance (filly-brein hfst 9.1).
+    // Idempotente increment per event-type. Buiten try/catch want
+    // performance-tracking mag de mail-flow nooit blokkeren.
+    const campaignId = (sendRow as { campaign_id?: string } | null)?.campaign_id;
+    if (campaignId) {
+      const perfField = this.mapWebhookEventToPerfField(payload.type);
+      if (perfField) {
+        await this.incrementCampaignPerformance(campaignId, perfField).catch(
+          (err) => {
+            this.logger.warn(
+              `campaign_performance increment gefaald (${perfField}): ${
+                err instanceof Error ? err.message : err
+              }`,
+            );
+          },
+        );
+      }
+    }
+  }
+
+  /**
+   * Mapt Resend-webhook-events naar campaign_performance-kolommen.
+   * Returnt null voor events die we niet aggregeren (bv. email.sent
+   * wordt al bij send geteld; email.complained tracken we voorlopig
+   * niet apart maar via unsubscribe).
+   */
+  private mapWebhookEventToPerfField(
+    type: string,
+  ):
+    | 'mail_delivered'
+    | 'mail_opened'
+    | 'mail_clicked'
+    | 'mail_bounced'
+    | null {
+    switch (type) {
+      case 'email.delivered':
+        return 'mail_delivered';
+      case 'email.opened':
+        return 'mail_opened';
+      case 'email.clicked':
+        return 'mail_clicked';
+      case 'email.bounced':
+        return 'mail_bounced';
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Idempotente increment van één performance-veld. Maakt de rij aan
+   * als die nog niet bestaat (een mail-event kan voor de status→actief-
+   * trigger binnenkomen bij snelle delivery).
+   */
+  private async incrementCampaignPerformance(
+    campaignId: string,
+    field:
+      | 'mail_delivered'
+      | 'mail_opened'
+      | 'mail_clicked'
+      | 'mail_bounced',
+  ): Promise<void> {
+    // Eerst restaurant_id achterhalen via campaigns-FK.
+    const { data: campaign, error: campErr } = await this.admin.client
+      .from('campaigns')
+      .select('restaurant_id')
+      .eq('id', campaignId)
+      .maybeSingle();
+    if (campErr || !campaign) {
+      this.logger.warn(
+        `Kon restaurant_id niet vinden voor campaign ${campaignId}`,
+      );
+      return;
+    }
+
+    // Upsert rij + lees current value. Twee roundtrips; bij hoog
+    // volume migreren we naar een Postgres RPC voor atomic increment.
+    await this.admin.client.from('campaign_performance').upsert(
+      {
+        campaign_id: campaignId,
+        restaurant_id: (campaign as { restaurant_id: string }).restaurant_id,
+      },
+      { onConflict: 'campaign_id', ignoreDuplicates: true },
+    );
+
+    const { data: row, error: readErr } = await this.admin.client
+      .from('campaign_performance')
+      .select(`id, ${field}`)
+      .eq('campaign_id', campaignId)
+      .maybeSingle();
+    if (readErr || !row) return;
+
+    const current = (row as Record<string, number | null>)[field] ?? 0;
+    await this.admin.client
+      .from('campaign_performance')
+      .update({ [field]: current + 1 })
+      .eq('campaign_id', campaignId);
   }
 
   // ============================================================

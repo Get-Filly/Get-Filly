@@ -17,6 +17,7 @@ import {
   type CampaignStatus,
   type CampaignType,
 } from './campaigns.service';
+import { CampaignPerformanceService } from './campaign-performance.service';
 import { MailService } from '../mail/mail.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
@@ -35,6 +36,7 @@ export class CampaignsController {
     // mail-flow-logica (recipients resolven, Resend-call, audit) blijft
     // in MailService; de controller is alleen entry-point + validatie.
     private readonly mail: MailService,
+    private readonly performance: CampaignPerformanceService,
   ) {}
 
   @Get()
@@ -65,6 +67,36 @@ export class CampaignsController {
   @Get(':id')
   findOne(@RestaurantId() restaurantId: string, @Param('id') id: string) {
     return this.campaigns.findById(restaurantId, id);
+  }
+
+  // ============================================================
+  // Performance-endpoints (filly-brein hfst 9)
+  // ============================================================
+
+  // Score + breakdown voor één campagne. Returnt null als er nog geen
+  // performance-rij bestaat (campagne nog niet 'actief' geweest, of
+  // gemaakt vóór mig 0046).
+  @Get(':id/performance')
+  getPerformance(@Param('id') id: string) {
+    return this.performance.getForCampaign(id);
+  }
+
+  // Outlier-markering: eigenaar geeft aan dat deze campagne "buiten de
+  // controle viel" (slecht weer / staking / atypische context). De
+  // performance-rij blijft zichtbaar in UI maar wordt geëxcludeerd uit
+  // Filly's leerloop (winners/underperformers-queries filteren erop).
+  @Post(':id/performance/outlier')
+  markOutlier(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { reason?: string },
+  ) {
+    return this.performance.markOutlier(id, user.id, body?.reason ?? null);
+  }
+
+  @Delete(':id/performance/outlier')
+  unmarkOutlier(@Param('id') id: string) {
+    return this.performance.unmarkOutlier(id);
   }
 
   // Maakt een nieuwe campagne als 'concept'. Wordt aangeroepen vanaf
