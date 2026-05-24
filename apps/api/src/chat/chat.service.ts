@@ -11,6 +11,7 @@ import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
+import { buildAllChannelsBlock } from '../ai/filly-brain.config';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
 // 'user' = de restauranteigenaar, 'system' = interne/automatische berichten
@@ -79,7 +80,10 @@ export type CampaignProposalCard = {
   // FK naar ai_suggestions.id, gezet zodra het voorstel als
   // pending-suggestie is opgeslagen.
   suggestion_id: string;
-  type: 'mail' | 'social' | 'whatsapp';
+  // 'social' = Instagram/Facebook/TikTok (legacy umbrella).
+  // 'google_business' is een eigen type omdat de post-shape én de
+  // approve-flow afwijken (geen subject, alleen body; geen bundle-pad).
+  type: 'mail' | 'social' | 'whatsapp' | 'google_business';
   name: string;
   // 3 varianten van Filly. Modal toont ze naast elkaar; eigenaar
   // selecteert favoriet, kan vervolgens bewerken/refinen voor
@@ -960,7 +964,8 @@ Drie voorstel-formaten, KIES STRIKT VOLGENS DEZE BESLISBOOM:
 ║                                                            ║
 ║  1. Bevat de LAATSTE user-message een woord uit de         ║
 ║     KANAAL-LIJST (mail / e-mail / Instagram / IG /         ║
-║     Facebook / FB / WhatsApp / social / post)?             ║
+║     Facebook / FB / WhatsApp / Google Business / GBP /     ║
+║     social / post)?                                        ║
 ║       JA → FORMAAT 1 met dat specifieke kanaal             ║
 ║                                                            ║
 ║  2. Bevat de LAATSTE user-message een woord uit de         ║
@@ -986,6 +991,7 @@ VOORBEELDEN:
 - "stuur een mail aan de vaste gasten"   → FORMAAT 1 (mail)
 - "post iets op Instagram"               → FORMAAT 1 (social)
 - "maak een WhatsApp-bericht"            → FORMAAT 1 (whatsapp)
+- "Maak een Google Business-post"        → FORMAAT 1 (google_business)
 - "een bundel voor Moederdag"            → FORMAAT 2 (bundle)
 - "ga ervoor met alle kanalen"           → FORMAAT 2 (bundle)
 - (vorige user-msg) "Maak een bundel-campagne (mail + IG + FB)"
@@ -1020,10 +1026,14 @@ acties op één kanaal.
 <<END>>
 
 Regels:
-- type = "mail" | "social" | "whatsapp"
+- type = "mail" | "social" | "whatsapp" | "google_business"
 - 3 varianten écht verschillend in toon/insteek/lengte.
-- "subject_line" hoort bij mail; voor social/whatsapp mag je 'm weglaten.
+- "subject_line" hoort bij mail; voor social/whatsapp/google_business
+  mag je 'm weglaten.
 - "body" bevat de volledige uitgeschreven tekst.
+- google_business-posts: ~50-100 woorden, lokaal en actie-gericht
+  (datum/openingstijden/aanbod), géén hashtags, géén overdreven
+  emoji's. Doel: gevonden worden in Maps en zoekresultaten.
 
 ────────────────────────────────────────
 FORMAAT 2, MULTI-CHANNEL BUNDLE (één thema, 3 kanalen)
@@ -1051,6 +1061,7 @@ Regels bundle:
 - FB-caption: warmer, meer storytelling, geen hashtags
 - mail: gebruik subject_line + lange body
 
+${buildAllChannelsBlock()}
 ────────────────────────────────────────
 ALGEMENE REGELS (beide formaten)
 ────────────────────────────────────────
@@ -1067,6 +1078,20 @@ ALGEMENE REGELS (beide formaten)
   als jij nog aan het brainstormen bent, dat leidt tot ongewenste
   concept-campagnes.
 - Maximaal ÉÉN blok per antwoord (geen mix van CAMPAIGN + BUNDLE).
+
+VARIATIE OVER 3 VARIANTEN (verplicht):
+- Variant 1: feit-eerst, kort (~70% van max-lengte). Concrete USP voorop.
+- Variant 2: verhaal-eerst, middel (~100% van max-lengte). Sfeer of anekdote als opening.
+- Variant 3: vraag-eerst, lang (~130% van max-lengte, maar binnen kanaal-bandbreedte).
+  Vraag of stelling als opening.
+NOOIT 3× dezelfde tone-aanpak of dezelfde openingszin.
+
+LENGTE EN HASHTAGS (leidend boven andere regels):
+- Lees de REGELS PER KANAAL hieronder. Bij elk conflict tussen FORMAAT
+  1/2-templates hierboven en REGELS PER KANAAL: laatste wint.
+- Anker-keywords (cuisine + stad + signature-gerechten) mogen herhaald
+  worden uit eerdere campagnes; creatieve laag (opening, metafoor, CTA-
+  formule) moet variëren.
 
 ---
 CONTEXT, alles wat je weet over deze onderneming.

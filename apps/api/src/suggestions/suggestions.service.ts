@@ -13,6 +13,7 @@ import {
 } from '../campaigns/campaigns.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { buildAllChannelsBlock } from '../ai/filly-brain.config';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
 // 1-variant-replace naar 3-variants-append. Eigenaar krijgt 3 nieuwe
@@ -402,7 +403,11 @@ export type SuggestionChannel = {
 };
 
 export type SuggestedCampaign = {
-  type?: 'mail' | 'social' | 'whatsapp';
+  // 'google_business' toegevoegd 2026-05-24 voor chat-flow GBP-keuze.
+  // Behandelt zich als single-channel post (subject_line optioneel,
+  // alleen body); approve-flow gebruikt platform='google_business'
+  // in campaign_social_content.
+  type?: 'mail' | 'social' | 'whatsapp' | 'google_business';
   // Per 2026-05-07: specifieker platform-veld naast 'type'. 'type' blijft
   // voor backwards-compat met legacy seed-data; nieuwe suggesties zetten
   // beide. Voor 'social'-campaigns specificeert platform welk netwerk
@@ -612,12 +617,13 @@ Inhoudsregels:
   - 2 kanalen: standaardmix voor seizoen/event (bv. mail aan vaste gasten + Instagram-post voor bredere awareness).
   - 3 kanalen: brede pushes (bv. seizoenslancering: mail + Instagram + Facebook).
 
-Platform-keuze per kanaal:
+Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend):
   - mail: lange-vorm, voor vaste klanten met opt-in (formeler, persoonlijker, klikbare CTA).
   - whatsapp: kort en direct, voor topgasten met telefoonnummer (vriendelijke top-tafel-aanpak).
   - instagram: visueel, jongere doelgroep (foto-first, korte caption, hashtags).
   - facebook: bredere doelgroep + lokale buurt, iets meer tekst dan Instagram.
   - tiktok: jong (<25), trendy, korte zinnen, alleen als de tone-of-voice past.
+  - google_business: lokaal-actie-gericht, hoge SEO-impact (zie REGELS PER KANAAL).
 
 Per channel-object in 'channels':
 - platform: één van de bovenstaande, geen dubbele platforms binnen 1 voorstel.
@@ -639,6 +645,8 @@ Per voorstel-niveau:
 
 Vandaag is ${todayIso}.
 
+---
+${buildAllChannelsBlock()}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
 

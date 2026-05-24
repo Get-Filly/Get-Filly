@@ -281,8 +281,12 @@ export function FillyChat() {
 
   // Eigenaar klikt op Verstuur in een ChannelChoiceCard met 1+ keuzes.
   // We bouwen een passende follow-up-tekst voor Filly:
-  //   - 1 single-kanaal  → "Maak een [kanaal]-campagne/post"
-  //   - 2+ kanalen       → "Maak een bundel-campagne (...)"
+  //   - 1 single-kanaal           → "Maak een [kanaal]-campagne/post"
+  //   - 2+ kanalen zonder GBP     → "Maak een bundel-campagne (...)"
+  //   - 2+ kanalen met GBP        → "Maak een bundel voor X, Y + aparte
+  //                                  Google Business-post" (GBP wordt
+  //                                  niet ondersteund in bundle, zie
+  //                                  campaign-checks.toBundleChannel)
   // Filly's server-side hint herkent de keywords en stuurt het juiste
   // formaat (single proposal of bundle) terug.
   const chooseChannel = async (
@@ -306,22 +310,42 @@ export function FillyChat() {
             ? "Maak een Instagram-post"
             : single === "facebook"
               ? "Maak een Facebook-post"
-              : "Maak een WhatsApp-bericht";
+              : single === "whatsapp"
+                ? "Maak een WhatsApp-bericht"
+                : "Maak een Google Business-post";
     } else {
-      // 2+ kanalen → bundel. We benoemen welke kanalen zodat Filly
-      // ze in z'n proza kan aankondigen; de bundle-card-prompt zelf
-      // genereert standaard mail+IG+FB. Eigenaar kan in de bundle-
-      // card alsnog uitvinken bij Accepteer.
-      const labels = choices.map((c) =>
+      // GBP wordt apart afgesplitst: bundle-backend ondersteunt 'm
+      // niet. Filly genereert eerst de bundle, daarna in een
+      // vervolgbericht de losse GBP-post.
+      const hasGbp = choices.includes("google_business");
+      const others = choices.filter((c) => c !== "google_business");
+
+      const labelFor = (c: ChannelChoice): string =>
         c === "mail"
           ? "mail"
           : c === "instagram"
             ? "Instagram"
             : c === "facebook"
               ? "Facebook"
-              : "WhatsApp",
-      );
-      promptText = `Maak een bundel-campagne voor ${labels.join(", ")}`;
+              : c === "whatsapp"
+                ? "WhatsApp"
+                : "Google Business";
+
+      if (hasGbp && others.length === 0) {
+        // Alleen GBP aangevinkt (kan, multi-select toestaat het).
+        promptText = "Maak een Google Business-post";
+      } else if (hasGbp && others.length === 1) {
+        // GBP + 1 ander → twee aparte voorstellen, geen bundel.
+        promptText = `Maak twee voorstellen: een ${labelFor(others[0])}-bericht en een Google Business-post.`;
+      } else if (hasGbp) {
+        // GBP + 2+ andere → bundel voor de rest + losse GBP.
+        const labels = others.map(labelFor);
+        promptText = `Maak een bundel-campagne voor ${labels.join(", ")} en daarnaast een aparte Google Business-post.`;
+      } else {
+        // 2+ kanalen zonder GBP → normale bundle.
+        const labels = others.map(labelFor);
+        promptText = `Maak een bundel-campagne voor ${labels.join(", ")}`;
+      }
     }
 
     try {

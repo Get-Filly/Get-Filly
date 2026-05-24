@@ -8,18 +8,20 @@ import type { ChannelChoiceCard } from "../../../lib/api";
 // ============================================================
 //
 // Wordt onder Filly's bericht getoond wanneer message_card.kind ===
-// 'channel_choice'. Vier checkboxes (Mail / Instagram / Facebook /
-// WhatsApp) + "Selecteer alles"-knop + Verstuur-knop. Eigenaar kan
-// 1 of meerdere kanalen aanvinken, pas bij klik op Verstuur stuurt
-// de orchestrator een follow-up-bericht naar Filly.
+// 'channel_choice'. Vijf checkboxes (Mail / Instagram / Facebook /
+// WhatsApp / Google Business) + "Selecteer alles"-knop + Verstuur-knop.
+// Eigenaar kan 1 of meerdere kanalen aanvinken, pas bij klik op
+// Verstuur stuurt de orchestrator een follow-up-bericht naar Filly.
 //
 // Submit-logica (in parent):
-//   - 1 single-kanaal aangevinkt   → FORMAAT 1 (single proposal)
-//   - 2+ kanalen aangevinkt        → FORMAAT 2 (bundle, Filly genereert
-//                                    altijd alle 3 standaard-kanalen
-//                                    mail+IG+FB; eigenaar kan in de
-//                                    bundle-card alsnog wegvinken)
-//   - 0 aangevinkt                 → Verstuur disabled
+//   - 1 single-kanaal aangevinkt        → FORMAAT 1 (single proposal)
+//   - 2+ kanalen aangevinkt zonder GBP  → FORMAAT 2 (bundle mail+IG+FB)
+//   - GBP samen met mail/IG/FB/WA       → split: bundle voor de
+//                                          rest + apart single voor GBP
+//                                          (bundle ondersteunt nog
+//                                          geen GBP, zie
+//                                          campaign-checks.toBundleChannel)
+//   - 0 aangevinkt                       → Verstuur disabled
 // ============================================================
 
 export type ChoiceState = "pending" | "chosen" | "submitting";
@@ -28,11 +30,16 @@ export type ChoiceState = "pending" | "chosen" | "submitting";
 // kiezen i.p.v. beide). Onder de motorkap mappen ze allebei op de
 // 'social'-campaign-type bij FORMAAT 1; in een bundle gaan ze als
 // 2 aparte sub-campagnes.
+//
+// google_business is multi-select-OK, maar de bundle-backend
+// (approveBundleSuggestion) ondersteunt 'm nog niet. De orchestrator
+// splitst GBP daarom apart af bij multi-select-submissions.
 export type ChannelChoice =
   | "mail"
   | "instagram"
   | "facebook"
-  | "whatsapp";
+  | "whatsapp"
+  | "google_business";
 
 type Props = {
   card: ChannelChoiceCard;
@@ -51,6 +58,11 @@ const OPTIONS: Array<{
   { key: "instagram", icon: "📷", label: "Instagram", hint: "IG-post" },
   { key: "facebook", icon: "📘", label: "Facebook", hint: "FB-post" },
   { key: "whatsapp", icon: "💬", label: "WhatsApp", hint: "Persoonlijk bericht" },
+  // Google Business: post op je Google Business Profile (zichtbaar in
+  // Maps + zoekresultaten). Voor horeca een ondergewaardeerd kanaal
+  // qua bereik. Bundle-handling nog niet beschikbaar, dus splitten we
+  // 'm af bij multi-select (zie comment hierboven).
+  { key: "google_business", icon: "📍", label: "Google Business", hint: "Post op je profiel" },
 ];
 
 export function FillyChatChoiceCard({
@@ -65,6 +77,7 @@ export function FillyChatChoiceCard({
     instagram: false,
     facebook: false,
     whatsapp: false,
+    google_business: false,
   });
 
   const disabled = state !== "pending";
@@ -79,6 +92,7 @@ export function FillyChatChoiceCard({
     "instagram",
     "facebook",
     "whatsapp",
+    "google_business",
   ];
   const chosenList: ChannelChoice[] = allKeys.filter((c) => selected[c]);
   const chosenCount = chosenList.length;
@@ -95,6 +109,7 @@ export function FillyChatChoiceCard({
       instagram: newValue,
       facebook: newValue,
       whatsapp: newValue,
+      google_business: newValue,
     });
   };
 
