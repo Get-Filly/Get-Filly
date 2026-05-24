@@ -71,6 +71,25 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
   afgerond: "Afgerond",
 };
 
+/**
+ * Status-label dat per campagne-type aanpast wat 'Actief' betekent.
+ * Voor mail: 'actief' is dubbelzinnig (geactiveerd vs daadwerkelijk
+ * verstuurd). We tonen daarom:
+ *   - 'Klaar voor verzending' zolang sent_count = 0
+ *   - 'Verstuurd' zodra minimaal 1 recipient een mail heeft gekregen
+ * Voor social/whatsapp blijft 'Actief' want daar is push = live.
+ */
+function getDisplayStatus(
+  status: CampaignStatus,
+  type: string | null | undefined,
+  sentCount: number,
+): string {
+  if (status === "actief" && type === "mail") {
+    return sentCount > 0 ? "Verstuurd" : "Klaar voor verzending";
+  }
+  return STATUS_LABEL[status];
+}
+
 const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
   const palette: Record<CampaignStatus, { bg: string; fg: string }> = {
     concept: { bg: "#FFFFFF", fg: "#1F4A2D" },
@@ -636,7 +655,11 @@ export default function UnifiedDetailPage() {
           }}
         >
           <span style={statusChipStyle(status)}>
-            {STATUS_LABEL[status]}
+            {getDisplayStatus(
+              status,
+              activeCampaign?.type ?? null,
+              activeCampaign?.sent_count ?? 0,
+            )}
           </span>
           {view.bundleName && view.channels.length > 1 && (
             <span style={{ color: "var(--tl)", fontSize: 12 }}>

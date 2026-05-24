@@ -136,6 +136,11 @@ export type CampaignDetail = Campaign & {
   // variants[selected_variant_index].
   variants: CampaignVariant[];
   selected_variant_index: number;
+  // Aantal recipients waar deze campagne naartoe is verstuurd. Voor
+  // mail-type leest dit uit campaign_sends. Gebruikt door de UI om
+  // het status-label aan te passen ("Actief" → "Klaar voor verzending"
+  // wanneer count=0; → "Verstuurd" zodra >0).
+  sent_count: number;
 };
 
 @Injectable()
@@ -412,10 +417,24 @@ export class CampaignsService {
       }
     }
 
+    // Aantal verstuurde mails (voor mail-status-label: "Klaar voor
+    // verzending" zolang sent_count=0, anders "Verstuurd"). Voor
+    // niet-mail-campagnes blijft het altijd 0 — daar is sent geen
+    // concept (social/GBP gaan via OAuth-post-flow die we apart loggen).
+    let sentCount = 0;
+    if (campaign.type === 'mail') {
+      const { count } = await this.supabase.client
+        .from('campaign_sends')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', id);
+      sentCount = count ?? 0;
+    }
+
     return {
       ...campaign,
       content: signedContent,
       reasoning,
+      sent_count: sentCount,
     } as CampaignDetail;
   }
 

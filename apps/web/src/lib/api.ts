@@ -154,6 +154,9 @@ export type CampaignDetail = Campaign & {
   // variants[selected_variant_index].
   variants: CampaignVariant[];
   selected_variant_index: number;
+  // Aantal verstuurde mails (alleen mail-type). Voor status-label-keuze:
+  // 'actief' + sent_count=0 → "Klaar voor verzending", >0 → "Verstuurd".
+  sent_count: number;
   tags: string[] | null;
   created_at: string;
   content: {
