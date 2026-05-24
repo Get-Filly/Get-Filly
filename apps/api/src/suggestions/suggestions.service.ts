@@ -14,6 +14,7 @@ import {
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { buildAllChannelsBlock } from '../ai/filly-brain.config';
+import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
 // 1-variant-replace naar 3-variants-append. Eigenaar krijgt 3 nieuwe
@@ -493,6 +494,9 @@ export class SuggestionsService {
     // nodig zodat hij kan refereren aan échte gerechten met échte
     // prijzen ipv generieke "lekker comfort food"-tekst.
     private readonly context: RestaurantContextService,
+    // Voor leerloop-injectie in generateOnDemand-prompt (filly-brein
+    // hfst 9.5). Returnt lege string bij ontbreken classified campagnes.
+    private readonly fingerprint: CampaignFingerprintService,
   ) {}
 
   async findAll(
@@ -647,6 +651,8 @@ Vandaag is ${todayIso}.
 
 ---
 ${buildAllChannelsBlock()}
+---
+${await this.fingerprint.buildLearningContextBlock(restaurantId)}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
 

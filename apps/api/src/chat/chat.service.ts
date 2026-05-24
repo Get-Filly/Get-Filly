@@ -12,6 +12,7 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { buildAllChannelsBlock } from '../ai/filly-brain.config';
+import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
 // 'user' = de restauranteigenaar, 'system' = interne/automatische berichten
@@ -177,6 +178,9 @@ export class ChatService {
     private readonly context: RestaurantContextService,
     private readonly suggestionsService: SuggestionsService,
     private readonly memory: ChatMemoryService,
+    // Voor leerloop-injectie: top-3 winners + underperformers per
+    // kanaal als "SUCCESSFUL/AVOID PATTERNS" in de system-prompt.
+    private readonly fingerprint: CampaignFingerprintService,
   ) {}
 
   // Haalt de actieve conversatie op voor dit restaurant, of maakt er
@@ -934,7 +938,7 @@ export class ChatService {
   // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
   // zaak". Twee queries kosten minder dan 50ms verschil.
   private async buildSystemPrompt(restaurantId: string): Promise<string> {
-    const [restaurantResult, contextBlock, memories] = await Promise.all([
+    const [restaurantResult, contextBlock, memories, learningBlock] = await Promise.all([
       this.supabase.client
         .from('restaurants')
         .select('name, type')
@@ -947,6 +951,10 @@ export class ChatService {
       // Cacheable in prompt-cache (dezelfde memories voor meerdere
       // chat-calls binnen 5 min).
       this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
+      // Top winners + underperformers per kanaal (filly-brein hfst 9.5).
+      // Returnt lege string als er nog geen geclassificeerde campagnes
+      // zijn — Filly werkt dan op industry-benchmarks alleen.
+      this.fingerprint.buildLearningContextBlock(restaurantId),
     ]);
 
     const restaurant = restaurantResult.data;
@@ -1147,7 +1155,7 @@ LENGTE EN HASHTAGS (leidend boven andere regels):
 - Anker-keywords (cuisine + stad + signature-gerechten) mogen herhaald
   worden uit eerdere campagnes; creatieve laag (opening, metafoor, CTA-
   formule) moet variëren.
-
+${learningBlock}
 ---
 CONTEXT, alles wat je weet over deze onderneming.
 Drie secties, gescheiden door "---":

@@ -11,6 +11,7 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
+import { CampaignFingerprintService } from './campaign-fingerprint.service';
 import type Anthropic from '@anthropic-ai/sdk';
 
 // Schema voor 3-varianten-tool. minItems/maxItems forceert
@@ -158,6 +159,10 @@ export class CampaignsService {
     // performance-rij aan zodat alle webhook-events (delivered/opened/
     // clicked) en attributies een doel hebben om bij te werken.
     private readonly performance: CampaignPerformanceService,
+    // CampaignFingerprintService: bij status→actief extraheren we
+    // stilistische metadata (opening / hashtags / cta / dish) voor
+    // de leerloop + anti-repetitie (filly-brein hfst 8 + 9).
+    private readonly fingerprint: CampaignFingerprintService,
   ) {}
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
@@ -857,6 +862,8 @@ export class CampaignsService {
             }`,
           ),
         );
+      // Fingerprint-extractie voor anti-repetitie + leerloop. Fail-soft.
+      void this.fingerprint.extractFromCampaign(id);
     }
 
     return { id, status: nextStatus };

@@ -6,6 +6,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
 import { SuggestionsModule } from '../suggestions/suggestions.module';
+import { CampaignsModule } from '../campaigns/campaigns.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
@@ -21,7 +22,7 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 //   system-prompt van toekomstige chats met geleerde voorkeuren
 // - Guards: standaard auth + tenant-isolation + AI-rate-limit
 @Module({
-  imports: [SupabaseModule, MeModule, AiModule, SuggestionsModule],
+  imports: [SupabaseModule, MeModule, AiModule, SuggestionsModule, CampaignsModule],
   controllers: [ChatController],
   providers: [
     ChatService,
