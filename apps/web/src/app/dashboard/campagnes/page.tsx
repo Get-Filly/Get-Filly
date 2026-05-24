@@ -605,12 +605,16 @@ export default function CampagnesPage() {
   const DEFAULT_BUNDLE: BundleChannel[] = ["mail", "instagram", "facebook"];
 
   // Goedkeur: voorstel → concept. Niet voor campaign-items.
+  // Single-channel: redirect naar concept-detail-page zodat eigenaar
+  // 'm meteen kan afronden (datum + onderwerp voor mail invullen).
+  // Bundle: blijft op kanban — eigenaar kiest welk kanaal verder.
   const handleApprove = (item: BoardItem) =>
     runAction(item, "Goedkeuren", async () => {
       if (item.kind === "bundle-suggestion") {
         await approveBundleSuggestion(item.data.id, DEFAULT_BUNDLE);
       } else if (item.kind === "suggestion") {
-        await approveSuggestion(item.data.id);
+        const { campaignId } = await approveSuggestion(item.data.id);
+        router.push(`/dashboard/campagnes/${campaignId}`);
       }
     });
 
