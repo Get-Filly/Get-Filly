@@ -424,6 +424,7 @@ function campaignDateLine(c: Campaign): string {
 }
 
 export default function CampagnesPage() {
+  const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -624,11 +625,18 @@ export default function CampagnesPage() {
 
   // Plan in: zet campagne(s) op ingepland. Voorstel = approve + meteen
   // ingepland, campagne = directe status-overgang.
+  //
+  // Voor single-channel-flows redirecten we direct naar de detail-page
+  // van de zojuist-ingeplande campagne (daar staat de Versturen-sectie
+  // voor mail-campagnes). Bundle blijft op kanban — eigenaar kiest zelf
+  // welk kanaal hij verder wil afhandelen.
   const handlePlan = (item: BoardItem) =>
     runAction(item, "Inplannen", async () => {
+      let redirectCampaignId: string | null = null;
       if (item.kind === "suggestion") {
         const { campaignId } = await approveSuggestion(item.data.id);
         await updateCampaignStatus(campaignId, "ingepland");
+        redirectCampaignId = campaignId;
       } else if (item.kind === "bundle-suggestion") {
         const result = await approveBundleSuggestion(
           item.data.id,
@@ -644,12 +652,16 @@ export default function CampagnesPage() {
         );
       } else if (item.kind === "campaign") {
         await updateCampaignStatus(item.data.id, "ingepland");
+        redirectCampaignId = item.data.id;
       } else if (item.kind === "bundle-campaign") {
         await Promise.all(
           item.campaigns.map((c) =>
             updateCampaignStatus(c.id, "ingepland"),
           ),
         );
+      }
+      if (redirectCampaignId) {
+        router.push(`/dashboard/campagnes/${redirectCampaignId}`);
       }
     });
 

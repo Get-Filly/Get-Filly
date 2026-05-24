@@ -566,11 +566,17 @@ export default function VoorstelDetailPage() {
         await Promise.all(
           ids.map((id) => updateCampaignStatus(id, "ingepland")),
         );
+        // Bundle: terug naar kanban; eigenaar kiest zelf welk kanaal
+        // hij verder wil afhandelen (geen één-correct detail-page bij
+        // multi-channel).
         router.push("/dashboard/campagnes");
       } else {
         const { campaignId } = await approveSuggestion(suggestion.id);
         await updateCampaignStatus(campaignId, "ingepland");
-        router.push("/dashboard/campagnes");
+        // Single-channel: direct naar de detail-page van de zojuist
+        // ingeplande campagne. Daar staat de Versturen-sectie (voor
+        // mail) en kan de eigenaar meteen testen of laten gaan.
+        router.push(`/dashboard/campagnes/${campaignId}`);
       }
     } catch (e) {
       setActionError(
