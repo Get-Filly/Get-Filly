@@ -36,6 +36,7 @@ import { InhoudCard } from "../../_components/campaign-detail/inhoud-card";
 import { WanneerCard } from "../../_components/campaign-detail/wanneer-card";
 import { FotoCard } from "../../_components/campaign-detail/foto-card";
 import { CampaignPerformanceCard } from "./_components/campaign-performance-card";
+import { CampaignSendCard } from "./_components/campaign-send-card";
 import type { MissingField } from "../../../../lib/campaign-checks";
 
 // ============================================================
@@ -803,6 +804,13 @@ export default function UnifiedDetailPage() {
         onResetToFilly={handleResetToFilly}
         onDraftDatetimeChange={setDraftDatetime}
       />
+
+      {/* Mail-verstuur: test-mail + verstuur-naar-iedereen. Toont
+          alleen op mail-campagnes (andere kanalen gaan via eigen
+          publish-flow). */}
+      {activeCampaign?.type === "mail" && (
+        <CampaignSendCard campaignId={activeCampaign.id} />
+      )}
 
       {/* Performance: score + breakdown + outlier-knop. Toont alleen
           relevante info na status→'actief'; daarvóór "Nog geen meet-data". */}

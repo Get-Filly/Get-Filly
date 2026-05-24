@@ -423,6 +423,14 @@ export class CampaignsController {
   //   - bij 'all_opted_in': minimaal 1 opt-in gast vereist
   // Onomkeerbaar, front toont een confirm-modal voordat 'ie deze
   // call doet.
+  // Aantal opt-in-gasten + eerste 5 namen + eigenaar's contact-mail.
+  // Gebruikt door de detail-page verstuur-sectie zodat eigenaar
+  // zie wie 'ie aanschrijft vóór 'ie op verstuur klikt.
+  @Get(':id/recipients-preview')
+  recipientsPreview(@RestaurantId() restaurantId: string) {
+    return this.mail.getRecipientsPreview(restaurantId);
+  }
+
   @Post(':id/send')
   send(
     @RestaurantId() restaurantId: string,

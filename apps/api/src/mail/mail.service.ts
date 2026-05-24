@@ -144,6 +144,67 @@ export class MailService {
   }
 
   // ============================================================
+  // RECIPIENTS PREVIEW, gebruikt door verstuur-UI op detail-page
+  // ============================================================
+  // Returnt het aantal gasten dat in 'all_opted_in'-mode bereikt zou
+  // worden + eerste 5 namen ter herkenning. Eigenaar ziet hierop
+  // "47 gasten, waaronder Anna, Mark, Sophie…" en weet wat 'ie
+  // verstuurt voordat 'ie op de send-knop drukt.
+  async getRecipientsPreview(
+    restaurantId: string,
+  ): Promise<{
+    totalCount: number;
+    sampleNames: string[];
+    ownerEmail: string | null;
+  }> {
+    const [guestsRes, restRes] = await Promise.all([
+      this.userScoped.client
+        .from('guests')
+        .select('first_name, last_name, email')
+        .eq('restaurant_id', restaurantId)
+        .eq('mail_opt_in', true)
+        .not('email', 'is', null)
+        .limit(5),
+      this.userScoped.client
+        .from('restaurants')
+        .select('contact_email')
+        .eq('id', restaurantId)
+        .maybeSingle(),
+    ]);
+
+    // Aparte count-query voor het volledige aantal (de eerste query
+    // is gelimit op 5 voor de sample, een COUNT geeft het echte totaal).
+    const { count } = await this.userScoped.client
+      .from('guests')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('mail_opt_in', true)
+      .not('email', 'is', null);
+
+    type Row = {
+      first_name: string | null;
+      last_name: string | null;
+      email: string | null;
+    };
+    const sample = ((guestsRes.data ?? []) as Row[])
+      .map((g) => {
+        const first = (g.first_name ?? '').trim();
+        const last = (g.last_name ?? '').trim();
+        const name = [first, last].filter(Boolean).join(' ').trim();
+        return name || g.email || null;
+      })
+      .filter((n): n is string => !!n);
+
+    return {
+      totalCount: count ?? 0,
+      sampleNames: sample,
+      ownerEmail:
+        ((restRes.data as { contact_email?: string | null } | null)
+          ?.contact_email as string | null) ?? null,
+    };
+  }
+
+  // ============================================================
   // SEND, verstuur een campagne naar een lijst recipients
   // ============================================================
   // Flow per recipient:

@@ -499,8 +499,15 @@ export default function CampagnesPage() {
     // 0043 nog niet gedraaid heeft sinds verstrijken). Safety-net
     // tegen de gap tussen verstrijken en nightly cleanup.
     const nowIso = new Date().toISOString();
+    // Expired = scheduled_for in het verleden EN nog niet 'actief'.
+    // Een actieve mail-campagne kan een verstreken scheduled_for hebben
+    // (geactiveerd op of na de geplande tijd; mail moet nog uit) en
+    // hoort dan gewoon in de Actief-kolom te blijven tot nightly cron
+    // 'm op 'afgerond' zet.
     const isExpired = (c: Campaign) =>
-      typeof c.scheduled_for === "string" && c.scheduled_for < nowIso;
+      typeof c.scheduled_for === "string" &&
+      c.scheduled_for < nowIso &&
+      c.status !== "actief";
     const byGroup = new Map<string, Campaign[]>();
     const standalone: Campaign[] = [];
     for (const c of campaigns) {

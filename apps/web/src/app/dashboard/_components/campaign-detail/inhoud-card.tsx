@@ -155,6 +155,7 @@ export function InhoudCard({
         ) : (
           <SelectedReader
             variant={selected}
+            type={type}
             versieLabel={`Versie ${safeSelected + 1}`}
             canEdit={canEdit}
             busy={busy}
@@ -252,12 +253,14 @@ function SelectedReader({
   variant,
   versieLabel,
   canEdit,
+  type,
   busy,
   canRevert,
   onEdit,
   onRevert,
 }: {
   variant: InhoudVariant | undefined;
+  type: "mail" | "social" | "whatsapp";
   versieLabel: string;
   canEdit: boolean;
   busy: boolean;
@@ -359,16 +362,55 @@ function SelectedReader({
           )}
         </div>
       </div>
-      {variant?.subject_line && (
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text)",
-          }}
-        >
-          {variant.subject_line}
-        </div>
+      {/* Mail: altijd subject-row tonen (zelfs leeg) zodat eigenaar
+          weet dat 'ie 'm moet invullen. Klik op de placeholder opent
+          de edit-modus zodat 'ie direct kan typen. Voor social/whatsapp
+          tonen we 'm alleen als er een onderwerp is gezet. */}
+      {type === "mail" ? (
+        variant?.subject_line ? (
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text)",
+            }}
+          >
+            <span style={{ opacity: 0.6, fontWeight: 500 }}>Onderwerp:</span>{" "}
+            {variant.subject_line}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={canEdit ? onEdit : undefined}
+            disabled={!canEdit || busy}
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              fontStyle: "italic",
+              color: "var(--danger, #DC2626)",
+              background: "transparent",
+              border: "1px dashed var(--danger, #DC2626)",
+              borderRadius: 6,
+              padding: "6px 10px",
+              textAlign: "left",
+              cursor: canEdit ? "pointer" : "default",
+            }}
+          >
+            ◦ Onderwerp ontbreekt — klik om in te vullen
+          </button>
+        )
+      ) : (
+        variant?.subject_line && (
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text)",
+            }}
+          >
+            {variant.subject_line}
+          </div>
+        )
       )}
       <div
         style={{

@@ -2744,7 +2744,17 @@ export async function fetchCampaignPerformance(
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);
   }
-  return res.json();
+  // Endpoint retourneert letterlijk `null` (zonder body) als er nog
+  // geen performance-rij is. Dat wordt door Nest soms als lege body
+  // verzonden waarop res.json() crasht. Lees eerst als tekst,
+  // probeer pas dan te parsen.
+  const text = await res.text();
+  if (!text || text === "null") return null;
+  try {
+    return JSON.parse(text) as CampaignPerformance;
+  } catch {
+    return null;
+  }
 }
 
 export async function markCampaignOutlier(
@@ -2773,6 +2783,68 @@ export async function unmarkCampaignOutlier(
     `${API_URL}/campaigns/${campaignId}/performance/outlier`,
     { method: "DELETE" },
   );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================================
+// Mail verzenden + ontvangers-preview
+// ============================================================
+
+export interface RecipientsPreview {
+  totalCount: number;
+  sampleNames: string[];
+  ownerEmail: string | null;
+}
+
+export async function fetchRecipientsPreview(
+  campaignId: string,
+): Promise<RecipientsPreview> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/recipients-preview`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export interface MailSendResult {
+  sent: number;
+  failures?: Array<{ email: string; error: string }>;
+}
+
+/** Verstuur een test-mail naar één opgegeven adres. */
+export async function sendCampaignTest(
+  campaignId: string,
+  testEmail: string,
+): Promise<MailSendResult> {
+  const res = await authedFetch(`${API_URL}/campaigns/${campaignId}/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "test", testEmail }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Verstuur de campagne naar alle opt-in-gasten. Onomkeerbaar. */
+export async function sendCampaignToAll(
+  campaignId: string,
+): Promise<MailSendResult> {
+  const res = await authedFetch(`${API_URL}/campaigns/${campaignId}/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "all_opted_in" }),
+  });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);
