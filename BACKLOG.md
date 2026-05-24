@@ -152,15 +152,86 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **runner_version-overgang in trend-chart** — verticale lijn waar versie wisselde, zodat historische score-sprongen geen mysterieuze "wat gebeurde er?"-vraag worden.
 
 ### Filly's denkmethodiek — investor-document
-- [ ] **Writing-styles & beslissingsraamwerk uitschrijven (Word-document, voor investor-pitch)** — toegevoegd 2026-05-07. Eigenaar wil een leesbaar document hebben dat uitlegt:
-  - Welke schrijftoon Filly gebruikt per type campagne (mail vs Instagram vs WhatsApp vs Facebook vs TikTok)
-  - Waar die keuzes op gebaseerd zijn (best-practices per platform, doelgroep-onderzoek, A/B-test-resultaten als die er zijn)
-  - Wat werkt en wat niet werkt — voorbeelden van slechte vs goede formuleringen
-  - Filly's interne beslissingsraamwerk: trigger-detectie → kanaal-keuze → toon → CTA-stijl → timing
-  - Per platform: caption-lengte, hashtag-strategie, emoji-density, etc. (overlap met "Platform-specifieke output"-task hierboven, dat is de implementation, dit is de documentatie)
-  - Versie-historie: hoe de prompts zijn geëvolueerd op basis van leerpunten
+- [x] ~~**Writing-styles & beslissingsraamwerk uitschrijven (Word-document)**~~ (2026-05-24) — `docs/filly-brein.docx` v1 live met 24 hoofdstukken: input-signalen + redeneer-flow + 6 kanaal-secties (mail/IG/FB/TikTok/WA/GBP) met lengte/tone/hashtags/timing/CTA/visueel + critic-stem + bronnen (Sprout Social, Hootsuite, HubSpot, Later, Litmus, BrightLocal, Whitespark) + urgentie-vs-optimum-framework + anti-repetitie-mechanisme + performance-tracking-leerloop + funnel/lifecycle + segmentatie/targeting + content-types/UGC + brand-stem-archetype + AI-risico's + operationele rails + complete website-implementatie-checklist. Investor-ready in dezelfde stijl als health-score-analyse.docx.
 
-  Doel: laten zien aan investors / partners / klanten dat Filly's keuzes onderbouwd zijn, niet random AI-output. Word-document of PDF, niet alleen in code-comments. Grote brokken hiervan kunnen we uit de bestaande system-prompts in `apps/api/src/suggestions/suggestions.service.ts` + `apps/api/src/chat/chat.service.ts` halen en in mensenstaal uitschrijven.
+### Filly-brein v2 → code-vertaling + website-implementatie (van filly-brein.docx)
+**Het document `docs/filly-brein.docx` is de bron-van-waarheid voor onderstaande taken. Open dat eerst.**
+
+#### Filly-brain config + prompts (geen externe afhankelijkheden)
+- [ ] **filly-brain.config.ts** (hoofdstuk 20 van het doc) — typed `CHANNEL_RULES` per kanaal: lengte (woorden/chars), hashtag-strategie, optimale tijden, minLeadTimeHours + optimalLeadTimeHoursRange, tone-modulatie. Bron-van-waarheid voor chat.service + suggestions.service prompts.
+- [ ] **System-prompts migreren naar config** — chat.service.ts (FORMAAT 1/2 per-kanaal-regels) + suggestions.service.ts gebruiken CHANNEL_RULES i.p.v. hardcoded waarden. Tool-input-schema vereist `funnel_stage` + `tone_signature` + `length_target` per variant.
+- [ ] **suggestSchedule met urgency-logica** (hfst 7) — bereken tijd_tot_doel, kies sweet-spot binnen optimum-interval, anders zo dichtbij nu mogelijk, log reden in `scheduled_reasoning`. Skip kanalen onder minimum.
+- [ ] **campaign_style_fingerprints-tabel** (hfst 8) — migratie + extractor in approve-flow. RLS via restaurant_id-denormalize.
+- [ ] **Anti-repetitie-context loader** (hfst 8) — `loadRecentFingerprints(restaurantId, channel, n=10)` aanroepen vóór elke generation. Anker-keywords uit restaurants.keywords + cuisine_style + city worden uitgesloten van overlap-check.
+- [ ] **Post-generatie-validatie** (hfst 8.6) — Jaccard hashtag-overlap + opening-overlap + cta-template-frequency. Bij overschrijding: warning in UI naast variant, geen auto-regenerate.
+- [ ] **3-varianten-3-tone-signatures afgedwongen** (hfst 8.4) — tool-schema verplicht: variant 1 = feit-eerst kort, variant 2 = verhaal-eerst middel, variant 3 = vraag-eerst lang.
+- [ ] **Brand-archetype + do/don't-velden** (hfst 15) — nieuwe kolommen `restaurants.brand_archetype` (enum 12) + `brand_voice_do[]` + `brand_voice_dont[]`. UI in identiteit-tab. Filly krijgt ze als harde constraint in prompt.
+- [ ] **B1/B2-taalniveau-instelling** (hfst 15.3) — `restaurants.language_level` enum. Default B1.
+- [ ] **Cialdini-power-woorden-bibliotheek** (hfst 13.6) — opt-in lijst per restaurant; Filly verwerkt structureel scarcity/authority/social-proof als toepasselijk.
+- [ ] **Filly stop-condities** (hfst 17.1) — checks vóór generation: menu-data aanwezig, tone_of_voice ingevuld, geen conflict met do_not_mention. Bij stop: heldere uitleg + actie-link.
+- [ ] **Eigenaar-correctie-feedback-loop** (hfst 17.2) — na 3× zelfde patroon-correctie vraag "wil je dat ik dit voortaan standaard zo doe?". Opslag in brand_voice_do/dont.
+- [ ] **Uitlegbaarheid-niveau-keuze** (hfst 17.5) — eigenaar kiest "diep" / "kort"; default kort. Toon herkomst-attributie bij elk voorstel.
+- [ ] **Filly-zelfreflectie-score** (hfst 17.6) — na approve: "was dit direct goed?" 1-5 + open feedback. Opslag in ai_suggestions.post_approve_score.
+- [ ] **Rate-limits per restaurant per kanaal** (hfst 18.1) — defaults uit doc-tabel, eigenaar mag overrulen. Filly weigert te genereren als limiet bereikt deze maand.
+
+#### Triggered messaging-flows (vereist alleen Resend, geen Meta OAuth)
+- [ ] **Welkom-mail-flow** (hfst 11.3) — direct na 1e reservering + reminder 24u vooraf.
+- [ ] **Reviewverzoek-mail** — 24-48u na bezoek, QR-code op tafel als alternatief.
+- [ ] **Verjaardag-uitnodiging** — 7 dagen vóór `guests.birthday`; mail of WhatsApp (opt-in).
+- [ ] **Win-back-flow** — 90 dagen stilte trigger; persoonlijke uitnodiging met signature-gerecht-trigger.
+- [ ] **Anniversary 1-jaar** — mooie milestone, geautomatiseerd op `guests.first_visit_at` + 365 dagen.
+- [ ] **Lifecycle-classificatie** — auto-update `guests.computed_segment` dagelijks via pg_cron (nieuw / verse gast / terugkeerder / vaste / slapend / verloren).
+
+#### Performance-tracking (deels nu, deels OAuth-afhankelijk)
+- [ ] **campaign_performance-tabel** (hfst 9.10) — migratie + service-laag. Per-kanaal nullable velden.
+- [ ] **Resend webhooks uitbreiden voor campagne-mail** — open/click/bounce-events naar campaign_performance.
+- [ ] **UTM-helper-functie** (hfst 14.1) — `buildUtmUrl(base, params)` in apps/api/src/common/. Vaste structuur source/medium/campaign/content.
+- [ ] **Reservation-attributie-hook** (hfst 14.3) — `/reserveren?utm_*` doorgeven aan booking-form; bij submit `via_campaign_id` invullen.
+- [ ] **Nightly performance-scoring-job** (hfst 9.10) — pg_cron scant meet-window-verstreken campagnes, berekent success_score, classification.
+- [ ] **Per-restaurant-benchmarks vanaf 20+ campagnes** (hfst 9.4) — eigen mediaan i.p.v. industry-default.
+- [ ] **Success/underperformer-injectie in prompts** (hfst 9.5) — top-3 winners + top-3 underperformers per kanaal in system-prompt vóór generation.
+- [ ] **Kennis-fasen-display** (hfst 9.6) — UI toont eigenaar in welke leer-fase z'n data zit (1: industry-only, 2: tentative, 3: eigen, 4: cross-restaurant).
+- [ ] **Outlier-markering** (hfst 9.7) — knop "viel buiten controle" met redenen (slecht weer / staking / atypisch). Excludeert uit leerloop.
+- [ ] **Channel-fatigue tracking** (hfst 14.7) — rolling 30-d frequency × engagement; alarm bij stijgende frequentie + dalende engagement.
+
+#### Website-laag (P0, geen OAuth nodig)
+- [ ] **Meta Pixel JS-snippet** (hfst 14.2 + 19.1) — install in Next.js layout. Events: PageView, ViewContent, Lead, Reserve. Pixel-ID per restaurant.
+- [ ] **TikTok Pixel JS-snippet** — zelfde events; aparte pixel-ID.
+- [ ] **Cookie-banner CMP-mode-v2** — granulaire opt-in voor marketing-cookies vóór pixel fires; consent-mode-signalen naar Google + Meta.
+- [ ] **GA4 of Plausible install** — page-tracking + custom events (campaign_click, reserve_intent, reserve_complete).
+- [ ] **Schema.org markup site-breed** — Restaurant + Menu + FAQ + Event + Review (al deels in health-score-checks; nu daadwerkelijk implementeren).
+- [ ] **E-mail SPF/DKIM/DMARC-records** — DNS configureren voor `send.getfilly.com`. Spam-folder-kans daalt 60%.
+- [ ] **Resend IP-warming-protocol** — eerste 2-3 weken throttle in MailService op max 500 mails/dag per IP.
+- [ ] **Preference-center pagina** — bestaande /unsubscribe uitbreiden: "alleen aanbiedingen" / "alleen events" / "alle mails" / "uitschrijven".
+- [ ] **Reservation-page-UX-pass** — UTM-persist over multi-step, mobile-vriendelijke datepicker, success-page met conversie-pixel.
+
+#### Vereist Meta Business OAuth (al op P1 backlog: Meta + TikTok approval)
+- [ ] **Server-side Meta CAPI** (hfst 14.2) — server-side events naast pixel voor iOS 14.5+-accuracy.
+- [ ] **Lookalike-audience-export** (hfst 12.4) — top-100 gasten naar Meta Ads API hashed-list.
+- [ ] **IG/FB Insights-fetcher** (hfst 9.2) — dagelijks post-stats via Meta Graph API.
+- [ ] **UGC tag-detectie** (hfst 13.4) — Meta API poll naar tags van eigen account. ugc_pending-tabel.
+- [ ] **FB Events i.p.v. posts** (hfst 16.4) — Filly maakt FB-event-objecten i.p.v. post-objecten voor events.
+- [ ] **Auto-DM-templates voor UGC-toestemming** (hfst 13.4) — Filly stuurt pre-fab DM via Meta API.
+
+#### Vereist TikTok Business OAuth
+- [ ] **TikTok Insights-fetcher** — view/watch/share-stats per video.
+- [ ] **TikTok Pixel-CAPI server-side** — zelfde verhaal als Meta CAPI.
+
+#### Vereist Google Business Profile API (al op backlog: GBP fase C-F)
+- [ ] **Auto-posting naar GBP** (hfst 16.7/16.8) — Q&A's + foto-cadans + posts pushen via GBP API.
+- [ ] **GBP Insights-fetcher** — impressions, clicks per CTA-type, search-impressions.
+- [ ] **Review-recency + antwoord-ratio** (hfst 9.10 + health-score V2) — vereist GBP-API voor review-lijst.
+- [ ] **GBP-events aanmaken via API** — event-type posts voor evenementen.
+
+#### Vereist WhatsApp Business API (apart van Meta OAuth, ook P1)
+- [ ] **WhatsApp Business-template-flow** (hfst 16.6) — Meta-template-aanvraag + status-tracking in UI.
+- [ ] **WhatsApp broadcast** via Twilio of Sinch — opt-in respectering verplicht.
+
+#### Vereist CallRail of vergelijkbaar
+- [ ] **Call-tracking** (hfst 14 + 19.4) — dynamic phone-numbers gekoppeld aan campaign_id.
+
+#### Vereist POS-koppeling (toekomst)
+- [ ] **Per-gast besteding-segment** (hfst 12.1) — gemiddelde check-bedrag per gast voor targeting.
 
 ### Email & campagnes
 - [x] ~~**Campagne-send engine**~~ (2026-05-04) — `MailService.sendCampaignByMode` met test-modus + all_opted_in. Resend SDK + batches van 100. From=`<restaurant-naam> <social@get-filly.com>` of klant-eigen domein als verified. Reply-to via `restaurant.contact_email`. Pre-flight check op subject_line + body_html/body_plain. Webhook-handler updatet sends-rij bij delivered/bounced/opened/clicked. UI: `CampaignSendModal` met test/echt-toggle + confirm-on-name voor echt versturen.
