@@ -2803,6 +2803,32 @@ export interface RecipientsPreview {
   ownerEmail: string | null;
 }
 
+// Anti-repetitie-check (filly-brein hfst 8.6)
+export interface RepetitionWarning {
+  kind: "opening" | "hashtags" | "cta";
+  message: string;
+}
+
+/**
+ * Vraagt de backend of de huidige variant te veel op recente campagnes
+ * lijkt. Lege array = geen waarschuwing. Faalt stil (lege array) zodat
+ * een check-fout nooit de detail-page blokkeert.
+ */
+export async function fetchRepetitionCheck(
+  campaignId: string,
+): Promise<RepetitionWarning[]> {
+  try {
+    const res = await authedFetch(
+      `${API_URL}/campaigns/${campaignId}/repetition-check`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchRecipientsPreview(
   campaignId: string,
 ): Promise<RecipientsPreview> {

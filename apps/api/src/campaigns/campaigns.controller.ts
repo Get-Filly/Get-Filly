@@ -18,6 +18,7 @@ import {
   type CampaignType,
 } from './campaigns.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
+import { CampaignFingerprintService } from './campaign-fingerprint.service';
 import { MailService } from '../mail/mail.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
@@ -37,6 +38,7 @@ export class CampaignsController {
     // in MailService; de controller is alleen entry-point + validatie.
     private readonly mail: MailService,
     private readonly performance: CampaignPerformanceService,
+    private readonly fingerprint: CampaignFingerprintService,
   ) {}
 
   @Get()
@@ -429,6 +431,18 @@ export class CampaignsController {
   @Get(':id/recipients-preview')
   recipientsPreview(@RestaurantId() restaurantId: string) {
     return this.mail.getRecipientsPreview(restaurantId);
+  }
+
+  // Anti-repetitie-check (filly-brein hfst 8.6): vergelijkt de huidige
+  // variant met recente campagnes en geeft waarschuwingen terug
+  // (opening te gelijk / hashtags te overlappend / cta te vaak herhaald).
+  // Lege array = niets aan de hand. UI toont de warnings naast de variant.
+  @Get(':id/repetition-check')
+  repetitionCheck(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.fingerprint.checkForCampaign(restaurantId, id);
   }
 
   @Post(':id/send')

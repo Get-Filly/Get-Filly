@@ -1,11 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
+import { AiService } from '../ai/ai.service';
 import {
   type FillyChannel,
   type CtaTemplate,
   type ToneSignature,
+  ANTI_REPETITION_THRESHOLDS,
+  isAnchorHashtag,
 } from '../ai/filly-brain.config';
+
+/** Resultaat van een anti-repetitie-check op een kandidaat-variant. */
+export interface RepetitionWarning {
+  /** Type overtreding voor UI-iconografie. */
+  kind: 'opening' | 'hashtags' | 'cta';
+  /** NL-tekst die naast de variant getoond wordt. */
+  message: string;
+}
 
 /**
  * ============================================================
@@ -53,7 +64,36 @@ export class CampaignFingerprintService {
   constructor(
     private readonly serviceSupabase: SupabaseService,
     private readonly requestSupabase: RequestSupabaseService,
+    // Voor de v2-classifier (tone_signature + theme). Haiku-call,
+    // fail-soft: bij fout blijven die velden null.
+    private readonly ai: AiService,
   ) {}
+
+  // JSON-schema voor de tone/theme-classifier. Forceert Claude tot een
+  // van de 5 tone-signatures + een korte vrije thema-tekst.
+  private static readonly CLASSIFY_SCHEMA = {
+    type: 'object' as const,
+    properties: {
+      tone_signature: {
+        type: 'string',
+        enum: [
+          'feit_eerst',
+          'verhaal_eerst',
+          'vraag_eerst',
+          'lijst',
+          'stelling',
+        ],
+        description:
+          'De verteltechniek van de opening: feit_eerst (info→cta), verhaal_eerst (anekdote/scene), vraag_eerst (rhetorische vraag), lijst (opsomming), stelling (krachtige claim).',
+      },
+      theme: {
+        type: 'string',
+        description:
+          'Korte thematische categorie in 1-3 woorden, bv. "moederdag", "rustige dag", "nieuw menu", "asperge-seizoen", "weekend-actie".',
+      },
+    },
+    required: ['tone_signature', 'theme'],
+  };
 
   // ============================================================
   // 1. Extractie bij campagne-approve
@@ -102,6 +142,14 @@ export class CampaignFingerprintService {
       const cta = this.classifyCta(body);
       const primaryDish = this.matchPrimaryDish(body, menuNames);
 
+      // 4b) v2-classifier: tone_signature + theme via Haiku. Fail-soft —
+      // bij fout of lege body blijven beide null en valt 'extractor_version'
+      // terug op v1-gedrag.
+      const classified = await this.classifyToneAndTheme(
+        body,
+        (campaign as { restaurant_id: string }).restaurant_id,
+      );
+
       // 5) Insert (idempotent via UNIQUE op campaign_id).
       const { error } = await this.serviceSupabase.client
         .from('campaign_style_fingerprints')
@@ -113,10 +161,10 @@ export class CampaignFingerprintService {
             opening_pattern: opening,
             hashtag_set: hashtagsRaw,
             cta_template: cta,
-            theme: null, // wordt in v2 uit suggestion.trigger_type afgeleid
+            theme: classified?.theme ?? null,
             primary_dish_mentioned: primaryDish,
-            tone_signature: null, // v2: Claude-classifier
-            extractor_version: 'v1',
+            tone_signature: classified?.tone_signature ?? null,
+            extractor_version: classified ? 'v2' : 'v1',
           },
           { onConflict: 'campaign_id' },
         );
@@ -132,6 +180,53 @@ export class CampaignFingerprintService {
           err instanceof Error ? err.message : err
         }`,
       );
+    }
+  }
+
+  /**
+   * v2-classifier: laat Haiku de tone_signature + theme uit de body
+   * halen. Goedkoop (~€0,001), draait alleen bij approve (niet per
+   * generation). Fail-soft: returnt null bij lege body of API-fout —
+   * de heuristische velden blijven dan gewoon staan.
+   */
+  private async classifyToneAndTheme(
+    body: string,
+    restaurantId: string,
+  ): Promise<{ tone_signature: ToneSignature; theme: string } | null> {
+    const clean = body.replace(/<[^>]+>/g, ' ').trim();
+    if (clean.length < 20) return null; // te weinig tekst om te classificeren
+
+    try {
+      const result = await this.ai.generateStructured<{
+        tone_signature: ToneSignature;
+        theme: string;
+      }>({
+        system:
+          'Je classificeert de schrijfstijl van een horeca-campagnetekst. Bepaal de verteltechniek van de opening (tone_signature) en de thematische categorie (theme, 1-3 woorden NL). Antwoord uitsluitend via de tool.',
+        prompt: `Campagnetekst:\n\n${clean.slice(0, 1500)}`,
+        // Haiku 4.5: simpele classificatie, laagste kosten.
+        model: 'claude-haiku-4-5-20251001',
+        maxTokens: 200,
+        toolName: 'classify_campaign_style',
+        toolDescription:
+          'Classificeer de tone_signature en theme van de campagnetekst.',
+        inputSchema: CampaignFingerprintService.CLASSIFY_SCHEMA,
+        meta: {
+          restaurantId,
+          feature: 'fingerprint_classify',
+        },
+      });
+
+      const theme = (result.theme ?? '').trim().slice(0, 60);
+      if (!result.tone_signature || !theme) return null;
+      return { tone_signature: result.tone_signature, theme };
+    } catch (err) {
+      this.logger.warn(
+        `classifyToneAndTheme gefaald (fingerprint blijft v1): ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+      return null;
     }
   }
 
@@ -160,6 +255,189 @@ export class CampaignFingerprintService {
       return [];
     }
     return (data ?? []) as Fingerprint[];
+  }
+
+  // ============================================================
+  // Anti-repetitie-check (filly-brein hfst 8.6)
+  // ============================================================
+
+  /**
+   * Vergelijkt een kandidaat-variant (de tekst die Filly net genereerde,
+   * of die de eigenaar bekijkt) met de laatste N fingerprints van dit
+   * restaurant+kanaal. Returnt waarschuwingen wanneer:
+   *   - opening_pattern > 60% woord-overlap met laatste 5
+   *   - hashtag-set Jaccard > 70% met laatste 3 (anker-hashtags excl.)
+   *   - cta_template identiek aan laatste 2 op rij
+   *
+   * Geen LLM-call: puur deterministisch, sub-ms. Bij overschrijding
+   * toont de UI een waarschuwing naast de variant; we regenereren NOOIT
+   * automatisch (eigenaar beslist — filly-brein hfst 8.6).
+   *
+   * `anchorKeywords` zijn de cuisine + stad + signature-termen die WEL
+   * herhaald mogen worden (SEO); de caller bouwt ze met buildAnchorKeywords.
+   */
+  async checkRepetition(
+    restaurantId: string,
+    channel: FillyChannel,
+    candidate: { body: string; hashtags?: string[] },
+    anchorKeywords: string[] = [],
+  ): Promise<RepetitionWarning[]> {
+    const recent = await this.getRecentFingerprints(
+      restaurantId,
+      channel,
+      ANTI_REPETITION_THRESHOLDS.fingerprintLookbackCount,
+    );
+    if (recent.length === 0) return []; // geen historie → niets te vergelijken
+
+    const warnings: RepetitionWarning[] = [];
+
+    const candidateOpening = this.extractOpening(candidate.body);
+    const candidateCta = this.classifyCta(candidate.body);
+    const candidateHashtags = (candidate.hashtags ?? []).map((h) =>
+      h.toLowerCase().replace(/^#/, ''),
+    );
+
+    // 1. Opening-overlap met laatste 5.
+    if (candidateOpening) {
+      const last5 = recent.slice(0, 5);
+      const tooSimilar = last5.find(
+        (fp) =>
+          fp.opening_pattern &&
+          this.wordOverlapPct(candidateOpening, fp.opening_pattern) >
+            ANTI_REPETITION_THRESHOLDS.openingOverlapPct,
+      );
+      if (tooSimilar) {
+        warnings.push({
+          kind: 'opening',
+          message:
+            'Deze opening lijkt sterk op een recente campagne. Overweeg een andere insteek voor meer variatie.',
+        });
+      }
+    }
+
+    // 2. Hashtag-Jaccard met laatste 3 (anker-hashtags niet meegerekend).
+    if (candidateHashtags.length > 0) {
+      const candidateNonAnchor = candidateHashtags.filter(
+        (h) => !isAnchorHashtag(h, anchorKeywords),
+      );
+      if (candidateNonAnchor.length > 0) {
+        const last3 = recent.slice(0, 3);
+        const tooSimilar = last3.find((fp) => {
+          const prev = (fp.hashtag_set ?? []).filter(
+            (h) => !isAnchorHashtag(h, anchorKeywords),
+          );
+          if (prev.length === 0) return false;
+          return (
+            this.jaccardPct(candidateNonAnchor, prev) >
+            ANTI_REPETITION_THRESHOLDS.hashtagJaccardPct
+          );
+        });
+        if (tooSimilar) {
+          warnings.push({
+            kind: 'hashtags',
+            message:
+              'Je gebruikt grotendeels dezelfde hashtags als recente posts. Wissel een paar niet-merk-hashtags af om nieuw publiek te bereiken.',
+          });
+        }
+      }
+    }
+
+    // 3. CTA identiek aan laatste 2 op rij.
+    if (candidateCta) {
+      const last2 = recent.slice(
+        0,
+        ANTI_REPETITION_THRESHOLDS.maxConsecutiveSameCta - 1,
+      );
+      if (
+        last2.length >= ANTI_REPETITION_THRESHOLDS.maxConsecutiveSameCta - 1 &&
+        last2.every((fp) => fp.cta_template === candidateCta)
+      ) {
+        warnings.push({
+          kind: 'cta',
+          message: `Je sluit al meerdere campagnes af met dezelfde call-to-action ("${candidateCta}"). Varieer de afsluiter voor meer effect.`,
+        });
+      }
+    }
+
+    return warnings;
+  }
+
+  /**
+   * UI-wrapper: pakt de huidige geselecteerde variant van een campagne,
+   * bouwt de anker-keyword-set uit restaurant-data, en draait
+   * checkRepetition. Returnt warnings die de detail-page naast de
+   * variant kan tonen. RLS-active via requestSupabase.
+   */
+  async checkForCampaign(
+    restaurantId: string,
+    campaignId: string,
+  ): Promise<RepetitionWarning[]> {
+    // Campagne + content + restaurant-anker-data in één keer.
+    const [{ data: campaign }, { data: restaurant }] = await Promise.all([
+      this.requestSupabase.client
+        .from('campaigns')
+        .select(
+          'id, type, campaign_mail_content(body_plain, body_html), campaign_social_content(platform, caption, hashtags)',
+        )
+        .eq('id', campaignId)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle(),
+      this.requestSupabase.client
+        .from('restaurants')
+        .select('name, city, cuisine_style, keywords')
+        .eq('id', restaurantId)
+        .maybeSingle(),
+    ]);
+
+    if (!campaign) return [];
+
+    const channel = this.deriveChannel(campaign as Record<string, unknown>);
+    const body = this.deriveBodyText(campaign as Record<string, unknown>);
+    const hashtags = this.deriveHashtags(campaign as Record<string, unknown>);
+
+    // Anker-keywords: cuisine + stad + naam + handmatige keywords.
+    const r = (restaurant ?? {}) as {
+      name?: string;
+      city?: string | null;
+      cuisine_style?: string[] | null;
+      keywords?: string[] | null;
+    };
+    const anchors: string[] = [];
+    if (r.name) anchors.push(r.name.toLowerCase());
+    if (r.city) anchors.push(r.city.toLowerCase());
+    if (Array.isArray(r.cuisine_style))
+      anchors.push(...r.cuisine_style.map((c) => c.toLowerCase()));
+    if (Array.isArray(r.keywords))
+      anchors.push(...r.keywords.map((k) => k.toLowerCase()));
+
+    return this.checkRepetition(
+      restaurantId,
+      channel,
+      { body, hashtags },
+      Array.from(new Set(anchors)),
+    );
+  }
+
+  /** Woord-overlap-percentage tussen twee genormaliseerde openings (0-100). */
+  private wordOverlapPct(a: string, b: string): number {
+    const setA = new Set(a.split(/\s+/).filter(Boolean));
+    const setB = new Set(b.split(/\s+/).filter(Boolean));
+    if (setA.size === 0 || setB.size === 0) return 0;
+    let shared = 0;
+    for (const w of setA) if (setB.has(w)) shared += 1;
+    // Overlap relatief aan de kleinste set (gevoeliger voor korte openings).
+    return Math.round((shared / Math.min(setA.size, setB.size)) * 100);
+  }
+
+  /** Jaccard-similarity tussen twee string-arrays (0-100). */
+  private jaccardPct(a: string[], b: string[]): number {
+    const setA = new Set(a);
+    const setB = new Set(b);
+    const union = new Set([...setA, ...setB]);
+    if (union.size === 0) return 0;
+    let intersect = 0;
+    for (const x of setA) if (setB.has(x)) intersect += 1;
+    return Math.round((intersect / union.size) * 100);
   }
 
   /**

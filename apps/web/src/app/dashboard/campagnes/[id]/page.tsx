@@ -11,9 +11,11 @@ import {
   selectCampaignVariant,
   setCampaignSchedule,
   updateCampaignStatus,
+  fetchRepetitionCheck,
   type CampaignBundle,
   type CampaignDetail,
   type CampaignStatus,
+  type RepetitionWarning,
 } from "../../../../lib/api";
 import {
   bundleToView,
@@ -140,6 +142,11 @@ export default function UnifiedDetailPage() {
   // Schedule-edit-state.
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [draftDatetime, setDraftDatetime] = useState("");
+  // Anti-repetitie-waarschuwingen voor de actieve campagne (filly-brein
+  // hfst 8.6). Lege array = geen waarschuwing. Faalt stil.
+  const [repetitionWarnings, setRepetitionWarnings] = useState<
+    RepetitionWarning[]
+  >([]);
 
   // ────────────────────────────────────────────────────────────
   // Initial load + refetch helper
@@ -197,6 +204,23 @@ export default function UnifiedDetailPage() {
     if (!view || !activeChannel) return null;
     return view.campaignsByChannelId[activeChannel.id] ?? null;
   }, [view, activeChannel]);
+
+  // Anti-repetitie-check ophalen wanneer de actieve campagne wijzigt.
+  // Faalt stil (lege array) zodat een check-fout de page niet blokkeert.
+  useEffect(() => {
+    const cid = activeCampaign?.id;
+    if (!cid) {
+      setRepetitionWarnings([]);
+      return;
+    }
+    let cancelled = false;
+    fetchRepetitionCheck(cid).then((w) => {
+      if (!cancelled) setRepetitionWarnings(w);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCampaign?.id]);
 
   // Status-derived flags.
   const status = view?.status ?? "concept";
@@ -786,6 +810,43 @@ export default function UnifiedDetailPage() {
               void load();
             }}
           />
+        </div>
+      )}
+
+      {repetitionWarnings.length > 0 && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            background: "var(--warning-soft, #FEF3C7)",
+            border: "1px solid var(--warning, #D97706)",
+            borderRadius: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--text, #18181B)",
+              marginBottom: 4,
+            }}
+          >
+            Variatie-tip van Filly
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {repetitionWarnings.map((w, i) => (
+              <li
+                key={i}
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-secondary, #52525B)",
+                  lineHeight: 1.5,
+                }}
+              >
+                {w.message}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

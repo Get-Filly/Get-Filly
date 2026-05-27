@@ -225,12 +225,22 @@ export class CampaignPerformanceService {
 
   /**
    * Classificeer een campagne: winner / average / underperformer /
-   * no_data. Gebruikt drempels uit filly-brain.config.
+   * no_data.
    *
-   * v1-formule (simpel, transparant; v2 met confounding-correctie):
-   *   Voor mail: open_rate * 30 + click_rate * 50 + reservation_rate * 20
-   *   Andere kanalen: nog niet geclassificeerd zolang social-data
-   *   niet binnen komt (OAuth-afhankelijk).
+   * ⚠️ LET OP — dit is NIET het actieve classificatie-pad. De nightly
+   * classificatie draait in de PL/pgSQL-functie
+   * `classify_campaign_performance()` (mig 0047 → 0050), aangeroepen
+   * door pg_cron. Die classificeert mail t.o.v. een afgeleide
+   * industry-baseline (53): winner >= 69, underperformer <= 37.
+   * Deze TS-helper gebruikt nog de oude absolute 80/50-drempels en
+   * wordt momenteel nergens aangeroepen; behouden als referentie voor
+   * een eventueel toekomstig on-demand-endpoint. Wijzig je de scoring,
+   * doe dat primair in de SQL-functie.
+   *
+   * Per-restaurant-benchmark (shrinkage) staat op de backlog.
+   *
+   * Score-formule (identiek aan SQL): open_rate*100 (cap 30) +
+   * click_rate*1000 (cap 50) + reservation_rate*1000 (cap 20).
    */
   classifySuccessScore(metrics: {
     mail_delivered?: number | null;

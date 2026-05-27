@@ -754,6 +754,55 @@ ${formatted}
 }
 
 /**
+ * Mapt het legacy campaign.type ('mail' | 'social' | 'whatsapp') naar
+ * een FillyChannel voor de scheduling-flow. 'social' defaultt naar
+ * instagram_feed (meest voorkomende social-tijd-profiel). Bij een
+ * expliciet social_platform kan de caller dit overschrijven.
+ */
+export function mapCampaignTypeToChannel(
+  type: 'mail' | 'social' | 'whatsapp',
+  socialPlatform?: string | null,
+): FillyChannel {
+  if (type === 'mail') return 'mail';
+  if (type === 'whatsapp') return 'whatsapp';
+  // social → bepaal op platform indien bekend
+  switch (socialPlatform) {
+    case 'facebook':
+      return 'facebook';
+    case 'tiktok':
+      return 'tiktok';
+    case 'google_business':
+      return 'google_business';
+    case 'instagram':
+    default:
+      return 'instagram_feed';
+  }
+}
+
+/**
+ * Lichte timing-formatter voor de scheduling-prompt: alleen de beste
+ * dagen/tijden + lead-time-regel (hoofdstuk 6 + 7). Bewust géén
+ * lengte/hashtag-regels (die horen bij content-generatie, niet bij
+ * het tijdstip-vraagstuk).
+ */
+export function formatTimingForPrompt(channel: FillyChannel): string {
+  const r = CHANNEL_RULES[channel];
+  const dayNames = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+  const days = r.bestTimes.bestDays.map((d) => dayNames[d]).join(' / ');
+  const lines: string[] = [];
+  lines.push(`Beste dagen: ${days}`);
+  lines.push(`Beste tijden: ${r.bestTimes.bestHours.join(' of ')}`);
+  if (r.bestTimes.note) lines.push(`Let op: ${r.bestTimes.note}`);
+  lines.push(
+    `Lead-time: dit kanaal heeft minimaal ${r.leadTime.minHours}u nodig vóór de doel-datum; optimaal ${r.leadTime.optimalRangeHours[0]}-${r.leadTime.optimalRangeHours[1]}u. ${r.leadTime.rationale}`,
+  );
+  lines.push(
+    `Urgentie-regel: als de doel-datum (bv. een rustige dag of evenement uit de bezetting) dichterbij is dan het optimale interval, kies dan zo dicht mogelijk bij "nu" en gebruik urgentie-taal in plaats van te wachten op het statistische sweet-spot.`,
+  );
+  return lines.join('\n');
+}
+
+/**
  * Bepaal of dit kanaal überhaupt nog op tijd is voor het doel.
  * Returnt 'optimal' / 'within_minimum' / 'below_minimum' (skip).
  */

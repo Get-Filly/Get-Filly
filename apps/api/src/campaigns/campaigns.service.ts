@@ -8,6 +8,10 @@ import {
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import {
+  mapCampaignTypeToChannel,
+  formatTimingForPrompt,
+} from '../ai/filly-brain.config';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
@@ -1911,6 +1915,14 @@ ${menuBlock}
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
 
+    // Timing-regels uit de centrale brein-config (filly-brain hfst 6 + 7)
+    // i.p.v. hardcoded waarden. Map het legacy campaign.type naar een
+    // FillyChannel; 'social' → instagram_feed-profiel als default.
+    const channel = mapCampaignTypeToChannel(
+      campaign.type as 'mail' | 'social' | 'whatsapp',
+    );
+    const timingRules = formatTimingForPrompt(channel);
+
     const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je stelt het beste verzendmoment voor een campagne voor.
 
 Je antwoord komt via de tool 'suggest_campaign_schedule'. Vul datetime_iso (ISO-8601 in Europe/Amsterdam) en een korte reasoning.
@@ -1918,21 +1930,14 @@ Je antwoord komt via de tool 'suggest_campaign_schedule'. Vul datetime_iso (ISO-
 Regels voor de datum:
 - KIES een tijdstip vanaf morgen, niet vandaag (geef de eigenaar tijd om te reviewen).
 - Vandaag is ${todayIso}.
-- Houd rekening met de bezetting (uit het live-blok): mijd dagen die al >85% bezet zijn (zonde van de mailing) en geef juist voorrang aan dagen <50% bezetting bij activatie-campagnes.
+- Houd rekening met de bezetting (uit het live-blok): mijd dagen die al >85% bezet zijn (zonde van de mailing) en geef juist voorrang aan dagen <50% bezetting bij activatie-campagnes. Een rustige dag uit de bezetting is een DOEL-datum: zorg dat het bericht op tijd aankomt om die dag nog vol te krijgen.
 - Houd rekening met openingstijden uit het profiel, geen verzending plannen op een dag dat de onderneming gesloten is.
 - Houd rekening met special events uit het profiel (bv. wekelijks terugkerende avonden), die kunnen het verzendmoment juist sterker maken (verzend dezelfde dag) of zwakker (verzend ervoor zodat mensen kunnen plannen).
 
-Regels voor het tijdstip per type:
-- "mail" → 's ochtends 9:00–10:30 (open-rate piek voor B2C horeca) of 's avonds 19:30–20:30 (lees-piek tijdens binge-momenten).
-- "social" → 17:00–20:00 (Instagram/Facebook prime time) of weekend rond 11:00 (brunch-mood).
-- "whatsapp" → 18:00–20:30 (mensen plannen avond), niet later dan 21:00 (te laat voelt opdringerig).
+TIMING-REGELS VOOR DIT KANAAL (${channel}):
+${timingRules}
 
-Regels voor de dag:
-- Vermijd zondagochtend voor B2C-marketing (kerk-tijd, slecht open-rate).
-- Donderdag/vrijdag scoren goed voor weekend-acties.
-- Maandag is laag voor entertainment-promo's.
-
-Reasoning kort, helder, in NL, verwijs naar concrete data uit profiel of bezetting. Bv. "Donderdag 19:30, donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
+Reasoning kort, helder, in NL, verwijs naar concrete data uit profiel of bezetting. Als je afwijkt van het statistische sweet-spot omdat een doel-datum dichtbij is, benoem dat expliciet. Bv. "Donderdag 19:30, donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
 
 ---
 CONTEXT, restaurant-profiel + actuele bezetting:
