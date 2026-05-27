@@ -11,7 +11,10 @@ import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
-import { buildAllChannelsBlock } from '../ai/filly-brain.config';
+import {
+  buildAllChannelsBlock,
+  type ToneSignature,
+} from '../ai/filly-brain.config';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
@@ -86,6 +89,11 @@ export type CampaignBundleCard = {
 export type ProposalVariant = {
   subject_line?: string;
   body: string;
+  // Verteltechniek van deze variant (filly-brein hfst 8.4). Filly labelt
+  // 'm zelf bij generatie zodat we 3 verschillende tones kunnen afdwingen
+  // én de fingerprint de tone direct kent (geen Haiku-classificatie nodig).
+  // Optioneel voor backwards-compat met oude voorstellen.
+  tone_signature?: ToneSignature;
 };
 
 export type CampaignProposalCard = {
@@ -674,6 +682,23 @@ export class ChatService {
       messageCard = parsedChoice.choice;
     } else if (parsedSingle.proposal) {
       cleanText = parsedSingle.cleanText;
+      // Observability (filly-brein hfst 8.4): waarschuw als de 3 varianten
+      // niet elk een unieke tone_signature hebben. We rejecten NIET — de
+      // eigenaar krijgt z'n voorstel altijd; dit is puur een signaal om te
+      // monitoren hoe vaak Filly de variatie-regel negeert.
+      const tones = parsedSingle.proposal.variants
+        .map((v) => v.tone_signature)
+        .filter((t): t is ToneSignature => !!t);
+      if (
+        parsedSingle.proposal.variants.length >= 2 &&
+        new Set(tones).size < parsedSingle.proposal.variants.length
+      ) {
+        this.logger.warn(
+          `Filly-proposal voor ${restaurantId} heeft niet-unieke tone-signatures (${
+            tones.join(', ') || 'geen labels'
+          }) over ${parsedSingle.proposal.variants.length} varianten.`,
+        );
+      }
       try {
         // We slaan de hele proposal op in suggested_campaign (incl.
         // alle varianten). Approve-flow leest later selected_index
@@ -1085,12 +1110,17 @@ mail aan de vaste gasten", "een Instagram-post over...") of bij kleine
 acties op één kanaal.
 
 <<FILLY_PROPOSE_CAMPAIGN>>
-{"type":"mail","name":"<korte titel>","variants":[{"subject_line":"<onderwerp v1>","body":"<volledige tekst v1>"},{"subject_line":"<onderwerp v2>","body":"<volledige tekst v2>"},{"subject_line":"<onderwerp v3>","body":"<volledige tekst v3>"}]}
+{"type":"mail","name":"<korte titel>","variants":[{"tone_signature":"feit_eerst","subject_line":"<onderwerp v1>","body":"<volledige tekst v1>"},{"tone_signature":"verhaal_eerst","subject_line":"<onderwerp v2>","body":"<volledige tekst v2>"},{"tone_signature":"vraag_eerst","subject_line":"<onderwerp v3>","body":"<volledige tekst v3>"}]}
 <<END>>
 
 Regels:
 - type = "mail" | "social" | "whatsapp" | "google_business"
 - 3 varianten écht verschillend in toon/insteek/lengte.
+- "tone_signature" is VERPLICHT per variant en moet voor alle 3 de
+  varianten VERSCHILLEND zijn. Kies uit: "feit_eerst" (info→cta),
+  "verhaal_eerst" (anekdote/scene), "vraag_eerst" (rhetorische vraag),
+  "lijst" (opsomming), "stelling" (krachtige claim). Default-volgorde:
+  variant 1 feit_eerst, 2 verhaal_eerst, 3 vraag_eerst (zie VARIATIE-regel).
 - "subject_line" hoort bij mail; voor social/whatsapp/google_business
   mag je 'm weglaten.
 - "body" bevat de volledige uitgeschreven tekst.
@@ -1194,6 +1224,16 @@ export type ParsedProposal = Omit<CampaignProposalCard, 'suggestion_id'>;
 
 // Sanitize 1 variant. Returnt null als naam/body ontbreekt of leeg is
 // (dan is de variant onbruikbaar voor approve straks).
+// Toegestane tone-signatures (= ToneSignature uit filly-brain.config).
+// Lokale set voor runtime-validatie van Claude-output.
+const VALID_TONE_SIGNATURES = new Set<ToneSignature>([
+  'feit_eerst',
+  'verhaal_eerst',
+  'vraag_eerst',
+  'lijst',
+  'stelling',
+]);
+
 function sanitizeVariant(v: unknown): ProposalVariant | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
@@ -1204,6 +1244,14 @@ function sanitizeVariant(v: unknown): ProposalVariant | null {
     o.subject_line.trim().length > 0
   ) {
     variant.subject_line = o.subject_line.trim().slice(0, 200);
+  }
+  // tone_signature: alleen overnemen als 't een geldige enum-waarde is.
+  // Ongeldige/ontbrekende waarde → laat weg (backwards-compat).
+  if (
+    typeof o.tone_signature === 'string' &&
+    VALID_TONE_SIGNATURES.has(o.tone_signature as ToneSignature)
+  ) {
+    variant.tone_signature = o.tone_signature as ToneSignature;
   }
   return variant;
 }
