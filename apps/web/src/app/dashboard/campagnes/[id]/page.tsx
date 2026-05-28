@@ -9,6 +9,7 @@ import {
   fetchCampaignBundle,
   generateMoreCampaignVariants,
   selectCampaignVariant,
+  sendCampaign,
   setCampaignSchedule,
   updateCampaignStatus,
   fetchRepetitionCheck,
@@ -402,20 +403,65 @@ export default function UnifiedDetailPage() {
   // ────────────────────────────────────────────────────────────
   // Bundle-niveau: alle campaigns krijgen dezelfde status-overgang
   // tegelijk (Promise.all). Bij single-channel = 1 call.
+  //
+  // Bij activeren (next='actief') versturen we ook de daadwerkelijke
+  // mail voor elke mail-channel met sent_count=0. Reden: vroeger deed
+  // 'Activeer nu' alleen de status-flip → stille no-send waardoor de
+  // confirm-tekst ("Mail wordt direct verstuurd") loog. Volgorde:
+  //   1. mail-sends eerst (zwaarste operatie, kan minutenlang duren)
+  //   2. status-flip op alle channels
+  // Als de send faalt blijft status op concept/ingepland zodat we geen
+  // 'actief zonder mail'-toestand krijgen — eigenaar kan dan via de
+  // foutmelding bijsturen (bv. opt-in gasten toevoegen) en opnieuw
+  // proberen. sent_count>0 = al een keer verstuurd → defensief skippen
+  // om dubbele bezorging te voorkomen.
   const handleStatusChange = useCallback(
     async (next: CampaignStatus) => {
       if (!view || busy) return;
-      // Destructieve acties: confirmatie. Activeren = direct
-      // versturen — eigenaar moet dit bewust kiezen.
+
       if (next === "actief") {
-        if (
-          !window.confirm(
-            "Weet je zeker dat je deze campagne nu wil activeren? Mail/social-posts worden direct verstuurd.",
-          )
-        ) {
-          return;
+        // Identificeer welke mail-channels nog nooit verstuurd zijn.
+        const mailChannelsToSend = view.channels.filter((c) => {
+          if (c.platform !== "mail") return false;
+          const campaign = view.campaignsByChannelId[c.id];
+          return (campaign?.sent_count ?? 0) === 0;
+        });
+        const mailCount = mailChannelsToSend.length;
+
+        // Confirm-tekst aanpassen aan wat er daadwerkelijk gebeurt.
+        const confirmMsg =
+          mailCount === 0
+            ? "Weet je zeker dat je deze campagne nu wil activeren?"
+            : mailCount === 1
+              ? "Weet je zeker dat je deze campagne nu wil activeren? De mail wordt direct verstuurd naar alle opt-in gasten."
+              : `Weet je zeker dat je deze bundle nu wil activeren? ${mailCount} mails worden direct verstuurd naar alle opt-in gasten.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        setActionError(null);
+        setChangingStatus(true);
+        try {
+          // Stap 1: mail-sends sequentieel (Resend rate-limits + duidelijke
+          // fout-attributie als één campagne in een bundle struikelt).
+          for (const c of mailChannelsToSend) {
+            await sendCampaign(c.id, "all_opted_in");
+          }
+          // Stap 2: status-flip op alle channels (mail + social).
+          await Promise.all(
+            view.channels.map((c) => updateCampaignStatus(c.id, next)),
+          );
+          await load();
+        } catch (e) {
+          setActionError(
+            e instanceof Error ? e.message : "Activeren mislukt.",
+          );
+        } finally {
+          setChangingStatus(false);
         }
+        return;
       }
+
+      // Andere transities (concept↔ingepland, actief→afgerond): alleen
+      // status-flip, geen send.
       setActionError(null);
       setChangingStatus(true);
       try {
