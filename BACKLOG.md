@@ -59,8 +59,12 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 ## P1 — Productie-hygiëne
 
 ### Infrastructuur & deploy
+- [ ] ⚠️ **Backend-migratie naar Vercel (Nest → all-Vercel)** — Floris' developer adviseert (2026-05-28) om alles op één platform te draaien om tool/platform-overhead te beperken. Huidige stack = Vercel (web) + Railway (api). Doel = Vercel (web + api) + Supabase. Twee mogelijke routes, keuze door developer:
+  - **Optie A — Nest as-is op Vercel serverless** via `@vercel/node`. Geen code-refactor, alleen deploy-config. Bekende risico's: cold starts per request (1-3 sec), 60s function-timeout (Pro), connection-pooling met `RequestSupabaseService`-scope breekt, payload-limit 4.5MB raakt menukaart-uploads (tot 10MB), Opus Vision-calls kunnen timeouten. Dit is de reden waarom de Vercel-route in mei 2026 was afgeschreven; opnieuw bekijken of de pijn acceptabel is op huidige user-base-schaal.
+  - **Optie B — Refactor Nest → Next.js API Routes**. Alle controllers/services/modules omschrijven naar `app/api/*/route.ts`. Schone architectuur, geen serverless-pijn van Nest's DI-systeem. ~6 weken werk; verlies van Nest's typed Guards/Decorators/ValidationPipes (handmatig vervangen).
+  - **Impact op andere backlog-items**: Railway-config-item hieronder vervalt zodra migratie rond is. Sentry/monitoring uitgesteld tot na migratie (integratie-patroon verschilt tussen Railway-Nest en Vercel-routes). Alle nieuwe backend-features afwegen: in oude Nest-stijl of alvast in nieuwe stijl?
 - [ ] **vercel.json voor web** — deploy-config
-- [ ] **Railway/Render config voor api** — Dockerfile of native buildpack
+- [ ] **Railway/Render config voor api** — Dockerfile of native buildpack. ⚠️ **Vervalt zodra backend-migratie naar Vercel rond is** (zie item hierboven).
 - [ ] **Password-protected preview-deploy** op `app.get-filly.com` — eerste live URL waar we Meta-OAuth + echte tests kunnen doen
 - [ ] **Staging-Supabase** — aparte DB voor tests/Meta-review zonder productie-risico
 - [ ] **GitHub Actions CI** — type-check + lint + build op elke PR
