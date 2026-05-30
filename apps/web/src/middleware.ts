@@ -1,44 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Per 2026-05-08: Basic-Auth gating voor demo-deploys op Vercel Hobby.
-// Wanneer DEMO_AUTH_USERNAME + DEMO_AUTH_PASSWORD env-vars gezet zijn,
-// vereist elke route eerst een browser basic-auth-popup met die
-// credentials. Zo kun je de site privé delen zonder dat de bezoeker
-// een Vercel-account hoeft te hebben. Beide vars leeg = no-op (gewone
-// productie-werking).
-function demoBasicAuthBlock(request: NextRequest): NextResponse | null {
-  const user = process.env.DEMO_AUTH_USERNAME;
-  const pass = process.env.DEMO_AUTH_PASSWORD;
-  if (!user || !pass) return null;
-
-  const auth = request.headers.get("authorization");
-  if (auth?.startsWith("Basic ")) {
-    try {
-      const decoded = atob(auth.slice(6));
-      const sep = decoded.indexOf(":");
-      const u = sep >= 0 ? decoded.slice(0, sep) : decoded;
-      const p = sep >= 0 ? decoded.slice(sep + 1) : "";
-      if (u === user && p === pass) return null;
-    } catch {
-      // Onparseable header → val door naar 401.
-    }
-  }
-  return new NextResponse("Authentication required", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Get-Filly demo"',
-    },
-  });
-}
+// NB: de demo basic-auth-popup (DEMO_AUTH_USERNAME/PASSWORD) is per
+// 2026-05-29 verwijderd. Reden: voor de Google Business Profile OAuth-
+// verificatie moeten Google's reviewers de publieke pagina's
+// (privacy, voorwaarden) én de OAuth-flow kunnen bereiken zonder
+// basic-auth-blokkade. Het dashboard blijft beschermd via de
+// Supabase-auth-gates hieronder; alleen de extra demo-laag is weg.
+// De DEMO_AUTH_*-env-vars in Vercel kunnen verwijderd worden (ongebruikt).
 
 export async function middleware(request: NextRequest) {
-  // Demo-gate eerst: als basic-auth fail, blokkeer met 401 vóór alle
-  // andere middleware-logica (Supabase-fetch zou voor 401-bezoekers
-  // niet eens nodig zijn).
-  const blocked = demoBasicAuthBlock(request);
-  if (blocked) return blocked;
-
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
