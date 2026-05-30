@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+// jose@6 is ESM-only. Een statische import compileert naar require(), en dat
+// kan ESM niet laden in de Vercel-serverless-runtime (ERR_REQUIRE_ESM). Daarom
+// laden we jose lazy via dynamische import() in canActivate; hier alleen het
+// type (dat wordt door tsc geërased, dus levert geen require op).
+import type { JWTPayload } from 'jose';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { AuthenticatedUser } from './current-user.decorator';
 
@@ -51,8 +55,9 @@ export class AuthGuard implements CanActivate {
   private readonly jwksUrl: URL;
 
   // Functie die een publieke sleutel levert voor een gegeven token.
-  // `jose` zorgt zelf voor caching + key-rotation.
-  private readonly getKey: ReturnType<typeof createRemoteJWKSet>;
+  // `jose` zorgt zelf voor caching + key-rotation. Lazy opgebouwd bij de
+  // eerste request (jose wordt dan dynamisch geïmporteerd).
+  private getKey?: ReturnType<(typeof import('jose'))['createRemoteJWKSet']>;
 
   // Voor multi-tenant: de verwachte "issuer" van tokens, dat is onze
   // Supabase project-URL. Zo weten we dat het token niet van een
@@ -73,7 +78,8 @@ export class AuthGuard implements CanActivate {
     // Supabase publiceert z'n publieke sleutels hier.
     // Voorbeeld: https://xxx.supabase.co/auth/v1/.well-known/jwks.json
     this.jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl);
-    this.getKey = createRemoteJWKSet(this.jwksUrl);
+    // getKey wordt niet hier maar lazy in canActivate opgebouwd (jose is
+    // ESM-only en moet dynamisch geïmporteerd worden).
 
     // Supabase zet in het token: "iss": "https://xxx.supabase.co/auth/v1"
     this.expectedIssuer = new URL('/auth/v1', supabaseUrl).toString();
@@ -125,7 +131,11 @@ export class AuthGuard implements CanActivate {
     // Gooit een error bij elke fout.
     let payload: JWTPayload;
     try {
-      const result = await jwtVerify(token, this.getKey, {
+      // jose dynamisch laden (ESM-only). Node cachet de module, dus na de
+      // eerste keer kost dit niets. getKey één keer opbouwen + hergebruiken.
+      const jose = await import('jose');
+      this.getKey ??= jose.createRemoteJWKSet(this.jwksUrl);
+      const result = await jose.jwtVerify(token, this.getKey, {
         issuer: this.expectedIssuer,
       });
       payload = result.payload;
