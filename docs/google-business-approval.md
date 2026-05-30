@@ -13,6 +13,47 @@ in fase B). Pas met deze approval kunnen we:
 
 ---
 
+## ⚠️ Belangrijke update (2026-05-30): er zijn TWEE Google-goedkeuringen
+
+Mensen halen dit door elkaar. Je hebt er allebei nodig:
+
+1. **Business Profile API access request** ("Get Access"-formulier) —
+   ontgrendelt de APIs überhaupt. Nieuwe Cloud-projecten starten met
+   **zero quota** op de Business Profile APIs; zonder deze approval
+   zijn de 8 APIs niet eens zichtbaar. **Wachttijd: 3-10 werkdagen.**
+2. **OAuth app-verificatie** (brand + sensitive scope) — laat externe
+   klanten inloggen zonder "unverified app"-waarschuwing en haalt de
+   100-test-gebruikers-cap weg. De scope `business.manage` is
+   *sensitive* → vereist verificatie met privacy-policy + demo-video,
+   **maar geen** dure security assessment (CASA; dat geldt alleen voor
+   *restricted* scopes zoals Gmail). **Wachttijd: enkele weken.**
+
+### Kritisch pad — begin hier NU mee
+Google eist voor de access request een **geverifieerd Google Business
+Profile dat 60+ dagen actief is** + een geldige business-website. Die
+60 dagen lopen los van al het andere — zet Get-Filly's eigen GBP
+daarom **vandaag** op verificatie, anders is dat later de bottleneck.
+
+### Randvoorwaarden-status (per 2026-05-30)
+- ✅ Privacy + voorwaarden live + volledig (incl. Google API Services
+  User Data Policy / Limited Use-clausule in `/privacy` §6.1).
+- ✅ Bedrijfsgegevens ingevuld (KvK 42068177, adres, telefoon).
+- ✅ Basic-auth-popup verwijderd → publieke pagina's + OAuth-flow
+  bereikbaar voor reviewers.
+- ✅ Support-/developer-email: `administratie@get-filly.com`.
+- ⏳ Domein `get-filly.com` verifiëren in Google Search Console
+  (TXT-record), met hetzelfde account als de Cloud Console.
+- ⏳ Geverifieerde GBP 60+ dagen (kritisch pad, zie boven).
+- ⏳ `/delete-data`-pagina (vereist voor Meta App Review; ook nuttig
+  hier).
+- ⏳ App-logo 192×192 + 512×512 PNG.
+
+Volledig end-to-end stappenplan (Cloud-project → access → consent
+screen → verificatie → OAuth-foundation → per-feature) staat in de
+sessie-historie; onderstaande secties dekken het fase-C-formulier.
+
+---
+
 ## Voorbereiding (vóór je het formulier invult)
 
 ### 1. Google Cloud-project staat klaar

@@ -29,9 +29,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~Onboarding met Filly-auto-invul~~ — URL + menukaart → Filly vult hele profiel in (description, tagline, atmosphere, target_audience, USPs, events, signature_dishes, cuisine_style, adres, toon) + menu-items via Opus Vision. Wizard: bronnen → review → bevestig (2026-04-24, commits `b29f317` + `d909c65`).
 
 ### Legal & compliance (AVG/NL)
-- [~] **Privacy-verklaring** — `/privacy` concept-v1 live (2026-04-24). **Per 2026-04-30**: dynamisch rendering geactiveerd via `apps/web/src/config/company.ts` + `<LegalField>`. Banner + placeholders verdwijnen automatisch zodra `legalName` + `kvk` zijn gevuld. Nog te doen: (1) bedrijfsgegevens invullen in `config/company.ts` zodra KvK-inschrijving rond is, (2) jurist-review.
-- [~] **Algemene voorwaarden** — `/voorwaarden` concept-v1 live (2026-04-24). **Per 2026-04-30**: dynamisch rendering via `config/company.ts` (zelfde flow als privacy). Nog te doen: (1) bedrijfsgegevens + rechtbank + aansprakelijkheidsmax invullen in `config/company.ts`, (2) jurist-review, (3) aparte verwerkersovereenkomst opstellen (wordt in de AV naar verwezen).
-- [ ] **Jurist-review legal-teksten** — laten reviewen door privacy/SaaS-jurist vóór eerste klant. Met name: aansprakelijkheidslimiet, SLA-claim, IP-clausule AI-output, prijswijzigings-clausule.
+- [x] ~~**Privacy-verklaring**~~ (2026-05-30) — `/privacy` volledig vervangen door de uitgebreide aangeleverde tekst (20 secties + 4 overzichtstabellen: doel/rechtsgrond, subverwerkers, bewaartermijnen). Afgestemd op AVG + Google OAuth Verification + Meta App Review + Stripe + bunq + Anthropic/Claude. Bedrijfsgegevens ingevuld in `config/company.ts` (KvK 42068177, Saxen Weimarlaan 44-2 Amsterdam, +31 6 57737372). Concept-banner verdwenen. **Blijft formeel concept tot jurist-review.**
+- [x] ~~**Algemene voorwaarden**~~ (2026-05-30) — `/voorwaarden` volledig vervangen door aangeleverde tekst (18 secties + definitietabel). Aansprakelijkheidsmax (€ 25.000) + rechtbank (Amsterdam) ingevuld in `config/company.ts`. Verwijst naar Verwerkersovereenkomst (art. 28 AVG) die nog opgesteld moet worden (zie DPA-item). **Blijft formeel concept tot jurist-review.**
+- [ ] **Jurist-review legal-teksten** — laten reviewen door privacy/SaaS-jurist vóór eerste klant. Met name: aansprakelijkheidslimiet (€ 25.000), SLA-claim (99%), IP-clausule AI-output, prijswijzigings-clausule, Stripe/bunq als verwerkers. De live-teksten zijn de aangeleverde conceptversie (30 mei 2026).
+- [ ] **`/delete-data`-pagina (Meta data deletion)** — de privacy + voorwaarden verwijzen naar een publieke data-deletion-pagina; Meta App Review vereist een **Data Deletion Instructions URL**. Pagina nog te bouwen: uitleg hoe je account/Google-koppeling/Meta-koppeling verwijdert + welke gegevens + termijn + contact.
 - [x] ~~**Cookie-banner**~~ (2026-04-29) — `<CookieBanner />` in root-layout, accept/reject in localStorage. Klaar voor wanneer Plausible/PostHog erbij komt (analytics-init achter consent-check).
 - [x] ~~**AVG-endpoints** — data-export~~ (2026-04-29) + ~~right-to-be-forgotten (account-delete)~~ (2026-04-30). Account-delete via `DELETE /restaurant/me/account` met `{ confirmation: "VERWIJDER" }`-body. UI-knop op account-pagina sectie "Data & privacy". Verwijdert auth.users + alle owner-restaurants → cascade business-data; blokkeert als andere team-members bestaan. Bewijs-rij in `account_deletions`-tabel (geen PII).
 - [~] **Data-classificatie + anonimisering-bij-delete** — fase 1 live per 2026-04-30: continue benchmark-anonymisering bij `campaign.status → afgerond` schrijft een rij in `campaign_benchmarks` (cuisine + region=provincie + capacity-bucket + month + theme + result-metrics, géén body, géén FK, GDPR Recital 26). Laatste-vangnet bij delete via `AnonymizationService.benchmarkAllCompletedFor()`. **Fase 2 nog open**: (1) body-templates extraheren met LLM-stripping van eigennamen, (2) menu-pattern-aggregatie, (3) `docs/data-classification.md` met per-tabel-categorie, (4) Filly's prompts verrijken met benchmark-queries.
@@ -49,10 +50,15 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 - [ ] **Push-meldingen** — opties: (a) Email-interim via Resend (snel, 2-3u), (b) Web Push via PWA (10-12u, werkt cross-platform), (c) Mobile app + native push (weken, App Store). Sprint-keuze: start met (a), later (b).
 
 ### Billing
-- [ ] **Mollie-integratie** — SDK installeren, checkout-flow op pricing-pagina
-- [ ] **Migratie `subscriptions`-tabel** — plan + status + mollie_customer_id
+> ⚠️ **Betaalprovider-wijziging (2026-05-30)**: de aangeleverde legal-teksten
+> (privacy + voorwaarden) noemen **Stripe** (betalingen) + **bunq** (zakelijke
+> bank/administratie) — NIET Mollie. De privacy/voorwaarden zijn hierop al
+> live. Billing-implementatie hieronder dus op Stripe baseren, niet Mollie.
+- [ ] **Stripe-integratie** — SDK installeren, checkout-flow op pricing-pagina (creditcard/SEPA/iDEAL). Verwerkersrol + privacy al beschreven in de legal-teksten.
+- [ ] **Migratie `subscriptions`-tabel** — plan + status + stripe_customer_id + stripe_subscription_id
 - [ ] **Plan-enforcement** — limieten per plan (AI-calls, campagnes, teamleden) afdwingen in backend
-- [ ] **Mollie webhook** — status-changes opvangen (trial → active → cancelled)
+- [ ] **Stripe webhook** — status-changes opvangen (trial → active → past_due → cancelled)
+- [ ] **bunq-koppeling** (later) — zakelijke bankadministratie/reconciliatie. Genoemd in legal als verwerker; implementatie pas relevant als de boekhoud-flow er is.
 
 ---
 
@@ -78,7 +84,8 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 - [ ] **Email-change flow** — account-pagina
 - [ ] **2FA setup** — `users.two_factor_enabled` kolom bestaat, geen UI
 - [ ] **Pre-onboarding rate-limit naar Redis** — nu in-memory Map in `OnboardingController`. Overleeft geen multi-instance deploy; vervangen door Redis/Upstash zodra api op Railway schaalt.
-- [ ] ⚠️ **Server-side keys verwijderen uit `get-filly-web` Vercel-env-vars** (gespot 2026-05-28 tijdens Vercel-migratie). Frontend-project heeft 9 server-only vars die er niet horen: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (⚠️ service-role, kritiek), `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `GOOGLE_PLACES_API_KEY`, `WEB_URL`. Risico: als een per-ongeluk-gebakken Next.js-bundle ze lekt → full DB-access (SUPABASE_SECRET_KEY = bypass RLS) + open AI/mail-quota's. Mag BLIJVEN: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `DEMO_AUTH_USERNAME`, `DEMO_AUTH_PASSWORD`. Stappen: dashboard → get-filly-web → Settings → Env-vars → 9× delete → redeploy zonder cache → testen.
+- [ ] ⚠️ **Server-side keys verwijderen uit `get-filly-web` Vercel-env-vars** (gespot 2026-05-28 tijdens Vercel-migratie). Frontend-project heeft 9 server-only vars die er niet horen: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (⚠️ service-role, kritiek), `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `GOOGLE_PLACES_API_KEY`, `WEB_URL`. Risico: als een per-ongeluk-gebakken Next.js-bundle ze lekt → full DB-access (SUPABASE_SECRET_KEY = bypass RLS) + open AI/mail-quota's. Mag BLIJVEN: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Stappen: dashboard → get-filly-web → Settings → Env-vars → 9× delete → redeploy zonder cache → testen.
+- [x] ~~**Demo basic-auth-popup verwijderd**~~ (2026-05-29) — de `DEMO_AUTH_USERNAME/PASSWORD`-popup is uit `middleware.ts` gehaald zodat Google's reviewers de publieke pagina's + OAuth-flow kunnen bereiken (vereist voor GBP OAuth-verificatie). Dashboard blijft beschermd via de Supabase-auth-gates. **Restje**: `DEMO_AUTH_*`-env-vars staan nog in Vercel `get-filly-web` en kunnen verwijderd worden (code leest ze niet meer).
 
 ### Email & campagnes (gepromoveerd van P2 → P1)
 - [ ] **Resend als SMTP-provider voor Supabase Auth** — configureer Resend onder Supabase Auth → SMTP Settings. Lost de 3-4/uur rate-limit op Supabase default SMTP en maakt confirmation-email weer bruikbaar in dev. Onze custom templates blijven werken; Supabase stuurt ze via Resend i.p.v. eigen SMTP.
