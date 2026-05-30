@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import {
   fetchKpis,
   fetchMarketingMailStats,
+  fetchReviews,
   type Kpis,
   type MailStats,
+  type Review,
 } from "../../../lib/api";
 import { PageHeader } from "../../../components/ui/page-header";
 import { Card, CardBody } from "../../../components/ui/card";
@@ -53,8 +55,10 @@ type ReportChannel = {
 export default function RapportagesHubPage() {
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [mailStats, setMailStats] = useState<MailStats | null>(null);
+  const [reviews, setReviews] = useState<Review[] | null>(null);
   const [loadingMail, setLoadingMail] = useState(true);
   const [loadingKpis, setLoadingKpis] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,10 +78,33 @@ export default function RapportagesHubPage() {
         }
       })
       .catch(() => !cancelled && setLoadingMail(false));
+    fetchReviews()
+      .then((data) => {
+        if (!cancelled) {
+          setReviews(data);
+          setLoadingReviews(false);
+        }
+      })
+      .catch(() => !cancelled && setLoadingReviews(false));
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Review-stats afgeleid voor de Reviews-tegel: gemiddelde rating,
+  // totaal, en hoeveel reviews nog actie vragen (≤3★ zonder reactie —
+  // zelfde drempel die de reviews-pagina als 'Reactie nodig' toont).
+  const reviewStats = reviews
+    ? {
+        avg: reviews.length
+          ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+          : 0,
+        total: reviews.length,
+        needsResponse: reviews.filter(
+          (r) => r.rating <= 3 && !r.response_text,
+        ).length,
+      }
+    : null;
 
   const channels: ReportChannel[] = [
     {
@@ -137,6 +164,31 @@ export default function RapportagesHubPage() {
                 mailStats.clickRate !== null
                   ? `${Math.round(mailStats.clickRate * 100)}%`
                   : "—",
+            },
+          ]
+        : undefined,
+    },
+    {
+      key: "reviews",
+      name: "Reviews",
+      href: "/dashboard/google-business/reviews",
+      status: "live",
+      miniStatsLoading: loadingReviews,
+      miniStats: reviewStats
+        ? [
+            {
+              label: "Gemiddelde",
+              value: reviewStats.total
+                ? `${reviewStats.avg.toFixed(1)} ★`
+                : "—",
+            },
+            {
+              label: "Totaal reviews",
+              value: `${reviewStats.total}`,
+            },
+            {
+              label: "Reactie nodig",
+              value: `${reviewStats.needsResponse}`,
             },
           ]
         : undefined,

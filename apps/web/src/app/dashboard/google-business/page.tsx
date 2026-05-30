@@ -21,10 +21,12 @@ import { useRestaurant } from "../../../lib/restaurant-context";
  *   - !connected    , blauwe banner + "Koppel met Google"-knop
  *   - connected     , groene banner + profielinfo + Vernieuw + Ontkoppel
  *
- * 7 feature-cards eronder. De drie fase-B-features (audit / benchmark /
- * posts) worden klikbaar zodra connected; daarvoor blijven ze Coming Soon.
- * De drie fase-F-features (edits / foto-sync / inzichten) blijven Coming
- * Soon tot fase D-F live gaan (vereist OAuth + Google approval).
+ * 4 feature-cards eronder (per 2026-05-29 ingedikt): Identiteit,
+ * Reviews, Health-score (alle live) + Google Business Profiel
+ * (Coming Soon tot fase D-F: OAuth + Google approval).
+ *
+ * Verwijderd als aparte tegel: Concurrent-benchmark (zit al in de
+ * Health-score), Foto-sync en Inzichten.
  *
  * Reviews-card werkt onafhankelijk van de Google-koppeling, Filly's
  * reply-engine draait al op handmatig ingevoerde reviews. Pas in fase E
@@ -82,36 +84,18 @@ const features: Feature[] = [
     status: "live",
     phaseLabel: "Beschikbaar",
   },
-  {
-    key: "benchmark",
-    title: "Concurrent-benchmark",
-    description:
-      "Vergelijk je sterren-rating, review-aantal en foto-volume met restaurants in jouw buurt.",
-    href: "/dashboard/google-business/benchmark",
-    status: "live-when-connected",
-    phaseLabel: "Beschikbaar na koppeling",
-  },
+  // Concurrent-benchmark is GEEN aparte tegel meer (2026-05-29): de
+  // buurt-vergelijking zit al in de Health-score (CompetitorCollector,
+  // 500m straal). De losse /benchmark-route blijft voorlopig bestaan
+  // maar wordt niet meer vanaf de hub gelinkt.
   {
     key: "edits",
-    title: "Profiel-edits",
+    title: "Google Business Profiel",
     description:
-      "Wijzigingen aan openingstijden, beschrijving en attributen rechtstreeks pushen naar Google, met jouw goedkeuring.",
-    status: "coming-soon-oauth",
-    phaseLabel: "Vereist Google-koppeling",
-  },
-  {
-    key: "photo-sync",
-    title: "Foto-sync naar Google",
-    description:
-      "Foto's uit je Filly-bibliotheek automatisch publiceren op je Google-profiel.",
-    status: "coming-soon-oauth",
-    phaseLabel: "Vereist Google-koppeling",
-  },
-  {
-    key: "insights",
-    title: "Inzichten",
-    description:
-      "Hoeveel mensen zoeken jouw onderneming, klikken naar je website of bellen je nummer, direct uit Google.",
+      "Bekijk je volledige Google-profiel: openingstijden, beschrijving, contactgegevens en attributen. Bewerken + pushen naar Google komt zodra de koppeling live is.",
+    // Wél een href: de preview-pagina is nu al te bekijken (gevuld met
+    // Places-data), ook al is bewerken pas mogelijk na OAuth.
+    href: "/dashboard/google-business/profiel",
     status: "coming-soon-oauth",
     phaseLabel: "Vereist Google-koppeling",
   },
@@ -174,7 +158,11 @@ export default function GoogleBusinessHubPage() {
         {features.map((f) => {
           const isClickable =
             (f.status === "live" && f.href) ||
-            (f.status === "live-when-connected" && isConnected && f.href);
+            (f.status === "live-when-connected" && isConnected && f.href) ||
+            // coming-soon-oauth mét href = preview-pagina is al te
+            // bekijken (bewerken pas na koppeling). Bv. Google Business
+            // Profiel: read-only Places-data nu, bewerken later.
+            (f.status === "coming-soon-oauth" && !!f.href);
           const cardContent = (
             <Card
               elevated
