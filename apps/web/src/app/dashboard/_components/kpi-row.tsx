@@ -6,13 +6,13 @@ import { mergeMonthData } from "../_lib/calendar-data";
 import { Skeleton } from "./skeleton";
 
 // "Bezetting vandaag" moet exact hetzelfde tonen als de kalender-cel
-// voor vandaag. Probleem dat dit oploste: de KPI-backend leverde
-// today_pct soms null (todayStr-mismatch met de occupancy_days-rij),
-// terwijl de kalender via mergeMonthData wél een waarde toont (echte
-// data waar beschikbaar, anders seeded mock). Dat gaf 2 verschillende
-// getallen voor dezelfde dag.
+// voor vandaag. De kalender vult lege dagen met seeded mock-data
+// (mergeMonthData), de backend today_pct doet dat niet — dus voor een
+// dag zonder echte occupancy_days-rij zouden KPI-tegel en kalender-cel
+// anders zijn. (De backend-tijdzonebug die today_pct ook nog eens op
+// null kon zetten is sinds 2026-05-29 opgelost via common/date-nl.ts.)
 //
-// Oplossing: bereken de bezetting-vandaag uit DEZELFDE bron als de
+// Daarom berekenen we de bezetting-vandaag uit DEZELFDE bron als de
 // kalender — mergeMonthData(jaar, maand, occupancy) en pak de cel van
 // vandaag. Zo zijn KPI-tegel en kalender-cel per definitie identiek.
 function todayPctFromOccupancy(occupancy: OccupancyDay[]): number | null {

@@ -1,6 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
+// Datum-helpers in Europe/Amsterdam — voorkomt dat 'vandaag'/maandgrenzen
+// rond middernacht een dag verschuiven op de UTC-server (Vercel).
+import { amsterdamParts, ymd, todayNl } from '../common/date-nl';
 
 export type Kpis = {
   today_pct: number | null;
@@ -61,18 +64,17 @@ export class KpiService {
   constructor(private readonly supabase: RequestSupabaseService) {}
 
   async getKpis(restaurantId: string): Promise<Kpis> {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const todayStr = now.toISOString().slice(0, 10);
-    const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
-    const monthEnd = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+    // Alle datum-grenzen in Europe/Amsterdam berekenen, niet UTC. Anders
+    // valt 'vandaag' rond middernacht NL-tijd een dag verkeerd en vindt
+    // today_pct geen matchende occupancy_days-rij (→ "—" in de UI).
+    const { year, month } = amsterdamParts();
+    const todayStr = todayNl();
+    const monthStart = ymd(year, month, 1);
+    const monthEnd = ymd(year, month + 1, 0);
     // 6 maanden terug voor de doordeweekse-bezetting-aggregatie. We
     // pakken bewust geen rolling 180 dagen maar precies 6 hele
     // maanden zodat seizoens-effecten gemiddeld worden.
-    const sixMonthsAgo = new Date(year, month - 6, 1)
-      .toISOString()
-      .slice(0, 10);
+    const sixMonthsAgo = ymd(year, month - 6, 1);
 
     // Parallel ophalen: bezetting + suggesties + Filly-attributie +
     // 6-maanden weekday-historie + restaurant-target + Filly-vandaag
@@ -228,13 +230,9 @@ export class KpiService {
   async getCampaignAttributionThisMonth(
     restaurantId: string,
   ): Promise<CampaignAttribution[]> {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .slice(0, 10);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      .toISOString()
-      .slice(0, 10);
+    const { year, month } = amsterdamParts();
+    const monthStart = ymd(year, month, 1);
+    const monthEnd = ymd(year, month + 1, 0);
 
     // Eén query: reservations met campaign-info erbij. We doen de
     // group-by client-side want Supabase's PostgREST heeft geen
@@ -300,12 +298,10 @@ export class KpiService {
 
   // 6 maanden Filly-ROI voor de bar-grafiek op rapportages.
   async getFillyRoi6Months(restaurantId: string): Promise<FillyRoiMonth[]> {
-    const now = new Date();
     // Begin van 6 maanden geleden (dus 5 maanden terug + huidige maand
-    // = 6 buckets).
-    const start = new Date(now.getFullYear(), now.getMonth() - 5, 1)
-      .toISOString()
-      .slice(0, 10);
+    // = 6 buckets). In Europe/Amsterdam zodat de maand-buckets kloppen.
+    const { year, month } = amsterdamParts();
+    const start = ymd(year, month - 5, 1);
 
     const { data: reservations, error } = await this.supabase.client
       .from('reservations')
@@ -336,8 +332,9 @@ export class KpiService {
     // heeft, ook als sommige maanden geen attributie hebben.
     const buckets = new Map<string, FillyRoiMonth>();
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      // YYYY-MM van de maand-bucket, in NL-tijd. ymd normaliseert de
+      // maand-underflow (bv. month-5 over een jaargrens).
+      const key = ymd(year, month - i, 1).slice(0, 7);
       buckets.set(key, {
         month: key,
         reservations: 0,
