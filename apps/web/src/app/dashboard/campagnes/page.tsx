@@ -686,6 +686,35 @@ export default function CampagnesPage() {
       }
     });
 
+  // Stop: actieve campagne stopzetten. Per kanaal verschilt het doel:
+  //   - mail  → afronden (→ afgerond). Verstuurde mail valt niet terug
+  //     te trekken, dus enkel afsluiten.
+  //   - social/whatsapp → terugtrekken van het kanaal (→ concept). De
+  //     backend verwijdert de post (stub tot Meta/TikTok OAuth) en zet
+  //     de campagne terug naar concept zodat 'ie opnieuw kan.
+  // Een gemengde bundle krijgt per kanaal de juiste transitie.
+  const handleStop = (item: BoardItem) => {
+    const campaigns =
+      item.kind === "campaign"
+        ? [item.data]
+        : item.kind === "bundle-campaign"
+          ? item.campaigns
+          : [];
+    if (campaigns.length === 0) return Promise.resolve();
+    const hasSocial = campaigns.some((c) => c.type !== "mail");
+    const msg = hasSocial
+      ? "Deze campagne stoppen? De post wordt van het kanaal verwijderd en de campagne gaat terug naar concept."
+      : "Deze campagne afronden? De verstuurde mail blijft staan; de campagne verdwijnt naar de historie.";
+    if (!window.confirm(msg)) return Promise.resolve();
+    return runAction(item, "Stoppen", async () => {
+      await Promise.all(
+        campaigns.map((c) =>
+          updateCampaignStatus(c.id, c.type === "mail" ? "afgerond" : "concept"),
+        ),
+      );
+    });
+  };
+
   // Verwijderen: hard-delete. Backend staat 't alleen toe op concept
   // of ingepland (zodat actief/verzonden campagnes immutable zijn).
   const handleDelete = (item: BoardItem) => {
@@ -818,6 +847,7 @@ export default function CampagnesPage() {
               onReject={handleReject}
               onPlan={handlePlan}
               onRetract={handleRetract}
+              onStop={handleStop}
               onDelete={handleDelete}
             />
           );
@@ -840,6 +870,7 @@ type ColumnProps = {
   onReject: ActionHandler;
   onPlan: ActionHandler;
   onRetract: ActionHandler;
+  onStop: ActionHandler;
   onDelete: ActionHandler;
 };
 
@@ -854,6 +885,7 @@ function KanbanColumn({
   onReject,
   onPlan,
   onRetract,
+  onStop,
   onDelete,
 }: ColumnProps) {
   return (
@@ -952,6 +984,7 @@ function KanbanColumn({
               onReject={onReject}
               onPlan={onPlan}
               onRetract={onRetract}
+              onStop={onStop}
               onDelete={onDelete}
             />
           ))
@@ -1052,6 +1085,7 @@ type CardProps = {
   onReject: ActionHandler;
   onPlan: ActionHandler;
   onRetract: ActionHandler;
+  onStop: ActionHandler;
   onDelete: ActionHandler;
 };
 
@@ -1062,6 +1096,7 @@ function BoardCard({
   onReject,
   onPlan,
   onRetract,
+  onStop,
   onDelete,
 }: CardProps) {
   const title = cardTitleText(item);
@@ -1104,6 +1139,7 @@ function BoardCard({
           onReject={onReject}
           onPlan={onPlan}
           onRetract={onRetract}
+          onStop={onStop}
           onDelete={onDelete}
         />
       </div>
@@ -1175,7 +1211,7 @@ function ScheduledLine({
 // statusColor() helper en stuurt zowel deze tekst-kleur als de
 // linker-streep op de card.
 // - Voorstel/Concept : "Alles compleet" of "Datum, Foto ontbreken"
-// - Ingepland       : geen indicator (datum staat al in ScheduledLine)
+// - Ingepland       : "Ingepland" (slate) — voor gelijke card-hoogte
 // - Actief          : "Loopt" of "+3 reserveringen"
 function CardStatusBlock({
   status,
@@ -1186,7 +1222,12 @@ function CardStatusBlock({
   rows: ChannelRow[];
   item: BoardItem;
 }) {
-  if (status === "ingepland") return null;
+  if (status === "ingepland") {
+    // Statusregel zodat de ingepland-card dezelfde hoogte/opbouw heeft
+    // als concept ('Compleet') en actief ('Loopt'). De datum staat al
+    // in de ScheduledLine hierboven.
+    return <div style={statusTextScheduled}>Ingepland</div>;
+  }
   if (status === "actief") {
     const extra =
       item.kind === "campaign"
@@ -1234,7 +1275,7 @@ function cardStatusColor(
 // Voorstel : ✓ Goedkeur + × Afwijzen          (Goedkeur disabled tot ready)
 // Concept  : 📅 Plan in + × Verwijderen        (Plan in disabled tot ready)
 // Ingepland: ↩ Terugtrekken (full-width)
-// Actief   : geen knoppen (read-only)
+// Actief   : Stop (social → terugtrekken+concept) of Afronden (mail)
 //
 // Plan in en Activeer nu zitten voortaan op de detail-pagina; de card
 // is bewust een quick-approve/reject UI. Eigenaar klikt op de card-body
@@ -1248,6 +1289,7 @@ type CardActionsProps = {
   onReject: ActionHandler;
   onPlan: ActionHandler;
   onRetract: ActionHandler;
+  onStop: ActionHandler;
   onDelete: ActionHandler;
 };
 
@@ -1260,17 +1302,52 @@ function CardActions({
   onReject,
   onPlan,
   onRetract,
+  onStop,
   onDelete,
 }: CardActionsProps) {
   const router = useRouter();
   const ready = rowsReady(rows);
 
-  if (status === "actief") return null;
-
   const stop = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
   };
+
+  // Actief: stop-knop. Mail → 'Afronden' (verstuurd, niet terug te
+  // trekken); social/whatsapp → 'Stop' (post van kanaal halen + terug
+  // naar concept). De handler kiest per kanaal de juiste transitie.
+  if (status === "actief") {
+    const campaigns =
+      item.kind === "campaign"
+        ? [item.data]
+        : item.kind === "bundle-campaign"
+          ? item.campaigns
+          : [];
+    const onlyMail =
+      campaigns.length > 0 && campaigns.every((c) => c.type === "mail");
+    return (
+      <div style={actionsContainer} onClick={stop}>
+        <div style={actionRow}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(e) => {
+              stop(e);
+              onStop(item);
+            }}
+            style={btnDangerGhost}
+            title={
+              onlyMail
+                ? "Mail is al verstuurd — campagne afronden."
+                : "Post van het kanaal verwijderen en terug naar concept."
+            }
+          >
+            {busy ? "..." : onlyMail ? "Afronden" : "Stop"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Klik op de grijze hoofdknop (Goedkeur / Plan in) bij missing velden
   // navigeert naar de detail-pagina zodat eigenaar daar kan aanvullen.
@@ -1377,6 +1454,13 @@ const cardStyle: React.CSSProperties = {
   fontSize: 12,
   cursor: "pointer",
   transition: "box-shadow 0.15s ease",
+  // Gelijke minimumhoogte zodat cards in verschillende kolommen (bv.
+  // Ingepland mét Terugtrekken-knop vs Actief zónder knop) op dezelfde
+  // onderkant-lijn eindigen. flex-column houdt de inhoud bovenaan; de
+  // resterende ruimte vult onderaan op bij kortere cards.
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 148,
 };
 const cardHeaderRow: React.CSSProperties = {
   display: "flex",
@@ -1429,6 +1513,15 @@ const statusTextReady: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
   color: "var(--color-brand-deep, #1F4A2D)",
+  marginTop: 6,
+};
+// Ingepland-status: neutrale slate (matcht de linker-streep van de
+// ingepland-card). Bestaat zodat de ingepland-card dezelfde verticale
+// opbouw — en dus hoogte — heeft als concept/actief.
+const statusTextScheduled: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: "#64748B", // slate-500
   marginTop: 6,
 };
 const statusTextMissing: React.CSSProperties = {

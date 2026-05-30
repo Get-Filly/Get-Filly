@@ -45,6 +45,17 @@ export type ExtractedProfile = {
   special_events?: string;
   signature_dishes?: string[];
   cuisine_style?: string[];
+  // Toon-tab: schrijfstijl + merkverhaal. (do_not_mention NIET hier —
+  // dat is een eigenaar-instructie 'wat NIET zeggen', niet uit een
+  // website af te leiden.)
+  tone_of_voice?: string;
+  brand_story?: string;
+  // SEO-tab: zoekwoorden + standaard-hashtags voor posts.
+  keywords?: string[];
+  default_hashtags?: string[];
+  // Basis-tab: locatie-omschrijving (buurt/ligging) + prijzen/awards.
+  location_description?: string;
+  awards?: string[];
   // Korte samenvatting die Filly zelf hergebruikt in chat-context.
   // Max ~300 tekens; anders bloat 't onze prompts overal.
   website_summary?: string;
@@ -227,6 +238,12 @@ Inhoudsregels:
     * playful = speels, creatief, jonger publiek, knipoog
 - signature_dishes: alleen ALS er op de site expliciet "onze specialiteit" / "signature" / "huis-" wordt genoemd, of als specifieke gerechten steeds terugkomen. Max 5.
 - cuisine_style: lowercase woorden, bv. ["frans", "seizoensgebonden"], ["italiaans", "pizza"], ["nederlands", "brasserie"].
+- tone_of_voice: beschrijf de schrijfstijl/merkstem in 1-2 zinnen zoals Filly die moet aanhouden, bv. "Warm en persoonlijk, je-vorm, met een vleugje humor. Niet formeel." Leid dit af uit hoe de site zelf schrijft.
+- brand_story: kort het oorsprong-/merkverhaal als de site daar iets over zegt (sinds-jaar, familiebedrijf, missie, chef-achtergrond). Max ~300 tekens. Niets op de site hierover → weglaten.
+- keywords: 5-10 SEO-zoekwoorden waarop deze zaak gevonden wil worden, afgeleid uit keuken + locatie + gerechten, bv. ["italiaans restaurant utrecht", "verse pasta", "wijnbar centrum"]. Lowercase.
+- default_hashtags: 3-6 social-hashtags passend bij de zaak, met #, bv. ["#bistroutrecht", "#seizoensküche", "#wijnliefhebber"].
+- location_description: korte omschrijving van ligging/buurt als de site dat noemt, bv. "In het hart van de Utrechtse binnenstad, aan de gracht."
+- awards: prijzen/onderscheidingen die letterlijk op de site staan ("Bib Gourmand", "beste van 2023"). Niets gevonden → weglaten.
 - social_media: alleen URLs of handles die daadwerkelijk op de site linken. Als alleen een algemene ig-link in footer, handle is genoeg.
 - website_summary: dit is GEEN marketing-copy maar een interne notitie voor Filly zelf, schrijf zakelijk en feitelijk, max 300 tekens.
 - opening_hours:
@@ -285,6 +302,25 @@ const WEBSITE_PROFILE_SCHEMA = {
       items: { type: 'string' },
     },
     cuisine_style: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    // Toon-tab — schrijfstijl + merkverhaal afgeleid uit de site-teksten.
+    tone_of_voice: { type: 'string' },
+    brand_story: { type: 'string' },
+    // SEO-tab — zoekwoorden + hashtags op basis van keuken, locatie,
+    // gerechten en sfeer.
+    keywords: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    default_hashtags: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    // Basis-tab — ligging/buurt + eventuele prijzen of onderscheidingen.
+    location_description: { type: 'string' },
+    awards: {
       type: 'array',
       items: { type: 'string' },
     },
@@ -456,6 +492,12 @@ function coerceProfile(raw: RawProfileFromTool): ExtractedProfile {
     special_events: trimToUndefined(raw.special_events),
     signature_dishes: cleanStringArray(raw.signature_dishes),
     cuisine_style: cleanStringArray(raw.cuisine_style),
+    tone_of_voice: trimToUndefined(raw.tone_of_voice),
+    brand_story: trimToUndefined(raw.brand_story)?.slice(0, 400),
+    keywords: cleanStringArray(raw.keywords),
+    default_hashtags: cleanStringArray(raw.default_hashtags),
+    location_description: trimToUndefined(raw.location_description),
+    awards: cleanStringArray(raw.awards),
     website_summary: trimToUndefined(raw.website_summary)?.slice(0, 400),
     social_media: cleanSocialMedia(raw.social_media),
     opening_hours: validateOpeningHours(raw.opening_hours),

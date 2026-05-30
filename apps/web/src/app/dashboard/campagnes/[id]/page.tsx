@@ -460,8 +460,21 @@ export default function UnifiedDetailPage() {
         return;
       }
 
-      // Andere transities (concept↔ingepland, actief→afgerond): alleen
-      // status-flip, geen send.
+      // Stop & verwijderen van kanaal (actief → concept): destructief,
+      // de gepubliceerde post wordt teruggetrokken. Vraag bevestiging.
+      if (view.status === "actief" && next === "concept") {
+        if (
+          !window.confirm(
+            "Weet je zeker dat je deze campagne wil stoppen? De post wordt van het kanaal verwijderd en de campagne gaat terug naar concept.",
+          )
+        ) {
+          return;
+        }
+      }
+
+      // Andere transities (concept↔ingepland, actief→afgerond/concept):
+      // alleen status-flip; de backend regelt het terugtrekken van het
+      // kanaal bij actief→concept.
       setActionError(null);
       setChangingStatus(true);
       try {
@@ -662,16 +675,46 @@ export default function UnifiedDetailPage() {
       );
     }
     if (status === "actief") {
+      // Mail kan niet teruggetrokken worden (al verstuurd) → 'Afronden'
+      // zet 'm naar afgerond zonder iets te verwijderen. Social/WhatsApp
+      // kan wél: 'Stop & verwijderen' trekt de post terug van het kanaal
+      // (backend-stub tot Meta/TikTok OAuth) + zet terug naar concept.
+      const isMail = activeCampaign?.type === "mail";
+      if (isMail) {
+        return (
+          <Button
+            variant="secondary"
+            onClick={() => handleStatusChange("afgerond")}
+            loading={changingStatus}
+            disabled={busy}
+            style={{ color: "#B91C1C" }}
+            title="Mail is al verstuurd en kan niet teruggetrokken worden — alleen afronden."
+          >
+            Afronden
+          </Button>
+        );
+      }
       return (
-        <Button
-          variant="secondary"
-          onClick={() => handleStatusChange("afgerond")}
-          loading={changingStatus}
-          disabled={busy}
-          style={{ color: "#B91C1C" }}
-        >
-          Stop campagne
-        </Button>
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => handleStatusChange("afgerond")}
+            loading={changingStatus}
+            disabled={busy}
+          >
+            Afronden
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => handleStatusChange("concept")}
+            loading={changingStatus}
+            disabled={busy}
+            style={{ color: "#B91C1C" }}
+            title="Verwijder de post van het kanaal en zet de campagne terug naar concept."
+          >
+            Stop & verwijderen van kanaal
+          </Button>
+        </>
       );
     }
     // afgerond: geen acties

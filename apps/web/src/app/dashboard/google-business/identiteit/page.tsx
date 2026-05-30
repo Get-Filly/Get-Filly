@@ -62,7 +62,7 @@ import {
 type SubTab = "basics" | "toon" | "seo" | "menu" | "online";
 
 const SUBTABS: { key: SubTab; label: string }[] = [
-  { key: "basics", label: "Basics" },
+  { key: "basics", label: "Basis" },
   { key: "toon", label: "Toon" },
   { key: "seo", label: "SEO" },
   { key: "menu", label: "Menu" },
@@ -406,7 +406,7 @@ function IdentiteitPageInner() {
         "Hier staan je restaurant-naam, beschrijving, doelgroep en locatie.",
       )}
       <IdentiteitChecklist
-        title="Voortgang Basics"
+        title="Voortgang Basis"
         items={buildBasicsChecklist(form, mediaCount)}
         collapseKey="getfilly_identiteit_basics_collapsed_v1"
       />

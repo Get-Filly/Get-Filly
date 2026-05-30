@@ -801,7 +801,8 @@ export class CampaignsService {
   //   concept   → actief      (▶ Direct activeren — versturen NU)
   //   ingepland → actief      (Activeer-knop)
   //   ingepland → concept     (↩ Terugtrekken vanaf /campagnes)
-  //   actief    → afgerond    (Stop-knop)
+  //   actief    → afgerond    (Afronden-knop, alle kanalen)
+  //   actief    → concept     (Stop + terugtrekken van kanaal, NIET mail)
   //   afgerond  → eindstaat   (geen verdere actie mogelijk)
   // Verwijderen gebeurt apart via remove() en mag op concept of
   // ingepland (zolang de campagne nog niet daadwerkelijk uitgegaan is).
@@ -811,16 +812,21 @@ export class CampaignsService {
     nextStatus: CampaignStatus,
     userId: string,
   ): Promise<{ id: string; status: CampaignStatus }> {
+    // actief → concept toegevoegd (2026-05-29): een actieve SOCIAL-
+    // campagne mag je stoppen + terugtrekken van het kanaal (post
+    // verwijderen) en terug naar concept zetten om opnieuw te plannen.
+    // Voor mail is dit GEBLOKKEERD (zie type-check hieronder): een
+    // verstuurde mail kun je niet terugtrekken.
     const allowed: Record<CampaignStatus, CampaignStatus[]> = {
       concept: ['ingepland', 'actief'],
       ingepland: ['actief', 'concept'],
-      actief: ['afgerond'],
+      actief: ['afgerond', 'concept'],
       afgerond: [],
     };
 
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, status')
+      .select('id, status, type')
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
@@ -831,10 +837,32 @@ export class CampaignsService {
     }
 
     const currentStatus = existing.status as CampaignStatus;
+    const campaignType = existing.type as string | null;
     if (!allowed[currentStatus].includes(nextStatus)) {
       throw new BadRequestException(
         `Status-transitie van '${currentStatus}' naar '${nextStatus}' is niet toegestaan.`,
       );
+    }
+
+    // Mail-campagnes kunnen niet van actief terug naar concept: de mail
+    // is al verstuurd en valt niet terug te trekken. Alleen 'afronden'
+    // (→ afgerond) is dan toegestaan.
+    if (
+      currentStatus === 'actief' &&
+      nextStatus === 'concept' &&
+      campaignType === 'mail'
+    ) {
+      throw new BadRequestException(
+        'Een verstuurde mail-campagne kan niet teruggetrokken worden. Je kunt deze wel afronden.',
+      );
+    }
+
+    // Social/WhatsApp terugtrekken: verwijder de gepubliceerde post van
+    // het kanaal vóór de status-flip. Nu nog een stub (vereist Meta/
+    // TikTok OAuth, fase later); zodra die er is wordt hier de echte
+    // delete-call gedaan.
+    if (currentStatus === 'actief' && nextStatus === 'concept') {
+      await this.retractFromChannel(restaurantId, id, campaignType);
     }
 
     const updates: Record<string, unknown> = {
@@ -894,6 +922,46 @@ export class CampaignsService {
     }
 
     return { id, status: nextStatus };
+  }
+
+  // ============================================================
+  // retractFromChannel — gepubliceerde post van het kanaal halen
+  // ============================================================
+  // Wordt aangeroepen wanneer een ACTIEVE social/WhatsApp-campagne
+  // wordt teruggetrokken (actief → concept). Doel: de daadwerkelijk
+  // geplaatste post verwijderen bij Instagram/Facebook/TikTok/WhatsApp
+  // zodat de campagne niet meer live staat.
+  //
+  // STATUS: stub. De echte delete-call vereist de Meta Graph API /
+  // TikTok API OAuth-koppeling (nog niet live). Tot die er is loggen
+  // we de intentie en gaat de status-flip gewoon door — de eigenaar
+  // kan de post desnoods handmatig verwijderen. Zodra OAuth er is:
+  // hier per platform de delete-endpoint aanroepen met de opgeslagen
+  // post-id (die we dan bij publicatie bewaren).
+  //
+  // Fail-soft: een mislukte kanaal-delete mag de terugtrekking in onze
+  // eigen DB niet blokkeren (anders blijft de campagne 'vastzitten' op
+  // actief). We loggen een warning.
+  private async retractFromChannel(
+    restaurantId: string,
+    campaignId: string,
+    type: string | null,
+  ): Promise<void> {
+    // Mail komt hier nooit (geblokkeerd in updateStatus), maar dubbel
+    // vangen kan geen kwaad.
+    if (type === 'mail') return;
+
+    this.logger.log(
+      `Terugtrekken van kanaal (${type ?? 'onbekend'}) voor campagne ` +
+        `${campaignId} (restaurant ${restaurantId}). ` +
+        `Kanaal-delete is nog een stub — vereist Meta/TikTok OAuth. ` +
+        `Status wordt teruggezet naar concept; verwijder de post zo ` +
+        `nodig handmatig tot de koppeling live is.`,
+    );
+
+    // TODO (na Meta/TikTok OAuth): laad de bewaarde external post-id en
+    // roep de juiste delete-endpoint aan per platform. Bij falen:
+    // logger.warn, niet throwen.
   }
 
   // ============================================================

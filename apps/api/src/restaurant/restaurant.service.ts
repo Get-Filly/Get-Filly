@@ -203,6 +203,20 @@ export class RestaurantService {
       updates.cuisine_style = profile.cuisine_style;
     if (profile.signature_dishes && profile.signature_dishes.length > 0)
       updates.signature_dishes = profile.signature_dishes;
+    // Toon-tab (tone_of_voice + brand_story) + SEO-tab (keywords +
+    // default_hashtags) + Basis (location_description + awards). Deze
+    // ontbraken eerder in de analyzer waardoor die tabs leeg bleven na
+    // 'Laat Filly invullen' (fix 2026-05-29).
+    if (profile.tone_of_voice) updates.tone_of_voice = profile.tone_of_voice;
+    if (profile.brand_story) updates.brand_story = profile.brand_story;
+    if (profile.keywords && profile.keywords.length > 0)
+      updates.keywords = profile.keywords;
+    if (profile.default_hashtags && profile.default_hashtags.length > 0)
+      updates.default_hashtags = profile.default_hashtags;
+    if (profile.location_description)
+      updates.location_description = profile.location_description;
+    if (profile.awards && profile.awards.length > 0)
+      updates.awards = profile.awards;
     if (profile.website_summary)
       updates.website_summary = profile.website_summary;
     if (profile.social_media && Object.keys(profile.social_media).length > 0) {
