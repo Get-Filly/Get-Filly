@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+// Grijze lijn-iconen voor de sidebar (lucide-react staat al in de deps).
+// Per 2026-05-30 de emoji's vervangen door monochrome lijn-iconen.
+import {
+  LayoutDashboard,
+  Megaphone,
+  Search,
+  CalendarDays,
+  BarChart3,
+} from "lucide-react";
 import { type Module } from "@getfilly/shared";
 import { createClient } from "../../../lib/supabase-browser";
 import { useRestaurant } from "../../../lib/restaurant-context";
@@ -16,9 +25,10 @@ type MenuItem = {
   href: string;
   label: string;
   module: Module;
-  // Emoji-icoon links naast het label. Per 2026-05-06 weer
-  // ingevoerd nadat de tekst-only variant te kaal aanvoelde.
-  icon: string;
+  // Grijs lijn-icoon (lucide-component) links naast het label. Per
+  // 2026-05-30 de emoji's hierdoor vervangen: monochrome iconen geven
+  // een rustiger, professioneler beeld dat past bij het design-systeem.
+  icon: ComponentType<{ size?: number; strokeWidth?: number }>;
 };
 
 // Sidebar-volgorde (per 2026-05-05 herzien):
@@ -38,8 +48,8 @@ type MenuItem = {
 //   - /dashboard/taken, verzamelpagina van Filly-acties die deels
 //     onder Campagnes is opgegaan. Latere "Acties"-hub vervangt 'm.
 const allMenuItems: MenuItem[] = [
-  { href: "/dashboard", label: "Dashboard", module: "dashboard", icon: "📊" },
-  { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes", icon: "📣" },
+  { href: "/dashboard", label: "Dashboard", module: "dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes", icon: Megaphone },
   // Marketing-hub uit sidebar verwijderd 2026-05-12: kanaal-overzicht
   // is verhuisd naar /dashboard/rapportages (top-blokken). Route
   // /dashboard/marketing bestaat nog voor backwards-compat met
@@ -49,8 +59,8 @@ const allMenuItems: MenuItem[] = [
   // vindbaarheid (audit, reviews, benchmark); de overkoepelende naam
   // dekt de lading beter. Route + module-key blijven google-business /
   // google_business voor backwards-compat met deep-links + permissies.
-  { href: "/dashboard/google-business", label: "Vindbaarheid", module: "google_business", icon: "🔍" },
-  { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: "📅" },
+  { href: "/dashboard/google-business", label: "Vindbaarheid", module: "google_business", icon: Search },
+  { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: CalendarDays },
   // Gasten-pagina uit sidebar verwijderd 2026-05-12: gast-info zit
   // nu inline in elke reservering-rij (totaal bezoeken, laatste
   // bezoek). Route /dashboard/gasten blijft bestaan voor deep-links.
@@ -58,7 +68,7 @@ const allMenuItems: MenuItem[] = [
   // verplaatst naar Vindbaarheid → Identiteit (Menu-subtab), waar
   // het samen met andere identiteit-velden zit die Filly gebruikt
   // voor posts. Route /dashboard/menu blijft bestaan voor deep-links.
-  { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: "📈" },
+  { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: BarChart3 },
   // Koppelingen-hub uit sidebar verwijderd 2026-05-12: alle integraties
   // zitten nu in account → Profiel → Koppelingen-tab. Route
   // /dashboard/koppelingen bestaat nog voor backwards-compat.
@@ -314,16 +324,24 @@ export function Sidebar() {
 
       <div className="sb-section">
         <div className="sb-label">Menu</div>
-        {menuItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`sb-item ${isActive(item.href) ? "active" : ""}`}
-          >
-            <span className="sb-icon" aria-hidden>{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        {menuItems.map((item) => {
+          // Lucide-component uit de menu-definitie. strokeWidth 1.75
+          // geeft de dunne lijn-stijl uit de mockup; de grijze kleur
+          // komt uit de CSS-regel voor .sb-icon (currentColor).
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`sb-item ${isActive(item.href) ? "active" : ""}`}
+            >
+              <span className="sb-icon" aria-hidden>
+                <Icon size={18} strokeWidth={1.75} />
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="sb-bottom">

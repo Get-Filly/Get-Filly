@@ -156,7 +156,20 @@
   color: var(--accent);
   font-weight: 600;
 }
-.dashboard-shell .sb-icon { font-size: 16px; width: 20px; text-align: center; }
+/* Grijze lijn-iconen (lucide). De SVG erft z'n lijnkleur via
+   currentColor, dus de color hier bepaalt de tint. We zetten 'm
+   expliciet op de gedempte grijstint zodat de iconen óók grijs
+   blijven als het menu-item actief is (dat item kleurt z'n tekst
+   groen, maar het icoon houden we bewust rustig). */
+.dashboard-shell .sb-icon {
+  width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--tl, #71717A);
+}
+.dashboard-shell .sb-item.active .sb-icon { color: var(--tl, #71717A); }
 .dashboard-shell .sb-bottom {
   margin-top: auto;
   padding-top: 16px;

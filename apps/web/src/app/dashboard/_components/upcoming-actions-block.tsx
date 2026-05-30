@@ -321,7 +321,17 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
         {occupancyStrip}
         {specialStrip}
       </div>
-      <div style={{ flexShrink: 0, minWidth: 200, display: "flex" }}>
+      <div
+        style={{
+          flexShrink: 0,
+          // Even breed als één kanban-kolom eronder. Het bord heeft 4
+          // gelijke kolommen met 3 tussenruimtes van 12px, dus één kolom
+          // = (100% - 3*12px) / 4 = calc(25% - 9px). Zo lijnt de knop
+          // exact uit met de Actief-kolom (de 4e, rechts).
+          width: "calc(25% - 9px)",
+          display: "flex",
+        }}
+      >
         <FillySuggestionsPopover
           lowOccupancyDays={criticalDays}
           specialDays={upcomingSpecial}

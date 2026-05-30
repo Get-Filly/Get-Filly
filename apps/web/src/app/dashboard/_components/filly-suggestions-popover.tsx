@@ -66,8 +66,12 @@ export function FillySuggestionsPopover({
       style={{
         position: "relative",
         // In card-mode strekt de wrapper zich uit over de hele
-        // grid-cel (vol hoogte van rode + gele strook samen).
+        // grid-cel (vol hoogte van rode + gele strook samen) én de
+        // volle breedte van z'n ouder. Zonder width:100% krimpt deze
+        // div als flex-item naar de tekstbreedte, waardoor de groene
+        // knop smaller werd dan de kolom eronder.
         height: triggerMode === "card" ? "100%" : undefined,
+        width: triggerMode === "card" ? "100%" : undefined,
       }}
     >
       {triggerMode === "card" ? (
