@@ -1,464 +1,769 @@
 // ============================================================
 // Algemene voorwaarden, /voorwaarden
 // ============================================================
-// Publieke pagina met onze algemene voorwaarden voor gebruik van
-// het Get-Filly SaaS-platform door zakelijke klanten (B2B).
+// Publieke pagina met de algemene voorwaarden (B2B). De volledige
+// tekst is per 2026-05-30 vervangen door de aangeleverde
+// conceptversie (afgestemd op SaaS, OAuth-koppelingen, Google/Meta,
+// Stripe, bunq en Anthropic/Claude).
 //
-// Dit is een CONCEPT v1, zoals privacy.tsx, gele draft-banner
-// verdwijnt automatisch zodra `legalName` + `kvk` zijn gevuld in
-// `apps/web/src/config/company.ts`. Lege velden tonen tot dan
-// een "[NOG IN TE VULLEN: ...]"-placeholder via <LegalField/>.
-//
-// Uitgangspunten van deze voorwaarden:
-//   - B2B, klanten zijn horeca/wellness/hotel-ondernemers
-//   - SaaS-model, maandelijks/jaarlijks abonnement via Mollie
-//   - Data-eigendom blijft bij de klant
-//   - Wij zijn verwerker van gasten-data (AVG art. 28)
-//   - Nederlands recht + bevoegde rechter Amsterdam
-//
-// Aandachtspunten die een jurist moet checken vóór launch:
-//   - Aansprakelijkheidslimiet (nu: 12 maanden abonnement)
-//   - SLA-toezegging (nu: "streven naar 99%", geen harde claim)
-//   - IP-constructie voor AI-output (klant krijgt output, wij
-//     behouden de techniek)
-//   - Prijswijzigings-clausule
-//   - Opzegtermijn
+// Bedrijfsgegevens + aansprakelijkheidslimiet + bevoegde rechtbank
+// komen uit `apps/web/src/config/company.ts`.
 // ============================================================
 
 import type { Metadata } from "next";
-import {
-  COMPANY,
-  formatLegalIdentifier,
-  isLegalDataComplete,
-} from "@/config/company";
-import { LegalField } from "@/components/legal-field";
+import { COMPANY, formatFullAddress } from "@/config/company";
 
 export const metadata: Metadata = {
   title: "Algemene voorwaarden, Get-Filly",
   description:
-    "De voorwaarden waaronder je Get-Filly kunt gebruiken, inclusief abonnement, aansprakelijkheid en opzegging.",
+    "De algemene voorwaarden voor het gebruik van het Get-Filly-platform.",
 };
 
-const LAST_UPDATED = "24 april 2026";
-const VERSION = "v1 (concept)";
+const LAST_UPDATED = "30 mei 2026";
+
+const tableStyle: React.CSSProperties = {
+  width: "100%",
+  borderCollapse: "collapse",
+  margin: "12px 0",
+  fontSize: 14,
+};
+const thtd: React.CSSProperties = {
+  border: "1px solid var(--border, #E5DFD0)",
+  padding: "8px 10px",
+  textAlign: "left",
+  verticalAlign: "top",
+};
 
 export default function VoorwaardenPage() {
-  // Zelfde logica als op /privacy: zolang KvK + legal_name in
-  // de centrale config leeg zijn blijft de gele draft-banner staan.
-  const showDraftBanner = !isLegalDataComplete();
-  const legalIdentifier = formatLegalIdentifier();
+  const fullAddress = formatFullAddress();
 
   return (
     <section className="legal-page">
       <div className="legal-container">
-        {showDraftBanner && (
-          <div className="legal-draft-banner">
-            <strong>Concept, nog niet juridisch gereviewd.</strong> Deze
-            tekst is een eerste versie. Vóór we klanten accepteren laten
-            we 'm controleren door een advocaat en vullen we de ontbrekende
-            bedrijfsgegevens in. Tot die tijd gelden deze voorwaarden niet
-            als bindende overeenkomst.
-          </div>
-        )}
-
-        <p className="legal-meta">
-          Laatst bijgewerkt: {LAST_UPDATED} · {VERSION}
-        </p>
-        <h1 className="legal-title">Algemene voorwaarden</h1>
-        <p className="legal-lead">
-          Deze algemene voorwaarden gelden voor elk gebruik van het
-          Get-Filly-platform en alle diensten die wij daaromheen
-          aanbieden. Lees ze zorgvuldig door voordat je een account
-          aanmaakt of een abonnement afsluit. Door akkoord te gaan met
-          deze voorwaarden sluit je een overeenkomst met ons.
-        </p>
+        <p className="legal-meta">Laatst bijgewerkt: {LAST_UPDATED}</p>
+        <h1 className="legal-title">Algemene voorwaarden Get-Filly</h1>
 
         <nav className="legal-toc" aria-label="Inhoudsopgave">
           <div className="legal-toc-title">Inhoud</div>
           <ol>
             <li><a href="#definities">Definities</a></li>
             <li><a href="#toepasselijkheid">Toepasselijkheid</a></li>
-            <li><a href="#overeenkomst">Aanbod en overeenkomst</a></li>
+            <li><a href="#totstandkoming">Aanbod en totstandkoming van de overeenkomst</a></li>
             <li><a href="#dienst">Onze dienst</a></li>
-            <li><a href="#account">Account en verantwoordelijkheden</a></li>
-            <li><a href="#prijzen">Abonnement, prijzen en betaling</a></li>
-            <li><a href="#duur">Duur en opzegging</a></li>
+            <li><a href="#account">Account en verantwoordelijkheden van de klant</a></li>
+            <li><a href="#platformen">Externe platformen en OAuth-koppelingen</a></li>
+            <li><a href="#google">Google Business Profile en Google API&apos;s</a></li>
+            <li><a href="#meta">Meta, Facebook en Instagram</a></li>
+            <li><a href="#betaling">Abonnement, prijzen en betaling</a></li>
+            <li><a href="#duur">Duur, opzegging en verwijdering van integratiegegevens</a></li>
             <li><a href="#data">Data-eigendom en verwerking</a></li>
             <li><a href="#ip">Intellectueel eigendom</a></li>
+            <li><a href="#rangorde">Rangorde van documenten</a></li>
             <li><a href="#aansprakelijkheid">Aansprakelijkheid</a></li>
             <li><a href="#geheimhouding">Geheimhouding</a></li>
             <li><a href="#overmacht">Overmacht</a></li>
-            <li><a href="#wijzigingen">Wijzigingen</a></li>
+            <li><a href="#wijzigingen">Wijzigingen in deze voorwaarden</a></li>
             <li><a href="#recht">Toepasselijk recht en geschillen</a></li>
           </ol>
         </nav>
 
+        {/* 1 */}
         <div id="definities" className="legal-section">
           <h2>1. Definities</h2>
-          <p>In deze voorwaarden wordt verstaan onder:</p>
-          <ul>
-            <li>
-              <strong>Get-Filly / wij / ons</strong>,{" "}
-              <LegalField
-                value={legalIdentifier}
-                placeholder="volledige bedrijfsnaam + KvK-nummer"
-              />
-              , gevestigd te{" "}
-              <LegalField
-                value={COMPANY.addressCity}
-                placeholder="vestigingsplaats"
-              />
-              .
-            </li>
-            <li>
-              <strong>Klant / jij / je</strong>, de natuurlijke persoon
-              of rechtspersoon die met Get-Filly een overeenkomst sluit
-              voor het gebruik van het platform, handelend in de
-              uitoefening van beroep of bedrijf.
-            </li>
-            <li>
-              <strong>Platform</strong>, de website, applicatie en
-              bijbehorende diensten van Get-Filly, bereikbaar via
-              get-filly.com en app.get-filly.com.
-            </li>
-            <li>
-              <strong>Filly</strong>, de AI-assistent binnen het
-              platform, die gebruik maakt van large language models van
-              onze sub-verwerker Anthropic.
-            </li>
-            <li>
-              <strong>Account</strong>, het persoonlijke toegangsprofiel
-              van een gebruiker tot het platform.
-            </li>
-            <li>
-              <strong>Abonnement</strong>, de door de klant gekozen
-              betaalde dienstverlening met bijbehorende periode en prijs.
-            </li>
-            <li>
-              <strong>Gastgegevens</strong>, persoonsgegevens van derden
-              (eindgasten van de klant) die de klant via het platform
-              verwerkt.
-            </li>
-          </ul>
+          <p>In deze algemene voorwaarden wordt verstaan onder:</p>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <th style={thtd}>Begrip</th>
+                <th style={thtd}>Betekenis</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={thtd}>Get-Filly / wij / ons</td>
+                <td style={thtd}>
+                  {COMPANY.legalName}, ingeschreven bij de Kamer van
+                  Koophandel onder nummer {COMPANY.kvk}, gevestigd aan de{" "}
+                  {fullAddress}, bereikbaar via{" "}
+                  <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>{" "}
+                  en {COMPANY.phone}.
+                </td>
+              </tr>
+              <tr><td style={thtd}>Klant / jij / je</td><td style={thtd}>De natuurlijke persoon of rechtspersoon die met Get-Filly een overeenkomst sluit voor het gebruik van het Platform, handelend in de uitoefening van beroep of bedrijf.</td></tr>
+              <tr><td style={thtd}>Gebruiker</td><td style={thtd}>Een persoon die door of namens de Klant toegang krijgt tot het Platform.</td></tr>
+              <tr><td style={thtd}>Platform</td><td style={thtd}>De website, applicatie, dashboardomgeving, API-koppelingen en bijbehorende diensten van Get-Filly, bereikbaar via get-filly.com en app.get-filly.com.</td></tr>
+              <tr><td style={thtd}>Filly</td><td style={thtd}>De AI-assistent binnen het Platform, die gebruik kan maken van AI-modellen en AI-diensten van derden, waaronder Anthropic, Claude, Claude Code en/of de Anthropic API.</td></tr>
+              <tr><td style={thtd}>Account</td><td style={thtd}>Het persoonlijke toegangsprofiel van een Gebruiker tot het Platform.</td></tr>
+              <tr><td style={thtd}>Abonnement</td><td style={thtd}>De door de Klant gekozen betaalde dienstverlening met bijbehorende periode, prijs en functionaliteiten.</td></tr>
+              <tr><td style={thtd}>Gastgegevens</td><td style={thtd}>Persoonsgegevens van gasten, klanten of eindgebruikers van de Klant die via het Platform worden verwerkt.</td></tr>
+              <tr><td style={thtd}>Externe Platformen</td><td style={thtd}>Diensten van derden waarmee het Platform kan worden gekoppeld, waaronder Google, Google Business Profile, Meta, Facebook, Instagram, TikTok, reserveringssystemen, CRM-systemen, e-mailmarketingplatformen, betaalproviders, bankdiensten en andere softwarediensten van derden.</td></tr>
+              <tr><td style={thtd}>OAuth-koppeling</td><td style={thtd}>Een door de Klant of Gebruiker geautoriseerde technische koppeling waarbij Get-Filly via een externe aanbieder, zoals Google of Meta, toegang krijgt tot bepaalde gegevens of functionaliteiten zonder dat de Klant zijn wachtwoord aan Get-Filly verstrekt.</td></tr>
+              <tr><td style={thtd}>Integratiegegevens</td><td style={thtd}>Gegevens die via een Extern Platform worden opgehaald of verwerkt, waaronder profielgegevens, bedrijfsgegevens, reviews, ratings, foto&apos;s, socialmedia-statistieken, pagina-informatie, content, engagementgegevens, reserveringsgegevens, tokens, API-responses en technische metadata.</td></tr>
+              <tr><td style={thtd}>Platformvoorwaarden van derden</td><td style={thtd}>De voorwaarden, policies, developer policies, API-voorwaarden en andere regels van Externe Platformen die van toepassing zijn op het gebruik van hun diensten, waaronder de Google API Services User Data Policy, Google OAuth 2.0 Policies, Meta Platform Terms en Meta Developer Policies.</td></tr>
+              <tr><td style={thtd}>Verwerkersovereenkomst</td><td style={thtd}>De overeenkomst als bedoeld in artikel 28 AVG waarin afspraken worden gemaakt over de verwerking van persoonsgegevens door Get-Filly als verwerker namens de Klant.</td></tr>
+            </tbody>
+          </table>
         </div>
 
+        {/* 2 */}
         <div id="toepasselijkheid" className="legal-section">
           <h2>2. Toepasselijkheid</h2>
           <p>
             Deze voorwaarden zijn van toepassing op alle aanbiedingen van
-            en overeenkomsten met Get-Filly, en op elk gebruik van het
-            platform, ongeacht of je een betaald abonnement hebt of niet.
+            en overeenkomsten met Get-Filly en op ieder gebruik van het
+            Platform, ongeacht of de Klant een betaald abonnement heeft.
           </p>
           <p>
-            Afwijkingen van deze voorwaarden zijn alleen geldig als wij
-            die schriftelijk met je hebben bevestigd. Jouw eigen algemene
-            inkoopvoorwaarden wijzen wij uitdrukkelijk van de hand.
+            Afwijkingen van deze voorwaarden zijn alleen geldig als wij die
+            schriftelijk met de Klant hebben bevestigd. Algemene
+            inkoopvoorwaarden of andere voorwaarden van de Klant worden
+            uitdrukkelijk van de hand gewezen.
           </p>
           <p>
-            Deze voorwaarden zijn bedoeld voor zakelijk gebruik (B2B).
-            Consumenten zijn geen doelgroep van ons aanbod.
+            De dienstverlening van Get-Filly is uitsluitend bedoeld voor
+            zakelijk gebruik (B2B). Consumenten zijn geen doelgroep van ons
+            aanbod.
+          </p>
+          <p>
+            Voor zover voor specifieke functionaliteiten aanvullende
+            voorwaarden gelden, bijvoorbeeld voorwaarden van Externe
+            Platformen, blijven die aanvullende voorwaarden naast deze
+            algemene voorwaarden van toepassing.
           </p>
         </div>
 
-        <div id="overeenkomst" className="legal-section">
+        {/* 3 */}
+        <div id="totstandkoming" className="legal-section">
           <h2>3. Aanbod en totstandkoming van de overeenkomst</h2>
           <p>
-            Alle aanbiedingen op onze website zijn vrijblijvend tenzij
-            anders aangegeven. De overeenkomst komt tot stand op het
-            moment dat je een account aanmaakt, een abonnement kiest en
-            akkoord gaat met deze voorwaarden, of op het moment dat wij
-            een schriftelijk voorstel door jou laten ondertekenen.
+            Alle aanbiedingen op onze website zijn vrijblijvend, tenzij
+            uitdrukkelijk anders is vermeld.
           </p>
           <p>
-            Voor zover een aanbieding een fout of kennelijke vergissing
-            bevat, zijn wij daaraan niet gebonden.
+            De overeenkomst komt tot stand op het moment dat de Klant een
+            account aanmaakt, een abonnement kiest en akkoord gaat met deze
+            voorwaarden, of op het moment dat wij een schriftelijk voorstel
+            door de Klant laten ondertekenen of bevestigen.
+          </p>
+          <p>
+            Voor zover een aanbieding, prijsopgave, websitevermelding of
+            voorstel een kennelijke fout of vergissing bevat, zijn wij
+            daaraan niet gebonden.
+          </p>
+          <p>
+            Get-Filly mag een aanvraag weigeren, bijvoorbeeld wanneer
+            sprake is van misbruik, strijd met wet- of regelgeving, een
+            verhoogd compliance-risico of een eerdere schending van deze
+            voorwaarden.
           </p>
         </div>
 
+        {/* 4 */}
         <div id="dienst" className="legal-section">
           <h2>4. Onze dienst</h2>
           <p>
-            Get-Filly biedt een SaaS-platform waarmee horeca-, wellness-
-            en hotelondernemers hun marketing kunnen automatiseren met
-            behulp van AI. De dienst omvat onder andere:
+            Get-Filly biedt een SaaS-platform waarmee horeca-, wellness- en
+            hotelondernemers hun marketing, online zichtbaarheid, bezetting
+            en klantactivatie kunnen analyseren en verbeteren met behulp
+            van AI, automatisering en data-analyse. De dienst kan onder
+            meer bestaan uit:
           </p>
           <ul>
-            <li>Een dashboard met inzicht in reserveringen, bezetting en gasten</li>
-            <li>AI-gegenereerde reviews-antwoorden, campagne-suggesties en chat</li>
-            <li>Menu-analyse via beeldherkenning</li>
-            <li>Koppelingen met externe marketing- en reserveringssystemen</li>
+            <li>een dashboard met inzicht in reserveringen, bezetting, gasten en marketingactiviteiten;</li>
+            <li>AI-gegenereerde review-antwoorden, campagnesuggesties, teksten en chatfunctionaliteiten;</li>
+            <li>menu-analyse via beeldherkenning en AI;</li>
+            <li>website-, SEO-, Google Business Profile- en socialmedia-analyses;</li>
+            <li>Health Scores, Potentie Scores, Opportunity Scores en benchmarkrapportages;</li>
+            <li>koppelingen met externe marketing-, socialmedia-, betaal-, bank-, CRM- en reserveringssystemen.</li>
           </ul>
+
+          <h3>Beschikbaarheid</h3>
           <p>
-            <strong>Beschikbaarheid.</strong> We streven naar een
-            beschikbaarheid van 99% per kalendermaand, maar geven geen
-            harde SLA-garantie. Geplande onderhoudswerkzaamheden melden we
-            zo mogelijk tevoren.
+            Wij streven naar een beschikbaarheid van 99% per kalendermaand,
+            maar geven geen harde SLA-garantie, tenzij schriftelijk anders
+            overeengekomen. Gepland onderhoud melden wij zo mogelijk
+            vooraf.
+          </p>
+
+          <h3>AI-functionaliteiten</h3>
+          <p>
+            Filly maakt gebruik van AI-modellen en AI-diensten van derden,
+            waaronder diensten van Anthropic, zoals Claude, Claude Code
+            en/of de Anthropic API. De AI-functionaliteiten binnen het
+            Platform kunnen worden gebruikt voor onder meer
+            antwoordgeneratie, review-antwoorden, campagnevoorstellen,
+            menu-analyse, website-analyse, rapportages,
+            chatfunctionaliteiten, code-ondersteuning en interne
+            kwaliteitsverbetering.
           </p>
           <p>
-            <strong>AI-output.</strong> De uitkomsten van Filly (teksten,
-            suggesties, analyses) zijn adviesmatig. Ze kunnen fouten
-            bevatten of onvolledig zijn. De klant beoordeelt zelf of een
-            AI-output passend is vóór publicatie of gebruik richting
-            derden. Get-Filly is niet verantwoordelijk voor gevolgen van
-            het ongecontroleerd overnemen van AI-output.
+            Wanneer de Klant AI-functionaliteiten gebruikt, kunnen prompts,
+            ingevoerde gegevens, bestanden, context, gegenereerde output en
+            technische metadata worden verwerkt door Anthropic of andere
+            door Get-Filly ingeschakelde AI-dienstverleners, voor zover
+            noodzakelijk om de functionaliteit te leveren, te beveiligen,
+            te verbeteren of misbruik te voorkomen.
+          </p>
+          <p>
+            AI-output is adviserend van aard. AI-output kan fouten
+            bevatten, onvolledig zijn of gebaseerd zijn op onjuiste of
+            verouderde informatie. De Klant blijft verantwoordelijk voor
+            controle van AI-output vóór publicatie, verzending of zakelijk
+            gebruik.
           </p>
         </div>
 
+        {/* 5 */}
         <div id="account" className="legal-section">
           <h2>5. Account en verantwoordelijkheden van de klant</h2>
           <p>
-            Je bent verantwoordelijk voor het veilig bewaren van je
-            inloggegevens en voor al het gebruik dat via jouw account
-            plaatsvindt. Als je vermoedt dat een onbevoegde toegang heeft
-            gehad tot jouw account, stel ons dan direct op de hoogte.
+            De Klant is verantwoordelijk voor het veilig bewaren van
+            inloggegevens en voor al het gebruik dat via zijn Account
+            plaatsvindt. Wanneer de Klant vermoedt dat onbevoegde toegang
+            heeft plaatsgevonden, moet hij Get-Filly direct informeren.
           </p>
-          <p>Je garandeert dat je:</p>
+          <p>
+            De Klant zorgt ervoor dat alleen bevoegde Gebruikers toegang
+            krijgen tot het Platform en dat Gebruikers deze voorwaarden
+            naleven. De Klant garandeert dat hij:
+          </p>
           <ul>
-            <li>Juiste en actuele gegevens over jouw onderneming opgeeft</li>
-            <li>Alleen content uploadt waar jij de rechten op hebt (menukaarten, foto's, teksten)</li>
-            <li>Het platform niet gebruikt voor onrechtmatige of misleidende communicatie</li>
-            <li>Geen pogingen doet om het platform, onze beveiliging of onze AI-systemen te misbruiken</li>
-            <li>Voldoet aan wetgeving bij het verwerken van gastgegevens, met name AVG, ePrivacy en ondernemingsspecifieke regels (horeca, alcohol, kansspelen waar van toepassing)</li>
+            <li>juiste en actuele gegevens over zijn onderneming opgeeft;</li>
+            <li>alleen content uploadt of koppelt waarop hij voldoende rechten heeft, waaronder menukaarten, foto&apos;s, teksten, logo&apos;s, reviews en bedrijfsinformatie;</li>
+            <li>het Platform niet gebruikt voor onrechtmatige, misleidende, discriminerende, spamachtige of anderszins ongeoorloofde communicatie;</li>
+            <li>geen pogingen doet om het Platform, de beveiliging, API&apos;s, integraties of AI-systemen te misbruiken, te verstoren of te reverse-engineeren;</li>
+            <li>voldoet aan toepasselijke wet- en regelgeving, waaronder AVG, ePrivacy, consumentenrecht, reclameregels en sectorspecifieke regels voor horeca, alcohol, kansspelen of vergelijkbare activiteiten waar van toepassing;</li>
+            <li>geen wachtwoorden van Externe Platformen, zoals Google, Facebook, Instagram of andere diensten van derden, aan Get-Filly verstrekt.</li>
           </ul>
           <p>
-            Bij oneigenlijk gebruik kunnen we het account (tijdelijk)
-            blokkeren en, bij een ernstige schending, de overeenkomst
-            per direct beëindigen zonder recht op restitutie.
+            Koppelingen met Externe Platformen verlopen uitsluitend via de
+            daarvoor bedoelde autorisatiemethoden, zoals OAuth,
+            API-koppelingen of andere veilige integratiemethoden.
+          </p>
+          <p>
+            Bij oneigenlijk gebruik, beveiligingsrisico of ernstige
+            schending van deze voorwaarden mogen wij het Account tijdelijk
+            blokkeren of de overeenkomst per direct beëindigen zonder recht
+            op restitutie, voor zover wettelijk toegestaan.
           </p>
         </div>
 
-        <div id="prijzen" className="legal-section">
-          <h2>6. Abonnement, prijzen en betaling</h2>
+        {/* 6 */}
+        <div id="platformen" className="legal-section">
+          <h2>6. Externe platformen en OAuth-koppelingen</h2>
+
+          <h3>6.1 Koppelingen door de Klant</h3>
+          <p>
+            De Klant kan binnen het Platform koppelingen activeren met
+            Externe Platformen, waaronder Google Business Profile, Meta,
+            Facebook, Instagram, TikTok, reserveringssystemen,
+            CRM-systemen, e-mailmarketingdiensten en andere softwarediensten
+            van derden. Een koppeling wordt alleen tot stand gebracht
+            wanneer de Klant of een bevoegde Gebruiker daar expliciet
+            toestemming voor geeft, bijvoorbeeld via een OAuth-flow,
+            API-koppeling of vergelijkbare autorisatiemethode.
+          </p>
+
+          <h3>6.2 Bevoegdheid tot koppelen</h3>
+          <p>
+            De Klant garandeert dat hij bevoegd is om het betreffende
+            Externe Platform te koppelen en dat hij beschikt over de
+            vereiste rechten, rollen of beheerbevoegdheden, bijvoorbeeld als
+            eigenaar, beheerder of gemachtigde van een Google Business
+            Profile, Facebookpagina, Instagram Business-account of ander
+            gekoppeld account. De Klant vrijwaart Get-Filly voor aanspraken
+            van derden die voortvloeien uit het onbevoegd koppelen van
+            accounts, pagina&apos;s, bedrijfsprofielen of databronnen.
+          </p>
+
+          <h3>6.3 Gebruik van Integratiegegevens</h3>
+          <p>
+            Get-Filly gebruikt Integratiegegevens uitsluitend voor zover
+            noodzakelijk voor het leveren, onderhouden en verbeteren van de
+            overeengekomen dienstverlening, waaronder analyses, dashboards,
+            Health Scores, benchmarkrapportages, AI-suggesties,
+            marketinginzichten en optimalisatievoorstellen. Get-Filly
+            verkoopt Integratiegegevens niet aan derden en gebruikt
+            Integratiegegevens niet voor advertentiedoeleinden van derden.
+          </p>
+
+          <h3>6.4 Geen automatische wijzigingen zonder opdracht</h3>
+          <p>
+            Get-Filly zal geen content publiceren, berichten plaatsen,
+            reviews beantwoorden, bedrijfsprofielen wijzigen, advertenties
+            aanpassen of andere handelingen uitvoeren binnen een Extern
+            Platform zonder een expliciete handeling, goedkeuring of
+            opdracht van de Klant. Voor zover het Platform functionaliteiten
+            biedt waarmee de Klant wijzigingen kan aanbrengen op Externe
+            Platformen, blijft de Klant verantwoordelijk voor de inhoud,
+            juistheid en rechtmatigheid van die wijzigingen.
+          </p>
+
+          <h3>6.5 Handelingen namens de Klant</h3>
+          <p>
+            Wanneer de Klant via het Platform opdracht geeft om een
+            handeling uit te voeren op een Extern Platform, zoals het
+            beantwoorden van een review, publiceren van content, aanpassen
+            van profielinformatie of ophalen van rapportages, geldt die
+            handeling als een opdracht van de Klant aan Get-Filly. De Klant
+            is verantwoordelijk voor de inhoud, rechtmatigheid en gevolgen
+            van dergelijke handelingen, tenzij schade het gevolg is van
+            opzet of bewuste roekeloosheid van Get-Filly.
+          </p>
+
+          <h3>6.6 Platformvoorwaarden van derden</h3>
+          <p>
+            De Klant erkent dat het gebruik van Externe Platformen mede
+            wordt beheerst door de Platformvoorwaarden van derden. De Klant
+            is verantwoordelijk voor naleving van deze voorwaarden voor
+            zover deze op hem of zijn gebruik van toepassing zijn. Get-Filly
+            is niet verantwoordelijk voor wijzigingen in voorwaarden,
+            policies, API&apos;s, permissions, tarieven, beschikbaarheid,
+            reviewprocessen, rate limits of functionaliteiten van Externe
+            Platformen.
+          </p>
+
+          <h3>6.7 Wijzigingen, beperkingen en beëindiging door derden</h3>
+          <p>
+            Externe Platformen kunnen hun diensten, API&apos;s,
+            permissions, scopes, voorwaarden of toegangsmogelijkheden
+            wijzigen, beperken, opschorten of beëindigen. Get-Filly is niet
+            aansprakelijk voor schade of verminderde functionaliteit die
+            hierdoor ontstaat, tenzij sprake is van opzet of bewuste
+            roekeloosheid aan de zijde van Get-Filly. Indien een Extern
+            Platform aanvullende verificatie, app review, business
+            verification, security assessment of toestemming vereist, kan
+            Get-Filly de betreffende functionaliteit tijdelijk beperken
+            totdat aan die vereisten is voldaan.
+          </p>
+
+          <h3>6.8 Intrekken van koppelingen</h3>
+          <p>
+            De Klant kan een OAuth-koppeling of andere integratie op ieder
+            moment verwijderen via het Platform of via het betreffende
+            Externe Platform. Na ontkoppeling zal Get-Filly geen nieuwe
+            gegevens meer ophalen via die integratie. Get-Filly kan
+            technische toegang, tokens of API-sleutels intrekken of
+            verwijderen wanneer een koppeling wordt beëindigd, wanneer
+            toegang niet langer noodzakelijk is, of wanneer dit vereist is
+            op grond van wetgeving, beveiliging of Platformvoorwaarden van
+            derden.
+          </p>
+        </div>
+
+        {/* 7 */}
+        <div id="google" className="legal-section">
+          <h2>7. Google Business Profile en Google API&apos;s</h2>
+          <p>
+            Wanneer de Klant een Google-integratie activeert, waaronder
+            Google Business Profile, verleent de Klant Get-Filly toestemming
+            om de gegevens en functionaliteiten te gebruiken waarvoor de
+            Klant via Google expliciet toestemming heeft gegeven.
+          </p>
+          <p>
+            Get-Filly gebruikt Google-gegevens uitsluitend voor het
+            leveren, onderhouden en verbeteren van de functionaliteiten
+            waarvoor de Klant toestemming heeft gegeven, waaronder het
+            berekenen van Health Scores, het tonen van verbeterpunten, het
+            analyseren van reviews, ratings, foto&apos;s,
+            bedrijfsprofielinformatie en online zichtbaarheid.
+          </p>
+          <p>
+            Get-Filly zal Google-gegevens niet verkopen, niet overdragen aan
+            advertentienetwerken, niet gebruiken voor retargeting of
+            gepersonaliseerde advertenties van derden en niet gebruiken voor
+            doeleinden die niet zijn beschreven in de privacyverklaring of
+            in de relevante in-product toelichting.
+          </p>
+          <p>
+            Het gebruik en de overdracht van gegevens die Get-Filly ontvangt
+            via Google API&apos;s vindt plaats in overeenstemming met de
+            Google API Services User Data Policy, inclusief de Limited Use
+            requirements.
+          </p>
+          <p>
+            De Klant begrijpt dat Google bepaalde scopes, permissions of
+            API-toegang kan weigeren, beperken, controleren of intrekken.
+            Get-Filly is niet aansprakelijk voor het niet beschikbaar zijn
+            van Google-functionaliteiten als gevolg van besluiten,
+            storingen, wijzigingen of beperkingen van Google, tenzij sprake
+            is van opzet of bewuste roekeloosheid van Get-Filly.
+          </p>
+        </div>
+
+        {/* 8 */}
+        <div id="meta" className="legal-section">
+          <h2>8. Meta, Facebook en Instagram</h2>
+          <p>
+            Wanneer de Klant een Meta-, Facebook- of Instagram-integratie
+            activeert, verleent de Klant Get-Filly toestemming om de
+            gegevens en functionaliteiten te gebruiken waarvoor de Klant via
+            Meta expliciet toestemming heeft gegeven.
+          </p>
+          <p>
+            Afhankelijk van de door de Klant geactiveerde functionaliteit
+            kan Get-Filly gegevens verwerken zoals pagina-informatie,
+            accountinformatie, profielinformatie, openbare content,
+            foto&apos;s, video&apos;s, statistieken, bereik,
+            engagementgegevens, reacties, berichten en andere gegevens die
+            via de Meta API&apos;s beschikbaar worden gesteld.
+          </p>
+          <p>
+            Get-Filly gebruikt deze gegevens uitsluitend voor het leveren
+            van de overeengekomen dienstverlening, waaronder
+            socialmedia-analyses, Health Scores, benchmarkrapportages,
+            contentinzichten, marketingaanbevelingen en
+            prestatie-overzichten. Get-Filly verkoopt Meta-, Facebook- of
+            Instagram-gegevens niet aan derden en gebruikt deze gegevens
+            niet voor advertentiedoeleinden van derden. Get-Filly zal geen
+            content publiceren, verwijderen of wijzigen op Meta-, Facebook-
+            of Instagram-accounts zonder expliciete handeling of opdracht
+            van de Klant.
+          </p>
+          <p>
+            De Klant kan een Meta-, Facebook- of Instagram-koppeling
+            verwijderen via het Platform of via de instellingen van het
+            betreffende Meta-account. Na ontkoppeling zal Get-Filly geen
+            nieuwe gegevens meer ophalen via die koppeling. Voor verzoeken
+            tot verwijdering van gegevens die via Meta, Facebook of
+            Instagram zijn verkregen, biedt Get-Filly instructies via een
+            publieke data deletion-pagina. Get-Filly verwijdert gegevens
+            wanneer daartoe een geldig verzoek wordt ontvangen, tenzij
+            wettelijke verplichtingen of gerechtvaardigde administratieve
+            redenen verdere bewaring vereisen.
+          </p>
+        </div>
+
+        {/* 9 */}
+        <div id="betaling" className="legal-section">
+          <h2>9. Abonnement, prijzen en betaling</h2>
           <p>
             De actuele prijzen van onze abonnementen staan op{" "}
-            <a href="/pricing">get-filly.com/pricing</a>. Alle prijzen
-            zijn in euro's, exclusief btw tenzij anders vermeld.
+            <a href="/pricing">get-filly.com/pricing</a>. Alle prijzen zijn
+            in euro&apos;s, exclusief btw tenzij anders vermeld.
           </p>
-          <h3>6.1 Betaling</h3>
+
+          <h3>9.1 Betaling via Stripe</h3>
           <p>
-            Betaling verloopt via onze betaalpartner Mollie B.V. (iDEAL,
-            creditcard, SEPA-incasso). Het abonnementsbedrag wordt
-            vooruit per periode afgeschreven, maandelijks of jaarlijks,
-            afhankelijk van de door jou gekozen termijn.
+            Betaling verloopt via onze betaalpartner Stripe. Afhankelijk van
+            de gekozen betaalmethode kan betaling plaatsvinden via
+            creditcard, SEPA-incasso, iDEAL of andere door Stripe
+            ondersteunde betaalmethoden. Het abonnementsbedrag wordt vooruit
+            per periode in rekening gebracht, maandelijks of jaarlijks,
+            afhankelijk van de door de Klant gekozen abonnementsvorm.
           </p>
-          <h3>6.2 Bij niet-betaling</h3>
           <p>
-            Als een betaling mislukt, proberen we de incasso nog twee keer.
-            Blijft de betaling uit, dan kunnen we de toegang tot het
-            platform opschorten tot betaling is ontvangen. Bij langer dan
-            30 dagen openstaande betaling hebben we het recht de
+            Stripe kan voor bepaalde verwerkingen optreden als zelfstandig
+            verwerkingsverantwoordelijke, bijvoorbeeld voor
+            betalingsverwerking, fraudepreventie, wettelijke verplichtingen
+            en naleving van financiële regelgeving. Op de verwerking door
+            Stripe zijn mede de voorwaarden en privacyverklaring van Stripe
+            van toepassing.
+          </p>
+
+          <h3>9.2 Bij niet-betaling</h3>
+          <p>
+            Als een betaling mislukt, mogen wij de betaling opnieuw
+            aanbieden of de Klant verzoeken om een andere betaalmethode te
+            gebruiken. Blijft betaling uit, dan kunnen wij de toegang tot
+            het Platform opschorten totdat betaling is ontvangen. Bij langer
+            dan 30 dagen openstaande betaling hebben wij het recht de
             overeenkomst te beëindigen en de openstaande bedragen ter
-            incasso uit handen te geven; buitengerechtelijke incassokosten
-            komen voor jouw rekening conform de Wet Incassokosten.
+            incasso uit handen te geven. Buitengerechtelijke incassokosten
+            komen voor rekening van de Klant conform de Wet Incassokosten,
+            voor zover van toepassing.
           </p>
-          <h3>6.3 Prijswijzigingen</h3>
+
+          <h3>9.3 Prijswijzigingen</h3>
           <p>
-            Wij kunnen de prijzen jaarlijks per 1 januari aanpassen,
-            bijvoorbeeld op basis van inflatie (CBS consumentenprijsindex)
-            of wijzigingen in onze kosten voor AI-verwerking. We kondigen
-            een prijswijziging tenminste één maand van tevoren aan. Ben
-            je het oneens met de nieuwe prijs, dan kun je je abonnement
-            opzeggen tegen de ingangsdatum van de wijziging.
+            Wij kunnen prijzen jaarlijks per 1 januari aanpassen,
+            bijvoorbeeld op basis van inflatie, CBS consumentenprijsindex,
+            wijzigingen in onze kosten voor AI-verwerking, API-kosten,
+            hostingkosten of kosten van Externe Platformen. Wij kondigen een
+            prijswijziging ten minste één maand van tevoren aan. Is de Klant
+            het oneens met een prijswijziging, dan kan hij het abonnement
+            opzeggen tegen de datum waarop de wijziging ingaat.
+          </p>
+
+          <h3>9.4 Bank- en administratieverwerking via bunq</h3>
+          <p>
+            Get-Filly kan gebruikmaken van bunq B.V. voor zakelijke
+            bankdiensten, betalingsadministratie, reconciliatie en
+            financiële administratie. Voor zover bunq persoonsgegevens of
+            transactiegegevens verwerkt in het kader van haar eigen
+            wettelijke verplichtingen, compliance, fraudepreventie of
+            bancaire dienstverlening, kan bunq optreden als zelfstandig
+            verwerkingsverantwoordelijke.
           </p>
         </div>
 
+        {/* 10 */}
         <div id="duur" className="legal-section">
-          <h2>7. Duur en opzegging</h2>
+          <h2>10. Duur, opzegging en verwijdering van integratiegegevens</h2>
           <p>
-            Een abonnement gaat in op de dag van activatie en loopt voor
-            de door jou gekozen periode (1 maand of 1 jaar). Daarna wordt
-            het abonnement stilzwijgend verlengd voor dezelfde periode,
-            tenzij je tenminste één maand vóór het einde van de lopende
-            periode opzegt via het dashboard of via{" "}
-            <a href="mailto:hi@get-filly.com">hi@get-filly.com</a>.
+            Een abonnement gaat in op de dag van activatie en loopt voor de
+            door de Klant gekozen periode, bijvoorbeeld 1 maand of 1 jaar.
+            Daarna wordt het abonnement stilzwijgend verlengd voor dezelfde
+            periode, tenzij de Klant ten minste één maand vóór het einde van
+            de lopende periode opzegt via het dashboard. Na opzegging blijft
+            het Platform beschikbaar tot het einde van de reeds betaalde
+            periode. Daarna wordt het Account gedeactiveerd en worden
+            persoonsgegevens verwerkt overeenkomstig de privacyverklaring en
+            de Verwerkersovereenkomst.
           </p>
+
+          <h3>10.1 Ontbinding</h3>
           <p>
-            Na opzegging blijft het platform beschikbaar tot het einde van
-            de reeds betaalde periode. Daarna wordt het account
-            gedeactiveerd en worden persoonsgegevens volgens onze
-            privacyverklaring verwijderd of geanonimiseerd.
+            Beide partijen kunnen de overeenkomst buitengerechtelijk
+            ontbinden als de andere partij ernstig tekortschiet en die
+            tekortkoming niet binnen 30 dagen na schriftelijke
+            ingebrekestelling herstelt. In geval van faillissement,
+            surseance van betaling, staking van de onderneming of
+            vergelijkbare situatie is ontbinding onmiddellijk mogelijk.
           </p>
+
+          <h3>10.2 Verwijdering van integratiegegevens</h3>
           <p>
-            <strong>Ontbinding.</strong> Beide partijen kunnen de
-            overeenkomst buitengerechtelijk ontbinden als de andere partij
-            ernstig tekortschiet en die tekortkoming niet binnen 30 dagen
-            na schriftelijke ingebrekestelling herstelt. In geval van
-            faillissement, surseance of staken van de onderneming is
-            ontbinding onmiddellijk mogelijk.
+            Wanneer de Klant een integratie verwijdert of zijn account
+            beëindigt, zal Get-Filly de bijbehorende OAuth-tokens en
+            technische toegang intrekken of verwijderen, tenzij bewaring
+            tijdelijk noodzakelijk is voor beveiliging, geschillen,
+            wettelijke verplichtingen of administratieve afwikkeling.
+            Verzoeken tot verwijdering van gegevens kunnen worden ingediend
+            via het dashboard of via{" "}
+            <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>. Voor
+            gegevens afkomstig uit Meta-, Facebook- of Instagram-integraties
+            publiceert Get-Filly daarnaast een data deletion-pagina met
+            instructies voor gebruikers.
           </p>
         </div>
 
+        {/* 11 */}
         <div id="data" className="legal-section">
-          <h2>8. Data-eigendom en verwerking</h2>
+          <h2>11. Data-eigendom en verwerking</h2>
           <p>
-            Alle gegevens die jij in het platform invoert of uploadt
-            blijven jouw eigendom. Wij krijgen uitsluitend het recht om
-            die gegevens te gebruiken voor zover nodig om de dienst aan
-            jou te leveren en te verbeteren.
+            Alle gegevens die de Klant in het Platform invoert, uploadt of
+            koppelt, blijven eigendom van de Klant of de oorspronkelijke
+            rechthebbende. Get-Filly verkrijgt uitsluitend het recht om die
+            gegevens te gebruiken voor zover nodig om de dienstverlening te
+            leveren, te beveiligen, te onderhouden en te verbeteren
+            overeenkomstig deze voorwaarden en de privacyverklaring.
           </p>
           <p>
-            Voor zover je via het platform persoonsgegevens van jouw
-            gasten of klanten verwerkt, ben jij de
-            verwerkingsverantwoordelijke en zijn wij de verwerker in de
-            zin van artikel 28 AVG. De afspraken over die verwerking
-            leggen we vast in een verwerkersovereenkomst die onlosmakelijk
-            deel uitmaakt van deze voorwaarden; een exemplaar is op
-            aanvraag beschikbaar.
+            Voor zover de Klant via het Platform persoonsgegevens van gasten
+            of klanten verwerkt, is de Klant verwerkingsverantwoordelijke en
+            is Get-Filly verwerker in de zin van artikel 28 AVG. De
+            afspraken over die verwerking worden vastgelegd in een
+            Verwerkersovereenkomst die deel uitmaakt van de contractuele
+            relatie tussen partijen. De Klant is verantwoordelijk voor het
+            hebben van een geldige grondslag voor de verwerking van
+            Gastgegevens, het informeren van betrokkenen en het naleven van
+            toepasselijke privacy- en marketingwetgeving.
           </p>
+
+          <h3>11.1 Export bij vertrek</h3>
           <p>
-            <strong>Export bij vertrek.</strong> Bij beëindiging van de
-            overeenkomst kun je tot 30 dagen na afloop je data exporteren
-            in een gangbaar formaat. Daarna behouden we anonieme,
-            geaggregeerde data (zonder naar jou of je gasten herleidbare
-            informatie) voor product-verbetering.
-          </p>
-          <p>
-            Meer over hoe we met persoonsgegevens omgaan vind je in onze{" "}
-            <a href="/privacy">privacyverklaring</a>.
+            Bij beëindiging van de overeenkomst kan de Klant tot 30 dagen na
+            afloop zijn data exporteren in een gangbaar formaat, voor zover
+            technisch beschikbaar. Daarna mogen wij gegevens verwijderen of
+            anonimiseren overeenkomstig de privacyverklaring en de
+            Verwerkersovereenkomst. Get-Filly mag anonieme en geaggregeerde
+            data, die niet herleidbaar is tot de Klant, Gebruikers of
+            gasten, blijven gebruiken voor productverbetering, benchmarking,
+            statistiek en trendanalyse.
           </p>
         </div>
 
+        {/* 12 */}
         <div id="ip" className="legal-section">
-          <h2>9. Intellectueel eigendom</h2>
+          <h2>12. Intellectueel eigendom</h2>
           <p>
-            Alle intellectuele eigendomsrechten op het platform, de
-            software, het ontwerp, de teksten, de Filly-merknaam en
-            bijbehorende logo's, berusten bij Get-Filly of haar
-            licentiegevers. Niets in deze voorwaarden draagt enig
-            eigendom aan jou over.
+            Alle intellectuele eigendomsrechten op het Platform, de
+            software, de databasestructuur, het ontwerp, teksten, modellen,
+            methodieken, scores, de Filly-merknaam en bijbehorende
+            logo&apos;s berusten bij Get-Filly of haar licentiegevers.
+            Niets in deze voorwaarden draagt enig eigendomsrecht over aan de
+            Klant. Voor de duur van het abonnement krijgt de Klant een
+            niet-exclusief, niet-overdraagbaar en niet-sublicentieerbaar
+            recht om het Platform te gebruiken voor zijn eigen onderneming
+            en uitsluitend overeenkomstig deze voorwaarden.
           </p>
+
+          <h3>12.1 AI-output</h3>
           <p>
-            <strong>Wat krijg jij?</strong> Voor de duur van je abonnement
-            krijg je een niet-exclusief, niet-overdraagbaar recht om het
-            platform te gebruiken voor je eigen onderneming.
-          </p>
-          <p>
-            <strong>AI-output.</strong> Teksten, afbeeldingen en andere
-            inhoud die Filly op basis van jouw invoer genereert (de
-            "output") mag je vrij gebruiken binnen jouw onderneming,
-            zowel tijdens als na het abonnement. Houd er rekening mee dat
-            AI-output in uitzonderlijke gevallen overeenkomsten kan
-            vertonen met bestaand werk van derden. Jij beoordeelt vóór
-            publicatie zelf of verder eigen creatieve bewerking nodig is.
+            Voor zover wettelijk toegestaan, mag de Klant AI-output die door
+            Filly op basis van zijn invoer wordt gegenereerd gebruiken
+            binnen zijn eigen onderneming, zowel tijdens als na het
+            abonnement. Get-Filly geeft geen garantie dat AI-output uniek
+            is, geen rechten van derden raakt of geschikt is voor een
+            specifiek doel. De Klant blijft verantwoordelijk voor controle,
+            redactie en rechtmatig gebruik van AI-output.
           </p>
         </div>
 
+        {/* 13 */}
+        <div id="rangorde" className="legal-section">
+          <h2>13. Rangorde van documenten</h2>
+          <p>
+            Indien sprake is van strijdigheid tussen documenten, geldt de
+            volgende rangorde, tenzij schriftelijk anders overeengekomen:
+          </p>
+          <ol>
+            <li>een afzonderlijk ondertekende overeenkomst of offerte;</li>
+            <li>de Verwerkersovereenkomst, voor zover het gaat om verwerking van persoonsgegevens namens de Klant;</li>
+            <li>deze algemene voorwaarden;</li>
+            <li>de privacyverklaring;</li>
+            <li>overige beleidsdocumenten, productdocumentatie of informatiepagina&apos;s.</li>
+          </ol>
+          <p>
+            Voor het gebruik van Externe Platformen blijven daarnaast de
+            toepasselijke Platformvoorwaarden van derden gelden.
+          </p>
+        </div>
+
+        {/* 14 */}
         <div id="aansprakelijkheid" className="legal-section">
-          <h2>10. Aansprakelijkheid</h2>
+          <h2>14. Aansprakelijkheid</h2>
           <p>
-            Onze dienst wordt uitgevoerd op basis van een
-            inspanningsverplichting, niet een resultaatsverplichting. We
+            Onze dienstverlening wordt uitgevoerd op basis van een
+            inspanningsverplichting, niet een resultaatsverplichting. Wij
             doen ons uiterste best voor een stabiel, veilig en nuttig
-            platform, maar geven geen garantie dat elke suggestie van
-            Filly zal leiden tot méér reserveringen of omzet.
+            Platform, maar geven geen garantie dat suggesties, campagnes,
+            Health Scores of AI-output leiden tot meer reserveringen, omzet,
+            bereik of winst.
           </p>
+
+          <h3>14.1 Beperking</h3>
           <p>
-            <strong>Beperking.</strong> Onze totale aansprakelijkheid
-            jegens jou per gebeurtenis of reeks samenhangende
-            gebeurtenissen is beperkt tot het bedrag dat je in de
-            voorafgaande twaalf maanden aan abonnementskosten aan ons hebt
-            betaald, met een absolute maximum van{" "}
-            <LegalField
-              value={COMPANY.liabilityCap}
-              placeholder="bedrag, bv. € 25.000"
-            />
-            {" "}per kalenderjaar.
+            Onze totale aansprakelijkheid jegens de Klant per gebeurtenis of
+            reeks samenhangende gebeurtenissen is beperkt tot het bedrag dat
+            de Klant in de voorafgaande twaalf maanden aan abonnementskosten
+            aan ons heeft betaald, met een absoluut maximum van{" "}
+            {COMPANY.liabilityCap} per kalenderjaar.
           </p>
+
+          <h3>14.2 Uitgesloten schade</h3>
           <p>
-            <strong>Uitgesloten schade.</strong> Wij zijn niet aansprakelijk
-            voor indirecte schade, waaronder in elk geval begrepen:
-            gederfde winst, gemiste besparingen, reputatieschade,
-            verminking van data, of schade door bedrijfsstilstand.
+            Wij zijn niet aansprakelijk voor indirecte schade, waaronder in
+            elk geval wordt begrepen: gederfde winst, gemiste besparingen,
+            reputatieschade, verminking of verlies van data, schade door
+            bedrijfsstilstand, gemiste reserveringen, gemiste omzet, verlies
+            van goodwill of schade door claims van gasten of derden.
           </p>
+
+          <h3>14.3 Geen garantie op externe platformfunctionaliteit</h3>
           <p>
-            <strong>Wanneer gelden deze beperkingen niet?</strong> Bij
-            opzet of bewuste roekeloosheid van Get-Filly zelf gelden deze
-            aansprakelijkheids-beperkingen niet.
+            Get-Filly garandeert niet dat koppelingen met Externe Platformen
+            altijd beschikbaar blijven of ongewijzigd blijven functioneren.
+            Functionaliteiten kunnen afhankelijk zijn van toestemming, app
+            review, business verification, API-limieten, platformbeleid,
+            technische wijzigingen of besluiten van derden zoals Google,
+            Meta, Stripe, bunq of andere aanbieders. Get-Filly is niet
+            aansprakelijk voor schade die ontstaat doordat een Extern
+            Platform zijn dienstverlening wijzigt, beperkt, opschort of
+            beëindigt, tenzij sprake is van opzet of bewuste roekeloosheid
+            van Get-Filly.
           </p>
+
+          <h3>14.4 Uitzonderingen</h3>
           <p>
-            Je vrijwaart ons voor aanspraken van derden, waaronder
-            gastgegevens-betrokkenen, die voortkomen uit jouw gebruik van
-            het platform in strijd met de wet of deze voorwaarden.
+            De aansprakelijkheidsbeperkingen gelden niet voor zover schade
+            het gevolg is van opzet of bewuste roekeloosheid van Get-Filly
+            zelf, of voor zover beperking van aansprakelijkheid wettelijk
+            niet is toegestaan.
+          </p>
+
+          <h3>14.5 Vrijwaring</h3>
+          <p>
+            De Klant vrijwaart Get-Filly voor aanspraken van derden,
+            waaronder gasten, betrokkenen, rechthebbenden, Externe
+            Platformen en toezichthouders, voor zover deze voortkomen uit
+            het gebruik van het Platform door de Klant in strijd met
+            wetgeving, rechten van derden, Platformvoorwaarden van derden of
+            deze voorwaarden.
           </p>
         </div>
 
+        {/* 15 */}
         <div id="geheimhouding" className="legal-section">
-          <h2>11. Geheimhouding</h2>
+          <h2>15. Geheimhouding</h2>
           <p>
-            Beide partijen houden vertrouwelijke informatie die ze van de
-            ander ontvangen, zoals prijzen, roadmap-informatie,
-            zakelijke gegevens en gastenlijsten, geheim, tenzij
-            openbaarmaking wettelijk verplicht is of schriftelijk
-            toestemming is gegeven.
+            Beide partijen houden vertrouwelijke informatie die zij van de
+            andere partij ontvangen geheim, waaronder prijzen, offertes,
+            roadmap-informatie, technische informatie, zakelijke gegevens,
+            gastenlijsten, API-sleutels, integratiegegevens en niet-openbare
+            productinformatie.
           </p>
           <p>
-            De geheimhouding blijft gelden tot drie jaar na afloop van de
-            overeenkomst.
+            Vertrouwelijke informatie mag alleen worden gebruikt voor de
+            uitvoering van de overeenkomst. Openbaarmaking is alleen
+            toegestaan wanneer dit wettelijk verplicht is, noodzakelijk is
+            voor uitvoering van de overeenkomst door ingeschakelde
+            dienstverleners onder passende geheimhouding, of wanneer de
+            andere partij schriftelijk toestemming heeft gegeven. De
+            geheimhoudingsverplichting blijft gelden tot drie jaar na afloop
+            van de overeenkomst. Voor bedrijfsgeheimen en persoonsgegevens
+            geldt de verplichting zolang de informatie naar haar aard
+            vertrouwelijk is of bescherming vereist.
           </p>
         </div>
 
+        {/* 16 */}
         <div id="overmacht" className="legal-section">
-          <h2>12. Overmacht</h2>
+          <h2>16. Overmacht</h2>
           <p>
-            Onder overmacht verstaan we elke niet aan ons toerekenbare
-            omstandigheid die nakoming verhindert. Daaronder valt in elk
-            geval: storingen bij onze sub-verwerkers (Supabase, Anthropic,
-            Resend, Vercel, Mollie), langdurige internetstoringen,
-            overheidsmaatregelen, en cyberaanvallen buiten onze redelijke
-            controle.
+            Onder overmacht verstaan wij iedere niet aan Get-Filly
+            toerekenbare omstandigheid die nakoming tijdelijk of blijvend
+            verhindert. Daaronder valt in elk geval: storingen bij onze
+            subverwerkers of dienstverleners, waaronder Supabase, Anthropic,
+            Resend, Vercel, Stripe, bunq, Google, Meta of andere Externe
+            Platformen, langdurige internetstoringen, stroomstoringen,
+            overheidsmaatregelen, cyberaanvallen buiten onze redelijke
+            controle, API-storingen, rate limits, app review-beperkingen,
+            platformwijzigingen en het tijdelijk of definitief intrekken van
+            toegang door een Extern Platform.
           </p>
           <p>
-            In overmacht-situaties is nakoming opgeschort zolang de
-            overmacht voortduurt. Als deze langer dan 30 dagen duurt, kan
-            elke partij de overeenkomst zonder rechterlijke tussenkomst
-            ontbinden zonder tot schadevergoeding gehouden te zijn.
+            In overmachtssituaties is nakoming opgeschort zolang de
+            overmacht voortduurt. Als de overmacht langer dan 30 dagen
+            duurt, kan iedere partij de overeenkomst zonder rechterlijke
+            tussenkomst ontbinden zonder schadevergoeding verschuldigd te
+            zijn.
           </p>
         </div>
 
+        {/* 17 */}
         <div id="wijzigingen" className="legal-section">
-          <h2>13. Wijzigingen in deze voorwaarden</h2>
+          <h2>17. Wijzigingen in deze voorwaarden</h2>
           <p>
             Wij mogen deze voorwaarden van tijd tot tijd wijzigen. Wij
-            informeren je tenminste één maand vóór inwerkingtreding via
-            e-mail of in het dashboard. Ga je niet akkoord met de
-            wijziging? Dan kun je jouw abonnement opzeggen tegen de datum
-            waarop de wijziging ingaat.
+            informeren de Klant ten minste één maand vóór inwerkingtreding
+            via e-mail of in het dashboard. Gaat de Klant niet akkoord met
+            een wijziging, dan kan hij het abonnement opzeggen tegen de
+            datum waarop de wijziging ingaat.
           </p>
           <p>
-            Wijzigingen die noodzakelijk zijn om te voldoen aan een
-            wettelijke verplichting, een uitspraak van een rechter of een
-            besluit van een toezichthouder kunnen zonder die
-            opzegtermijn ingaan.
+            Wijzigingen die noodzakelijk zijn om te voldoen aan wetgeving,
+            een uitspraak van een rechter, een besluit van een
+            toezichthouder, beveiligingsvereisten of Platformvoorwaarden van
+            derden kunnen zonder voorafgaande opzegtermijn ingaan, voor
+            zover redelijkerwijs noodzakelijk.
           </p>
         </div>
 
+        {/* 18 */}
         <div id="recht" className="legal-section">
-          <h2>14. Toepasselijk recht en geschillen</h2>
+          <h2>18. Toepasselijk recht en geschillen</h2>
           <p>
-            Op deze overeenkomst is uitsluitend Nederlands recht van
-            toepassing.
+            Op deze overeenkomst en alle rechtsverhoudingen tussen Get-Filly
+            en de Klant is uitsluitend Nederlands recht van toepassing.
           </p>
           <p>
             Voordat een geschil aan de rechter wordt voorgelegd, zullen
-            partijen in overleg treden om tot een oplossing te komen.
-            Lukt dat niet, dan is de rechter van de rechtbank{" "}
-            <LegalField
-              value={COMPANY.court}
-              placeholder="rechtbank, bv. Amsterdam"
-            />
-            {" "}bij uitsluiting bevoegd om kennis te nemen van het geschil,
-            tenzij dwingend recht een andere rechter aanwijst.
-          </p>
-        </div>
-
-        {/* Afsluitende contact-alinea zonder nummer, voor als een klant
-            niet weet waar hij moet beginnen. Belangrijk voor bereikbaar-
-            heid; klanten lezen deze pagina vaak pas wanneer er iets is. */}
-        <div className="legal-section">
-          <p>
-            <strong>Vragen?</strong> Stuur een mail naar{" "}
-            <a href="mailto:hi@get-filly.com">hi@get-filly.com</a>, we
-            nemen contact op binnen één werkdag.
+            partijen in overleg treden om tot een oplossing te komen. Lukt
+            dat niet, dan is de bevoegde rechter van de {COMPANY.court} bij
+            uitsluiting bevoegd om kennis te nemen van het geschil, tenzij
+            dwingend recht een andere rechter aanwijst.
           </p>
         </div>
       </div>

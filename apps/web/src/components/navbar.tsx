@@ -39,37 +39,16 @@ export function Navbar() {
     <div className="navbar-wrapper">
       <nav className="navbar">
         <div className="navbar-inner">
-        <Link href="/" className="nav-logo">
-          {/* Tijdelijke SVG-benadering van het logo uit de brandguide:
-              onvolledige cirkel (C-vorm, open aan de rechterkant) met
-              vier oplopende staven in verschillende groentinten, de
-              hoogste komt net door de opening. Later vervangen door de
-              definitieve designer-versie. */}
-          <svg
-            className="nav-logo-mark"
-            viewBox="0 0 32 32"
-            aria-hidden="true"
-          >
-            {/* C-vorm: kleine opening aan de rechterkant (~60°).
-                Start rechtsboven (25.5,10.5), loopt tegen de klok in
-                helemaal rond naar rechtsonder (25.5,21.5). Daardoor
-                lijkt de cirkel veel meer op de letter C uit de brand. */}
-            <path
-              d="M 25.5 10.5 A 11 11 0 1 0 25.5 21.5"
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            {/* Vier staven, donker naar licht van links naar rechts.
-                Hoogste staaf staat bij de opening van de C zodat hij
-                visueel uit de cirkel lijkt te komen. */}
-            <rect x="7.5"  y="20" width="2.5" height="7"  rx="0.6" fill="#1F3B2A" />
-            <rect x="11.5" y="17" width="2.5" height="10" rx="0.6" fill="#2D5A3F" />
-            <rect x="15.5" y="13" width="2.5" height="14" rx="0.6" fill="#5E9570" />
-            <rect x="19.5" y="9"  width="2.5" height="18" rx="0.6" fill="#7DA87A" />
-          </svg>
-          <span>Get-Filly</span>
+        <Link href="/" className="nav-logo" aria-label="Get-Filly home">
+          {/* Volledig logo (symbool + tekst) als SVG-vector: scherp op
+              elke zoom/retina. Gewone <img> i.p.v. next/image want een
+              vector hoeft niet gerasterd te worden. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt="Get-Filly"
+            style={{ height: 44, width: "auto", display: "block" }}
+          />
         </Link>
         <div className="nav-links">
           {links.map(({ href, label }) => {

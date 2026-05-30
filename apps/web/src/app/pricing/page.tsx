@@ -7,6 +7,7 @@
 // =============================================================================
 
 import Link from "next/link";
+import { COMPANY } from "@/config/company";
 
 type PlanFeature = { text: string; disabled?: boolean };
 type Plan = {
@@ -124,7 +125,7 @@ export default function PricingPage() {
               </details>
             ))}
           </div>
-          <div className="faq-contact">Meer vragen? Stuur ons een mail op <a href="mailto:hi@get-filly.com">hi@get-filly.com</a>.</div>
+          <div className="faq-contact">Meer vragen? Stuur ons een mail op <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>.</div>
         </div>
       </section>
     </>

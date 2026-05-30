@@ -43,6 +43,9 @@ export type CompanyInfo = {
   addressPostcode: string | null;
   addressCity: string | null;
 
+  // Telefoonnummer (zichtbaar op privacy- + voorwaarden-contact).
+  phone: string | null;
+
   // Rechtbank die bij geschillen bevoegd is (algemene
   // voorwaarden art. 14). Default-keuze hangt vaak samen met de
   // vestigingsplaats, laat een jurist hier nog naar kijken.
@@ -52,19 +55,34 @@ export type CompanyInfo = {
   // voorwaarden art. 10). Vrij geformatteerde string (bv.
   // "€ 25.000") zodat we 'm 1-op-1 in de tekst kunnen plakken.
   liabilityCap: string | null;
+
+  // Contact-e-mailadressen. Centraal hier zodat footer, privacy- en
+  // voorwaarden-pagina's allemaal hetzelfde (werkende) adres tonen.
+  // Nu alledrie hetzelfde werkende adres; zodra je aparte mailboxen/
+  // aliassen instelt (privacy@, security@) kun je ze hier splitsen
+  // zonder de pagina's aan te raken.
+  email: string; // algemeen contact
+  privacyEmail: string; // AVG-/privacy-verzoeken
+  securityEmail: string; // security disclosures
 };
 
 export const COMPANY: CompanyInfo = {
   tradeName: "Get-Filly",
-  legalName: null,
+  legalName: "Get-Filly",
   businessForm: null,
-  kvk: null,
+  kvk: "42068177",
   vatNumber: null,
-  addressStreet: null,
-  addressPostcode: null,
-  addressCity: null,
-  court: null,
-  liabilityCap: null,
+  addressStreet: "Saxen Weimarlaan 44-2",
+  addressPostcode: "1075 CD",
+  addressCity: "Amsterdam",
+  phone: "+31 6 57737372",
+  court: "Rechtbank Amsterdam",
+  liabilityCap: "€ 25.000",
+  // Eén werkend adres voor nu (administratie@get-filly.com). Splits
+  // later in aparte aliassen als die mailboxen bestaan.
+  email: "administratie@get-filly.com",
+  privacyEmail: "administratie@get-filly.com",
+  securityEmail: "administratie@get-filly.com",
 };
 
 // Bepaalt of de gele draft-banner op /privacy en /voorwaarden

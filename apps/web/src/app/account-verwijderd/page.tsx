@@ -17,6 +17,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "../../components/ui/button-link";
+import { COMPANY } from "@/config/company";
 
 export const metadata: Metadata = {
   title: "Account verwijderd, Get-Filly",
@@ -97,7 +98,7 @@ export default function AccountVerwijderdPage() {
           <p>
             Heb je nog vragen over deze verwijdering, of wil je iets met
             ons delen over wat beter had gekund? Mail ons gerust op{" "}
-            <a href="mailto:privacy@get-filly.com">privacy@get-filly.com</a>.
+            <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
           </p>
           <p>
             Wil je later terugkomen? Een nieuw account aanmaken kan

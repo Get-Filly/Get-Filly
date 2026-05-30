@@ -2,6 +2,8 @@
 // ABOUT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → AboutPage.
 // =============================================================================
 
+import { COMPANY } from "@/config/company";
+
 const missionPillars = [
   { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en gasten." },
   { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
@@ -97,7 +99,7 @@ export default function AboutPage() {
           <p className="section-label">Contact</p>
           <h2 className="section-title">Laten we kennismaken.</h2>
           <p className="section-subtitle">Vragen over Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
-          <a href="mailto:hi@get-filly.com" className="cta-btn">hi@get-filly.com</a>
+          <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
         </div>
       </section>
     </>
