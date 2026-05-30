@@ -25,20 +25,24 @@ import { FillySuggestionsPopover } from "./filly-suggestions-popover";
 // <UpcomingActionsBlock>, alert-strip + "Vraag Filly om voorstellen"
 // ============================================================
 //
-// Zelfstandige block die rustige dagen + speciale dagen ophaalt
-// (komende 14 dgn resp. 6 wkn) en ze toont als 2 stroken (beide
-// met een dun rood-700 accentstreepje links voor visuele
-// consistentie) met daarnaast een groene knop om Filly om
-// voorstellen te vragen voor die dagen.
+// Zelfstandige block die rustige dagen (komende 14 dgn) + speciale
+// dagen (komende 6 wkn) toont als 2 ALTIJD-zichtbare stroken, met
+// daarnaast een groene knop om Filly om voorstellen te vragen.
+//
+// Elke strook heeft z'n eigen status-kleur (per Floris-feedback
+// 2026-05-29, gescheiden i.p.v. één gecombineerde strook):
+//   - ROOD accent  = er staan nog open dagen die actie vragen
+//   - GROEN accent = onder controle (alle dagen afgedekt met een
+//     voorstel/campagne, óf er waren simpelweg geen zulke dagen)
+//
+// De block verdwijnt dus NIET meer op een rustig dashboard: de
+// eigenaar ziet altijd in één oogopslag de status van beide
+// categorieën (rustige bezetting + komende speciale dagen).
 //
 // Gedeeld door:
 //   - dashboard/page.tsx (layout="grid-4col", aligned met KPI-rij)
 //   - dashboard/campagnes/page.tsx (layout="flex", strips groei +
 //     knop natuurlijke breedte)
-//
-// Returnt null wanneer er niks te tonen is (geen rustige + geen
-// speciale dagen), zodat het component letterlijk "verdwijnt" op
-// een rustig dashboard zonder lege ruimte achter te laten.
 
 const SPECIAL_DAYS_WEEKS_AHEAD = 6;
 const LOW_OCCUPANCY_WINDOW_DAYS = 14;
@@ -142,19 +146,27 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
   // feestdag op een normaal-dichte dag is juist een kans om open
   // te gaan / op te spelen. Wel filteren we dagen waarvoor al
   // iets klaarstaat (zelfde logica als rustige-dagen-strook).
-  const upcomingSpecial: SpecialDay[] = getUpcomingSpecialDays(
+  const allSpecial: SpecialDay[] = getUpcomingSpecialDays(
     today,
     SPECIAL_DAYS_WEEKS_AHEAD,
-  ).filter((s) => !coveredDates.has(s.date));
+  );
+  const upcomingSpecial = allSpecial.filter((s) => !coveredDates.has(s.date));
 
-  const hasAnyAction =
-    criticalDays.length > 0 || upcomingSpecial.length > 0;
-  if (!hasAnyAction) return null;
+  // Per strook tellen we hoeveel dagen ANDERS een actie zouden tonen,
+  // maar al een voorstel of campagne hebben. Dat bepaalt de groene
+  // tekst: "alles afgedekt met campagnes" vs "er was simpelweg niks".
+  const coveredCritical = windowDays.filter(
+    (d) =>
+      d.occupancy_pct < occupancyThreshold &&
+      isOpenOn(restaurant, d.date) &&
+      coveredDates.has(d.date),
+  ).length;
+  const coveredSpecial = allSpecial.length - upcomingSpecial.length;
 
-  // Strook-styling: witte bg, dunne 4px rood-700 kleurstreep links,
-  // zwarte tekst. Beide stroken (rustige + speciale dagen) delen
-  // dezelfde stijl voor visuele consistentie — niet rood/geel
-  // afwisselen wat per 2026-05-21 Floris-feedback verwarrend voelde.
+  // Strook-styling: witte bg, dunne 4px kleurstreep links, zwarte tekst.
+  // De accentkleur verschilt per status: rood-700 = actie nodig,
+  // British-Racing-Green = onder controle. accentStrip(kleur) bouwt de
+  // juiste style zodat beide stroken dezelfde basis delen.
   const stripBase: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -166,40 +178,86 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
     borderRadius: "var(--rs, 8px)",
     fontSize: 13,
     lineHeight: 1.4,
-    boxShadow: "inset 4px 0 0 0 #B91C1C", // rood-700, dunne accentstreep
   };
+  const RED = "#B91C1C"; // rood-700 — actie nodig
+  const GREEN = "#1F4A2D"; // British Racing Green — onder controle
+  const accentStrip = (color: string): React.CSSProperties => ({
+    ...stripBase,
+    boxShadow: `inset 4px 0 0 0 ${color}`,
+  });
 
-  const occupancyStrip = criticalDays.length > 0 && (
-    <div style={stripBase}>
+  // Rustige-dagen-strook: ALTIJD zichtbaar. Rood als er nog open rustige
+  // dagen zijn, groen als alles onder controle is. De groene tekst
+  // onderscheidt "alle afgedekt met campagnes" van "simpelweg geen
+  // rustige dagen".
+  const occupancyStrip = (
+    <div style={accentStrip(criticalDays.length > 0 ? RED : GREEN)}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong>
-          {criticalDays.length} rustige dag
-          {criticalDays.length > 1 ? "en" : ""}
-        </strong>{" "}
-        komende 2 weken:{" "}
-        {criticalDays
-          .slice(0, 5)
-          .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
-          .join(", ")}
-        {criticalDays.length > 5 && `, +${criticalDays.length - 5} meer`}
+        {criticalDays.length > 0 ? (
+          <>
+            <strong>
+              {criticalDays.length} rustige dag
+              {criticalDays.length > 1 ? "en" : ""}
+            </strong>{" "}
+            komende 2 weken:{" "}
+            {criticalDays
+              .slice(0, 5)
+              .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
+              .join(", ")}
+            {criticalDays.length > 5 &&
+              `, +${criticalDays.length - 5} meer`}
+          </>
+        ) : coveredCritical > 0 ? (
+          <>
+            <strong>Rustige dagen afgedekt</strong> — alle{" "}
+            {coveredCritical} rustige dag
+            {coveredCritical > 1 ? "en" : ""} komende 2 weken
+            {coveredCritical > 1 ? " hebben" : " heeft"} al een voorstel
+            of campagne.
+          </>
+        ) : (
+          <>
+            <strong>Geen rustige dagen</strong> — je bezetting komende 2
+            weken ziet er goed uit.
+          </>
+        )}
       </div>
     </div>
   );
 
-  const specialStrip = upcomingSpecial.length > 0 && (
-    <div style={stripBase}>
+  // Speciale-dagen-strook: ALTIJD zichtbaar. Zelfde rood/groen-logica
+  // voor de komende 6 weken.
+  const specialStrip = (
+    <div style={accentStrip(upcomingSpecial.length > 0 ? RED : GREEN)}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong>
-          {upcomingSpecial.length} speciale dag
-          {upcomingSpecial.length > 1 ? "en" : ""}
-        </strong>{" "}
-        komende 6 weken:{" "}
-        {upcomingSpecial
-          .slice(0, 5)
-          .map((s) => `${s.name} (${formatDayNl(s.date)})`)
-          .join(", ")}
-        {upcomingSpecial.length > 5 &&
-          `, +${upcomingSpecial.length - 5} meer`}
+        {upcomingSpecial.length > 0 ? (
+          <>
+            <strong>
+              {upcomingSpecial.length} speciale dag
+              {upcomingSpecial.length > 1 ? "en" : ""}
+            </strong>{" "}
+            komende 6 weken:{" "}
+            {upcomingSpecial
+              .slice(0, 5)
+              .map((s) => `${s.name} (${formatDayNl(s.date)})`)
+              .join(", ")}
+            {upcomingSpecial.length > 5 &&
+              `, +${upcomingSpecial.length - 5} meer`}
+          </>
+        ) : coveredSpecial > 0 ? (
+          <>
+            <strong>Speciale dagen afgedekt</strong> — alle{" "}
+            {coveredSpecial} speciale dag
+            {coveredSpecial > 1 ? "en" : ""} komende 6 weken
+            {coveredSpecial > 1 ? " hebben" : " heeft"} al een voorstel
+            of campagne.
+          </>
+        ) : (
+          <>
+            <strong>Geen speciale dagen</strong> — komende 6 weken staan
+            er geen feest- of themadagen op de kalender.
+          </>
+        )}
       </div>
     </div>
   );

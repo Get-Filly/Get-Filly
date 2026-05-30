@@ -1,8 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchKpis, type Kpis } from "../../../lib/api";
+import { fetchKpis, fetchOccupancy, type Kpis, type OccupancyDay } from "../../../lib/api";
+import { mergeMonthData } from "../_lib/calendar-data";
 import { Skeleton } from "./skeleton";
+
+// "Bezetting vandaag" moet exact hetzelfde tonen als de kalender-cel
+// voor vandaag. Probleem dat dit oploste: de KPI-backend leverde
+// today_pct soms null (todayStr-mismatch met de occupancy_days-rij),
+// terwijl de kalender via mergeMonthData wél een waarde toont (echte
+// data waar beschikbaar, anders seeded mock). Dat gaf 2 verschillende
+// getallen voor dezelfde dag.
+//
+// Oplossing: bereken de bezetting-vandaag uit DEZELFDE bron als de
+// kalender — mergeMonthData(jaar, maand, occupancy) en pak de cel van
+// vandaag. Zo zijn KPI-tegel en kalender-cel per definitie identiek.
+function todayPctFromOccupancy(occupancy: OccupancyDay[]): number | null {
+  const now = new Date();
+  const cells = mergeMonthData(now.getFullYear(), now.getMonth(), occupancy);
+  const todayCell = cells.find((c) => c && c.day === now.getDate());
+  return todayCell ? todayCell.occupancy : null;
+}
 
 type KpiCard = {
   label: string;
@@ -23,12 +41,12 @@ type KpiCard = {
 // Eerder hadden we ook Gasten mei + Geschatte omzet mei, maar
 // Floris koos voor de scherpere "klant-focus" presentatie: pure
 // vandaag-snapshot + 2 campagne-state-tegels.
-function kpisToCards(kpis: Kpis): KpiCard[] {
+function kpisToCards(kpis: Kpis, todayPct: number | null): KpiCard[] {
   const cards: KpiCard[] = [];
 
   cards.push({
     label: "Bezetting vandaag",
-    value: kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
+    value: todayPct !== null ? `${todayPct}%` : "—",
     fillyExtra: null,
   });
 
@@ -63,12 +81,19 @@ function kpisToCards(kpis: Kpis): KpiCard[] {
 
 export function KpiRow() {
   const [kpis, setKpis] = useState<Kpis | null>(null);
+  const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchKpis()
       .then(setKpis)
       .catch((e: Error) => setError(e.message));
+    // Occupancy van de huidige maand ophalen — zelfde bron als de
+    // kalender — zodat "Bezetting vandaag" identiek is aan de today-cel.
+    const now = new Date();
+    fetchOccupancy(now.getFullYear(), now.getMonth())
+      .then(setOccupancy)
+      .catch(() => setOccupancy([]));
   }, []);
 
   // Bij een fout (bv. nog geen reserveringen-data, geen restaurant-
@@ -101,7 +126,7 @@ export function KpiRow() {
     );
   }
 
-  const cards = kpisToCards(kpis);
+  const cards = kpisToCards(kpis, todayPctFromOccupancy(occupancy));
 
   return (
     <div className="kpi-row">
