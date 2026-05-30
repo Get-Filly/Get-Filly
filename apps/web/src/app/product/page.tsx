@@ -23,22 +23,22 @@ export default function ProductPage() {
           <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie en selecteert de juiste doelgroep uit bestaande gastendata. Met jouw goedkeuring zet Get-Filly automatisch campagnes live, zodat je meer reserveringen krijgt.</p>
 
           <div className="hero-diffs">
-            <div className="hero-diff">
+            <div className="hero-diff fade-up d1">
               <div className="hero-diff-num">01</div>
               <h3 className="hero-diff-title">AI d&oacute;et het werk. Jij keurt goed.</h3>
               <p className="hero-diff-desc">Van het herkennen van rustige momenten tot het opzetten van complete campagnes: Get-Filly automatiseert het hele proces voor meer gasten en omzet.</p>
             </div>
-            <div className="hero-diff">
+            <div className="hero-diff fade-up d2">
               <div className="hero-diff-num">02</div>
               <h3 className="hero-diff-title">Geen marketingkennis nodig.</h3>
               <p className="hero-diff-desc">Get-Filly doet het werk van een marketingbureau, maar dan automatisch, sneller en volledig gebaseerd op jouw data.</p>
             </div>
-            <div className="hero-diff">
+            <div className="hero-diff fade-up d3">
               <div className="hero-diff-num">03</div>
               <h3 className="hero-diff-title">Plakt op wat je al hebt.</h3>
               <p className="hero-diff-desc">Je reserveringsplatform, POS en socials houd je. Filly integreert in een paar klikken, geen overstap maar je partner.</p>
             </div>
-            <div className="hero-diff">
+            <div className="hero-diff fade-up d4">
               <div className="hero-diff-num">04</div>
               <h3 className="hero-diff-title">Meet wat &eacute;cht werkt.</h3>
               <p className="hero-diff-desc">Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel reserveringen, gasten en omzet elke campagne daadwerkelijk oplevert.</p>
