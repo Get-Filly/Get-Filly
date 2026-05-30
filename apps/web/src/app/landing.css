@@ -29,10 +29,6 @@
 section { padding: 112px 24px; scroll-margin-top: 100px; }
 .container { max-width: 1100px; margin: 0 auto; }
 
-.section-label {
-  font-size: 13px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 1.4px; color: var(--accent); margin-bottom: 18px;
-}
 .section-title {
   font-size: 54px; font-weight: 700; letter-spacing: -2px;
   line-height: 1.05; max-width: 820px;
@@ -549,7 +545,11 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   grid-template-columns: 1fr 1fr;
   gap: 56px;
   align-items: center;
-  min-height: 420px;
+  /* Uniforme hoogte zodat alle walkthrough-stappen gelijk zijn. 500px
+     dekt de hoogste kaart (Instagram, met de foto op 1.91:1); de overige
+     mocks zijn lager en worden verticaal gecentreerd. Op mobiel losgelaten
+     (zie media-query) want daar stapelt alles onder elkaar. */
+  min-height: 500px;
   box-shadow:
     0 1px 2px rgba(24,24,27,0.04),
     0 30px 80px -20px rgba(31,74,45,0.20);
@@ -557,6 +557,38 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .feature-row--reverse .feature-row-text { order: 2; }
 .feature-row--reverse .feature-row-visual { order: 1; }
+
+/* ===== SCROLL-REVEAL (zie components/scroll-reveal.tsx) =====
+   Elk [data-reveal]-item schuift omhoog + faded in zodra het in beeld
+   scrollt; een genummerd bolletje erin popt mee. .reveal-pending wordt
+   client-side gezet, dus zonder JS / reduced-motion blijft alles staan. */
+[data-reveal].reveal-pending {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .55s ease, transform .55s ease;
+}
+[data-reveal].reveal-pending.reveal-shown {
+  opacity: 1;
+  transform: none;
+}
+/* Bolletje-pop: het genummerde element binnen een onthuld item schaalt op
+   met een lichte overshoot, kort ná de item-fade. */
+[data-reveal].reveal-pending .hero-diff-num,
+[data-reveal].reveal-pending .walk-step,
+[data-reveal].reveal-pending .feature-eyebrow--pill {
+  opacity: 0;
+  transform: scale(0.5);
+  transform-origin: left center;
+}
+[data-reveal].reveal-pending.reveal-shown .hero-diff-num,
+[data-reveal].reveal-pending.reveal-shown .walk-step,
+[data-reveal].reveal-pending.reveal-shown .feature-eyebrow--pill {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    transform .45s cubic-bezier(0.34, 1.56, 0.64, 1) .12s,
+    opacity .3s ease .12s;
+}
 
 /* Per 2026-05-13: split-variant voor pijler 1 (Vindbaarheid).
    Geen unified card-achtergrond meer; tekst en visual krijgen elk
@@ -1778,7 +1810,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   letter-spacing: -0.2px;
 }
 .pmock-result-stats {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
   padding: 16px;
   background: var(--bg);
   border-radius: 12px;
@@ -1874,7 +1906,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    deal-tekst eronder uitgelijnd zoals een echte campagne-visual. */
 .pmock-ig-photo {
   position: relative;
-  aspect-ratio: 4 / 3;
+  /* Landschap 1.91:1 = de standaard Instagram-landscape-verhouding;
+     realistisch voor een terras-foto én houdt de IG-kaart laag genoeg om
+     met de andere walkthrough-stappen op één uniforme hoogte te komen. */
+  aspect-ratio: 1.91 / 1;
   display: flex; align-items: flex-end;
   padding: 16px;
   background:
@@ -2650,7 +2685,6 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   position: relative;
   z-index: 4;
 }
-.cta-section .section-label { color: rgba(255,255,255,0.5); }
 .cta-section .section-title { color: var(--true-white); margin: 0 auto; }
 .cta-section .section-subtitle { color: rgba(255,255,255,0.7); margin: 16px auto 0; }
 .cta-btn {
@@ -2674,7 +2708,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 880px) {
-  .feature-row { grid-template-columns: 1fr; padding: 32px; gap: 32px; }
+  .feature-row { grid-template-columns: 1fr; padding: 32px; gap: 32px; min-height: auto; }
   .feature-row--reverse .feature-row-text { order: 1; }
   .feature-row--reverse .feature-row-visual { order: 2; }
   .feature-row-title { font-size: 26px; }

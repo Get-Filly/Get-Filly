@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 // =============================================================================
 // PRODUCT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → ProductPage.
@@ -18,7 +19,6 @@ export default function ProductPage() {
     <>
       <section className="product-hero">
         <div className="container">
-          <p className="section-label">Oplossing</p>
           <h1 className="section-title">Jouw AI-assistent voor de horeca.</h1>
           <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie en selecteert de juiste doelgroep uit bestaande gastendata. Met jouw goedkeuring zet Get-Filly automatisch campagnes live, zodat je meer reserveringen krijgt.</p>
 
@@ -49,14 +49,15 @@ export default function ProductPage() {
 
       <section className="product-walkthrough">
         <div className="container">
-          <p className="section-label">Hoe het werkt</p>
           <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly, van lege stoelen naar een volle onderneming.</h2>
           <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg &eacute;&eacute;n campagneproces van begin tot eind. Drie minuten werk op maandag, twaalf extra reserveringen op donderdag.</p>
 
           <div className="features-stack" style={{ marginTop: 56 }}>
+            {/* Scroll-reveal: laat de items één voor één oppoppen. */}
+            <ScrollReveal />
 
             {/* STAP 1, Filly ziet de dip */}
-            <div className="feature-row">
+            <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
@@ -108,7 +109,7 @@ export default function ProductPage() {
             </div>
 
             {/* STAP 2, Filly stelt drie kanalen voor */}
-            <div className="feature-row feature-row--reverse">
+            <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
@@ -181,7 +182,7 @@ export default function ProductPage() {
             </div>
 
             {/* STAP 3, Eén klik */}
-            <div className="feature-row">
+            <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
@@ -231,7 +232,7 @@ export default function ProductPage() {
             </div>
 
             {/* STAP 4, Instagram-post live, Filly plaatst en jij ziet 'm terug */}
-            <div className="feature-row feature-row--reverse">
+            <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
@@ -278,14 +279,14 @@ export default function ProductPage() {
                     </svg>
                   </div>
                   <div className="pmock-ig-likes">128 vind-ik-leuks</div>
-                  <div className="pmock-ig-caption"><strong>bistrogetfilly</strong> Nog een paar tafels vrij vanavond. Drie gangen voor &euro;24,50, reserveer via de link in bio. #donderdagdeal</div>
+                  <div className="pmock-ig-caption"><strong>bistrogetfilly</strong> Nog een paar tafels vrij vanavond. Drie gangen voor &euro;24,50. #donderdagdeal</div>
                   <div className="pmock-ig-time">2 uur geleden</div>
                 </div>
               </div>
             </div>
 
             {/* STAP 5, Resultaat */}
-            <div className="feature-row">
+            <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
@@ -294,7 +295,7 @@ export default function ProductPage() {
                   </div>
                   <p className="feature-eyebrow">Zondag &middot; 23:00</p>
                 </div>
-                <h3 className="feature-row-title">Resultaat: 12 extra reserveringen, &euro;540 omzet.</h3>
+                <h3 className="feature-row-title">Resultaat: 12 extra reserveringen op een rustige donderdag.</h3>
                 <p className="feature-row-desc">Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat ze volgende keer anders zou doen. Geen dashboards uitpluizen, gewoon &eacute;&eacute;n bericht.</p>
               </div>
               <div className="feature-row-visual">
@@ -307,10 +308,6 @@ export default function ProductPage() {
                     <div className="pmock-result-stat">
                       <div className="pmock-result-stat-num">+12</div>
                       <div className="pmock-result-stat-label">extra reserveringen</div>
-                    </div>
-                    <div className="pmock-result-stat">
-                      <div className="pmock-result-stat-num">&euro;540</div>
-                      <div className="pmock-result-stat-label">extra omzet</div>
                     </div>
                     <div className="pmock-result-stat">
                       <div className="pmock-result-stat-num">84%</div>
@@ -349,11 +346,10 @@ export default function ProductPage() {
 
       <section className="product-features">
         <div className="container">
-          <p className="section-label">Alle functies</p>
           <h2 className="section-title">Wat zit er in.</h2>
           <div className="product-features-list">
             {features.map((f, i) => (
-              <div key={f.title} className="hero-diff">
+              <div key={f.title} className="hero-diff" data-reveal>
                 <div className="hero-diff-num">{String(i + 1).padStart(2, "0")}</div>
                 <h3 className="hero-diff-title">{f.title}</h3>
                 <p className="hero-diff-desc">{f.desc}</p>

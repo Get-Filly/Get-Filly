@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { VindbaarheidVisualizer } from "../components/vindbaarheid-visualizer";
 import { ZichtbaarheidVisualizer } from "../components/zichtbaarheid-visualizer";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 // =============================================================================
 // HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
@@ -193,6 +194,8 @@ export default function HomePage() {
               Maps listing voor Vindbaarheid). */}
           <h2 className="section-title">Meer gasten.<br />Volle tafels. Automatisch.</h2>
           <div className="features-stack">
+            {/* Scroll-reveal: laat de pijlers één voor één oppoppen. */}
+            <ScrollReveal />
             {/* Pijler 1 — Vindbaarheid (Google/SEO/AI-zoekmachines).
                 Visual: Get-Filly-platform-mind-map (integraties met
                 Google Business, Tripadvisor, TheFork, OpenTable,
@@ -200,7 +203,7 @@ export default function HomePage() {
                 op verzoek van Floris vervangt deze de oude
                 Instagram-mockup. */}
             <div className="feature-row feature-row--split">
-              <div className="feature-row-text feature-row-text--card">
+              <div className="feature-row-text feature-row-text--card" data-reveal>
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">01</span>
                   <span>Vindbaarheid</span>
@@ -233,7 +236,7 @@ export default function HomePage() {
                 cards die sequentieel popen + groene content-
                 pulsen vanaf Filly. */}
             <div className="feature-row feature-row--reverse feature-row--split">
-              <div className="feature-row-text feature-row-text--card">
+              <div className="feature-row-text feature-row-text--card" data-reveal>
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">02</span>
                   <span>Zichtbaarheid</span>
@@ -260,7 +263,7 @@ export default function HomePage() {
                 hetzelfde --split-patroon als pijler 1 + 2 zodat
                 alle 3 pijlers visueel consistent zijn. */}
             <div className="feature-row feature-row--split">
-              <div className="feature-row-text feature-row-text--card">
+              <div className="feature-row-text feature-row-text--card" data-reveal>
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">03</span>
                   <span>Bereikbaarheid</span>

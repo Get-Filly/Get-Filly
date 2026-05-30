@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { COMPANY } from "@/config/company";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 const missionPillars = [
   { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en gasten." },
@@ -13,17 +14,16 @@ const missionPillars = [
 export default function AboutPage() {
   return (
     <>
+      {/* Scroll-reveal: laat de items één voor één oppoppen. */}
+      <ScrollReveal />
       <section className="about-intro">
         <div className="container">
-          <p className="section-label">Over ons</p>
           <h1 className="section-title">Van idee naar impact.</h1>
           <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
             Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen hun rustige momenten om te zetten in omzet, zonder dat je er uren of grote bedragen aan marketing en website-optimalisatie kwijt bent.
           </p>
 
           <div className="about-intro-divider"></div>
-
-          <p className="section-label" style={{ marginTop: 0 }}>Missie</p>
           <h2 className="section-title" style={{ maxWidth: 720 }}>Wat ons drijft.</h2>
 
           {/* Hergebruikt dezelfde "hero-diff"-stijl als op de product- en
@@ -31,7 +31,7 @@ export default function AboutPage() {
               scheidingslijn bovenaan, geen card-achtergrond. */}
           <div className="product-features-list">
             {missionPillars.map((p, i) => (
-              <div key={p.title} className="hero-diff">
+              <div key={p.title} className="hero-diff" data-reveal>
                 <div className="hero-diff-num">{String(i + 1).padStart(2, "0")}</div>
                 <h3 className="hero-diff-title">{p.title}</h3>
                 <p className="hero-diff-desc">{p.desc}</p>
@@ -43,12 +43,11 @@ export default function AboutPage() {
 
       <section className="about-journey">
         <div className="container">
-          <p className="section-label">Onze journey</p>
           <h2 className="section-title">Waar we staan.</h2>
 
           <ol className="zig-timeline">
             <li className="zig-item zig-left active">
-              <div className="zig-card">
+              <div className="zig-card" data-reveal>
                 <div className="zig-card-badge">Nu</div>
                 <h3 className="zig-card-title">Hoofdstuk 1, Founded</h3>
                 <ul className="zig-card-list">
@@ -62,7 +61,7 @@ export default function AboutPage() {
 
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2027</span></div>
-              <div className="zig-card">
+              <div className="zig-card" data-reveal>
                 <h3 className="zig-card-title">Hoofdstuk 2, Eerste 100 klanten</h3>
                 <ul className="zig-card-list">
                   <li>Filly nationaal uitrollen in heel Nederland</li>
@@ -71,7 +70,7 @@ export default function AboutPage() {
             </li>
 
             <li className="zig-item zig-left">
-              <div className="zig-card">
+              <div className="zig-card" data-reveal>
                 <h3 className="zig-card-title">Hoofdstuk 3, Internationale uitrol</h3>
                 <ul className="zig-card-list">
                   <li>Eerst BeNeLux, daarna DACH-regio</li>
@@ -83,7 +82,7 @@ export default function AboutPage() {
 
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2029</span></div>
-              <div className="zig-card">
+              <div className="zig-card" data-reveal>
                 <h3 className="zig-card-title">Hoofdstuk 4</h3>
                 <ul className="zig-card-list">
                   <li>Wordt vervolgd&hellip;</li>
