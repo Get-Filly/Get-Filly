@@ -95,9 +95,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   padding: 11px 22px; background: var(--white); color: var(--text);
   border: 1px solid var(--border); border-radius: var(--radius-full);
   font-size: 14px; font-weight: 500; cursor: pointer;
-  transition: border-color .15s, background .15s;
+  transition: border-color .15s, background .15s, color .15s;
 }
-.btn-secondary:hover { background: var(--surface); border-color: var(--text-light); }
+.btn-secondary:hover {
+  background: var(--accent-light); border-color: var(--accent);
+  color: var(--accent);
+}
 
 /* ===== MacBook hero mockup =====
    Echte MacBook-vorm: bovenkant (lid) met dunne bezel + camera notch,

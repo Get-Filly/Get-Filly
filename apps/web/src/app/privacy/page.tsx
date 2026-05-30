@@ -435,21 +435,49 @@ export default function PrivacyPage() {
             <li>locatiegegevens</li>
             <li>prestatie- en zichtbaarheidsgegevens, voor zover beschikbaar via de betreffende API</li>
           </ul>
-          <p>Wij gebruiken Google Business Profile-gegevens uitsluitend voor:</p>
-          <ul>
-            <li>het berekenen van Health Scores</li>
-            <li>het genereren van benchmarkrapportages</li>
-            <li>het analyseren van online zichtbaarheid en vindbaarheid</li>
-            <li>het tonen van verbeteradviezen</li>
-            <li>het inzichtelijk maken van trends en historische ontwikkelingen</li>
-            <li>het voorbereiden van optimalisatievoorstellen voor het bedrijfsprofiel</li>
-          </ul>
           <p>
-            Wij verkopen Google-gegevens niet aan derden. Wij gebruiken
-            Google-gegevens niet voor advertentiedoeleinden van derden.
+            Wij gebruiken Google Business Profile-gegevens uitsluitend
+            voor het leveren, beheren en verbeteren van de
+            functionaliteiten van Get-Filly waarvoor jij toestemming hebt
+            gegeven. Dit kan onder meer bestaan uit:
+          </p>
+          <ul>
+            <li>het berekenen van Health Scores, Potentie Scores en benchmarkrapportages;</li>
+            <li>het analyseren van online zichtbaarheid, vindbaarheid, reviews, ratings, foto&apos;s, bedrijfsinformatie en profielactiviteit;</li>
+            <li>het tonen van verbeteradviezen en optimalisatievoorstellen;</li>
+            <li>het inzichtelijk maken van trends, historische ontwikkelingen en prestaties van jouw Google Business Profile;</li>
+            <li>het voorbereiden en uitvoeren van optimalisaties aan jouw Google Business Profile, voor zover jij daarvoor expliciet toestemming geeft;</li>
+            <li>het beantwoorden van reviews, handmatig of automatisch, indien deze functionaliteit door jou is geactiveerd;</li>
+            <li>het opstellen, plannen of publiceren van Google Posts, aanbiedingen, updates of andere bedrijfscommunicatie, indien deze functionaliteit door jou is geactiveerd;</li>
+            <li>het aanvullen, corrigeren of uniformeren van bedrijfsgegevens, zoals bedrijfsnaam, categorieën, openingstijden, contactgegevens, website, menu-informatie, diensten, attributen en beschrijvingen;</li>
+            <li>het toevoegen, beheren of optimaliseren van foto&apos;s, menu-informatie, producten, diensten of andere profielonderdelen;</li>
+            <li>het signaleren van ontbrekende, inconsistente of verouderde informatie in jouw bedrijfsprofiel;</li>
+            <li>het monitoren van nieuwe reviews, wijzigingen, prestaties en andere relevante gebeurtenissen binnen jouw Google Business Profile;</li>
+            <li>het vergelijken van jouw prestaties met vergelijkbare ondernemingen, voor zover dit gebeurt op basis van toegestane, geaggregeerde of rechtmatig verkregen gegevens.</li>
+          </ul>
+          <p>Wij verkopen Google-gegevens niet aan derden.</p>
+          <p>Wij gebruiken Google-gegevens niet voor advertentiedoeleinden van derden.</p>
+          <p>Wij gebruiken Google-gegevens niet voor het trainen van publieke AI-modellen.</p>
+          <p>Wij delen Google-gegevens niet met advertentienetwerken of databrokers.</p>
+          <p>
             Wij wijzigen geen gegevens binnen jouw Google Business Profile
-            zonder een expliciete handeling, goedkeuring of opdracht
-            vanuit jou als gebruiker.
+            zonder een expliciete handeling, goedkeuring, instelling of
+            opdracht vanuit jou als gebruiker.
+          </p>
+          <p>
+            Voor functionaliteiten waarbij Get-Filly automatisch
+            handelingen kan uitvoeren, zoals het beantwoorden van reviews,
+            het publiceren van posts of het aanpassen van profielgegevens,
+            geldt dat deze alleen worden uitgevoerd wanneer jij deze
+            functionaliteit bewust activeert of daarvoor vooraf toestemming
+            geeft.
+          </p>
+          <p>
+            Je kunt een gekoppeld Google Business Profile op ieder moment
+            ontkoppelen via het Get-Filly-dashboard of via jouw
+            Google-account. Na ontkoppeling halen wij geen nieuwe gegevens
+            meer op via die koppeling en worden gekoppelde tokens
+            ingetrokken of verwijderd volgens ons bewaarbeleid.
           </p>
 
           <h3>6.1 Google API Services User Data Policy</h3>
@@ -510,55 +538,76 @@ export default function PrivacyPage() {
           <p>
             Wanneer je ervoor kiest om jouw Meta-, Facebook- of
             Instagram-account te koppelen aan Get-Filly, verkrijgen wij
-            uitsluitend toegang tot gegevens waarvoor jij toestemming hebt
-            gegeven via de officiële Meta API&apos;s. Afhankelijk van de
-            gekoppelde integratie kunnen wij onder meer toegang krijgen
-            tot:
+            uitsluitend toegang tot gegevens en functionaliteiten waarvoor
+            jij toestemming hebt gegeven via de officiële Meta API&apos;s.
+          </p>
+          <p>
+            Afhankelijk van de gekoppelde integratie kunnen wij onder meer
+            toegang krijgen tot:
           </p>
           <ul>
-            <li>accountnaam en profielinformatie</li>
-            <li>bedrijfsinformatie van gekoppelde Facebook- of Instagram-pagina&apos;s</li>
-            <li>openbare berichten</li>
-            <li>foto&apos;s en video&apos;s</li>
-            <li>volgers- en bereikstatistieken</li>
-            <li>engagementgegevens, zoals reacties, likes en shares</li>
-            <li>statistieken en inzichten die via de Meta API&apos;s beschikbaar zijn</li>
-            <li>gekoppelde pagina&apos;s of bedrijfsassets waarvoor jij beheerrechten hebt</li>
-          </ul>
-          <p>Wij gebruiken deze gegevens uitsluitend om:</p>
-          <ul>
-            <li>Health Scores te berekenen</li>
-            <li>socialmediaprestaties inzichtelijk te maken</li>
-            <li>benchmarkrapportages te genereren</li>
-            <li>marketinginzichten en aanbevelingen te tonen</li>
-            <li>online zichtbaarheid en contentactiviteit te analyseren</li>
-            <li>campagnes en groeikansen te beoordelen</li>
+            <li>accountnaam en profielinformatie;</li>
+            <li>bedrijfsinformatie van gekoppelde Facebook- of Instagram-pagina&apos;s;</li>
+            <li>gekoppelde pagina&apos;s, Instagram Business-accounts en bedrijfsassets waarvoor jij beheerrechten hebt;</li>
+            <li>openbare berichten, posts, stories, reels, foto&apos;s en video&apos;s;</li>
+            <li>concepten, geplande content of gepubliceerde content, voor zover beschikbaar via de betreffende API;</li>
+            <li>reacties, opmerkingen, likes, shares en andere engagementgegevens;</li>
+            <li>volgers-, bereik- en prestatiestatistieken;</li>
+            <li>campagne-, content- en doelgroepinzichten, voor zover beschikbaar via de betreffende API;</li>
+            <li>berichten, reacties of andere interacties, indien jij daarvoor expliciet toestemming geeft en deze functionaliteit door Get-Filly wordt ondersteund;</li>
+            <li>technische metadata die nodig is om de koppeling veilig en correct te laten werken.</li>
           </ul>
           <p>
-            Wij verkopen Meta-, Facebook- of Instagram-gegevens niet aan
-            derden. Wij gebruiken deze gegevens niet voor
-            advertentiedoeleinden van derden. Wij publiceren, wijzigen of
+            Wij gebruiken deze gegevens en functionaliteiten uitsluitend
+            voor het leveren, beheren en verbeteren van de
+            Get-Filly-functionaliteiten waarvoor jij toestemming hebt
+            gegeven. Dit kan onder meer bestaan uit:
+          </p>
+          <ul>
+            <li>het berekenen van Health Scores, Potentie Scores en benchmarkrapportages;</li>
+            <li>het inzichtelijk maken van socialmediaprestaties, bereik, engagement, contentactiviteit en groeikansen;</li>
+            <li>het analyseren van online zichtbaarheid, contentkwaliteit, postfrequentie en doelgroepinteractie;</li>
+            <li>het tonen van marketinginzichten, verbeteradviezen en optimalisatievoorstellen;</li>
+            <li>het voorbereiden, genereren en verbeteren van socialmedia-content met behulp van AI;</li>
+            <li>het opstellen, plannen en publiceren van Facebook- en Instagram-posts, stories, reels, updates of andere content namens jouw onderneming, indien jij deze functionaliteit activeert;</li>
+            <li>het aanpassen, aanvullen of verwijderen van concepten, geplande posts of content, uitsluitend wanneer jij daarvoor opdracht geeft;</li>
+            <li>het beantwoorden, modereren of beheren van reacties of interacties, indien jij deze functionaliteit activeert;</li>
+            <li>het monitoren van prestaties van gepubliceerde content;</li>
+            <li>het vergelijken van jouw socialmediaprestaties met vergelijkbare ondernemingen, voor zover dit gebeurt op basis van toegestane, geaggregeerde of rechtmatig verkregen gegevens;</li>
+            <li>het signaleren van ontbrekende, inconsistente of verouderde informatie op gekoppelde Facebook- of Instagram-profielen.</li>
+          </ul>
+          <p>Wij verkopen Meta-, Facebook- of Instagram-gegevens niet aan derden.</p>
+          <p>Wij gebruiken deze gegevens niet voor advertentiedoeleinden van derden.</p>
+          <p>Wij gebruiken deze gegevens niet voor het trainen van publieke AI-modellen.</p>
+          <p>Wij delen deze gegevens niet met advertentienetwerken of databrokers.</p>
+          <p>
+            Wij publiceren, wijzigen, plannen, beantwoorden, modereren of
             verwijderen geen content op jouw Meta-, Facebook- of
-            Instagram-account zonder expliciete handeling of opdracht van
-            jou als gebruiker.
+            Instagram-account zonder een expliciete handeling, goedkeuring,
+            instelling of opdracht vanuit jou als gebruiker.
           </p>
-
-          <h3>7.1 Social content-analyse</h3>
           <p>
-            Wanneer een gebruiker een socialmedia-account koppelt, kunnen
-            openbare berichten, foto&apos;s, video&apos;s en bijbehorende
-            prestatiegegevens automatisch worden geanalyseerd om
-            marketinginzichten, aanbevelingen en prestatierapportages te
-            genereren. Deze analyses zijn uitsluitend bedoeld als
-            ondersteuning voor de ondernemer.
+            Voor functionaliteiten waarbij Get-Filly automatisch
+            handelingen kan uitvoeren, zoals het publiceren van vooraf
+            goedgekeurde posts, het plannen van content of het beantwoorden
+            van reacties, geldt dat deze alleen worden uitgevoerd wanneer
+            jij deze functionaliteit bewust activeert of daarvoor vooraf
+            toestemming geeft.
           </p>
-
-          <h3>7.2 Meta-toegang intrekken en gegevens verwijderen</h3>
+          <p>
+            Wanneer content via Get-Filly op Facebook, Instagram of andere
+            Meta-platformen wordt gepubliceerd, gebeurt dit namens de
+            gekoppelde onderneming of het gekoppelde account van de klant.
+            De klant blijft verantwoordelijk voor de inhoud, juistheid,
+            timing, rechtmatigheid en gevolgen van gepubliceerde content.
+          </p>
           <p>
             Je kunt een gekoppelde Meta-, Facebook- of Instagram-integratie
-            op ieder moment verwijderen via de instellingen van jouw
-            Get-Filly-account. Daarnaast kun je de toegang intrekken via de
-            instellingen van jouw Facebook-, Instagram- of Meta-account.
+            op ieder moment verwijderen via het Get-Filly-dashboard of via
+            de instellingen van jouw Meta-, Facebook- of Instagram-account.
+            Na ontkoppeling halen wij geen nieuwe gegevens meer op via die
+            koppeling en worden gekoppelde tokens ingetrokken of verwijderd
+            volgens ons bewaarbeleid.
           </p>
           <p>
             Wanneer Meta een verzoek tot gegevensverwijdering aan
