@@ -71,6 +71,15 @@ const faqs = [
   { q: "Hoe veilig zijn mijn gegevens?", a: "Alle gegevens gaan versleuteld over de lijn via TLS en we nemen passende technische en organisatorische maatregelen volgens de AVG. Werken we met een leverancier buiten de EU, bijvoorbeeld voor AI, dan leggen we daarvoor de wettelijk vereiste waarborgen vast." },
 ];
 
+// =============================================================================
+// TIJDELIJK — prijzen + pakketten verbergen bij livegang.
+// We willen de pakketten bij de lancering nog niet publiek tonen, dus
+// leggen we er een blur overheen. Eén schakelaar: zet HIDE_PRICING op
+// `false` (of verwijder deze constante + het gebruik verderop) en de
+// pakketten zijn weer gewoon zichtbaar. Verder is er niets aan te passen.
+// =============================================================================
+const HIDE_PRICING = true;
+
 export default function PricingPage() {
   return (
     <>
@@ -85,22 +94,67 @@ export default function PricingPage() {
           <h1 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Kies het pakket dat bij jouw restaurant past.</h1>
           <p className="section-subtitle" style={{ maxWidth: 640, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>Geen verborgen kosten. Geen lange contracten. Gewoon meer gasten aan tafel.</p>
 
-          <div className="pricing-grid pricing-grid--two">
-            {plans.map((p) => (
-              <div key={p.name} className={`pricing-card ${p.popular ? "popular" : ""}`} style={{ backgroundColor: "rgb(250, 247, 241)" }}>
-                {p.popular && <div className="popular-badge">Meest gekozen</div>}
-                <div className="pricing-name">{p.name}</div>
-                <div className="pricing-tagline">{p.tagline}</div>
-                <div className="pricing-desc">{p.desc}</div>
-                <div className="pricing-price">{p.price}<span>/maand</span></div>
-                <ul className="pricing-features">
-                  {p.features.map((f) => (
-                    <li key={f.text} className={f.disabled ? "disabled" : ""}>{f.text}</li>
-                  ))}
-                </ul>
-                <button className="pricing-btn">{p.ctaText}</button>
+          {/* position:relative is de anker voor de "binnenkort"-overlay
+              die we tonen zolang HIDE_PRICING aanstaat. */}
+          <div style={{ position: "relative" }}>
+            <div
+              className="pricing-grid pricing-grid--two"
+              // TIJDELIJK geblurd bij livegang — zie HIDE_PRICING bovenaan.
+              // pointer-events/user-select uit zodat de pakketten ook niet
+              // klikbaar of te selecteren zijn terwijl ze verborgen zijn.
+              style={
+                HIDE_PRICING
+                  ? { filter: "blur(10px)", userSelect: "none", pointerEvents: "none" }
+                  : undefined
+              }
+              aria-hidden={HIDE_PRICING || undefined}
+            >
+              {plans.map((p) => (
+                <div key={p.name} className={`pricing-card ${p.popular ? "popular" : ""}`} style={{ backgroundColor: "rgb(250, 247, 241)" }}>
+                  {p.popular && <div className="popular-badge">Meest gekozen</div>}
+                  <div className="pricing-name">{p.name}</div>
+                  <div className="pricing-tagline">{p.tagline}</div>
+                  <div className="pricing-desc">{p.desc}</div>
+                  <div className="pricing-price">{p.price}<span>/maand</span></div>
+                  <ul className="pricing-features">
+                    {p.features.map((f) => (
+                      <li key={f.text} className={f.disabled ? "disabled" : ""}>{f.text}</li>
+                    ))}
+                  </ul>
+                  <button className="pricing-btn">{p.ctaText}</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Overlay-label over de geblurde pakketten, zodat de blur als
+                bewuste keuze leest en niet als renderfout. Verdwijnt mee
+                zodra HIDE_PRICING op false gaat. */}
+            {HIDE_PRICING && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <span
+                  style={{
+                    background: "var(--brand, #1F4A2D)",
+                    color: "#FFFFFF",
+                    padding: "10px 20px",
+                    borderRadius: "999px",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+                  }}
+                >
+                  Prijzen binnenkort beschikbaar
+                </span>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Afsluitend CTA-blok onder de pakketten. Compactere
