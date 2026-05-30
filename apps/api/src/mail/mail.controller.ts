@@ -85,4 +85,35 @@ export class MailController {
     const result = await this.mail.unsubscribeByToken(token);
     return { ok: true, restaurantName: result.restaurantName };
   }
+
+  // ============================================================
+  // Contact / demo-aanvraag vanaf de publieke site
+  // ============================================================
+  // Het contactformulier op /contact POST hierheen, geen auth: dit is
+  // een lead vóór er een account bestaat. De service valideert alle
+  // velden serverside, filtert bots via de honeypot en mailt de
+  // aanvraag naar info@get-filly.com (reply-to = de bezoeker).
+  @Public()
+  @Post('public/contact')
+  async contact(
+    @Body()
+    body: {
+      name?: string;
+      restaurant?: string;
+      email?: string;
+      phone?: string;
+      message?: string;
+      honeypot?: string;
+    },
+  ): Promise<{ ok: true }> {
+    await this.mail.sendContactRequest({
+      name: body.name ?? '',
+      restaurant: body.restaurant ?? '',
+      email: body.email ?? '',
+      phone: body.phone,
+      message: body.message ?? '',
+      honeypot: body.honeypot,
+    });
+    return { ok: true };
+  }
 }

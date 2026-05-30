@@ -718,6 +718,119 @@ export class MailService {
 </body>
 </html>`;
   }
+
+  // ============================================================
+  // CONTACT / DEMO-AANVRAAG vanaf de publieke site
+  // ============================================================
+  // Het publieke contactformulier (/contact) POST hierheen. We sturen
+  // de aanvraag als nette mail naar het Get Filly-team (info@) met het
+  // adres van de bezoeker als reply-to, zodat het team direct kan
+  // antwoorden. Géén tenant/RLS-context: dit is een lead vóór er een
+  // account bestaat, dus geen user-scoped client.
+  //
+  // From staat op een geverifieerd get-filly.com-adres (anders weigert
+  // Resend de mail). honeypot = anti-spam: een verborgen veld dat een
+  // echte gebruiker nooit invult; is het gevuld, dan is 't een bot en
+  // doen we alsof het gelukt is zonder te versturen.
+  async sendContactRequest(input: {
+    name: string;
+    restaurant: string;
+    email: string;
+    phone?: string;
+    message: string;
+    honeypot?: string;
+  }): Promise<void> {
+    // Bot gedetecteerd via honeypot → stilletjes slikken (geen mail,
+    // geen foutmelding, zodat de bot niet leert dat 't geblokkeerd is).
+    if (input.honeypot && input.honeypot.trim().length > 0) {
+      this.logger.warn('Contactformulier honeypot gevuld, mail overgeslagen.');
+      return;
+    }
+
+    // Serverside-validatie, vertrouw nooit puur op de frontend.
+    const name = input.name?.trim();
+    const restaurant = input.restaurant?.trim();
+    const email = input.email?.trim();
+    const phone = input.phone?.trim();
+    const message = input.message?.trim();
+
+    if (!name || !restaurant || !email || !message) {
+      throw new BadRequestException(
+        'Vul je naam, restaurant, e-mailadres en bericht in.',
+      );
+    }
+    if (!isValidEmail(email)) {
+      throw new BadRequestException('Vul een geldig e-mailadres in.');
+    }
+    // Lengte-grenzen tegen misbruik en overgrote payloads.
+    if (name.length > 120 || restaurant.length > 160 || message.length > 4000) {
+      throw new BadRequestException('Een of meer velden zijn te lang.');
+    }
+
+    const to = 'info@get-filly.com';
+    const subject = `Nieuwe demo-aanvraag, ${restaurant}`;
+
+    // Nette HTML met de ingevulde velden + plain-text fallback.
+    const rows: Array<[string, string]> = [
+      ['Naam', name],
+      ['Restaurant', restaurant],
+      ['E-mail', email],
+      ['Telefoon', phone || '—'],
+    ];
+    const tableHtml = rows
+      .map(
+        ([label, value]) =>
+          `<tr><td style="padding:4px 16px 4px 0;color:#6B6F71;white-space:nowrap;">${escapeHtml(label)}</td><td style="padding:4px 0;"><strong>${escapeHtml(value)}</strong></td></tr>`,
+      )
+      .join('');
+    const html = `<!DOCTYPE html>
+<html lang="nl"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a;background:#FAF7F1;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 24px;background:#fff;">
+    <h2 style="margin:0 0 16px;">Nieuwe demo-aanvraag</h2>
+    <table style="border-collapse:collapse;font-size:14px;">${tableHtml}</table>
+    <p style="margin:20px 0 4px;color:#6B6F71;font-size:14px;">Bericht:</p>
+    <div style="font-size:14px;line-height:1.6;">${plainToHtml(message)}</div>
+  </div>
+</body></html>`;
+
+    const text = [
+      'Nieuwe demo-aanvraag',
+      '',
+      `Naam: ${name}`,
+      `Restaurant: ${restaurant}`,
+      `E-mail: ${email}`,
+      `Telefoon: ${phone || '—'}`,
+      '',
+      'Bericht:',
+      message,
+    ].join('\n');
+
+    try {
+      const { error } = await this.resend.emails.send({
+        from: `Get Filly Website <${DEFAULT_FROM_ADDRESS}>`,
+        to,
+        replyTo: email,
+        subject,
+        html,
+        text,
+      });
+      if (error) {
+        this.logger.error(
+          `Contact-mail versturen mislukt: ${error.message}`,
+        );
+        throw new InternalServerErrorException(
+          'Versturen mislukt. Probeer het later opnieuw of mail ons direct.',
+        );
+      }
+    } catch (e) {
+      if (e instanceof InternalServerErrorException) throw e;
+      this.logger.error(`Contact-mail onverwachte fout: ${String(e)}`);
+      throw new InternalServerErrorException(
+        'Versturen mislukt. Probeer het later opnieuw of mail ons direct.',
+      );
+    }
+  }
 }
 
 // Minimaal type voor Resend's webhook events. We gebruiken alleen

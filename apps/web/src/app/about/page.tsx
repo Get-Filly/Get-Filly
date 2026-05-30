@@ -95,12 +95,9 @@ export default function AboutPage() {
       </section>
 
       <section className="cta-section">
-        <div className="container">
-          <p className="section-label">Contact</p>
-          <h2 className="section-title">Laten we kennismaken.</h2>
-          <p className="section-subtitle">Vragen over Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
-          <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
-        </div>
+        <h2 className="section-title">Laten we kennismaken.</h2>
+        <p className="section-subtitle">Vragen over Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
+        <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
       </section>
     </>
   );

@@ -79,7 +79,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-size: 72px; letter-spacing: -3px; line-height: 1;
   margin: 0 auto; max-width: 880px; font-weight: 700;
 }
-.hero .section-subtitle { margin: 20px auto 0; max-width: 560px; font-size: 18px; }
+/* max-width verbreed van 560 → 680px zodat de langere hero-subtitel
+   netjes op 3 regels uitkomt i.p.v. 4. */
+.hero .section-subtitle { margin: 20px auto 0; max-width: 680px; font-size: 18px; }
 
 .hero-cta { display: inline-flex; gap: 10px; margin-top: 36px; }
 
@@ -91,9 +93,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
 
+/* Groen omlijnde 'outline'-tegenhanger van de massief-groene
+   .btn-primary: witte vulling + groene tekst + groene rand, en bij
+   hover/klik een lichtgroene vulling. Consistent met de cta-knoppen. */
 .btn-secondary {
-  padding: 11px 22px; background: var(--white); color: var(--text);
-  border: 1px solid var(--border); border-radius: var(--radius-full);
+  padding: 11px 22px; background: var(--true-white); color: var(--accent);
+  border: 1px solid var(--accent); border-radius: var(--radius-full);
   font-size: 14px; font-weight: 500; cursor: pointer;
   transition: border-color .15s, background .15s, color .15s;
 }
@@ -516,13 +521,6 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    wel boven liggen. */
 .features > * { position: relative; z-index: 1; }
 
-/* Testimonials-cluster binnen de samengevoegde features-section:
-   gecentreerde tekst (label + titel + logos + carrousel) met
-   ruime margin naar de pillars-CTA erboven. */
-.features-testimonials {
-  margin-top: 96px;
-  text-align: center;
-}
 .features::before {
   content: '';
   position: absolute;
@@ -1840,6 +1838,77 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .pmock-result-note .pmock-f-badge { margin-top: 1px; flex-shrink: 0; }
 
+/* ===== STAP 4, Live Instagram-post ===== */
+.pmock-ig {
+  width: 100%; max-width: 360px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(31,74,45,0.10);
+}
+.pmock-ig-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+}
+.pmock-ig-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--copper, #B97A3D));
+  color: var(--true-white);
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.pmock-ig-meta { flex: 1; min-width: 0; }
+.pmock-ig-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.pmock-ig-loc { font-size: 11px; color: var(--text-light); }
+.pmock-ig-live {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--accent);
+}
+.pmock-ig-live::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+}
+/* Beeld-placeholder: groene gradient i.p.v. echte foto, met de
+   deal-tekst eronder uitgelijnd zoals een echte campagne-visual. */
+.pmock-ig-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  display: flex; align-items: flex-end;
+  padding: 16px;
+  background:
+    radial-gradient(ellipse 120% 90% at 25% 15%, rgba(255,255,255,0.18), transparent 55%),
+    linear-gradient(150deg, var(--accent) 0%, var(--accent-dark) 100%);
+}
+.pmock-ig-photo-tag {
+  font-size: 15px; font-weight: 800; color: var(--true-white);
+  letter-spacing: -0.2px; line-height: 1.3;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.28);
+}
+.pmock-ig-actions {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px 6px;
+  color: var(--text);
+}
+.pmock-ig-actions svg { width: 22px; height: 22px; }
+.pmock-ig-heart { color: var(--accent); }
+.pmock-ig-actions-spacer { flex: 1; }
+.pmock-ig-likes {
+  padding: 0 14px;
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.pmock-ig-caption {
+  padding: 4px 14px 0;
+  font-size: 12.5px; line-height: 1.5; color: var(--text);
+}
+.pmock-ig-caption strong { font-weight: 700; }
+.pmock-ig-time {
+  padding: 8px 14px 14px;
+  font-size: 10.5px; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+
 .product-features {
   background: var(--bg);
   padding-top: 80px; padding-bottom: 112px;
@@ -1897,7 +1966,6 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== CARD OVERLAP ===== */
 .how-it-works,
-.social-proof,
 .product-walkthrough,
 .product-features,
 .pricing-faq,
@@ -1923,49 +1991,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .step-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.2px; }
 .step-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 300px; margin: 0 auto; }
 
-/* ===== SOCIAL PROOF ===== */
-.social-proof { background: var(--white); text-align: center; overflow: hidden; }
-/* Per 2026-05-13: kleinere padding-top dan de generieke card-overlap-
-   regel (96px) zodat de pillars-CTA binnen .social-proof dichter op
-   de pijler-rij eindigt. De gradient van .features::after vloeit dan
-   direct door in de .social-proof::before groene blobs — geen brede
-   witte zone meer ertussen. */
-.social-proof { padding-top: 40px; }
-.social-proof::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 700px 400px at 30% 25%, rgba(31,74,45,0.14), transparent 65%),
-    radial-gradient(ellipse 700px 400px at 70% 60%, rgba(31,74,45,0.12), transparent 65%),
-    radial-gradient(ellipse 600px 350px at 30% 90%, rgba(31,74,45,0.10), transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
-.social-proof > * { position: relative; z-index: 1; }
-.logos-row { display: flex; align-items: center; justify-content: center; gap: 48px; margin-top: 40px; flex-wrap: wrap; }
-.logo-placeholder { font-size: 17px; font-weight: 600; color: var(--border); letter-spacing: -0.3px; padding: 12px 0; }
-
-.testimonials-carousel {
-  margin-top: 56px; overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0, black 60px, black calc(100% - 60px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, black 60px, black calc(100% - 60px), transparent 100%);
-}
-.testimonials-track { display: flex; gap: 20px; width: max-content; animation: scroll-testimonials 60s linear infinite; }
-.testimonials-carousel:hover .testimonials-track { animation-play-state: paused; }
-@keyframes scroll-testimonials { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-.testimonial {
-  background: var(--true-white); border: 1px solid var(--border);
-  /* Per 2026-05-21: bumped van 16px naar 20px. */
-  border-radius: 20px; padding: 28px; text-align: left;
-  flex: 0 0 360px; box-shadow: 0 2px 12px rgba(31,74,45,0.04);
-}
-.testimonial-quote { font-size: 14px; line-height: 1.7; color: var(--text); }
-.testimonial-author { margin-top: 20px; display: flex; align-items: center; gap: 10px; }
-.testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--border); }
-.testimonial-name { font-size: 13px; font-weight: 600; }
-.testimonial-role { font-size: 12px; color: var(--text-light); }
+/* De oude SOCIAL PROOF-sectie (logo-balk + testimonial-carrousel) is
+   per 2026-05-30 verwijderd: de inhoud was fictief. De bijbehorende
+   CSS (.social-proof / .logos-row / .testimonial*) is mee opgeruimd. */
 
 /* ===== PRICING ===== */
 .pricing-hero {
@@ -2068,12 +2096,17 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   margin-top: 24px; padding: 11px;
   border-radius: var(--radius-full);
   font-size: 13.5px; font-weight: 500; cursor: pointer; text-align: center;
-  transition: background .15s, border-color .15s;
+  transition: background .15s, border-color .15s, color .15s;
   border: 1px solid var(--border); background: var(--white); color: var(--text);
 }
-.pricing-btn:hover { background: var(--surface); border-color: var(--text-light); }
+/* Niet-popular knop (Growth): wit als basis, lichtgroen bij hover/klik,
+   exact zoals de 'Bekijk het product'-knop (.btn-secondary). */
+.pricing-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 .pricing-card.popular .pricing-btn { background: var(--accent); color: var(--true-white); border-color: var(--accent); }
-.pricing-card.popular .pricing-btn:hover { background: var(--accent-dark); }
+/* Popular knop (Ultimate) blijft groen; bij hover donkerder groen met witte
+   tekst — expliciet gezet zodat de lichtgroene basis-hover hierboven niet
+   doorlekt naar deze knop (groene tekst op groen). */
+.pricing-card.popular .pricing-btn:hover { background: var(--accent-dark); color: var(--true-white); border-color: var(--accent-dark); }
 
 .pricing-faq { padding-top: 80px; padding-bottom: 112px; }
 .faq-list { margin-top: 32px; display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
@@ -2089,9 +2122,6 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .faq-icon { font-size: 22px; font-weight: 400; color: var(--accent); transition: transform .15s; line-height: 1; flex-shrink: 0; }
 .faq-item[open] .faq-icon { transform: rotate(45deg); }
 .faq-a { padding: 0 22px 18px; font-size: 14px; line-height: 1.65; color: var(--text-secondary); max-width: 640px; }
-.faq-contact { margin-top: 24px; font-size: 13.5px; color: var(--text-secondary); text-align: center; }
-.faq-contact a { color: var(--accent); font-weight: 500; }
-.faq-contact a:hover { text-decoration: underline; }
 
 /* ===== ABOUT ===== */
 .about-hero {
@@ -2630,7 +2660,9 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-size: 14px; font-weight: 600; cursor: pointer;
   transition: background .15s;
 }
-.cta-btn:hover { background: var(--surface); }
+/* Wit als basis, lichtgroen bij hover/klik (groene tekst blijft staan),
+   consistent met de 'Bekijk het product'- en pricing-knoppen. */
+.cta-btn:hover { background: var(--accent-light); }
 
 /* ===== ANIMATIONS ===== */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -2684,7 +2716,6 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   margin-bottom: 14px; letter-spacing: -0.3px;
   text-decoration: none;
 }
-.site-footer-tagline { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 .site-footer-col { display: flex; flex-direction: column; gap: 10px; }
 .site-footer-col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 4px; }
 .site-footer-link {

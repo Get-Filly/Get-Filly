@@ -112,7 +112,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **KanalenCard add/remove voor concept-bundles** — staat nu `canEdit=false` omdat de backend geen "add channel to bundle"-endpoint heeft. Vereist nieuw `POST /campaigns/bundle/:id/channels` dat een nieuwe campaign in dezelfde group_id aanmaakt.
 
 ### Site-fundamenten (publieke site)
-- [ ] **Contact/waitlist-formulier** — Resend-integratie voor notificaties
+- [x] ~~**Contact/waitlist-formulier**~~ (2026-05-30) — `/contact`-pagina (demo-aanvraag: naam/restaurant/e-mail/telefoon-optioneel/bericht + honeypot anti-spam). Publiek endpoint `POST /api/public/contact` (@Public) → `MailService.sendContactRequest` mailt naar **info@get-filly.com** (from `social@get-filly.com`, reply-to = bezoeker). Alle 5 demo/kennismaking-CTA's (navbar, homepage-hero, homepage-pijler, product, pricing) linken nu naar `/contact`. Serverside-validatie + lengte-grenzen.
 - [ ] **404-pagina** — custom error-page
 - [ ] **sitemap.xml** — SEO
 - [ ] **robots.txt** — SEO

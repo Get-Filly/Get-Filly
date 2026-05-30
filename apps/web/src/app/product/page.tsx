@@ -51,7 +51,7 @@ export default function ProductPage() {
         <div className="container">
           <p className="section-label">Hoe het werkt</p>
           <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly, van lege stoelen naar een volle onderneming.</h2>
-          <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg &eacute;&eacute;n campagneproces van begin tot eind. Drie minuten werk op maandag, twaalf extra reserveringen op vrijdag.</p>
+          <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg &eacute;&eacute;n campagneproces van begin tot eind. Drie minuten werk op maandag, twaalf extra reserveringen op donderdag.</p>
 
           <div className="features-stack" style={{ marginTop: 56 }}>
 
@@ -153,7 +153,7 @@ export default function ProductPage() {
                         <div className="pmock-ch-label">Instagram &middot; feed &amp; story</div>
                         <div className="pmock-ch-preview">Terras-foto &middot; &ldquo;Donderdag-deal: 3 gangen voor &euro;24,50&rdquo;</div>
                       </div>
-                      <div className="pmock-ch-meta">ma 17:00</div>
+                      <div className="pmock-ch-meta">do 17:00</div>
                     </div>
 
                     <div className="pmock-ch">
@@ -215,7 +215,7 @@ export default function ProductPage() {
                     <div className="pmock-approve-row">
                       <div className="pmock-approve-row-dot is-done" />
                       <div className="pmock-approve-row-label">Instagram-post + story</div>
-                      <div className="pmock-approve-row-meta">ma 17:00</div>
+                      <div className="pmock-approve-row-meta">do 17:00</div>
                     </div>
                     <div className="pmock-approve-row">
                       <div className="pmock-approve-row-dot is-pending" />
@@ -224,21 +224,75 @@ export default function ProductPage() {
                     </div>
                   </div>
                   <div className="pmock-approve-foot">
-                    <span>Filly meldt zich vrijdag met de resultaten.</span>
+                    <span>Filly meldt zich zondag met de resultaten.</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* STAP 4, Resultaat */}
+            {/* STAP 4, Instagram-post live, Filly plaatst en jij ziet 'm terug */}
             <div className="feature-row feature-row--reverse">
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
                     <span className="walk-step-num">04</span>
+                    <span className="walk-step-label">Plaatsing</span>
+                  </div>
+                  <p className="feature-eyebrow">Donderdag &middot; 17:00</p>
+                </div>
+                <h3 className="feature-row-title">Je ziet je post live verschijnen, precies op tijd.</h3>
+                <p className="feature-row-desc">Op donderdag plaatst Filly de Instagram-post en story automatisch, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen, je ziet &rsquo;m gewoon voorbijkomen in je feed, volledig in jouw stijl, terwijl de reserveringen binnenlopen.</p>
+              </div>
+              <div className="feature-row-visual">
+                {/* Mock van de live Instagram-post zoals een gast 'm in
+                    de feed ziet: header + beeld met deal-tekst + actie-rij
+                    + likes + caption. Beeld is een groene gradient-
+                    placeholder (geen echte foto), consistent met de
+                    overige mocks op deze pagina. */}
+                <div className="pmock-ig">
+                  <div className="pmock-ig-head">
+                    <div className="pmock-ig-avatar">B</div>
+                    <div className="pmock-ig-meta">
+                      <div className="pmock-ig-name">bistrogetfilly</div>
+                      <div className="pmock-ig-loc">Amsterdam &middot; Restaurant</div>
+                    </div>
+                    <span className="pmock-ig-live">Live</span>
+                  </div>
+                  <div className="pmock-ig-photo">
+                    <span className="pmock-ig-photo-tag">Donderdag-deal<br />3 gangen &middot; &euro;24,50</span>
+                  </div>
+                  <div className="pmock-ig-actions">
+                    <svg className="pmock-ig-heart" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A4.5 4.5 0 0 0 12 5.5 4.5 4.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 17 0Z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 2 11 13" />
+                      <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+                    </svg>
+                    <span className="pmock-ig-actions-spacer" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+                    </svg>
+                  </div>
+                  <div className="pmock-ig-likes">128 vind-ik-leuks</div>
+                  <div className="pmock-ig-caption"><strong>bistrogetfilly</strong> Nog een paar tafels vrij vanavond. Drie gangen voor &euro;24,50, reserveer via de link in bio. #donderdagdeal</div>
+                  <div className="pmock-ig-time">2 uur geleden</div>
+                </div>
+              </div>
+            </div>
+
+            {/* STAP 5, Resultaat */}
+            <div className="feature-row">
+              <div className="feature-row-text">
+                <div className="step-meta">
+                  <div className="walk-step">
+                    <span className="walk-step-num">05</span>
                     <span className="walk-step-label">Resultaat</span>
                   </div>
-                  <p className="feature-eyebrow">Vrijdag &middot; 23:00</p>
+                  <p className="feature-eyebrow">Zondag &middot; 23:00</p>
                 </div>
                 <h3 className="feature-row-title">Resultaat: 12 extra reserveringen, &euro;540 omzet.</h3>
                 <p className="feature-row-desc">Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat ze volgende keer anders zou doen. Geen dashboards uitpluizen, gewoon &eacute;&eacute;n bericht.</p>
@@ -312,7 +366,7 @@ export default function ProductPage() {
       <section className="cta-section">
         <h2 className="section-title">Klaar om rustige momenten om te zetten in omzet?</h2>
         <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
-        <Link className="cta-btn" href="/pricing">Vraag een demo aan</Link>
+        <Link className="cta-btn" href="/contact">Vraag een demo aan</Link>
       </section>
     </>
   );

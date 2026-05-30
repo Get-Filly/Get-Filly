@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { COMPANY } from "@/config/company";
+import { FaqAccordion } from "./faq-accordion";
 
 type PlanFeature = { text: string; disabled?: boolean };
 type Plan = {
@@ -63,6 +64,11 @@ const faqs = [
   { q: "Hoe weet Filly welke actie ze moet voorstellen?", a: "Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
   { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
   { q: "Voor welke branches werkt Filly?", a: "De core werkt voor elke onderneming met variabele bezetting: hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
+  { q: "Heb ik marketingervaring nodig?", a: "Nee. Filly is juist gemaakt voor ondernemers zonder marketingkennis. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast, de rest doet Filly." },
+  { q: "Hoe en wanneer betaal ik?", a: "Betaling loopt via onze betaalpartner Stripe, met creditcard, SEPA-incasso of iDEAL. Je betaalt vooruit per maand of per jaar, zonder verborgen kosten." },
+  { q: "Kan ik maandelijks opzeggen?", a: "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Filly beschikbaar tot het einde van de al betaalde periode." },
+  { q: "Wat gebeurt er met de gegevens van mijn gasten?", a: "Jij blijft eigenaar van je gastgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties." },
+  { q: "Hoe veilig zijn mijn gegevens?", a: "Alle gegevens gaan versleuteld over de lijn via TLS en we nemen passende technische en organisatorische maatregelen volgens de AVG. Werken we met een leverancier buiten de EU, bijvoorbeeld voor AI, dan leggen we daarvoor de wettelijk vereiste waarborgen vast." },
 ];
 
 export default function PricingPage() {
@@ -108,25 +114,25 @@ export default function PricingPage() {
           >
             <h3 className="pillars-cta-title">Niet zeker welk pakket past?</h3>
             <p className="pillars-cta-sub">Plan een gratis kennismaking en we kijken het samen met je door.</p>
-            <Link href="/signup" className="cta-btn">Plan een gratis kennismaking</Link>
+            <Link href="/contact" className="cta-btn">Plan een gratis kennismaking</Link>
           </div>
         </div>
       </section>
 
       <section className="pricing-faq">
         <div className="container">
-          <p className="section-label" style={{ textAlign: "center" }}>Veelgestelde vragen</p>
-          <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Nog vragen?</h2>
-          <div className="faq-list" style={{ marginLeft: "auto", marginRight: "auto" }}>
-            {faqs.map((f) => (
-              <details key={f.q} className="faq-item">
-                <summary className="faq-q">{f.q}<span className="faq-icon" aria-hidden>+</span></summary>
-                <div className="faq-a">{f.a}</div>
-              </details>
-            ))}
-          </div>
-          <div className="faq-contact">Meer vragen? Stuur ons een mail op <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>.</div>
+          <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>
+          <FaqAccordion faqs={faqs} />
         </div>
+      </section>
+
+      {/* Afsluitende CTA boven de footer, full-bleed groen zoals op de
+          home- en product-pagina. Vervangt de oude 'Meer vragen?'-regel
+          die voorheen onder de FAQ stond. */}
+      <section className="cta-section">
+        <h2 className="section-title">Heb je nog vragen?</h2>
+        <p className="section-subtitle">Mail ons, we helpen je graag verder.</p>
+        <a className="cta-btn" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
       </section>
     </>
   );

@@ -46,6 +46,51 @@ export async function authedFetch(
   return fetch(input, { ...init, headers });
 }
 
+/**
+ * submitContactForm, publieke (NIET-authed) call voor het
+ * contactformulier op /contact. Gebruikt gewone `fetch` zonder
+ * Authorization/X-Restaurant-Id, want een bezoeker die een demo
+ * aanvraagt heeft nog geen account/restaurant. De backend-route
+ * (`POST /public/contact`) is @Public() en mailt de aanvraag naar
+ * info@get-filly.com.
+ *
+ * `honeypot` is een verborgen anti-spam-veld: een echte gebruiker
+ * laat het leeg, een bot vult het vaak in. De backend slikt de
+ * aanvraag stil als het gevuld is.
+ */
+export type ContactFormInput = {
+  name: string;
+  restaurant: string;
+  email: string;
+  phone?: string;
+  message: string;
+  honeypot?: string;
+};
+
+export async function submitContactForm(
+  input: ContactFormInput,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/public/contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    // Backend geeft bij validatie een NL-foutmelding terug; pak die
+    // op zodat de gebruiker ziet wat er mis is.
+    let msg = "Versturen mislukt. Probeer het later opnieuw.";
+    try {
+      const data = (await res.json()) as { message?: string | string[] };
+      if (data?.message) {
+        msg = Array.isArray(data.message) ? data.message.join(" ") : data.message;
+      }
+    } catch {
+      // geen JSON-body, gebruik de fallback-melding
+    }
+    throw new Error(msg);
+  }
+}
+
 export type CampaignType = "mail" | "social" | "whatsapp";
 export type CampaignStatus = "actief" | "concept" | "ingepland" | "afgerond";
 

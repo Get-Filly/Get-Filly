@@ -15,17 +15,6 @@ import { ZichtbaarheidVisualizer } from "../components/zichtbaarheid-visualizer"
 //     lijken, design is leidend, geen "verbeteringen")
 // =============================================================================
 
-const TESTIMONIALS = [
-  { quote: "Onze dinsdag was altijd rustig. Sinds Get-Filly draaien we elke week een gerichte actie en zitten we 30% voller op doordeweekse dagen.", name: "Sophie de Vries", role: "Eigenaar, Bistro Get-Filly" },
-  { quote: "Ik heb geen marketingervaring. Filly stelt alles voor, ik klik op goedkeuren. Het voelt alsof ik een marketingmanager heb aangenomen.", name: "Marco Rossi", role: "Chef-eigenaar, Trattoria Bella" },
-  { quote: "De seizoenscampagnes zijn briljant. Filly stelde een Paasbrunch voor, maakte de mail, en we zaten binnen twee dagen vol.", name: "Lisa van den Berg", role: "Manager, Brasserie Lux" },
-  { quote: "We hebben 20% meer last-minute boekingen dankzij de dag-acties. Filly spot de rustige momenten voordat ik ze zelf door heb.", name: "Thomas Jansen", role: "Directeur, Boutique Hotel De Linde" },
-  { quote: "Mijn agenda zat vol met gaten op donderdag. Binnen een maand waren die weg, omdat Filly gerichte kortingen aan stamgasten stuurt.", name: "Nadia El Amrani", role: "Eigenaar, Wellness Studio Orchid" },
-  { quote: "Ik hoef geen posts meer zelf te maken. Filly matcht campagnes op onze bezettingsdata en plant ze vooruit, scheelt me uren per week.", name: "Jeroen Bakker", role: "Operations, Cafe Central" },
-  { quote: "Voor onze zalenverhuur zijn de lange-termijn campagnes goud waard. Filly bouwt systematisch aan onze terugkerende gasten.", name: "Annemarie Post", role: "Manager, Eventlocatie De Schuur" },
-  { quote: "Wat ik waardeer: Filly stuurt geen spam. Elke mail is afgestemd op de gast én onze bezetting. Dat voelt persoonlijk.", name: "Kevin de Groot", role: "Eigenaar, Restaurant Zeezicht" },
-];
-
 // =============================================================================
 // MiniDashboard, visuele namaak van het echte Filly-dashboard,
 // gerenderd binnen het MacBook-scherm in de hero.
@@ -175,10 +164,10 @@ export default function HomePage() {
             Meer gasten.<br />Minder lege momenten.
           </h1>
           <p className="section-subtitle fade-up d2">
-            Get-Filly analyseert je bezettingsdata en zet AI in om op korte, middellange en lange termijn campagnes te draaien die je onderneming voller maken.
+            Get-Filly analyseert de restaurant bezetting, herkent kansen en stelt campagnes voor die lege tafels vullen. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.
           </p>
           <div className="hero-cta fade-up d3">
-            <Link href="/signup" className="btn-primary">Vraag een demo</Link>
+            <Link href="/contact" className="btn-primary">Vraag een demo</Link>
             <Link href="/product" className="btn-secondary">Bekijk het product →</Link>
           </div>
 
@@ -307,49 +296,16 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Per 2026-05-13: pijlers, CTA en testimonials zijn
-              samengevoegd in dezelfde .features-sectie zodat 't
-              visueel één geheel is. Vroeger waren dit aparte
-              sections met losse achtergronden + overlap-effecten;
-              die rommelden de overgang op. Nu: één container, één
-              achtergrond, één doorlopende wazige groene gradient
-              (zie .features::before in landing.css). */}
-          <div className="pillars-cta">
-            <h3 className="pillars-cta-title">Klaar om jouw tafels te vullen?</h3>
-            <p className="pillars-cta-sub">Start vandaag en zie binnen de eerste maand het verschil in jouw bezetting.</p>
-            <Link href="/signup" className="cta-btn">Plan een gratis kennismaking</Link>
-          </div>
-
-          <div className="features-testimonials">
-            <p className="section-label">Vertrouwd door restaurants</p>
-            <h2 className="section-title" style={{ margin: "0 auto" }}>Wat onze klanten zeggen.</h2>
-            <div className="logos-row">
-              <div className="logo-placeholder">Bistro Get-Filly</div>
-              <div className="logo-placeholder">Restaurant De Kas</div>
-              <div className="logo-placeholder">Brasserie Lux</div>
-              <div className="logo-placeholder">Trattoria Bella</div>
-              <div className="logo-placeholder">Café Central</div>
-            </div>
-            <div className="testimonials-carousel">
-              <div className="testimonials-track">
-                {[0, 1].map((loop) =>
-                  TESTIMONIALS.map((tt, i) => (
-                    <div className="testimonial" key={`${loop}-${i}`}>
-                      <p className="testimonial-quote">&ldquo;{tt.quote}&rdquo;</p>
-                      <div className="testimonial-author">
-                        <div className="testimonial-avatar"></div>
-                        <div>
-                          <div className="testimonial-name">{tt.name}</div>
-                          <div className="testimonial-role">{tt.role}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
+      </section>
+
+      {/* Afsluitende CTA. Per 2026-05-30 omgezet van de ingesloten
+          .pillars-cta-kaart naar de full-bleed groene .cta-section,
+          identiek aan de product- en over-pagina (eigen tekst). */}
+      <section className="cta-section">
+        <h2 className="section-title">Klaar om jouw tafels te vullen?</h2>
+        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
+        <Link href="/contact" className="cta-btn">Plan een gratis kennismaking</Link>
       </section>
 
       {/* Footer-CTA-sectie verwijderd per 2026-05-13. De pijlers-

@@ -89,7 +89,7 @@ export function Navbar() {
           <Link href="/login" className="nav-login">
             Log in
           </Link>
-          <Link href="/signup" className="nav-demo">
+          <Link href="/contact" className="nav-demo">
             Vraag een demo
           </Link>
         </div>

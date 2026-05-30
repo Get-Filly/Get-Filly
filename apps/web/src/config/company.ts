@@ -78,11 +78,11 @@ export const COMPANY: CompanyInfo = {
   phone: "+31 6 57737372",
   court: "Rechtbank Amsterdam",
   liabilityCap: "€ 25.000",
-  // Eén werkend adres voor nu (administratie@get-filly.com). Splits
-  // later in aparte aliassen als die mailboxen bestaan.
-  email: "administratie@get-filly.com",
-  privacyEmail: "administratie@get-filly.com",
-  securityEmail: "administratie@get-filly.com",
+  // Eén werkend adres voor nu (info@get-filly.com). Splits later in
+  // aparte aliassen (privacy@/security@) als die mailboxen bestaan.
+  email: "info@get-filly.com",
+  privacyEmail: "info@get-filly.com",
+  securityEmail: "info@get-filly.com",
 };
 
 // Bepaalt of de gele draft-banner op /privacy en /voorwaarden

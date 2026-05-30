@@ -58,9 +58,6 @@ export function Footer() {
               style={{ height: 35, width: "auto", display: "block" }}
             />
           </Link>
-          <p className="site-footer-tagline">
-            AI-assistent voor ondernemingen met variabele bezetting.
-          </p>
         </div>
 
         <div className="site-footer-col">
@@ -93,7 +90,7 @@ export function Footer() {
 
       <div className="site-footer-bottom">
         <span>© {year} Get-Filly. Alle rechten voorbehouden.</span>
-        <span>Gebouwd in Nederland · EU-hosting</span>
+        <span>Gebouwd in Nederland</span>
       </div>
     </footer>
   );
