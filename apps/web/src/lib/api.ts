@@ -825,6 +825,14 @@ export type Restaurant = {
   // verschijnt 'ie in de overige-acties-strip (14 dgn vooruit).
   // Range 10-100, default 50 (sinds mig 0037).
   low_occupancy_threshold: number;
+  // ----- Reviews auto-reageren (mig 0051) -----
+  // Aan/uit voor Filly's automatische review-reacties.
+  reviews_auto_reply_enabled: boolean;
+  // 'concept' = Filly zet een concept-reactie klaar ter goedkeuring;
+  // 'publish' = Filly plaatst zelf (vereist GBP OAuth, fase E).
+  reviews_auto_reply_mode: "concept" | "publish";
+  // Eigen toon voor reviews-reacties; null = fallback op tone_of_voice.
+  reviews_tone_of_voice: string | null;
   plan: "starter" | "pro" | "enterprise";
   // ----- Identiteit uitbreiding (mig 0044, 2026-05-21) -----
   // Bron-van-waarheid voor Filly's posts. Verhuist samen met de andere

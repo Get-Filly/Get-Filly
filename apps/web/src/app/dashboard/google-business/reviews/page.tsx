@@ -15,11 +15,11 @@ import { PageHeader } from "../../../../components/ui/page-header";
 import { EmptyState } from "../../../../components/ui/empty-state";
 import { Tabs } from "../../../../components/ui/tabs";
 
-const sourceInfo: Record<ReviewSource, { label: string; icon: string }> = {
-  google: { label: "Google", icon: "🔎" },
-  tripadvisor: { label: "TripAdvisor", icon: "🦉" },
-  thefork: { label: "The Fork", icon: "🍴" },
-  iens: { label: "IENS", icon: "🇳🇱" },
+const sourceInfo: Record<ReviewSource, { label: string }> = {
+  google: { label: "Google" },
+  tripadvisor: { label: "TripAdvisor" },
+  thefork: { label: "The Fork" },
+  iens: { label: "IENS" },
 };
 
 type SourceFilter = "alle" | ReviewSource;
@@ -41,6 +41,48 @@ function Stars({ rating }: { rating: number }) {
       {"★".repeat(rating)}
       <span className="review-stars-empty">{"★".repeat(5 - rating)}</span>
     </span>
+  );
+}
+
+// Kleine trend-regel onder een KPI. Twee soorten:
+//   - 'rating': delta in sterren (bv. "↑ 0,3 t.o.v. eerdere reviews").
+//     Omhoog = beter = groen.
+//   - 'volume': delta in aantal nieuwe reviews (bv. "↑ 2 nieuwe reviews
+//     deze maand"). Meer = beter = groen.
+// Toont niks bij null of bij een te klein verschil (ruis-onderdrukking).
+function TrendBadge({
+  trend,
+  kind,
+}: {
+  trend: number | null;
+  kind: "rating" | "volume";
+}) {
+  if (trend === null) return null;
+  // Drempels: ratings pas vanaf 0,1 ster, volume vanaf 1 review.
+  const minDelta = kind === "rating" ? 0.1 : 1;
+  if (Math.abs(trend) < minDelta) return null;
+
+  const up = trend > 0;
+  const magnitude =
+    kind === "rating"
+      ? Math.abs(trend).toFixed(1)
+      : String(Math.abs(Math.round(trend)));
+  const label =
+    kind === "rating"
+      ? "t.o.v. eerdere reviews"
+      : `nieuwe review${Math.abs(Math.round(trend)) === 1 ? "" : "s"} deze maand`;
+
+  return (
+    <div
+      style={{
+        marginTop: 4,
+        fontSize: 12,
+        fontWeight: 500,
+        color: up ? "var(--color-brand, #1F4A2D)" : "var(--red, #B91C1C)",
+      }}
+    >
+      {up ? "↑" : "↓"} {magnitude} {label}
+    </div>
   );
 }
 
@@ -160,34 +202,128 @@ function ReviewsPageInner() {
   }, [openReplyId, loading, reviews]);
 
   const stats = useMemo(() => {
+    const emptyPerSource = {} as Record<
+      string,
+      { count: number; avg: number; trend: number | null }
+    >;
     if (reviews.length === 0) {
       return {
         avg: 0,
         total: 0,
-        perSource: {} as Record<string, { count: number; avg: number }>,
+        perSource: emptyPerSource,
         needsResponse: 0,
+        avgTrend: null as number | null,
+        totalTrend: null as number | null,
       };
     }
+
+    // Rating-trend: gemiddelde rating van de NIEUWSTE helft reviews
+    // versus de OUDSTE helft (op review_date). Beantwoordt "worden onze
+    // reviews beter?". Helft-vs-helft i.p.v. een vaste 30-dagen-window,
+    // want dat blijft betekenisvol bij laag volume. Null onder 4 reviews
+    // (te weinig om een trend op te baseren). Reviews zonder datum tellen
+    // niet mee voor de chronologische split.
+    const ratingTrend = (list: typeof reviews): number | null => {
+      const dated = list.filter(
+        (r): r is (typeof list)[number] & { review_date: string } =>
+          !!r.review_date,
+      );
+      if (dated.length < 4) return null;
+      const sorted = [...dated].sort(
+        (a, b) =>
+          new Date(a.review_date).getTime() -
+          new Date(b.review_date).getTime(),
+      );
+      const half = Math.floor(sorted.length / 2);
+      const older = sorted.slice(0, half);
+      const newer = sorted.slice(sorted.length - half);
+      const avgOf = (xs: typeof list) =>
+        xs.reduce((s, r) => s + r.rating, 0) / xs.length;
+      return avgOf(newer) - avgOf(older);
+    };
+
+    // Volume-trend (voor Totaal reviews): hoeveel reviews kwamen er in de
+    // laatste 30 dagen binnen vs de 30 dagen daarvóór. We ankeren op de
+    // NIEUWSTE review-datum i.p.v. "nu", zodat de trend ook klopt op een
+    // demo-dataset waar de laatste review al een tijdje geleden is.
+    // Positief = meer nieuwe reviews = goed.
+    const volumeTrend = (list: typeof reviews): number | null => {
+      const dated = list.filter((r) => !!r.review_date);
+      if (dated.length < 2) return null;
+      const times = dated.map((r) =>
+        new Date(r.review_date as string).getTime(),
+      );
+      const anchor = Math.max(...times);
+      const DAY = 86_400_000;
+      const recent = times.filter(
+        (t) => t > anchor - 30 * DAY,
+      ).length;
+      const previous = times.filter(
+        (t) => t <= anchor - 30 * DAY && t > anchor - 60 * DAY,
+      ).length;
+      return recent - previous;
+    };
+
     const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-    const perSource: Record<string, { count: number; avg: number }> = {};
+    const perSource: Record<
+      string,
+      { count: number; avg: number; trend: number | null }
+    > = {};
     for (const r of reviews) {
-      if (!perSource[r.source]) perSource[r.source] = { count: 0, avg: 0 };
+      if (!perSource[r.source]) {
+        perSource[r.source] = { count: 0, avg: 0, trend: null };
+      }
       perSource[r.source].count++;
     }
     for (const src in perSource) {
       const sub = reviews.filter((r) => r.source === src);
-      perSource[src].avg = sub.reduce((s, r) => s + r.rating, 0) / sub.length;
+      perSource[src].avg =
+        sub.reduce((s, r) => s + r.rating, 0) / sub.length;
+      perSource[src].trend = ratingTrend(sub);
     }
     const needsResponse = reviews.filter(
       (r) => r.rating <= 3 && !r.response_text,
     ).length;
-    return { avg, total: reviews.length, perSource, needsResponse };
+
+    return {
+      avg,
+      total: reviews.length,
+      perSource,
+      needsResponse,
+      avgTrend: ratingTrend(reviews),
+      totalTrend: volumeTrend(reviews),
+    };
   }, [reviews]);
 
   const filtered = useMemo(() => {
     if (filter === "alle") return reviews;
     return reviews.filter((r) => r.source === filter);
   }, [reviews, filter]);
+
+  // Prioriteit: reviews die nog aandacht vragen (rating ≤ drempel én nog
+  // geen reactie). Sortering: laagste rating eerst (meest urgent boven),
+  // bij gelijke rating de nieuwste eerst. Respecteert de kanaal-filter.
+  const priorityReviews = useMemo(() => {
+    return filtered
+      .filter((r) => r.rating <= 3 && !r.response_text)
+      .sort((a, b) => {
+        if (a.rating !== b.rating) return a.rating - b.rating;
+        const ta = a.review_date ? new Date(a.review_date).getTime() : 0;
+        const tb = b.review_date ? new Date(b.review_date).getTime() : 0;
+        return tb - ta;
+      });
+  }, [filtered]);
+
+  // Alle reviews op tijdsvolgorde, nieuwste eerst. Bevat óók de
+  // prioriteit-reviews (die staan bovenaan als aparte sectie, maar
+  // blijven ook in de complete tijdlijn zichtbaar — Floris-keuze).
+  const sortedAll = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const ta = a.review_date ? new Date(a.review_date).getTime() : 0;
+      const tb = b.review_date ? new Date(b.review_date).getTime() : 0;
+      return tb - ta;
+    });
+  }, [filtered]);
 
   const sourceFilters: SourceFilter[] = [
     "alle",
@@ -287,12 +423,60 @@ function ReviewsPageInner() {
     }
   };
 
+  // Eén review-kaart. Gebruikt in zowel de Prioriteit- als de Alle-sectie.
+  // withId zet de DOM-id `review-<id>` voor de deep-link-scroll; we zetten
+  // 'm ALLEEN op de Alle-sectie zodat een review die in beide secties
+  // staat geen dubbele (ongeldige) HTML-id krijgt.
+  const renderCard = (r: Review, withId: boolean) => {
+    const src = sourceInfo[r.source];
+    const needsResponse = r.rating <= 3 && !r.response_text;
+    return (
+      <div
+        key={`${withId ? "all" : "prio"}-${r.id}`}
+        id={withId ? `review-${r.id}` : undefined}
+        className={`review-card ${needsResponse ? "review-card-needs" : ""}`}
+      >
+        <div className="review-head">
+          <div>
+            <div className="review-meta-row">
+              <Stars rating={r.rating} />
+              <span className="review-source">{src.label}</span>
+              {needsResponse && (
+                <span className="review-urgency-pill">Actie vereist</span>
+              )}
+            </div>
+            {r.title && <div className="review-title">{r.title}</div>}
+          </div>
+          <div className="review-date">{formatDate(r.review_date)}</div>
+        </div>
+        {r.body && <div className="review-body">{r.body}</div>}
+        <div className="review-foot">
+          <span className="review-author">{r.author ?? "Anoniem"}</span>
+          {r.response_text ? (
+            <span className="review-responded">✓ Gereageerd</span>
+          ) : (
+            <button
+              className="sg-btn primary"
+              style={{ padding: "4px 14px", fontSize: 11 }}
+              onClick={() => openReply(r)}
+            >
+              Reageren
+            </button>
+          )}
+        </div>
+        {r.response_text && (
+          <div className="review-response">
+            <div className="review-response-label">Jouw reactie</div>
+            <div className="review-response-body">{r.response_text}</div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="page-full">
-      <PageHeader
-        title="Reviews"
-        subtitle="Wat gasten zeggen op Google, TripAdvisor en The Fork. Reageer snel op lage scores."
-      />
+      <PageHeader title="Reviews" />
 
       <div className="stats-row">
         <div className="stat-card">
@@ -307,12 +491,14 @@ function ReviewsPageInner() {
               </>
             )}
           </div>
+          {!loading && <TrendBadge trend={stats.avgTrend} kind="rating" />}
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Totaal reviews</div>
           <div className="stat-card-val">
             {loading ? <Skeleton height={22} width="40%" /> : stats.total}
           </div>
+          {!loading && <TrendBadge trend={stats.totalTrend} kind="volume" />}
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Reactie nodig (≤3 ★)</div>
@@ -344,6 +530,7 @@ function ReviewsPageInner() {
                 <span className="review-stars-inline">★</span>{" "}
                 <span className="review-source-count">({info.count})</span>
               </div>
+              {!loading && <TrendBadge trend={info.trend} kind="rating" />}
             </div>
           ))}
       </div>
@@ -374,58 +561,73 @@ function ReviewsPageInner() {
       ) : filtered.length === 0 ? (
         <div className="table-empty">Geen reviews in deze categorie.</div>
       ) : (
-        <div className="review-list">
-          {filtered.map((r) => {
-            const src = sourceInfo[r.source];
-            const needsResponse = r.rating <= 3 && !r.response_text;
-            return (
+        <>
+          {/* Prioriteit-sectie: alleen tonen als er reviews aandacht
+              vragen. Staat boven de complete tijdlijn zodat de eigenaar
+              meteen ziet wat dringend is. */}
+          {priorityReviews.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
               <div
-                key={r.id}
-                id={`review-${r.id}`}
-                className={`review-card ${needsResponse ? "review-card-needs" : ""}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  margin: "8px 0 12px",
+                }}
               >
-                <div className="review-head">
-                  <div>
-                    <div className="review-meta-row">
-                      <Stars rating={r.rating} />
-                      <span className="review-source">
-                        {src.icon} {src.label}
-                      </span>
-                      {needsResponse && (
-                        <span className="review-urgency-pill">
-                          Actie vereist
-                        </span>
-                      )}
-                    </div>
-                    {r.title && <div className="review-title">{r.title}</div>}
-                  </div>
-                  <div className="review-date">{formatDate(r.review_date)}</div>
-                </div>
-                {r.body && <div className="review-body">{r.body}</div>}
-                <div className="review-foot">
-                  <span className="review-author">{r.author ?? "Anoniem"}</span>
-                  {r.response_text ? (
-                    <span className="review-responded">✓ Gereageerd</span>
-                  ) : (
-                    <button
-                      className="sg-btn primary"
-                      style={{ padding: "4px 14px", fontSize: 11 }}
-                      onClick={() => openReply(r)}
-                    >
-                      Reageren
-                    </button>
-                  )}
-                </div>
-                {r.response_text && (
-                  <div className="review-response">
-                    <div className="review-response-label">Jouw reactie</div>
-                    <div className="review-response-body">{r.response_text}</div>
-                  </div>
-                )}
+                <h2
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: "var(--text, #18181B)",
+                    margin: 0,
+                  }}
+                >
+                  Prioriteit
+                </h2>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--red, #B91C1C)",
+                    background: "var(--red-soft, #FEE2E2)",
+                    borderRadius: 999,
+                    padding: "2px 8px",
+                  }}
+                >
+                  {priorityReviews.length}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--tl)" }}>
+                  lage scores zonder reactie
+                </span>
               </div>
-            );
-          })}
-        </div>
+              <div className="review-list">
+                {priorityReviews.map((r) => renderCard(r, false))}
+              </div>
+            </div>
+          )}
+
+          {/* Alle reviews op tijdsvolgorde (nieuwste eerst). Bevat ook de
+              prioriteit-reviews — de Prioriteit-sectie is een uitgelichte
+              kopie bovenaan. */}
+          <div>
+            {priorityReviews.length > 0 && (
+              <h2
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--text, #18181B)",
+                  margin: "8px 0 12px",
+                }}
+              >
+                Alle reviews
+              </h2>
+            )}
+            <div className="review-list">
+              {sortedAll.map((r) => renderCard(r, true))}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Reply-modal, opent bij klik op "Reageren". Filly heeft een

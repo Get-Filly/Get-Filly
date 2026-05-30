@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type Anthropic from '@anthropic-ai/sdk';
@@ -46,6 +47,8 @@ export type Review = {
 
 @Injectable()
 export class ReviewsService {
+  private readonly logger = new Logger(ReviewsService.name);
+
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
@@ -68,6 +71,121 @@ export class ReviewsService {
 
     if (error) throw new InternalServerErrorException(error.message);
     return (data ?? []) as Review[];
+  }
+
+  // Haalt de eigen reviews-toon op (mig 0051). Leeg/null = de aanroeper
+  // valt terug op de algemene merkstem uit het profileBlock. Aparte
+  // lichte query zodat de prompt-bouwers 'm los kunnen meegeven.
+  private async getReviewsTone(
+    restaurantId: string,
+  ): Promise<string | null> {
+    const { data } = await this.supabase.client
+      .from('restaurants')
+      .select('reviews_tone_of_voice')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    const tone = (data?.reviews_tone_of_voice as string | null) ?? null;
+    return tone && tone.trim() ? tone : null;
+  }
+
+  // ============================================================
+  // AUTO-REAGEREN — concept nu, publiceren zodra GBP OAuth er is
+  // ============================================================
+  // Event-driven hook (géén interne cron, per project-regel): roep dit
+  // aan op het punt waar een review binnenkomt — nu bij handmatige
+  // invoer, straks bij de Google-Business-Profile-sync (fase E).
+  //
+  // Gedrag, gestuurd door de restaurants-instellingen uit mig 0051:
+  //   - reviews_auto_reply_enabled = false → niks doen.
+  //   - rating boven low_review_threshold → niks doen (we reageren
+  //     alleen automatisch op reviews die aandacht vragen).
+  //   - mode 'concept'  → genereer een concept-reactie + zet 'm klaar
+  //     in filly_variants zodat de eigenaar 'm met één klik goedkeurt.
+  //   - mode 'publish'  → idem + publishReplyToGoogle() (zie stub).
+  //
+  // Faalt fail-soft: een mislukte auto-reply mag de review-sync of
+  // -invoer nooit blokkeren.
+  async maybeAutoReply(
+    restaurantId: string,
+    reviewId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      const { data: settings } = await this.supabase.client
+        .from('restaurants')
+        .select(
+          'reviews_auto_reply_enabled, reviews_auto_reply_mode, low_review_threshold',
+        )
+        .eq('id', restaurantId)
+        .maybeSingle();
+      if (!settings?.reviews_auto_reply_enabled) return;
+
+      const threshold = (settings.low_review_threshold as number) ?? 3;
+      const mode =
+        (settings.reviews_auto_reply_mode as 'concept' | 'publish') ??
+        'concept';
+
+      const { data: review } = await this.supabase.client
+        .from('reviews')
+        .select('id, rating, response_text, filly_variants')
+        .eq('id', reviewId)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+      if (!review) return;
+      // Al beantwoord of al een concept klaar? Niet dubbel doen.
+      if (review.response_text) return;
+      if (
+        Array.isArray(review.filly_variants) &&
+        review.filly_variants.length > 0
+      ) {
+        return;
+      }
+      // Alleen automatisch reageren op reviews die de drempel raken.
+      if (typeof review.rating === 'number' && review.rating > threshold) {
+        return;
+      }
+
+      // Genereer één concept-reactie en zet 'm klaar als variant.
+      const { suggestion } = await this.generateReplySuggestion(
+        restaurantId,
+        reviewId,
+        userId,
+      );
+      await this.supabase.client
+        .from('reviews')
+        .update({ filly_variants: [suggestion] })
+        .eq('id', reviewId)
+        .eq('restaurant_id', restaurantId);
+
+      if (mode === 'publish') {
+        await this.publishReplyToGoogle(restaurantId, reviewId, suggestion);
+      }
+    } catch (err) {
+      // Fail-soft: log alleen, blokkeer de aanroeper niet.
+      this.logger.warn(
+        `Auto-reply mislukt voor review ${reviewId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  // OAuth-ready stub. Zodra de Google Business Profile API met OAuth
+  // live is (fase E), vullen we hier de echte push in:
+  //   accounts.locations.reviews.reply met de gegenereerde tekst, en
+  //   bij succes reviews.response_text + responded_at + een
+  //   responded_to_google_at-marker zetten (mig 0036 in fase E).
+  // Tot dan: bewust een no-op met waarschuwing, zodat mode 'publish'
+  // nooit stilletjes lijkt te werken terwijl er niks naar Google gaat.
+  private async publishReplyToGoogle(
+    restaurantId: string,
+    reviewId: string,
+    _replyText: string,
+  ): Promise<void> {
+    this.logger.warn(
+      `publishReplyToGoogle nog niet actief (wacht op GBP OAuth, fase E) — ` +
+        `review ${reviewId} van restaurant ${restaurantId} blijft als concept staan.`,
+    );
   }
 
   // Genereert een reply-voorstel via Claude. We scopen bewust op BEIDE
@@ -101,7 +219,8 @@ export class ReviewsService {
       throw new NotFoundException('Restaurant niet gevonden.');
     }
 
-    const systemPrompt = buildReviewReplySystemPrompt(profileBlock);
+    const reviewsTone = await this.getReviewsTone(restaurantId);
+    const systemPrompt = buildReviewReplySystemPrompt(profileBlock, reviewsTone);
     const userPrompt = buildReviewReplyUserPrompt(review);
 
     const suggestion = await this.ai.generateText({
@@ -210,7 +329,8 @@ export class ReviewsService {
 
     // System-prompt: vraag 3 alternatieven via tool-use. Schema dwingt
     // precies 3 strings af in de variants-array.
-    const baseSystem = buildReviewReplySystemPrompt(profileBlock);
+    const reviewsTone = await this.getReviewsTone(restaurantId);
+    const baseSystem = buildReviewReplySystemPrompt(profileBlock, reviewsTone);
     const systemPrompt = `${baseSystem}
 
 EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply_variants'. Geef precies 3 verschillende reacties, bv. v1 warm-empathisch, v2 zakelijk-direct, v3 kort-praktisch. Niet alleen wat woorden anders.`;
@@ -336,7 +456,17 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
 // Het profile-block onderaan geeft Filly alle restaurant-specifieke
 // context (USPs, tagline, sfeer, signature dishes) zodat de reactie
 // echt bij DEZE zaak past, i.p.v. generiek "bedankt voor uw bezoek".
-function buildReviewReplySystemPrompt(profileBlock: string): string {
+function buildReviewReplySystemPrompt(
+  profileBlock: string,
+  // Eigen toon voor reviews-reacties (restaurants.reviews_tone_of_voice).
+  // Leeg/null = alleen de algemene merkstem uit het profileBlock. Als
+  // gevuld plakken we 'm als expliciete, LEIDENDE instructie onder het
+  // profiel zodat 'ie voorrang krijgt op de generieke brand_tone.
+  reviewsTone?: string | null,
+): string {
+  const toneOverride = reviewsTone?.trim()
+    ? `\n\nSPECIFIEKE TOON VOOR REVIEW-REACTIES (leidend boven de algemene merkstem hierboven):\n${reviewsTone.trim()}`
+    : '';
   // Toon-B uit keuze-menu: gemoedelijk Nederlands, niet Amerikaans
   // enthousiast. Géén overdreven emoji of uitroeptekens, wel warm.
   return `Je bent Filly, de AI-assistent voor het hieronder beschreven restaurant. Je schrijft namens de onderneming een publiek antwoord op een online review.
@@ -355,7 +485,7 @@ Stijl-richtlijnen:
 
 ---
 ${profileBlock}
----
+---${toneOverride}
 
 Geef alleen de tekst van het antwoord terug, zonder aanhef als "Antwoord:" of extra toelichting.`;
 }

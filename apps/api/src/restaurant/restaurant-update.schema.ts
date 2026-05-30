@@ -327,6 +327,16 @@ export const RestaurantUpdateSchema = z
       .max(100, 'Drempel moet 10-100 zijn.')
       .optional(),
 
+    // ----- Reviews auto-reageren (mig 0051) -----
+    // Aan/uit voor Filly's automatische review-reacties.
+    reviews_auto_reply_enabled: z.boolean().optional(),
+    // 'concept' = ter goedkeuring; 'publish' = zelf plaatsen (vereist
+    // GBP OAuth, fase E). We staan beide waarden toe in het schema; de
+    // frontend dwingt 'concept' af tot Google gekoppeld is.
+    reviews_auto_reply_mode: z.enum(['concept', 'publish']).optional(),
+    // Eigen toon voor reviews-reacties; leeg = fallback op tone_of_voice.
+    reviews_tone_of_voice: optionalText(500),
+
     // ----- E-mailinstellingen -----
     email_from_name: optionalText(100),
     email_reply_to: z

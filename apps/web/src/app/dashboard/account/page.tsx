@@ -955,6 +955,179 @@ function AccountPageInner() {
               worden niet getoond.
             </div>
           </div>
+
+          {/* ----- Auto-reageren op reviews (mig 0051) ----- */}
+          <div
+            className="form-field full"
+            style={{
+              borderTop: "1px solid var(--border, #E5DFD0)",
+              paddingTop: 18,
+              marginTop: 6,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+              }}
+            >
+              <label
+                htmlFor="reviews-auto-reply"
+                style={{ marginBottom: 0, cursor: "pointer" }}
+              >
+                Filly reageert automatisch op reviews
+              </label>
+              {/* Slider-toggle. role=switch + aria-checked voor
+                  toegankelijkheid; klik schakelt de boolean om. */}
+              <button
+                id="reviews-auto-reply"
+                type="button"
+                role="switch"
+                aria-checked={form.reviews_auto_reply_enabled ?? false}
+                onClick={() =>
+                  update(
+                    "reviews_auto_reply_enabled",
+                    !(form.reviews_auto_reply_enabled ?? false),
+                  )
+                }
+                style={{
+                  flexShrink: 0,
+                  width: 44,
+                  height: 24,
+                  borderRadius: 999,
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 2,
+                  background: form.reviews_auto_reply_enabled
+                    ? "var(--color-brand, #1F4A2D)"
+                    : "var(--border, #E5DFD0)",
+                  transition: "background 150ms ease",
+                  position: "relative",
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: "#FFFFFF",
+                    transform: form.reviews_auto_reply_enabled
+                      ? "translateX(20px)"
+                      : "translateX(0)",
+                    transition: "transform 150ms ease",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </button>
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              Bij nieuwe reviews onder je drempel schrijft Filly
+              automatisch een reactie in jouw toon. Je houdt de controle:
+              de reactie wordt als concept klaargezet zodat je 'm met één
+              klik kunt goedkeuren.
+            </div>
+          </div>
+
+          {/* Mode + tone alleen tonen als auto-reageren aanstaat. */}
+          {form.reviews_auto_reply_enabled && (
+            <>
+              <div className="form-field full">
+                <label htmlFor="reviews-auto-reply-mode">
+                  Hoe plaatst Filly de reactie?
+                </label>
+                <select
+                  id="reviews-auto-reply-mode"
+                  value={form.reviews_auto_reply_mode ?? "concept"}
+                  onChange={(e) =>
+                    update(
+                      "reviews_auto_reply_mode",
+                      e.target.value as "concept" | "publish",
+                    )
+                  }
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    background: "var(--white, #FFFFFF)",
+                    color: "var(--text, #18181B)",
+                    width: "100%",
+                    maxWidth: 360,
+                  }}
+                >
+                  <option value="concept">
+                    Concept klaarzetten ter goedkeuring (aanbevolen)
+                  </option>
+                  {/* 'publish' is nog niet bruikbaar: automatisch
+                      plaatsen vereist de Google Business Profile-koppeling
+                      (komt in een latere fase). Disabled tot dan. */}
+                  <option value="publish" disabled>
+                    Zelf plaatsen — beschikbaar zodra Google gekoppeld is
+                  </option>
+                </select>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "var(--tl)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Zolang Google nog niet gekoppeld is, zet Filly reacties
+                  altijd als concept klaar. Automatisch plaatsen komt
+                  beschikbaar zodra de Google-koppeling live is.
+                </div>
+              </div>
+
+              <div className="form-field full">
+                <label htmlFor="reviews-tone">
+                  Toon voor reviews-reacties
+                </label>
+                <textarea
+                  id="reviews-tone"
+                  value={form.reviews_tone_of_voice ?? ""}
+                  onChange={(e) =>
+                    update("reviews_tone_of_voice", e.target.value)
+                  }
+                  rows={3}
+                  placeholder="Bijv. warm en persoonlijk, bedank altijd bij naam, blijf rustig en oplossingsgericht bij kritiek."
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    background: "var(--white, #FFFFFF)",
+                    color: "var(--text, #18181B)",
+                    width: "100%",
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "var(--tl)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Laat leeg om de algemene merkstem te gebruiken die je bij
+                  Vindbaarheid &rsaquo; Identiteit hebt ingesteld. Vul hier
+                  iets in als je voor reviews een andere toon wilt.
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
       )}
