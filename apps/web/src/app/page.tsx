@@ -1,4 +1,23 @@
 import Link from "next/link";
+// Dezelfde lucide-iconen als het echte dashboard, zodat de mock in de
+// hero 1-op-1 meebeweegt met de huidige product-look (grijze lijn-iconen).
+import {
+  LayoutDashboard,
+  Megaphone,
+  Search,
+  CalendarDays,
+  BarChart3,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Send,
+  Flame,
+  Mail,
+  Camera,
+  MessageCircle,
+  TrendingUp,
+} from "lucide-react";
 import { VindbaarheidVisualizer } from "../components/vindbaarheid-visualizer";
 import { ZichtbaarheidVisualizer } from "../components/zichtbaarheid-visualizer";
 
@@ -20,32 +39,43 @@ import { ZichtbaarheidVisualizer } from "../components/zichtbaarheid-visualizer"
 // gerenderd binnen het MacBook-scherm in de hero.
 // =============================================================================
 function MiniDashboard() {
+  // Nav: dezelfde 5 items + lucide-iconen als de echte sidebar.
   const NAV = [
-    { icon: "📊", label: "Dashboard", active: true },
-    { icon: "📣", label: "Campagnes" },
-    { icon: "📆", label: "Reserveringen" },
-    { icon: "👥", label: "Gasten" },
-    { icon: "⭐", label: "Reviews" },
-    { icon: "🍽️", label: "Menu" },
-    { icon: "📈", label: "Rapportages" },
-    { icon: "🔗", label: "Koppelingen" },
+    { Icon: LayoutDashboard, label: "Dashboard", active: true },
+    { Icon: Megaphone, label: "Campagnes" },
+    { Icon: Search, label: "Vindbaarheid" },
+    { Icon: CalendarDays, label: "Reserveringen" },
+    { Icon: BarChart3, label: "Rapportages" },
   ];
 
+  // KPI-rij: 4 kaarten zoals op het nieuwe dashboard.
   const KPIS = [
-    { label: "Bezetting vandaag", val: "82%" },
-    { label: "Bezetting april", val: "74%", extra: "12% via Filly", positive: true },
-    { label: "Gasten april", val: "1.248", extra: "+184 via Filly", positive: true },
-    { label: "Voorgesteld", val: "3", extra: "wachten op je" },
-    { label: "Omzet april", val: "€48.6k", extra: "+€6.4k via Filly", positive: true },
+    { label: "Bezetting vandaag", val: "67%" },
+    { label: "Gasten vandaag", val: "0", extra: "0 via Filly" },
+    { label: "Lopende campagnes", val: "3", extra: "actief of ingepland" },
+    { label: "Voorgestelde campagnes", val: "1", extra: "wachten op goedkeuring" },
   ];
 
-  type CalCell = { d: number; p: number; lvl: number; today?: boolean } | null;
+  // Heatmap-kalender mei 2026 (1 mei = vrijdag). p = bezetting%, lvl =
+  // kleurtier (zie .md-cal-day.lvl-* in landing.css). today = 30 mei.
+  // mail = klein envelop-markertje (geplande uiting), fire = drukke dag.
+  type CalCell =
+    | { d: number; p: number; lvl: number; today?: boolean; mail?: boolean; fire?: boolean }
+    | null;
   const CAL: CalCell[][] = [
-    [null, null, { d: 1, p: 62, lvl: 1 }, { d: 2, p: 71, lvl: 2 }, { d: 3, p: 88, lvl: 3 }, { d: 4, p: 96, lvl: 4 }, { d: 5, p: 92, lvl: 3 }],
-    [{ d: 6, p: 58, lvl: 1 }, { d: 7, p: 64, lvl: 1 }, { d: 8, p: 70, lvl: 2 }, { d: 9, p: 38, lvl: 0 }, { d: 10, p: 84, lvl: 3 }, { d: 11, p: 98, lvl: 4 }, { d: 12, p: 95, lvl: 4 }],
-    [{ d: 13, p: 60, lvl: 1 }, { d: 14, p: 67, lvl: 2 }, { d: 15, p: 72, lvl: 2 }, { d: 16, p: 82, lvl: 3, today: true }, { d: 17, p: 78, lvl: 2 }, { d: 18, p: 96, lvl: 4 }, { d: 19, p: 91, lvl: 3 }],
-    [{ d: 20, p: 55, lvl: 1 }, { d: 21, p: 42, lvl: 0 }, { d: 22, p: 68, lvl: 2 }, { d: 23, p: 74, lvl: 2 }, { d: 24, p: 86, lvl: 3 }, { d: 25, p: 99, lvl: 4 }, { d: 26, p: 94, lvl: 3 }],
-    [{ d: 27, p: 64, lvl: 1 }, { d: 28, p: 70, lvl: 2 }, { d: 29, p: 76, lvl: 2 }, { d: 30, p: 80, lvl: 3 }, null, null, null],
+    [null, null, null, null, { d: 1, p: 42, lvl: 1 }, { d: 2, p: 41, lvl: 1 }, { d: 3, p: 80, lvl: 3, mail: true }],
+    [{ d: 4, p: 55, lvl: 1 }, { d: 5, p: 57, lvl: 1 }, { d: 6, p: 68, lvl: 2 }, { d: 7, p: 64, lvl: 1 }, { d: 8, p: 44, lvl: 1 }, { d: 9, p: 54, lvl: 1 }, { d: 10, p: 56, lvl: 1, mail: true }],
+    [{ d: 11, p: 42, lvl: 1 }, { d: 12, p: 82, lvl: 3 }, { d: 13, p: 43, lvl: 1 }, { d: 14, p: 56, lvl: 1 }, { d: 15, p: 89, lvl: 3, mail: true }, { d: 16, p: 81, lvl: 3 }, { d: 17, p: 85, lvl: 3 }],
+    [{ d: 18, p: 46, lvl: 1 }, { d: 19, p: 54, lvl: 1 }, { d: 20, p: 42, lvl: 1 }, { d: 21, p: 65, lvl: 2 }, { d: 22, p: 92, lvl: 3 }, { d: 23, p: 84, lvl: 3 }, { d: 24, p: 88, lvl: 3, mail: true }],
+    [{ d: 25, p: 65, lvl: 2 }, { d: 26, p: 53, lvl: 1 }, { d: 27, p: 61, lvl: 1 }, { d: 28, p: 74, lvl: 2 }, { d: 29, p: 95, lvl: 4, fire: true }, { d: 30, p: 67, lvl: 2, today: true }, { d: 31, p: 91, lvl: 3, mail: true }],
+  ];
+
+  // Kanaal-chips op de proactieve voorstel-kaart. Camera staat voor
+  // Instagram (lucide 1.14 heeft geen los Instagram-icoon).
+  const PROPOSAL_CHANNELS = [
+    { Icon: Camera, label: "Instagram" },
+    { Icon: Mail, label: "E-mail" },
+    { Icon: MessageCircle, label: "WhatsApp" },
   ];
 
   return (
@@ -53,18 +83,21 @@ function MiniDashboard() {
       {/* Sidebar */}
       <aside className="md-sidebar">
         <div className="md-workspace">
-          <div className="md-avatar">BG</div>
-          <div style={{ minWidth: 0 }}>
-            <div className="md-ws-name">Bistro Get-Filly</div>
-            <div className="md-ws-role">Eigenaar</div>
+          <div className="md-avatar">DB</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="md-ws-name">Demo Bistro</div>
+            <div className="md-ws-role">floriskoevermans@…</div>
           </div>
+          <ChevronDown className="md-ws-chevron" size={11} strokeWidth={2} />
         </div>
         <div>
           <div className="md-section-label">Menu</div>
           <div className="md-nav">
             {NAV.map((n) => (
               <div key={n.label} className={`md-nav-item ${n.active ? "active" : ""}`}>
-                <span className="md-nav-icon">{n.icon}</span>
+                <span className="md-nav-icon">
+                  <n.Icon size={13} strokeWidth={1.75} />
+                </span>
                 <span>{n.label}</span>
               </div>
             ))}
@@ -75,11 +108,25 @@ function MiniDashboard() {
       {/* Main */}
       <div className="md-main">
         <div className="md-topbar">
-          <div>
-            <div className="md-page-title">Dashboard</div>
-            <div className="md-page-sub">Woensdag 16 april · Filly draait 3 campagnes</div>
+          <div className="md-page-title">Dashboard</div>
+          <div className="md-top-actions">
+            <span className="md-sync">Laatste sync: 2 min geleden</span>
+            <span className="md-icon-btn"><Bell size={11} strokeWidth={1.75} /></span>
+            <span className="md-icon-btn"><Search size={11} strokeWidth={1.75} /></span>
           </div>
-          <div className="md-pill">Filly maak voorstellen</div>
+        </div>
+
+        {/* Alert-strook: 2 banners + groene CTA, zoals op het dashboard. */}
+        <div className="md-alerts">
+          <div className="md-alert-stack">
+            <div className="md-alert">
+              <strong>3 rustige dagen</strong> komende 2 weken: 3 jun (43%), 8 jun (46%), 10 jun (42%)
+            </div>
+            <div className="md-alert">
+              <strong>1 speciale dag</strong> komende 6 weken: Vaderdag (21 jun)
+            </div>
+          </div>
+          <div className="md-cta-btn">Vraag Filly om voorstellen</div>
         </div>
 
         <div className="md-kpi-row">
@@ -87,7 +134,7 @@ function MiniDashboard() {
             <div key={k.label} className="md-kpi">
               <div className="md-kpi-label">{k.label}</div>
               <div className="md-kpi-val">{k.val}</div>
-              {k.extra && <div className={`md-kpi-extra ${k.positive ? "positive" : ""}`}>{k.extra}</div>}
+              {k.extra && <div className="md-kpi-extra">{k.extra}</div>}
             </div>
           ))}
         </div>
@@ -96,12 +143,15 @@ function MiniDashboard() {
           {/* Calendar */}
           <div className="md-card">
             <div className="md-card-head">
-              <div>
-                <div className="md-card-title">Bezettingsgraad</div>
-                <div className="md-card-sub">April 2026</div>
+              <div className="md-cal-nav">
+                <span className="md-cal-arrow"><ChevronLeft size={11} strokeWidth={2} /></span>
+                <span className="md-card-title">Mei 2026</span>
+                <span className="md-cal-arrow"><ChevronRight size={11} strokeWidth={2} /></span>
+                <span className="md-cal-today-btn">Vandaag</span>
               </div>
               <div className="md-tabs">
                 <span className="md-tab">Dag</span>
+                <span className="md-tab">Week</span>
                 <span className="md-tab active">Maand</span>
                 <span className="md-tab">Jaar</span>
               </div>
@@ -114,8 +164,14 @@ function MiniDashboard() {
                 if (!cell) return <div key={i} className="md-cal-day empty"></div>;
                 return (
                   <div key={i} className={`md-cal-day lvl-${cell.lvl} ${cell.today ? "today" : ""}`}>
-                    <span>{cell.d}</span>
-                    <span className="md-cal-pct">{cell.p}%</span>
+                    <span className="md-cal-top">
+                      {cell.d}
+                      {cell.fire && <Flame className="md-cal-fire" size={9} />}
+                    </span>
+                    <span className="md-cal-bottom">
+                      {cell.mail && <Mail className="md-cal-mark" size={8} strokeWidth={2} />}
+                      <span className="md-cal-pct">{cell.p}%</span>
+                    </span>
                   </div>
                 );
               })}
@@ -125,28 +181,52 @@ function MiniDashboard() {
           {/* Filly chat */}
           <div className="md-chat">
             <div className="md-chat-head">
-              <div className="md-chat-avatar"></div>
-              <div className="md-chat-name">Filly</div>
-              <div className="md-chat-status">online</div>
+              <div className="md-chat-avatar">F</div>
+              <div style={{ minWidth: 0 }}>
+                <div className="md-chat-name">Filly AI</div>
+                <div className="md-chat-sub">Marketing-assistent</div>
+              </div>
+              <div className="md-chat-head-right">
+                <span className="md-chat-convos">Gesprekken<ChevronDown size={9} strokeWidth={2} /></span>
+                <span className="md-chat-status">Online</span>
+              </div>
             </div>
             <div className="md-chat-body">
+              {/* Proactief: Filly herkent zélf een rustige dag en zet een
+                  kant-en-klare multi-channel campagne klaar. Jij keurt
+                  alleen nog goed — precies de belofte van de Oplossing-
+                  pagina ("AI dóet het werk. Jij keurt goed."). */}
               <div className="md-chat-msg ai">
-                Donderdag 9 april zit op 38%. Zal ik een lunchactie mailen naar je vaste gasten?
+                Dinsdag 3 juni staat op <strong>43%</strong>, ruim onder je gemiddelde. Ik heb hier al een actie voor klaargezet&nbsp;👇
               </div>
-              <div className="md-chat-proposal">
-                <div className="md-prop-title">Lunchactie · 3-gangen €24,50</div>
-                <div className="md-prop-meta">E-mail · 248 ontvangers · verzending donderdag 11:00</div>
-                <div className="md-prop-actions">
-                  <span className="md-prop-btn primary">Goedkeuren</span>
-                  <span className="md-prop-btn">Bekijk versies →</span>
+
+              <div className="md-proposal">
+                <div className="md-proposal-head">
+                  <span className="md-proposal-title">Last-minute lunchdeal</span>
+                  <span className="md-proposal-date">di 3 juni</span>
+                </div>
+                <div className="md-proposal-channels">
+                  {PROPOSAL_CHANNELS.map((c) => (
+                    <span key={c.label} className="md-ch-chip">
+                      <c.Icon size={9} strokeWidth={2} />
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="md-proposal-meta">Naar 248 vaste gasten · verstuurt automatisch di 11:00</div>
+                <div className="md-proposal-impact">
+                  <TrendingUp size={11} strokeWidth={2} />
+                  +18 couverts verwacht
+                </div>
+                <div className="md-proposal-actions">
+                  <span className="md-proposal-btn primary">Goedkeuren</span>
+                  <span className="md-proposal-btn">Aanpassen</span>
                 </div>
               </div>
-              <div className="md-chat-msg user">Verstuur naar 248 gasten</div>
-              <div className="md-chat-msg ai">Top. Verstuurd naar 248 gasten ✓</div>
             </div>
             <div className="md-chat-input">
-              <div className="md-chat-input-text">Stel Filly een vraag…</div>
-              <div className="md-chat-send">↑</div>
+              <div className="md-chat-input-text">Vraag Filly iets…</div>
+              <div className="md-chat-send"><Send size={10} strokeWidth={2} /></div>
             </div>
           </div>
         </div>

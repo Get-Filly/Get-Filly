@@ -150,7 +150,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: var(--bg);
   border-radius: 4px;
   overflow: hidden;
-  aspect-ratio: 16 / 10;
+  /* 3:2 i.p.v. 16:10 — iets meer verticale ruimte zodat het rijkere
+     dashboard (banners + 4 KPI's + kalender + Filly-chat met campagne-
+     widget) volledig in beeld past. Leest nog steeds als een laptop. */
+  aspect-ratio: 3 / 2;
   position: relative;
 }
 
@@ -177,7 +180,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    Layout: sidebar links · main content rechts (KPIs + cal + chat) */
 .mini-dash {
   display: grid;
-  grid-template-columns: 168px 1fr;
+  grid-template-columns: 150px 1fr;
   height: 100%;
   font-size: 10px;
   color: var(--text);
@@ -188,42 +191,43 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .md-sidebar {
   background: var(--white);
   border-right: 1px solid var(--border);
-  padding: 14px 10px;
+  padding: 12px 9px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   overflow: hidden;
 }
 .md-workspace {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: 7px;
+  padding: 7px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 .md-avatar {
-  width: 24px; height: 24px;
+  width: 22px; height: 22px;
   border-radius: 6px;
   background: var(--accent);
   color: var(--true-white);
   display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700;
+  font-size: 8.5px; font-weight: 700;
   flex-shrink: 0;
 }
-.md-ws-name { font-size: 10px; font-weight: 600; line-height: 1.2; }
-.md-ws-role { font-size: 8.5px; color: var(--text-light); margin-top: 1px; line-height: 1.2; }
+.md-ws-name { font-size: 9.5px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-ws-role { font-size: 8px; color: var(--text-light); margin-top: 1px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-ws-chevron { color: var(--text-light); flex-shrink: 0; }
 
 .md-section-label {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--text-light);
-  padding: 0 6px 4px;
+  padding: 0 6px 5px;
 }
-.md-nav { display: flex; flex-direction: column; gap: 1px; }
+.md-nav { display: flex; flex-direction: column; gap: 2px; }
 .md-nav-item {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 8px;
@@ -233,18 +237,22 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-weight: 500;
 }
 .md-nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+/* Lijn-icoon links; gedempt grijs (currentColor), ook bij het actieve
+   item — net als in de echte sidebar. */
 .md-nav-icon {
-  width: 14px; text-align: center;
-  font-size: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px;
+  color: var(--text-light);
   flex-shrink: 0;
 }
+.md-nav-item.active .md-nav-icon { color: var(--text-light); }
 
 /* Main */
 .md-main {
-  padding: 14px;
+  padding: 11px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
   overflow: hidden;
 }
 
@@ -253,54 +261,89 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 4px;
 }
 .md-page-title { font-size: 13px; font-weight: 700; letter-spacing: -0.3px; }
-.md-page-sub { font-size: 9px; color: var(--text-light); margin-top: 1px; }
-.md-pill {
+.md-top-actions { display: flex; align-items: center; gap: 8px; }
+.md-sync { font-size: 8.5px; color: var(--text-light); }
+.md-icon-btn {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+/* Alert-strook: 2 banners + groene CTA */
+.md-alerts {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+}
+.md-alert-stack {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.md-alert {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  /* Rode accent-streep links, zoals de signaalbanners op het dashboard. */
+  box-shadow: inset 3px 0 0 0 #b91c1c;
+  padding: 5px 9px;
+  font-size: 9px;
+  line-height: 1.35;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-alert strong { font-weight: 700; }
+.md-cta-btn {
+  flex-shrink: 0;
+  width: 25%;
   background: var(--accent);
   color: var(--true-white);
-  font-size: 8.5px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-size: 9.5px; font-weight: 600;
+  padding: 6px 8px;
 }
 
 /* KPI row */
 .md-kpi-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 .md-kpi {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 9px;
+  padding: 6px 8px;
 }
 .md-kpi-label {
-  font-size: 8px;
+  font-size: 7.5px;
   color: var(--text-light);
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .md-kpi-val { font-size: 16px; font-weight: 700; letter-spacing: -0.5px; margin-top: 2px; }
 .md-kpi-extra {
-  font-size: 8.5px;
+  font-size: 8px;
   margin-top: 2px;
   color: var(--text-light);
 }
-.md-kpi-extra.positive { color: var(--accent); font-weight: 600; }
 
 /* Body grid: calendar + chat */
 .md-body {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 10px;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 9px;
   flex: 1;
   min-height: 0;
 }
@@ -310,7 +353,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 12px;
+  padding: 11px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -322,7 +365,23 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   justify-content: space-between;
 }
 .md-card-title { font-size: 11px; font-weight: 700; letter-spacing: -0.2px; }
-.md-card-sub { font-size: 9px; color: var(--text-light); }
+/* Maand-navigatie: ‹ Mei 2026 › + Vandaag-knop */
+.md-cal-nav { display: flex; align-items: center; gap: 5px; }
+.md-cal-arrow {
+  width: 16px; height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+}
+.md-cal-today-btn {
+  font-size: 8.5px; font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  margin-left: 2px;
+}
 .md-tabs {
   display: flex;
   gap: 2px;
@@ -331,8 +390,8 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   padding: 2px;
 }
 .md-tab {
-  font-size: 9px; font-weight: 500;
-  padding: 3px 8px;
+  font-size: 8.5px; font-weight: 500;
+  padding: 3px 7px;
   border-radius: 4px;
   color: var(--text-secondary);
 }
@@ -346,20 +405,20 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   flex: 1;
 }
 .md-cal-dow {
-  font-size: 7.5px;
+  font-size: 7px;
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-light);
   text-align: center;
   letter-spacing: 0.4px;
-  padding-bottom: 2px;
+  padding-bottom: 1px;
 }
 .md-cal-day {
   position: relative;
   border-radius: 4px;
   padding: 3px 4px;
-  min-height: 26px;
-  font-size: 9px;
+  min-height: 0;
+  font-size: 8.5px;
   font-weight: 600;
   color: var(--text);
   display: flex;
@@ -370,16 +429,20 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .md-cal-day.empty { background: transparent; }
 .md-cal-day.today { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
+.md-cal-top { display: flex; align-items: center; justify-content: space-between; gap: 2px; line-height: 1; }
+.md-cal-fire { color: #d97706; flex-shrink: 0; }
+.md-cal-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.md-cal-mark { color: var(--text-light); opacity: 0.65; flex-shrink: 0; }
 .md-cal-pct {
   font-size: 7.5px;
   font-weight: 600;
-  align-self: flex-end;
   opacity: 0.85;
 }
-/* Color tiers, match dashboard heatmap */
-.md-cal-day.lvl-0 { background: rgba(176,87,79,0.18); color: #7a3a36; } /* < 40% */
-.md-cal-day.lvl-1 { background: rgba(217,127,60,0.18); color: #8a4a1c; } /* 40-65 */
-.md-cal-day.lvl-2 { background: rgba(217,127,60,0.32); color: #6a3a14; } /* 65-80 */
+/* Kleurtiers — pink (laag) → tan (midden) → groen (hoog), zoals de
+   heatmap op het echte dashboard. */
+.md-cal-day.lvl-0 { background: rgba(176,87,79,0.22); color: #7a3a36; } /* < 40% */
+.md-cal-day.lvl-1 { background: rgba(176,87,79,0.14); color: #8a4a45; } /* 40-65 */
+.md-cal-day.lvl-2 { background: rgba(217,160,90,0.34); color: #6a3a14; } /* 65-80 */
 .md-cal-day.lvl-3 { background: rgba(45,90,63,0.20); color: #1f4a2d; } /* 80-95 */
 .md-cal-day.lvl-4 { background: rgba(45,90,63,0.40); color: #0e2b17; } /* 95+ */
 
@@ -393,18 +456,31 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   overflow: hidden;
 }
 .md-chat-head {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 12px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 11px;
   border-bottom: 1px solid var(--border);
 }
 .md-chat-avatar {
-  width: 18px; height: 18px;
+  width: 20px; height: 20px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--highlight));
+  color: var(--true-white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+  flex-shrink: 0;
 }
-.md-chat-name { font-size: 10px; font-weight: 700; }
+.md-chat-name { font-size: 10px; font-weight: 700; line-height: 1.2; }
+.md-chat-sub { font-size: 8px; color: var(--text-light); line-height: 1.2; }
+.md-chat-head-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.md-chat-convos {
+  display: flex; align-items: center; gap: 2px;
+  font-size: 8px; font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 5px;
+}
 .md-chat-status {
-  margin-left: auto;
   font-size: 8.5px;
   color: var(--accent);
   display: flex;
@@ -419,46 +495,67 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: var(--accent);
 }
 .md-chat-body {
-  padding: 10px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
   overflow: hidden;
 }
 .md-chat-msg {
-  padding: 7px 10px;
-  border-radius: 10px;
-  font-size: 9.5px;
-  line-height: 1.45;
-  max-width: 92%;
+  padding: 5px 9px;
+  border-radius: 9px;
+  font-size: 9px;
+  line-height: 1.35;
+  max-width: 90%;
 }
 .md-chat-msg.ai { background: var(--bg); color: var(--text); align-self: flex-start; }
 .md-chat-msg.user { background: var(--accent); color: var(--true-white); align-self: flex-end; }
-.md-chat-proposal {
-  background: var(--bg);
+
+/* Proactieve voorstel-kaart: Filly heeft de campagne al klaargezet,
+   jij keurt alleen nog goed. Volle breedte van de chat-body. */
+.md-proposal {
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 10px;
-  align-self: flex-start;
-  width: 92%;
+  padding: 8px 9px;
+  /* Linker accent-streep in brand-groen — "Filly heeft dit gemaakt". */
+  box-shadow: inset 3px 0 0 0 var(--accent);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
-.md-prop-title { font-size: 9.5px; font-weight: 700; }
-.md-prop-meta { font-size: 8.5px; color: var(--text-light); }
-.md-prop-actions { display: flex; gap: 4px; margin-top: 2px; }
-.md-prop-btn {
-  font-size: 8.5px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 5px;
+.md-proposal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.md-proposal-title { font-size: 9.5px; font-weight: 700; }
+.md-proposal-date { font-size: 8px; font-weight: 600; color: var(--text-light); flex-shrink: 0; }
+.md-proposal-channels { display: flex; gap: 4px; flex-wrap: wrap; }
+.md-ch-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 7.5px; font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.md-proposal-meta { font-size: 8px; color: var(--text-light); line-height: 1.3; }
+.md-proposal-impact {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 8.5px; font-weight: 700;
+  color: var(--accent);
+}
+.md-proposal-actions { display: flex; gap: 5px; margin-top: 1px; }
+.md-proposal-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 8.5px; font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--text);
 }
-.md-prop-btn.primary { background: var(--accent); color: var(--true-white); border-color: var(--accent); }
+.md-proposal-btn.primary { background: var(--accent); color: var(--true-white); border-color: var(--accent); }
 .md-chat-input {
   border-top: 1px solid var(--border);
   padding: 8px 10px;
@@ -477,14 +574,15 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   background: var(--accent);
   color: var(--true-white);
   display: flex; align-items: center; justify-content: center;
-  font-size: 9px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 880px) {
   .mini-dash { grid-template-columns: 1fr; }
   .md-sidebar { display: none; }
-  .md-kpi-row { grid-template-columns: repeat(3, 1fr); }
-  .md-kpi:nth-child(n+4) { display: none; }
+  .md-alerts { flex-direction: column; }
+  .md-cta-btn { width: 100%; padding: 8px; }
+  .md-kpi-row { grid-template-columns: repeat(2, 1fr); }
   .md-body { grid-template-columns: 1fr; }
 }
 
@@ -565,7 +663,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 [data-reveal].reveal-pending {
   opacity: 0;
   transform: translateY(26px);
-  transition: opacity .55s ease, transform .55s ease;
+  /* Zachte uitloop-easing (easeOutQuint) + ruime duur = rustige entree. */
+  transition:
+    opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 [data-reveal].reveal-pending.reveal-shown {
   opacity: 1;
@@ -584,9 +685,23 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   opacity: 1;
   transform: scale(1);
   transition:
-    transform .45s cubic-bezier(0.34, 1.56, 0.64, 1) .12s,
-    opacity .3s ease .12s;
+    transform 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) .2s,
+    opacity .6s ease .2s;
 }
+/* Horizontale kaart-rijen (.product-features-list = "Wat zit er in" op
+   /oplossing en "Wat ons drijft" op /about) cascaden links→rechts i.p.v.
+   allemaal tegelijk, zodat ze consistent één-voor-één oppoppen. Elk
+   bolletje krijgt dezelfde stagger + de basis-0,15s pop-delay erbovenop. */
+.product-features-list [data-reveal]:nth-child(2) { transition-delay: .2s; }
+.product-features-list [data-reveal]:nth-child(3) { transition-delay: .4s; }
+.product-features-list [data-reveal]:nth-child(4) { transition-delay: .6s; }
+.product-features-list [data-reveal]:nth-child(5) { transition-delay: .8s; }
+.product-features-list [data-reveal]:nth-child(6) { transition-delay: 1s; }
+.product-features-list [data-reveal]:nth-child(2).reveal-shown .hero-diff-num { transition-delay: .4s; }
+.product-features-list [data-reveal]:nth-child(3).reveal-shown .hero-diff-num { transition-delay: .6s; }
+.product-features-list [data-reveal]:nth-child(4).reveal-shown .hero-diff-num { transition-delay: .8s; }
+.product-features-list [data-reveal]:nth-child(5).reveal-shown .hero-diff-num { transition-delay: 1s; }
+.product-features-list [data-reveal]:nth-child(6).reveal-shown .hero-diff-num { transition-delay: 1.2s; }
 
 /* Per 2026-05-13: split-variant voor pijler 1 (Vindbaarheid).
    Geen unified card-achtergrond meer; tekst en visual krijgen elk
@@ -2703,11 +2818,11 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== ANIMATIONS ===== */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-.fade-up { opacity: 0; animation: fadeUp .6s ease forwards; }
-.fade-up.d1 { animation-delay: .1s; }
-.fade-up.d2 { animation-delay: .2s; }
-.fade-up.d3 { animation-delay: .3s; }
-.fade-up.d4 { animation-delay: .4s; }
+.fade-up { opacity: 0; animation: fadeUp 1.4s ease forwards; }
+.fade-up.d1 { animation-delay: .25s; }
+.fade-up.d2 { animation-delay: .5s; }
+.fade-up.d3 { animation-delay: .75s; }
+.fade-up.d4 { animation-delay: 1s; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 880px) {
