@@ -571,18 +571,16 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   opacity: 1;
   transform: none;
 }
-/* Bolletje-pop: het genummerde element binnen een onthuld item schaalt op
-   met een lichte overshoot, kort ná de item-fade. */
-[data-reveal].reveal-pending .hero-diff-num,
-[data-reveal].reveal-pending .walk-step,
-[data-reveal].reveal-pending .feature-eyebrow--pill {
+/* Bolletje-pop: alléén het genummerde cirkel-bolletje (.hero-diff-num) in de
+   "AI doet het werk / geen marketingkennis"-strips schaalt op met een lichte
+   overshoot, kort ná de kaart-fade. De inline pills (walkthrough-stappen) en
+   eyebrow-nummers poppen bewust NIET apart. */
+[data-reveal].reveal-pending .hero-diff-num {
   opacity: 0;
   transform: scale(0.5);
   transform-origin: left center;
 }
-[data-reveal].reveal-pending.reveal-shown .hero-diff-num,
-[data-reveal].reveal-pending.reveal-shown .walk-step,
-[data-reveal].reveal-pending.reveal-shown .feature-eyebrow--pill {
+[data-reveal].reveal-pending.reveal-shown .hero-diff-num {
   opacity: 1;
   transform: scale(1);
   transition:
@@ -1081,6 +1079,11 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .pillars-cta--compact .cta-btn {
   font-size: 14px;
   padding: 10px 22px;
+  /* De basis-.cta-btn heeft margin-top: 32px. Samen met de marge onder
+     de subtekst gaf dat een te groot, onrustig gat boven de knop in deze
+     compacte CTA. 4px houdt 'm dicht bij de tekst zodat het blok als één
+     geheel leest. */
+  margin-top: 4px;
 }
 
 /* ===== Filly chat mock (card 1), chat-window chrome + product-style bubbles ===== */
