@@ -31,7 +31,10 @@ export default function AboutPage() {
               scheidingslijn bovenaan, geen card-achtergrond. */}
           <div className="product-features-list">
             {missionPillars.map((p, i) => (
-              <div key={p.title} className="hero-diff" data-reveal>
+              // "Wat ons drijft" staat in beeld bij het laden van /about, dus
+              // on-load fade-up (gestaggerd) i.p.v. scroll-reveal — zo poppen
+              // tekst + bolletje wél netjes op.
+              <div key={p.title} className={`hero-diff fade-up d${i + 1}`}>
                 <div className="hero-diff-num">{String(i + 1).padStart(2, "0")}</div>
                 <h3 className="hero-diff-title">{p.title}</h3>
                 <p className="hero-diff-desc">{p.desc}</p>

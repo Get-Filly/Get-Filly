@@ -38,8 +38,10 @@ export function ScrollReveal() {
           }
         });
       },
-      // Trigger zodra ~15% van het item in beeld is.
-      { threshold: 0.15 },
+      // Trigger als het item ~15% in beeld is gescrolld (rootMargin -15%).
+      // Middenweg: laat genoeg dat je de fade ziet gebeuren (vooral bij de
+      // hoge oplossing-kaarten), maar niet zo laat als de eerdere -25%.
+      { threshold: 0, rootMargin: "0px 0px -15% 0px" },
     );
 
     items.forEach((el) => {
