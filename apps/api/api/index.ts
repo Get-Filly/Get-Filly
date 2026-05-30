@@ -136,10 +136,17 @@ export default async function handler(
   }
 
   // Delegeer naar express → Nest's router → matching controller +
-  // guards + pipes + handler. Type-cast is nodig omdat VercelRequest/
-  // Response Express's IncomingMessage/ServerResponse uitbreiden maar
-  // TS dat niet automatisch herkent (verschillende declaration-files).
-  cachedServer(
+  // guards + pipes + handler. Een express-app is runtime een request-
+  // handler-functie, maar het Express-type (@types/express v5) heeft géén
+  // call-signature meer — daarom casten we de instance naar de handler-
+  // signature. Req/Res worden óók gecast omdat VercelRequest/Response
+  // Express's IncomingMessage/ServerResponse uitbreiden via aparte
+  // declaration-files (TS herkent dat niet automatisch).
+  const expressApp = cachedServer as unknown as (
+    req: express.Request,
+    res: express.Response,
+  ) => void;
+  expressApp(
     req as unknown as express.Request,
     res as unknown as express.Response,
   );
