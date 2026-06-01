@@ -754,7 +754,7 @@
    strakke uitlijning, ongeacht of er een campagne-markering bij zit:
      - dag-nummer          linksboven
      - bezettings-%        rechtsonder
-     - campagne-megafoon   linksonder (optioneel, bij ingeplande campagne)
+     - campagne-megafoon   rechtsboven (optioneel, bij ingeplande campagne)
    Achtergrondkleur uit .lvl-0..lvl-4 modifier; tiers matchen mini-dash
    op de landingspagina maar met meer diepte (zie hieronder). */
 .dashboard-shell .cal-cell {
@@ -826,8 +826,8 @@
    leesbaar blijft als het dag-nummer. */
 .dashboard-shell .cal-campaign {
   position: absolute;
-  bottom: 5px;
-  left: 7px;
+  top: 4px;
+  right: 6px;
   display: flex;
   align-items: center;
   color: var(--text);
