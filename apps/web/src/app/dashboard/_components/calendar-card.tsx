@@ -18,6 +18,10 @@ import {
 } from "../_lib/hour-heatmap";
 import { ServiceGrid, type ServiceGridRow } from "./service-grid";
 import type { OccupancyDay, Restaurant } from "../../../lib/api";
+// Megafoon = hetzelfde "Campagnes"-icoon als in de sidebar (lucide-react).
+// Gebruikt als enige markering op een dag met een ingeplande campagne,
+// i.p.v. de oude per-kanaal-emoji's (✉️/📱/💬).
+import { Megaphone } from "lucide-react";
 
 type View = "dag" | "week" | "maand" | "jaar";
 
@@ -59,12 +63,6 @@ function occupancyTier(pct: number): number {
 }
 
 /**
- * Emoji per campagne-type voor de kalender-cel. Vervangt de oude
- * cal-dots zodat de eigenaar in één oogopslag ziet wélk soort campagne
- * er op een dag staat (mail / social / whatsapp), niet alleen dat er
- * iets staat.
- */
-/**
  * Format een week-range als "5 - 11 mei" of "27 apr - 3 mei" (over
  * maand-grens). Gebruikt door de prev/next-label in week-view.
  */
@@ -76,13 +74,6 @@ function formatWeekRange(start: Date, end: Date): string {
     return `${start.getDate()} - ${end.getDate()} ${eMonth}`;
   }
   return `${start.getDate()} ${sMonth} - ${end.getDate()} ${eMonth}`;
-}
-
-function campaignEmoji(type: string): string {
-  if (type === "mail") return "✉️";
-  if (type === "social") return "📱";
-  if (type === "whatsapp") return "💬";
-  return "•";
 }
 
 // Uur-data voor dag/week-view komt uit _lib/hour-heatmap (gedeeld met
@@ -282,18 +273,16 @@ export function CalendarCard({
                   >
                     <div className="cal-dn">{cell.day}</div>
                     <div className="cal-occ">{cell.occupancy}%</div>
-                    {cell.occupancy >= 95 && (
-                      <div className="cal-hot" title="Topdag">
-                        🔥
-                      </div>
-                    )}
                     {cell.campaigns.length > 0 && (
-                      <div className="cal-emojis">
-                        {cell.campaigns.map((c, idx) => (
-                          <span key={idx} className="cal-emoji" title={c}>
-                            {campaignEmoji(c)}
-                          </span>
-                        ))}
+                      <div
+                        className="cal-campaign"
+                        title={
+                          cell.campaigns.length === 1
+                            ? "Campagne ingepland"
+                            : `${cell.campaigns.length} campagnes ingepland`
+                        }
+                      >
+                        <Megaphone size={13} strokeWidth={1.75} aria-hidden />
                       </div>
                     )}
                   </div>
