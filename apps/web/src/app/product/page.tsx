@@ -304,10 +304,18 @@ export default function ProductPage() {
                     <div className="pmock-result-eyebrow">DONDERDAG-CAMPAGNE &middot; AFGEROND</div>
                     <div className="pmock-result-headline">Donderdagavond, van 38% naar 84%</div>
                   </div>
-                  <div className="pmock-result-stats">
+                  {/* Drie stats: reserveringen · klanten · eindbezetting.
+                      De grid-kolommen zet ik inline op 3 (landing.css staat op
+                      2) zodat dit blijft kloppen als landing.css ooit opnieuw
+                      vanuit de design-bron wordt overschreven. */}
+                  <div className="pmock-result-stats" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                     <div className="pmock-result-stat">
                       <div className="pmock-result-stat-num">+12</div>
                       <div className="pmock-result-stat-label">extra reserveringen</div>
+                    </div>
+                    <div className="pmock-result-stat">
+                      <div className="pmock-result-stat-num">+34</div>
+                      <div className="pmock-result-stat-label">extra klanten</div>
                     </div>
                     <div className="pmock-result-stat">
                       <div className="pmock-result-stat-num">84%</div>
