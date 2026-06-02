@@ -390,7 +390,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Notifications-bell** werkend
 - [ ] **Keyboard shortcuts** overzicht
 - [ ] **Export CSV/PDF** per pagina (gasten, reserveringen, rapportages)
-- [x] ~~**Mobile responsive pass**~~ (2026-04-30) — alle 5 fasen afgerond. Sidebar wordt offcanvas onder 1024px (☰-burger in topbar), dash-body 1-kolom op tablet, KPI-row 5→2→1 cols, weather-row auto-fit (geen doormidden gesneden dagen meer), tabellen horizontaal scrollbaar binnen container, modals full-screen onder 768px, save-bar sticky bottom op mobile, publieke site (navbar/login/legal) ook mee. Breakpoints: 1024 / 768 / 480.
+- [x] ~~**Mobile responsive pass**~~ (2026-04-30) — alle 5 fasen afgerond. Sidebar wordt offcanvas onder 1024px (☰-burger in topbar), dash-body 1-kolom op tablet, KPI-row 5→2→1 cols, weather-row auto-fit (geen doormidden gesneden dagen meer), tabellen horizontaal scrollbaar binnen container, modals full-screen onder 768px, save-bar sticky bottom op mobile, publieke site (navbar/login/legal) ook mee. Breakpoints: 1024 / 768 / 480. **Aanvulling 2026-06-02**: vervolg-sweep fixte resterende gaten die deze pass miste — échte hamburger-navbar < 880px, dashboard scrollt op mobiel (kalender werd 0px hoog), kalenderkop-toggle wrapt, half-scherm 2-koloms, social-waaier/hero-mockup/tijdlijn/legal+rauwe tabellen. Zie changelog 2026-06-02.
 - [ ] **i18n (EN)** — engels voor internationale klanten later
 
 ### Onboarding nieuwe klant
@@ -453,7 +453,7 @@ progress-checklists herschreven.
     voor jose@6 ESM-only. CORS leest `WEB_URL` + `CORS_ORIGINS` uit env.
   - Vercel env `NEXT_PUBLIC_API_URL` wijst naar Railway-URL.
   - CI groen sinds Suspense-fix `28bdfe2`.
-- App is volledig responsive (1024 / 768 / 480 breakpoints).
+- App is responsive op 320–1280px (geen horizontale pagina-scroll). Dashboard-breakpoints 1280/1024/900/768/480, publiek 880/640/480/360. Sweep-2 op 2026-06-02 (zie changelog) fixte de resterende mobiel-gaten.
 - Tool-use migratie compleet — geen JSON.parse-fouten meer mogelijk.
 - **Per-request Supabase-client live (2026-05-01)** — RLS-policies
   blokkeren cross-tenant reads/writes hard op DB-niveau. Alleen
@@ -604,6 +604,34 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-06-02 — Responsive-sweep deel 2 (publiek + dashboard mobiel)
+
+Commits `174e924` → `e2b42c8`. Vervolg op de mobile-responsive-pass van
+2026-04-30; die liet gaten die op echte telefoon-/tablet-breedtes opvielen.
+Gevonden + gefixt, geverifieerd via browser-preview op 320/360/375/500/700/
+768/900/1024/1280px (dashboard mét echte data via lokale API).
+
+**Publiek (landing.css / globals.css / navbar.tsx / landing-visuals.css):**
+- Navbar klapte niet écht in (lettertype kromp alleen) → echt **hamburger-menu < 880px** (`.nav-menu` display:contents op desktop, uitklap-paneel mobiel).
+- Social-post-waaier (`.lv-social`) liep buiten beeld → **compact tot 640px** + extra-compact ≤360px (de feature-rij stapelt al vanaf 880, maar de desktop-waaier ~424px past pas vanaf ~640 in die kolom).
+- Hero-laptop-mockup: toont op telefoon nu het **volledige dashboard geschaald** (3:2, vaste 300px-laptop + transform:scale) i.p.v. afgekapt; ruimte eronder strakker.
+- Kanaal-mockup (`.pmock-channels`) overflow → `min-width:0` op grid-items.
+- /about-tijdlijn: jaar-markers bij `zig-left`-items stonden ónder de kaart i.p.v. ernaast → `grid-row:1` op marker + kaart.
+- Legal-tabellen (/privacy, /voorwaarden): rauwe `<table>` met inline width, geen scroll-fallback → `.legal-section table` horizontaal scrollbaar < 768px.
+
+**Dashboard (dashboard.css):**
+- Half-scherm (901–1024px): kalender + chat bleven gestapeld terwijl er plek was → **2-koloms tot 900px**, stapelen pas ≤900.
+- Kalendercel-% liep tegen de randen op kleine telefoons → kleiner < 480px.
+- Dag/Week/Maand/Jaar-toggle in de kalenderkop werd afgekapt → `.cal-controls` mag wrappen.
+- **Kalender werd 0px hoog** in de gestapelde mobiele layout: het dashboard stond als app-shell op schermhoogte vast (`.dashboard-shell`/`.main` fixed + overflow:hidden) → op **≤900px de hoogte-lock losgelaten** zodat de héle pagina scrollt (kalender + chat volledig); topbar + offcanvas-sidebar `position:fixed` zodat ze tijdens scrollen blijven staan. Desktop + 901–1024px (2-koloms) ongewijzigd.
+- Rauwe `<table>`'s op detail-subpagina's (marketing-kanalen, GBP-audit) ook scroll-fallback (`table:not(.data-table)` ≤1024px).
+
+Resultaat: geen horizontale pagina-scroll meer op 320–1280px, op alle publieke
+pagina's + de dashboard-hoofdpagina's. **Lokaal verifiëren**: dashboard met
+data vereist de Nest-API op 3001 én CORS voor de web-poort (web op :3000 of
+`CORS_ORIGINS=http://localhost:<poort>` meegeven — anders is "Geen toegang"
+een CORS-fout, géén rechten-probleem).
 
 ### 2026-05-21 (laat) — Vindbaarheid-hub + Identiteit-verhuizing + progress-checklists
 
