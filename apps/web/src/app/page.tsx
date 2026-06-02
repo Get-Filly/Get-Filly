@@ -282,11 +282,10 @@ export default function HomePage() {
           <ScrollReveal />
           <div className="features-stack">
             {/* Pijler 1 — Vindbaarheid (Google/SEO/AI-zoekmachines).
-                Visual: Get-Filly-platform-mind-map (integraties met
-                Google Business, Tripadvisor, TheFork, OpenTable,
-                Kaarten, ChatGPT, Claude, Gemini). Per 2026-05-13
-                op verzoek van Floris vervangt deze de oude
-                Instagram-mockup. */}
+                Visual = VindbaarheidVisual: statische mockup met een
+                Google-zoekresultaat (#1), een AI-chat die het restaurant
+                aanbeveelt (GEO) en een review-kaart met eigenaar-antwoord.
+                Per 2026-06-02 vervangt deze de oude geanimeerde hub. */}
             <div className="feature-row">
               <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
@@ -305,21 +304,15 @@ export default function HomePage() {
                 </ul>
               </div>
               <div className="feature-row-visual">
-                {/* Geanimeerde Get-Filly hub die cyclisch verbinding
-                    maakt met de 8 zoek/AI-platforms. Letter-cirkels
-                    zijn placeholder; latere fase kan ze door echte
-                    SVG-brand-logos vervangen. */}
                 <VindbaarheidVisual />
               </div>
             </div>
 
             {/* Pijler 2 — Zichtbaarheid (social media, content,
-                white-label). Per 2026-05-21: tekst en visual
-                staan nu elk in een eigen --card (zelfde patroon
-                als pijler 1) + de visual is een dynamische
-                hybride HTML+SVG-component met platform-mini-
-                cards die sequentieel popen + groene content-
-                pulsen vanaf Filly. */}
+                white-label). Visual = ZichtbaarheidVisual: drie
+                overlappende social-posts (Facebook · TikTok · Instagram)
+                met echte foto's uit public/visuals/, die via de
+                scroll-reveal na elkaar opkomen. */}
             <div className="feature-row feature-row--reverse">
               <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
@@ -344,9 +337,9 @@ export default function HomePage() {
             </div>
 
             {/* Pijler 3 — Bereikbaarheid (e-mail, WhatsApp,
-                segmentatie). Per 2026-05-21: tekst + visual nu in
-                hetzelfde --split-patroon als pijler 1 + 2 zodat
-                alle 3 pijlers visueel consistent zijn. */}
+                segmentatie). Visual = BereikbaarheidVisual: een
+                e-mailcampagne-kaart + een WhatsApp-gesprek met echte
+                chat-chrome. Per 2026-06-02; vervangt de losse fmock-email. */}
             <div className="feature-row">
               <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
