@@ -218,9 +218,12 @@
    de hele waaier ~0,7× terug: kaarten 150px en dezelfde fan-verhouding
    als desktop (zelfde overlap/spreiding), in een gecentreerde 280px-box.
    Zo blijft de waaier luchtig i.p.v. de kaarten dik op elkaar te duwen.
-   Alleen onder 480px: daarboven is de gestapelde kolom breed genoeg.
+   Tot 640px: de feature-rij is al gestapeld vanaf 880px, maar de
+   desktop-waaier (~424px breed) past pas vanaf ~640px in die ene kolom.
+   Tussen 481–640px liep 'ie daardoor scheef/over de rand — vandaar dit
+   breekpunt op 640 i.p.v. 480.
    ============================================================ */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .lv-social {
     width: min(280px, 100%);
     height: 334px;
