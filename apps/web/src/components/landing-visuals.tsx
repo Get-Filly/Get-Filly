@@ -90,27 +90,23 @@ export function VindbaarheidVisual() {
   );
 }
 
-// === 02 Zichtbaarheid: overlappende social-posts (cascade, alle bijschriften zichtbaar) ===
+// === 02 Zichtbaarheid: overlappende social-posts (TikTok eerst) ===
 export function ZichtbaarheidVisual() {
-  // Footer (logo + naam + bijschrift) staat ONDER de foto. In de cascade
-  // (zie landing-visuals.css) dekt de voorste kaart alleen de foto-bovenkant
-  // van de kaart erachter af, zodat elke footer er onderlangs uitsteekt en
-  // je per kanaal het logo + de volledige tekst leest. Likes/weergaves zijn
-  // bewust weggelaten (alleen de tekst telt).
   return (
     <div className="lv lv-social" aria-hidden="true">
-      {/* Facebook — achterste/onderste, popt als eerste op (foto: pasta) */}
+      {/* Facebook — achterste (foto: pasta), popt als eerste op */}
       <div className="lv-post-slot lv-post-1" data-reveal>
         <article className="lv-post">
+          <div className="lv-post-head">
+            <span className="lv-post-ic"><Logo id="facebook" /></span>
+            <span className="lv-post-name">Bistro Get-Filly</span>
+          </div>
           <div className="lv-post-media lv-media-fb">
             <img src="/visuals/facebook.jpg" alt="" loading="lazy" />
           </div>
           <div className="lv-post-foot">
-            <div className="lv-post-by">
-              <span className="lv-post-ic"><Logo id="facebook" size={16} /></span>
-              <span className="lv-post-name">Bistro Get-Filly</span>
-            </div>
             <div className="lv-post-cap">Verse pasta, elke dag huisgemaakt &#127837;</div>
+            <div className="lv-post-stats">&#128077; 132 &middot; 27 keer gedeeld</div>
           </div>
         </article>
       </div>
@@ -118,31 +114,34 @@ export function ZichtbaarheidVisual() {
       {/* TikTok — midden (foto: wokpan) */}
       <div className="lv-post-slot lv-post-2" data-reveal>
         <article className="lv-post">
+          <div className="lv-post-head">
+            <span className="lv-post-ic"><Logo id="tiktok" /></span>
+            <span className="lv-post-name">@bistrogetfilly</span>
+          </div>
           <div className="lv-post-media lv-media-tt">
             <img src="/visuals/tiktok.jpg" alt="" loading="lazy" />
+            <span className="lv-post-tag">&#9654; 12k</span>
           </div>
           <div className="lv-post-foot">
-            <div className="lv-post-by">
-              <span className="lv-post-ic"><Logo id="tiktok" size={16} /></span>
-              <span className="lv-post-name">@bistrogetfilly</span>
-            </div>
             <div className="lv-post-cap">Achter de schermen in de keuken &#128293;</div>
+            <div className="lv-post-stats">&#9829; 1.204 &middot; 89 reacties</div>
           </div>
         </article>
       </div>
 
-      {/* Instagram — voorste, bovenop (foto: sfeer/ambiance) */}
+      {/* Instagram — voorste (foto: sfeer/ambiance) */}
       <div className="lv-post-slot lv-post-3" data-reveal>
         <article className="lv-post">
+          <div className="lv-post-head">
+            <span className="lv-post-ic"><Logo id="instagram" /></span>
+            <span className="lv-post-name">bistro_getfilly</span>
+          </div>
           <div className="lv-post-media lv-media-ig">
             <img src="/visuals/instagram.jpg" alt="" loading="lazy" />
           </div>
           <div className="lv-post-foot">
-            <div className="lv-post-by">
-              <span className="lv-post-ic"><Logo id="instagram" size={16} /></span>
-              <span className="lv-post-name">bistro_getfilly</span>
-            </div>
             <div className="lv-post-cap">Donderdag livemuziek &#127926; Reserveer op tijd!</div>
+            <div className="lv-post-stats">&#9829; 1.248 &middot; 214 reacties</div>
           </div>
         </article>
       </div>
