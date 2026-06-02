@@ -119,7 +119,7 @@
    wordt terwijl de waaier overlap houdt. De ruime/negatieve offsets vallen
    in de witruimte van de kolom, dus clipt niet. Instagram (voorste) blijft. */
 .lv-post-1 { top: -26px; left: -34px; z-index: 1; }
-.lv-post-2 { top: 40px;  left: 174px; z-index: 2; }
+.lv-post-2 { top: -30px; left: 174px; z-index: 2; }
 .lv-post-3 { top: 192px; left: 40px;  z-index: 3; }
 /* Social-posts iets trager + duidelijker na elkaar laten opkomen. */
 .lv-social [data-reveal]:nth-child(2) { transition-delay: 0.45s; }
