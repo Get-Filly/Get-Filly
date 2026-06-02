@@ -18,7 +18,18 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+/* Smooth scrollen ALLEEN bij een echte anker-sprong (een #hash in de
+   URL, bv. footer → "Hoe het werkt", /about#team, /privacy#cookies).
+   Niet globaal op <html>, want dan animeert de browser óók de scroll-
+   naar-boven die Next.js bij elke route-wissel doet: dan rendert een
+   nieuwe pagina even op de oude (naar beneden gescrolde) positie en zie
+   je 'm zichtbaar omhoog scrollen i.p.v. meteen bovenaan te landen.
+   Met :has(:target) staat smooth alleen aan zodra er daadwerkelijk een
+   #sectie als doel is; gewone paginawissels (geen hash) springen direct
+   naar boven. Uit bij prefers-reduced-motion (toegankelijkheid). */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(:target) { scroll-behavior: smooth; }
+}
 
 body {
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;

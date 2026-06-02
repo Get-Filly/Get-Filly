@@ -207,23 +207,25 @@
 
 /* ============================================================
    Telefoon: de social-post-waaier (.lv-social) bestaat uit absoluut
-   gepositioneerde kaarten van 216px breed op offsets tot left:150px;
-   samen ~366px breed. Ontworpen voor de brede desktop-kolom, maar op
-   telefoons (kolom < ~370px) steekt 'ie buiten het scherm. Hier
-   verkleinen we de kaarten + krimpen de offsets, en geven .lv-social
-   een vaste 210px-box met margin:auto zodat de hele waaier netjes
-   gecentreerd binnen de kolom valt i.p.v. eruit te lopen.
+   gepositioneerde kaarten van 216px breed op offsets tot ~links 172px;
+   samen ~400px breed. Ontworpen voor de brede desktop-kolom, maar op
+   telefoons (kolom < ~370px) steekt 'ie buiten het scherm. We schalen
+   de hele waaier ~0,7× terug: kaarten 150px en dezelfde fan-verhouding
+   als desktop (zelfde overlap/spreiding), in een gecentreerde 280px-box.
+   Zo blijft de waaier luchtig i.p.v. de kaarten dik op elkaar te duwen.
    Alleen onder 480px: daarboven is de gestapelde kolom breed genoeg.
    ============================================================ */
 @media (max-width: 480px) {
   .lv-social {
-    width: 210px;
-    height: 330px;
+    width: min(280px, 100%);
+    height: 334px;
     margin: 0 auto;
   }
   .lv-post { width: 150px; }
-  .lv-post-media { height: 92px; }
+  .lv-post-media { height: 89px; }
+  /* Offsets = desktop-posities × ~0,7 (en naar 0 verschoven), zodat de
+     spreiding/overlap exact die van de desktop-waaier volgt. */
   .lv-post-1 { top: 0;    left: 0;    }
-  .lv-post-2 { top: 40px; left: 58px; }
-  .lv-post-3 { top: 132px; left: 24px; }
+  .lv-post-2 { top: 57px;  left: 130px; }
+  .lv-post-3 { top: 140px; left: 38px;  }
 }

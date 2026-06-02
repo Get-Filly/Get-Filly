@@ -1046,6 +1046,11 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
     transform: scale(0.2833);
     transform-origin: top left;
   }
+  /* De laptop is op telefoon kleiner (vaste 300px); de ruime hero-onder-
+     en features-boven-padding (samen ~180px) oogt daardoor als een groot
+     leeg gat onder de mockup. Op telefoon strakker trekken. */
+  .hero { padding-bottom: 40px; }
+  .features { padding-top: 48px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
