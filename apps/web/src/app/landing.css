@@ -577,14 +577,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   flex-shrink: 0;
 }
 
-@media (max-width: 880px) {
-  .mini-dash { grid-template-columns: 1fr; }
-  .md-sidebar { display: none; }
-  .md-alerts { flex-direction: column; }
-  .md-cta-btn { width: 100%; padding: 8px; }
-  .md-kpi-row { grid-template-columns: repeat(2, 1fr); }
-  .md-body { grid-template-columns: 1fr; }
-}
+/* Mini-dash (laptop-mockup) responsive: tot ~640px past de volledige
+   desktop-layout nog gewoon in het 3:2-scherm (alleen kleiner). Op
+   telefoon (≤640px) tonen we exact diezelfde layout maar als geheel
+   teruggeschaald — zie het ≤640px-blok verderop. De vroegere mobiele
+   "stapel"-reflow (sidebar verbergen, 1 kolom) is daarmee vervallen:
+   die liet de mockup totaal niet meer op het echte dashboard lijken. */
 
 /* ===== FEATURES ===== */
 .features { background: var(--true-white); padding-top: 80px; padding-bottom: 96px; position: relative; overflow: hidden; }
@@ -1021,21 +1019,33 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   .zb-card-bullets li { font-size: 10px; }
 }
 
-/* Laptop-mockup (hero) op telefoon. Het volledige dashboard past niet
-   in een 3:2-scherm op deze breedte: alleen de bovensectie (signaal-
-   banners + 2×2 KPI's) is al ~280px hoog terwijl het scherm maar ~200px
-   is, waardoor de KPI-kaarten middendoor werden afgekapt. We laten het
-   scherm hier meegroeien met de inhoud (height:auto) en tonen een
-   complete bovensectie — header + banners + CTA + 4 KPI's — en
-   verbergen de kalender/chat-strook, die op telefoonbreedte tóch in een
-   onleesbaar sliver werd geperst. Resultaat: een nette, complete
-   mini-weergave i.p.v. een halve kaart. Boven 640px (tablet+) past het
-   volledige dashboard wél in het 3:2-scherm, dus daar verandert niets. */
+/* Laptop-mockup (hero) op telefoon. De mini-dash is met vaste px-maten
+   ontworpen voor een breed scherm (~960px); op telefoonbreedte zou de
+   150px-sidebar de helft van het scherm vullen en de tekst veel te groot
+   zijn. We tonen daarom de VOLLEDIGE desktop-layout (sidebar + 4 KPI's +
+   kalender + Filly-chat, identiek aan de echte app, foto 2) en schalen
+   die als één geheel terug met transform: scale — net als een echte
+   mini-screenshot.
+
+   De laptop krijgt een vaste breedte (300px, gecentreerd) zodat de
+   schaalfactor exact klopt en het dashboard het scherm precies vult:
+     scherm-breedte = 300px − 28px (zwarte lijst) = 272px
+     mini-dash-ontwerp = 960px → 960 × 0.2833 ≈ 272px
+     hoogte 640px (= 3:2 van 960) → 640 × 0.2833 ≈ 181px = scherm-hoogte
+   `min(300px, 100%)` voorkomt overflow op zeer smalle toestellen. */
 @media (max-width: 640px) {
-  .mac-screen { aspect-ratio: auto; height: auto; }
-  .mini-dash { height: auto; }
-  .md-body { display: none; }
-  .md-main { gap: 9px; padding: 12px; }
+  .hero-mockup {
+    width: min(300px, 100%);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .mini-dash {
+    /* desktop-layout (sidebar + main) blijft staan; alleen schalen */
+    width: 960px;
+    height: 640px;
+    transform: scale(0.2833);
+    transform-origin: top left;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
