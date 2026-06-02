@@ -164,14 +164,27 @@ export class SuggestionsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body()
-    body: { channels?: Array<'mail' | 'instagram' | 'facebook'> } | undefined,
+    body:
+      | {
+          channels?: Array<
+            'mail' | 'instagram' | 'facebook' | 'whatsapp' | 'google_business'
+          >;
+        }
+      | undefined,
   ) {
     // Frontend stuurt 'channels' vanuit de checkboxes mee; ongeselecteerde
-    // kanalen worden niet aangemaakt. Validatie van de waardes gebeurt
-    // in de service zodat we daar een nette NL-foutmelding produceren.
+    // kanalen worden niet aangemaakt. Sinds 2026-06-02 ook whatsapp +
+    // google_business. Validatie van de waardes gebeurt in de service.
+    const allowedBundleChannels = [
+      'mail',
+      'instagram',
+      'facebook',
+      'whatsapp',
+      'google_business',
+    ] as const;
     const validChannels = (body?.channels ?? []).filter(
-      (c): c is 'mail' | 'instagram' | 'facebook' =>
-        c === 'mail' || c === 'instagram' || c === 'facebook',
+      (c): c is (typeof allowedBundleChannels)[number] =>
+        (allowedBundleChannels as readonly string[]).includes(c),
     );
     return this.suggestions.approveBundle(
       restaurantId,
