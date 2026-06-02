@@ -3798,6 +3798,16 @@
     table-layout: fixed;
   }
 
+  /* Rauwe <table>'s zonder .data-table-class (marketing-kanalen, GBP-audit,
+     rapportage-detail): ook horizontaal scrollbaar maken zodat een brede
+     tabel de héle pagina niet laat overflowen op tablet/mobiel. Cellen
+     mogen gewoon wrappen; scrollt alleen als de inhoud écht breder is. */
+  .dashboard-shell table:not(.data-table) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Filter-tabs (campagnes/menu/etc): horizontaal scrollen ipv
      wrappen. Zie 't als chips die zijwaarts scrollen op mobile. */
   .dashboard-shell .tabs {
