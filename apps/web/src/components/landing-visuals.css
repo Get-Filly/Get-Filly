@@ -234,3 +234,14 @@
   .lv-post-2 { top: 57px;  left: 130px; }
   .lv-post-3 { top: 140px; left: 38px;  }
 }
+
+/* Allerkleinste telefoons (≤360px, bv. iPhone SE 1e gen / kleine Android):
+   de kolom is dan < 280px, waardoor de rechter post (lv-post-2) net buiten
+   de kolom viel en werd afgesneden. Kaarten + offsets nog iets compacter
+   zodat de hele waaier binnen ~248px past. */
+@media (max-width: 360px) {
+  .lv-post { width: 128px; }
+  .lv-post-media { height: 76px; }
+  .lv-post-2 { left: 104px; }
+  .lv-post-3 { left: 30px; }
+}
