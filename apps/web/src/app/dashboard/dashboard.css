@@ -641,6 +641,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Mag wrappen: nav (‹ Juni 2026 › Vandaag) + Dag/Week/Maand/Jaar-toggle
+     passen op een brede kalenderkaart op één rij, maar op een smallere
+     kaart (gestapelde/mobiele layout) liep de toggle over de rechterrand.
+     Met flex-wrap zakt de toggle dan netjes onder de navigatie i.p.v.
+     afgekapt te worden. row-gap 10 / column-gap 16. */
+  flex-wrap: wrap;
+  gap: 10px 16px;
 }
 .dashboard-shell .cal-nav { display: flex; align-items: center; gap: 10px; }
 .dashboard-shell .cal-nav-btn {
