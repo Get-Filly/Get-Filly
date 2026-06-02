@@ -33,7 +33,17 @@ import { addUtmToAllLinks } from '../common/utm';
 //   user-context, admin-flow)
 // ============================================================
 
+// Afzender voor mails die we NAMENS KLANTEN versturen (campagnes). Blijft
+// social@ — dit is het adres waarmee gasten van een restaurant mail krijgen.
 const DEFAULT_FROM_ADDRESS = 'social@get-filly.com';
+
+// Afzender voor onze EIGEN systeem-/websitemails (bv. de demo-aanvraag die
+// binnenkomt op info@). Bewust losgekoppeld van social@, zodat onze interne
+// notificaties niet vermengd raken met het klant-campagne-adres. We sturen
+// 'm vanaf info@: de aanvraag komt dus van én naar info@ — antwoorden gaan
+// via reply-to naar de bezoeker, niet naar dit adres.
+const WEBSITE_FROM_ADDRESS = 'info@get-filly.com';
+
 const RESEND_BATCH_SIZE = 100; // Resend's max per batch.send
 
 // Hoe een mail-recipient eruit ziet voor de send-flow. guestId is
@@ -808,7 +818,7 @@ export class MailService {
 
     try {
       const { error } = await this.resend.emails.send({
-        from: `Get Filly Website <${DEFAULT_FROM_ADDRESS}>`,
+        from: `Get Filly Website <${WEBSITE_FROM_ADDRESS}>`,
         to,
         replyTo: email,
         subject,
