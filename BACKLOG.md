@@ -312,8 +312,9 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
   - ~~Filly-posts (copy-paste)~~ — 2026-05-05 verwijderd na review:
     overlapt met de bestaande Filly-chat (eigenaar kan in chat al
     "schrijf me een Google-post" vragen). Posts verdwijnen na 7 dagen
-    in Google + beperkte SEO-impact. Eventueel later integreren als
-    extra channel in de chat-bundel-flow naast Mail/IG/FB.
+    in Google + beperkte SEO-impact. **Per 2026-06-02 geïntegreerd** als
+    volwaardig kanaal in de chat-bundel-flow naast Mail/IG/FB + WhatsApp
+    (zie Recent voltooid 2026-06-02).
 
 - [~] **Fase C — Google Business Profile API approval-aanvraag**.
   Doc-stub klaar: [docs/google-business-approval.md](docs/google-business-approval.md)
@@ -607,6 +608,36 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-06-02 — Multi-kanaal bundel uitgebreid naar alle 5 kanalen (+ google_business-voorstel-fix)
+
+"Selecteer alle kanalen" in Filly's chat levert nu één concept-bundel met
+élk gekozen kanaal uitgewerkt — niet langer alleen mail/IG/FB. WhatsApp +
+Google Business zijn volwaardige bundel-kanalen geworden (PR #1, squash-merge
+`bd7188a`). Geen DB-migratie: bundel = JSONB, campagnes via bestaande tabellen.
+
+- **Parser + datamodel** (`apps/api/src/chat/chat.service.ts`):
+  `ParsedBundle` + `CampaignBundleCard.channels` optioneel + 5 kanalen;
+  `extractCampaignBundle` accepteert elke subset (min. 2 kanalen); WhatsApp +
+  GBP hebben alleen een `body`. System-prompt FORMAAT 2 instrueert Filly om
+  precies de gevraagde kanalen op te nemen (WhatsApp persoonlijk, GBP lokaal-
+  zonder-onderwerp).
+- **Approve-flow** (`apps/api/src/suggestions/suggestions.service.ts` +
+  controller): `approveBundle` generiek — loopt over de aanwezige kanalen,
+  maakt WhatsApp als `type:'whatsapp'` en GBP als `type:'social'` +
+  `platform:'google_business'` via de bestaande `campaigns.create`.
+  Idempotentie + return generiek (`campaignIds`-map + nieuw type
+  `BundleApproveChannel`).
+- **Frontend**: dynamische bundel-kaart (rendert de aanwezige kanalen),
+  `chooseChannel` splitst WhatsApp/GBP niet meer af, `DEFAULT_BUNDLE` +
+  `toBundleChannel` + `BundleChannel`-type verbreed naar 5.
+- **Bonus-fix**: een `google_business` single-channel-voorstel werd niet
+  geparsed door `extractCampaignProposal` (type ontbrak in de whitelist),
+  waardoor het rauwe `<<FILLY_PROPOSE_CAMPAIGN>>`-blok als platte tekst in de
+  chat bleef staan. Type toegevoegd.
+- Verificatie: web + api `tsc --noEmit` groen; end-to-end getest tegen de
+  draaiende API (chat-aanvraag → 5-kanaals-kaart → approve → 5 concept-
+  campagnes mail/IG/FB/WhatsApp/GBP).
 
 ### 2026-06-02 — Vercel ignore-build-step gefikst (web-deploys werden stil overgeslagen)
 
