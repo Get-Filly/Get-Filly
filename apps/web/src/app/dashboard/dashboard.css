@@ -3701,10 +3701,29 @@
   .dashboard-shell .right-col {
     grid-column: auto;
   }
-  /* Chat niet pagina-hoog laten worden in de gestapelde layout. */
+
+  /* Hoogte-lock loslaten in de gestapelde layout. Op desktop staat het
+     dashboard vast op schermhoogte (.main overflow:hidden) en scrollen de
+     kalender/chat intern — prima zolang ze naast elkaar staan. Maar
+     gestapeld passen ze niet in die vaste resthoogte: de kalender werd
+     0px hoog (alleen de weekdag-koppen bleven over). Hier laten we de
+     héle pagina scrollen zodat kalender én chat hun volle hoogte krijgen. */
+  /* De shell is op desktop een viewport-vaste app-shell (position:fixed;
+     inset:0; overflow:hidden). Op mobiel laten we 'm normaal meelopen zodat
+     de hele pagina kan scrollen i.p.v. de inhoud af te kappen. */
+  .dashboard-shell { position: static; overflow: visible; }
+  .dashboard-shell .main { height: auto; min-height: 100%; overflow: visible; }
+  .dashboard-shell .page { height: auto; }
+  .dashboard-shell .left-col { overflow-y: visible; }
+  /* Topbar (met de hamburger) + offcanvas-sidebar vast t.o.v. de viewport
+     zodat ze op hun plek blijven terwijl de pagina scrollt. */
+  .dashboard-shell .topbar { position: fixed; z-index: 30; }
+  .dashboard-shell .sidebar { position: fixed; }
+  /* Geen hoogte-cap meer op de chat: 'ie staat nu onder de kalender op een
+     scrollende pagina i.p.v. geperst in een vaste resthoogte. */
   .dashboard-shell .right-col {
-    max-height: 70vh;
-    min-height: 320px;
+    max-height: none;
+    min-height: 0;
   }
 }
 
@@ -3715,7 +3734,10 @@
   .dashboard-shell .tb-title { font-size: 14px; }
   .dashboard-shell .tb-badge-desktop { display: none; }
   .dashboard-shell .main { padding-top: 56px; }
-  .dashboard-shell .page { height: calc(100% - 56px); }
+  /* height: auto i.p.v. calc(100% - 56px): de pagina scrollt nu (zie het
+     ≤900-blok), dus de page-hoogte moet met de inhoud meegroeien. De
+     padding-top houdt de inhoud onder de fixed topbar. */
+  .dashboard-shell .page { height: auto; }
 
   /* KPI-row: 2 kolommen op mobiel zodat ze niet smaller dan 140px
      worden. (default auto-fit minmax(170px, 1fr) maakt ze meestal 1
