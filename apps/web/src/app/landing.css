@@ -263,11 +263,18 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), var(--highlight));
-  color: var(--true-white);
+  /* Wit app-icoon-vlak met het echte Get-Filly logo-symbool erin. */
+  background: var(--white);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+.phone-notif-icon img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
 }
 .phone-notif-main {
   min-width: 0;
@@ -652,8 +659,41 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    Alleen actief op de hero-chat (.md-chat--live), zodat statische
    md-chat-mocks elders ongemoeid blijven. */
 
-/* De conversatie begint bovenin de chat en groeit naar beneden. */
-.md-chat--live .md-chat-body { justify-content: flex-start; }
+/* De conversatie begint bovenin de chat en groeit naar beneden. Omdat het
+   gesprek (met 2 voorstel-kaarten) langer is dan de chat hoog is, mag de
+   body verticaal scrollen — de component scrollt 'm automatisch mee naar
+   het nieuwste bericht. Scrollbar verborgen (zuivere mockup-look). */
+.md-chat--live .md-chat-body {
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.md-chat--live .md-chat-body::-webkit-scrollbar { display: none; }
+
+/* Compacter zodat méér van het gesprek tegelijk in beeld past (minder
+   scrollen): strakkere tussenruimte, bubbels, kaarten en knoppen. */
+.md-chat--live .md-chat-body { gap: 3px; padding: 7px; }
+.md-chat--live .md-chat-msg { padding: 4px 8px; line-height: 1.3; }
+.md-chat--live .md-proposal { padding: 6px 8px; gap: 4px; }
+.md-chat--live .md-proposal-btn { padding: 4px 10px; }
+
+/* Het openingsbericht van Filly mag wat groter dan de rest, zodat de
+   eerste boodschap (de gedetecteerde rustige dag) goed leesbaar binnenkomt. */
+.md-chat--live .md-chat-msg--lg {
+  font-size: 10.5px;
+  line-height: 1.32;
+  padding: 5px 9px;
+}
+
+/* Link naar de Campagnes-sectie in het slotbericht (brand-groen). */
+.md-chat--live .md-chat-link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.md-chat--live .md-chat-link:hover { text-decoration: underline; }
 
 /* Elke beurt komt 1× omhoog-faden bij het verschijnen. Beurten die al
    stonden houden hun React-key → mounten niet opnieuw → animeren niet
@@ -694,6 +734,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 @media (prefers-reduced-motion: reduce) {
   .md-chat--live .md-chat-msg,
   .md-chat--live .md-proposal,
+  .md-proposal-btn.approved,
   .md-typing-dot {
     animation: none;
   }
@@ -743,6 +784,25 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   color: var(--text);
 }
 .md-proposal-btn.primary { background: var(--accent); color: var(--true-white); border-color: var(--accent); }
+
+/* Goedgekeurd-staat: de Goedkeuren-knop is "ingedrukt" en bevestigd. Vult
+   de volle breedte (de Aanpassen-knop verdwijnt) en geeft één korte
+   druk-puls bij het verschijnen. */
+.md-proposal-btn.approved {
+  background: var(--accent);
+  color: var(--true-white);
+  border-color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  animation: md-press 0.4s ease;
+}
+@keyframes md-press {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.93); }
+  100% { transform: scale(1); }
+}
 .md-chat-input {
   border-top: 1px solid var(--border);
   padding: 8px 10px;

@@ -1,101 +1,153 @@
 "use client";
 
 // =============================================================================
-// LandingFillyChat — de Filly-chat binnen de hero-mockup, nu als een
-// afspelende conversatie i.p.v. één statische voorstel-kaart.
+// LandingFillyChat — de Filly-chat binnen de hero-mockup, als een afspelende
+// conversatie i.p.v. één statische voorstel-kaart.
 //
-// Het verhaal (speelt 1× af zodra de mockup in beeld scrollt en blijft
-// daarna in de eindstaat staan, ~5 seconden totaal):
+// Het verhaal (speelt 1× af zodra de mockup in beeld scrollt en blijft daarna
+// in de eindstaat staan, ~9 seconden totaal):
 //   1. Filly: "rustige dag gedetecteerd — zal ik een actie klaarzetten?"
 //   2. Gast:  "Ja, graag"
-//   3. Filly: de Last-minute lunchdeal-voorstelkaart
-//   4. Filly: "bekijk het volledige concept in Campagnes"
-//   5. Gast:  "Keur goed" (laatste bericht)
+//   3. Filly: voorstel-kaart 1 (Last-minute lunchdeal, di 3 juni)
+//   4. De Goedkeuren-knop wordt ingedrukt → wordt "Goedgekeurd ✓"
+//   5. Filly: "bekijk het concept en keur goed" mét link naar Campagnes
+//   6. Gast:  "Bedenk nog een campagne voor volgende week dinsdag"
+//   7. Filly: voorstel-kaart 2 (Midweek bistro-avond, di 10 juni)
 //
-// Vóór de eerste Filly-beurt en vóór het voorstel staat even de typ-
-// indicator, zodat het als een echte chat aanvoelt. Bij prefers-reduced-
+// Omdat het gesprek langer is dan de chat hoog is, scrollt de chat-body
+// mee naar onderen zodra er een beurt bijkomt — net als een echte chat.
+// Vóór elke Filly-beurt staat even de typ-indicator. Bij prefers-reduced-
 // motion tonen we direct de volledige eindstaat: geen timers, geen pop-in.
 //
-// Waarom een client-component: de homepage (page.tsx) is een server-
-// component; deze chat heeft state + timers nodig, dus is 'm losgetrokken
-// als eigen "use client"-eiland. De rest van de mockup blijft server.
+// Waarom een client-component: de homepage (page.tsx) is een server-component;
+// deze chat heeft state + timers nodig, dus is 'm losgetrokken als eigen
+// "use client"-eiland. De rest van de mockup blijft server.
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Mail, Camera, MessageCircle, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { Send, Mail, Camera, MessageCircle, TrendingUp, Check } from "lucide-react";
 
-// Kanaal-chips op de voorstel-kaart. Camera staat voor Instagram
-// (lucide 1.14 heeft geen los Instagram-icoon) — identiek aan de oude mock.
-const PROPOSAL_CHANNELS = [
-  { Icon: Camera, label: "Instagram" },
-  { Icon: Mail, label: "E-mail" },
-  { Icon: MessageCircle, label: "WhatsApp" },
-];
+// Camera staat voor Instagram (lucide 1.14 heeft geen los Instagram-icoon).
+type Campaign = {
+  title: string;
+  date: string;
+  channels: { Icon: typeof Mail; label: string }[];
+  meta: string;
+  impact: string;
+};
 
-// Eén beurt in het gesprek. 'proposal' rendert de voorstel-kaart.
+const CAMPAIGN_1: Campaign = {
+  title: "Last-minute lunchdeal",
+  date: "di 3 juni",
+  channels: [
+    { Icon: Camera, label: "Instagram" },
+    { Icon: Mail, label: "E-mail" },
+    { Icon: MessageCircle, label: "WhatsApp" },
+  ],
+  meta: "Naar 248 vaste gasten · verstuurt automatisch di 11:00",
+  impact: "+18 couverts verwacht",
+};
+
+const CAMPAIGN_2: Campaign = {
+  title: "Midweek bistro-avond",
+  date: "di 10 juni",
+  channels: [
+    { Icon: Camera, label: "Instagram" },
+    { Icon: Mail, label: "E-mail" },
+  ],
+  meta: "Naar 312 gasten in de buurt · verstuurt automatisch ma 16:00",
+  impact: "+22 couverts verwacht",
+};
+
+// Eén beurt in het gesprek.
+//   'proposal' = een voorstel-kaart (approvable = de Goedkeuren-knop wordt hier ingedrukt).
+//   'final'    = het tussenbericht met de link naar Campagnes.
+//   'ai'/'user' = gewone tekstbubbels; 'big' maakt de eerste vraag groter.
 type Turn =
-  | { id: string; kind: "ai" | "user"; text: string }
-  | { id: string; kind: "proposal" };
+  | { id: string; kind: "ai"; text: string; big?: boolean }
+  | { id: string; kind: "user"; text: string }
+  | { id: string; kind: "proposal"; campaign: Campaign; approvable?: boolean }
+  | { id: string; kind: "final" };
 
 const TURNS: Turn[] = [
   {
     id: "ai-vraag",
     kind: "ai",
+    big: true,
     text: "Dinsdag 3 juni staat op 43%, ruim onder je gemiddelde. Zal ik daar een actie voor klaarzetten?",
   },
   { id: "user-ja", kind: "user", text: "Ja, graag 👍" },
-  { id: "proposal", kind: "proposal" },
+  { id: "proposal-1", kind: "proposal", campaign: CAMPAIGN_1, approvable: true },
+  { id: "ai-final", kind: "final" },
   {
-    id: "ai-concept",
-    kind: "ai",
-    text: "Top! Het volledige concept staat klaar in Campagnes.",
+    id: "user-meer",
+    kind: "user",
+    text: "Bedenk nog een campagne voor volgende week dinsdag",
   },
-  { id: "user-keurgoed", kind: "user", text: "Bekeken — keur goed ✅" },
+  { id: "proposal-2", kind: "proposal", campaign: CAMPAIGN_2 },
 ];
 
-// Fases van het gesprek: hoeveel beurten zichtbaar zijn + of Filly op dat
-// moment "typt". De typ-indicator vóór een Filly-beurt maakt het levendig.
-const PHASES: { count: number; typing: boolean }[] = [
-  { count: 0, typing: true }, // Filly begint te typen
-  { count: 1, typing: false }, // → de vraag verschijnt
-  { count: 2, typing: false }, // → "Ja, graag"
-  { count: 2, typing: true }, // Filly typt het voorstel
-  { count: 3, typing: false }, // → de voorstel-kaart
-  { count: 4, typing: false }, // → "concept staat in Campagnes"
-  { count: 5, typing: false }, // → "Keur goed" (laatste bericht, eindstaat)
+// Fases van het gesprek: hoeveel beurten zichtbaar zijn, of Filly op dat
+// moment "typt", en of het eerste voorstel al is goedgekeurd (knop ingedrukt).
+const PHASES: { count: number; typing: boolean; approved: boolean }[] = [
+  { count: 0, typing: true, approved: false }, // Filly begint te typen
+  { count: 1, typing: false, approved: false }, // → de (grote) vraag
+  { count: 2, typing: false, approved: false }, // → "Ja, graag"
+  { count: 2, typing: true, approved: false }, // Filly typt voorstel 1
+  { count: 3, typing: false, approved: false }, // → voorstel-kaart 1
+  { count: 3, typing: false, approved: true }, // → Goedkeuren ingedrukt
+  { count: 3, typing: true, approved: true }, // Filly typt het tussenbericht
+  { count: 4, typing: false, approved: true }, // → tussenbericht met link
+  { count: 5, typing: false, approved: true }, // → "Bedenk nog een campagne…"
+  { count: 5, typing: true, approved: true }, // Filly typt voorstel 2
+  { count: 6, typing: false, approved: true }, // → voorstel-kaart 2 (eindstaat)
 ];
 
 // Vertraging (ms) tót de vólgende fase. Lengte = PHASES.length - 1.
-// Som ≈ 5000ms → de hele conversatie duurt ongeveer 5 seconden.
-const STEP_DELAYS = [800, 900, 650, 900, 850, 850];
+// Som = 9000ms → de hele conversatie duurt precies 9 seconden.
+const STEP_DELAYS = [800, 1000, 700, 1000, 900, 700, 1100, 1100, 700, 1000];
 
-// De voorstel-kaart — 1-op-1 dezelfde markup/styling als de oude statische
-// mock, nu als één gespreks-beurt.
-function ProposalCard() {
+// De voorstel-kaart. Bij `approved` verandert de Goedkeuren-knop in een
+// ingedrukte "Goedgekeurd ✓"-knop (zie de press-animatie in landing.css).
+function ProposalCard({
+  campaign,
+  approved,
+}: {
+  campaign: Campaign;
+  approved: boolean;
+}) {
   return (
     <div className="md-proposal">
       <div className="md-proposal-head">
-        <span className="md-proposal-title">Last-minute lunchdeal</span>
-        <span className="md-proposal-date">di 3 juni</span>
+        <span className="md-proposal-title">{campaign.title}</span>
+        <span className="md-proposal-date">{campaign.date}</span>
       </div>
       <div className="md-proposal-channels">
-        {PROPOSAL_CHANNELS.map((c) => (
+        {campaign.channels.map((c) => (
           <span key={c.label} className="md-ch-chip">
             <c.Icon size={9} strokeWidth={2} />
             {c.label}
           </span>
         ))}
       </div>
-      <div className="md-proposal-meta">
-        Naar 248 vaste gasten · verstuurt automatisch di 11:00
-      </div>
+      <div className="md-proposal-meta">{campaign.meta}</div>
       <div className="md-proposal-impact">
         <TrendingUp size={11} strokeWidth={2} />
-        +18 couverts verwacht
+        {campaign.impact}
       </div>
       <div className="md-proposal-actions">
-        <span className="md-proposal-btn primary">Goedkeuren</span>
-        <span className="md-proposal-btn">Aanpassen</span>
+        {approved ? (
+          <span className="md-proposal-btn primary approved">
+            <Check size={11} strokeWidth={2.5} />
+            Goedgekeurd
+          </span>
+        ) : (
+          <>
+            <span className="md-proposal-btn primary">Goedkeuren</span>
+            <span className="md-proposal-btn">Aanpassen</span>
+          </>
+        )}
       </div>
     </div>
   );
@@ -105,6 +157,7 @@ export function LandingFillyChat() {
   // Welke fase van het gesprek nu getoond wordt. Start op 0 (Filly typt).
   const [phase, setPhase] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -151,6 +204,13 @@ export function LandingFillyChat() {
     };
   }, []);
 
+  // Volg de conversatie: scroll de chat-body mee naar onderen zodra er een
+  // beurt bijkomt, zodat het nieuwste bericht altijd in beeld blijft.
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (body) body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
+  }, [phase]);
+
   const current = PHASES[phase];
 
   return (
@@ -165,19 +225,41 @@ export function LandingFillyChat() {
         </div>
       </div>
 
-      <div className="md-chat-body">
+      <div className="md-chat-body" ref={bodyRef}>
         {/* Alleen de beurten t/m de huidige fase; nieuwe beurten faden in
             (zie .md-chat--live .md-chat-msg in landing.css). Bestaande
             beurten houden hun key → animeren niet opnieuw. */}
-        {TURNS.slice(0, current.count).map((turn) =>
-          turn.kind === "proposal" ? (
-            <ProposalCard key={turn.id} />
-          ) : (
-            <div key={turn.id} className={`md-chat-msg ${turn.kind}`}>
+        {TURNS.slice(0, current.count).map((turn) => {
+          if (turn.kind === "proposal") {
+            return (
+              <ProposalCard
+                key={turn.id}
+                campaign={turn.campaign}
+                approved={turn.approvable ? current.approved : false}
+              />
+            );
+          }
+          if (turn.kind === "final") {
+            return (
+              <div key={turn.id} className="md-chat-msg ai">
+                Top! Bekijk het concept en keur het definitief goed in{" "}
+                <Link className="md-chat-link" href="/dashboard/campagnes">
+                  Campagnes →
+                </Link>
+              </div>
+            );
+          }
+          return (
+            <div
+              key={turn.id}
+              className={`md-chat-msg ${turn.kind}${
+                turn.kind === "ai" && turn.big ? " md-chat-msg--lg" : ""
+              }`}
+            >
               {turn.text}
             </div>
-          ),
-        )}
+          );
+        })}
 
         {/* Typ-indicator: drie stuiterende bolletjes. */}
         {current.typing && (

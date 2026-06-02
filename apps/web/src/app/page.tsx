@@ -223,7 +223,10 @@ export default function HomePage() {
                   <div className="phone-lock-date">dinsdag 3 juni</div>
                   <div className="phone-notif">
                     <span className="phone-notif-icon">
-                      <BarChart3 size={14} strokeWidth={2.25} />
+                      {/* Het Get-Filly logo-symbool (uit logo.svg gecropt naar
+                          logo-mark.svg) als app-icoon. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/logo-mark.svg" alt="Get-Filly" />
                     </span>
                     <div className="phone-notif-main">
                       <div className="phone-notif-meta">
@@ -232,9 +235,6 @@ export default function HomePage() {
                       </div>
                       <div className="phone-notif-title">
                         3 rustige dagen gedetecteerd
-                      </div>
-                      <div className="phone-notif-body">
-                        3, 8 en 10 juni onder je gemiddelde — tik voor voorstellen.
                       </div>
                     </div>
                   </div>
