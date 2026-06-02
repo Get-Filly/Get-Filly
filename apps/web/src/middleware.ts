@@ -38,7 +38,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isAuthPage = path === "/login" || path === "/signup";
+  // Alleen /login is nog een echte auth-pagina. /signup bestaat als route
+  // niet meer als formulier (zie app/signup/page.tsx → redirect naar
+  // /contact): self-service registratie is uitgeschakeld, dus we hoeven
+  // hier niets meer speciaals voor signup te regelen.
+  const isAuthPage = path === "/login";
   const isDashboard = path.startsWith("/dashboard");
   const isOnboarding = path.startsWith("/onboarding");
 

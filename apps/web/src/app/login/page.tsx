@@ -82,9 +82,13 @@ function LoginForm() {
         {loading ? "Bezig met inloggen..." : "Inloggen"}
       </button>
 
+      {/* Self-service registratie is uitgeschakeld (invite-only): nieuwe
+          accounts maakt Get-Filly zelf aan in Supabase. In plaats van
+          "account aanmaken" triggeren we bezoekers met een demo-aanvraag,
+          die naar dezelfde /contact-pagina leidt als de CTA's op de landing. */}
       <div className="auth-switch">
-        Nog geen account?{" "}
-        <Link href="/signup">Maak er een aan</Link>
+        Nog geen Get-Filly?{" "}
+        <Link href="/contact">Vraag een demo aan</Link>
       </div>
     </form>
   );
