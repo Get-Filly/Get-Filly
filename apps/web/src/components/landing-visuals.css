@@ -24,11 +24,11 @@
   min-height: 600px;
 }
 
-/* Volgorde op de home-pijlers: eerst springt de TEKST-kaart op
-   (.feature-row-text[data-reveal], reveal zonder vertraging), daarna de
-   uiting ernaast. Daarom krijgt élke uiting een basis-startvertraging van
-   0,4s. De onderlinge cascade (2e/3e kaartje iets later) blijft behouden,
-   nu bovenop die 0,4s. De pop-animatie zelf is ongewijzigd. */
+/* Volgorde op de home-pijlers: eerst springen de KAART + TEKST samen op
+   (.feature-row[data-reveal], reveal zonder vertraging), daarna pas de uiting
+   ernaast — net als op /product. Daarom krijgt élke uiting een basis-
+   startvertraging van 0,4s. De onderlinge cascade (2e/3e kaartje iets later)
+   blijft behouden, nu bovenop die 0,4s. De pop-animatie zelf is ongewijzigd. */
 .lv [data-reveal] { transition-delay: 0.4s; }
 .lv [data-reveal]:nth-child(2) { transition-delay: 0.55s; }
 .lv [data-reveal]:nth-child(3) { transition-delay: 0.7s; }
