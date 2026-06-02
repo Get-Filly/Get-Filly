@@ -26,7 +26,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Send, Mail, Camera, MessageCircle, TrendingUp, Check } from "lucide-react";
+import { Send, Mail, Camera, MessageCircle, Check } from "lucide-react";
 
 // Camera staat voor Instagram (lucide 1.14 heeft geen los Instagram-icoon).
 type Campaign = {
@@ -34,7 +34,6 @@ type Campaign = {
   date: string;
   channels: { Icon: typeof Mail; label: string }[];
   meta: string;
-  impact: string;
 };
 
 const CAMPAIGN_1: Campaign = {
@@ -46,7 +45,6 @@ const CAMPAIGN_1: Campaign = {
     { Icon: MessageCircle, label: "WhatsApp" },
   ],
   meta: "Naar 248 vaste gasten · verstuurt automatisch di 11:00",
-  impact: "+18 couverts verwacht",
 };
 
 const CAMPAIGN_2: Campaign = {
@@ -57,7 +55,6 @@ const CAMPAIGN_2: Campaign = {
     { Icon: Mail, label: "E-mail" },
   ],
   meta: "Naar 312 gasten in de buurt · verstuurt automatisch ma 16:00",
-  impact: "+22 couverts verwacht",
 };
 
 // Eén beurt in het gesprek.
@@ -108,6 +105,11 @@ const PHASES: { count: number; typing: boolean; approved: boolean }[] = [
 // Som = 9000ms → de hele conversatie duurt precies 9 seconden.
 const STEP_DELAYS = [800, 1000, 700, 1000, 900, 700, 1100, 1100, 700, 1000];
 
+// Vertraging (ms) ná het in beeld komen voordat de chat begint. Groter dan
+// de NOTIF_DELAY van de telefoon (400ms), zodat de pushmelding eerst
+// binnenkomt en pas dáárna de chat start.
+const CHAT_INTRO_DELAY = 1300;
+
 // De voorstel-kaart. Bij `approved` verandert de Goedkeuren-knop in een
 // ingedrukte "Goedgekeurd ✓"-knop (zie de press-animatie in landing.css).
 function ProposalCard({
@@ -132,10 +134,6 @@ function ProposalCard({
         ))}
       </div>
       <div className="md-proposal-meta">{campaign.meta}</div>
-      <div className="md-proposal-impact">
-        <TrendingUp size={11} strokeWidth={2} />
-        {campaign.impact}
-      </div>
       <div className="md-proposal-actions">
         {approved ? (
           <span className="md-proposal-btn primary approved">
@@ -156,6 +154,8 @@ function ProposalCard({
 export function LandingFillyChat() {
   // Welke fase van het gesprek nu getoond wordt. Start op 0 (Filly typt).
   const [phase, setPhase] = useState(0);
+  // De chat blijft leeg tot 'started' true wordt — pas ná de pushmelding.
+  const [started, setStarted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -166,22 +166,32 @@ export function LandingFillyChat() {
     // Toegankelijkheid: bij reduced-motion meteen de volledige eindstaat,
     // zonder timers of pop-in.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setStarted(true);
       setPhase(PHASES.length - 1);
       return;
     }
 
+    // Observeer de hele mockup (gedeeld met de telefoon) zodat de chat en de
+    // pushmelding op hetzelfde moment getriggerd worden.
+    const mockup = root.closest(".hero-mockup") ?? root;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    let started = false;
+    let kicked = false;
 
-    // Loopt de fases stap voor stap af, op de afgesproken vertragingen.
+    // Eerst de intro-vertraging (de telefoon-melding komt binnen), dan begint
+    // de chat en lopen de fases af op de afgesproken vertragingen.
     const run = () => {
-      if (started) return;
-      started = true;
-      let acc = 0;
-      STEP_DELAYS.forEach((delay, i) => {
-        acc += delay;
-        timers.push(setTimeout(() => setPhase(i + 1), acc));
-      });
+      if (kicked) return;
+      kicked = true;
+      timers.push(
+        setTimeout(() => {
+          setStarted(true);
+          let acc = 0;
+          STEP_DELAYS.forEach((delay, i) => {
+            acc += delay;
+            timers.push(setTimeout(() => setPhase(i + 1), acc));
+          });
+        }, CHAT_INTRO_DELAY),
+      );
     };
 
     // Start pas als de mockup echt in beeld komt (en maar 1×).
@@ -194,9 +204,9 @@ export function LandingFillyChat() {
           }
         });
       },
-      { threshold: 0.4 },
+      { threshold: 0.35 },
     );
-    observer.observe(root);
+    observer.observe(mockup);
 
     return () => {
       observer.disconnect();
@@ -209,7 +219,7 @@ export function LandingFillyChat() {
   useEffect(() => {
     const body = bodyRef.current;
     if (body) body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
-  }, [phase]);
+  }, [phase, started]);
 
   const current = PHASES[phase];
 
@@ -226,10 +236,12 @@ export function LandingFillyChat() {
       </div>
 
       <div className="md-chat-body" ref={bodyRef}>
-        {/* Alleen de beurten t/m de huidige fase; nieuwe beurten faden in
+        {/* De chat blijft leeg tot de pushmelding binnen is (started). Daarna:
+            alleen de beurten t/m de huidige fase; nieuwe beurten faden in
             (zie .md-chat--live .md-chat-msg in landing.css). Bestaande
             beurten houden hun key → animeren niet opnieuw. */}
-        {TURNS.slice(0, current.count).map((turn) => {
+        {started &&
+          TURNS.slice(0, current.count).map((turn) => {
           if (turn.kind === "proposal") {
             return (
               <ProposalCard
@@ -262,7 +274,7 @@ export function LandingFillyChat() {
         })}
 
         {/* Typ-indicator: drie stuiterende bolletjes. */}
-        {current.typing && (
+        {started && current.typing && (
           <div
             className="md-chat-msg ai md-typing"
             role="status"

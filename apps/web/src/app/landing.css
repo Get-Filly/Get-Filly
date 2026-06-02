@@ -257,6 +257,14 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   display: flex;
   gap: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  /* Verborgen tot de melding "binnenkomt" (de component zet .arrived). */
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+.phone-notif.arrived {
+  opacity: 1;
+  transform: translateY(0);
 }
 .phone-notif-icon {
   flex-shrink: 0;
@@ -673,7 +681,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* Compacter zodat méér van het gesprek tegelijk in beeld past (minder
    scrollen): strakkere tussenruimte, bubbels, kaarten en knoppen. */
-.md-chat--live .md-chat-body { gap: 3px; padding: 7px; }
+.md-chat--live .md-chat-body { gap: 6px; padding: 7px; }
 .md-chat--live .md-chat-msg { padding: 4px 8px; line-height: 1.3; }
 .md-chat--live .md-proposal { padding: 6px 8px; gap: 4px; }
 .md-chat--live .md-proposal-btn { padding: 4px 10px; }
@@ -738,6 +746,8 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   .md-typing-dot {
     animation: none;
   }
+  /* De pushmelding meteen tonen, zonder binnenschuif-animatie. */
+  .phone-notif { transition: none; }
 }
 
 /* Proactieve voorstel-kaart: Filly heeft de campagne al klaargezet,
@@ -2370,6 +2380,214 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   padding: 8px 14px 14px;
   font-size: 10.5px; color: var(--text-light);
   text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+/* ===========================================================================
+   WALKTHROUGH — interne choreografie per kaart (stap 01..05)
+   ===========================================================================
+   De kaart zelf (.feature-row) popt al via de generieke scroll-reveal
+   (.reveal-pending → .reveal-shown, zie components/scroll-reveal.tsx).
+   HIERONDER laten we, NÁDAT de kaart gepopt is, de inhoud van de mock
+   gefaseerd binnenkomen: eerst het frame, dan de losse onderdelen één voor één.
+
+   Toegankelijkheid: alle begin-staten hieronder hangen aan
+   `.feature-row.reveal-pending`. Die klasse wordt ALLEEN door JS gezet, en JS
+   slaat dat over bij `prefers-reduced-motion`. Zonder JS / met reduced-motion
+   krijgt niets een begin-staat en blijft alles gewoon zichtbaar — geen flits,
+   geen halve mock. Exact dezelfde afspraak als de bestaande reveal-CSS.
+
+   t=0 is het moment dat .reveal-shown wordt gezet (de kaart begint te poppen);
+   alle delays hieronder zijn t.o.v. dat moment. */
+
+/* Gedeelde taal voor 01..05 — gelijk aan de bestaande reveal-CSS hierboven,
+   zodat de interne onderdelen op DEZELFDE manier "oppoppen" als de kaarten:
+   - entree = translateY-fade met easeOutQuint  cubic-bezier(0.22, 1, 0.36, 1)
+   - duur   = ~1.1s (zelfde als het nummer-bolletje), rustig, geen snelle snap
+   Geen aparte overshoot-curve meer; de sectie ademt overal hetzelfde tempo. */
+
+/* ----- STAP 01, Detectie (frame rechts = .pmock-occ) --------------------- */
+
+/* Begin-staten (alleen actief zodra JS .reveal-pending heeft gezet). */
+.product-walkthrough .feature-row.reveal-pending .pmock-occ {
+  opacity: 0;
+  transform: translateY(20px);     /* zelfde fade-up-familie als de kaarten */
+}
+.product-walkthrough .feature-row.reveal-pending .pmock-occ-fill {
+  transform: scaleY(0);
+  transform-origin: bottom;        /* balk groeit vanaf de bodem omhoog */
+}
+.product-walkthrough .feature-row.reveal-pending .pmock-occ-pct {
+  opacity: 0;                      /* % komt mee met zijn eigen balk */
+}
+.product-walkthrough .feature-row.reveal-pending .pmock-occ-alert {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+/* 1) Frame faded omhoog, kort na de kaart — zelfde curve/tempo als de kaart. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s,
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s;
+}
+
+/* 2) Balkjes vullen 1-voor-1 omhoog (scaleY 0→1); het %-label faded mee. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-fill {
+  transform: scaleY(1);
+  transition: transform .7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-pct {
+  opacity: 1;
+  transition: opacity .6s ease;
+}
+/* Stagger ma→zo: basis 1.1s + 0.15s per dag. Geldt voor de fill én het %. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(1) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(1) .pmock-occ-pct { transition-delay: 1.10s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(2) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(2) .pmock-occ-pct { transition-delay: 1.25s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(3) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(3) .pmock-occ-pct { transition-delay: 1.40s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(4) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(4) .pmock-occ-pct { transition-delay: 1.55s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(5) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(5) .pmock-occ-pct { transition-delay: 1.70s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(6) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(6) .pmock-occ-pct { transition-delay: 1.85s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(7) .pmock-occ-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-bar:nth-child(7) .pmock-occ-pct { transition-delay: 2.00s; }
+
+/* 3) Alert "Donderdag onder verwachting" faded omhoog ná de laatste balk. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-occ-alert {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.0s cubic-bezier(0.22, 1, 0.36, 1) 2.7s,
+    transform 1.0s cubic-bezier(0.22, 1, 0.36, 1) 2.7s;
+}
+
+/* ----- STAP 02, Voorstel (frame LINKS = .pmock-channels) ----------------- */
+
+.product-walkthrough .feature-row.reveal-pending .pmock-channels { opacity: 0; transform: translateY(20px); }
+.product-walkthrough .feature-row.reveal-pending .pmock-channels-list .pmock-ch { opacity: 0; transform: translateY(16px); }
+.product-walkthrough .feature-row.reveal-pending .pmock-channels-cta { opacity: 0; transform: translateY(16px); }
+
+/* 1) Frame faded omhoog (incl. "Filly stelt voor, 3 kanalen"-kop). */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-channels {
+  opacity: 1; transform: none;
+  transition:
+    opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s,
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s;
+}
+/* 2) Blokjes 1-voor-1: e-mail → Instagram → WhatsApp. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-channels-list .pmock-ch {
+  opacity: 1; transform: none;
+  transition:
+    opacity .9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform .9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-channels-list .pmock-ch:nth-child(1) { transition-delay: 1.10s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-channels-list .pmock-ch:nth-child(2) { transition-delay: 1.30s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-channels-list .pmock-ch:nth-child(3) { transition-delay: 1.50s; }
+/* 3) Knop "Goedkeuren & versturen" als afsluiter. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-channels-cta {
+  opacity: 1; transform: none;
+  transition:
+    opacity .9s cubic-bezier(0.22, 1, 0.36, 1) 1.8s,
+    transform .9s cubic-bezier(0.22, 1, 0.36, 1) 1.8s;
+}
+
+/* ----- STAP 03, Goedkeuring (frame rechts = .pmock-approve) -------------- */
+
+.product-walkthrough .feature-row.reveal-pending .pmock-approve { opacity: 0; transform: translateY(20px); }
+.product-walkthrough .feature-row.reveal-pending .pmock-approve-list .pmock-approve-row { opacity: 0; transform: translateY(14px); }
+.product-walkthrough .feature-row.reveal-pending .pmock-approve-foot { opacity: 0; }
+
+/* 1) Frame + groene banner ("Campagne ingepland · Goedgekeurd door Sophie"). */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-approve {
+  opacity: 1; transform: none;
+  transition:
+    opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s,
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s;
+}
+/* 2) Rijen 1-voor-1: e-mail naar 412 → Instagram-post + story → WhatsApp. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-approve-list .pmock-approve-row {
+  opacity: 1; transform: none;
+  transition:
+    opacity .9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform .9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-approve-list .pmock-approve-row:nth-child(1) { transition-delay: 1.20s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-approve-list .pmock-approve-row:nth-child(2) { transition-delay: 1.40s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-approve-list .pmock-approve-row:nth-child(3) { transition-delay: 1.60s; }
+/* 3) Voetregel ("Filly meldt zich zondag…") als afsluiter. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-approve-foot {
+  opacity: 1;
+  transition: opacity .9s ease 1.9s;
+}
+
+/* ----- STAP 04, Plaatsing (post LINKS = .pmock-ig) ----------------------- */
+/* De hele post komt in 1 keer op (geen interne stagger); de likes-teller
+   loopt daarna op naar 312 via de count-up in components/scroll-reveal.tsx. */
+.product-walkthrough .feature-row.reveal-pending .pmock-ig { opacity: 0; transform: translateY(22px); }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-ig {
+  opacity: 1; transform: none;
+  transition:
+    opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s,
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s;
+}
+
+/* ----- STAP 05, Resultaat (frame rechts = .pmock-result) ----------------- */
+
+.product-walkthrough .feature-row.reveal-pending .pmock-result { opacity: 0; transform: translateY(20px); }
+.product-walkthrough .feature-row.reveal-pending .pmock-result-stat { opacity: 0; transform: translateY(14px); }
+.product-walkthrough .feature-row.reveal-pending .pmock-result-bar-fill { transform: scaleX(0); transform-origin: left; }
+.product-walkthrough .feature-row.reveal-pending .pmock-result-bar-val { opacity: 0; }
+.product-walkthrough .feature-row.reveal-pending .pmock-result-note { opacity: 0; transform: translateY(16px); }
+
+/* 1) Frame + kop "Donderdagavond, van 38% naar 84%". */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result {
+  opacity: 1; transform: none;
+  transition:
+    opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s,
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) .45s;
+}
+/* 2) Stats 1-voor-1 (+12 → +34 → 84%). De getallen tellen op via de JS;
+   deze stagger (1.2 / 1.5 / 1.8s) loopt gelijk met data-count-delay. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-stat {
+  opacity: 1; transform: none;
+  transition:
+    opacity .8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform .8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-stat:nth-child(1) { transition-delay: 1.20s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-stat:nth-child(2) { transition-delay: 1.50s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-stat:nth-child(3) { transition-delay: 1.80s; }
+/* 3) Kanaalbalken vullen naar rechts (scaleX 0→1); de waarde (7/4/1 res.)
+   faded tegelijk mee. e-mail → Instagram → WhatsApp.
+   NB: in .pmock-result-breakdown is kind 1 de titel, dus de balken zijn
+   nth-child 2, 3 en 4. */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar-fill {
+  transform: scaleX(1);
+  transition: transform .9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar-val {
+  opacity: 1;
+  transition: opacity .6s ease;
+}
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar:nth-child(2) .pmock-result-bar-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar:nth-child(2) .pmock-result-bar-val { transition-delay: 2.20s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar:nth-child(3) .pmock-result-bar-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar:nth-child(3) .pmock-result-bar-val { transition-delay: 2.40s; }
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar:nth-child(4) .pmock-result-bar-fill,
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-bar:nth-child(4) .pmock-result-bar-val { transition-delay: 2.60s; }
+/* 4) Afsluiter "E-mail werkte het best…". */
+.product-walkthrough .feature-row.reveal-pending.reveal-shown .pmock-result-note {
+  opacity: 1; transform: none;
+  transition:
+    opacity 1.0s cubic-bezier(0.22, 1, 0.36, 1) 3.1s,
+    transform 1.0s cubic-bezier(0.22, 1, 0.36, 1) 3.1s;
 }
 
 .product-features {

@@ -20,9 +20,10 @@ import {
   BereikbaarheidVisual,
 } from "../components/landing-visuals";
 import { ScrollReveal } from "../components/scroll-reveal";
-// De Filly-chat is een afspelende conversatie (state + timers) en daarom
-// een los "use client"-eiland; de rest van de mockup blijft server.
+// De Filly-chat en de telefoon zijn afspelende animaties (state + timers) en
+// daarom losse "use client"-eilanden; de rest van de mockup blijft server.
 import { LandingFillyChat } from "../components/landing-filly-chat";
+import { LandingPhone } from "../components/landing-phone";
 
 // =============================================================================
 // HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
@@ -211,37 +212,11 @@ export default function HomePage() {
             </div>
 
             {/* Vergrendelde telefoon rechts: Get-Filly stuurt proactief een
-                pushmelding zodra het rustige dagen detecteert. Valt over de
-                rechter-rand van de laptop (diepte) maar laat de Filly-chat
-                vrij. Decoratief — de boodschap staat ook in de dashboard-
-                banner, daarom aria-hidden. Verborgen op mobiel. */}
-            <div className="hero-phone" aria-hidden="true">
-              <div className="phone-frame">
-                <div className="phone-screen">
-                  <div className="phone-island"></div>
-                  <div className="phone-lock-time">9:41</div>
-                  <div className="phone-lock-date">dinsdag 3 juni</div>
-                  <div className="phone-notif">
-                    <span className="phone-notif-icon">
-                      {/* Het Get-Filly logo-symbool (uit logo.svg gecropt naar
-                          logo-mark.svg) als app-icoon. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/logo-mark.svg" alt="Get-Filly" />
-                    </span>
-                    <div className="phone-notif-main">
-                      <div className="phone-notif-meta">
-                        <span className="phone-notif-app">Get-Filly</span>
-                        <span className="phone-notif-time">nu</span>
-                      </div>
-                      <div className="phone-notif-title">
-                        3 rustige dagen gedetecteerd
-                      </div>
-                    </div>
-                  </div>
-                  <div className="phone-home-indicator"></div>
-                </div>
-              </div>
-            </div>
+                pushmelding zodra het een rustige dag detecteert. Eigen client-
+                component, want de melding schuift als allereerste binnen (vóór
+                de chat). Valt over de rechter-rand van de laptop (diepte) maar
+                laat de Filly-chat vrij. Verborgen op mobiel. */}
+            <LandingPhone />
           </div>
         </div>
       </section>
