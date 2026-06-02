@@ -19,7 +19,8 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ## P0 — Blokkerend voor eerste klant
 
 ### Auth & onboarding
-- [ ] ⚠️ **Email-confirmation weer aanzetten** — tijdelijk UIT gezet tijdens dev (Supabase Dashboard → Authentication → Providers → Email → "Confirm email"). **Aanzetten vóór productie-launch** anders accepteert de app fake-signups. Los op met Resend SMTP (hieronder) zodat je niet meer tegen rate-limits aanloopt en je dit weer aan kunt hebben in dev.
+- [ ] ⚠️ **Email-confirmation weer aanzetten** — tijdelijk UIT gezet tijdens dev (Supabase Dashboard → Authentication → Providers → Email → "Confirm email"). **Aanzetten vóór productie-launch** anders accepteert de app fake-signups. Los op met Resend SMTP (hieronder) zodat je niet meer tegen rate-limits aanloopt en je dit weer aan kunt hebben in dev. **Update 2026-06-02**: minder kritiek geworden — self-service signup staat nu volledig UIT in Supabase (zie hieronder), dus publieke fake-signups zijn sowieso onmogelijk. Blijft nice-to-have voor (uitgenodigde) users.
+- [x] ~~**Self-service signup dichtgezet (invite-only)**~~ (2026-06-02) — concurrenten kunnen zich niet meer zelf registreren. Supabase "Allow new users to sign up" = UIT (de échte lock, blokkeert óók directe API-calls met de anon-key). Login toont nu "Vraag een demo aan" → `/contact` i.p.v. registratielink; `/signup`-route redirect naar `/contact`; `/signup` uit de auth-paden in middleware. Nieuwe klant: Floris maakt 'm aan via Supabase (Authentication → Users → Add user, "Auto Confirm User" aan) → klant logt in → middleware stuurt naar `/onboarding` (geen `restaurant_users`-rij) → eigen zaak. Zie changelog 2026-06-02.
 - [~] **Geocoding bij adres-invoer** — GeocodingService via PDOK Locatieserver (gratis, EU, officiële NL-bron) live sinds 2026-04-24. Onboarding haalt nu lat/long op direct na restaurant-insert. **Nog te doen**: (1) eenmalig backfill-script voor bestaande restaurants zonder coords, (2) geocode opnieuw triggeren bij adres-wijziging op account-pagina (zodra die bestaat).
 - [x] ~~Empty-states-sweep dashboard~~ (2026-04-29) — alle dashboard-pagina's tonen nu rustige empty-states i.p.v. rode HTTP-banners. Geraakt: KpiRow, WeatherForecast, suggesties, campagnes-detail, account, rapportages (volledige empty-state voor nieuwe klanten zonder data), reviews (verwijst naar koppelingen-pagina). Form-validation rood-kaders (reserveringen-modal, review-reply-modal) blijven rood — passend voor user-action-fouten.
 - [x] ~~Signup → auto-restaurant-creatie~~ — `/onboarding`-wizard live (2026-04-24, commit `5d888c9`)
@@ -604,6 +605,37 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-06-02 — Self-service signup dicht (invite-only) + demo-CTA + eigen afzender contact-mail
+
+Doel: concurrenten mogen zich niet zelf kunnen registreren om in de app rond
+te kijken en na te bouwen. Self-service registratie volledig dichtgezet;
+nieuwe klanten komen voortaan uitsluitend via ons binnen.
+
+**De échte lock (Supabase, geen code):** Authentication → "Allow new users to
+sign up" = UIT. Blokkeert élke `signUp`, óók rechtstreeks via de anon-key die
+in de browser-bundle zit. `auth.admin.inviteUserByEmail()` (service_role)
+blijft werken, dus zelf accounts aanmaken kan nog.
+
+**Code (apps/web):**
+- `login/page.tsx` — registratielink "Maak er een aan" → **"Vraag een demo aan"** (→ `/contact`, zelfde bestemming als de landing-CTA's, om bezoekers wél te triggeren).
+- `signup/page.tsx` — client-formulier weg, nu kale server-redirect naar `/contact`. Oude /signup-URL toont geen dode/verwarrende pagina meer.
+- `middleware.ts` — `/signup` is geen auth-pagina meer (`isAuthPage = path === "/login"`).
+
+**Nieuwe klant erbij (geen admin-flow nodig):** Supabase → Authentication →
+Users → Add user (e-mail + tijdelijk wachtwoord, "Auto Confirm User" aan, of
+laat de klant via "Wachtwoord vergeten" zelf een wachtwoord zetten). Klant
+logt in → middleware ziet geen `restaurant_users`-rij → stuurt naar
+`/onboarding` → klant maakt eigen zaak. De bestaande onboarding-wizard doet
+de rest; er was dus géén nieuwe admin-/invite-code nodig.
+
+**Contact-/demo-mail afzender losgekoppeld (apps/api/mail.service.ts):** de
+demo-aanvraag (`/public/contact` → `sendContactRequest`) komt binnen op
+`info@get-filly.com` (ongewijzigd). De afzender stond echter op
+`social@get-filly.com` = het adres waarmee we mails namens klanten (campagnes)
+versturen. Nieuwe const `WEBSITE_FROM_ADDRESS = 'info@get-filly.com'` voor onze
+eigen systeem-/websitemails; `DEFAULT_FROM_ADDRESS` (social@) blijft puur voor
+campagnes. Reply-to = de aanvrager, dus "beantwoorden" gaat direct naar de lead.
 
 ### 2026-06-02 — Responsive-sweep deel 2 (publiek + dashboard mobiel)
 
