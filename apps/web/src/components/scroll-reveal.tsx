@@ -47,11 +47,19 @@ export function ScrollReveal() {
     items.forEach((el) => {
       el.classList.add("reveal-pending");
       const rect = el.getBoundingClientRect();
-      // Alleen items duidelijk bovenin het scherm bij het laden meteen
-      // tonen (geen flits). Alles daaronder verbergen + observeren, zodat
-      // het zichtbaar opspringt zodra je ernaartoe scrollt — i.p.v. al
-      // "ingeladen" te staan. (Drempel verlaagd van 0.88 → 0.5.)
-      if (rect.top < window.innerHeight * 0.5) {
+      // Meet de positie t.o.v. de BOVENKANT van de pagina (absolute
+      // document-positie = rect.top + window.scrollY), NIET t.o.v. de
+      // huidige scrollpositie. Anders is het toeval: bij client-side
+      // navigatie of scroll-restoration (terug/vooruit) kan de pagina al
+      // naar beneden gescrold zijn als dit draait, waardoor items die ver
+      // onderaan staan tóch in de "bovenste helft" lijken te vallen en
+      // meteen — zonder pop-in — getoond worden. Dat gaf het verschil
+      // "soms staan de social-kaarten er al, soms springen ze op".
+      // Met de absolute positie telt alléén wat écht bovenin de pagina
+      // staat als "direct tonen" (geen flits); al het andere popt elke
+      // keer hetzelfde op zodra je ernaartoe scrollt.
+      const absoluteTop = rect.top + window.scrollY;
+      if (absoluteTop < window.innerHeight * 0.5) {
         el.classList.add("reveal-shown");
       } else {
         observer.observe(el);

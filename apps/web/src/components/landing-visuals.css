@@ -114,8 +114,12 @@
 /* ============ 02 Zichtbaarheid — overlappende social-posts ============ */
 .lv-social { height: 460px; }
 .lv-post-slot { position: absolute; }
-.lv-post-1 { top: 0;     left: 0;     z-index: 1; }
-.lv-post-2 { top: 74px;  left: 158px; z-index: 2; }
+/* Facebook iets verder naar links-boven (negatieve offsets = buiten de
+   gecentreerde .lv-box, in de witruimte van de kolom — clipt niet).
+   TikTok iets naar rechts. Instagram ongewijzigd. De waaier houdt
+   overlap: Facebook-rechterrand ~202px overlapt TikTok-linkerrand 172px. */
+.lv-post-1 { top: -8px;  left: -14px; z-index: 1; }
+.lv-post-2 { top: 74px;  left: 172px; z-index: 2; }
 .lv-post-3 { top: 192px; left: 40px;  z-index: 3; }
 /* Social-posts iets trager + duidelijker na elkaar laten opkomen. */
 .lv-social [data-reveal]:nth-child(2) { transition-delay: 0.45s; }
