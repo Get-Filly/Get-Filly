@@ -1,0 +1,225 @@
+/* ============================================================
+   Landing-visuals — statische product-mockups per pijler.
+   Eigen bestand (niet in landing.css) zodat een design-resync van
+   landing.css deze niet overschrijft. De pop-in zelf komt van het
+   site-brede [data-reveal] (zie landing.css + ScrollReveal); hier
+   alleen de stagger-vertraging per item.
+   ============================================================ */
+
+.lv {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Alle 3 pijler-kaarten op de homepage even hoog (UI-consistentie):
+   inhoud blijft verticaal gecentreerd; de visuals passen binnen deze hoogte. */
+.features-stack .feature-row {
+  min-height: 600px;
+}
+
+/* Cascadende reveal: 2e en 3e item komen iets later op (zoals de
+   product-features-list elders op de site). */
+.lv [data-reveal]:nth-child(2) { transition-delay: 0.15s; }
+.lv [data-reveal]:nth-child(3) { transition-delay: 0.3s; }
+
+/* Generieke witte kaart met zachte groene schaduw. */
+.lv-card {
+  background: var(--true-white, #fff);
+  border: 1px solid rgba(31, 74, 45, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 14px 34px -16px rgba(31, 74, 45, 0.28),
+    0 2px 6px rgba(24, 24, 27, 0.04);
+}
+
+/* ============ 01 Vindbaarheid ============ */
+/* Compacter dan de andere visuals (3 gestapelde kaartjes) zodat de
+   pijler binnen dezelfde hoogte als Zichtbaarheid past. */
+.lv-find { display: flex; flex-direction: column; gap: 9px; }
+.lv-find > .lv-card { padding: 11px 14px; position: relative; }
+
+.lv-rank {
+  position: absolute; top: 11px; right: 13px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent); color: #fff;
+  font-size: 10.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px;
+}
+
+/* Zoekbalk */
+.lv-searchbar {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--bg, #faf7f1);
+  border: 1px solid rgba(31, 74, 45, 0.10);
+  border-radius: 999px; padding: 8px 14px;
+  font-size: 12.5px; color: var(--text-secondary);
+  max-width: 80%;
+}
+.lv-searchbar svg { flex-shrink: 0; }
+.lv-result { margin-top: 9px; }
+.lv-result-name { font-size: 15px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.lv-result-url { font-size: 11.5px; color: #5b8268; margin-top: 2px; }
+.lv-result-meta { font-size: 12px; color: var(--text-secondary); margin-top: 5px; }
+.lv-result-meta b { color: #E0A52E; }
+
+/* AI-chat */
+.lv-chat-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 8px;
+}
+.lv-chat-q {
+  font-size: 12.5px; color: #fff; background: var(--accent);
+  border-radius: 13px 13px 4px 13px; padding: 8px 12px;
+  margin-left: auto; width: fit-content; max-width: 92%; line-height: 1.4;
+}
+.lv-chat-a { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; }
+.lv-chat-ava {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg, #faf7f1); border: 1px solid rgba(31, 74, 45, 0.1);
+  display: flex; align-items: center; justify-content: center;
+}
+.lv-chat-bubble {
+  font-size: 12.5px; color: var(--text); background: var(--bg, #faf7f1);
+  border-radius: 13px 13px 13px 4px; padding: 8px 12px; line-height: 1.45;
+}
+.lv-chat-bubble b { color: var(--accent); font-weight: 700; }
+
+/* Review */
+.lv-rev-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 9px;
+}
+.lv-rev-top { display: flex; align-items: center; gap: 10px; }
+.lv-avatar {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+  background: #E8D9C2; color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.lv-rev-name { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.lv-rev-date { font-size: 11px; color: var(--text-secondary); }
+.lv-stars { color: #E0A52E; font-size: 13px; letter-spacing: 1.5px; }
+.lv-rev-top .lv-stars { margin-left: auto; }
+.lv-rev-q { font-size: 12.5px; color: var(--text); line-height: 1.45; margin-top: 8px; }
+.lv-rev-reply {
+  margin-top: 8px; margin-left: 12px; padding: 8px 11px;
+  background: var(--bg, #faf7f1); border-radius: 11px;
+  border-left: 2px solid var(--accent);
+}
+.lv-rev-reply-from { font-size: 11px; font-weight: 700; color: var(--accent); }
+.lv-rev-reply-txt { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+
+/* ============ 02 Zichtbaarheid — overlappende social-posts ============ */
+.lv-social { height: 460px; }
+.lv-post-slot { position: absolute; }
+.lv-post-1 { top: 0;     left: 0;     z-index: 1; }
+.lv-post-2 { top: 74px;  left: 158px; z-index: 2; }
+.lv-post-3 { top: 192px; left: 40px;  z-index: 3; }
+/* Social-posts iets trager + duidelijker na elkaar laten opkomen. */
+.lv-social [data-reveal]:nth-child(2) { transition-delay: 0.45s; }
+.lv-social [data-reveal]:nth-child(3) { transition-delay: 0.9s; }
+/* Rotatie op de binnen-kaart, zodat de reveal-translate (op de slot)
+   de waaier-rotatie niet wegdrukt. */
+.lv-post-1 .lv-post { transform: rotate(-5deg); }
+.lv-post-2 .lv-post { transform: rotate(5deg); }
+.lv-post-3 .lv-post { transform: rotate(-2deg); }
+
+.lv-post {
+  width: 216px;
+  background: var(--true-white, #fff);
+  border: 1px solid rgba(31, 74, 45, 0.08);
+  border-radius: 18px; overflow: hidden;
+  box-shadow:
+    0 18px 40px -16px rgba(31, 74, 45, 0.32),
+    0 2px 6px rgba(24, 24, 27, 0.05);
+}
+.lv-post-head { display: flex; align-items: center; gap: 8px; padding: 11px 13px; }
+.lv-post-ic { width: 22px; height: 22px; flex-shrink: 0; display: inline-flex; }
+.lv-post-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.lv-post-media { position: relative; height: 128px; }
+.lv-post-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lv-post-foot { padding: 10px 13px; }
+.lv-post-cap { font-size: 12.5px; color: var(--text); line-height: 1.4; }
+.lv-post-stats { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+.lv-post-tag {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(255, 255, 255, 0.92); color: var(--accent);
+  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+/* Warme food-gradient als fallback achter de foto (zichtbaar tot de
+   echte afbeelding in public/visuals/ geplaatst is). */
+.lv-media-ig { background: linear-gradient(135deg, #f3c98a, #e89b6b); }
+.lv-media-fb { background: linear-gradient(135deg, #bcd8c4, #6fa982); }
+.lv-media-tt { background: linear-gradient(135deg, #f0b5a0, #cf7f86); }
+
+/* ============ 03 Bereikbaarheid — mail + WhatsApp ============ */
+.lv-reach { display: flex; flex-direction: column; gap: 16px; }
+
+.lv-mail { padding: 16px 18px; }
+.lv-mail-top { display: flex; align-items: center; gap: 11px; }
+.lv-mail-av {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700;
+}
+.lv-mail-meta { flex: 1; min-width: 0; }
+.lv-mail-from { font-size: 14px; font-weight: 700; color: var(--text); }
+.lv-mail-addr { font-size: 11.5px; color: var(--text-secondary); }
+.lv-mail-time { font-size: 11.5px; color: var(--text-secondary); white-space: nowrap; align-self: flex-start; }
+.lv-mail-subj { font-size: 14.5px; font-weight: 700; color: var(--text); margin-top: 14px; line-height: 1.35; }
+.lv-mail-body { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; margin-top: 9px; }
+.lv-mail-cta {
+  display: inline-block; margin-top: 14px;
+  background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 999px;
+}
+
+.lv-wa-phone {
+  border-radius: 16px; overflow: hidden;
+  border: 1px solid rgba(31, 74, 45, 0.08);
+  box-shadow: 0 14px 34px -16px rgba(31, 74, 45, 0.28), 0 2px 6px rgba(24, 24, 27, 0.04);
+}
+.lv-wa-bar { display: flex; align-items: center; gap: 10px; background: #075E54; padding: 10px 14px; }
+.lv-wa-av {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+  background: #25D366; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.lv-wa-name { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
+.lv-wa-online { font-size: 11px; color: #a9e3c6; }
+.lv-wa-chat { background: #E9EDE6; padding: 14px; }
+.lv-wa-bubble {
+  position: relative; font-size: 12.5px; line-height: 1.4;
+  padding: 8px 12px 17px; border-radius: 10px; max-width: 84%; margin-bottom: 9px;
+}
+.lv-wa-in { background: #fff; color: var(--text); }
+.lv-wa-out { background: #DCF8C6; color: #14361f; margin-left: auto; }
+.lv-wa-meta { position: absolute; right: 10px; bottom: 4px; font-size: 9.5px; color: #7c8a7e; }
+
+/* ============================================================
+   Telefoon: de social-post-waaier (.lv-social) bestaat uit absoluut
+   gepositioneerde kaarten van 216px breed op offsets tot left:150px;
+   samen ~366px breed. Ontworpen voor de brede desktop-kolom, maar op
+   telefoons (kolom < ~370px) steekt 'ie buiten het scherm. Hier
+   verkleinen we de kaarten + krimpen de offsets, en geven .lv-social
+   een vaste 210px-box met margin:auto zodat de hele waaier netjes
+   gecentreerd binnen de kolom valt i.p.v. eruit te lopen.
+   Alleen onder 480px: daarboven is de gestapelde kolom breed genoeg.
+   ============================================================ */
+@media (max-width: 480px) {
+  .lv-social {
+    width: 210px;
+    height: 330px;
+    margin: 0 auto;
+  }
+  .lv-post { width: 150px; }
+  .lv-post-media { height: 92px; }
+  .lv-post-1 { top: 0;    left: 0;    }
+  .lv-post-2 { top: 40px; left: 58px; }
+  .lv-post-3 { top: 132px; left: 24px; }
+}

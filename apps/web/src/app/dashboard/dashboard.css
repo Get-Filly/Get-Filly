@@ -784,9 +784,6 @@
 .dashboard-shell .cal-cell.empty:hover { filter: none; }
 
 .dashboard-shell .cal-dn {
-  position: absolute;
-  top: 6px;
-  left: 8px;
   font-size: 12px;
   font-weight: 600;
 }
@@ -819,15 +816,22 @@
 .dashboard-shell .cal-cell.lvl-2 { background: rgba(217, 150, 70, 0.30); color: var(--text); }
 .dashboard-shell .cal-cell.lvl-3 { background: rgba(45, 90, 63, 0.32);   color: var(--text); }
 .dashboard-shell .cal-cell.lvl-4 { background: rgba(31, 74, 45, 0.42);   color: var(--text); }
-/* Campagne-markering per dag: één megafoon-icoon (hetzelfde icoon als
-   het "Campagnes"-item in de sidebar) linksonder in de cel, ongeacht
-   hoeveel campagnes er op die dag staan. Vervangt de oude per-kanaal-
-   emoji's. Kleur = var(--text) zodat 'ie op elke heatmap-tier even
-   leesbaar blijft als het dag-nummer. */
-.dashboard-shell .cal-campaign {
+/* Bovenbalk in de kalendercel: dag-getal links + (optioneel) de
+   campagne-megafoon rechts, op één lijn verticaal gecentreerd. Vervangt
+   de losse absolute posities, zodat getal en icoon altijd uitlijnen. */
+.dashboard-shell .cal-top {
   position: absolute;
-  top: 4px;
-  right: 6px;
+  top: 6px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* Campagne-markering: megafoon-icoon (zelfde als het "Campagnes"-item in
+   de sidebar) op dagen met een ingeplande campagne. Kleur = var(--text)
+   zodat 'ie op elke heatmap-tier even leesbaar blijft als het dag-nummer. */
+.dashboard-shell .cal-campaign {
   display: flex;
   align-items: center;
   color: var(--text);
@@ -3870,4 +3874,14 @@
     flex-direction: column;
     align-items: flex-start !important;
   }
+
+  /* Maandkalender op kleine telefoons: bij 7 kolommen wordt elke cel
+     ~44px breed. De bezettings-% (16px) en het dagnummer (12px) iets
+     verkleinen zodat "100%" niet tegen de celranden loopt; lagere
+     min-height + krappere padding houden de maand-grid compact maar
+     blijven tikbaar (≈44px tap-target). */
+  .dashboard-shell .cal-cell { min-height: 54px; padding: 5px 6px; }
+  .dashboard-shell .cal-occ { font-size: 12px; }
+  .dashboard-shell .cal-dn { font-size: 11px; }
+  .dashboard-shell .cal-top { top: 5px; left: 6px; right: 6px; }
 }

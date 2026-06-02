@@ -271,20 +271,22 @@ export function CalendarCard({
                     }`}
                     onClick={() => onDayClick(cell.day)}
                   >
-                    <div className="cal-dn">{cell.day}</div>
+                    <div className="cal-top">
+                      <span className="cal-dn">{cell.day}</span>
+                      {cell.campaigns.length > 0 && (
+                        <span
+                          className="cal-campaign"
+                          title={
+                            cell.campaigns.length === 1
+                              ? "Campagne ingepland"
+                              : `${cell.campaigns.length} campagnes ingepland`
+                          }
+                        >
+                          <Megaphone size={12} strokeWidth={1.75} aria-hidden />
+                        </span>
+                      )}
+                    </div>
                     <div className="cal-occ">{cell.occupancy}%</div>
-                    {cell.campaigns.length > 0 && (
-                      <div
-                        className="cal-campaign"
-                        title={
-                          cell.campaigns.length === 1
-                            ? "Campagne ingepland"
-                            : `${cell.campaigns.length} campagnes ingepland`
-                        }
-                      >
-                        <Megaphone size={13} strokeWidth={1.75} aria-hidden />
-                      </div>
-                    )}
                   </div>
                 );
               })}

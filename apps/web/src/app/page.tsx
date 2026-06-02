@@ -18,8 +18,12 @@ import {
   MessageCircle,
   TrendingUp,
 } from "lucide-react";
-import { VindbaarheidVisualizer } from "../components/vindbaarheid-visualizer";
-import { ZichtbaarheidVisualizer } from "../components/zichtbaarheid-visualizer";
+import {
+  VindbaarheidVisual,
+  ZichtbaarheidVisual,
+  BereikbaarheidVisual,
+} from "../components/landing-visuals";
+import { ScrollReveal } from "../components/scroll-reveal";
 
 // =============================================================================
 // HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
@@ -272,6 +276,10 @@ export default function HomePage() {
               foto's later met pijler-specifieke beelden (bv. Google-
               Maps listing voor Vindbaarheid). */}
           <h2 className="section-title">Meer gasten.<br />Volle tafels. Automatisch.</h2>
+          {/* Activeert de site-brede scroll-reveal (data-reveal) op de
+              pijler-visuals: 1× omhoog-faden bij in beeld, identiek aan
+              de rest van de pagina. */}
+          <ScrollReveal />
           <div className="features-stack">
             {/* Pijler 1 — Vindbaarheid (Google/SEO/AI-zoekmachines).
                 Visual: Get-Filly-platform-mind-map (integraties met
@@ -279,8 +287,8 @@ export default function HomePage() {
                 Kaarten, ChatGPT, Claude, Gemini). Per 2026-05-13
                 op verzoek van Floris vervangt deze de oude
                 Instagram-mockup. */}
-            <div className="feature-row feature-row--split">
-              <div className="feature-row-text feature-row-text--card">
+            <div className="feature-row">
+              <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">01</span>
                   <span>Vindbaarheid</span>
@@ -296,12 +304,12 @@ export default function HomePage() {
                   <li>Live dashboard met rapportage over jouw zichtbaarheid in zoekmachines</li>
                 </ul>
               </div>
-              <div className="feature-row-visual feature-row-visual--card">
+              <div className="feature-row-visual">
                 {/* Geanimeerde Get-Filly hub die cyclisch verbinding
                     maakt met de 8 zoek/AI-platforms. Letter-cirkels
                     zijn placeholder; latere fase kan ze door echte
                     SVG-brand-logos vervangen. */}
-                <VindbaarheidVisualizer />
+                <VindbaarheidVisual />
               </div>
             </div>
 
@@ -312,8 +320,8 @@ export default function HomePage() {
                 hybride HTML+SVG-component met platform-mini-
                 cards die sequentieel popen + groene content-
                 pulsen vanaf Filly. */}
-            <div className="feature-row feature-row--reverse feature-row--split">
-              <div className="feature-row-text feature-row-text--card">
+            <div className="feature-row feature-row--reverse">
+              <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">02</span>
                   <span>Zichtbaarheid</span>
@@ -330,8 +338,8 @@ export default function HomePage() {
                   <li>Live dashboard rapportage over bereik, engagement en doorkliks</li>
                 </ul>
               </div>
-              <div className="feature-row-visual feature-row-visual--card">
-                <ZichtbaarheidVisualizer />
+              <div className="feature-row-visual">
+                <ZichtbaarheidVisual />
               </div>
             </div>
 
@@ -339,8 +347,8 @@ export default function HomePage() {
                 segmentatie). Per 2026-05-21: tekst + visual nu in
                 hetzelfde --split-patroon als pijler 1 + 2 zodat
                 alle 3 pijlers visueel consistent zijn. */}
-            <div className="feature-row feature-row--split">
-              <div className="feature-row-text feature-row-text--card">
+            <div className="feature-row">
+              <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">03</span>
                   <span>Bereikbaarheid</span>
@@ -355,23 +363,8 @@ export default function HomePage() {
                   <li>Jij keurt elk bericht goed voordat het verstuurd wordt</li>
                 </ul>
               </div>
-              <div className="feature-row-visual feature-row-visual--card">
-                <div className="fmock-email">
-                  <div className="fmock-email-header">
-                    <div className="fmock-email-meta">
-                      <div className="fmock-email-from">Bistro Get-Filly</div>
-                      <div className="fmock-email-time" style={{ color: "rgb(82, 82, 91)" }}>vandaag · 10:14</div>
-                    </div>
-                    <div className="fmock-email-subject">We hebben je al een tijdje niet gezien, kom weer eens langs</div>
-                    <div className="fmock-email-to" style={{ color: "rgb(82, 82, 91)" }}>aan: marieke@voorbeeld.nl</div>
-                  </div>
-                  <div className="fmock-email-body">
-                    Hé Marieke,<br /><br />
-                    Het is alweer ruim drie maanden geleden dat we je voor het laatst aan tafel zagen. We zouden het leuk vinden om je weer te zien.<br /><br />
-                    Als welkom-terug bieden we je <strong>een glas wijn van het huis</strong> aan bij je volgende bezoek.
-                  </div>
-                  <div className="fmock-email-cta" style={{ fontSize: "10px" }}>Reserveer mijn tafel</div>
-                </div>
+              <div className="feature-row-visual">
+                <BereikbaarheidVisual />
               </div>
             </div>
           </div>

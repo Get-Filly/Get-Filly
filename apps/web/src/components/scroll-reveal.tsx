@@ -47,9 +47,11 @@ export function ScrollReveal() {
     items.forEach((el) => {
       el.classList.add("reveal-pending");
       const rect = el.getBoundingClientRect();
-      // Al (bijna) in beeld bij het laden? Direct tonen, geen flits.
-      // Anders verbergen + observeren tot je ernaartoe scrollt.
-      if (rect.top < window.innerHeight * 0.88) {
+      // Alleen items duidelijk bovenin het scherm bij het laden meteen
+      // tonen (geen flits). Alles daaronder verbergen + observeren, zodat
+      // het zichtbaar opspringt zodra je ernaartoe scrollt — i.p.v. al
+      // "ingeladen" te staan. (Drempel verlaagd van 0.88 → 0.5.)
+      if (rect.top < window.innerHeight * 0.5) {
         el.classList.add("reveal-shown");
       } else {
         observer.observe(el);

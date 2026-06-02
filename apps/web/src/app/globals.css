@@ -135,6 +135,32 @@ body {
 
 .nav-demo:hover { background: var(--accent-dark); }
 
+/* Wrapper om de links + acties. Op desktop transparant via
+   `display: contents`: de wrapper verdwijnt uit de layout, zodat
+   .nav-links en .nav-actions gewoon directe flex-items van
+   .navbar-inner blijven en de bestaande space-between-verdeling
+   (logo links · links midden · acties rechts) intact blijft. Op
+   mobiel (zie @media 880px) wordt dit juist het uitklap-paneel. */
+.nav-menu { display: contents; }
+
+/* Hamburger-knop: standaard verborgen op desktop, alleen zichtbaar
+   onder 880px. Vaste 44×44 zodat hij prettig aantikbaar is op touch. */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -8px; /* optisch uitlijnen met de balk-rand */
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: background 0.15s;
+}
+.nav-toggle:hover { background: var(--hover); }
+
 /* ===== LOGIN PAGE ===== */
 .login-section {
   min-height: 100vh;
@@ -463,31 +489,69 @@ body {
    Publieke site, responsive (navbar + login)
    ============================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 880px) {
+  /* Tablet + mobiel: klap de navigatie in achter de hamburger-knop.
+     880px = hetzelfde breekpunt als de rest van landing.css, zodat de
+     links niet eerst lelijk gaan verspringen vóór ze inklappen. */
   .navbar-inner {
-    padding: 0 16px;
-  }
-  .nav-links {
-    gap: 2px;
-  }
-  .nav-link {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 12px 20px;
   }
 
-  .login-section {
-    padding: 80px 16px 40px;
-  }
-  .login-box {
-    padding: 24px 20px;
-  }
-  .login-title {
-    font-size: 24px;
+  /* Hamburger zichtbaar; horizontale nav verborgen tot het menu open is. */
+  .nav-toggle { display: flex; }
+  .nav-menu { display: none; }
+
+  /* Open menu: volle-breedte paneel onder de balk, papier-warm met blur. */
+  .navbar-wrapper.menu-open .nav-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 12px 20px 20px;
+    background: rgba(250, 247, 241, 0.98);
+    backdrop-filter: blur(56px) saturate(180%);
+    -webkit-backdrop-filter: blur(56px) saturate(180%);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.07);
   }
 
-  .legal-container {
-    padding: 0 24px;
+  /* Links + acties verticaal stapelen binnen het paneel. */
+  .navbar-wrapper.menu-open .nav-links,
+  .navbar-wrapper.menu-open .nav-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
   }
+  .navbar-wrapper.menu-open .nav-link {
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+  /* Scheidingslijn tussen de links en de inlog/CTA-acties. */
+  .navbar-wrapper.menu-open .nav-actions {
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    gap: 10px;
+  }
+  .navbar-wrapper.menu-open .nav-login {
+    padding: 12px 16px;
+  }
+  .navbar-wrapper.menu-open .nav-demo {
+    text-align: center;
+    padding: 14px 16px;
+  }
+
+  /* Login-pagina + legal (stonden voorheen onder 768px, hier samengevoegd). */
+  .login-section { padding: 80px 16px 40px; }
+  .login-box { padding: 24px 20px; }
+  .login-title { font-size: 24px; }
+
+  .legal-container { padding: 0 24px; }
   .legal-table {
     display: block;
     overflow-x: auto;
@@ -497,17 +561,6 @@ body {
 }
 
 @media (max-width: 480px) {
-  .navbar {
-    height: 56px;
-  }
-  .nav-link {
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-  .login-box {
-    padding: 20px 16px;
-  }
-  .login-title {
-    font-size: 20px;
-  }
+  .login-box { padding: 20px 16px; }
+  .login-title { font-size: 20px; }
 }

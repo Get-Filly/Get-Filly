@@ -653,6 +653,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
     0 30px 80px -20px rgba(31,74,45,0.20);
   position: relative;
 }
+/* /product-walkthrough: alle stap-kaarten even hoog (uniform, op ~de hoogte
+   van stap 01) maar strakker dan de oude 500px — minder lege ruimte boven/
+   onder. Alleen hier gescoped; home + andere secties houden hun eigen hoogte. */
+.product-walkthrough .feature-row { min-height: 470px; }
 .feature-row--reverse .feature-row-text { order: 2; }
 .feature-row--reverse .feature-row-visual { order: 1; }
 
@@ -782,6 +786,16 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   transform-origin: center;
 }
 
+/* Naam-label onder elk partner-logo (mockup-stijl). Het <text>-element
+   zit in dezelfde geanimeerde .vh-node-<g>, dus 'ie fade-in't automatisch
+   mee met z'n logo — geen aparte animatie nodig. */
+.vh-label {
+  fill: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
 /* Aderen (bg-lijnen) tekenen uit vanaf de hub-kant nadat alle 8
    logo's gepoppt zijn. Truc: stroke-dasharray = lijn-lengte +
    initial stroke-dashoffset = lijn-lengte → lijn onzichtbaar.
@@ -889,10 +903,11 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   justify-content: center;
   z-index: 3;
 }
-.zb-hub-glyph {
-  width: 70%;
+.zb-hub-logo {
+  width: 66%;
   height: auto;
   display: block;
+  object-fit: contain;
 }
 
 /* Platform-cirkel: grote witte cirkel met brand-logo binnen. */
@@ -928,7 +943,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   border-radius: 14px;
   padding: 12px 16px;
   box-shadow: 0 4px 14px rgba(31,74,45,0.10);
-  width: 170px;
+  width: 140px;
   z-index: 2;
   opacity: 0;
   animation: vh-fade-in 0.5s ease-out 0s forwards;
@@ -1004,6 +1019,23 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   }
   .zb-card-name { font-size: 12px; }
   .zb-card-bullets li { font-size: 10px; }
+}
+
+/* Laptop-mockup (hero) op telefoon. Het volledige dashboard past niet
+   in een 3:2-scherm op deze breedte: alleen de bovensectie (signaal-
+   banners + 2×2 KPI's) is al ~280px hoog terwijl het scherm maar ~200px
+   is, waardoor de KPI-kaarten middendoor werden afgekapt. We laten het
+   scherm hier meegroeien met de inhoud (height:auto) en tonen een
+   complete bovensectie — header + banners + CTA + 4 KPI's — en
+   verbergen de kalender/chat-strook, die op telefoonbreedte tóch in een
+   onleesbaar sliver werd geperst. Resultaat: een nette, complete
+   mini-weergave i.p.v. een halve kaart. Boven 640px (tablet+) past het
+   volledige dashboard wél in het 3:2-scherm, dus daar verandert niets. */
+@media (max-width: 640px) {
+  .mac-screen { aspect-ratio: auto; height: auto; }
+  .mini-dash { height: auto; }
+  .md-body { display: none; }
+  .md-main { gap: 9px; padding: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2829,6 +2861,13 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   .feature-row { grid-template-columns: 1fr; padding: 32px; gap: 32px; min-height: auto; }
   .feature-row--reverse .feature-row-text { order: 1; }
   .feature-row--reverse .feature-row-visual { order: 2; }
+  /* Grid-items hebben standaard min-width:auto (= min-content), waardoor
+     de 1fr-kolom niet onder de inhoud kan krimpen. Op smalle schermen liet
+     dat de kanalen-mock (.pmock-channels, max-width 440px) buiten het scherm
+     lopen. min-width:0 geeft de kolom toestemming te krimpen tot de
+     schermbreedte; de mock heeft al width:100% en de tekst-rijen korten
+     netjes in met ellipsis. */
+  .feature-row-text, .feature-row-visual { min-width: 0; }
   .feature-row-title { font-size: 26px; }
   .diff-grid, .feature-grid-3 { grid-template-columns: 1fr; }
   .hero-diffs { grid-template-columns: repeat(2, 1fr); gap: 28px; }
