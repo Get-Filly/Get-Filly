@@ -1730,7 +1730,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== STAP 1, Bezetting tile ===== */
 .pmock-occ {
-  width: 100%; max-width: 420px;
+  width: 100%; max-width: 440px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -1900,7 +1900,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== STAP 3, Approve / scheduled ===== */
 .pmock-approve {
-  width: 100%; max-width: 420px;
+  width: 100%; max-width: 440px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -2041,7 +2041,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* ===== STAP 4, Live Instagram-post ===== */
 .pmock-ig {
-  width: 100%; max-width: 360px;
+  width: 100%; max-width: 440px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -2075,10 +2075,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    deal-tekst eronder uitgelijnd zoals een echte campagne-visual. */
 .pmock-ig-photo {
   position: relative;
-  /* Landschap 1.91:1 = de standaard Instagram-landscape-verhouding;
-     realistisch voor een terras-foto én houdt de IG-kaart laag genoeg om
-     met de andere walkthrough-stappen op één uniforme hoogte te komen. */
-  aspect-ratio: 1.91 / 1;
+  /* Iets vlakker dan IG-landscape (1.91:1) nu de kaart 440px breed is, gelijk
+     aan de andere mocks: bij 440px wordt de foto ~191px hoog, zodat de IG-stap
+     binnen dezelfde uniforme rij-hoogte (460px) blijft als de overige stappen. */
+  aspect-ratio: 2.3 / 1;
   display: flex; align-items: flex-end;
   padding: 16px;
   background:
