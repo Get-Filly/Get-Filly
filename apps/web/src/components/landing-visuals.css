@@ -112,22 +112,26 @@
 .lv-rev-reply-txt { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
 
 /* ============ 02 Zichtbaarheid — overlappende social-posts ============ */
-.lv-social { height: 460px; }
+.lv-social { height: 470px; }
 .lv-post-slot { position: absolute; }
-/* Facebook iets verder naar links-boven (negatieve offsets = buiten de
-   gecentreerde .lv-box, in de witruimte van de kolom — clipt niet).
-   TikTok iets naar rechts. Instagram ongewijzigd. De waaier houdt
-   overlap: Facebook-rechterrand ~202px overlapt TikTok-linkerrand 172px. */
-.lv-post-1 { top: -8px;  left: -14px; z-index: 1; }
-.lv-post-2 { top: 74px;  left: 172px; z-index: 2; }
-.lv-post-3 { top: 192px; left: 40px;  z-index: 3; }
-/* Social-posts iets trager + duidelijker na elkaar laten opkomen. */
+/* Cascade die elke caption laat zien terwijl de kaarten flink overlappen.
+   Truc: de footer (kanaal + bijschrift) zit ONDER de foto, en elke kaart
+   staat 118px lager dan de vorige terwijl de bovenliggende kaart ervóór
+   ligt (hogere z-index). Zo dekt de voorste kaart alleen de BOVENkant
+   (foto) van de kaart erachter af; de footer steekt er onderlangs uit.
+   118px = footer (~83px) + ~35px foto, dus per kanaal zie je het bijschrift
+   plus een strook foto. Kaarthoogte ~221px, dus ~103px echte overlap. */
+.lv-post-3 { top: 0;     left: 64px; z-index: 3; } /* Instagram, voorste/bovenop */
+.lv-post-2 { top: 118px; left: 92px; z-index: 2; } /* TikTok, midden */
+.lv-post-1 { top: 236px; left: 52px; z-index: 1; } /* Facebook, achterste/onderop */
+/* Reveal-stagger: Facebook (DOM-eerste) popt eerst, dan TikTok, dan
+   Instagram die als laatste bovenop landt. Iets trager na elkaar. */
 .lv-social [data-reveal]:nth-child(2) { transition-delay: 0.45s; }
 .lv-social [data-reveal]:nth-child(3) { transition-delay: 0.9s; }
 /* Rotatie op de binnen-kaart, zodat de reveal-translate (op de slot)
-   de waaier-rotatie niet wegdrukt. */
+   de rotatie niet wegdrukt. */
 .lv-post-1 .lv-post { transform: rotate(-5deg); }
-.lv-post-2 .lv-post { transform: rotate(5deg); }
+.lv-post-2 .lv-post { transform: rotate(3.5deg); }
 .lv-post-3 .lv-post { transform: rotate(-2deg); }
 
 .lv-post {
@@ -139,19 +143,19 @@
     0 18px 40px -16px rgba(31, 74, 45, 0.32),
     0 2px 6px rgba(24, 24, 27, 0.05);
 }
-.lv-post-head { display: flex; align-items: center; gap: 8px; padding: 11px 13px; }
-.lv-post-ic { width: 22px; height: 22px; flex-shrink: 0; display: inline-flex; }
-.lv-post-name { font-size: 13px; font-weight: 600; color: var(--text); }
-.lv-post-media { position: relative; height: 128px; }
+.lv-post-media { position: relative; height: 138px; }
 .lv-post-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.lv-post-foot { padding: 10px 13px; }
-.lv-post-cap { font-size: 12.5px; color: var(--text); line-height: 1.4; }
-.lv-post-stats { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
-.lv-post-tag {
-  position: absolute; top: 10px; right: 10px;
-  background: rgba(255, 255, 255, 0.92); color: var(--accent);
-  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+/* Footer onder de foto: kanaal-identiteit + bijschrift. Staat bewust
+   onderaan zodat 'ie in de cascade altijd onder de kaart ervóór uitsteekt. */
+.lv-post-foot { padding: 11px 13px 13px; }
+.lv-post-by { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.lv-post-ic { width: 18px; height: 18px; flex-shrink: 0; display: inline-flex; }
+.lv-post-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.lv-post-cap {
+  font-size: 12.5px; color: var(--text); line-height: 1.4;
+  /* 2 regels reserveren zodat de cascade-offset (118px) klopt ongeacht of
+     een bijschrift net 1 of 2 regels wordt. */
+  min-height: 2.8em;
 }
 /* Warme food-gradient als fallback achter de foto (zichtbaar tot de
    echte afbeelding in public/visuals/ geplaatst is). */
@@ -206,26 +210,21 @@
 .lv-wa-meta { position: absolute; right: 10px; bottom: 4px; font-size: 9.5px; color: #7c8a7e; }
 
 /* ============================================================
-   Telefoon: de social-post-waaier (.lv-social) bestaat uit absoluut
-   gepositioneerde kaarten van 216px breed op offsets tot ~links 172px;
-   samen ~400px breed. Ontworpen voor de brede desktop-kolom, maar op
-   telefoons (kolom < ~370px) steekt 'ie buiten het scherm. We schalen
-   de hele waaier ~0,7× terug: kaarten 150px en dezelfde fan-verhouding
-   als desktop (zelfde overlap/spreiding), in een gecentreerde 280px-box.
-   Zo blijft de waaier luchtig i.p.v. de kaarten dik op elkaar te duwen.
+   Telefoon: dezelfde cascade als desktop, compacter. De kaarten zijn
+   170px (i.p.v. 216) zodat ze met hun horizontale spreiding binnen een
+   smalle kolom passen; de footer + een strook foto steekt onder elke
+   kaart uit, dus alle drie de bijschriften blijven leesbaar.
    Alleen onder 480px: daarboven is de gestapelde kolom breed genoeg.
    ============================================================ */
 @media (max-width: 480px) {
   .lv-social {
-    width: min(280px, 100%);
-    height: 334px;
+    width: min(240px, 100%);
+    height: 410px;
     margin: 0 auto;
   }
-  .lv-post { width: 150px; }
-  .lv-post-media { height: 89px; }
-  /* Offsets = desktop-posities × ~0,7 (en naar 0 verschoven), zodat de
-     spreiding/overlap exact die van de desktop-waaier volgt. */
-  .lv-post-1 { top: 0;    left: 0;    }
-  .lv-post-2 { top: 57px;  left: 130px; }
-  .lv-post-3 { top: 140px; left: 38px;  }
+  .lv-post { width: 170px; }
+  .lv-post-media { height: 100px; }
+  .lv-post-3 { top: 0;     left: 22px; } /* Instagram, bovenop */
+  .lv-post-2 { top: 108px; left: 44px; } /* TikTok, midden */
+  .lv-post-1 { top: 216px; left: 12px; } /* Facebook, onderop */
 }

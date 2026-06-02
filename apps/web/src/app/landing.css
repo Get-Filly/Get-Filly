@@ -651,10 +651,14 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
     0 30px 80px -20px rgba(31,74,45,0.20);
   position: relative;
 }
-/* /product-walkthrough: alle stap-kaarten even hoog (uniform, op ~de hoogte
-   van stap 01) maar strakker dan de oude 500px — minder lege ruimte boven/
-   onder. Alleen hier gescoped; home + andere secties houden hun eigen hoogte. */
-.product-walkthrough .feature-row { min-height: 470px; }
+/* /product-walkthrough: alle stap-kaarten even hoog (uniform) maar strak.
+   - min-height 460px ≈ de werkelijk hoogste stap (de Instagram-post-mock),
+     zodat die de hoogte bepaalt en de kortere stappen daarop worden gevuld
+     i.p.v. op een ruimere 470px-vloer → minder centreer-lucht.
+   - padding boven/onder van 56px → 36px (links/rechts blijft 56px): de
+     grootste bron van lege ruimte boven/onder tekst+mock. Alleen hier
+     gescoped; home + andere secties houden hun eigen hoogte/padding. */
+.product-walkthrough .feature-row { min-height: 460px; padding: 36px 56px; }
 .feature-row--reverse .feature-row-text { order: 2; }
 .feature-row--reverse .feature-row-visual { order: 1; }
 
@@ -2781,11 +2785,16 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 @media (max-width: 720px) {
   .zig-timeline::before { left: 28px; }
   .zig-item { grid-template-columns: 56px 1fr; gap: 0; margin-bottom: 24px; }
-  .zig-marker { grid-column: 1; justify-content: flex-start; }
+  /* Marker + kaart expliciet in dezelfde rij (rij 1). Zonder grid-row
+     belandt bij .zig-left (de kaart staat vóór de marker in de DOM) de
+     marker door grid-auto-plaatsing in rij 2 = ónder de kaart; daardoor
+     hing bv. 2028 onder Hoofdstuk 3. Nu staat het jaar bij élk item
+     netjes links naast de kaart. */
+  .zig-marker { grid-column: 1; grid-row: 1; justify-content: flex-start; }
   .zig-marker span { min-width: 56px; padding: 6px 10px; font-size: 12px; }
   .zig-left .zig-card,
   .zig-right .zig-card {
-    grid-column: 2; margin-left: 24px; margin-right: 0;
+    grid-column: 2; grid-row: 1; margin-left: 24px; margin-right: 0;
   }
   .zig-left .zig-card::after,
   .zig-right .zig-card::after {
