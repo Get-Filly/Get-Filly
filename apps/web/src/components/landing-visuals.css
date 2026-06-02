@@ -14,8 +14,13 @@
 }
 
 /* Alle 3 pijler-kaarten op de homepage even hoog (UI-consistentie):
-   inhoud blijft verticaal gecentreerd; de visuals passen binnen deze hoogte. */
-.features-stack .feature-row {
+   inhoud blijft verticaal gecentreerd; de visuals passen binnen deze hoogte.
+   Bewust gescoped op .features (de homepage-sectie): /product gebruikt óók
+   .features-stack maar heeft daar zijn eigen, lagere hoogte (460px). Zonder
+   deze scope matchten beide regels dezelfde kaarten met gelijke specificiteit,
+   waardoor de /product-kaarten afhankelijk van de CSS-laadvolgorde soms naar
+   600px sprongen (de "klein bij refresh, groot na navigatie"-flits). */
+.features .features-stack .feature-row {
   min-height: 600px;
 }
 
