@@ -42,6 +42,8 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~**Frontend live op `get-filly-web.vercel.app`**~~ — gedeployed 2026-05-08, beschermd met basic-auth middleware via env-vars `DEMO_AUTH_USERNAME` + `DEMO_AUTH_PASSWORD`. Vercel Hobby (geen native password-protection). URL kan privé gedeeld worden, browser-popup voor login.
 - [x] ~~**API live op Railway** `api-production-9682.up.railway.app/api`~~ (2026-05-21, commits `d9d61f6` + `881fac1` + `15a5e7b` + `551177c`). Vercel-route afgeschreven (Nest = persistent server, niet serverless). Railway-config: `railway.json` in repo root met `pnpm install --filter "api..."` + `pnpm --filter api build` + `start:prod`. **Node 22.x verplicht** (engines + .nvmrc) — jose@6 is ESM-only en `require(esm)` is pas default vanaf Node 22. CORS in `apps/api/src/main.ts` leest `WEB_URL` + `CORS_ORIGINS` uit env. Watch Paths leeg = redeploy bij elke main-push. Env-vars 1-op-1 uit lokale `.env` overgezet, behalve `WEB_URL` (lokaal localhost:3000 → prod Vercel-URL). Bewezen werking: `curl /api/hello` → 200, login + dashboard zonder Geen-toegang-melding.
 - [x] ~~**CI Suspense-fix**~~ (2026-05-21, commit `28bdfe2`) — Next.js 15+ vereist `<Suspense>`-wrapper rond `useSearchParams()` voor prerender. Account-page + google-business/reviews waren broken; refactor: inner-component houdt hooks, default-export wikkelt 'm in `<Suspense fallback={null}>`. Vercel-build was groen sindsdien.
+- [x] ~~**Web-deploy werd stil overgeslagen (ignore-build-step)**~~ (2026-06-02, commit `1fd6271`) — Vercel's "Skip unaffected projects" keek alleen naar de láátste commit van een push; eindigde die op een docs/api-commit, dan annuleerde Vercel de web-build ("Canceled by Ignored Build Step") terwijl een eerdere commit wél `apps/web` raakte → productie bleef op oude code. Fix: eigen `apps/web/vercel.json` (`ignoreCommand: bash scripts/vercel-ignore-build.sh`) die `git diff` doet tussen `VERCEL_GIT_PREVIOUS_SHA` (laatste geslaagde deploy) en `VERCEL_GIT_COMMIT_SHA` over `apps/web` + `packages/shared` + `pnpm-lock.yaml` + `package.json`. Exit 0 = overslaan, !=0 = bouwen; faalt bewust naar bouwen. Zie changelog 2026-06-02.
+- [ ] 🟡 **`get-filly-api` heeft dezelfde latente deploy-skip** — het api-project kan een echte api-wijziging overslaan als de láátste commit van een push alleen niet-api-bestanden raakt (zelfde oorzaak als de web-fix hierboven). Er staat nog géén `ignoreCommand` in `apps/api/vercel.json`. **Fix**: dezelfde ignore-step toepassen op api (diff over `apps/api` + `packages/shared` + lockfile). **Workaround tot dan**: zorg dat een echte api-wijziging de láátste commit van een push is.
 - [ ] **Bundle '+ Kanaal toevoegen' (fase 4b)** — op `/campagnes/bundle/[id]` staat de knop nu disabled. Implementatie: POST `/campaigns/bundle/:groupId/channels` met `{platform, body, subject_line?, scheduled_for?}` → maakt nieuwe campagne onder dezelfde group_id. UI: platform-keuze-modal of toggle-pillen zoals voorstel-pagina. Optioneel Filly-tekst-generate voor het nieuwe kanaal.
 
 ### Autonome detectie + push-meldingen (concept-flow, 2026-05-08)
@@ -605,6 +607,33 @@ verplaatsen naar de juiste P-bucket.
 ---
 
 ## Recent voltooid
+
+### 2026-06-02 — Vercel ignore-build-step gefikst (web-deploys werden stil overgeslagen)
+
+Na de invite-only-push bleef productie de oude code tonen — geen codefout, maar
+Vercel die de web-build oversloeg. Vercel's "Skip unaffected projects" keek
+alleen naar de LAATSTE commit van een push; die was hier een `docs(backlog)`-
+commit (alleen `BACKLOG.md`), dus concludeerde Vercel "geen `apps/web`-wijziging"
+en annuleerde de build ("Canceled by Ignored Build Step") — terwijl de echte
+web-wijziging (login/signup/middleware) in een eerdere commit van diezelfde push
+zat. De production-alias bleef daardoor op deploy `19f1df9` hangen.
+
+Diagnose-recept (handig bij "mijn wijziging staat niet live"):
+`gh api repos/Get-Filly/Get-Filly/commits/<sha>/status` toont per Vercel-project
+de state + description (o.a. "Canceled by Ignored Build Step");
+`gh api repos/Get-Filly/Get-Filly/deployments` toont welke commit als Production
+draait. Live-check zonder browser: `curl -sSI https://get-filly.com/<pad>`.
+
+Fix (commit `1fd6271`) — eigen Ignored Build Step die vergelijkt met de VÓRIGE
+geslaagde deploy i.p.v. alleen de laatste commit:
+- `apps/web/vercel.json`: `"ignoreCommand": "bash scripts/vercel-ignore-build.sh"`.
+- `apps/web/scripts/vercel-ignore-build.sh`: `git diff --quiet $VERCEL_GIT_PREVIOUS_SHA $VERCEL_GIT_COMMIT_SHA -- apps/web packages/shared pnpm-lock.yaml package.json`. Exit 0 = overslaan, exit !=0 = bouwen. Faalt bewust naar bouwen: geen vorige SHA / buiten de shallow clone (depth 10) / git-error → bouwen. Liever een overbodige build dan stil verouderde productie.
+- `VERCEL_GIT_PREVIOUS_SHA` (SHA van de laatste geslaagde deploy van project+branch) wordt door Vercel alléén gevuld als er een Ignored Build Step is — vandaar deze opzet.
+
+Geverifieerd: deploy `1fd6271` bouwde wél (state success), `get-filly.com/signup`
+geeft nu HTTP 307 → `/contact`, en de production-deploy staat op `1fd6271`. De
+**dezelfde latente skip geldt nog voor `get-filly-api`** (open punt in de
+Hosting-deploy-sectie).
 
 ### 2026-06-02 — Self-service signup dicht (invite-only) + demo-CTA + eigen afzender contact-mail
 
