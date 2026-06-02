@@ -11,17 +11,17 @@ import type { BundleChannel, CampaignBundleCard } from "../../../lib/api";
 // Wordt onder Filly-berichten getoond wanneer message_card.kind ===
 // 'campaign_bundle'. Toont:
 //   - bundle-naam + thema
-//   - 3 collapsibles (mail / Instagram / Facebook), default ingeklapt
-//     zodat de chat-bubble niet te groot wordt
-//   - 1 actieknop "Accepteer alle 3" of dismiss
+//   - een collapsible per kanaal dat in de bundel zit (sinds 2026-06-02
+//     kan dat elke subset van de 5 kanalen zijn: mail / Instagram /
+//     Facebook / WhatsApp / Google Business), default ingeklapt
+//   - 1 actieknop "Maak N campagnes aan" of dismiss
 //
-// Na accept: 3 per-kanaal-links naar de aangemaakte campagne-detail-
-// pagina's. Eigenaar klikt door en pusht daar per kanaal (mail werkt
-// echt via Resend; IG/FB tonen tot Meta-OAuth live is een
-// "Kopieer en plaats zelf"-flow).
+// Na accept: per aangemaakt kanaal een link naar de campagne-detail-
+// pagina. Eigenaar klikt door en pusht daar per kanaal.
 //
 // Status-states zijn parallel aan FillyChatProposalCard maar met een
-// eigen tagged-union zodat we de drie campaign-IDs kunnen bewaren.
+// generieke campaignIds-map zodat we voor elk kanaal het campagne-id
+// kunnen bewaren.
 // ============================================================
 
 export type BundleStatus =
@@ -29,15 +29,13 @@ export type BundleStatus =
   | { state: "creating" }
   | {
       state: "created";
-      mailCampaignId: string | null;
-      instagramCampaignId: string | null;
-      facebookCampaignId: string | null;
+      // Map kanaal → aangemaakte campagne-id (alleen aangemaakte kanalen).
+      campaignIds: Partial<Record<BundleChannel, string>>;
     }
   // Sinds 2026-05-04: bij chat-history-load detecteren we of de bundle
   // al eerder geaccepteerd is via de approved-suggesties. We weten dan
-  // alleen het anker-campagne-id (de mail-campagne uit approved_campaign_id).
-  // De andere twee staan via group_id in de campagnes-lijst, daarom een
-  // generieke "Open campagnes"-link.
+  // alleen het anker-campagne-id; de andere sub-campagnes staan via
+  // group_id in de campagnes-lijst, daarom een generieke "Open campagnes".
   | {
       state: "approved_existing";
       anchorCampaignId: string;
@@ -45,11 +43,21 @@ export type BundleStatus =
   | { state: "dismissed" }
   | { state: "error"; message: string };
 
+// Volgorde + presentatie per kanaal. We renderen alleen de kanalen die
+// daadwerkelijk in de bundel zitten.
+const CHANNEL_META: { key: BundleChannel; icon: string; label: string }[] = [
+  { key: "mail", icon: "✉️", label: "Mail" },
+  { key: "instagram", icon: "📷", label: "Instagram" },
+  { key: "facebook", icon: "📘", label: "Facebook" },
+  { key: "whatsapp", icon: "💬", label: "WhatsApp" },
+  { key: "google_business", icon: "📍", label: "Google Business" },
+];
+
 type Props = {
   bundle: CampaignBundleCard;
   status: BundleStatus;
   // Eigenaar selecteert welke kanalen 'ie daadwerkelijk wil aanmaken.
-  // Default in parent = alle 3.
+  // Default in de kaart = alle aanwezige kanalen.
   onAccept: (channels: BundleChannel[]) => void;
   onDismiss: () => void;
 };
@@ -60,16 +68,17 @@ export function FillyChatBundleCard({
   onAccept,
   onDismiss,
 }: Props) {
+  // Welke kanalen zitten er daadwerkelijk in deze bundel? Alleen die
+  // renderen we (en bieden we ter selectie aan).
+  const presentChannels = CHANNEL_META.filter((m) => bundle.channels[m.key]);
+
   const [openChannel, setOpenChannel] = useState<BundleChannel | null>(null);
 
-  // Welke kanalen heeft eigenaar aangevinkt? Default alle 3, meest
-  // gangbare keuze. Bij uitvinken zien we direct dat de campagne dan
-  // niet aangemaakt zal worden.
-  const [selected, setSelected] = useState<Record<BundleChannel, boolean>>({
-    mail: true,
-    instagram: true,
-    facebook: true,
-  });
+  // Default: alle aanwezige kanalen aangevinkt. Bij uitvinken zien we
+  // direct dat dat kanaal niet aangemaakt zal worden.
+  const [selected, setSelected] = useState<
+    Partial<Record<BundleChannel, boolean>>
+  >(() => Object.fromEntries(presentChannels.map((m) => [m.key, true])));
 
   if (status.state === "dismissed") return null;
 
@@ -81,10 +90,13 @@ export function FillyChatBundleCard({
     setSelected((s) => ({ ...s, [key]: !s[key] }));
   };
 
-  const selectedChannels: BundleChannel[] = (
-    ["mail", "instagram", "facebook"] as BundleChannel[]
-  ).filter((c) => selected[c]);
+  const selectedChannels: BundleChannel[] = presentChannels
+    .map((m) => m.key)
+    .filter((k) => selected[k]);
   const selectedCount = selectedChannels.length;
+
+  // Rijen zijn alleen interactief zolang we nog kunnen aanmaken.
+  const rowsDisabled = status.state !== "pending" && status.state !== "error";
 
   return (
     <div
@@ -124,9 +136,9 @@ export function FillyChatBundleCard({
         {bundle.theme}
       </div>
 
-      {/* Drie collapsibles, één per kanaal, met checkbox voor selectie.
-          Default alle 3 aangevinkt; eigenaar kan uitvinken om dat kanaal
-          over te slaan bij Accepteren. Kies-tekst alleen tonen bij pending. */}
+      {/* Eén collapsible per aanwezig kanaal, met checkbox voor selectie.
+          Default alle aangevinkt; eigenaar kan uitvinken om dat kanaal
+          over te slaan. Kies-tekst alleen tonen bij pending. */}
       {status.state === "pending" && (
         <div
           style={{
@@ -140,82 +152,20 @@ export function FillyChatBundleCard({
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <ChannelRow
-          icon="✉️"
-          title="Mail"
-          open={openChannel === "mail"}
-          onToggle={() => toggle("mail")}
-          checked={selected.mail}
-          onCheckChange={() => toggleSelected("mail")}
-          disabled={status.state !== "pending" && status.state !== "error"}
-        >
-          <div style={{ fontSize: 11, color: "var(--tl, #6B6F71)", marginBottom: 4 }}>
-            Onderwerp
-          </div>
-          <div style={{ fontWeight: 500, marginBottom: 8 }}>
-            {bundle.channels.mail.subject_line}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--tl, #6B6F71)", marginBottom: 4 }}>
-            Tekst
-          </div>
-          <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-            {bundle.channels.mail.body}
-          </div>
-        </ChannelRow>
-
-        <ChannelRow
-          icon="📷"
-          title="Instagram"
-          open={openChannel === "instagram"}
-          onToggle={() => toggle("instagram")}
-          checked={selected.instagram}
-          onCheckChange={() => toggleSelected("instagram")}
-          disabled={status.state !== "pending" && status.state !== "error"}
-        >
-          <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-            {bundle.channels.instagram.caption}
-          </div>
-          {bundle.channels.instagram.hashtags &&
-            bundle.channels.instagram.hashtags.length > 0 && (
-              <div
-                style={{
-                  marginTop: 8,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 4,
-                }}
-              >
-                {bundle.channels.instagram.hashtags.map((tag) => (
-                  <span
-                    key={tag}
-                    style={{
-                      fontSize: 11,
-                      color: "var(--brand, #1F4A2D)",
-                      background: "white",
-                      padding: "2px 6px",
-                      borderRadius: 4,
-                    }}
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-        </ChannelRow>
-
-        <ChannelRow
-          icon="📘"
-          title="Facebook"
-          open={openChannel === "facebook"}
-          onToggle={() => toggle("facebook")}
-          checked={selected.facebook}
-          onCheckChange={() => toggleSelected("facebook")}
-          disabled={status.state !== "pending" && status.state !== "error"}
-        >
-          <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-            {bundle.channels.facebook.caption}
-          </div>
-        </ChannelRow>
+        {presentChannels.map((m) => (
+          <ChannelRow
+            key={m.key}
+            icon={m.icon}
+            title={m.label}
+            open={openChannel === m.key}
+            onToggle={() => toggle(m.key)}
+            checked={!!selected[m.key]}
+            onCheckChange={() => toggleSelected(m.key)}
+            disabled={rowsDisabled}
+          >
+            {renderChannelContent(m.key, bundle)}
+          </ChannelRow>
+        ))}
       </div>
 
       {/* Acties, verschilt per status */}
@@ -277,7 +227,7 @@ export function FillyChatBundleCard({
         )}
         {status.state === "creating" && (
           <div style={{ fontSize: 12, color: "var(--tl, #6B6F71)" }}>
-            Bezig met aanmaken van 3 campagnes…
+            Bezig met aanmaken…
           </div>
         )}
         {status.state === "approved_existing" && (
@@ -321,30 +271,17 @@ export function FillyChatBundleCard({
               ✓ Concept-campagnes klaar
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {status.mailCampaignId && (
-                <Link
-                  href={`/dashboard/campagnes/${status.mailCampaignId}`}
-                  style={{ color: "var(--brand, #1F4A2D)" }}
-                >
-                  ✉️ Open mail
-                </Link>
-              )}
-              {status.instagramCampaignId && (
-                <Link
-                  href={`/dashboard/campagnes/${status.instagramCampaignId}`}
-                  style={{ color: "var(--brand, #1F4A2D)" }}
-                >
-                  📷 Open Instagram
-                </Link>
-              )}
-              {status.facebookCampaignId && (
-                <Link
-                  href={`/dashboard/campagnes/${status.facebookCampaignId}`}
-                  style={{ color: "var(--brand, #1F4A2D)" }}
-                >
-                  📘 Open Facebook
-                </Link>
-              )}
+              {presentChannels
+                .filter((m) => status.campaignIds[m.key])
+                .map((m) => (
+                  <Link
+                    key={m.key}
+                    href={`/dashboard/campagnes/${status.campaignIds[m.key]}`}
+                    style={{ color: "var(--brand, #1F4A2D)" }}
+                  >
+                    {m.icon} Open {m.label}
+                  </Link>
+                ))}
             </div>
           </div>
         )}
@@ -375,6 +312,74 @@ export function FillyChatBundleCard({
       </div>
     </div>
   );
+}
+
+// Rendert de inhoud van één kanaal-collapsible. Per kanaal een eigen
+// vorm: mail = onderwerp + tekst, IG/FB = caption (IG + hashtags),
+// WhatsApp + Google Business = enkel een body-tekst.
+function renderChannelContent(key: BundleChannel, bundle: CampaignBundleCard) {
+  const ch = bundle.channels;
+  const labelStyle = {
+    fontSize: 11,
+    color: "var(--tl, #6B6F71)",
+    marginBottom: 4,
+  } as const;
+  const bodyStyle = { whiteSpace: "pre-wrap", lineHeight: 1.5 } as const;
+
+  if (key === "mail" && ch.mail) {
+    return (
+      <>
+        <div style={labelStyle}>Onderwerp</div>
+        <div style={{ fontWeight: 500, marginBottom: 8 }}>
+          {ch.mail.subject_line}
+        </div>
+        <div style={labelStyle}>Tekst</div>
+        <div style={bodyStyle}>{ch.mail.body}</div>
+      </>
+    );
+  }
+  if (key === "instagram" && ch.instagram) {
+    return (
+      <>
+        <div style={bodyStyle}>{ch.instagram.caption}</div>
+        {ch.instagram.hashtags && ch.instagram.hashtags.length > 0 && (
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 4,
+            }}
+          >
+            {ch.instagram.hashtags.map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 11,
+                  color: "var(--brand, #1F4A2D)",
+                  background: "white",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+  if (key === "facebook" && ch.facebook) {
+    return <div style={bodyStyle}>{ch.facebook.caption}</div>;
+  }
+  if (key === "whatsapp" && ch.whatsapp) {
+    return <div style={bodyStyle}>{ch.whatsapp.body}</div>;
+  }
+  if (key === "google_business" && ch.google_business) {
+    return <div style={bodyStyle}>{ch.google_business.body}</div>;
+  }
+  return null;
 }
 
 // ============================================================

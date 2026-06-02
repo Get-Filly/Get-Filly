@@ -74,9 +74,16 @@ export type CampaignBundleCard = {
   name: string;
   theme: string;
   channels: {
-    mail: { subject_line: string; body: string };
-    instagram: { caption: string; hashtags?: string[] };
-    facebook: { caption: string };
+    // Sinds 2026-06-02: de bundel ondersteunt alle 5 chat-kanalen, niet
+    // langer alleen mail+IG+FB. Velden zijn OPTIONEEL: een bundel bevat
+    // precies de kanalen die de eigenaar aanvinkte (minimaal 2).
+    // WhatsApp (persoonlijk bericht) en Google Business (lokale profiel-
+    // post) hebben geen onderwerp of hashtags, dus enkel een `body`.
+    mail?: { subject_line: string; body: string };
+    instagram?: { caption: string; hashtags?: string[] };
+    facebook?: { caption: string };
+    whatsapp?: { body: string };
+    google_business?: { body: string };
   };
   // Status van onderliggende ai_suggestion + group-id na approve.
   suggestion_status?: string;
@@ -1129,30 +1136,40 @@ Regels:
   emoji's. Doel: gevonden worden in Maps en zoekresultaten.
 
 ────────────────────────────────────────
-FORMAAT 2, MULTI-CHANNEL BUNDLE (één thema, 3 kanalen)
+FORMAAT 2, MULTI-CHANNEL BUNDLE (één thema, meerdere kanalen)
 ────────────────────────────────────────
-Gebruik dit alleen wanneer eigenaar expliciet "bundel" / "alle
-kanalen" / "breed inzetten" noemt, OF wanneer 'ie net op de keuze-
-vraag voor "bundle" heeft gekozen ("Maak een bundel-campagne").
+Gebruik dit wanneer de eigenaar meerdere kanalen tegelijk noemt
+("bundel" / "alle kanalen" / "breed inzetten" / een opsomming als
+"mail, Instagram en WhatsApp"), OF wanneer 'ie net op de keuze-vraag
+een bundel koos ("Maak een bundel-campagne voor ...").
 
-Eén thema, drie kanaal-versies (mail + Instagram + Facebook), elk
-met EIGEN toon/lengte/structuur passend bij dat platform:
-- mail: lange, persoonlijke uitnodiging (~150 woorden), met subject_line
-- instagram: visueel-persoonlijk (~50-80 woorden), 3-5 hashtags
-- facebook: community-conversational (~80-120 woorden), géén hashtags
+Eén thema, met een kanaal-versie voor ELK kanaal dat de eigenaar
+noemde — minimaal 2. Neem PRECIES de genoemde kanalen op en laat de
+rest weg uit "channels". Elk kanaal in z'n eigen vorm:
+- mail: lange, persoonlijke uitnodiging (~150 woorden), subject_line + body
+- instagram: visueel-persoonlijk (~50-80 woorden) in caption, 3-5 hashtags
+- facebook: community-conversational (~80-120 woorden) in caption, géén hashtags
+- whatsapp: kort persoonlijk bericht (~50-90 woorden) in body, geen onderwerp/hashtags
+- google_business: lokaal-actiegericht (~50-100 woorden) in body, noem datum/aanbod, geen onderwerp/hashtags
+
+Voeg ALLEEN de gevraagde kanalen toe aan "channels". Voorbeeld hieronder
+toont alle vijf; laat weg wat niet gevraagd is:
 
 <<FILLY_PROPOSE_BUNDLE>>
-{"name":"<korte bundel-naam>","theme":"<1 zin die het thema vangt>","channels":{"mail":{"subject_line":"<onderwerp>","body":"<volledige mail-tekst>"},"instagram":{"caption":"<IG-caption met emojis>","hashtags":["tag1","tag2","tag3"]},"facebook":{"caption":"<FB-tekst zonder hashtags>"}}}
+{"name":"<korte bundel-naam>","theme":"<1 zin die het thema vangt>","channels":{"mail":{"subject_line":"<onderwerp>","body":"<mail-tekst>"},"instagram":{"caption":"<IG-caption met emojis>","hashtags":["tag1","tag2","tag3"]},"facebook":{"caption":"<FB-tekst zonder hashtags>"},"whatsapp":{"body":"<WhatsApp-bericht>"},"google_business":{"body":"<Google Business-post>"}}}
 <<END>>
 
 Regels bundle:
-- "name": korte werknaam voor hele bundel, bv. "Moederdag-bundel mei"
-- "theme": 1 zin die alle drie de kanaal-versies verbindt
-- ALLE drie kanalen moeten aanwezig zijn, laat geen kanaal weg
-- Captions per platform aangepast (NIET dezelfde tekst gekopieerd)
-- IG-caption: emoji's mag, laat dingen visueel klinken
-- FB-caption: warmer, meer storytelling, geen hashtags
-- mail: gebruik subject_line + lange body
+- "name": korte werknaam voor de hele bundel, bv. "Moederdag-bundel mei"
+- "theme": 1 zin die alle kanaal-versies verbindt
+- Neem PRECIES de kanalen op die de eigenaar noemde (minimaal 2); laat
+  ongenoemde kanalen weg uit "channels".
+- mail: subject_line + body. instagram/facebook: caption (IG mét hashtags,
+  FB zonder). whatsapp + google_business: alleen body (géén onderwerp,
+  géén hashtags).
+- Captions/teksten per platform aangepast (NIET dezelfde tekst gekopieerd).
+- IG-caption: emoji's mag; FB: warmer, storytelling; WhatsApp: persoonlijk,
+  alsof de eigenaar zelf typt; Google Business: feitelijk + lokaal.
 
 ${buildAllChannelsBlock()}
 ────────────────────────────────────────
@@ -1272,8 +1289,19 @@ export function extractCampaignProposal(
     const type = parsed.type;
     const name = parsed.name;
 
+    // google_business hoort er óók bij. De system-prompt laat Filly voor
+    // "Maak een Google Business-post" bewust een blok met type
+    // 'google_business' maken, en zowel CampaignProposalCard.type als de
+    // approve-flow (suggestions.service) kennen dit type al sinds 2026-05-24.
+    // Stond 'google_business' hier NIET in de toegestane lijst, dan keurde
+    // de parser het voorstel af (proposal: null), vuurde er in sendMessage
+    // geen enkele branch, en bleef het rauwe <<FILLY_PROPOSE_CAMPAIGN>>-blok
+    // als platte tekst in de chat staan i.p.v. als nette kaart te renderen.
     if (
-      (type !== 'mail' && type !== 'social' && type !== 'whatsapp') ||
+      (type !== 'mail' &&
+        type !== 'social' &&
+        type !== 'whatsapp' &&
+        type !== 'google_business') ||
       typeof name !== 'string' ||
       name.trim().length === 0
     ) {
@@ -1357,14 +1385,25 @@ export type BundleSocialContent = {
   hashtags?: string[];
 };
 
+// WhatsApp + Google Business: platte tekst zonder onderwerp of hashtags.
+// WhatsApp = persoonlijk bericht naar opt-in-gasten, Google Business =
+// lokale profiel-post. Beide hebben alleen een body.
+export type BundleTextContent = {
+  body: string;
+};
+
 export type ParsedBundle = {
   kind: 'campaign_bundle';
   name: string;
   theme: string;
+  // Optionele velden: een bundel bevat precies de aangevinkte kanalen
+  // (minimaal 2). Zie extractCampaignBundle voor de validatie.
   channels: {
-    mail: BundleMailContent;
-    instagram: BundleSocialContent;
-    facebook: BundleSocialContent;
+    mail?: BundleMailContent;
+    instagram?: BundleSocialContent;
+    facebook?: BundleSocialContent;
+    whatsapp?: BundleTextContent;
+    google_business?: BundleTextContent;
   };
 };
 
@@ -1395,6 +1434,15 @@ function sanitizeBundleSocial(v: unknown): BundleSocialContent | null {
   return out;
 }
 
+// Sanitize een platte-tekst-kanaal (WhatsApp / Google Business): enkel
+// een niet-lege body. Returnt null als de body ontbreekt of leeg is.
+function sanitizeBundleText(v: unknown): BundleTextContent | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.body !== 'string' || !o.body.trim()) return null;
+  return { body: o.body.trim() };
+}
+
 export function extractCampaignBundle(
   raw: string,
 ): { cleanText: string; bundle: ParsedBundle | null } {
@@ -1417,16 +1465,32 @@ export function extractCampaignBundle(
       !name.trim() ||
       typeof theme !== 'string' ||
       !theme.trim() ||
-      !channels
+      !channels ||
+      typeof channels !== 'object'
     ) {
       return { cleanText, bundle: null };
     }
 
+    // Per kanaal sanitizen; alleen geldige kanalen nemen we mee. Zo kan
+    // Filly een willekeurige subset van de 5 kanalen leveren — precies de
+    // kanalen die de eigenaar aanvinkte. mail/IG/FB houden hun bestaande
+    // shape; whatsapp/google_business zijn platte tekst (alleen body).
+    const out: ParsedBundle['channels'] = {};
     const mail = sanitizeBundleMail(channels.mail);
+    if (mail) out.mail = mail;
     const instagram = sanitizeBundleSocial(channels.instagram);
+    if (instagram) out.instagram = instagram;
     const facebook = sanitizeBundleSocial(channels.facebook);
+    if (facebook) out.facebook = facebook;
+    const whatsapp = sanitizeBundleText(channels.whatsapp);
+    if (whatsapp) out.whatsapp = whatsapp;
+    const googleBusiness = sanitizeBundleText(channels.google_business);
+    if (googleBusiness) out.google_business = googleBusiness;
 
-    if (!mail || !instagram || !facebook) {
+    // Een bundel is per definitie multi-kanaal: minimaal 2 geldige
+    // kanalen. Bij minder behandelen we 'm niet als bundel (dan had Filly
+    // een los voorstel moeten sturen, FORMAAT 1).
+    if (Object.keys(out).length < 2) {
       return { cleanText, bundle: null };
     }
 
@@ -1436,7 +1500,7 @@ export function extractCampaignBundle(
         kind: 'campaign_bundle',
         name: name.trim().slice(0, 120),
         theme: theme.trim().slice(0, 280),
-        channels: { mail, instagram, facebook },
+        channels: out,
       },
     };
   } catch {

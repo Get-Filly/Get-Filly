@@ -323,12 +323,9 @@ export function FillyChat() {
                 ? "Maak een WhatsApp-bericht"
                 : "Maak een Google Business-post";
     } else {
-      // GBP wordt apart afgesplitst: bundle-backend ondersteunt 'm
-      // niet. Filly genereert eerst de bundle, daarna in een
-      // vervolgbericht de losse GBP-post.
-      const hasGbp = choices.includes("google_business");
-      const others = choices.filter((c) => c !== "google_business");
-
+      // 2+ kanalen → één bundel-campagne voor álle gekozen kanalen. Sinds
+      // 2026-06-02 ondersteunt de bundel alle 5 kanalen (incl. WhatsApp +
+      // Google Business), dus we splitsen niets meer af.
       const labelFor = (c: ChannelChoice): string =>
         c === "mail"
           ? "mail"
@@ -339,22 +336,8 @@ export function FillyChat() {
               : c === "whatsapp"
                 ? "WhatsApp"
                 : "Google Business";
-
-      if (hasGbp && others.length === 0) {
-        // Alleen GBP aangevinkt (kan, multi-select toestaat het).
-        promptText = "Maak een Google Business-post";
-      } else if (hasGbp && others.length === 1) {
-        // GBP + 1 ander → twee aparte voorstellen, geen bundel.
-        promptText = `Maak twee voorstellen: een ${labelFor(others[0])}-bericht en een Google Business-post.`;
-      } else if (hasGbp) {
-        // GBP + 2+ andere → bundel voor de rest + losse GBP.
-        const labels = others.map(labelFor);
-        promptText = `Maak een bundel-campagne voor ${labels.join(", ")} en daarnaast een aparte Google Business-post.`;
-      } else {
-        // 2+ kanalen zonder GBP → normale bundle.
-        const labels = others.map(labelFor);
-        promptText = `Maak een bundel-campagne voor ${labels.join(", ")}`;
-      }
+      const labels = choices.map(labelFor);
+      promptText = `Maak een bundel-campagne voor ${labels.join(", ")}`;
     }
 
     try {
@@ -508,9 +491,8 @@ export function FillyChat() {
         ...s,
         [messageId]: {
           state: "created",
-          mailCampaignId: result.mailCampaignId,
-          instagramCampaignId: result.instagramCampaignId,
-          facebookCampaignId: result.facebookCampaignId,
+          // Generieke map: alle aangemaakte kanalen (incl. WhatsApp + GBP).
+          campaignIds: result.campaignIds ?? {},
         },
       }));
     } catch (e) {

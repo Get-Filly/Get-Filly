@@ -1175,14 +1175,24 @@ export async function approveSuggestion(
 // + per gekozen kanaal een campagne aan. Eigenaar selecteert in de
 // chat-card welke kanalen hij wil; backend slaat ongekozen kanalen
 // over (returnt null voor die IDs).
-export type BundleChannel = "mail" | "instagram" | "facebook";
+export type BundleChannel =
+  | "mail"
+  | "instagram"
+  | "facebook"
+  | "whatsapp"
+  | "google_business";
 
 export type ApproveBundleResult = {
   suggestion: AiSuggestion;
   groupId: string;
+  // Generieke map kanaal → aangemaakte campagne-id (alleen aangemaakte).
+  campaignIds: Partial<Record<BundleChannel, string>>;
+  // Backwards-compat losse velden.
   mailCampaignId: string | null;
   instagramCampaignId: string | null;
   facebookCampaignId: string | null;
+  whatsappCampaignId: string | null;
+  googleBusinessCampaignId: string | null;
 };
 
 export async function approveBundleSuggestion(
@@ -2053,9 +2063,13 @@ export type CampaignBundleCard = {
   name: string;
   theme: string;
   channels: {
-    mail: { subject_line: string; body: string };
-    instagram: { caption: string; hashtags?: string[] };
-    facebook: { caption: string };
+    // Sinds 2026-06-02 optioneel + 5 kanalen: een bundel bevat precies
+    // de aangevinkte kanalen. WhatsApp/Google Business hebben alleen body.
+    mail?: { subject_line: string; body: string };
+    instagram?: { caption: string; hashtags?: string[] };
+    facebook?: { caption: string };
+    whatsapp?: { body: string };
+    google_business?: { body: string };
   };
   suggestion_status?: "pending" | "approved" | "rejected" | "expired";
   approved_group_id?: string | null;

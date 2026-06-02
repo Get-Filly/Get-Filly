@@ -599,10 +599,16 @@ export default function CampagnesPage() {
     }
   };
 
-  // Default kanalen bij bundle-approve. Backend ondersteunt momenteel
-  // alleen mail/instagram/facebook in approve-bundle; tiktok/whatsapp
-  // komen via aparte single-suggestions binnen.
-  const DEFAULT_BUNDLE: BundleChannel[] = ["mail", "instagram", "facebook"];
+  // Default kanalen bij bundle-approve. Sinds 2026-06-02 ondersteunt de
+  // approve-bundle alle 5 chat-kanalen; we geven ze allemaal mee en de
+  // backend maakt alleen de kanalen die daadwerkelijk in de bundel zitten.
+  const DEFAULT_BUNDLE: BundleChannel[] = [
+    "mail",
+    "instagram",
+    "facebook",
+    "whatsapp",
+    "google_business",
+  ];
 
   // Goedkeur: voorstel → concept. Niet voor campaign-items.
   // Single-channel: redirect naar concept-detail-page zodat eigenaar

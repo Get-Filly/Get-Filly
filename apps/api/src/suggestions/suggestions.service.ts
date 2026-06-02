@@ -159,6 +159,16 @@ const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
   'google_business',
 ];
 
+// Kanalen die een multi-channel-bundel kan bevatten. Bewust géén tiktok:
+// de chat-keuze-kaart biedt deze 5 (sinds 2026-06-02 incl. whatsapp +
+// google_business). Deze union gebruiken approveBundle + de controller.
+export type BundleApproveChannel =
+  | 'mail'
+  | 'instagram'
+  | 'facebook'
+  | 'whatsapp'
+  | 'google_business';
+
 // Mapper: SuggestionPlatform → campaigns.type. Specifieke socials gaan
 // naar campaign.type='social' met platforms=[platform] in social_content
 // zodat de bestaande campagne-data-laag niet hoeft te veranderen.
@@ -1969,20 +1979,21 @@ Maak dit tastbaar volgens de regels.`;
     restaurantId: string,
     suggestionId: string,
     userId: string,
-    // Welke kanalen wil de eigenaar daadwerkelijk aanmaken? Default
-    // alle 3. Eigenaar kan in de chat-bundle-kaart vinkjes uitzetten
-    // om bv. alleen mail + IG te kiezen, geen FB.
-    channels: Array<'mail' | 'instagram' | 'facebook'> = [
-      'mail',
-      'instagram',
-      'facebook',
-    ],
+    // Welke kanalen wil de eigenaar daadwerkelijk aanmaken? Komt uit de
+    // vinkjes op de bundle-kaart. Niet meegegeven (of leeg) → we maken
+    // alle kanalen die daadwerkelijk in de bundel-payload zitten.
+    channels?: BundleApproveChannel[],
   ): Promise<{
     suggestion: AiSuggestion;
     groupId: string;
+    // Generieke map kanaal → aangemaakte campagne-id (alleen aanwezige).
+    campaignIds: Partial<Record<BundleApproveChannel, string>>;
+    // Backwards-compat losse velden (bestaande frontend leest deze nog).
     mailCampaignId: string | null;
     instagramCampaignId: string | null;
     facebookCampaignId: string | null;
+    whatsappCampaignId: string | null;
+    googleBusinessCampaignId: string | null;
   }> {
     const suggestion = await this.findById(restaurantId, suggestionId);
 
@@ -1996,46 +2007,35 @@ Maak dit tastbaar volgens de regels.`;
       suggestion.status === 'approved' &&
       suggestion.approved_campaign_id
     ) {
-      // Bestaande state ophalen, bij dubbele klik na navigation.
-      // Group-id achterhalen via campaigns.group_id van de mail-campagne.
-      const { data: mailCamp } = await this.supabase.client
+      // Bestaande state ophalen bij dubbele klik na navigatie. We pakken
+      // het anker-campagne-id → group_id → alle siblings, en classificeren
+      // elke sibling terug naar z'n bundel-kanaal.
+      const { data: anchorCamp } = await this.supabase.client
         .from('campaigns')
         .select('id, group_id, type')
         .eq('id', suggestion.approved_campaign_id)
         .maybeSingle();
-      if (mailCamp?.group_id) {
+      if (anchorCamp?.group_id) {
         const { data: siblings } = await this.supabase.client
           .from('campaigns')
           .select('id, type, campaign_social_content(platforms)')
-          .eq('group_id', mailCamp.group_id);
-        const ig = (siblings ?? []).find((s) => {
-          const pl = (s.campaign_social_content as
-            | { platforms?: string[] }[]
-            | { platforms?: string[] }
-            | null
-            | undefined);
-          const platforms = Array.isArray(pl)
-            ? pl[0]?.platforms
-            : pl?.platforms;
-          return s.type === 'social' && platforms?.includes('instagram');
-        });
-        const fb = (siblings ?? []).find((s) => {
-          const pl = (s.campaign_social_content as
-            | { platforms?: string[] }[]
-            | { platforms?: string[] }
-            | null
-            | undefined);
-          const platforms = Array.isArray(pl)
-            ? pl[0]?.platforms
-            : pl?.platforms;
-          return s.type === 'social' && platforms?.includes('facebook');
-        });
+          .eq('group_id', anchorCamp.group_id);
+        const campaignIds: Partial<Record<BundleApproveChannel, string>> = {};
+        for (const s of siblings ?? []) {
+          const channel = this.classifyBundleCampaign(s);
+          if (channel && !campaignIds[channel]) {
+            campaignIds[channel] = s.id as string;
+          }
+        }
         return {
           suggestion,
-          groupId: mailCamp.group_id as string,
-          mailCampaignId: (mailCamp.id as string | undefined) ?? null,
-          instagramCampaignId: (ig?.id as string | undefined) ?? null,
-          facebookCampaignId: (fb?.id as string | undefined) ?? null,
+          groupId: anchorCamp.group_id as string,
+          campaignIds,
+          mailCampaignId: campaignIds.mail ?? null,
+          instagramCampaignId: campaignIds.instagram ?? null,
+          facebookCampaignId: campaignIds.facebook ?? null,
+          whatsappCampaignId: campaignIds.whatsapp ?? null,
+          googleBusinessCampaignId: campaignIds.google_business ?? null,
         };
       }
     }
@@ -2057,6 +2057,8 @@ Maak dit tastbaar volgens de regels.`;
             mail?: { subject_line?: string; body?: string };
             instagram?: { caption?: string; hashtags?: string[] };
             facebook?: { caption?: string };
+            whatsapp?: { body?: string };
+            google_business?: { body?: string };
           };
         }
       | null;
@@ -2067,34 +2069,29 @@ Maak dit tastbaar volgens de regels.`;
         : 'Multi-channel campagne';
     const theme =
       typeof sc?.theme === 'string' ? sc.theme.trim().slice(0, 280) : null;
-    const mailContent = sc?.channels?.mail;
-    const igContent = sc?.channels?.instagram;
-    const fbContent = sc?.channels?.facebook;
+    const ch = sc?.channels ?? {};
 
-    // Validatie: voor elk GEKOZEN kanaal moet de bundle-payload de
-    // bijbehorende content hebben. Niet-gekozen kanalen valideren we
-    // niet, eigenaar wil ze toch niet aanmaken.
-    if (channels.length === 0) {
-      throw new InternalServerErrorException(
-        'Selecteer minimaal één kanaal om aan te maken.',
-      );
+    // Welke kanalen hebben daadwerkelijk bruikbare content in de payload?
+    // mail eist onderwerp + body; IG/FB een caption; whatsapp/GBP een body.
+    const available: BundleApproveChannel[] = [];
+    if (ch.mail?.subject_line?.trim() && ch.mail?.body?.trim()) {
+      available.push('mail');
     }
-    if (
-      channels.includes('mail') &&
-      (!mailContent?.subject_line?.trim() || !mailContent.body?.trim())
-    ) {
+    if (ch.instagram?.caption?.trim()) available.push('instagram');
+    if (ch.facebook?.caption?.trim()) available.push('facebook');
+    if (ch.whatsapp?.body?.trim()) available.push('whatsapp');
+    if (ch.google_business?.body?.trim()) available.push('google_business');
+
+    // Gevraagde kanalen = de vinkjes van de eigenaar, gefilterd op wat de
+    // payload bevat. Niets meegegeven → alle beschikbare kanalen.
+    const requested =
+      channels && channels.length > 0
+        ? channels.filter((c) => available.includes(c))
+        : available;
+
+    if (requested.length === 0) {
       throw new InternalServerErrorException(
-        'Mail-content ontbreekt in deze bundle.',
-      );
-    }
-    if (channels.includes('instagram') && !igContent?.caption?.trim()) {
-      throw new InternalServerErrorException(
-        'Instagram-content ontbreekt in deze bundle.',
-      );
-    }
-    if (channels.includes('facebook') && !fbContent?.caption?.trim()) {
-      throw new InternalServerErrorException(
-        'Facebook-content ontbreekt in deze bundle.',
+        'Geen bruikbare kanalen om aan te maken in deze bundle.',
       );
     }
 
@@ -2114,64 +2111,91 @@ Maak dit tastbaar volgens de regels.`;
     if (groupErr) throw new InternalServerErrorException(groupErr.message);
     const groupId = group.id as string;
 
-    // 2) Per gekozen kanaal een campagne aanmaken via CampaignsService.create.
-    // Niet-gekozen kanalen krijgen null als ID, frontend toont dan de
-    // checkbox als grijs i.p.v. een doorlink.
-    let mailCampaignId: string | null = null;
-    let instagramCampaignId: string | null = null;
-    let facebookCampaignId: string | null = null;
+    // 2) Per gevraagd kanaal een campagne aanmaken via CampaignsService.create,
+    // allemaal onder hetzelfde group_id. WhatsApp = type 'whatsapp', Google
+    // Business = type 'social' + platform 'google_business' (zelfde calls als
+    // de losse single-channel approve). We bewaren de id's in een map.
+    const campaignIds: Partial<Record<BundleApproveChannel, string>> = {};
 
-    if (channels.includes('mail') && mailContent) {
-      const { id } = await this.campaigns.create(
-        restaurantId,
-        {
-          name: `${bundleName}, mail`,
-          type: 'mail',
-          subject_line: mailContent.subject_line!.trim().slice(0, 200),
-          body: mailContent.body!.trim(),
-          group_id: groupId,
-        },
-        userId,
-      );
-      mailCampaignId = id;
-    }
-
-    if (channels.includes('instagram') && igContent) {
-      const { id } = await this.campaigns.create(
-        restaurantId,
-        {
-          name: `${bundleName}, Instagram`,
-          type: 'social',
-          body: igContent.caption!.trim(),
-          social_platforms: ['instagram'],
-          social_hashtags: igContent.hashtags ?? [],
-          group_id: groupId,
-        },
-        userId,
-      );
-      instagramCampaignId = id;
-    }
-
-    if (channels.includes('facebook') && fbContent) {
-      const { id } = await this.campaigns.create(
-        restaurantId,
-        {
-          name: `${bundleName}, Facebook`,
-          type: 'social',
-          body: fbContent.caption!.trim(),
-          social_platforms: ['facebook'],
-          group_id: groupId,
-        },
-        userId,
-      );
-      facebookCampaignId = id;
+    for (const channel of requested) {
+      if (channel === 'mail' && ch.mail) {
+        const { id } = await this.campaigns.create(
+          restaurantId,
+          {
+            name: `${bundleName}, mail`,
+            type: 'mail',
+            subject_line: ch.mail.subject_line!.trim().slice(0, 200),
+            body: ch.mail.body!.trim(),
+            group_id: groupId,
+          },
+          userId,
+        );
+        campaignIds.mail = id;
+      } else if (channel === 'instagram' && ch.instagram) {
+        const { id } = await this.campaigns.create(
+          restaurantId,
+          {
+            name: `${bundleName}, Instagram`,
+            type: 'social',
+            body: ch.instagram.caption!.trim(),
+            social_platforms: ['instagram'],
+            social_hashtags: ch.instagram.hashtags ?? [],
+            group_id: groupId,
+          },
+          userId,
+        );
+        campaignIds.instagram = id;
+      } else if (channel === 'facebook' && ch.facebook) {
+        const { id } = await this.campaigns.create(
+          restaurantId,
+          {
+            name: `${bundleName}, Facebook`,
+            type: 'social',
+            body: ch.facebook.caption!.trim(),
+            social_platforms: ['facebook'],
+            group_id: groupId,
+          },
+          userId,
+        );
+        campaignIds.facebook = id;
+      } else if (channel === 'whatsapp' && ch.whatsapp) {
+        const { id } = await this.campaigns.create(
+          restaurantId,
+          {
+            name: `${bundleName}, WhatsApp`,
+            type: 'whatsapp',
+            body: ch.whatsapp.body!.trim(),
+            group_id: groupId,
+          },
+          userId,
+        );
+        campaignIds.whatsapp = id;
+      } else if (channel === 'google_business' && ch.google_business) {
+        const { id } = await this.campaigns.create(
+          restaurantId,
+          {
+            name: `${bundleName}, Google Business`,
+            type: 'social',
+            body: ch.google_business.body!.trim(),
+            social_platforms: ['google_business'],
+            group_id: groupId,
+          },
+          userId,
+        );
+        campaignIds.google_business = id;
+      }
     }
 
     // 3) Suggestie afsluiten. Approved_campaign_id wijst naar het eerste
-    // beschikbare kanaal (mail als 't gekozen is, anders IG, anders FB)
-    // zodat we tenminste één anker hebben voor de "bekijk campagne"-link.
+    // aangemaakte kanaal (vaste prioriteit) zodat we altijd één anker
+    // hebben voor de "bekijk campagne"-link.
     const anchorCampaignId =
-      mailCampaignId ?? instagramCampaignId ?? facebookCampaignId;
+      campaignIds.mail ??
+      campaignIds.instagram ??
+      campaignIds.facebook ??
+      campaignIds.whatsapp ??
+      campaignIds.google_business ??
+      null;
 
     const { data: updated, error: updateErr } = await this.supabase.client
       .from('ai_suggestions')
@@ -2191,10 +2215,36 @@ Maak dit tastbaar volgens de regels.`;
     return {
       suggestion: updated as AiSuggestion,
       groupId,
-      mailCampaignId,
-      instagramCampaignId,
-      facebookCampaignId,
+      campaignIds,
+      mailCampaignId: campaignIds.mail ?? null,
+      instagramCampaignId: campaignIds.instagram ?? null,
+      facebookCampaignId: campaignIds.facebook ?? null,
+      whatsappCampaignId: campaignIds.whatsapp ?? null,
+      googleBusinessCampaignId: campaignIds.google_business ?? null,
     };
+  }
+
+  // Classificeert een campagne-rij terug naar z'n bundel-kanaal. Gebruikt
+  // door de idempotente rehydratie van approveBundle (na dubbele klik).
+  // mail/whatsapp volgen uit campaign.type; de socials uit het platform
+  // in campaign_social_content (instagram / facebook / google_business).
+  private classifyBundleCampaign(row: {
+    type?: string | null;
+    campaign_social_content?:
+      | { platforms?: string[] }[]
+      | { platforms?: string[] }
+      | null;
+  }): BundleApproveChannel | null {
+    if (row.type === 'mail') return 'mail';
+    if (row.type === 'whatsapp') return 'whatsapp';
+    if (row.type === 'social') {
+      const pl = row.campaign_social_content;
+      const platforms = Array.isArray(pl) ? pl[0]?.platforms : pl?.platforms;
+      if (platforms?.includes('instagram')) return 'instagram';
+      if (platforms?.includes('facebook')) return 'facebook';
+      if (platforms?.includes('google_business')) return 'google_business';
+    }
+    return null;
   }
 
   async updateStatus(
@@ -2809,10 +2859,16 @@ Inhoudsregels:
     bundle: {
       name: string;
       theme: string;
+      // Optionele velden: bundel kan elke subset van de 5 chat-kanalen
+      // bevatten (sinds 2026-06-02). WhatsApp + Google Business hebben
+      // alleen een body (geen onderwerp/hashtags). De approve-flow
+      // (approveBundle) leest straks per aanwezig kanaal.
       channels: {
-        mail: { subject_line: string; body: string };
-        instagram: { caption: string; hashtags?: string[] };
-        facebook: { caption: string };
+        mail?: { subject_line: string; body: string };
+        instagram?: { caption: string; hashtags?: string[] };
+        facebook?: { caption: string };
+        whatsapp?: { body: string };
+        google_business?: { body: string };
       };
     },
   ): Promise<{ id: string }> {
