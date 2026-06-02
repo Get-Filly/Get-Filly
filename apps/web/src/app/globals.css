@@ -488,6 +488,22 @@ body {
   white-space: nowrap;
 }
 
+/* Brede tabellen in de privacy/voorwaarden-secties horizontaal
+   scrollbaar maken op kleinere schermen. Deze <table>'s hebben een
+   inline width:100% maar een min-content van ~480px (3 kolommen die
+   niet verder krimpen); op een telefoon (≤~480px) liep daardoor de héle
+   pagina horizontaal over (de legal-pagina's hebben geen overflow-x:
+   hidden). display:block + overflow-x:auto laat de tabel zelf scrollen
+   i.p.v. de pagina; door de inline width:100% blijft 'ie vol-breed
+   zodra hij past. Geldt voor álle <table> in een .legal-section. */
+@media (max-width: 768px) {
+  .legal-section table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Mobile: iets minder padding en één-koloms TOC */
 @media (max-width: 640px) {
   .legal-page { padding-top: 110px; padding-bottom: 80px; }

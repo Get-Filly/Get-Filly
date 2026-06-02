@@ -3665,22 +3665,14 @@
   /* Burger-knop tonen. */
   .dashboard-shell .tb-burger { display: inline-flex; }
 
-  /* Dash-body: enkele kolom, chat onder de calendar ipv ernaast. */
+  /* Dash-body: alleen padding/gap krimpen. De kalender + chat blijven
+     hier NAAST elkaar (2 kolommen): zonder sidebar is er op 901–1024px
+     (bv. een half-scherm-venster) ruim plek voor beide. Het stapelen
+     naar 1 kolom gebeurt pas bij ≤900px (zie blok hieronder), anders
+     oogt het op een breed venster als een uitgerekte mobiele layout. */
   .dashboard-shell .dash-body {
-    grid-template-columns: 1fr;
     gap: 16px;
     padding: 16px 16px 24px;
-  }
-  .dashboard-shell .left-col,
-  .dashboard-shell .right-col {
-    grid-column: auto;
-  }
-
-  /* Right-col vaste max-height zodat de chat-card niet pagina-hoog
-     wordt op mobile. Eigen scroll als content groter is. */
-  .dashboard-shell .right-col {
-    max-height: 70vh;
-    min-height: 320px;
   }
 
   /* Dash-top minder padding. */
@@ -3688,6 +3680,25 @@
 
   /* Page-full container op detail-paginas: minder padding. */
   .dashboard-shell .page-full { padding: 16px; }
+}
+
+/* ====== ≤ 900px : kalender + chat onder elkaar ======
+   Onder ~900px wordt een 2-koloms kalender/chat te smal (kalender < ~400px
+   wordt krap), dus stapelen we ze. Losgekoppeld van het sidebar-breekpunt
+   (1024px) zodat de tussenmaat 901–1024px de breedte wél benut. */
+@media (max-width: 900px) {
+  .dashboard-shell .dash-body {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-shell .left-col,
+  .dashboard-shell .right-col {
+    grid-column: auto;
+  }
+  /* Chat niet pagina-hoog laten worden in de gestapelde layout. */
+  .dashboard-shell .right-col {
+    max-height: 70vh;
+    min-height: 320px;
+  }
 }
 
 /* ====== ≤ 768px : mobile ====== */

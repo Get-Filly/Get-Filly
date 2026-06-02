@@ -11,12 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Send,
   Flame,
   Mail,
-  Camera,
-  MessageCircle,
-  TrendingUp,
 } from "lucide-react";
 import {
   VindbaarheidVisual,
@@ -24,6 +20,9 @@ import {
   BereikbaarheidVisual,
 } from "../components/landing-visuals";
 import { ScrollReveal } from "../components/scroll-reveal";
+// De Filly-chat is een afspelende conversatie (state + timers) en daarom
+// een los "use client"-eiland; de rest van de mockup blijft server.
+import { LandingFillyChat } from "../components/landing-filly-chat";
 
 // =============================================================================
 // HOMEPAGE, 1-op-1 conversie van het Claude Design-prototype.
@@ -72,14 +71,6 @@ function MiniDashboard() {
     [{ d: 11, p: 42, lvl: 1 }, { d: 12, p: 82, lvl: 3 }, { d: 13, p: 43, lvl: 1 }, { d: 14, p: 56, lvl: 1 }, { d: 15, p: 89, lvl: 3, mail: true }, { d: 16, p: 81, lvl: 3 }, { d: 17, p: 85, lvl: 3 }],
     [{ d: 18, p: 46, lvl: 1 }, { d: 19, p: 54, lvl: 1 }, { d: 20, p: 42, lvl: 1 }, { d: 21, p: 65, lvl: 2 }, { d: 22, p: 92, lvl: 3 }, { d: 23, p: 84, lvl: 3 }, { d: 24, p: 88, lvl: 3, mail: true }],
     [{ d: 25, p: 65, lvl: 2 }, { d: 26, p: 53, lvl: 1 }, { d: 27, p: 61, lvl: 1 }, { d: 28, p: 74, lvl: 2 }, { d: 29, p: 95, lvl: 4, fire: true }, { d: 30, p: 67, lvl: 2, today: true }, { d: 31, p: 91, lvl: 3, mail: true }],
-  ];
-
-  // Kanaal-chips op de proactieve voorstel-kaart. Camera staat voor
-  // Instagram (lucide 1.14 heeft geen los Instagram-icoon).
-  const PROPOSAL_CHANNELS = [
-    { Icon: Camera, label: "Instagram" },
-    { Icon: Mail, label: "E-mail" },
-    { Icon: MessageCircle, label: "WhatsApp" },
   ];
 
   return (
@@ -182,57 +173,8 @@ function MiniDashboard() {
             </div>
           </div>
 
-          {/* Filly chat */}
-          <div className="md-chat">
-            <div className="md-chat-head">
-              <div className="md-chat-avatar">F</div>
-              <div style={{ minWidth: 0 }}>
-                <div className="md-chat-name">Filly AI</div>
-                <div className="md-chat-sub">Marketing-assistent</div>
-              </div>
-              <div className="md-chat-head-right">
-                <span className="md-chat-convos">Gesprekken<ChevronDown size={9} strokeWidth={2} /></span>
-                <span className="md-chat-status">Online</span>
-              </div>
-            </div>
-            <div className="md-chat-body">
-              {/* Proactief: Filly herkent zélf een rustige dag en zet een
-                  kant-en-klare multi-channel campagne klaar. Jij keurt
-                  alleen nog goed — precies de belofte van de Oplossing-
-                  pagina ("AI dóet het werk. Jij keurt goed."). */}
-              <div className="md-chat-msg ai">
-                Dinsdag 3 juni staat op <strong>43%</strong>, ruim onder je gemiddelde. Ik heb hier al een actie voor klaargezet&nbsp;👇
-              </div>
-
-              <div className="md-proposal">
-                <div className="md-proposal-head">
-                  <span className="md-proposal-title">Last-minute lunchdeal</span>
-                  <span className="md-proposal-date">di 3 juni</span>
-                </div>
-                <div className="md-proposal-channels">
-                  {PROPOSAL_CHANNELS.map((c) => (
-                    <span key={c.label} className="md-ch-chip">
-                      <c.Icon size={9} strokeWidth={2} />
-                      {c.label}
-                    </span>
-                  ))}
-                </div>
-                <div className="md-proposal-meta">Naar 248 vaste gasten · verstuurt automatisch di 11:00</div>
-                <div className="md-proposal-impact">
-                  <TrendingUp size={11} strokeWidth={2} />
-                  +18 couverts verwacht
-                </div>
-                <div className="md-proposal-actions">
-                  <span className="md-proposal-btn primary">Goedkeuren</span>
-                  <span className="md-proposal-btn">Aanpassen</span>
-                </div>
-              </div>
-            </div>
-            <div className="md-chat-input">
-              <div className="md-chat-input-text">Vraag Filly iets…</div>
-              <div className="md-chat-send"><Send size={10} strokeWidth={2} /></div>
-            </div>
-          </div>
+          {/* Filly chat — afspelende conversatie (eigen client-component). */}
+          <LandingFillyChat />
         </div>
       </div>
     </div>
@@ -256,13 +198,50 @@ export default function HomePage() {
           </div>
 
           <div className="hero-mockup fade-up d4">
-            <div className="mac-lid">
-              <div className="mac-camera"></div>
-              <div className="mac-screen">
-                <MiniDashboard />
+            {/* Laptop in een eigen wrapper, zodat 'm los kan schalen en de
+                telefoon ernaast absoluut gepositioneerd kan worden. */}
+            <div className="mac">
+              <div className="mac-lid">
+                <div className="mac-camera"></div>
+                <div className="mac-screen">
+                  <MiniDashboard />
+                </div>
+              </div>
+              <div className="mac-base"></div>
+            </div>
+
+            {/* Vergrendelde telefoon rechts: Get-Filly stuurt proactief een
+                pushmelding zodra het rustige dagen detecteert. Valt over de
+                rechter-rand van de laptop (diepte) maar laat de Filly-chat
+                vrij. Decoratief — de boodschap staat ook in de dashboard-
+                banner, daarom aria-hidden. Verborgen op mobiel. */}
+            <div className="hero-phone" aria-hidden="true">
+              <div className="phone-frame">
+                <div className="phone-screen">
+                  <div className="phone-island"></div>
+                  <div className="phone-lock-time">9:41</div>
+                  <div className="phone-lock-date">dinsdag 3 juni</div>
+                  <div className="phone-notif">
+                    <span className="phone-notif-icon">
+                      <BarChart3 size={14} strokeWidth={2.25} />
+                    </span>
+                    <div className="phone-notif-main">
+                      <div className="phone-notif-meta">
+                        <span className="phone-notif-app">Get-Filly</span>
+                        <span className="phone-notif-time">nu</span>
+                      </div>
+                      <div className="phone-notif-title">
+                        3 rustige dagen gedetecteerd
+                      </div>
+                      <div className="phone-notif-body">
+                        3, 8 en 10 juni onder je gemiddelde — tik voor voorstellen.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="phone-home-indicator"></div>
+                </div>
               </div>
             </div>
-            <div className="mac-base"></div>
           </div>
         </div>
       </section>

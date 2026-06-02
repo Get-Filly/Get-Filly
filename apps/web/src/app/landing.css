@@ -108,12 +108,26 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
    schermafbeelding daarbinnen, en een korte hinge/base eronder. */
 .hero-mockup {
   margin-top: 56px;
-  max-width: 980px;
+  /* Iets breder dan voorheen (980 → 1040): de laptop staat nu links en
+     de vergrendelde telefoon valt rechtsonder over de laptop-rand. Past
+     binnen de .container (1100px). position: relative is het anker voor
+     de absoluut gepositioneerde telefoon. */
+  max-width: 1040px;
   margin-left: auto;
   margin-right: auto;
+  position: relative;
   text-align: left;
   filter: drop-shadow(0 24px 48px rgba(31,74,45,0.14))
           drop-shadow(0 6px 12px rgba(31,74,45,0.08));
+}
+
+/* Laptop-wrapper: links uitgelijnd en iets smaller dan de hero-mockup,
+   zodat er rechts ruimte is voor de telefoon. width:100% zorgt dat de
+   mobiele schaal-regel (.hero-mockup → 300px) gewoon blijft werken. */
+.mac {
+  width: 100%;
+  max-width: 880px;
+  margin-right: auto;
 }
 
 /* Lid = de zwarte kast om het scherm */
@@ -174,6 +188,128 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   height: 6px;
   background: linear-gradient(180deg, #6a6a6e 0%, #3e3e42 100%);
   border-radius: 0 0 8px 8px;
+}
+
+/* ===== Vergrendelde telefoon met Get-Filly pushmelding =====
+   Device-stack: valt rechtsonder over de laptop-rand voor diepte.
+   right:0 + bottom negatief = steekt iets onder/naast de laptop uit.
+   Pas right/bottom/width aan om de exacte overlap te fijntunen. */
+.hero-phone {
+  position: absolute;
+  right: 0;
+  bottom: -34px;
+  width: 178px;
+  z-index: 2;
+}
+.phone-frame {
+  background: linear-gradient(180deg, #1d1d1f 0%, #0e0e10 100%);
+  border-radius: 30px;
+  padding: 7px;
+  /* Eigen, diepere schaduw zodat de telefoon vóór de laptop "zweeft". */
+  box-shadow: 0 22px 40px rgba(31,74,45,0.28), 0 6px 14px rgba(0,0,0,0.18);
+}
+.phone-screen {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  aspect-ratio: 9 / 19.5;
+  /* Donkergroene "wallpaper" in brand-kleur; laat de witte melding poppen. */
+  background: linear-gradient(165deg, var(--accent) 0%, #13261a 100%);
+  padding: 28px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Dynamic-island pil bovenaan. */
+.phone-island {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 13px;
+  border-radius: 999px;
+  background: #000;
+}
+.phone-lock-time {
+  margin-top: 12px;
+  color: var(--true-white);
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.phone-lock-date {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-weight: 500;
+}
+/* De pushmelding zelf: frosted-witte kaart onderaan het lockscreen. */
+.phone-notif {
+  margin-top: auto;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 9px 10px;
+  display: flex;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.phone-notif-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), var(--highlight));
+  color: var(--true-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.phone-notif-main {
+  min-width: 0;
+  flex: 1;
+}
+.phone-notif-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 1px;
+}
+.phone-notif-app {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.phone-notif-time {
+  font-size: 9px;
+  color: var(--text-light);
+  flex-shrink: 0;
+}
+.phone-notif-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+}
+.phone-notif-body {
+  margin-top: 2px;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+.phone-home-indicator {
+  margin-top: 10px;
+  width: 64px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 /* ===== Mini-dashboard binnen het scherm =====
@@ -511,6 +647,57 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 .md-chat-msg.ai { background: var(--bg); color: var(--text); align-self: flex-start; }
 .md-chat-msg.user { background: var(--accent); color: var(--true-white); align-self: flex-end; }
+
+/* ===== Afspelende conversatie (LandingFillyChat) =====
+   Alleen actief op de hero-chat (.md-chat--live), zodat statische
+   md-chat-mocks elders ongemoeid blijven. */
+
+/* De conversatie begint bovenin de chat en groeit naar beneden. */
+.md-chat--live .md-chat-body { justify-content: flex-start; }
+
+/* Elke beurt komt 1× omhoog-faden bij het verschijnen. Beurten die al
+   stonden houden hun React-key → mounten niet opnieuw → animeren niet
+   nogmaals; alleen de net-toegevoegde beurt schuift in. */
+.md-chat--live .md-chat-msg,
+.md-chat--live .md-proposal {
+  animation: md-turn-in 0.4s ease both;
+}
+@keyframes md-turn-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Typ-indicator: drie stuiterende bolletjes in een AI-bubbel. */
+.md-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  /* Iets hoger/strakker dan een tekstbubbel zodat de bolletjes centreren. */
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.md-typing-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-light);
+  animation: md-typing-bounce 1.2s ease-in-out infinite;
+}
+.md-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.md-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes md-typing-bounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* Toegankelijkheid: geen pop-in of stuiter bij reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  .md-chat--live .md-chat-msg,
+  .md-chat--live .md-proposal,
+  .md-typing-dot {
+    animation: none;
+  }
+}
 
 /* Proactieve voorstel-kaart: Filly heeft de campagne al klaargezet,
    jij keurt alleen nog goed. Volle breedte van de chat-body. */
@@ -1055,6 +1242,18 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
      leeg gat onder de mockup. Op telefoon strakker trekken. */
   .hero { padding-bottom: 40px; }
   .features { padding-top: 48px; }
+}
+
+/* De telefoon-stack heeft horizontale ruimte nodig. Op smalle schermen
+   (mobiel + kleine tablet) verbergen we 'm en centreren de laptop weer,
+   zodat de mock niet links-uitgelijnd met een leeg gat blijft staan. */
+@media (max-width: 820px) {
+  .hero-phone { display: none; }
+  .mac {
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
