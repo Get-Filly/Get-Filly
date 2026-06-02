@@ -8,12 +8,19 @@
 // stappen, pijlers, hero-diffs, de "waar we staan"-tijdlijn). Een genummerd
 // bolletje binnen het item popt mee (zie de [data-reveal]-CSS in landing.css).
 //
+// Daarnaast: count-up. Elk getal met de class `.pmock-count` BINNEN een
+// gereveald item telt op van een startwaarde naar zijn eindwaarde zodra de
+// kaart in beeld komt (de likes-teller bij stap 04, de stats bij stap 05 van de
+// product-walkthrough). De eindwaarde staat HARD in de HTML, dus zonder JS /
+// met reduced-motion klopt het getal meteen; we animeren er hier alleen naartoe.
+//
 // Progressive enhancement:
 //   - Items die bij het laden al (bijna) in beeld staan, blijven direct
 //     zichtbaar — geen verberg-flits.
 //   - Items daaronder worden verborgen tot ze de viewport in scrollen.
 //   - Zonder JS of bij prefers-reduced-motion blijft alles gewoon staan (de
-//     verberg-stijl hangt aan .reveal-pending, die wij hier pas toevoegen).
+//     verberg-stijl hangt aan .reveal-pending, die wij hier pas toevoegen) en
+//     blijven count-up-getallen op hun eindwaarde.
 // Rendert zelf niets; het effect draait via een IntersectionObserver.
 // =============================================================================
 
@@ -26,14 +33,58 @@ export function ScrollReveal() {
     );
     if (items.length === 0) return;
 
-    // Toegankelijkheidsvoorkeur respecteren: dan alles meteen tonen.
+    // Toegankelijkheidsvoorkeur respecteren: dan alles meteen tonen én de
+    // count-up-getallen op hun eindwaarde laten staan (we doen hier niets).
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // --- Count-up: tel een .pmock-count-getal van `from` naar zijn eindwaarde.
+    // De eindwaarde lezen we uit de HTML (textContent), zodat een prefix/suffix
+    // ("+12", "84%") bewaard blijft. Data-attributen sturen het gedrag:
+    //   data-count-from      startwaarde (default 0)
+    //   data-count-duration  duur in ms (default 1000)
+    //   data-count-delay     wachttijd ná reveal in ms (default 0)
+    const runCountUp = (el: HTMLElement) => {
+      // countTarget onthouden, zodat een eventuele her-reveal niet vanaf de
+      // al-getelde waarde opnieuw begint te tellen.
+      const finalText = (el.dataset.countTarget ?? el.textContent ?? "").trim();
+      const match = finalText.match(/^(\D*)(\d+)(\D*)$/);
+      if (!match) return;
+      el.dataset.countTarget = finalText;
+
+      const [, prefix, numStr, suffix] = match;
+      const target = parseInt(numStr, 10);
+      const from = Number(el.dataset.countFrom ?? 0);
+      const duration = Number(el.dataset.countDuration ?? 1000);
+      const delay = Number(el.dataset.countDelay ?? 0);
+
+      const render = (value: number) => {
+        el.textContent = `${prefix}${Math.round(value)}${suffix}`;
+      };
+      render(from); // start meteen op de beginwaarde (kaart is nog verborgen)
+
+      // easeOutCubic: zelfde rustige uitloop-gevoel als de fade-ins.
+      const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+      let startTs: number | null = null;
+      const tick = (ts: number) => {
+        if (startTs === null) startTs = ts;
+        const t = Math.min(1, (ts - startTs) / duration);
+        render(from + (target - from) * ease(t));
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      window.setTimeout(() => requestAnimationFrame(tick), delay);
+    };
+
+    // Eén plek die een item "toont": class zetten + de count-ups erin starten.
+    const reveal = (el: HTMLElement) => {
+      el.classList.add("reveal-shown");
+      el.querySelectorAll<HTMLElement>(".pmock-count").forEach(runCountUp);
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("reveal-shown");
+            reveal(entry.target as HTMLElement);
             observer.unobserve(entry.target);
           }
         });
@@ -60,7 +111,7 @@ export function ScrollReveal() {
       // keer hetzelfde op zodra je ernaartoe scrollt.
       const absoluteTop = rect.top + window.scrollY;
       if (absoluteTop < window.innerHeight * 0.5) {
-        el.classList.add("reveal-shown");
+        reveal(el);
       } else {
         observer.observe(el);
       }

@@ -24,10 +24,14 @@
   min-height: 600px;
 }
 
-/* Cascadende reveal: 2e en 3e item komen iets later op (zoals de
-   product-features-list elders op de site). */
-.lv [data-reveal]:nth-child(2) { transition-delay: 0.15s; }
-.lv [data-reveal]:nth-child(3) { transition-delay: 0.3s; }
+/* Volgorde op de home-pijlers: eerst springt de TEKST-kaart op
+   (.feature-row-text[data-reveal], reveal zonder vertraging), daarna de
+   uiting ernaast. Daarom krijgt élke uiting een basis-startvertraging van
+   0,4s. De onderlinge cascade (2e/3e kaartje iets later) blijft behouden,
+   nu bovenop die 0,4s. De pop-animatie zelf is ongewijzigd. */
+.lv [data-reveal] { transition-delay: 0.4s; }
+.lv [data-reveal]:nth-child(2) { transition-delay: 0.55s; }
+.lv [data-reveal]:nth-child(3) { transition-delay: 0.7s; }
 
 /* Generieke witte kaart met zachte groene schaduw. */
 .lv-card {
@@ -126,9 +130,11 @@
 .lv-post-1 { top: -26px; left: -34px; z-index: 1; }
 .lv-post-2 { top: -30px; left: 174px; z-index: 2; }
 .lv-post-3 { top: 192px; left: 40px;  z-index: 3; }
-/* Social-posts iets trager + duidelijker na elkaar laten opkomen. */
-.lv-social [data-reveal]:nth-child(2) { transition-delay: 0.45s; }
-.lv-social [data-reveal]:nth-child(3) { transition-delay: 0.9s; }
+/* Social-posts iets trager + duidelijker na elkaar laten opkomen. De
+   0,4s basis-startvertraging (na de tekstkaart) zit hier ingerekend:
+   0,4 + 0,45 = 0,85s, 0,4 + 0,9 = 1,3s. */
+.lv-social [data-reveal]:nth-child(2) { transition-delay: 0.85s; }
+.lv-social [data-reveal]:nth-child(3) { transition-delay: 1.3s; }
 /* Rotatie op de binnen-kaart, zodat de reveal-translate (op de slot)
    de waaier-rotatie niet wegdrukt. */
 .lv-post-1 .lv-post { transform: rotate(-5deg); }

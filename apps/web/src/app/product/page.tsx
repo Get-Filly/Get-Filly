@@ -278,7 +278,10 @@ export default function ProductPage() {
                       <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
                     </svg>
                   </div>
-                  <div className="pmock-ig-likes">128 vind-ik-leuks</div>
+                  {/* Likes lopen via de count-up (scroll-reveal.tsx) op van
+                      128 naar 312 zodra de post in beeld komt. De 312 staat
+                      hard in de HTML, dus zonder JS klopt het getal meteen. */}
+                  <div className="pmock-ig-likes"><span className="pmock-count" data-count-from="128" data-count-delay="1300" data-count-duration="1400">312</span> Likes</div>
                   <div className="pmock-ig-caption"><strong>bistrogetfilly</strong> Nog een paar tafels vrij vanavond. Drie gangen voor &euro;24,50. #donderdagdeal</div>
                   <div className="pmock-ig-time">2 uur geleden</div>
                 </div>
@@ -309,16 +312,20 @@ export default function ProductPage() {
                       2) zodat dit blijft kloppen als landing.css ooit opnieuw
                       vanuit de design-bron wordt overschreven. */}
                   <div className="pmock-result-stats" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+                    {/* De drie getallen tellen 1-voor-1 op via de count-up
+                        (scroll-reveal.tsx); de delays lopen gelijk met de
+                        fade-in-stagger in landing.css (2.2s / 2.5s / 2.8s),
+                        ná de kanaalbalken en vóór de kop-payoff. */}
                     <div className="pmock-result-stat">
-                      <div className="pmock-result-stat-num">+12</div>
+                      <div className="pmock-result-stat-num pmock-count" data-count-from="0" data-count-delay="2200">+12</div>
                       <div className="pmock-result-stat-label">extra reserveringen</div>
                     </div>
                     <div className="pmock-result-stat">
-                      <div className="pmock-result-stat-num">+34</div>
+                      <div className="pmock-result-stat-num pmock-count" data-count-from="0" data-count-delay="2500">+34</div>
                       <div className="pmock-result-stat-label">extra klanten</div>
                     </div>
                     <div className="pmock-result-stat">
-                      <div className="pmock-result-stat-num">84%</div>
+                      <div className="pmock-result-stat-num pmock-count" data-count-from="0" data-count-delay="2800">84%</div>
                       <div className="pmock-result-stat-label">eindbezetting</div>
                     </div>
                   </div>

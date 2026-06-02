@@ -241,7 +241,7 @@ export default function HomePage() {
                 aanbeveelt (GEO) en een review-kaart met eigenaar-antwoord.
                 Per 2026-06-02 vervangt deze de oude geanimeerde hub. */}
             <div className="feature-row">
-              <div className="feature-row-text">
+              <div className="feature-row-text" data-reveal>
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">01</span>
                   <span>Vindbaarheid</span>
@@ -268,7 +268,7 @@ export default function HomePage() {
                 met echte foto's uit public/visuals/, die via de
                 scroll-reveal na elkaar opkomen. */}
             <div className="feature-row feature-row--reverse">
-              <div className="feature-row-text">
+              <div className="feature-row-text" data-reveal>
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">02</span>
                   <span>Zichtbaarheid</span>
@@ -295,7 +295,7 @@ export default function HomePage() {
                 e-mailcampagne-kaart + een WhatsApp-gesprek met echte
                 chat-chrome. Per 2026-06-02; vervangt de losse fmock-email. */}
             <div className="feature-row">
-              <div className="feature-row-text">
+              <div className="feature-row-text" data-reveal>
                 <p className="feature-eyebrow feature-eyebrow--pill">
                   <span className="feature-eyebrow-num">03</span>
                   <span>Bereikbaarheid</span>
