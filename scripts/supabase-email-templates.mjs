@@ -75,21 +75,48 @@ function button(href, label) {
 
 export const templates = {
   // --------------------------------------------------------
-  // 1. INVITE — team-uitnodiging vanuit de eigenaar
+  // 1. INVITE — uitnodiging voor een nieuwe gebruiker
   // --------------------------------------------------------
-  // RedirectTo komt vanuit onze backend (team.service.ts) en wijst
-  // naar /invite/accept?inv=<ourToken>. We geven 'm dus dynamisch
-  // mee via {{ .RedirectTo }}.
+  // Twee gebruikers van DEZELFDE template (Supabase heeft er maar één):
+  //   (a) Team-lid van een bestaande zaak — uitgenodigd vanuit de app
+  //       (team.service.ts); RedirectTo wijst naar /invite/accept?inv=<token>.
+  //   (b) Nieuwe klant-eigenaar — uitgenodigd vanuit Supabase; landt na
+  //       activatie in /onboarding (geen restaurant_users-rij → middleware
+  //       stuurt door).
+  // Omdat het één template is, framen we de onboarding-tips met de kop
+  // "Ga je je zaak voor het eerst instellen?": (a) slaat dat blok mentaal
+  // over, (b) heeft er precies wat aan. RedirectTo blijft dynamisch.
   invite: {
-    subject: 'Uitnodiging voor Get-Filly',
+    subject: 'Welkom bij Get-Filly — activeer je account',
     content: wrap(`
-      <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Je bent uitgenodigd</h1>
+      <h1 style="font-size:22px;margin:0 0 16px;font-weight:600;color:#1A1A1A;">Welkom bij Get-Filly</h1>
       <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 24px;">
-        Iemand heeft je uitgenodigd om mee te werken op Get-Filly, een
-        AI-marketingassistent voor horecazaken. Klik op de knop om je
-        account te activeren en in te loggen.
+        Je bent uitgenodigd voor Get-Filly, de AI-marketingassistent voor
+        horecazaken. Klik op de knop om je account te activeren, je wachtwoord
+        in te stellen en in te loggen.
       </p>
-      ${button('{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next={{ .RedirectTo }}', 'Uitnodiging accepteren')}
+      ${button('{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next={{ .RedirectTo }}', 'Account activeren')}
+
+      <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:32px 0 8px;font-weight:600;">
+        Ga je je zaak voor het eerst instellen?
+      </p>
+      <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 12px;">
+        Filly vult je profiel grotendeels automatisch in. Houd dit bij de hand,
+        dan ben je in vijf tot tien minuten klaar:
+      </p>
+      <ul style="font-size:15px;line-height:1.6;color:#1A1A1A;margin:0 0 20px;padding-left:20px;">
+        <li>Je menukaart (PDF of foto) — Filly leest je gerechten er automatisch uit.</li>
+        <li>Je drankkaart (PDF of foto).</li>
+        <li>Je website-adres — hieruit haalt Filly je sfeer, doelgroep en sterke punten.</li>
+        <li>Je adres en je bedieningstijden (lunch en diner).</li>
+        <li>Handig om erbij te pakken: je zaak op Google, een paar goede foto's en je Instagram of Facebook.</li>
+      </ul>
+      <p style="font-size:15px;line-height:1.55;color:#1A1A1A;margin:0 0 24px;">
+        Filly doet het zware werk; jij controleert en past aan waar nodig.
+        Loop je vast? Mail ons gerust op
+        <a href="mailto:info@get-filly.com" style="color:#1F4A2D;">info@get-filly.com</a>.
+      </p>
+
       <p style="font-size:12px;color:#6B6B6B;margin:24px 0 0;line-height:1.5;">
         Werkt de knop niet? Kopieer deze link in je browser:<br>
         <span style="word-break:break-all;color:#6B6B6B;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next={{ .RedirectTo }}</span>
