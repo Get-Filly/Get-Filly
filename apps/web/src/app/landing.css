@@ -263,12 +263,14 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   /* Verborgen tot de melding "binnenkomt" (de component zet .arrived). */
   opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.45s ease, transform 0.45s ease;
+  transform: translateY(22px) scale(0.96);
+  /* Bouncy "pop" met lichte overshoot zodat de melding duidelijk
+     opspringt i.p.v. zacht inschuift. */
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .phone-notif.arrived {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 .phone-notif-icon {
   flex-shrink: 0;

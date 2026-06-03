@@ -16,8 +16,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Vertraging (ms) ná het in beeld komen voordat de pushmelding binnenschuift.
-const NOTIF_DELAY = 400;
+// Vertraging (ms) ná het in beeld komen voordat de pushmelding opspringt.
+// 1s: de pagina settelt eerst, dan popt de melding duidelijk als allereerste
+// scripted gebeurtenis — nog vóór de MacBook-chat begint.
+const NOTIF_DELAY = 1000;
 
 export function LandingPhone() {
   const ref = useRef<HTMLDivElement>(null);
@@ -47,7 +49,7 @@ export function LandingPhone() {
           }
         });
       },
-      { threshold: 0.35 },
+      { threshold: 0.2 },
     );
     observer.observe(mockup);
 
@@ -63,7 +65,7 @@ export function LandingPhone() {
         <div className="phone-screen">
           <div className="phone-island"></div>
           <div className="phone-lock-time">9:41</div>
-          <div className="phone-lock-date">dinsdag 3 juni</div>
+          <div className="phone-lock-date">dinsdag 5 mei</div>
           {/* De pushmelding zelf — schuift binnen zodra `arrived` true wordt. */}
           <div className={`phone-notif${arrived ? " arrived" : ""}`}>
             <span className="phone-notif-icon">

@@ -54,24 +54,24 @@ function MiniDashboard() {
 
   // KPI-rij: 4 kaarten zoals op het nieuwe dashboard.
   const KPIS = [
-    { label: "Bezetting vandaag", val: "67%" },
-    { label: "Gasten vandaag", val: "0", extra: "0 via Filly" },
+    { label: "Bezetting vandaag", val: "55%" },
+    { label: "Gasten vandaag", val: "43", extra: "0 via Filly" },
     { label: "Lopende campagnes", val: "3", extra: "actief of ingepland" },
     { label: "Voorgestelde campagnes", val: "1", extra: "wachten op goedkeuring" },
   ];
 
   // Heatmap-kalender mei 2026 (1 mei = vrijdag). p = bezetting%, lvl =
-  // kleurtier (zie .md-cal-day.lvl-* in landing.css). today = 30 mei.
+  // kleurtier (zie .md-cal-day.lvl-* in landing.css). today = 4 mei.
   // mail = klein envelop-markertje (geplande uiting), fire = drukke dag.
   type CalCell =
     | { d: number; p: number; lvl: number; today?: boolean; mail?: boolean; fire?: boolean }
     | null;
   const CAL: CalCell[][] = [
     [null, null, null, null, { d: 1, p: 42, lvl: 1 }, { d: 2, p: 41, lvl: 1 }, { d: 3, p: 80, lvl: 3, mail: true }],
-    [{ d: 4, p: 55, lvl: 1 }, { d: 5, p: 57, lvl: 1 }, { d: 6, p: 68, lvl: 2 }, { d: 7, p: 64, lvl: 1 }, { d: 8, p: 44, lvl: 1 }, { d: 9, p: 54, lvl: 1 }, { d: 10, p: 56, lvl: 1, mail: true }],
+    [{ d: 4, p: 55, lvl: 1, today: true }, { d: 5, p: 43, lvl: 1 }, { d: 6, p: 68, lvl: 2 }, { d: 7, p: 64, lvl: 1 }, { d: 8, p: 44, lvl: 1 }, { d: 9, p: 54, lvl: 1 }, { d: 10, p: 56, lvl: 1, mail: true }],
     [{ d: 11, p: 42, lvl: 1 }, { d: 12, p: 82, lvl: 3 }, { d: 13, p: 43, lvl: 1 }, { d: 14, p: 56, lvl: 1 }, { d: 15, p: 89, lvl: 3, mail: true }, { d: 16, p: 81, lvl: 3 }, { d: 17, p: 85, lvl: 3 }],
     [{ d: 18, p: 46, lvl: 1 }, { d: 19, p: 54, lvl: 1 }, { d: 20, p: 42, lvl: 1 }, { d: 21, p: 65, lvl: 2 }, { d: 22, p: 92, lvl: 3 }, { d: 23, p: 84, lvl: 3 }, { d: 24, p: 88, lvl: 3, mail: true }],
-    [{ d: 25, p: 65, lvl: 2 }, { d: 26, p: 53, lvl: 1 }, { d: 27, p: 61, lvl: 1 }, { d: 28, p: 74, lvl: 2 }, { d: 29, p: 95, lvl: 4, fire: true }, { d: 30, p: 67, lvl: 2, today: true }, { d: 31, p: 91, lvl: 3, mail: true }],
+    [{ d: 25, p: 65, lvl: 2 }, { d: 26, p: 53, lvl: 1 }, { d: 27, p: 61, lvl: 1 }, { d: 28, p: 74, lvl: 2 }, { d: 29, p: 95, lvl: 4, fire: true }, { d: 30, p: 67, lvl: 2 }, { d: 31, p: 91, lvl: 3, mail: true }],
   ];
 
   return (
@@ -116,10 +116,10 @@ function MiniDashboard() {
         <div className="md-alerts">
           <div className="md-alert-stack">
             <div className="md-alert">
-              <strong>3 rustige dagen</strong> komende 2 weken: 3 jun (43%), 8 jun (46%), 10 jun (42%)
+              <strong>3 rustige dagen</strong> komende 2 weken: 5 mei (43%), 8 mei (44%), 13 mei (43%)
             </div>
             <div className="md-alert">
-              <strong>1 speciale dag</strong> komende 6 weken: Vaderdag (21 jun)
+              <strong>1 speciale dag</strong> komende 6 weken: Moederdag (10 mei)
             </div>
           </div>
           <div className="md-cta-btn">Vraag Filly om voorstellen</div>
