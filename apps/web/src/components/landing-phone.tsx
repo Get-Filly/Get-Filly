@@ -4,14 +4,12 @@
 // LandingPhone — de vergrendelde telefoon naast de laptop in de hero-mockup.
 //
 // De telefoon (lockscreen met klok + datum) staat er meteen; de Get-Filly
-// pushmelding "1 rustige dag gedetecteerd" komt als ALLEREERSTE binnen-
-// geschoven (~0,4s nadat de mockup in beeld komt), nog vóór de chat begint.
-// De chat (LandingFillyChat) start daarna met een grotere intro-vertraging,
-// zodat het verhaal klopt: eerst de melding, dan het gesprek.
-//
-// Beide componenten observeren dezelfde .hero-mockup, zodat ze op hetzelfde
-// moment getriggerd worden en de volgorde altijd klopt (ongeacht scroll-
-// richting). Bij prefers-reduced-motion staat de melding er direct.
+// pushmelding "Rustige dagen gedetecteerd" popt ~1s nadat de TELEFOON zelf
+// goed in beeld is — niet zodra de laptop-mockup begint. Reden: de melding
+// zit onderaan het scherm; trigger je op de mockup-top, dan speelt de pop af
+// terwijl de telefoon nog onder de vouw zit en mis je 'm. Met een bouncy
+// overshoot zodat 'ie als een echte melding binnenkomt. Bij prefers-reduced-
+// motion staat de melding er direct.
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
@@ -35,9 +33,10 @@ export function LandingPhone() {
       return;
     }
 
-    // Observeer de hele mockup (gedeeld met de chat) zodat telefoon en chat
-    // op hetzelfde moment getriggerd worden.
-    const mockup = el.closest(".hero-mockup") ?? el;
+    // Observeer de TELEFOON zelf met een hoge drempel: pas poppen wanneer
+    // (vrijwel) de hele telefoon — incl. de onderkant waar de melding zit —
+    // in beeld is. Zo zie je de pop écht gebeuren i.p.v. dat 'ie al
+    // gearriveerd is tegen de tijd dat je naar de telefoon scrolt.
     let timer: ReturnType<typeof setTimeout>;
 
     const observer = new IntersectionObserver(
@@ -49,9 +48,9 @@ export function LandingPhone() {
           }
         });
       },
-      { threshold: 0.2 },
+      { threshold: 0.8 },
     );
-    observer.observe(mockup);
+    observer.observe(el);
 
     return () => {
       observer.disconnect();
@@ -79,7 +78,7 @@ export function LandingPhone() {
                 <span className="phone-notif-app">Get-Filly</span>
                 <span className="phone-notif-time">nu</span>
               </div>
-              <div className="phone-notif-title">1 rustige dag gedetecteerd</div>
+              <div className="phone-notif-title">Rustige dagen gedetecteerd</div>
             </div>
           </div>
           <div className="phone-home-indicator"></div>
