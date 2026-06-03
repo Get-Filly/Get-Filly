@@ -105,10 +105,11 @@ const PHASES: { count: number; typing: boolean; approved: boolean }[] = [
 // Som = 9000ms → de hele conversatie duurt precies 9 seconden.
 const STEP_DELAYS = [800, 1000, 700, 1000, 900, 700, 1100, 1100, 700, 1000];
 
-// Vertraging (ms) ná het in beeld komen voordat de chat begint. Groter dan
-// de NOTIF_DELAY van de telefoon (400ms), zodat de pushmelding eerst
-// binnenkomt en pas dáárna de chat start.
-const CHAT_INTRO_DELAY = 1300;
+// Vertraging (ms) ná het in beeld komen voordat de chat begint. Ruim groter
+// dan de NOTIF_DELAY van de telefoon (400ms): de pushmelding "1 rustige dag
+// gedetecteerd" komt eerst binnen en blijft ~1,9s alleen in beeld, zodat het
+// oog die opmerkt vóór de MacBook-chat begint te typen.
+const CHAT_INTRO_DELAY = 2300;
 
 // De voorstel-kaart. Bij `approved` verandert de Goedkeuren-knop in een
 // ingedrukte "Goedgekeurd ✓"-knop (zie de press-animatie in landing.css).

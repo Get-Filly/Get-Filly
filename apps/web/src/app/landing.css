@@ -213,8 +213,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   border-radius: 24px;
   overflow: hidden;
   aspect-ratio: 9 / 19.5;
-  /* Donkergroene "wallpaper" in brand-kleur; laat de witte melding poppen. */
-  background: linear-gradient(165deg, var(--accent) 0%, #13261a 100%);
+  /* Eigen lockscreen-wallpaper (foto in /public). De donkergroene gradient
+     ligt als overlay erover zodat de witte klok/datum + de melding leesbaar
+     blijven, ongeacht hoe licht de foto is. */
+  background:
+    linear-gradient(165deg, rgba(31, 74, 45, 0.45) 0%, rgba(15, 28, 19, 0.66) 100%),
+    url("/phone-wallpaper.jpg") center / cover no-repeat;
   padding: 28px 12px 12px;
   display: flex;
   flex-direction: column;
