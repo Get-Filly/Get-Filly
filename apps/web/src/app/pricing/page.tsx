@@ -58,7 +58,7 @@ const plans: Plan[] = [
 ];
 
 const faqs = [
-  { q: "Hoelang duurt de onboarding?", a: "Gemiddeld 15 minuten. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Filly gaat dezelfde dag aan de slag." },
+  { q: "Hoelang duurt de onboarding?", a: "Binnen één dag ben je volledig onboard. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Filly gaat dezelfde dag voor je aan de slag." },
   { q: "Welke kanalen gebruikt Filly?", a: "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep." },
   { q: "Houd ik controle over wat Filly verstuurt?", a: "Ja. Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
   { q: "Hoe weet Filly welke actie ze moet voorstellen?", a: "Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
