@@ -617,6 +617,16 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-02 — Landing-hero (homepage) verfijnd: telefoon-melding + mei-verhaallijn
+
+De hero-mockup (laptop + telefoon ernaast) is een samenhangende mini-demo geworden, anchor-datum **maandag 4 mei 2026**. Commits `074086b` → `da35034`.
+
+- **Telefoon**: eigen lockscreen-**wallpaper** (`apps/web/public/phone-wallpaper.jpg` + donkergroene overlay voor leesbaarheid). Pushmelding **"Rustige dagen gedetecteerd"** (titel 10px) met bouncy overshoot-pop.
+- **Melding-trigger gefikst** (`landing-phone.tsx`): popte voorheen zodra de laptop-mockup 20% in beeld was → speelde af terwijl de telefoon nog ónder de vouw zat (ongezien). Nu observeert 'ie de **telefoon zelf** (threshold 0.8) zodat de pop écht zichtbaar is. `NOTIF_DELAY` 1000ms.
+- **Volgorde** (`landing-filly-chat.tsx`): de MacBook-chat start op **3600ms** (`CHAT_INTRO_DELAY`) zodat de telefoon-melding ruim eerst popt, dan pas de chat.
+- **Coherente mei-verhaallijn**: telefoon = ma 4 mei; chat "Dinsdag 5 mei staat op 43%" → voorstel **di 5 mei** → "volgende week woensdag" → voorstel **wo 13 mei**. Laptop-MiniDashboard (`page.tsx`): vandaag = 4 mei (Bezetting **55%**, Gasten **43**), heatmap 5 mei = 43%, rustige-dagen-banner **5/8/13 mei**, speciale dag **Moederdag (10 mei)**. Weekdagen + percentages kloppen nu onderling.
+- **FAQ** (`pricing/page.tsx`, commit `0a77ddb`): onboarding-antwoord → "Binnen één dag ben je volledig onboard."
+
 ### 2026-06-02 — Multi-kanaal bundel uitgebreid naar alle 5 kanalen (+ google_business-voorstel-fix)
 
 "Selecteer alle kanalen" in Filly's chat levert nu één concept-bundel met
