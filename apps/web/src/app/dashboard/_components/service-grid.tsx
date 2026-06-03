@@ -87,6 +87,13 @@ export function ServiceGrid({
       };
 
   const cellHeight = fillHeight ? "100%" : MIN_CELL_HEIGHT;
+  // In fillHeight-modus verdelen de rijen (flex:1) de beschikbare hoogte.
+  // Géén minHeight-vloer dan: anders worden de cellen (bv. 56px) hoger dan
+  // hun krappe flex-rij (bv. 37px bij 7 week-rijen in een korte kaart) en
+  // gaan ze elkaar verticaal OVERLAPPEN. Met minHeight 0 vult elke cel exact
+  // z'n rij → strak uitgelijnd, geen overlap. Buiten fillHeight (natuurlijke
+  // hoogte) houden we de 56px-vloer voor leesbaarheid.
+  const cellMinHeight = fillHeight ? 0 : MIN_CELL_HEIGHT;
 
   return (
     <div style={wrapperStyle}>
@@ -153,7 +160,7 @@ export function ServiceGrid({
                   key={key}
                   style={{
                     height: cellHeight,
-                    minHeight: MIN_CELL_HEIGHT,
+                    minHeight: cellMinHeight,
                     background: "var(--bg-soft, #FAF7F1)",
                     border: "1px dashed var(--border, #E5DFD0)",
                     borderRadius: 6,
@@ -175,7 +182,7 @@ export function ServiceGrid({
                 title={`${row.label} ${SERVICE_LABELS[key]}: ${pct}%`}
                 style={{
                   height: cellHeight,
-                  minHeight: MIN_CELL_HEIGHT,
+                  minHeight: cellMinHeight,
                   background: tierBackground(pct),
                   borderRadius: 6,
                   display: "flex",

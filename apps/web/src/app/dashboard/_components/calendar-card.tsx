@@ -428,18 +428,17 @@ export function CalendarCard({
           }
           return (
             <div className="day-view">
-              <div className="day-view-head">
-                <div className="day-view-title">
-                  {formatWeekRange(weekStart, weekEnd)}
-                </div>
-              </div>
+              {/* Geen aparte week-kop: de week-range ("1 - 7 jun") staat al
+                  in de cal-controls-navigatie. Weglaten scheelt ~36px → de
+                  7 service-rijen krijgen meer hoogte (grotere, leesbare cellen
+                  i.p.v. ~28px). */}
               <div
                 style={{
                   flex: 1,
                   display: "flex",
                   flexDirection: "column",
                   minHeight: 0,
-                  padding: "8px 4px 4px",
+                  padding: "4px 4px",
                 }}
               >
                 <ServiceGrid
