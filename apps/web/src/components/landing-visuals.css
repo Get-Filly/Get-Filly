@@ -230,27 +230,17 @@
    breekpunt op 640 i.p.v. 480.
    ============================================================ */
 @media (max-width: 640px) {
+  /* De waaier als geheel terugschalen i.p.v. losse mobiele posities, zodat
+     'ie exact de desktop-verhoudingen (spreiding + overlap) volgt — alleen
+     kleiner, als accent. Géén post-width/offset-overrides meer: de desktop-
+     posities blijven staan en worden mee-geschaald. transform-origin
+     top-center centreert 'm in de kolom; height = geschaalde hoogte
+     (460 → ~184) zodat er geen leeg gat onder ontstaat. */
   .lv-social {
-    width: min(280px, 100%);
-    height: 334px;
-    margin: 0 auto;
+    transform: scale(0.4);
+    /* 38% i.p.v. center: de desktop-waaier is rechts-zwaar binnen .lv-social,
+       dus schalen om 38% centreert het geheel netjes in de kolom. */
+    transform-origin: 38% top;
+    height: 184px;
   }
-  .lv-post { width: 150px; }
-  .lv-post-media { height: 89px; }
-  /* Offsets = desktop-posities × ~0,7 (en naar 0 verschoven), zodat de
-     spreiding/overlap exact die van de desktop-waaier volgt. */
-  .lv-post-1 { top: 0;    left: 0;    }
-  .lv-post-2 { top: 57px;  left: 130px; }
-  .lv-post-3 { top: 140px; left: 38px;  }
-}
-
-/* Allerkleinste telefoons (≤360px, bv. iPhone SE 1e gen / kleine Android):
-   de kolom is dan < 280px, waardoor de rechter post (lv-post-2) net buiten
-   de kolom viel en werd afgesneden. Kaarten + offsets nog iets compacter
-   zodat de hele waaier binnen ~248px past. */
-@media (max-width: 360px) {
-  .lv-post { width: 128px; }
-  .lv-post-media { height: 76px; }
-  .lv-post-2 { left: 104px; }
-  .lv-post-3 { left: 30px; }
 }

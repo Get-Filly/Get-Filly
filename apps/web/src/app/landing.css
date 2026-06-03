@@ -1301,10 +1301,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
     margin-right: auto;
   }
   .mini-dash {
-    /* desktop-layout (sidebar + main) blijft staan; alleen schalen */
+    /* desktop-layout (sidebar + main) blijft staan; alleen schalen.
+       0.231 past de mini-dash in de smallere laptop (.mac max-width 250 →
+       scherm ~222px) zodat er rechts ruimte is voor de telefoon. */
     width: 960px;
     height: 640px;
-    transform: scale(0.2833);
+    transform: scale(0.231);
     transform-origin: top left;
   }
   /* De laptop is op telefoon kleiner (vaste 300px); de ruime hero-onder-
@@ -1322,6 +1324,36 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   .mac {
     max-width: none;
     margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Telefoon óók op mobiel (≤640px) tonen, naast/over de geschaalde laptop.
+   Kleiner dan op desktop (178→116px) en rechtsonder over de laptop-rand,
+   zodat 'ie binnen de gecentreerde 300px-mockup valt en de pagina niet laat
+   overflowen (right:0 = lijnt op de mockup-rand). Tussen 641-820px blijft
+   'ie verborgen — daar is geen horizontale ruimte voor de device-stack. */
+@media (max-width: 640px) {
+  .hero-phone {
+    display: block;
+    /* Eigen ontwerpbreedte (178px) behouden + als geheel terugschalen i.p.v.
+       de breedte te knijpen — anders wordt de meldingstekst gepropt/afgekapt.
+       transform-origin bottom-right houdt 'm verankerd op de laptop-rand. */
+    width: 178px;
+    /* Zelfde verhouding als op desktop: telefoon ≈20% van de laptop. Desktop
+       laptop ~880px → telefoon 178px; mobiele laptop 300px → 178×0.34 ≈ 60px. */
+    transform: scale(0.34);
+    transform-origin: bottom right;
+    right: 0;
+    bottom: -4px;
+  }
+  /* Laptop iets smaller + links uitgelijnd (zoals op desktop), zodat er
+     rechts ruimte is voor de telefoon. De telefoon (right:0) valt dan in
+     die ruimte en overlapt alleen de rechter-RAND van de laptop (~11px),
+     niet de chat-inhoud. Overschrijft de centrering uit het ≤820-blok. */
+  .mac {
+    max-width: 250px;
+    margin-left: 0;
     margin-right: auto;
   }
 }
