@@ -18,7 +18,7 @@ CRM (server-side)
 ## Endpoint (dit krijgt je collega)
 
 ```
-POST  https://get-filly-api.vercel.app/api/integrations/crm/invite
+POST  https://get-filly-api-three.vercel.app/api/integrations/crm/invite
 
 Headers:
   Authorization: Bearer <CRM_INTEGRATION_API_KEY>
@@ -37,7 +37,7 @@ Antwoord:
 ### Voorbeeld (curl)
 
 ```bash
-curl -X POST https://get-filly-api.vercel.app/api/integrations/crm/invite \
+curl -X POST https://get-filly-api-three.vercel.app/api/integrations/crm/invite \
   -H "Authorization: Bearer $CRM_INTEGRATION_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "email": "klant@restaurant.nl" }'
