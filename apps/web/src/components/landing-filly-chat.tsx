@@ -11,8 +11,8 @@
 //   3. Filly: voorstel-kaart 1 (Last-minute lunchdeal, di 5 mei)
 //   4. De Goedkeuren-knop wordt ingedrukt → wordt "Goedgekeurd ✓"
 //   5. Filly: "bekijk het concept en keur goed" mét link naar Campagnes
-//   6. Gast:  "Bedenk nog een campagne voor volgende week dinsdag"
-//   7. Filly: voorstel-kaart 2 (Midweek bistro-avond, di 12 mei)
+//   6. Gast:  "Bedenk nog een campagne voor volgende week woensdag"
+//   7. Filly: voorstel-kaart 2 (Midweek bistro-avond, wo 13 mei)
 //
 // Omdat het gesprek langer is dan de chat hoog is, scrollt de chat-body
 // mee naar onderen zodra er een beurt bijkomt — net als een echte chat.
@@ -49,7 +49,7 @@ const CAMPAIGN_1: Campaign = {
 
 const CAMPAIGN_2: Campaign = {
   title: "Midweek bistro-avond",
-  date: "di 12 mei",
+  date: "wo 13 mei",
   channels: [
     { Icon: Camera, label: "Instagram" },
     { Icon: Mail, label: "E-mail" },
@@ -80,7 +80,7 @@ const TURNS: Turn[] = [
   {
     id: "user-meer",
     kind: "user",
-    text: "Bedenk nog een campagne voor volgende week dinsdag",
+    text: "Bedenk nog een campagne voor volgende week woensdag",
   },
   { id: "proposal-2", kind: "proposal", campaign: CAMPAIGN_2 },
 ];
@@ -105,11 +105,10 @@ const PHASES: { count: number; typing: boolean; approved: boolean }[] = [
 // Som = 9000ms → de hele conversatie duurt precies 9 seconden.
 const STEP_DELAYS = [800, 1000, 700, 1000, 900, 700, 1100, 1100, 700, 1000];
 
-// Vertraging (ms) ná het in beeld komen voordat de chat begint. Ruim groter
-// dan de NOTIF_DELAY van de telefoon (1000ms): de pushmelding "1 rustige dag
-// gedetecteerd" popt eerst op (op ~1s) en blijft ~1,6s alleen in beeld, zodat
-// het oog die opmerkt vóór de MacBook-chat begint te typen.
-const CHAT_INTRO_DELAY = 2600;
+// Vertraging (ms) ná het in beeld komen van de mockup voordat de chat begint.
+// Bewust ruim: zo popt de telefoon-melding eerst en begint de MacBook-chat
+// pas dáárna met typen. Per 2026-06-02 +1s opgehoogd (2600 → 3600) op verzoek.
+const CHAT_INTRO_DELAY = 3600;
 
 // De voorstel-kaart. Bij `approved` verandert de Goedkeuren-knop in een
 // ingedrukte "Goedgekeurd ✓"-knop (zie de press-animatie in landing.css).

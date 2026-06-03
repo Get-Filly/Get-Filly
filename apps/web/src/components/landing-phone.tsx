@@ -64,7 +64,7 @@ export function LandingPhone() {
         <div className="phone-screen">
           <div className="phone-island"></div>
           <div className="phone-lock-time">9:41</div>
-          <div className="phone-lock-date">dinsdag 5 mei</div>
+          <div className="phone-lock-date">maandag 4 mei</div>
           {/* De pushmelding zelf — schuift binnen zodra `arrived` true wordt. */}
           <div className={`phone-notif${arrived ? " arrived" : ""}`}>
             <span className="phone-notif-icon">
