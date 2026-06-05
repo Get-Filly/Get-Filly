@@ -460,10 +460,9 @@ progress-checklists herschreven.
 - **Hosting compleet** (2026-05-21):
   - Frontend Vercel: `https://get-filly-web.vercel.app` (basic-auth
     `DEMO_AUTH_USERNAME` + `DEMO_AUTH_PASSWORD`).
-  - Backend Railway: `https://api-production-9682.up.railway.app/api`.
-  - `railway.json` in root, **Node 22.x verplicht** (engines + .nvmrc)
-    voor jose@6 ESM-only. CORS leest `WEB_URL` + `CORS_ORIGINS` uit env.
-  - Vercel env `NEXT_PUBLIC_API_URL` wijst naar Railway-URL.
+  - ~~Backend Railway~~ → **gemigreerd naar Vercel** (2026-05-28/29, zie de afgevinkte migratie-entry hierboven): api draait als serverless functions (regio `fra1`) op `https://get-filly-api-three.vercel.app/api`. `railway.json` is legacy.
+  - **Node 22.x verplicht** (engines + .nvmrc) voor jose@6 ESM-only. CORS leest `WEB_URL` + `CORS_ORIGINS` uit env.
+  - Vercel env `NEXT_PUBLIC_API_URL` wijst naar de Vercel api-URL (`-three`).
   - CI groen sinds Suspense-fix `28bdfe2`.
 - App is responsive op 320–1280px (geen horizontale pagina-scroll). Dashboard-breakpoints 1280/1024/900/768/480, publiek 880/640/480/360. Sweep-2 op 2026-06-02 (zie changelog) fixte de resterende mobiel-gaten.
 - Tool-use migratie compleet — geen JSON.parse-fouten meer mogelijk.

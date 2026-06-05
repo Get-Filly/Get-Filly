@@ -120,7 +120,18 @@ packages/
 - Campagne-send engine (Resend ontbreekt)
 - Alle externe integraties (Meta, Google Business, Zenchef, etc.)
 
-**Niet gedeployed** — draait lokaal. Vercel/Railway-config komt bij P1-werk (zie BACKLOG.md).
+**Live op Vercel** (bijgewerkt 2026-06-05): zowel web (Next.js) als api
+(Nest.js, serverless functions, regio `fra1` — zie `apps/api/vercel.json`)
+draaien in productie via Vercel. Deploy gaat automatisch bij een push naar
+`main`. **Canoniek domein: `https://www.get-filly.com`** (apex `get-filly.com`
+hoort 301 → www; instellen in Vercel → Domains). De `railway.json` is legacy
+en kan vermoedelijk weg. Lokaal draaien (`pnpm dev`) werkt nog steeds voor
+ontwikkeling, maar Floris werkt rechtstreeks tegen de live-omgeving.
+
+**SEO live** (2026-06-05): per-pagina metadata, `sitemap.ts`, `robots.ts`,
+JSON-LD (Organization/WebSite/SoftwareApplication) en gegenereerde OG-image.
+Centrale config in `apps/web/src/config/seo.ts` (`SITE_URL` = canoniek domein).
+Nog te doen: apex→www 301 in Vercel + Google Search Console + sitemap indienen.
 
 **Belangrijke dev-toggle**: email-confirmation staat **UIT** in Supabase (dev-bypass). **Terug AAN zetten voordat er productie-klanten op komen** — staat als ⚠️ in BACKLOG P0.
 
