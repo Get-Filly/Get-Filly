@@ -125,14 +125,25 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 
 ### Site-fundamenten (publieke site)
 - [x] ~~**Contact/waitlist-formulier**~~ (2026-05-30) — `/contact`-pagina (demo-aanvraag: naam/restaurant/e-mail/telefoon-optioneel/bericht + honeypot anti-spam). Publiek endpoint `POST /api/public/contact` (@Public) → `MailService.sendContactRequest` mailt naar **info@get-filly.com** (from `social@get-filly.com`, reply-to = bezoeker). Alle 5 demo/kennismaking-CTA's (navbar, homepage-hero, homepage-pijler, product, pricing) linken nu naar `/contact`. Serverside-validatie + lengte-grenzen.
-- [ ] **404-pagina** — custom error-page
+- [x] ~~**404-pagina**~~ (2026-06-05) — `apps/web/src/app/not-found.tsx`, on-brand met links terug de site in
 - [x] ~~**sitemap.xml**~~ (2026-06-05) — `apps/web/src/app/sitemap.ts`, live op `/sitemap.xml`
 - [x] ~~**robots.txt**~~ (2026-06-05) — `apps/web/src/app/robots.ts`, blokkeert dashboard/auth/besloten routes
 - [x] ~~**OG-image + per-pagina SEO-metadata**~~ (2026-06-05) — metadataBase + title-template + per-pagina title/description/canonical via `apps/web/src/config/seo.ts`; site-brede OG-deelafbeelding (alleen logo) via `app/opengraph-image.tsx`; JSON-LD (Organization/WebSite/SoftwareApplication) via `components/structured-data.tsx`. Canoniek domein **www.get-filly.com**.
 - [ ] **⚠️ Apex → www 301-redirect in Vercel** (open, Floris-actie) — `get-filly.com` én `www.get-filly.com` geven nu allebei HTTP 200 = duplicate content. www is canoniek (canonicals + sitemap + JSON-LD staan daarop). Instellen via Vercel → project → **Domains** (zit NIET in de Project-Settings-sidebar in de huidige UI; staat als top-tab op de projectpagina): bij `get-filly.com` → Edit → "Redirect to" → `www.get-filly.com` (308). Alternatief: in code via `next.config.ts` `redirects()` met host-match.
 - [ ] **Google Search Console** (open, Floris-actie + kleine code-stap) — property op `https://www.get-filly.com` aanmaken + `sitemap.xml` indienen. Verificatie via DNS-TXT óf meta-tag; bij meta-tag levert Floris de code aan → toevoegen als `verification: { google: "<code>" }` in de root-metadata (`apps/web/src/app/layout.tsx`).
+- [x] ~~**FAQPage-schema op /pricing**~~ (2026-06-05) — JSON-LD uit de `faqs`-array → kans op uitklapbare rich results in Google.
+- [~] **Analytics + Speed Insights** (2026-06-05) — code staat live in de root-layout (cookieloos/AVG-vriendelijk). **Speed Insights is actief** (script 200). **Web Analytics nog aanzetten**: Vercel → project → tab **Analytics** → *Enable* (script geeft nu 404 = uit). Daarna stroomt bezoekersdata binnen.
+- [ ] **Social-profielen in JSON-LD `sameAs`** (open, Floris levert URL's) — Instagram/LinkedIn (+ evt. Facebook/TikTok/X) toevoegen aan de lege `sameAs` in `components/structured-data.tsx` voor sterkere entiteitskoppeling (Google + AI).
 - [ ] **About-pagina invullen** — nu leeg/placeholder
 - [ ] **Footer invullen** — nu grotendeels leeg
+
+### Content & blog (grootste SEO/GEO-hefboom)
+- [ ] **Blog-/content-infrastructuur bouwen** — route (`/blog` of `/kennis`) + MDX + automatische opname in `sitemap.ts` + Article/BlogPosting JSON-LD per artikel + index/detail. Claude bouwt de infra, Floris/Filly schrijft de teksten. Voedt ook GEO (AI-zoekmachines citeren content).
+- [ ] **Eerste artikel-onderwerpen** (aangeleverd door Floris, 2026-06-05):
+  - "Hoe krijg ik meer reserveringen in een rustige periode?"
+  - "Google Bedrijfsprofiel optimaliseren voor je restaurant"
+  - "Reviews beantwoorden als horecaondernemer"
+  - "Restaurantmarketing zonder bureau"
 
 ---
 
