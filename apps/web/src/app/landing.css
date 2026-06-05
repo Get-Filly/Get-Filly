@@ -1464,7 +1464,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 
 /* Per 2026-05-13: bulletpoint-lijst onder feature-row-desc voor de
    3-pijler-sectie op de homepage (Vindbaarheid/Zichtbaarheid/
-   Bereikbaarheid). Subtiele dash-prefix, geen bullet-dots, rustige
+   Bereikbaarheid). Groen bolletje-prefix in de huisstijlkleur, rustige
    spacing zodat het de visual rechts niet wegduwt. */
 .feature-bullets {
   list-style: none;
@@ -1481,12 +1481,16 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   color: var(--text-secondary);
 }
 .feature-bullets li::before {
-  content: "—";
+  /* Groen bolletje in de huisstijlkleur (#1F4A2D via --accent) i.p.v. een
+     streepje. top centreert het rondje op de eerste tekstregel. */
+  content: "";
   position: absolute;
   left: 0;
-  top: 0;
-  color: var(--accent);
-  font-weight: 600;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--accent);
 }
 
 /* Pijlers-CTA — brand-groen actie-blok. Per 2026-05-13 verhuisd
@@ -2388,11 +2392,34 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   aspect-ratio: 2.3 / 1;
   display: flex; align-items: flex-end;
   padding: 16px;
+  /* Groene gradient blijft als fallback (zichtbaar tijdens laden); de foto
+     hieronder ligt eroverheen. */
+  overflow: hidden;
   background:
     radial-gradient(ellipse 120% 90% at 25% 15%, rgba(255,255,255,0.18), transparent 55%),
     linear-gradient(150deg, var(--accent) 0%, var(--accent-dark) 100%);
 }
+/* Echte gerechten-foto die het beeld vult (object-fit cover crop't naar het
+   brede IG-formaat). z-index 0 = onder de scrim en de tag. */
+.pmock-ig-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+/* Donkere gradient onderaan zodat de witte deal-tekst leesbaar blijft. */
+.pmock-ig-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.45), transparent 45%);
+  z-index: 1;
+}
 .pmock-ig-photo-tag {
+  position: relative;
+  z-index: 2;
   font-size: 15px; font-weight: 800; color: var(--true-white);
   letter-spacing: -0.2px; line-height: 1.3;
   text-shadow: 0 1px 10px rgba(0,0,0,0.28);

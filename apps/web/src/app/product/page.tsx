@@ -255,9 +255,8 @@ export default function ProductPage() {
               <div className="feature-row-visual">
                 {/* Mock van de live Instagram-post zoals een gast 'm in
                     de feed ziet: header + beeld met deal-tekst + actie-rij
-                    + likes + caption. Beeld is een groene gradient-
-                    placeholder (geen echte foto), consistent met de
-                    overige mocks op deze pagina. */}
+                    + likes + caption. Beeld toont een echte gerechten-foto
+                    (de groene gradient blijft als fallback achter de foto). */}
                 <div className="pmock-ig">
                   <div className="pmock-ig-head">
                     <div className="pmock-ig-avatar">B</div>
@@ -268,6 +267,12 @@ export default function ProductPage() {
                     <span className="pmock-ig-live">Live</span>
                   </div>
                   <div className="pmock-ig-photo">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/instagram-gerechten.jpg"
+                      alt="Drie gangen bij Bistro Get-Filly"
+                      loading="lazy"
+                    />
                     <span className="pmock-ig-photo-tag">Donderdag-deal<br />3 gangen &middot; &euro;24,50</span>
                   </div>
                   <div className="pmock-ig-actions">
