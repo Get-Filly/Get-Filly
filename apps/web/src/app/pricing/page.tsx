@@ -89,8 +89,25 @@ const faqs = [
 const HIDE_PRICING = true;
 
 export default function PricingPage() {
+  // FAQPage structured data uit dezelfde `faqs`-array (blijft dus automatisch
+  // in sync). Geeft Google de kans de veelgestelde vragen als rich result te
+  // tonen in de zoekresultaten.
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <section className="pricing-hero">
         <div className="container">
           {/* Sectie-intro gecentreerd zodat de pagina als geheel

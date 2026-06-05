@@ -6,6 +6,11 @@ import { Footer } from "@/components/footer";
 import { CookieBanner } from "@/components/cookie-banner";
 import { StructuredData } from "@/components/structured-data";
 import { SITE_URL, SITE_NAME } from "@/config/seo";
+// Vercel Web Analytics + Speed Insights: cookieloos en AVG-vriendelijk (geen
+// consent-gating nodig). Analytics = bezoekers/pagina's; Speed Insights = de
+// echte Core Web Vitals van bezoekers (rankingfactor).
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -68,6 +73,8 @@ export default function RootLayout({
         {children}
         <Footer />
         <CookieBanner />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
