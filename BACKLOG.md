@@ -131,6 +131,8 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**OG-image + per-pagina SEO-metadata**~~ (2026-06-05) — metadataBase + title-template + per-pagina title/description/canonical via `apps/web/src/config/seo.ts`; site-brede OG-deelafbeelding (alleen logo) via `app/opengraph-image.tsx`; JSON-LD (Organization/WebSite/SoftwareApplication) via `components/structured-data.tsx`. Canoniek domein **www.get-filly.com**.
 - [ ] **⚠️ Apex → www 301-redirect in Vercel** (open, Floris-actie) — `get-filly.com` én `www.get-filly.com` geven nu allebei HTTP 200 = duplicate content. www is canoniek (canonicals + sitemap + JSON-LD staan daarop). Instellen via Vercel → project → **Domains** (zit NIET in de Project-Settings-sidebar in de huidige UI; staat als top-tab op de projectpagina): bij `get-filly.com` → Edit → "Redirect to" → `www.get-filly.com` (308). Alternatief: in code via `next.config.ts` `redirects()` met host-match.
 - [ ] **Google Search Console** (open, Floris-actie + kleine code-stap) — property op `https://www.get-filly.com` aanmaken + `sitemap.xml` indienen. Verificatie via DNS-TXT óf meta-tag; bij meta-tag levert Floris de code aan → toevoegen als `verification: { google: "<code>" }` in de root-metadata (`apps/web/src/app/layout.tsx`).
+- [ ] **Bing Webmaster Tools** (open, Floris-actie) — property op `www.get-filly.com` + dezelfde `sitemap.xml` indienen; voedt ook andere zoek-/AI-engines.
+- [ ] **Beeldoptimalisatie afronden** — resterende plain `<img>` (16×) → `next/image` (WebP/AVIF + srcset + lazy-load), `logo.png` (523KB) verkleinen, Lighthouse-audit o.b.v. Speed Insights-data. Claude in code.
 - [x] ~~**FAQPage-schema op /pricing**~~ (2026-06-05) — JSON-LD uit de `faqs`-array → kans op uitklapbare rich results in Google.
 - [~] **Analytics + Speed Insights** (2026-06-05) — code staat live in de root-layout (cookieloos/AVG-vriendelijk). **Speed Insights is actief** (script 200). **Web Analytics nog aanzetten**: Vercel → project → tab **Analytics** → *Enable* (script geeft nu 404 = uit). Daarna stroomt bezoekersdata binnen.
 - [ ] **Social-profielen in JSON-LD `sameAs`** (open, Floris levert URL's) — Instagram/LinkedIn (+ evt. Facebook/TikTok/X) toevoegen aan de lege `sameAs` in `components/structured-data.tsx` voor sterkere entiteitskoppeling (Google + AI).
@@ -144,6 +146,10 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
   - "Google Bedrijfsprofiel optimaliseren voor je restaurant"
   - "Reviews beantwoorden als horecaondernemer"
   - "Restaurantmarketing zonder bureau"
+
+### Off-site autoriteit & GEO (AI-vindbaarheid)
+- [ ] **Off-site autoriteit / backlinks** (Floris/marketing, doorlopend) — Google Bedrijfsprofiel voor Get-Filly zélf, vermeldingen in horeca-/SaaS-directories + NL-startuplijsten, gastblogs/partnerships/persaandacht.
+- [ ] **GEO — eigen site voor AI-zoekmachines** — heldere feitelijke 'Wat is Get-Filly'-/vergelijkingscontent + `llms.txt` met samenvatting voor AI-engines (ChatGPT/Claude/Gemini). Claude bouwt `llms.txt` + structuur, teksten van Floris/Filly. Sluit aan op blog-infra.
 
 ---
 
