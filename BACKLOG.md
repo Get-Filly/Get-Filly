@@ -126,9 +126,11 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 ### Site-fundamenten (publieke site)
 - [x] ~~**Contact/waitlist-formulier**~~ (2026-05-30) — `/contact`-pagina (demo-aanvraag: naam/restaurant/e-mail/telefoon-optioneel/bericht + honeypot anti-spam). Publiek endpoint `POST /api/public/contact` (@Public) → `MailService.sendContactRequest` mailt naar **info@get-filly.com** (from `social@get-filly.com`, reply-to = bezoeker). Alle 5 demo/kennismaking-CTA's (navbar, homepage-hero, homepage-pijler, product, pricing) linken nu naar `/contact`. Serverside-validatie + lengte-grenzen.
 - [ ] **404-pagina** — custom error-page
-- [ ] **sitemap.xml** — SEO
-- [ ] **robots.txt** — SEO
-- [ ] **og-images per pagina** — social shares
+- [x] ~~**sitemap.xml**~~ (2026-06-05) — `apps/web/src/app/sitemap.ts`, live op `/sitemap.xml`
+- [x] ~~**robots.txt**~~ (2026-06-05) — `apps/web/src/app/robots.ts`, blokkeert dashboard/auth/besloten routes
+- [x] ~~**OG-image + per-pagina SEO-metadata**~~ (2026-06-05) — metadataBase + title-template + per-pagina title/description/canonical via `apps/web/src/config/seo.ts`; site-brede OG-deelafbeelding (alleen logo) via `app/opengraph-image.tsx`; JSON-LD (Organization/WebSite/SoftwareApplication) via `components/structured-data.tsx`. Canoniek domein **www.get-filly.com**.
+- [ ] **⚠️ Apex → www 301-redirect in Vercel** (open, Floris-actie) — `get-filly.com` én `www.get-filly.com` geven nu allebei HTTP 200 = duplicate content. www is canoniek (canonicals + sitemap + JSON-LD staan daarop). Instellen via Vercel → project → **Domains** (zit NIET in de Project-Settings-sidebar in de huidige UI; staat als top-tab op de projectpagina): bij `get-filly.com` → Edit → "Redirect to" → `www.get-filly.com` (308). Alternatief: in code via `next.config.ts` `redirects()` met host-match.
+- [ ] **Google Search Console** (open, Floris-actie + kleine code-stap) — property op `https://www.get-filly.com` aanmaken + `sitemap.xml` indienen. Verificatie via DNS-TXT óf meta-tag; bij meta-tag levert Floris de code aan → toevoegen als `verification: { google: "<code>" }` in de root-metadata (`apps/web/src/app/layout.tsx`).
 - [ ] **About-pagina invullen** — nu leeg/placeholder
 - [ ] **Footer invullen** — nu grotendeels leeg
 
