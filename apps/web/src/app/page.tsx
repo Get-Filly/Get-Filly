@@ -186,10 +186,12 @@ function MiniDashboard() {
 // Homepage: merk staat al vooraan in de titel, dus absoluteTitle
 // (geen " · Get-Filly"-suffix erachter).
 export const metadata = pageMetadata({
-  title: "Get-Filly — Meer gasten, minder lege stoelen",
+  title: "Get-Filly — Meer gasten. Minder lege momenten.",
   absoluteTitle: true,
+  // Exact gelijk aan de homepage-hero (H1 + subregel), zodat de share-preview
+  // 1-op-1 overeenkomt met wat bezoekers op de site lezen.
   description:
-    "Get-Filly analyseert je restaurantbezetting, herkent kansen en stelt automatisch campagnes voor die lege tafels vullen — via het juiste kanaal, op het juiste moment.",
+    "Get-Filly analyseert de restaurant bezetting, herkent kansen en stelt campagnes voor die lege tafels vullen. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.",
   path: "/",
 });
 

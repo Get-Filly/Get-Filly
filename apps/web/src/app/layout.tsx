@@ -15,7 +15,7 @@ const inter = Inter({
 
 // Site-brede SEO-defaults. Per-pagina metadata (zie config/seo.ts)
 // overschrijft title/description/canonical/openGraph waar nodig.
-const DEFAULT_TITLE = "Get-Filly — Meer gasten, minder lege stoelen";
+const DEFAULT_TITLE = "Get-Filly — Meer gasten. Minder lege momenten.";
 const DEFAULT_DESCRIPTION =
   "Get-Filly analyseert je bezettingsdata en zet AI in om automatisch campagnes te draaien die je restaurant voller maken.";
 

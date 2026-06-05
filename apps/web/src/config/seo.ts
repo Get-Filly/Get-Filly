@@ -39,7 +39,7 @@ const OG_IMAGE = {
   url: "/opengraph-image?v=3",
   width: 1200,
   height: 630,
-  alt: "Get-Filly — Meer gasten, minder lege stoelen",
+  alt: "Get-Filly",
 };
 
 type PageSeo = {
