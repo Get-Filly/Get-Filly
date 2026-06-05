@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pageMetadata } from "@/config/seo";
 // Dezelfde lucide-iconen als het echte dashboard, zodat de mock in de
 // hero 1-op-1 meebeweegt met de huidige product-look (grijze lijn-iconen).
 import {
@@ -181,6 +182,16 @@ function MiniDashboard() {
     </div>
   );
 }
+
+// Homepage: merk staat al vooraan in de titel, dus absoluteTitle
+// (geen " · Get-Filly"-suffix erachter).
+export const metadata = pageMetadata({
+  title: "Get-Filly — Meer gasten, minder lege stoelen",
+  absoluteTitle: true,
+  description:
+    "Get-Filly analyseert je restaurantbezetting, herkent kansen en stelt automatisch campagnes voor die lege tafels vullen — via het juiste kanaal, op het juiste moment.",
+  path: "/",
+});
 
 export default function HomePage() {
   return (

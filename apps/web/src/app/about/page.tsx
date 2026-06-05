@@ -4,6 +4,14 @@
 
 import { COMPANY } from "@/config/company";
 import { ScrollReveal } from "@/components/scroll-reveal";
+import { pageMetadata } from "@/config/seo";
+
+export const metadata = pageMetadata({
+  title: "Over ons",
+  description:
+    "Get-Filly is opgericht door twee ondernemers met één missie: horeca helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten.",
+  path: "/about",
+});
 
 const missionPillars = [
   { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en gasten." },

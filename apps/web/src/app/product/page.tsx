@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { ScrollReveal } from "@/components/scroll-reveal";
+import { pageMetadata } from "@/config/seo";
 
 // =============================================================================
 // PRODUCT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → ProductPage.
 // =============================================================================
+
+export const metadata = pageMetadata({
+  title: "De oplossing",
+  description:
+    "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer reserveringen.",
+  path: "/product",
+});
 
 const features = [
   { title: "Bezettingsanalyse", desc: "Realtime inzicht in je bezettingsgraad per dag, week en maand. Filly herkent patronen zoals terugkerende dips of seizoenstrends en laat direct zien waar je omzet mist." },

@@ -16,9 +16,11 @@ import type { Metadata } from "next";
 import { COMPANY, formatFullAddress } from "@/config/company";
 
 export const metadata: Metadata = {
-  title: "Privacyverklaring, Get-Filly",
+  // Korte titel; de root-template maakt er "Privacyverklaring · Get-Filly" van.
+  title: "Privacyverklaring",
   description:
     "Hoe Get-Filly jouw persoonsgegevens verwerkt, met wie we die delen en welke rechten je hebt.",
+  alternates: { canonical: "/privacy" },
 };
 
 const LAST_UPDATED = "30 mei 2026";

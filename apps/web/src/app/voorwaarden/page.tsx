@@ -14,9 +14,11 @@ import type { Metadata } from "next";
 import { COMPANY, formatFullAddress } from "@/config/company";
 
 export const metadata: Metadata = {
-  title: "Algemene voorwaarden, Get-Filly",
+  // Korte titel; de root-template brandt 'm tot "… · Get-Filly".
+  title: "Algemene voorwaarden",
   description:
     "De algemene voorwaarden voor het gebruik van het Get-Filly-platform.",
+  alternates: { canonical: "/voorwaarden" },
 };
 
 const LAST_UPDATED = "30 mei 2026";

@@ -20,8 +20,10 @@ import { ButtonLink } from "../../components/ui/button-link";
 import { COMPANY } from "@/config/company";
 
 export const metadata: Metadata = {
-  title: "Account verwijderd, Get-Filly",
+  title: "Account verwijderd",
   description: "Je Get-Filly-account en alle bijbehorende data zijn verwijderd.",
+  // Bevestigingspagina na verwijdering: niet relevant voor de zoekindex.
+  robots: { index: false, follow: false },
 };
 
 export default function AccountVerwijderdPage() {
