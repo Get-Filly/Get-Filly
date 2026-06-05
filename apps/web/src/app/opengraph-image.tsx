@@ -13,6 +13,8 @@
 // =============================================================================
 
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 // Alt-tekst voor de afbeelding (komt in og:image:alt terecht).
 export const alt = "Get-Filly — Meer gasten, minder lege stoelen";
@@ -22,7 +24,13 @@ export const contentType = "image/png";
 const GREEN = "#1F4A2D";
 const PAPER = "#FAF7F1";
 
-export default function OpengraphImage() {
+export default async function OpengraphImage() {
+  // Het échte Get-Filly-logo (volledig: symbool + woordmerk). Satori kan
+  // geen bestandspaden volgen, dus we lezen het PNG van schijf en geven het
+  // als base64 data-URI mee. logo.png is 1628×525 (ratio ~3,1:1).
+  const logoData = await readFile(join(process.cwd(), "public", "logo.png"));
+  const logoSrc = `data:image/png;base64,${logoData.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -37,31 +45,15 @@ export default function OpengraphImage() {
           fontFamily: "sans-serif",
         }}
       >
-        {/* Merk-regel: vierkant "mark" + woordmerk */}
-        <div
-          style={{ display: "flex", alignItems: "center", marginBottom: 48 }}
-        >
-          <div
-            style={{
-              width: 76,
-              height: 76,
-              borderRadius: 18,
-              backgroundColor: GREEN,
-              color: PAPER,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 46,
-              fontWeight: 800,
-              marginRight: 26,
-            }}
-          >
-            F
-          </div>
-          <div style={{ fontSize: 46, fontWeight: 700, color: GREEN }}>
-            Get-Filly
-          </div>
-        </div>
+        {/* Het echte Get-Filly-logo (volledig logo, geen nagemaakt mark) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={logoSrc}
+          width={298}
+          height={96}
+          alt="Get-Filly"
+          style={{ marginBottom: 48 }}
+        />
 
         {/* Kop — twee regels, zodat 'm lekker groot blijft */}
         <div
