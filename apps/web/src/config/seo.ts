@@ -36,7 +36,7 @@ const OG_IMAGE = {
   // ?v=N is een cache-buster: social media (WhatsApp/Facebook/LinkedIn)
   // cachet de afbeelding op URL. Bump dit nummer als de OG-afbeelding wijzigt
   // zodat een nieuwe versie wordt opgehaald i.p.v. de gecachte oude.
-  url: "/opengraph-image?v=2",
+  url: "/opengraph-image?v=3",
   width: 1200,
   height: 630,
   alt: "Get-Filly — Meer gasten, minder lege stoelen",

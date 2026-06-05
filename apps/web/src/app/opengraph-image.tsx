@@ -1,15 +1,12 @@
 // =============================================================================
-// opengraph-image, gegenereerde social-deelafbeelding (1200×630)
+// opengraph-image, social-deelafbeelding (1200×630)
 // =============================================================================
-// File-conventie van Next: dit levert de og:image + twitter:image voor de
-// HELE site (propageert naar alle routes) en heeft voorrang op het
-// openGraph-object. Wordt op de build gerenderd via next/og (Satori) — let
-// op: alleen flexbox + een subset van CSS werkt, geen grid.
+// File-conventie van Next: levert de og:image + twitter:image. Wordt op de
+// build gerenderd via next/og (Satori) — alleen flexbox + een subset van CSS.
 //
-// Huisstijl: papier-warm (#FAF7F1) + British Racing Green (#1F4A2D).
-// Wil je later een echt ontworpen beeld? Plaats simpelweg een
-// `opengraph-image.png` (1200×630) in deze map — een statisch bestand
-// wint van dit gegenereerde beeld.
+// Bewust minimalistisch: ALLEEN het Get-Filly-logo, gecentreerd op de
+// papier-warme huisstijl-achtergrond (#FAF7F1). Geen kop/tagline — die staan
+// al in de og:title/og:description die social naast de afbeelding toont.
 // =============================================================================
 
 import { ImageResponse } from "next/og";
@@ -17,11 +14,10 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Alt-tekst voor de afbeelding (komt in og:image:alt terecht).
-export const alt = "Get-Filly — Meer gasten, minder lege stoelen";
+export const alt = "Get-Filly";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const GREEN = "#1F4A2D";
 const PAPER = "#FAF7F1";
 
 export default async function OpengraphImage() {
@@ -38,43 +34,14 @@ export default async function OpengraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
+          alignItems: "center",
           justifyContent: "center",
           backgroundColor: PAPER,
-          padding: "80px",
-          fontFamily: "sans-serif",
         }}
       >
-        {/* Het echte Get-Filly-logo (volledig logo, geen nagemaakt mark) */}
+        {/* Alleen het logo, gecentreerd. 700×226 houdt de ~3,1:1-ratio aan. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={logoSrc}
-          width={298}
-          height={96}
-          alt="Get-Filly"
-          style={{ marginBottom: 48 }}
-        />
-
-        {/* Kop — twee regels, zodat 'm lekker groot blijft */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            fontSize: 82,
-            fontWeight: 800,
-            color: GREEN,
-            lineHeight: 1.05,
-            letterSpacing: -2,
-          }}
-        >
-          <span>Meer gasten.</span>
-          <span>Minder lege stoelen.</span>
-        </div>
-
-        {/* Subregel */}
-        <div style={{ fontSize: 32, color: "#5B6B5F", marginTop: 36 }}>
-          AI-marketing die je restaurant automatisch voller maakt.
-        </div>
+        <img src={logoSrc} width={700} height={226} alt="Get-Filly" />
       </div>
     ),
     { ...size },
