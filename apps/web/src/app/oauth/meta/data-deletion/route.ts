@@ -62,3 +62,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "verwerking mislukt" }, { status: 503 });
   }
 }
+
+// Meta (of een browser/health-check) prikt soms met GET om te zien of
+// het endpoint leeft. We geven dan 200 i.p.v. 405, zodat de
+// opslaan-validatie in Meta de URL accepteert. De echte verwerking
+// (signed_request) gebeurt via POST.
+export function GET() {
+  return NextResponse.json({ ok: true });
+}
