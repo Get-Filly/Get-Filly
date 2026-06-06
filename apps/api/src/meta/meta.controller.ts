@@ -53,6 +53,50 @@ export class MetaController {
     return this.meta.status(restaurantId);
   }
 
+  // GET /api/integrations/meta/pages  → lijst FB-pagina's
+  @Get('pages')
+  pages(@RestaurantId() restaurantId: string) {
+    return this.meta.listPages(restaurantId);
+  }
+
+  // POST /api/integrations/meta/select-page   body { pageId }
+  @Post('select-page')
+  @HttpCode(200)
+  selectPage(
+    @RestaurantId() restaurantId: string,
+    @Body() body: { pageId?: string },
+  ) {
+    if (!body?.pageId) {
+      throw new BadRequestException('pageId is verplicht');
+    }
+    return this.meta.selectPage(restaurantId, body.pageId);
+  }
+
+  // POST /api/integrations/meta/publish
+  // body { message, imageUrl?, toFacebook?, toInstagram? }
+  @Post('publish')
+  @HttpCode(200)
+  publish(
+    @RestaurantId() restaurantId: string,
+    @Body()
+    body: {
+      message?: string;
+      imageUrl?: string;
+      toFacebook?: boolean;
+      toInstagram?: boolean;
+    },
+  ) {
+    if (!body?.message || !body.message.trim()) {
+      throw new BadRequestException('message is verplicht');
+    }
+    return this.meta.publish(restaurantId, {
+      message: body.message,
+      imageUrl: body.imageUrl,
+      toFacebook: body.toFacebook ?? true,
+      toInstagram: body.toInstagram ?? false,
+    });
+  }
+
   // DELETE /api/integrations/meta   (koppeling intrekken)
   @Delete()
   @HttpCode(200)

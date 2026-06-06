@@ -46,6 +46,66 @@ export async function authedFetch(
   return fetch(input, { ...init, headers });
 }
 
+// ============================================================
+// Meta (Facebook/Instagram) koppeling + publiceren (stap 4)
+// ============================================================
+
+export type MetaStatus = {
+  connected: boolean;
+  page?: { id: string; name: string } | null;
+};
+
+export async function metaStatus(): Promise<MetaStatus> {
+  const res = await authedFetch(`${API_URL}/integrations/meta/status`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as MetaStatus;
+}
+
+export type MetaPage = { id: string; name: string; hasInstagram: boolean };
+
+export async function metaListPages(): Promise<MetaPage[]> {
+  const res = await authedFetch(`${API_URL}/integrations/meta/pages`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as MetaPage[];
+}
+
+export async function metaSelectPage(pageId: string): Promise<void> {
+  const res = await authedFetch(`${API_URL}/integrations/meta/select-page`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pageId }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+export type MetaPublishResult = {
+  facebook?: { id: string };
+  instagram?: { id: string };
+  errors: string[];
+};
+
+export async function metaPublish(input: {
+  message: string;
+  imageUrl?: string;
+  toFacebook?: boolean;
+  toInstagram?: boolean;
+}): Promise<MetaPublishResult> {
+  const res = await authedFetch(`${API_URL}/integrations/meta/publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = (await res.json()) as MetaPublishResult & { message?: string };
+  if (!res.ok) {
+    throw new Error(data?.message ?? `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 /**
  * submitContactForm, publieke (NIET-authed) call voor het
  * contactformulier op /contact. Gebruikt gewone `fetch` zonder

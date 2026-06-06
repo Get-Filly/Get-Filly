@@ -200,10 +200,11 @@ export class MetaService {
     scopes?: string[];
     expiresAt?: string | null;
     updatedAt?: string;
+    page?: { id: string; name: string } | null;
   }> {
     const { data, error } = await this.supabase.client
       .from('integration_credentials')
-      .select('scopes, expires_at, updated_at')
+      .select('scopes, expires_at, updated_at, meta')
       .eq('restaurant_id', restaurantId)
       .eq('provider', PROVIDER)
       .maybeSingle();
@@ -215,12 +216,238 @@ export class MetaService {
       throw new InternalServerErrorException('Status ophalen mislukt');
     }
     if (!data) return { connected: false };
+    const meta = (data.meta ?? {}) as Record<string, unknown>;
+    const page = meta.page_id
+      ? {
+          id: meta.page_id as string,
+          name: (meta.page_name as string | undefined) ?? '',
+        }
+      : null;
     return {
       connected: true,
       scopes: data.scopes as string[],
       expiresAt: data.expires_at as string | null,
       updatedAt: data.updated_at as string,
+      page,
     };
+  }
+
+  // ----------------------------------------------------------------
+  // Publiceren (stap 4): pagina's ophalen, pagina kiezen, posten
+  // ----------------------------------------------------------------
+  // Posten gebeurt met een PAGE-access-token. Die slaan we NIET op:
+  // we halen 'm telkens vers op via /me/accounts met de (opgeslagen,
+  // ontsleutelde) user-token. Zo staat er één geheim minder in de DB.
+
+  // Haalt + ontsleutelt de user-token + meta-jsonb van dit restaurant.
+  private async loadCredential(
+    restaurantId: string,
+  ): Promise<{ token: string; meta: Record<string, unknown> }> {
+    const { data, error } = await this.supabase.client
+      .from('integration_credentials')
+      .select('access_token_encrypted, meta')
+      .eq('restaurant_id', restaurantId)
+      .eq('provider', PROVIDER)
+      .maybeSingle();
+    if (error) {
+      this.logger.error(`Koppeling ophalen faalde: ${error.message}`);
+      throw new InternalServerErrorException('Koppeling ophalen mislukt');
+    }
+    if (!data) {
+      throw new BadRequestException('Geen Meta-koppeling voor dit restaurant');
+    }
+    return {
+      token: this.crypto.decrypt(data.access_token_encrypted as string),
+      meta: (data.meta ?? {}) as Record<string, unknown>,
+    };
+  }
+
+  // Pagina's die de user beheert, mét page-token + gekoppeld IG-account.
+  private async fetchAccounts(userToken: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      access_token: string;
+      instagram_business_account?: { id: string };
+    }>
+  > {
+    const res = await fetch(
+      `https://graph.facebook.com/${this.graphVersion()}/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${encodeURIComponent(userToken)}`,
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      this.logger.warn(`Meta /me/accounts faalde (${res.status}): ${body}`);
+      throw new BadRequestException('Pagina-lijst ophalen mislukt');
+    }
+    const json = (await res.json()) as {
+      data?: Array<{
+        id: string;
+        name: string;
+        access_token: string;
+        instagram_business_account?: { id: string };
+      }>;
+    };
+    return json.data ?? [];
+  }
+
+  /** Lijst van Facebook-pagina's (zonder de page-token naar de client). */
+  async listPages(
+    restaurantId: string,
+  ): Promise<Array<{ id: string; name: string; hasInstagram: boolean }>> {
+    const { token } = await this.loadCredential(restaurantId);
+    const accounts = await this.fetchAccounts(token);
+    return accounts.map((a) => ({
+      id: a.id,
+      name: a.name,
+      hasInstagram: !!a.instagram_business_account?.id,
+    }));
+  }
+
+  /** Kiest de pagina waarop we publiceren; bewaart id + IG-account in meta. */
+  async selectPage(
+    restaurantId: string,
+    pageId: string,
+  ): Promise<{ ok: true }> {
+    const { token, meta } = await this.loadCredential(restaurantId);
+    const accounts = await this.fetchAccounts(token);
+    const page = accounts.find((a) => a.id === pageId);
+    if (!page) {
+      throw new BadRequestException('Pagina niet gevonden onder dit account');
+    }
+    const nextMeta = {
+      ...meta,
+      page_id: page.id,
+      page_name: page.name,
+      ig_user_id: page.instagram_business_account?.id ?? null,
+    };
+    const { error } = await this.supabase.client
+      .from('integration_credentials')
+      .update({ meta: nextMeta, updated_at: new Date().toISOString() })
+      .eq('restaurant_id', restaurantId)
+      .eq('provider', PROVIDER);
+    if (error) {
+      this.logger.error(`Pagina opslaan faalde: ${error.message}`);
+      throw new InternalServerErrorException('Pagina opslaan mislukt');
+    }
+    return { ok: true };
+  }
+
+  /**
+   * Publiceert een bericht op de gekozen Facebook-pagina en/of het
+   * gekoppelde Instagram-account. IG vereist een afbeelding-URL.
+   */
+  async publish(
+    restaurantId: string,
+    opts: {
+      message: string;
+      imageUrl?: string;
+      toFacebook: boolean;
+      toInstagram: boolean;
+    },
+  ): Promise<{
+    facebook?: { id: string };
+    instagram?: { id: string };
+    errors: string[];
+  }> {
+    const { token, meta } = await this.loadCredential(restaurantId);
+    const pageId = meta.page_id as string | undefined;
+    const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
+    if (!pageId) {
+      throw new BadRequestException('Kies eerst een Facebook-pagina');
+    }
+
+    // Verse page-token ophalen (niet opgeslagen).
+    const accounts = await this.fetchAccounts(token);
+    const page = accounts.find((a) => a.id === pageId);
+    if (!page) {
+      throw new BadRequestException(
+        'Gekozen pagina niet meer beschikbaar; kies opnieuw',
+      );
+    }
+    const pageToken = page.access_token;
+    const v = this.graphVersion();
+    const result: {
+      facebook?: { id: string };
+      instagram?: { id: string };
+      errors: string[];
+    } = { errors: [] };
+
+    // --- Facebook ---
+    if (opts.toFacebook) {
+      try {
+        if (opts.imageUrl) {
+          // Foto-post op de pagina.
+          const params = new URLSearchParams({
+            url: opts.imageUrl,
+            caption: opts.message,
+            access_token: pageToken,
+          });
+          const res = await fetch(
+            `https://graph.facebook.com/${v}/${pageId}/photos`,
+            { method: 'POST', body: params },
+          );
+          const json = (await res.json()) as { id?: string; post_id?: string };
+          if (!res.ok) throw new Error(JSON.stringify(json));
+          result.facebook = { id: json.post_id ?? json.id ?? '' };
+        } else {
+          // Tekst/link-post op de pagina-feed.
+          const params = new URLSearchParams({
+            message: opts.message,
+            access_token: pageToken,
+          });
+          const res = await fetch(
+            `https://graph.facebook.com/${v}/${pageId}/feed`,
+            { method: 'POST', body: params },
+          );
+          const json = (await res.json()) as { id?: string };
+          if (!res.ok) throw new Error(JSON.stringify(json));
+          result.facebook = { id: json.id ?? '' };
+        }
+      } catch (err) {
+        this.logger.warn(`FB-publicatie faalde: ${String(err)}`);
+        result.errors.push('Facebook-publicatie mislukt');
+      }
+    }
+
+    // --- Instagram (2 stappen: container → publish; vereist afbeelding) ---
+    if (opts.toInstagram) {
+      if (!igUserId) {
+        result.errors.push('Geen Instagram-account gekoppeld aan deze pagina');
+      } else if (!opts.imageUrl) {
+        result.errors.push('Instagram vereist een afbeelding-URL');
+      } else {
+        try {
+          const createParams = new URLSearchParams({
+            image_url: opts.imageUrl,
+            caption: opts.message,
+            access_token: pageToken,
+          });
+          const createRes = await fetch(
+            `https://graph.facebook.com/${v}/${igUserId}/media`,
+            { method: 'POST', body: createParams },
+          );
+          const createJson = (await createRes.json()) as { id?: string };
+          if (!createRes.ok) throw new Error(JSON.stringify(createJson));
+
+          const pubParams = new URLSearchParams({
+            creation_id: createJson.id ?? '',
+            access_token: pageToken,
+          });
+          const pubRes = await fetch(
+            `https://graph.facebook.com/${v}/${igUserId}/media_publish`,
+            { method: 'POST', body: pubParams },
+          );
+          const pubJson = (await pubRes.json()) as { id?: string };
+          if (!pubRes.ok) throw new Error(JSON.stringify(pubJson));
+          result.instagram = { id: pubJson.id ?? '' };
+        } catch (err) {
+          this.logger.warn(`IG-publicatie faalde: ${String(err)}`);
+          result.errors.push('Instagram-publicatie mislukt');
+        }
+      }
+    }
+
+    return result;
   }
 
   // ----------------------------------------------------------------
