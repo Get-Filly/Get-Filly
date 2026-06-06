@@ -5,11 +5,17 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 // Per-request user-JWT-client (RLS actief). De RLS-policies op
 // integration_credentials beperken alles tot rijen van het restaurant
 // waar de ingelogde user lid van is.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
+// Service-role-client (RLS-bypass). Nodig voor de Meta-callbacks
+// (deauthorize / data-deletion): die komen zónder ingelogde user
+// binnen, dus er is geen JWT om RLS mee te draaien.
+import { SupabaseService } from '../supabase/supabase.service';
 import { TokenCryptoService } from '../common/token-crypto.service';
+import { parseSignedRequest } from './meta-signed-request';
 
 // ============================================================
 // MetaService, Meta (Facebook/Instagram) OAuth — token-opslag
@@ -38,6 +44,7 @@ export class MetaService {
   constructor(
     private readonly config: ConfigService,
     private readonly supabase: RequestSupabaseService,
+    private readonly admin: SupabaseService,
     private readonly crypto: TokenCryptoService,
   ) {}
 
@@ -104,6 +111,22 @@ export class MetaService {
     return (await res.json()) as MetaTokenResponse;
   }
 
+  // Haalt het Meta-user-id op (GET /me). Fail-soft: bij een fout
+  // null, dan slaan we 'm gewoon niet op (deauth/deletion vinden de
+  // rij dan niet, maar de koppeling zelf werkt wel).
+  private async fetchMetaUserId(accessToken: string): Promise<string | null> {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/${this.graphVersion()}/me?fields=id&access_token=${encodeURIComponent(accessToken)}`,
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as { id?: string };
+      return data.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Wisselt de code om en slaat de versleutelde long-lived token op.
    * Eén rij per (restaurant, provider) via upsert.
@@ -116,6 +139,11 @@ export class MetaService {
   ): Promise<{ ok: true }> {
     const short = await this.exchangeCode(code, redirectUri);
     const long = await this.exchangeLongLived(short.access_token);
+
+    // Meta-user-id opslaan: dat hebben de deauthorize- en
+    // data-deletion-callbacks nodig om de juiste rij te vinden (Meta
+    // identificeert daar op user_id, niet op ons restaurant-id).
+    const metaUserId = await this.fetchMetaUserId(long.access_token);
 
     const encrypted = this.crypto.encrypt(long.access_token);
     const expiresAt = long.expires_in
@@ -133,6 +161,7 @@ export class MetaService {
           // /me/permissions; nu leeg gelaten.
           scopes: [],
           expires_at: expiresAt,
+          meta: metaUserId ? { meta_user_id: metaUserId } : {},
           connected_by: userId,
           updated_at: new Date().toISOString(),
         },
@@ -191,6 +220,82 @@ export class MetaService {
       scopes: data.scopes as string[],
       expiresAt: data.expires_at as string | null,
       updatedAt: data.updated_at as string,
+    };
+  }
+
+  // ----------------------------------------------------------------
+  // Meta-callbacks (server-to-server, GEEN ingelogde user)
+  // ----------------------------------------------------------------
+  // Beide verifiëren de signed_request met het App Secret en
+  // verwijderen via de SERVICE-ROLE-client (admin), want er is geen
+  // JWT/sessie. We matchen op het opgeslagen meta_user_id.
+
+  /**
+   * Deauthorize-callback: Meta meldt dat een gebruiker de app heeft
+   * losgekoppeld. We ruimen de opgeslagen koppeling(en) van die
+   * Meta-user op.
+   */
+  async deauthorize(signedRequest: string): Promise<{ ok: true }> {
+    const payload = parseSignedRequest(signedRequest, this.appSecret());
+    if (!payload) {
+      throw new BadRequestException('Ongeldige signed_request');
+    }
+    const metaUserId = payload.user_id;
+    if (!metaUserId) return { ok: true }; // niets om op te ruimen
+
+    const { error } = await this.admin.client
+      .from('integration_credentials')
+      .delete()
+      .eq('provider', PROVIDER)
+      .eq('meta->>meta_user_id', metaUserId);
+
+    if (error) {
+      this.logger.error(`Deauthorize-verwijdering faalde: ${error.message}`);
+      throw new InternalServerErrorException('Verwijderen mislukt');
+    }
+    this.logger.log(`Meta deauthorize verwerkt voor user ${metaUserId}`);
+    return { ok: true };
+  }
+
+  /**
+   * Data-deletion-callback (AVG/GDPR): Meta vraagt verwijdering van
+   * alle data van een gebruiker. We verwijderen de koppeling(en) en
+   * geven het door Meta vereiste { url, confirmation_code } terug.
+   */
+  async requestDataDeletion(
+    signedRequest: string,
+  ): Promise<{ url: string; confirmation_code: string }> {
+    const payload = parseSignedRequest(signedRequest, this.appSecret());
+    if (!payload) {
+      throw new BadRequestException('Ongeldige signed_request');
+    }
+
+    const code = randomUUID();
+    const metaUserId = payload.user_id;
+
+    if (metaUserId) {
+      const { error } = await this.admin.client
+        .from('integration_credentials')
+        .delete()
+        .eq('provider', PROVIDER)
+        .eq('meta->>meta_user_id', metaUserId);
+
+      if (error) {
+        this.logger.error(
+          `Data-deletion-verwijdering faalde: ${error.message}`,
+        );
+        throw new InternalServerErrorException('Verwijderen mislukt');
+      }
+    }
+
+    const base =
+      this.config.get<string>('WEB_URL') ?? 'https://www.get-filly.com';
+    this.logger.log(
+      `Meta data-deletion verwerkt (code ${code}) voor user ${metaUserId ?? 'onbekend'}`,
+    );
+    return {
+      url: `${base}/data-deletion-status?id=${code}`,
+      confirmation_code: code,
     };
   }
 }

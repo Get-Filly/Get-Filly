@@ -7,6 +7,7 @@ import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 import { TokenCryptoService } from '../common/token-crypto.service';
 import { MetaController } from './meta.controller';
+import { MetaWebhookController } from './meta-webhook.controller';
 import { MetaService } from './meta.service';
 
 // ============================================================
@@ -17,7 +18,7 @@ import { MetaService } from './meta.service';
 // geïsoleerd tot deze module.
 @Module({
   imports: [SupabaseModule, MeModule],
-  controllers: [MetaController],
+  controllers: [MetaController, MetaWebhookController],
   providers: [
     MetaService,
     TokenCryptoService,
