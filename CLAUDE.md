@@ -118,7 +118,8 @@ packages/
 - Menu-upload via menu-pagina (onboarding-upload werkt wel al, maar menu-pagina zelf laat alleen GET zien)
 - Menu CRUD-endpoints (POST/PATCH/DELETE nog niet gebouwd)
 - Campagne-send engine (Resend ontbreekt)
-- Alle externe integraties (Meta, Google Business, Zenchef, etc.)
+- **Meta (Facebook/Instagram): code-kant af** (2026-06-06) — verbinden + versleutelde token-opslag + deauthorize/data-deletion-callbacks + publiceren (FB/IG). Wacht op Meta App Review + business-verificatie; zie BACKLOG "Integraties (OAuth)".
+- Overige externe integraties (Google Business, Zenchef, etc.) nog mock
 
 **Live op Vercel** (bijgewerkt 2026-06-05): zowel web (Next.js) als api
 (Nest.js, serverless functions, regio `fra1` — zie `apps/api/vercel.json`)
