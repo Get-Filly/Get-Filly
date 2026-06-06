@@ -3,8 +3,9 @@
 // ============================================================
 // Gedeelde config + helpers voor de twee route-handlers:
 //   - /oauth/meta/start    → stuurt de eigenaar naar de Meta-dialog
-//   - /oauth/meta/callback → wisselt de teruggekomen `code` om voor
-//                            een access-token (server-side)
+//   - /oauth/meta/callback → valideert de state en stuurt de `code`
+//                            door naar de Nest-API, die de token-
+//                            exchange + versleutelde opslag doet
 //
 // Dit is de "posten namens de zaak"-variant (Graph API), GEEN
 // "inloggen met Facebook". We schrijven de OAuth-call dus zelf,
@@ -61,13 +62,10 @@ export function metaAppId(): string {
   return id;
 }
 
-// App Secret is WÉL geheim → mag nooit naar de browser. Alleen
-// gebruiken in server-side code (de token-exchange hieronder).
-function metaAppSecret(): string {
-  const secret = process.env.META_APP_SECRET;
-  if (!secret) throw new Error("META_APP_SECRET ontbreekt in de omgeving");
-  return secret;
-}
+// NB: het App Secret + de code→token-exchange leven NIET in de web-laag
+// maar in de Nest-API (apps/api/src/meta). De callback stuurt alleen de
+// `code` door; zo komt de long-lived token nooit in de browser-laag en
+// staat het secret op één plek.
 
 // Bouwt de URL van de Meta-toestemmingsdialog waar we de eigenaar
 // heen sturen. `state` is onze CSRF-token (zie start-route).
@@ -86,41 +84,4 @@ export function buildAuthorizeUrl({
     scope: META_SCOPES.join(","),
   });
   return `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth?${params.toString()}`;
-}
-
-export type MetaTokenResponse = {
-  access_token: string;
-  token_type?: string;
-  // Seconden tot verloop. Een short-lived user-token leeft ~1-2 uur;
-  // stap 3 ruilt 'm later in voor een long-lived token (~60 dagen).
-  expires_in?: number;
-};
-
-// Wisselt de eenmalige `code` uit de callback om voor een
-// (short-lived) user-access-token. client_secret gaat mee →
-// ALLEEN server-side aanroepen.
-export async function exchangeCodeForToken({
-  code,
-  origin,
-}: {
-  code: string;
-  origin: string;
-}): Promise<MetaTokenResponse> {
-  const params = new URLSearchParams({
-    client_id: metaAppId(),
-    client_secret: metaAppSecret(),
-    redirect_uri: metaRedirectUri(origin),
-    code,
-  });
-  const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/oauth/access_token?${params.toString()}`;
-
-  const res = await fetch(url, { method: "GET", cache: "no-store" });
-  if (!res.ok) {
-    // Meta geeft een JSON-error-body terug (bv. ongeldige code,
-    // redirect_uri_mismatch). We lezen 'm voor de server-log, maar
-    // lekken 'm niet naar de client.
-    const body = await res.text();
-    throw new Error(`Meta token-exchange faalde (${res.status}): ${body}`);
-  }
-  return (await res.json()) as MetaTokenResponse;
 }

@@ -26,6 +26,7 @@ import { GoogleProfileModule } from './google-profile/google-profile.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { HealthModule } from './health/health.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { MetaModule } from './meta/meta.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     MarketingModule,
     HealthModule,
     IntegrationsModule,
+    MetaModule,
   ],
   controllers: [AppController],
   // AuthGuard staat hier als provider zodat NestJS hem kan
