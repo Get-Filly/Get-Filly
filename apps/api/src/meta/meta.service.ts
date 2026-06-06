@@ -515,8 +515,10 @@ export class MetaService {
       }
     }
 
-    const base =
-      this.config.get<string>('WEB_URL') ?? 'https://www.get-filly.com';
+    // Bewust de canonieke publieke URL (NIET WEB_URL): die kan op een
+    // Vercel-preview-domein staan, maar Meta + de gebruiker horen
+    // www.get-filly.com te zien. Eén plek aanpassen als het domein wijzigt.
+    const base = 'https://www.get-filly.com';
     this.logger.log(
       `Meta data-deletion verwerkt (code ${code}) voor user ${metaUserId ?? 'onbekend'}`,
     );
