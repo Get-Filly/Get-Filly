@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { useRestaurant } from "@/lib/restaurant-context";
 
 // ============================================================
 // AccountConnections, compacte koppelingen-tab
@@ -26,7 +29,7 @@ type IntegrationCategory =
   | "reviews"
   | "data";
 
-type ConnectionMethod = "apikey" | "auto";
+type ConnectionMethod = "apikey" | "auto" | "oauth";
 
 type Integration = {
   key: string;
@@ -40,6 +43,10 @@ type Integration = {
   // Of de integratie momenteel actief is. Komt later uit DB,
   // voorlopig hardcoded.
   connected?: boolean;
+  // Voor method "oauth": pad waar de "Verbind"-knop heen navigeert.
+  // Dit is een server-route die de OAuth-flow start en doorstuurt
+  // naar de provider (bv. Meta). Géén API-key plakken dus — één klik.
+  connectPath?: string;
 };
 
 const integrations: Integration[] = [
@@ -100,20 +107,23 @@ const integrations: Integration[] = [
     keyPlaceholder: "SG.xxxxxxxxxxxxxxxx",
   },
   {
+    // Instagram-publiceren loopt via dezelfde Meta-OAuth als Facebook
+    // (IG-account gekoppeld aan een FB-pagina). Eén klik op Verbind
+    // start de flow; de scope-keuze gebeurt in de Meta-dialog.
     key: "instagram",
     icon: "📱",
     name: "Instagram",
-    method: "apikey",
+    method: "oauth",
     category: "communicatie",
-    keyPlaceholder: "Instagram access token",
+    connectPath: "/oauth/meta/start",
   },
   {
     key: "facebook",
     icon: "👥",
     name: "Facebook",
-    method: "apikey",
+    method: "oauth",
     category: "communicatie",
-    keyPlaceholder: "Meta Graph API token",
+    connectPath: "/oauth/meta/start",
   },
   {
     key: "tiktok",
@@ -189,6 +199,15 @@ export function ConnectionsSection() {
   // het API-key-invul-veld onder de rij. Lokaal, geen persistence.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  // Actief restaurant: geven we mee aan de OAuth-start zodat de
+  // koppeling straks (stap 3) aan de juiste zaak hangt.
+  const { active } = useRestaurant();
+  // De Meta-callback stuurt terug met ?meta=connected|denied|error
+  // (+ ?reason=). We tonen daar een korte statusmelding voor.
+  const searchParams = useSearchParams();
+  const metaStatus = searchParams.get("meta");
+  const metaReason = searchParams.get("reason");
+
   const toggleExpanded = (key: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -200,6 +219,7 @@ export function ConnectionsSection() {
 
   return (
     <div>
+      <MetaStatusBanner status={metaStatus} reason={metaReason} />
       {categoryOrder.map((cat) => {
         const group = integrations.filter((i) => i.category === cat);
         if (group.length === 0) return null;
@@ -237,6 +257,7 @@ export function ConnectionsSection() {
                   isExpanded={expanded.has(i.key)}
                   onToggleExpand={() => toggleExpanded(i.key)}
                   isLast={idx === group.length - 1}
+                  activeRestaurantId={active?.id ?? null}
                 />
               ))}
             </div>
@@ -254,6 +275,8 @@ type IntegrationRowProps = {
   isExpanded: boolean;
   onToggleExpand: () => void;
   isLast: boolean;
+  // Actief restaurant-id, meegegeven aan de OAuth-start-URL.
+  activeRestaurantId: string | null;
 };
 
 function IntegrationRow({
@@ -263,6 +286,7 @@ function IntegrationRow({
   isExpanded,
   onToggleExpand,
   isLast,
+  activeRestaurantId,
 }: IntegrationRowProps) {
   // Auto-integraties (weer): één enkele rij zonder expand. Geen knop,
   // geen input, alleen status-tekst.
@@ -300,6 +324,60 @@ function IntegrationRow({
         >
           ✓ Actief via locatie
         </span>
+      </div>
+    );
+  }
+
+  // OAuth-integraties (Meta/Facebook + Instagram): geen API-key-veld,
+  // maar één klik op 'Verbind' → volledige navigatie naar de
+  // start-route die de OAuth-flow opent en naar de provider redirect.
+  if (integration.method === "oauth") {
+    const href = activeRestaurantId
+      ? `${integration.connectPath}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
+      : (integration.connectPath ?? "#");
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 14px",
+          borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
+        }}
+      >
+        <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
+          {integration.icon}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text, #18181B)",
+            flex: 1,
+          }}
+        >
+          {integration.name}
+        </div>
+        {/* Plain <a> (geen <Link>): een full navigation naar de
+            server-route-handler, die server-side naar Meta 302't.
+            <Link> zou client-side proberen te routen en de redirect
+            breken. */}
+        <a
+          href={href}
+          style={{
+            padding: "6px 14px",
+            fontSize: 12,
+            fontWeight: 500,
+            border: "1px solid var(--border, #E5DFD0)",
+            background: "transparent",
+            color: "var(--text, #18181B)",
+            borderRadius: 6,
+            textDecoration: "none",
+            flexShrink: 0,
+          }}
+        >
+          Verbind
+        </a>
       </div>
     );
   }
@@ -409,6 +487,69 @@ function IntegrationRow({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// MetaStatusBanner, feedback na de OAuth-redirect
+// ============================================================
+// De /oauth/meta/callback-route stuurt terug naar
+// /dashboard/account?tab=koppelingen&meta=<status>. Hier vertalen
+// we die status naar een korte melding. Toont niets als er geen
+// ?meta= in de URL staat (de normale staat).
+function MetaStatusBanner({
+  status,
+  reason,
+}: {
+  status: string | null;
+  reason: string | null;
+}) {
+  if (!status) return null;
+
+  // Per status: kleur + tekst. We houden het bewust kort; de
+  // technische `reason` tonen we alleen bij een fout.
+  const variants: Record<
+    string,
+    { bg: string; border: string; color: string; text: string }
+  > = {
+    connected: {
+      bg: "#ECF6EF",
+      border: "#1F4A2D",
+      color: "#1F4A2D",
+      text: "✓ Meta-koppeling geslaagd — je gaf toestemming via Facebook/Instagram.",
+    },
+    denied: {
+      bg: "#FAF7F1",
+      border: "#E5DFD0",
+      color: "#18181B",
+      text: "Koppeling geannuleerd. Je kunt het opnieuw proberen via Verbind.",
+    },
+    error: {
+      bg: "#FBECEC",
+      border: "#B42318",
+      color: "#B42318",
+      text: `Er ging iets mis bij de koppeling${reason ? ` (${reason})` : ""}. Probeer het opnieuw.`,
+    },
+  };
+
+  const v = variants[status] ?? variants.error;
+
+  return (
+    <div
+      role="status"
+      style={{
+        marginBottom: "var(--space-5)",
+        padding: "10px 14px",
+        fontSize: 13,
+        fontWeight: 500,
+        background: v.bg,
+        border: `1px solid ${v.border}`,
+        color: v.color,
+        borderRadius: 8,
+      }}
+    >
+      {v.text}
     </div>
   );
 }

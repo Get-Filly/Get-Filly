@@ -25,6 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/contact", priority: 0.7, changeFrequency: "yearly" },
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/voorwaarden", priority: 0.3, changeFrequency: "yearly" },
+    { path: "/delete-data", priority: 0.3, changeFrequency: "yearly" },
   ];
 
   return routes.map((r) => ({
