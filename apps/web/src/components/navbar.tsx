@@ -15,6 +15,7 @@ const links = [
   { href: "/product", label: "Oplossing" },
   { href: "/pricing", label: "Prijzen" },
   { href: "/about", label: "Over ons" },
+  { href: "/blog", label: "Blog" },
 ];
 
 export function Navbar() {
