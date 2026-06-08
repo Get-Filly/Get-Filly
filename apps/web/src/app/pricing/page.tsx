@@ -71,7 +71,6 @@ const faqs = [
   { q: "Houd ik controle over wat Filly verstuurt?", a: "Ja. Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
   { q: "Hoe weet Filly welke actie ze moet voorstellen?", a: "Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
   { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
-  { q: "Voor welke branches werkt Filly?", a: "De core werkt voor elke onderneming met variabele bezetting: hotels, wellness-studios, sportclubs, event-locaties. De standaardtemplates zijn horeca-first, maatwerk volgt op Pro en Enterprise." },
   { q: "Heb ik marketingervaring nodig?", a: "Nee. Filly is juist gemaakt voor ondernemers zonder marketingkennis. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast, de rest doet Filly." },
   { q: "Hoe en wanneer betaal ik?", a: "Betaling loopt via onze betaalpartner Stripe, met creditcard, SEPA-incasso of iDEAL. Je betaalt vooruit per maand of per jaar, zonder verborgen kosten." },
   { q: "Kan ik maandelijks opzeggen?", a: "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Filly beschikbaar tot het einde van de al betaalde periode." },
