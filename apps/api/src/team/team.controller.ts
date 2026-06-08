@@ -28,13 +28,20 @@ import type { Module, Role } from '@getfilly/shared';
  * één controller).
  */
 /**
- * Base-URL waar de frontend de invite-accept pagina host. In dev staat
- * de web-app op localhost:3000; later zetten we dit in de env.
+ * Base-URL waar de frontend de invite-accept-pagina host.
+ *
+ * Leest WEB_URL (dezelfde env als unsubscribe-links + data-deletion);
+ * FRONTEND_URL blijft als legacy-fallback, localhost voor dev.
+ *
+ * ⚠️ MOET de canonieke publieke host zijn (https://www.get-filly.com),
+ * GELIJK aan de Supabase Site URL. Anders wijst de invite-`next` naar een
+ * andere origin en weigert /auth/confirm de redirect (open-redirect-
+ * bescherming) → val terug op /dashboard → middleware → /onboarding.
+ * (Dat was de bug: FRONTEND_URL was nooit gezet → fallback localhost.)
  */
-const ACCEPT_BASE_URL =
-  process.env.FRONTEND_URL
-    ? `${process.env.FRONTEND_URL}/invite/accept`
-    : 'http://localhost:3000/invite/accept';
+const ACCEPT_BASE_URL = `${
+  process.env.WEB_URL ?? process.env.FRONTEND_URL ?? 'http://localhost:3000'
+}/invite/accept`;
 
 @UseGuards(AuthGuard, RestaurantAccessGuard)
 @Controller('team')
