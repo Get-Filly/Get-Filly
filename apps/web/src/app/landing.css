@@ -2881,11 +2881,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .pricing-card.popular .pricing-btn:hover { background: var(--accent-dark); color: var(--true-white); border-color: var(--accent-dark); }
 
 .pricing-faq { padding-top: 80px; padding-bottom: 112px; }
-/* Twee naast elkaar staande, onafhankelijke kolommen. Top-uitgelijnd; elke
-   kolom verlengt apart bij het openen van een vraag (geen rare gaten). */
-.faq-list { margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 980px; align-items: start; }
-.faq-col { display: flex; flex-direction: column; gap: 8px; }
-@media (max-width: 768px) { .faq-list { grid-template-columns: 1fr; max-width: 760px; } }
+.faq-list { margin-top: 32px; display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
 /* Per 2026-05-21: bumped van var(--radius)=8px naar 16px. */
 .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color .15s; }
 .faq-item[open] { border-color: var(--accent); background: var(--true-white); }
