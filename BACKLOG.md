@@ -136,7 +136,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **Beeldoptimalisatie afronden** — resterende plain `<img>` (16×) → `next/image` (WebP/AVIF + srcset + lazy-load), `logo.png` (523KB) verkleinen, Lighthouse-audit o.b.v. Speed Insights-data. Claude in code.
 - [x] ~~**FAQPage-schema op /pricing**~~ (2026-06-05) — JSON-LD uit de `faqs`-array → kans op uitklapbare rich results in Google.
 - [~] **Analytics + Speed Insights** (2026-06-05) — code staat live in de root-layout (cookieloos/AVG-vriendelijk). **Speed Insights is actief** (script 200). **Web Analytics nog aanzetten**: Vercel → project → tab **Analytics** → *Enable* (script geeft nu 404 = uit). Daarna stroomt bezoekersdata binnen.
-- [ ] **Social-profielen in JSON-LD `sameAs`** (open, Floris levert URL's) — Instagram/LinkedIn (+ evt. Facebook/TikTok/X) toevoegen aan de lege `sameAs` in `components/structured-data.tsx` voor sterkere entiteitskoppeling (Google + AI).
+- [ ] **Social-profielen in JSON-LD `sameAs`** — ⏳ **wacht alleen op de URL's van Floris** (Instagram/LinkedIn + evt. Facebook/TikTok/X). Daarna ~5-min ingreep: invullen in de nu lege `sameAs:[]` in `components/structured-data.tsx` → sterkere entiteitskoppeling voor Google + AI-zoekmachines. (Bevestigd 2026-06-08: `sameAs` staat live nog leeg.)
 - [ ] **About-pagina invullen** — nu leeg/placeholder
 - [ ] **Footer invullen** — nu grotendeels leeg
 
