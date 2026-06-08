@@ -15,6 +15,6 @@
     { "source": "/api/(.*)", "destination": "/api/index" }
   ],
   "crons": [
-    { "path": "/api/seo-report/run", "schedule": "0 7 * * 1" }
+    { "path": "/api/seo-report/run", "schedule": "0 5 * * 1" }
   ]
 }
