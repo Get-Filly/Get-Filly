@@ -16,7 +16,15 @@ import { useEffect, useRef } from "react";
 
 type Faq = { q: string; a: string };
 
-export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
+export function FaqAccordion({
+  faqs,
+  name = "faq",
+}: {
+  faqs: Faq[];
+  // Groepsnaam voor exclusief-openen (één naam per pagina). Default "faq";
+  // geef per pagina een eigen naam mee als er meerdere FAQ's zouden staan.
+  name?: string;
+}) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +52,7 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
       style={{ marginLeft: "auto", marginRight: "auto" }}
     >
       {faqs.map((f) => (
-        <details key={f.q} name="pricing-faq" className="faq-item">
+        <details key={f.q} name={name} className="faq-item">
           <summary className="faq-q">
             {f.q}
             <span className="faq-icon" aria-hidden>

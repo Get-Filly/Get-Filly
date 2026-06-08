@@ -201,7 +201,7 @@ export default function PricingPage() {
       <section className="pricing-faq">
         <div className="container">
           <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>
-          <FaqAccordion faqs={faqs} />
+          <FaqAccordion faqs={faqs} name="pricing-faq" />
         </div>
       </section>
 
