@@ -9,8 +9,9 @@
 
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/config/seo";
+import { getAllPosts } from "@/lib/blog";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
   const routes: {
@@ -27,6 +28,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/voorwaarden", priority: 0.3, changeFrequency: "yearly" },
     { path: "/delete-data", priority: 0.3, changeFrequency: "yearly" },
   ];
+
+  // Blog: alleen opnemen zodra er artikelen zijn (de lege /blog is
+  // noindex). Index-pagina + één entry per artikel.
+  const posts = await getAllPosts();
+  if (posts.length > 0) {
+    routes.push({ path: "/blog", priority: 0.7, changeFrequency: "weekly" });
+    for (const post of posts) {
+      routes.push({
+        path: `/blog/${post.slug}`,
+        priority: 0.6,
+        changeFrequency: "monthly",
+      });
+    }
+  }
 
   return routes.map((r) => ({
     url: r.path === "/" ? SITE_URL : `${SITE_URL}${r.path}`,
