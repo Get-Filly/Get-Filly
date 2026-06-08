@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { pageMetadata } from "@/config/seo";
-import { FaqAccordion } from "../pricing/faq-accordion";
 
 // =============================================================================
 // PRODUCT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → ProductPage.
@@ -23,31 +22,9 @@ const features = [
   { title: "Google Business", desc: "Verschijn bovenaan in Google wanneer mensen zoeken naar restaurants in je buurt. Filly plaatst posts, reageert op reviews en houdt je profiel actueel zodat je beter gevonden wordt." },
 ];
 
-// FAQ + FAQPage-schema (zelfde array → blijft in sync). 2-koloms via .faq-list.
-const faqs = [
-  { q: "Welke kanalen ondersteunt Get-Filly?", a: "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment." },
-  { q: "Helpt Get-Filly ook met reviews en vindbaarheid?", a: "Ja. Naast campagnes beantwoordt Filly reviews namens je zaak en verbetert het je vindbaarheid in Google én AI-zoekmachines." },
-  { q: "Hoe weet Filly welke actie ze moet voorstellen?", a: "Filly analyseert continu je bezetting en data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
-  { q: "Heb ik technische of marketingkennis nodig?", a: "Nee. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast; de rest doet Filly." },
-];
-
 export default function ProductPage() {
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
       <section className="product-hero">
         <div className="container">
           <h1 className="section-title">Jouw AI-assistent voor de horeca.</h1>
@@ -407,14 +384,6 @@ export default function ProductPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* FAQ, hergebruikt .pricing-faq voor dezelfde sectie-styling. */}
-      <section className="pricing-faq">
-        <div className="container">
-          <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>
-          <FaqAccordion faqs={faqs} name="product-faq" />
         </div>
       </section>
 

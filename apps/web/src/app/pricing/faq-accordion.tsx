@@ -45,22 +45,32 @@ export function FaqAccordion({
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // Verdeel over twee ONAFHANKELIJKE kolommen, zodat een geopende vraag
+  // alleen de eigen kolom verlengt (geen gat naast de open vraag zoals bij
+  // een row-flow-grid). Links krijgt bij oneven aantal de extra vraag.
+  const mid = Math.ceil(faqs.length / 2);
+  const columns = [faqs.slice(0, mid), faqs.slice(mid)];
+
   return (
     <div
       ref={listRef}
       className="faq-list"
       style={{ marginLeft: "auto", marginRight: "auto" }}
     >
-      {faqs.map((f) => (
-        <details key={f.q} name={name} className="faq-item">
-          <summary className="faq-q">
-            {f.q}
-            <span className="faq-icon" aria-hidden>
-              +
-            </span>
-          </summary>
-          <div className="faq-a">{f.a}</div>
-        </details>
+      {columns.map((col, ci) => (
+        <div className="faq-col" key={ci === 0 ? "col-left" : "col-right"}>
+          {col.map((f) => (
+            <details key={f.q} name={name} className="faq-item">
+              <summary className="faq-q">
+                {f.q}
+                <span className="faq-icon" aria-hidden>
+                  +
+                </span>
+              </summary>
+              <div className="faq-a">{f.a}</div>
+            </details>
+          ))}
+        </div>
       ))}
     </div>
   );
