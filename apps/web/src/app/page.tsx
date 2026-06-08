@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { pageMetadata } from "@/config/seo";
-import { FaqAccordion } from "./pricing/faq-accordion";
 // Dezelfde lucide-iconen als het echte dashboard, zodat de mock in de
 // hero 1-op-1 meebeweegt met de huidige product-look (grijze lijn-iconen).
 import {
@@ -197,31 +196,9 @@ export const metadata = pageMetadata({
   path: "/",
 });
 
-// FAQ + FAQPage-schema (zelfde array → blijft in sync). 2-koloms via .faq-list.
-const faqs = [
-  { q: "Wat is Get-Filly?", a: "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren." },
-  { q: "Voor wie is Get-Filly?", a: "Voor restaurants, cafés en andere horecaondernemers die meer gasten willen zonder uren aan marketing kwijt te zijn. Marketingervaring is niet nodig." },
-  { q: "Houd ik controle over wat er live gaat?", a: "Ja. Filly doet voorstellen; jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
-  { q: "Wat kost Get-Filly?", a: "Je betaalt een vast maandbedrag, zonder verborgen kosten. Bekijk de actuele pakketten op de prijzen-pagina." },
-];
-
 export default function HomePage() {
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
       <section className="hero">
         <div className="container">
           <h1 className="section-title fade-up d1">
@@ -353,14 +330,6 @@ export default function HomePage() {
             </div>
           </div>
 
-        </div>
-      </section>
-
-      {/* FAQ, hergebruikt .pricing-faq voor dezelfde sectie-styling. */}
-      <section className="pricing-faq">
-        <div className="container">
-          <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>
-          <FaqAccordion faqs={faqs} name="home-faq" />
         </div>
       </section>
 
