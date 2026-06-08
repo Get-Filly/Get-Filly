@@ -212,7 +212,7 @@ export default function PricingPage() {
         <h2 className="section-title">Heb je nog vragen?</h2>
         <p className="section-subtitle">Mail ons, we helpen je graag verder.</p>
         <a className="cta-btn" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
-        <p className="section-subtitle" style={{ marginTop: 20, fontSize: 15 }}>
+        <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
           Wil je eerst zien wat Filly doet? Bekijk{" "}
           <Link href="/product" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de oplossing</Link>.
         </p>
