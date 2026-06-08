@@ -27,6 +27,7 @@ import { MarketingModule } from './marketing/marketing.module';
 import { HealthModule } from './health/health.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { MetaModule } from './meta/meta.module';
+import { SeoReportModule } from './seo-report/seo-report.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { MetaModule } from './meta/meta.module';
     HealthModule,
     IntegrationsModule,
     MetaModule,
+    SeoReportModule,
   ],
   controllers: [AppController],
   // AuthGuard staat hier als provider zodat NestJS hem kan

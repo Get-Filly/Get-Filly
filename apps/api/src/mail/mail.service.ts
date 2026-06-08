@@ -83,8 +83,7 @@ export class MailService {
       );
     }
     this.resend = new Resend(apiKey);
-    this.webUrl =
-      config.get<string>('WEB_URL') ?? 'http://localhost:3000';
+    this.webUrl = config.get<string>('WEB_URL') ?? 'http://localhost:3000';
   }
 
   // ============================================================
@@ -145,12 +144,19 @@ export class MailService {
 
       recipients = valid.map((g) => ({
         email: g.email,
-        name: [g.first_name, g.last_name].filter(Boolean).join(' ') || undefined,
+        name:
+          [g.first_name, g.last_name].filter(Boolean).join(' ') || undefined,
         guestId: g.id,
       }));
     }
 
-    return this.sendCampaign(restaurantId, campaignId, recipients, userId, mode);
+    return this.sendCampaign(
+      restaurantId,
+      campaignId,
+      recipients,
+      userId,
+      mode,
+    );
   }
 
   // ============================================================
@@ -160,9 +166,7 @@ export class MailService {
   // worden + eerste 5 namen ter herkenning. Eigenaar ziet hierop
   // "47 gasten, waaronder Anna, Mark, Sophie…" en weet wat 'ie
   // verstuurt voordat 'ie op de send-knop drukt.
-  async getRecipientsPreview(
-    restaurantId: string,
-  ): Promise<{
+  async getRecipientsPreview(restaurantId: string): Promise<{
     totalCount: number;
     sampleNames: string[];
     ownerEmail: string | null;
@@ -297,9 +301,7 @@ export class MailService {
     // (RLS); onmogelijk te bereiken vanaf de controllers, defense-in-depth.
     const { data: restaurant, error: restErr } = await this.userScoped.client
       .from('restaurants')
-      .select(
-        'name, contact_email, mail_domain_status, mail_from_address',
-      )
+      .select('name, contact_email, mail_domain_status, mail_from_address')
       .eq('id', restaurantId)
       .maybeSingle();
     if (restErr) throw new InternalServerErrorException(restErr.message);
@@ -313,7 +315,7 @@ export class MailService {
     const replyTo =
       restaurant.mail_domain_status === 'verified'
         ? undefined
-        : (restaurant.contact_email as string | null) ?? undefined;
+        : ((restaurant.contact_email as string | null) ?? undefined);
 
     // Stap 4, per recipient: token + send-rij. Bulk-insert beide
     // tabellen voor efficiency.
@@ -379,11 +381,7 @@ export class MailService {
           from: fromHeader,
           to: r.email,
           subject,
-          html: this.wrapHtml(
-            body,
-            restaurant.name as string,
-            unsubscribeUrl,
-          ),
+          html: this.wrapHtml(body, restaurant.name as string, unsubscribeUrl),
           replyTo,
           // List-Unsubscribe headers (RFC 8058). Gmail/Outlook tonen
           // dan een native "Unsubscribe"-link bovenaan de mail,
@@ -410,7 +408,9 @@ export class MailService {
             .update({
               resend_message_id: ids[j]?.id ?? null,
               status: ids[j]?.id ? 'sent' : 'failed',
-              status_detail: ids[j]?.id ? null : 'Geen Resend message-id ontvangen',
+              status_detail: ids[j]?.id
+                ? null
+                : 'Geen Resend message-id ontvangen',
             })
             .eq('id', sendId);
           if (ids[j]?.id) sent++;
@@ -533,9 +533,7 @@ export class MailService {
     // performance-tracking mag de mail-flow nooit blokkeren.
     // Test-mails (send_mode='test') sluiten we uit zodat de eigenaar
     // onbeperkt mag testen zonder de echte stats te vervuilen.
-    const row = sendRow as
-      | { campaign_id?: string; send_mode?: string }
-      | null;
+    const row = sendRow as { campaign_id?: string; send_mode?: string } | null;
     const campaignId = row?.campaign_id;
     const sendMode = row?.send_mode;
     if (campaignId && sendMode !== 'test') {
@@ -562,12 +560,7 @@ export class MailService {
    */
   private mapWebhookEventToPerfField(
     type: string,
-  ):
-    | 'mail_delivered'
-    | 'mail_opened'
-    | 'mail_clicked'
-    | 'mail_bounced'
-    | null {
+  ): 'mail_delivered' | 'mail_opened' | 'mail_clicked' | 'mail_bounced' | null {
     switch (type) {
       case 'email.delivered':
         return 'mail_delivered';
@@ -589,11 +582,7 @@ export class MailService {
    */
   private async incrementCampaignPerformance(
     campaignId: string,
-    field:
-      | 'mail_delivered'
-      | 'mail_opened'
-      | 'mail_clicked'
-      | 'mail_bounced',
+    field: 'mail_delivered' | 'mail_opened' | 'mail_clicked' | 'mail_bounced',
   ): Promise<void> {
     // Eerst restaurant_id achterhalen via campaigns-FK.
     const { data: campaign, error: campErr } = await this.admin.client
@@ -638,9 +627,7 @@ export class MailService {
   // Publieke route: gast klikt link in mail → /u/<token>. Geen auth.
   // Effect: guests.mail_opt_in = false + token.used_at = now.
   // Idempotent, herhaaldelijk klikken doet niets nieuws.
-  async unsubscribeByToken(
-    token: string,
-  ): Promise<{ restaurantName: string }> {
+  async unsubscribeByToken(token: string): Promise<{ restaurantName: string }> {
     const { data: tokenRow, error: tokErr } = await this.admin.client
       .from('unsubscribe_tokens')
       .select('token, restaurant_id, guest_id, email, used_at')
@@ -826,9 +813,7 @@ export class MailService {
         text,
       });
       if (error) {
-        this.logger.error(
-          `Contact-mail versturen mislukt: ${error.message}`,
-        );
+        this.logger.error(`Contact-mail versturen mislukt: ${error.message}`);
         throw new InternalServerErrorException(
           'Versturen mislukt. Probeer het later opnieuw of mail ons direct.',
         );
@@ -838,6 +823,34 @@ export class MailService {
       this.logger.error(`Contact-mail onverwachte fout: ${String(e)}`);
       throw new InternalServerErrorException(
         'Versturen mislukt. Probeer het later opnieuw of mail ons direct.',
+      );
+    }
+  }
+
+  /**
+   * Verstuurt het wekelijkse interne vindbaarheid-rapport naar
+   * info@get-filly.com (Filly → Get-Filly over de eigen site).
+   * HTML + plain-text worden kant-en-klaar aangeleverd door de
+   * SeoReportService.
+   */
+  async sendSeoReport(
+    subject: string,
+    html: string,
+    text: string,
+  ): Promise<void> {
+    const { error } = await this.resend.emails.send({
+      from: `Get-Filly <${WEBSITE_FROM_ADDRESS}>`,
+      to: WEBSITE_FROM_ADDRESS,
+      subject,
+      html,
+      text,
+    });
+    if (error) {
+      this.logger.error(
+        `Vindbaarheid-rapport versturen mislukt: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Versturen van het vindbaarheid-rapport mislukt.',
       );
     }
   }
