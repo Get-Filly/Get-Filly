@@ -51,7 +51,7 @@ export default function ProductPage() {
       <section className="product-hero">
         <div className="container">
           <h1 className="section-title">Jouw AI-assistent voor de horeca.</h1>
-          <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie en kiest de juiste doelgroep — voor campagnes, reviews én je vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring zet Get-Filly het automatisch live, zodat je meer reserveringen krijgt.</p>
+          <p className="section-subtitle">Get-Filly detecteert rustige momenten, bedenkt de juiste actie en kiest de juiste doelgroep, voor campagnes, reviews én je vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring zet Get-Filly het automatisch live, zodat je meer reserveringen krijgt.</p>
 
           <div className="hero-diffs">
             <div className="hero-diff fade-up d1">
@@ -410,7 +410,7 @@ export default function ProductPage() {
         </div>
       </section>
 
-      {/* FAQ — hergebruikt .pricing-faq voor dezelfde sectie-styling + 2-koloms .faq-list. */}
+      {/* FAQ, hergebruikt .pricing-faq voor dezelfde sectie-styling. */}
       <section className="pricing-faq">
         <div className="container">
           <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>

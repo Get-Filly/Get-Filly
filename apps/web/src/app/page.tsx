@@ -193,13 +193,13 @@ export const metadata = pageMetadata({
   // genoeg zodat Google 'm niet afkapt (~155 tekens). De hero zelf heeft een
   // langere versie met de "met jouw goedkeuring"-regel er nog achteraan.
   description:
-    "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews en vindbaarheid in Google en AI-zoekmachines, zodat je meer reserveringen krijgt.",
+    "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines.",
   path: "/",
 });
 
 // FAQ + FAQPage-schema (zelfde array → blijft in sync). 2-koloms via .faq-list.
 const faqs = [
-  { q: "Wat is Get-Filly?", a: "Get-Filly is een AI-platform voor restaurants dat je marketing, reviews en online vindbaarheid in Google en AI-zoekmachines regelt — vanuit één dashboard — zodat je meer reserveringen krijgt." },
+  { q: "Wat is Get-Filly?", a: "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren." },
   { q: "Voor wie is Get-Filly?", a: "Voor restaurants, cafés en andere horecaondernemers die meer gasten willen zonder uren aan marketing kwijt te zijn. Marketingervaring is niet nodig." },
   { q: "Houd ik controle over wat er live gaat?", a: "Ja. Filly doet voorstellen; jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
   { q: "Wat kost Get-Filly?", a: "Je betaalt een vast maandbedrag, zonder verborgen kosten. Bekijk de actuele pakketten op de prijzen-pagina." },
@@ -228,7 +228,7 @@ export default function HomePage() {
             Meer gasten.<br />Minder lege momenten.
           </h1>
           <p className="section-subtitle fade-up d2">
-            Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews en vindbaarheid in Google en AI-zoekmachines, zodat je meer reserveringen krijgt. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.
+            Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.
           </p>
           <div className="hero-cta fade-up d3">
             <Link href="/contact" className="btn-primary">Vraag een demo</Link>
@@ -356,7 +356,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FAQ — hergebruikt .pricing-faq voor dezelfde sectie-styling + 2-koloms .faq-list. */}
+      {/* FAQ, hergebruikt .pricing-faq voor dezelfde sectie-styling. */}
       <section className="pricing-faq">
         <div className="container">
           <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>
