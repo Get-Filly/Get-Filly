@@ -1,0 +1,22 @@
+# Get-Filly
+
+> Get-Filly is een AI-marketingplatform voor de Nederlandse horeca dat lege tafels vult. Filly, de AI-marketingassistent, stelt campagnes voor, beantwoordt reviews namens de zaak, denkt mee over acties en verbetert de online vindbaarheid — alles vanuit één dashboard. Doel: meer gasten, minder lege momenten, meer bezetting.
+
+Get-Filly (handelsnaam Get-Filly, gevestigd in Amsterdam, KvK 42068177) richt zich op restaurants, cafés en andere horecaondernemers in Nederland. Het platform combineert AI-gegenereerde marketing (e-mail, social media, Google Business Profile), bezettings- en reserveringsinzicht en automatische review-afhandeling.
+
+## Belangrijkste pagina's
+- [Product](https://www.get-filly.com/product): wat het platform doet — AI-campagnes, reviews, vindbaarheid en bezetting in één dashboard.
+- [Prijzen](https://www.get-filly.com/pricing): abonnementen en wat erin zit.
+- [Over ons](https://www.get-filly.com/about): wie Get-Filly is en waarom het bestaat.
+- [Contact / demo aanvragen](https://www.get-filly.com/contact): een demo aanvragen of contact opnemen.
+
+## Beleid
+- [Privacyverklaring](https://www.get-filly.com/privacy): hoe Get-Filly persoonsgegevens verwerkt.
+- [Algemene voorwaarden](https://www.get-filly.com/voorwaarden): de gebruiksvoorwaarden.
+- [Gegevens verwijderen](https://www.get-filly.com/delete-data): hoe je je account/gegevens laat verwijderen.
+
+## Kernpunten
+- Voor wie: Nederlandse horeca (restaurants, cafés, bistro's).
+- Wat: AI-marketingassistent "Filly" + bezettings-/reserveringsdashboard.
+- Kernwaarde: meer reserveringen en bezetting via slimme, geautomatiseerde marketing.
+- Toegang: op uitnodiging (vraag een demo aan via /contact).
