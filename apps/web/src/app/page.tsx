@@ -188,10 +188,11 @@ function MiniDashboard() {
 export const metadata = pageMetadata({
   title: "Get-Filly — Meer gasten. Minder lege momenten.",
   absoluteTitle: true,
-  // Exact gelijk aan de homepage-hero (H1 + subregel), zodat de share-preview
-  // 1-op-1 overeenkomt met wat bezoekers op de site lezen.
+  // Compacte entiteit-omschrijving (= eerste 2 zinnen van de hero), kort
+  // genoeg zodat Google 'm niet afkapt (~155 tekens). De hero zelf heeft een
+  // langere versie met de "met jouw goedkeuring"-regel er nog achteraan.
   description:
-    "Get-Filly analyseert de restaurant bezetting, herkent kansen en stelt campagnes voor die lege tafels vullen. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.",
+    "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews en vindbaarheid in Google en AI-zoekmachines, zodat je meer reserveringen krijgt.",
   path: "/",
 });
 
@@ -204,7 +205,7 @@ export default function HomePage() {
             Meer gasten.<br />Minder lege momenten.
           </h1>
           <p className="section-subtitle fade-up d2">
-            Get-Filly analyseert de restaurant bezetting, herkent kansen en stelt campagnes voor die lege tafels vullen. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.
+            Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews en vindbaarheid in Google en AI-zoekmachines, zodat je meer reserveringen krijgt. Met jouw goedkeuring wordt de uiting gedaan via het juiste kanaal, op het moment dat ze de meeste reserveringen genereren.
           </p>
           <div className="hero-cta fade-up d3">
             <Link href="/contact" className="btn-primary">Vraag een demo</Link>
