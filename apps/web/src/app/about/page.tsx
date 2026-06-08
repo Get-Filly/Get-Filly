@@ -2,9 +2,17 @@
 // ABOUT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → AboutPage.
 // =============================================================================
 
+import Link from "next/link";
 import { COMPANY } from "@/config/company";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { pageMetadata } from "@/config/seo";
+
+// Stijl voor contextuele links in de groene cta-section (witte tekst,
+// dus link = wit + onderstreept zodat 'ie opvalt op de groene achtergrond).
+const inlineLink: React.CSSProperties = {
+  color: "#FFFFFF",
+  textDecoration: "underline",
+};
 
 export const metadata = pageMetadata({
   title: "Over ons",
@@ -107,6 +115,11 @@ export default function AboutPage() {
       <section className="cta-section">
         <h2 className="section-title">Laten we kennismaken.</h2>
         <p className="section-subtitle">Vragen over Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
+        <p className="section-subtitle" style={{ marginTop: 8, fontSize: 15 }}>
+          Liever eerst rondkijken? Bekijk{" "}
+          <Link href="/product" style={inlineLink}>onze oplossing voor restaurants</Link>{" "}
+          of <Link href="/pricing" style={inlineLink}>de prijzen</Link>.
+        </p>
         <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
       </section>
     </>

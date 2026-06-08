@@ -338,6 +338,10 @@ export default function HomePage() {
       <section className="cta-section">
         <h2 className="section-title">Klaar om jouw tafels te vullen?</h2>
         <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
+        <p className="section-subtitle" style={{ marginTop: 8, fontSize: 15 }}>
+          Of bekijk eerst{" "}
+          <Link href="/pricing" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de prijzen</Link>.
+        </p>
         <Link href="/contact" className="cta-btn">Plan een gratis kennismaking</Link>
       </section>
 

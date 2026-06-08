@@ -211,6 +211,10 @@ export default function PricingPage() {
       <section className="cta-section">
         <h2 className="section-title">Heb je nog vragen?</h2>
         <p className="section-subtitle">Mail ons, we helpen je graag verder.</p>
+        <p className="section-subtitle" style={{ marginTop: 8, fontSize: 15 }}>
+          Wil je eerst zien wat Filly doet? Bekijk{" "}
+          <Link href="/product" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de oplossing</Link>.
+        </p>
         <a className="cta-btn" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
       </section>
     </>

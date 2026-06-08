@@ -20,6 +20,7 @@ const linksProduct = [
 
 const linksBedrijf = [
   { href: "/about", label: "Over ons" },
+  { href: "/blog", label: "Blog" },
   { href: `mailto:${COMPANY.email}`, label: "Contact" },
   { href: "/about#team", label: "Team" },
 ];

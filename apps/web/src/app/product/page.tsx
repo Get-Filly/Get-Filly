@@ -390,6 +390,10 @@ export default function ProductPage() {
       <section className="cta-section">
         <h2 className="section-title">Klaar om rustige momenten om te zetten in omzet?</h2>
         <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
+        <p className="section-subtitle" style={{ marginTop: 8, fontSize: 15 }}>
+          Benieuwd wat het kost? Bekijk{" "}
+          <Link href="/pricing" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de prijzen</Link>.
+        </p>
         <Link className="cta-btn" href="/contact">Vraag een demo aan</Link>
       </section>
     </>

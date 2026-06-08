@@ -142,6 +142,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 
 ### Content & blog (grootste SEO/GEO-hefboom)
 - [x] ~~**Blog-/content-infrastructuur bouwen**~~ (2026-06-08) — `/blog` (index) + `/blog/[slug]` (detail, SSG, `dynamicParams=false`) live. Posts = markdown in `apps/web/content/blog/*.md` met front-matter (title/description/date/author); content-laag `src/lib/blog.ts` (parser + `marked`). Per artikel: SEO-metadata via `pageMetadata` + `BlogPosting` JSON-LD; automatische opname in `sitemap.ts`. Lege staat: `/blog` toont "binnenkort" + `noindex` zolang er geen posts zijn (en blijft dan uit de sitemap). Sjabloon: `content/blog/_template.md` (bestanden met `_`/`.` worden genegeerd). **Posten = `.md`-bestand droppen.** Nav-link "Blog" staat in de header (2026-06-08, op verzoek) — tot de eerste post toont `/blog` een "binnenkort"-staat + `noindex`.
+- [x] ~~**Interne linking — lichte pass**~~ (2026-06-08) — contextlinks toegevoegd in de paginatekst: Over ons → Oplossing ("onze oplossing voor restaurants") + Prijzen; Oplossing → Prijzen; Prijzen → Oplossing; Home → Prijzen; en **Blog** toegevoegd aan de footer. (Footer dekte de sitebrede links al goed.) **De echte hefboom — 3-5 contextlinks/pagina in topic-clusters — volgt met blogcontent**, niet forceren op de marketingpagina's.
 - [ ] **Eerste artikel-onderwerpen** (aangeleverd door Floris, 2026-06-05):
   - "Hoe krijg ik meer reserveringen in een rustige periode?"
   - "Google Bedrijfsprofiel optimaliseren voor je restaurant"
