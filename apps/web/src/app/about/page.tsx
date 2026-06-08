@@ -115,12 +115,12 @@ export default function AboutPage() {
       <section className="cta-section">
         <h2 className="section-title">Laten we kennismaken.</h2>
         <p className="section-subtitle">Vragen over Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
-        <p className="section-subtitle" style={{ marginTop: 8, fontSize: 15 }}>
+        <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
+        <p className="section-subtitle" style={{ marginTop: 20, fontSize: 15 }}>
           Liever eerst rondkijken? Bekijk{" "}
           <Link href="/product" style={inlineLink}>onze oplossing voor restaurants</Link>{" "}
           of <Link href="/pricing" style={inlineLink}>de prijzen</Link>.
         </p>
-        <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
       </section>
     </>
   );
