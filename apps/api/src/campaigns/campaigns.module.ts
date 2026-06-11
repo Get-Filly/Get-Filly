@@ -9,6 +9,7 @@ import { AiModule } from '../ai/ai.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AnonymizationModule } from '../anonymization/anonymization.module';
 import { MailModule } from '../mail/mail.module';
+import { EventsModule } from '../events/events.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -28,6 +29,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     AuditLogModule,
     AnonymizationModule,
     MailModule,
+    EventsModule,
   ],
   controllers: [CampaignsController],
   providers: [

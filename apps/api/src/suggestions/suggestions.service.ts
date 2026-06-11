@@ -23,6 +23,7 @@ import {
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
 import { ChannelReachService } from '../ai/channel-reach.service';
+import { EventsService } from '../events/events.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
@@ -539,6 +540,9 @@ export class SuggestionsService {
     // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
     // tractie meeweegt bij kanaal-keuze en alternatieven voorstelt.
     private readonly reach: ChannelReachService,
+    // Lokale evenementen (evenementen.nl-sync) binnen de staffel-
+    // radius, als extra timing-/thema-signaal in de prompts.
+    private readonly events: EventsService,
     // Voor leerloop-injectie in generateOnDemand-prompt (filly-brein
     // hfst 9.5). Returnt lege string bij ontbreken classified campagnes.
     private readonly fingerprint: CampaignFingerprintService,
@@ -702,6 +706,9 @@ ${buildExternalFactorsBlock()}
 ---
 ${await this.reach.buildReachBlock(restaurantId)}
 ---
+${await this.events
+  .buildEventsBlock(restaurantId)
+  .then((b) => (b ? `${b}\n---` : ''))}
 ${await this.fingerprint.buildLearningContextBlock(restaurantId)}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
@@ -1046,9 +1053,11 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         .length,
     };
 
-    // Bereik-blok is per restaurant constant: één keer ophalen
-    // vóór de dag-loop i.p.v. 2 queries per dag.
+    // Bereik- en events-blok zijn per restaurant constant: één keer
+    // ophalen vóór de dag-loop i.p.v. queries per dag.
     const reachBlock = await this.reach.buildReachBlock(restaurantId);
+    const eventsBlockRaw = await this.events.buildEventsBlock(restaurantId);
+    const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
 
     // Stap 6, per dag een Claude-call met dag-specifieke context.
     // Sequentieel zodat we de rate-limit niet over de kop laten
@@ -1102,6 +1111,7 @@ ${buildExternalFactorsBlock()}
 ---
 ${reachBlock}
 ---
+${eventsBlock}
 CONTEXT, restaurant-profiel + menu:
 
 ${profileBlock}
@@ -1342,9 +1352,11 @@ ${dayContext}`;
     const today = new Date();
     const generatedSuggestions: AiSuggestion[] = [];
 
-    // Bereik-blok is per restaurant constant: één keer ophalen
-    // vóór de item-loop i.p.v. 2 queries per item.
+    // Bereik- en events-blok zijn per restaurant constant: één keer
+    // ophalen vóór de item-loop i.p.v. queries per item.
     const reachBlock = await this.reach.buildReachBlock(restaurantId);
+    const eventsBlockRaw = await this.events.buildEventsBlock(restaurantId);
+    const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
 
     // Sequentieel zodat we de Anthropic-rate-limit niet overschrijden
     // en het prompt-cache effect (system blijft hetzelfde) maximaal
@@ -1427,6 +1439,7 @@ ${buildExternalFactorsBlock()}
 ---
 ${reachBlock}
 ---
+${eventsBlock}
 CONTEXT, restaurant-profiel + menu:
 
 ${profileBlock}

@@ -60,6 +60,11 @@ export class GeocodingService {
     address?: string | null;
     postal_code?: string | null;
     city?: string | null;
+    // Optioneel PDOK-type-filter. De events-sync zet 'woonplaats'
+    // zodat een slug-token als "centrum" niet per ongeluk op een
+    // straatnaam matcht; onboarding laat dit leeg (elke match >
+    // geen match voor adres-geocoding).
+    typeFilter?: 'woonplaats';
   }): Promise<GeocodeResult | null> {
     const query = buildQuery(input);
     if (!query) {
@@ -70,9 +75,12 @@ export class GeocodingService {
     url.searchParams.set('q', query);
     url.searchParams.set('rows', '1');
     url.searchParams.set('fl', 'centroide_ll,weergavenaam,type');
-    // fq=type:adres zou strenger filteren op huisnummer-niveau, maar
-    // dan missen we matches voor adressen waar PDOK alleen postcode
-    // kent. Bewust weggelaten: elke match > geen match.
+    if (input.typeFilter) {
+      url.searchParams.set('fq', `type:${input.typeFilter}`);
+    }
+    // Zonder typeFilter géén fq: fq=type:adres zou strenger filteren
+    // op huisnummer-niveau, maar dan missen we matches voor adressen
+    // waar PDOK alleen postcode kent. Elke match > geen match.
 
     // AbortController voor timeout. PDOK is meestal <500ms, maar bij
     // piek-momenten of een congestie kan het uitlopen. 10s is een

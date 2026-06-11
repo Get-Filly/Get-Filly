@@ -15,6 +15,7 @@ import {
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
+import { EventsService } from '../events/events.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
@@ -174,6 +175,9 @@ export class CampaignsService {
     // USPs, doelgroep) en realistische tijdstip-suggesties (rekening
     // houdend met bezetting + special events).
     private readonly context: RestaurantContextService,
+    // Lokale evenementen binnen de staffel-radius: extra signaal voor
+    // het verzendmoment (event = piek- óf uitwijk-moment).
+    private readonly events: EventsService,
     private readonly audit: AuditLogService,
     // AnonymizationService bouwt bij `status → afgerond` een
     // geanonimiseerde benchmark-rij op (Recital 26 GDPR). Fail-soft
@@ -2090,6 +2094,9 @@ ${timingRules}
 
 ${buildExternalFactorsBlock()}
 
+${await this.events
+  .buildEventsBlock(restaurantId)
+  .then((b) => (b ? `${b}\n` : ''))}
 Reasoning kort, helder, in NL, verwijs naar concrete data uit profiel of bezetting. Als je afwijkt van het statistische sweet-spot omdat een doel-datum dichtbij is, benoem dat expliciet. Bv. "Donderdag 19:30, donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
 
 Geef ALTIJD ook een alternatief moment (alternative_datetime_iso + alternative_reasoning): het tweede-beste venster — ander dagdeel of andere dag — met de trade-off in één zin. Zo kan de eigenaar kiezen zonder opnieuw te hoeven vragen.
