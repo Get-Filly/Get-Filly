@@ -81,9 +81,11 @@ export function ScrollReveal() {
     };
 
     // Twee observers: de standaard (-15%, item ~15% in beeld) en een "late"
-    // variant (-45%) voor items met data-reveal-late. Die laatste poppen pas op
-    // als je ze duidelijk in beeld hebt gescrolld — gebruikt bij de 1e
-    // walkthrough-stap ("Detectie"), die anders al bij paginaload zou tonen.
+    // variant (-25%) voor items met data-reveal-late. Die laatste worden nooit
+    // meteen bij load getoond en reveallen pas na een klein tikje scrollen —
+    // gebruikt bij de 1e walkthrough-stap ("Detectie"), zodat de percentage-
+    // balken (scaleY-fill) pas vollopen als je een stukje naar beneden scrolt
+    // i.p.v. al bij paginaload.
     const makeObserver = (rootMargin: string) =>
       new IntersectionObserver(
         (entries, obs) => {
@@ -98,7 +100,7 @@ export function ScrollReveal() {
       );
 
     const observer = makeObserver("0px 0px -15% 0px");
-    const observerLate = makeObserver("0px 0px -45% 0px");
+    const observerLate = makeObserver("0px 0px -25% 0px");
 
     items.forEach((el) => {
       el.classList.add("reveal-pending");
