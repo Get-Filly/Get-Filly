@@ -22,7 +22,7 @@ export const metadata = pageMetadata({
 });
 
 const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Filly doet het werk, jij richt je op je onderneming en gasten." },
+  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op je onderneming en gasten." },
   { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
   { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen. Levert het niets op, dan stopt het." },
 ];
@@ -83,7 +83,7 @@ export default function AboutPage() {
               <div className="zig-card" data-reveal>
                 <h3 className="zig-card-title">Hoofdstuk 2, Eerste 100 klanten</h3>
                 <ul className="zig-card-list">
-                  <li>Filly nationaal uitrollen in heel Nederland</li>
+                  <li>Get-Filly nationaal uitrollen in heel Nederland</li>
                 </ul>
               </div>
             </li>
@@ -114,7 +114,7 @@ export default function AboutPage() {
 
       <section className="cta-section">
         <h2 className="section-title">Laten we kennismaken.</h2>
-        <p className="section-subtitle">Vragen over Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
+        <p className="section-subtitle">Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
         <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
           Liever eerst rondkijken? Bekijk{" "}

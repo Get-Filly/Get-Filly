@@ -21,7 +21,7 @@ import {
   BereikbaarheidVisual,
 } from "../components/landing-visuals";
 import { ScrollReveal } from "../components/scroll-reveal";
-// De Filly-chat en de telefoon zijn afspelende animaties (state + timers) en
+// De Get-Filly-chat en de telefoon zijn afspelende animaties (state + timers) en
 // daarom losse "use client"-eilanden; de rest van de mockup blijft server.
 import { LandingFillyChat } from "../components/landing-filly-chat";
 import { LandingPhone } from "../components/landing-phone";
@@ -40,7 +40,7 @@ import { LandingPhone } from "../components/landing-phone";
 // =============================================================================
 
 // =============================================================================
-// MiniDashboard, visuele namaak van het echte Filly-dashboard,
+// MiniDashboard, visuele namaak van het echte Get-Filly-dashboard,
 // gerenderd binnen het MacBook-scherm in de hero.
 // =============================================================================
 function MiniDashboard() {
@@ -56,7 +56,7 @@ function MiniDashboard() {
   // KPI-rij: 4 kaarten zoals op het nieuwe dashboard.
   const KPIS = [
     { label: "Bezetting vandaag", val: "55%" },
-    { label: "Gasten vandaag", val: "43", extra: "0 via Filly" },
+    { label: "Gasten vandaag", val: "43", extra: "0 via Get-Filly" },
     { label: "Lopende campagnes", val: "3", extra: "actief of ingepland" },
     { label: "Voorgestelde campagnes", val: "1", extra: "wachten op goedkeuring" },
   ];
@@ -123,7 +123,7 @@ function MiniDashboard() {
               <strong>1 speciale dag</strong> komende 6 weken: Moederdag (10 mei)
             </div>
           </div>
-          <div className="md-cta-btn">Vraag Filly om voorstellen</div>
+          <div className="md-cta-btn">Vraag Get-Filly om voorstellen</div>
         </div>
 
         <div className="md-kpi-row">
@@ -175,7 +175,7 @@ function MiniDashboard() {
             </div>
           </div>
 
-          {/* Filly chat — afspelende conversatie (eigen client-component). */}
+          {/* Get-Filly chat — afspelende conversatie (eigen client-component). */}
           <LandingFillyChat />
         </div>
       </div>
@@ -229,7 +229,7 @@ export default function HomePage() {
                 pushmelding zodra het een rustige dag detecteert. Eigen client-
                 component, want de melding schuift als allereerste binnen (vóór
                 de chat). Valt over de rechter-rand van de laptop (diepte) maar
-                laat de Filly-chat vrij. Verborgen op mobiel. */}
+                laat de Get-Filly-chat vrij. Verborgen op mobiel. */}
             <LandingPhone />
           </div>
         </div>
@@ -335,7 +335,7 @@ export default function HomePage() {
           identiek aan de product- en over-pagina (eigen tekst). */}
       <section className="cta-section">
         <h2 className="section-title">Klaar om jouw tafels te vullen?</h2>
-        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw onderneming kan doen.</p>
+        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw restaurant kan doen.</p>
         <Link href="/contact" className="cta-btn">Plan een gratis kennismaking</Link>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
           Of bekijk eerst{" "}

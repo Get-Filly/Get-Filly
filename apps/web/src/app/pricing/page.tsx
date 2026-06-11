@@ -66,14 +66,14 @@ const plans: Plan[] = [
 ];
 
 const faqs = [
-  { q: "Hoelang duurt de onboarding?", a: "Binnen één dag ben je volledig onboard. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Filly gaat dezelfde dag voor je aan de slag." },
-  { q: "Welke kanalen gebruikt Filly?", a: "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep." },
-  { q: "Houd ik controle over wat Filly verstuurt?", a: "Ja. Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
-  { q: "Hoe weet Filly welke actie ze moet voorstellen?", a: "Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
+  { q: "Hoelang duurt de onboarding?", a: "Binnen één dag ben je volledig onboard. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Get-Filly gaat dezelfde dag voor je aan de slag." },
+  { q: "Welke kanalen gebruikt Get-Filly?", a: "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Get-Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep." },
+  { q: "Houd ik controle over wat Get-Filly verstuurt?", a: "Ja. Get-Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
+  { q: "Hoe weet Get-Filly welke actie ze moet voorstellen?", a: "Get-Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
   { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
-  { q: "Heb ik marketingervaring nodig?", a: "Nee. Filly is juist gemaakt voor ondernemers zonder marketingkennis. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast, de rest doet Filly." },
+  { q: "Heb ik marketingervaring nodig?", a: "Nee. Get-Filly is juist gemaakt voor ondernemers zonder marketingkennis. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast, de rest doet Get-Filly." },
   { q: "Hoe en wanneer betaal ik?", a: "Betaling loopt via onze betaalpartner Stripe, met creditcard, SEPA-incasso of iDEAL. Je betaalt vooruit per maand of per jaar, zonder verborgen kosten." },
-  { q: "Kan ik maandelijks opzeggen?", a: "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Filly beschikbaar tot het einde van de al betaalde periode." },
+  { q: "Kan ik maandelijks opzeggen?", a: "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Get-Filly beschikbaar tot het einde van de al betaalde periode." },
   { q: "Wat gebeurt er met de gegevens van mijn gasten?", a: "Jij blijft eigenaar van je gastgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties." },
   { q: "Hoe veilig zijn mijn gegevens?", a: "Alle gegevens gaan versleuteld over de lijn via TLS en we nemen passende technische en organisatorische maatregelen volgens de AVG. Werken we met een leverancier buiten de EU, bijvoorbeeld voor AI, dan leggen we daarvoor de wettelijk vereiste waarborgen vast." },
 ];
@@ -212,7 +212,7 @@ export default function PricingPage() {
         <p className="section-subtitle">Mail ons, we helpen je graag verder.</p>
         <a className="cta-btn" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
-          Wil je eerst zien wat Filly doet? Bekijk{" "}
+          Wil je eerst zien wat Get-Filly doet? Bekijk{" "}
           <Link href="/product" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de oplossing</Link>.
         </p>
       </section>

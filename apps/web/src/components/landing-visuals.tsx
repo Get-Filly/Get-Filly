@@ -163,7 +163,7 @@ export function BereikbaarheidVisual() {
           </div>
           <span className="lv-mail-time">10:14</span>
         </div>
-        <div className="lv-mail-subj">We zien je graag weer, deze week nog een tafel vrij?</div>
+        <div className="lv-mail-subj">We zien je graag weer, deze week nog een tafel vrij!</div>
         <div className="lv-mail-body">
           Hoi Marieke, het is alweer even geleden! Donderdag hebben we nog een mooi
           plekje vrij. Als welkom terug trakteren we op een glas wijn van het huis. &#127863;
