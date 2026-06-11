@@ -57,7 +57,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ### Autonome detectie + push-meldingen (concept-flow, 2026-05-08)
 Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform), spot rustige dagen op basis van threshold, push-melding naar eigenaar → klik → genereer voorstel → bundle ontstaat in /campagnes.
-- [ ] **Low-occupancy threshold per restaurant** — nieuw veld `low_occupancy_threshold_pct` op restaurants-tabel + slider in account-settings. Default 50%. Vervangt hardcoded waarde in `detectAndGenerateLowOccupancy`.
+- [~] **Low-occupancy threshold per restaurant** — vrijwel af (geverifieerd 2026-06-11): kolom `low_occupancy_threshold` bestaat (mig 0037), slider op account-pagina live (`account/page.tsx:917`), dashboard (`upcoming-actions-block.tsx`) leest 'm. **Restje:** `detectAndGenerateLowOccupancy` gebruikt nog de hardcoded constante `LOW_OCCUPANCY_THRESHOLD_PCT = 50` (`suggestions.service.ts:326`, query op regel 910) i.p.v. de kolom — die ene query omzetten en de constante als fallback houden.
 - [ ] **Autonome detectie** — bij data-event vanuit reserveringsplatform (Zenchef etc.) automatisch `detectAndGenerateLowOccupancy` triggeren (i.p.v. handmatige knop). NB: per memory géén interne cron, alléén event-driven.
 - [ ] **Push-meldingen** — opties: (a) Email-interim via Resend (snel, 2-3u), (b) Web Push via PWA (10-12u, werkt cross-platform), (c) Mobile app + native push (weken, App Store). Sprint-keuze: start met (a), later (b).
 
@@ -79,7 +79,7 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 ### Infrastructuur & deploy
 - [x] ~~**Vercel + GitHub consolideren naar het Developer-account**~~ (✅ AFGEROND 2026-06-01) — alles draait nu op **één** Vercel-account (Developer, scope `get-fillys-projects`) + **één** repo (`Get-Filly/Get-Filly`): get-filly.com + www + api live daar, web→`get-filly-api-three.vercel.app/api`, `CORS_ORIGINS` gezet (plain), personal-duplicaten verwijderd, oude repo `Florisbwkoevermans/get-filly` gearchiveerd, `oldrepo`-remote weg. **Eén push naar Get-Filly/Get-Filly deployt nu alles** (geen `git push oldrepo` meer). Details + gotcha's in auto-memory "Stand 2026-06-01". Restje: Pro+Fluid Compute bij launch; `WEB_URL` op api leeg. _Oorspronkelijke context hieronder:_ de LIVE projecten `get-filly-api` + `get-filly-web` draaien nu in het **persoonlijke** Vercel-account (`florisbwkoevermans-projects`) en hangen aan de **OUDE** repo `Florisbwkoevermans/get-filly`. In het Developer-account (`developer@get-filly.com`) staan duplicaten gekoppeld aan de nieuwe repo `Get-Filly/Get-Filly`. **Doel: alles naar één opzet — Developer-account + repo `Get-Filly/Get-Filly`.** Stappen: (1) live projecten naar het Developer-team transferren (of opnieuw importeren) + domeinen get-filly.com/www meeverhuizen; (2) Git-koppeling op `Get-Filly/Get-Filly` zetten zodat een push naar de nieuwe repo de live site deployt (**nu nog `git push oldrepo main` nodig**); (3) **`florisbwkoevermans` volledig loskoppelen van Vercel** (persoonlijke projecten verwijderen, account eruit); (4) oude repo `Florisbwkoevermans/get-filly` archiveren. Tot dat klaar is: bij elke deploy óók naar de oude repo pushen, anders raakt de wijziging de live site niet.
 - [x] ~~**Backend-migratie naar Vercel (Nest → all-Vercel)**~~ (2026-05-28/29) — gekozen route: **Optie A**, Nest as-is op Vercel serverless via custom handler. Setup: `apps/api/api/index.ts` wrapt de Nest-app als Express-instance, `apps/api/vercel.json` met catch-all rewrite `/api/(.*) → /api/index` + region `fra1` + 10s maxDuration (Hobby). Aparte Vercel-project `get-filly-api` aangemaakt, rootDir = `apps/api`, Framework Preset = `Other`, "Include files outside root in Build Step" aan. Alle 9 env-vars geïmporteerd uit apps/api/.env. Frontend `NEXT_PUBLIC_API_URL` op `https://get-filly-api.vercel.app/api` voor Production + Preview. Railway-service "api" succesvol verwijderd na werkende smoke-test (login, dashboard, reserveringen, gasten, reviews, campagnes, mail-send). **Bekende limieten op huidige Hobby-plan**: Filly-chat + Vision-imports timeouten op 10s; menukaart-uploads >4.5MB falen (workaround = Supabase Storage signed URLs, P2 backlog). Resend-webhook URL nog niet ingesteld (bestond niet bij Railway, blijft op P1 backlog). Server-side keys cleanup `get-filly-web` op P1 backlog gezet (security). **Correctie 2026-06-03**: het werkende api-domein is `https://get-filly-api-three.vercel.app/api` — `get-filly-api.vercel.app` geeft `DEPLOYMENT_NOT_FOUND` (Vercel kende dat domein niet (meer) toe). Controleer of `NEXT_PUBLIC_API_URL` in het get-filly-web Vercel-project op het `-three`-domein staat, anders kan het live dashboard de api niet bereiken.
-- [ ] **vercel.json voor web** — deploy-config
+- [x] ~~**vercel.json voor web** — deploy-config~~ (afgevinkt 2026-06-11) — bestond al sinds de deploy-skip-fix van 2026-06-02 (`1fd6271`): `apps/web/vercel.json` met `ignoreCommand`. Dit losse regeltje was nooit bijgewerkt.
 - [x] ~~**Railway/Render config voor api**~~ — vervallen 2026-05-29: Railway-service verwijderd na geslaagde Vercel-migratie.
 - [ ] **Password-protected preview-deploy** op `app.get-filly.com` — eerste live URL waar we Meta-OAuth + echte tests kunnen doen
 - [ ] **Staging-Supabase** — aparte DB voor tests/Meta-review zonder productie-risico
@@ -108,20 +108,20 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 
 **Bugs (urgent):**
 - [x] ~~**"Activeer nu" stuurt mail niet daadwerkelijk**~~ (2026-05-28) — `handleStatusChange('actief')` op `/campagnes/[id]` roept nu `sendCampaign(channelId, 'all_opted_in')` aan voor elke mail-channel met `sent_count=0`, dáárna pas de status-flip. Volgorde send-first → status-flip zorgt dat status op concept/ingepland blijft als de send faalt (geen 'actief zonder mail'-toestand). `sent_count>0` = defensief skip tegen dubbele bezorging. Confirm-tekst aangepast aan single/multi/no-mail-bundle.
-- [ ] **InhoudCard `originalIdxRef` reset niet** bij client-side nav tussen 2 verschillende campagnes (zelfde route, ander `[id]`) → ✕-knop wijst naar de oude origineel. Fix in `apps/web/src/app/dashboard/_components/campaign-detail/inhoud-card.tsx:80`: reset op `sectionId`-of-`variants`-prop-change.
+- [ ] **InhoudCard `originalIdxRef` reset niet** bij client-side nav tussen 2 verschillende campagnes (zelfde route, ander `[id]`) → ✕-knop wijst naar de oude origineel. Fix in `apps/web/src/app/dashboard/_components/campaign-detail/inhoud-card.tsx:80`: reset op `sectionId`-of-`variants`-prop-change. **Check 2026-06-11:** er staat inmiddels een `useEffect` (regel 98-105), maar die initialiseert de ref alleen éénmalig (als-ie nog null is) — de beschreven reset bij campagne-wissel ontbreekt nog. Mogelijk in de praktijk een non-issue (App Router remount bij ander `[id]`); eerst reproduceren, anders alsnog de reset toevoegen.
 - [ ] **Multi-channel status-overgang heeft geen rollback** — `Promise.all(updateCampaignStatus)` over kanalen. Bij partial failure: halfgeplaatste bundle. **Fix**: nieuw endpoint `PATCH /campaigns/bundle/:id/status` met transactionele update over alle siblings.
 
 **Dead code (na refactor niemand importeert het meer):**
 - [ ] **4 components slopen** — `campaign-refine-panel.tsx` (22 KB), `campaign-schedule-panel.tsx` (13 KB), `campaign-media-slot.tsx` (13 KB). `campaign-send-modal.tsx` (9 KB) alléén slopen ná de "Activeer-stuurt-mail"-fix; deze is misschien juist nodig.
 - [ ] **Dode API-functies in `apps/web/src/lib/api.ts` schrappen** — `fetchCampaignVariants`, `generateCampaignVariants`, `updateCampaign`, `suggestCampaignSchedule`.
 - [ ] **Dode backend-endpoints + service-methodes schrappen** — `GET /campaigns/:id/variants`, `POST /:id/refine`, `PATCH /:id`, `POST /:id/suggest-schedule` + `service.getVariants/refine/update/suggestSchedule`.
-- [ ] **Oude `/campagnes/bundle/[id]/page.tsx` slopen** (354 regels) — geen kanban-route gaat er nog naartoe.
+- [~] **Oude `/campagnes/bundle/[id]/page.tsx` slopen** — grotendeels gebeurd (geverifieerd 2026-06-11): de 354-regel-pagina is al vervangen door een 41-regel redirect-stub voor oude bookmarks. **Restje:** de stub + `bundle/`-map verwijderen zodra zeker is dat er geen oude bookmarks meer leven.
 - [ ] **Mig 0043: DB-schema cleanup** — drop `campaigns.filly_variants`, `campaigns.filly_variants_regen_count`, `campaigns.variant_applied_at` ná het verwijderen van alle write-paden. Bewaar als 2-stap (eerst writes weg in code, sessie later columns droppen) om mid-refactor data-verlies te voorkomen.
 
 **Polish (nice-to-have):**
 - [ ] **Approve-redirects consistent** — "Direct inplannen" + `approveBundleSuggestion` (chat_bundle) navigeren nu naar `/campagnes` (kanban). Voor consistentie: naar `/campagnes/${anchorCampaignId}` zodat eigenaar de net-gemaakte campagne meteen ziet.
 - [ ] **Variant-delete knop** — eigenaar kan via "Genereer 3 nieuwe" tot 6 versies opbouwen, daarna zit-ie vast. Voeg ✕-knop op alternatief-blokken (alleen op concept) toe → `DELETE /campaigns/:id/variants/:idx`.
-- [ ] **`findBundle` N+1 → batch** — per content-tabel 1 SELECT met `IN (campaign_ids)` ipv `findById` per kanaal. Geen blocker voor 1-5 kanalen, wel voor toekomstige >10-kanaal-bundles.
+- [ ] **`findBundle` N+1 → batch** — per content-tabel 1 SELECT met `IN (campaign_ids)` ipv `findById` per kanaal. Geen blocker voor 1-5 kanalen, wel voor toekomstige >10-kanaal-bundles. **Check 2026-06-11:** draait inmiddels parallel via `Promise.all` (scheelt wall-clock), maar nog steeds `findById` per kanaal — de batch-`IN`-query blijft de echte fix.
 - [ ] **KanalenCard add/remove voor concept-bundles** — staat nu `canEdit=false` omdat de backend geen "add channel to bundle"-endpoint heeft. Vereist nieuw `POST /campaigns/bundle/:id/channels` dat een nieuwe campaign in dezelfde group_id aanmaakt.
 
 ### Site-fundamenten (publieke site)
@@ -133,12 +133,12 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**Apex → www redirect**~~ (2026-06-06) — opgelost **in code** via `apps/web/next.config.ts` `redirects()` met host-match (`get-filly.com` → `https://www.get-filly.com`, 308). Heft de duplicate-content op én zorgt dat OAuth-redirect_uri's altijd op www staan (1 origin in Meta i.p.v. apex+www). Exact-host-match, dus app.get-filly.com + Vercel-previews vallen erbuiten. Optioneel nog: dezelfde redirect op Vercel → Domains zetten (gebeurt dan op edge, vóór de functie) — niet nodig, code dekt het.
 - [ ] **Google Search Console** (open, Floris-actie + kleine code-stap) — property op `https://www.get-filly.com` aanmaken + `sitemap.xml` indienen. Verificatie via DNS-TXT óf meta-tag; bij meta-tag levert Floris de code aan → toevoegen als `verification: { google: "<code>" }` in de root-metadata (`apps/web/src/app/layout.tsx`).
 - [ ] **Bing Webmaster Tools** (open, Floris-actie) — property op `www.get-filly.com` + dezelfde `sitemap.xml` indienen; voedt ook andere zoek-/AI-engines.
-- [ ] **Beeldoptimalisatie afronden** — resterende plain `<img>` (16×) → `next/image` (WebP/AVIF + srcset + lazy-load), `logo.png` (523KB) verkleinen, Lighthouse-audit o.b.v. Speed Insights-data. Claude in code.
+- [ ] **Beeldoptimalisatie afronden** — resterende plain `<img>` (**nog 10×** per telling 2026-06-11, o.a. navbar, footer, landing-visuals, product, foto-card) → `next/image` (WebP/AVIF + srcset + lazy-load), `logo.png` (**nog 511KB**) verkleinen, Lighthouse-audit o.b.v. Speed Insights-data. Claude in code.
 - [x] ~~**FAQPage-schema op /pricing**~~ (2026-06-05) — JSON-LD uit de `faqs`-array → kans op uitklapbare rich results in Google.
 - [~] **Analytics + Speed Insights** (2026-06-05) — code staat live in de root-layout (cookieloos/AVG-vriendelijk). **Speed Insights is actief** (script 200). **Web Analytics nog aanzetten**: Vercel → project → tab **Analytics** → *Enable* (script geeft nu 404 = uit). Daarna stroomt bezoekersdata binnen.
 - [ ] **Social-profielen in JSON-LD `sameAs`** — ⏳ **wacht alleen op de URL's van Floris** (Instagram/LinkedIn + evt. Facebook/TikTok/X). Daarna ~5-min ingreep: invullen in de nu lege `sameAs:[]` in `components/structured-data.tsx` → sterkere entiteitskoppeling voor Google + AI-zoekmachines. (Bevestigd 2026-06-08: `sameAs` staat live nog leeg.)
-- [ ] **About-pagina invullen** — nu leeg/placeholder
-- [ ] **Footer invullen** — nu grotendeels leeg
+- [x] ~~**About-pagina invullen**~~ (afgevinkt 2026-06-11) — `/about` is volledig gevuld (missie "Van idee naar impact" + 3 pijlers + roadmap 2026-2029) en live geverifieerd op www.get-filly.com/about.
+- [x] ~~**Footer invullen**~~ (afgevinkt 2026-06-11) — `components/footer.tsx` heeft 3 kolommen (Product/Bedrijf/Juridisch) + logo + copyright; live geverifieerd.
 
 ### Content & blog (grootste SEO/GEO-hefboom)
 - [x] ~~**Blog-/content-infrastructuur bouwen**~~ (2026-06-08) — `/blog` (index) + `/blog/[slug]` (detail, SSG, `dynamicParams=false`) live. Posts = markdown in `apps/web/content/blog/*.md` met front-matter (title/description/date/author); content-laag `src/lib/blog.ts` (parser + `marked`). Per artikel: SEO-metadata via `pageMetadata` + `BlogPosting` JSON-LD; automatische opname in `sitemap.ts`. Lege staat: `/blog` toont "binnenkort" + `noindex` zolang er geen posts zijn (en blijft dan uit de sitemap). Sjabloon: `content/blog/_template.md` (bestanden met `_`/`.` worden genegeerd). **Posten = `.md`-bestand droppen.** Nav-link "Blog" staat in de header (2026-06-08, op verzoek) — tot de eerste post toont `/blog` een "binnenkort"-staat + `noindex`.
@@ -161,7 +161,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 
 ### Campagne-concept-UX (ideeën vanuit Floris-ronde 2026-04-24)
 - [~] **3 varianten genereren per suggestie** — gedaan 2026-04-25. Filly genereert 3 versies per chat-proposal, modal toont ze naast elkaar met selectie + refine + goedkeuren. Approve gebruikt geselecteerde variant.
-- [ ] **Media-upload op concept-campagne** — voor social/WhatsApp: upload eigen foto OF kies uit eerder goed-werkende afbeeldingen ("gebruik dezelfde foto als vorige campagne"). Preview-block vervangt de huidige 📷-emoji-placeholder.
+- [x] ~~**Media-upload op concept-campagne**~~ (afgevinkt 2026-06-11) — bestaat al: FotoCard op de unified detail-pagina + `MediaLibraryPicker` (eigen foto uploaden óf kiezen uit eerdere afbeeldingen, drag-and-drop). Precies wat dit item vroeg.
 - [ ] **Bewerken-knop onder variant i.p.v. rechtsboven** — intuïtiever als de actie visueel bij de gekozen variant hoort.
 
 ### Filly AI-features (backend + prompts)
@@ -389,7 +389,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [x] ~~`MOCK_RECOGNIZED` in menu-pagina~~ — vervangen door echte Vision-analyse tijdens onboarding.
 - [x] ~~`getMockProposal()` in suggesties-detail-modal~~ (2026-04-30) — vervangen door echte Claude-call via tool-use op `/api/suggestions/:id/proposal-details`.
 - [ ] **`cardItemIds`-set in memory** in menu-pagina — UI-state voor net-toegevoegde items, hoort uit DB-flow te komen.
-- [ ] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen)
+- [~] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen) — **deels af (2026-06-11):** Facebook/Instagram hebben inmiddels een echte OAuth-verbindflow (`method: "oauth"` → `/oauth/meta/start`). **Rest:** overige koppelingen (Google Business, Zenchef, reserveringsplatforms) nog statisch.
 
 ### Database-migraties nog te maken
 - [x] ~~0049: campaign_sends.send_mode (test vs all_opted_in)~~ (2026-05-24) — test-mails tellen niet in sent_count en worden geskipt in campaign_performance-aggregatie. Index op (campaign_id, send_mode) voor snelle count-by-mode-query.
@@ -412,7 +412,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [x] ~~restaurants.website_url + onboarded_at~~ (migratie 0010, 2026-04-24)
 - [ ] **`campaigns.metrics` uitbreiding** — extra_reservations/revenue/retention als typed columns ipv result_stats jsonb (handiger voor analytics).
 - [ ] **`subscriptions`** (billing)
-- [ ] **`campaign_sends`** (email-history)
+- [x] ~~**`campaign_sends`** (email-history)~~ (afgevinkt 2026-06-11) — bestond al: aangemaakt in migratie `0030_mail_flow.sql`, uitgebreid in 0049 (`send_mode`). Dit regeltje was een verouderde dubbeling.
 - [ ] **`guest_segments`** (doelgroep-segmentatie)
 
 ---
@@ -428,7 +428,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Command palette** (Cmd+K)
 - [ ] **Notifications-bell** werkend
 - [ ] **Keyboard shortcuts** overzicht
-- [ ] **Export CSV/PDF** per pagina (gasten, reserveringen, rapportages)
+- [~] **Export CSV/PDF** per pagina (gasten, reserveringen, rapportages) — **deels af (2026-06-11):** CSV-export bestaat al op de reserveringen-pagina (`exportGuestsToCsv`). **Rest:** gasten- + rapportages-pagina en PDF-variant.
 - [x] ~~**Mobile responsive pass**~~ (2026-04-30) — alle 5 fasen afgerond. Sidebar wordt offcanvas onder 1024px (☰-burger in topbar), dash-body 1-kolom op tablet, KPI-row 5→2→1 cols, weather-row auto-fit (geen doormidden gesneden dagen meer), tabellen horizontaal scrollbaar binnen container, modals full-screen onder 768px, save-bar sticky bottom op mobile, publieke site (navbar/login/legal) ook mee. Breakpoints: 1024 / 768 / 480. **Aanvulling 2026-06-02**: vervolg-sweep fixte resterende gaten die deze pass miste — échte hamburger-navbar < 880px, dashboard scrollt op mobiel (kalender werd 0px hoog), kalenderkop-toggle wrapt, half-scherm 2-koloms, social-waaier/hero-mockup/tijdlijn/legal+rauwe tabellen. Zie changelog 2026-06-02.
 - [ ] **i18n (EN)** — engels voor internationale klanten later
 
@@ -454,7 +454,7 @@ Grep periodiek op `TODO`, `FIXME`, `MOCK`, `mock` in `apps/` om bij te
 werken. Laatste audit: 2026-04-30.
 
 - [x] ~~`/apps/web/src/app/dashboard/_components/filly-chat.tsx` — 635 regels~~ (2026-04-30) — gesplitst in 5 files: orchestrator (`filly-chat.tsx` 331r), `filly-chat-message-list`, `filly-chat-input`, `filly-chat-proposal-card`, `filly-chat-error-banner`, `filly-chat-types`. Geen file meer >350 regels. Logica letterlijk verplaatst, geen gedrag-wijziging.
-- [ ] `/apps/web/src/app/dashboard/account/page.tsx` — bevat nog "Komt beschikbaar zodra de Claude API gekoppeld is"-melding die nu niet meer klopt.
+- [x] ~~`/apps/web/src/app/dashboard/account/page.tsx` — bevat nog "Komt beschikbaar zodra de Claude API gekoppeld is"-melding~~ (afgevinkt 2026-06-11) — de string bestaat nergens meer in de codebase.
 - [ ] Next.js warning `"middleware" file convention is deprecated; use "proxy" instead` — cosmetisch, te fixen door file te hernoemen naar `proxy.ts` bij een volgende pass.
 - [x] ~~[kpi.service.ts](apps/api/src/kpi/kpi.service.ts) — `weekday_avg_pct = 68` hard-coded~~ (2026-04-30, zie Data Analyst-audit voor cascade-details).
 
@@ -477,6 +477,12 @@ werken. Laatste audit: 2026-04-30.
 Laatst bijgewerkt einde sessie 2026-05-21 (laat) — Vindbaarheid-hub
 + Identiteit-verhuizing + auto-archive + restore-uit-historie +
 progress-checklists herschreven.
+
+> **Update 2026-06-11 (verificatie-sweep code + live site):** deze sectie
+> liep achter. Billing gaat via **Stripe**, niet Mollie (besluit 2026-05-30).
+> Optie #2 hieronder is inmiddels vrijwel volledig af. De opties zijn
+> hieronder gecorrigeerd; de "State"-lijst erboven is een momentopname
+> van 2026-05-21 en bewust ongewijzigd gelaten.
 
 **State op dit moment**:
 - Demo-account `floriskoevermans@outlook.com` met restaurant_id
@@ -520,19 +526,20 @@ progress-checklists herschreven.
 
 ### Volgende sessie — kies één van deze drie
 
-1. **🔴 P0: Mollie-billing flow** — eerste klant kan niet betalen
-   zonder. 4 sub-taken: SDK installeren + checkout-flow op pricing-
-   pagina, migratie `subscriptions`-tabel (plan/status/mollie_customer_id),
+1. **🔴 P0: Stripe-billing flow** (was Mollie; besluit 2026-05-30 =
+   Stripe) — eerste klant kan niet betalen zonder. 4 sub-taken: SDK
+   installeren + checkout-flow op pricing-pagina, migratie
+   `subscriptions`-tabel (plan/status/stripe_customer_id),
    plan-enforcement in backend (limieten op AI-calls/campagnes/teamleden
-   per plan), Mollie webhook voor status-changes (trial → active →
-   cancelled). **Vereist**: Mollie-account aanmaken (zakelijk).
+   per plan), Stripe webhook voor status-changes (trial → active →
+   past_due → cancelled). **Vereist**: Stripe-account (zakelijk).
+   Per 2026-06-11 nog volledig onaangeraakt — grootste launch-blokker.
 
-2. **🟡 P1: Site-fundamenten (publieke site)** — voor zodra je
-   iemand naar `get-filly.com` stuurt. Contact/waitlist-formulier
-   met Resend, 404-pagina, sitemap.xml, robots.txt, og-images per
-   pagina, About-pagina met Floris-verhaal, footer invullen.
-   **Vereist**: Resend-account voor het contact-formulier (ook
-   nodig voor Supabase Auth SMTP straks).
+2. ~~**🟡 P1: Site-fundamenten (publieke site)**~~ — **vrijwel af per
+   2026-06-11**: contact-formulier, 404, sitemap, robots, OG-images,
+   About-pagina én footer staan allemaal live. Resteert alleen nog:
+   blog-content (eerste 4 artikelen), Google Search Console + Bing
+   aanmelden, beeldoptimalisatie en de `sameAs`-URL's (zie P1-sectie).
 
 3. **🟡 P1: Resend SMTP + email-confirmation weer aan** — Resend
    onder Supabase Auth → SMTP Settings configureren. Lost 3-4/uur
@@ -542,13 +549,13 @@ progress-checklists herschreven.
 
 ### Mijn aanbeveling
 
-**Begin met #1 (Mollie-billing)**. Het is de enige resterende
+**Begin met #1 (Stripe-billing)**. Het is de enige resterende
 P0-blokker voor de eerste betalende klant — zonder kun je niet
-live. Accountwerk (Mollie zakelijk) is sowieso onvermijdelijk en
+live. Accountwerk (Stripe zakelijk) is sowieso onvermijdelijk en
 kan parallel met de technische implementatie.
 
-Site-fundamenten en Resend hangen aan een Resend-account — die
-kun je in één keer doen zodra dat account er is.
+Site-fundamenten (#2) zijn inmiddels vrijwel af; #3 (Resend SMTP
+voor Supabase Auth) staat nog volledig open en is klein.
 
 ### Andere vermeldenswaardige open punten
 
@@ -608,14 +615,14 @@ verplaatsen naar de juiste P-bucket.
 - [x] ~~🟢 DB-schema-documentatie~~ (2026-04-29) — [docs/database-schema.md](docs/database-schema.md) met overzicht van alle 25 tabellen + relaties + open punten.
 
 ### CEO
-- [ ] 🔴 **Mollie-billing ontbreekt** — eerste klant kan niet betalen. 4 sub-taken: SDK + checkout, subscriptions-tabel, plan-enforcement, webhook.
+- [ ] 🔴 **Stripe-billing ontbreekt** (was Mollie; besluit 2026-05-30 = Stripe) — eerste klant kan niet betalen. 4 sub-taken: SDK + checkout, subscriptions-tabel, plan-enforcement, webhook. Zie P0 → Billing.
 - [~] 🔴 **Privacy-verklaring + AV** — dynamisch rendering live (2026-04-30) via `apps/web/src/config/company.ts`. Banner verdwijnt zodra `legalName + kvk` ingevuld zijn. **Jouw actie**: KvK-inschrijving + bedrijfsgegevens invullen in `config/company.ts` + jurist-review boeken.
 - [x] ~~🔴 Cookie-banner ontbreekt~~ (2026-04-29) — `<CookieBanner />` in root-layout, accept/reject keuze in localStorage. Klaar voor wanneer Plausible/PostHog wordt aangezet (analytics-init achter consent-check).
 - [ ] 🔴 **Geen "Start trial / Probeer gratis"-flow** vanaf pricing-pagina.
 - [x] ~~🟡 Geen onboarding-checklist op dashboard~~ (2026-04-30) — `OnboardingChecklist` bovenaan dashboard-home toont 6 setup-stappen met progress-bar; verbergt zich zodra alles ✓.
 - [ ] 🟡 **Geen referral / vriend-werft-vriend**-systeem.
-- [ ] 🟡 **About-pagina is leeg / placeholder** — geen "wie bouwt dit"-verhaal voor vertrouwen.
-- [ ] 🟡 **Geen contactformulier** op publieke site — leads zonder account hebben geen kanaal.
+- [x] ~~🟡 **About-pagina is leeg / placeholder**~~ (afgevinkt 2026-06-11) — `/about` gevuld met missie + pijlers + roadmap, live.
+- [x] ~~🟡 **Geen contactformulier** op publieke site~~ (afgevinkt 2026-06-11) — `/contact` live sinds 2026-05-30, zie P1 → Site-fundamenten.
 - [ ] 🟢 **Concurrent-positionering** (vs. Resengo/Zenchef) onduidelijk in marketing.
 
 ### COO
@@ -624,7 +631,7 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🟡 **Geen klanten-dashboard** ("welke klanten hebben KvK ingevuld? wie heeft Filly nooit gebruikt?").
 - [ ] 🟡 **Geen incident-response runbook** — wat doe je als Claude API down is, Supabase storage faalt?
 - [x] ~~🟡 Geen klant-data-export~~ (2026-04-29) — `GET /restaurant/me/export` endpoint met blob-download via `downloadRestaurantExport`. Geeft alle business-data (restaurant, gasten, reserveringen, menu, campagnes, reviews, chat, audit-log) in één JSON-bestand. Knop op account-pagina sectie "Data & privacy".
-- [ ] 🟡 **Logging is inconsistent** — soms `Logger`, soms `console.log/warn/error`. Geen log-aggregator.
+- [~] 🟡 **Logging is inconsistent** — **api is inmiddels schoon** (2026-06-11: 0× `console.*` in `apps/api/src`, alles via NestJS `Logger`). **Rest:** web heeft nog ~20 `console.*`-calls; log-aggregator ontbreekt nog.
 - [ ] 🟡 **Geen rate-limit per user op AI** (alleen 100/uur/restaurant). Eén user kan binnen 1 uur €5-10 verbranden.
 - [ ] 🟢 **Geen monitoring** Claude/Supabase uptime — storingen alleen via klant-mails.
 
