@@ -1,22 +1,22 @@
 "use client";
 
 // =============================================================================
-// LandingFillyChat — de Get-Filly-chat binnen de hero-mockup, als een afspelende
+// LandingFillyChat — de Filly-chat binnen de hero-mockup, als een afspelende
 // conversatie i.p.v. één statische voorstel-kaart.
 //
 // Het verhaal (speelt 1× af zodra de mockup in beeld scrollt en blijft daarna
 // in de eindstaat staan, ~9 seconden totaal):
-//   1. Get-Filly: "rustige dag gedetecteerd — zal ik een actie klaarzetten?"
+//   1. Filly: "rustige dag gedetecteerd — zal ik een actie klaarzetten?"
 //   2. Gast:  "Ja, graag"
-//   3. Get-Filly: voorstel-kaart 1 (Last-minute lunchdeal, di 5 mei)
+//   3. Filly: voorstel-kaart 1 (Last-minute lunchdeal, di 5 mei)
 //   4. De Goedkeuren-knop wordt ingedrukt → wordt "Goedgekeurd ✓"
-//   5. Get-Filly: "bekijk het concept en keur goed" mét link naar Campagnes
+//   5. Filly: "bekijk het concept en keur goed" mét link naar Campagnes
 //   6. Gast:  "Bedenk nog een campagne voor volgende week woensdag"
-//   7. Get-Filly: voorstel-kaart 2 (Midweek bistro-avond, wo 13 mei)
+//   7. Filly: voorstel-kaart 2 (Midweek bistro-avond, wo 13 mei)
 //
 // Omdat het gesprek langer is dan de chat hoog is, scrollt de chat-body
 // mee naar onderen zodra er een beurt bijkomt — net als een echte chat.
-// Vóór elke Get-Filly-beurt staat even de typ-indicator. Bij prefers-reduced-
+// Vóór elke Filly-beurt staat even de typ-indicator. Bij prefers-reduced-
 // motion tonen we direct de volledige eindstaat: geen timers, geen pop-in.
 //
 // Waarom een client-component: de homepage (page.tsx) is een server-component;
@@ -85,19 +85,19 @@ const TURNS: Turn[] = [
   { id: "proposal-2", kind: "proposal", campaign: CAMPAIGN_2 },
 ];
 
-// Fases van het gesprek: hoeveel beurten zichtbaar zijn, of Get-Filly op dat
+// Fases van het gesprek: hoeveel beurten zichtbaar zijn, of Filly op dat
 // moment "typt", en of het eerste voorstel al is goedgekeurd (knop ingedrukt).
 const PHASES: { count: number; typing: boolean; approved: boolean }[] = [
-  { count: 0, typing: true, approved: false }, // Get-Filly begint te typen
+  { count: 0, typing: true, approved: false }, // Filly begint te typen
   { count: 1, typing: false, approved: false }, // → de (grote) vraag
   { count: 2, typing: false, approved: false }, // → "Ja, graag"
-  { count: 2, typing: true, approved: false }, // Get-Filly typt voorstel 1
+  { count: 2, typing: true, approved: false }, // Filly typt voorstel 1
   { count: 3, typing: false, approved: false }, // → voorstel-kaart 1
   { count: 3, typing: false, approved: true }, // → Goedkeuren ingedrukt
-  { count: 3, typing: true, approved: true }, // Get-Filly typt het tussenbericht
+  { count: 3, typing: true, approved: true }, // Filly typt het tussenbericht
   { count: 4, typing: false, approved: true }, // → tussenbericht met link
   { count: 5, typing: false, approved: true }, // → "Bedenk nog een campagne…"
-  { count: 5, typing: true, approved: true }, // Get-Filly typt voorstel 2
+  { count: 5, typing: true, approved: true }, // Filly typt voorstel 2
   { count: 6, typing: false, approved: true }, // → voorstel-kaart 2 (eindstaat)
 ];
 
@@ -152,7 +152,7 @@ function ProposalCard({
 }
 
 export function LandingFillyChat() {
-  // Welke fase van het gesprek nu getoond wordt. Start op 0 (Get-Filly typt).
+  // Welke fase van het gesprek nu getoond wordt. Start op 0 (Filly typt).
   const [phase, setPhase] = useState(0);
   // De chat blijft leeg tot 'started' true wordt — pas ná de pushmelding.
   const [started, setStarted] = useState(false);
@@ -228,7 +228,7 @@ export function LandingFillyChat() {
       <div className="md-chat-head">
         <div className="md-chat-avatar">F</div>
         <div style={{ minWidth: 0 }}>
-          <div className="md-chat-name">Get-Filly AI</div>
+          <div className="md-chat-name">Filly AI</div>
         </div>
         <div className="md-chat-head-right">
           <span className="md-chat-status">Online</span>
@@ -278,7 +278,7 @@ export function LandingFillyChat() {
           <div
             className="md-chat-msg ai md-typing"
             role="status"
-            aria-label="Get-Filly is aan het typen"
+            aria-label="Filly is aan het typen"
           >
             <span className="md-typing-dot" />
             <span className="md-typing-dot" />
@@ -288,7 +288,7 @@ export function LandingFillyChat() {
       </div>
 
       <div className="md-chat-input">
-        <div className="md-chat-input-text">Vraag Get-Filly iets…</div>
+        <div className="md-chat-input-text">Vraag Filly iets…</div>
         <div className="md-chat-send">
           <Send size={10} strokeWidth={2} />
         </div>

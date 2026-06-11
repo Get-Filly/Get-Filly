@@ -128,7 +128,7 @@ export function Navbar() {
                 className="nav-demo"
                 onClick={() => setMenuOpen(false)}
               >
-                Vraag een demo
+                Vraag een demo aan
               </Link>
             </div>
           </div>

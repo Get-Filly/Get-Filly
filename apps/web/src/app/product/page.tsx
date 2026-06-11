@@ -193,7 +193,7 @@ export default function ProductPage() {
                   <p className="feature-eyebrow">Maandag &middot; 09:16</p>
                 </div>
                 <h3 className="feature-row-title">Eén goedkeuring, Get-Filly doet de rest.</h3>
-                <p className="feature-row-desc">Get-Filly verstuurt en plant alle drie de berichten op het juiste moment, op het juiste kanaal en naar de juiste gasten. Jij geeft &eacute;&eacute;n keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen.</p>
+                <p className="feature-row-desc">Get-Filly verstuurt alle drie de berichten op het juiste moment, op het juiste kanaal en naar de juiste gasten. Jij geeft &eacute;&eacute;n keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="pmock-approve">
@@ -303,7 +303,7 @@ export default function ProductPage() {
                   <p className="feature-eyebrow">Zondag &middot; 23:00</p>
                 </div>
                 <h3 className="feature-row-title">Resultaat: 12 extra reserveringen op een rustige donderdag.</h3>
-                <p className="feature-row-desc">Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat ze volgende keer anders zou doen. Geen dashboards uitpluizen, gewoon &eacute;&eacute;n bericht.</p>
+                <p className="feature-row-desc">Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat kan de volgende keer anders.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="pmock-result">

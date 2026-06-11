@@ -192,7 +192,7 @@ export default function PricingPage() {
           >
             <h3 className="pillars-cta-title">Niet zeker welk pakket past?</h3>
             <p className="pillars-cta-sub">Plan een gratis kennismaking en we kijken het samen met je door.</p>
-            <Link href="/contact" className="cta-btn">Plan een gratis kennismaking</Link>
+            <Link href="/contact" className="cta-btn">Plan een gratis kennismaking in</Link>
           </div>
         </div>
       </section>
