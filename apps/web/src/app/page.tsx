@@ -209,7 +209,7 @@ export default function HomePage() {
           </p>
           <div className="hero-cta fade-up d3">
             <Link href="/contact" className="btn-primary">Vraag een demo</Link>
-            <Link href="/product" className="btn-secondary">Bekijk het product →</Link>
+            <Link href="/product" className="btn-secondary">Bekijk de dienst</Link>
           </div>
 
           <div className="hero-mockup fade-up d4">
@@ -257,7 +257,6 @@ export default function HomePage() {
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
-                  <span className="feature-eyebrow-num">01</span>
                   <span>Vindbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">Gevonden worden begint hier.</h3>
@@ -284,7 +283,6 @@ export default function HomePage() {
             <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
-                  <span className="feature-eyebrow-num">02</span>
                   <span>Zichtbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">Blijf in beeld. Ook als ze niet reserveren.</h3>
@@ -294,7 +292,7 @@ export default function HomePage() {
                   <li>AI-gegenereerde content volledig in de stijl en toon van jouw restaurant</li>
                   <li>Strategische timing gebaseerd op data, meer zichtbaarheid op dagen dat het rustig is</li>
                   <li>Suggesties voor stories en reels afgestemd op jouw regio en doelgroep</li>
-                  <li>Alles white-label, gasten zien jouw naam, niet die van ons</li>
+                  <li>Alles white-label, gasten zien jouw naam, niet die van Get-Filly</li>
                   <li>Jij keurt elk bericht goed voordat het verstuurd wordt</li>
                   <li>Live dashboard rapportage over bereik, engagement en doorkliks</li>
                 </ul>
@@ -311,7 +309,6 @@ export default function HomePage() {
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow feature-eyebrow--pill">
-                  <span className="feature-eyebrow-num">03</span>
                   <span>Bereikbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">De juiste boodschap. Op het juiste moment. Bij de juiste gast.</h3>

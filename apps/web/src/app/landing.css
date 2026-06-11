@@ -213,12 +213,10 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   border-radius: 24px;
   overflow: hidden;
   aspect-ratio: 9 / 19.5;
-  /* Eigen lockscreen-wallpaper (foto in /public). De donkergroene gradient
-     ligt als overlay erover zodat de witte klok/datum + de melding leesbaar
-     blijven, ongeacht hoe licht de foto is. */
-  background:
-    linear-gradient(165deg, rgba(31, 74, 45, 0.45) 0%, rgba(15, 28, 19, 0.66) 100%),
-    url("/phone-wallpaper.jpg") center / cover no-repeat;
+  /* Eigen lockscreen-wallpaper (foto in /public). Geen donkere overlay meer
+     erover (bewust weggehaald zodat de foto helderder oogt); de witte klok/
+     datum houden contrast via een subtiele text-shadow (zie hieronder). */
+  background: url("/phone-wallpaper.jpg") center / cover no-repeat;
   padding: 28px 12px 12px;
   display: flex;
   flex-direction: column;
@@ -242,12 +240,15 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   font-weight: 600;
   letter-spacing: -1px;
   line-height: 1;
+  /* Subtiele schaduw houdt de witte klok leesbaar nu de donkere overlay weg is. */
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
 }
 .phone-lock-date {
   margin-top: 4px;
   color: rgba(255, 255, 255, 0.85);
   font-size: 11px;
   font-weight: 500;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }
 /* De pushmelding zelf: frosted-witte kaart onderaan het lockscreen. */
 .phone-notif {
@@ -1392,26 +1393,14 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .feature-eyebrow--pill {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 16px 5px 5px;
+  /* Geen nummer-bolletje meer; symmetrische padding zodat het label
+     netjes in de pill staat. */
+  padding: 6px 16px;
   background: var(--accent-light, #D6E0D8);
   border-radius: 999px;
   letter-spacing: 0.8px;
   color: var(--accent);
   margin-bottom: 20px;
-}
-.feature-eyebrow-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--white, #FFFFFF);
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
 }
 .feature-row-title {
   font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
