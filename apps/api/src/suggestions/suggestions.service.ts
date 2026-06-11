@@ -22,6 +22,7 @@ import {
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
+import { ChannelReachService } from '../ai/channel-reach.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
@@ -516,6 +517,9 @@ export class SuggestionsService {
     // nodig zodat hij kan refereren aan échte gerechten met échte
     // prijzen ipv generieke "lekker comfort food"-tekst.
     private readonly context: RestaurantContextService,
+    // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
+    // tractie meeweegt bij kanaal-keuze en alternatieven voorstelt.
+    private readonly reach: ChannelReachService,
     // Voor leerloop-injectie in generateOnDemand-prompt (filly-brein
     // hfst 9.5). Returnt lege string bij ontbreken classified campagnes.
     private readonly fingerprint: CampaignFingerprintService,
@@ -675,6 +679,8 @@ ${buildAllChannelsBlock()}
 ${buildAllTimingBlock()}
 ---
 ${buildExternalFactorsBlock()}
+---
+${await this.reach.buildReachBlock(restaurantId)}
 ---
 ${await this.fingerprint.buildLearningContextBlock(restaurantId)}
 ---
@@ -1011,6 +1017,10 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         .length,
     };
 
+    // Bereik-blok is per restaurant constant: één keer ophalen
+    // vóór de dag-loop i.p.v. 2 queries per dag.
+    const reachBlock = await this.reach.buildReachBlock(restaurantId);
+
     // Stap 6, per dag een Claude-call met dag-specifieke context.
     // Sequentieel zodat we de rate-limit niet over de kop laten
     // gaan; bij 5+ kandidaat-dagen pakt elk z'n turn op de cache
@@ -1059,6 +1069,8 @@ Inhoudsregels:
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
 ${buildExternalFactorsBlock()}
+---
+${reachBlock}
 ---
 CONTEXT, restaurant-profiel + menu:
 
@@ -1292,6 +1304,10 @@ ${dayContext}`;
     const today = new Date();
     const generatedSuggestions: AiSuggestion[] = [];
 
+    // Bereik-blok is per restaurant constant: één keer ophalen
+    // vóór de item-loop i.p.v. 2 queries per item.
+    const reachBlock = await this.reach.buildReachBlock(restaurantId);
+
     // Sequentieel zodat we de Anthropic-rate-limit niet overschrijden
     // en het prompt-cache effect (system blijft hetzelfde) maximaal
     // benut wordt. ~2-4 sec per dag bij 5 items = ~15s totaal.
@@ -1369,6 +1385,8 @@ Inhoudsregels:
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
 ${buildExternalFactorsBlock()}
+---
+${reachBlock}
 ---
 CONTEXT, restaurant-profiel + menu:
 

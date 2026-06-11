@@ -9,6 +9,7 @@ import {
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { ChannelReachService } from '../ai/channel-reach.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
 import {
@@ -196,6 +197,9 @@ export class ChatService {
     // Voor leerloop-injectie: top-3 winners + underperformers per
     // kanaal als "SUCCESSFUL/AVOID PATTERNS" in de system-prompt.
     private readonly fingerprint: CampaignFingerprintService,
+    // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
+    // tractie meeweegt bij kanaal-keuze en alternatieven voorstelt.
+    private readonly reach: ChannelReachService,
   ) {}
 
   // Haalt de actieve conversatie op voor dit restaurant, of maakt er
@@ -970,7 +974,7 @@ export class ChatService {
   // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
   // zaak". Twee queries kosten minder dan 50ms verschil.
   private async buildSystemPrompt(restaurantId: string): Promise<string> {
-    const [restaurantResult, contextBlock, memories, learningBlock] = await Promise.all([
+    const [restaurantResult, contextBlock, memories, learningBlock, reachBlock] = await Promise.all([
       this.supabase.client
         .from('restaurants')
         .select('name, type')
@@ -987,6 +991,9 @@ export class ChatService {
       // Returnt lege string als er nog geen geclassificeerde campagnes
       // zijn — Filly werkt dan op industry-benchmarks alleen.
       this.fingerprint.buildLearningContextBlock(restaurantId),
+      // Gemeten bereik per kanaal: opt-in-tellingen + koppel-status,
+      // zodat Filly bereik meeweegt en alternatieven voorstelt.
+      this.reach.buildReachBlock(restaurantId),
     ]);
 
     const restaurant = restaurantResult.data;
@@ -1168,6 +1175,8 @@ Regels bundle:
   alsof de eigenaar zelf typt; Google Business: feitelijk + lokaal.
 
 ${buildAllChannelsBlock()}
+────────────────────────────────────────
+${reachBlock}
 ────────────────────────────────────────
 ALGEMENE REGELS (beide formaten)
 ────────────────────────────────────────

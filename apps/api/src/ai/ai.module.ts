@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { RestaurantContextService } from './restaurant-context.service';
+import { ChannelReachService } from './channel-reach.service';
 import { WebsiteAnalyzerService } from './website-analyzer.service';
 import { MenuImporterService } from './menu-importer.service';
 import { SupabaseModule } from '../supabase/supabase.module';
@@ -25,12 +26,14 @@ import { ReservationsModule } from '../reservations/reservations.module';
   providers: [
     AiService,
     RestaurantContextService,
+    ChannelReachService,
     WebsiteAnalyzerService,
     MenuImporterService,
   ],
   exports: [
     AiService,
     RestaurantContextService,
+    ChannelReachService,
     WebsiteAnalyzerService,
     MenuImporterService,
   ],
