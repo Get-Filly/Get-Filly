@@ -15,9 +15,10 @@
 import { useEffect, useRef, useState } from "react";
 
 // Vertraging (ms) ná het in beeld komen voordat de pushmelding opspringt.
-// 1s: de pagina settelt eerst, dan popt de melding duidelijk als allereerste
-// scripted gebeurtenis — nog vóór de MacBook-chat begint.
-const NOTIF_DELAY = 1000;
+// 1,4s: de pagina settelt eerst, dan popt de melding duidelijk als allereerste
+// scripted gebeurtenis — nog vóór de MacBook-chat begint. (Per 2026-06-05 van
+// 1s → 1,4s: melding kwam te vroeg nu de hero-bolletjes weg zijn.)
+const NOTIF_DELAY = 1400;
 
 export function LandingPhone() {
   const ref = useRef<HTMLDivElement>(null);
