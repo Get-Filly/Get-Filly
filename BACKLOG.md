@@ -212,9 +212,9 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**Fingerprint v2: tone_signature + theme via Claude**~~ (2026-05-24, hfst 9.5) — `classifyToneAndTheme` Haiku-call bij approve, fail-soft → blijft v1 (null). Wordt fallback nu Filly de tone zelf labelt.
 - [x] ~~**Brein-dekking-fix: alle generatie-prompts krijgen kanaalregels**~~ (2026-06-11) — audit wees uit dat het brein op meerdere plekken níet in de prompt zat of door eigen hardgecodeerde regels werd tegengesproken. Gefixt: (1) campagne-refine + generateMoreVariants injecteren nu `formatChannelRulesForPrompt` op het echte kanaal (social → platform uit campaign_social_content); (2) chat-prompt: 3× eigen woordaantallen weg + dubbele FORMAAT 1-header weg + bug "variant 3 ~130% van max-lengte" (instrueerde Claude óver het maximum) gefixt; (3) suggesties: hardgecodeerde verzendtijden vervangen door nieuw `buildAllTimingBlock()` (BestTimes+lead-time per kanaal), lage-bezetting/speciale-dag/refine-prompts hadden helemaal géén brein en hebben dat nu wel. Commits `c0dd738` + `14ad635` + `c90e9e7`.
 - [x] ~~**Lengte-validatie in code (post-generation)**~~ (2026-06-11, commit `70afd79`) — `checkCopyLength()` in filly-brain.config + nieuw `ai/copy-length.guard.ts`: `enforceCopyLength()` doet max 1 gerichte herschrijf met exacte teken-aantallen ("variant 2 was 1500 tekens, maximum is 700") en accepteert daarna het beste resultaat + warning-log (blokkeert nooit; retry hergebruikt de prompt-cache → ~10% input-tarief). Aangesloten op 5 routes: campagne-refine, generateMoreVariants, suggestion-refine, low-occupancy en speciale-dag (kanaal post-hoc uit Filly's gekozen type, type vastgehouden bij herschrijf). **Restje:** chat-flow heeft de guard bewust nog niet (latency-gevoelig) — log-only variant kan later.
-- [x] ~~**Timing Brein v1.1 → config-vertaling**~~ (2026-06-11, commit `b4f2e02`) — bestTimes/notes van alle 8 kanalen vervangen door de onderzoeksgedreven waarden uit `Get-Filly-Posting-Tijden-v1_1.docx` (Buffer 9.6M posts, Sprout 307K profielen, MailerLite 2.1M campagnes, Dash Social, Toast). GBP-frequentie 2→3/wk. CHANNEL_RULES_VERSION v1→v2. **Bewust geskipt:** nieuwe kanalen TheFork/Zenchef/OpenTable (integraties bestaan nog niet; toevoegen zodra die koppelingen er zijn) en SEO/GEO (onderhoudsritme, geen posts).
+- [x] ~~**Social-posting-brein (v1.1) → config-vertaling**~~ (2026-06-11, commit `b4f2e02`) — bestTimes/notes van alle 8 kanalen vervangen door de onderzoeksgedreven waarden uit het social-posting-brein-document (heette eerst "Timing Brein" / `Get-Filly-Posting-Tijden-v1_1.docx`; staat nu in de repo als `docs/social-posting-brein.docx`. Buffer 9.6M posts, Sprout 307K profielen, MailerLite 2.1M campagnes, Dash Social, Toast). GBP-frequentie 2→3/wk. CHANNEL_RULES_VERSION v1→v2. **Bewust geskipt:** nieuwe kanalen TheFork/Zenchef/OpenTable (integraties bestaan nog niet; toevoegen zodra die koppelingen er zijn) en SEO/GEO (onderhoudsritme, geen posts).
 - [x] ~~**Externe timing-factoren als deterministische code**~~ (2026-06-11, commit `d0dc8c6`) — nieuw `ai/timing-factors.ts`: NL-feestdagen (Pasen-afgeleiden via Meeus-algoritme, Koningsdag-zondagregel, Moederdag/Vaderdag) met Rabobank-omzetimpact + promo-lead-times (Kerst verschijnt al 8 wkn vooraf), loondag-vensters (25e+/1-5/vakantiegeld/13e maand), seizoens-context en weer-interpretatieregels. `buildExternalFactorsBlock()` geïnjecteerd in suggestie-prompts + verzendmoment-suggestie. Runtime-getest op 2026-data. **Restje:** evenementen-factor (hfst 4.3) wacht op de evenementen-PC4-database-koppeling.
-- [x] ~~**Lengte-hoofdstuk in brein-document genereren vanuit code**~~ (2026-06-11, commit `985cf5d`) — `pnpm brein:doc` (scripts/generate-brein-kanalen.mjs) genereert `docs/filly-brein-kanalen.md` uit CHANNEL_RULES: overzichtstabel lengte-bandbreedtes + volledige sectie per kanaal. Code wijzigen → script draaien → hoofdstuk is bij; nooit handmatig bewerken.
+- [x] ~~**Lengte-hoofdstuk in brein-document genereren vanuit code**~~ (2026-06-11, commit `985cf5d`) — `pnpm brein:doc` (scripts/generate-brein-kanalen.mjs) genereert `docs/social-posting-brein-kanalen.md` uit CHANNEL_RULES: overzichtstabel lengte-bandbreedtes + volledige sectie per kanaal. Code wijzigen → script draaien → hoofdstuk is bij; nooit handmatig bewerken.
 - [ ] **Volledige tool-use migratie chat-proposals** (robuustheid) — van `<<FILLY_PROPOSE_CAMPAIGN>>`-tekstmarkers naar Anthropic tool-use voor gegarandeerde JSON-structuur. Hard afdwingen i.p.v. valideren. Grotere refactor van de live chat-flow; lagere prioriteit nu de tekst-validatie werkt.
 - [ ] **Brand-archetype + do/don't-velden** (hfst 15) — nieuwe kolommen `restaurants.brand_archetype` (enum 12) + `brand_voice_do[]` + `brand_voice_dont[]`. UI in identiteit-tab. Filly krijgt ze als harde constraint in prompt.
 - [ ] **B1/B2-taalniveau-instelling** (hfst 15.3) — `restaurants.language_level` enum. Default B1.
@@ -655,7 +655,20 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
-### 2026-06-11 — Brein-ronde compleet: dekking-fix + Timing Brein v1.1 + lengte-guard + doc-generator
+### 2026-06-11 — Social-posting-brein compleet: dekking-fix + timing v1.1 + lengte-guard + doc-generator
+
+**Naamgeving + opslag (op verzoek Floris):** dit geheel heet het
+**social-posting-brein**. Opslaglocaties:
+- `docs/social-posting-brein.docx` — het brondocument (Floris' Word-doc,
+  voorheen "Timing Brein" / Posting-Tijden v1.1; origineel stond op Desktop,
+  nu ook in de repo onder versiebeheer).
+- `apps/api/src/ai/filly-brain.config.ts` — de uitvoerbare kern
+  (CHANNEL_RULES: lengtes, hashtags, timing, toon, CTA per kanaal).
+- `apps/api/src/ai/timing-factors.ts` — externe factoren (feestdagen/
+  loondagen/seizoenen/weer-regels), deterministisch.
+- `apps/api/src/ai/copy-length.guard.ts` — lengte-handhaving na generatie.
+- `docs/social-posting-brein-kanalen.md` — gegenereerd lengte-hoofdstuk
+  (`pnpm brein:doc`), nooit handmatig bewerken.
 
 Aanleiding: Floris merkte dat het brein (lengte per uiting, timing) niet
 nageleefd leek te worden. Audit bevestigde twee oorzaken: (1) meerdere

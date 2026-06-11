@@ -12,11 +12,13 @@
  * deze file: de doc is leading; pas de file aan, niet andersom.
  *
  * Timing (bestTimes/leadTime per kanaal) is per 2026-06-11 bijgewerkt
- * vanuit het Timing Brein-document (`Get-Filly-Posting-Tijden-v1_1.docx`,
- * onderzoeksgedreven: Buffer/Sprout/MailerLite/Rabobank e.a.). Externe
- * timing-factoren (weer/feestdagen/loondagen/seizoenen, hfst 4 van dat
- * doc) leven in `timing-factors.ts` — deterministisch berekend, niet
- * aan Claude gevraagd.
+ * vanuit het social-posting-brein-document
+ * (`docs/social-posting-brein.docx`, onderzoeksgedreven:
+ * Buffer/Sprout/MailerLite/Rabobank e.a.). Externe timing-factoren
+ * (weer/feestdagen/loondagen/seizoenen, hfst 4 van dat doc) leven in
+ * `timing-factors.ts` — deterministisch berekend, niet aan Claude
+ * gevraagd. Leesbaar lengte-hoofdstuk genereren: `pnpm brein:doc` →
+ * `docs/social-posting-brein-kanalen.md`.
  *
  * Gebruik:
  *   import { CHANNEL_RULES, formatChannelRulesForPrompt } from './filly-brain.config';

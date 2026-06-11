@@ -1,11 +1,12 @@
-# Filly-brein — Lengte & vorm per kanaal
+# Social-posting-brein — Lengte & vorm per kanaal
 
 > **Gegenereerd bestand — niet handmatig bewerken.**
 > Bron: `apps/api/src/ai/filly-brain.config.ts` (CHANNEL_RULES v2).
 > Bijwerken: pas de config aan en draai `pnpm brein:doc`. Gegenereerd op 2026-06-11.
 
-Dit hoofdstuk vult het Timing Brein-document (Posting-Tijden) aan met de
-lengte-, hashtag-, toon- en CTA-regels per kanaal die Filly bij élke
+Dit hoofdstuk vult het social-posting-brein-document
+(`docs/social-posting-brein.docx`, de timing-laag) aan met de lengte-,
+hashtag-, toon- en CTA-regels per kanaal die Filly bij élke
 tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 
 ## Overzicht lengte-bandbreedtes

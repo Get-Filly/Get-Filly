@@ -3,8 +3,8 @@
  * Externe timing-factoren — deterministisch berekend
  * ============================================================
  *
- * Vertaalt hoofdstuk 4 van het Timing Brein-document
- * (`Get-Filly-Posting-Tijden-v1_1.docx`): weer, NL-feestdagen,
+ * Vertaalt hoofdstuk 4 van het social-posting-brein-document
+ * (`docs/social-posting-brein.docx`): weer, NL-feestdagen,
  * loondagen en seizoenen passen de basis-timing per kanaal aan.
  *
  * Bewuste keuze: dit wordt in códe berekend, niet aan Claude

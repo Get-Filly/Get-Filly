@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 /**
  * ============================================================
- * Genereert docs/filly-brein-kanalen.md uit filly-brain.config.ts
+ * Genereert docs/social-posting-brein-kanalen.md uit
+ * filly-brain.config.ts
  * ============================================================
  *
- * Waarom: het Timing Brein-document (Posting-Tijden v1.1) mist de
- * berichtlengtes per kanaal; die leven als bron-van-waarheid in
- * apps/api/src/ai/filly-brain.config.ts (CHANNEL_RULES). Dit script
- * genereert daar een leesbaar hoofdstuk uit, zodat document en code
- * gegarandeerd gelijk blijven: code wijzigen → script draaien →
- * hoofdstuk is bij. Nooit andersom bijwerken.
+ * Waarom: het social-posting-brein-document
+ * (docs/social-posting-brein.docx, voorheen "Timing Brein" /
+ * Posting-Tijden v1.1) mist de berichtlengtes per kanaal; die leven
+ * als bron-van-waarheid in apps/api/src/ai/filly-brain.config.ts
+ * (CHANNEL_RULES). Dit script genereert daar een leesbaar hoofdstuk
+ * uit, zodat document en code gegarandeerd gelijk blijven: code
+ * wijzigen → script draaien → hoofdstuk is bij. Nooit andersom.
  *
  * Gebruik:  pnpm brein:doc
- * Output:   docs/filly-brein-kanalen.md (overschrijft)
+ * Output:   docs/social-posting-brein-kanalen.md (overschrijft)
  */
 
 import { execFileSync } from 'node:child_process';
@@ -49,14 +51,15 @@ const dayNames = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 
 const today = new Date().toISOString().slice(0, 10);
 
 const lines = [];
-lines.push(`# Filly-brein — Lengte & vorm per kanaal`);
+lines.push(`# Social-posting-brein — Lengte & vorm per kanaal`);
 lines.push('');
 lines.push(`> **Gegenereerd bestand — niet handmatig bewerken.**`);
 lines.push(`> Bron: \`apps/api/src/ai/filly-brain.config.ts\` (CHANNEL_RULES ${CHANNEL_RULES_VERSION}).`);
 lines.push(`> Bijwerken: pas de config aan en draai \`pnpm brein:doc\`. Gegenereerd op ${today}.`);
 lines.push('');
-lines.push(`Dit hoofdstuk vult het Timing Brein-document (Posting-Tijden) aan met de`);
-lines.push(`lengte-, hashtag-, toon- en CTA-regels per kanaal die Filly bij élke`);
+lines.push(`Dit hoofdstuk vult het social-posting-brein-document`);
+lines.push(`(\`docs/social-posting-brein.docx\`, de timing-laag) aan met de lengte-,`);
+lines.push(`hashtag-, toon- en CTA-regels per kanaal die Filly bij élke`);
 lines.push(`tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).`);
 lines.push('');
 
@@ -123,7 +126,7 @@ for (const rules of Object.values(CHANNEL_RULES)) {
   lines.push('');
 }
 
-const target = join(repoRoot, 'docs', 'filly-brein-kanalen.md');
+const target = join(repoRoot, 'docs', 'social-posting-brein-kanalen.md');
 writeFileSync(target, lines.join('\n'), 'utf8');
 rmSync(outDir, { recursive: true, force: true });
 console.log(`✓ ${target} gegenereerd (CHANNEL_RULES ${CHANNEL_RULES_VERSION}, ${Object.keys(CHANNEL_RULES).length} kanalen).`);
