@@ -12,7 +12,8 @@
     "dev:api": "pnpm --filter api dev",
     "dev:shared": "pnpm --filter @getfilly/shared dev",
     "build": "pnpm --recursive build",
-    "supabase:apply-templates": "node scripts/apply-supabase-auth-config.mjs"
+    "supabase:apply-templates": "node scripts/apply-supabase-auth-config.mjs",
+    "brein:doc": "node scripts/generate-brein-kanalen.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
