@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
         destination: "https://www.get-filly.com/:path*",
         permanent: true, // 308 (query-string blijft automatisch behouden)
       },
+      {
+        // Oude bundle-detail-route (bestond 2026-05-07 t/m 2026-05-13,
+        // daarna gemerged in de unified detail-page). Vangt oude
+        // bookmarks af; vervangt de client-side redirect-stub die hier
+        // tot 2026-06-11 voor in de routes zat.
+        source: "/dashboard/campagnes/bundle/:id",
+        destination: "/dashboard/campagnes/:id",
+        permanent: false, // 307 — bewust niet browser-gecached, route kan ooit terugkomen
+      },
     ];
   },
 };
