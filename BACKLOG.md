@@ -643,6 +643,16 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-05 — SEO-fundament + publieke-site copy/branding-ronde + FOUC-fix
+
+Grote ronde op de publieke site (live op **www.get-filly.com**). Zie ook de afgevinkte items onder P1 → "Site-fundamenten" en de open SEO-to-do's daar.
+
+- **SEO live**: `metadataBase` + title-template + per-pagina title/description/canonical (`config/seo.ts`), `sitemap.ts`, `robots.ts`, JSON-LD Organization/WebSite/SoftwareApplication (`components/structured-data.tsx`), **FAQPage-schema** op /pricing, gegenereerde **OG-deelafbeelding** (logo-only, `app/opengraph-image.tsx`), **Vercel Web Analytics + Speed Insights**, custom `not-found.tsx`. Canoniek domein **www.get-filly.com**.
+- **Merk-afspraak (belangrijk!)**: **Get-Filly** = bedrijf/platform → in beschrijvende marketingtekst ("Get-Filly verstuurt…", "Get-Filly detecteert…"). **Filly** = de AI-assistent/persona → in chat-widget ("Filly AI"), "Vraag Filly…" en de dashboard-mocks (= consistent met het échte dashboard). Filly→Get-Filly toegepast op de prose van home/product/pricing/about; assistent-mocks bewust op "Filly" gehouden.
+- **Visueel**: nummering 01-05 (walkthrough-stappen) + groene cirkel-bolletjes (`hero-diff-num` in hero-diffs, "Wat zit er in" en "Wat ons drijft") verwijderd; home-pijler-bullets van streepje → groen bolletje; gerechten-foto in de Instagram-mock op /product (`public/images/instagram-gerechten.jpg`); telefoon-lockscreen donkere overlay weg + subtiele text-shadow op klok/datum; telefoon-melding `NOTIF_DELAY` 1000→1400ms.
+- **Diverse copy**: hero-CTA "Bekijk de dienst", "Vraag een demo aan", "Plan een gratis kennismaking in", "…tafel vrij!", 4× "onderneming"→"restaurant", "Donderdag onder doelstelling / Doel:", about-pijlers herschreven, product-H2 + samenvattings-zin aangepast.
+- **FOUC-fix** (commit `8fa46f5`): reveal-kaarten (walkthrough op /product, tijdlijn op /about) flitsten kort zichtbaar bij load doordat `reveal-pending` pas ná de eerste paint via JS werd gezet. Nu zet een inline scriptje bovenaan `<body>` vóór de paint `html.reveal-armed` (alleen met JS + zonder reduced-motion); CSS verbergt `[data-reveal]` dan al vóór ze getekend worden, tot `ScrollReveal` ze toont. Fallback (no-JS/reduced-motion) intact. Reveal-timing zelf terug op de originele versie.
+
 ### 2026-06-02 — Landing-hero (homepage) verfijnd: telefoon-melding + mei-verhaallijn
 
 De hero-mockup (laptop + telefoon ernaast) is een samenhangende mini-demo geworden, anchor-datum **maandag 4 mei 2026**. Commits `074086b` → `da35034`.
