@@ -217,6 +217,11 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
           urgency: { type: 'string', enum: ['low', 'medium', 'high'] },
           name: { type: 'string' },
           reasoning: { type: 'string' },
+          alternative_note: {
+            type: 'string',
+            description:
+              'Eén zin: het beste alternatief (ander kanaal of ander moment) als de primaire keuze tegenvalt qua bereik of timing, en waarom. Verplicht wanneer het bereik van een gekozen kanaal onbekend of zwak is.',
+          },
           confidence: { type: 'number' },
           expected_extra_reservations: { type: 'integer' },
           expected_extra_revenue_cents: { type: 'integer' },
@@ -284,6 +289,7 @@ type GeneratedSuggestionFromTool = {
   urgency: 'low' | 'medium' | 'high';
   name: string;
   reasoning: string;
+  alternative_note?: string;
   confidence?: number;
   expected_extra_reservations?: number;
   expected_extra_revenue_cents?: number;
@@ -310,6 +316,17 @@ const LOW_OCCUPANCY_SCHEMA = {
     body: { type: 'string' },
     target_segment: { type: 'string' },
     reasoning: { type: 'string' },
+    alternative_channel: {
+      type: 'string',
+      enum: ['mail', 'social', 'whatsapp'],
+      description:
+        'Het beste alternatieve kanaal als de primaire keuze tegenvalt qua bereik of timing. Moet verschillen van campaign_type.',
+    },
+    alternative_reasoning: {
+      type: 'string',
+      description:
+        'Eén zin NL: waarom dit alternatief en wat de trade-off is.',
+    },
     confidence: { type: 'number' },
     expected_extra_reservations: { type: 'integer' },
     expected_extra_revenue_cents: { type: 'integer' },
@@ -324,6 +341,8 @@ type LowOccupancyCampaignFromTool = {
   body: string;
   target_segment?: string;
   reasoning: string;
+  alternative_channel?: 'mail' | 'social' | 'whatsapp';
+  alternative_reasoning?: string;
   confidence?: number;
   expected_extra_reservations?: number;
   expected_extra_revenue_cents?: number;
@@ -668,6 +687,7 @@ Per channel-object in 'channels':
 Per voorstel-niveau:
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
 - reasoning: 1-2 zinnen NL waarom dit voorstel nu past, verwijs naar concrete signalen uit profile/menu/live-data.
+- alternative_note: 1 zin met het beste alternatief (ander kanaal of ander moment) als de primaire keuze tegenvalt. VERPLICHT wanneer het bereik van een gekozen kanaal onbekend of zwak is (zie BEREIK PER KANAAL) of wanneer je buiten een voorkeursvenster plant.
 - confidence: 0.0-1.0 hoe zeker je bent dat dit voorstel werkt voor deze onderneming.
 - expected_extra_reservations / expected_extra_revenue_cents: ruwe schatting; mag null/0 als je geen basis hebt.
 
@@ -818,6 +838,15 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         const primaryChannel = validatedChannels[0];
         const primaryVariant = primaryChannel.variants[0];
 
+        // Alternatief (ander kanaal/moment + trade-off) achter de
+        // reasoning plakken: zichtbaar in de bestaande UI zonder
+        // schema/kolom-wijziging.
+        const reasoningWithAlt =
+          typeof s.alternative_note === 'string' &&
+          s.alternative_note.trim().length > 0
+            ? `${s.reasoning}\n\n💡 Alternatief: ${s.alternative_note.trim().slice(0, 300)}`
+            : s.reasoning;
+
         return {
           restaurant_id: restaurantId,
           trigger_type: s.trigger_type,
@@ -844,7 +873,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
             s.confidence <= 1
               ? s.confidence
               : null,
-          reasoning: s.reasoning,
+          reasoning: reasoningWithAlt,
           expected_impact: {
             extra_reservations: s.expected_extra_reservations ?? 0,
             extra_revenue_cents: s.expected_extra_revenue_cents ?? 0,
@@ -1062,6 +1091,7 @@ Inhoudsregels:
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
+- alternative_channel + alternative_reasoning: geef ALTIJD ook het beste alternatieve kanaal (anders dan je primaire keuze) met 1 zin trade-off, zodat de eigenaar kan wisselen als het bereik tegenvalt (zie BEREIK PER KANAAL).
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt, verwijs naar concrete getallen.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
@@ -1118,6 +1148,14 @@ ${dayContext}`;
           feature: 'low_occupancy_detect',
         });
 
+        // Alternatief kanaal achter de reasoning: zichtbaar in de
+        // bestaande UI zonder kolom-wijziging.
+        const reasoningWithAlt =
+          raw.alternative_channel &&
+          raw.alternative_channel !== raw.campaign_type
+            ? `${raw.reasoning}\n\n💡 Alternatief: ${raw.alternative_channel}${raw.alternative_reasoning ? ` — ${raw.alternative_reasoning.trim().slice(0, 300)}` : ''}`
+            : raw.reasoning;
+
         const row = {
           restaurant_id: restaurantId,
           trigger_type: 'low_occupancy' as const,
@@ -1142,7 +1180,7 @@ ${dayContext}`;
             raw.confidence <= 1
               ? raw.confidence
               : null,
-          reasoning: raw.reasoning,
+          reasoning: reasoningWithAlt,
           expected_impact: {
             extra_reservations: raw.expected_extra_reservations ?? 0,
             extra_revenue_cents: raw.expected_extra_revenue_cents ?? 0,
@@ -1378,6 +1416,7 @@ Inhoudsregels:
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
+- alternative_channel + alternative_reasoning: geef ALTIJD ook het beste alternatieve kanaal (anders dan je primaire keuze) met 1 zin trade-off, zodat de eigenaar kan wisselen als het bereik tegenvalt (zie BEREIK PER KANAAL).
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/aanleiding werkt.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).
 
@@ -1440,6 +1479,13 @@ ${segmentsBlock}`;
               : 'low_occupancy_generate',
         });
 
+        // Zelfde alternatief-in-reasoning-patroon als low-occupancy.
+        const reasoningWithAlt =
+          raw.alternative_channel &&
+          raw.alternative_channel !== raw.campaign_type
+            ? `${raw.reasoning}\n\n💡 Alternatief: ${raw.alternative_channel}${raw.alternative_reasoning ? ` — ${raw.alternative_reasoning.trim().slice(0, 300)}` : ''}`
+            : raw.reasoning;
+
         const row = {
           restaurant_id: restaurantId,
           trigger_type: triggerType,
@@ -1461,7 +1507,7 @@ ${segmentsBlock}`;
             raw.confidence <= 1
               ? raw.confidence
               : null,
-          reasoning: raw.reasoning,
+          reasoning: reasoningWithAlt,
           expected_impact: {
             extra_reservations: raw.expected_extra_reservations ?? 0,
             extra_revenue_cents: raw.expected_extra_revenue_cents ?? 0,

@@ -1188,6 +1188,12 @@ ALGEMENE REGELS (beide formaten)
   truncated antwoord.
 - Verwerk concrete elementen uit PROFIEL en MENU (signature gerecht,
   USP, specifieke doelgroep) zodat de campagne herkenbaar past.
+- Weeg BEREIK PER KANAAL mee bij elk voorstel. Is het gevraagde of
+  best passende kanaal zwak of onbekend qua bereik, of is het optimale
+  venster al voorbij — benoem dan in je proza-aankondiging kort het
+  beste alternatief (ander kanaal of tweede-beste moment) zodat de
+  eigenaar kan kiezen. Denk verder dan "dit is het beste moment":
+  een kanaal zonder publiek heeft niets aan een perfect tijdstip.
 - Gebruik dubbele aanhalingstekens binnen tekst door \\" te escapen.
 - Schrijf NOOIT een blok als de eigenaar er niet om gevraagd heeft of
   als jij nog aan het brainstormen bent, dat leidt tot ongewenste

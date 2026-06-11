@@ -64,6 +64,16 @@ const CAMPAIGN_SCHEDULE_SUGGESTION_SCHEMA = {
       description:
         'Korte NL-uitleg (max 200 tekens) waarom dit tijdstip past.',
     },
+    alternative_datetime_iso: {
+      type: 'string',
+      description:
+        'Tweede-beste moment (ISO-8601, Europe/Amsterdam): ander dagdeel of andere dag dan het primaire voorstel.',
+    },
+    alternative_reasoning: {
+      type: 'string',
+      description:
+        'Eén zin NL: de trade-off van het alternatief t.o.v. het primaire moment.',
+    },
   },
   required: ['datetime_iso', 'reasoning'],
 } as const satisfies Anthropic.Tool.InputSchema;
@@ -71,6 +81,8 @@ const CAMPAIGN_SCHEDULE_SUGGESTION_SCHEMA = {
 type CampaignScheduleSuggestionFromTool = {
   datetime_iso: string;
   reasoning: string;
+  alternative_datetime_iso?: string;
+  alternative_reasoning?: string;
 };
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
@@ -2080,6 +2092,8 @@ ${buildExternalFactorsBlock()}
 
 Reasoning kort, helder, in NL, verwijs naar concrete data uit profiel of bezetting. Als je afwijkt van het statistische sweet-spot omdat een doel-datum dichtbij is, benoem dat expliciet. Bv. "Donderdag 19:30, donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
 
+Geef ALTIJD ook een alternatief moment (alternative_datetime_iso + alternative_reasoning): het tweede-beste venster — ander dagdeel of andere dag — met de trade-off in één zin. Zo kan de eigenaar kiezen zonder opnieuw te hoeven vragen.
+
 ---
 CONTEXT, restaurant-profiel + actuele bezetting:
 
@@ -2114,12 +2128,29 @@ Geef het beste verzendmoment.`;
     // ook een GELDIGE date-string is moeten we hier zelf checken
     // (JSON-schema kent format: 'date-time' niet uniform overal).
     const datetimeIso = parsed.datetime_iso.trim();
-    const reasoning = parsed.reasoning.trim().slice(0, 500);
+    let reasoning = parsed.reasoning.trim().slice(0, 500);
 
     if (!datetimeIso || Number.isNaN(Date.parse(datetimeIso))) {
       throw new InternalServerErrorException(
         'Filly leverde geen geldig tijdstip. Probeer opnieuw.',
       );
+    }
+
+    // Alternatief moment achter de reasoning plakken: zichtbaar op de
+    // bestaande "Wanneer plaatsen?"-card zonder kolom-wijziging. Een
+    // ongeldige alternatief-datum laten we stilletjes weg (best-effort).
+    const altIso = parsed.alternative_datetime_iso?.trim();
+    if (altIso && !Number.isNaN(Date.parse(altIso))) {
+      const altLabel = new Date(altIso).toLocaleString('nl-NL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Amsterdam',
+      });
+      const altReason = parsed.alternative_reasoning?.trim().slice(0, 200);
+      reasoning = `${reasoning}\n\n💡 Alternatief: ${altLabel}${altReason ? ` — ${altReason}` : ''}`;
     }
 
     // Cache + retourneer. scheduling_history is hierboven al
