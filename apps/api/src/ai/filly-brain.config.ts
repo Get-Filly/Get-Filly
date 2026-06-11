@@ -34,9 +34,11 @@
 // downstream-services kan beïnvloeden (zelfde patroon als
 // runner_version in HealthService).
 // ============================================================
-// v2 (2026-06-11): bestTimes per kanaal bijgewerkt vanuit het Timing
-// Brein-doc (Posting-Tijden v1.1); GBP-frequentie 2→3/week.
-export const CHANNEL_RULES_VERSION = 'v2';
+// v2 (2026-06-11): bestTimes per kanaal bijgewerkt vanuit het social-
+// posting-brein-doc (Posting-Tijden v1.1); GBP-frequentie 2→3/week.
+// v3 (2026-06-11): tweede-beste vensters (bestTimes.fallback) +
+// gradatie-regel — voorkeursvensters zijn geen vereisten meer.
+export const CHANNEL_RULES_VERSION = 'v3';
 
 // ============================================================
 // Kanalen, funnel-fasen, lifecycle, archetypes, tone-signatures
@@ -147,6 +149,13 @@ export interface BestTimes {
   bestHours: string[];
   /** Aandachtspunt of context. */
   note?: string;
+  /**
+   * Tweede-beste venster, vrije tekst. Cruciaal tegen alles-of-niets-
+   * denken: een gemist optimum betekent een gradueel kleiner effect,
+   * niet "dan maar niet versturen". Filly krijgt dit expliciet mee
+   * zodat er altijd een concreet alternatief moment op tafel ligt.
+   */
+  fallback?: string;
 }
 
 /** Lead-time-regels voor urgentie-vs-optimum-beslissing (hfst 7.1). */
@@ -226,6 +235,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [4, 5], // do/vr
       bestHours: ['09:00-11:00', '17:30-18:30'],
       note: 'Vrijdag 18:00 = piek in open- én click-rate (MailerLite, 2.1M campagnes); do-ochtend ideaal voor weekend-promoties (+30% CTR vs ma/di). Vermijd zondag (click-rate -32%). Maand-begin (1-5) en rond de 25e (loondag) geven extra boost.',
+      fallback: 'di-wo 09:00-11:00 (ochtend-open-piek werkt door de week prima); alleen zondag blijft af te raden.',
     },
     leadTime: {
       minHours: 24,
@@ -270,6 +280,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [3, 4, 5], // wo/do/vr
       bestHours: ['12:00-13:00', '18:00-21:00'],
       note: 'Donderdag 9:00 en 21:00 = hoogste engagement (Buffer, 9.6M posts); wo 12:00 + 18:00 sterk; vr-lunch (11-13) triggert weekend-eetbeslissingen. Vermijd za-zo voor zakelijke posts (engagement -17%). Eerste 125 tekens cruciaal (zichtbaar vóór "meer"-klik).',
+      fallback: 'ma-di 18:00-20:00 (door-de-week-avond); in het weekend alleen sfeer-/food-content, geen zakelijke aanbiedingen.',
     },
     leadTime: {
       minHours: 6,
@@ -314,6 +325,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [4, 5, 6, 7], // do-zo
       bestHours: ['10:00-11:30', '16:00-17:30'],
       note: 'Reels 2-4u vóór het eetmoment plaatsen (lunch ~11:00, diner ~17:00): vlak voor de eetbeslissing presteert F&B-video het best (Dash Social; Reels 2.7% engagement vs 1.4% carousel). Weekend-avond werkt voor F&B óók.',
+      fallback: 'door-de-week dezelfde eetmoment-vensters (2-4u vóór lunch of diner) — de dag maakt voor Reels minder uit dan het moment.',
     },
     leadTime: {
       minHours: 4,
@@ -357,6 +369,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [1, 2, 3, 4, 5, 6, 7], // dagelijks
       bestHours: ['11:00-13:00', '17:00-19:00'],
       note: '"Wat is er vandaag"-content vlak vóór de eetmomenten (lunch + diner-prep). Verdwijnt na 24u, dus plaats op de dag zelf.',
+      fallback: 'elk ander moment op de dag zelf — Stories zijn per definitie dag-content, een "gemist" venster bestaat hier nauwelijks.',
     },
     leadTime: {
       minHours: 0,
@@ -400,6 +413,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [2, 3, 4, 5], // di-vr
       bestHours: ['11:00-13:00', '17:00-19:00'],
       note: 'Di-wo 12:00-20:00 = algemene piek (Sprout, 307K profielen); maaltijd-windows 11-13 en 17-19 voor food-content. Boekings-/aanbod-content scoort do-zo 11:00-14:00 en 19:00-21:00. Events: 2-3 weken vooraf aankondigen + reminder 2 dagen vooraf (3× hogere RSVP).',
+      fallback: 'za-zo 11:00-14:00 (weekend-planmoment, vooral voor boekings-content) of 19:00-21:00 avond-relaxatie.',
     },
     leadTime: {
       minHours: 12,
@@ -445,6 +459,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [1, 2, 3, 4, 6], // ma-do + za
       bestHours: ['14:00-18:00', '19:00-21:00'],
       note: 'Ma-do 15:00-18:00 = F&B-piek ("afternoon slump": mensen plannen hun diner — Sprout); za-ochtend 10:00-12:00 voor weekend-content. Post 30-60 min vóór de piek: het algoritme test eerst klein en pusht daarna (4× FYP-distributie bij vroege engagement). Consistentie weegt zwaarder dan perfectie.',
+      fallback: 'zo 19:00-21:00 (avond-scroll) of vr-middag; voor het TikTok-algoritme weegt regelmatig posten zwaarder dan het exacte tijdstip.',
     },
     leadTime: {
       minHours: 6,
@@ -489,6 +504,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [2, 3, 4], // di-do
       bestHours: ['16:00-18:00', '11:00-15:00'],
       note: 'Vaste gasten di-do 16:00-18:00 (last-minute zelfde-avond-uitnodiging, 67% prefereert messaging boven bellen); lege-tafels-broadcast op de dag zelf om 11:00 of 15:00. NOOIT 22:00-09:00 of zondagavond (AVG redelijke uren). Verjaardags-bericht 7 dagen vóór de datum. Conservatief gebruiken; opt-in juridisch verplicht.',
+      fallback: 'vr 11:00-15:00 voor weekend-gerichte last-minute acties; de verboden uren (22:00-09:00, zondagavond) blijven altijd gelden.',
     },
     leadTime: {
       minHours: 0.5,
@@ -533,6 +549,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [1, 2, 3, 4, 5], // ma-vr
       bestHours: ['07:00-09:00', '14:00-16:00'],
       note: 'Ma-wo 7:00-9:00 = plan-modus begin van de week (weekreserveringen pieken ma/di, Toast +11%); event-posts wo-do 14:00-16:00 (weekend-planning piekt dan); weekend-aanbiedingen do-vr 14:00-16:00. Vaste maandagochtend-post ("wat is er nieuw") loont: wekelijks posten alleen al +28% klikken. 2-3 posts/week is het optimum.',
+      fallback: 'elke werkdag 10:00-12:00 (snelle indexering); een dag later posten is altijd beter dan overslaan — consistentie weegt het zwaarst voor de local-pack-ranking.',
     },
     leadTime: {
       minHours: 12,
@@ -829,11 +846,17 @@ export function formatTimingForPrompt(channel: FillyChannel): string {
   lines.push(`Beste dagen: ${days}`);
   lines.push(`Beste tijden: ${r.bestTimes.bestHours.join(' of ')}`);
   if (r.bestTimes.note) lines.push(`Let op: ${r.bestTimes.note}`);
+  if (r.bestTimes.fallback) {
+    lines.push(`Tweede-beste venster: ${r.bestTimes.fallback}`);
+  }
   lines.push(
     `Lead-time: dit kanaal heeft minimaal ${r.leadTime.minHours}u nodig vóór de doel-datum; optimaal ${r.leadTime.optimalRangeHours[0]}-${r.leadTime.optimalRangeHours[1]}u. ${r.leadTime.rationale}`,
   );
   lines.push(
     `Urgentie-regel: als de doel-datum (bv. een rustige dag of evenement uit de bezetting) dichterbij is dan het optimale interval, kies dan zo dicht mogelijk bij "nu" en gebruik urgentie-taal in plaats van te wachten op het statistische sweet-spot.`,
+  );
+  lines.push(
+    `Gradatie-regel: bovenstaande zijn voorkeursvensters, géén vereisten. Buiten het venster daalt het verwachte effect gradueel — een goed bericht op het eerstvolgende redelijke moment verslaat altijd níet versturen of een week wachten. Is het optimum gemist, kies dan het tweede-beste venster en benoem die afweging kort in je reasoning.`,
   );
   return lines.join('\n');
 }
@@ -862,12 +885,15 @@ export function buildAllTimingBlock(channels?: FillyChannel[]): string {
     const r = CHANNEL_RULES[c];
     const days = r.bestTimes.bestDays.map((d) => dayNames[d]).join('/');
     lines.push(
-      `- ${r.label}: ${days} ${r.bestTimes.bestHours.join(' of ')}; lead-time min ${r.leadTime.minHours}u, optimaal ${r.leadTime.optimalRangeHours[0]}-${r.leadTime.optimalRangeHours[1]}u vóór de doel-datum.${r.bestTimes.note ? ` Let op: ${r.bestTimes.note}` : ''}`,
+      `- ${r.label}: ${days} ${r.bestTimes.bestHours.join(' of ')}; lead-time min ${r.leadTime.minHours}u, optimaal ${r.leadTime.optimalRangeHours[0]}-${r.leadTime.optimalRangeHours[1]}u vóór de doel-datum.${r.bestTimes.note ? ` Let op: ${r.bestTimes.note}` : ''}${r.bestTimes.fallback ? ` Tweede-beste: ${r.bestTimes.fallback}` : ''}`,
     );
   }
   lines.push('');
   lines.push(
     'Urgentie-regel: is de doel-datum dichterbij dan het optimale interval, kies dan zo dicht mogelijk bij "nu" en gebruik urgentie-taal in plaats van te wachten op het statistische sweet-spot.',
+  );
+  lines.push(
+    'Gradatie-regel: dit zijn voorkeursvensters, géén vereisten. Buiten het venster daalt het effect gradueel — het eerstvolgende redelijke moment verslaat altijd níet versturen of een week wachten. Optimum gemist? Kies het tweede-beste venster en benoem die afweging kort.',
   );
   return lines.join('\n');
 }

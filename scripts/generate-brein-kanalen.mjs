@@ -111,6 +111,7 @@ for (const rules of Object.values(CHANNEL_RULES)) {
   lines.push(`- Beste dagen: ${rules.bestTimes.bestDays.map((d) => dayNames[d]).join(', ')}`);
   lines.push(`- Beste tijden: ${rules.bestTimes.bestHours.join(' en ')}`);
   if (rules.bestTimes.note) lines.push(`- ${rules.bestTimes.note}`);
+  if (rules.bestTimes.fallback) lines.push(`- Tweede-beste venster: ${rules.bestTimes.fallback}`);
   lines.push(`- Lead-time: minimaal ${rules.leadTime.minHours}u, optimaal ${rules.leadTime.optimalRangeHours[0]}–${rules.leadTime.optimalRangeHours[1]}u vóór de doel-datum. ${rules.leadTime.rationale}`);
   lines.push(`- Frequentie-plafond: ${rules.frequency.maxPerWeek}×/week, ${rules.frequency.maxPerMonth}×/maand`);
   lines.push('');

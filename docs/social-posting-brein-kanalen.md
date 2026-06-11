@@ -1,7 +1,7 @@
 # Social-posting-brein — Lengte & vorm per kanaal
 
 > **Gegenereerd bestand — niet handmatig bewerken.**
-> Bron: `apps/api/src/ai/filly-brain.config.ts` (CHANNEL_RULES v2).
+> Bron: `apps/api/src/ai/filly-brain.config.ts` (CHANNEL_RULES v3).
 > Bijwerken: pas de config aan en draai `pnpm brein:doc`. Gegenereerd op 2026-06-11.
 
 Dit hoofdstuk vult het social-posting-brein-document
@@ -38,6 +38,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: donderdag, vrijdag
 - Beste tijden: 09:00-11:00 en 17:30-18:30
 - Vrijdag 18:00 = piek in open- én click-rate (MailerLite, 2.1M campagnes); do-ochtend ideaal voor weekend-promoties (+30% CTR vs ma/di). Vermijd zondag (click-rate -32%). Maand-begin (1-5) en rond de 25e (loondag) geven extra boost.
+- Tweede-beste venster: di-wo 09:00-11:00 (ochtend-open-piek werkt door de week prima); alleen zondag blijft af te raden.
 - Lead-time: minimaal 24u, optimaal 72–168u vóór de doel-datum. Mensen plannen uit-eten 2-5 dagen vooruit; onder 24u keldert open-rate.
 - Frequentie-plafond: 1×/week, 4×/maand
 
@@ -66,6 +67,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: woensdag, donderdag, vrijdag
 - Beste tijden: 12:00-13:00 en 18:00-21:00
 - Donderdag 9:00 en 21:00 = hoogste engagement (Buffer, 9.6M posts); wo 12:00 + 18:00 sterk; vr-lunch (11-13) triggert weekend-eetbeslissingen. Vermijd za-zo voor zakelijke posts (engagement -17%). Eerste 125 tekens cruciaal (zichtbaar vóór "meer"-klik).
+- Tweede-beste venster: ma-di 18:00-20:00 (door-de-week-avond); in het weekend alleen sfeer-/food-content, geen zakelijke aanbiedingen.
 - Lead-time: minimaal 6u, optimaal 24–72u vóór de doel-datum. Recent in feed = bovenaan; te ver vooruit = vergeten.
 - Frequentie-plafond: 5×/week, 20×/maand
 
@@ -96,6 +98,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: donderdag, vrijdag, zaterdag, zondag
 - Beste tijden: 10:00-11:30 en 16:00-17:30
 - Reels 2-4u vóór het eetmoment plaatsen (lunch ~11:00, diner ~17:00): vlak voor de eetbeslissing presteert F&B-video het best (Dash Social; Reels 2.7% engagement vs 1.4% carousel). Weekend-avond werkt voor F&B óók.
+- Tweede-beste venster: door-de-week dezelfde eetmoment-vensters (2-4u vóór lunch of diner) — de dag maakt voor Reels minder uit dan het moment.
 - Lead-time: minimaal 4u, optimaal 24–48u vóór de doel-datum. Algoritme-push duurt uren; te late post valt onder later interval.
 - Frequentie-plafond: 2×/week, 8×/maand
 
@@ -123,6 +126,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: maandag, dinsdag, woensdag, donderdag, vrijdag, zaterdag, zondag
 - Beste tijden: 11:00-13:00 en 17:00-19:00
 - "Wat is er vandaag"-content vlak vóór de eetmomenten (lunch + diner-prep). Verdwijnt na 24u, dus plaats op de dag zelf.
+- Tweede-beste venster: elk ander moment op de dag zelf — Stories zijn per definitie dag-content, een "gemist" venster bestaat hier nauwelijks.
 - Lead-time: minimaal 0u, optimaal 0–24u vóór de doel-datum. Verdwijnt na 24u; per definitie last-minute kanaal.
 - Frequentie-plafond: 10×/week, 30×/maand
 
@@ -151,6 +155,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: dinsdag, woensdag, donderdag, vrijdag
 - Beste tijden: 11:00-13:00 en 17:00-19:00
 - Di-wo 12:00-20:00 = algemene piek (Sprout, 307K profielen); maaltijd-windows 11-13 en 17-19 voor food-content. Boekings-/aanbod-content scoort do-zo 11:00-14:00 en 19:00-21:00. Events: 2-3 weken vooraf aankondigen + reminder 2 dagen vooraf (3× hogere RSVP).
+- Tweede-beste venster: za-zo 11:00-14:00 (weekend-planmoment, vooral voor boekings-content) of 19:00-21:00 avond-relaxatie.
 - Lead-time: minimaal 12u, optimaal 48–120u vóór de doel-datum. FB-feed langzamer maar verzadigd; lange aanloop helpt.
 - Frequentie-plafond: 3×/week, 12×/maand
 
@@ -180,6 +185,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: maandag, dinsdag, woensdag, donderdag, zaterdag
 - Beste tijden: 14:00-18:00 en 19:00-21:00
 - Ma-do 15:00-18:00 = F&B-piek ("afternoon slump": mensen plannen hun diner — Sprout); za-ochtend 10:00-12:00 voor weekend-content. Post 30-60 min vóór de piek: het algoritme test eerst klein en pusht daarna (4× FYP-distributie bij vroege engagement). Consistentie weegt zwaarder dan perfectie.
+- Tweede-beste venster: zo 19:00-21:00 (avond-scroll) of vr-middag; voor het TikTok-algoritme weegt regelmatig posten zwaarder dan het exacte tijdstip.
 - Lead-time: minimaal 6u, optimaal 24–72u vóór de doel-datum. Algoritme heeft tijd nodig om bereik te bouwen.
 - Frequentie-plafond: 5×/week, 16×/maand
 
@@ -208,6 +214,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: dinsdag, woensdag, donderdag
 - Beste tijden: 16:00-18:00 en 11:00-15:00
 - Vaste gasten di-do 16:00-18:00 (last-minute zelfde-avond-uitnodiging, 67% prefereert messaging boven bellen); lege-tafels-broadcast op de dag zelf om 11:00 of 15:00. NOOIT 22:00-09:00 of zondagavond (AVG redelijke uren). Verjaardags-bericht 7 dagen vóór de datum. Conservatief gebruiken; opt-in juridisch verplicht.
+- Tweede-beste venster: vr 11:00-15:00 voor weekend-gerichte last-minute acties; de verboden uren (22:00-09:00, zondagavond) blijven altijd gelden.
 - Lead-time: minimaal 0.5u, optimaal 4–24u vóór de doel-datum. Last-minute persoonlijke nudge; te vroeg voelt formeel.
 - Frequentie-plafond: 1×/week, 1×/maand
 
@@ -236,6 +243,7 @@ tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 - Beste dagen: maandag, dinsdag, woensdag, donderdag, vrijdag
 - Beste tijden: 07:00-09:00 en 14:00-16:00
 - Ma-wo 7:00-9:00 = plan-modus begin van de week (weekreserveringen pieken ma/di, Toast +11%); event-posts wo-do 14:00-16:00 (weekend-planning piekt dan); weekend-aanbiedingen do-vr 14:00-16:00. Vaste maandagochtend-post ("wat is er nieuw") loont: wekelijks posten alleen al +28% klikken. 2-3 posts/week is het optimum.
+- Tweede-beste venster: elke werkdag 10:00-12:00 (snelle indexering); een dag later posten is altijd beter dan overslaan — consistentie weegt het zwaarst voor de local-pack-ranking.
 - Lead-time: minimaal 12u, optimaal 24–168u vóór de doel-datum. Google indexeert binnen uren maar zoekers vinden 1-3 dagen na.
 - Frequentie-plafond: 3×/week, 12×/maand
 
