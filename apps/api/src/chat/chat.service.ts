@@ -1105,16 +1105,10 @@ gevolgd door:
 ────────────────────────────────────────
 FORMAAT 1, SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
 ────────────────────────────────────────
-Gebruik dit als de eigenaar één specifiek kanaal noemt of net op
-de keuze-vraag een single-channel-keuze (mail/social/whatsapp) heeft
-gemaakt.
-
-────────────────────────────────────────
-FORMAAT 1, SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
-────────────────────────────────────────
 Gebruik dit als de eigenaar één specifiek kanaal noemt ("stuur een
-mail aan de vaste gasten", "een Instagram-post over...") of bij kleine
-acties op één kanaal.
+mail aan de vaste gasten", "een Instagram-post over...") of net op de
+keuze-vraag een single-channel-keuze (mail/social/whatsapp) maakte,
+of bij kleine acties op één kanaal.
 
 <<FILLY_PROPOSE_CAMPAIGN>>
 {"type":"mail","name":"<korte titel>","variants":[{"tone_signature":"feit_eerst","subject_line":"<onderwerp v1>","body":"<volledige tekst v1>"},{"tone_signature":"verhaal_eerst","subject_line":"<onderwerp v2>","body":"<volledige tekst v2>"},{"tone_signature":"vraag_eerst","subject_line":"<onderwerp v3>","body":"<volledige tekst v3>"}]}
@@ -1131,9 +1125,9 @@ Regels:
 - "subject_line" hoort bij mail; voor social/whatsapp/google_business
   mag je 'm weglaten.
 - "body" bevat de volledige uitgeschreven tekst.
-- google_business-posts: ~50-100 woorden, lokaal en actie-gericht
-  (datum/openingstijden/aanbod), géén hashtags, géén overdreven
-  emoji's. Doel: gevonden worden in Maps en zoekresultaten.
+- google_business-posts: lokaal en actie-gericht (datum/openingstijden/
+  aanbod), géén overdreven emoji's. Doel: gevonden worden in Maps en
+  zoekresultaten. Lengte + hashtags: zie REGELS PER KANAAL hieronder.
 
 ────────────────────────────────────────
 FORMAAT 2, MULTI-CHANNEL BUNDLE (één thema, meerdere kanalen)
@@ -1146,11 +1140,13 @@ een bundel koos ("Maak een bundel-campagne voor ...").
 Eén thema, met een kanaal-versie voor ELK kanaal dat de eigenaar
 noemde — minimaal 2. Neem PRECIES de genoemde kanalen op en laat de
 rest weg uit "channels". Elk kanaal in z'n eigen vorm:
-- mail: lange, persoonlijke uitnodiging (~150 woorden), subject_line + body
-- instagram: visueel-persoonlijk (~50-80 woorden) in caption, 3-5 hashtags
-- facebook: community-conversational (~80-120 woorden) in caption, géén hashtags
-- whatsapp: kort persoonlijk bericht (~50-90 woorden) in body, geen onderwerp/hashtags
-- google_business: lokaal-actiegericht (~50-100 woorden) in body, noem datum/aanbod, geen onderwerp/hashtags
+- mail: persoonlijke uitnodiging, subject_line + body
+- instagram: visueel-persoonlijk, in caption, met hashtags
+- facebook: community-conversational, in caption
+- whatsapp: persoonlijk bericht, in body, geen onderwerp
+- google_business: lokaal-actiegericht, in body, noem datum/aanbod
+Lengte-bandbreedtes en hashtag-aantallen per kanaal staan in REGELS
+PER KANAAL hieronder; die zijn leidend.
 
 Voeg ALLEEN de gevraagde kanalen toe aan "channels". Voorbeeld hieronder
 toont alle vijf; laat weg wat niet gevraagd is:
@@ -1190,10 +1186,12 @@ ALGEMENE REGELS (beide formaten)
 - Maximaal ÉÉN blok per antwoord (geen mix van CAMPAIGN + BUNDLE).
 
 VARIATIE OVER 3 VARIANTEN (verplicht):
-- Variant 1: feit-eerst, kort (~70% van max-lengte). Concrete USP voorop.
-- Variant 2: verhaal-eerst, middel (~100% van max-lengte). Sfeer of anekdote als opening.
-- Variant 3: vraag-eerst, lang (~130% van max-lengte, maar binnen kanaal-bandbreedte).
-  Vraag of stelling als opening.
+- Variant 1: feit-eerst, kort (richting het minimum van de kanaal-
+  bandbreedte uit REGELS PER KANAAL). Concrete USP voorop.
+- Variant 2: verhaal-eerst, middel (midden van de bandbreedte). Sfeer
+  of anekdote als opening.
+- Variant 3: vraag-eerst, lang (richting het maximum van de band-
+  breedte, NOOIT erboven). Vraag of stelling als opening.
 NOOIT 3× dezelfde tone-aanpak of dezelfde openingszin.
 
 LENGTE EN HASHTAGS (leidend boven andere regels):
