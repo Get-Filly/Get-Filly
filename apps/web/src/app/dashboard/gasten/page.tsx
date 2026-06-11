@@ -11,6 +11,7 @@ import { Skeleton } from "../_components/skeleton";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { downloadCsv, exportPagePdf } from "../../../lib/csv-export";
 
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -27,6 +28,43 @@ function formatDate(dateStr: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+// ============================================================
+// exportGuestsToCsv, download gast-lijst als CSV
+// ============================================================
+// Verhuisd van de reserveringen-pagina (2026-06-11): de klanten-
+// export hoort bij de gasten-pagina. De download zelf loopt via de
+// gedeelde helper in lib/csv-export (Excel-vriendelijke BOM +
+// quote-escaping per cel).
+function exportGuestsToCsv(guests: Guest[]) {
+  const headers = [
+    "Naam",
+    "Email",
+    "Telefoon",
+    "Bezoeken",
+    "Laatste bezoek",
+    "Verjaardag",
+    "Tags",
+    "Mail-opt-in",
+  ];
+  const rows = guests.map((g) => {
+    const name = [g.first_name, g.last_name].filter(Boolean).join(" ") || "—";
+    const lastVisit = g.last_visit_at
+      ? new Date(g.last_visit_at).toISOString().slice(0, 10)
+      : "";
+    return [
+      name,
+      g.email ?? "",
+      g.phone ?? "",
+      String(g.visit_count),
+      lastVisit,
+      g.birthday ?? "",
+      (g.tags ?? []).join("; "),
+      g.mail_opt_in ? "ja" : "nee",
+    ];
+  });
+  downloadCsv("klanten", headers, rows);
 }
 
 function formatEuro(cents: number | null): string {
@@ -128,6 +166,27 @@ export default function GastenPage() {
       <PageHeader
         title="Gasten"
         subtitle="Wie jouw restaurant bezoekt, met voorkeuren, allergieën en waarde."
+        actions={
+          <>
+            {/* Export volgt het actieve filter + de zoekterm: wat je
+                downloadt is wat je op het scherm ziet. PDF = browser-
+                printdialoog ("Bewaar als PDF"). */}
+            <Button
+              variant="secondary"
+              onClick={exportPagePdf}
+              disabled={filtered.length === 0}
+            >
+              🖨 PDF
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => exportGuestsToCsv(filtered)}
+              disabled={filtered.length === 0}
+            >
+              ⬇ Exporteer CSV
+            </Button>
+          </>
+        }
       />
 
       <div className="stats-row">

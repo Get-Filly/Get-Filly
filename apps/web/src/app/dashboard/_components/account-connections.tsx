@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useRestaurant } from "@/lib/restaurant-context";
@@ -9,18 +8,22 @@ import { useRestaurant } from "@/lib/restaurant-context";
 // AccountConnections, compacte koppelingen-tab
 // ============================================================
 // Verhuisd uit /dashboard/koppelingen (sidebar-link weg per
-// 2026-05-12). Per 2026-05-12 (v2): compact list-stijl zonder
-// uitleg-tekst per integratie. Eigenaar plakt API-key (of klikt
-// OAuth-connect) en is klaar.
+// 2026-05-12). Per 2026-06-11 (v3): eerlijke statussen — geen
+// nep-"Verbind"-knoppen meer voor integraties zonder werkende
+// backend-flow. (De oude API-key-invul-UI eindigde in een alert
+// "Storage komt binnenkort"; dat wekte de indruk dat koppelen al
+// kon. Zie git-history voor die variant.)
 //
-// Twee modi:
-//   - apikey : default — eigenaar klikt 'Verbind', rij vouwt open
-//              met een input-veld voor de API-key/token + Opslaan-knop.
-//   - auto   : geen actie nodig (bv. weer-integratie via locatie).
-//
-// API-key-storage is voorlopig UI-only. De daadwerkelijke
-// credential-tabel + encrypt-at-rest komt in volgende sessie
-// (mig 0039 + encryption-helper).
+// Drie modi:
+//   - oauth : werkende flow. Eén klik op 'Verbind' start de
+//             OAuth-redirect (Meta), of 'Beheer' linkt naar de
+//             pagina waar de echte koppel-flow leeft (Google).
+//   - auto  : geen actie nodig (weer via locatie; mail via het
+//             Get-Filly-platform).
+//   - soon  : nog geen werkende flow — toont rustig 'Binnenkort'.
+//             Zodra een integratie echt landt, krijgt de rij hier
+//             z'n eigen flow (credential-opslag bestaat al:
+//             integration_credentials, mig 0052).
 
 type IntegrationCategory =
   | "reserveringen"
@@ -29,7 +32,7 @@ type IntegrationCategory =
   | "reviews"
   | "data";
 
-type ConnectionMethod = "apikey" | "auto" | "oauth";
+type ConnectionMethod = "auto" | "oauth" | "soon";
 
 type Integration = {
   key: string;
@@ -37,16 +40,18 @@ type Integration = {
   name: string;
   method: ConnectionMethod;
   category: IntegrationCategory;
-  // Placeholder voor het API-key-veld. Helpt eigenaar herkennen
-  // waar de key vandaan komt.
-  keyPlaceholder?: string;
   // Of de integratie momenteel actief is. Komt later uit DB,
   // voorlopig hardcoded.
   connected?: boolean;
-  // Voor method "oauth": pad waar de "Verbind"-knop heen navigeert.
-  // Dit is een server-route die de OAuth-flow start en doorstuurt
-  // naar de provider (bv. Meta). Géén API-key plakken dus — één klik.
+  // Voor method "auto": status-tekst rechts in de rij.
+  statusText?: string;
+  // Voor method "oauth": waar de knop heen navigeert. Een
+  // /oauth/...-route start de provider-flow (Meta); een gewone
+  // dashboard-route (Google) linkt naar de pagina met de echte
+  // koppel-flow.
   connectPath?: string;
+  // Knop-label voor "oauth"-rijen. Default "Verbind".
+  ctaLabel?: string;
 };
 
 const integrations: Integration[] = [
@@ -54,57 +59,52 @@ const integrations: Integration[] = [
     key: "zenchef",
     icon: "🍽️",
     name: "Zenchef",
-    method: "apikey",
+    method: "soon",
     category: "reserveringen",
-    keyPlaceholder: "Zenchef API-token",
   },
   {
     key: "opentable",
     icon: "🍽️",
     name: "OpenTable",
-    method: "apikey",
+    method: "soon",
     category: "reserveringen",
-    keyPlaceholder: "OpenTable API-token",
   },
   {
     key: "sevenrooms",
     icon: "🍽️",
     name: "SevenRooms",
-    method: "apikey",
+    method: "soon",
     category: "reserveringen",
-    keyPlaceholder: "SevenRooms API-token",
   },
   {
     key: "resengo",
     icon: "🍽️",
     name: "Resengo",
-    method: "apikey",
+    method: "soon",
     category: "reserveringen",
-    keyPlaceholder: "Resengo API-token",
   },
   {
+    // De echte koppel-flow (bedrijf zoeken + Place-koppeling) leeft
+    // op de Vindbaarheid-hub — deze rij linkt ernaartoe i.p.v. een
+    // tweede, losse flow te suggereren.
     key: "google_business",
     icon: "📍",
     name: "Google Business Profile",
-    method: "apikey",
+    method: "oauth",
     category: "vindbaarheid",
-    keyPlaceholder: "Google API-token",
+    connectPath: "/dashboard/google-business",
+    ctaLabel: "Beheer",
   },
   {
-    key: "resend",
+    // Campagne-mail loopt via het Get-Filly-platform (Resend in de
+    // backend); de eigenaar hoeft hier zelf niets te koppelen.
+    key: "mail",
     icon: "✉️",
-    name: "Resend (mail)",
-    method: "apikey",
+    name: "E-mail (campagnes)",
+    method: "auto",
     category: "communicatie",
-    keyPlaceholder: "re_xxxxxxxxxxxxxxxxxx",
-  },
-  {
-    key: "sendgrid",
-    icon: "✉️",
-    name: "SendGrid (mail)",
-    method: "apikey",
-    category: "communicatie",
-    keyPlaceholder: "SG.xxxxxxxxxxxxxxxx",
+    connected: true,
+    statusText: "✓ Actief via Get-Filly",
   },
   {
     // Instagram-publiceren loopt via dezelfde Meta-OAuth als Facebook
@@ -129,41 +129,36 @@ const integrations: Integration[] = [
     key: "tiktok",
     icon: "🎵",
     name: "TikTok for Business",
-    method: "apikey",
+    method: "soon",
     category: "communicatie",
-    keyPlaceholder: "TikTok access token",
   },
   {
     key: "whatsapp",
     icon: "💬",
     name: "WhatsApp Business",
-    method: "apikey",
+    method: "soon",
     category: "communicatie",
-    keyPlaceholder: "WhatsApp Cloud API token",
   },
   {
     key: "tripadvisor",
     icon: "🧳",
     name: "TripAdvisor",
-    method: "apikey",
+    method: "soon",
     category: "reviews",
-    keyPlaceholder: "TripAdvisor API-token",
   },
   {
     key: "thefork",
     icon: "🍴",
     name: "The Fork",
-    method: "apikey",
+    method: "soon",
     category: "reviews",
-    keyPlaceholder: "The Fork API-token",
   },
   {
     key: "lightspeed",
     icon: "🧾",
     name: "Lightspeed / POS",
-    method: "apikey",
+    method: "soon",
     category: "data",
-    keyPlaceholder: "POS API-token",
   },
   {
     key: "weather",
@@ -172,6 +167,7 @@ const integrations: Integration[] = [
     method: "auto",
     category: "data",
     connected: true,
+    statusText: "✓ Actief via locatie",
   },
 ];
 
@@ -192,30 +188,14 @@ const categoryOrder: IntegrationCategory[] = [
 ];
 
 export function ConnectionsSection() {
-  // Lokale state per integratie: ingevoerde API-key. Storage volgt
-  // in volgende sessie (DB-tabel + encrypt). Voor nu: UI-only.
-  const [keys, setKeys] = useState<Record<string, string>>({});
-  // Welke integraties zijn uitgevouwen? Klik op 'Verbind' opent
-  // het API-key-invul-veld onder de rij. Lokaal, geen persistence.
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
   // Actief restaurant: geven we mee aan de OAuth-start zodat de
-  // koppeling straks (stap 3) aan de juiste zaak hangt.
+  // koppeling aan de juiste zaak hangt.
   const { active } = useRestaurant();
   // De Meta-callback stuurt terug met ?meta=connected|denied|error
   // (+ ?reason=). We tonen daar een korte statusmelding voor.
   const searchParams = useSearchParams();
   const metaStatus = searchParams.get("meta");
   const metaReason = searchParams.get("reason");
-
-  const toggleExpanded = (key: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   return (
     <div>
@@ -250,12 +230,6 @@ export function ConnectionsSection() {
                 <IntegrationRow
                   key={i.key}
                   integration={i}
-                  apiKey={keys[i.key] ?? ""}
-                  onApiKeyChange={(v) =>
-                    setKeys((prev) => ({ ...prev, [i.key]: v }))
-                  }
-                  isExpanded={expanded.has(i.key)}
-                  onToggleExpand={() => toggleExpanded(i.key)}
                   isLast={idx === group.length - 1}
                   activeRestaurantId={active?.id ?? null}
                 />
@@ -270,10 +244,6 @@ export function ConnectionsSection() {
 
 type IntegrationRowProps = {
   integration: Integration;
-  apiKey: string;
-  onApiKeyChange: (v: string) => void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
   isLast: boolean;
   // Actief restaurant-id, meegegeven aan de OAuth-start-URL.
   activeRestaurantId: string | null;
@@ -281,39 +251,32 @@ type IntegrationRowProps = {
 
 function IntegrationRow({
   integration,
-  apiKey,
-  onApiKeyChange,
-  isExpanded,
-  onToggleExpand,
   isLast,
   activeRestaurantId,
 }: IntegrationRowProps) {
-  // Auto-integraties (weer): één enkele rij zonder expand. Geen knop,
-  // geen input, alleen status-tekst.
+  // Gedeelde rij-opbouw: icon + naam links, status/actie rechts.
+  const rowStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 14px",
+    borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
+  } as const;
+  const nameStyle = {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--text, #18181B)",
+    flex: 1,
+  } as const;
+
+  // Auto-integraties (weer, mail): geen actie nodig, alleen status.
   if (integration.method === "auto") {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 14px",
-          borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
-        }}
-      >
+      <div style={rowStyle}>
         <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
           {integration.icon}
         </div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text, #18181B)",
-            flex: 1,
-          }}
-        >
-          {integration.name}
-        </div>
+        <div style={nameStyle}>{integration.name}</div>
         <span
           style={{
             fontSize: 12,
@@ -322,42 +285,28 @@ function IntegrationRow({
             flexShrink: 0,
           }}
         >
-          ✓ Actief via locatie
+          {integration.statusText ?? "✓ Actief"}
         </span>
       </div>
     );
   }
 
-  // OAuth-integraties (Meta/Facebook + Instagram): geen API-key-veld,
-  // maar één klik op 'Verbind' → volledige navigatie naar de
-  // start-route die de OAuth-flow opent en naar de provider redirect.
+  // OAuth-integraties: één klik → volledige navigatie. Het
+  // restaurant-id gaat alleen mee naar échte OAuth-start-routes;
+  // interne dashboard-links (Google → Vindbaarheid-hub) hebben
+  // 'm niet nodig.
   if (integration.method === "oauth") {
-    const href = activeRestaurantId
-      ? `${integration.connectPath}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
-      : (integration.connectPath ?? "#");
+    const base = integration.connectPath ?? "#";
+    const href =
+      base.startsWith("/oauth/") && activeRestaurantId
+        ? `${base}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
+        : base;
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 14px",
-          borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
-        }}
-      >
+      <div style={rowStyle}>
         <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
           {integration.icon}
         </div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text, #18181B)",
-            flex: 1,
-          }}
-        >
-          {integration.name}
-        </div>
+        <div style={nameStyle}>{integration.name}</div>
         {/* Plain <a> (geen <Link>): een full navigation naar de
             server-route-handler, die server-side naar Meta 302't.
             <Link> zou client-side proberen te routen en de redirect
@@ -376,117 +325,35 @@ function IntegrationRow({
             flexShrink: 0,
           }}
         >
-          Verbind
+          {integration.ctaLabel ?? "Verbind"}
         </a>
       </div>
     );
   }
 
-  // API-key-integraties: collapsed by default, klik 'Verbind' → expand
-  // met input-veld + Opslaan-knop. Klik nogmaals = collapse.
+  // Soon-integraties: nog geen werkende flow. Rustige "Binnenkort"-
+  // pill i.p.v. een knop die nergens heen leidt — eerlijk naar de
+  // eigenaar toe.
   return (
-    <div
-      style={{
-        borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
-      }}
-    >
-      {/* Hoofdrij: icon + naam + Verbind/Annuleer-knop */}
-      <div
+    <div style={rowStyle}>
+      <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
+        {integration.icon}
+      </div>
+      <div style={nameStyle}>{integration.name}</div>
+      <span
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 14px",
+          padding: "4px 10px",
+          fontSize: 11,
+          fontWeight: 500,
+          color: "var(--tl)",
+          background: "var(--bg-soft, #FAF7F1)",
+          border: "1px solid var(--border, #E5DFD0)",
+          borderRadius: 999,
+          flexShrink: 0,
         }}
       >
-        <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
-          {integration.icon}
-        </div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text, #18181B)",
-            flex: 1,
-          }}
-        >
-          {integration.name}
-        </div>
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          style={{
-            padding: "6px 14px",
-            fontSize: 12,
-            fontWeight: 500,
-            border: "1px solid var(--border, #E5DFD0)",
-            background: isExpanded
-              ? "var(--bg-soft, #FAF7F1)"
-              : "transparent",
-            color: "var(--text, #18181B)",
-            borderRadius: 6,
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          {isExpanded ? "Annuleer" : "Verbind"}
-        </button>
-      </div>
-
-      {/* Expand-deel: API-key input + Opslaan-knop */}
-      {isExpanded && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "0 14px 12px 46px",
-          }}
-        >
-          <input
-            type="password"
-            placeholder={integration.keyPlaceholder ?? "API-key / token"}
-            value={apiKey}
-            onChange={(e) => onApiKeyChange(e.target.value)}
-            autoFocus
-            style={{
-              flex: 1,
-              padding: "6px 10px",
-              border: "1px solid var(--border, #E5DFD0)",
-              borderRadius: 6,
-              fontSize: 13,
-              background: "var(--bg-soft, #FAF7F1)",
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            }}
-          />
-          <button
-            type="button"
-            disabled={!apiKey.trim()}
-            onClick={() => {
-              // TODO: save naar backend (DB-tabel volgt in volgende
-              // sessie). Voor nu: alleen UI-feedback.
-              alert(
-                "Storage komt binnenkort. Voor nu kan je de key alleen invullen.",
-              );
-            }}
-            style={{
-              padding: "6px 14px",
-              fontSize: 12,
-              fontWeight: 500,
-              border: "1px solid var(--border, #E5DFD0)",
-              background: apiKey.trim()
-                ? "var(--brand, #1F4A2D)"
-                : "transparent",
-              color: apiKey.trim() ? "#FFFFFF" : "var(--tl)",
-              borderRadius: 6,
-              cursor: apiKey.trim() ? "pointer" : "not-allowed",
-              flexShrink: 0,
-            }}
-          >
-            Opslaan
-          </button>
-        </div>
-      )}
+        Binnenkort
+      </span>
     </div>
   );
 }

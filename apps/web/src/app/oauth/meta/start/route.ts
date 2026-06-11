@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { buildAuthorizeUrl } from "@/lib/meta-oauth";
+import { logger } from "@/lib/logger";
 
 /**
  * ============================================================
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
   try {
     authorizeUrl = buildAuthorizeUrl({ origin, state });
   } catch (err) {
-    console.error("[meta-oauth] start faalde (config ontbreekt?):", err);
+    logger.error("[meta-oauth] start faalde (config ontbreekt?):", err);
     const back = new URL("/dashboard/account?tab=koppelingen", origin);
     back.searchParams.set("meta", "error");
     back.searchParams.set("reason", "config");

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { metaRedirectUri } from "@/lib/meta-oauth";
+import { logger } from "@/lib/logger";
 
 /**
  * ============================================================
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
     if (!res.ok) {
       // We lezen de body voor de server-log, lekken 'm niet naar de client.
       const body = await res.text();
-      console.error(
+      logger.error(
         `[meta-oauth] API connect faalde (${res.status}): ${body}`,
       );
       return back(origin, { meta: "error", reason: "connect" });
@@ -124,7 +125,7 @@ export async function GET(request: NextRequest) {
 
     return back(origin, { meta: "connected" });
   } catch (err) {
-    console.error("[meta-oauth] API connect error:", err);
+    logger.error("[meta-oauth] API connect error:", err);
     return back(origin, { meta: "error", reason: "connect" });
   }
 }

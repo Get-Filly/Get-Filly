@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 
 /**
  * ============================================================
@@ -46,10 +47,10 @@ export async function POST(request: NextRequest) {
     });
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[meta-deauthorize] API faalde (${res.status}): ${body}`);
+      logger.error(`[meta-deauthorize] API faalde (${res.status}): ${body}`);
     }
   } catch (err) {
-    console.error("[meta-deauthorize] forward faalde:", err);
+    logger.error("[meta-deauthorize] forward faalde:", err);
   }
 
   return NextResponse.json({ ok: true });

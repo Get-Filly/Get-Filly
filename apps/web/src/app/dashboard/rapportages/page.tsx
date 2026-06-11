@@ -13,6 +13,8 @@ import {
 import { PageHeader } from "../../../components/ui/page-header";
 import { Card, CardBody } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { downloadCsv, exportPagePdf } from "../../../lib/csv-export";
 
 // ============================================================
 // /dashboard/rapportages — hub-pagina
@@ -51,6 +53,32 @@ type ReportChannel = {
   miniStatsLoading?: boolean;
   miniStats?: MiniStat[];
 };
+
+// ============================================================
+// exportChannelsToCsv, download het kanaal-overzicht als CSV
+// ============================================================
+// Eén rij per mini-stat (kanaal + status + statistiek + waarde);
+// kanalen zonder stats krijgen één rij met alleen kanaal + status.
+const channelStatusLabel: Record<ChannelStatus, string> = {
+  live: "Live",
+  "coming-soon": "Binnenkort",
+  future: "Later",
+};
+
+function exportChannelsToCsv(channels: ReportChannel[]) {
+  const headers = ["Kanaal", "Status", "Statistiek", "Waarde"];
+  const rows = channels.flatMap((c) =>
+    c.miniStats && c.miniStats.length > 0
+      ? c.miniStats.map((s) => [
+          c.name,
+          channelStatusLabel[c.status],
+          s.label,
+          s.value,
+        ])
+      : [[c.name, channelStatusLabel[c.status], "", ""]],
+  );
+  downloadCsv("rapportages", headers, rows);
+}
 
 export default function RapportagesHubPage() {
   const [kpis, setKpis] = useState<Kpis | null>(null);
@@ -224,7 +252,24 @@ export default function RapportagesHubPage() {
 
   return (
     <div className="page-full">
-      <PageHeader title="Rapportages" />
+      <PageHeader
+        title="Rapportages"
+        actions={
+          <>
+            {/* PDF = browser-printdialoog ("Bewaar als PDF"); CSV
+                exporteert het kanaal-overzicht met de kerncijfers. */}
+            <Button variant="secondary" onClick={exportPagePdf}>
+              🖨 PDF
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => exportChannelsToCsv(channels)}
+            >
+              ⬇ Exporteer CSV
+            </Button>
+          </>
+        }
+      />
 
       <div
         style={{

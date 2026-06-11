@@ -3935,3 +3935,43 @@
   .dashboard-shell .cal-dn { font-size: 11px; }
   .dashboard-shell .cal-top { top: 5px; left: 6px; right: 6px; }
 }
+
+/* ============================================================
+   Print / PDF-export (2026-06-11)
+   ============================================================
+   De "PDF"-knoppen op gasten/reserveringen/rapportages roepen
+   window.print() aan; de browser-printdialoog heeft op elk OS een
+   "Bewaar als PDF"-optie. De dashboard-shell is normaal een fixed
+   viewport met interne scroll — voor print maken we 'm statisch en
+   laten we de inhoud vrij doorlopen over meerdere pagina's.
+   Navigatie en interactieve controls horen niet op papier. */
+@media print {
+  .dashboard-shell {
+    position: static;
+    overflow: visible;
+  }
+  .dashboard-shell .sidebar,
+  .sidebar-backdrop,
+  .dashboard-shell .topbar {
+    display: none;
+  }
+  .dashboard-shell .main {
+    margin-left: 0;
+    padding-top: 0;
+    height: auto;
+    overflow: visible;
+  }
+  .dashboard-shell .page,
+  .dashboard-shell .page-full {
+    height: auto;
+    overflow: visible;
+  }
+  /* Knoppen, invoervelden en filter-tabs zijn schermfunctionaliteit. */
+  .dashboard-shell button,
+  .dashboard-shell input,
+  .dashboard-shell select,
+  .dashboard-shell textarea,
+  .dashboard-shell .tabs {
+    display: none;
+  }
+}

@@ -14,6 +14,7 @@ import { Skeleton } from "../../_components/skeleton";
 import { PageHeader } from "../../../../components/ui/page-header";
 import { EmptyState } from "../../../../components/ui/empty-state";
 import { Tabs } from "../../../../components/ui/tabs";
+import { logger } from "@/lib/logger";
 
 const sourceInfo: Record<ReviewSource, { label: string }> = {
   google: { label: "Google" },
@@ -361,7 +362,7 @@ function ReviewsPageInner() {
           ? e.message
           : "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
       );
-      console.error(e);
+      logger.error(e);
     } finally {
       setBootstrapping(false);
       setGenerating(false);
@@ -384,7 +385,7 @@ function ReviewsPageInner() {
           ? e.message
           : "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
       );
-      console.error(e);
+      logger.error(e);
     } finally {
       setGenerating(false);
     }
@@ -417,7 +418,7 @@ function ReviewsPageInner() {
       setReplyText("");
     } catch (e) {
       setError("Opslaan is mislukt. Probeer nog eens.");
-      console.error(e);
+      logger.error(e);
     } finally {
       setSaving(false);
     }

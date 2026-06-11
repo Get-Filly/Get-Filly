@@ -22,6 +22,7 @@ import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { MenuSuggestionsTab } from "./_components/menu-suggestions-tab";
+import { logger } from "@/lib/logger";
 
 const categoryOrder = [
   "voorgerecht",
@@ -510,7 +511,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       setItems(menuData);
       setUploadedCards(cards);
     } catch (e) {
-      console.error("Refresh na upload faalde:", e);
+      logger.error("Refresh na upload faalde:", e);
     }
   };
 

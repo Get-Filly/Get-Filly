@@ -57,7 +57,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ### Autonome detectie + push-meldingen (concept-flow, 2026-05-08)
 Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform), spot rustige dagen op basis van threshold, push-melding naar eigenaar → klik → genereer voorstel → bundle ontstaat in /campagnes.
-- [~] **Low-occupancy threshold per restaurant** — vrijwel af (geverifieerd 2026-06-11): kolom `low_occupancy_threshold` bestaat (mig 0037), slider op account-pagina live (`account/page.tsx:917`), dashboard (`upcoming-actions-block.tsx`) leest 'm. **Restje:** `detectAndGenerateLowOccupancy` gebruikt nog de hardcoded constante `LOW_OCCUPANCY_THRESHOLD_PCT = 50` (`suggestions.service.ts:326`, query op regel 910) i.p.v. de kolom — die ene query omzetten en de constante als fallback houden.
+- [x] ~~**Low-occupancy threshold per restaurant**~~ (2026-06-11) — kolom `low_occupancy_threshold` (mig 0037) + slider op account-pagina + dashboard waren al live; laatste restje gefixt: `detectAndGenerateLowOccupancy` leest nu óók de kolom per restaurant (`suggestions.service.ts`, stap 1b), de constante 50 is alleen nog fallback voor restaurants zonder eigen waarde. Drempel staat ook in de Claude-prompt per dag.
 - [ ] **Autonome detectie** — bij data-event vanuit reserveringsplatform (Zenchef etc.) automatisch `detectAndGenerateLowOccupancy` triggeren (i.p.v. handmatige knop). NB: per memory géén interne cron, alléén event-driven.
 - [ ] **Push-meldingen** — opties: (a) Email-interim via Resend (snel, 2-3u), (b) Web Push via PWA (10-12u, werkt cross-platform), (c) Mobile app + native push (weken, App Store). Sprint-keuze: start met (a), later (b).
 
@@ -115,7 +115,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **4 components slopen** — `campaign-refine-panel.tsx` (22 KB), `campaign-schedule-panel.tsx` (13 KB), `campaign-media-slot.tsx` (13 KB). `campaign-send-modal.tsx` (9 KB) alléén slopen ná de "Activeer-stuurt-mail"-fix; deze is misschien juist nodig.
 - [ ] **Dode API-functies in `apps/web/src/lib/api.ts` schrappen** — `fetchCampaignVariants`, `generateCampaignVariants`, `updateCampaign`, `suggestCampaignSchedule`.
 - [ ] **Dode backend-endpoints + service-methodes schrappen** — `GET /campaigns/:id/variants`, `POST /:id/refine`, `PATCH /:id`, `POST /:id/suggest-schedule` + `service.getVariants/refine/update/suggestSchedule`.
-- [~] **Oude `/campagnes/bundle/[id]/page.tsx` slopen** — grotendeels gebeurd (geverifieerd 2026-06-11): de 354-regel-pagina is al vervangen door een 41-regel redirect-stub voor oude bookmarks. **Restje:** de stub + `bundle/`-map verwijderen zodra zeker is dat er geen oude bookmarks meer leven.
+- [x] ~~**Oude `/campagnes/bundle/[id]/page.tsx` slopen**~~ (2026-06-11) — redirect-stub + `bundle/`-map verwijderd; oude bookmarks worden nu server-side afgevangen via `redirects()` in `apps/web/next.config.ts` (307 naar `/dashboard/campagnes/:id`, bewust niet permanent gecached).
 - [ ] **Mig 0043: DB-schema cleanup** — drop `campaigns.filly_variants`, `campaigns.filly_variants_regen_count`, `campaigns.variant_applied_at` ná het verwijderen van alle write-paden. Bewaar als 2-stap (eerst writes weg in code, sessie later columns droppen) om mid-refactor data-verlies te voorkomen.
 
 **Polish (nice-to-have):**
@@ -389,7 +389,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [x] ~~`MOCK_RECOGNIZED` in menu-pagina~~ — vervangen door echte Vision-analyse tijdens onboarding.
 - [x] ~~`getMockProposal()` in suggesties-detail-modal~~ (2026-04-30) — vervangen door echte Claude-call via tool-use op `/api/suggestions/:id/proposal-details`.
 - [ ] **`cardItemIds`-set in memory** in menu-pagina — UI-state voor net-toegevoegde items, hoort uit DB-flow te komen.
-- [~] **Statische koppelingen-lijst** zonder OAuth-flow (op /dashboard/koppelingen) — **deels af (2026-06-11):** Facebook/Instagram hebben inmiddels een echte OAuth-verbindflow (`method: "oauth"` → `/oauth/meta/start`). **Rest:** overige koppelingen (Google Business, Zenchef, reserveringsplatforms) nog statisch.
+- [x] ~~**Statische koppelingen-lijst** zonder OAuth-flow~~ (2026-06-11) — de mock is opgeruimd: de nep-API-key-flow (eindigde in een `alert("Storage komt binnenkort")`) is weg uit `account-connections.tsx`. Nu eerlijke statussen: Meta = echte OAuth-verbindknop, Google Business = "Beheer"-link naar de Vindbaarheid-hub (waar de echte koppel-flow leeft), mail + weer = "✓ Actief", al het overige (Zenchef/OpenTable/SevenRooms/Resengo/TikTok/WhatsApp/TripAdvisor/The Fork/Lightspeed) = rustige "Binnenkort"-pill. SendGrid-rij verwijderd (mail loopt via het platform; loze belofte). De échte integraties blijven gewoon op de "Integraties (OAuth)"-backlog hieronder staan.
 
 ### Database-migraties nog te maken
 - [x] ~~0049: campaign_sends.send_mode (test vs all_opted_in)~~ (2026-05-24) — test-mails tellen niet in sent_count en worden geskipt in campaign_performance-aggregatie. Index op (campaign_id, send_mode) voor snelle count-by-mode-query.
@@ -428,7 +428,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [ ] **Command palette** (Cmd+K)
 - [ ] **Notifications-bell** werkend
 - [ ] **Keyboard shortcuts** overzicht
-- [~] **Export CSV/PDF** per pagina (gasten, reserveringen, rapportages) — **deels af (2026-06-11):** CSV-export bestaat al op de reserveringen-pagina (`exportGuestsToCsv`). **Rest:** gasten- + rapportages-pagina en PDF-variant.
+- [x] ~~**Export CSV/PDF** per pagina (gasten, reserveringen, rapportages)~~ (2026-06-11) — gedeelde helper `lib/csv-export.ts` (BOM + quote-escaping). Per pagina: **gasten** = klanten-CSV (volgt filter+zoekterm; verhuisd van de reserveringen-pagina waar 'ie gek genoeg woonde), **reserveringen** = reserveringen-CSV (datum/tijd/naam/personen/status/bron/via-campagne/notities, volgt filters), **rapportages** = kanaal-overzicht-CSV. **PDF** op alle drie via 🖨-knop → browser-printdialoog ("Bewaar als PDF"); `@media print`-regels in dashboard.css verbergen sidebar/topbar/knoppen en heffen de fixed-viewport-scroll op. Bewust geen PDF-library (bundle-gewicht).
 - [x] ~~**Mobile responsive pass**~~ (2026-04-30) — alle 5 fasen afgerond. Sidebar wordt offcanvas onder 1024px (☰-burger in topbar), dash-body 1-kolom op tablet, KPI-row 5→2→1 cols, weather-row auto-fit (geen doormidden gesneden dagen meer), tabellen horizontaal scrollbaar binnen container, modals full-screen onder 768px, save-bar sticky bottom op mobile, publieke site (navbar/login/legal) ook mee. Breakpoints: 1024 / 768 / 480. **Aanvulling 2026-06-02**: vervolg-sweep fixte resterende gaten die deze pass miste — échte hamburger-navbar < 880px, dashboard scrollt op mobiel (kalender werd 0px hoog), kalenderkop-toggle wrapt, half-scherm 2-koloms, social-waaier/hero-mockup/tijdlijn/legal+rauwe tabellen. Zie changelog 2026-06-02.
 - [ ] **i18n (EN)** — engels voor internationale klanten later
 
@@ -631,7 +631,7 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🟡 **Geen klanten-dashboard** ("welke klanten hebben KvK ingevuld? wie heeft Filly nooit gebruikt?").
 - [ ] 🟡 **Geen incident-response runbook** — wat doe je als Claude API down is, Supabase storage faalt?
 - [x] ~~🟡 Geen klant-data-export~~ (2026-04-29) — `GET /restaurant/me/export` endpoint met blob-download via `downloadRestaurantExport`. Geeft alle business-data (restaurant, gasten, reserveringen, menu, campagnes, reviews, chat, audit-log) in één JSON-bestand. Knop op account-pagina sectie "Data & privacy".
-- [~] 🟡 **Logging is inconsistent** — **api is inmiddels schoon** (2026-06-11: 0× `console.*` in `apps/api/src`, alles via NestJS `Logger`). **Rest:** web heeft nog ~20 `console.*`-calls; log-aggregator ontbreekt nog.
+- [x] ~~🟡 **Logging is inconsistent**~~ (2026-06-11) — api: overal NestJS `Logger` (0× `console.*`). Web: alle 20 `console.error`-calls vervangen door `lib/logger.ts` — server-side (route-handlers) logt altijd (Vercel function-logs), client-side alleen in development. De logger is hét toekomstige hook-punt voor Sentry `captureException`. **Log-aggregator zelf = het bestaande Sentry-item (CTO-sectie / P1 Monitoring).**
 - [ ] 🟡 **Geen rate-limit per user op AI** (alleen 100/uur/restaurant). Eén user kan binnen 1 uur €5-10 verbranden.
 - [ ] 🟢 **Geen monitoring** Claude/Supabase uptime — storingen alleen via klant-mails.
 

@@ -32,6 +32,7 @@ import { FillyChatMessageList } from "./filly-chat-message-list";
 import { FillyChatInput } from "./filly-chat-input";
 import { FillyChatErrorBanner } from "./filly-chat-error-banner";
 import { FillyChatHistoryMenu } from "./filly-chat-history-menu";
+import { logger } from "@/lib/logger";
 
 // ============================================================
 // FillyChat, orchestrator-component voor de Filly-chat-card op het
@@ -196,7 +197,7 @@ export function FillyChat() {
       })
       .catch((e) => {
         if (cancelled) return;
-        console.error(e);
+        logger.error(e);
         setError("Kon de chat niet laden. Probeer zo opnieuw.");
         setLoading(false);
       });
@@ -270,7 +271,7 @@ export function FillyChat() {
         setMessageCount(CHAT_CONVERSATION_CAP);
         setError(errMsg);
       } else {
-        console.error(e);
+        logger.error(e);
         setError(
           "Filly kon niet antwoorden. Probeer nog eens (de rate-limit kan bereikt zijn).",
         );
@@ -386,7 +387,7 @@ export function FillyChat() {
       // bij volgende render afgeleid (pending = default als geen entry).
       setProposalStatus({});
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setError("Kon dit gesprek niet laden.");
     } finally {
       setLoading(false);
@@ -408,7 +409,7 @@ export function FillyChat() {
       const convs = await fetchChatConversations().catch(() => []);
       setConversations(convs);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setError("Kon geen nieuw gesprek starten.");
     } finally {
       setLoading(false);
@@ -433,7 +434,7 @@ export function FillyChat() {
         await startNewConversation();
       }
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setError(
         e instanceof Error
           ? e.message
@@ -459,7 +460,7 @@ export function FillyChat() {
         [messageId]: { state: "created", campaignId },
       }));
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setProposalStatus((s) => ({
         ...s,
         [messageId]: {
@@ -496,7 +497,7 @@ export function FillyChat() {
         },
       }));
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setBundleStatus((s) => ({
         ...s,
         [messageId]: {

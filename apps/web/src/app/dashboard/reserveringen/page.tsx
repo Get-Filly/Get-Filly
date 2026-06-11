@@ -16,6 +16,7 @@ import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui/page-header";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Tabs } from "../../../components/ui/tabs";
+import { downloadCsv, exportPagePdf } from "../../../lib/csv-export";
 
 type StatusFilter = "alle" | ReservationStatus;
 
@@ -46,56 +47,44 @@ function formatDayLabel(dateStr: string): string {
 }
 
 // ============================================================
-// exportGuestsToCsv, download gast-lijst als CSV
+// exportReservationsToCsv, download reserveringen als CSV
 // ============================================================
-// Excel-friendly: BOM-prefix zodat ä/é/etc niet als rommel verschijnen
-// bij dubbelklik in Excel. Quote-escape per cel zodat komma's of
-// regel-eindes in een notitie de CSV niet breken.
-function exportGuestsToCsv(guests: Guest[]) {
-  if (guests.length === 0) return;
+// De kolom-mapping is pagina-specifiek; de download zelf loopt via
+// de gedeelde helper in lib/csv-export (zelfde Excel-vriendelijke
+// BOM + quote-escaping als de klanten-export op /gasten).
+function exportReservationsToCsv(
+  reservations: Reservation[],
+  campaignNameById: Map<string, string>,
+) {
   const headers = [
+    "Datum",
+    "Tijd",
     "Naam",
-    "Email",
+    "Personen",
+    "Status",
     "Telefoon",
-    "Bezoeken",
-    "Laatste bezoek",
-    "Verjaardag",
-    "Tags",
-    "Mail-opt-in",
+    "E-mail",
+    "Bron",
+    "Tafel",
+    "Via campagne",
+    "Notities",
   ];
-  const rows = guests.map((g) => {
-    const name = [g.first_name, g.last_name].filter(Boolean).join(" ") || "—";
-    const lastVisit = g.last_visit_at
-      ? new Date(g.last_visit_at).toISOString().slice(0, 10)
-      : "";
-    return [
-      name,
-      g.email ?? "",
-      g.phone ?? "",
-      String(g.visit_count),
-      lastVisit,
-      g.birthday ?? "",
-      (g.tags ?? []).join("; "),
-      g.mail_opt_in ? "ja" : "nee",
-    ];
-  });
-  const escape = (cell: string) => `"${cell.replace(/"/g, '""')}"`;
-  const csv = [headers, ...rows]
-    .map((r) => r.map(escape).join(","))
-    .join("\n");
-
-  // BOM (﻿) zorgt dat Excel UTF-8 herkent.
-  const blob = new Blob(["﻿" + csv], {
-    type: "text/csv;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `klanten-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const rows = reservations.map((r) => [
+    r.reservation_date,
+    r.reservation_time,
+    r.guest_name ?? "",
+    String(r.party_size),
+    r.status,
+    r.guest_phone ?? "",
+    r.guest_email ?? "",
+    r.source ?? "",
+    r.table_code ?? "",
+    r.via_campaign_id
+      ? (campaignNameById.get(r.via_campaign_id) ?? r.via_campaign_id)
+      : "",
+    r.notes ?? "",
+  ]);
+  downloadCsv("reserveringen", headers, rows);
 }
 
 export default function ReserveringenPage() {
@@ -233,13 +222,31 @@ export default function ReserveringenPage() {
       <PageHeader
         title="Reserveringen"
         actions={
-          <Button
-            variant="primary"
-            onClick={() => exportGuestsToCsv(Array.from(guestsById.values()))}
-            disabled={guestsById.size === 0}
-          >
-            ⬇ Exporteer klanten
-          </Button>
+          <>
+            {/* Klanten-export is verhuisd naar /dashboard/gasten
+                (2026-06-11); hier exporteren we de reserveringen
+                zelf, gefilterd zoals op het scherm. PDF = browser-
+                printdialoog ("Bewaar als PDF"). */}
+            <Button
+              variant="secondary"
+              onClick={exportPagePdf}
+              disabled={filtered.length === 0}
+            >
+              🖨 PDF
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() =>
+                exportReservationsToCsv(
+                  filtered,
+                  new Map(campaigns.map((c) => [c.id, c.name])),
+                )
+              }
+              disabled={filtered.length === 0}
+            >
+              ⬇ Exporteer CSV
+            </Button>
+          </>
         }
       />
 

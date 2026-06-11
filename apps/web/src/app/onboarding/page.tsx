@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase-browser";
 import { ServicePeriodsEditor } from "../../components/service-periods-editor";
+import { logger } from "@/lib/logger";
 
 // Localstorage-key die de RestaurantContext gebruikt om de actieve
 // zaak te onthouden tussen sessies. Bij het toevoegen van een 2e zaak
@@ -435,7 +436,7 @@ function OnboardingPageContent() {
 
       setAnalyzeStatus(null);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setAnalyzeError(
         e instanceof Error
           ? e.message
@@ -574,7 +575,7 @@ function OnboardingPageContent() {
         router.refresh();
       }
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setError(
         e instanceof Error
           ? e.message
