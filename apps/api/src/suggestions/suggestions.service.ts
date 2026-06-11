@@ -320,9 +320,11 @@ type LowOccupancyCampaignFromTool = {
   expected_extra_revenue_cents?: number;
 };
 
-// Drempel: een dag is "rustig" als de geschatte bezetting hier-onder
-// ligt. V1 hard-coded; v2 instelbaar per restaurant via de account-
-// pagina (zie BACKLOG).
+// Drempel-fallback: een dag is "rustig" als de geschatte bezetting
+// hieronder ligt. De eigenaar stelt z'n eigen drempel in op de
+// account-pagina (kolom restaurants.low_occupancy_threshold, mig
+// 0037); deze constante is alleen nog de fallback voor restaurants
+// zonder eigen waarde.
 const LOW_OCCUPANCY_THRESHOLD_PCT = 50;
 // Window: dagen 2-14 vooruit. Vandaag/morgen overslaan want dan is
 // een marketing-actie te laat om effect te hebben. >14 dagen heeft
@@ -891,6 +893,19 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       );
     }
 
+    // Stap 1b, drempel per restaurant: de eigenaar stelt deze in op
+    // de account-pagina (slider → kolom low_occupancy_threshold).
+    // Fallback op de oude hard-coded waarde als de kolom leeg is —
+    // zelfde patroon als getProposalDetails verderop.
+    const { data: restaurantRow } = await this.supabase.client
+      .from('restaurants')
+      .select('low_occupancy_threshold')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    const thresholdPct =
+      (restaurantRow?.low_occupancy_threshold as number | null) ??
+      LOW_OCCUPANCY_THRESHOLD_PCT;
+
     // Stap 2, kandidaat-dagen ophalen: occupancy_days in window
     // 2-14 dagen vooruit, percentage onder drempel.
     const today = new Date();
@@ -907,7 +922,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       .eq('restaurant_id', restaurantId)
       .gte('date', fromIso)
       .lte('date', toIso)
-      .lt('occupancy_pct', LOW_OCCUPANCY_THRESHOLD_PCT)
+      .lt('occupancy_pct', thresholdPct)
       .order('date', { ascending: true });
 
     if (occErr) throw new InternalServerErrorException(occErr.message);
@@ -999,7 +1014,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 
       const dayContext = `RUSTIGE DAG OM TE ACTIVEREN:
 - Datum: ${day.date} (${weekdayNl}, over ${daysFromNow} dagen)
-- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${LOW_OCCUPANCY_THRESHOLD_PCT}%)
+- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${thresholdPct}%)
 - Geschat aantal gasten: ${day.estimated_guests ?? '?'}
 - Reserveringen tot nu: ${day.reservations_count ?? 0}
 
