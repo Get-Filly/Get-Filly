@@ -22,9 +22,9 @@ export const metadata = pageMetadata({
 });
 
 const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op het restaurant en de gasten." },
+  { title: "Ondernemer eerst", desc: "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op de gasten en dienstverlening." },
   { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
-  { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen. Levert het niets op, dan stopt het." },
+  { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet." },
 ];
 
 export default function AboutPage() {
