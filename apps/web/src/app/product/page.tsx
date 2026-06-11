@@ -61,10 +61,10 @@ export default function ProductPage() {
             <ScrollReveal />
 
             {/* STAP 1, Get-Filly ziet de dip */}
-            {/* Reveal iets later: nu het groene nummer-bolletje weg is schuift
-                de tekst omhoog en kwam de fade te vroeg; transition-delay
-                compenseert (zie .feature-row--reveal-late in landing.css). */}
-            <div className="feature-row feature-row--reveal-late" data-reveal>
+            {/* Reveal pas ná een beetje scrollen (data-reveal-late): zonder het
+                nummer-bolletje schoof de tekst omhoog en werd de stap al bij
+                paginaload getoond. Zie scroll-reveal.tsx (observerLate, -45%). */}
+            <div className="feature-row" data-reveal data-reveal-late>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">

@@ -80,20 +80,25 @@ export function ScrollReveal() {
       el.querySelectorAll<HTMLElement>(".pmock-count").forEach(runCountUp);
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            reveal(entry.target as HTMLElement);
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      // Trigger als het item ~15% in beeld is gescrolld (rootMargin -15%).
-      // Middenweg: laat genoeg dat je de fade ziet gebeuren (vooral bij de
-      // hoge oplossing-kaarten), maar niet zo laat als de eerdere -25%.
-      { threshold: 0, rootMargin: "0px 0px -15% 0px" },
-    );
+    // Twee observers: de standaard (-15%, item ~15% in beeld) en een "late"
+    // variant (-45%) voor items met data-reveal-late. Die laatste poppen pas op
+    // als je ze duidelijk in beeld hebt gescrolld — gebruikt bij de 1e
+    // walkthrough-stap ("Detectie"), die anders al bij paginaload zou tonen.
+    const makeObserver = (rootMargin: string) =>
+      new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              reveal(entry.target as HTMLElement);
+              obs.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0, rootMargin },
+      );
+
+    const observer = makeObserver("0px 0px -15% 0px");
+    const observerLate = makeObserver("0px 0px -45% 0px");
 
     items.forEach((el) => {
       el.classList.add("reveal-pending");
@@ -110,14 +115,20 @@ export function ScrollReveal() {
       // staat als "direct tonen" (geen flits); al het andere popt elke
       // keer hetzelfde op zodra je ernaartoe scrollt.
       const absoluteTop = rect.top + window.scrollY;
-      if (absoluteTop < window.innerHeight * 0.5) {
+      // data-reveal-late: nooit meteen tonen bij load — altijd via scroll-in,
+      // met de latere trigger (observerLate).
+      const isLate = el.hasAttribute("data-reveal-late");
+      if (!isLate && absoluteTop < window.innerHeight * 0.5) {
         reveal(el);
       } else {
-        observer.observe(el);
+        (isLate ? observerLate : observer).observe(el);
       }
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      observerLate.disconnect();
+    };
   }, []);
 
   return null;
