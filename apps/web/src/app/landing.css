@@ -942,6 +942,15 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   opacity: 1;
   transform: none;
 }
+/* FOUC-fix: html.reveal-armed wordt vóór de eerste paint gezet (inline script
+   in de layout, alleen met JS + zonder reduced-motion). Daardoor verbergen we
+   reveal-items meteen — vóór ze één keer zichtbaar getekend worden — totdat
+   ScrollReveal ze toont (reveal-shown). Zonder JS / reduced-motion blijft
+   .reveal-armed weg → items gewoon zichtbaar (fallback). */
+html.reveal-armed [data-reveal]:not(.reveal-shown) {
+  opacity: 0;
+  transform: translateY(26px);
+}
 /* Bolletje-pop: alléén het genummerde cirkel-bolletje (.hero-diff-num) in de
    "AI doet het werk / geen marketingkennis"-strips schaalt op met een lichte
    overshoot, kort ná de kaart-fade. De inline pills (walkthrough-stappen) en

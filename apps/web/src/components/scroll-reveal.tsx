@@ -80,27 +80,20 @@ export function ScrollReveal() {
       el.querySelectorAll<HTMLElement>(".pmock-count").forEach(runCountUp);
     };
 
-    // Twee observers: de standaard (-15%, item ~15% in beeld) en een "late"
-    // variant (-25%) voor items met data-reveal-late. Die laatste worden nooit
-    // meteen bij load getoond en reveallen pas na een klein tikje scrollen —
-    // gebruikt bij de 1e walkthrough-stap ("Detectie"), zodat de percentage-
-    // balken (scaleY-fill) pas vollopen als je een stukje naar beneden scrolt
-    // i.p.v. al bij paginaload.
-    const makeObserver = (rootMargin: string) =>
-      new IntersectionObserver(
-        (entries, obs) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              reveal(entry.target as HTMLElement);
-              obs.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0, rootMargin },
-      );
-
-    const observer = makeObserver("0px 0px -15% 0px");
-    const observerLate = makeObserver("0px 0px -25% 0px");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            reveal(entry.target as HTMLElement);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      // Trigger als het item ~15% in beeld is gescrolld (rootMargin -15%).
+      // Middenweg: laat genoeg dat je de fade ziet gebeuren (vooral bij de
+      // hoge oplossing-kaarten), maar niet zo laat als de eerdere -25%.
+      { threshold: 0, rootMargin: "0px 0px -15% 0px" },
+    );
 
     items.forEach((el) => {
       el.classList.add("reveal-pending");
@@ -117,20 +110,14 @@ export function ScrollReveal() {
       // staat als "direct tonen" (geen flits); al het andere popt elke
       // keer hetzelfde op zodra je ernaartoe scrollt.
       const absoluteTop = rect.top + window.scrollY;
-      // data-reveal-late: nooit meteen tonen bij load — altijd via scroll-in,
-      // met de latere trigger (observerLate).
-      const isLate = el.hasAttribute("data-reveal-late");
-      if (!isLate && absoluteTop < window.innerHeight * 0.5) {
+      if (absoluteTop < window.innerHeight * 0.5) {
         reveal(el);
       } else {
-        (isLate ? observerLate : observer).observe(el);
+        observer.observe(el);
       }
     });
 
-    return () => {
-      observer.disconnect();
-      observerLate.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   return null;

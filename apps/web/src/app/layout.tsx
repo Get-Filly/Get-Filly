@@ -68,6 +68,18 @@ export default function RootLayout({
   return (
     <html lang="nl" className={inter.variable}>
       <body>
+        {/* FOUC-fix: zet vóór de eerste paint html.reveal-armed (alleen met JS
+            én zonder reduced-motion). Daardoor zijn de scroll-reveal-kaarten
+            meteen verborgen i.p.v. heel kort op te flitsen; ScrollReveal toont
+            ze daarna bij het scrollen. Zonder JS / reduced-motion komt de class
+            nooit → alles gewoon zichtbaar (fallback). Inline + bovenaan body,
+            dus het draait vóór de reveal-elementen worden getekend. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-armed')}}catch(e){}})()",
+          }}
+        />
         <StructuredData />
         <Navbar />
         {children}
