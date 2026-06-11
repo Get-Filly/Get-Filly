@@ -803,6 +803,40 @@ export function formatTimingForPrompt(channel: FillyChannel): string {
 }
 
 /**
+ * Multi-kanaal-variant van formatTimingForPrompt: één compact blok met
+ * beste dagen/tijden + lead-time per kanaal. Voor prompts waarin Filly
+ * zélf het kanaal kiest (bv. proactieve voorstellen) en dus de timing
+ * van alle kandidaat-kanalen moet kennen om scheduled_for te vullen.
+ * De generieke urgentie-regel staat er één keer onder in plaats van
+ * per kanaal herhaald (scheelt prompt-tokens).
+ */
+export function buildAllTimingBlock(channels?: FillyChannel[]): string {
+  const list: FillyChannel[] = channels ?? [
+    'mail',
+    'instagram_feed',
+    'facebook',
+    'tiktok',
+    'whatsapp',
+    'google_business',
+  ];
+  const dayNames = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+  const lines: string[] = [];
+  lines.push('TIMING PER KANAAL (bron-van-waarheid voor scheduled_for):');
+  for (const c of list) {
+    const r = CHANNEL_RULES[c];
+    const days = r.bestTimes.bestDays.map((d) => dayNames[d]).join('/');
+    lines.push(
+      `- ${r.label}: ${days} ${r.bestTimes.bestHours.join(' of ')}; lead-time min ${r.leadTime.minHours}u, optimaal ${r.leadTime.optimalRangeHours[0]}-${r.leadTime.optimalRangeHours[1]}u vóór de doel-datum.${r.bestTimes.note ? ` Let op: ${r.bestTimes.note}` : ''}`,
+    );
+  }
+  lines.push('');
+  lines.push(
+    'Urgentie-regel: is de doel-datum dichterbij dan het optimale interval, kies dan zo dicht mogelijk bij "nu" en gebruik urgentie-taal in plaats van te wachten op het statistische sweet-spot.',
+  );
+  return lines.join('\n');
+}
+
+/**
  * Bepaal of dit kanaal überhaupt nog op tijd is voor het doel.
  * Returnt 'optimal' / 'within_minimum' / 'below_minimum' (skip).
  */

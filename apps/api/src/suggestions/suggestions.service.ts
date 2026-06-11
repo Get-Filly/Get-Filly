@@ -13,7 +13,12 @@ import {
 } from '../campaigns/campaigns.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
-import { buildAllChannelsBlock } from '../ai/filly-brain.config';
+import {
+  buildAllChannelsBlock,
+  buildAllTimingBlock,
+  formatChannelRulesForPrompt,
+  mapCampaignTypeToChannel,
+} from '../ai/filly-brain.config';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
@@ -645,13 +650,11 @@ Per channel-object in 'channels':
 - platform: één van de bovenstaande, geen dubbele platforms binnen 1 voorstel.
 - body: volledige uitgeschreven tekst voor DIT kanaal (mail = langer, social = korter), klaar om te versturen. SCHRIJF voor elk kanaal een eigen variant — kopieer niet zomaar dezelfde body.
 - subject_line: alleen voor mail-kanalen; voor whatsapp/instagram/facebook/tiktok laat je 'm weg.
-- scheduled_for + scheduled_reasoning, kies bewust per platform:
-  - mail: 09:00-10:00 weekdag (ochtend-coffee-moment voor inbox-checken). Voor zondag-actie kun je vrijdag versturen zodat 't in de inbox blijft staan.
-  - whatsapp: 11:00-13:00 of 17:00-18:30 (lunch-bel of na-werk).
-  - instagram (feed): 17:00-19:00 (peak engagement na werk).
-  - facebook: 13:00-15:00 weekdag of zaterdag 10:00-12:00.
-  - tiktok: 19:00-22:00 (avond-binge).
-  In scheduled_reasoning een 1-zin uitleg WAAROM dit moment past bij dit kanaal én deze campagne (bv. "Vrijdag 9:30 = pre-weekend mail-check, mensen plannen hun zaterdag-uitje").
+- scheduled_for + scheduled_reasoning: kies het moment per platform op
+  basis van TIMING PER KANAAL onderaan (bron-van-waarheid, géén eigen
+  tijden verzinnen). In scheduled_reasoning een 1-zin uitleg WAAROM dit
+  moment past bij dit kanaal én deze campagne (bv. "Vrijdag 9:30 =
+  pre-weekend mail-check, mensen plannen hun zaterdag-uitje").
 
 Per voorstel-niveau:
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
@@ -663,6 +666,8 @@ Vandaag is ${todayIso}.
 
 ---
 ${buildAllChannelsBlock()}
+---
+${buildAllTimingBlock()}
 ---
 ${await this.fingerprint.buildLearningContextBlock(restaurantId)}
 ---
@@ -1036,10 +1041,15 @@ Inhoudsregels:
   * vaste-gast/VIP-segment + acute dag (<5 dagen) → whatsapp (snel, persoonlijk)
   * brede zaal/weekend → social (zichtbaar, sfeervol)
   * 5-14 dagen vooruit + nieuwsbrief-segment → mail (uitgewerkter)
+- Houd de body binnen de lengte-bandbreedte van het gekozen kanaal
+  (zie REGELS PER KANAAL hieronder; type 'social' volgt het
+  Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt, verwijs naar concrete getallen.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
+---
+${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
 CONTEXT, restaurant-profiel + menu:
 
@@ -1323,10 +1333,15 @@ Inhoudsregels:
   * Acute dag (<5 dgn) + vaste-gast/VIP → whatsapp (snel, persoonlijk)
   * Brede zaal/weekend → social (zichtbaar, sfeervol)
   * 5+ dgn vooruit + nieuwsbrief-segment → mail (uitgewerkter)
+- Houd de body binnen de lengte-bandbreedte van het gekozen kanaal
+  (zie REGELS PER KANAAL hieronder; type 'social' volgt het
+  Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/aanleiding werkt.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).
 
+---
+${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
 CONTEXT, restaurant-profiel + menu:
 
@@ -2739,6 +2754,18 @@ Maak dit tastbaar volgens de regels.`;
       );
     }
 
+    // Kanaal-regels uit het centrale brein: bij multi-channel kennen
+    // we het échte platform van het target-kanaal, bij legacy mappen
+    // we het generieke type ('social' → Instagram-feed-profiel).
+    const fillyChannel = mapCampaignTypeToChannel(
+      currentType,
+      isMultiChannel
+        ? ((channels[targetChannelIdx]?.platform as string | undefined) ??
+            null)
+        : null,
+    );
+    const channelRules = formatChannelRulesForPrompt(fillyChannel);
+
     // Tool-use forceert het JSON-schema (3 variants exact). Wij geven
     // Filly het bestaande materiaal mee als 'vermijd-lijst' zodat de
     // alternatieven inhoudelijk anders zijn dan wat al gegenereerd is.
@@ -2749,9 +2776,16 @@ Je antwoord komt via de tool 'generate_alternatives'. Lever exact 3 varianten.
 Inhoudsregels:
 - Schrijf in het Nederlands, in dezelfde campagne-context (zelfde gerecht/aanbod).
 - Drie tonen: bv. zakelijk-professioneel, warm-persoonlijk, kort-prikkelend. Onderling duidelijk verschillend.
+- Houd élke variant binnen de lengte-bandbreedte uit KANAAL-REGELS hieronder, nooit erbuiten.
 - Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.
 - Bij type=mail vul je per variant ook subject_line; bij social/whatsapp laat je subject_line weg.
-- Vermijd de exacte zinnen uit de bestaande varianten.`;
+- Vermijd de exacte zinnen uit de bestaande varianten.
+
+---
+KANAAL-REGELS (kanaal '${fillyChannel}'):
+
+${channelRules}
+---`;
 
     const existingPayload = JSON.stringify(existingVariants, null, 2);
     const instructionLine = trimmed
