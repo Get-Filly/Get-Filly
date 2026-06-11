@@ -11,6 +11,13 @@
  * 1-op-1 naar code. Wanneer er een conflict ontstaat tussen doc en
  * deze file: de doc is leading; pas de file aan, niet andersom.
  *
+ * Timing (bestTimes/leadTime per kanaal) is per 2026-06-11 bijgewerkt
+ * vanuit het Timing Brein-document (`Get-Filly-Posting-Tijden-v1_1.docx`,
+ * onderzoeksgedreven: Buffer/Sprout/MailerLite/Rabobank e.a.). Externe
+ * timing-factoren (weer/feestdagen/loondagen/seizoenen, hfst 4 van dat
+ * doc) leven in `timing-factors.ts` — deterministisch berekend, niet
+ * aan Claude gevraagd.
+ *
  * Gebruik:
  *   import { CHANNEL_RULES, formatChannelRulesForPrompt } from './filly-brain.config';
  *   const rules = CHANNEL_RULES.instagram_feed;
@@ -25,7 +32,9 @@
 // downstream-services kan beïnvloeden (zelfde patroon als
 // runner_version in HealthService).
 // ============================================================
-export const CHANNEL_RULES_VERSION = 'v1';
+// v2 (2026-06-11): bestTimes per kanaal bijgewerkt vanuit het Timing
+// Brein-doc (Posting-Tijden v1.1); GBP-frequentie 2→3/week.
+export const CHANNEL_RULES_VERSION = 'v2';
 
 // ============================================================
 // Kanalen, funnel-fasen, lifecycle, archetypes, tone-signatures
@@ -212,9 +221,9 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       placement: 'niet_van_toepassing',
     },
     bestTimes: {
-      bestDays: [2, 3, 4], // di/wo/do
-      bestHours: ['09:00-11:00', '16:00-17:30'],
-      note: 'Vermijd ma (inbox-overload weekend) en vr-mid (mensen "uit"). Segmenteer op historisch open-tijdstip.',
+      bestDays: [4, 5], // do/vr
+      bestHours: ['09:00-11:00', '17:30-18:30'],
+      note: 'Vrijdag 18:00 = piek in open- én click-rate (MailerLite, 2.1M campagnes); do-ochtend ideaal voor weekend-promoties (+30% CTR vs ma/di). Vermijd zondag (click-rate -32%). Maand-begin (1-5) en rond de 25e (loondag) geven extra boost.',
     },
     leadTime: {
       minHours: 24,
@@ -256,9 +265,9 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       mix: 'Mix branded (#restaurantnaam) + niche-lokaal (#stadsnaam #wijknaam) + algemeen (#cuisine).',
     },
     bestTimes: {
-      bestDays: [2, 3, 4, 5], // di-vr
-      bestHours: ['11:00-13:00', '19:00-21:00'],
-      note: 'Lunch-piek en avond-keuze-piek. Eerste 125 tekens cruciaal (zichtbaar vóór "meer"-klik).',
+      bestDays: [3, 4, 5], // wo/do/vr
+      bestHours: ['12:00-13:00', '18:00-21:00'],
+      note: 'Donderdag 9:00 en 21:00 = hoogste engagement (Buffer, 9.6M posts); wo 12:00 + 18:00 sterk; vr-lunch (11-13) triggert weekend-eetbeslissingen. Vermijd za-zo voor zakelijke posts (engagement -17%). Eerste 125 tekens cruciaal (zichtbaar vóór "meer"-klik).',
     },
     leadTime: {
       minHours: 6,
@@ -301,8 +310,8 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     bestTimes: {
       bestDays: [4, 5, 6, 7], // do-zo
-      bestHours: ['19:00-22:00'],
-      note: 'Wanneer mensen scrollen voor entertainment + uit-eten-keuze.',
+      bestHours: ['10:00-11:30', '16:00-17:30'],
+      note: 'Reels 2-4u vóór het eetmoment plaatsen (lunch ~11:00, diner ~17:00): vlak voor de eetbeslissing presteert F&B-video het best (Dash Social; Reels 2.7% engagement vs 1.4% carousel). Weekend-avond werkt voor F&B óók.',
     },
     leadTime: {
       minHours: 4,
@@ -344,8 +353,8 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     bestTimes: {
       bestDays: [1, 2, 3, 4, 5, 6, 7], // dagelijks
-      bestHours: ['17:00-22:00'],
-      note: 'Avond-scroll-piek wanneer mensen avond-keuze maken.',
+      bestHours: ['11:00-13:00', '17:00-19:00'],
+      note: '"Wat is er vandaag"-content vlak vóór de eetmomenten (lunch + diner-prep). Verdwijnt na 24u, dus plaats op de dag zelf.',
     },
     leadTime: {
       minHours: 0,
@@ -386,9 +395,9 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       mix: 'Geen hashtags; engagement neemt af met meer (Sprout Social 2024).',
     },
     bestTimes: {
-      bestDays: [3, 4, 5], // wo/do/vr
-      bestHours: ['09:00-12:00', '16:00-18:00'],
-      note: 'Dag-tijden werken beter dan avond; oudere FB-audience.',
+      bestDays: [2, 3, 4, 5], // di-vr
+      bestHours: ['11:00-13:00', '17:00-19:00'],
+      note: 'Di-wo 12:00-20:00 = algemene piek (Sprout, 307K profielen); maaltijd-windows 11-13 en 17-19 voor food-content. Boekings-/aanbod-content scoort do-zo 11:00-14:00 en 19:00-21:00. Events: 2-3 weken vooraf aankondigen + reminder 2 dagen vooraf (3× hogere RSVP).',
     },
     leadTime: {
       minHours: 12,
@@ -431,9 +440,9 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       mix: 'Mix trending + #foodietok + #stadsnaam + 1 niche.',
     },
     bestTimes: {
-      bestDays: [2, 3, 4, 6], // di-do + za
-      bestHours: ['18:00-22:00', '13:00-17:00'],
-      note: 'Algoritme beloont consistentie boven kwaliteit.',
+      bestDays: [1, 2, 3, 4, 6], // ma-do + za
+      bestHours: ['14:00-18:00', '19:00-21:00'],
+      note: 'Ma-do 15:00-18:00 = F&B-piek ("afternoon slump": mensen plannen hun diner — Sprout); za-ochtend 10:00-12:00 voor weekend-content. Post 30-60 min vóór de piek: het algoritme test eerst klein en pusht daarna (4× FYP-distributie bij vroege engagement). Consistentie weegt zwaarder dan perfectie.',
     },
     leadTime: {
       minHours: 6,
@@ -475,9 +484,9 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       placement: 'niet_van_toepassing',
     },
     bestTimes: {
-      bestDays: [4, 5], // do/vr
-      bestHours: ['16:00-18:00', '10:00-12:00'],
-      note: 'Conservatief gebruiken. Opt-in juridisch verplicht.',
+      bestDays: [2, 3, 4], // di-do
+      bestHours: ['16:00-18:00', '11:00-15:00'],
+      note: 'Vaste gasten di-do 16:00-18:00 (last-minute zelfde-avond-uitnodiging, 67% prefereert messaging boven bellen); lege-tafels-broadcast op de dag zelf om 11:00 of 15:00. NOOIT 22:00-09:00 of zondagavond (AVG redelijke uren). Verjaardags-bericht 7 dagen vóór de datum. Conservatief gebruiken; opt-in juridisch verplicht.',
     },
     leadTime: {
       minHours: 0.5,
@@ -519,16 +528,16 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       mix: 'Geen hashtags; werken niet op GBP.',
     },
     bestTimes: {
-      bestDays: [1, 2, 3, 4], // ma-do
-      bestHours: ['10:00-12:00'],
-      note: 'Snelste indexering op werkdagen.',
+      bestDays: [1, 2, 3, 4, 5], // ma-vr
+      bestHours: ['07:00-09:00', '14:00-16:00'],
+      note: 'Ma-wo 7:00-9:00 = plan-modus begin van de week (weekreserveringen pieken ma/di, Toast +11%); event-posts wo-do 14:00-16:00 (weekend-planning piekt dan); weekend-aanbiedingen do-vr 14:00-16:00. Vaste maandagochtend-post ("wat is er nieuw") loont: wekelijks posten alleen al +28% klikken. 2-3 posts/week is het optimum.',
     },
     leadTime: {
       minHours: 12,
       optimalRangeHours: [24, 168], // 1-7 dagen
       rationale: 'Google indexeert binnen uren maar zoekers vinden 1-3 dagen na.',
     },
-    frequency: { maxPerWeek: 2, maxPerMonth: 8 },
+    frequency: { maxPerWeek: 3, maxPerMonth: 12 }, // 2-3/wk optimum (Shagbark/Wiremo)
     visual: {
       required: true,
       aspectRatios: ['4:3', '1:1', '16:9'],
