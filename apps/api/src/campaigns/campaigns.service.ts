@@ -11,6 +11,7 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 import {
   mapCampaignTypeToChannel,
   formatTimingForPrompt,
+  formatChannelRulesForPrompt,
 } from '../ai/filly-brain.config';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
@@ -1227,6 +1228,19 @@ export class CampaignsService {
       this.context.buildMenuBlock(restaurantId).catch(() => ''),
     ]);
 
+    // Kanaal-regels uit het centrale brein (lengte, hashtags, toon,
+    // CTA per kanaal). Zonder dit blok weet Filly niet hoe lang een
+    // IG-caption vs. een mail mag zijn en kwamen varianten structureel
+    // buiten de bandbreedte uit. Voor social bepaalt het eerste
+    // gekozen platform welk regel-profiel geldt (IG ≠ FB ≠ TikTok).
+    const channel = mapCampaignTypeToChannel(
+      type,
+      type === 'social'
+        ? ((content?.platforms as string[] | null)?.[0] ?? null)
+        : null,
+    );
+    const channelRules = formatChannelRulesForPrompt(channel);
+
     // System-prompt: Filly krijgt de huidige campagne + (optionele)
     // instructie + profiel + menu en moet 3 verschillende alternatieven
     // leveren via tool 'generate_campaign_variants'. Schema dwingt
@@ -1236,9 +1250,12 @@ export class CampaignsService {
 Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
 
 Inhoudsregels:
-- Maak de 3 varianten écht verschillend in toon/insteek/lengte
+- Maak de 3 varianten écht verschillend in toon/insteek
   (bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort).
   Niet alleen wat woorden anders.
+- Houd élke variant binnen de lengte-bandbreedte uit KANAAL-REGELS
+  hieronder. Varieer in lengte binnen die bandbreedte (v3 mag richting
+  het minimum, v1 richting het maximum), nooit erbuiten.
 - Behoud de kern van de boodschap (datum, aanbod, USP) tenzij de
   instructie expliciet vraagt om iets te wijzigen.
 - Verwerk concrete elementen uit het profiel (USPs, doelgroep, sfeer)
@@ -1253,6 +1270,10 @@ Inhoudsregels:
 - Verzin geen feiten/cijfers die niet in de oorspronkelijke versie
   of in het profiel/menu staan.
 
+---
+KANAAL-REGELS (deze campagne is type '${type}' → kanaal '${channel}'):
+
+${channelRules}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
 
@@ -1611,6 +1632,22 @@ ${menuBlock}
     };
 
     const type = campaign.type as 'mail' | 'social' | 'whatsapp';
+
+    // Kanaal-regels uit het centrale brein, zelfde aanpak als refine().
+    // De platforms-kolom leeft in campaign_social_content; één lichte
+    // query alleen wanneer dit een social-campagne is.
+    let socialPlatform: string | null = null;
+    if (type === 'social') {
+      const { data: social } = await this.supabase.client
+        .from('campaign_social_content')
+        .select('platforms')
+        .eq('campaign_id', id)
+        .maybeSingle();
+      socialPlatform = (social?.platforms as string[] | null)?.[0] ?? null;
+    }
+    const channel = mapCampaignTypeToChannel(type, socialPlatform);
+    const channelRules = formatChannelRulesForPrompt(channel);
+
     const [profileBlock, menuBlock] = await Promise.all([
       this.context.buildProfileBlock(restaurantId).catch(() => ''),
       this.context.buildMenuBlock(restaurantId).catch(() => ''),
@@ -1621,8 +1658,10 @@ ${menuBlock}
 Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
 
 Inhoudsregels:
-- Maak de 3 varianten écht verschillend in toon/insteek/lengte
+- Maak de 3 varianten écht verschillend in toon/insteek
   (bv. v1 = warm-uitnodigend, v2 = zakelijk-direct, v3 = speels-kort).
+- Houd élke variant binnen de lengte-bandbreedte uit KANAAL-REGELS
+  hieronder. Varieer in lengte binnen die bandbreedte, nooit erbuiten.
 - Behoud de kern van de boodschap (datum, aanbod, USP) tenzij de
   instructie expliciet vraagt om iets te wijzigen.
 - Verwerk concrete elementen uit het profiel (USPs, doelgroep, sfeer)
@@ -1631,6 +1670,10 @@ Inhoudsregels:
 - subject_line alleen voor mail-campagnes.
 - Schrijf in het Nederlands.
 
+---
+KANAAL-REGELS (deze campagne is type '${type}' → kanaal '${channel}'):
+
+${channelRules}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
 
