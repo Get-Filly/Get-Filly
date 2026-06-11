@@ -211,10 +211,10 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**tone_signature per variant gevalideerd**~~ (2026-05-24, hfst 8.4) — `ProposalVariant.tone_signature` (enum), FORMAAT 1-prompt verplicht 3 verschillende, sanitizeVariant valideert, observability-warning bij niet-uniek. Filly labelt tone nu zelf.
 - [x] ~~**Fingerprint v2: tone_signature + theme via Claude**~~ (2026-05-24, hfst 9.5) — `classifyToneAndTheme` Haiku-call bij approve, fail-soft → blijft v1 (null). Wordt fallback nu Filly de tone zelf labelt.
 - [x] ~~**Brein-dekking-fix: alle generatie-prompts krijgen kanaalregels**~~ (2026-06-11) — audit wees uit dat het brein op meerdere plekken níet in de prompt zat of door eigen hardgecodeerde regels werd tegengesproken. Gefixt: (1) campagne-refine + generateMoreVariants injecteren nu `formatChannelRulesForPrompt` op het echte kanaal (social → platform uit campaign_social_content); (2) chat-prompt: 3× eigen woordaantallen weg + dubbele FORMAAT 1-header weg + bug "variant 3 ~130% van max-lengte" (instrueerde Claude óver het maximum) gefixt; (3) suggesties: hardgecodeerde verzendtijden vervangen door nieuw `buildAllTimingBlock()` (BestTimes+lead-time per kanaal), lage-bezetting/speciale-dag/refine-prompts hadden helemaal géén brein en hebben dat nu wel. Commits `c0dd738` + `14ad635` + `c90e9e7`.
-- [ ] **Lengte-validatie in code (post-generation)** — LLM houdt zich nooit betrouwbaar aan lengte puur op prompt-tekst. Na elke generatie deterministisch checken of body binnen `CHANNEL_RULES[channel].copyLength` valt; buiten de band → markeren of 1 gerichte "kort in tot X tekens"-herschrijf. Eén gedeelde helper voor chat/suggesties/campagne-refine.
-- [ ] **Timing Brein v1.1 → config-vertaling** — Floris' document `Get-Filly-Posting-Tijden-v1_1.docx` (11 kanalen × externe factoren, onderzoeksgedreven). Vertalen naar filly-brain.config: bijgewerkte BestTimes per kanaal + evt. nieuwe kanalen (TheFork/Zenchef/OpenTable; SEO/GEO zijn onderhoud, geen posts). Document zelf gaat NIET de prompt in (te groot, bron-ruis).
-- [ ] **Externe timing-factoren als deterministische code** (Timing Brein hfst 4) — weer/feestdagen/loondagen/seizoenen passen basis-timing aan. Niet aan Claude vragen maar in code berekenen (weer-API bestaat al, NL-feestdagen-kalender + loondag-cluster zijn statisch); alleen het resultaat ("vrijdag = loondag-cluster, vervroeg de mail") gaat de prompt in.
-- [ ] **Lengte-hoofdstuk in brein-document genereren vanuit code** — het Timing Brein-doc mist berichtlengtes; die leven al in `copyLength` per kanaal. Hoofdstuk "Lengte & vorm per kanaal" genereren vanuit filly-brain.config zodat doc en code gegarandeerd gelijk blijven.
+- [x] ~~**Lengte-validatie in code (post-generation)**~~ (2026-06-11, commit `70afd79`) — `checkCopyLength()` in filly-brain.config + nieuw `ai/copy-length.guard.ts`: `enforceCopyLength()` doet max 1 gerichte herschrijf met exacte teken-aantallen ("variant 2 was 1500 tekens, maximum is 700") en accepteert daarna het beste resultaat + warning-log (blokkeert nooit; retry hergebruikt de prompt-cache → ~10% input-tarief). Aangesloten op 5 routes: campagne-refine, generateMoreVariants, suggestion-refine, low-occupancy en speciale-dag (kanaal post-hoc uit Filly's gekozen type, type vastgehouden bij herschrijf). **Restje:** chat-flow heeft de guard bewust nog niet (latency-gevoelig) — log-only variant kan later.
+- [x] ~~**Timing Brein v1.1 → config-vertaling**~~ (2026-06-11, commit `b4f2e02`) — bestTimes/notes van alle 8 kanalen vervangen door de onderzoeksgedreven waarden uit `Get-Filly-Posting-Tijden-v1_1.docx` (Buffer 9.6M posts, Sprout 307K profielen, MailerLite 2.1M campagnes, Dash Social, Toast). GBP-frequentie 2→3/wk. CHANNEL_RULES_VERSION v1→v2. **Bewust geskipt:** nieuwe kanalen TheFork/Zenchef/OpenTable (integraties bestaan nog niet; toevoegen zodra die koppelingen er zijn) en SEO/GEO (onderhoudsritme, geen posts).
+- [x] ~~**Externe timing-factoren als deterministische code**~~ (2026-06-11, commit `d0dc8c6`) — nieuw `ai/timing-factors.ts`: NL-feestdagen (Pasen-afgeleiden via Meeus-algoritme, Koningsdag-zondagregel, Moederdag/Vaderdag) met Rabobank-omzetimpact + promo-lead-times (Kerst verschijnt al 8 wkn vooraf), loondag-vensters (25e+/1-5/vakantiegeld/13e maand), seizoens-context en weer-interpretatieregels. `buildExternalFactorsBlock()` geïnjecteerd in suggestie-prompts + verzendmoment-suggestie. Runtime-getest op 2026-data. **Restje:** evenementen-factor (hfst 4.3) wacht op de evenementen-PC4-database-koppeling.
+- [x] ~~**Lengte-hoofdstuk in brein-document genereren vanuit code**~~ (2026-06-11, commit `985cf5d`) — `pnpm brein:doc` (scripts/generate-brein-kanalen.mjs) genereert `docs/filly-brein-kanalen.md` uit CHANNEL_RULES: overzichtstabel lengte-bandbreedtes + volledige sectie per kanaal. Code wijzigen → script draaien → hoofdstuk is bij; nooit handmatig bewerken.
 - [ ] **Volledige tool-use migratie chat-proposals** (robuustheid) — van `<<FILLY_PROPOSE_CAMPAIGN>>`-tekstmarkers naar Anthropic tool-use voor gegarandeerde JSON-structuur. Hard afdwingen i.p.v. valideren. Grotere refactor van de live chat-flow; lagere prioriteit nu de tekst-validatie werkt.
 - [ ] **Brand-archetype + do/don't-velden** (hfst 15) — nieuwe kolommen `restaurants.brand_archetype` (enum 12) + `brand_voice_do[]` + `brand_voice_dont[]`. UI in identiteit-tab. Filly krijgt ze als harde constraint in prompt.
 - [ ] **B1/B2-taalniveau-instelling** (hfst 15.3) — `restaurants.language_level` enum. Default B1.
@@ -655,18 +655,31 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
-### 2026-06-11 — Brein-dekking-fix: kanaalregels in álle generatie-prompts
+### 2026-06-11 — Brein-ronde compleet: dekking-fix + Timing Brein v1.1 + lengte-guard + doc-generator
 
 Aanleiding: Floris merkte dat het brein (lengte per uiting, timing) niet
 nageleefd leek te worden. Audit bevestigde twee oorzaken: (1) meerdere
 generatie-routes plakten het brein helemaal niet in de prompt, (2) waar
 het wél zat, stonden er eigen hardgecodeerde lengte-/timingregels naast
-die het brein tegenspraken. Zie de afgevinkte + nieuwe items onder
-P2 → "Filly-brein v2 → code-vertaling" voor details en vervolg
-(lengte-validatie in code, Timing Brein v1.1-vertaling, externe
-factoren). Commits `c0dd738` (campaigns) + `14ad635` (chat, incl.
-"~130% van max-lengte"-bug) + `c90e9e7` (suggesties + nieuw
-`buildAllTimingBlock()` in filly-brain.config).
+die het brein tegenspraken. Daarna in dezelfde sessie het hele
+stappenplan afgerond. Details bij de afgevinkte items onder
+P2 → "Filly-brein v2 → code-vertaling".
+
+- **Dekking-fix** (`c0dd738` + `14ad635` + `c90e9e7`): kanaalregels in
+  campagne-refine/generateMoreVariants + alle 4 suggestie-prompts;
+  dubbele hardgecodeerde regels uit chat/suggesties weg; chat-bugs
+  gefixt ("variant 3 ~130% van max-lengte" + dubbele FORMAAT 1-header).
+- **Timing Brein v1.1 → config** (`b4f2e02`): bestTimes van alle 8
+  kanalen op de onderzoekswaarden uit Get-Filly-Posting-Tijden-v1_1.docx;
+  CHANNEL_RULES v1→v2.
+- **Externe factoren deterministisch** (`d0dc8c6`): `ai/timing-factors.ts`
+  met NL-feestdagen/loondagen/seizoenen/weer-regels →
+  `buildExternalFactorsBlock()` in de timing-relevante prompts.
+- **Lengte-guard** (`70afd79`): `ai/copy-length.guard.ts` — check op
+  `copyLength` per kanaal + max 1 gerichte herschrijf, op 5 routes.
+- **Doc-generator** (`985cf5d`): `pnpm brein:doc` →
+  `docs/filly-brein-kanalen.md`, het lengte-hoofdstuk dat het Timing
+  Brein-doc miste, gegenereerd uit code.
 
 ### 2026-06-05 — SEO-fundament + publieke-site copy/branding-ronde + FOUC-fix
 
