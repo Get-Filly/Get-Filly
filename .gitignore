@@ -7,3 +7,5 @@ dist
 *.log
 .turbo
 .claude
+# Word/Office lock-bestanden (ontstaan zodra een .docx open staat)
+~$*.docx
