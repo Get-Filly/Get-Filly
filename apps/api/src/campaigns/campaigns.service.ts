@@ -14,6 +14,7 @@ import {
   formatChannelRulesForPrompt,
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
+import { enforceCopyLength } from '../ai/copy-length.guard';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
@@ -1294,22 +1295,35 @@ ${menuBlock}
       ? `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`
       : `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
 
-    const parsed = await this.ai.generateStructured<CampaignVariantsFromTool>({
-      system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-sonnet-4-6',
-      maxTokens: 3000,
-      toolName: 'generate_campaign_variants',
-      toolDescription:
-        'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
-      inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
-      meta: {
-        restaurantId,
-        feature: 'campaign_refine',
-      },
-      // System bevat profile + menu, bij regenerate (1× extra binnen
-      // 5 min na initial) bespaart caching ~90% input-tokens.
-      cacheSystem: true,
+    const generateVariants = (prompt: string) =>
+      this.ai.generateStructured<CampaignVariantsFromTool>({
+        system: systemPrompt,
+        prompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 3000,
+        toolName: 'generate_campaign_variants',
+        toolDescription:
+          'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
+        inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
+        meta: {
+          restaurantId,
+          feature: 'campaign_refine',
+        },
+        // System bevat profile + menu; caching maakt zowel regenerate
+        // als de lengte-herschrijf hieronder ~90% goedkoper in input.
+        cacheSystem: true,
+      });
+
+    // Lengte-guard: valt een variant buiten de kanaal-bandbreedte,
+    // dan volgt één gerichte herschrijf met exacte teken-aantallen.
+    const parsed = await enforceCopyLength({
+      channel,
+      first: await generateVariants(userPrompt),
+      getBodies: (r) => r.variants.map((v) => v.body),
+      regenerate: (instruction) =>
+        generateVariants(`${userPrompt}\n\n${instruction}`),
+      logger: this.logger,
+      feature: 'campaign_refine',
     });
 
     // Schema garandeert dat variants een array van 3 is met body.
@@ -1693,17 +1707,30 @@ ${menuBlock}
       ? `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`
       : `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
 
-    const parsed = await this.ai.generateStructured<CampaignVariantsFromTool>({
-      system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-sonnet-4-6',
-      maxTokens: 3000,
-      toolName: 'generate_campaign_variants',
-      toolDescription:
-        'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
-      inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
-      meta: { restaurantId, feature: 'campaign_variants_more' },
-      cacheSystem: true,
+    const generateVariants = (prompt: string) =>
+      this.ai.generateStructured<CampaignVariantsFromTool>({
+        system: systemPrompt,
+        prompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 3000,
+        toolName: 'generate_campaign_variants',
+        toolDescription:
+          'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
+        inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
+        meta: { restaurantId, feature: 'campaign_variants_more' },
+        cacheSystem: true,
+      });
+
+    // Zelfde lengte-guard als refine(): één gerichte herschrijf bij
+    // varianten buiten de kanaal-bandbreedte, daarna beste resultaat.
+    const parsed = await enforceCopyLength({
+      channel,
+      first: await generateVariants(userPrompt),
+      getBodies: (r) => r.variants.map((v) => v.body),
+      regenerate: (instruction) =>
+        generateVariants(`${userPrompt}\n\n${instruction}`),
+      logger: this.logger,
+      feature: 'campaign_variants_more',
     });
 
     // Parse + sanitize zelfde regels als refine()

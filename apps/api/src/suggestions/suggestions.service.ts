@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type Anthropic from '@anthropic-ai/sdk';
@@ -20,6 +21,7 @@ import {
   mapCampaignTypeToChannel,
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
+import { enforceCopyLength } from '../ai/copy-length.guard';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
@@ -504,6 +506,8 @@ export function ensureChannels(sc: SuggestedCampaign): SuggestionChannel[] {
 
 @Injectable()
 export class SuggestionsService {
+  private readonly logger = new Logger(SuggestionsService.name);
+
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly campaigns: CampaignsService,
@@ -1068,10 +1072,10 @@ ${dayContext}`;
       const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${day.date}.`;
 
       try {
-        const raw =
-          await this.ai.generateStructured<LowOccupancyCampaignFromTool>({
+        const generateProposal = (prompt: string) =>
+          this.ai.generateStructured<LowOccupancyCampaignFromTool>({
             system: systemPrompt,
-            prompt: userPrompt,
+            prompt,
             model: 'claude-sonnet-4-6',
             maxTokens: 1500,
             toolName: 'generate_low_occupancy_campaign',
@@ -1085,6 +1089,22 @@ ${dayContext}`;
             },
             cacheSystem: true,
           });
+
+        // Kanaal is pas ná generatie bekend (Filly kiest het type),
+        // dus de lengte-guard checkt post-hoc en herschrijft 1× met
+        // behoud van het gekozen type.
+        const firstProposal = await generateProposal(userPrompt);
+        const raw = await enforceCopyLength({
+          channel: mapCampaignTypeToChannel(firstProposal.campaign_type),
+          first: firstProposal,
+          getBodies: (r) => [r.body],
+          regenerate: (instruction) =>
+            generateProposal(
+              `${userPrompt}\n\n${instruction} Behoud hetzelfde campagne-type (${firstProposal.campaign_type}).`,
+            ),
+          logger: this.logger,
+          feature: 'low_occupancy_detect',
+        });
 
         const row = {
           restaurant_id: restaurantId,
@@ -1364,10 +1384,10 @@ ${segmentsBlock}`;
       const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${item.date}.`;
 
       try {
-        const raw =
-          await this.ai.generateStructured<LowOccupancyCampaignFromTool>({
+        const generateProposal = (prompt: string) =>
+          this.ai.generateStructured<LowOccupancyCampaignFromTool>({
             system: systemPrompt,
-            prompt: userPrompt,
+            prompt,
             model: 'claude-sonnet-4-6',
             maxTokens: 1500,
             toolName: 'generate_low_occupancy_campaign',
@@ -1384,6 +1404,23 @@ ${segmentsBlock}`;
             },
             cacheSystem: true,
           });
+
+        // Zelfde post-hoc lengte-guard als bij low-occupancy-detectie.
+        const firstProposal = await generateProposal(userPrompt);
+        const raw = await enforceCopyLength({
+          channel: mapCampaignTypeToChannel(firstProposal.campaign_type),
+          first: firstProposal,
+          getBodies: (r) => [r.body],
+          regenerate: (instruction) =>
+            generateProposal(
+              `${userPrompt}\n\n${instruction} Behoud hetzelfde campagne-type (${firstProposal.campaign_type}).`,
+            ),
+          logger: this.logger,
+          feature:
+            item.kind === 'special_day'
+              ? 'special_day_generate'
+              : 'low_occupancy_generate',
+        });
 
         const row = {
           restaurant_id: restaurantId,
@@ -2800,19 +2837,32 @@ ${channelRules}
       : 'Geen specifieke instructie van de eigenaar, ga voor brede variatie in toon.';
     const userPrompt = `Campagne-naam: ${currentName}\nType: ${currentType}\n\nBestaande versies (vermijd herhaling):\n${existingPayload}\n\n${instructionLine}\n\nGeef drie nieuwe varianten via 'generate_alternatives'.`;
 
-    const parsed = await this.ai.generateStructured<RefinedCampaignFromTool>({
-      system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-sonnet-4-6',
-      maxTokens: 2500,
-      toolName: 'generate_alternatives',
-      toolDescription:
-        'Lever exact drie alternatieve versies van de campagne, in andere tonen/invalshoeken dan de bestaande set.',
-      inputSchema: SUGGESTION_REFINE_SCHEMA,
-      meta: {
-        restaurantId,
-        feature: 'suggestion_refine',
-      },
+    const generateAlternatives = (prompt: string) =>
+      this.ai.generateStructured<RefinedCampaignFromTool>({
+        system: systemPrompt,
+        prompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 2500,
+        toolName: 'generate_alternatives',
+        toolDescription:
+          'Lever exact drie alternatieve versies van de campagne, in andere tonen/invalshoeken dan de bestaande set.',
+        inputSchema: SUGGESTION_REFINE_SCHEMA,
+        meta: {
+          restaurantId,
+          feature: 'suggestion_refine',
+        },
+      });
+
+    // Lengte-guard op het target-kanaal: één gerichte herschrijf bij
+    // varianten buiten de bandbreedte, daarna beste resultaat.
+    const parsed = await enforceCopyLength({
+      channel: fillyChannel,
+      first: await generateAlternatives(userPrompt),
+      getBodies: (r) => (r.variants ?? []).map((v) => v.body ?? ''),
+      regenerate: (instruction) =>
+        generateAlternatives(`${userPrompt}\n\n${instruction}`),
+      logger: this.logger,
+      feature: 'suggestion_refine',
     });
 
     const newAlternatives = (parsed.variants ?? [])

@@ -732,6 +732,31 @@ export function formatChannelRulesForPrompt(channel: FillyChannel): string {
 }
 
 /**
+ * Harde lengte-check op een gegenereerde body. Een LLM houdt zich
+ * nooit betrouwbaar aan een lengte puur op prompt-instructie; dit is
+ * de deterministische controle achteraf (zie copy-length.guard.ts
+ * voor het retry-mechanisme eromheen).
+ */
+export type CopyLengthVerdict = {
+  ok: boolean;
+  verdict: 'ok' | 'too_short' | 'too_long';
+  chars: number;
+  minChars: number;
+  maxChars: number;
+};
+
+export function checkCopyLength(
+  channel: FillyChannel,
+  body: string,
+): CopyLengthVerdict {
+  const { minChars, maxChars } = CHANNEL_RULES[channel].copyLength;
+  const chars = body.trim().length;
+  const verdict =
+    chars < minChars ? 'too_short' : chars > maxChars ? 'too_long' : 'ok';
+  return { ok: verdict === 'ok', verdict, chars, minChars, maxChars };
+}
+
+/**
  * Bouwt het complete "regels per kanaal"-blok voor injectie in een
  * system-prompt. Default: alle 8 kanalen. Caller kan een subset
  * doorgeven (bv. alleen mail+IG voor een specifieke campagne-context).
