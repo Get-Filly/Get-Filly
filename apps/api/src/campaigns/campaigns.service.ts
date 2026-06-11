@@ -13,6 +13,7 @@ import {
   formatTimingForPrompt,
   formatChannelRulesForPrompt,
 } from '../ai/filly-brain.config';
+import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
@@ -2047,6 +2048,8 @@ Regels voor de datum:
 
 TIMING-REGELS VOOR DIT KANAAL (${channel}):
 ${timingRules}
+
+${buildExternalFactorsBlock()}
 
 Reasoning kort, helder, in NL, verwijs naar concrete data uit profiel of bezetting. Als je afwijkt van het statistische sweet-spot omdat een doel-datum dichtbij is, benoem dat expliciet. Bv. "Donderdag 19:30, donderdag is qua bezetting nog open en past bij jullie 'familiediner'-segment."
 

@@ -19,6 +19,7 @@ import {
   formatChannelRulesForPrompt,
   mapCampaignTypeToChannel,
 } from '../ai/filly-brain.config';
+import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
@@ -669,6 +670,8 @@ ${buildAllChannelsBlock()}
 ---
 ${buildAllTimingBlock()}
 ---
+${buildExternalFactorsBlock()}
+---
 ${await this.fingerprint.buildLearningContextBlock(restaurantId)}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
@@ -1051,6 +1054,8 @@ Inhoudsregels:
 ---
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
+${buildExternalFactorsBlock()}
+---
 CONTEXT, restaurant-profiel + menu:
 
 ${profileBlock}
@@ -1342,6 +1347,8 @@ Inhoudsregels:
 
 ---
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
+---
+${buildExternalFactorsBlock()}
 ---
 CONTEXT, restaurant-profiel + menu:
 
