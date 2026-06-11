@@ -22,7 +22,7 @@ export const metadata = pageMetadata({
 });
 
 const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op je onderneming en gasten." },
+  { title: "Ondernemer eerst", desc: "De ondernemer heeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op het restaurant en de gasten." },
   { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
   { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen. Levert het niets op, dan stopt het." },
 ];
@@ -48,10 +48,9 @@ export default function AboutPage() {
           <div className="product-features-list">
             {missionPillars.map((p, i) => (
               // "Wat ons drijft" staat in beeld bij het laden van /about, dus
-              // on-load fade-up (gestaggerd) i.p.v. scroll-reveal — zo poppen
-              // tekst + bolletje wél netjes op.
+              // on-load fade-up (gestaggerd) i.p.v. scroll-reveal — zo popt de
+              // tekst netjes op (groene nummer-bolletjes per 2026-06-05 weg).
               <div key={p.title} className={`hero-diff fade-up d${i + 1}`}>
-                <div className="hero-diff-num">{String(i + 1).padStart(2, "0")}</div>
                 <h3 className="hero-diff-title">{p.title}</h3>
                 <p className="hero-diff-desc">{p.desc}</p>
               </div>

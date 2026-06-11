@@ -15,7 +15,7 @@ export const metadata = pageMetadata({
 
 const features = [
   { title: "Bezettingsanalyse", desc: "Realtime inzicht in je bezettingsgraad per dag, week en maand. Get-Filly herkent patronen zoals terugkerende dips of seizoenstrends en laat direct zien waar je omzet mist." },
-  { title: "AI-chatbot", desc: "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en onderneming, doet voorstellen en voert ze uit na jouw goedkeuring." },
+  { title: "AI-chatbot", desc: "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en restaurant, doet voorstellen en voert ze uit na jouw goedkeuring." },
   { title: "Campagnes", desc: "Van concept tot verzending in één chat. Get-Filly schrijft een mail of WhatsApp-bericht in jouw huisstijl, selecteert de juiste gasten en verzendt dit op het beste moment." },
   { title: "Social media posts", desc: "Get-Filly maakt posts voor Instagram, Facebook en TikTok. Afgestemd op je merk, je aanbod, en de dagen die gevuld moeten worden." },
   { title: "Seizoensstrategie", desc: "Valentijnsdag, aspergeseizoen, Koningsdag, kerst, Get-Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren." },
@@ -53,7 +53,7 @@ export default function ProductPage() {
 
       <section className="product-walkthrough">
         <div className="container">
-          <h2 className="section-title" style={{ maxWidth: 820 }}>1 week met Get-Filly: Van lege stoelen naar een volle bezetting.</h2>
+          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly, van lege stoelen naar een volle onderneming.</h2>
           <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg een campagneproces van begin tot eind. Drie minuten werk voor een week vol extra reserveringen.</p>
 
           <div className="features-stack" style={{ marginTop: 56 }}>
@@ -61,7 +61,10 @@ export default function ProductPage() {
             <ScrollReveal />
 
             {/* STAP 1, Get-Filly ziet de dip */}
-            <div className="feature-row" data-reveal>
+            {/* Reveal iets later: nu het groene nummer-bolletje weg is schuift
+                de tekst omhoog en kwam de fade te vroeg; transition-delay
+                compenseert (zie .feature-row--reveal-late in landing.css). */}
+            <div className="feature-row feature-row--reveal-late" data-reveal>
               <div className="feature-row-text">
                 <div className="step-meta">
                   <div className="walk-step">
@@ -121,7 +124,7 @@ export default function ProductPage() {
                   <p className="feature-eyebrow">Maandag &middot; 09:15</p>
                 </div>
                 <h3 className="feature-row-title">Drie kanalen, &eacute;&eacute;n voorstel, klaar binnen een minuut.</h3>
-                <p className="feature-row-desc">Get-Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste gasten. Tone-of-voice, beeld en timing, alles afgestemd op je onderneming.</p>
+                <p className="feature-row-desc">Get-Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste gasten. Tone-of-voice, beeld en timing, alles afgestemd op je restaurant.</p>
               </div>
               <div className="feature-row-visual">
                 <div className="pmock-channels">

@@ -942,6 +942,12 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
   opacity: 1;
   transform: none;
 }
+/* Detectie-stap (1e walkthrough-rij): reveal iets later, ter compensatie van
+   het verwijderde groene nummer-bolletje — de tekst schoof omhoog waardoor de
+   fade te vroeg kwam. */
+.feature-row--reveal-late.reveal-pending {
+  transition-delay: 0.35s;
+}
 /* Bolletje-pop: alléén het genummerde cirkel-bolletje (.hero-diff-num) in de
    "AI doet het werk / geen marketingkennis"-strips schaalt op met een lichte
    overshoot, kort ná de kaart-fade. De inline pills (walkthrough-stappen) en
