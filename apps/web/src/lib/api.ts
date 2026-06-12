@@ -930,6 +930,13 @@ export type Restaurant = {
   // verschijnt 'ie in de overige-acties-strip (14 dgn vooruit).
   // Range 10-100, default 50 (sinds mig 0037).
   low_occupancy_threshold: number;
+  // ----- Evenementen in voorstellen (mig 0054) -----
+  // Welke event-typen Filly meeneemt in voorstellen.
+  // null = alle categorieën; lege array = events uit.
+  event_categories: string[] | null;
+  // Vaste maximale afstand in km voor alle typen; null = slimme
+  // staffel per type (markt/kermis 2, concert/sport 5, festival 10).
+  event_max_distance_km: number | null;
   // ----- Reviews auto-reageren (mig 0051) -----
   // Aan/uit voor Filly's automatische review-reacties.
   reviews_auto_reply_enabled: boolean;

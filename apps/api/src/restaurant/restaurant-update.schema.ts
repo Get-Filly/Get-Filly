@@ -327,6 +327,33 @@ export const RestaurantUpdateSchema = z
       .max(100, 'Drempel moet 10-100 zijn.')
       .optional(),
 
+    // ----- Evenementen in voorstellen (mig 0054) -----
+    // Welke event-typen Filly meeneemt; null = alle, lege array =
+    // events volledig uit voor deze zaak.
+    event_categories: z
+      .array(
+        z.enum([
+          'festivals',
+          'concerten_theater',
+          'events',
+          'sportevenementen',
+          'kermis',
+          'markten',
+        ]),
+      )
+      .max(6)
+      .nullable()
+      .optional(),
+    // Vaste maximale afstand in km voor alle typen; null = slimme
+    // staffel per type (markt/kermis 2, concert/sport 5, festival 10).
+    event_max_distance_km: z
+      .number()
+      .int()
+      .min(1, 'Afstand moet 1-25 km zijn.')
+      .max(25, 'Afstand moet 1-25 km zijn.')
+      .nullable()
+      .optional(),
+
     // ----- Reviews auto-reageren (mig 0051) -----
     // Aan/uit voor Filly's automatische review-reacties.
     reviews_auto_reply_enabled: z.boolean().optional(),

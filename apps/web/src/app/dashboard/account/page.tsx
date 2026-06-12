@@ -44,6 +44,18 @@ const restaurantTypes = [
   "other",
 ];
 
+// Event-categorieën zoals de evenementen-sync ze kent (events-tabel,
+// mig 0053/0054). De eigenaar vinkt aan welke typen Filly meeneemt
+// in voorstellen; volgorde = volgorde van de checkboxes.
+const EVENT_CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: "festivals", label: "Festivals" },
+  { value: "concerten_theater", label: "Concerten & theater" },
+  { value: "events", label: "Events" },
+  { value: "sportevenementen", label: "Sportevenementen" },
+  { value: "kermis", label: "Kermis" },
+  { value: "markten", label: "Markten" },
+];
+
 // Multi-select chip-opties voor talen die het personeel spreekt.
 // Komt in restaurants.languages_spoken (text[]). Filly gebruikt dit
 // straks om buitenlandse gasten in hun eigen taal te kunnen begroeten.
@@ -954,6 +966,112 @@ function AccountPageInner() {
               dag de drempel haalt (bv. door nieuwe reserveringen),
               verdwijnt 'ie automatisch uit het lijstje. Sluitingsdagen
               worden niet getoond.
+            </div>
+          </div>
+
+          {/* ----- Evenementen in voorstellen (mig 0054) ----- */}
+          <div className="form-field full">
+            <label>Evenementen uit de buurt in Filly&apos;s voorstellen</label>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              {EVENT_CATEGORY_OPTIONS.map((opt) => {
+                // null = alle categorieën aan (default); een lege array
+                // betekent dat de eigenaar events helemaal uitzette.
+                const enabled =
+                  form.event_categories ??
+                  EVENT_CATEGORY_OPTIONS.map((o) => o.value);
+                const checked = enabled.includes(opt.value);
+                return (
+                  <label
+                    key={opt.value}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      border: "1px solid var(--border, #E5DFD0)",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      background: checked
+                        ? "var(--white, #FFFFFF)"
+                        : "transparent",
+                      opacity: checked ? 1 : 0.6,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        update(
+                          "event_categories",
+                          checked
+                            ? enabled.filter((v) => v !== opt.value)
+                            : [...enabled, opt.value],
+                        )
+                      }
+                    />
+                    {opt.label}
+                  </label>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <label htmlFor="event-max-distance">
+                Maximale afstand vanaf de zaak
+              </label>
+              <select
+                id="event-max-distance"
+                value={form.event_max_distance_km ?? ""}
+                onChange={(e) =>
+                  update(
+                    "event_max_distance_km",
+                    e.target.value === ""
+                      ? null
+                      : parseInt(e.target.value, 10),
+                  )
+                }
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid var(--border, #E5DFD0)",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  background: "var(--white, #FFFFFF)",
+                  color: "var(--text, #18181B)",
+                  width: "100%",
+                  maxWidth: 280,
+                }}
+              >
+                <option value="">Slim per type (standaard)</option>
+                <option value={2}>Tot 2 km</option>
+                <option value={5}>Tot 5 km</option>
+                <option value={10}>Tot 10 km</option>
+                <option value={15}>Tot 15 km</option>
+                <option value={25}>Tot 25 km</option>
+              </select>
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              Filly weegt evenementen in de buurt (bron: evenementen.nl)
+              mee in campagne-voorstellen en timing. Vink uit wat niet bij
+              je zaak past; haal je álle vinkjes weg, dan worden events
+              volledig genegeerd. &ldquo;Slim per type&rdquo; betekent:
+              markt en kermis tot 2 km, concert en sport tot 5 km,
+              festival tot 10 km. Een vaste afstand geldt voor alle typen
+              &mdash; ruimer is handig in landelijk gebied, krapper in de
+              binnenstad.
             </div>
           </div>
 

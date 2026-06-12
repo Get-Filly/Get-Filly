@@ -60,12 +60,24 @@ export class EventsService {
     try {
       const { data: restaurant } = await this.supabase.client
         .from('restaurants')
-        .select('latitude, longitude')
+        .select('latitude, longitude, event_categories, event_max_distance_km')
         .eq('id', restaurantId)
         .maybeSingle();
       const lat = restaurant?.latitude as number | null;
       const lng = restaurant?.longitude as number | null;
       if (lat == null || lng == null) return [];
+
+      // Eigenaar-voorkeuren (mig 0054, account-pagina): welke typen
+      // tellen mee, en geldt er een vaste afstand i.p.v. de staffel?
+      const enabledCategories = (restaurant?.event_categories ?? null) as
+        | string[]
+        | null;
+      if (Array.isArray(enabledCategories) && enabledCategories.length === 0) {
+        return []; // events expliciet uitgezet voor deze zaak
+      }
+      const userMaxKm = (restaurant?.event_max_distance_km ?? null) as
+        | number
+        | null;
 
       const today = new Date().toISOString().slice(0, 10);
       const until = new Date(Date.now() + WINDOW_DAYS * 86_400_000)
@@ -74,8 +86,9 @@ export class EventsService {
 
       // Grove bounding-box in SQL (1° lat ≈ 111 km; 1° lng ≈ 68 km
       // op NL-breedte), daarna exacte haversine + staffel in JS.
-      const latMargin = MAX_RADIUS_KM / 111;
-      const lngMargin = MAX_RADIUS_KM / 68;
+      const boxKm = userMaxKm ?? MAX_RADIUS_KM;
+      const latMargin = boxKm / 111;
+      const lngMargin = boxKm / 68;
       const { data, error } = await this.supabase.client
         .from('events')
         .select('source_slug, name, category, place, starts_on, latitude, longitude')
@@ -102,8 +115,16 @@ export class EventsService {
         latitude: number;
         longitude: number;
       }>) {
+        if (
+          Array.isArray(enabledCategories) &&
+          !enabledCategories.includes(row.category)
+        ) {
+          continue; // type uitgevinkt door de eigenaar
+        }
         const distanceKm = haversineKm(lat, lng, row.latitude, row.longitude);
-        const radius = STAFFEL_KM[row.category] ?? 5;
+        // Vaste eigenaar-afstand overschrijft de staffel voor alle
+        // typen (ruimer in landelijk gebied, krapper in de binnenstad).
+        const radius = userMaxKm ?? STAFFEL_KM[row.category] ?? 5;
         if (distanceKm > radius) continue;
         nearby.push({
           name: row.name,
