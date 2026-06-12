@@ -782,7 +782,7 @@ export class ChatService {
           suggestion_id: id,
         };
       } catch (err) {
-        console.error(
+        this.logger.error(
           `ai_suggestion-insert gefaald (chat-proposal); chat werkt door zonder kaartje: ${
             err instanceof Error ? err.message : String(err)
           }`,
@@ -806,7 +806,7 @@ export class ChatService {
           suggestion_id: id,
         };
       } catch (err) {
-        console.error(
+        this.logger.error(
           `ai_suggestion-insert gefaald (chat-bundle); chat werkt door zonder kaartje: ${
             err instanceof Error ? err.message : String(err)
           }`,

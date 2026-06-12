@@ -806,9 +806,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       }
     }
     if (!suggestionsArr || suggestionsArr.length === 0) {
-      // Geen logger in deze service, gebruik console.warn (consistent
-      // met andere fail-soft-handlers elders in dezelfde file).
-      console.warn(
+      this.logger.warn(
         `Filly's voorstellen-tool gaf geen geldige array terug voor restaurant ${restaurantId}. Raw response: ${JSON.stringify(raw)?.slice(0, 300)}`,
       );
       throw new InternalServerErrorException(
@@ -1246,8 +1244,7 @@ ${dayContext}`;
         if (insErr) {
           // Eén dag mislukt mag niet de hele batch breken; loggen
           // en doorgaan met de volgende dag.
-          // eslint-disable-next-line no-console
-          console.warn(
+          this.logger.warn(
             `low_occupancy insert faalde voor ${day.date}: ${insErr.message}`,
           );
           continue;
@@ -1255,8 +1252,7 @@ ${dayContext}`;
 
         generatedSuggestions.push(inserted as AiSuggestion);
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        this.logger.warn(
           `low_occupancy Claude-call faalde voor ${day.date}: ${
             err instanceof Error ? err.message : String(err)
           }`,
@@ -1770,8 +1766,7 @@ ${segmentsBlock}`;
           .single();
 
         if (insErr) {
-          // eslint-disable-next-line no-console
-          console.warn(
+          this.logger.warn(
             `generate-for-dates insert faalde voor ${item.date}: ${insErr.message}`,
           );
           continue;
@@ -1779,8 +1774,7 @@ ${segmentsBlock}`;
 
         generatedSuggestions.push(inserted as AiSuggestion);
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        this.logger.warn(
           `generate-for-dates Claude-call faalde voor ${item.date}: ${
             err instanceof Error ? err.message : String(err)
           }`,
