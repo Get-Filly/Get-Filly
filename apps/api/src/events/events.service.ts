@@ -137,9 +137,8 @@ export class EventsService {
     );
     for (const e of nearby) {
       const weekday = dayNames[new Date(`${e.startsOn}T12:00:00`).getDay()];
-      const placeLabel = e.place
-        ? e.place.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
-        : '';
+      // place bevat de officiële PDOK-woonplaatsnaam ("West-Terschelling").
+      const placeLabel = e.place ?? '';
       lines.push(
         `- ${weekday} ${e.startsOn}: ${e.name} (${CATEGORY_LABEL[e.category] ?? e.category}${placeLabel ? `, ${placeLabel}` : ''}, ${e.distanceKm} km) — ${e.sourceUrl}`,
       );

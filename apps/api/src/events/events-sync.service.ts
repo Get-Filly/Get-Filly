@@ -39,8 +39,10 @@ const HORIZON_DAYS = 120;
 // parallel ≈ 16s bij vol budget — past in de 60s-functielimiet).
 const GEOCODE_BUDGET = 200;
 const GEOCODE_CONCURRENCY = 5;
-// Max events per run door de plaats-resolutie.
-const RESOLVE_BATCH = 400;
+// Max events per run door de plaats-resolutie. Cache-hits zijn
+// vrijwel gratis (bulk-queries), dus dit mag ruim boven het
+// PDOK-budget liggen; alleen nieuwe plaatsen kosten echt tijd.
+const RESOLVE_BATCH = 1500;
 const FETCH_TIMEOUT_MS = 10_000;
 
 type ParsedSlug = {
@@ -300,9 +302,13 @@ export class EventsSyncService {
       working = working.filter((e) => !hasExact(e));
     }
 
-    // Beslissen per event: exact wint; anders fuzzy op de langste
-    // gevonden kandidaat; staat er nog een kandidaat zónder cache-
-    // entry (budget op), dan wachten we op de volgende run.
+    // Beslissen per event: exact wint; anders fuzzy, maar alléén als
+    // kandidaat en PDOK-naam elkaar bevatten ("terschelling" ⊆
+    // "West-Terschelling" → ok; "oerol-2026-terschelling" vs
+    // "West-Terschelling" → afgewezen). Zonder die check verzamelde
+    // de fallback junk-tokens als plaatsnaam (bug gezien 2026-06-11).
+    // Staat er nog een kandidaat zónder cache-entry (budget op), dan
+    // wachten we op de volgende run.
     const updates: Array<{
       source_slug: string;
       category: string;
@@ -324,9 +330,14 @@ export class EventsSyncService {
       let chosen = exact ?? null;
       if (!chosen) {
         if (entries.some(({ entry }) => !entry)) continue; // budget op → volgende run
-        // Fuzzy fallback: langste kandidaat eerst (specifiekst).
+        // Fuzzy fallback: kortste kandidaat eerst, alleen bij
+        // wederzijdse bevatting met de PDOK-naam.
         chosen =
-          [...entries].reverse().find(({ entry }) => entry?.found) ?? null;
+          entries.find(
+            ({ candidate, entry }) =>
+              entry?.found &&
+              isContainedPlaceMatch(candidate, entry.matched_name),
+          ) ?? null;
       }
       if (
         !chosen ||
@@ -344,7 +355,9 @@ export class EventsSyncService {
         source_slug: event.source_slug,
         category: event.category,
         starts_on: event.starts_on,
-        place: chosen.candidate,
+        // De officiële PDOK-woonplaatsnaam opslaan (mooi voor de
+        // prompt: "West-Terschelling" i.p.v. een slug-token).
+        place: chosen.entry.matched_name ?? chosen.candidate,
         latitude: chosen.entry.latitude,
         longitude: chosen.entry.longitude,
         name: prettify(stripPlaceSuffix(restWithoutDate, chosen.candidate)),
@@ -446,4 +459,21 @@ export function isExactPlaceMatch(
   const cand = normalizePlace(candidate);
   const matched = normalizePlace(matchedName);
   return cand === matched || PLACE_ALIASES[cand] === matched;
+}
+
+/**
+ * Zwakkere variant voor de fuzzy-fallback: kandidaat en PDOK-naam
+ * moeten elkaar bevatten. "terschelling" ⊆ "West-Terschelling" → ok;
+ * "oerol-2026-terschelling" vs "West-Terschelling" → nee. Minimaal
+ * 4 tekens zodat micro-tokens ("ee") niet per ongeluk slagen.
+ */
+export function isContainedPlaceMatch(
+  candidate: string,
+  matchedName: string | null,
+): boolean {
+  if (!matchedName) return false;
+  const cand = normalizePlace(candidate);
+  const matched = normalizePlace(matchedName);
+  if (cand.length < 4) return false;
+  return matched.includes(cand) || cand.includes(matched);
 }

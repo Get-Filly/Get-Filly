@@ -17,6 +17,6 @@
   ],
   "crons": [
     { "path": "/api/seo-report/run", "schedule": "0 5 * * 1" },
-    { "path": "/api/events/sync", "schedule": "0 4 * * 2" }
+    { "path": "/api/events/sync", "schedule": "0 4 * * 0" }
   ]
 }
