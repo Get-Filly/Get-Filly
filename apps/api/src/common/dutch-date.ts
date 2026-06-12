@@ -118,6 +118,20 @@ export function resolveDutchDate(
   if (p.includes('overmorgen')) return toIso(addDays(anchor, 2));
   if (p.includes('morgen')) return toIso(addDays(anchor, 1));
 
+  // 1b. Relatief "over N dagen/weken" — bv. "over 5 dagen", "over een
+  // week", "over 2 weken". "een" telt als 1. (Vóór de feestdagen zodat
+  // een los getal niet per ongeluk in een latere regel verzeild raakt.)
+  const relDays = p.match(/\bover\s+(\d{1,3}|een)\s+dag(?:en)?\b/);
+  if (relDays) {
+    const n = relDays[1] === 'een' ? 1 : parseInt(relDays[1], 10);
+    if (n >= 0 && n <= 365) return toIso(addDays(anchor, n));
+  }
+  const relWeeks = p.match(/\bover\s+(\d{1,2}|een)\s+we(?:ek|ken)\b/);
+  if (relWeeks) {
+    const n = relWeeks[1] === 'een' ? 1 : parseInt(relWeeks[1], 10);
+    if (n >= 0 && n <= 52) return toIso(addDays(anchor, n * 7));
+  }
+
   // 2. Feestdagen (eerstvolgende voorkomen, dit of volgend jaar).
   for (const [kw, name] of HOLIDAY_KEYWORDS) {
     if (p.includes(kw)) {

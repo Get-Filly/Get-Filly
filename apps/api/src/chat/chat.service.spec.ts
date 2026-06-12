@@ -172,6 +172,18 @@ describe('detectCampaignHint', () => {
     );
   });
 
+  it('dag-vragen met tussenwoord ("welke speciale/rustige dagen") → hint', () => {
+    expect(detectCampaignHint('oke welke speciale dagen zijn er')).toContain(
+      'FILLY_START_GUIDED',
+    );
+    expect(detectCampaignHint('welke rustige dagen zijn er')).toContain(
+      'FILLY_START_GUIDED',
+    );
+    expect(detectCampaignHint('stel een andere dag voor')).toContain(
+      'FILLY_START_GUIDED',
+    );
+  });
+
   it('niet-campagne-bericht → null', () => {
     expect(detectCampaignHint('hoe laat zijn jullie open?')).toBeNull();
     expect(detectCampaignHint('bedankt!')).toBeNull();

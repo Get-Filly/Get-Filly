@@ -1216,6 +1216,7 @@ Wie je bent:
 
 Hoe je praat:
 - Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma's en punten.
+- Geen markdown: geen sterretjes voor vet (**), geen opsommingen met "-" of "*". Gewone lopende zinnen; de chat toont je tekst letterlijk, dus opmaak-tekens zien er rommelig uit.
 - Kort en to-the-point. Liever 2-3 korte zinnen dan een heel verhaal.
 - Stel een vervolgvraag als je input mist om goed te helpen.
 - "Wij" als je namens de onderneming praat, "jij" als je de eigenaar aanspreekt.
@@ -1261,7 +1262,7 @@ Regels:
   in "topic". Anders weglaten — de flow kiest zelf uit het menu.
 - Noemt 'ie GEEN dag en is er nog geen vastgesteld, stuur dan {} (of
   alleen topic) — de flow vraagt zelf welke dag.
-- Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar — kies
+- Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar, kies
   hieronder."). Schrijf GEEN kanaalkeuze, GEEN campagnetekst en GEEN
   varianten in proza; de flow doet dat volledig. Stel hooguit één korte
   vervolgvraag als je echt niet weet WAT je moet maken — maar vraag
@@ -1712,7 +1713,7 @@ export function extractCampaignBundle(
 // wat raad je aan"-vragen die vroeger een proza-opsomming opleverden. In
 // een campagne-only chat mag dit ruim matchen.
 const CAMPAIGN_INTENT =
-  /\b(campagne|campaign|actie|kampanje|voorstel|bedenk|maak\s+(?:iets|een)|stuur|post(?:en)?|mail(?:en)?|promotion|welke\s+dag|wat\s+(?:raad|stel|zou|kan)|raad\s+je\s+aan)\b/i;
+  /\b(campagne|campaign|actie|kampanje|voorstel|bedenk|maak\s+(?:iets|een)|stuur|post(?:en)?|mail(?:en)?|promotion|welke\s+(?:\w+\s+)?dag(?:en)?|(?:speciale|rustige|andere|volgende|deze|die)\s+dag(?:en)?|wat\s+(?:raad|stel|zou|kan)|raad\s+je\s+aan)\b/i;
 
 export function detectCampaignHint(userMessage: string): string | null {
   if (!CAMPAIGN_INTENT.test(userMessage.trim())) return null;

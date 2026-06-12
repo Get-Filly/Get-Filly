@@ -16,6 +16,14 @@ describe('resolveDutchDate', () => {
     expect(r('overmorgen')).toBe('2026-06-14');
   });
 
+  it('relatief "over N dagen/weken"', () => {
+    expect(r('over 5 dagen')).toBe('2026-06-17'); // 12 + 5
+    expect(r('maak een voorstel voor over 5 dagen')).toBe('2026-06-17');
+    expect(r('over een dag')).toBe('2026-06-13');
+    expect(r('over een week')).toBe('2026-06-19'); // 12 + 7
+    expect(r('over 2 weken')).toBe('2026-06-26'); // 12 + 14
+  });
+
   it('kale weekdag = eerstvolgende voorkomen', () => {
     expect(r('zondag')).toBe('2026-06-14'); // vr → +2
     expect(r('zaterdag')).toBe('2026-06-13'); // vr → +1
