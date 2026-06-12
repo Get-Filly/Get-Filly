@@ -23,6 +23,7 @@ import {
   FillyChatDateCard,
   type DateChoiceState,
 } from "./filly-chat-date-card";
+import { FillyGuidedFlow } from "./filly-guided-flow";
 
 // ============================================================
 // FillyChatMessageList, render-loop voor de chat-thread.
@@ -89,16 +90,21 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
     },
     scrollRef,
   ) {
+    // System-berichten zijn gereserveerd voor latere notificaties en
+    // worden nooit getoond. Een gesprek zonder zichtbare berichten =
+    // leeg → toon de geleide on-ramp (FillyGuidedFlow) i.p.v. een
+    // kaal vlak.
+    const visible = messages.filter((m) => m.role !== "system");
     return (
       <div className="chat-msgs" ref={scrollRef}>
         {loading ? (
           <div style={{ padding: 12, fontSize: 12, color: "var(--tl)" }}>
             Chat laden…
           </div>
+        ) : visible.length === 0 && !sending ? (
+          <FillyGuidedFlow />
         ) : (
-          messages
-            .filter((m) => m.role !== "system")
-            .map((m) =>
+          visible.map((m) =>
               m.role === "filly" ? (
                 <div key={m.id} className="msg msg-ai">
                   <div className="msg-lbl">
