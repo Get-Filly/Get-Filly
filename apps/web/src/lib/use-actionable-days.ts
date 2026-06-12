@@ -38,6 +38,12 @@ export type ActionableDays = {
   specialDays: SpecialDay[];
   occupancyThreshold: number;
   loading: boolean;
+  // Hoeveel dagen ANDERS een actie zouden vragen maar al afgedekt zijn
+  // (voorstel/campagne). Voor de "onder controle"-tekst in
+  // UpcomingActionsBlock — onderscheidt "alles afgedekt" van "niets aan
+  // de hand".
+  coveredLowOccupancyCount: number;
+  coveredSpecialCount: number;
 };
 
 export function useActionableDays(): ActionableDays {
@@ -98,27 +104,35 @@ export function useActionableDays(): ActionableDays {
     return dates;
   }, [pendingSuggestions, campaigns]);
 
-  const lowOccupancyDays = useMemo(() => {
+  // Rustige dagen binnen het window die open zijn. Splits in "open"
+  // (nog actie nodig) en "afgedekt" (al voorstel/campagne) in één pass.
+  const { lowOccupancyDays, coveredLowOccupancyCount } = useMemo(() => {
     const windowDays = buildWindowOccupancy(
       windowOccupancy,
       today,
       LOW_OCCUPANCY_WINDOW_DAYS,
+    ).filter(
+      (d) => d.occupancy_pct < occupancyThreshold && isOpenOn(restaurant, d.date),
     );
-    return windowDays.filter(
-      (d) =>
-        d.occupancy_pct < occupancyThreshold &&
-        isOpenOn(restaurant, d.date) &&
-        !coveredDates.has(d.date),
-    );
+    const open = windowDays.filter((d) => !coveredDates.has(d.date));
+    return {
+      lowOccupancyDays: open,
+      coveredLowOccupancyCount: windowDays.length - open.length,
+    };
   }, [windowOccupancy, today, occupancyThreshold, restaurant, coveredDates]);
 
-  const specialDays = useMemo(
-    () =>
-      getUpcomingSpecialDays(today, SPECIAL_DAYS_WEEKS_AHEAD).filter(
-        (s) => !coveredDates.has(s.date),
-      ),
-    [today, coveredDates],
-  );
+  const { specialDays, coveredSpecialCount } = useMemo(() => {
+    const all = getUpcomingSpecialDays(today, SPECIAL_DAYS_WEEKS_AHEAD);
+    const open = all.filter((s) => !coveredDates.has(s.date));
+    return { specialDays: open, coveredSpecialCount: all.length - open.length };
+  }, [today, coveredDates]);
 
-  return { lowOccupancyDays, specialDays, occupancyThreshold, loading };
+  return {
+    lowOccupancyDays,
+    specialDays,
+    occupancyThreshold,
+    loading,
+    coveredLowOccupancyCount,
+    coveredSpecialCount,
+  };
 }
