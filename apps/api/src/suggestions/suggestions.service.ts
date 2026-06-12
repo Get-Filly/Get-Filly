@@ -557,6 +557,28 @@ export type DayContext = {
   channels: DayContextChannel[];
 };
 
+// Shape van een ai_suggestions-insert vanuit generate-for-dates
+// (single- én multi-channel-tak). Vervangt het oude losse
+// Record<string, unknown> zodat de twee takken type-gecheckt blijven.
+type SuggestionInsertRow = {
+  restaurant_id: string;
+  trigger_type: 'low_occupancy' | 'special_day';
+  trigger_context: Record<string, unknown>;
+  suggested_campaign: {
+    type: 'mail' | 'social' | 'whatsapp';
+    platform?: SuggestionPlatform;
+    name: string;
+    subject_line?: string;
+    body: string;
+    channels?: SuggestionChannel[];
+  };
+  status: 'pending';
+  urgency: 'high' | 'medium';
+  confidence_score: number | null;
+  reasoning: string | null;
+  expected_impact: { extra_reservations: number; extra_revenue_cents: number };
+};
+
 @Injectable()
 export class SuggestionsService {
   private readonly logger = new Logger(SuggestionsService.name);
@@ -1618,7 +1640,7 @@ ${segmentsBlock}`;
             ? 'special_day_generate'
             : 'low_occupancy_generate';
 
-        let row: Record<string, unknown>;
+        let row: SuggestionInsertRow;
 
         if (item.channels && item.channels.length >= 2) {
           // ---- Fase 2b: true multi-channel (bundel) ----
@@ -1689,7 +1711,10 @@ ${segmentsBlock}`;
               platform: primary.platform,
               name: lead?.name ?? 'Voorstel',
               subject_line: primary.variants[0].subject_line,
-              body: primary.variants[0].body,
+              // Altijd gevuld (validatedChannels pusht alleen kanalen
+              // mét body); ?? '' alleen om het optionele variant-type
+              // sluitend te maken.
+              body: primary.variants[0].body ?? '',
               channels: validatedChannels,
             },
             status: 'pending' as const,

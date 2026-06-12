@@ -1128,18 +1128,24 @@ Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI", spreek g
 }
 
 // ============================================================
-// Proposal-parser
+// LEGACY proposal-parsers (campaign / bundle / choice / date_choice)
 // ============================================================
-// Filly zet achter z'n tekst een blok in het format:
+// BEWUST BEHOUDEN (audit-item #7, 2026-06-12), NIET dode code:
+//   1. Backward-compat: bestaande gesprekken hebben message_cards van
+//      deze kinds opgeslagen; de frontend rendert die historische
+//      kaarten nog. Verwijderen zou oude threads breken.
+//   2. Fallback: campagne-maken loopt sinds 2026-06-12 via de geleide
+//      flow (<<FILLY_START_GUIDED>>). Mocht het LLM ooit terugvallen op
+//      een oud FORMAAT-blok, dan vangen deze parsers het nog netjes op
+//      i.p.v. dat de rauwe blok-tekst aan de eigenaar getoond wordt.
+// Nieuwe campagne-creatie hoort NIET hier maar via extractGuidedStart.
+//
+// Format van een legacy-blok:
 //   <<FILLY_PROPOSE_CAMPAIGN>>
 //   {"type":"mail", ...}
 //   <<END>>
-// We halen dat eruit zodat de user alleen de prozatekst ziet, en
-// valideren de JSON voordat we 'm in message_card opslaan. Bij een
-// parse- of validatie-fout geven we de volledige (ongestripte) tekst
-// terug en geen proposal, dan gedraagt de chat zich alsof er geen
-// voorstel was. Zo blokkeren we nooit een antwoord door een misvormd
-// blokje.
+// Bij een parse-/validatie-fout: volledige tekst terug + geen kaart
+// (de chat gedraagt zich alsof er geen blok was).
 
 const PROPOSAL_REGEX =
   /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
