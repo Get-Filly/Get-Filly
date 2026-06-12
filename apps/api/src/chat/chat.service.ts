@@ -203,15 +203,19 @@ export class ChatService {
   ) {}
 
   // Haalt de actieve conversatie op voor dit restaurant, of maakt er
-  // één aan als die nog niet bestaat. "Actief" = de meest recent
-  // geüpdatete conversation_id. Zo opent de gebruiker telkens dezelfde
-  // chat-thread en overleeft 'ie refreshes.
+  // één aan. Sessie-per-kalenderdag (2026-06-12): we hervatten de
+  // laatste thread ALLEEN als 'ie vandaag (Europe/Amsterdam) nog is
+  // bijgewerkt. Is de laatste van een eerdere dag, dan start een vers,
+  // leeg gesprek — zodat elke nieuwe dag opent met de geleide flow
+  // (Filly's dagen-vraag) i.p.v. een oude, doorgekabbelde thread.
+  // Uitzondering: een lege oude thread hergebruiken we (geen zin om
+  // elke dag een lege conversatie bij te maken).
   async getOrCreateActiveConversation(
     restaurantId: string,
   ): Promise<ActiveChatState> {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('chat_conversations')
-      .select('id')
+      .select('id, updated_at')
       .eq('restaurant_id', restaurantId)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -219,11 +223,31 @@ export class ChatService {
 
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
 
+    // Kalenderdag in Europe/Amsterdam (en-CA → YYYY-MM-DD), zodat de
+    // grens om middernacht NL-tijd ligt, niet UTC.
+    const amsterdamDay = (value: string | Date): string =>
+      new Date(value).toLocaleDateString('en-CA', {
+        timeZone: 'Europe/Amsterdam',
+      });
+
     let conversationId: string;
-    if (existing) {
+    if (!existing) {
+      conversationId = await this.createConversationRow(restaurantId);
+    } else if (
+      amsterdamDay(existing.updated_at as string) === amsterdamDay(new Date())
+    ) {
+      // Van vandaag → hervatten (refresh overleeft, zelfde zitting).
       conversationId = existing.id;
     } else {
-      conversationId = await this.createConversationRow(restaurantId);
+      // Van een eerdere dag: leeg → hergebruiken, anders vers gesprek.
+      const { count } = await this.supabase.client
+        .from('chat_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', existing.id);
+      conversationId =
+        (count ?? 0) === 0
+          ? existing.id
+          : await this.createConversationRow(restaurantId);
     }
 
     return this.loadConversationState(restaurantId, conversationId);
