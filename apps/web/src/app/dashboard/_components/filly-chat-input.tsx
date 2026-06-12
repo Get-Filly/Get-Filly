@@ -1,21 +1,24 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Send } from "lucide-react";
 
 // ============================================================
-// FillyChatInput, text-input + verzend-knop voor de Filly-chat.
+// FillyChatInput, meerregelige tekst-input + verzend-knop.
 //
 // Bewust een controlled component (waarde komt van de orchestrator)
 // zodat we vanuit de orchestrator kunnen leeghalen na succesvolle
 // verzending én de send-handler de actuele tekst ziet.
 //
+// Toetsenbord: Enter = versturen, Shift+Enter = nieuwe regel. De
+// textarea groeit automatisch mee tot een max-hoogte (daarna scrollt
+// 'ie intern) zodat langere berichten — event-details, opsommingen —
+// gewoon passen.
+//
 // Drie disabled-condities tegelijk:
 //   - loading      → initial chat-historie nog niet binnen
 //   - sending      → vorig bericht is nog onderweg naar Filly
-//   - !canSend     → geen actieve conversatie-id (bv. nog geen
-//                    restaurant gekoppeld)
-// Placeholder past zich aan zodat de gebruiker ziet waarom de
-// input niet bruikbaar is.
+//   - !canSend     → geen actieve conversatie-id
 // ============================================================
 export function FillyChatInput({
   value,
@@ -37,17 +40,35 @@ export function FillyChatInput({
     ? "Chat laden…"
     : sending
       ? "Filly denkt na…"
-      : "Vraag Filly iets...";
+      : "Vraag Filly iets…";
+
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow: hoogte resetten naar inhoud, gecapt op 120px. Loopt mee
+  // met elke waarde-wijziging (ook leeghalen na verzending → terug
+  // naar één regel).
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+  }, [value]);
 
   return (
     <div className="chat-input">
       <div className="chat-iw">
-        <input
+        <textarea
+          ref={taRef}
           className="chat-in"
+          rows={1}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") onSend();
+            // Enter zonder Shift = versturen; Shift+Enter = nieuwe regel.
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              onSend();
+            }
           }}
           placeholder={placeholder}
           disabled={disabled}

@@ -98,8 +98,18 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
     return (
       <div className="chat-msgs" ref={scrollRef}>
         {loading ? (
-          <div style={{ padding: 12, fontSize: 12, color: "var(--tl)" }}>
-            Chat laden…
+          // Skeleton-bubbels i.p.v. platte "Chat laden…"-tekst: leest
+          // rustiger en geeft alvast de vorm van het gesprek aan.
+          <div className="chat-skel" aria-hidden="true">
+            <div className="chat-skel-row ai">
+              <span className="chat-skel-bubble w70" />
+            </div>
+            <div className="chat-skel-row user">
+              <span className="chat-skel-bubble w50" />
+            </div>
+            <div className="chat-skel-row ai">
+              <span className="chat-skel-bubble w80" />
+            </div>
           </div>
         ) : visible.length === 0 && !sending ? (
           <FillyGuidedFlow />
@@ -172,10 +182,21 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             )
         )}
         {sending && (
-          <div className="typing">
-            <span></span>
-            <span></span>
-            <span></span>
+          // Typing-indicator met Filly-avatar zodat 't leest als
+          // "Filly is aan het typen". aria-live kondigt 't aan voor
+          // schermlezers; de sr-tekst geeft de betekenis.
+          <div
+            className="typing-row"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="msg-avatar">F</span>
+            <div className="typing">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span className="sr-only">Filly is aan het typen…</span>
           </div>
         )}
       </div>

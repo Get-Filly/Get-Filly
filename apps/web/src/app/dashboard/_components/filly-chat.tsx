@@ -102,6 +102,11 @@ export function FillyChat() {
   // klik op 'Bekijk versies' rechtstreeks via router.push.
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Slimme auto-scroll: alleen meeschuiven als de eigenaar al (bijna)
+  // onderaan zit. Zit 'ie omhoog te lezen, dan laten we de scroll met
+  // rust en tonen een "↓ nieuwe berichten"-pil i.p.v. 'm te yanken.
+  const nearBottomRef = useRef(true);
+  const [showJump, setShowJump] = useState(false);
 
   // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
   // voordat we de chat-thread ophalen. Zonder deze check vuurt fetchActiveChat
@@ -208,13 +213,39 @@ export function FillyChat() {
     // Herlaad chat als de user van restaurant wisselt.
   }, [restaurantLoading, activeRestaurant?.id]);
 
-  // Scrollt automatisch naar beneden bij nieuwe berichten + tijdens
-  // het wachten op Filly's antwoord (zodat de typing-indicator
-  // ook in beeld komt).
-  useEffect(() => {
+  const scrollToBottom = () => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, sending]);
+    setShowJump(false);
+  };
+
+  // Houd bij of de eigenaar onderaan zit (binnen 80px). Listener op de
+  // scroll-container; near-bottom verbergt de jump-pil meteen weer.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+      nearBottomRef.current = dist < 80;
+      if (nearBottomRef.current) setShowJump(false);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Nieuwe berichten: meeschuiven als near-bottom, anders pil tonen.
+  // (Bij eigen verzending zit de eigenaar per definitie onderaan, dus
+  // dan scrollt 'ie gewoon mee.)
+  useEffect(() => {
+    if (nearBottomRef.current) scrollToBottom();
+    else setShowJump(true);
+  }, [messages]);
+
+  // Tijdens het wachten op Filly: alleen meeschuiven als near-bottom,
+  // zodat de typing-indicator in beeld komt zonder te yanken.
+  useEffect(() => {
+    if (sending && nearBottomRef.current) scrollToBottom();
+  }, [sending]);
 
   // Refactored 2026-05-04: send-logica in een herbruikbare sendText(text)
   // zodat de choice-card-handler ('chooseChannel') 'm ook kan triggeren
@@ -605,6 +636,16 @@ export function FillyChat() {
         onDismissBundle={dismissBundle}
         onChooseChannel={chooseChannel}
       />
+
+      {showJump && (
+        <button
+          type="button"
+          className="chat-jump"
+          onClick={scrollToBottom}
+        >
+          ↓ Nieuwe berichten
+        </button>
+      )}
 
       {error && <FillyChatErrorBanner message={error} />}
 
