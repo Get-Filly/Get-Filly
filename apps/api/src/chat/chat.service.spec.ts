@@ -49,6 +49,23 @@ describe('extractGuidedStart', () => {
     expect(r.card?.date).toBeUndefined();
   });
 
+  it('day_phrase wordt deterministisch omgerekend (morgen → +1 dag)', () => {
+    const tomorrow = new Date(Date.now() + 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const r = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"day_phrase":"morgen"}<<END>>',
+    );
+    expect(r.card?.date).toBe(tomorrow);
+  });
+
+  it('onherleidbare day_phrase → card zonder datum', () => {
+    const r = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"day_phrase":"ooit eens"}<<END>>',
+    );
+    expect(r.card).toEqual({ kind: 'guided_start' });
+  });
+
   it('topic wordt gecapt op 80 tekens', () => {
     const long = 'a'.repeat(200);
     const r = extractGuidedStart(

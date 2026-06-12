@@ -14,6 +14,7 @@ import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { type ToneSignature } from '../ai/filly-brain.config';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
+import { resolveDutchDate } from '../common/dutch-date';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
 // 'user' = de restauranteigenaar, 'system' = interne/automatische berichten
@@ -1080,27 +1081,27 @@ eigenaar ziet het blok niet; de frontend toont op basis daarvan de
 geleide flow (dag → context → kanalen → tekst) ín het gesprek.
 
 <<FILLY_START_GUIDED>>
-{"date":"2026-06-15","topic":"Burrata"}
+{"day_phrase":"volgende week zondag","topic":"Burrata"}
 <<END>>
 
 Regels:
-- "date": noemt de eigenaar een dag of gelegenheid (vandaag / morgen /
-  overmorgen / een weekdag als zaterdag / dit weekend / komend weekend /
-  volgende week zondag / een datum als "20 juni" / een feestdag als
-  Vaderdag of Kerst), reken die dan EXACT om naar een ISO-datum
-  (YYYY-MM-DD) op basis van "Vandaag is ..." in de context. Voorbeeld
-  bij vandaag = vrijdag: "zondag" = de eerstvolgende zondag; "volgende
-  week zondag" = de zondag van de week dáárna; "morgen" = +1 dag.
-- DATUM ONTHOUDEN: is er eerder in dit gesprek al een dag gekozen — je
-  ziet dat aan een "[geleide flow gestart — doel-datum ...]"-annotatie
-  bij een eerder Filly-bericht, of de eigenaar noemde 'm — HERGEBRUIK
-  die datum en vraag de dag NIET opnieuw. Alleen als de eigenaar
-  expliciet een andere dag noemt, gebruik je de nieuwe.
+- "day_phrase": zet de dag/gelegenheid LETTERLIJK zoals de eigenaar 'm
+  noemde ("morgen", "zaterdag", "komend weekend", "volgende week
+  zondag", "20 juni", "Vaderdag"). REKEN ZELF NIETS OM naar een datum —
+  het systeem doet dat deterministisch. Haal alleen de relevante woorden
+  uit een rommelige zin ("doe iets leuks voor aankomende zondag" →
+  day_phrase "aankomende zondag").
+- DATUM ONTHOUDEN: is er eerder in dit gesprek al een dag vastgesteld —
+  je ziet dat aan een "[geleide flow gestart — doel-datum YYYY-MM-DD]"-
+  annotatie bij een eerder Filly-bericht — en noemt de eigenaar nu GEEN
+  nieuwe dag, zet die ISO-datum dan in "date" (NIET in day_phrase) en
+  vraag de dag niet opnieuw. Noemt 'ie wél een nieuwe dag, gebruik
+  day_phrase.
 - "topic": noemt de eigenaar een gerecht, drankje, thema of "het menu"
   ("doe iets met de Burrata", "iets rond ons wijnaanbod"), zet dat dan
   in "topic". Anders weglaten — de flow kiest zelf uit het menu.
-- Noemt 'ie GEEN dag en is er nog geen gekozen, stuur dan {} (of alleen
-  topic) — de flow vraagt zelf welke dag.
+- Noemt 'ie GEEN dag en is er nog geen vastgesteld, stuur dan {} (of
+  alleen topic) — de flow vraagt zelf welke dag.
 - Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar — kies
   hieronder."). Schrijf GEEN kanaalkeuze, GEEN campagnetekst en GEEN
   varianten in proza; de flow doet dat volledig. Stel hooguit één korte
@@ -1575,13 +1576,26 @@ export function extractGuidedStart(
   let topic: string | undefined;
   try {
     const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
-    if (typeof parsed.date === 'string') {
-      const d = parsed.date.trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d))) {
-        const days =
-          (new Date(`${d}T12:00:00`).getTime() - Date.now()) / 86_400_000;
-        if (days >= -1 && days <= 120) date = d;
-      }
+    // Voorkeur: 'day_phrase' (de dag zoals de eigenaar 'm noemde) →
+    // deterministisch omgerekend in code (audit-item #2). Fallback:
+    // 'date' (al-omgerekende ISO, bv. hergebruikt uit een eerdere
+    // flow-annotatie). Beide door dezelfde range-check.
+    let candidate: string | undefined;
+    if (typeof parsed.day_phrase === 'string' && parsed.day_phrase.trim()) {
+      candidate = resolveDutchDate(parsed.day_phrase, new Date()) ?? undefined;
+    }
+    if (!candidate && typeof parsed.date === 'string') {
+      candidate = parsed.date.trim();
+    }
+    if (
+      candidate &&
+      /^\d{4}-\d{2}-\d{2}$/.test(candidate) &&
+      !Number.isNaN(Date.parse(candidate))
+    ) {
+      const days =
+        (new Date(`${candidate}T12:00:00`).getTime() - Date.now()) /
+        86_400_000;
+      if (days >= -1 && days <= 120) date = candidate;
     }
     if (typeof parsed.topic === 'string' && parsed.topic.trim()) {
       topic = parsed.topic.trim().slice(0, 80);
