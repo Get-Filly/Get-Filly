@@ -1653,49 +1653,62 @@ ${segmentsBlock}`;
           const platforms = item.channels.filter((p): p is SuggestionPlatform =>
             (SUGGESTION_PLATFORMS as string[]).includes(p),
           );
-          const validatedChannels: SuggestionChannel[] = [];
-          let lead: LowOccupancyCampaignFromTool | null = null;
 
-          for (let i = 0; i < platforms.length; i++) {
-            const p = platforms[i];
-            const channelPrompt = (extra: string) =>
-              `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='${platformToType(p)}'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}`;
-            try {
-              const firstCh = await generateProposal(channelPrompt(''));
-              const ch = await enforceCopyLength({
-                channel: mapCampaignTypeToChannel(platformToType(p), p),
-                first: firstCh,
-                getBodies: (r) => [r.body],
-                regenerate: (instruction) =>
-                  generateProposal(channelPrompt(instruction)),
-                logger: this.logger,
-                feature,
-              });
-              const body = ch.body.trim().slice(0, 5000);
-              if (!body) continue;
-              validatedChannels.push({
-                id: `${p}-${i}`,
-                platform: p,
-                variants: [
-                  {
-                    body,
-                    subject_line:
-                      p === 'mail' &&
-                      typeof ch.subject_line === 'string' &&
-                      ch.subject_line.trim().length > 0
-                        ? ch.subject_line.trim().slice(0, 200)
-                        : undefined,
-                  },
-                ],
-                selected_index: 0,
-              });
-              if (!lead) lead = ch;
-            } catch (e) {
-              this.logger.warn(
-                `multi-channel generatie faalde voor ${p} op ${item.date}: ${String(e)}`,
-              );
-            }
-          }
+          // Audit-item #6: de kanalen PARALLEL genereren i.p.v.
+          // sequentieel — bij 4 kanalen scheelt dat ~15-30s wachttijd
+          // (latency = die van het traagste kanaal, niet de som). Elk
+          // kanaal houdt z'n eigen lengte-guard. Fail-soft per kanaal
+          // (een fout → null → overgeslagen). Volgorde blijft behouden
+          // (Promise.all bewaart de map-volgorde), dus channels[0] is
+          // het primaire kanaal.
+          const settled = await Promise.all(
+            platforms.map(async (p, i) => {
+              const channelPrompt = (extra: string) =>
+                `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='${platformToType(p)}'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}`;
+              try {
+                const firstCh = await generateProposal(channelPrompt(''));
+                const ch = await enforceCopyLength({
+                  channel: mapCampaignTypeToChannel(platformToType(p), p),
+                  first: firstCh,
+                  getBodies: (r) => [r.body],
+                  regenerate: (instruction) =>
+                    generateProposal(channelPrompt(instruction)),
+                  logger: this.logger,
+                  feature,
+                });
+                const body = ch.body.trim().slice(0, 5000);
+                if (!body) return null;
+                return { platform: p, index: i, ch, body };
+              } catch (e) {
+                this.logger.warn(
+                  `multi-channel generatie faalde voor ${p} op ${item.date}: ${String(e)}`,
+                );
+                return null;
+              }
+            }),
+          );
+
+          const ok = settled.filter(
+            (r): r is NonNullable<typeof r> => r !== null,
+          );
+          const validatedChannels: SuggestionChannel[] = ok.map((r) => ({
+            id: `${r.platform}-${r.index}`,
+            platform: r.platform,
+            variants: [
+              {
+                body: r.body,
+                subject_line:
+                  r.platform === 'mail' &&
+                  typeof r.ch.subject_line === 'string' &&
+                  r.ch.subject_line.trim().length > 0
+                    ? r.ch.subject_line.trim().slice(0, 200)
+                    : undefined,
+              },
+            ],
+            selected_index: 0,
+          }));
+          // Lead = eerste geslaagde kanaal (voor naam/reasoning/impact).
+          const lead: LowOccupancyCampaignFromTool | null = ok[0]?.ch ?? null;
 
           if (validatedChannels.length === 0) continue;
           const primary = validatedChannels[0];
