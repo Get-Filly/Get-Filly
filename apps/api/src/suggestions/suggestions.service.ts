@@ -702,7 +702,9 @@ ${buildAllChannelsBlock()}
 ---
 ${buildAllTimingBlock()}
 ---
-${buildExternalFactorsBlock()}
+${buildExternalFactorsBlock(new Date(), 21, {
+  includeHolidays: await this.events.holidaysEnabled(restaurantId),
+})}
 ---
 ${await this.reach.buildReachBlock(restaurantId)}
 ---
@@ -1058,6 +1060,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     const reachBlock = await this.reach.buildReachBlock(restaurantId);
     const eventsBlockRaw = await this.events.buildEventsBlock(restaurantId);
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
+    const includeHolidays = await this.events.holidaysEnabled(restaurantId);
 
     // Stap 6, per dag een Claude-call met dag-specifieke context.
     // Sequentieel zodat we de rate-limit niet over de kop laten
@@ -1107,7 +1110,7 @@ Inhoudsregels:
 ---
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
-${buildExternalFactorsBlock()}
+${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
 ${reachBlock}
 ---
@@ -1357,6 +1360,7 @@ ${dayContext}`;
     const reachBlock = await this.reach.buildReachBlock(restaurantId);
     const eventsBlockRaw = await this.events.buildEventsBlock(restaurantId);
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
+    const includeHolidays = await this.events.holidaysEnabled(restaurantId);
 
     // Sequentieel zodat we de Anthropic-rate-limit niet overschrijden
     // en het prompt-cache effect (system blijft hetzelfde) maximaal
@@ -1435,7 +1439,7 @@ Inhoudsregels:
 ---
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
 ---
-${buildExternalFactorsBlock()}
+${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
 ${reachBlock}
 ---

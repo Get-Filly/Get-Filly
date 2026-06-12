@@ -2092,7 +2092,9 @@ Regels voor de datum:
 TIMING-REGELS VOOR DIT KANAAL (${channel}):
 ${timingRules}
 
-${buildExternalFactorsBlock()}
+${buildExternalFactorsBlock(new Date(), 21, {
+  includeHolidays: await this.events.holidaysEnabled(restaurantId),
+})}
 
 ${await this.events
   .buildEventsBlock(restaurantId)

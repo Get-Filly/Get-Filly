@@ -144,6 +144,26 @@ export class EventsService {
   }
 
   /**
+   * Neemt deze zaak jaarlijkse feestdagen (Valentijn/Pasen/Koningsdag/
+   * Kerst…) mee in voorstellen? Default true; uit te zetten op de
+   * account-pagina (mig 0055). Bepaalt de includeHolidays-vlag voor
+   * buildExternalFactorsBlock. Fail-soft → true bij een query-fout.
+   */
+  async holidaysEnabled(restaurantId: string): Promise<boolean> {
+    try {
+      const { data } = await this.supabase.client
+        .from('restaurants')
+        .select('event_holidays_enabled')
+        .eq('id', restaurantId)
+        .maybeSingle();
+      // null/undefined = nooit ingesteld → default aan.
+      return (data?.event_holidays_enabled as boolean | null) ?? true;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
    * Bouwt het EVENEMENTEN IN DE BUURT-blok voor een system-prompt.
    * Lege string als er niets in de buurt is (geen blok = geen ruis).
    */

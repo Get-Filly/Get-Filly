@@ -901,7 +901,7 @@ function AccountPageInner() {
             >
               <option value={1}>★☆☆☆☆ – Alleen 1-ster reviews</option>
               <option value={2}>★★☆☆☆ – 1 en 2 sterren</option>
-              <option value={3}>★★★☆☆ – 1 t/m 3 sterren (standaard)</option>
+              <option value={3}>★★★☆☆ – 1 t/m 3 sterren</option>
               <option value={4}>★★★★☆ – 1 t/m 4 sterren</option>
               <option value={5}>★★★★★ – Alle reviews</option>
             </select>
@@ -947,7 +947,7 @@ function AccountPageInner() {
               <option value={20}>Onder 20%</option>
               <option value={30}>Onder 30%</option>
               <option value={40}>Onder 40%</option>
-              <option value={50}>Onder 50% (standaard)</option>
+              <option value={50}>Onder 50%</option>
               <option value={60}>Onder 60%</option>
               <option value={70}>Onder 70%</option>
               <option value={80}>Onder 80%</option>
@@ -1026,6 +1026,42 @@ function AccountPageInner() {
                   </label>
                 );
               })}
+              {/* Jaarlijkse feestdagen: aparte boolean-voorkeur
+                  (event_holidays_enabled, mig 0055), niet onderdeel van
+                  de evenementen.nl-categorieën, maar hoort hier qua UX
+                  thuis ("wat neemt Filly mee in voorstellen"). */}
+              {(() => {
+                const checked = form.event_holidays_enabled ?? true;
+                return (
+                  <label
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      border: "1px solid var(--border, #E5DFD0)",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      whiteSpace: "nowrap",
+                      marginBottom: 0,
+                      background: checked
+                        ? "var(--white, #FFFFFF)"
+                        : "transparent",
+                      opacity: checked ? 1 : 0.6,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        update("event_holidays_enabled", !checked)
+                      }
+                    />
+                    Jaarlijkse feestdagen
+                  </label>
+                );
+              })()}
             </div>
             <div style={{ marginTop: 14 }}>
               {/* Label expliciet als blok bóven de select, zoals bij de
@@ -1076,13 +1112,14 @@ function AccountPageInner() {
               }}
             >
               Filly weegt evenementen in de buurt (bron: evenementen.nl)
-              mee in campagne-voorstellen en timing. Vink uit wat niet bij
-              je zaak past; haal je álle vinkjes weg, dan worden events
-              volledig genegeerd. &ldquo;Slim per type&rdquo; betekent:
-              markt en kermis tot 2 km, concert en sport tot 5 km,
-              festival tot 10 km. Een vaste afstand geldt voor alle typen
-              &mdash; ruimer is handig in landelijk gebied, krapper in de
-              binnenstad.
+              en jaarlijkse feestdagen (Valentijn, Pasen, Koningsdag,
+              Kerst&hellip;) mee in campagne-voorstellen en timing. Vink
+              uit wat niet bij je zaak past. De maximale afstand geldt
+              alleen voor evenementen uit de buurt, niet voor feestdagen.
+              &ldquo;Slim per type&rdquo; betekent: markt en kermis tot
+              2 km, concert en sport tot 5 km, festival tot 10 km. Een
+              vaste afstand geldt voor alle typen &mdash; ruimer is handig
+              in landelijk gebied, krapper in de binnenstad.
             </div>
           </div>
 

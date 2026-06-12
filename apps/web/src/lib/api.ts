@@ -937,6 +937,8 @@ export type Restaurant = {
   // Vaste maximale afstand in km voor alle typen; null = slimme
   // staffel per type (markt/kermis 2, concert/sport 5, festival 10).
   event_max_distance_km: number | null;
+  // Jaarlijkse NL-feestdagen meenemen in voorstellen (mig 0055).
+  event_holidays_enabled: boolean;
   // ----- Reviews auto-reageren (mig 0051) -----
   // Aan/uit voor Filly's automatische review-reacties.
   reviews_auto_reply_enabled: boolean;

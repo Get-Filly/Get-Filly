@@ -269,7 +269,12 @@ export const WEATHER_TIMING_RULES = `WEER-REGELS (pas toe op de actuele weerdata
 export function buildExternalFactorsBlock(
   today: Date = new Date(),
   horizonDays = 21,
+  // includeHolidays=false laat de feestdagen-sectie weg (eigenaar-
+  // voorkeur, mig 0055). Loondagen/seizoen/weer blijven altijd staan;
+  // die zijn niet uitschakelbaar want puur context, geen actie-trigger.
+  opts: { includeHolidays?: boolean } = {},
 ): string {
+  const { includeHolidays = true } = opts;
   const todayUtc = new Date(
     Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
   );
@@ -301,24 +306,26 @@ export function buildExternalFactorsBlock(
     `EXTERNE TIMING-FACTOREN (deterministisch berekend, vandaag = ${todayIso}):`,
   );
 
-  if (upcoming.length > 0) {
-    lines.push('');
-    lines.push('Feestdagen in beeld:');
-    for (const h of upcoming) {
-      const weekday = dayNames[new Date(Date.parse(h.date)).getUTCDay()];
-      const windowOpen = h.daysUntil <= h.promoLeadDays;
-      const promoNote = h.avoid
-        ? ''
-        : windowOpen
-          ? ' Promotie-window is NU open.'
-          : ` Promotie start over ${h.daysUntil - h.promoLeadDays} dagen (lead ${h.promoLeadDays}d).`;
-      lines.push(
-        `- ${h.name} (${weekday} ${h.date}, over ${h.daysUntil} dagen): ${h.impact}${promoNote}`,
-      );
+  if (includeHolidays) {
+    if (upcoming.length > 0) {
+      lines.push('');
+      lines.push('Feestdagen in beeld:');
+      for (const h of upcoming) {
+        const weekday = dayNames[new Date(Date.parse(h.date)).getUTCDay()];
+        const windowOpen = h.daysUntil <= h.promoLeadDays;
+        const promoNote = h.avoid
+          ? ''
+          : windowOpen
+            ? ' Promotie-window is NU open.'
+            : ` Promotie start over ${h.daysUntil - h.promoLeadDays} dagen (lead ${h.promoLeadDays}d).`;
+        lines.push(
+          `- ${h.name} (${weekday} ${h.date}, over ${h.daysUntil} dagen): ${h.impact}${promoNote}`,
+        );
+      }
+    } else {
+      lines.push('');
+      lines.push('Feestdagen in beeld: geen binnen de planningshorizon.');
     }
-  } else {
-    lines.push('');
-    lines.push('Feestdagen in beeld: geen binnen de planningshorizon.');
   }
 
   const salary = salaryContext(todayUtc);

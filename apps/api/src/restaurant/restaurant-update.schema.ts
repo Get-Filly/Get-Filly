@@ -353,6 +353,8 @@ export const RestaurantUpdateSchema = z
       .max(25, 'Afstand moet 1-25 km zijn.')
       .nullable()
       .optional(),
+    // Jaarlijkse NL-feestdagen meenemen in voorstellen (mig 0055).
+    event_holidays_enabled: z.boolean().optional(),
 
     // ----- Reviews auto-reageren (mig 0051) -----
     // Aan/uit voor Filly's automatische review-reacties.
