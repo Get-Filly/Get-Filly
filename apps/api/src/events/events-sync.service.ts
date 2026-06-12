@@ -70,6 +70,7 @@ export class EventsSyncService {
     upserted: number;
     resolved: number;
     geocodeCallsUsed: number;
+    pruned: number;
   }> {
     const parsed = await this.fetchAndParseSitemaps();
 
@@ -83,9 +84,10 @@ export class EventsSyncService {
 
     const upserted = await this.upsertEvents(inHorizon);
     const { resolved, geocodeCallsUsed } = await this.resolvePlaces(today);
+    const pruned = await this.prunePastEvents(today);
 
     this.logger.log(
-      `events-sync klaar: ${parsed.length} slugs gelezen, ${inHorizon.length} binnen horizon, ${upserted} ge-upsert, ${resolved} plaatsen resolved (${geocodeCallsUsed} PDOK-calls).`,
+      `events-sync klaar: ${parsed.length} slugs gelezen, ${inHorizon.length} binnen horizon, ${upserted} ge-upsert, ${resolved} plaatsen resolved (${geocodeCallsUsed} PDOK-calls), ${pruned} verlopen events opgeschoond.`,
     );
     return {
       fetched: parsed.length,
@@ -93,7 +95,25 @@ export class EventsSyncService {
       upserted,
       resolved,
       geocodeCallsUsed,
+      pruned,
     };
+  }
+
+  // Verwijder events waarvan de datum voorbij is — anders dijt de tabel
+  // onbeperkt uit (de sync upsert alleen, ruimt nooit op). De
+  // event_places-geocode-cache laten we staan (herbruikbaar). Fail-soft:
+  // een mislukte prune mag de sync niet breken.
+  private async prunePastEvents(todayIso: string): Promise<number> {
+    const { data, error } = await this.supabase.client
+      .from('events')
+      .delete()
+      .lt('starts_on', todayIso)
+      .select('id');
+    if (error) {
+      this.logger.warn(`events-prune faalde: ${error.message}`);
+      return 0;
+    }
+    return data?.length ?? 0;
   }
 
   // ---------- Stap 1: sitemaps ophalen + slugs parsen ----------
