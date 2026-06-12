@@ -2229,12 +2229,37 @@ export type ChatMessage = {
   created_at: string;
 };
 
+// Gedeelde "lopende actie"-state per gesprek (audit-item #8). Eén bron-
+// van-waarheid waar de geleide flow én de chat-LLM op lezen/schrijven,
+// zodat een gekozen dag/thema niet verloren gaat zodra de eigenaar gaat
+// typen. Spiegelt ActiveAction in apps/api chat.service.ts.
+export type ActiveAction = {
+  date?: string;
+  topic?: string;
+  channels?: string[];
+  step?: string;
+  updated_at?: string;
+};
+
+// Delta-vorm voor de PATCH (partial; `reset: true` wist de actie na een
+// geslaagde generatie of "begin opnieuw").
+export type ActiveActionDelta = {
+  date?: string;
+  topic?: string;
+  channels?: string[];
+  step?: string;
+  reset?: boolean;
+};
+
 export type ActiveChatState = {
   conversationId: string;
   messages: ChatMessage[];
   // Aantal berichten in deze conversatie. Cap = 20. UI gebruikt dit
   // voor "Bericht X / 20"-indicator + cap-bereikt-CTA.
   messageCount: number;
+  // De lopende actie of null. De geleide flow seed't z'n begintoestand
+  // hieruit; de chat-orchestrator houdt 'm in sync.
+  activeAction: ActiveAction | null;
 };
 
 // Lijst-item voor het chat-history-overzicht in de chat-card-header.
@@ -2326,7 +2351,13 @@ export async function deleteChatConversation(
 export async function sendChatMessage(
   conversationId: string,
   content: string,
-): Promise<{ userMessage: ChatMessage; fillyMessage: ChatMessage }> {
+): Promise<{
+  userMessage: ChatMessage;
+  fillyMessage: ChatMessage;
+  // De (mogelijk bijgewerkte) lopende actie na deze beurt, zodat de
+  // geleide flow direct in sync komt zonder reload.
+  activeAction: ActiveAction | null;
+}> {
   const res = await authedFetch(`${API_URL}/chat/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2341,6 +2372,25 @@ export async function sendChatMessage(
     err.status = res.status;
     throw err;
   }
+  return res.json();
+}
+
+// Werkt de lopende actie van een gesprek bij (audit-item #8). De geleide
+// flow roept dit aan bij elke keuze (dag/kanalen) en met {reset:true} na
+// een geslaagde generatie. Returnt de gemergede actie (of null bij reset).
+export async function updateChatActiveAction(
+  conversationId: string,
+  delta: ActiveActionDelta,
+): Promise<ActiveAction | null> {
+  const res = await authedFetch(
+    `${API_URL}/chat/conversations/${conversationId}/active-action`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(delta),
+    },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 

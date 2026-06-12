@@ -12,7 +12,10 @@ import {
   fetchChatConversations,
   fetchSuggestions,
   sendChatMessage,
+  updateChatActiveAction,
   CHAT_CONVERSATION_CAP,
+  type ActiveAction,
+  type ActiveActionDelta,
   type BundleChannel,
   type CampaignBundleCard,
   type ChannelChoiceCard,
@@ -59,6 +62,10 @@ export function FillyChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageCount, setMessageCount] = useState(0);
+  // Gedeelde lopende actie (audit-item #8): de geleide flow seed't z'n
+  // begintoestand hieruit en meldt keuzes terug; de chat-roundtrip houdt
+  // 'm in sync. Server (active_action-kolom) is de bron-van-waarheid.
+  const [activeAction, setActiveAction] = useState<ActiveAction | null>(null);
   const [conversations, setConversations] = useState<
     ChatConversationSummary[]
   >([]);
@@ -145,6 +152,7 @@ export function FillyChat() {
         setConversationId(data.conversationId);
         setMessages(data.messages);
         setMessageCount(data.messageCount);
+        setActiveAction(data.activeAction);
         setConversations(convs);
 
         // Lookup-maps per suggestion_id. Approved → we moeten óók
@@ -274,10 +282,8 @@ export function FillyChat() {
     setMessages((m) => [...m, optimistic]);
 
     try {
-      const { userMessage, fillyMessage } = await sendChatMessage(
-        conversationId,
-        text,
-      );
+      const { userMessage, fillyMessage, activeAction: nextAction } =
+        await sendChatMessage(conversationId, text);
       // Vervang optimistisch bericht door server-versie + voeg Filly's
       // antwoord toe. Eén state-update om flikkering te voorkomen.
       setMessages((m) =>
@@ -286,6 +292,10 @@ export function FillyChat() {
       // Counter +2 (user + filly). Bij cap-bereikt togglet capReached
       // automatisch via de derived constant, geen aparte setter nodig.
       setMessageCount((c) => c + 2);
+      // Lopende actie syncen: de server kan 'm bijgewerkt hebben (datum/
+      // thema-carry-forward na een FILLY_START_GUIDED-emit). Zo komt een
+      // net-gemergede datum/thema meteen in de geleide flow-kaart.
+      setActiveAction(nextAction);
       // Conversations-lijst refresh (titel kan net gegenereerd zijn,
       // counts kloppen). Fire-and-forget; faalt het, dan toont de
       // dropdown gewoon stale data tot volgende navigatie.
@@ -313,6 +323,21 @@ export function FillyChat() {
       }
     } finally {
       setSending(false);
+    }
+  };
+
+  // Geleide flow meldt een keuze (dag/kanalen) of een afronding
+  // ({reset:true}). We persisten 'm server-side en updaten de lifted
+  // state met het authoritative resultaat. Best-effort: een gefaalde
+  // sync mag de flow niet blokkeren — de eigenaar gaat lokaal door en de
+  // volgende mutatie (of een typed bericht dat de kolom leest) herstelt.
+  const handleActiveActionChange = async (delta: ActiveActionDelta) => {
+    if (!conversationId) return;
+    try {
+      const updated = await updateChatActiveAction(conversationId, delta);
+      setActiveAction(updated);
+    } catch (e) {
+      logger.error(e);
     }
   };
 
@@ -418,6 +443,7 @@ export function FillyChat() {
       setConversationId(data.conversationId);
       setMessages(data.messages);
       setMessageCount(data.messageCount);
+      setActiveAction(data.activeAction);
       // Proposal-statussen resetten naar leeg; ze worden uit message_card
       // bij volgende render afgeleid (pending = default als geen entry).
       setProposalStatus({});
@@ -440,6 +466,7 @@ export function FillyChat() {
       setConversationId(data.conversationId);
       setMessages(data.messages);
       setMessageCount(data.messageCount);
+      setActiveAction(data.activeAction);
       setProposalStatus({});
       const convs = await fetchChatConversations().catch(() => []);
       setConversations(convs);
@@ -639,6 +666,8 @@ export function FillyChat() {
         onAcceptBundle={acceptBundle}
         onDismissBundle={dismissBundle}
         onChooseChannel={chooseChannel}
+        activeAction={activeAction}
+        onActiveActionChange={handleActiveActionChange}
       />
 
       {showJump && (

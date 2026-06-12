@@ -2,6 +2,8 @@
 
 import { forwardRef } from "react";
 import type {
+  ActiveAction,
+  ActiveActionDelta,
   BundleChannel,
   ChatMessage,
   CampaignProposalCard,
@@ -68,6 +70,10 @@ type Props = {
   onChooseChannel: (messageId: string, choices: ChannelChoice[]) => void;
   dateChoiceState: Record<string, { state: DateChoiceState }>;
   onChooseDate: (messageId: string, followUpText: string) => void;
+  // Gedeelde lopende actie (audit-item #8): de geleide flow seed't z'n
+  // begintoestand hieruit en meldt keuzes terug via onActiveActionChange.
+  activeAction: ActiveAction | null;
+  onActiveActionChange: (delta: ActiveActionDelta) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -87,6 +93,8 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
       onDismissBundle,
       onChooseChannel,
       onChooseDate,
+      activeAction,
+      onActiveActionChange,
     },
     scrollRef,
   ) {
@@ -112,7 +120,13 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             </div>
           </div>
         ) : visible.length === 0 && !sending ? (
-          <FillyGuidedFlow />
+          // Lege-chat-staat: de volledige flow. Seed vanuit een eventuele
+          // lopende actie (zeldzaam in de lege staat, maar dan klopt 'ie).
+          <FillyGuidedFlow
+            initialDate={activeAction?.date}
+            initialTopic={activeAction?.topic}
+            onActionChange={onActiveActionChange}
+          />
         ) : (
           visible.map((m) =>
               m.role === "filly" ? (
@@ -174,11 +188,15 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                   )}
                   {m.message_card?.kind === "guided_start" && (
                     // Getypt campagne-verzoek → de geleide flow ín het
-                    // gesprek, eventueel voorgevuld met de door Filly
-                    // herleide datum + genoemd gerecht/thema.
+                    // gesprek, voorgevuld met de datum/het thema uit de
+                    // kaart (server-gevuld vanuit de lopende actie). Live
+                    // active_action als fallback mocht de kaart ouder zijn.
                     <FillyGuidedFlow
-                      initialDate={m.message_card.date}
-                      initialTopic={m.message_card.topic}
+                      initialDate={m.message_card.date ?? activeAction?.date}
+                      initialTopic={
+                        m.message_card.topic ?? activeAction?.topic
+                      }
+                      onActionChange={onActiveActionChange}
                     />
                   )}
                 </div>

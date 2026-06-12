@@ -12,6 +12,7 @@ import {
 import {
   fetchDayContext,
   generateSuggestionsForDates,
+  type ActiveActionDelta,
   type AiSuggestion,
   type DayContext,
   type GenerateForDatesItem,
@@ -89,15 +90,24 @@ const CHANNEL_LABEL: Record<string, string> = {
 };
 
 // initialDate (optioneel): door Filly herleide doel-datum uit een
-// getypt verzoek ("doe iets voor zondag"). Is 'ie gezet, dan slaat de
-// flow de dag-keuze over en springt naar context/kanalen. Leeg = de
-// volledige flow vanaf stap 1 (lege-chat-staat).
+// getypt verzoek ("doe iets voor zondag"), of de in een eerdere beurt /
+// flow-keuze vastgestelde dag uit de lopende actie (active_action). Is
+// 'ie gezet, dan slaat de flow de dag-keuze over en springt naar context/
+// kanalen. Leeg = de volledige flow vanaf stap 1 (lege-chat-staat).
+//
+// onActionChange (audit-item #8): zodra de eigenaar in de flow een dag
+// kiest of een actie afrondt, melden we dat aan de orchestrator zodat de
+// keuze server-side in active_action landt — en de chat-LLM 'm dus kent
+// als de eigenaar daarna gaat typen. De auto-start vanuit een bestaande
+// datum schrijft NIET terug (zou een nieuwere actie kunnen overschrijven).
 export function FillyGuidedFlow({
   initialDate,
   initialTopic,
+  onActionChange,
 }: {
   initialDate?: string;
   initialTopic?: string;
+  onActionChange?: (delta: ActiveActionDelta) => void;
 }) {
   const router = useRouter();
   const { lowOccupancyDays, specialDays, occupancyThreshold, loading } =
@@ -130,11 +140,17 @@ export function FillyGuidedFlow({
   // Stap 1 → kies een dag, haal day-context op, ga naar stap 2 (of
   // direct naar 3 als er geen context is). Context-fetch is fail-soft:
   // mislukt 'ie, dan slaan we stap 2 over.
-  const pickDay = async (day: PickedDay) => {
+  //
+  // persist: schrijf de gekozen dag naar de lopende actie (active_action)
+  // zodat de chat-LLM 'm meekrijgt. Staat op false bij de auto-start
+  // vanuit een al-vastgestelde datum (die zit al in active_action; terug-
+  // schrijven zou een ondertussen gewijzigde actie kunnen overschrijven).
+  const pickDay = async (day: PickedDay, persist = true) => {
     setPicked(day);
     setError(null);
     setLoadingContext(true);
     setStep("context");
+    if (persist) onActionChange?.({ date: day.date, step: "context" });
     try {
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
@@ -181,7 +197,10 @@ export function FillyGuidedFlow({
             kind: "low_occupancy",
             label: formatDayNl(initialDate),
           };
-    void pickDay(day);
+    // persist=false: deze datum kómt uit active_action (via de kaart of
+    // een vorige beurt). Terug-PATCHen zou een ondertussen nieuwere actie
+    // kunnen overschrijven.
+    void pickDay(day, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDate, loading, autoStarted]);
 
@@ -205,6 +224,12 @@ export function FillyGuidedFlow({
     if (!picked) return;
     setStep("generating");
     setError(null);
+    // Gekozen kanalen vastleggen in de lopende actie (resume-waarde als
+    // de generatie faalt; de chat kent zo ook de kanaal-keuze).
+    onActionChange?.({
+      channels: [...selectedChannels],
+      step: "generating",
+    });
     const contextHints = [
       // Door de eigenaar genoemd gerecht/thema eerst, als harde sturing.
       ...(initialTopic ? [`Centraal gerecht/thema: ${initialTopic}`] : []),
@@ -231,6 +256,10 @@ export function FillyGuidedFlow({
       // Resultaat inline tonen — de eigenaar blijft in het gesprek.
       setResult(suggestions);
       setStep("done");
+      // Actie afgerond → lopende actie wissen zodat een volgende, los-
+      // staande actie schoon begint (geen oude datum/thema die blijft
+      // hangen in de chat-context).
+      onActionChange?.({ reset: true });
     } catch (e) {
       logger.error(e);
       setError(
@@ -251,6 +280,8 @@ export function FillyGuidedFlow({
     setSelectedChannels(new Set());
     setResult([]);
     setError(null);
+    // Verse actie: ook de gedeelde lopende actie wissen.
+    onActionChange?.({ reset: true });
   };
 
   // ---------- Klaar: resultaat inline tonen ----------
