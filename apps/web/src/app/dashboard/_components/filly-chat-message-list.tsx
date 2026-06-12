@@ -175,8 +175,11 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                   {m.message_card?.kind === "guided_start" && (
                     // Getypt campagne-verzoek → de geleide flow ín het
                     // gesprek, eventueel voorgevuld met de door Filly
-                    // herleide datum.
-                    <FillyGuidedFlow initialDate={m.message_card.date} />
+                    // herleide datum + genoemd gerecht/thema.
+                    <FillyGuidedFlow
+                      initialDate={m.message_card.date}
+                      initialTopic={m.message_card.topic}
+                    />
                   )}
                 </div>
               ) : (

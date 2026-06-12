@@ -92,7 +92,13 @@ const CHANNEL_LABEL: Record<string, string> = {
 // getypt verzoek ("doe iets voor zondag"). Is 'ie gezet, dan slaat de
 // flow de dag-keuze over en springt naar context/kanalen. Leeg = de
 // volledige flow vanaf stap 1 (lege-chat-staat).
-export function FillyGuidedFlow({ initialDate }: { initialDate?: string }) {
+export function FillyGuidedFlow({
+  initialDate,
+  initialTopic,
+}: {
+  initialDate?: string;
+  initialTopic?: string;
+}) {
   const router = useRouter();
   const { lowOccupancyDays, specialDays, occupancyThreshold, loading } =
     useActionableDays();
@@ -199,9 +205,13 @@ export function FillyGuidedFlow({ initialDate }: { initialDate?: string }) {
     if (!picked) return;
     setStep("generating");
     setError(null);
-    const contextHints = contextOptions
-      .filter((o) => selectedContext.has(o.id))
-      .map((o) => o.hint);
+    const contextHints = [
+      // Door de eigenaar genoemd gerecht/thema eerst, als harde sturing.
+      ...(initialTopic ? [`Centraal gerecht/thema: ${initialTopic}`] : []),
+      ...contextOptions
+        .filter((o) => selectedContext.has(o.id))
+        .map((o) => o.hint),
+    ];
     const item: GenerateForDatesItem = {
       date: picked.date,
       kind: picked.kind,
@@ -347,7 +357,9 @@ export function FillyGuidedFlow({ initialDate }: { initialDate?: string }) {
               ? "Ik zie een paar dagen waar een actie kan helpen. Voor welke dag zal ik iets bedenken?"
               : !initialDate && step === "day"
                 ? "Geen rustige of speciale dagen in zicht op dit moment — typ hieronder gerust zelf wat je wilt, dan denk ik mee."
-                : "We maken samen een actie. Beantwoord de vragen of pas een eerdere stap aan."}
+                : initialTopic
+                  ? `We maken een actie rond ${initialTopic}. Beantwoord de vragen of pas een eerdere stap aan.`
+                  : "We maken samen een actie. Beantwoord de vragen of pas een eerdere stap aan."}
           </div>
         </div>
       </div>

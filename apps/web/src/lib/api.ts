@@ -2210,6 +2210,8 @@ export type DateChoiceCard = {
 export type GuidedStartCard = {
   kind: "guided_start";
   date?: string;
+  // Optioneel gerecht/thema uit het verzoek dat de generatie stuurt.
+  topic?: string;
 };
 
 export type MessageCard =

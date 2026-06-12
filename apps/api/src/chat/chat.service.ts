@@ -50,6 +50,9 @@ export type MessageCard =
 export type GuidedStartCard = {
   kind: 'guided_start';
   date?: string;
+  // Optioneel gerecht/thema uit het verzoek ("doe iets met de Burrata")
+  // dat de generatie stuurt. Leeg = Filly kiest zelf uit het menu.
+  topic?: string;
 };
 
 // Channel-choice, geen ai_suggestion-rij erachter (geen suggestion_id),
@@ -623,7 +626,24 @@ export class ChatService {
     const history = await this.getRecentMessages(conversationId, restaurantId);
     const systemPrompt = await this.buildSystemPrompt(restaurantId);
     const historyPrompt = history
-      .map((m) => `${m.role === 'user' ? 'Eigenaar' : 'Filly'}: ${m.content}`)
+      .map((m) => {
+        const who = m.role === 'user' ? 'Eigenaar' : 'Filly';
+        // Een eerder gestarte geleide flow droeg z'n doel-datum + thema
+        // alleen in de message_card (gestript uit content). Die hier
+        // terug in de tekst zetten zodat Filly de gekozen dag/gerecht
+        // HERKENT en hergebruikt i.p.v. de dag opnieuw te vragen.
+        if (m.message_card?.kind === 'guided_start') {
+          const card = m.message_card;
+          const bits = [
+            card.date ? `doel-datum ${card.date}` : 'nog geen datum',
+            card.topic ? `thema "${card.topic}"` : null,
+          ]
+            .filter(Boolean)
+            .join(', ');
+          return `${who}: ${m.content} [geleide flow gestart — ${bits}]`;
+        }
+        return `${who}: ${m.content}`;
+      })
       .join('\n');
 
     // Server-side keuze-hint: detect of het laatste user-bericht
@@ -1060,28 +1080,37 @@ eigenaar ziet het blok niet; de frontend toont op basis daarvan de
 geleide flow (dag → context → kanalen → tekst) ín het gesprek.
 
 <<FILLY_START_GUIDED>>
-{"date":"2026-06-15"}
+{"date":"2026-06-15","topic":"Burrata"}
 <<END>>
 
 Regels:
-- Noemt de eigenaar een dag of gelegenheid (vandaag / morgen /
+- "date": noemt de eigenaar een dag of gelegenheid (vandaag / morgen /
   overmorgen / een weekdag als zaterdag / dit weekend / komend weekend /
   volgende week zondag / een datum als "20 juni" / een feestdag als
   Vaderdag of Kerst), reken die dan EXACT om naar een ISO-datum
-  (YYYY-MM-DD) op basis van "Vandaag is ..." in de context, en zet 'm in
-  "date". Voorbeeld bij vandaag = vrijdag: "zondag" = de eerstvolgende
-  zondag; "volgende week zondag" = de zondag van de week dáárna;
-  "morgen" = +1 dag; "overmorgen" = +2 dagen.
-- Twijfel je over de exacte dag, of noemt 'ie GEEN dag, stuur dan {}
-  (lege date) — de flow vraagt zelf welke dag.
+  (YYYY-MM-DD) op basis van "Vandaag is ..." in de context. Voorbeeld
+  bij vandaag = vrijdag: "zondag" = de eerstvolgende zondag; "volgende
+  week zondag" = de zondag van de week dáárna; "morgen" = +1 dag.
+- DATUM ONTHOUDEN: is er eerder in dit gesprek al een dag gekozen — je
+  ziet dat aan een "[geleide flow gestart — doel-datum ...]"-annotatie
+  bij een eerder Filly-bericht, of de eigenaar noemde 'm — HERGEBRUIK
+  die datum en vraag de dag NIET opnieuw. Alleen als de eigenaar
+  expliciet een andere dag noemt, gebruik je de nieuwe.
+- "topic": noemt de eigenaar een gerecht, drankje, thema of "het menu"
+  ("doe iets met de Burrata", "iets rond ons wijnaanbod"), zet dat dan
+  in "topic". Anders weglaten — de flow kiest zelf uit het menu.
+- Noemt 'ie GEEN dag en is er nog geen gekozen, stuur dan {} (of alleen
+  topic) — de flow vraagt zelf welke dag.
 - Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar — kies
   hieronder."). Schrijf GEEN kanaalkeuze, GEEN campagnetekst en GEEN
-  varianten in proza; de flow doet dat volledig.
-- Maximaal één blok per antwoord.
+  varianten in proza; de flow doet dat volledig. Stel hooguit één korte
+  vervolgvraag als je echt niet weet WAT je moet maken — maar vraag
+  NOOIT opnieuw naar de dag als die al bekend is.
 
-Dit is je ENIGE manier om een campagne te starten. Voor alle andere
-berichten (een vraag, uitleg, meedenken) antwoord je gewoon in proza,
-zonder blok.
+Dit is je ENIGE manier om een campagne te starten — ook bij vage
+verzoeken als "doe iets voor het menu". Schrijf nooit zelf een
+voorstel in proza. Voor alle andere berichten (een vraag, uitleg,
+meedenken) antwoord je gewoon in proza, zonder blok.
 
 ---
 CONTEXT, alles wat je weet over deze onderneming.
@@ -1543,6 +1572,7 @@ export function extractGuidedStart(
   const cleanText = trimmed.replace(GUIDED_START_REGEX, '').trim();
 
   let date: string | undefined;
+  let topic: string | undefined;
   try {
     const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
     if (typeof parsed.date === 'string') {
@@ -1553,11 +1583,21 @@ export function extractGuidedStart(
         if (days >= -1 && days <= 120) date = d;
       }
     }
+    if (typeof parsed.topic === 'string' && parsed.topic.trim()) {
+      topic = parsed.topic.trim().slice(0, 80);
+    }
   } catch {
-    // Misvormde JSON → flow zonder voorgevulde datum.
+    // Misvormde JSON → flow zonder voorgevulde datum/topic.
   }
 
-  return { cleanText, card: { kind: 'guided_start', ...(date ? { date } : {}) } };
+  return {
+    cleanText,
+    card: {
+      kind: 'guided_start',
+      ...(date ? { date } : {}),
+      ...(topic ? { topic } : {}),
+    },
+  };
 }
 
 const DATE_CHOICE_REGEX =
