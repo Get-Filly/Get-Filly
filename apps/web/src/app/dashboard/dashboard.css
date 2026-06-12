@@ -1205,8 +1205,53 @@
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .dashboard-shell .fg-opt:hover { background: var(--bg); border-color: var(--accent); }
+/* Geselecteerde multi-select-optie (context/kanaal): groene rand +
+   zachte vulling, met checkmark rechts (door de component gerenderd). */
+.dashboard-shell .fg-opt.sel {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
+.dashboard-shell .fg-opt.sel .fg-opt-main { color: var(--accent-dark); }
 .dashboard-shell .fg-opt-main { font-size: 13px; font-weight: 500; color: var(--text); }
 .dashboard-shell .fg-opt-sub { font-size: 12px; color: var(--tl); flex-shrink: 0; }
+/* Kanaal-optie met twee regels (label + bereik-toelichting). */
+.dashboard-shell .fg-opt-col { display: flex; flex-direction: column; gap: 1px; }
+.dashboard-shell .fg-opt-sub-inline { font-size: 11px; color: var(--tl); line-height: 1.35; }
+.dashboard-shell .fg-opt.sel .fg-opt-sub-inline { color: var(--accent); }
+/* Filly's vraag boven een keuze-set. */
+.dashboard-shell .fg-q {
+  font-size: 13px;
+  color: var(--ts);
+  margin-left: 34px;
+  margin-bottom: -4px;
+}
+/* "Verder"/"Maak de actie"-knop onder een stap; uitgelijnd met de
+   opties (34px = avatar 26 + gap 8). */
+.dashboard-shell .fg-next { align-self: flex-start; margin-top: 4px; margin-left: 34px; }
+/* Antwoordspoor: beantwoorde stappen als compacte chip met wijzig-pen. */
+.dashboard-shell .fg-trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 34px;
+}
+.dashboard-shell .fg-trail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: none;
+  border-radius: var(--rf);
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.dashboard-shell .fg-trail-chip:hover { filter: brightness(0.97); }
+.dashboard-shell .fg-trail-edit { opacity: 0.6; }
 .dashboard-shell .fg-more {
   align-self: flex-start;
   background: none;

@@ -45,6 +45,17 @@ export class SuggestionsController {
     return this.suggestions.findAll(restaurantId, status, excludeList);
   }
 
+  // Geleide flow (fase 2): leesbare context voor één gekozen dag —
+  // events in de buurt + weer + kanalen met bereik. MOET vóór de
+  // ':id'-route staan, anders matcht Nest 'day-context' als een id.
+  @Get('day-context')
+  getDayContext(
+    @RestaurantId() restaurantId: string,
+    @Query('date') date?: string,
+  ) {
+    return this.suggestions.getDayContext(restaurantId, date ?? '');
+  }
+
   @Get(':id')
   findOne(
     @RestaurantId() restaurantId: string,
@@ -108,6 +119,8 @@ export class SuggestionsController {
         date?: unknown;
         kind?: unknown;
         name?: unknown;
+        channels?: unknown;
+        context?: unknown;
       }>;
     },
   ) {
@@ -117,6 +130,21 @@ export class SuggestionsController {
       date: string;
       kind: 'low_occupancy' | 'special_day';
       name?: string;
+      channels?: string[];
+      context?: string[];
+    };
+    // Helper: maak een schone string-array (max 6 items, elk getrimd
+    // + gecapt) van onbekende input. Geleide flow stuurt channels +
+    // context-hints; alles anders negeren we.
+    const cleanStrings = (v: unknown): string[] | undefined => {
+      if (!Array.isArray(v)) return undefined;
+      const out = v
+        .filter((x): x is string => typeof x === 'string')
+        .map((x) => x.trim())
+        .filter((x) => x.length > 0)
+        .slice(0, 6)
+        .map((x) => x.slice(0, 200));
+      return out.length > 0 ? out : undefined;
     };
     const rawItems = Array.isArray(body?.items) ? body.items : [];
     const items: SanitizedItem[] = [];
@@ -127,6 +155,10 @@ export class SuggestionsController {
       }
       const item: SanitizedItem = { date: r.date, kind: r.kind };
       if (typeof r.name === 'string') item.name = r.name;
+      const channels = cleanStrings(r.channels);
+      if (channels) item.channels = channels;
+      const context = cleanStrings(r.context);
+      if (context) item.context = context;
       items.push(item);
     }
 

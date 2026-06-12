@@ -1179,7 +1179,49 @@ export type GenerateForDatesItem = {
   // Voor special_day: naam van de feestdag (Vaderdag, Kerst, etc).
   // Voor low_occupancy: niet gebruikt.
   name?: string;
+  // Geleide flow (fase 2): door de eigenaar gekozen kanalen
+  // (platform-namen) + context-hints (events/weer) die de generatie
+  // sturen. Beide optioneel.
+  channels?: string[];
+  context?: string[];
 };
+
+// Day-context voor de geleide chat-flow (stap 2 + 3). Spiegelt
+// DayContext in apps/api suggestions.service.ts.
+export type DayContextChannel = {
+  channel: "mail" | "instagram" | "facebook" | "whatsapp" | "google_business";
+  label: string;
+  recommended: boolean;
+  note: string;
+};
+export type DayContext = {
+  date: string;
+  weather: {
+    icon: string;
+    description: string;
+    tempMin: number;
+    tempMax: number;
+  } | null;
+  events: Array<{
+    name: string;
+    category: string;
+    place: string;
+    distanceKm: number;
+  }>;
+  channels: DayContextChannel[];
+};
+
+// Leesbare context voor één gekozen dag: events in de buurt + weer +
+// kanalen met bereik. Read-only, geen AI — voedt de geleide flow.
+export async function fetchDayContext(date: string): Promise<DayContext> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/day-context?date=${encodeURIComponent(date)}`,
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Dag-context laden mislukt"));
+  }
+  return res.json();
+}
 
 export async function generateSuggestionsForDates(
   items: GenerateForDatesItem[],

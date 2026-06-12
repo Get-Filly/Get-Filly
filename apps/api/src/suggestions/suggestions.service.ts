@@ -22,8 +22,15 @@ import {
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
-import { ChannelReachService } from '../ai/channel-reach.service';
-import { EventsService } from '../events/events.service';
+import {
+  ChannelReachService,
+  type ChannelReach,
+} from '../ai/channel-reach.service';
+import { EventsService, type NearbyEvent } from '../events/events.service';
+import {
+  WeatherService,
+  type ForecastDay,
+} from '../weather/weather.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
@@ -525,6 +532,31 @@ export function ensureChannels(sc: SuggestedCampaign): SuggestionChannel[] {
   ];
 }
 
+// Day-context voor de geleide flow (stap 2 + 3). Gedeeld met de
+// frontend (zie lib/api.ts DayContext).
+export type DayContextChannel = {
+  channel: 'mail' | 'instagram' | 'facebook' | 'whatsapp' | 'google_business';
+  label: string;
+  recommended: boolean;
+  note: string;
+};
+export type DayContext = {
+  date: string;
+  weather: {
+    icon: string;
+    description: string;
+    tempMin: number;
+    tempMax: number;
+  } | null;
+  events: Array<{
+    name: string;
+    category: string;
+    place: string;
+    distanceKm: number;
+  }>;
+  channels: DayContextChannel[];
+};
+
 @Injectable()
 export class SuggestionsService {
   private readonly logger = new Logger(SuggestionsService.name);
@@ -546,6 +578,9 @@ export class SuggestionsService {
     // Voor leerloop-injectie in generateOnDemand-prompt (filly-brein
     // hfst 9.5). Returnt lege string bij ontbreken classified campagnes.
     private readonly fingerprint: CampaignFingerprintService,
+    // Weer-forecast voor de geleide flow (day-context): inspelen op
+    // terras-/comfortweer op de gekozen dag.
+    private readonly weather: WeatherService,
   ) {}
 
   async findAll(
@@ -1255,6 +1290,74 @@ ${dayContext}`;
   //   - GEEN dedupe-skip (eigenaar weet beter: misschien wil 'ie
   //     dezelfde dag nog eens een ander voorstel proberen)
   //   - Twee prompt-varianten: low_occupancy vs special_day
+  // ============================================================
+  // getDayContext — leesbare context voor één gekozen dag
+  // ============================================================
+  // Voedt stap 2 + 3 van de geleide chat-flow (FillyGuidedFlow):
+  // welke events spelen er die dag in de buurt, wat is het weer, en
+  // welke kanalen hebben bereik (vóórgevinkt). Read-only, geen AI.
+  async getDayContext(
+    restaurantId: string,
+    date: string,
+  ): Promise<DayContext> {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('Ongeldige datum.');
+    }
+
+    const [allEvents, forecast, reach] = await Promise.all([
+      this.events
+        .findNearby(restaurantId)
+        .catch(() => [] as NearbyEvent[]),
+      this.weather
+        .getForecastForRestaurant(restaurantId)
+        .catch(() => [] as ForecastDay[]),
+      this.reach.fetchReach(restaurantId).catch(() => [] as ChannelReach[]),
+    ]);
+
+    const events = allEvents
+      .filter((e) => e.startsOn === date)
+      .map((e) => ({
+        name: e.name,
+        category: e.category,
+        place: e.place,
+        distanceKm: e.distanceKm,
+      }));
+
+    const w = forecast.find((f) => f.date === date) ?? null;
+    const weather = w
+      ? {
+          icon: w.icon,
+          description: w.description,
+          tempMin: w.tempMin,
+          tempMax: w.tempMax,
+        }
+      : null;
+
+    // Alleen de kanalen die in de geleide flow zinvol zijn (TikTok
+    // bewust weggelaten — zelden de eerste keuze voor horeca). Bereik
+    // bepaalt de voorselectie; is er nergens bereik, dan vinken we
+    // mail + Instagram als verstandige default voor.
+    const REACH_LABEL: Record<string, string> = {
+      mail: 'Mail',
+      instagram: 'Instagram',
+      facebook: 'Facebook',
+      whatsapp: 'WhatsApp',
+      google_business: 'Google Business',
+    };
+    const surfaced = reach.filter((r) => r.channel in REACH_LABEL);
+    const anyReach = surfaced.some((r) => r.connected);
+    const channels: DayContextChannel[] = surfaced.map((r) => ({
+      channel: r.channel as DayContextChannel['channel'],
+      label: REACH_LABEL[r.channel],
+      recommended: anyReach
+        ? r.connected
+        : r.channel === 'mail' || r.channel === 'instagram',
+      note: r.note,
+    }));
+
+    return { date, weather, events, channels };
+  }
+
   async generateForSelectedDates(
     restaurantId: string,
     userId: string | null,
@@ -1262,6 +1365,12 @@ ${dayContext}`;
       date: string;
       kind: 'low_occupancy' | 'special_day';
       name?: string;
+      // Geleide flow (fase 2): door de eigenaar gekozen kanalen
+      // (platform-namen) + context-hints (events/weer) die de
+      // generatie sturen. Beide optioneel — zonder gedraagt de flow
+      // zich exact als voorheen (de popover-route blijft ongemoeid).
+      channels?: string[];
+      context?: string[];
     }>,
   ): Promise<{
     generated: number;
@@ -1410,6 +1519,35 @@ groepen + traditie.`;
         };
       }
 
+      // Geleide flow (fase 2): door de eigenaar bevestigde context
+      // (events/weer) expliciet in de dag-context, en zijn kanaal-keuze
+      // als harde sturing. Beide alleen als meegegeven.
+      if (item.context && item.context.length > 0) {
+        dayContext += `\n\nSPEEL EXPLICIET IN OP (door de eigenaar gekozen):\n${item.context
+          .map((c) => `- ${c}`)
+          .join('\n')}`;
+      }
+      if (item.channels && item.channels.length > 0) {
+        triggerContextBase = {
+          ...triggerContextBase,
+          selected_channels: item.channels,
+        };
+      }
+      const platformToType = (p: string): 'mail' | 'social' | 'whatsapp' =>
+        p === 'mail' ? 'mail' : p === 'whatsapp' ? 'whatsapp' : 'social';
+      const channelDirective =
+        item.channels && item.channels.length > 0
+          ? `\nKANAAL-KEUZE VAN DE EIGENAAR: maak dit voor ${item.channels.join(
+              ', ',
+            )}. Zet campaign_type op het primaire kanaal '${platformToType(
+              item.channels[0],
+            )}' en schrijf de body zo dat 'ie ook past op de andere gekozen kanalen.${
+              item.channels.length > 1
+                ? ` Zet alternative_channel op '${platformToType(item.channels[1])}'.`
+                : ''
+            }`
+          : '';
+
       const segmentsBlock = `GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - Mail-opt-in: ${segmentCounts.mail_opt_in} gasten
 - WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
@@ -1434,7 +1572,7 @@ Inhoudsregels:
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
 - alternative_channel + alternative_reasoning: geef ALTIJD ook het beste alternatieve kanaal (anders dan je primaire keuze) met 1 zin trade-off, zodat de eigenaar kan wisselen als het bereik tegenvalt (zie BEREIK PER KANAAL).
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/aanleiding werkt.
-- expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).
+- expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
 ---
 ${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
