@@ -107,11 +107,6 @@ export function FillyChat() {
   // rust en tonen een "↓ nieuwe berichten"-pil i.p.v. 'm te yanken.
   const nearBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
-  // "Vraag Filly om voorstellen"-ingang (FillySuggestionsPopover) zet
-  // dit signaal zodat we een vers gesprek openen + naar de chat
-  // scrollen. Vlag van sessionStorage (cross-page) of window-event
-  // (zelfde pagina, geen remount). Constante: filly-start-guided.
-  const [pendingStart, setPendingStart] = useState(false);
 
   // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
   // voordat we de chat-thread ophalen. Zonder deze check vuurt fetchActiveChat
@@ -251,24 +246,6 @@ export function FillyChat() {
   useEffect(() => {
     if (sending && nearBottomRef.current) scrollToBottom();
   }, [sending]);
-
-  // Ingang vanuit de "Vraag Filly om voorstellen"-knop: sessionStorage-
-  // vlag (na navigatie vanaf /campagnes) of window-event (zelfde
-  // pagina). Beide zetten pendingStart; het effect verderop opent dan
-  // een vers gesprek + scrollt naar de chat.
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem("filly-start-guided")) {
-        sessionStorage.removeItem("filly-start-guided");
-        setPendingStart(true);
-      }
-    } catch {
-      // sessionStorage onbereikbaar — geen probleem, gewoon negeren.
-    }
-    const onStart = () => setPendingStart(true);
-    window.addEventListener("filly-start-guided", onStart);
-    return () => window.removeEventListener("filly-start-guided", onStart);
-  }, []);
 
   // Refactored 2026-05-04: send-logica in een herbruikbare sendText(text)
   // zodat de choice-card-handler ('chooseChannel') 'm ook kan triggeren
@@ -585,24 +562,6 @@ export function FillyChat() {
   ) => {
     router.push(`/dashboard/campagnes/voorstel/${proposal.suggestion_id}`);
   };
-
-  // Voer het start-signaal uit zodra de chat klaar is met laden: heeft
-  // het gesprek al berichten, start dan een vers gesprek (zodat de
-  // geleide flow verschijnt); is 't al leeg, scroll dan alleen. Daarna
-  // de chat in beeld scrollen.
-  useEffect(() => {
-    if (!pendingStart || loading) return;
-    setPendingStart(false);
-    const focus = () =>
-      document
-        .getElementById("filly-chat")
-        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    const hasVisible =
-      messages.filter((m) => m.role !== "system").length > 0;
-    if (hasVisible) void startNewConversation().then(focus);
-    else focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingStart, loading]);
 
   return (
     <div className="card chat-card" id="filly-chat">

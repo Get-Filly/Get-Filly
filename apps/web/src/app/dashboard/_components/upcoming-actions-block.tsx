@@ -19,15 +19,16 @@ import {
   buildWindowOccupancy,
   isOpenOn,
 } from "../../../lib/occupancy-window";
-import { FillySuggestionsPopover } from "./filly-suggestions-popover";
 
 // ============================================================
-// <UpcomingActionsBlock>, alert-strip + "Vraag Filly om voorstellen"
+// <UpcomingActionsBlock>, alert-stroken (rustige + speciale dagen)
 // ============================================================
 //
 // Zelfstandige block die rustige dagen (komende 14 dgn) + speciale
-// dagen (komende 6 wkn) toont als 2 ALTIJD-zichtbare stroken, met
-// daarnaast een groene knop om Filly om voorstellen te vragen.
+// dagen (komende 6 wkn) toont als 2 ALTIJD-zichtbare stroken. Puur
+// een glanceable status-/alert-overzicht; het maken van een actie
+// gebeurt in de Filly-chat (geleide flow). De losse "Vraag Filly om
+// voorstellen"-knop is daarom verwijderd (2026-06-12).
 //
 // Elke strook heeft z'n eigen status-kleur (per Floris-feedback
 // 2026-05-29, gescheiden i.p.v. één gecombineerde strook):
@@ -276,7 +277,7 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
       >
         <div
           style={{
-            gridColumn: "1 / span 3",
+            gridColumn: "1 / -1",
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
@@ -285,14 +286,6 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
         >
           {occupancyStrip}
           {specialStrip}
-        </div>
-        <div style={{ gridColumn: "4 / span 1", minWidth: 0 }}>
-          <FillySuggestionsPopover
-            lowOccupancyDays={criticalDays}
-            specialDays={upcomingSpecial}
-            occupancyThreshold={occupancyThreshold}
-            triggerMode="card"
-          />
         </div>
       </div>
     );
@@ -320,24 +313,6 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
       >
         {occupancyStrip}
         {specialStrip}
-      </div>
-      <div
-        style={{
-          flexShrink: 0,
-          // Even breed als één kanban-kolom eronder. Het bord heeft 4
-          // gelijke kolommen met 3 tussenruimtes van 12px, dus één kolom
-          // = (100% - 3*12px) / 4 = calc(25% - 9px). Zo lijnt de knop
-          // exact uit met de Actief-kolom (de 4e, rechts).
-          width: "calc(25% - 9px)",
-          display: "flex",
-        }}
-      >
-        <FillySuggestionsPopover
-          lowOccupancyDays={criticalDays}
-          specialDays={upcomingSpecial}
-          occupancyThreshold={occupancyThreshold}
-          triggerMode="card"
-        />
       </div>
     </div>
   );
