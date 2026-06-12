@@ -999,6 +999,11 @@ function AccountPageInner() {
                       border: "1px solid var(--border, #E5DFD0)",
                       borderRadius: 6,
                       padding: "6px 10px",
+                      // Chip-label nooit laten afbreken ("Concerten &
+                      // theater" werd anders twee regels en de rij
+                      // stond scheef).
+                      whiteSpace: "nowrap",
+                      marginBottom: 0,
                       background: checked
                         ? "var(--white, #FFFFFF)"
                         : "transparent",
@@ -1022,8 +1027,14 @@ function AccountPageInner() {
                 );
               })}
             </div>
-            <div style={{ marginTop: 12 }}>
-              <label htmlFor="event-max-distance">
+            <div style={{ marginTop: 14 }}>
+              {/* Label expliciet als blok bóven de select, zoals bij de
+                  andere velden in deze kaart (stond anders ernaast en
+                  viel half weg achter de dropdown). */}
+              <label
+                htmlFor="event-max-distance"
+                style={{ display: "block", marginBottom: 6 }}
+              >
                 Maximale afstand vanaf de zaak
               </label>
               <select
