@@ -1617,57 +1617,149 @@ ${segmentsBlock}`;
             cacheSystem: true,
           });
 
-        // Zelfde post-hoc lengte-guard als bij low-occupancy-detectie.
-        const firstProposal = await generateProposal(userPrompt);
-        const raw = await enforceCopyLength({
-          channel: mapCampaignTypeToChannel(firstProposal.campaign_type),
-          first: firstProposal,
-          getBodies: (r) => [r.body],
-          regenerate: (instruction) =>
-            generateProposal(
-              `${userPrompt}\n\n${instruction} Behoud hetzelfde campagne-type (${firstProposal.campaign_type}).`,
-            ),
-          logger: this.logger,
-          feature:
-            item.kind === 'special_day'
-              ? 'special_day_generate'
-              : 'low_occupancy_generate',
-        });
+        const feature =
+          item.kind === 'special_day'
+            ? 'special_day_generate'
+            : 'low_occupancy_generate';
 
-        // Zelfde alternatief-in-reasoning-patroon als low-occupancy.
-        const reasoningWithAlt =
-          raw.alternative_channel &&
-          raw.alternative_channel !== raw.campaign_type
-            ? `${raw.reasoning}\n\n💡 Alternatief: ${raw.alternative_channel}${raw.alternative_reasoning ? ` — ${raw.alternative_reasoning.trim().slice(0, 300)}` : ''}`
-            : raw.reasoning;
+        let row: Record<string, unknown>;
 
-        const row = {
-          restaurant_id: restaurantId,
-          trigger_type: triggerType,
-          trigger_context: {
-            ...triggerContextBase,
-            target_segment: raw.target_segment,
-          },
-          suggested_campaign: {
-            type: raw.campaign_type,
-            name: raw.name,
-            subject_line: raw.subject_line,
-            body: raw.body,
-          },
-          status: 'pending' as const,
-          urgency: daysFromNow <= 4 ? 'high' : 'medium',
-          confidence_score:
-            typeof raw.confidence === 'number' &&
-            raw.confidence >= 0 &&
-            raw.confidence <= 1
-              ? raw.confidence
-              : null,
-          reasoning: reasoningWithAlt,
-          expected_impact: {
-            extra_reservations: raw.expected_extra_reservations ?? 0,
-            extra_revenue_cents: raw.expected_extra_revenue_cents ?? 0,
-          },
-        };
+        if (item.channels && item.channels.length >= 2) {
+          // ---- Fase 2b: true multi-channel (bundel) ----
+          // De eigenaar koos meerdere kanalen → één voorstel PER kanaal
+          // met eigen, op dat kanaal toegespitste tekst (eigen lengte-
+          // guard). We bouwen dezelfde channels[]-shape als
+          // generateOnDemand zodat de voorstellen-strip + bundel-approve
+          // 'm ongewijzigd aankunnen. Fail-soft: een kanaal dat faalt
+          // wordt overgeslagen, niks gelukt → dag overslaan.
+          const platforms = item.channels.filter((p): p is SuggestionPlatform =>
+            (SUGGESTION_PLATFORMS as string[]).includes(p),
+          );
+          const validatedChannels: SuggestionChannel[] = [];
+          let lead: LowOccupancyCampaignFromTool | null = null;
+
+          for (let i = 0; i < platforms.length; i++) {
+            const p = platforms[i];
+            const channelPrompt = (extra: string) =>
+              `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='${platformToType(p)}'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}`;
+            try {
+              const firstCh = await generateProposal(channelPrompt(''));
+              const ch = await enforceCopyLength({
+                channel: mapCampaignTypeToChannel(platformToType(p), p),
+                first: firstCh,
+                getBodies: (r) => [r.body],
+                regenerate: (instruction) =>
+                  generateProposal(channelPrompt(instruction)),
+                logger: this.logger,
+                feature,
+              });
+              const body = ch.body.trim().slice(0, 5000);
+              if (!body) continue;
+              validatedChannels.push({
+                id: `${p}-${i}`,
+                platform: p,
+                variants: [
+                  {
+                    body,
+                    subject_line:
+                      p === 'mail' &&
+                      typeof ch.subject_line === 'string' &&
+                      ch.subject_line.trim().length > 0
+                        ? ch.subject_line.trim().slice(0, 200)
+                        : undefined,
+                  },
+                ],
+                selected_index: 0,
+              });
+              if (!lead) lead = ch;
+            } catch (e) {
+              this.logger.warn(
+                `multi-channel generatie faalde voor ${p} op ${item.date}: ${String(e)}`,
+              );
+            }
+          }
+
+          if (validatedChannels.length === 0) continue;
+          const primary = validatedChannels[0];
+          row = {
+            restaurant_id: restaurantId,
+            trigger_type: triggerType,
+            trigger_context: {
+              ...triggerContextBase,
+              target_segment: lead?.target_segment,
+            },
+            suggested_campaign: {
+              type: platformToCampaignType(primary.platform),
+              platform: primary.platform,
+              name: lead?.name ?? 'Voorstel',
+              subject_line: primary.variants[0].subject_line,
+              body: primary.variants[0].body,
+              channels: validatedChannels,
+            },
+            status: 'pending' as const,
+            urgency: daysFromNow <= 4 ? 'high' : 'medium',
+            confidence_score:
+              typeof lead?.confidence === 'number' &&
+              lead.confidence >= 0 &&
+              lead.confidence <= 1
+                ? lead.confidence
+                : null,
+            reasoning: lead?.reasoning ?? null,
+            expected_impact: {
+              extra_reservations: lead?.expected_extra_reservations ?? 0,
+              extra_revenue_cents: lead?.expected_extra_revenue_cents ?? 0,
+            },
+          };
+        } else {
+          // ---- Single-channel (bestaand gedrag) ----
+          const firstProposal = await generateProposal(userPrompt);
+          const raw = await enforceCopyLength({
+            channel: mapCampaignTypeToChannel(firstProposal.campaign_type),
+            first: firstProposal,
+            getBodies: (r) => [r.body],
+            regenerate: (instruction) =>
+              generateProposal(
+                `${userPrompt}\n\n${instruction} Behoud hetzelfde campagne-type (${firstProposal.campaign_type}).`,
+              ),
+            logger: this.logger,
+            feature,
+          });
+
+          // Zelfde alternatief-in-reasoning-patroon als low-occupancy.
+          const reasoningWithAlt =
+            raw.alternative_channel &&
+            raw.alternative_channel !== raw.campaign_type
+              ? `${raw.reasoning}\n\n💡 Alternatief: ${raw.alternative_channel}${raw.alternative_reasoning ? ` — ${raw.alternative_reasoning.trim().slice(0, 300)}` : ''}`
+              : raw.reasoning;
+
+          row = {
+            restaurant_id: restaurantId,
+            trigger_type: triggerType,
+            trigger_context: {
+              ...triggerContextBase,
+              target_segment: raw.target_segment,
+            },
+            suggested_campaign: {
+              type: raw.campaign_type,
+              name: raw.name,
+              subject_line: raw.subject_line,
+              body: raw.body,
+            },
+            status: 'pending' as const,
+            urgency: daysFromNow <= 4 ? 'high' : 'medium',
+            confidence_score:
+              typeof raw.confidence === 'number' &&
+              raw.confidence >= 0 &&
+              raw.confidence <= 1
+                ? raw.confidence
+                : null,
+            reasoning: reasoningWithAlt,
+            expected_impact: {
+              extra_reservations: raw.expected_extra_reservations ?? 0,
+              extra_revenue_cents: raw.expected_extra_revenue_cents ?? 0,
+            },
+          };
+        }
 
         const { data: inserted, error: insErr } = await this.supabase.client
           .from('ai_suggestions')

@@ -1353,6 +1353,13 @@
   font-weight: 600;
   color: var(--text);
 }
+.dashboard-shell .fg-result-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
 .dashboard-shell .fg-result-channel {
   font-size: 11px;
   font-weight: 500;
@@ -1360,7 +1367,6 @@
   background: var(--accent-light);
   border-radius: var(--rf);
   padding: 2px 8px;
-  flex-shrink: 0;
 }
 .dashboard-shell .fg-result-body {
   font-size: 12px;

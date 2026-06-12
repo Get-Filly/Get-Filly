@@ -229,17 +229,29 @@ export function FillyGuidedFlow() {
             const sc = s.suggested_campaign;
             const body =
               sc.body ?? sc.variants?.[0]?.body ?? "";
-            const channel =
-              CHANNEL_LABEL[sc.platform ?? sc.type ?? ""] ?? "";
+            // Multi-channel: badge per kanaal; anders één badge op het
+            // top-level platform/type.
+            const channelLabels =
+              sc.channels && sc.channels.length > 0
+                ? sc.channels.map(
+                    (c) => CHANNEL_LABEL[c.platform] ?? c.platform,
+                  )
+                : [CHANNEL_LABEL[sc.platform ?? sc.type ?? ""] ?? ""].filter(
+                    Boolean,
+                  );
             return (
               <div key={s.id} className="fg-result">
                 <div className="fg-result-head">
                   <span className="fg-result-name">
                     {sc.name ?? "Voorstel"}
                   </span>
-                  {channel && (
-                    <span className="fg-result-channel">{channel}</span>
-                  )}
+                  <span className="fg-result-channels">
+                    {channelLabels.map((l) => (
+                      <span key={l} className="fg-result-channel">
+                        {l}
+                      </span>
+                    ))}
+                  </span>
                 </div>
                 {body && <div className="fg-result-body">{body}</div>}
                 <button
