@@ -147,12 +147,35 @@ export type ChatMessage = {
   created_at: string;
 };
 
+// active_action (audit-item #8, 2026-06-12): de gedeelde "lopende
+// actie"-state per gesprek. Eén bron-van-waarheid waar zowel de geleide
+// flow (frontend-kaart) als de chat-LLM (server-prompt) op lezen/
+// schrijven, zodat een in de flow gekozen dag/thema niet verloren gaat
+// zodra de eigenaar gaat typen. Vervangt de oude tekst-annotatie-
+// workaround in de history-prompt.
+//
+// - date/topic VOEDEN het LLM (in het "[LOPENDE ACTIE]"-promptblok).
+// - channels/step zijn flow-eigendom (het LLM negeert ze); ze dienen
+//   om de flow na een reload op de juiste stap te hervatten.
+// Alle velden optioneel: een vers gesprek heeft (nog) geen actie.
+export type ActiveAction = {
+  date?: string; // ISO doel-datum (YYYY-MM-DD)
+  topic?: string; // gerecht/thema dat de generatie stuurt
+  channels?: string[]; // door de flow gekozen kanalen (platform-namen)
+  step?: string; // flow-stap ("day"|"context"|"channels"|...); puur frontend
+  updated_at?: string; // ISO, laatste mutatie (server-gezet)
+};
+
 export type ActiveChatState = {
   conversationId: string;
   messages: ChatMessage[];
   // Aantal berichten in deze conversatie (cap = 20). Gebruikt door de
   // frontend om "Bericht X / 20"-indicator + cap-bereikt-CTA te tonen.
   messageCount: number;
+  // De lopende actie (zie ActiveAction) of null als er geen is. De flow
+  // seed't z'n begintoestand hieruit; de chat-orchestrator houdt 'm in
+  // sync via het PATCH-endpoint + de sendMessage-respons.
+  activeAction: ActiveAction | null;
 };
 
 // Lijst-item voor het chat-history-overzicht in de frontend (dropdown
@@ -431,7 +454,82 @@ export class ChatService {
       restaurantId,
     );
     const messageCount = await this.countMessages(conversationId);
-    return { conversationId, messages, messageCount };
+    const activeAction = await this.getActiveAction(
+      restaurantId,
+      conversationId,
+    );
+    return { conversationId, messages, messageCount, activeAction };
+  }
+
+  // ============================================================
+  // ACTIVE ACTION, gedeelde "lopende actie"-state (audit-item #8)
+  // ============================================================
+  // Leest de active_action-kolom voor één gesprek. Dubbel scopen op
+  // restaurant_id = defense-in-depth; gooit NotFound als het gesprek
+  // niet (van deze tenant) is, zodat het PATCH-endpoint geen vreemde
+  // conversation-id kan muteren.
+  async getActiveAction(
+    restaurantId: string,
+    conversationId: string,
+  ): Promise<ActiveAction | null> {
+    const { data, error } = await this.supabase.client
+      .from('chat_conversations')
+      .select('active_action')
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) throw new NotFoundException('Gesprek niet gevonden.');
+    return (data.active_action as ActiveAction | null) ?? null;
+  }
+
+  // Muteert de lopende actie. delta=null → de actie is afgerond/verlaten
+  // (bv. na een geslaagde generatie of expliciet "begin opnieuw"); we
+  // zetten de kolom dan op null. Anders mergen we de delta over de
+  // huidige state (server-authoritative: we herlezen de actuele waarde
+  // zodat een gelijktijdige flow-PATCH niet stil overschreven wordt).
+  async updateActiveAction(
+    restaurantId: string,
+    conversationId: string,
+    delta: Partial<ActiveAction> | null,
+  ): Promise<ActiveAction | null> {
+    if (delta === null) {
+      const { error } = await this.supabase.client
+        .from('chat_conversations')
+        .update({ active_action: null })
+        .eq('id', conversationId)
+        .eq('restaurant_id', restaurantId);
+      if (error) throw new InternalServerErrorException(error.message);
+      return null;
+    }
+    const current = await this.getActiveAction(restaurantId, conversationId);
+    const merged = mergeActiveAction(current, delta);
+    merged.updated_at = new Date().toISOString();
+    const { error } = await this.supabase.client
+      .from('chat_conversations')
+      .update({ active_action: merged })
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return merged;
+  }
+
+  // Controller-pad: valideert de rauwe PATCH-body en vertaalt 'm naar
+  // een delta (of null bij reset) voor updateActiveAction. Houdt de
+  // sanitisatie (ISO-datum, topic-cap, kanaal-whitelist) op één plek.
+  async setActiveAction(
+    restaurantId: string,
+    conversationId: string,
+    input: ActiveActionInput,
+  ): Promise<ActiveAction | null> {
+    if (input?.reset) {
+      return this.updateActiveAction(restaurantId, conversationId, null);
+    }
+    return this.updateActiveAction(
+      restaurantId,
+      conversationId,
+      sanitizeActionInput(input),
+    );
   }
 
   // Telt alle berichten in een conversation. Wordt gebruikt voor:
@@ -568,7 +666,13 @@ export class ChatService {
     userId: string,
     conversationId: string,
     content: string,
-  ): Promise<{ userMessage: ChatMessage; fillyMessage: ChatMessage }> {
+  ): Promise<{
+    userMessage: ChatMessage;
+    fillyMessage: ChatMessage;
+    // De (mogelijk bijgewerkte) lopende actie na deze beurt, zodat de
+    // frontend de geleide flow direct in sync kan brengen zonder reload.
+    activeAction: ActiveAction | null;
+  }> {
     const trimmed = content.trim();
     if (!trimmed) throw new NotFoundException('Leeg bericht.');
     if (trimmed.length > 4000) {
@@ -580,12 +684,18 @@ export class ChatService {
     // een andere tenant proberen met zijn eigen X-Restaurant-Id.
     const { data: conv, error: convErr } = await this.supabase.client
       .from('chat_conversations')
-      .select('id')
+      .select('id, active_action')
       .eq('id', conversationId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
     if (convErr) throw new InternalServerErrorException(convErr.message);
     if (!conv) throw new NotFoundException('Gesprek niet gevonden.');
+
+    // Lopende actie (audit-item #8): de gedeelde state die de geleide
+    // flow + de chat delen. We laden 'm hier zodat we 'm (a) als
+    // deterministisch promptblok aan Filly kunnen meegeven en (b) na een
+    // FILLY_START_GUIDED-emit kunnen bijwerken (datum/thema carry-forward).
+    let activeAction = (conv.active_action as ActiveAction | null) ?? null;
 
     // Cap-check: tel bestaande berichten. Als we deze user-msg + Filly's
     // antwoord erbij optellen en boven CONVERSATION_CAP komen → blokkeer
@@ -626,35 +736,43 @@ export class ChatService {
     // Filly's persona + restaurant-context.
     const history = await this.getRecentMessages(conversationId, restaurantId);
     const systemPrompt = await this.buildSystemPrompt(restaurantId);
+    // Sinds audit-item #8: GEEN per-bericht-annotatie meer. De lopende
+    // dag/thema komt deterministisch uit active_action (zie het
+    // [LOPENDE ACTIE]-blok hieronder), niet uit tekst die Filly moet
+    // herkennen. De history is dus weer kale who-content-regels.
     const historyPrompt = history
       .map((m) => {
         const who = m.role === 'user' ? 'Eigenaar' : 'Filly';
-        // Een eerder gestarte geleide flow droeg z'n doel-datum + thema
-        // alleen in de message_card (gestript uit content). Die hier
-        // terug in de tekst zetten zodat Filly de gekozen dag/gerecht
-        // HERKENT en hergebruikt i.p.v. de dag opnieuw te vragen.
-        if (m.message_card?.kind === 'guided_start') {
-          const card = m.message_card;
-          const bits = [
-            card.date ? `doel-datum ${card.date}` : 'nog geen datum',
-            card.topic ? `thema "${card.topic}"` : null,
-          ]
-            .filter(Boolean)
-            .join(', ');
-          return `${who}: ${m.content} [geleide flow gestart — ${bits}]`;
-        }
         return `${who}: ${m.content}`;
       })
       .join('\n');
+
+    // De prompt-staart bouwen we uit losse interne blokken (niet voor de
+    // gebruiker zichtbaar). Volgorde: de lopende actie eerst (zodat Filly
+    // de actuele dag/thema kent), dan het kanaal-routing-signaal.
+    const promptParts = [historyPrompt];
+
+    // [LOPENDE ACTIE]-blok: vervangt de oude datum-annotatie. Voedt Filly
+    // deterministisch met de gekozen dag/thema zodat 'ie de dag NIET
+    // opnieuw vraagt en het gerecht niet kwijtraakt.
+    const actionBlock = formatActiveActionBlock(activeAction);
+    if (actionBlock) {
+      promptParts.push(
+        `[INTERN, niet voor de gebruiker zichtbaar]\n${actionBlock}`,
+      );
+    }
 
     // Server-side keuze-hint: detect of het laatste user-bericht
     // expliciet een kanaal noemt en stuur een harde override naar
     // Claude. Voorkomt dat Filly de prompt-instructie negeert en
     // alsnog direct een BUNDLE genereert bij een open vraag.
     const hint = detectChannelHint(content);
-    const guardedPrompt = hint
-      ? `${historyPrompt}\n\n[INTERN ROUTING-SIGNAAL, niet voor de gebruiker zichtbaar]\n${hint}`
-      : historyPrompt;
+    if (hint) {
+      promptParts.push(
+        `[INTERN ROUTING-SIGNAAL, niet voor de gebruiker zichtbaar]\n${hint}`,
+      );
+    }
+    const guardedPrompt = promptParts.join('\n\n');
 
     // 3) Claude-call via onze wrapper. Auto-logging in ai_usage gebeurt
     // binnen AiService; rate-limit-guard heeft de call al laten passeren.
@@ -732,7 +850,42 @@ export class ChatService {
       // ín het gesprek. Geen ai_suggestion hier; de flow maakt 'm later
       // zelf via generate-for-dates.
       cleanText = parsedGuided.cleanText;
-      messageCard = parsedGuided.card;
+
+      // active_action bijwerken met wat het LLM nieuw aandroeg (een nét
+      // genoemde dag en/of thema). Noemde de eigenaar niets nieuws, dan
+      // is de delta leeg en blijft de bestaande lopende actie staan.
+      const delta: Partial<ActiveAction> = {};
+      if (parsedGuided.card.date) delta.date = parsedGuided.card.date;
+      if (parsedGuided.card.topic) delta.topic = parsedGuided.card.topic;
+      if (Object.keys(delta).length > 0) {
+        try {
+          activeAction = await this.updateActiveAction(
+            restaurantId,
+            conversationId,
+            delta,
+          );
+        } catch (err) {
+          // Niet fataal: lukt de persist niet, dan tonen we de kaart in
+          // z'n laatst-bekende staat (gemerged in-memory) en werkt de
+          // chat door. De volgende emit probeert 't opnieuw.
+          this.logger.warn(
+            `active_action-update gefaald (guided_start); chat werkt door: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+          activeAction = mergeActiveAction(activeAction, delta);
+        }
+      }
+
+      // De kaart vullen vanuit de (gemergede) lopende actie, NIET vanuit
+      // wat het LLM toevallig herhaalde. Zo houdt een topic-only emit de
+      // eerder (in de flow of een vorige beurt) gekozen datum vast — de
+      // kern van audit-item #8.
+      messageCard = {
+        kind: 'guided_start',
+        ...(activeAction?.date ? { date: activeAction.date } : {}),
+        ...(activeAction?.topic ? { topic: activeAction.topic } : {}),
+      };
     } else if (parsedDateChoice.choice) {
       cleanText = parsedDateChoice.cleanText;
       // Geen ai_suggestion; frontend verstuurt bij klik een follow-up
@@ -877,6 +1030,7 @@ export class ChatService {
     return {
       userMessage: userMsg as ChatMessage,
       fillyMessage: fillyMsg as ChatMessage,
+      activeAction,
     };
   }
 
@@ -1091,12 +1245,12 @@ Regels:
   het systeem doet dat deterministisch. Haal alleen de relevante woorden
   uit een rommelige zin ("doe iets leuks voor aankomende zondag" →
   day_phrase "aankomende zondag").
-- DATUM ONTHOUDEN: is er eerder in dit gesprek al een dag vastgesteld —
-  je ziet dat aan een "[geleide flow gestart — doel-datum YYYY-MM-DD]"-
-  annotatie bij een eerder Filly-bericht — en noemt de eigenaar nu GEEN
-  nieuwe dag, zet die ISO-datum dan in "date" (NIET in day_phrase) en
-  vraag de dag niet opnieuw. Noemt 'ie wél een nieuwe dag, gebruik
-  day_phrase.
+- DATUM ONTHOUDEN: het systeem houdt de lopende actie zelf bij. Staat er
+  onderaan dit gesprek een "[LOPENDE ACTIE]"-blok met een doel-datum, dan
+  is die dag al gekozen. Noemt de eigenaar nu GEEN nieuwe dag, vraag de
+  dag dan NIET opnieuw en laat "day_phrase"/"date" gewoon WEG (stuur {}
+  of alleen "topic") — het systeem hangt de bestaande datum er
+  automatisch aan. Noemt 'ie wél een nieuwe dag, gebruik dan day_phrase.
 - "topic": noemt de eigenaar een gerecht, drankje, thema of "het menu"
   ("doe iets met de Burrata", "iets rond ons wijnaanbod"), zet dat dan
   in "topic". Anders weglaten — de flow kiest zelf uit het menu.
@@ -1125,6 +1279,111 @@ ${contextBlock}
 ${memoryBlock ? `\n${memoryBlock}\n---\n` : ''}
 Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI", spreek gewoon als Filly.`;
   }
+}
+
+// ============================================================
+// ACTIVE ACTION, pure helpers (audit-item #8)
+// ============================================================
+// Deterministisch + zonder side-effects zodat ze los te unit-testen zijn
+// (zie chat.service.spec.ts). De service gebruikt ze voor de merge, de
+// PATCH-validatie en het promptblok.
+
+// Body-vorm van het PATCH-endpoint (rauw, ongevalideerd). De flow stuurt
+// een partiële delta; `reset: true` = lopende actie afgerond/verlaten
+// (kolom → null).
+export type ActiveActionInput = {
+  date?: string | null;
+  topic?: string | null;
+  channels?: unknown;
+  step?: string | null;
+  reset?: boolean;
+};
+
+// Toegestane kanaal-namen in active_action.channels (= platform-namen
+// zoals de flow + generatie ze gebruiken). Onbekende waarden filteren we
+// weg zodat prompt + downstream-generatie geen rommel binnenkrijgen.
+const ALLOWED_ACTION_CHANNELS = new Set([
+  'mail',
+  'social',
+  'instagram',
+  'facebook',
+  'whatsapp',
+  'google_business',
+  'tiktok',
+]);
+
+// Pure merge: delta over de bestaande state. Alleen aanwezige velden
+// (!== undefined) overschrijven; zo laat een PATCH met enkel {topic} de
+// datum ongemoeid. updated_at zetten we NIET hier (dat doet de service na
+// de merge) zodat deze functie deterministisch testbaar blijft.
+export function mergeActiveAction(
+  prev: ActiveAction | null,
+  delta: Partial<ActiveAction>,
+): ActiveAction {
+  const next: ActiveAction = { ...(prev ?? {}) };
+  if (delta.date !== undefined) next.date = delta.date;
+  if (delta.topic !== undefined) next.topic = delta.topic;
+  if (delta.channels !== undefined) next.channels = delta.channels;
+  if (delta.step !== undefined) next.step = delta.step;
+  return next;
+}
+
+// Valideert een rauwe PATCH-body → schone delta. ISO-datum-check,
+// topic-cap (80, gelijk aan extractGuidedStart), kanaal-whitelist, step
+// als korte string. Ongeldige/ontbrekende velden laten we weg (geen
+// mutatie van dat veld).
+export function sanitizeActionInput(
+  input: ActiveActionInput,
+): Partial<ActiveAction> {
+  const delta: Partial<ActiveAction> = {};
+  if (
+    typeof input.date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(input.date) &&
+    !Number.isNaN(Date.parse(input.date))
+  ) {
+    delta.date = input.date;
+  }
+  if (typeof input.topic === 'string' && input.topic.trim()) {
+    delta.topic = input.topic.trim().slice(0, 80);
+  }
+  if (Array.isArray(input.channels)) {
+    const channels = (input.channels as unknown[])
+      .filter((c): c is string => typeof c === 'string')
+      .filter((c) => ALLOWED_ACTION_CHANNELS.has(c));
+    delta.channels = Array.from(new Set(channels));
+  }
+  if (typeof input.step === 'string' && input.step.trim()) {
+    delta.step = input.step.trim().slice(0, 20);
+  }
+  return delta;
+}
+
+// Bouwt het deterministische [LOPENDE ACTIE]-promptblok uit active_action.
+// Leeg (geen datum/thema/kanalen) → lege string; dan plakken we niets aan
+// de prompt. Vervangt de oude tekst-annotatie-workaround.
+export function formatActiveActionBlock(action: ActiveAction | null): string {
+  if (
+    !action ||
+    (!action.date &&
+      !action.topic &&
+      (!action.channels || action.channels.length === 0))
+  ) {
+    return '';
+  }
+  const lines: string[] = [
+    action.date
+      ? `- doel-datum: ${action.date}`
+      : '- doel-datum: nog niet gekozen',
+  ];
+  if (action.topic) lines.push(`- thema/gerecht: ${action.topic}`);
+  if (action.channels && action.channels.length > 0) {
+    lines.push(`- gekozen kanalen: ${action.channels.join(', ')}`);
+  }
+  return [
+    '[LOPENDE ACTIE — door het systeem bijgehouden, jij hoeft dit niet te onthouden]',
+    ...lines,
+    'Dit is de actie waar de eigenaar nu mee bezig is. Gebruik deze datum en dit thema; vraag de dag NIET opnieuw. Noemt de eigenaar een nieuwe dag of een nieuw gerecht, neem dat dan over.',
+  ].join('\n');
 }
 
 // ============================================================
