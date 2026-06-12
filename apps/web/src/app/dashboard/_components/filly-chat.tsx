@@ -166,9 +166,13 @@ export function FillyChat() {
         for (const msg of data.messages) {
           const card = msg.message_card;
           if (!card) continue;
-          // channel_choice + date_choice hebben geen ai_suggestion
-          // erachter, skip.
-          if (card.kind === "channel_choice" || card.kind === "date_choice")
+          // channel_choice + date_choice + guided_start hebben geen
+          // ai_suggestion erachter, skip.
+          if (
+            card.kind === "channel_choice" ||
+            card.kind === "date_choice" ||
+            card.kind === "guided_start"
+          )
             continue;
           const suggId = card.suggestion_id;
           if (!suggId) continue;

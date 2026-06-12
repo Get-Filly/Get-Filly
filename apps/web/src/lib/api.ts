@@ -2203,11 +2203,21 @@ export type DateChoiceCard = {
   question: string;
 };
 
+// Guided-start, sinds 2026-06-12: een getypt campagne-verzoek opent de
+// geleide flow ín het gesprek. `date` = optioneel door Filly herleide
+// doel-datum (uit "zondag"/"morgen"/...); leeg → flow start bij de
+// dag-keuze.
+export type GuidedStartCard = {
+  kind: "guided_start";
+  date?: string;
+};
+
 export type MessageCard =
   | CampaignProposalCard
   | CampaignBundleCard
   | ChannelChoiceCard
-  | DateChoiceCard;
+  | DateChoiceCard
+  | GuidedStartCard;
 
 export type ChatMessage = {
   id: string;

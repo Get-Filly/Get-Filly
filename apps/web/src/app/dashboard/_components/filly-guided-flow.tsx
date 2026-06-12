@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -88,12 +88,17 @@ const CHANNEL_LABEL: Record<string, string> = {
   google_business: "Google Business",
 };
 
-export function FillyGuidedFlow() {
+// initialDate (optioneel): door Filly herleide doel-datum uit een
+// getypt verzoek ("doe iets voor zondag"). Is 'ie gezet, dan slaat de
+// flow de dag-keuze over en springt naar context/kanalen. Leeg = de
+// volledige flow vanaf stap 1 (lege-chat-staat).
+export function FillyGuidedFlow({ initialDate }: { initialDate?: string }) {
   const router = useRouter();
   const { lowOccupancyDays, specialDays, occupancyThreshold, loading } =
     useActionableDays();
 
   const [step, setStep] = useState<Step>("day");
+  const [autoStarted, setAutoStarted] = useState(false);
   const [picked, setPicked] = useState<PickedDay | null>(null);
   const [dayContext, setDayContext] = useState<DayContext | null>(null);
   const [loadingContext, setLoadingContext] = useState(false);
@@ -143,6 +148,36 @@ export function FillyGuidedFlow() {
       setLoadingContext(false);
     }
   };
+
+  // Voorgevulde datum (getypt verzoek): zodra de dagen geladen zijn,
+  // classificeer de datum (speciale dag? rustige dag? anders generiek)
+  // en spring meteen naar de context/kanalen-stap — dag-keuze overslaan.
+  useEffect(() => {
+    if (!initialDate || autoStarted || loading) return;
+    setAutoStarted(true);
+    const special = specialDays.find((s) => s.date === initialDate);
+    const low = lowOccupancyDays.find((d) => d.date === initialDate);
+    const day: PickedDay = special
+      ? {
+          date: initialDate,
+          kind: "special_day",
+          name: special.name,
+          label: `${special.name} · ${formatDayNl(initialDate)}`,
+        }
+      : low
+        ? {
+            date: initialDate,
+            kind: "low_occupancy",
+            label: `${formatDayNl(initialDate)} · ${low.occupancy_pct}% bezet`,
+          }
+        : {
+            date: initialDate,
+            kind: "low_occupancy",
+            label: formatDayNl(initialDate),
+          };
+    void pickDay(day);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDate, loading, autoStarted]);
 
   const toggle = (set: Set<string>, key: string): Set<string> => {
     const next = new Set(set);
@@ -308,9 +343,9 @@ export function FillyGuidedFlow() {
         <div>
           <div className="fg-welcome-title">Waar kan ik je mee helpen?</div>
           <div className="fg-welcome-text">
-            {step === "day" && hasDays
+            {!initialDate && step === "day" && hasDays
               ? "Ik zie een paar dagen waar een actie kan helpen. Voor welke dag zal ik iets bedenken?"
-              : step === "day"
+              : !initialDate && step === "day"
                 ? "Geen rustige of speciale dagen in zicht op dit moment — typ hieronder gerust zelf wat je wilt, dan denk ik mee."
                 : "We maken samen een actie. Beantwoord de vragen of pas een eerdere stap aan."}
           </div>
@@ -344,10 +379,15 @@ export function FillyGuidedFlow() {
       )}
 
       {/* ---------- Stap 1: dag ---------- */}
+      {/* Bij een voorgevulde datum tonen we hier alleen een korte
+          loader; de auto-start-effect springt zo naar de context-stap
+          (dag-keuze overgeslagen). */}
       {step === "day" &&
-        (loading ? (
+        (loading || (initialDate && !autoStarted) ? (
           <div className="fg-loading">
-            Even kijken welke dagen kansrijk zijn…
+            {initialDate && !autoStarted
+              ? "Moment, ik zet 'm voor je klaar…"
+              : "Even kijken welke dagen kansrijk zijn…"}
           </div>
         ) : (
           hasDays && (

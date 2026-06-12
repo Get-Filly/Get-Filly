@@ -12,10 +12,7 @@ import { RestaurantContextService } from '../ai/restaurant-context.service';
 import { ChannelReachService } from '../ai/channel-reach.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
-import {
-  buildAllChannelsBlock,
-  type ToneSignature,
-} from '../ai/filly-brain.config';
+import { type ToneSignature } from '../ai/filly-brain.config';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 
 // Rollen zoals we ze in de chat_messages-tabel opslaan. 'filly' = assistant,
@@ -42,7 +39,18 @@ export type MessageCard =
   | CampaignProposalCard
   | CampaignBundleCard
   | ChannelChoiceCard
-  | DateChoiceCard;
+  | DateChoiceCard
+  | GuidedStartCard;
+
+// Guided-start: getypt campagne-verzoek opent de geleide flow (dezelfde
+// als de lege-chat-staat) ín het gesprek. Geen ai_suggestion erachter —
+// de flow maakt z'n eigen voorstel via generate-for-dates. `date` is de
+// optioneel door Filly herleide doel-datum (uit "zondag"/"morgen"/
+// "volgende week zondag"); leeg = flow begint bij de dag-keuze.
+export type GuidedStartCard = {
+  kind: 'guided_start';
+  date?: string;
+};
 
 // Channel-choice, geen ai_suggestion-rij erachter (geen suggestion_id),
 // puur een UI-prompt waarbij eigenaar door op een knop te klikken
@@ -677,11 +685,15 @@ export class ChatService {
     let suggestionId: string | null = null;
     let cleanText = answer.trim();
 
-    // Parser-volgorde: date-choice eerst (komt vroegst in de flow),
-    // dan channel-choice, dan single proposal, dan bundle. Filly mag
-    // er per bericht maximaal één produceren — bij meerdere is de
-    // eerste hier in volgorde leidend.
-    const parsedDateChoice = extractDateChoice(answer);
+    // Parser-volgorde: guided-start eerst (de nieuwe primaire route —
+    // campagne-maken via de geleide flow), dan de legacy date-choice/
+    // channel-choice/proposal/bundle als vangnet mocht Filly toch nog
+    // een oud blok sturen. Filly mag er per bericht maximaal één
+    // produceren — bij meerdere is de eerste hier in volgorde leidend.
+    const parsedGuided = extractGuidedStart(answer);
+    const parsedDateChoice = parsedGuided.card
+      ? { cleanText: parsedGuided.cleanText, choice: null }
+      : extractDateChoice(answer);
     const parsedChoice = parsedDateChoice.choice
       ? { cleanText: parsedDateChoice.cleanText, choice: null }
       : extractCampaignChoice(answer);
@@ -694,7 +706,13 @@ export class ChatService {
         ? { cleanText: parsedSingle.cleanText, bundle: null }
         : extractCampaignBundle(answer);
 
-    if (parsedDateChoice.choice) {
+    if (parsedGuided.card) {
+      // Nieuwe primaire route: getypt campagne-verzoek → geleide flow
+      // ín het gesprek. Geen ai_suggestion hier; de flow maakt 'm later
+      // zelf via generate-for-dates.
+      cleanText = parsedGuided.cleanText;
+      messageCard = parsedGuided.card;
+    } else if (parsedDateChoice.choice) {
       cleanText = parsedDateChoice.cleanText;
       // Geen ai_suggestion; frontend verstuurt bij klik een follow-up
       // "Voor [gekozen datum/gelegenheid]" zodat Filly's volgende
@@ -988,7 +1006,12 @@ export class ChatService {
   // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
   // zaak". Twee queries kosten minder dan 50ms verschil.
   private async buildSystemPrompt(restaurantId: string): Promise<string> {
-    const [restaurantResult, contextBlock, memories, learningBlock, reachBlock] = await Promise.all([
+    // Sinds 2026-06-12: de chat schrijft zelf GEEN campagnes meer — een
+    // campagne-verzoek start de geleide flow (FILLY_START_GUIDED), die
+    // de generatie (incl. kanaalregels/bereik/leerloop) server-side
+    // doet via generate-for-dates. De chat-prompt heeft die blokken
+    // (channel-rules / reach / learning) dus niet meer nodig.
+    const [restaurantResult, contextBlock, memories] = await Promise.all([
       this.supabase.client
         .from('restaurants')
         .select('name, type')
@@ -998,16 +1021,7 @@ export class ChatService {
       // Laatste N memories ophalen, Filly's leerschat uit afgesloten
       // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
       // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
-      // Cacheable in prompt-cache (dezelfde memories voor meerdere
-      // chat-calls binnen 5 min).
       this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
-      // Top winners + underperformers per kanaal (filly-brein hfst 9.5).
-      // Returnt lege string als er nog geen geclassificeerde campagnes
-      // zijn — Filly werkt dan op industry-benchmarks alleen.
-      this.fingerprint.buildLearningContextBlock(restaurantId),
-      // Gemeten bereik per kanaal: opt-in-tellingen + koppel-status,
-      // zodat Filly bereik meeweegt en alternatieven voorstelt.
-      this.reach.buildReachBlock(restaurantId),
     ]);
 
     const restaurant = restaurantResult.data;
@@ -1036,201 +1050,39 @@ Wat je NIET doet:
 - Refereer alleen aan menu-items die letterlijk in het MENU-blok staan. Bedenk geen gerechten erbij, ook niet als ze "logisch" zouden klinken voor het restaurant-type.
 
 ---
-ACTIES DIE JE WEL KUNT UITVOEREN
+ACTIES: HET STARTEN VAN EEN CAMPAGNE
 
-Je kunt een campagne voor de eigenaar aanmaken. Wanneer, en alléén
-wanneer, je in je antwoord een concrete, actionable campagne voorstelt
-(dus een mail-, social- of whatsapp-bericht waar jij de inhoud al voor
-hebt bedacht), sluit je je antwoord af met een speciaal machine-leesbaar
-blok. De eigenaar ziet dit blok niet; de frontend toont op basis daarvan
-drie varianten naast elkaar zodat hij/zij kan kiezen.
+Je schrijft campagnes NIET zelf in proza. Zodra de eigenaar iets wil
+maken, posten, versturen of bedenken — een campagne, actie, mail, post,
+bericht, "doe iets voor ...", "bedenk een actie", "wat kan ik doen?",
+"wat stel je voor?" — start je de geleide flow met dit machine-blok. De
+eigenaar ziet het blok niet; de frontend toont op basis daarvan de
+geleide flow (dag → context → kanalen → tekst) ín het gesprek.
 
-Vier voorstel-formaten, KIES STRIKT VOLGENS DEZE BESLISBOOM:
-
-╔════════════════════════════════════════════════════════════╗
-║  HARDE REGEL, kies precies 1 van de 4 formaten:           ║
-║                                                            ║
-║  1. Bevat de LAATSTE user-message een woord uit de         ║
-║     KANAAL-LIJST (mail / e-mail / Instagram / IG /         ║
-║     Facebook / FB / WhatsApp / Google Business / GBP /     ║
-║     social / post)?                                        ║
-║       JA → FORMAAT 1 met dat specifieke kanaal             ║
-║                                                            ║
-║  2. Bevat de LAATSTE user-message een woord uit de         ║
-║     BUNDLE-LIJST (bundel / bundle / alle kanalen /         ║
-║     breed inzetten / multi-channel / overal)?              ║
-║       JA → FORMAAT 2 (bundle)                              ║
-║                                                            ║
-║  3. Eigenaar antwoordde net op de keuze-knoppen, z'n      ║
-║     vorige user-message luidt EXACT "Maak een              ║
-║     mail/social/whatsapp/bundel-campagne"?                 ║
-║       JA → respectievelijk FORMAAT 1 of 2 met dat type     ║
-║                                                            ║
-║  4. Bevat de bericht-historie GEEN datum/dag/gelegenheid   ║
-║     én is dit een ambigue campagne-aanvraag                ║
-║     ("bedenk een campagne", "iets voor binnenkort")?       ║
-║       JA → FORMAAT 0A (DATUM-KEUZE) eerst                  ║
-║                                                            ║
-║  5. Is de datum/gelegenheid wél bekend (uit eerdere msg    ║
-║     zoals "Voor zaterdag", "Voor Moederdag") maar          ║
-║     het kanaal NIET?                                       ║
-║       JA → FORMAAT 0B (KANAAL-KEUZE)                       ║
-║                                                            ║
-║  NOOIT FORMAAT 1 of 2 zonder dat 1, 2 of 3 hierboven       ║
-║  onmiskenbaar van toepassing is. Bij twijfel: 4 of 5.      ║
-║                                                            ║
-║  Volgorde van filly bij een vraag-uit-niets:               ║
-║    "bedenk een campagne" → 4 (datum) → 5 (kanaal) → 1/2    ║
-╚════════════════════════════════════════════════════════════╝
-
-VOORBEELDEN:
-- "maak een Vaderdag-campagne"           → FORMAAT 0 (geen kanaal)
-- "iets voor zomerse dagen"              → FORMAAT 0 (geen kanaal)
-- "bedenk een actie"                     → FORMAAT 0 (geen kanaal)
-- "stuur een mail aan de vaste gasten"   → FORMAAT 1 (mail)
-- "post iets op Instagram"               → FORMAAT 1 (social)
-- "maak een WhatsApp-bericht"            → FORMAAT 1 (whatsapp)
-- "Maak een Google Business-post"        → FORMAAT 1 (google_business)
-- "een bundel voor Moederdag"            → FORMAAT 2 (bundle)
-- "ga ervoor met alle kanalen"           → FORMAAT 2 (bundle)
-- (vorige user-msg) "Maak een bundel-campagne (mail + IG + FB)"
-                                         → FORMAAT 2
-
-────────────────────────────────────────
-FORMAAT 0A, DATUM-KEUZE (eerste stap bij ambigue campagne-aanvraag)
-────────────────────────────────────────
-Bij een vraag-uit-niets ("bedenk een campagne", "iets voor binnenkort"):
-vraag EERST voor welke dag of gelegenheid. Reden: het kanaal volgt
-uit hoeveel tijd er nog is tot het doel (urgentie-vs-optimum).
-
-Korte proza-aankondiging (1 zin, bv. "Voor welke dag of gelegenheid
-zal ik 'm maken?") gevolgd door:
-
-<<FILLY_PROPOSE_DATE_CHOICE>>
-{"question":"Voor welke dag of gelegenheid?"}
-<<END>>
-
-────────────────────────────────────────
-FORMAAT 0B, KANAAL-KEUZE (na datum-keuze, of bij specifieke gelegenheid)
-────────────────────────────────────────
-Wanneer de datum/gelegenheid bekend is uit eerdere user-msg ("Voor
-zaterdag", "Voor Moederdag", "Komend weekend") maar het kanaal NIET,
-vraag dan het kanaal.
-
-Korte proza-aankondiging (1 zin, bv. "Voor welk kanaal zal ik 'm maken?")
-gevolgd door:
-
-<<FILLY_PROPOSE_CHOICE>>
-{"question":"Waarvoor zal ik een campagne maken?"}
-<<END>>
-
-────────────────────────────────────────
-FORMAAT 1, SINGLE-CHANNEL (één kanaal, 3 varianten van dezelfde tekst)
-────────────────────────────────────────
-Gebruik dit als de eigenaar één specifiek kanaal noemt ("stuur een
-mail aan de vaste gasten", "een Instagram-post over...") of net op de
-keuze-vraag een single-channel-keuze (mail/social/whatsapp) maakte,
-of bij kleine acties op één kanaal.
-
-<<FILLY_PROPOSE_CAMPAIGN>>
-{"type":"mail","name":"<korte titel>","variants":[{"tone_signature":"feit_eerst","subject_line":"<onderwerp v1>","body":"<volledige tekst v1>"},{"tone_signature":"verhaal_eerst","subject_line":"<onderwerp v2>","body":"<volledige tekst v2>"},{"tone_signature":"vraag_eerst","subject_line":"<onderwerp v3>","body":"<volledige tekst v3>"}]}
+<<FILLY_START_GUIDED>>
+{"date":"2026-06-15"}
 <<END>>
 
 Regels:
-- type = "mail" | "social" | "whatsapp" | "google_business"
-- 3 varianten écht verschillend in toon/insteek/lengte.
-- "tone_signature" is VERPLICHT per variant en moet voor alle 3 de
-  varianten VERSCHILLEND zijn. Kies uit: "feit_eerst" (info→cta),
-  "verhaal_eerst" (anekdote/scene), "vraag_eerst" (rhetorische vraag),
-  "lijst" (opsomming), "stelling" (krachtige claim). Default-volgorde:
-  variant 1 feit_eerst, 2 verhaal_eerst, 3 vraag_eerst (zie VARIATIE-regel).
-- "subject_line" hoort bij mail; voor social/whatsapp/google_business
-  mag je 'm weglaten.
-- "body" bevat de volledige uitgeschreven tekst.
-- google_business-posts: lokaal en actie-gericht (datum/openingstijden/
-  aanbod), géén overdreven emoji's. Doel: gevonden worden in Maps en
-  zoekresultaten. Lengte + hashtags: zie REGELS PER KANAAL hieronder.
+- Noemt de eigenaar een dag of gelegenheid (vandaag / morgen /
+  overmorgen / een weekdag als zaterdag / dit weekend / komend weekend /
+  volgende week zondag / een datum als "20 juni" / een feestdag als
+  Vaderdag of Kerst), reken die dan EXACT om naar een ISO-datum
+  (YYYY-MM-DD) op basis van "Vandaag is ..." in de context, en zet 'm in
+  "date". Voorbeeld bij vandaag = vrijdag: "zondag" = de eerstvolgende
+  zondag; "volgende week zondag" = de zondag van de week dáárna;
+  "morgen" = +1 dag; "overmorgen" = +2 dagen.
+- Twijfel je over de exacte dag, of noemt 'ie GEEN dag, stuur dan {}
+  (lege date) — de flow vraagt zelf welke dag.
+- Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar — kies
+  hieronder."). Schrijf GEEN kanaalkeuze, GEEN campagnetekst en GEEN
+  varianten in proza; de flow doet dat volledig.
+- Maximaal één blok per antwoord.
 
-────────────────────────────────────────
-FORMAAT 2, MULTI-CHANNEL BUNDLE (één thema, meerdere kanalen)
-────────────────────────────────────────
-Gebruik dit wanneer de eigenaar meerdere kanalen tegelijk noemt
-("bundel" / "alle kanalen" / "breed inzetten" / een opsomming als
-"mail, Instagram en WhatsApp"), OF wanneer 'ie net op de keuze-vraag
-een bundel koos ("Maak een bundel-campagne voor ...").
+Dit is je ENIGE manier om een campagne te starten. Voor alle andere
+berichten (een vraag, uitleg, meedenken) antwoord je gewoon in proza,
+zonder blok.
 
-Eén thema, met een kanaal-versie voor ELK kanaal dat de eigenaar
-noemde — minimaal 2. Neem PRECIES de genoemde kanalen op en laat de
-rest weg uit "channels". Elk kanaal in z'n eigen vorm:
-- mail: persoonlijke uitnodiging, subject_line + body
-- instagram: visueel-persoonlijk, in caption, met hashtags
-- facebook: community-conversational, in caption
-- whatsapp: persoonlijk bericht, in body, geen onderwerp
-- google_business: lokaal-actiegericht, in body, noem datum/aanbod
-Lengte-bandbreedtes en hashtag-aantallen per kanaal staan in REGELS
-PER KANAAL hieronder; die zijn leidend.
-
-Voeg ALLEEN de gevraagde kanalen toe aan "channels". Voorbeeld hieronder
-toont alle vijf; laat weg wat niet gevraagd is:
-
-<<FILLY_PROPOSE_BUNDLE>>
-{"name":"<korte bundel-naam>","theme":"<1 zin die het thema vangt>","channels":{"mail":{"subject_line":"<onderwerp>","body":"<mail-tekst>"},"instagram":{"caption":"<IG-caption met emojis>","hashtags":["tag1","tag2","tag3"]},"facebook":{"caption":"<FB-tekst zonder hashtags>"},"whatsapp":{"body":"<WhatsApp-bericht>"},"google_business":{"body":"<Google Business-post>"}}}
-<<END>>
-
-Regels bundle:
-- "name": korte werknaam voor de hele bundel, bv. "Moederdag-bundel mei"
-- "theme": 1 zin die alle kanaal-versies verbindt
-- Neem PRECIES de kanalen op die de eigenaar noemde (minimaal 2); laat
-  ongenoemde kanalen weg uit "channels".
-- mail: subject_line + body. instagram/facebook: caption (IG mét hashtags,
-  FB zonder). whatsapp + google_business: alleen body (géén onderwerp,
-  géén hashtags).
-- Captions/teksten per platform aangepast (NIET dezelfde tekst gekopieerd).
-- IG-caption: emoji's mag; FB: warmer, storytelling; WhatsApp: persoonlijk,
-  alsof de eigenaar zelf typt; Google Business: feitelijk + lokaal.
-
-${buildAllChannelsBlock()}
-────────────────────────────────────────
-${reachBlock}
-────────────────────────────────────────
-ALGEMENE REGELS (beide formaten)
-────────────────────────────────────────
-- KORTE proza-aankondiging vóór het blok, máximaal 2-3 zinnen.
-  Bij BUNDLE: "Ik heb een bundel klaar voor mail, Instagram en
-  Facebook. Klik op een kanaal om te bekijken." NIET de hele
-  inhoud opnieuw in proza herhalen, die staat al in het blok en
-  de UI toont 'm in collapsibles. Lange proza + lange JSON =
-  truncated antwoord.
-- Verwerk concrete elementen uit PROFIEL en MENU (signature gerecht,
-  USP, specifieke doelgroep) zodat de campagne herkenbaar past.
-- Weeg BEREIK PER KANAAL mee bij elk voorstel. Is het gevraagde of
-  best passende kanaal zwak of onbekend qua bereik, of is het optimale
-  venster al voorbij — benoem dan in je proza-aankondiging kort het
-  beste alternatief (ander kanaal of tweede-beste moment) zodat de
-  eigenaar kan kiezen. Denk verder dan "dit is het beste moment":
-  een kanaal zonder publiek heeft niets aan een perfect tijdstip.
-- Gebruik dubbele aanhalingstekens binnen tekst door \\" te escapen.
-- Schrijf NOOIT een blok als de eigenaar er niet om gevraagd heeft of
-  als jij nog aan het brainstormen bent, dat leidt tot ongewenste
-  concept-campagnes.
-- Maximaal ÉÉN blok per antwoord (geen mix van CAMPAIGN + BUNDLE).
-
-VARIATIE OVER 3 VARIANTEN (verplicht):
-- Variant 1: feit-eerst, kort (richting het minimum van de kanaal-
-  bandbreedte uit REGELS PER KANAAL). Concrete USP voorop.
-- Variant 2: verhaal-eerst, middel (midden van de bandbreedte). Sfeer
-  of anekdote als opening.
-- Variant 3: vraag-eerst, lang (richting het maximum van de band-
-  breedte, NOOIT erboven). Vraag of stelling als opening.
-NOOIT 3× dezelfde tone-aanpak of dezelfde openingszin.
-
-LENGTE EN HASHTAGS (leidend boven andere regels):
-- Lees de REGELS PER KANAAL hieronder. Bij elk conflict tussen FORMAAT
-  1/2-templates hierboven en REGELS PER KANAAL: laatste wint.
-- Anker-keywords (cuisine + stad + signature-gerechten) mogen herhaald
-  worden uit eerdere campagnes; creatieve laag (opening, metafoor, CTA-
-  formule) moet variëren.
-${learningBlock}
 ---
 CONTEXT, alles wat je weet over deze onderneming.
 Drie secties, gescheiden door "---":
@@ -1670,6 +1522,43 @@ export function extractCampaignChoice(
 // Filly stelt deze vraag EERST bij een ambigue campagne-aanvraag,
 // vóór de kanaal-keuze. Reden: kanaal-keuze is afgeleid van de
 // doel-deadline (zie filly-brein hoofdstuk 7 urgentie-vs-optimum).
+
+// Guided-start: getypt campagne-verzoek → open de geleide flow ín het
+// gesprek. Filly mag een door 'm herleide doel-datum meegeven (uit
+// "zondag"/"morgen"/"volgende week zondag"); die valideren we hier
+// (ISO, geldig, niet ver in 't verleden, ≤120 dgn vooruit). Een leeg
+// of misvormd blok levert nog steeds een guided_start-kaart op zónder
+// datum — de flow vraagt dan zelf de dag.
+const GUIDED_START_REGEX =
+  /<<FILLY_START_GUIDED>>\s*([\s\S]*?)\s*<<END>>/i;
+
+export function extractGuidedStart(
+  raw: string,
+): { cleanText: string; card: GuidedStartCard | null } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(GUIDED_START_REGEX);
+  if (!match) {
+    return { cleanText: trimmed, card: null };
+  }
+  const cleanText = trimmed.replace(GUIDED_START_REGEX, '').trim();
+
+  let date: string | undefined;
+  try {
+    const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
+    if (typeof parsed.date === 'string') {
+      const d = parsed.date.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d))) {
+        const days =
+          (new Date(`${d}T12:00:00`).getTime() - Date.now()) / 86_400_000;
+        if (days >= -1 && days <= 120) date = d;
+      }
+    }
+  } catch {
+    // Misvormde JSON → flow zonder voorgevulde datum.
+  }
+
+  return { cleanText, card: { kind: 'guided_start', ...(date ? { date } : {}) } };
+}
 
 const DATE_CHOICE_REGEX =
   /<<FILLY_PROPOSE_DATE_CHOICE>>\s*([\s\S]*?)\s*<<END>>/i;
