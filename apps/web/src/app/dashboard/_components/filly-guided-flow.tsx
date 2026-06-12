@@ -12,6 +12,7 @@ import {
 import {
   fetchDayContext,
   generateSuggestionsForDates,
+  type AiSuggestion,
   type DayContext,
   type GenerateForDatesItem,
 } from "../../../lib/api";
@@ -75,7 +76,17 @@ function buildContextOptions(ctx: DayContext | null): ContextOption[] {
   return opts;
 }
 
-type Step = "day" | "context" | "channels" | "generating";
+type Step = "day" | "context" | "channels" | "generating" | "done";
+
+const CHANNEL_LABEL: Record<string, string> = {
+  mail: "Mail",
+  social: "Social",
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+  google_business: "Google Business",
+};
 
 export function FillyGuidedFlow() {
   const router = useRouter();
@@ -94,6 +105,7 @@ export function FillyGuidedFlow() {
   );
   const [error, setError] = useState<string | null>(null);
   const [showAllQuiet, setShowAllQuiet] = useState(false);
+  const [result, setResult] = useState<AiSuggestion[]>([]);
 
   const hasDays = lowOccupancyDays.length + specialDays.length > 0;
   const quietToShow = showAllQuiet
@@ -165,8 +177,15 @@ export function FillyGuidedFlow() {
       ...(contextHints.length > 0 ? { context: contextHints } : {}),
     };
     try {
-      await generateSuggestionsForDates([item]);
-      router.push("/dashboard/campagnes");
+      const { suggestions } = await generateSuggestionsForDates([item]);
+      if (!suggestions || suggestions.length === 0) {
+        // Onverwacht leeg → val terug op de campagnes-hub.
+        router.push("/dashboard/campagnes");
+        return;
+      }
+      // Resultaat inline tonen — de eigenaar blijft in het gesprek.
+      setResult(suggestions);
+      setStep("done");
     } catch (e) {
       logger.error(e);
       setError(
@@ -177,6 +196,81 @@ export function FillyGuidedFlow() {
       setStep("channels");
     }
   };
+
+  // Reset naar stap 1 voor nog een actie, zonder de pagina te herladen.
+  const restart = () => {
+    setStep("day");
+    setPicked(null);
+    setDayContext(null);
+    setSelectedContext(new Set());
+    setSelectedChannels(new Set());
+    setResult([]);
+    setError(null);
+  };
+
+  // ---------- Klaar: resultaat inline tonen ----------
+  if (step === "done") {
+    return (
+      <div className="filly-guided">
+        <div className="fg-welcome">
+          <span className="fg-avatar">F</span>
+          <div>
+            <div className="fg-welcome-title">Klaar! ✨</div>
+            <div className="fg-welcome-text">
+              {result.length > 1
+                ? `Ik heb ${result.length} voorstellen voor je klaargezet.`
+                : "Ik heb een voorstel voor je klaargezet."}
+            </div>
+          </div>
+        </div>
+
+        <div className="fg-options">
+          {result.map((s) => {
+            const sc = s.suggested_campaign;
+            const body =
+              sc.body ?? sc.variants?.[0]?.body ?? "";
+            const channel =
+              CHANNEL_LABEL[sc.platform ?? sc.type ?? ""] ?? "";
+            return (
+              <div key={s.id} className="fg-result">
+                <div className="fg-result-head">
+                  <span className="fg-result-name">
+                    {sc.name ?? "Voorstel"}
+                  </span>
+                  {channel && (
+                    <span className="fg-result-channel">{channel}</span>
+                  )}
+                </div>
+                {body && <div className="fg-result-body">{body}</div>}
+                <button
+                  type="button"
+                  className="ui-btn ui-btn--primary ui-btn--sm fg-result-btn"
+                  onClick={() =>
+                    router.push(`/dashboard/campagnes/voorstel/${s.id}`)
+                  }
+                >
+                  Bekijken &amp; aanpassen →
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="fg-done-actions">
+          <button type="button" className="fg-more" onClick={restart}>
+            ＋ Nog een dag
+          </button>
+          <button
+            type="button"
+            className="fg-more"
+            onClick={() => router.push("/dashboard/campagnes")}
+          >
+            Alle voorstellen →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ---------- Genereren: rustige tussenstaat ----------
   if (step === "generating") {
