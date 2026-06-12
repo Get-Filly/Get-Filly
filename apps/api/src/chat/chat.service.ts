@@ -368,9 +368,11 @@ export class ChatService {
     return { id: conversationId };
   }
 
-  // Privé helper: maakt rij in chat_conversations + welkomstbericht.
-  // Gedeeld tussen getOrCreateActiveConversation en createConversation
-  // zodat het welkomstbericht-template één plek heeft.
+  // Privé helper: maakt rij in chat_conversations. BEWUST geen
+  // welkomstbericht (sinds 2026-06-12): een leeg gesprek laat de
+  // frontend de geleide on-ramp (FillyGuidedFlow) tonen — Filly's
+  // openingsvraag met de dagen-keuze. Een geseed welkomstbericht
+  // maakte het gesprek "niet-leeg" en blokkeerde die flow.
   private async createConversationRow(restaurantId: string): Promise<string> {
     const { data: created, error: createErr } = await this.supabase.client
       .from('chat_conversations')
@@ -378,19 +380,7 @@ export class ChatService {
       .select('id')
       .single();
     if (createErr) throw new InternalServerErrorException(createErr.message);
-    const conversationId = created.id as string;
-
-    // Welkomstbericht is gewoon een DB-rij, geen Claude-call. Voorkomt
-    // dat een net-aangemaakte chat als lege canvas voelt.
-    await this.supabase.client.from('chat_messages').insert({
-      conversation_id: conversationId,
-      restaurant_id: restaurantId,
-      role: 'filly',
-      content:
-        'Hoi! Ik ben Filly, je marketing-assistent. Vraag me iets over je bezetting, gasten, reviews of campagnes, of over wat je deze week kan doen.',
-    });
-
-    return conversationId;
+    return created.id as string;
   }
 
   // Privé helper: bouwt een ActiveChatState (messages + count) voor
@@ -1004,9 +994,9 @@ export class ChatService {
     return `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.
 
 Wie je bent:
-- Een behulpzame, praktische assistent die marketing-werk uit handen neemt.
-- Je kent horeca: bezetting, gasten, reviews, campagnes, menu.
-- Je denkt mee over concrete acties: mailings, socials, menu-aanpassingen, gasten-activatie.
+- Een behulpzame, praktische assistent die CAMPAGNES voor het restaurant maakt.
+- Je focus is één ding: campagnes en marketing-acties die gasten naar binnen halen — mailings, social posts, WhatsApp-berichten, Google Business-posts en bundels daarvan.
+- Je kent de context (bezetting, gasten, menu, weer, events in de buurt) en gebruikt die om sterke, concrete campagnes te bedenken — maar je voorstel is ALTIJD een campagne.
 
 Hoe je praat:
 - Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji.
@@ -1015,6 +1005,7 @@ Hoe je praat:
 - "Wij" als je namens de onderneming praat, "jij" als je de eigenaar aanspreekt.
 
 Wat je NIET doet:
+- Deze chat gaat ALLEEN over campagnes. Stel NOOIT losse klusjes voor als "werk je Google Business bij", "pas je menukaart aan", "beantwoord je reviews" of "controleer je openingstijden" — dat hoort op de eigen dashboard-pagina, niet hier. Vertaal elke vraag naar een concrete campagne; ontbreekt info, vraag dan door. Bij "wat stel je voor?" of "wat kan ik doen?" geef je campagne-ideeën (een actie voor een rustige dag, een speciale dag, inspelen op weer/event), nooit onderhouds-taken.
 - Beloof geen acties die je (nog) niet zelf kan uitvoeren. Zeg eerlijk "dat moet ik nog leren" als een feature er niet is.
 - Geef geen juridisch, fiscaal of medisch advies.
 - VERZIN geen cijfers, gerechten of details. De context hieronder is je enige bron. Als iets ontbreekt, zeg dan "ik weet het niet" of stel een vervolgvraag.
