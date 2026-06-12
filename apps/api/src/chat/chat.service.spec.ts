@@ -3,6 +3,7 @@ import {
   mergeActiveAction,
   sanitizeActionInput,
   formatActiveActionBlock,
+  detectCampaignHint,
 } from './chat.service';
 
 // Een geldige nabije datum dynamisch (altijd binnen [now-1d, now+120d]).
@@ -145,6 +146,35 @@ describe('sanitizeActionInput', () => {
 
   it('niet-array channels → veld weggelaten', () => {
     expect(sanitizeActionInput({ channels: 'mail' }).channels).toBeUndefined();
+  });
+});
+
+describe('detectCampaignHint', () => {
+  it('campagne-vraag ("welke dagen stel je voor") → stuurt naar de geleide flow', () => {
+    const hint = detectCampaignHint(
+      'welke dagen stel je voor om een campagne te maken',
+    );
+    expect(hint).toContain('FILLY_START_GUIDED');
+    expect(hint).toContain('Som NOOIT dagen');
+    // De legacy FORMAAT-steering mag NIET meer terugkomen.
+    expect(hint).not.toMatch(/FORMAAT|FILLY_PROPOSE_CHOICE/);
+  });
+
+  it('expliciet maak-verzoek → hint', () => {
+    expect(detectCampaignHint('maak een actie voor zondag')).toContain(
+      'FILLY_START_GUIDED',
+    );
+  });
+
+  it('"wat raad je aan" → hint', () => {
+    expect(detectCampaignHint('wat raad je aan?')).toContain(
+      'FILLY_START_GUIDED',
+    );
+  });
+
+  it('niet-campagne-bericht → null', () => {
+    expect(detectCampaignHint('hoe laat zijn jullie open?')).toBeNull();
+    expect(detectCampaignHint('bedankt!')).toBeNull();
   });
 });
 

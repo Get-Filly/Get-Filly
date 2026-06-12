@@ -13,6 +13,7 @@ import { ChannelReachService } from '../ai/channel-reach.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { type ToneSignature } from '../ai/filly-brain.config';
+import { naturalizeDashes } from '../ai/copy-style.guard';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 import { resolveDutchDate } from '../common/dutch-date';
 
@@ -766,7 +767,7 @@ export class ChatService {
     // expliciet een kanaal noemt en stuur een harde override naar
     // Claude. Voorkomt dat Filly de prompt-instructie negeert en
     // alsnog direct een BUNDLE genereert bij een open vraag.
-    const hint = detectChannelHint(content);
+    const hint = detectCampaignHint(content);
     if (hint) {
       promptParts.push(
         `[INTERN ROUTING-SIGNAAL, niet voor de gebruiker zichtbaar]\n${hint}`,
@@ -973,7 +974,9 @@ export class ChatService {
         conversation_id: conversationId,
         restaurant_id: restaurantId,
         role: 'filly',
-        content: cleanText,
+        // Dash-sanitizer ook op chat-proza: de prompt-nudge alleen hield
+        // de em-dashes er niet uit (audit-feedback Floris, 2026-06-12).
+        content: naturalizeDashes(cleanText),
         message_card: messageCard,
         // ai_suggestion_id (bestaat sinds 0001) koppelt dit bericht
         // aan de suggestie. Handig voor toekomstige flows zoals
@@ -1218,7 +1221,7 @@ Hoe je praat:
 - "Wij" als je namens de onderneming praat, "jij" als je de eigenaar aanspreekt.
 
 Wat je NIET doet:
-- Deze chat gaat ALLEEN over campagnes. Stel NOOIT losse klusjes voor als "werk je Google Business bij", "pas je menukaart aan", "beantwoord je reviews" of "controleer je openingstijden" — dat hoort op de eigen dashboard-pagina, niet hier. Vertaal elke vraag naar een concrete campagne; ontbreekt info, vraag dan door. Bij "wat stel je voor?" of "wat kan ik doen?" geef je campagne-ideeën (een actie voor een rustige dag, een speciale dag, inspelen op weer/event), nooit onderhouds-taken.
+- Deze chat gaat ALLEEN over campagnes. Stel NOOIT losse klusjes voor als "werk je Google Business bij", "pas je menukaart aan", "beantwoord je reviews" of "controleer je openingstijden" — dat hoort op de eigen dashboard-pagina, niet hier. Vertaal elke vraag naar een concrete campagne; ontbreekt info, vraag dan door. Bij "wat stel je voor?", "wat kan ik doen?", "welke dag(en)?" of "wat raad je aan?" start je de geleide flow (zie hieronder) zodat de eigenaar klikbaar kiest — som dagen, kanalen of campagne-ideeën NOOIT op in proza.
 - Beloof geen acties die je (nog) niet zelf kan uitvoeren. Zeg eerlijk "dat moet ik nog leren" als een feature er niet is.
 - Geef geen juridisch, fiscaal of medisch advies.
 - VERZIN geen cijfers, gerechten of details. De context hieronder is je enige bron. Als iets ontbreekt, zeg dan "ik weet het niet" of stel een vervolgvraag.
@@ -1228,11 +1231,13 @@ Wat je NIET doet:
 ACTIES: HET STARTEN VAN EEN CAMPAGNE
 
 Je schrijft campagnes NIET zelf in proza. Zodra de eigenaar iets wil
-maken, posten, versturen of bedenken — een campagne, actie, mail, post,
-bericht, "doe iets voor ...", "bedenk een actie", "wat kan ik doen?",
-"wat stel je voor?" — start je de geleide flow met dit machine-blok. De
+maken, posten, versturen of bedenken — óf je een campagne-gerelateerde
+vraag stelt — een campagne, actie, mail, post, bericht, "doe iets voor
+...", "bedenk een actie", "wat kan ik doen?", "wat stel je voor?", "welke
+dag(en) raad je aan?" — start je de geleide flow met dit machine-blok. De
 eigenaar ziet het blok niet; de frontend toont op basis daarvan de
-geleide flow (dag → context → kanalen → tekst) ín het gesprek.
+geleide flow (dag → context → kanalen → tekst) ín het gesprek, met
+aanklikbare opties. Som dus zelf GEEN dagen of opties op in tekst.
 
 <<FILLY_START_GUIDED>>
 {"day_phrase":"volgende week zondag","topic":"Burrata"}
@@ -1263,9 +1268,11 @@ Regels:
   NOOIT opnieuw naar de dag als die al bekend is.
 
 Dit is je ENIGE manier om een campagne te starten — ook bij vage
-verzoeken als "doe iets voor het menu". Schrijf nooit zelf een
-voorstel in proza. Voor alle andere berichten (een vraag, uitleg,
-meedenken) antwoord je gewoon in proza, zonder blok.
+verzoeken als "doe iets voor het menu" én bij vragen als "welke dag" of
+"wat raad je aan". Schrijf nooit zelf een voorstel in proza en som NOOIT
+dagen, kanalen of opties op in tekst — de geleide flow toont die
+klikbaar. Alleen bij een bericht dat écht niet over een campagne gaat
+antwoord je kort in proza, zonder blok.
 
 ---
 CONTEXT, alles wat je weet over deze onderneming.
@@ -1684,80 +1691,39 @@ export function extractCampaignBundle(
 }
 
 // ============================================================
-// detectChannelHint, server-side routing-signaal voor Filly
+// detectCampaignHint, server-side routing-signaal voor Filly
 // ============================================================
-// We scannen het laatste user-bericht op kanaal-keywords en sturen
-// een keiharde "USE FORMAAT X"-instructie mee in de Claude-prompt.
-// Dit is een safety-net naast de prompt-regels: als Claude de prompt
-// instructie ook maar enigszins zou negeren, dan dwingt deze hint
-// het juiste formaat alsnog af.
+// Klik-first (2026-06-12): is het laatste user-bericht campagne-
+// gerelateerd — een verzoek ("maak een actie") óf een vraag ("welke dag
+// raad je aan", "wat zou je doen") — dan duwen we Filly keihard naar de
+// GELEIDE FLOW (FILLY_START_GUIDED) i.p.v. een vrij-tekst-antwoord.
+//
+// De oude FORMAAT 0/1/2-steering (FILLY_PROPOSE_CHOICE / proposal /
+// bundle) is bewust verwijderd: de system-prompt documenteert die niet
+// meer, dus die hints lieten het LLM juist terugvallen op proza (de
+// "welke dagen stel je voor"-bug, audit-feedback Floris).
 //
 // Returns:
 //   string  → instructie die aan de prompt geplakt wordt
-//   null    → geen detectie, Claude beslist zelf op basis van regels
+//   null    → geen campagne-intentie; Filly antwoordt gewoon in proza
 // ============================================================
 
-const SINGLE_CHANNEL_KEYWORDS = {
-  mail: /\b(mail|e-?mail|nieuwsbrief|mailing)\b/i,
-  social:
-    /\b(instagram|insta|ig|facebook|fb|social(?:[\s-]?media)?|post(?:en)?)\b/i,
-  whatsapp: /\b(whatsapp|whats[\s-]?app|wa)\b/i,
-};
-
-const BUNDLE_KEYWORDS =
-  /\b(bundel|bundle|alle\s+kanalen|breed\s+inzet|multi[\s-]?channel|overal)\b/i;
-
+// Campagne-intentie: zowel expliciete maak-verzoeken als de "welke dag /
+// wat raad je aan"-vragen die vroeger een proza-opsomming opleverden. In
+// een campagne-only chat mag dit ruim matchen.
 const CAMPAIGN_INTENT =
-  /\b(campagne|campaign|actie|kampanje|voorstel|bedenk|maak\s+(?:iets|een)|stuur|post(?:en)?|mail(?:en)?|promotion)\b/i;
+  /\b(campagne|campaign|actie|kampanje|voorstel|bedenk|maak\s+(?:iets|een)|stuur|post(?:en)?|mail(?:en)?|promotion|welke\s+dag|wat\s+(?:raad|stel|zou|kan)|raad\s+je\s+aan)\b/i;
 
-const CHOICE_FOLLOWUP_PATTERNS = [
-  /^maak\s+een\s+mail-?campagne/i,
-  /^maak\s+een\s+social-?(?:media-?)?(?:post|campagne)/i,
-  /^maak\s+een\s+whatsapp-?(?:bericht|campagne)/i,
-  /^maak\s+een\s+bundel-?campagne/i,
-];
-
-function detectChannelHint(userMessage: string): string | null {
-  const trimmed = userMessage.trim();
-
-  // 1. Volgt op de keuze-knoppen, exacte tekst die de frontend
-  // automatisch verstuurt. Dwingt direct het juiste formaat af.
-  for (const pat of CHOICE_FOLLOWUP_PATTERNS) {
-    if (pat.test(trimmed)) {
-      if (/bundel/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist BUNDEL via de keuze-knoppen. Gebruik FORMAAT 2 (BUNDLE). Sla FORMAAT 0 over.';
-      }
-      if (/mail/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist MAIL via de keuze-knoppen. Gebruik FORMAAT 1 met type="mail". Sla FORMAAT 0 over.';
-      }
-      if (/social/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist SOCIAL via de keuze-knoppen. Gebruik FORMAAT 1 met type="social". Sla FORMAAT 0 over.';
-      }
-      if (/whatsapp/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist WHATSAPP via de keuze-knoppen. Gebruik FORMAAT 1 met type="whatsapp". Sla FORMAAT 0 over.';
-      }
-    }
-  }
-
-  // 2. Bundle-keywords expliciet → FORMAAT 2
-  if (BUNDLE_KEYWORDS.test(trimmed)) {
-    return 'Het bericht noemt een bundel/multi-channel. Gebruik FORMAAT 2 (BUNDLE).';
-  }
-
-  // 3. Specifiek kanaal genoemd → FORMAAT 1
-  for (const [type, pattern] of Object.entries(SINGLE_CHANNEL_KEYWORDS)) {
-    if (pattern.test(trimmed)) {
-      return `Het bericht noemt een specifiek kanaal (${type}). Gebruik FORMAAT 1 met type="${type}".`;
-    }
-  }
-
-  // 4. Open campagne-aanvraag zonder kanaal → FORMAAT 0
-  if (CAMPAIGN_INTENT.test(trimmed)) {
-    return 'Het bericht vraagt om een campagne maar noemt GEEN specifiek kanaal en GEEN bundel. Gebruik FORMAAT 0 (KEUZE-VRAAG met <<FILLY_PROPOSE_CHOICE>>). NIET direct een proposal of bundle genereren.';
-  }
-
-  // Geen detectie, Claude beslist zelf (geen campagne-intent waarschijnlijk)
-  return null;
+export function detectCampaignHint(userMessage: string): string | null {
+  if (!CAMPAIGN_INTENT.test(userMessage.trim())) return null;
+  return [
+    'Dit bericht is campagne-gerelateerd (een verzoek óf een vraag als',
+    '"welke dag", "wat raad je aan"). Start de GELEIDE FLOW met een',
+    '<<FILLY_START_GUIDED>>-blok en hooguit één korte proza-zin ervoor.',
+    'Som NOOIT dagen, kanalen of opties op in vrije tekst — de flow toont',
+    'die klikbaar. Vul "day_phrase" alleen als de eigenaar zelf een dag',
+    'noemde; anders {} (of alleen "topic").',
+  ].join(' ');
 }
 
 // ============================================================
