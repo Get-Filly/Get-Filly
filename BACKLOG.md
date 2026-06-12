@@ -74,6 +74,23 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 
 ---
 
+## 🔧 Filly-flow developer-audit (2026-06-12) — één voor één afwerken
+
+Bevindingen uit de code-audit van de Filly-keten (chat → geleide flow →
+generate-for-dates → brein/events/reach). Geordend op aanpak-volgorde
+(boven = eerst); werk van boven naar beneden.
+
+- [ ] **1. Pure-functie-testsuite** (laagste risico, hoogste rendement) — Vitest/Jest-suite voor de deterministische kernfuncties die nu met de hand getest worden: `extractGuidedStart` (chat.service), `checkCopyLength`/`findLengthViolations` (filly-brain.config + copy-length.guard), `getNlHolidays`/`buildExternalFactorsBlock` (timing-factors), `suffixCandidates`/`isExactPlaceMatch`/`normalizePlace` (events-sync.service), `haversineKm` (events.service), `mapCampaignTypeToChannel` (filly-brain.config). Vangt o.a. Pasen-datum, NL-dag-grens, fuzzy-plaatsmatch, lengte-bandbreedtes.
+- [ ] **2. Deterministische NL-datum-parsing** — relatieve datums ("zondag"/"morgen"/"volgende week zondag") niet door het LLM laten omrekenen (nu alleen range-gevalideerd in `extractGuidedStart`, niet op correctheid → stille verkeerde-dag-fout). Bouw `resolveDutchDate(phrase, today)` in code (front+back kennen `today`), laat het LLM alleen intentie + ruwe frase geven.
+- [ ] **3. Events-tabel opschonen** — wekelijkse cron krijgt `delete from events where starts_on < today`; tabel groeit nu onbegrensd (alleen upserts, verleden nooit verwijderd).
+- [ ] **4. Logging consistent maken** — `suggestions.service.ts` gebruikt 6× `console.warn` (met eslint-disable) + chat 2×; overal naar `this.logger` (Nest-logger, gestructureerd in serverless).
+- [ ] **5. Dubbele restaurant-/dag-queries wegnemen** — `day-context` fetcht restaurant-coördinaten 2× (findNearby + getForecastForRestaurant), generate-for-dates nóg eens; coords één keer ophalen + doorgeven. Plus: `use-actionable-days` ↔ `UpcomingActionsBlock` delen dezelfde rekenlogica los → samenvoegen tot één gedeelde hook.
+- [ ] **6. Multi-channel: één call i.p.v. N sequentieel** — een bundel genereert nu 1 Claude-call per kanaal (+ lengte-retries), sequentieel → 15-30s + 4-8× tokenkosten. Of parallel binnen de rate-limit, óf één multi-channel-call met channels[]-schema (zoals generateOnDemand al kan).
+- [ ] **7. Legacy dood gewicht opruimen** — de oude FORMAAT-parsers (`extractCampaignProposal/Bundle/Choice/DateChoice`) + chat-kaarten staan er nog "als vangnet" maar het LLM emit ze niet meer: bewust verwijderen óf documenteren waarom ze blijven. Idem `row: Record<string, unknown>` in `generateForSelectedDates` → echt type geven.
+- [ ] **8. (Architectuur, grootste klus) één `active_action`-state** — flow-kaart (frontend) en chat (LLM-tekst) delen geen bron-van-waarheid; dit is de oorzaak van de 3× gepatchte context-verlies-bugs. Introduceer één per-gesprek gepersisteerd actie-object (datum/topic/kanalen/stap) waar beide op lezen/schrijven, óf commit aan één model (flow puur klik-gestuurd, typen pas ná een voorstel). De huidige tekst-annotatie-workaround blijft anders lekken.
+
+---
+
 ## P1 — Productie-hygiëne
 
 ### Infrastructuur & deploy
