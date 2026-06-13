@@ -255,10 +255,11 @@ export function FillyGuidedFlow({
       // Resultaat inline tonen — de eigenaar blijft in het gesprek.
       setResult(suggestions);
       setStep("done");
-      // Actie afgerond → lopende actie wissen zodat een volgende, los-
-      // staande actie schoon begint (geen oude datum/thema die blijft
-      // hangen in de chat-context).
-      onActionChange?.({ reset: true });
+      // Actie afgerond: markeer step 'done' maar HOUD de actie (non-null)
+      // zodat dit resultaat-paneel zichtbaar blijft (de flow rendert op
+      // active_action != null). Wissen gebeurt pas bij "+ Nog een dag" of
+      // een nieuw gesprek.
+      onActionChange?.({ step: "done" });
     } catch (e) {
       logger.error(e);
       setError(
@@ -279,8 +280,10 @@ export function FillyGuidedFlow({
     setSelectedChannels(new Set());
     setResult([]);
     setError(null);
-    // Verse actie: ook de gedeelde lopende actie wissen.
-    onActionChange?.({ reset: true });
+    // Verse actie: datum/thema/kanalen leegmaken maar de actie laten
+    // bestaan (step 'day') zodat het flow-paneel zichtbaar blijft op de
+    // dag-keuze i.p.v. te verdwijnen.
+    onActionChange?.({ date: null, topic: null, channels: null, step: "day" });
   };
 
   // ---------- Klaar: resultaat inline tonen ----------

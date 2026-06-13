@@ -2241,13 +2241,14 @@ export type ActiveAction = {
   updated_at?: string;
 };
 
-// Delta-vorm voor de PATCH (partial; `reset: true` wist de actie na een
-// geslaagde generatie of "begin opnieuw").
+// Delta-vorm voor de PATCH. Per veld: weglaten = ongemoeid; null = WISSEN
+// (bv. "+ Nog een dag" maakt datum/thema leeg zonder de actie te
+// beëindigen); waarde = zetten. `reset: true` beëindigt de hele actie.
 export type ActiveActionDelta = {
-  date?: string;
-  topic?: string;
-  channels?: string[];
-  step?: string;
+  date?: string | null;
+  topic?: string | null;
+  channels?: string[] | null;
+  step?: string | null;
   reset?: boolean;
 };
 

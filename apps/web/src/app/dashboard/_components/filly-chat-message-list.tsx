@@ -197,19 +197,9 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                       }
                     />
                   )}
-                  {m.message_card?.kind === "guided_start" &&
-                    m.id === lastGuidedStartId && (
-                      // Alléén de laatste guided_start-kaart is de actieve,
-                      // klikbare flow. Voorgevuld met datum/thema uit de kaart
-                      // zelf (server-gevuld vanuit de lopende actie) — geen
-                      // live-active_action-fallback meer, want die lekte de
-                      // huidige actie in álle oudere kaarten.
-                      <FillyGuidedFlow
-                        initialDate={m.message_card.date}
-                        initialTopic={m.message_card.topic}
-                        onActionChange={onActiveActionChange}
-                      />
-                    )}
+                  {/* guided_start rendert GEEN eigen flow meer: er is per
+                      gesprek één flow onderaan de thread (zie hieronder),
+                      gedreven door active_action. De kaart = enkel proza. */}
                 </div>
               ) : (
                 <div key={m.id} className="msg msg-user">
@@ -218,6 +208,19 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                 </div>
               ),
             )
+        )}
+        {/* Eén actieve geleide flow per gesprek, onderaan de thread.
+            Zichtbaar zodra er een lopende actie is (active_action != null);
+            de lege-chat-staat hierboven toont 'm al als on-ramp. Gekeyed op
+            de laatste guided_start zodat 'ie alleen remount bij een NIEUWE
+            chat-emit, niet bij eigen kliks (anders verlies je de flow-stap). */}
+        {!loading && visible.length > 0 && activeAction && (
+          <FillyGuidedFlow
+            key={lastGuidedStartId ?? "active-flow"}
+            initialDate={activeAction.date}
+            initialTopic={activeAction.topic}
+            onActionChange={onActiveActionChange}
+          />
         )}
         {sending && (
           // Typing-indicator met Filly-avatar zodat 't leest als
