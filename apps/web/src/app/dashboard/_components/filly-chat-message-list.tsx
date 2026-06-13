@@ -103,6 +103,17 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
     // leeg → toon de geleide on-ramp (FillyGuidedFlow) i.p.v. een
     // kaal vlak.
     const visible = messages.filter((m) => m.role !== "system");
+    // Per gesprek is er één lopende actie, dus maar één interactieve flow:
+    // alléén de LAATSTE guided_start-kaart rendert de klikbare FillyGuidedFlow.
+    // Oudere guided_start-kaarten tonen enkel hun prozatekst (geen flow),
+    // anders stapelen er meerdere flows die allemaal aan dezelfde
+    // active_action hangen en bij elke nieuwe beurt "meeveranderen".
+    const lastGuidedStartId =
+      [...visible]
+        .reverse()
+        .find(
+          (m) => m.role === "filly" && m.message_card?.kind === "guided_start",
+        )?.id ?? null;
     return (
       <div className="chat-msgs" ref={scrollRef}>
         {loading ? (
@@ -186,19 +197,19 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                       }
                     />
                   )}
-                  {m.message_card?.kind === "guided_start" && (
-                    // Getypt campagne-verzoek → de geleide flow ín het
-                    // gesprek, voorgevuld met de datum/het thema uit de
-                    // kaart (server-gevuld vanuit de lopende actie). Live
-                    // active_action als fallback mocht de kaart ouder zijn.
-                    <FillyGuidedFlow
-                      initialDate={m.message_card.date ?? activeAction?.date}
-                      initialTopic={
-                        m.message_card.topic ?? activeAction?.topic
-                      }
-                      onActionChange={onActiveActionChange}
-                    />
-                  )}
+                  {m.message_card?.kind === "guided_start" &&
+                    m.id === lastGuidedStartId && (
+                      // Alléén de laatste guided_start-kaart is de actieve,
+                      // klikbare flow. Voorgevuld met datum/thema uit de kaart
+                      // zelf (server-gevuld vanuit de lopende actie) — geen
+                      // live-active_action-fallback meer, want die lekte de
+                      // huidige actie in álle oudere kaarten.
+                      <FillyGuidedFlow
+                        initialDate={m.message_card.date}
+                        initialTopic={m.message_card.topic}
+                        onActionChange={onActiveActionChange}
+                      />
+                    )}
                 </div>
               ) : (
                 <div key={m.id} className="msg msg-user">

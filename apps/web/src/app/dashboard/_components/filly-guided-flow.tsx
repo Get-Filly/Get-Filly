@@ -155,12 +155,11 @@ export function FillyGuidedFlow({
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
       const opts = buildContextOptions(ctx);
-      setSelectedContext(new Set(opts.map((o) => o.id)));
-      setSelectedChannels(
-        new Set(
-          ctx.channels.filter((c) => c.recommended).map((c) => c.channel),
-        ),
-      );
+      // Standaard NIETS aangevinkt (Floris-feedback 2026-06-13): de eigenaar
+      // kiest zelf bewust de context-hints + kanalen. Voorheen vinkten we
+      // alle context-opties + de aanbevolen kanalen vast voor.
+      setSelectedContext(new Set());
+      setSelectedChannels(new Set());
       if (opts.length === 0) setStep("channels");
     } catch (e) {
       logger.error(e);
@@ -540,8 +539,8 @@ export function FillyGuidedFlow({
         <>
           <div className="fg-q">
             {dayContext && dayContext.channels.length > 0
-              ? "Op welke kanalen? Ik heb de kansrijkste vast aangevinkt."
-              : "Ik kies zelf het beste kanaal — zal ik 'm maken?"}
+              ? "Op welke kanalen wil je dit? Kies er minstens één."
+              : "Ik kies zelf het beste kanaal. Zal ik 'm maken?"}
           </div>
           {dayContext && dayContext.channels.length > 0 && (
             <div className="fg-options">
