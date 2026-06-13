@@ -12,6 +12,7 @@ import {
   Lightbulb,
   Check,
   Pencil,
+  ChevronRight,
 } from "lucide-react";
 import {
   fetchDayContext,
@@ -88,7 +89,14 @@ function buildContextOptions(ctx: DayContext | null): ContextOption[] {
   return opts;
 }
 
-type Step = "hooks" | "day" | "context" | "channels" | "generating" | "done";
+type Step =
+  | "opener"
+  | "hooks"
+  | "day"
+  | "context"
+  | "channels"
+  | "generating"
+  | "done";
 
 type Hook = "rustige_dag" | "speciale_dag" | "event" | "weer" | "gerecht" | "anders";
 
@@ -124,11 +132,18 @@ export function FillyGuidedFlow({
   onActionChange?: (delta: ActiveActionDelta) => void;
 }) {
   const router = useRouter();
-  const { lowOccupancyDays, specialDays, occupancyThreshold, loading } =
-    useActionableDays();
+  const {
+    lowOccupancyDays,
+    specialDays,
+    occupancyThreshold,
+    loading,
+    upcomingOpenDays,
+    hasOccupancyData,
+  } = useActionableDays();
 
-  // Met een voorgevulde datum slaan we de hoek-stap over (typen blijft snel).
-  const [step, setStep] = useState<Step>(initialDate ? "day" : "hooks");
+  // Met een voorgevulde datum slaan we de detectie-opener over (typen
+  // blijft snel). Anders begint de flow bij de detectie-gedreven opener.
+  const [step, setStep] = useState<Step>(initialDate ? "day" : "opener");
   const [autoStarted, setAutoStarted] = useState(false);
   const [hooks, setHooks] = useState<Set<Hook>>(new Set());
   const [dish, setDish] = useState("");
@@ -327,7 +342,7 @@ export function FillyGuidedFlow({
   // Verse actie: alles leeg, terug naar de hoek-stap. active_action
   // leegmaken (maar non-null op step 'day') zodat het paneel blijft staan.
   const restart = () => {
-    setStep("hooks");
+    setStep("opener");
     setHooks(new Set());
     setDish("");
     setCustomReason("");
@@ -437,15 +452,17 @@ export function FillyGuidedFlow({
         <div>
           <div className="fg-welcome-title">Waar kan ik je mee helpen?</div>
           <div className="fg-welcome-text">
-            {step === "hooks"
-              ? "Waar wil je op inspelen? Combineer gerust meerdere."
-              : "Beantwoord de vragen of pas een eerdere stap aan."}
+            {step === "opener"
+              ? "Ik zie een paar kansen de komende twee weken. Waar zal ik iets voor maken?"
+              : step === "hooks"
+                ? "Waar wil je op inspelen? Combineer gerust meerdere."
+                : "Beantwoord de vragen of pas een eerdere stap aan."}
           </div>
         </div>
       </div>
 
       {/* Antwoordspoor: beantwoorde stappen als chip met "wijzig". */}
-      {step !== "hooks" && (hooks.size > 0 || picked) && (
+      {step !== "opener" && step !== "hooks" && (hooks.size > 0 || picked) && (
         <div className="fg-trail">
           {hooks.size > 0 && (
             <button
@@ -472,7 +489,131 @@ export function FillyGuidedFlow({
         </div>
       )}
 
-      {/* ---------- Stap 1: hoeken ---------- */}
+      {/* ---------- Opener: gedetecteerde kansen (rustige dagen eerst) ---------- */}
+      {step === "opener" &&
+        (loading ? (
+          <div className="fg-loading">Even kijken welke kansen er zijn…</div>
+        ) : (
+          <>
+            <div className="fg-group-label">
+              <TrendingDown size={13} strokeWidth={2.25} />
+              Rustige dagen
+            </div>
+            {hasOccupancyData && lowOccupancyDays.length > 0 ? (
+              <div className="fg-options">
+                {quietToShow.map((d) => (
+                  <button
+                    key={`low-${d.date}`}
+                    type="button"
+                    className="fg-opt"
+                    onClick={() =>
+                      pickDay({
+                        date: d.date,
+                        kind: "low_occupancy",
+                        label: `${formatDayNl(d.date)} · ${d.occupancy_pct}% bezet`,
+                      })
+                    }
+                  >
+                    <span className="fg-opt-main">{formatDayNl(d.date)}</span>
+                    <span className="fg-opt-sub">{d.occupancy_pct}% bezet</span>
+                  </button>
+                ))}
+                {lowOccupancyDays.length > QUIET_DAYS_PREVIEW && (
+                  <button
+                    type="button"
+                    className="fg-more"
+                    onClick={() => setShowAllQuiet((v) => !v)}
+                  >
+                    {showAllQuiet
+                      ? "Minder tonen"
+                      : `+ ${lowOccupancyDays.length - QUIET_DAYS_PREVIEW} meer rustige dagen`}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="fg-q">
+                  Er staan nog geen reserveringen, dus elke open dag is rustig.
+                </div>
+                <div className="fg-options">
+                  {upcomingOpenDays.slice(0, 4).map((iso) => (
+                    <button
+                      key={`open-${iso}`}
+                      type="button"
+                      className="fg-opt"
+                      onClick={() =>
+                        pickDay({
+                          date: iso,
+                          kind: "low_occupancy",
+                          label: formatDayNl(iso),
+                        })
+                      }
+                    >
+                      <span className="fg-opt-main">{formatDayNl(iso)}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {specialDays.length > 0 && (
+              <>
+                <div className="fg-group-label" style={{ marginTop: 6 }}>
+                  <CalendarDays size={13} strokeWidth={2.25} />
+                  Speciale dagen
+                </div>
+                <div className="fg-options">
+                  {specialDays.map((s) => (
+                    <button
+                      key={`special-${s.date}`}
+                      type="button"
+                      className="fg-opt"
+                      onClick={() =>
+                        pickDay({
+                          date: s.date,
+                          kind: "special_day",
+                          name: s.name,
+                          label: `${s.name} · ${formatDayNl(s.date)}`,
+                        })
+                      }
+                    >
+                      <span className="fg-opt-main">
+                        {s.emoji} {s.name}
+                      </span>
+                      <span className="fg-opt-sub">{formatDayNl(s.date)}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="fg-group-label" style={{ marginTop: 6 }}>
+              <CalendarDays size={13} strokeWidth={2.25} />
+              Of kies zelf een dag
+            </div>
+            <input
+              type="date"
+              className="fg-input"
+              min={minDayIso}
+              onChange={(e) => pickAnyDay(e.target.value)}
+            />
+
+            <button
+              type="button"
+              className="fg-opt"
+              style={{ marginTop: 6 }}
+              onClick={() => setStep("hooks")}
+            >
+              <span className="fg-opt-main">
+                <Lightbulb size={15} strokeWidth={2.25} /> Iets anders (event,
+                weer, gerecht…)
+              </span>
+              <ChevronRight size={16} strokeWidth={2.25} />
+            </button>
+          </>
+        ))}
+
+      {/* ---------- Stap 1: hoeken (achter "iets anders") ---------- */}
       {step === "hooks" && (
         <>
           <div className="fg-options">

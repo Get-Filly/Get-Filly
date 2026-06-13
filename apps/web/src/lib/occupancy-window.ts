@@ -36,10 +36,16 @@ function toIso(d: Date): string {
 //
 // Window start op morgen omdat een "rustige dag vandaag" niet meer
 // te activeren is via een campagne.
+// seedMissing: vul dagen zónder echte bezettingsdata met de seeded-
+// fallback (demo). Default true voor bestaande callers (dashboard-grid).
+// De geleide flow + UpcomingActionsBlock geven `false` mee: liever géén
+// verzonnen "rustige dagen" dan nep-percentages (Floris-feedback
+// 2026-06-13). Bij `false` bevat de output alleen dagen mét echte data.
 export function buildWindowOccupancy(
   realData: OccupancyDay[],
   fromDate: Date,
   days: number,
+  seedMissing = true,
 ): OccupancyDay[] {
   const realByDate = new Map(realData.map((d) => [d.date, d]));
   const out: OccupancyDay[] = [];
@@ -53,6 +59,7 @@ export function buildWindowOccupancy(
       out.push(real);
       continue;
     }
+    if (!seedMissing) continue; // eerlijk: geen nep-bezetting
     // Fallback: zelfde seeded-getallen als de kalender. mondayIndex
     // converteert JS-weekday (0=zo) naar onze ma-start-grid (0=ma).
     const pct = seededOccupancy(d.getDate(), mondayIndex(d.getDay()));
