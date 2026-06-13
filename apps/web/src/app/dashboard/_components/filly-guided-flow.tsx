@@ -170,16 +170,6 @@ export function FillyGuidedFlow({
     () => buildContextOptions(dayContext),
     [dayContext],
   );
-  // Alleen de aanknopingen tonen die bij de gekozen hoeken passen.
-  const relevantContext = useMemo(
-    () =>
-      contextOptions.filter(
-        (o) =>
-          (o.kind === "event" && hooks.has("event")) ||
-          (o.kind === "weer" && hooks.has("weer")),
-      ),
-    [contextOptions, hooks],
-  );
 
   // Morgen als vroegste kies-datum (een actie voor vandaag kan niet meer).
   const minDayIso = useMemo(() => {
@@ -223,17 +213,19 @@ export function FillyGuidedFlow({
     try {
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
+      // Context-hints (events/weer) staan standaard uit; de eigenaar kiest
+      // bewust waarop 'ie wil inspelen.
       setSelectedContext(new Set());
-      setSelectedChannels(new Set());
-      // Context-stap alleen tonen als de eigenaar event/weer koos én er
-      // ook echt iets is; anders meteen door naar kanalen.
-      const wantsContext = hooks.has("event") || hooks.has("weer");
-      const hasRelevant = buildContextOptions(ctx).some(
-        (o) =>
-          (o.kind === "event" && hooks.has("event")) ||
-          (o.kind === "weer" && hooks.has("weer")),
+      // Kanalen: Filly vinkt de AANBEVOLEN kanalen alvast aan (autonomer,
+      // Floris-feedback 2026-06-13) — de eigenaar kan aanpassen.
+      setSelectedChannels(
+        new Set(
+          ctx.channels.filter((c) => c.recommended).map((c) => c.channel),
+        ),
       );
-      if (!wantsContext || !hasRelevant) setStep("channels");
+      // Toon wat er díe dag speelt (events/weer) zodra er iets is; anders
+      // meteen door naar de kanalen.
+      if (buildContextOptions(ctx).length === 0) setStep("channels");
     } catch (e) {
       logger.error(e);
       setDayContext(null);
@@ -306,7 +298,7 @@ export function FillyGuidedFlow({
     const contextHints = [
       ...(dish.trim() ? [`Centraal gerecht: ${dish.trim()}`] : []),
       ...(customReason.trim() ? [`Wens van de eigenaar: ${customReason.trim()}`] : []),
-      ...relevantContext
+      ...contextOptions
         .filter((o) => selectedContext.has(o.id))
         .map((o) => o.hint),
     ];
@@ -453,7 +445,7 @@ export function FillyGuidedFlow({
           <div className="fg-welcome-title">Waar kan ik je mee helpen?</div>
           <div className="fg-welcome-text">
             {step === "opener"
-              ? "Ik zie een paar kansen de komende twee weken. Waar zal ik iets voor maken?"
+              ? "Ik heb een paar dagen gedetecteerd. Voor welke dag wil je een uiting maken?"
               : step === "hooks"
                 ? "Waar wil je op inspelen? Combineer gerust meerdere."
                 : "Beantwoord de vragen of pas een eerdere stap aan."}
@@ -761,9 +753,9 @@ export function FillyGuidedFlow({
           <div className="fg-loading">Filly kijkt wat er die dag speelt…</div>
         ) : (
           <>
-            <div className="fg-q">Waarop wil je inspelen die dag?</div>
+            <div className="fg-q">Die dag speelt er wat. Waarop wil je inspelen?</div>
             <div className="fg-options">
-              {relevantContext.map((o) => {
+              {contextOptions.map((o) => {
                 const sel = selectedContext.has(o.id);
                 return (
                   <button
