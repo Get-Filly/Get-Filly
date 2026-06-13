@@ -117,6 +117,21 @@ describe('mergeActiveAction', () => {
     expect(out).toEqual(prev);
     expect(out).not.toBe(prev); // pure: nieuwe referentie
   });
+
+  it('null wist een veld ("+ Nog een dag" maakt datum/thema leeg)', () => {
+    const prev = { date: '2026-06-17', topic: 'Burrata', step: 'channels' };
+    // alles leeg behalve een verse stap → fris startpunt, actie blijft bestaan
+    expect(
+      mergeActiveAction(prev, { date: null, topic: null, step: 'day' }),
+    ).toEqual({ step: 'day' });
+  });
+
+  it('null wist alleen het genoemde veld, rest blijft', () => {
+    const prev = { date: '2026-06-17', topic: 'Burrata' };
+    expect(mergeActiveAction(prev, { topic: null })).toEqual({
+      date: '2026-06-17',
+    });
+  });
 });
 
 describe('sanitizeActionInput', () => {
@@ -146,6 +161,17 @@ describe('sanitizeActionInput', () => {
 
   it('niet-array channels → veld weggelaten', () => {
     expect(sanitizeActionInput({ channels: 'mail' }).channels).toBeUndefined();
+  });
+
+  it('expliciet null → wis-delta (voor "+ Nog een dag")', () => {
+    expect(
+      sanitizeActionInput({
+        date: null,
+        topic: null,
+        channels: null,
+        step: 'day',
+      }),
+    ).toEqual({ date: null, topic: null, channels: null, step: 'day' });
   });
 });
 

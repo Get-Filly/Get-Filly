@@ -492,7 +492,7 @@ export class ChatService {
   async updateActiveAction(
     restaurantId: string,
     conversationId: string,
-    delta: Partial<ActiveAction> | null,
+    delta: ActiveActionDelta | null,
   ): Promise<ActiveAction | null> {
     if (delta === null) {
       const { error } = await this.supabase.client
@@ -853,29 +853,29 @@ export class ChatService {
       cleanText = parsedGuided.cleanText;
 
       // active_action bijwerken met wat het LLM nieuw aandroeg (een nét
-      // genoemde dag en/of thema). Noemde de eigenaar niets nieuws, dan
-      // is de delta leeg en blijft de bestaande lopende actie staan.
-      const delta: Partial<ActiveAction> = {};
+      // genoemde dag en/of thema). We persisten ALTIJD — ook bij een lege
+      // delta — zodat active_action non-null wordt: dat is het signaal
+      // "er loopt een geleide actie" waarop de frontend de (enige) flow
+      // toont, óók als er nog geen dag is ("welke dagen zijn er").
+      const delta: ActiveActionDelta = {};
       if (parsedGuided.card.date) delta.date = parsedGuided.card.date;
       if (parsedGuided.card.topic) delta.topic = parsedGuided.card.topic;
-      if (Object.keys(delta).length > 0) {
-        try {
-          activeAction = await this.updateActiveAction(
-            restaurantId,
-            conversationId,
-            delta,
-          );
-        } catch (err) {
-          // Niet fataal: lukt de persist niet, dan tonen we de kaart in
-          // z'n laatst-bekende staat (gemerged in-memory) en werkt de
-          // chat door. De volgende emit probeert 't opnieuw.
-          this.logger.warn(
-            `active_action-update gefaald (guided_start); chat werkt door: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
-          activeAction = mergeActiveAction(activeAction, delta);
-        }
+      try {
+        activeAction = await this.updateActiveAction(
+          restaurantId,
+          conversationId,
+          delta,
+        );
+      } catch (err) {
+        // Niet fataal: lukt de persist niet, dan tonen we de kaart in
+        // z'n laatst-bekende staat (gemerged in-memory) en werkt de
+        // chat door. De volgende emit probeert 't opnieuw.
+        this.logger.warn(
+          `active_action-update gefaald (guided_start); chat werkt door: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        activeAction = mergeActiveAction(activeAction, delta);
       }
 
       // De kaart vullen vanuit de (gemergede) lopende actie, NIET vanuit
@@ -1307,6 +1307,16 @@ export type ActiveActionInput = {
   reset?: boolean;
 };
 
+// Delta voor de merge. Per veld: weggelaten (undefined) = ongemoeid laten;
+// null = expliciet WISSEN (bv. "+ Nog een dag" maakt datum/thema leeg
+// zónder de actie te beëindigen); een waarde = overschrijven.
+export type ActiveActionDelta = {
+  date?: string | null;
+  topic?: string | null;
+  channels?: string[] | null;
+  step?: string | null;
+};
+
 // Toegestane kanaal-namen in active_action.channels (= platform-namen
 // zoals de flow + generatie ze gebruiken). Onbekende waarden filteren we
 // weg zodat prompt + downstream-generatie geen rommel binnenkrijgen.
@@ -1320,47 +1330,66 @@ const ALLOWED_ACTION_CHANNELS = new Set([
   'tiktok',
 ]);
 
-// Pure merge: delta over de bestaande state. Alleen aanwezige velden
-// (!== undefined) overschrijven; zo laat een PATCH met enkel {topic} de
-// datum ongemoeid. updated_at zetten we NIET hier (dat doet de service na
-// de merge) zodat deze functie deterministisch testbaar blijft.
+// Pure merge: delta over de bestaande state. Per veld: undefined =
+// ongemoeid, null = wissen, waarde = overschrijven (zie ActiveActionDelta).
+// Zo laat {topic} de datum staan, en wist {date:null} alleen de datum.
+// updated_at zetten we NIET hier (dat doet de service na de merge) zodat
+// deze functie deterministisch testbaar blijft.
 export function mergeActiveAction(
   prev: ActiveAction | null,
-  delta: Partial<ActiveAction>,
+  delta: ActiveActionDelta,
 ): ActiveAction {
   const next: ActiveAction = { ...(prev ?? {}) };
-  if (delta.date !== undefined) next.date = delta.date;
-  if (delta.topic !== undefined) next.topic = delta.topic;
-  if (delta.channels !== undefined) next.channels = delta.channels;
-  if (delta.step !== undefined) next.step = delta.step;
+  const apply = <K extends 'date' | 'topic' | 'channels' | 'step'>(
+    key: K,
+    value: ActiveAction[K] | null | undefined,
+  ): void => {
+    if (value === undefined) return; // niet meegegeven → ongemoeid
+    if (value === null) {
+      delete next[key]; // expliciet wissen
+      return;
+    }
+    next[key] = value;
+  };
+  apply('date', delta.date);
+  apply('topic', delta.topic);
+  apply('channels', delta.channels);
+  apply('step', delta.step);
   return next;
 }
 
-// Valideert een rauwe PATCH-body → schone delta. ISO-datum-check,
-// topic-cap (80, gelijk aan extractGuidedStart), kanaal-whitelist, step
-// als korte string. Ongeldige/ontbrekende velden laten we weg (geen
-// mutatie van dat veld).
+// Valideert een rauwe PATCH-body → schone delta. Per veld: expliciet null
+// → wissen; geldige waarde → zetten (ISO-datum-check, topic-cap 80,
+// kanaal-whitelist, step als korte string); ongeldig/ontbrekend → weglaten.
 export function sanitizeActionInput(
   input: ActiveActionInput,
-): Partial<ActiveAction> {
-  const delta: Partial<ActiveAction> = {};
-  if (
+): ActiveActionDelta {
+  const delta: ActiveActionDelta = {};
+  if (input.date === null) {
+    delta.date = null;
+  } else if (
     typeof input.date === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(input.date) &&
     !Number.isNaN(Date.parse(input.date))
   ) {
     delta.date = input.date;
   }
-  if (typeof input.topic === 'string' && input.topic.trim()) {
+  if (input.topic === null) {
+    delta.topic = null;
+  } else if (typeof input.topic === 'string' && input.topic.trim()) {
     delta.topic = input.topic.trim().slice(0, 80);
   }
-  if (Array.isArray(input.channels)) {
+  if (input.channels === null) {
+    delta.channels = null;
+  } else if (Array.isArray(input.channels)) {
     const channels = (input.channels as unknown[])
       .filter((c): c is string => typeof c === 'string')
       .filter((c) => ALLOWED_ACTION_CHANNELS.has(c));
     delta.channels = Array.from(new Set(channels));
   }
-  if (typeof input.step === 'string' && input.step.trim()) {
+  if (input.step === null) {
+    delta.step = null;
+  } else if (typeof input.step === 'string' && input.step.trim()) {
     delta.step = input.step.trim().slice(0, 20);
   }
   return delta;
