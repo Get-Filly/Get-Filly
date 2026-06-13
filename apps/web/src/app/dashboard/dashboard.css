@@ -1293,7 +1293,7 @@
   color: var(--accent-dark);
 }
 .dashboard-shell .fg-opt.sel .fg-opt-main { color: var(--accent-dark); }
-.dashboard-shell .fg-opt-main { font-size: 13px; font-weight: 500; color: var(--text); }
+.dashboard-shell .fg-opt-main { font-size: 13px; font-weight: 500; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
 .dashboard-shell .fg-opt-sub { font-size: 12px; color: var(--tl); flex-shrink: 0; }
 /* Kanaal-optie met twee regels (label + bereik-toelichting). */
 .dashboard-shell .fg-opt-col { display: flex; flex-direction: column; gap: 1px; }
@@ -1309,6 +1309,22 @@
 /* "Verder"/"Maak de actie"-knop onder een stap; uitgelijnd met de
    opties (34px = avatar 26 + gap 8). */
 .dashboard-shell .fg-next { align-self: flex-start; margin-top: 4px; margin-left: 34px; }
+/* Vrij invoerveld in de flow (gerecht / eigen wens / zelf een dag kiezen),
+   uitgelijnd met de opties (34px). */
+.dashboard-shell .fg-input {
+  margin-left: 34px;
+  margin-top: 6px;
+  width: calc(100% - 34px);
+  max-width: 360px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--rs, 8px);
+}
+.dashboard-shell .fg-input:focus { outline: none; border-color: var(--accent); }
 /* Antwoordspoor: beantwoorde stappen als compacte chip met wijzig-pen. */
 .dashboard-shell .fg-trail {
   display: flex;
