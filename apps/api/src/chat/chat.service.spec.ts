@@ -79,6 +79,20 @@ describe('extractGuidedStart', () => {
     );
     expect(r.card?.topic?.length).toBe(80);
   });
+
+  it('relatieve verschuiving rekent vanaf de meegegeven referentie-datum', () => {
+    const ref = new Date(Date.now() + 10 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const expected = new Date(Date.now() + 9 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const r = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"day_phrase":"een dag eerder"}<<END>>',
+      ref,
+    );
+    expect(r.card?.date).toBe(expected);
+  });
 });
 
 // ============================================================

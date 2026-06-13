@@ -99,9 +99,54 @@ function weekdayNextWeek(anchor: Date, targetDow: number): Date {
   return addDays(mondayNextWeek, offsetFromMonday);
 }
 
+// Getalwoorden voor relatieve verschuivingen ("twee dagen later").
+const SHIFT_NUMBER_WORDS: Record<string, number> = {
+  een: 1,
+  twee: 2,
+  drie: 3,
+  vier: 4,
+  vijf: 5,
+  zes: 6,
+  zeven: 7,
+};
+
+function parseShiftCount(token: string): number | null {
+  if (/^\d+$/.test(token)) return parseInt(token, 10);
+  return SHIFT_NUMBER_WORDS[token] ?? null;
+}
+
+// Detecteert een relatieve dag-verschuiving ("een dag eerder", "de dag
+// erna", "twee dagen later", "een week later"). Returnt het aantal dagen
+// (±) t.o.v. een referentiedatum, of null als 't geen verschuiving is.
+function parseRelativeShift(p: string): number | null {
+  if (/\bdag\s+(?:ervoor|daarvoor)\b/.test(p)) return -1;
+  if (/\bdag\s+(?:erna|daarna)\b/.test(p)) return 1;
+  const d = p.match(
+    /\b(\d+|een|twee|drie|vier|vijf|zes|zeven)\s+dag(?:en)?\s+(eerder|vroeger|terug|ervoor|later|verder|erna|daarna)\b/,
+  );
+  if (d) {
+    const n = parseShiftCount(d[1]);
+    if (n === null) return null;
+    return /^(?:eerder|vroeger|terug|ervoor)$/.test(d[2]) ? -n : n;
+  }
+  const w = p.match(
+    /\b(\d+|een|twee|drie)\s+we(?:ek|ken)\s+(eerder|vroeger|terug|later|verder)\b/,
+  );
+  if (w) {
+    const n = parseShiftCount(w[1]);
+    if (n === null) return null;
+    return (/^(?:eerder|vroeger|terug)$/.test(w[2]) ? -n : n) * 7;
+  }
+  return null;
+}
+
+// referenceIso: de lopende doel-datum (ISO). Relatieve verschuivingen
+// ("een dag eerder") rekenen hier vanaf; absolute frases ("zaterdag",
+// "over 5 dagen") blijven gerekend vanaf vandaag.
 export function resolveDutchDate(
   phrase: string,
   today: Date = new Date(),
+  referenceIso?: string | null,
 ): string | null {
   if (!phrase) return null;
   const anchor = amsterdamAnchor(today);
@@ -117,6 +162,16 @@ export function resolveDutchDate(
   if (p.includes('vandaag')) return toIso(anchor);
   if (p.includes('overmorgen')) return toIso(addDays(anchor, 2));
   if (p.includes('morgen')) return toIso(addDays(anchor, 1));
+
+  // 1a. Relatieve verschuiving t.o.v. de lopende doel-datum ("een dag
+  // eerder", "de dag erna", "twee dagen later"). Alleen zinvol met een
+  // referentie; zonder laat de flow de dag alsnog vragen.
+  if (referenceIso && /^\d{4}-\d{2}-\d{2}$/.test(referenceIso)) {
+    const shift = parseRelativeShift(p);
+    if (shift !== null) {
+      return toIso(addDays(new Date(`${referenceIso}T12:00:00Z`), shift));
+    }
+  }
 
   // 1b. Relatief "over N dagen/weken" — bv. "over 5 dagen", "over een
   // week", "over 2 weken". "een" telt als 1. (Vóór de feestdagen zodat

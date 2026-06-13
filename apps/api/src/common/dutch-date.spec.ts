@@ -24,6 +24,30 @@ describe('resolveDutchDate', () => {
     expect(r('over 2 weken')).toBe('2026-06-26'); // 12 + 14
   });
 
+  it('relatieve verschuiving rekent vanaf de referentie-datum (de 18e)', () => {
+    const ref = '2026-06-18';
+    expect(resolveDutchDate('een dag eerder', FRIDAY, ref)).toBe('2026-06-17');
+    expect(resolveDutchDate('doe toch 1 dag eerder', FRIDAY, ref)).toBe(
+      '2026-06-17',
+    );
+    expect(resolveDutchDate('de dag erna', FRIDAY, ref)).toBe('2026-06-19');
+    expect(resolveDutchDate('twee dagen later', FRIDAY, ref)).toBe(
+      '2026-06-20',
+    );
+    expect(resolveDutchDate('een week eerder', FRIDAY, ref)).toBe('2026-06-11');
+  });
+
+  it('verschuiving zonder referentie → null (flow vraagt de dag)', () => {
+    expect(resolveDutchDate('een dag eerder', FRIDAY)).toBeNull();
+  });
+
+  it('absolute frase blijft vanaf vandaag, ook mét referentie', () => {
+    // "over 5 dagen" = vanaf vandaag (12+5=17), NIET vanaf de referentie.
+    expect(resolveDutchDate('over 5 dagen', FRIDAY, '2026-06-18')).toBe(
+      '2026-06-17',
+    );
+  });
+
   it('kale weekdag = eerstvolgende voorkomen', () => {
     expect(r('zondag')).toBe('2026-06-14'); // vr → +2
     expect(r('zaterdag')).toBe('2026-06-13'); // vr → +1

@@ -830,7 +830,9 @@ export class ChatService {
     // channel-choice/proposal/bundle als vangnet mocht Filly toch nog
     // een oud blok sturen. Filly mag er per bericht maximaal één
     // produceren — bij meerdere is de eerste hier in volgorde leidend.
-    const parsedGuided = extractGuidedStart(answer);
+    // Geef de lopende doel-datum mee als referentie, zodat een relatieve
+    // verschuiving ("een dag eerder") vanaf de huidige actie rekent.
+    const parsedGuided = extractGuidedStart(answer, activeAction?.date ?? null);
     const parsedDateChoice = parsedGuided.card
       ? { cleanText: parsedGuided.cleanText, choice: null }
       : extractDateChoice(answer);
@@ -1251,12 +1253,15 @@ Regels:
   het systeem doet dat deterministisch. Haal alleen de relevante woorden
   uit een rommelige zin ("doe iets leuks voor aankomende zondag" →
   day_phrase "aankomende zondag").
-- DATUM ONTHOUDEN: het systeem houdt de lopende actie zelf bij. Staat er
-  onderaan dit gesprek een "[LOPENDE ACTIE]"-blok met een doel-datum, dan
-  is die dag al gekozen. Noemt de eigenaar nu GEEN nieuwe dag, vraag de
-  dag dan NIET opnieuw en laat "day_phrase"/"date" gewoon WEG (stuur {}
-  of alleen "topic") — het systeem hangt de bestaande datum er
-  automatisch aan. Noemt 'ie wél een nieuwe dag, gebruik dan day_phrase.
+- DATUM: het systeem houdt de lopende doel-datum bij (zie het "[LOPENDE
+  ACTIE]"-blok). Verwijst de eigenaar naar een dag, zet die frase dan
+  LETTERLIJK in "day_phrase". Dat geldt voor een NIEUWE dag ("zaterdag",
+  "over 5 dagen", "20 juni") én voor een VERSCHUIVING van de huidige dag
+  ("een dag eerder", "de dag erna", "twee dagen later"). Het systeem
+  rekent absolute dagen vanaf vandaag en verschuivingen vanaf de lopende
+  datum, dus reken zelf niets om. Zegt de eigenaar niets over timing, laat
+  "day_phrase"/"date" dan WEG (stuur {} of alleen "topic"); de bestaande
+  datum blijft dan staan.
 - "topic": noemt de eigenaar een gerecht, drankje, thema of "het menu"
   ("doe iets met de Burrata", "iets rond ons wijnaanbod"), zet dat dan
   in "topic". Anders weglaten — de flow kiest zelf uit het menu.
@@ -1825,6 +1830,9 @@ const GUIDED_START_REGEX =
 
 export function extractGuidedStart(
   raw: string,
+  // De lopende doel-datum (ISO), zodat relatieve verschuivingen ("een dag
+  // eerder") vanaf de huidige actie rekenen i.p.v. vanaf vandaag.
+  referenceIso?: string | null,
 ): { cleanText: string; card: GuidedStartCard | null } {
   const trimmed = raw.trim();
   const match = trimmed.match(GUIDED_START_REGEX);
@@ -1843,7 +1851,9 @@ export function extractGuidedStart(
     // flow-annotatie). Beide door dezelfde range-check.
     let candidate: string | undefined;
     if (typeof parsed.day_phrase === 'string' && parsed.day_phrase.trim()) {
-      candidate = resolveDutchDate(parsed.day_phrase, new Date()) ?? undefined;
+      candidate =
+        resolveDutchDate(parsed.day_phrase, new Date(), referenceIso) ??
+        undefined;
     }
     if (!candidate && typeof parsed.date === 'string') {
       candidate = parsed.date.trim();
