@@ -395,13 +395,50 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
   actie**: APIs enablen in Cloud Console (5 stuks), OAuth consent screen
   configureren, formulier indienen. Wachttijd 2-6 weken voor approval.
 
-- [ ] **Fase D — OAuth-foundation** (generiek, ook bruikbaar voor Meta/Zenchef).
-  Migratie 0035: `oauth_connections`-tabel (provider, encrypted refresh-token,
-  scopes, expires_at). Generieke `OAuthModule` met google-business-strategy.
-  `/api/oauth/google-business/authorize` + `/callback` endpoints.
-  Knop "Koppel met Google" op de hub-pagina. Status-banner switcht
-  naar "Gekoppeld ✓" wanneer er een rij is voor restaurant_id +
-  provider='google_business'.
+- [~] **Fase D — OAuth-koppeling (business.manage, offline)** — **code-kant af**
+  (2026-06-14, branch `feat/active-action-state`, commits `e050733` + `fcaa97e`;
+  **nog niet gemerged naar `main`**, dus nog niet op productie). Afwijkend van het
+  oorspronkelijke plan (géén nieuwe `oauth_connections`-tabel / generieke
+  `OAuthModule`): **hergebruikt het Meta-patroon** — tabel `integration_credentials`
+  (mig 0052) + `TokenCryptoService`. **Migratie 0057** voegt `refresh_token_encrypted`
+  toe (al in Supabase gedraaid).
+  - **web** (`apps/web`): `/oauth/google/start` (auth-gate + getekende state:
+    HMAC-SHA256 over `{rid,nonce,iat}` + nonce-cookie, draagt tenant-id, verloopt
+    10 min) en `/oauth/google/callback` (state-verify → alleen de `code` naar de
+    API). Helper `lib/google-oauth.ts`. `access_type=offline` + `prompt=consent`
+    → altijd een refresh-token.
+  - **api** (`apps/api/src/google-business`): `GoogleBusinessModule`
+    (`/integrations/google-business/*`): `connect` (code→access+refresh,
+    versleuteld opslaan, provider `google_business`), `GET status`, `DELETE`
+    (revoke bij Google + rij wissen), plus `getAccessToken`/`refreshAccessToken`
+    (auto-refresh op (bijna-)expiry).
+  - **UI**: één status-gestuurde Google-rij in `account-connections.tsx` achter
+    feature-flag `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED` (default uit → "Beheer"; aan +
+    niet verbonden → "Verbind"). `googleBusinessStatus()` in `lib/api.ts`,
+    status-banner voor `?google=connected|denied|error&reason=`.
+  - Foutafhandeling: weigeren, `redirect_uri_mismatch`, verlopen/ongeldige state,
+    ontbrekende refresh-token (alle gemapt naar nette `reason`-codes).
+  - ⏳ **NOG TE DOEN — Google Cloud-kant (geen code), blokkerend voor de echte test:**
+    1. ⚠️ **OAuth-client in het JUISTE account/project.** Client-id in `.env` is
+       `167329672884-...` (project-nummer `167329672884`). Uitzoeken of dat het
+       **officiële Filly-account** is of per ongeluk Floris' persoonlijke gmail —
+       voor productie/verificatie hoort 'ie in het officiële account. **Tim** beheert
+       het Bedrijfsprofiel en is mogelijk eigenaar van het Cloud-project.
+    2. **Redirect-URI's** exact registreren op díé client: prod
+       `https://www.get-filly.com/oauth/google/callback` + lokaal
+       `http://localhost:3000/oauth/google/callback`. (2026-06-14: lokale test gaf
+       `redirect_uri_mismatch` — waarschijnlijk verkeerd account/project of propagatie.)
+    3. **Consent screen**: test-user (Audience), scope `business.manage` (Data
+       Access, sensitive → app-verificatie), **publiceren naar Productie** (anders
+       verlopen refresh-tokens na 7 dagen in "Testing").
+    4. **Env in Vercel**: `GOOGLE_OAUTH_CLIENT_ID`+`GOOGLE_OAUTH_CLIENT_SECRET` (api),
+       `GOOGLE_OAUTH_CLIENT_ID`+`OAUTH_STATE_SECRET`+`NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED`
+       (web), `INTEGRATIONS_ENCRYPTION_KEY` (api). Lokaal al gezet (zie `.env.example`).
+    5. **Fase C** (API-toegang aanvragen, quotum 0) blijft de lange-doorlooptijd-
+       blocker vóór écht profielbeheer.
+  - 👉 **VOLGENDE STAP**: account/project-eigenaarschap uitzoeken (Floris + Tim) →
+    redirect-URI op de juiste client → lokaal Verbind doorlopen → tokens in
+    `integration_credentials` verifiëren → daarna pas mergen/deployen.
 
 - [ ] **Fase E — Reviews écht uit Google ophalen** (na approval).
   Sync-job 1× per uur per gekoppelde klant via
