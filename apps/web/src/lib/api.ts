@@ -106,6 +106,26 @@ export async function metaPublish(input: {
   return data;
 }
 
+// ============================================================
+// Google Bedrijfsprofiel koppeling (OAuth, business.manage)
+// ============================================================
+
+export type GoogleBusinessStatus = {
+  connected: boolean;
+  scopes?: string[];
+  expiresAt?: string | null;
+  updatedAt?: string;
+};
+
+export async function googleBusinessStatus(): Promise<GoogleBusinessStatus> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/status`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as GoogleBusinessStatus;
+}
+
 /**
  * submitContactForm, publieke (NIET-authed) call voor het
  * contactformulier op /contact. Gebruikt gewone `fetch` zonder

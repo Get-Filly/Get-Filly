@@ -29,6 +29,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { MetaModule } from './meta/meta.module';
 import { SeoReportModule } from './seo-report/seo-report.module';
 import { EventsModule } from './events/events.module';
+import { GoogleBusinessModule } from './google-business/google-business.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { EventsModule } from './events/events.module';
     MetaModule,
     SeoReportModule,
     EventsModule,
+    GoogleBusinessModule,
   ],
   controllers: [AppController],
   // AuthGuard staat hier als provider zodat NestJS hem kan

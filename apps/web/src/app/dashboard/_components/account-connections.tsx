@@ -1,8 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { googleBusinessStatus } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
+
+// Feature-flag: live "Verbind"-knop voor de Google-OAuth-flow. Staat
+// standaard uit zodat eigenaars geen knop zien zolang Google-API-toegang
+// + app-verificatie nog niet rond zijn. Zet 'm aan (env = "true") zodra
+// de Google-kant live is.
+const GOOGLE_OAUTH_ENABLED =
+  process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === "true";
 
 // ============================================================
 // AccountConnections, compacte koppelingen-tab
@@ -52,6 +61,10 @@ type Integration = {
   connectPath?: string;
   // Knop-label voor "oauth"-rijen. Default "Verbind".
   ctaLabel?: string;
+  // Status-gestuurde rij (Google): de IntegrationRow haalt de OAuth-
+  // koppelingsstatus op en kiest Verbind (niet gekoppeld) vs de
+  // connectPath/ctaLabel (gekoppeld, nog ladend, of flag uit).
+  statusDriven?: boolean;
 };
 
 const integrations: Integration[] = [
@@ -84,14 +97,18 @@ const integrations: Integration[] = [
     category: "reserveringen",
   },
   {
-    // De echte koppel-flow (bedrijf zoeken + Place-koppeling) leeft
-    // op de Vindbaarheid-hub — deze rij linkt ernaartoe i.p.v. een
-    // tweede, losse flow te suggereren.
+    // Eén Google-rij, status-gestuurd (zie IntegrationRow):
+    //   - niet verbonden (OAuth) -> "Verbind" start de business.manage-flow
+    //   - wel verbonden / flag uit -> "Beheer" -> Vindbaarheid-hub (Places-
+    //     audit, read-only, draait op de API-key, los van de OAuth-tokens)
+    // De Verbind-tak staat achter NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED, zodat
+    // we geen knop tonen zolang de Google-API-toegang nog niet rond is.
     key: "google_business",
     icon: "📍",
-    name: "Google Business Profile",
+    name: "Google Bedrijfsprofiel",
     method: "oauth",
     category: "vindbaarheid",
+    statusDriven: true,
     connectPath: "/dashboard/google-business",
     ctaLabel: "Beheer",
   },
@@ -196,10 +213,14 @@ export function ConnectionsSection() {
   const searchParams = useSearchParams();
   const metaStatus = searchParams.get("meta");
   const metaReason = searchParams.get("reason");
+  // De Google-callback gebruikt ?google=connected|denied|error (+ ?reason=).
+  const googleStatus = searchParams.get("google");
+  const googleReason = searchParams.get("reason");
 
   return (
     <div>
       <MetaStatusBanner status={metaStatus} reason={metaReason} />
+      <GoogleStatusBanner status={googleStatus} reason={googleReason} />
       {categoryOrder.map((cat) => {
         const group = integrations.filter((i) => i.category === cat);
         if (group.length === 0) return null;
@@ -254,6 +275,28 @@ function IntegrationRow({
   isLast,
   activeRestaurantId,
 }: IntegrationRowProps) {
+  // Status-gestuurde rij (Google): haal de OAuth-koppelingsstatus op zodat
+  // we Verbind (nog niet gekoppeld) vs Beheer (wel) kunnen tonen. Alleen
+  // achter de feature-flag; staat die uit -> statische rij, geen call.
+  const statusDriven = !!integration.statusDriven && GOOGLE_OAUTH_ENABLED;
+  const [connected, setConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!statusDriven || !activeRestaurantId) return;
+    let cancelled = false;
+    googleBusinessStatus()
+      .then((s) => {
+        if (!cancelled) setConnected(s.connected);
+      })
+      .catch(() => {
+        // Niet-kritiek: bij een fout tonen we gewoon de default (Beheer).
+        if (!cancelled) setConnected(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statusDriven, activeRestaurantId]);
+
   // Gedeelde rij-opbouw: icon + naam links, status/actie rechts.
   const rowStyle = {
     display: "flex",
@@ -296,7 +339,14 @@ function IntegrationRow({
   // interne dashboard-links (Google → Vindbaarheid-hub) hebben
   // 'm niet nodig.
   if (integration.method === "oauth") {
-    const base = integration.connectPath ?? "#";
+    // Status-gestuurd: alleen als 'ie expliciet niet verbonden is sturen
+    // we naar de OAuth-start. Anders (verbonden, nog ladend, of flag uit)
+    // -> de default connectPath/ctaLabel.
+    const useConnect = statusDriven && connected === false;
+    const base = useConnect
+      ? "/oauth/google/start"
+      : (integration.connectPath ?? "#");
+    const label = useConnect ? "Verbind" : (integration.ctaLabel ?? "Verbind");
     const href =
       base.startsWith("/oauth/") && activeRestaurantId
         ? `${base}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
@@ -325,7 +375,7 @@ function IntegrationRow({
             flexShrink: 0,
           }}
         >
-          {integration.ctaLabel ?? "Verbind"}
+          {label}
         </a>
       </div>
     );
@@ -397,6 +447,84 @@ function MetaStatusBanner({
       border: "#B42318",
       color: "#B42318",
       text: `Er ging iets mis bij de koppeling${reason ? ` (${reason})` : ""}. Probeer het opnieuw.`,
+    },
+  };
+
+  const v = variants[status] ?? variants.error;
+
+  return (
+    <div
+      role="status"
+      style={{
+        marginBottom: "var(--space-5)",
+        padding: "10px 14px",
+        fontSize: 13,
+        fontWeight: 500,
+        background: v.bg,
+        border: `1px solid ${v.border}`,
+        color: v.color,
+        borderRadius: 8,
+      }}
+    >
+      {v.text}
+    </div>
+  );
+}
+
+// ============================================================
+// GoogleStatusBanner, feedback na de Google-OAuth-redirect
+// ============================================================
+// De /oauth/google/callback-route stuurt terug naar
+// /dashboard/account?tab=koppelingen&google=<status>(&reason=<reason>).
+// We vertalen de status + de belangrijkste reasons naar nette NL-tekst.
+// Toont niets zonder ?google= in de URL.
+function GoogleStatusBanner({
+  status,
+  reason,
+}: {
+  status: string | null;
+  reason: string | null;
+}) {
+  if (!status) return null;
+
+  // Per fout-reason een begrijpelijke, actiegerichte melding.
+  const reasonText: Record<string, string> = {
+    no_refresh:
+      "Google gaf geen langdurige toegang. Trek de toegang in op myaccount.google.com/permissions en verbind opnieuw.",
+    refresh_revoked:
+      "De Google-toegang is ingetrokken of verlopen. Verbind opnieuw.",
+    redirect_uri_mismatch:
+      "De redirect-URL klopt niet met Google Cloud Console. Neem contact op met support.",
+    state:
+      "De beveiligingscontrole faalde of verliep. Start de koppeling opnieuw.",
+    access: "Je hebt geen toegang tot dit restaurant.",
+    config: "De Google-configuratie ontbreekt. Neem contact op met support.",
+    no_restaurant: "Geen restaurant geselecteerd. Kies eerst een zaak.",
+  };
+
+  const variants: Record<
+    string,
+    { bg: string; border: string; color: string; text: string }
+  > = {
+    connected: {
+      bg: "#ECF6EF",
+      border: "#1F4A2D",
+      color: "#1F4A2D",
+      text: "✓ Google-koppeling geslaagd — Filly mag nu namens je zaak handelen.",
+    },
+    denied: {
+      bg: "#FAF7F1",
+      border: "#E5DFD0",
+      color: "#18181B",
+      text: "Koppeling geannuleerd. Je kunt het opnieuw proberen via Verbind.",
+    },
+    error: {
+      bg: "#FBECEC",
+      border: "#B42318",
+      color: "#B42318",
+      text:
+        (reason && reasonText[reason]) ??
+        `Er ging iets mis bij de koppeling${reason ? ` (${reason})` : ""}. Probeer het opnieuw.`,
     },
   };
 
