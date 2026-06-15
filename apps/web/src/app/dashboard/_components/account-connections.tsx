@@ -30,10 +30,11 @@ const GOOGLE_OAUTH_ENABLED =
 //   - auto                   -> vaste status-tekst (weer/mail via platform)
 //   - soon                   -> rustige "Binnenkort"-pill
 //
-// Facebook + Instagram delen één Meta-koppeling: beide rijen volgen
-// dezelfde `meta`-status (verbind je de één, dan staat de ander ook op
-// verbonden). De losse, oudere /dashboard/koppelingen-pagina is
-// vervangen door een redirect hierheen (geen tweede, afwijkende UI meer).
+// Facebook + Instagram zijn één rij ("Facebook & Instagram"): het is één
+// Meta-koppeling (zakelijk Instagram-publiceren loopt via een FB-pagina),
+// dus één Verbind die de Meta-OAuth start. Na koppelen kies je in het
+// MetaPublishPanel de pagina + het gekoppelde IG-account. De losse, oudere
+// /dashboard/koppelingen-pagina is vervangen door een redirect hierheen.
 
 type IntegrationCategory =
   | "reserveringen"
@@ -119,20 +120,12 @@ const integrations: Integration[] = [
     statusText: "✓ Actief via Get-Filly",
   },
   {
-    // Instagram + Facebook delen één Meta-OAuth (IG-account hangt aan een
-    // FB-pagina). Beide rijen volgen dezelfde `meta`-status.
-    key: "instagram",
-    icon: "📱",
-    name: "Instagram",
-    method: "oauth",
-    category: "communicatie",
-    provider: "meta",
-    connectPath: "/oauth/meta/start",
-  },
-  {
-    key: "facebook",
+    // Eén rij voor Facebook + Instagram: het is één Meta-koppeling (IG
+    // hangt aan een FB-pagina). Eén "Verbind" start de Meta-OAuth; de
+    // pagina- + IG-keuze gebeurt daarna in het MetaPublishPanel.
+    key: "meta",
     icon: "👥",
-    name: "Facebook",
+    name: "Facebook & Instagram",
     method: "oauth",
     category: "communicatie",
     provider: "meta",
