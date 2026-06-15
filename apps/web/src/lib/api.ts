@@ -106,6 +106,14 @@ export async function metaPublish(input: {
   return data;
 }
 
+/** Trekt de Meta-koppeling van het actieve restaurant in (DELETE). */
+export async function metaDisconnect(): Promise<void> {
+  const res = await authedFetch(`${API_URL}/integrations/meta`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 // ============================================================
 // Google Bedrijfsprofiel koppeling (OAuth, business.manage)
 // ============================================================
@@ -124,6 +132,15 @@ export async function googleBusinessStatus(): Promise<GoogleBusinessStatus> {
   );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as GoogleBusinessStatus;
+}
+
+/** Trekt de Google-Bedrijfsprofiel-koppeling van het restaurant in (DELETE). */
+export async function googleBusinessDisconnect(): Promise<void> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
 /**

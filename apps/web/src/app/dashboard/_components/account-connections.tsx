@@ -1,38 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { googleBusinessStatus } from "@/lib/api";
+import {
+  metaStatus,
+  metaDisconnect,
+  googleBusinessStatus,
+  googleBusinessDisconnect,
+} from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
 
-// Feature-flag: live "Verbind"-knop voor de Google-OAuth-flow. Staat
-// standaard uit zodat eigenaars geen knop zien zolang Google-API-toegang
-// + app-verificatie nog niet rond zijn. Zet 'm aan (env = "true") zodra
-// de Google-kant live is.
+// Feature-flag: live Google-OAuth-flow. Staat standaard uit zodat
+// eigenaars geen "Verbind" zien zolang de Google-API-toegang +
+// verificatie nog niet rond zijn. Flag UIT -> de Google-rij toont alleen
+// "Beheer" (de vindbaarheid-hub draait op de Places-API-key, los van
+// OAuth). Flag AAN -> Verbind / ✓ Verbonden op basis van de live status.
 const GOOGLE_OAUTH_ENABLED =
   process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === "true";
 
 // ============================================================
-// AccountConnections, compacte koppelingen-tab
+// AccountConnections, koppelingen-tab
 // ============================================================
-// Verhuisd uit /dashboard/koppelingen (sidebar-link weg per
-// 2026-05-12). Per 2026-06-11 (v3): eerlijke statussen — geen
-// nep-"Verbind"-knoppen meer voor integraties zonder werkende
-// backend-flow. (De oude API-key-invul-UI eindigde in een alert
-// "Storage komt binnenkort"; dat wekte de indruk dat koppelen al
-// kon. Zie git-history voor die variant.)
+// Eén bron van waarheid per provider: de sectie haalt de live
+// koppelingsstatus 1× op (Meta + Google) en geeft 'm door aan de rijen.
+// Zo tonen rijen de échte staat:
+//   - oauth, niet verbonden  -> "Verbind" (start de OAuth-redirect)
+//   - oauth, verbonden       -> "✓ Verbonden" + (optioneel) Beheer + Ontkoppel
+//   - auto                   -> vaste status-tekst (weer/mail via platform)
+//   - soon                   -> rustige "Binnenkort"-pill
 //
-// Drie modi:
-//   - oauth : werkende flow. Eén klik op 'Verbind' start de
-//             OAuth-redirect (Meta), of 'Beheer' linkt naar de
-//             pagina waar de echte koppel-flow leeft (Google).
-//   - auto  : geen actie nodig (weer via locatie; mail via het
-//             Get-Filly-platform).
-//   - soon  : nog geen werkende flow — toont rustig 'Binnenkort'.
-//             Zodra een integratie echt landt, krijgt de rij hier
-//             z'n eigen flow (credential-opslag bestaat al:
-//             integration_credentials, mig 0052).
+// Facebook + Instagram delen één Meta-koppeling: beide rijen volgen
+// dezelfde `meta`-status (verbind je de één, dan staat de ander ook op
+// verbonden). De losse, oudere /dashboard/koppelingen-pagina is
+// vervangen door een redirect hierheen (geen tweede, afwijkende UI meer).
 
 type IntegrationCategory =
   | "reserveringen"
@@ -43,28 +44,25 @@ type IntegrationCategory =
 
 type ConnectionMethod = "auto" | "oauth" | "soon";
 
+// Provider waarvan we de live koppelingsstatus ophalen. Meerdere rijen
+// kunnen dezelfde provider delen (Facebook + Instagram = Meta).
+type Provider = "meta" | "google_business";
+
 type Integration = {
   key: string;
   icon: string;
   name: string;
   method: ConnectionMethod;
   category: IntegrationCategory;
-  // Of de integratie momenteel actief is. Komt later uit DB,
-  // voorlopig hardcoded.
-  connected?: boolean;
-  // Voor method "auto": status-tekst rechts in de rij.
+  // method "auto": status-tekst rechts in de rij.
   statusText?: string;
-  // Voor method "oauth": waar de knop heen navigeert. Een
-  // /oauth/...-route start de provider-flow (Meta); een gewone
-  // dashboard-route (Google) linkt naar de pagina met de echte
-  // koppel-flow.
+  // method "oauth": welke provider-status deze rij volgt.
+  provider?: Provider;
+  // method "oauth": waar "Verbind" heen navigeert (OAuth-start-route).
   connectPath?: string;
-  // Knop-label voor "oauth"-rijen. Default "Verbind".
-  ctaLabel?: string;
-  // Status-gestuurde rij (Google): de IntegrationRow haalt de OAuth-
-  // koppelingsstatus op en kiest Verbind (niet gekoppeld) vs de
-  // connectPath/ctaLabel (gekoppeld, nog ladend, of flag uit).
-  statusDriven?: boolean;
+  // method "oauth": waar "Beheer" heen gaat als de koppeling actief is
+  // (bv. de Google-vindbaarheid-hub). Meta heeft geen aparte hub.
+  managePath?: string;
 };
 
 const integrations: Integration[] = [
@@ -97,20 +95,18 @@ const integrations: Integration[] = [
     category: "reserveringen",
   },
   {
-    // Eén Google-rij, status-gestuurd (zie IntegrationRow):
-    //   - niet verbonden (OAuth) -> "Verbind" start de business.manage-flow
-    //   - wel verbonden / flag uit -> "Beheer" -> Vindbaarheid-hub (Places-
-    //     audit, read-only, draait op de API-key, los van de OAuth-tokens)
-    // De Verbind-tak staat achter NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED, zodat
-    // we geen knop tonen zolang de Google-API-toegang nog niet rond is.
+    // Eén Google-rij. Verbonden? -> "✓ Verbonden" + Beheer (hub) + Ontkoppel.
+    // Niet verbonden + flag aan -> "Verbind" (business.manage-OAuth).
+    // Flag uit -> alleen "Beheer" -> vindbaarheid-hub (Places-audit op
+    // de API-key, los van de OAuth-tokens).
     key: "google_business",
     icon: "📍",
     name: "Google Bedrijfsprofiel",
     method: "oauth",
     category: "vindbaarheid",
-    statusDriven: true,
-    connectPath: "/dashboard/google-business",
-    ctaLabel: "Beheer",
+    provider: "google_business",
+    connectPath: "/oauth/google/start",
+    managePath: "/dashboard/google-business",
   },
   {
     // Campagne-mail loopt via het Get-Filly-platform (Resend in de
@@ -120,18 +116,17 @@ const integrations: Integration[] = [
     name: "E-mail (campagnes)",
     method: "auto",
     category: "communicatie",
-    connected: true,
     statusText: "✓ Actief via Get-Filly",
   },
   {
-    // Instagram-publiceren loopt via dezelfde Meta-OAuth als Facebook
-    // (IG-account gekoppeld aan een FB-pagina). Eén klik op Verbind
-    // start de flow; de scope-keuze gebeurt in de Meta-dialog.
+    // Instagram + Facebook delen één Meta-OAuth (IG-account hangt aan een
+    // FB-pagina). Beide rijen volgen dezelfde `meta`-status.
     key: "instagram",
     icon: "📱",
     name: "Instagram",
     method: "oauth",
     category: "communicatie",
+    provider: "meta",
     connectPath: "/oauth/meta/start",
   },
   {
@@ -140,6 +135,7 @@ const integrations: Integration[] = [
     name: "Facebook",
     method: "oauth",
     category: "communicatie",
+    provider: "meta",
     connectPath: "/oauth/meta/start",
   },
   {
@@ -183,7 +179,6 @@ const integrations: Integration[] = [
     name: "Weer (Open-Meteo)",
     method: "auto",
     category: "data",
-    connected: true,
     statusText: "✓ Actief via locatie",
   },
 ];
@@ -204,23 +199,116 @@ const categoryOrder: IntegrationCategory[] = [
   "data",
 ];
 
+// ---- Gedeelde rij-stijlen (1 plek i.p.v. per branch herhaald) ----
+const actionLinkStyle: React.CSSProperties = {
+  padding: "6px 14px",
+  fontSize: 12,
+  fontWeight: 500,
+  border: "1px solid var(--border, #E5DFD0)",
+  background: "transparent",
+  color: "var(--text, #18181B)",
+  borderRadius: 6,
+  textDecoration: "none",
+  flexShrink: 0,
+};
+const connectedPillStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: "var(--accent, #1F4A2D)",
+  background: "#ECF6EF",
+  border: "1px solid #CFE6D7",
+  borderRadius: 999,
+  padding: "4px 10px",
+  flexShrink: 0,
+};
+const disconnectButtonStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 500,
+  color: "var(--tl)",
+  background: "transparent",
+  border: "none",
+  cursor: "pointer",
+  padding: "4px 4px",
+  textDecoration: "underline",
+  flexShrink: 0,
+};
+const soonPillStyle: React.CSSProperties = {
+  padding: "4px 10px",
+  fontSize: 11,
+  fontWeight: 500,
+  color: "var(--tl)",
+  background: "var(--bg-soft, #FAF7F1)",
+  border: "1px solid var(--border, #E5DFD0)",
+  borderRadius: 999,
+  flexShrink: 0,
+};
+const autoStatusStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "var(--accent, #1F4A2D)",
+  fontWeight: 500,
+  flexShrink: 0,
+};
+
 export function ConnectionsSection() {
-  // Actief restaurant: geven we mee aan de OAuth-start zodat de
-  // koppeling aan de juiste zaak hangt.
   const { active } = useRestaurant();
-  // De Meta-callback stuurt terug met ?meta=connected|denied|error
-  // (+ ?reason=). We tonen daar een korte statusmelding voor.
   const searchParams = useSearchParams();
-  const metaStatus = searchParams.get("meta");
-  const metaReason = searchParams.get("reason");
-  // De Google-callback gebruikt ?google=connected|denied|error (+ ?reason=).
-  const googleStatus = searchParams.get("google");
-  const googleReason = searchParams.get("reason");
+  // Callbacks keren terug met ?meta=... of ?google=... (+ ?reason=).
+  // Er is er altijd hooguit één tegelijk; we geven `reason` daarom alleen
+  // door aan de banner waarvan de status-param ook echt aanwezig is.
+  const metaStatusParam = searchParams.get("meta");
+  const googleStatusParam = searchParams.get("google");
+  const reason = searchParams.get("reason");
+
+  // Live koppelingsstatus per provider. null = nog ladend / onbekend.
+  const [status, setStatus] = useState<Record<Provider, boolean | null>>({
+    meta: null,
+    google_business: null,
+  });
+
+  // Status 1× ophalen (en opnieuw bij wissel van actief restaurant).
+  const refresh = useCallback(() => {
+    if (!active?.id) return;
+    metaStatus()
+      .then((s) => setStatus((p) => ({ ...p, meta: s.connected })))
+      .catch(() => setStatus((p) => ({ ...p, meta: false })));
+    // Google alleen bevragen als de flow live is; anders blijft de rij
+    // op "Beheer" (zie OAuthAction) en is een call zinloos.
+    if (GOOGLE_OAUTH_ENABLED) {
+      googleBusinessStatus()
+        .then((s) => setStatus((p) => ({ ...p, google_business: s.connected })))
+        .catch(() => setStatus((p) => ({ ...p, google_business: false })));
+    }
+  }, [active?.id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleDisconnect = useCallback(async (provider: Provider) => {
+    const ok = window.confirm(
+      "Koppeling intrekken? Filly kan dan niet meer namens je zaak posten of handelen tot je opnieuw verbindt.",
+    );
+    if (!ok) return;
+    try {
+      if (provider === "meta") await metaDisconnect();
+      else await googleBusinessDisconnect();
+      // Direct optimistisch bijwerken zodat de rij meteen "Verbind" toont.
+      setStatus((p) => ({ ...p, [provider]: false }));
+    } catch {
+      // Stil: bij een fout blijft de status staan; gebruiker kan opnieuw proberen.
+    }
+  }, []);
 
   return (
     <div>
-      <MetaStatusBanner status={metaStatus} reason={metaReason} />
-      <GoogleStatusBanner status={googleStatus} reason={googleReason} />
+      <MetaStatusBanner
+        status={metaStatusParam}
+        reason={metaStatusParam ? reason : null}
+      />
+      <GoogleStatusBanner
+        status={googleStatusParam}
+        reason={googleStatusParam ? reason : null}
+      />
       {categoryOrder.map((cat) => {
         const group = integrations.filter((i) => i.category === cat);
         if (group.length === 0) return null;
@@ -253,6 +341,8 @@ export function ConnectionsSection() {
                   integration={i}
                   isLast={idx === group.length - 1}
                   activeRestaurantId={active?.id ?? null}
+                  connected={i.provider ? status[i.provider] : null}
+                  onDisconnect={handleDisconnect}
                 />
               ))}
             </div>
@@ -266,155 +356,145 @@ export function ConnectionsSection() {
 type IntegrationRowProps = {
   integration: Integration;
   isLast: boolean;
-  // Actief restaurant-id, meegegeven aan de OAuth-start-URL.
   activeRestaurantId: string | null;
+  // Live status van de bijbehorende provider (null = ladend / n.v.t.).
+  connected: boolean | null;
+  onDisconnect: (provider: Provider) => void;
 };
 
 function IntegrationRow({
   integration,
   isLast,
   activeRestaurantId,
+  connected,
+  onDisconnect,
 }: IntegrationRowProps) {
-  // Status-gestuurde rij (Google): haal de OAuth-koppelingsstatus op zodat
-  // we Verbind (nog niet gekoppeld) vs Beheer (wel) kunnen tonen. Alleen
-  // achter de feature-flag; staat die uit -> statische rij, geen call.
-  const statusDriven = !!integration.statusDriven && GOOGLE_OAUTH_ENABLED;
-  const [connected, setConnected] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!statusDriven || !activeRestaurantId) return;
-    let cancelled = false;
-    googleBusinessStatus()
-      .then((s) => {
-        if (!cancelled) setConnected(s.connected);
-      })
-      .catch(() => {
-        // Niet-kritiek: bij een fout tonen we gewoon de default (Beheer).
-        if (!cancelled) setConnected(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [statusDriven, activeRestaurantId]);
-
-  // Gedeelde rij-opbouw: icon + naam links, status/actie rechts.
-  const rowStyle = {
+  const rowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: 12,
     padding: "12px 14px",
     borderBottom: isLast ? "none" : "1px solid var(--border, #E5DFD0)",
-  } as const;
-  const nameStyle = {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--text, #18181B)",
-    flex: 1,
-  } as const;
+  };
 
-  // Auto-integraties (weer, mail): geen actie nodig, alleen status.
+  // Rechter-blok (status/actie) per method bepalen; de rij-opbouw zelf
+  // (icon + naam links) is voor alle types gelijk.
+  let right: React.ReactNode;
   if (integration.method === "auto") {
-    return (
-      <div style={rowStyle}>
-        <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
-          {integration.icon}
-        </div>
-        <div style={nameStyle}>{integration.name}</div>
-        <span
-          style={{
-            fontSize: 12,
-            color: "var(--accent, #1F4A2D)",
-            fontWeight: 500,
-            flexShrink: 0,
-          }}
-        >
-          {integration.statusText ?? "✓ Actief"}
-        </span>
-      </div>
+    right = (
+      <span style={autoStatusStyle}>{integration.statusText ?? "✓ Actief"}</span>
+    );
+  } else if (integration.method === "soon") {
+    right = <span style={soonPillStyle}>Binnenkort</span>;
+  } else {
+    right = (
+      <OAuthAction
+        integration={integration}
+        activeRestaurantId={activeRestaurantId}
+        connected={connected}
+        onDisconnect={onDisconnect}
+      />
     );
   }
 
-  // OAuth-integraties: één klik → volledige navigatie. Het
-  // restaurant-id gaat alleen mee naar échte OAuth-start-routes;
-  // interne dashboard-links (Google → Vindbaarheid-hub) hebben
-  // 'm niet nodig.
-  if (integration.method === "oauth") {
-    // Status-gestuurd: alleen als 'ie expliciet niet verbonden is sturen
-    // we naar de OAuth-start. Anders (verbonden, nog ladend, of flag uit)
-    // -> de default connectPath/ctaLabel.
-    const useConnect = statusDriven && connected === false;
-    const base = useConnect
-      ? "/oauth/google/start"
-      : (integration.connectPath ?? "#");
-    const label = useConnect ? "Verbind" : (integration.ctaLabel ?? "Verbind");
-    const href =
-      base.startsWith("/oauth/") && activeRestaurantId
-        ? `${base}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
-        : base;
-    return (
-      <div style={rowStyle}>
-        <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
-          {integration.icon}
-        </div>
-        <div style={nameStyle}>{integration.name}</div>
-        {/* Plain <a> (geen <Link>): een full navigation naar de
-            server-route-handler, die server-side naar Meta 302't.
-            <Link> zou client-side proberen te routen en de redirect
-            breken. */}
-        <a
-          href={href}
-          style={{
-            padding: "6px 14px",
-            fontSize: 12,
-            fontWeight: 500,
-            border: "1px solid var(--border, #E5DFD0)",
-            background: "transparent",
-            color: "var(--text, #18181B)",
-            borderRadius: 6,
-            textDecoration: "none",
-            flexShrink: 0,
-          }}
-        >
-          {label}
-        </a>
-      </div>
-    );
-  }
-
-  // Soon-integraties: nog geen werkende flow. Rustige "Binnenkort"-
-  // pill i.p.v. een knop die nergens heen leidt — eerlijk naar de
-  // eigenaar toe.
   return (
     <div style={rowStyle}>
       <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
         {integration.icon}
       </div>
-      <div style={nameStyle}>{integration.name}</div>
-      <span
+      <div
         style={{
-          padding: "4px 10px",
-          fontSize: 11,
-          fontWeight: 500,
-          color: "var(--tl)",
-          background: "var(--bg-soft, #FAF7F1)",
-          border: "1px solid var(--border, #E5DFD0)",
-          borderRadius: 999,
-          flexShrink: 0,
+          fontSize: 13,
+          fontWeight: 600,
+          color: "var(--text, #18181B)",
+          flex: 1,
         }}
       >
-        Binnenkort
-      </span>
+        {integration.name}
+      </div>
+      {right}
     </div>
   );
 }
 
+// Rechter-blok voor OAuth-rijen: Verbind / ✓ Verbonden / Beheer / Ontkoppel
+// op basis van de live status + de feature-flag.
+function OAuthAction({
+  integration,
+  activeRestaurantId,
+  connected,
+  onDisconnect,
+}: {
+  integration: Integration;
+  activeRestaurantId: string | null;
+  connected: boolean | null;
+  onDisconnect: (provider: Provider) => void;
+}) {
+  const provider = integration.provider;
+  const flagOff = provider === "google_business" && !GOOGLE_OAUTH_ENABLED;
+
+  // Restaurant-id alleen meegeven aan échte OAuth-start-routes; interne
+  // dashboard-links (Beheer → hub) hebben 'm niet nodig.
+  const withRid = (path: string) =>
+    path.startsWith("/oauth/") && activeRestaurantId
+      ? `${path}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
+      : path;
+
+  // Google zonder flag: alleen "Beheer" → hub. Geen Verbind tot de
+  // Google-kant live is; de hub draait op de Places-API-key.
+  if (flagOff) {
+    return (
+      <a href={integration.managePath ?? "#"} style={actionLinkStyle}>
+        Beheer
+      </a>
+    );
+  }
+
+  // Verbonden: groene pill + (optioneel) Beheer + Ontkoppel.
+  if (connected === true && provider) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <span style={connectedPillStyle}>✓ Verbonden</span>
+        {integration.managePath && (
+          <a href={integration.managePath} style={actionLinkStyle}>
+            Beheer
+          </a>
+        )}
+        <button
+          type="button"
+          onClick={() => onDisconnect(provider)}
+          style={disconnectButtonStyle}
+        >
+          Ontkoppel
+        </button>
+      </div>
+    );
+  }
+
+  // Status nog onbekend (ladend): muted placeholder i.p.v. een valse
+  // "Verbind" die meteen weer naar "✓ Verbonden" zou springen.
+  if (connected === null) {
+    return (
+      <span style={{ fontSize: 12, color: "var(--tl)", flexShrink: 0 }}>…</span>
+    );
+  }
+
+  // Niet verbonden: "Verbind" → OAuth-start.
+  // Plain <a> (geen <Link>): full navigation naar de server-route die
+  // server-side naar de provider 302't; <Link> zou de redirect breken.
+  return (
+    <a href={withRid(integration.connectPath ?? "#")} style={actionLinkStyle}>
+      Verbind
+    </a>
+  );
+}
+
 // ============================================================
-// MetaStatusBanner, feedback na de OAuth-redirect
+// MetaStatusBanner, feedback na de Meta-OAuth-redirect
 // ============================================================
 // De /oauth/meta/callback-route stuurt terug naar
-// /dashboard/account?tab=koppelingen&meta=<status>. Hier vertalen
-// we die status naar een korte melding. Toont niets als er geen
-// ?meta= in de URL staat (de normale staat).
+// /dashboard/account?tab=koppelingen&meta=<status>(&reason=). Toont
+// niets zonder ?meta= in de URL.
 function MetaStatusBanner({
   status,
   reason,
@@ -424,8 +504,6 @@ function MetaStatusBanner({
 }) {
   if (!status) return null;
 
-  // Per status: kleur + tekst. We houden het bewust kort; de
-  // technische `reason` tonen we alleen bij een fout.
   const variants: Record<
     string,
     { bg: string; border: string; color: string; text: string }
@@ -474,10 +552,8 @@ function MetaStatusBanner({
 // ============================================================
 // GoogleStatusBanner, feedback na de Google-OAuth-redirect
 // ============================================================
-// De /oauth/google/callback-route stuurt terug naar
-// /dashboard/account?tab=koppelingen&google=<status>(&reason=<reason>).
-// We vertalen de status + de belangrijkste reasons naar nette NL-tekst.
-// Toont niets zonder ?google= in de URL.
+// De /oauth/google/callback-route stuurt terug met
+// &google=<status>(&reason=<reason>). Toont niets zonder ?google=.
 function GoogleStatusBanner({
   status,
   reason,
