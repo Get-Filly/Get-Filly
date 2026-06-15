@@ -439,6 +439,11 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
   - 👉 **VOLGENDE STAP**: account/project-eigenaarschap uitzoeken (Floris + Tim) →
     redirect-URI op de juiste client → lokaal Verbind doorlopen → tokens in
     `integration_credentials` verifiëren → daarna pas mergen/deployen.
+  - **Verificatie-prep klaar** (2026-06-15): `GET /integrations/google-business/profile`
+    (accounts.list via getAccessToken — bewijst scope-gebruik, 403→`api_not_approved`
+    tot de API-grant) + `GoogleConnectedPanel` (zichtbaar bewijs in de koppelingen-tab).
+    Justificatie-tekst (EN) + demovideo-script + test-checklist + Meta-parallel staan
+    in [docs/google-business-oauth-verification.md](docs/google-business-oauth-verification.md).
 
 - [ ] **Fase E — Reviews écht uit Google ophalen** (na approval).
   Sync-job 1× per uur per gekoppelde klant via
