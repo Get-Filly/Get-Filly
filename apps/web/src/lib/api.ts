@@ -143,6 +143,38 @@ export async function googleBusinessDisconnect(): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+export type GoogleBusinessAccount = {
+  name: string;
+  accountName: string;
+  type: string | null;
+};
+
+/**
+ * Haalt de beheerde Google-Bedrijfsprofielen op (accounts.list). Bewijst
+ * dat de business.manage-scope echt gebruikt wordt. Gooit met de
+ * machine-leesbare `reason` (bv. "api_not_approved") als de Google-API-
+ * toegang nog niet is goedgekeurd, zodat de UI dat netjes kan tonen.
+ */
+export async function googleBusinessProfile(): Promise<{
+  accounts: GoogleBusinessAccount[];
+}> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/profile`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string };
+      if (body?.reason) reason = body.reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { accounts: GoogleBusinessAccount[] };
+}
+
 /**
  * submitContactForm, publieke (NIET-authed) call voor het
  * contactformulier op /contact. Gebruikt gewone `fetch` zonder

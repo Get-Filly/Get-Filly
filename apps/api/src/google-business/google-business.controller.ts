@@ -53,6 +53,15 @@ export class GoogleBusinessController {
     return this.google.status(restaurantId);
   }
 
+  // GET /api/integrations/google-business/profile
+  // Haalt de beheerde GBP-accounts op (accounts.list) — bewijst dat de
+  // business.manage-scope echt gebruikt wordt. 403 vóór API-goedkeuring.
+  @Get('profile')
+  async profile(@RestaurantId() restaurantId: string) {
+    const accounts = await this.google.listAccounts(restaurantId);
+    return { accounts };
+  }
+
   // DELETE /api/integrations/google-business  (koppeling intrekken)
   @Delete()
   @HttpCode(200)

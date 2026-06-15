@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 // Per-request user-JWT-client (RLS actief), voor user-facing reads/writes.
@@ -27,6 +28,9 @@ import { TokenCryptoService } from '../common/token-crypto.service';
 const PROVIDER = 'google_business';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
+// Account Management API: lijst van GBP-accounts die de gebruiker beheert.
+const ACCOUNTS_URL =
+  'https://mybusinessaccountmanagement.googleapis.com/v1/accounts';
 // Ververs een paar minuten vóór de echte expiry zodat een lopende
 // API-call niet halverwege ongeldig wordt.
 const EXPIRY_SKEW_MS = 2 * 60 * 1000;
@@ -298,6 +302,67 @@ export class GoogleBusinessService {
       expiresAt: data.expires_at as string | null,
       updatedAt: data.updated_at as string,
     };
+  }
+
+  /**
+   * Haalt de Google-Bedrijfsprofiel-accounts op die deze koppeling
+   * beheert (Account Management API). Dit is dé call die bewijst dat de
+   * business.manage-toegang werkt — precies wat we in de Google-
+   * verificatievideo tonen. Gebruikt getAccessToken (auto-refresh).
+   *
+   * Werkt pas ná goedkeuring van de Business Profile API-toegang: tot dan
+   * geeft Google 403 (quotum 0). We mappen dat naar reason
+   * 'api_not_approved' zodat de UI een nette "nog in aanvraag"-melding
+   * kan tonen i.p.v. een generieke fout.
+   */
+  async listAccounts(
+    restaurantId: string,
+  ): Promise<Array<{ name: string; accountName: string; type: string | null }>> {
+    const accessToken = await this.getAccessToken(restaurantId);
+
+    let res: Response;
+    try {
+      res = await fetch(ACCOUNTS_URL, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch (err) {
+      this.logger.error(`GBP accounts onbereikbaar: ${(err as Error).message}`);
+      throw new ServiceUnavailableException(
+        'Google is tijdelijk niet bereikbaar',
+      );
+    }
+
+    if (!res.ok) {
+      const body = await res.text();
+      this.logger.warn(`GBP accounts.list ${res.status}: ${body.slice(0, 500)}`);
+      if (res.status === 403) {
+        throw new BadRequestException({
+          reason: 'api_not_approved',
+          message:
+            'Google Business Profile API-toegang is nog niet goedgekeurd ' +
+            'voor dit project (quotum 0). De koppeling werkt; profielen ' +
+            'ophalen kan zodra Google de aanvraag goedkeurt.',
+        });
+      }
+      if (res.status === 401) {
+        throw new BadRequestException({
+          reason: 'token_invalid',
+          message: 'Google weigerde de token. Verbind het profiel opnieuw.',
+        });
+      }
+      throw new ServiceUnavailableException(
+        `Google gaf een fout terug (${res.status}).`,
+      );
+    }
+
+    const data = (await res.json()) as {
+      accounts?: Array<{ name: string; accountName?: string; type?: string }>;
+    };
+    return (data.accounts ?? []).map((a) => ({
+      name: a.name,
+      accountName: a.accountName ?? '—',
+      type: a.type ?? null,
+    }));
   }
 
   /** Koppeling intrekken: best-effort revoke bij Google + rij wissen. */
