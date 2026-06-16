@@ -1,6 +1,6 @@
 // =============================================================================
-// ABOUT-PAGINA. Verhaal-volgorde (2026-06-13): hero → ons verhaal →
-// missie & visie → wat ons drijft → roadmap → CTA.
+// ABOUT-PAGINA. Doorlopend wit + groene waas (geen scheiding) t/m "Wat ons
+// drijft"; daarna "Waar we staan" (papier-warm) + CTA. (2026-06-13)
 // =============================================================================
 
 import Link from "next/link";
@@ -34,83 +34,82 @@ export default function AboutPage() {
       {/* Scroll-reveal: laat de items één voor één oppoppen. */}
       <ScrollReveal />
 
-      {/* ---------- 1. Hero ---------- */}
-      <section className="about-intro">
-        <div className="container">
-          <h1 className="section-title">Van idee naar impact.</h1>
-          <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
-            Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen hun rustige momenten om te zetten in omzet, zonder dat je er uren of grote bedragen aan marketing en website-optimalisatie kwijt bent.
-          </p>
-        </div>
-      </section>
-
-      {/* ---------- 2. Ons verhaal ---------- */}
-      <section className="about-story">
-        <div className="container">
-          <p className="about-story-eyebrow">Ons verhaal</p>
-          <h2 className="section-title">Waarom we Get-Filly bouwden.</h2>
-          {/* Lead + body springen samen op via de site-brede [data-reveal]
-              (1.5s, zodra in beeld) — zelfde snelheid + trigger als de andere
-              secties; de kop blijft instant, conform de rest van de site. */}
-          <div data-reveal>
-            <p className="about-story-lead">
-              Het beste restaurant zit niet altijd vol. De best vindbare wel.
+      {/* Eén doorlopend blok (wit + groene waas), zonder scheiding tussen de
+          onderdelen. Tot en met "Wat ons drijft". */}
+      <div className="about-top">
+        {/* ---------- Hero ---------- */}
+        <section className="about-intro">
+          <div className="container">
+            <h1 className="section-title">Van idee naar impact.</h1>
+            <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
+              Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen hun rustige momenten om te zetten in omzet, zonder dat je er uren of grote bedragen aan marketing en website-optimalisatie kwijt bent.
             </p>
-            <div className="about-story-body">
-              <p>
-                Dat zagen we overal: zaken met fantastisch eten en trouwe gasten, en toch lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
-              </p>
-              <p>
-                En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z'n zaak op z'n eigen manier wil laten groeien.
-              </p>
-              <p>
-                Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
-              </p>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ---------- 3. Missie & visie ---------- */}
-      <section className="about-mv-section">
-        <div className="container">
-          <h2 className="section-title">Onze missie &amp; visie.</h2>
-          <div className="about-mv">
+        {/* ---------- Ons verhaal (geen aparte kop) ---------- */}
+        <section className="about-story">
+          <div className="container">
+            {/* Lead + body springen samen op via de site-brede [data-reveal]
+                (1.5s, zodra in beeld) — zelfde snelheid + trigger als elders. */}
             <div data-reveal>
-              <p className="about-mv-label">Missie</p>
-              <p className="about-mv-text">
-                Onafhankelijke restaurants laten groeien zonder dat de ondernemer verdrinkt in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je zaak en je gasten.
+              <p className="about-story-lead">
+                Het beste restaurant zit niet altijd vol. De best vindbare wel.
               </p>
-            </div>
-            <div data-reveal>
-              <p className="about-mv-label">Visie</p>
-              <p className="about-mv-text">
-                Een horecawereld waarin elk lokaal restaurant dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- 4. Wat ons drijft ---------- */}
-      <section className="about-drive">
-        <div className="container">
-          <h2 className="section-title">Wat ons drijft.</h2>
-
-          {/* Hergebruikt dezelfde "hero-diff"-strip als op de product- en
-              pricing-pagina: 3-koloms, dunne scheidingslijn bovenaan, geen
-              card-achtergrond. Staat nu lager op de pagina, dus scroll-
-              reveal (data-reveal) i.p.v. on-load fade-up. */}
-          <div className="product-features-list">
-            {missionPillars.map((p) => (
-              <div key={p.title} className="hero-diff" data-reveal>
-                <h3 className="hero-diff-title">{p.title}</h3>
-                <p className="hero-diff-desc">{p.desc}</p>
+              <div className="about-story-body">
+                <p>
+                  Dat zagen we overal: zaken met fantastisch eten en trouwe gasten, en toch lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
+                </p>
+                <p>
+                  En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z'n zaak op z'n eigen manier wil laten groeien.
+                </p>
+                <p>
+                  Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
+                </p>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* ---------- Missie & visie als kaarten (geen aparte kop) ---------- */}
+        <section className="about-mv-section">
+          <div className="container">
+            <div className="about-mv">
+              <div className="about-mv-card" data-reveal>
+                <p className="about-mv-label">Missie</p>
+                <p className="about-mv-text">
+                  Onafhankelijke restaurants laten groeien zonder dat de ondernemer verdrinkt in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je zaak en je gasten.
+                </p>
+              </div>
+              <div className="about-mv-card" data-reveal>
+                <p className="about-mv-label">Visie</p>
+                <p className="about-mv-text">
+                  Een horecawereld waarin elk lokaal restaurant dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------- Wat ons drijft ---------- */}
+        <section className="about-drive">
+          <div className="container">
+            <h2 className="section-title">Wat ons drijft.</h2>
+
+            {/* Hergebruikt dezelfde "hero-diff"-strip als op de product- en
+                pricing-pagina: 3-koloms, dunne scheidingslijn bovenaan, geen
+                card-achtergrond. Scroll-reveal (data-reveal). */}
+            <div className="product-features-list">
+              {missionPillars.map((p) => (
+                <div key={p.title} className="hero-diff" data-reveal>
+                  <h3 className="hero-diff-title">{p.title}</h3>
+                  <p className="hero-diff-desc">{p.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
 
       <section className="about-journey">
         <div className="container">

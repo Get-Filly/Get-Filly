@@ -3225,14 +3225,48 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin: 72px 0 56px;
 }
 
-/* ===== OVER-ONS: ons verhaal + missie/visie (2026-06-13) ===== */
-.about-story-eyebrow {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--accent);
-  margin: 0 0 14px;
+/* ===== OVER-ONS: doorlopend wit + groene waas t/m "Wat ons drijft" =====
+   Hero, verhaal, missie/visie en "wat ons drijft" delen één doorlopende
+   witte achtergrond met een zachte groene waas, zodat er GEEN zichtbare
+   scheiding tussen de blokken zit. Pas bij "Waar we staan" (.about-journey)
+   begint de papier-warme achtergrond — die laten we ongemoeid. */
+.about-top {
+  position: relative;
+  background: var(--true-white);
+  overflow: hidden;
 }
+.about-top::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 1200px 820px at 50% 0%, rgba(31, 74, 45, 0.06) 0%, transparent 62%),
+    radial-gradient(ellipse 1000px 720px at 50% 100%, rgba(31, 74, 45, 0.045) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+.about-top > section {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+/* De hero-eigen glow vervalt; de waas zit nu op de wrapper (geen seam). */
+.about-top .about-intro::before {
+  content: none;
+}
+
+/* Strakke tussenruimte i.p.v. de standaard 112px section-padding. */
+.about-story,
+.about-mv-section {
+  padding-top: 0;
+  padding-bottom: 40px;
+}
+.about-drive {
+  padding-top: 0;
+  padding-bottom: 72px;
+}
+
+/* Ons verhaal: pakkende openingszin + lopende tekst (zonder aparte kop). */
 .about-story-lead {
   font-size: 26px;
   font-weight: 700;
@@ -3240,7 +3274,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   letter-spacing: -0.5px;
   color: var(--text);
   max-width: 640px;
-  margin: 28px 0 0;
+  margin: 0;
   text-wrap: balance;
 }
 .about-story-body {
@@ -3257,51 +3291,37 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 .about-story-body p:last-child {
   margin-bottom: 0;
 }
+
+/* Missie & visie als twee kaarten met tekst. */
 .about-mv {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px 56px;
-  margin-top: 48px;
-  padding-top: 40px;
-  border-top: 1px solid var(--border);
+  gap: 24px;
+}
+.about-mv-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
 }
 .about-mv-label {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--accent);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 .about-mv-text {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.6;
   color: var(--text-secondary);
   letter-spacing: -0.2px;
   margin: 0;
-  max-width: 460px;
 }
 @media (max-width: 760px) {
   .about-mv {
     grid-template-columns: 1fr;
-    gap: 28px;
   }
-}
-/* Wit doorlopend t/m "Wat ons drijft"; pas bij "Waar we staan"
-   (.about-journey) begint de papier-warme achtergrond. Strakke
-   tussenruimte i.p.v. de standaard 112px section-padding, zodat de
-   hoofdkopjes dichter op elkaar staan. */
-.about-story,
-.about-mv-section,
-.about-drive {
-  background: var(--true-white);
-  padding-top: 0;
-}
-.about-story,
-.about-mv-section {
-  padding-bottom: 48px;
-}
-.about-drive {
-  padding-bottom: 72px;
 }
 .info-card.about-info-card {
   background: var(--bg);
