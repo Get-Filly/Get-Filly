@@ -49,19 +49,24 @@ export default function AboutPage() {
         <div className="container">
           <p className="about-story-eyebrow">Ons verhaal</p>
           <h2 className="section-title">Waarom we Get-Filly bouwden.</h2>
-          <p className="about-story-lead">
-            Het beste restaurant zit niet altijd vol. De best vindbare wel.
-          </p>
-          <div className="about-story-body" data-reveal>
-            <p>
-              Dat zagen we overal: zaken met fantastisch eten en trouwe gasten, en toch lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
+          {/* Lead + body springen samen op via de site-brede [data-reveal]
+              (1.5s, zodra in beeld) — zelfde snelheid + trigger als de andere
+              secties; de kop blijft instant, conform de rest van de site. */}
+          <div data-reveal>
+            <p className="about-story-lead">
+              Het beste restaurant zit niet altijd vol. De best vindbare wel.
             </p>
-            <p>
-              En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z'n zaak op z'n eigen manier wil laten groeien.
-            </p>
-            <p>
-              Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
-            </p>
+            <div className="about-story-body">
+              <p>
+                Dat zagen we overal: zaken met fantastisch eten en trouwe gasten, en toch lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
+              </p>
+              <p>
+                En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z'n zaak op z'n eigen manier wil laten groeien.
+              </p>
+              <p>
+                Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
+              </p>
+            </div>
           </div>
         </div>
       </section>

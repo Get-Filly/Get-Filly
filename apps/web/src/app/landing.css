@@ -3205,7 +3205,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 .about-intro {
   background: var(--true-white);
   padding-top: 160px;
-  padding-bottom: 96px;
+  padding-bottom: 48px;
   position: relative;
   overflow: hidden;
 }
@@ -3285,6 +3285,23 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
     grid-template-columns: 1fr;
     gap: 28px;
   }
+}
+/* Wit doorlopend t/m "Wat ons drijft"; pas bij "Waar we staan"
+   (.about-journey) begint de papier-warme achtergrond. Strakke
+   tussenruimte i.p.v. de standaard 112px section-padding, zodat de
+   hoofdkopjes dichter op elkaar staan. */
+.about-story,
+.about-mv-section,
+.about-drive {
+  background: var(--true-white);
+  padding-top: 0;
+}
+.about-story,
+.about-mv-section {
+  padding-bottom: 48px;
+}
+.about-drive {
+  padding-bottom: 72px;
 }
 .info-card.about-info-card {
   background: var(--bg);
