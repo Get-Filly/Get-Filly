@@ -252,28 +252,28 @@ export default function HomePage() {
       </section>
 
       {/* "Waarom het werkt" — de 4 kernpunten uit de kennishub, direct na de
-          hero. De kaarten poppen on-load op met dezelfde fade-up (d1–d4) als
-          de "AI dóet het werk"-blokken op /product. Ze linken door naar /blog;
-          de "binnenkort online"-tekst staat bewust alleen op de blogpagina. */}
+          hero. De kaarten poppen op zodra je ze in beeld scrollt (site-brede
+          scroll-reveal: data-reveal op een wrapper om elke kaart). De reveal-
+          snelheid is afgestemd op de "AI dóet het werk"-blokken op /product
+          (zie .why-grid in landing.css). Ze linken door naar /blog; de
+          "binnenkort online"-tekst staat bewust alleen op de blogpagina. */}
       <section className="why-works">
         <div className="container">
           <div className="why-head">
             <h2 className="section-title">Waarom het werkt</h2>
             <p className="section-subtitle">
-              De cijfers achter Filly: betere profielen en een vast ritme zorgen
-              dat gasten je vaker vinden.
+              De cijfers liegen niet, betere profielen en een vast ritme zorgen
+              dat je gasten je vaker online vinden.
             </p>
           </div>
           <div className="why-grid">
-            {WHY_POINTS.map((p, i) => (
-              <Link
-                key={p.eyebrow}
-                href="/blog"
-                className={`blog-card fade-up d${i + 1}`}
-              >
-                <div className="blog-eyebrow">{p.eyebrow}</div>
-                <div className="blog-card-title">{p.title}</div>
-              </Link>
+            {WHY_POINTS.map((p) => (
+              <div key={p.eyebrow} data-reveal>
+                <Link href="/blog" className="blog-card">
+                  <div className="blog-eyebrow">{p.eyebrow}</div>
+                  <div className="blog-card-title">{p.title}</div>
+                </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -300,7 +300,7 @@ export default function HomePage() {
                 Per 2026-06-02 vervangt deze de oude geanimeerde hub. */}
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
-                <p className="feature-eyebrow feature-eyebrow--pill">
+                <p className="feature-eyebrow">
                   <span>Vindbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">Gevonden worden begint hier.</h3>
@@ -326,7 +326,7 @@ export default function HomePage() {
                 scroll-reveal na elkaar opkomen. */}
             <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
-                <p className="feature-eyebrow feature-eyebrow--pill">
+                <p className="feature-eyebrow">
                   <span>Zichtbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">Blijf in beeld. Ook als ze niet reserveren.</h3>
@@ -352,7 +352,7 @@ export default function HomePage() {
                 chat-chrome. Per 2026-06-02; vervangt de losse fmock-email. */}
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
-                <p className="feature-eyebrow feature-eyebrow--pill">
+                <p className="feature-eyebrow">
                   <span>Bereikbaarheid</span>
                 </p>
                 <h3 className="feature-row-title">De juiste boodschap. Op het juiste moment. Bij de juiste gast.</h3>
