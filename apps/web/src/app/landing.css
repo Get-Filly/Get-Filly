@@ -2018,7 +2018,14 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-bottom: 16px;
 }
 .step-meta .walk-step { margin-top: 0; }
-.step-meta .feature-eyebrow { margin-bottom: 0; }
+/* De datum/tijd ("MAANDAG · 09:14") naast het stap-label is metadata: normaal
+   gewicht (400) + subtiel grijs, zodat 't niet dikgedrukt oogt en alleen het
+   stap-label de groene eyebrow blijft (zoals GEGEVENS op de home). */
+.step-meta .feature-eyebrow {
+  margin-bottom: 0;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
 
 .walk-step {
   /* Per 2026-06-17: pill verwijderd — het stap-label is nu een gewoon groen
@@ -3312,11 +3319,13 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   padding: 28px 32px;
 }
 .about-mv-label {
-  /* Dikgedrukt als de kaart-titels (.hero-diff-title): donker, 17px, 700. */
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  color: var(--text);
+  /* Zelfde stijl als de eyebrows (VINDBAARHEID etc.): groen, uppercase,
+     12px, gewicht 600, 1px letter-spacing. */
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
   margin: 0 0 12px;
 }
 .about-mv-text {
