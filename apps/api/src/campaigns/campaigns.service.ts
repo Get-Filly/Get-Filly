@@ -6,6 +6,9 @@ import {
 } from '@nestjs/common';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
+// Service-role-client (RLS-bypass) — nodig voor de context-loze cron
+// (geen ingelogde user), zie runScheduledSocial.
+import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
 import {
@@ -197,6 +200,9 @@ export class CampaignsService {
     // MetaService: social-campagne → FB/IG-post. Request-scoped net als
     // deze service, dus injecteren kan zonder scope-conflict.
     private readonly meta: MetaService,
+    // Admin (service-role) client voor de cron: die draait zonder
+    // ingelogde user, dus de request-client (RLS) kan daar niet.
+    private readonly admin: SupabaseService,
   ) {}
 
   /**
@@ -220,6 +226,7 @@ export class CampaignsService {
   async publishSocialCampaign(
     restaurantId: string,
     campaignId: string,
+    useAdmin = false,
   ): Promise<{
     published: boolean;
     alreadyPublished?: boolean;
@@ -227,8 +234,11 @@ export class CampaignsService {
     reason?: string;
     postIds?: Record<string, string>;
   }> {
+    // De cron (runScheduledSocial) draait zonder ingelogde user → admin-
+    // client. Bij user-flows ("Activeer nu") blijft de request-client (RLS).
+    const client = useAdmin ? this.admin.client : this.supabase.client;
     // 1. Campagne ophalen, dubbel gescoped op restaurant (defense-in-depth).
-    const { data: campaign, error: cErr } = await this.supabase.client
+    const { data: campaign, error: cErr } = await client
       .from('campaigns')
       .select('id, type')
       .eq('restaurant_id', restaurantId)
@@ -242,7 +252,7 @@ export class CampaignsService {
       );
     }
 
-    const { data: content, error: scErr } = await this.supabase.client
+    const { data: content, error: scErr } = await client
       .from('campaign_social_content')
       .select(
         'caption, social_platforms, social_hashtags, media_urls, published_at',
@@ -264,7 +274,7 @@ export class CampaignsService {
     // campagne NIET voor zaken zonder (volledige) Meta-koppeling — dan
     // flippen we alleen de status, zoals vóór deze feature. De cron
     // (fase B) slaat zulke campagnes om dezelfde reden netjes over.
-    const metaStatus = await this.meta.status(restaurantId);
+    const metaStatus = await this.meta.status(restaurantId, useAdmin);
     if (!metaStatus.connected || !metaStatus.page) {
       return {
         published: false,
@@ -292,7 +302,7 @@ export class CampaignsService {
       : [];
     const imageUrl =
       paths.length > 0
-        ? await this.signMediaPath(paths[0]).catch(() => undefined)
+        ? await this.signMediaPath(paths[0], useAdmin).catch(() => undefined)
         : undefined;
 
     // 5. Kanaalkeuze → FB/IG. Lege/onbekende platforms = generiek "social"
@@ -310,12 +320,11 @@ export class CampaignsService {
     }
 
     // 6. Publiceren via de Meta-backend (zelfde flow als het test-paneel).
-    const result = await this.meta.publish(restaurantId, {
-      message,
-      imageUrl,
-      toFacebook,
-      toInstagram,
-    });
+    const result = await this.meta.publish(
+      restaurantId,
+      { message, imageUrl, toFacebook, toInstagram },
+      useAdmin,
+    );
 
     const postIds: Record<string, string> = {};
     if (result.facebook?.id) postIds.facebook = result.facebook.id;
@@ -328,7 +337,7 @@ export class CampaignsService {
       const msg =
         result.errors.join(' ') ||
         'Publiceren naar Facebook/Instagram mislukt.';
-      await this.supabase.client
+      await client
         .from('campaign_social_content')
         .update({ publish_error: msg, updated_at: new Date().toISOString() })
         .eq('campaign_id', campaignId);
@@ -337,7 +346,7 @@ export class CampaignsService {
 
     // 8. (Deels) gelukt → post-ids + tijd vastleggen; fout-veld bevat een
     //    eventuele deelfout (bv. IG mislukt maar FB gelukt).
-    await this.supabase.client
+    await client
       .from('campaign_social_content')
       .update({
         published_at: new Date().toISOString(),
@@ -348,6 +357,88 @@ export class CampaignsService {
       .eq('campaign_id', campaignId);
 
     return { published: true, postIds };
+  }
+
+  /**
+   * ============================================================
+   * runScheduledSocial — cron-entry (fase B)
+   * ============================================================
+   * Publiceert alle social-campagnes waarvan de geplande tijd bereikt
+   * is (`ingepland` + `scheduled_for <= nu`). Draait CONTEXT-LOOS (geen
+   * ingelogde user), dus alles via de service-role (admin) client.
+   *
+   * Idempotent op twee niveaus: publishSocialCampaign slaat al-
+   * gepubliceerde over (published_at), en we flippen de status naar
+   * 'actief' zodat een campagne niet elke run opnieuw wordt opgepakt.
+   *
+   * Status-afhandeling per campagne:
+   *   - gepubliceerd of overgeslagen (geen Meta-koppeling) → 'actief'
+   *     (geplande tijd is verstreken; niet eindeloos opnieuw proberen).
+   *   - échte publicatiefout (wél gekoppeld) → laat op 'ingepland' staan
+   *     zodat de volgende cron-run het opnieuw probeert.
+   *
+   * LET OP: precieze timing vereist een frequente cron (Vercel Pro,
+   * bv. elke 10 min). Op Hobby draait cron max 1×/dag, dus dan posten
+   * geplande campagnes pas in dat dagelijkse venster.
+   */
+  async runScheduledSocial(): Promise<{
+    processed: number;
+    published: number;
+    skipped: number;
+    failed: number;
+  }> {
+    const nowIso = new Date().toISOString();
+    const { data: due, error } = await this.admin.client
+      .from('campaigns')
+      .select('id, restaurant_id')
+      .eq('type', 'social')
+      .eq('status', 'ingepland')
+      .is('deleted_at', null)
+      .lte('scheduled_for', nowIso);
+    if (error) throw new InternalServerErrorException(error.message);
+
+    let published = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const c of due ?? []) {
+      const restaurantId = c.restaurant_id as string;
+      const campaignId = c.id as string;
+      try {
+        const r = await this.publishSocialCampaign(
+          restaurantId,
+          campaignId,
+          true, // admin-client: geen user-context in de cron
+        );
+        if (r.published || r.alreadyPublished) published++;
+        else skipped++;
+
+        // Geplande tijd is bereikt → status naar 'actief'. Ook bij
+        // 'skipped' (geen Meta-koppeling), zodat de campagne niet elke
+        // run opnieuw wordt opgepakt. Direct via admin (geen audit/
+        // performance-niceties; die hangen aan request-scoped services).
+        await this.admin.client
+          .from('campaigns')
+          .update({
+            status: 'actief',
+            executed_at: nowIso,
+            updated_at: nowIso,
+          })
+          .eq('id', campaignId)
+          .eq('restaurant_id', restaurantId);
+      } catch (err) {
+        // Echte publicatiefout (wél gekoppeld): op 'ingepland' laten staan
+        // zodat de volgende run het opnieuw probeert. Loggen.
+        failed++;
+        this.logger.warn(
+          `Cron-publiceren faalde voor ${campaignId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    return { processed: (due ?? []).length, published, skipped, failed };
   }
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
@@ -2431,8 +2522,9 @@ Geef het beste verzendmoment.`;
   // Helper: maak signed URL voor 1 storage-pad. 1 uur geldig, past
   // bij dashboard-sessie-duur. Voor verzend-API's straks een verse
   // URL genereren met langere expiry.
-  async signMediaPath(path: string): Promise<string> {
-    const { data, error } = await this.supabase.client.storage
+  async signMediaPath(path: string, useAdmin = false): Promise<string> {
+    const client = useAdmin ? this.admin.client : this.supabase.client;
+    const { data, error } = await client.storage
       .from('campaign-media')
       .createSignedUrl(path, 60 * 60);
     if (error) throw new InternalServerErrorException(error.message);

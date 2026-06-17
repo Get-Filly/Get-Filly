@@ -194,15 +194,23 @@ export class MetaService {
     return { ok: true };
   }
 
-  /** Koppelingsstatus (zonder de token zelf) voor de UI. */
-  async status(restaurantId: string): Promise<{
+  /**
+   * Koppelingsstatus (zonder de token zelf) voor de UI.
+   * `useAdmin` = true gebruikt de service-role-client i.p.v. de request-
+   * client; nodig voor context-loze flows (bv. de campagne-cron).
+   */
+  async status(
+    restaurantId: string,
+    useAdmin = false,
+  ): Promise<{
     connected: boolean;
     scopes?: string[];
     expiresAt?: string | null;
     updatedAt?: string;
     page?: { id: string; name: string } | null;
   }> {
-    const { data, error } = await this.supabase.client
+    const client = useAdmin ? this.admin.client : this.supabase.client;
+    const { data, error } = await client
       .from('integration_credentials')
       .select('scopes, expires_at, updated_at, meta')
       .eq('restaurant_id', restaurantId)
@@ -242,8 +250,10 @@ export class MetaService {
   // Haalt + ontsleutelt de user-token + meta-jsonb van dit restaurant.
   private async loadCredential(
     restaurantId: string,
+    useAdmin = false,
   ): Promise<{ token: string; meta: Record<string, unknown> }> {
-    const { data, error } = await this.supabase.client
+    const client = useAdmin ? this.admin.client : this.supabase.client;
+    const { data, error } = await client
       .from('integration_credentials')
       .select('access_token_encrypted, meta')
       .eq('restaurant_id', restaurantId)
@@ -344,12 +354,13 @@ export class MetaService {
       toFacebook: boolean;
       toInstagram: boolean;
     },
+    useAdmin = false,
   ): Promise<{
     facebook?: { id: string };
     instagram?: { id: string };
     errors: string[];
   }> {
-    const { token, meta } = await this.loadCredential(restaurantId);
+    const { token, meta } = await this.loadCredential(restaurantId, useAdmin);
     const pageId = meta.page_id as string | undefined;
     const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
     if (!pageId) {

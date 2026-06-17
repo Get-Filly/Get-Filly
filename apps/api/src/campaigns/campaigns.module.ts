@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CampaignsController } from './campaigns.controller';
+import { CampaignsCronController } from './campaigns-cron.controller';
 import { CampaignsService } from './campaigns.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
 import { CampaignFingerprintService } from './campaign-fingerprint.service';
@@ -34,7 +35,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     EventsModule,
     MetaModule,
   ],
-  controllers: [CampaignsController],
+  controllers: [CampaignsController, CampaignsCronController],
   providers: [
     CampaignsService,
     CampaignPerformanceService,
