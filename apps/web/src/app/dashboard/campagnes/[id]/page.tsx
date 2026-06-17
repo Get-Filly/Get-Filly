@@ -494,7 +494,7 @@ export default function UnifiedDetailPage() {
       if (view.status === "actief" && next === "concept") {
         if (
           !window.confirm(
-            "Weet je zeker dat je deze campagne wil stoppen? De post wordt van het kanaal verwijderd en de campagne gaat terug naar concept.",
+            "Weet je zeker dat je deze campagne wil stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe.",
           )
         ) {
           return;

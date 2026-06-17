@@ -194,15 +194,23 @@ export class MetaService {
     return { ok: true };
   }
 
-  /** Koppelingsstatus (zonder de token zelf) voor de UI. */
-  async status(restaurantId: string): Promise<{
+  /**
+   * Koppelingsstatus (zonder de token zelf) voor de UI.
+   * `useAdmin` = true gebruikt de service-role-client i.p.v. de request-
+   * client; nodig voor context-loze flows (bv. de campagne-cron).
+   */
+  async status(
+    restaurantId: string,
+    useAdmin = false,
+  ): Promise<{
     connected: boolean;
     scopes?: string[];
     expiresAt?: string | null;
     updatedAt?: string;
     page?: { id: string; name: string } | null;
   }> {
-    const { data, error } = await this.supabase.client
+    const client = useAdmin ? this.admin.client : this.supabase.client;
+    const { data, error } = await client
       .from('integration_credentials')
       .select('scopes, expires_at, updated_at, meta')
       .eq('restaurant_id', restaurantId)
@@ -242,8 +250,10 @@ export class MetaService {
   // Haalt + ontsleutelt de user-token + meta-jsonb van dit restaurant.
   private async loadCredential(
     restaurantId: string,
+    useAdmin = false,
   ): Promise<{ token: string; meta: Record<string, unknown> }> {
-    const { data, error } = await this.supabase.client
+    const client = useAdmin ? this.admin.client : this.supabase.client;
+    const { data, error } = await client
       .from('integration_credentials')
       .select('access_token_encrypted, meta')
       .eq('restaurant_id', restaurantId)
@@ -344,12 +354,13 @@ export class MetaService {
       toFacebook: boolean;
       toInstagram: boolean;
     },
+    useAdmin = false,
   ): Promise<{
     facebook?: { id: string };
     instagram?: { id: string };
     errors: string[];
   }> {
-    const { token, meta } = await this.loadCredential(restaurantId);
+    const { token, meta } = await this.loadCredential(restaurantId, useAdmin);
     const pageId = meta.page_id as string | undefined;
     const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
     if (!pageId) {
@@ -445,6 +456,56 @@ export class MetaService {
           result.errors.push('Instagram-publicatie mislukt');
         }
       }
+    }
+
+    return result;
+  }
+
+  /**
+   * Trekt een eerder geplaatste post terug (campagne actief → concept).
+   *   - Facebook: post echt verwijderen via DELETE /{post-id} met een
+   *     verse page-token.
+   *   - Instagram: de Graph API kent GÉÉN delete voor geplaatste media,
+   *     dus dat kan niet via de API. We melden dat de eigenaar de
+   *     IG-post handmatig moet verwijderen (`instagramManual: true`).
+   * Fail-soft: een mislukte FB-delete blokkeert de terugtrekking in onze
+   * eigen DB niet (caller logt/negeert).
+   */
+  async retract(
+    restaurantId: string,
+    postIds: { facebook?: string | null; instagram?: string | null },
+  ): Promise<{
+    facebookDeleted: boolean;
+    instagramManual: boolean;
+    errors: string[];
+  }> {
+    const result = { facebookDeleted: false, instagramManual: false, errors: [] as string[] };
+
+    if (postIds.facebook) {
+      try {
+        const { token, meta } = await this.loadCredential(restaurantId);
+        const pageId = meta.page_id as string | undefined;
+        const accounts = await this.fetchAccounts(token);
+        const page = accounts.find((a) => a.id === pageId);
+        if (!page) {
+          throw new Error('gekoppelde pagina niet meer beschikbaar');
+        }
+        const res = await fetch(
+          `https://graph.facebook.com/${this.graphVersion()}/${postIds.facebook}?access_token=${encodeURIComponent(page.access_token)}`,
+          { method: 'DELETE' },
+        );
+        const json = (await res.json()) as { success?: boolean; error?: unknown };
+        if (!res.ok) throw new Error(JSON.stringify(json));
+        result.facebookDeleted = true;
+      } catch (err) {
+        this.logger.warn(`FB-post verwijderen faalde: ${String(err)}`);
+        result.errors.push('Facebook-post verwijderen mislukt');
+      }
+    }
+
+    // Instagram-media kan niet via de API verwijderd worden → handmatig.
+    if (postIds.instagram) {
+      result.instagramManual = true;
     }
 
     return result;
