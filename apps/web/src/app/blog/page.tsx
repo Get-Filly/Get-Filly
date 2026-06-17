@@ -1,22 +1,28 @@
 // ============================================================
-// /blog — index van blog-/kennisartikelen
+// /blog — kennishub-index (uitgelicht artikel + kernpunten + recent)
 // ============================================================
-// Leest de posts via de content-laag (content/blog/*.md). Zolang er
-// nog geen posts zijn: nette "binnenkort"-staat + noindex (een dunne
-// lege pagina hoort niet in de zoekindex). Zodra er posts staan komt
-// 'ie automatisch in beeld + in de sitemap (zie sitemap.ts).
+// Server-component: leest de gepubliceerde posts (content/blog/*.md) en
+// geeft ze door aan <BlogIndex>. De layout zelf (uitgelicht groen blok,
+// 6 crème-kernpunten, "meest recent"-strip + klikgedrag) staat in de
+// client-component blog-index.tsx.
+//
+// Zolang er nog geen posts zijn tonen de kaarten "binnenkort online" en
+// houden we de pagina uit de zoekindex (noindex) — een dunne placeholder-
+// pagina hoort niet in Google. Zodra er content staat verschijnt 'ie
+// automatisch in de index + sitemap (zie sitemap.ts).
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPosts } from "@/lib/blog";
 import { pageMetadata } from "@/config/seo";
+import { BlogIndex } from "./blog-index";
 
 export async function generateMetadata(): Promise<Metadata> {
   const posts = await getAllPosts();
   const base = pageMetadata({
-    title: "Blog",
+    title: "De marketing cocktail",
     description:
-      "Inzichten over AI-marketing, vindbaarheid en meer bezetting voor de horeca — van Get-Filly.",
+      "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly.",
     path: "/blog",
   });
   // Geen artikelen → uit de index houden tot er content is.
@@ -28,53 +34,34 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function BlogIndexPage() {
   const posts = await getAllPosts();
-
   return (
-    <section className="legal-page">
-      <div className="legal-container">
-        <h1 className="legal-title">Blog</h1>
+    <>
+      <BlogIndex posts={posts} />
 
-        {posts.length === 0 ? (
-          <p className="legal-lead">
-            Binnenkort verschijnen hier artikelen over AI-marketing,
-            online vindbaarheid en meer bezetting voor de horeca.
-          </p>
-        ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {posts.map((p) => (
-              <li
-                key={p.slug}
-                style={{
-                  padding: "16px 0",
-                  borderBottom: "1px solid var(--border, #E5DFD0)",
-                }}
-              >
-                <Link
-                  href={`/blog/${p.slug}`}
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: "var(--brand, #1F4A2D)",
-                    textDecoration: "none",
-                  }}
-                >
-                  {p.title}
-                </Link>
-                {p.date && (
-                  <div style={{ fontSize: 13, color: "var(--tl, #6B6F71)" }}>
-                    {p.date}
-                  </div>
-                )}
-                {p.description && (
-                  <p style={{ margin: "6px 0 0", fontSize: 15 }}>
-                    {p.description}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
+      {/* Groene afsluit-CTA in dezelfde .cta-section-stijl als de rest van
+          de site, maar met een eigen, unieke tekst (niet hergebruikt van een
+          andere pagina) + een doorlink-regel zoals home/product/pricing. De
+          footer (Get-Filly + onderwerpen) volgt automatisch via layout.tsx. */}
+      <section className="cta-section">
+        <h2 className="section-title">Van lezen naar volle tafels.</h2>
+        <p className="section-subtitle">
+          Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts
+          regelen, zodat jij je op je gasten kunt richten.
+        </p>
+        <Link href="/contact" className="cta-btn">
+          Plan een gratis kennismaking in
+        </Link>
+        <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
+          Nieuwsgierig hoe Filly dit doet? Bekijk{" "}
+          <Link
+            href="/product"
+            style={{ color: "#FFFFFF", textDecoration: "underline" }}
+          >
+            het product
+          </Link>
+          .
+        </p>
+      </section>
+    </>
   );
 }

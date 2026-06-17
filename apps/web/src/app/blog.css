@@ -1,0 +1,324 @@
+/* ============================================================
+ * blog.css — styling voor de /blog-index ("De marketing cocktail")
+ * ============================================================
+ * Layout: één groen uitgelicht artikel bovenaan (de "pijler"),
+ * daaronder 2 rijen van 3 kernpunt-kaarten, en een "Meest recent"-
+ * strip op volle breedte. Daarna (in page.tsx) de groene afsluit-CTA.
+ *
+ * Consistentie met de rest van de site:
+ *   - Achtergrond = wit met dezelfde groene radial-gloed + fijn raster
+ *     als de .hero op home/product/etc.
+ *   - Kaarten = .info-card-stijl: cream (--section) + 1px --border +
+ *     groen-getinte drop-shadow. (Niet de bruine --color-surface.)
+ *   - Typografie = Inter (globaal), titels font-weight 700 met lichte
+ *     negatieve letter-spacing, net als .info-card-title.
+ *
+ * Klik-gedrag (zie blog-index.tsx): nog niet-gepubliceerde artikelen
+ * zijn een <div role=button> die een "binnenkort online"-toast toont;
+ * zodra er een echt artikel met die slug bestaat wordt het een <Link>.
+ * ============================================================ */
+
+.blog-hub {
+  padding: 140px 0 96px;
+  background: var(--color-white);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Groene gloed — exact dezelfde drie radial-glows als de sectie
+   ".product-walkthrough" ("Een week met Filly ...") op de productpagina:
+   pure witte achtergrond + groene gloed, zonder raster. */
+.blog-hub::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 700px 400px at 30% 25%, rgba(31, 74, 45, 0.14), transparent 65%),
+    radial-gradient(ellipse 700px 400px at 70% 60%, rgba(31, 74, 45, 0.12), transparent 65%),
+    radial-gradient(ellipse 600px 350px at 30% 90%, rgba(31, 74, 45, 0.1), transparent 65%);
+}
+
+.blog-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.blog-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px;
+}
+
+/* Kleine bovenkop boven titels/in kaarten (categorie). */
+.blog-eyebrow {
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Gemeenschappelijke kaart-schaduw, identiek aan .info-card (groen getint). */
+/* ----------------------------------------------------------
+ * Uitgelicht artikel (groen) — de pijler
+ * ---------------------------------------------------------- */
+.blog-feature {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  background: var(--color-brand);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 40px;
+  /* reset voor div[role=button] / Link zodat 'ie als kaart oogt */
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 20px 50px -20px rgba(31, 74, 45, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.blog-feature:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 26px 60px -22px rgba(31, 74, 45, 0.24);
+}
+.blog-feature:focus-visible {
+  outline: 2px solid var(--color-brand-deep);
+  outline-offset: 2px;
+}
+.blog-feature-img {
+  background: var(--color-brand-deep);
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.blog-feature-img svg {
+  color: rgba(255, 255, 255, 0.45);
+}
+.blog-feature-body {
+  padding: 40px;
+  color: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.blog-feature-body .blog-eyebrow {
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 14px;
+}
+.blog-feature-title {
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+}
+.blog-feature-excerpt {
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 14px 0 18px;
+  max-width: 520px;
+}
+.blog-feature-meta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ----------------------------------------------------------
+ * Kernpunten — 2 rijen van 3 kaarten
+ * ---------------------------------------------------------- */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 72px;
+}
+.blog-card {
+  background: var(--section);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  min-height: 156px;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 20px 50px -20px rgba(31, 74, 45, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.blog-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-brand);
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 24px 56px -22px rgba(31, 74, 45, 0.2);
+}
+.blog-card:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.blog-card .blog-eyebrow {
+  color: var(--color-brand);
+  margin-bottom: 10px;
+}
+.blog-card-title {
+  font-size: 17px;
+  line-height: 1.4;
+  letter-spacing: -0.3px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+.blog-card-meta,
+.blog-recent-meta {
+  margin-top: auto;
+  padding-top: 18px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ----------------------------------------------------------
+ * Meest recent — brede strip-kaarten (zelfde breedte als de pijler)
+ * ---------------------------------------------------------- */
+.blog-recent-title {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+  text-align: center;
+  color: var(--color-text);
+  margin-bottom: 28px;
+}
+.blog-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.blog-recent-card {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  background: var(--section);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  overflow: hidden;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 20px 50px -20px rgba(31, 74, 45, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.blog-recent-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-brand);
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 24px 56px -22px rgba(31, 74, 45, 0.2);
+}
+.blog-recent-card:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.blog-recent-img {
+  background: var(--color-brand-soft);
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.blog-recent-img svg {
+  color: var(--color-brand);
+}
+.blog-recent-body {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.blog-recent-card .blog-eyebrow {
+  color: var(--color-brand);
+  margin-bottom: 8px;
+}
+.blog-recent-card-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+.blog-recent-card .blog-recent-meta {
+  margin-top: 8px;
+  padding-top: 0;
+}
+
+/* ----------------------------------------------------------
+ * "Binnenkort online"-toast (fixed onderaan)
+ * ---------------------------------------------------------- */
+.blog-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--color-brand-deep);
+  color: var(--color-white);
+  font-size: 14px;
+  padding: 12px 20px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 1000;
+}
+.blog-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ----------------------------------------------------------
+ * Responsive
+ * ---------------------------------------------------------- */
+@media (max-width: 860px) {
+  .blog-hub {
+    padding-top: 110px;
+  }
+  .blog-wrap {
+    padding: 0 20px;
+  }
+  .blog-feature,
+  .blog-recent-card {
+    grid-template-columns: 1fr;
+  }
+  .blog-feature-img,
+  .blog-recent-img {
+    min-height: 180px;
+  }
+  .blog-feature-body {
+    padding: 28px 24px;
+  }
+  .blog-feature-title {
+    font-size: 22px;
+  }
+  .blog-grid {
+    grid-template-columns: 1fr;
+  }
+}
