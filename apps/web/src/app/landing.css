@@ -2039,7 +2039,10 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 }
 .walk-step-label {
   font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
-  text-transform: uppercase; color: var(--accent-dark);
+  /* Tekstkleur gelijk aan de nav + homepage-pills (var(--text)) i.p.v.
+     groen, zodat alle pill-labels dezelfde tekstkleur delen op hun groene
+     omkadering (Floris-feedback 2026-06-13). */
+  text-transform: uppercase; color: var(--text);
 }
 
 /* ===== STAP 1, Bezetting tile ===== */
