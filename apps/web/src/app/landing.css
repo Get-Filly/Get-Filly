@@ -1408,7 +1408,10 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   background: var(--accent-light, #D6E0D8);
   border-radius: 999px;
   letter-spacing: 0.8px;
-  color: var(--accent);
+  /* Tekstkleur gelijk aan de nav-items (var(--text)) i.p.v. groen, zodat de
+     pill-labels dezelfde tekstkleur hebben als Home/Oplossing/Prijzen/Over
+     ons — ze deelden al de groene omkadering (Floris-feedback 2026-06-13). */
+  color: var(--text);
   margin-bottom: 20px;
 }
 .feature-row-title {
