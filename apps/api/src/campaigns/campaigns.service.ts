@@ -1127,17 +1127,65 @@ export class CampaignsService {
     // vangen kan geen kwaad.
     if (type === 'mail') return;
 
-    this.logger.log(
-      `Terugtrekken van kanaal (${type ?? 'onbekend'}) voor campagne ` +
-        `${campaignId} (restaurant ${restaurantId}). ` +
-        `Kanaal-delete is nog een stub — vereist Meta/TikTok OAuth. ` +
-        `Status wordt teruggezet naar concept; verwijder de post zo ` +
-        `nodig handmatig tot de koppeling live is.`,
-    );
+    // Alleen social heeft nu een echte koppeling (Meta). WhatsApp/TikTok:
+    // nog geen API → alleen loggen, eigenaar verwijdert handmatig.
+    if (type !== 'social') {
+      this.logger.log(
+        `Terugtrekken van ${type ?? 'onbekend'}-kanaal voor ${campaignId} ` +
+          `nog niet ondersteund (geen API-koppeling). Verwijder handmatig.`,
+      );
+      return;
+    }
 
-    // TODO (na Meta/TikTok OAuth): laad de bewaarde external post-id en
-    // roep de juiste delete-endpoint aan per platform. Bij falen:
-    // logger.warn, niet throwen.
+    // Bewaarde post-id's ophalen (gezet bij publiceren).
+    const { data: content } = await this.supabase.client
+      .from('campaign_social_content')
+      .select('published_post_ids')
+      .eq('campaign_id', campaignId)
+      .maybeSingle();
+    const postIds = (content?.published_post_ids ?? null) as {
+      facebook?: string;
+      instagram?: string;
+    } | null;
+
+    // Niets gepubliceerd (of al teruggetrokken) → niets te doen.
+    if (!postIds || (!postIds.facebook && !postIds.instagram)) return;
+
+    // Facebook echt verwijderen; Instagram kan niet via de API (handmatig).
+    // Fail-soft: een mislukte kanaal-delete mag de terugtrekking in onze
+    // eigen DB niet blokkeren (anders blijft de campagne op 'actief' hangen).
+    const res = await this.meta
+      .retract(restaurantId, {
+        facebook: postIds.facebook ?? null,
+        instagram: postIds.instagram ?? null,
+      })
+      .catch((err) => {
+        this.logger.warn(
+          `Meta-retract faalde voor ${campaignId}: ${String(err)}`,
+        );
+        return null;
+      });
+
+    if (res?.instagramManual) {
+      this.logger.log(
+        `Campagne ${campaignId}: Instagram-post kan niet via de API worden ` +
+          `verwijderd — eigenaar moet 'm handmatig in de IG-app verwijderen.`,
+      );
+    }
+
+    // Publicatiestaat wissen zodat de campagne niet meer als 'gepubliceerd'
+    // geldt en bij her-activeren opnieuw geplaatst kan worden.
+    await this.supabase.client
+      .from('campaign_social_content')
+      .update({
+        published_at: null,
+        published_post_ids: null,
+        publish_error: res?.instagramManual
+          ? 'Instagram-post handmatig verwijderen (kan niet via de API).'
+          : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('campaign_id', campaignId);
   }
 
   // ============================================================

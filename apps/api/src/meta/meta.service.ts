@@ -450,6 +450,56 @@ export class MetaService {
     return result;
   }
 
+  /**
+   * Trekt een eerder geplaatste post terug (campagne actief → concept).
+   *   - Facebook: post echt verwijderen via DELETE /{post-id} met een
+   *     verse page-token.
+   *   - Instagram: de Graph API kent GÉÉN delete voor geplaatste media,
+   *     dus dat kan niet via de API. We melden dat de eigenaar de
+   *     IG-post handmatig moet verwijderen (`instagramManual: true`).
+   * Fail-soft: een mislukte FB-delete blokkeert de terugtrekking in onze
+   * eigen DB niet (caller logt/negeert).
+   */
+  async retract(
+    restaurantId: string,
+    postIds: { facebook?: string | null; instagram?: string | null },
+  ): Promise<{
+    facebookDeleted: boolean;
+    instagramManual: boolean;
+    errors: string[];
+  }> {
+    const result = { facebookDeleted: false, instagramManual: false, errors: [] as string[] };
+
+    if (postIds.facebook) {
+      try {
+        const { token, meta } = await this.loadCredential(restaurantId);
+        const pageId = meta.page_id as string | undefined;
+        const accounts = await this.fetchAccounts(token);
+        const page = accounts.find((a) => a.id === pageId);
+        if (!page) {
+          throw new Error('gekoppelde pagina niet meer beschikbaar');
+        }
+        const res = await fetch(
+          `https://graph.facebook.com/${this.graphVersion()}/${postIds.facebook}?access_token=${encodeURIComponent(page.access_token)}`,
+          { method: 'DELETE' },
+        );
+        const json = (await res.json()) as { success?: boolean; error?: unknown };
+        if (!res.ok) throw new Error(JSON.stringify(json));
+        result.facebookDeleted = true;
+      } catch (err) {
+        this.logger.warn(`FB-post verwijderen faalde: ${String(err)}`);
+        result.errors.push('Facebook-post verwijderen mislukt');
+      }
+    }
+
+    // Instagram-media kan niet via de API verwijderd worden → handmatig.
+    if (postIds.instagram) {
+      result.instagramManual = true;
+    }
+
+    return result;
+  }
+
   // ----------------------------------------------------------------
   // Meta-callbacks (server-to-server, GEEN ingelogde user)
   // ----------------------------------------------------------------
