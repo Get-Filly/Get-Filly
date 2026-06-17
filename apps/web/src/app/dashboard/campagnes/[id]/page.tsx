@@ -10,6 +10,7 @@ import {
   generateMoreCampaignVariants,
   selectCampaignVariant,
   sendCampaign,
+  publishCampaign,
   setCampaignSchedule,
   updateCampaignStatus,
   fetchRepetitionCheck,
@@ -428,13 +429,35 @@ export default function UnifiedDetailPage() {
         });
         const mailCount = mailChannelsToSend.length;
 
-        // Confirm-tekst aanpassen aan wat er daadwerkelijk gebeurt.
+        // Social-kanalen publiceren naar FB/IG bij activeren. We filteren
+        // op campagne-type (niet op het granulaire platform-veld); de
+        // backend is idempotent, dus al-gepubliceerde kanalen worden
+        // overgeslagen.
+        const socialChannelsToPublish = view.channels.filter(
+          (c) => view.campaignsByChannelId[c.id]?.type === "social",
+        );
+        const socialCount = socialChannelsToPublish.length;
+
+        // Confirm-tekst opbouwen uit wat er daadwerkelijk gebeurt.
+        const actions: string[] = [];
+        if (mailCount > 0) {
+          actions.push(
+            mailCount === 1
+              ? "de mail wordt direct verstuurd naar alle opt-in gasten"
+              : `${mailCount} mails worden direct verstuurd naar alle opt-in gasten`,
+          );
+        }
+        if (socialCount > 0) {
+          actions.push(
+            socialCount === 1
+              ? "de social-post wordt direct op Facebook/Instagram geplaatst"
+              : `${socialCount} social-posts worden direct op Facebook/Instagram geplaatst`,
+          );
+        }
         const confirmMsg =
-          mailCount === 0
+          actions.length === 0
             ? "Weet je zeker dat je deze campagne nu wil activeren?"
-            : mailCount === 1
-              ? "Weet je zeker dat je deze campagne nu wil activeren? De mail wordt direct verstuurd naar alle opt-in gasten."
-              : `Weet je zeker dat je deze bundle nu wil activeren? ${mailCount} mails worden direct verstuurd naar alle opt-in gasten.`;
+            : `Weet je zeker dat je deze campagne nu wil activeren? ${actions.join(" en ")}.`;
         if (!window.confirm(confirmMsg)) return;
 
         setActionError(null);
@@ -444,6 +467,12 @@ export default function UnifiedDetailPage() {
           // fout-attributie als één campagne in een bundle struikelt).
           for (const c of mailChannelsToSend) {
             await sendCampaign(c.id, "all_opted_in");
+          }
+          // Stap 1b: social-posts publiceren naar FB/IG. Faalt dit (geen
+          // Meta-koppeling / geen pagina gekozen / Meta-fout), dan gooit
+          // publishCampaign en blijft de status op concept/ingepland staan.
+          for (const c of socialChannelsToPublish) {
+            await publishCampaign(c.id);
           }
           // Stap 2: status-flip op alle channels (mail + social).
           await Promise.all(

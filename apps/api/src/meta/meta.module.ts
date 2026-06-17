@@ -25,5 +25,8 @@ import { MetaService } from './meta.service';
     AuthGuard,
     RestaurantAccessGuard,
   ],
+  // Geëxporteerd zodat CampaignsModule social-campagnes via de bestaande
+  // publish-flow naar FB/IG kan plaatsen (hergebruik i.p.v. dupliceren).
+  exports: [MetaService],
 })
 export class MetaModule {}

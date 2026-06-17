@@ -207,6 +207,14 @@ export class CampaignsController {
     return this.campaigns.remove(restaurantId, id, user.id);
   }
 
+  // POST /api/campaigns/:id/publish — publiceer een social-campagne nu
+  // naar Facebook/Instagram. Idempotent (al gepubliceerd → no-op).
+  // Gebruikt door "Activeer nu" in de detail-page.
+  @Post(':id/publish')
+  publish(@RestaurantId() restaurantId: string, @Param('id') id: string) {
+    return this.campaigns.publishSocialCampaign(restaurantId, id);
+  }
+
   // Lees gecachte filly-varianten + regen-count. Géén generatie.
   // Frontend gebruikt dit bij page-open om te bepalen of er al
   // varianten zijn (=> tonen) of dat een initial generate moet

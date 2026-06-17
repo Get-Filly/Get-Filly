@@ -626,6 +626,23 @@ export async function sendCampaign(
   return res.json();
 }
 
+// Publiceert een social-campagne nu naar Facebook/Instagram via de
+// (goedgekeurde) Meta-koppeling. Idempotent: al gepubliceerd → no-op.
+// Gebruikt in de "Activeer nu"-flow voor social-kanalen.
+export async function publishCampaign(
+  id: string,
+): Promise<{ published: boolean; alreadyPublished?: boolean }> {
+  const res = await authedFetch(`${API_URL}/campaigns/${id}/publish`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    // Backend geeft een duidelijke reden (geen koppeling / geen pagina /
+    // Meta-fout); die tonen we in de activeer-foutmelding.
+    throw new Error(await readErrorMessage(res, "Publiceren naar Facebook/Instagram mislukt"));
+  }
+  return res.json();
+}
+
 // ============================================================
 // Eigen-domein-flow (stap 2)
 // ============================================================

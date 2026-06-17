@@ -10,6 +10,8 @@ import { AuditLogModule } from '../common/audit-log.module';
 import { AnonymizationModule } from '../anonymization/anonymization.module';
 import { MailModule } from '../mail/mail.module';
 import { EventsModule } from '../events/events.module';
+// MetaModule levert MetaService: social-campagnes publiceren naar FB/IG.
+import { MetaModule } from '../meta/meta.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -30,6 +32,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     AnonymizationModule,
     MailModule,
     EventsModule,
+    MetaModule,
   ],
   controllers: [CampaignsController],
   providers: [

@@ -20,6 +20,9 @@ import { AuditLogService } from '../common/audit-log.service';
 import { AnonymizationService } from '../anonymization/anonymization.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
 import { CampaignFingerprintService } from './campaign-fingerprint.service';
+// MetaService: publiceert social-campagnes naar Facebook/Instagram via de
+// bestaande, goedgekeurde Meta-koppeling (token-opslag + /publish).
+import { MetaService } from '../meta/meta.service';
 import type Anthropic from '@anthropic-ai/sdk';
 
 // Schema voor 3-varianten-tool. minItems/maxItems forceert
@@ -191,7 +194,145 @@ export class CampaignsService {
     // stilistische metadata (opening / hashtags / cta / dish) voor
     // de leerloop + anti-repetitie (filly-brein hfst 8 + 9).
     private readonly fingerprint: CampaignFingerprintService,
+    // MetaService: social-campagne → FB/IG-post. Request-scoped net als
+    // deze service, dus injecteren kan zonder scope-conflict.
+    private readonly meta: MetaService,
   ) {}
+
+  /**
+   * ============================================================
+   * publishSocialCampaign — social-campagne naar Facebook/Instagram
+   * ============================================================
+   * Plaatst de caption + foto van een social-campagne op de gekoppelde
+   * FB-pagina en/of het IG-account, via de bestaande Meta-publish-flow.
+   *
+   * Gebruikt door BEIDE triggers:
+   *   - direct ("Activeer nu" in de detail-page),
+   *   - straks de cron voor ingeplande campagnes (fase B).
+   *
+   * Idempotent: al gepubliceerd (published_at gevuld) → no-op, zodat
+   * her-activeren of een dubbele cron-run niet dubbel post.
+   *
+   * Vereist een actieve Meta-koppeling MET gekozen pagina (zie de
+   * koppelingen-tab). Ontbreekt die → MetaService gooit een duidelijke
+   * BadRequest die naar boven bubbelt (de activeer-flow toont 'm).
+   */
+  async publishSocialCampaign(
+    restaurantId: string,
+    campaignId: string,
+  ): Promise<{
+    published: boolean;
+    alreadyPublished?: boolean;
+    postIds?: Record<string, string>;
+  }> {
+    // 1. Campagne ophalen, dubbel gescoped op restaurant (defense-in-depth).
+    const { data: campaign, error: cErr } = await this.supabase.client
+      .from('campaigns')
+      .select('id, type')
+      .eq('restaurant_id', restaurantId)
+      .eq('id', campaignId)
+      .maybeSingle();
+    if (cErr) throw new InternalServerErrorException(cErr.message);
+    if (!campaign) throw new BadRequestException('Campagne niet gevonden.');
+    if (campaign.type !== 'social') {
+      throw new BadRequestException(
+        'Alleen social-campagnes kunnen naar Facebook/Instagram gepubliceerd worden.',
+      );
+    }
+
+    const { data: content, error: scErr } = await this.supabase.client
+      .from('campaign_social_content')
+      .select(
+        'caption, social_platforms, social_hashtags, media_urls, published_at',
+      )
+      .eq('campaign_id', campaignId)
+      .maybeSingle();
+    if (scErr) throw new InternalServerErrorException(scErr.message);
+    if (!content) {
+      throw new BadRequestException('Social-content ontbreekt voor deze campagne.');
+    }
+
+    // 2. Idempotent: al gepubliceerd → niet opnieuw posten.
+    if (content.published_at) {
+      return { published: false, alreadyPublished: true };
+    }
+
+    // 3. Berichttekst: caption + hashtags.
+    const caption = ((content.caption as string | null) ?? '').trim();
+    const hashtags = Array.isArray(content.social_hashtags)
+      ? (content.social_hashtags as string[])
+          .map((h) => (h.startsWith('#') ? h : `#${h}`))
+          .join(' ')
+      : '';
+    const message = [caption, hashtags].filter(Boolean).join('\n\n');
+    if (!message) {
+      throw new BadRequestException('Deze social-campagne heeft nog geen tekst.');
+    }
+
+    // 4. Foto signen (Meta haalt 'm server-side op; een signed URL van een
+    //    uur volstaat). IG vereist een foto; een FB-tekstpost mag zonder.
+    const paths = Array.isArray(content.media_urls)
+      ? (content.media_urls as string[])
+      : [];
+    const imageUrl =
+      paths.length > 0
+        ? await this.signMediaPath(paths[0]).catch(() => undefined)
+        : undefined;
+
+    // 5. Kanaalkeuze → FB/IG. Lege/onbekende platforms = generiek "social"
+    //    → Facebook altijd, Instagram alleen als er een foto is.
+    const platforms = Array.isArray(content.social_platforms)
+      ? (content.social_platforms as string[])
+      : [];
+    const toFacebook = platforms.length === 0 ? true : platforms.includes('facebook');
+    const toInstagram =
+      platforms.length === 0 ? !!imageUrl : platforms.includes('instagram');
+    if (!toFacebook && !toInstagram) {
+      throw new BadRequestException(
+        'Geen ondersteund kanaal (Facebook/Instagram) voor deze campagne.',
+      );
+    }
+
+    // 6. Publiceren via de Meta-backend (zelfde flow als het test-paneel).
+    const result = await this.meta.publish(restaurantId, {
+      message,
+      imageUrl,
+      toFacebook,
+      toInstagram,
+    });
+
+    const postIds: Record<string, string> = {};
+    if (result.facebook?.id) postIds.facebook = result.facebook.id;
+    if (result.instagram?.id) postIds.instagram = result.instagram.id;
+    const anySuccess = Object.keys(postIds).length > 0;
+
+    // 7. Niets gelukt → fout opslaan + naar boven gooien zodat de
+    //    activeer-flow de status NIET op 'actief' zet.
+    if (!anySuccess) {
+      const msg =
+        result.errors.join(' ') ||
+        'Publiceren naar Facebook/Instagram mislukt.';
+      await this.supabase.client
+        .from('campaign_social_content')
+        .update({ publish_error: msg, updated_at: new Date().toISOString() })
+        .eq('campaign_id', campaignId);
+      throw new BadRequestException(msg);
+    }
+
+    // 8. (Deels) gelukt → post-ids + tijd vastleggen; fout-veld bevat een
+    //    eventuele deelfout (bv. IG mislukt maar FB gelukt).
+    await this.supabase.client
+      .from('campaign_social_content')
+      .update({
+        published_at: new Date().toISOString(),
+        published_post_ids: postIds,
+        publish_error: result.errors.length ? result.errors.join(' ') : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('campaign_id', campaignId);
+
+    return { published: true, postIds };
+  }
 
   async findAll(restaurantId: string): Promise<Campaign[]> {
     // Eerst de campagne-rijen, daarna 2 batch-queries voor de content-
