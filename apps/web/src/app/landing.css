@@ -3582,6 +3582,86 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 .fade-up.d3 { animation-delay: .75s; }
 .fade-up.d4 { animation-delay: 1s; }
 
+/* ============================================================
+ * .home-flow — hero + "Waarom het werkt" + pijlers als ÉÉN doorlopende
+ * witte sectie met één groene gloed. De losse achtergronden, gloeden en
+ * het hero-raster van die drie secties worden hier uitgezet, zodat er geen
+ * naden of dubbele gloeden ontstaan. De gloed loopt over de volle hoogte.
+ * ============================================================ */
+.home-flow {
+  background: var(--true-white);
+  position: relative;
+  overflow: hidden;
+}
+.home-flow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 820px 520px at 50% 3%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 720px 520px at 20% 22%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 760px 540px at 82% 40%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 720px 540px at 22% 60%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 760px 540px at 80% 80%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 720px 500px at 42% 98%, rgba(31, 74, 45, 0.09), transparent 55%);
+}
+.home-flow > * {
+  position: relative;
+  z-index: 1;
+}
+/* De drie secties zelf transparant + hun eigen gloed/raster uit. */
+.home-flow .hero,
+.home-flow .features {
+  background: transparent;
+}
+.home-flow .hero::before,
+.home-flow .hero::after,
+.home-flow .features::before {
+  display: none;
+}
+
+/* ============================================================
+ * "Waarom het werkt" — homepage-sectie met de 4 kennishub-kernpunten.
+ * Achtergrond + gloed komen van .home-flow (deze sectie is transparant).
+ * De kaarten hergebruiken .blog-card uit blog.css en poppen on-load op via
+ * .fade-up (d1–d4), exact zoals de "AI dóet het werk"-blokken op /product.
+ * ============================================================ */
+.why-works {
+  padding-top: 80px;
+  padding-bottom: 96px;
+  position: relative;
+}
+.why-works > * {
+  position: relative;
+  z-index: 1;
+}
+.why-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.why-head .section-subtitle {
+  margin: 16px auto 0;
+}
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 48px;
+}
+/* Geen vaste min-height: grid-stretch maakt de kaarten in een rij vanzelf
+   even hoog (de kaarten hebben geen meta-regel meer onderaan). */
+.why-grid .blog-card {
+  min-height: 0;
+}
+@media (max-width: 980px) {
+  .why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .why-grid { grid-template-columns: 1fr; }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 880px) {
   .feature-row { grid-template-columns: 1fr; padding: 32px; gap: 32px; min-height: auto; }

@@ -196,9 +196,25 @@ export const metadata = pageMetadata({
   path: "/",
 });
 
+// De 4 kernpunten uit de kennishub die ook op de home onder "Waarom het
+// werkt" staan (titels gelijk aan /blog). De kaarten linken door naar de
+// kennishub. De "binnenkort online"-tekst + icoon tonen we bewust ALLEEN op
+// de blogpagina, niet hier.
+const WHY_POINTS = [
+  { eyebrow: "Gegevens", title: "Consistente gegevens: 18% meer lokale zichtbaarheid" },
+  { eyebrow: "Profiel", title: "Een compleet profiel wordt 2,3× vaker gevonden" },
+  { eyebrow: "Reviews", title: "Recente reviews wegen zwaarder dan het totaal" },
+  { eyebrow: "Posten", title: "Structureel posten: 3 tot 5× per week is de sweet spot" },
+];
+
 export default function HomePage() {
   return (
     <>
+      {/* Eén doorlopende witte sectie met groene gloed: hero + "Waarom het
+          werkt" + de pijlers vloeien in elkaar over. De losse achtergronden,
+          gloeden en het hero-raster van deze drie secties worden in
+          .home-flow uitgezet (zie landing.css). */}
+      <div className="home-flow">
       <section className="hero">
         <div className="container">
           <h1 className="section-title fade-up d1">
@@ -231,6 +247,34 @@ export default function HomePage() {
                 de chat). Valt over de rechter-rand van de laptop (diepte) maar
                 laat de Get-Filly-chat vrij. Verborgen op mobiel. */}
             <LandingPhone />
+          </div>
+        </div>
+      </section>
+
+      {/* "Waarom het werkt" — de 4 kernpunten uit de kennishub, direct na de
+          hero. De kaarten poppen on-load op met dezelfde fade-up (d1–d4) als
+          de "AI dóet het werk"-blokken op /product. Ze linken door naar /blog;
+          de "binnenkort online"-tekst staat bewust alleen op de blogpagina. */}
+      <section className="why-works">
+        <div className="container">
+          <div className="why-head">
+            <h2 className="section-title">Waarom het werkt</h2>
+            <p className="section-subtitle">
+              De cijfers achter Filly: betere profielen en een vast ritme zorgen
+              dat gasten je vaker vinden.
+            </p>
+          </div>
+          <div className="why-grid">
+            {WHY_POINTS.map((p, i) => (
+              <Link
+                key={p.eyebrow}
+                href="/blog"
+                className={`blog-card fade-up d${i + 1}`}
+              >
+                <div className="blog-eyebrow">{p.eyebrow}</div>
+                <div className="blog-card-title">{p.title}</div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -329,6 +373,8 @@ export default function HomePage() {
 
         </div>
       </section>
+      {/* einde .home-flow (hero + "Waarom het werkt" + pijlers) */}
+      </div>
 
       {/* Afsluitende CTA. Per 2026-05-30 omgezet van de ingesloten
           .pillars-cta-kaart naar de full-bleed groene .cta-section,
