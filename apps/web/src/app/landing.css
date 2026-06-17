@@ -3323,6 +3323,35 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
     grid-template-columns: 1fr;
   }
 }
+
+/* Gecentreerd uitlijnen, conform de home- en pricing-hero (geen lege
+   rechterkant meer). Lange lopende tekst blijft links uitgelijnd binnen de
+   gecentreerde kolom, zodat 't leesbaar blijft. */
+.about-intro,
+.about-story {
+  text-align: center;
+}
+.about-intro .section-title,
+.about-intro .section-subtitle,
+.about-story-lead {
+  margin-left: auto;
+  margin-right: auto;
+}
+.about-story-body {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+.about-drive .section-title {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+.about-mv {
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
+}
 .info-card.about-info-card {
   background: var(--bg);
   border: 1px solid var(--border);

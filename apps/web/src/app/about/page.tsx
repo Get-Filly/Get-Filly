@@ -42,7 +42,7 @@ export default function AboutPage() {
           <div className="container">
             <h1 className="section-title">Van idee naar impact.</h1>
             <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
-              Get-Filly is opgericht door twee ondernemers met één missie: ondernemingen helpen hun rustige momenten om te zetten in omzet, zonder dat je er uren of grote bedragen aan marketing en website-optimalisatie kwijt bent.
+              Get-Filly is opgericht door twee ondernemers met één missie: meer gasten aan tafel, zonder dat marketing je tijd of budget opslokt.
             </p>
           </div>
         </section>
@@ -51,7 +51,7 @@ export default function AboutPage() {
         <section className="about-story">
           <div className="container">
             {/* Lead + body springen samen op via de site-brede [data-reveal]
-                (1.5s, zodra in beeld) — zelfde snelheid + trigger als elders. */}
+                (1.5s, zodra in beeld): zelfde snelheid + trigger als elders. */}
             <div data-reveal>
               <p className="about-story-lead">
                 Het beste restaurant zit niet altijd vol. De best vindbare wel.
