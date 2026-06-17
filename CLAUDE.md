@@ -134,6 +134,18 @@ JSON-LD (Organization/WebSite/SoftwareApplication) en gegenereerde OG-image.
 Centrale config in `apps/web/src/config/seo.ts` (`SITE_URL` = canoniek domein).
 Nog te doen: apex→www 301 in Vercel + Google Search Console + sitemap indienen.
 
+**Publieke site, visuele ronde** (2026-06-17): `/blog` is nu de kennishub
+**"De marketing cocktail"** (uitgelicht pijler-artikel + 6 kernpunt-kaarten +
+"Meest recent"; `app/blog.css` + `app/blog/blog-index.tsx`). Kaarten tonen een
+"binnenkort online"-toast en worden echte links zodra er een `content/blog/<slug>.md`
+bestaat; pagina blijft `noindex` tot er content is. Home heeft een nieuwe sectie
+**"Waarom het werkt"** (4 kernpunt-kaarten, scroll-reveal, doorlink naar `/blog`);
+hero + die sectie + pijlers staan in één `.home-flow` (wit + doorlopende groene
+gloed). /about: nieuwe intro + Missie/Visie als groene eyebrows + uitlijning "Wat
+ons drijft". Eyebrow-stijl site-breed gelijkgetrokken (home-pijlers + /product-
+stap-labels: pill weg, groene eyebrow; stap-tijd subtiel grijs). Zie changelog
+2026-06-17 in BACKLOG.md.
+
 **Belangrijke dev-toggle**: email-confirmation staat **UIT** in Supabase (dev-bypass). **Terug AAN zetten voordat er productie-klanten op komen** — staat als ⚠️ in BACKLOG P0.
 
 ## Handmatige Supabase-config (niet in migraties)
