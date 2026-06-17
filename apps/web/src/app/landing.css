@@ -3312,10 +3312,11 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   padding: 28px 32px;
 }
 .about-mv-label {
-  font-size: 13px;
+  /* Dikgedrukt als de kaart-titels (.hero-diff-title): donker, 17px, 700. */
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--accent);
+  letter-spacing: -0.2px;
+  color: var(--text);
   margin: 0 0 12px;
 }
 .about-mv-text {
@@ -3353,6 +3354,16 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   text-align: center;
   margin-left: auto;
   margin-right: auto;
+}
+/* "Wat ons drijft" heeft geen nummer-cirkels (anders dan de product-hero-
+   diffs), dus de 3-rij-subgrid van .hero-diff klopt hier niet en gaf losse,
+   ongelijke spatiëring. Hier een simpele kolom: titel + tekst strak onder
+   elkaar, netjes uitgelijnd over de 3 kolommen. */
+.about-drive .hero-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  grid-row: auto;
 }
 .about-mv {
   max-width: 920px;

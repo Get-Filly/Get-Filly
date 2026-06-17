@@ -42,7 +42,7 @@ export default function AboutPage() {
           <div className="container">
             <h1 className="section-title">Van idee naar impact.</h1>
             <p className="section-subtitle" style={{ marginTop: 18, maxWidth: 640 }}>
-              Get-Filly is opgericht door twee ondernemers met één missie: meer gasten aan tafel, zonder dat marketing je tijd of budget opslokt.
+              Het beste restaurant zit niet altijd vol. De best vindbare wel.
             </p>
           </div>
         </section>
@@ -53,12 +53,9 @@ export default function AboutPage() {
             {/* Lead + body springen samen op via de site-brede [data-reveal]
                 (1.5s, zodra in beeld): zelfde snelheid + trigger als elders. */}
             <div data-reveal>
-              <p className="about-story-lead">
-                Het beste restaurant zit niet altijd vol. De best vindbare wel.
-              </p>
               <div className="about-story-body">
                 <p>
-                  Dat zagen we overal: zaken met fantastisch eten en trouwe gasten, en toch lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
+                  We zagen het overal: zaken met fantastisch eten en trouwe gasten, en toch lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
                 </p>
                 <p>
                   En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z'n zaak op z'n eigen manier wil laten groeien.
