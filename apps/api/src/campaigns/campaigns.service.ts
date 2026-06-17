@@ -223,6 +223,8 @@ export class CampaignsService {
   ): Promise<{
     published: boolean;
     alreadyPublished?: boolean;
+    skipped?: boolean;
+    reason?: string;
     postIds?: Record<string, string>;
   }> {
     // 1. Campagne ophalen, dubbel gescoped op restaurant (defense-in-depth).
@@ -255,6 +257,20 @@ export class CampaignsService {
     // 2. Idempotent: al gepubliceerd → niet opnieuw posten.
     if (content.published_at) {
       return { published: false, alreadyPublished: true };
+    }
+
+    // 2b. Veiligheid (regressie-fix): alleen publiceren als Meta gekoppeld
+    // is MÉT gekozen pagina. Zo blokkeert het activeren van een social-
+    // campagne NIET voor zaken zonder (volledige) Meta-koppeling — dan
+    // flippen we alleen de status, zoals vóór deze feature. De cron
+    // (fase B) slaat zulke campagnes om dezelfde reden netjes over.
+    const metaStatus = await this.meta.status(restaurantId);
+    if (!metaStatus.connected || !metaStatus.page) {
+      return {
+        published: false,
+        skipped: true,
+        reason: metaStatus.connected ? 'no_page' : 'not_connected',
+      };
     }
 
     // 3. Berichttekst: caption + hashtags.
