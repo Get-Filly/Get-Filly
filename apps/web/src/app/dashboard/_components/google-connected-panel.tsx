@@ -10,7 +10,7 @@
 //
 // Vóór de Business Profile API-goedkeuring (quotum 0) geeft Google 403;
 // dat tonen we als een nette "toegang in aanvraag"-melding i.p.v. een
-// fout. Self-gating: niet gekoppeld / flag uit -> rendert niets.
+// fout. Self-gating: niet gekoppeld -> rendert niets.
 
 import { useEffect, useState } from "react";
 
@@ -20,9 +20,6 @@ import {
   googleBusinessProfile,
   type GoogleBusinessAccount,
 } from "@/lib/api";
-
-const GOOGLE_OAUTH_ENABLED =
-  process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === "true";
 
 export function GoogleConnectedPanel() {
   const { active } = useRestaurant();
@@ -34,10 +31,6 @@ export function GoogleConnectedPanel() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!GOOGLE_OAUTH_ENABLED) {
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
@@ -68,8 +61,8 @@ export function GoogleConnectedPanel() {
     };
   }, [active?.id]);
 
-  // Flag uit, nog ladend, of niet gekoppeld -> niets tonen.
-  if (!GOOGLE_OAUTH_ENABLED || loading || !connected) return null;
+  // Nog ladend of niet gekoppeld -> niets tonen.
+  if (loading || !connected) return null;
 
   return (
     <div

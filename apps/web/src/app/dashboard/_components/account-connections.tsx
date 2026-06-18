@@ -11,14 +11,6 @@ import {
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
 
-// Feature-flag: live Google-OAuth-flow. Staat standaard uit zodat
-// eigenaars geen "Verbind" zien zolang de Google-API-toegang +
-// verificatie nog niet rond zijn. Flag UIT -> de Google-rij toont alleen
-// "Beheer" (de vindbaarheid-hub draait op de Places-API-key, los van
-// OAuth). Flag AAN -> Verbind / ✓ Verbonden op basis van de live status.
-const GOOGLE_OAUTH_ENABLED =
-  process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === "true";
-
 // ============================================================
 // AccountConnections, koppelingen-tab
 // ============================================================
@@ -96,10 +88,9 @@ const integrations: Integration[] = [
     category: "reserveringen",
   },
   {
-    // Eén Google-rij. Verbonden? -> "✓ Verbonden" + Beheer (hub) + Ontkoppel.
-    // Niet verbonden + flag aan -> "Verbind" (business.manage-OAuth).
-    // Flag uit -> alleen "Beheer" -> vindbaarheid-hub (Places-audit op
-    // de API-key, los van de OAuth-tokens).
+    // Eén Google-rij met volledige cyclus: niet verbonden -> "Verbind" +
+    // "Beheer" (→ profiel-scherm); verbonden -> "✓ Verbonden" + Beheer +
+    // Ontkoppel. Zo komt na ontkoppelen altijd weer een koppel-knop terug.
     key: "google_business",
     icon: "📍",
     name: "Google Bedrijfsprofiel",
@@ -266,9 +257,8 @@ export function ConnectionsSection() {
     metaStatus()
       .then((s) => setStatus((p) => ({ ...p, meta: s.connected })))
       .catch(() => setStatus((p) => ({ ...p, meta: false })));
-    // Google-status altijd bevragen: ook met de flag uit willen we een
-    // bestaande koppeling kunnen tonen + ontkoppelen. De "Verbind"-knop
-    // blijft wél flag-gated (zie OAuthAction).
+    // Google-status ophalen zodat de rij de echte staat toont (Verbind vs
+    // Verbonden + Ontkoppel).
     googleBusinessStatus()
       .then((s) => setStatus((p) => ({ ...p, google_business: s.connected })))
       .catch(() => setStatus((p) => ({ ...p, google_business: false })));
@@ -434,7 +424,6 @@ function OAuthAction({
   onDisconnect: (provider: Provider) => void;
 }) {
   const provider = integration.provider;
-  const flagOff = provider === "google_business" && !GOOGLE_OAUTH_ENABLED;
 
   // Restaurant-id alleen meegeven aan échte OAuth-start-routes; interne
   // dashboard-links (Beheer → hub) hebben 'm niet nodig.
@@ -443,9 +432,7 @@ function OAuthAction({
       ? `${path}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
       : path;
 
-  // Verbonden: groene pill + (optioneel) Beheer + Ontkoppel. Staat BEWUST
-  // boven de flag-check, zodat een bestaande koppeling altijd ontkoppelbaar
-  // is — ook als de "Verbind"-knop nog flag-gated verborgen is (net als FB/IG).
+  // Verbonden: groene pill + (optioneel) Beheer + Ontkoppel (net als FB/IG).
   if (connected === true && provider) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -466,17 +453,6 @@ function OAuthAction({
     );
   }
 
-  // Google zonder flag + niet verbonden: alleen "Beheer" → profiel-scherm.
-  // Geen "Verbind" tot de Google-kant live is (de hub/profiel draait op de
-  // Places-API-key, los van de OAuth-tokens).
-  if (flagOff) {
-    return (
-      <a href={integration.managePath ?? "#"} style={actionLinkStyle}>
-        Beheer
-      </a>
-    );
-  }
-
   // Status nog onbekend (ladend): muted placeholder i.p.v. een valse
   // "Verbind" die meteen weer naar "✓ Verbonden" zou springen.
   if (connected === null) {
@@ -485,13 +461,21 @@ function OAuthAction({
     );
   }
 
-  // Niet verbonden: "Verbind" → OAuth-start.
-  // Plain <a> (geen <Link>): full navigation naar de server-route die
-  // server-side naar de provider 302't; <Link> zou de redirect breken.
+  // Niet verbonden: "Verbind" (+ "Beheer" als de rij een beheerpagina heeft,
+  // bv. Google → profiel-scherm), zodat na ontkoppelen altijd weer een
+  // koppel-knop verschijnt. Plain <a> (geen <Link>): full navigation naar de
+  // server-route die server-side naar de provider 302't.
   return (
-    <a href={withRid(integration.connectPath ?? "#")} style={actionLinkStyle}>
-      Verbind
-    </a>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+      <a href={withRid(integration.connectPath ?? "#")} style={actionLinkStyle}>
+        Verbind
+      </a>
+      {integration.managePath && (
+        <a href={integration.managePath} style={actionLinkStyle}>
+          Beheer
+        </a>
+      )}
+    </div>
   );
 }
 
