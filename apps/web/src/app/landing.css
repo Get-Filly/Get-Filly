@@ -30,11 +30,19 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 .container { max-width: 1100px; margin: 0 auto; }
 
 .section-title {
-  font-size: 54px; font-weight: 700; letter-spacing: -2px;
+  font-size: var(--fs-display); font-weight: var(--font-weight-bold);
+  letter-spacing: -2px;
   line-height: 1.05; max-width: 820px;
 }
+/* Sectiekoppen (alle <h2 class="section-title">) krijgen een eigen,
+   kleiner formaat dan de hero-H1 — geeft hiërarchie én trekt de blog
+   (was 24px) gelijk. De markup gebruikt al h1 voor hero, h2 voor secties,
+   dus dit hoeft niet in de pagina's aangepast (2026-06-13). */
+h2.section-title {
+  font-size: var(--fs-h2); letter-spacing: -1px;
+}
 .section-subtitle {
-  font-size: 17px; color: var(--text-secondary); max-width: 600px;
+  font-size: var(--fs-lead); color: var(--text-secondary); max-width: 600px;
   margin-top: 18px; line-height: 1.6; letter-spacing: -0.2px;
 }
 
@@ -77,7 +85,7 @@ section { padding: 112px 24px; scroll-margin-top: 100px; }
 }
 /* max-width verbreed van 560 → 680px zodat de langere hero-subtitel
    netjes op 3 regels uitkomt i.p.v. 4. */
-.hero .section-subtitle { margin: 20px auto 0; max-width: 680px; font-size: 18px; }
+.hero .section-subtitle { margin: 20px auto 0; max-width: 680px; }
 
 .hero-cta { display: inline-flex; gap: 10px; margin-top: 36px; }
 
@@ -3261,8 +3269,12 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 1200px 820px at 50% 0%, rgba(31, 74, 45, 0.06) 0%, transparent 62%),
-    radial-gradient(ellipse 1000px 720px at 50% 100%, rgba(31, 74, 45, 0.045) 0%, transparent 68%);
+    radial-gradient(ellipse 820px 520px at 50% 3%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 720px 520px at 20% 22%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 760px 540px at 82% 40%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 720px 540px at 22% 60%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 760px 540px at 80% 80%, rgba(31, 74, 45, 0.1), transparent 55%),
+    radial-gradient(ellipse 720px 500px at 42% 98%, rgba(31, 74, 45, 0.09), transparent 55%);
   pointer-events: none;
   z-index: 0;
 }
@@ -3411,10 +3423,22 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Eén voor één oppoppen bij het laden (zelfde timing als .fade-up: 1.4s
+     ease), maar via een eigen keyframe die de kanteling (--tilt) behoudt —
+     .fade-up zou de rotate wegdrukken. Stagger via animation-delay. */
+  opacity: 0;
+  animation: about-photo-in 1.4s ease forwards;
 }
-.about-photo:nth-child(1) { align-self: flex-start; transform: rotate(-3deg); z-index: 1; }
-.about-photo:nth-child(2) { align-self: flex-end; transform: rotate(2.5deg); margin-top: -26px; z-index: 2; }
-.about-photo:nth-child(3) { align-self: flex-start; transform: rotate(-2deg); margin-top: -26px; z-index: 3; }
+.about-photo:nth-child(1) { --tilt: -3deg; align-self: flex-start; z-index: 1; animation-delay: 0.2s; }
+.about-photo:nth-child(2) { --tilt: 2.5deg; align-self: flex-end; margin-top: -26px; z-index: 2; animation-delay: 0.45s; }
+.about-photo:nth-child(3) { --tilt: -2deg; align-self: flex-start; margin-top: -26px; z-index: 3; animation-delay: 0.7s; }
+@keyframes about-photo-in {
+  from { opacity: 0; transform: translateY(22px) rotate(var(--tilt, 0deg)); }
+  to   { opacity: 1; transform: translateY(0) rotate(var(--tilt, 0deg)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-photo { opacity: 1; animation: none; transform: rotate(var(--tilt, 0deg)); }
+}
 .about-photo img {
   width: 100%;
   height: 100%;
@@ -3811,6 +3835,9 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   .mockup-content { grid-template-columns: 1fr; }
   .hero .section-title { font-size: 48px; letter-spacing: -1.5px; }
   .section-title { font-size: 36px; letter-spacing: -1px; }
+  /* Sectiekoppen iets kleiner dan de hero op mobiel (h2.section-title is
+     specifieker dan .section-title, dus expliciet overschrijven). */
+  h2.section-title { font-size: 30px; }
 }
 
 /* ===== FOOTER =====

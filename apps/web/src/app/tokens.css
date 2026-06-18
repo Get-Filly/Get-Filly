@@ -144,6 +144,24 @@
   --font-size-xl: 24px;
   --font-size-2xl: 32px;
 
+  /* ----------------------------------------------------------
+   * Display-type-schaal voor de PUBLIEKE site (home/oplossing/
+   * prijzen/over-ons/blog). De schaal hierboven (xs..2xl) is voor het
+   * dashboard; de marketing-koppen zijn groter. Eén bron van waarheid
+   * zodat hoofd-/subkoppen + body overal gelijklopen (2026-06-13).
+   *   display = hero-H1, h2 = sectiekop, h3 = prominent blok/feature,
+   *   h4 = kaart-titel, lead = hero-subtitel, body = lopende tekst,
+   *   small = compacte omschrijving, eyebrow = label.
+   */
+  --fs-display: 54px;
+  --fs-h2: 40px;
+  --fs-h3: 22px;
+  --fs-h4: 18px;
+  --fs-lead: 18px;
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-eyebrow: 12px;
+
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.7;

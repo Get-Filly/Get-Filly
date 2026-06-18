@@ -73,7 +73,7 @@ export default function AboutPage() {
                   door <img src="/images/about-1.jpg" alt="…" /> (foto's in
                   apps/web/public/images/). Volgorde boven→onder: 1 rustig, 2 loopt
                   aan, 3 vol. */}
-              <div className="about-hero-media" data-reveal>
+              <div className="about-hero-media">
                 <div className="about-photo" role="img" aria-label="Foto: rustige zaak (placeholder)"><PhotoIcon /></div>
                 <div className="about-photo" role="img" aria-label="Foto: het loopt aan (placeholder)"><PhotoIcon /></div>
                 <div className="about-photo" role="img" aria-label="Foto: volle zaak (placeholder)"><PhotoIcon /></div>
