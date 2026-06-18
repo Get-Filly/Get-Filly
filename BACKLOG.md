@@ -383,7 +383,9 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 #### Vereist Meta Business OAuth (al op P1 backlog: Meta + TikTok approval)
 - [ ] **Server-side Meta CAPI** (hfst 14.2) — server-side events naast pixel voor iOS 14.5+-accuracy.
 - [ ] **Lookalike-audience-export** (hfst 12.4) — top-100 gasten naar Meta Ads API hashed-list.
-- [ ] **IG/FB Insights-fetcher** (hfst 9.2) — dagelijks post-stats via Meta Graph API.
+- [x] ~~**IG/FB Insights-fetcher — fase 1 (live engagement)**~~ (2026-06-18) — `GET /integrations/meta/insights` → FB `published_posts` (likes/reacties/shares) + IG-account (volgers/media-count) + IG-posts (likes/reacties). Getoond via het `<MetaLiveInsights>`-blok bovenaan de IG-/FB-marketingpagina's (de mock-secties blijven als voorbeeld eronder). Werkt met de bestaande scopes (`pages_read_engagement` + `instagram_basic`); fail-soft per kanaal.
+- [ ] **IG/FB Insights — fase 1b (volgersgroei over tijd)** — dagelijkse snapshot-tabel (`social_insights_snapshots`: restaurant_id, platform, captured_on, followers_count, media_count) + mini-cron of snapshot-on-fetch → volgersgroei-grafiek op de IG/FB-pagina. Geen nieuwe Meta-review nodig.
+- [ ] **IG/FB Insights — fase 2 (volledige insights)** — scopes uitbreiden (`read_insights` + `instagram_manage_insights`) + **nieuwe Meta App Review** → bereik, impressions, profielweergaven, saves, story-stats. Daarna de bestaande IG/FB-mock-secties (reach-/engagement-charts, demografie) wiren naar echte data.
 - [ ] **UGC tag-detectie** (hfst 13.4) — Meta API poll naar tags van eigen account. ugc_pending-tabel.
 - [ ] **FB Events i.p.v. posts** (hfst 16.4) — Filly maakt FB-event-objecten i.p.v. post-objecten voor events.
 - [ ] **Auto-DM-templates voor UGC-toestemming** (hfst 13.4) — Filly stuurt pre-fab DM via Meta API.
