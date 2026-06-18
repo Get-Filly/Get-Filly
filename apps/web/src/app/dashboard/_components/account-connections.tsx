@@ -110,14 +110,16 @@ const integrations: Integration[] = [
     managePath: "/dashboard/google-business/profiel",
   },
   {
-    // Campagne-mail loopt via het Get-Filly-platform (Resend in de
-    // backend); de eigenaar hoeft hier zelf niets te koppelen.
+    // Campagne-mail loopt via het Get-Filly-platform (Resend in de backend);
+    // er is geen account om te "ontkoppelen". Via "Beheer" kom je wél bij het
+    // eigen verzend-domein (MailDomainSection), dat je kunt koppelen/ontkoppelen.
     key: "mail",
     icon: "✉️",
     name: "E-mail (campagnes)",
     method: "auto",
     category: "communicatie",
     statusText: "✓ Actief via Get-Filly",
+    managePath: "#mail-domein",
   },
   {
     // Eén rij voor Facebook + Instagram: het is één Meta-koppeling (IG
@@ -374,7 +376,16 @@ function IntegrationRow({
   let right: React.ReactNode;
   if (integration.method === "auto") {
     right = (
-      <span style={autoStatusStyle}>{integration.statusText ?? "✓ Actief"}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <span style={autoStatusStyle}>
+          {integration.statusText ?? "✓ Actief"}
+        </span>
+        {integration.managePath && (
+          <a href={integration.managePath} style={actionLinkStyle}>
+            Beheer
+          </a>
+        )}
+      </div>
     );
   } else if (integration.method === "soon") {
     right = <span style={soonPillStyle}>Binnenkort</span>;

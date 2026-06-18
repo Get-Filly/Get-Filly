@@ -374,7 +374,12 @@ function AccountPageInner() {
           ============================================================
           Eigen module met eigen state-management, bewust niet in het
           form-state-blok van deze pagina. */}
-      {activeTab === "koppelingen" && <MailDomainSection />}
+      {activeTab === "koppelingen" && (
+        // id = anker voor de "Beheer"-link op de E-mail-rij in ConnectionsSection.
+        <div id="mail-domein">
+          <MailDomainSection />
+        </div>
+      )}
 
       {/* Foto-bibliotheek + Identiteit-velden (tagline, beschrijving,
           doelgroep, sfeer, USPs, special_events, signature_dishes) zijn
