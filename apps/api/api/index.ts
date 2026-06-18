@@ -79,6 +79,9 @@ async function bootstrap(): Promise<Express> {
       // worden bij volume betalend; debug-level kan elke request
       // tientallen regels schrijven. Errors + warns blijven, rest weg.
       logger: ['error', 'warn'],
+      // req.rawBody beschikbaar maken voor de Svix-signature-check van de
+      // Resend-webhook (zelfde als main.ts).
+      rawBody: true,
     },
   );
 
