@@ -23,8 +23,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-const LAST_UPDATED = "30 mei 2026";
-const VERSION = "v1";
+const LAST_UPDATED = "18 juni 2026";
+const VERSION = "v1.1";
 
 // Lichte, herbruikbare tabel-styling zodat de overzichtstabellen
 // netjes ogen zonder van een mogelijk-ontbrekende CSS-class af te
@@ -455,72 +455,73 @@ export default function PrivacyPage() {
             <li>het toevoegen, beheren of optimaliseren van foto&apos;s, menu-informatie, producten, diensten of andere profielonderdelen;</li>
             <li>het signaleren van ontbrekende, inconsistente of verouderde informatie in jouw bedrijfsprofiel;</li>
             <li>het monitoren van nieuwe reviews, wijzigingen, prestaties en andere relevante gebeurtenissen binnen jouw Google Business Profile;</li>
-            <li>het vergelijken van jouw prestaties met vergelijkbare ondernemingen, voor zover dit gebeurt op basis van toegestane, geaggregeerde of rechtmatig verkregen gegevens.</li>
+            <li>het vergelijken van jouw prestaties met vergelijkbare ondernemingen, uitsluitend op basis van geaggregeerde en geanonimiseerde gegevens die niet herleidbaar zijn tot een individuele andere onderneming.</li>
           </ul>
-          <p>Wij verkopen Google-gegevens niet aan derden.</p>
-          <p>Wij gebruiken Google-gegevens niet voor advertentiedoeleinden van derden.</p>
-          <p>Wij gebruiken Google-gegevens niet voor het trainen van publieke AI-modellen.</p>
-          <p>Wij delen Google-gegevens niet met advertentienetwerken of databrokers.</p>
+          <h3>6.1 Opslag en beveiliging van Google-gegevens</h3>
           <p>
-            Wij wijzigen geen gegevens binnen jouw Google Business Profile
-            zonder een expliciete handeling, goedkeuring, instelling of
-            opdracht vanuit jou als gebruiker.
+            Gegevens die wij via de Google API&apos;s ophalen, worden
+            versleuteld opgeslagen (zowel tijdens overdracht als in rust).
+            Toegang tot deze gegevens is beperkt tot geautoriseerd personeel
+            dat de gegevens nodig heeft voor het leveren van onze dienst.
+            Get-Filly hanteert een multi-tenant architectuur waarbij de
+            gegevens en toegangstokens van elke klant logisch gescheiden en
+            geïsoleerd worden opgeslagen, zodat de gegevens van de ene
+            onderneming nooit toegankelijk zijn voor een andere.
+            Toegangstokens worden versleuteld bewaard en uitsluitend gebruikt
+            voor de specifieke koppeling waarvoor jij toestemming hebt
+            verleend.
+          </p>
+
+          <h3>6.2 Bewaartermijn</h3>
+          <p>
+            Wij bewaren de via Google opgehaalde gegevens niet langer dan
+            noodzakelijk voor de hierboven beschreven doeleinden. Wanneer je
+            een gekoppeld Google Business Profile ontkoppelt, worden de
+            bijbehorende toegangstokens direct ingetrokken en worden de
+            opgeslagen Google Business Profile-gegevens binnen 30 dagen uit
+            onze systemen verwijderd, behoudens gegevens die wij wettelijk
+            verplicht zijn langer te bewaren.
+          </p>
+
+          <h3>6.3 Verklaringen over het gebruik van Google-gegevens</h3>
+          <ul>
+            <li>Wij verkopen Google-gegevens niet aan derden.</li>
+            <li>Wij gebruiken Google-gegevens niet voor advertentiedoeleinden van derden.</li>
+            <li>Wij gebruiken Google-gegevens niet voor het trainen van publieke AI-modellen.</li>
+            <li>Wij delen Google-gegevens niet met advertentienetwerken of databrokers.</li>
+            <li>Wij wijzigen geen gegevens binnen jouw Google Business Profile zonder een expliciete handeling, goedkeuring, instelling of opdracht vanuit jou als gebruiker.</li>
+          </ul>
+          <p>
+            Het gebruik en de overdracht van informatie die Get-Filly
+            ontvangt via Google API&apos;s voldoet aan het Google API
+            Services User Data Policy, inclusief de Limited Use-vereisten.
           </p>
           <p>
-            Voor functionaliteiten waarbij Get-Filly automatisch
-            handelingen kan uitvoeren, zoals het beantwoorden van reviews,
-            het publiceren van posts of het aanpassen van profielgegevens,
-            geldt dat deze alleen worden uitgevoerd wanneer jij deze
-            functionaliteit bewust activeert of daarvoor vooraf toestemming
-            geeft.
+            <em>
+              Get-Filly&apos;s use and transfer of information received from
+              Google APIs adheres to the Google API Services User Data
+              Policy, including the Limited Use requirements.
+            </em>
           </p>
+          <p>
+            Voor functionaliteiten waarbij Get-Filly automatisch handelingen
+            kan uitvoeren, zoals het beantwoorden van reviews, het publiceren
+            van posts of het aanpassen van profielgegevens, geldt dat deze
+            alleen worden uitgevoerd wanneer jij deze functionaliteit bewust
+            activeert of daarvoor vooraf toestemming geeft.
+          </p>
+
+          <h3>6.4 Google-toegang intrekken</h3>
           <p>
             Je kunt een gekoppeld Google Business Profile op ieder moment
             ontkoppelen via het Get-Filly-dashboard of via jouw
             Google-account. Na ontkoppeling halen wij geen nieuwe gegevens
-            meer op via die koppeling en worden gekoppelde tokens
-            ingetrokken of verwijderd volgens ons bewaarbeleid.
-          </p>
-
-          <h3>6.1 Google API Services User Data Policy</h3>
-          <p>
-            Het gebruik en de overdracht van gegevens die Get-Filly
-            ontvangt via Google API&apos;s vindt plaats in
-            overeenstemming met de Google API Services User Data Policy,
-            inclusief de Limited Use requirements.
+            meer op via die koppeling en worden gekoppelde tokens ingetrokken
+            of verwijderd zoals hierboven beschreven.
           </p>
           <p>
-            <em>
-              Get-Filly&apos;s use and transfer of information received
-              from Google APIs adheres to the Google API Services User
-              Data Policy, including the Limited Use requirements.
-            </em>
-          </p>
-          <p>
-            Get-Filly gebruikt gegevens die via Google API&apos;s worden
-            verkregen uitsluitend voor het leveren, onderhouden en
-            verbeteren van functionaliteiten waarvoor de gebruiker
-            toestemming heeft gegeven. Wij gebruiken Google API-gegevens
-            niet voor:
-          </p>
-          <ul>
-            <li>verkoop aan derden</li>
-            <li>advertentienetwerken van derden</li>
-            <li>het trainen van publieke AI-modellen</li>
-            <li>profilering van personen buiten de overeengekomen dienstverlening</li>
-            <li>andere doeleinden die niet in deze privacyverklaring zijn beschreven</li>
-          </ul>
-
-          <h3>6.2 Google-toegang intrekken</h3>
-          <p>
-            Je kunt een gekoppelde Google-integratie op ieder moment
-            verwijderen via de instellingen van jouw Get-Filly-account. Na
-            het ontkoppelen halen wij geen nieuwe gegevens meer op via de
-            betreffende Google-integratie.
-          </p>
-          <p>
-            Daarnaast kun je de verleende toestemming rechtstreeks beheren
-            of intrekken via jouw Google-account:{" "}
+            Daarnaast kun je de verleende toestemming rechtstreeks beheren of
+            intrekken via jouw Google-account:{" "}
             <a
               href="https://myaccount.google.com/permissions"
               target="_blank"
