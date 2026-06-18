@@ -45,7 +45,7 @@ export default function AboutPage() {
                 <h1 className="section-title">Van idee naar impact.</h1>
                 <div className="about-story-body">
                   <p>
-                    Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten en alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
+                    Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten maar alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
                   </p>
                   <p>
                     En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n zaak op z’n eigen manier wil laten groeien.
