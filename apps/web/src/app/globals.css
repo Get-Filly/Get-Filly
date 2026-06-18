@@ -67,9 +67,12 @@ body {
 }
 
 .navbar-inner {
-  max-width: 1200px;
+  /* Uitgelijnd met de content-kolom: max-width 1148 (= .container 1100 + 2×
+     de 24px section-gutter) en 24px zij-padding, zodat het logo links en de
+     CTA rechts exact op de content vallen (Floris 2026-06-18). */
+  max-width: 1148px;
   margin: 0 auto;
-  padding: 18px 32px;
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -525,7 +528,7 @@ body {
      880px = hetzelfde breekpunt als de rest van landing.css, zodat de
      links niet eerst lelijk gaan verspringen vóór ze inklappen. */
   .navbar-inner {
-    padding: 12px 20px;
+    padding: 12px 24px;
   }
 
   /* Hamburger zichtbaar; horizontale nav verborgen tot het menu open is. */
