@@ -24,10 +24,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 > 🔴 vóór productie-klanten · 🟡 belangrijk · 🟢 polish.
 
 ### 🎯 Prioriteit — eerst oppakken (vóór productie-klanten)
-- [ ] 🔴 **AuthGuard globaal maken (deny-by-default)** — beveiliging is nu opt-in per controller; een vergeten `@UseGuards` = volledig publieke route. → `APP_GUARD` + expliciete `@Public()`. *(Backend + Beveiliging)*
+- [x] ~~🔴 **AuthGuard globaal maken (deny-by-default)**~~ (✅ 2026-06-18) — APP_GUARD + @Public() op de 5 bewust-publieke controllers; lokaal geverifieerd (publiek→200, beschermd→401). *(Backend + Beveiliging)*
 - [x] ~~🔴 **9 server-only keys uit `get-filly-web` Vercel-env**~~ — ✅ verwijderd (2026-06-18, Floris). Alleen `NEXT_PUBLIC_*` + publieke OAuth-app/client-id's (`META_APP_ID`, `GOOGLE_OAUTH_CLIENT_ID`) resteren. *(Beveiliging)*
-- [ ] 🔴 **Resend-webhook Svix-signature valideren** — accepteert nu elke body → vervalsbare mail-stats. *(Beveiliging)*
-- [ ] 🔴 **Cron-secrets constant-time vergelijken** (`seo-report`/`events`/`campaigns-cron`). *(Backend + Beveiliging)*
+- [x] ~~🔴 **Resend-webhook Svix-signature valideren**~~ (✅ 2026-06-18) — rawBody + `verifySvixSignature`; handhaaft zodra **`RESEND_WEBHOOK_SECRET`** in get-filly-api gezet is (⚠️ nog te zetten in Vercel). *(Beveiliging)*
+- [x] ~~🔴 **Cron-secrets constant-time vergelijken**~~ (✅ 2026-06-18) — gedeelde `timingSafeBearer`-helper in alle 3 cron-controllers. *(Backend + Beveiliging)*
 - [ ] 🔴 **Ontbrekende migraties committen** (0044 identiteit-velden, + gaten 0039/0056/0057) — schone Supabase-reset reproduceert de kolommen niet → `PATCH /restaurant/me` + health-runner breken. *(Backend)*
 - [ ] 🔴 **`:focus-visible` toevoegen (publiek én dashboard)** — toetsenbord/a11y-blokker (geverifieerd: 0 resp. 1 regel). *(Frontend)*
 - [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
@@ -86,10 +86,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟢 Doc/comment 301 vs 308 bij apex→www (code = 308, correct) → comments/CLAUDE.md gelijktrekken op 308.
 
 ### 🔒 Beveiligingen
-- [ ] 🔴 **AuthGuard niet globaal (allow-by-default)** — vergeten guard = publieke route → `APP_GUARD` + `@Public()` deny-by-default.
-- [ ] 🔴 **Cron-secret-check niet constant-time** (`seo-report`/`events`/`campaigns-cron`) → `timingSafeEqual` / gedeelde `CronSecretGuard`.
+- [x] ~~🔴 **AuthGuard niet globaal (allow-by-default)**~~ (✅ 2026-06-18) — nu APP_GUARD deny-by-default; 5 publieke controllers @Public(), lokaal geverifieerd.
+- [x] ~~🔴 **Cron-secret-check niet constant-time**~~ (✅ 2026-06-18) — `timingSafeBearer` (sha256 + timingSafeEqual) in alle 3 cron-controllers.
 - [x] ~~🔴 **Server-only keys in `get-filly-web`** (9 vars, incl. service_role)~~ — ✅ verwijderd (2026-06-18); enkel publieke `NEXT_PUBLIC_*` + OAuth-app/client-id's resteren.
-- [ ] 🔴 **Resend-webhook zonder signature-validatie** (`mail.controller.ts`) → Svix-signature met `RESEND_WEBHOOK_SECRET` (constant-time) afdwingen.
+- [x] ~~🔴 **Resend-webhook zonder signature-validatie**~~ (✅ 2026-06-18) — Svix-verificatie via rawBody; ⚠️ zet **`RESEND_WEBHOOK_SECRET`** (get-filly-api) om handhaving te activeren.
 - [ ] 🟡 **SSRF in website-analyzer** (`ai/website-analyzer.service.ts`) — geen blocklist voor 127.0.0.1/169.254.169.254/10.x/192.168.x/localhost → ranges blokkeren (DNS→IP-check) + redirects pinnen op publieke IP's.
 - [ ] 🟡 Publieke `/public/contact` + `/public/unsubscribe` zonder rate-limit/CAPTCHA → IP-rate-limit (Vercel WAF) op `/public/*`.
 - [ ] 🟡 Storage-bucket `restaurant-assets` mist per-tenant path-RLS (tenant A kan in B's pad schrijven) → pad-prefix-RLS op `(storage.foldername(name))[1]`.
