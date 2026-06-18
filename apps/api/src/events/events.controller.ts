@@ -7,12 +7,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeBearer } from '../common/cron-secret';
+import { Public } from '../common/public.decorator';
 import { EventsSyncService } from './events-sync.service';
 
 // Cron-endpoint voor de wekelijkse evenementen.nl-sync. Zelfde
 // beveiligings-patroon als seo-report/run: Vercel Cron stuurt
 // `Authorization: Bearer <CRON_SECRET>` mee wanneer CRON_SECRET in
 // de project-env staat; zonder geldige secret → 401.
+// @Public(): globale AuthGuard slaat 'm over; beveiliging = de CRON_SECRET-check.
+@Public()
 @Controller('events')
 export class EventsController {
   private readonly logger = new Logger(EventsController.name);

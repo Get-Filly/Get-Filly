@@ -2,12 +2,16 @@ import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common
 import type { Request } from 'express';
 import { CrmApiKeyGuard } from './crm-api-key.guard';
 import { CrmInviteService } from './crm-invite.service';
+import { Public } from '../common/public.decorator';
 
 // ============================================================
 // Integraties — server-to-server koppelingen (geen ingelogde user)
 // ============================================================
 // Beveiligd met CrmApiKeyGuard (gedeelde sleutel), NIET met de gewone
 // AuthGuard. Het CRM roept dit aan om een nieuwe klant uit te nodigen.
+// @Public(): globale AuthGuard slaat 'm over (geen user-JWT bij CRM-server-
+// calls). De beveiliging is de CrmApiKeyGuard (gedeelde sleutel) hieronder.
+@Public()
 @Controller('integrations/crm')
 @UseGuards(CrmApiKeyGuard)
 export class IntegrationsController {

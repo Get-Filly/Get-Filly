@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeBearer } from '../common/cron-secret';
+import { Public } from '../common/public.decorator';
 import { SeoReportService } from './seo-report.service';
 
 // ============================================================
@@ -17,6 +18,9 @@ import { SeoReportService } from './seo-report.service';
 // `Authorization: Bearer <CRON_SECRET>` als CRON_SECRET in de env staat.
 // Zonder geldige secret → 401. (AuthGuard is niet globaal, dus zonder
 // @UseGuards is deze route publiek; de secret-check is de beveiliging.)
+// @Public(): de globale AuthGuard slaat deze route over (geen user-JWT). De
+// beveiliging is de CRON_SECRET-check in de handler (timingSafeBearer).
+@Public()
 @Controller('seo-report')
 export class SeoReportController {
   private readonly logger = new Logger(SeoReportController.name);

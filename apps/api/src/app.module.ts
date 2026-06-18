@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthGuard } from './common/auth.guard';
@@ -63,10 +64,15 @@ import { GoogleBusinessModule } from './google-business/google-business.module';
     GoogleBusinessModule,
   ],
   controllers: [AppController],
-  // AuthGuard staat hier als provider zodat NestJS hem kan
-  // "injecteren" (Reflector + ConfigService) wanneer een controller
-  // hem gebruikt via @UseGuards(AuthGuard). Hij is NOG NIET globaal
-  // geactiveerd, dat gebeurt pas via APP_GUARD in een later stadium.
-  providers: [AppService, AuthGuard],
+  // AuthGuard is nu GLOBAAL (APP_GUARD): élke route vereist een geldige login,
+  // tenzij expliciet @Public() (deny-by-default). Zo kan een nieuwe controller
+  // niet meer per ongeluk publiek zijn. De guard blijft óók als gewone provider
+  // staan zodat @UseGuards(AuthGuard[, RestaurantAccessGuard]) op controllers
+  // blijft resolven; useExisting hergebruikt diezelfde instantie als globale guard.
+  providers: [
+    AppService,
+    AuthGuard,
+    { provide: APP_GUARD, useExisting: AuthGuard },
+  ],
 })
 export class AppModule {}

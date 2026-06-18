@@ -6,6 +6,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { MetaService } from './meta.service';
+import { Public } from '../common/public.decorator';
 
 // ============================================================
 // Meta-callbacks — server-to-server (GEEN guards)
@@ -17,6 +18,9 @@ import { MetaService } from './meta.service';
 //
 // De web-routes (/oauth/meta/deauthorize + /oauth/meta/data-deletion)
 // op get-filly.com sturen de signed_request hier naartoe.
+// @Public(): globale AuthGuard slaat deze callbacks over; authenticatie is de
+// signed_request-HMAC in MetaService (geen user-JWT bij Meta-server-calls).
+@Public()
 @Controller('integrations/meta')
 export class MetaWebhookController {
   constructor(private readonly meta: MetaService) {}

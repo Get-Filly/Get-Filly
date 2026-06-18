@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeBearer } from '../common/cron-secret';
+import { Public } from '../common/public.decorator';
 import { CampaignsService } from './campaigns.service';
 
 // ============================================================
@@ -22,6 +23,8 @@ import { CampaignsService } from './campaigns.service';
 //
 // ⚠️ Precieze timing vereist een frequente schedule (Vercel Pro). Op
 // Hobby draait cron max 1×/dag — zie vercel.json + runScheduledSocial.
+// @Public(): globale AuthGuard slaat 'm over; beveiliging = de CRON_SECRET-check.
+@Public()
 @Controller('campaigns/cron')
 export class CampaignsCronController {
   private readonly logger = new Logger(CampaignsCronController.name);
