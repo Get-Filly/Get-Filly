@@ -173,7 +173,10 @@
   outline-offset: 2px;
 }
 .blog-card .blog-eyebrow {
-  color: var(--color-brand);
+  /* Nav-tekstkleur i.p.v. groen — één eyebrow-kleur site-breed (zelfde als
+     .feature-eyebrow/.walk-step-label). Geldt ook voor home "Waarom het
+     werkt" (.why-grid hergebruikt .blog-card). */
+  color: var(--text);
   margin-bottom: 10px;
 }
 .blog-card-title {
@@ -255,7 +258,7 @@
   justify-content: center;
 }
 .blog-recent-card .blog-eyebrow {
-  color: var(--color-brand);
+  color: var(--text);
   margin-bottom: 8px;
 }
 .blog-recent-card-title {

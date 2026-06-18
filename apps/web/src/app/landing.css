@@ -1398,7 +1398,10 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 }
 
 .feature-eyebrow {
-  font-size: 12px; font-weight: 600; color: var(--accent);
+  /* Eyebrow-tekst = nav-tekstkleur (var(--text)), niet groen. Eén
+     consistente labelkleur over de hele site: pijler-pills, stap-labels
+     (oplossing) en blog-eyebrows delen deze tint (Floris 2026-06-18). */
+  font-size: 12px; font-weight: 600; color: var(--text);
   text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
 }
 /* Per 2026-05-13: pill-variant voor de 3 homepage-pijlers
@@ -2056,9 +2059,10 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   padding: 3px 8px;
 }
 .walk-step-label {
-  /* Gelijk aan .feature-eyebrow / de home-eyebrows: 12px, 600, groen, 1px. */
+  /* Gelijk aan .feature-eyebrow / de home-eyebrows: 12px, 600, 1px, en
+     dezelfde nav-tekstkleur (var(--text)) — één labelkleur site-breed. */
   font-size: 12px; font-weight: 600; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--accent);
+  text-transform: uppercase; color: var(--text);
 }
 /* Dubbele punt na het stap-label, zodat het samen met het tijd-eyebrow
    leest als "DETECTIE: MAANDAG · 09:14". */
