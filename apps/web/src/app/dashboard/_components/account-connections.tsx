@@ -107,7 +107,7 @@ const integrations: Integration[] = [
     category: "vindbaarheid",
     provider: "google_business",
     connectPath: "/oauth/google/start",
-    managePath: "/dashboard/google-business",
+    managePath: "/dashboard/google-business/profiel",
   },
   {
     // Campagne-mail loopt via het Get-Filly-platform (Resend in de
@@ -264,13 +264,12 @@ export function ConnectionsSection() {
     metaStatus()
       .then((s) => setStatus((p) => ({ ...p, meta: s.connected })))
       .catch(() => setStatus((p) => ({ ...p, meta: false })));
-    // Google alleen bevragen als de flow live is; anders blijft de rij
-    // op "Beheer" (zie OAuthAction) en is een call zinloos.
-    if (GOOGLE_OAUTH_ENABLED) {
-      googleBusinessStatus()
-        .then((s) => setStatus((p) => ({ ...p, google_business: s.connected })))
-        .catch(() => setStatus((p) => ({ ...p, google_business: false })));
-    }
+    // Google-status altijd bevragen: ook met de flag uit willen we een
+    // bestaande koppeling kunnen tonen + ontkoppelen. De "Verbind"-knop
+    // blijft wél flag-gated (zie OAuthAction).
+    googleBusinessStatus()
+      .then((s) => setStatus((p) => ({ ...p, google_business: s.connected })))
+      .catch(() => setStatus((p) => ({ ...p, google_business: false })));
   }, [active?.id]);
 
   useEffect(() => {
@@ -433,17 +432,9 @@ function OAuthAction({
       ? `${path}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
       : path;
 
-  // Google zonder flag: alleen "Beheer" → hub. Geen Verbind tot de
-  // Google-kant live is; de hub draait op de Places-API-key.
-  if (flagOff) {
-    return (
-      <a href={integration.managePath ?? "#"} style={actionLinkStyle}>
-        Beheer
-      </a>
-    );
-  }
-
-  // Verbonden: groene pill + (optioneel) Beheer + Ontkoppel.
+  // Verbonden: groene pill + (optioneel) Beheer + Ontkoppel. Staat BEWUST
+  // boven de flag-check, zodat een bestaande koppeling altijd ontkoppelbaar
+  // is — ook als de "Verbind"-knop nog flag-gated verborgen is (net als FB/IG).
   if (connected === true && provider) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -461,6 +452,17 @@ function OAuthAction({
           Ontkoppel
         </button>
       </div>
+    );
+  }
+
+  // Google zonder flag + niet verbonden: alleen "Beheer" → profiel-scherm.
+  // Geen "Verbind" tot de Google-kant live is (de hub/profiel draait op de
+  // Places-API-key, los van de OAuth-tokens).
+  if (flagOff) {
+    return (
+      <a href={integration.managePath ?? "#"} style={actionLinkStyle}>
+        Beheer
+      </a>
     );
   }
 
