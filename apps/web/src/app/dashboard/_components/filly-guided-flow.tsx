@@ -324,7 +324,13 @@ export function FillyGuidedFlow({
     try {
       const { suggestions } = await generateSuggestionsForDates([item]);
       if (!suggestions || suggestions.length === 0) {
-        router.push("/dashboard/campagnes");
+        // Geen stille redirect meer: blijf in de flow met een duidelijke
+        // melding zodat de eigenaar niet na 3 stappen "zomaar" op /campagnes
+        // belandt zonder resultaat (UX-audit 2026-06-18).
+        setError(
+          "Het lukte niet om een voorstel te maken voor deze dag. Probeer een andere dag of een andere hoek.",
+        );
+        setStep("channels");
         return;
       }
       setResult(suggestions);
