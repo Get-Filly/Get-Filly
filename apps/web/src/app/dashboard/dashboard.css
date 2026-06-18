@@ -1284,7 +1284,7 @@
   font-family: inherit;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
-.dashboard-shell .fg-opt:hover { background: var(--bg); border-color: var(--accent); }
+.dashboard-shell .fg-opt:hover { background: var(--accent-light); border-color: var(--accent); }
 /* Geselecteerde multi-select-optie (context/kanaal): groene rand +
    zachte vulling, met checkmark rechts (door de component gerenderd). */
 .dashboard-shell .fg-opt.sel {

@@ -364,7 +364,7 @@ export function FillyGuidedFlow({
   if (step === "done") {
     return (
       <div className="filly-guided">
-        <div className="fg-welcome">
+        <div className="fg-welcome" role="status" aria-live="polite">
           <span className="fg-avatar">F</span>
           <div>
             <div className="fg-welcome-title">Klaar! ✨</div>
@@ -437,7 +437,7 @@ export function FillyGuidedFlow({
   if (step === "generating") {
     return (
       <div className="filly-guided">
-        <div className="fg-welcome">
+        <div className="fg-welcome" role="status" aria-live="polite">
           <span className="fg-avatar">F</span>
           <div className="fg-welcome-text">Filly maakt je voorstel…</div>
         </div>
