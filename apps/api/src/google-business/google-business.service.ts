@@ -311,9 +311,9 @@ export class GoogleBusinessService {
    * verificatievideo tonen. Gebruikt getAccessToken (auto-refresh).
    *
    * Werkt pas ná goedkeuring van de Business Profile API-toegang: tot dan
-   * geeft Google 403 (quotum 0). We mappen dat naar reason
-   * 'api_not_approved' zodat de UI een nette "nog in aanvraag"-melding
-   * kan tonen i.p.v. een generieke fout.
+   * geeft Google 429 RESOURCE_EXHAUSTED (quotum 0; soms 403). We mappen dat
+   * naar reason 'api_not_approved' zodat de UI een nette "nog in aanvraag"-
+   * melding kan tonen i.p.v. een generieke fout.
    */
   async listAccounts(
     restaurantId: string,
@@ -335,13 +335,16 @@ export class GoogleBusinessService {
     if (!res.ok) {
       const body = await res.text();
       this.logger.warn(`GBP accounts.list ${res.status}: ${body.slice(0, 500)}`);
-      if (res.status === 403) {
+      // Quotum 0 (access-aanvraag nog niet goedgekeurd) komt terug als 429
+      // RESOURCE_EXHAUSTED ("Requests per minute" = 0), soms als 403. Beide →
+      // de nette "nog in aanvraag"-melding i.p.v. een generieke fout.
+      if (res.status === 429 || res.status === 403) {
         throw new BadRequestException({
           reason: 'api_not_approved',
           message:
             'Google Business Profile API-toegang is nog niet goedgekeurd ' +
             'voor dit project (quotum 0). De koppeling werkt; profielen ' +
-            'ophalen kan zodra Google de aanvraag goedkeurt.',
+            'ophalen kan zodra Google de access-aanvraag goedkeurt.',
         });
       }
       if (res.status === 401) {
