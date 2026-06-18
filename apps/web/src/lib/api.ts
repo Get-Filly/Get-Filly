@@ -82,6 +82,46 @@ export async function metaSelectPage(pageId: string): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+// ---- Social-insights (fase 1: live engagement) ----
+export type MetaPostStat = {
+  id: string;
+  message: string | null;
+  createdTime: string | null;
+  permalink: string | null;
+  likes: number;
+  comments: number;
+  shares: number;
+};
+export type MetaIgPostStat = {
+  id: string;
+  caption: string | null;
+  mediaType: string | null;
+  timestamp: string | null;
+  permalink: string | null;
+  likeCount: number;
+  commentsCount: number;
+};
+export type MetaInsights = {
+  pageSelected: boolean;
+  pageName?: string;
+  facebook: { posts: MetaPostStat[] } | null;
+  instagram: {
+    username: string | null;
+    followersCount: number | null;
+    mediaCount: number | null;
+    posts: MetaIgPostStat[];
+  } | null;
+  notes: string[];
+};
+
+export async function fetchMetaInsights(): Promise<MetaInsights> {
+  const res = await authedFetch(`${API_URL}/integrations/meta/insights`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as MetaInsights;
+}
+
 export type MetaPublishResult = {
   facebook?: { id: string };
   instagram?: { id: string };

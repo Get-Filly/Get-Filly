@@ -37,6 +37,41 @@ type MetaTokenResponse = {
   expires_in?: number;
 };
 
+// ---- Social-insights (fase 1: live engagement, geen reach/impressions) ----
+export type MetaPostStat = {
+  id: string;
+  message: string | null;
+  createdTime: string | null;
+  permalink: string | null;
+  likes: number;
+  comments: number;
+  shares: number;
+};
+
+export type MetaIgPostStat = {
+  id: string;
+  caption: string | null;
+  mediaType: string | null;
+  timestamp: string | null;
+  permalink: string | null;
+  likeCount: number;
+  commentsCount: number;
+};
+
+export type MetaInsights = {
+  pageSelected: boolean;
+  pageName?: string;
+  facebook: { posts: MetaPostStat[] } | null;
+  instagram: {
+    username: string | null;
+    followersCount: number | null;
+    mediaCount: number | null;
+    posts: MetaIgPostStat[];
+  } | null;
+  // Toelichtingen waarom (een deel van) de data ontbreekt.
+  notes: string[];
+};
+
 @Injectable()
 export class MetaService {
   private readonly logger = new Logger(MetaService.name);
@@ -459,6 +494,168 @@ export class MetaService {
     }
 
     return result;
+  }
+
+  /**
+   * Fase 1 social-insights: live engagement van de gekoppelde FB-pagina +
+   * IG-account. Werkt met de bestaande scopes (pages_read_engagement +
+   * instagram_basic) — likes/reacties/shares per post + IG-volgers/media-
+   * count. Reach/impressions/profielweergaven komen pas met read_insights /
+   * instagram_manage_insights (fase 2, nieuwe App Review).
+   * Fail-soft per kanaal: een fout in FB blokkeert IG niet, en andersom.
+   */
+  async getInsights(restaurantId: string): Promise<MetaInsights> {
+    const { token, meta } = await this.loadCredential(restaurantId);
+    const pageId = (meta.page_id as string | undefined) ?? undefined;
+    const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
+    const notes: string[] = [];
+
+    if (!pageId) {
+      return {
+        pageSelected: false,
+        facebook: null,
+        instagram: null,
+        notes: ['Kies eerst een Facebook-pagina onder Account → Koppelingen.'],
+      };
+    }
+
+    // Verse page-token (telkens via /me/accounts, net als publish).
+    const accounts = await this.fetchAccounts(token);
+    const page = accounts.find((a) => a.id === pageId);
+    if (!page) {
+      throw new BadRequestException(
+        'De gekozen Facebook-pagina is niet meer beschikbaar. Kies opnieuw een pagina.',
+      );
+    }
+    const pageToken = page.access_token;
+    const v = this.graphVersion();
+
+    const facebook = await this.fetchFacebookStats(v, pageId, pageToken, notes);
+    let instagram: MetaInsights['instagram'] = null;
+    if (igUserId) {
+      instagram = await this.fetchInstagramStats(v, igUserId, pageToken, notes);
+    } else {
+      notes.push('Geen Instagram-account gekoppeld aan deze pagina.');
+    }
+
+    return { pageSelected: true, pageName: page.name, facebook, instagram, notes };
+  }
+
+  // FB-pagina: gepubliceerde posts + engagement (likes/reacties/shares).
+  private async fetchFacebookStats(
+    v: string,
+    pageId: string,
+    pageToken: string,
+    notes: string[],
+  ): Promise<{ posts: MetaPostStat[] } | null> {
+    try {
+      const fields =
+        'id,message,created_time,permalink_url,' +
+        'likes.summary(true),comments.summary(true),shares';
+      const res = await fetch(
+        `https://graph.facebook.com/${v}/${pageId}/published_posts?fields=${encodeURIComponent(fields)}&limit=25&access_token=${encodeURIComponent(pageToken)}`,
+      );
+      if (!res.ok) {
+        const body = await res.text();
+        this.logger.warn(`Meta FB-stats ${res.status}: ${body.slice(0, 300)}`);
+        notes.push('Facebook-statistieken konden niet worden opgehaald.');
+        return null;
+      }
+      const json = (await res.json()) as {
+        data?: Array<{
+          id: string;
+          message?: string;
+          created_time?: string;
+          permalink_url?: string;
+          likes?: { summary?: { total_count?: number } };
+          comments?: { summary?: { total_count?: number } };
+          shares?: { count?: number };
+        }>;
+      };
+      const posts = (json.data ?? []).map((p) => ({
+        id: p.id,
+        message: p.message ?? null,
+        createdTime: p.created_time ?? null,
+        permalink: p.permalink_url ?? null,
+        likes: p.likes?.summary?.total_count ?? 0,
+        comments: p.comments?.summary?.total_count ?? 0,
+        shares: p.shares?.count ?? 0,
+      }));
+      return { posts };
+    } catch (err) {
+      this.logger.warn(`Meta FB-stats fout: ${(err as Error).message}`);
+      notes.push('Facebook-statistieken konden niet worden opgehaald.');
+      return null;
+    }
+  }
+
+  // IG-account: basisvelden (volgers/media-count) + recente media + engagement.
+  private async fetchInstagramStats(
+    v: string,
+    igUserId: string,
+    pageToken: string,
+    notes: string[],
+  ): Promise<MetaInsights['instagram']> {
+    try {
+      const acctRes = await fetch(
+        `https://graph.facebook.com/${v}/${igUserId}?fields=username,followers_count,media_count&access_token=${encodeURIComponent(pageToken)}`,
+      );
+      let username: string | null = null;
+      let followersCount: number | null = null;
+      let mediaCount: number | null = null;
+      if (acctRes.ok) {
+        const a = (await acctRes.json()) as {
+          username?: string;
+          followers_count?: number;
+          media_count?: number;
+        };
+        username = a.username ?? null;
+        followersCount = a.followers_count ?? null;
+        mediaCount = a.media_count ?? null;
+      } else {
+        const body = await acctRes.text();
+        this.logger.warn(`Meta IG-account ${acctRes.status}: ${body.slice(0, 300)}`);
+      }
+
+      const mediaFields =
+        'id,caption,media_type,timestamp,permalink,like_count,comments_count';
+      const mediaRes = await fetch(
+        `https://graph.facebook.com/${v}/${igUserId}/media?fields=${encodeURIComponent(mediaFields)}&limit=25&access_token=${encodeURIComponent(pageToken)}`,
+      );
+      let posts: MetaIgPostStat[] = [];
+      if (mediaRes.ok) {
+        const m = (await mediaRes.json()) as {
+          data?: Array<{
+            id: string;
+            caption?: string;
+            media_type?: string;
+            timestamp?: string;
+            permalink?: string;
+            like_count?: number;
+            comments_count?: number;
+          }>;
+        };
+        posts = (m.data ?? []).map((p) => ({
+          id: p.id,
+          caption: p.caption ?? null,
+          mediaType: p.media_type ?? null,
+          timestamp: p.timestamp ?? null,
+          permalink: p.permalink ?? null,
+          likeCount: p.like_count ?? 0,
+          commentsCount: p.comments_count ?? 0,
+        }));
+      } else {
+        const body = await mediaRes.text();
+        this.logger.warn(`Meta IG-media ${mediaRes.status}: ${body.slice(0, 300)}`);
+        notes.push('Instagram-statistieken konden niet volledig worden opgehaald.');
+      }
+
+      return { username, followersCount, mediaCount, posts };
+    } catch (err) {
+      this.logger.warn(`Meta IG-stats fout: ${(err as Error).message}`);
+      notes.push('Instagram-statistieken konden niet worden opgehaald.');
+      return null;
+    }
   }
 
   /**

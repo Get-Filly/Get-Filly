@@ -222,6 +222,14 @@ export default function RapportagesHubPage() {
         : undefined,
     },
     {
+      key: "social",
+      name: "Social (live)",
+      href: "/dashboard/marketing/social",
+      status: "live",
+      placeholder:
+        "Likes, reacties, shares en je Instagram-volgers — live uit je gekoppelde Facebook en Instagram.",
+    },
+    {
       key: "instagram",
       name: "Instagram",
       href: "/dashboard/marketing/instagram",

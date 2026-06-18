@@ -59,6 +59,12 @@ export class MetaController {
     return this.meta.listPages(restaurantId);
   }
 
+  // GET /api/integrations/meta/insights  → live social-engagement
+  @Get('insights')
+  insights(@RestaurantId() restaurantId: string) {
+    return this.meta.getInsights(restaurantId);
+  }
+
   // POST /api/integrations/meta/select-page   body { pageId }
   @Post('select-page')
   @HttpCode(200)
