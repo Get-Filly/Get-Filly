@@ -16,6 +16,90 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🔬 Audit-ronde 2026-06-18 — 4 expert-analyses (Prio / Frontend / Backend / Beveiligingen)
+
+> Vier parallelle code-audits: data-engineer/developer, UI-analist, UX-expert en
+> security-engineer. Alle bevindingen zijn in de code geverifieerd. Items die al
+> elders in deze backlog stonden zijn gemarkeerd **(bevestigd)**. Severity:
+> 🔴 vóór productie-klanten · 🟡 belangrijk · 🟢 polish.
+
+### 🎯 Prioriteit — eerst oppakken (vóór productie-klanten)
+- [ ] 🔴 **AuthGuard globaal maken (deny-by-default)** — beveiliging is nu opt-in per controller; een vergeten `@UseGuards` = volledig publieke route. → `APP_GUARD` + expliciete `@Public()`. *(Backend + Beveiliging)*
+- [ ] 🔴 **9 server-only keys uit `get-filly-web` Vercel-env** (o.a. `SUPABASE_SECRET_KEY` = RLS-bypass) — **(bevestigd, al P1)**. *(Beveiliging)*
+- [ ] 🔴 **Resend-webhook Svix-signature valideren** — accepteert nu elke body → vervalsbare mail-stats. *(Beveiliging)*
+- [ ] 🔴 **Cron-secrets constant-time vergelijken** (`seo-report`/`events`/`campaigns-cron`). *(Backend + Beveiliging)*
+- [ ] 🔴 **Ontbrekende migraties committen** (0044 identiteit-velden, + gaten 0039/0056/0057) — schone Supabase-reset reproduceert de kolommen niet → `PATCH /restaurant/me` + health-runner breken. *(Backend)*
+- [ ] 🔴 **`:focus-visible` toevoegen (publiek én dashboard)** — toetsenbord/a11y-blokker (geverifieerd: 0 resp. 1 regel). *(Frontend)*
+- [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
+- [ ] 🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat. *(Frontend/UX)*
+- [ ] 🟡 **SSRF in website-analyzer** — interne IP's/cloud-metadata bereikbaar; blocklist toevoegen. *(Beveiliging)*
+
+### 🎨 Frontend
+
+**Publieke site — UI**
+- [ ] 🔴 `:focus-visible` ontbreekt volledig (0 regels) op alle clickables → één gedeelde outline-regel.
+- [ ] 🔴 Typografieronde ~12% af: 130 hardcoded px font-sizes vs 18 token-uses in `landing.css` (hero 74, `.pillars-cta-title` 32, `.pricing-price` 38, `.diff-card-title` 24…) → koppen op `--fs-*`, nieuwe `--fs-hero`-token.
+- [ ] 🟡 Drie/vier verschillende "primaire groene knop"-implementaties (`.btn-primary`/`.nav-demo`/`.cta-btn`/`.pricing-btn`); `ui.css` Button nergens hergebruikt → één `.btn`/`<Button>`.
+- [ ] 🟡 Dode/dubbele CSS: `.features::before` 2×, `.about-hero-grid` 3×, `.about-mv` 2× → opruimen.
+- [ ] 🟡 Breakpoint-sprawl (560/640/720/760/820/860/880/980; blog 860 ≠ nav 880) → consolideren naar 880/640/480.
+- [ ] 🟡 `font-weight: 800` buiten de schaal + 113 raw weights + ~50 hardcoded brand/status-hex → `--font-weight-*` / `--color-*`.
+- [ ] 🟢 Logo nav 44px vs footer 35px + dode `.nav-logo-mark`-selector; kaart-radii driften 12/16/20/24/32 → radius-tokens.
+
+**Dashboard — UI**
+- [ ] 🔴 `campaign-send-modal.tsx` volledig inline-styled mét niet-bestaande var-namen + foute hex-fallbacks (`var(--danger,#B3261E)`, `var(--tl,#6B6F71)`) → bestaande `.sg-modal` hergebruiken.
+- [ ] 🔴 `UpcomingActionsBlock` herbouwt de alert-bar inline met hardcoded `RED/GREEN` + alias-misbruik `--rs` → `.alert-bar`-class met `--color-danger/-brand`.
+- [ ] 🔴 `:focus-visible` vrijwel afwezig (1 regel); klikbare `.cal-cell`/`.yr-cell` zijn `<div>` zonder role/tabindex → focus-outline + echte buttons.
+- [ ] 🟡 Twee parallelle knop-systemen; `<Button>` in maar 6/32 componenten (pill vs rounded-rect inconsistent) → migreren.
+- [ ] 🟡 Type-/shadow-tokens vrijwel ongebruikt (243 raw px, 0× `--font-size-*`, 0× `--shadow-*`, .5px-uitschieters) → tokens.
+- [ ] 🟡 379 inline-`style={{}}`-blokken; `hour-heatmap` heeft geen mobiele behandeling (geen `@media`) → naar classes.
+- [ ] 🟡 Geen gedeelde skeleton (2 implementaties + stale `fillyShimmer` + hardcoded `#efeae0`) → één `<Skeleton>`.
+- [ ] 🟢 Heatmap-tiers 3× gedefinieerd (CSS 2× + JS) → `--heat-0..4`-tokens; `880px` stray-breakpoint + `!important` op `.stats-row`-grid opruimen.
+
+**UX (publiek + app)**
+- [ ] 🔴 Geen vertrouwenssignalen op de publieke site (reviews/logo's/cijfers) — grootste conversielek → social proof boven de CTA.
+- [ ] 🔴 Prijzen-pagina volledig geblurd (`HIDE_PRICING`) en doodlopend → prijs-range of eerlijke uitleg + directe CTA.
+- [ ] 🔴 Geleide campagne-flow stuurt bij 0 resultaten stil naar `/campagnes` → inline-foutstaat, blijf staan.
+- [ ] 🔴 Geen `aria-live` op Filly-antwoorden + "maakt voorstel"-staat → screenreader hoort niets.
+- [ ] 🟡 Login toont rauwe Engelse Supabase-fout → NL-microcopy-mapping.
+- [ ] 🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset) → koppelen.
+- [ ] 🟡 Contact-formulier: geen verwachting ("binnen 1 werkdag, vrijblijvend") + "bericht" verplicht → toevoegen + bericht optioneel maken.
+- [ ] 🟡 Inconsistente CTA-labels ("Vraag een demo aan"/"Plan een gratis kennismaking"/"Plan kennismaking") → één label site-breed.
+- [ ] 🟡 `/signup` stille redirect → korte uitleg-pagina ("op uitnodiging — vraag demo aan").
+- [ ] 🟡 Disabled knoppen ogen klikbaar + vage labels ("Selecteer een optie", "Volgende stap", "Geen kiezen") in de guided flow → instructie + context-labels.
+- [ ] 🟡 Legacy-routes (`taken/`, `suggesties/`, `marketing/`) zonder terug-pad → banner of 308-redirect zoals `reviews`.
+- [ ] 🟡 Modals missen `aria-labelledby`; klikbare kaarten geen focus-ring.
+- [ ] 🟡 Concept-werk verloren bij weg-navigeren (review-reply) + geen succes-toast na goedkeuren → sessionStorage-autosave + toast met undo.
+- [ ] 🟡 Campagne-detail: inconsistente actie-labels ("Terugtrekken" vs "Terug naar concept"), geen tijdzone-hint bij plan-veld, geen onopgeslagen-markering op de kanaal-tab.
+- [ ] 🟢 Em-dashes / `&mdash;` / `&middot;` in `onboarding`/`product`/`about` TSX (strijdig met "geen AI-streepjes") → scannen + vervangen.
+
+### ⚙️ Backend
+- [ ] 🔴 **Schema-drift**: migraties 0044 (+ gaten 0039/0056/0057) ontbreken als `.sql` in `apps/api/supabase/migrations/`; code/types verwachten de kolommen → gedraaide SQL alsnog genummerd committen.
+- [ ] 🟡 Migratie-nummer **0043 dubbel** (auto-archive in repo vs geplande schema-cleanup in BACKLOG) → cleanup hernummeren naar vrij nummer.
+- [ ] 🟡 `runScheduledSocial`: status-flip + publish niet transactioneel, geen overlap-guard → status-flip vóór de side-effects of een `rpc()`-transactie.
+- [ ] 🟡 Read-modify-write op `variants`-jsonb zonder locking (lost update) in `selectVariant`/`editVariant`/`mutateChannel`/`refine` → `jsonb_set` via `rpc()` of `version`-kolom.
+- [ ] 🟡 Cron-precisie social: max 1×/dag op Vercel Hobby — **(bevestigd, fase B)** → Pro + frequentere cron.
+- [ ] 🟡 Multi-channel status-transitie zonder rollback — **(bevestigd, al P1)**.
+- [ ] 🟡 Legacy `FORMAAT`-parsers + dead-code-kolommen (`filly_variants` e.d.) + dode API-functies — **(bevestigd, al P1 + Filly-audit #7)**.
+- [ ] 🟢 ~62 zwakke types (`any`/`as`/`Record<string,unknown>`) in `apps/api` → per-tabel rij-types of lichte zod-validatie bij het inlezen.
+- [ ] 🟢 Schedule-suggestie-cache zonder TTL/invalidatie → leegmaken bij statuswissel (concept→ingepland).
+- [ ] 🟢 `findBundle` N+1 (per kanaal `findById`) — **(bevestigd, al P1)** → batch-`IN`-query.
+- [ ] 🟢 Doc/comment 301 vs 308 bij apex→www (code = 308, correct) → comments/CLAUDE.md gelijktrekken op 308.
+
+### 🔒 Beveiligingen
+- [ ] 🔴 **AuthGuard niet globaal (allow-by-default)** — vergeten guard = publieke route → `APP_GUARD` + `@Public()` deny-by-default.
+- [ ] 🔴 **Cron-secret-check niet constant-time** (`seo-report`/`events`/`campaigns-cron`) → `timingSafeEqual` / gedeelde `CronSecretGuard`.
+- [ ] 🔴 **Server-only keys in `get-filly-web`** (9 vars, incl. service_role) — **(bevestigd, al P1)** → verwijderen + redeploy zonder cache.
+- [ ] 🔴 **Resend-webhook zonder signature-validatie** (`mail.controller.ts`) → Svix-signature met `RESEND_WEBHOOK_SECRET` (constant-time) afdwingen.
+- [ ] 🟡 **SSRF in website-analyzer** (`ai/website-analyzer.service.ts`) — geen blocklist voor 127.0.0.1/169.254.169.254/10.x/192.168.x/localhost → ranges blokkeren (DNS→IP-check) + redirects pinnen op publieke IP's.
+- [ ] 🟡 Publieke `/public/contact` + `/public/unsubscribe` zonder rate-limit/CAPTCHA → IP-rate-limit (Vercel WAF) op `/public/*`.
+- [ ] 🟡 Storage-bucket `restaurant-assets` mist per-tenant path-RLS (tenant A kan in B's pad schrijven) → pad-prefix-RLS op `(storage.foldername(name))[1]`.
+- [ ] 🟡 Pre-onboarding rate-limit in-memory (niet multi-instance-veilig) — **(bevestigd, al P1)** → gedeelde store (Supabase-tabel/Redis).
+- [ ] 🟡 Enkele cron-/bundle-queries scopen alleen op `group_id`/`campaign_id` zonder `restaurant_id` (defense-in-depth, admin-client omzeilt RLS) → `.eq('restaurant_id')` overal toevoegen.
+- [ ] 🟢 `requireAccess` lekt 404 vs 403 (UUID-enumeration) → uniforme response.
+- ✅ **Geverifieerd OK** (geen actie): open-redirect-bescherming `/auth/confirm`, Meta-OAuth CSRF + state-cookie, AES-256-GCM token-crypto (random IV + auth-tag), multi-tenant dubbelscoping + RLS-backstop, Meta `signed_request`-HMAC-validatie, JWT-verificatie (JWKS + issuer).
+
+---
+
 ## P0 — Blokkerend voor eerste klant
 
 ### Auth & onboarding
