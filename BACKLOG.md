@@ -25,7 +25,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ### 🎯 Prioriteit — eerst oppakken (vóór productie-klanten)
 - [ ] 🔴 **AuthGuard globaal maken (deny-by-default)** — beveiliging is nu opt-in per controller; een vergeten `@UseGuards` = volledig publieke route. → `APP_GUARD` + expliciete `@Public()`. *(Backend + Beveiliging)*
-- [ ] 🔴 **9 server-only keys uit `get-filly-web` Vercel-env** (o.a. `SUPABASE_SECRET_KEY` = RLS-bypass) — **(bevestigd, al P1)**. *(Beveiliging)*
+- [x] ~~🔴 **9 server-only keys uit `get-filly-web` Vercel-env**~~ — ✅ verwijderd (2026-06-18, Floris). Alleen `NEXT_PUBLIC_*` + publieke OAuth-app/client-id's (`META_APP_ID`, `GOOGLE_OAUTH_CLIENT_ID`) resteren. *(Beveiliging)*
 - [ ] 🔴 **Resend-webhook Svix-signature valideren** — accepteert nu elke body → vervalsbare mail-stats. *(Beveiliging)*
 - [ ] 🔴 **Cron-secrets constant-time vergelijken** (`seo-report`/`events`/`campaigns-cron`). *(Backend + Beveiliging)*
 - [ ] 🔴 **Ontbrekende migraties committen** (0044 identiteit-velden, + gaten 0039/0056/0057) — schone Supabase-reset reproduceert de kolommen niet → `PATCH /restaurant/me` + health-runner breken. *(Backend)*
@@ -88,7 +88,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ### 🔒 Beveiligingen
 - [ ] 🔴 **AuthGuard niet globaal (allow-by-default)** — vergeten guard = publieke route → `APP_GUARD` + `@Public()` deny-by-default.
 - [ ] 🔴 **Cron-secret-check niet constant-time** (`seo-report`/`events`/`campaigns-cron`) → `timingSafeEqual` / gedeelde `CronSecretGuard`.
-- [ ] 🔴 **Server-only keys in `get-filly-web`** (9 vars, incl. service_role) — **(bevestigd, al P1)** → verwijderen + redeploy zonder cache.
+- [x] ~~🔴 **Server-only keys in `get-filly-web`** (9 vars, incl. service_role)~~ — ✅ verwijderd (2026-06-18); enkel publieke `NEXT_PUBLIC_*` + OAuth-app/client-id's resteren.
 - [ ] 🔴 **Resend-webhook zonder signature-validatie** (`mail.controller.ts`) → Svix-signature met `RESEND_WEBHOOK_SECRET` (constant-time) afdwingen.
 - [ ] 🟡 **SSRF in website-analyzer** (`ai/website-analyzer.service.ts`) — geen blocklist voor 127.0.0.1/169.254.169.254/10.x/192.168.x/localhost → ranges blokkeren (DNS→IP-check) + redirects pinnen op publieke IP's.
 - [ ] 🟡 Publieke `/public/contact` + `/public/unsubscribe` zonder rate-limit/CAPTCHA → IP-rate-limit (Vercel WAF) op `/public/*`.
@@ -198,7 +198,7 @@ generate-for-dates → brein/events/reach). Geordend op aanpak-volgorde
 - [ ] **Email-change flow** — account-pagina
 - [ ] **2FA setup** — `users.two_factor_enabled` kolom bestaat, geen UI
 - [ ] **Pre-onboarding rate-limit naar Redis** — nu in-memory Map in `OnboardingController`. Overleeft geen multi-instance deploy; vervangen door Redis/Upstash zodra api op Railway schaalt.
-- [ ] ⚠️ **Server-side keys verwijderen uit `get-filly-web` Vercel-env-vars** (gespot 2026-05-28 tijdens Vercel-migratie). Frontend-project heeft 9 server-only vars die er niet horen: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (⚠️ service-role, kritiek), `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `GOOGLE_PLACES_API_KEY`, `WEB_URL`. Risico: als een per-ongeluk-gebakken Next.js-bundle ze lekt → full DB-access (SUPABASE_SECRET_KEY = bypass RLS) + open AI/mail-quota's. Mag BLIJVEN: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Stappen: dashboard → get-filly-web → Settings → Env-vars → 9× delete → redeploy zonder cache → testen.
+- [x] ✅ **Server-side keys verwijderd uit `get-filly-web` Vercel-env-vars** (2026-06-18 door Floris; geverifieerd: alleen `NEXT_PUBLIC_*` + publieke OAuth-id's resteren). _Oorspronkelijke context:_ (gespot 2026-05-28 tijdens Vercel-migratie). Frontend-project heeft 9 server-only vars die er niet horen: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (⚠️ service-role, kritiek), `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `GOOGLE_PLACES_API_KEY`, `WEB_URL`. Risico: als een per-ongeluk-gebakken Next.js-bundle ze lekt → full DB-access (SUPABASE_SECRET_KEY = bypass RLS) + open AI/mail-quota's. Mag BLIJVEN: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Stappen: dashboard → get-filly-web → Settings → Env-vars → 9× delete → redeploy zonder cache → testen.
 - [x] ~~**Demo basic-auth-popup verwijderd**~~ (2026-05-29) — de `DEMO_AUTH_USERNAME/PASSWORD`-popup is uit `middleware.ts` gehaald zodat Google's reviewers de publieke pagina's + OAuth-flow kunnen bereiken (vereist voor GBP OAuth-verificatie). Dashboard blijft beschermd via de Supabase-auth-gates. **Restje**: `DEMO_AUTH_*`-env-vars staan nog in Vercel `get-filly-web` en kunnen verwijderd worden (code leest ze niet meer).
 
 ### Email & campagnes (gepromoveerd van P2 → P1)
