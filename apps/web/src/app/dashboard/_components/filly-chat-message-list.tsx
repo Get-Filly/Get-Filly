@@ -2,6 +2,8 @@
 
 import { forwardRef } from "react";
 import type {
+  ActiveAction,
+  ActiveActionDelta,
   BundleChannel,
   ChatMessage,
   CampaignProposalCard,
@@ -68,6 +70,10 @@ type Props = {
   onChooseChannel: (messageId: string, choices: ChannelChoice[]) => void;
   dateChoiceState: Record<string, { state: DateChoiceState }>;
   onChooseDate: (messageId: string, followUpText: string) => void;
+  // Gedeelde lopende actie (audit-item #8): de geleide flow seed't z'n
+  // begintoestand hieruit en meldt keuzes terug via onActiveActionChange.
+  activeAction: ActiveAction | null;
+  onActiveActionChange: (delta: ActiveActionDelta) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -87,6 +93,8 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
       onDismissBundle,
       onChooseChannel,
       onChooseDate,
+      activeAction,
+      onActiveActionChange,
     },
     scrollRef,
   ) {
@@ -95,6 +103,17 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
     // leeg → toon de geleide on-ramp (FillyGuidedFlow) i.p.v. een
     // kaal vlak.
     const visible = messages.filter((m) => m.role !== "system");
+    // Per gesprek is er één lopende actie, dus maar één interactieve flow:
+    // alléén de LAATSTE guided_start-kaart rendert de klikbare FillyGuidedFlow.
+    // Oudere guided_start-kaarten tonen enkel hun prozatekst (geen flow),
+    // anders stapelen er meerdere flows die allemaal aan dezelfde
+    // active_action hangen en bij elke nieuwe beurt "meeveranderen".
+    const lastGuidedStartId =
+      [...visible]
+        .reverse()
+        .find(
+          (m) => m.role === "filly" && m.message_card?.kind === "guided_start",
+        )?.id ?? null;
     return (
       <div className="chat-msgs" ref={scrollRef}>
         {loading ? (
@@ -112,7 +131,13 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             </div>
           </div>
         ) : visible.length === 0 && !sending ? (
-          <FillyGuidedFlow />
+          // Lege-chat-staat: de volledige flow. Seed vanuit een eventuele
+          // lopende actie (zeldzaam in de lege staat, maar dan klopt 'ie).
+          <FillyGuidedFlow
+            initialDate={activeAction?.date}
+            initialTopic={activeAction?.topic}
+            onActionChange={onActiveActionChange}
+          />
         ) : (
           visible.map((m) =>
               m.role === "filly" ? (
@@ -172,15 +197,9 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                       }
                     />
                   )}
-                  {m.message_card?.kind === "guided_start" && (
-                    // Getypt campagne-verzoek → de geleide flow ín het
-                    // gesprek, eventueel voorgevuld met de door Filly
-                    // herleide datum + genoemd gerecht/thema.
-                    <FillyGuidedFlow
-                      initialDate={m.message_card.date}
-                      initialTopic={m.message_card.topic}
-                    />
-                  )}
+                  {/* guided_start rendert GEEN eigen flow meer: er is per
+                      gesprek één flow onderaan de thread (zie hieronder),
+                      gedreven door active_action. De kaart = enkel proza. */}
                 </div>
               ) : (
                 <div key={m.id} className="msg msg-user">
@@ -189,6 +208,19 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                 </div>
               ),
             )
+        )}
+        {/* Eén actieve geleide flow per gesprek, onderaan de thread.
+            Zichtbaar zodra er een lopende actie is (active_action != null);
+            de lege-chat-staat hierboven toont 'm al als on-ramp. Gekeyed op
+            de laatste guided_start zodat 'ie alleen remount bij een NIEUWE
+            chat-emit, niet bij eigen kliks (anders verlies je de flow-stap). */}
+        {!loading && visible.length > 0 && activeAction && (
+          <FillyGuidedFlow
+            key={lastGuidedStartId ?? "active-flow"}
+            initialDate={activeAction.date}
+            initialTopic={activeAction.topic}
+            onActionChange={onActiveActionChange}
+          />
         )}
         {sending && (
           // Typing-indicator met Filly-avatar zodat 't leest als

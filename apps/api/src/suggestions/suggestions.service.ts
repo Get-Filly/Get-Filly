@@ -22,6 +22,7 @@ import {
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
+import { naturalizeSuggestedCampaign } from '../ai/copy-style.guard';
 import {
   ChannelReachService,
   type ChannelReach,
@@ -721,6 +722,7 @@ Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 
 Inhoudsregels:
 - Schrijf alles in het Nederlands. Match de brand_tone uit het profiel.
+- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
 - Per voorstel: kies 1-3 KANALEN waarop dit voorstel uit moet gaan. Niet elk voorstel hoeft multi-channel te zijn:
   - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 mail of 1 whatsapp aan vaste gasten), of zeer kanaal-specifiek concept.
@@ -948,7 +950,13 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 
     const { data: inserted, error: insErr } = await this.supabase.client
       .from('ai_suggestions')
-      .insert(rows)
+      // Dash-sanitizer (AI-tell): em/en-dashes uit elke copy poetsen.
+      .insert(
+        rows.map((r) => ({
+          ...r,
+          suggested_campaign: naturalizeSuggestedCampaign(r.suggested_campaign),
+        })),
+      )
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       );
@@ -1149,6 +1157,7 @@ Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args
 
 Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone.
+- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Kies campagne-type op basis van weekdag + segment:
   * vaste-gast/VIP-segment + acute dag (<5 dagen) → whatsapp (snel, persoonlijk)
@@ -1257,7 +1266,13 @@ ${dayContext}`;
 
         const { data: inserted, error: insErr } = await this.supabase.client
           .from('ai_suggestions')
-          .insert(row)
+          // Dash-sanitizer (AI-tell): em/en-dashes uit de copy poetsen.
+          .insert({
+            ...row,
+            suggested_campaign: naturalizeSuggestedCampaign(
+              row.suggested_campaign,
+            ),
+          })
           .select(
             'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
           )
@@ -1579,6 +1594,7 @@ Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args
 
 Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone.
+- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Kies campagne-type op basis van urgentie + segment:
   * Acute dag (<5 dgn) + vaste-gast/VIP → whatsapp (snel, persoonlijk)
@@ -1797,7 +1813,13 @@ ${segmentsBlock}`;
 
         const { data: inserted, error: insErr } = await this.supabase.client
           .from('ai_suggestions')
-          .insert(row)
+          // Dash-sanitizer (AI-tell): em/en-dashes uit de copy poetsen.
+          .insert({
+            ...row,
+            suggested_campaign: naturalizeSuggestedCampaign(
+              row.suggested_campaign,
+            ),
+          })
           .select(
             'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
           )
@@ -1875,6 +1897,7 @@ Je antwoord komt via de tool 'build_proposal_details'. Vul de tool-args in met e
 
 Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone uit het profiel.
+- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
 - main_dish en sides: GEBRUIK BIJ VOORKEUR gerechten uit MENU (zie context). Zet source='menu' en pak de échte naam, beschrijving en prijs uit MENU.
 - Alleen als geen passend menu-gerecht beschikbaar is, mag je een nieuw gerecht voorstellen met source='new'. Beschrijf het concreet (ingrediënten, bereiding) zodat de eigenaar weet wat hij zou koken.
 - Maximaal 3 bijgerechten/sides. Geen losse drankjes als sides, alleen bij eet-gerechten relevant.
@@ -1928,7 +1951,9 @@ Maak dit tastbaar volgens de regels.`;
     };
     await this.supabase.client
       .from('ai_suggestions')
-      .update({ suggested_campaign: updatedCampaign })
+      .update({
+        suggested_campaign: naturalizeSuggestedCampaign(updatedCampaign),
+      })
       .eq('id', suggestionId)
       .eq('restaurant_id', restaurantId);
 
@@ -2856,7 +2881,7 @@ Maak dit tastbaar volgens de regels.`;
     };
     const { data: updated, error: updErr } = await this.supabase.client
       .from('ai_suggestions')
-      .update({ suggested_campaign: syncedSc })
+      .update({ suggested_campaign: naturalizeSuggestedCampaign(syncedSc) })
       .eq('id', suggestionId)
       .eq('restaurant_id', restaurantId)
       .select(
@@ -3256,7 +3281,7 @@ ${channelRules}
 
     const { data: updated, error: updErr } = await this.supabase.client
       .from('ai_suggestions')
-      .update({ suggested_campaign: newSuggested })
+      .update({ suggested_campaign: naturalizeSuggestedCampaign(newSuggested) })
       .eq('id', suggestionId)
       .eq('restaurant_id', restaurantId)
       .select(
@@ -3281,7 +3306,7 @@ ${channelRules}
       .insert({
         restaurant_id: restaurantId,
         trigger_type: 'chat',
-        suggested_campaign: suggested,
+        suggested_campaign: naturalizeSuggestedCampaign(suggested),
         status: 'pending',
       })
       .select('id')
@@ -3326,7 +3351,7 @@ ${channelRules}
       .insert({
         restaurant_id: restaurantId,
         trigger_type: 'chat_bundle',
-        suggested_campaign: bundle,
+        suggested_campaign: naturalizeSuggestedCampaign(bundle),
         status: 'pending',
       })
       .select('id')

@@ -144,6 +144,11 @@ Eigenaar's vision: Filly checkt dagelijks (event-driven via reserveringsplatform
 - [x] ~~**Low-occupancy threshold per restaurant**~~ (2026-06-11) — kolom `low_occupancy_threshold` (mig 0037) + slider op account-pagina + dashboard waren al live; laatste restje gefixt: `detectAndGenerateLowOccupancy` leest nu óók de kolom per restaurant (`suggestions.service.ts`, stap 1b), de constante 50 is alleen nog fallback voor restaurants zonder eigen waarde. Drempel staat ook in de Claude-prompt per dag.
 - [ ] **Autonome detectie** — bij data-event vanuit reserveringsplatform (Zenchef etc.) automatisch `detectAndGenerateLowOccupancy` triggeren (i.p.v. handmatige knop). NB: per memory géén interne cron, alléén event-driven.
 - [ ] **Push-meldingen** — opties: (a) Email-interim via Resend (snel, 2-3u), (b) Web Push via PWA (10-12u, werkt cross-platform), (c) Mobile app + native push (weken, App Store). Sprint-keuze: start met (a), later (b).
+- [ ] ⚠️ **Bezetting in de dag-keuze is nu seeded nep-data** (gevonden 2026-06-12) — `buildWindowOccupancy` (`apps/web/src/lib/occupancy-window.ts`) valt voor elke dag zónder rij in `occupancy_days` terug op `seededOccupancy` (demo-formule: ma/di/wo 40-69%, do 55-79%, vr/za/zo 78-99%). Voor een echt restaurant zónder bezettingsdata (`occupancy_days` leeg + 0 reserveringen, geverifieerd voor Bar Barolo `71ecad93`) zijn de "rustige dagen" in zowel de geleide chat-flow als het dashboard-blok (`useActionableDays`) dus volledig **verzonnen**. Symptoom dat Floris vond: Filly zegt in proza "alle dagen rustig" (leest reserveringen) maar de dag-picker toont maar 1 dag (`di 23 jun` = toevallig seeded 42%). De seeded-fallback was bedoeld als demo-scaffolding voor het demo-account, niet voor echte tenants.
+  **Afwegingen / opties (beslissing volgt — Floris):**
+  - **A (eerlijk, aanbevolen):** flow + hook gebruiken alleen ECHTE `occupancy_days`; ontbreekt die, toon de komende OPEN dagen als klikbare keuze (+ speciale dagen) i.p.v. nep-percentages. Raakt ook het dashboard-blok (gedeelde `useActionableDays`-hook) → toont dan eerlijk "geen rustige dagen". Geen capaciteitsmodel nodig. Nadeel: zonder data geen "deze dag heeft écht een actie nodig"-signaal meer.
+  - **B (echt, grootste klus):** `occupancy_pct` echt berekenen (reserveringen ÷ capaciteit) en `occupancy_days` vullen via een pipeline. Vereist een capaciteits-/coversmodel + event-driven trigger — hangt aan de reserveringskoppeling (Zenchef, zie "Autonome detectie" hierboven). Beste resultaat; lost meteen ook de autonome-detectie op.
+  - **C (splitsen):** alleen de chat-flow laat seeded los; dashboard houdt seeded tot B. Kleinste blast-radius, maar dashboard tijdelijk inconsistent.
 
 ### Billing
 > ⚠️ **Betaalprovider-wijziging (2026-05-30)**: de aangeleverde legal-teksten
@@ -171,7 +176,7 @@ generate-for-dates → brein/events/reach). Geordend op aanpak-volgorde
 - [x] ~~**5. Dag-rekenlogica gededupliceerd**~~ (2026-06-12) — `UpcomingActionsBlock` consumeert nu `useActionableDays` (hook uitgebreid met `coveredLowOccupancyCount`/`coveredSpecialCount`); de ~80 regels gedupliceerde fetch + filter-logica zijn weg → drift-risico opgelost, één bron-van-waarheid. **Bewust níet aangeraakt (negligible/te invasief):** (a) `day-context` fetcht coords 2× — twee triviale queries, niet in een loop; deduppen vereist signatuur-wijziging op findNearby + getForecastForRestaurant (ook elders gebruikt). (b) cross-component dubbel-fetch (block + flow roepen elk de hook) — vereist een gedeelde provider/React-Query; aparte optimalisatie.
 - [x] ~~**6. Multi-channel parallel i.p.v. sequentieel**~~ (2026-06-12) — de per-kanaal-generaties draaien nu via `Promise.all` (latency = traagste kanaal i.p.v. de som; ~15-30s → ~die van één call). Elk kanaal houdt z'n eigen lengte-guard, volgorde + fail-soft behouden. **Gekozen voor parallel i.p.v. één-call-schema:** lost de UX-pijn (wachttijd) met near-zero risico op; de kosten-optimalisatie (1 call i.p.v. N via een channels[]-schema) blijft een mogelijke vervolgstap maar verandert de LLM-output en is niet vanaf dev te testen. ⚠️ Live verifiëren dat een multi-channel-bundel snel + correct genereert.
 - [ ] **7. Legacy dood gewicht opruimen** — de oude FORMAAT-parsers (`extractCampaignProposal/Bundle/Choice/DateChoice`) + chat-kaarten staan er nog "als vangnet" maar het LLM emit ze niet meer: bewust verwijderen óf documenteren waarom ze blijven. Idem `row: Record<string, unknown>` in `generateForSelectedDates` → echt type geven.
-- [ ] **8. (Architectuur, grootste klus) één `active_action`-state** — flow-kaart (frontend) en chat (LLM-tekst) delen geen bron-van-waarheid; dit is de oorzaak van de 3× gepatchte context-verlies-bugs. Introduceer één per-gesprek gepersisteerd actie-object (datum/topic/kanalen/stap) waar beide op lezen/schrijven, óf commit aan één model (flow puur klik-gestuurd, typen pas ná een voorstel). De huidige tekst-annotatie-workaround blijft anders lekken.
+- [x] ~~**8. (Architectuur, grootste klus) één `active_action`-state**~~ (2026-06-12) — gekozen voor **optie A**: één gepersisteerde lopende actie per gesprek (`active_action` jsonb-kolom op `chat_conversations`, migratie **0056**) waar zowel de geleide flow als de chat-LLM op lezen/schrijven. **Backend:** `ActiveAction`-type + `ActiveChatState.activeAction`; pure helpers `mergeActiveAction`/`sanitizeActionInput`/`formatActiveActionBlock` (12 unit-tests); `getActiveAction`/`updateActiveAction`/`setActiveAction` (server-authoritative merge); `sendMessage` vervangt de tekst-annotatie-workaround door één deterministisch `[LOPENDE ACTIE]`-promptblok, merget een `FILLY_START_GUIDED`-emit in de state en vult de kaart vanuit de gemergede actie (topic-only emit behoudt de eerder gekozen datum — de kern-bug); `PATCH /chat/conversations/:id/active-action`; prompt-instructie aangepast ("systeem houdt de datum vast, laat day_phrase weg"). **Frontend:** `updateChatActiveAction`-fetch; `FillyChat` houdt de actie als lifted state (geseed uit elke load/switch/new, bijgewerkt uit de send-respons); `FillyGuidedFlow` PATCHt de gekozen dag (auto-start schrijft níet terug zodat een nieuwere actie niet geclobberd wordt) + wist de actie bij afronding/herstart. **67 tests groen, typecheck web+api schoon.** ⚠️ Migratie 0056 moet in Supabase gedraaid zijn vóór deploy; LLM-gedrag (datum/thema-carry-forward) is niet vanaf dev te testen → live verifiëren. Legacy-parsers (audit #7) bewust ongemoeid.
 
 ---
 
@@ -425,6 +430,10 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
     - ⚠️ **TODO bij overstap Vercel Hobby → Pro**: cron in `apps/api/vercel.json` staat nu dagelijks 08:00 (Hobby-limiet, niet punctueel); bumpen naar `*/10 * * * *` voor on-time posten.
     - Nog open: Google Bedrijfsprofiel-posts via dezelfde campagne-flow zodra die API-toegang rond is; WhatsApp/TikTok publiceren (geen API-koppeling).
   - 👉 **VOLGENDE STAP (volgende sessie)**: redirect-URI in Meta opslaan → Verbind-flow doorlopen → bevestigen dat pagina-ophalen + testpost werkt.
+- [ ] **Publiceren vanuit de campagne-sectie** (echte product-UX i.p.v. het losse test-paneel) — de publiceer-backend is al af (`POST /api/integrations/meta/publish` + versleutelde token-opslag); wat ontbreekt is de knop in de campagne die 'm aanroept. Twee niveaus:
+  - **"Nu publiceren"** — knop op een social-campagne (`campagnes/[id]`) die de campagnetekst + geüploade foto naar `metaPublish` stuurt (FB en/of IG). Klein; hergebruikt alles wat er is. Daarna kan het losse `meta-publish-panel.tsx` op de koppelingen-tab test-only worden of verdwijnen.
+  - **Ingepland automatisch posten** — op de geplande datum/tijd afvuren. Vereist een achtergrond-worker/cron (Vercel Cron) die due social-campagnes oppakt en publiceert. Groter; aparte stap (mail wil dit straks ook).
+  - Idem voor Google Bedrijfsprofiel-posts zodra die API-toegang rond is (zelfde campagne-knop, andere provider).
 - [~] **Google Business Profile** — multi-fase implementatie (zie sectie hieronder)
 - [ ] **Zenchef OAuth** — reserveringen syncen
 - [ ] **OpenTable / SevenRooms / Resengo** — volgorde bepalen met klantvraag
@@ -480,13 +489,55 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
   actie**: APIs enablen in Cloud Console (5 stuks), OAuth consent screen
   configureren, formulier indienen. Wachttijd 2-6 weken voor approval.
 
-- [ ] **Fase D — OAuth-foundation** (generiek, ook bruikbaar voor Meta/Zenchef).
-  Migratie 0035: `oauth_connections`-tabel (provider, encrypted refresh-token,
-  scopes, expires_at). Generieke `OAuthModule` met google-business-strategy.
-  `/api/oauth/google-business/authorize` + `/callback` endpoints.
-  Knop "Koppel met Google" op de hub-pagina. Status-banner switcht
-  naar "Gekoppeld ✓" wanneer er een rij is voor restaurant_id +
-  provider='google_business'.
+- [~] **Fase D — OAuth-koppeling (business.manage, offline)** — **code-kant af**
+  (2026-06-14, branch `feat/active-action-state`, commits `e050733` + `fcaa97e`;
+  **nog niet gemerged naar `main`**, dus nog niet op productie). Afwijkend van het
+  oorspronkelijke plan (géén nieuwe `oauth_connections`-tabel / generieke
+  `OAuthModule`): **hergebruikt het Meta-patroon** — tabel `integration_credentials`
+  (mig 0052) + `TokenCryptoService`. **Migratie 0057** voegt `refresh_token_encrypted`
+  toe (al in Supabase gedraaid).
+  - **web** (`apps/web`): `/oauth/google/start` (auth-gate + getekende state:
+    HMAC-SHA256 over `{rid,nonce,iat}` + nonce-cookie, draagt tenant-id, verloopt
+    10 min) en `/oauth/google/callback` (state-verify → alleen de `code` naar de
+    API). Helper `lib/google-oauth.ts`. `access_type=offline` + `prompt=consent`
+    → altijd een refresh-token.
+  - **api** (`apps/api/src/google-business`): `GoogleBusinessModule`
+    (`/integrations/google-business/*`): `connect` (code→access+refresh,
+    versleuteld opslaan, provider `google_business`), `GET status`, `DELETE`
+    (revoke bij Google + rij wissen), plus `getAccessToken`/`refreshAccessToken`
+    (auto-refresh op (bijna-)expiry).
+  - **UI**: één status-gestuurde Google-rij in `account-connections.tsx` achter
+    feature-flag `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED` (default uit → "Beheer"; aan +
+    niet verbonden → "Verbind"). `googleBusinessStatus()` in `lib/api.ts`,
+    status-banner voor `?google=connected|denied|error&reason=`.
+  - Foutafhandeling: weigeren, `redirect_uri_mismatch`, verlopen/ongeldige state,
+    ontbrekende refresh-token (alle gemapt naar nette `reason`-codes).
+  - ⏳ **NOG TE DOEN — Google Cloud-kant (geen code), blokkerend voor de echte test:**
+    1. ⚠️ **OAuth-client in het JUISTE account/project.** Client-id in `.env` is
+       `167329672884-...` (project-nummer `167329672884`). Uitzoeken of dat het
+       **officiële Filly-account** is of per ongeluk Floris' persoonlijke gmail —
+       voor productie/verificatie hoort 'ie in het officiële account. **Tim** beheert
+       het Bedrijfsprofiel en is mogelijk eigenaar van het Cloud-project.
+    2. **Redirect-URI's** exact registreren op díé client: prod
+       `https://www.get-filly.com/oauth/google/callback` + lokaal
+       `http://localhost:3000/oauth/google/callback`. (2026-06-14: lokale test gaf
+       `redirect_uri_mismatch` — waarschijnlijk verkeerd account/project of propagatie.)
+    3. **Consent screen**: test-user (Audience), scope `business.manage` (Data
+       Access, sensitive → app-verificatie), **publiceren naar Productie** (anders
+       verlopen refresh-tokens na 7 dagen in "Testing").
+    4. **Env in Vercel**: `GOOGLE_OAUTH_CLIENT_ID`+`GOOGLE_OAUTH_CLIENT_SECRET` (api),
+       `GOOGLE_OAUTH_CLIENT_ID`+`OAUTH_STATE_SECRET`+`NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED`
+       (web), `INTEGRATIONS_ENCRYPTION_KEY` (api). Lokaal al gezet (zie `.env.example`).
+    5. **Fase C** (API-toegang aanvragen, quotum 0) blijft de lange-doorlooptijd-
+       blocker vóór écht profielbeheer.
+  - 👉 **VOLGENDE STAP**: account/project-eigenaarschap uitzoeken (Floris + Tim) →
+    redirect-URI op de juiste client → lokaal Verbind doorlopen → tokens in
+    `integration_credentials` verifiëren → daarna pas mergen/deployen.
+  - **Verificatie-prep klaar** (2026-06-15): `GET /integrations/google-business/profile`
+    (accounts.list via getAccessToken — bewijst scope-gebruik, 403→`api_not_approved`
+    tot de API-grant) + `GoogleConnectedPanel` (zichtbaar bewijs in de koppelingen-tab).
+    Justificatie-tekst (EN) + demovideo-script + test-checklist + Meta-parallel staan
+    in [docs/google-business-oauth-verification.md](docs/google-business-oauth-verification.md).
 
 - [ ] **Fase E — Reviews écht uit Google ophalen** (na approval).
   Sync-job 1× per uur per gekoppelde klant via
@@ -513,6 +564,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
 - [x] ~~`getMockProposal()` in suggesties-detail-modal~~ (2026-04-30) — vervangen door echte Claude-call via tool-use op `/api/suggestions/:id/proposal-details`.
 - [ ] **`cardItemIds`-set in memory** in menu-pagina — UI-state voor net-toegevoegde items, hoort uit DB-flow te komen.
 - [x] ~~**Statische koppelingen-lijst** zonder OAuth-flow~~ (2026-06-11) — de mock is opgeruimd: de nep-API-key-flow (eindigde in een `alert("Storage komt binnenkort")`) is weg uit `account-connections.tsx`. Nu eerlijke statussen: Meta = echte OAuth-verbindknop, Google Business = "Beheer"-link naar de Vindbaarheid-hub (waar de echte koppel-flow leeft), mail + weer = "✓ Actief", al het overige (Zenchef/OpenTable/SevenRooms/Resengo/TikTok/WhatsApp/TripAdvisor/The Fork/Lightspeed) = rustige "Binnenkort"-pill. SendGrid-rij verwijderd (mail loopt via het platform; loze belofte). De échte integraties blijven gewoon op de "Integraties (OAuth)"-backlog hieronder staan.
+- [x] ~~**Koppelingen-sectie status-aware + opgeschoond**~~ (2026-06-15) — `account-connections.tsx` herbouwd: koppelingsstatus 1× op sectie-niveau opgehaald (Meta + Google) en doorgegeven aan de rijen. OAuth-rijen tonen nu de échte staat — niet verbonden → "Verbind", verbonden → "✓ Verbonden" + Beheer (Google-hub) + Ontkoppel — i.p.v. altijd "Verbind". Facebook + Instagram delen de Meta-status (één koppeling). Disconnect-helpers `metaDisconnect` + `googleBusinessDisconnect` in `lib/api.ts`. Verouderde duplicaat-pagina `/dashboard/koppelingen` (nog "SendGrid" + hardcoded statussen) vervangen door een redirect naar `/dashboard/account?tab=koppelingen`. Dode `connected`-field verwijderd; `reason`-param per banner gescheiden (Meta vs Google).
 
 ### Database-migraties nog te maken
 - [x] ~~0049: campaign_sends.send_mode (test vs all_opted_in)~~ (2026-05-24) — test-mails tellen niet in sent_count en worden geskipt in campaign_performance-aggregatie. Index op (campaign_id, send_mode) voor snelle count-by-mode-query.

@@ -4,10 +4,11 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ChatService } from './chat.service';
+import { ChatService, type ActiveActionInput } from './chat.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import {
   CurrentUser,
@@ -67,6 +68,20 @@ export class ChatController {
     @Param('id') id: string,
   ) {
     return this.chat.deleteConversation(restaurantId, id, user.id);
+  }
+
+  // Lopende actie bijwerken (audit-item #8). De geleide flow PATCHt hier
+  // bij elke keuze (dag/context/kanalen) zodat de gekozen state ook
+  // server-side bekend is en de chat-prompt 'm meekrijgt. `reset: true`
+  // wist de actie (bv. na een geslaagde generatie). Geen AI-call, dus
+  // geen rate-limit-guard — alleen de class-level auth/tenant-guards.
+  @Patch('conversations/:id/active-action')
+  updateActiveAction(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: ActiveActionInput,
+  ) {
+    return this.chat.setActiveAction(restaurantId, id, body);
   }
 
   // Bericht sturen. Rate-limit-guard draait hier extra bovenop de

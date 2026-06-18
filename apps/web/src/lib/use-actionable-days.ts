@@ -38,6 +38,12 @@ export type ActionableDays = {
   specialDays: SpecialDay[];
   occupancyThreshold: number;
   loading: boolean;
+  // Komende open dagen (max 14), ongeacht bezetting. Gebruikt door de
+  // geleide flow als er GEEN echte bezettingsdata is: dan tonen we eerlijk
+  // "elke open dag is rustig" met een paar van deze dagen i.p.v. seeded.
+  upcomingOpenDays: string[];
+  // Is er überhaupt echte occupancy_days-data in het venster?
+  hasOccupancyData: boolean;
   // Hoeveel dagen ANDERS een actie zouden vragen maar al afgedekt zijn
   // (voorstel/campagne). Voor de "onder controle"-tekst in
   // UpcomingActionsBlock — onderscheidt "alles afgedekt" van "niets aan
@@ -107,10 +113,14 @@ export function useActionableDays(): ActionableDays {
   // Rustige dagen binnen het window die open zijn. Splits in "open"
   // (nog actie nodig) en "afgedekt" (al voorstel/campagne) in één pass.
   const { lowOccupancyDays, coveredLowOccupancyCount } = useMemo(() => {
+    // seedMissing=false: alleen ECHTE lage-bezettingsdagen, geen seeded
+    // nep-data (Floris-feedback 2026-06-13). Zonder occupancy_days is dit
+    // dus leeg; de flow valt dan terug op upcomingOpenDays.
     const windowDays = buildWindowOccupancy(
       windowOccupancy,
       today,
       LOW_OCCUPANCY_WINDOW_DAYS,
+      false,
     ).filter(
       (d) => d.occupancy_pct < occupancyThreshold && isOpenOn(restaurant, d.date),
     );
@@ -120,6 +130,21 @@ export function useActionableDays(): ActionableDays {
       coveredLowOccupancyCount: windowDays.length - open.length,
     };
   }, [windowOccupancy, today, occupancyThreshold, restaurant, coveredDates]);
+
+  // Komende open dagen (los van bezetting): de eerlijke "elke open dag is
+  // rustig"-lijst voor de flow wanneer er geen occupancy_days zijn.
+  const upcomingOpenDays = useMemo(() => {
+    const out: string[] = [];
+    for (let i = 1; i <= LOW_OCCUPANCY_WINDOW_DAYS; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (isOpenOn(restaurant, iso) && !coveredDates.has(iso)) out.push(iso);
+    }
+    return out;
+  }, [today, restaurant, coveredDates]);
+
+  const hasOccupancyData = windowOccupancy.length > 0;
 
   const { specialDays, coveredSpecialCount } = useMemo(() => {
     const all = getUpcomingSpecialDays(today, SPECIAL_DAYS_WEEKS_AHEAD);
@@ -134,5 +159,7 @@ export function useActionableDays(): ActionableDays {
     loading,
     coveredLowOccupancyCount,
     coveredSpecialCount,
+    upcomingOpenDays,
+    hasOccupancyData,
   };
 }

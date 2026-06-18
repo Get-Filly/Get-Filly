@@ -13,6 +13,7 @@ import { ChannelReachService } from '../ai/channel-reach.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { type ToneSignature } from '../ai/filly-brain.config';
+import { naturalizeDashes } from '../ai/copy-style.guard';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 import { resolveDutchDate } from '../common/dutch-date';
 
@@ -147,12 +148,35 @@ export type ChatMessage = {
   created_at: string;
 };
 
+// active_action (audit-item #8, 2026-06-12): de gedeelde "lopende
+// actie"-state per gesprek. Eén bron-van-waarheid waar zowel de geleide
+// flow (frontend-kaart) als de chat-LLM (server-prompt) op lezen/
+// schrijven, zodat een in de flow gekozen dag/thema niet verloren gaat
+// zodra de eigenaar gaat typen. Vervangt de oude tekst-annotatie-
+// workaround in de history-prompt.
+//
+// - date/topic VOEDEN het LLM (in het "[LOPENDE ACTIE]"-promptblok).
+// - channels/step zijn flow-eigendom (het LLM negeert ze); ze dienen
+//   om de flow na een reload op de juiste stap te hervatten.
+// Alle velden optioneel: een vers gesprek heeft (nog) geen actie.
+export type ActiveAction = {
+  date?: string; // ISO doel-datum (YYYY-MM-DD)
+  topic?: string; // gerecht/thema dat de generatie stuurt
+  channels?: string[]; // door de flow gekozen kanalen (platform-namen)
+  step?: string; // flow-stap ("day"|"context"|"channels"|...); puur frontend
+  updated_at?: string; // ISO, laatste mutatie (server-gezet)
+};
+
 export type ActiveChatState = {
   conversationId: string;
   messages: ChatMessage[];
   // Aantal berichten in deze conversatie (cap = 20). Gebruikt door de
   // frontend om "Bericht X / 20"-indicator + cap-bereikt-CTA te tonen.
   messageCount: number;
+  // De lopende actie (zie ActiveAction) of null als er geen is. De flow
+  // seed't z'n begintoestand hieruit; de chat-orchestrator houdt 'm in
+  // sync via het PATCH-endpoint + de sendMessage-respons.
+  activeAction: ActiveAction | null;
 };
 
 // Lijst-item voor het chat-history-overzicht in de frontend (dropdown
@@ -431,7 +455,82 @@ export class ChatService {
       restaurantId,
     );
     const messageCount = await this.countMessages(conversationId);
-    return { conversationId, messages, messageCount };
+    const activeAction = await this.getActiveAction(
+      restaurantId,
+      conversationId,
+    );
+    return { conversationId, messages, messageCount, activeAction };
+  }
+
+  // ============================================================
+  // ACTIVE ACTION, gedeelde "lopende actie"-state (audit-item #8)
+  // ============================================================
+  // Leest de active_action-kolom voor één gesprek. Dubbel scopen op
+  // restaurant_id = defense-in-depth; gooit NotFound als het gesprek
+  // niet (van deze tenant) is, zodat het PATCH-endpoint geen vreemde
+  // conversation-id kan muteren.
+  async getActiveAction(
+    restaurantId: string,
+    conversationId: string,
+  ): Promise<ActiveAction | null> {
+    const { data, error } = await this.supabase.client
+      .from('chat_conversations')
+      .select('active_action')
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) throw new NotFoundException('Gesprek niet gevonden.');
+    return (data.active_action as ActiveAction | null) ?? null;
+  }
+
+  // Muteert de lopende actie. delta=null → de actie is afgerond/verlaten
+  // (bv. na een geslaagde generatie of expliciet "begin opnieuw"); we
+  // zetten de kolom dan op null. Anders mergen we de delta over de
+  // huidige state (server-authoritative: we herlezen de actuele waarde
+  // zodat een gelijktijdige flow-PATCH niet stil overschreven wordt).
+  async updateActiveAction(
+    restaurantId: string,
+    conversationId: string,
+    delta: ActiveActionDelta | null,
+  ): Promise<ActiveAction | null> {
+    if (delta === null) {
+      const { error } = await this.supabase.client
+        .from('chat_conversations')
+        .update({ active_action: null })
+        .eq('id', conversationId)
+        .eq('restaurant_id', restaurantId);
+      if (error) throw new InternalServerErrorException(error.message);
+      return null;
+    }
+    const current = await this.getActiveAction(restaurantId, conversationId);
+    const merged = mergeActiveAction(current, delta);
+    merged.updated_at = new Date().toISOString();
+    const { error } = await this.supabase.client
+      .from('chat_conversations')
+      .update({ active_action: merged })
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return merged;
+  }
+
+  // Controller-pad: valideert de rauwe PATCH-body en vertaalt 'm naar
+  // een delta (of null bij reset) voor updateActiveAction. Houdt de
+  // sanitisatie (ISO-datum, topic-cap, kanaal-whitelist) op één plek.
+  async setActiveAction(
+    restaurantId: string,
+    conversationId: string,
+    input: ActiveActionInput,
+  ): Promise<ActiveAction | null> {
+    if (input?.reset) {
+      return this.updateActiveAction(restaurantId, conversationId, null);
+    }
+    return this.updateActiveAction(
+      restaurantId,
+      conversationId,
+      sanitizeActionInput(input),
+    );
   }
 
   // Telt alle berichten in een conversation. Wordt gebruikt voor:
@@ -568,7 +667,13 @@ export class ChatService {
     userId: string,
     conversationId: string,
     content: string,
-  ): Promise<{ userMessage: ChatMessage; fillyMessage: ChatMessage }> {
+  ): Promise<{
+    userMessage: ChatMessage;
+    fillyMessage: ChatMessage;
+    // De (mogelijk bijgewerkte) lopende actie na deze beurt, zodat de
+    // frontend de geleide flow direct in sync kan brengen zonder reload.
+    activeAction: ActiveAction | null;
+  }> {
     const trimmed = content.trim();
     if (!trimmed) throw new NotFoundException('Leeg bericht.');
     if (trimmed.length > 4000) {
@@ -580,12 +685,18 @@ export class ChatService {
     // een andere tenant proberen met zijn eigen X-Restaurant-Id.
     const { data: conv, error: convErr } = await this.supabase.client
       .from('chat_conversations')
-      .select('id')
+      .select('id, active_action')
       .eq('id', conversationId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
     if (convErr) throw new InternalServerErrorException(convErr.message);
     if (!conv) throw new NotFoundException('Gesprek niet gevonden.');
+
+    // Lopende actie (audit-item #8): de gedeelde state die de geleide
+    // flow + de chat delen. We laden 'm hier zodat we 'm (a) als
+    // deterministisch promptblok aan Filly kunnen meegeven en (b) na een
+    // FILLY_START_GUIDED-emit kunnen bijwerken (datum/thema carry-forward).
+    let activeAction = (conv.active_action as ActiveAction | null) ?? null;
 
     // Cap-check: tel bestaande berichten. Als we deze user-msg + Filly's
     // antwoord erbij optellen en boven CONVERSATION_CAP komen → blokkeer
@@ -626,35 +737,43 @@ export class ChatService {
     // Filly's persona + restaurant-context.
     const history = await this.getRecentMessages(conversationId, restaurantId);
     const systemPrompt = await this.buildSystemPrompt(restaurantId);
+    // Sinds audit-item #8: GEEN per-bericht-annotatie meer. De lopende
+    // dag/thema komt deterministisch uit active_action (zie het
+    // [LOPENDE ACTIE]-blok hieronder), niet uit tekst die Filly moet
+    // herkennen. De history is dus weer kale who-content-regels.
     const historyPrompt = history
       .map((m) => {
         const who = m.role === 'user' ? 'Eigenaar' : 'Filly';
-        // Een eerder gestarte geleide flow droeg z'n doel-datum + thema
-        // alleen in de message_card (gestript uit content). Die hier
-        // terug in de tekst zetten zodat Filly de gekozen dag/gerecht
-        // HERKENT en hergebruikt i.p.v. de dag opnieuw te vragen.
-        if (m.message_card?.kind === 'guided_start') {
-          const card = m.message_card;
-          const bits = [
-            card.date ? `doel-datum ${card.date}` : 'nog geen datum',
-            card.topic ? `thema "${card.topic}"` : null,
-          ]
-            .filter(Boolean)
-            .join(', ');
-          return `${who}: ${m.content} [geleide flow gestart — ${bits}]`;
-        }
         return `${who}: ${m.content}`;
       })
       .join('\n');
+
+    // De prompt-staart bouwen we uit losse interne blokken (niet voor de
+    // gebruiker zichtbaar). Volgorde: de lopende actie eerst (zodat Filly
+    // de actuele dag/thema kent), dan het kanaal-routing-signaal.
+    const promptParts = [historyPrompt];
+
+    // [LOPENDE ACTIE]-blok: vervangt de oude datum-annotatie. Voedt Filly
+    // deterministisch met de gekozen dag/thema zodat 'ie de dag NIET
+    // opnieuw vraagt en het gerecht niet kwijtraakt.
+    const actionBlock = formatActiveActionBlock(activeAction);
+    if (actionBlock) {
+      promptParts.push(
+        `[INTERN, niet voor de gebruiker zichtbaar]\n${actionBlock}`,
+      );
+    }
 
     // Server-side keuze-hint: detect of het laatste user-bericht
     // expliciet een kanaal noemt en stuur een harde override naar
     // Claude. Voorkomt dat Filly de prompt-instructie negeert en
     // alsnog direct een BUNDLE genereert bij een open vraag.
-    const hint = detectChannelHint(content);
-    const guardedPrompt = hint
-      ? `${historyPrompt}\n\n[INTERN ROUTING-SIGNAAL, niet voor de gebruiker zichtbaar]\n${hint}`
-      : historyPrompt;
+    const hint = detectCampaignHint(content);
+    if (hint) {
+      promptParts.push(
+        `[INTERN ROUTING-SIGNAAL, niet voor de gebruiker zichtbaar]\n${hint}`,
+      );
+    }
+    const guardedPrompt = promptParts.join('\n\n');
 
     // 3) Claude-call via onze wrapper. Auto-logging in ai_usage gebeurt
     // binnen AiService; rate-limit-guard heeft de call al laten passeren.
@@ -711,7 +830,9 @@ export class ChatService {
     // channel-choice/proposal/bundle als vangnet mocht Filly toch nog
     // een oud blok sturen. Filly mag er per bericht maximaal één
     // produceren — bij meerdere is de eerste hier in volgorde leidend.
-    const parsedGuided = extractGuidedStart(answer);
+    // Geef de lopende doel-datum mee als referentie, zodat een relatieve
+    // verschuiving ("een dag eerder") vanaf de huidige actie rekent.
+    const parsedGuided = extractGuidedStart(answer, activeAction?.date ?? null);
     const parsedDateChoice = parsedGuided.card
       ? { cleanText: parsedGuided.cleanText, choice: null }
       : extractDateChoice(answer);
@@ -732,7 +853,42 @@ export class ChatService {
       // ín het gesprek. Geen ai_suggestion hier; de flow maakt 'm later
       // zelf via generate-for-dates.
       cleanText = parsedGuided.cleanText;
-      messageCard = parsedGuided.card;
+
+      // active_action bijwerken met wat het LLM nieuw aandroeg (een nét
+      // genoemde dag en/of thema). We persisten ALTIJD — ook bij een lege
+      // delta — zodat active_action non-null wordt: dat is het signaal
+      // "er loopt een geleide actie" waarop de frontend de (enige) flow
+      // toont, óók als er nog geen dag is ("welke dagen zijn er").
+      const delta: ActiveActionDelta = {};
+      if (parsedGuided.card.date) delta.date = parsedGuided.card.date;
+      if (parsedGuided.card.topic) delta.topic = parsedGuided.card.topic;
+      try {
+        activeAction = await this.updateActiveAction(
+          restaurantId,
+          conversationId,
+          delta,
+        );
+      } catch (err) {
+        // Niet fataal: lukt de persist niet, dan tonen we de kaart in
+        // z'n laatst-bekende staat (gemerged in-memory) en werkt de
+        // chat door. De volgende emit probeert 't opnieuw.
+        this.logger.warn(
+          `active_action-update gefaald (guided_start); chat werkt door: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        activeAction = mergeActiveAction(activeAction, delta);
+      }
+
+      // De kaart vullen vanuit de (gemergede) lopende actie, NIET vanuit
+      // wat het LLM toevallig herhaalde. Zo houdt een topic-only emit de
+      // eerder (in de flow of een vorige beurt) gekozen datum vast — de
+      // kern van audit-item #8.
+      messageCard = {
+        kind: 'guided_start',
+        ...(activeAction?.date ? { date: activeAction.date } : {}),
+        ...(activeAction?.topic ? { topic: activeAction.topic } : {}),
+      };
     } else if (parsedDateChoice.choice) {
       cleanText = parsedDateChoice.cleanText;
       // Geen ai_suggestion; frontend verstuurt bij klik een follow-up
@@ -820,7 +976,9 @@ export class ChatService {
         conversation_id: conversationId,
         restaurant_id: restaurantId,
         role: 'filly',
-        content: cleanText,
+        // Dash-sanitizer ook op chat-proza: de prompt-nudge alleen hield
+        // de em-dashes er niet uit (audit-feedback Floris, 2026-06-12).
+        content: naturalizeDashes(cleanText),
         message_card: messageCard,
         // ai_suggestion_id (bestaat sinds 0001) koppelt dit bericht
         // aan de suggestie. Handig voor toekomstige flows zoals
@@ -877,6 +1035,7 @@ export class ChatService {
     return {
       userMessage: userMsg as ChatMessage,
       fillyMessage: fillyMsg as ChatMessage,
+      activeAction,
     };
   }
 
@@ -1058,13 +1217,14 @@ Wie je bent:
 - Je kent de context (bezetting, gasten, menu, weer, events in de buurt) en gebruikt die om sterke, concrete campagnes te bedenken — maar je voorstel is ALTIJD een campagne.
 
 Hoe je praat:
-- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji.
+- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma's en punten.
+- Geen markdown: geen sterretjes voor vet (**), geen opsommingen met "-" of "*". Gewone lopende zinnen; de chat toont je tekst letterlijk, dus opmaak-tekens zien er rommelig uit.
 - Kort en to-the-point. Liever 2-3 korte zinnen dan een heel verhaal.
 - Stel een vervolgvraag als je input mist om goed te helpen.
 - "Wij" als je namens de onderneming praat, "jij" als je de eigenaar aanspreekt.
 
 Wat je NIET doet:
-- Deze chat gaat ALLEEN over campagnes. Stel NOOIT losse klusjes voor als "werk je Google Business bij", "pas je menukaart aan", "beantwoord je reviews" of "controleer je openingstijden" — dat hoort op de eigen dashboard-pagina, niet hier. Vertaal elke vraag naar een concrete campagne; ontbreekt info, vraag dan door. Bij "wat stel je voor?" of "wat kan ik doen?" geef je campagne-ideeën (een actie voor een rustige dag, een speciale dag, inspelen op weer/event), nooit onderhouds-taken.
+- Deze chat gaat ALLEEN over campagnes. Stel NOOIT losse klusjes voor als "werk je Google Business bij", "pas je menukaart aan", "beantwoord je reviews" of "controleer je openingstijden" — dat hoort op de eigen dashboard-pagina, niet hier. Vertaal elke vraag naar een concrete campagne; ontbreekt info, vraag dan door. Bij "wat stel je voor?", "wat kan ik doen?", "welke dag(en)?" of "wat raad je aan?" start je de geleide flow (zie hieronder) zodat de eigenaar klikbaar kiest — som dagen, kanalen of campagne-ideeën NOOIT op in proza.
 - Beloof geen acties die je (nog) niet zelf kan uitvoeren. Zeg eerlijk "dat moet ik nog leren" als een feature er niet is.
 - Geef geen juridisch, fiscaal of medisch advies.
 - VERZIN geen cijfers, gerechten of details. De context hieronder is je enige bron. Als iets ontbreekt, zeg dan "ik weet het niet" of stel een vervolgvraag.
@@ -1074,11 +1234,13 @@ Wat je NIET doet:
 ACTIES: HET STARTEN VAN EEN CAMPAGNE
 
 Je schrijft campagnes NIET zelf in proza. Zodra de eigenaar iets wil
-maken, posten, versturen of bedenken — een campagne, actie, mail, post,
-bericht, "doe iets voor ...", "bedenk een actie", "wat kan ik doen?",
-"wat stel je voor?" — start je de geleide flow met dit machine-blok. De
+maken, posten, versturen of bedenken — óf je een campagne-gerelateerde
+vraag stelt — een campagne, actie, mail, post, bericht, "doe iets voor
+...", "bedenk een actie", "wat kan ik doen?", "wat stel je voor?", "welke
+dag(en) raad je aan?" — start je de geleide flow met dit machine-blok. De
 eigenaar ziet het blok niet; de frontend toont op basis daarvan de
-geleide flow (dag → context → kanalen → tekst) ín het gesprek.
+geleide flow (dag → context → kanalen → tekst) ín het gesprek, met
+aanklikbare opties. Som dus zelf GEEN dagen of opties op in tekst.
 
 <<FILLY_START_GUIDED>>
 {"day_phrase":"volgende week zondag","topic":"Burrata"}
@@ -1091,27 +1253,32 @@ Regels:
   het systeem doet dat deterministisch. Haal alleen de relevante woorden
   uit een rommelige zin ("doe iets leuks voor aankomende zondag" →
   day_phrase "aankomende zondag").
-- DATUM ONTHOUDEN: is er eerder in dit gesprek al een dag vastgesteld —
-  je ziet dat aan een "[geleide flow gestart — doel-datum YYYY-MM-DD]"-
-  annotatie bij een eerder Filly-bericht — en noemt de eigenaar nu GEEN
-  nieuwe dag, zet die ISO-datum dan in "date" (NIET in day_phrase) en
-  vraag de dag niet opnieuw. Noemt 'ie wél een nieuwe dag, gebruik
-  day_phrase.
+- DATUM: het systeem houdt de lopende doel-datum bij (zie het "[LOPENDE
+  ACTIE]"-blok). Verwijst de eigenaar naar een dag, zet die frase dan
+  LETTERLIJK in "day_phrase". Dat geldt voor een NIEUWE dag ("zaterdag",
+  "over 5 dagen", "20 juni") én voor een VERSCHUIVING van de huidige dag
+  ("een dag eerder", "de dag erna", "twee dagen later"). Het systeem
+  rekent absolute dagen vanaf vandaag en verschuivingen vanaf de lopende
+  datum, dus reken zelf niets om. Zegt de eigenaar niets over timing, laat
+  "day_phrase"/"date" dan WEG (stuur {} of alleen "topic"); de bestaande
+  datum blijft dan staan.
 - "topic": noemt de eigenaar een gerecht, drankje, thema of "het menu"
   ("doe iets met de Burrata", "iets rond ons wijnaanbod"), zet dat dan
   in "topic". Anders weglaten — de flow kiest zelf uit het menu.
 - Noemt 'ie GEEN dag en is er nog geen vastgesteld, stuur dan {} (of
   alleen topic) — de flow vraagt zelf welke dag.
-- Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar — kies
+- Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar, kies
   hieronder."). Schrijf GEEN kanaalkeuze, GEEN campagnetekst en GEEN
   varianten in proza; de flow doet dat volledig. Stel hooguit één korte
   vervolgvraag als je echt niet weet WAT je moet maken — maar vraag
   NOOIT opnieuw naar de dag als die al bekend is.
 
 Dit is je ENIGE manier om een campagne te starten — ook bij vage
-verzoeken als "doe iets voor het menu". Schrijf nooit zelf een
-voorstel in proza. Voor alle andere berichten (een vraag, uitleg,
-meedenken) antwoord je gewoon in proza, zonder blok.
+verzoeken als "doe iets voor het menu" én bij vragen als "welke dag" of
+"wat raad je aan". Schrijf nooit zelf een voorstel in proza en som NOOIT
+dagen, kanalen of opties op in tekst — de geleide flow toont die
+klikbaar. Alleen bij een bericht dat écht niet over een campagne gaat
+antwoord je kort in proza, zonder blok.
 
 ---
 CONTEXT, alles wat je weet over deze onderneming.
@@ -1125,6 +1292,140 @@ ${contextBlock}
 ${memoryBlock ? `\n${memoryBlock}\n---\n` : ''}
 Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI", spreek gewoon als Filly.`;
   }
+}
+
+// ============================================================
+// ACTIVE ACTION, pure helpers (audit-item #8)
+// ============================================================
+// Deterministisch + zonder side-effects zodat ze los te unit-testen zijn
+// (zie chat.service.spec.ts). De service gebruikt ze voor de merge, de
+// PATCH-validatie en het promptblok.
+
+// Body-vorm van het PATCH-endpoint (rauw, ongevalideerd). De flow stuurt
+// een partiële delta; `reset: true` = lopende actie afgerond/verlaten
+// (kolom → null).
+export type ActiveActionInput = {
+  date?: string | null;
+  topic?: string | null;
+  channels?: unknown;
+  step?: string | null;
+  reset?: boolean;
+};
+
+// Delta voor de merge. Per veld: weggelaten (undefined) = ongemoeid laten;
+// null = expliciet WISSEN (bv. "+ Nog een dag" maakt datum/thema leeg
+// zónder de actie te beëindigen); een waarde = overschrijven.
+export type ActiveActionDelta = {
+  date?: string | null;
+  topic?: string | null;
+  channels?: string[] | null;
+  step?: string | null;
+};
+
+// Toegestane kanaal-namen in active_action.channels (= platform-namen
+// zoals de flow + generatie ze gebruiken). Onbekende waarden filteren we
+// weg zodat prompt + downstream-generatie geen rommel binnenkrijgen.
+const ALLOWED_ACTION_CHANNELS = new Set([
+  'mail',
+  'social',
+  'instagram',
+  'facebook',
+  'whatsapp',
+  'google_business',
+  'tiktok',
+]);
+
+// Pure merge: delta over de bestaande state. Per veld: undefined =
+// ongemoeid, null = wissen, waarde = overschrijven (zie ActiveActionDelta).
+// Zo laat {topic} de datum staan, en wist {date:null} alleen de datum.
+// updated_at zetten we NIET hier (dat doet de service na de merge) zodat
+// deze functie deterministisch testbaar blijft.
+export function mergeActiveAction(
+  prev: ActiveAction | null,
+  delta: ActiveActionDelta,
+): ActiveAction {
+  const next: ActiveAction = { ...(prev ?? {}) };
+  const apply = <K extends 'date' | 'topic' | 'channels' | 'step'>(
+    key: K,
+    value: ActiveAction[K] | null | undefined,
+  ): void => {
+    if (value === undefined) return; // niet meegegeven → ongemoeid
+    if (value === null) {
+      delete next[key]; // expliciet wissen
+      return;
+    }
+    next[key] = value;
+  };
+  apply('date', delta.date);
+  apply('topic', delta.topic);
+  apply('channels', delta.channels);
+  apply('step', delta.step);
+  return next;
+}
+
+// Valideert een rauwe PATCH-body → schone delta. Per veld: expliciet null
+// → wissen; geldige waarde → zetten (ISO-datum-check, topic-cap 80,
+// kanaal-whitelist, step als korte string); ongeldig/ontbrekend → weglaten.
+export function sanitizeActionInput(
+  input: ActiveActionInput,
+): ActiveActionDelta {
+  const delta: ActiveActionDelta = {};
+  if (input.date === null) {
+    delta.date = null;
+  } else if (
+    typeof input.date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(input.date) &&
+    !Number.isNaN(Date.parse(input.date))
+  ) {
+    delta.date = input.date;
+  }
+  if (input.topic === null) {
+    delta.topic = null;
+  } else if (typeof input.topic === 'string' && input.topic.trim()) {
+    delta.topic = input.topic.trim().slice(0, 80);
+  }
+  if (input.channels === null) {
+    delta.channels = null;
+  } else if (Array.isArray(input.channels)) {
+    const channels = (input.channels as unknown[])
+      .filter((c): c is string => typeof c === 'string')
+      .filter((c) => ALLOWED_ACTION_CHANNELS.has(c));
+    delta.channels = Array.from(new Set(channels));
+  }
+  if (input.step === null) {
+    delta.step = null;
+  } else if (typeof input.step === 'string' && input.step.trim()) {
+    delta.step = input.step.trim().slice(0, 20);
+  }
+  return delta;
+}
+
+// Bouwt het deterministische [LOPENDE ACTIE]-promptblok uit active_action.
+// Leeg (geen datum/thema/kanalen) → lege string; dan plakken we niets aan
+// de prompt. Vervangt de oude tekst-annotatie-workaround.
+export function formatActiveActionBlock(action: ActiveAction | null): string {
+  if (
+    !action ||
+    (!action.date &&
+      !action.topic &&
+      (!action.channels || action.channels.length === 0))
+  ) {
+    return '';
+  }
+  const lines: string[] = [
+    action.date
+      ? `- doel-datum: ${action.date}`
+      : '- doel-datum: nog niet gekozen',
+  ];
+  if (action.topic) lines.push(`- thema/gerecht: ${action.topic}`);
+  if (action.channels && action.channels.length > 0) {
+    lines.push(`- gekozen kanalen: ${action.channels.join(', ')}`);
+  }
+  return [
+    '[LOPENDE ACTIE — door het systeem bijgehouden, jij hoeft dit niet te onthouden]',
+    ...lines,
+    'Dit is de actie waar de eigenaar nu mee bezig is. Gebruik deze datum en dit thema; vraag de dag NIET opnieuw. Noemt de eigenaar een nieuwe dag of een nieuw gerecht, neem dat dan over.',
+  ].join('\n');
 }
 
 // ============================================================
@@ -1425,80 +1726,39 @@ export function extractCampaignBundle(
 }
 
 // ============================================================
-// detectChannelHint, server-side routing-signaal voor Filly
+// detectCampaignHint, server-side routing-signaal voor Filly
 // ============================================================
-// We scannen het laatste user-bericht op kanaal-keywords en sturen
-// een keiharde "USE FORMAAT X"-instructie mee in de Claude-prompt.
-// Dit is een safety-net naast de prompt-regels: als Claude de prompt
-// instructie ook maar enigszins zou negeren, dan dwingt deze hint
-// het juiste formaat alsnog af.
+// Klik-first (2026-06-12): is het laatste user-bericht campagne-
+// gerelateerd — een verzoek ("maak een actie") óf een vraag ("welke dag
+// raad je aan", "wat zou je doen") — dan duwen we Filly keihard naar de
+// GELEIDE FLOW (FILLY_START_GUIDED) i.p.v. een vrij-tekst-antwoord.
+//
+// De oude FORMAAT 0/1/2-steering (FILLY_PROPOSE_CHOICE / proposal /
+// bundle) is bewust verwijderd: de system-prompt documenteert die niet
+// meer, dus die hints lieten het LLM juist terugvallen op proza (de
+// "welke dagen stel je voor"-bug, audit-feedback Floris).
 //
 // Returns:
 //   string  → instructie die aan de prompt geplakt wordt
-//   null    → geen detectie, Claude beslist zelf op basis van regels
+//   null    → geen campagne-intentie; Filly antwoordt gewoon in proza
 // ============================================================
 
-const SINGLE_CHANNEL_KEYWORDS = {
-  mail: /\b(mail|e-?mail|nieuwsbrief|mailing)\b/i,
-  social:
-    /\b(instagram|insta|ig|facebook|fb|social(?:[\s-]?media)?|post(?:en)?)\b/i,
-  whatsapp: /\b(whatsapp|whats[\s-]?app|wa)\b/i,
-};
-
-const BUNDLE_KEYWORDS =
-  /\b(bundel|bundle|alle\s+kanalen|breed\s+inzet|multi[\s-]?channel|overal)\b/i;
-
+// Campagne-intentie: zowel expliciete maak-verzoeken als de "welke dag /
+// wat raad je aan"-vragen die vroeger een proza-opsomming opleverden. In
+// een campagne-only chat mag dit ruim matchen.
 const CAMPAIGN_INTENT =
-  /\b(campagne|campaign|actie|kampanje|voorstel|bedenk|maak\s+(?:iets|een)|stuur|post(?:en)?|mail(?:en)?|promotion)\b/i;
+  /\b(campagne|campaign|actie|kampanje|voorstel|bedenk|maak\s+(?:iets|een)|stuur|post(?:en)?|mail(?:en)?|promotion|welke\s+(?:\w+\s+)?dag(?:en)?|(?:speciale|rustige|andere|volgende|deze|die)\s+dag(?:en)?|wat\s+(?:raad|stel|zou|kan)|raad\s+je\s+aan)\b/i;
 
-const CHOICE_FOLLOWUP_PATTERNS = [
-  /^maak\s+een\s+mail-?campagne/i,
-  /^maak\s+een\s+social-?(?:media-?)?(?:post|campagne)/i,
-  /^maak\s+een\s+whatsapp-?(?:bericht|campagne)/i,
-  /^maak\s+een\s+bundel-?campagne/i,
-];
-
-function detectChannelHint(userMessage: string): string | null {
-  const trimmed = userMessage.trim();
-
-  // 1. Volgt op de keuze-knoppen, exacte tekst die de frontend
-  // automatisch verstuurt. Dwingt direct het juiste formaat af.
-  for (const pat of CHOICE_FOLLOWUP_PATTERNS) {
-    if (pat.test(trimmed)) {
-      if (/bundel/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist BUNDEL via de keuze-knoppen. Gebruik FORMAAT 2 (BUNDLE). Sla FORMAAT 0 over.';
-      }
-      if (/mail/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist MAIL via de keuze-knoppen. Gebruik FORMAAT 1 met type="mail". Sla FORMAAT 0 over.';
-      }
-      if (/social/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist SOCIAL via de keuze-knoppen. Gebruik FORMAAT 1 met type="social". Sla FORMAAT 0 over.';
-      }
-      if (/whatsapp/i.test(trimmed)) {
-        return 'De eigenaar koos zojuist WHATSAPP via de keuze-knoppen. Gebruik FORMAAT 1 met type="whatsapp". Sla FORMAAT 0 over.';
-      }
-    }
-  }
-
-  // 2. Bundle-keywords expliciet → FORMAAT 2
-  if (BUNDLE_KEYWORDS.test(trimmed)) {
-    return 'Het bericht noemt een bundel/multi-channel. Gebruik FORMAAT 2 (BUNDLE).';
-  }
-
-  // 3. Specifiek kanaal genoemd → FORMAAT 1
-  for (const [type, pattern] of Object.entries(SINGLE_CHANNEL_KEYWORDS)) {
-    if (pattern.test(trimmed)) {
-      return `Het bericht noemt een specifiek kanaal (${type}). Gebruik FORMAAT 1 met type="${type}".`;
-    }
-  }
-
-  // 4. Open campagne-aanvraag zonder kanaal → FORMAAT 0
-  if (CAMPAIGN_INTENT.test(trimmed)) {
-    return 'Het bericht vraagt om een campagne maar noemt GEEN specifiek kanaal en GEEN bundel. Gebruik FORMAAT 0 (KEUZE-VRAAG met <<FILLY_PROPOSE_CHOICE>>). NIET direct een proposal of bundle genereren.';
-  }
-
-  // Geen detectie, Claude beslist zelf (geen campagne-intent waarschijnlijk)
-  return null;
+export function detectCampaignHint(userMessage: string): string | null {
+  if (!CAMPAIGN_INTENT.test(userMessage.trim())) return null;
+  return [
+    'Dit bericht is campagne-gerelateerd (een verzoek óf een vraag als',
+    '"welke dag", "wat raad je aan"). Start de GELEIDE FLOW met een',
+    '<<FILLY_START_GUIDED>>-blok en hooguit één korte proza-zin ervoor.',
+    'Som NOOIT dagen, kanalen of opties op in vrije tekst — de flow toont',
+    'die klikbaar. Vul "day_phrase" alleen als de eigenaar zelf een dag',
+    'noemde; anders {} (of alleen "topic").',
+  ].join(' ');
 }
 
 // ============================================================
@@ -1570,6 +1830,9 @@ const GUIDED_START_REGEX =
 
 export function extractGuidedStart(
   raw: string,
+  // De lopende doel-datum (ISO), zodat relatieve verschuivingen ("een dag
+  // eerder") vanaf de huidige actie rekenen i.p.v. vanaf vandaag.
+  referenceIso?: string | null,
 ): { cleanText: string; card: GuidedStartCard | null } {
   const trimmed = raw.trim();
   const match = trimmed.match(GUIDED_START_REGEX);
@@ -1588,7 +1851,9 @@ export function extractGuidedStart(
     // flow-annotatie). Beide door dezelfde range-check.
     let candidate: string | undefined;
     if (typeof parsed.day_phrase === 'string' && parsed.day_phrase.trim()) {
-      candidate = resolveDutchDate(parsed.day_phrase, new Date()) ?? undefined;
+      candidate =
+        resolveDutchDate(parsed.day_phrase, new Date(), referenceIso) ??
+        undefined;
     }
     if (!candidate && typeof parsed.date === 'string') {
       candidate = parsed.date.trim();

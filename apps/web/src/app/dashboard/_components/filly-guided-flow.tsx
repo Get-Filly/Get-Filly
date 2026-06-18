@@ -6,12 +6,17 @@ import {
   Sparkles,
   CalendarDays,
   TrendingDown,
-  Check,
+  UtensilsCrossed,
+  Tag,
+  Users,
+  Wand2,
   Pencil,
+  Check,
 } from "lucide-react";
 import {
   fetchDayContext,
   generateSuggestionsForDates,
+  type ActiveActionDelta,
   type AiSuggestion,
   type DayContext,
   type GenerateForDatesItem,
@@ -20,19 +25,23 @@ import { useActionableDays } from "../../../lib/use-actionable-days";
 import { logger } from "@/lib/logger";
 
 // ============================================================
-// FillyGuidedFlow — geleide on-ramp in de lege chat-staat
+// FillyGuidedFlow — detectie-gedreven, hoek-rijke geleide flow
+// (redesign 2026-06-13)
 // ============================================================
 //
-// Filly stelt stap voor stap een vraag met aanklikbare antwoorden:
-//   1. Welke dag?      (rustige dagen onder drempel + speciale dagen)
-//   2. Waarop inspelen? (events in de buurt + weer — vóórgeselecteerd,
-//                         alleen als er iets ís)
-//   3. Welke kanalen?   (op basis van bereik vóórgevinkt, eigenaar
-//                         past aan)
-// Pas bij "Maak de actie" draait de AI (generate-for-dates), met de
-// gekozen kanalen + context als sturing. Resultaat verschijnt op
-// /campagnes. Beantwoorde stappen blijven als chip staan met "wijzig".
-// Wie liever typt gebruikt het tekstveld eronder (escape hatch).
+// Stappen:
+//   1. "opener"  — Filly opent autonoom: "Ik heb een paar dagen
+//                  gedetecteerd. Voor welke dag?" → rustige dagen (eerlijk,
+//                  geen seeded), speciale dagen, of zelf een dag kiezen.
+//   2. "angles"  — Voor die dag: waarop wil je inspelen? Gedetecteerd
+//                  (weer/event van die dag) + altijd-beschikbare hoeken
+//                  (gerecht, deal, sfeer, doelgroep, iets anders) + een
+//                  1-klik "laat Filly de sterkste hoek kiezen".
+//   3. "channels"— Kanalen; Filly vinkt de aanbevolen alvast aan.
+//   4. genereren → resultaat inline.
+//
+// Een getypt verzoek met datum slaat de opener over; een getypt thema
+// (initialTopic) vult de gerecht-hoek voor.
 
 const QUIET_DAYS_PREVIEW = 4;
 
@@ -51,11 +60,14 @@ type PickedDay = {
   label: string;
 };
 
-type ContextOption = { id: string; label: string; hint: string };
+type ContextOption = {
+  id: string;
+  label: string;
+  hint: string;
+  kind: "event" | "weer";
+};
 
-// Bouwt de aanklikbare context-opties (events + weer) uit de
-// day-context. label = wat de eigenaar ziet, hint = wat we als
-// sturing naar de generatie sturen.
+// Gedetecteerde aanknopingen (events + weer) voor de gekozen dag.
 function buildContextOptions(ctx: DayContext | null): ContextOption[] {
   if (!ctx) return [];
   const opts: ContextOption[] = [];
@@ -64,6 +76,7 @@ function buildContextOptions(ctx: DayContext | null): ContextOption[] {
       id: `ev-${e.name}-${e.distanceKm}`,
       label: `${e.name} · ${e.distanceKm} km`,
       hint: `${e.name} (${e.category}, ${e.distanceKm} km)`,
+      kind: "event",
     });
   }
   if (ctx.weather) {
@@ -71,12 +84,48 @@ function buildContextOptions(ctx: DayContext | null): ContextOption[] {
       id: "weather",
       label: `${ctx.weather.icon} ${ctx.weather.description}, ${ctx.weather.tempMax}°`,
       hint: `Weer die dag: ${ctx.weather.description}, ${ctx.weather.tempMin}–${ctx.weather.tempMax}°`,
+      kind: "weer",
     });
   }
   return opts;
 }
 
-type Step = "day" | "context" | "channels" | "generating" | "done";
+type Step = "opener" | "angles" | "channels" | "generating" | "done";
+
+// Altijd-beschikbare hoeken (los van wat er die dag gedetecteerd is).
+// placeholder !== undefined → de hoek opent een vrij tekstveld.
+const ANGLES: {
+  id: string;
+  label: string;
+  Icon: typeof Tag;
+  placeholder?: string;
+}[] = [
+  {
+    id: "gerecht",
+    label: "Gerecht of drankje uitlichten",
+    Icon: UtensilsCrossed,
+    placeholder: "Welk gerecht of drankje? (bijv. Burrata di Puglia)",
+  },
+  {
+    id: "deal",
+    label: "Een deal of aanbieding",
+    Icon: Tag,
+    placeholder: "Wat voor deal? (bijv. 2-gangenmenu € 27,50)",
+  },
+  { id: "sfeer", label: "Sfeer & beleving", Icon: Sparkles },
+  {
+    id: "doelgroep",
+    label: "Voor een doelgroep",
+    Icon: Users,
+    placeholder: "Welke doelgroep? (bijv. gezinnen, after-work)",
+  },
+  {
+    id: "anders",
+    label: "Iets anders",
+    Icon: Pencil,
+    placeholder: "Typ je eigen hoek",
+  },
+];
 
 const CHANNEL_LABEL: Record<string, string> = {
   mail: "Mail",
@@ -88,28 +137,41 @@ const CHANNEL_LABEL: Record<string, string> = {
   google_business: "Google Business",
 };
 
-// initialDate (optioneel): door Filly herleide doel-datum uit een
-// getypt verzoek ("doe iets voor zondag"). Is 'ie gezet, dan slaat de
-// flow de dag-keuze over en springt naar context/kanalen. Leeg = de
-// volledige flow vanaf stap 1 (lege-chat-staat).
 export function FillyGuidedFlow({
   initialDate,
   initialTopic,
+  onActionChange,
 }: {
   initialDate?: string;
   initialTopic?: string;
+  onActionChange?: (delta: ActiveActionDelta) => void;
 }) {
   const router = useRouter();
-  const { lowOccupancyDays, specialDays, occupancyThreshold, loading } =
-    useActionableDays();
+  const {
+    lowOccupancyDays,
+    specialDays,
+    occupancyThreshold,
+    loading,
+    upcomingOpenDays,
+    hasOccupancyData,
+  } = useActionableDays();
 
-  const [step, setStep] = useState<Step>("day");
+  const [step, setStep] = useState<Step>(initialDate ? "angles" : "opener");
   const [autoStarted, setAutoStarted] = useState(false);
   const [picked, setPicked] = useState<PickedDay | null>(null);
   const [dayContext, setDayContext] = useState<DayContext | null>(null);
   const [loadingContext, setLoadingContext] = useState(false);
+  // Gedetecteerde aanknopingen (weer/event) die de eigenaar aanvinkt.
   const [selectedContext, setSelectedContext] = useState<Set<string>>(
     new Set(),
+  );
+  // Altijd-beschikbare hoeken + hun vrije tekst. Een getypt thema
+  // (initialTopic) vult de gerecht-hoek alvast voor.
+  const [selectedAngles, setSelectedAngles] = useState<Set<string>>(
+    initialTopic ? new Set(["gerecht"]) : new Set(),
+  );
+  const [angleText, setAngleText] = useState<Record<string, string>>(
+    initialTopic ? { gerecht: initialTopic } : {},
   );
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
@@ -118,7 +180,6 @@ export function FillyGuidedFlow({
   const [showAllQuiet, setShowAllQuiet] = useState(false);
   const [result, setResult] = useState<AiSuggestion[]>([]);
 
-  const hasDays = lowOccupancyDays.length + specialDays.length > 0;
   const quietToShow = showAllQuiet
     ? lowOccupancyDays
     : lowOccupancyDays.slice(0, QUIET_DAYS_PREVIEW);
@@ -127,37 +188,52 @@ export function FillyGuidedFlow({
     [dayContext],
   );
 
-  // Stap 1 → kies een dag, haal day-context op, ga naar stap 2 (of
-  // direct naar 3 als er geen context is). Context-fetch is fail-soft:
-  // mislukt 'ie, dan slaan we stap 2 over.
-  const pickDay = async (day: PickedDay) => {
+  const minDayIso = useMemo(() => {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const toggle = <T,>(set: Set<T>, key: T): Set<T> => {
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  };
+
+  // Dag kiezen → day-context ophalen → hoeken-stap. Filly vinkt de
+  // aanbevolen kanalen alvast aan. persist=false bij auto-start vanuit een
+  // bestaande datum (die zit al in active_action).
+  const pickDay = async (day: PickedDay, persist = true) => {
     setPicked(day);
     setError(null);
     setLoadingContext(true);
-    setStep("context");
+    setStep("angles");
+    if (persist) onActionChange?.({ date: day.date, step: "angles" });
     try {
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
-      const opts = buildContextOptions(ctx);
-      setSelectedContext(new Set(opts.map((o) => o.id)));
+      setSelectedContext(new Set()); // gedetecteerde context standaard uit
       setSelectedChannels(
         new Set(
           ctx.channels.filter((c) => c.recommended).map((c) => c.channel),
         ),
       );
-      if (opts.length === 0) setStep("channels");
     } catch (e) {
       logger.error(e);
       setDayContext(null);
-      setStep("channels");
     } finally {
       setLoadingContext(false);
     }
   };
 
-  // Voorgevulde datum (getypt verzoek): zodra de dagen geladen zijn,
-  // classificeer de datum (speciale dag? rustige dag? anders generiek)
-  // en spring meteen naar de context/kanalen-stap — dag-keuze overslaan.
+  const pickAnyDay = (iso: string) => {
+    if (!iso) return;
+    void pickDay({ date: iso, kind: "low_occupancy", label: formatDayNl(iso) });
+  };
+
+  // Voorgevulde datum (getypt verzoek): classificeer + spring naar de
+  // hoeken-stap, opener overgeslagen.
   useEffect(() => {
     if (!initialDate || autoStarted || loading) return;
     setAutoStarted(true);
@@ -181,37 +257,61 @@ export function FillyGuidedFlow({
             kind: "low_occupancy",
             label: formatDayNl(initialDate),
           };
-    void pickDay(day);
+    void pickDay(day, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDate, loading, autoStarted]);
 
-  const toggle = (set: Set<string>, key: string): Set<string> => {
-    const next = new Set(set);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    return next;
-  };
-
+  // Dag wijzigen → terug naar de opener; gedetecteerde context + kanalen
+  // resetten (die zijn dag-specifiek), de gekozen hoeken blijven staan
+  // zodat je na een nieuwe dag netjes weer bij dezelfde hoeken uitkomt.
   const editDay = () => {
-    setStep("day");
+    setStep("opener");
     setPicked(null);
     setDayContext(null);
     setSelectedContext(new Set());
     setSelectedChannels(new Set());
   };
 
-  // Laatste stap → genereer met de verzamelde keuzes.
-  const generate = async () => {
+  const setAngleTextFor = (id: string, value: string) =>
+    setAngleText((m) => ({ ...m, [id]: value }));
+
+  // Bouwt de sturing voor de generatie uit gedetecteerde context + hoeken.
+  const buildContextHints = (): string[] => {
+    const hints = contextOptions
+      .filter((o) => selectedContext.has(o.id))
+      .map((o) => o.hint);
+    if (selectedAngles.has("gerecht")) {
+      hints.push(
+        `Gerecht uitlichten: ${angleText.gerecht?.trim() || "kies een passend gerecht uit het menu"}`,
+      );
+    }
+    if (selectedAngles.has("deal")) {
+      hints.push(
+        angleText.deal?.trim()
+          ? `Aanbieding/deal: ${angleText.deal.trim()}`
+          : "Aanbieding/deal: een aantrekkelijke deal",
+      );
+    }
+    if (selectedAngles.has("sfeer")) hints.push("Insteek: sfeer en beleving");
+    if (selectedAngles.has("doelgroep")) {
+      hints.push(
+        `Doelgroep: ${angleText.doelgroep?.trim() || "de vaste gasten"}`,
+      );
+    }
+    if (selectedAngles.has("anders") && angleText.anders?.trim()) {
+      hints.push(`Eigen wens: ${angleText.anders.trim()}`);
+    }
+    return hints;
+  };
+
+  // Genereer met de verzamelde keuzes. fillyChooses=true → geen hoeken,
+  // Filly kiest zelf de sterkste invalshoek voor die dag.
+  const generate = async (fillyChooses = false) => {
     if (!picked) return;
     setStep("generating");
     setError(null);
-    const contextHints = [
-      // Door de eigenaar genoemd gerecht/thema eerst, als harde sturing.
-      ...(initialTopic ? [`Centraal gerecht/thema: ${initialTopic}`] : []),
-      ...contextOptions
-        .filter((o) => selectedContext.has(o.id))
-        .map((o) => o.hint),
-    ];
+    onActionChange?.({ channels: [...selectedChannels], step: "generating" });
+    const hints = fillyChooses ? [] : buildContextHints();
     const item: GenerateForDatesItem = {
       date: picked.date,
       kind: picked.kind,
@@ -219,18 +319,23 @@ export function FillyGuidedFlow({
       ...(selectedChannels.size > 0
         ? { channels: [...selectedChannels] }
         : {}),
-      ...(contextHints.length > 0 ? { context: contextHints } : {}),
+      ...(hints.length > 0 ? { context: hints } : {}),
     };
     try {
       const { suggestions } = await generateSuggestionsForDates([item]);
       if (!suggestions || suggestions.length === 0) {
-        // Onverwacht leeg → val terug op de campagnes-hub.
-        router.push("/dashboard/campagnes");
+        // Geen stille redirect meer: blijf in de flow met een duidelijke
+        // melding zodat de eigenaar niet na 3 stappen "zomaar" op /campagnes
+        // belandt zonder resultaat (UX-audit 2026-06-18).
+        setError(
+          "Het lukte niet om een voorstel te maken voor deze dag. Probeer een andere dag of een andere hoek.",
+        );
+        setStep("channels");
         return;
       }
-      // Resultaat inline tonen — de eigenaar blijft in het gesprek.
       setResult(suggestions);
       setStep("done");
+      onActionChange?.({ step: "done" });
     } catch (e) {
       logger.error(e);
       setError(
@@ -242,22 +347,24 @@ export function FillyGuidedFlow({
     }
   };
 
-  // Reset naar stap 1 voor nog een actie, zonder de pagina te herladen.
   const restart = () => {
-    setStep("day");
+    setStep("opener");
     setPicked(null);
     setDayContext(null);
     setSelectedContext(new Set());
+    setSelectedAngles(new Set());
+    setAngleText({});
     setSelectedChannels(new Set());
     setResult([]);
     setError(null);
+    onActionChange?.({ date: null, topic: null, channels: null, step: "day" });
   };
 
   // ---------- Klaar: resultaat inline tonen ----------
   if (step === "done") {
     return (
       <div className="filly-guided">
-        <div className="fg-welcome">
+        <div className="fg-welcome" role="status" aria-live="polite">
           <span className="fg-avatar">F</span>
           <div>
             <div className="fg-welcome-title">Klaar! ✨</div>
@@ -272,10 +379,7 @@ export function FillyGuidedFlow({
         <div className="fg-options">
           {result.map((s) => {
             const sc = s.suggested_campaign;
-            const body =
-              sc.body ?? sc.variants?.[0]?.body ?? "";
-            // Multi-channel: badge per kanaal; anders één badge op het
-            // top-level platform/type.
+            const body = sc.body ?? sc.variants?.[0]?.body ?? "";
             const channelLabels =
               sc.channels && sc.channels.length > 0
                 ? sc.channels.map(
@@ -315,7 +419,7 @@ export function FillyGuidedFlow({
 
         <div className="fg-done-actions">
           <button type="button" className="fg-more" onClick={restart}>
-            ＋ Nog een dag
+            ＋ Nog een actie
           </button>
           <button
             type="button"
@@ -333,7 +437,7 @@ export function FillyGuidedFlow({
   if (step === "generating") {
     return (
       <div className="filly-guided">
-        <div className="fg-welcome">
+        <div className="fg-welcome" role="status" aria-live="polite">
           <span className="fg-avatar">F</span>
           <div className="fg-welcome-text">Filly maakt je voorstel…</div>
         </div>
@@ -353,147 +457,228 @@ export function FillyGuidedFlow({
         <div>
           <div className="fg-welcome-title">Waar kan ik je mee helpen?</div>
           <div className="fg-welcome-text">
-            {!initialDate && step === "day" && hasDays
-              ? "Ik zie een paar dagen waar een actie kan helpen. Voor welke dag zal ik iets bedenken?"
-              : !initialDate && step === "day"
-                ? "Geen rustige of speciale dagen in zicht op dit moment — typ hieronder gerust zelf wat je wilt, dan denk ik mee."
-                : initialTopic
-                  ? `We maken een actie rond ${initialTopic}. Beantwoord de vragen of pas een eerdere stap aan.`
-                  : "We maken samen een actie. Beantwoord de vragen of pas een eerdere stap aan."}
+            {step === "opener"
+              ? "Ik heb een paar dagen gedetecteerd. Voor welke dag wil je een uiting maken?"
+              : "Beantwoord de vragen of pas een eerdere stap aan."}
           </div>
         </div>
       </div>
 
-      {/* Antwoordspoor: beantwoorde stappen als chip met "wijzig". */}
-      {picked && step !== "day" && (
+      {/* Antwoordspoor: de gekozen dag als chip met "wijzig". */}
+      {step !== "opener" && picked && (
         <div className="fg-trail">
           <button type="button" className="fg-trail-chip" onClick={editDay}>
             <Check size={13} strokeWidth={2.5} />
             <span>{picked.label}</span>
             <Pencil size={12} strokeWidth={2.25} className="fg-trail-edit" />
           </button>
-          {step === "channels" && contextOptions.length > 0 && (
+          {step === "channels" && (
             <button
               type="button"
               className="fg-trail-chip"
-              onClick={() => setStep("context")}
+              onClick={() => setStep("angles")}
             >
               <Check size={13} strokeWidth={2.5} />
-              <span>
-                {selectedContext.size > 0
-                  ? `${selectedContext.size}× inspelen op`
-                  : "Geen extra thema"}
-              </span>
+              <span>Hoek aanpassen</span>
               <Pencil size={12} strokeWidth={2.25} className="fg-trail-edit" />
             </button>
           )}
         </div>
       )}
 
-      {/* ---------- Stap 1: dag ---------- */}
-      {/* Bij een voorgevulde datum tonen we hier alleen een korte
-          loader; de auto-start-effect springt zo naar de context-stap
-          (dag-keuze overgeslagen). */}
-      {step === "day" &&
-        (loading || (initialDate && !autoStarted) ? (
-          <div className="fg-loading">
-            {initialDate && !autoStarted
-              ? "Moment, ik zet 'm voor je klaar…"
-              : "Even kijken welke dagen kansrijk zijn…"}
-          </div>
+      {/* ---------- Opener: gedetecteerde dagen (rustige eerst) ---------- */}
+      {step === "opener" &&
+        (loading ? (
+          <div className="fg-loading">Even kijken welke kansen er zijn…</div>
         ) : (
-          hasDays && (
-            <div className="fg-options">
-              {quietToShow.length > 0 && (
-                <div className="fg-group-label">
-                  <TrendingDown size={13} strokeWidth={2.25} />
-                  Rustige dagen (onder {occupancyThreshold}%)
+          <>
+            <div className="fg-group-label">
+              <TrendingDown size={13} strokeWidth={2.25} />
+              Rustige dagen
+              {hasOccupancyData ? ` (onder ${occupancyThreshold}%)` : ""}
+            </div>
+            {hasOccupancyData && lowOccupancyDays.length > 0 ? (
+              <div className="fg-options">
+                {quietToShow.map((d) => (
+                  <button
+                    key={`low-${d.date}`}
+                    type="button"
+                    className="fg-opt"
+                    onClick={() =>
+                      pickDay({
+                        date: d.date,
+                        kind: "low_occupancy",
+                        label: `${formatDayNl(d.date)} · ${d.occupancy_pct}% bezet`,
+                      })
+                    }
+                  >
+                    <span className="fg-opt-main">{formatDayNl(d.date)}</span>
+                    <span className="fg-opt-sub">{d.occupancy_pct}% bezet</span>
+                  </button>
+                ))}
+                {lowOccupancyDays.length > QUIET_DAYS_PREVIEW && (
+                  <button
+                    type="button"
+                    className="fg-more"
+                    onClick={() => setShowAllQuiet((v) => !v)}
+                  >
+                    {showAllQuiet
+                      ? "Minder tonen"
+                      : `+ ${lowOccupancyDays.length - QUIET_DAYS_PREVIEW} meer rustige dagen`}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="fg-q">
+                  Er staan nog geen reserveringen, dus elke open dag is rustig.
                 </div>
-              )}
-              {quietToShow.map((d) => (
-                <button
-                  key={`low-${d.date}`}
-                  type="button"
-                  className="fg-opt"
-                  onClick={() =>
-                    pickDay({
-                      date: d.date,
-                      kind: "low_occupancy",
-                      label: `${formatDayNl(d.date)} · ${d.occupancy_pct}% bezet`,
-                    })
-                  }
-                >
-                  <span className="fg-opt-main">{formatDayNl(d.date)}</span>
-                  <span className="fg-opt-sub">{d.occupancy_pct}% bezet</span>
-                </button>
-              ))}
-              {lowOccupancyDays.length > QUIET_DAYS_PREVIEW && (
-                <button
-                  type="button"
-                  className="fg-more"
-                  onClick={() => setShowAllQuiet((v) => !v)}
-                >
-                  {showAllQuiet
-                    ? "Minder tonen"
-                    : `+ ${lowOccupancyDays.length - QUIET_DAYS_PREVIEW} meer rustige dagen`}
-                </button>
-              )}
+                <div className="fg-options">
+                  {upcomingOpenDays.slice(0, 4).map((iso) => (
+                    <button
+                      key={`open-${iso}`}
+                      type="button"
+                      className="fg-opt"
+                      onClick={() =>
+                        pickDay({
+                          date: iso,
+                          kind: "low_occupancy",
+                          label: formatDayNl(iso),
+                        })
+                      }
+                    >
+                      <span className="fg-opt-main">{formatDayNl(iso)}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
-              {specialDays.length > 0 && (
+            {specialDays.length > 0 && (
+              <>
                 <div className="fg-group-label" style={{ marginTop: 6 }}>
                   <CalendarDays size={13} strokeWidth={2.25} />
                   Speciale dagen
                 </div>
-              )}
-              {specialDays.map((s) => (
-                <button
-                  key={`special-${s.date}`}
-                  type="button"
-                  className="fg-opt"
-                  onClick={() =>
-                    pickDay({
-                      date: s.date,
-                      kind: "special_day",
-                      name: s.name,
-                      label: `${s.name} · ${formatDayNl(s.date)}`,
-                    })
-                  }
-                >
-                  <span className="fg-opt-main">
-                    {s.emoji} {s.name}
-                  </span>
-                  <span className="fg-opt-sub">{formatDayNl(s.date)}</span>
-                </button>
-              ))}
+                <div className="fg-options">
+                  {specialDays.map((s) => (
+                    <button
+                      key={`special-${s.date}`}
+                      type="button"
+                      className="fg-opt"
+                      onClick={() =>
+                        pickDay({
+                          date: s.date,
+                          kind: "special_day",
+                          name: s.name,
+                          label: `${s.name} · ${formatDayNl(s.date)}`,
+                        })
+                      }
+                    >
+                      <span className="fg-opt-main">
+                        {s.emoji} {s.name}
+                      </span>
+                      <span className="fg-opt-sub">{formatDayNl(s.date)}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="fg-group-label" style={{ marginTop: 6 }}>
+              <CalendarDays size={13} strokeWidth={2.25} />
+              Of kies zelf een dag
             </div>
-          )
+            <input
+              type="date"
+              className="fg-input"
+              min={minDayIso}
+              onChange={(e) => pickAnyDay(e.target.value)}
+            />
+          </>
         ))}
 
-      {/* ---------- Stap 2: context (events + weer) ---------- */}
-      {step === "context" &&
-        (loadingContext ? (
-          <div className="fg-loading">Filly kijkt wat er die dag speelt…</div>
+      {/* ---------- Hoeken voor de gekozen dag ---------- */}
+      {step === "angles" &&
+        (loadingContext || (initialDate && !autoStarted) ? (
+          <div className="fg-loading">Filly kijkt wat er die dag kan…</div>
         ) : (
           <>
-            <div className="fg-q">Die dag speelt er wat — waarop inspelen?</div>
+            <div className="fg-q">
+              Voor {picked ? picked.label : "die dag"} — waarop wil je
+              inspelen?
+            </div>
+
+            <button
+              type="button"
+              className="fg-opt fg-opt--feature"
+              onClick={() => generate(true)}
+            >
+              <span className="fg-opt-main">
+                <Wand2 size={15} strokeWidth={2.25} /> Laat Filly de sterkste
+                hoek kiezen
+              </span>
+              <span className="fg-opt-sub">snelste</span>
+            </button>
+
+            {contextOptions.length > 0 && (
+              <>
+                <div className="fg-group-label" style={{ marginTop: 6 }}>
+                  Wat speelt er die dag
+                </div>
+                <div className="fg-options">
+                  {contextOptions.map((o) => {
+                    const sel = selectedContext.has(o.id);
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        className={`fg-opt${sel ? " sel" : ""}`}
+                        onClick={() =>
+                          setSelectedContext((s) => toggle(s, o.id))
+                        }
+                      >
+                        <span className="fg-opt-main">{o.label}</span>
+                        {sel && <Check size={15} strokeWidth={2.5} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <div className="fg-group-label" style={{ marginTop: 6 }}>
+              Of kies een hoek
+            </div>
             <div className="fg-options">
-              {contextOptions.map((o) => {
-                const sel = selectedContext.has(o.id);
+              {ANGLES.map(({ id, label, Icon, placeholder }) => {
+                const sel = selectedAngles.has(id);
                 return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    className={`fg-opt${sel ? " sel" : ""}`}
-                    onClick={() =>
-                      setSelectedContext((s) => toggle(s, o.id))
-                    }
-                  >
-                    <span className="fg-opt-main">{o.label}</span>
-                    {sel && <Check size={15} strokeWidth={2.5} />}
-                  </button>
+                  <div key={id}>
+                    <button
+                      type="button"
+                      className={`fg-opt${sel ? " sel" : ""}`}
+                      onClick={() => setSelectedAngles((s) => toggle(s, id))}
+                    >
+                      <span className="fg-opt-main">
+                        <Icon size={15} strokeWidth={2.25} /> {label}
+                      </span>
+                      {sel && <Check size={15} strokeWidth={2.5} />}
+                    </button>
+                    {sel && placeholder && (
+                      <input
+                        type="text"
+                        className="fg-input"
+                        placeholder={placeholder}
+                        value={angleText[id] ?? ""}
+                        onChange={(e) => setAngleTextFor(id, e.target.value)}
+                      />
+                    )}
+                  </div>
                 );
               })}
             </div>
+
             <button
               type="button"
               className="ui-btn ui-btn--primary ui-btn--sm fg-next"
@@ -504,13 +689,13 @@ export function FillyGuidedFlow({
           </>
         ))}
 
-      {/* ---------- Stap 3: kanalen ---------- */}
+      {/* ---------- Kanalen ---------- */}
       {step === "channels" && (
         <>
           <div className="fg-q">
             {dayContext && dayContext.channels.length > 0
-              ? "Op welke kanalen? Ik heb de kansrijkste vast aangevinkt."
-              : "Ik kies zelf het beste kanaal — zal ik 'm maken?"}
+              ? "Op welke kanalen? Ik heb de aanbevolen alvast aangevinkt."
+              : "Ik kies zelf het beste kanaal. Zal ik 'm maken?"}
           </div>
           {dayContext && dayContext.channels.length > 0 && (
             <div className="fg-options">
@@ -538,7 +723,7 @@ export function FillyGuidedFlow({
           <button
             type="button"
             className="ui-btn ui-btn--primary ui-btn--sm fg-next"
-            onClick={generate}
+            onClick={() => generate(false)}
             disabled={
               !!dayContext &&
               dayContext.channels.length > 0 &&

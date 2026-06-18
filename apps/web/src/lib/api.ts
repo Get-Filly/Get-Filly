@@ -106,6 +106,75 @@ export async function metaPublish(input: {
   return data;
 }
 
+/** Trekt de Meta-koppeling van het actieve restaurant in (DELETE). */
+export async function metaDisconnect(): Promise<void> {
+  const res = await authedFetch(`${API_URL}/integrations/meta`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+// ============================================================
+// Google Bedrijfsprofiel koppeling (OAuth, business.manage)
+// ============================================================
+
+export type GoogleBusinessStatus = {
+  connected: boolean;
+  scopes?: string[];
+  expiresAt?: string | null;
+  updatedAt?: string;
+};
+
+export async function googleBusinessStatus(): Promise<GoogleBusinessStatus> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/status`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as GoogleBusinessStatus;
+}
+
+/** Trekt de Google-Bedrijfsprofiel-koppeling van het restaurant in (DELETE). */
+export async function googleBusinessDisconnect(): Promise<void> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+export type GoogleBusinessAccount = {
+  name: string;
+  accountName: string;
+  type: string | null;
+};
+
+/**
+ * Haalt de beheerde Google-Bedrijfsprofielen op (accounts.list). Bewijst
+ * dat de business.manage-scope echt gebruikt wordt. Gooit met de
+ * machine-leesbare `reason` (bv. "api_not_approved") als de Google-API-
+ * toegang nog niet is goedgekeurd, zodat de UI dat netjes kan tonen.
+ */
+export async function googleBusinessProfile(): Promise<{
+  accounts: GoogleBusinessAccount[];
+}> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/profile`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string };
+      if (body?.reason) reason = body.reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { accounts: GoogleBusinessAccount[] };
+}
+
 /**
  * submitContactForm, publieke (NIET-authed) call voor het
  * contactformulier op /contact. Gebruikt gewone `fetch` zonder
@@ -2246,12 +2315,38 @@ export type ChatMessage = {
   created_at: string;
 };
 
+// Gedeelde "lopende actie"-state per gesprek (audit-item #8). Eén bron-
+// van-waarheid waar de geleide flow én de chat-LLM op lezen/schrijven,
+// zodat een gekozen dag/thema niet verloren gaat zodra de eigenaar gaat
+// typen. Spiegelt ActiveAction in apps/api chat.service.ts.
+export type ActiveAction = {
+  date?: string;
+  topic?: string;
+  channels?: string[];
+  step?: string;
+  updated_at?: string;
+};
+
+// Delta-vorm voor de PATCH. Per veld: weglaten = ongemoeid; null = WISSEN
+// (bv. "+ Nog een dag" maakt datum/thema leeg zonder de actie te
+// beëindigen); waarde = zetten. `reset: true` beëindigt de hele actie.
+export type ActiveActionDelta = {
+  date?: string | null;
+  topic?: string | null;
+  channels?: string[] | null;
+  step?: string | null;
+  reset?: boolean;
+};
+
 export type ActiveChatState = {
   conversationId: string;
   messages: ChatMessage[];
   // Aantal berichten in deze conversatie. Cap = 20. UI gebruikt dit
   // voor "Bericht X / 20"-indicator + cap-bereikt-CTA.
   messageCount: number;
+  // De lopende actie of null. De geleide flow seed't z'n begintoestand
+  // hieruit; de chat-orchestrator houdt 'm in sync.
+  activeAction: ActiveAction | null;
 };
 
 // Lijst-item voor het chat-history-overzicht in de chat-card-header.
@@ -2343,7 +2438,13 @@ export async function deleteChatConversation(
 export async function sendChatMessage(
   conversationId: string,
   content: string,
-): Promise<{ userMessage: ChatMessage; fillyMessage: ChatMessage }> {
+): Promise<{
+  userMessage: ChatMessage;
+  fillyMessage: ChatMessage;
+  // De (mogelijk bijgewerkte) lopende actie na deze beurt, zodat de
+  // geleide flow direct in sync komt zonder reload.
+  activeAction: ActiveAction | null;
+}> {
   const res = await authedFetch(`${API_URL}/chat/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2358,6 +2459,25 @@ export async function sendChatMessage(
     err.status = res.status;
     throw err;
   }
+  return res.json();
+}
+
+// Werkt de lopende actie van een gesprek bij (audit-item #8). De geleide
+// flow roept dit aan bij elke keuze (dag/kanalen) en met {reset:true} na
+// een geslaagde generatie. Returnt de gemergede actie (of null bij reset).
+export async function updateChatActiveAction(
+  conversationId: string,
+  delta: ActiveActionDelta,
+): Promise<ActiveAction | null> {
+  const res = await authedFetch(
+    `${API_URL}/chat/conversations/${conversationId}/active-action`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(delta),
+    },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
