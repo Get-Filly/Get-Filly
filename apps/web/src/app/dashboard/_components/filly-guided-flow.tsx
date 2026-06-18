@@ -236,6 +236,9 @@ export function FillyGuidedFlow({
   // hoeken-stap, opener overgeslagen.
   useEffect(() => {
     if (!initialDate || autoStarted || loading) return;
+    // Run-once auto-start-guard: setState in effect is hier bewust (we mogen de
+    // classificatie pas doen zodra de dagen-data geladen is, niet in render).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAutoStarted(true);
     const special = specialDays.find((s) => s.date === initialDate);
     const low = lowOccupancyDays.find((d) => d.date === initialDate);
