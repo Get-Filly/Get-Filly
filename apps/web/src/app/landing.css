@@ -1997,13 +1997,18 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   line-height: 1.55;
   color: var(--text-secondary);
   margin: 0;
-  /* Per 2026-05-06: text-wrap:balance verdeelt álle regels gelijk
-     over de beschikbare breedte (i.p.v. greedy wrapping dat lange-
-     korte-lange-korte regels gaf). Browsers cappen balance op 4-6
-     regels; bij langere paragrafen valt het terug op normaal en is
-     het effect minimaal. Voor onze omschrijvingen (3-5 regels) past
-     het precies. */
+  /* Standaard (o.a. "Wat zit er in" op /product): gebalanceerde regels, geen
+     vaste tekenbreedte. */
   text-wrap: balance;
+}
+/* Vaste "letterbreedte" (onzichtbaar kader van ~32 tekens) + greedy wrappen
+   (elke regel zo vol mogelijk, een woord pas naar de volgende regel als het
+   er niet bij past). ALLEEN voor de oplossing-hero-rij en "Wat ons drijft",
+   niet voor "Wat zit er in" (daar staan langere teksten in bredere kolommen). */
+.hero-diffs .hero-diff-desc,
+.about-drive .hero-diff-desc {
+  max-width: 32ch;
+  text-wrap: wrap;
 }
 
 /* ===== Walkthrough step badge (boven feature-row text) =====

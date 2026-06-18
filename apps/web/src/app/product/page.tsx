@@ -32,19 +32,19 @@ export default function ProductPage() {
 
           <div className="hero-diffs">
             <div className="hero-diff fade-up d1">
-              <h3 className="hero-diff-title">AI doet het werk. Jij keurt goed.</h3>
+              <h3 className="hero-diff-title">AI werkt, jij keurt goed</h3>
               <p className="hero-diff-desc">Van het herkennen van rustige momenten tot het opzetten van complete campagnes: Get-Filly automatiseert het hele proces voor meer gasten en omzet.</p>
             </div>
             <div className="hero-diff fade-up d2">
-              <h3 className="hero-diff-title">Geen marketingkennis nodig.</h3>
+              <h3 className="hero-diff-title">Geen marketingkennis nodig</h3>
               <p className="hero-diff-desc">Get-Filly doet het werk van een marketingbureau, maar dan automatisch, sneller en volledig gebaseerd op jouw data.</p>
             </div>
             <div className="hero-diff fade-up d3">
-              <h3 className="hero-diff-title">Integreert je huidige systemen</h3>
+              <h3 className="hero-diff-title">Sluit aan op je systemen</h3>
               <p className="hero-diff-desc">Je reserveringsplatform, POS en socials houd je. Get-Filly integreert in een paar klikken, geen overstap maar je partner.</p>
             </div>
             <div className="hero-diff fade-up d4">
-              <h3 className="hero-diff-title">Meet wat echt werkt.</h3>
+              <h3 className="hero-diff-title">Meet wat echt werkt</h3>
               <p className="hero-diff-desc">Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel reserveringen, gasten en omzet elke campagne daadwerkelijk oplevert.</p>
             </div>
           </div>
