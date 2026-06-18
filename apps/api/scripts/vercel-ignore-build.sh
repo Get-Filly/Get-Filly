@@ -34,6 +34,15 @@ if [ -z "${VERCEL_GIT_PREVIOUS_SHA:-}" ]; then
   exit 1
 fi
 
+# Handmatige redeploy van exact dezelfde commit (PREVIOUS == COMMIT): er is dan
+# per definitie geen code-diff, maar dit is doorgaans een redeploy om gewijzigde
+# env-vars in te bakken. Tóch bouwen — anders annuleert de ignore-step zo'n
+# redeploy in ~1s en wordt de nieuwe env nooit live.
+if [ "${VERCEL_GIT_PREVIOUS_SHA}" = "${VERCEL_GIT_COMMIT_SHA:-}" ]; then
+  echo "Redeploy van dezelfde commit (env-wijziging?) → bouwen."
+  exit 1
+fi
+
 # Dit script draait vanuit de Root Directory (apps/api); voor git-paden ankeren
 # we aan de repo-root zodat de pathspecs kloppen.
 cd "$(git rev-parse --show-toplevel)"
