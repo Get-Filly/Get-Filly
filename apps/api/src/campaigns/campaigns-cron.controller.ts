@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeBearer } from '../common/cron-secret';
 import { CampaignsService } from './campaigns.service';
 
 // ============================================================
@@ -34,7 +35,7 @@ export class CampaignsCronController {
   @Get('run-scheduled')
   async runScheduled(@Headers('authorization') auth?: string) {
     const secret = this.config.get<string>('CRON_SECRET');
-    if (!secret || auth !== `Bearer ${secret}`) {
+    if (!timingSafeBearer(auth, secret)) {
       this.logger.warn(
         'campaigns/cron/run-scheduled geweigerd: ontbrekende of onjuiste cron-secret.',
       );

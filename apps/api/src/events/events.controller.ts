@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeBearer } from '../common/cron-secret';
 import { EventsSyncService } from './events-sync.service';
 
 // Cron-endpoint voor de wekelijkse evenementen.nl-sync. Zelfde
@@ -25,7 +26,7 @@ export class EventsController {
   @Get('sync')
   async runSync(@Headers('authorization') auth?: string) {
     const secret = this.config.get<string>('CRON_SECRET');
-    if (!secret || auth !== `Bearer ${secret}`) {
+    if (!timingSafeBearer(auth, secret)) {
       this.logger.warn(
         'events/sync geweigerd: ontbrekende of onjuiste cron-secret.',
       );

@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeBearer } from '../common/cron-secret';
 import { SeoReportService } from './seo-report.service';
 
 // ============================================================
@@ -29,7 +30,7 @@ export class SeoReportController {
   @Get('run')
   async run(@Headers('authorization') auth?: string) {
     const secret = this.config.get<string>('CRON_SECRET');
-    if (!secret || auth !== `Bearer ${secret}`) {
+    if (!timingSafeBearer(auth, secret)) {
       this.logger.warn(
         'seo-report/run geweigerd: ontbrekende of onjuiste cron-secret.',
       );
