@@ -1401,7 +1401,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   /* Eyebrow-tekst = nav-tekstkleur (var(--text)), niet groen. Eén
      consistente labelkleur over de hele site: pijler-pills, stap-labels
      (oplossing) en blog-eyebrows delen deze tint (Floris 2026-06-18). */
-  font-size: 12px; font-weight: 600; color: var(--text);
+  font-size: var(--fs-eyebrow); font-weight: var(--font-weight-semibold); color: var(--text);
   text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
 }
 /* Per 2026-05-13: pill-variant voor de 3 homepage-pijlers
@@ -1426,10 +1426,10 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-bottom: 20px;
 }
 .feature-row-title {
-  font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+  font-size: var(--fs-h3); font-weight: var(--font-weight-bold); letter-spacing: -0.5px;
   line-height: 1.15; margin-bottom: 12px; color: var(--text);
 }
-.feature-row-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 420px; }
+.feature-row-desc { font-size: var(--fs-small); color: var(--text-secondary); line-height: 1.6; max-width: 420px; }
 .feature-row-visual { display: flex; align-items: center; justify-content: center; }
 
 /* Per 2026-05-13: <img> in .feature-row-visual voor de pijler-
@@ -1993,8 +1993,8 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-bottom: 12px;
 }
 .hero-diff-title {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--fs-h4);
+  font-weight: var(--font-weight-bold);
   line-height: 1.25;
   letter-spacing: -0.2px;
   color: var(--text);
@@ -2004,7 +2004,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   text-wrap: pretty;
 }
 .hero-diff-desc {
-  font-size: 13.5px;
+  font-size: var(--fs-small);
   line-height: 1.55;
   color: var(--text-secondary);
   margin: 0;
@@ -2061,7 +2061,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 .walk-step-label {
   /* Gelijk aan .feature-eyebrow / de home-eyebrows: 12px, 600, 1px, en
      dezelfde nav-tekstkleur (var(--text)) — één labelkleur site-breed. */
-  font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  font-size: var(--fs-eyebrow); font-weight: var(--font-weight-semibold); letter-spacing: 1px;
   text-transform: uppercase; color: var(--text);
 }
 /* Dubbele punt na het stap-label, zodat het samen met het tijd-eyebrow
@@ -2764,8 +2764,8 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; margin-bottom: 16px;
 }
-.info-card-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); margin: 0; }
-.info-card-desc { font-size: 14px; line-height: 1.65; color: var(--text-secondary); }
+.info-card-title { font-size: var(--fs-h4); font-weight: var(--font-weight-bold); letter-spacing: -0.3px; color: var(--text); margin: 0; }
+.info-card-desc { font-size: var(--fs-small); line-height: 1.65; color: var(--text-secondary); }
 
 /* ===== CARD OVERLAP ===== */
 .how-it-works,
@@ -2873,7 +2873,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
   padding: 3px 14px; border-radius: var(--radius-full); white-space: nowrap;
 }
-.pricing-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.2px; }
+.pricing-name { font-size: var(--fs-h4); font-weight: var(--font-weight-bold); margin-bottom: 4px; letter-spacing: -0.2px; }
 .pricing-desc { font-size: 13px; color: var(--text-light); margin-bottom: 24px; }
 .pricing-price { font-size: 38px; font-weight: 700; letter-spacing: -1px; }
 .pricing-price span { font-size: 15px; font-weight: 400; color: var(--text-light); }
@@ -2888,7 +2888,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 
 .pricing-features { list-style: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); flex: 1; }
 .pricing-features li {
-  padding: 7px 0; font-size: 13px; color: var(--text-secondary);
+  padding: 7px 0; font-size: var(--fs-small); color: var(--text-secondary);
   display: flex; align-items: center; gap: 10px;
 }
 .pricing-features li::before { content: '✓'; font-weight: 700; color: var(--accent); font-size: 13px; }
@@ -3319,7 +3319,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-top: 22px;
 }
 .about-story-body p {
-  font-size: 18px;
+  font-size: var(--fs-lead);
   line-height: 1.7;
   color: var(--text-secondary);
   letter-spacing: -0.2px;
@@ -3342,17 +3342,18 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   padding: 28px 32px;
 }
 .about-mv-label {
-  /* Zelfde stijl als de eyebrows (VINDBAARHEID etc.): groen, uppercase,
-     12px, gewicht 600, 1px letter-spacing. */
-  font-size: 12px;
-  font-weight: 600;
+  /* Zelfde stijl als de eyebrows (VINDBAARHEID etc.): uppercase, --fs-eyebrow,
+     semibold, 1px letter-spacing — en de nav-tekstkleur (var(--text)), gelijk
+     aan alle andere eyebrow-labels site-breed. */
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text);
   margin: 0 0 12px;
 }
 .about-mv-text {
-  font-size: 17px;
+  font-size: var(--fs-body);
   line-height: 1.6;
   color: var(--text-secondary);
   letter-spacing: -0.2px;
@@ -3555,8 +3556,8 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-bottom: 10px;
 }
 .zig-card-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--fs-h4);
+  font-weight: var(--font-weight-bold);
   color: var(--text);
   letter-spacing: -0.3px;
   margin: 0 0 10px;
@@ -3569,7 +3570,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 .zig-card-list li {
   position: relative;
   padding-left: 16px;
-  font-size: 14px;
+  font-size: var(--fs-small);
   line-height: 1.55;
   color: var(--text-secondary);
 }

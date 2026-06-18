@@ -56,7 +56,7 @@
 
 /* Kleine bovenkop boven titels/in kaarten (categorie). */
 .blog-eyebrow {
-  font-size: 12px;
+  font-size: var(--fs-eyebrow);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -116,14 +116,14 @@
   margin-bottom: 14px;
 }
 .blog-feature-title {
-  font-size: 26px;
+  font-size: var(--fs-h3);
   line-height: 1.2;
   letter-spacing: -0.5px;
   font-weight: var(--font-weight-bold);
   color: var(--color-white);
 }
 .blog-feature-excerpt {
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.85);
   margin: 14px 0 18px;
@@ -180,7 +180,7 @@
   margin-bottom: 10px;
 }
 .blog-card-title {
-  font-size: 17px;
+  font-size: var(--fs-h4);
   line-height: 1.4;
   letter-spacing: -0.3px;
   font-weight: var(--font-weight-bold);
@@ -201,7 +201,9 @@
  * Meest recent — brede strip-kaarten (zelfde breedte als de pijler)
  * ---------------------------------------------------------- */
 .blog-recent-title {
-  font-size: 24px;
+  /* <h2> "Meest recent" = sectiekop → zelfde --fs-h2 (40) als de andere
+     sectiekoppen site-breed (was 24). */
+  font-size: var(--fs-h2);
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.5px;
   text-align: center;
@@ -262,7 +264,7 @@
   margin-bottom: 8px;
 }
 .blog-recent-card-title {
-  font-size: 18px;
+  font-size: var(--fs-h4);
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.3px;
   line-height: 1.3;
@@ -320,6 +322,11 @@
   }
   .blog-feature-title {
     font-size: 22px;
+  }
+  /* Sectiekop kleiner op smal scherm, gelijk aan de landing-sectiekoppen
+     (h2.section-title → 30 op mobiel) i.p.v. de volle 40. */
+  .blog-recent-title {
+    font-size: 30px;
   }
   .blog-grid {
     grid-template-columns: 1fr;

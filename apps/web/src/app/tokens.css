@@ -155,7 +155,7 @@
    */
   --fs-display: 54px;
   --fs-h2: 40px;
-  --fs-h3: 22px;
+  --fs-h3: 26px; /* feature-/blok-titels (feature-row, blog-feature) */
   --fs-h4: 18px;
   --fs-lead: 18px;
   --fs-body: 16px;
