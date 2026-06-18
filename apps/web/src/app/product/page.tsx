@@ -32,7 +32,7 @@ export default function ProductPage() {
 
           <div className="hero-diffs">
             <div className="hero-diff fade-up d1">
-              <h3 className="hero-diff-title">AI d&oacute;et het werk. Jij keurt goed.</h3>
+              <h3 className="hero-diff-title">AI doet het werk. Jij keurt goed.</h3>
               <p className="hero-diff-desc">Van het herkennen van rustige momenten tot het opzetten van complete campagnes: Get-Filly automatiseert het hele proces voor meer gasten en omzet.</p>
             </div>
             <div className="hero-diff fade-up d2">
@@ -40,11 +40,11 @@ export default function ProductPage() {
               <p className="hero-diff-desc">Get-Filly doet het werk van een marketingbureau, maar dan automatisch, sneller en volledig gebaseerd op jouw data.</p>
             </div>
             <div className="hero-diff fade-up d3">
-              <h3 className="hero-diff-title">Plakt op wat je al hebt.</h3>
+              <h3 className="hero-diff-title">Integreert je huidige systemen</h3>
               <p className="hero-diff-desc">Je reserveringsplatform, POS en socials houd je. Get-Filly integreert in een paar klikken, geen overstap maar je partner.</p>
             </div>
             <div className="hero-diff fade-up d4">
-              <h3 className="hero-diff-title">Meet wat &eacute;cht werkt.</h3>
+              <h3 className="hero-diff-title">Meet wat echt werkt.</h3>
               <p className="hero-diff-desc">Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel reserveringen, gasten en omzet elke campagne daadwerkelijk oplevert.</p>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function ProductPage() {
 
       <section className="product-walkthrough">
         <div className="container">
-          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Filly, van lege stoelen naar een volle onderneming.</h2>
+          <h2 className="section-title" style={{ maxWidth: 820 }}>Een week met Get-Filly, van lege stoelen naar een volle onderneming.</h2>
           <p className="section-subtitle" style={{ maxWidth: 640 }}>Volg een campagneproces van begin tot eind. Drie minuten werk voor een week vol extra reserveringen.</p>
 
           <div className="features-stack" style={{ marginTop: 56 }}>
