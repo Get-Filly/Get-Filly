@@ -28,18 +28,6 @@ const missionPillars = [
   { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet." },
 ];
 
-// Placeholder-icoon voor de drie foto-plekken rechts in de hero (tot Floris
-// echte foto's aanlevert; zie de comment bij .about-hero-media hieronder).
-function PhotoIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="8.5" cy="9.5" r="1.6" fill="currentColor" />
-      <path d="M4 17l4.5-4.5L13 17l3-3 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export default function AboutPage() {
   return (
     <>
@@ -68,15 +56,18 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              {/* Rechts: drie foto's onder elkaar — van rustige/lege zaak naar
-                  volle zaak. PLACEHOLDERS: vervang elke <div className="about-photo">
-                  door <img src="/images/about-1.jpg" alt="…" /> (foto's in
-                  apps/web/public/images/). Volgorde boven→onder: 1 rustig, 2 loopt
-                  aan, 3 vol. */}
+              {/* Rechts: drie foto's onder elkaar — dezelfde zaak van rustig
+                  (boven) naar vol (onder). Bestanden in apps/web/public/images/. */}
               <div className="about-hero-media">
-                <div className="about-photo" role="img" aria-label="Foto: rustige zaak (placeholder)"><PhotoIcon /></div>
-                <div className="about-photo" role="img" aria-label="Foto: het loopt aan (placeholder)"><PhotoIcon /></div>
-                <div className="about-photo" role="img" aria-label="Foto: volle zaak (placeholder)"><PhotoIcon /></div>
+                <div className="about-photo">
+                  <img src="/images/about-1.jpeg" alt="Rustig restaurant met slechts een enkele tafel bezet" loading="lazy" />
+                </div>
+                <div className="about-photo">
+                  <img src="/images/about-2.jpeg" alt="Hetzelfde restaurant dat voller loopt, meerdere bezette tafels" loading="lazy" />
+                </div>
+                <div className="about-photo">
+                  <img src="/images/about-3.jpeg" alt="Hetzelfde restaurant volledig vol, gasten aan alle tafels" loading="lazy" />
+                </div>
               </div>
             </div>
           </div>
