@@ -222,26 +222,20 @@ export default function RapportagesHubPage() {
         : undefined,
     },
     {
-      key: "social",
-      name: "Social (live)",
-      href: "/dashboard/marketing/social",
-      status: "live",
-      placeholder:
-        "Likes, reacties, shares en je Instagram-volgers — live uit je gekoppelde Facebook en Instagram.",
-    },
-    {
       key: "instagram",
       name: "Instagram",
       href: "/dashboard/marketing/instagram",
-      status: "coming-soon",
-      placeholder: "Stats verschijnen na OAuth-koppeling.",
+      status: "live",
+      placeholder:
+        "Live likes, reacties & volgers uit je koppeling (+ voorbeeld-insights).",
     },
     {
       key: "facebook",
       name: "Facebook",
       href: "/dashboard/marketing/facebook",
-      status: "coming-soon",
-      placeholder: "Stats verschijnen na Meta Graph API-koppeling.",
+      status: "live",
+      placeholder:
+        "Live likes, reacties & shares uit je koppeling (+ voorbeeld-insights).",
     },
     {
       key: "tiktok",

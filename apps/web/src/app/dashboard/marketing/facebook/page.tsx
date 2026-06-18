@@ -5,6 +5,7 @@ import { PageHeader } from "../../../../components/ui/page-header";
 import { Card, CardBody } from "../../../../components/ui/card";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
+import { MetaLiveInsights } from "../_components/meta-live-insights";
 
 /**
  * ============================================================
@@ -199,6 +200,10 @@ export default function FacebookMarketingPage() {
           </>
         }
       />
+
+      {/* Echte, live cijfers uit de Meta-koppeling — bovenaan, vóór de
+          voorbeeld-mocksecties hieronder. */}
+      <MetaLiveInsights platform="facebook" />
 
       {/* Preview-banner */}
       <div
