@@ -28,6 +28,18 @@ const missionPillars = [
   { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet." },
 ];
 
+// Placeholder-icoon voor de drie foto-plekken rechts in de hero (tot Floris
+// echte foto's aanlevert; zie de comment bij .about-hero-media hieronder).
+function PhotoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="8.5" cy="9.5" r="1.6" fill="currentColor" />
+      <path d="M4 17l4.5-4.5L13 17l3-3 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function AboutPage() {
   return (
     <>
@@ -37,29 +49,34 @@ export default function AboutPage() {
       {/* Eén doorlopend blok (wit + groene waas), zonder scheiding tussen de
           onderdelen. Tot en met "Wat ons drijft". */}
       <div className="about-top">
-        {/* ---------- Hero ---------- */}
+        {/* ---------- Hero: twee koloms — tekst links, foto-progressie rechts ---------- */}
         <section className="about-intro">
           <div className="container">
-            <h1 className="section-title">Van idee naar impact.</h1>
-          </div>
-        </section>
+            <div className="about-hero-grid">
+              <div className="about-hero-text" data-reveal>
+                <h1 className="section-title">Van idee naar impact.</h1>
+                <div className="about-story-body">
+                  <p>
+                    Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten en alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
+                  </p>
+                  <p>
+                    En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n zaak op z’n eigen manier wil laten groeien.
+                  </p>
+                  <p>
+                    Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
+                  </p>
+                </div>
+              </div>
 
-        {/* ---------- Ons verhaal (geen aparte kop) ---------- */}
-        <section className="about-story">
-          <div className="container">
-            {/* Lead + body springen samen op via de site-brede [data-reveal]
-                (1.5s, zodra in beeld): zelfde snelheid + trigger als elders. */}
-            <div data-reveal>
-              <div className="about-story-body">
-                <p>
-                  Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten en alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
-                </p>
-                <p>
-                  En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z'n zaak op z'n eigen manier wil laten groeien.
-                </p>
-                <p>
-                  Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
-                </p>
+              {/* Rechts: drie foto's onder elkaar — van rustige/lege zaak naar
+                  volle zaak. PLACEHOLDERS: vervang elke <div className="about-photo">
+                  door <img src="/images/about-1.jpg" alt="…" /> (foto's in
+                  apps/web/public/images/). Volgorde boven→onder: 1 rustig, 2 loopt
+                  aan, 3 vol. */}
+              <div className="about-hero-media" data-reveal>
+                <div className="about-photo" role="img" aria-label="Foto: rustige zaak (placeholder)"><PhotoIcon /></div>
+                <div className="about-photo" role="img" aria-label="Foto: het loopt aan (placeholder)"><PhotoIcon /></div>
+                <div className="about-photo" role="img" aria-label="Foto: volle zaak (placeholder)"><PhotoIcon /></div>
               </div>
             </div>
           </div>

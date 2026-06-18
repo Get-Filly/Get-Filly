@@ -3224,7 +3224,9 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
 .about-intro {
   background: var(--true-white);
   padding-top: 160px;
-  padding-bottom: 48px;
+  /* Ruimte onder de hero naar de Missie/Visie-kaarten (verhaal zit nu in de
+     hero zelf). Genoeg lucht zodat de sectie-overgang bij de site past. */
+  padding-bottom: 64px;
   position: relative;
   overflow: hidden;
 }
@@ -3364,23 +3366,96 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-right: auto;
   text-align: left;
 }
+
+/* ============================================================
+ * About-hero, twee koloms: links de links-uitgelijnde titel + verhaaltekst,
+ * rechts drie foto's onder elkaar (van rustige naar volle zaak). Overschrijft
+ * de gecentreerde uitlijning hierboven; valt op mobiel terug naar één kolom.
+ * ============================================================ */
+.about-hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 56px;
+  align-items: start;
+  text-align: left;
+}
+.about-hero-text .section-title {
+  text-align: left;
+  margin: 0 0 22px;
+  max-width: none;
+}
+.about-hero-text .about-story-body {
+  margin: 0;
+  max-width: 560px;
+}
+/* Speelse foto-stapel (zoals de social-kaarten): drie kleinere kaartjes
+   onder elkaar, licht gekanteld + om-en-om links/rechts, met een beetje
+   overlap. Samen ongeveer even hoog als de tekst ernaast. */
+.about-hero-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+}
+.about-photo {
+  position: relative;
+  /* Kleiner gehouden zodat de stapel (3 + overlap) ongeveer even hoog is als
+     de tekst ernaast — de onderste kaart valt zo niet onder de laatste zin. */
+  width: 60%;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 5px solid var(--white);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.about-photo:nth-child(1) { align-self: flex-start; transform: rotate(-3deg); z-index: 1; }
+.about-photo:nth-child(2) { align-self: flex-end; transform: rotate(2.5deg); margin-top: -26px; z-index: 2; }
+.about-photo:nth-child(3) { align-self: flex-start; transform: rotate(-2deg); margin-top: -26px; z-index: 3; }
+.about-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.about-photo svg {
+  width: 30px;
+  height: 30px;
+  color: var(--text-light);
+}
+@media (max-width: 860px) {
+  .about-photo { width: 88%; }
+}
+@media (max-width: 860px) {
+  .about-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
 .about-drive .section-title {
   text-align: center;
   margin-left: auto;
   margin-right: auto;
 }
 /* "Wat ons drijft" heeft geen nummer-cirkels (anders dan de product-hero-
-   diffs), dus de 3-rij-subgrid van .hero-diff klopt hier niet en gaf losse,
-   ongelijke spatiëring. Hier een simpele kolom: titel + tekst strak onder
-   elkaar, netjes uitgelijnd over de 3 kolommen. */
-.about-drive .hero-diff {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  grid-row: auto;
+   diffs). Eigen 2-rij-subgrid: álle titels lijnen uit op rij 1 en álle
+   teksten op rij 2, óók als een titel op 2 regels valt (flex synchroniseert
+   de rijen niet). row-gap = titel→tekst-afstand (8px); col-gap blijft 48px. */
+.about-drive .product-features-list {
+  grid-template-rows: auto auto;
+  row-gap: 8px;
 }
+.about-drive .hero-diff {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 2;
+}
+/* Missie/Visie net zo breed als de rest van de pagina (volle container),
+   i.p.v. de smallere 920px. */
 .about-mv {
-  max-width: 920px;
   margin-left: auto;
   margin-right: auto;
 }
