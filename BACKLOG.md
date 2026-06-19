@@ -141,8 +141,14 @@ naar main.
   groen, alle literal `t()`-keys gevalideerd, navigatie-imports omgezet. Alleen
   `design-system` (interne dev-pagina) overgeslagen. Klein restpunt (fase 4):
   enkele datum-formatters gebruiken nog hardcoded `nl-NL` Intl-locale.
-- [ ] Fase 4 (SEO): per-pagina metadata (`<title>`/OG) nu nog NL voor beide talen;
-  `hreflang` + sitemap met beide talen + gelokaliseerde titels
+- [x] ~~Fase 4 (SEO-kern)~~ (✅) — `pageMetadata` locale-bewust (canonical per
+  taal, `hreflang` nl/en/x-default, OG-locale nl_NL/en_US); publieke pagina's +
+  root-layout via `generateMetadata` met gelokaliseerde title/description
+  ("meta"-namespace); sitemap met beide talen + hreflang-alternates.
+  Geverifieerd via prod-build.
+- [ ] Fase 4 (polish, rest): ~29 bestanden met hardcoded `nl-NL` datum/getal-
+  formatters (vooral dashboard, achter login → geen SEO-impact, wel taal-
+  consistentie) locale-bewust maken + `structured-data` `inLanguage`.
 - [ ] Follow-up (los): Next 16 deprecate't `middleware` → `proxy` (warning in build);
   bewust níet in i18n-werk meegenomen (verandert runtime edge→nodejs op auth-pad)
 
