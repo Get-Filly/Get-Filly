@@ -100,6 +100,45 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🌍 Internationalisering NL/EN (gestart 2026-06-19, branch `feat/i18n`)
+
+Doel: hele frontend tweetalig (NL + EN) met taalwisselaar rechtsboven. Stack:
+**next-intl v4** + `app/[locale]/`-routing, `localePrefix: "as-needed"` (NL =
+kale URL, EN = `/en`). Berichten in `apps/web/messages/{nl,en}.json`. Werk
+gebeurt in kleine stappen met een build + commit per groep; nog **niet gepusht**
+naar main.
+
+**Architectuur-keuzes:**
+- Alle routes onder `app/[locale]/`; `[locale]/layout.tsx` is de root-layout.
+- Machine-route-handlers (`/auth/*`, `/oauth/*`) + metadata (`robots`/`sitemap`/
+  icons) bewust op `app/`-root → vaste URLs + externe callbacks intact.
+- Middleware = next-intl-routing + bestaande Supabase-auth-gates samengevoegd
+  (auth-padmatching op pad zónder locale-prefix; redirects behouden taal+cookies).
+- Navigatie via `@/i18n/navigation` (`Link`/`useRouter`/`usePathname`/`redirect`)
+  i.p.v. `next/*` zodat de actieve taal meegaat.
+
+**Status:**
+- [x] ~~Fase 1: fundament + home + navbar + taalswitcher~~ (✅)
+- [x] ~~Fase 2a: product + pricing~~ (✅, incl. mock-widgets + FAQ-JSON-LD)
+- [x] ~~Fase 2b: auth-flow (login/signup/forgot/reset + PasswordStrength)~~ (✅)
+- [x] ~~Fase 2c: site-brede chrome (footer + cookie-banner)~~ (✅)
+- [ ] Fase 2d: resterende publieke pagina's (about, contact, welkom, invite/accept,
+  u/[token], account-verwijderd, delete-data, data-deletion-status, not-found,
+  blog ×3, `structured-data`-component)
+- [ ] Fase 2e (later, omvang/juridisch): **privacy** (1021 r.), **voorwaarden**
+  (774 r.), **onboarding** (1870 r.)
+- [ ] Fase 3: **dashboard** (78 componenten) — grootste blok, achter login
+- [ ] Fase 4 (SEO): per-pagina metadata (`<title>`/OG) nu nog NL voor beide talen;
+  `hreflang` + sitemap met beide talen + gelokaliseerde titels
+- [ ] Follow-up (los): Next 16 deprecate't `middleware` → `proxy` (warning in build);
+  bewust níet in i18n-werk meegenomen (verandert runtime edge→nodejs op auth-pad)
+
+**Buiten scope (apart spoor):** Filly's AI-antwoorden, review-replies,
+campagnetekst en e-mails komen uit de api (Claude-prompts) en blijven NL tot we
+de prompts een `locale` meegeven.
+
+---
+
 ## P0 — Blokkerend voor eerste klant
 
 ### Auth & onboarding
