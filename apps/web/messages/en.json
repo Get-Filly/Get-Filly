@@ -192,7 +192,15 @@
       "occTitle": "Week 47 · outlook",
       "occAlertTitle": "Thursday below target",
       "occAlertSub": "Target: 65% · Now: 38% · 18 seats free.",
-      "days": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun" },
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
       "channelsTitle": "Get-Filly proposes, 3 channels",
       "mailLabel": "Email · 412 recipients",
       "mailPreview": "“A quiet Thursday? Come for lunch for €24.50.”",
@@ -227,12 +235,30 @@
     },
     "featuresTitle": "What's included.",
     "features": {
-      "occupancy": { "title": "Occupancy analysis", "desc": "Real-time insight into your occupancy per day, week and month. Get-Filly recognises patterns such as recurring dips or seasonal trends and shows you straight away where you're missing revenue." },
-      "chatbot": { "title": "AI chatbot", "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and restaurant, makes proposals and carries them out after your approval." },
-      "campaigns": { "title": "Campaigns", "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right guests and sends it at the best moment." },
-      "social": { "title": "Social media posts", "desc": "Get-Filly creates posts for Instagram, Facebook and TikTok. Tailored to your brand, your offering, and the days that need filling." },
-      "season": { "title": "Seasonal strategy", "desc": "Valentine's Day, asparagus season, King's Day, Christmas, Get-Filly thinks ahead. You get proposals automatically, weeks in advance." },
-      "google": { "title": "Google Business", "desc": "Appear at the top of Google when people search for restaurants nearby. Get-Filly publishes posts, replies to reviews and keeps your profile up to date so you get found more easily." }
+      "occupancy": {
+        "title": "Occupancy analysis",
+        "desc": "Real-time insight into your occupancy per day, week and month. Get-Filly recognises patterns such as recurring dips or seasonal trends and shows you straight away where you're missing revenue."
+      },
+      "chatbot": {
+        "title": "AI chatbot",
+        "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and restaurant, makes proposals and carries them out after your approval."
+      },
+      "campaigns": {
+        "title": "Campaigns",
+        "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right guests and sends it at the best moment."
+      },
+      "social": {
+        "title": "Social media posts",
+        "desc": "Get-Filly creates posts for Instagram, Facebook and TikTok. Tailored to your brand, your offering, and the days that need filling."
+      },
+      "season": {
+        "title": "Seasonal strategy",
+        "desc": "Valentine's Day, asparagus season, King's Day, Christmas, Get-Filly thinks ahead. You get proposals automatically, weeks in advance."
+      },
+      "google": {
+        "title": "Google Business",
+        "desc": "Appear at the top of Google when people search for restaurants nearby. Get-Filly publishes posts, replies to reviews and keeps your profile up to date so you get found more easily."
+      }
     },
     "ctaTitle": "Ready to turn quiet moments into revenue?",
     "ctaSubtitle": "Request a demo and discover what Get-Filly can do for your restaurant.",
@@ -330,20 +356,40 @@
     "visionText": "A hospitality world where every local restaurant has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
     "driveTitle": "What drives us.",
     "pillars": {
-      "ownerFirst": { "title": "Owner first", "desc": "The owner shouldn't have to spend hours on marketing or website optimisation. Get-Filly does the work, you focus on your guests and service." },
-      "ownData": { "title": "Your data, your choices", "desc": "Your occupancy data and guest list stay yours. No reselling, you're never locked in, everything is exportable." },
-      "aiPays": { "title": "AI that pays for itself", "desc": "No AI for the sake of AI. We put your data to work for extra bookings and more revenue." }
+      "ownerFirst": {
+        "title": "Owner first",
+        "desc": "The owner shouldn't have to spend hours on marketing or website optimisation. Get-Filly does the work, you focus on your guests and service."
+      },
+      "ownData": {
+        "title": "Your data, your choices",
+        "desc": "Your occupancy data and guest list stay yours. No reselling, you're never locked in, everything is exportable."
+      },
+      "aiPays": {
+        "title": "AI that pays for itself",
+        "desc": "No AI for the sake of AI. We put your data to work for extra bookings and more revenue."
+      }
     },
     "journeyTitle": "Where we stand.",
     "now": "Now",
     "ch1Title": "Chapter 1, Founded",
-    "ch1": ["Get-Filly founded by two ambitious friends", "MVP live", "First customers on board"],
+    "ch1": [
+      "Get-Filly founded by two ambitious friends",
+      "MVP live",
+      "First customers on board"
+    ],
     "ch2Title": "Chapter 2, First 100 customers",
-    "ch2": ["Roll out Get-Filly nationally across the Netherlands"],
+    "ch2": [
+      "Roll out Get-Filly nationally across the Netherlands"
+    ],
     "ch3Title": "Chapter 3, International rollout",
-    "ch3": ["First Benelux, then the DACH region", "Local teams, local data"],
+    "ch3": [
+      "First Benelux, then the DACH region",
+      "Local teams, local data"
+    ],
     "ch4Title": "Chapter 4",
-    "ch4": ["To be continued…"],
+    "ch4": [
+      "To be continued…"
+    ],
     "ctaTitle": "Let's get to know each other.",
     "ctaSubtitle": "Questions about Get-Filly, working together or sparring about your marketing? Send an email, we reply fast.",
     "ctaLinks": "Prefer to look around first? Check <product>our solution for restaurants</product> or <pricing>the pricing</pricing>."
@@ -439,24 +485,64 @@
     "toast": "This post is coming soon",
     "byLine": "Get-Filly",
     "recentEyebrow": "Article",
-    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
     "featured": {
       "eyebrow": "Findability",
       "title": "7 SEO tips to bring more guests to your restaurant",
       "excerpt": "How to master your Google Business profile and keep listings consistent, so your venue is the first choice nearby."
     },
     "topics": {
-      "findability": { "eyebrow": "Findability", "title": "Why online findability isn't a coincidence" },
-      "data": { "eyebrow": "Data", "title": "Consistent data: 18% more local visibility" },
-      "profile": { "eyebrow": "Profile", "title": "A complete profile gets found 2.3x more often" },
-      "photos": { "eyebrow": "Photos", "title": "Photos: 45% more directions requests" },
-      "reviews": { "eyebrow": "Reviews", "title": "Recent reviews count for more than the overall total" },
-      "posting": { "eyebrow": "Posting", "title": "Posting consistently: 3 to 5 times a week is the sweet spot" }
+      "findability": {
+        "eyebrow": "Findability",
+        "title": "Why online findability isn't a coincidence"
+      },
+      "data": {
+        "eyebrow": "Data",
+        "title": "Consistent data: 18% more local visibility"
+      },
+      "profile": {
+        "eyebrow": "Profile",
+        "title": "A complete profile gets found 2.3x more often"
+      },
+      "photos": {
+        "eyebrow": "Photos",
+        "title": "Photos: 45% more directions requests"
+      },
+      "reviews": {
+        "eyebrow": "Reviews",
+        "title": "Recent reviews count for more than the overall total"
+      },
+      "posting": {
+        "eyebrow": "Posting",
+        "title": "Posting consistently: 3 to 5 times a week is the sweet spot"
+      }
     },
     "recentPlaceholders": {
-      "fillyReviews": { "eyebrow": "Marketing", "title": "How to let Filly answer your reviews" },
-      "gbpChecklist": { "eyebrow": "Findability", "title": "Google Business profile: the complete checklist for hospitality" },
-      "quietEvenings": { "eyebrow": "Occupancy", "title": "Filling quiet evenings: 5 ideas that work" }
+      "fillyReviews": {
+        "eyebrow": "Marketing",
+        "title": "How to let Filly answer your reviews"
+      },
+      "gbpChecklist": {
+        "eyebrow": "Findability",
+        "title": "Google Business profile: the complete checklist for hospitality"
+      },
+      "quietEvenings": {
+        "eyebrow": "Occupancy",
+        "title": "Filling quiet evenings: 5 ideas that work"
+      }
     },
     "cta": {
       "title": "From reading to full tables.",
@@ -510,6 +596,292 @@
         "koppelingen": "Integrations",
         "account": "Account"
       }
+    }
+  },
+  "campagnes_id_components_campaign_performance_card": {
+    "title": "Performance",
+    "emptyState": "No measurement data yet. Performance is recorded once the campaign becomes 'active' and Resend events come in (delivered, opens, clicks). Reservations that come in through this campaign are counted here too.",
+    "loadError": "Could not load performance data: {error}",
+    "scoreOutOf": "/ 100",
+    "measurementOpen": "Measurement window running (14 days)",
+    "noScore": "No score",
+    "outlierBadge": "Outlier (no learning input)",
+    "mailHeading": "Mail",
+    "conversionHeading": "Conversion",
+    "markOutlierLink": "Mark as outlier (\"out of our control\")",
+    "outlierPrompt": "Why is this campaign outside your control? The reason goes into Filly's learning loop as context (e.g. \"bad weather\", \"strike\", \"atypical event\").",
+    "outlierPlaceholder": "E.g. bad weather, strike, etc.",
+    "saving": "Working…",
+    "markOutlierButton": "Mark outlier",
+    "cancel": "Cancel",
+    "markedWithReason": "Marked as outlier: \"{reason}\". Filly ignores this campaign in its learning loop.",
+    "markedNoReason": "Marked as outlier. Filly ignores this campaign in its learning loop.",
+    "unmarkOutlierButton": "Undo outlier marking",
+    "classification": {
+      "winner": "Winner",
+      "average": "Average",
+      "underperformer": "Underperformer",
+      "noData": "No data"
+    },
+    "metrics": {
+      "delivered": "Delivered",
+      "opened": "Opened",
+      "clicked": "Clicked",
+      "bounced": "Bounced",
+      "reservations": "Reservations",
+      "guests": "Guests",
+      "revenue": "Revenue"
+    },
+    "errors": {
+      "generic": "Error",
+      "markFailed": "Marking outlier failed",
+      "unmarkFailed": "Undo failed"
+    }
+  },
+  "campagnes_id_components_campaign_send_card": {
+    "heading": "Send",
+    "errors": {
+      "generic": "Error",
+      "unknown": "Unknown error"
+    },
+    "preview": {
+      "loadError": "Could not load recipients: {error}",
+      "optInCount": "{count, plural, =0 {No opt-in guests yet} =1 {1 guest with email opt-in} other {# guests with email opt-in}}",
+      "including": "Including: {names}"
+    },
+    "test": {
+      "label": "Test email to yourself",
+      "emailPlaceholder": "name@example.com",
+      "sending": "Sending…",
+      "sendButton": "Send test"
+    },
+    "testResult": {
+      "success": "Sent to {email} ({sent}).",
+      "error": "Error: {message}"
+    },
+    "all": {
+      "label": "Send to all opt-in guests",
+      "sendButton": "Send to {count} guests",
+      "noGuests": "No opt-in guests"
+    },
+    "allResult": {
+      "success": "Sent to {sent} guests.",
+      "successWithFailures": "Sent to {sent} guests, {failed} failed delivery(ies).",
+      "error": "Error: {message}"
+    },
+    "confirm": {
+      "title": "Are you sure?",
+      "body": "Email will be sent irreversibly to <strong>{count}</strong> guests. Send a test email first to check the text.",
+      "sending": "Sending…",
+      "confirmButton": "Yes, send now",
+      "cancelButton": "Cancel"
+    }
+  },
+  "campagnes_id_page": {
+    "backToCampaigns": "← Back to campaigns",
+    "unavailableTitle": "Campaign unavailable",
+    "unavailableDescription": "This campaign no longer exists.",
+    "channelCount": "{count} channels",
+    "progressFields": "{completed} of {total} fields complete",
+    "repetitionTipTitle": "Variation tip from Filly",
+    "statusSent": "Sent",
+    "statusReadyToSend": "Ready to send",
+    "status": {
+      "concept": "Draft",
+      "ingepland": "Scheduled",
+      "actief": "Active",
+      "afgerond": "Completed"
+    },
+    "actions": {
+      "delete": "Delete",
+      "activateNow": "Activate now",
+      "activateNowTitle": "Activate now, send immediately",
+      "activateNowScheduledTitle": "Activate now, bring the schedule forward and send immediately",
+      "fillRequiredFirst": "Fill in all required fields first",
+      "schedule": "Schedule",
+      "scheduleTitle": "Schedule for the set send moment",
+      "backToConcept": "Back to draft",
+      "backToConceptTitle": "Cancel scheduling, back to draft so you can edit again",
+      "finish": "Complete",
+      "finishMailTitle": "The email has already been sent and cannot be retracted, you can only complete it.",
+      "stopAndRemove": "Stop & remove from channel",
+      "stopAndRemoveTitle": "Remove the post from the channel and set the campaign back to draft."
+    },
+    "activateConfirm": {
+      "base": "Are you sure you want to activate this campaign now?",
+      "withActions": "Are you sure you want to activate this campaign now? {actions}.",
+      "and": " and ",
+      "mailAction": "{count, plural, one {the email will be sent immediately to all opted-in guests} other {# emails will be sent immediately to all opted-in guests}}",
+      "socialAction": "{count, plural, one {the social post will be published immediately on Facebook/Instagram} other {# social posts will be published immediately on Facebook/Instagram}}"
+    },
+    "stopConfirm": "Are you sure you want to stop this campaign? The Facebook post will be deleted and the campaign will go back to draft. Any Instagram post you will need to delete manually in the Instagram app, because Instagram does not allow deleting via the API.",
+    "deleteConfirm": {
+      "bundle": "Are you sure you want to delete this bundle ({count} channels)?",
+      "single": "Are you sure you want to delete this draft campaign?"
+    },
+    "errors": {
+      "notFound": "Campaign not found or no longer available.",
+      "selectVariant": "Version selection failed.",
+      "bodyEmpty": "Body cannot be empty.",
+      "editFailed": "Editing failed.",
+      "generateFailed": "Generating failed.",
+      "saveScheduleFailed": "Saving the send moment failed.",
+      "resetToFillyFailed": "Resetting to Filly's suggestion failed.",
+      "activateFailed": "Activating failed.",
+      "statusChangeFailed": "Status change failed.",
+      "deleteFailed": "Deleting failed."
+    }
+  },
+  "campagnes_history_page": {
+    "backToCampaigns": "← Back to campaigns",
+    "title": "Campaign history",
+    "loading": "Loading…",
+    "tabs": {
+      "done": "Completed",
+      "deleted": "Deleted"
+    },
+    "emptyDone": {
+      "title": "No completed campaigns yet",
+      "description": "As soon as a campaign is completed it shows up here. Head back to the campaigns page for running and scheduled campaigns."
+    },
+    "emptyDeleted": {
+      "title": "Nothing deleted yet",
+      "description": "Deleted draft or scheduled campaigns end up here, so you can review later what was thrown away."
+    },
+    "deletedOn": "Deleted on {date}",
+    "extraReservations": "+{count} reservations",
+    "restoreButton": "↺ Restore",
+    "modal": {
+      "title": "Restore campaign",
+      "phaseLabel": "To which phase?",
+      "statusConcept": "Draft: keep editing",
+      "statusScheduled": "Scheduled: ready for the chosen date",
+      "statusActive": "Active: send right away on the chosen date",
+      "datetimeLabel": "New date + time",
+      "datetimeHint": "Must be in the future; later today is fine too.",
+      "cancel": "Cancel",
+      "submit": "Restore"
+    },
+    "errors": {
+      "pickDatetime": "Pick a date + time.",
+      "invalidDate": "Invalid date.",
+      "mustBeFuture": "The new date must be in the future.",
+      "restoreFailed": "Restore failed."
+    }
+  },
+  "campagnes_page": {
+    "title": "Campaigns",
+    "history": "History",
+    "filterByChannel": "Filter by {channel}",
+    "clearFilter": "Clear filter",
+    "emptyColumn": "Nothing in this column",
+    "noDate": "No date",
+    "from": "from {date}",
+    "suggestionFallbackName": "Suggestion",
+    "statusScheduled": "Scheduled",
+    "running": "Running",
+    "complete": "Complete",
+    "incomplete": "Incomplete",
+    "extraReservations": "+{count, plural, one {# reservation} other {# reservations}}",
+    "actionFailed": "{action} failed. Please try again.",
+    "relative": {
+      "past": "past",
+      "today": "today",
+      "tomorrow": "tomorrow",
+      "inDays": "in {days} days"
+    },
+    "columns": {
+      "voorstel": {
+        "label": "Suggestion",
+        "description": "Waiting for your approval"
+      },
+      "concept": {
+        "label": "Draft",
+        "description": "Still to be scheduled"
+      },
+      "ingepland": {
+        "label": "Scheduled",
+        "description": "Waiting for send time"
+      },
+      "actief": {
+        "label": "Active",
+        "description": "Running now"
+      }
+    },
+    "actions": {
+      "approve": "Approve",
+      "approveShort": "Approve",
+      "reject": "Reject",
+      "plan": "Schedule",
+      "retract": "Withdraw",
+      "stop": "Stop",
+      "finish": "Finish",
+      "delete": "Delete"
+    },
+    "confirm": {
+      "stopSocial": "Stop this campaign? The post will be removed from the channel and the campaign goes back to draft.",
+      "finishMail": "Finish this campaign? The sent email stays in place; the campaign moves to history.",
+      "deleteBundle": "Delete all campaigns in this bundle? This is permanent.",
+      "deleteCampaign": "Delete this campaign? This is permanent."
+    },
+    "tooltips": {
+      "finishMail": "Email has already been sent, finish the campaign.",
+      "stopSocial": "Remove the post from the channel and go back to draft.",
+      "approveReady": "Approve suggestion, becomes a draft",
+      "approveIncomplete": "Fill in the missing fields first, click to open the suggestion",
+      "planReady": "Schedule this campaign at the set time",
+      "planIncomplete": "Fill in the missing fields first, click to open the campaign",
+      "retract": "Back to draft so you can edit or delete it"
+    }
+  },
+  "campagnes_voorstel_id_page": {
+    "untitledProposal": "Untitled proposal",
+    "backToCampaigns": "← Back to campaigns",
+    "emptyTitle": "Proposal not available",
+    "emptyDescription": "This proposal no longer exists.",
+    "proposalChip": "Proposal",
+    "reject": "Reject",
+    "directPlan": "Schedule now",
+    "directPlanTitle": "Approve and add straight to the schedule",
+    "directPlanTitleMissing": "Fill in the missing fields first (see 'Missing aspects' below)",
+    "approve": "Approve",
+    "approveBundle": "Approve · {count} campaigns",
+    "approveTitleSingle": "Create a draft campaign from this proposal",
+    "approveTitleBundle": "Create {count} draft campaigns under 1 bundle",
+    "approveTitleMissing": "Fill in the missing fields first",
+    "progressFields": "{completed} of {total} fields complete",
+    "confirmReject": "Reject this proposal? You can restore it later via the Rejected tab.",
+    "confirmDirectPlan": "Are you sure you want to schedule this proposal right away? The campaign will be sent automatically at the set time.",
+    "status": {
+      "approved": "Already approved",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    },
+    "media": {
+      "title": "Photo or video",
+      "fromLibrary": "From your library.",
+      "change": "Change",
+      "remove": "Remove",
+      "empty": "No photo or video linked yet.",
+      "pickFromLibrary": "Pick from library"
+    },
+    "errors": {
+      "notFound": "Proposal not found or no longer available.",
+      "addChannel": "Could not add channel.",
+      "removeChannel": "Could not remove channel.",
+      "selectVariant": "Variant selection failed.",
+      "regenerate": "Generating failed.",
+      "approve": "Approval failed.",
+      "reject": "Rejection failed.",
+      "fillMissingBeforePlan": "Fill in the missing fields before you schedule directly.",
+      "noBundleChannels": "No supported channels for bundle scheduling.",
+      "plan": "Scheduling failed.",
+      "saveSchedule": "Could not save the send time.",
+      "resetToFilly": "Could not reset to Filly.",
+      "bodyEmpty": "Body cannot be empty.",
+      "edit": "Editing failed.",
+      "linkMedia": "Could not link photo.",
+      "removeMedia": "Could not remove photo."
     }
   }
 }

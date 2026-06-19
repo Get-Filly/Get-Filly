@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import {
   fetchCampaigns,
@@ -63,6 +64,7 @@ function minDatetimeLocal(): string {
 }
 
 export default function CampagnesHistoryPage() {
+  const t = useTranslations("campagnes_history_page");
   const [done, setDone] = useState<Campaign[]>([]);
   const [deleted, setDeleted] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,18 +149,18 @@ export default function CampagnesHistoryPage() {
   const submitRestore = async () => {
     if (!restoringCampaign || restoring) return;
     if (!draftDatetime) {
-      setRestoreError("Kies een datum + tijdstip.");
+      setRestoreError(t("errors.pickDatetime"));
       return;
     }
     // Datetime-local → ISO. Browser interpreteert lokale tijd, .toISOString()
     // converteert naar UTC voor backend.
     const isoUtc = new Date(draftDatetime).toISOString();
     if (Number.isNaN(new Date(isoUtc).getTime())) {
-      setRestoreError("Ongeldige datum.");
+      setRestoreError(t("errors.invalidDate"));
       return;
     }
     if (new Date(isoUtc).getTime() <= Date.now()) {
-      setRestoreError("Nieuwe datum moet in de toekomst liggen.");
+      setRestoreError(t("errors.mustBeFuture"));
       return;
     }
     setRestoring(true);
@@ -175,7 +177,7 @@ export default function CampagnesHistoryPage() {
       reload();
     } catch (e) {
       setRestoreError(
-        e instanceof Error ? e.message : "Terugzetten mislukt.",
+        e instanceof Error ? e.message : t("errors.restoreFailed"),
       );
     } finally {
       setRestoring(false);
@@ -196,14 +198,14 @@ export default function CampagnesHistoryPage() {
           marginBottom: 8,
         }}
       >
-        ← Terug naar campagnes
+        {t("backToCampaigns")}
       </Link>
-      <PageHeader title="Campagne-historie" />
+      <PageHeader title={t("title")} />
 
       <Tabs<ArchiveTab>
         items={[
-          { key: "afgerond", label: "Afgerond", count: done.length },
-          { key: "verwijderd", label: "Verwijderd", count: deleted.length },
+          { key: "afgerond", label: t("tabs.done"), count: done.length },
+          { key: "verwijderd", label: t("tabs.deleted"), count: deleted.length },
         ]}
         active={tab}
         onChange={setTab}
@@ -211,21 +213,21 @@ export default function CampagnesHistoryPage() {
 
       {loading ? (
         <div style={{ color: "var(--tl)", fontSize: 13, marginTop: 16 }}>
-          Laden…
+          {t("loading")}
         </div>
       ) : rows.length === 0 ? (
         <div style={{ marginTop: 16 }}>
           {tab === "afgerond" ? (
             <EmptyState
               icon="📦"
-              title="Nog geen voltooide campagnes"
-              description="Zodra een campagne afgerond is verschijnt 'ie hier. Loop terug naar de campagnes-pagina voor lopende en geplande campagnes."
+              title={t("emptyDone.title")}
+              description={t("emptyDone.description")}
             />
           ) : (
             <EmptyState
               icon="🗑"
-              title="Nog niks verwijderd"
-              description="Verwijderde concept- of geplande campagnes komen hier terecht. Zo kun je later nakijken wat er weg is gegooid."
+              title={t("emptyDeleted.title")}
+              description={t("emptyDeleted.description")}
             />
           )}
         </div>
@@ -245,7 +247,7 @@ export default function CampagnesHistoryPage() {
             // Verwijderde campagnes: datum = wanneer-weggegooid. Voor
             // afgerond: scheduled_for (= verzonden-moment).
             const dateText = isDeleted
-              ? `Verwijderd op ${formatDate(c.deleted_at)}`
+              ? t("deletedOn", { date: formatDate(c.deleted_at) })
               : `${c.type} · ${formatDate(c.scheduled_for)}`;
             return (
               <div
@@ -293,7 +295,7 @@ export default function CampagnesHistoryPage() {
                     reserveringen-stat ingevuld is. */}
                 <div style={{ fontSize: 12, color: "var(--tl)" }}>
                   {!isDeleted && stats.extra_reservations != null ? (
-                    <>+{stats.extra_reservations} reserveringen</>
+                    <>{t("extraReservations", { count: stats.extra_reservations })}</>
                   ) : null}
                 </div>
                 {/* '↺ Terugzetten'-knop: alleen op Afgerond-tab. De
@@ -305,7 +307,7 @@ export default function CampagnesHistoryPage() {
                     size="sm"
                     onClick={() => openRestore(c)}
                   >
-                    ↺ Terugzetten
+                    {t("restoreButton")}
                   </Button>
                 )}
               </div>
@@ -350,7 +352,7 @@ export default function CampagnesHistoryPage() {
                 color: "var(--text, #18181B)",
               }}
             >
-              Campagne terugzetten
+              {t("modal.title")}
             </div>
             <div
               style={{
@@ -375,7 +377,7 @@ export default function CampagnesHistoryPage() {
                   letterSpacing: "0.5px",
                 }}
               >
-                Naar welke fase?
+                {t("modal.phaseLabel")}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {(["concept", "ingepland", "actief"] as RestoreStatus[]).map(
@@ -408,9 +410,9 @@ export default function CampagnesHistoryPage() {
                         onChange={() => setDraftStatus(s)}
                       />
                       <span style={{ fontWeight: 600 }}>
-                        {s === "concept" && "Concept — verder bewerken"}
-                        {s === "ingepland" && "Ingepland — klaar voor de gekozen datum"}
-                        {s === "actief" && "Actief — direct versturen op gekozen datum"}
+                        {s === "concept" && t("modal.statusConcept")}
+                        {s === "ingepland" && t("modal.statusScheduled")}
+                        {s === "actief" && t("modal.statusActive")}
                       </span>
                     </label>
                   ),
@@ -432,7 +434,7 @@ export default function CampagnesHistoryPage() {
                   letterSpacing: "0.5px",
                 }}
               >
-                Nieuwe datum + tijdstip
+                {t("modal.datetimeLabel")}
               </div>
               <input
                 type="datetime-local"
@@ -455,8 +457,7 @@ export default function CampagnesHistoryPage() {
                   marginTop: 6,
                 }}
               >
-                Moet in de toekomst liggen — vandaag op een later
-                tijdstip mag ook.
+                {t("modal.datetimeHint")}
               </div>
             </div>
 
@@ -487,14 +488,14 @@ export default function CampagnesHistoryPage() {
                 onClick={closeRestore}
                 disabled={restoring}
               >
-                Annuleren
+                {t("modal.cancel")}
               </Button>
               <Button
                 variant="primary"
                 onClick={submitRestore}
                 loading={restoring}
               >
-                Terugzetten
+                {t("modal.submit")}
               </Button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchRecipientsPreview,
   sendCampaignTest,
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export function CampaignSendCard({ campaignId }: Props) {
+  const t = useTranslations("campagnes_id_components_campaign_send_card");
   const [preview, setPreview] = useState<RecipientsPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -41,11 +43,13 @@ export function CampaignSendCard({ campaignId }: Props) {
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [testResultIsError, setTestResultIsError] = useState(false);
 
   // All-mode-state met confirm-modal
   const [confirmingAll, setConfirmingAll] = useState(false);
   const [sendingAll, setSendingAll] = useState(false);
   const [allResult, setAllResult] = useState<string | null>(null);
+  const [allResultIsError, setAllResultIsError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +65,7 @@ export function CampaignSendCard({ campaignId }: Props) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setPreviewError(err instanceof Error ? err.message : "Fout");
+        setPreviewError(err instanceof Error ? err.message : t("errors.generic"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -77,13 +81,20 @@ export function CampaignSendCard({ campaignId }: Props) {
     if (!testEmail.trim()) return;
     setSendingTest(true);
     setTestResult(null);
+    setTestResultIsError(false);
     try {
       const result = await sendCampaignTest(campaignId, testEmail.trim());
-      setTestResult(`Verstuurd naar ${testEmail.trim()} (${result.sent}).`);
+      setTestResult(
+        t("testResult.success", { email: testEmail.trim(), sent: result.sent }),
+      );
+      setTestResultIsError(false);
     } catch (err) {
       setTestResult(
-        `Fout: ${err instanceof Error ? err.message : "Onbekende fout"}`,
+        t("testResult.error", {
+          message: err instanceof Error ? err.message : t("errors.unknown"),
+        }),
       );
+      setTestResultIsError(true);
     } finally {
       setSendingTest(false);
     }
@@ -92,21 +103,29 @@ export function CampaignSendCard({ campaignId }: Props) {
   const handleSendAll = async () => {
     setSendingAll(true);
     setAllResult(null);
+    setAllResultIsError(false);
     try {
       const result = await sendCampaignToAll(campaignId);
       const failed = result.failures?.length ?? 0;
       setAllResult(
         failed === 0
-          ? `Verstuurd naar ${result.sent} gasten.`
-          : `Verstuurd naar ${result.sent} gasten, ${failed} mislukte verzending(en).`,
+          ? t("allResult.success", { sent: result.sent })
+          : t("allResult.successWithFailures", {
+              sent: result.sent,
+              failed,
+            }),
       );
+      setAllResultIsError(false);
       setConfirmingAll(false);
       // Refresh preview (count blijft hetzelfde, maar evt.
       // bounce-status verschijnt later via webhook).
     } catch (err) {
       setAllResult(
-        `Fout: ${err instanceof Error ? err.message : "Onbekende fout"}`,
+        t("allResult.error", {
+          message: err instanceof Error ? err.message : t("errors.unknown"),
+        }),
       );
+      setAllResultIsError(true);
     } finally {
       setSendingAll(false);
     }
@@ -140,7 +159,7 @@ export function CampaignSendCard({ campaignId }: Props) {
             color: "var(--text, #18181B)",
           }}
         >
-          Versturen
+          {t("heading")}
         </div>
 
         {/* Ontvangers-preview */}
@@ -152,7 +171,7 @@ export function CampaignSendCard({ campaignId }: Props) {
               marginBottom: "var(--space-3)",
             }}
           >
-            Kon ontvangers niet laden: {previewError}
+            {t("preview.loadError", { error: previewError })}
           </div>
         ) : preview ? (
           <div
@@ -167,15 +186,11 @@ export function CampaignSendCard({ campaignId }: Props) {
             }}
           >
             <div style={{ fontWeight: 600, color: "var(--text, #18181B)" }}>
-              {preview.totalCount === 0
-                ? "Nog geen opt-in-gasten"
-                : preview.totalCount === 1
-                  ? "1 gast met mail-opt-in"
-                  : `${preview.totalCount} gasten met mail-opt-in`}
+              {t("preview.optInCount", { count: preview.totalCount })}
             </div>
             {preview.sampleNames.length > 0 && (
               <div style={{ marginTop: 4 }}>
-                Waaronder: {preview.sampleNames.join(", ")}
+                {t("preview.including", { names: preview.sampleNames.join(", ") })}
                 {preview.totalCount > preview.sampleNames.length && "…"}
               </div>
             )}
@@ -194,14 +209,14 @@ export function CampaignSendCard({ campaignId }: Props) {
               letterSpacing: "0.05em",
             }}
           >
-            Test-mail naar jezelf
+            {t("test.label")}
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
               type="email"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="naam@voorbeeld.nl"
+              placeholder={t("test.emailPlaceholder")}
               disabled={sendingTest}
               style={{
                 flex: 1,
@@ -216,14 +231,14 @@ export function CampaignSendCard({ campaignId }: Props) {
               onClick={handleSendTest}
               disabled={sendingTest || !testEmail.trim()}
             >
-              {sendingTest ? "Bezig…" : "Stuur test"}
+              {sendingTest ? t("test.sending") : t("test.sendButton")}
             </Button>
           </div>
           {testResult && (
             <div
               style={{
                 fontSize: 12,
-                color: testResult.startsWith("Fout")
+                color: testResultIsError
                   ? "var(--danger, #DC2626)"
                   : "var(--success, #16A34A)",
                 marginTop: 6,
@@ -251,7 +266,7 @@ export function CampaignSendCard({ campaignId }: Props) {
               letterSpacing: "0.05em",
             }}
           >
-            Verstuur naar alle opt-in-gasten
+            {t("all.label")}
           </div>
           {!confirmingAll ? (
             <Button
@@ -260,8 +275,8 @@ export function CampaignSendCard({ campaignId }: Props) {
               disabled={!preview || preview.totalCount === 0 || sendingAll}
             >
               {preview && preview.totalCount > 0
-                ? `Verstuur naar ${preview.totalCount} gasten`
-                : "Geen opt-in-gasten"}
+                ? t("all.sendButton", { count: preview.totalCount })
+                : t("all.noGuests")}
             </Button>
           ) : (
             <div
@@ -280,7 +295,7 @@ export function CampaignSendCard({ campaignId }: Props) {
                   marginBottom: 6,
                 }}
               >
-                Weet je het zeker?
+                {t("confirm.title")}
               </div>
               <div
                 style={{
@@ -290,9 +305,10 @@ export function CampaignSendCard({ campaignId }: Props) {
                   lineHeight: 1.5,
                 }}
               >
-                Mail wordt onomkeerbaar verstuurd naar{" "}
-                <strong>{preview?.totalCount ?? 0}</strong> gasten. Test eerst
-                met een test-mail om de tekst te checken.
+                {t.rich("confirm.body", {
+                  count: preview?.totalCount ?? 0,
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button
@@ -300,14 +316,14 @@ export function CampaignSendCard({ campaignId }: Props) {
                   onClick={handleSendAll}
                   disabled={sendingAll}
                 >
-                  {sendingAll ? "Bezig met versturen…" : "Ja, verstuur nu"}
+                  {sendingAll ? t("confirm.sending") : t("confirm.confirmButton")}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={() => setConfirmingAll(false)}
                   disabled={sendingAll}
                 >
-                  Annuleer
+                  {t("confirm.cancelButton")}
                 </Button>
               </div>
             </div>
@@ -316,7 +332,7 @@ export function CampaignSendCard({ campaignId }: Props) {
             <div
               style={{
                 fontSize: 12,
-                color: allResult.startsWith("Fout")
+                color: allResultIsError
                   ? "var(--danger, #DC2626)"
                   : "var(--success, #16A34A)",
                 marginTop: 8,

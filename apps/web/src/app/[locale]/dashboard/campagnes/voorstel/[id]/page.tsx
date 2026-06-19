@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   addSuggestionChannel,
   approveBundleSuggestion,
@@ -83,6 +84,7 @@ const voorstelChipStyle: React.CSSProperties = {
 };
 
 export default function VoorstelDetailPage() {
+  const t = useTranslations("campagnes_voorstel_id_page");
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -145,9 +147,7 @@ export default function VoorstelDetailPage() {
       .catch((e) => {
         if (cancelled) return;
         setError(
-          e instanceof Error
-            ? e.message
-            : "Voorstel niet gevonden of niet meer beschikbaar.",
+          e instanceof Error ? e.message : t("errors.notFound"),
         );
       })
       .finally(() => {
@@ -182,7 +182,7 @@ export default function VoorstelDetailPage() {
   // 'type' (mail/social/whatsapp) is wat de variant-rendering en de
   // foto-flow nog gebruiken; mappen vanuit platform.
   const type: "mail" | "social" | "whatsapp" = platformToType(platform);
-  const name = sc.name ?? "Naamloos voorstel";
+  const name = sc.name ?? t("untitledProposal");
 
   // Per 2026-05-07 fase 2d: channels[]-array. Backwards-compat:
   // synthesize 1 kanaal uit legacy fields als channels[] niet bestaat.
@@ -395,7 +395,7 @@ export default function VoorstelDetailPage() {
       refresh(updated);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Kanaal toevoegen mislukt.",
+        e instanceof Error ? e.message : t("errors.addChannel"),
       );
     } finally {
       setSavingChannel(false);
@@ -411,7 +411,7 @@ export default function VoorstelDetailPage() {
       refresh(updated);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Kanaal verwijderen mislukt.",
+        e instanceof Error ? e.message : t("errors.removeChannel"),
       );
     } finally {
       setSavingChannel(false);
@@ -455,7 +455,7 @@ export default function VoorstelDetailPage() {
       refresh(updated);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Variant-selectie mislukt.",
+        e instanceof Error ? e.message : t("errors.selectVariant"),
       );
     }
   };
@@ -476,7 +476,7 @@ export default function VoorstelDetailPage() {
       );
       refresh(updated);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Genereren mislukt.");
+      setActionError(e instanceof Error ? e.message : t("errors.regenerate"));
     } finally {
       setRefining(false);
     }
@@ -493,7 +493,7 @@ export default function VoorstelDetailPage() {
       router.push(`/dashboard/campagnes/${campaignId}`);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Goedkeuren mislukt.",
+        e instanceof Error ? e.message : t("errors.approve"),
       );
       setApproving(false);
     }
@@ -501,11 +501,7 @@ export default function VoorstelDetailPage() {
 
   const handleReject = async () => {
     if (!suggestion || busy) return;
-    if (
-      !window.confirm(
-        "Voorstel afwijzen? Je kunt 'm later terugzetten via de Afgewezen-tab.",
-      )
-    ) {
+    if (!window.confirm(t("confirmReject"))) {
       return;
     }
     setRejecting(true);
@@ -514,7 +510,7 @@ export default function VoorstelDetailPage() {
       await updateSuggestion(suggestion.id, "rejected");
       router.push("/dashboard/campagnes");
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Afwijzen mislukt.");
+      setActionError(e instanceof Error ? e.message : t("errors.reject"));
       setRejecting(false);
     }
   };
@@ -526,16 +522,10 @@ export default function VoorstelDetailPage() {
   const handleDirectPlan = async () => {
     if (!suggestion || busy) return;
     if (allMissing.length > 0) {
-      setActionError(
-        "Vul eerst de ontbrekende velden in voordat je direct inplant.",
-      );
+      setActionError(t("errors.fillMissingBeforePlan"));
       return;
     }
-    if (
-      !window.confirm(
-        "Weet je zeker dat je dit voorstel direct wil inplannen? De campagne wordt automatisch verstuurd op het ingestelde moment.",
-      )
-    ) {
+    if (!window.confirm(t("confirmDirectPlan"))) {
       return;
     }
     setPlanning(true);
@@ -550,9 +540,7 @@ export default function VoorstelDetailPage() {
           .map((c) => toBundleChannel(c.platform))
           .filter((c): c is BundleChannel => c !== null);
         if (channels.length === 0) {
-          throw new Error(
-            "Geen ondersteunde kanalen voor bundle-inplannen.",
-          );
+          throw new Error(t("errors.noBundleChannels"));
         }
         const result = await approveBundleSuggestion(
           suggestion.id,
@@ -580,7 +568,7 @@ export default function VoorstelDetailPage() {
       }
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Inplannen mislukt.",
+        e instanceof Error ? e.message : t("errors.plan"),
       );
       setPlanning(false);
     }
@@ -610,7 +598,7 @@ export default function VoorstelDetailPage() {
       setEditingSchedule(false);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Verzendmoment opslaan mislukt.",
+        e instanceof Error ? e.message : t("errors.saveSchedule"),
       );
     } finally {
       setSavingSchedule(false);
@@ -631,7 +619,7 @@ export default function VoorstelDetailPage() {
       setEditingSchedule(false);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Resetten naar Filly mislukt.",
+        e instanceof Error ? e.message : t("errors.resetToFilly"),
       );
     } finally {
       setSavingSchedule(false);
@@ -657,7 +645,7 @@ export default function VoorstelDetailPage() {
   const handleSaveEditVariant = async () => {
     if (!suggestion || editingVariantIdx === null || busy) return;
     if (!draftBody.trim()) {
-      setActionError("Body mag niet leeg zijn.");
+      setActionError(t("errors.bodyEmpty"));
       return;
     }
     setActionError(null);
@@ -676,7 +664,7 @@ export default function VoorstelDetailPage() {
       setEditingVariantIdx(null);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Bewerken mislukt.",
+        e instanceof Error ? e.message : t("errors.edit"),
       );
     } finally {
       setSavingEdit(false);
@@ -697,7 +685,7 @@ export default function VoorstelDetailPage() {
       refresh(updated);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Foto koppelen mislukt.",
+        e instanceof Error ? e.message : t("errors.linkMedia"),
       );
     } finally {
       setSavingMedia(false);
@@ -713,7 +701,7 @@ export default function VoorstelDetailPage() {
       refresh(updated);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Foto verwijderen mislukt.",
+        e instanceof Error ? e.message : t("errors.removeMedia"),
       );
     } finally {
       setSavingMedia(false);
@@ -747,12 +735,12 @@ export default function VoorstelDetailPage() {
             display: "inline-block",
           }}
         >
-          ← Terug naar campagnes
+          {t("backToCampaigns")}
         </Link>
         <EmptyState
           icon="—"
-          title="Voorstel niet beschikbaar"
-          description={error ?? "Dit voorstel bestaat niet meer."}
+          title={t("emptyTitle")}
+          description={error ?? t("emptyDescription")}
         />
       </div>
     );
@@ -793,7 +781,7 @@ export default function VoorstelDetailPage() {
             display: "inline-block",
           }}
         >
-          ← Terug naar campagnes
+          {t("backToCampaigns")}
         </Link>
         <div className="page-title" style={{ marginBottom: 6 }}>
           {name}
@@ -806,15 +794,15 @@ export default function VoorstelDetailPage() {
             marginBottom: 12,
           }}
         >
-          <span style={voorstelChipStyle}>Voorstel</span>
+          <span style={voorstelChipStyle}>{t("proposalChip")}</span>
           {!isPending && (
             <span style={{ color: "var(--tl)", fontSize: 12 }}>
               {suggestion.status === "approved"
-                ? "Reeds goedgekeurd"
+                ? t("status.approved")
                 : suggestion.status === "rejected"
-                  ? "Afgewezen"
+                  ? t("status.rejected")
                   : suggestion.status === "expired"
-                    ? "Verlopen"
+                    ? t("status.expired")
                     : suggestion.status}
             </span>
           )}
@@ -835,7 +823,7 @@ export default function VoorstelDetailPage() {
               disabled={busy}
               style={{ color: "#B91C1C" }}
             >
-              Afwijzen
+              {t("reject")}
             </Button>
             <Button
               variant="secondary"
@@ -844,11 +832,11 @@ export default function VoorstelDetailPage() {
               disabled={busy || allMissing.length > 0}
               title={
                 allMissing.length > 0
-                  ? "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)"
-                  : "Goedkeuren en direct in de planning zetten"
+                  ? t("directPlanTitleMissing")
+                  : t("directPlanTitle")
               }
             >
-              Direct inplannen
+              {t("directPlan")}
             </Button>
             <Button
               variant="primary"
@@ -857,15 +845,15 @@ export default function VoorstelDetailPage() {
               disabled={busy || allMissing.length > 0}
               title={
                 allMissing.length > 0
-                  ? "Vul eerst de ontbrekende velden in"
+                  ? t("approveTitleMissing")
                   : channels.length > 1
-                    ? `Maak ${channels.length} concept-campagnes onder 1 bundle`
-                    : "Maak een concept-campagne van dit voorstel"
+                    ? t("approveTitleBundle", { count: channels.length })
+                    : t("approveTitleSingle")
               }
             >
               {channels.length > 1
-                ? `Goedkeuren · ${channels.length} campagnes`
-                : "Goedkeuren"}
+                ? t("approveBundle", { count: channels.length })
+                : t("approve")}
             </Button>
           </div>
         )}
@@ -907,7 +895,10 @@ export default function VoorstelDetailPage() {
                 textAlign: "right",
               }}
             >
-              {progress.completed} van {progress.total} velden compleet
+              {t("progressFields", {
+                completed: progress.completed,
+                total: progress.total,
+              })}
             </div>
           </div>
         )}
@@ -981,7 +972,7 @@ export default function VoorstelDetailPage() {
         >
           <div className="card-h">
             <div>
-              <div className="card-t">Foto of video</div>
+              <div className="card-t">{t("media.title")}</div>
             </div>
           </div>
           <div className="card-b">
@@ -1018,7 +1009,7 @@ export default function VoorstelDetailPage() {
                       marginTop: 2,
                     }}
                   >
-                    Uit jouw bibliotheek.
+                    {t("media.fromLibrary")}
                   </div>
                 </div>
                 {isPending && (
@@ -1028,7 +1019,7 @@ export default function VoorstelDetailPage() {
                       onClick={() => setPickerOpen(true)}
                       disabled={busy}
                     >
-                      Wijzig
+                      {t("media.change")}
                     </Button>
                     <Button
                       variant="secondary"
@@ -1037,7 +1028,7 @@ export default function VoorstelDetailPage() {
                       loading={savingMedia}
                       style={{ color: "var(--color-danger)" }}
                     >
-                      Verwijder
+                      {t("media.remove")}
                     </Button>
                   </div>
                 )}
@@ -1052,7 +1043,7 @@ export default function VoorstelDetailPage() {
                 }}
               >
                 <div style={{ fontSize: 14, color: "var(--ts)" }}>
-                  Nog geen foto of video gekoppeld.
+                  {t("media.empty")}
                 </div>
                 {isPending && (
                   <Button
@@ -1061,7 +1052,7 @@ export default function VoorstelDetailPage() {
                     disabled={busy}
                     loading={savingMedia}
                   >
-                    Kies uit bibliotheek
+                    {t("media.pickFromLibrary")}
                   </Button>
                 )}
               </div>

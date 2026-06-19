@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   approveBundleSuggestion,
   approveSuggestion,
@@ -50,15 +50,15 @@ import { Skeleton } from "../_components/skeleton";
 
 type KanbanColumn = {
   key: "voorstel" | "concept" | "ingepland" | "actief";
-  label: string;
-  description: string;
 };
 
+// Labels + beschrijvingen worden per kolom vertaald in de KanbanColumn-
+// component (keys: columns.<key>.label / columns.<key>.description).
 const COLUMNS: KanbanColumn[] = [
-  { key: "voorstel", label: "Voorstel", description: "Wachten op je goedkeuring" },
-  { key: "concept", label: "Concept", description: "Nog in te plannen" },
-  { key: "ingepland", label: "Ingepland", description: "Wachten op verzendmoment" },
-  { key: "actief", label: "Actief", description: "Loopt nu" },
+  { key: "voorstel" },
+  { key: "concept" },
+  { key: "ingepland" },
+  { key: "actief" },
 ];
 
 // Eén item op het bord: of een suggestion (voorstel-kolom) of een
@@ -80,8 +80,10 @@ function typeIcon(t: string | undefined | null): string {
   return "📱";
 }
 
-function suggestionDisplayName(s: AiSuggestion): string {
-  return s.suggested_campaign.name ?? "Voorstel";
+// Naam van het voorstel; null wanneer Filly (nog) geen naam koppelde.
+// De fallback-tekst wordt op de render-plek vertaald (BoardCard).
+function suggestionDisplayName(s: AiSuggestion): string | null {
+  return s.suggested_campaign.name ?? null;
 }
 
 function suggestionDisplayType(s: AiSuggestion): string {
@@ -222,7 +224,7 @@ type ChannelRow = {
 type ChannelStatus =
   | { kind: "missing"; fields: MissingField[] }
   | { kind: "ready" }
-  | { kind: "planned"; relativeText: string }
+  | { kind: "planned"; relative: RelativeWhen }
   | { kind: "running" }
   | { kind: "stats"; extraReservations: number };
 
@@ -271,7 +273,7 @@ function buildCampaignRow(c: Campaign): ChannelRow {
         : { kind: "running" };
     }
     if (c.status === "ingepland" && c.scheduled_for) {
-      return { kind: "planned", relativeText: relativeSuffix(c.scheduled_for) };
+      return { kind: "planned", relative: relativeWhen(c.scheduled_for) };
     }
     // Concept: check datum + tekst (rest is sowieso al gevuld bij approve).
     // Subject/foto-check zou backend-list-uitbreiding nodig hebben — voor
@@ -391,7 +393,15 @@ function getEarliestScheduled(item: BoardItem): {
   return { iso: isos[0], multiple: isos.length > 1 };
 }
 
-function relativeSuffix(iso: string): string {
+// Relatieve dag-afstand als gestructureerde data; de UI-tekst wordt op
+// de render-plek vertaald (ScheduledLine) via useTranslations.
+type RelativeWhen =
+  | { key: "past" }
+  | { key: "today" }
+  | { key: "tomorrow" }
+  | { key: "inDays"; days: number };
+
+function relativeWhen(iso: string): RelativeWhen {
   const target = new Date(iso);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -400,10 +410,10 @@ function relativeSuffix(iso: string): string {
   const diff = Math.round(
     (targetMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
-  if (diff < 0) return "verleden";
-  if (diff === 0) return "vandaag";
-  if (diff === 1) return "morgen";
-  return `over ${diff} dgn`;
+  if (diff < 0) return { key: "past" };
+  if (diff === 0) return { key: "today" };
+  if (diff === 1) return { key: "tomorrow" };
+  return { key: "inDays", days: diff };
 }
 
 // Wat tonen we op een campagne-card als datum-regel? Bij ingepland +
@@ -424,6 +434,7 @@ function campaignDateLine(c: Campaign): string {
 }
 
 export default function CampagnesPage() {
+  const t = useTranslations("campagnes_page");
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
@@ -592,7 +603,7 @@ export default function CampagnesPage() {
       alert(
         e instanceof Error
           ? e.message
-          : `${actionLabel} mislukt. Probeer opnieuw.`,
+          : t("actionFailed", { action: actionLabel }),
       );
     } finally {
       setBusyId(null);
@@ -615,7 +626,7 @@ export default function CampagnesPage() {
   // 'm meteen kan afronden (datum + onderwerp voor mail invullen).
   // Bundle: blijft op kanban — eigenaar kiest welk kanaal verder.
   const handleApprove = (item: BoardItem) =>
-    runAction(item, "Goedkeuren", async () => {
+    runAction(item, t("actions.approve"), async () => {
       if (item.kind === "bundle-suggestion") {
         await approveBundleSuggestion(item.data.id, DEFAULT_BUNDLE);
       } else if (item.kind === "suggestion") {
@@ -627,7 +638,7 @@ export default function CampagnesPage() {
   // Afwijs: voorstel → rejected. Bundle = enige record (de suggestion
   // zelf), kanaal-records hangen daar onder.
   const handleReject = (item: BoardItem) =>
-    runAction(item, "Afwijzen", async () => {
+    runAction(item, t("actions.reject"), async () => {
       if (item.kind === "suggestion" || item.kind === "bundle-suggestion") {
         await updateSuggestion(item.data.id, "rejected");
       }
@@ -641,7 +652,7 @@ export default function CampagnesPage() {
   // voor mail-campagnes). Bundle blijft op kanban — eigenaar kiest zelf
   // welk kanaal hij verder wil afhandelen.
   const handlePlan = (item: BoardItem) =>
-    runAction(item, "Inplannen", async () => {
+    runAction(item, t("actions.plan"), async () => {
       let redirectCampaignId: string | null = null;
       if (item.kind === "suggestion") {
         const { campaignId } = await approveSuggestion(item.data.id);
@@ -682,7 +693,7 @@ export default function CampagnesPage() {
   // Terugtrekken: ingeplande campagne(s) terug naar concept zodat
   // eigenaar 'm nog kan aanpassen of verwijderen.
   const handleRetract = (item: BoardItem) =>
-    runAction(item, "Terugtrekken", async () => {
+    runAction(item, t("actions.retract"), async () => {
       if (item.kind === "campaign") {
         await updateCampaignStatus(item.data.id, "concept");
       } else if (item.kind === "bundle-campaign") {
@@ -709,10 +720,10 @@ export default function CampagnesPage() {
     if (campaigns.length === 0) return Promise.resolve();
     const hasSocial = campaigns.some((c) => c.type !== "mail");
     const msg = hasSocial
-      ? "Deze campagne stoppen? De post wordt van het kanaal verwijderd en de campagne gaat terug naar concept."
-      : "Deze campagne afronden? De verstuurde mail blijft staan; de campagne verdwijnt naar de historie.";
+      ? t("confirm.stopSocial")
+      : t("confirm.finishMail");
     if (!window.confirm(msg)) return Promise.resolve();
-    return runAction(item, "Stoppen", async () => {
+    return runAction(item, t("actions.stop"), async () => {
       await Promise.all(
         campaigns.map((c) =>
           updateCampaignStatus(c.id, c.type === "mail" ? "afgerond" : "concept"),
@@ -726,10 +737,10 @@ export default function CampagnesPage() {
   const handleDelete = (item: BoardItem) => {
     const isBundle = item.kind === "bundle-campaign";
     const msg = isBundle
-      ? "Verwijder alle campagnes in deze bundle? Dit is permanent."
-      : "Verwijder deze campagne? Dit is permanent.";
+      ? t("confirm.deleteBundle")
+      : t("confirm.deleteCampaign");
     if (!window.confirm(msg)) return Promise.resolve();
-    return runAction(item, "Verwijderen", async () => {
+    return runAction(item, t("actions.delete"), async () => {
       if (item.kind === "campaign") {
         await deleteCampaign(item.data.id);
       } else if (item.kind === "bundle-campaign") {
@@ -741,7 +752,7 @@ export default function CampagnesPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Campagnes"
+        title={t("title")}
         actions={
           <div
             style={{
@@ -777,7 +788,7 @@ export default function CampagnesPage() {
                     key={ch.key}
                     type="button"
                     onClick={() => toggleChannel(ch.key)}
-                    title={`Filter op ${ch.label}`}
+                    title={t("filterByChannel", { channel: ch.label })}
                     className="ui-channel-chip"
                     data-active={active ? "true" : "false"}
                     aria-pressed={active}
@@ -798,7 +809,7 @@ export default function CampagnesPage() {
                 <button
                   type="button"
                   onClick={() => setChannelFilter(new Set())}
-                  title="Filter wissen"
+                  title={t("clearFilter")}
                   style={{
                     padding: "6px 8px",
                     fontSize: 11,
@@ -817,7 +828,7 @@ export default function CampagnesPage() {
               href="/dashboard/campagnes/history"
               style={{ textDecoration: "none" }}
             >
-              <Button variant="brand-soft">📦 Historie</Button>
+              <Button variant="brand-soft">📦 {t("history")}</Button>
             </Link>
           </div>
         }
@@ -894,6 +905,7 @@ function KanbanColumn({
   onStop,
   onDelete,
 }: ColumnProps) {
+  const t = useTranslations("campagnes_page");
   return (
     <div
       style={{
@@ -931,7 +943,7 @@ function KanbanColumn({
               letterSpacing: "-0.01em",
             }}
           >
-            {column.label}
+            {t(`columns.${column.key}.label`)}
           </div>
           <div
             style={{
@@ -951,7 +963,7 @@ function KanbanColumn({
             marginTop: 4,
           }}
         >
-          {column.description}
+          {t(`columns.${column.key}.description`)}
         </div>
       </div>
 
@@ -978,7 +990,7 @@ function KanbanColumn({
               borderRadius: 8,
             }}
           >
-            Niks in deze kolom
+            {t("emptyColumn")}
           </div>
         ) : (
           items.map((item) => (
@@ -1044,7 +1056,7 @@ function itemStatus(
 // de eventuele "— mail/instagram/..."-suffix op de eerste campagne-
 // naam zodat de bundle-titel niet platform-specifiek leest.
 function cardTitleText(item: BoardItem): {
-  text: string;
+  text: string | null;
   isBundle: boolean;
 } {
   if (item.kind === "suggestion") {
@@ -1105,6 +1117,7 @@ function BoardCard({
   onStop,
   onDelete,
 }: CardProps) {
+  const t = useTranslations("campagnes_page");
   const title = cardTitleText(item);
   const rows = buildItemRows(item);
   const status = itemStatus(item);
@@ -1127,7 +1140,7 @@ function BoardCard({
         }}
       >
         <div style={cardHeaderRow}>
-          <span style={cardTitle}>{title.text}</span>
+          <span style={cardTitle}>{title.text ?? t("suggestionFallbackName")}</span>
           {/* Bundle-pill verwijderd per 2026-05-13 op verzoek:
               de "WhatsApp · social · Mail"-regel hieronder geeft
               al aan dat het multi-channel is, een extra label
@@ -1186,9 +1199,16 @@ function ScheduledLine({
   sched: { iso: string | null; multiple: boolean };
   status: "voorstel" | "concept" | "ingepland" | "actief";
 }) {
+  const t = useTranslations("campagnes_page");
+  // Vertaal de relatieve-tijd-data (RelativeWhen) naar UI-tekst.
+  const relativeText = (iso: string): string => {
+    const rel = relativeWhen(iso);
+    if (rel.key === "inDays") return t("relative.inDays", { days: rel.days });
+    return t(`relative.${rel.key}`);
+  };
   if (!sched.iso) {
     if (status === "actief") return null;
-    return <div style={cardDatePrimary}>Geen datum</div>;
+    return <div style={cardDatePrimary}>{t("noDate")}</div>;
   }
   // Pure datum (YYYY-MM-DD) vs. timestamp herkennen — pure datum
   // tonen we zonder tijd-suffix.
@@ -1199,13 +1219,13 @@ function ScheduledLine({
       <div style={cardDatePrimary}>
         {text}{" "}
         <span style={{ fontWeight: 400, color: "var(--tl)" }}>
-          · {relativeSuffix(sched.iso)}
+          · {relativeText(sched.iso)}
         </span>
       </div>
     );
   }
   if (sched.multiple) {
-    return <div style={cardDatePrimary}>vanaf {text}</div>;
+    return <div style={cardDatePrimary}>{t("from", { date: text })}</div>;
   }
   return <div style={cardDatePrimary}>{text}</div>;
 }
@@ -1228,11 +1248,12 @@ function CardStatusBlock({
   rows: ChannelRow[];
   item: BoardItem;
 }) {
+  const t = useTranslations("campagnes_page");
   if (status === "ingepland") {
     // Statusregel zodat de ingepland-card dezelfde hoogte/opbouw heeft
     // als concept ('Compleet') en actief ('Loopt'). De datum staat al
     // in de ScheduledLine hierboven.
-    return <div style={statusTextScheduled}>Ingepland</div>;
+    return <div style={statusTextScheduled}>{t("statusScheduled")}</div>;
   }
   if (status === "actief") {
     const extra =
@@ -1246,7 +1267,7 @@ function CardStatusBlock({
           : 0;
     return (
       <div style={statusTextReady}>
-        {extra > 0 ? `+${extra} reserveringen` : "Loopt"}
+        {extra > 0 ? t("extraReservations", { count: extra }) : t("running")}
       </div>
     );
   }
@@ -1256,9 +1277,9 @@ function CardStatusBlock({
   // wel op de detail-pagina (Missende aspecten-card).
   const missing = getAllMissing(rows);
   return missing.length === 0 ? (
-    <div style={statusTextReady}>Compleet</div>
+    <div style={statusTextReady}>{t("complete")}</div>
   ) : (
-    <div style={statusTextIncomplete}>Incompleet</div>
+    <div style={statusTextIncomplete}>{t("incomplete")}</div>
   );
 }
 
@@ -1311,6 +1332,7 @@ function CardActions({
   onStop,
   onDelete,
 }: CardActionsProps) {
+  const t = useTranslations("campagnes_page");
   const router = useRouter();
   const ready = rowsReady(rows);
 
@@ -1344,11 +1366,11 @@ function CardActions({
             style={btnDangerGhost}
             title={
               onlyMail
-                ? "Mail is al verstuurd — campagne afronden."
-                : "Post van het kanaal verwijderen en terug naar concept."
+                ? t("tooltips.finishMail")
+                : t("tooltips.stopSocial")
             }
           >
-            {busy ? "..." : onlyMail ? "Afronden" : "Stop"}
+            {busy ? "..." : onlyMail ? t("actions.finish") : t("actions.stop")}
           </button>
         </div>
       </div>
@@ -1375,11 +1397,11 @@ function CardActions({
             style={ready ? btnPrimaryReady : btnPrimaryGrey}
             title={
               ready
-                ? "Voorstel goedkeuren — wordt concept"
-                : "Vul eerst de ontbrekende velden in — klik om naar het voorstel te gaan"
+                ? t("tooltips.approveReady")
+                : t("tooltips.approveIncomplete")
             }
           >
-            {busy ? "..." : "Goedkeur"}
+            {busy ? "..." : t("actions.approveShort")}
           </button>
           <button
             type="button"
@@ -1390,7 +1412,7 @@ function CardActions({
             }}
             style={btnDangerGhost}
           >
-            Afwijzen
+            {t("actions.reject")}
           </button>
         </div>
       </div>
@@ -1408,11 +1430,11 @@ function CardActions({
             style={ready ? btnPrimaryReady : btnPrimaryGrey}
             title={
               ready
-                ? "Plan deze campagne in op het ingestelde moment"
-                : "Vul eerst de ontbrekende velden in — klik om naar de campagne te gaan"
+                ? t("tooltips.planReady")
+                : t("tooltips.planIncomplete")
             }
           >
-            {busy ? "..." : "Plan in"}
+            {busy ? "..." : t("actions.plan")}
           </button>
           <button
             type="button"
@@ -1423,7 +1445,7 @@ function CardActions({
             }}
             style={btnDangerGhost}
           >
-            Verwijderen
+            {t("actions.delete")}
           </button>
         </div>
       </div>
@@ -1441,9 +1463,9 @@ function CardActions({
           onRetract(item);
         }}
         style={btnSecondaryFull}
-        title="Terug naar concept zodat je 'm kunt aanpassen of verwijderen"
+        title={t("tooltips.retract")}
       >
-        Terugtrekken
+        {t("actions.retract")}
       </button>
     </div>
   );

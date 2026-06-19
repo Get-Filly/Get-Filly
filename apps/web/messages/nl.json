@@ -192,7 +192,15 @@
       "occTitle": "Week 47 · vooruitblik",
       "occAlertTitle": "Donderdag onder doelstelling",
       "occAlertSub": "Doel: 65% · Nu: 38% · 18 stoelen vrij.",
-      "days": { "mon": "ma", "tue": "di", "wed": "wo", "thu": "do", "fri": "vr", "sat": "za", "sun": "zo" },
+      "days": {
+        "mon": "ma",
+        "tue": "di",
+        "wed": "wo",
+        "thu": "do",
+        "fri": "vr",
+        "sat": "za",
+        "sun": "zo"
+      },
       "channelsTitle": "Get-Filly stelt voor, 3 kanalen",
       "mailLabel": "E-mail · 412 ontvangers",
       "mailPreview": "“Een rustige donderdag? Kom lunchen voor €24,50.”",
@@ -227,12 +235,30 @@
     },
     "featuresTitle": "Wat zit er in.",
     "features": {
-      "occupancy": { "title": "Bezettingsanalyse", "desc": "Realtime inzicht in je bezettingsgraad per dag, week en maand. Get-Filly herkent patronen zoals terugkerende dips of seizoenstrends en laat direct zien waar je omzet mist." },
-      "chatbot": { "title": "AI-chatbot", "desc": "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en restaurant, doet voorstellen en voert ze uit na jouw goedkeuring." },
-      "campaigns": { "title": "Campagnes", "desc": "Van concept tot verzending in één chat. Get-Filly schrijft een mail of WhatsApp-bericht in jouw huisstijl, selecteert de juiste gasten en verzendt dit op het beste moment." },
-      "social": { "title": "Social media posts", "desc": "Get-Filly maakt posts voor Instagram, Facebook en TikTok. Afgestemd op je merk, je aanbod, en de dagen die gevuld moeten worden." },
-      "season": { "title": "Seizoensstrategie", "desc": "Valentijnsdag, aspergeseizoen, Koningsdag, kerst, Get-Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren." },
-      "google": { "title": "Google Business", "desc": "Verschijn bovenaan in Google wanneer mensen zoeken naar restaurants in je buurt. Get-Filly plaatst posts, reageert op reviews en houdt je profiel actueel zodat je beter gevonden wordt." }
+      "occupancy": {
+        "title": "Bezettingsanalyse",
+        "desc": "Realtime inzicht in je bezettingsgraad per dag, week en maand. Get-Filly herkent patronen zoals terugkerende dips of seizoenstrends en laat direct zien waar je omzet mist."
+      },
+      "chatbot": {
+        "title": "AI-chatbot",
+        "desc": "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en restaurant, doet voorstellen en voert ze uit na jouw goedkeuring."
+      },
+      "campaigns": {
+        "title": "Campagnes",
+        "desc": "Van concept tot verzending in één chat. Get-Filly schrijft een mail of WhatsApp-bericht in jouw huisstijl, selecteert de juiste gasten en verzendt dit op het beste moment."
+      },
+      "social": {
+        "title": "Social media posts",
+        "desc": "Get-Filly maakt posts voor Instagram, Facebook en TikTok. Afgestemd op je merk, je aanbod, en de dagen die gevuld moeten worden."
+      },
+      "season": {
+        "title": "Seizoensstrategie",
+        "desc": "Valentijnsdag, aspergeseizoen, Koningsdag, kerst, Get-Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren."
+      },
+      "google": {
+        "title": "Google Business",
+        "desc": "Verschijn bovenaan in Google wanneer mensen zoeken naar restaurants in je buurt. Get-Filly plaatst posts, reageert op reviews en houdt je profiel actueel zodat je beter gevonden wordt."
+      }
     },
     "ctaTitle": "Klaar om rustige momenten om te zetten in omzet?",
     "ctaSubtitle": "Vraag een demo aan en ontdek wat Get-Filly voor jouw restaurant kan doen.",
@@ -330,20 +356,40 @@
     "visionText": "Een horecawereld waarin elk lokaal restaurant dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
     "driveTitle": "Wat ons drijft.",
     "pillars": {
-      "ownerFirst": { "title": "Ondernemer eerst", "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op de gasten en dienstverlening." },
-      "ownData": { "title": "Eigen data, eigen keuzes", "desc": "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
-      "aiPays": { "title": "AI die zichzelf terugverdient", "desc": "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet." }
+      "ownerFirst": {
+        "title": "Ondernemer eerst",
+        "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op de gasten en dienstverlening."
+      },
+      "ownData": {
+        "title": "Eigen data, eigen keuzes",
+        "desc": "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren."
+      },
+      "aiPays": {
+        "title": "AI die zichzelf terugverdient",
+        "desc": "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet."
+      }
     },
     "journeyTitle": "Waar we staan.",
     "now": "Nu",
     "ch1Title": "Hoofdstuk 1, Founded",
-    "ch1": ["Get-Filly opgericht door twee ambitieuze vrienden", "MVP live", "Eerste klanten aan boord"],
+    "ch1": [
+      "Get-Filly opgericht door twee ambitieuze vrienden",
+      "MVP live",
+      "Eerste klanten aan boord"
+    ],
     "ch2Title": "Hoofdstuk 2, Eerste 100 klanten",
-    "ch2": ["Get-Filly nationaal uitrollen in heel Nederland"],
+    "ch2": [
+      "Get-Filly nationaal uitrollen in heel Nederland"
+    ],
     "ch3Title": "Hoofdstuk 3, Internationale uitrol",
-    "ch3": ["Eerst BeNeLux, daarna DACH-regio", "Lokale teams, lokale data"],
+    "ch3": [
+      "Eerst BeNeLux, daarna DACH-regio",
+      "Lokale teams, lokale data"
+    ],
     "ch4Title": "Hoofdstuk 4",
-    "ch4": ["Wordt vervolgd…"],
+    "ch4": [
+      "Wordt vervolgd…"
+    ],
     "ctaTitle": "Laten we kennismaken.",
     "ctaSubtitle": "Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.",
     "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor restaurants</product> of <pricing>de prijzen</pricing>."
@@ -439,24 +485,64 @@
     "toast": "Deze post komt binnenkort online",
     "byLine": "Get-Filly",
     "recentEyebrow": "Artikel",
-    "months": ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"],
+    "months": [
+      "januari",
+      "februari",
+      "maart",
+      "april",
+      "mei",
+      "juni",
+      "juli",
+      "augustus",
+      "september",
+      "oktober",
+      "november",
+      "december"
+    ],
     "featured": {
       "eyebrow": "Vindbaarheid",
       "title": "7 SEO-tips om meer gasten naar je restaurant te trekken",
       "excerpt": "Zo beheers je je Google Bedrijfsprofiel en zorg je voor consistente vermeldingen, zodat jouw zaak de eerste keuze is in de buurt."
     },
     "topics": {
-      "findability": { "eyebrow": "Vindbaarheid", "title": "Waarom online vindbaarheid geen toeval is" },
-      "data": { "eyebrow": "Gegevens", "title": "Consistente gegevens: 18% meer lokale zichtbaarheid" },
-      "profile": { "eyebrow": "Profiel", "title": "Een compleet profiel wordt 2,3× vaker gevonden" },
-      "photos": { "eyebrow": "Foto's", "title": "Foto's: 45% meer routebeschrijvingen" },
-      "reviews": { "eyebrow": "Reviews", "title": "Recente reviews wegen zwaarder dan het totaal" },
-      "posting": { "eyebrow": "Posten", "title": "Structureel posten: 3 tot 5× per week is de sweet spot" }
+      "findability": {
+        "eyebrow": "Vindbaarheid",
+        "title": "Waarom online vindbaarheid geen toeval is"
+      },
+      "data": {
+        "eyebrow": "Gegevens",
+        "title": "Consistente gegevens: 18% meer lokale zichtbaarheid"
+      },
+      "profile": {
+        "eyebrow": "Profiel",
+        "title": "Een compleet profiel wordt 2,3× vaker gevonden"
+      },
+      "photos": {
+        "eyebrow": "Foto's",
+        "title": "Foto's: 45% meer routebeschrijvingen"
+      },
+      "reviews": {
+        "eyebrow": "Reviews",
+        "title": "Recente reviews wegen zwaarder dan het totaal"
+      },
+      "posting": {
+        "eyebrow": "Posten",
+        "title": "Structureel posten: 3 tot 5× per week is de sweet spot"
+      }
     },
     "recentPlaceholders": {
-      "fillyReviews": { "eyebrow": "Marketing", "title": "Zo laat je Filly je reviews beantwoorden" },
-      "gbpChecklist": { "eyebrow": "Vindbaarheid", "title": "Google Bedrijfsprofiel: de complete checklist voor horeca" },
-      "quietEvenings": { "eyebrow": "Bezetting", "title": "Rustige avonden vullen: 5 ideeën die werken" }
+      "fillyReviews": {
+        "eyebrow": "Marketing",
+        "title": "Zo laat je Filly je reviews beantwoorden"
+      },
+      "gbpChecklist": {
+        "eyebrow": "Vindbaarheid",
+        "title": "Google Bedrijfsprofiel: de complete checklist voor horeca"
+      },
+      "quietEvenings": {
+        "eyebrow": "Bezetting",
+        "title": "Rustige avonden vullen: 5 ideeën die werken"
+      }
     },
     "cta": {
       "title": "Van lezen naar volle tafels.",
@@ -510,6 +596,292 @@
         "koppelingen": "Koppelingen",
         "account": "Account"
       }
+    }
+  },
+  "campagnes_id_components_campaign_performance_card": {
+    "title": "Performance",
+    "emptyState": "Nog geen meet-data. Performance wordt vastgelegd zodra de campagne 'actief' wordt en Resend-events binnenkomen (delivered, opens, clicks). Reserveringen die via deze campagne komen worden hier ook geteld.",
+    "loadError": "Kon performance-data niet laden: {error}",
+    "scoreOutOf": "/ 100",
+    "measurementOpen": "Meet-window loopt (14 dagen)",
+    "noScore": "Geen score",
+    "outlierBadge": "Outlier (geen leerinput)",
+    "mailHeading": "Mail",
+    "conversionHeading": "Conversie",
+    "markOutlierLink": "Markeer als outlier (\"viel buiten controle\")",
+    "outlierPrompt": "Waarom valt deze campagne buiten je controle? Reden komt in Filly's leerloop als context (bv. \"slecht weer\", \"staking\", \"atypisch evenement\").",
+    "outlierPlaceholder": "Bv. slecht weer, staking, etc.",
+    "saving": "Bezig…",
+    "markOutlierButton": "Markeer outlier",
+    "cancel": "Annuleer",
+    "markedWithReason": "Gemarkeerd als outlier: \"{reason}\". Filly negeert deze campagne in zijn leerloop.",
+    "markedNoReason": "Gemarkeerd als outlier. Filly negeert deze campagne in zijn leerloop.",
+    "unmarkOutlierButton": "Herroep outlier-markering",
+    "classification": {
+      "winner": "Winner",
+      "average": "Average",
+      "underperformer": "Underperformer",
+      "noData": "Geen data"
+    },
+    "metrics": {
+      "delivered": "Verzonden",
+      "opened": "Geopend",
+      "clicked": "Geklikt",
+      "bounced": "Bounced",
+      "reservations": "Reserveringen",
+      "guests": "Gasten",
+      "revenue": "Omzet"
+    },
+    "errors": {
+      "generic": "Fout",
+      "markFailed": "Outlier-markering faalde",
+      "unmarkFailed": "Herroepen faalde"
+    }
+  },
+  "campagnes_id_components_campaign_send_card": {
+    "heading": "Versturen",
+    "errors": {
+      "generic": "Fout",
+      "unknown": "Onbekende fout"
+    },
+    "preview": {
+      "loadError": "Kon ontvangers niet laden: {error}",
+      "optInCount": "{count, plural, =0 {Nog geen opt-in-gasten} =1 {1 gast met mail-opt-in} other {# gasten met mail-opt-in}}",
+      "including": "Waaronder: {names}"
+    },
+    "test": {
+      "label": "Test-mail naar jezelf",
+      "emailPlaceholder": "naam@voorbeeld.nl",
+      "sending": "Bezig…",
+      "sendButton": "Stuur test"
+    },
+    "testResult": {
+      "success": "Verstuurd naar {email} ({sent}).",
+      "error": "Fout: {message}"
+    },
+    "all": {
+      "label": "Verstuur naar alle opt-in-gasten",
+      "sendButton": "Verstuur naar {count} gasten",
+      "noGuests": "Geen opt-in-gasten"
+    },
+    "allResult": {
+      "success": "Verstuurd naar {sent} gasten.",
+      "successWithFailures": "Verstuurd naar {sent} gasten, {failed} mislukte verzending(en).",
+      "error": "Fout: {message}"
+    },
+    "confirm": {
+      "title": "Weet je het zeker?",
+      "body": "Mail wordt onomkeerbaar verstuurd naar <strong>{count}</strong> gasten. Test eerst met een test-mail om de tekst te checken.",
+      "sending": "Bezig met versturen…",
+      "confirmButton": "Ja, verstuur nu",
+      "cancelButton": "Annuleer"
+    }
+  },
+  "campagnes_id_page": {
+    "backToCampaigns": "← Terug naar campagnes",
+    "unavailableTitle": "Campagne niet beschikbaar",
+    "unavailableDescription": "Deze campagne bestaat niet meer.",
+    "channelCount": "{count} kanalen",
+    "progressFields": "{completed} van {total} velden compleet",
+    "repetitionTipTitle": "Variatie-tip van Filly",
+    "statusSent": "Verstuurd",
+    "statusReadyToSend": "Klaar voor verzending",
+    "status": {
+      "concept": "Concept",
+      "ingepland": "Ingepland",
+      "actief": "Actief",
+      "afgerond": "Afgerond"
+    },
+    "actions": {
+      "delete": "Verwijderen",
+      "activateNow": "Activeer nu",
+      "activateNowTitle": "Activeer nu, direct versturen",
+      "activateNowScheduledTitle": "Activeer nu, vervroeg de planning en stuur direct",
+      "fillRequiredFirst": "Vul eerst alle vereiste velden in",
+      "schedule": "Plan in",
+      "scheduleTitle": "Plan in voor het ingestelde verzendmoment",
+      "backToConcept": "Terug naar concept",
+      "backToConceptTitle": "Annuleer planning, terug naar concept zodat je weer kan bewerken",
+      "finish": "Afronden",
+      "finishMailTitle": "Mail is al verstuurd en kan niet teruggetrokken worden, alleen afronden.",
+      "stopAndRemove": "Stop & verwijderen van kanaal",
+      "stopAndRemoveTitle": "Verwijder de post van het kanaal en zet de campagne terug naar concept."
+    },
+    "activateConfirm": {
+      "base": "Weet je zeker dat je deze campagne nu wil activeren?",
+      "withActions": "Weet je zeker dat je deze campagne nu wil activeren? {actions}.",
+      "and": " en ",
+      "mailAction": "{count, plural, one {de mail wordt direct verstuurd naar alle opt-in gasten} other {# mails worden direct verstuurd naar alle opt-in gasten}}",
+      "socialAction": "{count, plural, one {de social-post wordt direct op Facebook/Instagram geplaatst} other {# social-posts worden direct op Facebook/Instagram geplaatst}}"
+    },
+    "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe.",
+    "deleteConfirm": {
+      "bundle": "Weet je zeker dat je deze bundle ({count} kanalen) wil verwijderen?",
+      "single": "Weet je zeker dat je deze concept-campagne wil verwijderen?"
+    },
+    "errors": {
+      "notFound": "Campagne niet gevonden of niet meer beschikbaar.",
+      "selectVariant": "Versie-selectie mislukt.",
+      "bodyEmpty": "Body mag niet leeg zijn.",
+      "editFailed": "Bewerken mislukt.",
+      "generateFailed": "Genereren mislukt.",
+      "saveScheduleFailed": "Verzendmoment opslaan mislukt.",
+      "resetToFillyFailed": "Reset naar Filly's voorstel mislukt.",
+      "activateFailed": "Activeren mislukt.",
+      "statusChangeFailed": "Status-overgang mislukt.",
+      "deleteFailed": "Verwijderen mislukt."
+    }
+  },
+  "campagnes_history_page": {
+    "backToCampaigns": "← Terug naar campagnes",
+    "title": "Campagne-historie",
+    "loading": "Laden…",
+    "tabs": {
+      "done": "Afgerond",
+      "deleted": "Verwijderd"
+    },
+    "emptyDone": {
+      "title": "Nog geen voltooide campagnes",
+      "description": "Zodra een campagne afgerond is verschijnt 'ie hier. Loop terug naar de campagnes-pagina voor lopende en geplande campagnes."
+    },
+    "emptyDeleted": {
+      "title": "Nog niks verwijderd",
+      "description": "Verwijderde concept- of geplande campagnes komen hier terecht. Zo kun je later nakijken wat er weg is gegooid."
+    },
+    "deletedOn": "Verwijderd op {date}",
+    "extraReservations": "+{count} reserveringen",
+    "restoreButton": "↺ Terugzetten",
+    "modal": {
+      "title": "Campagne terugzetten",
+      "phaseLabel": "Naar welke fase?",
+      "statusConcept": "Concept — verder bewerken",
+      "statusScheduled": "Ingepland — klaar voor de gekozen datum",
+      "statusActive": "Actief — direct versturen op gekozen datum",
+      "datetimeLabel": "Nieuwe datum + tijdstip",
+      "datetimeHint": "Moet in de toekomst liggen — vandaag op een later tijdstip mag ook.",
+      "cancel": "Annuleren",
+      "submit": "Terugzetten"
+    },
+    "errors": {
+      "pickDatetime": "Kies een datum + tijdstip.",
+      "invalidDate": "Ongeldige datum.",
+      "mustBeFuture": "Nieuwe datum moet in de toekomst liggen.",
+      "restoreFailed": "Terugzetten mislukt."
+    }
+  },
+  "campagnes_page": {
+    "title": "Campagnes",
+    "history": "Historie",
+    "filterByChannel": "Filter op {channel}",
+    "clearFilter": "Filter wissen",
+    "emptyColumn": "Niks in deze kolom",
+    "noDate": "Geen datum",
+    "from": "vanaf {date}",
+    "suggestionFallbackName": "Voorstel",
+    "statusScheduled": "Ingepland",
+    "running": "Loopt",
+    "complete": "Compleet",
+    "incomplete": "Incompleet",
+    "extraReservations": "+{count, plural, one {# reservering} other {# reserveringen}}",
+    "actionFailed": "{action} mislukt. Probeer opnieuw.",
+    "relative": {
+      "past": "verleden",
+      "today": "vandaag",
+      "tomorrow": "morgen",
+      "inDays": "over {days} dgn"
+    },
+    "columns": {
+      "voorstel": {
+        "label": "Voorstel",
+        "description": "Wachten op je goedkeuring"
+      },
+      "concept": {
+        "label": "Concept",
+        "description": "Nog in te plannen"
+      },
+      "ingepland": {
+        "label": "Ingepland",
+        "description": "Wachten op verzendmoment"
+      },
+      "actief": {
+        "label": "Actief",
+        "description": "Loopt nu"
+      }
+    },
+    "actions": {
+      "approve": "Goedkeuren",
+      "approveShort": "Goedkeur",
+      "reject": "Afwijzen",
+      "plan": "Plan in",
+      "retract": "Terugtrekken",
+      "stop": "Stop",
+      "finish": "Afronden",
+      "delete": "Verwijderen"
+    },
+    "confirm": {
+      "stopSocial": "Deze campagne stoppen? De post wordt van het kanaal verwijderd en de campagne gaat terug naar concept.",
+      "finishMail": "Deze campagne afronden? De verstuurde mail blijft staan; de campagne verdwijnt naar de historie.",
+      "deleteBundle": "Verwijder alle campagnes in deze bundle? Dit is permanent.",
+      "deleteCampaign": "Verwijder deze campagne? Dit is permanent."
+    },
+    "tooltips": {
+      "finishMail": "Mail is al verstuurd, campagne afronden.",
+      "stopSocial": "Post van het kanaal verwijderen en terug naar concept.",
+      "approveReady": "Voorstel goedkeuren, wordt concept",
+      "approveIncomplete": "Vul eerst de ontbrekende velden in, klik om naar het voorstel te gaan",
+      "planReady": "Plan deze campagne in op het ingestelde moment",
+      "planIncomplete": "Vul eerst de ontbrekende velden in, klik om naar de campagne te gaan",
+      "retract": "Terug naar concept zodat je 'm kunt aanpassen of verwijderen"
+    }
+  },
+  "campagnes_voorstel_id_page": {
+    "untitledProposal": "Naamloos voorstel",
+    "backToCampaigns": "← Terug naar campagnes",
+    "emptyTitle": "Voorstel niet beschikbaar",
+    "emptyDescription": "Dit voorstel bestaat niet meer.",
+    "proposalChip": "Voorstel",
+    "reject": "Afwijzen",
+    "directPlan": "Direct inplannen",
+    "directPlanTitle": "Goedkeuren en direct in de planning zetten",
+    "directPlanTitleMissing": "Vul eerst de ontbrekende velden in (zie 'Missende aspecten' hieronder)",
+    "approve": "Goedkeuren",
+    "approveBundle": "Goedkeuren · {count} campagnes",
+    "approveTitleSingle": "Maak een concept-campagne van dit voorstel",
+    "approveTitleBundle": "Maak {count} concept-campagnes onder 1 bundle",
+    "approveTitleMissing": "Vul eerst de ontbrekende velden in",
+    "progressFields": "{completed} van {total} velden compleet",
+    "confirmReject": "Voorstel afwijzen? Je kunt 'm later terugzetten via de Afgewezen-tab.",
+    "confirmDirectPlan": "Weet je zeker dat je dit voorstel direct wil inplannen? De campagne wordt automatisch verstuurd op het ingestelde moment.",
+    "status": {
+      "approved": "Reeds goedgekeurd",
+      "rejected": "Afgewezen",
+      "expired": "Verlopen"
+    },
+    "media": {
+      "title": "Foto of video",
+      "fromLibrary": "Uit jouw bibliotheek.",
+      "change": "Wijzig",
+      "remove": "Verwijder",
+      "empty": "Nog geen foto of video gekoppeld.",
+      "pickFromLibrary": "Kies uit bibliotheek"
+    },
+    "errors": {
+      "notFound": "Voorstel niet gevonden of niet meer beschikbaar.",
+      "addChannel": "Kanaal toevoegen mislukt.",
+      "removeChannel": "Kanaal verwijderen mislukt.",
+      "selectVariant": "Variant-selectie mislukt.",
+      "regenerate": "Genereren mislukt.",
+      "approve": "Goedkeuren mislukt.",
+      "reject": "Afwijzen mislukt.",
+      "fillMissingBeforePlan": "Vul eerst de ontbrekende velden in voordat je direct inplant.",
+      "noBundleChannels": "Geen ondersteunde kanalen voor bundle-inplannen.",
+      "plan": "Inplannen mislukt.",
+      "saveSchedule": "Verzendmoment opslaan mislukt.",
+      "resetToFilly": "Resetten naar Filly mislukt.",
+      "bodyEmpty": "Body mag niet leeg zijn.",
+      "edit": "Bewerken mislukt.",
+      "linkMedia": "Foto koppelen mislukt.",
+      "removeMedia": "Foto verwijderen mislukt."
     }
   }
 }

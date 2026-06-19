@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchCampaignPerformance,
   markCampaignOutlier,
@@ -36,13 +37,6 @@ type Props = {
   campaignId: string;
 };
 
-const CLASSIFICATION_LABELS: Record<CampaignClassification, string> = {
-  winner: "Winner",
-  average: "Average",
-  underperformer: "Underperformer",
-  no_data: "Geen data",
-};
-
 const CLASSIFICATION_VARIANTS: Record<
   CampaignClassification,
   "success" | "warning" | "danger" | "neutral"
@@ -67,9 +61,17 @@ function formatPercent(numerator: number | null, denominator: number | null): st
 }
 
 export function CampaignPerformanceCard({ campaignId }: Props) {
+  const t = useTranslations("campagnes_id_components_campaign_performance_card");
   const [data, setData] = useState<CampaignPerformance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const classificationLabels: Record<CampaignClassification, string> = {
+    winner: t("classification.winner"),
+    average: t("classification.average"),
+    underperformer: t("classification.underperformer"),
+    no_data: t("classification.noData"),
+  };
 
   // Outlier-modal-state. Compact inline, geen apart modaal.
   const [outlierMode, setOutlierMode] = useState(false);
@@ -85,7 +87,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
         if (!cancelled) setData(d);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Fout");
+        if (!cancelled) setError(err instanceof Error ? err.message : t("errors.generic"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -93,7 +95,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [campaignId]);
+  }, [campaignId, t]);
 
   const handleMarkOutlier = async () => {
     if (!outlierReason.trim()) return;
@@ -113,7 +115,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
       setOutlierMode(false);
       setOutlierReason("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Outlier-markering faalde");
+      setError(err instanceof Error ? err.message : t("errors.markFailed"));
     } finally {
       setOutlierSaving(false);
     }
@@ -134,7 +136,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
           : prev,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Herroepen faalde");
+      setError(err instanceof Error ? err.message : t("errors.unmarkFailed"));
     } finally {
       setOutlierSaving(false);
     }
@@ -167,7 +169,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
               color: "var(--danger, #DC2626)",
             }}
           >
-            Kon performance-data niet laden: {error}
+            {t("loadError", { error })}
           </div>
         </CardBody>
       </Card>
@@ -188,7 +190,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
               color: "var(--text, #18181B)",
             }}
           >
-            Performance
+            {t("title")}
           </div>
           <div
             style={{
@@ -197,10 +199,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
               lineHeight: 1.5,
             }}
           >
-            Nog geen meet-data. Performance wordt vastgelegd zodra de
-            campagne 'actief' wordt en Resend-events binnenkomen
-            (delivered, opens, clicks). Reserveringen die via deze
-            campagne komen worden hier ook geteld.
+            {t("emptyState")}
           </div>
         </CardBody>
       </Card>
@@ -238,7 +237,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                 marginBottom: 4,
               }}
             >
-              Performance
+              {t("title")}
             </div>
             <div
               style={{
@@ -264,7 +263,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                       marginLeft: 4,
                     }}
                   >
-                    / 100
+                    {t("scoreOutOf")}
                   </span>
                 </div>
               ) : (
@@ -274,18 +273,16 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                     color: "var(--text-secondary, #52525B)",
                   }}
                 >
-                  {measurementOpen
-                    ? "Meet-window loopt (14 dagen)"
-                    : "Geen score"}
+                  {measurementOpen ? t("measurementOpen") : t("noScore")}
                 </div>
               )}
               {classification && (
                 <Badge variant={CLASSIFICATION_VARIANTS[classification]}>
-                  {CLASSIFICATION_LABELS[classification]}
+                  {classificationLabels[classification]}
                 </Badge>
               )}
               {data.marked_outlier && (
-                <Badge variant="neutral">Outlier (geen leerinput)</Badge>
+                <Badge variant="neutral">{t("outlierBadge")}</Badge>
               )}
             </div>
           </div>
@@ -304,7 +301,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                 letterSpacing: "0.05em",
               }}
             >
-              Mail
+              {t("mailHeading")}
             </div>
             <div
               style={{
@@ -313,11 +310,11 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                 gap: "var(--space-2)",
               }}
             >
-              <MetricCell label="Verzonden" value={String(data.mail_delivered ?? 0)} />
-              <MetricCell label="Geopend" value={`${data.mail_opened ?? 0} (${openRate})`} />
-              <MetricCell label="Geklikt" value={`${data.mail_clicked ?? 0} (${clickRate})`} />
+              <MetricCell label={t("metrics.delivered")} value={String(data.mail_delivered ?? 0)} />
+              <MetricCell label={t("metrics.opened")} value={`${data.mail_opened ?? 0} (${openRate})`} />
+              <MetricCell label={t("metrics.clicked")} value={`${data.mail_clicked ?? 0} (${clickRate})`} />
               <MetricCell
-                label="Bounced"
+                label={t("metrics.bounced")}
                 value={`${data.mail_bounced ?? 0} (${bounceRate})`}
               />
             </div>
@@ -336,7 +333,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
               letterSpacing: "0.05em",
             }}
           >
-            Conversie
+            {t("conversionHeading")}
           </div>
           <div
             style={{
@@ -346,16 +343,16 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
             }}
           >
             <MetricCell
-              label="Reserveringen"
+              label={t("metrics.reservations")}
               value={String(data.reservations_attributed)}
             />
             <MetricCell
-              label="Gasten"
+              label={t("metrics.guests")}
               value={String(data.guests_attributed)}
             />
             {data.revenue_attributed_cents > 0 && (
               <MetricCell
-                label="Omzet"
+                label={t("metrics.revenue")}
                 value={`€ ${(data.revenue_attributed_cents / 100).toFixed(0)}`}
               />
             )}
@@ -384,7 +381,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                 textDecoration: "underline",
               }}
             >
-              Markeer als outlier ("viel buiten controle")
+              {t("markOutlierLink")}
             </button>
           )}
           {!data.marked_outlier && outlierMode && (
@@ -397,15 +394,13 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                   lineHeight: 1.5,
                 }}
               >
-                Waarom valt deze campagne buiten je controle? Reden komt
-                in Filly's leerloop als context (bv. "slecht weer",
-                "staking", "atypisch evenement").
+                {t("outlierPrompt")}
               </div>
               <input
                 type="text"
                 value={outlierReason}
                 onChange={(e) => setOutlierReason(e.target.value)}
-                placeholder="Bv. slecht weer, staking, etc."
+                placeholder={t("outlierPlaceholder")}
                 style={{
                   width: "100%",
                   padding: "8px 12px",
@@ -421,7 +416,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                   onClick={handleMarkOutlier}
                   disabled={outlierSaving || !outlierReason.trim()}
                 >
-                  {outlierSaving ? "Bezig…" : "Markeer outlier"}
+                  {outlierSaving ? t("saving") : t("markOutlierButton")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -431,7 +426,7 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                   }}
                   disabled={outlierSaving}
                 >
-                  Annuleer
+                  {t("cancel")}
                 </Button>
               </div>
             </div>
@@ -446,18 +441,16 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
                   lineHeight: 1.5,
                 }}
               >
-                Gemarkeerd als outlier
                 {data.marked_outlier_reason
-                  ? `: "${data.marked_outlier_reason}"`
-                  : ""}
-                . Filly negeert deze campagne in zijn leerloop.
+                  ? t("markedWithReason", { reason: data.marked_outlier_reason })
+                  : t("markedNoReason")}
               </div>
               <Button
                 variant="secondary"
                 onClick={handleUnmarkOutlier}
                 disabled={outlierSaving}
               >
-                {outlierSaving ? "Bezig…" : "Herroep outlier-markering"}
+                {outlierSaving ? t("saving") : t("unmarkOutlierButton")}
               </Button>
             </div>
           )}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useParams } from "next/navigation";
 import {
   deleteCampaign,
   editCampaignVariant,
@@ -68,13 +69,6 @@ import type { MissingField } from "@/lib/campaign-checks";
 // door backend (zou een nieuwe campaign in dezelfde group moeten
 // aanmaken). Voor nu disabled — komt in een latere fase.
 
-const STATUS_LABEL: Record<CampaignStatus, string> = {
-  concept: "Concept",
-  ingepland: "Ingepland",
-  actief: "Actief",
-  afgerond: "Afgerond",
-};
-
 /**
  * Status-label dat per campagne-type aanpast wat 'Actief' betekent.
  * Voor mail: 'actief' is dubbelzinnig (geactiveerd vs daadwerkelijk
@@ -84,14 +78,15 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
  * Voor social/whatsapp blijft 'Actief' want daar is push = live.
  */
 function getDisplayStatus(
+  t: (key: string) => string,
   status: CampaignStatus,
   type: string | null | undefined,
   sentCount: number,
 ): string {
   if (status === "actief" && type === "mail") {
-    return sentCount > 0 ? "Verstuurd" : "Klaar voor verzending";
+    return sentCount > 0 ? t("statusSent") : t("statusReadyToSend");
   }
-  return STATUS_LABEL[status];
+  return t(`status.${status}`);
 }
 
 const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
@@ -116,6 +111,7 @@ const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
 };
 
 export default function UnifiedDetailPage() {
+  const t = useTranslations("campagnes_id_page");
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -165,13 +161,9 @@ export default function UnifiedDetailPage() {
       });
       setError(null);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Campagne niet gevonden of niet meer beschikbaar.",
-      );
+      setError(e instanceof Error ? e.message : t("errors.notFound"));
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -279,13 +271,13 @@ export default function UnifiedDetailPage() {
         await load();
       } catch (e) {
         setActionError(
-          e instanceof Error ? e.message : "Versie-selectie mislukt.",
+          e instanceof Error ? e.message : t("errors.selectVariant"),
         );
       } finally {
         setSavingVariant(false);
       }
     },
-    [activeChannel, busy, canEdit, selectedIndex, load],
+    [activeChannel, busy, canEdit, selectedIndex, load, t],
   );
 
   const handleStartEditVariant = useCallback(
@@ -310,7 +302,7 @@ export default function UnifiedDetailPage() {
   const handleSaveEditVariant = useCallback(async () => {
     if (!activeChannel || editingVariantIdx === null || busy) return;
     if (!draftBody.trim()) {
-      setActionError("Body mag niet leeg zijn.");
+      setActionError(t("errors.bodyEmpty"));
       return;
     }
     setActionError(null);
@@ -323,7 +315,7 @@ export default function UnifiedDetailPage() {
       await load();
       setEditingVariantIdx(null);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Bewerken mislukt.");
+      setActionError(e instanceof Error ? e.message : t("errors.editFailed"));
     } finally {
       setSavingVariant(false);
     }
@@ -334,6 +326,7 @@ export default function UnifiedDetailPage() {
     draftBody,
     draftSubject,
     load,
+    t,
   ]);
 
   const handleRegenerate = useCallback(async () => {
@@ -345,12 +338,12 @@ export default function UnifiedDetailPage() {
       await load();
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Genereren mislukt.",
+        e instanceof Error ? e.message : t("errors.generateFailed"),
       );
     } finally {
       setRefining(false);
     }
-  }, [activeChannel, busy, canEdit, load]);
+  }, [activeChannel, busy, canEdit, load, t]);
 
   // ────────────────────────────────────────────────────────────
   // Schedule-handlers
@@ -375,12 +368,12 @@ export default function UnifiedDetailPage() {
       setEditingSchedule(false);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Verzendmoment opslaan mislukt.",
+        e instanceof Error ? e.message : t("errors.saveScheduleFailed"),
       );
     } finally {
       setSavingSchedule(false);
     }
-  }, [activeChannel, draftDatetime, busy, load]);
+  }, [activeChannel, draftDatetime, busy, load, t]);
 
   const handleResetToFilly = useCallback(async () => {
     if (!activeChannel || !fillyIso || busy) return;
@@ -392,12 +385,12 @@ export default function UnifiedDetailPage() {
       setEditingSchedule(false);
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Reset naar Filly's voorstel mislukt.",
+        e instanceof Error ? e.message : t("errors.resetToFillyFailed"),
       );
     } finally {
       setSavingSchedule(false);
     }
-  }, [activeChannel, fillyIso, busy, load]);
+  }, [activeChannel, fillyIso, busy, load, t]);
 
   // ────────────────────────────────────────────────────────────
   // Status-transitie + verwijder
@@ -441,23 +434,19 @@ export default function UnifiedDetailPage() {
         // Confirm-tekst opbouwen uit wat er daadwerkelijk gebeurt.
         const actions: string[] = [];
         if (mailCount > 0) {
-          actions.push(
-            mailCount === 1
-              ? "de mail wordt direct verstuurd naar alle opt-in gasten"
-              : `${mailCount} mails worden direct verstuurd naar alle opt-in gasten`,
-          );
+          actions.push(t("activateConfirm.mailAction", { count: mailCount }));
         }
         if (socialCount > 0) {
           actions.push(
-            socialCount === 1
-              ? "de social-post wordt direct op Facebook/Instagram geplaatst"
-              : `${socialCount} social-posts worden direct op Facebook/Instagram geplaatst`,
+            t("activateConfirm.socialAction", { count: socialCount }),
           );
         }
         const confirmMsg =
           actions.length === 0
-            ? "Weet je zeker dat je deze campagne nu wil activeren?"
-            : `Weet je zeker dat je deze campagne nu wil activeren? ${actions.join(" en ")}.`;
+            ? t("activateConfirm.base")
+            : t("activateConfirm.withActions", {
+                actions: actions.join(t("activateConfirm.and")),
+              });
         if (!window.confirm(confirmMsg)) return;
 
         setActionError(null);
@@ -481,7 +470,7 @@ export default function UnifiedDetailPage() {
           await load();
         } catch (e) {
           setActionError(
-            e instanceof Error ? e.message : "Activeren mislukt.",
+            e instanceof Error ? e.message : t("errors.activateFailed"),
           );
         } finally {
           setChangingStatus(false);
@@ -492,11 +481,7 @@ export default function UnifiedDetailPage() {
       // Stop & verwijderen van kanaal (actief → concept): destructief,
       // de gepubliceerde post wordt teruggetrokken. Vraag bevestiging.
       if (view.status === "actief" && next === "concept") {
-        if (
-          !window.confirm(
-            "Weet je zeker dat je deze campagne wil stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe.",
-          )
-        ) {
+        if (!window.confirm(t("stopConfirm"))) {
           return;
         }
       }
@@ -513,13 +498,13 @@ export default function UnifiedDetailPage() {
         await load();
       } catch (e) {
         setActionError(
-          e instanceof Error ? e.message : "Status-overgang mislukt.",
+          e instanceof Error ? e.message : t("errors.statusChangeFailed"),
         );
       } finally {
         setChangingStatus(false);
       }
     },
-    [view, busy, load],
+    [view, busy, load, t],
   );
 
   // Delete: alleen op concept (backend handhaaft). Multi-channel:
@@ -530,8 +515,8 @@ export default function UnifiedDetailPage() {
     if (
       !window.confirm(
         view.channels.length > 1
-          ? `Weet je zeker dat je deze bundle (${view.channels.length} kanalen) wil verwijderen?`
-          : "Weet je zeker dat je deze concept-campagne wil verwijderen?",
+          ? t("deleteConfirm.bundle", { count: view.channels.length })
+          : t("deleteConfirm.single"),
       )
     ) {
       return;
@@ -543,11 +528,11 @@ export default function UnifiedDetailPage() {
       router.push("/dashboard/campagnes");
     } catch (e) {
       setActionError(
-        e instanceof Error ? e.message : "Verwijderen mislukt.",
+        e instanceof Error ? e.message : t("errors.deleteFailed"),
       );
       setDeleting(false);
     }
-  }, [view, busy, status, router]);
+  }, [view, busy, status, router, t]);
 
   // ────────────────────────────────────────────────────────────
   // Voortgangsbar — uit channelsChecklist
@@ -620,12 +605,12 @@ export default function UnifiedDetailPage() {
             display: "inline-block",
           }}
         >
-          ← Terug naar campagnes
+          {t("backToCampaigns")}
         </Link>
         <EmptyState
           icon="—"
-          title="Campagne niet beschikbaar"
-          description={error ?? "Deze campagne bestaat niet meer."}
+          title={t("unavailableTitle")}
+          description={error ?? t("unavailableDescription")}
         />
       </div>
     );
@@ -650,7 +635,7 @@ export default function UnifiedDetailPage() {
             disabled={busy}
             style={{ color: "#B91C1C" }}
           >
-            Verwijderen
+            {t("actions.delete")}
           </Button>
           <Button
             variant="secondary"
@@ -658,11 +643,11 @@ export default function UnifiedDetailPage() {
             disabled={busy || progress.percentage < 100}
             title={
               progress.percentage < 100
-                ? "Vul eerst alle vereiste velden in"
-                : "Activeer nu — direct versturen"
+                ? t("actions.fillRequiredFirst")
+                : t("actions.activateNowTitle")
             }
           >
-            Activeer nu
+            {t("actions.activateNow")}
           </Button>
           <Button
             variant="primary"
@@ -671,11 +656,11 @@ export default function UnifiedDetailPage() {
             disabled={busy || progress.percentage < 100}
             title={
               progress.percentage < 100
-                ? "Vul eerst alle vereiste velden in"
-                : "Plan in voor het ingestelde verzendmoment"
+                ? t("actions.fillRequiredFirst")
+                : t("actions.scheduleTitle")
             }
           >
-            Plan in
+            {t("actions.schedule")}
           </Button>
         </>
       );
@@ -688,17 +673,17 @@ export default function UnifiedDetailPage() {
             onClick={() => handleStatusChange("concept")}
             loading={changingStatus}
             disabled={busy}
-            title="Annuleer planning, terug naar concept zodat je weer kan bewerken"
+            title={t("actions.backToConceptTitle")}
           >
-            Terug naar concept
+            {t("actions.backToConcept")}
           </Button>
           <Button
             variant="primary"
             onClick={() => handleStatusChange("actief")}
             disabled={busy}
-            title="Activeer nu — vervroeg de planning en stuur direct"
+            title={t("actions.activateNowScheduledTitle")}
           >
-            Activeer nu
+            {t("actions.activateNow")}
           </Button>
         </>
       );
@@ -717,9 +702,9 @@ export default function UnifiedDetailPage() {
             loading={changingStatus}
             disabled={busy}
             style={{ color: "#B91C1C" }}
-            title="Mail is al verstuurd en kan niet teruggetrokken worden — alleen afronden."
+            title={t("actions.finishMailTitle")}
           >
-            Afronden
+            {t("actions.finish")}
           </Button>
         );
       }
@@ -731,7 +716,7 @@ export default function UnifiedDetailPage() {
             loading={changingStatus}
             disabled={busy}
           >
-            Afronden
+            {t("actions.finish")}
           </Button>
           <Button
             variant="secondary"
@@ -739,9 +724,9 @@ export default function UnifiedDetailPage() {
             loading={changingStatus}
             disabled={busy}
             style={{ color: "#B91C1C" }}
-            title="Verwijder de post van het kanaal en zet de campagne terug naar concept."
+            title={t("actions.stopAndRemoveTitle")}
           >
-            Stop & verwijderen van kanaal
+            {t("actions.stopAndRemove")}
           </Button>
         </>
       );
@@ -783,7 +768,7 @@ export default function UnifiedDetailPage() {
             display: "inline-block",
           }}
         >
-          ← Terug naar campagnes
+          {t("backToCampaigns")}
         </Link>
         <div className="page-title" style={{ marginBottom: 6 }}>
           {view.name}
@@ -798,6 +783,7 @@ export default function UnifiedDetailPage() {
         >
           <span style={statusChipStyle(status)}>
             {getDisplayStatus(
+              t,
               status,
               activeCampaign?.type ?? null,
               activeCampaign?.sent_count ?? 0,
@@ -805,7 +791,7 @@ export default function UnifiedDetailPage() {
           </span>
           {view.bundleName && view.channels.length > 1 && (
             <span style={{ color: "var(--tl)", fontSize: 12 }}>
-              {view.channels.length} kanalen
+              {t("channelCount", { count: view.channels.length })}
             </span>
           )}
         </div>
@@ -857,7 +843,10 @@ export default function UnifiedDetailPage() {
                 textAlign: "right",
               }}
             >
-              {progress.completed} van {progress.total} velden compleet
+              {t("progressFields", {
+                completed: progress.completed,
+                total: progress.total,
+              })}
             </div>
           </div>
         )}
@@ -949,7 +938,7 @@ export default function UnifiedDetailPage() {
               marginBottom: 4,
             }}
           >
-            Variatie-tip van Filly
+            {t("repetitionTipTitle")}
           </div>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {repetitionWarnings.map((w, i) => (
