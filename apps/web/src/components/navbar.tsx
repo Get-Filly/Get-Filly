@@ -1,25 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { Menu, X } from "lucide-react";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 // Per 2026-05-13: 'Hoe het werkt' vervangen door 'Home' (verwijst
 // naar /, dus de bovenkant van de homepage waar de hero staat). Het
 // logo linksboven blijft óók een Home-link maar Floris wil de Home-
 // link expliciet in de nav-balk. Verdere volgorde: Oplossing →
 // Pricing → Over ons. Route /product blijft (label 'Oplossing').
+// De labels komen uit de vertalingen (namespace "nav"); `key` verwijst
+// naar de message-key.
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/product", label: "Oplossing" },
-  { href: "/pricing", label: "Prijzen" },
-  { href: "/about", label: "Over ons" },
-  { href: "/blog", label: "Blog" },
+  { href: "/", key: "home" },
+  { href: "/product", key: "solution" },
+  { href: "/pricing", key: "pricing" },
+  { href: "/about", key: "about" },
+  { href: "/blog", key: "blog" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
 
   // Hash-tracking: usePathname() ziet de URL-hash niet, dus voor links
   // als '/#hoe-het-werkt' moet je window.location.hash apart uitlezen om
@@ -59,7 +63,7 @@ export function Navbar() {
           <Link
             href="/"
             className="nav-logo"
-            aria-label="Get-Filly home"
+            aria-label={t("logoAria")}
             onClick={() => setMenuOpen(false)}
           >
             {/* Volledig logo (symbool + tekst) als SVG-vector: scherp op
@@ -79,7 +83,7 @@ export function Navbar() {
               Op mobiel wordt dit het verticale uitklap-paneel. */}
           <div className="nav-menu">
             <div className="nav-links">
-              {links.map(({ href, label }) => {
+              {links.map(({ href, key }) => {
                 // Active-logica:
                 //  - '/' alleen exact op homepage
                 //  - hash-links ('/#...') als we op de homepage zijn EN de
@@ -109,7 +113,7 @@ export function Navbar() {
                       setMenuOpen(false);
                     }}
                   >
-                    {label}
+                    {t(key)}
                   </Link>
                 );
               })}
@@ -121,15 +125,16 @@ export function Navbar() {
                 className="nav-login"
                 onClick={() => setMenuOpen(false)}
               >
-                Log in
+                {t("login")}
               </Link>
               <Link
                 href="/contact"
                 className="nav-demo"
                 onClick={() => setMenuOpen(false)}
               >
-                Vraag een demo aan
+                {t("demo")}
               </Link>
+              <LanguageSwitcher />
             </div>
           </div>
 
@@ -139,7 +144,7 @@ export function Navbar() {
           <button
             type="button"
             className="nav-toggle"
-            aria-label={menuOpen ? "Menu sluiten" : "Menu openen"}
+            aria-label={menuOpen ? t("menuClose") : t("menuOpen")}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
           >

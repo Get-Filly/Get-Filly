@@ -1,0 +1,47 @@
+{
+  "language": {
+    "label": "Language",
+    "nl": "Nederlands",
+    "en": "English",
+    "switchToEn": "Switch to English",
+    "switchToNl": "Schakel naar Nederlands"
+  },
+  "nav": {
+    "home": "Home",
+    "solution": "Solution",
+    "pricing": "Pricing",
+    "about": "About",
+    "blog": "Blog",
+    "login": "Log in",
+    "demo": "Request a demo",
+    "logoAria": "Get-Filly home",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu"
+  },
+  "home": {
+    "heroTitle": "More guests.<br></br>Fewer empty tables.",
+    "heroSubtitle": "Get-Filly is an AI platform for restaurants. It runs your marketing, reviews and visibility in Google and AI search engines. With your approval, each message goes out through the right channel at the moment it drives the most bookings.",
+    "ctaDemo": "Request a demo",
+    "ctaProduct": "See how it works",
+    "whyTitle": "Why it works",
+    "whySubtitle": "The numbers don't lie. Better profiles and a steady rhythm mean guests find you online more often.",
+    "whyPoints": {
+      "data": {
+        "eyebrow": "Data",
+        "title": "Consistent data: 18% more local visibility"
+      },
+      "profile": {
+        "eyebrow": "Profile",
+        "title": "A complete profile gets found 2.3x more often"
+      },
+      "reviews": {
+        "eyebrow": "Reviews",
+        "title": "Recent reviews count for more than the overall total"
+      },
+      "posting": {
+        "eyebrow": "Posting",
+        "title": "Posting consistently: 3 to 5 times a week is the sweet spot"
+      }
+    }
+  }
+}

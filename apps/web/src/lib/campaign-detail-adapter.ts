@@ -24,7 +24,7 @@ import type {
   CampaignStatus,
   CampaignVariant,
 } from "./api";
-import type { Platform } from "../app/dashboard/_components/campaign-detail/types";
+import type { Platform } from "../app/[locale]/dashboard/_components/campaign-detail/types";
 import { getChannelChecklist, type ChecklistItem } from "./campaign-checks";
 
 // Eén kanaal binnen de unified-view. Mirrort

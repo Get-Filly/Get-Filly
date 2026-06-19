@@ -153,6 +153,33 @@ body {
 
 .nav-demo:hover { background: var(--accent-dark); }
 
+/* Taalwisselaar (NL / EN), rechtsboven in de nav-acties. Compacte pill-toggle
+   in de huisstijl: actieve taal groen gevuld, inactieve subtiel grijs. */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+.lang-switch-btn {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  transition: background 0.15s, color 0.15s;
+}
+.lang-switch-btn:hover { color: var(--text); }
+.lang-switch-btn.active {
+  background: var(--accent);
+  color: var(--true-white);
+}
+
 /* Wrapper om de links + acties. Op desktop transparant via
    `display: contents`: de wrapper verdwijnt uit de layout, zodat
    .nav-links en .nav-actions gewoon directe flex-items van
