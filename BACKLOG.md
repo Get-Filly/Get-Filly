@@ -122,11 +122,17 @@ naar main.
 - [x] ~~Fase 2a: product + pricing~~ (✅, incl. mock-widgets + FAQ-JSON-LD)
 - [x] ~~Fase 2b: auth-flow (login/signup/forgot/reset + PasswordStrength)~~ (✅)
 - [x] ~~Fase 2c: site-brede chrome (footer + cookie-banner)~~ (✅)
-- [ ] Fase 2d: resterende publieke pagina's (about, contact, welkom, invite/accept,
-  u/[token], account-verwijderd, delete-data, data-deletion-status, not-found,
-  blog ×3, `structured-data`-component)
+- [x] ~~Fase 2d: functionele publieke pagina's~~ (✅) — about, contact, welkom,
+  invite/accept, u/[token] (unsubscribe), not-found, blog (index + CTA;
+  blog/[slug] heeft geen UI-tekst). **Plus:** custom-404 hersteld na de
+  [locale]-move via `[locale]/[...rest]/page.tsx` (catch-all → notFound),
+  sync `not-found.tsx` (useTranslations), en root `app/layout.tsx` +
+  `app/not-found.tsx` (taal-neutrale fallback voor paden buiten [locale]).
 - [ ] Fase 2e (later, omvang/juridisch): **privacy** (1021 r.), **voorwaarden**
-  (774 r.), **onboarding** (1870 r.)
+  (774 r.), **onboarding** (1870 r.), + de juridische compliance-pagina's
+  **delete-data**, **account-verwijderd**, **data-deletion-status** (AVG-claims,
+  noindex — verdienen zorgvuldige/jurist-geschikte vertaling). `structured-data`
+  (JSON-LD, `inLanguage`) hoort bij de SEO-fase 4.
 - [ ] Fase 3: **dashboard** (78 componenten) — grootste blok, achter login
 - [ ] Fase 4 (SEO): per-pagina metadata (`<title>`/OG) nu nog NL voor beide talen;
   `hreflang` + sitemap met beide talen + gelokaliseerde titels
