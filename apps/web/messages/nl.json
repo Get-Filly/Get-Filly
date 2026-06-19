@@ -3122,5 +3122,31 @@
     "specialCovered": "{count, plural, one {Alle {count} speciale dag komende 6 weken heeft al een voorstel of campagne.} other {Alle {count} speciale dagen komende 6 weken hebben al een voorstel of campagne.}}",
     "noSpecialTitle": "Geen speciale dagen.",
     "noSpecial": "Komende 6 weken staan er geen feest- of themadagen op de kalender."
+  },
+  "meta": {
+    "home": {
+      "title": "Get-Filly — Meer gasten. Minder lege momenten.",
+      "description": "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines."
+    },
+    "product": {
+      "title": "De oplossing",
+      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer reserveringen."
+    },
+    "pricing": {
+      "title": "Prijzen",
+      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, geen lange contracten, gewoon meer gasten aan tafel. Vind het abonnement dat bij jouw restaurant past."
+    },
+    "about": {
+      "title": "Over ons",
+      "description": "Get-Filly is opgericht door twee ondernemers met één missie: horeca helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
+    },
+    "contact": {
+      "title": "Contact & demo",
+      "description": "Vraag een demo aan of plan een gratis kennismaking met Get-Filly. We laten je graag zien hoe je met AI meer reserveringen uit je bestaande gasten haalt."
+    },
+    "blog": {
+      "title": "De marketing cocktail",
+      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly."
+    }
   }
 }

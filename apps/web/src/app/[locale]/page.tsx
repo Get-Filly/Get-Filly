@@ -184,19 +184,6 @@ function MiniDashboard() {
   );
 }
 
-// Homepage: merk staat al vooraan in de titel, dus absoluteTitle
-// (geen " · Get-Filly"-suffix erachter).
-export const metadata = pageMetadata({
-  title: "Get-Filly — Meer gasten. Minder lege momenten.",
-  absoluteTitle: true,
-  // Compacte entiteit-omschrijving (= eerste 2 zinnen van de hero), kort
-  // genoeg zodat Google 'm niet afkapt (~155 tekens). De hero zelf heeft een
-  // langere versie met de "met jouw goedkeuring"-regel er nog achteraan.
-  description:
-    "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines.",
-  path: "/",
-});
-
 // De 4 kernpunten uit de kennishub die ook op de home onder "Waarom het
 // werkt" staan (titels gelijk aan /blog). De kaarten linken door naar de
 // kennishub. De "binnenkort online"-tekst + icoon tonen we bewust ALLEEN op
@@ -204,6 +191,24 @@ export const metadata = pageMetadata({
 // De copy van deze 4 kaarten staat in de vertalingen (home.whyPoints.*);
 // hier alleen de message-keys in de gewenste volgorde.
 const WHY_POINT_KEYS = ["data", "profile", "reviews", "posting"] as const;
+
+// Eigen home-metadata (niet via de layout-default, die localiseert niet
+// betrouwbaar voor de home-route). title is absoluut (merk zit al vooraan).
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const tMeta = await getTranslations({ locale, namespace: "meta" });
+  return pageMetadata({
+    title: tMeta("home.title"),
+    description: tMeta("home.description"),
+    path: "/",
+    absoluteTitle: true,
+    locale,
+  });
+}
 
 export default async function HomePage({
   params,

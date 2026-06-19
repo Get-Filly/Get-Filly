@@ -16,12 +16,20 @@ const inlineLink: React.CSSProperties = {
   textDecoration: "underline",
 };
 
-export const metadata = pageMetadata({
-  title: "Over ons",
-  description:
-    "Get-Filly is opgericht door twee ondernemers met één missie: horeca helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten.",
-  path: "/about",
-});
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const tMeta = await getTranslations({ locale, namespace: "meta" });
+  return pageMetadata({
+    title: tMeta("about.title"),
+    description: tMeta("about.description"),
+    path: "/about",
+    locale,
+  });
+}
 
 // Volgorde van de "Wat ons drijft"-pijlers; copy via about.pillars.<key>.
 const PILLAR_KEYS = ["ownerFirst", "ownData", "aiPays"] as const;

@@ -18,13 +18,19 @@ import { getAllPosts } from "@/lib/blog";
 import { pageMetadata } from "@/config/seo";
 import { BlogIndex } from "./blog-index";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
   const posts = await getAllPosts();
   const base = pageMetadata({
-    title: "De marketing cocktail",
-    description:
-      "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly.",
+    title: t("blog.title"),
+    description: t("blog.description"),
     path: "/blog",
+    locale,
   });
   // Geen artikelen → uit de index houden tot er content is.
   if (posts.length === 0) {

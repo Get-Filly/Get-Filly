@@ -6,14 +6,23 @@
 // server-layout zet de SEO-metadata en rendert de pagina ongewijzigd door.
 // =============================================================================
 
+import { getTranslations } from "next-intl/server";
 import { pageMetadata } from "@/config/seo";
 
-export const metadata = pageMetadata({
-  title: "Contact & demo",
-  description:
-    "Vraag een demo aan of plan een gratis kennismaking met Get-Filly. We laten je graag zien hoe je met AI meer reserveringen uit je bestaande gasten haalt.",
-  path: "/contact",
-});
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  return pageMetadata({
+    title: t("contact.title"),
+    description: t("contact.description"),
+    path: "/contact",
+    locale,
+  });
+}
 
 export default function ContactLayout({
   children,

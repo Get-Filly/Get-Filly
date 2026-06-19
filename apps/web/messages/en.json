@@ -3122,5 +3122,31 @@
     "specialCovered": "{count, plural, one {All {count} special day in the next 6 weeks already has a proposal or campaign.} other {All {count} special days in the next 6 weeks already have a proposal or campaign.}}",
     "noSpecialTitle": "No special days.",
     "noSpecial": "No holidays or themed days are on the calendar for the next 6 weeks."
+  },
+  "meta": {
+    "home": {
+      "title": "Get-Filly — More guests. Fewer empty tables.",
+      "description": "Get-Filly is an AI platform for restaurants. It runs your marketing, reviews and visibility in Google and AI search engines."
+    },
+    "product": {
+      "title": "The solution",
+      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more bookings."
+    },
+    "pricing": {
+      "title": "Pricing",
+      "description": "See Get-Filly's plans. No hidden costs, no long contracts, just more guests at the table. Find the plan that fits your restaurant."
+    },
+    "about": {
+      "title": "About",
+      "description": "Get-Filly was founded by two entrepreneurs with one mission: help hospitality turn quiet moments into revenue, without hours of work or big marketing budgets."
+    },
+    "contact": {
+      "title": "Contact & demo",
+      "description": "Request a demo or book a free intro with Get-Filly. We are happy to show you how AI gets more bookings from your existing guests."
+    },
+    "blog": {
+      "title": "The marketing cocktail",
+      "description": "Insights on AI marketing, online findability and higher occupancy for hospitality, from Get-Filly."
+    }
   }
 }

@@ -8,8 +8,12 @@
 // =============================================================================
 
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/config/seo";
+import { SITE_URL, localizedPath } from "@/config/seo";
+import { routing } from "@/i18n/routing";
 import { getAllPosts } from "@/lib/blog";
+
+// Pad → absolute URL.
+const abs = (p: string) => (p === "/" ? SITE_URL : `${SITE_URL}${p}`);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
@@ -43,10 +47,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  return routes.map((r) => ({
-    url: r.path === "/" ? SITE_URL : `${SITE_URL}${r.path}`,
-    lastModified,
-    changeFrequency: r.changeFrequency,
-    priority: r.priority,
-  }));
+  // Per pagina één entry per taal, elk met de hreflang-alternates (alle
+  // taalvarianten). Default-locale (nl) staat op de kale URL, en op /en.
+  return routes.flatMap((r) => {
+    const languages: Record<string, string> = {};
+    for (const l of routing.locales) languages[l] = abs(localizedPath(r.path, l));
+    return routing.locales.map((l) => ({
+      url: abs(localizedPath(r.path, l)),
+      lastModified,
+      changeFrequency: r.changeFrequency,
+      priority: r.priority,
+      alternates: { languages },
+    }));
+  });
 }

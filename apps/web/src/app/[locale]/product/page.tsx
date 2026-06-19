@@ -10,12 +10,20 @@ import { pageMetadata } from "@/config/seo";
 // kanaal-iconen, count-up-getallen) staat hier in code.
 // =============================================================================
 
-export const metadata = pageMetadata({
-  title: "De oplossing",
-  description:
-    "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer reserveringen.",
-  path: "/product",
-});
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  return pageMetadata({
+    title: t("product.title"),
+    description: t("product.description"),
+    path: "/product",
+    locale,
+  });
+}
 
 // Volgorde van de feature-kaarten; copy via product.features.<key>.
 const FEATURE_KEYS = [

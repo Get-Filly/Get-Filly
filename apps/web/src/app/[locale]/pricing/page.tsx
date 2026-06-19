@@ -16,12 +16,20 @@ import { COMPANY } from "@/config/company";
 import { FaqAccordion } from "./faq-accordion";
 import { pageMetadata } from "@/config/seo";
 
-export const metadata = pageMetadata({
-  title: "Prijzen",
-  description:
-    "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, geen lange contracten — gewoon meer gasten aan tafel. Vind het abonnement dat bij jouw restaurant past.",
-  path: "/pricing",
-});
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const tMeta = await getTranslations({ locale, namespace: "meta" });
+  return pageMetadata({
+    title: tMeta("pricing.title"),
+    description: tMeta("pricing.description"),
+    path: "/pricing",
+    locale,
+  });
+}
 
 type PlanMeta = {
   key: "growth" | "ultimate";

@@ -4,12 +4,13 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import "../globals.css";
+import { getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { CookieBanner } from "@/components/cookie-banner";
 import { StructuredData } from "@/components/structured-data";
-import { SITE_URL, SITE_NAME } from "@/config/seo";
+import { SITE_URL, SITE_NAME, localizedPath, hreflangFor } from "@/config/seo";
 // Vercel Web Analytics + Speed Insights: cookieloos en AVG-vriendelijk (geen
 // consent-gating nodig). Analytics = bezoekers/pagina's; Speed Insights = de
 // echte Core Web Vitals van bezoekers (rankingfactor).
@@ -22,49 +23,61 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-// Site-brede SEO-defaults. Per-pagina metadata (zie config/seo.ts)
-// overschrijft title/description/canonical/openGraph waar nodig.
-const DEFAULT_TITLE = "Get-Filly — Meer gasten. Minder lege momenten.";
-const DEFAULT_DESCRIPTION =
-  "Get-Filly analyseert je bezettingsdata en zet AI in om automatisch campagnes te draaien die je restaurant voller maken.";
+// Site-brede SEO-defaults, nu per taal. Dit is óók de home-metadata (de
+// homepage exporteert zelf geen metadata). Per-pagina metadata
+// (config/seo.ts → pageMetadata) overschrijft title/description/canonical/OG.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  const title = t("home.title");
+  const description = t("home.description");
+  const homePath = localizedPath("/", locale);
+  const url = homePath === "/" ? SITE_URL : `${SITE_URL}${homePath}`;
 
-export const metadata: Metadata = {
-  // Basis-URL: maakt alle relatieve canonical-/OG-paden absoluut.
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: DEFAULT_TITLE,
-    // Pagina's leveren een korte titel; deze template brandt 'm.
-    template: `%s · ${SITE_NAME}`,
-  },
-  description: DEFAULT_DESCRIPTION,
-  applicationName: SITE_NAME,
-  keywords: [
-    "horeca marketing",
-    "restaurant marketing",
-    "AI marketing horeca",
-    "meer reserveringen",
-    "restaurant bezetting",
-    "restaurant campagnes",
-    "Get-Filly",
-  ],
-  authors: [{ name: SITE_NAME }],
-  creator: SITE_NAME,
-  publisher: SITE_NAME,
-  openGraph: {
-    type: "website",
-    locale: "nl_NL",
-    siteName: SITE_NAME,
-    url: SITE_URL,
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-  robots: { index: true, follow: true },
-};
+  return {
+    // Basis-URL: maakt alle relatieve canonical-/OG-paden absoluut.
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: title,
+      // Pagina's leveren een korte titel; deze template brandt 'm.
+      template: `%s · ${SITE_NAME}`,
+    },
+    description,
+    applicationName: SITE_NAME,
+    keywords: [
+      "horeca marketing",
+      "restaurant marketing",
+      "AI marketing horeca",
+      "meer reserveringen",
+      "restaurant bezetting",
+      "restaurant campagnes",
+      "Get-Filly",
+    ],
+    authors: [{ name: SITE_NAME }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    // Canonical + hreflang voor de homepage (taalvarianten).
+    alternates: { canonical: homePath, languages: hreflangFor("/") },
+    openGraph: {
+      type: "website",
+      locale: locale === "en" ? "en_US" : "nl_NL",
+      siteName: SITE_NAME,
+      url,
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 // Genereer de statische routes voor elke ondersteunde taal (nl, en).
 export function generateStaticParams() {
