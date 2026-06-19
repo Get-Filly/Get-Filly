@@ -3,7 +3,8 @@
 // drijft"; daarna "Waar we staan" (papier-warm) + CTA. (2026-06-13)
 // =============================================================================
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { COMPANY } from "@/config/company";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { pageMetadata } from "@/config/seo";
@@ -22,13 +23,22 @@ export const metadata = pageMetadata({
   path: "/about",
 });
 
-const missionPillars = [
-  { title: "Ondernemer eerst", desc: "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op de gasten en dienstverlening." },
-  { title: "Eigen data, eigen keuzes", desc: "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
-  { title: "AI die zichzelf terugverdient", desc: "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet." },
-];
+// Volgorde van de "Wat ons drijft"-pijlers; copy via about.pillars.<key>.
+const PILLAR_KEYS = ["ownerFirst", "ownData", "aiPays"] as const;
 
-export default function AboutPage() {
+export default async function AboutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("about");
+  const ch1 = t.raw("ch1") as string[];
+  const ch2 = t.raw("ch2") as string[];
+  const ch3 = t.raw("ch3") as string[];
+  const ch4 = t.raw("ch4") as string[];
+
   return (
     <>
       {/* Scroll-reveal: laat de items één voor één oppoppen. */}
@@ -42,17 +52,11 @@ export default function AboutPage() {
           <div className="container">
             <div className="about-hero-grid">
               <div className="about-hero-text" data-reveal>
-                <h1 className="section-title">Van idee naar impact.</h1>
+                <h1 className="section-title">{t("heroTitle")}</h1>
                 <div className="about-story-body">
-                  <p>
-                    Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten maar alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.
-                  </p>
-                  <p>
-                    En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n zaak op z’n eigen manier wil laten groeien.
-                  </p>
-                  <p>
-                    Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel.
-                  </p>
+                  <p>{t("story.p1")}</p>
+                  <p>{t("story.p2")}</p>
+                  <p>{t("story.p3")}</p>
                 </div>
               </div>
 
@@ -60,13 +64,13 @@ export default function AboutPage() {
                   (boven) naar vol (onder). Bestanden in apps/web/public/images/. */}
               <div className="about-hero-media">
                 <div className="about-photo">
-                  <img src="/images/about-1.jpeg" alt="Rustig restaurant met slechts een enkele tafel bezet" loading="lazy" />
+                  <img src="/images/about-1.jpeg" alt={t("alt1")} loading="lazy" />
                 </div>
                 <div className="about-photo">
-                  <img src="/images/about-2.jpeg" alt="Hetzelfde restaurant dat voller loopt, meerdere bezette tafels" loading="lazy" />
+                  <img src="/images/about-2.jpeg" alt={t("alt2")} loading="lazy" />
                 </div>
                 <div className="about-photo">
-                  <img src="/images/about-3.jpeg" alt="Hetzelfde restaurant volledig vol, gasten aan alle tafels" loading="lazy" />
+                  <img src="/images/about-3.jpeg" alt={t("alt3")} loading="lazy" />
                 </div>
               </div>
             </div>
@@ -78,16 +82,12 @@ export default function AboutPage() {
           <div className="container">
             <div className="about-mv">
               <div className="about-mv-card" data-reveal>
-                <p className="about-mv-label">Missie</p>
-                <p className="about-mv-text">
-                  Onafhankelijke restaurants laten groeien zonder dat de ondernemer verdrinkt in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je zaak en je gasten.
-                </p>
+                <p className="about-mv-label">{t("missionLabel")}</p>
+                <p className="about-mv-text">{t("missionText")}</p>
               </div>
               <div className="about-mv-card" data-reveal>
-                <p className="about-mv-label">Visie</p>
-                <p className="about-mv-text">
-                  Een horecawereld waarin elk lokaal restaurant dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.
-                </p>
+                <p className="about-mv-label">{t("visionLabel")}</p>
+                <p className="about-mv-text">{t("visionText")}</p>
               </div>
             </div>
           </div>
@@ -96,16 +96,16 @@ export default function AboutPage() {
         {/* ---------- Wat ons drijft ---------- */}
         <section className="about-drive">
           <div className="container">
-            <h2 className="section-title">Wat ons drijft.</h2>
+            <h2 className="section-title">{t("driveTitle")}</h2>
 
             {/* Hergebruikt dezelfde "hero-diff"-strip als op de product- en
                 pricing-pagina: 3-koloms, dunne scheidingslijn bovenaan, geen
                 card-achtergrond. Scroll-reveal (data-reveal). */}
             <div className="product-features-list">
-              {missionPillars.map((p) => (
-                <div key={p.title} className="hero-diff" data-reveal>
-                  <h3 className="hero-diff-title">{p.title}</h3>
-                  <p className="hero-diff-desc">{p.desc}</p>
+              {PILLAR_KEYS.map((key) => (
+                <div key={key} className="hero-diff" data-reveal>
+                  <h3 className="hero-diff-title">{t(`pillars.${key}.title`)}</h3>
+                  <p className="hero-diff-desc">{t(`pillars.${key}.desc`)}</p>
                 </div>
               ))}
             </div>
@@ -115,17 +115,17 @@ export default function AboutPage() {
 
       <section className="about-journey">
         <div className="container">
-          <h2 className="section-title">Waar we staan.</h2>
+          <h2 className="section-title">{t("journeyTitle")}</h2>
 
           <ol className="zig-timeline">
             <li className="zig-item zig-left active">
               <div className="zig-card" data-reveal>
-                <div className="zig-card-badge">Nu</div>
-                <h3 className="zig-card-title">Hoofdstuk 1, Founded</h3>
+                <div className="zig-card-badge">{t("now")}</div>
+                <h3 className="zig-card-title">{t("ch1Title")}</h3>
                 <ul className="zig-card-list">
-                  <li>Get-Filly opgericht door twee ambitieuze vrienden</li>
-                  <li>MVP live</li>
-                  <li>Eerste klanten aan boord</li>
+                  {ch1.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
               <div className="zig-marker"><span>2026</span></div>
@@ -134,19 +134,22 @@ export default function AboutPage() {
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2027</span></div>
               <div className="zig-card" data-reveal>
-                <h3 className="zig-card-title">Hoofdstuk 2, Eerste 100 klanten</h3>
+                <h3 className="zig-card-title">{t("ch2Title")}</h3>
                 <ul className="zig-card-list">
-                  <li>Get-Filly nationaal uitrollen in heel Nederland</li>
+                  {ch2.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
             </li>
 
             <li className="zig-item zig-left">
               <div className="zig-card" data-reveal>
-                <h3 className="zig-card-title">Hoofdstuk 3, Internationale uitrol</h3>
+                <h3 className="zig-card-title">{t("ch3Title")}</h3>
                 <ul className="zig-card-list">
-                  <li>Eerst BeNeLux, daarna DACH-regio</li>
-                  <li>Lokale teams, lokale data</li>
+                  {ch3.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
               <div className="zig-marker"><span>2028</span></div>
@@ -155,9 +158,11 @@ export default function AboutPage() {
             <li className="zig-item zig-right">
               <div className="zig-marker"><span>2029</span></div>
               <div className="zig-card" data-reveal>
-                <h3 className="zig-card-title">Hoofdstuk 4</h3>
+                <h3 className="zig-card-title">{t("ch4Title")}</h3>
                 <ul className="zig-card-list">
-                  <li>Wordt vervolgd&hellip;</li>
+                  {ch4.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
             </li>
@@ -166,13 +171,18 @@ export default function AboutPage() {
       </section>
 
       <section className="cta-section">
-        <h2 className="section-title">Laten we kennismaken.</h2>
-        <p className="section-subtitle">Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.</p>
+        <h2 className="section-title">{t("ctaTitle")}</h2>
+        <p className="section-subtitle">{t("ctaSubtitle")}</p>
         <a href={`mailto:${COMPANY.email}`} className="cta-btn">{COMPANY.email}</a>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
-          Liever eerst rondkijken? Bekijk{" "}
-          <Link href="/product" style={inlineLink}>onze oplossing voor restaurants</Link>{" "}
-          of <Link href="/pricing" style={inlineLink}>de prijzen</Link>.
+          {t.rich("ctaLinks", {
+            product: (chunks) => (
+              <Link href="/product" style={inlineLink}>{chunks}</Link>
+            ),
+            pricing: (chunks) => (
+              <Link href="/pricing" style={inlineLink}>{chunks}</Link>
+            ),
+          })}
         </p>
       </section>
     </>

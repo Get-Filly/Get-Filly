@@ -313,5 +313,62 @@
     "body": "We gebruiken cookies en vergelijkbare technieken voor het functioneren van de site én, alleen met jouw toestemming, voor analytics zodat we Get-Filly kunnen verbeteren. Geen tracking voor advertenties, geen verkoop van data aan derden. <link>Lees ons privacybeleid</link>.",
     "accept": "Accepteren",
     "necessary": "Alleen noodzakelijke"
+  },
+  "about": {
+    "heroTitle": "Van idee naar impact.",
+    "story": {
+      "p1": "Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten maar alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.",
+      "p2": "En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n zaak op z’n eigen manier wil laten groeien.",
+      "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel."
+    },
+    "alt1": "Rustig restaurant met slechts een enkele tafel bezet",
+    "alt2": "Hetzelfde restaurant dat voller loopt, meerdere bezette tafels",
+    "alt3": "Hetzelfde restaurant volledig vol, gasten aan alle tafels",
+    "missionLabel": "Missie",
+    "missionText": "Onafhankelijke restaurants laten groeien zonder dat de ondernemer verdrinkt in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je zaak en je gasten.",
+    "visionLabel": "Visie",
+    "visionText": "Een horecawereld waarin elk lokaal restaurant dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
+    "driveTitle": "Wat ons drijft.",
+    "pillars": {
+      "ownerFirst": { "title": "Ondernemer eerst", "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op de gasten en dienstverlening." },
+      "ownData": { "title": "Eigen data, eigen keuzes", "desc": "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren." },
+      "aiPays": { "title": "AI die zichzelf terugverdient", "desc": "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet." }
+    },
+    "journeyTitle": "Waar we staan.",
+    "now": "Nu",
+    "ch1Title": "Hoofdstuk 1, Founded",
+    "ch1": ["Get-Filly opgericht door twee ambitieuze vrienden", "MVP live", "Eerste klanten aan boord"],
+    "ch2Title": "Hoofdstuk 2, Eerste 100 klanten",
+    "ch2": ["Get-Filly nationaal uitrollen in heel Nederland"],
+    "ch3Title": "Hoofdstuk 3, Internationale uitrol",
+    "ch3": ["Eerst BeNeLux, daarna DACH-regio", "Lokale teams, lokale data"],
+    "ch4Title": "Hoofdstuk 4",
+    "ch4": ["Wordt vervolgd…"],
+    "ctaTitle": "Laten we kennismaken.",
+    "ctaSubtitle": "Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.",
+    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor restaurants</product> of <pricing>de prijzen</pricing>."
+  },
+  "contact": {
+    "sentTitle": "Bedankt voor je aanvraag!",
+    "sentBody": "We hebben je bericht ontvangen en nemen zo snel mogelijk contact met je op om een kennismaking in te plannen.",
+    "backHome": "Terug naar home",
+    "title": "Vraag een demo aan",
+    "intro": "Laat je gegevens achter, dan plannen we een vrijblijvende kennismaking in.",
+    "name": "Naam",
+    "namePlaceholder": "Voor- en achternaam",
+    "restaurant": "Restaurant",
+    "restaurantPlaceholder": "Naam van je zaak",
+    "email": "E-mailadres",
+    "emailPlaceholder": "naam@restaurant.nl",
+    "phone": "Telefoonnummer",
+    "optional": "(optioneel)",
+    "phonePlaceholder": "06 12345678",
+    "message": "Bericht",
+    "messagePlaceholder": "Waar kunnen we je mee helpen?",
+    "honeypot": "Laat dit veld leeg",
+    "errorFallback": "Versturen mislukt. Probeer het later opnieuw.",
+    "submitting": "Versturen...",
+    "submit": "Verstuur aanvraag",
+    "preferMail": "Liever direct mailen?"
   }
 }

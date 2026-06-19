@@ -313,5 +313,62 @@
     "body": "We use cookies and similar techniques to run the site and, only with your consent, for analytics so we can improve Get-Filly. No tracking for ads, no selling data to third parties. <link>Read our privacy policy</link>.",
     "accept": "Accept",
     "necessary": "Only necessary"
+  },
+  "about": {
+    "heroTitle": "From idea to impact.",
+    "story": {
+      "p1": "The best restaurant isn't always full, but the most findable one is. We saw it everywhere: places with fantastic food and loyal guests, yet still a few empty tables. Not because they did anything wrong, but because marketing has become a profession of its own. A profession you need an expensive agency for, or your own time and attention that you'd rather spend on your guests.",
+      "p2": "And the tools that are supposed to fix that? They're built for chains with a marketing department. Not for the owner who wants to grow their place their own way.",
+      "p3": "We put an end to that. Get-Filly takes over the marketing work, runs on your own data and comes up with proposals itself. All you have to do is say yes. No empty promises, no jargon. Just more guests at the table."
+    },
+    "alt1": "Quiet restaurant with just a single table occupied",
+    "alt2": "The same restaurant filling up, several tables occupied",
+    "alt3": "The same restaurant completely full, guests at every table",
+    "missionLabel": "Mission",
+    "missionText": "Help independent restaurants grow without the owner drowning in marketing. We take the work off your hands, so you can focus on what you're good at: your place and your guests.",
+    "visionLabel": "Vision",
+    "visionText": "A hospitality world where every local restaurant has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
+    "driveTitle": "What drives us.",
+    "pillars": {
+      "ownerFirst": { "title": "Owner first", "desc": "The owner shouldn't have to spend hours on marketing or website optimisation. Get-Filly does the work, you focus on your guests and service." },
+      "ownData": { "title": "Your data, your choices", "desc": "Your occupancy data and guest list stay yours. No reselling, you're never locked in, everything is exportable." },
+      "aiPays": { "title": "AI that pays for itself", "desc": "No AI for the sake of AI. We put your data to work for extra bookings and more revenue." }
+    },
+    "journeyTitle": "Where we stand.",
+    "now": "Now",
+    "ch1Title": "Chapter 1, Founded",
+    "ch1": ["Get-Filly founded by two ambitious friends", "MVP live", "First customers on board"],
+    "ch2Title": "Chapter 2, First 100 customers",
+    "ch2": ["Roll out Get-Filly nationally across the Netherlands"],
+    "ch3Title": "Chapter 3, International rollout",
+    "ch3": ["First Benelux, then the DACH region", "Local teams, local data"],
+    "ch4Title": "Chapter 4",
+    "ch4": ["To be continued…"],
+    "ctaTitle": "Let's get to know each other.",
+    "ctaSubtitle": "Questions about Get-Filly, working together or sparring about your marketing? Send an email, we reply fast.",
+    "ctaLinks": "Prefer to look around first? Check <product>our solution for restaurants</product> or <pricing>the pricing</pricing>."
+  },
+  "contact": {
+    "sentTitle": "Thanks for your request!",
+    "sentBody": "We've received your message and will get in touch as soon as possible to schedule an intro.",
+    "backHome": "Back to home",
+    "title": "Request a demo",
+    "intro": "Leave your details and we'll schedule a no-obligation intro.",
+    "name": "Name",
+    "namePlaceholder": "First and last name",
+    "restaurant": "Restaurant",
+    "restaurantPlaceholder": "Name of your venue",
+    "email": "Email address",
+    "emailPlaceholder": "name@restaurant.com",
+    "phone": "Phone number",
+    "optional": "(optional)",
+    "phonePlaceholder": "06 12345678",
+    "message": "Message",
+    "messagePlaceholder": "How can we help you?",
+    "honeypot": "Leave this field empty",
+    "errorFallback": "Sending failed. Please try again later.",
+    "submitting": "Sending...",
+    "submit": "Send request",
+    "preferMail": "Prefer to email directly?"
   }
 }

@@ -13,11 +13,13 @@
 // =============================================================================
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { submitContactForm } from "@/lib/api";
 import { COMPANY } from "@/config/company";
 
 export default function ContactPage() {
+  const t = useTranslations("contact");
   const [name, setName] = useState("");
   const [restaurant, setRestaurant] = useState("");
   const [email, setEmail] = useState("");
@@ -46,9 +48,7 @@ export default function ContactPage() {
       setSent(true);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Versturen mislukt. Probeer het later opnieuw.",
+        err instanceof Error ? err.message : t("errorFallback"),
       );
     } finally {
       setLoading(false);
@@ -61,11 +61,8 @@ export default function ContactPage() {
         {sent ? (
           // Bevestiging na succesvolle verzending, vervangt het formulier.
           <>
-            <div className="login-title">Bedankt voor je aanvraag!</div>
-            <p className="login-sub">
-              We hebben je bericht ontvangen en nemen zo snel mogelijk contact
-              met je op om een kennismaking in te plannen.
-            </p>
+            <div className="login-title">{t("sentTitle")}</div>
+            <p className="login-sub">{t("sentBody")}</p>
             <Link
               href="/"
               className="login-btn"
@@ -75,59 +72,56 @@ export default function ContactPage() {
                 textDecoration: "none",
               }}
             >
-              Terug naar home
+              {t("backHome")}
             </Link>
           </>
         ) : (
           <>
-            <div className="login-title">Vraag een demo aan</div>
-            <p className="login-sub">
-              Laat je gegevens achter, dan plannen we een vrijblijvende
-              kennismaking in.
-            </p>
+            <div className="login-title">{t("title")}</div>
+            <p className="login-sub">{t("intro")}</p>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">Naam</label>
+                <label className="form-label">{t("name")}</label>
                 <input
                   className="form-input"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Voor- en achternaam"
+                  placeholder={t("namePlaceholder")}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Restaurant</label>
+                <label className="form-label">{t("restaurant")}</label>
                 <input
                   className="form-input"
                   type="text"
                   value={restaurant}
                   onChange={(e) => setRestaurant(e.target.value)}
-                  placeholder="Naam van je zaak"
+                  placeholder={t("restaurantPlaceholder")}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">E-mailadres</label>
+                <label className="form-label">{t("email")}</label>
                 <input
                   className="form-input"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="naam@restaurant.nl"
+                  placeholder={t("emailPlaceholder")}
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label">
-                  Telefoonnummer{" "}
+                  {t("phone")}{" "}
                   <span style={{ color: "var(--text-light)", fontWeight: 400 }}>
-                    (optioneel)
+                    {t("optional")}
                   </span>
                 </label>
                 <input
@@ -135,17 +129,17 @@ export default function ContactPage() {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="06 12345678"
+                  placeholder={t("phonePlaceholder")}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Bericht</label>
+                <label className="form-label">{t("message")}</label>
                 <textarea
                   className="form-input"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Waar kunnen we je mee helpen?"
+                  placeholder={t("messagePlaceholder")}
                   required
                   rows={4}
                   style={{
@@ -163,7 +157,7 @@ export default function ContactPage() {
                 aria-hidden="true"
               >
                 <label>
-                  Laat dit veld leeg
+                  {t("honeypot")}
                   <input
                     type="text"
                     tabIndex={-1}
@@ -177,11 +171,11 @@ export default function ContactPage() {
               {error && <div className="auth-error">{error}</div>}
 
               <button className="login-btn" type="submit" disabled={loading}>
-                {loading ? "Versturen..." : "Verstuur aanvraag"}
+                {loading ? t("submitting") : t("submit")}
               </button>
 
               <div className="auth-switch">
-                Liever direct mailen?{" "}
+                {t("preferMail")}{" "}
                 <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
               </div>
             </form>
