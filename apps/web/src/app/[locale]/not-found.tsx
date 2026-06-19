@@ -7,13 +7,15 @@
 // layout gerenderd, dus navbar + footer zitten er al omheen.
 // =============================================================================
 
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
 
-export default async function NotFound() {
-  // not-found rendert binnen [locale]/layout (die setRequestLocale doet),
-  // dus getTranslations() pakt de actieve locale uit de request-context.
-  const t = await getTranslations("notFound");
+export default function NotFound() {
+  // Sync component met useTranslations (next-intl-aanbeveling voor not-found;
+  // een async getTranslations-variant registreert niet betrouwbaar als
+  // not-found-boundary). De localized not-found wordt getriggerd door de
+  // catch-all [locale]/[...rest]/page.tsx.
+  const t = useTranslations("notFound");
   return (
     <section className="legal-page">
       <div className="legal-container">

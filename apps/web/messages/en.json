@@ -429,5 +429,40 @@
       "invalid_type": "The link isn't valid for this action.",
       "verify_failed": "We couldn't verify the invitation."
     }
+  },
+  "blog": {
+    "hubTitle": "The marketing cocktail",
+    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for hospitality.",
+    "recentTitle": "Most recent",
+    "comingSoon": "Coming soon",
+    "comingSoonAria": "{label} (coming soon)",
+    "toast": "This post is coming soon",
+    "byLine": "Get-Filly",
+    "recentEyebrow": "Article",
+    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "featured": {
+      "eyebrow": "Findability",
+      "title": "7 SEO tips to bring more guests to your restaurant",
+      "excerpt": "How to master your Google Business profile and keep listings consistent, so your venue is the first choice nearby."
+    },
+    "topics": {
+      "findability": { "eyebrow": "Findability", "title": "Why online findability isn't a coincidence" },
+      "data": { "eyebrow": "Data", "title": "Consistent data: 18% more local visibility" },
+      "profile": { "eyebrow": "Profile", "title": "A complete profile gets found 2.3x more often" },
+      "photos": { "eyebrow": "Photos", "title": "Photos: 45% more directions requests" },
+      "reviews": { "eyebrow": "Reviews", "title": "Recent reviews count for more than the overall total" },
+      "posting": { "eyebrow": "Posting", "title": "Posting consistently: 3 to 5 times a week is the sweet spot" }
+    },
+    "recentPlaceholders": {
+      "fillyReviews": { "eyebrow": "Marketing", "title": "How to let Filly answer your reviews" },
+      "gbpChecklist": { "eyebrow": "Findability", "title": "Google Business profile: the complete checklist for hospitality" },
+      "quietEvenings": { "eyebrow": "Occupancy", "title": "Filling quiet evenings: 5 ideas that work" }
+    },
+    "cta": {
+      "title": "From reading to full tables.",
+      "subtitle": "You know the theory now. Let Filly handle your findability, reviews and posts, so you can focus on your guests.",
+      "button": "Book a free intro call",
+      "productLink": "Curious how Filly does this? Check <link>the product</link>."
+    }
   }
 }

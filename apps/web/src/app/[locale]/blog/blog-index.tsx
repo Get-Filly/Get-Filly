@@ -9,101 +9,44 @@
 // Status-logica: een kaart waarvan de `slug` nog NIET als gepubliceerd
 // artikel bestaat, is een <div role=button> die de "binnenkort online"-
 // toast toont. Zodra je een markdown-artikel met diezelfde slug in
-// content/blog/ zet, verschijnt 'ie in `posts` en wordt de kaart
-// automatisch een echte <Link> naar /blog/<slug>.
+// content/blog/ zet, wordt de kaart automatisch een echte <Link>.
 //
-// Zo blijft de pagina nu een nette "binnenkort"-hub en groeit 'ie
-// vanzelf mee naarmate je echt schrijft — zonder code aan te passen.
+// I18N: alle copy komt uit de vertalingen (namespace "blog"); hier
+// staan alleen de slugs (koppeling naar content/blog/<slug>.md) + de
+// message-keys.
 
 import { useEffect, useState, type KeyboardEvent } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { PostMeta } from "@/lib/blog";
 
-// Eén geplande/gepubliceerde post in de layout.
-type Topic = {
-  eyebrow: string;
-  title: string;
-  slug: string;
-  excerpt?: string;
-};
+// Het uitgelichte artikel bovenaan (groen). Copy via blog.featured.*.
+const FEATURED_SLUG = "seo-tips-restaurant";
 
-// Het uitgelichte artikel bovenaan (groen). Pas titel/slug aan zodra je
-// 'm schrijft; de slug koppelt aan content/blog/<slug>.md.
-const FEATURED: Topic = {
-  eyebrow: "Vindbaarheid",
-  title: "7 SEO-tips om meer gasten naar je restaurant te trekken",
-  slug: "seo-tips-restaurant",
-  excerpt:
-    "Zo beheers je je Google Bedrijfsprofiel en zorg je voor consistente vermeldingen, zodat jouw zaak de eerste keuze is in de buurt.",
-};
-
-// De 6 kernpunten (2 rijen van 3).
-const TOPICS: Topic[] = [
-  {
-    eyebrow: "Vindbaarheid",
-    title: "Waarom online vindbaarheid geen toeval is",
-    slug: "vindbaarheid-geen-toeval",
-  },
-  {
-    eyebrow: "Gegevens",
-    title: "Consistente gegevens: 18% meer lokale zichtbaarheid",
-    slug: "consistente-gegevens",
-  },
-  {
-    eyebrow: "Profiel",
-    title: "Een compleet profiel wordt 2,3× vaker gevonden",
-    slug: "compleet-profiel",
-  },
-  {
-    eyebrow: "Foto's",
-    title: "Foto's: 45% meer routebeschrijvingen",
-    slug: "fotos-meer-bezoek",
-  },
-  {
-    eyebrow: "Reviews",
-    title: "Recente reviews wegen zwaarder dan het totaal",
-    slug: "recente-reviews",
-  },
-  {
-    eyebrow: "Posten",
-    title: "Structureel posten: 3 tot 5× per week is de sweet spot",
-    slug: "structureel-posten",
-  },
+// De 6 kernpunten (slug → message-key onder blog.topics).
+const TOPICS: { slug: string; key: string }[] = [
+  { slug: "vindbaarheid-geen-toeval", key: "findability" },
+  { slug: "consistente-gegevens", key: "data" },
+  { slug: "compleet-profiel", key: "profile" },
+  { slug: "fotos-meer-bezoek", key: "photos" },
+  { slug: "recente-reviews", key: "reviews" },
+  { slug: "structureel-posten", key: "posting" },
 ];
 
 // Placeholders voor "Meest recent" zolang er nog geen echte posts zijn.
-// Zodra content/blog/ posts bevat, tonen we die echte posts hier i.p.v.
-// deze placeholders (zie BlogIndex hieronder).
-const PLACEHOLDER_RECENT: Topic[] = [
-  {
-    eyebrow: "Marketing",
-    title: "Zo laat je Filly je reviews beantwoorden",
-    slug: "filly-reviews",
-  },
-  {
-    eyebrow: "Vindbaarheid",
-    title: "Google Bedrijfsprofiel: de complete checklist voor horeca",
-    slug: "google-bedrijfsprofiel-checklist",
-  },
-  {
-    eyebrow: "Bezetting",
-    title: "Rustige avonden vullen: 5 ideeën die werken",
-    slug: "rustige-avonden-vullen",
-  },
+const PLACEHOLDER_RECENT: { slug: string; key: string }[] = [
+  { slug: "filly-reviews", key: "fillyReviews" },
+  { slug: "google-bedrijfsprofiel-checklist", key: "gbpChecklist" },
+  { slug: "rustige-avonden-vullen", key: "quietEvenings" },
 ];
 
-const MAANDEN = [
-  "januari", "februari", "maart", "april", "mei", "juni",
-  "juli", "augustus", "september", "oktober", "november", "december",
-];
-
-// "2026-05-12" → "12 mei 2026". Deterministisch (geen Date/timezone) zodat
-// server- en client-render exact gelijk zijn (geen hydration-mismatch).
-function formatDate(iso: string): string {
+// "2026-05-12" → "12 mei 2026" (of EN-maand). Deterministisch (geen
+// Date/timezone) zodat server- en client-render exact gelijk zijn.
+function formatDate(iso: string, months: string[]): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return iso;
   const [, jaar, maand, dag] = m;
-  return `${parseInt(dag, 10)} ${MAANDEN[parseInt(maand, 10) - 1]} ${jaar}`;
+  return `${parseInt(dag, 10)} ${months[parseInt(maand, 10) - 1]} ${jaar}`;
 }
 
 function ClockIcon() {
@@ -126,10 +69,12 @@ function ImageIcon({ size = 30 }: { size?: number }) {
 }
 
 export function BlogIndex({ posts }: { posts: PostMeta[] }) {
+  const t = useTranslations("blog");
+  const months = t.raw("months") as string[];
+
   const [toastVisible, setToastVisible] = useState(false);
-  // `ping` telt elke klik; de waarde-verandering laat het effect hieronder
-  // de verberg-timer resetten, zodat de toast bij een herhaalde klik opnieuw
-  // 2,2s blijft staan.
+  // `ping` telt elke klik; de waarde-verandering laat het effect de
+  // verberg-timer resetten, zodat de toast bij herhaalde klik opnieuw 2,2s blijft.
   const [ping, setPing] = useState(0);
 
   function showComingSoon() {
@@ -137,8 +82,6 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
     setPing((n) => n + 1);
   }
 
-  // Verberg de toast automatisch 2,2s na de laatste klik. De cleanup wist een
-  // lopende timer (geen ref nodig → geen ref-toegang tijdens render).
   useEffect(() => {
     if (!toastVisible) return;
     const id = window.setTimeout(() => setToastVisible(false), 2200);
@@ -153,7 +96,7 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
     return {
       role: "button",
       tabIndex: 0,
-      "aria-label": `${label} (binnenkort online)`,
+      "aria-label": t("comingSoonAria", { label }),
       onClick: showComingSoon,
       onKeyDown: (e: KeyboardEvent) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -164,7 +107,7 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
     };
   }
 
-  const featuredPost = published.get(FEATURED.slug);
+  const featuredPost = published.get(FEATURED_SLUG);
 
   // Echte posts hebben voorrang in "Meest recent"; anders placeholders.
   const recent = posts.length > 0 ? posts.slice(0, 3) : null;
@@ -173,49 +116,49 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
     <section className="blog-hub">
       <div className="blog-wrap">
         <div className="blog-head">
-          <h1 className="section-title">De marketing cocktail</h1>
+          <h1 className="section-title">{t("hubTitle")}</h1>
           <p className="section-subtitle" style={{ marginTop: 16 }}>
-            Inzichten over online vindbaarheid, AI-marketing en meer bezetting
-            voor de horeca.
+            {t("hubSubtitle")}
           </p>
         </div>
 
         {/* Uitgelicht artikel (groen) */}
         {featuredPost ? (
-          <Link href={`/blog/${FEATURED.slug}`} className="blog-feature">
+          <Link href={`/blog/${FEATURED_SLUG}`} className="blog-feature">
             <FeatureInner post={featuredPost} />
           </Link>
         ) : (
-          <div className="blog-feature" {...comingSoonProps(FEATURED.title)}>
+          <div className="blog-feature" {...comingSoonProps(t("featured.title"))}>
             <FeatureInner />
           </div>
         )}
 
         {/* 6 kernpunten, 2 rijen van 3 */}
         <div className="blog-grid">
-          {TOPICS.map((t) => {
-            const post = published.get(t.slug);
+          {TOPICS.map((topic) => {
+            const post = published.get(topic.slug);
+            const title = t(`topics.${topic.key}.title`);
             const inner = (
               <>
-                <div className="blog-eyebrow">{t.eyebrow}</div>
-                <div className="blog-card-title">{t.title}</div>
+                <div className="blog-eyebrow">{t(`topics.${topic.key}.eyebrow`)}</div>
+                <div className="blog-card-title">{title}</div>
                 <div className="blog-card-meta">
                   {post ? (
-                    formatDate(post.date)
+                    formatDate(post.date, months)
                   ) : (
                     <>
-                      <ClockIcon /> Binnenkort online
+                      <ClockIcon /> {t("comingSoon")}
                     </>
                   )}
                 </div>
               </>
             );
             return post ? (
-              <Link key={t.slug} href={`/blog/${t.slug}`} className="blog-card">
+              <Link key={topic.slug} href={`/blog/${topic.slug}`} className="blog-card">
                 {inner}
               </Link>
             ) : (
-              <div key={t.slug} className="blog-card" {...comingSoonProps(t.title)}>
+              <div key={topic.slug} className="blog-card" {...comingSoonProps(title)}>
                 {inner}
               </div>
             );
@@ -223,7 +166,7 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
         </div>
 
         {/* Meest recent */}
-        <h2 className="blog-recent-title">Meest recent</h2>
+        <h2 className="blog-recent-title">{t("recentTitle")}</h2>
         <div className="blog-recent">
           {recent
             ? recent.map((p) => (
@@ -233,21 +176,28 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
                   className="blog-recent-card"
                 >
                   <RecentInner
-                    eyebrow="Artikel"
+                    eyebrow={t("recentEyebrow")}
                     title={p.title}
-                    meta={formatDate(p.date)}
+                    meta={formatDate(p.date, months)}
                   />
                 </Link>
               ))
-            : PLACEHOLDER_RECENT.map((t) => (
-                <div
-                  key={t.slug}
-                  className="blog-recent-card"
-                  {...comingSoonProps(t.title)}
-                >
-                  <RecentInner eyebrow={t.eyebrow} title={t.title} comingSoon />
-                </div>
-              ))}
+            : PLACEHOLDER_RECENT.map((topic) => {
+                const title = t(`recentPlaceholders.${topic.key}.title`);
+                return (
+                  <div
+                    key={topic.slug}
+                    className="blog-recent-card"
+                    {...comingSoonProps(title)}
+                  >
+                    <RecentInner
+                      eyebrow={t(`recentPlaceholders.${topic.key}.eyebrow`)}
+                      title={title}
+                      comingSoon
+                    />
+                  </div>
+                );
+              })}
         </div>
       </div>
 
@@ -256,7 +206,7 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
         role="status"
         aria-live="polite"
       >
-        Deze post komt binnenkort online
+        {t("toast")}
       </div>
     </section>
   );
@@ -264,19 +214,21 @@ export function BlogIndex({ posts }: { posts: PostMeta[] }) {
 
 // Inhoud van het uitgelichte groene blok.
 function FeatureInner({ post }: { post?: PostMeta }) {
+  const t = useTranslations("blog");
+  const months = t.raw("months") as string[];
   return (
     <>
       <div className="blog-feature-img">
         <ImageIcon size={36} />
       </div>
       <div className="blog-feature-body">
-        <div className="blog-eyebrow">{FEATURED.eyebrow}</div>
-        <div className="blog-feature-title">{FEATURED.title}</div>
-        <p className="blog-feature-excerpt">{FEATURED.excerpt}</p>
+        <div className="blog-eyebrow">{t("featured.eyebrow")}</div>
+        <div className="blog-feature-title">{t("featured.title")}</div>
+        <p className="blog-feature-excerpt">{t("featured.excerpt")}</p>
         <div className="blog-feature-meta">
           {post
-            ? `Get-Filly · ${formatDate(post.date)}`
-            : "Get-Filly · Binnenkort online"}
+            ? `${t("byLine")} · ${formatDate(post.date, months)}`
+            : `${t("byLine")} · ${t("comingSoon")}`}
         </div>
       </div>
     </>
@@ -295,6 +247,7 @@ function RecentInner({
   meta?: string;
   comingSoon?: boolean;
 }) {
+  const t = useTranslations("blog");
   return (
     <>
       <div className="blog-recent-img">
@@ -306,7 +259,7 @@ function RecentInner({
         <div className="blog-recent-meta">
           {comingSoon ? (
             <>
-              <ClockIcon /> Binnenkort online
+              <ClockIcon /> {t("comingSoon")}
             </>
           ) : (
             meta

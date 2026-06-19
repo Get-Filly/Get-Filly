@@ -12,7 +12,8 @@
 // automatisch in de index + sitemap (zie sitemap.ts).
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getAllPosts } from "@/lib/blog";
 import { pageMetadata } from "@/config/seo";
 import { BlogIndex } from "./blog-index";
@@ -32,34 +33,38 @@ export async function generateMetadata(): Promise<Metadata> {
   return base;
 }
 
-export default async function BlogIndexPage() {
+export default async function BlogIndexPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const posts = await getAllPosts();
+  const t = await getTranslations("blog.cta");
   return (
     <>
       <BlogIndex posts={posts} />
 
       {/* Groene afsluit-CTA in dezelfde .cta-section-stijl als de rest van
-          de site, maar met een eigen, unieke tekst (niet hergebruikt van een
-          andere pagina) + een doorlink-regel zoals home/product/pricing. De
-          footer (Get-Filly + onderwerpen) volgt automatisch via layout.tsx. */}
+          de site. De footer volgt automatisch via layout.tsx. */}
       <section className="cta-section">
-        <h2 className="section-title">Van lezen naar volle tafels.</h2>
-        <p className="section-subtitle">
-          Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts
-          regelen, zodat jij je op je gasten kunt richten.
-        </p>
+        <h2 className="section-title">{t("title")}</h2>
+        <p className="section-subtitle">{t("subtitle")}</p>
         <Link href="/contact" className="cta-btn">
-          Plan een gratis kennismaking in
+          {t("button")}
         </Link>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
-          Nieuwsgierig hoe Filly dit doet? Bekijk{" "}
-          <Link
-            href="/product"
-            style={{ color: "#FFFFFF", textDecoration: "underline" }}
-          >
-            het product
-          </Link>
-          .
+          {t.rich("productLink", {
+            link: (chunks) => (
+              <Link
+                href="/product"
+                style={{ color: "#FFFFFF", textDecoration: "underline" }}
+              >
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       </section>
     </>

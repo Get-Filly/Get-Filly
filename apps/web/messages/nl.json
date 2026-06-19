@@ -429,5 +429,40 @@
       "invalid_type": "De link is niet geldig voor deze actie.",
       "verify_failed": "We konden de uitnodiging niet verifiëren."
     }
+  },
+  "blog": {
+    "hubTitle": "De marketing cocktail",
+    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor de horeca.",
+    "recentTitle": "Meest recent",
+    "comingSoon": "Binnenkort online",
+    "comingSoonAria": "{label} (binnenkort online)",
+    "toast": "Deze post komt binnenkort online",
+    "byLine": "Get-Filly",
+    "recentEyebrow": "Artikel",
+    "months": ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"],
+    "featured": {
+      "eyebrow": "Vindbaarheid",
+      "title": "7 SEO-tips om meer gasten naar je restaurant te trekken",
+      "excerpt": "Zo beheers je je Google Bedrijfsprofiel en zorg je voor consistente vermeldingen, zodat jouw zaak de eerste keuze is in de buurt."
+    },
+    "topics": {
+      "findability": { "eyebrow": "Vindbaarheid", "title": "Waarom online vindbaarheid geen toeval is" },
+      "data": { "eyebrow": "Gegevens", "title": "Consistente gegevens: 18% meer lokale zichtbaarheid" },
+      "profile": { "eyebrow": "Profiel", "title": "Een compleet profiel wordt 2,3× vaker gevonden" },
+      "photos": { "eyebrow": "Foto's", "title": "Foto's: 45% meer routebeschrijvingen" },
+      "reviews": { "eyebrow": "Reviews", "title": "Recente reviews wegen zwaarder dan het totaal" },
+      "posting": { "eyebrow": "Posten", "title": "Structureel posten: 3 tot 5× per week is de sweet spot" }
+    },
+    "recentPlaceholders": {
+      "fillyReviews": { "eyebrow": "Marketing", "title": "Zo laat je Filly je reviews beantwoorden" },
+      "gbpChecklist": { "eyebrow": "Vindbaarheid", "title": "Google Bedrijfsprofiel: de complete checklist voor horeca" },
+      "quietEvenings": { "eyebrow": "Bezetting", "title": "Rustige avonden vullen: 5 ideeën die werken" }
+    },
+    "cta": {
+      "title": "Van lezen naar volle tafels.",
+      "subtitle": "Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts regelen, zodat jij je op je gasten kunt richten.",
+      "button": "Plan een gratis kennismaking in",
+      "productLink": "Nieuwsgierig hoe Filly dit doet? Bekijk <link>het product</link>."
+    }
   }
 }
