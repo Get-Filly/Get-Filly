@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // ============================================================
 // /u/[token], publieke unsubscribe-pagina
@@ -35,6 +36,7 @@ export default function UnsubscribePage({
   // Next.js 16 gebruikt async params. `use()` resolved 'm hier client-
   // side zodat we 'm direct in een useEffect kunnen gebruiken.
   const { token } = use(params);
+  const t = useTranslations("unsubscribe");
   const [state, setState] = useState<State>({ status: "loading" });
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function UnsubscribePage({
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
-          let msg = `Er ging iets mis (HTTP ${res.status}).`;
+          let msg = t("httpError", { status: res.status });
           try {
             const body = await res.json();
             if (body?.message) msg = body.message;
@@ -56,21 +58,20 @@ export default function UnsubscribePage({
         const body = (await res.json()) as { restaurantName: string };
         setState({
           status: "success",
-          restaurantName: body.restaurantName ?? "het restaurant",
+          restaurantName: body.restaurantName ?? t("fallbackName"),
         });
       })
       .catch((e) => {
         if (cancelled) return;
         setState({
           status: "error",
-          message:
-            e instanceof Error ? e.message : "Onbekende fout bij uitschrijven.",
+          message: e instanceof Error ? e.message : t("unknownError"),
         });
       });
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, t]);
 
   return (
     <main
@@ -99,7 +100,7 @@ export default function UnsubscribePage({
         {state.status === "loading" && (
           <>
             <div style={{ fontSize: 14, color: "#6B6F71" }}>
-              Bezig met uitschrijven…
+              {t("loading")}
             </div>
           </>
         )}
@@ -108,11 +109,13 @@ export default function UnsubscribePage({
           <>
             <div style={{ fontSize: 32 }}>✓</div>
             <h1 style={{ fontSize: 20, margin: "12px 0 8px" }}>
-              Je bent uitgeschreven
+              {t("successTitle")}
             </h1>
             <p style={{ fontSize: 14, lineHeight: 1.6, color: "#6B6F71" }}>
-              Je ontvangt geen marketing-mails meer van{" "}
-              <strong>{state.restaurantName}</strong>.
+              {t.rich("successBody", {
+                name: state.restaurantName,
+                b: (chunks) => <strong>{chunks}</strong>,
+              })}
             </p>
             <p
               style={{
@@ -122,8 +125,7 @@ export default function UnsubscribePage({
                 marginTop: 20,
               }}
             >
-              Per ongeluk uitgeschreven? Neem rechtstreeks contact op met
-              {` ${state.restaurantName}`} om je weer aan te melden.
+              {t("successNote", { name: state.restaurantName })}
             </p>
           </>
         )}
@@ -132,10 +134,10 @@ export default function UnsubscribePage({
           <>
             <div style={{ fontSize: 32 }}>—</div>
             <h1 style={{ fontSize: 20, margin: "12px 0 8px" }}>
-              Onbekende link
+              {t("errorTitle")}
             </h1>
             <p style={{ fontSize: 14, lineHeight: 1.6, color: "#6B6F71" }}>
-              Deze uitschrijf-link werkt niet meer of is ongeldig.
+              {t("errorBody")}
             </p>
             <p
               style={{
@@ -150,7 +152,7 @@ export default function UnsubscribePage({
         )}
 
         <div style={{ marginTop: 24, fontSize: 11, color: "#9CA3AF" }}>
-          Verzonden via Get Filly
+          {t("sentVia")}
         </div>
       </div>
     </main>

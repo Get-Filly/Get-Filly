@@ -1,7 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import {
   PasswordStrength,
@@ -28,8 +30,16 @@ import {
 // ============================================================
 
 function WelkomForm() {
+  const t = useTranslations("welkom");
   const router = useRouter();
   const params = useSearchParams();
+
+  // Vertaal de auth_error-codes uit /auth/confirm (invite-specifiek).
+  const translateInviteError = (code: string): string => {
+    if (code === "expired") return t("errors.expired");
+    if (code === "already_used") return t("errors.already_used");
+    return t("errors.invalid");
+  };
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -61,11 +71,11 @@ function WelkomForm() {
     // Zelfde check als de checklist onder het veld, zo blijven UI en
     // validatie in sync (8+ tekens, letter, cijfer, speciaal teken).
     if (!isPasswordValid(password)) {
-      setError("Je wachtwoord voldoet nog niet aan alle eisen.");
+      setError(t("notAllReqs"));
       return;
     }
     if (password !== confirm) {
-      setError("De wachtwoorden komen niet overeen.");
+      setError(t("mismatch"));
       return;
     }
 
@@ -96,18 +106,15 @@ function WelkomForm() {
   };
 
   if (hasSession === null) {
-    return <div className="login-sub">Laden…</div>;
+    return <div className="login-sub">{t("loading")}</div>;
   }
 
   if (!hasSession) {
     return (
       <>
-        <p className="login-sub">
-          {error ??
-            "Deze uitnodigingslink is niet meer geldig of is al gebruikt."}
-        </p>
+        <p className="login-sub">{error ?? t("invalidDefault")}</p>
         <div className="auth-switch" style={{ marginTop: 16 }}>
-          Hulp nodig?{" "}
+          {t("helpNeeded")}{" "}
           <a href="mailto:info@get-filly.com">info@get-filly.com</a>
         </div>
       </>
@@ -116,12 +123,10 @@ function WelkomForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <p className="login-sub">
-        Stel je wachtwoord in, dan zetten we samen je zaak op.
-      </p>
+      <p className="login-sub">{t("intro")}</p>
 
       <div className="form-group">
-        <label className="form-label">Wachtwoord</label>
+        <label className="form-label">{t("passwordLabel")}</label>
         <input
           className="form-input"
           type="password"
@@ -135,7 +140,7 @@ function WelkomForm() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Bevestig wachtwoord</label>
+        <label className="form-label">{t("confirmLabel")}</label>
         <input
           className="form-input"
           type="password"
@@ -153,7 +158,7 @@ function WelkomForm() {
               marginTop: 4,
             }}
           >
-            Wachtwoorden komen niet overeen.
+            {t("mismatch")}
           </div>
         )}
       </div>
@@ -167,34 +172,19 @@ function WelkomForm() {
           loading || !isPasswordValid(password) || password !== confirm
         }
       >
-        {loading ? "Bezig…" : "Wachtwoord instellen en starten"}
+        {loading ? t("submitting") : t("submit")}
       </button>
     </form>
   );
 }
 
-// Vertaal de auth_error-codes uit /auth/confirm naar begrijpelijke NL,
-// toegespitst op een uitnodiging (geen self-service nieuwe link).
-function translateInviteError(code: string): string {
-  switch (code) {
-    case "expired":
-      return "De uitnodigingslink is verlopen. Vraag ons om een nieuwe via info@get-filly.com.";
-    case "already_used":
-      return "Deze uitnodigingslink is al gebruikt. Log in via de inlogpagina, of mail ons als je er niet in komt.";
-    case "missing_token":
-    case "invalid_type":
-    case "verify_failed":
-    default:
-      return "De uitnodigingslink is ongeldig. Vraag ons om een nieuwe via info@get-filly.com.";
-  }
-}
-
 export default function WelkomPage() {
+  const t = useTranslations("welkom");
   return (
     <section className="login-section">
       <div className="login-box">
-        <div className="login-title">Welkom bij Get-Filly</div>
-        <Suspense fallback={<div className="login-sub">Laden…</div>}>
+        <div className="login-title">{t("title")}</div>
+        <Suspense fallback={<div className="login-sub">{t("loading")}</div>}>
           <WelkomForm />
         </Suspense>
       </div>

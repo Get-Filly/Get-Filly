@@ -7,31 +7,32 @@
 // layout gerenderd, dus navbar + footer zitten er al omheen.
 // =============================================================================
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  // not-found rendert binnen [locale]/layout (die setRequestLocale doet),
+  // dus getTranslations() pakt de actieve locale uit de request-context.
+  const t = await getTranslations("notFound");
   return (
     <section className="legal-page">
       <div className="legal-container">
-        <h1 className="legal-title">Pagina niet gevonden</h1>
-        <p className="legal-lead">
-          Deze pagina bestaat niet (meer). Misschien is de link verouderd of is
-          er een typefout in het adres geslopen.
-        </p>
+        <h1 className="legal-title">{t("title")}</h1>
+        <p className="legal-lead">{t("lead")}</p>
 
         <div className="legal-section">
-          <p>Ga verder naar een van deze pagina&apos;s:</p>
+          <p>{t("linksIntro")}</p>
           <ul>
-            <li><Link href="/">Home</Link></li>
-            <li><Link href="/product">De oplossing</Link></li>
-            <li><Link href="/pricing">Prijzen</Link></li>
-            <li><Link href="/about">Over ons</Link></li>
-            <li><Link href="/contact">Contact &amp; demo</Link></li>
+            <li><Link href="/">{t("home")}</Link></li>
+            <li><Link href="/product">{t("solution")}</Link></li>
+            <li><Link href="/pricing">{t("pricing")}</Link></li>
+            <li><Link href="/about">{t("about")}</Link></li>
+            <li><Link href="/contact">{t("contact")}</Link></li>
           </ul>
         </div>
 
         <div style={{ marginTop: 28 }}>
-          <Link href="/" className="btn-primary">Terug naar home</Link>
+          <Link href="/" className="btn-primary">{t("backHome")}</Link>
         </div>
       </div>
     </section>

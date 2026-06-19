@@ -370,5 +370,64 @@
     "submitting": "Sending...",
     "submit": "Send request",
     "preferMail": "Prefer to email directly?"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "lead": "This page doesn't exist (anymore). The link may be outdated or there's a typo in the address.",
+    "linksIntro": "Continue to one of these pages:",
+    "home": "Home",
+    "solution": "The solution",
+    "pricing": "Pricing",
+    "about": "About",
+    "contact": "Contact & demo",
+    "backHome": "Back to home"
+  },
+  "welkom": {
+    "title": "Welcome to Get-Filly",
+    "loading": "Loading…",
+    "invalidDefault": "This invitation link is no longer valid or has already been used.",
+    "helpNeeded": "Need help?",
+    "intro": "Set your password and we'll set up your venue together.",
+    "passwordLabel": "Password",
+    "confirmLabel": "Confirm password",
+    "mismatch": "Passwords don't match.",
+    "notAllReqs": "Your password doesn't meet all the requirements yet.",
+    "submit": "Set password and start",
+    "submitting": "Working…",
+    "errors": {
+      "expired": "The invitation link has expired. Ask us for a new one at info@get-filly.com.",
+      "already_used": "This invitation link has already been used. Log in via the login page, or email us if you can't get in.",
+      "invalid": "The invitation link is invalid. Ask us for a new one at info@get-filly.com."
+    }
+  },
+  "unsubscribe": {
+    "loading": "Unsubscribing…",
+    "successTitle": "You've been unsubscribed",
+    "successBody": "You'll no longer receive marketing emails from <b>{name}</b>.",
+    "successNote": "Unsubscribed by accident? Contact {name} directly to sign up again.",
+    "errorTitle": "Unknown link",
+    "errorBody": "This unsubscribe link no longer works or is invalid.",
+    "fallbackName": "the restaurant",
+    "httpError": "Something went wrong (HTTP {status}).",
+    "unknownError": "Unknown error while unsubscribing.",
+    "sentVia": "Sent via Get Filly"
+  },
+  "invite": {
+    "title": "Invitation",
+    "loading": "Verifying…",
+    "accepting": "Processing invitation…",
+    "successMsg": "Welcome, you've been added to the team.",
+    "noToken": "No invitation token found in the link.",
+    "notLoggedIn": "You're not logged in. Open the invitation link from your email again.",
+    "authErrorHelp": "Ask your restaurant's admin to send a new invitation.",
+    "toLogin": "Go to login",
+    "backDashboard": "Back to dashboard",
+    "errors": {
+      "expired": "This invitation link has expired.",
+      "already_used": "This invitation link has already been used.",
+      "missing_token": "The link is incomplete, a verification code is missing.",
+      "invalid_type": "The link isn't valid for this action.",
+      "verify_failed": "We couldn't verify the invitation."
+    }
   }
 }

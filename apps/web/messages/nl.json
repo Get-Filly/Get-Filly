@@ -370,5 +370,64 @@
     "submitting": "Versturen...",
     "submit": "Verstuur aanvraag",
     "preferMail": "Liever direct mailen?"
+  },
+  "notFound": {
+    "title": "Pagina niet gevonden",
+    "lead": "Deze pagina bestaat niet (meer). Misschien is de link verouderd of is er een typefout in het adres geslopen.",
+    "linksIntro": "Ga verder naar een van deze pagina's:",
+    "home": "Home",
+    "solution": "De oplossing",
+    "pricing": "Prijzen",
+    "about": "Over ons",
+    "contact": "Contact & demo",
+    "backHome": "Terug naar home"
+  },
+  "welkom": {
+    "title": "Welkom bij Get-Filly",
+    "loading": "Laden…",
+    "invalidDefault": "Deze uitnodigingslink is niet meer geldig of is al gebruikt.",
+    "helpNeeded": "Hulp nodig?",
+    "intro": "Stel je wachtwoord in, dan zetten we samen je zaak op.",
+    "passwordLabel": "Wachtwoord",
+    "confirmLabel": "Bevestig wachtwoord",
+    "mismatch": "Wachtwoorden komen niet overeen.",
+    "notAllReqs": "Je wachtwoord voldoet nog niet aan alle eisen.",
+    "submit": "Wachtwoord instellen en starten",
+    "submitting": "Bezig…",
+    "errors": {
+      "expired": "De uitnodigingslink is verlopen. Vraag ons om een nieuwe via info@get-filly.com.",
+      "already_used": "Deze uitnodigingslink is al gebruikt. Log in via de inlogpagina, of mail ons als je er niet in komt.",
+      "invalid": "De uitnodigingslink is ongeldig. Vraag ons om een nieuwe via info@get-filly.com."
+    }
+  },
+  "unsubscribe": {
+    "loading": "Bezig met uitschrijven…",
+    "successTitle": "Je bent uitgeschreven",
+    "successBody": "Je ontvangt geen marketing-mails meer van <b>{name}</b>.",
+    "successNote": "Per ongeluk uitgeschreven? Neem rechtstreeks contact op met {name} om je weer aan te melden.",
+    "errorTitle": "Onbekende link",
+    "errorBody": "Deze uitschrijf-link werkt niet meer of is ongeldig.",
+    "fallbackName": "het restaurant",
+    "httpError": "Er ging iets mis (HTTP {status}).",
+    "unknownError": "Onbekende fout bij uitschrijven.",
+    "sentVia": "Verzonden via Get Filly"
+  },
+  "invite": {
+    "title": "Uitnodiging",
+    "loading": "Bezig met verifiëren…",
+    "accepting": "Uitnodiging verwerken…",
+    "successMsg": "Welkom, je bent toegevoegd aan het team.",
+    "noToken": "Geen uitnodigingstoken gevonden in de link.",
+    "notLoggedIn": "Je bent niet ingelogd. Open de uitnodigingslink uit je e-mail opnieuw.",
+    "authErrorHelp": "Vraag de beheerder van je restaurant om een nieuwe uitnodiging te sturen.",
+    "toLogin": "Naar inloggen",
+    "backDashboard": "Terug naar dashboard",
+    "errors": {
+      "expired": "Deze uitnodigingslink is verlopen.",
+      "already_used": "Deze uitnodigingslink is al eerder gebruikt.",
+      "missing_token": "De link is incompleet, er ontbreekt een verificatiecode.",
+      "invalid_type": "De link is niet geldig voor deze actie.",
+      "verify_failed": "We konden de uitnodiging niet verifiëren."
+    }
   }
 }

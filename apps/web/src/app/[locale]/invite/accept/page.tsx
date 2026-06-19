@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import { acceptInvite } from "@/lib/api";
 
@@ -42,11 +44,21 @@ type Status = "loading" | "accepting" | "success" | "auth-error" | "accept-error
 function AcceptInner() {
   const params = useSearchParams();
   const router = useRouter();
+  const t = useTranslations("invite");
   const inviteToken = params.get("inv") ?? "";
   const authError = params.get("auth_error");
 
   const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState<string>("");
+
+  // Vertaal de reden die /auth/confirm meegeeft naar een nette melding.
+  const mapAuthError = (reason: string): string => {
+    if (reason === "expired") return t("errors.expired");
+    if (reason === "already_used") return t("errors.already_used");
+    if (reason === "missing_token") return t("errors.missing_token");
+    if (reason === "invalid_type") return t("errors.invalid_type");
+    return t("errors.verify_failed");
+  };
 
   useEffect(() => {
     const run = async () => {
@@ -61,7 +73,7 @@ function AcceptInner() {
       // 2. Geen invite-token in URL = verkeerde binnenkomst.
       if (!inviteToken) {
         setStatus("accept-error");
-        setMessage("Geen uitnodigingstoken gevonden in de link.");
+        setMessage(t("noToken"));
         return;
       }
 
@@ -75,9 +87,7 @@ function AcceptInner() {
 
       if (!session) {
         setStatus("auth-error");
-        setMessage(
-          "Je bent niet ingelogd. Open de uitnodigingslink uit je e-mail opnieuw.",
-        );
+        setMessage(t("notLoggedIn"));
         return;
       }
 
@@ -100,7 +110,7 @@ function AcceptInner() {
         }
 
         setStatus("success");
-        setMessage("Welkom, je bent toegevoegd aan het team.");
+        setMessage(t("successMsg"));
         setTimeout(() => router.replace("/dashboard"), 1200);
       } catch (err) {
         setStatus("accept-error");
@@ -109,16 +119,16 @@ function AcceptInner() {
     };
 
     void run();
-  }, [inviteToken, authError, router]);
+  }, [inviteToken, authError, router, t]);
 
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        <h1 style={titleStyle}>Uitnodiging</h1>
+        <h1 style={titleStyle}>{t("title")}</h1>
 
-        {status === "loading" && <p style={mutedStyle}>Bezig met verifiëren…</p>}
+        {status === "loading" && <p style={mutedStyle}>{t("loading")}</p>}
         {status === "accepting" && (
-          <p style={mutedStyle}>Uitnodiging verwerken…</p>
+          <p style={mutedStyle}>{t("accepting")}</p>
         )}
 
         {status === "success" && (
@@ -128,12 +138,9 @@ function AcceptInner() {
         {status === "auth-error" && (
           <>
             <p style={{ color: "#DC2626", marginTop: 4 }}>{message}</p>
-            <p style={mutedStyle}>
-              Vraag de beheerder van je restaurant om een nieuwe
-              uitnodiging te sturen.
-            </p>
+            <p style={mutedStyle}>{t("authErrorHelp")}</p>
             <a href="/login" style={linkBtnStyle}>
-              Naar inloggen
+              {t("toLogin")}
             </a>
           </>
         )}
@@ -142,7 +149,7 @@ function AcceptInner() {
           <>
             <p style={{ color: "#DC2626", marginTop: 4 }}>{message}</p>
             <a href="/dashboard" style={linkBtnStyle}>
-              Terug naar dashboard
+              {t("backDashboard")}
             </a>
           </>
         )}
