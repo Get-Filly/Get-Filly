@@ -43,5 +43,200 @@
         "title": "Posting consistently: 3 to 5 times a week is the sweet spot"
       }
     }
+  },
+  "pricing": {
+    "heroTitle": "Choose the plan that fits your restaurant.",
+    "heroSubtitle": "No hidden costs. No long contracts. Just more guests at the table.",
+    "comingSoon": "Pricing available soon",
+    "popular": "Most chosen",
+    "perMonth": "/month",
+    "plans": {
+      "growth": {
+        "tagline": "Get found and stay visible.",
+        "desc": "For restaurants that want to be found online and become more visible on social media, without spending time on it themselves.",
+        "features": [
+          "Google Business optimisation and management",
+          "Automatic review replies",
+          "Better visibility in Google through SEO optimisation",
+          "Visibility on TripAdvisor, TheFork and OpenTable",
+          "Visibility in AI search engines like ChatGPT, Claude and Gemini",
+          "Content planning for Instagram, TikTok and Facebook",
+          "AI-generated posts in your restaurant's tone of voice",
+          "Live dashboard with reporting on visibility and reach"
+        ],
+        "ctaText": "Start with Growth"
+      },
+      "ultimate": {
+        "tagline": "Fill your empty tables automatically.",
+        "desc": "Everything in Growth, plus direct campaigns via email and WhatsApp based on your occupancy data. Includes a connection with your reservation system.",
+        "features": [
+          "Everything in the Growth plan",
+          "Connection with Zenchef, TheFork or Guestplan",
+          "Connection with your POS system",
+          "Automatic email campaigns based on occupancy",
+          "WhatsApp campaigns for last-minute reservations",
+          "Segmentation by regular, new and dormant guests",
+          "Personalised email and WhatsApp campaigns in your restaurant's tone of voice"
+        ],
+        "ctaText": "Start with Ultimate"
+      }
+    },
+    "helpTitle": "Not sure which plan fits?",
+    "helpSub": "Book a free intro call and we'll go through it together.",
+    "helpCta": "Book a free intro call",
+    "faqTitle": "Frequently asked questions",
+    "faqs": [
+      {
+        "q": "How long does onboarding take?",
+        "a": "You're fully onboarded within a day. You connect your reservation system and your Google Business profile, confirm your menu, and Get-Filly starts working for you the same day."
+      },
+      {
+        "q": "Which channels does Get-Filly use?",
+        "a": "Email, WhatsApp, Instagram, Facebook, TikTok and Google Business. Get-Filly writes for each channel in your house style and schedules every message at the best moment for the right audience."
+      },
+      {
+        "q": "Do I stay in control of what Get-Filly sends?",
+        "a": "Yes. Get-Filly generates proposals, you approve or adjust them. Nothing goes out without your approval."
+      },
+      {
+        "q": "How does Get-Filly know which action to propose?",
+        "a": "Get-Filly continuously analyses your occupancy and social media data, recognises patterns such as recurring dips or seasonal trends, and proposes a targeted action at the right moment."
+      },
+      {
+        "q": "Can I switch plans?",
+        "a": "Yes, you can upgrade or downgrade at any time. Changes take effect on the first day of the next month. Unused days are settled."
+      },
+      {
+        "q": "Do I need marketing experience?",
+        "a": "No. Get-Filly is made precisely for owners without marketing knowledge. You get ready-made proposals that you approve or adjust with one click, Get-Filly does the rest."
+      },
+      {
+        "q": "How and when do I pay?",
+        "a": "Payment runs through our payment partner Stripe, by credit card, SEPA direct debit or iDEAL. You pay in advance per month or per year, with no hidden costs."
+      },
+      {
+        "q": "Can I cancel monthly?",
+        "a": "Yes. You cancel monthly through your dashboard, before the end of the current period. After that Get-Filly stays available until the end of the period you already paid for."
+      },
+      {
+        "q": "What happens to my guests' data?",
+        "a": "You remain the owner of your guest data. Get-Filly processes it solely on your behalf, under a data processing agreement in line with the GDPR. We never sell your data and don't use it for our own advertising."
+      },
+      {
+        "q": "How secure is my data?",
+        "a": "All data travels encrypted over the line via TLS and we take appropriate technical and organisational measures in line with the GDPR. If we work with a supplier outside the EU, for example for AI, we put the legally required safeguards in place."
+      }
+    ],
+    "ctaTitle": "Still have questions?",
+    "ctaSub": "Email us, we're happy to help.",
+    "ctaProduct": "Want to see what Get-Filly does first? Check out <link>the solution</link>."
+  },
+  "product": {
+    "heroTitle": "Your AI assistant for hospitality.",
+    "heroSubtitle": "Get-Filly detects quiet moments, works out the right action and picks the right audience, for campaigns, reviews and your visibility in Google and AI search engines. With your approval, Get-Filly puts it live automatically, so you get more bookings.",
+    "diffs": {
+      "approve": {
+        "title": "AI does the work, you approve",
+        "desc": "From spotting quiet moments to setting up complete campaigns: Get-Filly automates the whole process for more guests and revenue."
+      },
+      "noMarketing": {
+        "title": "No marketing knowledge needed",
+        "desc": "Get-Filly does the work of a marketing agency, but automatically, faster and entirely based on your data."
+      },
+      "integrates": {
+        "title": "Fits your systems",
+        "desc": "You keep your reservation platform, POS and socials. Get-Filly integrates in a few clicks, not a switch but your partner."
+      },
+      "measures": {
+        "title": "Measures what really works",
+        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, guests and revenue each campaign actually delivers."
+      }
+    },
+    "walkTitle": "A week with Get-Filly, from empty seats to a full house.",
+    "walkSubtitle": "Follow a campaign from start to finish. Three minutes of work for a week full of extra bookings.",
+    "steps": {
+      "detection": {
+        "label": "Detection",
+        "eyebrow": "Monday · 09:14",
+        "title": "Get-Filly detects a dip and flags it.",
+        "desc": "Get-Filly continuously watches your reservation data. A Thursday at 38% isn't a disaster, as long as you know in time. Get-Filly sends you one message: “Thursday is lagging, shall I run something?”"
+      },
+      "proposal": {
+        "label": "Proposal",
+        "eyebrow": "Monday · 09:15",
+        "title": "Three channels, one proposal, ready within a minute.",
+        "desc": "Get-Filly proposes a complete campaign: an email to regulars, an Instagram post for late bookers, and a WhatsApp message for your most loyal guests. Tone of voice, imagery and timing, all tailored to your restaurant."
+      },
+      "approval": {
+        "label": "Approval",
+        "eyebrow": "Monday · 09:16",
+        "title": "One approval, Get-Filly does the rest.",
+        "desc": "Get-Filly sends all three messages at the right moment, on the right channel and to the right guests. You approve once, and after that you don't have to worry about timing or separate channels."
+      },
+      "placement": {
+        "label": "Publishing",
+        "eyebrow": "Thursday · 17:00",
+        "title": "You see your post go live, right on time.",
+        "desc": "On Thursday Get-Filly publishes the Instagram post and story automatically, the moment late bookers are scrolling. You don't have to do a thing, you just see it pass by in your feed, fully in your style, while the bookings come in."
+      },
+      "result": {
+        "label": "Result",
+        "eyebrow": "Sunday · 23:00",
+        "title": "Result: 12 extra bookings on a quiet Thursday.",
+        "desc": "At the end of the week Get-Filly checks in with a short summary: what worked, which channel scored, and what could be different next time."
+      }
+    },
+    "mock": {
+      "live": "Live",
+      "occEyebrow": "OCCUPANCY · NEXT 7 DAYS",
+      "occTitle": "Week 47 · outlook",
+      "occAlertTitle": "Thursday below target",
+      "occAlertSub": "Target: 65% · Now: 38% · 18 seats free.",
+      "days": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun" },
+      "channelsTitle": "Get-Filly proposes, 3 channels",
+      "mailLabel": "Email · 412 recipients",
+      "mailPreview": "“A quiet Thursday? Come for lunch for €24.50.”",
+      "mailMeta": "Thu 11:00",
+      "igLabel": "Instagram · feed & story",
+      "igPreview": "Terrace photo · “Thursday deal: 3 courses for €24.50”",
+      "igMeta": "Thu 17:00",
+      "waLabel": "WhatsApp · top 40 regulars",
+      "waPreview": "“Hi! Still room at our kitchen table tomorrow, book here.”",
+      "waMeta": "Thu 09:30",
+      "channelsCta": "Approve & send",
+      "approveTitle": "Campaign scheduled",
+      "approveSub": "Approved by Sophie · 09:16",
+      "approveRow1": "Email to 412 regulars",
+      "approveRow2": "Instagram post + story",
+      "approveRow3": "WhatsApp to top 40",
+      "approveFoot": "Get-Filly checks in on Sunday with the results.",
+      "igLoc": "Amsterdam · Restaurant",
+      "igPhotoTag1": "Thursday deal",
+      "igPhotoTag2": "3 courses · €24.50",
+      "igLikes": "Likes",
+      "igCaptionText": "A few tables still free tonight. Three courses for €24.50. #thursdaydeal",
+      "igTime": "2 hours ago",
+      "resultEyebrow": "THURSDAY CAMPAIGN · COMPLETED",
+      "resultHeadline": "Thursday evening, from 38% to 84%",
+      "resultStat1": "extra bookings",
+      "resultStat2": "extra guests",
+      "resultStat3": "final occupancy",
+      "resultBreakdown": "By channel",
+      "resultRes": "res.",
+      "resultNote": "Email worked best, next time I'll scale that one up first."
+    },
+    "featuresTitle": "What's included.",
+    "features": {
+      "occupancy": { "title": "Occupancy analysis", "desc": "Real-time insight into your occupancy per day, week and month. Get-Filly recognises patterns such as recurring dips or seasonal trends and shows you straight away where you're missing revenue." },
+      "chatbot": { "title": "AI chatbot", "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and restaurant, makes proposals and carries them out after your approval." },
+      "campaigns": { "title": "Campaigns", "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right guests and sends it at the best moment." },
+      "social": { "title": "Social media posts", "desc": "Get-Filly creates posts for Instagram, Facebook and TikTok. Tailored to your brand, your offering, and the days that need filling." },
+      "season": { "title": "Seasonal strategy", "desc": "Valentine's Day, asparagus season, King's Day, Christmas, Get-Filly thinks ahead. You get proposals automatically, weeks in advance." },
+      "google": { "title": "Google Business", "desc": "Appear at the top of Google when people search for restaurants nearby. Get-Filly publishes posts, replies to reviews and keeps your profile up to date so you get found more easily." }
+    },
+    "ctaTitle": "Ready to turn quiet moments into revenue?",
+    "ctaSubtitle": "Request a demo and discover what Get-Filly can do for your restaurant.",
+    "ctaButton": "Request a demo",
+    "ctaPricing": "Curious what it costs? Check <link>the pricing</link>."
   }
 }

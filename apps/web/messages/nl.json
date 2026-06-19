@@ -43,5 +43,200 @@
         "title": "Structureel posten: 3 tot 5× per week is de sweet spot"
       }
     }
+  },
+  "pricing": {
+    "heroTitle": "Kies het pakket dat bij jouw restaurant past.",
+    "heroSubtitle": "Geen verborgen kosten. Geen lange contracten. Gewoon meer gasten aan tafel.",
+    "comingSoon": "Prijzen binnenkort beschikbaar",
+    "popular": "Meest gekozen",
+    "perMonth": "/maand",
+    "plans": {
+      "growth": {
+        "tagline": "Word gevonden en blijf zichtbaar.",
+        "desc": "Voor restaurants die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media, zonder er zelf tijd in te steken.",
+        "features": [
+          "Google Business optimalisatie en beheer",
+          "Automatisch beantwoorden van reviews",
+          "Verbeterde vindbaarheid in Google door SEO optimalisatie",
+          "Vindbaarheid TripAdvisor, TheFork en OpenTable",
+          "Vindbaarheid in AI-zoekmachines zoals ChatGPT, Claude en Gemini",
+          "Contentplanning voor Instagram, TikTok en Facebook",
+          "AI-gegenereerde posts in tone-of-voice van jouw restaurant",
+          "Live dashboard met rapportage over vindbaarheid en bereik"
+        ],
+        "ctaText": "Start met Growth"
+      },
+      "ultimate": {
+        "tagline": "Vul je lege tafels automatisch.",
+        "desc": "Alles van Growth, plus directe campagnes via e-mail en WhatsApp op basis van jouw bezettingsdata. Inclusief koppeling met jouw reserveringssysteem.",
+        "features": [
+          "Alles uit het Growth pakket",
+          "Koppeling met Zenchef, TheFork of Guestplan",
+          "Koppeling met POS-systeem",
+          "Automatische e-mailcampagnes op basis van bezetting",
+          "WhatsApp campagnes voor last-minute reserveringen",
+          "Segmentatie op vaste, nieuwe en slapende gasten",
+          "Gepersonaliseerde e-mail en WhatsApp campagnes in de tone-of-voice van jouw restaurant"
+        ],
+        "ctaText": "Start met Ultimate"
+      }
+    },
+    "helpTitle": "Niet zeker welk pakket past?",
+    "helpSub": "Plan een gratis kennismaking en we kijken het samen met je door.",
+    "helpCta": "Plan een gratis kennismaking in",
+    "faqTitle": "Veelgestelde vragen",
+    "faqs": [
+      {
+        "q": "Hoelang duurt de onboarding?",
+        "a": "Binnen één dag ben je volledig onboard. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Get-Filly gaat dezelfde dag voor je aan de slag."
+      },
+      {
+        "q": "Welke kanalen gebruikt Get-Filly?",
+        "a": "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Get-Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep."
+      },
+      {
+        "q": "Houd ik controle over wat Get-Filly verstuurt?",
+        "a": "Ja. Get-Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord."
+      },
+      {
+        "q": "Hoe weet Get-Filly welke actie ze moet voorstellen?",
+        "a": "Get-Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor."
+      },
+      {
+        "q": "Kan ik van plan wisselen?",
+        "a": "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend."
+      },
+      {
+        "q": "Heb ik marketingervaring nodig?",
+        "a": "Nee. Get-Filly is juist gemaakt voor ondernemers zonder marketingkennis. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast, de rest doet Get-Filly."
+      },
+      {
+        "q": "Hoe en wanneer betaal ik?",
+        "a": "Betaling loopt via onze betaalpartner Stripe, met creditcard, SEPA-incasso of iDEAL. Je betaalt vooruit per maand of per jaar, zonder verborgen kosten."
+      },
+      {
+        "q": "Kan ik maandelijks opzeggen?",
+        "a": "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Get-Filly beschikbaar tot het einde van de al betaalde periode."
+      },
+      {
+        "q": "Wat gebeurt er met de gegevens van mijn gasten?",
+        "a": "Jij blijft eigenaar van je gastgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties."
+      },
+      {
+        "q": "Hoe veilig zijn mijn gegevens?",
+        "a": "Alle gegevens gaan versleuteld over de lijn via TLS en we nemen passende technische en organisatorische maatregelen volgens de AVG. Werken we met een leverancier buiten de EU, bijvoorbeeld voor AI, dan leggen we daarvoor de wettelijk vereiste waarborgen vast."
+      }
+    ],
+    "ctaTitle": "Heb je nog vragen?",
+    "ctaSub": "Mail ons, we helpen je graag verder.",
+    "ctaProduct": "Wil je eerst zien wat Get-Filly doet? Bekijk <link>de oplossing</link>."
+  },
+  "product": {
+    "heroTitle": "Jouw AI-assistent voor de horeca.",
+    "heroSubtitle": "Get-Filly detecteert rustige momenten, bedenkt de juiste actie en kiest de juiste doelgroep, voor campagnes, reviews én je vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring zet Get-Filly het automatisch live, zodat je meer reserveringen krijgt.",
+    "diffs": {
+      "approve": {
+        "title": "AI werkt, jij keurt goed",
+        "desc": "Van het herkennen van rustige momenten tot het opzetten van complete campagnes: Get-Filly automatiseert het hele proces voor meer gasten en omzet."
+      },
+      "noMarketing": {
+        "title": "Geen marketingkennis nodig",
+        "desc": "Get-Filly doet het werk van een marketingbureau, maar dan automatisch, sneller en volledig gebaseerd op jouw data."
+      },
+      "integrates": {
+        "title": "Sluit aan op je systemen",
+        "desc": "Je reserveringsplatform, POS en socials houd je. Get-Filly integreert in een paar klikken, geen overstap maar je partner."
+      },
+      "measures": {
+        "title": "Meet wat echt werkt",
+        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel reserveringen, gasten en omzet elke campagne daadwerkelijk oplevert."
+      }
+    },
+    "walkTitle": "Een week met Get-Filly, van lege stoelen naar een volle onderneming.",
+    "walkSubtitle": "Volg een campagneproces van begin tot eind. Drie minuten werk voor een week vol extra reserveringen.",
+    "steps": {
+      "detection": {
+        "label": "Detectie",
+        "eyebrow": "Maandag · 09:14",
+        "title": "Get-Filly detecteert een dip en meldt het.",
+        "desc": "Get-Filly kijkt continu naar je reserveringsdata. Een donderdag op 38% is geen ramp, mits je het op tijd weet. Get-Filly stuurt je één bericht: “Donderdag loopt achter, zal ik iets uitzetten?”"
+      },
+      "proposal": {
+        "label": "Voorstel",
+        "eyebrow": "Maandag · 09:15",
+        "title": "Drie kanalen, één voorstel, klaar binnen een minuut.",
+        "desc": "Get-Filly stelt een complete campagne voor: een e-mail aan vaste gasten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste gasten. Tone-of-voice, beeld en timing, alles afgestemd op je restaurant."
+      },
+      "approval": {
+        "label": "Goedkeuring",
+        "eyebrow": "Maandag · 09:16",
+        "title": "Eén goedkeuring, Get-Filly doet de rest.",
+        "desc": "Get-Filly verstuurt alle drie de berichten op het juiste moment, op het juiste kanaal en naar de juiste gasten. Jij geeft één keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen."
+      },
+      "placement": {
+        "label": "Plaatsing",
+        "eyebrow": "Donderdag · 17:00",
+        "title": "Je ziet je post live verschijnen, precies op tijd.",
+        "desc": "Op donderdag plaatst Get-Filly de Instagram-post en story automatisch, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen, je ziet ’m gewoon voorbijkomen in je feed, volledig in jouw stijl, terwijl de reserveringen binnenlopen."
+      },
+      "result": {
+        "label": "Resultaat",
+        "eyebrow": "Zondag · 23:00",
+        "title": "Resultaat: 12 extra reserveringen op een rustige donderdag.",
+        "desc": "Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat kan de volgende keer anders."
+      }
+    },
+    "mock": {
+      "live": "Live",
+      "occEyebrow": "BEZETTING · KOMENDE 7 DAGEN",
+      "occTitle": "Week 47 · vooruitblik",
+      "occAlertTitle": "Donderdag onder doelstelling",
+      "occAlertSub": "Doel: 65% · Nu: 38% · 18 stoelen vrij.",
+      "days": { "mon": "ma", "tue": "di", "wed": "wo", "thu": "do", "fri": "vr", "sat": "za", "sun": "zo" },
+      "channelsTitle": "Get-Filly stelt voor, 3 kanalen",
+      "mailLabel": "E-mail · 412 ontvangers",
+      "mailPreview": "“Een rustige donderdag? Kom lunchen voor €24,50.”",
+      "mailMeta": "do 11:00",
+      "igLabel": "Instagram · feed & story",
+      "igPreview": "Terras-foto · “Donderdag-deal: 3 gangen voor €24,50”",
+      "igMeta": "do 17:00",
+      "waLabel": "WhatsApp · top 40 vaste gasten",
+      "waPreview": "“Hoi! Morgen nog plek aan onze keukentafel, reserveer hier.”",
+      "waMeta": "do 09:30",
+      "channelsCta": "Goedkeuren & versturen",
+      "approveTitle": "Campagne ingepland",
+      "approveSub": "Goedgekeurd door Sophie · 09:16",
+      "approveRow1": "E-mail naar 412 vaste gasten",
+      "approveRow2": "Instagram-post + story",
+      "approveRow3": "WhatsApp naar top 40",
+      "approveFoot": "Get-Filly meldt zich zondag met de resultaten.",
+      "igLoc": "Amsterdam · Restaurant",
+      "igPhotoTag1": "Donderdag-deal",
+      "igPhotoTag2": "3 gangen · €24,50",
+      "igLikes": "Likes",
+      "igCaptionText": "Nog een paar tafels vrij vanavond. Drie gangen voor €24,50. #donderdagdeal",
+      "igTime": "2 uur geleden",
+      "resultEyebrow": "DONDERDAG-CAMPAGNE · AFGEROND",
+      "resultHeadline": "Donderdagavond, van 38% naar 84%",
+      "resultStat1": "extra reserveringen",
+      "resultStat2": "extra klanten",
+      "resultStat3": "eindbezetting",
+      "resultBreakdown": "Per kanaal",
+      "resultRes": "res.",
+      "resultNote": "E-mail werkte het best, volgende keer schaal ik die als eerste op."
+    },
+    "featuresTitle": "Wat zit er in.",
+    "features": {
+      "occupancy": { "title": "Bezettingsanalyse", "desc": "Realtime inzicht in je bezettingsgraad per dag, week en maand. Get-Filly herkent patronen zoals terugkerende dips of seizoenstrends en laat direct zien waar je omzet mist." },
+      "chatbot": { "title": "AI-chatbot", "desc": "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en restaurant, doet voorstellen en voert ze uit na jouw goedkeuring." },
+      "campaigns": { "title": "Campagnes", "desc": "Van concept tot verzending in één chat. Get-Filly schrijft een mail of WhatsApp-bericht in jouw huisstijl, selecteert de juiste gasten en verzendt dit op het beste moment." },
+      "social": { "title": "Social media posts", "desc": "Get-Filly maakt posts voor Instagram, Facebook en TikTok. Afgestemd op je merk, je aanbod, en de dagen die gevuld moeten worden." },
+      "season": { "title": "Seizoensstrategie", "desc": "Valentijnsdag, aspergeseizoen, Koningsdag, kerst, Get-Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren." },
+      "google": { "title": "Google Business", "desc": "Verschijn bovenaan in Google wanneer mensen zoeken naar restaurants in je buurt. Get-Filly plaatst posts, reageert op reviews en houdt je profiel actueel zodat je beter gevonden wordt." }
+    },
+    "ctaTitle": "Klaar om rustige momenten om te zetten in omzet?",
+    "ctaSubtitle": "Vraag een demo aan en ontdek wat Get-Filly voor jouw restaurant kan doen.",
+    "ctaButton": "Vraag een demo aan",
+    "ctaPricing": "Benieuwd wat het kost? Bekijk <link>de prijzen</link>."
   }
 }

@@ -4,9 +4,14 @@
 //   - Ultimate (€169) = alles van Growth + bereikbaarheid (e-mail + WhatsApp
 //                       campagnes op basis van bezettingsdata)
 // Floris heeft de tekst aangeleverd; tagline is nieuw veld per plan.
+//
+// I18N: de structurele data (naam, prijs, populariteit) staat hier in code;
+// alle copy (tagline/desc/features/cta + faq's) komt uit de vertalingen
+// (namespace "pricing"), gekoppeld via de plan-key.
 // =============================================================================
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { COMPANY } from "@/config/company";
 import { FaqAccordion } from "./faq-accordion";
 import { pageMetadata } from "@/config/seo";
@@ -18,64 +23,15 @@ export const metadata = pageMetadata({
   path: "/pricing",
 });
 
-type PlanFeature = { text: string; disabled?: boolean };
-type Plan = {
+type PlanMeta = {
+  key: "growth" | "ultimate";
   name: string;
-  tagline: string;
-  desc: string;
   price: string;
   popular?: boolean;
-  features: PlanFeature[];
-  ctaText: string;
 };
-const plans: Plan[] = [
-  {
-    name: "Growth",
-    tagline: "Word gevonden en blijf zichtbaar.",
-    desc: "Voor restaurants die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media, zonder er zelf tijd in te steken.",
-    price: "€99",
-    features: [
-      { text: "Google Business optimalisatie en beheer" },
-      { text: "Automatisch beantwoorden van reviews" },
-      { text: "Verbeterde vindbaarheid in Google door SEO optimalisatie" },
-      { text: "Vindbaarheid TripAdvisor, TheFork en OpenTable" },
-      { text: "Vindbaarheid in AI-zoekmachines zoals ChatGPT, Claude en Gemini" },
-      { text: "Contentplanning voor Instagram, TikTok en Facebook" },
-      { text: "AI-gegenereerde posts in tone-of-voice van jouw restaurant" },
-      { text: "Live dashboard met rapportage over vindbaarheid en bereik" },
-    ],
-    ctaText: "Start met Growth",
-  },
-  {
-    name: "Ultimate",
-    tagline: "Vul je lege tafels automatisch.",
-    desc: "Alles van Growth, plus directe campagnes via e-mail en WhatsApp op basis van jouw bezettingsdata. Inclusief koppeling met jouw reserveringssysteem.",
-    price: "€169",
-    popular: true,
-    features: [
-      { text: "Alles uit het Growth pakket" },
-      { text: "Koppeling met Zenchef, TheFork of Guestplan" },
-      { text: "Koppeling met POS-systeem" },
-      { text: "Automatische e-mailcampagnes op basis van bezetting" },
-      { text: "WhatsApp campagnes voor last-minute reserveringen" },
-      { text: "Segmentatie op vaste, nieuwe en slapende gasten" },
-      { text: "Gepersonaliseerde e-mail en WhatsApp campagnes in de tone-of-voice van jouw restaurant" },
-    ],
-    ctaText: "Start met Ultimate",
-  },
-];
-
-const faqs = [
-  { q: "Hoelang duurt de onboarding?", a: "Binnen één dag ben je volledig onboard. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Get-Filly gaat dezelfde dag voor je aan de slag." },
-  { q: "Welke kanalen gebruikt Get-Filly?", a: "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Get-Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep." },
-  { q: "Houd ik controle over wat Get-Filly verstuurt?", a: "Ja. Get-Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord." },
-  { q: "Hoe weet Get-Filly welke actie ze moet voorstellen?", a: "Get-Filly analyseert continu je bezetting en social media data, herkent patronen zoals terugkerende dips of seizoenstrends, en stelt op het juiste moment een gerichte actie voor." },
-  { q: "Kan ik van plan wisselen?", a: "Ja, je kunt op elk moment upgraden of downgraden. Wijzigingen gaan in op de eerste dag van de volgende maand. Ongebruikte dagen worden verrekend." },
-  { q: "Heb ik marketingervaring nodig?", a: "Nee. Get-Filly is juist gemaakt voor ondernemers zonder marketingkennis. Je krijgt kant-en-klare voorstellen die je met één klik goedkeurt of aanpast, de rest doet Get-Filly." },
-  { q: "Hoe en wanneer betaal ik?", a: "Betaling loopt via onze betaalpartner Stripe, met creditcard, SEPA-incasso of iDEAL. Je betaalt vooruit per maand of per jaar, zonder verborgen kosten." },
-  { q: "Kan ik maandelijks opzeggen?", a: "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Get-Filly beschikbaar tot het einde van de al betaalde periode." },
-  { q: "Wat gebeurt er met de gegevens van mijn gasten?", a: "Jij blijft eigenaar van je gastgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties." },
-  { q: "Hoe veilig zijn mijn gegevens?", a: "Alle gegevens gaan versleuteld over de lijn via TLS en we nemen passende technische en organisatorische maatregelen volgens de AVG. Werken we met een leverancier buiten de EU, bijvoorbeeld voor AI, dan leggen we daarvoor de wettelijk vereiste waarborgen vast." },
+const PLAN_META: PlanMeta[] = [
+  { key: "growth", name: "Growth", price: "€99" },
+  { key: "ultimate", name: "Ultimate", price: "€169", popular: true },
 ];
 
 // =============================================================================
@@ -87,10 +43,18 @@ const faqs = [
 // =============================================================================
 const HIDE_PRICING = true;
 
-export default function PricingPage() {
-  // FAQPage structured data uit dezelfde `faqs`-array (blijft dus automatisch
-  // in sync). Geeft Google de kans de veelgestelde vragen als rich result te
-  // tonen in de zoekresultaten.
+export default async function PricingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("pricing");
+
+  // FAQ's uit de vertalingen (array van {q,a}); ook gebruikt voor de
+  // FAQPage structured data zodat die automatisch in sync blijft.
+  const faqs = t.raw("faqs") as { q: string; a: string }[];
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -111,12 +75,9 @@ export default function PricingPage() {
         <div className="container">
           {/* Sectie-intro gecentreerd zodat de pagina als geheel
               symmetrisch oogt — pakketten staan ook centraal met
-              max-width, en de afsluitende CTA evenzo. Het 'Prijzen'-
-              label is per 2026-05-13 weggehaald omdat de navbar
-              actief-state + URL al duidelijk maken op welke pagina
-              je bent; de titel hieronder spreekt voor zichzelf. */}
-          <h1 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Kies het pakket dat bij jouw restaurant past.</h1>
-          <p className="section-subtitle" style={{ maxWidth: 640, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>Geen verborgen kosten. Geen lange contracten. Gewoon meer gasten aan tafel.</p>
+              max-width, en de afsluitende CTA evenzo. */}
+          <h1 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>{t("heroTitle")}</h1>
+          <p className="section-subtitle" style={{ maxWidth: 640, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>{t("heroSubtitle")}</p>
 
           {/* position:relative is de anker voor de "binnenkort"-overlay
               die we tonen zolang HIDE_PRICING aanstaat. */}
@@ -133,21 +94,24 @@ export default function PricingPage() {
               }
               aria-hidden={HIDE_PRICING || undefined}
             >
-              {plans.map((p) => (
-                <div key={p.name} className={`pricing-card ${p.popular ? "popular" : ""}`} style={{ backgroundColor: "rgb(250, 247, 241)" }}>
-                  {p.popular && <div className="popular-badge">Meest gekozen</div>}
-                  <div className="pricing-name">{p.name}</div>
-                  <div className="pricing-tagline">{p.tagline}</div>
-                  <div className="pricing-desc">{p.desc}</div>
-                  <div className="pricing-price">{p.price}<span>/maand</span></div>
-                  <ul className="pricing-features">
-                    {p.features.map((f) => (
-                      <li key={f.text} className={f.disabled ? "disabled" : ""}>{f.text}</li>
-                    ))}
-                  </ul>
-                  <button className="pricing-btn">{p.ctaText}</button>
-                </div>
-              ))}
+              {PLAN_META.map((p) => {
+                const features = t.raw(`plans.${p.key}.features`) as string[];
+                return (
+                  <div key={p.key} className={`pricing-card ${p.popular ? "popular" : ""}`} style={{ backgroundColor: "rgb(250, 247, 241)" }}>
+                    {p.popular && <div className="popular-badge">{t("popular")}</div>}
+                    <div className="pricing-name">{p.name}</div>
+                    <div className="pricing-tagline">{t(`plans.${p.key}.tagline`)}</div>
+                    <div className="pricing-desc">{t(`plans.${p.key}.desc`)}</div>
+                    <div className="pricing-price">{p.price}<span>{t("perMonth")}</span></div>
+                    <ul className="pricing-features">
+                      {features.map((text) => (
+                        <li key={text}>{text}</li>
+                      ))}
+                    </ul>
+                    <button className="pricing-btn">{t(`plans.${p.key}.ctaText`)}</button>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Overlay-label over de geblurde pakketten, zodat de blur als
@@ -175,45 +139,45 @@ export default function PricingPage() {
                     boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
                   }}
                 >
-                  Prijzen binnenkort beschikbaar
+                  {t("comingSoon")}
                 </span>
               </div>
             )}
           </div>
 
-          {/* Afsluitend CTA-blok onder de pakketten. Compactere
-              variant (.pillars-cta--compact) — kleiner dan de
-              homepage-CTA omdat dit een 'hulp-CTA' is, geen
-              merk-finale. Max-width 980px zodat 't visueel
-              uitgelijnd staat met de twee pakketten erboven. */}
+          {/* Afsluitend CTA-blok onder de pakketten. */}
           <div
             className="pillars-cta pillars-cta--compact"
             style={{ marginTop: 56, marginBottom: 0, maxWidth: 980 }}
           >
-            <h3 className="pillars-cta-title">Niet zeker welk pakket past?</h3>
-            <p className="pillars-cta-sub">Plan een gratis kennismaking en we kijken het samen met je door.</p>
-            <Link href="/contact" className="cta-btn">Plan een gratis kennismaking in</Link>
+            <h3 className="pillars-cta-title">{t("helpTitle")}</h3>
+            <p className="pillars-cta-sub">{t("helpSub")}</p>
+            <Link href="/contact" className="cta-btn">{t("helpCta")}</Link>
           </div>
         </div>
       </section>
 
       <section className="pricing-faq">
         <div className="container">
-          <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>Veelgestelde vragen</h2>
+          <h2 className="section-title" style={{ textAlign: "center", margin: "0 auto" }}>{t("faqTitle")}</h2>
           <FaqAccordion faqs={faqs} name="pricing-faq" />
         </div>
       </section>
 
       {/* Afsluitende CTA boven de footer, full-bleed groen zoals op de
-          home- en product-pagina. Vervangt de oude 'Meer vragen?'-regel
-          die voorheen onder de FAQ stond. */}
+          home- en product-pagina. */}
       <section className="cta-section">
-        <h2 className="section-title">Heb je nog vragen?</h2>
-        <p className="section-subtitle">Mail ons, we helpen je graag verder.</p>
+        <h2 className="section-title">{t("ctaTitle")}</h2>
+        <p className="section-subtitle">{t("ctaSub")}</p>
         <a className="cta-btn" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
-          Wil je eerst zien wat Get-Filly doet? Bekijk{" "}
-          <Link href="/product" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de oplossing</Link>.
+          {t.rich("ctaProduct", {
+            link: (chunks) => (
+              <Link href="/product" style={{ color: "#FFFFFF", textDecoration: "underline" }}>
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       </section>
     </>
