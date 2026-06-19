@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 // LocalStorage-sleutel voor de keuze van de bezoeker. Bewust geen
 // cookie zelf, een cookie zou ironisch zijn voordat de gebruiker
@@ -23,6 +24,7 @@ type Consent = "accepted" | "rejected";
 // `process.env.NEXT_PUBLIC_HAS_ANALYTICS === 'true'` zodat we 'm
 // zonder reden niet voor onze testers tonen.
 export function CookieBanner() {
+  const t = useTranslations("cookies");
   const [consent, setConsent] = useState<Consent | null | undefined>(undefined);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function CookieBanner() {
   return (
     <div
       role="dialog"
-      aria-label="Cookie-toestemming"
+      aria-label={t("aria")}
       style={{
         position: "fixed",
         bottom: 16,
@@ -70,17 +72,16 @@ export function CookieBanner() {
       }}
     >
       <div style={{ marginBottom: 12, color: "var(--text, #18181B)" }}>
-        We gebruiken cookies en vergelijkbare technieken voor het
-        functioneren van de site én, alleen met jouw toestemming,
-        voor analytics zodat we Get-Filly kunnen verbeteren. Geen
-        tracking voor advertenties, geen verkoop van data aan derden.{" "}
-        <Link
-          href="/privacy"
-          style={{ color: "var(--accent, #1F4A2D)", textDecoration: "underline" }}
-        >
-          Lees ons privacybeleid
-        </Link>
-        .
+        {t.rich("body", {
+          link: (chunks) => (
+            <Link
+              href="/privacy"
+              style={{ color: "var(--accent, #1F4A2D)", textDecoration: "underline" }}
+            >
+              {chunks}
+            </Link>
+          ),
+        })}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button
@@ -96,7 +97,7 @@ export function CookieBanner() {
             cursor: "pointer",
           }}
         >
-          Accepteren
+          {t("accept")}
         </button>
         <button
           onClick={() => choose("rejected")}
@@ -111,7 +112,7 @@ export function CookieBanner() {
             cursor: "pointer",
           }}
         >
-          Alleen noodzakelijke
+          {t("necessary")}
         </button>
       </div>
     </div>

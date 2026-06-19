@@ -289,5 +289,29 @@
       "digit": "A number (0-9)",
       "special": "A special character (! @ # $ % …)"
     }
+  },
+  "footer": {
+    "colProduct": "Product",
+    "colCompany": "Company",
+    "colLegal": "Legal",
+    "solution": "Solution",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "about": "About",
+    "blog": "Blog",
+    "contact": "Contact",
+    "team": "Team",
+    "privacy": "Privacy policy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "rights": "© {year} Get-Filly. All rights reserved.",
+    "builtIn": "Built in the Netherlands",
+    "logoAria": "Get-Filly home"
+  },
+  "cookies": {
+    "aria": "Cookie consent",
+    "body": "We use cookies and similar techniques to run the site and, only with your consent, for analytics so we can improve Get-Filly. No tracking for ads, no selling data to third parties. <link>Read our privacy policy</link>.",
+    "accept": "Accept",
+    "necessary": "Only necessary"
   }
 }
