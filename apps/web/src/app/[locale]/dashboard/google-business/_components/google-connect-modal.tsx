@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   searchGoogleProfile,
   connectGoogleProfile,
@@ -45,6 +46,7 @@ export function GoogleConnectModal({
   // de eerste zoekopdracht direct relevant is.
   initialQuery?: string;
 }) {
+  const t = useTranslations("dash_google_business_components_google_connect_modal");
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<GooglePlaceSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -90,12 +92,10 @@ export function GoogleConnectModal({
       const found = await searchGoogleProfile(finalQuery);
       setResults(found);
       if (found.length === 0) {
-        setError(
-          "Geen resultaten gevonden. Probeer met meer detail (naam + stad).",
-        );
+        setError(t("errors.noResults"));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Zoeken niet gelukt.");
+      setError(err instanceof Error ? err.message : t("errors.searchFailed"));
     } finally {
       setSearching(false);
     }
@@ -110,7 +110,7 @@ export function GoogleConnectModal({
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Koppelen niet gelukt.",
+        err instanceof Error ? err.message : t("errors.connectFailed"),
       );
       setConnecting(null);
     }
@@ -169,7 +169,7 @@ export function GoogleConnectModal({
                 color: "var(--text, #18181B)",
               }}
             >
-              Koppel je Google Business Profile
+              {t("title")}
             </div>
             <div
               style={{
@@ -179,13 +179,13 @@ export function GoogleConnectModal({
                 lineHeight: 1.5,
               }}
             >
-              Zoek op naam + stad. Filly haalt direct je profielinfo op.
+              {t("subtitle")}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Sluiten"
+            aria-label={t("close")}
             style={{
               background: "none",
               border: "none",
@@ -211,7 +211,7 @@ export function GoogleConnectModal({
                 runSearch();
               }
             }}
-            placeholder="bv. 'De Kas Amsterdam'"
+            placeholder={t("searchPlaceholder")}
             autoFocus
             style={{
               flex: 1,
@@ -226,7 +226,7 @@ export function GoogleConnectModal({
             onClick={() => runSearch()}
             disabled={searching || query.trim().length < 3}
           >
-            {searching ? "Zoeken…" : "Zoek"}
+            {searching ? t("searching") : t("search")}
           </Button>
         </div>
 
@@ -299,7 +299,9 @@ export function GoogleConnectModal({
                   >
                     ⭐ {r.rating.toFixed(1)}
                     {r.userRatingCount !== null &&
-                      ` (${r.userRatingCount.toLocaleString("nl-NL")} reviews)`}
+                      ` ${t("reviewCount", {
+                        count: r.userRatingCount,
+                      })}`}
                   </div>
                 )}
                 {connecting === r.placeId && (
@@ -311,7 +313,7 @@ export function GoogleConnectModal({
                       fontWeight: 500,
                     }}
                   >
-                    Koppelen…
+                    {t("connecting")}
                   </div>
                 )}
               </button>
@@ -329,7 +331,7 @@ export function GoogleConnectModal({
               padding: "var(--space-6) 0",
             }}
           >
-            Typ een zoekopdracht en klik Zoek.
+            {t("emptyState")}
           </div>
         )}
       </div>

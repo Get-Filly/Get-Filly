@@ -1,6 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import {
   fetchRestaurant,
@@ -48,26 +50,19 @@ const restaurantTypes = [
 // Event-categorieën zoals de evenementen-sync ze kent (events-tabel,
 // mig 0053/0054). De eigenaar vinkt aan welke typen Filly meeneemt
 // in voorstellen; volgorde = volgorde van de checkboxes.
-const EVENT_CATEGORY_OPTIONS: { value: string; label: string }[] = [
-  { value: "festivals", label: "Festivals" },
-  { value: "concerten_theater", label: "Concerten & theater" },
-  { value: "events", label: "Events" },
-  { value: "sportevenementen", label: "Sportevenementen" },
-  { value: "kermis", label: "Kermis" },
-  { value: "markten", label: "Markten" },
+const EVENT_CATEGORY_OPTIONS: string[] = [
+  "festivals",
+  "concerten_theater",
+  "events",
+  "sportevenementen",
+  "kermis",
+  "markten",
 ];
 
 // Multi-select chip-opties voor talen die het personeel spreekt.
 // Komt in restaurants.languages_spoken (text[]). Filly gebruikt dit
 // straks om buitenlandse gasten in hun eigen taal te kunnen begroeten.
-const LANGUAGE_OPTIONS: { code: string; label: string }[] = [
-  { code: "nl", label: "Nederlands" },
-  { code: "en", label: "Engels" },
-  { code: "de", label: "Duits" },
-  { code: "fr", label: "Frans" },
-  { code: "es", label: "Spaans" },
-  { code: "it", label: "Italiaans" },
-];
+const LANGUAGE_OPTIONS: string[] = ["nl", "en", "de", "fr", "es", "it"];
 
 // Next.js 15+: elke client-component die `useSearchParams()` gebruikt
 // moet in een <Suspense>-boundary staan, anders weigert de production-
@@ -75,6 +70,7 @@ const LANGUAGE_OPTIONS: { code: string; label: string }[] = [
 // `AccountPageInner` houdt alle hooks + UI; de exported `AccountPage`
 // wikkelt 'm in Suspense zodat de prerender-fase een fallback krijgt.
 function AccountPageInner() {
+  const t = useTranslations("dash_account_page");
   const [form, setForm] = useState<Restaurant | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -127,12 +123,12 @@ function AccountPageInner() {
   if (error) {
     return (
       <div className="page-full">
-        <PageHeader title="Account" />
+        <PageHeader title={t("pageTitle")} />
         <EmptyState
           topGap
           icon="⚙️"
-          title="Account-gegevens niet geladen"
-          description="We konden je profiel niet ophalen. Probeer de pagina te herladen, als het probleem blijft, log dan opnieuw in."
+          title={t("loadError.title")}
+          description={t("loadError.description")}
         />
       </div>
     );
@@ -141,8 +137,10 @@ function AccountPageInner() {
   if (!form) {
     return (
       <div className="page-full">
-        <PageHeader title="Account" />
-        <div style={{ color: "var(--color-text-disabled)" }}>Laden...</div>
+        <PageHeader title={t("pageTitle")} />
+        <div style={{ color: "var(--color-text-disabled)" }}>
+          {t("loading")}
+        </div>
       </div>
     );
   }
@@ -159,7 +157,7 @@ function AccountPageInner() {
       const updated = await updateRestaurant(form);
       setForm(updated);
       setSaveStatus("success");
-      setSaveMessage("Opgeslagen ✓");
+      setSaveMessage(t("saveSuccess"));
       setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (e) {
       setSaveStatus("error");
@@ -206,7 +204,7 @@ function AccountPageInner() {
 
   return (
     <div className="page-full">
-      <PageHeader title="Account" />
+      <PageHeader title={t("pageTitle")} />
 
       {/* Sub-tab-balk: Algemeen / Identiteit / Koppelingen.
           Direct onder PageHeader zodat eigenaar eerst kiest wáár
@@ -222,8 +220,8 @@ function AccountPageInner() {
       >
         {(
           [
-            { key: "algemeen", label: "Algemeen" },
-            { key: "koppelingen", label: "Koppelingen" },
+            { key: "algemeen", label: t("tabs.general") },
+            { key: "koppelingen", label: t("tabs.connections") },
           ] as Array<{ key: AccountTab; label: string }>
         ).map(({ key, label }) => {
           const active = activeTab === key;
@@ -273,10 +271,8 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Restaurant</div>
-        <div className="form-section-desc">
-          De hoofdlijnen, type, keuken en prijsklasse.
-        </div>
+        <div className="form-section-title">{t("restaurant.title")}</div>
+        <div className="form-section-desc">{t("restaurant.desc")}</div>
 
         {/* Eigenaar met meerdere zaken (vestigingen, 2e concept) kan
             hier een nieuwe zaak aanmaken. Hergebruikt de onboarding-
@@ -297,42 +293,42 @@ function AccountPageInner() {
           }}
         >
           <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
-            <strong>Meerdere ondernemingen?</strong> Voeg een tweede vestiging
-            of nieuw concept toe, je kunt tussen ze wisselen via het
-            account-menu linksboven.
+            {t.rich("restaurant.multiBusiness", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
           <ButtonLink
             href="/onboarding?mode=add"
             variant="secondary"
             size="sm"
           >
-            + Nieuwe onderneming
+            {t("restaurant.addBusiness")}
           </ButtonLink>
         </div>
 
         <div className="form-grid">
           <Input
-            label="Naam"
+            label={t("restaurant.name")}
             type="text"
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
           />
           <div className="form-field">
-            <label>Type</label>
+            <label>{t("restaurant.type")}</label>
             <select
               value={form.type ?? ""}
               onChange={(e) => update("type", e.target.value || null)}
             >
               <option value="">—</option>
-              {restaurantTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1).replace("_", " ")}
+              {restaurantTypes.map((rt) => (
+                <option key={rt} value={rt}>
+                  {rt.charAt(0).toUpperCase() + rt.slice(1).replace("_", " ")}
                 </option>
               ))}
             </select>
           </div>
           <Input
-            label="Keukenstijl"
+            label={t("restaurant.cuisineStyle")}
             type="text"
             value={(form.cuisine_style ?? []).join(", ")}
             onChange={(e) =>
@@ -345,10 +341,10 @@ function AccountPageInner() {
               )
             }
             placeholder="french, italian, dutch"
-            hint="Komma-gescheiden."
+            hint={t("restaurant.cuisineHint")}
           />
           <div className="form-field">
-            <label>Prijsklasse</label>
+            <label>{t("restaurant.priceRange")}</label>
             <select
               value={form.price_range ?? ""}
               onChange={(e) =>
@@ -394,28 +390,25 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Locatie</div>
-        <div className="form-section-desc">
-          Wordt automatisch gegeocodeerd via PDOK zodra je opslaat. Nodig voor
-          weer-integratie en lokale campagnes.
-        </div>
+        <div className="form-section-title">{t("location.title")}</div>
+        <div className="form-section-desc">{t("location.desc")}</div>
         <div className="form-grid">
           <Input
             full
-            label="Adres"
+            label={t("location.address")}
             type="text"
             value={form.address ?? ""}
             onChange={(e) => update("address", e.target.value)}
             placeholder="Hoofdstraat 12"
           />
           <Input
-            label="Plaats"
+            label={t("location.city")}
             type="text"
             value={form.city ?? ""}
             onChange={(e) => update("city", e.target.value)}
           />
           <Input
-            label="Postcode"
+            label={t("location.postalCode")}
             type="text"
             value={form.postal_code ?? ""}
             onChange={(e) => update("postal_code", e.target.value)}
@@ -424,8 +417,10 @@ function AccountPageInner() {
           {form.latitude !== null && form.longitude !== null && (
             <div className="form-field full">
               <div className="hint">
-                ✓ Coördinaten bekend: {form.latitude.toFixed(5)},{" "}
-                {form.longitude.toFixed(5)}
+                {t("location.coordinates", {
+                  lat: form.latitude.toFixed(5),
+                  lng: form.longitude.toFixed(5),
+                })}
               </div>
             </div>
           )}
@@ -441,15 +436,12 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Sluitingsdata &amp; vakanties</div>
-        <div className="form-section-desc">
-          Specifieke dagen waarop de onderneming dicht is (vakanties, feestdagen).
-          Filly mijdt deze voor mailings en reservering-suggesties.
-        </div>
+        <div className="form-section-title">{t("closedDates.title")}</div>
+        <div className="form-section-desc">{t("closedDates.desc")}</div>
         <div className="form-grid">
           <Input
             full
-            label="Voeg een datum toe"
+            label={t("closedDates.addDate")}
             type="date"
             onChange={(e) => {
               if (e.target.value) {
@@ -500,7 +492,7 @@ function AccountPageInner() {
                         lineHeight: 1,
                         padding: "2px 4px",
                       }}
-                      aria-label="Verwijder deze datum"
+                      aria-label={t("closedDates.removeDate")}
                     >
                       ×
                     </button>
@@ -510,10 +502,7 @@ function AccountPageInner() {
             </div>
           ) : (
             <div className="form-field full">
-              <div className="hint">
-                Geen sluitingsdata. Voeg er bv. één toe voor 1e Kerstdag of
-                jouw vaste vakantieweek.
-              </div>
+              <div className="hint">{t("closedDates.empty")}</div>
             </div>
           )}
         </div>
@@ -525,13 +514,11 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Capaciteit</div>
-        <div className="form-section-desc">
-          Bezettings-percentages worden hierop gebaseerd.
-        </div>
+        <div className="form-section-title">{t("capacity.title")}</div>
+        <div className="form-section-desc">{t("capacity.desc")}</div>
         <div className="form-grid">
           <Input
-            label="Stoelen binnen"
+            label={t("capacity.seatsInside")}
             type="number"
             value={form.capacity_seats ?? ""}
             onChange={(e) =>
@@ -542,7 +529,7 @@ function AccountPageInner() {
             }
           />
           <Input
-            label="Stoelen op terras"
+            label={t("capacity.seatsTerrace")}
             type="number"
             value={form.capacity_terrace ?? ""}
             onChange={(e) =>
@@ -557,11 +544,11 @@ function AccountPageInner() {
               6-maanden-historie (zie KpiService cascade). */}
           <Input
             full
-            label="Doel doordeweekse bezetting (%)"
+            label={t("capacity.weekdayOccupancyGoal")}
             type="number"
             min={0}
             max={100}
-            placeholder="bv. 75"
+            placeholder={t("capacity.weekdayOccupancyPlaceholder")}
             value={form.target_weekday_occupancy_pct ?? ""}
             onChange={(e) =>
               update(
@@ -569,7 +556,7 @@ function AccountPageInner() {
                 e.target.value ? parseInt(e.target.value, 10) : null,
               )
             }
-            hint="Optioneel doel voor de bezetting-KPI op je dashboard. Laat leeg om Filly's berekening uit je 6-maanden-historie te gebruiken (of de standaard 68% als je nog geen historie hebt opgebouwd)."
+            hint={t("capacity.weekdayOccupancyHint")}
           />
           <div className="form-field full">
             <label className="form-checkbox">
@@ -587,19 +574,19 @@ function AccountPageInner() {
                   }
                 }}
               />
-              Heeft een terras
+              {t("capacity.hasTerrace")}
             </label>
           </div>
           {form.has_terrace && (
             <>
               <div className="form-field full">
-                <label>Wanneer schijnt de zon op het terras?</label>
+                <label>{t("capacity.terraceSunLabel")}</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(
                     [
-                      { code: "morning", label: "Ochtend" },
-                      { code: "afternoon", label: "Middag" },
-                      { code: "evening", label: "Avond" },
+                      { code: "morning", label: t("capacity.sunMorning") },
+                      { code: "afternoon", label: t("capacity.sunAfternoon") },
+                      { code: "evening", label: t("capacity.sunEvening") },
                     ] as const
                   ).map((p) => {
                     const active = (form.terrace_sun_periods ?? []).includes(
@@ -629,41 +616,38 @@ function AccountPageInner() {
                     );
                   })}
                 </div>
-                <div className="hint">
-                  Klik aan/uit. Filly gebruikt dit voor zonnige-dag-acties op
-                  je terras.
-                </div>
+                <div className="hint">{t("capacity.terraceSunHint")}</div>
               </div>
 
               <div className="form-field full">
-                <label>Soort terras</label>
+                <label>{t("capacity.terraceTypeLabel")}</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(
                     [
                       {
                         code: "open",
-                        label: "Open",
-                        hint: "Geen overkapping",
+                        label: t("capacity.terraceOpen"),
+                        hint: t("capacity.terraceOpenHint"),
                       },
                       {
                         code: "covered",
-                        label: "Overdekt",
-                        hint: "Luifel of dak",
+                        label: t("capacity.terraceCovered"),
+                        hint: t("capacity.terraceCoveredHint"),
                       },
                       {
                         code: "convertible",
-                        label: "Overdekbaar",
-                        hint: "Schuifwanden, regen-luifel",
+                        label: t("capacity.terraceConvertible"),
+                        hint: t("capacity.terraceConvertibleHint"),
                       },
                     ] as const
-                  ).map((t) => {
-                    const active = form.terrace_type === t.code;
+                  ).map((opt) => {
+                    const active = form.terrace_type === opt.code;
                     return (
                       <button
-                        key={t.code}
+                        key={opt.code}
                         type="button"
-                        onClick={() => update("terrace_type", t.code)}
-                        title={t.hint}
+                        onClick={() => update("terrace_type", opt.code)}
+                        title={opt.hint}
                         style={{
                           padding: "6px 14px",
                           borderRadius: 999,
@@ -678,16 +662,12 @@ function AccountPageInner() {
                           cursor: "pointer",
                         }}
                       >
-                        {t.label}
+                        {opt.label}
                       </button>
                     );
                   })}
                 </div>
-                <div className="hint">
-                  Bepaalt of Filly bij regen toch een terras-actie kan
-                  voorstellen (overdekt/overdekbaar) of alleen bij droog
-                  weer (open).
-                </div>
+                <div className="hint">{t("capacity.terraceTypeHint")}</div>
               </div>
             </>
           )}
@@ -698,7 +678,7 @@ function AccountPageInner() {
                 checked={form.has_private_room}
                 onChange={(e) => update("has_private_room", e.target.checked)}
               />
-              Heeft een privé-/evenementenruimte
+              {t("capacity.hasPrivateRoom")}
             </label>
           </div>
           <div className="form-field full">
@@ -708,7 +688,7 @@ function AccountPageInner() {
                 checked={form.has_kids_menu}
                 onChange={(e) => update("has_kids_menu", e.target.checked)}
               />
-              Heeft een kindermenu
+              {t("capacity.hasKidsMenu")}
             </label>
           </div>
         </div>
@@ -720,12 +700,8 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Service-tijden</div>
-        <div className="form-section-desc">
-          Per dag aangeven wanneer je ontbijt, lunch en diner serveert.
-          Eén of meerdere shifts, jij bepaalt. Dashboard gebruikt deze
-          tijden voor de week- en dag-bezetting per service.
-        </div>
+        <div className="form-section-title">{t("servicePeriods.title")}</div>
+        <div className="form-section-desc">{t("servicePeriods.desc")}</div>
         <div className="form-field full">
           <ServicePeriodsEditor
             value={form.service_periods}
@@ -740,20 +716,17 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Talen die je personeel spreekt</div>
-        <div className="form-section-desc">
-          Klik om aan/uit te zetten. Wordt door Filly meegewogen bij meertalige
-          campagnes.
-        </div>
+        <div className="form-section-title">{t("languages.title")}</div>
+        <div className="form-section-desc">{t("languages.desc")}</div>
         <div className="form-field full">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {LANGUAGE_OPTIONS.map((l) => {
-              const active = (form.languages_spoken ?? []).includes(l.code);
+            {LANGUAGE_OPTIONS.map((code) => {
+              const active = (form.languages_spoken ?? []).includes(code);
               return (
                 <button
-                  key={l.code}
+                  key={code}
                   type="button"
-                  onClick={() => toggleLanguage(l.code)}
+                  onClick={() => toggleLanguage(code)}
                   style={{
                     padding: "6px 14px",
                     borderRadius: 999,
@@ -768,7 +741,7 @@ function AccountPageInner() {
                     cursor: "pointer",
                   }}
                 >
-                  {l.label}
+                  {t(`languages.options.${code}`)}
                 </button>
               );
             })}
@@ -786,47 +759,44 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Bedrijfsgegevens</div>
-        <div className="form-section-desc">
-          Voor mail-footers (verplicht volgens AVG/CAN-SPAM), je privacy-
-          verklaring en algemene voorwaarden.
-        </div>
+        <div className="form-section-title">{t("company.title")}</div>
+        <div className="form-section-desc">{t("company.desc")}</div>
         <div className="form-grid">
           <Input
             full
-            label="Volledige bedrijfsnaam (juridisch)"
+            label={t("company.legalName")}
             type="text"
             value={form.legal_name ?? ""}
             onChange={(e) => update("legal_name", e.target.value || null)}
             placeholder="Bistro Get-Filly B.V."
-            hint="Zoals geregistreerd bij de KvK. Verschijnt in de footer van mailings."
+            hint={t("company.legalNameHint")}
           />
           <Input
-            label="KvK-nummer"
+            label={t("company.kvkNumber")}
             type="text"
             value={form.kvk_number ?? ""}
             onChange={(e) => update("kvk_number", e.target.value || null)}
             placeholder="12345678"
-            hint="8 cijfers."
+            hint={t("company.kvkNumberHint")}
           />
           <Input
-            label="BTW-nummer"
+            label={t("company.vatNumber")}
             type="text"
             value={form.vat_number ?? ""}
             onChange={(e) => update("vat_number", e.target.value || null)}
             placeholder="NL123456789B01"
-            hint="Formaat: NL + 9 cijfers + B + 2 cijfers."
+            hint={t("company.vatNumberHint")}
           />
           <Input
-            label="Contact-e-mail"
+            label={t("company.contactEmail")}
             type="email"
             value={form.contact_email ?? ""}
             onChange={(e) => update("contact_email", e.target.value || null)}
             placeholder="info@jouwrestaurant.nl"
-            hint="Het officiële klantcontactadres."
+            hint={t("company.contactEmailHint")}
           />
           <Input
-            label="Contact-telefoon"
+            label={t("company.contactPhone")}
             type="tel"
             value={form.contact_phone ?? ""}
             onChange={(e) => update("contact_phone", e.target.value || null)}
@@ -841,30 +811,28 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "koppelingen" && (
       <div className="form-section">
-        <div className="form-section-title">E-mailinstellingen voor mailings</div>
-        <div className="form-section-desc">
-          Bepaalt hoe campagne-mails er voor de ontvanger uitzien.
-        </div>
+        <div className="form-section-title">{t("emailSettings.title")}</div>
+        <div className="form-section-desc">{t("emailSettings.desc")}</div>
         <div className="form-grid">
           <Input
-            label="Afzender-naam"
+            label={t("emailSettings.fromName")}
             type="text"
             value={form.email_from_name ?? ""}
             onChange={(e) =>
               update("email_from_name", e.target.value || null)
             }
             placeholder="Bistro Get-Filly"
-            hint="Verschijnt in de inbox van de ontvanger als &ldquo;van&rdquo;."
+            hint={t("emailSettings.fromNameHint")}
           />
           <Input
-            label="Reply-to adres"
+            label={t("emailSettings.replyTo")}
             type="email"
             value={form.email_reply_to ?? ""}
             onChange={(e) =>
               update("email_reply_to", e.target.value || null)
             }
             placeholder="reservaties@jouwrestaurant.nl"
-            hint="Waar antwoorden van ontvangers naartoe komen. Mag hetzelfde zijn als contact-e-mail."
+            hint={t("emailSettings.replyToHint")}
           />
         </div>
       </div>
@@ -875,15 +843,12 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Meldingen</div>
-        <div className="form-section-desc">
-          Bepaal wanneer reviews en rustige dagen als actie verschijnen
-          op je campagnes-pagina.
-        </div>
+        <div className="form-section-title">{t("notifications.title")}</div>
+        <div className="form-section-desc">{t("notifications.desc")}</div>
         <div className="form-grid">
           <div className="form-field full">
             <label htmlFor="low-review-threshold">
-              Reviews onder of gelijk aan deze sterren-rating tonen als actie
+              {t("notifications.reviewThresholdLabel")}
             </label>
             <select
               id="low-review-threshold"
@@ -905,11 +870,11 @@ function AccountPageInner() {
                 maxWidth: 280,
               }}
             >
-              <option value={1}>★☆☆☆☆ – Alleen 1-ster reviews</option>
-              <option value={2}>★★☆☆☆ – 1 en 2 sterren</option>
-              <option value={3}>★★★☆☆ – 1 t/m 3 sterren</option>
-              <option value={4}>★★★★☆ – 1 t/m 4 sterren</option>
-              <option value={5}>★★★★★ – Alle reviews</option>
+              <option value={1}>{t("notifications.reviewStar1")}</option>
+              <option value={2}>{t("notifications.reviewStar2")}</option>
+              <option value={3}>{t("notifications.reviewStar3")}</option>
+              <option value={4}>{t("notifications.reviewStar4")}</option>
+              <option value={5}>{t("notifications.reviewStar5")}</option>
             </select>
             <div
               style={{
@@ -919,16 +884,13 @@ function AccountPageInner() {
                 lineHeight: 1.4,
               }}
             >
-              Reviews die nog geen reactie hebben en onder deze drempel
-              vallen, verschijnen automatisch in &ldquo;Overige
-              acties&rdquo;. Standaard is 3 sterren, zodat alleen echte
-              problemen je aandacht vragen.
+              {t("notifications.reviewThresholdHint")}
             </div>
           </div>
 
           <div className="form-field full">
             <label htmlFor="low-occupancy-threshold">
-              Bezetting onder deze drempel telt als rustige dag
+              {t("notifications.occupancyThresholdLabel")}
             </label>
             <select
               id="low-occupancy-threshold"
@@ -950,14 +912,14 @@ function AccountPageInner() {
                 maxWidth: 280,
               }}
             >
-              <option value={20}>Onder 20%</option>
-              <option value={30}>Onder 30%</option>
-              <option value={40}>Onder 40%</option>
-              <option value={50}>Onder 50%</option>
-              <option value={60}>Onder 60%</option>
-              <option value={70}>Onder 70%</option>
-              <option value={80}>Onder 80%</option>
-              <option value={90}>Onder 90%</option>
+              <option value={20}>{t("notifications.below", { pct: 20 })}</option>
+              <option value={30}>{t("notifications.below", { pct: 30 })}</option>
+              <option value={40}>{t("notifications.below", { pct: 40 })}</option>
+              <option value={50}>{t("notifications.below", { pct: 50 })}</option>
+              <option value={60}>{t("notifications.below", { pct: 60 })}</option>
+              <option value={70}>{t("notifications.below", { pct: 70 })}</option>
+              <option value={80}>{t("notifications.below", { pct: 80 })}</option>
+              <option value={90}>{t("notifications.below", { pct: 90 })}</option>
             </select>
             <div
               style={{
@@ -967,17 +929,13 @@ function AccountPageInner() {
                 lineHeight: 1.4,
               }}
             >
-              Filly scant de komende 14 dagen op rustige dagen en zet ze
-              in &ldquo;Overige acties&rdquo;. Zodra de bezetting van een
-              dag de drempel haalt (bv. door nieuwe reserveringen),
-              verdwijnt 'ie automatisch uit het lijstje. Sluitingsdagen
-              worden niet getoond.
+              {t("notifications.occupancyThresholdHint")}
             </div>
           </div>
 
           {/* ----- Evenementen in voorstellen (mig 0054) ----- */}
           <div className="form-field full">
-            <label>Evenementen uit de buurt in Filly&apos;s voorstellen</label>
+            <label>{t("events.label")}</label>
             <div
               style={{
                 display: "flex",
@@ -986,16 +944,15 @@ function AccountPageInner() {
                 marginTop: 4,
               }}
             >
-              {EVENT_CATEGORY_OPTIONS.map((opt) => {
+              {EVENT_CATEGORY_OPTIONS.map((value) => {
                 // null = alle categorieën aan (default); een lege array
                 // betekent dat de eigenaar events helemaal uitzette.
                 const enabled =
-                  form.event_categories ??
-                  EVENT_CATEGORY_OPTIONS.map((o) => o.value);
-                const checked = enabled.includes(opt.value);
+                  form.event_categories ?? EVENT_CATEGORY_OPTIONS;
+                const checked = enabled.includes(value);
                 return (
                   <label
-                    key={opt.value}
+                    key={value}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1023,12 +980,12 @@ function AccountPageInner() {
                         update(
                           "event_categories",
                           checked
-                            ? enabled.filter((v) => v !== opt.value)
-                            : [...enabled, opt.value],
+                            ? enabled.filter((v) => v !== value)
+                            : [...enabled, value],
                         )
                       }
                     />
-                    {opt.label}
+                    {t(`events.categories.${value}`)}
                   </label>
                 );
               })}
@@ -1064,7 +1021,7 @@ function AccountPageInner() {
                         update("event_holidays_enabled", !checked)
                       }
                     />
-                    Jaarlijkse feestdagen
+                    {t("events.holidays")}
                   </label>
                 );
               })()}
@@ -1077,7 +1034,7 @@ function AccountPageInner() {
                 htmlFor="event-max-distance"
                 style={{ display: "block", marginBottom: 6 }}
               >
-                Maximale afstand vanaf de zaak
+                {t("events.maxDistanceLabel")}
               </label>
               <select
                 id="event-max-distance"
@@ -1101,12 +1058,12 @@ function AccountPageInner() {
                   maxWidth: 280,
                 }}
               >
-                <option value="">Slim per type (standaard)</option>
-                <option value={2}>Tot 2 km</option>
-                <option value={5}>Tot 5 km</option>
-                <option value={10}>Tot 10 km</option>
-                <option value={15}>Tot 15 km</option>
-                <option value={25}>Tot 25 km</option>
+                <option value="">{t("events.distanceSmart")}</option>
+                <option value={2}>{t("events.distanceKm", { km: 2 })}</option>
+                <option value={5}>{t("events.distanceKm", { km: 5 })}</option>
+                <option value={10}>{t("events.distanceKm", { km: 10 })}</option>
+                <option value={15}>{t("events.distanceKm", { km: 15 })}</option>
+                <option value={25}>{t("events.distanceKm", { km: 25 })}</option>
               </select>
             </div>
             <div
@@ -1117,15 +1074,7 @@ function AccountPageInner() {
                 lineHeight: 1.4,
               }}
             >
-              Filly weegt evenementen in de buurt (bron: evenementen.nl)
-              en jaarlijkse feestdagen (Valentijn, Pasen, Koningsdag,
-              Kerst&hellip;) mee in campagne-voorstellen en timing. Vink
-              uit wat niet bij je zaak past. De maximale afstand geldt
-              alleen voor evenementen uit de buurt, niet voor feestdagen.
-              &ldquo;Slim per type&rdquo; betekent: markt en kermis tot
-              2 km, concert en sport tot 5 km, festival tot 10 km. Een
-              vaste afstand geldt voor alle typen &mdash; ruimer is handig
-              in landelijk gebied, krapper in de binnenstad.
+              {t("events.hint")}
             </div>
           </div>
 
@@ -1150,7 +1099,7 @@ function AccountPageInner() {
                 htmlFor="reviews-auto-reply"
                 style={{ marginBottom: 0, cursor: "pointer" }}
               >
-                Filly reageert automatisch op reviews
+                {t("autoReply.toggleLabel")}
               </label>
               {/* Slider-toggle. role=switch + aria-checked voor
                   toegankelijkheid; klik schakelt de boolean om. */}
@@ -1204,10 +1153,7 @@ function AccountPageInner() {
                 lineHeight: 1.4,
               }}
             >
-              Bij nieuwe reviews onder je drempel schrijft Filly
-              automatisch een reactie in jouw toon. Je houdt de controle:
-              de reactie wordt als concept klaargezet zodat je 'm met één
-              klik kunt goedkeuren.
+              {t("autoReply.toggleHint")}
             </div>
           </div>
 
@@ -1216,7 +1162,7 @@ function AccountPageInner() {
             <>
               <div className="form-field full">
                 <label htmlFor="reviews-auto-reply-mode">
-                  Hoe plaatst Filly de reactie?
+                  {t("autoReply.modeLabel")}
                 </label>
                 <select
                   id="reviews-auto-reply-mode"
@@ -1239,13 +1185,13 @@ function AccountPageInner() {
                   }}
                 >
                   <option value="concept">
-                    Concept klaarzetten ter goedkeuring (aanbevolen)
+                    {t("autoReply.modeConcept")}
                   </option>
                   {/* 'publish' is nog niet bruikbaar: automatisch
                       plaatsen vereist de Google Business Profile-koppeling
                       (komt in een latere fase). Disabled tot dan. */}
                   <option value="publish" disabled>
-                    Zelf plaatsen — beschikbaar zodra Google gekoppeld is
+                    {t("autoReply.modePublish")}
                   </option>
                 </select>
                 <div
@@ -1256,15 +1202,13 @@ function AccountPageInner() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Zolang Google nog niet gekoppeld is, zet Filly reacties
-                  altijd als concept klaar. Automatisch plaatsen komt
-                  beschikbaar zodra de Google-koppeling live is.
+                  {t("autoReply.modeHint")}
                 </div>
               </div>
 
               <div className="form-field full">
                 <label htmlFor="reviews-tone">
-                  Toon voor reviews-reacties
+                  {t("autoReply.toneLabel")}
                 </label>
                 <textarea
                   id="reviews-tone"
@@ -1273,7 +1217,7 @@ function AccountPageInner() {
                     update("reviews_tone_of_voice", e.target.value)
                   }
                   rows={3}
-                  placeholder="Bijv. warm en persoonlijk, bedank altijd bij naam, blijf rustig en oplossingsgericht bij kritiek."
+                  placeholder={t("autoReply.tonePlaceholder")}
                   style={{
                     padding: "8px 12px",
                     border: "1px solid var(--border, #E5DFD0)",
@@ -1294,9 +1238,7 @@ function AccountPageInner() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Laat leeg om de algemene merkstem te gebruiken die je bij
-                  Vindbaarheid &rsaquo; Identiteit hebt ingesteld. Vul hier
-                  iets in als je voor reviews een andere toon wilt.
+                  {t("autoReply.toneHint")}
                 </div>
               </div>
             </>
@@ -1312,12 +1254,15 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Abonnement</div>
-        <div className="form-section-desc">
-          Plan en facturering. Facturering komt in een latere stap.
-        </div>
+        <div className="form-section-title">{t("subscription.title")}</div>
+        <div className="form-section-desc">{t("subscription.desc")}</div>
         <div className="form-grid">
-          <Input label="Huidig plan" type="text" value={form.plan} disabled />
+          <Input
+            label={t("subscription.currentPlan")}
+            type="text"
+            value={form.plan}
+            disabled
+          />
         </div>
       </div>
       )}
@@ -1327,11 +1272,8 @@ function AccountPageInner() {
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
-        <div className="form-section-title">Data &amp; privacy</div>
-        <div className="form-section-desc">
-          Volgens de AVG (art. 20) heb je recht op een complete export
-          van je business-data in een leesbaar formaat.
-        </div>
+        <div className="form-section-title">{t("dataPrivacy.title")}</div>
+        <div className="form-section-desc">{t("dataPrivacy.desc")}</div>
         <div className="form-field full">
           <Button
             variant="secondary"
@@ -1340,7 +1282,7 @@ function AccountPageInner() {
               setExporting(true);
               try {
                 await downloadRestaurantExport();
-                setSaveMessage("Export gedownload ✓");
+                setSaveMessage(t("dataPrivacy.exportSuccess"));
                 setSaveStatus("success");
                 setTimeout(() => setSaveStatus("idle"), 2500);
               } catch (e) {
@@ -1348,20 +1290,17 @@ function AccountPageInner() {
                 setSaveMessage(
                   e instanceof Error
                     ? e.message
-                    : "Export mislukt. Probeer opnieuw.",
+                    : t("dataPrivacy.exportError"),
                 );
               } finally {
                 setExporting(false);
               }
             }}
           >
-            ⬇️ Download volledige data-export (JSON)
+            {t("dataPrivacy.exportButton")}
           </Button>
           <div className="hint" style={{ marginTop: 8 }}>
-            Bevat: profielgegevens, gasten, reserveringen, menu,
-            campagnes, reviews, chat-history en audit-log. Logo&apos;s en
-            menu-PDF&apos;s staan als URL in het bestand, die kun je
-            apart downloaden.
+            {t("dataPrivacy.exportHint")}
           </div>
         </div>
 
@@ -1384,13 +1323,10 @@ function AccountPageInner() {
               fontSize: 14,
             }}
           >
-            Account permanent verwijderen
+            {t("deleteAccount.heading")}
           </div>
           <div className="hint" style={{ marginBottom: 12 }}>
-            Wist je restaurant + alle gasten, reserveringen, menu, campagnes
-            en chat-history. Daarna verdwijnt ook je inlog-account. Deze
-            actie is onomkeerbaar, download eerst je data-export
-            hierboven als je iets wilt bewaren.
+            {t("deleteAccount.hint")}
           </div>
           <Button
             variant="danger"
@@ -1400,7 +1336,7 @@ function AccountPageInner() {
               setShowDeleteModal(true);
             }}
           >
-            🗑 Account permanent verwijderen
+            {t("deleteAccount.button")}
           </Button>
         </div>
       </div>
@@ -1459,7 +1395,7 @@ function AccountPageInner() {
                 marginBottom: 12,
               }}
             >
-              Weet je het zeker?
+              {t("deleteModal.title")}
             </div>
             <div
               style={{
@@ -1469,8 +1405,9 @@ function AccountPageInner() {
                 lineHeight: 1.5,
               }}
             >
-              Je staat op het punt om <strong>je hele account</strong> te
-              verwijderen. Dit betekent:
+              {t.rich("deleteModal.intro", {
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
             <ul
               style={{
@@ -1481,15 +1418,11 @@ function AccountPageInner() {
                 paddingLeft: 20,
               }}
             >
-              <li>Je restaurant + alle profielgegevens worden gewist</li>
-              <li>Alle gasten, reserveringen, menu en campagnes verdwijnen</li>
-              <li>Reviews, chat-history en audit-log worden verwijderd</li>
-              <li>Je inlog-account (e-mail + wachtwoord) wordt gewist</li>
-              <li>
-                Anonieme leerdata (cuisine + regio + campagne-resultaten,
-                géén namen of adressen) blijft bewaard om Filly te trainen,
-                conform AVG Recital 26.
-              </li>
+              <li>{t("deleteModal.item1")}</li>
+              <li>{t("deleteModal.item2")}</li>
+              <li>{t("deleteModal.item3")}</li>
+              <li>{t("deleteModal.item4")}</li>
+              <li>{t("deleteModal.item5")}</li>
             </ul>
             <div
               style={{
@@ -1498,7 +1431,9 @@ function AccountPageInner() {
                 marginBottom: 8,
               }}
             >
-              Type <strong>VERWIJDER</strong> om door te gaan:
+              {t.rich("deleteModal.typeToConfirm", {
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
             <input
               type="text"
@@ -1543,7 +1478,7 @@ function AccountPageInner() {
                 onClick={() => setShowDeleteModal(false)}
                 disabled={deleting}
               >
-                Annuleren
+                {t("deleteModal.cancel")}
               </Button>
               <Button
                 variant="danger"
@@ -1562,13 +1497,13 @@ function AccountPageInner() {
                     setDeleteError(
                       e instanceof Error
                         ? e.message
-                        : "Verwijderen mislukt, probeer opnieuw of neem contact op met support.",
+                        : t("deleteModal.deleteError"),
                     );
                     setDeleting(false);
                   }
                 }}
               >
-                Ja, verwijder mijn account
+                {t("deleteModal.confirm")}
               </Button>
             </div>
           </div>
@@ -1599,7 +1534,7 @@ function AccountPageInner() {
           onClick={handleSave}
           loading={saveStatus === "saving"}
         >
-          Wijzigingen opslaan
+          {t("saveButton")}
         </Button>
       </div>
     </div>

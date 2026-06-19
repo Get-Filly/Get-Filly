@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   analyzeRestaurantWebsite,
   fetchRestaurant,
@@ -61,14 +62,6 @@ import {
 // nu de volledige menu-omgeving embedded i.p.v. een doorverwijzing.
 type SubTab = "basics" | "toon" | "seo" | "menu" | "online";
 
-const SUBTABS: { key: SubTab; label: string }[] = [
-  { key: "basics", label: "Basis" },
-  { key: "toon", label: "Toon" },
-  { key: "seo", label: "SEO" },
-  { key: "menu", label: "Menu" },
-  { key: "online", label: "Online" },
-];
-
 // Velden die in deze pagina bewerkbaar zijn. Save-payload wordt
 // daaruit gefilterd zodat we geen onbedoelde DB-velden meeschrijven.
 type EditableFields =
@@ -93,9 +86,23 @@ type EditableFields =
   | "social_media";
 
 function IdentiteitPageInner() {
+  const t = useTranslations("dash_google_business_identiteit_page");
+  // Aparte translator voor de checklist-builders (eigen namespace); de
+  // builders zijn gewone functies en krijgen 't' doorgegeven.
+  const tChecklist = useTranslations(
+    "dash_google_business_identiteit_components_identiteit_checklist",
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   const subtab = (searchParams.get("subtab") as SubTab) ?? "basics";
+
+  const SUBTABS: { key: SubTab; label: string }[] = [
+    { key: "basics", label: t("tabs.basics") },
+    { key: "toon", label: t("tabs.toon") },
+    { key: "seo", label: t("tabs.seo") },
+    { key: "menu", label: t("tabs.menu") },
+    { key: "online", label: t("tabs.online") },
+  ];
 
   const [form, setForm] = useState<Restaurant | null>(null);
   const [original, setOriginal] = useState<Restaurant | null>(null);
@@ -124,8 +131,9 @@ function IdentiteitPageInner() {
         setOriginal(r);
         setMediaCount(media.length);
       })
-      .catch(() => setSaveError("Kon profiel niet laden."))
+      .catch(() => setSaveError(t("errors.loadFailed")))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Helper: lokaal in form-state een veld updaten. Houdt 'original'
@@ -196,9 +204,7 @@ function IdentiteitPageInner() {
   const handleAnalyze = async () => {
     if (!form || analyzing) return;
     if (!form.website_url) {
-      setAnalyzeError(
-        "Vul eerst je website-URL in op de Online-tab voordat Filly kan analyseren.",
-      );
+      setAnalyzeError(t("analyze.noUrlError"));
       return;
     }
     setAnalyzing(true);
@@ -213,13 +219,9 @@ function IdentiteitPageInner() {
       const updated = await analyzeRestaurantWebsite();
       setForm(updated);
       setOriginal(updated);
-      setAnalyzeMessage("Filly heeft je profiel bijgewerkt. Check elk veld + sla op als je nog wijzigingen doet.");
+      setAnalyzeMessage(t("analyze.successMessage"));
     } catch (e) {
-      setAnalyzeError(
-        e instanceof Error
-          ? e.message
-          : "Filly-analyse mislukt. Probeer opnieuw of vul handmatig in.",
-      );
+      setAnalyzeError(e instanceof Error ? e.message : t("analyze.failed"));
     } finally {
       setAnalyzing(false);
     }
@@ -269,9 +271,7 @@ function IdentiteitPageInner() {
       setForm(updated);
       setOriginal(updated);
     } catch (e) {
-      setSaveError(
-        e instanceof Error ? e.message : "Opslaan mislukt, probeer opnieuw.",
-      );
+      setSaveError(e instanceof Error ? e.message : t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -283,9 +283,9 @@ function IdentiteitPageInner() {
   if (loading || !form) {
     return (
       <div className="page-full">
-        <PageHeader title="Identiteit" />
+        <PageHeader title={t("title")} />
         <div style={{ color: "var(--tl)", fontSize: 13, marginTop: 16 }}>
-          Laden…
+          {t("loading")}
         </div>
       </div>
     );
@@ -341,7 +341,7 @@ function IdentiteitPageInner() {
               marginBottom: 4,
             }}
           >
-            Laat Filly deze velden invullen
+            {t("analyze.bannerTitle")}
           </div>
           <div
             style={{
@@ -351,13 +351,14 @@ function IdentiteitPageInner() {
               lineHeight: 1.5,
             }}
           >
-            {subsetText} Filly leest je website
+            {subsetText} {t("analyze.readsWebsite")}
             {form?.website_url ? (
               <>
-                {" "}<span style={{ fontWeight: 600 }}>({form.website_url})</span>
+                {" "}
+                <span style={{ fontWeight: 600 }}>({form.website_url})</span>
               </>
             ) : null}{" "}
-            en vult de velden hieronder in zodat je niet alles handmatig hoeft te typen.
+            {t("analyze.fillsFields")}
           </div>
           {analyzeError && (
             <div
@@ -389,11 +390,15 @@ function IdentiteitPageInner() {
             disabled={!hasWebsite || analyzing}
             title={
               hasWebsite
-                ? "Filly leest je website en vult de velden hieronder in"
-                : "Vul eerst je website-URL in op de Online-tab"
+                ? t("analyze.buttonTitleEnabled")
+                : t("analyze.buttonTitleDisabled")
             }
           >
-            {analyzing ? "Filly leest…" : hasWebsite ? "Laat Filly invullen" : "Eerst website-URL invullen"}
+            {analyzing
+              ? t("analyze.buttonLoading")
+              : hasWebsite
+                ? t("analyze.buttonEnabled")
+                : t("analyze.buttonDisabled")}
           </Button>
         </div>
       </div>
@@ -402,84 +407,84 @@ function IdentiteitPageInner() {
 
   const renderBasics = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      {renderAnalyzeBanner(
-        "Hier staan je restaurant-naam, beschrijving, doelgroep en locatie.",
-      )}
+      {renderAnalyzeBanner(t("analyze.subsetBasics"))}
       <IdentiteitChecklist
-        title="Voortgang Basis"
-        items={buildBasicsChecklist(form, mediaCount)}
+        title={t("basics.progressTitle")}
+        items={buildBasicsChecklist(form, mediaCount, tChecklist)}
         collapseKey="getfilly_identiteit_basics_collapsed_v1"
       />
 
       <FormSection
-        title="Restaurant"
-        desc="De basisgegevens die Filly in iedere post nodig heeft."
+        title={t("basics.restaurantTitle")}
+        desc={t("basics.restaurantDesc")}
       >
         <Input
           full
-          label="Restaurant-naam"
+          label={t("basics.nameLabel")}
           value={form.name ?? ""}
           onChange={(e) => update("name", e.target.value)}
         />
         <Input
           full
-          label="Tagline (1 zin)"
+          label={t("basics.taglineLabel")}
           value={form.tagline ?? ""}
           onChange={(e) => update("tagline", e.target.value || null)}
-          placeholder="Gezellige buurtbistro in hart van Amsterdam"
+          placeholder={t("basics.taglinePlaceholder")}
         />
         <Textarea
           full
-          label="Volledige beschrijving"
+          label={t("basics.descriptionLabel")}
           value={form.description ?? ""}
           onChange={(e) => update("description", e.target.value || null)}
-          placeholder="Vertel uitgebreid over je restaurant, geschiedenis, filosofie..."
+          placeholder={t("basics.descriptionPlaceholder")}
           rows={4}
         />
         <Input
           full
-          label="Keuken-stijl"
+          label={t("basics.cuisineLabel")}
           value={(form.cuisine_style ?? []).join(", ")}
           onChange={(e) => csvUpdate("cuisine_style", e.target.value)}
-          placeholder="Italiaans, Mediterraans"
-          hint="Komma-gescheiden. Filly gebruikt dit voor toon + thema-suggesties."
+          placeholder={t("basics.cuisinePlaceholder")}
+          hint={t("basics.cuisineHint")}
         />
       </FormSection>
 
       <FormSection
-        title="Doelgroep"
-        desc="Wie Filly aanspreekt in z'n posts. Hoe specifieker, hoe relevanter de tekst."
+        title={t("basics.audienceTitle")}
+        desc={t("basics.audienceDesc")}
       >
         <Textarea
           full
-          label="Hoofd-doelgroep"
+          label={t("basics.mainAudienceLabel")}
           value={form.target_audience ?? ""}
           onChange={(e) => update("target_audience", e.target.value || null)}
-          placeholder="Lokale bewoners, professionals op lunch, families in het weekend..."
+          placeholder={t("basics.mainAudiencePlaceholder")}
           rows={2}
         />
         <Input
           full
-          label="Doelgroep-segmenten"
+          label={t("basics.audienceSegmentsLabel")}
           value={(form.target_audience_segments ?? []).join(", ")}
-          onChange={(e) => csvUpdate("target_audience_segments", e.target.value)}
-          placeholder="vaste-gasten, nieuwe-gasten, toeristen, professionals"
-          hint="Komma-gescheiden. Filly varieert toon en aanbod per segment."
+          onChange={(e) =>
+            csvUpdate("target_audience_segments", e.target.value)
+          }
+          placeholder={t("basics.audienceSegmentsPlaceholder")}
+          hint={t("basics.audienceSegmentsHint")}
         />
       </FormSection>
 
       <FormSection
-        title="Locatie & buurt"
-        desc="Geeft posts lokale verankering. Goed voor SEO én herkenning bij potentiële gasten."
+        title={t("basics.locationTitle")}
+        desc={t("basics.locationDesc")}
       >
         <Textarea
           full
-          label="Locatie-omschrijving"
+          label={t("basics.locationLabel")}
           value={form.location_description ?? ""}
           onChange={(e) =>
             update("location_description", e.target.value || null)
           }
-          placeholder="Hartje Pijp, achter de Albert Cuyp. Omringd door winkels, bars en koffietentjes. Goed bereikbaar met tram 4 (halte Stadhouderskade)."
+          placeholder={t("basics.locationPlaceholder")}
           rows={3}
         />
       </FormSection>
@@ -488,8 +493,8 @@ function IdentiteitPageInner() {
           eigen state + upload-flow in <RestaurantMediaSection />,
           dus we plaatsen 'm hier direct als embedded sectie. */}
       <FormSection
-        title="Foto-bibliotheek"
-        desc="Beelden die Filly mag gebruiken in social-posts en mail-templates. Upload meerdere zodat Filly variatie kan kiezen per campagne."
+        title={t("basics.photoLibraryTitle")}
+        desc={t("basics.photoLibraryDesc")}
       >
         <RestaurantMediaSection />
       </FormSection>
@@ -498,12 +503,12 @@ function IdentiteitPageInner() {
           campagne-grafiek. Inline-velden, voor nu zonder file-upload
           (logo-upload-flow zit in account-pagina; we tonen 'm alleen). */}
       <FormSection
-        title="Branding"
-        desc="Logo en huiskleuren die Filly toepast in mail-templates en visuele uitingen."
+        title={t("basics.brandingTitle")}
+        desc={t("basics.brandingDesc")}
       >
         <Input
           full
-          label="Logo-URL"
+          label={t("basics.logoUrlLabel")}
           value={form.logo_url ?? ""}
           onChange={(e) =>
             setForm((prev) =>
@@ -511,13 +516,13 @@ function IdentiteitPageInner() {
             )
           }
           placeholder="https://..."
-          hint="Direct-link naar je logo (PNG of SVG). Upload-flow komt in volgende ronde."
+          hint={t("basics.logoUrlHint")}
         />
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <Input
               full
-              label="Hoofdkleur"
+              label={t("basics.primaryColorLabel")}
               type="text"
               value={form.brand_colors?.primary ?? ""}
               onChange={(e) =>
@@ -534,13 +539,13 @@ function IdentiteitPageInner() {
                 )
               }
               placeholder="#1F4A2D"
-              hint="Hex-code (#RRGGBB)."
+              hint={t("basics.primaryColorHint")}
             />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <Input
               full
-              label="Secundaire kleur"
+              label={t("basics.secondaryColorLabel")}
               type="text"
               value={form.brand_colors?.secondary ?? ""}
               onChange={(e) =>
@@ -557,7 +562,7 @@ function IdentiteitPageInner() {
                 )
               }
               placeholder="#FAF7F1"
-              hint="Optioneel."
+              hint={t("basics.secondaryColorHint")}
             />
           </div>
         </div>
@@ -567,113 +572,105 @@ function IdentiteitPageInner() {
 
   const renderToon = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      {renderAnalyzeBanner(
-        "Hier bepalen we de toon van Filly's posts: sfeer, schrijfstijl, brand-story, USP's en awards.",
-      )}
+      {renderAnalyzeBanner(t("analyze.subsetToon"))}
       <IdentiteitChecklist
-        title="Voortgang Toon"
-        items={buildToonChecklist(form)}
+        title={t("toon.progressTitle")}
+        items={buildToonChecklist(form, tChecklist)}
         collapseKey="getfilly_identiteit_toon_collapsed_v1"
       />
 
       <FormSection
-        title="Sfeer & interieur"
-        desc="De zintuiglijke ervaring die Filly in posts kan oproepen."
+        title={t("toon.atmosphereTitle")}
+        desc={t("toon.atmosphereDesc")}
       >
         <Textarea
           full
-          label="Sfeer + interieur"
+          label={t("toon.atmosphereLabel")}
           value={form.atmosphere ?? ""}
           onChange={(e) => update("atmosphere", e.target.value || null)}
-          placeholder="Warm, intiem, houten interieur, zacht jazzmuziek, kaarslicht 's avonds..."
+          placeholder={t("toon.atmospherePlaceholder")}
           rows={3}
         />
       </FormSection>
 
-      <FormSection
-        title="Tone-of-voice"
-        desc="Hoe Filly schrijft. Bron-van-waarheid; was eerder impliciet uit beschrijving."
-      >
+      <FormSection title={t("toon.toneTitle")} desc={t("toon.toneDesc")}>
         <Textarea
           full
-          label="Toon"
+          label={t("toon.toneLabel")}
           value={form.tone_of_voice ?? ""}
           onChange={(e) => update("tone_of_voice", e.target.value || null)}
-          placeholder="Speels-informeel met droge humor. Vermijd corporate. Gebruik je-vorm."
+          placeholder={t("toon.tonePlaceholder")}
           rows={3}
         />
       </FormSection>
 
       <FormSection
-        title="Brand-story"
-        desc="Het verhaal achter het restaurant. Filly verwerkt 't in storytelling-posts."
+        title={t("toon.brandStoryTitle")}
+        desc={t("toon.brandStoryDesc")}
       >
         <Textarea
           full
-          label="Verhaal / filosofie"
+          label={t("toon.brandStoryLabel")}
           value={form.brand_story ?? ""}
           onChange={(e) => update("brand_story", e.target.value || null)}
-          placeholder="Open sinds 1985, derde generatie. We werken alleen met lokale boeren binnen 30 km..."
+          placeholder={t("toon.brandStoryPlaceholder")}
           rows={4}
         />
       </FormSection>
 
       <FormSection
-        title="Wat doen we niet"
-        desc="Voorkomt dat Filly valse beloften maakt in posts of campagnes."
+        title={t("toon.doNotMentionTitle")}
+        desc={t("toon.doNotMentionDesc")}
       >
         <Textarea
           full
-          label="Anti-claims"
+          label={t("toon.doNotMentionLabel")}
           value={form.do_not_mention ?? ""}
           onChange={(e) => update("do_not_mention", e.target.value || null)}
-          placeholder="Geen vegan-opties. Geen take-away. Geen halal-keuken. Geen privé-ruimte."
+          placeholder={t("toon.doNotMentionPlaceholder")}
           rows={3}
         />
       </FormSection>
 
       <FormSection
-        title="Sterke punten"
-        desc="USP's en signature dishes die in posts mogen prominent staan."
+        title={t("toon.strengthsTitle")}
+        desc={t("toon.strengthsDesc")}
       >
         <Textarea
           full
-          label="Unique selling points"
+          label={t("toon.uspLabel")}
           value={form.unique_selling_points ?? ""}
           onChange={(e) =>
             update("unique_selling_points", e.target.value || null)
           }
-          placeholder="Eigen kruidentuin, open keuken, wekelijks wisselend menu..."
+          placeholder={t("toon.uspPlaceholder")}
           rows={3}
         />
         <Input
           full
-          label="Signature dishes"
+          label={t("toon.signatureDishesLabel")}
           value={(form.signature_dishes ?? []).join(", ")}
           onChange={(e) => csvUpdate("signature_dishes", e.target.value)}
-          placeholder="Kalfsstoof, Zeebaars met lenteuitjes"
-          hint="Komma-gescheiden. Filly verwerkt deze in campagne-teksten."
+          placeholder={t("toon.signatureDishesPlaceholder")}
+          hint={t("toon.signatureDishesHint")}
         />
         <Input
           full
-          label="Awards & certificeringen"
+          label={t("toon.awardsLabel")}
           value={(form.awards ?? []).join(", ")}
           onChange={(e) => csvUpdate("awards", e.target.value)}
-          placeholder="Bib Gourmand 2024, BIO-keurmerk, Tripadvisor Travelers' Choice"
-          hint="Komma-gescheiden. Filly mag deze als sociale-proof noemen in posts."
+          placeholder={t("toon.awardsPlaceholder")}
+          hint={t("toon.awardsHint")}
         />
       </FormSection>
 
-      <FormSection
-        title="Speciale gelegenheden"
-        desc="Bv. besloten evenementen, privéruimtes, groepsdiners."
-      >
+      <FormSection title={t("toon.eventsTitle")} desc={t("toon.eventsDesc")}>
         <Textarea
           full
-          label="Events & gelegenheden"
+          label={t("toon.eventsLabel")}
           value={form.special_events ?? ""}
           onChange={(e) => update("special_events", e.target.value || null)}
-          placeholder="Verjaardagen, bedrijfslunches, trouwdiners, privéruimte tot 30 personen..."
+          placeholder={t("toon.eventsPlaceholder")}
           rows={2}
         />
       </FormSection>
@@ -682,40 +679,38 @@ function IdentiteitPageInner() {
 
   const renderSeo = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      {renderAnalyzeBanner(
-        "Hier staan SEO-trefwoorden en vaste hashtags die Filly in elke post probeert te verwerken.",
-      )}
+      {renderAnalyzeBanner(t("analyze.subsetSeo"))}
       <IdentiteitChecklist
-        title="Voortgang SEO"
-        items={buildSeoChecklist(form)}
+        title={t("seo.progressTitle")}
+        items={buildSeoChecklist(form, tChecklist)}
         collapseKey="getfilly_identiteit_seo_collapsed_v1"
       />
 
       <FormSection
-        title="Trefwoorden"
-        desc="Woorden die Filly altijd probeert te verwerken in posts. Helpt vindbaarheid in zoekmachines + AI-tools."
+        title={t("seo.keywordsTitle")}
+        desc={t("seo.keywordsDesc")}
       >
         <Input
           full
-          label="SEO-trefwoorden"
+          label={t("seo.keywordsLabel")}
           value={(form.keywords ?? []).join(", ")}
           onChange={(e) => csvUpdate("keywords", e.target.value)}
-          placeholder="duurzaam, seizoen, lokaal, ambachtelijk, italiaans, pijp"
-          hint="Komma-gescheiden. Gebruik 5-15 termen die je zaak typeren."
+          placeholder={t("seo.keywordsPlaceholder")}
+          hint={t("seo.keywordsHint")}
         />
       </FormSection>
 
       <FormSection
-        title="Vaste hashtags"
-        desc="Hashtags die automatisch in iedere Instagram/TikTok-post komen."
+        title={t("seo.hashtagsTitle")}
+        desc={t("seo.hashtagsDesc")}
       >
         <Input
           full
-          label="Default hashtags"
+          label={t("seo.hashtagsLabel")}
           value={(form.default_hashtags ?? []).join(", ")}
           onChange={(e) => csvUpdate("default_hashtags", e.target.value)}
-          placeholder="pijpamsterdam, italianocooking, amsterdamfood, instafood"
-          hint="Zonder #-teken. Filly voegt 3-5 platform-specifieke hashtags toe per post."
+          placeholder={t("seo.hashtagsPlaceholder")}
+          hint={t("seo.hashtagsHint")}
         />
       </FormSection>
     </div>
@@ -731,30 +726,29 @@ function IdentiteitPageInner() {
   const renderOnline = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <FormSection
-        title="Website"
-        desc="Filly leest je website periodiek uit om tone en aanbod up-to-date te houden."
+        title={t("online.websiteTitle")}
+        desc={t("online.websiteDesc")}
       >
         <Input
           full
-          label="Website-URL"
+          label={t("online.websiteUrlLabel")}
           type="url"
           value={form.website_url ?? ""}
           onChange={(e) => update("website_url", e.target.value || null)}
           placeholder="https://jouwrestaurant.nl"
         />
         <div style={{ fontSize: 12, color: "var(--tl)" }}>
-          Volledige website-analyse (auto-invul van tagline, sfeer,
-          USP&apos;s) blijft voorlopig beschikbaar via de Account-pagina.
+          {t("online.websiteNote")}
         </div>
       </FormSection>
 
       <FormSection
-        title="Social media"
-        desc="Filly verwerkt deze handles in social-campagnes en mail-footers."
+        title={t("online.socialTitle")}
+        desc={t("online.socialDesc")}
       >
         <Input
           full
-          label="Instagram"
+          label={t("online.instagramLabel")}
           value={form.social_media?.instagram ?? ""}
           onChange={(e) =>
             update("social_media", {
@@ -766,7 +760,7 @@ function IdentiteitPageInner() {
         />
         <Input
           full
-          label="Facebook"
+          label={t("online.facebookLabel")}
           value={form.social_media?.facebook ?? ""}
           onChange={(e) =>
             update("social_media", {
@@ -778,7 +772,7 @@ function IdentiteitPageInner() {
         />
         <Input
           full
-          label="TikTok"
+          label={t("online.tiktokLabel")}
           value={form.social_media?.tiktok ?? ""}
           onChange={(e) =>
             update("social_media", {
@@ -790,7 +784,7 @@ function IdentiteitPageInner() {
         />
         <Input
           full
-          label="LinkedIn"
+          label={t("online.linkedinLabel")}
           value={form.social_media?.linkedin ?? ""}
           onChange={(e) =>
             update("social_media", {
@@ -818,12 +812,9 @@ function IdentiteitPageInner() {
           marginBottom: 8,
         }}
       >
-        ← Terug naar Vindbaarheid
+        {t("backLink")}
       </Link>
-      <PageHeader
-        title="Identiteit"
-        subtitle="De bron-van-waarheid voor alle posts en campagnes die Filly maakt. Hoe vollediger, hoe persoonlijker en effectiever."
-      />
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Tabs<SubTab>
         items={SUBTABS}
@@ -861,8 +852,7 @@ function IdentiteitPageInner() {
           }}
         >
           <div style={{ fontSize: 13, color: "var(--text)" }}>
-            <strong>{dirtyCount}</strong>{" "}
-            {dirtyCount === 1 ? "veld" : "velden"} gewijzigd
+            {t("saveBar.changed", { count: dirtyCount })}
             {saveError && (
               <span
                 style={{
@@ -876,7 +866,7 @@ function IdentiteitPageInner() {
             )}
           </div>
           <Button variant="primary" onClick={handleSave} loading={saving}>
-            Wijzigingen opslaan
+            {t("saveBar.saveButton")}
           </Button>
         </div>
       )}

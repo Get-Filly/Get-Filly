@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchMenu,
   createMenuItem,
@@ -40,13 +41,15 @@ type Category = (typeof categoryOrder)[number];
 // één active-tab tegelijk heeft.
 type CategoryFilter = "alle" | "voorgesteld" | "afgewezen" | Category;
 
-const categoryLabel: Record<Category, string> = {
-  voorgerecht: "Voorgerechten",
-  tussen: "Tussengerechten",
-  hoofd: "Hoofdgerechten",
-  dessert: "Desserts",
-  drank: "Dranken",
-  overig: "Overig",
+// Map van Category → label-key in de namespace; het label zelf wordt
+// uit t() gehaald binnen de component (i18n).
+const categoryLabelKey: Record<Category, string> = {
+  voorgerecht: "category.voorgerecht",
+  tussen: "category.tussen",
+  hoofd: "category.hoofd",
+  dessert: "category.dessert",
+  drank: "category.drank",
+  overig: "category.overig",
 };
 
 // Sub-categorieën voor de drank-tab. Visuele groepering in de UI;
@@ -65,17 +68,17 @@ const DRINK_SUBCATEGORY_ORDER = [
   "overig",
 ] as const;
 
-const DRINK_SUBCATEGORY_LABEL: Record<string, string> = {
-  "wijn-rood": "Rode wijnen",
-  "wijn-wit": "Witte wijnen",
-  "wijn-rose": "Rosé wijnen",
-  "wijn-mousserend": "Mousserend",
-  bier: "Bieren",
-  cocktail: "Cocktails",
-  "sterke-drank": "Sterke drank",
-  "koffie-thee": "Koffie & thee",
-  fris: "Fris & alcoholvrij",
-  overig: "Overig",
+const DRINK_SUBCATEGORY_LABEL_KEY: Record<string, string> = {
+  "wijn-rood": "drinkSub.wijnRood",
+  "wijn-wit": "drinkSub.wijnWit",
+  "wijn-rose": "drinkSub.wijnRose",
+  "wijn-mousserend": "drinkSub.wijnMousserend",
+  bier: "drinkSub.bier",
+  cocktail: "drinkSub.cocktail",
+  "sterke-drank": "drinkSub.sterkeDrank",
+  "koffie-thee": "drinkSub.koffieThee",
+  fris: "drinkSub.fris",
+  overig: "drinkSub.overig",
 };
 
 // Filly (en handmatige invoer) levert soms variaties op de
@@ -161,29 +164,31 @@ function groupBySubcategory(items: MenuItem[]): Map<string, MenuItem[]> {
   return groups;
 }
 
-const seasonLabel: Record<string, string> = {
-  spring: "Lente",
-  summer: "Zomer",
-  autumn: "Herfst",
-  winter: "Winter",
+// Seizoen-keys → label-key in de namespace; de keys (spring/summer/…)
+// blijven de DB-waarden, alleen de labels zijn i18n.
+const seasonLabelKey: Record<string, string> = {
+  spring: "season.spring",
+  summer: "season.summer",
+  autumn: "season.autumn",
+  winter: "season.winter",
 };
 
-const seasonOptions: { key: string; label: string }[] = [
-  { key: "spring", label: "Lente" },
-  { key: "summer", label: "Zomer" },
-  { key: "autumn", label: "Herfst" },
-  { key: "winter", label: "Winter" },
+const seasonOptionKeys: { key: string; labelKey: string }[] = [
+  { key: "spring", labelKey: "season.spring" },
+  { key: "summer", labelKey: "season.summer" },
+  { key: "autumn", labelKey: "season.autumn" },
+  { key: "winter", labelKey: "season.winter" },
 ];
 
 // Standaardset dieet-tags die een horeca-eigenaar meestal nodig heeft.
 // In productie mogelijk uit een centrale tags-tabel. De keys komen overeen
-// met wat er in de DB wordt opgeslagen; de labels zijn voor de UI.
-const dietaryTagOptions: { key: string; label: string }[] = [
-  { key: "vega", label: "Vegetarisch" },
-  { key: "vegan", label: "Veganistisch" },
-  { key: "gluten_vrij", label: "Glutenvrij" },
-  { key: "lactose_vrij", label: "Lactosevrij" },
-  { key: "noten_vrij", label: "Notenvrij" },
+// met wat er in de DB wordt opgeslagen; de labels zijn voor de UI (i18n).
+const dietaryTagOptionKeys: { key: string; labelKey: string }[] = [
+  { key: "vega", labelKey: "diet.vega" },
+  { key: "vegan", labelKey: "diet.vegan" },
+  { key: "gluten_vrij", labelKey: "diet.glutenVrij" },
+  { key: "lactose_vrij", labelKey: "diet.lactoseVrij" },
+  { key: "noten_vrij", labelKey: "diet.notenVrij" },
 ];
 
 function formatEuroFromCents(cents: number | null): string {
@@ -238,6 +243,7 @@ type UploadStage =
 type MenuPageProps = { embedded?: boolean };
 
 export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
+  const t = useTranslations("dash_menu_page");
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -407,11 +413,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       // Fout-message van de backend (bv. "Naam is verplicht.") tonen.
       // Modal blijft open zodat de gebruiker kan corrigeren zonder z'n
       // werk te verliezen.
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
-      );
+      alert(e instanceof Error ? e.message : t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -421,7 +423,9 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
     if (!editing || isNew) return;
     if (
       !window.confirm(
-        `Weet je zeker dat je '${editing.name || "dit gerecht"}' wilt verwijderen? Dit kan niet ongedaan worden.`,
+        t("confirm.deleteItem", {
+          name: editing.name || t("confirm.thisDish"),
+        }),
       )
     ) {
       return;
@@ -433,11 +437,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       setItems(fresh);
       closeModal();
     } catch (e) {
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Verwijderen mislukt. Probeer het opnieuw.",
-      );
+      alert(e instanceof Error ? e.message : t("errors.deleteFailed"));
     } finally {
       setSaving(false);
     }
@@ -489,7 +489,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       setUploadStage("done");
     } catch (e) {
       setUploadError(
-        e instanceof Error ? e.message : "Upload mislukt, probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.uploadFailed"),
       );
       setUploadStage("error");
     } finally {
@@ -519,13 +519,18 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
   // de items die er uit kwamen. Handmatig toegevoegde items blijven
   // staan (geen menu_upload_id-link in DB).
   const removeUploadedCard = async (card: ActiveMenuCard) => {
-    const cardLabel = card.kind === "drinks" ? "drankkaart" : "menu-kaart";
-    const itemNoun = card.kind === "drinks" ? "drankjes" : "gerechten";
+    const cardLabel =
+      card.kind === "drinks"
+        ? t("cardNoun.drinksCard")
+        : t("cardNoun.menuCard");
+    const itemNoun =
+      card.kind === "drinks" ? t("itemNoun.drinks") : t("itemNoun.dishes");
     const ok = window.confirm(
-      `Weet je zeker dat je deze ${cardLabel} wil verwijderen?\n\n` +
-        `De ${card.items_count} ${itemNoun} die uit deze kaart ` +
-        `geïmporteerd zijn worden ook verwijderd. Handmatig toegevoegde ` +
-        `items blijven staan.`,
+      t("confirm.deleteCard", {
+        cardLabel,
+        count: card.items_count,
+        itemNoun,
+      }),
     );
     if (!ok) return;
     try {
@@ -537,11 +542,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       setItems(menuData);
       setUploadedCards(cards);
     } catch (e) {
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Verwijderen mislukt. Probeer het opnieuw.",
-      );
+      alert(e instanceof Error ? e.message : t("errors.deleteFailed"));
     }
   };
 
@@ -553,11 +554,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       const url = await fetchCardSignedUrl(card.id);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Kon de kaart niet openen. Probeer het opnieuw.",
-      );
+      alert(e instanceof Error ? e.message : t("errors.openCardFailed"));
     }
   };
 
@@ -622,14 +619,18 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
         <div className="menu-item-name-row">
           <span className="menu-item-name">{item.name}</span>
           {!item.is_available && (
-            <span className="menu-item-badge-soft">Tijdelijk uit</span>
+            <span className="menu-item-badge-soft">
+              {t("badge.temporarilyOff")}
+            </span>
           )}
           {item.is_signature && (
-            <span className="menu-item-badge-signature">Signature</span>
+            <span className="menu-item-badge-signature">
+              {t("badge.signature")}
+            </span>
           )}
           {item.is_seasonal && item.season && (
             <span className="menu-item-badge-season">
-              {seasonLabel[item.season]}
+              {t(seasonLabelKey[item.season])}
             </span>
           )}
           {item.dietary_tags.map((t) => (
@@ -657,16 +658,16 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
           donker-groen op hover (Floris-keuze 2026-05-12). */}
       {!menuCard && (
         <Button variant="brand-soft" onClick={() => openUpload("menu")}>
-          📄 Menu-kaart uploaden
+          📄 {t("actions.uploadMenuCard")}
         </Button>
       )}
       {!drinksCard && (
         <Button variant="brand-soft" onClick={() => openUpload("drinks")}>
-          🍷 Drankkaart uploaden
+          🍷 {t("actions.uploadDrinksCard")}
         </Button>
       )}
       <Button variant="primary" onClick={openAdd}>
-        ＋ Gerecht toevoegen
+        ＋ {t("actions.addDish")}
       </Button>
     </>
   );
@@ -680,7 +681,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
 
   return (
     <Wrapper>
-      {!embedded && <PageHeader title="Menu" actions={headerActions} />}
+      {!embedded && <PageHeader title={t("pageTitle")} actions={headerActions} />}
       {embedded && (
         <div
           style={{
@@ -724,14 +725,13 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
         <div className="menu-filly-tip">
           <div>
             <div className="menu-filly-tip-label">
-              🌱 Filly&apos;s favorieten deze maand
+              🌱 {t("fillyTip.label")}
             </div>
             <div className="menu-filly-tip-body">
-              Deze gerechten gebruikt Filly het vaakst in zijn voorstellen:{" "}
-              <strong>
-                {fillyTop.map((i) => i.name).join(" · ")}
-              </strong>
-              . Houd ze up-to-date voor de beste campagnes.
+              {t.rich("fillyTip.body", {
+                dishes: fillyTop.map((i) => i.name).join(" · "),
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
           </div>
         </div>
@@ -749,23 +749,23 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
               className={`tab-btn ${filter === c ? "active" : ""}`}
               onClick={() => setFilter(c)}
             >
-              {c === "alle" ? "Alle" : categoryLabel[c as Category]} (
-              {countPer(c)})
+              {c === "alle" ? t("tabs.all") : t(categoryLabelKey[c as Category])}{" "}
+              ({countPer(c)})
             </button>
           ))}
           <button
             className={`tab-btn ${filter === "voorgesteld" ? "active" : ""}`}
             onClick={() => setFilter("voorgesteld")}
-            title="Filly's gerecht-voorstellen, 1× per dag, 3 voorstellen"
+            title={t("tabs.suggestedTitle")}
           >
-            Voorgesteld ({suggestions.length})
+            {t("tabs.suggested")} ({suggestions.length})
           </button>
           <button
             className={`tab-btn ${filter === "afgewezen" ? "active" : ""}`}
             onClick={() => setFilter("afgewezen")}
-            title="Eerder afgewezen voorstellen, laatste 90 dagen"
+            title={t("tabs.rejectedTitle")}
           >
-            Afgewezen ({rejectedSuggestions.length})
+            {t("tabs.rejected")} ({rejectedSuggestions.length})
           </button>
         </div>
       </div>
@@ -776,7 +776,7 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       {filter !== "voorgesteld" && filter !== "afgewezen" && (
         <input
           type="search"
-          placeholder="Zoek gerecht op naam of beschrijving..."
+          placeholder={t("searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="search-input"
@@ -806,29 +806,27 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
       ) : items.length === 0 ? (
         <EmptyState
           icon="🍽️"
-          title={error ? "Menu niet geladen" : "Nog geen menu"}
+          title={error ? t("empty.loadFailedTitle") : t("empty.noMenuTitle")}
           description={
-            error
-              ? "We konden het menu niet ophalen. Probeer de pagina te herladen."
-              : "Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes."
+            error ? t("empty.loadFailedDesc") : t("empty.noMenuDesc")
           }
           action={
             !error && (
               <Button variant="primary" onClick={openAdd}>
-                Gerecht toevoegen
+                {t("actions.addDish")}
               </Button>
             )
           }
         />
       ) : filtered.length === 0 ? (
-        <div className="table-empty">
-          Geen gerechten gevonden met deze filters.
-        </div>
+        <div className="table-empty">{t("empty.noResults")}</div>
       ) : (
         <div>
           {Array.from(grouped.entries()).map(([cat, list]) => {
-            const catLabel =
-              categoryLabel[cat as Category] ?? cat.charAt(0).toUpperCase() + cat.slice(1);
+            const catLabelKey = categoryLabelKey[cat as Category];
+            const catLabel = catLabelKey
+              ? t(catLabelKey)
+              : cat.charAt(0).toUpperCase() + cat.slice(1);
             const catAvg =
               list.length > 0
                 ? Math.round(
@@ -845,15 +843,19 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
               ? groupBySubcategory(list)
               : null;
             const noun = isDrinks
-              ? list.length === 1 ? "drankje" : "drankjes"
-              : list.length === 1 ? "gerecht" : "gerechten";
+              ? list.length === 1
+                ? t("itemNoun.drinkSingular")
+                : t("itemNoun.drinks")
+              : list.length === 1
+                ? t("itemNoun.dishSingular")
+                : t("itemNoun.dishes");
 
             return (
               <div key={cat} className="menu-category-block">
                 <div className="menu-category-head">
                   <h3 className="menu-category-title">{catLabel}</h3>
                   <div className="menu-category-meta">
-                    {list.length} {noun} · gem.{" "}
+                    {list.length} {noun} · {t("avgPrefix")}{" "}
                     {formatEuroFromCents(catAvg)}
                   </div>
                 </div>
@@ -873,7 +875,9 @@ export default function MenuPage({ embedded = false }: MenuPageProps = {}) {
                             letterSpacing: 0.5,
                           }}
                         >
-                          {DRINK_SUBCATEGORY_LABEL[sub] ?? sub}
+                          {DRINK_SUBCATEGORY_LABEL_KEY[sub]
+                            ? t(DRINK_SUBCATEGORY_LABEL_KEY[sub])
+                            : sub}
                           <span
                             style={{
                               marginLeft: 8,
@@ -954,18 +958,21 @@ function CardStatusBanner({
   onReplace: () => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations("dash_menu_page");
   const isDrinks = card.kind === "drinks";
-  const title = isDrinks ? "Drankkaart actief" : "Menu-kaart actief";
-  const replaceLabel = isDrinks ? "🍷 Nieuwe drankkaart" : "📄 Nieuwe menu-kaart";
+  const title = isDrinks ? t("banner.drinksActive") : t("banner.menuActive");
+  const replaceLabel = isDrinks
+    ? `🍷 ${t("banner.newDrinksCard")}`
+    : `📄 ${t("banner.newMenuCard")}`;
   const itemsCount = card.items_count;
   const noun =
     itemsCount === 1
       ? isDrinks
-        ? "drankje"
-        : "gerecht"
+        ? t("itemNoun.drinkSingular")
+        : t("itemNoun.dishSingular")
       : isDrinks
-        ? "drankjes"
-        : "gerechten";
+        ? t("itemNoun.drinks")
+        : t("itemNoun.dishes");
 
   return (
     <div className="menu-card-status">
@@ -976,7 +983,7 @@ function CardStatusBanner({
           <button
             type="button"
             onClick={onOpen}
-            title="Open de geüploade kaart in een nieuw tabblad"
+            title={t("banner.openCardTitle")}
             style={{
               background: "none",
               border: "none",
@@ -988,7 +995,10 @@ function CardStatusBanner({
               fontFamily: "inherit",
             }}
           >
-            {card.file_name ?? (isDrinks ? "drankkaart" : "menukaart")}
+            {card.file_name ??
+              (isDrinks
+                ? t("banner.fallbackDrinksCard")
+                : t("banner.fallbackMenuCard"))}
           </button>
           <span>·</span>
           <span>
@@ -1000,7 +1010,7 @@ function CardStatusBanner({
           </span>
           <span>·</span>
           <span>
-            {itemsCount} {noun} geïmporteerd
+            {t("banner.imported", { count: itemsCount, noun })}
           </span>
         </div>
       </div>
@@ -1014,7 +1024,7 @@ function CardStatusBanner({
           {replaceLabel}
         </Button>
         <button className="menu-card-status-remove" onClick={onRemove}>
-          Verwijderen
+          {t("actions.remove")}
         </button>
       </div>
     </div>
@@ -1055,10 +1065,13 @@ function UploadMenuModal({
   onDone: () => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("dash_menu_page");
   const isDrinks = kind === "drinks";
-  const cardLabel = isDrinks ? "drank-kaart" : "menu-kaart";
+  const cardLabel = isDrinks
+    ? t("cardNoun.drinksCard")
+    : t("cardNoun.menuCard");
   const cardIcon = isDrinks ? "🍷" : "📄";
-  const itemNoun = isDrinks ? "drankjes" : "gerechten";
+  const itemNoun = isDrinks ? t("itemNoun.drinks") : t("itemNoun.dishes");
   const isProcessing =
     stage === "reading" ||
     stage === "recognizing" ||
@@ -1066,20 +1079,20 @@ function UploadMenuModal({
 
   const stageLabel: Record<UploadStage, string> = {
     idle: "",
-    reading: "Bestand uploaden…",
+    reading: t("upload.stageReading"),
     recognizing: isDrinks
-      ? "Filly leest je drankkaart…"
-      : "Filly leest je menu…",
-    categorizing: `${itemNoun.charAt(0).toUpperCase() + itemNoun.slice(1)} toevoegen aan je menu…`,
-    done: "Klaar",
-    error: "Mislukt",
+      ? t("upload.stageRecognizingDrinks")
+      : t("upload.stageRecognizingMenu"),
+    categorizing: t("upload.stageCategorizing", { itemNoun }),
+    done: t("upload.stageDone"),
+    error: t("upload.stageError"),
   };
 
   // Volgorde van de verwerkingsstappen voor de UI-indicator.
   const steps: { key: UploadStage; label: string }[] = [
-    { key: "reading", label: "Uploaden" },
-    { key: "recognizing", label: "Filly leest" },
-    { key: "categorizing", label: "Toevoegen" },
+    { key: "reading", label: t("upload.stepUpload") },
+    { key: "recognizing", label: t("upload.stepFillyReads") },
+    { key: "categorizing", label: t("upload.stepAdd") },
   ];
 
   const stageIndex = (s: UploadStage) =>
@@ -1102,7 +1115,7 @@ function UploadMenuModal({
           <button
             className="sg-modal-close"
             onClick={onClose}
-            aria-label="Sluiten"
+            aria-label={t("actions.close")}
           >
             ×
           </button>
@@ -1113,21 +1126,19 @@ function UploadMenuModal({
             <span>{cardIcon}</span>
             <span>
               {isDrinks
-                ? "Drankkaart importeren"
-                : "Menu-kaart importeren"}
+                ? t("upload.triggerDrinks")
+                : t("upload.triggerMenu")}
             </span>
           </div>
         </div>
 
         <h2 className="sg-modal-title">
-          {isDrinks ? "Upload je drankkaart" : "Upload je menu"}
+          {isDrinks ? t("upload.titleDrinks") : t("upload.titleMenu")}
         </h2>
         <p className="menu-upload-intro">
-          Upload een PDF of foto van je {cardLabel}. Filly leest de{" "}
-          {itemNoun} automatisch in
           {isDrinks
-            ? " en groepeert ze op type (wijn, bier, cocktail, etc.), je hoeft ze alleen nog te controleren."
-            : " en zet ze direct in je menu, je hoeft ze alleen nog te controleren."}
+            ? t("upload.introDrinks", { cardLabel, itemNoun })
+            : t("upload.introMenu", { cardLabel, itemNoun })}
         </p>
 
         {stage === "idle" && (
@@ -1143,10 +1154,10 @@ function UploadMenuModal({
             />
             <div className="menu-upload-dropzone-icon">📄</div>
             <div className="menu-upload-dropzone-title">
-              Sleep hier je menu-kaart of klik om te kiezen
+              {t("upload.dropzoneTitle")}
             </div>
             <div className="menu-upload-dropzone-sub">
-              PDF, JPG, PNG of WebP, max. 10 MB
+              {t("upload.dropzoneSub")}
             </div>
           </label>
         )}
@@ -1155,7 +1166,7 @@ function UploadMenuModal({
           <div className="menu-upload-processing">
             <div className="menu-upload-filename">
               <span>📎</span>
-              <span>{fileName ?? "bestand"}</span>
+              <span>{fileName ?? t("upload.fileFallback")}</span>
             </div>
             <div className="menu-upload-steps">
               {steps.map((s, i) => {
@@ -1186,7 +1197,7 @@ function UploadMenuModal({
                 marginTop: 8,
               }}
             >
-              Dit kan 5 tot 15 seconden duren bij een vol menu.
+              {t("upload.durationNote")}
             </div>
           </div>
         )}
@@ -1195,7 +1206,7 @@ function UploadMenuModal({
           <div className="menu-upload-processing">
             <div className="menu-upload-filename">
               <span>⚠️</span>
-              <span>{fileName ?? "bestand"}</span>
+              <span>{fileName ?? t("upload.fileFallback")}</span>
             </div>
             <div
               style={{
@@ -1207,11 +1218,11 @@ function UploadMenuModal({
                 lineHeight: 1.5,
               }}
             >
-              {errorMessage ?? "Er ging iets mis. Probeer het opnieuw."}
+              {errorMessage ?? t("upload.genericError")}
             </div>
             <div className="sg-actions sg-modal-actions">
               <button className="sg-btn primary" onClick={onClose}>
-                Sluiten
+                {t("actions.close")}
               </button>
             </div>
           </div>
@@ -1220,10 +1231,12 @@ function UploadMenuModal({
         {stage === "done" && (
           <div>
             <div className="menu-upload-done-banner">
-              <strong>✓ {imported.length} gerechten toegevoegd</strong>
+              <strong>
+                ✓ {t("upload.doneCount", { count: imported.length })}
+              </strong>
               {imported.length > 0
-                ? ", ze staan nu in je menu en Filly kent ze."
-                : ", Filly kon geen gerechten herkennen op deze kaart."}
+                ? t("upload.doneTailSuccess")
+                : t("upload.doneTailEmpty")}
             </div>
             {notes && (
               <div
@@ -1238,7 +1251,7 @@ function UploadMenuModal({
                   fontStyle: "italic",
                 }}
               >
-                Filly merkt op: {notes}
+                {t("upload.fillyNote", { notes })}
               </div>
             )}
             <div className="menu-upload-result-list">
@@ -1248,8 +1261,9 @@ function UploadMenuModal({
                     <div className="menu-upload-result-name">{r.name}</div>
                     <div className="menu-upload-result-meta">
                       {r.category &&
-                        (categoryLabel[r.category as Category] ??
-                          r.category)}
+                        (categoryLabelKey[r.category as Category]
+                          ? t(categoryLabelKey[r.category as Category])
+                          : r.category)}
                       {r.dietary_tags.length > 0 &&
                         " · " +
                           r.dietary_tags
@@ -1267,7 +1281,7 @@ function UploadMenuModal({
             </div>
             <div className="sg-actions sg-modal-actions">
               <button className="sg-btn primary" onClick={onDone}>
-                Klaar
+                {t("actions.done")}
               </button>
             </div>
           </div>
@@ -1305,6 +1319,7 @@ function MenuModal({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("dash_menu_page");
   // Prijs als string input zodat komma/leeg toegestaan is; bij save
   // converteren we naar cents.
   const priceInput =
@@ -1342,7 +1357,7 @@ function MenuModal({
         <button
           className="sg-modal-close"
           onClick={onClose}
-          aria-label="Sluiten"
+          aria-label={t("actions.close")}
         >
           ×
         </button>
@@ -1350,27 +1365,27 @@ function MenuModal({
         <div className="sg-modal-header">
           <div className="sg-trigger">
             <span>🍽️</span>
-            <span>{isNew ? "Nieuw gerecht" : "Gerecht bewerken"}</span>
+            <span>{isNew ? t("modal.newDish") : t("modal.editDish")}</span>
           </div>
         </div>
 
-        <h2 className="sg-modal-title">{item.name || "Naamloos gerecht"}</h2>
+        <h2 className="sg-modal-title">{item.name || t("modal.unnamedDish")}</h2>
 
         <div className="menu-form">
           <div className="menu-form-row">
-            <label className="menu-form-label">Naam</label>
+            <label className="menu-form-label">{t("form.name")}</label>
             <input
               className="menu-form-input"
               type="text"
               value={item.name}
               onChange={(e) => onChange({ ...item, name: e.target.value })}
-              placeholder="Bijv. Rundersukade in rode wijn"
+              placeholder={t("form.namePlaceholder")}
             />
           </div>
 
           <div className="menu-form-grid-2">
             <div className="menu-form-row">
-              <label className="menu-form-label">Categorie</label>
+              <label className="menu-form-label">{t("form.category")}</label>
               <select
                 className="menu-form-input"
                 value={item.category ?? "hoofd"}
@@ -1380,13 +1395,13 @@ function MenuModal({
               >
                 {categoryOrder.map((c) => (
                   <option key={c} value={c}>
-                    {categoryLabel[c as Category]}
+                    {t(categoryLabelKey[c as Category])}
                   </option>
                 ))}
               </select>
             </div>
             <div className="menu-form-row">
-              <label className="menu-form-label">Prijs (€)</label>
+              <label className="menu-form-label">{t("form.price")}</label>
               <input
                 className="menu-form-input"
                 type="text"
@@ -1399,7 +1414,7 @@ function MenuModal({
           </div>
 
           <div className="menu-form-row">
-            <label className="menu-form-label">Beschrijving</label>
+            <label className="menu-form-label">{t("form.description")}</label>
             <textarea
               className="menu-form-input"
               rows={3}
@@ -1407,7 +1422,7 @@ function MenuModal({
               onChange={(e) =>
                 onChange({ ...item, description: e.target.value || null })
               }
-              placeholder="Korte omschrijving, wordt door Filly gebruikt in campagne-teksten."
+              placeholder={t("form.descriptionPlaceholder")}
             />
           </div>
 
@@ -1423,7 +1438,9 @@ function MenuModal({
                 }
               />
               <span className="menu-toggle-label">
-                <strong>Signature</strong>, onze handtekening
+                {t.rich("form.signatureToggle", {
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </span>
             </label>
             <label className="menu-toggle">
@@ -1439,12 +1456,14 @@ function MenuModal({
                 }
               />
               <span className="menu-toggle-label">
-                <strong>Seizoensgerecht</strong>
+                {t.rich("form.seasonalToggle", {
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </span>
             </label>
             {item.is_seasonal && (
               <div className="menu-form-row menu-form-season">
-                <label className="menu-form-label">Seizoen</label>
+                <label className="menu-form-label">{t("form.season")}</label>
                 <select
                   className="menu-form-input"
                   value={item.season ?? "spring"}
@@ -1452,9 +1471,9 @@ function MenuModal({
                     onChange({ ...item, season: e.target.value })
                   }
                 >
-                  {seasonOptions.map((s) => (
+                  {seasonOptionKeys.map((s) => (
                     <option key={s.key} value={s.key}>
-                      {s.label}
+                      {t(s.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -1469,25 +1488,27 @@ function MenuModal({
                 }
               />
               <span className="menu-toggle-label">
-                <strong>Beschikbaar</strong>, staat op de kaart
+                {t.rich("form.availableToggle", {
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </span>
             </label>
           </div>
 
           {/* Dieet-tags als klikbare chips. Multi-select. */}
           <div className="menu-form-row">
-            <label className="menu-form-label">Dieet-tags</label>
+            <label className="menu-form-label">{t("form.dietaryTags")}</label>
             <div className="menu-tag-chips">
-              {dietaryTagOptions.map((t) => {
-                const active = item.dietary_tags.includes(t.key);
+              {dietaryTagOptionKeys.map((opt) => {
+                const active = item.dietary_tags.includes(opt.key);
                 return (
                   <button
-                    key={t.key}
+                    key={opt.key}
                     type="button"
                     className={`menu-tag-chip ${active ? "active" : ""}`}
-                    onClick={() => toggleTag(t.key)}
+                    onClick={() => toggleTag(opt.key)}
                   >
-                    {t.label}
+                    {t(opt.labelKey)}
                   </button>
                 );
               })}
@@ -1503,14 +1524,14 @@ function MenuModal({
           >
             {saving
               ? isNew
-                ? "Toevoegen…"
-                : "Opslaan…"
+                ? t("modal.adding")
+                : t("modal.saving")
               : isNew
-                ? "Toevoegen"
-                : "Opslaan"}
+                ? t("actions.add")
+                : t("actions.save")}
           </button>
           <button className="sg-btn" onClick={onClose} disabled={saving}>
-            Annuleren
+            {t("actions.cancel")}
           </button>
           {!isNew && (
             <button
@@ -1518,7 +1539,7 @@ function MenuModal({
               onClick={onDelete}
               disabled={saving}
             >
-              {saving ? "Verwijderen…" : "Verwijderen"}
+              {saving ? t("modal.deleting") : t("actions.remove")}
             </button>
           )}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -179,18 +180,19 @@ const PREVIEW = {
 };
 
 export default function InstagramMarketingPage() {
+  const t = useTranslations("dash_marketing_instagram_page");
   return (
     <div className="page-full">
       <PageHeader
         title={`Instagram · ${PREVIEW.account.handle}`}
-        subtitle="Bereik, engagement en publiek, afgelopen 30 dagen."
+        subtitle={t("subtitle")}
         actions={
           <>
-            <Button variant="secondary" size="sm" disabled title="Beschikbaar na Meta-koppeling">
-              Vernieuw
+            <Button variant="secondary" size="sm" disabled title={t("availableAfterMetaConnection")}>
+              {t("refresh")}
             </Button>
-            <Button variant="danger" size="sm" disabled title="Beschikbaar na Meta-koppeling">
-              Ontkoppel
+            <Button variant="danger" size="sm" disabled title={t("availableAfterMetaConnection")}>
+              {t("disconnect")}
             </Button>
           </>
         }
@@ -218,7 +220,7 @@ export default function InstagramMarketingPage() {
       >
         <span style={{ fontSize: 18 }} aria-hidden>👁️</span>
         <div>
-          <strong>Voorvertoning met voorbeeld-data.</strong> Dit is hoe je Instagram-pagina eruit gaat zien zodra Meta App Review binnen is en je je IG-account hebt gekoppeld. De cijfers hieronder zijn fictief.
+          {t.rich("previewBanner", { strong: (chunks) => <strong>{chunks}</strong> })}
         </div>
       </div>
 
@@ -236,7 +238,7 @@ export default function InstagramMarketingPage() {
               marginBottom: "var(--space-2)",
             }}
           >
-            Filly's analyse · 30 dagen
+            {t("fillyAnalysisLabel")}
           </div>
           <div
             style={{
@@ -248,8 +250,8 @@ export default function InstagramMarketingPage() {
           >
             "{PREVIEW.fillyAnalysis}"
           </div>
-          <Button variant="primary" size="sm" disabled title="Beschikbaar na koppeling">
-            Vraag Filly om content-voorstel
+          <Button variant="primary" size="sm" disabled title={t("availableAfterConnection")}>
+            {t("askFillyForContent")}
           </Button>
         </CardBody>
       </Card>
@@ -265,30 +267,30 @@ export default function InstagramMarketingPage() {
         }}
       >
         <KpiTile
-          label="Bereik"
+          label={t("kpiReach")}
           value={PREVIEW.kpis.reach30d.toLocaleString("nl-NL")}
           delta={`+${PREVIEW.kpis.reach30dDelta}%`}
           deltaPositive
-          subtext={`${PREVIEW.kpis.impressions30d.toLocaleString("nl-NL")} impressies`}
+          subtext={t("kpiImpressions", { count: PREVIEW.kpis.impressions30d.toLocaleString("nl-NL") })}
         />
         <KpiTile
-          label="Volgers"
+          label={t("kpiFollowers")}
           value={PREVIEW.account.followers.toLocaleString("nl-NL")}
           delta={`+${PREVIEW.account.followersDelta7d}`}
           deltaPositive
-          subtext="afgelopen 7 dagen"
+          subtext={t("kpiLast7Days")}
         />
         <KpiTileWithBenchmark
-          label="Engagement rate"
+          label={t("kpiEngagementRate")}
           value={PREVIEW.kpis.engagementRate}
           benchmark={PREVIEW.benchmark.engagementRate}
         />
         <KpiTile
-          label="Profile views"
+          label={t("kpiProfileViews")}
           value={PREVIEW.kpis.profileViews30d.toLocaleString("nl-NL")}
           delta={`${PREVIEW.kpis.profileViewsDelta}%`}
           deltaPositive={false}
-          subtext="vs vorige 30 dgn"
+          subtext={t("kpiVsPrevious30Days")}
         />
       </div>
 
@@ -310,7 +312,7 @@ export default function InstagramMarketingPage() {
                 color: "var(--text, #18181B)",
               }}
             >
-              Bereik · 30 dagen
+              {t("reach30DaysTitle")}
             </div>
             <div
               style={{
@@ -318,7 +320,7 @@ export default function InstagramMarketingPage() {
                 color: "var(--text-secondary, #52525B)",
               }}
             >
-              Tabs: Bereik · Impressies · Engagement · Volgers
+              {t("chartTabs")}
             </div>
           </div>
           <ReachTrendChart data={PREVIEW.reachTrend} />
@@ -336,7 +338,7 @@ export default function InstagramMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            Top 5 posts deze maand
+            {t("topPostsTitle")}
           </div>
           <div
             style={{
@@ -360,9 +362,8 @@ export default function InstagramMarketingPage() {
               lineHeight: 1.6,
             }}
           >
-            <strong style={{ color: "#1F4A2D" }}>Filly's patroon:</strong>{" "}
-            warm interieur + close-up gerechten = consistent hoog-presterende mix.
-            Reels &gt; Carousels &gt; Foto's voor jouw publiek.
+            <strong style={{ color: "#1F4A2D" }}>{t("fillyPatternLabel")}</strong>{" "}
+            {t("fillyPatternText")}
           </div>
         </CardBody>
       </Card>
@@ -378,7 +379,7 @@ export default function InstagramMarketingPage() {
               marginBottom: "var(--space-2)",
             }}
           >
-            Beste tijd om te posten
+            {t("bestTimeToPostTitle")}
           </div>
           <div
             style={{
@@ -388,8 +389,7 @@ export default function InstagramMarketingPage() {
               lineHeight: 1.5,
             }}
           >
-            Hoe donkerder, hoe meer je publiek dan online is. Voorgesteld
-            piek-uur: <strong style={{ color: "#1F4A2D" }}>woensdag 18:00</strong>.
+            {t.rich("bestTimeToPostHint", { strong: (chunks) => <strong style={{ color: "#1F4A2D" }}>{chunks}</strong> })}
           </div>
           <PostingHeatmap data={PREVIEW.postingHeatmap} />
         </CardBody>
@@ -406,7 +406,7 @@ export default function InstagramMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            Content-mix · laatste 30 dagen
+            {t("contentMixTitle")}
           </div>
           <table
             style={{
@@ -424,13 +424,13 @@ export default function InstagramMarketingPage() {
                   fontWeight: 500,
                 }}
               >
-                <th style={{ padding: "8px 0" }}>Type</th>
-                <th style={{ padding: "8px 0", textAlign: "right" }}>Posts</th>
+                <th style={{ padding: "8px 0" }}>{t("colType")}</th>
+                <th style={{ padding: "8px 0", textAlign: "right" }}>{t("colPosts")}</th>
                 <th style={{ padding: "8px 0", textAlign: "right" }}>
-                  Gem. engagement
+                  {t("colAvgEngagement")}
                 </th>
                 <th style={{ padding: "8px 0", textAlign: "right" }}>
-                  Totaal bereik
+                  {t("colTotalReach")}
                 </th>
               </tr>
             </thead>
@@ -451,7 +451,7 @@ export default function InstagramMarketingPage() {
                   <td style={{ padding: "10px 0", textAlign: "right" }}>
                     {row.avgEngagement !== null
                       ? `${row.avgEngagement.toFixed(1)}%`
-                      : <span style={{ color: "var(--text-secondary, #52525B)" }}>n/a</span>}
+                      : <span style={{ color: "var(--text-secondary, #52525B)" }}>{t("notAvailable")}</span>}
                   </td>
                   <td style={{ padding: "10px 0", textAlign: "right" }}>
                     {row.totalReach.toLocaleString("nl-NL")}
@@ -474,7 +474,7 @@ export default function InstagramMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            Wie volgt je
+            {t("whoFollowsYouTitle")}
           </div>
           <div
             style={{
@@ -494,7 +494,7 @@ export default function InstagramMarketingPage() {
                   marginBottom: "var(--space-2)",
                 }}
               >
-                Top 5 steden
+                {t("topCitiesLabel")}
               </div>
               {PREVIEW.audience.topCities.map((city) => (
                 <DemoRow
@@ -515,7 +515,7 @@ export default function InstagramMarketingPage() {
                   marginBottom: "var(--space-2)",
                 }}
               >
-                Leeftijd
+                {t("ageLabel")}
               </div>
               {PREVIEW.audience.ageGroups.map((age) => (
                 <DemoRow
@@ -536,18 +536,18 @@ export default function InstagramMarketingPage() {
                   marginBottom: "var(--space-2)",
                 }}
               >
-                Geslacht
+                {t("genderLabel")}
               </div>
               <DemoRow
-                label="Vrouw"
+                label={t("genderFemale")}
                 percentage={PREVIEW.audience.gender.female}
               />
               <DemoRow
-                label="Man"
+                label={t("genderMale")}
                 percentage={PREVIEW.audience.gender.male}
               />
               <DemoRow
-                label="Anders / niet bekend"
+                label={t("genderOther")}
                 percentage={PREVIEW.audience.gender.other}
               />
             </div>
@@ -565,7 +565,7 @@ export default function InstagramMarketingPage() {
             marginBottom: "var(--space-3)",
           }}
         >
-          Filly's actie-voorstellen
+          {t("fillyActionsTitle")}
         </div>
         <div
           style={{
@@ -595,7 +595,7 @@ export default function InstagramMarketingPage() {
             textDecoration: "none",
           }}
         >
-          ← Terug naar Marketing-hub
+          {t("backToMarketingHub")}
         </Link>
       </div>
     </div>
@@ -689,6 +689,7 @@ function KpiTileWithBenchmark({
   value: number;
   benchmark: number;
 }) {
+  const t = useTranslations("dash_marketing_instagram_page");
   const valuePct = `${(value * 100).toFixed(1)}%`;
   const benchmarkPct = `${(benchmark * 100).toFixed(1)}%`;
   const isAbove = value >= benchmark;
@@ -729,8 +730,8 @@ function KpiTileWithBenchmark({
         >
           {valuePct}
         </div>
-        {!isAbove && <Badge variant="warning">Onder mediaan</Badge>}
-        {isAbove && <Badge variant="success" withDot>Boven mediaan</Badge>}
+        {!isAbove && <Badge variant="warning">{t("belowMedian")}</Badge>}
+        {isAbove && <Badge variant="success" withDot>{t("aboveMedian")}</Badge>}
       </div>
       <div
         style={{
@@ -739,7 +740,7 @@ function KpiTileWithBenchmark({
           marginTop: 8,
         }}
       >
-        Mediaan: {benchmarkPct}
+        {t("median", { value: benchmarkPct })}
       </div>
     </div>
   );
@@ -748,6 +749,7 @@ function KpiTileWithBenchmark({
 // SVG-area-chart voor reach-trend. Voor MVP zonder library, eenvoudige
 // path-string vanuit data-array. 30 datapunten stretched over breedte.
 function ReachTrendChart({ data }: { data: number[] }) {
+  const t = useTranslations("dash_marketing_instagram_page");
   const width = 800;
   const height = 160;
   const padding = 16;
@@ -804,8 +806,8 @@ function ReachTrendChart({ data }: { data: number[] }) {
           paddingRight: padding,
         }}
       >
-        <span>30 dgn geleden</span>
-        <span>Vandaag</span>
+        <span>{t("daysAgo30")}</span>
+        <span>{t("today")}</span>
       </div>
     </div>
   );
@@ -818,6 +820,7 @@ function PostRow({
   post: typeof PREVIEW.topPosts[number];
   rank: number;
 }) {
+  const t = useTranslations("dash_marketing_instagram_page");
   return (
     <div
       style={{
@@ -865,10 +868,10 @@ function PostRow({
           </span>
           <Badge variant="neutral">
             {post.type === "reel"
-              ? "Reel"
+              ? t("postTypeReel")
               : post.type === "carousel"
-                ? "Carousel"
-                : "Foto"}
+                ? t("postTypeCarousel")
+                : t("postTypePhoto")}
           </Badge>
           <span
             style={{
@@ -900,9 +903,9 @@ function PostRow({
             flexWrap: "wrap",
           }}
         >
-          <span>👁️ {post.reach.toLocaleString("nl-NL")} bereik</span>
+          <span>👁️ {t("postReach", { count: post.reach.toLocaleString("nl-NL") })}</span>
           <span style={{ fontWeight: 600, color: "#1F4A2D" }}>
-            {post.engagementRate.toFixed(1)}% engagement
+            {t("postEngagement", { value: post.engagementRate.toFixed(1) })}
           </span>
           <span>♥ {post.likes}</span>
           <span>💬 {post.comments}</span>
@@ -915,7 +918,16 @@ function PostRow({
 }
 
 function PostingHeatmap({ data }: { data: number[][] }) {
-  const days = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+  const t = useTranslations("dash_marketing_instagram_page");
+  const days = [
+    t("dayMon"),
+    t("dayTue"),
+    t("dayWed"),
+    t("dayThu"),
+    t("dayFri"),
+    t("daySat"),
+    t("daySun"),
+  ];
   const hours = ["09:00", "12:00", "18:00", "21:00"];
 
   function intensityColor(v: number): string {
@@ -966,7 +978,7 @@ function PostingHeatmap({ data }: { data: number[][] }) {
               {data[hourIdx].map((v, dayIdx) => (
                 <td
                   key={dayIdx}
-                  title={`${days[dayIdx]} ${h}: ${v}% activiteit`}
+                  title={t("heatmapCellTitle", { day: days[dayIdx], hour: h, value: v })}
                   style={{
                     width: 36,
                     height: 36,
@@ -1059,6 +1071,7 @@ function ActionCard({
   description: string;
   hint: string;
 }) {
+  const t = useTranslations("dash_marketing_instagram_page");
   const colors =
     severity === "warning"
       ? { icon: "⚠️", iconColor: "#92400E", border: "#FCD34D", bg: "#FEF3C7" }
@@ -1119,24 +1132,24 @@ function ActionCard({
                 marginBottom: "var(--space-3)",
               }}
             >
-              <strong>Voorstel:</strong> {hint}
+              <strong>{t("proposalLabel")}</strong> {hint}
             </div>
             <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
               <Button
                 variant="primary"
                 size="sm"
                 disabled
-                title="Beschikbaar na koppeling"
+                title={t("availableAfterConnection")}
               >
-                Filly schrijft 't
+                {t("fillyWritesIt")}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 disabled
-                title="Beschikbaar na koppeling"
+                title={t("availableAfterConnection")}
               >
-                Negeren
+                {t("ignore")}
               </Button>
             </div>
           </div>

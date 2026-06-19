@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 
 /**
  * Permanente redirect van de oude /dashboard/reviews-route naar de
@@ -13,6 +13,11 @@ import { redirect } from "next/navigation";
  * server-side gebeurt vóór de pagina-render, geen flicker bij de
  * gebruiker en zoekmachines volgen de 308 keurig.
  */
-export default function ReviewsRedirectPage() {
-  redirect("/dashboard/google-business/reviews");
+export default async function ReviewsRedirectPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect({ href: "/dashboard/google-business/reviews", locale });
 }

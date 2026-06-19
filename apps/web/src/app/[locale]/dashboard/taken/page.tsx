@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   fetchSuggestions,
   fetchGuests,
@@ -37,23 +38,24 @@ const priorityColor = {
   low: "#A1A1AA",
 };
 
-const priorityLabel: Record<TaskItem["priority"], string> = {
-  high: "Nu",
-  medium: "Deze week",
-  low: "Planning",
+const priorityLabelKey: Record<TaskItem["priority"], string> = {
+  high: "priorityNow",
+  medium: "priorityThisWeek",
+  low: "priorityPlanning",
 };
 
 type Filter = "alle" | TaskCategory;
 
-const filters: { key: Filter; label: string }[] = [
-  { key: "alle", label: "Alle" },
-  { key: "filly", label: "Filly" },
-  { key: "reviews", label: "Reviews" },
-  { key: "reserveringen", label: "Reserveringen" },
-  { key: "insights", label: "Inzichten" },
+const filterKeys: { key: Filter; labelKey: string }[] = [
+  { key: "alle", labelKey: "filterAll" },
+  { key: "filly", labelKey: "filterFilly" },
+  { key: "reviews", labelKey: "filterReviews" },
+  { key: "reserveringen", labelKey: "filterReservations" },
+  { key: "insights", labelKey: "filterInsights" },
 ];
 
 export default function TakenPage() {
+  const t = useTranslations("dash_taken_page");
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -99,12 +101,12 @@ export default function TakenPage() {
     for (const s of suggestions) {
       const name =
         (s.suggested_campaign.name as string | undefined) ??
-        "Campagne-voorstel";
+        t("defaultCampaignName");
       out.push({
         id: `sug-${s.id}`,
         icon: "💡",
-        title: `Filly stelt voor: ${name}`,
-        desc: s.reasoning ?? "Open de Suggesties-pagina voor onderbouwing.",
+        title: t("suggestionTitle", { name }),
+        desc: s.reasoning ?? t("suggestionDescFallback"),
         link: "/dashboard/suggesties",
         priority: (s.urgency ?? "medium") as TaskItem["priority"],
         category: "filly",
@@ -121,7 +123,7 @@ export default function TakenPage() {
       out.push({
         id: "low-occ",
         icon: "📉",
-        title: `${lowDays.length} rustige dag${lowDays.length > 1 ? "en" : ""} komende week`,
+        title: t("lowOccTitle", { count: lowDays.length }),
         desc: lowDays
           .slice(0, 3)
           .map((d) => {
@@ -155,8 +157,10 @@ export default function TakenPage() {
       out.push({
         id: `bday-${g.id}`,
         icon: "🎂",
-        title: `${g.first_name} ${g.last_name} is bijna jarig`,
-        desc: `Tip: stuur Filly een verjaardag-uitnodiging of persoonlijke groet.`,
+        title: t("birthdayTitle", {
+          name: `${g.first_name} ${g.last_name}`,
+        }),
+        desc: t("birthdayDesc"),
         link: "/dashboard/gasten",
         priority: "medium",
         category: "insights",
@@ -171,8 +175,8 @@ export default function TakenPage() {
       out.push({
         id: `review-${r.id}`,
         icon: "⭐",
-        title: `${r.rating}-ster review op ${r.source}`,
-        desc: r.title ?? r.body?.slice(0, 100) ?? "Review vereist reactie.",
+        title: t("reviewTitle", { rating: r.rating, source: r.source }),
+        desc: r.title ?? r.body?.slice(0, 100) ?? t("reviewDescFallback"),
         link: "/dashboard/google-business/reviews",
         priority: "high",
         category: "reviews",
@@ -190,8 +194,8 @@ export default function TakenPage() {
       out.push({
         id: `big-res-${r.id}`,
         icon: "👥",
-        title: `Groepsreservering vandaag, ${r.party_size} personen`,
-        desc: `${r.guest_name} · ${r.reservation_time.slice(0, 5)} · tafel ${r.table_code ?? "—"}${r.special_requests ? ` · "${r.special_requests}"` : ""}`,
+        title: t("bigReservationTitle", { count: r.party_size }),
+        desc: `${r.guest_name} · ${r.reservation_time.slice(0, 5)} · ${t("tableLabel")} ${r.table_code ?? "—"}${r.special_requests ? ` · "${r.special_requests}"` : ""}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
         category: "reserveringen",
@@ -210,7 +214,7 @@ export default function TakenPage() {
       out.push({
         id: `sp-${r.id}`,
         icon: "💬",
-        title: `Speciaal verzoek, ${r.guest_name}`,
+        title: t("specialRequestTitle", { name: r.guest_name ?? "" }),
         desc: `${r.reservation_time.slice(0, 5)} · ${r.special_requests}`,
         link: "/dashboard/reserveringen",
         priority: "medium",
@@ -221,7 +225,7 @@ export default function TakenPage() {
     // Sort by priority
     const order = { high: 0, medium: 1, low: 2 };
     return out.sort((a, b) => order[a.priority] - order[b.priority]);
-  }, [suggestions, guests, reservations, reviews, occupancy]);
+  }, [suggestions, guests, reservations, reviews, occupancy, t]);
 
   const stats = useMemo(() => {
     return {
@@ -244,21 +248,21 @@ export default function TakenPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Taken"
-        subtitle="Alles wat vandaag je aandacht vraagt, AI-voorstellen, reviews, reserveringen en alerts."
+        title={t("pageTitle")}
+        subtitle={t("pageSubtitle")}
       />
 
       {/* Stats-row: totaal openstaand, hoge urgentie (rood signaal) en
           "van Filly" (brand-filly-card, aansluiting op andere pagina's). */}
       <div className="stats-row">
         <div className="stat-card">
-          <div className="stat-card-label">Totaal openstaand</div>
+          <div className="stat-card-label">{t("statTotalOpen")}</div>
           <div className="stat-card-val">
             {loading ? <Skeleton height={22} width="40%" /> : stats.total}
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Hoge urgentie</div>
+          <div className="stat-card-label">{t("statHighUrgency")}</div>
           <div
             className="stat-card-val"
             style={{
@@ -270,7 +274,7 @@ export default function TakenPage() {
           </div>
         </div>
         <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Van Filly</div>
+          <div className="stat-card-label">{t("statFromFilly")}</div>
           <div className="stat-card-val">
             {loading ? <Skeleton height={22} width="40%" /> : stats.filly}
           </div>
@@ -281,8 +285,10 @@ export default function TakenPage() {
         <div className="alert-bar">
           <span className="alert-icon">⚠️</span>
           <div>
-            <strong>{highCount} taken</strong> hebben hoge urgentie, pak ze
-            eerst op.
+            {t.rich("highUrgencyAlert", {
+              count: highCount,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
         </div>
       )}
@@ -291,9 +297,9 @@ export default function TakenPage() {
           in die categorie zitten zodat je snel weet waar actie ligt. */}
       {!loading && tasks.length > 0 && (
         <Tabs
-          items={filters.map((f) => ({
+          items={filterKeys.map((f) => ({
             key: f.key,
-            label: f.label,
+            label: t(f.labelKey),
             count: countPer(f.key),
           }))}
           active={filter}
@@ -310,54 +316,54 @@ export default function TakenPage() {
       ) : tasks.length === 0 ? (
         <EmptyState
           icon="✨"
-          title="Alles onder controle"
-          description="Geen openstaande taken. Filly komt zodra er iets opduikt."
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : filtered.length === 0 ? (
         <div className="table-empty">
-          Geen taken in deze categorie.
+          {t("emptyCategory")}
         </div>
       ) : (
         <div className="task-list">
-          {filtered.map((t) => {
+          {filtered.map((task) => {
             const inner = (
               <div
                 className={`task-card ${
-                  t.category === "filly" ? "task-card-filly" : ""
+                  task.category === "filly" ? "task-card-filly" : ""
                 }`}
               >
-                <div className="task-icon">{t.icon}</div>
+                <div className="task-icon">{task.icon}</div>
                 <div className="task-body">
                   <div className="task-title-row">
-                    <span className="task-title">{t.title}</span>
-                    {t.category === "filly" && (
+                    <span className="task-title">{task.title}</span>
+                    {task.category === "filly" && (
                       <span className="filly-pill">Filly</span>
                     )}
                   </div>
-                  <div className="task-desc">{t.desc}</div>
+                  <div className="task-desc">{task.desc}</div>
                 </div>
                 <div
                   className="task-priority"
-                  style={{ color: priorityColor[t.priority] }}
+                  style={{ color: priorityColor[task.priority] }}
                 >
                   <span
                     className="task-priority-dot"
-                    style={{ background: priorityColor[t.priority] }}
+                    style={{ background: priorityColor[task.priority] }}
                   />
-                  {priorityLabel[t.priority]}
+                  {t(priorityLabelKey[task.priority])}
                 </div>
               </div>
             );
-            return t.link ? (
+            return task.link ? (
               <Link
-                key={t.id}
-                href={t.link}
+                key={task.id}
+                href={task.link}
                 className="task-link"
               >
                 {inner}
               </Link>
             ) : (
-              <div key={t.id}>{inner}</div>
+              <div key={task.id}>{inner}</div>
             );
           })}
         </div>

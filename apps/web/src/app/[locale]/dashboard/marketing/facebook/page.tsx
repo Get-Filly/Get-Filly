@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,57 +61,57 @@ const PREVIEW = {
     {
       type: "event" as const,
       thumbnail: "🎉",
-      caption: "Wijn-pairing-avond, beperkt aantal plekken",
+      captionKey: "topPosts.winePairing",
       reach: 6128,
       engagementRate: 7.8,
       reactions: { like: 145, love: 87, wow: 23, haha: 4, sad: 0, angry: 0 },
       comments: 38,
       shares: 24,
-      postedAt: "Wo 23 apr",
+      postedAtKey: "postedAt.wed23apr",
     },
     {
       type: "photo" as const,
       thumbnail: "🍝",
-      caption: "Verse pasta, handgemaakt, dagelijks vers in onze open keuken",
+      captionKey: "topPosts.freshPasta",
       reach: 3216,
       engagementRate: 5.4,
       reactions: { like: 98, love: 54, wow: 12, haha: 2, sad: 0, angry: 0 },
       comments: 22,
       shares: 11,
-      postedAt: "Vr 26 apr",
+      postedAtKey: "postedAt.fri26apr",
     },
     {
       type: "video" as const,
       thumbnail: "🎬",
-      caption: "Behind the scenes, chef Marco bereidt het seizoenmenu",
+      captionKey: "topPosts.behindScenes",
       reach: 2842,
       engagementRate: 4.6,
       reactions: { like: 67, love: 41, wow: 18, haha: 1, sad: 0, angry: 0 },
       comments: 15,
       shares: 9,
-      postedAt: "Ma 21 apr",
+      postedAtKey: "postedAt.mon21apr",
     },
     {
       type: "link" as const,
       thumbnail: "🔗",
-      caption: "Onze nieuwe seizoenkaart staat live op de website",
+      captionKey: "topPosts.seasonalMenu",
       reach: 1924,
       engagementRate: 3.2,
       reactions: { like: 42, love: 18, wow: 3, haha: 0, sad: 0, angry: 0 },
       comments: 8,
       shares: 5,
-      postedAt: "Do 17 apr",
+      postedAtKey: "postedAt.thu17apr",
     },
     {
       type: "photo" as const,
       thumbnail: "👨‍🍳",
-      caption: "Team-foto: ons brigade in actie tijdens de drukke vrijdagavond",
+      captionKey: "topPosts.teamPhoto",
       reach: 1428,
       engagementRate: 4.1,
       reactions: { like: 38, love: 22, wow: 4, haha: 1, sad: 0, angry: 0 },
       comments: 6,
       shares: 3,
-      postedAt: "Za 19 apr",
+      postedAtKey: "postedAt.sat19apr",
     },
   ],
   // FB heeft iets andere piek-tijden dan IG: lunch + avond doordeweeks
@@ -122,10 +123,10 @@ const PREVIEW = {
     [40, 42, 48, 50, 35, 25, 18], // 21:00
   ],
   contentMix: [
-    { type: "Foto's", count: 9, avgEngagement: 4.2, totalReach: 14600 },
-    { type: "Video's", count: 4, avgEngagement: 5.1, totalReach: 9400 },
-    { type: "Events", count: 2, avgEngagement: 8.0, totalReach: 8200 },
-    { type: "Links", count: 3, avgEngagement: 2.8, totalReach: 4800 },
+    { typeKey: "contentMix.photos", count: 9, avgEngagement: 4.2, totalReach: 14600 },
+    { typeKey: "contentMix.videos", count: 4, avgEngagement: 5.1, totalReach: 9400 },
+    { typeKey: "contentMix.events", count: 2, avgEngagement: 8.0, totalReach: 8200 },
+    { typeKey: "contentMix.links", count: 3, avgEngagement: 2.8, totalReach: 4800 },
   ],
   audience: {
     topCities: [
@@ -155,30 +156,27 @@ const PREVIEW = {
   fillyActions: [
     {
       severity: "tip" as const,
-      title: "Events presteren bovengemiddeld",
-      description:
-        "Je 2 events (Wijn-pairing en eerder Asperge-week) scoorden 8.0% engagement, boven je FB-gemiddelde van 4.5%. Deze content-vorm pakt je publiek aan.",
-      hint: "Plan komende maand 1-2 events. Een 'live cooking-demo' of 'wijn-pairing met de chef' past goed bij je profiel.",
+      titleKey: "actions.events.title",
+      descriptionKey: "actions.events.description",
+      hintKey: "actions.events.hint",
     },
     {
       severity: "tip" as const,
-      title: "Lunch-piek beter benutten",
-      description:
-        "Tussen 12:00-13:00 is je publiek het meest actief op zaterdag, maar je post er nooit. Mensen plannen daar hun avond.",
-      hint: "Probeer een zaterdagochtend-post om 11:30 of 12:00, maakt de avondreservering al hot voordat ze hun zoektocht beginnen.",
+      titleKey: "actions.lunch.title",
+      descriptionKey: "actions.lunch.description",
+      hintKey: "actions.lunch.hint",
     },
     {
       severity: "warning" as const,
-      title: "Engagement onder mediaan",
-      description:
-        "2.9% vs horeca-mediaan 3.4%, niet alarmerend, wel verbeterruimte. Vooral je linkshares zijn zwak (2.8%).",
-      hint: "Vervang link-only-posts door foto's met de link in de comment. FB-algoritme straft externe links zwaar.",
+      titleKey: "actions.engagement.title",
+      descriptionKey: "actions.engagement.description",
+      hintKey: "actions.engagement.hint",
     },
   ],
-  fillyAnalysis: `Je page-likes zijn stabiel met een lichte groei (+12 deze week). FB-publiek voor jouw onderneming is ouder dan op IG (zwaartepunt 35-54), wat past bij hogere besteed-power maar minder engagement-rate. Twee dingen vallen op: events presteren consistent dubbel zo goed als foto's, daar zou ik op blijven inzetten. En je doet erg weinig op zaterdagochtend, terwijl je publiek daar piek-actief is.`,
 };
 
 export default function FacebookMarketingPage() {
+  const t = useTranslations("dash_marketing_facebook_page");
   const totalReactions = Object.values(PREVIEW.reactionsBreakdown).reduce(
     (a, b) => a + b,
     0,
@@ -188,14 +186,14 @@ export default function FacebookMarketingPage() {
     <div className="page-full">
       <PageHeader
         title={`Facebook · ${PREVIEW.page.name}`}
-        subtitle="Page-bereik, reactions en publiek-data, afgelopen 30 dagen."
+        subtitle={t("subtitle")}
         actions={
           <>
-            <Button variant="secondary" size="sm" disabled title="Beschikbaar na Meta-koppeling">
-              Vernieuw
+            <Button variant="secondary" size="sm" disabled title={t("availableAfterMetaConnection")}>
+              {t("refresh")}
             </Button>
-            <Button variant="danger" size="sm" disabled title="Beschikbaar na Meta-koppeling">
-              Ontkoppel
+            <Button variant="danger" size="sm" disabled title={t("availableAfterMetaConnection")}>
+              {t("disconnect")}
             </Button>
           </>
         }
@@ -223,7 +221,9 @@ export default function FacebookMarketingPage() {
       >
         <span style={{ fontSize: 18 }} aria-hidden>👁️</span>
         <div>
-          <strong>Voorvertoning met voorbeeld-data.</strong> Dit is hoe je Facebook-pagina eruit gaat zien zodra Meta App Review binnen is en je je FB-page hebt gekoppeld. De cijfers hieronder zijn fictief.
+          {t.rich("previewBanner", {
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-2)",
             }}
           >
-            Filly's analyse · 30 dagen
+            {t("fillyAnalysisTitle")}
           </div>
           <div
             style={{
@@ -250,10 +250,10 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            "{PREVIEW.fillyAnalysis}"
+            &quot;{t("fillyAnalysis")}&quot;
           </div>
-          <Button variant="primary" size="sm" disabled title="Beschikbaar na koppeling">
-            Vraag Filly om content-voorstel
+          <Button variant="primary" size="sm" disabled title={t("availableAfterConnection")}>
+            {t("askFillyForContent")}
           </Button>
         </CardBody>
       </Card>
@@ -269,30 +269,34 @@ export default function FacebookMarketingPage() {
         }}
       >
         <KpiTile
-          label="Bereik"
+          label={t("kpi.reach")}
           value={PREVIEW.kpis.reach30d.toLocaleString("nl-NL")}
           delta={`+${PREVIEW.kpis.reach30dDelta}%`}
           deltaPositive
-          subtext={`${PREVIEW.kpis.impressions30d.toLocaleString("nl-NL")} impressies`}
+          subtext={t("kpi.impressionsSubtext", {
+            count: PREVIEW.kpis.impressions30d.toLocaleString("nl-NL"),
+          })}
         />
         <KpiTile
-          label="Page-likes"
+          label={t("kpi.pageLikes")}
           value={PREVIEW.page.pageLikes.toLocaleString("nl-NL")}
           delta={`+${PREVIEW.page.pageLikesDelta7d}`}
           deltaPositive
-          subtext={`${PREVIEW.page.pageFollowers.toLocaleString("nl-NL")} volgers`}
+          subtext={t("kpi.followersSubtext", {
+            count: PREVIEW.page.pageFollowers.toLocaleString("nl-NL"),
+          })}
         />
         <KpiTileWithBenchmark
-          label="Engagement rate"
+          label={t("kpi.engagementRate")}
           value={PREVIEW.kpis.engagementRate}
           benchmark={PREVIEW.benchmark.engagementRate}
         />
         <KpiTile
-          label="Page-views"
+          label={t("kpi.pageViews")}
           value={PREVIEW.kpis.pageViews30d.toLocaleString("nl-NL")}
           delta={`${PREVIEW.kpis.pageViewsDelta}%`}
           deltaPositive={false}
-          subtext="vs vorige 30 dgn"
+          subtext={t("kpi.vsPrevious30d")}
         />
       </div>
 
@@ -314,7 +318,7 @@ export default function FacebookMarketingPage() {
                 color: "var(--text, #18181B)",
               }}
             >
-              Page-bereik · 30 dagen
+              {t("reachChartTitle")}
             </div>
             <div
               style={{
@@ -322,7 +326,7 @@ export default function FacebookMarketingPage() {
                 color: "var(--text-secondary, #52525B)",
               }}
             >
-              Tabs: Bereik · Impressies · Engagement · Page-likes
+              {t("reachChartTabs")}
             </div>
           </div>
           <ReachTrendChart data={PREVIEW.reachTrend} />
@@ -340,7 +344,7 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-2)",
             }}
           >
-            Reactions-mix · afgelopen 30 dagen
+            {t("reactionsMixTitle")}
           </div>
           <div
             style={{
@@ -350,7 +354,7 @@ export default function FacebookMarketingPage() {
               lineHeight: 1.5,
             }}
           >
-            {totalReactions} reacties op je posts, verdeling laat zien hoe je publiek emotioneel reageert.
+            {t("reactionsMixSubtext", { count: totalReactions })}
           </div>
           <div
             style={{
@@ -359,12 +363,12 @@ export default function FacebookMarketingPage() {
               gap: "var(--space-3)",
             }}
           >
-            <ReactionTile emoji="👍" label="Like" count={PREVIEW.reactionsBreakdown.like} total={totalReactions} />
-            <ReactionTile emoji="❤️" label="Love" count={PREVIEW.reactionsBreakdown.love} total={totalReactions} />
-            <ReactionTile emoji="😮" label="Wow" count={PREVIEW.reactionsBreakdown.wow} total={totalReactions} />
-            <ReactionTile emoji="😂" label="Haha" count={PREVIEW.reactionsBreakdown.haha} total={totalReactions} />
-            <ReactionTile emoji="😢" label="Sad" count={PREVIEW.reactionsBreakdown.sad} total={totalReactions} />
-            <ReactionTile emoji="😡" label="Angry" count={PREVIEW.reactionsBreakdown.angry} total={totalReactions} />
+            <ReactionTile emoji="👍" label={t("reactions.like")} count={PREVIEW.reactionsBreakdown.like} total={totalReactions} />
+            <ReactionTile emoji="❤️" label={t("reactions.love")} count={PREVIEW.reactionsBreakdown.love} total={totalReactions} />
+            <ReactionTile emoji="😮" label={t("reactions.wow")} count={PREVIEW.reactionsBreakdown.wow} total={totalReactions} />
+            <ReactionTile emoji="😂" label={t("reactions.haha")} count={PREVIEW.reactionsBreakdown.haha} total={totalReactions} />
+            <ReactionTile emoji="😢" label={t("reactions.sad")} count={PREVIEW.reactionsBreakdown.sad} total={totalReactions} />
+            <ReactionTile emoji="😡" label={t("reactions.angry")} count={PREVIEW.reactionsBreakdown.angry} total={totalReactions} />
           </div>
         </CardBody>
       </Card>
@@ -380,7 +384,7 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            Top 5 posts deze maand
+            {t("topPostsTitle")}
           </div>
           <div
             style={{
@@ -404,10 +408,9 @@ export default function FacebookMarketingPage() {
               lineHeight: 1.6,
             }}
           >
-            <strong style={{ color: "#1F4A2D" }}>Filly's patroon:</strong>{" "}
-            Events &gt; Video's &gt; Foto's &gt; Links voor jouw publiek.
-            Sterk gevoel-element ('love'-reacties hoog), content met
-            warmte/menselijkheid pakt het beste.
+            {t.rich("topPostsPattern", {
+              strong: (chunks) => <strong style={{ color: "#1F4A2D" }}>{chunks}</strong>,
+            })}
           </div>
         </CardBody>
       </Card>
@@ -423,7 +426,7 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-2)",
             }}
           >
-            Beste tijd om te posten
+            {t("bestTimeTitle")}
           </div>
           <div
             style={{
@@ -433,8 +436,9 @@ export default function FacebookMarketingPage() {
               lineHeight: 1.5,
             }}
           >
-            FB-publiek heeft 2 piek-momenten: lunch en avond. Voorgesteld
-            piek-uur: <strong style={{ color: "#1F4A2D" }}>donderdag 18:00</strong>.
+            {t.rich("bestTimeSubtext", {
+              strong: (chunks) => <strong style={{ color: "#1F4A2D" }}>{chunks}</strong>,
+            })}
           </div>
           <PostingHeatmap data={PREVIEW.postingHeatmap} />
         </CardBody>
@@ -451,7 +455,7 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            Content-mix · laatste 30 dagen
+            {t("contentMixTitle")}
           </div>
           <table
             style={{
@@ -469,26 +473,26 @@ export default function FacebookMarketingPage() {
                   fontWeight: 500,
                 }}
               >
-                <th style={{ padding: "8px 0" }}>Type</th>
-                <th style={{ padding: "8px 0", textAlign: "right" }}>Posts</th>
+                <th style={{ padding: "8px 0" }}>{t("table.type")}</th>
+                <th style={{ padding: "8px 0", textAlign: "right" }}>{t("table.posts")}</th>
                 <th style={{ padding: "8px 0", textAlign: "right" }}>
-                  Gem. engagement
+                  {t("table.avgEngagement")}
                 </th>
                 <th style={{ padding: "8px 0", textAlign: "right" }}>
-                  Totaal bereik
+                  {t("table.totalReach")}
                 </th>
               </tr>
             </thead>
             <tbody>
               {PREVIEW.contentMix.map((row) => (
                 <tr
-                  key={row.type}
+                  key={row.typeKey}
                   style={{
                     borderBottom: "1px solid var(--color-border, #E4E4E7)",
                   }}
                 >
                   <td style={{ padding: "10px 0", fontWeight: 500 }}>
-                    {row.type}
+                    {t(row.typeKey)}
                   </td>
                   <td style={{ padding: "10px 0", textAlign: "right" }}>
                     {row.count}
@@ -517,7 +521,7 @@ export default function FacebookMarketingPage() {
               marginBottom: "var(--space-3)",
             }}
           >
-            Wie volgt je page
+            {t("audienceTitle")}
           </div>
           <div
             style={{
@@ -537,7 +541,7 @@ export default function FacebookMarketingPage() {
                   marginBottom: "var(--space-2)",
                 }}
               >
-                Top 5 steden
+                {t("audience.topCities")}
               </div>
               {PREVIEW.audience.topCities.map((city) => (
                 <DemoRow
@@ -558,7 +562,7 @@ export default function FacebookMarketingPage() {
                   marginBottom: "var(--space-2)",
                 }}
               >
-                Leeftijd
+                {t("audience.age")}
               </div>
               {PREVIEW.audience.ageGroups.map((age) => (
                 <DemoRow
@@ -579,11 +583,11 @@ export default function FacebookMarketingPage() {
                   marginBottom: "var(--space-2)",
                 }}
               >
-                Geslacht
+                {t("audience.gender")}
               </div>
-              <DemoRow label="Vrouw" percentage={PREVIEW.audience.gender.female} />
-              <DemoRow label="Man" percentage={PREVIEW.audience.gender.male} />
-              <DemoRow label="Anders / niet bekend" percentage={PREVIEW.audience.gender.other} />
+              <DemoRow label={t("audience.female")} percentage={PREVIEW.audience.gender.female} />
+              <DemoRow label={t("audience.male")} percentage={PREVIEW.audience.gender.male} />
+              <DemoRow label={t("audience.other")} percentage={PREVIEW.audience.gender.other} />
             </div>
           </div>
         </CardBody>
@@ -599,7 +603,7 @@ export default function FacebookMarketingPage() {
             marginBottom: "var(--space-3)",
           }}
         >
-          Filly's actie-voorstellen
+          {t("actionsTitle")}
         </div>
         <div
           style={{
@@ -629,7 +633,7 @@ export default function FacebookMarketingPage() {
             textDecoration: "none",
           }}
         >
-          ← Terug naar Marketing-hub
+          {t("backToHub")}
         </Link>
       </div>
     </div>
@@ -723,6 +727,7 @@ function KpiTileWithBenchmark({
   value: number;
   benchmark: number;
 }) {
+  const t = useTranslations("dash_marketing_facebook_page");
   const valuePct = `${(value * 100).toFixed(1)}%`;
   const benchmarkPct = `${(benchmark * 100).toFixed(1)}%`;
   const isAbove = value >= benchmark;
@@ -763,8 +768,8 @@ function KpiTileWithBenchmark({
         >
           {valuePct}
         </div>
-        {!isAbove && <Badge variant="warning">Onder mediaan</Badge>}
-        {isAbove && <Badge variant="success" withDot>Boven mediaan</Badge>}
+        {!isAbove && <Badge variant="warning">{t("belowMedian")}</Badge>}
+        {isAbove && <Badge variant="success" withDot>{t("aboveMedian")}</Badge>}
       </div>
       <div
         style={{
@@ -773,7 +778,7 @@ function KpiTileWithBenchmark({
           marginTop: 8,
         }}
       >
-        Mediaan: {benchmarkPct}
+        {t("median", { value: benchmarkPct })}
       </div>
     </div>
   );
@@ -828,6 +833,7 @@ function ReactionTile({
 }
 
 function ReachTrendChart({ data }: { data: number[] }) {
+  const t = useTranslations("dash_marketing_facebook_page");
   const width = 800;
   const height = 160;
   const padding = 16;
@@ -883,8 +889,8 @@ function ReachTrendChart({ data }: { data: number[] }) {
           paddingRight: padding,
         }}
       >
-        <span>30 dgn geleden</span>
-        <span>Vandaag</span>
+        <span>{t("chart.daysAgo")}</span>
+        <span>{t("chart.today")}</span>
       </div>
     </div>
   );
@@ -897,15 +903,16 @@ function PostRow({
   post: typeof PREVIEW.topPosts[number];
   rank: number;
 }) {
+  const t = useTranslations("dash_marketing_facebook_page");
   const totalReactions = Object.values(post.reactions).reduce(
     (a, b) => a + b,
     0,
   );
   const typeLabel: Record<typeof post.type, string> = {
-    photo: "Foto",
-    video: "Video",
-    event: "Event",
-    link: "Link",
+    photo: t("postType.photo"),
+    video: t("postType.video"),
+    event: t("postType.event"),
+    link: t("postType.link"),
   };
   return (
     <div
@@ -959,7 +966,7 @@ function PostRow({
               color: "var(--text-secondary, #52525B)",
             }}
           >
-            {post.postedAt}
+            {t(post.postedAtKey)}
           </span>
         </div>
         <div
@@ -972,7 +979,7 @@ function PostRow({
             whiteSpace: "nowrap",
           }}
         >
-          {post.caption}
+          {t(post.captionKey)}
         </div>
         <div
           style={{
@@ -983,9 +990,9 @@ function PostRow({
             flexWrap: "wrap",
           }}
         >
-          <span>👁️ {post.reach.toLocaleString("nl-NL")} bereik</span>
+          <span>👁️ {t("post.reach", { count: post.reach.toLocaleString("nl-NL") })}</span>
           <span style={{ fontWeight: 600, color: "#1F4A2D" }}>
-            {post.engagementRate.toFixed(1)}% engagement
+            {t("post.engagement", { rate: post.engagementRate.toFixed(1) })}
           </span>
           <span>👍 {totalReactions}</span>
           <span>💬 {post.comments}</span>
@@ -997,7 +1004,16 @@ function PostRow({
 }
 
 function PostingHeatmap({ data }: { data: number[][] }) {
-  const days = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+  const t = useTranslations("dash_marketing_facebook_page");
+  const days = [
+    t("days.mon"),
+    t("days.tue"),
+    t("days.wed"),
+    t("days.thu"),
+    t("days.fri"),
+    t("days.sat"),
+    t("days.sun"),
+  ];
   const hours = ["09:00", "12:00", "18:00", "21:00"];
 
   function intensityColor(v: number): string {
@@ -1047,7 +1063,7 @@ function PostingHeatmap({ data }: { data: number[][] }) {
               {data[hourIdx].map((v, dayIdx) => (
                 <td
                   key={dayIdx}
-                  title={`${days[dayIdx]} ${h}: ${v}% activiteit`}
+                  title={t("heatmap.cellTitle", { day: days[dayIdx], hour: h, value: v })}
                   style={{
                     width: 36,
                     height: 36,
@@ -1131,15 +1147,16 @@ function DemoRow({
 
 function ActionCard({
   severity,
-  title,
-  description,
-  hint,
+  titleKey,
+  descriptionKey,
+  hintKey,
 }: {
   severity: "warning" | "tip";
-  title: string;
-  description: string;
-  hint: string;
+  titleKey: string;
+  descriptionKey: string;
+  hintKey: string;
 }) {
+  const t = useTranslations("dash_marketing_facebook_page");
   const colors =
     severity === "warning"
       ? { icon: "⚠️", iconColor: "#92400E", border: "#FCD34D", bg: "#FEF3C7" }
@@ -1178,7 +1195,7 @@ function ActionCard({
                 marginBottom: "var(--space-2)",
               }}
             >
-              {title}
+              {t(titleKey)}
             </div>
             <div
               style={{
@@ -1188,7 +1205,7 @@ function ActionCard({
                 marginBottom: "var(--space-3)",
               }}
             >
-              {description}
+              {t(descriptionKey)}
             </div>
             <div
               style={{
@@ -1200,24 +1217,27 @@ function ActionCard({
                 marginBottom: "var(--space-3)",
               }}
             >
-              <strong>Voorstel:</strong> {hint}
+              {t.rich("proposal", {
+                strong: (chunks) => <strong>{chunks}</strong>,
+                hint: t(hintKey),
+              })}
             </div>
             <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
               <Button
                 variant="primary"
                 size="sm"
                 disabled
-                title="Beschikbaar na koppeling"
+                title={t("availableAfterConnection")}
               >
-                Filly schrijft 't
+                {t("fillyWritesIt")}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 disabled
-                title="Beschikbaar na koppeling"
+                title={t("availableAfterConnection")}
               >
-                Negeren
+                {t("ignore")}
               </Button>
             </div>
           </div>

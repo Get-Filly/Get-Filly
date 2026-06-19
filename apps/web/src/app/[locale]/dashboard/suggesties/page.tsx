@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchSuggestions,
   updateSuggestion,
@@ -15,30 +16,20 @@ import { Tabs } from "@/components/ui/tabs";
 
 type Tab = "pending" | "approved" | "rejected";
 
-const tabs: { key: Tab; label: string }[] = [
-  { key: "pending", label: "Wachtend" },
-  { key: "approved", label: "Goedgekeurd" },
-  { key: "rejected", label: "Afgewezen" },
-];
+const tabKeys: Tab[] = ["pending", "approved", "rejected"];
 
-const triggerLabel: Record<string, { icon: string; text: string }> = {
-  low_occupancy: { icon: "📉", text: "Lage bezetting" },
-  weather: { icon: "🌧️", text: "Weer" },
-  seasonal: { icon: "📅", text: "Seizoen" },
-  birthday: { icon: "🎂", text: "Verjaardag" },
-  retention: { icon: "💔", text: "Retentie" },
+const triggerIcon: Record<string, string> = {
+  low_occupancy: "📉",
+  weather: "🌧️",
+  seasonal: "📅",
+  birthday: "🎂",
+  retention: "💔",
 };
 
 const urgencyColor: Record<string, string> = {
   high: "#DC2626",
   medium: "#F97316",
   low: "#A1A1AA",
-};
-
-const urgencyLabel: Record<string, string> = {
-  high: "Hoge urgentie",
-  medium: "Deze week",
-  low: "Planning",
 };
 
 function typeChipClass(type?: string) {
@@ -66,6 +57,11 @@ function formatPrice(cents?: number): string {
 
 
 export default function SuggestiesPage() {
+  const t = useTranslations("dash_suggesties_page");
+  const tabLabel = (key: Tab) => t(`tabs.${key}`);
+  const triggerText = (type: string) =>
+    triggerIcon[type] ? t(`triggers.${type}`) : type;
+  const urgencyText = (urgency: string) => t(`urgency.${urgency}`);
   const [tab, setTab] = useState<Tab>("pending");
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,36 +166,37 @@ export default function SuggestiesPage() {
 
   return (
     <div className="page-full">
-      <div className="page-title">Suggesties</div>
-      <div className="page-subtitle">
-        Voorstellen van Filly, met onderbouwing én verwachte impact. Keur goed
-        → wordt een campagne.
-      </div>
+      <div className="page-title">{t("title")}</div>
+      <div className="page-subtitle">{t("subtitle")}</div>
 
       {/* Stats-row: drie getallen die direct laten zien wat er aan
           actie klaarligt. Wachtend-count is brand-groen omdat dat het
           getal is waar de gebruiker actief iets mee moet. */}
       <div className="stats-row">
         <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Wachtend op goedkeuring</div>
+          <div className="stat-card-label">{t("stats.pendingLabel")}</div>
           <div className="stat-card-val">
             {loading ? <Skeleton height={22} width="40%" /> : pendingCount}
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">
-            Verwacht extra (deze {tab === "pending" ? "stapel" : "tab"})
+            {tab === "pending"
+              ? t("stats.expectedExtraStack")
+              : t("stats.expectedExtraTab")}
           </div>
           <div className="stat-card-val">
             {loading ? (
               <Skeleton height={22} width="50%" />
             ) : (
-              `+${expectedTotals.reservations} reserveringen`
+              t("stats.extraReservations", {
+                count: expectedTotals.reservations,
+              })
             )}
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Verwachte extra omzet</div>
+          <div className="stat-card-label">{t("stats.expectedRevenue")}</div>
           <div className="stat-card-val">
             {loading ? (
               <Skeleton height={22} width="50%" />
@@ -211,7 +208,7 @@ export default function SuggestiesPage() {
       </div>
 
       <Tabs
-        items={tabs.map((t) => ({ key: t.key, label: t.label }))}
+        items={tabKeys.map((key) => ({ key, label: tabLabel(key) }))}
         active={tab}
         onChange={setTab}
       />
@@ -234,29 +231,28 @@ export default function SuggestiesPage() {
       ) : error ? (
         <EmptyState
           icon="✨"
-          title="Voorstellen niet beschikbaar"
-          description="We konden de voorstellen niet ophalen. Probeer de pagina te herladen."
+          title={t("errorState.title")}
+          description={t("errorState.description")}
         />
       ) : suggestions.length === 0 ? (
         tab === "pending" ? (
           <EmptyState
             icon="✨"
-            title="Alles bijgewerkt"
-            description="Geen voorstellen wachtend. Filly laat het weten zodra er wat opduikt."
+            title={t("emptyPending.title")}
+            description={t("emptyPending.description")}
           />
         ) : (
           <div className="table-empty">
-            Geen {tab === "approved" ? "goedgekeurde" : "afgewezen"}{" "}
-            voorstellen.
+            {tab === "approved"
+              ? t("emptyApproved")
+              : t("emptyRejected")}
           </div>
         )
       ) : (
         <div className="suggestions-grid">
           {suggestions.map((s) => {
-            const t = triggerLabel[s.trigger_type] ?? {
-              icon: "💡",
-              text: s.trigger_type,
-            };
+            const trigIcon = triggerIcon[s.trigger_type] ?? "💡";
+            const trigText = triggerText(s.trigger_type);
             const sc = s.suggested_campaign;
             const isActing = actingId === s.id;
             const confidence = s.confidence_score
@@ -287,8 +283,8 @@ export default function SuggestiesPage() {
                   }}
                 >
                   <div className="sg-trigger">
-                    <span>{t.icon}</span>
-                    <span>{t.text}</span>
+                    <span>{trigIcon}</span>
+                    <span>{trigText}</span>
                   </div>
                   {s.urgency && (
                     <div
@@ -309,13 +305,13 @@ export default function SuggestiesPage() {
                           background: urgencyColor[s.urgency],
                         }}
                       />
-                      {urgencyLabel[s.urgency]}
+                      {urgencyText(s.urgency)}
                     </div>
                   )}
                 </div>
 
                 <div className="sg-title">
-                  {sc.name ?? "Campagne-voorstel"}
+                  {sc.name ?? t("campaignProposalFallback")}
                 </div>
 
                 {(sc.subject || sc.caption || sc.body) && (
@@ -330,20 +326,22 @@ export default function SuggestiesPage() {
                 {(impact.extra_reservations || impact.extra_revenue_cents) && (
                   <div className="sg-impact">
                     <div className="sg-impact-item">
-                      <div className="sg-impact-label">Verwacht extra</div>
+                      <div className="sg-impact-label">{t("impact.expectedExtra")}</div>
                       <div className="sg-impact-val">
-                        +{impact.extra_reservations} reserveringen
+                        {t("impact.reservationsValue", {
+                          count: impact.extra_reservations ?? 0,
+                        })}
                       </div>
                     </div>
                     <div className="sg-impact-item">
-                      <div className="sg-impact-label">Geschatte omzet</div>
+                      <div className="sg-impact-label">{t("impact.estimatedRevenue")}</div>
                       <div className="sg-impact-val">
                         +{formatEuro(impact.extra_revenue_cents)}
                       </div>
                     </div>
                     {confidence !== null && (
                       <div className="sg-impact-item sg-impact-confidence">
-                        <div className="sg-impact-label">Confidence</div>
+                        <div className="sg-impact-label">{t("impact.confidence")}</div>
                         <div className="sg-impact-val">{confidence}%</div>
                         <div className="sg-conf-bar">
                           <div
@@ -368,7 +366,7 @@ export default function SuggestiesPage() {
                       borderTop: "1px solid var(--border-soft)",
                     }}
                   >
-                    <strong style={{ fontStyle: "normal" }}>Waarom nú:</strong>{" "}
+                    <strong style={{ fontStyle: "normal" }}>{t("whyNowInline")}</strong>{" "}
                     {s.reasoning}
                   </div>
                 )}
@@ -390,17 +388,17 @@ export default function SuggestiesPage() {
                       onClick={() => act(s.id, "approved")}
                       disabled={isActing}
                     >
-                      {isActing ? "Bezig..." : "Goedkeuren"}
+                      {isActing ? t("actions.busy") : t("actions.approve")}
                     </button>
                     <button className="sg-btn" disabled>
-                      Aanpassen
+                      {t("actions.edit")}
                     </button>
                     <button
                       className="sg-btn danger"
                       onClick={() => act(s.id, "rejected")}
                       disabled={isActing}
                     >
-                      Afwijzen
+                      {t("actions.reject")}
                     </button>
                   </div>
                 )}
@@ -416,10 +414,8 @@ export default function SuggestiesPage() {
           + bijgerechten) zodat "brunch" of "stoofschotel" tastbaar wordt. */}
       {selected && (() => {
         const s = selected;
-        const t = triggerLabel[s.trigger_type] ?? {
-          icon: "💡",
-          text: s.trigger_type,
-        };
+        const trigIcon = triggerIcon[s.trigger_type] ?? "💡";
+        const trigText = triggerText(s.trigger_type);
         const sc = s.suggested_campaign;
         const impact = s.expected_impact ?? {};
         const confidence = s.confidence_score
@@ -443,15 +439,15 @@ export default function SuggestiesPage() {
               <button
                 className="sg-modal-close"
                 onClick={() => setSelected(null)}
-                aria-label="Sluiten"
+                aria-label={t("close")}
               >
                 ×
               </button>
 
               <div className="sg-modal-header">
                 <div className="sg-trigger">
-                  <span>{t.icon}</span>
-                  <span>{t.text}</span>
+                  <span>{trigIcon}</span>
+                  <span>{trigText}</span>
                 </div>
                 {s.urgency && (
                   <span
@@ -462,13 +458,13 @@ export default function SuggestiesPage() {
                       className="sg-urgency-dot"
                       style={{ background: urgencyColor[s.urgency] }}
                     />
-                    {urgencyLabel[s.urgency]}
+                    {urgencyText(s.urgency)}
                   </span>
                 )}
               </div>
 
               <h2 className="sg-modal-title">
-                {sc.name ?? "Campagne-voorstel"}
+                {sc.name ?? t("campaignProposalFallback")}
               </h2>
 
               <div className="sg-modal-meta">
@@ -476,7 +472,7 @@ export default function SuggestiesPage() {
                   <span className={typeChipClass(sc.type)}>{typeLabel}</span>
                 )}
                 {sc.segment && (
-                  <span className="sg-chip">Doelgroep: {sc.segment}</span>
+                  <span className="sg-chip">{t("audience", { segment: sc.segment })}</span>
                 )}
               </div>
 
@@ -484,20 +480,22 @@ export default function SuggestiesPage() {
               {(impact.extra_reservations || impact.extra_revenue_cents) && (
                 <div className="sg-impact">
                   <div className="sg-impact-item">
-                    <div className="sg-impact-label">Verwacht extra</div>
+                    <div className="sg-impact-label">{t("impact.expectedExtra")}</div>
                     <div className="sg-impact-val">
-                      +{impact.extra_reservations} reserveringen
+                      {t("impact.reservationsValue", {
+                        count: impact.extra_reservations ?? 0,
+                      })}
                     </div>
                   </div>
                   <div className="sg-impact-item">
-                    <div className="sg-impact-label">Geschatte omzet</div>
+                    <div className="sg-impact-label">{t("impact.estimatedRevenue")}</div>
                     <div className="sg-impact-val">
                       +{formatEuro(impact.extra_revenue_cents)}
                     </div>
                   </div>
                   {confidence !== null && (
                     <div className="sg-impact-item sg-impact-confidence">
-                      <div className="sg-impact-label">Confidence</div>
+                      <div className="sg-impact-label">{t("impact.confidence")}</div>
                       <div className="sg-impact-val">{confidence}%</div>
                       <div className="sg-conf-bar">
                         <div
@@ -520,7 +518,7 @@ export default function SuggestiesPage() {
               {proposalLoading && (
                 <div className="sg-modal-section">
                   <div className="sg-modal-section-title">
-                    Voorgestelde invulling
+                    {t("proposal.title")}
                   </div>
                   <div
                     style={{
@@ -531,15 +529,14 @@ export default function SuggestiesPage() {
                       color: "var(--text-secondary, #52525B)",
                     }}
                   >
-                    🍳 Filly bedenkt een tastbare invulling op basis
-                    van je menu en sfeer…
+                    {t("proposal.loading")}
                   </div>
                 </div>
               )}
               {proposalError && !proposalLoading && (
                 <div className="sg-modal-section">
                   <div className="sg-modal-section-title">
-                    Voorgestelde invulling
+                    {t("proposal.title")}
                   </div>
                   <div
                     style={{
@@ -550,28 +547,26 @@ export default function SuggestiesPage() {
                       color: "var(--text-secondary, #52525B)",
                     }}
                   >
-                    Filly kon nu geen tastbare invulling bedenken
-                    ({proposalError}). De campagne-tekst hierboven
-                    blijft gewoon bruikbaar.
+                    {t("proposal.error", { error: proposalError })}
                   </div>
                 </div>
               )}
               {proposal && (
                 <div className="sg-modal-section">
                   <div className="sg-modal-section-title">
-                    Voorgestelde invulling
+                    {t("proposal.title")}
                   </div>
 
                   {proposal.mainDish && (
                     <div className="dish-card dish-card-main">
                       <div className="dish-card-head">
-                        <div className="dish-card-label">Hoofdgerecht</div>
+                        <div className="dish-card-label">{t("proposal.mainDish")}</div>
                         <span
                           className={`dish-source dish-source-${proposal.mainDish.source}`}
                         >
                           {proposal.mainDish.source === "menu"
-                            ? "Uit je menu"
-                            : "Nieuw voorstel"}
+                            ? t("proposal.fromMenu")
+                            : t("proposal.newProposal")}
                         </span>
                       </div>
                       <div className="dish-card-name">
@@ -591,7 +586,7 @@ export default function SuggestiesPage() {
                   {proposal.sides && proposal.sides.length > 0 && (
                     <>
                       <div className="sg-modal-field-label" style={{ marginTop: 14 }}>
-                        Bijgerechten
+                        {t("proposal.sides")}
                       </div>
                       <div className="dish-cards-row">
                         {proposal.sides.map((d, i) => (
@@ -601,8 +596,8 @@ export default function SuggestiesPage() {
                                 className={`dish-source dish-source-${d.source}`}
                               >
                                 {d.source === "menu"
-                                  ? "Uit menu"
-                                  : "Nieuw"}
+                                  ? t("proposal.fromMenuShort")
+                                  : t("proposal.newShort")}
                               </span>
                               {d.priceCents && (
                                 <span className="dish-card-price-inline">
@@ -653,7 +648,7 @@ export default function SuggestiesPage() {
               {sc.type && (
                 <div className="sg-modal-section">
                   <div className="sg-modal-section-title">
-                    Hoe Filly dit plaatst
+                    {t("placement.title")}
                   </div>
 
                   {/* Foto-selector: Filly's voorstel links, upload-knop rechts.
@@ -664,7 +659,7 @@ export default function SuggestiesPage() {
                       <div className="photo-option photo-option-active">
                         <div className="photo-option-label">
                           <span className="photo-check">✓</span>
-                          Voorgesteld door Filly
+                          {t("placement.suggestedByFilly")}
                         </div>
                         <div className="photo-frame">
                           {proposal.heroImage.emoji}
@@ -676,15 +671,15 @@ export default function SuggestiesPage() {
                       <button className="photo-option photo-option-upload" disabled>
                         <div className="photo-option-label">
                           <span className="photo-upload-icon">📷</span>
-                          Upload je eigen foto
+                          {t("placement.uploadOwnPhoto")}
                         </div>
                         <div className="photo-frame photo-frame-empty">
                           <span className="photo-upload-hint">
-                            Sleep of klik
+                            {t("placement.dragOrClick")}
                           </span>
                         </div>
                         <div className="photo-caption-text">
-                          Vervang Filly&apos;s voorstel door een eigen foto.
+                          {t("placement.replacePhotoHint")}
                         </div>
                       </button>
                     </div>
@@ -698,15 +693,15 @@ export default function SuggestiesPage() {
                       <div className="mail-preview">
                         <div className="mail-preview-meta">
                           <div>
-                            <span className="mail-preview-label">Van</span>
+                            <span className="mail-preview-label">{t("mailPreview.from")}</span>
                             <span className="mail-preview-val">
                               Bistro Get-Filly
                             </span>
                           </div>
                           <div>
-                            <span className="mail-preview-label">Aan</span>
+                            <span className="mail-preview-label">{t("mailPreview.to")}</span>
                             <span className="mail-preview-val">
-                              {sc.segment ?? "Vaste gasten"}
+                              {sc.segment ?? t("mailPreview.regularGuests")}
                             </span>
                           </div>
                         </div>
@@ -733,7 +728,7 @@ export default function SuggestiesPage() {
                               bistro_getfilly
                             </div>
                             <div className="social-preview-sub">
-                              Net geplaatst
+                              {t("socialPreview.justPosted")}
                             </div>
                           </div>
                         </div>
@@ -765,22 +760,22 @@ export default function SuggestiesPage() {
               {/* Volledige campagne-inhoud, de tekst waarin je Filly's
                   voorstel leest (onderwerp, caption, body). */}
               <div className="sg-modal-section">
-                <div className="sg-modal-section-title">Inhoud van de campagne</div>
+                <div className="sg-modal-section-title">{t("content.title")}</div>
                 {sc.subject && (
                   <div className="sg-modal-field">
-                    <div className="sg-modal-field-label">Onderwerp</div>
+                    <div className="sg-modal-field-label">{t("content.subject")}</div>
                     <div className="sg-modal-field-val">{sc.subject}</div>
                   </div>
                 )}
                 {sc.caption && (
                   <div className="sg-modal-field">
-                    <div className="sg-modal-field-label">Caption</div>
+                    <div className="sg-modal-field-label">{t("content.caption")}</div>
                     <div className="sg-modal-field-val">{sc.caption}</div>
                   </div>
                 )}
                 {sc.body && (
                   <div className="sg-modal-field">
-                    <div className="sg-modal-field-label">Bericht</div>
+                    <div className="sg-modal-field-label">{t("content.message")}</div>
                     <div className="sg-modal-field-val sg-modal-field-body">
                       {sc.body}
                     </div>
@@ -790,7 +785,7 @@ export default function SuggestiesPage() {
 
               {s.reasoning && (
                 <div className="sg-modal-section">
-                  <div className="sg-modal-section-title">Waarom nú?</div>
+                  <div className="sg-modal-section-title">{t("whyNow")}</div>
                   <div className="sg-modal-reasoning">{s.reasoning}</div>
                 </div>
               )}
@@ -802,17 +797,17 @@ export default function SuggestiesPage() {
                     onClick={() => act(s.id, "approved")}
                     disabled={isActing}
                   >
-                    {isActing ? "Bezig..." : "Goedkeuren"}
+                    {isActing ? t("actions.busy") : t("actions.approve")}
                   </button>
                   <button className="sg-btn" disabled>
-                    Aanpassen
+                    {t("actions.edit")}
                   </button>
                   <button
                     className="sg-btn danger"
                     onClick={() => act(s.id, "rejected")}
                     disabled={isActing}
                   >
-                    Afwijzen
+                    {t("actions.reject")}
                   </button>
                 </div>
               )}

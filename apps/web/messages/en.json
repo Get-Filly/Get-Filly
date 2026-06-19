@@ -883,5 +883,1569 @@
       "linkMedia": "Could not link photo.",
       "removeMedia": "Could not remove photo."
     }
+  },
+  "dash_account_layout": {
+    "tabs": {
+      "profile": "Profile",
+      "team": "Team"
+    }
+  },
+  "dash_account_page": {
+    "pageTitle": "Account",
+    "loading": "Loading...",
+    "loadError": {
+      "title": "Account details could not be loaded",
+      "description": "We couldn't load your profile. Try reloading the page, and if the problem persists, log in again."
+    },
+    "tabs": {
+      "general": "General",
+      "connections": "Connections"
+    },
+    "saveSuccess": "Saved ✓",
+    "saveButton": "Save changes",
+    "restaurant": {
+      "title": "Restaurant",
+      "desc": "The basics: type, cuisine and price range.",
+      "multiBusiness": "<strong>Multiple businesses?</strong> Add a second location or new concept, you can switch between them via the account menu at the top left.",
+      "addBusiness": "+ New business",
+      "name": "Name",
+      "type": "Type",
+      "cuisineStyle": "Cuisine style",
+      "cuisineHint": "Comma-separated.",
+      "priceRange": "Price range"
+    },
+    "location": {
+      "title": "Location",
+      "desc": "Automatically geocoded via PDOK as soon as you save. Required for the weather integration and local campaigns.",
+      "address": "Address",
+      "city": "City",
+      "postalCode": "Postal code",
+      "coordinates": "✓ Coordinates known: {lat}, {lng}"
+    },
+    "closedDates": {
+      "title": "Closing dates & holidays",
+      "desc": "Specific days when the business is closed (holidays, public holidays). Filly avoids these for mailings and reservation suggestions.",
+      "addDate": "Add a date",
+      "removeDate": "Remove this date",
+      "empty": "No closing dates. Add one for example for Christmas Day or your regular holiday week."
+    },
+    "capacity": {
+      "title": "Capacity",
+      "desc": "Occupancy percentages are based on this.",
+      "seatsInside": "Seats inside",
+      "seatsTerrace": "Seats on terrace",
+      "weekdayOccupancyGoal": "Weekday occupancy goal (%)",
+      "weekdayOccupancyPlaceholder": "e.g. 75",
+      "weekdayOccupancyHint": "Optional goal for the occupancy KPI on your dashboard. Leave empty to use Filly's calculation from your 6-month history (or the default 68% if you haven't built up any history yet).",
+      "hasTerrace": "Has a terrace",
+      "terraceSunLabel": "When does the sun reach the terrace?",
+      "sunMorning": "Morning",
+      "sunAfternoon": "Afternoon",
+      "sunEvening": "Evening",
+      "terraceSunHint": "Click to toggle. Filly uses this for sunny-day actions on your terrace.",
+      "terraceTypeLabel": "Terrace type",
+      "terraceOpen": "Open",
+      "terraceOpenHint": "No cover",
+      "terraceCovered": "Covered",
+      "terraceCoveredHint": "Awning or roof",
+      "terraceConvertible": "Convertible",
+      "terraceConvertibleHint": "Sliding walls, rain awning",
+      "terraceTypeHint": "Determines whether Filly can still suggest a terrace action in the rain (covered/convertible) or only in dry weather (open).",
+      "hasPrivateRoom": "Has a private/event room",
+      "hasKidsMenu": "Has a kids' menu"
+    },
+    "servicePeriods": {
+      "title": "Service times",
+      "desc": "Set per day when you serve breakfast, lunch and dinner. One or more shifts, you decide. The dashboard uses these times for the weekly and daily occupancy per service."
+    },
+    "languages": {
+      "title": "Languages your staff speaks",
+      "desc": "Click to toggle. Filly takes this into account for multilingual campaigns.",
+      "options": {
+        "nl": "Dutch",
+        "en": "English",
+        "de": "German",
+        "fr": "French",
+        "es": "Spanish",
+        "it": "Italian"
+      }
+    },
+    "company": {
+      "title": "Company details",
+      "desc": "For mail footers (required under GDPR/CAN-SPAM), your privacy statement and terms and conditions.",
+      "legalName": "Full company name (legal)",
+      "legalNameHint": "As registered with the Chamber of Commerce. Appears in the footer of mailings.",
+      "kvkNumber": "Chamber of Commerce number",
+      "kvkNumberHint": "8 digits.",
+      "vatNumber": "VAT number",
+      "vatNumberHint": "Format: NL + 9 digits + B + 2 digits.",
+      "contactEmail": "Contact email",
+      "contactEmailHint": "The official customer contact address.",
+      "contactPhone": "Contact phone"
+    },
+    "emailSettings": {
+      "title": "Email settings for mailings",
+      "desc": "Determines how campaign emails look to the recipient.",
+      "fromName": "Sender name",
+      "fromNameHint": "Appears in the recipient's inbox as “from”.",
+      "replyTo": "Reply-to address",
+      "replyToHint": "Where replies from recipients are sent. May be the same as the contact email."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "desc": "Decide when reviews and quiet days appear as actions on your campaigns page.",
+      "reviewThresholdLabel": "Show reviews at or below this star rating as an action",
+      "reviewStar1": "★☆☆☆☆ – Only 1-star reviews",
+      "reviewStar2": "★★☆☆☆ – 1 and 2 stars",
+      "reviewStar3": "★★★☆☆ – 1 to 3 stars",
+      "reviewStar4": "★★★★☆ – 1 to 4 stars",
+      "reviewStar5": "★★★★★ – All reviews",
+      "reviewThresholdHint": "Reviews that don't have a reply yet and fall below this threshold automatically appear in “Other actions”. The default is 3 stars, so only real problems get your attention.",
+      "occupancyThresholdLabel": "Occupancy below this threshold counts as a quiet day",
+      "below": "Below {pct}%",
+      "occupancyThresholdHint": "Filly scans the next 14 days for quiet days and adds them to “Other actions”. As soon as a day's occupancy reaches the threshold (e.g. through new reservations), it automatically disappears from the list. Closing days are not shown."
+    },
+    "events": {
+      "label": "Nearby events in Filly's suggestions",
+      "categories": {
+        "festivals": "Festivals",
+        "concerten_theater": "Concerts & theater",
+        "events": "Events",
+        "sportevenementen": "Sports events",
+        "kermis": "Funfairs",
+        "markten": "Markets"
+      },
+      "holidays": "Annual public holidays",
+      "maxDistanceLabel": "Maximum distance from the business",
+      "distanceSmart": "Smart per type (default)",
+      "distanceKm": "Up to {km} km",
+      "hint": "Filly weighs nearby events (source: evenementen.nl) and annual public holidays (Valentine's Day, Easter, King's Day, Christmas...) into campaign suggestions and timing. Untick what doesn't fit your business. The maximum distance applies only to nearby events, not to public holidays. “Smart per type” means: markets and funfairs up to 2 km, concerts and sports up to 5 km, festivals up to 10 km. A fixed distance applies to all types, wider is handy in rural areas, tighter in the city center."
+    },
+    "autoReply": {
+      "toggleLabel": "Filly replies automatically to reviews",
+      "toggleHint": "For new reviews below your threshold, Filly automatically writes a reply in your tone. You stay in control: the reply is prepared as a draft so you can approve it with one click.",
+      "modeLabel": "How does Filly post the reply?",
+      "modeConcept": "Prepare a draft for approval (recommended)",
+      "modePublish": "Post yourself: available once Google is connected",
+      "modeHint": "As long as Google isn't connected, Filly always prepares replies as drafts. Automatic posting becomes available once the Google connection is live.",
+      "toneLabel": "Tone for review replies",
+      "tonePlaceholder": "E.g. warm and personal, always thank by name, stay calm and solution-oriented with criticism.",
+      "toneHint": "Leave empty to use the general brand voice you set under Findability › Identity. Fill in something here if you want a different tone for reviews."
+    },
+    "subscription": {
+      "title": "Subscription",
+      "desc": "Plan and billing. Billing comes in a later step.",
+      "currentPlan": "Current plan"
+    },
+    "dataPrivacy": {
+      "title": "Data & privacy",
+      "desc": "Under the GDPR (art. 20) you have the right to a complete export of your business data in a readable format.",
+      "exportSuccess": "Export downloaded ✓",
+      "exportError": "Export failed. Please try again.",
+      "exportButton": "⬇️ Download full data export (JSON)",
+      "exportHint": "Contains: profile details, guests, reservations, menu, campaigns, reviews, chat history and audit log. Logos and menu PDFs are included as URLs in the file, which you can download separately."
+    },
+    "deleteAccount": {
+      "heading": "Delete account permanently",
+      "hint": "Erases your restaurant + all guests, reservations, menu, campaigns and chat history. After that your login account disappears too. This action is irreversible, so download your data export above first if you want to keep anything.",
+      "button": "🗑 Delete account permanently"
+    },
+    "deleteModal": {
+      "title": "Are you sure?",
+      "intro": "You are about to delete <strong>your entire account</strong>. This means:",
+      "item1": "Your restaurant + all profile details are erased",
+      "item2": "All guests, reservations, menu and campaigns disappear",
+      "item3": "Reviews, chat history and audit log are deleted",
+      "item4": "Your login account (email + password) is erased",
+      "item5": "Anonymous learning data (cuisine + region + campaign results, no names or addresses) is kept to train Filly, in line with GDPR Recital 26.",
+      "typeToConfirm": "Type <strong>VERWIJDER</strong> to continue:",
+      "cancel": "Cancel",
+      "confirm": "Yes, delete my account",
+      "deleteError": "Deletion failed, please try again or contact support."
+    }
+  },
+  "dash_account_team_invite_modal": {
+    "title": "Invite team member",
+    "close": "Close",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "name@example.com",
+    "roleLabel": "Role",
+    "roles": {
+      "owner": "Owner, full access",
+      "manager": "Manager, day-to-day work",
+      "staff": "Staff, limited"
+    },
+    "permissionsHint": "After inviting, you can still toggle custom permissions per module in the team list.",
+    "errorPrefix": "Error: {message}",
+    "cancel": "Cancel",
+    "sending": "Sending…",
+    "send": "Send",
+    "sentToEmail": "Invitation sent to <strong>{email}</strong>.",
+    "sentHint": "Once the recipient clicks the link in the email and logs in, they join your team.",
+    "existingAccount": "This person already has a Get-Filly account. Share the link below with them, clicking it gets them in right away.",
+    "copy": "Copy"
+  },
+  "dash_account_team_page": {
+    "title": "Team",
+    "subtitle": "Manage who has access to {restaurant} and which sections they can see.",
+    "thisRestaurant": "this restaurant",
+    "inviteMember": "+ Invite team member",
+    "loading": "Loading team…",
+    "loadError": "Could not load team: {error}",
+    "pendingInvitesTitle": "Pending invitations",
+    "inviteMeta": "Role: {role} · expires {date}",
+    "awaitingAcceptance": "Awaiting acceptance",
+    "copyLink": "Copy link",
+    "copyLinkTitle": "Fresh magic link, share manually if the email does not arrive",
+    "magicLinkCopied": "Magic link copied, paste it into a browser to accept the invite.",
+    "revoke": "Revoke",
+    "revokeInviteConfirm": "Revoke this invitation?",
+    "unknown": "Unknown",
+    "permissions": "Permissions",
+    "close": "Close",
+    "remove": "Remove",
+    "removeTitle": "Remove team member",
+    "removeConfirm": "Are you sure you want to remove {name}?",
+    "thisTeamMember": "this team member",
+    "customPermissionsActive": "Custom permissions active",
+    "defaultPermissionsForRole": "Default permissions for role \"{role}\"",
+    "resetToRoleDefault": "Reset to role default",
+    "roles": {
+      "owner": "Owner",
+      "manager": "Manager",
+      "staff": "Staff"
+    },
+    "modules": {
+      "dashboard": "Dashboard",
+      "taken": "Tasks",
+      "suggesties": "Suggestions",
+      "reserveringen": "Reservations",
+      "campagnes": "Campaigns",
+      "gasten": "Guests",
+      "marketing": "Marketing",
+      "google_business": "Google Business",
+      "menu": "Menu",
+      "rapportages": "Reports",
+      "koppelingen": "Integrations",
+      "account": "Account",
+      "team": "Team management"
+    },
+    "errors": {
+      "revokeInvite": "Could not revoke invite: {error}",
+      "roleChange": "Could not change role: {error}",
+      "togglePermission": "Could not change permission: {error}",
+      "reset": "Could not reset: {error}",
+      "remove": "Could not remove team member: {error}",
+      "generateLink": "Could not generate link: {error}"
+    }
+  },
+  "dash_gasten_page": {
+    "title": "Guests",
+    "subtitle": "Who visits your restaurant, with preferences, allergies and value.",
+    "exportPdf": "PDF",
+    "exportCsv": "Export CSV",
+    "csvFileName": "customers",
+    "csvYes": "yes",
+    "csvNo": "no",
+    "csvHeaders": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "visits": "Visits",
+      "lastVisit": "Last visit",
+      "birthday": "Birthday",
+      "tags": "Tags",
+      "mailOptIn": "Mail opt-in"
+    },
+    "statTotal": "Total guests",
+    "statViaFilly": "Via Filly",
+    "statActive90": "Active (90 days)",
+    "statVips": "VIPs",
+    "statAtRisk": "At-risk",
+    "statOptIns": "Mail opt-ins",
+    "statTotalLtv": "Total LTV",
+    "birthdaysThisMonth": "<strong>{count}</strong> {count, plural, one {guest} other {guests}} celebrating a birthday this month:",
+    "filterAll": "All",
+    "statusNieuw": "New",
+    "statusVasteGast": "Regular",
+    "statusVip": "VIP",
+    "statusAtRisk": "At-risk",
+    "statusVerloren": "Lost",
+    "searchPlaceholder": "Search by name or email...",
+    "noGuestsFound": "No guests found.",
+    "emptyTitle": "No guests yet",
+    "emptyErrorDescription": "We couldn't load the guest list. Please try reloading the page.",
+    "emptyDescription": "Import from your reservation platform or add manually.",
+    "addGuest": "Add guest",
+    "colViaFilly": "Via Filly",
+    "colName": "Name",
+    "colStatus": "Status",
+    "colVisits": "Visits",
+    "colLtv": "LTV",
+    "colLastVisit": "Last visit",
+    "colOptIn": "Opt-in",
+    "viaFillyTooltip": "First reservation came in via a Filly campaign",
+    "viaFillyYes": "Yes",
+    "allergiesTooltip": "Allergies: {allergies}"
+  },
+  "dash_google_business_components_google_connect_modal": {
+    "title": "Connect your Google Business Profile",
+    "subtitle": "Search by name and city. Filly fetches your profile info right away.",
+    "close": "Close",
+    "searchPlaceholder": "e.g. 'De Kas Amsterdam'",
+    "search": "Search",
+    "searching": "Searching…",
+    "connecting": "Connecting…",
+    "reviewCount": "({count, number} reviews)",
+    "emptyState": "Type a search query and click Search.",
+    "errors": {
+      "noResults": "No results found. Try adding more detail (name and city).",
+      "searchFailed": "Search failed.",
+      "connectFailed": "Connection failed."
+    }
+  },
+  "dash_google_business_audit_page": {
+    "title": "Findability score",
+    "errors": {
+      "unknown": "Unknown error"
+    },
+    "loadError": {
+      "title": "Could not load findability score",
+      "retry": "Try again"
+    },
+    "empty": {
+      "title": "Run your first health audit",
+      "description": "Filly checks your website SEO, Google Business Profile quality, reviews, AI findability and competitors within a 500m radius. Takes about a minute.",
+      "running": "Running audit…",
+      "start": "Start first audit"
+    },
+    "rerun": {
+      "running": "Working…",
+      "label": "Re-run audit"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "seo": "Website SEO",
+      "gbp": "Google Business",
+      "reviews": "Reviews",
+      "geo": "AI findability"
+    },
+    "banner": {
+      "outOf": "/ 100",
+      "lastAudit": "Last audit: {date}",
+      "runsInHistory": "{count} runs in history"
+    },
+    "scoreHeadline": {
+      "strong": "Strong findability",
+      "good": "Good foundation, can improve",
+      "room": "Room for improvement",
+      "work": "Lots of work to do"
+    },
+    "scoreDescription": {
+      "strong": "Your findability is in good shape. Work on the last improvements in the tabs below to extend your lead.",
+      "good": "The basics are in order, but there are concrete opportunities to score higher. Check the tabs per category for the details.",
+      "room": "There is significant room to improve. Focus on the critical actions (red) for the biggest impact.",
+      "work": "Your findability needs a lot of attention. The critical actions below deliver the biggest jump right away."
+    },
+    "category": {
+      "seo": {
+        "label": "Website SEO",
+        "desc": "Title, meta tags, schema.org, mobile, speed"
+      },
+      "gbp": {
+        "label": "Google Business Profile",
+        "desc": "Profile completeness, photos, opening hours"
+      },
+      "reviews": {
+        "label": "Reviews",
+        "desc": "Number of reviews, average rating"
+      },
+      "geo": {
+        "label": "AI findability",
+        "desc": "Are you mentioned by AI assistants?"
+      }
+    },
+    "severity": {
+      "info": "Info",
+      "low": "Minor",
+      "medium": "Moderate",
+      "high": "Important",
+      "critical": "Critical"
+    },
+    "categoryHeader": {
+      "weight": "Counts for {weight}% of your total score"
+    },
+    "comingSoon": {
+      "label": "Coming soon:"
+    },
+    "seoTab": {
+      "intro": "We check 15 deterministic SEO signals on your homepage plus three Lighthouse categories via Google PageSpeed Insights. Below you see every checked point.",
+      "comingSoon": "Coming soon here too: keyword suggestions that Filly generates for your title, meta description and H1 based on your cuisine and city."
+    },
+    "gbpTab": {
+      "intro": "We check 8 core criteria on your Google Business Profile: from business status and completeness to photo volume and categorization. Reviews are in a separate tab.",
+      "comingSoon": "Coming soon here too: a detailed checklist of all Place fields (phone, address, opening hours) with their current value, so you can see at a glance what is correct and what is missing."
+    },
+    "reviewsTab": {
+      "intro": "Reviews health based on your Google profile: count, average rating and thresholds (10+ and 30+) where guest trust noticeably tips.",
+      "comingSoon": "Coming soon here too: sentiment analysis on your review text (which topics positive, which negative). For the response ratio and review recency we are waiting for the Google Business Profile API connection (OAuth)."
+    },
+    "geoTab": {
+      "intro": "We ask Claude (Anthropic) five different questions about good restaurants in your city and check whether you are mentioned. Position in the list counts: top 3 earns full points, lower in the list less. Not mentioned = 0 points.",
+      "approachLabel": "Approach:",
+      "perQuery": "Per query",
+      "position": "Position {rank}",
+      "notMentioned": "Not mentioned",
+      "restaurantsInAnswer": "{count} restaurants in answer",
+      "viewFullAnswer": "View Claude's full answer"
+    },
+    "findings": {
+      "actionItems": "Action items ({count})",
+      "inOrder": "In order ({count})",
+      "noChecks": {
+        "title": "No checks available yet",
+        "description": "Run the audit to see results."
+      },
+      "ok": "OK"
+    },
+    "findingRow": {
+      "pointsPossible": "+{points} pts possible",
+      "fix": "Fix:",
+      "goThere": "→ go there"
+    },
+    "overview": {
+      "noActions": "🎉 No action items, everything looks good.",
+      "actionsThatRaise": "Actions that raise your score ({count})"
+    },
+    "competitors": {
+      "title": "Competitors within 500m radius",
+      "name": "Name",
+      "distance": "Distance",
+      "gbp": "GBP",
+      "reviews": "Reviews",
+      "total": "Total",
+      "yourRestaurant": "Your restaurant"
+    },
+    "trend": {
+      "title": "Trend (last {count} audits)"
+    }
+  },
+  "dash_google_business_benchmark_page": {
+    "title": "Competitor benchmark",
+    "subtitle": "How do you score versus restaurants nearby?",
+    "loading": "Loading competitors…",
+    "resultSubtitle": "{count, plural, =1 {# restaurant} other {# restaurants}} within {radius}.",
+    "radiusLabel": "Radius:",
+    "youBadge": "YOU",
+    "emptyTable": "No other restaurants found within this radius. Try a larger radius.",
+    "medianNote": "Median figures calculated over {count} competitors. The median is more robust than the average, so one very good or very poor business distorts the picture less.",
+    "aboveMedian": "Above median",
+    "belowMedian": "Below median",
+    "medianInArea": "Median nearby: {value}",
+    "notConnected": {
+      "title": "Connect Google first",
+      "description": "We need your location from Google Business Profile to build your neighborhood comparison.",
+      "action": "Go to the hub"
+    },
+    "kpi": {
+      "rating": "Your rating",
+      "reviews": "Your reviews",
+      "photos": "Your photos"
+    },
+    "table": {
+      "restaurant": "Restaurant",
+      "distance": "Distance",
+      "rating": "Rating",
+      "reviews": "Reviews",
+      "photos": "Photos"
+    },
+    "errors": {
+      "unknown": "Unknown error",
+      "unavailable": "Benchmark not available."
+    }
+  },
+  "dash_google_business_identiteit_components_identiteit_checklist": {
+    "basics": {
+      "name": "Restaurant name",
+      "tagline": "Tagline",
+      "description": "Full description",
+      "cuisine": "Cuisine style",
+      "targetAudience": "Main target audience",
+      "segments": "Audience segments",
+      "location": "Location description",
+      "media": "Photos in library",
+      "logo": "Logo",
+      "brandColor": "Primary color"
+    },
+    "toon": {
+      "atmosphere": "Atmosphere & interior",
+      "tone": "Tone of voice",
+      "story": "Brand story",
+      "doNot": "What we avoid",
+      "usp": "Unique selling points",
+      "signatures": "Signature dishes",
+      "awards": "Awards & certifications",
+      "events": "Special occasions"
+    },
+    "seo": {
+      "keywords": "SEO keywords",
+      "hashtags": "Fixed hashtags"
+    }
+  },
+  "dash_google_business_identiteit_page": {
+    "title": "Identity",
+    "subtitle": "The source of truth for all posts and campaigns Filly creates. The more complete it is, the more personal and effective the results.",
+    "loading": "Loading…",
+    "backLink": "← Back to Findability",
+    "tabs": {
+      "basics": "Basics",
+      "toon": "Tone",
+      "seo": "SEO",
+      "menu": "Menu",
+      "online": "Online"
+    },
+    "errors": {
+      "loadFailed": "Could not load profile.",
+      "saveFailed": "Saving failed, please try again."
+    },
+    "analyze": {
+      "noUrlError": "Enter your website URL on the Online tab first before Filly can analyze it.",
+      "successMessage": "Filly has updated your profile. Check each field and save if you make any further changes.",
+      "failed": "Filly analysis failed. Try again or fill it in manually.",
+      "bannerTitle": "Let Filly fill in these fields",
+      "readsWebsite": "Filly reads your website",
+      "fillsFields": "and fills in the fields below so you don't have to type everything manually.",
+      "buttonTitleEnabled": "Filly reads your website and fills in the fields below",
+      "buttonTitleDisabled": "Enter your website URL on the Online tab first",
+      "buttonLoading": "Filly is reading…",
+      "buttonEnabled": "Let Filly fill it in",
+      "buttonDisabled": "Enter website URL first",
+      "subsetBasics": "This is where your restaurant name, description, audience and location live.",
+      "subsetToon": "This is where we set the tone of Filly's posts: atmosphere, writing style, brand story, USPs and awards.",
+      "subsetSeo": "This is where SEO keywords and fixed hashtags live that Filly tries to work into every post."
+    },
+    "basics": {
+      "progressTitle": "Basics progress",
+      "restaurantTitle": "Restaurant",
+      "restaurantDesc": "The basic details Filly needs in every post.",
+      "nameLabel": "Restaurant name",
+      "taglineLabel": "Tagline (1 sentence)",
+      "taglinePlaceholder": "Cozy neighborhood bistro in the heart of Amsterdam",
+      "descriptionLabel": "Full description",
+      "descriptionPlaceholder": "Tell us in detail about your restaurant, history, philosophy...",
+      "cuisineLabel": "Cuisine style",
+      "cuisinePlaceholder": "Italian, Mediterranean",
+      "cuisineHint": "Comma-separated. Filly uses this for tone and theme suggestions.",
+      "audienceTitle": "Audience",
+      "audienceDesc": "Who Filly speaks to in its posts. The more specific, the more relevant the copy.",
+      "mainAudienceLabel": "Main audience",
+      "mainAudiencePlaceholder": "Local residents, professionals at lunch, families on weekends...",
+      "audienceSegmentsLabel": "Audience segments",
+      "audienceSegmentsPlaceholder": "regular-guests, new-guests, tourists, professionals",
+      "audienceSegmentsHint": "Comma-separated. Filly varies tone and offers per segment.",
+      "locationTitle": "Location & neighborhood",
+      "locationDesc": "Gives posts local grounding. Good for SEO and for recognition among potential guests.",
+      "locationLabel": "Location description",
+      "locationPlaceholder": "Heart of De Pijp, behind the Albert Cuyp. Surrounded by shops, bars and coffee spots. Easy to reach by tram 4 (Stadhouderskade stop).",
+      "photoLibraryTitle": "Photo library",
+      "photoLibraryDesc": "Images Filly may use in social posts and email templates. Upload several so Filly can pick variety per campaign.",
+      "brandingTitle": "Branding",
+      "brandingDesc": "Logo and brand colors Filly applies in email templates and visual content.",
+      "logoUrlLabel": "Logo URL",
+      "logoUrlHint": "Direct link to your logo (PNG or SVG). Upload flow comes in the next round.",
+      "primaryColorLabel": "Primary color",
+      "primaryColorHint": "Hex code (#RRGGBB).",
+      "secondaryColorLabel": "Secondary color",
+      "secondaryColorHint": "Optional."
+    },
+    "toon": {
+      "progressTitle": "Tone progress",
+      "atmosphereTitle": "Atmosphere & interior",
+      "atmosphereDesc": "The sensory experience Filly can evoke in posts.",
+      "atmosphereLabel": "Atmosphere + interior",
+      "atmospherePlaceholder": "Warm, intimate, wooden interior, soft jazz, candlelight in the evening...",
+      "toneTitle": "Tone of voice",
+      "toneDesc": "How Filly writes. Source of truth; was previously implicit from the description.",
+      "toneLabel": "Tone",
+      "tonePlaceholder": "Playful and informal with dry humor. Avoid corporate speak. Use an informal address.",
+      "brandStoryTitle": "Brand story",
+      "brandStoryDesc": "The story behind the restaurant. Filly weaves it into storytelling posts.",
+      "brandStoryLabel": "Story / philosophy",
+      "brandStoryPlaceholder": "Open since 1985, third generation. We work only with local farmers within 30 km...",
+      "doNotMentionTitle": "What we don't do",
+      "doNotMentionDesc": "Prevents Filly from making false promises in posts or campaigns.",
+      "doNotMentionLabel": "Anti-claims",
+      "doNotMentionPlaceholder": "No vegan options. No take-away. No halal kitchen. No private room.",
+      "strengthsTitle": "Strengths",
+      "strengthsDesc": "USPs and signature dishes that may feature prominently in posts.",
+      "uspLabel": "Unique selling points",
+      "uspPlaceholder": "Own herb garden, open kitchen, weekly changing menu...",
+      "signatureDishesLabel": "Signature dishes",
+      "signatureDishesPlaceholder": "Veal stew, Sea bass with spring onions",
+      "signatureDishesHint": "Comma-separated. Filly works these into campaign copy.",
+      "awardsLabel": "Awards & certifications",
+      "awardsPlaceholder": "Bib Gourmand 2024, organic certification, Tripadvisor Travelers' Choice",
+      "awardsHint": "Comma-separated. Filly may mention these as social proof in posts.",
+      "eventsTitle": "Special occasions",
+      "eventsDesc": "E.g. private events, private rooms, group dinners.",
+      "eventsLabel": "Events & occasions",
+      "eventsPlaceholder": "Birthdays, business lunches, wedding dinners, private room for up to 30 people..."
+    },
+    "seo": {
+      "progressTitle": "SEO progress",
+      "keywordsTitle": "Keywords",
+      "keywordsDesc": "Words Filly always tries to work into posts. Helps findability in search engines and AI tools.",
+      "keywordsLabel": "SEO keywords",
+      "keywordsPlaceholder": "sustainable, seasonal, local, artisanal, italian, pijp",
+      "keywordsHint": "Comma-separated. Use 5-15 terms that characterize your venue.",
+      "hashtagsTitle": "Fixed hashtags",
+      "hashtagsDesc": "Hashtags automatically added to every Instagram/TikTok post.",
+      "hashtagsLabel": "Default hashtags",
+      "hashtagsPlaceholder": "pijpamsterdam, italianocooking, amsterdamfood, instafood",
+      "hashtagsHint": "Without the # sign. Filly adds 3-5 platform-specific hashtags per post."
+    },
+    "online": {
+      "websiteTitle": "Website",
+      "websiteDesc": "Filly reads your website periodically to keep tone and offerings up to date.",
+      "websiteUrlLabel": "Website URL",
+      "websiteNote": "Full website analysis (auto-fill of tagline, atmosphere, USPs) remains available for now via the Account page.",
+      "socialTitle": "Social media",
+      "socialDesc": "Filly uses these handles in social campaigns and email footers.",
+      "instagramLabel": "Instagram",
+      "facebookLabel": "Facebook",
+      "tiktokLabel": "TikTok",
+      "linkedinLabel": "LinkedIn"
+    },
+    "saveBar": {
+      "changed": "{count, plural, one {<b>#</b> field changed} other {<b>#</b> fields changed}}",
+      "saveButton": "Save changes"
+    }
+  },
+  "dash_google_business_page": {
+    "pageTitle": "Findability",
+    "available": "Available",
+    "requiresGoogleConnection": "Requires Google connection",
+    "identityTitle": "Identity",
+    "identityDescription": "Source of truth for every post and campaign Filly creates. Tagline, tone, audience, keywords, menu and more.",
+    "reviewsTitle": "Reviews",
+    "reviewsDescription": "View reviews and let Filly write reply suggestions that fit your business.",
+    "auditTitle": "Health score",
+    "auditDescription": "Complete findability report: your website's SEO, the quality of your Google Business Profile, reviews, AI visibility and competition within a 500m radius.",
+    "editsTitle": "Google Business Profile",
+    "editsDescription": "View your full Google profile: opening hours, description, contact details and attributes. Editing and pushing to Google arrives once the connection is live."
+  },
+  "dash_google_business_profiel_page": {
+    "title": "Google Business Profile",
+    "backToFindability": "← Back to Findability",
+    "badge": {
+      "visible": "Visible via Google",
+      "editLater": "Editable after connecting",
+      "afterConnect": "Available after connecting"
+    },
+    "banner": {
+      "titleConnected": "Connected with Google Maps data.",
+      "titlePreview": "Preview based on public Google data.",
+      "body": "The details below come from your public Google profile. Editing and pushing directly to Google, plus posts, Q&A and insights, become active once the Google Business Profile connection is live. You manage the connection via <link>Account → Integrations</link>."
+    },
+    "basics": {
+      "title": "Basic details",
+      "name": "Name",
+      "category": "Category",
+      "phone": "Phone",
+      "website": "Website",
+      "address": "Address"
+    },
+    "hours": {
+      "title": "Opening hours",
+      "empty": "No opening hours available from Google yet."
+    },
+    "specialDays": {
+      "title": "Special days & closing dates",
+      "closed": "Closed",
+      "manage": "Manage these days via <link>Account → Closing dates</link>. When connected, they are sent to Google as special hours.",
+      "empty": "No special days set. Add them via <link>Account → Closing dates</link> (e.g. Christmas Day or a holiday week)."
+    },
+    "description": {
+      "title": "Description",
+      "empty": "Google does not show an editorial description for your profile yet."
+    },
+    "stats": {
+      "title": "Status & numbers",
+      "businessStatus": "Business status",
+      "statusOperational": "Open / active",
+      "rating": "Average rating",
+      "reviewCount": "Number of reviews",
+      "photos": "Photos on Google"
+    },
+    "posts": {
+      "title": "Posts & updates",
+      "body": "Post offers, events and news directly to your Google profile. Filly suggests the text; you approve it."
+    },
+    "qa": {
+      "title": "Questions & answers",
+      "body": "See questions visitors ask on Google and let Filly suggest fitting answers."
+    },
+    "insights": {
+      "title": "Insights",
+      "body": "How many people search for your profile, click through to your website or call you, straight from Google. Not available via the public data, it comes with the connection."
+    },
+    "photoManagement": {
+      "title": "Photo management",
+      "body": "Upload photos from your Filly library directly to your Google profile."
+    }
+  },
+  "dash_google_business_reviews_page": {
+    "title": "Reviews",
+    "statAverage": "Average",
+    "statTotal": "Total reviews",
+    "statNeedsResponse": "Needs response (≤3 ★)",
+    "filterAll": "All",
+    "emptyTitle": "No reviews yet",
+    "emptyDescription": "Connect your Google Business Profile or TripAdvisor to import reviews automatically, then Filly drafts a fitting reply for every review right away.",
+    "emptyCategory": "No reviews in this category.",
+    "priorityHeading": "Priority",
+    "prioritySubtitle": "low scores without a reply",
+    "allReviewsHeading": "All reviews",
+    "actionRequired": "Action required",
+    "anonymous": "Anonymous",
+    "responded": "✓ Replied",
+    "reply": "Reply",
+    "yourReply": "Your reply",
+    "close": "Close",
+    "modalTrigger": "Reply to review",
+    "noContent": "No content.",
+    "bannerLoadingTitle": "Filly is reviewing it…",
+    "bannerLoadingBody": "Loading earlier suggestions or a new set.",
+    "bannerWritingTitle": "Filly is writing 3 suggestions…",
+    "bannerWrittenTitle": "Filly wrote {count} versions.",
+    "bannerWritingBody": "One moment.",
+    "bannerPickOrRegen": "Pick a version or generate 3 new ones (max 6).",
+    "bannerPickOnly": "Click a version to drop it into the text field.",
+    "thinking": "Filly is thinking…",
+    "generateThreeNew": "↻ Generate 3 new",
+    "bannerMaxTitle": "{count} versions ready.",
+    "bannerMaxBody": "Maximum reached, pick your favorite below and tweak it as you like.",
+    "variantLabel": "Variant {number}",
+    "variantChosenSuffix": " · chosen",
+    "replyPlaceholder": "Type your reply here, or let Filly draft one.",
+    "saving": "Saving…",
+    "sendReply": "Send reply",
+    "cancel": "Cancel",
+    "trendRatingLabel": "vs. earlier reviews",
+    "trendVolumeLabel": "{count, plural, one {new review this month} other {new reviews this month}}",
+    "errors": {
+      "generate": "Filly could not create a suggestion. Try again or write your own.",
+      "save": "Saving failed. Please try again."
+    }
+  },
+  "dash_koppelingen_page": {},
+  "dash_marketing_components_coming_soon_channel": {
+    "title": "{channelName} performance",
+    "subtitle": "Reach, engagement and audience data, available once {channelName} is connected.",
+    "notAvailableTitle": "Not available yet",
+    "notAvailableBody": "We're working on {approvalDescription} to officially connect your {channelName} account. This typically takes a few weeks. After that we'll get to everything in the overview below right away.",
+    "featuresHeading": "What you'll see on this page",
+    "backToHub": "Back to Marketing hub",
+    "viewMail": "View Mail (already works)"
+  },
+  "dash_marketing_components_meta_live_insights": {
+    "colPost": "Post",
+    "colDate": "Date",
+    "liveStats": "Live stats · {platform}",
+    "realConnection": "✓ live connection",
+    "errorFetch": "Could not load the live stats. Are Facebook and Instagram connected under Account > Connections?",
+    "noPageSelected": "No Facebook page chosen yet. Connect Facebook and Instagram and pick your page via <link>Account > Connections</link>.",
+    "followers": "Followers",
+    "posts": "Posts",
+    "likes": "Likes",
+    "comments": "Comments",
+    "shares": "Shares",
+    "noInstagramPosts": "No Instagram posts found yet.",
+    "noFacebookPosts": "No Facebook posts found yet."
+  },
+  "dash_marketing_facebook_page": {
+    "subtitle": "Page reach, reactions and audience data, last 30 days.",
+    "refresh": "Refresh",
+    "disconnect": "Disconnect",
+    "availableAfterMetaConnection": "Available after Meta connection",
+    "availableAfterConnection": "Available after connection",
+    "previewBanner": "<strong>Preview with sample data.</strong> This is how your Facebook page will look once Meta App Review is approved and you have connected your FB page. The figures below are fictional.",
+    "fillyAnalysisTitle": "Filly's analysis · 30 days",
+    "fillyAnalysis": "Your page likes are stable with slight growth (+12 this week). Your FB audience skews older than on IG (centered on 35-54), which fits higher spending power but a lower engagement rate. Two things stand out: events consistently perform twice as well as photos, so I would keep investing there. And you post very little on Saturday mornings, even though your audience is most active then.",
+    "askFillyForContent": "Ask Filly for a content suggestion",
+    "kpi": {
+      "reach": "Reach",
+      "impressionsSubtext": "{count} impressions",
+      "pageLikes": "Page likes",
+      "followersSubtext": "{count} followers",
+      "engagementRate": "Engagement rate",
+      "pageViews": "Page views",
+      "vsPrevious30d": "vs previous 30 days"
+    },
+    "belowMedian": "Below median",
+    "aboveMedian": "Above median",
+    "median": "Median: {value}",
+    "reachChartTitle": "Page reach · 30 days",
+    "reachChartTabs": "Tabs: Reach · Impressions · Engagement · Page likes",
+    "chart": {
+      "daysAgo": "30 days ago",
+      "today": "Today"
+    },
+    "reactionsMixTitle": "Reactions mix · last 30 days",
+    "reactionsMixSubtext": "{count} reactions on your posts, the breakdown shows how your audience responds emotionally.",
+    "reactions": {
+      "like": "Like",
+      "love": "Love",
+      "wow": "Wow",
+      "haha": "Haha",
+      "sad": "Sad",
+      "angry": "Angry"
+    },
+    "topPostsTitle": "Top 5 posts this month",
+    "topPostsPattern": "<strong>Filly's pattern:</strong> Events > Videos > Photos > Links for your audience. Strong emotional element (high 'love' reactions), content with warmth and a human touch performs best.",
+    "topPosts": {
+      "winePairing": "Wine pairing evening, limited seats available",
+      "freshPasta": "Fresh pasta, handmade, made fresh daily in our open kitchen",
+      "behindScenes": "Behind the scenes, chef Marco prepares the seasonal menu",
+      "seasonalMenu": "Our new seasonal menu is live on the website",
+      "teamPhoto": "Team photo: our brigade in action during the busy Friday night"
+    },
+    "postedAt": {
+      "wed23apr": "Wed 23 Apr",
+      "fri26apr": "Fri 26 Apr",
+      "mon21apr": "Mon 21 Apr",
+      "thu17apr": "Thu 17 Apr",
+      "sat19apr": "Sat 19 Apr"
+    },
+    "postType": {
+      "photo": "Photo",
+      "video": "Video",
+      "event": "Event",
+      "link": "Link"
+    },
+    "post": {
+      "reach": "{count} reach",
+      "engagement": "{rate}% engagement"
+    },
+    "bestTimeTitle": "Best time to post",
+    "bestTimeSubtext": "Your FB audience has 2 peak moments: lunch and evening. Suggested peak hour: <strong>Thursday 18:00</strong>.",
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "heatmap": {
+      "cellTitle": "{day} {hour}: {value}% activity"
+    },
+    "contentMixTitle": "Content mix · last 30 days",
+    "table": {
+      "type": "Type",
+      "posts": "Posts",
+      "avgEngagement": "Avg. engagement",
+      "totalReach": "Total reach"
+    },
+    "contentMix": {
+      "photos": "Photos",
+      "videos": "Videos",
+      "events": "Events",
+      "links": "Links"
+    },
+    "audienceTitle": "Who follows your page",
+    "audience": {
+      "topCities": "Top 5 cities",
+      "age": "Age",
+      "gender": "Gender",
+      "female": "Female",
+      "male": "Male",
+      "other": "Other / unknown"
+    },
+    "actionsTitle": "Filly's action suggestions",
+    "actions": {
+      "events": {
+        "title": "Events perform above average",
+        "description": "Your 2 events (wine pairing and the earlier asparagus week) scored 8.0% engagement, above your FB average of 4.5%. This content format resonates with your audience.",
+        "hint": "Plan 1-2 events next month. A 'live cooking demo' or 'wine pairing with the chef' fits your profile well."
+      },
+      "lunch": {
+        "title": "Make better use of the lunch peak",
+        "description": "Between 12:00-13:00 your audience is most active on Saturday, but you never post then. People plan their evening at that time.",
+        "hint": "Try a Saturday morning post at 11:30 or 12:00, it warms up the evening reservation before they start their search."
+      },
+      "engagement": {
+        "title": "Engagement below median",
+        "description": "2.9% vs hospitality median 3.4%, not alarming, but there is room to improve. Your link shares in particular are weak (2.8%).",
+        "hint": "Replace link-only posts with photos and put the link in the comment. The FB algorithm penalizes external links heavily."
+      }
+    },
+    "proposal": "<strong>Suggestion:</strong> {hint}",
+    "fillyWritesIt": "Filly writes it",
+    "ignore": "Ignore",
+    "backToHub": "← Back to Marketing hub"
+  },
+  "dash_marketing_instagram_page": {
+    "subtitle": "Reach, engagement and audience, last 30 days.",
+    "refresh": "Refresh",
+    "disconnect": "Disconnect",
+    "availableAfterMetaConnection": "Available after Meta connection",
+    "availableAfterConnection": "Available after connection",
+    "previewBanner": "<strong>Preview with sample data.</strong> This is how your Instagram page will look once Meta App Review is approved and you have connected your IG account. The figures below are fictional.",
+    "fillyAnalysisLabel": "Filly's analysis · 30 days",
+    "askFillyForContent": "Ask Filly for a content suggestion",
+    "kpiReach": "Reach",
+    "kpiImpressions": "{count} impressions",
+    "kpiFollowers": "Followers",
+    "kpiLast7Days": "last 7 days",
+    "kpiEngagementRate": "Engagement rate",
+    "kpiProfileViews": "Profile views",
+    "kpiVsPrevious30Days": "vs previous 30 days",
+    "belowMedian": "Below median",
+    "aboveMedian": "Above median",
+    "median": "Median: {value}",
+    "reach30DaysTitle": "Reach · 30 days",
+    "chartTabs": "Tabs: Reach · Impressions · Engagement · Followers",
+    "daysAgo30": "30 days ago",
+    "today": "Today",
+    "topPostsTitle": "Top 5 posts this month",
+    "fillyPatternLabel": "Filly's pattern:",
+    "fillyPatternText": "warm interior + close-up dishes = a consistently high-performing mix. Reels > Carousels > Photos for your audience.",
+    "postTypeReel": "Reel",
+    "postTypeCarousel": "Carousel",
+    "postTypePhoto": "Photo",
+    "postReach": "{count} reach",
+    "postEngagement": "{value}% engagement",
+    "bestTimeToPostTitle": "Best time to post",
+    "bestTimeToPostHint": "The darker the cell, the more of your audience is online then. Suggested peak hour: <strong>Wednesday 18:00</strong>.",
+    "dayMon": "Mon",
+    "dayTue": "Tue",
+    "dayWed": "Wed",
+    "dayThu": "Thu",
+    "dayFri": "Fri",
+    "daySat": "Sat",
+    "daySun": "Sun",
+    "heatmapCellTitle": "{day} {hour}: {value}% activity",
+    "contentMixTitle": "Content mix · last 30 days",
+    "colType": "Type",
+    "colPosts": "Posts",
+    "colAvgEngagement": "Avg. engagement",
+    "colTotalReach": "Total reach",
+    "notAvailable": "n/a",
+    "whoFollowsYouTitle": "Who follows you",
+    "topCitiesLabel": "Top 5 cities",
+    "ageLabel": "Age",
+    "genderLabel": "Gender",
+    "genderFemale": "Female",
+    "genderMale": "Male",
+    "genderOther": "Other / unknown",
+    "fillyActionsTitle": "Filly's action suggestions",
+    "proposalLabel": "Suggestion:",
+    "fillyWritesIt": "Filly writes it",
+    "ignore": "Ignore",
+    "backToMarketingHub": "← Back to Marketing hub"
+  },
+  "dash_marketing_mail_page": {
+    "title": "Mail performance",
+    "subtitle": "Open rates, click rates and industry comparison, from your Resend data.",
+    "loading": "Loading statistics…",
+    "summary": "{sent} mails sent across {count, plural, one {# campaign} other {# campaigns}}, last {days} days.",
+    "benchmarkSource": "Median figures from {source}",
+    "footnote": "Heatmap (best send time) and trends chart will follow once you have sent more than 10 campaigns, otherwise the picture says little.",
+    "errors": {
+      "unknown": "Unknown error"
+    },
+    "empty": {
+      "title": "No mails sent yet",
+      "description": "As soon as you send your first mail campaign, open rates, click rates and the comparison with the hospitality median will appear here.",
+      "cta": "Go to campaigns"
+    },
+    "kpi": {
+      "sent": "Sent",
+      "delivered": "{delivered} delivered",
+      "openRate": "Open rate",
+      "clickRate": "Click rate",
+      "bounceRate": "Bounce rate",
+      "unsubscribes": "Unsubscribes",
+      "unsubscribedPeople": "{people} people"
+    },
+    "benchmark": {
+      "above": "Above median",
+      "below": "Below median",
+      "median": "Median: {value}"
+    },
+    "table": {
+      "campaign": "Campaign",
+      "status": "Status",
+      "sent": "Sent",
+      "open": "Open",
+      "click": "Click",
+      "bounce": "Bounce",
+      "emptyPeriod": "No campaigns in this period.",
+      "sentOn": "Sent {date}"
+    },
+    "status": {
+      "afgerond": "Completed",
+      "actief": "Active",
+      "ingepland": "Scheduled",
+      "concept": "Draft",
+      "gearchiveerd": "Archived"
+    }
+  },
+  "dash_marketing_page": {
+    "title": "Marketing",
+    "subtitle": "How are your channels performing? Filly measures, compares and suggests improvements.",
+    "banner": {
+      "activeCount": "{live} of {total} channels active",
+      "someActive": "Mail statistics are live. Social channels follow after the Meta + TikTok approval requests.",
+      "noneActive": "No channels active. Send a mail campaign first to see your first statistics."
+    },
+    "report": {
+      "heading": "Filly's weekly report"
+    },
+    "status": {
+      "live": "Active",
+      "comingSoon": "Soon",
+      "future": "Later"
+    },
+    "channels": {
+      "mail": {
+        "name": "Mail",
+        "description": "Open rates, click rates, best send time and what your best campaigns did, straight from Resend."
+      },
+      "instagram": {
+        "name": "Instagram",
+        "description": "Reach, engagement, top posts and best posting time once you connect via OAuth."
+      },
+      "facebook": {
+        "name": "Facebook",
+        "description": "Page reach, post engagement and audience demographics via the Meta Graph API."
+      },
+      "tiktok": {
+        "name": "TikTok",
+        "description": "Plays, watch time, shares and for-you ratio via the TikTok Marketing API."
+      },
+      "whatsapp": {
+        "name": "WhatsApp",
+        "description": "Direct guest communication with read rates and reply conversion. Coming in a later phase."
+      }
+    },
+    "summary": {
+      "noCampaigns": "You have not sent any mail campaigns this month yet. You create your first campaign via /campagnes.",
+      "openAbove": "Your open rate of {rate}% is {diff}% above the hospitality median, strong.",
+      "openBelow": "Your open rate of {rate}% is {diff}% below the hospitality median. Revise your subject lines?",
+      "openAround": "Your open rate of {rate}% is around the hospitality median.",
+      "clickAbove": "Click rate of {rate}% is {diff}% above the median.",
+      "clickLow": "Click rate of {rate}% is low, add a clear CTA?",
+      "bounceHigh": "Heads up: bounce rate is {rate}%, higher than ideal (<2%). Clean up your list.",
+      "fallback": "You sent {sent} mails across {count} {count, plural, one {campaign} other {campaigns}}. For deeper analysis open the Mail page."
+    },
+    "errors": {
+      "unknown": "Unknown error"
+    }
+  },
+  "dash_marketing_tiktok_page": {
+    "approvalDescription": "TikTok for Business API access (requires business verification)",
+    "features": {
+      "playsViews": "Plays and views per video (last 30 days)",
+      "watchTime": "Watch time and completion rate: does your audience watch the whole video?",
+      "followerGrowth": "Follower growth and For You page reach",
+      "topVideos": "Top 5 best-performing videos with trending audio insights",
+      "bestPostTime": "Best posting time for your audience",
+      "hashtagPerformance": "Hashtag performance: which ones drive the most reach?",
+      "fillySuggestions": "Filly's content suggestions: 'Try behind-the-scenes, it scores 4x better than food shots in your segment'"
+    }
+  },
+  "dash_menu_components_menu_suggestions_tab": {
+    "pendingIntro": "<strong>Filly as a sparring partner.</strong> 3 suggestions, once a day, meant to show you as a chef different angles, not to cram your menu full. Suggestions don't appear in your actual menu until you accept them.",
+    "rejectedIntro": "Previously rejected suggestions from the last 90 days. Changed your mind? Click <em>Add anyway</em> and the dish will appear in your menu after all.",
+    "generating": "Filly is thinking…",
+    "askFilly": "Ask Filly for suggestions",
+    "empty": {
+      "pendingTitle": "No suggestions yet",
+      "rejectedTitle": "No rejected suggestions",
+      "pendingDescription": "Click 'Ask Filly for suggestions' above and it will come up with 3 new dishes that fit your business.",
+      "rejectedDescription": "Suggestions you remove above end up here, so you can revisit a suggestion later."
+    },
+    "actions": {
+      "addAnyway": "Add anyway",
+      "addToMenu": "Add to menu",
+      "refine": "Another variant",
+      "refineTitle": "Ask Filly for a substantially different variant",
+      "refineCapTitle": "Maximum of 3 variants reached, accept one or ask for a new suggestion",
+      "rejectTitle": "Remove suggestion"
+    },
+    "source": {
+      "gapAnalysis": "Gap in menu",
+      "profileBased": "Fits your business",
+      "seasonal": "Seasonal",
+      "refined": "Variant"
+    },
+    "confidence": {
+      "high": "Strong match",
+      "medium": "Reasonable match",
+      "low": "Out of the box"
+    },
+    "errors": {
+      "unknown": "Unknown error.",
+      "acceptFailed": "Could not accept.",
+      "rejectFailed": "Could not remove.",
+      "refineFailed": "Could not create variant."
+    }
+  },
+  "dash_menu_page": {
+    "pageTitle": "Menu",
+    "searchPlaceholder": "Search dishes by name or description...",
+    "avgPrefix": "avg.",
+    "category": {
+      "voorgerecht": "Starters",
+      "tussen": "Intermediate courses",
+      "hoofd": "Main courses",
+      "dessert": "Desserts",
+      "drank": "Drinks",
+      "overig": "Other"
+    },
+    "drinkSub": {
+      "wijnRood": "Red wines",
+      "wijnWit": "White wines",
+      "wijnRose": "Rosé wines",
+      "wijnMousserend": "Sparkling",
+      "bier": "Beers",
+      "cocktail": "Cocktails",
+      "sterkeDrank": "Spirits",
+      "koffieThee": "Coffee & tea",
+      "fris": "Soft & alcohol-free",
+      "overig": "Other"
+    },
+    "season": {
+      "spring": "Spring",
+      "summer": "Summer",
+      "autumn": "Autumn",
+      "winter": "Winter"
+    },
+    "diet": {
+      "vega": "Vegetarian",
+      "vegan": "Vegan",
+      "glutenVrij": "Gluten-free",
+      "lactoseVrij": "Lactose-free",
+      "notenVrij": "Nut-free"
+    },
+    "actions": {
+      "uploadMenuCard": "Upload menu card",
+      "uploadDrinksCard": "Upload drinks card",
+      "addDish": "Add dish",
+      "remove": "Delete",
+      "close": "Close",
+      "done": "Done",
+      "add": "Add",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "saveFailed": "Something went wrong while saving. Please try again.",
+      "deleteFailed": "Delete failed. Please try again.",
+      "uploadFailed": "Upload failed, please try again.",
+      "openCardFailed": "Could not open the card. Please try again."
+    },
+    "confirm": {
+      "thisDish": "this dish",
+      "deleteItem": "Are you sure you want to delete '{name}'? This cannot be undone.",
+      "deleteCard": "Are you sure you want to delete this {cardLabel}?\n\nThe {count} {itemNoun} imported from this card will also be deleted. Manually added items will remain."
+    },
+    "cardNoun": {
+      "drinksCard": "drinks card",
+      "menuCard": "menu card"
+    },
+    "itemNoun": {
+      "drinks": "drinks",
+      "dishes": "dishes",
+      "drinkSingular": "drink",
+      "dishSingular": "dish"
+    },
+    "badge": {
+      "temporarilyOff": "Temporarily off",
+      "signature": "Signature"
+    },
+    "fillyTip": {
+      "label": "Filly's favorites this month",
+      "body": "These are the dishes Filly uses most in its suggestions: <strong>{dishes}</strong>. Keep them up to date for the best campaigns."
+    },
+    "tabs": {
+      "all": "All",
+      "suggested": "Suggested",
+      "suggestedTitle": "Filly's dish suggestions, once a day, 3 suggestions",
+      "rejected": "Rejected",
+      "rejectedTitle": "Previously rejected suggestions, last 90 days"
+    },
+    "empty": {
+      "loadFailedTitle": "Menu not loaded",
+      "noMenuTitle": "No menu yet",
+      "loadFailedDesc": "We couldn't load the menu. Please try reloading the page.",
+      "noMenuDesc": "Add dishes so Filly can use them in campaigns.",
+      "noResults": "No dishes found with these filters."
+    },
+    "banner": {
+      "drinksActive": "Drinks card active",
+      "menuActive": "Menu card active",
+      "newDrinksCard": "New drinks card",
+      "newMenuCard": "New menu card",
+      "openCardTitle": "Open the uploaded card in a new tab",
+      "fallbackDrinksCard": "drinks card",
+      "fallbackMenuCard": "menu card",
+      "imported": "{count} {noun} imported"
+    },
+    "upload": {
+      "triggerDrinks": "Import drinks card",
+      "triggerMenu": "Import menu card",
+      "titleDrinks": "Upload your drinks card",
+      "titleMenu": "Upload your menu",
+      "introDrinks": "Upload a PDF or photo of your {cardLabel}. Filly reads the {itemNoun} automatically and groups them by type (wine, beer, cocktail, etc.), all you have to do is check them.",
+      "introMenu": "Upload a PDF or photo of your {cardLabel}. Filly reads the {itemNoun} automatically and puts them straight into your menu, all you have to do is check them.",
+      "dropzoneTitle": "Drag your menu card here or click to choose",
+      "dropzoneSub": "PDF, JPG, PNG or WebP, max. 10 MB",
+      "stageReading": "Uploading file…",
+      "stageRecognizingDrinks": "Filly is reading your drinks card…",
+      "stageRecognizingMenu": "Filly is reading your menu…",
+      "stageCategorizing": "Adding {itemNoun} to your menu…",
+      "stageDone": "Done",
+      "stageError": "Failed",
+      "stepUpload": "Upload",
+      "stepFillyReads": "Filly reads",
+      "stepAdd": "Add",
+      "fileFallback": "file",
+      "durationNote": "This can take 5 to 15 seconds for a full menu.",
+      "genericError": "Something went wrong. Please try again.",
+      "doneCount": "{count} dishes added",
+      "doneTailSuccess": ", they're now in your menu and Filly knows them.",
+      "doneTailEmpty": ", Filly couldn't recognize any dishes on this card.",
+      "fillyNote": "Filly notes: {notes}"
+    },
+    "modal": {
+      "newDish": "New dish",
+      "editDish": "Edit dish",
+      "unnamedDish": "Unnamed dish",
+      "adding": "Adding…",
+      "saving": "Saving…",
+      "deleting": "Deleting…"
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "E.g. Braised beef in red wine",
+      "category": "Category",
+      "price": "Price (€)",
+      "description": "Description",
+      "descriptionPlaceholder": "Short description, used by Filly in campaign texts.",
+      "signatureToggle": "<strong>Signature</strong>, our hallmark",
+      "seasonalToggle": "<strong>Seasonal dish</strong>",
+      "season": "Season",
+      "availableToggle": "<strong>Available</strong>, shown on the menu",
+      "dietaryTags": "Dietary tags"
+    }
+  },
+  "dash_rapportages_bezetting_page": {
+    "backToReports": "Back to reports",
+    "pageTitle": "Occupancy",
+    "pageSubtitle": "Average occupancy per weekday and per hour, plus Filly ROI and guest retention.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today",
+    "loading": "Loading...",
+    "emptyTitle": "No data to report yet",
+    "emptyDescription": "As soon as reservations, guests and campaigns come in, the numbers appear here: average occupancy, revenue, Filly ROI, retention and more. Start with a first campaign or import your guest file.",
+    "sec1Eyebrow": "Occupancy & revenue",
+    "sec1Title": "How are you doing?",
+    "sec1Desc": "The basic health of your business: average occupancy, guests, revenue and a comparison with last year.",
+    "statAvgOccupancy": "Avg. occupancy",
+    "statTotalGuests": "Total guests",
+    "statRevenue": "Revenue",
+    "statCampaigns": "Campaigns",
+    "statGuestsInDb": "Guests in DB",
+    "vsLastYear": "{pct}% vs last year",
+    "dayMon": "MON",
+    "dayTue": "TUE",
+    "dayWed": "WED",
+    "dayThu": "THU",
+    "dayFri": "FRI",
+    "daySat": "SAT",
+    "daySun": "SUN",
+    "dowCardTitle": "Occupancy per weekday",
+    "dowCardSubtitle": "Average in {month} · weakest day: {worst} · strongest: {best}",
+    "hourCardTitle": "Occupancy per hour",
+    "hourCardSubtitle": "Pattern across the week · darker cells = busier",
+    "legendQuiet": "Quiet",
+    "legendBusy": "Busy",
+    "roiEyebrow": "Filly ROI",
+    "roiTitle": "What has Filly delivered for you?",
+    "roiDesc": "Cumulative contribution from Filly over the past 6 months, based on reservations linked manually or automatically to a Filly campaign.",
+    "roiEmptyTitle": "No reservations linked via Filly yet",
+    "roiEmptyDescription": "Link reservations to a Filly campaign on the reservations page (or wait for the send engine to attribute them automatically), then cumulative figures, a 6-month chart and a per-channel comparison appear here.",
+    "roiReservationsLabel": "Reservations via Filly",
+    "roiLast6Months": "past 6 months",
+    "roiGuestsLabel": "Guests via Filly",
+    "roiSumGroupSizes": "sum of group sizes",
+    "roiEstRevenueLabel": "Estimated revenue",
+    "roiGuestsTimesSpend": "guests x avg. spend",
+    "roiChartTitle": "Filly contribution per month",
+    "roiChartSubtitle": "Estimated extra revenue (€) via Filly campaigns",
+    "roiChartBarTitle": "{month}: €{euros} / {guests} guests / {reservations} reservations",
+    "perCampaignTitle": "Per campaign this month",
+    "perCampaignSubtitle": "Which campaign delivers the most?",
+    "thCampaign": "Campaign",
+    "thType": "Type",
+    "thReservations": "Reservations",
+    "thGuests": "Guests",
+    "thEstRevenue": "Estimated revenue",
+    "retentionEyebrow": "Guests & retention",
+    "retentionTitle": "Do your guests come back?",
+    "retentionDesc": "Of 100 guests who visited for the first time in month X, how many returned in the following months? High % = loyalty, low % = a chance for Filly to send a win-back.",
+    "retentionCardTitle": "Guest retention per month",
+    "retentionCardSubtitle": "Percentage that returned in the following months",
+    "thCohort": "Cohort",
+    "thSize": "Size",
+    "thMonthN": "Mo {n}",
+    "marketingEyebrow": "Marketing",
+    "marketingTitle": "What works campaign-wise?",
+    "marketingDesc": "Top campaigns based on status and run time.",
+    "topCampaignsTitle": "Top campaigns",
+    "topCampaignsSubtitle": "Most successful this period"
+  },
+  "dash_rapportages_page": {
+    "title": "Reports",
+    "actions": {
+      "pdf": "🖨 PDF",
+      "exportCsv": "⬇ Export CSV"
+    },
+    "csv": {
+      "channel": "Channel",
+      "status": "Status",
+      "stat": "Statistic",
+      "value": "Value"
+    },
+    "statusLabel": {
+      "live": "Live",
+      "comingSoon": "Coming soon",
+      "future": "Later"
+    },
+    "badge": {
+      "active": "Active",
+      "comingSoon": "Coming soon",
+      "future": "Later"
+    },
+    "channels": {
+      "occupancy": "Occupancy",
+      "mail": "Mail",
+      "reviews": "Reviews",
+      "instagram": "Instagram",
+      "facebook": "Facebook",
+      "tiktok": "TikTok",
+      "whatsapp": "WhatsApp"
+    },
+    "stats": {
+      "today": "Today",
+      "monthAvg": "Avg. this month",
+      "guestsToday": "Guests today",
+      "viaFillyMonth": "Via Filly (month)",
+      "campaigns30d": "Campaigns (30d)",
+      "sent": "Sent",
+      "openRate": "Open rate",
+      "clickRate": "Click rate",
+      "average": "Average",
+      "totalReviews": "Total reviews",
+      "responseNeeded": "Response needed"
+    },
+    "placeholders": {
+      "instagram": "Live likes, comments & followers from your connection (+ sample insights).",
+      "facebook": "Live likes, comments & shares from your connection (+ sample insights).",
+      "tiktok": "Stats appear after the TikTok Marketing API connection.",
+      "whatsapp": "Coming in a later phase."
+    }
+  },
+  "dash_reserveringen_page": {
+    "title": "Reservations",
+    "exportPdf": "🖨 PDF",
+    "exportCsv": "⬇ Export CSV",
+    "period": "Period:",
+    "until": "to",
+    "searchPlaceholder": "Search by name, phone or email...",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "noResultsWithFilters": "No reservations found with these filters.",
+    "partyPeople": "· {count} guests",
+    "specialRequest": "Special request",
+    "specialRequestTitle": "Special request: {request}",
+    "viaSource": "· via {source}",
+    "tableLabel": "· table {table}",
+    "newGuestSuffix": "(new guest)",
+    "statusFilters": {
+      "alle": "All",
+      "bevestigd": "Confirmed",
+      "ingecheckt": "Checked in",
+      "voltooid": "Completed",
+      "noShow": "No-show",
+      "geannuleerd": "Cancelled"
+    },
+    "empty": {
+      "title": "No reservations",
+      "description": "Connect a reservation platform to import reservations automatically."
+    },
+    "emptyError": {
+      "title": "Reservations not loaded",
+      "description": "We could not load the list. Please reload the page."
+    },
+    "errors": {
+      "linkFailed": "Linking failed. Please try again."
+    },
+    "attribution": {
+      "linkedTitle": "Attributed to campaign: {name}",
+      "unlink": "Unlink from campaign",
+      "choosePlaceholder": "Choose campaign…",
+      "linkButton": "+ Filly link",
+      "linkButtonTitle": "Link this reservation to a Filly campaign"
+    },
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "birthday": "Birthday",
+      "totalVisits": "Total visits",
+      "lastVisit": "Last visit",
+      "table": "Table",
+      "source": "Source",
+      "tags": "Tags",
+      "notes": "Notes"
+    },
+    "csv": {
+      "date": "Date",
+      "time": "Time",
+      "name": "Name",
+      "partySize": "Guests",
+      "status": "Status",
+      "phone": "Phone",
+      "email": "Email",
+      "source": "Source",
+      "table": "Table",
+      "viaCampaign": "Via campaign",
+      "notes": "Notes"
+    }
+  },
+  "dash_reviews_page": {},
+  "dash_suggesties_page": {
+    "title": "Suggestions",
+    "subtitle": "Proposals from Filly, with reasoning and expected impact. Approve and it becomes a campaign.",
+    "campaignProposalFallback": "Campaign proposal",
+    "whyNow": "Why now?",
+    "whyNowInline": "Why now:",
+    "close": "Close",
+    "audience": "Audience: {segment}",
+    "tabs": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "triggers": {
+      "low_occupancy": "Low occupancy",
+      "weather": "Weather",
+      "seasonal": "Seasonal",
+      "birthday": "Birthday",
+      "retention": "Retention"
+    },
+    "urgency": {
+      "high": "High urgency",
+      "medium": "This week",
+      "low": "Planning"
+    },
+    "stats": {
+      "pendingLabel": "Pending approval",
+      "expectedExtraStack": "Expected extra (this stack)",
+      "expectedExtraTab": "Expected extra (this tab)",
+      "extraReservations": "+{count} reservations",
+      "expectedRevenue": "Expected extra revenue"
+    },
+    "errorState": {
+      "title": "Proposals unavailable",
+      "description": "We could not load the proposals. Try reloading the page."
+    },
+    "emptyPending": {
+      "title": "All caught up",
+      "description": "No proposals pending. Filly will let you know as soon as something comes up."
+    },
+    "emptyApproved": "No approved proposals.",
+    "emptyRejected": "No rejected proposals.",
+    "impact": {
+      "expectedExtra": "Expected extra",
+      "reservationsValue": "+{count} reservations",
+      "estimatedRevenue": "Estimated revenue",
+      "confidence": "Confidence"
+    },
+    "actions": {
+      "approve": "Approve",
+      "edit": "Edit",
+      "reject": "Reject",
+      "busy": "Working..."
+    },
+    "proposal": {
+      "title": "Suggested setup",
+      "loading": "🍳 Filly is thinking up a concrete setup based on your menu and vibe…",
+      "error": "Filly could not come up with a concrete setup right now ({error}). The campaign text above remains usable.",
+      "mainDish": "Main dish",
+      "fromMenu": "From your menu",
+      "newProposal": "New proposal",
+      "sides": "Sides",
+      "fromMenuShort": "From menu",
+      "newShort": "New"
+    },
+    "placement": {
+      "title": "How Filly posts this",
+      "suggestedByFilly": "Suggested by Filly",
+      "uploadOwnPhoto": "Upload your own photo",
+      "dragOrClick": "Drag or click",
+      "replacePhotoHint": "Replace Filly's suggestion with your own photo."
+    },
+    "mailPreview": {
+      "from": "From",
+      "to": "To",
+      "regularGuests": "Regular guests"
+    },
+    "socialPreview": {
+      "justPosted": "Just posted"
+    },
+    "content": {
+      "title": "Campaign content",
+      "subject": "Subject",
+      "caption": "Caption",
+      "message": "Message"
+    }
+  },
+  "dash_taken_page": {
+    "pageTitle": "Tasks",
+    "pageSubtitle": "Everything that needs your attention today: AI proposals, reviews, reservations and alerts.",
+    "statTotalOpen": "Total open",
+    "statHighUrgency": "High urgency",
+    "statFromFilly": "From Filly",
+    "highUrgencyAlert": "<strong>{count, plural, one {# task} other {# tasks}}</strong> {count, plural, one {has} other {have}} high urgency, tackle them first.",
+    "filterAll": "All",
+    "filterFilly": "Filly",
+    "filterReviews": "Reviews",
+    "filterReservations": "Reservations",
+    "filterInsights": "Insights",
+    "emptyTitle": "All under control",
+    "emptyDescription": "No open tasks. Filly will come by as soon as something pops up.",
+    "emptyCategory": "No tasks in this category.",
+    "defaultCampaignName": "Campaign proposal",
+    "suggestionTitle": "Filly suggests: {name}",
+    "suggestionDescFallback": "Open the Suggestions page for the reasoning.",
+    "lowOccTitle": "{count, plural, one {# quiet day} other {# quiet days}} next week",
+    "birthdayTitle": "{name} has a birthday coming up",
+    "birthdayDesc": "Tip: have Filly send a birthday invitation or a personal greeting.",
+    "reviewTitle": "{rating}-star review on {source}",
+    "reviewDescFallback": "Review needs a response.",
+    "bigReservationTitle": "Group reservation today, {count} guests",
+    "tableLabel": "table",
+    "specialRequestTitle": "Special request, {name}",
+    "priorityNow": "Now",
+    "priorityThisWeek": "This week",
+    "priorityPlanning": "Planning"
   }
 }

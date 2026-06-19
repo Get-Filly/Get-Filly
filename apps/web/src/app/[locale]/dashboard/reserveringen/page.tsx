@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchCampaigns,
   fetchGuests,
@@ -20,25 +21,27 @@ import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
 
 type StatusFilter = "alle" | ReservationStatus;
 
-const statusFilters: { key: StatusFilter; label: string }[] = [
-  { key: "alle", label: "Alle" },
-  { key: "bevestigd", label: "Bevestigd" },
-  { key: "ingecheckt", label: "Ingecheckt" },
-  { key: "voltooid", label: "Voltooid" },
-  { key: "no_show", label: "No-show" },
-  { key: "geannuleerd", label: "Geannuleerd" },
+const statusFilterKeys: { key: StatusFilter; labelKey: string }[] = [
+  { key: "alle", labelKey: "statusFilters.alle" },
+  { key: "bevestigd", labelKey: "statusFilters.bevestigd" },
+  { key: "ingecheckt", labelKey: "statusFilters.ingecheckt" },
+  { key: "voltooid", labelKey: "statusFilters.voltooid" },
+  { key: "no_show", labelKey: "statusFilters.noShow" },
+  { key: "geannuleerd", labelKey: "statusFilters.geannuleerd" },
 ];
 
-function formatDayLabel(dateStr: string): string {
+type Translator = ReturnType<typeof useTranslations>;
+
+function formatDayLabel(dateStr: string, t: Translator): string {
   const d = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffDays = Math.floor(
     (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
-  if (diffDays === 0) return "Vandaag";
-  if (diffDays === 1) return "Morgen";
-  if (diffDays === -1) return "Gisteren";
+  if (diffDays === 0) return t("today");
+  if (diffDays === 1) return t("tomorrow");
+  if (diffDays === -1) return t("yesterday");
   return d.toLocaleDateString("nl-NL", {
     weekday: "long",
     day: "numeric",
@@ -55,19 +58,20 @@ function formatDayLabel(dateStr: string): string {
 function exportReservationsToCsv(
   reservations: Reservation[],
   campaignNameById: Map<string, string>,
+  t: Translator,
 ) {
   const headers = [
-    "Datum",
-    "Tijd",
-    "Naam",
-    "Personen",
-    "Status",
-    "Telefoon",
-    "E-mail",
-    "Bron",
-    "Tafel",
-    "Via campagne",
-    "Notities",
+    t("csv.date"),
+    t("csv.time"),
+    t("csv.name"),
+    t("csv.partySize"),
+    t("csv.status"),
+    t("csv.phone"),
+    t("csv.email"),
+    t("csv.source"),
+    t("csv.table"),
+    t("csv.viaCampaign"),
+    t("csv.notes"),
   ];
   const rows = reservations.map((r) => [
     r.reservation_date,
@@ -88,6 +92,7 @@ function exportReservationsToCsv(
 }
 
 export default function ReserveringenPage() {
+  const t = useTranslations("dash_reserveringen_page");
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   // Gast-map keyed op guest.id zodat we per reservering snel visit_count
@@ -178,11 +183,7 @@ export default function ReserveringenPage() {
       setReservations((prev) =>
         prev.map((r) => (r.id === reservationId ? original : r)),
       );
-      alert(
-        e instanceof Error
-          ? e.message
-          : "Koppelen mislukt. Probeer opnieuw.",
-      );
+      alert(e instanceof Error ? e.message : t("errors.linkFailed"));
     } finally {
       setAttributing(null);
     }
@@ -220,7 +221,7 @@ export default function ReserveringenPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Reserveringen"
+        title={t("title")}
         actions={
           <>
             {/* Klanten-export is verhuisd naar /dashboard/gasten
@@ -232,7 +233,7 @@ export default function ReserveringenPage() {
               onClick={exportPagePdf}
               disabled={filtered.length === 0}
             >
-              🖨 PDF
+              {t("exportPdf")}
             </Button>
             <Button
               variant="primary"
@@ -240,11 +241,12 @@ export default function ReserveringenPage() {
                 exportReservationsToCsv(
                   filtered,
                   new Map(campaigns.map((c) => [c.id, c.name])),
+                  t,
                 )
               }
               disabled={filtered.length === 0}
             >
-              ⬇ Exporteer CSV
+              {t("exportCsv")}
             </Button>
           </>
         }
@@ -262,7 +264,10 @@ export default function ReserveringenPage() {
         }}
       >
         <Tabs
-          items={statusFilters.map((f) => ({ key: f.key, label: f.label }))}
+          items={statusFilterKeys.map((f) => ({
+            key: f.key,
+            label: t(f.labelKey),
+          }))}
           active={statusFilter}
           onChange={setStatusFilter}
           className="tabs--inline"
@@ -277,7 +282,7 @@ export default function ReserveringenPage() {
             color: "var(--tl)",
           }}
         >
-          <span>Periode:</span>
+          <span>{t("period")}</span>
           <input
             type="date"
             value={dateFrom}
@@ -289,7 +294,7 @@ export default function ReserveringenPage() {
               fontSize: 12,
             }}
           />
-          <span>tot</span>
+          <span>{t("until")}</span>
           <input
             type="date"
             value={dateTo}
@@ -306,7 +311,7 @@ export default function ReserveringenPage() {
 
       <input
         type="search"
-        placeholder="Zoek op naam, telefoon of mail..."
+        placeholder={t("searchPlaceholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="search-input"
@@ -320,29 +325,23 @@ export default function ReserveringenPage() {
         </div>
       ) : grouped.length === 0 ? (
         query.trim() || statusFilter !== "alle" ? (
-          <div className="table-empty">
-            Geen reserveringen gevonden met deze filters.
-          </div>
+          <div className="table-empty">{t("noResultsWithFilters")}</div>
         ) : (
           // Foutstatus valt in dezelfde empty-state, alleen met andere
           // subcopy. Rode HTTP-meldingen zijn voor de eindgebruiker
           // betekenisloos, de dev-console houdt alles vast.
           <EmptyState
             icon="📆"
-            title={
-              error ? "Reserveringen niet geladen" : "Geen reserveringen"
-            }
+            title={error ? t("emptyError.title") : t("empty.title")}
             description={
-              error
-                ? "We konden de lijst niet ophalen. Probeer de pagina te herladen."
-                : "Koppel een reserveringsplatform om reserveringen automatisch te importeren."
+              error ? t("emptyError.description") : t("empty.description")
             }
           />
         )
       ) : (
         <div>
           {grouped.map(([date, list]) => {
-            const dayLabel = formatDayLabel(date);
+            const dayLabel = formatDayLabel(date, t);
             const dayCovers = list
               .filter((r) => r.status === "bevestigd")
               .reduce((s, r) => s + r.party_size, 0);
@@ -421,6 +420,7 @@ function FillyAttributionControl({
   busy: boolean;
   onChange: (campaignId: string | null) => void;
 }) {
+  const t = useTranslations("dash_reserveringen_page");
   const [open, setOpen] = useState(false);
   const linkedCampaign = reservation.via_campaign_id
     ? campaigns.find((c) => c.id === reservation.via_campaign_id)
@@ -429,7 +429,7 @@ function FillyAttributionControl({
   if (linkedCampaign) {
     return (
       <span
-        title={`Toegeschreven aan campagne: ${linkedCampaign.name}`}
+        title={t("attribution.linkedTitle", { name: linkedCampaign.name })}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -455,7 +455,7 @@ function FillyAttributionControl({
         <button
           onClick={() => onChange(null)}
           disabled={busy}
-          aria-label="Loskoppelen van campagne"
+          aria-label={t("attribution.unlink")}
           style={{
             background: "transparent",
             border: "none",
@@ -499,7 +499,7 @@ function FillyAttributionControl({
         }}
       >
         <option value="" disabled>
-          Kies campagne…
+          {t("attribution.choosePlaceholder")}
         </option>
         {campaigns.map((c) => (
           <option key={c.id} value={c.id}>
@@ -525,9 +525,9 @@ function FillyAttributionControl({
         cursor: busy ? "not-allowed" : "pointer",
         whiteSpace: "nowrap",
       }}
-      title="Koppel deze reservering aan een Filly-campagne"
+      title={t("attribution.linkButtonTitle")}
     >
-      + Filly-koppeling
+      {t("attribution.linkButton")}
     </button>
   );
 }
@@ -564,6 +564,7 @@ function ReservationRow({
   onAttributionChange,
   showTopBorder,
 }: ReservationRowProps) {
+  const t = useTranslations("dash_reserveringen_page");
   const hasSpecial = !!r.special_requests;
 
   return (
@@ -613,10 +614,12 @@ function ReservationRow({
                 gap: 6,
               }}
             >
-              · {r.party_size} pers
+              {t("partyPeople", { count: r.party_size })}
               {hasSpecial && (
                 <span
-                  title={`Speciaal verzoek: ${r.special_requests}`}
+                  title={t("specialRequestTitle", {
+                    request: r.special_requests ?? "",
+                  })}
                   style={{
                     width: 8,
                     height: 8,
@@ -624,15 +627,15 @@ function ReservationRow({
                     background: "#F59E0B",
                     display: "inline-block",
                   }}
-                  aria-label="Speciaal verzoek"
+                  aria-label={t("specialRequest")}
                 />
               )}
             </span>
           </div>
           <div style={{ color: "var(--tl)", fontSize: 11 }}>
             {r.guest_phone ?? "—"}
-            {r.source && ` · via ${r.source}`}
-            {r.table_code && ` · tafel ${r.table_code}`}
+            {r.source && ` ${t("viaSource", { source: r.source })}`}
+            {r.table_code && ` ${t("tableLabel", { table: r.table_code })}`}
           </div>
         </div>
         {/* Filly-koppeling: klik-events stoppen zodat de dropdown
@@ -676,7 +679,7 @@ function ReservationRow({
               <span style={{ fontSize: 16, lineHeight: 1 }}>💬</span>
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                  Speciaal verzoek
+                  {t("specialRequest")}
                 </div>
                 <div style={{ lineHeight: 1.4 }}>{r.special_requests}</div>
               </div>
@@ -693,17 +696,17 @@ function ReservationRow({
               marginTop: hasSpecial ? 0 : 12,
             }}
           >
-            <DetailField label="Naam" value={fullGuestName(r, guest)} />
+            <DetailField label={t("fields.name")} value={fullGuestName(r, guest)} />
             <DetailField
-              label="E-mail"
+              label={t("fields.email")}
               value={guest?.email ?? r.guest_email ?? "—"}
             />
             <DetailField
-              label="Telefoon"
+              label={t("fields.phone")}
               value={guest?.phone ?? r.guest_phone ?? "—"}
             />
             <DetailField
-              label="Verjaardag"
+              label={t("fields.birthday")}
               value={
                 guest?.birthday
                   ? new Date(guest.birthday).toLocaleDateString("nl-NL", {
@@ -714,15 +717,15 @@ function ReservationRow({
               }
             />
             <DetailField
-              label="Totaal bezoeken"
+              label={t("fields.totalVisits")}
               value={
                 guest
-                  ? `${guest.visit_count}${guest.visit_count <= 1 ? " (nieuwe gast)" : ""}`
+                  ? `${guest.visit_count}${guest.visit_count <= 1 ? ` ${t("newGuestSuffix")}` : ""}`
                   : "—"
               }
             />
             <DetailField
-              label="Laatste bezoek"
+              label={t("fields.lastVisit")}
               value={
                 guest?.last_visit_at
                   ? new Date(guest.last_visit_at).toLocaleDateString("nl-NL", {
@@ -734,18 +737,18 @@ function ReservationRow({
               }
             />
             <DetailField
-              label="Tafel"
+              label={t("fields.table")}
               value={r.table_code ?? "—"}
             />
             <DetailField
-              label="Bron"
+              label={t("fields.source")}
               value={r.source ?? "—"}
             />
             {guest && guest.tags && guest.tags.length > 0 && (
-              <DetailField label="Tags" value={guest.tags.join(", ")} />
+              <DetailField label={t("fields.tags")} value={guest.tags.join(", ")} />
             )}
             {guest && guest.notes && (
-              <DetailField label="Notities" value={guest.notes} />
+              <DetailField label={t("fields.notes")} value={guest.notes} />
             )}
           </div>
 

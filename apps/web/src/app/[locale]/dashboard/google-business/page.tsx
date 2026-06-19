@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,11 +45,11 @@ type FeatureStatus =
 // "titel links + status-badge rechts".
 type Feature = {
   key: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   href?: string;
   status: FeatureStatus;
-  phaseLabel: string;
+  phaseLabelKey: string;
 };
 
 const features: Feature[] = [
@@ -57,32 +58,29 @@ const features: Feature[] = [
   // instellingen, daar logisch verkeerd).
   {
     key: "identiteit",
-    title: "Identiteit",
-    description:
-      "Bron-van-waarheid voor alle posts en campagnes die Filly maakt. Tagline, toon, doelgroep, trefwoorden, menukaart en meer.",
+    titleKey: "identityTitle",
+    descriptionKey: "identityDescription",
     href: "/dashboard/google-business/identiteit",
     status: "live",
-    phaseLabel: "Beschikbaar",
+    phaseLabelKey: "available",
   },
   {
     key: "reviews",
-    title: "Reviews",
-    description:
-      "Bekijk reviews en laat Filly antwoord-suggesties schrijven die passen bij jouw onderneming.",
+    titleKey: "reviewsTitle",
+    descriptionKey: "reviewsDescription",
     href: "/dashboard/google-business/reviews",
     status: "live",
-    phaseLabel: "Beschikbaar",
+    phaseLabelKey: "available",
   },
   {
     key: "audit",
-    title: "Health-score",
-    description:
-      "Compleet vindbaarheids-rapport: SEO van je website, kwaliteit van je Google Business Profile, reviews, AI-zichtbaarheid en concurrentie in 500m straal.",
+    titleKey: "auditTitle",
+    descriptionKey: "auditDescription",
     href: "/dashboard/google-business/audit",
     // SEO + GEO werken óók zonder GBP-koppeling, dus altijd klikbaar.
     // GBP-checks tonen dan een fix-link naar Account → Koppelingen.
     status: "live",
-    phaseLabel: "Beschikbaar",
+    phaseLabelKey: "available",
   },
   // Concurrent-benchmark is GEEN aparte tegel meer (2026-05-29): de
   // buurt-vergelijking zit al in de Health-score (CompetitorCollector,
@@ -90,24 +88,28 @@ const features: Feature[] = [
   // maar wordt niet meer vanaf de hub gelinkt.
   {
     key: "edits",
-    title: "Google Business Profiel",
-    description:
-      "Bekijk je volledige Google-profiel: openingstijden, beschrijving, contactgegevens en attributen. Bewerken + pushen naar Google komt zodra de koppeling live is.",
+    titleKey: "editsTitle",
+    descriptionKey: "editsDescription",
     // Wél een href: de preview-pagina is nu al te bekijken (gevuld met
     // Places-data), ook al is bewerken pas mogelijk na OAuth.
     href: "/dashboard/google-business/profiel",
     status: "coming-soon-oauth",
-    phaseLabel: "Vereist Google-koppeling",
+    phaseLabelKey: "requiresGoogleConnection",
   },
 ];
 
-function statusBadge(status: FeatureStatus, phaseLabel: string, isConnected: boolean) {
+function statusBadge(
+  status: FeatureStatus,
+  phaseLabel: string,
+  isConnected: boolean,
+  availableLabel: string,
+) {
   if (status === "live") {
     return <Badge variant="success" withDot>{phaseLabel}</Badge>;
   }
   if (status === "live-when-connected") {
     if (isConnected) {
-      return <Badge variant="success" withDot>Beschikbaar</Badge>;
+      return <Badge variant="success" withDot>{availableLabel}</Badge>;
     }
     return <Badge variant="info">{phaseLabel}</Badge>;
   }
@@ -115,6 +117,7 @@ function statusBadge(status: FeatureStatus, phaseLabel: string, isConnected: boo
 }
 
 export default function GoogleBusinessHubPage() {
+  const t = useTranslations("dash_google_business_page");
   const { active } = useRestaurant();
   const [mine, setMine] = useState<GoogleProfileMine | null>(null);
 
@@ -143,7 +146,7 @@ export default function GoogleBusinessHubPage() {
 
   return (
     <div className="page-full">
-      <PageHeader title="Vindbaarheid" />
+      <PageHeader title={t("pageTitle")} />
 
 
       {/* 7 feature-cards. live-when-connected wordt klikbaar als
@@ -194,9 +197,14 @@ export default function GoogleBusinessHubPage() {
                       color: "var(--text, #18181B)",
                     }}
                   >
-                    {f.title}
+                    {t(f.titleKey)}
                   </div>
-                  {statusBadge(f.status, f.phaseLabel, isConnected)}
+                  {statusBadge(
+                    f.status,
+                    t(f.phaseLabelKey),
+                    isConnected,
+                    t("available"),
+                  )}
                 </div>
                 <div
                   style={{
@@ -205,7 +213,7 @@ export default function GoogleBusinessHubPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  {f.description}
+                  {t(f.descriptionKey)}
                 </div>
               </CardBody>
             </Card>

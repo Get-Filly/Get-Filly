@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchGuests,
   type Guest,
@@ -37,17 +38,11 @@ function formatDate(dateStr: string | null): string {
 // export hoort bij de gasten-pagina. De download zelf loopt via de
 // gedeelde helper in lib/csv-export (Excel-vriendelijke BOM +
 // quote-escaping per cel).
-function exportGuestsToCsv(guests: Guest[]) {
-  const headers = [
-    "Naam",
-    "Email",
-    "Telefoon",
-    "Bezoeken",
-    "Laatste bezoek",
-    "Verjaardag",
-    "Tags",
-    "Mail-opt-in",
-  ];
+function exportGuestsToCsv(
+  guests: Guest[],
+  csv: { fileName: string; headers: string[]; yes: string; no: string },
+) {
+  const headers = csv.headers;
   const rows = guests.map((g) => {
     const name = [g.first_name, g.last_name].filter(Boolean).join(" ") || "—";
     const lastVisit = g.last_visit_at
@@ -61,10 +56,10 @@ function exportGuestsToCsv(guests: Guest[]) {
       lastVisit,
       g.birthday ?? "",
       (g.tags ?? []).join("; "),
-      g.mail_opt_in ? "ja" : "nee",
+      g.mail_opt_in ? csv.yes : csv.no,
     ];
   });
-  downloadCsv("klanten", headers, rows);
+  downloadCsv(csv.fileName, headers, rows);
 }
 
 function formatEuro(cents: number | null): string {
@@ -72,12 +67,15 @@ function formatEuro(cents: number | null): string {
   return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
 }
 
-const statusInfo: Record<CustomerStatus, { label: string; color: string; bg: string }> = {
-  nieuw: { label: "Nieuw", color: "#0284C7", bg: "#E0F2FE" },
-  vaste_gast: { label: "Vaste gast", color: "#1B7A2E", bg: "#DCFCE7" },
-  vip: { label: "VIP", color: "#7C2D12", bg: "#FED7AA" },
-  at_risk: { label: "At-risk", color: "#B45309", bg: "#FEF3C7" },
-  verloren: { label: "Verloren", color: "#71717A", bg: "#F4F4F5" },
+const statusInfo: Record<
+  CustomerStatus,
+  { labelKey: string; color: string; bg: string }
+> = {
+  nieuw: { labelKey: "statusNieuw", color: "#0284C7", bg: "#E0F2FE" },
+  vaste_gast: { labelKey: "statusVasteGast", color: "#1B7A2E", bg: "#DCFCE7" },
+  vip: { labelKey: "statusVip", color: "#7C2D12", bg: "#FED7AA" },
+  at_risk: { labelKey: "statusAtRisk", color: "#B45309", bg: "#FEF3C7" },
+  verloren: { labelKey: "statusVerloren", color: "#71717A", bg: "#F4F4F5" },
 };
 
 type FilterStatus = "alle" | CustomerStatus;
@@ -91,6 +89,7 @@ const statusFilters: FilterStatus[] = [
 ];
 
 export default function GastenPage() {
+  const t = useTranslations("dash_gasten_page");
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,8 +163,8 @@ export default function GastenPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Gasten"
-        subtitle="Wie jouw restaurant bezoekt, met voorkeuren, allergieën en waarde."
+        title={t("title")}
+        subtitle={t("subtitle")}
         actions={
           <>
             {/* Export volgt het actieve filter + de zoekterm: wat je
@@ -176,14 +175,30 @@ export default function GastenPage() {
               onClick={exportPagePdf}
               disabled={filtered.length === 0}
             >
-              🖨 PDF
+              🖨 {t("exportPdf")}
             </Button>
             <Button
               variant="primary"
-              onClick={() => exportGuestsToCsv(filtered)}
+              onClick={() =>
+                exportGuestsToCsv(filtered, {
+                  fileName: t("csvFileName"),
+                  headers: [
+                    t("csvHeaders.name"),
+                    t("csvHeaders.email"),
+                    t("csvHeaders.phone"),
+                    t("csvHeaders.visits"),
+                    t("csvHeaders.lastVisit"),
+                    t("csvHeaders.birthday"),
+                    t("csvHeaders.tags"),
+                    t("csvHeaders.mailOptIn"),
+                  ],
+                  yes: t("csvYes"),
+                  no: t("csvNo"),
+                })
+              }
               disabled={filtered.length === 0}
             >
-              ⬇ Exporteer CSV
+              ⬇ {t("exportCsv")}
             </Button>
           </>
         }
@@ -191,31 +206,31 @@ export default function GastenPage() {
 
       <div className="stats-row">
         <div className="stat-card">
-          <div className="stat-card-label">Totaal gasten</div>
+          <div className="stat-card-label">{t("statTotal")}</div>
           <div className="stat-card-val">{stats.total}</div>
         </div>
         <div className="stat-card stat-card-filly">
-          <div className="stat-card-label">Via Filly</div>
+          <div className="stat-card-label">{t("statViaFilly")}</div>
           <div className="stat-card-val">{stats.viaFilly}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Actief (90 dgn)</div>
+          <div className="stat-card-label">{t("statActive90")}</div>
           <div className="stat-card-val">{stats.active90}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">VIPs</div>
+          <div className="stat-card-label">{t("statVips")}</div>
           <div className="stat-card-val">{stats.vips}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">At-risk</div>
+          <div className="stat-card-label">{t("statAtRisk")}</div>
           <div className="stat-card-val">{stats.atRisk}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Mail opt-ins</div>
+          <div className="stat-card-label">{t("statOptIns")}</div>
           <div className="stat-card-val">{stats.optIns}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Totaal LTV</div>
+          <div className="stat-card-label">{t("statTotalLtv")}</div>
           <div className="stat-card-val">{formatEuro(stats.totalLtv)}</div>
         </div>
       </div>
@@ -236,8 +251,10 @@ export default function GastenPage() {
         >
           <div style={{ fontSize: 20 }}>🎂</div>
           <div>
-            <strong>{stats.birthdaysThisMonth.length}</strong> gast
-            {stats.birthdaysThisMonth.length > 1 ? "en" : ""} jarig deze maand:{" "}
+            {t.rich("birthdaysThisMonth", {
+              count: stats.birthdaysThisMonth.length,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}{" "}
             <span style={{ color: "var(--ts)" }}>
               {stats.birthdaysThisMonth
                 .map((g) => `${g.first_name} ${g.last_name}`)
@@ -254,14 +271,16 @@ export default function GastenPage() {
             className={`tab-btn ${filter === f ? "active" : ""}`}
             onClick={() => setFilter(f)}
           >
-            {f === "alle" ? "Alle" : statusInfo[f as CustomerStatus].label}
+            {f === "alle"
+              ? t("filterAll")
+              : t(statusInfo[f as CustomerStatus].labelKey)}
           </button>
         ))}
       </div>
 
       <input
         type="search"
-        placeholder="Zoek op naam of email..."
+        placeholder={t("searchPlaceholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         style={{
@@ -295,7 +314,7 @@ export default function GastenPage() {
         </div>
       ) : filtered.length === 0 ? (
         query.trim() || filter !== "alle" ? (
-          <div className="table-empty">Geen gasten gevonden.</div>
+          <div className="table-empty">{t("noGuestsFound")}</div>
         ) : (
           // Bij lege staat OF fout tonen we dezelfde rustige empty-
           // state. Een rode "Fout: HTTP 403"-banner is voor de eind-
@@ -303,14 +322,12 @@ export default function GastenPage() {
           // console voor debugging.
           <EmptyState
             icon="👥"
-            title="Nog geen gasten"
+            title={t("emptyTitle")}
             description={
-              error
-                ? "We konden de gastenlijst niet laden. Probeer de pagina te herladen."
-                : "Importeer vanuit je reserveringsplatform of voeg handmatig toe."
+              error ? t("emptyErrorDescription") : t("emptyDescription")
             }
             action={
-              !error && <Button variant="primary">Gast toevoegen</Button>
+              !error && <Button variant="primary">{t("addGuest")}</Button>
             }
           />
         )
@@ -321,13 +338,13 @@ export default function GastenPage() {
               {/* "Via Filly" als eerste kolom, gevuld via
                   reservations.via_campaign_id koppeling. Smalle
                   breedte: ja/nee badge of streepje. */}
-              <th style={{ width: 90 }}>Via Filly</th>
-              <th>Naam</th>
-              <th>Status</th>
-              <th>Bezoeken</th>
-              <th>LTV</th>
-              <th>Laatste bezoek</th>
-              <th>Opt-in</th>
+              <th style={{ width: 90 }}>{t("colViaFilly")}</th>
+              <th>{t("colName")}</th>
+              <th>{t("colStatus")}</th>
+              <th>{t("colVisits")}</th>
+              <th>{t("colLtv")}</th>
+              <th>{t("colLastVisit")}</th>
+              <th>{t("colOptIn")}</th>
             </tr>
           </thead>
           <tbody>
@@ -341,7 +358,7 @@ export default function GastenPage() {
                   <td>
                     {fromFilly ? (
                       <span
-                        title="Eerste reservering binnengekomen via een Filly-campagne"
+                        title={t("viaFillyTooltip")}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -354,7 +371,7 @@ export default function GastenPage() {
                           background: "var(--accent-light, #D6E0D8)",
                         }}
                       >
-                        ✓ Ja
+                        ✓ {t("viaFillyYes")}
                       </span>
                     ) : (
                       <span
@@ -363,7 +380,7 @@ export default function GastenPage() {
                           fontSize: 12,
                         }}
                       >
-                       ,
+                        —
                       </span>
                     )}
                   </td>
@@ -371,7 +388,9 @@ export default function GastenPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {allergies.length > 0 && (
                         <span
-                          title={`Allergieën: ${allergies.join(", ")}`}
+                          title={t("allergiesTooltip", {
+                            allergies: allergies.join(", "),
+                          })}
                           style={{
                             fontSize: 12,
                             padding: "1px 6px",
@@ -422,7 +441,7 @@ export default function GastenPage() {
                         background: info.bg,
                       }}
                     >
-                      {info.label}
+                      {t(info.labelKey)}
                     </span>
                   </td>
                   <td>{g.visit_count}</td>

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 
 // ============================================================
 // Legacy-route /dashboard/koppelingen
@@ -8,6 +8,11 @@ import { redirect } from "next/navigation";
 // verouderde, afwijkende kopie van de lijst (o.a. nog "SendGrid" en
 // hardgecodeerde statussen) en is nu een simpele redirect, zodat oude
 // bookmarks blijven werken zonder een tweede, tegenstrijdige UI.
-export default function KoppelingenRedirect() {
-  redirect("/dashboard/account?tab=koppelingen");
+export default async function KoppelingenRedirect({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect({ href: "/dashboard/account?tab=koppelingen", locale });
 }

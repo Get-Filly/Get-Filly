@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Card, CardBody } from "@/components/ui/card";
 import { Skeleton } from "../../_components/skeleton";
 import { fetchMetaInsights, type MetaInsights } from "@/lib/api";
@@ -55,6 +56,7 @@ type Row = {
 };
 
 function PostsTable({ rows, cols }: { rows: Row[]; cols: string[] }) {
+  const t = useTranslations("dash_marketing_components_meta_live_insights");
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -67,8 +69,8 @@ function PostsTable({ rows, cols }: { rows: Row[]; cols: string[] }) {
               textTransform: "uppercase",
             }}
           >
-            <th style={{ padding: "6px 8px", fontWeight: 600 }}>Bericht</th>
-            <th style={{ padding: "6px 8px", fontWeight: 600 }}>Datum</th>
+            <th style={{ padding: "6px 8px", fontWeight: 600 }}>{t("colPost")}</th>
+            <th style={{ padding: "6px 8px", fontWeight: 600 }}>{t("colDate")}</th>
             {cols.map((c) => (
               <th
                 key={c}
@@ -126,6 +128,7 @@ export function MetaLiveInsights({
 }: {
   platform: "instagram" | "facebook";
 }) {
+  const t = useTranslations("dash_marketing_components_meta_live_insights");
   const [data, setData] = useState<MetaInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,10 +140,7 @@ export function MetaLiveInsights({
         if (!cancelled) setData(d);
       })
       .catch(() => {
-        if (!cancelled)
-          setError(
-            "Kon de live-cijfers niet ophalen. Is Facebook en Instagram gekoppeld onder Account → Koppelingen?",
-          );
+        if (!cancelled) setError(t("errorFetch"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -148,7 +148,7 @@ export function MetaLiveInsights({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const isIg = platform === "instagram";
   const label = isIg ? "Instagram" : "Facebook";
@@ -200,10 +200,10 @@ export function MetaLiveInsights({
           }}
         >
           <div style={{ fontWeight: 600, fontSize: 16 }}>
-            Live cijfers · {label}
+            {t("liveStats", { platform: label })}
           </div>
           <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600 }}>
-            ✓ echte koppeling
+            {t("realConnection")}
           </span>
         </div>
 
@@ -213,15 +213,16 @@ export function MetaLiveInsights({
           <div style={{ fontSize: 14, color: "var(--text)" }}>{error}</div>
         ) : !data?.pageSelected ? (
           <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5 }}>
-            Nog geen Facebook-pagina gekozen. Koppel Facebook en Instagram en
-            kies je pagina via{" "}
-            <Link
-              href="/dashboard/account?tab=koppelingen"
-              style={{ color: "var(--accent)", fontWeight: 600 }}
-            >
-              Account → Koppelingen
-            </Link>
-            .
+            {t.rich("noPageSelected", {
+              link: (chunks) => (
+                <Link
+                  href="/dashboard/account?tab=koppelingen"
+                  style={{ color: "var(--accent)", fontWeight: 600 }}
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
           </div>
         ) : (
           <>
@@ -235,7 +236,7 @@ export function MetaLiveInsights({
                 }}
               >
                 <Stat
-                  label="Volgers"
+                  label={t("followers")}
                   value={
                     data.instagram?.followersCount != null
                       ? nl(data.instagram.followersCount)
@@ -243,7 +244,7 @@ export function MetaLiveInsights({
                   }
                 />
                 <Stat
-                  label="Berichten"
+                  label={t("posts")}
                   value={
                     data.instagram?.mediaCount != null
                       ? nl(data.instagram.mediaCount)
@@ -255,17 +256,17 @@ export function MetaLiveInsights({
 
             {isIg ? (
               igRows.length > 0 ? (
-                <PostsTable rows={igRows} cols={["Likes", "Reacties"]} />
+                <PostsTable rows={igRows} cols={[t("likes"), t("comments")]} />
               ) : (
                 <div style={{ fontSize: 14, color: "var(--tl)" }}>
-                  Nog geen Instagram-berichten gevonden.
+                  {t("noInstagramPosts")}
                 </div>
               )
             ) : fbRows.length > 0 ? (
-              <PostsTable rows={fbRows} cols={["Likes", "Reacties", "Shares"]} />
+              <PostsTable rows={fbRows} cols={[t("likes"), t("comments"), t("shares")]} />
             ) : (
               <div style={{ fontSize: 14, color: "var(--tl)" }}>
-                Nog geen Facebook-berichten gevonden.
+                {t("noFacebookPosts")}
               </div>
             )}
 

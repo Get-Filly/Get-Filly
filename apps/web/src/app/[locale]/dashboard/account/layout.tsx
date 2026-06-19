@@ -1,8 +1,8 @@
 "use client";
 
 import { type ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useRestaurant } from "@/lib/restaurant-context";
 
 /**
@@ -16,6 +16,7 @@ import { useRestaurant } from "@/lib/restaurant-context";
 export default function AccountLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
+  const t = useTranslations("dash_account_layout");
   const pathname = usePathname();
   const { active, loading } = useRestaurant();
 
@@ -24,9 +25,9 @@ export default function AccountLayout({
     loading || (active?.permissions.includes("team") ?? false);
 
   const tabs = [
-    { href: "/dashboard/account", label: "Profiel" },
+    { href: "/dashboard/account", label: t("tabs.profile") },
     ...(canSeeTeam
-      ? [{ href: "/dashboard/account/team", label: "Team" }]
+      ? [{ href: "/dashboard/account/team", label: t("tabs.team") }]
       : []),
   ];
 

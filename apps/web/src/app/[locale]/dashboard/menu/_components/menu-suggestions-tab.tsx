@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   acceptMenuSuggestion,
   generateMenuSuggestions,
@@ -53,6 +54,7 @@ export function MenuSuggestionsTab({
   loading,
   onMutate,
 }: Props) {
+  const t = useTranslations("dash_menu_components_menu_suggestions_tab");
   // Globale state voor de "Vraag Filly"-knop. Eén AI-call tegelijk
   // zodat een eigenaar niet per ongeluk dubbel klikt en €0,15+ verbrandt.
   const [generating, setGenerating] = useState(false);
@@ -71,7 +73,7 @@ export function MenuSuggestionsTab({
       await generateMenuSuggestions();
       await onMutate(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Onbekende fout.");
+      setError(e instanceof Error ? e.message : t("errors.unknown"));
     } finally {
       setGenerating(false);
     }
@@ -86,7 +88,7 @@ export function MenuSuggestionsTab({
       // zodat het nieuwe gerecht meteen in de andere tabs te zien is.
       await onMutate(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Accepteren mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.acceptFailed"));
     } finally {
       setCardBusy(id, false);
     }
@@ -99,7 +101,7 @@ export function MenuSuggestionsTab({
       await rejectMenuSuggestion(id);
       await onMutate(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Verwijderen mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.rejectFailed"));
     } finally {
       setCardBusy(id, false);
     }
@@ -112,7 +114,7 @@ export function MenuSuggestionsTab({
       await refineMenuSuggestion(id);
       await onMutate(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Variant maken mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.refineFailed"));
     } finally {
       setCardBusy(id, false);
     }
@@ -137,17 +139,16 @@ export function MenuSuggestionsTab({
           }}
         >
           <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
-            <strong>Filly als sparring-partner.</strong> 3 voorstellen,
-            1× per dag, bedoeld om jou als chef andere invalshoeken
-            te laten zien, niet om je menu vol te stoppen. Voorstellen
-            verschijnen niet in je echte menu tot jij ze accepteert.
+            {t.rich("pendingIntro", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
           <Button
             variant="primary"
             onClick={handleGenerate}
             disabled={generating}
           >
-            {generating ? "Filly denkt na…" : "Vraag Filly om voorstellen"}
+            {generating ? t("generating") : t("askFilly")}
           </Button>
         </div>
       ) : (
@@ -162,9 +163,9 @@ export function MenuSuggestionsTab({
             lineHeight: 1.5,
           }}
         >
-          Eerder afgewezen voorstellen van de laatste 90 dagen. Bedacht
-          je je toch? Klik <em>Toch toevoegen</em> en het gerecht
-          verschijnt alsnog in je menu.
+          {t.rich("rejectedIntro", {
+            em: (chunks) => <em>{chunks}</em>,
+          })}
         </div>
       )}
 
@@ -199,13 +200,13 @@ export function MenuSuggestionsTab({
         <EmptyState
           title={
             mode === "pending"
-              ? "Nog geen voorstellen"
-              : "Geen afgewezen voorstellen"
+              ? t("empty.pendingTitle")
+              : t("empty.rejectedTitle")
           }
           description={
             mode === "pending"
-              ? "Klik hierboven op 'Vraag Filly om voorstellen' en hij komt met 3 nieuwe gerechten die passen bij jouw onderneming."
-              : "Voorstellen die je hierboven verwijdert komen hier terecht, zo kun je later nog terugkomen op een voorstel."
+              ? t("empty.pendingDescription")
+              : t("empty.rejectedDescription")
           }
         />
       ) : (
@@ -254,6 +255,7 @@ function SuggestionCard({
   onReject,
   onRefine,
 }: CardProps) {
+  const t = useTranslations("dash_menu_components_menu_suggestions_tab");
   // Refines beperkt tot 3, toon de teller zodat eigenaar weet hoeveel
   // er nog over zijn. Cap-bereikt = button disabled met tooltip.
   const refineCapReached = item.refine_count >= 3;
@@ -358,7 +360,7 @@ function SuggestionCard({
           onClick={onAccept}
           disabled={busy}
         >
-          {mode === "rejected" ? "Toch toevoegen" : "Toevoegen aan menu"}
+          {mode === "rejected" ? t("actions.addAnyway") : t("actions.addToMenu")}
         </Button>
         {mode === "pending" && (
           <>
@@ -369,18 +371,18 @@ function SuggestionCard({
               disabled={busy || refineCapReached}
               title={
                 refineCapReached
-                  ? "Maximum 3 varianten bereikt, accepteer er een of vraag een nieuw voorstel"
-                  : "Vraag Filly om een wezenlijk andere variant"
+                  ? t("actions.refineCapTitle")
+                  : t("actions.refineTitle")
               }
             >
-              Andere variant
+              {t("actions.refine")}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={onReject}
               disabled={busy}
-              title="Voorstel verwijderen"
+              title={t("actions.rejectTitle")}
             >
               ✕
             </Button>
@@ -400,14 +402,15 @@ function SourceBadge({
 }: {
   source: SuggestedMenuItem["source_type"];
 }) {
+  const t = useTranslations("dash_menu_components_menu_suggestions_tab");
   const config: Record<
     SuggestedMenuItem["source_type"],
     { label: string; bg: string; fg: string }
   > = {
-    gap_analysis: { label: "Gat in menu", bg: "#FEF3E0", fg: "#8A5300" },
-    profile_based: { label: "Past bij onderneming", bg: "#EDF2EE", fg: "#1F4A2D" },
-    seasonal: { label: "Seizoen", bg: "#E8F0FE", fg: "#0F4C81" },
-    refined: { label: "Variant", bg: "#F2EAFD", fg: "#5C2D9C" },
+    gap_analysis: { label: t("source.gapAnalysis"), bg: "#FEF3E0", fg: "#8A5300" },
+    profile_based: { label: t("source.profileBased"), bg: "#EDF2EE", fg: "#1F4A2D" },
+    seasonal: { label: t("source.seasonal"), bg: "#E8F0FE", fg: "#0F4C81" },
+    refined: { label: t("source.refined"), bg: "#F2EAFD", fg: "#5C2D9C" },
   };
   const c = config[source];
   return (
@@ -431,6 +434,7 @@ function ConfidenceDot({
 }: {
   confidence: SuggestedMenuItem["confidence"];
 }) {
+  const t = useTranslations("dash_menu_components_menu_suggestions_tab");
   // 'low' is bewust hernoemd naar "Out of the box" (positief
   // avontuurlijk, geen twijfel), Filly krijgt daar in de prompt
   // ook expliciet over uitleg. Paarse kleur in plaats van grijs
@@ -440,9 +444,9 @@ function ConfidenceDot({
     SuggestedMenuItem["confidence"],
     { color: string; label: string }
   > = {
-    high: { color: "var(--brand, #1F4A2D)", label: "Sterke match" },
-    medium: { color: "#9C7400", label: "Redelijke match" },
-    low: { color: "#7C3AED", label: "Out of the box" },
+    high: { color: "var(--brand, #1F4A2D)", label: t("confidence.high") },
+    medium: { color: "#9C7400", label: t("confidence.medium") },
+    low: { color: "#7C3AED", label: t("confidence.low") },
   };
   const c = config[confidence];
   return (

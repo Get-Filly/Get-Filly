@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,12 @@ export function ComingSoonChannel({
   approvalDescription,
   features,
 }: Props) {
+  const t = useTranslations("dash_marketing_components_coming_soon_channel");
   return (
     <div className="page-full">
       <PageHeader
-        title={`${channelName}-prestaties`}
-        subtitle={`Bereik, engagement en publiek-data, beschikbaar zodra ${channelName} gekoppeld is.`}
+        title={t("title", { channelName })}
+        subtitle={t("subtitle", { channelName })}
       />
 
       {/* Status-banner met uitleg waarom nog niet werkt. Vergelijkbaar
@@ -64,7 +66,7 @@ export function ComingSoonChannel({
               color: "var(--text, #18181B)",
             }}
           >
-            Nog niet beschikbaar
+            {t("notAvailableTitle")}
           </div>
           <div
             style={{
@@ -73,9 +75,7 @@ export function ComingSoonChannel({
               lineHeight: 1.5,
             }}
           >
-            We werken aan {approvalDescription} om je {channelName}-account
-            officieel te kunnen koppelen. Dit duurt typisch enkele weken.
-            Daarna pakken we direct alles uit dit overzicht hieronder op.
+            {t("notAvailableBody", { approvalDescription, channelName })}
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@ export function ComingSoonChannel({
               color: "var(--text, #18181B)",
             }}
           >
-            Wat je straks ziet op deze pagina
+            {t("featuresHeading")}
           </div>
           <ul
             style={{
@@ -119,10 +119,10 @@ export function ComingSoonChannel({
         }}
       >
         <Link href="/dashboard/marketing">
-          <Button variant="secondary">Terug naar Marketing-hub</Button>
+          <Button variant="secondary">{t("backToHub")}</Button>
         </Link>
         <Link href="/dashboard/marketing/mail">
-          <Button variant="primary">Bekijk Mail (werkt al)</Button>
+          <Button variant="primary">{t("viewMail")}</Button>
         </Link>
       </div>
     </div>

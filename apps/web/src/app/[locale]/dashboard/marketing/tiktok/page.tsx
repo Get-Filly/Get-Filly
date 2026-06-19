@@ -1,18 +1,20 @@
+import { useTranslations } from "next-intl";
 import { ComingSoonChannel } from "../_components/coming-soon-channel";
 
 export default function TikTokMarketingPage() {
+  const t = useTranslations("dash_marketing_tiktok_page");
   return (
     <ComingSoonChannel
       channelName="TikTok"
-      approvalDescription="TikTok for Business API access (vereist business-verificatie)"
+      approvalDescription={t("approvalDescription")}
       features={[
-        "Plays en views per video (afgelopen 30 dagen)",
-        "Watch-time en completion-rate, zit je publiek de hele video uit?",
-        "Volgers-groei en for-you-pagina-bereik",
-        "Top 5 best-presterende video's met inzicht in trending audio",
-        "Beste posttijd voor jouw doelgroep",
-        "Hashtag-performance: welke trekken meeste bereik?",
-        "Filly's content-suggesties: 'Probeer behind-the-scenes, scoort 4× beter dan eten-shots in jouw segment'",
+        t("features.playsViews"),
+        t("features.watchTime"),
+        t("features.followerGrowth"),
+        t("features.topVideos"),
+        t("features.bestPostTime"),
+        t("features.hashtagPerformance"),
+        t("features.fillySuggestions"),
       ]}
     />
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,26 +49,27 @@ const SCORE_WEIGHTS: Record<HealthCategory, number> = {
   geo: 20,
 };
 
-const CATEGORY_LABELS: Record<HealthCategory, string> = {
-  seo: "Website-SEO",
-  gbp: "Google Business Profile",
-  reviews: "Reviews",
-  geo: "AI-zichtbaarheid",
+// Mapt elke categorie/severity op een message-key binnen de namespace.
+const CATEGORY_LABEL_KEYS: Record<HealthCategory, string> = {
+  seo: "category.seo.label",
+  gbp: "category.gbp.label",
+  reviews: "category.reviews.label",
+  geo: "category.geo.label",
 };
 
-const CATEGORY_DESCRIPTIONS: Record<HealthCategory, string> = {
-  seo: "Title, meta-tags, schema.org, mobile, snelheid",
-  gbp: "Profiel-compleetheid, foto's, openingstijden",
-  reviews: "Aantal reviews, gemiddelde rating",
-  geo: "Word je genoemd in AI-assistenten?",
+const CATEGORY_DESC_KEYS: Record<HealthCategory, string> = {
+  seo: "category.seo.desc",
+  gbp: "category.gbp.desc",
+  reviews: "category.reviews.desc",
+  geo: "category.geo.desc",
 };
 
-const SEVERITY_LABELS: Record<HealthSeverity, string> = {
-  info: "Info",
-  low: "Klein",
-  medium: "Gemiddeld",
-  high: "Belangrijk",
-  critical: "Kritiek",
+const SEVERITY_LABEL_KEYS: Record<HealthSeverity, string> = {
+  info: "severity.info",
+  low: "severity.low",
+  medium: "severity.medium",
+  high: "severity.high",
+  critical: "severity.critical",
 };
 
 const SEVERITY_VARIANTS: Record<
@@ -84,6 +86,7 @@ const SEVERITY_VARIANTS: Record<
 type TabKey = "overview" | "seo" | "gbp" | "reviews" | "geo";
 
 export default function HealthScorePage() {
+  const t = useTranslations("dash_google_business_audit_page");
   const { active } = useRestaurant();
   const [snapshot, setSnapshot] = useState<HealthSnapshotFull | null>(null);
   const [history, setHistory] = useState<HealthSnapshot[]>([]);
@@ -105,7 +108,7 @@ export default function HealthScorePage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Onbekende fout");
+        setError(err instanceof Error ? err.message : t("errors.unknown"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -114,7 +117,7 @@ export default function HealthScorePage() {
     return () => {
       cancelled = true;
     };
-  }, [active?.id]);
+  }, [active?.id, t]);
 
   const handleRun = async () => {
     setRunning(true);
@@ -127,7 +130,7 @@ export default function HealthScorePage() {
         return [trendRow as HealthSnapshot, ...prev].slice(0, 12);
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Onbekende fout");
+      setError(err instanceof Error ? err.message : t("errors.unknown"));
     } finally {
       setRunning(false);
     }
@@ -136,7 +139,7 @@ export default function HealthScorePage() {
   if (loading) {
     return (
       <div className="page-full">
-        <PageHeader title="Health-score" />
+        <PageHeader title={t("title")} />
         <div style={{ display: "grid", gap: "var(--space-4)" }}>
           {[1, 2, 3].map((i) => (
             <div
@@ -157,11 +160,11 @@ export default function HealthScorePage() {
   if (error && !snapshot) {
     return (
       <div className="page-full">
-        <PageHeader title="Health-score" />
+        <PageHeader title={t("title")} />
         <EmptyState
-          title="Kon health-score niet laden"
+          title={t("loadError.title")}
           description={error}
-          action={<Button onClick={handleRun}>Probeer opnieuw</Button>}
+          action={<Button onClick={handleRun}>{t("loadError.retry")}</Button>}
         />
       </div>
     );
@@ -170,13 +173,13 @@ export default function HealthScorePage() {
   if (!snapshot) {
     return (
       <div className="page-full">
-        <PageHeader title="Health-score" />
+        <PageHeader title={t("title")} />
         <EmptyState
-          title="Run je eerste health-audit"
-          description="Filly checkt je website-SEO, Google Business Profile-kwaliteit, reviews, AI-zichtbaarheid en concurrentie in 500m straal. Duurt ongeveer een minuut."
+          title={t("empty.title")}
+          description={t("empty.description")}
           action={
             <Button onClick={handleRun} disabled={running}>
-              {running ? "Bezig met audit…" : "Start eerste audit"}
+              {running ? t("empty.running") : t("empty.start")}
             </Button>
           }
         />
@@ -190,25 +193,25 @@ export default function HealthScorePage() {
     snapshot.findings.filter((f) => f.category === cat && !f.passed).length;
 
   const tabs: ReadonlyArray<TabItem<TabKey>> = [
-    { key: "overview", label: "Overzicht" },
+    { key: "overview", label: t("tabs.overview") },
     {
       key: "seo",
-      label: "Website-SEO",
+      label: t("tabs.seo"),
       count: failedByCategory("seo") || undefined,
     },
     {
       key: "gbp",
-      label: "Google Business",
+      label: t("tabs.gbp"),
       count: failedByCategory("gbp") || undefined,
     },
     {
       key: "reviews",
-      label: "Reviews",
+      label: t("tabs.reviews"),
       count: failedByCategory("reviews") || undefined,
     },
     {
       key: "geo",
-      label: "AI-zichtbaarheid",
+      label: t("tabs.geo"),
       count: failedByCategory("geo") || undefined,
     },
   ];
@@ -216,14 +219,14 @@ export default function HealthScorePage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Health-score"
+        title={t("title")}
         actions={
           <Button
             variant="brand-soft"
             onClick={handleRun}
             disabled={running}
           >
-            {running ? "Bezig…" : "Audit opnieuw"}
+            {running ? t("rerun.running") : t("rerun.label")}
           </Button>
         }
       />
@@ -313,6 +316,7 @@ function OverviewTab({
 // ============================================================
 
 function SeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const seoFindings = snapshot.findings.filter((f) => f.category === "seo");
 
   return (
@@ -320,9 +324,9 @@ function SeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
       <CategoryHeader
         category="seo"
         score={snapshot.scoreSeo}
-        intro="We checken 15 deterministische SEO-signalen op je homepage plus drie Lighthouse-categorieën via Google PageSpeed Insights. Hieronder zie je elk gecontroleerd punt."
+        intro={t("seoTab.intro")}
       />
-      <ComingSoonNote text="Binnenkort hier ook: keyword-suggesties die Filly genereert voor je title, meta-description en H1 op basis van je keuken en stad." />
+      <ComingSoonNote text={t("seoTab.comingSoon")} />
       <CategoryFindings findings={seoFindings} />
     </div>
   );
@@ -333,6 +337,7 @@ function SeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
 // ============================================================
 
 function GbpTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const gbpFindings = snapshot.findings.filter((f) => f.category === "gbp");
 
   return (
@@ -340,9 +345,9 @@ function GbpTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
       <CategoryHeader
         category="gbp"
         score={snapshot.scoreGbp}
-        intro="We checken 8 kerncriteria op je Google Business Profile: van bedrijfsstatus en compleetheid tot foto-volume en categorisering. Reviews zitten in een aparte tab."
+        intro={t("gbpTab.intro")}
       />
-      <ComingSoonNote text="Binnenkort hier ook: een gedetailleerde checklist met alle Place-velden (telefoon, adres, openingstijden) met hun huidige waarde, zodat je in één oogopslag ziet wat klopt en wat ontbreekt." />
+      <ComingSoonNote text={t("gbpTab.comingSoon")} />
       <CategoryFindings findings={gbpFindings} />
     </div>
   );
@@ -353,6 +358,7 @@ function GbpTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
 // ============================================================
 
 function ReviewsTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const reviewsFindings = snapshot.findings.filter(
     (f) => f.category === "reviews",
   );
@@ -362,9 +368,9 @@ function ReviewsTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
       <CategoryHeader
         category="reviews"
         score={snapshot.scoreReviews}
-        intro="Reviews-gezondheid op basis van je Google-profiel: aantal, gemiddelde rating en thresholds (10+ en 30+) waar gasten-vertrouwen merkbaar kantelt."
+        intro={t("reviewsTab.intro")}
       />
-      <ComingSoonNote text="Binnenkort hier ook: sentiment-analyse op je review-tekst (welke onderwerpen positief, welke negatief). Voor de antwoord-ratio en review-recency wachten we op de Google Business Profile API-koppeling (OAuth)." />
+      <ComingSoonNote text={t("reviewsTab.comingSoon")} />
       <CategoryFindings findings={reviewsFindings} />
     </div>
   );
@@ -375,6 +381,7 @@ function ReviewsTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
 // ============================================================
 
 function GeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const geoFindings = snapshot.findings.filter((f) => f.category === "geo");
   // Split: summary-finding bovenaan, dan per-prompt-findings.
   const summary = geoFindings.find((f) => f.checkKey === "geo.summary");
@@ -387,7 +394,7 @@ function GeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
       <CategoryHeader
         category="geo"
         score={snapshot.scoreGeo}
-        intro="We vragen Claude (Anthropic) vijf verschillende vragen over goede restaurants in jouw stad en kijken of jij genoemd wordt. Positie in de lijst telt mee: top-3 levert volle punten, lager in de lijst minder. Niet genoemd = 0 punten."
+        intro={t("geoTab.intro")}
       />
 
       {summary && (
@@ -423,7 +430,7 @@ function GeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
                   borderRadius: 6,
                 }}
               >
-                <strong>Aanpak: </strong>
+                <strong>{t("geoTab.approachLabel")} </strong>
                 {summary.fixSuggestion}
               </div>
             )}
@@ -439,7 +446,7 @@ function GeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
           color: "var(--text, #18181B)",
         }}
       >
-        Per zoekopdracht
+        {t("geoTab.perQuery")}
       </div>
       <div style={{ display: "grid", gap: "var(--space-2)" }}>
         {promptFindings.map((f) => (
@@ -451,6 +458,7 @@ function GeoTab({ snapshot }: { snapshot: HealthSnapshotFull }) {
 }
 
 function GeoPromptCard({ finding }: { finding: HealthFinding }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const details = finding.details ?? {};
   const rank = (details as { rank?: number }).rank ?? 0;
   const totalListed = (details as { totalListed?: number }).totalListed ?? 0;
@@ -480,12 +488,14 @@ function GeoPromptCard({ finding }: { finding: HealthFinding }) {
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
               {rank > 0 ? (
-                <Badge variant="success">Positie {rank}</Badge>
+                <Badge variant="success">{t("geoTab.position", { rank })}</Badge>
               ) : (
-                <Badge variant="warning">Niet genoemd</Badge>
+                <Badge variant="warning">{t("geoTab.notMentioned")}</Badge>
               )}
               {totalListed > 0 && (
-                <Badge variant="neutral">{totalListed} restaurants in antwoord</Badge>
+                <Badge variant="neutral">
+                  {t("geoTab.restaurantsInAnswer", { count: totalListed })}
+                </Badge>
               )}
             </div>
           </div>
@@ -499,7 +509,7 @@ function GeoPromptCard({ finding }: { finding: HealthFinding }) {
                 color: "var(--text-secondary, #52525B)",
               }}
             >
-              Bekijk Claude's volledige antwoord
+              {t("geoTab.viewFullAnswer")}
             </summary>
             <pre
               style={{
@@ -539,6 +549,7 @@ function CategoryHeader({
   score: number;
   intro: string;
 }) {
+  const t = useTranslations("dash_google_business_audit_page");
   return (
     <Card style={{ marginBottom: "var(--space-4)" }}>
       <CardBody>
@@ -560,7 +571,7 @@ function CategoryHeader({
                 marginBottom: 4,
               }}
             >
-              {CATEGORY_LABELS[category]}
+              {t(CATEGORY_LABEL_KEYS[category])}
             </div>
             <div
               style={{
@@ -568,7 +579,7 @@ function CategoryHeader({
                 color: "var(--text-secondary, #52525B)",
               }}
             >
-              Telt voor {SCORE_WEIGHTS[category]}% van je totaalscore
+              {t("categoryHeader.weight", { weight: SCORE_WEIGHTS[category] })}
             </div>
           </div>
           <div
@@ -598,6 +609,7 @@ function CategoryHeader({
 }
 
 function ComingSoonNote({ text }: { text: string }) {
+  const t = useTranslations("dash_google_business_audit_page");
   return (
     <div
       style={{
@@ -610,13 +622,16 @@ function ComingSoonNote({ text }: { text: string }) {
         lineHeight: 1.5,
       }}
     >
-      <strong style={{ color: "var(--text, #18181B)" }}>Binnenkort: </strong>
+      <strong style={{ color: "var(--text, #18181B)" }}>
+        {t("comingSoon.label")}{" "}
+      </strong>
       {text}
     </div>
   );
 }
 
 function CategoryFindings({ findings }: { findings: HealthFinding[] }) {
+  const t = useTranslations("dash_google_business_audit_page");
   // Sortering: gefaald eerst (op punten desc), dan geslaagd.
   const sorted = [...findings].sort((a, b) => {
     if (a.passed !== b.passed) return a.passed ? 1 : -1;
@@ -638,7 +653,7 @@ function CategoryFindings({ findings }: { findings: HealthFinding[] }) {
               marginBottom: "var(--space-2)",
             }}
           >
-            Actiepunten ({failed.length})
+            {t("findings.actionItems", { count: failed.length })}
           </div>
           <div style={{ display: "grid", gap: "var(--space-2)" }}>
             {failed.map((f) => (
@@ -658,7 +673,7 @@ function CategoryFindings({ findings }: { findings: HealthFinding[] }) {
               marginBottom: "var(--space-2)",
             }}
           >
-            Op orde ({passed.length})
+            {t("findings.inOrder", { count: passed.length })}
           </div>
           <div style={{ display: "grid", gap: "var(--space-2)" }}>
             {passed.map((f) => (
@@ -670,8 +685,8 @@ function CategoryFindings({ findings }: { findings: HealthFinding[] }) {
 
       {failed.length === 0 && passed.length === 0 && (
         <EmptyState
-          title="Nog geen checks beschikbaar"
-          description="Run de audit om resultaten te zien."
+          title={t("findings.noChecks.title")}
+          description={t("findings.noChecks.description")}
         />
       )}
     </div>
@@ -679,6 +694,7 @@ function CategoryFindings({ findings }: { findings: HealthFinding[] }) {
 }
 
 function PassedFindingRow({ finding }: { finding: HealthFinding }) {
+  const t = useTranslations("dash_google_business_audit_page");
   return (
     <Card>
       <CardBody>
@@ -689,7 +705,7 @@ function PassedFindingRow({ finding }: { finding: HealthFinding }) {
             gap: "var(--space-2)",
           }}
         >
-          <Badge variant="success" withDot>OK</Badge>
+          <Badge variant="success" withDot>{t("findings.ok")}</Badge>
           <div
             style={{
               fontSize: 14,
@@ -716,6 +732,7 @@ function ScoreBanner({
   snapshot: HealthSnapshotFull;
   historyCount: number;
 }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const score = snapshot.scoreTotal;
   const color = scoreColor(score);
   const ranAt = new Date(snapshot.ranAt);
@@ -773,7 +790,7 @@ function ScoreBanner({
                   marginTop: 4,
                 }}
               >
-                / 100
+                {t("banner.outOf")}
               </div>
             </div>
           </div>
@@ -787,7 +804,7 @@ function ScoreBanner({
                 marginBottom: 8,
               }}
             >
-              {scoreHeadline(score)}
+              {t(scoreHeadlineKey(score))}
             </div>
             <div
               style={{
@@ -797,7 +814,7 @@ function ScoreBanner({
                 marginBottom: 12,
               }}
             >
-              {scoreDescription(score)}
+              {t(scoreDescriptionKey(score))}
             </div>
             <div
               style={{
@@ -805,8 +822,9 @@ function ScoreBanner({
                 color: "var(--text-secondary, #52525B)",
               }}
             >
-              Laatste audit: {ranAtStr}
-              {historyCount > 1 && ` · ${historyCount} runs in historie`}
+              {t("banner.lastAudit", { date: ranAtStr })}
+              {historyCount > 1 &&
+                ` · ${t("banner.runsInHistory", { count: historyCount })}`}
             </div>
           </div>
         </div>
@@ -854,21 +872,18 @@ function scoreColor(score: number): string {
   return "var(--danger, #DC2626)";
 }
 
-function scoreHeadline(score: number): string {
-  if (score >= 80) return "Sterke vindbaarheid";
-  if (score >= 60) return "Goede basis, kan beter";
-  if (score >= 40) return "Ruimte voor verbetering";
-  return "Veel werk te doen";
+function scoreHeadlineKey(score: number): string {
+  if (score >= 80) return "scoreHeadline.strong";
+  if (score >= 60) return "scoreHeadline.good";
+  if (score >= 40) return "scoreHeadline.room";
+  return "scoreHeadline.work";
 }
 
-function scoreDescription(score: number): string {
-  if (score >= 80)
-    return "Je vindbaarheid is op orde. Werk aan de laatste verbeterpunten in de tabs hieronder om je voorsprong uit te bouwen.";
-  if (score >= 60)
-    return "De basis is in orde, maar er liggen concrete kansen om hoger te scoren. Bekijk de tabs per categorie voor de details.";
-  if (score >= 40)
-    return "Er zijn flinke verbeteringen mogelijk. Focus op de kritieke acties (rood) voor de grootste impact.";
-  return "Je vindbaarheid heeft veel aandacht nodig. De kritieke acties hieronder leveren direct de grootste sprong op.";
+function scoreDescriptionKey(score: number): string {
+  if (score >= 80) return "scoreDescription.strong";
+  if (score >= 60) return "scoreDescription.good";
+  if (score >= 40) return "scoreDescription.room";
+  return "scoreDescription.work";
 }
 
 function SubScoreCard({
@@ -878,6 +893,7 @@ function SubScoreCard({
   category: HealthCategory;
   score: number;
 }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const color = scoreColor(score);
 
   return (
@@ -898,7 +914,7 @@ function SubScoreCard({
               color: "var(--text, #18181B)",
             }}
           >
-            {CATEGORY_LABELS[category]}
+            {t(CATEGORY_LABEL_KEYS[category])}
           </div>
           <div style={{ fontSize: 12, color: "var(--text-secondary, #52525B)" }}>
             {SCORE_WEIGHTS[category]}%
@@ -940,7 +956,7 @@ function SubScoreCard({
             lineHeight: 1.4,
           }}
         >
-          {CATEGORY_DESCRIPTIONS[category]}
+          {t(CATEGORY_DESC_KEYS[category])}
         </div>
       </CardBody>
     </Card>
@@ -948,6 +964,7 @@ function SubScoreCard({
 }
 
 function FindingsList({ findings }: { findings: HealthFinding[] }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const failed = findings
     .filter((f) => !f.passed)
     .sort((a, b) => b.pointsLost - a.pointsLost);
@@ -964,7 +981,7 @@ function FindingsList({ findings }: { findings: HealthFinding[] }) {
               fontSize: 14,
             }}
           >
-            🎉 Geen actiepunten — alles ziet er goed uit.
+            {t("overview.noActions")}
           </div>
         </CardBody>
       </Card>
@@ -981,7 +998,7 @@ function FindingsList({ findings }: { findings: HealthFinding[] }) {
           marginBottom: "var(--space-3)",
         }}
       >
-        Acties die je score verhogen ({failed.length})
+        {t("overview.actionsThatRaise", { count: failed.length })}
       </div>
       <div style={{ display: "grid", gap: "var(--space-2)" }}>
         {failed.map((f) => (
@@ -999,6 +1016,7 @@ function FindingRow({
   finding: HealthFinding;
   showCategory?: boolean;
 }) {
+  const t = useTranslations("dash_google_business_audit_page");
   return (
     <Card>
       <CardBody>
@@ -1025,14 +1043,16 @@ function FindingRow({
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {showCategory && (
                 <Badge variant="neutral">
-                  {CATEGORY_LABELS[finding.category]}
+                  {t(CATEGORY_LABEL_KEYS[finding.category])}
                 </Badge>
               )}
               <Badge variant={SEVERITY_VARIANTS[finding.severity]}>
-                {SEVERITY_LABELS[finding.severity]}
+                {t(SEVERITY_LABEL_KEYS[finding.severity])}
               </Badge>
               {finding.pointsLost > 0 && (
-                <Badge variant="neutral">+{finding.pointsLost} pt mogelijk</Badge>
+                <Badge variant="neutral">
+                  {t("findingRow.pointsPossible", { points: finding.pointsLost })}
+                </Badge>
               )}
             </div>
           </div>
@@ -1061,7 +1081,7 @@ function FindingRow({
               borderRadius: 6,
             }}
           >
-            <strong>Fix: </strong>
+            <strong>{t("findingRow.fix")} </strong>
             {finding.fixSuggestion}
             {finding.fixLink && (
               <>
@@ -1070,7 +1090,7 @@ function FindingRow({
                   href={finding.fixLink}
                   style={{ color: "var(--brand, #004B23)" }}
                 >
-                  → ga er heen
+                  {t("findingRow.goThere")}
                 </Link>
               </>
             )}
@@ -1088,6 +1108,7 @@ function CompetitorTable({
   snapshot: HealthSnapshotFull;
   competitors: HealthSnapshotFull["competitors"];
 }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const top5 = competitors.slice(0, 5);
 
   return (
@@ -1100,7 +1121,7 @@ function CompetitorTable({
           marginBottom: "var(--space-3)",
         }}
       >
-        Concurrenten in 500m straal
+        {t("competitors.title")}
       </div>
       <Card>
         <CardBody style={{ padding: 0 }}>
@@ -1119,14 +1140,16 @@ function CompetitorTable({
                 }}
               >
                 <th style={cellStyle(true)}>#</th>
-                <th style={cellStyle(true)}>Naam</th>
-                <th style={cellStyle(true)}>Afstand</th>
-                <th style={{ ...cellStyle(true), textAlign: "right" }}>GBP</th>
+                <th style={cellStyle(true)}>{t("competitors.name")}</th>
+                <th style={cellStyle(true)}>{t("competitors.distance")}</th>
                 <th style={{ ...cellStyle(true), textAlign: "right" }}>
-                  Reviews
+                  {t("competitors.gbp")}
                 </th>
                 <th style={{ ...cellStyle(true), textAlign: "right" }}>
-                  Totaal
+                  {t("competitors.reviews")}
+                </th>
+                <th style={{ ...cellStyle(true), textAlign: "right" }}>
+                  {t("competitors.total")}
                 </th>
               </tr>
             </thead>
@@ -1134,7 +1157,7 @@ function CompetitorTable({
               <tr style={{ background: "var(--brand-soft, #DCFCE7)" }}>
                 <td style={cellStyle(false)}>—</td>
                 <td style={{ ...cellStyle(false), fontWeight: 600 }}>
-                  Jouw restaurant
+                  {t("competitors.yourRestaurant")}
                 </td>
                 <td style={cellStyle(false)}>0m</td>
                 <td style={{ ...cellStyle(false), textAlign: "right" }}>
@@ -1195,6 +1218,7 @@ function cellStyle(isHeader: boolean): React.CSSProperties {
 }
 
 function TrendChart({ history }: { history: HealthSnapshot[] }) {
+  const t = useTranslations("dash_google_business_audit_page");
   const ordered = [...history].reverse();
   const width = 600;
   const height = 120;
@@ -1223,7 +1247,7 @@ function TrendChart({ history }: { history: HealthSnapshot[] }) {
           marginBottom: "var(--space-3)",
         }}
       >
-        Trend (laatste {ordered.length} audits)
+        {t("trend.title", { count: ordered.length })}
       </div>
       <Card>
         <CardBody>

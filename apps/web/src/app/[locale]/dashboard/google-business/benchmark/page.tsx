@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ const RADIUS_OPTIONS = [
 ];
 
 export default function ConcurrentBenchmarkPage() {
+  const t = useTranslations("dash_google_business_benchmark_page");
   const { active } = useRestaurant();
   const [mine, setMine] = useState<GooglePlaceDetails | null>(null);
   const [competitors, setCompetitors] = useState<CompetitorPlace[]>([]);
@@ -74,7 +76,7 @@ export default function ConcurrentBenchmarkPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        const msg = err instanceof Error ? err.message : "Onbekende fout";
+        const msg = err instanceof Error ? err.message : t("errors.unknown");
         if (msg.includes("Geen Google-koppeling")) {
           setNotConnected(true);
         } else {
@@ -87,15 +89,12 @@ export default function ConcurrentBenchmarkPage() {
     return () => {
       cancelled = true;
     };
-  }, [active?.id, radius]);
+  }, [active?.id, radius, t]);
 
   if (loading) {
     return (
       <div className="page-full">
-        <PageHeader
-          title="Concurrent-benchmark"
-          subtitle="Hoe scoor je versus restaurants in je buurt?"
-        />
+        <PageHeader title={t("title")} subtitle={t("subtitle")} />
         <div
           style={{
             padding: "var(--space-4)",
@@ -105,7 +104,7 @@ export default function ConcurrentBenchmarkPage() {
             fontSize: 13,
           }}
         >
-          Concurrenten laden…
+          {t("loading")}
         </div>
       </div>
     );
@@ -114,17 +113,14 @@ export default function ConcurrentBenchmarkPage() {
   if (notConnected) {
     return (
       <div className="page-full">
-        <PageHeader
-          title="Concurrent-benchmark"
-          subtitle="Hoe scoor je versus restaurants in je buurt?"
-        />
+        <PageHeader title={t("title")} subtitle={t("subtitle")} />
         <EmptyState
           icon="🔵"
-          title="Eerst Google koppelen"
-          description="We hebben je locatie nodig uit Google Business Profile om je buurt-vergelijking te kunnen maken."
+          title={t("notConnected.title")}
+          description={t("notConnected.description")}
           action={
             <Link href="/dashboard/google-business">
-              <Button variant="primary">Naar de hub</Button>
+              <Button variant="primary">{t("notConnected.action")}</Button>
             </Link>
           }
         />
@@ -135,10 +131,7 @@ export default function ConcurrentBenchmarkPage() {
   if (error || !mine) {
     return (
       <div className="page-full">
-        <PageHeader
-          title="Concurrent-benchmark"
-          subtitle="Hoe scoor je versus restaurants in je buurt?"
-        />
+        <PageHeader title={t("title")} subtitle={t("subtitle")} />
         <div
           style={{
             fontSize: 13,
@@ -149,7 +142,7 @@ export default function ConcurrentBenchmarkPage() {
             padding: "var(--space-3)",
           }}
         >
-          {error ?? "Benchmark niet beschikbaar."}
+          {error ?? t("errors.unavailable")}
         </div>
       </div>
     );
@@ -172,8 +165,12 @@ export default function ConcurrentBenchmarkPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Concurrent-benchmark"
-        subtitle={`${competitors.length} restaurant${competitors.length === 1 ? "" : "s"} binnen ${radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}.`}
+        title={t("title")}
+        subtitle={t("resultSubtitle", {
+          count: competitors.length,
+          radius:
+            radius >= 1000 ? `${radius / 1000} km` : `${radius} m`,
+        })}
       />
 
       {/* Radius-selector boven de KPI-tegels, verandert direct de
@@ -194,7 +191,7 @@ export default function ConcurrentBenchmarkPage() {
             marginRight: "var(--space-2)",
           }}
         >
-          Straal:
+          {t("radiusLabel")}
         </span>
         {RADIUS_OPTIONS.map((opt) => (
           <button
@@ -233,21 +230,21 @@ export default function ConcurrentBenchmarkPage() {
         }}
       >
         <KpiTile
-          label="Jouw rating"
+          label={t("kpi.rating")}
           mineValue={mine.rating}
           medianValue={medianRating}
           format={(v) => v.toFixed(1)}
           higherIsBetter
         />
         <KpiTile
-          label="Jouw reviews"
+          label={t("kpi.reviews")}
           mineValue={mine.userRatingCount}
           medianValue={medianReviews}
           format={(v) => v.toLocaleString("nl-NL")}
           higherIsBetter
         />
         <KpiTile
-          label="Jouw foto's"
+          label={t("kpi.photos")}
           mineValue={mine.photos.length}
           medianValue={medianPhotos}
           format={(v) => v.toString()}
@@ -275,16 +272,16 @@ export default function ConcurrentBenchmarkPage() {
                   fontWeight: 500,
                 }}
               >
-                <th style={{ padding: "10px 12px" }}>Restaurant</th>
-                <th style={{ padding: "10px 12px" }}>Afstand</th>
+                <th style={{ padding: "10px 12px" }}>{t("table.restaurant")}</th>
+                <th style={{ padding: "10px 12px" }}>{t("table.distance")}</th>
                 <th style={{ padding: "10px 12px", textAlign: "right" }}>
-                  Rating
+                  {t("table.rating")}
                 </th>
                 <th style={{ padding: "10px 12px", textAlign: "right" }}>
-                  Reviews
+                  {t("table.reviews")}
                 </th>
                 <th style={{ padding: "10px 12px", textAlign: "right" }}>
-                  Foto's
+                  {t("table.photos")}
                 </th>
               </tr>
             </thead>
@@ -308,7 +305,7 @@ export default function ConcurrentBenchmarkPage() {
                       color: "var(--color-brand, #1F4A2D)",
                     }}
                   >
-                    JIJ
+                    {t("youBadge")}
                   </span>
                 </td>
                 <td style={{ padding: "12px" }}>—</td>
@@ -389,8 +386,7 @@ export default function ConcurrentBenchmarkPage() {
                       fontStyle: "italic",
                     }}
                   >
-                    Geen andere restaurants gevonden binnen deze straal.
-                    Probeer een grotere radius.
+                    {t("emptyTable")}
                   </td>
                 </tr>
               )}
@@ -407,9 +403,7 @@ export default function ConcurrentBenchmarkPage() {
           textAlign: "center",
         }}
       >
-        Mediaan-cijfers berekend over {competitors.length} concurrenten.
-        Mediaan is robuuster dan gemiddelde, één hele goede of slechte
-        onderneming vertekent het beeld minder.
+        {t("medianNote", { count: competitors.length })}
       </div>
     </div>
   );
@@ -428,6 +422,7 @@ function KpiTile({
   format: (v: number) => string;
   higherIsBetter: boolean;
 }) {
+  const t = useTranslations("dash_google_business_benchmark_page");
   const isBetter =
     mineValue !== null &&
     medianValue !== null &&
@@ -468,10 +463,10 @@ function KpiTile({
         </div>
         {isBetter && (
           <Badge variant="success" withDot>
-            Boven mediaan
+            {t("aboveMedian")}
           </Badge>
         )}
-        {isWorse && <Badge variant="warning">Onder mediaan</Badge>}
+        {isWorse && <Badge variant="warning">{t("belowMedian")}</Badge>}
       </div>
       <div
         style={{
@@ -480,7 +475,9 @@ function KpiTile({
           marginTop: 8,
         }}
       >
-        Mediaan in de buurt: {medianValue !== null ? format(medianValue) : "—"}
+        {t("medianInArea", {
+          value: medianValue !== null ? format(medianValue) : "—",
+        })}
       </div>
     </div>
   );

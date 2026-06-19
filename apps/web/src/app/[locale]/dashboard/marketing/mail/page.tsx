@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ import { useRestaurant } from "@/lib/restaurant-context";
  */
 
 export default function MailMarketingPage() {
+  const t = useTranslations("dash_marketing_mail_page");
   const { active } = useRestaurant();
   const [stats, setStats] = useState<MailStats | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignMailStats[]>([]);
@@ -56,7 +58,7 @@ export default function MailMarketingPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Onbekende fout");
+        setError(err instanceof Error ? err.message : t("errors.unknown"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -70,8 +72,8 @@ export default function MailMarketingPage() {
     return (
       <div className="page-full">
         <PageHeader
-          title="Mail-prestaties"
-          subtitle="Open rates, click rates en industrie-vergelijking, uit je Resend-data."
+          title={t("title")}
+          subtitle={t("subtitle")}
         />
         <div
           style={{
@@ -82,7 +84,7 @@ export default function MailMarketingPage() {
             fontSize: 13,
           }}
         >
-          Statistieken laden…
+          {t("loading")}
         </div>
       </div>
     );
@@ -91,7 +93,7 @@ export default function MailMarketingPage() {
   if (error) {
     return (
       <div className="page-full">
-        <PageHeader title="Mail-prestaties" />
+        <PageHeader title={t("title")} />
         <div
           style={{
             fontSize: 13,
@@ -112,16 +114,16 @@ export default function MailMarketingPage() {
     return (
       <div className="page-full">
         <PageHeader
-          title="Mail-prestaties"
-          subtitle="Open rates, click rates en industrie-vergelijking, uit je Resend-data."
+          title={t("title")}
+          subtitle={t("subtitle")}
         />
         <EmptyState
           icon="📧"
-          title="Nog geen verzonden mails"
-          description="Zodra je je eerste mail-campagne verstuurt verschijnen hier open rates, click rates en de vergelijking met de horeca-mediaan."
+          title={t("empty.title")}
+          description={t("empty.description")}
           action={
             <Link href="/dashboard/campagnes">
-              <Button variant="primary">Naar campagnes</Button>
+              <Button variant="primary">{t("empty.cta")}</Button>
             </Link>
           }
         />
@@ -132,8 +134,12 @@ export default function MailMarketingPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Mail-prestaties"
-        subtitle={`${stats.sent.toLocaleString("nl-NL")} verzonden mails over ${stats.campaignCount} campagne${stats.campaignCount === 1 ? "" : "s"}, laatste ${stats.periodDays} dagen.`}
+        title={t("title")}
+        subtitle={t("summary", {
+          sent: stats.sent.toLocaleString("nl-NL"),
+          count: stats.campaignCount,
+          days: stats.periodDays,
+        })}
       />
 
       {/* KPI-tegels, 4 hoofd-metrics naast elkaar. Open + click hebben
@@ -148,36 +154,40 @@ export default function MailMarketingPage() {
         }}
       >
         <KpiTile
-          label="Verzonden"
+          label={t("kpi.sent")}
           value={stats.sent.toLocaleString("nl-NL")}
-          subtext={`${stats.delivered.toLocaleString("nl-NL")} aangekomen`}
+          subtext={t("kpi.delivered", {
+            delivered: stats.delivered.toLocaleString("nl-NL"),
+          })}
         />
         <KpiTileWithBenchmark
-          label="Open rate"
+          label={t("kpi.openRate")}
           value={stats.openRate}
           benchmark={stats.benchmark.openRate}
           higherIsBetter
         />
         <KpiTileWithBenchmark
-          label="Click rate"
+          label={t("kpi.clickRate")}
           value={stats.clickRate}
           benchmark={stats.benchmark.clickRate}
           higherIsBetter
         />
         <KpiTileWithBenchmark
-          label="Bounce rate"
+          label={t("kpi.bounceRate")}
           value={stats.bounceRate}
           benchmark={stats.benchmark.bounceRate}
           higherIsBetter={false}
         />
         <KpiTile
-          label="Uitschrijvingen"
+          label={t("kpi.unsubscribes")}
           value={
             stats.unsubscribeRate !== null
               ? `${(stats.unsubscribeRate * 100).toFixed(2)}%`
               : "—"
           }
-          subtext={`${stats.unsubscribed.toLocaleString("nl-NL")} mensen`}
+          subtext={t("kpi.unsubscribedPeople", {
+            people: stats.unsubscribed.toLocaleString("nl-NL"),
+          })}
         />
       </div>
 
@@ -190,7 +200,7 @@ export default function MailMarketingPage() {
           textAlign: "center",
         }}
       >
-        Mediaan-cijfers uit {stats.benchmark.source}
+        {t("benchmarkSource", { source: stats.benchmark.source })}
       </div>
 
       {/* Per-campagne tabel, sorteer op datum aflopend (recent eerst) */}
@@ -212,17 +222,17 @@ export default function MailMarketingPage() {
                   fontWeight: 500,
                 }}
               >
-                <th style={{ padding: "10px 12px" }}>Campagne</th>
-                <th style={{ padding: "10px 12px" }}>Status</th>
-                <th style={{ padding: "10px 12px" }}>Verzonden</th>
+                <th style={{ padding: "10px 12px" }}>{t("table.campaign")}</th>
+                <th style={{ padding: "10px 12px" }}>{t("table.status")}</th>
+                <th style={{ padding: "10px 12px" }}>{t("table.sent")}</th>
                 <th style={{ padding: "10px 12px", textAlign: "right" }}>
-                  Open
+                  {t("table.open")}
                 </th>
                 <th style={{ padding: "10px 12px", textAlign: "right" }}>
-                  Click
+                  {t("table.click")}
                 </th>
                 <th style={{ padding: "10px 12px", textAlign: "right" }}>
-                  Bounce
+                  {t("table.bounce")}
                 </th>
               </tr>
             </thead>
@@ -238,7 +248,7 @@ export default function MailMarketingPage() {
                       fontStyle: "italic",
                     }}
                   >
-                    Geen campagnes in deze periode.
+                    {t("table.emptyPeriod")}
                   </td>
                 </tr>
               ) : (
@@ -269,11 +279,12 @@ export default function MailMarketingPage() {
                             marginTop: 2,
                           }}
                         >
-                          Verzonden{" "}
-                          {new Date(c.executedAt).toLocaleDateString(
-                            "nl-NL",
-                            { day: "numeric", month: "short" },
-                          )}
+                          {t("table.sentOn", {
+                            date: new Date(c.executedAt).toLocaleDateString(
+                              "nl-NL",
+                              { day: "numeric", month: "short" },
+                            ),
+                          })}
                         </div>
                       )}
                     </td>
@@ -312,9 +323,7 @@ export default function MailMarketingPage() {
           textAlign: "center",
         }}
       >
-        Heatmap (beste verzendmoment) en trends-grafiek volgen zodra je
-        meer dan 10 campagnes hebt verzonden, anders zegt het beeld
-        weinig.
+        {t("footnote")}
       </div>
     </div>
   );
@@ -385,6 +394,7 @@ function KpiTileWithBenchmark({
   benchmark: number;
   higherIsBetter: boolean;
 }) {
+  const t = useTranslations("dash_marketing_mail_page");
   const valuePct =
     value !== null ? `${(value * 100).toFixed(1)}%` : "—";
   const benchmarkPct = `${(benchmark * 100).toFixed(1)}%`;
@@ -434,10 +444,10 @@ function KpiTileWithBenchmark({
         </div>
         {isBetter && (
           <Badge variant="success" withDot>
-            Boven mediaan
+            {t("benchmark.above")}
           </Badge>
         )}
-        {isWorse && <Badge variant="warning">Onder mediaan</Badge>}
+        {isWorse && <Badge variant="warning">{t("benchmark.below")}</Badge>}
       </div>
       <div
         style={{
@@ -446,19 +456,20 @@ function KpiTileWithBenchmark({
           marginTop: 8,
         }}
       >
-        Mediaan: {benchmarkPct}
+        {t("benchmark.median", { value: benchmarkPct })}
       </div>
     </div>
   );
 }
 
 function CampaignStatusBadge({ status }: { status: string }) {
+  const t = useTranslations("dash_marketing_mail_page");
   const map: Record<string, { label: string; variant: "success" | "info" | "warning" | "neutral" }> = {
-    afgerond: { label: "Afgerond", variant: "success" },
-    actief: { label: "Actief", variant: "info" },
-    ingepland: { label: "Ingepland", variant: "info" },
-    concept: { label: "Concept", variant: "neutral" },
-    gearchiveerd: { label: "Gearchiveerd", variant: "neutral" },
+    afgerond: { label: t("status.afgerond"), variant: "success" },
+    actief: { label: t("status.actief"), variant: "info" },
+    ingepland: { label: t("status.ingepland"), variant: "info" },
+    concept: { label: t("status.concept"), variant: "neutral" },
+    gearchiveerd: { label: t("status.gearchiveerd"), variant: "neutral" },
   };
   const config = map[status] ?? { label: status, variant: "neutral" as const };
   return <Badge variant={config.variant}>{config.label}</Badge>;

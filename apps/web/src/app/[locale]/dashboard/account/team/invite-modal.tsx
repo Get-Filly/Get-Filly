@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { createInvite, type CreateInviteResult } from "@/lib/api";
 import { type Role } from "@getfilly/shared";
 
-const ROLE_LABELS: Record<Role, string> = {
-  owner: "Eigenaar, alles mag",
-  manager: "Manager, dagelijks werk",
-  staff: "Medewerker, beperkt",
-};
+const ROLE_ORDER: Role[] = ["owner", "manager", "staff"];
 
 /**
  * InviteModal, simpele dialog om iemand uit te nodigen.
@@ -32,11 +29,18 @@ export function InviteModal({
   onClose: () => void;
   onSent: () => void;
 }) {
+  const t = useTranslations("dash_account_team_invite_modal");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("staff");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<CreateInviteResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const roleLabels: Record<Role, string> = {
+    owner: t("roles.owner"),
+    manager: t("roles.manager"),
+    staff: t("roles.staff"),
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +61,8 @@ export function InviteModal({
     <div className="invite-backdrop" onClick={onClose}>
       <div className="invite-modal" onClick={(e) => e.stopPropagation()}>
         <div className="invite-header">
-          <h2>Teamlid uitnodigen</h2>
-          <button className="invite-close" onClick={onClose} aria-label="Sluiten">
+          <h2>{t("title")}</h2>
+          <button className="invite-close" onClick={onClose} aria-label={t("close")}>
             ×
           </button>
         </div>
@@ -66,43 +70,40 @@ export function InviteModal({
         {!result ? (
           <form onSubmit={handleSubmit} className="invite-form">
             <label className="invite-field">
-              <span>E-mailadres</span>
+              <span>{t("emailLabel")}</span>
               <input
                 type="email"
                 required
-                placeholder="naam@voorbeeld.nl"
+                placeholder={t("emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={submitting}
               />
             </label>
             <label className="invite-field">
-              <span>Rol</span>
+              <span>{t("roleLabel")}</span>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as Role)}
                 disabled={submitting}
               >
-                {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                {ROLE_ORDER.map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {roleLabels[r]}
                   </option>
                 ))}
               </select>
             </label>
-            <p className="invite-hint">
-              Na de uitnodiging kun je in de teamlijst nog custom permissies
-              per module aan of uit zetten.
-            </p>
+            <p className="invite-hint">{t("permissionsHint")}</p>
 
-            {error && <div className="invite-error">Fout: {error}</div>}
+            {error && <div className="invite-error">{t("errorPrefix", { message: error })}</div>}
 
             <div className="invite-actions">
               <button type="button" className="invite-btn-secondary" onClick={onClose}>
-                Annuleren
+                {t("cancel")}
               </button>
               <button type="submit" className="invite-btn-primary" disabled={submitting}>
-                {submitting ? "Versturen…" : "Versturen"}
+                {submitting ? t("sending") : t("send")}
               </button>
             </div>
           </form>
@@ -112,20 +113,17 @@ export function InviteModal({
               <>
                 <div className="invite-success-icon">✅</div>
                 <p>
-                  Uitnodiging verstuurd naar <strong>{result.invite.email}</strong>.
+                  {t.rich("sentToEmail", {
+                    email: result.invite.email,
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
                 </p>
-                <p className="invite-hint">
-                  Zodra de ontvanger op de link in de mail klikt en inlogt, komt
-                  hij of zij in je team.
-                </p>
+                <p className="invite-hint">{t("sentHint")}</p>
               </>
             ) : (
               <>
                 <div className="invite-success-icon">📎</div>
-                <p>
-                  Deze persoon heeft al een Get-Filly-account. Deel de onderstaande
-                  link met hem of haar, klikken = direct binnen.
-                </p>
+                <p>{t("existingAccount")}</p>
                 <div className="invite-link-box">
                   <code>{result.manualLink}</code>
                   <button
@@ -134,14 +132,14 @@ export function InviteModal({
                       navigator.clipboard.writeText(result.manualLink ?? "")
                     }
                   >
-                    Kopieer
+                    {t("copy")}
                   </button>
                 </div>
               </>
             )}
             <div className="invite-actions">
               <button className="invite-btn-primary" onClick={onClose}>
-                Sluiten
+                {t("close")}
               </button>
             </div>
           </div>

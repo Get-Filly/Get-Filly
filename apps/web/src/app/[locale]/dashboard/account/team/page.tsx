@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchTeam,
   removeTeamMember,
@@ -36,31 +37,29 @@ import { useRestaurant } from "@/lib/restaurant-context";
  */
 
 /**
- * Leesbare labels bij elke module-key (voor de checkboxes).
+ * Module-keys waarvoor we een leesbaar label uit de i18n-messages halen.
+ * De keys zelf (dashboard, taken, …) zijn module-identifiers, geen UI-tekst.
  */
-const MODULE_LABELS: Record<Module, string> = {
-  dashboard: "Dashboard",
-  taken: "Taken",
-  suggesties: "Suggesties",
-  reserveringen: "Reserveringen",
-  campagnes: "Campagnes",
-  gasten: "Gasten",
-  marketing: "Marketing",
-  google_business: "Google Business",
-  menu: "Menu",
-  rapportages: "Rapportages",
-  koppelingen: "Koppelingen",
-  account: "Account",
-  team: "Team-beheer",
-};
+const MODULE_KEYS: Module[] = [
+  "dashboard",
+  "taken",
+  "suggesties",
+  "reserveringen",
+  "campagnes",
+  "gasten",
+  "marketing",
+  "google_business",
+  "menu",
+  "rapportages",
+  "koppelingen",
+  "account",
+  "team",
+];
 
-const ROLE_LABELS: Record<Role, string> = {
-  owner: "Eigenaar",
-  manager: "Manager",
-  staff: "Medewerker",
-};
+const ROLE_KEYS: Role[] = ["owner", "manager", "staff"];
 
 export default function TeamPage() {
+  const t = useTranslations("dash_account_team_page");
   const { active } = useRestaurant();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invites, setInvites] = useState<InvitationRecord[]>([]);
@@ -98,12 +97,12 @@ export default function TeamPage() {
 
   // Invite intrekken.
   const handleRevokeInvite = async (inviteId: string) => {
-    if (!confirm("Deze uitnodiging intrekken?")) return;
+    if (!confirm(t("revokeInviteConfirm"))) return;
     try {
       await revokeInvite(inviteId);
       setInvites((ins) => ins.filter((i) => i.id !== inviteId));
     } catch (err) {
-      alert(`Kon invite niet intrekken: ${err instanceof Error ? err.message : err}`);
+      alert(t("errors.revokeInvite", { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -116,7 +115,7 @@ export default function TeamPage() {
         ms.map((m) => (m.user_id === userId ? updated : m)),
       );
     } catch (err) {
-      alert(`Kon rol niet wijzigen: ${err instanceof Error ? err.message : err}`);
+      alert(t("errors.roleChange", { error: err instanceof Error ? err.message : String(err) }));
     } finally {
       setBusyUserId(null);
     }
@@ -148,7 +147,7 @@ export default function TeamPage() {
       );
     } catch (err) {
       alert(
-        `Kon permissie niet wijzigen: ${err instanceof Error ? err.message : err}`,
+        t("errors.togglePermission", { error: err instanceof Error ? err.message : String(err) }),
       );
     } finally {
       setBusyUserId(null);
@@ -166,7 +165,7 @@ export default function TeamPage() {
         ms.map((m) => (m.user_id === member.user_id ? updated : m)),
       );
     } catch (err) {
-      alert(`Kon niet resetten: ${err instanceof Error ? err.message : err}`);
+      alert(t("errors.reset", { error: err instanceof Error ? err.message : String(err) }));
     } finally {
       setBusyUserId(null);
     }
@@ -174,7 +173,9 @@ export default function TeamPage() {
 
   const handleRemove = async (member: TeamMember) => {
     const confirmed = window.confirm(
-      `Weet je zeker dat je ${member.full_name ?? member.email ?? "dit teamlid"} wilt verwijderen?`,
+      t("removeConfirm", {
+        name: member.full_name ?? member.email ?? t("thisTeamMember"),
+      }),
     );
     if (!confirmed) return;
 
@@ -184,7 +185,7 @@ export default function TeamPage() {
       setMembers((ms) => ms.filter((m) => m.user_id !== member.user_id));
     } catch (err) {
       alert(
-        `Kon teamlid niet verwijderen: ${err instanceof Error ? err.message : err}`,
+        t("errors.remove", { error: err instanceof Error ? err.message : String(err) }),
       );
     } finally {
       setBusyUserId(null);
@@ -203,13 +204,13 @@ export default function TeamPage() {
     m.permissions !== null && m.permissions.modules.length > 0;
 
   if (loading) {
-    return <div className="team-empty">Team wordt geladen…</div>;
+    return <div className="team-empty">{t("loading")}</div>;
   }
 
   if (error) {
     return (
       <div className="team-empty team-error">
-        Kon team niet laden: {error}
+        {t("loadError", { error })}
       </div>
     );
   }
@@ -218,17 +219,16 @@ export default function TeamPage() {
     <div className="team-page">
       <div className="team-header">
         <div>
-          <h1 className="team-title">Team</h1>
+          <h1 className="team-title">{t("title")}</h1>
           <p className="team-subtitle">
-            Beheer wie toegang heeft tot {active?.name ?? "dit restaurant"} en
-            welke onderdelen ze mogen zien.
+            {t("subtitle", { restaurant: active?.name ?? t("thisRestaurant") })}
           </p>
         </div>
         <button
           className="team-invite-btn"
           onClick={() => setShowInviteModal(true)}
         >
-          + Teamlid uitnodigen
+          {t("inviteMember")}
         </button>
       </div>
 
@@ -236,18 +236,20 @@ export default function TeamPage() {
           ingetrokken worden. */}
       {invites.length > 0 && (
         <div className="team-invites">
-          <div className="team-invites-title">Openstaande uitnodigingen</div>
+          <div className="team-invites-title">{t("pendingInvitesTitle")}</div>
           {invites.map((inv) => {
             return (
               <div key={inv.id} className="team-invite-row">
                 <div className="team-who">
                   <div className="team-name">{inv.email}</div>
                   <div className="team-email">
-                    Rol: {inv.role} · verloopt{" "}
-                    {new Date(inv.expires_at).toLocaleDateString("nl-NL")}
+                    {t("inviteMeta", {
+                      role: inv.role,
+                      date: new Date(inv.expires_at).toLocaleDateString("nl-NL"),
+                    })}
                   </div>
                 </div>
-                <span className="team-invite-pending">Wacht op acceptatie</span>
+                <span className="team-invite-pending">{t("awaitingAcceptance")}</span>
                 <button
                   className="team-toggle-btn"
                   onClick={async () => {
@@ -258,22 +260,22 @@ export default function TeamPage() {
                       // bij de accept-pagina.
                       const link = await getInviteMagicLink(inv.id);
                       await navigator.clipboard.writeText(link);
-                      alert("Magic link gekopieerd, plak 'm in een browser om de invite te accepteren.");
+                      alert(t("magicLinkCopied"));
                     } catch (err) {
                       alert(
-                        `Kon geen link genereren: ${err instanceof Error ? err.message : err}`,
+                        t("errors.generateLink", { error: err instanceof Error ? err.message : String(err) }),
                       );
                     }
                   }}
-                  title="Verse magic link, deel handmatig als de mail niet aankomt"
+                  title={t("copyLinkTitle")}
                 >
-                  Kopieer link
+                  {t("copyLink")}
                 </button>
                 <button
                   className="team-remove-btn"
                   onClick={() => handleRevokeInvite(inv.id)}
                 >
-                  Intrekken
+                  {t("revoke")}
                 </button>
               </div>
             );
@@ -299,7 +301,7 @@ export default function TeamPage() {
               <div className="team-row">
                 <div className="team-who">
                   <div className="team-name">
-                    {m.full_name ?? m.email ?? "Onbekend"}
+                    {m.full_name ?? m.email ?? t("unknown")}
                   </div>
                   <div className="team-email">{m.email ?? "—"}</div>
                 </div>
@@ -310,9 +312,9 @@ export default function TeamPage() {
                   onChange={(e) => handleRoleChange(m.user_id, e.target.value as Role)}
                   disabled={busy}
                 >
-                  {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                  {ROLE_KEYS.map((r) => (
                     <option key={r} value={r}>
-                      {ROLE_LABELS[r]}
+                      {t(`roles.${r}`)}
                     </option>
                   ))}
                 </select>
@@ -323,16 +325,16 @@ export default function TeamPage() {
                     setExpandedUserId(expanded ? null : m.user_id)
                   }
                 >
-                  {expanded ? "Sluiten" : "Permissies"}
+                  {expanded ? t("close") : t("permissions")}
                 </button>
 
                 <button
                   className="team-remove-btn"
                   onClick={() => handleRemove(m)}
                   disabled={busy}
-                  title="Teamlid verwijderen"
+                  title={t("removeTitle")}
                 >
-                  Verwijderen
+                  {t("remove")}
                 </button>
               </div>
 
@@ -341,8 +343,8 @@ export default function TeamPage() {
                   <div className="team-permissions-header">
                     <span>
                       {hasCustomPermissions(m)
-                        ? "Aangepaste permissies actief"
-                        : `Standaard permissies voor rol "${ROLE_LABELS[m.role]}"`}
+                        ? t("customPermissionsActive")
+                        : t("defaultPermissionsForRole", { role: t(`roles.${m.role}`) })}
                     </span>
                     {hasCustomPermissions(m) && (
                       <button
@@ -350,7 +352,7 @@ export default function TeamPage() {
                         onClick={() => handleResetToRoleDefaults(m)}
                         disabled={busy}
                       >
-                        Reset naar rol-standaard
+                        {t("resetToRoleDefault")}
                       </button>
                     )}
                   </div>
@@ -375,7 +377,7 @@ export default function TeamPage() {
                               handleTogglePermission(m, mod, e.target.checked)
                             }
                           />
-                          {MODULE_LABELS[mod]}
+                          {t(`modules.${mod}`)}
                         </label>
                       );
                     })}

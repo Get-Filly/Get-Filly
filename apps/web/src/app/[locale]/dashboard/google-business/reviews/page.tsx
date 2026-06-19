@@ -1,7 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import {
   fetchReviewVariants,
   fetchReviews,
@@ -58,6 +60,7 @@ function TrendBadge({
   trend: number | null;
   kind: "rating" | "volume";
 }) {
+  const t = useTranslations("dash_google_business_reviews_page");
   if (trend === null) return null;
   // Drempels: ratings pas vanaf 0,1 ster, volume vanaf 1 review.
   const minDelta = kind === "rating" ? 0.1 : 1;
@@ -70,8 +73,8 @@ function TrendBadge({
       : String(Math.abs(Math.round(trend)));
   const label =
     kind === "rating"
-      ? "t.o.v. eerdere reviews"
-      : `nieuwe review${Math.abs(Math.round(trend)) === 1 ? "" : "s"} deze maand`;
+      ? t("trendRatingLabel")
+      : t("trendVolumeLabel", { count: Math.abs(Math.round(trend)) });
 
   return (
     <div
@@ -91,6 +94,7 @@ function TrendBadge({
 // staan, anders weigert de production-build te prerenderen. Inner-component
 // houdt de hooks; default-export wikkelt 'm in Suspense.
 function ReviewsPageInner() {
+  const t = useTranslations("dash_google_business_reviews_page");
   // Deep-link-support: andere pagina's kunnen linken naar
   // `/dashboard/google-business/reviews?openReply=<id>`. We lezen de
   // query-param hieronder en openen automatisch de reply-modal voor
@@ -358,9 +362,7 @@ function ReviewsPageInner() {
       setVariantsByReview((prev) => ({ ...prev, [r.id]: fresh }));
     } catch (e) {
       setError(
-        e instanceof Error
-          ? e.message
-          : "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
+        e instanceof Error ? e.message : t("errors.generate"),
       );
       logger.error(e);
     } finally {
@@ -381,9 +383,7 @@ function ReviewsPageInner() {
       setVariantsByReview((prev) => ({ ...prev, [replyTo.id]: result }));
     } catch (e) {
       setError(
-        e instanceof Error
-          ? e.message
-          : "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
+        e instanceof Error ? e.message : t("errors.generate"),
       );
       logger.error(e);
     } finally {
@@ -417,7 +417,7 @@ function ReviewsPageInner() {
       setReplyTo(null);
       setReplyText("");
     } catch (e) {
-      setError("Opslaan is mislukt. Probeer nog eens.");
+      setError(t("errors.save"));
       logger.error(e);
     } finally {
       setSaving(false);
@@ -443,7 +443,7 @@ function ReviewsPageInner() {
               <Stars rating={r.rating} />
               <span className="review-source">{src.label}</span>
               {needsResponse && (
-                <span className="review-urgency-pill">Actie vereist</span>
+                <span className="review-urgency-pill">{t("actionRequired")}</span>
               )}
             </div>
             {r.title && <div className="review-title">{r.title}</div>}
@@ -452,22 +452,22 @@ function ReviewsPageInner() {
         </div>
         {r.body && <div className="review-body">{r.body}</div>}
         <div className="review-foot">
-          <span className="review-author">{r.author ?? "Anoniem"}</span>
+          <span className="review-author">{r.author ?? t("anonymous")}</span>
           {r.response_text ? (
-            <span className="review-responded">✓ Gereageerd</span>
+            <span className="review-responded">{t("responded")}</span>
           ) : (
             <button
               className="sg-btn primary"
               style={{ padding: "4px 14px", fontSize: 11 }}
               onClick={() => openReply(r)}
             >
-              Reageren
+              {t("reply")}
             </button>
           )}
         </div>
         {r.response_text && (
           <div className="review-response">
-            <div className="review-response-label">Jouw reactie</div>
+            <div className="review-response-label">{t("yourReply")}</div>
             <div className="review-response-body">{r.response_text}</div>
           </div>
         )}
@@ -477,11 +477,11 @@ function ReviewsPageInner() {
 
   return (
     <div className="page-full">
-      <PageHeader title="Reviews" />
+      <PageHeader title={t("title")} />
 
       <div className="stats-row">
         <div className="stat-card">
-          <div className="stat-card-label">Gemiddelde</div>
+          <div className="stat-card-label">{t("statAverage")}</div>
           <div className="stat-card-val">
             {loading ? (
               <Skeleton height={22} width="40%" />
@@ -495,14 +495,14 @@ function ReviewsPageInner() {
           {!loading && <TrendBadge trend={stats.avgTrend} kind="rating" />}
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Totaal reviews</div>
+          <div className="stat-card-label">{t("statTotal")}</div>
           <div className="stat-card-val">
             {loading ? <Skeleton height={22} width="40%" /> : stats.total}
           </div>
           {!loading && <TrendBadge trend={stats.totalTrend} kind="volume" />}
         </div>
         <div className="stat-card">
-          <div className="stat-card-label">Reactie nodig (≤3 ★)</div>
+          <div className="stat-card-label">{t("statNeedsResponse")}</div>
           <div
             className="stat-card-val"
             style={{
@@ -539,7 +539,7 @@ function ReviewsPageInner() {
       <Tabs
         items={sourceFilters.map((f) => ({
           key: f,
-          label: f === "alle" ? "Alle" : sourceInfo[f].label,
+          label: f === "alle" ? t("filterAll") : sourceInfo[f].label,
         }))}
         active={filter}
         onChange={setFilter}
@@ -556,11 +556,11 @@ function ReviewsPageInner() {
         // de koppelingen-pagina voor Google Business / TripAdvisor.
         <EmptyState
           icon="⭐"
-          title="Nog geen reviews"
-          description="Koppel je Google Business Profile of TripAdvisor om reviews automatisch te importeren, Filly stelt dan voor elke review direct een passend antwoord voor."
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : filtered.length === 0 ? (
-        <div className="table-empty">Geen reviews in deze categorie.</div>
+        <div className="table-empty">{t("emptyCategory")}</div>
       ) : (
         <>
           {/* Prioriteit-sectie: alleen tonen als er reviews aandacht
@@ -584,7 +584,7 @@ function ReviewsPageInner() {
                     margin: 0,
                   }}
                 >
-                  Prioriteit
+                  {t("priorityHeading")}
                 </h2>
                 <span
                   style={{
@@ -599,7 +599,7 @@ function ReviewsPageInner() {
                   {priorityReviews.length}
                 </span>
                 <span style={{ fontSize: 12, color: "var(--tl)" }}>
-                  lage scores zonder reactie
+                  {t("prioritySubtitle")}
                 </span>
               </div>
               <div className="review-list">
@@ -621,7 +621,7 @@ function ReviewsPageInner() {
                   margin: "8px 0 12px",
                 }}
               >
-                Alle reviews
+                {t("allReviewsHeading")}
               </h2>
             )}
             <div className="review-list">
@@ -645,7 +645,7 @@ function ReviewsPageInner() {
             <button
               className="sg-modal-close"
               onClick={() => setReplyTo(null)}
-              aria-label="Sluiten"
+              aria-label={t("close")}
             >
               ×
             </button>
@@ -653,7 +653,7 @@ function ReviewsPageInner() {
             <div className="sg-modal-header">
               <div className="sg-trigger">
                 <span>💬</span>
-                <span>Reageren op review</span>
+                <span>{t("modalTrigger")}</span>
               </div>
             </div>
 
@@ -665,10 +665,10 @@ function ReviewsPageInner() {
             <div className="review-modal-original">
               <div className="review-modal-quote">
                 {replyTo.title && <strong>{replyTo.title}. </strong>}
-                {replyTo.body ?? "Geen inhoud."}
+                {replyTo.body ?? t("noContent")}
               </div>
               <div className="review-modal-author">
-               , {replyTo.author ?? "Anoniem"} ·{" "}
+               , {replyTo.author ?? t("anonymous")} ·{" "}
                 {formatDate(replyTo.review_date)}
               </div>
             </div>
@@ -681,8 +681,8 @@ function ReviewsPageInner() {
             {bootstrapping ? (
               <div className="review-modal-filly-banner">
                 <div>
-                  <strong>Filly bekijkt de review…</strong>{" "}
-                  Laden van eerdere voorstellen of een nieuwe set.
+                  <strong>{t("bannerLoadingTitle")}</strong>{" "}
+                  {t("bannerLoadingBody")}
                 </div>
               </div>
             ) : canRegenerate ? (
@@ -690,14 +690,14 @@ function ReviewsPageInner() {
                 <div>
                   <strong>
                     {variants.length === 0
-                      ? "Filly schrijft 3 voorstellen…"
-                      : `Filly heeft ${variants.length} versies geschreven.`}
+                      ? t("bannerWritingTitle")
+                      : t("bannerWrittenTitle", { count: variants.length })}
                   </strong>{" "}
                   {variants.length === 0
-                    ? "Even geduld."
+                    ? t("bannerWritingBody")
                     : regenCount === 1
-                      ? "Klik op een versie of laat 3 nieuwe maken (max 6)."
-                      : "Klik op een versie om 'm in het tekstveld te zetten."}
+                      ? t("bannerPickOrRegen")
+                      : t("bannerPickOnly")}
                 </div>
                 {variants.length > 0 && (
                   <button
@@ -705,16 +705,15 @@ function ReviewsPageInner() {
                     onClick={requestFillySuggestion}
                     disabled={generating}
                   >
-                    {generating ? "Filly denkt na…" : "↻ Genereer 3 nieuwe"}
+                    {generating ? t("thinking") : t("generateThreeNew")}
                   </button>
                 )}
               </div>
             ) : (
               <div className="review-modal-filly-banner">
                 <div>
-                  <strong>{variants.length} versies klaar.</strong>{" "}
-                  Maximum bereikt, kies hieronder je favoriet en pas
-                  'm naar wens aan.
+                  <strong>{t("bannerMaxTitle", { count: variants.length })}</strong>{" "}
+                  {t("bannerMaxBody")}
                 </div>
               </div>
             )}
@@ -767,8 +766,8 @@ function ReviewsPageInner() {
                           color: active ? "var(--brand, #1F4A2D)" : "var(--muted, #666)",
                         }}
                       >
-                        Variant {i + 1}
-                        {active ? " · gekozen" : ""}
+                        {t("variantLabel", { number: i + 1 })}
+                        {active ? t("variantChosenSuffix") : ""}
                       </div>
                       {/* Snippet, eerste ~120 tekens zodat 3 kaartjes
                           naast elkaar passen zonder te veel te schreeuwen. */}
@@ -794,13 +793,13 @@ function ReviewsPageInner() {
               </div>
             )}
 
-            <label className="review-modal-label">Jouw reactie</label>
+            <label className="review-modal-label">{t("yourReply")}</label>
             <textarea
               className="review-modal-textarea"
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               rows={8}
-              placeholder="Tik hier je antwoord, of laat Filly een voorstel doen."
+              placeholder={t("replyPlaceholder")}
             />
 
             <div className="sg-actions sg-modal-actions">
@@ -809,14 +808,14 @@ function ReviewsPageInner() {
                 onClick={sendReply}
                 disabled={!replyText.trim() || saving}
               >
-                {saving ? "Opslaan…" : "Verstuur reactie"}
+                {saving ? t("saving") : t("sendReply")}
               </button>
               <button
                 className="sg-btn"
                 onClick={() => setReplyTo(null)}
                 disabled={saving}
               >
-                Annuleren
+                {t("cancel")}
               </button>
             </div>
           </div>

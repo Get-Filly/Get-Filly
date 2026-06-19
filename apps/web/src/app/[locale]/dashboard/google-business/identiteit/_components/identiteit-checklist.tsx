@@ -10,12 +10,25 @@
 //
 // Deze file levert puur de items-builders per sub-tab. De UI
 // komt uit <ProgressChecklist />.
+//
+// De labels zijn geïnternationaliseerd via next-intl. Omdat de
+// builders gewone functies zijn (geen React-componenten) kunnen ze
+// zelf geen useTranslations() aanroepen; de aanroepende component
+// haalt de translator op met
+//   const t = useTranslations("dash_google_business_identiteit_components_identiteit_checklist");
+// en geeft 't' door aan elke builder.
 
+import type { useTranslations } from "next-intl";
 import type { Restaurant } from "@/lib/api";
 import {
   ProgressChecklist,
   type ProgressChecklistItem,
 } from "../../../_components/progress-checklist";
+
+// Translator-type voor deze namespace, zodat de builders typed blijven.
+type ChecklistT = ReturnType<
+  typeof useTranslations<"dash_google_business_identiteit_components_identiteit_checklist">
+>;
 
 // Helper: array niet-leeg + niet-null.
 function arrFilled(v: unknown): boolean {
@@ -29,104 +42,111 @@ function strFilled(v: unknown): boolean {
 export function buildBasicsChecklist(
   r: Restaurant,
   mediaCount: number,
+  t: ChecklistT,
 ): ProgressChecklistItem[] {
   return [
-    { id: "name", label: "Restaurant-naam", done: strFilled(r.name) },
-    { id: "tagline", label: "Tagline", done: strFilled(r.tagline) },
+    { id: "name", label: t("basics.name"), done: strFilled(r.name) },
+    { id: "tagline", label: t("basics.tagline"), done: strFilled(r.tagline) },
     {
       id: "description",
-      label: "Volledige beschrijving",
+      label: t("basics.description"),
       done: strFilled(r.description),
     },
     {
       id: "cuisine",
-      label: "Keuken-stijl",
+      label: t("basics.cuisine"),
       done: arrFilled(r.cuisine_style),
     },
     {
       id: "target_audience",
-      label: "Hoofd-doelgroep",
+      label: t("basics.targetAudience"),
       done: strFilled(r.target_audience),
     },
     {
       id: "segments",
-      label: "Doelgroep-segmenten",
+      label: t("basics.segments"),
       done: arrFilled(r.target_audience_segments),
     },
     {
       id: "location",
-      label: "Locatie-omschrijving",
+      label: t("basics.location"),
       done: strFilled(r.location_description),
     },
     {
       id: "media",
-      label: "Foto's in bibliotheek",
+      label: t("basics.media"),
       done: mediaCount > 0,
     },
-    { id: "logo", label: "Logo", done: strFilled(r.logo_url) },
+    { id: "logo", label: t("basics.logo"), done: strFilled(r.logo_url) },
     {
       id: "brand_color",
-      label: "Hoofdkleur",
+      label: t("basics.brandColor"),
       done: strFilled(r.brand_colors?.primary),
     },
   ];
 }
 
-export function buildToonChecklist(r: Restaurant): ProgressChecklistItem[] {
+export function buildToonChecklist(
+  r: Restaurant,
+  t: ChecklistT,
+): ProgressChecklistItem[] {
   return [
     {
       id: "atmosphere",
-      label: "Sfeer & interieur",
+      label: t("toon.atmosphere"),
       done: strFilled(r.atmosphere),
     },
     {
       id: "tone",
-      label: "Tone-of-voice",
+      label: t("toon.tone"),
       done: strFilled(r.tone_of_voice),
     },
     {
       id: "story",
-      label: "Brand-story",
+      label: t("toon.story"),
       done: strFilled(r.brand_story),
     },
     {
       id: "do_not",
-      label: "Wat doen we niet",
+      label: t("toon.doNot"),
       done: strFilled(r.do_not_mention),
     },
     {
       id: "usp",
-      label: "Unique selling points",
+      label: t("toon.usp"),
       done: strFilled(r.unique_selling_points),
     },
     {
       id: "signatures",
-      label: "Signature dishes",
+      label: t("toon.signatures"),
       done: arrFilled(r.signature_dishes),
     },
     {
       id: "awards",
-      label: "Awards & certificeringen",
+      label: t("toon.awards"),
       done: arrFilled(r.awards),
     },
     {
       id: "events",
-      label: "Speciale gelegenheden",
+      label: t("toon.events"),
       done: strFilled(r.special_events),
     },
   ];
 }
 
-export function buildSeoChecklist(r: Restaurant): ProgressChecklistItem[] {
+export function buildSeoChecklist(
+  r: Restaurant,
+  t: ChecklistT,
+): ProgressChecklistItem[] {
   return [
     {
       id: "keywords",
-      label: "SEO-trefwoorden",
+      label: t("seo.keywords"),
       done: arrFilled(r.keywords),
     },
     {
       id: "hashtags",
-      label: "Vaste hashtags",
+      label: t("seo.hashtags"),
       done: arrFilled(r.default_hashtags),
     },
   ];

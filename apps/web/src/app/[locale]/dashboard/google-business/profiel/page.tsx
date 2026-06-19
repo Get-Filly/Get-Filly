@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -113,20 +114,6 @@ function SectionCard({
   );
 }
 
-// Badge: "Zichtbaar via Google" — read-only data die we nu al hebben.
-const visibleBadge = (
-  <Badge variant="success">Zichtbaar via Google</Badge>
-);
-// Badge: "Bewerken na koppeling" — veld is leesbaar maar aanpassen +
-// pushen naar Google vereist de OAuth-koppeling (fase E/F).
-const editLaterBadge = (
-  <Badge variant="neutral">Bewerken na koppeling</Badge>
-);
-// Badge: feature bestaat alleen ná koppeling (geen Places-equivalent).
-const afterConnectBadge = (
-  <Badge variant="neutral">Beschikbaar na koppeling</Badge>
-);
-
 // Formatteert een ISO-datum (YYYY-MM-DD) naar leesbaar NL, bv.
 // "25 december 2026". Faalt stil terug op de ruwe string.
 function formatClosedDate(iso: string): string {
@@ -140,6 +127,19 @@ function formatClosedDate(iso: string): string {
 }
 
 export default function GoogleProfilePreviewPage() {
+  const t = useTranslations("dash_google_business_profiel_page");
+  // Badge: read-only data die we nu al hebben.
+  const visibleBadge = <Badge variant="success">{t("badge.visible")}</Badge>;
+  // Badge: veld is leesbaar maar aanpassen + pushen naar Google vereist de
+  // OAuth-koppeling (fase E/F).
+  const editLaterBadge = (
+    <Badge variant="neutral">{t("badge.editLater")}</Badge>
+  );
+  // Badge: feature bestaat alleen ná koppeling (geen Places-equivalent).
+  const afterConnectBadge = (
+    <Badge variant="neutral">{t("badge.afterConnect")}</Badge>
+  );
+
   const [mine, setMine] = useState<GoogleProfileMine | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,9 +183,9 @@ export default function GoogleProfilePreviewPage() {
           display: "inline-block",
         }}
       >
-        ← Terug naar Vindbaarheid
+        {t("backToFindability")}
       </Link>
-      <PageHeader title="Google Business Profiel" />
+      <PageHeader title={t("title")} />
 
       {/* Uitleg-banner: wat zien we nu vs wat komt er na de koppeling. */}
       <div
@@ -202,21 +202,21 @@ export default function GoogleProfilePreviewPage() {
         }}
       >
         <strong>
-          {connected
-            ? "Gekoppeld met Google Maps-data."
-            : "Voorvertoning op basis van openbare Google-data."}
+          {connected ? t("banner.titleConnected") : t("banner.titlePreview")}
         </strong>{" "}
-        De gegevens hieronder komen uit je openbare Google-profiel.
-        Bewerken en rechtstreeks pushen naar Google — plus posts, Q&amp;A
-        en inzichten — worden actief zodra de Google Business Profile-
-        koppeling live is. De koppeling beheer je via{" "}
-        <Link
-          href="/dashboard/account?tab=koppelingen"
-          style={{ color: "var(--color-brand, #1F4A2D)", fontWeight: 600 }}
-        >
-          Account → Koppelingen
-        </Link>
-        .
+        {t.rich("banner.body", {
+          link: (chunks) => (
+            <Link
+              href="/dashboard/account?tab=koppelingen"
+              style={{
+                color: "var(--color-brand, #1F4A2D)",
+                fontWeight: 600,
+              }}
+            >
+              {chunks}
+            </Link>
+          ),
+        })}
       </div>
 
       {loading ? (
@@ -227,16 +227,16 @@ export default function GoogleProfilePreviewPage() {
       ) : (
         <>
           {/* ---- Basisgegevens (Places read-only, bewerken na OAuth) ---- */}
-          <SectionCard title="Basisgegevens" badge={editLaterBadge}>
-            <FieldRow label="Naam" value={p?.displayName} />
-            <FieldRow label="Categorie" value={prettyType(p?.primaryType ?? null)} />
-            <FieldRow label="Telefoon" value={p?.internationalPhoneNumber} />
-            <FieldRow label="Website" value={p?.websiteUri} />
-            <FieldRow label="Adres" value={p?.formattedAddress} />
+          <SectionCard title={t("basics.title")} badge={editLaterBadge}>
+            <FieldRow label={t("basics.name")} value={p?.displayName} />
+            <FieldRow label={t("basics.category")} value={prettyType(p?.primaryType ?? null)} />
+            <FieldRow label={t("basics.phone")} value={p?.internationalPhoneNumber} />
+            <FieldRow label={t("basics.website")} value={p?.websiteUri} />
+            <FieldRow label={t("basics.address")} value={p?.formattedAddress} />
           </SectionCard>
 
           {/* ---- Openingstijden ---- */}
-          <SectionCard title="Openingstijden" badge={editLaterBadge}>
+          <SectionCard title={t("hours.title")} badge={editLaterBadge}>
             {p?.regularOpeningHours?.weekdayDescriptions?.length ? (
               p.regularOpeningHours.weekdayDescriptions.map((d, i) => (
                 <div
@@ -252,7 +252,7 @@ export default function GoogleProfilePreviewPage() {
               ))
             ) : (
               <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-                Nog geen openingstijden bekend uit Google.
+                {t("hours.empty")}
               </div>
             )}
           </SectionCard>
@@ -262,13 +262,17 @@ export default function GoogleProfilePreviewPage() {
               worden straks gepusht naar Google's 'special hours'
               (afwijkende openingstijden op feestdagen/vakanties). */}
           <SectionCard
-            title="Speciale dagen &amp; sluitingsdata"
+            title={t("specialDays.title")}
             badge={editLaterBadge}
           >
             {closedDates.length > 0 ? (
               <>
                 {closedDates.map((d) => (
-                  <FieldRow key={d} label={formatClosedDate(d)} value="Gesloten" />
+                  <FieldRow
+                    key={d}
+                    label={formatClosedDate(d)}
+                    value={t("specialDays.closed")}
+                  />
                 ))}
                 <div
                   style={{
@@ -277,39 +281,42 @@ export default function GoogleProfilePreviewPage() {
                     marginTop: 10,
                   }}
                 >
-                  Beheer deze dagen via{" "}
-                  <Link
-                    href="/dashboard/account"
-                    style={{
-                      color: "var(--color-brand, #1F4A2D)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Account → Sluitingsdata
-                  </Link>
-                  . Ze worden bij koppeling als afwijkende openingstijden
-                  naar Google gestuurd.
+                  {t.rich("specialDays.manage", {
+                    link: (chunks) => (
+                      <Link
+                        href="/dashboard/account"
+                        style={{
+                          color: "var(--color-brand, #1F4A2D)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                  })}
                 </div>
               </>
             ) : (
               <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-                Geen speciale dagen ingesteld. Voeg ze toe via{" "}
-                <Link
-                  href="/dashboard/account"
-                  style={{
-                    color: "var(--color-brand, #1F4A2D)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Account → Sluitingsdata
-                </Link>{" "}
-                (bv. 1e Kerstdag of een vakantieweek).
+                {t.rich("specialDays.empty", {
+                  link: (chunks) => (
+                    <Link
+                      href="/dashboard/account"
+                      style={{
+                        color: "var(--color-brand, #1F4A2D)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                })}
               </div>
             )}
           </SectionCard>
 
           {/* ---- Beschrijving ---- */}
-          <SectionCard title="Beschrijving" badge={editLaterBadge}>
+          <SectionCard title={t("description.title")} badge={editLaterBadge}>
             <div
               style={{
                 fontSize: 14,
@@ -319,67 +326,61 @@ export default function GoogleProfilePreviewPage() {
                   : "var(--tl, #6B6F71)",
               }}
             >
-              {p?.editorialSummary ??
-                "Google toont nog geen redactionele beschrijving voor je profiel."}
+              {p?.editorialSummary ?? t("description.empty")}
             </div>
           </SectionCard>
 
           {/* ---- Status & cijfers (puur read-only, Google bepaalt deze) ---- */}
-          <SectionCard title="Status & cijfers" badge={visibleBadge}>
+          <SectionCard title={t("stats.title")} badge={visibleBadge}>
             <FieldRow
-              label="Bedrijfsstatus"
+              label={t("stats.businessStatus")}
               value={
                 p?.businessStatus === "OPERATIONAL"
-                  ? "Open / actief"
+                  ? t("stats.statusOperational")
                   : p?.businessStatus ?? null
               }
             />
             <FieldRow
-              label="Gemiddelde rating"
+              label={t("stats.rating")}
               value={p?.rating != null ? `${p.rating} ★` : null}
             />
             <FieldRow
-              label="Aantal reviews"
+              label={t("stats.reviewCount")}
               value={
                 p?.userRatingCount != null ? `${p.userRatingCount}` : null
               }
             />
             <FieldRow
-              label="Foto's op Google"
+              label={t("stats.photos")}
               value={p?.photos?.length ? `${p.photos.length}` : null}
             />
           </SectionCard>
 
           {/* ---- Alleen na koppeling: GBP-only features ---- */}
           <SectionCard
-            title="Posts &amp; updates"
+            title={t("posts.title")}
             badge={afterConnectBadge}
           >
             <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              Plaats aanbiedingen, evenementen en nieuws rechtstreeks op je
-              Google-profiel. Filly stelt de teksten voor; jij keurt goed.
+              {t("posts.body")}
             </div>
           </SectionCard>
 
-          <SectionCard title="Vragen &amp; antwoorden" badge={afterConnectBadge}>
+          <SectionCard title={t("qa.title")} badge={afterConnectBadge}>
             <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              Zie vragen die bezoekers op Google stellen en laat Filly
-              passende antwoorden voorstellen.
+              {t("qa.body")}
             </div>
           </SectionCard>
 
-          <SectionCard title="Inzichten" badge={afterConnectBadge}>
+          <SectionCard title={t("insights.title")} badge={afterConnectBadge}>
             <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              Hoeveel mensen je profiel zoeken, naar je website klikken of
-              je bellen — direct uit Google. Niet beschikbaar via de
-              openbare data, komt met de koppeling.
+              {t("insights.body")}
             </div>
           </SectionCard>
 
-          <SectionCard title="Foto-beheer" badge={afterConnectBadge}>
+          <SectionCard title={t("photoManagement.title")} badge={afterConnectBadge}>
             <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              Upload foto's uit je Filly-bibliotheek rechtstreeks naar je
-              Google-profiel.
+              {t("photoManagement.body")}
             </div>
           </SectionCard>
         </>

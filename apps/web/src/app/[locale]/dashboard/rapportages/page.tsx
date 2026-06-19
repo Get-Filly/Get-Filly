@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import {
   fetchKpis,
@@ -59,28 +60,34 @@ type ReportChannel = {
 // ============================================================
 // Eén rij per mini-stat (kanaal + status + statistiek + waarde);
 // kanalen zonder stats krijgen één rij met alleen kanaal + status.
-const channelStatusLabel: Record<ChannelStatus, string> = {
-  live: "Live",
-  "coming-soon": "Binnenkort",
-  future: "Later",
-};
-
-function exportChannelsToCsv(channels: ReportChannel[]) {
-  const headers = ["Kanaal", "Status", "Statistiek", "Waarde"];
+function exportChannelsToCsv(
+  channels: ReportChannel[],
+  labels: {
+    headers: { channel: string; status: string; stat: string; value: string };
+    statusLabel: Record<ChannelStatus, string>;
+  },
+) {
+  const headers = [
+    labels.headers.channel,
+    labels.headers.status,
+    labels.headers.stat,
+    labels.headers.value,
+  ];
   const rows = channels.flatMap((c) =>
     c.miniStats && c.miniStats.length > 0
       ? c.miniStats.map((s) => [
           c.name,
-          channelStatusLabel[c.status],
+          labels.statusLabel[c.status],
           s.label,
           s.value,
         ])
-      : [[c.name, channelStatusLabel[c.status], "", ""]],
+      : [[c.name, labels.statusLabel[c.status], "", ""]],
   );
   downloadCsv("rapportages", headers, rows);
 }
 
 export default function RapportagesHubPage() {
+  const t = useTranslations("dash_rapportages_page");
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [mailStats, setMailStats] = useState<MailStats | null>(null);
   const [reviews, setReviews] = useState<Review[] | null>(null);
@@ -137,30 +144,30 @@ export default function RapportagesHubPage() {
   const channels: ReportChannel[] = [
     {
       key: "occupancy",
-      name: "Bezetting",
+      name: t("channels.occupancy"),
       href: "/dashboard/rapportages/bezetting",
       status: "live",
       miniStatsLoading: loadingKpis,
       miniStats: kpis
         ? [
             {
-              label: "Vandaag",
+              label: t("stats.today"),
               value:
                 kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
             },
             {
-              label: "Gem. deze maand",
+              label: t("stats.monthAvg"),
               value:
                 kpis.month_avg_pct !== null
                   ? `${kpis.month_avg_pct}%`
                   : "—",
             },
             {
-              label: "Gasten vandaag",
+              label: t("stats.guestsToday"),
               value: kpis.today_guests.toLocaleString("nl-NL"),
             },
             {
-              label: "Via Filly (maand)",
+              label: t("stats.viaFillyMonth"),
               value: kpis.month_filly_guests.toLocaleString("nl-NL"),
             },
           ]
@@ -168,26 +175,26 @@ export default function RapportagesHubPage() {
     },
     {
       key: "mail",
-      name: "Mail",
+      name: t("channels.mail"),
       href: "/dashboard/marketing/mail",
       status: "live",
       miniStatsLoading: loadingMail,
       miniStats: mailStats
         ? [
-            { label: "Campagnes (30d)", value: `${mailStats.campaignCount}` },
+            { label: t("stats.campaigns30d"), value: `${mailStats.campaignCount}` },
             {
-              label: "Verstuurd",
+              label: t("stats.sent"),
               value: mailStats.sent.toLocaleString("nl-NL"),
             },
             {
-              label: "Open rate",
+              label: t("stats.openRate"),
               value:
                 mailStats.openRate !== null
                   ? `${Math.round(mailStats.openRate * 100)}%`
                   : "—",
             },
             {
-              label: "Click rate",
+              label: t("stats.clickRate"),
               value:
                 mailStats.clickRate !== null
                   ? `${Math.round(mailStats.clickRate * 100)}%`
@@ -198,24 +205,24 @@ export default function RapportagesHubPage() {
     },
     {
       key: "reviews",
-      name: "Reviews",
+      name: t("channels.reviews"),
       href: "/dashboard/google-business/reviews",
       status: "live",
       miniStatsLoading: loadingReviews,
       miniStats: reviewStats
         ? [
             {
-              label: "Gemiddelde",
+              label: t("stats.average"),
               value: reviewStats.total
                 ? `${reviewStats.avg.toFixed(1)} ★`
                 : "—",
             },
             {
-              label: "Totaal reviews",
+              label: t("stats.totalReviews"),
               value: `${reviewStats.total}`,
             },
             {
-              label: "Reactie nodig",
+              label: t("stats.responseNeeded"),
               value: `${reviewStats.needsResponse}`,
             },
           ]
@@ -223,51 +230,63 @@ export default function RapportagesHubPage() {
     },
     {
       key: "instagram",
-      name: "Instagram",
+      name: t("channels.instagram"),
       href: "/dashboard/marketing/instagram",
       status: "live",
-      placeholder:
-        "Live likes, reacties & volgers uit je koppeling (+ voorbeeld-insights).",
+      placeholder: t("placeholders.instagram"),
     },
     {
       key: "facebook",
-      name: "Facebook",
+      name: t("channels.facebook"),
       href: "/dashboard/marketing/facebook",
       status: "live",
-      placeholder:
-        "Live likes, reacties & shares uit je koppeling (+ voorbeeld-insights).",
+      placeholder: t("placeholders.facebook"),
     },
     {
       key: "tiktok",
-      name: "TikTok",
+      name: t("channels.tiktok"),
       href: "/dashboard/marketing/tiktok",
       status: "coming-soon",
-      placeholder: "Stats verschijnen na TikTok Marketing API-koppeling.",
+      placeholder: t("placeholders.tiktok"),
     },
     {
       key: "whatsapp",
-      name: "WhatsApp",
+      name: t("channels.whatsapp"),
       status: "future",
-      placeholder: "Komt in een latere fase.",
+      placeholder: t("placeholders.whatsapp"),
     },
   ];
 
   return (
     <div className="page-full">
       <PageHeader
-        title="Rapportages"
+        title={t("title")}
         actions={
           <>
             {/* PDF = browser-printdialoog ("Bewaar als PDF"); CSV
                 exporteert het kanaal-overzicht met de kerncijfers. */}
             <Button variant="secondary" onClick={exportPagePdf}>
-              🖨 PDF
+              {t("actions.pdf")}
             </Button>
             <Button
               variant="primary"
-              onClick={() => exportChannelsToCsv(channels)}
+              onClick={() =>
+                exportChannelsToCsv(channels, {
+                  headers: {
+                    channel: t("csv.channel"),
+                    status: t("csv.status"),
+                    stat: t("csv.stat"),
+                    value: t("csv.value"),
+                  },
+                  statusLabel: {
+                    live: t("statusLabel.live"),
+                    "coming-soon": t("statusLabel.comingSoon"),
+                    future: t("statusLabel.future"),
+                  },
+                })
+              }
             >
-              ⬇ Exporteer CSV
+              {t("actions.exportCsv")}
             </Button>
           </>
         }
@@ -296,6 +315,7 @@ export default function RapportagesHubPage() {
 // Klikbaar voor live + coming-soon (link naar detail-pagina).
 // Future-status (WhatsApp) is niet klikbaar.
 function ReportChannelCard({ channel }: { channel: ReportChannel }) {
+  const t = useTranslations("dash_rapportages_page");
   const isClickable =
     (channel.status === "live" || channel.status === "coming-soon") &&
     !!channel.href;
@@ -336,14 +356,14 @@ function ReportChannelCard({ channel }: { channel: ReportChannel }) {
           </div>
           {channel.status === "live" && (
             <Badge variant="success" withDot>
-              Actief
+              {t("badge.active")}
             </Badge>
           )}
           {channel.status === "coming-soon" && (
-            <Badge variant="info">Binnenkort</Badge>
+            <Badge variant="info">{t("badge.comingSoon")}</Badge>
           )}
           {channel.status === "future" && (
-            <Badge variant="neutral">Later</Badge>
+            <Badge variant="neutral">{t("badge.future")}</Badge>
           )}
         </div>
 

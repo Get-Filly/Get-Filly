@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ type Channel = {
 };
 
 export default function MarketingHubPage() {
+  const t = useTranslations("dash_marketing_page");
   const { active } = useRestaurant();
   const [mailStats, setMailStats] = useState<MailStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function MarketingHubPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Onbekende fout");
+          setError(err instanceof Error ? err.message : t("errors.unknown"));
         }
       })
       .finally(() => {
@@ -61,16 +63,15 @@ export default function MarketingHubPage() {
     return () => {
       cancelled = true;
     };
-  }, [active?.id]);
+  }, [active?.id, t]);
 
   // Channels-array. Mail krijgt mini-stats als we ze hebben opgehaald.
   const channels: Channel[] = [
     {
       key: "mail",
-      name: "Mail",
+      name: t("channels.mail.name"),
       href: "/dashboard/marketing/mail",
-      description:
-        "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden, direct uit Resend.",
+      description: t("channels.mail.description"),
       status: "live",
       // Geen miniStats hier, eigenaar ziet de echte cijfers op de
       // detail-pagina. Cards op de hub blijven schoon en uniform met
@@ -78,33 +79,29 @@ export default function MarketingHubPage() {
     },
     {
       key: "instagram",
-      name: "Instagram",
+      name: t("channels.instagram.name"),
       href: "/dashboard/marketing/instagram",
-      description:
-        "Bereik, engagement, top-posts en beste posttijd zodra je via OAuth koppelt.",
+      description: t("channels.instagram.description"),
       status: "coming-soon",
     },
     {
       key: "facebook",
-      name: "Facebook",
+      name: t("channels.facebook.name"),
       href: "/dashboard/marketing/facebook",
-      description:
-        "Page-bereik, post-engagement en publiek-demografie via Meta Graph API.",
+      description: t("channels.facebook.description"),
       status: "coming-soon",
     },
     {
       key: "tiktok",
-      name: "TikTok",
+      name: t("channels.tiktok.name"),
       href: "/dashboard/marketing/tiktok",
-      description:
-        "Plays, watch-time, shares en for-you-ratio via TikTok Marketing API.",
+      description: t("channels.tiktok.description"),
       status: "coming-soon",
     },
     {
       key: "whatsapp",
-      name: "WhatsApp",
-      description:
-        "Directe gast-communicatie met read-rates en reply-conversie. Komt in een latere fase.",
+      name: t("channels.whatsapp.name"),
+      description: t("channels.whatsapp.description"),
       status: "future",
     },
   ];
@@ -115,8 +112,8 @@ export default function MarketingHubPage() {
   return (
     <div className="page-full">
       <PageHeader
-        title="Marketing"
-        subtitle="Hoe presteren je kanalen? Filly meet, vergelijkt en stelt verbeteringen voor."
+        title={t("title")}
+        subtitle={t("subtitle")}
       />
 
       {/* Status-banner, bovenaan om direct context te geven. */}
@@ -151,7 +148,7 @@ export default function MarketingHubPage() {
               color: liveCount > 0 ? "#1F4A2D" : "var(--text, #18181B)",
             }}
           >
-            {liveCount} van {totalChannels} kanalen actief
+            {t("banner.activeCount", { live: liveCount, total: totalChannels })}
           </div>
           <div
             style={{
@@ -161,8 +158,8 @@ export default function MarketingHubPage() {
             }}
           >
             {liveCount > 0
-              ? "Mail-statistieken zijn live. Sociale kanalen volgen na de Meta + TikTok approval-aanvragen."
-              : "Geen kanalen actief. Verstuur eerst een mail-campagne om je eerste statistieken te zien."}
+              ? t("banner.someActive")
+              : t("banner.noneActive")}
           </div>
         </div>
       </div>
@@ -193,7 +190,7 @@ export default function MarketingHubPage() {
               textTransform: "uppercase",
             }}
           >
-            Filly's wekelijks rapport
+            {t("report.heading")}
           </div>
           <div
             style={{
@@ -202,7 +199,7 @@ export default function MarketingHubPage() {
               lineHeight: 1.7,
             }}
           >
-            {buildFillyMailSummary(mailStats)}
+            {buildFillyMailSummary(mailStats, t)}
           </div>
         </div>
       )}
@@ -240,6 +237,7 @@ export default function MarketingHubPage() {
 }
 
 function ChannelCard({ channel }: { channel: Channel }) {
+  const t = useTranslations("dash_marketing_page");
   // Klikbaar als de pagina bestaat, ook voor Coming Soon, want die
   // pagina's tonen óf een preview met voorbeeld-data (Instagram) óf
   // een nette uitleg "wat krijg je straks". Future-status (WhatsApp)
@@ -283,14 +281,14 @@ function ChannelCard({ channel }: { channel: Channel }) {
           </div>
           {channel.status === "live" && (
             <Badge variant="success" withDot>
-              Actief
+              {t("status.live")}
             </Badge>
           )}
           {channel.status === "coming-soon" && (
-            <Badge variant="info">Binnenkort</Badge>
+            <Badge variant="info">{t("status.comingSoon")}</Badge>
           )}
           {channel.status === "future" && (
-            <Badge variant="neutral">Later</Badge>
+            <Badge variant="neutral">{t("status.future")}</Badge>
           )}
         </div>
 
@@ -325,9 +323,12 @@ function ChannelCard({ channel }: { channel: Channel }) {
 // Filly's eenvoudige rapport-tekst voor MVP. Geen Claude-call,
 // deterministische samenvatting met conditionele highlights. Echte
 // AI-rapport komt in fase 6 (cron + Sonnet 4.6 met cross-channel-data).
-function buildFillyMailSummary(stats: MailStats): string {
+function buildFillyMailSummary(
+  stats: MailStats,
+  t: ReturnType<typeof useTranslations<"dash_marketing_page">>,
+): string {
   if (stats.sent === 0) {
-    return "Je hebt deze maand nog geen mail-campagnes verzonden. Eerste campagne maak je via /campagnes.";
+    return t("summary.noCampaigns");
   }
 
   const openVsBenchmark =
@@ -344,15 +345,23 @@ function buildFillyMailSummary(stats: MailStats): string {
   if (openVsBenchmark !== null) {
     if (openVsBenchmark >= 2) {
       parts.push(
-        `Je open rate van ${(stats.openRate! * 100).toFixed(1)}% zit ${openVsBenchmark.toFixed(1)}% boven de horeca-mediaan, sterk.`,
+        t("summary.openAbove", {
+          rate: (stats.openRate! * 100).toFixed(1),
+          diff: openVsBenchmark.toFixed(1),
+        }),
       );
     } else if (openVsBenchmark <= -3) {
       parts.push(
-        `Je open rate van ${(stats.openRate! * 100).toFixed(1)}% zit ${Math.abs(openVsBenchmark).toFixed(1)}% onder de horeca-mediaan. Onderwerp-regels herzien?`,
+        t("summary.openBelow", {
+          rate: (stats.openRate! * 100).toFixed(1),
+          diff: Math.abs(openVsBenchmark).toFixed(1),
+        }),
       );
     } else {
       parts.push(
-        `Je open rate van ${(stats.openRate! * 100).toFixed(1)}% ligt rond de horeca-mediaan.`,
+        t("summary.openAround", {
+          rate: (stats.openRate! * 100).toFixed(1),
+        }),
       );
     }
   }
@@ -360,24 +369,34 @@ function buildFillyMailSummary(stats: MailStats): string {
   if (clickVsBenchmark !== null && stats.delivered > 10) {
     if (clickVsBenchmark >= 1) {
       parts.push(
-        `Click rate van ${(stats.clickRate! * 100).toFixed(1)}% is ${clickVsBenchmark.toFixed(1)}% boven mediaan.`,
+        t("summary.clickAbove", {
+          rate: (stats.clickRate! * 100).toFixed(1),
+          diff: clickVsBenchmark.toFixed(1),
+        }),
       );
     } else if (clickVsBenchmark <= -1) {
       parts.push(
-        `Click rate van ${(stats.clickRate! * 100).toFixed(1)}% is laag, duidelijke CTA toevoegen?`,
+        t("summary.clickLow", {
+          rate: (stats.clickRate! * 100).toFixed(1),
+        }),
       );
     }
   }
 
   if (stats.bounceRate !== null && stats.bounceRate > 0.03) {
     parts.push(
-      `Let op: bounce rate is ${(stats.bounceRate * 100).toFixed(1)}%, hoger dan ideaal (<2%). Lijst opschonen.`,
+      t("summary.bounceHigh", {
+        rate: (stats.bounceRate * 100).toFixed(1),
+      }),
     );
   }
 
   if (parts.length === 0) {
     parts.push(
-      `Je verstuurde ${stats.sent} mails over ${stats.campaignCount} campagne${stats.campaignCount === 1 ? "" : "s"}. Voor diepere analyse open de Mail-pagina.`,
+      t("summary.fallback", {
+        sent: stats.sent,
+        count: stats.campaignCount,
+      }),
     );
   }
 

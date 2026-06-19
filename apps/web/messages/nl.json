@@ -883,5 +883,1569 @@
       "linkMedia": "Foto koppelen mislukt.",
       "removeMedia": "Foto verwijderen mislukt."
     }
+  },
+  "dash_account_layout": {
+    "tabs": {
+      "profile": "Profiel",
+      "team": "Team"
+    }
+  },
+  "dash_account_page": {
+    "pageTitle": "Account",
+    "loading": "Laden...",
+    "loadError": {
+      "title": "Account-gegevens niet geladen",
+      "description": "We konden je profiel niet ophalen. Probeer de pagina te herladen, als het probleem blijft, log dan opnieuw in."
+    },
+    "tabs": {
+      "general": "Algemeen",
+      "connections": "Koppelingen"
+    },
+    "saveSuccess": "Opgeslagen ✓",
+    "saveButton": "Wijzigingen opslaan",
+    "restaurant": {
+      "title": "Restaurant",
+      "desc": "De hoofdlijnen, type, keuken en prijsklasse.",
+      "multiBusiness": "<strong>Meerdere ondernemingen?</strong> Voeg een tweede vestiging of nieuw concept toe, je kunt tussen ze wisselen via het account-menu linksboven.",
+      "addBusiness": "+ Nieuwe onderneming",
+      "name": "Naam",
+      "type": "Type",
+      "cuisineStyle": "Keukenstijl",
+      "cuisineHint": "Komma-gescheiden.",
+      "priceRange": "Prijsklasse"
+    },
+    "location": {
+      "title": "Locatie",
+      "desc": "Wordt automatisch gegeocodeerd via PDOK zodra je opslaat. Nodig voor weer-integratie en lokale campagnes.",
+      "address": "Adres",
+      "city": "Plaats",
+      "postalCode": "Postcode",
+      "coordinates": "✓ Coördinaten bekend: {lat}, {lng}"
+    },
+    "closedDates": {
+      "title": "Sluitingsdata & vakanties",
+      "desc": "Specifieke dagen waarop de onderneming dicht is (vakanties, feestdagen). Filly mijdt deze voor mailings en reservering-suggesties.",
+      "addDate": "Voeg een datum toe",
+      "removeDate": "Verwijder deze datum",
+      "empty": "Geen sluitingsdata. Voeg er bv. één toe voor 1e Kerstdag of jouw vaste vakantieweek."
+    },
+    "capacity": {
+      "title": "Capaciteit",
+      "desc": "Bezettings-percentages worden hierop gebaseerd.",
+      "seatsInside": "Stoelen binnen",
+      "seatsTerrace": "Stoelen op terras",
+      "weekdayOccupancyGoal": "Doel doordeweekse bezetting (%)",
+      "weekdayOccupancyPlaceholder": "bv. 75",
+      "weekdayOccupancyHint": "Optioneel doel voor de bezetting-KPI op je dashboard. Laat leeg om Filly's berekening uit je 6-maanden-historie te gebruiken (of de standaard 68% als je nog geen historie hebt opgebouwd).",
+      "hasTerrace": "Heeft een terras",
+      "terraceSunLabel": "Wanneer schijnt de zon op het terras?",
+      "sunMorning": "Ochtend",
+      "sunAfternoon": "Middag",
+      "sunEvening": "Avond",
+      "terraceSunHint": "Klik aan/uit. Filly gebruikt dit voor zonnige-dag-acties op je terras.",
+      "terraceTypeLabel": "Soort terras",
+      "terraceOpen": "Open",
+      "terraceOpenHint": "Geen overkapping",
+      "terraceCovered": "Overdekt",
+      "terraceCoveredHint": "Luifel of dak",
+      "terraceConvertible": "Overdekbaar",
+      "terraceConvertibleHint": "Schuifwanden, regen-luifel",
+      "terraceTypeHint": "Bepaalt of Filly bij regen toch een terras-actie kan voorstellen (overdekt/overdekbaar) of alleen bij droog weer (open).",
+      "hasPrivateRoom": "Heeft een privé-/evenementenruimte",
+      "hasKidsMenu": "Heeft een kindermenu"
+    },
+    "servicePeriods": {
+      "title": "Service-tijden",
+      "desc": "Per dag aangeven wanneer je ontbijt, lunch en diner serveert. Eén of meerdere shifts, jij bepaalt. Dashboard gebruikt deze tijden voor de week- en dag-bezetting per service."
+    },
+    "languages": {
+      "title": "Talen die je personeel spreekt",
+      "desc": "Klik om aan/uit te zetten. Wordt door Filly meegewogen bij meertalige campagnes.",
+      "options": {
+        "nl": "Nederlands",
+        "en": "Engels",
+        "de": "Duits",
+        "fr": "Frans",
+        "es": "Spaans",
+        "it": "Italiaans"
+      }
+    },
+    "company": {
+      "title": "Bedrijfsgegevens",
+      "desc": "Voor mail-footers (verplicht volgens AVG/CAN-SPAM), je privacy-verklaring en algemene voorwaarden.",
+      "legalName": "Volledige bedrijfsnaam (juridisch)",
+      "legalNameHint": "Zoals geregistreerd bij de KvK. Verschijnt in de footer van mailings.",
+      "kvkNumber": "KvK-nummer",
+      "kvkNumberHint": "8 cijfers.",
+      "vatNumber": "BTW-nummer",
+      "vatNumberHint": "Formaat: NL + 9 cijfers + B + 2 cijfers.",
+      "contactEmail": "Contact-e-mail",
+      "contactEmailHint": "Het officiële klantcontactadres.",
+      "contactPhone": "Contact-telefoon"
+    },
+    "emailSettings": {
+      "title": "E-mailinstellingen voor mailings",
+      "desc": "Bepaalt hoe campagne-mails er voor de ontvanger uitzien.",
+      "fromName": "Afzender-naam",
+      "fromNameHint": "Verschijnt in de inbox van de ontvanger als “van”.",
+      "replyTo": "Reply-to adres",
+      "replyToHint": "Waar antwoorden van ontvangers naartoe komen. Mag hetzelfde zijn als contact-e-mail."
+    },
+    "notifications": {
+      "title": "Meldingen",
+      "desc": "Bepaal wanneer reviews en rustige dagen als actie verschijnen op je campagnes-pagina.",
+      "reviewThresholdLabel": "Reviews onder of gelijk aan deze sterren-rating tonen als actie",
+      "reviewStar1": "★☆☆☆☆ – Alleen 1-ster reviews",
+      "reviewStar2": "★★☆☆☆ – 1 en 2 sterren",
+      "reviewStar3": "★★★☆☆ – 1 t/m 3 sterren",
+      "reviewStar4": "★★★★☆ – 1 t/m 4 sterren",
+      "reviewStar5": "★★★★★ – Alle reviews",
+      "reviewThresholdHint": "Reviews die nog geen reactie hebben en onder deze drempel vallen, verschijnen automatisch in “Overige acties”. Standaard is 3 sterren, zodat alleen echte problemen je aandacht vragen.",
+      "occupancyThresholdLabel": "Bezetting onder deze drempel telt als rustige dag",
+      "below": "Onder {pct}%",
+      "occupancyThresholdHint": "Filly scant de komende 14 dagen op rustige dagen en zet ze in “Overige acties”. Zodra de bezetting van een dag de drempel haalt (bv. door nieuwe reserveringen), verdwijnt 'ie automatisch uit het lijstje. Sluitingsdagen worden niet getoond."
+    },
+    "events": {
+      "label": "Evenementen uit de buurt in Filly's voorstellen",
+      "categories": {
+        "festivals": "Festivals",
+        "concerten_theater": "Concerten & theater",
+        "events": "Events",
+        "sportevenementen": "Sportevenementen",
+        "kermis": "Kermis",
+        "markten": "Markten"
+      },
+      "holidays": "Jaarlijkse feestdagen",
+      "maxDistanceLabel": "Maximale afstand vanaf de zaak",
+      "distanceSmart": "Slim per type (standaard)",
+      "distanceKm": "Tot {km} km",
+      "hint": "Filly weegt evenementen in de buurt (bron: evenementen.nl) en jaarlijkse feestdagen (Valentijn, Pasen, Koningsdag, Kerst...) mee in campagne-voorstellen en timing. Vink uit wat niet bij je zaak past. De maximale afstand geldt alleen voor evenementen uit de buurt, niet voor feestdagen. “Slim per type” betekent: markt en kermis tot 2 km, concert en sport tot 5 km, festival tot 10 km. Een vaste afstand geldt voor alle typen, ruimer is handig in landelijk gebied, krapper in de binnenstad."
+    },
+    "autoReply": {
+      "toggleLabel": "Filly reageert automatisch op reviews",
+      "toggleHint": "Bij nieuwe reviews onder je drempel schrijft Filly automatisch een reactie in jouw toon. Je houdt de controle: de reactie wordt als concept klaargezet zodat je 'm met één klik kunt goedkeuren.",
+      "modeLabel": "Hoe plaatst Filly de reactie?",
+      "modeConcept": "Concept klaarzetten ter goedkeuring (aanbevolen)",
+      "modePublish": "Zelf plaatsen: beschikbaar zodra Google gekoppeld is",
+      "modeHint": "Zolang Google nog niet gekoppeld is, zet Filly reacties altijd als concept klaar. Automatisch plaatsen komt beschikbaar zodra de Google-koppeling live is.",
+      "toneLabel": "Toon voor reviews-reacties",
+      "tonePlaceholder": "Bijv. warm en persoonlijk, bedank altijd bij naam, blijf rustig en oplossingsgericht bij kritiek.",
+      "toneHint": "Laat leeg om de algemene merkstem te gebruiken die je bij Vindbaarheid › Identiteit hebt ingesteld. Vul hier iets in als je voor reviews een andere toon wilt."
+    },
+    "subscription": {
+      "title": "Abonnement",
+      "desc": "Plan en facturering. Facturering komt in een latere stap.",
+      "currentPlan": "Huidig plan"
+    },
+    "dataPrivacy": {
+      "title": "Data & privacy",
+      "desc": "Volgens de AVG (art. 20) heb je recht op een complete export van je business-data in een leesbaar formaat.",
+      "exportSuccess": "Export gedownload ✓",
+      "exportError": "Export mislukt. Probeer opnieuw.",
+      "exportButton": "⬇️ Download volledige data-export (JSON)",
+      "exportHint": "Bevat: profielgegevens, gasten, reserveringen, menu, campagnes, reviews, chat-history en audit-log. Logo's en menu-PDF's staan als URL in het bestand, die kun je apart downloaden."
+    },
+    "deleteAccount": {
+      "heading": "Account permanent verwijderen",
+      "hint": "Wist je restaurant + alle gasten, reserveringen, menu, campagnes en chat-history. Daarna verdwijnt ook je inlog-account. Deze actie is onomkeerbaar, download eerst je data-export hierboven als je iets wilt bewaren.",
+      "button": "🗑 Account permanent verwijderen"
+    },
+    "deleteModal": {
+      "title": "Weet je het zeker?",
+      "intro": "Je staat op het punt om <strong>je hele account</strong> te verwijderen. Dit betekent:",
+      "item1": "Je restaurant + alle profielgegevens worden gewist",
+      "item2": "Alle gasten, reserveringen, menu en campagnes verdwijnen",
+      "item3": "Reviews, chat-history en audit-log worden verwijderd",
+      "item4": "Je inlog-account (e-mail + wachtwoord) wordt gewist",
+      "item5": "Anonieme leerdata (cuisine + regio + campagne-resultaten, géén namen of adressen) blijft bewaard om Filly te trainen, conform AVG Recital 26.",
+      "typeToConfirm": "Type <strong>VERWIJDER</strong> om door te gaan:",
+      "cancel": "Annuleren",
+      "confirm": "Ja, verwijder mijn account",
+      "deleteError": "Verwijderen mislukt, probeer opnieuw of neem contact op met support."
+    }
+  },
+  "dash_account_team_invite_modal": {
+    "title": "Teamlid uitnodigen",
+    "close": "Sluiten",
+    "emailLabel": "E-mailadres",
+    "emailPlaceholder": "naam@voorbeeld.nl",
+    "roleLabel": "Rol",
+    "roles": {
+      "owner": "Eigenaar, alles mag",
+      "manager": "Manager, dagelijks werk",
+      "staff": "Medewerker, beperkt"
+    },
+    "permissionsHint": "Na de uitnodiging kun je in de teamlijst nog custom permissies per module aan of uit zetten.",
+    "errorPrefix": "Fout: {message}",
+    "cancel": "Annuleren",
+    "sending": "Versturen…",
+    "send": "Versturen",
+    "sentToEmail": "Uitnodiging verstuurd naar <strong>{email}</strong>.",
+    "sentHint": "Zodra de ontvanger op de link in de mail klikt en inlogt, komt hij of zij in je team.",
+    "existingAccount": "Deze persoon heeft al een Get-Filly-account. Deel de onderstaande link met hem of haar, klikken = direct binnen.",
+    "copy": "Kopieer"
+  },
+  "dash_account_team_page": {
+    "title": "Team",
+    "subtitle": "Beheer wie toegang heeft tot {restaurant} en welke onderdelen ze mogen zien.",
+    "thisRestaurant": "dit restaurant",
+    "inviteMember": "+ Teamlid uitnodigen",
+    "loading": "Team wordt geladen…",
+    "loadError": "Kon team niet laden: {error}",
+    "pendingInvitesTitle": "Openstaande uitnodigingen",
+    "inviteMeta": "Rol: {role} · verloopt {date}",
+    "awaitingAcceptance": "Wacht op acceptatie",
+    "copyLink": "Kopieer link",
+    "copyLinkTitle": "Verse magic link, deel handmatig als de mail niet aankomt",
+    "magicLinkCopied": "Magic link gekopieerd, plak 'm in een browser om de invite te accepteren.",
+    "revoke": "Intrekken",
+    "revokeInviteConfirm": "Deze uitnodiging intrekken?",
+    "unknown": "Onbekend",
+    "permissions": "Permissies",
+    "close": "Sluiten",
+    "remove": "Verwijderen",
+    "removeTitle": "Teamlid verwijderen",
+    "removeConfirm": "Weet je zeker dat je {name} wilt verwijderen?",
+    "thisTeamMember": "dit teamlid",
+    "customPermissionsActive": "Aangepaste permissies actief",
+    "defaultPermissionsForRole": "Standaard permissies voor rol \"{role}\"",
+    "resetToRoleDefault": "Reset naar rol-standaard",
+    "roles": {
+      "owner": "Eigenaar",
+      "manager": "Manager",
+      "staff": "Medewerker"
+    },
+    "modules": {
+      "dashboard": "Dashboard",
+      "taken": "Taken",
+      "suggesties": "Suggesties",
+      "reserveringen": "Reserveringen",
+      "campagnes": "Campagnes",
+      "gasten": "Gasten",
+      "marketing": "Marketing",
+      "google_business": "Google Business",
+      "menu": "Menu",
+      "rapportages": "Rapportages",
+      "koppelingen": "Koppelingen",
+      "account": "Account",
+      "team": "Team-beheer"
+    },
+    "errors": {
+      "revokeInvite": "Kon invite niet intrekken: {error}",
+      "roleChange": "Kon rol niet wijzigen: {error}",
+      "togglePermission": "Kon permissie niet wijzigen: {error}",
+      "reset": "Kon niet resetten: {error}",
+      "remove": "Kon teamlid niet verwijderen: {error}",
+      "generateLink": "Kon geen link genereren: {error}"
+    }
+  },
+  "dash_gasten_page": {
+    "title": "Gasten",
+    "subtitle": "Wie jouw restaurant bezoekt, met voorkeuren, allergieën en waarde.",
+    "exportPdf": "PDF",
+    "exportCsv": "Exporteer CSV",
+    "csvFileName": "klanten",
+    "csvYes": "ja",
+    "csvNo": "nee",
+    "csvHeaders": {
+      "name": "Naam",
+      "email": "Email",
+      "phone": "Telefoon",
+      "visits": "Bezoeken",
+      "lastVisit": "Laatste bezoek",
+      "birthday": "Verjaardag",
+      "tags": "Tags",
+      "mailOptIn": "Mail-opt-in"
+    },
+    "statTotal": "Totaal gasten",
+    "statViaFilly": "Via Filly",
+    "statActive90": "Actief (90 dgn)",
+    "statVips": "VIPs",
+    "statAtRisk": "At-risk",
+    "statOptIns": "Mail opt-ins",
+    "statTotalLtv": "Totaal LTV",
+    "birthdaysThisMonth": "<strong>{count}</strong> {count, plural, one {gast} other {gasten}} jarig deze maand:",
+    "filterAll": "Alle",
+    "statusNieuw": "Nieuw",
+    "statusVasteGast": "Vaste gast",
+    "statusVip": "VIP",
+    "statusAtRisk": "At-risk",
+    "statusVerloren": "Verloren",
+    "searchPlaceholder": "Zoek op naam of email...",
+    "noGuestsFound": "Geen gasten gevonden.",
+    "emptyTitle": "Nog geen gasten",
+    "emptyErrorDescription": "We konden de gastenlijst niet laden. Probeer de pagina te herladen.",
+    "emptyDescription": "Importeer vanuit je reserveringsplatform of voeg handmatig toe.",
+    "addGuest": "Gast toevoegen",
+    "colViaFilly": "Via Filly",
+    "colName": "Naam",
+    "colStatus": "Status",
+    "colVisits": "Bezoeken",
+    "colLtv": "LTV",
+    "colLastVisit": "Laatste bezoek",
+    "colOptIn": "Opt-in",
+    "viaFillyTooltip": "Eerste reservering binnengekomen via een Filly-campagne",
+    "viaFillyYes": "Ja",
+    "allergiesTooltip": "Allergieën: {allergies}"
+  },
+  "dash_google_business_components_google_connect_modal": {
+    "title": "Koppel je Google Business Profile",
+    "subtitle": "Zoek op naam + stad. Filly haalt direct je profielinfo op.",
+    "close": "Sluiten",
+    "searchPlaceholder": "bv. 'De Kas Amsterdam'",
+    "search": "Zoek",
+    "searching": "Zoeken…",
+    "connecting": "Koppelen…",
+    "reviewCount": "({count, number} reviews)",
+    "emptyState": "Typ een zoekopdracht en klik Zoek.",
+    "errors": {
+      "noResults": "Geen resultaten gevonden. Probeer met meer detail (naam + stad).",
+      "searchFailed": "Zoeken niet gelukt.",
+      "connectFailed": "Koppelen niet gelukt."
+    }
+  },
+  "dash_google_business_audit_page": {
+    "title": "Health-score",
+    "errors": {
+      "unknown": "Onbekende fout"
+    },
+    "loadError": {
+      "title": "Kon health-score niet laden",
+      "retry": "Probeer opnieuw"
+    },
+    "empty": {
+      "title": "Run je eerste health-audit",
+      "description": "Filly checkt je website-SEO, Google Business Profile-kwaliteit, reviews, AI-zichtbaarheid en concurrentie in 500m straal. Duurt ongeveer een minuut.",
+      "running": "Bezig met audit…",
+      "start": "Start eerste audit"
+    },
+    "rerun": {
+      "running": "Bezig…",
+      "label": "Audit opnieuw"
+    },
+    "tabs": {
+      "overview": "Overzicht",
+      "seo": "Website-SEO",
+      "gbp": "Google Business",
+      "reviews": "Reviews",
+      "geo": "AI-zichtbaarheid"
+    },
+    "banner": {
+      "outOf": "/ 100",
+      "lastAudit": "Laatste audit: {date}",
+      "runsInHistory": "{count} runs in historie"
+    },
+    "scoreHeadline": {
+      "strong": "Sterke vindbaarheid",
+      "good": "Goede basis, kan beter",
+      "room": "Ruimte voor verbetering",
+      "work": "Veel werk te doen"
+    },
+    "scoreDescription": {
+      "strong": "Je vindbaarheid is op orde. Werk aan de laatste verbeterpunten in de tabs hieronder om je voorsprong uit te bouwen.",
+      "good": "De basis is in orde, maar er liggen concrete kansen om hoger te scoren. Bekijk de tabs per categorie voor de details.",
+      "room": "Er zijn flinke verbeteringen mogelijk. Focus op de kritieke acties (rood) voor de grootste impact.",
+      "work": "Je vindbaarheid heeft veel aandacht nodig. De kritieke acties hieronder leveren direct de grootste sprong op."
+    },
+    "category": {
+      "seo": {
+        "label": "Website-SEO",
+        "desc": "Title, meta-tags, schema.org, mobile, snelheid"
+      },
+      "gbp": {
+        "label": "Google Business Profile",
+        "desc": "Profiel-compleetheid, foto's, openingstijden"
+      },
+      "reviews": {
+        "label": "Reviews",
+        "desc": "Aantal reviews, gemiddelde rating"
+      },
+      "geo": {
+        "label": "AI-zichtbaarheid",
+        "desc": "Word je genoemd in AI-assistenten?"
+      }
+    },
+    "severity": {
+      "info": "Info",
+      "low": "Klein",
+      "medium": "Gemiddeld",
+      "high": "Belangrijk",
+      "critical": "Kritiek"
+    },
+    "categoryHeader": {
+      "weight": "Telt voor {weight}% van je totaalscore"
+    },
+    "comingSoon": {
+      "label": "Binnenkort:"
+    },
+    "seoTab": {
+      "intro": "We checken 15 deterministische SEO-signalen op je homepage plus drie Lighthouse-categorieën via Google PageSpeed Insights. Hieronder zie je elk gecontroleerd punt.",
+      "comingSoon": "Binnenkort hier ook: keyword-suggesties die Filly genereert voor je title, meta-description en H1 op basis van je keuken en stad."
+    },
+    "gbpTab": {
+      "intro": "We checken 8 kerncriteria op je Google Business Profile: van bedrijfsstatus en compleetheid tot foto-volume en categorisering. Reviews zitten in een aparte tab.",
+      "comingSoon": "Binnenkort hier ook: een gedetailleerde checklist met alle Place-velden (telefoon, adres, openingstijden) met hun huidige waarde, zodat je in één oogopslag ziet wat klopt en wat ontbreekt."
+    },
+    "reviewsTab": {
+      "intro": "Reviews-gezondheid op basis van je Google-profiel: aantal, gemiddelde rating en thresholds (10+ en 30+) waar gasten-vertrouwen merkbaar kantelt.",
+      "comingSoon": "Binnenkort hier ook: sentiment-analyse op je review-tekst (welke onderwerpen positief, welke negatief). Voor de antwoord-ratio en review-recency wachten we op de Google Business Profile API-koppeling (OAuth)."
+    },
+    "geoTab": {
+      "intro": "We vragen Claude (Anthropic) vijf verschillende vragen over goede restaurants in jouw stad en kijken of jij genoemd wordt. Positie in de lijst telt mee: top-3 levert volle punten, lager in de lijst minder. Niet genoemd = 0 punten.",
+      "approachLabel": "Aanpak:",
+      "perQuery": "Per zoekopdracht",
+      "position": "Positie {rank}",
+      "notMentioned": "Niet genoemd",
+      "restaurantsInAnswer": "{count} restaurants in antwoord",
+      "viewFullAnswer": "Bekijk Claude's volledige antwoord"
+    },
+    "findings": {
+      "actionItems": "Actiepunten ({count})",
+      "inOrder": "Op orde ({count})",
+      "noChecks": {
+        "title": "Nog geen checks beschikbaar",
+        "description": "Run de audit om resultaten te zien."
+      },
+      "ok": "OK"
+    },
+    "findingRow": {
+      "pointsPossible": "+{points} pt mogelijk",
+      "fix": "Fix:",
+      "goThere": "→ ga er heen"
+    },
+    "overview": {
+      "noActions": "🎉 Geen actiepunten — alles ziet er goed uit.",
+      "actionsThatRaise": "Acties die je score verhogen ({count})"
+    },
+    "competitors": {
+      "title": "Concurrenten in 500m straal",
+      "name": "Naam",
+      "distance": "Afstand",
+      "gbp": "GBP",
+      "reviews": "Reviews",
+      "total": "Totaal",
+      "yourRestaurant": "Jouw restaurant"
+    },
+    "trend": {
+      "title": "Trend (laatste {count} audits)"
+    }
+  },
+  "dash_google_business_benchmark_page": {
+    "title": "Concurrent-benchmark",
+    "subtitle": "Hoe scoor je versus restaurants in je buurt?",
+    "loading": "Concurrenten laden…",
+    "resultSubtitle": "{count, plural, =1 {# restaurant} other {# restaurants}} binnen {radius}.",
+    "radiusLabel": "Straal:",
+    "youBadge": "JIJ",
+    "emptyTable": "Geen andere restaurants gevonden binnen deze straal. Probeer een grotere radius.",
+    "medianNote": "Mediaan-cijfers berekend over {count} concurrenten. Mediaan is robuuster dan gemiddelde, één hele goede of slechte onderneming vertekent het beeld minder.",
+    "aboveMedian": "Boven mediaan",
+    "belowMedian": "Onder mediaan",
+    "medianInArea": "Mediaan in de buurt: {value}",
+    "notConnected": {
+      "title": "Eerst Google koppelen",
+      "description": "We hebben je locatie nodig uit Google Business Profile om je buurt-vergelijking te kunnen maken.",
+      "action": "Naar de hub"
+    },
+    "kpi": {
+      "rating": "Jouw rating",
+      "reviews": "Jouw reviews",
+      "photos": "Jouw foto's"
+    },
+    "table": {
+      "restaurant": "Restaurant",
+      "distance": "Afstand",
+      "rating": "Rating",
+      "reviews": "Reviews",
+      "photos": "Foto's"
+    },
+    "errors": {
+      "unknown": "Onbekende fout",
+      "unavailable": "Benchmark niet beschikbaar."
+    }
+  },
+  "dash_google_business_identiteit_components_identiteit_checklist": {
+    "basics": {
+      "name": "Restaurant-naam",
+      "tagline": "Tagline",
+      "description": "Volledige beschrijving",
+      "cuisine": "Keuken-stijl",
+      "targetAudience": "Hoofd-doelgroep",
+      "segments": "Doelgroep-segmenten",
+      "location": "Locatie-omschrijving",
+      "media": "Foto's in bibliotheek",
+      "logo": "Logo",
+      "brandColor": "Hoofdkleur"
+    },
+    "toon": {
+      "atmosphere": "Sfeer & interieur",
+      "tone": "Tone-of-voice",
+      "story": "Brand-story",
+      "doNot": "Wat doen we niet",
+      "usp": "Unique selling points",
+      "signatures": "Signature dishes",
+      "awards": "Awards & certificeringen",
+      "events": "Speciale gelegenheden"
+    },
+    "seo": {
+      "keywords": "SEO-trefwoorden",
+      "hashtags": "Vaste hashtags"
+    }
+  },
+  "dash_google_business_identiteit_page": {
+    "title": "Identiteit",
+    "subtitle": "De bron-van-waarheid voor alle posts en campagnes die Filly maakt. Hoe vollediger, hoe persoonlijker en effectiever.",
+    "loading": "Laden…",
+    "backLink": "← Terug naar Vindbaarheid",
+    "tabs": {
+      "basics": "Basis",
+      "toon": "Toon",
+      "seo": "SEO",
+      "menu": "Menu",
+      "online": "Online"
+    },
+    "errors": {
+      "loadFailed": "Kon profiel niet laden.",
+      "saveFailed": "Opslaan mislukt, probeer opnieuw."
+    },
+    "analyze": {
+      "noUrlError": "Vul eerst je website-URL in op de Online-tab voordat Filly kan analyseren.",
+      "successMessage": "Filly heeft je profiel bijgewerkt. Check elk veld + sla op als je nog wijzigingen doet.",
+      "failed": "Filly-analyse mislukt. Probeer opnieuw of vul handmatig in.",
+      "bannerTitle": "Laat Filly deze velden invullen",
+      "readsWebsite": "Filly leest je website",
+      "fillsFields": "en vult de velden hieronder in zodat je niet alles handmatig hoeft te typen.",
+      "buttonTitleEnabled": "Filly leest je website en vult de velden hieronder in",
+      "buttonTitleDisabled": "Vul eerst je website-URL in op de Online-tab",
+      "buttonLoading": "Filly leest…",
+      "buttonEnabled": "Laat Filly invullen",
+      "buttonDisabled": "Eerst website-URL invullen",
+      "subsetBasics": "Hier staan je restaurant-naam, beschrijving, doelgroep en locatie.",
+      "subsetToon": "Hier bepalen we de toon van Filly's posts: sfeer, schrijfstijl, brand-story, USP's en awards.",
+      "subsetSeo": "Hier staan SEO-trefwoorden en vaste hashtags die Filly in elke post probeert te verwerken."
+    },
+    "basics": {
+      "progressTitle": "Voortgang Basis",
+      "restaurantTitle": "Restaurant",
+      "restaurantDesc": "De basisgegevens die Filly in iedere post nodig heeft.",
+      "nameLabel": "Restaurant-naam",
+      "taglineLabel": "Tagline (1 zin)",
+      "taglinePlaceholder": "Gezellige buurtbistro in hart van Amsterdam",
+      "descriptionLabel": "Volledige beschrijving",
+      "descriptionPlaceholder": "Vertel uitgebreid over je restaurant, geschiedenis, filosofie...",
+      "cuisineLabel": "Keuken-stijl",
+      "cuisinePlaceholder": "Italiaans, Mediterraans",
+      "cuisineHint": "Komma-gescheiden. Filly gebruikt dit voor toon + thema-suggesties.",
+      "audienceTitle": "Doelgroep",
+      "audienceDesc": "Wie Filly aanspreekt in z'n posts. Hoe specifieker, hoe relevanter de tekst.",
+      "mainAudienceLabel": "Hoofd-doelgroep",
+      "mainAudiencePlaceholder": "Lokale bewoners, professionals op lunch, families in het weekend...",
+      "audienceSegmentsLabel": "Doelgroep-segmenten",
+      "audienceSegmentsPlaceholder": "vaste-gasten, nieuwe-gasten, toeristen, professionals",
+      "audienceSegmentsHint": "Komma-gescheiden. Filly varieert toon en aanbod per segment.",
+      "locationTitle": "Locatie & buurt",
+      "locationDesc": "Geeft posts lokale verankering. Goed voor SEO én herkenning bij potentiële gasten.",
+      "locationLabel": "Locatie-omschrijving",
+      "locationPlaceholder": "Hartje Pijp, achter de Albert Cuyp. Omringd door winkels, bars en koffietentjes. Goed bereikbaar met tram 4 (halte Stadhouderskade).",
+      "photoLibraryTitle": "Foto-bibliotheek",
+      "photoLibraryDesc": "Beelden die Filly mag gebruiken in social-posts en mail-templates. Upload meerdere zodat Filly variatie kan kiezen per campagne.",
+      "brandingTitle": "Branding",
+      "brandingDesc": "Logo en huiskleuren die Filly toepast in mail-templates en visuele uitingen.",
+      "logoUrlLabel": "Logo-URL",
+      "logoUrlHint": "Direct-link naar je logo (PNG of SVG). Upload-flow komt in volgende ronde.",
+      "primaryColorLabel": "Hoofdkleur",
+      "primaryColorHint": "Hex-code (#RRGGBB).",
+      "secondaryColorLabel": "Secundaire kleur",
+      "secondaryColorHint": "Optioneel."
+    },
+    "toon": {
+      "progressTitle": "Voortgang Toon",
+      "atmosphereTitle": "Sfeer & interieur",
+      "atmosphereDesc": "De zintuiglijke ervaring die Filly in posts kan oproepen.",
+      "atmosphereLabel": "Sfeer + interieur",
+      "atmospherePlaceholder": "Warm, intiem, houten interieur, zacht jazzmuziek, kaarslicht 's avonds...",
+      "toneTitle": "Tone-of-voice",
+      "toneDesc": "Hoe Filly schrijft. Bron-van-waarheid; was eerder impliciet uit beschrijving.",
+      "toneLabel": "Toon",
+      "tonePlaceholder": "Speels-informeel met droge humor. Vermijd corporate. Gebruik je-vorm.",
+      "brandStoryTitle": "Brand-story",
+      "brandStoryDesc": "Het verhaal achter het restaurant. Filly verwerkt 't in storytelling-posts.",
+      "brandStoryLabel": "Verhaal / filosofie",
+      "brandStoryPlaceholder": "Open sinds 1985, derde generatie. We werken alleen met lokale boeren binnen 30 km...",
+      "doNotMentionTitle": "Wat doen we niet",
+      "doNotMentionDesc": "Voorkomt dat Filly valse beloften maakt in posts of campagnes.",
+      "doNotMentionLabel": "Anti-claims",
+      "doNotMentionPlaceholder": "Geen vegan-opties. Geen take-away. Geen halal-keuken. Geen privé-ruimte.",
+      "strengthsTitle": "Sterke punten",
+      "strengthsDesc": "USP's en signature dishes die in posts mogen prominent staan.",
+      "uspLabel": "Unique selling points",
+      "uspPlaceholder": "Eigen kruidentuin, open keuken, wekelijks wisselend menu...",
+      "signatureDishesLabel": "Signature dishes",
+      "signatureDishesPlaceholder": "Kalfsstoof, Zeebaars met lenteuitjes",
+      "signatureDishesHint": "Komma-gescheiden. Filly verwerkt deze in campagne-teksten.",
+      "awardsLabel": "Awards & certificeringen",
+      "awardsPlaceholder": "Bib Gourmand 2024, BIO-keurmerk, Tripadvisor Travelers' Choice",
+      "awardsHint": "Komma-gescheiden. Filly mag deze als sociale-proof noemen in posts.",
+      "eventsTitle": "Speciale gelegenheden",
+      "eventsDesc": "Bv. besloten evenementen, privéruimtes, groepsdiners.",
+      "eventsLabel": "Events & gelegenheden",
+      "eventsPlaceholder": "Verjaardagen, bedrijfslunches, trouwdiners, privéruimte tot 30 personen..."
+    },
+    "seo": {
+      "progressTitle": "Voortgang SEO",
+      "keywordsTitle": "Trefwoorden",
+      "keywordsDesc": "Woorden die Filly altijd probeert te verwerken in posts. Helpt vindbaarheid in zoekmachines + AI-tools.",
+      "keywordsLabel": "SEO-trefwoorden",
+      "keywordsPlaceholder": "duurzaam, seizoen, lokaal, ambachtelijk, italiaans, pijp",
+      "keywordsHint": "Komma-gescheiden. Gebruik 5-15 termen die je zaak typeren.",
+      "hashtagsTitle": "Vaste hashtags",
+      "hashtagsDesc": "Hashtags die automatisch in iedere Instagram/TikTok-post komen.",
+      "hashtagsLabel": "Default hashtags",
+      "hashtagsPlaceholder": "pijpamsterdam, italianocooking, amsterdamfood, instafood",
+      "hashtagsHint": "Zonder #-teken. Filly voegt 3-5 platform-specifieke hashtags toe per post."
+    },
+    "online": {
+      "websiteTitle": "Website",
+      "websiteDesc": "Filly leest je website periodiek uit om tone en aanbod up-to-date te houden.",
+      "websiteUrlLabel": "Website-URL",
+      "websiteNote": "Volledige website-analyse (auto-invul van tagline, sfeer, USP's) blijft voorlopig beschikbaar via de Account-pagina.",
+      "socialTitle": "Social media",
+      "socialDesc": "Filly verwerkt deze handles in social-campagnes en mail-footers.",
+      "instagramLabel": "Instagram",
+      "facebookLabel": "Facebook",
+      "tiktokLabel": "TikTok",
+      "linkedinLabel": "LinkedIn"
+    },
+    "saveBar": {
+      "changed": "{count, plural, one {<b>#</b> veld gewijzigd} other {<b>#</b> velden gewijzigd}}",
+      "saveButton": "Wijzigingen opslaan"
+    }
+  },
+  "dash_google_business_page": {
+    "pageTitle": "Vindbaarheid",
+    "available": "Beschikbaar",
+    "requiresGoogleConnection": "Vereist Google-koppeling",
+    "identityTitle": "Identiteit",
+    "identityDescription": "Bron-van-waarheid voor alle posts en campagnes die Filly maakt. Tagline, toon, doelgroep, trefwoorden, menukaart en meer.",
+    "reviewsTitle": "Reviews",
+    "reviewsDescription": "Bekijk reviews en laat Filly antwoord-suggesties schrijven die passen bij jouw onderneming.",
+    "auditTitle": "Health-score",
+    "auditDescription": "Compleet vindbaarheids-rapport: SEO van je website, kwaliteit van je Google Business Profile, reviews, AI-zichtbaarheid en concurrentie in 500m straal.",
+    "editsTitle": "Google Business Profiel",
+    "editsDescription": "Bekijk je volledige Google-profiel: openingstijden, beschrijving, contactgegevens en attributen. Bewerken + pushen naar Google komt zodra de koppeling live is."
+  },
+  "dash_google_business_profiel_page": {
+    "title": "Google Business Profiel",
+    "backToFindability": "← Terug naar Vindbaarheid",
+    "badge": {
+      "visible": "Zichtbaar via Google",
+      "editLater": "Bewerken na koppeling",
+      "afterConnect": "Beschikbaar na koppeling"
+    },
+    "banner": {
+      "titleConnected": "Gekoppeld met Google Maps-data.",
+      "titlePreview": "Voorvertoning op basis van openbare Google-data.",
+      "body": "De gegevens hieronder komen uit je openbare Google-profiel. Bewerken en rechtstreeks pushen naar Google, plus posts, Q&A en inzichten, worden actief zodra de Google Business Profile-koppeling live is. De koppeling beheer je via <link>Account → Koppelingen</link>."
+    },
+    "basics": {
+      "title": "Basisgegevens",
+      "name": "Naam",
+      "category": "Categorie",
+      "phone": "Telefoon",
+      "website": "Website",
+      "address": "Adres"
+    },
+    "hours": {
+      "title": "Openingstijden",
+      "empty": "Nog geen openingstijden bekend uit Google."
+    },
+    "specialDays": {
+      "title": "Speciale dagen & sluitingsdata",
+      "closed": "Gesloten",
+      "manage": "Beheer deze dagen via <link>Account → Sluitingsdata</link>. Ze worden bij koppeling als afwijkende openingstijden naar Google gestuurd.",
+      "empty": "Geen speciale dagen ingesteld. Voeg ze toe via <link>Account → Sluitingsdata</link> (bv. 1e Kerstdag of een vakantieweek)."
+    },
+    "description": {
+      "title": "Beschrijving",
+      "empty": "Google toont nog geen redactionele beschrijving voor je profiel."
+    },
+    "stats": {
+      "title": "Status & cijfers",
+      "businessStatus": "Bedrijfsstatus",
+      "statusOperational": "Open / actief",
+      "rating": "Gemiddelde rating",
+      "reviewCount": "Aantal reviews",
+      "photos": "Foto's op Google"
+    },
+    "posts": {
+      "title": "Posts & updates",
+      "body": "Plaats aanbiedingen, evenementen en nieuws rechtstreeks op je Google-profiel. Filly stelt de teksten voor; jij keurt goed."
+    },
+    "qa": {
+      "title": "Vragen & antwoorden",
+      "body": "Zie vragen die bezoekers op Google stellen en laat Filly passende antwoorden voorstellen."
+    },
+    "insights": {
+      "title": "Inzichten",
+      "body": "Hoeveel mensen je profiel zoeken, naar je website klikken of je bellen, direct uit Google. Niet beschikbaar via de openbare data, komt met de koppeling."
+    },
+    "photoManagement": {
+      "title": "Foto-beheer",
+      "body": "Upload foto's uit je Filly-bibliotheek rechtstreeks naar je Google-profiel."
+    }
+  },
+  "dash_google_business_reviews_page": {
+    "title": "Reviews",
+    "statAverage": "Gemiddelde",
+    "statTotal": "Totaal reviews",
+    "statNeedsResponse": "Reactie nodig (≤3 ★)",
+    "filterAll": "Alle",
+    "emptyTitle": "Nog geen reviews",
+    "emptyDescription": "Koppel je Google Business Profile of TripAdvisor om reviews automatisch te importeren, Filly stelt dan voor elke review direct een passend antwoord voor.",
+    "emptyCategory": "Geen reviews in deze categorie.",
+    "priorityHeading": "Prioriteit",
+    "prioritySubtitle": "lage scores zonder reactie",
+    "allReviewsHeading": "Alle reviews",
+    "actionRequired": "Actie vereist",
+    "anonymous": "Anoniem",
+    "responded": "✓ Gereageerd",
+    "reply": "Reageren",
+    "yourReply": "Jouw reactie",
+    "close": "Sluiten",
+    "modalTrigger": "Reageren op review",
+    "noContent": "Geen inhoud.",
+    "bannerLoadingTitle": "Filly bekijkt de review…",
+    "bannerLoadingBody": "Laden van eerdere voorstellen of een nieuwe set.",
+    "bannerWritingTitle": "Filly schrijft 3 voorstellen…",
+    "bannerWrittenTitle": "Filly heeft {count} versies geschreven.",
+    "bannerWritingBody": "Even geduld.",
+    "bannerPickOrRegen": "Klik op een versie of laat 3 nieuwe maken (max 6).",
+    "bannerPickOnly": "Klik op een versie om 'm in het tekstveld te zetten.",
+    "thinking": "Filly denkt na…",
+    "generateThreeNew": "↻ Genereer 3 nieuwe",
+    "bannerMaxTitle": "{count} versies klaar.",
+    "bannerMaxBody": "Maximum bereikt, kies hieronder je favoriet en pas 'm naar wens aan.",
+    "variantLabel": "Variant {number}",
+    "variantChosenSuffix": " · gekozen",
+    "replyPlaceholder": "Tik hier je antwoord, of laat Filly een voorstel doen.",
+    "saving": "Opslaan…",
+    "sendReply": "Verstuur reactie",
+    "cancel": "Annuleren",
+    "trendRatingLabel": "t.o.v. eerdere reviews",
+    "trendVolumeLabel": "{count, plural, one {nieuwe review deze maand} other {nieuwe reviews deze maand}}",
+    "errors": {
+      "generate": "Filly kon geen voorstel maken. Probeer nog eens of tik zelf.",
+      "save": "Opslaan is mislukt. Probeer nog eens."
+    }
+  },
+  "dash_koppelingen_page": {},
+  "dash_marketing_components_coming_soon_channel": {
+    "title": "{channelName}-prestaties",
+    "subtitle": "Bereik, engagement en publiek-data, beschikbaar zodra {channelName} gekoppeld is.",
+    "notAvailableTitle": "Nog niet beschikbaar",
+    "notAvailableBody": "We werken aan {approvalDescription} om je {channelName}-account officieel te kunnen koppelen. Dit duurt typisch enkele weken. Daarna pakken we direct alles uit dit overzicht hieronder op.",
+    "featuresHeading": "Wat je straks ziet op deze pagina",
+    "backToHub": "Terug naar Marketing-hub",
+    "viewMail": "Bekijk Mail (werkt al)"
+  },
+  "dash_marketing_components_meta_live_insights": {
+    "colPost": "Bericht",
+    "colDate": "Datum",
+    "liveStats": "Live cijfers · {platform}",
+    "realConnection": "✓ echte koppeling",
+    "errorFetch": "Kon de live-cijfers niet ophalen. Is Facebook en Instagram gekoppeld onder Account → Koppelingen?",
+    "noPageSelected": "Nog geen Facebook-pagina gekozen. Koppel Facebook en Instagram en kies je pagina via <link>Account → Koppelingen</link>.",
+    "followers": "Volgers",
+    "posts": "Berichten",
+    "likes": "Likes",
+    "comments": "Reacties",
+    "shares": "Shares",
+    "noInstagramPosts": "Nog geen Instagram-berichten gevonden.",
+    "noFacebookPosts": "Nog geen Facebook-berichten gevonden."
+  },
+  "dash_marketing_facebook_page": {
+    "subtitle": "Page-bereik, reactions en publiek-data, afgelopen 30 dagen.",
+    "refresh": "Vernieuw",
+    "disconnect": "Ontkoppel",
+    "availableAfterMetaConnection": "Beschikbaar na Meta-koppeling",
+    "availableAfterConnection": "Beschikbaar na koppeling",
+    "previewBanner": "<strong>Voorvertoning met voorbeeld-data.</strong> Dit is hoe je Facebook-pagina eruit gaat zien zodra Meta App Review binnen is en je je FB-page hebt gekoppeld. De cijfers hieronder zijn fictief.",
+    "fillyAnalysisTitle": "Filly's analyse · 30 dagen",
+    "fillyAnalysis": "Je page-likes zijn stabiel met een lichte groei (+12 deze week). FB-publiek voor jouw onderneming is ouder dan op IG (zwaartepunt 35-54), wat past bij hogere besteed-power maar minder engagement-rate. Twee dingen vallen op: events presteren consistent dubbel zo goed als foto's, daar zou ik op blijven inzetten. En je doet erg weinig op zaterdagochtend, terwijl je publiek daar piek-actief is.",
+    "askFillyForContent": "Vraag Filly om content-voorstel",
+    "kpi": {
+      "reach": "Bereik",
+      "impressionsSubtext": "{count} impressies",
+      "pageLikes": "Page-likes",
+      "followersSubtext": "{count} volgers",
+      "engagementRate": "Engagement rate",
+      "pageViews": "Page-views",
+      "vsPrevious30d": "vs vorige 30 dgn"
+    },
+    "belowMedian": "Onder mediaan",
+    "aboveMedian": "Boven mediaan",
+    "median": "Mediaan: {value}",
+    "reachChartTitle": "Page-bereik · 30 dagen",
+    "reachChartTabs": "Tabs: Bereik · Impressies · Engagement · Page-likes",
+    "chart": {
+      "daysAgo": "30 dgn geleden",
+      "today": "Vandaag"
+    },
+    "reactionsMixTitle": "Reactions-mix · afgelopen 30 dagen",
+    "reactionsMixSubtext": "{count} reacties op je posts, verdeling laat zien hoe je publiek emotioneel reageert.",
+    "reactions": {
+      "like": "Like",
+      "love": "Love",
+      "wow": "Wow",
+      "haha": "Haha",
+      "sad": "Sad",
+      "angry": "Angry"
+    },
+    "topPostsTitle": "Top 5 posts deze maand",
+    "topPostsPattern": "<strong>Filly's patroon:</strong> Events > Video's > Foto's > Links voor jouw publiek. Sterk gevoel-element ('love'-reacties hoog), content met warmte/menselijkheid pakt het beste.",
+    "topPosts": {
+      "winePairing": "Wijn-pairing-avond, beperkt aantal plekken",
+      "freshPasta": "Verse pasta, handgemaakt, dagelijks vers in onze open keuken",
+      "behindScenes": "Behind the scenes, chef Marco bereidt het seizoenmenu",
+      "seasonalMenu": "Onze nieuwe seizoenkaart staat live op de website",
+      "teamPhoto": "Team-foto: ons brigade in actie tijdens de drukke vrijdagavond"
+    },
+    "postedAt": {
+      "wed23apr": "Wo 23 apr",
+      "fri26apr": "Vr 26 apr",
+      "mon21apr": "Ma 21 apr",
+      "thu17apr": "Do 17 apr",
+      "sat19apr": "Za 19 apr"
+    },
+    "postType": {
+      "photo": "Foto",
+      "video": "Video",
+      "event": "Event",
+      "link": "Link"
+    },
+    "post": {
+      "reach": "{count} bereik",
+      "engagement": "{rate}% engagement"
+    },
+    "bestTimeTitle": "Beste tijd om te posten",
+    "bestTimeSubtext": "FB-publiek heeft 2 piek-momenten: lunch en avond. Voorgesteld piek-uur: <strong>donderdag 18:00</strong>.",
+    "days": {
+      "mon": "Ma",
+      "tue": "Di",
+      "wed": "Wo",
+      "thu": "Do",
+      "fri": "Vr",
+      "sat": "Za",
+      "sun": "Zo"
+    },
+    "heatmap": {
+      "cellTitle": "{day} {hour}: {value}% activiteit"
+    },
+    "contentMixTitle": "Content-mix · laatste 30 dagen",
+    "table": {
+      "type": "Type",
+      "posts": "Posts",
+      "avgEngagement": "Gem. engagement",
+      "totalReach": "Totaal bereik"
+    },
+    "contentMix": {
+      "photos": "Foto's",
+      "videos": "Video's",
+      "events": "Events",
+      "links": "Links"
+    },
+    "audienceTitle": "Wie volgt je page",
+    "audience": {
+      "topCities": "Top 5 steden",
+      "age": "Leeftijd",
+      "gender": "Geslacht",
+      "female": "Vrouw",
+      "male": "Man",
+      "other": "Anders / niet bekend"
+    },
+    "actionsTitle": "Filly's actie-voorstellen",
+    "actions": {
+      "events": {
+        "title": "Events presteren bovengemiddeld",
+        "description": "Je 2 events (Wijn-pairing en eerder Asperge-week) scoorden 8.0% engagement, boven je FB-gemiddelde van 4.5%. Deze content-vorm pakt je publiek aan.",
+        "hint": "Plan komende maand 1-2 events. Een 'live cooking-demo' of 'wijn-pairing met de chef' past goed bij je profiel."
+      },
+      "lunch": {
+        "title": "Lunch-piek beter benutten",
+        "description": "Tussen 12:00-13:00 is je publiek het meest actief op zaterdag, maar je post er nooit. Mensen plannen daar hun avond.",
+        "hint": "Probeer een zaterdagochtend-post om 11:30 of 12:00, maakt de avondreservering al hot voordat ze hun zoektocht beginnen."
+      },
+      "engagement": {
+        "title": "Engagement onder mediaan",
+        "description": "2.9% vs horeca-mediaan 3.4%, niet alarmerend, wel verbeterruimte. Vooral je linkshares zijn zwak (2.8%).",
+        "hint": "Vervang link-only-posts door foto's met de link in de comment. FB-algoritme straft externe links zwaar."
+      }
+    },
+    "proposal": "<strong>Voorstel:</strong> {hint}",
+    "fillyWritesIt": "Filly schrijft 't",
+    "ignore": "Negeren",
+    "backToHub": "← Terug naar Marketing-hub"
+  },
+  "dash_marketing_instagram_page": {
+    "subtitle": "Bereik, engagement en publiek, afgelopen 30 dagen.",
+    "refresh": "Vernieuw",
+    "disconnect": "Ontkoppel",
+    "availableAfterMetaConnection": "Beschikbaar na Meta-koppeling",
+    "availableAfterConnection": "Beschikbaar na koppeling",
+    "previewBanner": "<strong>Voorvertoning met voorbeeld-data.</strong> Dit is hoe je Instagram-pagina eruit gaat zien zodra Meta App Review binnen is en je je IG-account hebt gekoppeld. De cijfers hieronder zijn fictief.",
+    "fillyAnalysisLabel": "Filly's analyse · 30 dagen",
+    "askFillyForContent": "Vraag Filly om content-voorstel",
+    "kpiReach": "Bereik",
+    "kpiImpressions": "{count} impressies",
+    "kpiFollowers": "Volgers",
+    "kpiLast7Days": "afgelopen 7 dagen",
+    "kpiEngagementRate": "Engagement rate",
+    "kpiProfileViews": "Profile views",
+    "kpiVsPrevious30Days": "vs vorige 30 dgn",
+    "belowMedian": "Onder mediaan",
+    "aboveMedian": "Boven mediaan",
+    "median": "Mediaan: {value}",
+    "reach30DaysTitle": "Bereik · 30 dagen",
+    "chartTabs": "Tabs: Bereik · Impressies · Engagement · Volgers",
+    "daysAgo30": "30 dgn geleden",
+    "today": "Vandaag",
+    "topPostsTitle": "Top 5 posts deze maand",
+    "fillyPatternLabel": "Filly's patroon:",
+    "fillyPatternText": "warm interieur + close-up gerechten = consistent hoog-presterende mix. Reels > Carousels > Foto's voor jouw publiek.",
+    "postTypeReel": "Reel",
+    "postTypeCarousel": "Carousel",
+    "postTypePhoto": "Foto",
+    "postReach": "{count} bereik",
+    "postEngagement": "{value}% engagement",
+    "bestTimeToPostTitle": "Beste tijd om te posten",
+    "bestTimeToPostHint": "Hoe donkerder, hoe meer je publiek dan online is. Voorgesteld piek-uur: <strong>woensdag 18:00</strong>.",
+    "dayMon": "Ma",
+    "dayTue": "Di",
+    "dayWed": "Wo",
+    "dayThu": "Do",
+    "dayFri": "Vr",
+    "daySat": "Za",
+    "daySun": "Zo",
+    "heatmapCellTitle": "{day} {hour}: {value}% activiteit",
+    "contentMixTitle": "Content-mix · laatste 30 dagen",
+    "colType": "Type",
+    "colPosts": "Posts",
+    "colAvgEngagement": "Gem. engagement",
+    "colTotalReach": "Totaal bereik",
+    "notAvailable": "n/a",
+    "whoFollowsYouTitle": "Wie volgt je",
+    "topCitiesLabel": "Top 5 steden",
+    "ageLabel": "Leeftijd",
+    "genderLabel": "Geslacht",
+    "genderFemale": "Vrouw",
+    "genderMale": "Man",
+    "genderOther": "Anders / niet bekend",
+    "fillyActionsTitle": "Filly's actie-voorstellen",
+    "proposalLabel": "Voorstel:",
+    "fillyWritesIt": "Filly schrijft 't",
+    "ignore": "Negeren",
+    "backToMarketingHub": "← Terug naar Marketing-hub"
+  },
+  "dash_marketing_mail_page": {
+    "title": "Mail-prestaties",
+    "subtitle": "Open rates, click rates en industrie-vergelijking, uit je Resend-data.",
+    "loading": "Statistieken laden…",
+    "summary": "{sent} verzonden mails over {count} {count, plural, one {campagne} other {campagnes}}, laatste {days} dagen.",
+    "benchmarkSource": "Mediaan-cijfers uit {source}",
+    "footnote": "Heatmap (beste verzendmoment) en trends-grafiek volgen zodra je meer dan 10 campagnes hebt verzonden, anders zegt het beeld weinig.",
+    "errors": {
+      "unknown": "Onbekende fout"
+    },
+    "empty": {
+      "title": "Nog geen verzonden mails",
+      "description": "Zodra je je eerste mail-campagne verstuurt verschijnen hier open rates, click rates en de vergelijking met de horeca-mediaan.",
+      "cta": "Naar campagnes"
+    },
+    "kpi": {
+      "sent": "Verzonden",
+      "delivered": "{delivered} aangekomen",
+      "openRate": "Open rate",
+      "clickRate": "Click rate",
+      "bounceRate": "Bounce rate",
+      "unsubscribes": "Uitschrijvingen",
+      "unsubscribedPeople": "{people} mensen"
+    },
+    "benchmark": {
+      "above": "Boven mediaan",
+      "below": "Onder mediaan",
+      "median": "Mediaan: {value}"
+    },
+    "table": {
+      "campaign": "Campagne",
+      "status": "Status",
+      "sent": "Verzonden",
+      "open": "Open",
+      "click": "Click",
+      "bounce": "Bounce",
+      "emptyPeriod": "Geen campagnes in deze periode.",
+      "sentOn": "Verzonden {date}"
+    },
+    "status": {
+      "afgerond": "Afgerond",
+      "actief": "Actief",
+      "ingepland": "Ingepland",
+      "concept": "Concept",
+      "gearchiveerd": "Gearchiveerd"
+    }
+  },
+  "dash_marketing_page": {
+    "title": "Marketing",
+    "subtitle": "Hoe presteren je kanalen? Filly meet, vergelijkt en stelt verbeteringen voor.",
+    "banner": {
+      "activeCount": "{live} van {total} kanalen actief",
+      "someActive": "Mail-statistieken zijn live. Sociale kanalen volgen na de Meta + TikTok approval-aanvragen.",
+      "noneActive": "Geen kanalen actief. Verstuur eerst een mail-campagne om je eerste statistieken te zien."
+    },
+    "report": {
+      "heading": "Filly's wekelijks rapport"
+    },
+    "status": {
+      "live": "Actief",
+      "comingSoon": "Binnenkort",
+      "future": "Later"
+    },
+    "channels": {
+      "mail": {
+        "name": "Mail",
+        "description": "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden, direct uit Resend."
+      },
+      "instagram": {
+        "name": "Instagram",
+        "description": "Bereik, engagement, top-posts en beste posttijd zodra je via OAuth koppelt."
+      },
+      "facebook": {
+        "name": "Facebook",
+        "description": "Page-bereik, post-engagement en publiek-demografie via Meta Graph API."
+      },
+      "tiktok": {
+        "name": "TikTok",
+        "description": "Plays, watch-time, shares en for-you-ratio via TikTok Marketing API."
+      },
+      "whatsapp": {
+        "name": "WhatsApp",
+        "description": "Directe gast-communicatie met read-rates en reply-conversie. Komt in een latere fase."
+      }
+    },
+    "summary": {
+      "noCampaigns": "Je hebt deze maand nog geen mail-campagnes verzonden. Eerste campagne maak je via /campagnes.",
+      "openAbove": "Je open rate van {rate}% zit {diff}% boven de horeca-mediaan, sterk.",
+      "openBelow": "Je open rate van {rate}% zit {diff}% onder de horeca-mediaan. Onderwerp-regels herzien?",
+      "openAround": "Je open rate van {rate}% ligt rond de horeca-mediaan.",
+      "clickAbove": "Click rate van {rate}% is {diff}% boven mediaan.",
+      "clickLow": "Click rate van {rate}% is laag, duidelijke CTA toevoegen?",
+      "bounceHigh": "Let op: bounce rate is {rate}%, hoger dan ideaal (<2%). Lijst opschonen.",
+      "fallback": "Je verstuurde {sent} mails over {count} {count, plural, one {campagne} other {campagnes}}. Voor diepere analyse open de Mail-pagina."
+    },
+    "errors": {
+      "unknown": "Onbekende fout"
+    }
+  },
+  "dash_marketing_tiktok_page": {
+    "approvalDescription": "TikTok for Business API access (vereist business-verificatie)",
+    "features": {
+      "playsViews": "Plays en views per video (afgelopen 30 dagen)",
+      "watchTime": "Watch-time en completion-rate, zit je publiek de hele video uit?",
+      "followerGrowth": "Volgers-groei en for-you-pagina-bereik",
+      "topVideos": "Top 5 best-presterende video's met inzicht in trending audio",
+      "bestPostTime": "Beste posttijd voor jouw doelgroep",
+      "hashtagPerformance": "Hashtag-performance: welke trekken meeste bereik?",
+      "fillySuggestions": "Filly's content-suggesties: 'Probeer behind-the-scenes, scoort 4× beter dan eten-shots in jouw segment'"
+    }
+  },
+  "dash_menu_components_menu_suggestions_tab": {
+    "pendingIntro": "<strong>Filly als sparring-partner.</strong> 3 voorstellen, 1× per dag, bedoeld om jou als chef andere invalshoeken te laten zien, niet om je menu vol te stoppen. Voorstellen verschijnen niet in je echte menu tot jij ze accepteert.",
+    "rejectedIntro": "Eerder afgewezen voorstellen van de laatste 90 dagen. Bedacht je je toch? Klik <em>Toch toevoegen</em> en het gerecht verschijnt alsnog in je menu.",
+    "generating": "Filly denkt na…",
+    "askFilly": "Vraag Filly om voorstellen",
+    "empty": {
+      "pendingTitle": "Nog geen voorstellen",
+      "rejectedTitle": "Geen afgewezen voorstellen",
+      "pendingDescription": "Klik hierboven op 'Vraag Filly om voorstellen' en hij komt met 3 nieuwe gerechten die passen bij jouw onderneming.",
+      "rejectedDescription": "Voorstellen die je hierboven verwijdert komen hier terecht, zo kun je later nog terugkomen op een voorstel."
+    },
+    "actions": {
+      "addAnyway": "Toch toevoegen",
+      "addToMenu": "Toevoegen aan menu",
+      "refine": "Andere variant",
+      "refineTitle": "Vraag Filly om een wezenlijk andere variant",
+      "refineCapTitle": "Maximum 3 varianten bereikt, accepteer er een of vraag een nieuw voorstel",
+      "rejectTitle": "Voorstel verwijderen"
+    },
+    "source": {
+      "gapAnalysis": "Gat in menu",
+      "profileBased": "Past bij onderneming",
+      "seasonal": "Seizoen",
+      "refined": "Variant"
+    },
+    "confidence": {
+      "high": "Sterke match",
+      "medium": "Redelijke match",
+      "low": "Out of the box"
+    },
+    "errors": {
+      "unknown": "Onbekende fout.",
+      "acceptFailed": "Accepteren mislukt.",
+      "rejectFailed": "Verwijderen mislukt.",
+      "refineFailed": "Variant maken mislukt."
+    }
+  },
+  "dash_menu_page": {
+    "pageTitle": "Menu",
+    "searchPlaceholder": "Zoek gerecht op naam of beschrijving...",
+    "avgPrefix": "gem.",
+    "category": {
+      "voorgerecht": "Voorgerechten",
+      "tussen": "Tussengerechten",
+      "hoofd": "Hoofdgerechten",
+      "dessert": "Desserts",
+      "drank": "Dranken",
+      "overig": "Overig"
+    },
+    "drinkSub": {
+      "wijnRood": "Rode wijnen",
+      "wijnWit": "Witte wijnen",
+      "wijnRose": "Rosé wijnen",
+      "wijnMousserend": "Mousserend",
+      "bier": "Bieren",
+      "cocktail": "Cocktails",
+      "sterkeDrank": "Sterke drank",
+      "koffieThee": "Koffie & thee",
+      "fris": "Fris & alcoholvrij",
+      "overig": "Overig"
+    },
+    "season": {
+      "spring": "Lente",
+      "summer": "Zomer",
+      "autumn": "Herfst",
+      "winter": "Winter"
+    },
+    "diet": {
+      "vega": "Vegetarisch",
+      "vegan": "Veganistisch",
+      "glutenVrij": "Glutenvrij",
+      "lactoseVrij": "Lactosevrij",
+      "notenVrij": "Notenvrij"
+    },
+    "actions": {
+      "uploadMenuCard": "Menu-kaart uploaden",
+      "uploadDrinksCard": "Drankkaart uploaden",
+      "addDish": "Gerecht toevoegen",
+      "remove": "Verwijderen",
+      "close": "Sluiten",
+      "done": "Klaar",
+      "add": "Toevoegen",
+      "save": "Opslaan",
+      "cancel": "Annuleren"
+    },
+    "errors": {
+      "saveFailed": "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
+      "deleteFailed": "Verwijderen mislukt. Probeer het opnieuw.",
+      "uploadFailed": "Upload mislukt, probeer opnieuw.",
+      "openCardFailed": "Kon de kaart niet openen. Probeer het opnieuw."
+    },
+    "confirm": {
+      "thisDish": "dit gerecht",
+      "deleteItem": "Weet je zeker dat je '{name}' wilt verwijderen? Dit kan niet ongedaan worden.",
+      "deleteCard": "Weet je zeker dat je deze {cardLabel} wil verwijderen?\n\nDe {count} {itemNoun} die uit deze kaart geïmporteerd zijn worden ook verwijderd. Handmatig toegevoegde items blijven staan."
+    },
+    "cardNoun": {
+      "drinksCard": "drankkaart",
+      "menuCard": "menu-kaart"
+    },
+    "itemNoun": {
+      "drinks": "drankjes",
+      "dishes": "gerechten",
+      "drinkSingular": "drankje",
+      "dishSingular": "gerecht"
+    },
+    "badge": {
+      "temporarilyOff": "Tijdelijk uit",
+      "signature": "Signature"
+    },
+    "fillyTip": {
+      "label": "Filly's favorieten deze maand",
+      "body": "Deze gerechten gebruikt Filly het vaakst in zijn voorstellen: <strong>{dishes}</strong>. Houd ze up-to-date voor de beste campagnes."
+    },
+    "tabs": {
+      "all": "Alle",
+      "suggested": "Voorgesteld",
+      "suggestedTitle": "Filly's gerecht-voorstellen, 1× per dag, 3 voorstellen",
+      "rejected": "Afgewezen",
+      "rejectedTitle": "Eerder afgewezen voorstellen, laatste 90 dagen"
+    },
+    "empty": {
+      "loadFailedTitle": "Menu niet geladen",
+      "noMenuTitle": "Nog geen menu",
+      "loadFailedDesc": "We konden het menu niet ophalen. Probeer de pagina te herladen.",
+      "noMenuDesc": "Voeg gerechten toe zodat Filly ze kan gebruiken in campagnes.",
+      "noResults": "Geen gerechten gevonden met deze filters."
+    },
+    "banner": {
+      "drinksActive": "Drankkaart actief",
+      "menuActive": "Menu-kaart actief",
+      "newDrinksCard": "Nieuwe drankkaart",
+      "newMenuCard": "Nieuwe menu-kaart",
+      "openCardTitle": "Open de geüploade kaart in een nieuw tabblad",
+      "fallbackDrinksCard": "drankkaart",
+      "fallbackMenuCard": "menukaart",
+      "imported": "{count} {noun} geïmporteerd"
+    },
+    "upload": {
+      "triggerDrinks": "Drankkaart importeren",
+      "triggerMenu": "Menu-kaart importeren",
+      "titleDrinks": "Upload je drankkaart",
+      "titleMenu": "Upload je menu",
+      "introDrinks": "Upload een PDF of foto van je {cardLabel}. Filly leest de {itemNoun} automatisch in en groepeert ze op type (wijn, bier, cocktail, etc.), je hoeft ze alleen nog te controleren.",
+      "introMenu": "Upload een PDF of foto van je {cardLabel}. Filly leest de {itemNoun} automatisch in en zet ze direct in je menu, je hoeft ze alleen nog te controleren.",
+      "dropzoneTitle": "Sleep hier je menu-kaart of klik om te kiezen",
+      "dropzoneSub": "PDF, JPG, PNG of WebP, max. 10 MB",
+      "stageReading": "Bestand uploaden…",
+      "stageRecognizingDrinks": "Filly leest je drankkaart…",
+      "stageRecognizingMenu": "Filly leest je menu…",
+      "stageCategorizing": "{itemNoun} toevoegen aan je menu…",
+      "stageDone": "Klaar",
+      "stageError": "Mislukt",
+      "stepUpload": "Uploaden",
+      "stepFillyReads": "Filly leest",
+      "stepAdd": "Toevoegen",
+      "fileFallback": "bestand",
+      "durationNote": "Dit kan 5 tot 15 seconden duren bij een vol menu.",
+      "genericError": "Er ging iets mis. Probeer het opnieuw.",
+      "doneCount": "{count} gerechten toegevoegd",
+      "doneTailSuccess": ", ze staan nu in je menu en Filly kent ze.",
+      "doneTailEmpty": ", Filly kon geen gerechten herkennen op deze kaart.",
+      "fillyNote": "Filly merkt op: {notes}"
+    },
+    "modal": {
+      "newDish": "Nieuw gerecht",
+      "editDish": "Gerecht bewerken",
+      "unnamedDish": "Naamloos gerecht",
+      "adding": "Toevoegen…",
+      "saving": "Opslaan…",
+      "deleting": "Verwijderen…"
+    },
+    "form": {
+      "name": "Naam",
+      "namePlaceholder": "Bijv. Rundersukade in rode wijn",
+      "category": "Categorie",
+      "price": "Prijs (€)",
+      "description": "Beschrijving",
+      "descriptionPlaceholder": "Korte omschrijving, wordt door Filly gebruikt in campagne-teksten.",
+      "signatureToggle": "<strong>Signature</strong>, onze handtekening",
+      "seasonalToggle": "<strong>Seizoensgerecht</strong>",
+      "season": "Seizoen",
+      "availableToggle": "<strong>Beschikbaar</strong>, staat op de kaart",
+      "dietaryTags": "Dieet-tags"
+    }
+  },
+  "dash_rapportages_bezetting_page": {
+    "backToReports": "Terug naar rapportages",
+    "pageTitle": "Bezetting",
+    "pageSubtitle": "Gemiddelde bezetting per weekdag en per uur, plus Filly-ROI en gastretentie.",
+    "prevMonth": "Vorige maand",
+    "nextMonth": "Volgende maand",
+    "today": "Vandaag",
+    "loading": "Laden...",
+    "emptyTitle": "Nog geen data om te rapporteren",
+    "emptyDescription": "Zodra reserveringen, gasten en campagnes binnenkomen verschijnen hier de cijfers, gemiddelde bezetting, omzet, Filly-ROI, retentie en meer. Begin met een eerste campagne of importeer je gasten-bestand.",
+    "sec1Eyebrow": "Bezetting & omzet",
+    "sec1Title": "Hoe doe je het?",
+    "sec1Desc": "De basisgezondheid van je onderneming: gemiddelde bezetting, gasten, omzet en vergelijking met vorig jaar.",
+    "statAvgOccupancy": "Gem. bezetting",
+    "statTotalGuests": "Totaal gasten",
+    "statRevenue": "Omzet",
+    "statCampaigns": "Campagnes",
+    "statGuestsInDb": "Gasten in DB",
+    "vsLastYear": "{pct}% vs vorig jaar",
+    "dayMon": "MA",
+    "dayTue": "DI",
+    "dayWed": "WO",
+    "dayThu": "DO",
+    "dayFri": "VR",
+    "daySat": "ZA",
+    "daySun": "ZO",
+    "dowCardTitle": "Bezetting per weekdag",
+    "dowCardSubtitle": "Gemiddeld in {month} · zwakste dag: {worst} · sterkste: {best}",
+    "hourCardTitle": "Bezetting per uur",
+    "hourCardSubtitle": "Patroon over de week · donkere cellen = drukker",
+    "legendQuiet": "Rustig",
+    "legendBusy": "Druk",
+    "roiEyebrow": "Filly ROI",
+    "roiTitle": "Wat heeft Filly je opgeleverd?",
+    "roiDesc": "Cumulatieve bijdrage van Filly over de afgelopen 6 maanden, gebaseerd op reserveringen die handmatig of automatisch zijn gekoppeld aan een Filly-campagne.",
+    "roiEmptyTitle": "Nog geen reserveringen via Filly gekoppeld",
+    "roiEmptyDescription": "Koppel reserveringen aan een Filly-campagne op de reserveringen-pagina (of wacht tot de send-engine automatisch attribueert), dan verschijnen hier cumulatieve cijfers, een 6-maanden grafiek en een per-kanaal vergelijking.",
+    "roiReservationsLabel": "Reserveringen via Filly",
+    "roiLast6Months": "afgelopen 6 maanden",
+    "roiGuestsLabel": "Gasten via Filly",
+    "roiSumGroupSizes": "som van groepsgroottes",
+    "roiEstRevenueLabel": "Geschatte omzet",
+    "roiGuestsTimesSpend": "gasten × gem. besteding",
+    "roiChartTitle": "Filly-bijdrage per maand",
+    "roiChartSubtitle": "Geschatte extra omzet (€) via Filly-campagnes",
+    "roiChartBarTitle": "{month}: €{euros} / {guests} gasten / {reservations} reserveringen",
+    "perCampaignTitle": "Per campagne deze maand",
+    "perCampaignSubtitle": "Welke campagne levert het meest op?",
+    "thCampaign": "Campagne",
+    "thType": "Type",
+    "thReservations": "Reserveringen",
+    "thGuests": "Gasten",
+    "thEstRevenue": "Geschatte omzet",
+    "retentionEyebrow": "Gasten & retentie",
+    "retentionTitle": "Komen je gasten terug?",
+    "retentionDesc": "Van 100 gasten die in maand X voor het eerst kwamen, hoeveel kwamen er in de maanden erna nog terug? Hoge % = loyaliteit, lage % = kans voor Filly om een win-back te sturen.",
+    "retentionCardTitle": "Gastretentie per maand",
+    "retentionCardSubtitle": "Percentage dat terugkwam in de maanden erna",
+    "thCohort": "Cohort",
+    "thSize": "Size",
+    "thMonthN": "Mnd {n}",
+    "marketingEyebrow": "Marketing",
+    "marketingTitle": "Wat werkt er qua campagnes?",
+    "marketingDesc": "Top-campagnes op basis van status en doorlooptijd.",
+    "topCampaignsTitle": "Top campagnes",
+    "topCampaignsSubtitle": "Meest succesvol deze periode"
+  },
+  "dash_rapportages_page": {
+    "title": "Rapportages",
+    "actions": {
+      "pdf": "🖨 PDF",
+      "exportCsv": "⬇ Exporteer CSV"
+    },
+    "csv": {
+      "channel": "Kanaal",
+      "status": "Status",
+      "stat": "Statistiek",
+      "value": "Waarde"
+    },
+    "statusLabel": {
+      "live": "Live",
+      "comingSoon": "Binnenkort",
+      "future": "Later"
+    },
+    "badge": {
+      "active": "Actief",
+      "comingSoon": "Binnenkort",
+      "future": "Later"
+    },
+    "channels": {
+      "occupancy": "Bezetting",
+      "mail": "Mail",
+      "reviews": "Reviews",
+      "instagram": "Instagram",
+      "facebook": "Facebook",
+      "tiktok": "TikTok",
+      "whatsapp": "WhatsApp"
+    },
+    "stats": {
+      "today": "Vandaag",
+      "monthAvg": "Gem. deze maand",
+      "guestsToday": "Gasten vandaag",
+      "viaFillyMonth": "Via Filly (maand)",
+      "campaigns30d": "Campagnes (30d)",
+      "sent": "Verstuurd",
+      "openRate": "Open rate",
+      "clickRate": "Click rate",
+      "average": "Gemiddelde",
+      "totalReviews": "Totaal reviews",
+      "responseNeeded": "Reactie nodig"
+    },
+    "placeholders": {
+      "instagram": "Live likes, reacties & volgers uit je koppeling (+ voorbeeld-insights).",
+      "facebook": "Live likes, reacties & shares uit je koppeling (+ voorbeeld-insights).",
+      "tiktok": "Stats verschijnen na TikTok Marketing API-koppeling.",
+      "whatsapp": "Komt in een latere fase."
+    }
+  },
+  "dash_reserveringen_page": {
+    "title": "Reserveringen",
+    "exportPdf": "🖨 PDF",
+    "exportCsv": "⬇ Exporteer CSV",
+    "period": "Periode:",
+    "until": "tot",
+    "searchPlaceholder": "Zoek op naam, telefoon of mail...",
+    "today": "Vandaag",
+    "tomorrow": "Morgen",
+    "yesterday": "Gisteren",
+    "noResultsWithFilters": "Geen reserveringen gevonden met deze filters.",
+    "partyPeople": "· {count} pers",
+    "specialRequest": "Speciaal verzoek",
+    "specialRequestTitle": "Speciaal verzoek: {request}",
+    "viaSource": "· via {source}",
+    "tableLabel": "· tafel {table}",
+    "newGuestSuffix": "(nieuwe gast)",
+    "statusFilters": {
+      "alle": "Alle",
+      "bevestigd": "Bevestigd",
+      "ingecheckt": "Ingecheckt",
+      "voltooid": "Voltooid",
+      "noShow": "No-show",
+      "geannuleerd": "Geannuleerd"
+    },
+    "empty": {
+      "title": "Geen reserveringen",
+      "description": "Koppel een reserveringsplatform om reserveringen automatisch te importeren."
+    },
+    "emptyError": {
+      "title": "Reserveringen niet geladen",
+      "description": "We konden de lijst niet ophalen. Probeer de pagina te herladen."
+    },
+    "errors": {
+      "linkFailed": "Koppelen mislukt. Probeer opnieuw."
+    },
+    "attribution": {
+      "linkedTitle": "Toegeschreven aan campagne: {name}",
+      "unlink": "Loskoppelen van campagne",
+      "choosePlaceholder": "Kies campagne…",
+      "linkButton": "+ Filly-koppeling",
+      "linkButtonTitle": "Koppel deze reservering aan een Filly-campagne"
+    },
+    "fields": {
+      "name": "Naam",
+      "email": "E-mail",
+      "phone": "Telefoon",
+      "birthday": "Verjaardag",
+      "totalVisits": "Totaal bezoeken",
+      "lastVisit": "Laatste bezoek",
+      "table": "Tafel",
+      "source": "Bron",
+      "tags": "Tags",
+      "notes": "Notities"
+    },
+    "csv": {
+      "date": "Datum",
+      "time": "Tijd",
+      "name": "Naam",
+      "partySize": "Personen",
+      "status": "Status",
+      "phone": "Telefoon",
+      "email": "E-mail",
+      "source": "Bron",
+      "table": "Tafel",
+      "viaCampaign": "Via campagne",
+      "notes": "Notities"
+    }
+  },
+  "dash_reviews_page": {},
+  "dash_suggesties_page": {
+    "title": "Suggesties",
+    "subtitle": "Voorstellen van Filly, met onderbouwing én verwachte impact. Keur goed → wordt een campagne.",
+    "campaignProposalFallback": "Campagne-voorstel",
+    "whyNow": "Waarom nú?",
+    "whyNowInline": "Waarom nú:",
+    "close": "Sluiten",
+    "audience": "Doelgroep: {segment}",
+    "tabs": {
+      "pending": "Wachtend",
+      "approved": "Goedgekeurd",
+      "rejected": "Afgewezen"
+    },
+    "triggers": {
+      "low_occupancy": "Lage bezetting",
+      "weather": "Weer",
+      "seasonal": "Seizoen",
+      "birthday": "Verjaardag",
+      "retention": "Retentie"
+    },
+    "urgency": {
+      "high": "Hoge urgentie",
+      "medium": "Deze week",
+      "low": "Planning"
+    },
+    "stats": {
+      "pendingLabel": "Wachtend op goedkeuring",
+      "expectedExtraStack": "Verwacht extra (deze stapel)",
+      "expectedExtraTab": "Verwacht extra (deze tab)",
+      "extraReservations": "+{count} reserveringen",
+      "expectedRevenue": "Verwachte extra omzet"
+    },
+    "errorState": {
+      "title": "Voorstellen niet beschikbaar",
+      "description": "We konden de voorstellen niet ophalen. Probeer de pagina te herladen."
+    },
+    "emptyPending": {
+      "title": "Alles bijgewerkt",
+      "description": "Geen voorstellen wachtend. Filly laat het weten zodra er wat opduikt."
+    },
+    "emptyApproved": "Geen goedgekeurde voorstellen.",
+    "emptyRejected": "Geen afgewezen voorstellen.",
+    "impact": {
+      "expectedExtra": "Verwacht extra",
+      "reservationsValue": "+{count} reserveringen",
+      "estimatedRevenue": "Geschatte omzet",
+      "confidence": "Confidence"
+    },
+    "actions": {
+      "approve": "Goedkeuren",
+      "edit": "Aanpassen",
+      "reject": "Afwijzen",
+      "busy": "Bezig..."
+    },
+    "proposal": {
+      "title": "Voorgestelde invulling",
+      "loading": "🍳 Filly bedenkt een tastbare invulling op basis van je menu en sfeer…",
+      "error": "Filly kon nu geen tastbare invulling bedenken ({error}). De campagne-tekst hierboven blijft gewoon bruikbaar.",
+      "mainDish": "Hoofdgerecht",
+      "fromMenu": "Uit je menu",
+      "newProposal": "Nieuw voorstel",
+      "sides": "Bijgerechten",
+      "fromMenuShort": "Uit menu",
+      "newShort": "Nieuw"
+    },
+    "placement": {
+      "title": "Hoe Filly dit plaatst",
+      "suggestedByFilly": "Voorgesteld door Filly",
+      "uploadOwnPhoto": "Upload je eigen foto",
+      "dragOrClick": "Sleep of klik",
+      "replacePhotoHint": "Vervang Filly's voorstel door een eigen foto."
+    },
+    "mailPreview": {
+      "from": "Van",
+      "to": "Aan",
+      "regularGuests": "Vaste gasten"
+    },
+    "socialPreview": {
+      "justPosted": "Net geplaatst"
+    },
+    "content": {
+      "title": "Inhoud van de campagne",
+      "subject": "Onderwerp",
+      "caption": "Caption",
+      "message": "Bericht"
+    }
+  },
+  "dash_taken_page": {
+    "pageTitle": "Taken",
+    "pageSubtitle": "Alles wat vandaag je aandacht vraagt, AI-voorstellen, reviews, reserveringen en alerts.",
+    "statTotalOpen": "Totaal openstaand",
+    "statHighUrgency": "Hoge urgentie",
+    "statFromFilly": "Van Filly",
+    "highUrgencyAlert": "<strong>{count, plural, one {# taak} other {# taken}}</strong> {count, plural, one {heeft} other {hebben}} hoge urgentie, pak ze eerst op.",
+    "filterAll": "Alle",
+    "filterFilly": "Filly",
+    "filterReviews": "Reviews",
+    "filterReservations": "Reserveringen",
+    "filterInsights": "Inzichten",
+    "emptyTitle": "Alles onder controle",
+    "emptyDescription": "Geen openstaande taken. Filly komt zodra er iets opduikt.",
+    "emptyCategory": "Geen taken in deze categorie.",
+    "defaultCampaignName": "Campagne-voorstel",
+    "suggestionTitle": "Filly stelt voor: {name}",
+    "suggestionDescFallback": "Open de Suggesties-pagina voor onderbouwing.",
+    "lowOccTitle": "{count, plural, one {# rustige dag} other {# rustige dagen}} komende week",
+    "birthdayTitle": "{name} is bijna jarig",
+    "birthdayDesc": "Tip: stuur Filly een verjaardag-uitnodiging of persoonlijke groet.",
+    "reviewTitle": "{rating}-ster review op {source}",
+    "reviewDescFallback": "Review vereist reactie.",
+    "bigReservationTitle": "Groepsreservering vandaag, {count} personen",
+    "tableLabel": "tafel",
+    "specialRequestTitle": "Speciaal verzoek, {name}",
+    "priorityNow": "Nu",
+    "priorityThisWeek": "Deze week",
+    "priorityPlanning": "Planning"
   }
 }
