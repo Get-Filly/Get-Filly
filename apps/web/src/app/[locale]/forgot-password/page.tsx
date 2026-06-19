@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
 
 // ============================================================
@@ -28,6 +29,7 @@ import { createClient } from "@/lib/supabase-browser";
 // ============================================================
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,33 +63,27 @@ export default function ForgotPasswordPage() {
   return (
     <section className="login-section">
       <div className="login-box">
-        <div className="login-title">Wachtwoord resetten</div>
+        <div className="login-title">{t("forgot.title")}</div>
 
         {sent ? (
           <>
-            <p className="login-sub">
-              Als er een account bestaat met dit e-mailadres, hebben we je
-              een reset-link gestuurd. Check je inbox (en spam).
-            </p>
+            <p className="login-sub">{t("forgot.sentText")}</p>
             <div className="auth-switch" style={{ marginTop: 16 }}>
-              <Link href="/login">Terug naar inloggen</Link>
+              <Link href="/login">{t("forgot.backToLogin")}</Link>
             </div>
           </>
         ) : (
           <>
-            <p className="login-sub">
-              Vul je e-mailadres in, dan sturen we je een link om een nieuw
-              wachtwoord in te stellen.
-            </p>
+            <p className="login-sub">{t("forgot.intro")}</p>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">E-mailadres</label>
+                <label className="form-label">{t("fields.email")}</label>
                 <input
                   className="form-input"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="naam@restaurant.nl"
+                  placeholder={t("fields.emailPlaceholder")}
                   required
                   autoFocus
                 />
@@ -96,12 +92,12 @@ export default function ForgotPasswordPage() {
               {error && <div className="auth-error">{error}</div>}
 
               <button className="login-btn" type="submit" disabled={loading}>
-                {loading ? "Bezig…" : "Verstuur reset-link"}
+                {loading ? t("forgot.submitting") : t("forgot.submit")}
               </button>
 
               <div className="auth-switch">
-                Weet je het wachtwoord weer?{" "}
-                <Link href="/login">Inloggen</Link>
+                {t("forgot.rememberQ")}{" "}
+                <Link href="/login">{t("forgot.login")}</Link>
               </div>
             </form>
           </>

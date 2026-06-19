@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 
 // Self-service registratie is per 2026-06-02 uitgeschakeld. Nieuwe accounts
 // worden uitsluitend door Get-Filly aangemaakt (invite-only via Supabase),
@@ -7,6 +7,11 @@ import { redirect } from "next/navigation";
 // users to sign up" = uit) — dat dicht ook de directe API-route met de
 // anon-key. Deze redirect zorgt enkel dat de oude /signup-URL geen dode of
 // verwarrende pagina meer toont en bezoekers naar de demo-aanvraag stuurt.
-export default function SignupPage() {
-  redirect("/contact");
+export default async function SignupPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect({ href: "/contact", locale });
 }

@@ -238,5 +238,56 @@
     "ctaSubtitle": "Request a demo and discover what Get-Filly can do for your restaurant.",
     "ctaButton": "Request a demo",
     "ctaPricing": "Curious what it costs? Check <link>the pricing</link>."
+  },
+  "auth": {
+    "fields": {
+      "email": "Email address",
+      "emailPlaceholder": "name@restaurant.com",
+      "password": "Password"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to your Get-Filly dashboard",
+      "forgot": "Forgot your password?",
+      "submit": "Log in",
+      "submitting": "Logging in...",
+      "noAccount": "No Get-Filly account yet?",
+      "requestDemo": "Request a demo",
+      "loading": "Loading..."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "sentText": "If an account exists with this email address, we've sent you a reset link. Check your inbox (and spam).",
+      "backToLogin": "Back to login",
+      "intro": "Enter your email address and we'll send you a link to set a new password.",
+      "submit": "Send reset link",
+      "submitting": "Working…",
+      "rememberQ": "Remembered your password?",
+      "login": "Log in"
+    },
+    "reset": {
+      "title": "Set a new password",
+      "loading": "Loading…",
+      "invalidDefault": "This reset link is no longer valid. Request a new one.",
+      "requestNew": "Request a new reset link",
+      "intro": "Choose a new password.",
+      "newLabel": "New password",
+      "confirmLabel": "Confirm password",
+      "mismatch": "Passwords don't match.",
+      "notAllReqs": "Your password doesn't meet all the requirements yet.",
+      "submit": "Set password",
+      "submitting": "Working…",
+      "errors": {
+        "expired": "The reset link has expired. Request a new one.",
+        "already_used": "This reset link has already been used. Request a new one if you want to reset again.",
+        "invalid": "The reset link is invalid. Request a new one."
+      }
+    },
+    "passwordReqs": {
+      "length": "At least 8 characters",
+      "letter": "A letter (a-z or A-Z)",
+      "digit": "A number (0-9)",
+      "special": "A special character (! @ # $ % …)"
+    }
   }
 }

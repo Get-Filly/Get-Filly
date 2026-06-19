@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import {
   PasswordStrength,
@@ -23,8 +24,17 @@ import {
 // ============================================================
 
 function ResetPasswordForm() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const params = useSearchParams();
+
+  // Vertaal de auth_error-codes uit /auth/confirm naar begrijpelijke tekst.
+  const translateAuthError = (code: string): string => {
+    if (code === "expired") return t("reset.errors.expired");
+    if (code === "already_used") return t("reset.errors.already_used");
+    // missing_token / invalid_type / verify_failed / overige → generiek
+    return t("reset.errors.invalid");
+  };
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -56,11 +66,11 @@ function ResetPasswordForm() {
     // Dezelfde check als de checklist onder het veld, zo blijven UI
     // en validatie in sync. isPasswordValid controleert alle 4 eisen.
     if (!isPasswordValid(password)) {
-      setError("Je wachtwoord voldoet nog niet aan alle eisen.");
+      setError(t("reset.notAllReqs"));
       return;
     }
     if (password !== confirm) {
-      setError("De wachtwoorden komen niet overeen.");
+      setError(t("reset.mismatch"));
       return;
     }
 
@@ -81,18 +91,15 @@ function ResetPasswordForm() {
   };
 
   if (hasSession === null) {
-    return <div className="login-sub">Laden…</div>;
+    return <div className="login-sub">{t("reset.loading")}</div>;
   }
 
   if (!hasSession) {
     return (
       <>
-        <p className="login-sub">
-          {error ??
-            "Deze reset-link is niet meer geldig. Vraag een nieuwe link aan."}
-        </p>
+        <p className="login-sub">{error ?? t("reset.invalidDefault")}</p>
         <div className="auth-switch" style={{ marginTop: 16 }}>
-          <Link href="/forgot-password">Nieuwe reset-link aanvragen</Link>
+          <Link href="/forgot-password">{t("reset.requestNew")}</Link>
         </div>
       </>
     );
@@ -100,10 +107,10 @@ function ResetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <p className="login-sub">Kies een nieuw wachtwoord.</p>
+      <p className="login-sub">{t("reset.intro")}</p>
 
       <div className="form-group">
-        <label className="form-label">Nieuw wachtwoord</label>
+        <label className="form-label">{t("reset.newLabel")}</label>
         <input
           className="form-input"
           type="password"
@@ -117,7 +124,7 @@ function ResetPasswordForm() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Bevestig wachtwoord</label>
+        <label className="form-label">{t("reset.confirmLabel")}</label>
         <input
           className="form-input"
           type="password"
@@ -136,7 +143,7 @@ function ResetPasswordForm() {
               marginTop: 4,
             }}
           >
-            Wachtwoorden komen niet overeen.
+            {t("reset.mismatch")}
           </div>
         )}
       </div>
@@ -150,33 +157,19 @@ function ResetPasswordForm() {
           loading || !isPasswordValid(password) || password !== confirm
         }
       >
-        {loading ? "Bezig…" : "Stel wachtwoord in"}
+        {loading ? t("reset.submitting") : t("reset.submit")}
       </button>
     </form>
   );
 }
 
-// Vertaal de auth_error-codes uit /auth/confirm naar begrijpelijke NL.
-function translateAuthError(code: string): string {
-  switch (code) {
-    case "expired":
-      return "De reset-link is verlopen. Vraag een nieuwe aan.";
-    case "already_used":
-      return "Deze reset-link is al gebruikt. Vraag een nieuwe aan als je opnieuw wil resetten.";
-    case "missing_token":
-    case "invalid_type":
-    case "verify_failed":
-    default:
-      return "De reset-link is ongeldig. Vraag een nieuwe aan.";
-  }
-}
-
 export default function ResetPasswordPage() {
+  const t = useTranslations("auth.reset");
   return (
     <section className="login-section">
       <div className="login-box">
-        <div className="login-title">Nieuw wachtwoord instellen</div>
-        <Suspense fallback={<div className="login-sub">Laden…</div>}>
+        <div className="login-title">{t("title")}</div>
+        <Suspense fallback={<div className="login-sub">{t("loading")}</div>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

@@ -238,5 +238,56 @@
     "ctaSubtitle": "Vraag een demo aan en ontdek wat Get-Filly voor jouw restaurant kan doen.",
     "ctaButton": "Vraag een demo aan",
     "ctaPricing": "Benieuwd wat het kost? Bekijk <link>de prijzen</link>."
+  },
+  "auth": {
+    "fields": {
+      "email": "E-mailadres",
+      "emailPlaceholder": "naam@restaurant.nl",
+      "password": "Wachtwoord"
+    },
+    "login": {
+      "title": "Welkom terug",
+      "subtitle": "Log in op je Get-Filly dashboard",
+      "forgot": "Wachtwoord vergeten?",
+      "submit": "Inloggen",
+      "submitting": "Bezig met inloggen...",
+      "noAccount": "Nog geen Get-Filly?",
+      "requestDemo": "Vraag een demo aan",
+      "loading": "Laden..."
+    },
+    "forgot": {
+      "title": "Wachtwoord resetten",
+      "sentText": "Als er een account bestaat met dit e-mailadres, hebben we je een reset-link gestuurd. Check je inbox (en spam).",
+      "backToLogin": "Terug naar inloggen",
+      "intro": "Vul je e-mailadres in, dan sturen we je een link om een nieuw wachtwoord in te stellen.",
+      "submit": "Verstuur reset-link",
+      "submitting": "Bezig…",
+      "rememberQ": "Weet je het wachtwoord weer?",
+      "login": "Inloggen"
+    },
+    "reset": {
+      "title": "Nieuw wachtwoord instellen",
+      "loading": "Laden…",
+      "invalidDefault": "Deze reset-link is niet meer geldig. Vraag een nieuwe link aan.",
+      "requestNew": "Nieuwe reset-link aanvragen",
+      "intro": "Kies een nieuw wachtwoord.",
+      "newLabel": "Nieuw wachtwoord",
+      "confirmLabel": "Bevestig wachtwoord",
+      "mismatch": "Wachtwoorden komen niet overeen.",
+      "notAllReqs": "Je wachtwoord voldoet nog niet aan alle eisen.",
+      "submit": "Stel wachtwoord in",
+      "submitting": "Bezig…",
+      "errors": {
+        "expired": "De reset-link is verlopen. Vraag een nieuwe aan.",
+        "already_used": "Deze reset-link is al gebruikt. Vraag een nieuwe aan als je opnieuw wil resetten.",
+        "invalid": "De reset-link is ongeldig. Vraag een nieuwe aan."
+      }
+    },
+    "passwordReqs": {
+      "length": "Minimaal 8 tekens",
+      "letter": "Een letter (a-z of A-Z)",
+      "digit": "Een cijfer (0-9)",
+      "special": "Een speciaal teken (! @ # $ % …)"
+    }
   }
 }

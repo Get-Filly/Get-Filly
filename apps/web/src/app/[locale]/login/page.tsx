@@ -1,11 +1,13 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
 
 function LoginForm() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const params = useSearchParams();
   const nextPath = params.get("next") ?? "/dashboard";
@@ -51,18 +53,18 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-group">
-        <label className="form-label">E-mailadres</label>
+        <label className="form-label">{t("fields.email")}</label>
         <input
           className="form-input"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="naam@restaurant.nl"
+          placeholder={t("fields.emailPlaceholder")}
           required
         />
       </div>
       <div className="form-group">
-        <label className="form-label">Wachtwoord</label>
+        <label className="form-label">{t("fields.password")}</label>
         <input
           className="form-input"
           type="password"
@@ -72,14 +74,14 @@ function LoginForm() {
           required
         />
         <Link className="forgot-link" href="/forgot-password">
-          Wachtwoord vergeten?
+          {t("login.forgot")}
         </Link>
       </div>
 
       {error && <div className="auth-error">{error}</div>}
 
       <button className="login-btn" type="submit" disabled={loading}>
-        {loading ? "Bezig met inloggen..." : "Inloggen"}
+        {loading ? t("login.submitting") : t("login.submit")}
       </button>
 
       {/* Self-service registratie is uitgeschakeld (invite-only): nieuwe
@@ -87,20 +89,21 @@ function LoginForm() {
           "account aanmaken" triggeren we bezoekers met een demo-aanvraag,
           die naar dezelfde /contact-pagina leidt als de CTA's op de landing. */}
       <div className="auth-switch">
-        Nog geen Get-Filly?{" "}
-        <Link href="/contact">Vraag een demo aan</Link>
+        {t("login.noAccount")}{" "}
+        <Link href="/contact">{t("login.requestDemo")}</Link>
       </div>
     </form>
   );
 }
 
 export default function LoginPage() {
+  const t = useTranslations("auth.login");
   return (
     <section className="login-section">
       <div className="login-box">
-        <div className="login-title">Welkom terug</div>
-        <p className="login-sub">Log in op je Get-Filly dashboard</p>
-        <Suspense fallback={<div>Laden...</div>}>
+        <div className="login-title">{t("title")}</div>
+        <p className="login-sub">{t("subtitle")}</p>
+        <Suspense fallback={<div>{t("loading")}</div>}>
           <LoginForm />
         </Suspense>
       </div>
