@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { forwardRef } from "react";
 import type {
   ActiveAction,
@@ -98,6 +99,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
     },
     scrollRef,
   ) {
+    const t = useTranslations("dash__components_filly_chat_message_list");
     // System-berichten zijn gereserveerd voor latere notificaties en
     // worden nooit getoond. Een gesprek zonder zichtbare berichten =
     // leeg → toon de geleide on-ramp (FillyGuidedFlow) i.p.v. een
@@ -144,7 +146,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                 <div key={m.id} className="msg msg-ai">
                   <div className="msg-lbl">
                     <span className="msg-avatar">F</span>
-                    <span>Filly AI</span>
+                    <span>{t("fillyLabel")}</span>
                   </div>
                   <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
                   {m.message_card?.kind === "campaign_proposal" && (
@@ -203,7 +205,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                 </div>
               ) : (
                 <div key={m.id} className="msg msg-user">
-                  <div className="msg-lbl">Jij</div>
+                  <div className="msg-lbl">{t("userLabel")}</div>
                   <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
                 </div>
               ),
@@ -237,7 +239,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
               <span></span>
               <span></span>
             </div>
-            <span className="sr-only">Filly is aan het typen…</span>
+            <span className="sr-only">{t("typing")}</span>
           </div>
         )}
       </div>

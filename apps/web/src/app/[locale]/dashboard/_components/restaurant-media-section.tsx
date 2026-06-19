@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   deleteRestaurantMedia,
   fetchRestaurantMedia,
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 const MAX_PHOTOS = 20;
 
 export function RestaurantMediaSection() {
+  const t = useTranslations("dash__components_restaurant_media_section");
   const [items, setItems] = useState<RestaurantMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -42,7 +44,7 @@ export function RestaurantMediaSection() {
       setItems(fresh);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Foto's ophalen mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.fetchFailed"));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ export function RestaurantMediaSection() {
       const newItem = await uploadRestaurantMedia(file);
       setItems((prev) => [newItem, ...prev]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.uploadFailed"));
     } finally {
       setUploading(false);
       // Reset input zodat dezelfde file 2x achter elkaar gekozen kan worden
@@ -69,11 +71,7 @@ export function RestaurantMediaSection() {
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      !window.confirm(
-        "Weet je zeker dat je deze foto wil verwijderen? Foto's die in eerdere campagnes zijn gebruikt blijven daar wel zichtbaar.",
-      )
-    ) {
+    if (!window.confirm(t("deleteConfirm"))) {
       return;
     }
     setBusy((b) => ({ ...b, [id]: true }));
@@ -81,7 +79,7 @@ export function RestaurantMediaSection() {
       await deleteRestaurantMedia(id);
       setItems((prev) => prev.filter((m) => m.id !== id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Verwijderen mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.deleteFailed"));
     } finally {
       setBusy((b) => ({ ...b, [id]: false }));
     }
@@ -91,11 +89,9 @@ export function RestaurantMediaSection() {
 
   return (
     <div className="form-section">
-      <div className="form-section-title">Foto-bibliotheek</div>
+      <div className="form-section-title">{t("title")}</div>
       <div className="form-section-desc">
-        Upload foto's van je interieur, gerechten, terras en team. Filly
-        gebruikt deze foto's bij campagne-voorstellen en je kan ze hergebruiken
-        op de campagne-pagina. Max {MAX_PHOTOS} foto's, 5MB per foto, JPEG/PNG/WebP.
+        {t("description", { max: MAX_PHOTOS })}
       </div>
 
       {/* Top-rij: status + upload-knop */}
@@ -112,10 +108,14 @@ export function RestaurantMediaSection() {
         }}
       >
         <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)" }}>
-          <strong>{items.length}</strong> van <strong>{MAX_PHOTOS}</strong> foto's
+          {t.rich("count", {
+            count: items.length,
+            max: MAX_PHOTOS,
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
           {uploading && (
             <span style={{ marginLeft: 8, color: "var(--tl, #6B6F71)" }}>
-              · Filly tagt de foto…
+              {t("tagging")}
             </span>
           )}
         </div>
@@ -132,14 +132,10 @@ export function RestaurantMediaSection() {
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={isFull || uploading}
-            title={
-              isFull
-                ? "Je bibliotheek zit vol, verwijder eerst een foto"
-                : "Upload een nieuwe foto"
-            }
+            title={isFull ? t("uploadFullTitle") : t("uploadTitle")}
             loading={uploading}
           >
-            + Foto uploaden
+            {t("uploadButton")}
           </Button>
         </div>
       </div>
@@ -160,7 +156,7 @@ export function RestaurantMediaSection() {
       )}
 
       {loading ? (
-        <div style={{ color: "var(--tl, #6B6F71)" }}>Bezig met laden…</div>
+        <div style={{ color: "var(--tl, #6B6F71)" }}>{t("loading")}</div>
       ) : items.length === 0 ? (
         <div
           style={{
@@ -173,9 +169,7 @@ export function RestaurantMediaSection() {
             lineHeight: 1.5,
           }}
         >
-          Nog geen foto's. Upload je eerste foto, Filly genereert er
-          automatisch een beschrijving + tags bij zodat 'ie ze kan
-          gebruiken in campagnes.
+          {t("emptyState")}
         </div>
       ) : (
         <div
@@ -212,6 +206,7 @@ function MediaCard({
   busy: boolean;
   onDelete: () => void;
 }) {
+  const t = useTranslations("dash__components_restaurant_media_section");
   return (
     <div
       style={{
@@ -257,7 +252,7 @@ function MediaCard({
               fontStyle: "italic",
             }}
           >
-            Geen beschrijving
+            {t("noDescription")}
           </div>
         )}
 
@@ -299,7 +294,7 @@ function MediaCard({
             type="button"
             onClick={onDelete}
             disabled={busy}
-            title="Verwijder foto"
+            title={t("deleteTitle")}
             style={{
               background: "transparent",
               border: "none",
@@ -309,7 +304,7 @@ function MediaCard({
               padding: "2px 6px",
             }}
           >
-            ✕ Verwijder
+            {t("deleteButton")}
           </button>
         </div>
       </div>

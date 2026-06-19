@@ -22,9 +22,10 @@
 // dezelfde pagina als de bijbehorende velden, eigenaar scrollt
 // gewoon naar het juiste blok of klikt op een sub-tab.
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export type ProgressChecklistItem = {
   id: string;
@@ -51,11 +52,13 @@ type Props = {
 
 export function ProgressChecklist({
   items,
-  title = "Voortgang",
+  title,
   hint,
   visibleLimit = 4,
   collapseKey,
 }: Props) {
+  const t = useTranslations("dash__components_progress_checklist");
+  const resolvedTitle = title ?? t("title");
   const total = items.length;
   const doneCount = items.filter((i) => i.done).length;
   const openItems = items.filter((i) => !i.done);
@@ -127,7 +130,7 @@ export function ProgressChecklist({
             fontSize: 14,
           }}
         >
-          {title}
+          {resolvedTitle}
           <span
             style={{
               fontSize: 12,
@@ -137,15 +140,15 @@ export function ProgressChecklist({
               marginLeft: 8,
             }}
           >
-            · {doneCount} van {total} ingevuld
+            {t("counter", { doneCount, total })}
           </span>
         </div>
         {collapseKey && (
           <button
             type="button"
             onClick={toggleCollapsed}
-            title={collapsed ? "Toon items" : "Inklappen"}
-            aria-label={collapsed ? "Toon items" : "Inklappen"}
+            title={collapsed ? t("showItems") : t("collapse")}
+            aria-label={collapsed ? t("showItems") : t("collapse")}
             style={{
               background: "transparent",
               border: "none",
@@ -271,7 +274,7 @@ export function ProgressChecklist({
                       alignSelf: "center",
                     }}
                   >
-                    Instellen →
+                    {t("configure")}
                   </Link>
                 )}
               </li>
@@ -293,7 +296,7 @@ export function ProgressChecklist({
                 padding: "6px 0",
               }}
             >
-              Toon nog {hiddenCount} {hiddenCount === 1 ? "item" : "items"} ↓
+              {t("showMore", { count: hiddenCount })}
             </button>
           )}
           {expandAll && openItems.length > visibleLimit && (
@@ -311,7 +314,7 @@ export function ProgressChecklist({
                 padding: "6px 0",
               }}
             >
-              Minder tonen ↑
+              {t("showLess")}
             </button>
           )}
         </>

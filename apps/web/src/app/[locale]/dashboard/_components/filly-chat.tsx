@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import {
   approveBundleSuggestion,
   approveSuggestion,
@@ -59,6 +60,7 @@ import { logger } from "@/lib/logger";
 // ============================================================
 
 export function FillyChat() {
+  const t = useTranslations("dash__components_filly_chat");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageCount, setMessageCount] = useState(0);
@@ -129,9 +131,7 @@ export function FillyChat() {
       // User heeft toegang tot geen enkel restaurant (zou niet moeten
       // kunnen gebeuren op /dashboard, maar defensief vangen).
       setLoading(false);
-      setError(
-        "Nog geen restaurant actief, chat is pas beschikbaar na onboarding.",
-      );
+      setError(t("errors.noRestaurant"));
       return;
     }
 
@@ -215,7 +215,7 @@ export function FillyChat() {
       .catch((e) => {
         if (cancelled) return;
         logger.error(e);
-        setError("Kon de chat niet laden. Probeer zo opnieuw.");
+        setError(t("errors.loadFailed"));
         setLoading(false);
       });
 
@@ -309,7 +309,7 @@ export function FillyChat() {
       //      forceren door messageCount op cap te zetten.
       //   2. Andere fout (rate-limit, Claude down): optimistisch
       //      bericht laten staan + foutbanner erboven.
-      const errMsg = e instanceof Error ? e.message : "Onbekende fout.";
+      const errMsg = e instanceof Error ? e.message : t("errors.unknown");
       const isCap = errMsg.includes("grens van 20") || errMsg.includes("nieuw gesprek");
       if (isCap) {
         setMessages((m) => m.filter((x) => x.id !== tempId));
@@ -317,9 +317,7 @@ export function FillyChat() {
         setError(errMsg);
       } else {
         logger.error(e);
-        setError(
-          "Filly kon niet antwoorden. Probeer nog eens (de rate-limit kan bereikt zijn).",
-        );
+        setError(t("errors.sendFailed"));
       }
     } finally {
       setSending(false);
@@ -375,14 +373,14 @@ export function FillyChat() {
       const single = choices[0];
       promptText =
         single === "mail"
-          ? "Maak een mail-campagne"
+          ? t("prompts.mail")
           : single === "instagram"
-            ? "Maak een Instagram-post"
+            ? t("prompts.instagram")
             : single === "facebook"
-              ? "Maak een Facebook-post"
+              ? t("prompts.facebook")
               : single === "whatsapp"
-                ? "Maak een WhatsApp-bericht"
-                : "Maak een Google Business-post";
+                ? t("prompts.whatsapp")
+                : t("prompts.googleBusiness");
     } else {
       // 2+ kanalen → één bundel-campagne voor álle gekozen kanalen. Sinds
       // 2026-06-02 ondersteunt de bundel alle 5 kanalen (incl. WhatsApp +
@@ -398,7 +396,7 @@ export function FillyChat() {
                 ? "WhatsApp"
                 : "Google Business";
       const labels = choices.map(labelFor);
-      promptText = `Maak een bundel-campagne voor ${labels.join(", ")}`;
+      promptText = t("prompts.bundle", { channels: labels.join(", ") });
     }
 
     try {
@@ -449,7 +447,7 @@ export function FillyChat() {
       setProposalStatus({});
     } catch (e) {
       logger.error(e);
-      setError("Kon dit gesprek niet laden.");
+      setError(t("errors.conversationLoadFailed"));
     } finally {
       setLoading(false);
     }
@@ -472,7 +470,7 @@ export function FillyChat() {
       setConversations(convs);
     } catch (e) {
       logger.error(e);
-      setError("Kon geen nieuw gesprek starten.");
+      setError(t("errors.newConversationFailed"));
     } finally {
       setLoading(false);
     }
@@ -498,9 +496,7 @@ export function FillyChat() {
     } catch (e) {
       logger.error(e);
       setError(
-        e instanceof Error
-          ? e.message
-          : "Verwijderen mislukt. Probeer 't opnieuw.",
+        e instanceof Error ? e.message : t("errors.deleteFailed"),
       );
     }
   };
@@ -528,9 +524,7 @@ export function FillyChat() {
         [messageId]: {
           state: "error",
           message:
-            e instanceof Error
-              ? e.message
-              : "Opslaan mislukt. Probeer nog eens.",
+            e instanceof Error ? e.message : t("errors.saveFailed"),
         },
       }));
     }
@@ -565,9 +559,7 @@ export function FillyChat() {
         [messageId]: {
           state: "error",
           message:
-            e instanceof Error
-              ? e.message
-              : "Bundle-aanmaken mislukt. Probeer nog eens.",
+            e instanceof Error ? e.message : t("errors.bundleFailed"),
         },
       }));
     }
@@ -598,9 +590,9 @@ export function FillyChat() {
     <div className="card chat-card" id="filly-chat">
       <div className="card-h">
         <div>
-          <div className="card-t">Filly AI</div>
+          <div className="card-t">{t("title")}</div>
           <div className="card-st">
-            Marketing-assistent
+            {t("subtitle")}
             {/* Bericht-X-van-20-indicator. Alleen bij ≥10 berichten
                 tonen, anders is 't visuele ruis. Geel/oranje vanaf
                 15 zodat de eigenaar ziet dat 'ie tegen de cap aanloopt. */}
@@ -615,7 +607,10 @@ export function FillyChat() {
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                · Bericht {messageCount} / {CHAT_CONVERSATION_CAP}
+                {t("messageCounter", {
+                  count: messageCount,
+                  cap: CHAT_CONVERSATION_CAP,
+                })}
               </span>
             )}
           </div>
@@ -644,7 +639,7 @@ export function FillyChat() {
                 fontWeight: 500,
               }}
             >
-              Online
+              {t("online")}
             </span>
           </div>
         </div>
@@ -676,7 +671,7 @@ export function FillyChat() {
           className="chat-jump"
           onClick={scrollToBottom}
         >
-          ↓ Nieuwe berichten
+          {t("jumpToNew")}
         </button>
       )}
 
@@ -705,9 +700,7 @@ export function FillyChat() {
               color: "var(--color-brand-deep)",
             }}
           >
-            Dit gesprek heeft de grens van {CHAT_CONVERSATION_CAP} berichten
-            bereikt. Filly onthoudt wat 'ie hier heeft geleerd voor volgende
-            gesprekken.
+            {t("capReached", { cap: CHAT_CONVERSATION_CAP })}
           </div>
           <button
             type="button"
@@ -715,7 +708,7 @@ export function FillyChat() {
             disabled={loading}
             className="ui-btn ui-btn--primary ui-btn--sm"
           >
-            ＋ Nieuw gesprek starten
+            {t("startNewConversation")}
           </button>
         </div>
       ) : (

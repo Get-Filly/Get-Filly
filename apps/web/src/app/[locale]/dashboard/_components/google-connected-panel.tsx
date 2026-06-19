@@ -12,6 +12,7 @@
 // dat tonen we als een nette "toegang in aanvraag"-melding i.p.v. een
 // fout. Self-gating: niet gekoppeld -> rendert niets.
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { useRestaurant } from "@/lib/restaurant-context";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/api";
 
 export function GoogleConnectedPanel() {
+  const t = useTranslations("dash__components_google_connected_panel");
   const { active } = useRestaurant();
 
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,7 @@ export function GoogleConnectedPanel() {
             // De backend geeft 'api_not_approved' tot Google de
             // API-toegang goedkeurt; dat is geen echte fout.
             if (reason === "api_not_approved") setNotApproved(true);
-            else setError("Profielgegevens ophalen mislukt.");
+            else setError(t("errors.fetchFailed"));
           }
         }
       } catch {
@@ -59,7 +61,7 @@ export function GoogleConnectedPanel() {
     return () => {
       cancelled = true;
     };
-  }, [active?.id]);
+  }, [active?.id, t]);
 
   // Nog ladend of niet gekoppeld -> niets tonen.
   if (loading || !connected) return null;
@@ -75,25 +77,23 @@ export function GoogleConnectedPanel() {
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
-        Google Bedrijfsprofiel
+        {t("title")}
       </div>
 
       {notApproved ? (
         <div style={{ fontSize: 12, color: "var(--tl)", lineHeight: 1.5 }}>
-          ✓ Verbonden. Het ophalen en beheren van je profielgegevens komt
-          beschikbaar zodra Google de API-toegang heeft goedgekeurd (in
-          aanvraag).
+          {t("notApproved")}
         </div>
       ) : error ? (
         <div style={{ fontSize: 12, color: "var(--red, #B42318)" }}>{error}</div>
       ) : accounts.length === 0 ? (
         <div style={{ fontSize: 12, color: "var(--tl)" }}>
-          Geen beheerde Google-Bedrijfsprofielen gevonden onder dit account.
+          {t("empty")}
         </div>
       ) : (
         <div>
           <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 8 }}>
-            Beheerde profielen via je Google-account:
+            {t("managedProfiles")}
           </div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
             {accounts.map((a) => (

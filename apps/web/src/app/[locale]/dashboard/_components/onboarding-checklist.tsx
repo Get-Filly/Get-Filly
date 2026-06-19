@@ -18,6 +18,7 @@
 // hun eigen per-tab checklist.
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchCampaigns,
   fetchRestaurant,
@@ -31,6 +32,7 @@ import {
 function buildChecklist(
   restaurant: Restaurant,
   campaignCount: number,
+  t: ReturnType<typeof useTranslations>,
 ): ProgressChecklistItem[] {
   // Per 2026-05-21: alleen items die nog ONDER Account vallen.
   // Logo + menukaart + identiteit-velden zijn verhuisd naar
@@ -56,29 +58,29 @@ function buildChecklist(
   return [
     {
       id: "profile",
-      label: "Profielbasis: type, adres en capaciteit",
-      hint: "Zonder dit kan Filly geen voorstellen op maat doen.",
+      label: t("items.profile.label"),
+      hint: t("items.profile.hint"),
       href: "/dashboard/account",
       done: profileBasicsDone,
     },
     {
       id: "hours",
-      label: "Openingstijden invullen",
-      hint: "Voorkomt dat Filly mailings verstuurt op gesloten dagen.",
+      label: t("items.hours.label"),
+      hint: t("items.hours.hint"),
       href: "/dashboard/account",
       done: openingHoursDone,
     },
     {
       id: "campaign",
-      label: "Eerste campagne aanmaken",
-      hint: "Maak een test-concept om de flow te leren kennen.",
+      label: t("items.campaign.label"),
+      hint: t("items.campaign.hint"),
       href: "/dashboard/campagnes",
       done: campaignCount > 0,
     },
     {
       id: "business",
-      label: "Bedrijfsgegevens (legal name + KvK)",
-      hint: "Verschijnt in mail-footers en is verplicht voor mailings naar gasten.",
+      label: t("items.business.label"),
+      hint: t("items.business.hint"),
       href: "/dashboard/account",
       done: businessDetailsDone,
     },
@@ -86,6 +88,7 @@ function buildChecklist(
 }
 
 export function OnboardingChecklist() {
+  const t = useTranslations("dash__components_onboarding_checklist");
   const [items, setItems] = useState<ProgressChecklistItem[] | null>(null);
 
   useEffect(() => {
@@ -93,21 +96,21 @@ export function OnboardingChecklist() {
     // pagina toch al kent (geen extra fetch-load voor de klant).
     Promise.all([fetchRestaurant(), fetchCampaigns()])
       .then(([restaurant, campaigns]) => {
-        setItems(buildChecklist(restaurant, campaigns.length));
+        setItems(buildChecklist(restaurant, campaigns.length, t));
       })
       .catch(() => {
         // Fail-soft: bij fout verbergt de checklist zich. De pagina
         // mag nooit kapot gaan door een onboarding-component.
         setItems(null);
       });
-  }, []);
+  }, [t]);
 
   if (!items) return null;
 
   return (
     <ProgressChecklist
-      title="Filly aan het werk zetten"
-      hint="Vink deze setup-stappen af zodat Filly betere voorstellen kan doen. De lijst verdwijnt vanzelf zodra alles ✓ is."
+      title={t("title")}
+      hint={t("hint")}
       items={items}
       collapseKey="getfilly_onboarding_checklist_collapsed_v1"
     />

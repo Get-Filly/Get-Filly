@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   SERVICE_LABELS,
   tierBackground,
@@ -60,6 +62,7 @@ export function ServiceGrid({
   fillHeight = false,
   labelColumnWidth = "72px",
 }: Props) {
+  const t = useTranslations("dash__components_service_grid");
   const gridCols = `${labelColumnWidth} repeat(${serviceKeys.length}, 1fr)`;
 
   const wrapperStyle: React.CSSProperties = fillHeight
@@ -179,7 +182,11 @@ export function ServiceGrid({
             return (
               <div
                 key={key}
-                title={`${row.label} ${SERVICE_LABELS[key]}: ${pct}%`}
+                title={t("cellTooltip", {
+                  label: row.label,
+                  service: SERVICE_LABELS[key],
+                  pct,
+                })}
                 style={{
                   height: cellHeight,
                   minHeight: cellMinHeight,

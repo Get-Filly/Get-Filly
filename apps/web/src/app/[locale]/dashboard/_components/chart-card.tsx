@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { maandenNL } from "../_lib/calendar-data";
 import {
   getWeekdayHistory,
@@ -36,26 +38,27 @@ type Props = {
 };
 
 export function ChartCard({ view, year, month, selectedDay, occupancy }: Props) {
+  const t = useTranslations("dash__components_chart_card");
   const monthName = maandenNL[month];
 
   let values: number[] = [];
-  let title = "Bezettingstrend";
+  const title = t("title");
   let subtitle = "";
   let labels: [string, string, string] = ["", "", ""];
 
   if (view === "dag" && selectedDay) {
     const jsDay = new Date(year, month, selectedDay).getDay();
     values = getWeekdayHistory(jsDay);
-    subtitle = `${weekdayLabel(jsDay)}, afgelopen 6 maanden`;
-    labels = ["-6 mnd", "-3 mnd", "nu"];
+    subtitle = t("subtitleDay", { weekday: weekdayLabel(jsDay) });
+    labels = [t("labelMinus6Months"), t("labelMinus3Months"), t("labelNow")];
   } else if (view === "jaar") {
     values = getYearMonthlyAverages(year);
-    subtitle = `Per maand, ${year}`;
-    labels = ["jan", "jul", "dec"];
+    subtitle = t("subtitleYear", { year });
+    labels = [t("labelJan"), t("labelJul"), t("labelDec")];
   } else {
     // Maand-view: gebruik echte occupancy-data
     values = occupancy.map((d) => d.occupancy_pct);
-    subtitle = `Per dag, ${monthName} ${year}`;
+    subtitle = t("subtitleMonth", { month: monthName, year });
     const short = monthName.slice(0, 3);
     labels = [
       `1 ${short}`,
@@ -71,11 +74,11 @@ export function ChartCard({ view, year, month, selectedDay, occupancy }: Props) 
       <div className="card">
         <div className="card-h">
           <div>
-            <div className="card-t">Bezettingstrend</div>
+            <div className="card-t">{t("title")}</div>
             <div className="card-st">
               {view === "dag"
-                ? "Selecteer een dag in de kalender"
-                : "Geen data beschikbaar"}
+                ? t("emptySelectDay")
+                : t("emptyNoData")}
             </div>
           </div>
         </div>
@@ -121,8 +124,8 @@ export function ChartCard({ view, year, month, selectedDay, occupancy }: Props) 
             <span className="chart-lbl">{labels[2]}</span>
           </div>
           <div style={{ marginTop: 8, fontSize: 11, color: "var(--tl)" }}>
-            <span style={{ color: "var(--orange)" }}>–––</span> Gemiddelde:{" "}
-            {avg}%
+            <span style={{ color: "var(--orange)" }}>–––</span>{" "}
+            {t("average", { value: avg })}
           </div>
         </div>
       </div>

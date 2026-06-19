@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { fetchKpis, fetchOccupancy, type Kpis, type OccupancyDay } from "@/lib/api";
 import { mergeMonthData } from "../_lib/calendar-data";
 import { Skeleton } from "./skeleton";
+
+type Translate = ReturnType<typeof useTranslations>;
 
 // "Bezetting vandaag" moet exact hetzelfde tonen als de kalender-cel
 // voor vandaag. De kalender vult lege dagen met seeded mock-data
@@ -41,38 +44,44 @@ type KpiCard = {
 // Eerder hadden we ook Gasten mei + Geschatte omzet mei, maar
 // Floris koos voor de scherpere "klant-focus" presentatie: pure
 // vandaag-snapshot + 2 campagne-state-tegels.
-function kpisToCards(kpis: Kpis, todayPct: number | null): KpiCard[] {
+function kpisToCards(
+  kpis: Kpis,
+  todayPct: number | null,
+  t: Translate,
+): KpiCard[] {
   const cards: KpiCard[] = [];
 
   cards.push({
-    label: "Bezetting vandaag",
+    label: t("occupancyToday"),
     value: todayPct !== null ? `${todayPct}%` : "—",
     fillyExtra: null,
   });
 
   cards.push({
-    label: "Gasten vandaag",
+    label: t("guestsToday"),
     value: kpis.today_guests.toLocaleString("nl-NL"),
     fillyExtra:
       kpis.today_filly_guests > 0
-        ? `+${kpis.today_filly_guests} via Filly`
-        : "0 via Filly",
+        ? t("viaFillyCount", { count: kpis.today_filly_guests })
+        : t("viaFillyNone"),
     positive: kpis.today_filly_guests > 0,
   });
 
   cards.push({
-    label: "Lopende campagnes",
+    label: t("activeCampaigns"),
     value: kpis.active_campaigns.toLocaleString("nl-NL"),
     fillyExtra:
-      kpis.active_campaigns > 0 ? "actief of ingepland" : "geen actieve",
+      kpis.active_campaigns > 0
+        ? t("activeOrScheduled")
+        : t("noneActive"),
     positive: kpis.active_campaigns > 0,
   });
 
   cards.push({
-    label: "Voorgestelde campagnes",
+    label: t("suggestedCampaigns"),
     value: `${kpis.pending_suggestions}`,
     fillyExtra:
-      kpis.pending_suggestions > 0 ? "wachten op goedkeuring" : null,
+      kpis.pending_suggestions > 0 ? t("awaitingApproval") : null,
     positive: false,
   });
 
@@ -80,6 +89,7 @@ function kpisToCards(kpis: Kpis, todayPct: number | null): KpiCard[] {
 }
 
 export function KpiRow() {
+  const t = useTranslations("dash__components_kpi_row");
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -103,10 +113,9 @@ export function KpiRow() {
     return (
       <div className="kpi-row">
         <div className="kpi" style={{ gridColumn: "1 / -1" }}>
-          <div className="kpi-label">Cijfers nog niet beschikbaar</div>
+          <div className="kpi-label">{t("notAvailableTitle")}</div>
           <div className="kpi-filly" style={{ marginTop: 4 }}>
-            Zodra je reserveringen en campagnes binnenkomen verschijnen
-            de KPI&apos;s hier.
+            {t("notAvailableBody")}
           </div>
         </div>
       </div>
@@ -126,7 +135,7 @@ export function KpiRow() {
     );
   }
 
-  const cards = kpisToCards(kpis, todayPctFromOccupancy(occupancy));
+  const cards = kpisToCards(kpis, todayPctFromOccupancy(occupancy), t);
 
   return (
     <div className="kpi-row">

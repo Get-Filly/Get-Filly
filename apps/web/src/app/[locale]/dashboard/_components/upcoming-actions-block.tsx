@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useActionableDays } from "@/lib/use-actionable-days";
 
 // ============================================================
@@ -42,6 +44,8 @@ type Props = {
 };
 
 export function UpcomingActionsBlock({ layout = "flex" }: Props) {
+  const t = useTranslations("dash__components_upcoming_actions_block");
+
   // Gedeelde bron-van-waarheid met de geleide chat-flow (audit-item #5):
   // dezelfde rustige-/speciale-dagen-berekening leeft nu in één hook,
   // i.p.v. hier los gedupliceerd (drift-risico). We aliassen de
@@ -86,29 +90,25 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
         {criticalDays.length > 0 ? (
           <>
             <strong>
-              {criticalDays.length} rustige dag
-              {criticalDays.length > 1 ? "en" : ""}
+              {t("lowOccupancyCount", { count: criticalDays.length })}
             </strong>{" "}
-            komende 2 weken:{" "}
+            {t("nextTwoWeeks")}{" "}
             {criticalDays
               .slice(0, 5)
               .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
               .join(", ")}
             {criticalDays.length > 5 &&
-              `, +${criticalDays.length - 5} meer`}
+              t("moreSuffix", { count: criticalDays.length - 5 })}
           </>
         ) : coveredCritical > 0 ? (
           <>
-            <strong>Rustige dagen afgedekt</strong> — alle{" "}
-            {coveredCritical} rustige dag
-            {coveredCritical > 1 ? "en" : ""} komende 2 weken
-            {coveredCritical > 1 ? " hebben" : " heeft"} al een voorstel
-            of campagne.
+            <strong>{t("lowOccupancyCoveredTitle")}</strong>{" "}
+            {t("lowOccupancyCovered", { count: coveredCritical })}
           </>
         ) : (
           <>
-            <strong>Geen rustige dagen</strong> — je bezetting komende 2
-            weken ziet er goed uit.
+            <strong>{t("noLowOccupancyTitle")}</strong>{" "}
+            {t("noLowOccupancy")}
           </>
         )}
       </div>
@@ -123,29 +123,25 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
         {upcomingSpecial.length > 0 ? (
           <>
             <strong>
-              {upcomingSpecial.length} speciale dag
-              {upcomingSpecial.length > 1 ? "en" : ""}
+              {t("specialCount", { count: upcomingSpecial.length })}
             </strong>{" "}
-            komende 6 weken:{" "}
+            {t("nextSixWeeks")}{" "}
             {upcomingSpecial
               .slice(0, 5)
               .map((s) => `${s.name} (${formatDayNl(s.date)})`)
               .join(", ")}
             {upcomingSpecial.length > 5 &&
-              `, +${upcomingSpecial.length - 5} meer`}
+              t("moreSuffix", { count: upcomingSpecial.length - 5 })}
           </>
         ) : coveredSpecial > 0 ? (
           <>
-            <strong>Speciale dagen afgedekt</strong> — alle{" "}
-            {coveredSpecial} speciale dag
-            {coveredSpecial > 1 ? "en" : ""} komende 6 weken
-            {coveredSpecial > 1 ? " hebben" : " heeft"} al een voorstel
-            of campagne.
+            <strong>{t("specialCoveredTitle")}</strong>{" "}
+            {t("specialCovered", { count: coveredSpecial })}
           </>
         ) : (
           <>
-            <strong>Geen speciale dagen</strong> — komende 6 weken staan
-            er geen feest- of themadagen op de kalender.
+            <strong>{t("noSpecialTitle")}</strong>{" "}
+            {t("noSpecial")}
           </>
         )}
       </div>

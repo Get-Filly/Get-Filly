@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { type Module } from "@getfilly/shared";
 import { useRestaurant } from "@/lib/restaurant-context";
 
@@ -67,6 +68,7 @@ function requiredModuleFor(pathname: string): Module | null {
 }
 
 export function AccessGuard({ children }: { children: ReactNode }) {
+  const t = useTranslations("dash__components_access_guard");
   const pathname = usePathname();
   const router = useRouter();
   const { active, loading } = useRestaurant();
@@ -110,11 +112,10 @@ export function AccessGuard({ children }: { children: ReactNode }) {
       }}
     >
       <h2 style={{ margin: "0 0 8px", fontSize: 20, color: "var(--text, #18181B)" }}>
-        Geen toegang
+        {t("noAccessTitle")}
       </h2>
       <p style={{ margin: 0, fontSize: 14 }}>
-        Je hebt geen rechten voor deze pagina. Vraag de eigenaar om
-        toegang of ga terug naar het dashboard.
+        {t("noAccessBody")}
       </p>
     </div>
   );

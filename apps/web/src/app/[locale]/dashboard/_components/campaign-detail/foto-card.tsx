@@ -24,6 +24,7 @@
 // onMediaChanged(newSignedUrl|null) triggert refetch in parent.
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   deleteCampaignMedia,
   uploadCampaignMedia,
@@ -55,6 +56,7 @@ export function FotoCard({
   canEdit,
   onMediaChanged,
 }: Props) {
+  const t = useTranslations("dash__components_campaign_detail_foto_card");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -70,7 +72,7 @@ export function FotoCard({
   const useFromLibrary = async (item: RestaurantMediaItem) => {
     setPickerOpen(false);
     if (!item.url) {
-      setError("Foto kon niet geladen worden uit de bibliotheek.");
+      setError(t("errors.libraryLoadFailed"));
       return;
     }
     setError(null);
@@ -86,7 +88,7 @@ export function FotoCard({
       setError(
         e instanceof Error
           ? e.message
-          : "Foto uit bibliotheek koppelen mislukt.",
+          : t("errors.libraryLinkFailed"),
       );
     } finally {
       setUploading(false);
@@ -95,12 +97,14 @@ export function FotoCard({
 
   const validateAndUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      setError("Alleen afbeeldingen (JPG, PNG, WebP, GIF).");
+      setError(t("errors.imagesOnly"));
       return;
     }
     if (file.size > MAX_BYTES) {
       setError(
-        `Bestand te groot (${Math.round(file.size / 1024 / 1024)}MB). Max 10MB.`,
+        t("errors.fileTooLarge", {
+          size: Math.round(file.size / 1024 / 1024),
+        }),
       );
       return;
     }
@@ -111,7 +115,7 @@ export function FotoCard({
       onMediaChanged(signed_url);
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Upload mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.uploadFailed"),
       );
     } finally {
       setUploading(false);
@@ -126,7 +130,7 @@ export function FotoCard({
 
   const remove = async () => {
     if (!canEdit || busy) return;
-    if (!confirm("Foto verwijderen?")) return;
+    if (!confirm(t("confirmRemove"))) return;
     setError(null);
     setDeleting(true);
     try {
@@ -134,7 +138,7 @@ export function FotoCard({
       onMediaChanged(null);
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Verwijderen mislukt.",
+        e instanceof Error ? e.message : t("errors.removeFailed"),
       );
     } finally {
       setDeleting(false);
@@ -145,7 +149,7 @@ export function FotoCard({
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
         <div>
-          <div className="card-t">Foto of video</div>
+          <div className="card-t">{t("title")}</div>
         </div>
       </div>
       <div className="card-b">
@@ -156,7 +160,7 @@ export function FotoCard({
           >
             <img
               src={signedUrl}
-              alt={fileName ?? "Campagne-foto"}
+              alt={fileName ?? t("photoAlt")}
               style={{
                 width: 96,
                 height: 96,
@@ -176,7 +180,7 @@ export function FotoCard({
                   whiteSpace: "nowrap",
                 }}
               >
-                {fileName ?? "Campagne-foto"}
+                {fileName ?? t("photoAlt")}
               </div>
               <div
                 style={{
@@ -185,7 +189,7 @@ export function FotoCard({
                   marginTop: 2,
                 }}
               >
-                Gekoppeld aan deze campagne.
+                {t("linkedToCampaign")}
               </div>
             </div>
             {canEdit && (
@@ -195,7 +199,7 @@ export function FotoCard({
                   onClick={() => setPickerOpen(true)}
                   disabled={busy}
                 >
-                  Wijzig
+                  {t("change")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -204,7 +208,7 @@ export function FotoCard({
                   loading={deleting}
                   style={{ color: "var(--color-danger, #B91C1C)" }}
                 >
-                  Verwijder
+                  {t("remove")}
                 </Button>
               </div>
             )}
@@ -220,7 +224,7 @@ export function FotoCard({
             }}
           >
             <div style={{ fontSize: 14, color: "var(--ts)" }}>
-              Nog geen foto of video gekoppeld.
+              {t("empty")}
             </div>
             {canEdit && (
               <div style={{ display: "flex", gap: 8 }}>
@@ -229,7 +233,7 @@ export function FotoCard({
                   onClick={() => setPickerOpen(true)}
                   disabled={busy}
                 >
-                  Kies uit bibliotheek
+                  {t("pickFromLibrary")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -237,7 +241,7 @@ export function FotoCard({
                   disabled={busy}
                   loading={uploading}
                 >
-                  Upload nieuw
+                  {t("uploadNew")}
                 </Button>
               </div>
             )}

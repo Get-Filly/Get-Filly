@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   HALF_HOUR_SLOTS,
   HOUR_HEADERS,
@@ -52,6 +54,7 @@ export function HourHeatmap({
   fillHeight = false,
   labelColumnWidth = "54px",
 }: Props) {
+  const t = useTranslations("dash__components_hour_heatmap");
   const gridCols = `${labelColumnWidth} repeat(${HALF_HOUR_SLOTS.length}, 1fr)`;
 
   // Outer-wrapper: bij fillHeight is 'ie zelf flex-1, anders auto.
@@ -134,7 +137,11 @@ export function HourHeatmap({
           {row.hours.map((pct, hIdx) => (
             <div
               key={hIdx}
-              title={`${row.label} ${HALF_HOUR_SLOTS[hIdx]}, ${pct}%`}
+              title={t("cellTitle", {
+                label: row.label,
+                time: HALF_HOUR_SLOTS[hIdx],
+                pct,
+              })}
               style={{
                 height: cellHeight,
                 minHeight: MIN_CELL_HEIGHT,

@@ -31,6 +31,7 @@
 // (mail-send, social-publish) gebruiken.
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 export type InhoudVariant = {
@@ -90,6 +91,9 @@ export function InhoudCard({
   onDraftBodyChange,
   onRegenerate,
 }: Props) {
+  const t = useTranslations(
+    "dash__components_campaign_detail_inhoud_card",
+  );
   // 'Originele' variant = de selectedIndex die we zagen bij de
   // eerste render van deze campagne. Daarmee kan de ✕-knop altijd
   // terug-flippen naar de versie die de eigenaar zag bij binnenkomst.
@@ -132,7 +136,7 @@ export function InhoudCard({
     >
       <div className="card-h">
         <div>
-          <div className="card-t">Inhoud</div>
+          <div className="card-t">{t("title")}</div>
         </div>
       </div>
       <div className="card-b">
@@ -150,13 +154,13 @@ export function InhoudCard({
             onDraftBodyChange={onDraftBodyChange}
             onSave={onSaveEditVariant}
             onCancel={onCancelEditVariant}
-            versieLabel={`Versie ${safeSelected + 1}`}
+            versieLabel={t("versionLabel", { n: safeSelected + 1 })}
           />
         ) : (
           <SelectedReader
             variant={selected}
             type={type}
-            versieLabel={`Versie ${safeSelected + 1}`}
+            versieLabel={t("versionLabel", { n: safeSelected + 1 })}
             canEdit={canEdit}
             busy={busy}
             canRevert={canRevertToOriginal}
@@ -183,15 +187,15 @@ export function InhoudCard({
               disabled={busy || variants.length >= 6}
               title={
                 variants.length >= 6
-                  ? "Maximum 6 versies — bewerk een bestaande of kies een alternatief"
-                  : "Filly genereert 3 nieuwe alternatieven"
+                  ? t("regenerateMaxTitle")
+                  : t("regenerateTitle")
               }
             >
               {refining
-                ? "Filly schrijft…"
+                ? t("regenerateWriting")
                 : variants.length >= 6
-                  ? "Maximum aantal versies bereikt"
-                  : "Genereer 3 nieuwe versies"}
+                  ? t("regenerateMaxLabel")
+                  : t("regenerateLabel")}
             </Button>
           </div>
         )}
@@ -217,7 +221,7 @@ export function InhoudCard({
                 marginBottom: 10,
               }}
             >
-              Andere versies ({alternatives.length})
+              {t("otherVersions", { count: alternatives.length })}
             </div>
             <div
               style={{
@@ -232,7 +236,7 @@ export function InhoudCard({
                 <AlternativeBlock
                   key={idx}
                   variant={v}
-                  versieLabel={`Versie ${idx + 1}`}
+                  versieLabel={t("versionLabel", { n: idx + 1 })}
                   canEdit={canEdit}
                   busy={busy}
                   onPick={() => onSelectVariant(idx)}
@@ -268,6 +272,9 @@ function SelectedReader({
   onEdit: () => void;
   onRevert: () => void;
 }) {
+  const t = useTranslations(
+    "dash__components_campaign_detail_inhoud_card",
+  );
   return (
     <div
       style={{
@@ -312,7 +319,7 @@ function SelectedReader({
               border: "1px solid var(--accent, #1F4A2D)",
             }}
           >
-            ✓ Gekozen
+            ✓ {t("chosen")}
           </span>
           {canEdit && (
             <button
@@ -331,7 +338,7 @@ function SelectedReader({
                 opacity: busy ? 0.5 : 1,
               }}
             >
-              ✎ Bewerk
+              ✎ {t("edit")}
             </button>
           )}
           {canRevert && (
@@ -339,7 +346,7 @@ function SelectedReader({
               type="button"
               onClick={onRevert}
               disabled={busy}
-              title="Terug naar de oorspronkelijke versie"
+              title={t("revertTitle")}
               style={{
                 fontSize: 12,
                 fontWeight: 700,
@@ -375,7 +382,9 @@ function SelectedReader({
               color: "var(--text)",
             }}
           >
-            <span style={{ opacity: 0.6, fontWeight: 500 }}>Onderwerp:</span>{" "}
+            <span style={{ opacity: 0.6, fontWeight: 500 }}>
+              {t("subjectPrefix")}
+            </span>{" "}
             {variant.subject_line}
           </div>
         ) : (
@@ -396,7 +405,7 @@ function SelectedReader({
               cursor: canEdit ? "pointer" : "default",
             }}
           >
-            ◦ Onderwerp ontbreekt — klik om in te vullen
+            ◦ {t("subjectMissing")}
           </button>
         )
       ) : (
@@ -421,7 +430,7 @@ function SelectedReader({
         }}
       >
         {variant?.body || (
-          <em style={{ color: "var(--tl)" }}>Geen inhoud.</em>
+          <em style={{ color: "var(--tl)" }}>{t("noContent")}</em>
         )}
       </div>
     </div>
@@ -455,6 +464,9 @@ function SelectedEditor({
   onCancel: () => void;
   versieLabel: string;
 }) {
+  const t = useTranslations(
+    "dash__components_campaign_detail_inhoud_card",
+  );
   return (
     <div
       style={{
@@ -476,14 +488,14 @@ function SelectedEditor({
           color: "var(--accent, #1F4A2D)",
         }}
       >
-        {versieLabel} bewerken
+        {t("editingLabel", { label: versieLabel })}
       </div>
       {type === "mail" && (
         <input
           type="text"
           value={draftSubject}
           onChange={(e) => onDraftSubjectChange(e.target.value)}
-          placeholder="Onderwerp"
+          placeholder={t("subjectPlaceholder")}
           maxLength={200}
           style={{
             padding: "8px 10px",
@@ -498,7 +510,7 @@ function SelectedEditor({
       <textarea
         value={draftBody}
         onChange={(e) => onDraftBodyChange(e.target.value)}
-        placeholder="Bericht-inhoud"
+        placeholder={t("bodyPlaceholder")}
         maxLength={5000}
         rows={8}
         style={{
@@ -520,7 +532,7 @@ function SelectedEditor({
           loading={savingEdit}
           disabled={busy && !savingEdit}
         >
-          Opslaan
+          {t("save")}
         </Button>
         <Button
           size="sm"
@@ -528,7 +540,7 @@ function SelectedEditor({
           onClick={onCancel}
           disabled={savingEdit}
         >
-          Annuleren
+          {t("cancel")}
         </Button>
       </div>
     </div>
@@ -554,6 +566,9 @@ function AlternativeBlock({
   busy: boolean;
   onPick: () => void;
 }) {
+  const t = useTranslations(
+    "dash__components_campaign_detail_inhoud_card",
+  );
   const interactive = canEdit && !busy;
   return (
     <button
@@ -573,7 +588,7 @@ function AlternativeBlock({
         transition: "all 0.15s",
         opacity: !interactive ? 0.85 : 1,
       }}
-      title={interactive ? "Maak deze de gekozen versie" : undefined}
+      title={interactive ? t("pickTitle") : undefined}
     >
       <div
         style={{
@@ -606,7 +621,7 @@ function AlternativeBlock({
         }}
       >
         {variant.body || (
-          <em style={{ color: "var(--tl)" }}>Geen inhoud.</em>
+          <em style={{ color: "var(--tl)" }}>{t("noContent")}</em>
         )}
       </div>
     </button>

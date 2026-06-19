@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   sendCampaign,
   type SendCampaignResult,
@@ -38,6 +39,7 @@ export function CampaignSendModal({
   defaultTestEmail,
   onClose,
 }: Props) {
+  const t = useTranslations("dash__components_campaign_send_modal");
   const [mode, setMode] = useState<"test" | "all_opted_in">("test");
   const [testEmail, setTestEmail] = useState(defaultTestEmail ?? "");
   const [confirmText, setConfirmText] = useState("");
@@ -51,13 +53,12 @@ export function CampaignSendModal({
   if (campaignType !== "mail") {
     return (
       <ModalShell onClose={onClose}>
-        <h3 style={{ margin: 0, fontSize: 18 }}>Niet mogelijk</h3>
+        <h3 style={{ margin: 0, fontSize: 18 }}>{t("notPossibleTitle")}</h3>
         <p style={{ marginTop: 8, color: "var(--tl, #6B6F71)", fontSize: 13 }}>
-          Alleen mail-campagnes kunnen via deze flow worden verzonden.
-          Social en WhatsApp komen later via een aparte koppeling.
+          {t("notPossibleBody")}
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button onClick={onClose}>Sluiten</Button>
+          <Button onClick={onClose}>{t("close")}</Button>
         </div>
       </ModalShell>
     );
@@ -74,7 +75,7 @@ export function CampaignSendModal({
       );
       setResult(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Versturen mislukt.");
+      setError(e instanceof Error ? e.message : t("sendFailed"));
     } finally {
       setSending(false);
     }
@@ -95,16 +96,19 @@ export function CampaignSendModal({
     return (
       <ModalShell onClose={onClose}>
         <h3 style={{ margin: 0, fontSize: 18 }}>
-          {success ? "✓ Verstuurd" : "Deels verstuurd"}
+          {success ? t("resultSuccessTitle") : t("resultPartialTitle")}
         </h3>
         <div style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>
-          <strong>{result.sent}</strong> van <strong>{result.total}</strong>{" "}
-          mails succesvol naar Resend gestuurd.
+          {t.rich("resultSummary", {
+            sent: result.sent,
+            total: result.total,
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
           {result.failed > 0 && (
             <>
               {" "}
               <span style={{ color: "var(--danger, #B3261E)" }}>
-                {result.failed} mislukt.
+                {t("resultFailed", { failed: result.failed })}
               </span>
             </>
           )}
@@ -121,7 +125,7 @@ export function CampaignSendModal({
               overflowY: "auto",
             }}
           >
-            <strong>Mislukte adressen:</strong>
+            <strong>{t("failedAddresses")}</strong>
             <ul style={{ margin: "6px 0 0 0", paddingLeft: 18 }}>
               {result.failures.map((f, i) => (
                 <li key={i}>
@@ -138,11 +142,10 @@ export function CampaignSendModal({
             color: "var(--tl, #6B6F71)",
           }}
         >
-          Resend bevestigt aankomst via webhooks (delivered/bounced), die
-          status verschijnt zo bij de campagne-stats.
+          {t("resultWebhookNote")}
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button onClick={onClose}>Klaar</Button>
+          <Button onClick={onClose}>{t("done")}</Button>
         </div>
       </ModalShell>
     );
@@ -150,7 +153,9 @@ export function CampaignSendModal({
 
   return (
     <ModalShell onClose={onClose}>
-      <h3 style={{ margin: 0, fontSize: 18 }}>Verstuur "{campaignName}"</h3>
+      <h3 style={{ margin: 0, fontSize: 18 }}>
+        {t("formTitle", { name: campaignName })}
+      </h3>
 
       {/* Mode-toggle: test vs echt verzenden */}
       <div
@@ -164,14 +169,14 @@ export function CampaignSendModal({
         <ModeCard
           active={mode === "test"}
           onClick={() => setMode("test")}
-          title="Test naar mezelf"
-          subtitle="Eén mail naar 1 adres om te checken hoe 'ie eruit ziet"
+          title={t("modeTestTitle")}
+          subtitle={t("modeTestSubtitle")}
         />
         <ModeCard
           active={mode === "all_opted_in"}
           onClick={() => setMode("all_opted_in")}
-          title="Echt verzenden"
-          subtitle="Naar alle gasten met mail-toestemming"
+          title={t("modeRealTitle")}
+          subtitle={t("modeRealSubtitle")}
         />
       </div>
 
@@ -181,7 +186,7 @@ export function CampaignSendModal({
             htmlFor="test-email"
             style={{ fontSize: 13, fontWeight: 500 }}
           >
-            Test-mailadres
+            {t("testEmailLabel")}
           </label>
           <input
             id="test-email"
@@ -205,7 +210,7 @@ export function CampaignSendModal({
               marginTop: 6,
             }}
           >
-            Stuur 'm naar je eigen mailbox om te zien hoe gasten 't ontvangen.
+            {t("testEmailHint")}
           </p>
         </div>
       ) : (
@@ -220,9 +225,9 @@ export function CampaignSendModal({
               lineHeight: 1.5,
             }}
           >
-            <strong>Onomkeerbaar.</strong> De campagne gaat nu uit naar
-            alle gasten met mail-toestemming. Typ de campagne-naam ter
-            bevestiging:
+            {t.rich("confirmNotice", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
           <input
             type="text"
@@ -265,7 +270,7 @@ export function CampaignSendModal({
         }}
       >
         <Button variant="secondary" onClick={onClose} disabled={sending}>
-          Annuleren
+          {t("cancel")}
         </Button>
         <Button
           variant="primary"
@@ -273,7 +278,7 @@ export function CampaignSendModal({
           disabled={!allReadyToSend || sending}
           loading={sending}
         >
-          {mode === "test" ? "Verstuur test" : "Verstuur naar gasten"}
+          {mode === "test" ? t("sendTest") : t("sendToGuests")}
         </Button>
       </div>
     </ModalShell>

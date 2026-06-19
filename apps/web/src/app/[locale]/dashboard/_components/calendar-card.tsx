@@ -17,6 +17,7 @@ import {
   type ServiceKey,
 } from "../_lib/hour-heatmap";
 import { ServiceGrid, type ServiceGridRow } from "./service-grid";
+import { useTranslations } from "next-intl";
 import type { OccupancyDay, Restaurant } from "@/lib/api";
 // Megafoon = hetzelfde "Campagnes"-icoon als in de sidebar (lucide-react).
 // Gebruikt als enige markering op een dag met een ingeplande campagne,
@@ -40,8 +41,6 @@ type Props = {
   // dag. Null tijdens initial-load → fallback naar lunch + diner.
   restaurant: Restaurant | null;
 };
-
-const weekdays = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
 
 /**
  * Map occupancy-percentage naar één van vijf heatmap-tiers.
@@ -93,8 +92,19 @@ export function CalendarCard({
   restaurant,
   occupancy,
 }: Props) {
+  const t = useTranslations("dash__components_calendar_card");
   const today = new Date();
   const cells = mergeMonthData(viewYear, viewMonth, occupancy);
+
+  const weekdays = [
+    t("weekday.mon"),
+    t("weekday.tue"),
+    t("weekday.wed"),
+    t("weekday.thu"),
+    t("weekday.fri"),
+    t("weekday.sat"),
+    t("weekday.sun"),
+  ];
 
   const monthName =
     maandenNL[viewMonth].charAt(0).toUpperCase() +
@@ -221,15 +231,15 @@ export function CalendarCard({
       <div className="card-h">
         <div className="cal-controls" style={{ width: "100%" }}>
           <div className="cal-nav">
-            <button className="cal-nav-btn" onClick={goPrev} aria-label="Vorige">
+            <button className="cal-nav-btn" onClick={goPrev} aria-label={t("prev")}>
               ‹
             </button>
             <div className="cal-nav-label">{label}</div>
-            <button className="cal-nav-btn" onClick={goNext} aria-label="Volgende">
+            <button className="cal-nav-btn" onClick={goNext} aria-label={t("next")}>
               ›
             </button>
             <button className="cal-today-btn" onClick={goToday}>
-              Vandaag
+              {t("today")}
             </button>
           </div>
           <div className="toggle-group">
@@ -239,7 +249,7 @@ export function CalendarCard({
                 className={`toggle-btn ${view === v ? "active" : ""}`}
                 onClick={() => onViewChange(v)}
               >
-                {v.charAt(0).toUpperCase() + v.slice(1)}
+                {t(`view.${v}`)}
               </button>
             ))}
           </div>
@@ -276,11 +286,9 @@ export function CalendarCard({
                       {cell.campaigns.length > 0 && (
                         <span
                           className="cal-campaign"
-                          title={
-                            cell.campaigns.length === 1
-                              ? "Campagne ingepland"
-                              : `${cell.campaigns.length} campagnes ingepland`
-                          }
+                          title={t("campaignScheduled", {
+                            count: cell.campaigns.length,
+                          })}
                         >
                           <Megaphone size={12} strokeWidth={1.75} aria-hidden />
                         </span>
@@ -366,7 +374,7 @@ export function CalendarCard({
           // gebaseerd op dag-overall-pct + service-multiplier.
           // Kolommen = unie van alle actieve services in de week:
           // dagen waar een service inactief is krijgen lege cel.
-          const dayLabels = ["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"];
+          const dayLabels = weekdays;
           const todayStr = today.toISOString().slice(0, 10);
           const allServices: ServiceKey[] = [];
           const seenServices = new Set<ServiceKey>();

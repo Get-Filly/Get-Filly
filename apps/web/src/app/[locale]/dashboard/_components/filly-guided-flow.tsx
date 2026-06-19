@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import {
   Sparkles,
   CalendarDays,
@@ -93,38 +94,18 @@ function buildContextOptions(ctx: DayContext | null): ContextOption[] {
 type Step = "opener" | "angles" | "channels" | "generating" | "done";
 
 // Altijd-beschikbare hoeken (los van wat er die dag gedetecteerd is).
-// placeholder !== undefined → de hoek opent een vrij tekstveld.
+// hasInput === true → de hoek opent een vrij tekstveld. Labels en
+// placeholders worden via t() opgehaald op basis van id (i18n).
 const ANGLES: {
   id: string;
-  label: string;
   Icon: typeof Tag;
-  placeholder?: string;
+  hasInput?: boolean;
 }[] = [
-  {
-    id: "gerecht",
-    label: "Gerecht of drankje uitlichten",
-    Icon: UtensilsCrossed,
-    placeholder: "Welk gerecht of drankje? (bijv. Burrata di Puglia)",
-  },
-  {
-    id: "deal",
-    label: "Een deal of aanbieding",
-    Icon: Tag,
-    placeholder: "Wat voor deal? (bijv. 2-gangenmenu € 27,50)",
-  },
-  { id: "sfeer", label: "Sfeer & beleving", Icon: Sparkles },
-  {
-    id: "doelgroep",
-    label: "Voor een doelgroep",
-    Icon: Users,
-    placeholder: "Welke doelgroep? (bijv. gezinnen, after-work)",
-  },
-  {
-    id: "anders",
-    label: "Iets anders",
-    Icon: Pencil,
-    placeholder: "Typ je eigen hoek",
-  },
+  { id: "gerecht", Icon: UtensilsCrossed, hasInput: true },
+  { id: "deal", Icon: Tag, hasInput: true },
+  { id: "sfeer", Icon: Sparkles },
+  { id: "doelgroep", Icon: Users, hasInput: true },
+  { id: "anders", Icon: Pencil, hasInput: true },
 ];
 
 const CHANNEL_LABEL: Record<string, string> = {
@@ -146,6 +127,7 @@ export function FillyGuidedFlow({
   initialTopic?: string;
   onActionChange?: (delta: ActiveActionDelta) => void;
 }) {
+  const t = useTranslations("dash__components_filly_guided_flow");
   const router = useRouter();
   const {
     lowOccupancyDays,
@@ -330,9 +312,7 @@ export function FillyGuidedFlow({
         // Geen stille redirect meer: blijf in de flow met een duidelijke
         // melding zodat de eigenaar niet na 3 stappen "zomaar" op /campagnes
         // belandt zonder resultaat (UX-audit 2026-06-18).
-        setError(
-          "Het lukte niet om een voorstel te maken voor deze dag. Probeer een andere dag of een andere hoek.",
-        );
+        setError(t("errors.noResult"));
         setStep("channels");
         return;
       }
@@ -341,11 +321,7 @@ export function FillyGuidedFlow({
       onActionChange?.({ step: "done" });
     } catch (e) {
       logger.error(e);
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Voorstel maken lukte niet. Probeer 't zo opnieuw.",
-      );
+      setError(e instanceof Error ? e.message : t("errors.generic"));
       setStep("channels");
     }
   };
@@ -370,11 +346,11 @@ export function FillyGuidedFlow({
         <div className="fg-welcome" role="status" aria-live="polite">
           <span className="fg-avatar">F</span>
           <div>
-            <div className="fg-welcome-title">Klaar! ✨</div>
+            <div className="fg-welcome-title">{t("done.title")}</div>
             <div className="fg-welcome-text">
               {result.length > 1
-                ? `Ik heb ${result.length} voorstellen voor je klaargezet.`
-                : "Ik heb een voorstel voor je klaargezet."}
+                ? t("done.bodyPlural", { count: result.length })
+                : t("done.bodySingle")}
             </div>
           </div>
         </div>
@@ -395,7 +371,7 @@ export function FillyGuidedFlow({
               <div key={s.id} className="fg-result">
                 <div className="fg-result-head">
                   <span className="fg-result-name">
-                    {sc.name ?? "Voorstel"}
+                    {sc.name ?? t("result.fallbackName")}
                   </span>
                   <span className="fg-result-channels">
                     {channelLabels.map((l) => (
@@ -413,7 +389,7 @@ export function FillyGuidedFlow({
                     router.push(`/dashboard/campagnes/voorstel/${s.id}`)
                   }
                 >
-                  Bekijken &amp; aanpassen →
+                  {t("result.viewEdit")}
                 </button>
               </div>
             );
@@ -422,14 +398,14 @@ export function FillyGuidedFlow({
 
         <div className="fg-done-actions">
           <button type="button" className="fg-more" onClick={restart}>
-            ＋ Nog een actie
+            {t("done.anotherAction")}
           </button>
           <button
             type="button"
             className="fg-more"
             onClick={() => router.push("/dashboard/campagnes")}
           >
-            Alle voorstellen →
+            {t("done.allSuggestions")}
           </button>
         </div>
       </div>
@@ -442,7 +418,7 @@ export function FillyGuidedFlow({
       <div className="filly-guided">
         <div className="fg-welcome" role="status" aria-live="polite">
           <span className="fg-avatar">F</span>
-          <div className="fg-welcome-text">Filly maakt je voorstel…</div>
+          <div className="fg-welcome-text">{t("generating.text")}</div>
         </div>
         <div className="typing" style={{ marginTop: 4 }}>
           <span></span>
@@ -458,11 +434,11 @@ export function FillyGuidedFlow({
       <div className="fg-welcome">
         <span className="fg-avatar">F</span>
         <div>
-          <div className="fg-welcome-title">Waar kan ik je mee helpen?</div>
+          <div className="fg-welcome-title">{t("welcome.title")}</div>
           <div className="fg-welcome-text">
             {step === "opener"
-              ? "Ik heb een paar dagen gedetecteerd. Voor welke dag wil je een uiting maken?"
-              : "Beantwoord de vragen of pas een eerdere stap aan."}
+              ? t("welcome.openerText")
+              : t("welcome.continueText")}
           </div>
         </div>
       </div>
@@ -482,7 +458,7 @@ export function FillyGuidedFlow({
               onClick={() => setStep("angles")}
             >
               <Check size={13} strokeWidth={2.5} />
-              <span>Hoek aanpassen</span>
+              <span>{t("trail.editAngle")}</span>
               <Pencil size={12} strokeWidth={2.25} className="fg-trail-edit" />
             </button>
           )}
@@ -492,13 +468,15 @@ export function FillyGuidedFlow({
       {/* ---------- Opener: gedetecteerde dagen (rustige eerst) ---------- */}
       {step === "opener" &&
         (loading ? (
-          <div className="fg-loading">Even kijken welke kansen er zijn…</div>
+          <div className="fg-loading">{t("opener.loading")}</div>
         ) : (
           <>
             <div className="fg-group-label">
               <TrendingDown size={13} strokeWidth={2.25} />
-              Rustige dagen
-              {hasOccupancyData ? ` (onder ${occupancyThreshold}%)` : ""}
+              {t("opener.quietDays")}
+              {hasOccupancyData
+                ? t("opener.belowThreshold", { threshold: occupancyThreshold })
+                : ""}
             </div>
             {hasOccupancyData && lowOccupancyDays.length > 0 ? (
               <div className="fg-options">
@@ -516,7 +494,9 @@ export function FillyGuidedFlow({
                     }
                   >
                     <span className="fg-opt-main">{formatDayNl(d.date)}</span>
-                    <span className="fg-opt-sub">{d.occupancy_pct}% bezet</span>
+                    <span className="fg-opt-sub">
+                      {t("opener.occupied", { pct: d.occupancy_pct })}
+                    </span>
                   </button>
                 ))}
                 {lowOccupancyDays.length > QUIET_DAYS_PREVIEW && (
@@ -526,16 +506,17 @@ export function FillyGuidedFlow({
                     onClick={() => setShowAllQuiet((v) => !v)}
                   >
                     {showAllQuiet
-                      ? "Minder tonen"
-                      : `+ ${lowOccupancyDays.length - QUIET_DAYS_PREVIEW} meer rustige dagen`}
+                      ? t("opener.showLess")
+                      : t("opener.showMore", {
+                          count:
+                            lowOccupancyDays.length - QUIET_DAYS_PREVIEW,
+                        })}
                   </button>
                 )}
               </div>
             ) : (
               <>
-                <div className="fg-q">
-                  Er staan nog geen reserveringen, dus elke open dag is rustig.
-                </div>
+                <div className="fg-q">{t("opener.noReservations")}</div>
                 <div className="fg-options">
                   {upcomingOpenDays.slice(0, 4).map((iso) => (
                     <button
@@ -561,7 +542,7 @@ export function FillyGuidedFlow({
               <>
                 <div className="fg-group-label" style={{ marginTop: 6 }}>
                   <CalendarDays size={13} strokeWidth={2.25} />
-                  Speciale dagen
+                  {t("opener.specialDays")}
                 </div>
                 <div className="fg-options">
                   {specialDays.map((s) => (
@@ -590,7 +571,7 @@ export function FillyGuidedFlow({
 
             <div className="fg-group-label" style={{ marginTop: 6 }}>
               <CalendarDays size={13} strokeWidth={2.25} />
-              Of kies zelf een dag
+              {t("opener.pickOwnDay")}
             </div>
             <input
               type="date"
@@ -604,12 +585,13 @@ export function FillyGuidedFlow({
       {/* ---------- Hoeken voor de gekozen dag ---------- */}
       {step === "angles" &&
         (loadingContext || (initialDate && !autoStarted) ? (
-          <div className="fg-loading">Filly kijkt wat er die dag kan…</div>
+          <div className="fg-loading">{t("angles.loading")}</div>
         ) : (
           <>
             <div className="fg-q">
-              Voor {picked ? picked.label : "die dag"} — waarop wil je
-              inspelen?
+              {t("angles.question", {
+                day: picked ? picked.label : t("angles.thatDay"),
+              })}
             </div>
 
             <button
@@ -618,16 +600,15 @@ export function FillyGuidedFlow({
               onClick={() => generate(true)}
             >
               <span className="fg-opt-main">
-                <Wand2 size={15} strokeWidth={2.25} /> Laat Filly de sterkste
-                hoek kiezen
+                <Wand2 size={15} strokeWidth={2.25} /> {t("angles.fillyChoose")}
               </span>
-              <span className="fg-opt-sub">snelste</span>
+              <span className="fg-opt-sub">{t("angles.fastest")}</span>
             </button>
 
             {contextOptions.length > 0 && (
               <>
                 <div className="fg-group-label" style={{ marginTop: 6 }}>
-                  Wat speelt er die dag
+                  {t("angles.whatsHappening")}
                 </div>
                 <div className="fg-options">
                   {contextOptions.map((o) => {
@@ -651,10 +632,10 @@ export function FillyGuidedFlow({
             )}
 
             <div className="fg-group-label" style={{ marginTop: 6 }}>
-              Of kies een hoek
+              {t("angles.pickAngle")}
             </div>
             <div className="fg-options">
-              {ANGLES.map(({ id, label, Icon, placeholder }) => {
+              {ANGLES.map(({ id, Icon, hasInput }) => {
                 const sel = selectedAngles.has(id);
                 return (
                   <div key={id}>
@@ -664,15 +645,16 @@ export function FillyGuidedFlow({
                       onClick={() => setSelectedAngles((s) => toggle(s, id))}
                     >
                       <span className="fg-opt-main">
-                        <Icon size={15} strokeWidth={2.25} /> {label}
+                        <Icon size={15} strokeWidth={2.25} />{" "}
+                        {t(`angles.options.${id}.label`)}
                       </span>
                       {sel && <Check size={15} strokeWidth={2.5} />}
                     </button>
-                    {sel && placeholder && (
+                    {sel && hasInput && (
                       <input
                         type="text"
                         className="fg-input"
-                        placeholder={placeholder}
+                        placeholder={t(`angles.options.${id}.placeholder`)}
                         value={angleText[id] ?? ""}
                         onChange={(e) => setAngleTextFor(id, e.target.value)}
                       />
@@ -687,7 +669,7 @@ export function FillyGuidedFlow({
               className="ui-btn ui-btn--primary ui-btn--sm fg-next"
               onClick={() => setStep("channels")}
             >
-              Verder
+              {t("angles.next")}
             </button>
           </>
         ))}
@@ -697,8 +679,8 @@ export function FillyGuidedFlow({
         <>
           <div className="fg-q">
             {dayContext && dayContext.channels.length > 0
-              ? "Op welke kanalen? Ik heb de aanbevolen alvast aangevinkt."
-              : "Ik kies zelf het beste kanaal. Zal ik 'm maken?"}
+              ? t("channels.question")
+              : t("channels.autoQuestion")}
           </div>
           {dayContext && dayContext.channels.length > 0 && (
             <div className="fg-options">
@@ -733,7 +715,7 @@ export function FillyGuidedFlow({
               selectedChannels.size === 0
             }
           >
-            Maak de actie
+            {t("channels.makeAction")}
           </button>
         </>
       )}
@@ -742,7 +724,7 @@ export function FillyGuidedFlow({
 
       <div className="fg-hint">
         <Sparkles size={12} strokeWidth={2.25} />
-        Of typ hieronder zelf een vraag
+        {t("hint.typeOwn")}
       </div>
     </div>
   );

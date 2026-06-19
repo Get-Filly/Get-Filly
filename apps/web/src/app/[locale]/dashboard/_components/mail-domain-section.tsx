@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchMailDomainStatus,
   registerMailDomain,
@@ -34,6 +35,8 @@ import { Input } from "@/components/ui/input";
 // ============================================================
 
 export function MailDomainSection() {
+  const t = useTranslations("dash__components_mail_domain_section");
+
   const [data, setData] = useState<MailDomainStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export function MailDomainSection() {
       setData(fresh);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Onbekende fout.");
+      setError(e instanceof Error ? e.message : t("errors.unknown"));
     } finally {
       setLoading(false);
     }
@@ -84,7 +87,7 @@ export function MailDomainSection() {
       setDomain("");
       setFromAddress("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Registreren mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.register"));
     } finally {
       setBusy(false);
     }
@@ -97,18 +100,14 @@ export function MailDomainSection() {
       const fresh = await verifyMailDomain();
       setData(fresh);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Verificatie mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.verify"));
     } finally {
       setBusy(false);
     }
   };
 
   const handleRemove = async () => {
-    if (
-      !window.confirm(
-        "Weet je zeker dat je dit eigen domein wil loskoppelen? Mail valt daarna terug op social@get-filly.com.",
-      )
-    ) {
+    if (!window.confirm(t("removeConfirm"))) {
       return;
     }
     setError(null);
@@ -123,7 +122,7 @@ export function MailDomainSection() {
         records: [],
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Verwijderen mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.remove"));
     } finally {
       setBusy(false);
     }
@@ -132,7 +131,7 @@ export function MailDomainSection() {
   if (loading) {
     return (
       <SectionShell>
-        <div style={{ color: "var(--tl, #6B6F71)" }}>Bezig met laden…</div>
+        <div style={{ color: "var(--tl, #6B6F71)" }}>{t("loading")}</div>
       </SectionShell>
     );
   }
@@ -140,7 +139,7 @@ export function MailDomainSection() {
   if (!data) {
     return (
       <SectionShell>
-        <ErrorBox message={error ?? "Onbekende fout."} />
+        <ErrorBox message={error ?? t("errors.unknown")} />
       </SectionShell>
     );
   }
@@ -155,8 +154,8 @@ export function MailDomainSection() {
           <StatusRow
             color="var(--brand, #1F4A2D)"
             icon="✓"
-            label={`Eigen domein actief: ${data.fromAddress}`}
-            sub="Mails worden verzonden vanuit je eigen domein. Replies komen direct in je mailbox."
+            label={t("verified.label", { address: data.fromAddress ?? "" })}
+            sub={t("verified.sub")}
           />
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <Button
@@ -165,7 +164,7 @@ export function MailDomainSection() {
               onClick={handleRemove}
               disabled={busy}
             >
-              Loskoppelen
+              {t("verified.disconnect")}
             </Button>
           </div>
         </div>
@@ -181,19 +180,19 @@ export function MailDomainSection() {
             icon={data.status === "pending" ? "⏳" : "⚠"}
             label={
               data.status === "pending"
-                ? `DNS-controle loopt voor ${data.domain}`
-                : `DNS-records nog niet correct voor ${data.domain}`
+                ? t("pending.label", { domain: data.domain ?? "" })
+                : t("failed.label", { domain: data.domain ?? "" })
             }
             sub={
               data.status === "pending"
-                ? "Voeg de onderstaande records toe bij je DNS-host. Klik daarna op 'Verifieer'. DNS-propagatie kan 5-30 minuten duren."
-                : "Controleer dat alle records exact zijn overgenomen. Sommige DNS-hosts voegen automatisch het domein achter de hostname toe, corrigeer dan zo nodig."
+                ? t("pending.sub")
+                : t("failed.sub")
             }
           />
           <DnsRecordsTable records={data.records} />
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <Button onClick={handleVerify} disabled={busy} loading={busy}>
-              Verifieer
+              {t("pending.verify")}
             </Button>
             <Button
               variant="ghost"
@@ -201,7 +200,7 @@ export function MailDomainSection() {
               onClick={handleRemove}
               disabled={busy}
             >
-              Annuleren / loskoppelen
+              {t("pending.cancel")}
             </Button>
           </div>
         </div>
@@ -213,12 +212,12 @@ export function MailDomainSection() {
           <StatusRow
             color="var(--tl, #6B6F71)"
             icon="✉"
-            label="Standaard-verzending via Get Filly"
-            sub="Je campagne-mails komen van social@get-filly.com met je restaurant-naam als afzender. Voor pure klant-branding kun je je eigen domein koppelen."
+            label={t("none.label")}
+            sub={t("none.sub")}
           />
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <Button onClick={() => setSetupMode(true)}>
-              Eigen domein instellen
+              {t("none.setup")}
             </Button>
           </div>
         </div>
@@ -228,29 +227,29 @@ export function MailDomainSection() {
       {data.status === "none" && setupMode && (
         <div>
           <h4 style={{ margin: "0 0 12px", fontSize: 14 }}>
-            Eigen domein koppelen
+            {t("setup.title")}
           </h4>
           <Input
-            label="Domein"
+            label={t("setup.domainLabel")}
             type="text"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
             placeholder="bistrodemo.nl"
-            hint="Zonder http:// of www., alleen de domeinnaam."
+            hint={t("setup.domainHint")}
           />
           <div style={{ marginTop: 12 }}>
             <Input
-              label="Verzendadres"
+              label={t("setup.fromLabel")}
               type="email"
               value={fromAddress}
               onChange={(e) => setFromAddress(e.target.value)}
               placeholder={domain ? `info@${domain}` : "info@bistrodemo.nl"}
-              hint="Het adres dat ontvangers zien in 'Van'. Moet eindigen op je domein."
+              hint={t("setup.fromHint")}
             />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <Button onClick={handleRegister} disabled={busy} loading={busy}>
-              Aanmaken
+              {t("setup.create")}
             </Button>
             <Button
               variant="ghost"
@@ -258,7 +257,7 @@ export function MailDomainSection() {
               onClick={() => setSetupMode(false)}
               disabled={busy}
             >
-              Annuleren
+              {t("setup.cancel")}
             </Button>
           </div>
           <p
@@ -269,9 +268,7 @@ export function MailDomainSection() {
               lineHeight: 1.5,
             }}
           >
-            Na aanmaken krijg je 4 DNS-records die je bij je DNS-host
-            (TransIP / Versio / Namecheap / etc.) moet toevoegen. Daarna
-            kun je verifiëren, duurt meestal 5-15 minuten na DNS-update.
+            {t("setup.note")}
           </p>
         </div>
       )}
@@ -284,12 +281,11 @@ export function MailDomainSection() {
 // ============================================================
 
 function SectionShell({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("dash__components_mail_domain_section");
   return (
     <div className="form-section">
-      <div className="form-section-title">Mail-instellingen</div>
-      <div className="form-section-desc">
-        Vanuit welk adres je campagne-mails worden verstuurd.
-      </div>
+      <div className="form-section-title">{t("sectionTitle")}</div>
+      <div className="form-section-desc">{t("sectionDesc")}</div>
       <div style={{ marginTop: 8 }}>{children}</div>
     </div>
   );
@@ -336,6 +332,8 @@ function StatusRow({
 }
 
 function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
+  const t = useTranslations("dash__components_mail_domain_section");
+
   const copy = async (s: string) => {
     try {
       await navigator.clipboard.writeText(s);
@@ -356,7 +354,7 @@ function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
           color: "var(--tl, #6B6F71)",
         }}
       >
-        Geen records beschikbaar. Probeer de pagina te herladen.
+        {t("table.empty")}
       </div>
     );
   }
@@ -378,11 +376,11 @@ function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
               fontWeight: 500,
             }}
           >
-            <th style={cellPad}>Type</th>
-            <th style={cellPad}>Hostname</th>
-            <th style={cellPad}>Waarde</th>
-            <th style={cellPad}>Prio</th>
-            <th style={cellPad}>Status</th>
+            <th style={cellPad}>{t("table.type")}</th>
+            <th style={cellPad}>{t("table.hostname")}</th>
+            <th style={cellPad}>{t("table.value")}</th>
+            <th style={cellPad}>{t("table.priority")}</th>
+            <th style={cellPad}>{t("table.status")}</th>
             <th style={cellPad}></th>
           </tr>
         </thead>
@@ -443,9 +441,9 @@ function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
                     fontSize: 11,
                     cursor: "pointer",
                   }}
-                  title="Kopieer waarde naar klembord"
+                  title={t("table.copyTitle")}
                 >
-                  Kopieer
+                  {t("table.copy")}
                 </button>
               </td>
             </tr>
@@ -460,11 +458,9 @@ function DnsRecordsTable({ records }: { records: DnsRecord[] }) {
           lineHeight: 1.5,
         }}
       >
-        Hostname-tip: bij sommige DNS-hosts hoef je{" "}
-        <code>.jouw-domein.nl</code> niet zelf achter de hostname te
-        zetten, die voegt 'm zelf toe. Bij andere moet je de volledige
-        hostname (bv. <code>resend._domainkey.jouw-domein.nl</code>)
-        invoeren.
+        {t.rich("table.hostnameTip", {
+          code: (chunks) => <code>{chunks}</code>,
+        })}
       </p>
     </div>
   );

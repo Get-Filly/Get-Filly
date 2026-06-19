@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { ChannelChoiceCard } from "@/lib/api";
 
 // ============================================================
@@ -48,21 +49,24 @@ type Props = {
   onChoose: (choices: ChannelChoice[]) => void;
 };
 
+// Translation-keys per optie (label/hint worden in de component via
+// useTranslations opgehaald). De icon's blijven hier, want dat is geen
+// vertaalbare tekst.
 const OPTIONS: Array<{
   key: ChannelChoice;
   icon: string;
-  label: string;
-  hint: string;
+  labelKey: string;
+  hintKey: string;
 }> = [
-  { key: "mail", icon: "✉️", label: "Mail", hint: "Naar gastenlijst" },
-  { key: "instagram", icon: "📷", label: "Instagram", hint: "IG-post" },
-  { key: "facebook", icon: "📘", label: "Facebook", hint: "FB-post" },
-  { key: "whatsapp", icon: "💬", label: "WhatsApp", hint: "Persoonlijk bericht" },
+  { key: "mail", icon: "✉️", labelKey: "options.mail.label", hintKey: "options.mail.hint" },
+  { key: "instagram", icon: "📷", labelKey: "options.instagram.label", hintKey: "options.instagram.hint" },
+  { key: "facebook", icon: "📘", labelKey: "options.facebook.label", hintKey: "options.facebook.hint" },
+  { key: "whatsapp", icon: "💬", labelKey: "options.whatsapp.label", hintKey: "options.whatsapp.hint" },
   // Google Business: post op je Google Business Profile (zichtbaar in
   // Maps + zoekresultaten). Voor horeca een ondergewaardeerd kanaal
   // qua bereik. Bundle-handling nog niet beschikbaar, dus splitten we
   // 'm af bij multi-select (zie comment hierboven).
-  { key: "google_business", icon: "📍", label: "Google Business", hint: "Post op je profiel" },
+  { key: "google_business", icon: "📍", labelKey: "options.googleBusiness.label", hintKey: "options.googleBusiness.hint" },
 ];
 
 export function FillyChatChoiceCard({
@@ -70,6 +74,8 @@ export function FillyChatChoiceCard({
   state,
   onChoose,
 }: Props) {
+  const t = useTranslations("dash__components_filly_chat_choice_card");
+
   // Multi-select state, alle 4 starten uitgevinkt zodat eigenaar
   // bewust een keuze maakt (geen accidentele submit-bij-default).
   const [selected, setSelected] = useState<Record<ChannelChoice, boolean>>({
@@ -117,10 +123,10 @@ export function FillyChatChoiceCard({
   // duidelijkheid wat er gaat gebeuren.
   const buttonLabel =
     chosenCount === 0
-      ? "Selecteer een optie"
+      ? t("submit.empty")
       : chosenCount === 1
-        ? "Verstuur"
-        : `Verstuur (bundel ${chosenCount} kanalen)`;
+        ? t("submit.single")
+        : t("submit.bundle", { count: chosenCount });
 
   return (
     <div
@@ -159,7 +165,7 @@ export function FillyChatChoiceCard({
             whiteSpace: "nowrap",
           }}
         >
-          {allSelected ? "Geen kiezen" : "Selecteer alles"}
+          {allSelected ? t("selectNone") : t("selectAll")}
         </button>
       </div>
       <div
@@ -212,7 +218,7 @@ export function FillyChatChoiceCard({
                 </span>
               )}
               <div style={{ fontSize: 18 }}>{opt.icon}</div>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>{opt.label}</div>
+              <div style={{ fontWeight: 600, fontSize: 13 }}>{t(opt.labelKey)}</div>
               <div
                 style={{
                   fontSize: 11,
@@ -222,7 +228,7 @@ export function FillyChatChoiceCard({
                   lineHeight: 1.3,
                 }}
               >
-                {opt.hint}
+                {t(opt.hintKey)}
               </div>
             </button>
           );
@@ -254,7 +260,7 @@ export function FillyChatChoiceCard({
               disabled || chosenCount === 0 ? "not-allowed" : "pointer",
           }}
         >
-          {state === "submitting" ? "Filly bedenkt…" : buttonLabel}
+          {state === "submitting" ? t("thinking") : buttonLabel}
         </button>
       </div>
     </div>

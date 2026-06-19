@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchRestaurantMedia,
   uploadRestaurantMedia,
@@ -32,6 +33,7 @@ type Props = {
 };
 
 export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
+  const t = useTranslations("dash__components_media_library_picker");
   const [items, setItems] = useState<RestaurantMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -48,19 +50,17 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
         setError(null);
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : "Foto's ophalen mislukt.");
+        setError(e instanceof Error ? e.message : t("errors.fetchFailed"));
       })
       .finally(() => setLoading(false));
-  }, [open]);
+  }, [open, t]);
 
   const isFull = items.length >= MAX_PHOTOS;
 
   const handleFileSelect = async (file: File | null) => {
     if (!file) return;
     if (isFull) {
-      setError(
-        `Je bibliotheek zit vol (${MAX_PHOTOS} foto's). Verwijder eerst een foto op Account → Foto-bibliotheek.`,
-      );
+      setError(t("errors.libraryFull", { max: MAX_PHOTOS }));
       return;
     }
     setError(null);
@@ -71,7 +71,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
       // meteen kiezen zonder de modal te sluiten.
       setItems((prev) => [newItem, ...prev]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload mislukt.");
+      setError(e instanceof Error ? e.message : t("errors.uploadFailed"));
     } finally {
       setUploading(false);
       // Reset input zodat dezelfde file 2x achter elkaar gekozen kan worden.
@@ -145,7 +145,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
             gap: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 18 }}>Kies uit bibliotheek</h3>
+          <h3 style={{ margin: 0, fontSize: 18 }}>{t("title")}</h3>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               ref={fileInputRef}
@@ -162,16 +162,16 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
               loading={uploading}
               title={
                 isFull
-                  ? `Je bibliotheek zit vol (${MAX_PHOTOS} foto's). Verwijder eerst een foto op Account → Foto-bibliotheek.`
-                  : "Upload een nieuwe foto"
+                  ? t("errors.libraryFull", { max: MAX_PHOTOS })
+                  : t("uploadTitle")
               }
             >
-              + Foto uploaden
+              {t("uploadPhoto")}
             </Button>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Sluiten"
+              aria-label={t("close")}
               style={{
                 background: "transparent",
                 border: "none",
@@ -195,15 +195,16 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
             marginBottom: 12,
           }}
         >
-          <strong>{items.length}</strong> van <strong>{MAX_PHOTOS}</strong>{" "}
-          foto's
+          {t.rich("photoCount", {
+            count: items.length,
+            max: MAX_PHOTOS,
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
           {uploading && (
-            <span style={{ marginLeft: 8 }}>· Filly tagt de foto…</span>
+            <span style={{ marginLeft: 8 }}>{t("taggingHint")}</span>
           )}
           {!uploading && (
-            <span style={{ marginLeft: 8 }}>
-              · sleep een foto hierheen om te uploaden
-            </span>
+            <span style={{ marginLeft: 8 }}>{t("dragHint")}</span>
           )}
         </div>
 
@@ -230,7 +231,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
               color: "var(--tl, #6B6F71)",
             }}
           >
-            Foto's laden…
+            {t("loadingPhotos")}
           </div>
         ) : items.length === 0 ? (
           <div
@@ -244,7 +245,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
               lineHeight: 1.6,
             }}
           >
-            Nog geen foto's in je bibliotheek.
+            {t("emptyTitle")}
             <br />
             <Button
               variant="primary"
@@ -254,10 +255,10 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
               loading={uploading}
               style={{ marginTop: 10 }}
             >
-              + Upload je eerste foto
+              {t("uploadFirstPhoto")}
             </Button>
             <div style={{ fontSize: 12, marginTop: 8 }}>
-              … of sleep een foto naar dit venster.
+              {t("emptyDragHint")}
             </div>
           </div>
         ) : (
@@ -323,7 +324,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
           }}
         >
           <Button variant="secondary" onClick={onClose}>
-            Annuleren
+            {t("cancel")}
           </Button>
         </div>
       </div>

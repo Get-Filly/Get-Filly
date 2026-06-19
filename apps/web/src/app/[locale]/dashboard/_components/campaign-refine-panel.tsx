@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   fetchCampaignVariants,
   generateCampaignVariants,
@@ -53,6 +54,7 @@ export function CampaignRefinePanel({
   // visueel identiek zijn aan de voorstel-detail-layout).
   embedded?: boolean;
 }) {
+  const t = useTranslations("dash__components_campaign_refine_panel");
   const [instruction, setInstruction] = useState("");
   const [variants, setVariants] = useState<Variant[]>([]);
   const [canRegenerate, setCanRegenerate] = useState(true);
@@ -112,9 +114,7 @@ export function CampaignRefinePanel({
       setDraftBody("");
     } catch (e) {
       setError(
-        e instanceof Error
-          ? e.message
-          : "Bewerken mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.editFailed"),
       );
     } finally {
       setSavingEdit(false);
@@ -149,9 +149,7 @@ export function CampaignRefinePanel({
       } catch (e) {
         if (cancelled) return;
         setError(
-          e instanceof Error
-            ? e.message
-            : "Kon alternatieven niet laden. Herlaad de pagina.",
+          e instanceof Error ? e.message : t("errors.loadFailed"),
         );
       } finally {
         if (!cancelled) {
@@ -182,9 +180,7 @@ export function CampaignRefinePanel({
       setInstruction("");
     } catch (e) {
       setError(
-        e instanceof Error
-          ? e.message
-          : "Genereren mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.generateFailed"),
       );
     } finally {
       setGenerating(false);
@@ -211,7 +207,7 @@ export function CampaignRefinePanel({
       // zodra de rerender variant_applied_at ziet.
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Toepassen mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.applyFailed"),
       );
     } finally {
       setApplyingIdx(null);
@@ -245,8 +241,8 @@ export function CampaignRefinePanel({
               }}
               placeholder={
                 regenCount === 0
-                  ? "Optioneel: zeg wat je anders wil voordat je opnieuw genereert..."
-                  : "Optioneel: 'korter', 'speelser', 'focus op terras'..."
+                  ? t("instructionPlaceholderFirst")
+                  : t("instructionPlaceholderNext")
               }
               disabled={generating || applyingIdx !== null}
               style={{
@@ -266,8 +262,8 @@ export function CampaignRefinePanel({
               style={{ whiteSpace: "nowrap" }}
             >
               {regenCount === 0
-                ? "✨ Genereer 3 alternatieven"
-                : "↻ Genereer 3 nieuwe"}
+                ? t("generateFirst")
+                : t("generateMore")}
             </Button>
           </div>
         )}
@@ -283,8 +279,7 @@ export function CampaignRefinePanel({
               marginBottom: 12,
             }}
           >
-            Maximum aantal generaties bereikt (3 + 3 = 6 versies). Kies
-            er één of bewerk handmatig via "✎ Bewerken" rechtsboven.
+            {t("maxReached")}
           </div>
         )}
 
@@ -316,9 +311,7 @@ export function CampaignRefinePanel({
               fontStyle: "italic",
             }}
           >
-            {bootstrapping
-              ? "Bezig met laden…"
-              : "Filly schrijft 3 alternatieve versies…"}
+            {bootstrapping ? t("loading") : t("generatingVariants")}
           </div>
         )}
 
@@ -331,10 +324,9 @@ export function CampaignRefinePanel({
                 marginBottom: 8,
               }}
             >
-              Klik op een versie om 'm in de uiting-preview te zetten.
-              Wisselen kan zoveel je wilt.
+              {t("clickToPreview")}
               {regenCount === 1 && canRegenerate && (
-                <span> Filly kan nog 3 nieuwe maken (max 6 totaal).</span>
+                <span> {t("canGenerateMore")}</span>
               )}
             </div>
             <div
@@ -383,14 +375,14 @@ export function CampaignRefinePanel({
                           color: "var(--accent, #1F4A2D)",
                         }}
                       >
-                        Versie {idx + 1} bewerken
+                        {t("editVersionLabel", { number: idx + 1 })}
                       </div>
                       {type === "mail" && (
                         <input
                           type="text"
                           value={draftSubject}
                           onChange={(e) => setDraftSubject(e.target.value)}
-                          placeholder="Onderwerp"
+                          placeholder={t("subjectPlaceholder")}
                           maxLength={200}
                           style={{
                             padding: "8px 10px",
@@ -405,7 +397,7 @@ export function CampaignRefinePanel({
                       <textarea
                         value={draftBody}
                         onChange={(e) => setDraftBody(e.target.value)}
-                        placeholder="Bericht-inhoud"
+                        placeholder={t("bodyPlaceholder")}
                         maxLength={5000}
                         rows={8}
                         style={{
@@ -427,7 +419,7 @@ export function CampaignRefinePanel({
                           loading={savingEdit}
                           disabled={!draftBody.trim()}
                         >
-                          Opslaan
+                          {t("save")}
                         </Button>
                         <Button
                           size="sm"
@@ -435,7 +427,7 @@ export function CampaignRefinePanel({
                           onClick={cancelEdit}
                           disabled={savingEdit}
                         >
-                          Annuleren
+                          {t("cancel")}
                         </Button>
                       </div>
                     </div>
@@ -479,7 +471,7 @@ export function CampaignRefinePanel({
                             : "var(--tl)",
                         }}
                       >
-                        Versie {idx + 1}
+                        {t("versionLabel", { number: idx + 1 })}
                       </span>
                       <div style={{ display: "flex", gap: 6 }}>
                         {isApplying && (
@@ -490,7 +482,7 @@ export function CampaignRefinePanel({
                               color: "var(--tl)",
                             }}
                           >
-                            Toepassen…
+                            {t("applying")}
                           </span>
                         )}
                         {isActive && !isApplying && (
@@ -506,7 +498,7 @@ export function CampaignRefinePanel({
                                 "1px solid var(--accent, #1F4A2D)",
                             }}
                           >
-                            ✓ Gekozen
+                            {t("chosen")}
                           </span>
                         )}
                         {!isApplying && (
@@ -547,7 +539,7 @@ export function CampaignRefinePanel({
                                   : 1,
                             }}
                           >
-                            ✎ Bewerk
+                            {t("edit")}
                           </span>
                         )}
                       </div>
@@ -594,13 +586,13 @@ export function CampaignRefinePanel({
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
         <div>
-          <div className="card-t">✨ Met Filly bewerken</div>
+          <div className="card-t">{t("cardTitle")}</div>
           <div className="card-st">
             {regenCount === 0
-              ? "Filly bedenkt 3 alternatieven; kies of laat 3 nieuwe maken."
+              ? t("cardSubtitleInitial")
               : regenCount === 1
-                ? `${variants.length} versies, kies favoriet of laat 3 nieuwe maken.`
-                : `${variants.length} versies, kies favoriet of bewerk handmatig.`}
+                ? t("cardSubtitleCanRegenerate", { count: variants.length })
+                : t("cardSubtitleLocked", { count: variants.length })}
           </div>
         </div>
       </div>

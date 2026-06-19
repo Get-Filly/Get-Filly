@@ -15,6 +15,7 @@
 // beheerd; deze component is puur 'controlled'. Add/remove geven
 // een API-call terug aan de parent.
 
+import { useTranslations } from "next-intl";
 import {
   PLATFORM_ICON,
   PLATFORM_LABEL,
@@ -61,13 +62,14 @@ export function KanalenCard({
   onRemoveChannel,
   onSetActive,
 }: Props) {
+  const t = useTranslations("dash__components_campaign_detail_kanalen_card");
   const activePlatforms = new Set(channels.map((c) => c.platform));
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
         <div>
-          <div className="card-t">Kanalen</div>
+          <div className="card-t">{t("title")}</div>
         </div>
       </div>
       <div className="card-b">
@@ -150,7 +152,7 @@ export function KanalenCard({
                 marginBottom: 8,
               }}
             >
-              Bewerken voor:
+              {t("editFor")}
             </div>
             <div
               style={{

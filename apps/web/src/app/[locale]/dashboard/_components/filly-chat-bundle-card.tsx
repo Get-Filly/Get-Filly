@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { BundleChannel, CampaignBundleCard } from "@/lib/api";
 
 // ============================================================
@@ -68,6 +69,8 @@ export function FillyChatBundleCard({
   onAccept,
   onDismiss,
 }: Props) {
+  const t = useTranslations("dash__components_filly_chat_bundle_card");
+
   // Welke kanalen zitten er daadwerkelijk in deze bundel? Alleen die
   // renderen we (en bieden we ter selectie aan).
   const presentChannels = CHANNEL_META.filter((m) => bundle.channels[m.key]);
@@ -120,7 +123,7 @@ export function FillyChatBundleCard({
             fontWeight: 600,
           }}
         >
-          MULTI-KANAAL
+          {t("multiChannelBadge")}
         </span>
         <strong style={{ fontSize: 14 }}>{bundle.name}</strong>
       </div>
@@ -148,7 +151,7 @@ export function FillyChatBundleCard({
             marginBottom: 4,
           }}
         >
-          Kies welke kanalen je wil aanmaken:
+          {t("chooseChannels")}
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -163,7 +166,7 @@ export function FillyChatBundleCard({
             onCheckChange={() => toggleSelected(m.key)}
             disabled={rowsDisabled}
           >
-            {renderChannelContent(m.key, bundle)}
+            {renderChannelContent(m.key, bundle, t)}
           </ChannelRow>
         ))}
       </div>
@@ -184,9 +187,7 @@ export function FillyChatBundleCard({
               onClick={() => onAccept(selectedChannels)}
               disabled={selectedCount === 0}
               title={
-                selectedCount === 0
-                  ? "Selecteer minimaal één kanaal om aan te maken"
-                  : undefined
+                selectedCount === 0 ? t("selectAtLeastOne") : undefined
               }
               style={{
                 background:
@@ -203,10 +204,8 @@ export function FillyChatBundleCard({
               }}
             >
               {selectedCount === 0
-                ? "Selecteer een kanaal"
-                : selectedCount === 1
-                  ? "Maak 1 campagne aan"
-                  : `Maak ${selectedCount} campagnes aan`}
+                ? t("selectChannelCta")
+                : t("createCampaignsCta", { count: selectedCount })}
             </button>
             <button
               type="button"
@@ -221,13 +220,13 @@ export function FillyChatBundleCard({
                 cursor: "pointer",
               }}
             >
-              Niet nu
+              {t("notNow")}
             </button>
           </>
         )}
         {status.state === "creating" && (
           <div style={{ fontSize: 12, color: "var(--tl, #6B6F71)" }}>
-            Bezig met aanmaken…
+            {t("creating")}
           </div>
         )}
         {status.state === "approved_existing" && (
@@ -240,20 +239,20 @@ export function FillyChatBundleCard({
             }}
           >
             <div style={{ color: "var(--brand, #1F4A2D)", fontWeight: 600 }}>
-              ✓ Bundle al aangemaakt
+              {t("bundleAlreadyCreated")}
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Link
                 href={`/dashboard/campagnes/${status.anchorCampaignId}`}
                 style={{ color: "var(--brand, #1F4A2D)" }}
               >
-                ✉️ Open campagne
+                {t("openCampaign")}
               </Link>
               <Link
                 href="/dashboard/campagnes"
                 style={{ color: "var(--brand, #1F4A2D)" }}
               >
-                → Alle campagnes
+                {t("allCampaigns")}
               </Link>
             </div>
           </div>
@@ -268,7 +267,7 @@ export function FillyChatBundleCard({
             }}
           >
             <div style={{ color: "var(--brand, #1F4A2D)", fontWeight: 600 }}>
-              ✓ Concept-campagnes klaar
+              {t("draftCampaignsReady")}
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {presentChannels
@@ -279,7 +278,7 @@ export function FillyChatBundleCard({
                     href={`/dashboard/campagnes/${status.campaignIds[m.key]}`}
                     style={{ color: "var(--brand, #1F4A2D)" }}
                   >
-                    {m.icon} Open {m.label}
+                    {m.icon} {t("openChannel", { channel: m.label })}
                   </Link>
                 ))}
             </div>
@@ -305,7 +304,7 @@ export function FillyChatBundleCard({
                 cursor: "pointer",
               }}
             >
-              Probeer opnieuw
+              {t("retry")}
             </button>
           </div>
         )}
@@ -317,7 +316,11 @@ export function FillyChatBundleCard({
 // Rendert de inhoud van één kanaal-collapsible. Per kanaal een eigen
 // vorm: mail = onderwerp + tekst, IG/FB = caption (IG + hashtags),
 // WhatsApp + Google Business = enkel een body-tekst.
-function renderChannelContent(key: BundleChannel, bundle: CampaignBundleCard) {
+function renderChannelContent(
+  key: BundleChannel,
+  bundle: CampaignBundleCard,
+  t: ReturnType<typeof useTranslations>,
+) {
   const ch = bundle.channels;
   const labelStyle = {
     fontSize: 11,
@@ -329,11 +332,11 @@ function renderChannelContent(key: BundleChannel, bundle: CampaignBundleCard) {
   if (key === "mail" && ch.mail) {
     return (
       <>
-        <div style={labelStyle}>Onderwerp</div>
+        <div style={labelStyle}>{t("subjectLabel")}</div>
         <div style={{ fontWeight: 500, marginBottom: 8 }}>
           {ch.mail.subject_line}
         </div>
-        <div style={labelStyle}>Tekst</div>
+        <div style={labelStyle}>{t("bodyLabel")}</div>
         <div style={bodyStyle}>{ch.mail.body}</div>
       </>
     );
@@ -405,6 +408,7 @@ function ChannelRow({
   disabled?: boolean;
   children: React.ReactNode;
 }) {
+  const t = useTranslations("dash__components_filly_chat_bundle_card");
   return (
     <div
       style={{
@@ -433,7 +437,7 @@ function ChannelRow({
           checked={checked}
           onChange={onCheckChange}
           disabled={disabled}
-          aria-label={`${title} kiezen`}
+          aria-label={t("chooseChannelAria", { channel: title })}
           style={{
             cursor: disabled ? "not-allowed" : "pointer",
             accentColor: "var(--brand, #1F4A2D)",
@@ -447,7 +451,11 @@ function ChannelRow({
         <button
           type="button"
           onClick={onToggle}
-          aria-label={`${title} ${open ? "inklappen" : "uitklappen"}`}
+          aria-label={
+            open
+              ? t("collapseChannelAria", { channel: title })
+              : t("expandChannelAria", { channel: title })
+          }
           style={{
             marginLeft: "auto",
             background: "transparent",

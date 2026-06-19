@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { DateChoiceCard } from "@/lib/api";
 
 // ============================================================
@@ -27,11 +28,10 @@ export type DateChoiceState = "pending" | "chosen" | "submitting";
 
 // Snelle-keuze-opties. Filly's filly-brain.config kent NL-feestdagen
 // niet direct; we tonen daarom een vaste compacte set + een optie
-// "specifieke datum" voor maatwerk.
+// "specifieke datum" voor maatwerk. De label/hint-teksten staan in
+// de i18n-messages, gekeyd op `key`; hier houden we alleen de logica.
 type QuickOption = {
   key: string;
-  label: string;
-  hint: string;
   /** Wat we als follow-up tekst sturen naar Filly. */
   followUpText: string;
 };
@@ -39,26 +39,18 @@ type QuickOption = {
 const QUICK_OPTIONS: QuickOption[] = [
   {
     key: "today",
-    label: "Vandaag",
-    hint: "Last-minute",
     followUpText: "Voor vandaag",
   },
   {
     key: "tomorrow",
-    label: "Morgen",
-    hint: "Korte aanloop",
     followUpText: "Voor morgen",
   },
   {
     key: "this_weekend",
-    label: "Komend weekend",
-    hint: "Zaterdag + zondag",
     followUpText: "Voor komend weekend",
   },
   {
     key: "next_week",
-    label: "Volgende week",
-    hint: "Hele week opties",
     followUpText: "Voor volgende week",
   },
 ];
@@ -70,6 +62,7 @@ type Props = {
 };
 
 export function FillyChatDateCard({ card, state, onChoose }: Props) {
+  const t = useTranslations("dash__components_filly_chat_date_card");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [specificDate, setSpecificDate] = useState<string>("");
   const [mode, setMode] = useState<"quick" | "specific">("quick");
@@ -113,10 +106,10 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
 
   const buttonLabel =
     state === "submitting"
-      ? "Filly denkt na…"
+      ? t("submitThinking")
       : !canSubmit
-        ? "Kies eerst een dag"
-        : "Volgende stap";
+        ? t("submitChooseFirst")
+        : t("submitNext");
 
   return (
     <div
@@ -158,7 +151,7 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
             cursor: disabled ? "not-allowed" : "pointer",
           }}
         >
-          Snelle keuze
+          {t("tabQuick")}
         </button>
         <button
           type="button"
@@ -176,7 +169,7 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
             cursor: disabled ? "not-allowed" : "pointer",
           }}
         >
-          Specifieke datum
+          {t("tabSpecific")}
         </button>
       </div>
 
@@ -228,7 +221,9 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
                     ✓
                   </span>
                 )}
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{opt.label}</div>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>
+                  {t(`options.${opt.key}.label`)}
+                </div>
                 <div
                   style={{
                     fontSize: 11,
@@ -238,7 +233,7 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
                     lineHeight: 1.3,
                   }}
                 >
-                  {opt.hint}
+                  {t(`options.${opt.key}.hint`)}
                 </div>
               </button>
             );
@@ -275,8 +270,7 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
               lineHeight: 1.3,
             }}
           >
-            Datum waarop de campagne moet werken (bijv. de avond van een
-            evenement of feestdag).
+            {t("specificHint")}
           </div>
         </div>
       )}

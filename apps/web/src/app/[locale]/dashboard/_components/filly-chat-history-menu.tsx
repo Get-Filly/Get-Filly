@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import {
   CHAT_CONVERSATION_CAP,
@@ -36,20 +37,30 @@ type Props = {
   onDelete: (conversationId: string) => void;
 };
 
-function formatRelativeDate(iso: string): string {
+type RelativeDate =
+  | { kind: "today" }
+  | { kind: "yesterday" }
+  | { kind: "daysAgo"; days: number }
+  | { kind: "weeksAgo"; weeks: number }
+  | { kind: "date"; label: string };
+
+function getRelativeDate(iso: string): RelativeDate {
   const date = new Date(iso);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return "vandaag";
-  if (diffDays === 1) return "gisteren";
-  if (diffDays < 7) return `${diffDays} dagen geleden`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} wkn geleden`;
-  return date.toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "short",
-  });
+  if (diffDays === 0) return { kind: "today" };
+  if (diffDays === 1) return { kind: "yesterday" };
+  if (diffDays < 7) return { kind: "daysAgo", days: diffDays };
+  if (diffDays < 30) return { kind: "weeksAgo", weeks: Math.floor(diffDays / 7) };
+  return {
+    kind: "date",
+    label: date.toLocaleDateString("nl-NL", {
+      day: "numeric",
+      month: "short",
+    }),
+  };
 }
 
 export function FillyChatHistoryMenu({
@@ -59,6 +70,7 @@ export function FillyChatHistoryMenu({
   onNew,
   onDelete,
 }: Props) {
+  const t = useTranslations("dash__components_filly_chat_history_menu");
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -93,15 +105,31 @@ export function FillyChatHistoryMenu({
     onNew();
   };
 
+  const relativeLabel = (iso: string): string => {
+    const rel = getRelativeDate(iso);
+    switch (rel.kind) {
+      case "today":
+        return t("relative.today");
+      case "yesterday":
+        return t("relative.yesterday");
+      case "daysAgo":
+        return t("relative.daysAgo", { days: rel.days });
+      case "weeksAgo":
+        return t("relative.weeksAgo", { weeks: rel.weeks });
+      case "date":
+        return rel.label;
+    }
+  };
+
   return (
     <div ref={wrapperRef} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Chat-geschiedenis"
+        aria-label={t("triggerAriaLabel")}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Wissel chat / start nieuw"
+        title={t("triggerTitle")}
         style={{
           background: "transparent",
           border: "1px solid var(--color-border)",
@@ -115,7 +143,7 @@ export function FillyChatHistoryMenu({
           gap: 4,
         }}
       >
-        Gesprekken <span aria-hidden>▾</span>
+        {t("triggerLabel")} <span aria-hidden>▾</span>
       </button>
 
       {open && (
@@ -165,7 +193,7 @@ export function FillyChatHistoryMenu({
             }
           >
             <Plus size={14} />
-            Nieuw gesprek
+            {t("newConversation")}
           </button>
 
           {conversations.length > 0 && (
@@ -182,14 +210,11 @@ export function FillyChatHistoryMenu({
           {conversations.map((c) => {
             const isActive = c.id === activeConversationId;
             const title =
-              c.title ?? `Gesprek van ${formatRelativeDate(c.updated_at)}`;
+              c.title ??
+              t("untitledConversation", { date: relativeLabel(c.updated_at) });
             const handleDelete = (e: React.MouseEvent) => {
               e.stopPropagation();
-              if (
-                window.confirm(
-                  `"${title}" verwijderen? Filly bewaart geleerde voorkeuren maar de chat-berichten gaan weg.`,
-                )
-              ) {
+              if (window.confirm(t("deleteConfirm", { title }))) {
                 onDelete(c.id);
               }
             };
@@ -251,8 +276,8 @@ export function FillyChatHistoryMenu({
                 <button
                   type="button"
                   onClick={handleDelete}
-                  aria-label={`${title} verwijderen`}
-                  title="Verwijder gesprek"
+                  aria-label={t("deleteAriaLabel", { title })}
+                  title={t("deleteTitle")}
                   style={{
                     background: "transparent",
                     border: "none",

@@ -2447,5 +2447,680 @@
     "priorityNow": "Now",
     "priorityThisWeek": "This week",
     "priorityPlanning": "Planning"
+  },
+  "dash__components_access_guard": {
+    "noAccessTitle": "No access",
+    "noAccessBody": "You don't have permission for this page. Ask the owner for access or go back to the dashboard."
+  },
+  "dash__components_account_connections": {
+    "providers": {
+      "zenchef": "Zenchef",
+      "opentable": "OpenTable",
+      "sevenrooms": "SevenRooms",
+      "resengo": "Resengo",
+      "googleBusiness": "Google Business Profile",
+      "mail": "Email (campaigns)",
+      "meta": "Facebook & Instagram",
+      "tiktok": "TikTok for Business",
+      "whatsapp": "WhatsApp Business",
+      "tripadvisor": "TripAdvisor",
+      "thefork": "The Fork",
+      "lightspeed": "Lightspeed / POS",
+      "weather": "Weather (Open-Meteo)"
+    },
+    "categories": {
+      "reserveringen": "Reservations",
+      "vindbaarheid": "Findability",
+      "communicatie": "Communication",
+      "reviews": "Reviews",
+      "data": "External data"
+    },
+    "status": {
+      "active": "✓ Active",
+      "activeViaGetFilly": "✓ Active via Get-Filly",
+      "activeViaLocation": "✓ Active via location"
+    },
+    "manage": "Manage",
+    "soon": "Coming soon",
+    "connect": "Connect",
+    "connected": "✓ Connected",
+    "disconnect": "Disconnect",
+    "disconnectConfirm": "Revoke connection? Filly will no longer be able to post or act on behalf of your business until you reconnect.",
+    "denied": "Connection cancelled. You can try again via Connect.",
+    "error": "Something went wrong with the connection. Please try again.",
+    "errorWithReason": "Something went wrong with the connection ({reason}). Please try again.",
+    "meta": {
+      "connected": "✓ Meta connection successful, you granted permission via Facebook/Instagram."
+    },
+    "google": {
+      "connected": "✓ Google connection successful, Filly can now act on behalf of your business.",
+      "reasons": {
+        "noRefresh": "Google did not grant long-term access. Revoke access at myaccount.google.com/permissions and connect again.",
+        "refreshRevoked": "Google access has been revoked or expired. Please connect again.",
+        "redirectUriMismatch": "The redirect URL does not match Google Cloud Console. Please contact support.",
+        "state": "The security check failed or expired. Please start the connection again.",
+        "access": "You do not have access to this restaurant.",
+        "config": "The Google configuration is missing. Please contact support.",
+        "noRestaurant": "No restaurant selected. Please choose a business first."
+      }
+    }
+  },
+  "dash__components_calendar_card": {
+    "prev": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "campaignScheduled": "{count, plural, one {Campaign scheduled} other {# campaigns scheduled}}",
+    "weekday": {
+      "mon": "MON",
+      "tue": "TUE",
+      "wed": "WED",
+      "thu": "THU",
+      "fri": "FRI",
+      "sat": "SAT",
+      "sun": "SUN"
+    },
+    "view": {
+      "dag": "Day",
+      "week": "Week",
+      "maand": "Month",
+      "jaar": "Year"
+    }
+  },
+  "dash__components_campaign_detail_foto_card": {
+    "title": "Photo or video",
+    "photoAlt": "Campaign photo",
+    "linkedToCampaign": "Linked to this campaign.",
+    "empty": "No photo or video linked yet.",
+    "change": "Change",
+    "remove": "Remove",
+    "pickFromLibrary": "Pick from library",
+    "uploadNew": "Upload new",
+    "confirmRemove": "Remove photo?",
+    "errors": {
+      "libraryLoadFailed": "Could not load the photo from the library.",
+      "libraryLinkFailed": "Failed to link photo from the library.",
+      "imagesOnly": "Images only (JPG, PNG, WebP, GIF).",
+      "fileTooLarge": "File too large ({size}MB). Max 10MB.",
+      "uploadFailed": "Upload failed. Please try again.",
+      "removeFailed": "Removal failed."
+    }
+  },
+  "dash__components_campaign_detail_inhoud_card": {
+    "title": "Content",
+    "versionLabel": "Version {n}",
+    "chosen": "Chosen",
+    "edit": "Edit",
+    "revertTitle": "Back to the original version",
+    "subjectPrefix": "Subject:",
+    "subjectMissing": "Subject missing, click to fill in",
+    "noContent": "No content.",
+    "regenerateTitle": "Filly generates 3 new alternatives",
+    "regenerateMaxTitle": "Maximum 6 versions, edit an existing one or pick an alternative",
+    "regenerateWriting": "Filly is writing…",
+    "regenerateMaxLabel": "Maximum number of versions reached",
+    "regenerateLabel": "Generate 3 new versions",
+    "otherVersions": "Other versions ({count})",
+    "editingLabel": "Editing {label}",
+    "subjectPlaceholder": "Subject",
+    "bodyPlaceholder": "Message content",
+    "save": "Save",
+    "cancel": "Cancel",
+    "pickTitle": "Make this the chosen version"
+  },
+  "dash__components_campaign_detail_kanalen_card": {
+    "title": "Channels",
+    "editFor": "Editing for:"
+  },
+  "dash__components_campaign_detail_missende_aspecten_card": {
+    "title": "Missing details",
+    "legendRequired": "required",
+    "legendOptional": "optional",
+    "tooltipRequired": "Required: click to fill in",
+    "tooltipOptional": "Optional: click to fill in"
+  },
+  "dash__components_campaign_detail_waarom_card": {
+    "title": "Why this proposal"
+  },
+  "dash__components_campaign_detail_wanneer_card": {
+    "title": "When to post",
+    "datetimeLabel": "Send date + time",
+    "save": "Save",
+    "cancel": "Cancel",
+    "yourChoice": "Your choice",
+    "fillySuggests": "Filly suggests",
+    "notChosenYet": "Not chosen yet",
+    "deviationBanner": "You're deviating from Filly's suggestion ({fillyTime}).",
+    "edit": "✎ Edit",
+    "resetToFilly": "↺ Back to Filly's suggestion"
+  },
+  "dash__components_campaign_media_slot": {
+    "errors": {
+      "libraryLoad": "Photo could not be loaded from the library.",
+      "libraryCopy": "Failed to copy photo from the library.",
+      "notImage": "Only images (JPG, PNG, WebP, GIF) are allowed.",
+      "tooLarge": "File is too large ({size}MB). Max 10MB.",
+      "uploadFailed": "Upload failed. Please try again.",
+      "deleteFailed": "Delete failed. Please try again."
+    },
+    "confirmDelete": "Delete photo?",
+    "photoAlt": "Campaign photo",
+    "chooseFromLibrary": "Choose from library",
+    "library": "Library",
+    "replace": "Replace",
+    "replaceShort": "Replace",
+    "uploading": "Uploading…",
+    "delete": "Delete",
+    "deletePhoto": "Delete photo",
+    "dropZonePrompt": "Drag a photo here, choose from the library or click to upload",
+    "formatHint": "JPG, PNG, WebP or GIF · max 10MB",
+    "uploadNew": "Upload new",
+    "noPhoto": "No photo"
+  },
+  "dash__components_campaign_refine_panel": {
+    "instructionPlaceholderFirst": "Optional: tell us what you want changed before regenerating...",
+    "instructionPlaceholderNext": "Optional: 'shorter', 'more playful', 'focus on the terrace'...",
+    "generateFirst": "✨ Generate 3 alternatives",
+    "generateMore": "↻ Generate 3 new ones",
+    "maxReached": "Maximum number of generations reached (3 + 3 = 6 versions). Pick one or edit manually via \"✎ Edit\" at the top right.",
+    "loading": "Loading…",
+    "generatingVariants": "Filly is writing 3 alternative versions…",
+    "clickToPreview": "Click a version to put it in the campaign preview. Switch as often as you like.",
+    "canGenerateMore": "Filly can make 3 more (6 total max).",
+    "editVersionLabel": "Edit version {number}",
+    "versionLabel": "Version {number}",
+    "subjectPlaceholder": "Subject",
+    "bodyPlaceholder": "Message content",
+    "save": "Save",
+    "cancel": "Cancel",
+    "applying": "Applying…",
+    "chosen": "✓ Chosen",
+    "edit": "✎ Edit",
+    "cardTitle": "✨ Edit with Filly",
+    "cardSubtitleInitial": "Filly comes up with 3 alternatives; pick one or have 3 new ones made.",
+    "cardSubtitleCanRegenerate": "{count} versions, pick a favorite or have 3 new ones made.",
+    "cardSubtitleLocked": "{count} versions, pick a favorite or edit manually.",
+    "errors": {
+      "editFailed": "Editing failed. Please try again.",
+      "loadFailed": "Could not load alternatives. Reload the page.",
+      "generateFailed": "Generating failed. Please try again.",
+      "applyFailed": "Applying failed. Please try again."
+    }
+  },
+  "dash__components_campaign_schedule_panel": {
+    "title": "When to post?",
+    "subtitle": "Filly suggests the best moment based on the campaign type and your audience.",
+    "datetimeLabel": "Send date + time",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirmedLabel": "Confirmed send time",
+    "deviationWarning": "You're deviating from Filly's suggestion ({suggested}).",
+    "edit": "Edit",
+    "suggestionLabel": "Filly suggests",
+    "accept": "Accept this moment",
+    "editYourself": "Edit yourself",
+    "regenerate": "Other suggestion",
+    "loadingState": "Filly is figuring out the best moment…",
+    "noSuggestion": "No suggestion available.",
+    "errors": {
+      "suggestFailed": "Could not create a suggestion. Please try again later.",
+      "acceptFailed": "Accepting failed. Please try again.",
+      "saveFailed": "Saving failed. Please try again.",
+      "regenerateFailed": "New suggestion failed. Please try again."
+    }
+  },
+  "dash__components_campaign_send_modal": {
+    "notPossibleTitle": "Not possible",
+    "notPossibleBody": "Only mail campaigns can be sent through this flow. Social and WhatsApp will come later via a separate integration.",
+    "close": "Close",
+    "sendFailed": "Sending failed.",
+    "resultSuccessTitle": "✓ Sent",
+    "resultPartialTitle": "Partially sent",
+    "resultSummary": "<strong>{sent}</strong> of <strong>{total}</strong> mails sent to Resend successfully.",
+    "resultFailed": "{failed} failed.",
+    "failedAddresses": "Failed addresses:",
+    "resultWebhookNote": "Resend confirms delivery via webhooks (delivered/bounced); that status will appear shortly in the campaign stats.",
+    "done": "Done",
+    "formTitle": "Send \"{name}\"",
+    "modeTestTitle": "Test to myself",
+    "modeTestSubtitle": "One mail to 1 address to check how it looks",
+    "modeRealTitle": "Send for real",
+    "modeRealSubtitle": "To all guests with mail consent",
+    "testEmailLabel": "Test email address",
+    "testEmailHint": "Send it to your own mailbox to see how guests receive it.",
+    "confirmNotice": "<strong>Irreversible.</strong> The campaign will now go out to all guests with mail consent. Type the campaign name to confirm:",
+    "cancel": "Cancel",
+    "sendTest": "Send test",
+    "sendToGuests": "Send to guests"
+  },
+  "dash__components_chart_card": {
+    "title": "Occupancy trend",
+    "subtitleDay": "{weekday}, past 6 months",
+    "subtitleYear": "Per month, {year}",
+    "subtitleMonth": "Per day, {month} {year}",
+    "labelMinus6Months": "-6 mo",
+    "labelMinus3Months": "-3 mo",
+    "labelNow": "now",
+    "labelJan": "jan",
+    "labelJul": "jul",
+    "labelDec": "dec",
+    "emptySelectDay": "Select a day in the calendar",
+    "emptyNoData": "No data available",
+    "average": "Average: {value}%"
+  },
+  "dash__components_dashboard_provider": {},
+  "dash__components_filly_chat_bundle_card": {
+    "multiChannelBadge": "MULTI-CHANNEL",
+    "chooseChannels": "Choose which channels you want to create:",
+    "selectAtLeastOne": "Select at least one channel to create",
+    "selectChannelCta": "Select a channel",
+    "createCampaignsCta": "{count, plural, one {Create 1 campaign} other {Create # campaigns}}",
+    "notNow": "Not now",
+    "creating": "Creating…",
+    "bundleAlreadyCreated": "✓ Bundle already created",
+    "openCampaign": "✉️ Open campaign",
+    "allCampaigns": "→ All campaigns",
+    "draftCampaignsReady": "✓ Draft campaigns ready",
+    "openChannel": "Open {channel}",
+    "retry": "Try again",
+    "subjectLabel": "Subject",
+    "bodyLabel": "Body",
+    "chooseChannelAria": "Select {channel}",
+    "collapseChannelAria": "Collapse {channel}",
+    "expandChannelAria": "Expand {channel}"
+  },
+  "dash__components_filly_chat_choice_card": {
+    "selectAll": "Select all",
+    "selectNone": "Clear selection",
+    "thinking": "Filly is thinking…",
+    "submit": {
+      "empty": "Select an option",
+      "single": "Send",
+      "bundle": "Send (bundle {count} channels)"
+    },
+    "options": {
+      "mail": {
+        "label": "Mail",
+        "hint": "To guest list"
+      },
+      "instagram": {
+        "label": "Instagram",
+        "hint": "IG post"
+      },
+      "facebook": {
+        "label": "Facebook",
+        "hint": "FB post"
+      },
+      "whatsapp": {
+        "label": "WhatsApp",
+        "hint": "Personal message"
+      },
+      "googleBusiness": {
+        "label": "Google Business",
+        "hint": "Post to your profile"
+      }
+    }
+  },
+  "dash__components_filly_chat_date_card": {
+    "submitThinking": "Filly is thinking…",
+    "submitChooseFirst": "Choose a day first",
+    "submitNext": "Next step",
+    "tabQuick": "Quick choice",
+    "tabSpecific": "Specific date",
+    "specificHint": "Date the campaign should target (e.g. the evening of an event or holiday).",
+    "options": {
+      "today": {
+        "label": "Today",
+        "hint": "Last-minute"
+      },
+      "tomorrow": {
+        "label": "Tomorrow",
+        "hint": "Short lead time"
+      },
+      "this_weekend": {
+        "label": "This weekend",
+        "hint": "Saturday + Sunday"
+      },
+      "next_week": {
+        "label": "Next week",
+        "hint": "Whole-week options"
+      }
+    }
+  },
+  "dash__components_filly_chat_error_banner": {},
+  "dash__components_filly_chat_history_menu": {
+    "triggerLabel": "Conversations",
+    "triggerAriaLabel": "Chat history",
+    "triggerTitle": "Switch chat / start new",
+    "newConversation": "New conversation",
+    "untitledConversation": "Conversation from {date}",
+    "deleteConfirm": "Delete \"{title}\"? Filly keeps the preferences it learned, but the chat messages will be gone.",
+    "deleteAriaLabel": "Delete {title}",
+    "deleteTitle": "Delete conversation",
+    "relative": {
+      "today": "today",
+      "yesterday": "yesterday",
+      "daysAgo": "{days} days ago",
+      "weeksAgo": "{weeks} wks ago"
+    }
+  },
+  "dash__components_filly_chat_input": {
+    "placeholderLoading": "Loading chat…",
+    "placeholderSending": "Filly is thinking…",
+    "placeholderIdle": "Ask Filly something…",
+    "sendLabel": "Send"
+  },
+  "dash__components_filly_chat_message_list": {
+    "fillyLabel": "Filly AI",
+    "userLabel": "You",
+    "typing": "Filly is typing…"
+  },
+  "dash__components_filly_chat_proposal_card": {
+    "typeMail": "Email",
+    "typeSocial": "Social",
+    "typeWhatsapp": "WhatsApp",
+    "proposalLabel": "Campaign proposal",
+    "subject": "Subject: {subject}",
+    "multipleVersions": "Filly came up with {count} versions, pick your favorite via \"View versions\".",
+    "accept": "Yes, create it",
+    "viewVersions": "View versions →",
+    "decline": "No, thanks",
+    "creating": "Creating…",
+    "created": "Draft created.",
+    "view": "View →",
+    "dismissed": "Proposal declined.",
+    "retry": "Try again"
+  },
+  "dash__components_filly_chat": {
+    "title": "Filly AI",
+    "subtitle": "Marketing assistant",
+    "online": "Online",
+    "messageCounter": "· Message {count} / {cap}",
+    "jumpToNew": "↓ New messages",
+    "capReached": "This conversation has reached the limit of {cap} messages. Filly remembers what it learned here for future conversations.",
+    "startNewConversation": "＋ Start a new conversation",
+    "errors": {
+      "noRestaurant": "No restaurant is active yet, chat becomes available after onboarding.",
+      "loadFailed": "Could not load the chat. Please try again shortly.",
+      "unknown": "Unknown error.",
+      "sendFailed": "Filly could not respond. Please try again (the rate limit may have been reached).",
+      "conversationLoadFailed": "Could not load this conversation.",
+      "newConversationFailed": "Could not start a new conversation.",
+      "deleteFailed": "Deletion failed. Please try again.",
+      "saveFailed": "Saving failed. Please try again.",
+      "bundleFailed": "Creating the bundle failed. Please try again."
+    },
+    "prompts": {
+      "mail": "Create an email campaign",
+      "instagram": "Create an Instagram post",
+      "facebook": "Create a Facebook post",
+      "whatsapp": "Create a WhatsApp message",
+      "googleBusiness": "Create a Google Business post",
+      "bundle": "Create a bundle campaign for {channels}"
+    }
+  },
+  "dash__components_filly_guided_flow": {
+    "welcome": {
+      "title": "What can I help you with?",
+      "openerText": "I've detected a few days. Which day do you want to make a post for?",
+      "continueText": "Answer the questions or adjust an earlier step."
+    },
+    "trail": {
+      "editAngle": "Adjust angle"
+    },
+    "opener": {
+      "loading": "Just checking which opportunities there are…",
+      "quietDays": "Quiet days",
+      "belowThreshold": " (below {threshold}%)",
+      "occupied": "{pct}% occupancy",
+      "showLess": "Show less",
+      "showMore": "+ {count} more quiet days",
+      "noReservations": "There are no reservations yet, so every open day is quiet.",
+      "specialDays": "Special days",
+      "pickOwnDay": "Or pick a day yourself"
+    },
+    "angles": {
+      "loading": "Filly is checking what's possible that day…",
+      "question": "For {day}, what do you want to focus on?",
+      "thatDay": "that day",
+      "fillyChoose": "Let Filly pick the strongest angle",
+      "fastest": "fastest",
+      "whatsHappening": "What's happening that day",
+      "pickAngle": "Or pick an angle",
+      "next": "Continue",
+      "options": {
+        "gerecht": {
+          "label": "Highlight a dish or drink",
+          "placeholder": "Which dish or drink? (e.g. Burrata di Puglia)"
+        },
+        "deal": {
+          "label": "A deal or offer",
+          "placeholder": "What kind of deal? (e.g. 2-course menu € 27.50)"
+        },
+        "sfeer": {
+          "label": "Atmosphere & experience"
+        },
+        "doelgroep": {
+          "label": "For an audience",
+          "placeholder": "Which audience? (e.g. families, after-work)"
+        },
+        "anders": {
+          "label": "Something else",
+          "placeholder": "Type your own angle"
+        }
+      }
+    },
+    "channels": {
+      "question": "Which channels? I've already checked the recommended ones.",
+      "autoQuestion": "I'll pick the best channel myself. Shall I make it?",
+      "makeAction": "Create the action"
+    },
+    "generating": {
+      "text": "Filly is creating your suggestion…"
+    },
+    "done": {
+      "title": "Done! ✨",
+      "bodyPlural": "I've prepared {count} suggestions for you.",
+      "bodySingle": "I've prepared a suggestion for you.",
+      "anotherAction": "＋ Another action",
+      "allSuggestions": "All suggestions →"
+    },
+    "result": {
+      "fallbackName": "Suggestion",
+      "viewEdit": "View & edit →"
+    },
+    "errors": {
+      "noResult": "I couldn't create a suggestion for this day. Try a different day or a different angle.",
+      "generic": "Creating the suggestion failed. Please try again shortly."
+    },
+    "hint": {
+      "typeOwn": "Or type your own question below"
+    }
+  },
+  "dash__components_google_connected_panel": {
+    "title": "Google Business Profile",
+    "notApproved": "✓ Connected. Fetching and managing your profile data will become available once Google approves the API access (under review).",
+    "empty": "No managed Google Business Profiles found under this account.",
+    "managedProfiles": "Managed profiles via your Google account:",
+    "errors": {
+      "fetchFailed": "Could not fetch profile data."
+    }
+  },
+  "dash__components_hour_heatmap": {
+    "cellTitle": "{label} {time}, {pct}%"
+  },
+  "dash__components_kpi_row": {
+    "occupancyToday": "Occupancy today",
+    "guestsToday": "Guests today",
+    "viaFillyCount": "+{count} via Filly",
+    "viaFillyNone": "0 via Filly",
+    "activeCampaigns": "Active campaigns",
+    "activeOrScheduled": "active or scheduled",
+    "noneActive": "none active",
+    "suggestedCampaigns": "Suggested campaigns",
+    "awaitingApproval": "awaiting approval",
+    "notAvailableTitle": "Figures not available yet",
+    "notAvailableBody": "As soon as your reservations and campaigns come in, the KPIs will appear here."
+  },
+  "dash__components_mail_domain_section": {
+    "sectionTitle": "Mail settings",
+    "sectionDesc": "The address your campaign emails are sent from.",
+    "loading": "Loading…",
+    "removeConfirm": "Are you sure you want to disconnect this custom domain? Mail will fall back to social@get-filly.com afterwards.",
+    "errors": {
+      "unknown": "Unknown error.",
+      "register": "Registration failed.",
+      "verify": "Verification failed.",
+      "remove": "Removal failed."
+    },
+    "verified": {
+      "label": "Custom domain active: {address}",
+      "sub": "Emails are sent from your own domain. Replies land directly in your mailbox.",
+      "disconnect": "Disconnect"
+    },
+    "pending": {
+      "label": "DNS check running for {domain}",
+      "sub": "Add the records below at your DNS host. Then click 'Verify'. DNS propagation can take 5-30 minutes.",
+      "verify": "Verify",
+      "cancel": "Cancel / disconnect"
+    },
+    "failed": {
+      "label": "DNS records not correct yet for {domain}",
+      "sub": "Check that all records were copied exactly. Some DNS hosts automatically append the domain after the hostname, so correct that if needed."
+    },
+    "none": {
+      "label": "Default sending via Get-Filly",
+      "sub": "Your campaign emails come from social@get-filly.com with your restaurant name as the sender. For pure customer branding, you can connect your own domain.",
+      "setup": "Set up custom domain"
+    },
+    "setup": {
+      "title": "Connect custom domain",
+      "domainLabel": "Domain",
+      "domainHint": "Without http:// or www., just the domain name.",
+      "fromLabel": "Sender address",
+      "fromHint": "The address recipients see in 'From'. Must end with your domain.",
+      "create": "Create",
+      "cancel": "Cancel",
+      "note": "After creating, you get 4 DNS records to add at your DNS host (TransIP / Versio / Namecheap / etc.). Then you can verify, which usually takes 5-15 minutes after the DNS update."
+    },
+    "table": {
+      "empty": "No records available. Try reloading the page.",
+      "type": "Type",
+      "hostname": "Hostname",
+      "value": "Value",
+      "priority": "Prio",
+      "status": "Status",
+      "copy": "Copy",
+      "copyTitle": "Copy value to clipboard",
+      "hostnameTip": "Hostname tip: at some DNS hosts you don't need to add <code>.your-domain.nl</code> after the hostname yourself, they append it automatically. At others you have to enter the full hostname (e.g. <code>resend._domainkey.your-domain.nl</code>)."
+    }
+  },
+  "dash__components_media_library_picker": {
+    "title": "Choose from library",
+    "uploadPhoto": "+ Upload photo",
+    "uploadTitle": "Upload a new photo",
+    "close": "Close",
+    "photoCount": "<strong>{count}</strong> of <strong>{max}</strong> photos",
+    "taggingHint": "· Filly is tagging the photo…",
+    "dragHint": "· drag a photo here to upload",
+    "loadingPhotos": "Loading photos…",
+    "emptyTitle": "No photos in your library yet.",
+    "uploadFirstPhoto": "+ Upload your first photo",
+    "emptyDragHint": "… or drag a photo into this window.",
+    "cancel": "Cancel",
+    "errors": {
+      "fetchFailed": "Could not load photos.",
+      "uploadFailed": "Upload failed.",
+      "libraryFull": "Your library is full ({max} photos). Remove a photo first under Account > Photo library."
+    }
+  },
+  "dash__components_meta_publish_panel": {
+    "notConnectedHint": "Publishing to Facebook/Instagram will appear here as soon as you click <strong>Connect</strong> above and the connection succeeds.",
+    "title": "Publish to Facebook / Instagram",
+    "subtitle": "Choose your page and post a test message. Instagram requires an image URL.",
+    "noPages": "No Facebook pages found under this account. Make sure you are an admin of at least one page.",
+    "savePage": "Save page",
+    "saving": "Saving…",
+    "messagePlaceholder": "Message text…",
+    "imageUrlPlaceholder": "Image URL (optional; required for Instagram)",
+    "publish": "Post",
+    "publishing": "Posting…",
+    "pageSaved": "✓ Page saved.",
+    "pageSaveFailed": "Failed to save page.",
+    "publishedTo": "✓ Posted to {channels}.",
+    "noChannelSelected": "No channel selected.",
+    "publishFailed": "Failed to publish."
+  },
+  "dash__components_onboarding_checklist": {
+    "title": "Put Filly to work",
+    "hint": "Check off these setup steps so Filly can make better suggestions. The list disappears automatically once everything is ✓.",
+    "items": {
+      "profile": {
+        "label": "Profile basics: type, address and capacity",
+        "hint": "Without this, Filly cannot make tailored suggestions."
+      },
+      "hours": {
+        "label": "Fill in opening hours",
+        "hint": "Prevents Filly from sending mailings on closed days."
+      },
+      "campaign": {
+        "label": "Create your first campaign",
+        "hint": "Create a test draft to get to know the flow."
+      },
+      "business": {
+        "label": "Business details (legal name + Chamber of Commerce number)",
+        "hint": "Appears in email footers and is required for mailings to guests."
+      }
+    }
+  },
+  "dash__components_placeholder_page": {
+    "comingSoon": "Coming soon"
+  },
+  "dash__components_progress_checklist": {
+    "title": "Progress",
+    "counter": "· {doneCount} of {total} completed",
+    "showItems": "Show items",
+    "collapse": "Collapse",
+    "configure": "Set up →",
+    "showMore": "Show {count} more {count, plural, one {item} other {items}} ↓",
+    "showLess": "Show less ↑"
+  },
+  "dash__components_restaurant_media_section": {
+    "title": "Photo library",
+    "description": "Upload photos of your interior, dishes, terrace and team. Filly uses these photos in campaign suggestions and you can reuse them on the campaign page. Max {max} photos, 5MB per photo, JPEG/PNG/WebP.",
+    "count": "<strong>{count}</strong> of <strong>{max}</strong> photos",
+    "tagging": "· Filly is tagging the photo…",
+    "uploadButton": "+ Upload photo",
+    "uploadTitle": "Upload a new photo",
+    "uploadFullTitle": "Your library is full, delete a photo first",
+    "loading": "Loading…",
+    "emptyState": "No photos yet. Upload your first photo and Filly automatically generates a description and tags so it can use them in campaigns.",
+    "deleteConfirm": "Are you sure you want to delete this photo? Photos used in earlier campaigns will still be visible there.",
+    "noDescription": "No description",
+    "deleteTitle": "Delete photo",
+    "deleteButton": "✕ Delete",
+    "errors": {
+      "fetchFailed": "Failed to load photos.",
+      "uploadFailed": "Upload failed.",
+      "deleteFailed": "Delete failed."
+    }
+  },
+  "dash__components_service_grid": {
+    "cellTooltip": "{label} {service}: {pct}%"
+  },
+  "dash__components_skeleton": {},
+  "dash__components_upcoming_actions_block": {
+    "lowOccupancyCount": "{count, plural, one {# quiet day} other {# quiet days}}",
+    "nextTwoWeeks": "next 2 weeks:",
+    "moreSuffix": ", +{count} more",
+    "lowOccupancyCoveredTitle": "Quiet days covered.",
+    "lowOccupancyCovered": "{count, plural, one {All {count} quiet day in the next 2 weeks already has a proposal or campaign.} other {All {count} quiet days in the next 2 weeks already have a proposal or campaign.}}",
+    "noLowOccupancyTitle": "No quiet days.",
+    "noLowOccupancy": "Your occupancy for the next 2 weeks looks good.",
+    "specialCount": "{count, plural, one {# special day} other {# special days}}",
+    "nextSixWeeks": "next 6 weeks:",
+    "specialCoveredTitle": "Special days covered.",
+    "specialCovered": "{count, plural, one {All {count} special day in the next 6 weeks already has a proposal or campaign.} other {All {count} special days in the next 6 weeks already have a proposal or campaign.}}",
+    "noSpecialTitle": "No special days.",
+    "noSpecial": "No holidays or themed days are on the calendar for the next 6 weeks."
   }
 }

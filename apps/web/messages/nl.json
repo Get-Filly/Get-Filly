@@ -2447,5 +2447,680 @@
     "priorityNow": "Nu",
     "priorityThisWeek": "Deze week",
     "priorityPlanning": "Planning"
+  },
+  "dash__components_access_guard": {
+    "noAccessTitle": "Geen toegang",
+    "noAccessBody": "Je hebt geen rechten voor deze pagina. Vraag de eigenaar om toegang of ga terug naar het dashboard."
+  },
+  "dash__components_account_connections": {
+    "providers": {
+      "zenchef": "Zenchef",
+      "opentable": "OpenTable",
+      "sevenrooms": "SevenRooms",
+      "resengo": "Resengo",
+      "googleBusiness": "Google Bedrijfsprofiel",
+      "mail": "E-mail (campagnes)",
+      "meta": "Facebook & Instagram",
+      "tiktok": "TikTok for Business",
+      "whatsapp": "WhatsApp Business",
+      "tripadvisor": "TripAdvisor",
+      "thefork": "The Fork",
+      "lightspeed": "Lightspeed / POS",
+      "weather": "Weer (Open-Meteo)"
+    },
+    "categories": {
+      "reserveringen": "Reserveringen",
+      "vindbaarheid": "Vindbaarheid",
+      "communicatie": "Communicatie",
+      "reviews": "Reviews",
+      "data": "Externe data"
+    },
+    "status": {
+      "active": "✓ Actief",
+      "activeViaGetFilly": "✓ Actief via Get-Filly",
+      "activeViaLocation": "✓ Actief via locatie"
+    },
+    "manage": "Beheer",
+    "soon": "Binnenkort",
+    "connect": "Verbind",
+    "connected": "✓ Verbonden",
+    "disconnect": "Ontkoppel",
+    "disconnectConfirm": "Koppeling intrekken? Filly kan dan niet meer namens je zaak posten of handelen tot je opnieuw verbindt.",
+    "denied": "Koppeling geannuleerd. Je kunt het opnieuw proberen via Verbind.",
+    "error": "Er ging iets mis bij de koppeling. Probeer het opnieuw.",
+    "errorWithReason": "Er ging iets mis bij de koppeling ({reason}). Probeer het opnieuw.",
+    "meta": {
+      "connected": "✓ Meta-koppeling geslaagd, je gaf toestemming via Facebook/Instagram."
+    },
+    "google": {
+      "connected": "✓ Google-koppeling geslaagd, Filly mag nu namens je zaak handelen.",
+      "reasons": {
+        "noRefresh": "Google gaf geen langdurige toegang. Trek de toegang in op myaccount.google.com/permissions en verbind opnieuw.",
+        "refreshRevoked": "De Google-toegang is ingetrokken of verlopen. Verbind opnieuw.",
+        "redirectUriMismatch": "De redirect-URL klopt niet met Google Cloud Console. Neem contact op met support.",
+        "state": "De beveiligingscontrole faalde of verliep. Start de koppeling opnieuw.",
+        "access": "Je hebt geen toegang tot dit restaurant.",
+        "config": "De Google-configuratie ontbreekt. Neem contact op met support.",
+        "noRestaurant": "Geen restaurant geselecteerd. Kies eerst een zaak."
+      }
+    }
+  },
+  "dash__components_calendar_card": {
+    "prev": "Vorige",
+    "next": "Volgende",
+    "today": "Vandaag",
+    "campaignScheduled": "{count, plural, one {Campagne ingepland} other {# campagnes ingepland}}",
+    "weekday": {
+      "mon": "MA",
+      "tue": "DI",
+      "wed": "WO",
+      "thu": "DO",
+      "fri": "VR",
+      "sat": "ZA",
+      "sun": "ZO"
+    },
+    "view": {
+      "dag": "Dag",
+      "week": "Week",
+      "maand": "Maand",
+      "jaar": "Jaar"
+    }
+  },
+  "dash__components_campaign_detail_foto_card": {
+    "title": "Foto of video",
+    "photoAlt": "Campagne-foto",
+    "linkedToCampaign": "Gekoppeld aan deze campagne.",
+    "empty": "Nog geen foto of video gekoppeld.",
+    "change": "Wijzig",
+    "remove": "Verwijder",
+    "pickFromLibrary": "Kies uit bibliotheek",
+    "uploadNew": "Upload nieuw",
+    "confirmRemove": "Foto verwijderen?",
+    "errors": {
+      "libraryLoadFailed": "Foto kon niet geladen worden uit de bibliotheek.",
+      "libraryLinkFailed": "Foto uit bibliotheek koppelen mislukt.",
+      "imagesOnly": "Alleen afbeeldingen (JPG, PNG, WebP, GIF).",
+      "fileTooLarge": "Bestand te groot ({size}MB). Max 10MB.",
+      "uploadFailed": "Upload mislukt. Probeer opnieuw.",
+      "removeFailed": "Verwijderen mislukt."
+    }
+  },
+  "dash__components_campaign_detail_inhoud_card": {
+    "title": "Inhoud",
+    "versionLabel": "Versie {n}",
+    "chosen": "Gekozen",
+    "edit": "Bewerk",
+    "revertTitle": "Terug naar de oorspronkelijke versie",
+    "subjectPrefix": "Onderwerp:",
+    "subjectMissing": "Onderwerp ontbreekt, klik om in te vullen",
+    "noContent": "Geen inhoud.",
+    "regenerateTitle": "Filly genereert 3 nieuwe alternatieven",
+    "regenerateMaxTitle": "Maximum 6 versies, bewerk een bestaande of kies een alternatief",
+    "regenerateWriting": "Filly schrijft…",
+    "regenerateMaxLabel": "Maximum aantal versies bereikt",
+    "regenerateLabel": "Genereer 3 nieuwe versies",
+    "otherVersions": "Andere versies ({count})",
+    "editingLabel": "{label} bewerken",
+    "subjectPlaceholder": "Onderwerp",
+    "bodyPlaceholder": "Bericht-inhoud",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "pickTitle": "Maak deze de gekozen versie"
+  },
+  "dash__components_campaign_detail_kanalen_card": {
+    "title": "Kanalen",
+    "editFor": "Bewerken voor:"
+  },
+  "dash__components_campaign_detail_missende_aspecten_card": {
+    "title": "Missende aspecten",
+    "legendRequired": "vereist",
+    "legendOptional": "optioneel",
+    "tooltipRequired": "Vereist — klik om in te vullen",
+    "tooltipOptional": "Optioneel — klik om in te vullen"
+  },
+  "dash__components_campaign_detail_waarom_card": {
+    "title": "Waarom dit voorstel"
+  },
+  "dash__components_campaign_detail_wanneer_card": {
+    "title": "Wanneer plaatsen",
+    "datetimeLabel": "Verzenddatum + tijd",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "yourChoice": "Jouw keuze",
+    "fillySuggests": "Filly stelt voor",
+    "notChosenYet": "Nog niet gekozen",
+    "deviationBanner": "Je wijkt af van Filly's voorstel ({fillyTime}).",
+    "edit": "✎ Wijzig",
+    "resetToFilly": "↺ Terug naar Filly's voorstel"
+  },
+  "dash__components_campaign_media_slot": {
+    "errors": {
+      "libraryLoad": "Foto kon niet geladen worden uit de bibliotheek.",
+      "libraryCopy": "Foto uit bibliotheek kopiëren mislukt.",
+      "notImage": "Alleen afbeeldingen (JPG, PNG, WebP, GIF) zijn toegestaan.",
+      "tooLarge": "Bestand is te groot ({size}MB). Max 10MB.",
+      "uploadFailed": "Upload mislukt. Probeer opnieuw.",
+      "deleteFailed": "Verwijderen mislukt. Probeer opnieuw."
+    },
+    "confirmDelete": "Foto verwijderen?",
+    "photoAlt": "Campagne-foto",
+    "chooseFromLibrary": "Kies uit bibliotheek",
+    "library": "Bibliotheek",
+    "replace": "Vervangen",
+    "replaceShort": "Vervang",
+    "uploading": "Uploaden…",
+    "delete": "Verwijderen",
+    "deletePhoto": "Foto verwijderen",
+    "dropZonePrompt": "Sleep een foto hierheen, kies uit bibliotheek of klik om te uploaden",
+    "formatHint": "JPG, PNG, WebP of GIF · max 10MB",
+    "uploadNew": "Upload nieuw",
+    "noPhoto": "Geen foto"
+  },
+  "dash__components_campaign_refine_panel": {
+    "instructionPlaceholderFirst": "Optioneel: zeg wat je anders wil voordat je opnieuw genereert...",
+    "instructionPlaceholderNext": "Optioneel: 'korter', 'speelser', 'focus op terras'...",
+    "generateFirst": "✨ Genereer 3 alternatieven",
+    "generateMore": "↻ Genereer 3 nieuwe",
+    "maxReached": "Maximum aantal generaties bereikt (3 + 3 = 6 versies). Kies er één of bewerk handmatig via \"✎ Bewerken\" rechtsboven.",
+    "loading": "Bezig met laden…",
+    "generatingVariants": "Filly schrijft 3 alternatieve versies…",
+    "clickToPreview": "Klik op een versie om 'm in de uiting-preview te zetten. Wisselen kan zoveel je wilt.",
+    "canGenerateMore": "Filly kan nog 3 nieuwe maken (max 6 totaal).",
+    "editVersionLabel": "Versie {number} bewerken",
+    "versionLabel": "Versie {number}",
+    "subjectPlaceholder": "Onderwerp",
+    "bodyPlaceholder": "Bericht-inhoud",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "applying": "Toepassen…",
+    "chosen": "✓ Gekozen",
+    "edit": "✎ Bewerk",
+    "cardTitle": "✨ Met Filly bewerken",
+    "cardSubtitleInitial": "Filly bedenkt 3 alternatieven; kies of laat 3 nieuwe maken.",
+    "cardSubtitleCanRegenerate": "{count} versies, kies favoriet of laat 3 nieuwe maken.",
+    "cardSubtitleLocked": "{count} versies, kies favoriet of bewerk handmatig.",
+    "errors": {
+      "editFailed": "Bewerken mislukt. Probeer opnieuw.",
+      "loadFailed": "Kon alternatieven niet laden. Herlaad de pagina.",
+      "generateFailed": "Genereren mislukt. Probeer opnieuw.",
+      "applyFailed": "Toepassen mislukt. Probeer opnieuw."
+    }
+  },
+  "dash__components_campaign_schedule_panel": {
+    "title": "Wanneer plaatsen?",
+    "subtitle": "Filly stelt het beste moment voor op basis van type campagne en jouw doelgroep.",
+    "datetimeLabel": "Verzenddatum + tijd",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "confirmedLabel": "Bevestigd verzendmoment",
+    "deviationWarning": "Je wijkt af van Filly's voorstel ({suggested}).",
+    "edit": "Wijzig",
+    "suggestionLabel": "Filly stelt voor",
+    "accept": "Accepteer dit moment",
+    "editYourself": "Wijzig zelf",
+    "regenerate": "Andere suggestie",
+    "loadingState": "Filly bedenkt het beste moment…",
+    "noSuggestion": "Geen voorstel beschikbaar.",
+    "errors": {
+      "suggestFailed": "Kon geen voorstel maken. Probeer het later opnieuw.",
+      "acceptFailed": "Accepteren mislukt. Probeer opnieuw.",
+      "saveFailed": "Opslaan mislukt. Probeer opnieuw.",
+      "regenerateFailed": "Nieuw voorstel mislukt. Probeer opnieuw."
+    }
+  },
+  "dash__components_campaign_send_modal": {
+    "notPossibleTitle": "Niet mogelijk",
+    "notPossibleBody": "Alleen mail-campagnes kunnen via deze flow worden verzonden. Social en WhatsApp komen later via een aparte koppeling.",
+    "close": "Sluiten",
+    "sendFailed": "Versturen mislukt.",
+    "resultSuccessTitle": "✓ Verstuurd",
+    "resultPartialTitle": "Deels verstuurd",
+    "resultSummary": "<strong>{sent}</strong> van <strong>{total}</strong> mails succesvol naar Resend gestuurd.",
+    "resultFailed": "{failed} mislukt.",
+    "failedAddresses": "Mislukte adressen:",
+    "resultWebhookNote": "Resend bevestigt aankomst via webhooks (delivered/bounced), die status verschijnt zo bij de campagne-stats.",
+    "done": "Klaar",
+    "formTitle": "Verstuur \"{name}\"",
+    "modeTestTitle": "Test naar mezelf",
+    "modeTestSubtitle": "Eén mail naar 1 adres om te checken hoe 'ie eruit ziet",
+    "modeRealTitle": "Echt verzenden",
+    "modeRealSubtitle": "Naar alle gasten met mail-toestemming",
+    "testEmailLabel": "Test-mailadres",
+    "testEmailHint": "Stuur 'm naar je eigen mailbox om te zien hoe gasten 't ontvangen.",
+    "confirmNotice": "<strong>Onomkeerbaar.</strong> De campagne gaat nu uit naar alle gasten met mail-toestemming. Typ de campagne-naam ter bevestiging:",
+    "cancel": "Annuleren",
+    "sendTest": "Verstuur test",
+    "sendToGuests": "Verstuur naar gasten"
+  },
+  "dash__components_chart_card": {
+    "title": "Bezettingstrend",
+    "subtitleDay": "{weekday}, afgelopen 6 maanden",
+    "subtitleYear": "Per maand, {year}",
+    "subtitleMonth": "Per dag, {month} {year}",
+    "labelMinus6Months": "-6 mnd",
+    "labelMinus3Months": "-3 mnd",
+    "labelNow": "nu",
+    "labelJan": "jan",
+    "labelJul": "jul",
+    "labelDec": "dec",
+    "emptySelectDay": "Selecteer een dag in de kalender",
+    "emptyNoData": "Geen data beschikbaar",
+    "average": "Gemiddelde: {value}%"
+  },
+  "dash__components_dashboard_provider": {},
+  "dash__components_filly_chat_bundle_card": {
+    "multiChannelBadge": "MULTI-KANAAL",
+    "chooseChannels": "Kies welke kanalen je wil aanmaken:",
+    "selectAtLeastOne": "Selecteer minimaal één kanaal om aan te maken",
+    "selectChannelCta": "Selecteer een kanaal",
+    "createCampaignsCta": "{count, plural, one {Maak 1 campagne aan} other {Maak # campagnes aan}}",
+    "notNow": "Niet nu",
+    "creating": "Bezig met aanmaken…",
+    "bundleAlreadyCreated": "✓ Bundle al aangemaakt",
+    "openCampaign": "✉️ Open campagne",
+    "allCampaigns": "→ Alle campagnes",
+    "draftCampaignsReady": "✓ Concept-campagnes klaar",
+    "openChannel": "Open {channel}",
+    "retry": "Probeer opnieuw",
+    "subjectLabel": "Onderwerp",
+    "bodyLabel": "Tekst",
+    "chooseChannelAria": "{channel} kiezen",
+    "collapseChannelAria": "{channel} inklappen",
+    "expandChannelAria": "{channel} uitklappen"
+  },
+  "dash__components_filly_chat_choice_card": {
+    "selectAll": "Selecteer alles",
+    "selectNone": "Geen kiezen",
+    "thinking": "Filly bedenkt…",
+    "submit": {
+      "empty": "Selecteer een optie",
+      "single": "Verstuur",
+      "bundle": "Verstuur (bundel {count} kanalen)"
+    },
+    "options": {
+      "mail": {
+        "label": "Mail",
+        "hint": "Naar gastenlijst"
+      },
+      "instagram": {
+        "label": "Instagram",
+        "hint": "IG-post"
+      },
+      "facebook": {
+        "label": "Facebook",
+        "hint": "FB-post"
+      },
+      "whatsapp": {
+        "label": "WhatsApp",
+        "hint": "Persoonlijk bericht"
+      },
+      "googleBusiness": {
+        "label": "Google Business",
+        "hint": "Post op je profiel"
+      }
+    }
+  },
+  "dash__components_filly_chat_date_card": {
+    "submitThinking": "Filly denkt na…",
+    "submitChooseFirst": "Kies eerst een dag",
+    "submitNext": "Volgende stap",
+    "tabQuick": "Snelle keuze",
+    "tabSpecific": "Specifieke datum",
+    "specificHint": "Datum waarop de campagne moet werken (bijv. de avond van een evenement of feestdag).",
+    "options": {
+      "today": {
+        "label": "Vandaag",
+        "hint": "Last-minute"
+      },
+      "tomorrow": {
+        "label": "Morgen",
+        "hint": "Korte aanloop"
+      },
+      "this_weekend": {
+        "label": "Komend weekend",
+        "hint": "Zaterdag + zondag"
+      },
+      "next_week": {
+        "label": "Volgende week",
+        "hint": "Hele week opties"
+      }
+    }
+  },
+  "dash__components_filly_chat_error_banner": {},
+  "dash__components_filly_chat_history_menu": {
+    "triggerLabel": "Gesprekken",
+    "triggerAriaLabel": "Chat-geschiedenis",
+    "triggerTitle": "Wissel chat / start nieuw",
+    "newConversation": "Nieuw gesprek",
+    "untitledConversation": "Gesprek van {date}",
+    "deleteConfirm": "\"{title}\" verwijderen? Filly bewaart geleerde voorkeuren maar de chat-berichten gaan weg.",
+    "deleteAriaLabel": "{title} verwijderen",
+    "deleteTitle": "Verwijder gesprek",
+    "relative": {
+      "today": "vandaag",
+      "yesterday": "gisteren",
+      "daysAgo": "{days} dagen geleden",
+      "weeksAgo": "{weeks} wkn geleden"
+    }
+  },
+  "dash__components_filly_chat_input": {
+    "placeholderLoading": "Chat laden…",
+    "placeholderSending": "Filly denkt na…",
+    "placeholderIdle": "Vraag Filly iets…",
+    "sendLabel": "Verstuur"
+  },
+  "dash__components_filly_chat_message_list": {
+    "fillyLabel": "Filly AI",
+    "userLabel": "Jij",
+    "typing": "Filly is aan het typen…"
+  },
+  "dash__components_filly_chat_proposal_card": {
+    "typeMail": "E-mail",
+    "typeSocial": "Social",
+    "typeWhatsapp": "WhatsApp",
+    "proposalLabel": "Campagne-voorstel",
+    "subject": "Onderwerp: {subject}",
+    "multipleVersions": "Filly bedacht {count} versies, kies je favoriet via \"Bekijk versies\".",
+    "accept": "Ja, maak aan",
+    "viewVersions": "Bekijk versies →",
+    "decline": "Nee, bedankt",
+    "creating": "Aanmaken…",
+    "created": "Concept aangemaakt.",
+    "view": "Bekijken →",
+    "dismissed": "Voorstel afgewezen.",
+    "retry": "Opnieuw proberen"
+  },
+  "dash__components_filly_chat": {
+    "title": "Filly AI",
+    "subtitle": "Marketing-assistent",
+    "online": "Online",
+    "messageCounter": "· Bericht {count} / {cap}",
+    "jumpToNew": "↓ Nieuwe berichten",
+    "capReached": "Dit gesprek heeft de grens van {cap} berichten bereikt. Filly onthoudt wat 'ie hier heeft geleerd voor volgende gesprekken.",
+    "startNewConversation": "＋ Nieuw gesprek starten",
+    "errors": {
+      "noRestaurant": "Nog geen restaurant actief, chat is pas beschikbaar na onboarding.",
+      "loadFailed": "Kon de chat niet laden. Probeer zo opnieuw.",
+      "unknown": "Onbekende fout.",
+      "sendFailed": "Filly kon niet antwoorden. Probeer nog eens (de rate-limit kan bereikt zijn).",
+      "conversationLoadFailed": "Kon dit gesprek niet laden.",
+      "newConversationFailed": "Kon geen nieuw gesprek starten.",
+      "deleteFailed": "Verwijderen mislukt. Probeer 't opnieuw.",
+      "saveFailed": "Opslaan mislukt. Probeer nog eens.",
+      "bundleFailed": "Bundle-aanmaken mislukt. Probeer nog eens."
+    },
+    "prompts": {
+      "mail": "Maak een mail-campagne",
+      "instagram": "Maak een Instagram-post",
+      "facebook": "Maak een Facebook-post",
+      "whatsapp": "Maak een WhatsApp-bericht",
+      "googleBusiness": "Maak een Google Business-post",
+      "bundle": "Maak een bundel-campagne voor {channels}"
+    }
+  },
+  "dash__components_filly_guided_flow": {
+    "welcome": {
+      "title": "Waar kan ik je mee helpen?",
+      "openerText": "Ik heb een paar dagen gedetecteerd. Voor welke dag wil je een uiting maken?",
+      "continueText": "Beantwoord de vragen of pas een eerdere stap aan."
+    },
+    "trail": {
+      "editAngle": "Hoek aanpassen"
+    },
+    "opener": {
+      "loading": "Even kijken welke kansen er zijn…",
+      "quietDays": "Rustige dagen",
+      "belowThreshold": " (onder {threshold}%)",
+      "occupied": "{pct}% bezet",
+      "showLess": "Minder tonen",
+      "showMore": "+ {count} meer rustige dagen",
+      "noReservations": "Er staan nog geen reserveringen, dus elke open dag is rustig.",
+      "specialDays": "Speciale dagen",
+      "pickOwnDay": "Of kies zelf een dag"
+    },
+    "angles": {
+      "loading": "Filly kijkt wat er die dag kan…",
+      "question": "Voor {day} — waarop wil je inspelen?",
+      "thatDay": "die dag",
+      "fillyChoose": "Laat Filly de sterkste hoek kiezen",
+      "fastest": "snelste",
+      "whatsHappening": "Wat speelt er die dag",
+      "pickAngle": "Of kies een hoek",
+      "next": "Verder",
+      "options": {
+        "gerecht": {
+          "label": "Gerecht of drankje uitlichten",
+          "placeholder": "Welk gerecht of drankje? (bijv. Burrata di Puglia)"
+        },
+        "deal": {
+          "label": "Een deal of aanbieding",
+          "placeholder": "Wat voor deal? (bijv. 2-gangenmenu € 27,50)"
+        },
+        "sfeer": {
+          "label": "Sfeer & beleving"
+        },
+        "doelgroep": {
+          "label": "Voor een doelgroep",
+          "placeholder": "Welke doelgroep? (bijv. gezinnen, after-work)"
+        },
+        "anders": {
+          "label": "Iets anders",
+          "placeholder": "Typ je eigen hoek"
+        }
+      }
+    },
+    "channels": {
+      "question": "Op welke kanalen? Ik heb de aanbevolen alvast aangevinkt.",
+      "autoQuestion": "Ik kies zelf het beste kanaal. Zal ik 'm maken?",
+      "makeAction": "Maak de actie"
+    },
+    "generating": {
+      "text": "Filly maakt je voorstel…"
+    },
+    "done": {
+      "title": "Klaar! ✨",
+      "bodyPlural": "Ik heb {count} voorstellen voor je klaargezet.",
+      "bodySingle": "Ik heb een voorstel voor je klaargezet.",
+      "anotherAction": "＋ Nog een actie",
+      "allSuggestions": "Alle voorstellen →"
+    },
+    "result": {
+      "fallbackName": "Voorstel",
+      "viewEdit": "Bekijken & aanpassen →"
+    },
+    "errors": {
+      "noResult": "Het lukte niet om een voorstel te maken voor deze dag. Probeer een andere dag of een andere hoek.",
+      "generic": "Voorstel maken lukte niet. Probeer 't zo opnieuw."
+    },
+    "hint": {
+      "typeOwn": "Of typ hieronder zelf een vraag"
+    }
+  },
+  "dash__components_google_connected_panel": {
+    "title": "Google Bedrijfsprofiel",
+    "notApproved": "✓ Verbonden. Het ophalen en beheren van je profielgegevens komt beschikbaar zodra Google de API-toegang heeft goedgekeurd (in aanvraag).",
+    "empty": "Geen beheerde Google-Bedrijfsprofielen gevonden onder dit account.",
+    "managedProfiles": "Beheerde profielen via je Google-account:",
+    "errors": {
+      "fetchFailed": "Profielgegevens ophalen mislukt."
+    }
+  },
+  "dash__components_hour_heatmap": {
+    "cellTitle": "{label} {time}, {pct}%"
+  },
+  "dash__components_kpi_row": {
+    "occupancyToday": "Bezetting vandaag",
+    "guestsToday": "Gasten vandaag",
+    "viaFillyCount": "+{count} via Filly",
+    "viaFillyNone": "0 via Filly",
+    "activeCampaigns": "Lopende campagnes",
+    "activeOrScheduled": "actief of ingepland",
+    "noneActive": "geen actieve",
+    "suggestedCampaigns": "Voorgestelde campagnes",
+    "awaitingApproval": "wachten op goedkeuring",
+    "notAvailableTitle": "Cijfers nog niet beschikbaar",
+    "notAvailableBody": "Zodra je reserveringen en campagnes binnenkomen verschijnen de KPI's hier."
+  },
+  "dash__components_mail_domain_section": {
+    "sectionTitle": "Mail-instellingen",
+    "sectionDesc": "Vanuit welk adres je campagne-mails worden verstuurd.",
+    "loading": "Bezig met laden…",
+    "removeConfirm": "Weet je zeker dat je dit eigen domein wil loskoppelen? Mail valt daarna terug op social@get-filly.com.",
+    "errors": {
+      "unknown": "Onbekende fout.",
+      "register": "Registreren mislukt.",
+      "verify": "Verificatie mislukt.",
+      "remove": "Verwijderen mislukt."
+    },
+    "verified": {
+      "label": "Eigen domein actief: {address}",
+      "sub": "Mails worden verzonden vanuit je eigen domein. Replies komen direct in je mailbox.",
+      "disconnect": "Loskoppelen"
+    },
+    "pending": {
+      "label": "DNS-controle loopt voor {domain}",
+      "sub": "Voeg de onderstaande records toe bij je DNS-host. Klik daarna op 'Verifieer'. DNS-propagatie kan 5-30 minuten duren.",
+      "verify": "Verifieer",
+      "cancel": "Annuleren / loskoppelen"
+    },
+    "failed": {
+      "label": "DNS-records nog niet correct voor {domain}",
+      "sub": "Controleer dat alle records exact zijn overgenomen. Sommige DNS-hosts voegen automatisch het domein achter de hostname toe, corrigeer dan zo nodig."
+    },
+    "none": {
+      "label": "Standaard-verzending via Get-Filly",
+      "sub": "Je campagne-mails komen van social@get-filly.com met je restaurant-naam als afzender. Voor pure klant-branding kun je je eigen domein koppelen.",
+      "setup": "Eigen domein instellen"
+    },
+    "setup": {
+      "title": "Eigen domein koppelen",
+      "domainLabel": "Domein",
+      "domainHint": "Zonder http:// of www., alleen de domeinnaam.",
+      "fromLabel": "Verzendadres",
+      "fromHint": "Het adres dat ontvangers zien in 'Van'. Moet eindigen op je domein.",
+      "create": "Aanmaken",
+      "cancel": "Annuleren",
+      "note": "Na aanmaken krijg je 4 DNS-records die je bij je DNS-host (TransIP / Versio / Namecheap / etc.) moet toevoegen. Daarna kun je verifiëren, duurt meestal 5-15 minuten na DNS-update."
+    },
+    "table": {
+      "empty": "Geen records beschikbaar. Probeer de pagina te herladen.",
+      "type": "Type",
+      "hostname": "Hostname",
+      "value": "Waarde",
+      "priority": "Prio",
+      "status": "Status",
+      "copy": "Kopieer",
+      "copyTitle": "Kopieer waarde naar klembord",
+      "hostnameTip": "Hostname-tip: bij sommige DNS-hosts hoef je <code>.jouw-domein.nl</code> niet zelf achter de hostname te zetten, die voegt 'm zelf toe. Bij andere moet je de volledige hostname (bv. <code>resend._domainkey.jouw-domein.nl</code>) invoeren."
+    }
+  },
+  "dash__components_media_library_picker": {
+    "title": "Kies uit bibliotheek",
+    "uploadPhoto": "+ Foto uploaden",
+    "uploadTitle": "Upload een nieuwe foto",
+    "close": "Sluiten",
+    "photoCount": "<strong>{count}</strong> van <strong>{max}</strong> foto's",
+    "taggingHint": "· Filly tagt de foto…",
+    "dragHint": "· sleep een foto hierheen om te uploaden",
+    "loadingPhotos": "Foto's laden…",
+    "emptyTitle": "Nog geen foto's in je bibliotheek.",
+    "uploadFirstPhoto": "+ Upload je eerste foto",
+    "emptyDragHint": "… of sleep een foto naar dit venster.",
+    "cancel": "Annuleren",
+    "errors": {
+      "fetchFailed": "Foto's ophalen mislukt.",
+      "uploadFailed": "Upload mislukt.",
+      "libraryFull": "Je bibliotheek zit vol ({max} foto's). Verwijder eerst een foto op Account → Foto-bibliotheek."
+    }
+  },
+  "dash__components_meta_publish_panel": {
+    "notConnectedHint": "Publiceren naar Facebook/Instagram verschijnt hier zodra je hierboven op <strong>Verbind</strong> hebt geklikt en de koppeling is gelukt.",
+    "title": "Publiceren naar Facebook / Instagram",
+    "subtitle": "Kies je pagina en plaats een testbericht. Instagram vereist een afbeelding-URL.",
+    "noPages": "Geen Facebook-pagina's gevonden onder dit account. Zorg dat je beheerder bent van minstens één pagina.",
+    "savePage": "Pagina opslaan",
+    "saving": "Opslaan…",
+    "messagePlaceholder": "Berichttekst…",
+    "imageUrlPlaceholder": "Afbeelding-URL (optioneel; verplicht voor Instagram)",
+    "publish": "Plaats",
+    "publishing": "Plaatsen…",
+    "pageSaved": "✓ Pagina opgeslagen.",
+    "pageSaveFailed": "Pagina opslaan mislukt.",
+    "publishedTo": "✓ Geplaatst op {channels}.",
+    "noChannelSelected": "Geen kanaal geselecteerd.",
+    "publishFailed": "Publiceren mislukt."
+  },
+  "dash__components_onboarding_checklist": {
+    "title": "Filly aan het werk zetten",
+    "hint": "Vink deze setup-stappen af zodat Filly betere voorstellen kan doen. De lijst verdwijnt vanzelf zodra alles ✓ is.",
+    "items": {
+      "profile": {
+        "label": "Profielbasis: type, adres en capaciteit",
+        "hint": "Zonder dit kan Filly geen voorstellen op maat doen."
+      },
+      "hours": {
+        "label": "Openingstijden invullen",
+        "hint": "Voorkomt dat Filly mailings verstuurt op gesloten dagen."
+      },
+      "campaign": {
+        "label": "Eerste campagne aanmaken",
+        "hint": "Maak een test-concept om de flow te leren kennen."
+      },
+      "business": {
+        "label": "Bedrijfsgegevens (legal name + KvK)",
+        "hint": "Verschijnt in mail-footers en is verplicht voor mailings naar gasten."
+      }
+    }
+  },
+  "dash__components_placeholder_page": {
+    "comingSoon": "Binnenkort beschikbaar"
+  },
+  "dash__components_progress_checklist": {
+    "title": "Voortgang",
+    "counter": "· {doneCount} van {total} ingevuld",
+    "showItems": "Toon items",
+    "collapse": "Inklappen",
+    "configure": "Instellen →",
+    "showMore": "Toon nog {count} {count, plural, one {item} other {items}} ↓",
+    "showLess": "Minder tonen ↑"
+  },
+  "dash__components_restaurant_media_section": {
+    "title": "Foto-bibliotheek",
+    "description": "Upload foto's van je interieur, gerechten, terras en team. Filly gebruikt deze foto's bij campagne-voorstellen en je kan ze hergebruiken op de campagne-pagina. Max {max} foto's, 5MB per foto, JPEG/PNG/WebP.",
+    "count": "<strong>{count}</strong> van <strong>{max}</strong> foto's",
+    "tagging": "· Filly tagt de foto…",
+    "uploadButton": "+ Foto uploaden",
+    "uploadTitle": "Upload een nieuwe foto",
+    "uploadFullTitle": "Je bibliotheek zit vol, verwijder eerst een foto",
+    "loading": "Bezig met laden…",
+    "emptyState": "Nog geen foto's. Upload je eerste foto, Filly genereert er automatisch een beschrijving + tags bij zodat 'ie ze kan gebruiken in campagnes.",
+    "deleteConfirm": "Weet je zeker dat je deze foto wil verwijderen? Foto's die in eerdere campagnes zijn gebruikt blijven daar wel zichtbaar.",
+    "noDescription": "Geen beschrijving",
+    "deleteTitle": "Verwijder foto",
+    "deleteButton": "✕ Verwijder",
+    "errors": {
+      "fetchFailed": "Foto's ophalen mislukt.",
+      "uploadFailed": "Upload mislukt.",
+      "deleteFailed": "Verwijderen mislukt."
+    }
+  },
+  "dash__components_service_grid": {
+    "cellTooltip": "{label} {service}: {pct}%"
+  },
+  "dash__components_skeleton": {},
+  "dash__components_upcoming_actions_block": {
+    "lowOccupancyCount": "{count, plural, one {# rustige dag} other {# rustige dagen}}",
+    "nextTwoWeeks": "komende 2 weken:",
+    "moreSuffix": ", +{count} meer",
+    "lowOccupancyCoveredTitle": "Rustige dagen afgedekt.",
+    "lowOccupancyCovered": "{count, plural, one {Alle {count} rustige dag komende 2 weken heeft al een voorstel of campagne.} other {Alle {count} rustige dagen komende 2 weken hebben al een voorstel of campagne.}}",
+    "noLowOccupancyTitle": "Geen rustige dagen.",
+    "noLowOccupancy": "Je bezetting komende 2 weken ziet er goed uit.",
+    "specialCount": "{count, plural, one {# speciale dag} other {# speciale dagen}}",
+    "nextSixWeeks": "komende 6 weken:",
+    "specialCoveredTitle": "Speciale dagen afgedekt.",
+    "specialCovered": "{count, plural, one {Alle {count} speciale dag komende 6 weken heeft al een voorstel of campagne.} other {Alle {count} speciale dagen komende 6 weken hebben al een voorstel of campagne.}}",
+    "noSpecialTitle": "Geen speciale dagen.",
+    "noSpecial": "Komende 6 weken staan er geen feest- of themadagen op de kalender."
   }
 }

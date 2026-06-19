@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { RefreshCw, X } from "lucide-react";
 import {
   deleteCampaignMedia,
@@ -51,6 +52,7 @@ export function CampaignMediaSlot({
   // dat regelen we later via een platform-keuze.
   aspectRatio?: string;
 }) {
+  const t = useTranslations("dash__components_campaign_media_slot");
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -70,7 +72,7 @@ export function CampaignMediaSlot({
   const useFromLibrary = async (item: RestaurantMediaItem) => {
     setPickerOpen(false);
     if (!item.url) {
-      setError("Foto kon niet geladen worden uit de bibliotheek.");
+      setError(t("errors.libraryLoad"));
       return;
     }
     setError(null);
@@ -81,11 +83,7 @@ export function CampaignMediaSlot({
       const { signed_url } = await uploadCampaignMedia(campaignId, file);
       onMediaChanged(signed_url);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Foto uit bibliotheek kopiëren mislukt.",
-      );
+      setError(e instanceof Error ? e.message : t("errors.libraryCopy"));
     } finally {
       setUploading(false);
     }
@@ -93,10 +91,12 @@ export function CampaignMediaSlot({
 
   const validate = (file: File): string | null => {
     if (!file.type.startsWith("image/")) {
-      return "Alleen afbeeldingen (JPG, PNG, WebP, GIF) zijn toegestaan.";
+      return t("errors.notImage");
     }
     if (file.size > MAX_BYTES) {
-      return `Bestand is te groot (${Math.round(file.size / 1024 / 1024)}MB). Max 10MB.`;
+      return t("errors.tooLarge", {
+        size: Math.round(file.size / 1024 / 1024),
+      });
     }
     return null;
   };
@@ -113,9 +113,7 @@ export function CampaignMediaSlot({
       const { signed_url } = await uploadCampaignMedia(campaignId, file);
       onMediaChanged(signed_url);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Upload mislukt. Probeer opnieuw.",
-      );
+      setError(e instanceof Error ? e.message : t("errors.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -139,18 +137,14 @@ export function CampaignMediaSlot({
 
   const remove = async () => {
     if (!editable || busy) return;
-    if (!confirm("Foto verwijderen?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     setError(null);
     setDeleting(true);
     try {
       await deleteCampaignMedia(campaignId);
       onMediaChanged(null);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Verwijderen mislukt. Probeer opnieuw.",
-      );
+      setError(e instanceof Error ? e.message : t("errors.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -176,7 +170,7 @@ export function CampaignMediaSlot({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={signedUrl}
-          alt="Campagne-foto"
+          alt={t("photoAlt")}
           style={{
             width: "100%",
             height: "100%",
@@ -197,7 +191,7 @@ export function CampaignMediaSlot({
             <button
               onClick={() => setPickerOpen(true)}
               disabled={busy}
-              title="Kies uit bibliotheek"
+              title={t("chooseFromLibrary")}
               style={{
                 padding: "6px 10px",
                 background: "rgba(255,255,255,0.92)",
@@ -210,12 +204,12 @@ export function CampaignMediaSlot({
                 boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
               }}
             >
-              Bibliotheek
+              {t("library")}
             </button>
             <button
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              title="Vervangen"
+              title={t("replace")}
               style={{
                 padding: "6px 10px",
                 background: "rgba(255,255,255,0.92)",
@@ -229,19 +223,19 @@ export function CampaignMediaSlot({
               }}
             >
               {uploading ? (
-                "Uploaden…"
+                t("uploading")
               ) : (
                 <>
                   <RefreshCw size={12} style={{ marginRight: 4 }} />
-                  Vervang
+                  {t("replaceShort")}
                 </>
               )}
             </button>
             <button
               onClick={remove}
               disabled={busy}
-              title="Verwijderen"
-              aria-label="Foto verwijderen"
+              title={t("delete")}
+              aria-label={t("deletePhoto")}
               style={{
                 padding: "6px 10px",
                 background: "rgba(255,255,255,0.92)",
@@ -336,12 +330,10 @@ export function CampaignMediaSlot({
       {editable ? (
         <>
           <div style={{ fontSize: 13, fontWeight: 500 }}>
-            {uploading
-              ? "Uploaden…"
-              : "Sleep een foto hierheen, kies uit bibliotheek of klik om te uploaden"}
+            {uploading ? t("uploading") : t("dropZonePrompt")}
           </div>
           <div style={{ fontSize: 11, color: "var(--tl)" }}>
-            JPG, PNG, WebP of GIF · max 10MB
+            {t("formatHint")}
           </div>
           <div
             style={{
@@ -366,7 +358,7 @@ export function CampaignMediaSlot({
                 cursor: busy ? "not-allowed" : "pointer",
               }}
             >
-              Kies uit bibliotheek
+              {t("chooseFromLibrary")}
             </button>
             <button
               type="button"
@@ -383,12 +375,12 @@ export function CampaignMediaSlot({
                 cursor: busy ? "not-allowed" : "pointer",
               }}
             >
-              Upload nieuw
+              {t("uploadNew")}
             </button>
           </div>
         </>
       ) : (
-        <div style={{ fontSize: 13 }}>Geen foto</div>
+        <div style={{ fontSize: 13 }}>{t("noPhoto")}</div>
       )}
       <input
         ref={inputRef}

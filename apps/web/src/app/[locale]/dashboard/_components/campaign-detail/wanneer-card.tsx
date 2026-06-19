@@ -12,6 +12,8 @@
 // State (editing/draft/saving) leeft in de parent; deze
 // component is 'controlled'.
 
+import { useTranslations } from "next-intl";
+
 import { Button } from "@/components/ui/button";
 import { formatDutchDateTime } from "./types";
 
@@ -59,6 +61,7 @@ export function WanneerCard({
   onResetToFilly,
   onDraftDatetimeChange,
 }: Props) {
+  const t = useTranslations("dash__components_campaign_detail_wanneer_card");
   return (
     <div
       id={sectionId}
@@ -67,7 +70,7 @@ export function WanneerCard({
     >
       <div className="card-h">
         <div>
-          <div className="card-t">Wanneer plaatsen</div>
+          <div className="card-t">{t("title")}</div>
         </div>
       </div>
       <div className="card-b">
@@ -89,7 +92,7 @@ export function WanneerCard({
                 color: "var(--ts)",
               }}
             >
-              <span>Verzenddatum + tijd</span>
+              <span>{t("datetimeLabel")}</span>
               <input
                 type="datetime-local"
                 value={draftDatetime}
@@ -111,14 +114,14 @@ export function WanneerCard({
                 disabled={!draftDatetime}
                 loading={savingSchedule}
               >
-                Opslaan
+                {t("save")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={onCancelEditSchedule}
                 disabled={savingSchedule}
               >
-                Annuleren
+                {t("cancel")}
               </Button>
             </div>
           </div>
@@ -131,7 +134,7 @@ export function WanneerCard({
                 marginBottom: 4,
               }}
             >
-              {isCustomTime ? "Jouw keuze" : "Filly stelt voor"}
+              {isCustomTime ? t("yourChoice") : t("fillySuggests")}
             </div>
             <div
               style={{
@@ -143,7 +146,7 @@ export function WanneerCard({
             >
               {effectiveIso
                 ? formatDutchDateTime(effectiveIso)
-                : "Nog niet gekozen"}
+                : t("notChosenYet")}
             </div>
             {/* Filly's redenering — alleen bij Filly's eigen voorstel
                 (niet wanneer eigenaar afwijkt, dan is de banner
@@ -174,8 +177,9 @@ export function WanneerCard({
                   lineHeight: 1.4,
                 }}
               >
-                Je wijkt af van Filly&rsquo;s voorstel (
-                {formatDutchDateTime(fillyIso)}).
+                {t("deviationBanner", {
+                  fillyTime: formatDutchDateTime(fillyIso),
+                })}
               </div>
             )}
             {canEdit && (
@@ -185,7 +189,7 @@ export function WanneerCard({
                   onClick={onStartEditSchedule}
                   disabled={busy}
                 >
-                  ✎ Wijzig
+                  {t("edit")}
                 </Button>
                 {isCustomTime && (
                   <Button
@@ -194,7 +198,7 @@ export function WanneerCard({
                     disabled={busy}
                     loading={savingSchedule}
                   >
-                    ↺ Terug naar Filly&rsquo;s voorstel
+                    {t("resetToFilly")}
                   </Button>
                 )}
               </div>

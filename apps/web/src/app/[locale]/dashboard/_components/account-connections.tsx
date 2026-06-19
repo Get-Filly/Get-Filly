@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import {
   metaStatus,
@@ -44,11 +45,12 @@ type Provider = "meta" | "google_business";
 type Integration = {
   key: string;
   icon: string;
-  name: string;
+  // i18n-key voor de zichtbare naam (zie messages-namespace).
+  nameKey: string;
   method: ConnectionMethod;
   category: IntegrationCategory;
-  // method "auto": status-tekst rechts in de rij.
-  statusText?: string;
+  // method "auto": i18n-key voor de status-tekst rechts in de rij.
+  statusKey?: string;
   // method "oauth": welke provider-status deze rij volgt.
   provider?: Provider;
   // method "oauth": waar "Verbind" heen navigeert (OAuth-start-route).
@@ -62,28 +64,28 @@ const integrations: Integration[] = [
   {
     key: "zenchef",
     icon: "🍽️",
-    name: "Zenchef",
+    nameKey: "providers.zenchef",
     method: "soon",
     category: "reserveringen",
   },
   {
     key: "opentable",
     icon: "🍽️",
-    name: "OpenTable",
+    nameKey: "providers.opentable",
     method: "soon",
     category: "reserveringen",
   },
   {
     key: "sevenrooms",
     icon: "🍽️",
-    name: "SevenRooms",
+    nameKey: "providers.sevenrooms",
     method: "soon",
     category: "reserveringen",
   },
   {
     key: "resengo",
     icon: "🍽️",
-    name: "Resengo",
+    nameKey: "providers.resengo",
     method: "soon",
     category: "reserveringen",
   },
@@ -93,7 +95,7 @@ const integrations: Integration[] = [
     // Ontkoppel. Zo komt na ontkoppelen altijd weer een koppel-knop terug.
     key: "google_business",
     icon: "📍",
-    name: "Google Bedrijfsprofiel",
+    nameKey: "providers.googleBusiness",
     method: "oauth",
     category: "vindbaarheid",
     provider: "google_business",
@@ -106,10 +108,10 @@ const integrations: Integration[] = [
     // eigen verzend-domein (MailDomainSection), dat je kunt koppelen/ontkoppelen.
     key: "mail",
     icon: "✉️",
-    name: "E-mail (campagnes)",
+    nameKey: "providers.mail",
     method: "auto",
     category: "communicatie",
-    statusText: "✓ Actief via Get-Filly",
+    statusKey: "status.activeViaGetFilly",
     managePath: "#mail-domein",
   },
   {
@@ -118,7 +120,7 @@ const integrations: Integration[] = [
     // pagina- + IG-keuze gebeurt daarna in het MetaPublishPanel.
     key: "meta",
     icon: "👥",
-    name: "Facebook & Instagram",
+    nameKey: "providers.meta",
     method: "oauth",
     category: "communicatie",
     provider: "meta",
@@ -127,55 +129,47 @@ const integrations: Integration[] = [
   {
     key: "tiktok",
     icon: "🎵",
-    name: "TikTok for Business",
+    nameKey: "providers.tiktok",
     method: "soon",
     category: "communicatie",
   },
   {
     key: "whatsapp",
     icon: "💬",
-    name: "WhatsApp Business",
+    nameKey: "providers.whatsapp",
     method: "soon",
     category: "communicatie",
   },
   {
     key: "tripadvisor",
     icon: "🧳",
-    name: "TripAdvisor",
+    nameKey: "providers.tripadvisor",
     method: "soon",
     category: "reviews",
   },
   {
     key: "thefork",
     icon: "🍴",
-    name: "The Fork",
+    nameKey: "providers.thefork",
     method: "soon",
     category: "reviews",
   },
   {
     key: "lightspeed",
     icon: "🧾",
-    name: "Lightspeed / POS",
+    nameKey: "providers.lightspeed",
     method: "soon",
     category: "data",
   },
   {
     key: "weather",
     icon: "🌤️",
-    name: "Weer (Open-Meteo)",
+    nameKey: "providers.weather",
     method: "auto",
     category: "data",
-    statusText: "✓ Actief via locatie",
+    statusKey: "status.activeViaLocation",
   },
 ];
-
-const categoryLabels: Record<IntegrationCategory, string> = {
-  reserveringen: "Reserveringen",
-  vindbaarheid: "Vindbaarheid",
-  communicatie: "Communicatie",
-  reviews: "Reviews",
-  data: "Externe data",
-};
 
 const categoryOrder: IntegrationCategory[] = [
   "reserveringen",
@@ -236,6 +230,7 @@ const autoStatusStyle: React.CSSProperties = {
 };
 
 export function ConnectionsSection() {
+  const t = useTranslations("dash__components_account_connections");
   const { active } = useRestaurant();
   const searchParams = useSearchParams();
   // Callbacks keren terug met ?meta=... of ?google=... (+ ?reason=).
@@ -269,9 +264,7 @@ export function ConnectionsSection() {
   }, [refresh]);
 
   const handleDisconnect = useCallback(async (provider: Provider) => {
-    const ok = window.confirm(
-      "Koppeling intrekken? Filly kan dan niet meer namens je zaak posten of handelen tot je opnieuw verbindt.",
-    );
+    const ok = window.confirm(t("disconnectConfirm"));
     if (!ok) return;
     try {
       if (provider === "meta") await metaDisconnect();
@@ -281,7 +274,7 @@ export function ConnectionsSection() {
     } catch {
       // Stil: bij een fout blijft de status staan; gebruiker kan opnieuw proberen.
     }
-  }, []);
+  }, [t]);
 
   return (
     <div>
@@ -309,7 +302,7 @@ export function ConnectionsSection() {
                 paddingLeft: 4,
               }}
             >
-              {categoryLabels[cat]}
+              {t(`categories.${cat}`)}
             </div>
             <div
               style={{
@@ -353,6 +346,7 @@ function IntegrationRow({
   connected,
   onDisconnect,
 }: IntegrationRowProps) {
+  const t = useTranslations("dash__components_account_connections");
   const rowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -368,17 +362,17 @@ function IntegrationRow({
     right = (
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <span style={autoStatusStyle}>
-          {integration.statusText ?? "✓ Actief"}
+          {integration.statusKey ? t(integration.statusKey) : t("status.active")}
         </span>
         {integration.managePath && (
           <a href={integration.managePath} style={actionLinkStyle}>
-            Beheer
+            {t("manage")}
           </a>
         )}
       </div>
     );
   } else if (integration.method === "soon") {
-    right = <span style={soonPillStyle}>Binnenkort</span>;
+    right = <span style={soonPillStyle}>{t("soon")}</span>;
   } else {
     right = (
       <OAuthAction
@@ -403,7 +397,7 @@ function IntegrationRow({
           flex: 1,
         }}
       >
-        {integration.name}
+        {t(integration.nameKey)}
       </div>
       {right}
     </div>
@@ -423,6 +417,7 @@ function OAuthAction({
   connected: boolean | null;
   onDisconnect: (provider: Provider) => void;
 }) {
+  const t = useTranslations("dash__components_account_connections");
   const provider = integration.provider;
 
   // Restaurant-id alleen meegeven aan échte OAuth-start-routes; interne
@@ -436,10 +431,10 @@ function OAuthAction({
   if (connected === true && provider) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        <span style={connectedPillStyle}>✓ Verbonden</span>
+        <span style={connectedPillStyle}>{t("connected")}</span>
         {integration.managePath && (
           <a href={integration.managePath} style={actionLinkStyle}>
-            Beheer
+            {t("manage")}
           </a>
         )}
         <button
@@ -447,7 +442,7 @@ function OAuthAction({
           onClick={() => onDisconnect(provider)}
           style={disconnectButtonStyle}
         >
-          Ontkoppel
+          {t("disconnect")}
         </button>
       </div>
     );
@@ -468,11 +463,11 @@ function OAuthAction({
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
       <a href={withRid(integration.connectPath ?? "#")} style={actionLinkStyle}>
-        Verbind
+        {t("connect")}
       </a>
       {integration.managePath && (
         <a href={integration.managePath} style={actionLinkStyle}>
-          Beheer
+          {t("manage")}
         </a>
       )}
     </div>
@@ -492,6 +487,7 @@ function MetaStatusBanner({
   status: string | null;
   reason: string | null;
 }) {
+  const t = useTranslations("dash__components_account_connections");
   if (!status) return null;
 
   const variants: Record<
@@ -502,19 +498,19 @@ function MetaStatusBanner({
       bg: "#ECF6EF",
       border: "#1F4A2D",
       color: "#1F4A2D",
-      text: "✓ Meta-koppeling geslaagd — je gaf toestemming via Facebook/Instagram.",
+      text: t("meta.connected"),
     },
     denied: {
       bg: "#FAF7F1",
       border: "#E5DFD0",
       color: "#18181B",
-      text: "Koppeling geannuleerd. Je kunt het opnieuw proberen via Verbind.",
+      text: t("denied"),
     },
     error: {
       bg: "#FBECEC",
       border: "#B42318",
       color: "#B42318",
-      text: `Er ging iets mis bij de koppeling${reason ? ` (${reason})` : ""}. Probeer het opnieuw.`,
+      text: reason ? t("errorWithReason", { reason }) : t("error"),
     },
   };
 
@@ -551,22 +547,21 @@ function GoogleStatusBanner({
   status: string | null;
   reason: string | null;
 }) {
+  const t = useTranslations("dash__components_account_connections");
   if (!status) return null;
 
   // Per fout-reason een begrijpelijke, actiegerichte melding.
-  const reasonText: Record<string, string> = {
-    no_refresh:
-      "Google gaf geen langdurige toegang. Trek de toegang in op myaccount.google.com/permissions en verbind opnieuw.",
-    refresh_revoked:
-      "De Google-toegang is ingetrokken of verlopen. Verbind opnieuw.",
-    redirect_uri_mismatch:
-      "De redirect-URL klopt niet met Google Cloud Console. Neem contact op met support.",
-    state:
-      "De beveiligingscontrole faalde of verliep. Start de koppeling opnieuw.",
-    access: "Je hebt geen toegang tot dit restaurant.",
-    config: "De Google-configuratie ontbreekt. Neem contact op met support.",
-    no_restaurant: "Geen restaurant geselecteerd. Kies eerst een zaak.",
+  const reasonKeys: Record<string, string> = {
+    no_refresh: "google.reasons.noRefresh",
+    refresh_revoked: "google.reasons.refreshRevoked",
+    redirect_uri_mismatch: "google.reasons.redirectUriMismatch",
+    state: "google.reasons.state",
+    access: "google.reasons.access",
+    config: "google.reasons.config",
+    no_restaurant: "google.reasons.noRestaurant",
   };
+
+  const reasonText = reason ? reasonKeys[reason] : undefined;
 
   const variants: Record<
     string,
@@ -576,21 +571,23 @@ function GoogleStatusBanner({
       bg: "#ECF6EF",
       border: "#1F4A2D",
       color: "#1F4A2D",
-      text: "✓ Google-koppeling geslaagd — Filly mag nu namens je zaak handelen.",
+      text: t("google.connected"),
     },
     denied: {
       bg: "#FAF7F1",
       border: "#E5DFD0",
       color: "#18181B",
-      text: "Koppeling geannuleerd. Je kunt het opnieuw proberen via Verbind.",
+      text: t("denied"),
     },
     error: {
       bg: "#FBECEC",
       border: "#B42318",
       color: "#B42318",
-      text:
-        (reason && reasonText[reason]) ??
-        `Er ging iets mis bij de koppeling${reason ? ` (${reason})` : ""}. Probeer het opnieuw.`,
+      text: reasonText
+        ? t(reasonText)
+        : reason
+          ? t("errorWithReason", { reason })
+          : t("error"),
     },
   };
 

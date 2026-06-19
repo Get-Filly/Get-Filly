@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Send } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // ============================================================
 // FillyChatInput, meerregelige tekst-input + verzend-knop.
@@ -35,12 +36,14 @@ export function FillyChatInput({
   onChange: (next: string) => void;
   onSend: () => void;
 }) {
+  const t = useTranslations("dash__components_filly_chat_input");
+
   const disabled = loading || sending || !canSend;
   const placeholder = loading
-    ? "Chat laden…"
+    ? t("placeholderLoading")
     : sending
-      ? "Filly denkt na…"
-      : "Vraag Filly iets…";
+      ? t("placeholderSending")
+      : t("placeholderIdle");
 
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -77,7 +80,7 @@ export function FillyChatInput({
           className="chat-send"
           onClick={onSend}
           disabled={!value.trim() || disabled}
-          aria-label="Verstuur"
+          aria-label={t("sendLabel")}
         >
           {/* Lucide Send-icon i.p.v. unicode ↑. Schaalt scherp op
               alle DPRs en is brand-consistent met de rest van de

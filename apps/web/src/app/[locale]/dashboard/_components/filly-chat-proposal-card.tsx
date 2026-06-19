@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
+import { Link } from "@/i18n/navigation";
 import type { CampaignProposalCard } from "@/lib/api";
 import type { ProposalStatus } from "./filly-chat-types";
 
@@ -24,12 +27,14 @@ export function FillyChatProposalCard({
   onDismiss: () => void;
   onOpenDetails: () => void;
 }) {
+  const t = useTranslations("dash__components_filly_chat_proposal_card");
+
   const typeLabel =
     proposal.type === "mail"
-      ? "E-mail"
+      ? t("typeMail")
       : proposal.type === "social"
-        ? "Social"
-        : "WhatsApp";
+        ? t("typeSocial")
+        : t("typeWhatsapp");
 
   return (
     <div
@@ -54,7 +59,7 @@ export function FillyChatProposalCard({
           color: "var(--accent, #1F4A2D)",
         }}
       >
-        <span>Campagne-voorstel</span>
+        <span>{t("proposalLabel")}</span>
         <span
           style={{
             padding: "1px 8px",
@@ -88,7 +93,7 @@ export function FillyChatProposalCard({
                   marginBottom: 4,
                 }}
               >
-                Onderwerp: {subject}
+                {t("subject", { subject })}
               </div>
             )}
             {proposal.variants && proposal.variants.length > 1 && (
@@ -100,8 +105,7 @@ export function FillyChatProposalCard({
                   fontStyle: "italic",
                 }}
               >
-                Filly bedacht {proposal.variants.length} versies, kies
-                je favoriet via "Bekijk versies".
+                {t("multipleVersions", { count: proposal.variants.length })}
               </div>
             )}
           </>
@@ -130,7 +134,7 @@ export function FillyChatProposalCard({
               cursor: "pointer",
             }}
           >
-            Ja, maak aan
+            {t("accept")}
           </button>
           {proposal.variants && proposal.variants.length > 1 && (
             <button
@@ -146,7 +150,7 @@ export function FillyChatProposalCard({
                 cursor: "pointer",
               }}
             >
-              Bekijk versies →
+              {t("viewVersions")}
             </button>
           )}
           <button
@@ -161,7 +165,7 @@ export function FillyChatProposalCard({
               cursor: "pointer",
             }}
           >
-            Nee, bedankt
+            {t("decline")}
           </button>
         </div>
       )}
@@ -174,7 +178,7 @@ export function FillyChatProposalCard({
             color: "var(--text-secondary, #52525B)",
           }}
         >
-          Aanmaken…
+          {t("creating")}
         </div>
       )}
 
@@ -186,8 +190,8 @@ export function FillyChatProposalCard({
             color: "var(--accent, #1F4A2D)",
           }}
         >
-          Concept aangemaakt.{" "}
-          <a
+          {t("created")}{" "}
+          <Link
             href={`/dashboard/campagnes/${status.campaignId}`}
             style={{
               color: "var(--accent, #1F4A2D)",
@@ -195,8 +199,8 @@ export function FillyChatProposalCard({
               fontWeight: 500,
             }}
           >
-            Bekijken →
-          </a>
+            {t("view")}
+          </Link>
         </div>
       )}
 
@@ -209,7 +213,7 @@ export function FillyChatProposalCard({
             fontStyle: "italic",
           }}
         >
-          Voorstel afgewezen.
+          {t("dismissed")}
         </div>
       )}
 
@@ -237,7 +241,7 @@ export function FillyChatProposalCard({
               fontSize: 12,
             }}
           >
-            Opnieuw proberen
+            {t("retry")}
           </button>
         </div>
       )}

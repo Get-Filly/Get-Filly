@@ -12,6 +12,7 @@
 // instagram_content_publish) echt.
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRestaurant } from "@/lib/restaurant-context";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/lib/api";
 
 export function MetaPublishPanel() {
+  const t = useTranslations("dash__components_meta_publish_panel");
   const { active } = useRestaurant();
 
   const [loading, setLoading] = useState(true);
@@ -74,8 +76,9 @@ export function MetaPublishPanel() {
     if (loading) return null;
     return (
       <div style={{ marginTop: "var(--space-5)", fontSize: 12, color: "var(--tl)" }}>
-        Publiceren naar Facebook/Instagram verschijnt hier zodra je hierboven
-        op <strong>Verbind</strong> hebt geklikt en de koppeling is gelukt.
+        {t.rich("notConnectedHint", {
+          strong: (chunks) => <strong>{chunks}</strong>,
+        })}
       </div>
     );
   }
@@ -88,9 +91,9 @@ export function MetaPublishPanel() {
     setFeedback(null);
     try {
       await metaSelectPage(selectedPageId);
-      setFeedback("✓ Pagina opgeslagen.");
+      setFeedback(t("pageSaved"));
     } catch {
-      setFeedback("Pagina opslaan mislukt.");
+      setFeedback(t("pageSaveFailed"));
     } finally {
       setSavingPage(false);
     }
@@ -111,12 +114,12 @@ export function MetaPublishPanel() {
       if (res.facebook) ok.push("Facebook");
       if (res.instagram) ok.push("Instagram");
       const parts: string[] = [];
-      if (ok.length) parts.push(`✓ Geplaatst op ${ok.join(" + ")}.`);
+      if (ok.length) parts.push(t("publishedTo", { channels: ok.join(" + ") }));
       if (res.errors.length) parts.push(res.errors.join(" "));
-      setFeedback(parts.join(" ") || "Geen kanaal geselecteerd.");
+      setFeedback(parts.join(" ") || t("noChannelSelected"));
       if (ok.length) setMessage("");
     } catch (err) {
-      setFeedback(err instanceof Error ? err.message : "Publiceren mislukt.");
+      setFeedback(err instanceof Error ? err.message : t("publishFailed"));
     } finally {
       setPublishing(false);
     }
@@ -142,18 +145,16 @@ export function MetaPublishPanel() {
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
-        Publiceren naar Facebook / Instagram
+        {t("title")}
       </div>
       <div style={{ fontSize: 12, color: "var(--tl)", marginBottom: 14 }}>
-        Kies je pagina en plaats een testbericht. Instagram vereist een
-        afbeelding-URL.
+        {t("subtitle")}
       </div>
 
       {/* Pagina-keuze */}
       {pages.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--tl)" }}>
-          Geen Facebook-pagina&apos;s gevonden onder dit account. Zorg dat je
-          beheerder bent van minstens één pagina.
+          {t("noPages")}
         </div>
       ) : (
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
@@ -185,7 +186,7 @@ export function MetaPublishPanel() {
               flexShrink: 0,
             }}
           >
-            {savingPage ? "Opslaan…" : "Pagina opslaan"}
+            {savingPage ? t("saving") : t("savePage")}
           </button>
         </div>
       )}
@@ -194,7 +195,7 @@ export function MetaPublishPanel() {
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Berichttekst…"
+        placeholder={t("messagePlaceholder")}
         rows={3}
         style={{ ...inputStyle, resize: "vertical", marginBottom: 8 }}
       />
@@ -202,7 +203,7 @@ export function MetaPublishPanel() {
         type="url"
         value={imageUrl}
         onChange={(e) => setImageUrl(e.target.value)}
-        placeholder="Afbeelding-URL (optioneel; verplicht voor Instagram)"
+        placeholder={t("imageUrlPlaceholder")}
         style={{ ...inputStyle, marginBottom: 10 }}
       />
 
@@ -252,7 +253,7 @@ export function MetaPublishPanel() {
             cursor: publishing ? "wait" : "pointer",
           }}
         >
-          {publishing ? "Plaatsen…" : "Plaats"}
+          {publishing ? t("publishing") : t("publish")}
         </button>
       </div>
 

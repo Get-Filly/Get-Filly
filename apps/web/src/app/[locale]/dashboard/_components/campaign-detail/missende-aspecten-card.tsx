@@ -12,6 +12,8 @@
 // heeft, óf als de hele card op de pagina niet getoond mag worden
 // (bv. campagne-status 'actief' waarin niets meer ontbreekt).
 
+import { useTranslations } from "next-intl";
+
 import {
   PLATFORM_LABEL as SHORT_PLATFORM_LABEL,
   getMissingLabel,
@@ -31,6 +33,9 @@ type Props = {
 };
 
 export function MissendeAspectenCard({ channels, onJumpTo }: Props) {
+  const t = useTranslations(
+    "dash__components_campaign_detail_missende_aspecten_card",
+  );
   // Filter alvast: kanalen zonder items hoeven we niet te tonen,
   // en als er na filtering 0 over zijn rendert de card überhaupt
   // niet (voorkomt lege card-shell op een 'volledig ingevuld'-
@@ -42,7 +47,7 @@ export function MissendeAspectenCard({ channels, onJumpTo }: Props) {
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
         <div>
-          <div className="card-t">Missende aspecten</div>
+          <div className="card-t">{t("title")}</div>
         </div>
       </div>
       <div className="card-b">
@@ -111,11 +116,11 @@ export function MissendeAspectenCard({ channels, onJumpTo }: Props) {
         >
           <span>
             <span style={{ color: "var(--text)", fontSize: 12 }}>●</span>{" "}
-            vereist
+            {t("legendRequired")}
           </span>
           <span>
             <span style={{ color: "var(--tl)", fontSize: 12 }}>○</span>{" "}
-            optioneel
+            {t("legendOptional")}
           </span>
         </div>
       </div>
@@ -138,6 +143,9 @@ function ChecklistButton({
   platform: string;
   onClick: () => void;
 }) {
+  const t = useTranslations(
+    "dash__components_campaign_detail_missende_aspecten_card",
+  );
   const bullet = item.required ? "●" : "○";
   const color = item.required
     ? "var(--text, #18181B)"
@@ -159,9 +167,7 @@ function ChecklistButton({
         gap: 6,
       }}
       title={
-        item.required
-          ? "Vereist — klik om in te vullen"
-          : "Optioneel — klik om in te vullen"
+        item.required ? t("tooltipRequired") : t("tooltipOptional")
       }
     >
       <span style={{ fontSize: 8, lineHeight: 1 }}>{bullet}</span>

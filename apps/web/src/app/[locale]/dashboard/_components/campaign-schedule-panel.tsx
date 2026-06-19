@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   setCampaignSchedule,
   suggestCampaignSchedule,
@@ -71,6 +72,7 @@ export function CampaignSchedulePanel({
   suggestedReasoning: string | null;
   onChanged: () => void;
 }) {
+  const t = useTranslations("dash__components_campaign_schedule_panel");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draftDatetime, setDraftDatetime] = useState("");
@@ -92,9 +94,7 @@ export function CampaignSchedulePanel({
       } catch (e) {
         if (!cancelled) {
           setError(
-            e instanceof Error
-              ? e.message
-              : "Kon geen voorstel maken. Probeer het later opnieuw.",
+            e instanceof Error ? e.message : t("errors.suggestFailed"),
           );
         }
       } finally {
@@ -117,7 +117,7 @@ export function CampaignSchedulePanel({
       onChanged();
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Accepteren mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.acceptFailed"),
       );
     } finally {
       setLoading(false);
@@ -145,7 +145,7 @@ export function CampaignSchedulePanel({
       onChanged();
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Opslaan mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.saveFailed"),
       );
     } finally {
       setLoading(false);
@@ -161,9 +161,7 @@ export function CampaignSchedulePanel({
       onChanged();
     } catch (e) {
       setError(
-        e instanceof Error
-          ? e.message
-          : "Nieuw voorstel mislukt. Probeer opnieuw.",
+        e instanceof Error ? e.message : t("errors.regenerateFailed"),
       );
     } finally {
       setLoading(false);
@@ -183,11 +181,8 @@ export function CampaignSchedulePanel({
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
         <div>
-          <div className="card-t">📅 Wanneer plaatsen?</div>
-          <div className="card-st">
-            Filly stelt het beste moment voor op basis van type campagne
-            en jouw doelgroep.
-          </div>
+          <div className="card-t">📅 {t("title")}</div>
+          <div className="card-st">{t("subtitle")}</div>
         </div>
       </div>
       <div className="card-b">
@@ -212,7 +207,7 @@ export function CampaignSchedulePanel({
                 color: "var(--ts)",
               }}
             >
-              <span>Verzenddatum + tijd</span>
+              <span>{t("datetimeLabel")}</span>
               <input
                 type="datetime-local"
                 value={draftDatetime}
@@ -233,14 +228,14 @@ export function CampaignSchedulePanel({
                 disabled={!draftDatetime}
                 loading={loading}
               >
-                Opslaan
+                {t("save")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setEditing(false)}
                 disabled={loading}
               >
-                Annuleren
+                {t("cancel")}
               </Button>
             </div>
           </div>
@@ -249,7 +244,7 @@ export function CampaignSchedulePanel({
           // Bevestigd: toon definitieve tijd
           // ────────────────────────────────────────────────
           <div>
-            <div style={labelStyle}>Bevestigd verzendmoment</div>
+            <div style={labelStyle}>{t("confirmedLabel")}</div>
             <div
               style={{
                 fontSize: 16,
@@ -277,8 +272,9 @@ export function CampaignSchedulePanel({
                     lineHeight: 1.4,
                   }}
                 >
-                  Je wijkt af van Filly&rsquo;s voorstel (
-                  {formatDutchDateTime(suggestedFor)}).
+                  {t("deviationWarning", {
+                    suggested: formatDutchDateTime(suggestedFor),
+                  })}
                 </div>
               )}
             {status === "concept" && (
@@ -287,7 +283,7 @@ export function CampaignSchedulePanel({
                 onClick={startEdit}
                 disabled={loading}
               >
-                ✎ Wijzig
+                ✎ {t("edit")}
               </Button>
             )}
           </div>
@@ -296,7 +292,7 @@ export function CampaignSchedulePanel({
           // Voorstel zonder bevestiging: accepteer of wijzig
           // ────────────────────────────────────────────────
           <div>
-            <div style={labelStyle}>✨ Filly stelt voor</div>
+            <div style={labelStyle}>✨ {t("suggestionLabel")}</div>
             <div
               style={{
                 fontSize: 16,
@@ -329,14 +325,14 @@ export function CampaignSchedulePanel({
               }}
             >
               <Button onClick={accept} loading={loading}>
-                ✓ Accepteer dit moment
+                ✓ {t("accept")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={startEdit}
                 disabled={loading}
               >
-                ✎ Wijzig zelf
+                ✎ {t("editYourself")}
               </Button>
               <button
                 onClick={regenerate}
@@ -351,7 +347,7 @@ export function CampaignSchedulePanel({
                   cursor: loading ? "not-allowed" : "pointer",
                 }}
               >
-                ↻ Andere suggestie
+                ↻ {t("regenerate")}
               </button>
             </div>
           </div>
@@ -368,9 +364,7 @@ export function CampaignSchedulePanel({
               fontStyle: "italic",
             }}
           >
-            {loading
-              ? "Filly bedenkt het beste moment…"
-              : "Geen voorstel beschikbaar."}
+            {loading ? t("loadingState") : t("noSuggestion")}
           </div>
         )}
 
