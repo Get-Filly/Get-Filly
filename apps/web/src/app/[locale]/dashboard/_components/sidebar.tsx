@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 // Grijze lijn-iconen voor de sidebar (lucide-react staat al in de deps).
 // Per 2026-05-30 de emoji's vervangen door monochrome lijn-iconen.
 import {
@@ -23,7 +23,8 @@ import { useRestaurant } from "@/lib/restaurant-context";
  */
 type MenuItem = {
   href: string;
-  label: string;
+  // message-key onder dashboard.nav.* (label uit de vertalingen)
+  labelKey: string;
   module: Module;
   // Grijs lijn-icoon (lucide-component) links naast het label. Per
   // 2026-05-30 de emoji's hierdoor vervangen: monochrome iconen geven
@@ -48,8 +49,8 @@ type MenuItem = {
 //   - /dashboard/taken, verzamelpagina van Filly-acties die deels
 //     onder Campagnes is opgegaan. Latere "Acties"-hub vervangt 'm.
 const allMenuItems: MenuItem[] = [
-  { href: "/dashboard", label: "Dashboard", module: "dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/campagnes", label: "Campagnes", module: "campagnes", icon: Megaphone },
+  { href: "/dashboard", labelKey: "dashboard", module: "dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/campagnes", labelKey: "campaigns", module: "campagnes", icon: Megaphone },
   // Marketing-hub uit sidebar verwijderd 2026-05-12: kanaal-overzicht
   // is verhuisd naar /dashboard/rapportages (top-blokken). Route
   // /dashboard/marketing bestaat nog voor backwards-compat met
@@ -59,8 +60,8 @@ const allMenuItems: MenuItem[] = [
   // vindbaarheid (audit, reviews, benchmark); de overkoepelende naam
   // dekt de lading beter. Route + module-key blijven google-business /
   // google_business voor backwards-compat met deep-links + permissies.
-  { href: "/dashboard/google-business", label: "Vindbaarheid", module: "google_business", icon: Search },
-  { href: "/dashboard/reserveringen", label: "Reserveringen", module: "reserveringen", icon: CalendarDays },
+  { href: "/dashboard/google-business", labelKey: "findability", module: "google_business", icon: Search },
+  { href: "/dashboard/reserveringen", labelKey: "reservations", module: "reserveringen", icon: CalendarDays },
   // Gasten-pagina uit sidebar verwijderd 2026-05-12: gast-info zit
   // nu inline in elke reservering-rij (totaal bezoeken, laatste
   // bezoek). Route /dashboard/gasten blijft bestaan voor deep-links.
@@ -68,7 +69,7 @@ const allMenuItems: MenuItem[] = [
   // verplaatst naar Vindbaarheid → Identiteit (Menu-subtab), waar
   // het samen met andere identiteit-velden zit die Filly gebruikt
   // voor posts. Route /dashboard/menu blijft bestaan voor deep-links.
-  { href: "/dashboard/rapportages", label: "Rapportages", module: "rapportages", icon: BarChart3 },
+  { href: "/dashboard/rapportages", labelKey: "reports", module: "rapportages", icon: BarChart3 },
   // Koppelingen-hub uit sidebar verwijderd 2026-05-12: alle integraties
   // zitten nu in account → Profiel → Koppelingen-tab. Route
   // /dashboard/koppelingen bestaat nog voor backwards-compat.
@@ -87,25 +88,11 @@ function getInitials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
 }
 
-/**
- * Vertaal de rolsleutel (zoals opgeslagen in de DB) naar het
- * NL-label dat de gebruiker ziet. Gelijkgetrokken met wat de
- * Team-pagina toont, zodat er maar één set labels rondzwerft.
- */
-function roleLabel(role: "owner" | "manager" | "staff"): string {
-  switch (role) {
-    case "owner":
-      return "Eigenaar";
-    case "manager":
-      return "Manager";
-    case "staff":
-      return "Medewerker";
-  }
-}
-
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("dashboard.nav");
+  const tRoles = useTranslations("dashboard.roles");
 
   // Actieve restaurant + volledige lijst uit de context. De lijst
   // gebruiken we voor de workspace-switcher; `setActive` schrijft de
@@ -206,7 +193,7 @@ export function Sidebar() {
       <button
         type="button"
         className="sidebar-backdrop"
-        aria-label="Menu sluiten"
+        aria-label={t("closeMenu")}
         onClick={closeMobileNav}
       />
       <nav className="sidebar" onClick={(e) => {
@@ -225,7 +212,7 @@ export function Sidebar() {
           onClick={() => setMenuOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          title="Account-menu"
+          title={t("accountMenu")}
         >
           <div className="sb-avatar">
             {active ? getInitials(active.name) : "—"}
@@ -246,7 +233,7 @@ export function Sidebar() {
                 visuele ruis zonder doel. */}
             {restaurants.length > 1 && (
               <>
-                <div className="sb-menu-label">Wissel restaurant</div>
+                <div className="sb-menu-label">{t("switchRestaurant")}</div>
                 {restaurants.map((r) => {
                   const isActive = r.id === active?.id;
                   return (
@@ -266,7 +253,7 @@ export function Sidebar() {
                           {r.name}
                         </span>
                         <span className="sb-menu-restaurant-role">
-                          {roleLabel(r.role)}
+                          {tRoles(r.role)}
                         </span>
                       </span>
                       {isActive && (
@@ -293,7 +280,7 @@ export function Sidebar() {
               onClick={() => setMenuOpen(false)}
             >
               <span className="sb-menu-icon">+</span>
-              Nieuwe onderneming toevoegen
+              {t("addBusiness")}
             </Link>
             <div className="sb-menu-divider" aria-hidden />
 
@@ -305,7 +292,7 @@ export function Sidebar() {
                 onClick={() => setMenuOpen(false)}
               >
                 <span className="sb-menu-icon">⚙️</span>
-                Account-instellingen
+                {t("accountSettings")}
               </Link>
             )}
             {canSeeAccount && <div className="sb-menu-divider" aria-hidden />}
@@ -316,14 +303,14 @@ export function Sidebar() {
               onClick={handleLogout}
             >
               <span className="sb-menu-icon">↩</span>
-              Uitloggen
+              {t("logout")}
             </button>
           </div>
         )}
       </div>
 
       <div className="sb-section">
-        <div className="sb-label">Menu</div>
+        <div className="sb-label">{t("menuLabel")}</div>
         {menuItems.map((item) => {
           // Lucide-component uit de menu-definitie. strokeWidth 1.75
           // geeft de dunne lijn-stijl uit de mockup; de grijze kleur
@@ -338,7 +325,7 @@ export function Sidebar() {
               <span className="sb-icon" aria-hidden>
                 <Icon size={18} strokeWidth={1.75} />
               </span>
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
@@ -346,7 +333,7 @@ export function Sidebar() {
 
       <div className="sb-bottom">
         <Link href="/" className="sb-site-link">
-          ← Bekijk website
+          {t("viewWebsite")}
         </Link>
       </div>
       </nav>

@@ -464,5 +464,52 @@
       "button": "Book a free intro call",
       "productLink": "Curious how Filly does this? Check <link>the product</link>."
     }
+  },
+  "dashboard": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "campaigns": "Campaigns",
+      "findability": "Findability",
+      "reservations": "Reservations",
+      "reports": "Reports",
+      "menuLabel": "Menu",
+      "viewWebsite": "← View website",
+      "accountMenu": "Account menu",
+      "closeMenu": "Close menu",
+      "switchRestaurant": "Switch restaurant",
+      "addBusiness": "Add a business",
+      "accountSettings": "Account settings",
+      "logout": "Log out"
+    },
+    "roles": {
+      "owner": "Owner",
+      "manager": "Manager",
+      "staff": "Staff"
+    },
+    "topbar": {
+      "menu": "Menu",
+      "notifications": "Notifications",
+      "search": "Search",
+      "lastSync": "Last sync: 2 min ago",
+      "titles": {
+        "dashboard": "Dashboard",
+        "taken": "Tasks",
+        "suggesties": "Suggestions",
+        "reserveringen": "Reservations",
+        "campagnes": "Campaigns",
+        "gasten": "Guests",
+        "findability": "Findability",
+        "findabilityReviews": "Findability · Reviews",
+        "marketing": "Marketing",
+        "marketingMail": "Marketing · Mail",
+        "marketingInstagram": "Marketing · Instagram",
+        "marketingFacebook": "Marketing · Facebook",
+        "marketingTiktok": "Marketing · TikTok",
+        "menu": "Menu",
+        "rapportages": "Reports",
+        "koppelingen": "Integrations",
+        "account": "Account"
+      }
+    }
   }
 }

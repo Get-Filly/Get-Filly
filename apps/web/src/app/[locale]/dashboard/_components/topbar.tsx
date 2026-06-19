@@ -1,31 +1,34 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import { Bell, Menu, Search } from "lucide-react";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
-const titleFor: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/dashboard/taken": "Taken",
-  "/dashboard/suggesties": "Suggesties",
-  "/dashboard/reserveringen": "Reserveringen",
-  "/dashboard/campagnes": "Campagnes",
-  "/dashboard/gasten": "Gasten",
+// Pad → message-key onder dashboard.topbar.titles. usePathname uit
+// @/i18n/navigation geeft het pad ZONDER locale-prefix, dus deze keys
+// matchen op zowel NL als /en.
+const titleKeyFor: Record<string, string> = {
+  "/dashboard": "dashboard",
+  "/dashboard/taken": "taken",
+  "/dashboard/suggesties": "suggesties",
+  "/dashboard/reserveringen": "reserveringen",
+  "/dashboard/campagnes": "campagnes",
+  "/dashboard/gasten": "gasten",
   // Vindbaarheid-hub + sub-routes (per 2026-05-21 hernoemd van
-  // "Google Business" naar "Vindbaarheid" — GBP is één onderdeel
-  // binnen vindbaarheid, en de naam sluit aan op pijler 1 op de
-  // marketing-site).
-  "/dashboard/google-business": "Vindbaarheid",
-  "/dashboard/google-business/reviews": "Vindbaarheid · Reviews",
+  // "Google Business" naar "Vindbaarheid").
+  "/dashboard/google-business": "findability",
+  "/dashboard/google-business/reviews": "findabilityReviews",
   // Marketing-hub + sub-routes per kanaal.
-  "/dashboard/marketing": "Marketing",
-  "/dashboard/marketing/mail": "Marketing · Mail",
-  "/dashboard/marketing/instagram": "Marketing · Instagram",
-  "/dashboard/marketing/facebook": "Marketing · Facebook",
-  "/dashboard/marketing/tiktok": "Marketing · TikTok",
-  "/dashboard/menu": "Menu",
-  "/dashboard/rapportages": "Rapportages",
-  "/dashboard/koppelingen": "Koppelingen",
-  "/dashboard/account": "Account",
+  "/dashboard/marketing": "marketing",
+  "/dashboard/marketing/mail": "marketingMail",
+  "/dashboard/marketing/instagram": "marketingInstagram",
+  "/dashboard/marketing/facebook": "marketingFacebook",
+  "/dashboard/marketing/tiktok": "marketingTiktok",
+  "/dashboard/menu": "menu",
+  "/dashboard/rapportages": "rapportages",
+  "/dashboard/koppelingen": "koppelingen",
+  "/dashboard/account": "account",
 };
 
 // Toggle de mobile-nav via een class op <body>. Geen Context/Provider
@@ -39,7 +42,9 @@ function toggleMobileNav() {
 
 export function Topbar() {
   const pathname = usePathname();
-  const title = titleFor[pathname] ?? "Dashboard";
+  const t = useTranslations("dashboard.topbar");
+  const titleKey = titleKeyFor[pathname] ?? "dashboard";
+  const title = t(`titles.${titleKey}`);
 
   return (
     <div className="topbar">
@@ -49,7 +54,7 @@ export function Topbar() {
         <button
           type="button"
           className="tb-burger"
-          aria-label="Menu"
+          aria-label={t("menu")}
           onClick={toggleMobileNav}
         >
           <Menu size={18} />
@@ -57,18 +62,16 @@ export function Topbar() {
         <div className="tb-title">{title}</div>
       </div>
       <div className="tb-right">
-        <span className="tb-badge tb-badge-desktop">
-          Laatste sync: 2 min geleden
-        </span>
+        <span className="tb-badge tb-badge-desktop">{t("lastSync")}</span>
         {/* Notificaties + zoeken zijn nog placeholder, komen straks
-            (zie backlog P3). Lucide-iconen i.p.v. emoji's zodat de
-            chrome er nu al consistent uitziet met de rest van de UI. */}
-        <button type="button" className="tb-btn" aria-label="Notificaties">
+            (zie backlog P3). */}
+        <button type="button" className="tb-btn" aria-label={t("notifications")}>
           <Bell size={16} />
         </button>
-        <button type="button" className="tb-btn" aria-label="Zoeken">
+        <button type="button" className="tb-btn" aria-label={t("search")}>
           <Search size={16} />
         </button>
+        <LanguageSwitcher />
       </div>
     </div>
   );

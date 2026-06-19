@@ -464,5 +464,52 @@
       "button": "Plan een gratis kennismaking in",
       "productLink": "Nieuwsgierig hoe Filly dit doet? Bekijk <link>het product</link>."
     }
+  },
+  "dashboard": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "campaigns": "Campagnes",
+      "findability": "Vindbaarheid",
+      "reservations": "Reserveringen",
+      "reports": "Rapportages",
+      "menuLabel": "Menu",
+      "viewWebsite": "← Bekijk website",
+      "accountMenu": "Account-menu",
+      "closeMenu": "Menu sluiten",
+      "switchRestaurant": "Wissel restaurant",
+      "addBusiness": "Nieuwe onderneming toevoegen",
+      "accountSettings": "Account-instellingen",
+      "logout": "Uitloggen"
+    },
+    "roles": {
+      "owner": "Eigenaar",
+      "manager": "Manager",
+      "staff": "Medewerker"
+    },
+    "topbar": {
+      "menu": "Menu",
+      "notifications": "Notificaties",
+      "search": "Zoeken",
+      "lastSync": "Laatste sync: 2 min geleden",
+      "titles": {
+        "dashboard": "Dashboard",
+        "taken": "Taken",
+        "suggesties": "Suggesties",
+        "reserveringen": "Reserveringen",
+        "campagnes": "Campagnes",
+        "gasten": "Gasten",
+        "findability": "Vindbaarheid",
+        "findabilityReviews": "Vindbaarheid · Reviews",
+        "marketing": "Marketing",
+        "marketingMail": "Marketing · Mail",
+        "marketingInstagram": "Marketing · Instagram",
+        "marketingFacebook": "Marketing · Facebook",
+        "marketingTiktok": "Marketing · TikTok",
+        "menu": "Menu",
+        "rapportages": "Rapportages",
+        "koppelingen": "Koppelingen",
+        "account": "Account"
+      }
+    }
   }
 }
