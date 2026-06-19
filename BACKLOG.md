@@ -133,7 +133,14 @@ naar main.
   **delete-data**, **account-verwijderd**, **data-deletion-status** (AVG-claims,
   noindex — verdienen zorgvuldige/jurist-geschikte vertaling). `structured-data`
   (JSON-LD, `inLanguage`) hoort bij de SEO-fase 4.
-- [ ] Fase 3: **dashboard** (78 componenten) — grootste blok, achter login
+- [x] ~~Fase 3: **dashboard**~~ (✅) — chrome (sidebar/topbar + switcher) + 73
+  bestanden (campagnes, account/team, gasten, google-business, marketing, menu,
+  rapportages, reserveringen, reviews, suggesties, taken, koppelingen + alle 38
+  gedeelde `_components`). Bulk via parallelle-agent-workflow (1 agent/bestand →
+  NL/EN-fragment → deterministische merge), per batch geverifieerd: prod-build
+  groen, alle literal `t()`-keys gevalideerd, navigatie-imports omgezet. Alleen
+  `design-system` (interne dev-pagina) overgeslagen. Klein restpunt (fase 4):
+  enkele datum-formatters gebruiken nog hardcoded `nl-NL` Intl-locale.
 - [ ] Fase 4 (SEO): per-pagina metadata (`<title>`/OG) nu nog NL voor beide talen;
   `hreflang` + sitemap met beide talen + gelokaliseerde titels
 - [ ] Follow-up (los): Next 16 deprecate't `middleware` → `proxy` (warning in build);
