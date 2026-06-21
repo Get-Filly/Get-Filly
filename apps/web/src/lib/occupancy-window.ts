@@ -19,7 +19,7 @@ import type { OccupancyDay, Restaurant } from "./api";
 import {
   seededOccupancy,
   mondayIndex,
-} from "../app/dashboard/_lib/calendar-data";
+} from "../app/[locale]/dashboard/_lib/calendar-data";
 
 // Mapping van JS-weekday (0=zondag) naar opening_hours-key.
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];

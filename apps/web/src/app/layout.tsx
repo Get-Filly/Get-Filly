@@ -1,93 +1,12 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
-import { CookieBanner } from "@/components/cookie-banner";
-import { StructuredData } from "@/components/structured-data";
-import { SITE_URL, SITE_NAME } from "@/config/seo";
-// Vercel Web Analytics + Speed Insights: cookieloos en AVG-vriendelijk (geen
-// consent-gating nodig). Analytics = bezoekers/pagina's; Speed Insights = de
-// echte Core Web Vitals van bezoekers (rankingfactor).
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
-
-// Site-brede SEO-defaults. Per-pagina metadata (zie config/seo.ts)
-// overschrijft title/description/canonical/openGraph waar nodig.
-const DEFAULT_TITLE = "Get-Filly — Meer gasten. Minder lege momenten.";
-const DEFAULT_DESCRIPTION =
-  "Get-Filly analyseert je bezettingsdata en zet AI in om automatisch campagnes te draaien die je restaurant voller maken.";
-
-export const metadata: Metadata = {
-  // Basis-URL: maakt alle relatieve canonical-/OG-paden absoluut.
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: DEFAULT_TITLE,
-    // Pagina's leveren een korte titel; deze template brandt 'm.
-    template: `%s · ${SITE_NAME}`,
-  },
-  description: DEFAULT_DESCRIPTION,
-  applicationName: SITE_NAME,
-  keywords: [
-    "horeca marketing",
-    "restaurant marketing",
-    "AI marketing horeca",
-    "meer reserveringen",
-    "restaurant bezetting",
-    "restaurant campagnes",
-    "Get-Filly",
-  ],
-  authors: [{ name: SITE_NAME }],
-  creator: SITE_NAME,
-  publisher: SITE_NAME,
-  openGraph: {
-    type: "website",
-    locale: "nl_NL",
-    siteName: SITE_NAME,
-    url: SITE_URL,
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-  robots: { index: true, follow: true },
-};
-
+// Root-layout-passthrough. De échte <html>/<body> + providers + navbar/footer
+// staan in app/[locale]/layout.tsx (dat is de root-layout voor alle
+// gelokaliseerde routes). Deze dunne root bestaat alleen zodat er een
+// root-not-found (app/not-found.tsx) kan zijn voor niet-gelokaliseerde
+// requests (paden die de middleware overslaat). Patroon volgens next-intl.
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="nl" className={inter.variable}>
-      <body>
-        {/* FOUC-fix: zet vóór de eerste paint html.reveal-armed (alleen met JS
-            én zonder reduced-motion). Daardoor zijn de scroll-reveal-kaarten
-            meteen verborgen i.p.v. heel kort op te flitsen; ScrollReveal toont
-            ze daarna bij het scrollen. Zonder JS / reduced-motion komt de class
-            nooit → alles gewoon zichtbaar (fallback). Inline + bovenaan body,
-            dus het draait vóór de reveal-elementen worden getekend. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-armed')}}catch(e){}})()",
-          }}
-        />
-        <StructuredData />
-        <Navbar />
-        {children}
-        <Footer />
-        <CookieBanner />
-        <Analytics />
-        <SpeedInsights />
-      </body>
-    </html>
-  );
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

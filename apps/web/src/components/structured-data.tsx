@@ -17,7 +17,10 @@
 import { COMPANY } from "@/config/company";
 import { SITE_URL, SITE_NAME } from "@/config/seo";
 
-export function StructuredData() {
+export async function StructuredData() {
+  // Server component: lees de actieve taal voor inLanguage (nl-NL / en-GB).
+  const { getLocale } = await import("next-intl/server");
+  const lang = (await getLocale()) === "en" ? "en-GB" : "nl-NL";
   const data = {
     "@context": "https://schema.org",
     "@graph": [
@@ -57,7 +60,7 @@ export function StructuredData() {
         "@id": `${SITE_URL}/#website`,
         url: SITE_URL,
         name: SITE_NAME,
-        inLanguage: "nl-NL",
+        inLanguage: lang,
         publisher: { "@id": `${SITE_URL}/#organization` },
       },
       {

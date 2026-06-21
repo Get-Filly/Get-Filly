@@ -100,6 +100,66 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🌍 Internationalisering NL/EN (gestart 2026-06-19, branch `feat/i18n`)
+
+Doel: hele frontend tweetalig (NL + EN) met taalwisselaar rechtsboven. Stack:
+**next-intl v4** + `app/[locale]/`-routing, `localePrefix: "as-needed"` (NL =
+kale URL, EN = `/en`). Berichten in `apps/web/messages/{nl,en}.json`. Werk
+gebeurt in kleine stappen met een build + commit per groep; nog **niet gepusht**
+naar main.
+
+**Architectuur-keuzes:**
+- Alle routes onder `app/[locale]/`; `[locale]/layout.tsx` is de root-layout.
+- Machine-route-handlers (`/auth/*`, `/oauth/*`) + metadata (`robots`/`sitemap`/
+  icons) bewust op `app/`-root → vaste URLs + externe callbacks intact.
+- Middleware = next-intl-routing + bestaande Supabase-auth-gates samengevoegd
+  (auth-padmatching op pad zónder locale-prefix; redirects behouden taal+cookies).
+- Navigatie via `@/i18n/navigation` (`Link`/`useRouter`/`usePathname`/`redirect`)
+  i.p.v. `next/*` zodat de actieve taal meegaat.
+
+**Status:**
+- [x] ~~Fase 1: fundament + home + navbar + taalswitcher~~ (✅)
+- [x] ~~Fase 2a: product + pricing~~ (✅, incl. mock-widgets + FAQ-JSON-LD)
+- [x] ~~Fase 2b: auth-flow (login/signup/forgot/reset + PasswordStrength)~~ (✅)
+- [x] ~~Fase 2c: site-brede chrome (footer + cookie-banner)~~ (✅)
+- [x] ~~Fase 2d: functionele publieke pagina's~~ (✅) — about, contact, welkom,
+  invite/accept, u/[token] (unsubscribe), not-found, blog (index + CTA;
+  blog/[slug] heeft geen UI-tekst). **Plus:** custom-404 hersteld na de
+  [locale]-move via `[locale]/[...rest]/page.tsx` (catch-all → notFound),
+  sync `not-found.tsx` (useTranslations), en root `app/layout.tsx` +
+  `app/not-found.tsx` (taal-neutrale fallback voor paden buiten [locale]).
+- [x] ~~Fase 2e: juridische + grote pagina's~~ (✅) — privacy, voorwaarden,
+  onboarding, delete-data, account-verwijderd, data-deletion-status (via
+  agent-workflow; nullable COMPANY-velden als ICU-arg met `?? ""`-fallback).
+  ⚠️ **Engelse privacy + voorwaarden = 1-op-1 vertaling van de NL-concepttekst;
+  jurist-check op de EN-versie aanbevolen vóór livegang** (NL-versie is formeel
+  ook nog concept).
+- [x] ~~Fase 3: **dashboard**~~ (✅) — chrome (sidebar/topbar + switcher) + 73
+  bestanden (campagnes, account/team, gasten, google-business, marketing, menu,
+  rapportages, reserveringen, reviews, suggesties, taken, koppelingen + alle 38
+  gedeelde `_components`). Bulk via parallelle-agent-workflow (1 agent/bestand →
+  NL/EN-fragment → deterministische merge), per batch geverifieerd: prod-build
+  groen, alle literal `t()`-keys gevalideerd, navigatie-imports omgezet. Alleen
+  `design-system` (interne dev-pagina) overgeslagen. Klein restpunt (fase 4):
+  enkele datum-formatters gebruiken nog hardcoded `nl-NL` Intl-locale.
+- [x] ~~Fase 4 (SEO-kern)~~ (✅) — `pageMetadata` locale-bewust (canonical per
+  taal, `hreflang` nl/en/x-default, OG-locale nl_NL/en_US); publieke pagina's +
+  root-layout via `generateMetadata` met gelokaliseerde title/description
+  ("meta"-namespace); sitemap met beide talen + hreflang-alternates.
+  Geverifieerd via prod-build.
+- [x] ~~Fase 4 (polish, rest)~~ (✅) — gedeelde helper `src/lib/locale-format.ts`
+  (`localeTag`/`useLocaleTag`, nl→nl-NL / en→en-GB); 27 dashboard-bestanden +
+  `structured-data` (`inLanguage`) locale-bewust gemaakt (via workflow).
+  → **i18n-frontend volledig afgerond.**
+- [ ] Follow-up (los): Next 16 deprecate't `middleware` → `proxy` (warning in build);
+  bewust níet in i18n-werk meegenomen (verandert runtime edge→nodejs op auth-pad)
+
+**Buiten scope (apart spoor):** Filly's AI-antwoorden, review-replies,
+campagnetekst en e-mails komen uit de api (Claude-prompts) en blijven NL tot we
+de prompts een `locale` meegeven.
+
+---
+
 ## P0 — Blokkerend voor eerste klant
 
 ### Auth & onboarding

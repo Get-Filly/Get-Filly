@@ -20,6 +20,23 @@
 // ============================================================
 
 import type { Metadata } from "next";
+import { routing } from "@/i18n/routing";
+
+// Bouw het pad voor een specifieke taal. Default-locale (nl) = kale URL,
+// andere talen krijgen een prefix (/en). Spiegelt localePrefix "as-needed".
+export function localizedPath(path: string, locale: string): string {
+  if (locale === routing.defaultLocale) return path;
+  return path === "/" ? `/${locale}` : `/${locale}${path}`;
+}
+
+// hreflang-map (alle talen + x-default) voor een gegeven pad. Voor gebruik
+// in alternates.languages, zodat zoek-/AI-engines de taalvarianten kennen.
+export function hreflangFor(path: string): Record<string, string> {
+  const languages: Record<string, string> = {};
+  for (const l of routing.locales) languages[l] = localizedPath(path, l);
+  languages["x-default"] = localizedPath(path, routing.defaultLocale);
+  return languages;
+}
 
 // Canonieke productie-URL. Eén plek aanpassen als het domein wijzigt.
 // www is de officiële variant; get-filly.com (apex) hoort hier 301 naartoe
@@ -54,7 +71,13 @@ type PageSeo = {
   absoluteTitle?: boolean;
   // true = pagina uit de zoekindex houden (bv. besloten flows).
   noindex?: boolean;
+  // Actieve taal (nl/en). Bepaalt canonical, hreflang en OG-locale.
+  // Default = nl zodat statische aanroepen zonder locale blijven werken.
+  locale?: string;
 };
+
+// Open Graph-locale-codes per taal.
+const OG_LOCALE: Record<string, string> = { nl: "nl_NL", en: "en_US" };
 
 export function pageMetadata({
   title,
@@ -62,8 +85,11 @@ export function pageMetadata({
   path,
   absoluteTitle,
   noindex,
+  locale,
 }: PageSeo): Metadata {
-  const url = path === "/" ? SITE_URL : `${SITE_URL}${path}`;
+  const loc = locale ?? routing.defaultLocale;
+  const localPath = localizedPath(path, loc);
+  const url = localPath === "/" ? SITE_URL : `${SITE_URL}${localPath}`;
   // Voor het delen op social tonen we de merk-naam mee, ook als de
   // browser-titel via de template al is gebrand.
   const socialTitle = absoluteTitle ? title : `${title} · ${SITE_NAME}`;
@@ -71,11 +97,11 @@ export function pageMetadata({
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: localPath, languages: hreflangFor(path) },
     ...(noindex ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       type: "website",
-      locale: "nl_NL",
+      locale: OG_LOCALE[loc] ?? "nl_NL",
       siteName: SITE_NAME,
       url,
       title: socialTitle,

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 // ============================================================
 // PasswordStrength, checklist onder een wachtwoord-input
 // ============================================================
@@ -17,34 +19,18 @@
 // ============================================================
 
 // Eén bron van waarheid voor de regels, zowel UI als validatie
-// gebruiken deze array zodat ze niet uit de pas kunnen lopen.
+// gebruiken deze array zodat ze niet uit de pas kunnen lopen. De labels
+// komen uit de vertalingen (auth.passwordReqs.<id>).
 const REQUIREMENTS: Array<{
-  id: string;
-  label: string;
+  id: "length" | "letter" | "digit" | "special";
   test: (pw: string) => boolean;
 }> = [
-  {
-    id: "length",
-    label: "Minimaal 8 tekens",
-    test: (pw) => pw.length >= 8,
-  },
-  {
-    id: "letter",
-    label: "Een letter (a–z of A–Z)",
-    test: (pw) => /[a-zA-Z]/.test(pw),
-  },
-  {
-    id: "digit",
-    label: "Een cijfer (0–9)",
-    test: (pw) => /[0-9]/.test(pw),
-  },
-  {
-    id: "special",
-    label: "Een speciaal teken (! @ # $ % …)",
-    // Alles wat geen letter of cijfer is (inclusief spatie, koppelteken,
-    // leesteken) telt mee. Houdt de regel uitlegbaar en tolerant.
-    test: (pw) => /[^a-zA-Z0-9]/.test(pw),
-  },
+  { id: "length", test: (pw) => pw.length >= 8 },
+  { id: "letter", test: (pw) => /[a-zA-Z]/.test(pw) },
+  { id: "digit", test: (pw) => /[0-9]/.test(pw) },
+  // Alles wat geen letter of cijfer is (inclusief spatie, koppelteken,
+  // leesteken) telt mee. Houdt de regel uitlegbaar en tolerant.
+  { id: "special", test: (pw) => /[^a-zA-Z0-9]/.test(pw) },
 ];
 
 // Exporteer validatie-helper zodat het submit-handler dezelfde check
@@ -54,6 +40,7 @@ export function isPasswordValid(password: string): boolean {
 }
 
 export function PasswordStrength({ password }: { password: string }) {
+  const t = useTranslations("auth.passwordReqs");
   // Bij leeg veld tonen we de checklist in "neutrale" stand zodat de
   // user meteen ziet wat er van hem gevraagd wordt.
   return (
@@ -97,7 +84,7 @@ export function PasswordStrength({ password }: { password: string }) {
             >
               {ok ? "✓" : ""}
             </span>
-            {r.label}
+            {t(r.id)}
           </li>
         );
       })}

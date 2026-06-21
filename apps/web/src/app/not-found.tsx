@@ -1,39 +1,29 @@
-// =============================================================================
-// Custom 404, /not-found
-// =============================================================================
-// Vervangt de kale Next-standaard-404 door een on-brand pagina met heldere
-// links terug de site in (beter voor bezoekers én voor crawlers, die zo niet
-// in een doodlopende straat belanden). Wordt automatisch binnen de root-
-// layout gerenderd, dus navbar + footer zitten er al omheen.
-// =============================================================================
-
-import Link from "next/link";
-
-export default function NotFound() {
+// Root-not-found: vangt requests buiten het [locale]-segment (paden die de
+// middleware overslaat, bv. een niet-bestaande /auth/* of /oauth/*). Er is
+// hier geen locale-context, dus deze pagina rendert z'n eigen <html> en is
+// bewust taal-neutraal (NL + EN). De gelokaliseerde, on-brand 404 voor
+// gewone paden zit in app/[locale]/not-found.tsx.
+export default function RootNotFound() {
   return (
-    <section className="legal-page">
-      <div className="legal-container">
-        <h1 className="legal-title">Pagina niet gevonden</h1>
-        <p className="legal-lead">
-          Deze pagina bestaat niet (meer). Misschien is de link verouderd of is
-          er een typefout in het adres geslopen.
+    <html lang="nl">
+      <body
+        style={{
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          background: "#FAF7F1",
+          color: "#18181B",
+          textAlign: "center",
+          padding: "96px 24px",
+          margin: 0,
+        }}
+      >
+        <h1 style={{ fontSize: 56, margin: "0 0 8px" }}>404</h1>
+        <p style={{ color: "#52525B", margin: "0 0 24px" }}>
+          Pagina niet gevonden &middot; Page not found
         </p>
-
-        <div className="legal-section">
-          <p>Ga verder naar een van deze pagina&apos;s:</p>
-          <ul>
-            <li><Link href="/">Home</Link></li>
-            <li><Link href="/product">De oplossing</Link></li>
-            <li><Link href="/pricing">Prijzen</Link></li>
-            <li><Link href="/about">Over ons</Link></li>
-            <li><Link href="/contact">Contact &amp; demo</Link></li>
-          </ul>
-        </div>
-
-        <div style={{ marginTop: 28 }}>
-          <Link href="/" className="btn-primary">Terug naar home</Link>
-        </div>
-      </div>
-    </section>
+        <a href="/" style={{ color: "#1F4A2D", fontWeight: 600 }}>
+          Home
+        </a>
+      </body>
+    </html>
   );
 }

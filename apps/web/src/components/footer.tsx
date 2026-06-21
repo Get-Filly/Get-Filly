@@ -1,43 +1,43 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { COMPANY } from "@/config/company";
 
 // Footer voor de publieke site. Niet zichtbaar op /dashboard/* en op
 // de auth-paden, die hebben hun eigen layout. Zelfde patroon als de
 // Navbar, dus de footer verschijnt alleen waar hij hoort.
+// usePathname uit @/i18n/navigation geeft het pad ZONDER locale-prefix,
+// zodat startsWith("/dashboard") ook op /en correct werkt.
 const HIDDEN_PATHS = ["/dashboard", "/login", "/signup", "/auth", "/invite"];
 
-// Labels consistent met de navbar: route /product heet 'Oplossing',
-// /pricing heet 'Prijzen'. 'Hoe het werkt' verwijst naar de
-// gelijknamige sectie op de homepage (#hoe-het-werkt).
+// Labels komen uit de vertalingen (namespace "footer"); `key` verwijst
+// naar de message-key. 'Hoe het werkt' verwijst naar de gelijknamige
+// sectie op de homepage (#hoe-het-werkt).
 const linksProduct = [
-  { href: "/product", label: "Oplossing" },
-  { href: "/#hoe-het-werkt", label: "Hoe het werkt" },
-  { href: "/pricing", label: "Prijzen" },
+  { href: "/product", key: "solution" },
+  { href: "/#hoe-het-werkt", key: "howItWorks" },
+  { href: "/pricing", key: "pricing" },
 ];
 
 const linksBedrijf = [
-  { href: "/about", label: "Over ons" },
-  { href: "/blog", label: "Blog" },
-  { href: `mailto:${COMPANY.email}`, label: "Contact" },
-  { href: "/about#team", label: "Team" },
+  { href: "/about", key: "about" },
+  { href: "/blog", key: "blog" },
+  { href: `mailto:${COMPANY.email}`, key: "contact" },
+  { href: "/about#team", key: "team" },
 ];
 
 // Juridische links. /privacy en /voorwaarden zijn live (concept-v1,
 // nog niet jurist-gereviewd, zie gele banner bovenaan elke pagina).
-// /cookies volgt zodra we Plausible o.i.d. inbouwen; tot die tijd
-// verwijst de cookies-link naar de cookies-sectie in de privacy-
-// verklaring.
 const linksJuridisch = [
-  { href: "/privacy", label: "Privacybeleid" },
-  { href: "/voorwaarden", label: "Voorwaarden" },
-  { href: "/privacy#cookies", label: "Cookies" },
+  { href: "/privacy", key: "privacy" },
+  { href: "/voorwaarden", key: "terms" },
+  { href: "/privacy#cookies", key: "cookies" },
 ];
 
 export function Footer() {
   const pathname = usePathname();
+  const t = useTranslations("footer");
   if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 
   const year = new Date().getFullYear();
@@ -49,7 +49,7 @@ export function Footer() {
           <Link
             href="/"
             className="site-footer-logo"
-            aria-label="Get-Filly home"
+            aria-label={t("logoAria")}
           >
             {/* Volledig logo (symbool + tekst) als SVG-vector. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -62,36 +62,36 @@ export function Footer() {
         </div>
 
         <div className="site-footer-col">
-          <div className="site-footer-col-title">Product</div>
+          <div className="site-footer-col-title">{t("colProduct")}</div>
           {linksProduct.map((l) => (
-            <Link key={l.label} href={l.href} className="site-footer-link">
-              {l.label}
+            <Link key={l.key} href={l.href} className="site-footer-link">
+              {t(l.key)}
             </Link>
           ))}
         </div>
 
         <div className="site-footer-col">
-          <div className="site-footer-col-title">Bedrijf</div>
+          <div className="site-footer-col-title">{t("colCompany")}</div>
           {linksBedrijf.map((l) => (
-            <Link key={l.label} href={l.href} className="site-footer-link">
-              {l.label}
+            <Link key={l.key} href={l.href} className="site-footer-link">
+              {t(l.key)}
             </Link>
           ))}
         </div>
 
         <div className="site-footer-col">
-          <div className="site-footer-col-title">Juridisch</div>
+          <div className="site-footer-col-title">{t("colLegal")}</div>
           {linksJuridisch.map((l) => (
-            <Link key={l.label} href={l.href} className="site-footer-link">
-              {l.label}
+            <Link key={l.key} href={l.href} className="site-footer-link">
+              {t(l.key)}
             </Link>
           ))}
         </div>
       </div>
 
       <div className="site-footer-bottom">
-        <span>© {year} Get-Filly. Alle rechten voorbehouden.</span>
-        <span>Gebouwd in Nederland</span>
+        <span>{t("rights", { year })}</span>
+        <span>{t("builtIn")}</span>
       </div>
     </footer>
   );
