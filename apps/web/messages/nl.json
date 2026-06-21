@@ -1062,6 +1062,10 @@
       "cancel": "Annuleren",
       "confirm": "Ja, verwijder mijn account",
       "deleteError": "Verwijderen mislukt, probeer opnieuw of neem contact op met support."
+    },
+    "fillyLanguage": {
+      "label": "Filly antwoordt in het Engels",
+      "hint": "Standaard antwoordt Filly in het Nederlands. Zet dit aan om Filly's chat-antwoorden in het Engels te krijgen. De interface-taal stel je los in via de taalknop rechtsboven."
     }
   },
   "dash_account_team_invite_modal": {

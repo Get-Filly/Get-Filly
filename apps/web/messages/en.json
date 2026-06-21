@@ -1062,6 +1062,10 @@
       "cancel": "Cancel",
       "confirm": "Yes, delete my account",
       "deleteError": "Deletion failed, please try again or contact support."
+    },
+    "fillyLanguage": {
+      "label": "Filly replies in English",
+      "hint": "By default Filly replies in Dutch. Turn this on to get Filly's chat answers in English. The interface language is set separately via the language toggle at the top right."
     }
   },
   "dash_account_team_invite_modal": {

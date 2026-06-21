@@ -1029,6 +1029,8 @@ export type Restaurant = {
   // Waarde per dag: null (niet actief) of { start, end, session_count }.
   service_periods: ServicePeriods | null;
   brand_tone: "casual" | "professional" | "playful";
+  // Taal waarin Filly's chat antwoordt (account-instelling). Default "nl".
+  filly_language: "nl" | "en";
   signature_dishes: string[] | null;
   languages_spoken: string[] | null;
   social_media: Record<string, string> | null;
