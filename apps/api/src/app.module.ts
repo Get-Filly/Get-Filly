@@ -28,6 +28,7 @@ import { MarketingModule } from './marketing/marketing.module';
 import { HealthModule } from './health/health.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { MetaModule } from './meta/meta.module';
+import { TikTokModule } from './tiktok/tiktok.module';
 import { SeoReportModule } from './seo-report/seo-report.module';
 import { EventsModule } from './events/events.module';
 import { GoogleBusinessModule } from './google-business/google-business.module';
@@ -59,6 +60,7 @@ import { GoogleBusinessModule } from './google-business/google-business.module';
     HealthModule,
     IntegrationsModule,
     MetaModule,
+    TikTokModule,
     SeoReportModule,
     EventsModule,
     GoogleBusinessModule,

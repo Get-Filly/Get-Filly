@@ -155,6 +155,35 @@ export async function metaDisconnect(): Promise<void> {
 }
 
 // ============================================================
+// TikTok koppeling (Login Kit + Content Posting API)
+// ============================================================
+
+export type TikTokStatus = {
+  connected: boolean;
+  // open_id-account-info uit user.info.basic (om het account te tonen).
+  username?: string | null;
+  avatarUrl?: string | null;
+  scopes?: string[];
+  expiresAt?: string | null;
+  updatedAt?: string;
+};
+
+export async function tiktokStatus(): Promise<TikTokStatus> {
+  const res = await authedFetch(`${API_URL}/integrations/tiktok/status`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as TikTokStatus;
+}
+
+export async function tiktokDisconnect(): Promise<void> {
+  const res = await authedFetch(`${API_URL}/integrations/tiktok`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+// ============================================================
 // Google Bedrijfsprofiel koppeling (OAuth, business.manage)
 // ============================================================
 

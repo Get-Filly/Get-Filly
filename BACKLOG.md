@@ -158,6 +158,16 @@ naar main.
 campagnetekst en e-mails komen uit de api (Claude-prompts) en blijven NL tot we
 de prompts een `locale` meegeven.
 
+- [x] ~~Filly-CHAT in het Engels~~ (✅ branch `feat/filly-language`, mig 0059
+  gedraaid) — kolom `restaurants.filly_language` ('nl'/'en') + toggle in
+  account → Algemeen; `buildSystemPrompt` schakelt de antwoordtaal. ⏳ nog te
+  mergen naar main.
+- [ ] **Filly-Engels doortrekken naar de rest van de AI-output** — campagne-
+  generatie, review-replies, geleide flow (generate-for-dates), suggesties en
+  e-mails laten dezelfde `filly_language`-kolom lezen en hun prompts in het
+  Engels laten schrijven. Zelfde kolom, andere prompt-plekken (o.a.
+  `campaigns`-service, `suggestions`-service, review-reply-prompt, mail-templates).
+
 ---
 
 ## P0 — Blokkerend voor eerste klant
@@ -450,8 +460,38 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **FB Events i.p.v. posts** (hfst 16.4) — Filly maakt FB-event-objecten i.p.v. post-objecten voor events.
 - [ ] **Auto-DM-templates voor UGC-toestemming** (hfst 13.4) — Filly stuurt pre-fab DM via Meta API.
 
-#### Vereist TikTok Business OAuth
-- [ ] **TikTok Insights-fetcher** — view/watch/share-stats per video.
+#### TikTok OAuth + posten (Login Kit + Content Posting API) — IN UITVOERING (branch `feat/tiktok-oauth`)
+Doel: TikTok-account koppelen + content als concept naar de TikTok-inbox sturen
+(de eigenaar publiceert vanuit de TikTok-app). Spiegelt het Meta/Google-OAuth-
+patroon (`integration_credentials` + `token-crypto.service` + `oauth/<provider>/*`).
+Demovideo-script (de TikTok-app-review-vereiste) staat in
+`~/Downloads/Demovideo TikTok script.docx`.
+
+**Floris — TikTok Developer Portal (developers.tiktok.com):**
+- [ ] App aanmaken → Client Key + Client Secret (→ Vercel `get-filly-api` env:
+  `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`).
+- [ ] Producten: *Login Kit* + *Content Posting API*. Scopes: `user.info.basic`
+  + `video.upload` (inbox/concept; lichter dan direct `video.publish`).
+- [ ] Redirect URI: `https://www.get-filly.com/oauth/tiktok/callback` (exacte match).
+- [ ] Domein-verificatie `get-filly.com` (nodig voor PULL_FROM_URL-upload).
+- [ ] Sandbox + testaccount; daarna demovideo opnemen + app-review indienen.
+
+**Wij — code (mirror Meta):**
+- [ ] Frontend `oauth/tiktok/{start,callback}/route.ts` (state-cookie + CSRF, als meta).
+- [ ] Api `tiktok/`-module: token-exchange + refresh (~24u access / ~365d refresh),
+  opslag in `integration_credentials` (provider `tiktok`) via `token-crypto`,
+  `user.info.basic` ophalen (username + avatar).
+- [ ] `account-connections.tsx`: TikTok van "binnenkort" → "Verbind" + username/avatar.
+- [ ] **Compliant upload-scherm** (TikTok audit-vereisten): (1) creator-username +
+  avatar vóór upload, (2) commercial-content-disclosure-toggle (default uit) →
+  Your Brand / Branded Content, (3) consent-tekst "By posting, you agree to
+  TikTok's Music Usage Confirmation" bij de knop.
+- [ ] Inbox-upload via Content Posting API. **Beslissing:** PULL_FROM_URL vereist
+  dat de media-URL op een geverifieerd domein staat → media serveren via een
+  eigen `get-filly.com`-route (Supabase-storage `*.supabase.co` is niet te
+  verifiëren); FILE_UPLOAD is lastig op Vercel (10s + 4,5MB-cap).
+
+- [ ] **TikTok Insights-fetcher** — view/watch/share-stats per video (na approval).
 - [ ] **TikTok Pixel-CAPI server-side** — zelfde verhaal als Meta CAPI.
 
 #### Vereist Google Business Profile API (al op backlog: GBP fase C-F)
