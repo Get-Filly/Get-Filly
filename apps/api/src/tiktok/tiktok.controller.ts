@@ -52,6 +52,27 @@ export class TikTokController {
     return this.tiktok.status(restaurantId);
   }
 
+  // GET /api/integrations/tiktok/creator-info
+  // Creator-nickname/avatar + privacy-opties + max videoduur (compliance-UX).
+  @Get('creator-info')
+  creatorInfo(@RestaurantId() restaurantId: string) {
+    return this.tiktok.queryCreatorInfo(restaurantId);
+  }
+
+  // POST /api/integrations/tiktok/upload   body { videoUrl }
+  // Stuurt de video als concept naar de TikTok-inbox.
+  @Post('upload')
+  @HttpCode(200)
+  upload(
+    @RestaurantId() restaurantId: string,
+    @Body() body: { videoUrl?: string },
+  ) {
+    if (!body?.videoUrl || !body.videoUrl.trim()) {
+      throw new BadRequestException('videoUrl is verplicht');
+    }
+    return this.tiktok.postToInbox(restaurantId, body.videoUrl);
+  }
+
   // DELETE /api/integrations/tiktok   (koppeling intrekken)
   @Delete()
   @HttpCode(200)

@@ -183,6 +183,49 @@ export async function tiktokDisconnect(): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+// creator_info: nodig voor het compliant upload-scherm (creator-nickname/avatar
+// + privacy-opties + max videoduur, die TikTok's UX-regels vereisen).
+export type TikTokCreatorInfo = {
+  nickname: string | null;
+  avatarUrl: string | null;
+  privacyOptions: string[];
+  maxDurationSec: number | null;
+  commentDisabled: boolean;
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
+};
+
+export async function tiktokCreatorInfo(): Promise<TikTokCreatorInfo> {
+  const res = await authedFetch(`${API_URL}/integrations/tiktok/creator-info`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as TikTokCreatorInfo;
+}
+
+// Stuurt een video als concept naar de TikTok-inbox. videoUrl moet op een
+// in TikTok geverifieerd domein staan (get-filly.com) — zie BACKLOG-todo.
+export async function tiktokUpload(
+  videoUrl: string,
+): Promise<{ publishId: string }> {
+  const res = await authedFetch(`${API_URL}/integrations/tiktok/upload`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ videoUrl }),
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (body?.message) msg = body.message;
+    } catch {
+      // niet-JSON; fallback
+    }
+    throw new Error(msg);
+  }
+  return (await res.json()) as { publishId: string };
+}
+
 // ============================================================
 // Google Bedrijfsprofiel koppeling (OAuth, business.manage)
 // ============================================================

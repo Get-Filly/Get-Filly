@@ -240,4 +240,152 @@ export class TikTokService {
     }
     return { ok: true };
   }
+
+  // ============================================================
+  // Fase 2: Content Posting API (concept naar de inbox)
+  // ============================================================
+
+  /**
+   * Geldige access-token ophalen: decrypt + automatisch vernieuwen als 'ie
+   * verlopen is (TikTok-access-token leeft ~24u). De nieuwe tokens worden
+   * versleuteld teruggeschreven.
+   */
+  async getValidAccessToken(restaurantId: string): Promise<string> {
+    const { data, error } = await this.supabase.client
+      .from('integration_credentials')
+      .select('access_token_encrypted, refresh_token_encrypted, expires_at')
+      .eq('restaurant_id', restaurantId)
+      .eq('provider', PROVIDER)
+      .maybeSingle();
+    if (error) {
+      this.logger.error(`TikTok creds lezen faalde: ${error.message}`);
+      throw new InternalServerErrorException('TikTok-koppeling lezen mislukt');
+    }
+    if (!data) {
+      throw new BadRequestException('Geen TikTok-koppeling voor dit restaurant');
+    }
+
+    const expiresMs = data.expires_at
+      ? new Date(data.expires_at as string).getTime()
+      : 0;
+    // 60s marge: niet net op de grens een verlopen token gebruiken.
+    if (expiresMs && expiresMs - 60_000 > Date.now()) {
+      return this.crypto.decrypt(data.access_token_encrypted as string);
+    }
+
+    const refreshEnc = data.refresh_token_encrypted as string | null;
+    if (!refreshEnc) {
+      throw new BadRequestException(
+        'TikTok-token verlopen en geen refresh-token; verbind opnieuw',
+      );
+    }
+    const refreshed = await this.refreshToken(this.crypto.decrypt(refreshEnc));
+    const newExpiresAt = refreshed.expires_in
+      ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
+      : null;
+    await this.supabase.client
+      .from('integration_credentials')
+      .update({
+        access_token_encrypted: this.crypto.encrypt(refreshed.access_token),
+        refresh_token_encrypted: refreshed.refresh_token
+          ? this.crypto.encrypt(refreshed.refresh_token)
+          : refreshEnc,
+        expires_at: newExpiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('restaurant_id', restaurantId)
+      .eq('provider', PROVIDER);
+    return refreshed.access_token;
+  }
+
+  /**
+   * creator_info opvragen — vereist door TikTok's Content-Posting-UX-regels.
+   * Levert creator-nickname/avatar + toegestane privacy-opties + max videoduur,
+   * die de UI vóór het posten moet tonen (compliance, audit-vereiste).
+   */
+  async queryCreatorInfo(restaurantId: string): Promise<{
+    nickname: string | null;
+    avatarUrl: string | null;
+    privacyOptions: string[];
+    maxDurationSec: number | null;
+    commentDisabled: boolean;
+    duetDisabled: boolean;
+    stitchDisabled: boolean;
+  }> {
+    const token = await this.getValidAccessToken(restaurantId);
+    const res = await fetch(
+      'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      },
+    );
+    const json = (await res.json()) as {
+      data?: Record<string, unknown>;
+      error?: { code?: string; message?: string };
+    };
+    if (!res.ok || (json.error?.code && json.error.code !== 'ok')) {
+      this.logger.warn(
+        `TikTok creator_info faalde (${res.status}): ${json.error?.message ?? ''}`,
+      );
+      throw new BadRequestException('TikTok creator-info ophalen mislukt');
+    }
+    const d = json.data ?? {};
+    return {
+      nickname: (d.creator_nickname as string) ?? null,
+      avatarUrl: (d.creator_avatar_url as string) ?? null,
+      privacyOptions: (d.privacy_level_options as string[]) ?? [],
+      maxDurationSec: (d.max_video_post_duration_sec as number) ?? null,
+      commentDisabled: Boolean(d.comment_disabled),
+      duetDisabled: Boolean(d.duet_disabled),
+      stitchDisabled: Boolean(d.stitch_disabled),
+    };
+  }
+
+  /**
+   * Stuurt een video als CONCEPT naar de TikTok-inbox (video.upload-scope,
+   * inbox-route). De eigenaar voltooit + publiceert zelf vanuit de TikTok-app.
+   *
+   * Gebruikt PULL_FROM_URL: TikTok haalt het bestand op van `videoUrl`.
+   * ⚠️ Het DOMEIN van videoUrl moet in het TikTok-portal geverifieerd zijn
+   * (get-filly.com). Een Supabase-storage-URL (*.supabase.co) werkt dus niet
+   * direct — serveer de media via een get-filly.com-route (zie BACKLOG-todo).
+   */
+  async postToInbox(
+    restaurantId: string,
+    videoUrl: string,
+  ): Promise<{ publishId: string }> {
+    const token = await this.getValidAccessToken(restaurantId);
+    const res = await fetch(
+      'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: JSON.stringify({
+          source_info: { source: 'PULL_FROM_URL', video_url: videoUrl },
+        }),
+      },
+    );
+    const json = (await res.json()) as {
+      data?: { publish_id?: string };
+      error?: { code?: string; message?: string };
+    };
+    if (
+      !res.ok ||
+      (json.error?.code && json.error.code !== 'ok') ||
+      !json.data?.publish_id
+    ) {
+      this.logger.warn(
+        `TikTok inbox-upload faalde (${res.status}): ${json.error?.code ?? ''} ${json.error?.message ?? ''}`,
+      );
+      throw new BadRequestException('TikTok-upload mislukt');
+    }
+    return { publishId: json.data.publish_id };
+  }
 }

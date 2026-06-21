@@ -477,19 +477,24 @@ Demovideo-script (de TikTok-app-review-vereiste) staat in
 - [ ] Sandbox + testaccount; daarna demovideo opnemen + app-review indienen.
 
 **Wij — code (mirror Meta):**
-- [ ] Frontend `oauth/tiktok/{start,callback}/route.ts` (state-cookie + CSRF, als meta).
-- [ ] Api `tiktok/`-module: token-exchange + refresh (~24u access / ~365d refresh),
-  opslag in `integration_credentials` (provider `tiktok`) via `token-crypto`,
-  `user.info.basic` ophalen (username + avatar).
-- [ ] `account-connections.tsx`: TikTok van "binnenkort" → "Verbind" + username/avatar.
-- [ ] **Compliant upload-scherm** (TikTok audit-vereisten): (1) creator-username +
-  avatar vóór upload, (2) commercial-content-disclosure-toggle (default uit) →
-  Your Brand / Branded Content, (3) consent-tekst "By posting, you agree to
-  TikTok's Music Usage Confirmation" bij de knop.
-- [ ] Inbox-upload via Content Posting API. **Beslissing:** PULL_FROM_URL vereist
-  dat de media-URL op een geverifieerd domein staat → media serveren via een
-  eigen `get-filly.com`-route (Supabase-storage `*.supabase.co` is niet te
-  verifiëren); FILE_UPLOAD is lastig op Vercel (10s + 4,5MB-cap).
+- [x] ~~Frontend `oauth/tiktok/{start,callback}/route.ts`~~ (✅ fase 1) — state-cookie + CSRF.
+- [x] ~~Api `tiktok/`-module: token-exchange + refresh, opslag in
+  `integration_credentials` (provider `tiktok`), `user.info.basic`~~ (✅ fase 1).
+- [x] ~~`account-connections.tsx`: TikTok van "binnenkort" → "Verbind"~~ (✅ fase 1).
+- [x] ~~**Compliant upload-scherm**~~ (✅ fase 2) — `TikTokUploadPanel` op
+  `dashboard/marketing/tiktok`, met de 3 audit-UX-elementen (creator-info,
+  commercial-content-disclosure-toggle, music-usage-consent). NB bij de
+  inbox/concept-route zet de creator de disclosure-metadata zelf in de
+  TikTok-app; onze UI tóónt de elementen (audit-vereiste).
+- [x] ~~Inbox-upload via Content Posting API~~ (✅ fase 2) — `getValidAccessToken`
+  (refresh-on-use) + `creator_info/query` + `inbox/video/init` (PULL_FROM_URL).
+  Endpoints `GET creator-info` / `POST upload`.
+- [ ] **Media via get-filly.com-route (laatste glue voor PULL_FROM_URL)** — de
+  `videoUrl` moet op het geverifieerde domein staan; Supabase-storage
+  (`*.supabase.co`) werkt niet direct. Bouw een `get-filly.com`-mediaroute die
+  een campaign-media-object streamt + koppel de `media-library-picker` aan het
+  upload-paneel (nu nog een URL-veld). Best te valideren zodra de TikTok-app +
+  domein-verificatie live zijn.
 
 - [ ] **TikTok Insights-fetcher** — view/watch/share-stats per video (na approval).
 - [ ] **TikTok Pixel-CAPI server-side** — zelfde verhaal als Meta CAPI.
