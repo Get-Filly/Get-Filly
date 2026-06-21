@@ -128,11 +128,12 @@ naar main.
   [locale]-move via `[locale]/[...rest]/page.tsx` (catch-all → notFound),
   sync `not-found.tsx` (useTranslations), en root `app/layout.tsx` +
   `app/not-found.tsx` (taal-neutrale fallback voor paden buiten [locale]).
-- [ ] Fase 2e (later, omvang/juridisch): **privacy** (1021 r.), **voorwaarden**
-  (774 r.), **onboarding** (1870 r.), + de juridische compliance-pagina's
-  **delete-data**, **account-verwijderd**, **data-deletion-status** (AVG-claims,
-  noindex — verdienen zorgvuldige/jurist-geschikte vertaling). `structured-data`
-  (JSON-LD, `inLanguage`) hoort bij de SEO-fase 4.
+- [x] ~~Fase 2e: juridische + grote pagina's~~ (✅) — privacy, voorwaarden,
+  onboarding, delete-data, account-verwijderd, data-deletion-status (via
+  agent-workflow; nullable COMPANY-velden als ICU-arg met `?? ""`-fallback).
+  ⚠️ **Engelse privacy + voorwaarden = 1-op-1 vertaling van de NL-concepttekst;
+  jurist-check op de EN-versie aanbevolen vóór livegang** (NL-versie is formeel
+  ook nog concept).
 - [x] ~~Fase 3: **dashboard**~~ (✅) — chrome (sidebar/topbar + switcher) + 73
   bestanden (campagnes, account/team, gasten, google-business, marketing, menu,
   rapportages, reserveringen, reviews, suggesties, taken, koppelingen + alle 38
@@ -146,9 +147,10 @@ naar main.
   root-layout via `generateMetadata` met gelokaliseerde title/description
   ("meta"-namespace); sitemap met beide talen + hreflang-alternates.
   Geverifieerd via prod-build.
-- [ ] Fase 4 (polish, rest): ~29 bestanden met hardcoded `nl-NL` datum/getal-
-  formatters (vooral dashboard, achter login → geen SEO-impact, wel taal-
-  consistentie) locale-bewust maken + `structured-data` `inLanguage`.
+- [x] ~~Fase 4 (polish, rest)~~ (✅) — gedeelde helper `src/lib/locale-format.ts`
+  (`localeTag`/`useLocaleTag`, nl→nl-NL / en→en-GB); 27 dashboard-bestanden +
+  `structured-data` (`inLanguage`) locale-bewust gemaakt (via workflow).
+  → **i18n-frontend volledig afgerond.**
 - [ ] Follow-up (los): Next 16 deprecate't `middleware` → `proxy` (warning in build);
   bewust níet in i18n-werk meegenomen (verandert runtime edge→nodejs op auth-pad)
 
