@@ -1194,7 +1194,7 @@ export class ChatService {
     const [restaurantResult, contextBlock, memories] = await Promise.all([
       this.supabase.client
         .from('restaurants')
-        .select('name, type')
+        .select('name, type, filly_language')
         .eq('id', restaurantId)
         .maybeSingle(),
       this.context.buildFullContext(restaurantId),
@@ -1209,7 +1209,22 @@ export class ChatService {
     const type = restaurant?.type ? ` (${restaurant.type})` : '';
     const memoryBlock = this.memory.formatMemoryBlock(memories);
 
-    return `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.
+    // Taalvoorkeur voor Filly's antwoorden (account-instelling). Default nl.
+    // Bij 'en' antwoordt Filly in het Engels; de instructies zelf blijven in
+    // het Nederlands (Claude volgt de expliciete taal-directieve prima).
+    const english =
+      (restaurant as { filly_language?: string } | null)?.filly_language ===
+      'en';
+    const languageLine = english
+      ? '- English, friendly but not over-the-top American. No exclamation marks, no emoji, no em/en dashes (— or –): write with commas and periods.'
+      : '- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma\'s en punten.';
+    // Harde directieve bovenaan zodat de taalkeuze niet ondersneeuwt in de
+    // (Nederlandse) instructies eronder.
+    const languageDirective = english
+      ? '\n\nIMPORTANT: Always reply to the owner in English, even though these instructions are written in Dutch.'
+      : '';
+
+    return `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.${languageDirective}
 
 Wie je bent:
 - Een behulpzame, praktische assistent die CAMPAGNES voor het restaurant maakt.
@@ -1217,7 +1232,7 @@ Wie je bent:
 - Je kent de context (bezetting, gasten, menu, weer, events in de buurt) en gebruikt die om sterke, concrete campagnes te bedenken — maar je voorstel is ALTIJD een campagne.
 
 Hoe je praat:
-- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma's en punten.
+${languageLine}
 - Geen markdown: geen sterretjes voor vet (**), geen opsommingen met "-" of "*". Gewone lopende zinnen; de chat toont je tekst letterlijk, dus opmaak-tekens zien er rommelig uit.
 - Kort en to-the-point. Liever 2-3 korte zinnen dan een heel verhaal.
 - Stel een vervolgvraag als je input mist om goed te helpen.

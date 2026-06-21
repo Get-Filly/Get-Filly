@@ -241,6 +241,11 @@ export const RestaurantUpdateSchema = z
     brand_colors: z.union([BrandColorsSchema, z.null()]).optional(),
     logo_url: optionalText(500),
 
+    // ----- Filly-taal -----
+    // Taal waarin Filly's chat antwoordt. 'nl' (default) of 'en'.
+    // Aanstuurbaar via account-instellingen; de chat-prompt leest dit.
+    filly_language: z.enum(['nl', 'en']).optional(),
+
     // ----- Social media -----
     social_media: z.union([SocialMediaSchema, z.null()]).optional(),
 

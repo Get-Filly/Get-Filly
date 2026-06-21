@@ -1080,6 +1080,86 @@ function AccountPageInner() {
             </div>
           </div>
 
+          {/* ----- Filly-taal (mig 0059): in welke taal Filly's chat antwoordt ----- */}
+          <div
+            className="form-field full"
+            style={{
+              borderTop: "1px solid var(--border, #E5DFD0)",
+              paddingTop: 18,
+              marginTop: 6,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+              }}
+            >
+              <label
+                htmlFor="filly-language-en"
+                style={{ marginBottom: 0, cursor: "pointer" }}
+              >
+                {t("fillyLanguage.label")}
+              </label>
+              {/* Slider-toggle: aan = Filly antwoordt in het Engels (filly_language='en'). */}
+              <button
+                id="filly-language-en"
+                type="button"
+                role="switch"
+                aria-checked={form.filly_language === "en"}
+                onClick={() =>
+                  update(
+                    "filly_language",
+                    form.filly_language === "en" ? "nl" : "en",
+                  )
+                }
+                style={{
+                  flexShrink: 0,
+                  width: 44,
+                  height: 24,
+                  borderRadius: 999,
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 2,
+                  background:
+                    form.filly_language === "en"
+                      ? "var(--color-brand, #1F4A2D)"
+                      : "var(--border, #E5DFD0)",
+                  transition: "background 150ms ease",
+                  position: "relative",
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: "#FFFFFF",
+                    transform:
+                      form.filly_language === "en"
+                        ? "translateX(20px)"
+                        : "translateX(0)",
+                    transition: "transform 150ms ease",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </button>
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              {t("fillyLanguage.hint")}
+            </div>
+          </div>
+
           {/* ----- Auto-reageren op reviews (mig 0051) ----- */}
           <div
             className="form-field full"
