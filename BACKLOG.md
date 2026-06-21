@@ -151,6 +151,12 @@ naar main.
   (`localeTag`/`useLocaleTag`, nl→nl-NL / en→en-GB); 27 dashboard-bestanden +
   `structured-data` (`inLanguage`) locale-bewust gemaakt (via workflow).
   → **i18n-frontend volledig afgerond.**
+- [ ] **Bug: hero-apparaat-mockups op de homepage nog NL op `/en`** — de hero-
+  tekst (titel/subtitle/CTA's) en "Waarom het werkt" zijn vertaald, maar de
+  mockups ín de hero tonen nog hardcoded Nederlands: het laptop-scherm
+  (`MiniDashboard` in `app/[locale]/page.tsx`) + de telefoon (`LandingPhone`)
+  en `LandingFillyChat` (`components/landing-*.tsx`). Strings extraheren naar de
+  `home`-namespace + `t()`. (Geconstateerd door Floris op iPhone + laptop, 2026-06-21.)
 - [ ] Follow-up (los): Next 16 deprecate't `middleware` → `proxy` (warning in build);
   bewust níet in i18n-werk meegenomen (verandert runtime edge→nodejs op auth-pad)
 
