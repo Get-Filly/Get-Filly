@@ -3148,5 +3148,939 @@
       "title": "The marketing cocktail",
       "description": "Insights on AI marketing, online findability and higher occupancy for hospitality, from Get-Filly."
     }
+  },
+  "leg_privacy_page": {
+    "metaTitle": "Privacy statement",
+    "metaDescription": "How Get-Filly processes your personal data, who we share it with and which rights you have.",
+    "lastUpdated": "Last updated: {date} · {version}",
+    "title": "Privacy statement",
+    "lead": "Get-Filly helps hospitality businesses fill smarter with AI marketing, automation, analytics and online visibility. To deliver our services, we process personal data of users, business owners and in some cases also guests of our customers. In this privacy statement we explain which data we process, why we do so, who we share data with, how long we retain data and which rights data subjects have.",
+    "tocAriaLabel": "Table of contents",
+    "tocTitle": "Contents",
+    "toc": {
+      "who": "Who are we?",
+      "data": "Which data do we process?",
+      "why": "Why do we process this data?",
+      "analyses": "Automated analyses, Health Scores and profiling",
+      "integrations": "Use of external integrations",
+      "google": "Use of Google Business Profile data",
+      "meta": "Use of Meta, Facebook and Instagram data",
+      "ai": "Use of AI systems, Claude Code and Anthropic",
+      "sharing": "Who do we share data with?",
+      "transfers": "Transfers outside the European Economic Area",
+      "retention": "How long do we retain data?",
+      "security": "How do we secure data?",
+      "cookies": "Cookies and measurement tools",
+      "rights": "Your rights",
+      "withdraw": "Withdrawing consent and deleting data",
+      "ownership": "Ownership of customer data",
+      "minors": "Minors",
+      "breaches": "Data breaches and security reports",
+      "changes": "Changes to this statement",
+      "contact": "Contact and complaints"
+    },
+    "who": {
+      "heading": "1. Who are we?",
+      "intro": "The data controller within the meaning of the General Data Protection Regulation, hereinafter: GDPR, is:",
+      "controllerLabel": "Data controller",
+      "controllerValue": "{legalName}, registered under Chamber of Commerce number {kvk}",
+      "addressLabel": "Address",
+      "emailLabel": "Email",
+      "phoneLabel": "Phone",
+      "supervisorLabel": "Supervisory authority",
+      "supervisorValue": "Dutch Data Protection Authority",
+      "scope": "In this privacy statement, \"Get-Filly\", \"we\", \"us\" and \"our\" refer to Get-Filly. We are established in the Netherlands and are subject to Dutch law and the supervision of the Dutch Data Protection Authority."
+    },
+    "data": {
+      "heading": "2. Which data do we process?",
+      "intro": "We process various categories of data, depending on how you use Get-Filly.",
+      "user": {
+        "heading": "2.1 Data about you as a user",
+        "intro": "When you create an account, log in or use our platform, we process among other things:",
+        "name": "name",
+        "email": "email address",
+        "phone": "phone number, if you enter it yourself",
+        "password": "password, stored encrypted and hashed",
+        "role": "role within the business, for example owner, manager or staff member",
+        "settings": "account settings",
+        "loginTimes": "login times",
+        "usage": "usage data within the platform",
+        "support": "communication with our support or sales team",
+        "purpose": "We use this data among other things to create your account, give access to the platform, provide support and keep our services secure."
+      },
+      "business": {
+        "heading": "2.2 Data about your business",
+        "intro": "To make Get-Filly work properly, we process data about your business. This may include among other things:",
+        "name": "name of the business",
+        "type": "type of business, for example restaurant, hotel, lunchroom, wellness venue or other hospitality establishment",
+        "address": "address, location and contact details",
+        "hours": "opening hours",
+        "website": "website and publicly accessible website content",
+        "menu": "menu, cuisine style, signature dishes and price indications",
+        "reservationOptions": "reservation options",
+        "reservations": "reservations, occupancy and visit moments, where connected or entered",
+        "reviews": "review data, ratings, photos and texts visible on own or external channels",
+        "visibility": "online visibility, findability and presence on external platforms",
+        "social": "social media profiles and public social media content",
+        "integrations": "connected tools and integrations, only when you activate them yourself"
+      },
+      "guests": {
+        "heading": "2.3 Data about your guests",
+        "intro": "When you connect a reservation system, import guest lists or use marketing features within Get-Filly, we may process personal data of your guests.",
+        "controller": "In that situation, you as the business owner are in principle the data controller within the meaning of the GDPR. You determine which personal data of your guests is collected, for which purposes it is used and how long it is retained.",
+        "processor": "Get-Filly acts as a processor here. We process guests' personal data solely on your instructions as a customer and according to your instructions.",
+        "dpa": "With customers for whom we process guests' personal data, we conclude a data processing agreement in accordance with article 28 GDPR where legally required.",
+        "listIntro": "Guests' personal data may consist of, among other things:",
+        "name": "name",
+        "email": "email address",
+        "phone": "phone number",
+        "history": "reservation history",
+        "frequency": "visit frequency",
+        "datetime": "date and time of reservations",
+        "preferences": "preferences recorded by the business owner, such as dietary wishes, allergies, favourite table or special notes",
+        "marketing": "marketing preferences, if applicable",
+        "responsibility": "The business owner remains responsible for having a valid legal basis for this processing and for informing guests about the use of their personal data. Get-Filly does not use guests' personal data for its own advertising purposes and does not sell this data to third parties."
+      },
+      "ai": {
+        "heading": "2.4 AI usage data",
+        "intro": "When you use Get-Filly's AI features, we process data needed to run, secure and improve these features. This may consist of, among other things:",
+        "actionType": "type of AI action, for example review reply, campaign proposal, menu analysis, website analysis, chat or reporting",
+        "prompts": "entered prompts, questions, files or context",
+        "responses": "generated responses",
+        "models": "AI models used",
+        "tokens": "token usage",
+        "timestamp": "time of the request",
+        "business": "connected business",
+        "errors": "error messages and technical metadata",
+        "minimization": "As far as possible, we limit the amount of personal data sent to AI systems."
+      },
+      "technical": {
+        "heading": "2.5 Technical data",
+        "intro": "When you use our website or platform, we automatically process certain technical data, such as:",
+        "ip": "IP address",
+        "device": "browser and device type",
+        "os": "operating system",
+        "pages": "pages visited",
+        "clicks": "click behaviour within the platform",
+        "session": "session data",
+        "errors": "error messages",
+        "logs": "log files",
+        "security": "security events",
+        "purpose": "We use this data for security, debugging, performance improvement and abuse prevention."
+      },
+      "public": {
+        "heading": "2.6 Analysis of public business information",
+        "intro": "Get-Filly can analyse publicly accessible business information to generate insights, scores and recommendations. This may relate to, among other things:",
+        "websites": "publicly accessible websites",
+        "websiteTech": "technical website data, such as title tags, meta descriptions, loading speed and structured data",
+        "reviews": "public reviews",
+        "listings": "public business listings",
+        "social": "public social media profiles",
+        "media": "public photos and texts",
+        "searchResults": "search engine results",
+        "platforms": "platform listings such as Google, TripAdvisor, TheFork, OpenTable or similar services",
+        "basis": "These analyses are based on data that is publicly accessible or data for which the user has given consent via a connection or integration."
+      },
+      "payment": {
+        "heading": "2.7 Payment, billing and banking data",
+        "intro": "For payments, billing and administration we process data needed to handle subscriptions, invoices and payments. This may consist of, among other things:",
+        "invoice": "invoice data",
+        "billingName": "company name and billing address",
+        "status": "payment status",
+        "transactionId": "transaction IDs",
+        "subscription": "subscription data",
+        "lastFour": "last four digits or limited payment method information when available via the payment provider",
+        "bankTransactions": "bank transaction data and payment references for administration and reconciliation",
+        "providers": "For online payments we use Stripe. For banking services and business bank administration we may use bunq B.V. Stripe and bunq may act as independent data controllers for certain processing, for example for legal obligations, fraud prevention, security, payment processing and their own administrative obligations."
+      }
+    },
+    "why": {
+      "heading": "3. Why do we process this data?",
+      "intro": "We only process personal data when there is a legal basis for it under the GDPR. When we rely on legitimate interest, we weigh our interest against the privacy interests of data subjects.",
+      "colPurpose": "Purpose",
+      "colExamples": "Examples",
+      "colBasis": "Legal basis",
+      "account": {
+        "purpose": "Create and manage account",
+        "examples": "login, user profile, roles",
+        "basis": "performance of the contract"
+      },
+      "service": {
+        "purpose": "Deliver services",
+        "examples": "AI suggestions, campaigns, analyses, dashboards",
+        "basis": "performance of the contract"
+      },
+      "health": {
+        "purpose": "Health Scores and benchmark reports",
+        "examples": "online visibility, reviews, website analysis",
+        "basis": "performance of the contract and legitimate interest"
+      },
+      "integrations": {
+        "purpose": "Connect integrations",
+        "examples": "Google, Meta, reservation systems, CRM",
+        "basis": "performance of the contract and consent where required"
+      },
+      "guests": {
+        "purpose": "Process guest data on behalf of customer",
+        "examples": "reservation data, guest lists, marketing actions",
+        "basis": "processor role; customer determines the basis"
+      },
+      "payment": {
+        "purpose": "Payment and billing",
+        "examples": "subscriptions, invoices, payment status",
+        "basis": "performance of the contract and legal obligation"
+      },
+      "bank": {
+        "purpose": "Banking and administrative processing",
+        "examples": "bank transactions, reconciliation, bookkeeping",
+        "basis": "legal obligation and legitimate interest"
+      },
+      "security": {
+        "purpose": "Security and fraud prevention",
+        "examples": "logs, IP address, abuse detection",
+        "basis": "legitimate interest"
+      },
+      "product": {
+        "purpose": "Product improvement",
+        "examples": "aggregated or anonymised analyses",
+        "basis": "legitimate interest"
+      },
+      "marketing": {
+        "purpose": "Marketing to users",
+        "examples": "newsletters, product updates",
+        "basis": "consent or legitimate interest, depending on context"
+      },
+      "legal": {
+        "purpose": "Legal administration",
+        "examples": "tax retention obligation",
+        "basis": "legal obligation"
+      }
+    },
+    "analyses": {
+      "heading": "4. Automated analyses, Health Scores and profiling",
+      "intro": "Get-Filly analyses data about businesses, online visibility, reviews, websites, reservations, marketing activities and other relevant signals to generate insights and recommendations. Automatically calculated scores may be used here, including:",
+      "healthScores": "Restaurant Health Scores",
+      "potentialScores": "Potential Scores",
+      "opportunityScores": "Opportunity Scores",
+      "benchmarks": "benchmark reports",
+      "visibilityScores": "visibility scores",
+      "recommendations": "marketing recommendations",
+      "revenueInsights": "revenue and occupancy insights",
+      "advisory": "These scores are intended to give business owners insight into their digital presence, marketing potential and improvement opportunities. The scores are advisory in nature. They do not automatically lead to legal, financial or similarly significant consequences for individuals.",
+      "noGuestScoring": "Get-Filly does not use these scores to assess, rank or make decisions about individual guests. Users can always ask for additional explanation about how analyses and recommendations are produced."
+    },
+    "integrations": {
+      "heading": "5. Use of external integrations",
+      "intro": "Get-Filly can be connected to external services, including among others: Google Business Profile, Google Analytics, Google Ads, Meta, Facebook, Instagram, TikTok, reservation systems, CRM systems, email marketing platforms, payment systems and bookkeeping and banking services.",
+      "consentIntro": "We only obtain access to data for which the user has given consent or that is necessary for the functionality activated by the user. Per integration, the platform indicates where possible:",
+      "whatData": "which data is retrieved",
+      "whatPurpose": "for which purpose this data is used",
+      "whatPermissions": "which rights or permissions are requested",
+      "howRevoke": "how the connection can be revoked",
+      "minimization": "We do not request access to data that is not needed for the functionality we offer."
+    },
+    "google": {
+      "heading": "6. Use of Google Business Profile data",
+      "intro": "When you choose to connect your Google Business Profile to Get-Filly, we obtain access to certain data from your business profile via official Google APIs. Depending on the consent you have given, we may retrieve among other things the following data:",
+      "businessName": "business name",
+      "profileInfo": "profile information",
+      "contact": "address and contact details",
+      "hours": "opening hours",
+      "categories": "categories and attributes of the business",
+      "reviews": "reviews and ratings",
+      "photos": "photos and media files",
+      "location": "location data",
+      "performance": "performance and visibility data, where available via the relevant API",
+      "usageIntro": "We use Google Business Profile data solely to deliver, manage and improve the Get-Filly features for which you have given consent. This may consist of, among other things:",
+      "useHealth": "calculating Health Scores, Potential Scores and benchmark reports;",
+      "useAnalyze": "analysing online visibility, findability, reviews, ratings, photos, business information and profile activity;",
+      "useAdvice": "showing improvement advice and optimisation proposals;",
+      "useTrends": "providing insight into trends, historical developments and performance of your Google Business Profile;",
+      "useOptimize": "preparing and carrying out optimisations to your Google Business Profile, insofar as you explicitly give consent for this;",
+      "useReplyReviews": "replying to reviews, manually or automatically, if you have activated this feature;",
+      "usePosts": "drafting, scheduling or publishing Google Posts, offers, updates or other business communication, if you have activated this feature;",
+      "useComplete": "supplementing, correcting or standardising business data, such as business name, categories, opening hours, contact details, website, menu information, services, attributes and descriptions;",
+      "useManagePhotos": "adding, managing or optimising photos, menu information, products, services or other profile components;",
+      "useFlagMissing": "flagging missing, inconsistent or outdated information in your business profile;",
+      "useMonitor": "monitoring new reviews, changes, performance and other relevant events within your Google Business Profile;",
+      "useCompare": "comparing your performance with similar businesses, solely based on aggregated and anonymised data that is not traceable to an individual other business.",
+      "storage": {
+        "heading": "6.1 Storage and security of Google data",
+        "body": "Data we retrieve via the Google APIs is stored encrypted (both in transit and at rest). Access to this data is limited to authorised personnel who need the data to deliver our service. Get-Filly uses a multi-tenant architecture in which each customer's data and access tokens are stored logically separated and isolated, so that the data of one business is never accessible to another. Access tokens are stored encrypted and used solely for the specific connection for which you have given consent."
+      },
+      "retention": {
+        "heading": "6.2 Retention period",
+        "body": "We do not retain the data retrieved via Google longer than necessary for the purposes described above. When you disconnect a connected Google Business Profile, the associated access tokens are revoked immediately and the stored Google Business Profile data is deleted from our systems within 30 days, except for data we are legally required to retain longer."
+      },
+      "declarations": {
+        "heading": "6.3 Statements about the use of Google data",
+        "noSell": "We do not sell Google data to third parties.",
+        "noAds": "We do not use Google data for third-party advertising purposes.",
+        "noTraining": "We do not use Google data to train public AI models.",
+        "noBrokers": "We do not share Google data with advertising networks or data brokers.",
+        "noChanges": "We do not change any data within your Google Business Profile without an explicit action, approval, setting or instruction from you as the user."
+      },
+      "limitedUse": "The use and transfer of information that Get-Filly receives via Google APIs complies with the Google API Services User Data Policy, including the Limited Use requirements.",
+      "limitedUseEn": "Get-Filly's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+      "autoActions": "For features where Get-Filly can perform actions automatically, such as replying to reviews, publishing posts or updating profile data, these are only carried out when you deliberately activate the feature or give prior consent for it.",
+      "revoke": {
+        "heading": "6.4 Revoking Google access",
+        "body": "You can disconnect a connected Google Business Profile at any time via the Get-Filly dashboard or via your Google account. After disconnection we no longer retrieve new data via that connection and connected tokens are revoked or deleted as described above.",
+        "manage": "In addition, you can manage or revoke the consent you have given directly via your Google account: <link>myaccount.google.com/permissions</link>. Revoking consent does not affect data that has already been lawfully processed before the moment of revocation."
+      }
+    },
+    "meta": {
+      "heading": "7. Use of Meta, Facebook and Instagram data",
+      "intro": "When you choose to connect your Meta, Facebook or Instagram account to Get-Filly, we obtain access solely to the data and features for which you have given consent via the official Meta APIs.",
+      "accessIntro": "Depending on the connected integration, we may obtain access to, among other things:",
+      "accountName": "account name and profile information;",
+      "businessInfo": "business information of connected Facebook or Instagram pages;",
+      "pages": "connected pages, Instagram Business accounts and business assets for which you have management rights;",
+      "publicPosts": "public messages, posts, stories, reels, photos and videos;",
+      "drafts": "drafts, scheduled content or published content, where available via the relevant API;",
+      "engagement": "reactions, comments, likes, shares and other engagement data;",
+      "stats": "follower, reach and performance statistics;",
+      "campaignInsights": "campaign, content and audience insights, where available via the relevant API;",
+      "messages": "messages, reactions or other interactions, if you explicitly give consent for this and this feature is supported by Get-Filly;",
+      "technicalMetadata": "technical metadata needed to make the connection work safely and correctly.",
+      "usageIntro": "We use this data and these features solely to deliver, manage and improve the Get-Filly features for which you have given consent. This may consist of, among other things:",
+      "useHealth": "calculating Health Scores, Potential Scores and benchmark reports;",
+      "usePerformance": "providing insight into social media performance, reach, engagement, content activity and growth opportunities;",
+      "useAnalyze": "analysing online visibility, content quality, posting frequency and audience interaction;",
+      "useInsights": "showing marketing insights, improvement advice and optimisation proposals;",
+      "useGenerate": "preparing, generating and improving social media content with the help of AI;",
+      "usePublish": "drafting, scheduling and publishing Facebook and Instagram posts, stories, reels, updates or other content on behalf of your business, if you activate this feature;",
+      "useEditDrafts": "editing, supplementing or deleting drafts, scheduled posts or content, solely when you instruct us to do so;",
+      "useModerate": "replying to, moderating or managing reactions or interactions, if you activate this feature;",
+      "useMonitor": "monitoring the performance of published content;",
+      "useCompare": "comparing your social media performance with similar businesses, insofar as this is done based on permitted, aggregated or lawfully obtained data;",
+      "useFlagMissing": "flagging missing, inconsistent or outdated information on connected Facebook or Instagram profiles.",
+      "noSell": "We do not sell Meta, Facebook or Instagram data to third parties.",
+      "noAds": "We do not use this data for third-party advertising purposes.",
+      "noTraining": "We do not use this data to train public AI models.",
+      "noBrokers": "We do not share this data with advertising networks or data brokers.",
+      "noChanges": "We do not publish, change, schedule, reply to, moderate or delete content on your Meta, Facebook or Instagram account without an explicit action, approval, setting or instruction from you as the user.",
+      "autoActions": "For features where Get-Filly can perform actions automatically, such as publishing pre-approved posts, scheduling content or replying to reactions, these are only carried out when you deliberately activate the feature or give prior consent for it.",
+      "onBehalf": "When content is published via Get-Filly on Facebook, Instagram or other Meta platforms, this is done on behalf of the connected business or the connected account of the customer. The customer remains responsible for the content, accuracy, timing, lawfulness and consequences of published content.",
+      "disconnect": "You can remove a connected Meta, Facebook or Instagram integration at any time via the Get-Filly dashboard or via the settings of your Meta, Facebook or Instagram account. After disconnection we no longer retrieve new data via that connection and connected tokens are revoked or deleted according to our retention policy.",
+      "deletion": "When Meta forwards a data deletion request to Get-Filly, or when you request deletion yourself, we delete the data associated with the relevant Meta integration, unless we are legally required to retain certain data longer."
+    },
+    "ai": {
+      "heading": "8. Use of AI systems, Claude Code and Anthropic",
+      "intro": "Get-Filly uses AI systems to enable features such as: response generation within the Filly model, campaign proposals, review replies, menu analyses, website analyses, reports, chat features, internal quality control and code and development support.",
+      "anthropic": "For these features we may use services from Anthropic, PBC, including Claude, Claude Code and/or the Anthropic API.",
+      "dataFlow": "When you use AI features, the content of your question, relevant business context, files, prompts, instructions, generated responses and technical metadata may be sent to and processed in Anthropic's systems. This means that data needed for response generation may technically end up in Anthropic's systems, storage environments or databases, insofar as necessary to deliver the AI service, ensure security, detect abuse or comply with applicable terms and legal obligations.",
+      "claudeCode": "Insofar as we use Claude Code for response generation, analysis or development support within the Filly model, the same limitation applies: we provide only data that is reasonably necessary for the relevant feature and try to limit or pseudonymise personal data as much as possible.",
+      "noTraining": {
+        "heading": "8.1 No training of public AI models",
+        "body": "Get-Filly does not use customer data to train public AI models. Insofar as we use external AI suppliers, we do so solely under terms that fit business services and data protection. We do not allow customer data to be used to train public AI models, unless a customer separately, in advance and explicitly agrees to this."
+      },
+      "humanControl": {
+        "heading": "8.2 Human oversight",
+        "intro": "AI output may contain errors, be incomplete or be based on incorrect context. Users remain responsible for checking AI output before using it for:",
+        "campaigns": "marketing campaigns",
+        "guestComms": "communication with guests",
+        "publication": "publication on websites or social media channels",
+        "decisions": "business decisions",
+        "operational": "pricing, menu or operational choices",
+        "disclaimer": "Get-Filly does not guarantee that AI output is always complete, accurate, up to date or suitable for a specific purpose."
+      }
+    },
+    "sharing": {
+      "heading": "9. Who do we share data with?",
+      "intro": "We only share personal data with parties when this is necessary to deliver our services, when you activate an integration, or when we are legally required to do so.",
+      "subprocessors": {
+        "heading": "9.1 Sub-processors and service providers",
+        "intro": "With parties that act as a processor, we conclude a data processing agreement where required. Some parties, such as Stripe, bunq, Google and Meta, may also act as independent data controllers for certain processing, for example for legal obligations, fraud control, security, payment transactions, platform management or their own services. In that case their own privacy policy also applies."
+      },
+      "colParty": "Party",
+      "colFunction": "Function",
+      "colLocation": "Location / transfer",
+      "supabase": {
+        "function": "Database, authentication and file storage",
+        "location": "EU region where possible"
+      },
+      "anthropic": {
+        "function": "AI models, Claude, Claude Code, response generation and analysis",
+        "location": "United States / international, with appropriate safeguards"
+      },
+      "resend": {
+        "function": "Transactional and marketing emails",
+        "location": "EU/United States, depending on configuration"
+      },
+      "vercel": {
+        "function": "Hosting of website and dashboard",
+        "location": "EU region where possible / international"
+      },
+      "stripe": {
+        "function": "Payments, payment statuses, subscriptions and billing",
+        "location": "EU/United States / international"
+      },
+      "bunq": {
+        "function": "Banking services, business account, payment administration",
+        "location": "Netherlands/EU"
+      },
+      "google": {
+        "function": "Only when the user activates the Google integration",
+        "location": "Depending on Google services and settings"
+      },
+      "metaPlatforms": {
+        "function": "Only when the user activates the Meta, Facebook or Instagram integration",
+        "location": "Depending on Meta services and settings"
+      },
+      "noSell": "We do not sell personal data. We do not share personal data with third-party advertising networks for their own advertising purposes."
+    },
+    "transfers": {
+      "heading": "10. Transfers outside the European Economic Area",
+      "intro": "Some service providers or platforms we use are established outside the European Economic Area, for example in the United States. When personal data is transferred outside the European Economic Area, we ensure an appropriate transfer mechanism. Depending on the situation, this may be:",
+      "adequacy": "an adequacy decision from the European Commission",
+      "dpf": "certification under the EU-U.S. Data Privacy Framework",
+      "scc": "EU standard contractual clauses",
+      "measures": "additional technical and organisational measures",
+      "other": "another valid basis under the GDPR",
+      "assessment": "We assess per supplier which safeguards apply and record these contractually where necessary."
+    },
+    "retention": {
+      "heading": "11. How long do we retain data?",
+      "intro": "We do not retain personal data longer than necessary for the purposes for which it was collected, unless we are legally required to retain data longer. After the retention periods expire, we delete or anonymise data. Aggregated and anonymous statistics, which are not traceable to individuals or customers, may be retained longer for product improvement, benchmarking and trend analysis.",
+      "colType": "Type of data",
+      "colPeriod": "Retention period",
+      "account": {
+        "type": "Account data",
+        "period": "duration of the subscription + a maximum of 1 year after termination"
+      },
+      "guests": {
+        "type": "Customers' guest data",
+        "period": "according to the customer's settings; by default a maximum of 2 years after the last visit"
+      },
+      "results": {
+        "type": "Reservation, review and campaign results",
+        "period": "duration of the subscription + a maximum of 1 year"
+      },
+      "health": {
+        "type": "Health Score and benchmark data",
+        "period": "duration of the subscription + a maximum of 1 year"
+      },
+      "tokens": {
+        "type": "OAuth tokens and integration data",
+        "period": "as long as the integration is active; after disconnection tokens are revoked or deleted"
+      },
+      "googleMeta": {
+        "type": "Google and Meta integration data",
+        "period": "as long as necessary for the connected feature or until deletion/disconnection"
+      },
+      "aiLogs": {
+        "type": "AI usage logs",
+        "period": "a maximum of 24 months for cost control, security and debugging"
+      },
+      "aiContent": {
+        "type": "AI content at external AI suppliers",
+        "period": "according to the contractual terms and retention periods of the relevant supplier"
+      },
+      "invoices": {
+        "type": "Invoices and payment administration",
+        "period": "7 years due to the tax retention obligation"
+      },
+      "bank": {
+        "type": "Banking and payment data",
+        "period": "as long as needed for administration, reconciliation and legal obligations"
+      },
+      "securityLogs": {
+        "type": "Security logs and error messages",
+        "period": "a maximum of 12 months, unless needed longer for investigation"
+      },
+      "marketing": {
+        "type": "Marketing preferences",
+        "period": "until you unsubscribe, plus registration of withdrawal where necessary"
+      }
+    },
+    "security": {
+      "heading": "12. How do we secure data?",
+      "intro": "We take appropriate technical and organisational measures to protect personal data against loss, misuse, unauthorised access, disclosure, alteration or destruction. Our measures include among other things:",
+      "tls": "encryption in transit via TLS",
+      "encryption": "encryption of sensitive data where appropriate",
+      "hashing": "hashing of passwords",
+      "rbac": "role-based access control",
+      "rls": "row-level security or similar separation between customer environments",
+      "logging": "logging of important actions",
+      "prodAccess": "restriction of access to production environments",
+      "secrets": "secure storage of API keys, OAuth tokens and secrets",
+      "backups": "periodic backups",
+      "monitoring": "security monitoring",
+      "incidents": "internal procedures for incidents and data breaches",
+      "dpas": "data processing agreements with relevant suppliers",
+      "tokens": "OAuth tokens and API keys are stored securely and are only accessible to systems and staff who need them to perform the services."
+    },
+    "cookies": {
+      "heading": "13. Cookies and measurement tools",
+      "functional": "We use functional cookies that are necessary to make our website and platform work properly, for example for login, session management and security.",
+      "nonEssential": "For non-essential cookies, such as analytical cookies or marketing cookies, we ask for consent where this is legally required. When we use tools in the future such as Google Analytics, Meta Pixel, TikTok Pixel or similar tracking technologies, we will clearly state this in our cookie statement and ask for prior consent where necessary.",
+      "noThirdParty": "We do not place third-party tracking cookies for advertising purposes without valid consent."
+    },
+    "rights": {
+      "heading": "14. Your rights",
+      "intro": "Under the GDPR you have various rights regarding your personal data. You have, among other things, the right to:",
+      "access": "access to the personal data we process about you",
+      "rectification": "rectification of incorrect or incomplete data",
+      "erasure": "erasure of data",
+      "restriction": "restriction of processing",
+      "portability": "data portability",
+      "objection": "object to processing based on legitimate interest",
+      "withdrawal": "withdrawal of consent given earlier",
+      "humanIntervention": "human intervention where there would be solely automated decision-making with legal or similarly significant consequences",
+      "request": "You can submit a request via: <link>{email}</link>. We respond in principle within 30 days.",
+      "guestRequests": "When a request concerns personal data of guests that we process on behalf of a customer, we may forward the request to the relevant customer or handle it in consultation with the customer, because the customer is the data controller in that situation."
+    },
+    "withdraw": {
+      "heading": "15. Withdrawing consent and deleting data",
+      "intro": "You can withdraw consent for integrations or data processing by:",
+      "removeIntegration": "removing an integration in the Get-Filly dashboard",
+      "revokePlatform": "revoking access via the external platform, such as Google, Meta, Facebook or Instagram",
+      "contact": "contacting us via <link>{email}</link>",
+      "afterWithdrawal": "After withdrawal of an integration we no longer retrieve new data via that connection. We delete data that has already been processed when a valid request for this is submitted, unless we still need to retain this data due to legal obligations, contractual obligations, security, disputes or legitimate administrative reasons."
+    },
+    "ownership": {
+      "heading": "16. Ownership of customer data",
+      "intro": "Data supplied by customers or processed via connections on behalf of customers remains the property of the relevant customer or rights holder. Get-Filly only obtains the usage rights needed to perform the agreed services. Get-Filly does not claim ownership of:",
+      "reservations": "reservation data",
+      "guests": "guest data",
+      "customerLists": "customer lists",
+      "campaigns": "marketing campaigns",
+      "photos": "photos",
+      "reviews": "reviews",
+      "reports": "reports",
+      "businessData": "business data",
+      "platformData": "connected platform data"
+    },
+    "minors": {
+      "heading": "17. Minors",
+      "body": "Our services are aimed at business users and are not intended for persons under 16 years of age. We do not knowingly collect personal data of minors as direct users of our platform. When data of minors appears in a customer's guest data, Get-Filly processes it solely as a processor on the instructions of the relevant customer."
+    },
+    "breaches": {
+      "heading": "18. Data breaches and security reports",
+      "procedure": "When a security incident occurs that may affect personal data, we act in accordance with our internal data breach procedure and the applicable legal reporting obligations. If necessary, we report a data breach to the Dutch Data Protection Authority and/or inform data subjects.",
+      "report": "Did you discover a vulnerability or security issue? Report it via <link>{email}</link> with the subject \"{subject}\". We take security reports seriously and investigate reports as soon as possible.",
+      "subject": "Security report"
+    },
+    "changes": {
+      "heading": "19. Changes to this statement",
+      "body": "We may change this privacy statement from time to time, for example when we add new features, offer new integrations, use other suppliers or when laws and regulations change. In the event of material changes, we inform existing customers via email, the dashboard or another appropriate way. The date at the top of this statement indicates when the statement was last updated."
+    },
+    "contact": {
+      "heading": "20. Contact and complaints",
+      "intro": "For questions about this privacy statement, privacy requests or concerns about the processing of personal data, you can contact:",
+      "address": "Address: {address}",
+      "email": "Email: <link>{email}</link>",
+      "phone": "Phone: {phone}",
+      "kvk": "Chamber of Commerce: {kvk}",
+      "complaint": "Do you disagree with how we process your personal data and can we not work it out together? Then you have the right to file a complaint with the Dutch Data Protection Authority: <link>autoriteitpersoonsgegevens.nl</link>."
+    }
+  },
+  "leg_voorwaarden_page": {
+    "lastUpdated": "Last updated: {date}",
+    "title": "Get-Filly Terms and Conditions",
+    "tocAriaLabel": "Table of contents",
+    "tocTitle": "Contents",
+    "toc": {
+      "definities": "Definitions",
+      "toepasselijkheid": "Applicability",
+      "totstandkoming": "Offers and formation of the agreement",
+      "dienst": "Our service",
+      "account": "Account and customer responsibilities",
+      "platformen": "External platforms and OAuth connections",
+      "google": "Google Business Profile and Google APIs",
+      "meta": "Meta, Facebook and Instagram",
+      "betaling": "Subscription, pricing and payment",
+      "duur": "Term, cancellation and deletion of integration data",
+      "data": "Data ownership and processing",
+      "ip": "Intellectual property",
+      "rangorde": "Order of precedence of documents",
+      "aansprakelijkheid": "Liability",
+      "geheimhouding": "Confidentiality",
+      "overmacht": "Force majeure",
+      "wijzigingen": "Changes to these terms",
+      "recht": "Governing law and disputes"
+    },
+    "s1": {
+      "heading": "1. Definitions",
+      "intro": "In these terms and conditions, the following terms have the following meanings:",
+      "colTerm": "Term",
+      "colMeaning": "Meaning",
+      "termGetFilly": "Get-Filly / we / us",
+      "defGetFillyPre": "{legalName}, registered with the Dutch Chamber of Commerce under number {kvk}, located at {address}, reachable via",
+      "defGetFillyPost": "and {phone}.",
+      "termKlant": "Customer / you / your",
+      "defKlant": "The natural person or legal entity that enters into an agreement with Get-Filly to use the Platform, acting in the course of a profession or business.",
+      "termGebruiker": "User",
+      "defGebruiker": "A person who is granted access to the Platform by or on behalf of the Customer.",
+      "termPlatform": "Platform",
+      "defPlatform": "The website, application, dashboard environment, API connections and related services of Get-Filly, available via get-filly.com and app.get-filly.com.",
+      "termFilly": "Filly",
+      "defFilly": "The AI assistant within the Platform, which may use third-party AI models and AI services, including Anthropic, Claude, Claude Code and/or the Anthropic API.",
+      "termAccount": "Account",
+      "defAccount": "A User's personal access profile to the Platform.",
+      "termAbonnement": "Subscription",
+      "defAbonnement": "The paid service selected by the Customer, with its associated period, price and features.",
+      "termGastgegevens": "Guest data",
+      "defGastgegevens": "Personal data of the Customer's guests, customers or end users that is processed through the Platform.",
+      "termExternePlatformen": "External Platforms",
+      "defExternePlatformen": "Third-party services to which the Platform can be connected, including Google, Google Business Profile, Meta, Facebook, Instagram, TikTok, reservation systems, CRM systems, email marketing platforms, payment providers, banking services and other third-party software services.",
+      "termOAuth": "OAuth connection",
+      "defOAuth": "A technical connection authorized by the Customer or User in which Get-Filly gains access to certain data or features through an external provider, such as Google or Meta, without the Customer providing their password to Get-Filly.",
+      "termIntegratiegegevens": "Integration data",
+      "defIntegratiegegevens": "Data retrieved or processed through an External Platform, including profile data, business data, reviews, ratings, photos, social media statistics, page information, content, engagement data, reservation data, tokens, API responses and technical metadata.",
+      "termPlatformvoorwaarden": "Third-party platform terms",
+      "defPlatformvoorwaarden": "The terms, policies, developer policies, API terms and other rules of External Platforms that apply to the use of their services, including the Google API Services User Data Policy, Google OAuth 2.0 Policies, Meta Platform Terms and Meta Developer Policies.",
+      "termVerwerkersovereenkomst": "Data Processing Agreement",
+      "defVerwerkersovereenkomst": "The agreement referred to in Article 28 GDPR, which sets out arrangements for the processing of personal data by Get-Filly as processor on behalf of the Customer."
+    },
+    "s2": {
+      "heading": "2. Applicability",
+      "p1": "These terms apply to all offers from and agreements with Get-Filly and to any use of the Platform, regardless of whether the Customer has a paid subscription.",
+      "p2": "Deviations from these terms are only valid if we have confirmed them in writing with the Customer. General purchasing terms or other terms of the Customer are expressly rejected.",
+      "p3": "Get-Filly's services are intended solely for business use (B2B). Consumers are not a target group of our offering.",
+      "p4": "To the extent that additional terms apply to specific features, for example terms of External Platforms, those additional terms continue to apply alongside these general terms."
+    },
+    "s3": {
+      "heading": "3. Offers and formation of the agreement",
+      "p1": "All offers on our website are without obligation, unless expressly stated otherwise.",
+      "p2": "The agreement is formed at the moment the Customer creates an account, selects a subscription and agrees to these terms, or at the moment we have the Customer sign or confirm a written proposal.",
+      "p3": "To the extent that an offer, price quote, website listing or proposal contains an obvious error or mistake, we are not bound by it.",
+      "p4": "Get-Filly may refuse an application, for example in case of abuse, conflict with laws or regulations, an increased compliance risk or a previous breach of these terms."
+    },
+    "s4": {
+      "heading": "4. Our service",
+      "p1": "Get-Filly offers a SaaS platform that lets hospitality, wellness and hotel entrepreneurs analyze and improve their marketing, online visibility, occupancy and customer activation using AI, automation and data analysis. The service may consist of, among other things:",
+      "li1": "a dashboard with insight into reservations, occupancy, guests and marketing activities;",
+      "li2": "AI-generated review replies, campaign suggestions, copy and chat features;",
+      "li3": "menu analysis through image recognition and AI;",
+      "li4": "website, SEO, Google Business Profile and social media analyses;",
+      "li5": "Health Scores, Potential Scores, Opportunity Scores and benchmark reports;",
+      "li6": "integrations with external marketing, social media, payment, banking, CRM and reservation systems.",
+      "availabilityHeading": "Availability",
+      "availabilityP1": "We aim for an availability of 99% per calendar month, but do not give a hard SLA guarantee unless agreed otherwise in writing. We announce planned maintenance in advance where possible.",
+      "aiHeading": "AI features",
+      "aiP1": "Filly uses third-party AI models and AI services, including services from Anthropic, such as Claude, Claude Code and/or the Anthropic API. The AI features within the Platform can be used for, among other things, response generation, review replies, campaign proposals, menu analysis, website analysis, reporting, chat features, code support and internal quality improvement.",
+      "aiP2": "When the Customer uses AI features, prompts, entered data, files, context, generated output and technical metadata may be processed by Anthropic or other AI service providers engaged by Get-Filly, to the extent necessary to provide, secure, improve the feature or to prevent abuse.",
+      "aiP3": "AI output is advisory in nature. AI output may contain errors, be incomplete or be based on incorrect or outdated information. The Customer remains responsible for checking AI output before publication, sending or business use."
+    },
+    "s5": {
+      "heading": "5. Account and customer responsibilities",
+      "p1": "The Customer is responsible for securely storing login credentials and for all use that takes place through their Account. If the Customer suspects that unauthorized access has occurred, they must inform Get-Filly immediately.",
+      "p2": "The Customer ensures that only authorized Users gain access to the Platform and that Users comply with these terms. The Customer warrants that they:",
+      "li1": "provide correct and current information about their business;",
+      "li2": "only upload or connect content for which they hold sufficient rights, including menus, photos, copy, logos, reviews and business information;",
+      "li3": "do not use the Platform for unlawful, misleading, discriminatory, spam-like or otherwise prohibited communication;",
+      "li4": "make no attempt to abuse, disrupt or reverse-engineer the Platform, its security, APIs, integrations or AI systems;",
+      "li5": "comply with applicable laws and regulations, including GDPR, ePrivacy, consumer law, advertising rules and sector-specific rules for hospitality, alcohol, gambling or comparable activities where applicable;",
+      "li6": "do not provide passwords of External Platforms, such as Google, Facebook, Instagram or other third-party services, to Get-Filly.",
+      "p3": "Connections with External Platforms run solely through the authorization methods intended for that purpose, such as OAuth, API connections or other secure integration methods.",
+      "p4": "In case of improper use, a security risk or a serious breach of these terms, we may temporarily block the Account or terminate the agreement with immediate effect without a right to a refund, to the extent permitted by law."
+    },
+    "s6": {
+      "heading": "6. External platforms and OAuth connections",
+      "h1": "6.1 Connections by the Customer",
+      "p1": "Within the Platform, the Customer can activate connections with External Platforms, including Google Business Profile, Meta, Facebook, Instagram, TikTok, reservation systems, CRM systems, email marketing services and other third-party software services. A connection is only established when the Customer or an authorized User explicitly grants permission, for example through an OAuth flow, API connection or comparable authorization method.",
+      "h2": "6.2 Authority to connect",
+      "p2": "The Customer warrants that they are authorized to connect the relevant External Platform and that they hold the required rights, roles or management permissions, for example as owner, administrator or authorized representative of a Google Business Profile, Facebook page, Instagram Business account or other connected account. The Customer indemnifies Get-Filly against third-party claims arising from the unauthorized connection of accounts, pages, business profiles or data sources.",
+      "h3": "6.3 Use of integration data",
+      "p3": "Get-Filly uses integration data solely to the extent necessary to provide, maintain and improve the agreed services, including analyses, dashboards, Health Scores, benchmark reports, AI suggestions, marketing insights and optimization proposals. Get-Filly does not sell integration data to third parties and does not use integration data for third-party advertising purposes.",
+      "h4": "6.4 No automatic changes without instruction",
+      "p4": "Get-Filly will not publish content, post messages, respond to reviews, change business profiles, adjust advertisements or perform other actions within an External Platform without an explicit action, approval or instruction from the Customer. To the extent the Platform offers features that let the Customer make changes on External Platforms, the Customer remains responsible for the content, accuracy and lawfulness of those changes.",
+      "h5": "6.5 Actions on behalf of the Customer",
+      "p5": "When the Customer instructs, through the Platform, that an action be performed on an External Platform, such as replying to a review, publishing content, adjusting profile information or retrieving reports, that action counts as an instruction from the Customer to Get-Filly. The Customer is responsible for the content, lawfulness and consequences of such actions, unless damage results from intent or deliberate recklessness on the part of Get-Filly.",
+      "h6": "6.6 Third-party platform terms",
+      "p6": "The Customer acknowledges that the use of External Platforms is also governed by third-party platform terms. The Customer is responsible for complying with these terms to the extent they apply to them or their use. Get-Filly is not responsible for changes in terms, policies, APIs, permissions, rates, availability, review processes, rate limits or features of External Platforms.",
+      "h7": "6.7 Changes, restrictions and termination by third parties",
+      "p7": "External Platforms may change, restrict, suspend or terminate their services, APIs, permissions, scopes, terms or access options. Get-Filly is not liable for damage or reduced functionality arising from this, unless there is intent or deliberate recklessness on the part of Get-Filly. If an External Platform requires additional verification, app review, business verification, security assessment or permission, Get-Filly may temporarily restrict the relevant feature until those requirements are met.",
+      "h8": "6.8 Revoking connections",
+      "p8": "The Customer can remove an OAuth connection or other integration at any time through the Platform or through the relevant External Platform. After disconnection, Get-Filly will no longer retrieve new data through that integration. Get-Filly may revoke or delete technical access, tokens or API keys when a connection is ended, when access is no longer necessary, or when this is required under law, security or third-party platform terms."
+    },
+    "s7": {
+      "heading": "7. Google Business Profile and Google APIs",
+      "p1": "When the Customer activates a Google integration, including Google Business Profile, the Customer grants Get-Filly permission to use the data and features for which the Customer has explicitly given permission through Google.",
+      "p2": "Get-Filly uses Google data solely to provide, maintain and improve the features for which the Customer has given permission, including calculating Health Scores, showing improvement points, and analyzing reviews, ratings, photos, business profile information and online visibility.",
+      "p3": "Get-Filly will not sell Google data, not transfer it to advertising networks, not use it for retargeting or personalized third-party advertising, and not use it for purposes not described in the privacy statement or in the relevant in-product explanation.",
+      "p4": "The use and transfer of data that Get-Filly receives through Google APIs takes place in accordance with the Google API Services User Data Policy, including the Limited Use requirements.",
+      "p5": "The Customer understands that Google may refuse, restrict, review or revoke certain scopes, permissions or API access. Get-Filly is not liable for the unavailability of Google features as a result of Google's decisions, outages, changes or restrictions, unless there is intent or deliberate recklessness on the part of Get-Filly."
+    },
+    "s8": {
+      "heading": "8. Meta, Facebook and Instagram",
+      "p1": "When the Customer activates a Meta, Facebook or Instagram integration, the Customer grants Get-Filly permission to use the data and features for which the Customer has explicitly given permission through Meta.",
+      "p2": "Depending on the feature activated by the Customer, Get-Filly may process data such as page information, account information, profile information, public content, photos, videos, statistics, reach, engagement data, reactions, messages and other data made available through the Meta APIs.",
+      "p3": "Get-Filly uses this data solely to provide the agreed services, including social media analyses, Health Scores, benchmark reports, content insights, marketing recommendations and performance overviews. Get-Filly does not sell Meta, Facebook or Instagram data to third parties and does not use this data for third-party advertising purposes. Get-Filly will not publish, delete or modify content on Meta, Facebook or Instagram accounts without an explicit action or instruction from the Customer.",
+      "p4": "The Customer can remove a Meta, Facebook or Instagram connection through the Platform or through the settings of the relevant Meta account. After disconnection, Get-Filly will no longer retrieve new data through that connection. For requests to delete data obtained through Meta, Facebook or Instagram, Get-Filly provides instructions via a public data deletion page. Get-Filly deletes data when a valid request is received, unless legal obligations or legitimate administrative reasons require further retention."
+    },
+    "s9": {
+      "heading": "9. Subscription, pricing and payment",
+      "pricesPre": "The current prices of our subscriptions are listed at",
+      "pricesPost": "All prices are in euros, excluding VAT unless stated otherwise.",
+      "h1": "9.1 Payment via Stripe",
+      "p1": "Payment runs through our payment partner Stripe. Depending on the chosen payment method, payment can take place via credit card, SEPA direct debit, iDEAL or other payment methods supported by Stripe. The subscription amount is charged in advance per period, monthly or annually, depending on the subscription type chosen by the Customer.",
+      "p2": "For certain processing activities, Stripe may act as an independent controller, for example for payment processing, fraud prevention, legal obligations and compliance with financial regulations. Stripe's terms and privacy statement also apply to processing by Stripe.",
+      "h2": "9.2 In case of non-payment",
+      "p3": "If a payment fails, we may retry the payment or ask the Customer to use a different payment method. If payment remains outstanding, we may suspend access to the Platform until payment is received. If payment is outstanding for more than 30 days, we have the right to terminate the agreement and hand over the outstanding amounts for collection. Extrajudicial collection costs are for the Customer's account in accordance with the Dutch Collection Costs Act, where applicable.",
+      "h3": "9.3 Price changes",
+      "p4": "We may adjust prices annually on 1 January, for example based on inflation, the CBS consumer price index, changes in our costs for AI processing, API costs, hosting costs or costs of External Platforms. We announce a price change at least one month in advance. If the Customer disagrees with a price change, they can cancel the subscription as of the date the change takes effect.",
+      "h4": "9.4 Banking and administrative processing via bunq",
+      "p5": "Get-Filly may use bunq B.V. for business banking services, payment administration, reconciliation and financial administration. To the extent bunq processes personal data or transaction data in the context of its own legal obligations, compliance, fraud prevention or banking services, bunq may act as an independent controller."
+    },
+    "s10": {
+      "heading": "10. Term, cancellation and deletion of integration data",
+      "p1": "A subscription starts on the day of activation and runs for the period chosen by the Customer, for example 1 month or 1 year. After that, the subscription is tacitly renewed for the same period, unless the Customer cancels at least one month before the end of the current period through the dashboard. After cancellation, the Platform remains available until the end of the period already paid for. After that, the Account is deactivated and personal data is processed in accordance with the privacy statement and the Data Processing Agreement.",
+      "h1": "10.1 Dissolution",
+      "p2": "Both parties may dissolve the agreement out of court if the other party seriously fails to perform and does not remedy that failure within 30 days of a written notice of default. In the event of bankruptcy, suspension of payment, cessation of the business or a comparable situation, dissolution is possible immediately.",
+      "h2": "10.2 Deletion of integration data",
+      "p3Pre": "When the Customer removes an integration or ends their account, Get-Filly will revoke or delete the associated OAuth tokens and technical access, unless retention is temporarily necessary for security, disputes, legal obligations or administrative handling. Requests to delete data can be submitted through the dashboard or via",
+      "p3Post": "For data originating from Meta, Facebook or Instagram integrations, Get-Filly additionally publishes a data deletion page with instructions for users."
+    },
+    "s11": {
+      "heading": "11. Data ownership and processing",
+      "p1": "All data that the Customer enters, uploads or connects in the Platform remains the property of the Customer or the original rights holder. Get-Filly only obtains the right to use that data to the extent necessary to provide, secure, maintain and improve the services in accordance with these terms and the privacy statement.",
+      "p2": "To the extent the Customer processes personal data of guests or customers through the Platform, the Customer is the controller and Get-Filly is the processor within the meaning of Article 28 GDPR. The arrangements for that processing are set out in a Data Processing Agreement that forms part of the contractual relationship between the parties. The Customer is responsible for having a valid legal basis for processing guest data, for informing data subjects and for complying with applicable privacy and marketing laws.",
+      "h1": "11.1 Export on departure",
+      "p3": "Upon termination of the agreement, the Customer can export their data in a common format up to 30 days after the end, to the extent technically available. After that, we may delete or anonymize data in accordance with the privacy statement and the Data Processing Agreement. Get-Filly may continue to use anonymous and aggregated data that is not traceable to the Customer, Users or guests for product improvement, benchmarking, statistics and trend analysis."
+    },
+    "s12": {
+      "heading": "12. Intellectual property",
+      "p1": "All intellectual property rights to the Platform, the software, the database structure, the design, copy, models, methodologies, scores, the Filly brand name and associated logos belong to Get-Filly or its licensors. Nothing in these terms transfers any ownership right to the Customer. For the duration of the subscription, the Customer receives a non-exclusive, non-transferable and non-sublicensable right to use the Platform for their own business and solely in accordance with these terms.",
+      "h1": "12.1 AI output",
+      "p2": "To the extent permitted by law, the Customer may use AI output generated by Filly based on their input within their own business, both during and after the subscription. Get-Filly gives no guarantee that AI output is unique, does not infringe third-party rights or is suitable for a specific purpose. The Customer remains responsible for checking, editing and the lawful use of AI output."
+    },
+    "s13": {
+      "heading": "13. Order of precedence of documents",
+      "p1": "If there is a conflict between documents, the following order of precedence applies, unless agreed otherwise in writing:",
+      "li1": "a separately signed agreement or quotation;",
+      "li2": "the Data Processing Agreement, to the extent it concerns the processing of personal data on behalf of the Customer;",
+      "li3": "these general terms and conditions;",
+      "li4": "the privacy statement;",
+      "li5": "other policy documents, product documentation or information pages.",
+      "p2": "For the use of External Platforms, the applicable third-party platform terms also continue to apply."
+    },
+    "s14": {
+      "heading": "14. Liability",
+      "p1": "Our services are performed on the basis of a best-efforts obligation, not a results obligation. We do our utmost for a stable, secure and useful Platform, but give no guarantee that suggestions, campaigns, Health Scores or AI output lead to more reservations, revenue, reach or profit.",
+      "h1": "14.1 Limitation",
+      "p2": "Our total liability to the Customer per event or series of related events is limited to the amount the Customer has paid us in subscription fees over the preceding twelve months, with an absolute maximum of {cap} per calendar year.",
+      "h2": "14.2 Excluded damage",
+      "p3": "We are not liable for indirect damage, which in any case includes: lost profit, missed savings, reputational damage, corruption or loss of data, damage due to business interruption, missed reservations, missed revenue, loss of goodwill or damage from claims by guests or third parties.",
+      "h3": "14.3 No guarantee on external platform functionality",
+      "p4": "Get-Filly does not guarantee that connections with External Platforms remain available at all times or continue to function unchanged. Features may depend on permission, app review, business verification, API limits, platform policy, technical changes or decisions of third parties such as Google, Meta, Stripe, bunq or other providers. Get-Filly is not liable for damage arising because an External Platform changes, restricts, suspends or terminates its services, unless there is intent or deliberate recklessness on the part of Get-Filly.",
+      "h4": "14.4 Exceptions",
+      "p5": "The liability limitations do not apply to the extent damage results from intent or deliberate recklessness of Get-Filly itself, or to the extent limitation of liability is not permitted by law.",
+      "h5": "14.5 Indemnification",
+      "p6": "The Customer indemnifies Get-Filly against third-party claims, including from guests, data subjects, rights holders, External Platforms and supervisory authorities, to the extent these arise from the Customer's use of the Platform in violation of legislation, third-party rights, third-party platform terms or these terms."
+    },
+    "s15": {
+      "heading": "15. Confidentiality",
+      "p1": "Both parties keep confidential information they receive from the other party secret, including prices, quotations, roadmap information, technical information, business data, guest lists, API keys, integration data and non-public product information.",
+      "p2": "Confidential information may only be used for the performance of the agreement. Disclosure is only permitted when this is legally required, necessary for the performance of the agreement by engaged service providers under appropriate confidentiality, or when the other party has given written permission. The confidentiality obligation remains in force for up to three years after the end of the agreement. For trade secrets and personal data, the obligation applies for as long as the information is confidential by its nature or requires protection."
+    },
+    "s16": {
+      "heading": "16. Force majeure",
+      "p1": "By force majeure we mean any circumstance not attributable to Get-Filly that temporarily or permanently prevents performance. This includes in any case: outages at our sub-processors or service providers, including Supabase, Anthropic, Resend, Vercel, Stripe, bunq, Google, Meta or other External Platforms, prolonged internet outages, power outages, government measures, cyberattacks beyond our reasonable control, API outages, rate limits, app review restrictions, platform changes and the temporary or permanent revocation of access by an External Platform.",
+      "p2": "In force majeure situations, performance is suspended for as long as the force majeure continues. If the force majeure lasts longer than 30 days, either party may dissolve the agreement without judicial intervention and without owing any compensation."
+    },
+    "s17": {
+      "heading": "17. Changes to these terms",
+      "p1": "We may change these terms from time to time. We inform the Customer at least one month before they take effect by email or in the dashboard. If the Customer does not agree to a change, they can cancel the subscription as of the date the change takes effect.",
+      "p2": "Changes necessary to comply with legislation, a court ruling, a decision of a supervisory authority, security requirements or third-party platform terms may take effect without a prior notice period, to the extent reasonably necessary."
+    },
+    "s18": {
+      "heading": "18. Governing law and disputes",
+      "p1": "Dutch law applies exclusively to this agreement and all legal relationships between Get-Filly and the Customer.",
+      "p2": "Before a dispute is submitted to the court, the parties will consult to reach a solution. If that fails, the competent court of the {court} has exclusive jurisdiction to hear the dispute, unless mandatory law designates a different court."
+    }
+  },
+  "leg_onboarding_page": {
+    "header": {
+      "cancel": "Cancel",
+      "cancelTitle": "Back to dashboard without adding a restaurant",
+      "logout": "Log out",
+      "logoutTitle": "Log out and continue later"
+    },
+    "addModeBanner": "<strong>Add a new business.</strong> Go through the wizard again. Once done, you are automatically placed in the new business, and you can switch between your businesses via the account menu at the top left.",
+    "analyze": {
+      "noInput": "Enter a website URL or upload a menu/drinks list, otherwise Filly has nothing to read.",
+      "preparing": "Filly is getting ready…",
+      "readingWebsite": "Filly is reading your website…",
+      "readingMenu": "Filly is looking at your menu…",
+      "readingDrinks": "Filly is looking at your drinks list…",
+      "failed": "Filly could not read it. Try again or fill it in manually."
+    },
+    "submit": {
+      "menuImportFailed": "Your restaurant has been created, but importing {count} menu item(s) failed:\n\n{error}\n\nYou can re-upload your menu later via the menu page.",
+      "drinkImportFailed": "Your restaurant has been created, but importing {count} drink item(s) failed:\n\n{error}\n\nYou can re-upload your drinks list later via the menu page.",
+      "saveFailed": "Saving failed. Please try again."
+    },
+    "typeOptions": {
+      "bistro": "Bistro",
+      "brasserie": "Brasserie",
+      "fine_dining": "Fine dining",
+      "trattoria": "Trattoria",
+      "café": "Café",
+      "bar": "Bar",
+      "hotel_restaurant": "Hotel restaurant",
+      "event_locatie": "Event venue",
+      "anders": "Other"
+    },
+    "toneOptions": {
+      "casual": {
+        "label": "Easygoing",
+        "hint": "Warm, approachable, not stuffy"
+      },
+      "professional": {
+        "label": "Professional",
+        "hint": "Business-like, sharp, higher price range"
+      },
+      "playful": {
+        "label": "Playful",
+        "hint": "Creative, with a wink, younger audience"
+      }
+    },
+    "step1": {
+      "title": "Let's set up your business",
+      "subtitle": "Give Filly a website or menu and it will fill in your whole profile for you. You can still adjust everything in the next step.",
+      "nameLabel": "Business name",
+      "required": "(required)",
+      "namePlaceholder": "Bistro Centraal",
+      "typeLabel": "Business type",
+      "typePlaceholder": "Choose a type…",
+      "websiteLabel": "Your business website",
+      "websitePlaceholder": "https://yourrestaurant.com",
+      "menuCardLabel": "Menu",
+      "drinksCardLabel": "Drinks list",
+      "optional": "optional",
+      "fillyBusy": "Filly is working…",
+      "fillyFillAll": "Filly, fill in everything",
+      "confidenceTitle": "Filly has filled in your profile.",
+      "confidenceHigh": "She was confident about this. Check it in step 2.",
+      "confidenceMedium": "Reasonable picture, give it a quick review in step 2.",
+      "confidenceLow": "Not much solid info found; add more in step 2.",
+      "menuRead": "Menu: <strong>{count}</strong> dishes read.",
+      "drinksRead": "Drinks list: <strong>{count}</strong> drinks read.",
+      "next": "Next"
+    },
+    "step2": {
+      "title": "Check and adjust",
+      "subtitle": "This is what we know. Everything is still editable later via your account, but if you see something here that is not right, fix it now.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What kind of business is it, in 2-3 sentences?",
+      "taglineLabel": "Pay-off / tagline",
+      "taglinePlaceholder": "Short slogan, e.g. 'French cuisine in the heart of the Jordaan'",
+      "atmosphereLabel": "Atmosphere",
+      "atmospherePlaceholder": "How does the business feel? Small and intimate, lively, family-friendly…",
+      "audienceLabel": "Target audience",
+      "audiencePlaceholder": "Who is your business most for?",
+      "uspLabel": "What makes you unique",
+      "uspPlaceholder": "3-5 things you excel at",
+      "eventsLabel": "Recurring events",
+      "eventsPlaceholder": "Wine evenings, live music, brunches…",
+      "signatureLabel": "Signature dishes",
+      "signaturePlaceholder": "Comma-separated: Veal stew, Lemon tiramisu, …",
+      "cuisineLabel": "Cuisine style",
+      "cuisinePlaceholder": "Comma-separated: french, seasonal, …",
+      "streetLabel": "Street and house number",
+      "postalLabel": "Postal code",
+      "cityLabel": "City",
+      "servicePeriodsLabel": "Service times",
+      "servicePeriodsHint": "Indicate per day when you serve breakfast, lunch and dinner. One or more shifts, you decide. Defaults are filled in, you can always tune them later via your account.",
+      "toneLabel": "Tone",
+      "menuSummary": "Menu: {count} dishes",
+      "menuSummaryHint": "Filly read them from your menu. You can edit them later on the menu page.",
+      "drinksSummary": "Drinks list: {count} drinks",
+      "drinksSummaryHint": "Grouped by type (red/white/rosé/sparkling wine, beer, cocktail, spirits, coffee, soft drinks).",
+      "back": "Back",
+      "next": "Next, confirm"
+    },
+    "step3": {
+      "title": "Ready to start",
+      "subtitle": "We will create your restaurant with these details. Everything is editable later via your account.",
+      "rowName": "Name",
+      "rowType": "Type",
+      "rowAddress": "Address",
+      "rowPostalCity": "Postal code / City",
+      "rowWebsite": "Website",
+      "rowTagline": "Tagline",
+      "rowTone": "Tone",
+      "rowDescription": "Description",
+      "rowMenu": "Menu",
+      "menuImported": "{count} dishes imported",
+      "back": "Back",
+      "submitting": "Working…",
+      "submit": "To dashboard"
+    },
+    "upload": {
+      "chosen": "✓ chosen",
+      "choose": "Choose file",
+      "fileSize": "{kb} KB",
+      "replace": "Replace",
+      "remove": "Remove"
+    },
+    "google": {
+      "searchFailed": "Search failed.",
+      "profileFound": "✓ Filly found your profile",
+      "reviews": "({count, number} reviews)",
+      "skippedInfo": "You skipped the match. You can connect later via the Google Business page.",
+      "notFoundInfo": "Filly could not find your profile automatically. You can search yourself or skip and connect later.",
+      "change": "Change",
+      "skip": "Skip",
+      "connectAnyway": "Connect anyway",
+      "searchSelf": "Search yourself",
+      "searchPlaceholder": "Name + city, e.g. 'De Kas Amsterdam'",
+      "searching": "Searching…",
+      "search": "Search",
+      "cancel": "Cancel",
+      "emptyHint": "Type a search and click Search."
+    }
+  },
+  "leg_delete_data_page": {
+    "metaTitle": "Delete your data",
+    "metaDescription": "How to delete or request deletion of your Get-Filly account, your data, and your Facebook/Instagram connection.",
+    "lastUpdated": "Last updated: {date}",
+    "title": "Delete your data",
+    "lead": "You stay in control of your data. On this page you can read how to delete your {tradeName} account and the data linked to it, how to disconnect a linked Facebook or Instagram account, and how to submit a deletion request if you would rather not do it yourself in the dashboard. For a complete overview of which data we process and for how long, see our <privacyLink>privacy statement</privacyLink>.",
+    "section1Heading": "1. Delete your account and data",
+    "section1Body": "The fastest way is through the dashboard. Log in and go to <strong>Account</strong>; at the bottom you will find the <strong>\"Permanently delete account\"</strong> button. To confirm, type the word <em>DELETE</em>. This deletes your account and the associated data, including any tokens from connected services (such as Facebook and Instagram).",
+    "section2Heading": "2. Revoke the Facebook/Instagram connection",
+    "section2Intro": "If you only want to remove the connection with Facebook or Instagram (and keep your {tradeName} account), you can do so on either side:",
+    "section2MetaItem": "<strong>At Meta:</strong> in Facebook, go to <strong>Settings & privacy → Settings → Apps and Websites</strong> (for Business assets: <strong>Business Integrations</strong>), find {tradeName} and choose <strong>Remove</strong>. This revokes our access immediately. As soon as Meta notifies us, we delete the data obtained through Meta.",
+    "section2OwnItem": "<strong>At {tradeName}:</strong> if you want us to erase the access token we have stored, delete your account (step 1) or submit a request (step 4). We will then erase the token within the stated period.",
+    "section3Heading": "3. Which data and within what period",
+    "section3Body": "When an account or connection is deleted, we erase the data we keep for that functionality, including access tokens, linked page/account references, and content retrieved from them. We process a request <strong>within 30 days</strong>. We may keep a limited portion of the data longer when legally required (for example, for tax records); see the retention periods in the <privacyLink>privacy statement</privacyLink>.",
+    "section4Heading": "4. Submit a deletion request",
+    "section4Body": "Would you rather not do it yourself in the dashboard? Then send an email to <mailLink>{email}</mailLink> from the email address of your account, with the subject \"Deletion request\". State whether you want to delete your entire account or only the Facebook/Instagram connection. We confirm the handling by email."
+  },
+  "leg_account_verwijderd_page": {
+    "metaTitle": "Account deleted",
+    "metaDescription": "Your Get-Filly account and all related data have been deleted.",
+    "title": "Your account has been deleted",
+    "lead": "Thanks for giving Get-Filly a try. Your account and all related business data have been permanently erased at your request (GDPR art. 17, right to erasure).",
+    "erasedHeading": "What was erased?",
+    "erasedProfile": "Your restaurant profile including name, address, contact details and Chamber of Commerce data",
+    "erasedData": "All guests, reservations, menu items and uploads",
+    "erasedCampaigns": "Campaigns, review history, chat with Filly and audit log",
+    "erasedAccount": "Your login account (email address and encrypted password)",
+    "erasedPhotos": "Any photos you uploaded to our storage",
+    "retainedHeading": "What is retained (and why that is allowed)?",
+    "retainedIntro": "We keep a strongly anonymized knowledge base so Filly can keep making better suggestions for other business owners. Under Recital 26 of the GDPR, <em>fully anonymous</em> data no longer falls under the regulation, and we do our utmost to keep it that way here:",
+    "retainedNoPii": "No restaurant name, address, owner name or email address",
+    "retainedContext": "Yes: cuisine style (\"italian\"), region at province level, capacity category and month of the year",
+    "retainedCampaignMeta": "Yes: campaign type (mail / social / whatsapp), theme and, where available, the success signal (extra reservations, revenue impact)",
+    "retainedNoFreeText": "No free text, no photos, no identifiable link back to you or your business",
+    "retainedAuditLog": "We also keep an anonymous proof record, just a date plus counters, so we can demonstrate that we carried out your deletion request (GDPR art. 30 accountability obligation). No personal data.",
+    "questionsHeading": "Questions or concerns?",
+    "questionsMail": "Do you have any questions about this deletion, or would you like to share something with us about what could have been better? Feel free to email us at <mail>{email}</mail>.",
+    "comeBack": "Want to come back later? You can always create a new account at <signup>get-filly.com/signup</signup>.",
+    "backHome": "Back to the homepage"
+  },
+  "leg_data_deletion_status_page": {
+    "metaTitle": "Deletion request status",
+    "metaDescription": "Status of your data deletion request at Get-Filly.",
+    "title": "Deletion request status",
+    "processedLead": "We have received and processed your request. The Facebook/Instagram connection and the data retrieved from it have been removed from {tradeName}.",
+    "referenceCode": "Reference code:",
+    "noCodeLead": "No request code found. Did you submit a deletion request and want to know its status? Get in touch via the address below.",
+    "contact": "Questions about your data? Email <email></email>. See also our <deleteLink>deletion instructions</deleteLink> and <privacyLink>privacy statement</privacyLink>."
   }
 }

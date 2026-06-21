@@ -1,7 +1,9 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase-browser";
 import { ServicePeriodsEditor } from "@/components/service-periods-editor";
 import { logger } from "@/lib/logger";
@@ -102,38 +104,26 @@ type WizardData = {
   } | null;
 };
 
-const TYPE_OPTIONS = [
-  { value: "bistro", label: "Bistro" },
-  { value: "brasserie", label: "Brasserie" },
-  { value: "fine_dining", label: "Fine dining" },
-  { value: "trattoria", label: "Trattoria" },
-  { value: "café", label: "Café" },
-  { value: "bar", label: "Bar" },
-  { value: "hotel_restaurant", label: "Hotel-restaurant" },
-  { value: "event_locatie", label: "Event-locatie" },
-  { value: "anders", label: "Anders" },
+// Alleen de waarden (DB/logica-keys). De labels komen uit next-intl
+// via t("typeOptions.<value>") zodat ze gelokaliseerd zijn.
+const TYPE_OPTIONS: Array<{ value: string }> = [
+  { value: "bistro" },
+  { value: "brasserie" },
+  { value: "fine_dining" },
+  { value: "trattoria" },
+  { value: "café" },
+  { value: "bar" },
+  { value: "hotel_restaurant" },
+  { value: "event_locatie" },
+  { value: "anders" },
 ];
 
-const TONE_OPTIONS: Array<{
-  value: WizardData["brand_tone"];
-  label: string;
-  hint: string;
-}> = [
-  {
-    value: "casual",
-    label: "Gemoedelijk",
-    hint: "Warm, toegankelijk, niet stoffig",
-  },
-  {
-    value: "professional",
-    label: "Professioneel",
-    hint: "Zakelijk, strak, hogere prijsklasse",
-  },
-  {
-    value: "playful",
-    label: "Speels",
-    hint: "Creatief, met knipoog, jonger publiek",
-  },
+// Alleen de waarden; label + hint komen uit next-intl via
+// t("toneOptions.<value>.label" / ".hint").
+const TONE_OPTIONS: Array<{ value: WizardData["brand_tone"] }> = [
+  { value: "casual" },
+  { value: "professional" },
+  { value: "playful" },
 ];
 
 const API_URL =
@@ -204,6 +194,7 @@ const INITIAL_DATA: WizardData = {
 // De default-export hieronder doet de wrap; deze functie houdt alle
 // wizard-logica.
 function OnboardingPageContent() {
+  const t = useTranslations("leg_onboarding_page");
   const router = useRouter();
   // Detecteer of dit de eerste-keer-onboarding is (geen flag) of een
   // bestaande eigenaar die een 2e/3e zaak toevoegt (?mode=add). Beide
@@ -239,16 +230,14 @@ function OnboardingPageContent() {
   const analyzeAll = async () => {
     const url = data.website_url.trim();
     if (!url && !menuFile && !drinksFile) {
-      setAnalyzeError(
-        "Vul een website-URL in of upload een menu/drankkaart, anders heeft Filly niks om te lezen.",
-      );
+      setAnalyzeError(t("analyze.noInput"));
       return;
     }
 
     setAnalyzing(true);
     setAnalyzeError(null);
     setAnalyzeConfidence(null);
-    setAnalyzeStatus("Filly maakt zich klaar…");
+    setAnalyzeStatus(t("analyze.preparing"));
 
     try {
       const supabase = createClient();
@@ -259,7 +248,7 @@ function OnboardingPageContent() {
 
       const websitePromise = url
         ? (async () => {
-            setAnalyzeStatus("Filly leest je website…");
+            setAnalyzeStatus(t("analyze.readingWebsite"));
             const res = await fetch(`${API_URL}/onboarding/analyze-website`, {
               method: "POST",
               headers: {
@@ -278,7 +267,7 @@ function OnboardingPageContent() {
 
       const menuPromise = menuFile
         ? (async () => {
-            setAnalyzeStatus("Filly bekijkt je menukaart…");
+            setAnalyzeStatus(t("analyze.readingMenu"));
             const form = new FormData();
             form.append("file", menuFile);
             const res = await fetch(`${API_URL}/onboarding/analyze-menu`, {
@@ -296,7 +285,7 @@ function OnboardingPageContent() {
 
       const drinksPromise = drinksFile
         ? (async () => {
-            setAnalyzeStatus("Filly bekijkt je drankkaart…");
+            setAnalyzeStatus(t("analyze.readingDrinks"));
             const form = new FormData();
             form.append("file", drinksFile);
             const res = await fetch(`${API_URL}/onboarding/analyze-drinks`, {
@@ -438,9 +427,7 @@ function OnboardingPageContent() {
     } catch (e) {
       logger.error(e);
       setAnalyzeError(
-        e instanceof Error
-          ? e.message
-          : "Filly kon niet lezen. Probeer nog eens of vul handmatig in.",
+        e instanceof Error ? e.message : t("analyze.failed"),
       );
       setAnalyzeStatus(null);
     } finally {
@@ -550,13 +537,19 @@ function OnboardingPageContent() {
       // dat z'n menu ontbreekt tot hij de menu-pagina leeg ziet.
       if (menuImport && menuImport.error) {
         alert(
-          `Je restaurant is aangemaakt, maar het importeren van ${menuImport.attempted} menu-item(s) mislukte:\n\n${menuImport.error}\n\nJe kunt je menukaart later opnieuw uploaden via de menu-pagina.`,
+          t("submit.menuImportFailed", {
+            count: menuImport.attempted,
+            error: menuImport.error,
+          }),
         );
       }
 
       if (drinkImport && drinkImport.error) {
         alert(
-          `Je restaurant is aangemaakt, maar het importeren van ${drinkImport.attempted} drank-item(s) mislukte:\n\n${drinkImport.error}\n\nJe kunt je drankkaart later opnieuw uploaden via de menu-pagina.`,
+          t("submit.drinkImportFailed", {
+            count: drinkImport.attempted,
+            error: drinkImport.error,
+          }),
         );
       }
 
@@ -577,9 +570,7 @@ function OnboardingPageContent() {
     } catch (e) {
       logger.error(e);
       setError(
-        e instanceof Error
-          ? e.message
-          : "Opslaan mislukt. Probeer nog eens.",
+        e instanceof Error ? e.message : t("submit.saveFailed"),
       );
       setSubmitting(false);
     }
@@ -644,9 +635,9 @@ function OnboardingPageContent() {
                 padding: "4px 8px",
                 whiteSpace: "nowrap",
               }}
-              title="Terug naar dashboard zonder restaurant toe te voegen"
+              title={t("header.cancelTitle")}
             >
-              Annuleren
+              {t("header.cancel")}
             </button>
           ) : (
             <button
@@ -661,9 +652,9 @@ function OnboardingPageContent() {
                 padding: "4px 8px",
                 whiteSpace: "nowrap",
               }}
-              title="Uitloggen en later verder gaan"
+              title={t("header.logoutTitle")}
             >
-              Uitloggen
+              {t("header.logout")}
             </button>
           )}
         </div>
@@ -684,10 +675,9 @@ function OnboardingPageContent() {
               lineHeight: 1.5,
             }}
           >
-            <strong>Nieuwe onderneming toevoegen.</strong> Doorloop de wizard
-            opnieuw. Na succes word je automatisch in de nieuwe onderneming
-            geplaatst, wisselen tussen je ondernemingen kan via het account-
-            menu linksboven.
+            {t.rich("addModeBanner", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
         )}
 
@@ -764,42 +754,44 @@ function Step1Sources({
   onNext: () => void;
   canContinue: boolean;
 }) {
+  const t = useTranslations("leg_onboarding_page");
   return (
     <>
-      <div className="login-title">Laten we je onderneming instellen</div>
-      <p className="login-sub">
-        Geef Filly een website of menukaart, dan vult hij alvast je hele
-        profiel in. Je kunt alles nog aanpassen in de volgende stap.
-      </p>
+      <div className="login-title">{t("step1.title")}</div>
+      <p className="login-sub">{t("step1.subtitle")}</p>
 
       <div className="form-group">
         <label className="form-label">
-          Naam van de onderneming{" "}
-          <span style={{ color: "var(--tl, #6B6B6B)" }}>(verplicht)</span>
+          {t("step1.nameLabel")}{" "}
+          <span style={{ color: "var(--tl, #6B6B6B)" }}>
+            {t("step1.required")}
+          </span>
         </label>
         <input
           className="form-input"
           value={data.name}
           onChange={(e) => setData({ ...data, name: e.target.value })}
-          placeholder="Bistro Centraal"
+          placeholder={t("step1.namePlaceholder")}
           autoFocus
         />
       </div>
 
       <div className="form-group">
         <label className="form-label">
-          Type onderneming{" "}
-          <span style={{ color: "var(--tl, #6B6B6B)" }}>(verplicht)</span>
+          {t("step1.typeLabel")}{" "}
+          <span style={{ color: "var(--tl, #6B6B6B)" }}>
+            {t("step1.required")}
+          </span>
         </label>
         <select
           className="form-input"
           value={data.type}
           onChange={(e) => setData({ ...data, type: e.target.value })}
         >
-          <option value="">Kies een type…</option>
+          <option value="">{t("step1.typePlaceholder")}</option>
           {TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
-              {opt.label}
+              {t(`typeOptions.${opt.value}`)}
             </option>
           ))}
         </select>
@@ -808,13 +800,13 @@ function Step1Sources({
       <hr style={{ border: 0, borderTop: "1px solid #eee", margin: "20px 0" }} />
 
       <div className="form-group">
-        <label className="form-label">Website van je onderneming</label>
+        <label className="form-label">{t("step1.websiteLabel")}</label>
         <input
           className="form-input"
           type="url"
           value={data.website_url}
           onChange={(e) => setData({ ...data, website_url: e.target.value })}
-          placeholder="https://jouwrestaurant.nl"
+          placeholder={t("step1.websitePlaceholder")}
           disabled={analyzing}
         />
       </div>
@@ -831,14 +823,16 @@ function Step1Sources({
         }}
       >
         <UploadCard
-          label="Menukaart"
+          label={t("step1.menuCardLabel")}
+          inputKey="menu"
           file={menuFile}
           onFileChange={setMenuFile}
           disabled={analyzing}
         />
         <UploadCard
-          label="Drankkaart"
-          subLabel="optioneel"
+          label={t("step1.drinksCardLabel")}
+          subLabel={t("step1.optional")}
+          inputKey="drinks"
           file={drinksFile}
           onFileChange={setDrinksFile}
           disabled={analyzing}
@@ -878,8 +872,8 @@ function Step1Sources({
             }}
           >
             {analyzing
-              ? analyzeStatus ?? "Filly is bezig…"
-              : "Filly, vul alles in"}
+              ? analyzeStatus ?? t("step1.fillyBusy")
+              : t("step1.fillyFillAll")}
           </button>
         );
       })()}
@@ -897,20 +891,26 @@ function Step1Sources({
             lineHeight: 1.5,
           }}
         >
-          <strong>Filly heeft je profiel ingevuld.</strong>{" "}
+          <strong>{t("step1.confidenceTitle")}</strong>{" "}
           {analyzeConfidence === "high"
-            ? "Ze was hier zeker van. Check in stap 2."
+            ? t("step1.confidenceHigh")
             : analyzeConfidence === "medium"
-              ? "Redelijk beeld, loop het even na in stap 2."
-              : "Weinig vaste info gevonden; vul aan in stap 2."}
+              ? t("step1.confidenceMedium")
+              : t("step1.confidenceLow")}
           {data.menu_items.length > 0 && (
             <div style={{ marginTop: 4 }}>
-              Menu: <strong>{data.menu_items.length}</strong> gerechten gelezen.
+              {t.rich("step1.menuRead", {
+                count: data.menu_items.length,
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
           )}
           {data.drink_items.length > 0 && (
             <div style={{ marginTop: 4 }}>
-              Drankkaart: <strong>{data.drink_items.length}</strong> drankjes gelezen.
+              {t.rich("step1.drinksRead", {
+                count: data.drink_items.length,
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
           )}
         </div>
@@ -941,7 +941,7 @@ function Step1Sources({
         type="button"
         style={{ marginTop: 16 }}
       >
-        Volgende
+        {t("step1.next")}
       </button>
     </>
   );
@@ -961,89 +961,87 @@ function Step2Review({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const t = useTranslations("leg_onboarding_page");
   return (
     <>
-      <div className="login-title">Check en pas aan</div>
-      <p className="login-sub">
-        Dit is wat we weten. Alles is later nog aanpasbaar via je account,
-        maar als je hier iets ziet dat niet klopt, fix het nu.
-      </p>
+      <div className="login-title">{t("step2.title")}</div>
+      <p className="login-sub">{t("step2.subtitle")}</p>
 
       <Field
-        label="Omschrijving"
+        label={t("step2.descriptionLabel")}
         value={data.description}
         onChange={(v) => setData({ ...data, description: v })}
         multiline
         rows={3}
-        placeholder="Wat voor onderneming is het, in 2-3 zinnen?"
+        placeholder={t("step2.descriptionPlaceholder")}
       />
       <Field
-        label="Pay-off / tagline"
+        label={t("step2.taglineLabel")}
         value={data.tagline}
         onChange={(v) => setData({ ...data, tagline: v })}
-        placeholder="Korte slagzin, bv. 'Franse keuken in hart van de Jordaan'"
+        placeholder={t("step2.taglinePlaceholder")}
       />
       <Field
-        label="Sfeer"
+        label={t("step2.atmosphereLabel")}
         value={data.atmosphere}
         onChange={(v) => setData({ ...data, atmosphere: v })}
         multiline
         rows={2}
-        placeholder="Hoe voelt de onderneming? Klein en intiem, levendig, familiair…"
+        placeholder={t("step2.atmospherePlaceholder")}
       />
       <Field
-        label="Doelgroep"
+        label={t("step2.audienceLabel")}
         value={data.target_audience}
         onChange={(v) => setData({ ...data, target_audience: v })}
         multiline
         rows={2}
-        placeholder="Voor wie is jullie onderneming het meest?"
+        placeholder={t("step2.audiencePlaceholder")}
       />
       <Field
-        label="Wat maakt jullie uniek"
+        label={t("step2.uspLabel")}
         value={data.unique_selling_points}
         onChange={(v) => setData({ ...data, unique_selling_points: v })}
         multiline
         rows={2}
-        placeholder="3-5 dingen waar jullie in uitblinken"
+        placeholder={t("step2.uspPlaceholder")}
       />
       <Field
-        label="Terugkerende evenementen"
+        label={t("step2.eventsLabel")}
         value={data.special_events}
         onChange={(v) => setData({ ...data, special_events: v })}
-        placeholder="Wijnavonden, live muziek, brunches…"
+        placeholder={t("step2.eventsPlaceholder")}
       />
       <Field
-        label="Signature-gerechten"
+        label={t("step2.signatureLabel")}
         value={data.signature_dishes}
         onChange={(v) => setData({ ...data, signature_dishes: v })}
-        placeholder="Komma-gescheiden: Kalfsstoof, Citroen-tiramisu, …"
+        placeholder={t("step2.signaturePlaceholder")}
       />
       <Field
-        label="Keukenstijl"
+        label={t("step2.cuisineLabel")}
         value={data.cuisine_style}
         onChange={(v) => setData({ ...data, cuisine_style: v })}
-        placeholder="Komma-gescheiden: frans, seizoensgebonden, …"
+        placeholder={t("step2.cuisinePlaceholder")}
       />
 
       <GooglePlaceMatchSection data={data} setData={setData} />
 
       <Field
-        label="Straat en huisnummer"
+        label={t("step2.streetLabel")}
         value={data.address}
         onChange={(v) => setData({ ...data, address: v })}
       />
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ width: 130 }}>
           <Field
-            label="Postcode"
+            label={t("step2.postalLabel")}
             value={data.postal_code}
             onChange={(v) => setData({ ...data, postal_code: v })}
           />
         </div>
         <div style={{ flex: 1 }}>
           <Field
-            label="Stad"
+            label={t("step2.cityLabel")}
             value={data.city}
             onChange={(v) => setData({ ...data, city: v })}
           />
@@ -1054,7 +1052,7 @@ function Step2Review({
           eigenaar tijdens onboarding direct ontbijt/lunch/diner per
           dag kan tunen. Defaults zijn al ingevuld via INITIAL_DATA. */}
       <div className="form-group">
-        <label className="form-label">Service-tijden</label>
+        <label className="form-label">{t("step2.servicePeriodsLabel")}</label>
         <p
           style={{
             fontSize: 12,
@@ -1063,9 +1061,7 @@ function Step2Review({
             marginBottom: 10,
           }}
         >
-          Geef per dag aan wanneer je ontbijt, lunch en diner serveert.
-          Eén of meerdere shifts, jij bepaalt. Defaults zijn ingevuld
-          &mdash; tunen kan altijd later via je account.
+          {t("step2.servicePeriodsHint")}
         </p>
         <ServicePeriodsEditor
           value={data.service_periods}
@@ -1074,7 +1070,7 @@ function Step2Review({
       </div>
 
       <div className="form-group">
-        <label className="form-label">Toon</label>
+        <label className="form-label">{t("step2.toneLabel")}</label>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {TONE_OPTIONS.map((opt) => {
             const active = data.brand_tone === opt.value;
@@ -1103,10 +1099,10 @@ function Step2Review({
                     color: active ? "var(--brand, #1F4A2D)" : "var(--text)",
                   }}
                 >
-                  {opt.label}
+                  {t(`toneOptions.${opt.value}.label`)}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--tl, #6B6B6B)" }}>
-                  {opt.hint}
+                  {t(`toneOptions.${opt.value}.hint`)}
                 </div>
               </button>
             );
@@ -1125,11 +1121,10 @@ function Step2Review({
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            Menu: {data.menu_items.length} gerechten
+            {t("step2.menuSummary", { count: data.menu_items.length })}
           </div>
           <div style={{ fontSize: 12, color: "var(--tl, #6B6B6B)" }}>
-            Filly heeft ze uit je menukaart gelezen. Je kunt ze later
-            bewerken op de menu-pagina.
+            {t("step2.menuSummaryHint")}
           </div>
         </div>
       )}
@@ -1145,18 +1140,17 @@ function Step2Review({
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            Drankkaart: {data.drink_items.length} drankjes
+            {t("step2.drinksSummary", { count: data.drink_items.length })}
           </div>
           <div style={{ fontSize: 12, color: "var(--tl, #6B6B6B)" }}>
-            Gegroepeerd op type (wijn-rood/wit/rosé/mousserend, bier,
-            cocktail, sterke drank, koffie, fris).
+            {t("step2.drinksSummaryHint")}
           </div>
         </div>
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
         <button className="sg-btn" onClick={onBack} type="button">
-          Terug
+          {t("step2.back")}
         </button>
         <button
           className="login-btn"
@@ -1164,7 +1158,7 @@ function Step2Review({
           type="button"
           style={{ flex: 1 }}
         >
-          Volgende, bevestigen
+          {t("step2.next")}
         </button>
       </div>
     </>
@@ -1187,13 +1181,11 @@ function Step3Confirm({
   submitting: boolean;
   error: string | null;
 }) {
+  const t = useTranslations("leg_onboarding_page");
   return (
     <>
-      <div className="login-title">Klaar om te starten</div>
-      <p className="login-sub">
-        We maken je restaurant aan met deze gegevens. Alles is straks
-        bewerkbaar via je account.
-      </p>
+      <div className="login-title">{t("step3.title")}</div>
+      <p className="login-sub">{t("step3.subtitle")}</p>
 
       <div
         style={{
@@ -1205,35 +1197,51 @@ function Step3Confirm({
           lineHeight: 1.6,
         }}
       >
-        <Row label="Naam" value={data.name} />
+        <Row label={t("step3.rowName")} value={data.name} />
         <Row
-          label="Type"
+          label={t("step3.rowType")}
           value={
-            TYPE_OPTIONS.find((t) => t.value === data.type)?.label ?? data.type
+            TYPE_OPTIONS.find((opt) => opt.value === data.type)
+              ? t(`typeOptions.${data.type}`)
+              : data.type
           }
         />
-        {data.address && <Row label="Adres" value={data.address} />}
+        {data.address && (
+          <Row label={t("step3.rowAddress")} value={data.address} />
+        )}
         {(data.postal_code || data.city) && (
           <Row
-            label="Postcode / Stad"
+            label={t("step3.rowPostalCity")}
             value={[data.postal_code, data.city].filter(Boolean).join(" ")}
           />
         )}
-        {data.website_url && <Row label="Website" value={data.website_url} />}
-        {data.tagline && <Row label="Tagline" value={data.tagline} />}
+        {data.website_url && (
+          <Row label={t("step3.rowWebsite")} value={data.website_url} />
+        )}
+        {data.tagline && (
+          <Row label={t("step3.rowTagline")} value={data.tagline} />
+        )}
         <Row
-          label="Toon"
+          label={t("step3.rowTone")}
           value={
-            TONE_OPTIONS.find((t) => t.value === data.brand_tone)?.label ?? ""
+            TONE_OPTIONS.find((opt) => opt.value === data.brand_tone)
+              ? t(`toneOptions.${data.brand_tone}.label`)
+              : ""
           }
         />
         {data.description && (
-          <Row label="Omschrijving" value={data.description} multiline />
+          <Row
+            label={t("step3.rowDescription")}
+            value={data.description}
+            multiline
+          />
         )}
         {data.menu_items.length > 0 && (
           <Row
-            label="Menu"
-            value={`${data.menu_items.length} gerechten geïmporteerd`}
+            label={t("step3.rowMenu")}
+            value={t("step3.menuImported", {
+              count: data.menu_items.length,
+            })}
           />
         )}
       </div>
@@ -1251,7 +1259,7 @@ function Step3Confirm({
           type="button"
           disabled={submitting}
         >
-          Terug
+          {t("step3.back")}
         </button>
         <button
           className="login-btn"
@@ -1260,7 +1268,7 @@ function Step3Confirm({
           disabled={submitting}
           style={{ flex: 1 }}
         >
-          {submitting ? "Bezig…" : "Naar dashboard"}
+          {submitting ? t("step3.submitting") : t("step3.submit")}
         </button>
       </div>
     </>
@@ -1285,17 +1293,22 @@ function Step3Confirm({
 function UploadCard({
   label,
   subLabel,
+  inputKey,
   file,
   onFileChange,
   disabled,
 }: {
   label: string;
   subLabel?: string;
+  // Stabiele id-sleutel (los van het gelokaliseerde label) zodat de
+  // input-id niet per taal verschuift of ongeldige tekens bevat.
+  inputKey: string;
   file: File | null;
   onFileChange: (f: File | null) => void;
   disabled?: boolean;
 }) {
-  const inputId = `upload-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const t = useTranslations("leg_onboarding_page");
+  const inputId = `upload-${inputKey}`;
   const isUploaded = !!file;
 
   return (
@@ -1358,7 +1371,7 @@ function UploadCard({
               fontWeight: 600,
             }}
           >
-            ✓ gekozen
+            {t("upload.chosen")}
           </span>
         )}
       </div>
@@ -1380,7 +1393,7 @@ function UploadCard({
             marginTop: 4,
           }}
         >
-          Bestand kiezen
+          {t("upload.choose")}
         </label>
       )}
 
@@ -1403,7 +1416,7 @@ function UploadCard({
               marginBottom: 10,
             }}
           >
-            {Math.round(file.size / 1024)} KB
+            {t("upload.fileSize", { kb: Math.round(file.size / 1024) })}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <label
@@ -1416,7 +1429,7 @@ function UploadCard({
                 userSelect: "none",
               }}
             >
-              Vervangen
+              {t("upload.replace")}
             </label>
             <button
               type="button"
@@ -1432,7 +1445,7 @@ function UploadCard({
                 padding: 0,
               }}
             >
-              Verwijderen
+              {t("upload.remove")}
             </button>
           </div>
         </>
@@ -1539,6 +1552,7 @@ function GooglePlaceMatchSection({
   data: WizardData;
   setData: React.Dispatch<React.SetStateAction<WizardData>>;
 }) {
+  const t = useTranslations("leg_onboarding_page");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<
@@ -1584,7 +1598,7 @@ function GooglePlaceMatchSection({
       setSearchResults(Array.isArray(results) ? results : []);
     } catch (err) {
       setSearchError(
-        err instanceof Error ? err.message : "Zoeken niet gelukt.",
+        err instanceof Error ? err.message : t("google.searchFailed"),
       );
     } finally {
       setSearching(false);
@@ -1643,7 +1657,7 @@ function GooglePlaceMatchSection({
               fontWeight: 500,
             }}
           >
-            ✓ Filly heeft je profiel gevonden
+            {t("google.profileFound")}
           </span>
         )}
       </div>
@@ -1668,7 +1682,7 @@ function GooglePlaceMatchSection({
             >
               ⭐ {match.rating.toFixed(1)}
               {match.userRatingCount !== null &&
-                ` (${match.userRatingCount.toLocaleString("nl-NL")} reviews)`}
+                ` ${t("google.reviews", { count: match.userRatingCount })}`}
             </div>
           )}
         </div>
@@ -1684,8 +1698,8 @@ function GooglePlaceMatchSection({
           }}
         >
           {match
-            ? "Je hebt de match overgeslagen. Je kunt later koppelen via de Google Business-pagina."
-            : "Filly kon je profiel niet automatisch vinden. Je kunt zelf zoeken of overslaan en later koppelen."}
+            ? t("google.skippedInfo")
+            : t("google.notFoundInfo")}
         </div>
       )}
 
@@ -1701,19 +1715,19 @@ function GooglePlaceMatchSection({
                 onClick={openSearch}
                 style={btnStyle(false)}
               >
-                Wijzigen
+                {t("google.change")}
               </button>
               <button
                 type="button"
                 onClick={skipMatch}
                 style={btnStyle(false)}
               >
-                Sla over
+                {t("google.skip")}
               </button>
             </>
           ) : (
             <button type="button" onClick={openSearch} style={btnStyle(true)}>
-              {match ? "Toch koppelen" : "Zoek zelf"}
+              {match ? t("google.connectAnyway") : t("google.searchSelf")}
             </button>
           )}
         </div>
@@ -1732,7 +1746,7 @@ function GooglePlaceMatchSection({
                   runSearch();
                 }
               }}
-              placeholder="Naam + stad, bv. 'De Kas Amsterdam'"
+              placeholder={t("google.searchPlaceholder")}
               style={{
                 flex: 1,
                 padding: "8px 10px",
@@ -1747,7 +1761,7 @@ function GooglePlaceMatchSection({
               disabled={searching || searchQuery.trim().length < 3}
               style={btnStyle(true)}
             >
-              {searching ? "Zoeken…" : "Zoek"}
+              {searching ? t("google.searching") : t("google.search")}
             </button>
             <button
               type="button"
@@ -1757,7 +1771,7 @@ function GooglePlaceMatchSection({
               }}
               style={btnStyle(false)}
             >
-              Annuleer
+              {t("google.cancel")}
             </button>
           </div>
 
@@ -1821,7 +1835,7 @@ function GooglePlaceMatchSection({
                 fontStyle: "italic",
               }}
             >
-              Typ een zoekopdracht en klik Zoek.
+              {t("google.emptyHint")}
             </div>
           )}
         </div>

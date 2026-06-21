@@ -10,15 +10,19 @@
 // per verzoek kan later, als we async/uitgestelde verwijdering doen.)
 
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { COMPANY } from "@/config/company";
 
-export const metadata: Metadata = {
-  title: "Status verwijderverzoek",
-  description: "Status van je data-verwijderverzoek bij Get-Filly.",
-  alternates: { canonical: "/data-deletion-status" },
-  // Geen zoekindex: persoonlijke statuspagina met een verzoekcode.
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("leg_data_deletion_status_page");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: { canonical: "/data-deletion-status" },
+    // Geen zoekindex: persoonlijke statuspagina met een verzoekcode.
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function DataDeletionStatusPage({
   searchParams,
@@ -27,35 +31,36 @@ export default async function DataDeletionStatusPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const { id } = await searchParams;
+  const t = await getTranslations("leg_data_deletion_status_page");
 
   return (
     <section className="legal-page">
       <div className="legal-container">
-        <h1 className="legal-title">Status verwijderverzoek</h1>
+        <h1 className="legal-title">{t("title")}</h1>
 
         {id ? (
           <>
             <p className="legal-lead">
-              We hebben je verzoek ontvangen en verwerkt. De Facebook-/
-              Instagram-koppeling en de daaruit opgehaalde gegevens zijn
-              uit {COMPANY.tradeName} verwijderd.
+              {t("processedLead", { tradeName: COMPANY.tradeName ?? "" })}
             </p>
             <p>
-              Referentiecode: <strong>{id}</strong>
+              {t("referenceCode")} <strong>{id}</strong>
             </p>
           </>
         ) : (
-          <p className="legal-lead">
-            Geen verzoekcode gevonden. Heb je een verwijderverzoek ingediend
-            en wil je de status weten? Neem contact op via het adres hieronder.
-          </p>
+          <p className="legal-lead">{t("noCodeLead")}</p>
         )}
 
         <p>
-          Vragen over je gegevens? Mail{" "}
-          <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
-          Zie ook onze <a href="/delete-data">verwijderinstructies</a> en{" "}
-          <a href="/privacy">privacyverklaring</a>.
+          {t.rich("contact", {
+            email: () => (
+              <a href={`mailto:${COMPANY.privacyEmail}`}>
+                {COMPANY.privacyEmail}
+              </a>
+            ),
+            deleteLink: (chunks) => <a href="/delete-data">{chunks}</a>,
+            privacyLink: (chunks) => <a href="/privacy">{chunks}</a>,
+          })}
         </p>
       </div>
     </section>
