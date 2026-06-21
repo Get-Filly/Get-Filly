@@ -7,6 +7,7 @@ import {
   suggestCampaignSchedule,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
 // CampaignSchedulePanel, Filly stelt verzendmoment voor + accept/edit
@@ -26,9 +27,9 @@ import { Button } from "@/components/ui/button";
 // Voor kostenbeheersing geen rate-limit op count, want eigenaar
 // initieert dit bewust.
 
-function formatDutchDateTime(iso: string): string {
+function formatDutchDateTime(iso: string, tag: string): string {
   const d = new Date(iso);
-  return d.toLocaleString("nl-NL", {
+  return d.toLocaleString(tag, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -73,6 +74,7 @@ export function CampaignSchedulePanel({
   onChanged: () => void;
 }) {
   const t = useTranslations("dash__components_campaign_schedule_panel");
+  const localeTag = useLocaleTag();
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draftDatetime, setDraftDatetime] = useState("");
@@ -253,7 +255,7 @@ export function CampaignSchedulePanel({
                 color: "var(--text)",
               }}
             >
-              {formatDutchDateTime(scheduledFor)}
+              {formatDutchDateTime(scheduledFor, localeTag)}
             </div>
             {/* Per 2026-05-07: waarschuwing tonen wanneer de bevestigde
                 tijd afwijkt van wat Filly oorspronkelijk voorstelde. Geen
@@ -273,7 +275,7 @@ export function CampaignSchedulePanel({
                   }}
                 >
                   {t("deviationWarning", {
-                    suggested: formatDutchDateTime(suggestedFor),
+                    suggested: formatDutchDateTime(suggestedFor, localeTag),
                   })}
                 </div>
               )}
@@ -302,7 +304,7 @@ export function CampaignSchedulePanel({
                 textTransform: "capitalize",
               }}
             >
-              {formatDutchDateTime(suggestedFor)}
+              {formatDutchDateTime(suggestedFor, localeTag)}
             </div>
             {suggestedReasoning && (
               <div

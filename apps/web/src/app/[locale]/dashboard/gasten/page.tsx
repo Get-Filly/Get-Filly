@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
+import { useLocaleTag } from "@/lib/locale-format";
 
 function daysSince(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -21,10 +22,10 @@ function daysSince(dateStr: string | null): number | null {
   return Math.floor((now - then) / (1000 * 60 * 60 * 24));
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, tag: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
-  return d.toLocaleDateString("nl-NL", {
+  return d.toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -62,9 +63,9 @@ function exportGuestsToCsv(
   downloadCsv(csv.fileName, headers, rows);
 }
 
-function formatEuro(cents: number | null): string {
+function formatEuro(cents: number | null, tag: string): string {
   if (cents === null) return "—";
-  return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
+  return `€${Math.round(cents / 100).toLocaleString(tag)}`;
 }
 
 const statusInfo: Record<
@@ -90,6 +91,7 @@ const statusFilters: FilterStatus[] = [
 
 export default function GastenPage() {
   const t = useTranslations("dash_gasten_page");
+  const localeTag = useLocaleTag();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +233,7 @@ export default function GastenPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">{t("statTotalLtv")}</div>
-          <div className="stat-card-val">{formatEuro(stats.totalLtv)}</div>
+          <div className="stat-card-val">{formatEuro(stats.totalLtv, localeTag)}</div>
         </div>
       </div>
 
@@ -446,10 +448,10 @@ export default function GastenPage() {
                   </td>
                   <td>{g.visit_count}</td>
                   <td style={{ fontWeight: 500 }}>
-                    {formatEuro(g.lifetime_value_cents)}
+                    {formatEuro(g.lifetime_value_cents, localeTag)}
                   </td>
                   <td style={{ color: "var(--tl)" }}>
-                    {formatDate(g.last_visit_at)}
+                    {formatDate(g.last_visit_at, localeTag)}
                   </td>
                   <td>
                     {g.mail_opt_in ? (

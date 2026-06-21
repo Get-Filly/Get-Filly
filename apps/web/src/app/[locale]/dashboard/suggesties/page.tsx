@@ -13,6 +13,7 @@ import {
 import { Skeleton } from "../_components/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs } from "@/components/ui/tabs";
+import { useLocaleTag } from "@/lib/locale-format";
 
 type Tab = "pending" | "approved" | "rejected";
 
@@ -38,9 +39,9 @@ function typeChipClass(type?: string) {
   return "sg-chip";
 }
 
-function formatEuro(cents?: number): string {
+function formatEuro(cents: number | undefined, tag: string): string {
   if (!cents) return "—";
-  return `€${Math.round(cents / 100).toLocaleString("nl-NL")}`;
+  return `€${Math.round(cents / 100).toLocaleString(tag)}`;
 }
 
 // Concreet prijsformaat met decimalen, voor gerecht-kaartjes.
@@ -58,6 +59,7 @@ function formatPrice(cents?: number): string {
 
 export default function SuggestiesPage() {
   const t = useTranslations("dash_suggesties_page");
+  const localeTag = useLocaleTag();
   const tabLabel = (key: Tab) => t(`tabs.${key}`);
   const triggerText = (type: string) =>
     triggerIcon[type] ? t(`triggers.${type}`) : type;
@@ -201,7 +203,7 @@ export default function SuggestiesPage() {
             {loading ? (
               <Skeleton height={22} width="50%" />
             ) : (
-              formatEuro(expectedTotals.revenue)
+              formatEuro(expectedTotals.revenue, localeTag)
             )}
           </div>
         </div>
@@ -336,7 +338,7 @@ export default function SuggestiesPage() {
                     <div className="sg-impact-item">
                       <div className="sg-impact-label">{t("impact.estimatedRevenue")}</div>
                       <div className="sg-impact-val">
-                        +{formatEuro(impact.extra_revenue_cents)}
+                        +{formatEuro(impact.extra_revenue_cents, localeTag)}
                       </div>
                     </div>
                     {confidence !== null && (
@@ -490,7 +492,7 @@ export default function SuggestiesPage() {
                   <div className="sg-impact-item">
                     <div className="sg-impact-label">{t("impact.estimatedRevenue")}</div>
                     <div className="sg-impact-val">
-                      +{formatEuro(impact.extra_revenue_cents)}
+                      +{formatEuro(impact.extra_revenue_cents, localeTag)}
                     </div>
                   </div>
                   {confidence !== null && (

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { useLocaleTag } from "@/lib/locale-format";
 import { useActionableDays } from "@/lib/use-actionable-days";
 
 // ============================================================
@@ -29,9 +30,9 @@ import { useActionableDays } from "@/lib/use-actionable-days";
 //   - dashboard/campagnes/page.tsx (layout="flex", strips groei +
 //     knop natuurlijke breedte)
 
-function formatDayNl(iso: string): string {
+function formatDayNl(iso: string, tag: string): string {
   const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString("nl-NL", {
+  return d.toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
   });
@@ -45,6 +46,7 @@ type Props = {
 
 export function UpcomingActionsBlock({ layout = "flex" }: Props) {
   const t = useTranslations("dash__components_upcoming_actions_block");
+  const localeTag = useLocaleTag();
 
   // Gedeelde bron-van-waarheid met de geleide chat-flow (audit-item #5):
   // dezelfde rustige-/speciale-dagen-berekening leeft nu in één hook,
@@ -95,7 +97,7 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
             {t("nextTwoWeeks")}{" "}
             {criticalDays
               .slice(0, 5)
-              .map((d) => `${formatDayNl(d.date)} (${d.occupancy_pct}%)`)
+              .map((d) => `${formatDayNl(d.date, localeTag)} (${d.occupancy_pct}%)`)
               .join(", ")}
             {criticalDays.length > 5 &&
               t("moreSuffix", { count: criticalDays.length - 5 })}
@@ -128,7 +130,7 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
             {t("nextSixWeeks")}{" "}
             {upcomingSpecial
               .slice(0, 5)
-              .map((s) => `${s.name} (${formatDayNl(s.date)})`)
+              .map((s) => `${s.name} (${formatDayNl(s.date, localeTag)})`)
               .join(", ")}
             {upcomingSpecial.length > 5 &&
               t("moreSuffix", { count: upcomingSpecial.length - 5 })}

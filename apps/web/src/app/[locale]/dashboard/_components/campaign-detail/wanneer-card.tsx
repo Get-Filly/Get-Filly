@@ -12,7 +12,7 @@
 // State (editing/draft/saving) leeft in de parent; deze
 // component is 'controlled'.
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { formatDutchDateTime } from "./types";
@@ -62,6 +62,8 @@ export function WanneerCard({
   onDraftDatetimeChange,
 }: Props) {
   const t = useTranslations("dash__components_campaign_detail_wanneer_card");
+  // Datum/tijd-formatting volgt de actieve taal (nl-NL / en-GB).
+  const localeTag = useLocale() === "en" ? "en-GB" : "nl-NL";
   return (
     <div
       id={sectionId}
@@ -145,7 +147,7 @@ export function WanneerCard({
               }}
             >
               {effectiveIso
-                ? formatDutchDateTime(effectiveIso)
+                ? formatDutchDateTime(effectiveIso, localeTag)
                 : t("notChosenYet")}
             </div>
             {/* Filly's redenering — alleen bij Filly's eigen voorstel
@@ -178,7 +180,7 @@ export function WanneerCard({
                 }}
               >
                 {t("deviationBanner", {
-                  fillyTime: formatDutchDateTime(fillyIso),
+                  fillyTime: formatDutchDateTime(fillyIso, localeTag),
                 })}
               </div>
             )}

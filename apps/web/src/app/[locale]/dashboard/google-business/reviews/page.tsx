@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { useLocaleTag } from "@/lib/locale-format";
 import {
   fetchReviewVariants,
   fetchReviews,
@@ -27,9 +28,9 @@ const sourceInfo: Record<ReviewSource, { label: string }> = {
 
 type SourceFilter = "alle" | ReviewSource;
 
-function formatDate(s: string | null): string {
+function formatDate(s: string | null, tag: string): string {
   if (!s) return "—";
-  return new Date(s).toLocaleDateString("nl-NL", {
+  return new Date(s).toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -95,6 +96,7 @@ function TrendBadge({
 // houdt de hooks; default-export wikkelt 'm in Suspense.
 function ReviewsPageInner() {
   const t = useTranslations("dash_google_business_reviews_page");
+  const localeTag = useLocaleTag();
   // Deep-link-support: andere pagina's kunnen linken naar
   // `/dashboard/google-business/reviews?openReply=<id>`. We lezen de
   // query-param hieronder en openen automatisch de reply-modal voor
@@ -448,7 +450,7 @@ function ReviewsPageInner() {
             </div>
             {r.title && <div className="review-title">{r.title}</div>}
           </div>
-          <div className="review-date">{formatDate(r.review_date)}</div>
+          <div className="review-date">{formatDate(r.review_date, localeTag)}</div>
         </div>
         {r.body && <div className="review-body">{r.body}</div>}
         <div className="review-foot">
@@ -669,7 +671,7 @@ function ReviewsPageInner() {
               </div>
               <div className="review-modal-author">
                , {replyTo.author ?? t("anonymous")} ·{" "}
-                {formatDate(replyTo.review_date)}
+                {formatDate(replyTo.review_date, localeTag)}
               </div>
             </div>
 

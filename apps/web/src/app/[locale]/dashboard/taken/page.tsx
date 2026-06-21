@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useLocaleTag } from "@/lib/locale-format";
 import {
   fetchSuggestions,
   fetchGuests,
@@ -56,6 +57,7 @@ const filterKeys: { key: Filter; labelKey: string }[] = [
 
 export default function TakenPage() {
   const t = useTranslations("dash_taken_page");
+  const localeTag = useLocaleTag();
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -128,7 +130,7 @@ export default function TakenPage() {
           .slice(0, 3)
           .map((d) => {
             const date = new Date(d.date);
-            return `${date.getDate()} ${date.toLocaleString("nl-NL", { month: "short" })} (${d.occupancy_pct}%)`;
+            return `${date.getDate()} ${date.toLocaleString(localeTag, { month: "short" })} (${d.occupancy_pct}%)`;
           })
           .join(", "),
         link: "/dashboard",
@@ -225,7 +227,7 @@ export default function TakenPage() {
     // Sort by priority
     const order = { high: 0, medium: 1, low: 2 };
     return out.sort((a, b) => order[a.priority] - order[b.priority]);
-  }, [suggestions, guests, reservations, reviews, occupancy, t]);
+  }, [suggestions, guests, reservations, reviews, occupancy, t, localeTag]);
 
   const stats = useMemo(() => {
     return {

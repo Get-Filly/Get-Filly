@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { fetchKpis, fetchOccupancy, type Kpis, type OccupancyDay } from "@/lib/api";
+import { useLocaleTag } from "@/lib/locale-format";
 import { mergeMonthData } from "../_lib/calendar-data";
 import { Skeleton } from "./skeleton";
 
@@ -48,6 +49,7 @@ function kpisToCards(
   kpis: Kpis,
   todayPct: number | null,
   t: Translate,
+  tag: string,
 ): KpiCard[] {
   const cards: KpiCard[] = [];
 
@@ -59,7 +61,7 @@ function kpisToCards(
 
   cards.push({
     label: t("guestsToday"),
-    value: kpis.today_guests.toLocaleString("nl-NL"),
+    value: kpis.today_guests.toLocaleString(tag),
     fillyExtra:
       kpis.today_filly_guests > 0
         ? t("viaFillyCount", { count: kpis.today_filly_guests })
@@ -69,7 +71,7 @@ function kpisToCards(
 
   cards.push({
     label: t("activeCampaigns"),
-    value: kpis.active_campaigns.toLocaleString("nl-NL"),
+    value: kpis.active_campaigns.toLocaleString(tag),
     fillyExtra:
       kpis.active_campaigns > 0
         ? t("activeOrScheduled")
@@ -90,6 +92,7 @@ function kpisToCards(
 
 export function KpiRow() {
   const t = useTranslations("dash__components_kpi_row");
+  const localeTag = useLocaleTag();
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +138,7 @@ export function KpiRow() {
     );
   }
 
-  const cards = kpisToCards(kpis, todayPctFromOccupancy(occupancy), t);
+  const cards = kpisToCards(kpis, todayPctFromOccupancy(occupancy), t, localeTag);
 
   return (
     <div className="kpi-row">

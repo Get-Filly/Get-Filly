@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useLocaleTag } from "@/lib/locale-format";
 import { Link } from "@/i18n/navigation";
 import { Card, CardBody } from "@/components/ui/card";
 import { Skeleton } from "../../_components/skeleton";
@@ -17,14 +18,14 @@ import { fetchMetaInsights, type MetaInsights } from "@/lib/api";
 // fase 2 (read_insights + instagram_manage_insights). Bedoeld om bovenaan
 // de IG-/FB-marketingpagina te plaatsen, bóven de voorbeeld-mocksecties.
 
-function nl(n: number): string {
-  return n.toLocaleString("nl-NL");
+function nl(n: number, tag: string): string {
+  return n.toLocaleString(tag);
 }
-function shortDate(iso: string | null): string {
+function shortDate(iso: string | null, tag: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("nl-NL", {
+  return d.toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -57,6 +58,7 @@ type Row = {
 
 function PostsTable({ rows, cols }: { rows: Row[]; cols: string[] }) {
   const t = useTranslations("dash_marketing_components_meta_live_insights");
+  const localeTag = useLocaleTag();
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -112,7 +114,7 @@ function PostsTable({ rows, cols }: { rows: Row[]; cols: string[] }) {
                   key={m.label}
                   style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600 }}
                 >
-                  {nl(m.value)}
+                  {nl(m.value, localeTag)}
                 </td>
               ))}
             </tr>
@@ -129,6 +131,7 @@ export function MetaLiveInsights({
   platform: "instagram" | "facebook";
 }) {
   const t = useTranslations("dash_marketing_components_meta_live_insights");
+  const localeTag = useLocaleTag();
   const [data, setData] = useState<MetaInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +163,7 @@ export function MetaLiveInsights({
     .map((p) => ({
       key: p.id,
       text: truncate(p.caption),
-      date: shortDate(p.timestamp),
+      date: shortDate(p.timestamp, localeTag),
       metrics: [
         { label: "Likes", value: p.likeCount },
         { label: "Reacties", value: p.commentsCount },
@@ -178,7 +181,7 @@ export function MetaLiveInsights({
     .map((p) => ({
       key: p.id,
       text: truncate(p.message),
-      date: shortDate(p.createdTime),
+      date: shortDate(p.createdTime, localeTag),
       metrics: [
         { label: "Likes", value: p.likes },
         { label: "Reacties", value: p.comments },
@@ -239,7 +242,7 @@ export function MetaLiveInsights({
                   label={t("followers")}
                   value={
                     data.instagram?.followersCount != null
-                      ? nl(data.instagram.followersCount)
+                      ? nl(data.instagram.followersCount, localeTag)
                       : "—"
                   }
                 />
@@ -247,7 +250,7 @@ export function MetaLiveInsights({
                   label={t("posts")}
                   value={
                     data.instagram?.mediaCount != null
-                      ? nl(data.instagram.mediaCount)
+                      ? nl(data.instagram.mediaCount, localeTag)
                       : "—"
                   }
                 />

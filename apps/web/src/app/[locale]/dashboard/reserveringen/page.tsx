@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs } from "@/components/ui/tabs";
 import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
+import { useLocaleTag } from "@/lib/locale-format";
 
 type StatusFilter = "alle" | ReservationStatus;
 
@@ -32,7 +33,7 @@ const statusFilterKeys: { key: StatusFilter; labelKey: string }[] = [
 
 type Translator = ReturnType<typeof useTranslations>;
 
-function formatDayLabel(dateStr: string, t: Translator): string {
+function formatDayLabel(dateStr: string, t: Translator, tag: string): string {
   const d = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -42,7 +43,7 @@ function formatDayLabel(dateStr: string, t: Translator): string {
   if (diffDays === 0) return t("today");
   if (diffDays === 1) return t("tomorrow");
   if (diffDays === -1) return t("yesterday");
-  return d.toLocaleDateString("nl-NL", {
+  return d.toLocaleDateString(tag, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -93,6 +94,7 @@ function exportReservationsToCsv(
 
 export default function ReserveringenPage() {
   const t = useTranslations("dash_reserveringen_page");
+  const localeTag = useLocaleTag();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   // Gast-map keyed op guest.id zodat we per reservering snel visit_count
@@ -341,7 +343,7 @@ export default function ReserveringenPage() {
       ) : (
         <div>
           {grouped.map(([date, list]) => {
-            const dayLabel = formatDayLabel(date, t);
+            const dayLabel = formatDayLabel(date, t, localeTag);
             const dayCovers = list
               .filter((r) => r.status === "bevestigd")
               .reduce((s, r) => s + r.party_size, 0);
@@ -565,6 +567,7 @@ function ReservationRow({
   showTopBorder,
 }: ReservationRowProps) {
   const t = useTranslations("dash_reserveringen_page");
+  const localeTag = useLocaleTag();
   const hasSpecial = !!r.special_requests;
 
   return (
@@ -709,7 +712,7 @@ function ReservationRow({
               label={t("fields.birthday")}
               value={
                 guest?.birthday
-                  ? new Date(guest.birthday).toLocaleDateString("nl-NL", {
+                  ? new Date(guest.birthday).toLocaleDateString(localeTag, {
                       day: "numeric",
                       month: "long",
                     })
@@ -728,7 +731,7 @@ function ReservationRow({
               label={t("fields.lastVisit")}
               value={
                 guest?.last_visit_at
-                  ? new Date(guest.last_visit_at).toLocaleDateString("nl-NL", {
+                  ? new Date(guest.last_visit_at).toLocaleDateString(localeTag, {
                       day: "numeric",
                       month: "long",
                       year: "numeric",

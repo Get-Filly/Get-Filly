@@ -15,6 +15,7 @@ import {
   type GooglePlaceDetails,
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { useLocaleTag } from "@/lib/locale-format";
 
 /**
  * ============================================================
@@ -47,6 +48,7 @@ const RADIUS_OPTIONS = [
 
 export default function ConcurrentBenchmarkPage() {
   const t = useTranslations("dash_google_business_benchmark_page");
+  const localeTag = useLocaleTag();
   const { active } = useRestaurant();
   const [mine, setMine] = useState<GooglePlaceDetails | null>(null);
   const [competitors, setCompetitors] = useState<CompetitorPlace[]>([]);
@@ -240,7 +242,7 @@ export default function ConcurrentBenchmarkPage() {
           label={t("kpi.reviews")}
           mineValue={mine.userRatingCount}
           medianValue={medianReviews}
-          format={(v) => v.toLocaleString("nl-NL")}
+          format={(v) => v.toLocaleString(localeTag)}
           higherIsBetter
         />
         <KpiTile
@@ -314,7 +316,7 @@ export default function ConcurrentBenchmarkPage() {
                 </td>
                 <td style={{ padding: "12px", textAlign: "right" }}>
                   {mine.userRatingCount !== null
-                    ? mine.userRatingCount.toLocaleString("nl-NL")
+                    ? mine.userRatingCount.toLocaleString(localeTag)
                     : "—"}
                 </td>
                 <td style={{ padding: "12px", textAlign: "right" }}>
@@ -367,7 +369,7 @@ export default function ConcurrentBenchmarkPage() {
                   </td>
                   <td style={{ padding: "12px", textAlign: "right" }}>
                     {c.userRatingCount !== null
-                      ? c.userRatingCount.toLocaleString("nl-NL")
+                      ? c.userRatingCount.toLocaleString(localeTag)
                       : "—"}
                   </td>
                   <td style={{ padding: "12px", textAlign: "right" }}>

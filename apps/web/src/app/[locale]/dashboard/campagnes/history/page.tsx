@@ -3,6 +3,7 @@
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { useLocaleTag } from "@/lib/locale-format";
 import {
   fetchCampaigns,
   fetchDeletedCampaigns,
@@ -36,9 +37,9 @@ import { Button } from "@/components/ui/button";
 type ArchiveTab = "afgerond" | "verwijderd";
 type RestoreStatus = "concept" | "ingepland" | "actief";
 
-function formatDate(s: string | null | undefined): string {
+function formatDate(s: string | null | undefined, tag: string): string {
   if (!s) return "—";
-  return new Date(s).toLocaleDateString("nl-NL", {
+  return new Date(s).toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -65,6 +66,7 @@ function minDatetimeLocal(): string {
 
 export default function CampagnesHistoryPage() {
   const t = useTranslations("campagnes_history_page");
+  const localeTag = useLocaleTag();
   const [done, setDone] = useState<Campaign[]>([]);
   const [deleted, setDeleted] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -247,8 +249,8 @@ export default function CampagnesHistoryPage() {
             // Verwijderde campagnes: datum = wanneer-weggegooid. Voor
             // afgerond: scheduled_for (= verzonden-moment).
             const dateText = isDeleted
-              ? t("deletedOn", { date: formatDate(c.deleted_at) })
-              : `${c.type} · ${formatDate(c.scheduled_for)}`;
+              ? t("deletedOn", { date: formatDate(c.deleted_at, localeTag) })
+              : `${c.type} · ${formatDate(c.scheduled_for, localeTag)}`;
             return (
               <div
                 key={c.id}

@@ -12,6 +12,7 @@ import {
   type Restaurant,
 } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { useLocaleTag } from "@/lib/locale-format";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { MailDomainSection } from "../_components/mail-domain-section";
 import { RestaurantMediaSection } from "../_components/restaurant-media-section";
@@ -71,6 +72,7 @@ const LANGUAGE_OPTIONS: string[] = ["nl", "en", "de", "fr", "es", "it"];
 // wikkelt 'm in Suspense zodat de prerender-fase een fallback krijgt.
 function AccountPageInner() {
   const t = useTranslations("dash_account_page");
+  const localeTag = useLocaleTag();
   const [form, setForm] = useState<Restaurant | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -475,7 +477,7 @@ function AccountPageInner() {
                     }}
                   >
                     <span>
-                      {new Date(d).toLocaleDateString("nl-NL", {
+                      {new Date(d).toLocaleDateString(localeTag, {
                         day: "numeric",
                         month: "short",
                         year: "numeric",

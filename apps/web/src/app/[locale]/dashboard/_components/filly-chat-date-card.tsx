@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { DateChoiceCard } from "@/lib/api";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
 // FillyChatDateCard, datum-keuze-vraag in chat (sinds 2026-05-24)
@@ -63,6 +64,7 @@ type Props = {
 
 export function FillyChatDateCard({ card, state, onChoose }: Props) {
   const t = useTranslations("dash__components_filly_chat_date_card");
+  const localeTag = useLocaleTag();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [specificDate, setSpecificDate] = useState<string>("");
   const [mode, setMode] = useState<"quick" | "specific">("quick");
@@ -86,7 +88,7 @@ export function FillyChatDateCard({ card, state, onChoose }: Props) {
       // zodat Filly de context begrijpt.
       try {
         const d = new Date(specificDate);
-        const label = d.toLocaleDateString("nl-NL", {
+        const label = d.toLocaleDateString(localeTag, {
           day: "numeric",
           month: "long",
           year: "numeric",

@@ -18,6 +18,7 @@ import {
 } from "../_lib/hour-heatmap";
 import { ServiceGrid, type ServiceGridRow } from "./service-grid";
 import { useTranslations } from "next-intl";
+import { useLocaleTag } from "@/lib/locale-format";
 import type { OccupancyDay, Restaurant } from "@/lib/api";
 // Megafoon = hetzelfde "Campagnes"-icoon als in de sidebar (lucide-react).
 // Gebruikt als enige markering op een dag met een ingeplande campagne,
@@ -65,8 +66,8 @@ function occupancyTier(pct: number): number {
  * Format een week-range als "5 - 11 mei" of "27 apr - 3 mei" (over
  * maand-grens). Gebruikt door de prev/next-label in week-view.
  */
-function formatWeekRange(start: Date, end: Date): string {
-  const fmt = new Intl.DateTimeFormat("nl-NL", { month: "short" });
+function formatWeekRange(start: Date, end: Date, tag: string): string {
+  const fmt = new Intl.DateTimeFormat(tag, { month: "short" });
   const sMonth = fmt.format(start);
   const eMonth = fmt.format(end);
   if (sMonth === eMonth) {
@@ -93,6 +94,7 @@ export function CalendarCard({
   occupancy,
 }: Props) {
   const t = useTranslations("dash__components_calendar_card");
+  const localeTag = useLocaleTag();
   const today = new Date();
   const cells = mergeMonthData(viewYear, viewMonth, occupancy);
 
@@ -130,7 +132,7 @@ export function CalendarCard({
     view === "jaar"
       ? `${viewYear}`
       : view === "week"
-        ? formatWeekRange(weekStart, weekEnd)
+        ? formatWeekRange(weekStart, weekEnd, localeTag)
         : `${monthName} ${viewYear}`;
 
   const goPrev = () => {
@@ -313,7 +315,7 @@ export function CalendarCard({
           const dayCell = cells.find((c) => c && c.day === selected);
           const dayPct = dayCell?.occupancy ?? 50;
           const dayObj = new Date(viewYear, viewMonth, selected);
-          const dayName = dayObj.toLocaleString("nl-NL", { weekday: "long" });
+          const dayName = dayObj.toLocaleString(localeTag, { weekday: "long" });
           const activeServices = activeServicesForDate(
             restaurant?.service_periods,
             dayObj,

@@ -20,6 +20,7 @@ import {
   type HealthSeverity,
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { useLocaleTag } from "@/lib/locale-format";
 
 /**
  * ============================================================
@@ -733,10 +734,11 @@ function ScoreBanner({
   historyCount: number;
 }) {
   const t = useTranslations("dash_google_business_audit_page");
+  const localeTag = useLocaleTag();
   const score = snapshot.scoreTotal;
   const color = scoreColor(score);
   const ranAt = new Date(snapshot.ranAt);
-  const ranAtStr = ranAt.toLocaleString("nl-NL", {
+  const ranAtStr = ranAt.toLocaleString(localeTag, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",

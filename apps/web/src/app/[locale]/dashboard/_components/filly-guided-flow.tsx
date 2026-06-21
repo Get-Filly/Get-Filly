@@ -23,6 +23,7 @@ import {
   type GenerateForDatesItem,
 } from "@/lib/api";
 import { useActionableDays } from "@/lib/use-actionable-days";
+import { useLocaleTag } from "@/lib/locale-format";
 import { logger } from "@/lib/logger";
 
 // ============================================================
@@ -46,8 +47,8 @@ import { logger } from "@/lib/logger";
 
 const QUIET_DAYS_PREVIEW = 4;
 
-function formatDayNl(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("nl-NL", {
+function formatDayNl(iso: string, tag: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -128,6 +129,7 @@ export function FillyGuidedFlow({
   onActionChange?: (delta: ActiveActionDelta) => void;
 }) {
   const t = useTranslations("dash__components_filly_guided_flow");
+  const localeTag = useLocaleTag();
   const router = useRouter();
   const {
     lowOccupancyDays,
@@ -211,7 +213,11 @@ export function FillyGuidedFlow({
 
   const pickAnyDay = (iso: string) => {
     if (!iso) return;
-    void pickDay({ date: iso, kind: "low_occupancy", label: formatDayNl(iso) });
+    void pickDay({
+      date: iso,
+      kind: "low_occupancy",
+      label: formatDayNl(iso, localeTag),
+    });
   };
 
   // Voorgevulde datum (getypt verzoek): classificeer + spring naar de
@@ -229,18 +235,18 @@ export function FillyGuidedFlow({
           date: initialDate,
           kind: "special_day",
           name: special.name,
-          label: `${special.name} · ${formatDayNl(initialDate)}`,
+          label: `${special.name} · ${formatDayNl(initialDate, localeTag)}`,
         }
       : low
         ? {
             date: initialDate,
             kind: "low_occupancy",
-            label: `${formatDayNl(initialDate)} · ${low.occupancy_pct}% bezet`,
+            label: `${formatDayNl(initialDate, localeTag)} · ${low.occupancy_pct}% bezet`,
           }
         : {
             date: initialDate,
             kind: "low_occupancy",
-            label: formatDayNl(initialDate),
+            label: formatDayNl(initialDate, localeTag),
           };
     void pickDay(day, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -489,11 +495,13 @@ export function FillyGuidedFlow({
                       pickDay({
                         date: d.date,
                         kind: "low_occupancy",
-                        label: `${formatDayNl(d.date)} · ${d.occupancy_pct}% bezet`,
+                        label: `${formatDayNl(d.date, localeTag)} · ${d.occupancy_pct}% bezet`,
                       })
                     }
                   >
-                    <span className="fg-opt-main">{formatDayNl(d.date)}</span>
+                    <span className="fg-opt-main">
+                      {formatDayNl(d.date, localeTag)}
+                    </span>
                     <span className="fg-opt-sub">
                       {t("opener.occupied", { pct: d.occupancy_pct })}
                     </span>
@@ -527,11 +535,13 @@ export function FillyGuidedFlow({
                         pickDay({
                           date: iso,
                           kind: "low_occupancy",
-                          label: formatDayNl(iso),
+                          label: formatDayNl(iso, localeTag),
                         })
                       }
                     >
-                      <span className="fg-opt-main">{formatDayNl(iso)}</span>
+                      <span className="fg-opt-main">
+                        {formatDayNl(iso, localeTag)}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -555,14 +565,16 @@ export function FillyGuidedFlow({
                           date: s.date,
                           kind: "special_day",
                           name: s.name,
-                          label: `${s.name} · ${formatDayNl(s.date)}`,
+                          label: `${s.name} · ${formatDayNl(s.date, localeTag)}`,
                         })
                       }
                     >
                       <span className="fg-opt-main">
                         {s.emoji} {s.name}
                       </span>
-                      <span className="fg-opt-sub">{formatDayNl(s.date)}</span>
+                      <span className="fg-opt-sub">
+                        {formatDayNl(s.date, localeTag)}
+                      </span>
                     </button>
                   ))}
                 </div>

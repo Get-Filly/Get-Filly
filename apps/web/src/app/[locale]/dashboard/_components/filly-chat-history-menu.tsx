@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
+import { useLocaleTag } from "@/lib/locale-format";
 import {
   CHAT_CONVERSATION_CAP,
   type ChatConversationSummary,
@@ -44,7 +45,7 @@ type RelativeDate =
   | { kind: "weeksAgo"; weeks: number }
   | { kind: "date"; label: string };
 
-function getRelativeDate(iso: string): RelativeDate {
+function getRelativeDate(iso: string, tag: string): RelativeDate {
   const date = new Date(iso);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -56,7 +57,7 @@ function getRelativeDate(iso: string): RelativeDate {
   if (diffDays < 30) return { kind: "weeksAgo", weeks: Math.floor(diffDays / 7) };
   return {
     kind: "date",
-    label: date.toLocaleDateString("nl-NL", {
+    label: date.toLocaleDateString(tag, {
       day: "numeric",
       month: "short",
     }),
@@ -71,6 +72,7 @@ export function FillyChatHistoryMenu({
   onDelete,
 }: Props) {
   const t = useTranslations("dash__components_filly_chat_history_menu");
+  const localeTag = useLocaleTag();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -106,7 +108,7 @@ export function FillyChatHistoryMenu({
   };
 
   const relativeLabel = (iso: string): string => {
-    const rel = getRelativeDate(iso);
+    const rel = getRelativeDate(iso, localeTag);
     switch (rel.kind) {
       case "today":
         return t("relative.today");

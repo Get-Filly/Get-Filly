@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useLocaleTag } from "@/lib/locale-format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -177,6 +178,7 @@ const PREVIEW = {
 
 export default function FacebookMarketingPage() {
   const t = useTranslations("dash_marketing_facebook_page");
+  const localeTag = useLocaleTag();
   const totalReactions = Object.values(PREVIEW.reactionsBreakdown).reduce(
     (a, b) => a + b,
     0,
@@ -270,20 +272,20 @@ export default function FacebookMarketingPage() {
       >
         <KpiTile
           label={t("kpi.reach")}
-          value={PREVIEW.kpis.reach30d.toLocaleString("nl-NL")}
+          value={PREVIEW.kpis.reach30d.toLocaleString(localeTag)}
           delta={`+${PREVIEW.kpis.reach30dDelta}%`}
           deltaPositive
           subtext={t("kpi.impressionsSubtext", {
-            count: PREVIEW.kpis.impressions30d.toLocaleString("nl-NL"),
+            count: PREVIEW.kpis.impressions30d.toLocaleString(localeTag),
           })}
         />
         <KpiTile
           label={t("kpi.pageLikes")}
-          value={PREVIEW.page.pageLikes.toLocaleString("nl-NL")}
+          value={PREVIEW.page.pageLikes.toLocaleString(localeTag)}
           delta={`+${PREVIEW.page.pageLikesDelta7d}`}
           deltaPositive
           subtext={t("kpi.followersSubtext", {
-            count: PREVIEW.page.pageFollowers.toLocaleString("nl-NL"),
+            count: PREVIEW.page.pageFollowers.toLocaleString(localeTag),
           })}
         />
         <KpiTileWithBenchmark
@@ -293,7 +295,7 @@ export default function FacebookMarketingPage() {
         />
         <KpiTile
           label={t("kpi.pageViews")}
-          value={PREVIEW.kpis.pageViews30d.toLocaleString("nl-NL")}
+          value={PREVIEW.kpis.pageViews30d.toLocaleString(localeTag)}
           delta={`${PREVIEW.kpis.pageViewsDelta}%`}
           deltaPositive={false}
           subtext={t("kpi.vsPrevious30d")}
@@ -501,7 +503,7 @@ export default function FacebookMarketingPage() {
                     {row.avgEngagement.toFixed(1)}%
                   </td>
                   <td style={{ padding: "10px 0", textAlign: "right" }}>
-                    {row.totalReach.toLocaleString("nl-NL")}
+                    {row.totalReach.toLocaleString(localeTag)}
                   </td>
                 </tr>
               ))}
@@ -904,6 +906,7 @@ function PostRow({
   rank: number;
 }) {
   const t = useTranslations("dash_marketing_facebook_page");
+  const localeTag = useLocaleTag();
   const totalReactions = Object.values(post.reactions).reduce(
     (a, b) => a + b,
     0,
@@ -990,7 +993,7 @@ function PostRow({
             flexWrap: "wrap",
           }}
         >
-          <span>👁️ {t("post.reach", { count: post.reach.toLocaleString("nl-NL") })}</span>
+          <span>👁️ {t("post.reach", { count: post.reach.toLocaleString(localeTag) })}</span>
           <span style={{ fontWeight: 600, color: "#1F4A2D" }}>
             {t("post.engagement", { rate: post.engagementRate.toFixed(1) })}
           </span>

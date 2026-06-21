@@ -15,6 +15,7 @@ import {
   type CampaignMailStats,
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { useLocaleTag } from "@/lib/locale-format";
 
 /**
  * ============================================================
@@ -37,6 +38,7 @@ import { useRestaurant } from "@/lib/restaurant-context";
 
 export default function MailMarketingPage() {
   const t = useTranslations("dash_marketing_mail_page");
+  const localeTag = useLocaleTag();
   const { active } = useRestaurant();
   const [stats, setStats] = useState<MailStats | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignMailStats[]>([]);
@@ -136,7 +138,7 @@ export default function MailMarketingPage() {
       <PageHeader
         title={t("title")}
         subtitle={t("summary", {
-          sent: stats.sent.toLocaleString("nl-NL"),
+          sent: stats.sent.toLocaleString(localeTag),
           count: stats.campaignCount,
           days: stats.periodDays,
         })}
@@ -155,9 +157,9 @@ export default function MailMarketingPage() {
       >
         <KpiTile
           label={t("kpi.sent")}
-          value={stats.sent.toLocaleString("nl-NL")}
+          value={stats.sent.toLocaleString(localeTag)}
           subtext={t("kpi.delivered", {
-            delivered: stats.delivered.toLocaleString("nl-NL"),
+            delivered: stats.delivered.toLocaleString(localeTag),
           })}
         />
         <KpiTileWithBenchmark
@@ -186,7 +188,7 @@ export default function MailMarketingPage() {
               : "—"
           }
           subtext={t("kpi.unsubscribedPeople", {
-            people: stats.unsubscribed.toLocaleString("nl-NL"),
+            people: stats.unsubscribed.toLocaleString(localeTag),
           })}
         />
       </div>
@@ -281,7 +283,7 @@ export default function MailMarketingPage() {
                         >
                           {t("table.sentOn", {
                             date: new Date(c.executedAt).toLocaleDateString(
-                              "nl-NL",
+                              localeTag,
                               { day: "numeric", month: "short" },
                             ),
                           })}
@@ -292,7 +294,7 @@ export default function MailMarketingPage() {
                       <CampaignStatusBadge status={c.status} />
                     </td>
                     <td style={{ padding: "12px" }}>
-                      {c.sent.toLocaleString("nl-NL")}
+                      {c.sent.toLocaleString(localeTag)}
                     </td>
                     <td style={{ padding: "12px", textAlign: "right" }}>
                       {c.openRate !== null

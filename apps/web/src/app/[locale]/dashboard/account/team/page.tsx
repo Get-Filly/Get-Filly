@@ -20,6 +20,7 @@ import {
   type Role,
 } from "@getfilly/shared";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { useLocaleTag } from "@/lib/locale-format";
 
 /**
  * ============================================================
@@ -60,6 +61,7 @@ const ROLE_KEYS: Role[] = ["owner", "manager", "staff"];
 
 export default function TeamPage() {
   const t = useTranslations("dash_account_team_page");
+  const localeTag = useLocaleTag();
   const { active } = useRestaurant();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invites, setInvites] = useState<InvitationRecord[]>([]);
@@ -245,7 +247,7 @@ export default function TeamPage() {
                   <div className="team-email">
                     {t("inviteMeta", {
                       role: inv.role,
-                      date: new Date(inv.expires_at).toLocaleDateString("nl-NL"),
+                      date: new Date(inv.expires_at).toLocaleDateString(localeTag),
                     })}
                   </div>
                 </div>

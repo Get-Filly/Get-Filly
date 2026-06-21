@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useLocaleTag } from "@/lib/locale-format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +182,7 @@ const PREVIEW = {
 
 export default function InstagramMarketingPage() {
   const t = useTranslations("dash_marketing_instagram_page");
+  const localeTag = useLocaleTag();
   return (
     <div className="page-full">
       <PageHeader
@@ -268,14 +270,14 @@ export default function InstagramMarketingPage() {
       >
         <KpiTile
           label={t("kpiReach")}
-          value={PREVIEW.kpis.reach30d.toLocaleString("nl-NL")}
+          value={PREVIEW.kpis.reach30d.toLocaleString(localeTag)}
           delta={`+${PREVIEW.kpis.reach30dDelta}%`}
           deltaPositive
-          subtext={t("kpiImpressions", { count: PREVIEW.kpis.impressions30d.toLocaleString("nl-NL") })}
+          subtext={t("kpiImpressions", { count: PREVIEW.kpis.impressions30d.toLocaleString(localeTag) })}
         />
         <KpiTile
           label={t("kpiFollowers")}
-          value={PREVIEW.account.followers.toLocaleString("nl-NL")}
+          value={PREVIEW.account.followers.toLocaleString(localeTag)}
           delta={`+${PREVIEW.account.followersDelta7d}`}
           deltaPositive
           subtext={t("kpiLast7Days")}
@@ -287,7 +289,7 @@ export default function InstagramMarketingPage() {
         />
         <KpiTile
           label={t("kpiProfileViews")}
-          value={PREVIEW.kpis.profileViews30d.toLocaleString("nl-NL")}
+          value={PREVIEW.kpis.profileViews30d.toLocaleString(localeTag)}
           delta={`${PREVIEW.kpis.profileViewsDelta}%`}
           deltaPositive={false}
           subtext={t("kpiVsPrevious30Days")}
@@ -454,7 +456,7 @@ export default function InstagramMarketingPage() {
                       : <span style={{ color: "var(--text-secondary, #52525B)" }}>{t("notAvailable")}</span>}
                   </td>
                   <td style={{ padding: "10px 0", textAlign: "right" }}>
-                    {row.totalReach.toLocaleString("nl-NL")}
+                    {row.totalReach.toLocaleString(localeTag)}
                   </td>
                 </tr>
               ))}
@@ -821,6 +823,7 @@ function PostRow({
   rank: number;
 }) {
   const t = useTranslations("dash_marketing_instagram_page");
+  const localeTag = useLocaleTag();
   return (
     <div
       style={{
@@ -903,7 +906,7 @@ function PostRow({
             flexWrap: "wrap",
           }}
         >
-          <span>👁️ {t("postReach", { count: post.reach.toLocaleString("nl-NL") })}</span>
+          <span>👁️ {t("postReach", { count: post.reach.toLocaleString(localeTag) })}</span>
           <span style={{ fontWeight: 600, color: "#1F4A2D" }}>
             {t("postEngagement", { value: post.engagementRate.toFixed(1) })}
           </span>

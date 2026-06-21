@@ -26,6 +26,7 @@ import { UpcomingActionsBlock } from "../_components/upcoming-actions-block";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "../_components/skeleton";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
 // /dashboard/campagnes — kanban-bord met 4 fase-kolommen
@@ -97,14 +98,14 @@ function suggestionDisplayType(s: AiSuggestion): string {
 
 // Korte datum + tijd: "13 mei 09:00". HH:MM alleen tonen als de
 // timestamp ook een uur bevat (niet bij target_date pure datum).
-function shortDateTime(iso: string, includeTime: boolean): string {
+function shortDateTime(iso: string, includeTime: boolean, tag: string): string {
   const d = new Date(iso);
-  const date = d.toLocaleDateString("nl-NL", {
+  const date = d.toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
   });
   if (!includeTime) return date;
-  const time = d.toLocaleTimeString("nl-NL", {
+  const time = d.toLocaleTimeString(tag, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -117,9 +118,10 @@ function shortDateTime(iso: string, includeTime: boolean): string {
 function formatScheduled(
   iso: string | null | undefined,
   includeTime = true,
+  tag: string,
 ): string {
   if (!iso) return "Geen datum";
-  return shortDateTime(iso, includeTime);
+  return shortDateTime(iso, includeTime, tag);
 }
 
 // "Target date" uit suggestion.trigger_context — fallback wanneer een
@@ -230,7 +232,7 @@ type ChannelStatus =
 
 // Bouw ChannelRow-array voor een suggestion (voorstel-kolom).
 // Bundle = 1 entry per channel; single = 1 entry totaal.
-function buildSuggestionRows(s: AiSuggestion): ChannelRow[] {
+function buildSuggestionRows(s: AiSuggestion, tag: string): ChannelRow[] {
   const checks = computeSuggestionChecks(s);
   const sc = s.suggested_campaign;
   // Voor display van datum: probeer eerst scheduled_for, anders
@@ -253,7 +255,7 @@ function buildSuggestionRows(s: AiSuggestion): ChannelRow[] {
     return {
       id: c.id,
       platform: c.platform,
-      whenText: formatScheduled(whenIso, includeTime),
+      whenText: formatScheduled(whenIso, includeTime, tag),
       status:
         c.missing.length === 0
           ? { kind: "ready" }
@@ -264,7 +266,7 @@ function buildSuggestionRows(s: AiSuggestion): ChannelRow[] {
 
 // Voor een Campaign (concept/ingepland/actief): één row per campagne.
 // Bundle-campaign roept dit per campagne aan en concatenate.
-function buildCampaignRow(c: Campaign): ChannelRow {
+function buildCampaignRow(c: Campaign, tag: string): ChannelRow {
   const status: ChannelStatus = (() => {
     if (c.status === "actief") {
       const extra = c.result_stats?.extra_reservations ?? 0;
@@ -292,7 +294,7 @@ function buildCampaignRow(c: Campaign): ChannelRow {
   return {
     id: c.id,
     platform: c.type,
-    whenText: formatScheduled(c.scheduled_for, true),
+    whenText: formatScheduled(c.scheduled_for, true, tag),
     status,
   };
 }
@@ -419,10 +421,10 @@ function relativeWhen(iso: string): RelativeWhen {
 // Wat tonen we op een campagne-card als datum-regel? Bij ingepland +
 // concept met scheduled_for: kanaal-icon + datum + tijd. Anders een
 // status-zin ("Nog niet ingepland" / "Loopt nu" / "+12 reserveringen").
-function campaignDateLine(c: Campaign): string {
+function campaignDateLine(c: Campaign, tag: string): string {
   const stats = c.result_stats ?? {};
   if (c.scheduled_for) {
-    return `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true)}`;
+    return `${typeIcon(c.type)} ${shortDateTime(c.scheduled_for, true, tag)}`;
   }
   if (c.status === "concept") return "Nog niet ingepland";
   if (c.status === "actief") {
@@ -1079,14 +1081,14 @@ function cardTitleText(item: BoardItem): {
 
 // Rij(en) per kanaal voor de card. Voor suggestion: per channel-check;
 // voor campaign (bundle) per campaign-record.
-function buildItemRows(item: BoardItem): ChannelRow[] {
+function buildItemRows(item: BoardItem, tag: string): ChannelRow[] {
   if (item.kind === "suggestion" || item.kind === "bundle-suggestion") {
-    return buildSuggestionRows(item.data);
+    return buildSuggestionRows(item.data, tag);
   }
   if (item.kind === "campaign") {
-    return [buildCampaignRow(item.data)];
+    return [buildCampaignRow(item.data, tag)];
   }
-  return item.campaigns.map(buildCampaignRow);
+  return item.campaigns.map((c) => buildCampaignRow(c, tag));
 }
 
 // ============================================================
@@ -1118,8 +1120,9 @@ function BoardCard({
   onDelete,
 }: CardProps) {
   const t = useTranslations("campagnes_page");
+  const localeTag = useLocaleTag();
   const title = cardTitleText(item);
-  const rows = buildItemRows(item);
+  const rows = buildItemRows(item, localeTag);
   const status = itemStatus(item);
   const platforms = getItemPlatforms(item);
   const sched = getEarliestScheduled(item);
@@ -1200,6 +1203,7 @@ function ScheduledLine({
   status: "voorstel" | "concept" | "ingepland" | "actief";
 }) {
   const t = useTranslations("campagnes_page");
+  const localeTag = useLocaleTag();
   // Vertaal de relatieve-tijd-data (RelativeWhen) naar UI-tekst.
   const relativeText = (iso: string): string => {
     const rel = relativeWhen(iso);
@@ -1213,7 +1217,7 @@ function ScheduledLine({
   // Pure datum (YYYY-MM-DD) vs. timestamp herkennen — pure datum
   // tonen we zonder tijd-suffix.
   const hasTime = sched.iso.includes("T") || sched.iso.includes(" ");
-  const text = shortDateTime(sched.iso, hasTime);
+  const text = shortDateTime(sched.iso, hasTime, localeTag);
   if (status === "ingepland") {
     return (
       <div style={cardDatePrimary}>

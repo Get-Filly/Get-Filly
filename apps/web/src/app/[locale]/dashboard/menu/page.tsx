@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MenuSuggestionsTab } from "./_components/menu-suggestions-tab";
 import { logger } from "@/lib/logger";
+import { useLocaleTag } from "@/lib/locale-format";
 
 const categoryOrder = [
   "voorgerecht",
@@ -959,6 +960,7 @@ function CardStatusBanner({
   onRemove: () => void;
 }) {
   const t = useTranslations("dash_menu_page");
+  const localeTag = useLocaleTag();
   const isDrinks = card.kind === "drinks";
   const title = isDrinks ? t("banner.drinksActive") : t("banner.menuActive");
   const replaceLabel = isDrinks
@@ -1002,7 +1004,7 @@ function CardStatusBanner({
           </button>
           <span>·</span>
           <span>
-            {new Date(card.uploaded_at).toLocaleDateString("nl-NL", {
+            {new Date(card.uploaded_at).toLocaleDateString(localeTag, {
               day: "numeric",
               month: "long",
               year: "numeric",

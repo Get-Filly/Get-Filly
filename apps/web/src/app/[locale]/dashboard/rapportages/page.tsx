@@ -16,6 +16,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
 // /dashboard/rapportages — hub-pagina
@@ -88,6 +89,7 @@ function exportChannelsToCsv(
 
 export default function RapportagesHubPage() {
   const t = useTranslations("dash_rapportages_page");
+  const localeTag = useLocaleTag();
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [mailStats, setMailStats] = useState<MailStats | null>(null);
   const [reviews, setReviews] = useState<Review[] | null>(null);
@@ -164,11 +166,11 @@ export default function RapportagesHubPage() {
             },
             {
               label: t("stats.guestsToday"),
-              value: kpis.today_guests.toLocaleString("nl-NL"),
+              value: kpis.today_guests.toLocaleString(localeTag),
             },
             {
               label: t("stats.viaFillyMonth"),
-              value: kpis.month_filly_guests.toLocaleString("nl-NL"),
+              value: kpis.month_filly_guests.toLocaleString(localeTag),
             },
           ]
         : undefined,
@@ -184,7 +186,7 @@ export default function RapportagesHubPage() {
             { label: t("stats.campaigns30d"), value: `${mailStats.campaignCount}` },
             {
               label: t("stats.sent"),
-              value: mailStats.sent.toLocaleString("nl-NL"),
+              value: mailStats.sent.toLocaleString(localeTag),
             },
             {
               label: t("stats.openRate"),

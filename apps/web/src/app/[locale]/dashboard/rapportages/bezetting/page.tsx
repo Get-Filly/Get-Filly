@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "../../_components/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // Bezetting-detailpagina: de volledige rapportages-content
 // (weekdag, uur-heatmap, gastretentie, Filly-ROI) verhuisde
@@ -80,6 +81,7 @@ const hourlyData = generateMockHourly();
 export default function RapportagesPage() {
   const t = useTranslations("dash_rapportages_bezetting_page");
   const locale = useLocale();
+  const localeTag = useLocaleTag();
   const today = new Date();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -310,7 +312,7 @@ export default function RapportagesPage() {
             <div className="stat-card">
               <div className="stat-card-label">{t("statTotalGuests")}</div>
               <div className="stat-card-val">
-                {stats.totalEstGuests.toLocaleString("nl-NL")}
+                {stats.totalEstGuests.toLocaleString(localeTag)}
               </div>
               <div
                 style={{
@@ -326,7 +328,7 @@ export default function RapportagesPage() {
             <div className="stat-card">
               <div className="stat-card-label">{t("statRevenue")}</div>
               <div className="stat-card-val">
-                €{Math.round(stats.totalRevenue / 100).toLocaleString("nl-NL")}
+                €{Math.round(stats.totalRevenue / 100).toLocaleString(localeTag)}
               </div>
               <div
                 style={{
@@ -585,7 +587,7 @@ export default function RapportagesPage() {
                           €
                           {Math.round(
                             totalRevenue / 100,
-                          ).toLocaleString("nl-NL")}
+                          ).toLocaleString(localeTag)}
                         </span>
                         <span className="roi-breakeven-sub">
                           {t("roiGuestsTimesSpend")}
@@ -620,7 +622,7 @@ export default function RapportagesPage() {
                               <div key={m.month} className="roi-chart-col">
                                 <span className="roi-chart-val">
                                   {euros > 0
-                                    ? `€${euros.toLocaleString("nl-NL")}`
+                                    ? `€${euros.toLocaleString(localeTag)}`
                                     : "—"}
                                 </span>
                                 <div
@@ -725,7 +727,7 @@ export default function RapportagesPage() {
                                       €
                                       {Math.round(
                                         c.estimated_revenue_cents / 100,
-                                      ).toLocaleString("nl-NL")}
+                                      ).toLocaleString(localeTag)}
                                     </td>
                                   </tr>
                                 );

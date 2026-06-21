@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useLocaleTag } from "@/lib/locale-format";
 import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
@@ -116,10 +117,10 @@ function SectionCard({
 
 // Formatteert een ISO-datum (YYYY-MM-DD) naar leesbaar NL, bv.
 // "25 december 2026". Faalt stil terug op de ruwe string.
-function formatClosedDate(iso: string): string {
+function formatClosedDate(iso: string, tag: string): string {
   const d = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("nl-NL", {
+  return d.toLocaleDateString(tag, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -128,6 +129,7 @@ function formatClosedDate(iso: string): string {
 
 export default function GoogleProfilePreviewPage() {
   const t = useTranslations("dash_google_business_profiel_page");
+  const localeTag = useLocaleTag();
   // Badge: read-only data die we nu al hebben.
   const visibleBadge = <Badge variant="success">{t("badge.visible")}</Badge>;
   // Badge: veld is leesbaar maar aanpassen + pushen naar Google vereist de
@@ -270,7 +272,7 @@ export default function GoogleProfilePreviewPage() {
                 {closedDates.map((d) => (
                   <FieldRow
                     key={d}
-                    label={formatClosedDate(d)}
+                    label={formatClosedDate(d, localeTag)}
                     value={t("specialDays.closed")}
                   />
                 ))}

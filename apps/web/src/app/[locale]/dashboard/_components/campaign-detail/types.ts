@@ -70,9 +70,9 @@ export function platformToType(p: Platform): "mail" | "social" | "whatsapp" {
 
 // Nederlandse weergave: "donderdag 14 mei om 17:00". Geen jaartal
 // omdat suggesties altijd binnenkort vallen — jaartal voegt ruis toe.
-export function formatDutchDateTime(iso: string): string {
+export function formatDutchDateTime(iso: string, tag: string = "nl-NL"): string {
   const d = new Date(iso);
-  return d.toLocaleString("nl-NL", {
+  return d.toLocaleString(tag, {
     weekday: "long",
     day: "numeric",
     month: "long",
