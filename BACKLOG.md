@@ -902,6 +902,10 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-22 — Homepage-pijlers vertaald (NL/EN)
+
+Live (merge `0ec2912`). De pijler-sectie op de homepage ("Meer gasten. Volle tafels." + de drie blokken Vindbaarheid / Zichtbaarheid / Bereikbaarheid: eyebrow, titel, desc, bullets) was hardcoded NL en bleef dus NL op `/en`. Verplaatst naar `home.pillars` in `messages/{nl,en}.json` (bullets als array via `t.raw().map()`, sectietitel via `t.rich` met `<br>`). **NB:** de hero-apparaat-mockups (MiniDashboard-nav/KPI + LandingPhone + LandingFillyChat) staan nog steeds apart open als NL-op-/en (zie i18n-sectie) — dat is een ander blok.
+
 ### 2026-06-22 — Schema-cleanup: legacy campaigns.filly_variants gedropt (mig 0060)
 
 Gemerged naar `main` + live (merge `e747c68`), branch `chore/mig-0043-drop-filly-variants`. Afronding van de "Mig 0043"-cleanup uit de BACKLOG:
