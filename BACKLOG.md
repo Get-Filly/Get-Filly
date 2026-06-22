@@ -483,8 +483,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**Unsubscribe-route**~~ (2026-05-04) — Public `/u/[token]`-pagina + backend `POST/GET /public/unsubscribe/:token`. RFC 8058 List-Unsubscribe headers in elke mail (Gmail/Outlook tonen native unsubscribe-link). Idempotent.
 - [x] ~~**Eigen-domein per klant**~~ (2026-05-04) — `MailDomainService` met Resend Domains API (create/verify/get/remove). UI: `<MailDomainSection>` op account-pagina met DNS-records-tabel + copy-knoppen + status-polling. Bij verified: mail komt van klant's eigen `mail_from_address` ipv default. Stay safe naast bestaande mail-providers (DKIM op subdomains).
 - [ ] **DNS help-flow voor klanten** — stappenplan + per-registrar uitleg (TransIP / Versio / Hostnet / Namecheap / GoDaddy) + "wat doen die records"-helper voor klanten die DNS niet snappen
-- [ ] **Resend webhook signature-validatie** — Svix-signature header checken in `MailController.receiveWebhook`. Nu accepteren we alle calls op die endpoint. Voor productie verplicht.
-- [ ] **Resend webhook URL configureren** in Resend dashboard zodra api publiek bereikbaar is (deploy)
+- [x] ~~**Resend webhook signature-validatie**~~ (✅ code af, 2026-06-18) — `MailController.receiveWebhook` (`@Post('webhooks/resend')`) verifieert de Svix-headers via `verifySvixSignature` tegen de rawBody (`rawBody: true` in `main.ts`); ongeldige calls → 401. Fail-soft zolang `RESEND_WEBHOOK_SECRET` niet gezet is (laat door + logt) zodat mail-stats niet breken. **Resteert (config, Floris):** (1) `RESEND_WEBHOOK_SECRET` (`whsec_…` uit Resend) in Vercel `get-filly-api` zetten + redeploy; (2) webhook in Resend-dashboard op `https://get-filly-api-three.vercel.app/api/webhooks/resend`.
 - [ ] **Legal: DPA-template** — Verwerkersovereenkomst met klant. Resend + Anthropic + Supabase als sub-verwerkers vermelden in privacy-pagina.
 
 ### Integraties (OAuth)
