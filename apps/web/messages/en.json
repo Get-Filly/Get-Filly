@@ -266,6 +266,12 @@
     "ctaPricing": "Curious what it costs? Check <link>the pricing</link>."
   },
   "auth": {
+    "errors": {
+      "invalidCredentials": "Your email or password is incorrect. Please try again.",
+      "emailNotConfirmed": "Your account isn't confirmed yet. Check your inbox for the confirmation email.",
+      "rateLimited": "Too many login attempts. Please wait a moment and try again.",
+      "generic": "We couldn't sign you in. Please try again or contact us."
+    },
     "fields": {
       "email": "Email address",
       "emailPlaceholder": "name@restaurant.com",
@@ -995,11 +1001,11 @@
       "title": "Notifications",
       "desc": "Decide when reviews and quiet days appear as actions on your campaigns page.",
       "reviewThresholdLabel": "Show reviews at or below this star rating as an action",
-      "reviewStar1": "★☆☆☆☆ – Only 1-star reviews",
-      "reviewStar2": "★★☆☆☆ – 1 and 2 stars",
-      "reviewStar3": "★★★☆☆ – 1 to 3 stars",
-      "reviewStar4": "★★★★☆ – 1 to 4 stars",
-      "reviewStar5": "★★★★★ – All reviews",
+      "reviewStar1": "★☆☆☆☆, Only 1-star reviews",
+      "reviewStar2": "★★☆☆☆, 1 and 2 stars",
+      "reviewStar3": "★★★☆☆, 1 to 3 stars",
+      "reviewStar4": "★★★★☆, 1 to 4 stars",
+      "reviewStar5": "★★★★★, All reviews",
       "reviewThresholdHint": "Reviews that don't have a reply yet and fall below this threshold automatically appear in “Other actions”. The default is 3 stars, so only real problems get your attention.",
       "occupancyThresholdLabel": "Occupancy below this threshold counts as a quiet day",
       "below": "Below {pct}%",
@@ -3129,7 +3135,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly — More guests. Fewer empty tables.",
+      "title": "Get-Filly. More guests. Fewer empty tables.",
       "description": "Get-Filly is an AI platform for restaurants. It runs your marketing, reviews and visibility in Google and AI search engines."
     },
     "product": {

@@ -147,25 +147,6 @@ export class CampaignsController {
     );
   }
 
-  // Update van een concept-campagne. Alleen naam, subject en body
-  // zijn te bewerken via het dashboard-formulier; status-transitions
-  // (concept → ingepland → actief) lopen via een apart endpoint
-  // straks (nog niet geïmplementeerd; verzend-logica volgt).
-  @Patch(':id')
-  update(
-    @RestaurantId() restaurantId: string,
-    @Param('id') id: string,
-    @Body()
-    body: {
-      name?: string;
-      subject_line?: string | null;
-      body?: string;
-      from_variant?: boolean;
-    },
-  ) {
-    return this.campaigns.update(restaurantId, id, body);
-  }
-
   // Status-transitie endpoint. Aparte route i.p.v. status-veld in
   // de generieke PATCH zodat valideerbare lifecycle-logica niet stil
   // kan worden omzeild (bv. concept-edit die per ongeluk een status-
@@ -215,30 +196,6 @@ export class CampaignsController {
     return this.campaigns.publishSocialCampaign(restaurantId, id);
   }
 
-  // Lees gecachte filly-varianten + regen-count. Géén generatie.
-  // Frontend gebruikt dit bij page-open om te bepalen of er al
-  // varianten zijn (=> tonen) of dat een initial generate moet
-  // (=> POST /refine).
-  @Get(':id/variants')
-  getVariants(
-    @RestaurantId() restaurantId: string,
-    @Param('id') id: string,
-  ) {
-    return this.campaigns.getVariants(restaurantId, id);
-  }
-
-  // Genereert 3 alternatieven en cachet ze. Eerste call (count=0):
-  // 3 varianten. Tweede call (count=1): 3 extra (totaal 6). Daarna
-  // BadRequest voor kostenbeheersing.
-  @Post(':id/refine')
-  refine(
-    @RestaurantId() restaurantId: string,
-    @Param('id') id: string,
-    @Body() body: { instruction?: string },
-  ) {
-    return this.campaigns.refine(restaurantId, id, body.instruction);
-  }
-
   // ============================================================
   // VARIANT-ENDPOINTS (per 2026-05-13, mig 0041)
   // ============================================================
@@ -249,15 +206,11 @@ export class CampaignsController {
   // URL-structuur kiezen we zo dat ':idx' altijd een getal is (geen
   // ambiguïteit met sub-actions zoals '/select'). Daarom plakt /select
   // er als suffix achter en is /variants zonder idx alleen voor POST
-  // (genereren) — botst niet met de bestaande GET /variants (oude
-  // legacy-route, andere HTTP-methode).
+  // (genereren).
   //
   //   PATCH /campaigns/:id/variants/:idx/select  → flip Gekozen
   //   PATCH /campaigns/:id/variants/:idx         → edit een versie
   //   POST  /campaigns/:id/variants              → genereer 3 nieuwe
-  //
-  // De oude /refine-endpoint blijft tijdelijk bestaan voor de oude
-  // detail-pagina; wordt in fase G uitgefaseerd.
 
   @Patch(':id/variants/:idx/select')
   selectVariant(
@@ -347,22 +300,6 @@ export class CampaignsController {
     @Param('id') id: string,
   ) {
     return this.campaigns.deleteMedia(restaurantId, id);
-  }
-
-  // Vraag Filly om een tijdstip voor te stellen. Gebruikt cache: bij
-  // her-bezoek geen nieuwe Claude-call. Body { force: true } overschrijft
-  // de cache met een nieuw voorstel (kost extra tokens).
-  @Post(':id/suggest-schedule')
-  suggestSchedule(
-    @RestaurantId() restaurantId: string,
-    @Param('id') id: string,
-    @Body() body: { force?: boolean },
-  ) {
-    return this.campaigns.suggestSchedule(
-      restaurantId,
-      id,
-      Boolean(body.force),
-    );
   }
 
   // Bevestig of override het verzendmoment. Body { datetime: ISO }.

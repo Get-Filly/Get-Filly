@@ -28,8 +28,8 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~🔴 **9 server-only keys uit `get-filly-web` Vercel-env**~~ — ✅ verwijderd (2026-06-18, Floris). Alleen `NEXT_PUBLIC_*` + publieke OAuth-app/client-id's (`META_APP_ID`, `GOOGLE_OAUTH_CLIENT_ID`) resteren. *(Beveiliging)*
 - [x] ~~🔴 **Resend-webhook Svix-signature valideren**~~ (✅ 2026-06-18) — rawBody + `verifySvixSignature`; handhaaft zodra **`RESEND_WEBHOOK_SECRET`** in get-filly-api gezet is (⚠️ nog te zetten in Vercel). *(Beveiliging)*
 - [x] ~~🔴 **Cron-secrets constant-time vergelijken**~~ (✅ 2026-06-18) — gedeelde `timingSafeBearer`-helper in alle 3 cron-controllers. *(Backend + Beveiliging)*
-- [ ] 🔴 **Ontbrekende migraties committen** (0044 identiteit-velden, + gaten 0039/0056/0057) — schone Supabase-reset reproduceert de kolommen niet → `PATCH /restaurant/me` + health-runner breken. *(Backend)*
-- [ ] 🔴 **`:focus-visible` toevoegen (publiek én dashboard)** — toetsenbord/a11y-blokker (geverifieerd: 0 resp. 1 regel). *(Frontend)*
+- [x] ~~🔴 **Ontbrekende migratie 0044 committen**~~ (✅ 2026-06-22, `fix/schema-drift-0044`) — `0044_restaurant_identity_extension.sql` toegevoegd (8 identiteit-velden: tone_of_voice/do_not_mention/brand_story/location_description/keywords/default_hashtags/awards/target_audience_segments). Idempotent `add column if not exists`. **Correctie op de oude omschrijving:** 0039 bestaat bewust niet (gereserveerd voor encrypted API-key-storage, werd uiteindelijk 0052), en 0056/0057 stáán inmiddels al in de map — alleen 0044 ontbrak echt. ⚠️ SQL handmatig in Supabase draaien (zie chat). *(Backend)*
+- [x] ~~🔴 **`:focus-visible` toevoegen (publiek én dashboard)**~~ (✅ 2026-06-22) — gedeelde a11y-baseline in `globals.css` dekt nu alle clickables site-breed. *(Frontend)* (Restje onder Dashboard-UI: `.cal-cell`/`.yr-cell` als echte buttons.)
 - [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
 - [ ] 🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat. *(Frontend/UX)*
 - [ ] 🟡 **SSRF in website-analyzer** — interne IP's/cloud-metadata bereikbaar; blocklist toevoegen. *(Beveiliging)*
@@ -37,7 +37,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ### 🎨 Frontend
 
 **Publieke site — UI**
-- [ ] 🔴 `:focus-visible` ontbreekt volledig (0 regels) op alle clickables → één gedeelde outline-regel.
+- [x] ~~🔴 `:focus-visible` ontbreekt volledig (0 regels)~~ (✅ 2026-06-22) — één gedeelde a11y-baseline in `globals.css` (geldt publiek + dashboard): `a/button/input/select/textarea/summary/[tabindex]/[role]` krijgen `outline: 2px solid var(--color-brand)` + offset. Zelfde stijl als de losse `.ui-btn`/`.blog-card`-regels; componenten met eigen focus-stijl overschrijven het.
 - [ ] 🔴 Typografieronde ~12% af: 130 hardcoded px font-sizes vs 18 token-uses in `landing.css` (hero 74, `.pillars-cta-title` 32, `.pricing-price` 38, `.diff-card-title` 24…) → koppen op `--fs-*`, nieuwe `--fs-hero`-token.
 - [ ] 🟡 Drie/vier verschillende "primaire groene knop"-implementaties (`.btn-primary`/`.nav-demo`/`.cta-btn`/`.pricing-btn`); `ui.css` Button nergens hergebruikt → één `.btn`/`<Button>`.
 - [ ] 🟡 Dode/dubbele CSS: `.features::before` 2×, `.about-hero-grid` 3×, `.about-mv` 2× → opruimen.
@@ -48,7 +48,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 **Dashboard — UI**
 - [ ] 🔴 `campaign-send-modal.tsx` volledig inline-styled mét niet-bestaande var-namen + foute hex-fallbacks (`var(--danger,#B3261E)`, `var(--tl,#6B6F71)`) → bestaande `.sg-modal` hergebruiken.
 - [ ] 🔴 `UpcomingActionsBlock` herbouwt de alert-bar inline met hardcoded `RED/GREEN` + alias-misbruik `--rs` → `.alert-bar`-class met `--color-danger/-brand`.
-- [ ] 🔴 `:focus-visible` vrijwel afwezig (1 regel); klikbare `.cal-cell`/`.yr-cell` zijn `<div>` zonder role/tabindex → focus-outline + echte buttons.
+- [~] 🔴 `:focus-visible` vrijwel afwezig (1 regel); klikbare `.cal-cell`/`.yr-cell` zijn `<div>` zonder role/tabindex → focus-outline + echte buttons. **(deels ✅ 2026-06-22)** — focus-outline nu site-breed gedekt via de gedeelde `globals.css`-baseline; resteert: `.cal-cell`/`.yr-cell` echte `<button>` maken (role/tabindex) zodat de ring ook iets selecteert.
 - [ ] 🟡 Twee parallelle knop-systemen; `<Button>` in maar 6/32 componenten (pill vs rounded-rect inconsistent) → migreren.
 - [ ] 🟡 Type-/shadow-tokens vrijwel ongebruikt (243 raw px, 0× `--font-size-*`, 0× `--shadow-*`, .5px-uitschieters) → tokens.
 - [ ] 🟡 379 inline-`style={{}}`-blokken; `hour-heatmap` heeft geen mobiele behandeling (geen `@media`) → naar classes.
@@ -60,8 +60,8 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🔴 Prijzen-pagina volledig geblurd (`HIDE_PRICING`) en doodlopend → prijs-range of eerlijke uitleg + directe CTA.
 - [ ] 🔴 Geleide campagne-flow stuurt bij 0 resultaten stil naar `/campagnes` → inline-foutstaat, blijf staan.
 - [ ] 🔴 Geen `aria-live` op Filly-antwoorden + "maakt voorstel"-staat → screenreader hoort niets.
-- [ ] 🟡 Login toont rauwe Engelse Supabase-fout → NL-microcopy-mapping.
-- [ ] 🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset) → koppelen.
+- [x] ~~🟡 Login toont rauwe Engelse Supabase-fout~~ (✅ 2026-06-22) — pure mapper `lib/auth-errors.ts` (`authErrorKey`, matcht op Supabase-`code` → message-substring → status 429) + `auth.errors.*`-keys in nl/en; login rendert nu `t(errors.<key>)` i.p.v. `error.message`. 4 gevallen: invalidCredentials / emailNotConfirmed / rateLimited / generic.
+- [x] ~~🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset)~~ (✅ 2026-06-22) — 12 labels gekoppeld via `htmlFor`+`id` op login (2), forgot-password (1), reset-password (2), welkom (2), contact (5). Honeypot omsluit z'n input al (impliciet, aria-hidden) → ongemoeid.
 - [ ] 🟡 Contact-formulier: geen verwachting ("binnen 1 werkdag, vrijblijvend") + "bericht" verplicht → toevoegen + bericht optioneel maken.
 - [ ] 🟡 Inconsistente CTA-labels ("Vraag een demo aan"/"Plan een gratis kennismaking"/"Plan kennismaking") → één label site-breed.
 - [ ] 🟡 `/signup` stille redirect → korte uitleg-pagina ("op uitnodiging — vraag demo aan").
@@ -70,10 +70,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟡 Modals missen `aria-labelledby`; klikbare kaarten geen focus-ring.
 - [ ] 🟡 Concept-werk verloren bij weg-navigeren (review-reply) + geen succes-toast na goedkeuren → sessionStorage-autosave + toast met undo.
 - [ ] 🟡 Campagne-detail: inconsistente actie-labels ("Terugtrekken" vs "Terug naar concept"), geen tijdzone-hint bij plan-veld, geen onopgeslagen-markering op de kanaal-tab.
-- [ ] 🟢 Em-dashes / `&mdash;` / `&middot;` in `onboarding`/`product`/`about` TSX (strijdig met "geen AI-streepjes") → scannen + vervangen.
+- [x] ~~🟢 Em-dashes / `&mdash;` / `&middot;` in zichtbare copy~~ (✅ 2026-06-22) — sinds i18n staat de copy in `messages/{nl,en}.json`; 20 strings met em/en-dash opgeschoond volgens dezelfde regel als `naturalizeDashes` (dash → komma), brand-titel met punt. TSX-treffers waren enkel code-comments (niet zichtbaar) → ongemoeid.
 
 ### ⚙️ Backend
-- [ ] 🔴 **Schema-drift**: migraties 0044 (+ gaten 0039/0056/0057) ontbreken als `.sql` in `apps/api/supabase/migrations/`; code/types verwachten de kolommen → gedraaide SQL alsnog genummerd committen.
+- [x] ~~🔴 **Schema-drift**: migratie 0044 ontbrak als `.sql`~~ (✅ 2026-06-22) — toegevoegd als `0044_restaurant_identity_extension.sql`. 0039 = bewust gereserveerd gat (geen migratie), 0056/0057 bestonden al → de reeks is nu sluitend t/m 0059 op één bewust gat (0039) na.
 - [ ] 🟡 Migratie-nummer **0043 dubbel** (auto-archive in repo vs geplande schema-cleanup in BACKLOG) → cleanup hernummeren naar vrij nummer.
 - [ ] 🟡 `runScheduledSocial`: status-flip + publish niet transactioneel, geen overlap-guard → status-flip vóór de side-effects of een `rpc()`-transactie.
 - [ ] 🟡 Read-modify-write op `variants`-jsonb zonder locking (lost update) in `selectVariant`/`editVariant`/`mutateChannel`/`refine` → `jsonb_set` via `rpc()` of `version`-kolom.
@@ -83,7 +83,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟢 ~62 zwakke types (`any`/`as`/`Record<string,unknown>`) in `apps/api` → per-tabel rij-types of lichte zod-validatie bij het inlezen.
 - [ ] 🟢 Schedule-suggestie-cache zonder TTL/invalidatie → leegmaken bij statuswissel (concept→ingepland).
 - [ ] 🟢 `findBundle` N+1 (per kanaal `findById`) — **(bevestigd, al P1)** → batch-`IN`-query.
-- [ ] 🟢 Doc/comment 301 vs 308 bij apex→www (code = 308, correct) → comments/CLAUDE.md gelijktrekken op 308.
+- [x] ~~🟢 Doc/comment 301 vs 308 bij apex→www~~ (✅ 2026-06-22) — CLAUDE.md (2×) + `config/seo.ts`-comment gelijkgetrokken op 308 + verduidelijkt dat het in code via `next.config.ts` `redirects()` gebeurt (niet in Vercel Domains).
 
 ### 🔒 Beveiligingen
 - [x] ~~🔴 **AuthGuard niet globaal (allow-by-default)**~~ (✅ 2026-06-18) — nu APP_GUARD deny-by-default; 5 publieke controllers @Public(), lokaal geverifieerd.
@@ -284,9 +284,9 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **Multi-channel status-overgang heeft geen rollback** — `Promise.all(updateCampaignStatus)` over kanalen. Bij partial failure: halfgeplaatste bundle. **Fix**: nieuw endpoint `PATCH /campaigns/bundle/:id/status` met transactionele update over alle siblings.
 
 **Dead code (na refactor niemand importeert het meer):**
-- [ ] **4 components slopen** — `campaign-refine-panel.tsx` (22 KB), `campaign-schedule-panel.tsx` (13 KB), `campaign-media-slot.tsx` (13 KB). `campaign-send-modal.tsx` (9 KB) alléén slopen ná de "Activeer-stuurt-mail"-fix; deze is misschien juist nodig.
-- [ ] **Dode API-functies in `apps/web/src/lib/api.ts` schrappen** — `fetchCampaignVariants`, `generateCampaignVariants`, `updateCampaign`, `suggestCampaignSchedule`.
-- [ ] **Dode backend-endpoints + service-methodes schrappen** — `GET /campaigns/:id/variants`, `POST /:id/refine`, `PATCH /:id`, `POST /:id/suggest-schedule` + `service.getVariants/refine/update/suggestSchedule`.
+- [x] ~~**4 components slopen**~~ (✅ 2026-06-22) — alle 4 verwijderd (~57 KB): `campaign-refine-panel.tsx`, `campaign-schedule-panel.tsx`, `campaign-media-slot.tsx` (vervangen door `campaign-detail/foto-card.tsx`; alleen comment-refs restten) + `campaign-send-modal.tsx` (de "Activeer-stuurt-mail"-fix is af; alleen comment-refs in google-connect-modal). Geverifieerd: nergens geïmporteerd. Typecheck schoon.
+- [x] ~~**Dode API-functies in `apps/web/src/lib/api.ts` schrappen**~~ (✅ 2026-06-22) — `fetchCampaignVariants`, `generateCampaignVariants`, `updateCampaign`, `suggestCampaignSchedule` + de enkel-daar-gebruikte `CampaignVariantsState`-type verwijderd. Werden alleen door de net-gesloopte panels aangeroepen. `setCampaignSchedule`/`generateMoreCampaignVariants`/`updateCampaignStatus` (live) bewust behouden.
+- [x] ~~**Dode backend-endpoints + service-methodes schrappen**~~ (✅ 2026-06-22) — `GET /campaigns/:id/variants`, `POST /:id/refine`, `PATCH /:id`, `POST /:id/suggest-schedule` uit de controller + `getVariants`/`refine`/`update`/`suggestSchedule` uit de service (~635 regels). Geverifieerd: enkel door hun eigen dode routes aangeroepen, geen gedeelde helpers (`retractFromChannel`/`syncContentFromVariant` blijven, live). Stale comments opgeschoond; `tsc` schoon. NB: `refine` was de laatste write-path naar `filly_variants` → zet mig-0043-cleanup een stap verder (zie hieronder).
 - [x] ~~**Oude `/campagnes/bundle/[id]/page.tsx` slopen**~~ (2026-06-11) — redirect-stub + `bundle/`-map verwijderd; oude bookmarks worden nu server-side afgevangen via `redirects()` in `apps/web/next.config.ts` (307 naar `/dashboard/campagnes/:id`, bewust niet permanent gecached).
 - [ ] **Mig 0043: DB-schema cleanup** — drop `campaigns.filly_variants`, `campaigns.filly_variants_regen_count`, `campaigns.variant_applied_at` ná het verwijderen van alle write-paden. Bewaar als 2-stap (eerst writes weg in code, sessie later columns droppen) om mid-refactor data-verlies te voorkomen.
 
