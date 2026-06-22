@@ -146,10 +146,6 @@ export type CampaignDetail = Campaign & {
   tags: string[] | null;
   created_at: string;
   content: Record<string, unknown> | null;
-  // Tijdstip waarop een Filly-variant is toegepast op deze campagne.
-  // Null = nog geen variant gekozen. UI verbergt op basis hiervan
-  // de "Met Filly bewerken"-sectie.
-  variant_applied_at: string | null;
   // Per 2026-05-12: Filly's reasoning uit het bijbehorende voorstel.
   // Wordt gejoined via campaigns.ai_suggestion_id → ai_suggestions.
   // Null = campagne komt niet uit een voorstel (handmatig aangemaakt
@@ -728,19 +724,6 @@ export class CampaignsService {
       type: CampaignType;
       subject_line?: string | null;
       body: string;
-      // Optioneel: bij approve van een chat-suggestion (waar Filly
-      // al 3 varianten genereerde) geven we die door als startset
-      // van filly_variants. Voorkomt dat CampaignRefinePanel ze
-      // bij eerste open opnieuw genereert (= dubbele kosten +
-      // 6 ipv 3 opties zichtbaar).
-      // LEGACY (pre mig 0041) — wordt nog gevuld voor backwards-compat
-      // met de oude `/refine`-flow. Nieuwe approves vullen óók
-      // `variants` hieronder, dat is de bron-van-waarheid voor de
-      // unified-detail-page.
-      seed_variants?: Array<{
-        subject_line?: string | null;
-        body: string;
-      }>;
       // Per 2026-05-13 (mig 0041): volledige versies-set incl. de
       // gekozen versie. Wanneer meegegeven hoeven we 'variants' niet
       // post-hoc te backfillen vanuit body/subject. selected_index
@@ -778,16 +761,6 @@ export class CampaignsService {
         'Campagne-inhoud is verplicht.',
       );
     }
-
-    // Sanitize seed-variants: alleen entries met body, en plak een
-    // cap op om ongegrenste payloads te voorkomen.
-    const seededVariants = (input.seed_variants ?? [])
-      .filter((v) => typeof v.body === 'string' && v.body.trim().length > 0)
-      .map((v) => ({
-        body: v.body.trim(),
-        subject_line: v.subject_line?.trim() || undefined,
-      }))
-      .slice(0, 6);
 
     // Per 2026-05-13 (mig 0041): variants is bron-van-waarheid voor
     // de versies-grid. Wanneer caller 'm meegeeft schrijven we 'm
@@ -845,11 +818,6 @@ export class CampaignsService {
         // ziet dat Filly 'm heeft aangedragen. Kan later een nette
         // badge worden i.p.v. tekst.
         meta: 'Voorgesteld door Filly',
-        // LEGACY: filly_variants blijft gevuld voor backwards-compat
-        // met de oude /refine-flow. Wordt in fase G uitgefaseerd
-        // zodra de unified-detail-page de oude page heeft vervangen.
-        filly_variants: seededVariants.length > 0 ? seededVariants : null,
-        filly_variants_regen_count: seededVariants.length > 0 ? 1 : 0,
         // Per 2026-05-13 (mig 0041): nieuwe bron-van-waarheid.
         variants: variantsToWrite,
         selected_variant_index: selectedIdx,

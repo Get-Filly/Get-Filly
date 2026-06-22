@@ -353,10 +353,6 @@ export type CampaignDetail = Campaign & {
   suggested_scheduled_for: string | null;
   suggested_scheduled_reasoning: string | null;
   executed_at: string | null;
-  // Tijdstip waarop een Filly-variant is toegepast. Null = nog niet
-  // gekozen → "Met Filly bewerken"-sectie wel zichtbaar. Niet-null →
-  // sectie verbergen, geen verdere alternatieven mogelijk.
-  variant_applied_at: string | null;
   // Per 2026-05-12: Filly's reasoning uit het bijbehorende voorstel
   // (gejoined via campaigns.ai_suggestion_id). Null = campagne is
   // handmatig aangemaakt of voorstel is verwijderd. Concept-detail
