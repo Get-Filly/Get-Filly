@@ -64,7 +64,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset)~~ (✅ 2026-06-22) — 12 labels gekoppeld via `htmlFor`+`id` op login (2), forgot-password (1), reset-password (2), welkom (2), contact (5). Honeypot omsluit z'n input al (impliciet, aria-hidden) → ongemoeid.
 - [ ] 🟡 Contact-formulier: geen verwachting ("binnen 1 werkdag, vrijblijvend") + "bericht" verplicht → toevoegen + bericht optioneel maken.
 - [ ] 🟡 Inconsistente CTA-labels ("Vraag een demo aan"/"Plan een gratis kennismaking"/"Plan kennismaking") → één label site-breed.
-- [ ] 🟡 `/signup` stille redirect → korte uitleg-pagina ("op uitnodiging — vraag demo aan").
+- [x] ~~🟡 `/signup` stille redirect → korte uitleg-pagina~~ (✅ 2026-06-22) — `/signup` toont nu een "Op uitnodiging"-uitleg + CTA "Vraag een demo aan" → `/contact` + link naar inloggen, in dezelfde auth-stijl (`.login-box`). NL/EN via `auth.signup.*`. Geverifieerd: HTTP 200 (geen redirect), beide talen.
 - [ ] 🟡 Disabled knoppen ogen klikbaar + vage labels ("Selecteer een optie", "Volgende stap", "Geen kiezen") in de guided flow → instructie + context-labels.
 - [ ] 🟡 Legacy-routes (`taken/`, `suggesties/`, `marketing/`) zonder terug-pad → banner of 308-redirect zoals `reviews`.
 - [ ] 🟡 Modals missen `aria-labelledby`; klikbare kaarten geen focus-ring.
@@ -95,7 +95,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟡 Storage-bucket `restaurant-assets` mist per-tenant path-RLS (tenant A kan in B's pad schrijven) → pad-prefix-RLS op `(storage.foldername(name))[1]`.
 - [ ] 🟡 Pre-onboarding rate-limit in-memory (niet multi-instance-veilig) — **(bevestigd, al P1)** → gedeelde store (Supabase-tabel/Redis).
 - [ ] 🟡 Enkele cron-/bundle-queries scopen alleen op `group_id`/`campaign_id` zonder `restaurant_id` (defense-in-depth, admin-client omzeilt RLS) → `.eq('restaurant_id')` overal toevoegen.
-- [ ] 🟢 `requireAccess` lekt 404 vs 403 (UUID-enumeration) → uniforme response.
+- [x] ~~🟢 `requireAccess` lekt 404 vs 403 (UUID-enumeration)~~ (✅ 2026-06-22) — niet-bestaand restaurant geeft nu dezelfde generieke 403 ("Geen toegang tot dit restaurant.") als bestaand-zonder-koppeling; verschil alleen nog server-side gelogd (debug). Non-member kan UUID-bestaan niet meer aftasten.
 - ✅ **Geverifieerd OK** (geen actie): open-redirect-bescherming `/auth/confirm`, Meta-OAuth CSRF + state-cookie, AES-256-GCM token-crypto (random IV + auth-tag), multi-tenant dubbelscoping + RLS-backstop, Meta `signed_request`-HMAC-validatie, JWT-verificatie (JWKS + issuer).
 
 ---
