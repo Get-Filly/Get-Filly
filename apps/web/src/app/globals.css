@@ -308,10 +308,16 @@ body {
 .forgot-link:hover { color: var(--text); }
 
 .login-btn {
+  /* display:block + text-align zodat dezelfde stijl óók werkt op een
+     <a>/<Link> (bv. de CTA op /signup), niet alleen op <button>. Voor
+     de bestaande submit-buttons verandert er niets (al full-width). */
+  display: block;
   width: 100%;
   padding: 11px;
   background: var(--accent);
   color: var(--true-white);
+  text-align: center;
+  text-decoration: none;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 14px;

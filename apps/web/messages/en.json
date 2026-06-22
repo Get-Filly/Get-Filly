@@ -272,6 +272,13 @@
       "rateLimited": "Too many login attempts. Please wait a moment and try again.",
       "generic": "We couldn't sign you in. Please try again or contact us."
     },
+    "signup": {
+      "title": "By invitation",
+      "intro": "Get-Filly is currently invite-only. We set up new accounts ourselves so we can guide every venue personally. Request a demo and we'll get in touch.",
+      "requestDemo": "Request a demo",
+      "haveAccount": "Already have an account?",
+      "login": "Log in"
+    },
     "fields": {
       "email": "Email address",
       "emailPlaceholder": "name@restaurant.com",

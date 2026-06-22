@@ -1,17 +1,38 @@
-import { redirect } from "@/i18n/navigation";
+"use client";
 
-// Self-service registratie is per 2026-06-02 uitgeschakeld. Nieuwe accounts
-// worden uitsluitend door Get-Filly aangemaakt (invite-only via Supabase),
-// zodat concurrenten zich niet zelf kunnen registreren en ongezien in de
-// app kunnen rondkijken. De ECHTE blokkade zit in Supabase ("Allow new
-// users to sign up" = uit) — dat dicht ook de directe API-route met de
-// anon-key. Deze redirect zorgt enkel dat de oude /signup-URL geen dode of
-// verwarrende pagina meer toont en bezoekers naar de demo-aanvraag stuurt.
-export default async function SignupPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  redirect({ href: "/contact", locale });
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+
+// ============================================================
+// /signup, invite-only uitlegpagina
+// ============================================================
+// Self-service registratie is uitgeschakeld sinds 2026-06-02: nieuwe
+// accounts maakt Get-Filly zelf aan (invite-only via Supabase), zodat
+// concurrenten zich niet zelf kunnen registreren. De ECHTE blokkade zit
+// in Supabase ("Allow new users to sign up" = uit) — dat dicht ook de
+// directe API-route met de anon-key.
+//
+// Vroeger deed deze route een stille redirect naar /contact. Dat was
+// verwarrend: wie /signup intikt (of een oude link volgt) belandde
+// zonder uitleg op een ander formulier. Nu tonen we een korte uitleg +
+// directe CTA naar de demo-aanvraag, in dezelfde auth-stijl als /login.
+export default function SignupPage() {
+  const t = useTranslations("auth");
+  return (
+    <section className="login-section">
+      <div className="login-box">
+        <div className="login-title">{t("signup.title")}</div>
+        <p className="login-sub">{t("signup.intro")}</p>
+
+        <Link className="login-btn" href="/contact">
+          {t("signup.requestDemo")}
+        </Link>
+
+        <div className="auth-switch">
+          {t("signup.haveAccount")}{" "}
+          <Link href="/login">{t("signup.login")}</Link>
+        </div>
+      </div>
+    </section>
+  );
 }
