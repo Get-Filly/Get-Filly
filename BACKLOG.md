@@ -28,7 +28,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~🔴 **9 server-only keys uit `get-filly-web` Vercel-env**~~ — ✅ verwijderd (2026-06-18, Floris). Alleen `NEXT_PUBLIC_*` + publieke OAuth-app/client-id's (`META_APP_ID`, `GOOGLE_OAUTH_CLIENT_ID`) resteren. *(Beveiliging)*
 - [x] ~~🔴 **Resend-webhook Svix-signature valideren**~~ (✅ 2026-06-18) — rawBody + `verifySvixSignature`; handhaaft zodra **`RESEND_WEBHOOK_SECRET`** in get-filly-api gezet is (⚠️ nog te zetten in Vercel). *(Beveiliging)*
 - [x] ~~🔴 **Cron-secrets constant-time vergelijken**~~ (✅ 2026-06-18) — gedeelde `timingSafeBearer`-helper in alle 3 cron-controllers. *(Backend + Beveiliging)*
-- [ ] 🔴 **Ontbrekende migraties committen** (0044 identiteit-velden, + gaten 0039/0056/0057) — schone Supabase-reset reproduceert de kolommen niet → `PATCH /restaurant/me` + health-runner breken. *(Backend)*
+- [x] ~~🔴 **Ontbrekende migratie 0044 committen**~~ (✅ 2026-06-22, `fix/schema-drift-0044`) — `0044_restaurant_identity_extension.sql` toegevoegd (8 identiteit-velden: tone_of_voice/do_not_mention/brand_story/location_description/keywords/default_hashtags/awards/target_audience_segments). Idempotent `add column if not exists`. **Correctie op de oude omschrijving:** 0039 bestaat bewust niet (gereserveerd voor encrypted API-key-storage, werd uiteindelijk 0052), en 0056/0057 stáán inmiddels al in de map — alleen 0044 ontbrak echt. ⚠️ SQL handmatig in Supabase draaien (zie chat). *(Backend)*
 - [ ] 🔴 **`:focus-visible` toevoegen (publiek én dashboard)** — toetsenbord/a11y-blokker (geverifieerd: 0 resp. 1 regel). *(Frontend)*
 - [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
 - [ ] 🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat. *(Frontend/UX)*
@@ -73,7 +73,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟢 Em-dashes / `&mdash;` / `&middot;` in `onboarding`/`product`/`about` TSX (strijdig met "geen AI-streepjes") → scannen + vervangen.
 
 ### ⚙️ Backend
-- [ ] 🔴 **Schema-drift**: migraties 0044 (+ gaten 0039/0056/0057) ontbreken als `.sql` in `apps/api/supabase/migrations/`; code/types verwachten de kolommen → gedraaide SQL alsnog genummerd committen.
+- [x] ~~🔴 **Schema-drift**: migratie 0044 ontbrak als `.sql`~~ (✅ 2026-06-22) — toegevoegd als `0044_restaurant_identity_extension.sql`. 0039 = bewust gereserveerd gat (geen migratie), 0056/0057 bestonden al → de reeks is nu sluitend t/m 0059 op één bewust gat (0039) na.
 - [ ] 🟡 Migratie-nummer **0043 dubbel** (auto-archive in repo vs geplande schema-cleanup in BACKLOG) → cleanup hernummeren naar vrij nummer.
 - [ ] 🟡 `runScheduledSocial`: status-flip + publish niet transactioneel, geen overlap-guard → status-flip vóór de side-effects of een `rpc()`-transactie.
 - [ ] 🟡 Read-modify-write op `variants`-jsonb zonder locking (lost update) in `selectVariant`/`editVariant`/`mutateChannel`/`refine` → `jsonb_set` via `rpc()` of `version`-kolom.
