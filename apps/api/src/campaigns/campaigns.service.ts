@@ -744,6 +744,12 @@ export class CampaignsService {
       // hashtags optioneel (FB heeft er meestal geen, IG wel).
       social_platforms?: string[];
       social_hashtags?: string[];
+      // Filly's voorgestelde verzendmoment + 1-zin-redenering uit het
+      // voorstel (brein kiest dit per kanaal). Bewaard zodat de
+      // "Wanneer plaatsen"-card "Filly stelt voor: … omdat …" kan tonen
+      // en afwijking van de eigenaar kan detecteren.
+      suggested_scheduled_for?: string | null;
+      suggested_scheduled_reasoning?: string | null;
     },
     // userId is verplicht: zonder actor in de audit-log verliezen we
     // bij klant-support traceerbaarheid ("wie heeft die campagne
@@ -827,6 +833,12 @@ export class CampaignsService {
         // detail-page "Waarom dit voorstel"-card kan tonen via de
         // ai_suggestions.reasoning-join.
         ai_suggestion_id: input.ai_suggestion_id ?? null,
+        // Filly's voorgestelde verzendmoment + redenering uit het
+        // voorstel; voedt de "Wanneer plaatsen"-card (Filly stelt voor +
+        // waarom + afwijking-detectie).
+        suggested_scheduled_for: input.suggested_scheduled_for ?? null,
+        suggested_scheduled_reasoning:
+          input.suggested_scheduled_reasoning ?? null,
       })
       .select('id')
       .single();
