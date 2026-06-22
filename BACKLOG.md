@@ -901,6 +901,16 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-22 — Schema-drift 0044 + quick-win batch (a11y, copy, login-fouten, dode code)
+
+Gemerged naar `main` + live (merge `93990e9`), branch `fix/schema-drift-0044`. Zes commits:
+
+- **Migratie 0044** (`0044_restaurant_identity_extension.sql`) — de 8 identiteit-velden op `restaurants` (`tone_of_voice`, `do_not_mention`, `brand_story`, `location_description`, `keywords`, `default_hashtags`, `awards`, `target_audience_segments`) die al sinds 2026-05-21 handmatig in Supabase draaiden maar nooit als `.sql` gecommit waren. Idempotent. SQL door Floris in Supabase gedraaid. **Correctie op oude BACKLOG-tekst:** 0039 is een bewust gereserveerd gat (geen migratie), 0056/0057 bestonden al — alleen 0044 ontbrak.
+- **Copy/doc:** 20 zichtbare strings met em/en-dash opgeschoond in `messages/{nl,en}.json` (zelfde regel als `naturalizeDashes`); doc-comments 301→308 gelijkgetrokken (apex→www zit in code via `next.config.ts`).
+- **a11y:** gedeelde `:focus-visible`-baseline in `globals.css` (publiek + dashboard); 12 form-labels via `htmlFor`/`id` gekoppeld (login/forgot/reset/welkom/contact).
+- **Login:** rauwe Engelse Supabase-fout vervangen door NL/EN-microcopy via `lib/auth-errors.ts` + `auth.errors.*`-keys.
+- **Dode code:** 4 ongebruikte campagne-componenten (~57 KB) + 4 ongebruikte `lib/api.ts`-functies verwijderd; backend `GET :id/variants` / `POST :id/refine` / `PATCH :id` / `POST :id/suggest-schedule` + service-methodes (~635 regels) gesloopt. `refine` was de laatste write-path naar `campaigns.filly_variants` → mig-0043-kolom-cleanup nu onblokkeerd.
+
 ### 2026-06-17 — Publieke site: kennishub "De marketing cocktail", home-sectie "Waarom het werkt" + eyebrow-consistentie
 
 Visuele ronde op de publieke site (live op **www.get-filly.com**), in losse branches vanaf `main` gebouwd en per onderdeel gepusht.
