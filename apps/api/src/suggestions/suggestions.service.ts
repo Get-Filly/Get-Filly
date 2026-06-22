@@ -2132,6 +2132,17 @@ Maak dit tastbaar volgens de regels.`;
         // join op concept-detail.
         ai_suggestion_id: suggestion.id,
         social_platforms: socialPlatforms,
+        // Filly's gekozen moment + reden uit het voorstel bewaren zodat
+        // de "Wanneer plaatsen"-card "Filly stelt voor … omdat …" toont.
+        suggested_scheduled_for:
+          typeof (sc as { scheduled_for?: string }).scheduled_for === 'string'
+            ? (sc as { scheduled_for?: string }).scheduled_for
+            : null,
+        suggested_scheduled_reasoning:
+          typeof (sc as { scheduled_reasoning?: string })
+            .scheduled_reasoning === 'string'
+            ? (sc as { scheduled_reasoning?: string }).scheduled_reasoning
+            : null,
       },
       userId,
     );
@@ -2313,6 +2324,15 @@ Maak dit tastbaar volgens de regels.`;
           ai_suggestion_id: suggestion.id,
           social_platforms:
             campaignType === 'social' ? [channel.platform] : undefined,
+          // Per-kanaal Filly-moment + reden bewaren voor de
+          // "Wanneer plaatsen"-card.
+          suggested_scheduled_for: channel.scheduled_for ?? null,
+          suggested_scheduled_reasoning:
+            typeof (channel as { scheduled_reasoning?: string })
+              .scheduled_reasoning === 'string'
+              ? (channel as { scheduled_reasoning?: string })
+                  .scheduled_reasoning
+              : null,
         },
         userId,
       );
