@@ -612,8 +612,8 @@ export default function CampagnesPage() {
     }
   };
 
-  // Default kanalen bij bundle-approve. Sinds 2026-06-02 ondersteunt de
-  // approve-bundle alle 5 chat-kanalen; we geven ze allemaal mee en de
+  // Default kanalen bij bundle-approve. Sinds 2026-06-22 ondersteunt de
+  // approve-bundle alle 6 chat-kanalen; we geven ze allemaal mee en de
   // backend maakt alleen de kanalen die daadwerkelijk in de bundel zitten.
   const DEFAULT_BUNDLE: BundleChannel[] = [
     "mail",
@@ -621,6 +621,7 @@ export default function CampagnesPage() {
     "facebook",
     "whatsapp",
     "google_business",
+    "tiktok",
   ];
 
   // Goedkeur: voorstel → concept. Niet voor campaign-items.

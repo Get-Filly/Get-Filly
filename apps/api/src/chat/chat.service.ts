@@ -98,6 +98,8 @@ export type CampaignBundleCard = {
     facebook?: { caption: string };
     whatsapp?: { body: string };
     google_business?: { body: string };
+    // TikTok-video: caption + hashtags (zelfde shape als Instagram).
+    tiktok?: { caption: string; hashtags?: string[] };
   };
   // Status van onderliggende ai_suggestion + group-id na approve.
   suggestion_status?: string;
@@ -1636,6 +1638,7 @@ export type ParsedBundle = {
     facebook?: BundleSocialContent;
     whatsapp?: BundleTextContent;
     google_business?: BundleTextContent;
+    tiktok?: BundleSocialContent;
   };
 };
 
@@ -1718,6 +1721,8 @@ export function extractCampaignBundle(
     if (whatsapp) out.whatsapp = whatsapp;
     const googleBusiness = sanitizeBundleText(channels.google_business);
     if (googleBusiness) out.google_business = googleBusiness;
+    const tiktok = sanitizeBundleSocial(channels.tiktok);
+    if (tiktok) out.tiktok = tiktok;
 
     // Een bundel is per definitie multi-kanaal: minimaal 2 geldige
     // kanalen. Bij minder behandelen we 'm niet als bundel (dan had Filly

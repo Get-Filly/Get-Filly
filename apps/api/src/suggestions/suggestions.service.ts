@@ -177,15 +177,17 @@ const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
   'google_business',
 ];
 
-// Kanalen die een multi-channel-bundel kan bevatten. Bewust géén tiktok:
-// de chat-keuze-kaart biedt deze 5 (sinds 2026-06-02 incl. whatsapp +
-// google_business). Deze union gebruiken approveBundle + de controller.
+// Kanalen die een multi-channel-bundel kan bevatten. Sinds 2026-06-22 ook
+// tiktok (volwaardig campagne-kanaal): de chat-keuze-kaart biedt deze 6
+// (mail/instagram/facebook/whatsapp/google_business/tiktok). Deze union
+// gebruiken approveBundle + de controller.
 export type BundleApproveChannel =
   | 'mail'
   | 'instagram'
   | 'facebook'
   | 'whatsapp'
-  | 'google_business';
+  | 'google_business'
+  | 'tiktok';
 
 // Mapper: SuggestionPlatform → campaigns.type. Specifieke socials gaan
 // naar campaign.type='social' met platforms=[platform] in social_content
@@ -536,7 +538,13 @@ export function ensureChannels(sc: SuggestedCampaign): SuggestionChannel[] {
 // Day-context voor de geleide flow (stap 2 + 3). Gedeeld met de
 // frontend (zie lib/api.ts DayContext).
 export type DayContextChannel = {
-  channel: 'mail' | 'instagram' | 'facebook' | 'whatsapp' | 'google_business';
+  channel:
+    | 'mail'
+    | 'instagram'
+    | 'facebook'
+    | 'whatsapp'
+    | 'google_business'
+    | 'tiktok';
   label: string;
   recommended: boolean;
   note: string;
@@ -1172,7 +1180,7 @@ Inhoudsregels:
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
 ---
-${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
+${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'])}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -1366,16 +1374,17 @@ ${dayContext}`;
         }
       : null;
 
-    // Alleen de kanalen die in de geleide flow zinvol zijn (TikTok
-    // bewust weggelaten — zelden de eerste keuze voor horeca). Bereik
-    // bepaalt de voorselectie; is er nergens bereik, dan vinken we
-    // mail + Instagram als verstandige default voor.
+    // De kanalen die in de geleide flow aangeboden worden. Sinds
+    // 2026-06-22 ook TikTok (volwaardig kanaal). Bereik bepaalt de
+    // voorselectie; is er nergens bereik, dan vinken we mail + Instagram
+    // als verstandige default voor.
     const REACH_LABEL: Record<string, string> = {
       mail: 'Mail',
       instagram: 'Instagram',
       facebook: 'Facebook',
       whatsapp: 'WhatsApp',
       google_business: 'Google Business',
+      tiktok: 'TikTok',
     };
     const surfaced = reach.filter((r) => r.channel in REACH_LABEL);
     const anyReach = surfaced.some((r) => r.connected);
@@ -1609,7 +1618,7 @@ Inhoudsregels:
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
 ---
-${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp'])}
+${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'])}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -2440,6 +2449,7 @@ Maak dit tastbaar volgens de regels.`;
     facebookCampaignId: string | null;
     whatsappCampaignId: string | null;
     googleBusinessCampaignId: string | null;
+    tiktokCampaignId: string | null;
   }> {
     const suggestion = await this.findById(restaurantId, suggestionId);
 
@@ -2482,6 +2492,7 @@ Maak dit tastbaar volgens de regels.`;
           facebookCampaignId: campaignIds.facebook ?? null,
           whatsappCampaignId: campaignIds.whatsapp ?? null,
           googleBusinessCampaignId: campaignIds.google_business ?? null,
+          tiktokCampaignId: campaignIds.tiktok ?? null,
         };
       }
     }
@@ -2505,6 +2516,7 @@ Maak dit tastbaar volgens de regels.`;
             facebook?: { caption?: string };
             whatsapp?: { body?: string };
             google_business?: { body?: string };
+            tiktok?: { caption?: string; hashtags?: string[] };
           };
         }
       | null;
@@ -2527,6 +2539,7 @@ Maak dit tastbaar volgens de regels.`;
     if (ch.facebook?.caption?.trim()) available.push('facebook');
     if (ch.whatsapp?.body?.trim()) available.push('whatsapp');
     if (ch.google_business?.body?.trim()) available.push('google_business');
+    if (ch.tiktok?.caption?.trim()) available.push('tiktok');
 
     // Gevraagde kanalen = de vinkjes van de eigenaar, gefilterd op wat de
     // payload bevat. Niets meegegeven → alle beschikbare kanalen.
@@ -2629,6 +2642,20 @@ Maak dit tastbaar volgens de regels.`;
           userId,
         );
         campaignIds.google_business = id;
+      } else if (channel === 'tiktok' && ch.tiktok) {
+        const { id } = await this.campaigns.create(
+          restaurantId,
+          {
+            name: `${bundleName}, TikTok`,
+            type: 'social',
+            body: ch.tiktok.caption!.trim(),
+            social_platforms: ['tiktok'],
+            social_hashtags: ch.tiktok.hashtags ?? [],
+            group_id: groupId,
+          },
+          userId,
+        );
+        campaignIds.tiktok = id;
       }
     }
 
@@ -2641,6 +2668,7 @@ Maak dit tastbaar volgens de regels.`;
       campaignIds.facebook ??
       campaignIds.whatsapp ??
       campaignIds.google_business ??
+      campaignIds.tiktok ??
       null;
 
     const { data: updated, error: updateErr } = await this.supabase.client
@@ -2667,6 +2695,7 @@ Maak dit tastbaar volgens de regels.`;
       facebookCampaignId: campaignIds.facebook ?? null,
       whatsappCampaignId: campaignIds.whatsapp ?? null,
       googleBusinessCampaignId: campaignIds.google_business ?? null,
+      tiktokCampaignId: campaignIds.tiktok ?? null,
     };
   }
 
@@ -2689,6 +2718,7 @@ Maak dit tastbaar volgens de regels.`;
       if (platforms?.includes('instagram')) return 'instagram';
       if (platforms?.includes('facebook')) return 'facebook';
       if (platforms?.includes('google_business')) return 'google_business';
+      if (platforms?.includes('tiktok')) return 'tiktok';
     }
     return null;
   }

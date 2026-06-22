@@ -40,7 +40,8 @@ export type ChannelChoice =
   | "instagram"
   | "facebook"
   | "whatsapp"
-  | "google_business";
+  | "google_business"
+  | "tiktok";
 
 type Props = {
   card: ChannelChoiceCard;
@@ -67,6 +68,8 @@ const OPTIONS: Array<{
   // qua bereik. Bundle-handling nog niet beschikbaar, dus splitten we
   // 'm af bij multi-select (zie comment hierboven).
   { key: "google_business", icon: "📍", labelKey: "options.googleBusiness.label", hintKey: "options.googleBusiness.hint" },
+  // TikTok: korte video-post. Sinds 2026-06-22 volwaardig kanaal.
+  { key: "tiktok", icon: "🎵", labelKey: "options.tiktok.label", hintKey: "options.tiktok.hint" },
 ];
 
 export function FillyChatChoiceCard({
@@ -84,6 +87,7 @@ export function FillyChatChoiceCard({
     facebook: false,
     whatsapp: false,
     google_business: false,
+    tiktok: false,
   });
 
   const disabled = state !== "pending";
@@ -99,6 +103,7 @@ export function FillyChatChoiceCard({
     "facebook",
     "whatsapp",
     "google_business",
+    "tiktok",
   ];
   const chosenList: ChannelChoice[] = allKeys.filter((c) => selected[c]);
   const chosenCount = chosenList.length;
@@ -116,6 +121,7 @@ export function FillyChatChoiceCard({
       facebook: newValue,
       whatsapp: newValue,
       google_business: newValue,
+      tiktok: newValue,
     });
   };
 

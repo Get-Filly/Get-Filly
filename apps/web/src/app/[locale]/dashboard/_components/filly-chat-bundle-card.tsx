@@ -52,6 +52,7 @@ const CHANNEL_META: { key: BundleChannel; icon: string; label: string }[] = [
   { key: "facebook", icon: "📘", label: "Facebook" },
   { key: "whatsapp", icon: "💬", label: "WhatsApp" },
   { key: "google_business", icon: "📍", label: "Google Business" },
+  { key: "tiktok", icon: "🎵", label: "TikTok" },
 ];
 
 type Props = {
@@ -375,6 +376,38 @@ function renderChannelContent(
   }
   if (key === "facebook" && ch.facebook) {
     return <div style={bodyStyle}>{ch.facebook.caption}</div>;
+  }
+  if (key === "tiktok" && ch.tiktok) {
+    return (
+      <>
+        <div style={bodyStyle}>{ch.tiktok.caption}</div>
+        {ch.tiktok.hashtags && ch.tiktok.hashtags.length > 0 && (
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 4,
+            }}
+          >
+            {ch.tiktok.hashtags.map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 11,
+                  color: "var(--brand, #1F4A2D)",
+                  background: "white",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </>
+    );
   }
   if (key === "whatsapp" && ch.whatsapp) {
     return <div style={bodyStyle}>{ch.whatsapp.body}</div>;

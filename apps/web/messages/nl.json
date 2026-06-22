@@ -2816,6 +2816,10 @@
       "googleBusiness": {
         "label": "Google Business",
         "hint": "Post op je profiel"
+      },
+      "tiktok": {
+        "label": "TikTok",
+        "hint": "Korte video"
       }
     }
   },

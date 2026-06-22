@@ -1307,7 +1307,13 @@ export type GenerateForDatesItem = {
 // Day-context voor de geleide chat-flow (stap 2 + 3). Spiegelt
 // DayContext in apps/api suggestions.service.ts.
 export type DayContextChannel = {
-  channel: "mail" | "instagram" | "facebook" | "whatsapp" | "google_business";
+  channel:
+    | "mail"
+    | "instagram"
+    | "facebook"
+    | "whatsapp"
+    | "google_business"
+    | "tiktok";
   label: string;
   recommended: boolean;
   note: string;
@@ -1409,7 +1415,8 @@ export type BundleChannel =
   | "instagram"
   | "facebook"
   | "whatsapp"
-  | "google_business";
+  | "google_business"
+  | "tiktok";
 
 export type ApproveBundleResult = {
   suggestion: AiSuggestion;
@@ -1422,6 +1429,7 @@ export type ApproveBundleResult = {
   facebookCampaignId: string | null;
   whatsappCampaignId: string | null;
   googleBusinessCampaignId: string | null;
+  tiktokCampaignId: string | null;
 };
 
 export async function approveBundleSuggestion(
@@ -2299,6 +2307,7 @@ export type CampaignBundleCard = {
     facebook?: { caption: string };
     whatsapp?: { body: string };
     google_business?: { body: string };
+    tiktok?: { caption: string; hashtags?: string[] };
   };
   suggestion_status?: "pending" | "approved" | "rejected" | "expired";
   approved_group_id?: string | null;

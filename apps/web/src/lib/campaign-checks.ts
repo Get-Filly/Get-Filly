@@ -62,18 +62,25 @@ export const PLATFORM_LABEL: Record<string, string> = {
   google_business: "Google Business",
 };
 
-// Voor de approve-bundle-API: sinds 2026-06-02 ondersteunt de bundle alle
-// 5 chat-kanalen (mail/instagram/facebook/whatsapp/google_business).
-// TikTok heeft (nog) geen bundle-pad → null.
+// Voor de approve-bundle-API: sinds 2026-06-22 ondersteunt de bundle alle
+// 6 chat-kanalen (mail/instagram/facebook/whatsapp/google_business/tiktok).
 export function toBundleChannel(
   platform: string,
-): "mail" | "instagram" | "facebook" | "whatsapp" | "google_business" | null {
+):
+  | "mail"
+  | "instagram"
+  | "facebook"
+  | "whatsapp"
+  | "google_business"
+  | "tiktok"
+  | null {
   if (
     platform === "mail" ||
     platform === "instagram" ||
     platform === "facebook" ||
     platform === "whatsapp" ||
-    platform === "google_business"
+    platform === "google_business" ||
+    platform === "tiktok"
   ) {
     return platform;
   }

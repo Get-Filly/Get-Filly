@@ -199,20 +199,27 @@ export class SuggestionsController {
     body:
       | {
           channels?: Array<
-            'mail' | 'instagram' | 'facebook' | 'whatsapp' | 'google_business'
+            | 'mail'
+            | 'instagram'
+            | 'facebook'
+            | 'whatsapp'
+            | 'google_business'
+            | 'tiktok'
           >;
         }
       | undefined,
   ) {
     // Frontend stuurt 'channels' vanuit de checkboxes mee; ongeselecteerde
     // kanalen worden niet aangemaakt. Sinds 2026-06-02 ook whatsapp +
-    // google_business. Validatie van de waardes gebeurt in de service.
+    // google_business, sinds 2026-06-22 ook tiktok. Validatie van de
+    // waardes gebeurt in de service.
     const allowedBundleChannels = [
       'mail',
       'instagram',
       'facebook',
       'whatsapp',
       'google_business',
+      'tiktok',
     ] as const;
     const validChannels = (body?.channels ?? []).filter(
       (c): c is (typeof allowedBundleChannels)[number] =>
