@@ -39,8 +39,8 @@ export function hreflangFor(path: string): Record<string, string> {
 }
 
 // Canonieke productie-URL. Eén plek aanpassen als het domein wijzigt.
-// www is de officiële variant; get-filly.com (apex) hoort hier 301 naartoe
-// te redirecten (instellen in Vercel → Project → Domains).
+// www is de officiële variant; get-filly.com (apex) redirect hier met 308
+// naartoe, afgehandeld in code via `next.config.ts` `redirects()` (host-match).
 export const SITE_URL = "https://www.get-filly.com";
 export const SITE_NAME = "Get-Filly";
 

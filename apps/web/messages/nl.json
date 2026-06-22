@@ -754,11 +754,11 @@
     "modal": {
       "title": "Campagne terugzetten",
       "phaseLabel": "Naar welke fase?",
-      "statusConcept": "Concept — verder bewerken",
-      "statusScheduled": "Ingepland — klaar voor de gekozen datum",
-      "statusActive": "Actief — direct versturen op gekozen datum",
+      "statusConcept": "Concept, verder bewerken",
+      "statusScheduled": "Ingepland, klaar voor de gekozen datum",
+      "statusActive": "Actief, direct versturen op gekozen datum",
       "datetimeLabel": "Nieuwe datum + tijdstip",
-      "datetimeHint": "Moet in de toekomst liggen — vandaag op een later tijdstip mag ook.",
+      "datetimeHint": "Moet in de toekomst liggen, vandaag op een later tijdstip mag ook.",
       "cancel": "Annuleren",
       "submit": "Terugzetten"
     },
@@ -995,11 +995,11 @@
       "title": "Meldingen",
       "desc": "Bepaal wanneer reviews en rustige dagen als actie verschijnen op je campagnes-pagina.",
       "reviewThresholdLabel": "Reviews onder of gelijk aan deze sterren-rating tonen als actie",
-      "reviewStar1": "★☆☆☆☆ – Alleen 1-ster reviews",
-      "reviewStar2": "★★☆☆☆ – 1 en 2 sterren",
-      "reviewStar3": "★★★☆☆ – 1 t/m 3 sterren",
-      "reviewStar4": "★★★★☆ – 1 t/m 4 sterren",
-      "reviewStar5": "★★★★★ – Alle reviews",
+      "reviewStar1": "★☆☆☆☆, Alleen 1-ster reviews",
+      "reviewStar2": "★★☆☆☆, 1 en 2 sterren",
+      "reviewStar3": "★★★☆☆, 1 t/m 3 sterren",
+      "reviewStar4": "★★★★☆, 1 t/m 4 sterren",
+      "reviewStar5": "★★★★★, Alle reviews",
       "reviewThresholdHint": "Reviews die nog geen reactie hebben en onder deze drempel vallen, verschijnen automatisch in “Overige acties”. Standaard is 3 sterren, zodat alleen echte problemen je aandacht vragen.",
       "occupancyThresholdLabel": "Bezetting onder deze drempel telt als rustige dag",
       "below": "Onder {pct}%",
@@ -1318,7 +1318,7 @@
       "goThere": "→ ga er heen"
     },
     "overview": {
-      "noActions": "🎉 Geen actiepunten — alles ziet er goed uit.",
+      "noActions": "🎉 Geen actiepunten, alles ziet er goed uit.",
       "actionsThatRaise": "Acties die je score verhogen ({count})"
     },
     "competitors": {
@@ -2579,8 +2579,8 @@
     "title": "Missende aspecten",
     "legendRequired": "vereist",
     "legendOptional": "optioneel",
-    "tooltipRequired": "Vereist — klik om in te vullen",
-    "tooltipOptional": "Optioneel — klik om in te vullen"
+    "tooltipRequired": "Vereist, klik om in te vullen",
+    "tooltipOptional": "Optioneel, klik om in te vullen"
   },
   "dash__components_campaign_detail_waarom_card": {
     "title": "Waarom dit voorstel"
@@ -2884,7 +2884,7 @@
     },
     "angles": {
       "loading": "Filly kijkt wat er die dag kan…",
-      "question": "Voor {day} — waarop wil je inspelen?",
+      "question": "Voor {day}, waarop wil je inspelen?",
       "thatDay": "die dag",
       "fillyChoose": "Laat Filly de sterkste hoek kiezen",
       "fastest": "snelste",
@@ -3129,7 +3129,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly — Meer gasten. Minder lege momenten.",
+      "title": "Get-Filly. Meer gasten. Minder lege momenten.",
       "description": "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines."
     },
     "product": {

@@ -70,7 +70,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟡 Modals missen `aria-labelledby`; klikbare kaarten geen focus-ring.
 - [ ] 🟡 Concept-werk verloren bij weg-navigeren (review-reply) + geen succes-toast na goedkeuren → sessionStorage-autosave + toast met undo.
 - [ ] 🟡 Campagne-detail: inconsistente actie-labels ("Terugtrekken" vs "Terug naar concept"), geen tijdzone-hint bij plan-veld, geen onopgeslagen-markering op de kanaal-tab.
-- [ ] 🟢 Em-dashes / `&mdash;` / `&middot;` in `onboarding`/`product`/`about` TSX (strijdig met "geen AI-streepjes") → scannen + vervangen.
+- [x] ~~🟢 Em-dashes / `&mdash;` / `&middot;` in zichtbare copy~~ (✅ 2026-06-22) — sinds i18n staat de copy in `messages/{nl,en}.json`; 20 strings met em/en-dash opgeschoond volgens dezelfde regel als `naturalizeDashes` (dash → komma), brand-titel met punt. TSX-treffers waren enkel code-comments (niet zichtbaar) → ongemoeid.
 
 ### ⚙️ Backend
 - [x] ~~🔴 **Schema-drift**: migratie 0044 ontbrak als `.sql`~~ (✅ 2026-06-22) — toegevoegd als `0044_restaurant_identity_extension.sql`. 0039 = bewust gereserveerd gat (geen migratie), 0056/0057 bestonden al → de reeks is nu sluitend t/m 0059 op één bewust gat (0039) na.
@@ -83,7 +83,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟢 ~62 zwakke types (`any`/`as`/`Record<string,unknown>`) in `apps/api` → per-tabel rij-types of lichte zod-validatie bij het inlezen.
 - [ ] 🟢 Schedule-suggestie-cache zonder TTL/invalidatie → leegmaken bij statuswissel (concept→ingepland).
 - [ ] 🟢 `findBundle` N+1 (per kanaal `findById`) — **(bevestigd, al P1)** → batch-`IN`-query.
-- [ ] 🟢 Doc/comment 301 vs 308 bij apex→www (code = 308, correct) → comments/CLAUDE.md gelijktrekken op 308.
+- [x] ~~🟢 Doc/comment 301 vs 308 bij apex→www~~ (✅ 2026-06-22) — CLAUDE.md (2×) + `config/seo.ts`-comment gelijkgetrokken op 308 + verduidelijkt dat het in code via `next.config.ts` `redirects()` gebeurt (niet in Vercel Domains).
 
 ### 🔒 Beveiligingen
 - [x] ~~🔴 **AuthGuard niet globaal (allow-by-default)**~~ (✅ 2026-06-18) — nu APP_GUARD deny-by-default; 5 publieke controllers @Public(), lokaal geverifieerd.
