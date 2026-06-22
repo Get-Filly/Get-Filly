@@ -43,7 +43,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟡 Dode/dubbele CSS: `.features::before` 2×, `.about-hero-grid` 3×, `.about-mv` 2× → opruimen.
 - [ ] 🟡 Breakpoint-sprawl (560/640/720/760/820/860/880/980; blog 860 ≠ nav 880) → consolideren naar 880/640/480.
 - [ ] 🟡 `font-weight: 800` buiten de schaal + 113 raw weights + ~50 hardcoded brand/status-hex → `--font-weight-*` / `--color-*`.
-- [ ] 🟢 Logo nav 44px vs footer 35px + dode `.nav-logo-mark`-selector; kaart-radii driften 12/16/20/24/32 → radius-tokens.
+- [~] 🟢 Logo nav 44px vs footer 35px + dode `.nav-logo-mark`-selector; kaart-radii driften 12/16/20/24/32 → radius-tokens. **(deels ✅ 2026-06-22)** — dode `.nav-logo-mark`-selector verwijderd. Logo-groottes bewust níet gelijkgetrokken (header > footer is een normale design-keuze, geen bug). Kaart-radii-tokens nog open.
 
 **Dashboard — UI**
 - [ ] 🔴 `campaign-send-modal.tsx` volledig inline-styled mét niet-bestaande var-namen + foute hex-fallbacks (`var(--danger,#B3261E)`, `var(--tl,#6B6F71)`) → bestaande `.sg-modal` hergebruiken.
@@ -81,7 +81,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟡 Multi-channel status-transitie zonder rollback — **(bevestigd, al P1)**.
 - [ ] 🟡 Legacy `FORMAAT`-parsers + dead-code-kolommen (`filly_variants` e.d.) + dode API-functies — **(bevestigd, al P1 + Filly-audit #7)**.
 - [ ] 🟢 ~62 zwakke types (`any`/`as`/`Record<string,unknown>`) in `apps/api` → per-tabel rij-types of lichte zod-validatie bij het inlezen.
-- [ ] 🟢 Schedule-suggestie-cache zonder TTL/invalidatie → leegmaken bij statuswissel (concept→ingepland).
+- [x] ~~🟢 Schedule-suggestie-cache zonder TTL/invalidatie~~ (✅ achterhaald 2026-06-22) — niet meer van toepassing: de generator (`suggestSchedule` + `POST /:id/suggest-schedule`) is bij de mig-0043-opschoning verwijderd (zat aan het oude refine-paneel vast), dus `suggested_scheduled_for`/`_reasoning` worden nergens meer geschreven — geen cache meer om te invalideren. **NB:** Filly's *automatische* tijdsuggestie is daarmee de facto uit; de "Wanneer plaatsen"-card werkt nog handmatig (default + zelf zetten via `setCampaignSchedule`). De twee kolommen zijn nu dead-on-write → kandidaat voor een latere kolom-drop. Filly-auto-suggestie terugwillen = aparte re-wire.
 - [ ] 🟢 `findBundle` N+1 (per kanaal `findById`) — **(bevestigd, al P1)** → batch-`IN`-query.
 - [x] ~~🟢 Doc/comment 301 vs 308 bij apex→www~~ (✅ 2026-06-22) — CLAUDE.md (2×) + `config/seo.ts`-comment gelijkgetrokken op 308 + verduidelijkt dat het in code via `next.config.ts` `redirects()` gebeurt (niet in Vercel Domains).
 
@@ -291,7 +291,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**Mig 0043 → 0060: DB-schema cleanup**~~ (✅ 2026-06-22, code-stap) — laatste write-paden naar `campaigns.filly_variants`/`_regen_count`/`variant_applied_at` verwijderd (de create-seed + de hele `seed_variants`-keten in `campaigns.service`/`suggestions.service`) + de twee `variant_applied_at`-typevelden (api + web). Niets leest/schrijft de kolommen nog (`reviews.*`-kolommen blijven, andere tabel). Drop-migratie `0060_drop_campaign_filly_variants.sql` klaargezet. ⚠️ **Volgorde**: eerst deze code live, dán de DROP-SQL draaien (expand/contract).
 
 **Polish (nice-to-have):**
-- [ ] **Approve-redirects consistent** — "Direct inplannen" + `approveBundleSuggestion` (chat_bundle) navigeren nu naar `/campagnes` (kanban). Voor consistentie: naar `/campagnes/${anchorCampaignId}` zodat eigenaar de net-gemaakte campagne meteen ziet.
+- [x] ~~**Approve-redirects consistent**~~ (✅ al gedaan, bevestigd 2026-06-22) — de approve-handlers in `campagnes/page.tsx` (regels ~636/687) én de single-channel approve in `voorstel/[id]` (567) redirecten al naar `/dashboard/campagnes/${campaignId}`. Alleen reject/delete + multi-channel-bundle gaan bewust naar de kanban (bij een bundle is er geen één-correct detail-page).
 - [ ] **Variant-delete knop** — eigenaar kan via "Genereer 3 nieuwe" tot 6 versies opbouwen, daarna zit-ie vast. Voeg ✕-knop op alternatief-blokken (alleen op concept) toe → `DELETE /campaigns/:id/variants/:idx`.
 - [ ] **`findBundle` N+1 → batch** — per content-tabel 1 SELECT met `IN (campaign_ids)` ipv `findById` per kanaal. Geen blocker voor 1-5 kanalen, wel voor toekomstige >10-kanaal-bundles. **Check 2026-06-11:** draait inmiddels parallel via `Promise.all` (scheelt wall-clock), maar nog steeds `findById` per kanaal — de batch-`IN`-query blijft de echte fix.
 - [ ] **KanalenCard add/remove voor concept-bundles** — staat nu `canEdit=false` omdat de backend geen "add channel to bundle"-endpoint heeft. Vereist nieuw `POST /campaigns/bundle/:id/channels` dat een nieuwe campaign in dezelfde group_id aanmaakt.

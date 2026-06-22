@@ -121,12 +121,6 @@ body {
   text-decoration: none;
 }
 
-.nav-logo-mark {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-}
-
 .nav-links {
   display: flex;
   align-items: center;
