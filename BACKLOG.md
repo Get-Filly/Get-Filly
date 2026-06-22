@@ -468,35 +468,40 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [ ] **FB Events i.p.v. posts** (hfst 16.4) — Filly maakt FB-event-objecten i.p.v. post-objecten voor events.
 - [ ] **Auto-DM-templates voor UGC-toestemming** (hfst 13.4) — Filly stuurt pre-fab DM via Meta API.
 
-#### TikTok OAuth + posten (Login Kit + Content Posting API) — IN UITVOERING (branch `feat/tiktok-oauth`)
-Doel: TikTok-account koppelen + content als concept naar de TikTok-inbox sturen
-(de eigenaar publiceert vanuit de TikTok-app). Spiegelt het Meta/Google-OAuth-
-patroon (`integration_credentials` + `token-crypto.service` + `oauth/<provider>/*`).
-Demovideo-script (de TikTok-app-review-vereiste) staat in
-`~/Downloads/Demovideo TikTok script.docx`.
+#### TikTok OAuth + posten (Login Kit + Content Posting API) — CODE LIVE op main (2026-06-22)
+Doel: TikTok-account koppelen + video posten via **Direct Post** (`video.publish`).
+**LET OP — gewijzigd 2026-06-22:** Floris wil **Direct Post**, NIET de inbox/
+concept-route. De video wordt dus direct op het account gepost (privacy-niveau
+bepaalt zichtbaarheid), niet als concept naar de inbox gestuurd.
+⚠️ Gevolgen: (1) het **demovideo-script** beschrijft nog de inbox-flow → moet
+herschreven worden naar Direct Post. (2) Een **onaudited app kan alleen
+`SELF_ONLY` (privé)** posten; publiek pas na app-review. (3) Direct Post is
+strenger in review.
+Demovideo-script: `~/Downloads/Demovideo TikTok script.docx`.
 
 **Floris — TikTok Developer Portal (developers.tiktok.com):**
-- [ ] App aanmaken → Client Key + Client Secret (→ Vercel `get-filly-api` env:
-  `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`).
+- [x] ~~App + Client Key/Secret~~ (keys staan in Vercel).
 - [ ] Producten: *Login Kit* + *Content Posting API*. Scopes: `user.info.basic`
-  + `video.upload` (inbox/concept; lichter dan direct `video.publish`).
+  + **`video.publish`** (Direct Post).
 - [ ] Redirect URI: `https://www.get-filly.com/oauth/tiktok/callback` (exacte match).
-- [ ] Domein-verificatie `get-filly.com` (nodig voor PULL_FROM_URL-upload).
-- [ ] Sandbox + testaccount; daarna demovideo opnemen + app-review indienen.
+- [ ] Domein-verificatie `get-filly.com` (nodig voor PULL_FROM_URL).
+- [ ] Sandbox + testaccount; daarna demovideo (Direct Post-flow!) + app-review.
 
 **Wij — code (mirror Meta):**
 - [x] ~~Frontend `oauth/tiktok/{start,callback}/route.ts`~~ (✅ fase 1) — state-cookie + CSRF.
 - [x] ~~Api `tiktok/`-module: token-exchange + refresh, opslag in
   `integration_credentials` (provider `tiktok`), `user.info.basic`~~ (✅ fase 1).
 - [x] ~~`account-connections.tsx`: TikTok van "binnenkort" → "Verbind"~~ (✅ fase 1).
-- [x] ~~**Compliant upload-scherm**~~ (✅ fase 2) — `TikTokUploadPanel` op
+- [x] ~~**Compliant upload-scherm**~~ (✅) — `TikTokUploadPanel` op
   `dashboard/marketing/tiktok`, met de 3 audit-UX-elementen (creator-info,
-  commercial-content-disclosure-toggle, music-usage-consent). NB bij de
-  inbox/concept-route zet de creator de disclosure-metadata zelf in de
-  TikTok-app; onze UI tóónt de elementen (audit-vereiste).
-- [x] ~~Inbox-upload via Content Posting API~~ (✅ fase 2) — `getValidAccessToken`
-  (refresh-on-use) + `creator_info/query` + `inbox/video/init` (PULL_FROM_URL).
-  Endpoints `GET creator-info` / `POST upload`.
+  commercial-content-disclosure-toggle, music-usage-consent) + **titel-veld +
+  privacy-selector** (Direct Post-vereisten; opties uit `creator_info`,
+  onaudited default `SELF_ONLY`). De disclosure-toggles worden meegestuurd
+  (`brand_organic_toggle`/`brand_content_toggle`).
+- [x] ~~Posten via Content Posting API~~ (✅, **Direct Post** sinds 2026-06-22) —
+  `getValidAccessToken` (refresh-on-use) + `creator_info/query` +
+  **`post/publish/video/init`** (PULL_FROM_URL) met `post_info`. Endpoints
+  `GET creator-info` / `POST upload`.
 - [x] ~~**Media via get-filly.com-route (PULL_FROM_URL-glue)**~~ (✅) — Vercel-
   rewrite `/media/r/:path*` → publieke restaurant-media-bucket (transparant,
   geen redirect → domein blijft get-filly.com); MediaLibraryPicker in het
