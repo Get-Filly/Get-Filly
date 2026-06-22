@@ -300,7 +300,7 @@ export default async function HomePage({
               op de visual-plek blijven voor nu; Floris vervangt
               foto's later met pijler-specifieke beelden (bv. Google-
               Maps listing voor Vindbaarheid). */}
-          <h2 className="section-title">Meer gasten.<br />Volle tafels. Automatisch.</h2>
+          <h2 className="section-title">{t.rich("pillars.sectionTitle", { br: () => <br /> })}</h2>
           {/* Activeert de site-brede scroll-reveal (data-reveal) op de
               pijler-visuals: 1× omhoog-faden bij in beeld, identiek aan
               de rest van de pagina. */}
@@ -314,17 +314,14 @@ export default async function HomePage({
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">
-                  <span>Vindbaarheid</span>
+                  <span>{t("pillars.findability.eyebrow")}</span>
                 </p>
-                <h3 className="feature-row-title">Gevonden worden begint hier.</h3>
-                <p className="feature-row-desc">Gasten zoeken online voordat ze reserveren. Wij zorgen dat jouw restaurant bovenaan staat in zoekmachines.</p>
+                <h3 className="feature-row-title">{t("pillars.findability.title")}</h3>
+                <p className="feature-row-desc">{t("pillars.findability.desc")}</p>
                 <ul className="feature-bullets">
-                  <li>Google Business altijd up-to-date met actuele tijden, foto&rsquo;s en beschrijving</li>
-                  <li>Reviews automatisch beantwoord in de tone-of-voice van het restaurant</li>
-                  <li>SEO zodat je gevonden wordt op zoekopdrachten in jouw buurt</li>
-                  <li>GEO-optimalisatie voor AI-zoekmachines zoals ChatGPT, Claude en Gemini</li>
-                  <li>Zoekwoordstrategie afgestemd op jouw type restaurant en locatie</li>
-                  <li>Live dashboard met rapportage over jouw zichtbaarheid in zoekmachines</li>
+                  {(t.raw("pillars.findability.bullets") as string[]).map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
                 </ul>
               </div>
               <div className="feature-row-visual">
@@ -340,18 +337,14 @@ export default async function HomePage({
             <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">
-                  <span>Zichtbaarheid</span>
+                  <span>{t("pillars.visibility.eyebrow")}</span>
                 </p>
-                <h3 className="feature-row-title">Blijf in beeld. Ook als ze niet reserveren.</h3>
-                <p className="feature-row-desc">Gasten die jou kennen maar nog niet hebben gereserveerd, heb je nodig op stille avonden. Wij zorgen dat jij top of mind blijft via sociale media, automatisch en in jouw stijl.</p>
+                <h3 className="feature-row-title">{t("pillars.visibility.title")}</h3>
+                <p className="feature-row-desc">{t("pillars.visibility.desc")}</p>
                 <ul className="feature-bullets">
-                  <li>Automatische contentplanning voor Instagram, Facebook en TikTok op basis van jouw bezettingsdata</li>
-                  <li>AI-gegenereerde content volledig in de stijl en toon van jouw restaurant</li>
-                  <li>Strategische timing gebaseerd op data, meer zichtbaarheid op dagen dat het rustig is</li>
-                  <li>Suggesties voor stories en reels afgestemd op jouw regio en doelgroep</li>
-                  <li>Alles white-label, gasten zien jouw naam, niet die van Get-Filly</li>
-                  <li>Jij keurt elk bericht goed voordat het verstuurd wordt</li>
-                  <li>Live dashboard rapportage over bereik, engagement en doorkliks</li>
+                  {(t.raw("pillars.visibility.bullets") as string[]).map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
                 </ul>
               </div>
               <div className="feature-row-visual">
@@ -366,16 +359,14 @@ export default async function HomePage({
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">
-                  <span>Bereikbaarheid</span>
+                  <span>{t("pillars.reachability.eyebrow")}</span>
                 </p>
-                <h3 className="feature-row-title">De juiste boodschap. Op het juiste moment. Bij de juiste gast.</h3>
-                <p className="feature-row-desc">Jouw bestaande gasten zijn de makkelijkste manier om lege tafels te vullen. Wij bereiken hen automatisch via e-mail en WhatsApp op het moment dat jouw bezetting het nodig heeft.</p>
+                <h3 className="feature-row-title">{t("pillars.reachability.title")}</h3>
+                <p className="feature-row-desc">{t("pillars.reachability.desc")}</p>
                 <ul className="feature-bullets">
-                  <li>Automatische e-mailcampagnes op basis van real-time bezettingsdata</li>
-                  <li>WhatsApp-campagnes met hoge openratio voor last-minute reserveringen</li>
-                  <li>Gepersonaliseerde berichten in de tone-of-voice van het restaurant</li>
-                  <li>Segmentatie op vaste gasten, nieuwe gasten en slapende gasten</li>
-                  <li>Jij keurt elk bericht goed voordat het verstuurd wordt</li>
+                  {(t.raw("pillars.reachability.bullets") as string[]).map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
                 </ul>
               </div>
               <div className="feature-row-visual">
