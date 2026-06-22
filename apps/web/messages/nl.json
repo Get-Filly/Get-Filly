@@ -266,6 +266,12 @@
     "ctaPricing": "Benieuwd wat het kost? Bekijk <link>de prijzen</link>."
   },
   "auth": {
+    "errors": {
+      "invalidCredentials": "E-mailadres of wachtwoord klopt niet. Probeer het opnieuw.",
+      "emailNotConfirmed": "Je account is nog niet bevestigd. Check je inbox voor de bevestigingsmail.",
+      "rateLimited": "Te veel inlogpogingen. Wacht even en probeer het zo opnieuw.",
+      "generic": "Inloggen lukte niet. Probeer het opnieuw of neem contact met ons op."
+    },
     "fields": {
       "email": "E-mailadres",
       "emailPlaceholder": "naam@restaurant.nl",

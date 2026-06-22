@@ -266,6 +266,12 @@
     "ctaPricing": "Curious what it costs? Check <link>the pricing</link>."
   },
   "auth": {
+    "errors": {
+      "invalidCredentials": "Your email or password is incorrect. Please try again.",
+      "emailNotConfirmed": "Your account isn't confirmed yet. Check your inbox for the confirmation email.",
+      "rateLimited": "Too many login attempts. Please wait a moment and try again.",
+      "generic": "We couldn't sign you in. Please try again or contact us."
+    },
     "fields": {
       "email": "Email address",
       "emailPlaceholder": "name@restaurant.com",

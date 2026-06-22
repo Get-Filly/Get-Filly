@@ -60,7 +60,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🔴 Prijzen-pagina volledig geblurd (`HIDE_PRICING`) en doodlopend → prijs-range of eerlijke uitleg + directe CTA.
 - [ ] 🔴 Geleide campagne-flow stuurt bij 0 resultaten stil naar `/campagnes` → inline-foutstaat, blijf staan.
 - [ ] 🔴 Geen `aria-live` op Filly-antwoorden + "maakt voorstel"-staat → screenreader hoort niets.
-- [ ] 🟡 Login toont rauwe Engelse Supabase-fout → NL-microcopy-mapping.
+- [x] ~~🟡 Login toont rauwe Engelse Supabase-fout~~ (✅ 2026-06-22) — pure mapper `lib/auth-errors.ts` (`authErrorKey`, matcht op Supabase-`code` → message-substring → status 429) + `auth.errors.*`-keys in nl/en; login rendert nu `t(errors.<key>)` i.p.v. `error.message`. 4 gevallen: invalidCredentials / emailNotConfirmed / rateLimited / generic.
 - [x] ~~🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset)~~ (✅ 2026-06-22) — 12 labels gekoppeld via `htmlFor`+`id` op login (2), forgot-password (1), reset-password (2), welkom (2), contact (5). Honeypot omsluit z'n input al (impliciet, aria-hidden) → ongemoeid.
 - [ ] 🟡 Contact-formulier: geen verwachting ("binnen 1 werkdag, vrijblijvend") + "bericht" verplicht → toevoegen + bericht optioneel maken.
 - [ ] 🟡 Inconsistente CTA-labels ("Vraag een demo aan"/"Plan een gratis kennismaking"/"Plan kennismaking") → één label site-breed.
