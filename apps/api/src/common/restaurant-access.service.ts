@@ -1,9 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   type Module,
@@ -103,10 +98,11 @@ export class RestaurantAccessService {
    * Returned rol + permissies als het klopt; gooit 403/404 als niet.
    *
    * Dit is DE poortwachter voor multi-tenant isolatie:
-   *   - User kent geen rij in restaurant_users voor dit restaurant?
-   *     → 403 Forbidden (je mag hier niet zijn).
-   *   - Restaurant bestaat niet?
-   *     → 404 Not Found.
+   *   - Restaurant bestaat niet, OF user heeft er geen koppeling?
+   *     → in BEIDE gevallen 403 Forbidden met dezelfde boodschap.
+   *       Anti-enumeration: een non-member mag niet kunnen afleiden of
+   *       een restaurant-UUID bestaat (anders kun je het ID-bereik
+   *       aftasten op 404 vs 403). Het verschil loggen we server-side.
    *   - Alles klopt? → geef context terug.
    */
   async requireAccess(
@@ -128,7 +124,13 @@ export class RestaurantAccessService {
       throw restErr;
     }
     if (!restaurant) {
-      throw new NotFoundException('Restaurant niet gevonden.');
+      // Anti-enumeration: zelfde 403 + boodschap als de "geen koppeling"-
+      // tak hieronder, zodat een non-member niet kan afleiden of dit
+      // UUID een bestaand restaurant is. Server-side loggen we het wél.
+      this.logger.debug(
+        `requireAccess: restaurant ${restaurantId} bestaat niet — uniforme 403 voor user ${userId}.`,
+      );
+      throw new ForbiddenException('Geen toegang tot dit restaurant.');
     }
 
     // Stap 2: heeft de user een koppeling in restaurant_users?

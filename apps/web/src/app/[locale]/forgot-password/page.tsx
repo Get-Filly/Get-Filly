@@ -77,8 +77,9 @@ export default function ForgotPasswordPage() {
             <p className="login-sub">{t("forgot.intro")}</p>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">{t("fields.email")}</label>
+                <label className="form-label" htmlFor="forgot-email">{t("fields.email")}</label>
                 <input
+                  id="forgot-email"
                   className="form-input"
                   type="email"
                   value={email}

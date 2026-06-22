@@ -25,6 +25,48 @@
     "ctaProduct": "See how it works",
     "whyTitle": "Why it works",
     "whySubtitle": "The numbers don't lie. Better profiles and a steady rhythm mean guests find you online more often.",
+    "pillars": {
+      "sectionTitle": "More guests.<br></br>Full tables. Automatically.",
+      "findability": {
+        "eyebrow": "Findability",
+        "title": "Getting found starts here.",
+        "desc": "Guests search online before they book. We make sure your restaurant ranks at the top in search engines.",
+        "bullets": [
+          "Google Business always up to date with current hours, photos and description",
+          "Reviews answered automatically in your restaurant's tone of voice",
+          "SEO so you get found for searches in your neighbourhood",
+          "GEO optimisation for AI search engines like ChatGPT, Claude and Gemini",
+          "Keyword strategy tailored to your type of restaurant and location",
+          "Live dashboard reporting on your visibility in search engines"
+        ]
+      },
+      "visibility": {
+        "eyebrow": "Visibility",
+        "title": "Stay in sight. Even when they don't book.",
+        "desc": "Guests who know you but haven't booked yet are exactly who you need on quiet evenings. We keep you top of mind on social media, automatically and in your style.",
+        "bullets": [
+          "Automatic content planning for Instagram, Facebook and TikTok based on your occupancy data",
+          "AI-generated content fully in your restaurant's style and tone",
+          "Strategic, data-based timing for more visibility on quiet days",
+          "Suggestions for stories and reels tailored to your region and audience",
+          "Fully white-label, guests see your name, not Get-Filly's",
+          "You approve every message before it goes out",
+          "Live dashboard reporting on reach, engagement and click-throughs"
+        ]
+      },
+      "reachability": {
+        "eyebrow": "Reachability",
+        "title": "The right message. At the right moment. To the right guest.",
+        "desc": "Your existing guests are the easiest way to fill empty tables. We reach them automatically via email and WhatsApp exactly when your occupancy needs it.",
+        "bullets": [
+          "Automatic email campaigns based on real-time occupancy data",
+          "WhatsApp campaigns with a high open rate for last-minute bookings",
+          "Personalised messages in your restaurant's tone of voice",
+          "Segmentation by regular guests, new guests and dormant guests",
+          "You approve every message before it goes out"
+        ]
+      }
+    },
     "whyPoints": {
       "data": {
         "eyebrow": "Data",
@@ -266,6 +308,19 @@
     "ctaPricing": "Curious what it costs? Check <link>the pricing</link>."
   },
   "auth": {
+    "errors": {
+      "invalidCredentials": "Your email or password is incorrect. Please try again.",
+      "emailNotConfirmed": "Your account isn't confirmed yet. Check your inbox for the confirmation email.",
+      "rateLimited": "Too many login attempts. Please wait a moment and try again.",
+      "generic": "We couldn't sign you in. Please try again or contact us."
+    },
+    "signup": {
+      "title": "Welcome to Get-Filly",
+      "intro": "To give you the best possible start, we set up every account ourselves and guide your venue personally. Request a demo and we'll be in touch soon.",
+      "requestDemo": "Request a demo",
+      "haveAccount": "Already have an account?",
+      "login": "Log in"
+    },
     "fields": {
       "email": "Email address",
       "emailPlaceholder": "name@restaurant.com",
@@ -995,11 +1050,11 @@
       "title": "Notifications",
       "desc": "Decide when reviews and quiet days appear as actions on your campaigns page.",
       "reviewThresholdLabel": "Show reviews at or below this star rating as an action",
-      "reviewStar1": "★☆☆☆☆ – Only 1-star reviews",
-      "reviewStar2": "★★☆☆☆ – 1 and 2 stars",
-      "reviewStar3": "★★★☆☆ – 1 to 3 stars",
-      "reviewStar4": "★★★★☆ – 1 to 4 stars",
-      "reviewStar5": "★★★★★ – All reviews",
+      "reviewStar1": "★☆☆☆☆, Only 1-star reviews",
+      "reviewStar2": "★★☆☆☆, 1 and 2 stars",
+      "reviewStar3": "★★★☆☆, 1 to 3 stars",
+      "reviewStar4": "★★★★☆, 1 to 4 stars",
+      "reviewStar5": "★★★★★, All reviews",
       "reviewThresholdHint": "Reviews that don't have a reply yet and fall below this threshold automatically appear in “Other actions”. The default is 3 stars, so only real problems get your attention.",
       "occupancyThresholdLabel": "Occupancy below this threshold counts as a quiet day",
       "below": "Below {pct}%",
@@ -1062,6 +1117,10 @@
       "cancel": "Cancel",
       "confirm": "Yes, delete my account",
       "deleteError": "Deletion failed, please try again or contact support."
+    },
+    "fillyLanguage": {
+      "label": "Filly replies in English",
+      "hint": "By default Filly replies in Dutch. Turn this on to get Filly's chat answers in English. The interface language is set separately via the language toggle at the top right."
     }
   },
   "dash_account_team_invite_modal": {
@@ -3125,7 +3184,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly — More guests. Fewer empty tables.",
+      "title": "Get-Filly. More guests. Fewer empty tables.",
       "description": "Get-Filly is an AI platform for restaurants. It runs your marketing, reviews and visibility in Google and AI search engines."
     },
     "product": {

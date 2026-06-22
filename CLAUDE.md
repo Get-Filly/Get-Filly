@@ -85,17 +85,17 @@ packages/
 - **Menu-importer**: Claude Opus 4.7 Vision op PDF/JPG/PNG — extraheert gerechten + prijzen + categorieën + allergenen (kolom toegevoegd in migratie 0013).
 - **Suggestion-refine**: `POST /api/suggestions/:id/refine` laat Filly pending-voorstel aanpassen op instructie van eigenaar ("maak huiselijker", "korter"). Gebruikt in SuggestionDetailModal met side-chat.
 - **Chat-proposal genereert 3 varianten**: prompt-update, modal toont 3 kaarten naast elkaar, user kiest favoriet via `selectVariant`-endpoint. Refine herschrijft alleen geselecteerde variant.
-- **Campagne-refine** met cache (migratie 0014): `POST /campaigns/:id/refine` genereert 3 alternatieven + cachet in `filly_variants` jsonb. Max 2 generaties (3 + 3 = 6 versies). PATCH op body wist cache + reset count zodat varianten matchen met nieuwe inhoud.
+- **Campagne-varianten** (mig 0041): de unified detail-page gebruikt `campaigns.variants[]` + `selected_variant_index` als bron-van-waarheid. 3 alternatieven via `POST /campaigns/:id/variants` (`generateMoreVariants`, max 6), wisselen via `selectVariant`, bewerken via `editVariant`. _(De oude `/refine` + `filly_variants`-cache uit mig 0014 is verwijderd in mig 0060, 2026-06-22.)_
 - **Review-reply-varianten** met zelfde cache-patroon: 3 vooraf, 1× regenerate, lock op 6.
-- **Schedule-suggestion**: `POST /campaigns/:id/suggest-schedule` met cache, leest type + restaurant-context, returnt datetime + reasoning.
+- **Verzendmoment**: het brein kiest bij het genereren al een moment + reden per kanaal (`scheduled_for` + `scheduled_reasoning` in de voorstel-prompt; timing-kennis in `ai/filly-brain.config.ts`, `bestHours` per kanaal). Eigenaar bevestigt/wijzigt zelf via `PATCH /campaigns/:id/scheduled` (`setSchedule`). _(De losse `POST /:id/suggest-schedule` + `suggested_scheduled_*`-kolommen zijn verwijderd/dead-on-write sinds mig 0060; zie BACKLOG "Wanneer plaatsen-card".)_
 - Usage-tracking in `ai_usage`-tabel (nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
 
 **/dashboard/campagnes is nu dé hub**:
 - Voorstellen-strip bovenaan (auto-gegenereerd + chat-voorstellen samen; tabs Open/Afgewezen met Terugzetten-knop)
 - Overige acties (TasksStrip): reviews-zonder-reactie, lage bezetting, grote reserveringen, verjaardagen — met filter "Actie vereist (high+medium)" / "Alle" en scroll-container (max 320px)
 - Campagnes-tabel daaronder (concept/ingepland/actief/afgerond + filters + zoek + **quick-actions kolom** per status: Inplannen/Verwijder/Activeer/Stop/Archiveer)
-- Concept-campagnes bewerkbaar via detail-page ("✎ Bewerken"-knop, PATCH-endpoint)
-- **"✨ Met Filly bewerken"-paneel** op detail-page: 3 alternatieven server-side gecached (DB), 1× extra regenerate-knop = 6 totaal max, daarna lock voor kostenbeheersing.
+- Concept-campagnes bewerkbaar via detail-page ("✎ Bewerken" → past de gekozen variant aan via `editVariant`; de oude generieke `PATCH /campaigns/:id` is verwijderd in mig 0060)
+- **"✨ Met Filly bewerken"** op detail-page: 3 alternatieven via de variants-flow (`generateMoreVariants`), 1× extra = 6 totaal max, daarna lock voor kostenbeheersing.
 - **Foto-upload** op social/whatsapp concept-campagnes (Supabase Storage `campaign-media`, signed URLs, 10MB cap, drag-and-drop). WhatsApp-foto in aparte card; social-foto in Instagram-preview.
 - **"📅 Wanneer plaatsen?"-card** met Filly's tijdstipsuggestie: type-specifieke regels (mail 9-10:30/19:30-20:30, social 17-20, whatsapp 18-20:30), reasoning meegeleverd. Eigenaar accepteert / wijzigt zelf / vraagt andere suggestie.
 - "Suggesties" en "Taken" zijn uit de sidebar verwijderd; routes bestaan nog als legacy
@@ -125,14 +125,14 @@ packages/
 (Nest.js, serverless functions, regio `fra1` — zie `apps/api/vercel.json`)
 draaien in productie via Vercel. Deploy gaat automatisch bij een push naar
 `main`. **Canoniek domein: `https://www.get-filly.com`** (apex `get-filly.com`
-hoort 301 → www; instellen in Vercel → Domains). De `railway.json` is legacy
+redirect 308 → www, afgehandeld in code via `next.config.ts` `redirects()`). De `railway.json` is legacy
 en kan vermoedelijk weg. Lokaal draaien (`pnpm dev`) werkt nog steeds voor
 ontwikkeling, maar Floris werkt rechtstreeks tegen de live-omgeving.
 
 **SEO live** (2026-06-05): per-pagina metadata, `sitemap.ts`, `robots.ts`,
 JSON-LD (Organization/WebSite/SoftwareApplication) en gegenereerde OG-image.
 Centrale config in `apps/web/src/config/seo.ts` (`SITE_URL` = canoniek domein).
-Nog te doen: apex→www 301 in Vercel + Google Search Console + sitemap indienen.
+Nog te doen: Google Search Console + sitemap indienen. (apex→www 308 al in code via `next.config.ts`.)
 
 **Publieke site, visuele ronde** (2026-06-17): `/blog` is nu de kennishub
 **"De marketing cocktail"** (uitgelicht pijler-artikel + 6 kernpunt-kaarten +

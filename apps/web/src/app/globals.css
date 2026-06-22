@@ -22,6 +22,35 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ===== TOETSENBORD-FOCUS (a11y-baseline) =====
+ * Eén gedeelde focus-ring voor álle interactieve elementen die geen
+ * eigen :focus-visible-stijl hebben. Geldt site-breed (publiek +
+ * dashboard) omdat deze file de root-import is.
+ *
+ * - :focus-visible i.p.v. :focus → muis-clicks tonen géén ring,
+ *   alleen toetsenbord-/a11y-navigatie. Voorkomt "knop blijft
+ *   geactiveerd ogen" na een klik.
+ * - outline-offset zet de ring 2px búiten het element, op de cream/
+ *   witte achtergrond. Daardoor ook zichtbaar rond gróéne knoppen
+ *   (een groene ring op een groene knop zou anders wegvallen).
+ * - Zelfde stijl als de bestaande losse regels (.ui-btn, .blog-card,
+ *   suggestion-card) zodat het consistent oogt. Componenten met een
+ *   eigen, specifiekere focus-stijl overschrijven dit gewoon. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="link"]:focus-visible,
+[contenteditable]:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 /* Smooth scrollen ALLEEN bij een echte anker-sprong (een #hash in de
    URL, bv. footer → "Hoe het werkt", /about#team, /privacy#cookies).
    Niet globaal op <html>, want dan animeert de browser óók de scroll-
@@ -90,12 +119,6 @@ body {
   white-space: nowrap;
   color: var(--text);
   text-decoration: none;
-}
-
-.nav-logo-mark {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
 }
 
 .nav-links {
@@ -279,10 +302,16 @@ body {
 .forgot-link:hover { color: var(--text); }
 
 .login-btn {
+  /* display:block + text-align zodat dezelfde stijl óók werkt op een
+     <a>/<Link> (bv. de CTA op /signup), niet alleen op <button>. Voor
+     de bestaande submit-buttons verandert er niets (al full-width). */
+  display: block;
   width: 100%;
   padding: 11px;
   background: var(--accent);
   color: var(--true-white);
+  text-align: center;
+  text-decoration: none;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 14px;

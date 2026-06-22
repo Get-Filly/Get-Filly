@@ -126,8 +126,9 @@ function WelkomForm() {
       <p className="login-sub">{t("intro")}</p>
 
       <div className="form-group">
-        <label className="form-label">{t("passwordLabel")}</label>
+        <label className="form-label" htmlFor="welkom-password">{t("passwordLabel")}</label>
         <input
+          id="welkom-password"
           className="form-input"
           type="password"
           value={password}
@@ -140,8 +141,9 @@ function WelkomForm() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">{t("confirmLabel")}</label>
+        <label className="form-label" htmlFor="welkom-confirm">{t("confirmLabel")}</label>
         <input
+          id="welkom-confirm"
           className="form-input"
           type="password"
           value={confirm}

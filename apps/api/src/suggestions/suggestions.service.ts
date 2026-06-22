@@ -2075,14 +2075,10 @@ Maak dit tastbaar volgens de regels.`;
 
     const subject_line = rawSubject || null;
 
-    // Variants uit de chat-flow meegeven als seed voor de NIEUWE
-    // campagne. Sinds mig 0041 vullen we:
-    //   - campaigns.variants[]            = ALLE versies (bron-van-waarheid)
-    //   - campaigns.selected_variant_index = welke is Gekozen
-    //   - campaigns.filly_variants        = LEGACY-cache (alleen non-
-    //     gekozen) voor de oude /refine-flow op de oude detail-pagina,
-    //     wordt in fase G uitgefaseerd
-    // De gekozen versie wordt óók als body/subject doorgegeven zodat
+    // Variants uit de chat-flow meegeven aan de NIEUWE campagne. Sinds
+    // mig 0041 zijn campaigns.variants[] (alle versies) +
+    // selected_variant_index de bron-van-waarheid. De gekozen versie
+    // wordt óók als body/subject doorgegeven zodat
     // campaign_*_content.body_plain/caption/message_text gevuld is.
     const allVariants =
       Array.isArray(sc.variants) && sc.variants.length > 0
@@ -2102,12 +2098,6 @@ Maak dit tastbaar volgens de regels.`;
       sc.selected_index < allVariants.length
         ? sc.selected_index
         : 0;
-    // Legacy seed (filly_variants): traditioneel waren dit de NIET-
-    // gekozen alternatieven. We behouden dat gedrag zodat de oude
-    // refine-flow niets ziet veranderen.
-    const seedVariants = allVariants.filter(
-      (_, idx) => idx !== approveSelectedIdx,
-    );
 
     // Per 2026-05-07: als de suggestie een specifiek platform heeft
     // (instagram/facebook/tiktok), zetten we 'platforms' op de social-
@@ -2133,7 +2123,6 @@ Maak dit tastbaar volgens de regels.`;
         type: type as CampaignType,
         subject_line,
         body,
-        seed_variants: seedVariants,
         // Per 2026-05-13 (mig 0041): alle versies doorgeven zodat de
         // campagne de Versies-grid behoudt na approve.
         variants: allVariants.length > 0 ? allVariants : undefined,
@@ -2143,6 +2132,17 @@ Maak dit tastbaar volgens de regels.`;
         // join op concept-detail.
         ai_suggestion_id: suggestion.id,
         social_platforms: socialPlatforms,
+        // Filly's gekozen moment + reden uit het voorstel bewaren zodat
+        // de "Wanneer plaatsen"-card "Filly stelt voor … omdat …" toont.
+        suggested_scheduled_for:
+          typeof (sc as { scheduled_for?: string }).scheduled_for === 'string'
+            ? (sc as { scheduled_for?: string }).scheduled_for
+            : null,
+        suggested_scheduled_reasoning:
+          typeof (sc as { scheduled_reasoning?: string })
+            .scheduled_reasoning === 'string'
+            ? (sc as { scheduled_reasoning?: string }).scheduled_reasoning
+            : null,
       },
       userId,
     );
@@ -2288,7 +2288,7 @@ Maak dit tastbaar volgens de regels.`;
       // Per 2026-05-13 (mig 0041): per kanaal de complete versies-set
       // doorgeven, en de juiste gekozen-index. Sanitize hier identiek
       // aan single-channel-approve (filter lege bodies, normalise
-      // subject_line). Legacy seed_variants blijven de NIET-gekozen.
+      // subject_line).
       const channelVariantsClean = channel.variants
         .filter(
           (v): v is { body: string; subject_line?: string } =>
@@ -2302,10 +2302,6 @@ Maak dit tastbaar volgens de regels.`;
         selectedIdx,
         Math.max(channelVariantsClean.length - 1, 0),
       );
-      const channelSeedVariants = channelVariantsClean.filter(
-        (_, idx) => idx !== channelSelectedIdxClamped,
-      );
-
       const { id: campaignId } = await this.campaigns.create(
         restaurantId,
         {
@@ -2314,7 +2310,6 @@ Maak dit tastbaar volgens de regels.`;
           subject_line: subject || null,
           body: body || 'Inhoud volgt — bewerk deze campagne.',
           group_id: groupId,
-          seed_variants: channelSeedVariants,
           variants:
             channelVariantsClean.length > 0
               ? channelVariantsClean
@@ -2329,6 +2324,15 @@ Maak dit tastbaar volgens de regels.`;
           ai_suggestion_id: suggestion.id,
           social_platforms:
             campaignType === 'social' ? [channel.platform] : undefined,
+          // Per-kanaal Filly-moment + reden bewaren voor de
+          // "Wanneer plaatsen"-card.
+          suggested_scheduled_for: channel.scheduled_for ?? null,
+          suggested_scheduled_reasoning:
+            typeof (channel as { scheduled_reasoning?: string })
+              .scheduled_reasoning === 'string'
+              ? (channel as { scheduled_reasoning?: string })
+                  .scheduled_reasoning
+              : null,
         },
         userId,
       );

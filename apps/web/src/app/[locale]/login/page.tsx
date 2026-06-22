@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import { authErrorKey } from "@/lib/auth-errors";
 
 function LoginForm() {
   const t = useTranslations("auth");
@@ -29,7 +30,8 @@ function LoginForm() {
     });
 
     if (error) {
-      setError(error.message);
+      // Geen rauwe Engelse Supabase-tekst tonen; map naar NL/EN-microcopy.
+      setError(t(`errors.${authErrorKey(error)}`));
       setLoading(false);
       return;
     }
@@ -53,8 +55,9 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-group">
-        <label className="form-label">{t("fields.email")}</label>
+        <label className="form-label" htmlFor="login-email">{t("fields.email")}</label>
         <input
+          id="login-email"
           className="form-input"
           type="email"
           value={email}
@@ -64,8 +67,9 @@ function LoginForm() {
         />
       </div>
       <div className="form-group">
-        <label className="form-label">{t("fields.password")}</label>
+        <label className="form-label" htmlFor="login-password">{t("fields.password")}</label>
         <input
+          id="login-password"
           className="form-input"
           type="password"
           value={password}

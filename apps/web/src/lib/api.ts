@@ -425,10 +425,6 @@ export type CampaignDetail = Campaign & {
   suggested_scheduled_for: string | null;
   suggested_scheduled_reasoning: string | null;
   executed_at: string | null;
-  // Tijdstip waarop een Filly-variant is toegepast. Null = nog niet
-  // gekozen → "Met Filly bewerken"-sectie wel zichtbaar. Niet-null →
-  // sectie verbergen, geen verdere alternatieven mogelijk.
-  variant_applied_at: string | null;
   // Per 2026-05-12: Filly's reasoning uit het bijbehorende voorstel
   // (gejoined via campaigns.ai_suggestion_id). Null = campagne is
   // handmatig aangemaakt of voorstel is verwijderd. Concept-detail
@@ -498,31 +494,6 @@ export async function createCampaign(input: {
   return res.json();
 }
 
-// Werkt een concept-campagne bij. Backend weigert als status niet
-// 'concept' is zodat verzonden/ingeplande campagnes immutable blijven.
-export async function updateCampaign(
-  id: string,
-  input: {
-    name?: string;
-    subject_line?: string | null;
-    body?: string;
-    // Markeer als variant-apply zodat backend variant_applied_at zet
-    // en de UI de "Met Filly bewerken"-sectie verbergt.
-    from_variant?: boolean;
-  },
-): Promise<{ id: string }> {
-  const res = await authedFetch(`${API_URL}/campaigns/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
 // Status-transitie. Backend valideert toegestane mappings
 // (concept→ingepland, ingepland→actief, actief→afgerond, etc).
 // Voor Activeren wordt executed_at automatisch op now() gezet.
@@ -534,45 +505,6 @@ export async function updateCampaignStatus(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-export type CampaignVariantsState = {
-  variants: Array<{ subject_line?: string; body: string }>;
-  regenerate_count: number;
-  can_regenerate: boolean;
-};
-
-// Lees de gecachte filly-varianten van een campagne. Géén generatie,
-// alleen wat al in de DB staat. Bij page-open op detail-pagina hiermee
-// checken of we initial moeten genereren of bestaande tonen.
-export async function fetchCampaignVariants(
-  id: string,
-): Promise<CampaignVariantsState> {
-  const res = await authedFetch(`${API_URL}/campaigns/${id}/variants`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-// Genereert 3 alternatieven en cachet ze server-side. Bij eerste call
-// krijg je 3 varianten + count=1. Bij tweede call: 3 extra (totaal 6)
-// + count=2. Daarna weigert backend (kostenbeheersing). Optionele
-// instructie stuurt de varianten een richting op.
-export async function generateCampaignVariants(
-  id: string,
-  instruction?: string,
-): Promise<CampaignVariantsState> {
-  const res = await authedFetch(`${API_URL}/campaigns/${id}/refine`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ instruction: instruction ?? "" }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -664,31 +596,6 @@ export async function uploadCampaignMedia(
     {
       method: "POST",
       body: formData,
-    },
-  );
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-// Vraag Filly een verzendmoment voor te stellen. Cache-friendly:
-// herhaalde calls zonder force=true returnen het opgeslagen voorstel.
-// Met force=true overschrijft Claude de cache (kost tokens).
-export async function suggestCampaignSchedule(
-  campaignId: string,
-  force = false,
-): Promise<{
-  suggested_scheduled_for: string;
-  suggested_scheduled_reasoning: string;
-}> {
-  const res = await authedFetch(
-    `${API_URL}/campaigns/${campaignId}/suggest-schedule`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ force }),
     },
   );
   if (!res.ok) {
@@ -1101,6 +1008,8 @@ export type Restaurant = {
   // Waarde per dag: null (niet actief) of { start, end, session_count }.
   service_periods: ServicePeriods | null;
   brand_tone: "casual" | "professional" | "playful";
+  // Taal waarin Filly's chat antwoordt (account-instelling). Default "nl".
+  filly_language: "nl" | "en";
   signature_dishes: string[] | null;
   languages_spoken: string[] | null;
   social_media: Record<string, string> | null;
