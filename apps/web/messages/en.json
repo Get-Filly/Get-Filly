@@ -4141,5 +4141,30 @@
     "referenceCode": "Reference code:",
     "noCodeLead": "No request code found. Did you submit a deletion request and want to know its status? Get in touch via the address below.",
     "contact": "Questions about your data? Email <email></email>. See also our <deleteLink>deletion instructions</deleteLink> and <privacyLink>privacy statement</privacyLink>."
+  },
+  "dash_tiktok_upload": {
+    "title": "Upload to TikTok",
+    "connectPrompt": "Connect your TikTok account first to upload content.",
+    "connectButton": "Connect TikTok",
+    "creatorLabel": "You're posting as",
+    "videoUrlLabel": "Video URL",
+    "videoUrlPlaceholder": "https://www.get-filly.com/...",
+    "videoUrlHint": "The video must be reachable via a verified get-filly.com address.",
+    "disclosureLabel": "Disclose commercial content",
+    "disclosureHint": "Turn on if this video promotes a brand or paid promotion.",
+    "yourBrand": "Your Brand",
+    "yourBrandHint": "Promotes your own business or products.",
+    "brandedContent": "Branded Content",
+    "brandedContentHint": "Promotes another brand (paid partnership).",
+    "musicConsent": "By posting, you agree to TikTok's Music Usage Confirmation.",
+    "uploadButton": "Upload to TikTok",
+    "uploading": "Uploading…",
+    "successTitle": "Draft sent to your TikTok inbox",
+    "successBody": "Open the TikTok app, finish the post and publish it from your inbox.",
+    "error": "Upload failed. Please try again.",
+    "pickButton": "Choose media from your library",
+    "changeButton": "Change",
+    "selectedLabel": "Selected file",
+    "invalidMedia": "This media cannot be sent to TikTok; pick another file."
   }
 }

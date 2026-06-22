@@ -4141,5 +4141,30 @@
     "referenceCode": "Referentiecode:",
     "noCodeLead": "Geen verzoekcode gevonden. Heb je een verwijderverzoek ingediend en wil je de status weten? Neem contact op via het adres hieronder.",
     "contact": "Vragen over je gegevens? Mail <email></email>. Zie ook onze <deleteLink>verwijderinstructies</deleteLink> en <privacyLink>privacyverklaring</privacyLink>."
+  },
+  "dash_tiktok_upload": {
+    "title": "Naar TikTok uploaden",
+    "connectPrompt": "Koppel eerst je TikTok-account om content te kunnen uploaden.",
+    "connectButton": "Verbind TikTok",
+    "creatorLabel": "Je plaatst als",
+    "videoUrlLabel": "Video-URL",
+    "videoUrlPlaceholder": "https://www.get-filly.com/...",
+    "videoUrlHint": "De video moet bereikbaar zijn via een geverifieerd get-filly.com-adres.",
+    "disclosureLabel": "Commerciële content vermelden",
+    "disclosureHint": "Zet aan als deze video een merk of betaalde promotie bevat.",
+    "yourBrand": "Je eigen merk",
+    "yourBrandHint": "Promoot je eigen zaak of producten.",
+    "brandedContent": "Branded content",
+    "brandedContentHint": "Promoot een ander merk (betaald partnerschap).",
+    "musicConsent": "Door te plaatsen ga je akkoord met TikTok's Music Usage Confirmation.",
+    "uploadButton": "Upload naar TikTok",
+    "uploading": "Bezig met uploaden…",
+    "successTitle": "Concept verstuurd naar je TikTok-inbox",
+    "successBody": "Open de TikTok-app, maak de post af en publiceer 'm vanuit je inbox.",
+    "error": "Uploaden mislukt. Probeer het opnieuw.",
+    "pickButton": "Kies media uit je bibliotheek",
+    "changeButton": "Wijzigen",
+    "selectedLabel": "Gekozen bestand",
+    "invalidMedia": "Deze media kan niet naar TikTok; kies een ander bestand."
   }
 }

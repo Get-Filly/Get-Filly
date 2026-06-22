@@ -9,6 +9,8 @@ import {
   metaDisconnect,
   googleBusinessStatus,
   googleBusinessDisconnect,
+  tiktokStatus,
+  tiktokDisconnect,
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
 
@@ -40,7 +42,7 @@ type ConnectionMethod = "auto" | "oauth" | "soon";
 
 // Provider waarvan we de live koppelingsstatus ophalen. Meerdere rijen
 // kunnen dezelfde provider delen (Facebook + Instagram = Meta).
-type Provider = "meta" | "google_business";
+type Provider = "meta" | "google_business" | "tiktok";
 
 type Integration = {
   key: string;
@@ -130,8 +132,10 @@ const integrations: Integration[] = [
     key: "tiktok",
     icon: "🎵",
     nameKey: "providers.tiktok",
-    method: "soon",
+    method: "oauth",
     category: "communicatie",
+    provider: "tiktok",
+    connectPath: "/oauth/tiktok/start",
   },
   {
     key: "whatsapp",
@@ -244,6 +248,7 @@ export function ConnectionsSection() {
   const [status, setStatus] = useState<Record<Provider, boolean | null>>({
     meta: null,
     google_business: null,
+    tiktok: null,
   });
 
   // Status 1× ophalen (en opnieuw bij wissel van actief restaurant).
@@ -257,6 +262,10 @@ export function ConnectionsSection() {
     googleBusinessStatus()
       .then((s) => setStatus((p) => ({ ...p, google_business: s.connected })))
       .catch(() => setStatus((p) => ({ ...p, google_business: false })));
+    // TikTok-status (Verbind vs Verbonden + Ontkoppel).
+    tiktokStatus()
+      .then((s) => setStatus((p) => ({ ...p, tiktok: s.connected })))
+      .catch(() => setStatus((p) => ({ ...p, tiktok: false })));
   }, [active?.id]);
 
   useEffect(() => {
@@ -268,6 +277,7 @@ export function ConnectionsSection() {
     if (!ok) return;
     try {
       if (provider === "meta") await metaDisconnect();
+      else if (provider === "tiktok") await tiktokDisconnect();
       else await googleBusinessDisconnect();
       // Direct optimistisch bijwerken zodat de rij meteen "Verbind" toont.
       setStatus((p) => ({ ...p, [provider]: false }));

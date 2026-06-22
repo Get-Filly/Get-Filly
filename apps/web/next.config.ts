@@ -5,7 +5,24 @@ import createNextIntlPlugin from "next-intl/plugin";
 // zie src/i18n/request.ts) aan de build/runtime.
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+// Supabase-project-URL (publieke storage-host) voor de media-rewrite hieronder.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
 const nextConfig: NextConfig = {
+  async rewrites() {
+    // TikTok Content Posting (PULL_FROM_URL) eist dat de video-URL op het in
+    // het TikTok-portal GEVERIFIEERDE domein (get-filly.com) staat. De
+    // restaurant-media-bucket is publiek; deze rewrite serveert die bestanden
+    // TRANSPARANT onder get-filly.com/media/r/<pad> — geen redirect, dus de
+    // host die TikTok ziet blijft get-filly.com (domein-verificatie klopt).
+    if (!SUPABASE_URL) return [];
+    return [
+      {
+        source: "/media/r/:path*",
+        destination: `${SUPABASE_URL}/storage/v1/object/public/restaurant-media/:path*`,
+      },
+    ];
+  },
   async redirects() {
     return [
       {
