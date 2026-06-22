@@ -33,8 +33,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { MediaLibraryPicker } from "../media-library-picker";
 
-const ACCEPT_MIME = "image/jpeg,image/jpg,image/png,image/webp,image/gif";
-const MAX_BYTES = 10 * 1024 * 1024;
+const ACCEPT_IMAGE = "image/jpeg,image/jpg,image/png,image/webp,image/gif";
+const ACCEPT_VIDEO = "video/mp4,video/quicktime,video/webm";
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
 type Props = {
   campaignId: string;
@@ -46,6 +48,9 @@ type Props = {
   // knoppen worden getoond. Op ingepland/actief is alles immutable
   // en zien we alleen de thumbnail.
   canEdit: boolean;
+  // allowVideo: TikTok-campagnes vereisen een video (mp4/mov/webm). Voor
+  // andere kanalen blijft het bij foto's. Stuurt accept + validatie.
+  allowVideo?: boolean;
   onMediaChanged: (newSignedUrl: string | null) => void;
 };
 
@@ -54,6 +59,7 @@ export function FotoCard({
   signedUrl,
   fileName,
   canEdit,
+  allowVideo = false,
   onMediaChanged,
 }: Props) {
   const t = useTranslations("dash__components_campaign_detail_foto_card");
@@ -96,11 +102,14 @@ export function FotoCard({
   };
 
   const validateAndUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !(allowVideo && isVideo)) {
       setError(t("errors.imagesOnly"));
       return;
     }
-    if (file.size > MAX_BYTES) {
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (file.size > maxBytes) {
       setError(
         t("errors.fileTooLarge", {
           size: Math.round(file.size / 1024 / 1024),
@@ -253,7 +262,7 @@ export function FotoCard({
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPT_MIME}
+          accept={allowVideo ? `${ACCEPT_IMAGE},${ACCEPT_VIDEO}` : ACCEPT_IMAGE}
           onChange={onFileSelect}
           style={{ display: "none" }}
         />

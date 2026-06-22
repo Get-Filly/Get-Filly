@@ -1717,22 +1717,32 @@ ${menuBlock}
     path: string;
     signed_url: string;
   }> {
-    const allowed = new Set([
+    const mime = file.mimeType.toLowerCase();
+    const allowedImage = new Set([
       'image/jpeg',
       'image/jpg',
       'image/png',
       'image/webp',
       'image/gif',
     ]);
-    if (!allowed.has(file.mimeType.toLowerCase())) {
+    // Video (mp4/mov/webm) sinds 2026-06-22 voor TikTok-campagnes. TikTok
+    // vereist een video; FB/IG accepteren ook video.
+    const allowedVideo = new Set([
+      'video/mp4',
+      'video/quicktime',
+      'video/webm',
+    ]);
+    const isVideo = allowedVideo.has(mime);
+    if (!allowedImage.has(mime) && !isVideo) {
       throw new BadRequestException(
-        `Bestandstype ${file.mimeType} wordt niet ondersteund. Upload JPG, PNG, WebP of GIF.`,
+        `Bestandstype ${file.mimeType} wordt niet ondersteund. Upload JPG, PNG, WebP, GIF of een video (MP4, MOV, WebM).`,
       );
     }
-    const MAX_BYTES = 10 * 1024 * 1024;
+    // Video mag groter zijn dan een foto (TikTok-clips); foto blijft 10MB.
+    const MAX_BYTES = (isVideo ? 50 : 10) * 1024 * 1024;
     if (file.buffer.length > MAX_BYTES) {
       throw new BadRequestException(
-        `Bestand is te groot (${Math.round(file.buffer.length / 1024 / 1024)}MB). Maximaal 10MB.`,
+        `Bestand is te groot (${Math.round(file.buffer.length / 1024 / 1024)}MB). Maximaal ${isVideo ? 50 : 10}MB.`,
       );
     }
 
@@ -1926,6 +1936,30 @@ ${menuBlock}
       .createSignedUrl(path, 60 * 60);
     if (error) throw new InternalServerErrorException(error.message);
     return data.signedUrl;
+  }
+
+  // ============================================================
+  // getTikTokVideoSignedUrl — publieke video-serving voor PULL_FROM_URL
+  // ============================================================
+  // TikTok haalt de video via PULL_FROM_URL op van het geverifieerde
+  // web-domein (get-filly.com/media/c/:campaignId). Die web-route streamt
+  // de video door via dit endpoint: we zoeken de eerste video in de
+  // social-content-media van de campagne en geven er een (korte) signed
+  // URL voor terug. Admin-client want de aanroep is context-loos (geen
+  // ingelogde user — TikTok/de web-route roept 'm aan). Null = geen video.
+  async getTikTokVideoSignedUrl(campaignId: string): Promise<string | null> {
+    const { data, error } = await this.admin.client
+      .from('campaign_social_content')
+      .select('media_urls')
+      .eq('campaign_id', campaignId)
+      .maybeSingle();
+    if (error) throw new InternalServerErrorException(error.message);
+    const paths = Array.isArray(data?.media_urls)
+      ? (data.media_urls as string[])
+      : [];
+    const videoPath = paths.find((p) => /\.(mp4|mov|webm|m4v)$/i.test(p));
+    if (!videoPath) return null;
+    return this.signMediaPath(videoPath, true);
   }
 
   // Hard delete. Toegestaan voor concept én ingepland, een ingeplande

@@ -913,6 +913,7 @@ export default function UnifiedDetailPage() {
             campaignId={activeCampaign.id}
             signedUrl={activeChannel?.media_url ?? null}
             canEdit={canEdit}
+            allowVideo={activeChannel?.platform === "tiktok"}
             onMediaChanged={() => {
               void load();
             }}

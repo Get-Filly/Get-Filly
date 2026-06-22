@@ -144,7 +144,9 @@ export const config = {
     //  - _next (build-assets), _vercel (analytics)
     //  - /auth/* en /oauth/* (machine-route-handlers op vaste URLs; mogen
     //    niet door i18n-routing gerewrite worden)
+    //  - /media/* (publieke media-route-handlers, bv. /media/c/:id voor de
+    //    TikTok-video; niet gelokaliseerd)
     //  - alles met een punt erin (robots.txt, sitemap.xml, *.png, …)
-    "/((?!_next|_vercel|auth|oauth|.*\\..*).*)",
+    "/((?!_next|_vercel|auth|oauth|media|.*\\..*).*)",
   ],
 };
