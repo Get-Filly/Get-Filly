@@ -117,7 +117,11 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
           (m) => m.role === "filly" && m.message_card?.kind === "guided_start",
         )?.id ?? null;
     return (
-      <div className="chat-msgs" ref={scrollRef}>
+      // aria-live="polite" → een screenreader kondigt nieuw binnenkomende
+      // Filly-antwoorden aan. Bestaande historie bij mount wordt NIET
+      // voorgelezen (live-regions melden alleen mutaties ná creatie).
+      <div className="chat-msgs" ref={scrollRef} aria-live="polite">
+
         {loading ? (
           // Skeleton-bubbels i.p.v. platte "Chat laden…"-tekst: leest
           // rustiger en geeft alvast de vorm van het gesprek aan.

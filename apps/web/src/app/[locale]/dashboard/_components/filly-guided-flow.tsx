@@ -732,7 +732,13 @@ export function FillyGuidedFlow({
         </>
       )}
 
-      {error && <div className="fg-error">{error}</div>}
+      {/* role="alert" → screenreader kondigt de fout/"geen resultaat"-
+          melding direct aan (impliceert aria-live="assertive"). */}
+      {error && (
+        <div className="fg-error" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="fg-hint">
         <Sparkles size={12} strokeWidth={2.25} />

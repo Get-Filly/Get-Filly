@@ -10,6 +10,7 @@
 export function FillyChatErrorBanner({ message }: { message: string }) {
   return (
     <div
+      role="alert"
       style={{
         padding: "8px 12px",
         margin: "0 12px 8px",

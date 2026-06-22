@@ -31,7 +31,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~🔴 **Ontbrekende migratie 0044 committen**~~ (✅ 2026-06-22, `fix/schema-drift-0044`) — `0044_restaurant_identity_extension.sql` toegevoegd (8 identiteit-velden: tone_of_voice/do_not_mention/brand_story/location_description/keywords/default_hashtags/awards/target_audience_segments). Idempotent `add column if not exists`. **Correctie op de oude omschrijving:** 0039 bestaat bewust niet (gereserveerd voor encrypted API-key-storage, werd uiteindelijk 0052), en 0056/0057 stáán inmiddels al in de map — alleen 0044 ontbrak echt. ⚠️ SQL handmatig in Supabase draaien (zie chat). *(Backend)*
 - [x] ~~🔴 **`:focus-visible` toevoegen (publiek én dashboard)**~~ (✅ 2026-06-22) — gedeelde a11y-baseline in `globals.css` dekt nu alle clickables site-breed. *(Frontend)* (Restje onder Dashboard-UI: `.cal-cell`/`.yr-cell` als echte buttons.)
 - [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
-- [ ] 🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat. *(Frontend/UX)*
+- [x] ~~🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat~~ (✅ 2026-06-22) — 0-resultaten + typ-/done-staat al gefixt bij de active-action-merge; laatste gaten gedicht: `role="alert"` op de guided-flow-foutmelding + chat-error-banner, `aria-live="polite"` op de berichten-container. Zie regels hieronder. *(Frontend/UX)*
 - [ ] 🟡 **SSRF in website-analyzer** — interne IP's/cloud-metadata bereikbaar; blocklist toevoegen. *(Beveiliging)*
 
 ### 🎨 Frontend
@@ -58,13 +58,13 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 **UX (publiek + app)**
 - [ ] 🔴 Geen vertrouwenssignalen op de publieke site (reviews/logo's/cijfers) — grootste conversielek → social proof boven de CTA.
 - [ ] 🔴 Prijzen-pagina volledig geblurd (`HIDE_PRICING`) en doodlopend → prijs-range of eerlijke uitleg + directe CTA.
-- [ ] 🔴 Geleide campagne-flow stuurt bij 0 resultaten stil naar `/campagnes` → inline-foutstaat, blijf staan.
-- [ ] 🔴 Geen `aria-live` op Filly-antwoorden + "maakt voorstel"-staat → screenreader hoort niets.
+- [x] ~~🔴 Geleide campagne-flow stuurt bij 0 resultaten stil naar `/campagnes`~~ (✅ 2026-06-18, bevestigd 2026-06-22) — blijft nu in de flow met inline-melding (`errors.noResult`, `setStep("channels")`); de melding krijgt `role="alert"` zodat een screenreader 'm aankondigt.
+- [x] ~~🔴 Geen `aria-live` op Filly-antwoorden + "maakt voorstel"-staat~~ (✅ 2026-06-22) — typ-indicator had al `aria-live`; nu ook `aria-live="polite"` op de berichten-container (kondigt nieuwe Filly-antwoorden aan, leest historie bij mount niet voor) + `role="alert"` op beide foutweergaven.
 - [x] ~~🟡 Login toont rauwe Engelse Supabase-fout~~ (✅ 2026-06-22) — pure mapper `lib/auth-errors.ts` (`authErrorKey`, matcht op Supabase-`code` → message-substring → status 429) + `auth.errors.*`-keys in nl/en; login rendert nu `t(errors.<key>)` i.p.v. `error.message`. 4 gevallen: invalidCredentials / emailNotConfirmed / rateLimited / generic.
 - [x] ~~🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset)~~ (✅ 2026-06-22) — 12 labels gekoppeld via `htmlFor`+`id` op login (2), forgot-password (1), reset-password (2), welkom (2), contact (5). Honeypot omsluit z'n input al (impliciet, aria-hidden) → ongemoeid.
 - [ ] 🟡 Contact-formulier: geen verwachting ("binnen 1 werkdag, vrijblijvend") + "bericht" verplicht → toevoegen + bericht optioneel maken.
 - [ ] 🟡 Inconsistente CTA-labels ("Vraag een demo aan"/"Plan een gratis kennismaking"/"Plan kennismaking") → één label site-breed.
-- [ ] 🟡 `/signup` stille redirect → korte uitleg-pagina ("op uitnodiging — vraag demo aan").
+- [x] ~~🟡 `/signup` stille redirect → korte uitleg-pagina~~ (✅ 2026-06-22) — `/signup` toont nu een "Op uitnodiging"-uitleg + CTA "Vraag een demo aan" → `/contact` + link naar inloggen, in dezelfde auth-stijl (`.login-box`). NL/EN via `auth.signup.*`. Geverifieerd: HTTP 200 (geen redirect), beide talen.
 - [ ] 🟡 Disabled knoppen ogen klikbaar + vage labels ("Selecteer een optie", "Volgende stap", "Geen kiezen") in de guided flow → instructie + context-labels.
 - [ ] 🟡 Legacy-routes (`taken/`, `suggesties/`, `marketing/`) zonder terug-pad → banner of 308-redirect zoals `reviews`.
 - [ ] 🟡 Modals missen `aria-labelledby`; klikbare kaarten geen focus-ring.
@@ -95,7 +95,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🟡 Storage-bucket `restaurant-assets` mist per-tenant path-RLS (tenant A kan in B's pad schrijven) → pad-prefix-RLS op `(storage.foldername(name))[1]`.
 - [ ] 🟡 Pre-onboarding rate-limit in-memory (niet multi-instance-veilig) — **(bevestigd, al P1)** → gedeelde store (Supabase-tabel/Redis).
 - [ ] 🟡 Enkele cron-/bundle-queries scopen alleen op `group_id`/`campaign_id` zonder `restaurant_id` (defense-in-depth, admin-client omzeilt RLS) → `.eq('restaurant_id')` overal toevoegen.
-- [ ] 🟢 `requireAccess` lekt 404 vs 403 (UUID-enumeration) → uniforme response.
+- [x] ~~🟢 `requireAccess` lekt 404 vs 403 (UUID-enumeration)~~ (✅ 2026-06-22) — niet-bestaand restaurant geeft nu dezelfde generieke 403 ("Geen toegang tot dit restaurant.") als bestaand-zonder-koppeling; verschil alleen nog server-side gelogd (debug). Non-member kan UUID-bestaan niet meer aftasten.
 - ✅ **Geverifieerd OK** (geen actie): open-redirect-bescherming `/auth/confirm`, Meta-OAuth CSRF + state-cookie, AES-256-GCM token-crypto (random IV + auth-tag), multi-tenant dubbelscoping + RLS-backstop, Meta `signed_request`-HMAC-validatie, JWT-verificatie (JWKS + issuer).
 
 ---
