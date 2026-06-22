@@ -489,12 +489,14 @@ Demovideo-script (de TikTok-app-review-vereiste) staat in
 - [x] ~~Inbox-upload via Content Posting API~~ (✅ fase 2) — `getValidAccessToken`
   (refresh-on-use) + `creator_info/query` + `inbox/video/init` (PULL_FROM_URL).
   Endpoints `GET creator-info` / `POST upload`.
-- [ ] **Media via get-filly.com-route (laatste glue voor PULL_FROM_URL)** — de
-  `videoUrl` moet op het geverifieerde domein staan; Supabase-storage
-  (`*.supabase.co`) werkt niet direct. Bouw een `get-filly.com`-mediaroute die
-  een campaign-media-object streamt + koppel de `media-library-picker` aan het
-  upload-paneel (nu nog een URL-veld). Best te valideren zodra de TikTok-app +
-  domein-verificatie live zijn.
+- [x] ~~**Media via get-filly.com-route (PULL_FROM_URL-glue)**~~ (✅) — Vercel-
+  rewrite `/media/r/:path*` → publieke restaurant-media-bucket (transparant,
+  geen redirect → domein blijft get-filly.com); MediaLibraryPicker in het
+  upload-paneel, gekozen URL gemapt naar `/media/r/<pad>`. Live te valideren
+  zodra TikTok-app + domein-verificatie actief zijn.
+  ⚠️ Aandachtspunt: `restaurant-media` is een **foto**-bibliotheek; voor de
+  video-upload moet er een **video** in staan (mime `video/*`). Eventueel de
+  picker filteren op video + video-upload in de media-bibliotheek toestaan.
 
 - [ ] **TikTok Insights-fetcher** — view/watch/share-stats per video (na approval).
 - [ ] **TikTok Pixel-CAPI server-side** — zelfde verhaal als Meta CAPI.
