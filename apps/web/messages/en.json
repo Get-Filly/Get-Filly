@@ -273,8 +273,8 @@
       "generic": "We couldn't sign you in. Please try again or contact us."
     },
     "signup": {
-      "title": "By invitation",
-      "intro": "Get-Filly is currently invite-only. We set up new accounts ourselves so we can guide every venue personally. Request a demo and we'll get in touch.",
+      "title": "Welcome to Get-Filly",
+      "intro": "To give you the best possible start, we set up every account ourselves and guide your venue personally. Request a demo and we'll be in touch soon.",
       "requestDemo": "Request a demo",
       "haveAccount": "Already have an account?",
       "login": "Log in"

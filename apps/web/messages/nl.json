@@ -273,8 +273,8 @@
       "generic": "Inloggen lukte niet. Probeer het opnieuw of neem contact met ons op."
     },
     "signup": {
-      "title": "Op uitnodiging",
-      "intro": "Get-Filly is op dit moment alleen op uitnodiging. Nieuwe accounts maken we zelf aan, zodat we elke zaak persoonlijk kunnen begeleiden. Vraag een demo aan, dan nemen we contact met je op.",
+      "title": "Welkom bij Get-Filly",
+      "intro": "Om je zo goed mogelijk op weg te helpen, maken we elk account zelf aan en begeleiden we je zaak persoonlijk. Vraag een demo aan, dan nemen we snel contact met je op.",
       "requestDemo": "Vraag een demo aan",
       "haveAccount": "Heb je al een account?",
       "login": "Inloggen"
