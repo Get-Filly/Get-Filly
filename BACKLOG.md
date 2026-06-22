@@ -29,7 +29,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [x] ~~🔴 **Resend-webhook Svix-signature valideren**~~ (✅ 2026-06-18) — rawBody + `verifySvixSignature`; handhaaft zodra **`RESEND_WEBHOOK_SECRET`** in get-filly-api gezet is (⚠️ nog te zetten in Vercel). *(Beveiliging)*
 - [x] ~~🔴 **Cron-secrets constant-time vergelijken**~~ (✅ 2026-06-18) — gedeelde `timingSafeBearer`-helper in alle 3 cron-controllers. *(Backend + Beveiliging)*
 - [x] ~~🔴 **Ontbrekende migratie 0044 committen**~~ (✅ 2026-06-22, `fix/schema-drift-0044`) — `0044_restaurant_identity_extension.sql` toegevoegd (8 identiteit-velden: tone_of_voice/do_not_mention/brand_story/location_description/keywords/default_hashtags/awards/target_audience_segments). Idempotent `add column if not exists`. **Correctie op de oude omschrijving:** 0039 bestaat bewust niet (gereserveerd voor encrypted API-key-storage, werd uiteindelijk 0052), en 0056/0057 stáán inmiddels al in de map — alleen 0044 ontbrak echt. ⚠️ SQL handmatig in Supabase draaien (zie chat). *(Backend)*
-- [ ] 🔴 **`:focus-visible` toevoegen (publiek én dashboard)** — toetsenbord/a11y-blokker (geverifieerd: 0 resp. 1 regel). *(Frontend)*
+- [x] ~~🔴 **`:focus-visible` toevoegen (publiek én dashboard)**~~ (✅ 2026-06-22) — gedeelde a11y-baseline in `globals.css` dekt nu alle clickables site-breed. *(Frontend)* (Restje onder Dashboard-UI: `.cal-cell`/`.yr-cell` als echte buttons.)
 - [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
 - [ ] 🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat. *(Frontend/UX)*
 - [ ] 🟡 **SSRF in website-analyzer** — interne IP's/cloud-metadata bereikbaar; blocklist toevoegen. *(Beveiliging)*
@@ -37,7 +37,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 ### 🎨 Frontend
 
 **Publieke site — UI**
-- [ ] 🔴 `:focus-visible` ontbreekt volledig (0 regels) op alle clickables → één gedeelde outline-regel.
+- [x] ~~🔴 `:focus-visible` ontbreekt volledig (0 regels)~~ (✅ 2026-06-22) — één gedeelde a11y-baseline in `globals.css` (geldt publiek + dashboard): `a/button/input/select/textarea/summary/[tabindex]/[role]` krijgen `outline: 2px solid var(--color-brand)` + offset. Zelfde stijl als de losse `.ui-btn`/`.blog-card`-regels; componenten met eigen focus-stijl overschrijven het.
 - [ ] 🔴 Typografieronde ~12% af: 130 hardcoded px font-sizes vs 18 token-uses in `landing.css` (hero 74, `.pillars-cta-title` 32, `.pricing-price` 38, `.diff-card-title` 24…) → koppen op `--fs-*`, nieuwe `--fs-hero`-token.
 - [ ] 🟡 Drie/vier verschillende "primaire groene knop"-implementaties (`.btn-primary`/`.nav-demo`/`.cta-btn`/`.pricing-btn`); `ui.css` Button nergens hergebruikt → één `.btn`/`<Button>`.
 - [ ] 🟡 Dode/dubbele CSS: `.features::before` 2×, `.about-hero-grid` 3×, `.about-mv` 2× → opruimen.
@@ -48,7 +48,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 **Dashboard — UI**
 - [ ] 🔴 `campaign-send-modal.tsx` volledig inline-styled mét niet-bestaande var-namen + foute hex-fallbacks (`var(--danger,#B3261E)`, `var(--tl,#6B6F71)`) → bestaande `.sg-modal` hergebruiken.
 - [ ] 🔴 `UpcomingActionsBlock` herbouwt de alert-bar inline met hardcoded `RED/GREEN` + alias-misbruik `--rs` → `.alert-bar`-class met `--color-danger/-brand`.
-- [ ] 🔴 `:focus-visible` vrijwel afwezig (1 regel); klikbare `.cal-cell`/`.yr-cell` zijn `<div>` zonder role/tabindex → focus-outline + echte buttons.
+- [~] 🔴 `:focus-visible` vrijwel afwezig (1 regel); klikbare `.cal-cell`/`.yr-cell` zijn `<div>` zonder role/tabindex → focus-outline + echte buttons. **(deels ✅ 2026-06-22)** — focus-outline nu site-breed gedekt via de gedeelde `globals.css`-baseline; resteert: `.cal-cell`/`.yr-cell` echte `<button>` maken (role/tabindex) zodat de ring ook iets selecteert.
 - [ ] 🟡 Twee parallelle knop-systemen; `<Button>` in maar 6/32 componenten (pill vs rounded-rect inconsistent) → migreren.
 - [ ] 🟡 Type-/shadow-tokens vrijwel ongebruikt (243 raw px, 0× `--font-size-*`, 0× `--shadow-*`, .5px-uitschieters) → tokens.
 - [ ] 🟡 379 inline-`style={{}}`-blokken; `hour-heatmap` heeft geen mobiele behandeling (geen `@media`) → naar classes.
@@ -61,7 +61,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 - [ ] 🔴 Geleide campagne-flow stuurt bij 0 resultaten stil naar `/campagnes` → inline-foutstaat, blijf staan.
 - [ ] 🔴 Geen `aria-live` op Filly-antwoorden + "maakt voorstel"-staat → screenreader hoort niets.
 - [ ] 🟡 Login toont rauwe Engelse Supabase-fout → NL-microcopy-mapping.
-- [ ] 🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset) → koppelen.
+- [x] ~~🟡 Form-labels zonder `htmlFor`/`id` (login/contact/welkom/reset)~~ (✅ 2026-06-22) — 12 labels gekoppeld via `htmlFor`+`id` op login (2), forgot-password (1), reset-password (2), welkom (2), contact (5). Honeypot omsluit z'n input al (impliciet, aria-hidden) → ongemoeid.
 - [ ] 🟡 Contact-formulier: geen verwachting ("binnen 1 werkdag, vrijblijvend") + "bericht" verplicht → toevoegen + bericht optioneel maken.
 - [ ] 🟡 Inconsistente CTA-labels ("Vraag een demo aan"/"Plan een gratis kennismaking"/"Plan kennismaking") → één label site-breed.
 - [ ] 🟡 `/signup` stille redirect → korte uitleg-pagina ("op uitnodiging — vraag demo aan").

@@ -82,8 +82,9 @@ export default function ContactPage() {
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">{t("name")}</label>
+                <label className="form-label" htmlFor="contact-name">{t("name")}</label>
                 <input
+                  id="contact-name"
                   className="form-input"
                   type="text"
                   value={name}
@@ -94,8 +95,9 @@ export default function ContactPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t("restaurant")}</label>
+                <label className="form-label" htmlFor="contact-restaurant">{t("restaurant")}</label>
                 <input
+                  id="contact-restaurant"
                   className="form-input"
                   type="text"
                   value={restaurant}
@@ -106,8 +108,9 @@ export default function ContactPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t("email")}</label>
+                <label className="form-label" htmlFor="contact-email">{t("email")}</label>
                 <input
+                  id="contact-email"
                   className="form-input"
                   type="email"
                   value={email}
@@ -118,13 +121,14 @@ export default function ContactPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="contact-phone">
                   {t("phone")}{" "}
                   <span style={{ color: "var(--text-light)", fontWeight: 400 }}>
                     {t("optional")}
                   </span>
                 </label>
                 <input
+                  id="contact-phone"
                   className="form-input"
                   type="tel"
                   value={phone}
@@ -134,8 +138,9 @@ export default function ContactPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t("message")}</label>
+                <label className="form-label" htmlFor="contact-message">{t("message")}</label>
                 <textarea
+                  id="contact-message"
                   className="form-input"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}

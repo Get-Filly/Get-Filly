@@ -53,8 +53,9 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-group">
-        <label className="form-label">{t("fields.email")}</label>
+        <label className="form-label" htmlFor="login-email">{t("fields.email")}</label>
         <input
+          id="login-email"
           className="form-input"
           type="email"
           value={email}
@@ -64,8 +65,9 @@ function LoginForm() {
         />
       </div>
       <div className="form-group">
-        <label className="form-label">{t("fields.password")}</label>
+        <label className="form-label" htmlFor="login-password">{t("fields.password")}</label>
         <input
+          id="login-password"
           className="form-input"
           type="password"
           value={password}

@@ -110,8 +110,9 @@ function ResetPasswordForm() {
       <p className="login-sub">{t("reset.intro")}</p>
 
       <div className="form-group">
-        <label className="form-label">{t("reset.newLabel")}</label>
+        <label className="form-label" htmlFor="reset-new-password">{t("reset.newLabel")}</label>
         <input
+          id="reset-new-password"
           className="form-input"
           type="password"
           value={password}
@@ -124,8 +125,9 @@ function ResetPasswordForm() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">{t("reset.confirmLabel")}</label>
+        <label className="form-label" htmlFor="reset-confirm-password">{t("reset.confirmLabel")}</label>
         <input
+          id="reset-confirm-password"
           className="form-input"
           type="password"
           value={confirm}
