@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
+// SupabaseService = service-role (admin) client. Nodig voor de cron
+// (runScheduledSocial), die context-loos draait: dan is er geen ingelogde
+// user en kan de request-client (RLS) de tokens niet lezen/schrijven.
+import { SupabaseService } from '../supabase/supabase.service';
 import { TokenCryptoService } from '../common/token-crypto.service';
 
 // ============================================================
@@ -57,8 +61,15 @@ export class TikTokService {
   constructor(
     private readonly config: ConfigService,
     private readonly supabase: RequestSupabaseService,
+    private readonly admin: SupabaseService,
     private readonly crypto: TokenCryptoService,
   ) {}
+
+  // Kies de juiste Supabase-client. useAdmin=true (cron, context-loos) →
+  // service-role; anders de request-client (RLS, namens de ingelogde user).
+  private db(useAdmin: boolean) {
+    return useAdmin ? this.admin.client : this.supabase.client;
+  }
 
   private clientKey(): string {
     const v = this.config.get<string>('TIKTOK_CLIENT_KEY');
@@ -195,7 +206,10 @@ export class TikTokService {
   }
 
   /** Koppelingsstatus (zonder tokens) voor de UI: account + scopes. */
-  async status(restaurantId: string): Promise<{
+  async status(
+    restaurantId: string,
+    useAdmin = false,
+  ): Promise<{
     connected: boolean;
     username?: string | null;
     avatarUrl?: string | null;
@@ -203,7 +217,7 @@ export class TikTokService {
     expiresAt?: string | null;
     updatedAt?: string;
   }> {
-    const { data, error } = await this.supabase.client
+    const { data, error } = await this.db(useAdmin)
       .from('integration_credentials')
       .select('scopes, expires_at, updated_at, meta')
       .eq('restaurant_id', restaurantId)
@@ -250,8 +264,11 @@ export class TikTokService {
    * verlopen is (TikTok-access-token leeft ~24u). De nieuwe tokens worden
    * versleuteld teruggeschreven.
    */
-  async getValidAccessToken(restaurantId: string): Promise<string> {
-    const { data, error } = await this.supabase.client
+  async getValidAccessToken(
+    restaurantId: string,
+    useAdmin = false,
+  ): Promise<string> {
+    const { data, error } = await this.db(useAdmin)
       .from('integration_credentials')
       .select('access_token_encrypted, refresh_token_encrypted, expires_at')
       .eq('restaurant_id', restaurantId)
@@ -283,7 +300,7 @@ export class TikTokService {
     const newExpiresAt = refreshed.expires_in
       ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
       : null;
-    await this.supabase.client
+    await this.db(useAdmin)
       .from('integration_credentials')
       .update({
         access_token_encrypted: this.crypto.encrypt(refreshed.access_token),
@@ -375,8 +392,9 @@ export class TikTokService {
       disableDuet?: boolean;
       disableStitch?: boolean;
     },
+    useAdmin = false,
   ): Promise<{ publishId: string }> {
-    const token = await this.getValidAccessToken(restaurantId);
+    const token = await this.getValidAccessToken(restaurantId, useAdmin);
     const res = await fetch(
       'https://open.tiktokapis.com/v2/post/publish/video/init/',
       {

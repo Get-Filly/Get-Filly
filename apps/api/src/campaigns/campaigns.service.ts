@@ -350,7 +350,7 @@ export class CampaignsService {
     //    PULL_FROM_URL kan ophalen. Onaudited/sandbox = alleen SELF_ONLY.
     if (toTikTok) {
       try {
-        const ttStatus = await this.tiktok.status(restaurantId);
+        const ttStatus = await this.tiktok.status(restaurantId, useAdmin);
         const hasVideo = paths.some((p) => /\.(mp4|mov|webm|m4v)$/i.test(p));
         if (!ttStatus.connected) {
           errors.push('TikTok niet gekoppeld; video niet geplaatst.');
@@ -362,12 +362,16 @@ export class CampaignsService {
           const webUrl = (
             process.env.WEB_URL ?? 'https://www.get-filly.com'
           ).replace(/\/$/, '');
-          const { publishId } = await this.tiktok.directPost(restaurantId, {
-            videoUrl: `${webUrl}/media/c/${campaignId}`,
-            title: message.slice(0, 2200),
-            // Sandbox/onaudited: TikTok staat alleen privé toe.
-            privacyLevel: 'SELF_ONLY',
-          });
+          const { publishId } = await this.tiktok.directPost(
+            restaurantId,
+            {
+              videoUrl: `${webUrl}/media/c/${campaignId}`,
+              title: message.slice(0, 2200),
+              // Sandbox/onaudited: TikTok staat alleen privé toe.
+              privacyLevel: 'SELF_ONLY',
+            },
+            useAdmin,
+          );
           postIds.tiktok = publishId;
         }
       } catch (err) {
