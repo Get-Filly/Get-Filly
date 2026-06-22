@@ -901,6 +901,15 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-22 — Schema-cleanup: legacy campaigns.filly_variants gedropt (mig 0060)
+
+Gemerged naar `main` + live (merge `e747c68`), branch `chore/mig-0043-drop-filly-variants`. Afronding van de "Mig 0043"-cleanup uit de BACKLOG:
+
+- **Code (stap 1):** alle resterende write-paden naar `campaigns.filly_variants` / `filly_variants_regen_count` / `variant_applied_at` verwijderd — de create-seed in `campaigns.service` + de hele `seed_variants`-keten in `campaigns.service` en `suggestions.service` (beide approve-routes) + de twee `variant_applied_at`-typevelden (api + web). `campaigns.variants[]` (sinds mig 0041) blijft de bron-van-waarheid.
+- **DB (stap 2):** `0060_drop_campaign_filly_variants.sql` dropt de drie kolommen. Nummer 0060 omdat 0043 al bezet was (auto-archive). `reviews.filly_variants` (andere tabel) blijft.
+- Verificatie: api Jest 90/90 groen, `tsc` schoon (api + web), geen lees/schrijf-refs meer naar de kolommen.
+- ⚠️ **Incident-leerpunt:** de DROP-SQL is gedraaid vóórdat de code-deploy groen was → kort venster waarin campagne-inserts faalden (geen data-schade, failed inserts zijn atomair). Voortaan bij een kolom-drop strikt expand/contract: eerst code live, dán DROP.
+
 ### 2026-06-22 — Filly-flow a11y + /signup-uitlegpagina + requireAccess-hardening
 
 Gemerged naar `main` + live (merge `9c6df70`), branch `fix/filly-flow-a11y`. Vier commits:
