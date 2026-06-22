@@ -4165,6 +4165,19 @@
     "pickButton": "Choose media from your library",
     "changeButton": "Change",
     "selectedLabel": "Selected file",
-    "invalidMedia": "This media cannot be sent to TikTok; pick another file."
+    "invalidMedia": "This media cannot be sent to TikTok; pick another file.",
+    "titleLabel": "Title / caption",
+    "titlePlaceholder": "Write a short caption…",
+    "privacyLabel": "Who can see this post?",
+    "privacy": {
+      "SELF_ONLY": "Only me (private)",
+      "PUBLIC_TO_EVERYONE": "Everyone",
+      "MUTUAL_FOLLOW_FRIENDS": "Friends",
+      "FOLLOWER_OF_CREATOR": "Followers"
+    },
+    "publishButton": "Post to TikTok",
+    "publishing": "Posting…",
+    "successTitleDirect": "Posted to TikTok",
+    "successBodyDirect": "The video has been sent to your TikTok account. Depending on the privacy level it appears on your profile."
   }
 }

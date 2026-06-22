@@ -20,10 +20,11 @@
 
 // Scopes:
 //   - user.info.basic : open_id, display_name, avatar_url (account tonen)
-//   - video.upload    : content als CONCEPT naar de TikTok-inbox sturen
-//                       (de eigenaar publiceert zelf vanuit de TikTok-app).
-//                       Lichtere review dan direct `video.publish`.
-export const TIKTOK_SCOPES = ["user.info.basic", "video.upload"] as const;
+//   - video.publish   : Direct Post — de video wordt direct op het account
+//                       gepost (met gekozen privacy + disclosure). Strenger in
+//                       review dan video.upload; een onaudited app kan alleen
+//                       SELF_ONLY (privé) posten.
+export const TIKTOK_SCOPES = ["user.info.basic", "video.publish"] as const;
 
 // Client Key is niet geheim (gaat als client_key mee in de URL), maar we
 // lezen 'm server-side zodat alle TikTok-config op één plek staat.

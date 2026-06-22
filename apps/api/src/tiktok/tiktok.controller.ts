@@ -59,18 +59,42 @@ export class TikTokController {
     return this.tiktok.queryCreatorInfo(restaurantId);
   }
 
-  // POST /api/integrations/tiktok/upload   body { videoUrl }
-  // Stuurt de video als concept naar de TikTok-inbox.
+  // POST /api/integrations/tiktok/upload
+  // body { videoUrl, title?, privacyLevel, brandOrganic?, brandedContent?,
+  //        disableComment?, disableDuet?, disableStitch? }
+  // Direct Post: post de video direct op het TikTok-account.
   @Post('upload')
   @HttpCode(200)
   upload(
     @RestaurantId() restaurantId: string,
-    @Body() body: { videoUrl?: string },
+    @Body()
+    body: {
+      videoUrl?: string;
+      title?: string;
+      privacyLevel?: string;
+      brandOrganic?: boolean;
+      brandedContent?: boolean;
+      disableComment?: boolean;
+      disableDuet?: boolean;
+      disableStitch?: boolean;
+    },
   ) {
     if (!body?.videoUrl || !body.videoUrl.trim()) {
       throw new BadRequestException('videoUrl is verplicht');
     }
-    return this.tiktok.postToInbox(restaurantId, body.videoUrl);
+    if (!body?.privacyLevel) {
+      throw new BadRequestException('privacyLevel is verplicht');
+    }
+    return this.tiktok.directPost(restaurantId, {
+      videoUrl: body.videoUrl,
+      title: body.title,
+      privacyLevel: body.privacyLevel,
+      brandOrganic: body.brandOrganic,
+      brandedContent: body.brandedContent,
+      disableComment: body.disableComment,
+      disableDuet: body.disableDuet,
+      disableStitch: body.disableStitch,
+    });
   }
 
   // DELETE /api/integrations/tiktok   (koppeling intrekken)
