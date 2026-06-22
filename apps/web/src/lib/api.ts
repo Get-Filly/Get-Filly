@@ -203,15 +203,26 @@ export async function tiktokCreatorInfo(): Promise<TikTokCreatorInfo> {
   return (await res.json()) as TikTokCreatorInfo;
 }
 
-// Stuurt een video als concept naar de TikTok-inbox. videoUrl moet op een
-// in TikTok geverifieerd domein staan (get-filly.com) — zie BACKLOG-todo.
+// Direct Post: post de video direct op het TikTok-account. videoUrl moet op een
+// in TikTok geverifieerd domein staan (get-filly.com → /media/r/...).
+export type TikTokUploadInput = {
+  videoUrl: string;
+  title?: string;
+  privacyLevel: string;
+  brandOrganic?: boolean;
+  brandedContent?: boolean;
+  disableComment?: boolean;
+  disableDuet?: boolean;
+  disableStitch?: boolean;
+};
+
 export async function tiktokUpload(
-  videoUrl: string,
+  input: TikTokUploadInput,
 ): Promise<{ publishId: string }> {
   const res = await authedFetch(`${API_URL}/integrations/tiktok/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ videoUrl }),
+    body: JSON.stringify(input),
   });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;

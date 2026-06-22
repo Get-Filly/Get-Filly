@@ -4165,6 +4165,19 @@
     "pickButton": "Kies media uit je bibliotheek",
     "changeButton": "Wijzigen",
     "selectedLabel": "Gekozen bestand",
-    "invalidMedia": "Deze media kan niet naar TikTok; kies een ander bestand."
+    "invalidMedia": "Deze media kan niet naar TikTok; kies een ander bestand.",
+    "titleLabel": "Titel / bijschrift",
+    "titlePlaceholder": "Schrijf een korte caption…",
+    "privacyLabel": "Wie mag deze post zien?",
+    "privacy": {
+      "SELF_ONLY": "Alleen ik (privé)",
+      "PUBLIC_TO_EVERYONE": "Iedereen",
+      "MUTUAL_FOLLOW_FRIENDS": "Vrienden",
+      "FOLLOWER_OF_CREATOR": "Volgers"
+    },
+    "publishButton": "Plaats op TikTok",
+    "publishing": "Bezig met plaatsen…",
+    "successTitleDirect": "Geplaatst op TikTok",
+    "successBodyDirect": "De video is naar je TikTok-account gestuurd. Afhankelijk van het privacy-niveau verschijnt die op je profiel."
   }
 }

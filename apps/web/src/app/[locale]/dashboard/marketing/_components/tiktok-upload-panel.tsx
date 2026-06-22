@@ -44,6 +44,8 @@ export function TikTokUploadPanel() {
   const [creator, setCreator] = useState<TikTokCreatorInfo | null>(null);
   const [picked, setPicked] = useState<RestaurantMediaItem | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [privacyLevel, setPrivacyLevel] = useState("");
   const [disclose, setDisclose] = useState(false);
   const [yourBrand, setYourBrand] = useState(false);
   const [brandedContent, setBrandedContent] = useState(false);
@@ -58,10 +60,15 @@ export function TikTokUploadPanel() {
   }, [active?.id]);
 
   // creator_info alleen ophalen als verbonden (vereist een geldige token).
+  // Het bepaalt ook welke privacy-niveaus mogen (onaudited app: SELF_ONLY).
   useEffect(() => {
     if (status?.connected) {
       tiktokCreatorInfo()
-        .then(setCreator)
+        .then((info) => {
+          setCreator(info);
+          // Default privacy = eerste toegestane optie (vaak SELF_ONLY).
+          setPrivacyLevel((p) => p || info.privacyOptions[0] || "SELF_ONLY");
+        })
         .catch(() => setCreator(null));
     }
   }, [status?.connected]);
@@ -88,7 +95,8 @@ export function TikTokUploadPanel() {
 
   const nickname = creator?.nickname ?? status.username ?? null;
   const avatarUrl = creator?.avatarUrl ?? status.avatarUrl ?? null;
-  const canUpload = !!picked && !uploading;
+  const privacyOptions = creator?.privacyOptions ?? [];
+  const canUpload = !!picked && !!privacyLevel && !uploading;
 
   const handleUpload = async () => {
     if (!picked) return;
@@ -100,7 +108,13 @@ export function TikTokUploadPanel() {
     setUploading(true);
     setResult(null);
     try {
-      await tiktokUpload(videoUrl);
+      await tiktokUpload({
+        videoUrl,
+        title: title.trim() || undefined,
+        privacyLevel,
+        brandOrganic: disclose && yourBrand,
+        brandedContent: disclose && brandedContent,
+      });
       setResult("success");
     } catch (e) {
       setResult(e instanceof Error ? e.message : t("error"));
@@ -203,6 +217,66 @@ export function TikTokUploadPanel() {
         }}
       />
 
+      {/* Titel/caption (Direct Post). */}
+      <div style={{ marginBottom: 16 }}>
+        <label
+          htmlFor="tiktok-title"
+          style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}
+        >
+          {t("titleLabel")}
+        </label>
+        <input
+          id="tiktok-title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t("titlePlaceholder")}
+          maxLength={150}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            border: "1px solid var(--border, #E5DFD0)",
+            borderRadius: "var(--radius, 8px)",
+            fontSize: 14,
+            fontFamily: "inherit",
+          }}
+        />
+      </div>
+
+      {/* Privacy-niveau (Direct Post vereist dit; opties komen uit creator_info,
+          onaudited app: alleen SELF_ONLY). */}
+      <div style={{ marginBottom: 16 }}>
+        <label
+          htmlFor="tiktok-privacy"
+          style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}
+        >
+          {t("privacyLabel")}
+        </label>
+        <select
+          id="tiktok-privacy"
+          value={privacyLevel}
+          onChange={(e) => setPrivacyLevel(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            border: "1px solid var(--border, #E5DFD0)",
+            borderRadius: "var(--radius, 8px)",
+            fontSize: 14,
+            fontFamily: "inherit",
+            background: "var(--white, #FFFFFF)",
+          }}
+        >
+          {privacyOptions.length === 0 && privacyLevel && (
+            <option value={privacyLevel}>{t(`privacy.${privacyLevel}`)}</option>
+          )}
+          {privacyOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {t(`privacy.${opt}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* (2) VERPLICHT: commercial-content-disclosure-toggle (default uit). */}
       <div style={{ marginBottom: 12 }}>
         <div
@@ -284,7 +358,7 @@ export function TikTokUploadPanel() {
         disabled={!canUpload}
         style={{ ...primaryBtnStyle, opacity: canUpload ? 1 : 0.55, cursor: canUpload ? "pointer" : "default" }}
       >
-        {uploading ? t("uploading") : t("uploadButton")}
+        {uploading ? t("publishing") : t("publishButton")}
       </button>
 
       {result === "success" && (
@@ -296,9 +370,11 @@ export function TikTokUploadPanel() {
             borderRadius: "var(--radius, 8px)",
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: 14 }}>{t("successTitle")}</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>
+            {t("successTitleDirect")}
+          </div>
           <div style={{ fontSize: 13, color: "var(--ts)", marginTop: 2 }}>
-            {t("successBody")}
+            {t("successBodyDirect")}
           </div>
         </div>
       )}

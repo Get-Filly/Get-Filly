@@ -346,21 +346,39 @@ export class TikTokService {
   }
 
   /**
-   * Stuurt een video als CONCEPT naar de TikTok-inbox (video.upload-scope,
-   * inbox-route). De eigenaar voltooit + publiceert zelf vanuit de TikTok-app.
+   * Direct Post (video.publish-scope): post de video DIRECT op het TikTok-
+   * account met het gekozen privacy-niveau + de verplichte disclosure-vlaggen.
+   * Geen concept/inbox — de video gaat (binnen TikTok's verwerking) live volgens
+   * privacy_level.
    *
    * Gebruikt PULL_FROM_URL: TikTok haalt het bestand op van `videoUrl`.
    * ⚠️ Het DOMEIN van videoUrl moet in het TikTok-portal geverifieerd zijn
    * (get-filly.com). Een Supabase-storage-URL (*.supabase.co) werkt dus niet
-   * direct — serveer de media via een get-filly.com-route (zie BACKLOG-todo).
+   * direct — serveer de media via de get-filly.com-rewrite (/media/r/...).
+   *
+   * Compliance/regels die TikTok afdwingt:
+   *   - privacy_level moet uit creator_info.privacy_level_options komen
+   *     (onaudited app: alleen SELF_ONLY).
+   *   - brandedContent (betaald partnerschap) mag NIET met privacy SELF_ONLY.
+   *   - Bij commerciële content moet minstens één van brandOrganic/brandedContent
+   *     aanstaan (dat zet de eigenaar in de UI).
    */
-  async postToInbox(
+  async directPost(
     restaurantId: string,
-    videoUrl: string,
+    opts: {
+      videoUrl: string;
+      title?: string;
+      privacyLevel: string;
+      brandOrganic?: boolean;
+      brandedContent?: boolean;
+      disableComment?: boolean;
+      disableDuet?: boolean;
+      disableStitch?: boolean;
+    },
   ): Promise<{ publishId: string }> {
     const token = await this.getValidAccessToken(restaurantId);
     const res = await fetch(
-      'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/',
+      'https://open.tiktokapis.com/v2/post/publish/video/init/',
       {
         method: 'POST',
         headers: {
@@ -368,7 +386,19 @@ export class TikTokService {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: JSON.stringify({
-          source_info: { source: 'PULL_FROM_URL', video_url: videoUrl },
+          post_info: {
+            title: opts.title ?? '',
+            privacy_level: opts.privacyLevel,
+            disable_comment: opts.disableComment ?? false,
+            disable_duet: opts.disableDuet ?? false,
+            disable_stitch: opts.disableStitch ?? false,
+            // brand_organic_toggle = "Your Brand", brand_content_toggle =
+            // "Branded Content" (betaald partnerschap). Komen uit de
+            // disclosure-toggle in de UI.
+            brand_organic_toggle: opts.brandOrganic ?? false,
+            brand_content_toggle: opts.brandedContent ?? false,
+          },
+          source_info: { source: 'PULL_FROM_URL', video_url: opts.videoUrl },
         }),
       },
     );
@@ -382,9 +412,9 @@ export class TikTokService {
       !json.data?.publish_id
     ) {
       this.logger.warn(
-        `TikTok inbox-upload faalde (${res.status}): ${json.error?.code ?? ''} ${json.error?.message ?? ''}`,
+        `TikTok direct-post faalde (${res.status}): ${json.error?.code ?? ''} ${json.error?.message ?? ''}`,
       );
-      throw new BadRequestException('TikTok-upload mislukt');
+      throw new BadRequestException('TikTok-post mislukt');
     }
     return { publishId: json.data.publish_id };
   }
