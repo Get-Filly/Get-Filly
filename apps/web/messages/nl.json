@@ -4102,6 +4102,10 @@
     "uploading": "Bezig met uploaden…",
     "successTitle": "Concept verstuurd naar je TikTok-inbox",
     "successBody": "Open de TikTok-app, maak de post af en publiceer 'm vanuit je inbox.",
-    "error": "Uploaden mislukt. Probeer het opnieuw."
+    "error": "Uploaden mislukt. Probeer het opnieuw.",
+    "pickButton": "Kies media uit je bibliotheek",
+    "changeButton": "Wijzigen",
+    "selectedLabel": "Gekozen bestand",
+    "invalidMedia": "Deze media kan niet naar TikTok; kies een ander bestand."
   }
 }

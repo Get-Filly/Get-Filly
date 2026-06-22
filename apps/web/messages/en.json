@@ -4102,6 +4102,10 @@
     "uploading": "Uploading…",
     "successTitle": "Draft sent to your TikTok inbox",
     "successBody": "Open the TikTok app, finish the post and publish it from your inbox.",
-    "error": "Upload failed. Please try again."
+    "error": "Upload failed. Please try again.",
+    "pickButton": "Choose media from your library",
+    "changeButton": "Change",
+    "selectedLabel": "Selected file",
+    "invalidMedia": "This media cannot be sent to TikTok; pick another file."
   }
 }

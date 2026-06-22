@@ -8,8 +8,22 @@ import {
   tiktokUpload,
   type TikTokStatus,
   type TikTokCreatorInfo,
+  type RestaurantMediaItem,
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { MediaLibraryPicker } from "../../_components/media-library-picker";
+
+// Map een publieke restaurant-media-URL (op *.supabase.co) naar het
+// geverifieerde get-filly.com-pad (zie de rewrite in next.config.ts), zodat
+// TikTok PULL_FROM_URL het bestand van een geverifieerd domein kan ophalen.
+function toVerifiedUrl(supabaseUrl: string): string | null {
+  const marker = "/object/public/restaurant-media/";
+  const idx = supabaseUrl.indexOf(marker);
+  if (idx === -1) return null;
+  const path = supabaseUrl.slice(idx + marker.length).split("?")[0];
+  if (!path) return null;
+  return `${window.location.origin}/media/r/${path}`;
+}
 
 // ============================================================
 // TikTokUploadPanel — compliant upload-scherm (Content Posting API)
@@ -28,7 +42,8 @@ export function TikTokUploadPanel() {
 
   const [status, setStatus] = useState<TikTokStatus | null>(null);
   const [creator, setCreator] = useState<TikTokCreatorInfo | null>(null);
-  const [videoUrl, setVideoUrl] = useState("");
+  const [picked, setPicked] = useState<RestaurantMediaItem | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [disclose, setDisclose] = useState(false);
   const [yourBrand, setYourBrand] = useState(false);
   const [brandedContent, setBrandedContent] = useState(false);
@@ -73,13 +88,19 @@ export function TikTokUploadPanel() {
 
   const nickname = creator?.nickname ?? status.username ?? null;
   const avatarUrl = creator?.avatarUrl ?? status.avatarUrl ?? null;
-  const canUpload = videoUrl.trim().length > 0 && !uploading;
+  const canUpload = !!picked && !uploading;
 
   const handleUpload = async () => {
+    if (!picked) return;
+    const videoUrl = toVerifiedUrl(picked.url);
+    if (!videoUrl) {
+      setResult(t("invalidMedia"));
+      return;
+    }
     setUploading(true);
     setResult(null);
     try {
-      await tiktokUpload(videoUrl.trim());
+      await tiktokUpload(videoUrl);
       setResult("success");
     } catch (e) {
       setResult(e instanceof Error ? e.message : t("error"));
@@ -131,25 +152,56 @@ export function TikTokUploadPanel() {
         </div>
       </div>
 
-      {/* Video-bron. Voorlopig een URL-veld; de media-library-picker +
-          get-filly.com-mediaroute (voor PULL_FROM_URL) zijn de follow-up. */}
+      {/* Video-bron: kies uit de media-bibliotheek (restaurant-media, publiek).
+          De gekozen URL wordt naar het get-filly.com-pad gemapt (PULL_FROM_URL). */}
       <div style={{ marginBottom: 16 }}>
-        <label
-          htmlFor="tiktok-video-url"
-          style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}
-        >
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
           {t("videoUrlLabel")}
-        </label>
-        <input
-          id="tiktok-video-url"
-          type="url"
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder={t("videoUrlPlaceholder")}
-          style={inputStyle}
-        />
+        </div>
+        {picked ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "8px 10px",
+              border: "1px solid var(--border, #E5DFD0)",
+              borderRadius: "var(--radius, 8px)",
+            }}
+          >
+            <span style={{ fontSize: 13, flex: 1, wordBreak: "break-all" }}>
+              <span style={{ color: "var(--tl)" }}>{t("selectedLabel")}: </span>
+              {picked.file_name}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              style={{ ...secondaryBtnStyle }}
+            >
+              {t("changeButton")}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            style={secondaryBtnStyle}
+          >
+            {t("pickButton")}
+          </button>
+        )}
         <div style={hintStyle}>{t("videoUrlHint")}</div>
       </div>
+
+      <MediaLibraryPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(item) => {
+          setPicked(item);
+          setPickerOpen(false);
+          setResult(null);
+        }}
+      />
 
       {/* (2) VERPLICHT: commercial-content-disclosure-toggle (default uit). */}
       <div style={{ marginBottom: 12 }}>
@@ -267,13 +319,16 @@ const cardStyle: React.CSSProperties = {
   maxWidth: 560,
 };
 const titleStyle: React.CSSProperties = { fontSize: 16, fontWeight: 700, margin: 0 };
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 10px",
+const secondaryBtnStyle: React.CSSProperties = {
+  padding: "8px 14px",
+  fontSize: 13,
+  fontWeight: 500,
   border: "1px solid var(--border, #E5DFD0)",
+  background: "transparent",
+  color: "var(--text, #18181B)",
   borderRadius: "var(--radius, 8px)",
-  fontSize: 14,
-  fontFamily: "inherit",
+  cursor: "pointer",
+  flexShrink: 0,
 };
 const hintStyle: React.CSSProperties = {
   fontSize: 12,
