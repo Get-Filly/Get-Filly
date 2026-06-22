@@ -26,6 +26,9 @@ import { CampaignFingerprintService } from './campaign-fingerprint.service';
 // MetaService: publiceert social-campagnes naar Facebook/Instagram via de
 // bestaande, goedgekeurde Meta-koppeling (token-opslag + /publish).
 import { MetaService } from '../meta/meta.service';
+// TikTokService: publiceert social-campagnes met platform 'tiktok' via de
+// Content Posting API (Direct Post). Spiegelt de Meta-publish.
+import { TikTokService } from '../tiktok/tiktok.service';
 import type Anthropic from '@anthropic-ai/sdk';
 
 // Schema voor 3-varianten-tool. minItems/maxItems forceert
@@ -196,6 +199,8 @@ export class CampaignsService {
     // MetaService: social-campagne → FB/IG-post. Request-scoped net als
     // deze service, dus injecteren kan zonder scope-conflict.
     private readonly meta: MetaService,
+    // TikTokService: social-campagne met platform 'tiktok' → Direct Post.
+    private readonly tiktok: TikTokService,
     // Admin (service-role) client voor de cron: die draait zonder
     // ingelogde user, dus de request-client (RLS) kan daar niet.
     private readonly admin: SupabaseService,
@@ -265,21 +270,7 @@ export class CampaignsService {
       return { published: false, alreadyPublished: true };
     }
 
-    // 2b. Veiligheid (regressie-fix): alleen publiceren als Meta gekoppeld
-    // is MÉT gekozen pagina. Zo blokkeert het activeren van een social-
-    // campagne NIET voor zaken zonder (volledige) Meta-koppeling — dan
-    // flippen we alleen de status, zoals vóór deze feature. De cron
-    // (fase B) slaat zulke campagnes om dezelfde reden netjes over.
-    const metaStatus = await this.meta.status(restaurantId, useAdmin);
-    if (!metaStatus.connected || !metaStatus.page) {
-      return {
-        published: false,
-        skipped: true,
-        reason: metaStatus.connected ? 'no_page' : 'not_connected',
-      };
-    }
-
-    // 3. Berichttekst: caption + hashtags.
+    // 3. Berichttekst: caption + hashtags. Gedeeld door alle kanalen.
     const caption = ((content.caption as string | null) ?? '').trim();
     const hashtags = Array.isArray(content.social_hashtags)
       ? (content.social_hashtags as string[])
@@ -291,48 +282,109 @@ export class CampaignsService {
       throw new BadRequestException('Deze social-campagne heeft nog geen tekst.');
     }
 
-    // 4. Foto signen (Meta haalt 'm server-side op; een signed URL van een
-    //    uur volstaat). IG vereist een foto; een FB-tekstpost mag zonder.
     const paths = Array.isArray(content.media_urls)
       ? (content.media_urls as string[])
       : [];
-    const imageUrl =
-      paths.length > 0
-        ? await this.signMediaPath(paths[0], useAdmin).catch(() => undefined)
-        : undefined;
 
-    // 5. Kanaalkeuze → FB/IG. Lege/onbekende platforms = generiek "social"
-    //    → Facebook altijd, Instagram alleen als er een foto is.
+    // 4. Kanaalkeuze. Lege/legacy platforms = generiek "social" → Meta
+    //    (Facebook + evt. Instagram). 'tiktok' is een eigen publish-pad.
     const platforms = Array.isArray(content.social_platforms)
       ? (content.social_platforms as string[])
       : [];
-    const toFacebook = platforms.length === 0 ? true : platforms.includes('facebook');
-    const toInstagram =
-      platforms.length === 0 ? !!imageUrl : platforms.includes('instagram');
-    if (!toFacebook && !toInstagram) {
-      throw new BadRequestException(
-        'Geen ondersteund kanaal (Facebook/Instagram) voor deze campagne.',
-      );
-    }
-
-    // 6. Publiceren via de Meta-backend (zelfde flow als het test-paneel).
-    const result = await this.meta.publish(
-      restaurantId,
-      { message, imageUrl, toFacebook, toInstagram },
-      useAdmin,
-    );
+    const toTikTok = platforms.includes('tiktok');
+    // Meta gevraagd als: legacy/leeg (default Meta) óf expliciet FB/IG.
+    const metaRequested =
+      platforms.length === 0 ||
+      platforms.includes('facebook') ||
+      platforms.includes('instagram');
 
     const postIds: Record<string, string> = {};
-    if (result.facebook?.id) postIds.facebook = result.facebook.id;
-    if (result.instagram?.id) postIds.instagram = result.instagram.id;
+    const errors: string[] = [];
+
+    // 5. Meta-tak (Facebook/Instagram). Alleen als gevraagd. Geen (volledige)
+    //    Meta-koppeling? Dan: is dit een Meta-only campagne → skippen (zoals
+    //    vóór deze feature, status flipt naar 'actief'); zit er óók TikTok
+    //    in, dan gaan we daar gewoon mee door.
+    if (metaRequested) {
+      const metaStatus = await this.meta.status(restaurantId, useAdmin);
+      if (!metaStatus.connected || !metaStatus.page) {
+        if (!toTikTok) {
+          return {
+            published: false,
+            skipped: true,
+            reason: metaStatus.connected ? 'no_page' : 'not_connected',
+          };
+        }
+        errors.push(
+          metaStatus.connected
+            ? 'Geen Meta-pagina gekozen; alleen TikTok geplaatst.'
+            : 'Meta niet gekoppeld; alleen TikTok geplaatst.',
+        );
+      } else {
+        // Foto signen (Meta haalt 'm server-side op). IG vereist een foto;
+        // een FB-tekstpost mag zonder.
+        const imageUrl =
+          paths.length > 0
+            ? await this.signMediaPath(paths[0], useAdmin).catch(() => undefined)
+            : undefined;
+        const toFacebook =
+          platforms.length === 0 ? true : platforms.includes('facebook');
+        const toInstagram =
+          platforms.length === 0 ? !!imageUrl : platforms.includes('instagram');
+        if (toFacebook || toInstagram) {
+          const result = await this.meta.publish(
+            restaurantId,
+            { message, imageUrl, toFacebook, toInstagram },
+            useAdmin,
+          );
+          if (result.facebook?.id) postIds.facebook = result.facebook.id;
+          if (result.instagram?.id) postIds.instagram = result.instagram.id;
+          if (result.errors.length) errors.push(...result.errors);
+        }
+      }
+    }
+
+    // 6. TikTok-tak (Direct Post). Vereist een gekoppeld TikTok-account én
+    //    een video. De video serveren we publiek op het geverifieerde
+    //    web-domein (zie /media/c/:campaignId, fase 3) zodat TikTok 'm via
+    //    PULL_FROM_URL kan ophalen. Onaudited/sandbox = alleen SELF_ONLY.
+    if (toTikTok) {
+      try {
+        const ttStatus = await this.tiktok.status(restaurantId);
+        const hasVideo = paths.some((p) => /\.(mp4|mov|webm|m4v)$/i.test(p));
+        if (!ttStatus.connected) {
+          errors.push('TikTok niet gekoppeld; video niet geplaatst.');
+        } else if (!hasVideo) {
+          errors.push(
+            'TikTok vereist een video; deze campagne heeft (nog) geen video.',
+          );
+        } else {
+          const webUrl = (
+            process.env.WEB_URL ?? 'https://www.get-filly.com'
+          ).replace(/\/$/, '');
+          const { publishId } = await this.tiktok.directPost(restaurantId, {
+            videoUrl: `${webUrl}/media/c/${campaignId}`,
+            title: message.slice(0, 2200),
+            // Sandbox/onaudited: TikTok staat alleen privé toe.
+            privacyLevel: 'SELF_ONLY',
+          });
+          postIds.tiktok = publishId;
+        }
+      } catch (err) {
+        errors.push(
+          `TikTok-post mislukt: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
     const anySuccess = Object.keys(postIds).length > 0;
 
     // 7. Niets gelukt → fout opslaan + naar boven gooien zodat de
     //    activeer-flow de status NIET op 'actief' zet.
     if (!anySuccess) {
-      const msg =
-        result.errors.join(' ') ||
-        'Publiceren naar Facebook/Instagram mislukt.';
+      const msg = errors.join(' ') || 'Publiceren mislukt.';
       await client
         .from('campaign_social_content')
         .update({ publish_error: msg, updated_at: new Date().toISOString() })
@@ -347,7 +399,7 @@ export class CampaignsService {
       .update({
         published_at: new Date().toISOString(),
         published_post_ids: postIds,
-        publish_error: result.errors.length ? result.errors.join(' ') : null,
+        publish_error: errors.length ? errors.join(' ') : null,
         updated_at: new Date().toISOString(),
       })
       .eq('campaign_id', campaignId);

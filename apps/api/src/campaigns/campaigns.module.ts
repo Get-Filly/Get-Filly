@@ -13,6 +13,9 @@ import { MailModule } from '../mail/mail.module';
 import { EventsModule } from '../events/events.module';
 // MetaModule levert MetaService: social-campagnes publiceren naar FB/IG.
 import { MetaModule } from '../meta/meta.module';
+// TikTokModule levert TikTokService: social-campagnes (platform 'tiktok')
+// publiceren via Direct Post.
+import { TikTokModule } from '../tiktok/tiktok.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -34,6 +37,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     MailModule,
     EventsModule,
     MetaModule,
+    TikTokModule,
   ],
   controllers: [CampaignsController, CampaignsCronController],
   providers: [
