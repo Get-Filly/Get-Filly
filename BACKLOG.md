@@ -901,6 +901,14 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-22 — Filly-flow a11y + /signup-uitlegpagina + requireAccess-hardening
+
+Gemerged naar `main` + live (merge `9c6df70`), branch `fix/filly-flow-a11y`. Vier commits:
+
+- **Filly geleide flow (a11y, 🔴):** de meeste a11y zat al goed (0-resultaten blijft in de flow, typ-/done-staat heeft `aria-live`) — laatste gaten gedicht: `role="alert"` op de guided-flow-foutmelding + chat-error-banner, `aria-live="polite"` op de berichten-container (kondigt nieuwe Filly-antwoorden aan, leest historie bij mount niet voor). Drie stale BACKLOG-items afgevinkt.
+- **`/signup` (🟡):** stille redirect naar `/contact` vervangen door een echte uitlegpagina "Welkom bij Get-Filly" + CTA "Vraag een demo aan" + link naar inloggen, in de bestaande auth-stijl. NL/EN via `auth.signup.*`. `.login-btn` werkt nu ook als `<a>`. Live geverifieerd (HTTP 200, beide talen).
+- **`requireAccess` (🟢, security):** niet-bestaand restaurant gaf 404, bestaand-zonder-toegang 403 → nu beide dezelfde generieke 403 (anti-enumeration); verschil alleen server-side gelogd.
+
 ### 2026-06-22 — Schema-drift 0044 + quick-win batch (a11y, copy, login-fouten, dode code)
 
 Gemerged naar `main` + live (merge `93990e9`), branch `fix/schema-drift-0044`. Zes commits:
