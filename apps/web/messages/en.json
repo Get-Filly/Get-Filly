@@ -3104,7 +3104,11 @@
       "fetchFailed": "Could not load photos.",
       "uploadFailed": "Upload failed.",
       "libraryFull": "Your library is full ({max} photos). Remove a photo first under Account > Photo library."
-    }
+    },
+    "uploadMedia": "+ Upload",
+    "filterAll": "All",
+    "filterPhotos": "Photos",
+    "filterVideos": "Videos"
   },
   "dash__components_meta_publish_panel": {
     "notConnectedHint": "Publishing to Facebook/Instagram will appear here as soon as you click <strong>Connect</strong> above and the connection succeeds.",

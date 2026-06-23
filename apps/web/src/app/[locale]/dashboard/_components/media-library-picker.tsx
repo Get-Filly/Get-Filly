@@ -26,23 +26,26 @@ import { Button } from "@/components/ui/button";
 
 const MAX_PHOTOS = 20;
 
+type MediaFilter = "all" | "image" | "video";
+
 type Props = {
   open: boolean;
   onClose: () => void;
   onPick: (item: RestaurantMediaItem) => void;
-  // "video" toont + uploadt video's (TikTok-campagnes); default "image".
-  // Zelfde bibliotheek (restaurant_media), gefilterd op mediatype.
-  mode?: "image" | "video";
+  // Begin-filter ("video" opent direct op video's, bv. vanuit een TikTok-
+  // campagne). De eigenaar kan altijd wisselen via de filter-chips. Eén
+  // gedeelde bibliotheek (restaurant_media) met foto's én video's.
+  initialFilter?: MediaFilter;
 };
 
 export function MediaLibraryPicker({
   open,
   onClose,
   onPick,
-  mode = "image",
+  initialFilter = "all",
 }: Props) {
   const t = useTranslations("dash__components_media_library_picker");
-  const isVideoMode = mode === "video";
+  const [filter, setFilter] = useState<MediaFilter>(initialFilter);
   const [items, setItems] = useState<RestaurantMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -64,11 +67,13 @@ export function MediaLibraryPicker({
       .finally(() => setLoading(false));
   }, [open, t]);
 
-  // Bibliotheek is gedeeld; toon alleen het gevraagde mediatype.
+  // Gedeelde bibliotheek; de filter-chips bepalen wat we tonen.
   const shown = items.filter((it) =>
-    isVideoMode
-      ? it.mime_type.startsWith("video/")
-      : it.mime_type.startsWith("image/"),
+    filter === "all"
+      ? true
+      : filter === "video"
+        ? it.mime_type.startsWith("video/")
+        : it.mime_type.startsWith("image/"),
   );
   // Cap geldt op de hele bibliotheek (foto's + video's samen).
   const isFull = items.length >= MAX_PHOTOS;
@@ -161,18 +166,12 @@ export function MediaLibraryPicker({
             gap: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 18 }}>
-            {isVideoMode ? t("titleVideo") : t("title")}
-          </h3>
+          <h3 style={{ margin: 0, fontSize: 18 }}>{t("title")}</h3>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               ref={fileInputRef}
               type="file"
-              accept={
-                isVideoMode
-                  ? "video/mp4,video/quicktime,video/webm"
-                  : "image/jpeg,image/png,image/webp"
-              }
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"
               style={{ display: "none" }}
               onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
             />
@@ -188,7 +187,7 @@ export function MediaLibraryPicker({
                   : t("uploadTitle")
               }
             >
-              {isVideoMode ? t("uploadVideo") : t("uploadPhoto")}
+              {t("uploadMedia")}
             </Button>
             <button
               type="button"
@@ -228,6 +227,41 @@ export function MediaLibraryPicker({
           {!uploading && (
             <span style={{ marginLeft: 8 }}>{t("dragHint")}</span>
           )}
+        </div>
+
+        {/* Filter-chips: één bibliotheek, snel wisselen tussen alles /
+            foto's / video's. */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          {(
+            [
+              { key: "all", label: t("filterAll") },
+              { key: "image", label: t("filterPhotos") },
+              { key: "video", label: t("filterVideos") },
+            ] as const
+          ).map((f) => {
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                style={{
+                  padding: "4px 12px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  border: `1px solid ${active ? "var(--color-brand, #1F4A2D)" : "var(--border, #E5DFD0)"}`,
+                  background: active
+                    ? "var(--color-brand, #1F4A2D)"
+                    : "transparent",
+                  color: active ? "white" : "var(--tl, #6B6F71)",
+                }}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
 
         {error && (

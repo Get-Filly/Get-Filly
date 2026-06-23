@@ -3104,7 +3104,11 @@
       "fetchFailed": "Foto's ophalen mislukt.",
       "uploadFailed": "Upload mislukt.",
       "libraryFull": "Je bibliotheek zit vol ({max} foto's). Verwijder eerst een foto op Account → Foto-bibliotheek."
-    }
+    },
+    "uploadMedia": "+ Uploaden",
+    "filterAll": "Alles",
+    "filterPhotos": "Foto's",
+    "filterVideos": "Video's"
   },
   "dash__components_meta_publish_panel": {
     "notConnectedHint": "Publiceren naar Facebook/Instagram verschijnt hier zodra je hierboven op <strong>Verbind</strong> hebt geklikt en de koppeling is gelukt.",

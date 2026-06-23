@@ -104,7 +104,8 @@ export function FotoCard({
   const validateAndUpload = async (file: File) => {
     const isImage = file.type.startsWith("image/");
     const isVideo = file.type.startsWith("video/");
-    if (!isImage && !(allowVideo && isVideo)) {
+    // Foto's én video's zijn overal toegestaan (gedeelde bibliotheek).
+    if (!isImage && !isVideo) {
       setError(t("errors.imagesOnly"));
       return;
     }
@@ -262,7 +263,7 @@ export function FotoCard({
         <input
           ref={inputRef}
           type="file"
-          accept={allowVideo ? `${ACCEPT_IMAGE},${ACCEPT_VIDEO}` : ACCEPT_IMAGE}
+          accept={`${ACCEPT_IMAGE},${ACCEPT_VIDEO}`}
           onChange={onFileSelect}
           style={{ display: "none" }}
         />
@@ -282,7 +283,7 @@ export function FotoCard({
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={(item) => void useFromLibrary(item)}
-        mode={allowVideo ? "video" : "image"}
+        initialFilter={allowVideo ? "video" : "all"}
       />
     </div>
   );
