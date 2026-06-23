@@ -240,7 +240,8 @@ export default function VoorstelDetailPage() {
         c.platform,
         v?.body,
         v?.subject_line,
-        c.scheduled_for,
+        // Voorgesteld moment telt als gekozen (ongewijzigd = akkoord).
+        c.scheduled_for ?? c.filly_scheduled_for,
         c.restaurant_media_id,
       );
       return { id: c.id, platform: c.platform, items };

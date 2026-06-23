@@ -236,6 +236,7 @@ export function InhoudCard({
                 <AlternativeBlock
                   key={idx}
                   variant={v}
+                  type={type}
                   versieLabel={t("versionLabel", { n: idx + 1 })}
                   canEdit={canEdit}
                   busy={busy}
@@ -369,12 +370,11 @@ function SelectedReader({
           )}
         </div>
       </div>
-      {/* Mail: altijd subject-row tonen (zelfs leeg) zodat eigenaar
-          weet dat 'ie 'm moet invullen. Klik op de placeholder opent
-          de edit-modus zodat 'ie direct kan typen. Voor social/whatsapp
-          tonen we 'm alleen als er een onderwerp is gezet. */}
-      {type === "mail" ? (
-        variant?.subject_line ? (
+      {/* Onderwerp HOORT alleen bij mail. Voor social/whatsapp tonen we
+          'm nooit — ook niet als de data per ongeluk een subject_line
+          bevat (bv. een Instagram-campagne mag geen onderwerpregel). */}
+      {type === "mail" &&
+        (variant?.subject_line ? (
           <div
             style={{
               fontSize: 13,
@@ -407,20 +407,7 @@ function SelectedReader({
           >
             ◦ {t("subjectMissing")}
           </button>
-        )
-      ) : (
-        variant?.subject_line && (
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text)",
-            }}
-          >
-            {variant.subject_line}
-          </div>
-        )
-      )}
+        ))}
       <div
         style={{
           fontSize: 13,
@@ -555,12 +542,14 @@ function SelectedEditor({
 // 260px zodat we op smalle schermen netjes onder elkaar wrappen.
 function AlternativeBlock({
   variant,
+  type,
   versieLabel,
   canEdit,
   busy,
   onPick,
 }: {
   variant: InhoudVariant;
+  type: "mail" | "social" | "whatsapp";
   versieLabel: string;
   canEdit: boolean;
   busy: boolean;
@@ -601,7 +590,7 @@ function AlternativeBlock({
       >
         {versieLabel}
       </div>
-      {variant.subject_line && (
+      {type === "mail" && variant.subject_line && (
         <div
           style={{
             fontSize: 13,

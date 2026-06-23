@@ -492,6 +492,17 @@ export default function UnifiedDetailPage() {
       setActionError(null);
       setChangingStatus(true);
       try {
+        // Plan-in: een door Filly voorgesteld moment dat de eigenaar niet
+        // wijzigde, geldt als geaccepteerd. Persisteer het als scheduled_for
+        // voor kanalen die nog geen eigen tijd hebben — anders zou
+        // 'ingepland' geen concrete tijd hebben en pakt de cron 'm nooit op.
+        if (next === "ingepland") {
+          await Promise.all(
+            view.channels
+              .filter((c) => !c.scheduled_for && c.filly_scheduled_for)
+              .map((c) => setCampaignSchedule(c.id, c.filly_scheduled_for!)),
+          );
+        }
         await Promise.all(
           view.channels.map((c) => updateCampaignStatus(c.id, next)),
         );

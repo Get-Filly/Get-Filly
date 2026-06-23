@@ -489,8 +489,20 @@ export default function CampagnesPage() {
       actief: [],
     };
 
+    // Een voorstel is verlopen als z'n doel-datum (target_date) gisteren of
+    // eerder was: een actie voor een al-gepasseerde dag heeft geen zin meer.
+    // Voorstellen zonder datum blijven staan (de eigenaar kiest zelf nog een
+    // dag). Spiegelt de expired-logica van de campagne-kolommen hieronder.
+    const isSuggestionExpired = (s: AiSuggestion): boolean => {
+      const td = getSuggestionTargetDate(s);
+      if (!td || !/^\d{4}-\d{2}-\d{2}$/.test(td)) return false;
+      // Einde van de doel-dag: target_date === vandaag blijft dus zichtbaar.
+      return new Date(`${td}T23:59:59`).getTime() < Date.now();
+    };
+
     // Voorstel-kolom: ai_suggestions, split op trigger_type voor bundles.
     for (const s of suggestions) {
+      if (isSuggestionExpired(s)) continue;
       const sc = s.suggested_campaign;
       const channels =
         sc.channels && sc.channels.length > 0
