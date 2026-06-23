@@ -928,11 +928,6 @@ export default function VoorstelDetailPage() {
           spreken voor zich; eigenaar wil snel kunnen beslissen, niet
           eerst door 5 stat-cards heen lezen. */}
 
-      {/* Per 2026-05-07 fase 2d: 'Waarom dit voorstel' bovenaan zodat
-          eigenaar Filly's redenering ziet vóór 'ie kanalen kiest of de
-          inhoud bewerkt. Context-eerst i.p.v. diep onder. */}
-      <WaaromCard reasoning={suggestion.reasoning} />
-
       {/* Missende aspecten — per actief kanaal de openstaande velden.
           Op suggesties met status anders dan 'pending' verbergen we de
           card (alle items zijn dan moot). */}
@@ -963,6 +958,31 @@ export default function VoorstelDetailPage() {
           }}
         />
       )}
+
+      {/* Inhoud-card: variants-grid + bewerken + genereer nieuwe.
+          Component bevat de hele edit-flow (textarea/onderwerp/save/
+          cancel) maar laat state aan ons over zodat we kanaal-switch
+          de drafts kunnen resetten. */}
+      <InhoudCard
+        sectionId={SECTION_ID.inhoud}
+        variants={variants}
+        selectedIndex={selectedIndex}
+        type={type}
+        canEdit={isPending}
+        busy={busy}
+        editingVariantIdx={editingVariantIdx}
+        draftSubject={draftSubject}
+        draftBody={draftBody}
+        savingEdit={savingEdit}
+        refining={refining}
+        onSelectVariant={handleSelectVariant}
+        onStartEditVariant={handleStartEditVariant}
+        onCancelEditVariant={handleCancelEditVariant}
+        onSaveEditVariant={handleSaveEditVariant}
+        onDraftSubjectChange={setDraftSubject}
+        onDraftBodyChange={setDraftBody}
+        onRegenerate={handleRegenerate}
+      />
 
       {/* Foto-card, alleen voor social/whatsapp. Mail ondersteunt nog
           geen media (consistent met campaigns.uploadMedia). */}
@@ -1063,31 +1083,6 @@ export default function VoorstelDetailPage() {
         </div>
       )}
 
-      {/* Inhoud-card: variants-grid + bewerken + genereer nieuwe.
-          Component bevat de hele edit-flow (textarea/onderwerp/save/
-          cancel) maar laat state aan ons over zodat we kanaal-switch
-          de drafts kunnen resetten. */}
-      <InhoudCard
-        sectionId={SECTION_ID.inhoud}
-        variants={variants}
-        selectedIndex={selectedIndex}
-        type={type}
-        canEdit={isPending}
-        busy={busy}
-        editingVariantIdx={editingVariantIdx}
-        draftSubject={draftSubject}
-        draftBody={draftBody}
-        savingEdit={savingEdit}
-        refining={refining}
-        onSelectVariant={handleSelectVariant}
-        onStartEditVariant={handleStartEditVariant}
-        onCancelEditVariant={handleCancelEditVariant}
-        onSaveEditVariant={handleSaveEditVariant}
-        onDraftSubjectChange={setDraftSubject}
-        onDraftBodyChange={setDraftBody}
-        onRegenerate={handleRegenerate}
-      />
-
       {/* Wanneer plaatsen-card. Component wired naar suggestion-API
           via callbacks. Bij afwijking van Filly's voorgestelde tijd
           verschijnt een rode banner. Per 2026-05-07 altijd zichtbaar,
@@ -1112,6 +1107,10 @@ export default function VoorstelDetailPage() {
         onResetToFilly={handleResetToFilly}
         onDraftDatetimeChange={setDraftDatetime}
       />
+
+      {/* Waarom dit voorstel — Filly's redenering als context onderaan,
+          ná de actie-kaarten (kanalen/inhoud/foto/timing). */}
+      <WaaromCard reasoning={suggestion.reasoning} />
 
       <MediaLibraryPicker
         open={pickerOpen}

@@ -880,8 +880,6 @@ export default function UnifiedDetailPage() {
 
       <div style={{ marginBottom: 24 }} />
 
-      <WaaromCard reasoning={view.reasoning} />
-
       {/* Missende aspecten alleen in concept-fase: in latere fases
           is de campagne immutable, een lijst missende velden is
           dan moot. */}
@@ -915,22 +913,26 @@ export default function UnifiedDetailPage() {
         }}
       />
 
-      {/* Foto-card. Alleen non-mail. Editable als concept. Compacte
-          variant (thumbnail + knoppen) zodat de pagina niet
-          gedomineerd wordt door een grote dropzone. */}
-      {supportsMedia && activeCampaign && (
-        <div id={SECTION_ID.foto} style={{ scrollMarginTop: 120 }}>
-          <FotoCard
-            campaignId={activeCampaign.id}
-            signedUrl={activeChannel?.media_url ?? null}
-            canEdit={canEdit}
-            allowVideo={activeChannel?.platform === "tiktok"}
-            onMediaChanged={() => {
-              void load();
-            }}
-          />
-        </div>
-      )}
+      <InhoudCard
+        sectionId={SECTION_ID.inhoud}
+        variants={variants}
+        selectedIndex={selectedIndex}
+        type={activePlatformType}
+        canEdit={canEdit}
+        busy={busy}
+        editingVariantIdx={editingVariantIdx}
+        draftSubject={draftSubject}
+        draftBody={draftBody}
+        savingEdit={savingVariant}
+        refining={refining}
+        onSelectVariant={handleSelectVariant}
+        onStartEditVariant={handleStartEditVariant}
+        onCancelEditVariant={handleCancelEditVariant}
+        onSaveEditVariant={handleSaveEditVariant}
+        onDraftSubjectChange={setDraftSubject}
+        onDraftBodyChange={setDraftBody}
+        onRegenerate={handleRegenerate}
+      />
 
       {repetitionWarnings.length > 0 && (
         <div
@@ -969,26 +971,22 @@ export default function UnifiedDetailPage() {
         </div>
       )}
 
-      <InhoudCard
-        sectionId={SECTION_ID.inhoud}
-        variants={variants}
-        selectedIndex={selectedIndex}
-        type={activePlatformType}
-        canEdit={canEdit}
-        busy={busy}
-        editingVariantIdx={editingVariantIdx}
-        draftSubject={draftSubject}
-        draftBody={draftBody}
-        savingEdit={savingVariant}
-        refining={refining}
-        onSelectVariant={handleSelectVariant}
-        onStartEditVariant={handleStartEditVariant}
-        onCancelEditVariant={handleCancelEditVariant}
-        onSaveEditVariant={handleSaveEditVariant}
-        onDraftSubjectChange={setDraftSubject}
-        onDraftBodyChange={setDraftBody}
-        onRegenerate={handleRegenerate}
-      />
+      {/* Foto-card. Alleen non-mail. Editable als concept. Compacte
+          variant (thumbnail + knoppen) zodat de pagina niet
+          gedomineerd wordt door een grote dropzone. */}
+      {supportsMedia && activeCampaign && (
+        <div id={SECTION_ID.foto} style={{ scrollMarginTop: 120 }}>
+          <FotoCard
+            campaignId={activeCampaign.id}
+            signedUrl={activeChannel?.media_url ?? null}
+            canEdit={canEdit}
+            allowVideo={activeChannel?.platform === "tiktok"}
+            onMediaChanged={() => {
+              void load();
+            }}
+          />
+        </div>
+      )}
 
       <WanneerCard
         sectionId={SECTION_ID.schedule}
@@ -1009,6 +1007,10 @@ export default function UnifiedDetailPage() {
         onResetToFilly={handleResetToFilly}
         onDraftDatetimeChange={setDraftDatetime}
       />
+
+      {/* Waarom dit voorstel — Filly's redenering als context onderaan,
+          ná de actie-kaarten (inhoud/foto/timing). */}
+      <WaaromCard reasoning={view.reasoning} />
 
       {/* Mail-verstuur: test-mail + verstuur-naar-iedereen. Toont
           alleen op mail-campagnes (andere kanalen gaan via eigen
