@@ -931,7 +931,9 @@ export default function VoorstelDetailPage() {
               fillyIso: ch?.filly_scheduled_for ?? ch?.scheduled_for ?? null,
             };
           })}
-          allChannelIds={fullChannels.map((c) => c.id)}
+          mediaChannels={fullChannels
+            .filter((c) => c.platform !== "mail")
+            .map((c) => ({ id: c.id, hasMedia: !!c.restaurant_media_id }))}
           canEdit={isPending}
           localeTag={localeTag}
           onSaveText={async (channelId, index, patch) => {
@@ -964,6 +966,10 @@ export default function VoorstelDetailPage() {
               updated = await setSuggestionMedia(suggestion.id, item.id, cid);
             }
             if (updated) refresh(updated);
+          }}
+          onRegenerate={async (channelId) => {
+            if (!suggestion) return;
+            refresh(await refineSuggestion(suggestion.id, "", channelId));
           }}
         />
       )}

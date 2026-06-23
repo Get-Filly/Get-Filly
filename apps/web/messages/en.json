@@ -2653,7 +2653,12 @@
     "textOtherVersions": "Other versions:",
     "textSave": "Save",
     "subjectPlaceholder": "Email subject",
-    "bodyPlaceholder": "Campaign text"
+    "bodyPlaceholder": "Campaign text",
+    "inlineClose": "Close",
+    "textGenerate": "✨ Generate new versions",
+    "photoShared": "The same photo or video is used for all selected channels.",
+    "photoApplyOthers": "Also use for {count, plural, one {# other channel} other {# other channels}} without a photo",
+    "photoOverwrite": "Also overwrite {count, plural, one {# channel} other {# channels}} that already have one"
   },
   "dash__components_campaign_detail_waarom_card": {
     "title": "Why this proposal"

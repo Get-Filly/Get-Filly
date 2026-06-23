@@ -19,7 +19,7 @@
 //
 // Verbergt zich automatisch als geen enkel kanaal nog actie nodig heeft.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -48,8 +48,9 @@ export type MissendeAspectenChannel = {
 
 type Props = {
   channels: MissendeAspectenChannel[];
-  // Alle kanaal-id's van de campagne/bundel (voor "gebruik voor alle kanalen").
-  allChannelIds: string[];
+  // Kanalen die foto's/video's ondersteunen (mail uitgezonderd), met of ze
+  // al media hebben — voor "gebruik voor alle kanalen".
+  mediaChannels: Array<{ id: string; hasMedia: boolean }>;
   canEdit: boolean;
   localeTag: string;
   // Persistentie (page-specifiek). Targetten een kanaal op id.
@@ -64,17 +65,20 @@ type Props = {
     channelIds: string[],
     item: RestaurantMediaItem,
   ) => Promise<void>;
+  // Genereer nieuwe versies (incl. onderwerp) voor één kanaal.
+  onRegenerate: (channelId: string) => Promise<void>;
 };
 
 export function MissendeAspectenCard({
   channels,
-  allChannelIds,
+  mediaChannels,
   canEdit,
   localeTag,
   onSaveText,
   onSelectVariant,
   onSetSchedule,
   onApplyMedia,
+  onRegenerate,
 }: Props) {
   const t = useTranslations(
     "dash__components_campaign_detail_missende_aspecten_card",
@@ -150,13 +154,14 @@ export function MissendeAspectenCard({
                       key={key}
                       field={item.field}
                       channel={c}
-                      allChannelIds={allChannelIds}
+                      mediaChannels={mediaChannels}
                       localeTag={localeTag}
                       onClose={() => setOpenKey(null)}
                       onSaveText={onSaveText}
                       onSelectVariant={onSelectVariant}
                       onSetSchedule={onSetSchedule}
                       onApplyMedia={onApplyMedia}
+                      onRegenerate={onRegenerate}
                     />
                   );
                 })}
@@ -194,17 +199,18 @@ export function MissendeAspectenCard({
 function InlineFixPanel({
   field,
   channel,
-  allChannelIds,
+  mediaChannels,
   localeTag,
   onClose,
   onSaveText,
   onSelectVariant,
   onSetSchedule,
   onApplyMedia,
+  onRegenerate,
 }: {
   field: MissingField;
   channel: MissendeAspectenChannel;
-  allChannelIds: string[];
+  mediaChannels: Array<{ id: string; hasMedia: boolean }>;
   localeTag: string;
   onClose: () => void;
   onSaveText: (
@@ -218,13 +224,29 @@ function InlineFixPanel({
     channelIds: string[],
     item: RestaurantMediaItem,
   ) => Promise<void>;
+  onRegenerate: (channelId: string) => Promise<void>;
 }) {
   const t = useTranslations(
     "dash__components_campaign_detail_missende_aspecten_card",
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
+  // Klik buiten het paneel → sluiten. De bibliotheek-modal is een DOM-kind
+  // van het paneel, dus klikken daarin telt als 'binnen' en sluit niet.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (busy) return;
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [busy, onClose]);
+
+  // Sluit ná een geslaagde actie (opslaan/kiezen/accepteren).
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -238,47 +260,42 @@ function InlineFixPanel({
     }
   };
 
-  const panelStyle: React.CSSProperties = {
-    marginLeft: 126,
-    padding: "12px 14px",
-    background: "var(--bg-soft, #F5F3EE)",
-    border: "1px solid var(--border, #E5DFD0)",
-    borderRadius: 8,
+  // Blijf open ná de actie (bv. genereren: je wilt de nieuwe versies zien).
+  const runStay = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await fn();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("inlineError"));
+    } finally {
+      setBusy(false);
+    }
   };
 
+  let body: React.ReactNode = null;
   if (field === "photo") {
-    return (
-      <div style={panelStyle}>
-        <PhotoFix
-          channel={channel}
-          allChannelIds={allChannelIds}
-          busy={busy}
-          onApply={(channelIds, item) =>
-            run(() => onApplyMedia(channelIds, item))
-          }
-        />
-        {error && <ErrorLine text={error} />}
-      </div>
+    body = (
+      <PhotoFix
+        channel={channel}
+        mediaChannels={mediaChannels}
+        busy={busy}
+        onApply={(channelIds, item) =>
+          run(() => onApplyMedia(channelIds, item))
+        }
+      />
     );
-  }
-
-  if (field === "date") {
-    return (
-      <div style={panelStyle}>
-        <DateFix
-          channel={channel}
-          localeTag={localeTag}
-          busy={busy}
-          onSet={(iso) => run(() => onSetSchedule(channel.id, iso))}
-        />
-        {error && <ErrorLine text={error} />}
-      </div>
+  } else if (field === "date") {
+    body = (
+      <DateFix
+        channel={channel}
+        localeTag={localeTag}
+        busy={busy}
+        onSet={(iso) => run(() => onSetSchedule(channel.id, iso))}
+      />
     );
-  }
-
-  // subject | body
-  return (
-    <div style={panelStyle}>
+  } else {
+    body = (
       <TextFix
         field={field}
         channel={channel}
@@ -295,7 +312,45 @@ function InlineFixPanel({
           )
         }
         onPickVariant={(idx) => run(() => onSelectVariant(channel.id, idx))}
+        onRegenerate={() => runStay(() => onRegenerate(channel.id))}
       />
+    );
+  }
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{
+        position: "relative",
+        marginLeft: 126,
+        padding: "12px 36px 14px 14px",
+        background: "var(--bg-soft, #F5F3EE)",
+        border: "1px solid var(--border, #E5DFD0)",
+        borderRadius: 8,
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={t("inlineClose")}
+        title={t("inlineClose")}
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 10,
+          width: 24,
+          height: 24,
+          lineHeight: 1,
+          background: "transparent",
+          border: "none",
+          fontSize: 15,
+          color: "var(--tl, #6B6F71)",
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </button>
+      {body}
       {error && <ErrorLine text={error} />}
     </div>
   );
@@ -312,12 +367,12 @@ function ErrorLine({ text }: { text: string }) {
 // ---------- Foto/video ----------
 function PhotoFix({
   channel,
-  allChannelIds,
+  mediaChannels,
   busy,
   onApply,
 }: {
   channel: MissendeAspectenChannel;
-  allChannelIds: string[];
+  mediaChannels: Array<{ id: string; hasMedia: boolean }>;
   busy: boolean;
   onApply: (channelIds: string[], item: RestaurantMediaItem) => void;
 }) {
@@ -325,32 +380,55 @@ function PhotoFix({
     "dash__components_campaign_detail_missende_aspecten_card",
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [applyAll, setApplyAll] = useState(false);
-  const multi = allChannelIds.length > 1;
+  // Andere media-kanalen (mail is door de parent al uitgesloten).
+  const others = mediaChannels.filter((c) => c.id !== channel.id);
+  const withoutPhoto = others.filter((c) => !c.hasMedia);
+  const withPhoto = others.filter((c) => c.hasMedia);
+  // Default: dezelfde media ook op de andere kanalen die nog niets hebben.
+  const [applyWithout, setApplyWithout] = useState(withoutPhoto.length > 0);
+  const [overwrite, setOverwrite] = useState(false);
   const isVideoChannel = channel.platform === "tiktok";
+
+  const targetIds = [
+    channel.id,
+    ...(applyWithout ? withoutPhoto.map((c) => c.id) : []),
+    ...(overwrite ? withPhoto.map((c) => c.id) : []),
+  ];
+
+  const cb: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 13,
+    cursor: "pointer",
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ fontSize: 13, color: "var(--ts)" }}>
-        {t("photoIntro")}
-      </div>
-      {multi && (
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 13,
-            cursor: "pointer",
-          }}
-        >
+      <div style={{ fontSize: 13, color: "var(--ts)" }}>{t("photoIntro")}</div>
+      {withoutPhoto.length > 0 && (
+        <label style={cb}>
           <input
             type="checkbox"
-            checked={applyAll}
-            onChange={(e) => setApplyAll(e.target.checked)}
+            checked={applyWithout}
+            onChange={(e) => setApplyWithout(e.target.checked)}
             style={{ accentColor: "var(--color-brand, #1F4A2D)" }}
           />
-          {t("photoApplyAll")}
+          {t("photoApplyOthers", { count: withoutPhoto.length })}
         </label>
+      )}
+      {withPhoto.length > 0 && (
+        <label style={cb}>
+          <input
+            type="checkbox"
+            checked={overwrite}
+            onChange={(e) => setOverwrite(e.target.checked)}
+            style={{ accentColor: "var(--color-brand, #1F4A2D)" }}
+          />
+          {t("photoOverwrite", { count: withPhoto.length })}
+        </label>
+      )}
+      {targetIds.length > 1 && (
+        <div style={{ fontSize: 12, color: "var(--tl)" }}>{t("photoShared")}</div>
       )}
       <div>
         <Button
@@ -367,7 +445,7 @@ function PhotoFix({
         initialFilter={isVideoChannel ? "video" : "all"}
         onPick={(item) => {
           setPickerOpen(false);
-          onApply(applyAll ? allChannelIds : [channel.id], item);
+          onApply(targetIds, item);
         }}
       />
     </div>
@@ -442,12 +520,14 @@ function TextFix({
   busy,
   onSave,
   onPickVariant,
+  onRegenerate,
 }: {
   field: MissingField;
   channel: MissendeAspectenChannel;
   busy: boolean;
   onSave: (value: string) => void;
   onPickVariant: (idx: number) => void;
+  onRegenerate: () => void;
 }) {
   const t = useTranslations(
     "dash__components_campaign_detail_missende_aspecten_card",
@@ -531,13 +611,18 @@ function TextFix({
           </div>
         </div>
       )}
-      <div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Button
           onClick={() => onSave(value)}
           disabled={busy || !value.trim()}
           loading={busy}
         >
           {t("textSave")}
+        </Button>
+        {/* Filly nieuwe versies (incl. onderwerp) laten genereren. Blijft
+            open zodat je daarna de gewenste versie kunt kiezen. */}
+        <Button variant="secondary" onClick={onRegenerate} disabled={busy}>
+          {t("textGenerate")}
         </Button>
       </div>
     </div>

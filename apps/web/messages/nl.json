@@ -2653,7 +2653,12 @@
     "textOtherVersions": "Andere versies:",
     "textSave": "Opslaan",
     "subjectPlaceholder": "Onderwerp van de mail",
-    "bodyPlaceholder": "Tekst van de campagne"
+    "bodyPlaceholder": "Tekst van de campagne",
+    "inlineClose": "Sluiten",
+    "textGenerate": "✨ Genereer nieuwe versies",
+    "photoShared": "Dezelfde foto of video wordt voor alle gekozen kanalen gebruikt.",
+    "photoApplyOthers": "Gebruik ook voor {count, plural, one {# ander kanaal} other {# andere kanalen}} zonder foto",
+    "photoOverwrite": "Overschrijf ook {count, plural, one {# kanaal} other {# kanalen}} met al een foto"
   },
   "dash__components_campaign_detail_waarom_card": {
     "title": "Waarom dit voorstel"

@@ -884,7 +884,9 @@ export default function UnifiedDetailPage() {
               fillyIso: ch?.filly_scheduled_for ?? null,
             };
           })}
-          allChannelIds={view.channels.map((c) => c.id)}
+          mediaChannels={view.channels
+            .filter((c) => c.platform !== "mail")
+            .map((c) => ({ id: c.id, hasMedia: !!c.media_url }))}
           canEdit={canEdit}
           localeTag={localeTag}
           onSaveText={async (channelId, index, patch) => {
@@ -908,6 +910,10 @@ export default function UnifiedDetailPage() {
               });
               await uploadCampaignMedia(cid, file);
             }
+            await load();
+          }}
+          onRegenerate={async (channelId) => {
+            await generateMoreCampaignVariants(channelId);
             await load();
           }}
         />
