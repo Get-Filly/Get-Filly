@@ -174,10 +174,10 @@ export function bundleToView(bundle: CampaignBundle): UnifiedDetailView {
       channel.platform,
       v?.body,
       v?.subject_line ?? undefined,
-      // Effectieve datum: een door Filly voorgesteld moment telt als
-      // gekozen (ongewijzigd = geaccepteerd). Zo blokkeert "date" niet
-      // en hoeft de eigenaar niet eerst Wijzig → Opslaan te doen.
-      channel.scheduled_for ?? channel.filly_scheduled_for,
+      // Alleen een VASTGELEGD moment (scheduled_for) telt als gekozen. Een
+      // door Filly voorgesteld moment moet de eigenaar eerst accepteren via
+      // de "Akkoord"-knop in de Wanneer-plaatsen-card (legt scheduled_for vast).
+      channel.scheduled_for,
       mediaTokenForChecklist(c),
     );
     return { id: channel.id, platform: channel.platform, items };

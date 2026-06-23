@@ -240,8 +240,9 @@ export default function VoorstelDetailPage() {
         c.platform,
         v?.body,
         v?.subject_line,
-        // Voorgesteld moment telt als gekozen (ongewijzigd = akkoord).
-        c.scheduled_for ?? c.filly_scheduled_for,
+        // Alleen een vastgelegd moment telt; Filly's voorstel accepteert de
+        // eigenaar via de "Akkoord"-knop (legt scheduled_for vast).
+        c.scheduled_for,
         c.restaurant_media_id,
       );
       return { id: c.id, platform: c.platform, items };
@@ -1103,6 +1104,8 @@ export default function VoorstelDetailPage() {
         editingSchedule={editingSchedule}
         draftDatetime={draftDatetime}
         savingSchedule={savingSchedule}
+        canAccept={isPending && !customIso && !!fillyIso}
+        onAcceptSchedule={handleResetToFilly}
         onStartEditSchedule={handleStartEditSchedule}
         onCancelEditSchedule={() => setEditingSchedule(false)}
         onSaveSchedule={handleSaveSchedule}

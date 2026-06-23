@@ -1001,6 +1001,8 @@ export default function UnifiedDetailPage() {
         editingSchedule={editingSchedule}
         draftDatetime={draftDatetime}
         savingSchedule={savingSchedule}
+        canAccept={canEdit && !customIso && !!fillyIso}
+        onAcceptSchedule={handleResetToFilly}
         onStartEditSchedule={handleStartEditSchedule}
         onCancelEditSchedule={() => setEditingSchedule(false)}
         onSaveSchedule={handleSaveSchedule}

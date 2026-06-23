@@ -37,6 +37,11 @@ type Props = {
   // datetime-local input value ('2026-05-14T17:00').
   draftDatetime: string;
   savingSchedule: boolean;
+  // canAccept = Filly heeft een moment voorgesteld dat nog niet expliciet
+  // is vastgelegd. Dan tonen we een "Akkoord"-knop: één klik legt het
+  // voorgestelde moment vast (geen Wijzig → Opslaan nodig).
+  canAccept: boolean;
+  onAcceptSchedule: () => void;
   onStartEditSchedule: () => void;
   onCancelEditSchedule: () => void;
   onSaveSchedule: () => void;
@@ -55,6 +60,8 @@ export function WanneerCard({
   editingSchedule,
   draftDatetime,
   savingSchedule,
+  canAccept,
+  onAcceptSchedule,
   onStartEditSchedule,
   onCancelEditSchedule,
   onSaveSchedule,
@@ -186,6 +193,17 @@ export function WanneerCard({
             )}
             {canEdit && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {/* Akkoord: legt Filly's voorstel in één klik vast. Alleen
+                    tonen zolang er nog geen vastgelegd moment is. */}
+                {canAccept && (
+                  <Button
+                    onClick={onAcceptSchedule}
+                    disabled={busy}
+                    loading={savingSchedule}
+                  >
+                    {t("accept")}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   onClick={onStartEditSchedule}

@@ -2649,6 +2649,7 @@
   },
   "dash__components_campaign_detail_wanneer_card": {
     "title": "When to post",
+    "accept": "✓ Accept",
     "datetimeLabel": "Send date + time",
     "save": "Save",
     "cancel": "Cancel",
