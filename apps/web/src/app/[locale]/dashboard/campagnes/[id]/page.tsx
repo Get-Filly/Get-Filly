@@ -13,6 +13,7 @@ import {
   sendCampaign,
   publishCampaign,
   setCampaignSchedule,
+  uploadCampaignMedia,
   updateCampaignStatus,
   fetchRepetitionCheck,
   type CampaignBundle,
@@ -42,7 +43,7 @@ import { WanneerCard } from "../../_components/campaign-detail/wanneer-card";
 import { FotoCard } from "../../_components/campaign-detail/foto-card";
 import { CampaignPerformanceCard } from "./_components/campaign-performance-card";
 import { CampaignSendCard } from "./_components/campaign-send-card";
-import type { MissingField } from "@/lib/campaign-checks";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
 // UnifiedDetailPage, één pagina voor alle campagne-statussen
@@ -115,6 +116,7 @@ export default function UnifiedDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const localeTag = useLocaleTag();
 
   const [bundle, setBundle] = useState<CampaignBundle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -571,24 +573,6 @@ export default function UnifiedDetailPage() {
     };
   }, [view]);
 
-  // Jump-to-fix vanuit Missende aspecten → activeer kanaal + scroll.
-  const handleJumpToFix = useCallback(
-    (field: MissingField, channelId: string) => {
-      setActiveChannelId(channelId);
-      const targetId =
-        field === "date"
-          ? SECTION_ID.schedule
-          : field === "photo"
-            ? SECTION_ID.foto
-            : SECTION_ID.inhoud;
-      setTimeout(() => {
-        const el = document.getElementById(targetId);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    },
-    [],
-  );
-
   // ────────────────────────────────────────────────────────────
   // Render
   // ────────────────────────────────────────────────────────────
@@ -885,8 +869,47 @@ export default function UnifiedDetailPage() {
           dan moot. */}
       {status === "concept" && (
         <MissendeAspectenCard
-          channels={view.channelsChecklist}
-          onJumpTo={handleJumpToFix}
+          channels={view.channelsChecklist.map((cl) => {
+            const ch = view.channels.find((c) => c.id === cl.id);
+            const sel =
+              ch?.variants[ch.selected_index] ?? ch?.variants[0];
+            return {
+              id: cl.id,
+              platform: cl.platform,
+              items: cl.items,
+              subjectLine: sel?.subject_line ?? "",
+              body: sel?.body ?? "",
+              variants: ch?.variants ?? [],
+              selectedIndex: ch?.selected_index ?? 0,
+              fillyIso: ch?.filly_scheduled_for ?? null,
+            };
+          })}
+          allChannelIds={view.channels.map((c) => c.id)}
+          canEdit={canEdit}
+          localeTag={localeTag}
+          onSaveText={async (channelId, index, patch) => {
+            await editCampaignVariant(channelId, index, patch);
+            await load();
+          }}
+          onSelectVariant={async (channelId, index) => {
+            await selectCampaignVariant(channelId, index);
+            await load();
+          }}
+          onSetSchedule={async (channelId, iso) => {
+            await setCampaignSchedule(channelId, iso);
+            await load();
+          }}
+          onApplyMedia={async (channelIds, item) => {
+            if (!item.url) return;
+            const blob = await fetch(item.url).then((r) => r.blob());
+            for (const cid of channelIds) {
+              const file = new File([blob], item.file_name, {
+                type: item.mime_type,
+              });
+              await uploadCampaignMedia(cid, file);
+            }
+            await load();
+          }}
         />
       )}
 

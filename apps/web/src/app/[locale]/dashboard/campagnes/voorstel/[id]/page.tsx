@@ -47,6 +47,7 @@ import { MissendeAspectenCard } from "../../../_components/campaign-detail/misse
 import { KanalenCard } from "../../../_components/campaign-detail/kanalen-card";
 import { InhoudCard } from "../../../_components/campaign-detail/inhoud-card";
 import { WanneerCard } from "../../../_components/campaign-detail/wanneer-card";
+import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
 // VoorstelDetailPage, eigen pagina voor een Filly-voorstel
@@ -87,6 +88,7 @@ export default function VoorstelDetailPage() {
   const t = useTranslations("campagnes_voorstel_id_page");
   const params = useParams();
   const router = useRouter();
+  const localeTag = useLocaleTag();
   const id = params.id as string;
 
   const [suggestion, setSuggestion] = useState<AiSuggestion | null>(null);
@@ -289,26 +291,6 @@ export default function VoorstelDetailPage() {
       total === 0 ? 100 : Math.round((completed / total) * 100);
     return { total, completed, percentage };
   }, [fullChannels, perChannelChecklist]);
-
-  // Klik op "Foto ontbreekt" in Missende aspecten → activeer juiste
-  // kanaal + scroll naar de juiste sectie. Korte setTimeout zodat
-  // React de active-channel-state al heeft gepropageerd voor de scroll.
-  const handleJumpToFix = (
-    field: MissingField,
-    channelId: string,
-  ) => {
-    setActiveChannelId(channelId);
-    const targetId =
-      field === "date"
-        ? SECTION_ID.schedule
-        : field === "photo"
-          ? SECTION_ID.foto
-          : SECTION_ID.inhoud;
-    setTimeout(() => {
-      const el = document.getElementById(targetId);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-  };
 
   // Actieve kanaal-resolution: door eigenaar gekozen via tab-pill,
   // val terug op eerste kanaal als de keuze niet meer in channels[]
@@ -933,8 +915,56 @@ export default function VoorstelDetailPage() {
           card (alle items zijn dan moot). */}
       {isPending && (
         <MissendeAspectenCard
-          channels={channelsWithChecklist}
-          onJumpTo={handleJumpToFix}
+          channels={channelsWithChecklist.map((cl) => {
+            const ch = fullChannels.find((c) => c.id === cl.id);
+            const variants = ch?.variants ?? [];
+            const selIdx = ch?.selected_index ?? 0;
+            const sel = variants[selIdx] ?? variants[0];
+            return {
+              id: cl.id,
+              platform: cl.platform,
+              items: cl.items,
+              subjectLine: sel?.subject_line ?? "",
+              body: sel?.body ?? "",
+              variants,
+              selectedIndex: selIdx,
+              fillyIso: ch?.filly_scheduled_for ?? ch?.scheduled_for ?? null,
+            };
+          })}
+          allChannelIds={fullChannels.map((c) => c.id)}
+          canEdit={isPending}
+          localeTag={localeTag}
+          onSaveText={async (channelId, index, patch) => {
+            if (!suggestion) return;
+            refresh(
+              await editSuggestionVariant(
+                suggestion.id,
+                index,
+                patch,
+                channelId,
+              ),
+            );
+          }}
+          onSelectVariant={async (channelId, index) => {
+            if (!suggestion) return;
+            refresh(
+              await selectSuggestionVariant(suggestion.id, index, channelId),
+            );
+          }}
+          onSetSchedule={async (channelId, iso) => {
+            if (!suggestion) return;
+            refresh(
+              await setSuggestionScheduled(suggestion.id, iso, channelId),
+            );
+          }}
+          onApplyMedia={async (channelIds, item) => {
+            if (!suggestion) return;
+            let updated;
+            for (const cid of channelIds) {
+              updated = await setSuggestionMedia(suggestion.id, item.id, cid);
+            }
+            if (updated) refresh(updated);
+          }}
         />
       )}
 

@@ -2642,7 +2642,18 @@
     "legendRequired": "required",
     "legendOptional": "optional",
     "tooltipRequired": "Required: click to fill in",
-    "tooltipOptional": "Optional: click to fill in"
+    "tooltipOptional": "Optional: click to fill in",
+    "inlineError": "Something went wrong. Please try again.",
+    "photoIntro": "Choose a photo or video from your library.",
+    "photoApplyAll": "Use for all channels",
+    "photoPick": "Choose from library",
+    "dateFillySuggests": "Filly suggests:",
+    "dateAccept": "✓ Accept",
+    "dateSave": "Save",
+    "textOtherVersions": "Other versions:",
+    "textSave": "Save",
+    "subjectPlaceholder": "Email subject",
+    "bodyPlaceholder": "Campaign text"
   },
   "dash__components_campaign_detail_waarom_card": {
     "title": "Why this proposal"
