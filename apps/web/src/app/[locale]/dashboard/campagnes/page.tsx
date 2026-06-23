@@ -1288,15 +1288,20 @@ function CardStatusBlock({
       </div>
     );
   }
-  // voorstel / concept — per 2026-05-13 op verzoek van Floris:
-  // alleen 'Compleet' (groen) of 'Incompleet' (amber). De
-  // specifieke veldnamen tonen we niet meer; eigenaar ziet die
-  // wel op de detail-pagina (Missende aspecten-card).
-  const missing = getAllMissing(rows);
-  return missing.length === 0 ? (
-    <div style={statusTextReady}>{t("complete")}</div>
-  ) : (
-    <div style={statusTextIncomplete}>{t("incomplete")}</div>
+  // voorstel / concept: compleet → groen 'Compleet'; anders een rustige,
+  // SPECIFIEKE hint over wat er nog mist ("Nog nodig: foto of video") i.p.v.
+  // een generieke oranje "Incompleet"-muur. Velden ontdubbeld over kanalen,
+  // in vaste volgorde (date → body → subject → photo).
+  const order: MissingField[] = ["date", "body", "subject", "photo"];
+  const missing = order.filter((f) => getAllMissing(rows).includes(f));
+  if (missing.length === 0) {
+    return <div style={statusTextReady}>{t("complete")}</div>;
+  }
+  return (
+    <div style={statusTextIncomplete}>
+      {t("missingPrefix")}{" "}
+      {missing.map((f) => t(`missingFields.${f}`)).join(", ")}
+    </div>
   );
 }
 

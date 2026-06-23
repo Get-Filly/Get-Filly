@@ -837,6 +837,13 @@
     "running": "Running",
     "complete": "Complete",
     "incomplete": "Incomplete",
+    "missingPrefix": "Still needed:",
+    "missingFields": {
+      "date": "date",
+      "body": "text",
+      "subject": "subject",
+      "photo": "photo or video"
+    },
     "extraReservations": "+{count, plural, one {# reservation} other {# reservations}}",
     "actionFailed": "{action} failed. Please try again.",
     "relative": {

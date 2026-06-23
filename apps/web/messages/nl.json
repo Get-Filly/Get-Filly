@@ -837,6 +837,13 @@
     "running": "Loopt",
     "complete": "Compleet",
     "incomplete": "Incompleet",
+    "missingPrefix": "Nog nodig:",
+    "missingFields": {
+      "date": "datum",
+      "body": "tekst",
+      "subject": "onderwerp",
+      "photo": "foto of video"
+    },
     "extraReservations": "+{count, plural, one {# reservering} other {# reserveringen}}",
     "actionFailed": "{action} mislukt. Probeer opnieuw.",
     "relative": {
