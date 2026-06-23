@@ -274,7 +274,9 @@ export class CampaignsController {
   @Post(':id/media')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      // 55MB: TikTok-campagnes mogen video (service-cap 50MB video / 10MB
+      // foto); net erboven zodat de service-foutmelding leidend blijft.
+      limits: { fileSize: 55 * 1024 * 1024 },
     }),
   )
   uploadMedia(

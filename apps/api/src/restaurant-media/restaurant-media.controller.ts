@@ -41,7 +41,9 @@ export class RestaurantMediaController {
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 6 * 1024 * 1024 },
+      // 55MB: net boven de service-cap (50MB video / 5MB foto) zodat de
+      // nette NL-foutmelding van de service leidend is, niet Multer's ruwe.
+      limits: { fileSize: 55 * 1024 * 1024 },
     }),
   )
   upload(

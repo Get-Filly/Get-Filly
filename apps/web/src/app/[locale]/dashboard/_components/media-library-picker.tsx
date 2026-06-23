@@ -30,10 +30,19 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onPick: (item: RestaurantMediaItem) => void;
+  // "video" toont + uploadt video's (TikTok-campagnes); default "image".
+  // Zelfde bibliotheek (restaurant_media), gefilterd op mediatype.
+  mode?: "image" | "video";
 };
 
-export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
+export function MediaLibraryPicker({
+  open,
+  onClose,
+  onPick,
+  mode = "image",
+}: Props) {
   const t = useTranslations("dash__components_media_library_picker");
+  const isVideoMode = mode === "video";
   const [items, setItems] = useState<RestaurantMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -55,6 +64,13 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
       .finally(() => setLoading(false));
   }, [open, t]);
 
+  // Bibliotheek is gedeeld; toon alleen het gevraagde mediatype.
+  const shown = items.filter((it) =>
+    isVideoMode
+      ? it.mime_type.startsWith("video/")
+      : it.mime_type.startsWith("image/"),
+  );
+  // Cap geldt op de hele bibliotheek (foto's + video's samen).
   const isFull = items.length >= MAX_PHOTOS;
 
   const handleFileSelect = async (file: File | null) => {
@@ -145,12 +161,18 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
             gap: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 18 }}>{t("title")}</h3>
+          <h3 style={{ margin: 0, fontSize: 18 }}>
+            {isVideoMode ? t("titleVideo") : t("title")}
+          </h3>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept={
+                isVideoMode
+                  ? "video/mp4,video/quicktime,video/webm"
+                  : "image/jpeg,image/png,image/webp"
+              }
               style={{ display: "none" }}
               onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
             />
@@ -166,7 +188,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
                   : t("uploadTitle")
               }
             >
-              {t("uploadPhoto")}
+              {isVideoMode ? t("uploadVideo") : t("uploadPhoto")}
             </Button>
             <button
               type="button"
@@ -196,7 +218,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
           }}
         >
           {t.rich("photoCount", {
-            count: items.length,
+            count: shown.length,
             max: MAX_PHOTOS,
             strong: (chunks) => <strong>{chunks}</strong>,
           })}
@@ -233,7 +255,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
           >
             {t("loadingPhotos")}
           </div>
-        ) : items.length === 0 ? (
+        ) : shown.length === 0 ? (
           <div
             style={{
               padding: "32px 16px",
@@ -269,7 +291,7 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
               gap: 10,
             }}
           >
-            {items.map((item) => (
+            {shown.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -286,15 +308,33 @@ export function MediaLibraryPicker({ open, onClose, onPick }: Props) {
                   flexDirection: "column",
                 }}
               >
-                <div
-                  style={{
-                    aspectRatio: "1 / 1",
-                    background: "var(--bg-soft, #F5F3EE)",
-                    backgroundImage: item.url ? `url(${item.url})` : undefined,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
+                {item.mime_type.startsWith("video/") ? (
+                  <video
+                    src={item.url}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    style={{
+                      aspectRatio: "1 / 1",
+                      width: "100%",
+                      objectFit: "cover",
+                      background: "var(--bg-soft, #F5F3EE)",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      aspectRatio: "1 / 1",
+                      background: "var(--bg-soft, #F5F3EE)",
+                      backgroundImage: item.url
+                        ? `url(${item.url})`
+                        : undefined,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                )}
                 {item.description && (
                   <div
                     style={{

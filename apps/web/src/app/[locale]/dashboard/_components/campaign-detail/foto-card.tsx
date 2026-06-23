@@ -282,6 +282,7 @@ export function FotoCard({
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={(item) => void useFromLibrary(item)}
+        mode={allowVideo ? "video" : "image"}
       />
     </div>
   );

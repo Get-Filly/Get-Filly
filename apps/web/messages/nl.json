@@ -3087,7 +3087,9 @@
   },
   "dash__components_media_library_picker": {
     "title": "Kies uit bibliotheek",
+    "titleVideo": "Kies een video",
     "uploadPhoto": "+ Foto uploaden",
+    "uploadVideo": "+ Video uploaden",
     "uploadTitle": "Upload een nieuwe foto",
     "close": "Sluiten",
     "photoCount": "<strong>{count}</strong> van <strong>{max}</strong> foto's",

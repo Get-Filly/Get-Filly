@@ -3087,7 +3087,9 @@
   },
   "dash__components_media_library_picker": {
     "title": "Choose from library",
+    "titleVideo": "Choose a video",
     "uploadPhoto": "+ Upload photo",
+    "uploadVideo": "+ Upload video",
     "uploadTitle": "Upload a new photo",
     "close": "Close",
     "photoCount": "<strong>{count}</strong> of <strong>{max}</strong> photos",

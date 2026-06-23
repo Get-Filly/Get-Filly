@@ -27,12 +27,17 @@ import { MediaTaggerService } from './media-tagger.service';
 
 const BUCKET = 'restaurant-assets';
 const MAX_PHOTOS_PER_RESTAURANT = 20;
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+// Video mag groter: korte TikTok/Reels-clips. 50MB dekt ~30-60s 1080p.
+const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+// Video sinds 2026-06-23: zelfde bibliotheek, voor TikTok-/social-clips.
+const ALLOWED_VIDEO_MIME = new Set([
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
 ]);
+const isVideoMime = (m: string): boolean => ALLOWED_VIDEO_MIME.has(m);
 
 export type RestaurantMediaItem = {
   id: string;
@@ -109,14 +114,16 @@ export class RestaurantMediaService {
     // Stap 1, input-validatie. Eigenaar krijgt een nette NL-melding
     // ipv ruwe Multer/Supabase-fouten bij verkeerde mime-types of
     // te grote files.
-    if (!ALLOWED_MIME_TYPES.has(file.mimeType)) {
+    const isVideo = isVideoMime(file.mimeType);
+    if (!ALLOWED_IMAGE_MIME.has(file.mimeType) && !isVideo) {
       throw new BadRequestException(
-        'Alleen JPEG, PNG of WebP-foto\'s worden ondersteund.',
+        "Alleen JPEG, PNG, WebP of video (MP4, MOV, WebM) worden ondersteund.",
       );
     }
-    if (file.buffer.length > MAX_FILE_SIZE_BYTES) {
+    const maxBytes = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_IMAGE_SIZE_BYTES;
+    if (file.buffer.length > maxBytes) {
       throw new BadRequestException(
-        `Bestand is te groot. Maximaal ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB per foto.`,
+        `Bestand is te groot. Maximaal ${maxBytes / 1024 / 1024}MB per ${isVideo ? 'video' : 'foto'}.`,
       );
     }
 
@@ -138,10 +145,10 @@ export class RestaurantMediaService {
     // en raden van paden. Sanitize de filename om path-traversal
     // tegen te gaan.
     const ext = pickExtension(file.mimeType);
-    const fileName = file.originalName
-      .replace(/[^a-zA-Z0-9._-]/g, '_')
-      .slice(0, 80) || `photo${ext}`;
-    const path = `${restaurantId}/photos/${randomUUID()}${ext}`;
+    const fileName =
+      file.originalName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) ||
+      `${isVideo ? 'video' : 'photo'}${ext}`;
+    const path = `${restaurantId}/${isVideo ? 'videos' : 'photos'}/${randomUUID()}${ext}`;
 
     // Stap 4, Storage upload. Bij fout: nette NL-melding, geen DB-rij.
     const { error: upErr } = await this.supabase.client.storage
@@ -159,10 +166,14 @@ export class RestaurantMediaService {
     // Stap 5, Vision-tag (Haiku 4.5). Sync zodat de UI direct met
     // description + tags terug krijgt. Bij fout van de tagger valt
     // 'ie zelf terug op lege defaults, upload slaagt sowieso.
-    const tagResult = await this.tagger.tag(
-      { buffer: file.buffer, mimeType: file.mimeType },
-      { restaurantId, userId },
-    );
+    // Vision-tagging werkt alleen op foto's; een video slaan we over
+    // (Haiku Vision kan geen video-frames lezen) en krijgt lege tags.
+    const tagResult = isVideo
+      ? { description: '', tags: [] as string[] }
+      : await this.tagger.tag(
+          { buffer: file.buffer, mimeType: file.mimeType },
+          { restaurantId, userId },
+        );
 
     // Stap 6, DB-rij. Bij DB-fout rollback we de Storage-upload zodat
     // we geen weeszooi krijgen.
@@ -280,6 +291,12 @@ function pickExtension(mime: string): string {
       return '.png';
     case 'image/webp':
       return '.webp';
+    case 'video/mp4':
+      return '.mp4';
+    case 'video/quicktime':
+      return '.mov';
+    case 'video/webm':
+      return '.webm';
     default:
       return '';
   }
