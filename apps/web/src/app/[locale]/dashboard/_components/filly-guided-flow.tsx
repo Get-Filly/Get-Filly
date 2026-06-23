@@ -122,10 +122,14 @@ const CHANNEL_LABEL: Record<string, string> = {
 export function FillyGuidedFlow({
   initialDate,
   initialTopic,
+  initialChannels,
   onActionChange,
 }: {
   initialDate?: string;
   initialTopic?: string;
+  // Kanalen die de eigenaar expliciet noemde ("een tiktok campagne").
+  // Wanneer gevuld: alléén die kanalen voor-aanvinken op de kanalen-stap.
+  initialChannels?: string[];
   onActionChange?: (delta: ActiveActionDelta) => void;
 }) {
   const t = useTranslations("dash__components_filly_guided_flow");
@@ -149,10 +153,12 @@ export function FillyGuidedFlow({
   const [selectedContext, setSelectedContext] = useState<Set<string>>(
     new Set(),
   );
-  // Altijd-beschikbare hoeken + hun vrije tekst. Een getypt thema
-  // (initialTopic) vult de gerecht-hoek alvast voor.
-  const [selectedAngles, setSelectedAngles] = useState<Set<string>>(
-    initialTopic ? new Set(["gerecht"]) : new Set(),
+  // Eén gekozen hoek (single-select, radio-gedrag) + de vrije tekst per
+  // hoek. Een getypt thema (initialTopic) vult de gerecht-hoek alvast voor;
+  // de backend stuurt een kanaal-wens NIET als topic mee (die komt via
+  // initialChannels), dus hier belandt alleen een echt gerecht/thema.
+  const [selectedAngle, setSelectedAngle] = useState<string | null>(
+    initialTopic ? "gerecht" : null,
   );
   const [angleText, setAngleText] = useState<Record<string, string>>(
     initialTopic ? { gerecht: initialTopic } : {},
@@ -198,11 +204,21 @@ export function FillyGuidedFlow({
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
       setSelectedContext(new Set()); // gedetecteerde context standaard uit
-      setSelectedChannels(
-        new Set(
-          ctx.channels.filter((c) => c.recommended).map((c) => c.channel),
-        ),
-      );
+      // Voor-aanvinken: noemde de eigenaar expliciete kanalen (initialChannels),
+      // dan ALLEEN die (voor zover ze voor deze dag bestaan). Anders terugval
+      // op de aanbevolen kanalen. Zo overschrijft "een tiktok campagne" niet
+      // ineens met Instagram + Facebook + Google Business.
+      const explicit =
+        initialChannels && initialChannels.length > 0
+          ? ctx.channels
+              .filter((c) => initialChannels.includes(c.channel))
+              .map((c) => c.channel)
+          : [];
+      const preselected =
+        explicit.length > 0
+          ? explicit
+          : ctx.channels.filter((c) => c.recommended).map((c) => c.channel);
+      setSelectedChannels(new Set(preselected));
     } catch (e) {
       logger.error(e);
       setDayContext(null);
@@ -271,25 +287,25 @@ export function FillyGuidedFlow({
     const hints = contextOptions
       .filter((o) => selectedContext.has(o.id))
       .map((o) => o.hint);
-    if (selectedAngles.has("gerecht")) {
+    if (selectedAngle === "gerecht") {
       hints.push(
         `Gerecht uitlichten: ${angleText.gerecht?.trim() || "kies een passend gerecht uit het menu"}`,
       );
     }
-    if (selectedAngles.has("deal")) {
+    if (selectedAngle === "deal") {
       hints.push(
         angleText.deal?.trim()
           ? `Aanbieding/deal: ${angleText.deal.trim()}`
           : "Aanbieding/deal: een aantrekkelijke deal",
       );
     }
-    if (selectedAngles.has("sfeer")) hints.push("Insteek: sfeer en beleving");
-    if (selectedAngles.has("doelgroep")) {
+    if (selectedAngle === "sfeer") hints.push("Insteek: sfeer en beleving");
+    if (selectedAngle === "doelgroep") {
       hints.push(
         `Doelgroep: ${angleText.doelgroep?.trim() || "de vaste gasten"}`,
       );
     }
-    if (selectedAngles.has("anders") && angleText.anders?.trim()) {
+    if (selectedAngle === "anders" && angleText.anders?.trim()) {
       hints.push(`Eigen wens: ${angleText.anders.trim()}`);
     }
     return hints;
@@ -337,7 +353,7 @@ export function FillyGuidedFlow({
     setPicked(null);
     setDayContext(null);
     setSelectedContext(new Set());
-    setSelectedAngles(new Set());
+    setSelectedAngle(null);
     setAngleText({});
     setSelectedChannels(new Set());
     setResult([]);
@@ -648,13 +664,15 @@ export function FillyGuidedFlow({
             </div>
             <div className="fg-options">
               {ANGLES.map(({ id, Icon, hasInput }) => {
-                const sel = selectedAngles.has(id);
+                const sel = selectedAngle === id;
                 return (
                   <div key={id}>
                     <button
                       type="button"
                       className={`fg-opt${sel ? " sel" : ""}`}
-                      onClick={() => setSelectedAngles((s) => toggle(s, id))}
+                      onClick={() =>
+                        setSelectedAngle((cur) => (cur === id ? null : id))
+                      }
                     >
                       <span className="fg-opt-main">
                         <Icon size={15} strokeWidth={2.25} />{" "}

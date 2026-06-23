@@ -55,6 +55,11 @@ export type GuidedStartCard = {
   // Optioneel gerecht/thema uit het verzoek ("doe iets met de Burrata")
   // dat de generatie stuurt. Leeg = Filly kiest zelf uit het menu.
   topic?: string;
+  // Expliciet door de eigenaar genoemde kanalen ("een tiktok campagne" →
+  // ['tiktok']). De flow vinkt dan ALLEEN die kanalen voor. Leeg = de flow
+  // valt terug op de aanbevolen kanalen. Een kanaal-wens is GEEN thema en
+  // hoort dus hier, niet in `topic`.
+  channels?: string[];
 };
 
 // Channel-choice, geen ai_suggestion-rij erachter (geen suggestion_id),
@@ -864,6 +869,9 @@ export class ChatService {
       const delta: ActiveActionDelta = {};
       if (parsedGuided.card.date) delta.date = parsedGuided.card.date;
       if (parsedGuided.card.topic) delta.topic = parsedGuided.card.topic;
+      if (parsedGuided.card.channels) {
+        delta.channels = parsedGuided.card.channels;
+      }
       try {
         activeAction = await this.updateActiveAction(
           restaurantId,
@@ -890,6 +898,9 @@ export class ChatService {
         kind: 'guided_start',
         ...(activeAction?.date ? { date: activeAction.date } : {}),
         ...(activeAction?.topic ? { topic: activeAction.topic } : {}),
+        ...(activeAction?.channels && activeAction.channels.length > 0
+          ? { channels: activeAction.channels }
+          : {}),
       };
     } else if (parsedDateChoice.choice) {
       cleanText = parsedDateChoice.cleanText;
@@ -1279,11 +1290,19 @@ Regels:
   datum, dus reken zelf niets om. Zegt de eigenaar niets over timing, laat
   "day_phrase"/"date" dan WEG (stuur {} of alleen "topic"); de bestaande
   datum blijft dan staan.
-- "topic": noemt de eigenaar een gerecht, drankje, thema of "het menu"
+- "topic": noemt de eigenaar een GERECHT, drankje, thema of "het menu"
   ("doe iets met de Burrata", "iets rond ons wijnaanbod"), zet dat dan
-  in "topic". Anders weglaten — de flow kiest zelf uit het menu.
+  in "topic". Anders weglaten — de flow kiest zelf uit het menu. Een
+  KANAAL is GEEN topic: "een tiktok campagne" of "iets voor instagram"
+  hoort in "channels", niet in "topic".
+- "channels": noemt de eigenaar expliciet een of meer kanalen, zet die
+  dan als array in "channels". Toegestane waarden: "mail", "whatsapp",
+  "instagram", "facebook", "tiktok", "google_business". Voorbeelden:
+  "een tiktok campagne" → ["tiktok"]; "iets voor insta en facebook" →
+  ["instagram","facebook"]. Noemt de eigenaar GEEN kanaal, laat
+  "channels" dan WEG — de flow stelt zelf de aanbevolen kanalen voor.
 - Noemt 'ie GEEN dag en is er nog geen vastgesteld, stuur dan {} (of
-  alleen topic) — de flow vraagt zelf welke dag.
+  alleen topic/channels) — de flow vraagt zelf welke dag.
 - Eén korte proza-zin vóór het blok ("Ik zet 'm voor je klaar, kies
   hieronder."). Schrijf GEEN kanaalkeuze, GEEN campagnetekst en GEEN
   varianten in proza; de flow doet dat volledig. Stel hooguit één korte
@@ -1863,6 +1882,7 @@ export function extractGuidedStart(
 
   let date: string | undefined;
   let topic: string | undefined;
+  let channels: string[] | undefined;
   try {
     const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
     // Voorkeur: 'day_phrase' (de dag zoals de eigenaar 'm noemde) →
@@ -1891,8 +1911,17 @@ export function extractGuidedStart(
     if (typeof parsed.topic === 'string' && parsed.topic.trim()) {
       topic = parsed.topic.trim().slice(0, 80);
     }
+    // Expliciet genoemde kanalen → whitelist + dedupe. Een kanaal-wens
+    // ("een tiktok campagne") hoort hier, niet in topic.
+    if (Array.isArray(parsed.channels)) {
+      const valid = (parsed.channels as unknown[])
+        .filter((c): c is string => typeof c === 'string')
+        .filter((c) => ALLOWED_ACTION_CHANNELS.has(c));
+      const unique = Array.from(new Set(valid));
+      if (unique.length > 0) channels = unique;
+    }
   } catch {
-    // Misvormde JSON → flow zonder voorgevulde datum/topic.
+    // Misvormde JSON → flow zonder voorgevulde datum/topic/kanalen.
   }
 
   return {
@@ -1901,6 +1930,7 @@ export function extractGuidedStart(
       kind: 'guided_start',
       ...(date ? { date } : {}),
       ...(topic ? { topic } : {}),
+      ...(channels ? { channels } : {}),
     },
   };
 }

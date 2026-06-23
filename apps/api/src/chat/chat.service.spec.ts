@@ -33,6 +33,44 @@ describe('extractGuidedStart', () => {
     expect(r.card).toEqual({ kind: 'guided_start' });
   });
 
+  it('expliciete kanalen → channels-array (zonder topic)', () => {
+    const r = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"channels":["tiktok"]}<<END>>',
+    );
+    expect(r.card).toEqual({ kind: 'guided_start', channels: ['tiktok'] });
+    expect(r.card?.topic).toBeUndefined();
+  });
+
+  it('meerdere kanalen worden behouden + ontdubbeld', () => {
+    const r = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"channels":["instagram","facebook","instagram"]}<<END>>',
+    );
+    expect(r.card?.channels).toEqual(['instagram', 'facebook']);
+  });
+
+  it('onbekende kanalen worden weggefilterd; alles ongeldig → geen channels', () => {
+    const r = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"channels":["tiktok","linkedin",42]}<<END>>',
+    );
+    expect(r.card?.channels).toEqual(['tiktok']);
+    const r2 = extractGuidedStart(
+      '<<FILLY_START_GUIDED>>{"channels":["linkedin"]}<<END>>',
+    );
+    expect(r2.card?.channels).toBeUndefined();
+  });
+
+  it('datum + topic + kanalen samen', () => {
+    const r = extractGuidedStart(
+      `<<FILLY_START_GUIDED>>{"date":"${soon}","topic":"Burrata","channels":["tiktok"]}<<END>>`,
+    );
+    expect(r.card).toEqual({
+      kind: 'guided_start',
+      date: soon,
+      topic: 'Burrata',
+      channels: ['tiktok'],
+    });
+  });
+
   it('misvormde JSON → nog steeds een card, zonder datum', () => {
     const r = extractGuidedStart('<<FILLY_START_GUIDED>>{date: zondag}<<END>>');
     expect(r.card).toEqual({ kind: 'guided_start' });

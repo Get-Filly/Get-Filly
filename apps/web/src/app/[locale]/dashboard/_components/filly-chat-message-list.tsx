@@ -142,6 +142,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
           <FillyGuidedFlow
             initialDate={activeAction?.date}
             initialTopic={activeAction?.topic}
+            initialChannels={activeAction?.channels}
             onActionChange={onActiveActionChange}
           />
         ) : (
@@ -225,6 +226,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             key={lastGuidedStartId ?? "active-flow"}
             initialDate={activeAction.date}
             initialTopic={activeAction.topic}
+            initialChannels={activeAction.channels}
             onActionChange={onActiveActionChange}
           />
         )}

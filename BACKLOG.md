@@ -954,6 +954,12 @@ verplaatsen naar de juiste P-bucket.
 
 ## Recent voltooid
 
+### 2026-06-22 — TikTok volwaardig campagne-kanaal + guided-flow reasoning-fix
+
+**TikTok als campagne-kanaal** (branch `feat/tiktok-campaign-channel`, live op main): TikTok is nu eersterangs naast mail/instagram/facebook/whatsapp/google_business — kanaalkeuze, bundel, campagne-detail, publiceren-bij-activeren (Direct Post via `directPost`, SELF_ONLY in sandbox), video-upload (mp4/mov/webm, 50MB) + publieke serving-route `/media/c/:campaignId` voor PULL_FROM_URL op het geverifieerde domein, en een admin-clientpad in TikTokService zodat ook de cron publiceert. Domein `get-filly.com` + `www.get-filly.com` geverifieerd in de sandbox.
+
+**Guided-flow reasoning-fix** (branch `fix/guided-flow-channels`): drie bugs bij een getypt verzoek als "ik wil een tiktok campagne". (1) Een kanaal-wens belandde als vrije tekst onder de gerecht-hoek → backend scheidt nu `channels` van `topic` in FILLY_START_GUIDED (`extractGuidedStart` + prompt + GuidedStartCard + carry-forward via active_action). (2) Angles waren multi-select → nu single-select (radio). (3) Op de kanalen-stap stonden alle recommended kanalen aangevinkt ongeacht het verzoek → bij expliciete kanalen worden alléén die voor-aangevinkt, anders terugval op recommended. FillyChat geeft `initialChannels` door aan FillyGuidedFlow. API-suite 94 tests groen (+4 voor channels-parsing). **Live te verifiëren:** welke channels het LLM daadwerkelijk emit is niet vanaf dev te testen.
+
 ### 2026-06-22 — Homepage-pijlers vertaald (NL/EN)
 
 Live (merge `0ec2912`). De pijler-sectie op de homepage ("Meer gasten. Volle tafels." + de drie blokken Vindbaarheid / Zichtbaarheid / Bereikbaarheid: eyebrow, titel, desc, bullets) was hardcoded NL en bleef dus NL op `/en`. Verplaatst naar `home.pillars` in `messages/{nl,en}.json` (bullets als array via `t.raw().map()`, sectietitel via `t.rich` met `<br>`). **NB:** de hero-apparaat-mockups (MiniDashboard-nav/KPI + LandingPhone + LandingFillyChat) staan nog steeds apart open als NL-op-/en (zie i18n-sectie) — dat is een ander blok.

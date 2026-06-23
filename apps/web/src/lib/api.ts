@@ -2339,6 +2339,9 @@ export type GuidedStartCard = {
   date?: string;
   // Optioneel gerecht/thema uit het verzoek dat de generatie stuurt.
   topic?: string;
+  // Expliciet genoemde kanalen ("een tiktok campagne" → ["tiktok"]). De
+  // flow vinkt dan alleen die voor; leeg = aanbevolen kanalen.
+  channels?: string[];
 };
 
 export type MessageCard =
