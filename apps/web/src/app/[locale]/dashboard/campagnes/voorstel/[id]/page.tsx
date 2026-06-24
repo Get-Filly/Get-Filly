@@ -46,7 +46,6 @@ import {
   type Platform,
 } from "../../../_components/campaign-detail/types";
 import { WaaromCard } from "../../../_components/campaign-detail/waarom-card";
-import { KanalenCard } from "../../../_components/campaign-detail/kanalen-card";
 import { InhoudCard } from "../../../_components/campaign-detail/inhoud-card";
 import { useLocaleTag } from "@/lib/locale-format";
 
@@ -828,23 +827,75 @@ export default function VoorstelDetailPage() {
           spreken voor zich; eigenaar wil snel kunnen beslissen, niet
           eerst door 5 stat-cards heen lezen. */}
 
-      {/* Kanaal in deze campagne: aan/uit + actieve-kanaal-tabs
-          (hergebruik KanalenCard). Staat bovenaan zodat de eigenaar
-          eerst de kanalen kiest, dan de tabel eronder invult. */}
+      {/* Kanaal in deze campagne: aan/uit-toggle per kanaal. Geen aparte
+          "bewerken voor"-tabs meer — het actieve kanaal kies je door op een
+          rij in de Aspecten-tabel te klikken. */}
       {isPending && (
-        <KanalenCard
-          channels={channels}
-          activeChannelId={activeId}
-          busy={busy}
-          canEdit={isPending}
-          onAddChannel={handleAddChannel}
-          onRemoveChannel={handleRemoveChannel}
-          onSetActive={(channelId) => {
-            setEditingVariantIdx(null);
-            setEditingSchedule(false);
-            setActiveChannelId(channelId);
-          }}
-        />
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">{t("channelsLabel")}</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(
+                [
+                  "mail",
+                  "whatsapp",
+                  "instagram",
+                  "facebook",
+                  "tiktok",
+                  "google_business",
+                ] as Platform[]
+              ).map((p) => {
+                const ch = channels.find((c) => c.platform === p);
+                const isActive = !!ch;
+                // Laatste actieve kanaal mag niet verwijderd worden.
+                const isLast = isActive && channels.length <= 1;
+                const disabled = busy || isLast;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      if (disabled) return;
+                      if (isActive && ch) handleRemoveChannel(ch.id);
+                      else handleAddChannel(p);
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      border: isActive
+                        ? "2px solid var(--accent, #1F4A2D)"
+                        : "1px solid var(--border, #E5DFD0)",
+                      background: isActive
+                        ? "var(--accent, #1F4A2D)"
+                        : "var(--white, #FFFFFF)",
+                      color: isActive
+                        ? "var(--white, #FFFFFF)"
+                        : "var(--text)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: disabled ? "default" : "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span>{PLATFORM_ICON[p]}</span>
+                    <span>{shortPlatformName(p)}</span>
+                    {isActive && !isLast && (
+                      <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Aspecten-tabel: één rij per kanaal met missende items,
@@ -906,10 +957,11 @@ export default function VoorstelDetailPage() {
                   ch.scheduled_for,
                   ch.restaurant_media_id,
                 );
-                // Datum heeft een eigen kolom; haal 'm uit de missende-
-                // items-lijst zodat die alleen inhoud/foto toont.
+                // Datum heeft een eigen kolom (haal 'm eruit). Toon alleen
+                // VEREISTE items rood — optionele (bv. foto op Facebook/
+                // Google) blokkeren niet en horen niet als "missend".
                 const missNonDate = checklist.filter(
-                  (it) => it.field !== "date",
+                  (it) => it.field !== "date" && it.required,
                 );
                 const chType = platformToType(ch.platform);
                 const chEffective =
