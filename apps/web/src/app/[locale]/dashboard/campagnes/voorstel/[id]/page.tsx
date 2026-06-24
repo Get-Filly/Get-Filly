@@ -28,24 +28,23 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MediaLibraryPicker } from "../../../_components/media-library-picker";
 import {
   getChannelChecklist,
-  getMissingLabel,
   toBundleChannel,
   type MissingField,
 } from "@/lib/campaign-checks";
-// Per 2026-05-13: 5 building-blocks extract zodat de concept-
-// detail-pagina dezelfde UX kan tonen (stap 1 van het 'unified
-// detail-view'-traject).
 import {
   PLATFORM_ICON,
   SECTION_ID,
   fillySuggestedIso,
-  formatDutchDateTime,
   platformToType,
   shortPlatformName,
   toDatetimeLocalValue,
   type Platform,
 } from "../../../_components/campaign-detail/types";
 import { WaaromCard } from "../../../_components/campaign-detail/waarom-card";
+import {
+  AspectenTabel,
+  type AspectRow,
+} from "../../../_components/campaign-detail/aspecten-tabel";
 import { InhoudCard } from "../../../_components/campaign-detail/inhoud-card";
 import { useLocaleTag } from "@/lib/locale-format";
 
@@ -321,6 +320,64 @@ export default function VoorstelDetailPage() {
     activePlatform === "facebook" ||
     activePlatform === "tiktok" ||
     activePlatform === "whatsapp";
+
+  // Rijen voor de gedeelde Aspecten-tabel (zelfde data als de inline-versie:
+  // missende VEREISTE items zonder datum, Filly's voorgestelde tijd, media).
+  const aspectRows: AspectRow[] = useMemo(() => {
+    return fullChannels.map((ch) => {
+      const chVariants = ch.variants ?? [];
+      const chSel = Math.min(
+        Math.max(ch.selected_index ?? 0, 0),
+        Math.max(chVariants.length - 1, 0),
+      );
+      const sv = chVariants[chSel] ?? chVariants[0];
+      const checklist = getChannelChecklist(
+        ch.platform,
+        sv?.body,
+        sv?.subject_line,
+        ch.scheduled_for,
+        ch.restaurant_media_id,
+      );
+      const missing = checklist
+        .filter((it) => it.required && it.field !== "date")
+        .map((it) => it.field);
+      const effective =
+        ch.scheduled_for ??
+        ch.filly_scheduled_for ??
+        fillySuggestedIso(targetDate, platformToType(ch.platform));
+      const chMedia =
+        mediaLibrary.find((m) => m.id === ch.restaurant_media_id) ?? null;
+      return {
+        id: ch.id,
+        platform: ch.platform,
+        missing,
+        scheduledFor: ch.scheduled_for ?? null,
+        effectiveIso: effective,
+        supportsMedia: ch.platform !== "mail",
+        mediaUrl: chMedia?.url ?? null,
+        mediaIsVideo: chMedia?.mime_type.startsWith("video/") ?? false,
+        subjectLine: sv?.subject_line ?? null,
+        bodyPreview: sv?.body ?? "",
+      };
+    });
+  }, [fullChannels, mediaLibrary, targetDate]);
+
+  const aspectLabels = {
+    aspects: t("aspectsTitle"),
+    channel: t("colChannel"),
+    missing: t("colMissing"),
+    when: t("colWhen"),
+    photo: t("colPhoto"),
+    content: t("colContent"),
+    complete: t("rowComplete"),
+    addPhoto: t("addPhoto"),
+    noPhotoMail: t("noPhotoMail"),
+    edit: t("editContent"),
+    chooseTime: t("chooseTime"),
+    save: t("saveTime"),
+    cancel: t("cancelTime"),
+    noContentYet: t("noContentYet"),
+  };
 
   const busy =
     loading ||
@@ -898,387 +955,53 @@ export default function VoorstelDetailPage() {
         </div>
       )}
 
-      {/* Aspecten-tabel: één rij per kanaal met missende items,
-          datum/tijd, foto's en inhoud. Vervangt de losse Missende-,
-          Foto- en Wanneer-kaarten; foto opent de bibliotheek-modal,
-          datum bewerkt inline, inhoud-bewerken opent de InhoudCard
-          (suggesties) hieronder. */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-h">
-          <div>
-            <div className="card-t">{t("aspectsTitle")}</div>
-          </div>
-        </div>
-        <div className="card-b" style={{ padding: 0, overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 13,
-            }}
-          >
-            <thead>
-              <tr style={{ textAlign: "left" }}>
-                {[
-                  t("colChannel"),
-                  t("colMissing"),
-                  t("colWhen"),
-                  t("colPhoto"),
-                  t("colContent"),
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 14px",
-                      borderBottom: "1px solid var(--border, #E5DFD0)",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      color: "var(--text)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {fullChannels.map((ch) => {
-                const chVariants = ch.variants ?? [];
-                const chSel = Math.min(
-                  Math.max(ch.selected_index ?? 0, 0),
-                  Math.max(chVariants.length - 1, 0),
-                );
-                const sv = chVariants[chSel] ?? chVariants[0];
-                const checklist = getChannelChecklist(
-                  ch.platform,
-                  sv?.body,
-                  sv?.subject_line,
-                  ch.scheduled_for,
-                  ch.restaurant_media_id,
-                );
-                // Datum heeft een eigen kolom (haal 'm eruit). Toon alleen
-                // VEREISTE items rood — optionele (bv. foto op Facebook/
-                // Google) blokkeren niet en horen niet als "missend".
-                const missNonDate = checklist.filter(
-                  (it) => it.field !== "date" && it.required,
-                );
-                const chType = platformToType(ch.platform);
-                const chEffective =
-                  ch.scheduled_for ??
-                  ch.filly_scheduled_for ??
-                  fillySuggestedIso(targetDate, chType);
-                const chMedia =
-                  mediaLibrary.find((m) => m.id === ch.restaurant_media_id) ??
-                  null;
-                const chSupportsMedia = ch.platform !== "mail";
-                const isRow = ch.id === activeId;
-                const isEditingThisSchedule =
-                  editingSchedule && activeId === ch.id;
-                const tdStyle: React.CSSProperties = {
-                  padding: "14px",
-                  borderBottom: "1px solid var(--border, #E5DFD0)",
-                  verticalAlign: "top",
-                };
-                const openPicker = () => {
-                  setActiveChannelId(ch.id);
-                  setPickerOpen(true);
-                };
-                const startSchedule = () => {
-                  setActiveChannelId(ch.id);
-                  setDraftDatetime(
-                    toDatetimeLocalValue(
-                      chEffective ?? new Date().toISOString(),
-                    ),
-                  );
-                  setEditingSchedule(true);
-                };
-                const startContent = () => {
-                  setActiveChannelId(ch.id);
-                  handleStartEditVariant(chSel);
-                  document
-                    .getElementById(SECTION_ID.inhoud)
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                };
-                const redLink: React.CSSProperties = {
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  cursor: isPending ? "pointer" : "default",
-                  color: "var(--danger, #DC2626)",
-                  fontWeight: 500,
-                  fontSize: 13,
-                  textDecoration: "underline",
-                  textUnderlineOffset: 2,
-                };
-                return (
-                  <tr
-                    key={ch.id}
-                    onClick={() => {
-                      if (isPending) setActiveChannelId(ch.id);
-                    }}
-                    style={{
-                      cursor: isPending ? "pointer" : "default",
-                      background: isRow
-                        ? "var(--accent-light, #D6E0D8)"
-                        : "transparent",
-                    }}
-                  >
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                      <span style={{ marginRight: 6 }}>
-                        {PLATFORM_ICON[ch.platform]}
-                      </span>
-                      <span style={{ fontWeight: 600 }}>
-                        {shortPlatformName(ch.platform)}
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      {missNonDate.length === 0 ? (
-                        <span style={{ color: "#15703A", fontSize: 13 }}>
-                          ✓ {t("rowComplete")}
-                        </span>
-                      ) : (
-                        <span style={{ lineHeight: 1.7 }}>
-                          {missNonDate.map((it, idx) => (
-                            <span key={it.field}>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!isPending) return;
-                                  if (it.field === "photo") openPicker();
-                                  else startContent();
-                                }}
-                                disabled={!isPending}
-                                style={redLink}
-                              >
-                                {getMissingLabel(
-                                  it.field,
-                                  ch.platform,
-                                ).toLowerCase()}
-                              </button>
-                              {idx < missNonDate.length - 1 ? ", " : ""}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                      {isEditingThisSchedule ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="datetime-local"
-                            value={draftDatetime}
-                            onChange={(e) => setDraftDatetime(e.target.value)}
-                            style={{
-                              padding: "6px 8px",
-                              border: "1px solid var(--border, #E5DFD0)",
-                              borderRadius: 6,
-                              fontSize: 13,
-                              fontFamily: "inherit",
-                            }}
-                          />
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <Button
-                              size="sm"
-                              onClick={handleSaveSchedule}
-                              loading={savingSchedule}
-                              disabled={busy && !savingSchedule}
-                            >
-                              {t("saveTime")}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setEditingSchedule(false)}
-                              disabled={savingSchedule}
-                            >
-                              {t("cancelTime")}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : ch.scheduled_for ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPending) startSchedule();
-                          }}
-                          disabled={!isPending}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            textAlign: "left",
-                            cursor: isPending ? "pointer" : "default",
-                            color: "var(--text)",
-                            fontSize: 13,
-                          }}
-                        >
-                          {formatDutchDateTime(ch.scheduled_for, localeTag)}{" "}
-                          {isPending && (
-                            <span style={{ color: "var(--ts)" }}>✎</span>
-                          )}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPending) startSchedule();
-                          }}
-                          disabled={!isPending}
-                          style={redLink}
-                        >
-                          {t("chooseTime")}
-                        </button>
-                      )}
-                    </td>
-                    <td style={tdStyle}>
-                      {!chSupportsMedia ? (
-                        <span style={{ color: "var(--text)", fontSize: 13 }}>
-                          {t("noPhotoMail")}
-                        </span>
-                      ) : chMedia ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPending) openPicker();
-                          }}
-                          disabled={!isPending}
-                          style={{
-                            padding: 0,
-                            border: "1px solid var(--border, #E5DFD0)",
-                            borderRadius: 8,
-                            overflow: "hidden",
-                            cursor: isPending ? "pointer" : "default",
-                            background: "var(--surface)",
-                            display: "block",
-                          }}
-                        >
-                          {chMedia.mime_type.startsWith("video/") ? (
-                            <video
-                              src={chMedia.url}
-                              muted
-                              playsInline
-                              preload="metadata"
-                              style={{
-                                width: 56,
-                                height: 56,
-                                objectFit: "cover",
-                                display: "block",
-                              }}
-                            />
-                          ) : (
-                            <div
-                              style={{
-                                width: 56,
-                                height: 56,
-                                backgroundImage: `url(${chMedia.url})`,
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                              }}
-                            />
-                          )}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPending) openPicker();
-                          }}
-                          disabled={!isPending}
-                          style={{
-                            width: 130,
-                            height: 50,
-                            border: "1px dashed var(--border, #E5DFD0)",
-                            borderRadius: 8,
-                            background: "transparent",
-                            color: "var(--text)",
-                            fontSize: 13,
-                            cursor: isPending ? "pointer" : "default",
-                          }}
-                        >
-                          + {t("addPhoto")}
-                        </button>
-                      )}
-                    </td>
-                    <td style={{ ...tdStyle, maxWidth: 340 }}>
-                      {ch.platform === "mail" && (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: "var(--ts)",
-                            marginBottom: 4,
-                          }}
-                        >
-                          {sv?.subject_line ? (
-                            sv.subject_line
-                          ) : (
-                            <span style={{ color: "var(--danger, #DC2626)" }}>
-                              {getMissingLabel("subject", ch.platform)}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                          color: "var(--text)",
-                          whiteSpace: "pre-line",
-                        }}
-                      >
-                        {sv?.body ? (
-                          sv.body.length > 160 ? (
-                            sv.body.slice(0, 160) + "…"
-                          ) : (
-                            sv.body
-                          )
-                        ) : (
-                          <em style={{ color: "var(--ts)" }}>
-                            {t("noContentYet")}
-                          </em>
-                        )}
-                      </div>
-                      {isPending && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startContent();
-                          }}
-                          style={{
-                            marginTop: 8,
-                            fontSize: 12,
-                            fontWeight: 500,
-                            padding: "4px 10px",
-                            borderRadius: 6,
-                            border: "1px solid var(--border, #E5DFD0)",
-                            background: "var(--white, #FFFFFF)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {t("editContent")}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Aspecten-tabel (gedeeld component, ook op de concept-detailpagina):
+          overzicht per kanaal. Foto opent de bibliotheek-modal, datum bewerk
+          je inline, inhoud-bewerken opent de InhoudCard (suggesties) hieronder. */}
+      <AspectenTabel
+        rows={aspectRows}
+        canEdit={isPending}
+        busy={busy}
+        activeChannelId={activeId ?? null}
+        scheduleEditChannelId={
+          editingSchedule ? (activeId ?? null) : null
+        }
+        draftDatetime={draftDatetime}
+        savingSchedule={savingSchedule}
+        localeTag={localeTag}
+        labels={aspectLabels}
+        onSelectChannel={(channelId) => setActiveChannelId(channelId)}
+        onOpenMedia={(channelId) => {
+          setActiveChannelId(channelId);
+          setPickerOpen(true);
+        }}
+        onStartSchedule={(channelId, eff) => {
+          setActiveChannelId(channelId);
+          setDraftDatetime(
+            toDatetimeLocalValue(eff ?? new Date().toISOString()),
+          );
+          setEditingSchedule(true);
+        }}
+        onSaveSchedule={handleSaveSchedule}
+        onCancelSchedule={() => setEditingSchedule(false)}
+        onDraftDatetimeChange={setDraftDatetime}
+        onEditContent={(channelId) => {
+          const ch = fullChannels.find((c) => c.id === channelId);
+          const chVariants = ch?.variants ?? [];
+          const idx = Math.min(
+            Math.max(ch?.selected_index ?? 0, 0),
+            Math.max(chVariants.length - 1, 0),
+          );
+          const v = chVariants[idx];
+          setActiveChannelId(channelId);
+          setDraftSubject(v?.subject_line ?? "");
+          setDraftBody(v?.body ?? "");
+          setEditingVariantIdx(idx);
+          document
+            .getElementById(SECTION_ID.inhoud)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
 
       {/* Inhoud-card: variants-grid + bewerken + genereer nieuwe.
           Component bevat de hele edit-flow (textarea/onderwerp/save/
