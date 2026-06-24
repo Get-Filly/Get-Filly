@@ -442,6 +442,8 @@ export default function CampagnesPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  // Eenmalige opruiming van oude pending-voorstellen → Concept (zie knop).
+  const [converting, setConverting] = useState(false);
   // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
   // campaigns als bundles (group_id) een uniek busy-veld krijgen.
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -467,6 +469,34 @@ export default function CampagnesPage() {
     } catch {
       // Stille fail: lege state zorgt voor empty-state per kolom.
     }
+  };
+
+  // Per 2026-06-24: de Voorstel-fase is vervallen — nieuwe uitingen worden
+  // direct Concept. Oude pending-voorstellen die nog in de DB staan zet deze
+  // knop in één klik om naar Concept (approve is idempotent + fail-soft per
+  // item). Self-cleaning: zodra er geen pending meer is, verdwijnt de knop.
+  const convertPendingToConcept = async () => {
+    if (converting || suggestions.length === 0) return;
+    setConverting(true);
+    for (const s of suggestions) {
+      try {
+        if (s.trigger_type === "chat_bundle") {
+          const ch = (
+            s.suggested_campaign as { channels?: Record<string, unknown> }
+          ).channels;
+          const channels = (ch ? Object.keys(ch) : []) as BundleChannel[];
+          if (channels.length > 0) {
+            await approveBundleSuggestion(s.id, channels);
+          }
+        } else {
+          await approveSuggestion(s.id);
+        }
+      } catch {
+        // Fail-soft: dit voorstel blijft pending; de rest gaat door.
+      }
+    }
+    await refetch();
+    setConverting(false);
   };
 
   useEffect(() => {
@@ -856,9 +886,44 @@ export default function CampagnesPage() {
           met die dagen wil doen. */}
       <UpcomingActionsBlock layout="flex" />
 
-      {/* Kanban-bord. Op desktop: 4 kolommen naast elkaar. Op mobile
-          (< 900px): kolommen onder elkaar (stack) zodat scrollen
-          natuurlijk verticaal is. */}
+      {/* Eenmalige opruiming: oude pending-voorstellen (van vóór de
+          "voorstel naar concept"-omzetting) in één klik naar Concept.
+          Self-cleaning — verdwijnt zodra er geen open voorstellen meer zijn. */}
+      {suggestions.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            padding: "12px 16px",
+            marginBottom: 16,
+            background: "var(--accent-light, #D6E0D8)",
+            border: "1px solid var(--border, #E5DFD0)",
+            borderRadius: 8,
+            fontSize: 14,
+          }}
+        >
+          <span style={{ color: "var(--text)" }}>
+            {suggestions.length === 1
+              ? "Er staat nog 1 open voorstel uit de oude flow."
+              : `Er staan nog ${suggestions.length} open voorstellen uit de oude flow.`}
+          </span>
+          <Button
+            variant="primary"
+            onClick={convertPendingToConcept}
+            loading={converting}
+            disabled={converting}
+          >
+            Zet om naar Concept
+          </Button>
+        </div>
+      )}
+
+      {/* Kanban-bord. Op desktop: 3 kolommen naast elkaar (Concept/
+          Ingepland/Actief). Op mobile (< 900px): kolommen onder elkaar
+          (stack) zodat scrollen natuurlijk verticaal is. */}
       <div
         style={{
           display: "grid",
