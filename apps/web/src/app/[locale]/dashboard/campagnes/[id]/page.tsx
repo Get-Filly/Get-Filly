@@ -13,6 +13,7 @@ import {
   sendCampaign,
   publishCampaign,
   setCampaignSchedule,
+  uploadCampaignMedia,
   updateCampaignStatus,
   fetchRepetitionCheck,
   type CampaignBundle,
@@ -31,15 +32,14 @@ import {
   SECTION_ID,
   fillySuggestedIso,
   platformToType,
+  timesEqualToMinute,
   toDatetimeLocalValue,
 } from "../../_components/campaign-detail/types";
 import { WaaromCard } from "../../_components/campaign-detail/waarom-card";
-import {
-  AspectenTabel,
-  type AspectRow,
-} from "../../_components/campaign-detail/aspecten-tabel";
-import { getChannelChecklist } from "@/lib/campaign-checks";
+import { MissendeAspectenCard } from "../../_components/campaign-detail/missende-aspecten-card";
+import { KanalenCard } from "../../_components/campaign-detail/kanalen-card";
 import { InhoudCard } from "../../_components/campaign-detail/inhoud-card";
+import { WanneerCard } from "../../_components/campaign-detail/wanneer-card";
 import { FotoCard } from "../../_components/campaign-detail/foto-card";
 import { CampaignPerformanceCard } from "./_components/campaign-performance-card";
 import { CampaignSendCard } from "./_components/campaign-send-card";
@@ -113,9 +113,6 @@ const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
 
 export default function UnifiedDetailPage() {
   const t = useTranslations("campagnes_id_page");
-  // De Aspecten-tabel-labels hergebruiken we uit de voorstel-namespace
-  // (daar staan ze al), zodat de gedeelde tabel niet z'n eigen keys nodig heeft.
-  const tAspect = useTranslations("campagnes_voorstel_id_page");
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -237,70 +234,33 @@ export default function UnifiedDetailPage() {
   // ────────────────────────────────────────────────────────────
   const activePlatform = activeChannel?.platform ?? "mail";
   const activePlatformType = platformToType(activePlatform);
-  // (De losse Wanneer-card-afgeleiden zijn vervallen: datum/tijd zit nu
-  // per kanaal in de Aspecten-tabel; de fallback-tijd wordt daar berekend.)
+
+  // Filly's voorgestelde tijd voor het actieve kanaal.
+  const fillyIso = useMemo(() => {
+    if (!activeChannel) return null;
+    if (activeChannel.filly_scheduled_for) {
+      return activeChannel.filly_scheduled_for;
+    }
+    // Geen Filly-tijd → fallback: morgen + standaard uur per type.
+    // Zelfde patroon als voorstel-page om de WanneerCard altijd
+    // betekenisvol te laten zijn.
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    return fillySuggestedIso(ymd, activePlatformType);
+  }, [activeChannel, activePlatformType]);
+  const fillyReasoning =
+    activeChannel?.filly_scheduled_reasoning ?? null;
+  const customIso = activeChannel?.scheduled_for ?? null;
+  const effectiveIso = customIso ?? fillyIso;
+  const isCustomTime =
+    !!customIso && !timesEqualToMinute(customIso, fillyIso);
 
   // ────────────────────────────────────────────────────────────
   // Variant-handlers
   // ────────────────────────────────────────────────────────────
   const variants = activeChannel?.variants ?? [];
   const selectedIndex = activeChannel?.selected_index ?? 0;
-
-  // Rijen voor de gedeelde Aspecten-tabel: één per kanaal. Missende items =
-  // VEREISTE openstaande velden (zonder datum, die heeft een eigen kolom).
-  const aspectRows: AspectRow[] = useMemo(() => {
-    if (!view) return [];
-    return view.channels.map((c) => {
-      const sel = c.variants[c.selected_index] ?? c.variants[0];
-      const checklist = getChannelChecklist(
-        c.platform,
-        sel?.body,
-        sel?.subject_line,
-        c.scheduled_for,
-        c.media_url ? "x" : null,
-      );
-      const missing = checklist
-        .filter((it) => it.required && it.field !== "date")
-        .map((it) => it.field);
-      const type = platformToType(c.platform);
-      let effective = c.scheduled_for ?? c.filly_scheduled_for ?? null;
-      if (!effective) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-        effective = fillySuggestedIso(ymd, type);
-      }
-      return {
-        id: c.id,
-        platform: c.platform,
-        missing,
-        scheduledFor: c.scheduled_for ?? null,
-        effectiveIso: effective,
-        supportsMedia: c.platform !== "mail",
-        mediaUrl: c.media_url ?? null,
-        mediaIsVideo: /\.(mp4|mov|webm)(\?|$)/i.test(c.media_url ?? ""),
-        subjectLine: sel?.subject_line ?? null,
-        bodyPreview: sel?.body ?? "",
-      };
-    });
-  }, [view]);
-
-  const aspectLabels = {
-    aspects: tAspect("aspectsTitle"),
-    channel: tAspect("colChannel"),
-    missing: tAspect("colMissing"),
-    when: tAspect("colWhen"),
-    photo: tAspect("colPhoto"),
-    content: tAspect("colContent"),
-    complete: tAspect("rowComplete"),
-    addPhoto: tAspect("addPhoto"),
-    noPhotoMail: tAspect("noPhotoMail"),
-    edit: tAspect("editContent"),
-    chooseTime: tAspect("chooseTime"),
-    save: tAspect("saveTime"),
-    cancel: tAspect("cancelTime"),
-    noContentYet: tAspect("noContentYet"),
-  };
 
   const handleSelectVariant = useCallback(
     async (idx: number) => {
@@ -390,6 +350,15 @@ export default function UnifiedDetailPage() {
   // ────────────────────────────────────────────────────────────
   // Schedule-handlers
   // ────────────────────────────────────────────────────────────
+  const handleStartEditSchedule = useCallback(() => {
+    if (busy || !canEdit) return;
+    setActionError(null);
+    setDraftDatetime(
+      toDatetimeLocalValue(effectiveIso ?? new Date().toISOString()),
+    );
+    setEditingSchedule(true);
+  }, [busy, canEdit, effectiveIso]);
+
   const handleSaveSchedule = useCallback(async () => {
     if (!activeChannel || !draftDatetime || busy) return;
     setActionError(null);
@@ -407,6 +376,23 @@ export default function UnifiedDetailPage() {
       setSavingSchedule(false);
     }
   }, [activeChannel, draftDatetime, busy, load, t]);
+
+  const handleResetToFilly = useCallback(async () => {
+    if (!activeChannel || !fillyIso || busy) return;
+    setActionError(null);
+    setSavingSchedule(true);
+    try {
+      await setCampaignSchedule(activeChannel.id, fillyIso);
+      await load();
+      setEditingSchedule(false);
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : t("errors.resetToFillyFailed"),
+      );
+    } finally {
+      setSavingSchedule(false);
+    }
+  }, [activeChannel, fillyIso, busy, load, t]);
 
   // ────────────────────────────────────────────────────────────
   // Status-transitie + verwijder
@@ -878,54 +864,81 @@ export default function UnifiedDetailPage() {
 
       <div style={{ marginBottom: 24 }} />
 
-      {/* Aspecten-tabel: overzicht per kanaal (missende items, datum/tijd,
-          foto's, inhoud). Vervangt de losse Missende-, Kanalen- en Wanneer-
-          kaarten; foto bewerk je in de FotoCard en tekst in de InhoudCard
-          hieronder (klik 'Bewerk'/de cel → scrollt erheen), datum inline. */}
-      <AspectenTabel
-        rows={aspectRows}
-        canEdit={canEdit}
+      {/* Missende aspecten alleen in concept-fase: in latere fases
+          is de campagne immutable, een lijst missende velden is
+          dan moot. */}
+      {status === "concept" && (
+        <MissendeAspectenCard
+          channels={view.channelsChecklist.map((cl) => {
+            const ch = view.channels.find((c) => c.id === cl.id);
+            const sel =
+              ch?.variants[ch.selected_index] ?? ch?.variants[0];
+            return {
+              id: cl.id,
+              platform: cl.platform,
+              items: cl.items,
+              subjectLine: sel?.subject_line ?? "",
+              body: sel?.body ?? "",
+              variants: ch?.variants ?? [],
+              selectedIndex: ch?.selected_index ?? 0,
+              fillyIso: ch?.filly_scheduled_for ?? null,
+            };
+          })}
+          mediaChannels={view.channels
+            .filter((c) => c.platform !== "mail")
+            .map((c) => ({ id: c.id, hasMedia: !!c.media_url }))}
+          canEdit={canEdit}
+          localeTag={localeTag}
+          onSaveText={async (channelId, index, patch) => {
+            await editCampaignVariant(channelId, index, patch);
+            await load();
+          }}
+          onSelectVariant={async (channelId, index) => {
+            await selectCampaignVariant(channelId, index);
+            await load();
+          }}
+          onSetSchedule={async (channelId, iso) => {
+            await setCampaignSchedule(channelId, iso);
+            await load();
+          }}
+          onApplyMedia={async (channelIds, item) => {
+            if (!item.url) return;
+            const blob = await fetch(item.url).then((r) => r.blob());
+            for (const cid of channelIds) {
+              const file = new File([blob], item.file_name, {
+                type: item.mime_type,
+              });
+              await uploadCampaignMedia(cid, file);
+            }
+            await load();
+          }}
+          onRegenerate={async (channelId) => {
+            await generateMoreCampaignVariants(channelId);
+            await load();
+          }}
+        />
+      )}
+
+      {/* Kanalen-card: toont actieve kanalen + 'bewerken-voor'-tabs.
+          canEdit=false → add/remove disabled. Komt later. */}
+      <KanalenCard
+        channels={view.channels.map((c) => ({
+          id: c.id,
+          platform: c.platform,
+        }))}
+        activeChannelId={activeChannel?.id}
         busy={busy}
-        activeChannelId={activeChannel?.id ?? null}
-        scheduleEditChannelId={
-          editingSchedule ? (activeChannel?.id ?? null) : null
-        }
-        draftDatetime={draftDatetime}
-        savingSchedule={savingSchedule}
-        localeTag={localeTag}
-        labels={aspectLabels}
-        onSelectChannel={(channelId) => {
+        canEdit={false}
+        onAddChannel={() => {
+          // No-op tot fase 'channel add/remove op campagnes' geland is.
+        }}
+        onRemoveChannel={() => {
+          // No-op tot fase 'channel add/remove op campagnes' geland is.
+        }}
+        onSetActive={(channelId) => {
           setEditingVariantIdx(null);
           setEditingSchedule(false);
           setActiveChannelId(channelId);
-        }}
-        onOpenMedia={(channelId) => {
-          setActiveChannelId(channelId);
-          document
-            .getElementById(SECTION_ID.foto)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-        onStartSchedule={(channelId, eff) => {
-          setActiveChannelId(channelId);
-          setDraftDatetime(
-            toDatetimeLocalValue(eff ?? new Date().toISOString()),
-          );
-          setEditingSchedule(true);
-        }}
-        onSaveSchedule={handleSaveSchedule}
-        onCancelSchedule={() => setEditingSchedule(false)}
-        onDraftDatetimeChange={setDraftDatetime}
-        onEditContent={(channelId) => {
-          const ch = view.channels.find((c) => c.id === channelId);
-          const idx = ch?.selected_index ?? 0;
-          const v = ch?.variants[idx];
-          setActiveChannelId(channelId);
-          setDraftSubject(v?.subject_line ?? "");
-          setDraftBody(v?.body ?? "");
-          setEditingVariantIdx(idx);
-          document
-            .getElementById(SECTION_ID.inhoud)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
         }}
       />
 
@@ -1004,6 +1017,25 @@ export default function UnifiedDetailPage() {
         </div>
       )}
 
+      <WanneerCard
+        sectionId={SECTION_ID.schedule}
+        effectiveIso={effectiveIso}
+        fillyIso={fillyIso}
+        isCustomTime={isCustomTime}
+        fillyReasoning={fillyReasoning}
+        canEdit={canEdit}
+        busy={busy}
+        editingSchedule={editingSchedule}
+        draftDatetime={draftDatetime}
+        savingSchedule={savingSchedule}
+        canAccept={canEdit && !customIso && !!fillyIso}
+        onAcceptSchedule={handleResetToFilly}
+        onStartEditSchedule={handleStartEditSchedule}
+        onCancelEditSchedule={() => setEditingSchedule(false)}
+        onSaveSchedule={handleSaveSchedule}
+        onResetToFilly={handleResetToFilly}
+        onDraftDatetimeChange={setDraftDatetime}
+      />
 
       {/* Waarom dit voorstel — Filly's redenering als context onderaan,
           ná de actie-kaarten (inhoud/foto/timing). */}
