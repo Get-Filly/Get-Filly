@@ -1920,15 +1920,34 @@ ${profileBlock}
 ${menuBlock}
 ---`;
 
+    const currentBody = (current.body ?? '').trim();
+    // Een zelf-aangemaakte campagne (via "Maak eigen campagne") start met een
+    // placeholdertekst en heeft dus nog geen echte inhoud om alternatieven van
+    // af te leiden. In dat geval laten we Filly 3 EERSTE versies schrijven op
+    // basis van naam + context, i.p.v. "alternatieven van de placeholder"
+    // (dat leverde lege/onbruikbare output → fout bij genereren).
+    const hasRealContent =
+      currentBody.length > 0 &&
+      !currentBody.startsWith('Deze campagne is nog niet uitgewerkt');
+
     const currentSnapshot = {
       name: campaign.name as string,
       type,
       ...(current.subject_line ? { subject_line: current.subject_line } : {}),
-      body: current.body,
+      body: currentBody,
     };
-    const userPrompt = trimmedInstruction
-      ? `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`
-      : `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
+    let userPrompt: string;
+    if (!hasRealContent) {
+      userPrompt = `Deze campagne ("${campaign.name as string}") heeft nog geen uitgewerkte tekst. Schrijf 3 eerste versies in verschillende tonen (warm-uitnodigend, zakelijk-direct, speels-kort), volledig gebaseerd op de CONTEXT (profiel + menu) hierboven en de KANAAL-REGELS. Kies zelf een passend, concreet aanbod dat bij deze onderneming past.${
+        trimmedInstruction
+          ? `\n\nInstructie van de eigenaar:\n${trimmedInstruction}`
+          : ''
+      }`;
+    } else if (trimmedInstruction) {
+      userPrompt = `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nInstructie van de eigenaar:\n${trimmedInstruction}\n\nGeef 3 alternatieve versies.`;
+    } else {
+      userPrompt = `Huidige campagne:\n${JSON.stringify(currentSnapshot, null, 2)}\n\nGeef 3 alternatieve versies in verschillende tonen (warm, zakelijk, speels).`;
+    }
 
     const generateVariants = (prompt: string) =>
       this.ai.generateStructured<CampaignVariantsFromTool>({
@@ -1949,17 +1968,28 @@ ${menuBlock}
     const parsed = await enforceCopyLength({
       channel,
       first: await generateVariants(userPrompt),
-      getBodies: (r) => r.variants.map((v) => v.body),
+      // Defensief: een onvolledige/onverwachte tool-output (geen variants-
+      // array of een variant zonder body) mag nooit een ruwe TypeError →
+      // generieke 500 worden. Lege strings vallen verderop weg.
+      getBodies: (r) =>
+        (Array.isArray(r?.variants) ? r.variants : []).map((v) =>
+          typeof v?.body === 'string' ? v.body : '',
+        ),
       regenerate: (instruction) =>
         generateVariants(`${userPrompt}\n\n${instruction}`),
       logger: this.logger,
       feature: 'campaign_variants_more',
     });
 
-    // Parse + sanitize zelfde regels als refine()
+    // Parse + sanitize zelfde regels als refine(). Guard tegen een
+    // ontbrekende variants-array zodat we een nette melding geven i.p.v.
+    // een onafgevangen fout.
+    const parsedVariants = Array.isArray(parsed?.variants)
+      ? parsed.variants
+      : [];
     const fresh: CampaignVariant[] = [];
-    for (const v of parsed.variants) {
-      const body = v.body.trim();
+    for (const v of parsedVariants) {
+      const body = typeof v?.body === 'string' ? v.body.trim() : '';
       if (!body) continue;
       const variant: CampaignVariant = { body, subject_line: null };
       if (v.subject_line && v.subject_line.trim().length > 0) {
@@ -1968,6 +1998,11 @@ ${menuBlock}
       fresh.push(variant);
     }
     if (fresh.length === 0) {
+      this.logger.error(
+        `[campaign_variants_more] geen bruikbare versies; ruwe AI-output: ${JSON.stringify(
+          parsed,
+        )}`,
+      );
       throw new InternalServerErrorException(
         'Filly leverde geen bruikbare versies. Probeer het opnieuw of geef een specifiekere instructie.',
       );

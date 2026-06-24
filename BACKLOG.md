@@ -16,6 +16,18 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-06-24 — Campagne-detail "foto-interface" + kanaalbeheer (live op main)
+
+Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface en kanaalbeheer toegevoegd. Alles live op `main` + Vercel.
+
+- [x] **Campagne-detail = foto-interface** — Aspecten-tabel terug op de detailpagina (foute revert ongedaan); media (foto óf video) via een pop-up uit de cel i.p.v. een losse FotoCard; performance-card + mail-verstuur-card alleen nog bij ingepland/actief (concept eindigt bij "Waarom dit voorstel").
+- [x] **"Maak eigen campagne" multi-channel** — builder kiest één of meer kanalen; `CampaignsService.createBundle` maakt groep + concept per kanaal (`POST /campaigns` met `platforms[]`).
+- [x] **Kanalen toevoegen/verwijderen op een concept** — klikbare "Kanaal in deze campagne"-chips; `POST/DELETE /campaigns/:id/channels`. Losse concept-campagne promoveert automatisch tot bundel; min. 1 kanaal; alleen op concept. +5 Jest-tests (suite nu 99).
+- [x] **Bug: social-campagne activeren faalde** — `publishSocialCampaign` las `social_platforms`/`social_hashtags`; echte kolommen zijn `platforms`/`hashtags` (mig 0001). Geen migratie nodig.
+- [x] **Bug: "Genereer 3 versies" gaf Internal server error op een zelf-aangemaakt concept** — placeholder-inhoud → Filly schrijft nu 3 eerste versies o.b.v. naam + context; parsing afgeschermd zodat onverwachte AI-output nooit meer een generieke 500 geeft (nette melding + log).
+
+---
+
 ## 🔬 Audit-ronde 2026-06-18 — 4 expert-analyses (Prio / Frontend / Backend / Beveiligingen)
 
 > Vier parallelle code-audits: data-engineer/developer, UI-analist, UX-expert en
