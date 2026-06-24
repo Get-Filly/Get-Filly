@@ -306,36 +306,12 @@ export default async function HomePage({
               de rest van de pagina. */}
           <ScrollReveal />
           <div className="features-stack">
-            {/* Pijler 1 — Zichtbaarheid (social media, content,
-                white-label). Visual = ZichtbaarheidVisual: drie
-                overlappende social-posts (Facebook · TikTok · Instagram)
-                met echte foto's uit public/visuals/, die via de
-                scroll-reveal na elkaar opkomen.
-                Per 2026-06-24 vóór Vindbaarheid gezet (volgorde-wens Floris);
-                de rij-klassen blijven zodat het zigzag-ritme klopt. */}
+            {/* Pijler 1 — Vindbaarheid (Google/SEO/AI-zoekmachines).
+                Visual = VindbaarheidVisual: statische mockup met een
+                Google-zoekresultaat (#1), een AI-chat die het restaurant
+                aanbeveelt (GEO) en een review-kaart met eigenaar-antwoord.
+                Per 2026-06-02 vervangt deze de oude geanimeerde hub. */}
             <div className="feature-row" data-reveal>
-              <div className="feature-row-text">
-                <p className="feature-eyebrow">
-                  <span>{t("pillars.visibility.eyebrow")}</span>
-                </p>
-                <h3 className="feature-row-title">{t("pillars.visibility.title")}</h3>
-                <p className="feature-row-desc">{t("pillars.visibility.desc")}</p>
-                <ul className="feature-bullets">
-                  {(t.raw("pillars.visibility.bullets") as string[]).map((b, i) => (
-                    <li key={i}>{b}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="feature-row-visual">
-                <ZichtbaarheidVisual />
-              </div>
-            </div>
-
-            {/* Pijler 2 — Vindbaarheid (Google/SEO/AI-zoekmachines).
-                Visual = VindbaarheidVisual: Google-zoekresultaat (#1),
-                AI-chat die het restaurant aanbeveelt (GEO) en review-kaart
-                met eigenaar-antwoord. */}
-            <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">
                   <span>{t("pillars.findability.eyebrow")}</span>
@@ -350,6 +326,29 @@ export default async function HomePage({
               </div>
               <div className="feature-row-visual">
                 <VindbaarheidVisual />
+              </div>
+            </div>
+
+            {/* Pijler 2 — Zichtbaarheid (social media, content,
+                white-label). Visual = ZichtbaarheidVisual: drie
+                overlappende social-posts (Facebook · TikTok · Instagram)
+                met echte foto's uit public/visuals/, die via de
+                scroll-reveal na elkaar opkomen. */}
+            <div className="feature-row feature-row--reverse" data-reveal>
+              <div className="feature-row-text">
+                <p className="feature-eyebrow">
+                  <span>{t("pillars.visibility.eyebrow")}</span>
+                </p>
+                <h3 className="feature-row-title">{t("pillars.visibility.title")}</h3>
+                <p className="feature-row-desc">{t("pillars.visibility.desc")}</p>
+                <ul className="feature-bullets">
+                  {(t.raw("pillars.visibility.bullets") as string[]).map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="feature-row-visual">
+                <ZichtbaarheidVisual />
               </div>
             </div>
 
