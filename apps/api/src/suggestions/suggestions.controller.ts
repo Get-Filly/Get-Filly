@@ -11,6 +11,7 @@ import {
 import {
   SuggestionsService,
   type SuggestionStatus,
+  type AiSuggestion,
 } from './suggestions.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import {
@@ -25,6 +26,33 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 @Controller('suggestions')
 export class SuggestionsController {
   constructor(private readonly suggestions: SuggestionsService) {}
+
+  // Per 2026-06-24: gegenereerde voorstellen (geleide flow / detectie) landen
+  // direct als Concept i.p.v. een aparte Voorstel-fase. We keuren elk net-
+  // gemaakt voorstel meteen goed en hangen approved_campaign_id aan de
+  // teruggegeven rij, zodat de frontend naar de concept-campagne kan linken.
+  // Fail-soft: een approve die faalt laat dat voorstel ongemoeid (zeldzaam,
+  // geen blokkade van de hele generatie).
+  private async approveGeneratedToConcept(
+    restaurantId: string,
+    userId: string,
+    suggestions: AiSuggestion[],
+  ): Promise<AiSuggestion[]> {
+    const out: AiSuggestion[] = [];
+    for (const s of suggestions) {
+      try {
+        const { campaignId } = await this.suggestions.approve(
+          restaurantId,
+          s.id,
+          userId,
+        );
+        out.push({ ...s, status: 'approved', approved_campaign_id: campaignId });
+      } catch {
+        out.push(s);
+      }
+    }
+    return out;
+  }
 
   @Get()
   findAll(
@@ -81,11 +109,22 @@ export class SuggestionsController {
   // (per-restaurant 100 calls/uur, voor alle Claude-features samen).
   @Post('generate')
   @UseGuards(AiRateLimitGuard)
-  generate(
+  async generate(
     @RestaurantId() restaurantId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.suggestions.generateOnDemand(restaurantId, user.id);
+    const result = await this.suggestions.generateOnDemand(
+      restaurantId,
+      user.id,
+    );
+    return {
+      ...result,
+      suggestions: await this.approveGeneratedToConcept(
+        restaurantId,
+        user.id,
+        result.suggestions,
+      ),
+    };
   }
 
   // "Filly bekijkt rustige dagen"-knop in de dashboard alert-bar.
@@ -94,14 +133,22 @@ export class SuggestionsController {
   // al een pending low-occupancy-suggestie hebben.
   @Post('detect-low-occupancy')
   @UseGuards(AiRateLimitGuard)
-  detectLowOccupancy(
+  async detectLowOccupancy(
     @RestaurantId() restaurantId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.suggestions.detectAndGenerateLowOccupancy(
+    const result = await this.suggestions.detectAndGenerateLowOccupancy(
       restaurantId,
       user.id,
     );
+    return {
+      ...result,
+      suggestions: await this.approveGeneratedToConcept(
+        restaurantId,
+        user.id,
+        result.suggestions,
+      ),
+    };
   }
 
   // Aangesloten op de groene "Vraag Filly om voorstellen"-knop op
@@ -110,7 +157,7 @@ export class SuggestionsController {
   // Genereert per item een toegespitst voorstel.
   @Post('generate-for-dates')
   @UseGuards(AiRateLimitGuard)
-  generateForDates(
+  async generateForDates(
     @RestaurantId() restaurantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body()
@@ -162,11 +209,19 @@ export class SuggestionsController {
       items.push(item);
     }
 
-    return this.suggestions.generateForSelectedDates(
+    const result = await this.suggestions.generateForSelectedDates(
       restaurantId,
       user.id,
       items,
     );
+    return {
+      ...result,
+      suggestions: await this.approveGeneratedToConcept(
+        restaurantId,
+        user.id,
+        result.suggestions,
+      ),
+    };
   }
 
   // Goedkeur-flow: suggestie → campagne. Aparte POST want het is

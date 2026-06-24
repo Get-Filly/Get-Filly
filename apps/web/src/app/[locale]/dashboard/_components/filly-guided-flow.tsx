@@ -408,7 +408,14 @@ export function FillyGuidedFlow({
                   type="button"
                   className="ui-btn ui-btn--primary ui-btn--sm fg-result-btn"
                   onClick={() =>
-                    router.push(`/dashboard/campagnes/voorstel/${s.id}`)
+                    router.push(
+                      // Per 2026-06-24: het voorstel is bij genereren al een
+                      // Concept geworden → link daarheen. Fallback naar de
+                      // voorstel-pagina als het approven onverhoopt faalde.
+                      s.approved_campaign_id
+                        ? `/dashboard/campagnes/${s.approved_campaign_id}`
+                        : `/dashboard/campagnes/voorstel/${s.id}`,
+                    )
                   }
                 >
                   {t("result.viewEdit")}
