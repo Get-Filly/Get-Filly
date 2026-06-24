@@ -487,11 +487,18 @@ export async function fetchCampaign(id: string): Promise<CampaignDetail> {
 // de Filly-chat na klik op "Ja, maak aan" bij een proposal-kaart.
 // Response bevat het id zodat we de user meteen kunnen doorsturen
 // naar /dashboard/campagnes/[id] voor de laatste controle.
+// 'Eigen campagne'-builder: maakt een leeg concept voor het gekozen kanaal
+// (de backend zet een placeholdertekst). Daarna navigeert de UI naar de
+// concept-editor om datum/foto/tekst zelf in te vullen.
 export async function createCampaign(input: {
   name: string;
-  type: CampaignType;
-  subject_line?: string;
-  body: string;
+  platform:
+    | "mail"
+    | "instagram"
+    | "facebook"
+    | "tiktok"
+    | "whatsapp"
+    | "google_business";
 }): Promise<{ id: string }> {
   const res = await authedFetch(`${API_URL}/campaigns`, {
     method: "POST",
