@@ -55,8 +55,9 @@ type KanbanColumn = {
 
 // Labels + beschrijvingen worden per kolom vertaald in de KanbanColumn-
 // component (keys: columns.<key>.label / columns.<key>.description).
+// Voorstel-kolom verwijderd (2026-06-24): uitingen vanuit FillyChat/geleide
+// flow landen voortaan direct in Concept i.p.v. een aparte Voorstel-fase.
 const COLUMNS: KanbanColumn[] = [
-  { key: "voorstel" },
   { key: "concept" },
   { key: "ingepland" },
   { key: "actief" },
@@ -861,8 +862,8 @@ export default function CampagnesPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 16,
           marginBottom: 24,
         }}
       >
