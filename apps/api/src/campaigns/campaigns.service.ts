@@ -1083,6 +1083,178 @@ export class CampaignsService {
     );
   }
 
+  // Kanaal toevoegen aan een campagne in concept. Werkt op bundel-niveau:
+  // een losse concept-campagne wordt bij het eerste extra kanaal automatisch
+  // gepromoveerd tot een bundel (groep + group_id op de bestaande campagne).
+  // Maakt een leeg concept voor het nieuwe kanaal onder hetzelfde group_id.
+  // Retourneert het group_id zodat de frontend de bundel kan herladen.
+  async addChannel(
+    restaurantId: string,
+    idOrGroupId: string,
+    platform: string,
+    userId: string,
+  ): Promise<{ id: string }> {
+    const { groupId, name } = await this.resolveOrCreateGroup(
+      restaurantId,
+      idOrGroupId,
+      userId,
+    );
+    const existing = await this.platformsInGroup(restaurantId, groupId);
+    if (existing.includes(platform)) {
+      // Al aanwezig → idempotent.
+      return { id: groupId };
+    }
+    // createConceptForPlatform valideert het platform (BadRequest bij onzin).
+    await this.createConceptForPlatform(
+      restaurantId,
+      name,
+      platform,
+      userId,
+      groupId,
+    );
+    return { id: groupId };
+  }
+
+  // Kanaal verwijderen uit een bundel-concept. Soft-delete't de sub-campagne
+  // van dat kanaal (via remove(), dus met de bestaande status-regels +
+  // audit). Laat minstens één kanaal staan.
+  async removeChannel(
+    restaurantId: string,
+    idOrGroupId: string,
+    platform: string,
+    userId: string,
+  ): Promise<{ id: string }> {
+    const { groupId } = await this.resolveOrCreateGroup(
+      restaurantId,
+      idOrGroupId,
+      userId,
+    );
+    const members = await this.channelCampaignsInGroup(restaurantId, groupId);
+    if (members.length <= 1) {
+      throw new BadRequestException(
+        'Een campagne moet minstens één kanaal houden.',
+      );
+    }
+    const target = members.find((m) => m.platforms.includes(platform));
+    if (!target) {
+      // Niet aanwezig → idempotent.
+      return { id: groupId };
+    }
+    await this.remove(restaurantId, target.id, userId);
+    return { id: groupId };
+  }
+
+  // Resolve idOrGroupId → bestaande groep, of promoveer een losse concept-
+  // campagne tot bundel (groep aanmaken + group_id zetten). Alleen toegestaan
+  // op een concept. Retourneert group_id + groep-naam (bron voor sub-namen).
+  private async resolveOrCreateGroup(
+    restaurantId: string,
+    idOrGroupId: string,
+    userId: string,
+  ): Promise<{ groupId: string; name: string }> {
+    const client = this.supabase.client;
+    const { data: g, error: gErr } = await client
+      .from('campaign_groups')
+      .select('id, name')
+      .eq('id', idOrGroupId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (gErr) throw new InternalServerErrorException(gErr.message);
+    if (g) return { groupId: g.id as string, name: g.name as string };
+
+    const { data: camp, error: cErr } = await client
+      .from('campaigns')
+      .select('id, name, group_id, status')
+      .eq('id', idOrGroupId)
+      .eq('restaurant_id', restaurantId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (cErr) throw new InternalServerErrorException(cErr.message);
+    if (!camp) {
+      throw new BadRequestException('Campagne of bundle niet gevonden.');
+    }
+    if (camp.status !== 'concept') {
+      throw new BadRequestException(
+        'Kanalen wijzigen kan alleen op een concept.',
+      );
+    }
+    if (camp.group_id) {
+      const { data: g2 } = await client
+        .from('campaign_groups')
+        .select('id, name')
+        .eq('id', camp.group_id as string)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+      if (g2) return { groupId: g2.id as string, name: g2.name as string };
+    }
+    // Promoveer naar bundel: groep aanmaken + group_id op de campagne.
+    const { data: newGroup, error: ngErr } = await client
+      .from('campaign_groups')
+      .insert({
+        restaurant_id: restaurantId,
+        name: camp.name as string,
+        created_by: userId,
+      })
+      .select('id, name')
+      .single();
+    if (ngErr) throw new InternalServerErrorException(ngErr.message);
+    const { error: upErr } = await client
+      .from('campaigns')
+      .update({ group_id: newGroup.id as string })
+      .eq('id', camp.id as string)
+      .eq('restaurant_id', restaurantId);
+    if (upErr) throw new InternalServerErrorException(upErr.message);
+    return { groupId: newGroup.id as string, name: newGroup.name as string };
+  }
+
+  // Kanaal-keys die al in een groep zitten (over alle sub-campagnes heen).
+  private async platformsInGroup(
+    restaurantId: string,
+    groupId: string,
+  ): Promise<string[]> {
+    const members = await this.channelCampaignsInGroup(restaurantId, groupId);
+    return members.flatMap((m) => m.platforms);
+  }
+
+  // Per niet-verwijderde campagne in de groep: id + kanaal-keys. mail/whatsapp
+  // = het type zelf; social = campaign_social_content.platforms.
+  private async channelCampaignsInGroup(
+    restaurantId: string,
+    groupId: string,
+  ): Promise<Array<{ id: string; platforms: string[] }>> {
+    const client = this.supabase.client;
+    const { data: camps, error } = await client
+      .from('campaigns')
+      .select('id, type')
+      .eq('restaurant_id', restaurantId)
+      .eq('group_id', groupId)
+      .is('deleted_at', null);
+    if (error) throw new InternalServerErrorException(error.message);
+    const result: Array<{ id: string; platforms: string[] }> = [];
+    for (const c of camps ?? []) {
+      const id = c.id as string;
+      const type = c.type as string;
+      if (type === 'mail') {
+        result.push({ id, platforms: ['mail'] });
+      } else if (type === 'whatsapp') {
+        result.push({ id, platforms: ['whatsapp'] });
+      } else if (type === 'social') {
+        const { data: sc } = await client
+          .from('campaign_social_content')
+          .select('platforms')
+          .eq('campaign_id', id)
+          .maybeSingle();
+        const ps = Array.isArray(sc?.platforms)
+          ? (sc!.platforms as string[])
+          : [];
+        result.push({ id, platforms: ps });
+      } else {
+        result.push({ id, platforms: [] });
+      }
+    }
+    return result;
+  }
+
 
   // Status-transitie. Levenscyclus met twee bewuste "shortcuts":
   //   concept   → ingepland   (Plan in-knop op /campagnes)

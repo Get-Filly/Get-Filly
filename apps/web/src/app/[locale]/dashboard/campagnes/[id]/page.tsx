@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import {
+  addCampaignChannel,
+  removeCampaignChannel,
   deleteCampaign,
   editCampaignVariant,
   fetchCampaignBundle,
@@ -149,6 +151,9 @@ export default function UnifiedDetailPage() {
   // losse kaart onderaan. Zo voeg je media toe vanuit de balkjes, net als
   // op de voorstel/"foto"-interface.
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  // Kanaal toevoegen/verwijderen op een concept: platform-key die nu bezig
+  // is (disable + spinner-gevoel), null = geen actie lopend.
+  const [channelBusy, setChannelBusy] = useState<string | null>(null);
   // Anti-repetitie-waarschuwingen voor de actieve campagne (filly-brein
   // hfst 8.6). Lege array = geen waarschuwing. Faalt stil.
   const [repetitionWarnings, setRepetitionWarnings] = useState<
@@ -235,6 +240,41 @@ export default function UnifiedDetailPage() {
     refining ||
     changingStatus ||
     deleting;
+
+  // Alle kanalen die je in een campagne kunt zetten. Op een concept zijn de
+  // chips klikbaar: inactief aanklikken voegt het kanaal toe (extra rij),
+  // actief aanklikken verwijdert het (min. 1 kanaal blijft staan).
+  const ALL_CHANNELS: Array<{ key: string; label: string }> = [
+    { key: "mail", label: "E-mail" },
+    { key: "instagram", label: "Instagram" },
+    { key: "facebook", label: "Facebook" },
+    { key: "tiktok", label: "TikTok" },
+    { key: "whatsapp", label: "WhatsApp" },
+    { key: "google_business", label: "Google Business" },
+  ];
+
+  const handleToggleChannel = async (platform: string, isActive: boolean) => {
+    if (!canEdit || channelBusy) return;
+    setChannelBusy(platform);
+    setActionError(null);
+    try {
+      const res = isActive
+        ? await removeCampaignChannel(id, platform)
+        : await addCampaignChannel(id, platform);
+      // De service kan een losse campagne tot bundel promoveren: dan is
+      // res.id het (nieuwe) group_id. Navigeer ernaartoe zodat de pagina
+      // stabiel op de bundel staat; bij gelijk id gewoon herladen.
+      if (res.id && res.id !== id) {
+        router.replace(`/dashboard/campagnes/${res.id}`);
+      } else {
+        await load();
+      }
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setChannelBusy(null);
+    }
+  };
 
   // ────────────────────────────────────────────────────────────
   // Wanneer-card afgeleiden — analoog aan voorstel-page
@@ -880,51 +920,61 @@ export default function UnifiedDetailPage() {
         </div>
       )}
 
-      {/* Kanaal in deze campagne: read-only overzicht van de kanalen in
-          deze (bundel-)campagne. Kanalen kies je bij het aanmaken via de
-          "Maak eigen campagne"-builder; toevoegen/verwijderen mid-flight
-          zit (nog) niet in de backend, dus puur tonend. */}
-      {view.channels.length > 0 && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-h">
-            <div>
-              <div className="card-t">{tAspect("channelsLabel")}</div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {view.channels.map((c) => {
-                const CHANNEL_LABEL: Record<string, string> = {
-                  mail: "E-mail",
-                  instagram: "Instagram",
-                  facebook: "Facebook",
-                  tiktok: "TikTok",
-                  whatsapp: "WhatsApp",
-                  google_business: "Google Business",
-                };
-                return (
-                  <span
-                    key={c.id}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "5px 12px",
-                      borderRadius: 999,
-                      background: "var(--accent-soft, #EAF3ED)",
-                      color: "var(--accent, #1F4A2D)",
-                      border: "1px solid var(--border, #E5DFD0)",
-                      fontSize: 13,
-                    }}
-                  >
-                    {CHANNEL_LABEL[c.platform] ?? c.platform}
-                  </span>
-                );
-              })}
-            </div>
+      {/* Kanaal in deze campagne. Op een concept zijn de chips klikbaar:
+          inactief aanklikken voegt het kanaal toe (extra rij in de tabel),
+          actief aanklikken verwijdert het (min. 1 kanaal blijft staan). Op
+          ingepland/actief puur tonend (canEdit=false → disabled). */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-h">
+          <div>
+            <div className="card-t">{tAspect("channelsLabel")}</div>
           </div>
         </div>
-      )}
+        <div className="card-b">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {ALL_CHANNELS.map((ch) => {
+              const active = view.channels.some(
+                (c) => c.platform === ch.key,
+              );
+              const isBusy = channelBusy === ch.key;
+              return (
+                <button
+                  key={ch.key}
+                  type="button"
+                  disabled={!canEdit || channelBusy !== null}
+                  onClick={() => handleToggleChannel(ch.key, active)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    fontSize: 13,
+                    cursor: canEdit ? "pointer" : "default",
+                    opacity: isBusy ? 0.6 : 1,
+                    border: active
+                      ? "1px solid var(--accent, #1F4A2D)"
+                      : "1px dashed var(--border, #C9C2B0)",
+                    background: active
+                      ? "var(--accent-soft, #EAF3ED)"
+                      : "transparent",
+                    color: active
+                      ? "var(--accent, #1F4A2D)"
+                      : "var(--ts, #6B675C)",
+                  }}
+                >
+                  {ch.label}
+                  {canEdit && (
+                    <span aria-hidden style={{ fontSize: 12, opacity: 0.7 }}>
+                      {active ? "✕" : "+"}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       <div style={{ marginBottom: 24 }} />
 

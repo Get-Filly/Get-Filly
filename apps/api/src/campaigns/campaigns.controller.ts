@@ -193,6 +193,32 @@ export class CampaignsController {
     );
   }
 
+  // Kanaal toevoegen aan een concept(-bundel). :id mag een campagne-id of
+  // een group_id zijn (service resolved beide; promoveert losse concepten).
+  @Post(':id/channels')
+  addChannel(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() body: { platform?: string },
+  ) {
+    if (!body.platform) {
+      throw new BadRequestException('Kanaal is verplicht.');
+    }
+    return this.campaigns.addChannel(restaurantId, id, body.platform, user.id);
+  }
+
+  // Kanaal verwijderen uit een concept(-bundel). Laat min. één kanaal staan.
+  @Delete(':id/channels/:platform')
+  removeChannel(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('platform') platform: string,
+  ) {
+    return this.campaigns.removeChannel(restaurantId, id, platform, user.id);
+  }
+
   // Status-transitie endpoint. Aparte route i.p.v. status-veld in
   // de generieke PATCH zodat valideerbare lifecycle-logica niet stil
   // kan worden omzeild (bv. concept-edit die per ongeluk een status-

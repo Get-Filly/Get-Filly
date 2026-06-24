@@ -539,6 +539,43 @@ export async function createCampaignBundle(input: {
   return res.json();
 }
 
+// Kanaal toevoegen aan een concept(-bundel). idOrGroupId mag een campagne-id
+// of group_id zijn. Retourneert het group_id om de bundel te herladen.
+export async function addCampaignChannel(
+  idOrGroupId: string,
+  platform: string,
+): Promise<{ id: string }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${idOrGroupId}/channels`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Kanaal verwijderen uit een concept(-bundel).
+export async function removeCampaignChannel(
+  idOrGroupId: string,
+  platform: string,
+): Promise<{ id: string }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${idOrGroupId}/channels/${platform}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Status-transitie. Backend valideert toegestane mappings
 // (concept→ingepland, ingepland→actief, actief→afgerond, etc).
 // Voor Activeren wordt executed_at automatisch op now() gezet.
