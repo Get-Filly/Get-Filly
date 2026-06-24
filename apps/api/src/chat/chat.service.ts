@@ -936,19 +936,25 @@ export class ChatService {
         // We slaan de hele proposal op in suggested_campaign (incl.
         // alle varianten). Approve-flow leest later selected_index
         // en gebruikt die variant voor de campagne-aanmaak.
-        const { id } = await this.suggestionsService.createFromChat(
-          restaurantId,
-          {
-            type: parsedSingle.proposal.type,
-            name: parsedSingle.proposal.name,
-            variants: parsedSingle.proposal.variants,
-            selected_index: parsedSingle.proposal.selected_index,
-          },
-        );
+        const { id, campaignId } =
+          await this.suggestionsService.createFromChat(
+            restaurantId,
+            {
+              type: parsedSingle.proposal.type,
+              name: parsedSingle.proposal.name,
+              variants: parsedSingle.proposal.variants,
+              selected_index: parsedSingle.proposal.selected_index,
+            },
+            userId,
+          );
         suggestionId = id;
+        // Per 2026-06-24: meteen goedgekeurd → het voorstel IS al een
+        // concept. De kaart krijgt approved_campaign_id mee zodat 'ie
+        // direct de "bekijk concept"-staat toont i.p.v. goedkeur/afwijzen.
         messageCard = {
           ...parsedSingle.proposal,
           suggestion_id: id,
+          approved_campaign_id: campaignId,
         };
       } catch (err) {
         this.logger.error(
@@ -965,14 +971,19 @@ export class ChatService {
         // blijft als bij single-channel proposals. SuggestionsService
         // detecteert trigger_type bij approve en maakt dan
         // campaign_groups + 3 campaigns tegelijk.
-        const { id } = await this.suggestionsService.createBundleFromChat(
-          restaurantId,
-          parsedBundle.bundle,
-        );
+        const { id, groupId } =
+          await this.suggestionsService.createBundleFromChat(
+            restaurantId,
+            parsedBundle.bundle,
+            userId,
+          );
         suggestionId = id;
+        // Meteen goedgekeurd → de bundel IS al een set concepten onder
+        // één group_id. approved_group_id zet de kaart op de "bekijk"-staat.
         messageCard = {
           ...parsedBundle.bundle,
           suggestion_id: id,
+          approved_group_id: groupId,
         };
       } catch (err) {
         this.logger.error(

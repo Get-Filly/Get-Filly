@@ -292,6 +292,33 @@ export function FillyChat() {
       // Counter +2 (user + filly). Bij cap-bereikt togglet capReached
       // automatisch via de derived constant, geen aparte setter nodig.
       setMessageCount((c) => c + 2);
+      // Per 2026-06-24: voorstellen zijn bij aanmaken al goedgekeurd en
+      // dus al een Concept. De kaart toont meteen de 'bekijk'-staat i.p.v.
+      // goedkeur/afwijzen — zo ontstaat er geen wees-concept bij afwijzen.
+      const newCard = fillyMessage.message_card;
+      if (
+        newCard?.kind === "campaign_proposal" &&
+        newCard.approved_campaign_id
+      ) {
+        setProposalStatus((s) => ({
+          ...s,
+          [fillyMessage.id]: {
+            state: "created",
+            campaignId: newCard.approved_campaign_id!,
+          },
+        }));
+      } else if (
+        newCard?.kind === "campaign_bundle" &&
+        newCard.approved_group_id
+      ) {
+        setBundleStatus((s) => ({
+          ...s,
+          [fillyMessage.id]: {
+            state: "approved_existing",
+            anchorCampaignId: newCard.approved_group_id!,
+          },
+        }));
+      }
       // Lopende actie syncen: de server kan 'm bijgewerkt hebben (datum/
       // thema-carry-forward na een FILLY_START_GUIDED-emit). Zo komt een
       // net-gemergede datum/thema meteen in de geleide flow-kaart.

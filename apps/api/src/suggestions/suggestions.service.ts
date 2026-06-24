@@ -3334,7 +3334,8 @@ ${channelRules}
   async createFromChat(
     restaurantId: string,
     suggested: SuggestedCampaign,
-  ): Promise<{ id: string }> {
+    userId: string,
+  ): Promise<{ id: string; campaignId: string }> {
     const { data, error } = await this.supabase.client
       .from('ai_suggestions')
       .insert({
@@ -3347,7 +3348,16 @@ ${channelRules}
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
-    return { id: data.id as string };
+    const suggestionId = data.id as string;
+    // Per 2026-06-24: uitingen vanuit de chat landen direct als Concept
+    // (geen aparte Voorstel-fase meer). approve() maakt de concept-campagne
+    // ook bij ontbrekende datum/foto — die tonen daarna als "Nog nodig".
+    const { campaignId } = await this.approve(
+      restaurantId,
+      suggestionId,
+      userId,
+    );
+    return { id: suggestionId, campaignId };
   }
 
   // ============================================================
@@ -3379,7 +3389,8 @@ ${channelRules}
         google_business?: { body: string };
       };
     },
-  ): Promise<{ id: string }> {
+    userId: string,
+  ): Promise<{ id: string; groupId: string }> {
     const { data, error } = await this.supabase.client
       .from('ai_suggestions')
       .insert({
@@ -3392,7 +3403,12 @@ ${channelRules}
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
-    return { id: data.id as string };
+    const suggestionId = data.id as string;
+    // Per 2026-06-24: bundel-uitingen vanuit de chat landen direct als
+    // Concept. approveBundle zonder kanaal-lijst maakt alle kanalen uit de
+    // bundel onder één group_id (waar de bundel-kaart naar linkt).
+    const res = await this.approveBundle(restaurantId, suggestionId, userId);
+    return { id: suggestionId, groupId: res.groupId };
   }
 }
 
