@@ -340,7 +340,18 @@ export function FillyGuidedFlow({
       }
       setResult(suggestions);
       setStep("done");
-      onActionChange?.({ step: "done" });
+      // Per 2026-06-24: de actie is afgerond (campagne staat als concept).
+      // Persisteer meteen een VERSE actie, zodat je bij terugkomst in de chat
+      // de normale flow ziet (eerst een dag kiezen) i.p.v. opnieuw dezelfde
+      // datum voorgesteld krijgt. Lokaal blijft step "done" (de flow is gekeyed
+      // op de laatste guided_start, dus hij remount nu niet) zodat je het
+      // resultaat nu nog ziet; de chatberichten blijven uiteraard staan.
+      onActionChange?.({
+        date: null,
+        topic: null,
+        channels: null,
+        step: "day",
+      });
     } catch (e) {
       logger.error(e);
       setError(e instanceof Error ? e.message : t("errors.generic"));
