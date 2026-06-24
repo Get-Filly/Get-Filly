@@ -913,6 +913,7 @@
     "approveTitleMissing": "Vul eerst de ontbrekende velden in",
     "progressFields": "{completed} van {total} velden compleet",
     "aspectsTitle": "Aspecten",
+    "channelsLabel": "Kanaal in deze campagne",
     "colChannel": "Kanaal",
     "colMissing": "Missende items",
     "colWhen": "Datum & tijd",

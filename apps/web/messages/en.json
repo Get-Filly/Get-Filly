@@ -913,6 +913,7 @@
     "approveTitleMissing": "Fill in the missing fields first",
     "progressFields": "{completed} of {total} fields complete",
     "aspectsTitle": "Aspects",
+    "channelsLabel": "Channels in this campaign",
     "colChannel": "Channel",
     "colMissing": "Missing items",
     "colWhen": "Date & time",
