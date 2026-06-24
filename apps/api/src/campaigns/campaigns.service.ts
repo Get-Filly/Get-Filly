@@ -256,7 +256,7 @@ export class CampaignsService {
     const { data: content, error: scErr } = await client
       .from('campaign_social_content')
       .select(
-        'caption, social_platforms, social_hashtags, media_urls, published_at',
+        'caption, platforms, hashtags, media_urls, published_at',
       )
       .eq('campaign_id', campaignId)
       .maybeSingle();
@@ -272,8 +272,8 @@ export class CampaignsService {
 
     // 3. Berichttekst: caption + hashtags. Gedeeld door alle kanalen.
     const caption = ((content.caption as string | null) ?? '').trim();
-    const hashtags = Array.isArray(content.social_hashtags)
-      ? (content.social_hashtags as string[])
+    const hashtags = Array.isArray(content.hashtags)
+      ? (content.hashtags as string[])
           .map((h) => (h.startsWith('#') ? h : `#${h}`))
           .join(' ')
       : '';
@@ -288,8 +288,8 @@ export class CampaignsService {
 
     // 4. Kanaalkeuze. Lege/legacy platforms = generiek "social" → Meta
     //    (Facebook + evt. Instagram). 'tiktok' is een eigen publish-pad.
-    const platforms = Array.isArray(content.social_platforms)
-      ? (content.social_platforms as string[])
+    const platforms = Array.isArray(content.platforms)
+      ? (content.platforms as string[])
       : [];
     const toTikTok = platforms.includes('tiktok');
     // Meta gevraagd als: legacy/leeg (default Meta) óf expliciet FB/IG.
