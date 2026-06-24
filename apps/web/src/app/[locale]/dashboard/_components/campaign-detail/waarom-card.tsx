@@ -13,9 +13,24 @@ type Props = {
   reasoning: string | null;
 };
 
+// Houd "Waarom dit voorstel" kort (zoals bedoeld: 1-2 zinnen). Twee bronnen
+// van lengte worden hier weggenomen voor de weergave (data blijft intact):
+//   1. Het "💡 Alternatief: …"-aanhangsel dat de backend achter de reasoning
+//      plakt — dat hoort niet in de korte waarom-samenvatting.
+//   2. Een redenering die alsnog uit >2 zinnen bestaat → cap op de eerste 2.
+function conciseReasoning(text: string): string {
+  const core = text.split(/💡\s*Alternatief/i)[0].trim();
+  const sentences = core.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+  if (sentences && sentences.length > 2) {
+    return sentences.slice(0, 2).join("").trim();
+  }
+  return core;
+}
+
 export function WaaromCard({ reasoning }: Props) {
   const t = useTranslations("dash__components_campaign_detail_waarom_card");
   if (!reasoning) return null;
+  const text = conciseReasoning(reasoning);
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-h">
@@ -31,7 +46,7 @@ export function WaaromCard({ reasoning }: Props) {
             lineHeight: 1.6,
           }}
         >
-          {reasoning}
+          {text}
         </div>
       </div>
     </div>
