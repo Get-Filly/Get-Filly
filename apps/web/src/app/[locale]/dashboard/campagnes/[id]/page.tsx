@@ -929,6 +929,37 @@ export default function UnifiedDetailPage() {
         </div>
       )}
 
+      {/* Publicatie-status (social). Maakt een mislukte/uitgestelde publicatie
+          zichtbaar i.p.v. stil te falen: een publish_error toont waaróm het
+          niet lukte (bv. IG vereist een foto, Meta niet gekoppeld). */}
+      {view.channels.some((c) => c.publish_error) && (
+        <div
+          style={{
+            padding: "10px 14px",
+            margin: "12px 0",
+            background: "var(--red-soft, #FEE2E2)",
+            border: "1px solid var(--red, #B91C1C)",
+            borderRadius: 8,
+            fontSize: 13,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            {t("publishError.title")}
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {view.channels
+              .filter((c) => c.publish_error)
+              .map((c) => (
+                <li key={c.id} style={{ lineHeight: 1.5 }}>
+                  {ALL_CHANNELS.find((x) => x.key === c.platform)?.label ??
+                    c.platform}
+                  : {c.publish_error}
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+
       {/* Kanaal in deze campagne. Op een concept zijn de chips klikbaar:
           inactief aanklikken voegt het kanaal toe (extra rij in de tabel),
           actief aanklikken verwijdert het (min. 1 kanaal blijft staan). Op

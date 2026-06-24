@@ -44,6 +44,12 @@ export type UnifiedChannel = {
   // whatsapp = media_url. Voor mail altijd null (ondersteunt geen
   // foto's in deze versie).
   media_url: string | null;
+  // Publicatie-status (social). published_at = succesvol naar Meta/IG/FB
+  // gepost; publish_error = laatste publicatiefout (bv. "Instagram vereist
+  // een afbeelding-URL"). Frontend toont dit zodat een mislukte/uitgestelde
+  // publicatie niet meer stil is.
+  published_at: string | null;
+  publish_error: string | null;
 };
 
 export type UnifiedDetailView = {
@@ -145,6 +151,10 @@ function toUnifiedChannel(c: CampaignDetail): UnifiedChannel {
           ? c.content.media_url
           : null)
       : (c.content?.media_urls?.[0] ?? null);
+  const pubMeta = c.content as
+    | { published_at?: unknown; publish_error?: unknown }
+    | null
+    | undefined;
   return {
     id: c.id,
     platform,
@@ -154,6 +164,12 @@ function toUnifiedChannel(c: CampaignDetail): UnifiedChannel {
     filly_scheduled_for: c.suggested_scheduled_for ?? null,
     filly_scheduled_reasoning: c.suggested_scheduled_reasoning ?? null,
     media_url: mediaUrl,
+    // published_at/publish_error komen uit campaign_social_content (mig 0058)
+    // en zitten nog niet in het getypte content-model; lokaal uitlezen.
+    published_at:
+      typeof pubMeta?.published_at === "string" ? pubMeta.published_at : null,
+    publish_error:
+      typeof pubMeta?.publish_error === "string" ? pubMeta.publish_error : null,
   };
 }
 

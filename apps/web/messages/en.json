@@ -734,6 +734,9 @@
   },
   "campagnes_id_page": {
     "backToCampaigns": "← Back to campaigns",
+    "publishError": {
+      "title": "Publishing failed"
+    },
     "unavailableTitle": "Campaign unavailable",
     "unavailableDescription": "This campaign no longer exists.",
     "channelCount": "{count} channels",

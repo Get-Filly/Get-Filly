@@ -734,6 +734,9 @@
   },
   "campagnes_id_page": {
     "backToCampaigns": "← Terug naar campagnes",
+    "publishError": {
+      "title": "Publiceren niet gelukt"
+    },
     "unavailableTitle": "Campagne niet beschikbaar",
     "unavailableDescription": "Deze campagne bestaat niet meer.",
     "channelCount": "{count} kanalen",
