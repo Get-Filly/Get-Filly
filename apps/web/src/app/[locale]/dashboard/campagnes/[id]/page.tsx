@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
@@ -163,9 +163,17 @@ export default function UnifiedDetailPage() {
   // ────────────────────────────────────────────────────────────
   // Initial load + refetch helper
   // ────────────────────────────────────────────────────────────
+  // Sequence-guard tegen race-condities: meerdere acties (genereren, foto
+  // uploaden, datum opslaan…) eindigen elk met load(). Een trager-binnenkomend
+  // ouder antwoord mag een verser antwoord niet overschrijven — anders
+  // verdwijnen bv. net-gegenereerde versies als je ondertussen iets uploadt.
+  // Alleen de laatst-gestarte load() mag de state zetten.
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
       const next = await fetchCampaignBundle(id);
+      if (seq !== loadSeq.current) return; // door een nieuwere load ingehaald
       setBundle(next);
       // Active channel intelligent default: behoud current als 'ie
       // nog bestaat, anders eerste kanaal.
@@ -175,6 +183,7 @@ export default function UnifiedDetailPage() {
       });
       setError(null);
     } catch (e) {
+      if (seq !== loadSeq.current) return;
       setError(e instanceof Error ? e.message : t("errors.notFound"));
     }
   }, [id, t]);
