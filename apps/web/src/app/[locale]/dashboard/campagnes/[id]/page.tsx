@@ -145,6 +145,10 @@ export default function UnifiedDetailPage() {
   // Schedule-edit-state.
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [draftDatetime, setDraftDatetime] = useState("");
+  // Media via de cel: pop-up met de FotoCard (foto óf video) i.p.v. een
+  // losse kaart onderaan. Zo voeg je media toe vanuit de balkjes, net als
+  // op de voorstel/"foto"-interface.
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
   // Anti-repetitie-waarschuwingen voor de actieve campagne (filly-brein
   // hfst 8.6). Lege array = geen waarschuwing. Faalt stil.
   const [repetitionWarnings, setRepetitionWarnings] = useState<
@@ -901,9 +905,7 @@ export default function UnifiedDetailPage() {
         }}
         onOpenMedia={(channelId) => {
           setActiveChannelId(channelId);
-          document
-            .getElementById(SECTION_ID.foto)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          setMediaModalOpen(true);
         }}
         onStartSchedule={(channelId, eff) => {
           setActiveChannelId(channelId);
@@ -987,38 +989,59 @@ export default function UnifiedDetailPage() {
         </div>
       )}
 
-      {/* Foto-card. Alleen non-mail. Editable als concept. Compacte
-          variant (thumbnail + knoppen) zodat de pagina niet
-          gedomineerd wordt door een grote dropzone. */}
-      {supportsMedia && activeCampaign && (
-        <div id={SECTION_ID.foto} style={{ scrollMarginTop: 120 }}>
-          <FotoCard
-            campaignId={activeCampaign.id}
-            signedUrl={activeChannel?.media_url ?? null}
-            canEdit={canEdit}
-            allowVideo={activeChannel?.platform === "tiktok"}
-            onMediaChanged={() => {
-              void load();
-            }}
-          />
-        </div>
-      )}
-
-
       {/* Waarom dit voorstel — Filly's redenering als context onderaan,
-          ná de actie-kaarten (inhoud/foto/timing). */}
+          ná de inhoud. Hier eindigt het concept-scherm: geen losse
+          foto/video-card en geen performance-card op een concept. */}
       <WaaromCard reasoning={view.reasoning} />
 
-      {/* Mail-verstuur: test-mail + verstuur-naar-iedereen. Toont
-          alleen op mail-campagnes (andere kanalen gaan via eigen
-          publish-flow). */}
-      {activeCampaign?.type === "mail" && (
+      {/* Mail-verstuur + performance horen bij een lopende campagne, niet
+          bij een concept. Daarom pas tonen zodra de campagne uit de
+          concept-fase is (ingepland/actief). */}
+      {status !== "concept" && activeCampaign?.type === "mail" && (
         <CampaignSendCard campaignId={activeCampaign.id} />
       )}
+      {status !== "concept" && <CampaignPerformanceCard campaignId={id} />}
 
-      {/* Performance: score + breakdown + outlier-knop. Toont alleen
-          relevante info na status→'actief'; daarvóór "Nog geen meet-data". */}
-      <CampaignPerformanceCard campaignId={id} />
+      {/* Media-pop-up: foto óf video toevoegen vanuit de cel in de
+          Aspecten-tabel (de "balkjes"). De FotoCard regelt zelf de
+          bibliotheek-keuze, upload en verwijderen. Vervangt de losse
+          foto-card die voorheen onderaan stond. */}
+      {mediaModalOpen && supportsMedia && activeCampaign && (
+        <div
+          onClick={() => setMediaModalOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(14,43,23,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--white, #FFFFFF)",
+              borderRadius: 12,
+              padding: 20,
+              maxWidth: 520,
+              width: "100%",
+            }}
+          >
+            <FotoCard
+              campaignId={activeCampaign.id}
+              signedUrl={activeChannel?.media_url ?? null}
+              canEdit={canEdit}
+              allowVideo={activeChannel?.platform !== "mail"}
+              onMediaChanged={() => {
+                void load();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
