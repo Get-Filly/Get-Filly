@@ -16,15 +16,22 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
-## 🗓️ 2026-06-24 — Campagne-detail "foto-interface" + kanaalbeheer (live op main)
+## 🗓️ 2026-06-24 — Campagne-detail "foto-interface" + kanaalbeheer + publiceer-flow (live op main)
 
-Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface en kanaalbeheer toegevoegd. Alles live op `main` + Vercel.
+Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbeheer toegevoegd en de publiceer-flow gerepareerd + dichtgetimmerd. Alles live op `main` + Vercel.
 
 - [x] **Campagne-detail = foto-interface** — Aspecten-tabel terug op de detailpagina (foute revert ongedaan); media (foto óf video) via een pop-up uit de cel i.p.v. een losse FotoCard; performance-card + mail-verstuur-card alleen nog bij ingepland/actief (concept eindigt bij "Waarom dit voorstel").
 - [x] **"Maak eigen campagne" multi-channel** — builder kiest één of meer kanalen; `CampaignsService.createBundle` maakt groep + concept per kanaal (`POST /campaigns` met `platforms[]`).
 - [x] **Kanalen toevoegen/verwijderen op een concept** — klikbare "Kanaal in deze campagne"-chips; `POST/DELETE /campaigns/:id/channels`. Losse concept-campagne promoveert automatisch tot bundel; min. 1 kanaal; alleen op concept. +5 Jest-tests (suite nu 99).
 - [x] **Bug: social-campagne activeren faalde** — `publishSocialCampaign` las `social_platforms`/`social_hashtags`; echte kolommen zijn `platforms`/`hashtags` (mig 0001). Geen migratie nodig.
 - [x] **Bug: "Genereer 3 versies" gaf Internal server error op een zelf-aangemaakt concept** — placeholder-inhoud → Filly schrijft nu 3 eerste versies o.b.v. naam + context; parsing afgeschermd zodat onverwachte AI-output nooit meer een generieke 500 geeft (nette melding + log).
+- [x] **Bug: gegenereerde versies verdwenen bij parallelle acties** — race-conditie: elke actie eindigt met `load()`; een trager-binnenkomende oudere refetch overschreef verse data (bv. net-gegenereerde versies bij gelijktijdig foto uploaden). Sequence-guard op `load()`: alleen het laatst-gestarte antwoord zet de state.
+- [x] **Publicatiefout zichtbaar gemaakt** — `published_at`/`publish_error` (kwamen al mee via `findById`) worden nu in de view ontsloten + getoond als banner op de detailpagina. Geen stille mislukking meer; geldt voor zelf-gemaakt én voorgesteld.
+- [x] **Onuitgewerkt concept niet plaatsbaar** — de placeholdertekst telde als ingevulde body → je kon 100% halen + activeren/inplannen met onuitgewerkte tekst. `isUnwrittenBody` telt de placeholder nu als niet-ingevuld (frontend: knoppen blijven disabled); `publishSocialCampaign` weigert 'm ook serverside (alle paden).
+
+**Nog open / context (geen bug):**
+- [ ] **Geplande social-posts timing** — "Direct inplannen"/"Plan in" publiceert via de cron `/api/campaigns/cron/run-scheduled`, op Vercel Hobby **1×/dag (08:00)**. Frequentere publicatie (bv. elke 10 min) vereist **Vercel Pro**. Voor meteen plaatsen = "Activeer nu". *(plan-keuze, geen code)*
+- [ ] Instagram vereist een afbeelding/video (Meta-API-eis); FB/Google Business mogen tekst-only. Al afgedwongen via `PHOTO_REQUIRED` + de blokkade hierboven.
 
 ---
 
