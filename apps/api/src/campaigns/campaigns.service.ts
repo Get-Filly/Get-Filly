@@ -972,6 +972,117 @@ export class CampaignsService {
     return { id: campaignId };
   }
 
+  // 'Eigen campagne'-builder, multi-channel. Maakt één campaign_groups-
+  // anker + per gekozen kanaal een leeg concept onder hetzelfde group_id,
+  // zodat de bundel-detailpagina alle kanalen als rijen toont. Bij precies
+  // één kanaal slaan we de groep over (losse concept-campagne). Retourneert
+  // het id om naartoe te navigeren: het group_id bij meerdere kanalen,
+  // anders het campagne-id (findBundle smart-detect resolved beide).
+  async createBundle(
+    restaurantId: string,
+    input: { name: string; platforms: string[] },
+    userId: string,
+  ): Promise<{ id: string }> {
+    const name = input.name.trim();
+    if (!name) {
+      throw new BadRequestException('Campagne-naam is verplicht.');
+    }
+    // Dedup met behoud van volgorde.
+    const seen = new Set<string>();
+    const platforms = input.platforms.filter((p) => {
+      if (seen.has(p)) return false;
+      seen.add(p);
+      return true;
+    });
+    if (platforms.length === 0) {
+      throw new BadRequestException('Kies minstens één kanaal.');
+    }
+
+    // Eén kanaal → geen bundel, gewoon een losse concept-campagne.
+    if (platforms.length === 1) {
+      return this.createConceptForPlatform(
+        restaurantId,
+        name,
+        platforms[0],
+        userId,
+      );
+    }
+
+    // Meerdere kanalen → groep-anker + één concept per kanaal.
+    const { data: group, error: groupErr } = await this.supabase.client
+      .from('campaign_groups')
+      .insert({ restaurant_id: restaurantId, name, created_by: userId })
+      .select('id')
+      .single();
+    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    const groupId = group.id as string;
+
+    for (const platform of platforms) {
+      await this.createConceptForPlatform(
+        restaurantId,
+        name,
+        platform,
+        userId,
+        groupId,
+      );
+    }
+    return { id: groupId };
+  }
+
+  // Kanaal → campagne-type + (voor social) platform. Maakt een leeg concept
+  // met placeholdertekst, optioneel onder een group_id. Gedeeld door het
+  // single- en multi-channel builder-pad (dezelfde mapping als de POST-
+  // controller, maar hier herbruikbaar voor bundels).
+  private async createConceptForPlatform(
+    restaurantId: string,
+    name: string,
+    platform: string,
+    userId: string,
+    groupId?: string,
+  ): Promise<{ id: string }> {
+    const CHANNEL_LABEL: Record<string, string> = {
+      mail: 'Mail',
+      instagram: 'Instagram',
+      facebook: 'Facebook',
+      tiktok: 'TikTok',
+      whatsapp: 'WhatsApp',
+      google_business: 'Google Business',
+    };
+    let type: CampaignType;
+    let socialPlatforms: string[] | undefined;
+    if (platform === 'mail' || platform === 'whatsapp') {
+      type = platform;
+    } else if (
+      platform === 'instagram' ||
+      platform === 'facebook' ||
+      platform === 'tiktok' ||
+      platform === 'google_business'
+    ) {
+      type = 'social';
+      socialPlatforms = [platform];
+    } else {
+      throw new BadRequestException('Ongeldig kanaal.');
+    }
+    // Bij een bundel suffixen we de sub-campagne met het kanaal zodat ze
+    // onderscheidbaar zijn; de bundel-titel blijft de groep-naam. Een
+    // single-channel concept houdt gewoon de gekozen naam.
+    const campaignName = groupId
+      ? `${name}, ${CHANNEL_LABEL[platform] ?? platform}`
+      : name;
+    return this.create(
+      restaurantId,
+      {
+        name: campaignName,
+        type,
+        subject_line: null,
+        body: 'Deze campagne is nog niet uitgewerkt. Klik op Bewerk om je tekst toe te voegen.',
+        ...(socialPlatforms ? { social_platforms: socialPlatforms } : {}),
+        ...(groupId ? { group_id: groupId } : {}),
+      },
+      userId,
+    );
+  }
+
 
   // Status-transitie. Levenscyclus met twee bewuste "shortcuts":
   //   concept   → ingepland   (Plan in-knop op /campagnes)

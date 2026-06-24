@@ -114,6 +114,10 @@ export class CampaignsController {
     @Body()
     body: {
       name?: string;
+      // 'Eigen campagne'-builder, multi-channel: één of meer kanalen. Bij
+      // meerdere kanalen maakt de service een bundel (groep + concept per
+      // kanaal). Heeft voorrang op het enkelvoudige 'platform' hieronder.
+      platforms?: string[];
       // 'Eigen campagne'-builder: specifiek kanaal (mail/instagram/facebook/
       // tiktok/whatsapp/google_business). Daaruit leiden we type + (voor
       // social) het platform af. Legacy: 'type' wordt nog geaccepteerd.
@@ -126,6 +130,17 @@ export class CampaignsController {
     const name = body.name?.trim();
     if (!name) {
       throw new BadRequestException('Campagne-naam is verplicht.');
+    }
+
+    // Multi-channel builder: één of meer kanalen → bundel (groep + concept
+    // per kanaal). De service handelt dedup + de single-channel-edge-case
+    // (geen groep) zelf af, dus we routeren hier elk niet-leeg platforms[].
+    if (Array.isArray(body.platforms) && body.platforms.length > 0) {
+      return this.campaigns.createBundle(
+        restaurantId,
+        { name, platforms: body.platforms },
+        user.id,
+      );
     }
 
     // Kanaal → campagne-type + social-platform.

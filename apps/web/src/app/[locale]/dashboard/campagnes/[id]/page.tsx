@@ -880,6 +880,52 @@ export default function UnifiedDetailPage() {
         </div>
       )}
 
+      {/* Kanaal in deze campagne: read-only overzicht van de kanalen in
+          deze (bundel-)campagne. Kanalen kies je bij het aanmaken via de
+          "Maak eigen campagne"-builder; toevoegen/verwijderen mid-flight
+          zit (nog) niet in de backend, dus puur tonend. */}
+      {view.channels.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t">{tAspect("channelsLabel")}</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {view.channels.map((c) => {
+                const CHANNEL_LABEL: Record<string, string> = {
+                  mail: "E-mail",
+                  instagram: "Instagram",
+                  facebook: "Facebook",
+                  tiktok: "TikTok",
+                  whatsapp: "WhatsApp",
+                  google_business: "Google Business",
+                };
+                return (
+                  <span
+                    key={c.id}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      background: "var(--accent-soft, #EAF3ED)",
+                      color: "var(--accent, #1F4A2D)",
+                      border: "1px solid var(--border, #E5DFD0)",
+                      fontSize: 13,
+                    }}
+                  >
+                    {CHANNEL_LABEL[c.platform] ?? c.platform}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 24 }} />
 
       {/* Aspecten-tabel: overzicht per kanaal (missende items, datum/tijd,

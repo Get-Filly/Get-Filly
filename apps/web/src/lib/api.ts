@@ -512,6 +512,33 @@ export async function createCampaign(input: {
   return res.json();
 }
 
+// 'Eigen campagne'-builder, multi-channel: maakt voor één of meer kanalen
+// een leeg concept. Bij meerdere kanalen bundelt de backend ze onder één
+// group_id; het teruggegeven id (group_id of campagne-id) is waar de UI
+// naartoe navigeert — de detail-page resolved beide.
+export async function createCampaignBundle(input: {
+  name: string;
+  platforms: Array<
+    | "mail"
+    | "instagram"
+    | "facebook"
+    | "tiktok"
+    | "whatsapp"
+    | "google_business"
+  >;
+}): Promise<{ id: string }> {
+  const res = await authedFetch(`${API_URL}/campaigns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Status-transitie. Backend valideert toegestane mappings
 // (concept→ingepland, ingepland→actief, actief→afgerond, etc).
 // Voor Activeren wordt executed_at automatisch op now() gezet.

@@ -836,6 +836,7 @@
     "ownCampaignCreate": "Create",
     "ownCampaignCancel": "Cancel",
     "ownCampaignNameRequired": "Give your campaign a name.",
+    "ownCampaignChannelRequired": "Pick at least one channel.",
     "ownCampaignError": "Creating failed. Please try again.",
     "filterByChannel": "Filter by {channel}",
     "clearFilter": "Clear filter",

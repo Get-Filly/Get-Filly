@@ -836,6 +836,7 @@
     "ownCampaignCreate": "Aanmaken",
     "ownCampaignCancel": "Annuleren",
     "ownCampaignNameRequired": "Geef je campagne een naam.",
+    "ownCampaignChannelRequired": "Kies minstens één kanaal.",
     "ownCampaignError": "Aanmaken mislukt. Probeer het opnieuw.",
     "filterByChannel": "Filter op {channel}",
     "clearFilter": "Filter wissen",

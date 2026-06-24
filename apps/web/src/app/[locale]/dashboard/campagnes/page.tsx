@@ -6,7 +6,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import {
   approveBundleSuggestion,
   approveSuggestion,
-  createCampaign,
+  createCampaignBundle,
   deleteCampaign,
   fetchCampaigns,
   fetchSuggestions,
@@ -448,9 +448,18 @@ export default function CampagnesPage() {
   // 'Eigen campagne'-builder: modal met naam + kanaal → leeg concept → editor.
   const [builderOpen, setBuilderOpen] = useState(false);
   const [builderName, setBuilderName] = useState("");
-  const [builderChannel, setBuilderChannel] = useState<
-    "mail" | "instagram" | "facebook" | "tiktok" | "whatsapp" | "google_business"
-  >("instagram");
+  // Multi-channel builder: één of meer kanalen tegelijk. Bij >1 maakt de
+  // backend een bundel (groep + concept per kanaal).
+  const [builderChannels, setBuilderChannels] = useState<
+    Array<
+      | "mail"
+      | "instagram"
+      | "facebook"
+      | "tiktok"
+      | "whatsapp"
+      | "google_business"
+    >
+  >(["instagram"]);
   const [creatingOwn, setCreatingOwn] = useState(false);
   const [builderError, setBuilderError] = useState<string | null>(null);
   // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
@@ -516,13 +525,17 @@ export default function CampagnesPage() {
       setBuilderError(t("ownCampaignNameRequired"));
       return;
     }
+    if (builderChannels.length === 0) {
+      setBuilderError(t("ownCampaignChannelRequired"));
+      return;
+    }
     if (creatingOwn) return;
     setCreatingOwn(true);
     setBuilderError(null);
     try {
-      const { id } = await createCampaign({
+      const { id } = await createCampaignBundle({
         name,
-        platform: builderChannel,
+        platforms: builderChannels,
       });
       setBuilderOpen(false);
       router.push(`/dashboard/campagnes/${id}`);
@@ -909,7 +922,7 @@ export default function CampagnesPage() {
               variant="primary"
               onClick={() => {
                 setBuilderName("");
-                setBuilderChannel("instagram");
+                setBuilderChannels(["instagram"]);
                 setBuilderError(null);
                 setBuilderOpen(true);
               }}
@@ -1090,12 +1103,18 @@ export default function CampagnesPage() {
                   { key: "google_business", label: "Google Business" },
                 ] as const
               ).map((c) => {
-                const active = builderChannel === c.key;
+                const active = builderChannels.includes(c.key);
                 return (
                   <button
                     key={c.key}
                     type="button"
-                    onClick={() => setBuilderChannel(c.key)}
+                    onClick={() =>
+                      setBuilderChannels((prev) =>
+                        prev.includes(c.key)
+                          ? prev.filter((p) => p !== c.key)
+                          : [...prev, c.key],
+                      )
+                    }
                     style={{
                       padding: "8px 14px",
                       borderRadius: 999,
