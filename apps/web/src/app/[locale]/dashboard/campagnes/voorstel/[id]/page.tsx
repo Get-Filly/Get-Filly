@@ -931,9 +931,9 @@ export default function VoorstelDetailPage() {
                     style={{
                       padding: "10px 14px",
                       borderBottom: "1px solid var(--border, #E5DFD0)",
-                      fontWeight: 500,
-                      fontSize: 12,
-                      color: "var(--ts)",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      color: "var(--text)",
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -1034,7 +1034,7 @@ export default function VoorstelDetailPage() {
                     </td>
                     <td style={tdStyle}>
                       {missNonDate.length === 0 ? (
-                        <span style={{ color: "#15703A", fontSize: 12 }}>
+                        <span style={{ color: "#15703A", fontSize: 13 }}>
                           ✓ {t("rowComplete")}
                         </span>
                       ) : (
@@ -1143,7 +1143,7 @@ export default function VoorstelDetailPage() {
                     </td>
                     <td style={tdStyle}>
                       {!chSupportsMedia ? (
-                        <span style={{ color: "var(--ts)", fontSize: 12 }}>
+                        <span style={{ color: "var(--text)", fontSize: 13 }}>
                           {t("noPhotoMail")}
                         </span>
                       ) : chMedia ? (
@@ -1203,8 +1203,8 @@ export default function VoorstelDetailPage() {
                             border: "1px dashed var(--border, #E5DFD0)",
                             borderRadius: 8,
                             background: "transparent",
-                            color: "var(--ts)",
-                            fontSize: 11,
+                            color: "var(--text)",
+                            fontSize: 13,
                             cursor: isPending ? "pointer" : "default",
                           }}
                         >
