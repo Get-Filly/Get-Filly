@@ -697,7 +697,7 @@ export default function VoorstelDetailPage() {
         >
           <span style={voorstelChipStyle}>{t("proposalChip")}</span>
           {!isPending && (
-            <span style={{ color: "var(--tl)", fontSize: 12 }}>
+            <span style={{ color: "var(--ts)", fontSize: 12 }}>
               {suggestion.status === "approved"
                 ? t("status.approved")
                 : suggestion.status === "rejected"
@@ -790,7 +790,7 @@ export default function VoorstelDetailPage() {
             <div
               style={{
                 fontSize: 12,
-                color: "var(--tl)",
+                color: "var(--ts)",
                 fontVariantNumeric: "tabular-nums",
                 minWidth: 110,
                 textAlign: "right",
@@ -933,7 +933,7 @@ export default function VoorstelDetailPage() {
                       borderBottom: "1px solid var(--border, #E5DFD0)",
                       fontWeight: 500,
                       fontSize: 12,
-                      color: "var(--tl)",
+                      color: "var(--ts)",
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -1124,7 +1124,7 @@ export default function VoorstelDetailPage() {
                         >
                           {formatDutchDateTime(ch.scheduled_for, localeTag)}{" "}
                           {isPending && (
-                            <span style={{ color: "var(--tl)" }}>✎</span>
+                            <span style={{ color: "var(--ts)" }}>✎</span>
                           )}
                         </button>
                       ) : (
@@ -1143,7 +1143,7 @@ export default function VoorstelDetailPage() {
                     </td>
                     <td style={tdStyle}>
                       {!chSupportsMedia ? (
-                        <span style={{ color: "var(--tl)", fontSize: 12 }}>
+                        <span style={{ color: "var(--ts)", fontSize: 12 }}>
                           {t("noPhotoMail")}
                         </span>
                       ) : chMedia ? (
@@ -1203,7 +1203,7 @@ export default function VoorstelDetailPage() {
                             border: "1px dashed var(--border, #E5DFD0)",
                             borderRadius: 8,
                             background: "transparent",
-                            color: "var(--tl)",
+                            color: "var(--ts)",
                             fontSize: 11,
                             cursor: isPending ? "pointer" : "default",
                           }}
@@ -1245,7 +1245,7 @@ export default function VoorstelDetailPage() {
                             sv.body
                           )
                         ) : (
-                          <em style={{ color: "var(--tl)" }}>
+                          <em style={{ color: "var(--ts)" }}>
                             {t("noContentYet")}
                           </em>
                         )}

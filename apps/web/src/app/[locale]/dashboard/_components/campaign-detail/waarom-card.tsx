@@ -27,7 +27,7 @@ export function WaaromCard({ reasoning }: Props) {
         <div
           style={{
             fontSize: 14,
-            color: "var(--ts)",
+            color: "var(--text)",
             lineHeight: 1.6,
           }}
         >
