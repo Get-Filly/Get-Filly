@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import {
   approveBundleSuggestion,
   approveSuggestion,
+  createCampaign,
   deleteCampaign,
   fetchCampaigns,
   fetchSuggestions,
@@ -444,6 +445,14 @@ export default function CampagnesPage() {
   const [loading, setLoading] = useState(true);
   // Eenmalige opruiming van oude pending-voorstellen → Concept (zie knop).
   const [converting, setConverting] = useState(false);
+  // 'Eigen campagne'-builder: modal met naam + kanaal → leeg concept → editor.
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [builderName, setBuilderName] = useState("");
+  const [builderChannel, setBuilderChannel] = useState<
+    "mail" | "instagram" | "facebook" | "tiktok" | "whatsapp" | "google_business"
+  >("instagram");
+  const [creatingOwn, setCreatingOwn] = useState(false);
+  const [builderError, setBuilderError] = useState<string | null>(null);
   // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
   // campaigns als bundles (group_id) een uniek busy-veld krijgen.
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -497,6 +506,32 @@ export default function CampagnesPage() {
     }
     await refetch();
     setConverting(false);
+  };
+
+  // 'Eigen campagne' aanmaken: leeg concept voor het gekozen kanaal, dan door
+  // naar de concept-editor (de Aspecten-tabel) om alles zelf in te vullen.
+  const createOwnCampaign = async () => {
+    const name = builderName.trim();
+    if (!name) {
+      setBuilderError(t("ownCampaignNameRequired"));
+      return;
+    }
+    if (creatingOwn) return;
+    setCreatingOwn(true);
+    setBuilderError(null);
+    try {
+      const { id } = await createCampaign({
+        name,
+        platform: builderChannel,
+      });
+      setBuilderOpen(false);
+      router.push(`/dashboard/campagnes/${id}`);
+    } catch (e) {
+      setBuilderError(
+        e instanceof Error ? e.message : t("ownCampaignError"),
+      );
+      setCreatingOwn(false);
+    }
   };
 
   useEffect(() => {
@@ -870,6 +905,17 @@ export default function CampagnesPage() {
                 </button>
               )}
             </div>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setBuilderName("");
+                setBuilderChannel("instagram");
+                setBuilderError(null);
+                setBuilderOpen(true);
+              }}
+            >
+              + {t("ownCampaign")}
+            </Button>
             <Link
               href="/dashboard/campagnes/history"
               style={{ textDecoration: "none" }}
@@ -952,6 +998,167 @@ export default function CampagnesPage() {
         })}
       </div>
 
+      {/* 'Eigen campagne'-builder: naam + kanaal → leeg concept → editor. */}
+      {builderOpen && (
+        <div
+          onClick={() => {
+            if (!creatingOwn) setBuilderOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(14,43,23,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--white, #FFFFFF)",
+              borderRadius: 12,
+              padding: 24,
+              maxWidth: 460,
+              width: "100%",
+            }}
+          >
+            <h3 style={{ margin: "0 0 4px", fontSize: 18 }}>
+              {t("ownCampaignTitle")}
+            </h3>
+            <p
+              style={{
+                margin: "0 0 16px",
+                fontSize: 13,
+                color: "var(--ts)",
+                lineHeight: 1.5,
+              }}
+            >
+              {t("ownCampaignHint")}
+            </p>
+
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                marginBottom: 6,
+              }}
+            >
+              {t("ownCampaignNameLabel")}
+            </label>
+            <input
+              type="text"
+              value={builderName}
+              onChange={(e) => setBuilderName(e.target.value)}
+              placeholder={t("ownCampaignNamePlaceholder")}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") createOwnCampaign();
+              }}
+              style={{
+                width: "100%",
+                padding: "9px 11px",
+                border: "1px solid var(--border, #E5DFD0)",
+                borderRadius: 8,
+                fontSize: 14,
+                fontFamily: "inherit",
+                marginBottom: 16,
+              }}
+            />
+
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                marginBottom: 6,
+              }}
+            >
+              {t("ownCampaignChannelLabel")}
+            </label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(
+                [
+                  { key: "mail", label: "Mail" },
+                  { key: "instagram", label: "Instagram" },
+                  { key: "facebook", label: "Facebook" },
+                  { key: "tiktok", label: "TikTok" },
+                  { key: "whatsapp", label: "WhatsApp" },
+                  { key: "google_business", label: "Google Business" },
+                ] as const
+              ).map((c) => {
+                const active = builderChannel === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setBuilderChannel(c.key)}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      border: active
+                        ? "2px solid var(--accent, #1F4A2D)"
+                        : "1px solid var(--border, #E5DFD0)",
+                      background: active
+                        ? "var(--accent, #1F4A2D)"
+                        : "var(--white, #FFFFFF)",
+                      color: active ? "#fff" : "var(--text)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {builderError && (
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: "8px 12px",
+                  background: "var(--red-soft, #FEE2E2)",
+                  color: "var(--red, #B91C1C)",
+                  borderRadius: 6,
+                  fontSize: 13,
+                }}
+              >
+                {builderError}
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+                marginTop: 20,
+              }}
+            >
+              <Button
+                variant="secondary"
+                onClick={() => setBuilderOpen(false)}
+                disabled={creatingOwn}
+              >
+                {t("ownCampaignCancel")}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={createOwnCampaign}
+                loading={creatingOwn}
+                disabled={creatingOwn}
+              >
+                {t("ownCampaignCreate")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

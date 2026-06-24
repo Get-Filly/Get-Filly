@@ -114,34 +114,65 @@ export class CampaignsController {
     @Body()
     body: {
       name?: string;
+      // 'Eigen campagne'-builder: specifiek kanaal (mail/instagram/facebook/
+      // tiktok/whatsapp/google_business). Daaruit leiden we type + (voor
+      // social) het platform af. Legacy: 'type' wordt nog geaccepteerd.
+      platform?: string;
       type?: string;
       subject_line?: string | null;
       body?: string;
     },
   ) {
     const name = body.name?.trim();
-    const content = body.body?.trim();
-    const type = body.type;
-
     if (!name) {
       throw new BadRequestException('Campagne-naam is verplicht.');
     }
-    if (!content) {
-      throw new BadRequestException('Campagne-inhoud is verplicht.');
-    }
-    if (type !== 'mail' && type !== 'social' && type !== 'whatsapp') {
+
+    // Kanaal → campagne-type + social-platform.
+    let type: CampaignType;
+    let socialPlatforms: string[] | undefined;
+    const platform = body.platform;
+    if (platform) {
+      if (platform === 'mail' || platform === 'whatsapp') {
+        type = platform;
+      } else if (
+        platform === 'instagram' ||
+        platform === 'facebook' ||
+        platform === 'tiktok' ||
+        platform === 'google_business'
+      ) {
+        type = 'social';
+        socialPlatforms = [platform];
+      } else {
+        throw new BadRequestException('Ongeldig kanaal.');
+      }
+    } else if (
+      body.type === 'mail' ||
+      body.type === 'social' ||
+      body.type === 'whatsapp'
+    ) {
+      type = body.type;
+    } else {
       throw new BadRequestException(
-        "Ongeldig campagnetype. Gebruik 'mail', 'social' of 'whatsapp'.",
+        'Geef een geldig kanaal op (mail/instagram/facebook/tiktok/whatsapp/google_business).',
       );
     }
+
+    // Lege content is toegestaan voor de builder: we zetten een placeholder
+    // zodat de eigenaar in de editor meteen ziet dat 'ie de tekst nog moet
+    // schrijven (consistent met de approve-flow voor lege voorstellen).
+    const content =
+      body.body?.trim() ||
+      'Deze campagne is nog niet uitgewerkt. Klik op Bewerk om je tekst toe te voegen.';
 
     return this.campaigns.create(
       restaurantId,
       {
         name,
-        type: type as CampaignType,
+        type,
         subject_line: body.subject_line ?? null,
         body: content,
+        ...(socialPlatforms ? { social_platforms: socialPlatforms } : {}),
       },
       user.id,
     );
