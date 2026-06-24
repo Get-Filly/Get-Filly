@@ -87,6 +87,18 @@ export function toBundleChannel(
   return null;
 }
 
+// Een vers via "Maak eigen campagne" aangemaakt concept houdt deze
+// placeholdertekst tot de eigenaar inhoud schrijft of genereert. Die telt
+// NIET als ingevulde body — anders zou je een nog-niet-uitgewerkte campagne
+// kunnen activeren/inplannen (en zou Filly's placeholder naar Meta gaan).
+// Prefix-match, consistent met de backend (createConceptForPlatform).
+export function isUnwrittenBody(body: string | undefined | null): boolean {
+  const b = (body ?? "").trim();
+  return (
+    b.length === 0 || b.startsWith("Deze campagne is nog niet uitgewerkt")
+  );
+}
+
 // Kernfunctie: gegeven een kanaal-config, retourneer welke velden
 // nog niet ingevuld zijn. Volgorde van push() bepaalt de volgorde
 // waarin de fields in de UI verschijnen (date → body → subject → photo).
@@ -100,7 +112,7 @@ export function getChannelMissing(
 ): MissingField[] {
   const missing: MissingField[] = [];
   if (!scheduled) missing.push("date");
-  if (!body || !body.trim()) missing.push("body");
+  if (isUnwrittenBody(body)) missing.push("body");
   if (platform === "mail" && (!subject || !subject.trim())) {
     missing.push("subject");
   }
@@ -129,7 +141,7 @@ export function getChannelChecklist(
 ): ChecklistItem[] {
   const items: ChecklistItem[] = [];
   if (!scheduled) items.push({ field: "date", required: true });
-  if (!body || !body.trim()) items.push({ field: "body", required: true });
+  if (isUnwrittenBody(body)) items.push({ field: "body", required: true });
   if (platform === "mail" && (!subject || !subject.trim())) {
     items.push({ field: "subject", required: true });
   }

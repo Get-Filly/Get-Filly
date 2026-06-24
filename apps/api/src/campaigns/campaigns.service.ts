@@ -281,6 +281,15 @@ export class CampaignsService {
     if (!message) {
       throw new BadRequestException('Deze social-campagne heeft nog geen tekst.');
     }
+    // Defense-in-depth: een via "Maak eigen campagne" aangemaakt concept houdt
+    // de placeholdertekst tot de eigenaar inhoud schrijft/genereert. Nooit de
+    // placeholder publiceren — de frontend blokkeert dit al, maar elke
+    // publish-pad (detail, bord, cron) moet hier langs.
+    if (caption.startsWith('Deze campagne is nog niet uitgewerkt')) {
+      throw new BadRequestException(
+        'Deze campagne is nog niet uitgewerkt. Schrijf of genereer eerst je tekst.',
+      );
+    }
 
     const paths = Array.isArray(content.media_urls)
       ? (content.media_urls as string[])
