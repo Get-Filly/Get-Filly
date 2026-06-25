@@ -16,6 +16,21 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-06-25 — Filly-chat / geleide-flow opgeschoond (live op main)
+
+De geleide campagne-flow in de dashboard-chat strakker getrokken. Alles live op `main` + Vercel.
+
+- [x] **Geen TikTok-voorselectie** — kanaal-stap vinkte alle gekoppelde kanalen voor-aan (TikTok dook ongevraagd op). Nu alleen wat de eigenaar expliciet noemt; anders leeg (eigenaar kiest zelf).
+- [x] **Spoor in chat-historie na genereren** — de flow liet niets na (resultaat alleen in component-state). Nu een Filly-bericht met een **klikbare kaart** (titel + "Bekijken & aanpassen →" → de concept-campagne). Subtiel: kleine titel, zacht groen tekstlinkje, geen kanaal-emoji. `POST /chat/conversations/:id/note` (geen LLM) + `CampaignCreatedCard`.
+- [x] **Geen dubbele "done"-kaart** — de oude inline done-kaart ("Klaar, ik heb een voorstel…") is weg; de chat-kaart is het enige resultaat.
+- [x] **Emoji achter "Klaar" weg** (`done.title`).
+- [x] **Rust-stap na genereren** — geen stappen-menu meer opdringen; "Wil je nog een campagne maken? [Ja]" (`step:"idle"`, bewaard in active_action). Typen kan altijd. **Smart**: de net-gebruikte dag(en) worden uit de dag-keuze gefilterd (usedDates in de chat-parent → overleeft de flow-instantie-wissel).
+- [x] **Chats > 7 dagen automatisch opruimen** — `GET /chat/cron/cleanup` (dagelijks 03:00, admin-client). Filly start elke kalenderdag een vers gesprek; learnings leven los in `restaurant_chat_memory`.
+
+**Gotcha (belangrijk voor de chat):** de geleide flow leeft náást het chat-model en wisselt van render-plek (on-ramp ↔ active) zodra het eerste bericht verschijnt → race-condities op active_action/state. Opgelost met een idle-sync-effect + usedDates in de parent. Grotere refactor (flow-stappen als echte chat-gebeurtenissen) staat nog open.
+
+---
+
 ## 🗓️ 2026-06-24 — Campagne-detail "foto-interface" + kanaalbeheer + publiceer-flow (live op main)
 
 Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbeheer toegevoegd en de publiceer-flow gerepareerd + dichtgetimmerd. Alles live op `main` + Vercel.
