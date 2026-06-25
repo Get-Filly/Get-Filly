@@ -372,7 +372,23 @@ export class AiService {
       this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
     });
 
-    return toolBlock.input as T;
+    // Hardening: Anthropic dwingt het input-schema NIET af. Een afgekapte
+    // (max_tokens) of misvormde tool-call kan null / een primitief / een array
+    // teruggeven i.p.v. het verwachte object — dat zou downstream een
+    // TypeError of corrupte DB-insert geven. Weiger zulke output met een nette
+    // fout. Een leeg object {} laten we bewust door: callers die optionele
+    // velden verwachten (of zelf een retry/validatie doen) handelen dat al af.
+    // (Volledige per-caller zod-validatie blijft een grotere vervolgstap.)
+    const input = toolBlock.input;
+    if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+      this.logger.error(
+        `Ongeldige tool-output (geen object) (feature=${opts.meta.feature}, stop=${response.stop_reason}): ${JSON.stringify(input)}`,
+      );
+      throw new InternalServerErrorException(
+        'Filly gaf een onvolledig antwoord terug. Probeer het nog eens.',
+      );
+    }
+    return input as T;
   }
 
   // Vision/document-versie van generateStructured. Combineert het
@@ -471,7 +487,23 @@ export class AiService {
       this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
     });
 
-    return toolBlock.input as T;
+    // Hardening: Anthropic dwingt het input-schema NIET af. Een afgekapte
+    // (max_tokens) of misvormde tool-call kan null / een primitief / een array
+    // teruggeven i.p.v. het verwachte object — dat zou downstream een
+    // TypeError of corrupte DB-insert geven. Weiger zulke output met een nette
+    // fout. Een leeg object {} laten we bewust door: callers die optionele
+    // velden verwachten (of zelf een retry/validatie doen) handelen dat al af.
+    // (Volledige per-caller zod-validatie blijft een grotere vervolgstap.)
+    const input = toolBlock.input;
+    if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+      this.logger.error(
+        `Ongeldige tool-output (geen object) (feature=${opts.meta.feature}, stop=${response.stop_reason}): ${JSON.stringify(input)}`,
+      );
+      throw new InternalServerErrorException(
+        'Filly gaf een onvolledig antwoord terug. Probeer het nog eens.',
+      );
+    }
+    return input as T;
   }
 
   // Insert in ai_usage. Gaat via service_role (SupabaseService gebruikt
