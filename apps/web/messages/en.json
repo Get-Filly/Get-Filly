@@ -3037,7 +3037,7 @@
       "text": "Filly is creating your suggestion…"
     },
     "done": {
-      "title": "Done! ✨",
+      "title": "Done",
       "bodyPlural": "I've prepared {count} suggestions for you.",
       "bodySingle": "I've prepared a suggestion for you.",
       "anotherAction": "＋ Another action",

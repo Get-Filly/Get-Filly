@@ -3037,7 +3037,7 @@
       "text": "Filly maakt je voorstel…"
     },
     "done": {
-      "title": "Klaar! ✨",
+      "title": "Klaar",
       "bodyPlural": "Ik heb {count} voorstellen voor je klaargezet.",
       "bodySingle": "Ik heb een voorstel voor je klaargezet.",
       "anotherAction": "＋ Nog een actie",

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ChatController } from './chat.controller';
+import { ChatCronController } from './chat-cron.controller';
 import { ChatService } from './chat.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { SupabaseModule } from '../supabase/supabase.module';
@@ -23,7 +24,7 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 // - Guards: standaard auth + tenant-isolation + AI-rate-limit
 @Module({
   imports: [SupabaseModule, MeModule, AiModule, SuggestionsModule, CampaignsModule],
-  controllers: [ChatController],
+  controllers: [ChatController, ChatCronController],
   providers: [
     ChatService,
     ChatMemoryService,
