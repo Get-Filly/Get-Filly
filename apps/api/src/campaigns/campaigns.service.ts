@@ -318,6 +318,19 @@ export class CampaignsService {
       const metaStatus = await this.meta.status(restaurantId, useAdmin);
       if (!metaStatus.connected || !metaStatus.page) {
         if (!toTikTok) {
+          // User-flow ("Activeer nu"): NIET stil overslaan. Anders flipt de
+          // status naar 'actief' terwijl er niets op FB/IG verschijnt — en
+          // zonder melding. Gooi een duidelijke fout zodat de eigenaar de
+          // koppeling fixt en opnieuw kan activeren.
+          // De cron (useAdmin) slaat wél stil over + flipt door, zodat 'ie
+          // niet elke run blijft proberen op een restaurant zonder koppeling.
+          if (!useAdmin) {
+            throw new BadRequestException(
+              metaStatus.connected
+                ? 'Geen Facebook-pagina gekozen. Kies er een onder Account, Koppelingen voordat je publiceert.'
+                : 'Meta is niet gekoppeld. Verbind Facebook of Instagram onder Account, Koppelingen voordat je publiceert.',
+            );
+          }
           return {
             published: false,
             skipped: true,
