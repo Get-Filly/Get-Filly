@@ -98,15 +98,27 @@ export function KpiRow() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetchKpis()
-      .then(setKpis)
-      .catch((e: Error) => setError(e.message));
+      .then((k) => {
+        if (!cancelled) setKpis(k);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setError(e.message);
+      });
     // Occupancy van de huidige maand ophalen — zelfde bron als de
     // kalender — zodat "Bezetting vandaag" identiek is aan de today-cel.
     const now = new Date();
     fetchOccupancy(now.getFullYear(), now.getMonth())
-      .then(setOccupancy)
-      .catch(() => setOccupancy([]));
+      .then((o) => {
+        if (!cancelled) setOccupancy(o);
+      })
+      .catch(() => {
+        if (!cancelled) setOccupancy([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Bij een fout (bv. nog geen reserveringen-data, geen restaurant-

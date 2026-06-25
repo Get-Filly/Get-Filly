@@ -1727,6 +1727,7 @@
     "saving": "Saving…",
     "sendReply": "Send reply",
     "cancel": "Cancel",
+    "discardConfirm": "You have an unsent reply. Close and discard it?",
     "trendRatingLabel": "vs. earlier reviews",
     "trendVolumeLabel": "{count, plural, one {new review this month} other {new reviews this month}}",
     "errors": {

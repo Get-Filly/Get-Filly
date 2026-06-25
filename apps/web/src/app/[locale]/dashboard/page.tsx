@@ -26,10 +26,20 @@ export default function DashboardPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
 
   // Kalender-bron: maand-bij-maand zoals de eigenaar bladert.
+  // Sequence-guard: snel bladeren mag geen trage oude maand-response
+  // over een nieuwere laten vallen.
   useEffect(() => {
+    let cancelled = false;
     fetchOccupancy(viewYear, viewMonth)
-      .then(setOccupancy)
-      .catch(() => setOccupancy([]));
+      .then((o) => {
+        if (!cancelled) setOccupancy(o);
+      })
+      .catch(() => {
+        if (!cancelled) setOccupancy([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [viewYear, viewMonth]);
 
   // Restaurant-config voor calendar-render. Eénmalig bij mount.

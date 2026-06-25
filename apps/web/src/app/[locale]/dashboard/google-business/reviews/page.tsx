@@ -115,6 +115,23 @@ function ReviewsPageInner() {
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
   const [replyTo, setReplyTo] = useState<Review | null>(null);
   const [replyText, setReplyText] = useState("");
+  // Spiegel van replyText in een ref zodat closeReply (o.a. de Escape-
+  // listener met deps [replyTo]) altijd de actuele waarde leest.
+  const replyTextRef = useRef("");
+  useEffect(() => {
+    replyTextRef.current = replyText;
+  }, [replyText]);
+
+  // De modal sluiten met bescherming tegen werk-verlies: staat er nog
+  // ongepubliceerde tekst, dan eerst bevestigen (anders ben je je
+  // getypte/gekozen antwoord kwijt bij backdrop/×/Escape/Annuleren).
+  const closeReply = () => {
+    if (replyTextRef.current.trim() && !window.confirm(t("discardConfirm"))) {
+      return;
+    }
+    setReplyTo(null);
+    setReplyText("");
+  };
   // Filly-varianten + regen-count PER REVIEW. State leeft op page-
   // niveau zodat een per-ongeluk-weggeklikte modal de cache niet
   // weggooit; we cachen óók server-side in reviews.filly_variants
@@ -156,7 +173,7 @@ function ReviewsPageInner() {
   useEffect(() => {
     if (!replyTo) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setReplyTo(null);
+      if (e.key === "Escape") closeReply();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -639,14 +656,14 @@ function ReviewsPageInner() {
       {replyTo && (
         <div
           className="sg-modal-overlay"
-          onClick={() => setReplyTo(null)}
+          onClick={closeReply}
           role="dialog"
           aria-modal="true"
         >
           <div className="sg-modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="sg-modal-close"
-              onClick={() => setReplyTo(null)}
+              onClick={closeReply}
               aria-label={t("close")}
             >
               ×
@@ -814,7 +831,7 @@ function ReviewsPageInner() {
               </button>
               <button
                 className="sg-btn"
-                onClick={() => setReplyTo(null)}
+                onClick={closeReply}
                 disabled={saving}
               >
                 {t("cancel")}

@@ -520,27 +520,60 @@ export default function UnifiedDetailPage() {
 
         setActionError(null);
         setChangingStatus(true);
+        // Per kanaal: send/publish én direct daarna de status flippen, zodat
+        // een deelfout (bv. één social zonder Meta-pagina) de al-geslaagde
+        // kanalen NIET op concept laat hangen. Vroeger gebeurde de status-
+        // flip pas helemaal aan het eind via één Promise.all; faalde een
+        // publish daarvoor, dan was de mail al verstuurd maar bleef de hele
+        // bundel concept (en werd de mail bij retry overgeslagen → stille
+        // 'actief zonder iets geplaatst'-toestand).
+        const errors: string[] = [];
+        const handledIds = new Set<string>();
+        const activate = async (channelId: string) => {
+          await updateCampaignStatus(channelId, next);
+        };
         try {
-          // Stap 1: mail-sends sequentieel (Resend rate-limits + duidelijke
-          // fout-attributie als één campagne in een bundle struikelt).
+          // Mail: versturen (sequentieel i.v.m. Resend-rate-limits) + bij
+          // succes meteen activeren. sent_count>0 zat al niet in deze set.
           for (const c of mailChannelsToSend) {
-            await sendCampaign(c.id, "all_opted_in");
+            handledIds.add(c.id);
+            try {
+              await sendCampaign(c.id, "all_opted_in");
+              await activate(c.id);
+            } catch (e) {
+              errors.push(
+                e instanceof Error ? e.message : t("errors.activateFailed"),
+              );
+            }
           }
-          // Stap 1b: social-posts publiceren naar FB/IG. Faalt dit (geen
-          // Meta-koppeling / geen pagina gekozen / Meta-fout), dan gooit
-          // publishCampaign en blijft de status op concept/ingepland staan.
+          // Social: publiceren naar FB/IG (idempotent) + bij succes activeren.
           for (const c of socialChannelsToPublish) {
-            await publishCampaign(c.id);
+            handledIds.add(c.id);
+            try {
+              await publishCampaign(c.id);
+              await activate(c.id);
+            } catch (e) {
+              errors.push(
+                e instanceof Error ? e.message : t("errors.activateFailed"),
+              );
+            }
           }
-          // Stap 2: status-flip op alle channels (mail + social).
-          await Promise.all(
-            view.channels.map((c) => updateCampaignStatus(c.id, next)),
-          );
+          // Overige kanalen (al-verstuurde mail, niet-publiceerbare types):
+          // alleen de status flippen.
+          for (const c of view.channels) {
+            if (handledIds.has(c.id)) continue;
+            try {
+              await activate(c.id);
+            } catch (e) {
+              errors.push(
+                e instanceof Error ? e.message : t("errors.activateFailed"),
+              );
+            }
+          }
           await load();
-        } catch (e) {
-          setActionError(
-            e instanceof Error ? e.message : t("errors.activateFailed"),
-          );
+          if (errors.length > 0) {
+            setActionError(errors.join(" "));
+          }
         } finally {
           setChangingStatus(false);
         }
