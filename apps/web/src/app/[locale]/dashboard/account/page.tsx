@@ -17,7 +17,6 @@ import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { MailDomainSection } from "../_components/mail-domain-section";
 import { RestaurantMediaSection } from "../_components/restaurant-media-section";
 import { ConnectionsSection } from "../_components/account-connections";
-import { MetaPublishPanel } from "../_components/meta-publish-panel";
 import { GoogleConnectedPanel } from "../_components/google-connected-panel";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -1430,7 +1429,6 @@ function AccountPageInner() {
       {activeTab === "koppelingen" && (
         <>
           <ConnectionsSection />
-          <MetaPublishPanel />
           <GoogleConnectedPanel />
         </>
       )}

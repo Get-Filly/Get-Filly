@@ -3164,21 +3164,12 @@
     "filterVideos": "Videos"
   },
   "dash__components_meta_publish_panel": {
-    "notConnectedHint": "Publishing to Facebook/Instagram will appear here as soon as you click <strong>Connect</strong> above and the connection succeeds.",
-    "title": "Publish to Facebook / Instagram",
-    "subtitle": "Choose your page and post a test message. Instagram requires an image URL.",
+    "choosePage": "Page to publish to",
     "noPages": "No Facebook pages found under this account. Make sure you are an admin of at least one page.",
     "savePage": "Save page",
     "saving": "Saving…",
-    "messagePlaceholder": "Message text…",
-    "imageUrlPlaceholder": "Image URL (optional; required for Instagram)",
-    "publish": "Post",
-    "publishing": "Posting…",
     "pageSaved": "✓ Page saved.",
-    "pageSaveFailed": "Failed to save page.",
-    "publishedTo": "✓ Posted to {channels}.",
-    "noChannelSelected": "No channel selected.",
-    "publishFailed": "Failed to publish."
+    "pageSaveFailed": "Failed to save page."
   },
   "dash__components_onboarding_checklist": {
     "title": "Put Filly to work",

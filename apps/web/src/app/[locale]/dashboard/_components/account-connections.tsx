@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
@@ -13,6 +13,7 @@ import {
   tiktokDisconnect,
 } from "@/lib/api";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { MetaPageSelector } from "./meta-publish-panel";
 
 // ============================================================
 // AccountConnections, koppelingen-tab
@@ -323,14 +324,18 @@ export function ConnectionsSection() {
               }}
             >
               {group.map((i, idx) => (
-                <IntegrationRow
-                  key={i.key}
-                  integration={i}
-                  isLast={idx === group.length - 1}
-                  activeRestaurantId={active?.id ?? null}
-                  connected={i.provider ? status[i.provider] : null}
-                  onDisconnect={handleDisconnect}
-                />
+                <Fragment key={i.key}>
+                  <IntegrationRow
+                    integration={i}
+                    isLast={idx === group.length - 1}
+                    activeRestaurantId={active?.id ?? null}
+                    connected={i.provider ? status[i.provider] : null}
+                    onDisconnect={handleDisconnect}
+                  />
+                  {/* Pagina-keuze klapt uit direct onder de Meta-rij; de
+                      selector verbergt zich zelf als Meta niet verbonden is. */}
+                  {i.key === "meta" && <MetaPageSelector />}
+                </Fragment>
               ))}
             </div>
           </div>
