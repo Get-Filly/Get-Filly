@@ -3164,21 +3164,12 @@
     "filterVideos": "Video's"
   },
   "dash__components_meta_publish_panel": {
-    "notConnectedHint": "Publiceren naar Facebook/Instagram verschijnt hier zodra je hierboven op <strong>Verbind</strong> hebt geklikt en de koppeling is gelukt.",
-    "title": "Publiceren naar Facebook / Instagram",
-    "subtitle": "Kies je pagina en plaats een testbericht. Instagram vereist een afbeelding-URL.",
+    "choosePage": "Pagina om naar te publiceren",
     "noPages": "Geen Facebook-pagina's gevonden onder dit account. Zorg dat je beheerder bent van minstens één pagina.",
     "savePage": "Pagina opslaan",
     "saving": "Opslaan…",
-    "messagePlaceholder": "Berichttekst…",
-    "imageUrlPlaceholder": "Afbeelding-URL (optioneel; verplicht voor Instagram)",
-    "publish": "Plaats",
-    "publishing": "Plaatsen…",
     "pageSaved": "✓ Pagina opgeslagen.",
-    "pageSaveFailed": "Pagina opslaan mislukt.",
-    "publishedTo": "✓ Geplaatst op {channels}.",
-    "noChannelSelected": "Geen kanaal geselecteerd.",
-    "publishFailed": "Publiceren mislukt."
+    "pageSaveFailed": "Pagina opslaan mislukt."
   },
   "dash__components_onboarding_checklist": {
     "title": "Filly aan het werk zetten",
