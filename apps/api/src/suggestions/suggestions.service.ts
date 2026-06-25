@@ -2283,6 +2283,10 @@ Maak dit tastbaar volgens de regels.`;
     // 2) Per kanaal: campagne aanmaken met channel-specifieke content.
     // Kanaalvolgorde = de volgorde in channels[]; eerste kanaal = anker.
     const createdCampaignIds: string[] = [];
+    // Rollback-guard: faalt één kanaal-create, dan ruimen we de al
+    // aangemaakte kanalen + de group op (zie catch onder de loop) zodat een
+    // retry schoon begint i.p.v. duplicaten + een wees-group te stapelen.
+    try {
     for (const channel of channels) {
       const selectedIdx = Math.min(
         Math.max(channel.selected_index ?? 0, 0),
@@ -2390,6 +2394,27 @@ Maak dit tastbaar volgens de regels.`;
       }
 
       createdCampaignIds.push(campaignId);
+    }
+    } catch (loopErr) {
+      // Rollback: verwijder de zojuist aangemaakte kanalen + de group zodat
+      // een retry niet op een halve bundel + duplicaat-campagnes stuit (de
+      // suggestie blijft pending omdat stap 3 niet gehaald is). Best-effort.
+      if (createdCampaignIds.length > 0) {
+        await this.supabase.client
+          .from('campaigns')
+          .delete()
+          .in('id', createdCampaignIds)
+          .eq('restaurant_id', restaurantId);
+      }
+      await this.supabase.client
+        .from('campaign_groups')
+        .delete()
+        .eq('id', groupId)
+        .eq('restaurant_id', restaurantId);
+      this.logger.error(
+        `[approveMultiChannel] aanmaken mislukt, rollback uitgevoerd (group ${groupId}, ${createdCampaignIds.length} kanalen): ${String(loopErr)}`,
+      );
+      throw loopErr;
     }
 
     const anchorCampaignId = createdCampaignIds[0];
