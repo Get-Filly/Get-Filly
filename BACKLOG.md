@@ -31,6 +31,71 @@ De geleide campagne-flow in de dashboard-chat strakker getrokken. Alles live op 
 
 ---
 
+## 🔬 2026-06-25 — Platform-audit (developer + UX): flows, robuustheid, dode code
+
+Brede audit over `apps/web` + `apps/api` (5 parallelle analyses: routing/navigatie,
+auth/onboarding, campagne+Filly-kern, frontend-UX, backend/multi-tenant). Alle
+bevindingen zijn in de code geverifieerd; `file:line` erbij. Severity: 🔴 = security
+of data-integriteit · 🟡 = robuustheid/flow · 🟢 = opruimen/polish.
+
+**Corrigeert eerdere aannames (geen actie):**
+- De seeded nep-bezetting is grotendeels al weg: `use-actionable-days.ts:119` draait met
+  `seedMissing=false`, dus chat-flow én UpcomingActionsBlock tonen geen verzonnen rustige
+  dagen meer. `seededOccupancy` leeft alléén nog in de kalender-tegels (`calendar-card.tsx:388`).
+- `suggested_scheduled_for`/`_reasoning` zijn NIET dood — actief geschreven
+  (`campaigns.service.ts:904`, `suggestions.service.ts:2146`) en gelezen door de frontend.
+  CLAUDE.md is daar stale → regel corrigeren (zie 🟢 opruimen).
+
+### 🔴 Data-integriteit
+- [ ] **Multi-channel activeren niet atomair** — `campagnes/[id]/page.tsx:523-538` stuurt eerst mails, dan socials, en flipt pas daarna álle statussen via `Promise.all`. Faalt één social, dan is de mail al verstuurd maar blijft de bundel op concept; retry skipt de mail (`sent_count>0`) zonder waarschuwing. Fix: per kanaal status flippen direct na geslaagde send/publish (per-kanaal try/catch), geslaagde kanalen nooit terugrollen.
+- [ ] **`approveBundle`/`approveMultiChannel` laten wees-groepen + duplicaten achter** — `suggestions.service.ts:2256-2417` + `2433-2700`. Faalt kanaal #2 in de loop, dan blijven group + kanaal #1 staan én de suggestie blijft `pending`; idempotentie-check kijkt alleen naar `approved_campaign_id` (null) → retry maakt tweede group + duplicaten. Fix: try/catch met cleanup vóór re-throw, of fail-soft per kanaal. Kopieer patroon `publishSocialCampaign` (extern eerst, DB-write na succes).
+- [ ] **Lost-update op `variants[]`-jsonb (geen locking)** — read→muteer→schrijf-hele-array in `editVariant` (`campaigns.service.ts:1760`), `generateMoreVariants` (`:1847`), `selectVariant` (`:1676`), `mutateChannel`. Twee tabs of "✨ Met Filly bewerken" + handmatige edit → laatste write wint stil. Idem `suggested_campaign`-jsonb (`suggestions.service.ts:2013`). Fix: `version`-kolom + `.eq('version', expected)` + retry (mini-migratie).
+- [ ] **Ongevalideerde cast op Claude tool-output (root-cause stille corruptie)** — `ai.service.ts:375,474` doet `toolBlock.input as T`; Anthropic dwingt het input-schema NIET af → ontbrekende/afgekapte velden stromen naar DB-inserts (website-profiel, menu-import, suggesties). Hangt samen met `suggested_campaign`- en `meta`-jsonb-casts (`meta.service.ts:262`). Fix: één zod-validatie op `toolBlock.input` + `parseSuggestedCampaign()` bij read-vóór-write.
+
+### 🔴 Security
+- [ ] **SSRF in website-analyzer** — `ai/website-analyzer.service.ts:188,385`: `fetch(url)` zonder blocklist voor `localhost`/`127.0.0.1`/`169.254.169.254`/private ranges; redirects niet herpinnnd. Bereikbaar voor elke ingelogde user; HTML gaat naar Claude → interne content kan lekken. Fix: DNS→IP-resolve + private-range-blokkade + redirect-hops her-valideren. *(stond al als 🟡 in audit 2026-06-18; geconfirmeerd nog open)*
+- [ ] **Cross-tenant unsubscribe** — `mail.service.ts:658`: markeert `campaign_sends` alleen op `recipient_email` (admin-client, RLS-bypass) zónder `restaurant_id`, terwijl `tokenRow.restaurant_id` beschikbaar is. Eén unsubscribe vervuilt de reporting van álle zaken met dat mailadres. Fix: `.eq('restaurant_id', …)` toevoegen.
+- [ ] **Resend-webhook fail-open** — `mail.controller.ts:60-90`: zonder `RESEND_WEBHOOK_SECRET` wordt de ongeverifieerde payload (`payload as any`) tóch verwerkt → mail-stats te vervalsen. Fix: fail-closed (401) zoals `crm-api-key.guard.ts` al doet + payload valideren.
+- [ ] **Open-redirect op /login** — `login/page.tsx:14,51`: `?next=` ongevalideerd naar `router.push`. `/auth/confirm` heeft wél `parseSafeNext`; login niet. Fix: dezelfde validatie (alleen interne paden, geen `//`).
+- [ ] **Geen IP-rate-limiting** — nergens `ThrottlerGuard`. `/public/contact` heeft alleen een honeypot → bot kan ongelimiteerd mails pompen (Resend-kosten). Pre-onboarding AI-limiet is in-memory `Map` (per serverless-instance → triviaal te omzeilen). Fix: globale throttle per IP + pre-onboarding-limiet naar DB/Redis. *(overlapt P1 "pre-onboarding rate-limit naar Redis")*
+
+### 🟡 Robuustheid & flows
+- [ ] **Ingeplande mail wordt nooit automatisch verstuurd** — cron `runScheduledSocial` (`campaigns.service.ts:445`) selecteert alleen `type='social'`. Een "ingeplande" mail blijft liggen tot handmatig "Activeer nu" → dead-end in de lifecycle. Fix: mail-cron toevoegen, óf UI duidelijk maken dat "ingepland" voor mail alleen een herinnering is.
+- [ ] **Geleide-flow verliest state bij on-ramp→active wissel** — `filly-chat-message-list.tsx:151-291`: bij het eerste bericht rendert een nieuwe `FillyGuidedFlow`-instantie (andere `key`) → gekozen hoek/aangevinkte context weg; `active_action` herstelt alleen datum/topic/kanalen/step. *(bekend pijnpunt, nog open; hangt aan de grotere flow-refactor)*
+- [ ] **Ontbrekende sequence-guards (stale-data races)** — `reserveringen/page.tsx:151`, `bezetting/page.tsx:125`, `kpi-row.tsx:100`, `dashboard/page.tsx:29`: snel datum/maand wisselen → trage oude response overschrijft nieuwe. Correct `cancelled`-patroon staat al in `use-actionable-days.ts:64`. Fix: kopiëren.
+- [ ] **Stille fout = lege empty-state** — `reserveringen`, `gasten`, `campagnes/history`, `suggesties`: 403/500 niet te onderscheiden van "geen data" → vrolijk leeg scherm terwijl het stuk is. Fix: aparte foutstaat met "Probeer opnieuw".
+- [ ] **restaurant-context slikt query-fouten** — `restaurant-context.service.ts:82,291` + callers met extra `.catch(() => '')`: transient Supabase-fout → leeg context-blok → Filly genereert generiek/gehallucineerd en "slaagt". Fix: query-error onderscheiden van "geen data" en netjes afbreken.
+- [ ] **Auth-edge-cases:**
+  - [ ] Account-delete + handmatige user-delete laten **wees-restaurants** achter (geen FK/trigger) — `account-deletion.service.ts:72`. Fix: DB-trigger op laatste-owner-verwijdering. *(overlapt COO P0 "Test-account FK-cascade")*
+  - [ ] Invite-`upsert` kan een **owner stil downgraden** naar staff — `team.service.ts:484`. Fix: niet downgraden bij bestaande hogere rol.
+  - [ ] Uitgenodigd teamlid met gefaalde accept belandt in de **onboarding-wizard** en maakt een eigen restaurant — `middleware.ts:130`. Fix: pending-invite detecteren → banner i.p.v. wizard.
+  - [ ] 3 van 4 wachtwoord-flows tonen **rauwe Engelse Supabase-fouten** (forgot/reset/welkom); alleen login gebruikt `authErrorKey`. Fix: alle vier door `authErrorKey` + `t()`.
+  - [ ] **State-conflicten als 500 i.p.v. 4xx** + rauwe Postgres-message lekt naar client — `suggestions.service.ts:2007,2500`; `throw new InternalServerErrorException(error.message)` verspreid (`campaigns.service.ts:248,263,691`; `mail.service.ts:126,262`). Fix: 4xx voor state-conflicten; rauwe message loggen, generieke NL teruggeven (zoals `ai.service.ts toNlException`).
+
+### 🟡 UX — werk-verlies & onduidelijkheid
+- [ ] **Review-reply concept verdwijnt** bij backdrop/×/Esc/Annuleren (`google-business/reviews/page.tsx:642,649`) — grootste werk-verlies-risico. Fix: confirm bij dirty `replyText`, of per-review bewaren.
+- [ ] **`originalIdxRef` reset niet** bij wissel tussen 2 campagnes (`inhoud-card.tsx:101`) → ✕ revert naar variant van de vórige campagne. Fix: reset in effect gekeyd op channel/campaign-id. *(stond al als losse P1; bevestigd)*
+- [ ] **Geen succes-feedback** na review-antwoord versturen (`reviews/page.tsx:402`); **gefaald chat-bericht** blijft als wees-bubble zonder retry (`filly-chat.tsx:339`); **AccessGuard flasht** beschermde content ~1,5s (`access-guard.tsx:79`). Fix: toast/retry/skeleton.
+- [ ] **Geen onopgeslagen-wijzigingen-waarschuwing** op account (`account/page.tsx:107`) + identiteit (`identiteit/page.tsx:836`). Fix: dirty-flag + `beforeunload`.
+- [ ] **Dubbele-submit + eeuwig "submitting"** op choice/date-cards — `filly-chat.tsx:273,421`: `sending` is stale-closure-guard (geen echte lock), de `catch` draait nooit. Fix: `sendingRef` als synchrone lock.
+- [ ] **Filly-chat instance-switch reset niet alle card-states** — `switchConversation`/`startNewConversation` resetten alleen `proposalStatus`, niet `bundleStatus`/`choiceState`/`dateChoiceState` (`filly-chat.tsx:496`). Fix: alle resetten.
+- [ ] **Mock-data als echt gepresenteerd** — uur-heatmap + YoY-deltas + cohort-tabel op `bezetting/page.tsx:59-71,200`; jaarview-heatmap (`chart-card.tsx:50`, `calendar-card.tsx:224,388`). Fix: "voorbeeld/schatting"-badge of echte data.
+- [ ] **Modals zonder `aria-labelledby`/focus-trap/Escape** — builder/media/delete/invite/media-picker/reviews. `google-connect-modal.tsx:125` doet het wél goed → kopieer dat patroon.
+- [ ] **Responsive-gaten** — uur-heatmap, brede tabellen (gasten/bezetting), `aspecten-tabel.tsx:134` (5 koloms nowrap op ~380px), `missende-aspecten-card.tsx:325` (`marginLeft:126` off-canvas), chat-choice-cards `repeat(2,1fr)`, identiteit-savebar `left:220` (hardcoded sidebar-breedte).
+
+### 🟢 Dode / verweesde flows + opruimen
+- [ ] **3 orphaned dashboard-routes** — `taken`, `suggesties`, `marketing` (hub): geen inbound link, alleen via URL bereikbaar; `taken` linkt naar `suggesties`+`gasten` (orphan→orphan). LET OP: **Rapportages linkt wél naar `marketing/{mail,instagram,…}`** die doodlopen op de verweesde hub (`rapportages/page.tsx:181`). Fix: routes + bijbehorende `PATH_MODULE_MAP`/`titleKeyFor`/permissie-modules verwijderen óf back-links herrichten naar Rapportages.
+- [ ] **Pending/accept/dismiss-flow vrijwel dood** — proposals worden sinds 24-06 bij aanmaak al goedgekeurd; `acceptProposal`/`acceptBundle` + de "Nee bedankt"-knop (die niets persisteert, `filly-chat.tsx:629`) lopen niet meer. Fix: bevestig of historische pending-kaarten voorkomen; zo niet opruimen.
+- [ ] **`step==="done"`-blok** (~80 r, `filly-guided-flow.tsx:445`) + ongebruikte `result`-state — onbereikbaar (gedepreciëerd). Verwijderen.
+- [ ] **Legacy FORMAAT-parsers** (`chat.service.ts:1547`) draaien elke chat-beurt als "vangnet" maar het LLM emit ze niet meer. *(= Filly-audit #7; bevestigd dood)* Verwijderen of achter detectie-flag.
+- [ ] **Frontend cap-detectie matcht op stale string** — `filly-chat.tsx:347` checkt `"grens van 20"` terwijl de cap 50 is → die `isCap`-tak is dood. Fix: op HTTP-status/error-code matchen.
+- [ ] **`/dashboard/design-system`** voor elke ingelogde klant opvraagbaar (`design-system/page.tsx:11`). Fix: admin-gate/env-gate vóór klant-onboarding.
+- [ ] **`findBundle` N+1** (`campaigns.service.ts:674`) + serial N+1 in `channelCampaignsInGroup` (`:1230`). *(al P1; bevestigd)* Fix: content + reasoning batchen met `in(...)`.
+- [ ] **Dode tweede `mapAuthError`** in `invite/accept/page.tsx:163` (nergens aangeroepen). Verwijderen.
+- [ ] **Doc-drift opruimen** — middleware-comment + CLAUDE.md zeggen "/signup → /contact redirect" (is nu een echte uitlegpagina); CLAUDE.md zegt ten onrechte dat `suggested_scheduled_*` dood is sinds mig 0060. Corrigeren.
+
+---
+
 ## 🗓️ 2026-06-24 — Campagne-detail "foto-interface" + kanaalbeheer + publiceer-flow (live op main)
 
 Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbeheer toegevoegd en de publiceer-flow gerepareerd + dichtgetimmerd. Alles live op `main` + Vercel.
