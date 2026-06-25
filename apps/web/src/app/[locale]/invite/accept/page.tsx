@@ -158,24 +158,6 @@ function AcceptInner() {
   );
 }
 
-// Vertaal de reden die /auth/confirm meegeeft naar een nette
-// Nederlandse melding. Houdt UI vrij van cryptische codes.
-function mapAuthError(reason: string): string {
-  switch (reason) {
-    case "expired":
-      return "Deze uitnodigingslink is verlopen.";
-    case "already_used":
-      return "Deze uitnodigingslink is al eerder gebruikt.";
-    case "missing_token":
-      return "De link is incompleet, er ontbreekt een verificatiecode.";
-    case "invalid_type":
-      return "De link is niet geldig voor deze actie.";
-    case "verify_failed":
-    default:
-      return "We konden de uitnodiging niet verifiëren.";
-  }
-}
-
 // Suspense is verplicht wanneer we useSearchParams gebruiken op
 // een pagina die ook server-rendered kan worden.
 export default function InviteAcceptPage() {

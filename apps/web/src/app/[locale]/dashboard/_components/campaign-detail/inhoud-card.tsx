@@ -99,6 +99,13 @@ export function InhoudCard({
   // terug-flippen naar de versie die de eigenaar zag bij binnenkomst.
   // useRef i.p.v. state: 't is een stabiele anker, geen render-trigger.
   const originalIdxRef = useRef<number | null>(null);
+  // Reset het anker bij wissel van campagne/kanaal (sectionId). De
+  // component remount niet altijd bij een ander [id], dus zonder reset
+  // zou de ✕-knop terugvallen op de originele index van de vórige
+  // campagne en zo de gekozen variant stil overschrijven.
+  useEffect(() => {
+    originalIdxRef.current = null;
+  }, [sectionId]);
   useEffect(() => {
     if (originalIdxRef.current === null && variants.length > 0) {
       originalIdxRef.current = Math.min(
@@ -106,7 +113,7 @@ export function InhoudCard({
         variants.length - 1,
       );
     }
-  }, [variants.length, selectedIndex]);
+  }, [sectionId, variants.length, selectedIndex]);
 
   const safeSelected = Math.min(
     Math.max(selectedIndex, 0),

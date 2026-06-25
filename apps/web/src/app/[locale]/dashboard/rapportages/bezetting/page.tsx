@@ -122,17 +122,25 @@ export default function RapportagesPage() {
   }, []);
 
   // Occupancy verandert per geselecteerde maand, bij elke prev/next opnieuw.
+  // Sequence-guard: snel door de maanden klikken mag geen trage oude
+  // response over een nieuwere laten vallen.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     fetchOccupancy(viewYear, viewMonth)
       .then((o) => {
+        if (cancelled) return;
         setOccupancy(o);
         setLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setOccupancy([]);
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [viewYear, viewMonth]);
 
   const goPrev = () => {

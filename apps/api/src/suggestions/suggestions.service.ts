@@ -2576,6 +2576,10 @@ Maak dit tastbaar volgens de regels.`;
     // de losse single-channel approve). We bewaren de id's in een map.
     const campaignIds: Partial<Record<BundleApproveChannel, string>> = {};
 
+    // Rollback-guard: faalt één kanaal-create, dan ruimen we de al
+    // aangemaakte kanalen + de group op (zie catch onder de loop) zodat een
+    // retry schoon begint i.p.v. duplicaten + een wees-group te stapelen.
+    try {
     for (const channel of requested) {
       if (channel === 'mail' && ch.mail) {
         const { id } = await this.campaigns.create(
@@ -2657,6 +2661,31 @@ Maak dit tastbaar volgens de regels.`;
         );
         campaignIds.tiktok = id;
       }
+    }
+    } catch (loopErr) {
+      // Rollback: verwijder de zojuist aangemaakte kanalen + de group zodat
+      // een retry niet op een halve bundel + duplicaat-campagnes stuit (de
+      // suggestie blijft pending omdat stap 3 niet gehaald is). Best-effort:
+      // delete-fouten loggen we niet apart, de admin kan altijd opruimen.
+      const createdIds = Object.values(campaignIds).filter(
+        (v): v is string => typeof v === 'string',
+      );
+      if (createdIds.length > 0) {
+        await this.supabase.client
+          .from('campaigns')
+          .delete()
+          .in('id', createdIds)
+          .eq('restaurant_id', restaurantId);
+      }
+      await this.supabase.client
+        .from('campaign_groups')
+        .delete()
+        .eq('id', groupId)
+        .eq('restaurant_id', restaurantId);
+      this.logger.error(
+        `[approveBundle] aanmaken mislukt, rollback uitgevoerd (group ${groupId}, ${createdIds.length} kanalen): ${String(loopErr)}`,
+      );
+      throw loopErr;
     }
 
     // 3) Suggestie afsluiten. Approved_campaign_id wijst naar het eerste

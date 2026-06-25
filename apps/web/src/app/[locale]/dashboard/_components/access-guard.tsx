@@ -78,7 +78,6 @@ export function AccessGuard({ children }: { children: ReactNode }) {
   const requiredModule = requiredModuleFor(pathname);
   const hasAccess =
     !requiredModule ||
-    loading ||
     (active?.permissions?.includes(requiredModule) ?? false);
 
   useEffect(() => {
@@ -95,9 +94,13 @@ export function AccessGuard({ children }: { children: ReactNode }) {
     }
   }, [pathname, active, loading, requiredModule, router]);
 
-  // Tijdens laden van context: gewoon de pagina renderen (optimistisch).
-  // Als de user uiteindelijk geen toegang blijkt te hebben, komt hij in
-  // het blok hierboven en wordt teruggestuurd.
+  // Context laadt nog: permissies onbekend. Voor beschermde paden tonen we
+  // een neutrale placeholder i.p.v. de pagina, zodat beschermde content niet
+  // ~1,5s flitst voor iemand die uiteindelijk geen toegang heeft.
+  if (requiredModule && loading) {
+    return <div style={{ padding: "48px 32px" }} aria-busy="true" />;
+  }
+
   if (hasAccess) {
     return <>{children}</>;
   }

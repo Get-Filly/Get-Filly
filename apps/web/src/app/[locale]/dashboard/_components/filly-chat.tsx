@@ -344,7 +344,9 @@ export function FillyChat() {
       //   2. Andere fout (rate-limit, Claude down): optimistisch
       //      bericht laten staan + foutbanner erboven.
       const errMsg = e instanceof Error ? e.message : t("errors.unknown");
-      const isCap = errMsg.includes("grens van 20") || errMsg.includes("nieuw gesprek");
+      // Cap-bereikt herkennen aan de stabiele "nieuw gesprek"-formulering uit
+      // de backend-melding (de exacte berichtgrens staat los in CONVERSATION_CAP).
+      const isCap = errMsg.includes("nieuw gesprek");
       if (isCap) {
         setMessages((m) => m.filter((x) => x.id !== tempId));
         setMessageCount(CHAT_CONVERSATION_CAP);

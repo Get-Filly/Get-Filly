@@ -148,18 +148,26 @@ export default function ReserveringenPage() {
   }, []);
 
   // Reserveringen: opnieuw fetchen wanneer eigenaar datum-range wisselt.
+  // Sequence-guard: bij snel wisselen mag een trager-binnenkomende oudere
+  // response de nieuwere niet overschrijven.
   useEffect(() => {
     if (!dateFrom || !dateTo) return;
+    let cancelled = false;
     setLoading(true);
     fetchReservations(dateFrom, dateTo)
       .then((res) => {
+        if (cancelled) return;
         setReservations(res);
         setLoading(false);
       })
       .catch((e: Error) => {
+        if (cancelled) return;
         setError(e.message);
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [dateFrom, dateTo]);
 
   // Handler voor het wijzigen van de attributie. Optimistisch updaten:
