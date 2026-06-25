@@ -4,6 +4,8 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import * as cheerio from 'cheerio';
 import type Anthropic from '@anthropic-ai/sdk';
 import { AiService } from './ai.service';
@@ -100,6 +102,10 @@ export class WebsiteAnalyzerService {
 
   private readonly MAX_PAGES = 10;
   private readonly MAX_TOTAL_CHARS = 20_000;
+  // Redirects volgen we handmatig (zie fetchPage) zodat we elke hop
+  // tegen de SSRF-blocklist kunnen checken. Cap om redirect-loops te
+  // stoppen.
+  private readonly MAX_REDIRECTS = 4;
   // Veel restaurant-sites draaien achter Cloudflare/Wix/Squarespace met
   // trage first-paint. 12s is genoeg voor de traagste CDN-cold-start,
   // kort genoeg om de gebruiker niet te laten wachten op een site
@@ -185,6 +191,13 @@ export class WebsiteAnalyzerService {
   // Haal één pagina op met een korte timeout. Retourneert null bij
   // netwerkfout, niet-html content-type, of non-2xx status, dan
   // slaan we die pagina gewoon over en gaan door met de volgende.
+  //
+  // SSRF-bescherming: we volgen redirects HANDMATIG (redirect: 'manual')
+  // en checken iedere hop tegen assertPublicUrl. Een op het oog publieke
+  // URL kan immers 302'en naar localhost / 169.254.169.254 (cloud-
+  // metadata) / een interne range. Zonder deze check zou een ingelogde
+  // gebruiker onze server interne endpoints laten ophalen en de inhoud
+  // via Claude terugkrijgen.
   private async fetchPage(
     url: string,
   ): Promise<{ html: string } | null> {
@@ -194,27 +207,58 @@ export class WebsiteAnalyzerService {
       this.FETCH_TIMEOUT_MS,
     );
     try {
-      const res = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          // User-agent zodat we beleefd herkenbaar zijn in hun server-
-          // logs. Sommige sites weigeren default node-fetch.
-          'User-Agent':
-            'Mozilla/5.0 (compatible; GetFillyBot/1.0; +https://get-filly.com)',
-          Accept: 'text/html',
-        },
-      });
-      if (!res.ok) {
-        this.logger.debug(`Skip ${url}: HTTP ${res.status}`);
-        return null;
+      let currentUrl = url;
+      for (let hop = 0; hop <= this.MAX_REDIRECTS; hop++) {
+        // Resolve de hostname en weiger niet-publieke adressen vóór we
+        // verbinden. Bij elke redirect-hop opnieuw (de redirect-target
+        // is door de bron-server gekozen, niet door ons).
+        const isPublic = await assertPublicUrl(currentUrl);
+        if (!isPublic) {
+          this.logger.warn(
+            `Skip ${currentUrl}: niet-publiek adres geblokkeerd (SSRF-guard)`,
+          );
+          return null;
+        }
+        const res = await fetch(currentUrl, {
+          signal: controller.signal,
+          redirect: 'manual',
+          headers: {
+            // User-agent zodat we beleefd herkenbaar zijn in hun server-
+            // logs. Sommige sites weigeren default node-fetch.
+            'User-Agent':
+              'Mozilla/5.0 (compatible; GetFillyBot/1.0; +https://get-filly.com)',
+            Accept: 'text/html',
+          },
+        });
+        // Redirect: pak de Location, maak 'm absoluut en check 'm opnieuw.
+        if (res.status >= 300 && res.status < 400) {
+          const location = res.headers.get('location');
+          if (!location) {
+            this.logger.debug(`Skip ${currentUrl}: redirect zonder Location`);
+            return null;
+          }
+          try {
+            currentUrl = new URL(location, currentUrl).toString();
+          } catch {
+            this.logger.debug(`Skip ${currentUrl}: ongeldige redirect-target`);
+            return null;
+          }
+          continue;
+        }
+        if (!res.ok) {
+          this.logger.debug(`Skip ${currentUrl}: HTTP ${res.status}`);
+          return null;
+        }
+        const contentType = res.headers.get('content-type') ?? '';
+        if (!contentType.includes('text/html')) {
+          this.logger.debug(`Skip ${currentUrl}: content-type ${contentType}`);
+          return null;
+        }
+        const html = await res.text();
+        return { html };
       }
-      const contentType = res.headers.get('content-type') ?? '';
-      if (!contentType.includes('text/html')) {
-        this.logger.debug(`Skip ${url}: content-type ${contentType}`);
-        return null;
-      }
-      const html = await res.text();
-      return { html };
+      this.logger.debug(`Skip ${url}: te veel redirects`);
+      return null;
     } catch (err) {
       // Timeout, DNS, connection refused, etc., gewoon skippen.
       this.logger.debug(`Skip ${url}: ${String(err)}`);
@@ -379,6 +423,91 @@ type RawProfileFromTool = Partial<ExtractedProfile> & {
 // ============================================================
 // Helpers
 // ============================================================
+
+// SSRF-guard: is dit een URL die we veilig mogen ophalen? We resolven
+// de hostname naar IP('s) en weigeren loopback / private / link-local /
+// CGNAT / multicast / cloud-metadata-adressen. Een IP-literal wordt
+// direct gecheckt. Niet-resolvebare hosts volgen we ook niet.
+//
+// Caveat: tussen deze DNS-lookup en de daadwerkelijke fetch-connectie
+// zit een (kleine) TOCTOU-race (DNS-rebinding). Voor volledige dichtheid
+// zou je op het gevalideerde IP moeten pinnen; dat kan Node's fetch niet
+// zonder een custom agent. Deze check dekt de praktische SSRF-vectoren
+// (directe interne URL + redirect naar intern) af.
+async function assertPublicUrl(rawUrl: string): Promise<boolean> {
+  let hostname: string;
+  try {
+    hostname = new URL(rawUrl).hostname;
+  } catch {
+    return false;
+  }
+  // Strip IPv6-brackets: "[::1]" → "::1".
+  const host = hostname.replace(/^\[/, '').replace(/\]$/, '');
+  if (!host) return false;
+
+  // Host is al een IP-literal → direct checken, geen DNS nodig.
+  if (isIP(host)) {
+    return !isPrivateIp(host);
+  }
+
+  // Hostname → resolve alle adressen en weiger als er ook maar één
+  // niet-publiek is.
+  try {
+    const addrs = await lookup(host, { all: true });
+    if (addrs.length === 0) return false;
+    return addrs.every((a) => !isPrivateIp(a.address));
+  } catch {
+    // Niet te resolven → niet volgen.
+    return false;
+  }
+}
+
+// Valt dit IP binnen een niet-publieke / gereserveerde range?
+function isPrivateIp(ip: string): boolean {
+  const family = isIP(ip);
+  if (family === 4) return isPrivateIpv4(ip);
+  if (family === 6) return isPrivateIpv6(ip);
+  return true; // onbekend formaat → veiligheidshalve blokkeren
+}
+
+function isPrivateIpv4(ip: string): boolean {
+  const parts = ip.split('.').map((p) => Number(p));
+  if (
+    parts.length !== 4 ||
+    parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)
+  ) {
+    return true; // ongeldig → blokkeren
+  }
+  const [a, b, c] = parts;
+  if (a === 0) return true; // 0.0.0.0/8 "this network"
+  if (a === 10) return true; // 10.0.0.0/8 private
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
+  if (a === 127) return true; // 127.0.0.0/8 loopback
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local + metadata
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+  if (a === 192 && b === 0 && c === 0) return true; // 192.0.0.0/24 IETF
+  if (a === 192 && b === 0 && c === 2) return true; // 192.0.2.0/24 TEST-NET-1
+  if (a === 192 && b === 88 && c === 99) return true; // 192.88.99.0/24 6to4 relay
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
+  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15 benchmark
+  if (a === 198 && b === 51 && c === 100) return true; // 198.51.100.0/24 TEST-NET-2
+  if (a === 203 && b === 0 && c === 113) return true; // 203.0.113.0/24 TEST-NET-3
+  if (a >= 224) return true; // 224.0.0.0/4 multicast + 240.0.0.0/4 reserved
+  return false;
+}
+
+function isPrivateIpv6(ip: string): boolean {
+  const lower = ip.toLowerCase();
+  if (lower === '::1' || lower === '::') return true; // loopback / unspecified
+  // IPv4-mapped (::ffff:1.2.3.4) → check het ingebedde v4-adres.
+  const mapped = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(lower);
+  if (mapped) return isPrivateIpv4(mapped[1]);
+  const firstHextet = parseInt(lower.split(':')[0] || '0', 16);
+  if (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) return true; // fc00::/7 ULA
+  if (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) return true; // fe80::/10 link-local
+  if (firstHextet >= 0xff00) return true; // ff00::/8 multicast
+  return false;
+}
 
 // Normaliseer input: voeg https:// toe als geen protocol, parse.
 // Retourneert null bij onbruikbare input.

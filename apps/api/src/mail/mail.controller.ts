@@ -43,11 +43,14 @@ export class MailController {
   // Resend stuurt events naar deze URL bij delivered/bounced/opened/
   // clicked/complained. URL ingesteld in Resend dashboard → Webhooks.
   //
-  // Svix-signature-validatie: Resend ondertekent elke webhook. Met
-  // RESEND_WEBHOOK_SECRET gezet verifiëren we de svix-headers tegen de
-  // rauwe body en weigeren we vervalste calls (401). Zónder de secret (of
-  // als rawBody onverhoopt ontbreekt) laten we 'm door + loggen we, zodat
-  // de live mail-stats niet breken vóór de secret is ingesteld.
+  // Svix-signature-validatie: Resend ondertekent elke webhook. We
+  // verifiëren de svix-headers tegen de rauwe body en weigeren vervalste
+  // calls (401). FAIL-CLOSED: zonder RESEND_WEBHOOK_SECRET (of zonder
+  // rawBody) kunnen we de afzender niet vaststellen, dus weigeren we de
+  // call i.p.v. ongeverifieerde mail-stats weg te schrijven die een
+  // aanvaller kan vervalsen.
+  // ⚠️ Vereist: RESEND_WEBHOOK_SECRET in de API-env (Vercel). Zonder die
+  // env worden ALLE webhook-events geweigerd.
   @Public()
   @Post('webhooks/resend')
   async receiveWebhook(
@@ -58,26 +61,28 @@ export class MailController {
     @Headers('svix-signature') svixSignature?: string,
   ): Promise<{ ok: true }> {
     const secret = process.env.RESEND_WEBHOOK_SECRET;
-    if (secret) {
-      const raw = req.rawBody?.toString('utf8');
-      if (!raw) {
-        this.logger.error(
-          'Resend-webhook: rawBody ontbreekt — signature niet te verifiëren (geaccepteerd; controleer rawBody-config).',
-        );
-      } else if (
-        !verifySvixSignature(
-          raw,
-          { id: svixId, timestamp: svixTimestamp, signature: svixSignature },
-          secret,
-        )
-      ) {
-        this.logger.warn('Resend-webhook geweigerd: ongeldige Svix-signature.');
-        throw new UnauthorizedException();
-      }
-    } else {
-      this.logger.warn(
-        'Resend-webhook ONGETEKEND geaccepteerd: zet RESEND_WEBHOOK_SECRET om signature-validatie te activeren.',
+    if (!secret) {
+      this.logger.error(
+        'Resend-webhook geweigerd: RESEND_WEBHOOK_SECRET niet gezet — kan afzender niet verifiëren.',
       );
+      throw new UnauthorizedException();
+    }
+    const raw = req.rawBody?.toString('utf8');
+    if (!raw) {
+      this.logger.error(
+        'Resend-webhook geweigerd: rawBody ontbreekt — signature niet te verifiëren (controleer rawBody-config).',
+      );
+      throw new UnauthorizedException();
+    }
+    if (
+      !verifySvixSignature(
+        raw,
+        { id: svixId, timestamp: svixTimestamp, signature: svixSignature },
+        secret,
+      )
+    ) {
+      this.logger.warn('Resend-webhook geweigerd: ongeldige Svix-signature.');
+      throw new UnauthorizedException();
     }
 
     if (

@@ -7,11 +7,28 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import { authErrorKey } from "@/lib/auth-errors";
 
+// Open-redirect-bescherming: alleen interne, absolute paden toestaan.
+// Een aanvaller kan ?next=https://phishing.nl of ?next=//evil.nl in de
+// URL zetten; zonder deze check zou de gebruiker daar na login heen gaan.
+// Spiegelt de parseSafeNext-logica van /auth/confirm, maar client-side
+// path-only (we hebben hier geen server-origin nodig).
+function safeNextPath(raw: string | null): string {
+  if (
+    raw &&
+    raw.startsWith("/") &&
+    !raw.startsWith("//") &&
+    !raw.startsWith("/\\")
+  ) {
+    return raw;
+  }
+  return "/dashboard";
+}
+
 function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
   const params = useSearchParams();
-  const nextPath = params.get("next") ?? "/dashboard";
+  const nextPath = safeNextPath(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -654,15 +654,30 @@ export class MailService {
         .eq('token', token);
 
       // Recente sends voor deze gast als 'unsubscribed' markeren,
-      // niet kritisch maar handig voor reporting.
-      await this.admin.client
-        .from('campaign_sends')
-        .update({ unsubscribed_at: new Date().toISOString() })
-        .eq('recipient_email', tokenRow.email)
-        .gte(
-          'sent_at',
-          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        );
+      // niet kritisch maar handig voor reporting. We draaien op de
+      // admin-client (RLS-bypass), dus we MOETEN zelf tenant-scopen:
+      // campaign_sends heeft geen restaurant_id, dus we beperken tot de
+      // campagnes van DIT restaurant. Zonder die scope zou een unsubscribe
+      // de reporting van álle restaurants raken waar dit mailadres ook
+      // gast is (cross-tenant data-vervuiling).
+      const { data: ownCampaigns } = await this.admin.client
+        .from('campaigns')
+        .select('id')
+        .eq('restaurant_id', tokenRow.restaurant_id);
+      const campaignIds = (ownCampaigns ?? []).map(
+        (c) => (c as { id: string }).id,
+      );
+      if (campaignIds.length > 0) {
+        await this.admin.client
+          .from('campaign_sends')
+          .update({ unsubscribed_at: new Date().toISOString() })
+          .eq('recipient_email', tokenRow.email)
+          .in('campaign_id', campaignIds)
+          .gte(
+            'sent_at',
+            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          );
+      }
     }
 
     // Restaurant-naam ophalen voor de UI ("Je bent uitgeschreven van X")
