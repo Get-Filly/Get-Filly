@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -1672,6 +1673,34 @@ export class CampaignsService {
     }
   }
 
+  // Optimistische slot-check voor variant-schrijfacties. Schrijft de patch
+  // alleen weg als de campagne sinds het inlezen NIET door een andere
+  // bewerking is gewijzigd (we vergelijken op de bestaande updated_at, dus
+  // geen migratie nodig). Zo overschrijft een gelijktijdige tab of een
+  // "Met Filly bewerken"-actie je werk niet meer stil; bij een botsing
+  // krijg je een nette melding i.p.v. stil dataverlies.
+  private async writeVariantsGuarded(
+    restaurantId: string,
+    id: string,
+    prevUpdatedAt: string | null,
+    patch: { variants?: CampaignVariant[]; selected_variant_index?: number },
+  ): Promise<void> {
+    let query = this.supabase.client
+      .from('campaigns')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId);
+    // Alleen schrijven als de versie-stempel nog gelijk is aan wat we inlazen.
+    if (prevUpdatedAt) query = query.eq('updated_at', prevUpdatedAt);
+    const { data, error } = await query.select('id');
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data || data.length === 0) {
+      throw new ConflictException(
+        'Deze campagne is net ergens anders gewijzigd. Ververs de pagina en probeer het opnieuw.',
+      );
+    }
+  }
+
   // selectVariant — eigenaar klikt op een andere "Versie N"-card.
   // We flippen selected_variant_index én syncen de campaign_*_content
   // zodat downstream-systemen (e-mail-send, social-publish) altijd
@@ -1772,7 +1801,7 @@ export class CampaignsService {
 
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, type, status, variants, selected_variant_index')
+      .select('id, type, status, variants, selected_variant_index, updated_at')
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
@@ -1807,15 +1836,14 @@ export class CampaignsService {
     };
     const newVariants = variants.map((v, i) => (i === index ? updated : v));
 
-    const { error: updErr } = await this.supabase.client
-      .from('campaigns')
-      .update({
-        variants: newVariants,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('restaurant_id', restaurantId);
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    // Optimistisch slot: alleen schrijven als niemand anders de campagne
+    // ondertussen wijzigde (anders raak je een gelijktijdige bewerking kwijt).
+    await this.writeVariantsGuarded(
+      restaurantId,
+      id,
+      (existing as { updated_at?: string }).updated_at ?? null,
+      { variants: newVariants },
+    );
 
     // Alleen content-tabel syncen als de bewerkte entry óók de
     // geselecteerde is — anders is dit een "stille" alternatief-edit
@@ -1859,7 +1887,7 @@ export class CampaignsService {
 
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, type, status, name, variants, selected_variant_index')
+      .select('id, type, status, name, variants, selected_variant_index, updated_at')
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
@@ -2054,15 +2082,15 @@ ${menuBlock}
 
     const newAll = [...existingVariants, ...fresh].slice(0, 6);
 
-    const { error: updErr } = await this.supabase.client
-      .from('campaigns')
-      .update({
-        variants: newAll,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('restaurant_id', restaurantId);
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    // Optimistisch slot: tijdens het genereren (seconden) kan de eigenaar in
+    // een andere tab de tekst hebben bewerkt. Schrijf alleen weg als de
+    // campagne sindsdien niet gewijzigd is, anders raken we die edit kwijt.
+    await this.writeVariantsGuarded(
+      restaurantId,
+      id,
+      (campaign as { updated_at?: string }).updated_at ?? null,
+      { variants: newAll },
+    );
 
     return { id, variants: newAll };
   }
