@@ -196,6 +196,11 @@ export function FillyGuidedFlow({
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
   );
+  // "Bedenk er zelf een": eigen-campagne-spoor. Geselecteerd + Verder →
+  // we sturen de eigenaar naar de "maak eigen campagne"-builder op de
+  // campagnes-pagina i.p.v. Filly een voorstel te laten schrijven.
+  // Wederzijds uitsluitend met een gekozen hoek.
+  const [buildOwn, setBuildOwn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllQuiet, setShowAllQuiet] = useState(false);
   const [result, setResult] = useState<AiSuggestion[]>([]);
@@ -753,6 +758,23 @@ export function FillyGuidedFlow({
               <span className="fg-opt-sub">{t("angles.fastest")}</span>
             </button>
 
+            {/* Eigen-campagne-spoor: zelfde breedte/feature-stijl als de
+                Filly-kaart. Geen uitklap-veld; selecteren + Verder stuurt
+                naar de "maak eigen campagne"-builder. */}
+            <button
+              type="button"
+              className={`fg-opt fg-opt--feature${buildOwn ? " sel" : ""}`}
+              onClick={() => {
+                setBuildOwn((cur) => !cur);
+                setSelectedAngle(null);
+              }}
+            >
+              <span className="fg-opt-main">
+                <Pencil size={15} strokeWidth={2.25} /> {t("angles.buildOwn")}
+              </span>
+              {buildOwn && <Check size={15} strokeWidth={2.5} />}
+            </button>
+
             {contextOptions.length > 0 && (
               <>
                 <div className="fg-group-label" style={{ marginTop: 6 }}>
@@ -790,9 +812,10 @@ export function FillyGuidedFlow({
                     <button
                       type="button"
                       className={`fg-opt${sel ? " sel" : ""}`}
-                      onClick={() =>
-                        setSelectedAngle((cur) => (cur === id ? null : id))
-                      }
+                      onClick={() => {
+                        setSelectedAngle((cur) => (cur === id ? null : id));
+                        setBuildOwn(false);
+                      }}
                     >
                       <span className="fg-opt-main">
                         <Icon size={15} strokeWidth={2.25} />{" "}
@@ -817,7 +840,15 @@ export function FillyGuidedFlow({
             <button
               type="button"
               className="ui-btn ui-btn--primary ui-btn--sm fg-next"
-              onClick={() => setStep("channels")}
+              onClick={() => {
+                if (buildOwn) {
+                  // Eigen-campagne-spoor: naar de builder op de campagnes-
+                  // pagina (opent daar de "maak eigen campagne"-modal).
+                  router.push("/dashboard/campagnes?nieuw=eigen");
+                  return;
+                }
+                setStep("channels");
+              }}
             >
               {t("angles.next")}
             </button>
