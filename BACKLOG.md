@@ -114,7 +114,7 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 
 **Nog open / context (geen bug):**
 - [ ] **Filly geleide flow leeft náást het chat-model** — de flow is een parallel UI-spoor dat z'n stappen niet als chatberichten vastlegt (alleen de losse `active_action` + component-state). Daardoor blijft 'm fragiel (state na-ijlen, weinig historie). Grotere refactor: de flow-stappen/resultaat als compacte chat-gebeurtenissen vastleggen zodat "terugkomen" = "je gesprek terugzien". *(architectuur, los plannen)*
-- [ ] **Geplande social-posts timing** — "Direct inplannen"/"Plan in" publiceert via de cron `/api/campaigns/cron/run-scheduled`, op Vercel Hobby **1×/dag (08:00)**. Frequentere publicatie (bv. elke 10 min) vereist **Vercel Pro**. Voor meteen plaatsen = "Activeer nu". *(plan-keuze, geen code)*
+- [x] ~~**Geplande social-posts timing**~~ (✅ 2026-06-25) — Vercel Pro actief; cron `/api/campaigns/cron/run-scheduled` staat nu op `*/30 * * * *` (elk half uur, `apps/api/vercel.json`). Ingeplande social gaat ~30 min na z'n tijd live. Direct = "Activeer nu" (synchroon, geen cron). ⚠️ Vereist op Vercel: project onder het Pro-team (✅ get-filly-api staat daar) + `CRON_SECRET` gezet in get-filly-api. **Mail blijft open** — zie "Ingeplande mail wordt nooit automatisch verstuurd".
 - [ ] Instagram vereist een afbeelding/video (Meta-API-eis); FB/Google Business mogen tekst-only. Al afgedwongen via `PHOTO_REQUIRED` + de blokkade hierboven.
 
 ---
@@ -180,7 +180,7 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 - [x] ~~🟡 Migratie-nummer **0043 dubbel**~~ (✅ 2026-06-22) — de schema-cleanup heeft een vrij nummer gekregen (`0060_drop_campaign_filly_variants.sql`); 0043 blijft de auto-archive.
 - [ ] 🟡 `runScheduledSocial`: status-flip + publish niet transactioneel, geen overlap-guard → status-flip vóór de side-effects of een `rpc()`-transactie.
 - [ ] 🟡 Read-modify-write op `variants`-jsonb zonder locking (lost update) in `selectVariant`/`editVariant`/`mutateChannel`/`refine` → `jsonb_set` via `rpc()` of `version`-kolom.
-- [ ] 🟡 Cron-precisie social: max 1×/dag op Vercel Hobby — **(bevestigd, fase B)** → Pro + frequentere cron.
+- [x] ~~🟡 Cron-precisie social: max 1×/dag op Vercel Hobby~~ (✅ 2026-06-25) — Pro actief, cron elk half uur. Zie "Geplande social-posts timing".
 - [ ] 🟡 Multi-channel status-transitie zonder rollback — **(bevestigd, al P1)**.
 - [ ] 🟡 Legacy `FORMAAT`-parsers + dead-code-kolommen (`filly_variants` e.d.) + dode API-functies — **(bevestigd, al P1 + Filly-audit #7)**.
 - [ ] 🟢 ~62 zwakke types (`any`/`as`/`Record<string,unknown>`) in `apps/api` → per-tabel rij-types of lichte zod-validatie bij het inlezen.
