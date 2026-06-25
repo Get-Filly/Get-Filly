@@ -733,6 +733,7 @@
     }
   },
   "campagnes_id_page": {
+    "mediaModalLabel": "Media toevoegen of vervangen",
     "backToCampaigns": "← Terug naar campagnes",
     "publishError": {
       "title": "Publiceren niet gelukt"

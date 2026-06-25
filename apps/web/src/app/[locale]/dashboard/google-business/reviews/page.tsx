@@ -687,6 +687,7 @@ function ReviewsPageInner() {
           onClick={closeReply}
           role="dialog"
           aria-modal="true"
+          aria-labelledby="review-reply-title"
         >
           <div className="sg-modal" onClick={(e) => e.stopPropagation()}>
             <button
@@ -704,7 +705,11 @@ function ReviewsPageInner() {
               </div>
             </div>
 
-            <h2 className="sg-modal-title" style={{ fontSize: 18 }}>
+            <h2
+              id="review-reply-title"
+              className="sg-modal-title"
+              style={{ fontSize: 18 }}
+            >
               {sourceInfo[replyTo.source].label} · {replyTo.rating} ★
             </h2>
 
