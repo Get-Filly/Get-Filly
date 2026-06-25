@@ -124,6 +124,18 @@ export default function DesignSystemPage() {
   const [demoTab, setDemoTab] = useState<"a" | "b" | "c">("a");
   const [demoText, setDemoText] = useState("");
 
+  // Interne dev-referentie: alleen tonen als de env-flag aanstaat. Default
+  // uit, zodat een klant die de URL raadt deze pagina niet ziet (stond
+  // voorheen open voor elke ingelogde user). Zet NEXT_PUBLIC_DESIGN_SYSTEM
+  // =1 lokaal/op de gewenste omgeving om 'm te bekijken.
+  if (process.env.NEXT_PUBLIC_DESIGN_SYSTEM !== "1") {
+    return (
+      <div style={{ padding: "48px 32px", color: "var(--tl, #A1A1AA)", fontSize: 14 }}>
+        Niet beschikbaar.
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
