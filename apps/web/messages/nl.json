@@ -2978,6 +2978,10 @@
   },
   "dash__components_filly_guided_flow": {
     "generatedNote": "Ik heb een concept-campagne klaargezet voor {day}:",
+    "idle": {
+      "title": "Wil je nog een campagne maken?",
+      "again": "Ja, nog een campagne"
+    },
     "welcome": {
       "title": "Waar kan ik je mee helpen?",
       "openerText": "Ik heb een paar dagen gedetecteerd. Voor welke dag wil je een uiting maken?",

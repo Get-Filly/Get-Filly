@@ -2978,6 +2978,10 @@
   },
   "dash__components_filly_guided_flow": {
     "generatedNote": "I've set up a draft campaign for {day}:",
+    "idle": {
+      "title": "Want to create another campaign?",
+      "again": "Yes, another campaign"
+    },
     "welcome": {
       "title": "What can I help you with?",
       "openerText": "I've detected a few days. Which day do you want to make a post for?",

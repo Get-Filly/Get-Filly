@@ -93,7 +93,15 @@ function buildContextOptions(ctx: DayContext | null): ContextOption[] {
   return opts;
 }
 
-type Step = "opener" | "angles" | "channels" | "generating" | "done";
+type Step =
+  | "opener"
+  | "angles"
+  | "channels"
+  | "generating"
+  | "done"
+  // "idle": rust-stap ná een afgeronde campagne — "Wil je nog een campagne?"
+  // i.p.v. meteen weer de dag-keuze tonen.
+  | "idle";
 
 // Altijd-beschikbare hoeken (los van wat er die dag gedetecteerd is).
 // hasInput === true → de hoek opent een vrij tekstveld. Labels en
@@ -124,6 +132,7 @@ export function FillyGuidedFlow({
   initialDate,
   initialTopic,
   initialChannels,
+  initialStep,
   onActionChange,
   onGenerated,
 }: {
@@ -132,6 +141,9 @@ export function FillyGuidedFlow({
   // Kanalen die de eigenaar expliciet noemde ("een tiktok campagne").
   // Wanneer gevuld: alléén die kanalen voor-aanvinken op de kanalen-stap.
   initialChannels?: string[];
+  // Bewaarde flow-stap uit active_action. "idle" = de rust-stap na een
+  // afgeronde campagne; blijft zo staan als je wegnavigeert en terugkomt.
+  initialStep?: string;
   onActionChange?: (delta: ActiveActionDelta) => void;
   // Aangeroepen ná een geslaagde generatie met een korte samenvatting + een
   // klikbare kaart, zodat de chat-parent een Filly-notitie in de historie kan
@@ -150,7 +162,12 @@ export function FillyGuidedFlow({
     hasOccupancyData,
   } = useActionableDays();
 
-  const [step, setStep] = useState<Step>(initialDate ? "angles" : "opener");
+  const [step, setStep] = useState<Step>(
+    initialStep === "idle" ? "idle" : initialDate ? "angles" : "opener",
+  );
+  // Dagen waarvoor in deze sessie al een campagne is gemaakt — die bieden we
+  // niet opnieuw aan in de dag-keuze (smart flow).
+  const [usedDates, setUsedDates] = useState<Set<string>>(new Set());
   const [autoStarted, setAutoStarted] = useState(false);
   const [picked, setPicked] = useState<PickedDay | null>(null);
   const [dayContext, setDayContext] = useState<DayContext | null>(null);
@@ -176,9 +193,14 @@ export function FillyGuidedFlow({
   const [showAllQuiet, setShowAllQuiet] = useState(false);
   const [result, setResult] = useState<AiSuggestion[]>([]);
 
+  // Smart flow: dagen waarvoor in deze sessie al een campagne is gemaakt
+  // bieden we niet opnieuw aan.
+  const availableQuiet = lowOccupancyDays.filter((d) => !usedDates.has(d.date));
+  const availableSpecial = specialDays.filter((s) => !usedDates.has(s.date));
+  const availableOpen = upcomingOpenDays.filter((iso) => !usedDates.has(iso));
   const quietToShow = showAllQuiet
-    ? lowOccupancyDays
-    : lowOccupancyDays.slice(0, QUIET_DAYS_PREVIEW);
+    ? availableQuiet
+    : availableQuiet.slice(0, QUIET_DAYS_PREVIEW);
   const contextOptions = useMemo(
     () => buildContextOptions(dayContext),
     [dayContext],
@@ -360,26 +382,29 @@ export function FillyGuidedFlow({
           : undefined;
         onGenerated?.(t("generatedNote", { day: dayLabel }), card);
       }
-      // Per 2026-06-24: de actie is afgerond (campagne staat als concept).
-      // Persisteer meteen een VERSE actie, zodat je bij terugkomst in de chat
-      // de normale flow ziet (eerst een dag kiezen) i.p.v. opnieuw dezelfde
-      // datum voorgesteld krijgt.
+      // Smart flow: markeer deze dag als "al gedaan" zodat 'ie niet opnieuw
+      // wordt aangeboden in de dag-keuze van een volgende campagne.
+      if (picked) {
+        const usedDate = picked.date;
+        setUsedDates((prev) => new Set(prev).add(usedDate));
+      }
+      // Rust-stap: het resultaat staat nu als klikbare kaart in de chat-
+      // historie. We tonen GEEN aparte "done"-kaart en springen NIET meteen
+      // terug in het stappen-menu, maar naar "Wil je nog een campagne?" (idle).
+      // Verse actie persisteren zodat de idle-stap blijft staan bij terugkomst.
       onActionChange?.({
         date: null,
         topic: null,
         channels: null,
-        step: "day",
+        step: "idle",
       });
-      // De flow zelf terug naar de opener: het resultaat staat nu als klikbare
-      // kaart in de chat-historie hierboven, dus tonen we GEEN aparte "done"-
-      // kaart meer (die was dubbelop).
       setPicked(null);
       setDayContext(null);
       setSelectedContext(new Set());
       setSelectedAngle(null);
       setAngleText({});
       setSelectedChannels(new Set());
-      setStep("opener");
+      setStep("idle");
     } catch (e) {
       logger.error(e);
       setError(e instanceof Error ? e.message : t("errors.generic"));
@@ -484,6 +509,34 @@ export function FillyGuidedFlow({
     );
   }
 
+  // ---------- Idle: rust-stap ná een afgeronde campagne ----------
+  // Geen stappen-menu opdringen; eerst een rustige "nog een campagne?"-vraag.
+  // De eigenaar kan ook gewoon zelf typen via het chat-tekstveld eronder.
+  if (step === "idle") {
+    return (
+      <div className="filly-guided">
+        <div className="fg-welcome">
+          <span className="fg-avatar">F</span>
+          <div>
+            <div className="fg-welcome-title">{t("idle.title")}</div>
+          </div>
+        </div>
+        <div className="fg-options" style={{ marginTop: 4 }}>
+          <button
+            type="button"
+            className="ui-btn ui-btn--primary ui-btn--sm"
+            onClick={() => {
+              setStep("opener");
+              onActionChange?.({ step: "day" });
+            }}
+          >
+            {t("idle.again")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ---------- Genereren: rustige tussenstaat ----------
   if (step === "generating") {
     return (
@@ -550,7 +603,7 @@ export function FillyGuidedFlow({
                 ? t("opener.belowThreshold", { threshold: occupancyThreshold })
                 : ""}
             </div>
-            {hasOccupancyData && lowOccupancyDays.length > 0 ? (
+            {hasOccupancyData && availableQuiet.length > 0 ? (
               <div className="fg-options">
                 {quietToShow.map((d) => (
                   <button
@@ -573,7 +626,7 @@ export function FillyGuidedFlow({
                     </span>
                   </button>
                 ))}
-                {lowOccupancyDays.length > QUIET_DAYS_PREVIEW && (
+                {availableQuiet.length > QUIET_DAYS_PREVIEW && (
                   <button
                     type="button"
                     className="fg-more"
@@ -583,7 +636,7 @@ export function FillyGuidedFlow({
                       ? t("opener.showLess")
                       : t("opener.showMore", {
                           count:
-                            lowOccupancyDays.length - QUIET_DAYS_PREVIEW,
+                            availableQuiet.length - QUIET_DAYS_PREVIEW,
                         })}
                   </button>
                 )}
@@ -592,7 +645,7 @@ export function FillyGuidedFlow({
               <>
                 <div className="fg-q">{t("opener.noReservations")}</div>
                 <div className="fg-options">
-                  {upcomingOpenDays.slice(0, 4).map((iso) => (
+                  {availableOpen.slice(0, 4).map((iso) => (
                     <button
                       key={`open-${iso}`}
                       type="button"
@@ -614,14 +667,14 @@ export function FillyGuidedFlow({
               </>
             )}
 
-            {specialDays.length > 0 && (
+            {availableSpecial.length > 0 && (
               <>
                 <div className="fg-group-label" style={{ marginTop: 6 }}>
                   <CalendarDays size={13} strokeWidth={2.25} />
                   {t("opener.specialDays")}
                 </div>
                 <div className="fg-options">
-                  {specialDays.map((s) => (
+                  {availableSpecial.map((s) => (
                     <button
                       key={`special-${s.date}`}
                       type="button"

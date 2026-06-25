@@ -149,6 +149,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             initialDate={activeAction?.date}
             initialTopic={activeAction?.topic}
             initialChannels={activeAction?.channels}
+            initialStep={activeAction?.step}
             onActionChange={onActiveActionChange}
             onGenerated={onGuidedGenerated}
           />
@@ -273,6 +274,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             initialDate={activeAction.date}
             initialTopic={activeAction.topic}
             initialChannels={activeAction.channels}
+            initialStep={activeAction.step}
             onActionChange={onActiveActionChange}
             onGenerated={onGuidedGenerated}
           />
