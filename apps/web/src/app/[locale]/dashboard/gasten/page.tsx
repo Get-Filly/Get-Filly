@@ -97,18 +97,28 @@ export default function GastenPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("alle");
+  // Ophogen = de gasten-fetch opnieuw triggeren (retry-knop bij fout).
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     fetchGuests()
       .then((d) => {
+        if (cancelled) return;
         setGuests(d);
+        setError(null);
         setLoading(false);
       })
       .catch((e: Error) => {
+        if (cancelled) return;
         setError(e.message);
         setLoading(false);
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryNonce]);
 
   const stats = useMemo(() => {
     const active90 = guests.filter((g) => {
@@ -329,7 +339,16 @@ export default function GastenPage() {
               error ? t("emptyErrorDescription") : t("emptyDescription")
             }
             action={
-              !error && <Button variant="primary">{t("addGuest")}</Button>
+              error ? (
+                <Button
+                  variant="primary"
+                  onClick={() => setRetryNonce((n) => n + 1)}
+                >
+                  {t("retry")}
+                </Button>
+              ) : (
+                <Button variant="primary">{t("addGuest")}</Button>
+              )
             }
           />
         )

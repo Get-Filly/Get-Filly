@@ -70,6 +70,9 @@ export default function CampagnesHistoryPage() {
   const [done, setDone] = useState<Campaign[]>([]);
   const [deleted, setDeleted] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  // Laadfout apart van "geen data": anders ziet de eigenaar een vrolijk leeg
+  // archief terwijl de server eigenlijk faalde.
+  const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<ArchiveTab>("afgerond");
 
   // Restore-modal state: welke campagne, gekozen status, gekozen
@@ -84,6 +87,7 @@ export default function CampagnesHistoryPage() {
 
   const reload = () => {
     setLoading(true);
+    setLoadError(false);
     Promise.all([fetchCampaigns(), fetchDeletedCampaigns()])
       .then(([all, del]) => {
         // 'Afgerond'-tab toont 2 categorieën:
@@ -105,6 +109,7 @@ export default function CampagnesHistoryPage() {
       .catch(() => {
         setDone([]);
         setDeleted([]);
+        setLoadError(true);
       })
       .finally(() => setLoading(false));
   };
@@ -216,6 +221,19 @@ export default function CampagnesHistoryPage() {
       {loading ? (
         <div style={{ color: "var(--tl)", fontSize: 13, marginTop: 16 }}>
           {t("loading")}
+        </div>
+      ) : loadError ? (
+        <div style={{ marginTop: 16 }}>
+          <EmptyState
+            icon="⚠️"
+            title={t("loadError.title")}
+            description={t("loadError.description")}
+            action={
+              <Button variant="primary" onClick={reload}>
+                {t("retry")}
+              </Button>
+            }
+          />
         </div>
       ) : rows.length === 0 ? (
         <div style={{ marginTop: 16 }}>
