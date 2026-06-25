@@ -158,6 +158,14 @@ function ReviewsPageInner() {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Korte succesbevestiging (bv. na het versturen van een antwoord). Verdwijnt
+  // vanzelf zodat de eigenaar zeker weet dat de actie gelukt is.
+  const [success, setSuccess] = useState<string | null>(null);
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(null), 4000);
+    return () => clearTimeout(timer);
+  }, [success]);
   const [bootstrapping, setBootstrapping] = useState(false);
 
   useEffect(() => {
@@ -435,6 +443,7 @@ function ReviewsPageInner() {
       });
       setReplyTo(null);
       setReplyText("");
+      setSuccess(t("replySent"));
     } catch (e) {
       setError(t("errors.save"));
       logger.error(e);
@@ -497,6 +506,25 @@ function ReviewsPageInner() {
   return (
     <div className="page-full">
       <PageHeader title={t("title")} />
+
+      {success && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            margin: "0 0 12px",
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "#ECF6EF",
+            border: "1px solid #CFE6D7",
+            color: "var(--accent-dark, #0E2B17)",
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          {success}
+        </div>
+      )}
 
       <div className="stats-row">
         <div className="stat-card">

@@ -83,6 +83,10 @@ export function FillyChat() {
   // initial-loading = skeleton, sending = typing-dots + input disabled.
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  // Synchroon slot tegen dubbel-versturen: state-updates zijn async, dus twee
+  // snelle kliks lezen allebei `sending===false` en zouden 2 berichten sturen.
+  // Een ref wordt direct gezet en blokkeert de tweede call meteen.
+  const sendingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   // Cap-bereikt detector: zodra de conversatie aan z'n max berichten
   // zit (CHAT_CONVERSATION_CAP=20) togglen we naar een "vol"-mode
@@ -269,11 +273,15 @@ export function FillyChat() {
   // Refactored 2026-05-04: send-logica in een herbruikbare sendText(text)
   // zodat de choice-card-handler ('chooseChannel') 'm ook kan triggeren
   // zonder dat de eigenaar via de input-veld hoeft te typen.
-  const sendText = async (text: string) => {
-    if (!text || !conversationId || sending) return;
+  // Geeft terug of het bericht daadwerkelijk verstuurd is, zodat de keuze-
+  // kaarten (chooseChannel/chooseDate) weten of ze "verstuurd" mogen tonen.
+  const sendText = async (text: string): Promise<boolean> => {
+    if (!text || !conversationId || sendingRef.current) return false;
 
+    sendingRef.current = true;
     setError(null);
     setSending(true);
+    let sent = false;
 
     // Optimistic UI: user-bericht direct zichtbaar. De server-response
     // geeft zo meteen een echte id + timestamp waarmee we het
@@ -336,6 +344,7 @@ export function FillyChat() {
       void fetchChatConversations()
         .then(setConversations)
         .catch(() => undefined);
+      sent = true;
     } catch (e) {
       // Twee soorten fouten:
       //   1. Cap-bereikt (400 met specifieke NL-tekst): user mocht
@@ -356,8 +365,10 @@ export function FillyChat() {
         setError(t("errors.sendFailed"));
       }
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
+    return sent;
   };
 
   // Geleide flow meldt een keuze (dag/kanalen) of een afronding
@@ -462,18 +473,17 @@ export function FillyChat() {
       promptText = t("prompts.bundle", { channels: labels.join(", ") });
     }
 
-    try {
-      await sendText(promptText);
-      setChoiceState((s) => ({
-        ...s,
-        [messageId]: { state: "chosen", chosen: choices[0] },
-      }));
-    } catch {
-      setChoiceState((s) => ({
-        ...s,
-        [messageId]: { state: "pending", chosen: undefined },
-      }));
-    }
+    // sendText geeft terug of het écht verstuurd is (false bij een dubbel-
+    // klik die door het slot werd geblokkeerd, of bij een fout). Alleen dan
+    // "verstuurd" tonen; anders terug naar pending zodat de kaart niet ten
+    // onrechte als afgehandeld oogt.
+    const sent = await sendText(promptText);
+    setChoiceState((s) => ({
+      ...s,
+      [messageId]: sent
+        ? { state: "chosen", chosen: choices[0] }
+        : { state: "pending", chosen: undefined },
+    }));
   };
 
   // Eigenaar klikt op een knop in een DateChoiceCard. We sturen de
@@ -483,12 +493,11 @@ export function FillyChat() {
   const chooseDate = async (messageId: string, followUpText: string) => {
     if (!followUpText.trim()) return;
     setDateChoiceState((s) => ({ ...s, [messageId]: { state: "submitting" } }));
-    try {
-      await sendText(followUpText);
-      setDateChoiceState((s) => ({ ...s, [messageId]: { state: "chosen" } }));
-    } catch {
-      setDateChoiceState((s) => ({ ...s, [messageId]: { state: "pending" } }));
-    }
+    const sent = await sendText(followUpText);
+    setDateChoiceState((s) => ({
+      ...s,
+      [messageId]: { state: sent ? "chosen" : "pending" },
+    }));
   };
 
   // Switch naar een andere conversatie via de history-dropdown.

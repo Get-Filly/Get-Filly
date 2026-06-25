@@ -1728,6 +1728,7 @@
     "sendReply": "Verstuur reactie",
     "cancel": "Annuleren",
     "discardConfirm": "Je hebt een nog niet verzonden antwoord. Sluiten en weggooien?",
+    "replySent": "✓ Je antwoord is geplaatst.",
     "trendRatingLabel": "t.o.v. eerdere reviews",
     "trendVolumeLabel": "{count, plural, one {nieuwe review deze maand} other {nieuwe reviews deze maand}}",
     "errors": {

@@ -1728,6 +1728,7 @@
     "sendReply": "Send reply",
     "cancel": "Cancel",
     "discardConfirm": "You have an unsent reply. Close and discard it?",
+    "replySent": "✓ Your reply has been posted.",
     "trendRatingLabel": "vs. earlier reviews",
     "trendVolumeLabel": "{count, plural, one {new review this month} other {new reviews this month}}",
     "errors": {
