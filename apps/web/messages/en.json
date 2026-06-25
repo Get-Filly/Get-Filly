@@ -799,6 +799,11 @@
       "done": "Completed",
       "deleted": "Deleted"
     },
+    "loadError": {
+      "title": "Couldn't load the archive",
+      "description": "Something went wrong while loading. Check your connection and try again."
+    },
+    "retry": "Try again",
     "emptyDone": {
       "title": "No completed campaigns yet",
       "description": "As soon as a campaign is completed it shows up here. Head back to the campaigns page for running and scheduled campaigns."
@@ -1272,6 +1277,7 @@
     "noGuestsFound": "No guests found.",
     "emptyTitle": "No guests yet",
     "emptyErrorDescription": "We couldn't load the guest list. Please try reloading the page.",
+    "retry": "Try again",
     "emptyDescription": "Import from your reservation platform or add manually.",
     "addGuest": "Add guest",
     "colViaFilly": "Via Filly",
@@ -2393,6 +2399,7 @@
       "title": "Reservations not loaded",
       "description": "We could not load the list. Please reload the page."
     },
+    "retry": "Try again",
     "errors": {
       "linkFailed": "Linking failed. Please try again."
     },

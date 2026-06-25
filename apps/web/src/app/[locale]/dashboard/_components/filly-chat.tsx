@@ -514,9 +514,14 @@ export function FillyChat() {
       setMessages(data.messages);
       setMessageCount(data.messageCount);
       setActiveAction(data.activeAction);
-      // Proposal-statussen resetten naar leeg; ze worden uit message_card
-      // bij volgende render afgeleid (pending = default als geen entry).
+      // Álle kaart-statussen resetten naar leeg (ze zijn gekeyd op de
+      // message-id van het vórige gesprek); ze worden uit message_card bij
+      // volgende render opnieuw afgeleid. Niet alleen proposalStatus: anders
+      // blijven stale bundle-/keuze-/datum-statussen hangen.
       setProposalStatus({});
+      setBundleStatus({});
+      setChoiceState({});
+      setDateChoiceState({});
     } catch (e) {
       logger.error(e);
       setError(t("errors.conversationLoadFailed"));
@@ -538,6 +543,9 @@ export function FillyChat() {
       setMessageCount(data.messageCount);
       setActiveAction(data.activeAction);
       setProposalStatus({});
+      setBundleStatus({});
+      setChoiceState({});
+      setDateChoiceState({});
       const convs = await fetchChatConversations().catch(() => []);
       setConversations(convs);
     } catch (e) {

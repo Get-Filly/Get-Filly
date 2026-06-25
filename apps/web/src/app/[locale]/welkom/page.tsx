@@ -9,6 +9,7 @@ import {
   PasswordStrength,
   isPasswordValid,
 } from "@/components/password-strength";
+import { authErrorKey } from "@/lib/auth-errors";
 
 // ============================================================
 // /welkom, activatie-stap voor een uitgenodigde nieuwe klant
@@ -31,6 +32,9 @@ import {
 
 function WelkomForm() {
   const t = useTranslations("welkom");
+  // Auth-foutmeldingen delen we met de login-flow (auth.errors.*) i.p.v. de
+  // rauwe Engelse Supabase-tekst te tonen.
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const params = useSearchParams();
 
@@ -95,7 +99,7 @@ function WelkomForm() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setError(tAuth(`errors.${authErrorKey(error)}`));
       return;
     }
 

@@ -799,6 +799,11 @@
       "done": "Afgerond",
       "deleted": "Verwijderd"
     },
+    "loadError": {
+      "title": "Kon het archief niet laden",
+      "description": "Er ging iets mis bij het ophalen. Controleer je verbinding en probeer het opnieuw."
+    },
+    "retry": "Probeer opnieuw",
     "emptyDone": {
       "title": "Nog geen voltooide campagnes",
       "description": "Zodra een campagne afgerond is verschijnt 'ie hier. Loop terug naar de campagnes-pagina voor lopende en geplande campagnes."
@@ -1272,6 +1277,7 @@
     "noGuestsFound": "Geen gasten gevonden.",
     "emptyTitle": "Nog geen gasten",
     "emptyErrorDescription": "We konden de gastenlijst niet laden. Probeer de pagina te herladen.",
+    "retry": "Probeer opnieuw",
     "emptyDescription": "Importeer vanuit je reserveringsplatform of voeg handmatig toe.",
     "addGuest": "Gast toevoegen",
     "colViaFilly": "Via Filly",
@@ -2393,6 +2399,7 @@
       "title": "Reserveringen niet geladen",
       "description": "We konden de lijst niet ophalen. Probeer de pagina te herladen."
     },
+    "retry": "Probeer opnieuw",
     "errors": {
       "linkFailed": "Koppelen mislukt. Probeer opnieuw."
     },

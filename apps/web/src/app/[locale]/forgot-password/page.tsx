@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import { authErrorKey } from "@/lib/auth-errors";
 
 // ============================================================
 // /forgot-password, stap 1 van password-reset
@@ -50,8 +51,8 @@ export default function ForgotPasswordPage() {
     setLoading(false);
 
     if (error) {
-      // Echte fouten zoals rate-limit tonen we wel (niet user-specifiek).
-      setError(error.message);
+      // Geen rauwe Engelse Supabase-tekst; map naar NL/EN-microcopy.
+      setError(t(`errors.${authErrorKey(error)}`));
       return;
     }
 

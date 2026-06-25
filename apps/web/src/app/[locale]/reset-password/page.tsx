@@ -9,6 +9,7 @@ import {
   PasswordStrength,
   isPasswordValid,
 } from "@/components/password-strength";
+import { authErrorKey } from "@/lib/auth-errors";
 
 // ============================================================
 // /reset-password, stap 2 van password-reset
@@ -80,7 +81,8 @@ function ResetPasswordForm() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      // Geen rauwe Engelse Supabase-tekst; map naar NL/EN-microcopy.
+      setError(t(`errors.${authErrorKey(error)}`));
       return;
     }
 

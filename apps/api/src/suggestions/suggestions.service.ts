@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -2005,7 +2006,8 @@ Maak dit tastbaar volgens de regels.`;
     // eerst handmatig 'Terugzetten op open' doen. Dit is een bewuste
     // beslissingsgrens om stille 're-activations' te voorkomen.
     if (suggestion.status !== 'pending') {
-      throw new InternalServerErrorException(
+      // Gebruikers-state-conflict (al afgehandeld), geen serverfout → 409.
+      throw new ConflictException(
         `Deze suggestie is ${suggestion.status}. Zet 'm eerst terug op open via de Afgewezen-tab.`,
       );
     }
@@ -2479,7 +2481,8 @@ Maak dit tastbaar volgens de regels.`;
     const suggestion = await this.findById(restaurantId, suggestionId);
 
     if (suggestion.trigger_type !== 'chat_bundle') {
-      throw new InternalServerErrorException(
+      // Verkeerd endpoint voor dit type suggestie → 400, geen serverfout.
+      throw new BadRequestException(
         'Deze suggestie is geen multi-channel-bundle. Gebruik approve i.p.v. approveBundle.',
       );
     }
@@ -2523,7 +2526,8 @@ Maak dit tastbaar volgens de regels.`;
     }
 
     if (suggestion.status !== 'pending') {
-      throw new InternalServerErrorException(
+      // Gebruikers-state-conflict (al afgehandeld), geen serverfout → 409.
+      throw new ConflictException(
         `Deze bundle is ${suggestion.status}. Zet 'm eerst terug op open via de Afgewezen-tab.`,
       );
     }

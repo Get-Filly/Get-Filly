@@ -102,6 +102,8 @@ export default function ReserveringenPage() {
   const [guestsById, setGuestsById] = useState<Map<string, Guest>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Ophogen = de reserveringen-fetch opnieuw triggeren (retry-knop bij fout).
+  const [retryNonce, setRetryNonce] = useState(0);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("alle");
   // Tijdens een attributie-PATCH zetten we de reservation-id hier zodat
@@ -158,6 +160,7 @@ export default function ReserveringenPage() {
       .then((res) => {
         if (cancelled) return;
         setReservations(res);
+        setError(null);
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -168,7 +171,7 @@ export default function ReserveringenPage() {
     return () => {
       cancelled = true;
     };
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, retryNonce]);
 
   // Handler voor het wijzigen van de attributie. Optimistisch updaten:
   // we vervangen de rij meteen in lokale state, doen daarna de PATCH;
@@ -345,6 +348,16 @@ export default function ReserveringenPage() {
             title={error ? t("emptyError.title") : t("empty.title")}
             description={
               error ? t("emptyError.description") : t("empty.description")
+            }
+            action={
+              error ? (
+                <Button
+                  variant="primary"
+                  onClick={() => setRetryNonce((n) => n + 1)}
+                >
+                  {t("retry")}
+                </Button>
+              ) : undefined
             }
           />
         )
