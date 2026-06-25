@@ -217,6 +217,17 @@ const disconnectButtonStyle: React.CSSProperties = {
   textDecoration: "underline",
   flexShrink: 0,
 };
+// Waarschuwings-pill: token verlopen → herverbinden nodig (amber).
+const reconnectPillStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#8A5A00",
+  background: "#FBF1DD",
+  border: "1px solid #EAD9AE",
+  borderRadius: 999,
+  padding: "4px 10px",
+  flexShrink: 0,
+};
 const soonPillStyle: React.CSSProperties = {
   padding: "4px 10px",
   fontSize: 11,
@@ -251,13 +262,21 @@ export function ConnectionsSection() {
     google_business: null,
     tiktok: null,
   });
+  // Meta-token verlopen? Dan tonen we "Herverbinden nodig" i.p.v. "Verbonden".
+  const [metaExpired, setMetaExpired] = useState(false);
 
   // Status 1× ophalen (en opnieuw bij wissel van actief restaurant).
   const refresh = useCallback(() => {
     if (!active?.id) return;
     metaStatus()
-      .then((s) => setStatus((p) => ({ ...p, meta: s.connected })))
-      .catch(() => setStatus((p) => ({ ...p, meta: false })));
+      .then((s) => {
+        setStatus((p) => ({ ...p, meta: s.connected }));
+        setMetaExpired(!!s.expired);
+      })
+      .catch(() => {
+        setStatus((p) => ({ ...p, meta: false }));
+        setMetaExpired(false);
+      });
     // Google-status ophalen zodat de rij de echte staat toont (Verbind vs
     // Verbonden + Ontkoppel).
     googleBusinessStatus()
@@ -330,6 +349,7 @@ export function ConnectionsSection() {
                     isLast={idx === group.length - 1}
                     activeRestaurantId={active?.id ?? null}
                     connected={i.provider ? status[i.provider] : null}
+                    expired={i.provider === "meta" ? metaExpired : false}
                     onDisconnect={handleDisconnect}
                   />
                   {/* Pagina-keuze klapt uit direct onder de Meta-rij; de
@@ -351,6 +371,8 @@ type IntegrationRowProps = {
   activeRestaurantId: string | null;
   // Live status van de bijbehorende provider (null = ladend / n.v.t.).
   connected: boolean | null;
+  // Token verlopen (alleen relevant voor Meta) → "Herverbinden nodig".
+  expired?: boolean;
   onDisconnect: (provider: Provider) => void;
 };
 
@@ -359,6 +381,7 @@ function IntegrationRow({
   isLast,
   activeRestaurantId,
   connected,
+  expired,
   onDisconnect,
 }: IntegrationRowProps) {
   const t = useTranslations("dash__components_account_connections");
@@ -394,6 +417,7 @@ function IntegrationRow({
         integration={integration}
         activeRestaurantId={activeRestaurantId}
         connected={connected}
+        expired={expired}
         onDisconnect={onDisconnect}
       />
     );
@@ -425,11 +449,13 @@ function OAuthAction({
   integration,
   activeRestaurantId,
   connected,
+  expired,
   onDisconnect,
 }: {
   integration: Integration;
   activeRestaurantId: string | null;
   connected: boolean | null;
+  expired?: boolean;
   onDisconnect: (provider: Provider) => void;
 }) {
   const t = useTranslations("dash__components_account_connections");
@@ -441,6 +467,26 @@ function OAuthAction({
     path.startsWith("/oauth/") && activeRestaurantId
       ? `${path}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
       : path;
+
+  // Verbonden maar token verlopen: "Herverbinden nodig" + opnieuw verbinden
+  // (zelfde OAuth-start, upsert verse token) + Ontkoppel.
+  if (connected === true && provider && expired) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <span style={reconnectPillStyle}>{t("reconnectNeeded")}</span>
+        <a href={withRid(integration.connectPath ?? "#")} style={actionLinkStyle}>
+          {t("connect")}
+        </a>
+        <button
+          type="button"
+          onClick={() => onDisconnect(provider)}
+          style={disconnectButtonStyle}
+        >
+          {t("disconnect")}
+        </button>
+      </div>
+    );
+  }
 
   // Verbonden: groene pill + (optioneel) Beheer + Ontkoppel (net als FB/IG).
   if (connected === true && provider) {

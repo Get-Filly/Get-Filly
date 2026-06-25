@@ -53,6 +53,8 @@ export async function authedFetch(
 export type MetaStatus = {
   connected: boolean;
   page?: { id: string; name: string } | null;
+  // Token verlopen volgens expires_at → eigenaar moet opnieuw verbinden.
+  expired?: boolean;
 };
 
 export async function metaStatus(): Promise<MetaStatus> {

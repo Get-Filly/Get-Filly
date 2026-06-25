@@ -78,6 +78,8 @@ export function MetaPageSelector() {
 
   const savedPageName =
     pages.find((p) => p.id === savedPageId)?.name ?? null;
+  // Nog geen pagina gekozen → waarschuwende kop, ook met het menu dicht.
+  const needsPage = !savedPageId;
 
   const savePage = async () => {
     if (!selectedPageId) return;
@@ -130,14 +132,17 @@ export function MetaPageSelector() {
           border: "none",
           cursor: "pointer",
           fontSize: 12,
-          fontWeight: 500,
-          color: "var(--brand, #1F4A2D)",
+          fontWeight: needsPage ? 600 : 500,
+          color: needsPage ? "#8A5A00" : "var(--brand, #1F4A2D)",
           fontFamily: "inherit",
         }}
       >
         <span style={{ flex: 1 }}>
-          {t("choosePage")}
-          {savedPageName ? `: ${savedPageName}` : ""}
+          {needsPage
+            ? t("noPageChosen")
+            : savedPageName
+              ? `${t("choosePage")}: ${savedPageName}`
+              : t("choosePage")}
         </span>
         <ChevronDown
           size={15}
