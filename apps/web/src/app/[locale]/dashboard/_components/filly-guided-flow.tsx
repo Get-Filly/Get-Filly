@@ -133,6 +133,8 @@ export function FillyGuidedFlow({
   initialTopic,
   initialChannels,
   initialStep,
+  usedDates,
+  onDayUsed,
   onActionChange,
   onGenerated,
 }: {
@@ -144,6 +146,10 @@ export function FillyGuidedFlow({
   // Bewaarde flow-stap uit active_action. "idle" = de rust-stap na een
   // afgeronde campagne; blijft zo staan als je wegnavigeert en terugkomt.
   initialStep?: string;
+  // Dagen waarvoor al een campagne is gemaakt — niet opnieuw aanbieden. Komt
+  // van de chat-parent (overleeft de instantie-wissel bij het eerste bericht).
+  usedDates?: string[];
+  onDayUsed?: (date: string) => void;
   onActionChange?: (delta: ActiveActionDelta) => void;
   // Aangeroepen ná een geslaagde generatie met een korte samenvatting + een
   // klikbare kaart, zodat de chat-parent een Filly-notitie in de historie kan
@@ -165,9 +171,10 @@ export function FillyGuidedFlow({
   const [step, setStep] = useState<Step>(
     initialStep === "idle" ? "idle" : initialDate ? "angles" : "opener",
   );
-  // Dagen waarvoor in deze sessie al een campagne is gemaakt — die bieden we
-  // niet opnieuw aan in de dag-keuze (smart flow).
-  const [usedDates, setUsedDates] = useState<Set<string>>(new Set());
+  // Dagen waarvoor al een campagne is gemaakt — die bieden we niet opnieuw aan
+  // in de dag-keuze (smart flow). Bron = de chat-parent (prop), zodat het de
+  // instantie-wissel bij het eerste bericht overleeft.
+  const usedSet = useMemo(() => new Set(usedDates ?? []), [usedDates]);
   const [autoStarted, setAutoStarted] = useState(false);
   const [picked, setPicked] = useState<PickedDay | null>(null);
   const [dayContext, setDayContext] = useState<DayContext | null>(null);
@@ -195,9 +202,9 @@ export function FillyGuidedFlow({
 
   // Smart flow: dagen waarvoor in deze sessie al een campagne is gemaakt
   // bieden we niet opnieuw aan.
-  const availableQuiet = lowOccupancyDays.filter((d) => !usedDates.has(d.date));
-  const availableSpecial = specialDays.filter((s) => !usedDates.has(s.date));
-  const availableOpen = upcomingOpenDays.filter((iso) => !usedDates.has(iso));
+  const availableQuiet = lowOccupancyDays.filter((d) => !usedSet.has(d.date));
+  const availableSpecial = specialDays.filter((s) => !usedSet.has(s.date));
+  const availableOpen = upcomingOpenDays.filter((iso) => !usedSet.has(iso));
   const quietToShow = showAllQuiet
     ? availableQuiet
     : availableQuiet.slice(0, QUIET_DAYS_PREVIEW);
@@ -294,6 +301,19 @@ export function FillyGuidedFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDate, loading, autoStarted]);
 
+  // Idle-sync: bij de eerste campagne in een leeg gesprek wisselt de chat van
+  // render-plek zodra het eerste bericht verschijnt; de nieuwe flow-instantie
+  // mount soms vóórdat active_action op "idle" staat (race) en toont dan de
+  // dag-keuze. Zodra active_action wél "idle" is, dwingen we de rust-stap af —
+  // ongeacht het mount-moment. (Alleen voor "idle"; gewone flow-stappen
+  // sturen we niet, zodat eigen kliks niet worden overschreven.)
+  useEffect(() => {
+    if (initialStep === "idle") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStep("idle");
+    }
+  }, [initialStep]);
+
   // Dag wijzigen → terug naar de opener; gedetecteerde context + kanalen
   // resetten (die zijn dag-specifiek), de gekozen hoeken blijven staan
   // zodat je na een nieuwe dag netjes weer bij dezelfde hoeken uitkomt.
@@ -382,12 +402,9 @@ export function FillyGuidedFlow({
           : undefined;
         onGenerated?.(t("generatedNote", { day: dayLabel }), card);
       }
-      // Smart flow: markeer deze dag als "al gedaan" zodat 'ie niet opnieuw
-      // wordt aangeboden in de dag-keuze van een volgende campagne.
-      if (picked) {
-        const usedDate = picked.date;
-        setUsedDates((prev) => new Set(prev).add(usedDate));
-      }
+      // Smart flow: markeer deze dag als "al gedaan" (via de parent, zodat het
+      // de instantie-wissel overleeft) → niet opnieuw aanbieden.
+      if (picked) onDayUsed?.(picked.date);
       // Rust-stap: het resultaat staat nu als klikbare kaart in de chat-
       // historie. We tonen GEEN aparte "done"-kaart en springen NIET meteen
       // terug in het stappen-menu, maar naar "Wil je nog een campagne?" (idle).

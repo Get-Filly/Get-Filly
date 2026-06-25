@@ -80,6 +80,10 @@ type Props = {
   // De geleide flow meldt hier een afgeronde generatie (tekst + klikbare
   // kaart) zodat de chat-parent een Filly-notitie in de historie bijschrijft.
   onGuidedGenerated: (text: string, card?: CampaignCreatedCard) => void;
+  // Dagen waarvoor al een campagne is gemaakt (in de chat-parent bewaard zodat
+  // ze de flow-instantie-wissel overleven) + melder bij een nieuwe.
+  guidedUsedDates: string[];
+  onGuidedDayUsed: (date: string) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -102,6 +106,8 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
       activeAction,
       onActiveActionChange,
       onGuidedGenerated,
+      guidedUsedDates,
+      onGuidedDayUsed,
     },
     scrollRef,
   ) {
@@ -150,6 +156,8 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             initialTopic={activeAction?.topic}
             initialChannels={activeAction?.channels}
             initialStep={activeAction?.step}
+            usedDates={guidedUsedDates}
+            onDayUsed={onGuidedDayUsed}
             onActionChange={onActiveActionChange}
             onGenerated={onGuidedGenerated}
           />
@@ -275,6 +283,8 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             initialTopic={activeAction.topic}
             initialChannels={activeAction.channels}
             initialStep={activeAction.step}
+            usedDates={guidedUsedDates}
+            onDayUsed={onGuidedDayUsed}
             onActionChange={onActiveActionChange}
             onGenerated={onGuidedGenerated}
           />

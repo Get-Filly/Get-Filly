@@ -70,6 +70,10 @@ export function FillyChat() {
   // begintoestand hieruit en meldt keuzes terug; de chat-roundtrip houdt
   // 'm in sync. Server (active_action-kolom) is de bron-van-waarheid.
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null);
+  // Dagen waarvoor de geleide flow in deze sessie al een campagne maakte; de
+  // smart dag-filter sluit ze uit. In de parent zodat het de flow-instantie-
+  // wissel (leeg gesprek → eerste bericht) overleeft.
+  const [guidedUsedDates, setGuidedUsedDates] = useState<string[]>([]);
   const [conversations, setConversations] = useState<
     ChatConversationSummary[]
   >([]);
@@ -372,6 +376,16 @@ export function FillyChat() {
   // De geleide flow laat ná het genereren een Filly-notitie achter in de
   // historie, zodat de eigenaar bij terugkomst ziet wat er gebeurd is i.p.v.
   // een leeg scherm. Best-effort: een gefaalde notitie blokkeert de flow niet.
+  // Dagen waarvoor in deze sessie al een campagne is gemaakt. Hier (in de
+  // parent) bewaard zodat de smart dag-filter de flow-instantie-wissel bij het
+  // eerste bericht overleeft.
+  const handleGuidedDayUsed = (date: string) => {
+    if (!date) return;
+    setGuidedUsedDates((prev) =>
+      prev.includes(date) ? prev : [...prev, date],
+    );
+  };
+
   const handleGuidedGenerated = async (
     text: string,
     card?: MessageCard,
@@ -711,6 +725,8 @@ export function FillyChat() {
         activeAction={activeAction}
         onActiveActionChange={handleActiveActionChange}
         onGuidedGenerated={handleGuidedGenerated}
+        guidedUsedDates={guidedUsedDates}
+        onGuidedDayUsed={handleGuidedDayUsed}
       />
 
       {showJump && (
