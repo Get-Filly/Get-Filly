@@ -552,6 +552,27 @@ export default function CampagnesPage() {
     refetch().finally(() => setLoading(false));
   }, []);
 
+  // Diep-link vanuit de geleide chat-flow ("Bedenk er zelf een" → Verder):
+  // open meteen de "maak eigen campagne"-builder. We strippen de param weer
+  // zodat een refresh 'm niet opnieuw opent.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nieuw") === "eigen") {
+      setBuilderName("");
+      setBuilderChannels(["instagram"]);
+      setBuilderError(null);
+      setBuilderOpen(true);
+      params.delete("nieuw");
+      const qs = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + (qs ? `?${qs}` : ""),
+      );
+    }
+  }, []);
+
   // Verdeel items over de 4 kolommen.
   const columns = useMemo(() => {
     // Helper: matched een item de actieve kanaal-filter?
