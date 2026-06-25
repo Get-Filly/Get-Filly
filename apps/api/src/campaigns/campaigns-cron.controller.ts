@@ -21,8 +21,11 @@ import { CampaignsService } from './campaigns.service';
 // Aparte base-path `campaigns/cron` zodat 'ie NIET botst met de
 // guarded CampaignsController (`@Get(':id')` matcht maar één segment).
 //
-// ⚠️ Precieze timing vereist een frequente schedule (Vercel Pro). Op
-// Hobby draait cron max 1×/dag — zie vercel.json + runScheduledSocial.
+// Timing: deze cron polt elk half uur (Vercel Pro, zie vercel.json) en
+// publiceert alles waarvan `scheduled_for <= now`. Een ingeplande campagne
+// gaat dus binnen ~30 min na z'n geplande tijd live. Direct publiceren loopt
+// NIET via deze cron maar synchroon via "Activeer nu". NB: alleen
+// type='social' — ingeplande mail wordt (nog) niet automatisch verstuurd.
 // @Public(): globale AuthGuard slaat 'm over; beveiliging = de CRON_SECRET-check.
 @Public()
 @Controller('campaigns/cron')
