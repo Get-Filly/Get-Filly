@@ -22,6 +22,7 @@ import {
   type CampaignBundleCard,
   type ChannelChoiceCard,
   type ChatConversationSummary,
+  type MessageCard,
   type ChatMessage,
   type CampaignProposalCard,
 } from "@/lib/api";
@@ -175,12 +176,13 @@ export function FillyChat() {
         for (const msg of data.messages) {
           const card = msg.message_card;
           if (!card) continue;
-          // channel_choice + date_choice + guided_start hebben geen
-          // ai_suggestion erachter, skip.
+          // channel_choice + date_choice + guided_start + campaign_created
+          // hebben geen pending ai_suggestion-status erachter, skip.
           if (
             card.kind === "channel_choice" ||
             card.kind === "date_choice" ||
-            card.kind === "guided_start"
+            card.kind === "guided_start" ||
+            card.kind === "campaign_created"
           )
             continue;
           const suggId = card.suggestion_id;
@@ -370,10 +372,13 @@ export function FillyChat() {
   // De geleide flow laat ná het genereren een Filly-notitie achter in de
   // historie, zodat de eigenaar bij terugkomst ziet wat er gebeurd is i.p.v.
   // een leeg scherm. Best-effort: een gefaalde notitie blokkeert de flow niet.
-  const handleGuidedGenerated = async (text: string) => {
+  const handleGuidedGenerated = async (
+    text: string,
+    card?: MessageCard,
+  ) => {
     if (!conversationId || !text.trim()) return;
     try {
-      const msg = await appendChatNote(conversationId, text);
+      const msg = await appendChatNote(conversationId, text, card);
       setMessages((m) => [...m, msg]);
       setMessageCount((c) => c + 1);
     } catch (e) {

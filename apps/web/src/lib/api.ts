@@ -2415,12 +2415,26 @@ export type GuidedStartCard = {
   channels?: string[];
 };
 
+// Spoor van een afgeronde geleide-flow-generatie: een klikbare kaart in de
+// chat-historie die naar de aangemaakte concept-campagne linkt. Minimaal:
+// alleen de titel + "Bekijken & aanpassen" (geen kanaal-iconen — die worden
+// rommelig bij meerdere kanalen).
+export type CampaignCreatedCard = {
+  kind: "campaign_created";
+  // Concept-campagne-id (of group_id van een bundel). Null = val terug op het
+  // voorstel via suggestionId.
+  campaignId: string | null;
+  suggestionId: string;
+  name: string;
+};
+
 export type MessageCard =
   | CampaignProposalCard
   | CampaignBundleCard
   | ChannelChoiceCard
   | DateChoiceCard
-  | GuidedStartCard;
+  | GuidedStartCard
+  | CampaignCreatedCard;
 
 export type ChatMessage = {
   id: string;
@@ -2601,13 +2615,14 @@ export async function updateChatActiveAction(
 export async function appendChatNote(
   conversationId: string,
   text: string,
+  card?: MessageCard,
 ): Promise<ChatMessage> {
   const res = await authedFetch(
     `${API_URL}/chat/conversations/${conversationId}/note`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, card }),
     },
   );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

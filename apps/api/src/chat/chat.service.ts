@@ -385,6 +385,7 @@ export class ChatService {
     restaurantId: string,
     conversationId: string,
     text: string,
+    card?: unknown,
   ): Promise<{
     id: string;
     role: ChatRole;
@@ -406,6 +407,13 @@ export class ChatService {
     if (convErr) throw new InternalServerErrorException(convErr.message);
     if (!conv) throw new BadRequestException('Gesprek niet gevonden.');
 
+    // Optionele kaart (bv. 'campaign_created' die naar de aangemaakte concept-
+    // campagne linkt). Plain object → opgeslagen in message_card (jsonb).
+    const messageCard =
+      card && typeof card === 'object'
+        ? (card as Record<string, unknown>)
+        : null;
+
     const { data: msg, error } = await this.supabase.client
       .from('chat_messages')
       .insert({
@@ -413,6 +421,7 @@ export class ChatService {
         restaurant_id: restaurantId,
         role: 'filly',
         content,
+        message_card: messageCard,
       })
       .select('id, role, content, message_card, created_at')
       .single();

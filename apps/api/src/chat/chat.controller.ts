@@ -91,9 +91,9 @@ export class ChatController {
   appendNote(
     @RestaurantId() restaurantId: string,
     @Param('id') id: string,
-    @Body() body: { text?: string },
+    @Body() body: { text?: string; card?: unknown },
   ) {
-    return this.chat.appendNote(restaurantId, id, body?.text ?? '');
+    return this.chat.appendNote(restaurantId, id, body?.text ?? '', body?.card);
   }
 
   // Bericht sturen. Rate-limit-guard draait hier extra bovenop de

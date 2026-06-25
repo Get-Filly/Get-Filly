@@ -2928,6 +2928,7 @@
   },
   "dash__components_filly_chat_message_list": {
     "fillyLabel": "Filly AI",
+    "viewEdit": "View & edit →",
     "userLabel": "You",
     "typing": "Filly is typing…"
   },
@@ -2976,8 +2977,7 @@
     }
   },
   "dash__components_filly_guided_flow": {
-    "generatedNote": "Done — I've set up a draft campaign for {day}. You'll find it under Campaigns.",
-    "generatedNoteChannels": "Done — I've set up a draft campaign for {day} on {channels}. You'll find it under Campaigns.",
+    "generatedNote": "I've set up a draft campaign for {day}:",
     "welcome": {
       "title": "What can I help you with?",
       "openerText": "I've detected a few days. Which day do you want to make a post for?",

@@ -19,6 +19,7 @@ import {
   generateSuggestionsForDates,
   type ActiveActionDelta,
   type AiSuggestion,
+  type CampaignCreatedCard,
   type DayContext,
   type GenerateForDatesItem,
 } from "@/lib/api";
@@ -132,9 +133,10 @@ export function FillyGuidedFlow({
   // Wanneer gevuld: alléén die kanalen voor-aanvinken op de kanalen-stap.
   initialChannels?: string[];
   onActionChange?: (delta: ActiveActionDelta) => void;
-  // Aangeroepen ná een geslaagde generatie met een korte samenvatting,
-  // zodat de chat-parent een Filly-notitie in de historie kan bijschrijven.
-  onGenerated?: (text: string) => void;
+  // Aangeroepen ná een geslaagde generatie met een korte samenvatting + een
+  // klikbare kaart, zodat de chat-parent een Filly-notitie in de historie kan
+  // bijschrijven die naar de aangemaakte campagne linkt.
+  onGenerated?: (text: string, card?: CampaignCreatedCard) => void;
 }) {
   const t = useTranslations("dash__components_filly_guided_flow");
   const localeTag = useLocaleTag();
@@ -342,19 +344,23 @@ export function FillyGuidedFlow({
       }
       setResult(suggestions);
       setStep("done");
-      // Spoor in de chat-historie: laat een Filly-notitie achter zodat de
-      // eigenaar bij terugkomst ziet wat er gebeurd is (de flow leeft anders
-      // náást de chat en toont dan een leeg scherm).
+      // Spoor in de chat-historie: laat een korte Filly-notitie + een
+      // klikbare kaart achter (titel + "Bekijken & aanpassen"), zodat de
+      // eigenaar bij terugkomst ziet wat er gebeurd is en er direct heen kan.
+      // De flow leeft anders náást de chat en toont dan een leeg scherm.
       {
         const dayLabel = picked ? formatDayNl(picked.date, localeTag) : "";
-        const chLabels = [...selectedChannels]
-          .map((c) => CHANNEL_LABEL[c] ?? c)
-          .join(", ");
-        onGenerated?.(
-          chLabels
-            ? t("generatedNoteChannels", { day: dayLabel, channels: chLabels })
-            : t("generatedNote", { day: dayLabel }),
-        );
+        const primary = suggestions[0];
+        const card: CampaignCreatedCard | undefined = primary
+          ? {
+              kind: "campaign_created",
+              campaignId: primary.approved_campaign_id ?? null,
+              suggestionId: primary.id,
+              name:
+                primary.suggested_campaign?.name ?? t("result.fallbackName"),
+            }
+          : undefined;
+        onGenerated?.(t("generatedNote", { day: dayLabel }), card);
       }
       // Per 2026-06-24: de actie is afgerond (campagne staat als concept).
       // Persisteer meteen een VERSE actie, zodat je bij terugkomst in de chat

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { forwardRef } from "react";
+import { Link } from "@/i18n/navigation";
 import type {
   ActiveAction,
   ActiveActionDelta,
@@ -10,6 +11,7 @@ import type {
   CampaignProposalCard,
   CampaignBundleCard,
   ChannelChoiceCard,
+  CampaignCreatedCard,
 } from "@/lib/api";
 import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatProposalCard } from "./filly-chat-proposal-card";
@@ -75,9 +77,9 @@ type Props = {
   // begintoestand hieruit en meldt keuzes terug via onActiveActionChange.
   activeAction: ActiveAction | null;
   onActiveActionChange: (delta: ActiveActionDelta) => void;
-  // De geleide flow meldt hier een afgeronde generatie zodat de chat-parent
-  // een Filly-notitie in de historie kan bijschrijven (spoor van de actie).
-  onGuidedGenerated: (text: string) => void;
+  // De geleide flow meldt hier een afgeronde generatie (tekst + klikbare
+  // kaart) zodat de chat-parent een Filly-notitie in de historie bijschrijft.
+  onGuidedGenerated: (text: string, card?: CampaignCreatedCard) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -208,6 +210,50 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                         onChooseDate(m.id, followUpText)
                       }
                     />
+                  )}
+                  {m.message_card?.kind === "campaign_created" && (
+                    <Link
+                      href={
+                        (m.message_card as CampaignCreatedCard).campaignId
+                          ? `/dashboard/campagnes/${(m.message_card as CampaignCreatedCard).campaignId}`
+                          : `/dashboard/campagnes/voorstel/${(m.message_card as CampaignCreatedCard).suggestionId}`
+                      }
+                      style={{
+                        display: "block",
+                        marginTop: 8,
+                        background: "var(--white, #fff)",
+                        border: "0.5px solid rgba(0,0,0,0.12)",
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        textDecoration: "none",
+                        color: "inherit",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 500,
+                          fontSize: 14,
+                          lineHeight: 1.3,
+                          marginBottom: 8,
+                        }}
+                      >
+                        {(m.message_card as CampaignCreatedCard).name}
+                      </div>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          background: "var(--accent, #1F4A2D)",
+                          color: "#fff",
+                          borderRadius: 8,
+                          padding: "7px 13px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {t("viewEdit")}
+                      </span>
+                    </Link>
                   )}
                   {/* guided_start rendert GEEN eigen flow meer: er is per
                       gesprek één flow onderaan de thread (zie hieronder),
