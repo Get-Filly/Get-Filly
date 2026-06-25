@@ -135,7 +135,7 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 - [x] ~~🔴 **`:focus-visible` toevoegen (publiek én dashboard)**~~ (✅ 2026-06-22) — gedeelde a11y-baseline in `globals.css` dekt nu alle clickables site-breed. *(Frontend)* (Restje onder Dashboard-UI: `.cal-cell`/`.yr-cell` als echte buttons.)
 - [ ] 🔴 **Conversie publieke site**: vertrouwenssignalen (reviews/logo's/cijfers) toevoegen + de volledig geblurde prijzen-pagina oplossen. *(Frontend/UX)*
 - [x] ~~🔴 **Filly geleide flow**: stille redirect bij 0 resultaten + `aria-live` op chat~~ (✅ 2026-06-22) — 0-resultaten + typ-/done-staat al gefixt bij de active-action-merge; laatste gaten gedicht: `role="alert"` op de guided-flow-foutmelding + chat-error-banner, `aria-live="polite"` op de berichten-container. Zie regels hieronder. *(Frontend/UX)*
-- [ ] 🟡 **SSRF in website-analyzer** — interne IP's/cloud-metadata bereikbaar; blocklist toevoegen. *(Beveiliging)*
+- [x] ~~🟡 **SSRF in website-analyzer**~~ (✅ 2026-06-25, `8605644`) — DNS→IP-blocklist + redirects handmatig herchecked. *(Beveiliging)*
 
 ### 🎨 Frontend
 
@@ -185,7 +185,7 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 - [ ] 🟡 Legacy `FORMAAT`-parsers + dead-code-kolommen (`filly_variants` e.d.) + dode API-functies — **(bevestigd, al P1 + Filly-audit #7)**.
 - [ ] 🟢 ~62 zwakke types (`any`/`as`/`Record<string,unknown>`) in `apps/api` → per-tabel rij-types of lichte zod-validatie bij het inlezen.
 - [x] ~~🟢 Schedule-suggestie-cache zonder TTL/invalidatie~~ (✅ achterhaald 2026-06-22) — niet meer van toepassing: de generator (`suggestSchedule` + `POST /:id/suggest-schedule`) is bij de mig-0043-opschoning verwijderd (zat aan het oude refine-paneel vast), dus `suggested_scheduled_for`/`_reasoning` worden nergens meer geschreven — geen cache meer om te invalideren. **Update 2026-06-22:** de `suggested_scheduled_*`-kolommen zijn weer in gebruik — bij approve schrijven we Filly's gekozen moment + reden er nu in (zie "Wanneer plaatsen"-card-item hieronder), dus de auto-suggestie + "waarom"-uitleg in de card zijn terug. Geen drop-kandidaat meer.
-- [ ] 🟢 `findBundle` N+1 (per kanaal `findById`) — **(bevestigd, al P1)** → batch-`IN`-query.
+- [ ] 🟢 `findBundle` N+1 (per kanaal `findById`) — *(bewust uitgesteld 2026-06-25: al parallel, ≤6 kanalen, scopet op `restaurant_id`; batch-`IN` pas nodig bij >10-kanaal-bundels.)*
 - [x] ~~🟢 Doc/comment 301 vs 308 bij apex→www~~ (✅ 2026-06-22) — CLAUDE.md (2×) + `config/seo.ts`-comment gelijkgetrokken op 308 + verduidelijkt dat het in code via `next.config.ts` `redirects()` gebeurt (niet in Vercel Domains).
 
 ### 🔒 Beveiligingen
@@ -193,7 +193,7 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 - [x] ~~🔴 **Cron-secret-check niet constant-time**~~ (✅ 2026-06-18) — `timingSafeBearer` (sha256 + timingSafeEqual) in alle 3 cron-controllers.
 - [x] ~~🔴 **Server-only keys in `get-filly-web`** (9 vars, incl. service_role)~~ — ✅ verwijderd (2026-06-18); enkel publieke `NEXT_PUBLIC_*` + OAuth-app/client-id's resteren.
 - [x] ~~🔴 **Resend-webhook zonder signature-validatie**~~ (✅ 2026-06-18) — Svix-verificatie via rawBody; ⚠️ zet **`RESEND_WEBHOOK_SECRET`** (get-filly-api) om handhaving te activeren.
-- [ ] 🟡 **SSRF in website-analyzer** (`ai/website-analyzer.service.ts`) — geen blocklist voor 127.0.0.1/169.254.169.254/10.x/192.168.x/localhost → ranges blokkeren (DNS→IP-check) + redirects pinnen op publieke IP's.
+- [x] ~~🟡 **SSRF in website-analyzer**~~ (✅ 2026-06-25, `8605644`) — `assertPublicUrl` (DNS→IP) blokkeert loopback/private/link-local/metadata/CGNAT/multicast + IPv4-mapped IPv6; redirects worden handmatig per hop herchecked.
 - [ ] 🟡 Publieke `/public/contact` + `/public/unsubscribe` zonder rate-limit/CAPTCHA → IP-rate-limit (Vercel WAF) op `/public/*`.
 - [ ] 🟡 Storage-bucket `restaurant-assets` mist per-tenant path-RLS (tenant A kan in B's pad schrijven) → pad-prefix-RLS op `(storage.foldername(name))[1]`.
 - [ ] 🟡 Pre-onboarding rate-limit in-memory (niet multi-instance-veilig) — **(bevestigd, al P1)** → gedeelde store (Supabase-tabel/Redis).
@@ -393,8 +393,8 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 
 **Bugs (urgent):**
 - [x] ~~**"Activeer nu" stuurt mail niet daadwerkelijk**~~ (2026-05-28) — `handleStatusChange('actief')` op `/campagnes/[id]` roept nu `sendCampaign(channelId, 'all_opted_in')` aan voor elke mail-channel met `sent_count=0`, dáárna pas de status-flip. Volgorde send-first → status-flip zorgt dat status op concept/ingepland blijft als de send faalt (geen 'actief zonder mail'-toestand). `sent_count>0` = defensief skip tegen dubbele bezorging. Confirm-tekst aangepast aan single/multi/no-mail-bundle.
-- [ ] **InhoudCard `originalIdxRef` reset niet** bij client-side nav tussen 2 verschillende campagnes (zelfde route, ander `[id]`) → ✕-knop wijst naar de oude origineel. Fix in `apps/web/src/app/dashboard/_components/campaign-detail/inhoud-card.tsx:80`: reset op `sectionId`-of-`variants`-prop-change. **Check 2026-06-11:** er staat inmiddels een `useEffect` (regel 98-105), maar die initialiseert de ref alleen éénmalig (als-ie nog null is) — de beschreven reset bij campagne-wissel ontbreekt nog. Mogelijk in de praktijk een non-issue (App Router remount bij ander `[id]`); eerst reproduceren, anders alsnog de reset toevoegen.
-- [ ] **Multi-channel status-overgang heeft geen rollback** — `Promise.all(updateCampaignStatus)` over kanalen. Bij partial failure: halfgeplaatste bundle. **Fix**: nieuw endpoint `PATCH /campaigns/bundle/:id/status` met transactionele update over alle siblings.
+- [x] ~~**InhoudCard `originalIdxRef` reset niet**~~ (✅ 2026-06-25, `ee404d7`) — reset nu in een effect gekeyd op `sectionId`; ✕ revert niet meer naar de variant van de vorige campagne.
+- [~] **Multi-channel status-overgang heeft geen rollback** — (✅ deels 2026-06-25, `ee404d7`) de activeer-flow flipt nu per kanaal de status direct na zijn eigen geslaagde send/publish, met fout-attributie → geen "alles-of-niets-Promise.all" meer en geslaagde kanalen blijven actief bij een deelfout. **Rest open:** een echt transactioneel `PATCH /campaigns/bundle/:id/status`-endpoint (DB-niveau atomair over alle siblings).
 
 **Dead code (na refactor niemand importeert het meer):**
 - [x] ~~**4 components slopen**~~ (✅ 2026-06-22) — alle 4 verwijderd (~57 KB): `campaign-refine-panel.tsx`, `campaign-schedule-panel.tsx`, `campaign-media-slot.tsx` (vervangen door `campaign-detail/foto-card.tsx`; alleen comment-refs restten) + `campaign-send-modal.tsx` (de "Activeer-stuurt-mail"-fix is af; alleen comment-refs in google-connect-modal). Geverifieerd: nergens geïmporteerd. Typecheck schoon.
@@ -407,7 +407,7 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**Approve-redirects consistent**~~ (✅ al gedaan, bevestigd 2026-06-22) — de approve-handlers in `campagnes/page.tsx` (regels ~636/687) én de single-channel approve in `voorstel/[id]` (567) redirecten al naar `/dashboard/campagnes/${campaignId}`. Alleen reject/delete + multi-channel-bundle gaan bewust naar de kanban (bij een bundle is er geen één-correct detail-page).
 - [x] ~~**"Wanneer plaatsen"-card: verzendmoment-uitleg herbedraden**~~ (✅ 2026-06-22, optie a+) — bij approve schrijven we nu het door het brein gekozen moment + reden (`sc.scheduled_for`/`scheduled_reasoning`, per kanaal in de bundel) in de bestaande `suggested_scheduled_for`/`_reasoning`-kolommen (`campaigns.service.create` + beide approve-paden in `suggestions.service`). De card (`wanneer-card.tsx`) rendert die al ("Filly stelt voor: … omdat …" + afwijking-banner + terug-naar-Filly) — geen card- of adapter-wijziging nodig. Geen migratie (kolommen bestonden al). De `approveBundleSuggestion`/chat-bundle-flow heeft geen per-kanaal-timing en blijft ongemoeid.
 - [ ] **Variant-delete knop** — eigenaar kan via "Genereer 3 nieuwe" tot 6 versies opbouwen, daarna zit-ie vast. Voeg ✕-knop op alternatief-blokken (alleen op concept) toe → `DELETE /campaigns/:id/variants/:idx`.
-- [ ] **`findBundle` N+1 → batch** — per content-tabel 1 SELECT met `IN (campaign_ids)` ipv `findById` per kanaal. Geen blocker voor 1-5 kanalen, wel voor toekomstige >10-kanaal-bundles. **Check 2026-06-11:** draait inmiddels parallel via `Promise.all` (scheelt wall-clock), maar nog steeds `findById` per kanaal — de batch-`IN`-query blijft de echte fix.
+- [ ] **`findBundle` N+1 → batch** — per content-tabel 1 SELECT met `IN (campaign_ids)` ipv `findById` per kanaal. *(bewust uitgesteld 2026-06-25: al parallel, ≤6 kanalen, geen reële last; batch-`IN` pas nodig bij >10-kanaal-bundels.)*
 - [ ] **KanalenCard add/remove voor concept-bundles** — staat nu `canEdit=false` omdat de backend geen "add channel to bundle"-endpoint heeft. Vereist nieuw `POST /campaigns/bundle/:id/channels` dat een nieuwe campaign in dezelfde group_id aanmaakt.
 
 ### Site-fundamenten (publieke site)
