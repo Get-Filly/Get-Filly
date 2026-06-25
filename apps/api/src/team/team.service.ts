@@ -480,20 +480,38 @@ export class TeamService {
       .from('users')
       .upsert({ id: acceptingUserId }, { onConflict: 'id' });
 
-    // Maak/overwrite de restaurant_users-koppeling met rol + permissies.
-    const { error: linkErr } = await this.supabase.client
+    // Bestaat er al een koppeling? Dan mag een lopende invite die NIET
+    // stil downgraden (bv. een owner die per ongeluk een staff-invite
+    // accepteert zou anders z'n owner-rol verliezen → restaurant zonder owner).
+    const { data: existingLink } = await this.supabase.client
       .from('restaurant_users')
-      .upsert(
-        {
-          restaurant_id: inv.restaurant_id,
-          user_id: acceptingUserId,
-          role: inv.role,
-          permissions: inv.permissions,
-        },
-        { onConflict: 'restaurant_id,user_id' },
-      );
+      .select('role')
+      .eq('restaurant_id', inv.restaurant_id)
+      .eq('user_id', acceptingUserId)
+      .maybeSingle();
+    const roleRank = (r: string | null | undefined): number =>
+      r === 'owner' ? 3 : r === 'manager' ? 2 : r === 'staff' ? 1 : 0;
+    const wouldDowngrade =
+      !!existingLink &&
+      roleRank(existingLink.role as string) > roleRank(inv.role);
 
-    if (linkErr) throw linkErr;
+    // Maak/overwrite de restaurant_users-koppeling met rol + permissies.
+    // Bij een downgrade laten we de bestaande (hogere) rol staan.
+    if (!wouldDowngrade) {
+      const { error: linkErr } = await this.supabase.client
+        .from('restaurant_users')
+        .upsert(
+          {
+            restaurant_id: inv.restaurant_id,
+            user_id: acceptingUserId,
+            role: inv.role,
+            permissions: inv.permissions,
+          },
+          { onConflict: 'restaurant_id,user_id' },
+        );
+
+      if (linkErr) throw linkErr;
+    }
 
     // Markeer invite als accepted (zodat-ie niet nog eens gebruikt kan).
     const { error: updateErr } = await this.supabase.client

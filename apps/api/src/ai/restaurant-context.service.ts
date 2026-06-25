@@ -79,10 +79,16 @@ export class RestaurantContextService {
       .eq('id', restaurantId)
       .maybeSingle();
 
-    if (error || !r) {
-      this.logger.warn(`Profiel niet beschikbaar: ${error?.message ?? 'geen rij'}`);
+    if (error) {
+      // Echte query-fout (geen "rij ontbreekt"): op error-niveau loggen zodat
+      // het zichtbaar/monitorbaar is. Filly kan dan op een lege profiel-context
+      // belanden — fail-soft houden we (generatie niet breken), maar de fout
+      // mag niet stil in een warn verdwijnen. (Generatie hard afbreken bij een
+      // context-fout is een aparte, zorgvuldige stap — raakt alle callers.)
+      this.logger.error(`Profiel-query faalde, context kan leeg zijn: ${error.message}`);
       return '';
     }
+    if (!r) return ''; // Legitiem: nog geen profiel ingevuld.
 
     const lines: string[] = [];
     const name = (r.name as string) ?? 'de onderneming';
@@ -288,11 +294,14 @@ export class RestaurantContextService {
         .limit(DRINK_LIMIT),
     ]);
 
+    // Query-fouten op error-niveau (monitorbaar): een transient fout levert een
+    // lege menu-context → Filly kan generiek/gehallucineerd genereren. Fail-soft
+    // (niet breken), maar niet stil in een warn laten verdwijnen.
     if (foodResult.error) {
-      this.logger.warn(`Food-query faalde: ${foodResult.error.message}`);
+      this.logger.error(`Food-query faalde, menu-context kan leeg zijn: ${foodResult.error.message}`);
     }
     if (drinkResult.error) {
-      this.logger.warn(`Drink-query faalde: ${drinkResult.error.message}`);
+      this.logger.error(`Drink-query faalde, menu-context kan leeg zijn: ${drinkResult.error.message}`);
     }
 
     const foodItems = (foodResult.data ?? []) as Item[];
