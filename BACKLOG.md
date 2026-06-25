@@ -29,7 +29,11 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 - [x] **Publicatiefout zichtbaar gemaakt** — `published_at`/`publish_error` (kwamen al mee via `findById`) worden nu in de view ontsloten + getoond als banner op de detailpagina. Geen stille mislukking meer; geldt voor zelf-gemaakt én voorgesteld.
 - [x] **Onuitgewerkt concept niet plaatsbaar** — de placeholdertekst telde als ingevulde body → je kon 100% halen + activeren/inplannen met onuitgewerkte tekst. `isUnwrittenBody` telt de placeholder nu als niet-ingevuld (frontend: knoppen blijven disabled); `publishSocialCampaign` weigert 'm ook serverside (alle paden).
 
+- [x] **Filly geleide flow: geen TikTok-voorselectie** — de kanaal-stap vinkte alle gekoppelde kanalen voor-aan; TikTok dook ongevraagd op. Nu alleen voor-aanvinken wat de eigenaar expliciet noemde, anders leeg (eigenaar kiest zelf).
+- [x] **Filly geleide flow: spoor in chat-historie** — de flow liet niets na (resultaat alleen in component-state, active_action reset na genereren) → bij terugkomst een leeg scherm. Nu schrijft de flow ná genereren een Filly-notitie in het gesprek (`POST /chat/conversations/:id/note`, geen LLM-call).
+
 **Nog open / context (geen bug):**
+- [ ] **Filly geleide flow leeft náást het chat-model** — de flow is een parallel UI-spoor dat z'n stappen niet als chatberichten vastlegt (alleen de losse `active_action` + component-state). Daardoor blijft 'm fragiel (state na-ijlen, weinig historie). Grotere refactor: de flow-stappen/resultaat als compacte chat-gebeurtenissen vastleggen zodat "terugkomen" = "je gesprek terugzien". *(architectuur, los plannen)*
 - [ ] **Geplande social-posts timing** — "Direct inplannen"/"Plan in" publiceert via de cron `/api/campaigns/cron/run-scheduled`, op Vercel Hobby **1×/dag (08:00)**. Frequentere publicatie (bv. elke 10 min) vereist **Vercel Pro**. Voor meteen plaatsen = "Activeer nu". *(plan-keuze, geen code)*
 - [ ] Instagram vereist een afbeelding/video (Meta-API-eis); FB/Google Business mogen tekst-only. Al afgedwongen via `PHOTO_REQUIRED` + de blokkade hierboven.
 
