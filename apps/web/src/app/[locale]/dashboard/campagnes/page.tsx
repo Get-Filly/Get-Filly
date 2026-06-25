@@ -573,6 +573,16 @@ export default function CampagnesPage() {
     }
   }, []);
 
+  // Escape sluit de "maak eigen campagne"-modal (niet tijdens aanmaken).
+  useEffect(() => {
+    if (!builderOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !creatingOwn) setBuilderOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [builderOpen, creatingOwn]);
+
   // Verdeel items over de 4 kolommen.
   const columns = useMemo(() => {
     // Helper: matched een item de actieve kanaal-filter?
@@ -1035,6 +1045,9 @@ export default function CampagnesPage() {
       {/* 'Eigen campagne'-builder: naam + kanaal → leeg concept → editor. */}
       {builderOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="own-campaign-title"
           onClick={() => {
             if (!creatingOwn) setBuilderOpen(false);
           }}
@@ -1059,7 +1072,10 @@ export default function CampagnesPage() {
               width: "100%",
             }}
           >
-            <h3 style={{ margin: "0 0 4px", fontSize: 18 }}>
+            <h3
+              id="own-campaign-title"
+              style={{ margin: "0 0 4px", fontSize: 18 }}
+            >
               {t("ownCampaignTitle")}
             </h3>
             <p

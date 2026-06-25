@@ -239,6 +239,16 @@ export default function UnifiedDetailPage() {
     };
   }, [activeCampaign?.id]);
 
+  // Escape sluit de media-pop-up.
+  useEffect(() => {
+    if (!mediaModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMediaModalOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mediaModalOpen]);
+
   // Status-derived flags.
   const status = view?.status ?? "concept";
   const canEdit = status === "concept";
@@ -1177,6 +1187,9 @@ export default function UnifiedDetailPage() {
           foto-card die voorheen onderaan stond. */}
       {mediaModalOpen && supportsMedia && activeCampaign && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("mediaModalLabel")}
           onClick={() => setMediaModalOpen(false)}
           style={{
             position: "fixed",

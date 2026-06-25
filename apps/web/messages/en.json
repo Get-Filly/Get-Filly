@@ -733,6 +733,7 @@
     }
   },
   "campagnes_id_page": {
+    "mediaModalLabel": "Add or replace media",
     "backToCampaigns": "← Back to campaigns",
     "publishError": {
       "title": "Publishing failed"
