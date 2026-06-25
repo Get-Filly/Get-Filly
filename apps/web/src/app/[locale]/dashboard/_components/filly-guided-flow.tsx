@@ -342,8 +342,6 @@ export function FillyGuidedFlow({
         setStep("channels");
         return;
       }
-      setResult(suggestions);
-      setStep("done");
       // Spoor in de chat-historie: laat een korte Filly-notitie + een
       // klikbare kaart achter (titel + "Bekijken & aanpassen"), zodat de
       // eigenaar bij terugkomst ziet wat er gebeurd is en er direct heen kan.
@@ -365,15 +363,23 @@ export function FillyGuidedFlow({
       // Per 2026-06-24: de actie is afgerond (campagne staat als concept).
       // Persisteer meteen een VERSE actie, zodat je bij terugkomst in de chat
       // de normale flow ziet (eerst een dag kiezen) i.p.v. opnieuw dezelfde
-      // datum voorgesteld krijgt. Lokaal blijft step "done" (de flow is gekeyed
-      // op de laatste guided_start, dus hij remount nu niet) zodat je het
-      // resultaat nu nog ziet; de chatberichten blijven uiteraard staan.
+      // datum voorgesteld krijgt.
       onActionChange?.({
         date: null,
         topic: null,
         channels: null,
         step: "day",
       });
+      // De flow zelf terug naar de opener: het resultaat staat nu als klikbare
+      // kaart in de chat-historie hierboven, dus tonen we GEEN aparte "done"-
+      // kaart meer (die was dubbelop).
+      setPicked(null);
+      setDayContext(null);
+      setSelectedContext(new Set());
+      setSelectedAngle(null);
+      setAngleText({});
+      setSelectedChannels(new Set());
+      setStep("opener");
     } catch (e) {
       logger.error(e);
       setError(e instanceof Error ? e.message : t("errors.generic"));
@@ -395,6 +401,10 @@ export function FillyGuidedFlow({
   };
 
   // ---------- Klaar: resultaat inline tonen ----------
+  // GEDEPRECIEERD (2026-06-24): de flow gaat na genereren terug naar de opener
+  // en toont het resultaat als klikbare kaart in de chat-historie (geen
+  // dubbele "done"-kaart meer). Dit blok is onbereikbaar — kandidaat voor
+  // opruimen (incl. `result`-state) bij de volgende chat-refactor.
   if (step === "done") {
     return (
       <div className="filly-guided">

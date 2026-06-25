@@ -220,11 +220,11 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                       }
                       style={{
                         display: "block",
-                        marginTop: 8,
+                        marginTop: 6,
                         background: "var(--white, #fff)",
-                        border: "0.5px solid rgba(0,0,0,0.12)",
-                        borderRadius: 12,
-                        padding: "12px 14px",
+                        border: "0.5px solid rgba(0,0,0,0.08)",
+                        borderRadius: 10,
+                        padding: "9px 11px",
                         textDecoration: "none",
                         color: "inherit",
                       }}
@@ -232,23 +232,18 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
                       <div
                         style={{
                           fontWeight: 500,
-                          fontSize: 14,
+                          fontSize: 12.5,
                           lineHeight: 1.3,
-                          marginBottom: 8,
+                          marginBottom: 3,
                         }}
                       >
                         {(m.message_card as CampaignCreatedCard).name}
                       </div>
                       <span
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          background: "var(--accent, #1F4A2D)",
-                          color: "#fff",
-                          borderRadius: 8,
-                          padding: "7px 13px",
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: 500,
+                          color: "var(--accent, #1F4A2D)",
                         }}
                       >
                         {t("viewEdit")}
