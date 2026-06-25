@@ -18,7 +18,6 @@ import {
   fetchDayContext,
   generateSuggestionsForDates,
   type ActiveActionDelta,
-  type AiSuggestion,
   type CampaignCreatedCard,
   type DayContext,
   type GenerateForDatesItem,
@@ -98,7 +97,6 @@ type Step =
   | "angles"
   | "channels"
   | "generating"
-  | "done"
   // "idle": rust-stap ná een afgeronde campagne — "Wil je nog een campagne?"
   // i.p.v. meteen weer de dag-keuze tonen.
   | "idle";
@@ -117,16 +115,6 @@ const ANGLES: {
   { id: "doelgroep", Icon: Users, hasInput: true },
   { id: "anders", Icon: Pencil, hasInput: true },
 ];
-
-const CHANNEL_LABEL: Record<string, string> = {
-  mail: "Mail",
-  social: "Social",
-  whatsapp: "WhatsApp",
-  instagram: "Instagram",
-  facebook: "Facebook",
-  tiktok: "TikTok",
-  google_business: "Google Business",
-};
 
 export function FillyGuidedFlow({
   initialDate,
@@ -203,7 +191,6 @@ export function FillyGuidedFlow({
   const [buildOwn, setBuildOwn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllQuiet, setShowAllQuiet] = useState(false);
-  const [result, setResult] = useState<AiSuggestion[]>([]);
 
   // Smart flow: dagen waarvoor in deze sessie al een campagne is gemaakt
   // bieden we niet opnieuw aan.
@@ -433,103 +420,6 @@ export function FillyGuidedFlow({
       setStep("channels");
     }
   };
-
-  const restart = () => {
-    setStep("opener");
-    setPicked(null);
-    setDayContext(null);
-    setSelectedContext(new Set());
-    setSelectedAngle(null);
-    setAngleText({});
-    setSelectedChannels(new Set());
-    setResult([]);
-    setError(null);
-    onActionChange?.({ date: null, topic: null, channels: null, step: "day" });
-  };
-
-  // ---------- Klaar: resultaat inline tonen ----------
-  // GEDEPRECIEERD (2026-06-24): de flow gaat na genereren terug naar de opener
-  // en toont het resultaat als klikbare kaart in de chat-historie (geen
-  // dubbele "done"-kaart meer). Dit blok is onbereikbaar — kandidaat voor
-  // opruimen (incl. `result`-state) bij de volgende chat-refactor.
-  if (step === "done") {
-    return (
-      <div className="filly-guided">
-        <div className="fg-welcome" role="status" aria-live="polite">
-          <span className="fg-avatar">F</span>
-          <div>
-            <div className="fg-welcome-title">{t("done.title")}</div>
-            <div className="fg-welcome-text">
-              {result.length > 1
-                ? t("done.bodyPlural", { count: result.length })
-                : t("done.bodySingle")}
-            </div>
-          </div>
-        </div>
-
-        <div className="fg-options">
-          {result.map((s) => {
-            const sc = s.suggested_campaign;
-            const body = sc.body ?? sc.variants?.[0]?.body ?? "";
-            const channelLabels =
-              sc.channels && sc.channels.length > 0
-                ? sc.channels.map(
-                    (c) => CHANNEL_LABEL[c.platform] ?? c.platform,
-                  )
-                : [CHANNEL_LABEL[sc.platform ?? sc.type ?? ""] ?? ""].filter(
-                    Boolean,
-                  );
-            return (
-              <div key={s.id} className="fg-result">
-                <div className="fg-result-head">
-                  <span className="fg-result-name">
-                    {sc.name ?? t("result.fallbackName")}
-                  </span>
-                  <span className="fg-result-channels">
-                    {channelLabels.map((l) => (
-                      <span key={l} className="fg-result-channel">
-                        {l}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-                {body && <div className="fg-result-body">{body}</div>}
-                <button
-                  type="button"
-                  className="ui-btn ui-btn--primary ui-btn--sm fg-result-btn"
-                  onClick={() =>
-                    router.push(
-                      // Per 2026-06-24: het voorstel is bij genereren al een
-                      // Concept geworden → link daarheen. Fallback naar de
-                      // voorstel-pagina als het approven onverhoopt faalde.
-                      s.approved_campaign_id
-                        ? `/dashboard/campagnes/${s.approved_campaign_id}`
-                        : `/dashboard/campagnes/voorstel/${s.id}`,
-                    )
-                  }
-                >
-                  {t("result.viewEdit")}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="fg-done-actions">
-          <button type="button" className="fg-more" onClick={restart}>
-            {t("done.anotherAction")}
-          </button>
-          <button
-            type="button"
-            className="fg-more"
-            onClick={() => router.push("/dashboard/campagnes")}
-          >
-            {t("done.allSuggestions")}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // ---------- Idle: rust-stap ná een afgeronde campagne ----------
   // Geen stappen-menu opdringen; eerst een rustige "nog een campagne?"-vraag.
