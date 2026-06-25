@@ -10,8 +10,6 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 // matchen op zowel NL als /en.
 const titleKeyFor: Record<string, string> = {
   "/dashboard": "dashboard",
-  "/dashboard/taken": "taken",
-  "/dashboard/suggesties": "suggesties",
   "/dashboard/reserveringen": "reserveringen",
   "/dashboard/campagnes": "campagnes",
   "/dashboard/gasten": "gasten",

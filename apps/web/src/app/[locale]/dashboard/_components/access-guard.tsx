@@ -34,8 +34,6 @@ import { useRestaurant } from "@/lib/restaurant-context";
  * Volgorde maakt uit: de meest-specifieke paden eerst.
  */
 const PATH_MODULE_MAP: Array<{ prefix: string; module: Module }> = [
-  { prefix: "/dashboard/taken", module: "taken" },
-  { prefix: "/dashboard/suggesties", module: "suggesties" },
   { prefix: "/dashboard/reserveringen", module: "reserveringen" },
   { prefix: "/dashboard/campagnes", module: "campagnes" },
   { prefix: "/dashboard/gasten", module: "gasten" },

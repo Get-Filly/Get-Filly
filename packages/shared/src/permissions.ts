@@ -27,8 +27,6 @@
  */
 export const MODULES = [
   'dashboard',
-  'taken',
-  'suggesties',
   'reserveringen',
   'campagnes',
   'gasten',
@@ -52,7 +50,7 @@ export const MODULES = [
 /**
  * Module-key als union-type. Gebruik Module overal waar je een
  * modulenaam verwacht — dan voorkomt TypeScript typfouten.
- *   Module = 'dashboard' | 'taken' | 'suggesties' | ...
+ *   Module = 'dashboard' | 'reserveringen' | 'campagnes' | ...
  */
 export type Module = (typeof MODULES)[number];
 
@@ -79,8 +77,6 @@ export type Role = 'owner' | 'manager' | 'staff';
 export const DEFAULT_PERMISSIONS: Record<Role, readonly Module[]> = {
   owner: [
     'dashboard',
-    'taken',
-    'suggesties',
     'reserveringen',
     'campagnes',
     'gasten',
@@ -94,8 +90,6 @@ export const DEFAULT_PERMISSIONS: Record<Role, readonly Module[]> = {
   ],
   manager: [
     'dashboard',
-    'taken',
-    'suggesties',
     'reserveringen',
     'campagnes',
     'gasten',

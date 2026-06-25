@@ -43,8 +43,6 @@ import { useLocaleTag } from "@/lib/locale-format";
  */
 const MODULE_KEYS: Module[] = [
   "dashboard",
-  "taken",
-  "suggesties",
   "reserveringen",
   "campagnes",
   "gasten",
