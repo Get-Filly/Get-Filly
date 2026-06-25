@@ -146,6 +146,25 @@ export class MetaService {
     return (await res.json()) as MetaTokenResponse;
   }
 
+  // Haalt de daadwerkelijk toegekende permissies op (GET /me/permissions).
+  // Fail-soft: bij een fout een lege lijst, dan slaan we gewoon niets op.
+  private async fetchGrantedScopes(accessToken: string): Promise<string[]> {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/${this.graphVersion()}/me/permissions?access_token=${encodeURIComponent(accessToken)}`,
+      );
+      if (!res.ok) return [];
+      const data = (await res.json()) as {
+        data?: Array<{ permission: string; status: string }>;
+      };
+      return (data.data ?? [])
+        .filter((p) => p.status === 'granted')
+        .map((p) => p.permission);
+    } catch {
+      return [];
+    }
+  }
+
   // Haalt het Meta-user-id op (GET /me). Fail-soft: bij een fout
   // null, dan slaan we 'm gewoon niet op (deauth/deletion vinden de
   // rij dan niet, maar de koppeling zelf werkt wel).
@@ -179,6 +198,10 @@ export class MetaService {
     // data-deletion-callbacks nodig om de juiste rij te vinden (Meta
     // identificeert daar op user_id, niet op ons restaurant-id).
     const metaUserId = await this.fetchMetaUserId(long.access_token);
+    // Toegekende permissies opslaan zodat de UI/diagnose kan tonen wat de
+    // eigenaar daadwerkelijk heeft goedgekeurd (bv. ontbrekende
+    // instagram_content_publish-scope verklaart waarom IG niet werkt).
+    const grantedScopes = await this.fetchGrantedScopes(long.access_token);
 
     const encrypted = this.crypto.encrypt(long.access_token);
     const expiresAt = long.expires_in
@@ -192,9 +215,7 @@ export class MetaService {
           restaurant_id: restaurantId,
           provider: PROVIDER,
           access_token_encrypted: encrypted,
-          // TODO (stap 4): toegekende scopes uitlezen via debug_token /
-          // /me/permissions; nu leeg gelaten.
-          scopes: [],
+          scopes: grantedScopes,
           expires_at: expiresAt,
           meta: metaUserId ? { meta_user_id: metaUserId } : {},
           connected_by: userId,
@@ -243,6 +264,10 @@ export class MetaService {
     expiresAt?: string | null;
     updatedAt?: string;
     page?: { id: string; name: string } | null;
+    // Token verlopen volgens de opgeslagen expires_at? Dan moet de eigenaar
+    // opnieuw verbinden — de UI toont "Herverbinden nodig" en publiceren
+    // faalt tot er een verse token is. Cheap signaal (geen Graph-call).
+    expired?: boolean;
   }> {
     const client = useAdmin ? this.admin.client : this.supabase.client;
     const { data, error } = await client
@@ -266,12 +291,15 @@ export class MetaService {
           name: (meta.page_name as string | undefined) ?? '',
         }
       : null;
+    const expiresAt = data.expires_at as string | null;
+    const expired = !!expiresAt && new Date(expiresAt).getTime() < Date.now();
     return {
       connected: true,
       scopes: data.scopes as string[],
-      expiresAt: data.expires_at as string | null,
+      expiresAt,
       updatedAt: data.updated_at as string,
       page,
+      expired,
     };
   }
 

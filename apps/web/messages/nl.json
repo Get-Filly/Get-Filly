@@ -2580,6 +2580,7 @@
     "soon": "Binnenkort",
     "connect": "Verbind",
     "connected": "✓ Verbonden",
+    "reconnectNeeded": "Herverbinden nodig",
     "disconnect": "Ontkoppel",
     "disconnectConfirm": "Koppeling intrekken? Filly kan dan niet meer namens je zaak posten of handelen tot je opnieuw verbindt.",
     "denied": "Koppeling geannuleerd. Je kunt het opnieuw proberen via Verbind.",
@@ -3165,6 +3166,7 @@
   },
   "dash__components_meta_publish_panel": {
     "choosePage": "Pagina om naar te publiceren",
+    "noPageChosen": "Geen pagina gekozen, kies er een om te publiceren",
     "noPages": "Geen Facebook-pagina's gevonden onder dit account. Zorg dat je beheerder bent van minstens één pagina.",
     "savePage": "Pagina opslaan",
     "saving": "Opslaan…",

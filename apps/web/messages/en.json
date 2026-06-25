@@ -2580,6 +2580,7 @@
     "soon": "Coming soon",
     "connect": "Connect",
     "connected": "✓ Connected",
+    "reconnectNeeded": "Reconnect needed",
     "disconnect": "Disconnect",
     "disconnectConfirm": "Revoke connection? Filly will no longer be able to post or act on behalf of your business until you reconnect.",
     "denied": "Connection cancelled. You can try again via Connect.",
@@ -3165,6 +3166,7 @@
   },
   "dash__components_meta_publish_panel": {
     "choosePage": "Page to publish to",
+    "noPageChosen": "No page selected, choose one to publish",
     "noPages": "No Facebook pages found under this account. Make sure you are an admin of at least one page.",
     "savePage": "Save page",
     "saving": "Saving…",
