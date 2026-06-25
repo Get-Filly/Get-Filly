@@ -120,6 +120,22 @@ export async function enforceCopyLength<T>(opts: {
     return opts.first;
   }
 
+  // Een herschrijf die INHOUD kwijtraakt (lege bodies of minder varianten)
+  // mag het werkende eerste resultaat nooit vervangen. Een lege set heeft
+  // namelijk 0 lengte-overtredingen en zou anders "winnen" van een prima
+  // eerste poging — wat de caller met 0 bruikbare teksten + een onterechte
+  // "geen bruikbare versies"-fout opzadelt.
+  const countUsable = (r: T) =>
+    opts
+      .getBodies(r)
+      .filter((b) => typeof b === 'string' && b.trim().length > 0).length;
+  if (countUsable(second) < countUsable(opts.first)) {
+    opts.logger.warn(
+      `[${opts.feature}] herschrijf leverde minder bruikbare teksten dan de eerste poging; eerste resultaat geaccepteerd.`,
+    );
+    return opts.first;
+  }
+
   const secondViolations = findLengthViolations(
     opts.channel,
     opts.getBodies(second),

@@ -1976,7 +1976,10 @@ ${menuBlock}
         system: systemPrompt,
         prompt,
         model: 'claude-sonnet-4-6',
-        maxTokens: 3000,
+        // 3 varianten (mail-bodies kunnen lang zijn) + JSON-overhead. Te
+        // krap → stop_reason=max_tokens kapt de tool-call af → lege/halve
+        // variants-array → "geen bruikbare versies". Ruim genomen.
+        maxTokens: 4096,
         toolName: 'generate_campaign_variants',
         toolDescription:
           'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
@@ -2003,25 +2006,44 @@ ${menuBlock}
       feature: 'campaign_variants_more',
     });
 
-    // Parse + sanitize zelfde regels als refine(). Guard tegen een
-    // ontbrekende variants-array zodat we een nette melding geven i.p.v.
-    // een onafgevangen fout.
-    const parsedVariants = Array.isArray(parsed?.variants)
-      ? parsed.variants
-      : [];
-    const fresh: CampaignVariant[] = [];
-    for (const v of parsedVariants) {
-      const body = typeof v?.body === 'string' ? v.body.trim() : '';
-      if (!body) continue;
-      const variant: CampaignVariant = { body, subject_line: null };
-      if (v.subject_line && v.subject_line.trim().length > 0) {
-        variant.subject_line = v.subject_line.trim().slice(0, 200);
+    // Bruikbare varianten uit een tool-output verzamelen (lege bodies
+    // vallen weg). Guard tegen een ontbrekende variants-array zodat een
+    // onverwachte output nooit een onafgevangen TypeError wordt.
+    const collectVariants = (
+      result: CampaignVariantsFromTool | null,
+    ): CampaignVariant[] => {
+      const arr = Array.isArray(result?.variants) ? result.variants : [];
+      const out: CampaignVariant[] = [];
+      for (const v of arr) {
+        const body = typeof v?.body === 'string' ? v.body.trim() : '';
+        if (!body) continue;
+        const variant: CampaignVariant = { body, subject_line: null };
+        if (v.subject_line && v.subject_line.trim().length > 0) {
+          variant.subject_line = v.subject_line.trim().slice(0, 200);
+        }
+        out.push(variant);
       }
-      fresh.push(variant);
+      return out;
+    };
+
+    let fresh = collectVariants(parsed);
+
+    // "Geen bruikbare versies" mag de eigenaar normaal nooit zien. Lukt de
+    // eerste ronde niet (lege/mislukte AI-output), dan doen we één expliciete
+    // herkansing zónder lengte-guard voordat we opgeven.
+    if (fresh.length === 0) {
+      this.logger.warn(
+        '[campaign_variants_more] eerste poging leverde geen bruikbare versies; één herkansing.',
+      );
+      const retry = await generateVariants(
+        `${userPrompt}\n\nBELANGRIJK: lever PRECIES 3 varianten en vul élke "body" volledig in (nooit leeg). Houd je aan de KANAAL-REGELS.`,
+      ).catch(() => null);
+      fresh = collectVariants(retry);
     }
+
     if (fresh.length === 0) {
       this.logger.error(
-        `[campaign_variants_more] geen bruikbare versies; ruwe AI-output: ${JSON.stringify(
+        `[campaign_variants_more] ook na herkansing geen bruikbare versies; ruwe AI-output: ${JSON.stringify(
           parsed,
         )}`,
       );
