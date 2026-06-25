@@ -375,6 +375,66 @@ export class ChatService {
   }
 
   // ============================================================
+  // APPEND NOTE, Filly-notitie zonder LLM-call
+  // ============================================================
+  // De geleide flow gebruikt dit om ná het genereren een spoor in de chat-
+  // historie achter te laten ("Ik heb een concept gemaakt voor …"). Anders
+  // leeft het resultaat alleen in component-state en zie je bij terugkomst
+  // een leeg scherm (de flow draait náást de chat). Geen Claude-call.
+  async appendNote(
+    restaurantId: string,
+    conversationId: string,
+    text: string,
+  ): Promise<{
+    id: string;
+    role: ChatRole;
+    content: string;
+    message_card: unknown;
+    created_at: string;
+  }> {
+    const content = (text ?? '').trim().slice(0, 2000);
+    if (!content) {
+      throw new BadRequestException('Lege notitie.');
+    }
+    // Tenant-check (defense-in-depth bovenop RLS).
+    const { data: conv, error: convErr } = await this.supabase.client
+      .from('chat_conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (convErr) throw new InternalServerErrorException(convErr.message);
+    if (!conv) throw new BadRequestException('Gesprek niet gevonden.');
+
+    const { data: msg, error } = await this.supabase.client
+      .from('chat_messages')
+      .insert({
+        conversation_id: conversationId,
+        restaurant_id: restaurantId,
+        role: 'filly',
+        content,
+      })
+      .select('id, role, content, message_card, created_at')
+      .single();
+    if (error) throw new InternalServerErrorException(error.message);
+
+    // updated_at bumpen zodat dit gesprek bovenaan de history blijft.
+    await this.supabase.client
+      .from('chat_conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId)
+      .eq('restaurant_id', restaurantId);
+
+    return msg as {
+      id: string;
+      role: ChatRole;
+      content: string;
+      message_card: unknown;
+      created_at: string;
+    };
+  }
+
+  // ============================================================
   // DELETE CONVERSATION, chat verwijderen + memory bewaren
   // ============================================================
   // Eigenaar wil oude chats kunnen opruimen, maar Filly's geleerde

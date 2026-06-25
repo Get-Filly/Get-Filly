@@ -84,6 +84,18 @@ export class ChatController {
     return this.chat.setActiveAction(restaurantId, id, body);
   }
 
+  // Schrijf een Filly-notitie bij het gesprek (geen Claude-call). De geleide
+  // flow gebruikt dit om ná het genereren een spoor in de historie te laten,
+  // zodat de eigenaar bij terugkomst ziet wat er gebeurd is.
+  @Post('conversations/:id/note')
+  appendNote(
+    @RestaurantId() restaurantId: string,
+    @Param('id') id: string,
+    @Body() body: { text?: string },
+  ) {
+    return this.chat.appendNote(restaurantId, id, body?.text ?? '');
+  }
+
   // Bericht sturen. Rate-limit-guard draait hier extra bovenop de
   // class-level guards: elke Claude-call telt mee voor de 100/uur
   // limiet per restaurant (gedeeld met reviews).

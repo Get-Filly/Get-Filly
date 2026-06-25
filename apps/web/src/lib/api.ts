@@ -2596,6 +2596,24 @@ export async function updateChatActiveAction(
   return res.json();
 }
 
+// Schrijft een Filly-notitie bij het gesprek (geen LLM-call). De geleide flow
+// gebruikt dit om ná het genereren een spoor in de chat-historie te laten.
+export async function appendChatNote(
+  conversationId: string,
+  text: string,
+): Promise<ChatMessage> {
+  const res = await authedFetch(
+    `${API_URL}/chat/conversations/${conversationId}/note`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateSuggestion(
   id: string,
   status: SuggestionStatus,

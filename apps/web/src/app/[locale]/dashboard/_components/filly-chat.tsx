@@ -14,6 +14,7 @@ import {
   fetchSuggestions,
   sendChatMessage,
   updateChatActiveAction,
+  appendChatNote,
   CHAT_CONVERSATION_CAP,
   type ActiveAction,
   type ActiveActionDelta,
@@ -366,6 +367,20 @@ export function FillyChat() {
     }
   };
 
+  // De geleide flow laat ná het genereren een Filly-notitie achter in de
+  // historie, zodat de eigenaar bij terugkomst ziet wat er gebeurd is i.p.v.
+  // een leeg scherm. Best-effort: een gefaalde notitie blokkeert de flow niet.
+  const handleGuidedGenerated = async (text: string) => {
+    if (!conversationId || !text.trim()) return;
+    try {
+      const msg = await appendChatNote(conversationId, text);
+      setMessages((m) => [...m, msg]);
+      setMessageCount((c) => c + 1);
+    } catch (e) {
+      logger.error(e);
+    }
+  };
+
   // Wrapper voor de input-veld-flow: pak input, leeg 't, stuur.
   const sendMsg = async () => {
     const text = input.trim();
@@ -690,6 +705,7 @@ export function FillyChat() {
         onChooseChannel={chooseChannel}
         activeAction={activeAction}
         onActiveActionChange={handleActiveActionChange}
+        onGuidedGenerated={handleGuidedGenerated}
       />
 
       {showJump && (

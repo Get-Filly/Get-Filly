@@ -124,6 +124,7 @@ export function FillyGuidedFlow({
   initialTopic,
   initialChannels,
   onActionChange,
+  onGenerated,
 }: {
   initialDate?: string;
   initialTopic?: string;
@@ -131,6 +132,9 @@ export function FillyGuidedFlow({
   // Wanneer gevuld: alléén die kanalen voor-aanvinken op de kanalen-stap.
   initialChannels?: string[];
   onActionChange?: (delta: ActiveActionDelta) => void;
+  // Aangeroepen ná een geslaagde generatie met een korte samenvatting,
+  // zodat de chat-parent een Filly-notitie in de historie kan bijschrijven.
+  onGenerated?: (text: string) => void;
 }) {
   const t = useTranslations("dash__components_filly_guided_flow");
   const localeTag = useLocaleTag();
@@ -204,21 +208,19 @@ export function FillyGuidedFlow({
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
       setSelectedContext(new Set()); // gedetecteerde context standaard uit
-      // Voor-aanvinken: noemde de eigenaar expliciete kanalen (initialChannels),
-      // dan ALLEEN die (voor zover ze voor deze dag bestaan). Anders terugval
-      // op de aanbevolen kanalen. Zo overschrijft "een tiktok campagne" niet
-      // ineens met Instagram + Facebook + Google Business.
+      // Voor-aanvinken ALLEEN wanneer de eigenaar zelf een kanaal noemde
+      // (initialChannels, bv. "een tiktok campagne"). Noemde 'ie niets, dan
+      // laten we de selectie LEEG zodat de eigenaar bewust zelf kiest — geen
+      // automatische voorselectie van alle gekoppelde kanalen meer (dat zette
+      // bv. TikTok aan terwijl daar niet om gevraagd was). De "Genereer"-knop
+      // is disabled tot er minstens één kanaal gekozen is.
       const explicit =
         initialChannels && initialChannels.length > 0
           ? ctx.channels
               .filter((c) => initialChannels.includes(c.channel))
               .map((c) => c.channel)
           : [];
-      const preselected =
-        explicit.length > 0
-          ? explicit
-          : ctx.channels.filter((c) => c.recommended).map((c) => c.channel);
-      setSelectedChannels(new Set(preselected));
+      setSelectedChannels(new Set(explicit));
     } catch (e) {
       logger.error(e);
       setDayContext(null);
@@ -340,6 +342,20 @@ export function FillyGuidedFlow({
       }
       setResult(suggestions);
       setStep("done");
+      // Spoor in de chat-historie: laat een Filly-notitie achter zodat de
+      // eigenaar bij terugkomst ziet wat er gebeurd is (de flow leeft anders
+      // náást de chat en toont dan een leeg scherm).
+      {
+        const dayLabel = picked ? formatDayNl(picked.date, localeTag) : "";
+        const chLabels = [...selectedChannels]
+          .map((c) => CHANNEL_LABEL[c] ?? c)
+          .join(", ");
+        onGenerated?.(
+          chLabels
+            ? t("generatedNoteChannels", { day: dayLabel, channels: chLabels })
+            : t("generatedNote", { day: dayLabel }),
+        );
+      }
       // Per 2026-06-24: de actie is afgerond (campagne staat als concept).
       // Persisteer meteen een VERSE actie, zodat je bij terugkomst in de chat
       // de normale flow ziet (eerst een dag kiezen) i.p.v. opnieuw dezelfde

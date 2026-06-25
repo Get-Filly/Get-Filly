@@ -75,6 +75,9 @@ type Props = {
   // begintoestand hieruit en meldt keuzes terug via onActiveActionChange.
   activeAction: ActiveAction | null;
   onActiveActionChange: (delta: ActiveActionDelta) => void;
+  // De geleide flow meldt hier een afgeronde generatie zodat de chat-parent
+  // een Filly-notitie in de historie kan bijschrijven (spoor van de actie).
+  onGuidedGenerated: (text: string) => void;
 };
 
 export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
@@ -96,6 +99,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
       onChooseDate,
       activeAction,
       onActiveActionChange,
+      onGuidedGenerated,
     },
     scrollRef,
   ) {
@@ -144,6 +148,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             initialTopic={activeAction?.topic}
             initialChannels={activeAction?.channels}
             onActionChange={onActiveActionChange}
+            onGenerated={onGuidedGenerated}
           />
         ) : (
           visible.map((m) =>
@@ -228,6 +233,7 @@ export const FillyChatMessageList = forwardRef<HTMLDivElement, Props>(
             initialTopic={activeAction.topic}
             initialChannels={activeAction.channels}
             onActionChange={onActiveActionChange}
+            onGenerated={onGuidedGenerated}
           />
         )}
         {sending && (
