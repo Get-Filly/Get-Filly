@@ -811,8 +811,13 @@ export class ChatService {
     // 2) Context opbouwen: laatste N berichten (INCL. het net-opgeslagen
     // user-bericht) als "messages" naar Claude. System-prompt bevat
     // Filly's persona + restaurant-context.
-    const history = await this.getRecentMessages(conversationId, restaurantId);
-    const systemPrompt = await this.buildSystemPrompt(restaurantId);
+    // Parallel: de historie-fetch en de (zwaardere) system-prompt-opbouw
+    // (profiel + menu + live weer/bezetting + memories) zijn onafhankelijk.
+    // Sequentieel wachtte de prompt-opbouw onnodig op de historie-query.
+    const [history, systemPrompt] = await Promise.all([
+      this.getRecentMessages(conversationId, restaurantId),
+      this.buildSystemPrompt(restaurantId),
+    ]);
     // Sinds audit-item #8: GEEN per-bericht-annotatie meer. De lopende
     // dag/thema komt deterministisch uit active_action (zie het
     // [LOPENDE ACTIE]-blok hieronder), niet uit tekst die Filly moet

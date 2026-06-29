@@ -50,6 +50,13 @@ export type UnifiedChannel = {
   // publicatie niet meer stil is.
   published_at: string | null;
   publish_error: string | null;
+  // IG-post die nog handmatig in de Instagram-app verwijderd moet worden
+  // (Instagram laat geen verwijderen via de API toe). Bevat de directe
+  // permalink, of "manual" als die niet bewaard is (oudere post). Null = niets.
+  ig_pending_manual_delete_url: string | null;
+  // Heeft dit kanaal nu een live gepubliceerde Instagram-post? Voor de
+  // "verwijder Instagram ook handmatig"-waarschuwing vóór het stoppen.
+  has_instagram_post: boolean;
 };
 
 export type UnifiedDetailView = {
@@ -152,7 +159,12 @@ function toUnifiedChannel(c: CampaignDetail): UnifiedChannel {
           : null)
       : (c.content?.media_urls?.[0] ?? null);
   const pubMeta = c.content as
-    | { published_at?: unknown; publish_error?: unknown }
+    | {
+        published_at?: unknown;
+        publish_error?: unknown;
+        ig_pending_manual_delete_url?: unknown;
+        published_post_ids?: { instagram?: unknown } | null;
+      }
     | null
     | undefined;
   return {
@@ -170,6 +182,12 @@ function toUnifiedChannel(c: CampaignDetail): UnifiedChannel {
       typeof pubMeta?.published_at === "string" ? pubMeta.published_at : null,
     publish_error:
       typeof pubMeta?.publish_error === "string" ? pubMeta.publish_error : null,
+    ig_pending_manual_delete_url:
+      typeof pubMeta?.ig_pending_manual_delete_url === "string"
+        ? pubMeta.ig_pending_manual_delete_url
+        : null,
+    has_instagram_post:
+      typeof pubMeta?.published_post_ids?.instagram === "string",
   };
 }
 

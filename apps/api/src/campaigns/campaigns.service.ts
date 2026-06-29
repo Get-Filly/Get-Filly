@@ -362,6 +362,11 @@ export class CampaignsService {
           );
           if (result.facebook?.id) postIds.facebook = result.facebook.id;
           if (result.instagram?.id) postIds.instagram = result.instagram.id;
+          // IG-permalink bewaren zodat we bij terugtrekken een directe link
+          // naar de (handmatig te verwijderen) post kunnen tonen.
+          if (result.instagram?.permalink) {
+            postIds.instagram_permalink = result.instagram.permalink;
+          }
           if (result.errors.length) errors.push(...result.errors);
         }
       }
@@ -427,6 +432,9 @@ export class CampaignsService {
         published_at: new Date().toISOString(),
         published_post_ids: postIds,
         publish_error: errors.length ? errors.join(' ') : null,
+        // Verse publicatie → een eerdere "handmatig verwijderen"-herinnering
+        // is niet meer relevant.
+        ig_pending_manual_delete_url: null,
         updated_at: new Date().toISOString(),
       })
       .eq('campaign_id', campaignId);
@@ -1453,6 +1461,7 @@ export class CampaignsService {
     const postIds = (content?.published_post_ids ?? null) as {
       facebook?: string;
       instagram?: string;
+      instagram_permalink?: string;
     } | null;
 
     // Niets gepubliceerd (of al teruggetrokken) → niets te doen.
@@ -1473,7 +1482,14 @@ export class CampaignsService {
         return null;
       });
 
-    if (res?.instagramManual) {
+    // Instagram kan niet via de API verwijderd worden → herinnering bewaren
+    // met de directe postlink (permalink uit publiceren). Geen permalink
+    // bekend (oudere post) → sentinel 'manual' zodat de UI alsnog de melding
+    // toont met een generieke Instagram-link.
+    const igManualUrl = res?.instagramManual
+      ? (postIds.instagram_permalink ?? 'manual')
+      : null;
+    if (igManualUrl) {
       this.logger.log(
         `Campagne ${campaignId}: Instagram-post kan niet via de API worden ` +
           `verwijderd — eigenaar moet 'm handmatig in de IG-app verwijderen.`,
@@ -1481,15 +1497,16 @@ export class CampaignsService {
     }
 
     // Publicatiestaat wissen zodat de campagne niet meer als 'gepubliceerd'
-    // geldt en bij her-activeren opnieuw geplaatst kan worden.
+    // geldt en bij her-activeren opnieuw geplaatst kan worden. De IG-handmatig-
+    // herinnering zetten we in een EIGEN veld (niet publish_error → dat kleurt
+    // rood als 'mislukt'; dit is een nette let-op-melding).
     await this.supabase.client
       .from('campaign_social_content')
       .update({
         published_at: null,
         published_post_ids: null,
-        publish_error: res?.instagramManual
-          ? 'Instagram-post handmatig verwijderen (kan niet via de API).'
-          : null,
+        publish_error: null,
+        ig_pending_manual_delete_url: igManualUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('campaign_id', campaignId);

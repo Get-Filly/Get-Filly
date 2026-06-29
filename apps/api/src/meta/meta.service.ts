@@ -405,6 +405,36 @@ export class MetaService {
     return { ok: true };
   }
 
+  // Haalt een leesbare reden uit een Graph-API-fout. De publish-stappen
+  // gooien `new Error(JSON.stringify(json))`, waarbij json = { error: {...} }.
+  // We tonen Meta's eigen `error_user_msg`/`message` + code, zodat de eigenaar
+  // (en wij) zien WAAROM het mislukte i.p.v. een generieke "mislukt".
+  private describeMetaError(err: unknown): string {
+    const raw = err instanceof Error ? err.message : String(err);
+    try {
+      const parsed = JSON.parse(raw) as {
+        error?: {
+          message?: string;
+          error_user_msg?: string;
+          code?: number;
+          error_subcode?: number;
+        };
+      };
+      const e = parsed.error;
+      if (e) {
+        const msg = e.error_user_msg || e.message || 'onbekende fout';
+        const code =
+          e.code != null
+            ? ` (code ${e.code}${e.error_subcode ? `/${e.error_subcode}` : ''})`
+            : '';
+        return `${msg}${code}`;
+      }
+    } catch {
+      // raw was geen JSON-fout; geef 'm ingekort terug.
+    }
+    return raw.slice(0, 300);
+  }
+
   /**
    * Publiceert een bericht op de gekozen Facebook-pagina en/of het
    * gekoppelde Instagram-account. IG vereist een afbeelding-URL.
@@ -420,7 +450,7 @@ export class MetaService {
     useAdmin = false,
   ): Promise<{
     facebook?: { id: string };
-    instagram?: { id: string };
+    instagram?: { id: string; permalink?: string };
     errors: string[];
   }> {
     const { token, meta } = await this.loadCredential(restaurantId, useAdmin);
@@ -442,7 +472,7 @@ export class MetaService {
     const v = this.graphVersion();
     const result: {
       facebook?: { id: string };
-      instagram?: { id: string };
+      instagram?: { id: string; permalink?: string };
       errors: string[];
     } = { errors: [] };
 
@@ -478,8 +508,10 @@ export class MetaService {
           result.facebook = { id: json.id ?? '' };
         }
       } catch (err) {
-        this.logger.warn(`FB-publicatie faalde: ${String(err)}`);
-        result.errors.push('Facebook-publicatie mislukt');
+        this.logger.error(`FB-publicatie faalde: ${String(err)}`);
+        result.errors.push(
+          `Facebook-publicatie mislukt: ${this.describeMetaError(err)}`,
+        );
       }
     }
 
@@ -514,9 +546,31 @@ export class MetaService {
           const pubJson = (await pubRes.json()) as { id?: string };
           if (!pubRes.ok) throw new Error(JSON.stringify(pubJson));
           result.instagram = { id: pubJson.id ?? '' };
+          // Permalink ophalen zodat we later (bij terugtrekken) een directe
+          // link naar de te-verwijderen post kunnen tonen. Best-effort:
+          // faalt dit, dan missen we alleen de deep-link, niet de post.
+          if (pubJson.id) {
+            try {
+              const permaRes = await fetch(
+                `https://graph.facebook.com/${v}/${pubJson.id}?fields=permalink&access_token=${encodeURIComponent(pageToken)}`,
+              );
+              if (permaRes.ok) {
+                const permaJson = (await permaRes.json()) as {
+                  permalink?: string;
+                };
+                if (permaJson.permalink) {
+                  result.instagram.permalink = permaJson.permalink;
+                }
+              }
+            } catch {
+              // permalink is optioneel
+            }
+          }
         } catch (err) {
-          this.logger.warn(`IG-publicatie faalde: ${String(err)}`);
-          result.errors.push('Instagram-publicatie mislukt');
+          this.logger.error(`IG-publicatie faalde: ${String(err)}`);
+          result.errors.push(
+            `Instagram-publicatie mislukt: ${this.describeMetaError(err)}`,
+          );
         }
       }
     }
