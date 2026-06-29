@@ -609,9 +609,9 @@ export default function UnifiedDetailPage() {
       setChangingStatus(true);
       try {
         // Plan-in: een door Filly voorgesteld moment dat de eigenaar niet
-        // wijzigde, geldt als geaccepteerd. Persisteer het als scheduled_for
-        // voor kanalen die nog geen eigen tijd hebben — anders zou
-        // 'ingepland' geen concrete tijd hebben en pakt de cron 'm nooit op.
+        // wijzigde, geldt als geaccepteerd → vast als scheduled_for zetten.
+        // Kanalen zónder enige tijd (bv. eigen campagnes) krijgen serverside
+        // een fallback (zie updateCampaignStatus) zodat de cron 'm oppakt.
         if (next === "ingepland") {
           await Promise.all(
             view.channels
