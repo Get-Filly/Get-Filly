@@ -130,6 +130,13 @@ export type Campaign = {
   // Per 2026-05-12 (mig 0040): soft-delete-tijdstip. Optional want
   // findAll() filtert deze al weg; alleen findDeleted() vult 'm.
   deleted_at?: string | null;
+  // Permalink naar een Instagram-post die nog live staat omdat 'ie niet
+  // via de API verwijderd kon worden (gezet bij Stop, zie
+  // retractPublishedPosts). Sentinel 'manual' = wel pending maar geen
+  // permalink bekend. Null = niets pending. De kanban gebruikt dit om
+  // bij Verwijderen een "post staat nog live"-popup met directe link te
+  // tonen (i.p.v. een kale bevestiging).
+  ig_pending_manual_delete_url?: string | null;
 };
 
 // Shape van een enkele variant binnen campaigns.variants[]. Identiek
@@ -558,6 +565,8 @@ export class CampaignsService {
       .map((r) => r.id);
 
     const previewMap = new Map<string, string>();
+    // Per kanban-popup: social-campagnes die een nog-live IG-post hebben.
+    const igPendingMap = new Map<string, string>();
     const truncate = (s: string | null | undefined, max = 140): string | null => {
       if (!s) return null;
       const trimmed = s.replace(/\s+/g, ' ').trim();
@@ -580,17 +589,24 @@ export class CampaignsService {
     if (socialIds.length > 0) {
       const { data: socialRows } = await this.supabase.client
         .from('campaign_social_content')
-        .select('campaign_id, caption')
+        .select('campaign_id, caption, ig_pending_manual_delete_url')
         .in('campaign_id', socialIds);
       for (const s of socialRows ?? []) {
         const preview = truncate(s.caption);
         if (preview) previewMap.set(s.campaign_id as string, preview);
+        if (typeof s.ig_pending_manual_delete_url === 'string') {
+          igPendingMap.set(
+            s.campaign_id as string,
+            s.ig_pending_manual_delete_url,
+          );
+        }
       }
     }
 
     return rows.map((r) => ({
       ...r,
       body_preview: previewMap.get(r.id) ?? null,
+      ig_pending_manual_delete_url: igPendingMap.get(r.id) ?? null,
     })) as Campaign[];
   }
 

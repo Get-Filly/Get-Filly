@@ -911,6 +911,15 @@
       "deleteBundle": "Delete all campaigns in this bundle? This is permanent.",
       "deleteCampaign": "Delete this campaign? This is permanent."
     },
+    "igDeletePopup": {
+      "title": "Delete campaign?",
+      "body": "This removes the campaign from Get-Filly. The Instagram post that belongs to it stays online.",
+      "noticeTitle": "Instagram post is still live",
+      "noticeBody": "Instagram does not allow deleting a post through the connection. Remove it yourself in the Instagram app.",
+      "open": "Open in Instagram",
+      "cancel": "Cancel",
+      "confirm": "Delete anyway"
+    },
     "tooltips": {
       "finishMail": "Email has already been sent, finish the campaign.",
       "stopSocial": "Remove the post from the channel and go back to draft.",

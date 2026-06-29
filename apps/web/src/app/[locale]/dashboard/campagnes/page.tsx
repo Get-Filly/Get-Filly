@@ -361,6 +361,24 @@ function getItemPlatforms(item: BoardItem): string[] {
   return out;
 }
 
+// Permalink naar een nog-live Instagram-post binnen dit item, of null.
+// Gezet bij het stoppen van een IG-campagne (de post kan niet via de API
+// weg). Bij een bundle pakken we de eerste die er één heeft. Sentinel
+// "manual" = wel pending maar geen bekende permalink.
+function igPendingUrl(item: BoardItem): string | null {
+  if (item.kind === "campaign") {
+    return item.data.ig_pending_manual_delete_url ?? null;
+  }
+  if (item.kind === "bundle-campaign") {
+    for (const c of item.campaigns) {
+      if (c.ig_pending_manual_delete_url) {
+        return c.ig_pending_manual_delete_url;
+      }
+    }
+  }
+  return null;
+}
+
 // Vroegste scheduled-datum binnen het item. Voor bundles met meerdere
 // momenten "vanaf X mei" tonen we apart (multiple=true).
 function getEarliestScheduled(item: BoardItem): {
@@ -465,6 +483,10 @@ export default function CampagnesPage() {
   // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
   // campaigns als bundles (group_id) een uniek busy-veld krijgen.
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Campagne waarvoor de "Instagram-post staat nog live"-verwijder-popup
+  // openstaat (null = dicht). Alleen gezet voor campagnes met een nog-live
+  // IG-post; gewone concepten gaan via de simpele window.confirm.
+  const [pendingDelete, setPendingDelete] = useState<BoardItem | null>(null);
   // Filter op kanaal. Lege set = alles tonen. Klik op chip = toggle.
   const [channelFilter, setChannelFilter] = useState<Set<string>>(new Set());
   const toggleChannel = (key: string) => {
@@ -857,21 +879,33 @@ export default function CampagnesPage() {
     });
   };
 
-  // Verwijderen: hard-delete. Backend staat 't alleen toe op concept
-  // of ingepland (zodat actief/verzonden campagnes immutable zijn).
-  const handleDelete = (item: BoardItem) => {
-    const isBundle = item.kind === "bundle-campaign";
-    const msg = isBundle
-      ? t("confirm.deleteBundle")
-      : t("confirm.deleteCampaign");
-    if (!window.confirm(msg)) return Promise.resolve();
-    return runAction(item, t("actions.delete"), async () => {
+  // De daadwerkelijke hard-delete (los van de bevestiging). Backend staat
+  // 't alleen toe op concept of ingepland (actief/verzonden = immutable).
+  const performDelete = (item: BoardItem) =>
+    runAction(item, t("actions.delete"), async () => {
       if (item.kind === "campaign") {
         await deleteCampaign(item.data.id);
       } else if (item.kind === "bundle-campaign") {
         await Promise.all(item.campaigns.map((c) => deleteCampaign(c.id)));
       }
     });
+
+  // Verwijderen vanaf de kanban. Heeft de campagne een nog-live Instagram-
+  // post (kan niet via de API weg), dan tonen we een popup met de directe
+  // link i.p.v. de kale window.confirm: na verwijderen is die link weg en
+  // blijft de post anders ongemerkt online staan. Gewone concepten zonder
+  // live IG-post houden de simpele bevestiging.
+  const handleDelete = (item: BoardItem) => {
+    if (igPendingUrl(item)) {
+      setPendingDelete(item);
+      return;
+    }
+    const isBundle = item.kind === "bundle-campaign";
+    const msg = isBundle
+      ? t("confirm.deleteBundle")
+      : t("confirm.deleteCampaign");
+    if (!window.confirm(msg)) return Promise.resolve();
+    return performDelete(item);
   };
 
   return (
@@ -1215,6 +1249,145 @@ export default function CampagnesPage() {
           </div>
         </div>
       )}
+
+      {/* Verwijder-popup voor een campagne met een nog-live Instagram-post.
+          Instagram laat geen verwijderen via de API toe, dus na het wissen
+          blijft de post online. Daarom een nette let-op-melding (amber) met
+          een directe link naar precies die post, plus expliciet
+          "Toch verwijderen". Verschijnt alleen als ig_pending_manual_delete_url
+          gevuld is (zie handleDelete). */}
+      {pendingDelete &&
+        (() => {
+          const raw = igPendingUrl(pendingDelete) ?? "";
+          const href = raw.startsWith("http")
+            ? raw
+            : "https://www.instagram.com";
+          const busy = busyId === cardKey(pendingDelete);
+          return (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ig-delete-title"
+              onClick={() => {
+                if (!busy) setPendingDelete(null);
+              }}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(14,43,23,0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 16,
+                zIndex: 1000,
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: "var(--white, #FFFFFF)",
+                  borderRadius: 12,
+                  padding: 24,
+                  maxWidth: 440,
+                  width: "100%",
+                }}
+              >
+                <h3
+                  id="ig-delete-title"
+                  style={{ margin: "0 0 6px", fontSize: 18 }}
+                >
+                  {t("igDeletePopup.title")}
+                </h3>
+                <p
+                  style={{
+                    margin: "0 0 14px",
+                    fontSize: 13,
+                    color: "var(--ts)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t("igDeletePopup.body")}
+                </p>
+
+                <div
+                  style={{
+                    margin: "0 0 16px",
+                    padding: "12px 14px",
+                    background: "#FBF1DD",
+                    border: "1px solid #EAD9AE",
+                    borderRadius: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 13,
+                      color: "#8A5A00",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {t("igDeletePopup.noticeTitle")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      lineHeight: 1.55,
+                      color: "#8A5A00",
+                    }}
+                  >
+                    {t("igDeletePopup.noticeBody")}
+                  </div>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-block",
+                      marginTop: 10,
+                      padding: "7px 13px",
+                      fontSize: 12.5,
+                      fontWeight: 500,
+                      background: "var(--brand, #1F4A2D)",
+                      color: "#FFFFFF",
+                      borderRadius: 7,
+                      textDecoration: "none",
+                    }}
+                  >
+                    {t("igDeletePopup.open")}
+                  </a>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <Button
+                    variant="secondary"
+                    onClick={() => setPendingDelete(null)}
+                    disabled={busy}
+                  >
+                    {t("igDeletePopup.cancel")}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    loading={busy}
+                    disabled={busy}
+                    onClick={async () => {
+                      const item = pendingDelete;
+                      await performDelete(item);
+                      setPendingDelete(null);
+                    }}
+                  >
+                    {t("igDeletePopup.confirm")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

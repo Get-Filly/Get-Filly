@@ -911,6 +911,15 @@
       "deleteBundle": "Verwijder alle campagnes in deze bundle? Dit is permanent.",
       "deleteCampaign": "Verwijder deze campagne? Dit is permanent."
     },
+    "igDeletePopup": {
+      "title": "Campagne verwijderen?",
+      "body": "Je verwijdert hiermee de campagne uit Get-Filly. De Instagram-post die hierbij hoort blijft wel online staan.",
+      "noticeTitle": "Instagram-post staat nog live",
+      "noticeBody": "Instagram laat niet toe een post via de koppeling te verwijderen. Haal 'm zelf weg in de Instagram-app.",
+      "open": "Open in Instagram",
+      "cancel": "Annuleren",
+      "confirm": "Toch verwijderen"
+    },
     "tooltips": {
       "finishMail": "Mail is al verstuurd, campagne afronden.",
       "stopSocial": "Post van het kanaal verwijderen en terug naar concept.",
