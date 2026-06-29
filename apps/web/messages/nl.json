@@ -906,7 +906,7 @@
       "delete": "Verwijderen"
     },
     "confirm": {
-      "stopSocial": "Deze campagne stoppen? De post wordt van het kanaal verwijderd en de campagne gaat terug naar concept.",
+      "stopSocial": "Deze campagne stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe. Open daarna de campagne voor de directe link.",
       "finishMail": "Deze campagne afronden? De verstuurde mail blijft staan; de campagne verdwijnt naar de historie.",
       "deleteBundle": "Verwijder alle campagnes in deze bundle? Dit is permanent.",
       "deleteCampaign": "Verwijder deze campagne? Dit is permanent."
