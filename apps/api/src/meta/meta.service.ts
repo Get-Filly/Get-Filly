@@ -795,7 +795,7 @@ export class MetaService {
         if (!page) {
           throw new Error('gekoppelde pagina niet meer beschikbaar');
         }
-        const res = await fetch(
+        const res = await this.fetchWithTimeout(
           `https://graph.facebook.com/${this.graphVersion()}/${postIds.facebook}?access_token=${encodeURIComponent(page.access_token)}`,
           { method: 'DELETE' },
         );
