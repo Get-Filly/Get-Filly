@@ -774,6 +774,11 @@
       "socialAction": "{count, plural, one {de social-post wordt direct op Facebook/Instagram geplaatst} other {# social-posts worden direct op Facebook/Instagram geplaatst}}"
     },
     "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe.",
+    "igManualDelete": {
+      "title": "Instagram-post staat nog live",
+      "body": "We konden de Facebook-post verwijderen, maar Instagram staat geen automatisch verwijderen toe via de API. Verwijder de post zelf in Instagram.",
+      "open": "Open in Instagram"
+    },
     "deleteConfirm": {
       "bundle": "Weet je zeker dat je deze bundle ({count} kanalen) wil verwijderen?",
       "single": "Weet je zeker dat je deze concept-campagne wil verwijderen?"

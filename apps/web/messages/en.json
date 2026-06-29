@@ -774,6 +774,11 @@
       "socialAction": "{count, plural, one {the social post will be published immediately on Facebook/Instagram} other {# social posts will be published immediately on Facebook/Instagram}}"
     },
     "stopConfirm": "Are you sure you want to stop this campaign? The Facebook post will be deleted and the campaign will go back to draft. Any Instagram post you will need to delete manually in the Instagram app, because Instagram does not allow deleting via the API.",
+    "igManualDelete": {
+      "title": "Instagram post is still live",
+      "body": "We were able to delete the Facebook post, but Instagram does not allow deleting via the API. Please remove the post yourself in Instagram.",
+      "open": "Open in Instagram"
+    },
     "deleteConfirm": {
       "bundle": "Are you sure you want to delete this bundle ({count} channels)?",
       "single": "Are you sure you want to delete this draft campaign?"

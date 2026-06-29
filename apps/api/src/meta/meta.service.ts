@@ -450,7 +450,7 @@ export class MetaService {
     useAdmin = false,
   ): Promise<{
     facebook?: { id: string };
-    instagram?: { id: string };
+    instagram?: { id: string; permalink?: string };
     errors: string[];
   }> {
     const { token, meta } = await this.loadCredential(restaurantId, useAdmin);
@@ -472,7 +472,7 @@ export class MetaService {
     const v = this.graphVersion();
     const result: {
       facebook?: { id: string };
-      instagram?: { id: string };
+      instagram?: { id: string; permalink?: string };
       errors: string[];
     } = { errors: [] };
 
@@ -546,6 +546,26 @@ export class MetaService {
           const pubJson = (await pubRes.json()) as { id?: string };
           if (!pubRes.ok) throw new Error(JSON.stringify(pubJson));
           result.instagram = { id: pubJson.id ?? '' };
+          // Permalink ophalen zodat we later (bij terugtrekken) een directe
+          // link naar de te-verwijderen post kunnen tonen. Best-effort:
+          // faalt dit, dan missen we alleen de deep-link, niet de post.
+          if (pubJson.id) {
+            try {
+              const permaRes = await fetch(
+                `https://graph.facebook.com/${v}/${pubJson.id}?fields=permalink&access_token=${encodeURIComponent(pageToken)}`,
+              );
+              if (permaRes.ok) {
+                const permaJson = (await permaRes.json()) as {
+                  permalink?: string;
+                };
+                if (permaJson.permalink) {
+                  result.instagram.permalink = permaJson.permalink;
+                }
+              }
+            } catch {
+              // permalink is optioneel
+            }
+          }
         } catch (err) {
           this.logger.error(`IG-publicatie faalde: ${String(err)}`);
           result.errors.push(

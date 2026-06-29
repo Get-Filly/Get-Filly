@@ -593,6 +593,10 @@ export default function UnifiedDetailPage() {
       // Stop & verwijderen van kanaal (actief → concept): destructief,
       // de gepubliceerde post wordt teruggetrokken. Vraag bevestiging.
       if (view.status === "actief" && next === "concept") {
+        // stopConfirm vermeldt al dat een eventuele Instagram-post handmatig
+        // verwijderd moet worden (kan niet via de API). Na het stoppen toont
+        // de detailpagina bovendien een info-kaart met een directe link naar
+        // de te-verwijderen post (zie ig_pending_manual_delete_url).
         if (!window.confirm(t("stopConfirm"))) {
           return;
         }
@@ -1002,6 +1006,56 @@ export default function UnifiedDetailPage() {
           </ul>
         </div>
       )}
+
+      {/* Instagram handmatig verwijderen: na het stoppen van een naar IG
+          geplaatste campagne staat de post nog live (Instagram laat geen
+          verwijderen via de API toe). Nette let-op-melding (amber, geen rode
+          fout) met een directe link naar precies die post. */}
+      {view.channels.some((c) => c.ig_pending_manual_delete_url) &&
+        (() => {
+          const raw =
+            view.channels.find((c) => c.ig_pending_manual_delete_url)
+              ?.ig_pending_manual_delete_url ?? "";
+          const href = raw.startsWith("http")
+            ? raw
+            : "https://www.instagram.com";
+          return (
+            <div
+              style={{
+                padding: "12px 16px",
+                margin: "12px 0",
+                background: "#FBF1DD",
+                border: "1px solid #EAD9AE",
+                borderRadius: 8,
+                fontSize: 13,
+                color: "#8A5A00",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                {t("igManualDelete.title")}
+              </div>
+              <div style={{ lineHeight: 1.5 }}>{t("igManualDelete.body")}</div>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  marginTop: 10,
+                  padding: "7px 13px",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  background: "var(--brand, #1F4A2D)",
+                  color: "#FFFFFF",
+                  borderRadius: 7,
+                  textDecoration: "none",
+                }}
+              >
+                {t("igManualDelete.open")}
+              </a>
+            </div>
+          );
+        })()}
 
       {/* Kanaal in deze campagne. Op een concept zijn de chips klikbaar:
           inactief aanklikken voegt het kanaal toe (extra rij in de tabel),
