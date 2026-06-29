@@ -1317,7 +1317,7 @@ export class CampaignsService {
 
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, status, type')
+      .select('id, status, type, scheduled_for, suggested_scheduled_for')
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
@@ -1363,6 +1363,16 @@ export class CampaignsService {
     // Bij activeren leggen we de start-tijd vast voor verzend-tracking.
     if (nextStatus === 'actief') {
       updates.executed_at = new Date().toISOString();
+    }
+    // Inplannen MOET een concrete scheduled_for hebben, anders pakt de cron
+    // (`scheduled_for <= nu`) de campagne nooit op en wordt-ie nooit geplaatst.
+    // Ontbreekt-ie (bv. een eigen campagne zonder Filly-tijd): Filly's
+    // voorgestelde moment als dat er is, anders NU → cron plaatst 'm de
+    // eerstvolgende ronde. Voorkomt een 'ingepland zonder tijd'-doodlopertje.
+    if (nextStatus === 'ingepland' && !existing.scheduled_for) {
+      updates.scheduled_for =
+        (existing.suggested_scheduled_for as string | null) ??
+        new Date().toISOString();
     }
 
     const { error: updErr } = await this.supabase.client

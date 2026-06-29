@@ -344,7 +344,7 @@ export class MetaService {
       instagram_business_account?: { id: string };
     }>
   > {
-    const res = await fetch(
+    const res = await this.fetchWithTimeout(
       `https://graph.facebook.com/${this.graphVersion()}/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${encodeURIComponent(userToken)}`,
     );
     if (!res.ok) {
@@ -405,11 +405,37 @@ export class MetaService {
     return { ok: true };
   }
 
+  // Fetch met een harde time-out. Zonder dit blijft een trage/hangende Meta-
+  // call de hele publiceer-request ophouden tot de serverless-functie na 60s
+  // wordt afgekapt ("laadt even en stopt ineens"). Nu faalt een trage call
+  // snel met een AbortError → wordt een nette "time-out"-melding (zie
+  // describeMetaError).
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit = {},
+    ms = 20000,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   // Haalt een leesbare reden uit een Graph-API-fout. De publish-stappen
   // gooien `new Error(JSON.stringify(json))`, waarbij json = { error: {...} }.
   // We tonen Meta's eigen `error_user_msg`/`message` + code, zodat de eigenaar
   // (en wij) zien WAAROM het mislukte i.p.v. een generieke "mislukt".
   private describeMetaError(err: unknown): string {
+    // Time-out (AbortController) → duidelijke melding i.p.v. de ruwe naam.
+    if (
+      (err instanceof Error && err.name === 'AbortError') ||
+      String(err).includes('aborted')
+    ) {
+      return 'Meta reageerde niet op tijd (time-out). Probeer het opnieuw.';
+    }
     const raw = err instanceof Error ? err.message : String(err);
     try {
       const parsed = JSON.parse(raw) as {
@@ -486,7 +512,7 @@ export class MetaService {
             caption: opts.message,
             access_token: pageToken,
           });
-          const res = await fetch(
+          const res = await this.fetchWithTimeout(
             `https://graph.facebook.com/${v}/${pageId}/photos`,
             { method: 'POST', body: params },
           );
@@ -499,7 +525,7 @@ export class MetaService {
             message: opts.message,
             access_token: pageToken,
           });
-          const res = await fetch(
+          const res = await this.fetchWithTimeout(
             `https://graph.facebook.com/${v}/${pageId}/feed`,
             { method: 'POST', body: params },
           );
@@ -528,7 +554,7 @@ export class MetaService {
             caption: opts.message,
             access_token: pageToken,
           });
-          const createRes = await fetch(
+          const createRes = await this.fetchWithTimeout(
             `https://graph.facebook.com/${v}/${igUserId}/media`,
             { method: 'POST', body: createParams },
           );
@@ -539,7 +565,7 @@ export class MetaService {
             creation_id: createJson.id ?? '',
             access_token: pageToken,
           });
-          const pubRes = await fetch(
+          const pubRes = await this.fetchWithTimeout(
             `https://graph.facebook.com/${v}/${igUserId}/media_publish`,
             { method: 'POST', body: pubParams },
           );
@@ -551,7 +577,7 @@ export class MetaService {
           // faalt dit, dan missen we alleen de deep-link, niet de post.
           if (pubJson.id) {
             try {
-              const permaRes = await fetch(
+              const permaRes = await this.fetchWithTimeout(
                 `https://graph.facebook.com/${v}/${pubJson.id}?fields=permalink&access_token=${encodeURIComponent(pageToken)}`,
               );
               if (permaRes.ok) {
