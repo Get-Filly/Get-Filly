@@ -2598,6 +2598,90 @@ export async function sendChatMessage(
   return res.json();
 }
 
+// Streamende variant van sendChatMessage (Server-Sent Events). Roept
+// onDelta aan voor elk stukje proza dat binnenkomt en resolved met
+// hetzelfde resultaat-object als sendChatMessage (user- + filly-bericht +
+// lopende actie) zodra het "done"-event komt. Bij cap-bereikt/fout gooit
+// 'ie net als sendChatMessage, zodat de caller dezelfde afhandeling houdt.
+export async function streamChatMessage(
+  conversationId: string,
+  content: string,
+  onDelta: (text: string) => void,
+): Promise<{
+  userMessage: ChatMessage;
+  fillyMessage: ChatMessage;
+  activeAction: ActiveAction | null;
+}> {
+  const res = await authedFetch(`${API_URL}/chat/messages/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ conversation_id: conversationId, content }),
+  });
+  // Een harde HTTP-fout (bv. 401/429 vóór de stream begint) komt als JSON.
+  if (!res.ok || !res.body) {
+    const body = await res.json().catch(() => null);
+    const msg = body?.message ?? `HTTP ${res.status}`;
+    const err = new Error(msg) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let done: {
+    userMessage: ChatMessage;
+    fillyMessage: ChatMessage;
+    activeAction: ActiveAction | null;
+  } | null = null;
+  let streamError: string | null = null;
+
+  // Eén SSE-event-blok (regels "event:" + "data:") verwerken.
+  const handleEvent = (raw: string): void => {
+    let event = "message";
+    const dataLines: string[] = [];
+    for (const line of raw.split("\n")) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) dataLines.push(line.slice(5).replace(/^ /, ""));
+    }
+    if (dataLines.length === 0) return;
+    let payload: unknown;
+    try {
+      payload = JSON.parse(dataLines.join("\n"));
+    } catch {
+      return; // half-geparset event negeren; volgende chunk vult aan
+    }
+    if (event === "delta") {
+      onDelta((payload as { text?: string }).text ?? "");
+    } else if (event === "done") {
+      done = payload as typeof done;
+    } else if (event === "error") {
+      streamError =
+        (payload as { message?: string }).message ?? "Onbekende fout.";
+    }
+  };
+
+  for (;;) {
+    const { value, done: readerDone } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: true });
+    // SSE-events zijn gescheiden door een lege regel (\n\n).
+    let idx: number;
+    while ((idx = buffer.indexOf("\n\n")) !== -1) {
+      const rawEvent = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      if (rawEvent.trim()) handleEvent(rawEvent);
+    }
+    if (readerDone) break;
+  }
+  if (buffer.trim()) handleEvent(buffer);
+
+  if (streamError) throw new Error(streamError);
+  if (!done) {
+    throw new Error("Geen volledig antwoord ontvangen van de chat.");
+  }
+  return done;
+}
+
 // Werkt de lopende actie van een gesprek bij (audit-item #8). De geleide
 // flow roept dit aan bij elke keuze (dag/kanalen) en met {reset:true} na
 // een geslaagde generatie. Returnt de gemergede actie (of null bij reset).

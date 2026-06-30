@@ -6,8 +6,10 @@ import {
   Param,
   Patch,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ChatService, type ActiveActionInput } from './chat.service';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import {
@@ -112,5 +114,53 @@ export class ChatController {
       body.conversation_id,
       body.content,
     );
+  }
+
+  // Streamende variant van sendMessage (Server-Sent Events). Filly's proza
+  // komt woord-voor-woord binnen ("delta"-events), gevolgd door één "done"-
+  // event met het volledige resultaat (user- + filly-bericht + kaartje +
+  // lopende actie) — exact dezelfde shape als POST /messages. Bij een fout
+  // sturen we een "error"-event. We gebruiken @Res() + handmatige SSE i.p.v.
+  // EventSource omdat we POST met body + auth-header nodig hebben.
+  @UseGuards(AiRateLimitGuard)
+  @Post('messages/stream')
+  async streamMessage(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { conversation_id: string; content: string },
+    @Res() res: Response,
+  ): Promise<void> {
+    // SSE-headers. no-transform + X-Accel-Buffering:no voorkomen dat een
+    // proxy (nginx/Vercel) de stream buffert en in één keer doorgeeft.
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const send = (event: string, data: unknown): void => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const result = await this.chat.streamMessage(
+        restaurantId,
+        user.id,
+        body.conversation_id,
+        body.content,
+        (text) => send('delta', { text }),
+      );
+      send('done', result);
+    } catch (err) {
+      // De headers zijn al verstuurd (200), dus we kunnen geen status meer
+      // zetten — de foutmelding gaat als "error"-event mee; de frontend
+      // toont 'm en valt netjes terug.
+      send('error', {
+        message:
+          err instanceof Error ? err.message : 'Er ging iets mis in de chat.',
+      });
+    } finally {
+      res.end();
+    }
   }
 }

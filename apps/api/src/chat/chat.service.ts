@@ -200,6 +200,16 @@ export type ChatConversationSummary = {
   updated_at: string;
 };
 
+// Resultaat van één chat-beurt. Gedeeld door sendMessage (niet-streamend)
+// en streamMessage (SSE): beide leveren hetzelfde object, zodat de
+// frontend in beide gevallen het user-bericht, Filly's bericht (incl.
+// message_card) en de bijgewerkte lopende actie krijgt.
+export type TurnResult = {
+  userMessage: ChatMessage;
+  fillyMessage: ChatMessage;
+  activeAction: ActiveAction | null;
+};
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -737,19 +747,69 @@ export class ChatService {
 
   // Hoofd-actie: user stuurt een bericht, wij slaan het op, roepen
   // Claude aan met de context, slaan het antwoord op, sturen beide
-  // terug. Bewust NIET streaming voor v1, simpeler, goed genoeg.
+  // terug. sendMessage = niet-streamend; streamMessage = woord-voor-woord
+  // via SSE. Beide delen runTurn (alle pre/post-logica); alleen de Claude-
+  // call verschilt (generateText vs streamText).
   async sendMessage(
     restaurantId: string,
     userId: string,
     conversationId: string,
     content: string,
-  ): Promise<{
-    userMessage: ChatMessage;
-    fillyMessage: ChatMessage;
-    // De (mogelijk bijgewerkte) lopende actie na deze beurt, zodat de
-    // frontend de geleide flow direct in sync kan brengen zonder reload.
-    activeAction: ActiveAction | null;
-  }> {
+  ): Promise<TurnResult> {
+    return this.runTurn(restaurantId, userId, conversationId, content, (p) =>
+      this.ai.generateText({
+        system: p.system,
+        systemVolatile: p.volatile,
+        prompt: p.prompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 2000,
+        meta: { restaurantId, userId, feature: 'chat' },
+        cacheSystem: true,
+      }),
+    );
+  }
+
+  // Streamende variant: identiek aan sendMessage, maar Filly's proza komt
+  // woord-voor-woord binnen via onVisible. Het machine-blok (campagne-JSON)
+  // wordt onderdrukt in de zichtbare stream; het VOLLEDIGE antwoord gaat
+  // alsnog door het na-werk (finalize) heen, zodat kaartjes/voorstellen
+  // exact gelijk blijven aan de niet-streamende flow.
+  async streamMessage(
+    restaurantId: string,
+    userId: string,
+    conversationId: string,
+    content: string,
+    onVisible: (text: string) => void,
+  ): Promise<TurnResult> {
+    const forward = makeMachineBlockSuppressor(onVisible);
+    return this.runTurn(restaurantId, userId, conversationId, content, (p) =>
+      this.ai.streamText({
+        system: p.system,
+        systemVolatile: p.volatile,
+        prompt: p.prompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 2000,
+        meta: { restaurantId, userId, feature: 'chat' },
+        cacheSystem: true,
+        onDelta: forward,
+      }),
+    );
+  }
+
+  // Gedeelde kern van één chat-beurt. `generate` doet de Claude-call
+  // (streamend of niet) en geeft het volledige antwoord terug; al het
+  // andere (cap-check, opslaan, parsen, suggestie, persist) is identiek.
+  private async runTurn(
+    restaurantId: string,
+    userId: string,
+    conversationId: string,
+    content: string,
+    generate: (p: {
+      system: string;
+      volatile: string;
+      prompt: string;
+    }) => Promise<string>,
+  ): Promise<TurnResult> {
     const trimmed = content.trim();
     if (!trimmed) throw new NotFoundException('Leeg bericht.');
     if (trimmed.length > 4000) {
@@ -856,28 +916,14 @@ export class ChatService {
     }
     const guardedPrompt = promptParts.join('\n\n');
 
-    // 3) Claude-call via onze wrapper. Auto-logging in ai_usage gebeurt
-    // binnen AiService; rate-limit-guard heeft de call al laten passeren.
-    const answer = await this.ai.generateText({
+    // 3) Claude-call via de meegegeven generator (generateText óf de
+    // streamende streamText). Model/maxTokens/caching zitten in de
+    // wrappers (sendMessage/streamMessage); auto-logging in ai_usage +
+    // rate-limit zijn al afgehandeld door AiService/guard.
+    const answer = await generate({
       system: systemPrompt.system,
-      systemVolatile: systemPrompt.volatile,
+      volatile: systemPrompt.volatile,
       prompt: guardedPrompt,
-      model: 'claude-sonnet-4-6',
-      // Bumped 600 → 2000 (2026-05-04): enkelvoudige chat-replies passen
-      // ruim in 600, maar BUNDLE-output (3 kanaal-versies + JSON-
-      // overhead) heeft 1200-1800 tokens nodig. Bij truncation verdwijnt
-      // <<END>> en komt de hele JSON als platte tekst in de chat.
-      // Sonnet 4.6 met prompt-caching maakt 2000 tokens output betaalbaar.
-      maxTokens: 2000,
-      meta: {
-        restaurantId,
-        userId,
-        feature: 'chat',
-      },
-      // System bevat profile + menu + persona-rules, bij meerdere
-      // chat-berichten binnen 5 min levert caching ~90% korting op
-      // input-tokens.
-      cacheSystem: true,
     });
 
     // 4) Filly's antwoord parsen. Als Filly een concrete campagne
@@ -1580,6 +1626,42 @@ export function formatActiveActionBlock(action: ActiveAction | null): string {
     ...lines,
     'Dit is de actie waar de eigenaar nu mee bezig is. Gebruik deze datum en dit thema; vraag de dag NIET opnieuw. Noemt de eigenaar een nieuwe dag of een nieuw gerecht, neem dat dan over.',
   ].join('\n');
+}
+
+// ============================================================
+// makeMachineBlockSuppressor, machine-blok uit de zichtbare stream
+// ============================================================
+// Filly plakt soms een machine-blok achter z'n proza (<<FILLY_START_GUIDED>>,
+// <<FILLY_PROPOSE_CAMPAIGN>>, ...). Bij streamen mag dat NIET zichtbaar zijn
+// (de eigenaar zou rauwe JSON zien). Deze factory geeft een onDelta-callback
+// die de proza doorstuurt en stopt zodra '<<' begint. Het volledige antwoord
+// (incl. blok) komt los terug uit streamText voor het na-werk.
+//
+// Robuust tegen een '<' die net op de chunk-grens valt: dat ene teken houden
+// we vast tot de volgende delta, zodat we '<<' alsnog herkennen.
+export function makeMachineBlockSuppressor(
+  onVisible: (text: string) => void,
+): (delta: string) => void {
+  let stopped = false;
+  let pending = '';
+  return (delta: string) => {
+    if (stopped) return;
+    let chunk = pending + delta;
+    pending = '';
+    const idx = chunk.indexOf('<<');
+    if (idx !== -1) {
+      if (idx > 0) onVisible(chunk.slice(0, idx));
+      stopped = true;
+      return;
+    }
+    // Eindigt de chunk op een losse '<'? Dat kan het begin van '<<' zijn —
+    // vasthouden tot de volgende delta i.p.v. 'm zichtbaar te tonen.
+    if (chunk.endsWith('<')) {
+      pending = '<';
+      chunk = chunk.slice(0, -1);
+    }
+    if (chunk) onVisible(chunk);
+  };
 }
 
 // ============================================================
