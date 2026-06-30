@@ -859,7 +859,8 @@ export class ChatService {
     // 3) Claude-call via onze wrapper. Auto-logging in ai_usage gebeurt
     // binnen AiService; rate-limit-guard heeft de call al laten passeren.
     const answer = await this.ai.generateText({
-      system: systemPrompt,
+      system: systemPrompt.system,
+      systemVolatile: systemPrompt.volatile,
       prompt: guardedPrompt,
       model: 'claude-sonnet-4-6',
       // Bumped 600 → 2000 (2026-05-04): enkelvoudige chat-replies passen
@@ -1283,24 +1284,42 @@ export class ChatService {
   // met de profiel-query in buildFullContext, maar de greeting voelt
   // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
   // zaak". Twee queries kosten minder dan 50ms verschil.
-  private async buildSystemPrompt(restaurantId: string): Promise<string> {
+  private async buildSystemPrompt(
+    restaurantId: string,
+  ): Promise<{ system: string; volatile: string }> {
     // Sinds 2026-06-12: de chat schrijft zelf GEEN campagnes meer — een
     // campagne-verzoek start de geleide flow (FILLY_START_GUIDED), die
     // de generatie (incl. kanaalregels/bereik/leerloop) server-side
     // doet via generate-for-dates. De chat-prompt heeft die blokken
     // (channel-rules / reach / learning) dus niet meer nodig.
-    const [restaurantResult, contextBlock, memories] = await Promise.all([
-      this.supabase.client
-        .from('restaurants')
-        .select('name, type, filly_language')
-        .eq('id', restaurantId)
-        .maybeSingle(),
-      this.context.buildFullContext(restaurantId),
-      // Laatste N memories ophalen, Filly's leerschat uit afgesloten
-      // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
-      // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
-      this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
-    ]);
+    //
+    // Prompt-caching (2026-06-30): de context wordt gesplitst in een
+    // STATISCH deel (profiel + menu + foto's, wijzigt zelden) dat in de
+    // gecachete system-prompt gaat, en een VOLATIEL live-blok (weer/
+    // bezetting/reserveringen, verandert elke call) dat de caller ná de
+    // cache-grens hangt. Zo breekt de live-data de cache niet meer.
+    const [restaurantResult, profile, menu, photos, live, memories] =
+      await Promise.all([
+        this.supabase.client
+          .from('restaurants')
+          .select('name, type, filly_language')
+          .eq('id', restaurantId)
+          .maybeSingle(),
+        this.context.buildProfileBlock(restaurantId).catch(() => ''),
+        this.context.buildMenuBlock(restaurantId).catch(() => ''),
+        this.context.buildPhotosBlock(restaurantId).catch(() => ''),
+        this.context.buildLiveBlock(restaurantId).catch(() => ''),
+        // Laatste N memories ophalen, Filly's leerschat uit afgesloten
+        // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
+        // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
+        this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
+      ]);
+
+    // Statische context: profiel + menu + foto's, gescheiden door "---".
+    // Lege blokken weglaten (zelfde join-stijl als buildFullContext).
+    const contextBlock = [profile, menu, photos]
+      .filter((b) => b.length > 0)
+      .join('\n\n---\n\n');
 
     const restaurant = restaurantResult.data;
     const name = restaurant?.name ?? 'de onderneming';
@@ -1322,7 +1341,7 @@ export class ChatService {
       ? '\n\nIMPORTANT: Always reply to the owner in English, even though these instructions are written in Dutch.'
       : '';
 
-    return `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.${languageDirective}
+    const system = `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.${languageDirective}
 
 Wie je bent:
 - Een behulpzame, praktische assistent die CAMPAGNES voor het restaurant maakt.
@@ -1403,15 +1422,24 @@ antwoord je kort in proza, zonder blok.
 
 ---
 CONTEXT, alles wat je weet over deze onderneming.
-Drie secties, gescheiden door "---":
   1. PROFIEL, identiteit, doelgroep, USPs, faciliteiten, openingstijden, socials.
   2. MENU, alle beschikbare gerechten met prijzen + signature-markers.
-  3. Actuele feiten, vandaag, weer, bezetting, reserveringen komende 7 dagen.
+De actuele feiten (datum, weer, bezetting, reserveringen) volgen los hieronder
+in een apart "ACTUELE FEITEN"-blok.
 
 ${contextBlock}
 ---
 ${memoryBlock ? `\n${memoryBlock}\n---\n` : ''}
 Antwoord kort en direct. Geen "als Filly zou ik..." of "ik ben een AI", spreek gewoon als Filly.`;
+
+    // Volatiel blok: live data die elke call vers is. De caller hangt 'm
+    // ná de gecachete system-prompt (zie generateText.systemVolatile),
+    // zodat de wisselende weer/bezetting-cijfers de cache niet breken.
+    const volatile = live
+      ? `ACTUELE FEITEN (vers per gesprek, niet gecachet):\n${live}`
+      : '';
+
+    return { system, volatile };
   }
 }
 

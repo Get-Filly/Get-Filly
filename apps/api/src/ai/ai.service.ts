@@ -148,12 +148,23 @@ export class AiService {
     //   - refine 3 varianten (zelfde profile + menu)     → true
     //   - one-shot calls (review-reply, vision, schedule)→ false
     cacheSystem?: boolean;
+    // Volatiel system-deel (bv. live weer/bezetting) dat ELKE call
+    // verandert. Wordt als APART system-blok ná de cache-grens gehangen
+    // zodat het de cache van het statische `system`-deel niet breekt:
+    // Anthropic cachet alles t/m het cache_control-blok, dit komt erna.
+    // Zonder cacheSystem wordt het simpelweg achter `system` geplakt.
+    systemVolatile?: string;
   }): Promise<string> {
     const client = this.getClient();
     const model = opts.model ?? 'claude-sonnet-4-6';
 
-    // Bouw het system-payload: string als geen caching, anders een
-    // array met één text-block met cache_control. SDK accepteert beide.
+    const volatile = opts.systemVolatile?.trim() ? opts.systemVolatile : '';
+
+    // Bouw het system-payload. Met caching: een array met het statische
+    // blok (cache_control: ephemeral) + optioneel het volatiele blok
+    // DAARNA (geen cache_control → niet gecachet, breekt de prefix niet).
+    // Zonder caching: één string waarin we het volatiele deel achteraan
+    // plakken. SDK accepteert beide vormen.
     const systemParam: string | Anthropic.TextBlockParam[] = opts.cacheSystem
       ? [
           {
@@ -161,8 +172,13 @@ export class AiService {
             text: opts.system,
             cache_control: { type: 'ephemeral' },
           },
+          ...(volatile
+            ? [{ type: 'text' as const, text: volatile }]
+            : []),
         ]
-      : opts.system;
+      : volatile
+        ? `${opts.system}\n\n${volatile}`
+        : opts.system;
 
     let response;
     try {
