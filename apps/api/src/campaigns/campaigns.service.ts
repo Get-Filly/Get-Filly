@@ -411,10 +411,15 @@ export class CampaignsService {
           postIds.tiktok = publishId;
         }
       } catch (err) {
+        // directPost geeft z'n fout al als "TikTok-post mislukt: <reden>"; die
+        // niet nog eens prefixen (anders "TikTok-post mislukt: TikTok-post
+        // mislukt"). Andere fouten (bv. token-vernieuwing) krijgen de prefix
+        // wel, zodat duidelijk is dat het om de TikTok-post ging.
+        const reason = err instanceof Error ? err.message : String(err);
         errors.push(
-          `TikTok-post mislukt: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+          reason.startsWith('TikTok-post mislukt')
+            ? reason
+            : `TikTok-post mislukt: ${reason}`,
         );
       }
     }

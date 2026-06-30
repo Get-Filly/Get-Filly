@@ -432,7 +432,15 @@ export class TikTokService {
       this.logger.warn(
         `TikTok direct-post faalde (${res.status}): ${json.error?.code ?? ''} ${json.error?.message ?? ''}`,
       );
-      throw new BadRequestException('TikTok-post mislukt');
+      // De ECHTE reden van TikTok meegeven i.p.v. een kale "mislukt", zodat de
+      // eigenaar ziet wat er speelt (bv. domein niet geverifieerd in het portal,
+      // scope niet toegekend, of app nog niet geaudit). message is het meest
+      // leesbaar; valt terug op de code of de HTTP-status.
+      const reason =
+        json.error?.message?.trim() ||
+        json.error?.code ||
+        `HTTP ${res.status}`;
+      throw new BadRequestException(`TikTok-post mislukt: ${reason}`);
     }
     return { publishId: json.data.publish_id };
   }
