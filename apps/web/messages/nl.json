@@ -384,6 +384,7 @@
     "team": "Team",
     "privacy": "Privacybeleid",
     "terms": "Voorwaarden",
+    "governmentRequests": "Beleid overheidsverzoeken",
     "cookies": "Cookies",
     "rights": "© {year} Get-Filly. Alle rechten voorbehouden.",
     "builtIn": "Gebouwd in Nederland",
@@ -3293,6 +3294,62 @@
     "blog": {
       "title": "De marketing cocktail",
       "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly."
+    }
+  },
+  "leg_government_requests": {
+    "metaTitle": "Beleid overheidsverzoeken",
+    "metaDescription": "Hoe Get-Filly omgaat met verzoeken van overheidsinstanties om persoonsgegevens: rechtmatigheidstoets, dataminimalisatie en documentatie.",
+    "lastUpdated": "Laatst bijgewerkt: {date} · {version}",
+    "title": "Beleid voor verzoeken van overheidsinstanties om persoonsgegevens",
+    "lead": "Dit beleid beschrijft hoe Get-Filly omgaat met verzoeken van overheidsinstanties om toegang tot of verstrekking van persoonsgegevens van gebruikers, klanten of hun gasten.",
+    "tocAriaLabel": "Inhoudsopgave",
+    "tocTitle": "Inhoud",
+    "toc": {
+      "scope": "Doel en reikwijdte",
+      "legality": "Toetsing van de rechtmatigheid",
+      "challenge": "Aanvechten van onrechtmatige verzoeken",
+      "minimization": "Dataminimalisatie",
+      "documentation": "Documentatie",
+      "notify": "Informeren van betrokkenen",
+      "responsibility": "Verantwoordelijkheid"
+    },
+    "scope": {
+      "heading": "1. Doel en reikwijdte",
+      "body": "Dit beleid beschrijft hoe Get-Filly omgaat met verzoeken van overheidsinstanties (zoals politie, justitie, toezichthouders of inlichtingendiensten) om toegang tot of verstrekking van persoonsgegevens van gebruikers, klanten of hun gasten. Het geldt voor alle medewerkers en wordt toegepast op elk dergelijk verzoek dat Get-Filly ontvangt."
+    },
+    "legality": {
+      "heading": "2. Toetsing van de rechtmatigheid (legaliteitstoets)",
+      "intro": "Get-Filly verstrekt geen persoonsgegevens aan een overheidsinstantie zonder eerst de rechtmatigheid van het verzoek te beoordelen. Bij elk verzoek controleren wij:",
+      "item1": "de identiteit en bevoegdheid van de verzoekende instantie;",
+      "item2": "de juridische grondslag van het verzoek (bijvoorbeeld een gerechtelijk bevel, dwangbevel of wettelijke verplichting);",
+      "item3": "of het verzoek voldoet aan de toepasselijke wet- en regelgeving, waaronder de AVG.",
+      "closing": "Verzoeken zonder geldige juridische grondslag worden niet ingewilligd."
+    },
+    "challenge": {
+      "heading": "3. Aanvechten van onrechtmatige verzoeken",
+      "body": "Indien Get-Filly van mening is dat een verzoek onrechtmatig, te ruim, onduidelijk of juridisch ongegrond is, behoudt Get-Filly zich het recht voor om het verzoek aan te vechten, te beperken, om verduidelijking te vragen of juridisch advies in te winnen voordat enige gegevens worden verstrekt."
+    },
+    "minimization": {
+      "heading": "4. Dataminimalisatie",
+      "body": "Indien Get-Filly wettelijk verplicht is gegevens te verstrekken, beperkt Get-Filly de verstrekking tot het strikt noodzakelijke minimum dat het verzoek vereist. Er worden geen aanvullende gegevens verstrekt buiten de reikwijdte van het rechtmatige verzoek."
+    },
+    "documentation": {
+      "heading": "5. Documentatie",
+      "intro": "Get-Filly documenteert elk ontvangen verzoek van een overheidsinstantie, inclusief:",
+      "item1": "de datum en de verzoekende instantie;",
+      "item2": "de aard en reikwijdte van het verzoek;",
+      "item3": "de juridische grondslag;",
+      "item4": "de beoordeling en de genomen beslissing (inclusief de juridische redenering);",
+      "item5": "welke gegevens al dan niet zijn verstrekt en door wie.",
+      "closing": "Deze documentatie wordt veilig bewaard."
+    },
+    "notify": {
+      "heading": "6. Informeren van betrokkenen",
+      "body": "Waar wettelijk toegestaan, informeert Get-Filly de betrokken gebruiker of klant over een verzoek dat hun persoonsgegevens betreft, tenzij een geheimhoudingsplicht of wettelijk verbod dit verhindert. Wanneer het gaat om gasten-data waarvoor de klant verwerkingsverantwoordelijke is, wordt de klant betrokken conform de verwerkersovereenkomst."
+    },
+    "responsibility": {
+      "heading": "7. Verantwoordelijkheid",
+      "body": "Verzoeken van overheidsinstanties worden uitsluitend behandeld door de oprichters en een aangewezen verantwoordelijke binnen Get-Filly. Medewerkers die een dergelijk verzoek ontvangen, sturen dit onmiddellijk door en verstrekken zelf geen gegevens."
     }
   },
   "leg_privacy_page": {

@@ -384,6 +384,7 @@
     "team": "Team",
     "privacy": "Privacy policy",
     "terms": "Terms",
+    "governmentRequests": "Government requests policy",
     "cookies": "Cookies",
     "rights": "© {year} Get-Filly. All rights reserved.",
     "builtIn": "Built in the Netherlands",
@@ -3293,6 +3294,62 @@
     "blog": {
       "title": "The marketing cocktail",
       "description": "Insights on AI marketing, online findability and higher occupancy for hospitality, from Get-Filly."
+    }
+  },
+  "leg_government_requests": {
+    "metaTitle": "Government requests policy",
+    "metaDescription": "How Get-Filly handles government authority requests for personal data: legality assessment, data minimisation and documentation.",
+    "lastUpdated": "Last updated: {date} · {version}",
+    "title": "Policy for government authority requests for personal data",
+    "lead": "This policy describes how Get-Filly handles requests from government authorities for access to or disclosure of personal data of users, customers or their guests.",
+    "tocAriaLabel": "Table of contents",
+    "tocTitle": "Contents",
+    "toc": {
+      "scope": "Purpose and scope",
+      "legality": "Legality assessment",
+      "challenge": "Challenging unlawful requests",
+      "minimization": "Data minimisation",
+      "documentation": "Documentation",
+      "notify": "Informing data subjects",
+      "responsibility": "Responsibility"
+    },
+    "scope": {
+      "heading": "1. Purpose and scope",
+      "body": "This policy describes how Get-Filly handles requests from government authorities (such as police, judicial authorities, regulators or intelligence services) for access to or disclosure of personal data of users, customers or their guests. It applies to all staff and is applied to every such request that Get-Filly receives."
+    },
+    "legality": {
+      "heading": "2. Legality assessment",
+      "intro": "Get-Filly does not disclose personal data to a government authority without first assessing the lawfulness of the request. For every request we verify:",
+      "item1": "the identity and authority of the requesting body;",
+      "item2": "the legal basis of the request (for example a court order, enforcement order or statutory obligation);",
+      "item3": "whether the request complies with applicable laws and regulations, including the GDPR.",
+      "closing": "Requests without a valid legal basis are not granted."
+    },
+    "challenge": {
+      "heading": "3. Challenging unlawful requests",
+      "body": "If Get-Filly considers a request to be unlawful, overly broad, unclear or legally unfounded, Get-Filly reserves the right to challenge or narrow the request, to ask for clarification, or to seek legal advice before any data is disclosed."
+    },
+    "minimization": {
+      "heading": "4. Data minimisation",
+      "body": "If Get-Filly is legally required to disclose data, Get-Filly limits the disclosure to the strict minimum necessary that the request requires. No additional data is disclosed beyond the scope of the lawful request."
+    },
+    "documentation": {
+      "heading": "5. Documentation",
+      "intro": "Get-Filly documents every request received from a government authority, including:",
+      "item1": "the date and the requesting authority;",
+      "item2": "the nature and scope of the request;",
+      "item3": "the legal basis;",
+      "item4": "the assessment and the decision taken (including the legal reasoning);",
+      "item5": "which data was or was not disclosed, and by whom.",
+      "closing": "This documentation is stored securely."
+    },
+    "notify": {
+      "heading": "6. Informing data subjects",
+      "body": "Where legally permitted, Get-Filly informs the user or customer concerned about a request relating to their personal data, unless a duty of confidentiality or a legal prohibition prevents this. Where it concerns guest data for which the customer is the controller, the customer is involved in line with the data processing agreement."
+    },
+    "responsibility": {
+      "heading": "7. Responsibility",
+      "body": "Requests from government authorities are handled solely by the founders and a designated responsible person within Get-Filly. Staff who receive such a request forward it immediately and do not disclose any data themselves."
     }
   },
   "leg_privacy_page": {

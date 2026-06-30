@@ -32,6 +32,7 @@ const linksBedrijf = [
 const linksJuridisch = [
   { href: "/privacy", key: "privacy" },
   { href: "/voorwaarden", key: "terms" },
+  { href: "/beleid-overheidsverzoeken", key: "governmentRequests" },
   { href: "/privacy#cookies", key: "cookies" },
 ];
 
