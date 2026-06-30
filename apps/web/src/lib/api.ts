@@ -376,11 +376,11 @@ export type Campaign = {
   // door fetchDeletedCampaigns(); standaard fetchCampaigns() filtert
   // deze al uit. Optional zodat normale flows er niks van merken.
   deleted_at?: string | null;
-  // Permalink naar een Instagram-post die nog live staat (kan niet via de
-  // API verwijderd worden, gezet bij het stoppen van een IG-campagne).
-  // Sentinel "manual" = pending zonder bekende permalink. Null = niets.
-  // De kanban toont hierop bij Verwijderen een "post staat nog live"-popup.
-  ig_pending_manual_delete_url?: string | null;
+  // Permalink naar de live Instagram-post van een actieve campagne (kan niet
+  // via de API verwijderd worden). Sentinel "manual" = wel een live IG-post
+  // maar geen bekende permalink. Null = geen live IG-post. De kanban toont
+  // hierop bij Stop een popup met directe link naar die post.
+  ig_live_permalink?: string | null;
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {

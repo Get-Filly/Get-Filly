@@ -906,19 +906,18 @@
       "delete": "Delete"
     },
     "confirm": {
-      "stopSocial": "Stop this campaign? The Facebook post will be deleted and the campaign goes back to draft. Any Instagram post you will need to delete manually in the Instagram app, because Instagram does not allow deleting via the API. Open the campaign afterwards for the direct link.",
       "finishMail": "Finish this campaign? The sent email stays in place; the campaign moves to history.",
       "deleteBundle": "Delete all campaigns in this bundle? This is permanent.",
       "deleteCampaign": "Delete this campaign? This is permanent."
     },
-    "igDeletePopup": {
-      "title": "Delete campaign?",
-      "body": "This removes the campaign from Get-Filly. The Instagram post that belongs to it stays online.",
+    "igStopPopup": {
+      "title": "Stop campaign?",
+      "body": "The campaign goes back to draft. Any Facebook post is deleted automatically.",
       "noticeTitle": "Instagram post is still live",
       "noticeBody": "Instagram does not allow deleting a post through the connection. Remove it yourself in the Instagram app.",
       "open": "Open in Instagram",
       "cancel": "Cancel",
-      "confirm": "Delete anyway"
+      "confirm": "Stop campaign"
     },
     "tooltips": {
       "finishMail": "Email has already been sent, finish the campaign.",

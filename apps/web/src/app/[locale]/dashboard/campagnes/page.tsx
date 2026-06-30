@@ -361,18 +361,18 @@ function getItemPlatforms(item: BoardItem): string[] {
   return out;
 }
 
-// Permalink naar een nog-live Instagram-post binnen dit item, of null.
-// Gezet bij het stoppen van een IG-campagne (de post kan niet via de API
-// weg). Bij een bundle pakken we de eerste die er één heeft. Sentinel
-// "manual" = wel pending maar geen bekende permalink.
-function igPendingUrl(item: BoardItem): string | null {
+// Permalink naar een live Instagram-post binnen dit item, of null. De
+// post kan niet via de API verwijderd worden, dus bij Stop tonen we een
+// directe link. Bij een bundle pakken we de eerste die er één heeft.
+// Sentinel "manual" = wel een live IG-post maar geen bekende permalink.
+function igLivePermalink(item: BoardItem): string | null {
   if (item.kind === "campaign") {
-    return item.data.ig_pending_manual_delete_url ?? null;
+    return item.data.ig_live_permalink ?? null;
   }
   if (item.kind === "bundle-campaign") {
     for (const c of item.campaigns) {
-      if (c.ig_pending_manual_delete_url) {
-        return c.ig_pending_manual_delete_url;
+      if (c.ig_live_permalink) {
+        return c.ig_live_permalink;
       }
     }
   }
@@ -483,10 +483,11 @@ export default function CampagnesPage() {
   // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
   // campaigns als bundles (group_id) een uniek busy-veld krijgen.
   const [busyId, setBusyId] = useState<string | null>(null);
-  // Campagne waarvoor de "Instagram-post staat nog live"-verwijder-popup
-  // openstaat (null = dicht). Alleen gezet voor campagnes met een nog-live
-  // IG-post; gewone concepten gaan via de simpele window.confirm.
-  const [pendingDelete, setPendingDelete] = useState<BoardItem | null>(null);
+  // Campagne waarvoor de Stop-bevestigingspopup openstaat (null = dicht).
+  // Gezet voor social-campagnes; bevat bij een live IG-post een directe
+  // link naar die post (Instagram kan niet via de API verwijderd worden).
+  // Mail-only campagnes ronden af via de simpele window.confirm.
+  const [pendingStop, setPendingStop] = useState<BoardItem | null>(null);
   // Filter op kanaal. Lege set = alles tonen. Klik op chip = toggle.
   const [channelFilter, setChannelFilter] = useState<Set<string>>(new Set());
   const toggleChannel = (key: string) => {
@@ -857,7 +858,10 @@ export default function CampagnesPage() {
   //     backend verwijdert de post (stub tot Meta/TikTok OAuth) en zet
   //     de campagne terug naar concept zodat 'ie opnieuw kan.
   // Een gemengde bundle krijgt per kanaal de juiste transitie.
-  const handleStop = (item: BoardItem) => {
+  // De daadwerkelijke stop (los van de bevestiging): mail → afgerond
+  // (verstuurd, niet terug te trekken), social/whatsapp → terug naar
+  // concept (post wordt waar mogelijk teruggetrokken).
+  const performStop = (item: BoardItem) => {
     const campaigns =
       item.kind === "campaign"
         ? [item.data]
@@ -865,11 +869,6 @@ export default function CampagnesPage() {
           ? item.campaigns
           : [];
     if (campaigns.length === 0) return Promise.resolve();
-    const hasSocial = campaigns.some((c) => c.type !== "mail");
-    const msg = hasSocial
-      ? t("confirm.stopSocial")
-      : t("confirm.finishMail");
-    if (!window.confirm(msg)) return Promise.resolve();
     return runAction(item, t("actions.stop"), async () => {
       await Promise.all(
         campaigns.map((c) =>
@@ -879,33 +878,41 @@ export default function CampagnesPage() {
     });
   };
 
-  // De daadwerkelijke hard-delete (los van de bevestiging). Backend staat
-  // 't alleen toe op concept of ingepland (actief/verzonden = immutable).
-  const performDelete = (item: BoardItem) =>
-    runAction(item, t("actions.delete"), async () => {
+  const handleStop = (item: BoardItem) => {
+    const campaigns =
+      item.kind === "campaign"
+        ? [item.data]
+        : item.kind === "bundle-campaign"
+          ? item.campaigns
+          : [];
+    if (campaigns.length === 0) return Promise.resolve();
+    const hasSocial = campaigns.some((c) => c.type !== "mail");
+    // Social/whatsapp: nette popup (toont bij een live IG-post de directe
+    // link, want Instagram kan niet via de API verwijderd worden).
+    if (hasSocial) {
+      setPendingStop(item);
+      return;
+    }
+    // Mail-only: niets terug te trekken, simpele bevestiging volstaat.
+    if (!window.confirm(t("confirm.finishMail"))) return Promise.resolve();
+    return performStop(item);
+  };
+
+  // Verwijderen: hard-delete. Backend staat 't alleen toe op concept
+  // of ingepland (zodat actief/verzonden campagnes immutable zijn).
+  const handleDelete = (item: BoardItem) => {
+    const isBundle = item.kind === "bundle-campaign";
+    const msg = isBundle
+      ? t("confirm.deleteBundle")
+      : t("confirm.deleteCampaign");
+    if (!window.confirm(msg)) return Promise.resolve();
+    return runAction(item, t("actions.delete"), async () => {
       if (item.kind === "campaign") {
         await deleteCampaign(item.data.id);
       } else if (item.kind === "bundle-campaign") {
         await Promise.all(item.campaigns.map((c) => deleteCampaign(c.id)));
       }
     });
-
-  // Verwijderen vanaf de kanban. Heeft de campagne een nog-live Instagram-
-  // post (kan niet via de API weg), dan tonen we een popup met de directe
-  // link i.p.v. de kale window.confirm: na verwijderen is die link weg en
-  // blijft de post anders ongemerkt online staan. Gewone concepten zonder
-  // live IG-post houden de simpele bevestiging.
-  const handleDelete = (item: BoardItem) => {
-    if (igPendingUrl(item)) {
-      setPendingDelete(item);
-      return;
-    }
-    const isBundle = item.kind === "bundle-campaign";
-    const msg = isBundle
-      ? t("confirm.deleteBundle")
-      : t("confirm.deleteCampaign");
-    if (!window.confirm(msg)) return Promise.resolve();
-    return performDelete(item);
   };
 
   return (
@@ -1250,26 +1257,27 @@ export default function CampagnesPage() {
         </div>
       )}
 
-      {/* Verwijder-popup voor een campagne met een nog-live Instagram-post.
-          Instagram laat geen verwijderen via de API toe, dus na het wissen
-          blijft de post online. Daarom een nette let-op-melding (amber) met
-          een directe link naar precies die post, plus expliciet
-          "Toch verwijderen". Verschijnt alleen als ig_pending_manual_delete_url
-          gevuld is (zie handleDelete). */}
-      {pendingDelete &&
+      {/* Stop-bevestiging voor een social-campagne. Vervangt de kale
+          browser-melding: legt uit dat de campagne terug naar concept gaat
+          en een eventuele Facebook-post automatisch verwijderd wordt. Staat
+          er een Instagram-post live, dan toont 'ie een let-op-melding (amber)
+          met een directe link naar die post, want Instagram kan niet via de
+          API verwijderd worden. */}
+      {pendingStop &&
         (() => {
-          const raw = igPendingUrl(pendingDelete) ?? "";
+          const raw = igLivePermalink(pendingStop) ?? "";
+          const hasIg = raw.length > 0;
           const href = raw.startsWith("http")
             ? raw
             : "https://www.instagram.com";
-          const busy = busyId === cardKey(pendingDelete);
+          const busy = busyId === cardKey(pendingStop);
           return (
             <div
               role="dialog"
               aria-modal="true"
-              aria-labelledby="ig-delete-title"
+              aria-labelledby="ig-stop-title"
               onClick={() => {
-                if (!busy) setPendingDelete(null);
+                if (!busy) setPendingStop(null);
               }}
               style={{
                 position: "fixed",
@@ -1293,10 +1301,10 @@ export default function CampagnesPage() {
                 }}
               >
                 <h3
-                  id="ig-delete-title"
+                  id="ig-stop-title"
                   style={{ margin: "0 0 6px", fontSize: 18 }}
                 >
-                  {t("igDeletePopup.title")}
+                  {t("igStopPopup.title")}
                 </h3>
                 <p
                   style={{
@@ -1306,56 +1314,58 @@ export default function CampagnesPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  {t("igDeletePopup.body")}
+                  {t("igStopPopup.body")}
                 </p>
 
-                <div
-                  style={{
-                    margin: "0 0 16px",
-                    padding: "12px 14px",
-                    background: "#FBF1DD",
-                    border: "1px solid #EAD9AE",
-                    borderRadius: 8,
-                  }}
-                >
+                {hasIg && (
                   <div
                     style={{
-                      fontWeight: 600,
-                      fontSize: 13,
-                      color: "#8A5A00",
-                      marginBottom: 4,
+                      margin: "0 0 16px",
+                      padding: "12px 14px",
+                      background: "#FBF1DD",
+                      border: "1px solid #EAD9AE",
+                      borderRadius: 8,
                     }}
                   >
-                    {t("igDeletePopup.noticeTitle")}
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 13,
+                        color: "#8A5A00",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {t("igStopPopup.noticeTitle")}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        lineHeight: 1.55,
+                        color: "#8A5A00",
+                      }}
+                    >
+                      {t("igStopPopup.noticeBody")}
+                    </div>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-block",
+                        marginTop: 10,
+                        padding: "7px 13px",
+                        fontSize: 12.5,
+                        fontWeight: 500,
+                        background: "var(--brand, #1F4A2D)",
+                        color: "#FFFFFF",
+                        borderRadius: 7,
+                        textDecoration: "none",
+                      }}
+                    >
+                      {t("igStopPopup.open")}
+                    </a>
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      lineHeight: 1.55,
-                      color: "#8A5A00",
-                    }}
-                  >
-                    {t("igDeletePopup.noticeBody")}
-                  </div>
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "inline-block",
-                      marginTop: 10,
-                      padding: "7px 13px",
-                      fontSize: 12.5,
-                      fontWeight: 500,
-                      background: "var(--brand, #1F4A2D)",
-                      color: "#FFFFFF",
-                      borderRadius: 7,
-                      textDecoration: "none",
-                    }}
-                  >
-                    {t("igDeletePopup.open")}
-                  </a>
-                </div>
+                )}
 
                 <div
                   style={{
@@ -1366,22 +1376,22 @@ export default function CampagnesPage() {
                 >
                   <Button
                     variant="secondary"
-                    onClick={() => setPendingDelete(null)}
+                    onClick={() => setPendingStop(null)}
                     disabled={busy}
                   >
-                    {t("igDeletePopup.cancel")}
+                    {t("igStopPopup.cancel")}
                   </Button>
                   <Button
                     variant="danger"
                     loading={busy}
                     disabled={busy}
                     onClick={async () => {
-                      const item = pendingDelete;
-                      await performDelete(item);
-                      setPendingDelete(null);
+                      const item = pendingStop;
+                      await performStop(item);
+                      setPendingStop(null);
                     }}
                   >
-                    {t("igDeletePopup.confirm")}
+                    {t("igStopPopup.confirm")}
                   </Button>
                 </div>
               </div>

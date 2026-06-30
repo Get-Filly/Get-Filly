@@ -130,13 +130,14 @@ export type Campaign = {
   // Per 2026-05-12 (mig 0040): soft-delete-tijdstip. Optional want
   // findAll() filtert deze al weg; alleen findDeleted() vult 'm.
   deleted_at?: string | null;
-  // Permalink naar een Instagram-post die nog live staat omdat 'ie niet
-  // via de API verwijderd kon worden (gezet bij Stop, zie
-  // retractPublishedPosts). Sentinel 'manual' = wel pending maar geen
-  // permalink bekend. Null = niets pending. De kanban gebruikt dit om
-  // bij Verwijderen een "post staat nog live"-popup met directe link te
-  // tonen (i.p.v. een kale bevestiging).
-  ig_pending_manual_delete_url?: string | null;
+  // Permalink naar de live Instagram-post van deze (actieve) campagne, of
+  // null als er geen IG-post live staat. Komt uit
+  // campaign_social_content.published_post_ids.instagram_permalink (bewaard
+  // bij publiceren). Sentinel 'manual' = wel een live IG-post maar geen
+  // permalink bekend (oudere post). De kanban gebruikt dit om bij Stop een
+  // popup te tonen met een directe link: Instagram kan niet via de API
+  // verwijderd worden, dus de eigenaar moet 'm zelf weghalen.
+  ig_live_permalink?: string | null;
 };
 
 // Shape van een enkele variant binnen campaigns.variants[]. Identiek
@@ -565,8 +566,8 @@ export class CampaignsService {
       .map((r) => r.id);
 
     const previewMap = new Map<string, string>();
-    // Per kanban-popup: social-campagnes die een nog-live IG-post hebben.
-    const igPendingMap = new Map<string, string>();
+    // Per kanban Stop-popup: actieve social-campagnes met een live IG-post.
+    const igLiveMap = new Map<string, string>();
     const truncate = (s: string | null | undefined, max = 140): string | null => {
       if (!s) return null;
       const trimmed = s.replace(/\s+/g, ' ').trim();
@@ -589,15 +590,23 @@ export class CampaignsService {
     if (socialIds.length > 0) {
       const { data: socialRows } = await this.supabase.client
         .from('campaign_social_content')
-        .select('campaign_id, caption, ig_pending_manual_delete_url')
+        .select('campaign_id, caption, published_post_ids')
         .in('campaign_id', socialIds);
       for (const s of socialRows ?? []) {
         const preview = truncate(s.caption);
         if (preview) previewMap.set(s.campaign_id as string, preview);
-        if (typeof s.ig_pending_manual_delete_url === 'string') {
-          igPendingMap.set(
+        // Live IG-post? Dan de permalink bewaren (of 'manual' als die er
+        // niet is) zodat de Stop-popup een directe link kan tonen.
+        const postIds = (s.published_post_ids ?? null) as {
+          instagram?: unknown;
+          instagram_permalink?: unknown;
+        } | null;
+        if (postIds?.instagram) {
+          igLiveMap.set(
             s.campaign_id as string,
-            s.ig_pending_manual_delete_url,
+            typeof postIds.instagram_permalink === 'string'
+              ? postIds.instagram_permalink
+              : 'manual',
           );
         }
       }
@@ -606,7 +615,7 @@ export class CampaignsService {
     return rows.map((r) => ({
       ...r,
       body_preview: previewMap.get(r.id) ?? null,
-      ig_pending_manual_delete_url: igPendingMap.get(r.id) ?? null,
+      ig_live_permalink: igLiveMap.get(r.id) ?? null,
     })) as Campaign[];
   }
 

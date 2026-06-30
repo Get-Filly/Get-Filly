@@ -906,19 +906,18 @@
       "delete": "Verwijderen"
     },
     "confirm": {
-      "stopSocial": "Deze campagne stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe. Open daarna de campagne voor de directe link.",
       "finishMail": "Deze campagne afronden? De verstuurde mail blijft staan; de campagne verdwijnt naar de historie.",
       "deleteBundle": "Verwijder alle campagnes in deze bundle? Dit is permanent.",
       "deleteCampaign": "Verwijder deze campagne? Dit is permanent."
     },
-    "igDeletePopup": {
-      "title": "Campagne verwijderen?",
-      "body": "Je verwijdert hiermee de campagne uit Get-Filly. De Instagram-post die hierbij hoort blijft wel online staan.",
+    "igStopPopup": {
+      "title": "Campagne stoppen?",
+      "body": "De campagne gaat terug naar Concept. Een eventuele Facebook-post wordt automatisch verwijderd.",
       "noticeTitle": "Instagram-post staat nog live",
       "noticeBody": "Instagram laat niet toe een post via de koppeling te verwijderen. Haal 'm zelf weg in de Instagram-app.",
       "open": "Open in Instagram",
       "cancel": "Annuleren",
-      "confirm": "Toch verwijderen"
+      "confirm": "Stop campagne"
     },
     "tooltips": {
       "finishMail": "Mail is al verstuurd, campagne afronden.",
