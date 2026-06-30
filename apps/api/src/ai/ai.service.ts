@@ -215,6 +215,71 @@ export class AiService {
     return textBlock.text;
   }
 
+  // ============================================================
+  // streamText, identiek aan generateText maar streamend
+  // ============================================================
+  // Levert tekst woord-voor-woord via de onDelta-callback en geeft aan
+  // het eind de VOLLEDIGE tekst terug (autoritatief uit finalMessage),
+  // zodat de caller daarop nog kan parsen/na-werken. Usage-logging +
+  // prompt-caching (system / systemVolatile) werken exact als in
+  // generateText. De caller is verantwoordelijk voor het transport
+  // (SSE) en voor het eventueel onderdrukken van machine-blokken in de
+  // doorgestuurde deltas — streamText stuurt de ruwe tekst door.
+  async streamText(opts: {
+    system: string;
+    prompt: string;
+    model?: string;
+    maxTokens?: number;
+    meta: AiCallMeta;
+    cacheSystem?: boolean;
+    systemVolatile?: string;
+    // Wordt voor elk tekst-fragment aangeroepen zodra Claude het levert.
+    onDelta: (text: string) => void;
+  }): Promise<string> {
+    const client = this.getClient();
+    const model = opts.model ?? 'claude-sonnet-4-6';
+
+    const volatile = opts.systemVolatile?.trim() ? opts.systemVolatile : '';
+    const systemParam: string | Anthropic.TextBlockParam[] = opts.cacheSystem
+      ? [
+          {
+            type: 'text',
+            text: opts.system,
+            cache_control: { type: 'ephemeral' },
+          },
+          ...(volatile ? [{ type: 'text' as const, text: volatile }] : []),
+        ]
+      : volatile
+        ? `${opts.system}\n\n${volatile}`
+        : opts.system;
+
+    let full = '';
+    try {
+      const stream = client.messages.stream({
+        model,
+        max_tokens: opts.maxTokens ?? 1024,
+        system: systemParam,
+        messages: [{ role: 'user', content: opts.prompt }],
+      });
+      // Elk tekst-delta meteen doorsturen naar de caller (SSE).
+      stream.on('text', (delta: string) => opts.onDelta(delta));
+      // finalMessage() wacht tot de stream klaar is en geeft het complete
+      // bericht + usage. We pakken de tekst hieruit (autoritatief) i.p.v.
+      // de losse deltas op te tellen.
+      const finalMsg = await stream.finalMessage();
+      const textBlock = finalMsg.content.find((b) => b.type === 'text');
+      full = textBlock && textBlock.type === 'text' ? textBlock.text : '';
+
+      void this.logUsage(opts.meta, model, finalMsg.usage).catch((err) => {
+        this.logger.warn(`ai_usage-log gefaald: ${String(err)}`);
+      });
+    } catch (err) {
+      toNlException(err, opts.meta.feature, this.logger);
+    }
+
+    return full;
+  }
+
   // Vision / document-versie van generateText: accepteert een bestand
   // (PDF, PNG, JPEG, WebP) als base64 + mime-type, plus een
   // tekst-instructie. Claude ziet eerst het bestand en dan de
