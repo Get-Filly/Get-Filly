@@ -1306,7 +1306,12 @@ export class ChatService {
           .eq('id', restaurantId)
           .maybeSingle(),
         this.context.buildProfileBlock(restaurantId).catch(() => ''),
-        this.context.buildMenuBlock(restaurantId).catch(() => ''),
+        // Compacte kaart voor de chat (chat-perf #2): de chat routeert naar
+        // de geleide flow en schrijft zelf geen copy, dus de volledige kaart
+        // is hier overbodig. Generatie gebruikt buildMenuBlock zonder compact.
+        this.context.buildMenuBlock(restaurantId, { compact: true }).catch(
+          () => '',
+        ),
         this.context.buildPhotosBlock(restaurantId).catch(() => ''),
         this.context.buildLiveBlock(restaurantId).catch(() => ''),
         // Laatste N memories ophalen, Filly's leerschat uit afgesloten

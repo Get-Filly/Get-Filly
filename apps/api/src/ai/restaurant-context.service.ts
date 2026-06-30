@@ -224,7 +224,19 @@ export class RestaurantContextService {
   // Cap op 60 items om bij grote menu's de prompt niet te laten
   // exploderen. Signature dishes en de eerste items per categorie
   // krijgen voorrang via display_order.
-  async buildMenuBlock(restaurantId: string): Promise<string> {
+  // `compact`-modus (sinds 2026-06-30, chat-perf #2): de dashboard-chat
+  // schrijft zelf geen campagne-copy meer (dat doet de geleide flow met
+  // het VOLLEDIGE menu), dus daar volstaat een lichtere kaart. In compact
+  // houden we de food-namen + signature-markers (zodat Filly een gerecht
+  // herkent voor het topic) maar laten we prijzen weg, en vatten we de
+  // drankkaart samen tot aantallen per categorie + signature-drankjes.
+  // Dat scheelt fors input-tokens per chatbeurt. Generatie-callers laten
+  // `compact` weg en krijgen het volledige menu zoals voorheen.
+  async buildMenuBlock(
+    restaurantId: string,
+    opts?: { compact?: boolean },
+  ): Promise<string> {
+    const compact = opts?.compact === true;
     type Item = {
       name: string;
       category: string | null;
@@ -338,8 +350,10 @@ export class RestaurantContextService {
       for (const [cat, list] of foodGroups) {
         lines.push(`${cat}:`);
         for (const it of list) {
-          const price = formatPrice(it.price_cents);
           const sig = it.is_signature ? ' [signature]' : '';
+          // Compact: alleen naam + signature (geen prijs). De chat heeft
+          // de exacte prijs niet nodig om een gerecht te kunnen noemen.
+          const price = compact ? '' : formatPrice(it.price_cents);
           lines.push(`  - ${it.name}${price ? `, ${price}` : ''}${sig}`);
         }
       }
@@ -373,13 +387,32 @@ export class RestaurantContextService {
         'fris',
         'overig',
       ];
-      for (const sub of drinkOrder) {
-        const list = drinkGroups.get(sub);
-        if (!list || list.length === 0) continue;
-        lines.push(`${sub}:`);
-        for (const it of list) {
-          const price = formatPrice(it.price_cents);
-          lines.push(`  - ${it.name}${price ? `, ${price}` : ''}`);
+      if (compact) {
+        // Compact: geen losse drankjes, alleen aantal per categorie +
+        // eventuele signature-drankjes bij naam. De chat heeft de volledige
+        // drankkaart niet nodig (de generatie pakt 'm wel volledig).
+        const counts: string[] = [];
+        for (const sub of drinkOrder) {
+          const list = drinkGroups.get(sub);
+          if (!list || list.length === 0) continue;
+          counts.push(`${sub} (${list.length})`);
+        }
+        if (counts.length > 0) lines.push(counts.join(', '));
+        const sigDrinks = drinkItems
+          .filter((it) => it.is_signature)
+          .map((it) => it.name);
+        if (sigDrinks.length > 0) {
+          lines.push(`Signature: ${sigDrinks.join(', ')}`);
+        }
+      } else {
+        for (const sub of drinkOrder) {
+          const list = drinkGroups.get(sub);
+          if (!list || list.length === 0) continue;
+          lines.push(`${sub}:`);
+          for (const it of list) {
+            const price = formatPrice(it.price_cents);
+            lines.push(`  - ${it.name}${price ? `, ${price}` : ''}`);
+          }
         }
       }
     }
