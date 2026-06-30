@@ -12,7 +12,7 @@ import {
   fetchChatConversation,
   fetchChatConversations,
   fetchSuggestions,
-  sendChatMessage,
+  streamChatMessage,
   updateChatActiveAction,
   appendChatNote,
   CHAT_CONVERSATION_CAP,
@@ -296,13 +296,40 @@ export function FillyChat() {
     };
     setMessages((m) => [...m, optimistic]);
 
+    // Streamende Filly-placeholder: vult zich woord-voor-woord terwijl het
+    // antwoord binnenkomt (SSE). Wordt op 'done' vervangen door het echte
+    // bericht (met id + message_card). streamStarted voorkomt een lege
+    // bubbel zolang er nog geen tekst is.
+    const streamId = `streaming-${tempId}`;
+    let streamStarted = false;
+
     try {
       const { userMessage, fillyMessage, activeAction: nextAction } =
-        await sendChatMessage(conversationId, text);
-      // Vervang optimistisch bericht door server-versie + voeg Filly's
-      // antwoord toe. Eén state-update om flikkering te voorkomen.
+        await streamChatMessage(conversationId, text, (delta) => {
+          if (!delta) return;
+          setMessages((m) => {
+            if (!streamStarted) {
+              streamStarted = true;
+              const placeholder: ChatMessage = {
+                id: streamId,
+                role: "filly",
+                content: delta,
+                message_card: null,
+                created_at: new Date().toISOString(),
+              };
+              return [...m, placeholder];
+            }
+            return m.map((x) =>
+              x.id === streamId ? { ...x, content: x.content + delta } : x,
+            );
+          });
+        });
+      // Vervang optimistisch user-bericht + streaming-placeholder door de
+      // echte server-versies. Eén state-update om flikkering te voorkomen.
       setMessages((m) =>
-        m.filter((x) => x.id !== tempId).concat([userMessage, fillyMessage]),
+        m
+          .filter((x) => x.id !== tempId && x.id !== streamId)
+          .concat([userMessage, fillyMessage]),
       );
       // Counter +2 (user + filly). Bij cap-bereikt togglet capReached
       // automatisch via de derived constant, geen aparte setter nodig.
@@ -356,6 +383,9 @@ export function FillyChat() {
       // Cap-bereikt herkennen aan de stabiele "nieuw gesprek"-formulering uit
       // de backend-melding (de exacte berichtgrens staat los in CONVERSATION_CAP).
       const isCap = errMsg.includes("nieuw gesprek");
+      // De (eventuele) streaming-placeholder altijd weghalen: een half
+      // antwoord laten staan is misleidend.
+      setMessages((m) => m.filter((x) => x.id !== streamId));
       if (isCap) {
         setMessages((m) => m.filter((x) => x.id !== tempId));
         setMessageCount(CHAT_CONVERSATION_CAP);
