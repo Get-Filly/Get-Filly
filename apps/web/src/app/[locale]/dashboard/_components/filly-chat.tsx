@@ -33,6 +33,7 @@ import type {
 } from "./filly-chat-choice-card";
 import type { DateChoiceState } from "./filly-chat-date-card";
 import { useRestaurant } from "@/lib/restaurant-context";
+import { notifyCampaignsChanged } from "@/lib/campaign-events";
 import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatMessageList } from "./filly-chat-message-list";
 import { FillyChatInput } from "./filly-chat-input";
@@ -349,6 +350,8 @@ export function FillyChat() {
             campaignId: newCard.approved_campaign_id!,
           },
         }));
+        // Voorstel is al een concept → bord herladen.
+        notifyCampaignsChanged();
       } else if (
         newCard?.kind === "campaign_bundle" &&
         newCard.approved_group_id
@@ -360,6 +363,8 @@ export function FillyChat() {
             anchorCampaignId: newCard.approved_group_id!,
           },
         }));
+        // Bundel is al een set concepten → bord herladen.
+        notifyCampaignsChanged();
       }
       // Lopende actie syncen: de server kan 'm bijgewerkt hebben (datum/
       // thema-carry-forward na een FILLY_START_GUIDED-emit). Zo komt een
@@ -433,6 +438,10 @@ export function FillyChat() {
     text: string,
     card?: MessageCard,
   ) => {
+    // De geleide flow heeft zojuist concept(en) aangemaakt. Sein het
+    // campagne-bord dat het moet herladen (het staat op dezelfde pagina),
+    // zodat de nieuwe concepten meteen verschijnen zonder handmatige refresh.
+    notifyCampaignsChanged();
     if (!conversationId || !text.trim()) return;
     try {
       const msg = await appendChatNote(conversationId, text, card);

@@ -28,6 +28,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "../_components/skeleton";
 import { useLocaleTag } from "@/lib/locale-format";
+import { CAMPAIGNS_CHANGED_EVENT } from "@/lib/campaign-events";
 
 // ============================================================
 // /dashboard/campagnes — kanban-bord met 4 fase-kolommen
@@ -573,6 +574,19 @@ export default function CampagnesPage() {
   useEffect(() => {
     setLoading(true);
     refetch().finally(() => setLoading(false));
+  }, []);
+
+  // Auto-refresh: de Filly-chat (zelfde pagina) seint na het aanmaken van
+  // concept(en) een window-event; dan herladen we het bord stil (geen
+  // skeleton) zodat nieuwe concepten meteen verschijnen zonder handmatige
+  // refresh. Zie lib/campaign-events.ts.
+  useEffect(() => {
+    const onChanged = () => {
+      void refetch();
+    };
+    window.addEventListener(CAMPAIGNS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(CAMPAIGNS_CHANGED_EVENT, onChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Diep-link vanuit de geleide chat-flow ("Bedenk er zelf een" → Verder):
