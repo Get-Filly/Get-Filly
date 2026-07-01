@@ -381,6 +381,43 @@ const WEEKDAY_NL = [
   'zaterdag',
 ];
 
+// Beste plaats-uur (Amsterdamse wandkloktijd) per kanaal, afgeleid van de
+// brain-config bestHours. De eigenaar kiest een DAG in de geleide flow; Filly
+// bepaalt hier het TIJDSTIP op basis van het gekozen kanaal. De eigenaar kan
+// het moment altijd nog bijstellen via de "Wanneer plaatsen?"-kaart.
+const BEST_HOUR_BY_PLATFORM: Record<string, number> = {
+  mail: 10,
+  instagram: 18,
+  facebook: 18,
+  tiktok: 17,
+  whatsapp: 18,
+  google_business: 11,
+};
+const BEST_HOUR_BY_TYPE: Record<string, number> = {
+  mail: 10,
+  social: 18,
+  whatsapp: 18,
+};
+
+// Bouwt een ISO-tijdstip voor `dateStr` (YYYY-MM-DD) om `hour`:00 Amsterdamse
+// wandkloktijd, met de juiste offset (+01:00 winter / +02:00 zomer). De API
+// draait in UTC, dus we bepalen de offset via een probe zodat DST klopt.
+function amsterdamIsoAtHour(dateStr: string, hour: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const cand = new Date(Date.UTC(y, m - 1, d, hour, 0, 0));
+  const amsHour = Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Amsterdam',
+      hour: '2-digit',
+      hour12: false,
+    }).format(cand),
+  );
+  let offset = amsHour - hour; // uren dat Amsterdam vóórloopt op UTC
+  if (offset < -12) offset += 24;
+  if (offset > 12) offset -= 24;
+  return new Date(Date.UTC(y, m - 1, d, hour - offset, 0, 0)).toISOString();
+}
+
 // Public-shape die de UI (camelCase) verwacht. Verschilt van de
 // tool-shape (snake_case voor consistentie met Anthropic-conventies).
 export type ProposalDetails = {
@@ -581,6 +618,9 @@ type SuggestionInsertRow = {
     subject_line?: string;
     body: string;
     channels?: SuggestionChannel[];
+    // Door de brain gekozen verzendmoment (datum = gekozen dag, tijd = beste
+    // uur voor het kanaal). De approve-flow neemt dit over op de campagne.
+    scheduled_for?: string;
   };
   status: 'pending';
   urgency: 'high' | 'medium';
@@ -1736,6 +1776,12 @@ ${segmentsBlock}`;
               },
             ],
             selected_index: 0,
+            // Datum = de gekozen dag; tijd = beste uur voor dit kanaal.
+            // De approve-flow neemt scheduled_for over op de campagne.
+            scheduled_for: amsterdamIsoAtHour(
+              item.date,
+              BEST_HOUR_BY_PLATFORM[r.platform] ?? 18,
+            ),
           }));
           // Lead = eerste geslaagde kanaal (voor naam/reasoning/impact).
           const lead: LowOccupancyCampaignFromTool | null = ok[0]?.ch ?? null;
@@ -1808,6 +1854,12 @@ ${segmentsBlock}`;
               name: raw.name,
               subject_line: raw.subject_line,
               body: raw.body,
+              // Datum = de gekozen dag; tijd = beste uur voor dit type. De
+              // approve-flow neemt scheduled_for over op de concept-campagne.
+              scheduled_for: amsterdamIsoAtHour(
+                item.date,
+                BEST_HOUR_BY_TYPE[raw.campaign_type] ?? 18,
+              ),
             },
             status: 'pending' as const,
             urgency: daysFromNow <= 4 ? 'high' : 'medium',
