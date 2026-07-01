@@ -3003,14 +3003,18 @@
   },
   "dash__components_filly_guided_flow": {
     "generatedNote": "Ik heb een concept-campagne klaargezet voor {day}:",
+    "batchGeneratedNote": "Ik heb {count} concept-campagnes voor je klaargezet:",
     "idle": {
       "title": "Wil je nog een campagne maken?",
       "again": "Ja, nog een campagne"
     },
     "welcome": {
       "title": "Waar kan ik je mee helpen?",
-      "openerText": "Ik heb een paar dagen gedetecteerd. Voor welke dag wil je een uiting maken?",
+      "openerText": "Ik heb een paar dagen gedetecteerd. Kies één of meer dagen; ik maak per dag een concept.",
       "continueText": "Beantwoord de vragen of pas een eerdere stap aan."
+    },
+    "progress": {
+      "dayOf": "Dag {current} van {total}"
     },
     "trail": {
       "editAngle": "Hoek aanpassen"
@@ -3024,7 +3028,9 @@
       "showMore": "+ {count} meer rustige dagen",
       "noReservations": "Er staan nog geen reserveringen, dus elke open dag is rustig.",
       "specialDays": "Speciale dagen",
-      "pickOwnDay": "Of kies zelf een dag"
+      "pickOwnDay": "Of kies zelf een dag",
+      "continue": "Verder",
+      "continueMulti": "Verder met {count} dagen"
     },
     "angles": {
       "loading": "Filly kijkt wat er die dag kan…",
@@ -3061,7 +3067,9 @@
     "channels": {
       "question": "Op welke kanalen? Ik heb de aanbevolen alvast aangevinkt.",
       "autoQuestion": "Ik kies zelf het beste kanaal. Zal ik 'm maken?",
-      "makeAction": "Maak de actie"
+      "makeAction": "Maak de actie",
+      "nextDay": "Volgende dag",
+      "makeBatch": "Genereer {count} concepten"
     },
     "generating": {
       "text": "Filly maakt je voorstel…"

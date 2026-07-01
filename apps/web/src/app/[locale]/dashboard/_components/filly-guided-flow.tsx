@@ -192,6 +192,29 @@ export function FillyGuidedFlow({
   const [error, setError] = useState<string | null>(null);
   const [showAllQuiet, setShowAllQuiet] = useState(false);
 
+  // ---- Multi-dag (batch) ----
+  // De eigenaar kan in de opener meerdere dagen aanvinken. Na "Verder" loopt
+  // de flow ze één voor één langs (per dag de bestaande hoek- + kanaal-
+  // schermen); pas na de laatste dag genereert 'ie alles in één keer (de
+  // backend draait die dagen parallel). De "huidige dag die je instelt" blijft
+  // de bestaande single-day-state (picked/dayContext/selectedAngle/…), zodat
+  // die schermen ongewijzigd blijven.
+  //   openerDays = in de opener aangevinkt, nog niet gestart
+  //   queue      = na "Verder" de nog te configureren dagen (zonder de huidige)
+  //   planned    = al geconfigureerde dagen als kant-en-klare generatie-items
+  //   batchTotal = totaal in deze ronde (voor "Dag X van N"); 0 = single/auto
+  const [openerDays, setOpenerDays] = useState<PickedDay[]>([]);
+  const [queue, setQueue] = useState<PickedDay[]>([]);
+  const [planned, setPlanned] = useState<GenerateForDatesItem[]>([]);
+  const [batchTotal, setBatchTotal] = useState(0);
+  const openerHas = (date: string) => openerDays.some((d) => d.date === date);
+  const toggleOpenerDay = (day: PickedDay) =>
+    setOpenerDays((cur) =>
+      cur.some((d) => d.date === day.date)
+        ? cur.filter((d) => d.date !== day.date)
+        : [...cur, day],
+    );
+
   // Smart flow: dagen waarvoor in deze sessie al een campagne is gemaakt
   // bieden we niet opnieuw aan.
   const availableQuiet = lowOccupancyDays.filter((d) => !usedSet.has(d.date));
@@ -254,7 +277,9 @@ export function FillyGuidedFlow({
 
   const pickAnyDay = (iso: string) => {
     if (!iso) return;
-    void pickDay({
+    // Multi-select: een zelfgekozen datum wordt aan de selectie toegevoegd
+    // (niet meteen gestart). "Verder" begint de flow met alle gekozen dagen.
+    toggleOpenerDay({
       date: iso,
       kind: "low_occupancy",
       label: formatDayNl(iso, localeTag),
@@ -315,6 +340,11 @@ export function FillyGuidedFlow({
     setDayContext(null);
     setSelectedContext(new Set());
     setSelectedChannels(new Set());
+    // Terug naar de dag-keuze = de hele batch opnieuw opzetten.
+    setQueue([]);
+    setPlanned([]);
+    setBatchTotal(0);
+    setOpenerDays([]);
   };
 
   const setAngleTextFor = (id: string, value: string) =>
@@ -349,15 +379,23 @@ export function FillyGuidedFlow({
     return hints;
   };
 
-  // Genereer met de verzamelde keuzes. fillyChooses=true → geen hoeken,
-  // Filly kiest zelf de sterkste invalshoek voor die dag.
-  const generate = async (fillyChooses = false) => {
-    if (!picked) return;
-    setStep("generating");
-    setError(null);
-    onActionChange?.({ channels: [...selectedChannels], step: "generating" });
+  // "Verder" in de opener: start de wachtrij met de aangevinkte dagen. De
+  // eerste dag wordt meteen geconfigureerd (hoeken); de rest gaat in de queue.
+  const startQueue = () => {
+    if (openerDays.length === 0) return;
+    const [first, ...rest] = openerDays;
+    setQueue(rest);
+    setPlanned([]);
+    setBatchTotal(openerDays.length);
+    setOpenerDays([]);
+    void pickDay(first);
+  };
+
+  // Bouwt het generatie-item voor de HUIDIGE dag uit de verzamelde keuzes.
+  const buildCurrentItem = (fillyChooses: boolean): GenerateForDatesItem | null => {
+    if (!picked) return null;
     const hints = fillyChooses ? [] : buildContextHints();
-    const item: GenerateForDatesItem = {
+    return {
       date: picked.date,
       kind: picked.kind,
       ...(picked.name ? { name: picked.name } : {}),
@@ -366,41 +404,68 @@ export function FillyGuidedFlow({
         : {}),
       ...(hints.length > 0 ? { context: hints } : {}),
     };
+  };
+
+  // De huidige dag afronden. Zijn er nog dagen in de wachtrij → naar de
+  // volgende dag (hoeken-stap). Anders → alles in één keer genereren.
+  // fillyChooses=true → geen hoeken, Filly kiest zelf de invalshoek.
+  const commitCurrentDay = (fillyChooses = false) => {
+    const item = buildCurrentItem(fillyChooses);
+    if (!item) return;
+    const nextPlanned = [...planned, item];
+    // Per-dag-keuzes resetten voor de volgende dag.
+    setSelectedContext(new Set());
+    setSelectedAngle(null);
+    setAngleText({});
+    setSelectedChannels(new Set());
+    if (queue.length > 0) {
+      const [next, ...rest] = queue;
+      setPlanned(nextPlanned);
+      setQueue(rest);
+      void pickDay(next, false);
+    } else {
+      setPlanned(nextPlanned);
+      void generateBatch(nextPlanned);
+    }
+  };
+
+  // Alle geconfigureerde dagen in één call genereren (backend draait ze
+  // parallel). Bij succes: één samenvattende notitie in de chat + rust-stap.
+  const generateBatch = async (items: GenerateForDatesItem[]) => {
+    if (items.length === 0) return;
+    setStep("generating");
+    setError(null);
+    onActionChange?.({ step: "generating" });
     try {
-      const { suggestions } = await generateSuggestionsForDates([item]);
+      const { suggestions } = await generateSuggestionsForDates(items);
       if (!suggestions || suggestions.length === 0) {
-        // Geen stille redirect meer: blijf in de flow met een duidelijke
-        // melding zodat de eigenaar niet na 3 stappen "zomaar" op /campagnes
-        // belandt zonder resultaat (UX-audit 2026-06-18).
+        // Geen stille redirect: duidelijke melding en terug naar de dag-keuze
+        // (daar rendert de fout-banner; de idle-stap doet dat niet). Batch-
+        // state resetten zodat de eigenaar schoon opnieuw kan kiezen.
+        resetBatchAfterFailure();
         setError(t("errors.noResult"));
-        setStep("channels");
         return;
       }
-      // Spoor in de chat-historie: laat een korte Filly-notitie + een
-      // klikbare kaart achter (titel + "Bekijken & aanpassen"), zodat de
-      // eigenaar bij terugkomst ziet wat er gebeurd is en er direct heen kan.
-      // De flow leeft anders náást de chat en toont dan een leeg scherm.
-      {
-        const dayLabel = picked ? formatDayNl(picked.date, localeTag) : "";
-        const primary = suggestions[0];
-        const card: CampaignCreatedCard | undefined = primary
-          ? {
-              kind: "campaign_created",
-              campaignId: primary.approved_campaign_id ?? null,
-              suggestionId: primary.id,
-              name:
-                primary.suggested_campaign?.name ?? t("result.fallbackName"),
-            }
-          : undefined;
-        onGenerated?.(t("generatedNote", { day: dayLabel }), card);
-      }
-      // Smart flow: markeer deze dag als "al gedaan" (via de parent, zodat het
-      // de instantie-wissel overleeft) → niet opnieuw aanbieden.
-      if (picked) onDayUsed?.(picked.date);
-      // Rust-stap: het resultaat staat nu als klikbare kaart in de chat-
-      // historie. We tonen GEEN aparte "done"-kaart en springen NIET meteen
-      // terug in het stappen-menu, maar naar "Wil je nog een campagne?" (idle).
-      // Verse actie persisteren zodat de idle-stap blijft staan bij terugkomst.
+      // Spoor in de chat-historie: bij één dag de bestaande notitie + kaart;
+      // bij meerdere een samenvatting ("X concepten klaargezet") + een kaart
+      // naar het eerste concept.
+      const primary = suggestions[0];
+      const card: CampaignCreatedCard | undefined = primary
+        ? {
+            kind: "campaign_created",
+            campaignId: primary.approved_campaign_id ?? null,
+            suggestionId: primary.id,
+            name: primary.suggested_campaign?.name ?? t("result.fallbackName"),
+          }
+        : undefined;
+      const note =
+        items.length === 1
+          ? t("generatedNote", { day: formatDayNl(items[0].date, localeTag) })
+          : t("batchGeneratedNote", { count: suggestions.length });
+      onGenerated?.(note, card);
+      // Smart flow: alle behandelde dagen als "gedaan" markeren.
+      items.forEach((it) => onDayUsed?.(it.date));
+      // Rust-stap + alle batch-state schoon.
       onActionChange?.({
         date: null,
         topic: null,
@@ -413,12 +478,31 @@ export function FillyGuidedFlow({
       setSelectedAngle(null);
       setAngleText({});
       setSelectedChannels(new Set());
+      setQueue([]);
+      setPlanned([]);
+      setBatchTotal(0);
       setStep("idle");
     } catch (e) {
       logger.error(e);
+      resetBatchAfterFailure();
       setError(e instanceof Error ? e.message : t("errors.generic"));
-      setStep("channels");
     }
+  };
+
+  // Na een mislukte batch: terug naar de dag-keuze (waar de fout-banner
+  // rendert) met schone batch-state, zodat de eigenaar opnieuw kan beginnen.
+  const resetBatchAfterFailure = () => {
+    setPicked(null);
+    setDayContext(null);
+    setSelectedContext(new Set());
+    setSelectedAngle(null);
+    setAngleText({});
+    setSelectedChannels(new Set());
+    setQueue([]);
+    setPlanned([]);
+    setBatchTotal(0);
+    setOpenerDays([]);
+    setStep("opener");
   };
 
   // ---------- Idle: rust-stap ná een afgeronde campagne ----------
@@ -480,6 +564,18 @@ export function FillyGuidedFlow({
         </div>
       </div>
 
+      {/* Multi-dag voortgang: "Dag X van N" zodat de eigenaar weet waar 'ie
+          in de wachtrij zit. Alleen bij een echte batch (>1 dag). */}
+      {step !== "opener" && batchTotal > 1 && (
+        <div className="fg-group-label" style={{ marginTop: 2 }}>
+          <CalendarDays size={13} strokeWidth={2.25} />
+          {t("progress.dayOf", {
+            current: planned.length + 1,
+            total: batchTotal,
+          })}
+        </div>
+      )}
+
       {/* Antwoordspoor: de gekozen dag als chip met "wijzig". */}
       {step !== "opener" && picked && (
         <div className="fg-trail">
@@ -517,27 +613,33 @@ export function FillyGuidedFlow({
             </div>
             {hasOccupancyData && availableQuiet.length > 0 ? (
               <div className="fg-options">
-                {quietToShow.map((d) => (
-                  <button
-                    key={`low-${d.date}`}
-                    type="button"
-                    className="fg-opt"
-                    onClick={() =>
-                      pickDay({
-                        date: d.date,
-                        kind: "low_occupancy",
-                        label: `${formatDayNl(d.date, localeTag)} · ${d.occupancy_pct}% bezet`,
-                      })
-                    }
-                  >
-                    <span className="fg-opt-main">
-                      {formatDayNl(d.date, localeTag)}
-                    </span>
-                    <span className="fg-opt-sub">
-                      {t("opener.occupied", { pct: d.occupancy_pct })}
-                    </span>
-                  </button>
-                ))}
+                {quietToShow.map((d) => {
+                  const sel = openerHas(d.date);
+                  return (
+                    <button
+                      key={`low-${d.date}`}
+                      type="button"
+                      className={`fg-opt${sel ? " sel" : ""}`}
+                      onClick={() =>
+                        toggleOpenerDay({
+                          date: d.date,
+                          kind: "low_occupancy",
+                          label: `${formatDayNl(d.date, localeTag)} · ${d.occupancy_pct}% bezet`,
+                        })
+                      }
+                    >
+                      <span className="fg-opt-col">
+                        <span className="fg-opt-main">
+                          {formatDayNl(d.date, localeTag)}
+                        </span>
+                        <span className="fg-opt-sub-inline">
+                          {t("opener.occupied", { pct: d.occupancy_pct })}
+                        </span>
+                      </span>
+                      {sel && <Check size={15} strokeWidth={2.5} />}
+                    </button>
+                  );
+                })}
                 {availableQuiet.length > QUIET_DAYS_PREVIEW && (
                   <button
                     type="button"
@@ -557,24 +659,28 @@ export function FillyGuidedFlow({
               <>
                 <div className="fg-q">{t("opener.noReservations")}</div>
                 <div className="fg-options">
-                  {availableOpen.slice(0, 4).map((iso) => (
-                    <button
-                      key={`open-${iso}`}
-                      type="button"
-                      className="fg-opt"
-                      onClick={() =>
-                        pickDay({
-                          date: iso,
-                          kind: "low_occupancy",
-                          label: formatDayNl(iso, localeTag),
-                        })
-                      }
-                    >
-                      <span className="fg-opt-main">
-                        {formatDayNl(iso, localeTag)}
-                      </span>
-                    </button>
-                  ))}
+                  {availableOpen.slice(0, 4).map((iso) => {
+                    const sel = openerHas(iso);
+                    return (
+                      <button
+                        key={`open-${iso}`}
+                        type="button"
+                        className={`fg-opt${sel ? " sel" : ""}`}
+                        onClick={() =>
+                          toggleOpenerDay({
+                            date: iso,
+                            kind: "low_occupancy",
+                            label: formatDayNl(iso, localeTag),
+                          })
+                        }
+                      >
+                        <span className="fg-opt-main">
+                          {formatDayNl(iso, localeTag)}
+                        </span>
+                        {sel && <Check size={15} strokeWidth={2.5} />}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -586,28 +692,34 @@ export function FillyGuidedFlow({
                   {t("opener.specialDays")}
                 </div>
                 <div className="fg-options">
-                  {availableSpecial.map((s) => (
-                    <button
-                      key={`special-${s.date}`}
-                      type="button"
-                      className="fg-opt"
-                      onClick={() =>
-                        pickDay({
-                          date: s.date,
-                          kind: "special_day",
-                          name: s.name,
-                          label: `${s.name} · ${formatDayNl(s.date, localeTag)}`,
-                        })
-                      }
-                    >
-                      <span className="fg-opt-main">
-                        {s.emoji} {s.name}
-                      </span>
-                      <span className="fg-opt-sub">
-                        {formatDayNl(s.date, localeTag)}
-                      </span>
-                    </button>
-                  ))}
+                  {availableSpecial.map((s) => {
+                    const sel = openerHas(s.date);
+                    return (
+                      <button
+                        key={`special-${s.date}`}
+                        type="button"
+                        className={`fg-opt${sel ? " sel" : ""}`}
+                        onClick={() =>
+                          toggleOpenerDay({
+                            date: s.date,
+                            kind: "special_day",
+                            name: s.name,
+                            label: `${s.name} · ${formatDayNl(s.date, localeTag)}`,
+                          })
+                        }
+                      >
+                        <span className="fg-opt-col">
+                          <span className="fg-opt-main">
+                            {s.emoji} {s.name}
+                          </span>
+                          <span className="fg-opt-sub-inline">
+                            {formatDayNl(s.date, localeTag)}
+                          </span>
+                        </span>
+                        {sel && <Check size={15} strokeWidth={2.5} />}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -622,6 +734,20 @@ export function FillyGuidedFlow({
               min={minDayIso}
               onChange={(e) => pickAnyDay(e.target.value)}
             />
+
+            {/* Verder met de aangevinkte dagen. Pas actief zodra er minstens
+                één dag gekozen is; het aantal staat in het label zodat de
+                eigenaar ziet hoeveel concepten 'ie gaat maken. */}
+            <button
+              type="button"
+              className="ui-btn ui-btn--primary ui-btn--sm fg-next"
+              onClick={startQueue}
+              disabled={openerDays.length === 0}
+            >
+              {openerDays.length > 1
+                ? t("opener.continueMulti", { count: openerDays.length })
+                : t("opener.continue")}
+            </button>
           </>
         ))}
 
@@ -640,7 +766,7 @@ export function FillyGuidedFlow({
             <button
               type="button"
               className="fg-opt fg-opt--feature"
-              onClick={() => generate(true)}
+              onClick={() => commitCurrentDay(true)}
             >
               <span className="fg-opt-main">
                 <Wand2 size={15} strokeWidth={2.25} /> {t("angles.fillyChoose")}
@@ -650,20 +776,24 @@ export function FillyGuidedFlow({
 
             {/* Eigen-campagne-spoor: zelfde breedte/feature-stijl als de
                 Filly-kaart. Geen uitklap-veld; selecteren + Verder stuurt
-                naar de "maak eigen campagne"-builder. */}
-            <button
-              type="button"
-              className={`fg-opt fg-opt--feature${buildOwn ? " sel" : ""}`}
-              onClick={() => {
-                setBuildOwn((cur) => !cur);
-                setSelectedAngle(null);
-              }}
-            >
-              <span className="fg-opt-main">
-                <Pencil size={15} strokeWidth={2.25} /> {t("angles.buildOwn")}
-              </span>
-              {buildOwn && <Check size={15} strokeWidth={2.5} />}
-            </button>
+                naar de "maak eigen campagne"-builder. Alleen bij een enkele
+                dag: in een multi-dag-batch zou de redirect de wachtrij
+                afbreken, dus dan verbergen we 'm. */}
+            {batchTotal <= 1 && (
+              <button
+                type="button"
+                className={`fg-opt fg-opt--feature${buildOwn ? " sel" : ""}`}
+                onClick={() => {
+                  setBuildOwn((cur) => !cur);
+                  setSelectedAngle(null);
+                }}
+              >
+                <span className="fg-opt-main">
+                  <Pencil size={15} strokeWidth={2.25} /> {t("angles.buildOwn")}
+                </span>
+                {buildOwn && <Check size={15} strokeWidth={2.5} />}
+              </button>
+            )}
 
             {contextOptions.length > 0 && (
               <>
@@ -779,14 +909,18 @@ export function FillyGuidedFlow({
           <button
             type="button"
             className="ui-btn ui-btn--primary ui-btn--sm fg-next"
-            onClick={() => generate(false)}
+            onClick={() => commitCurrentDay(false)}
             disabled={
               !!dayContext &&
               dayContext.channels.length > 0 &&
               selectedChannels.size === 0
             }
           >
-            {t("channels.makeAction")}
+            {queue.length > 0
+              ? t("channels.nextDay")
+              : batchTotal > 1
+                ? t("channels.makeBatch", { count: batchTotal })
+                : t("channels.makeAction")}
           </button>
         </>
       )}

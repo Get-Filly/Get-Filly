@@ -3003,14 +3003,18 @@
   },
   "dash__components_filly_guided_flow": {
     "generatedNote": "I've set up a draft campaign for {day}:",
+    "batchGeneratedNote": "I've set up {count} draft campaigns for you:",
     "idle": {
       "title": "Want to create another campaign?",
       "again": "Yes, another campaign"
     },
     "welcome": {
       "title": "What can I help you with?",
-      "openerText": "I've detected a few days. Which day do you want to make a post for?",
+      "openerText": "I've detected a few days. Pick one or more days; I'll make a draft per day.",
       "continueText": "Answer the questions or adjust an earlier step."
+    },
+    "progress": {
+      "dayOf": "Day {current} of {total}"
     },
     "trail": {
       "editAngle": "Adjust angle"
@@ -3024,7 +3028,9 @@
       "showMore": "+ {count} more quiet days",
       "noReservations": "There are no reservations yet, so every open day is quiet.",
       "specialDays": "Special days",
-      "pickOwnDay": "Or pick a day yourself"
+      "pickOwnDay": "Or pick a day yourself",
+      "continue": "Continue",
+      "continueMulti": "Continue with {count} days"
     },
     "angles": {
       "loading": "Filly is checking what's possible that day…",
@@ -3061,7 +3067,9 @@
     "channels": {
       "question": "Which channels? I've already checked the recommended ones.",
       "autoQuestion": "I'll pick the best channel myself. Shall I make it?",
-      "makeAction": "Create the action"
+      "makeAction": "Create the action",
+      "nextDay": "Next day",
+      "makeBatch": "Generate {count} drafts"
     },
     "generating": {
       "text": "Filly is creating your suggestion…"
