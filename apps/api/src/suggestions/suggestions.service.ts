@@ -1514,10 +1514,14 @@ ${dayContext}`;
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
     const includeHolidays = await this.events.holidaysEnabled(restaurantId);
 
-    // Sequentieel zodat we de Anthropic-rate-limit niet overschrijden
-    // en het prompt-cache effect (system blijft hetzelfde) maximaal
-    // benut wordt. ~2-4 sec per dag bij 5 items = ~15s totaal.
-    for (const item of items) {
+    // Per item (dag) een voorstel bouwen. Geëxtraheerd naar processItem
+    // zodat we de dagen PARALLEL kunnen draaien (zie de primer + pool onder
+    // de functie). Retourneert de aangemaakte suggestie, of null als deze
+    // dag faalt of overgeslagen wordt (fail-soft: één dag mag de rest niet
+    // blokkeren). De losse `continue`s van weleer zijn nu `return null`.
+    const processItem = async (
+      item: (typeof items)[number],
+    ): Promise<AiSuggestion | null> => {
       const dateObj = new Date(`${item.date}T00:00:00`);
       const weekdayNl = WEEKDAY_NL[dateObj.getDay()];
       const daysFromNow = Math.ceil(
@@ -1736,7 +1740,7 @@ ${segmentsBlock}`;
           // Lead = eerste geslaagde kanaal (voor naam/reasoning/impact).
           const lead: LowOccupancyCampaignFromTool | null = ok[0]?.ch ?? null;
 
-          if (validatedChannels.length === 0) continue;
+          if (validatedChannels.length === 0) return null;
           const primary = validatedChannels[0];
           row = {
             restaurant_id: restaurantId,
@@ -1839,17 +1843,39 @@ ${segmentsBlock}`;
           this.logger.warn(
             `generate-for-dates insert faalde voor ${item.date}: ${insErr.message}`,
           );
-          continue;
+          return null;
         }
 
-        generatedSuggestions.push(inserted as AiSuggestion);
+        return inserted as AiSuggestion;
       } catch (err) {
         this.logger.warn(
           `generate-for-dates Claude-call faalde voor ${item.date}: ${
             err instanceof Error ? err.message : String(err)
           }`,
         );
-        continue;
+        return null;
+      }
+    };
+
+    // Cache-primer + begrensde parallelle pool. Eerst één dag alleen draaien:
+    // die schrijft profiel + menu in de prompt-cache. Daarna de rest in golven
+    // van CONCURRENCY tegelijk, zodat ze de warme cache pakken (kosten laag)
+    // én overlappen (wachttijd ≈ aantal golven i.p.v. de som van alle dagen).
+    // Bij 1 item = alleen de primer → identiek aan het oude, sequentiële
+    // gedrag. Begrensd (4) zodat we de Anthropic-rate-limit niet overschrijden;
+    // een multi-channel-dag waaiert intern al parallel uit (audit-item #6).
+    if (items.length > 0) {
+      const primed = await processItem(items[0]);
+      if (primed) generatedSuggestions.push(primed);
+      const rest = items.slice(1);
+      const CONCURRENCY = 4;
+      for (let i = 0; i < rest.length; i += CONCURRENCY) {
+        const settled = await Promise.all(
+          rest.slice(i, i + CONCURRENCY).map((it) => processItem(it)),
+        );
+        for (const s of settled) {
+          if (s) generatedSuggestions.push(s);
+        }
       }
     }
 
