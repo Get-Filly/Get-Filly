@@ -138,14 +138,18 @@ export default function ContactPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="contact-message">{t("message")}</label>
+                <label className="form-label" htmlFor="contact-message">
+                  {t("message")}{" "}
+                  <span style={{ color: "var(--text-light)", fontWeight: 400 }}>
+                    {t("optional")}
+                  </span>
+                </label>
                 <textarea
                   id="contact-message"
                   className="form-input"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t("messagePlaceholder")}
-                  required
                   rows={4}
                   style={{
                     resize: "vertical",

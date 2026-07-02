@@ -868,25 +868,10 @@ h2.section-title {
    CTA + testimonials. Pointer-events: none zodat klikken niet
    geblokkeerd worden; z-index 0 zodat alle content (die we via
    .features > * { z-index: 1 } omhoog tillen) erboven blijft. */
-.features::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 45%;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse 800px 350px at 50% 0%, rgba(31,74,45,0.10), transparent 70%),
-    radial-gradient(ellipse 700px 400px at 30% 50%, rgba(31,74,45,0.12), transparent 65%),
-    radial-gradient(ellipse 600px 350px at 70% 90%, rgba(31,74,45,0.10), transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
 /* Alle directe content-children van .features hebben z-index 1
    zodat ze de groene gradient eronder NIET wegduwen maar er
-   wel boven liggen. */
-.features > * { position: relative; z-index: 1; }
-
+   wel boven liggen. (De eerdere dubbele .features::before is verwijderd:
+   die werd volledig overschreven door de regel hieronder.) */
 .features::before {
   content: '';
   position: absolute;

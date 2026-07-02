@@ -2868,10 +2868,10 @@
   },
   "dash__components_filly_chat_choice_card": {
     "selectAll": "Selecteer alles",
-    "selectNone": "Geen kiezen",
+    "selectNone": "Wis selectie",
     "thinking": "Filly bedenkt…",
     "submit": {
-      "empty": "Selecteer een optie",
+      "empty": "Kies minstens één kanaal",
       "single": "Verstuur",
       "bundle": "Verstuur (bundel {count} kanalen)"
     },

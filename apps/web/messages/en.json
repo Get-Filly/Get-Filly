@@ -2871,7 +2871,7 @@
     "selectNone": "Clear selection",
     "thinking": "Filly is thinking…",
     "submit": {
-      "empty": "Select an option",
+      "empty": "Choose at least one channel",
       "single": "Send",
       "bundle": "Send (bundle {count} channels)"
     },
