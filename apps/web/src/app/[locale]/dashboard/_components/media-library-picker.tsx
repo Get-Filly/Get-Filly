@@ -53,6 +53,16 @@ export function MediaLibraryPicker({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Escape sluit de modal (a11y). Alleen actief zolang 'ie open is.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -124,6 +134,9 @@ export function MediaLibraryPicker({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="media-picker-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -166,7 +179,9 @@ export function MediaLibraryPicker({
             gap: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 18 }}>{t("title")}</h3>
+          <h3 id="media-picker-title" style={{ margin: 0, fontSize: 18 }}>
+            {t("title")}
+          </h3>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               ref={fileInputRef}

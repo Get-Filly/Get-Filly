@@ -87,6 +87,17 @@ function AccountPageInner() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Escape sluit de verwijder-bevestiging (a11y), maar niet tijdens het
+  // verwijderen zelf (dan mag de eigenaar niet per ongeluk wegklikken).
+  useEffect(() => {
+    if (!showDeleteModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !deleting) setShowDeleteModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showDeleteModal, deleting]);
+
   // ============================================================
   // Sub-tabs binnen account/Profiel (Floris-redesign 2026-05-12)
   // ============================================================
@@ -1441,6 +1452,9 @@ function AccountPageInner() {
           double-clicks of muscle-memory-bevestiging. */}
       {showDeleteModal && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-title"
           style={{
             position: "fixed",
             inset: 0,
@@ -1468,6 +1482,7 @@ function AccountPageInner() {
             }}
           >
             <div
+              id="delete-account-title"
               style={{
                 fontSize: 18,
                 fontWeight: 700,

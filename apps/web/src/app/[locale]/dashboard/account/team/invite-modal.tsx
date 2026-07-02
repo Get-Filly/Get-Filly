@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createInvite, type CreateInviteResult } from "@/lib/api";
 import { type Role } from "@getfilly/shared";
@@ -36,6 +36,16 @@ export function InviteModal({
   const [result, setResult] = useState<CreateInviteResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Escape sluit de modal (a11y). De modal wordt alleen gemount als 'ie
+  // open is, dus de listener leeft precies zolang de modal zichtbaar is.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const roleLabels: Record<Role, string> = {
     owner: t("roles.owner"),
     manager: t("roles.manager"),
@@ -59,9 +69,15 @@ export function InviteModal({
 
   return (
     <div className="invite-backdrop" onClick={onClose}>
-      <div className="invite-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="invite-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="invite-header">
-          <h2>{t("title")}</h2>
+          <h2 id="invite-modal-title">{t("title")}</h2>
           <button className="invite-close" onClick={onClose} aria-label={t("close")}>
             ×
           </button>
