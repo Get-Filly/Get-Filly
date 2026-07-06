@@ -1783,6 +1783,8 @@
     "googleFillyTitle": "Google-review.",
     "googleFillyBody": "Laat Filly een concept schrijven; je bewerkt en plaatst het antwoord daarna zelf op Google.",
     "suggestReply": "✨ Filly-antwoord",
+    "googleLoading": "Google-reviews laden…",
+    "googleError": "Google-reviews ophalen mislukt: {reason}",
     "bannerMaxTitle": "{count} versies klaar.",
     "bannerMaxBody": "Maximum bereikt, kies hieronder je favoriet en pas 'm naar wens aan.",
     "variantLabel": "Variant {number}",

@@ -121,6 +121,9 @@ function ReviewsPageInner() {
 
   const [reviews, setReviews] = useState<DisplayReview[]>([]);
   const [loading, setLoading] = useState(true);
+  // Status van het live ophalen van Google-reviews (niet stil meer).
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [filter, setFilter] = useState<SourceFilter>("alle");
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
   const [replyTo, setReplyTo] = useState<DisplayReview | null>(null);
@@ -193,12 +196,24 @@ function ReviewsPageInner() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Eerst de locatie: faalt dit (niet gekoppeld / geen locatie), dan
+      // stil terugvallen op alleen de DB-reviews — geen foutmelding.
+      let locName: string | null = null;
       try {
         const { locations } = await googleBusinessLocations();
-        const loc = locations[0];
-        if (!loc) return;
-        const { reviews: gReviews } = await googleBusinessReviews(loc.name);
-        if (cancelled || gReviews.length === 0) return;
+        locName = locations[0]?.name ?? null;
+      } catch {
+        return;
+      }
+      if (!locName || cancelled) return;
+
+      // Wél gekoppeld → vanaf hier de status tonen, zodat een lege lijst of
+      // fout zichtbaar is i.p.v. een stil leeg scherm.
+      setGoogleLoading(true);
+      try {
+        const { reviews: gReviews } = await googleBusinessReviews(locName);
+        if (cancelled) return;
+        if (gReviews.length === 0) return;
         const mapped: DisplayReview[] = gReviews.map((r) => ({
           id: r.name, // v4-resourcenaam is uniek; dient als React-key + id
           source: "google" as const,
@@ -225,8 +240,12 @@ function ReviewsPageInner() {
           );
           return [...withoutSeedGoogle, ...fresh];
         });
-      } catch {
-        /* niet gekoppeld / API nog niet goedgekeurd → alleen DB-reviews */
+      } catch (e) {
+        // Wél gekoppeld maar reviews ophalen faalde → toon de reden i.p.v.
+        // een stil leeg scherm (bv. api_not_approved of een 4xx van Google).
+        if (!cancelled) setGoogleError((e as Error).message);
+      } finally {
+        if (!cancelled) setGoogleLoading(false);
       }
     })();
     return () => {
@@ -688,6 +707,28 @@ function ReviewsPageInner() {
         active={filter}
         onChange={setFilter}
       />
+
+      {/* Live Google-reviews: laadstatus / fout zichtbaar i.p.v. stil. */}
+      {googleLoading && (
+        <div style={{ fontSize: 13, color: "var(--tl, #6B6F71)", margin: "0 0 12px" }}>
+          {t("googleLoading")}
+        </div>
+      )}
+      {googleError && (
+        <div
+          style={{
+            margin: "0 0 12px",
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "var(--red-soft, #FEE2E2)",
+            border: "1px solid #F3C6C6",
+            color: "var(--red, #B91C1C)",
+            fontSize: 13,
+          }}
+        >
+          {t("googleError", { reason: googleError })}
+        </div>
+      )}
 
       {loading ? (
         <div>

@@ -1783,6 +1783,8 @@
     "googleFillyTitle": "Google review.",
     "googleFillyBody": "Let Filly draft a reply; you edit it and post it to Google yourself.",
     "suggestReply": "✨ Filly reply",
+    "googleLoading": "Loading Google reviews…",
+    "googleError": "Could not load Google reviews: {reason}",
     "bannerMaxTitle": "{count} versions ready.",
     "bannerMaxBody": "Maximum reached, pick your favorite below and tweak it as you like.",
     "variantLabel": "Variant {number}",
