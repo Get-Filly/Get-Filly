@@ -1657,6 +1657,7 @@
     "badge": {
       "visible": "Zichtbaar via Google",
       "editLater": "Bewerken na koppeling",
+      "editable": "Bewerkbaar",
       "afterConnect": "Beschikbaar na koppeling"
     },
     "banner": {
@@ -1674,17 +1675,51 @@
     },
     "hours": {
       "title": "Openingstijden",
-      "empty": "Nog geen openingstijden bekend uit Google."
+      "empty": "Nog geen openingstijden bekend uit Google.",
+      "editableHint": "Pas je openingstijden aan en zet ze rechtstreeks op Google.",
+      "closedLabel": "Gesloten",
+      "to": "tot",
+      "save": "Openingstijden opslaan naar Google",
+      "saved": "Openingstijden opgeslagen bij Google.",
+      "days": {
+        "MONDAY": "Maandag",
+        "TUESDAY": "Dinsdag",
+        "WEDNESDAY": "Woensdag",
+        "THURSDAY": "Donderdag",
+        "FRIDAY": "Vrijdag",
+        "SATURDAY": "Zaterdag",
+        "SUNDAY": "Zondag"
+      }
     },
     "specialDays": {
       "title": "Speciale dagen & sluitingsdata",
       "closed": "Gesloten",
       "manage": "Beheer deze dagen via <link>Account → Sluitingsdata</link>. Ze worden bij koppeling als afwijkende openingstijden naar Google gestuurd.",
-      "empty": "Geen speciale dagen ingesteld. Voeg ze toe via <link>Account → Sluitingsdata</link> (bv. 1e Kerstdag of een vakantieweek)."
+      "empty": "Geen speciale dagen ingesteld. Voeg ze toe via <link>Account → Sluitingsdata</link> (bv. 1e Kerstdag of een vakantieweek).",
+      "push": "Sluitingsdagen naar Google sturen",
+      "saved": "{count} sluitingsdagen naar Google gestuurd."
     },
     "description": {
       "title": "Beschrijving",
-      "empty": "Google toont nog geen redactionele beschrijving voor je profiel."
+      "empty": "Google toont nog geen redactionele beschrijving voor je profiel.",
+      "editableHint": "Bewerk je bedrijfsomschrijving en sla 'm rechtstreeks op bij Google.",
+      "placeholder": "Vertel in het kort wat je zaak bijzonder maakt.",
+      "charCount": "{count}/750 tekens",
+      "save": "Opslaan naar Google",
+      "saving": "Bezig met opslaan",
+      "saved": "Opgeslagen bij Google.",
+      "loadError": "Kon de Google-locatie niet ophalen: {reason}",
+      "noLocation": "Geen bewerkbare Google-locatie gevonden voor dit account.",
+      "locationLabel": "Locatie"
+    },
+    "reviews": {
+      "title": "Reviews beantwoorden",
+      "loadHint": "Haal je recente Google-reviews op om er direct op te reageren.",
+      "load": "Reviews laden van Google",
+      "empty": "Nog geen reviews gevonden voor deze locatie.",
+      "existingReply": "Jouw antwoord",
+      "replyPlaceholder": "Schrijf een antwoord namens de zaak.",
+      "reply": "Antwoord plaatsen"
     },
     "stats": {
       "title": "Status & cijfers",

@@ -300,6 +300,217 @@ export async function googleBusinessProfile(): Promise<{
   return (await res.json()) as { accounts: GoogleBusinessAccount[] };
 }
 
+// Openingstijden per weekdag (Google's weekdag-codes), zoals de API ze
+// heen-en-weer stuurt. openTime/closeTime zijn 'HH:MM'.
+export type GoogleDayHours = {
+  day:
+    | "MONDAY"
+    | "TUESDAY"
+    | "WEDNESDAY"
+    | "THURSDAY"
+    | "FRIDAY"
+    | "SATURDAY"
+    | "SUNDAY";
+  open: boolean;
+  openTime: string;
+  closeTime: string;
+};
+
+export type GoogleBusinessLocation = {
+  name: string; // resource-naam, vorm 'locations/{id}'
+  title: string;
+  description: string | null;
+  hours: GoogleDayHours[];
+};
+
+/**
+ * Haalt de locaties (vestigingen) op onder het beheerde Google-account, met
+ * hun huidige omschrijving. Gooit met de machine-leesbare `reason` (bv.
+ * "api_not_approved") zodat de UI dat netjes kan tonen.
+ */
+export async function googleBusinessLocations(): Promise<{
+  locations: GoogleBusinessLocation[];
+}> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/locations`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string };
+      if (body?.reason) reason = body.reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { locations: GoogleBusinessLocation[] };
+}
+
+/**
+ * DE ECHTE WRITE: schrijft de bedrijfsomschrijving terug naar Google
+ * (locations.patch). Dit is de business.manage-actie die we in de
+ * OAuth-verificatievideo tonen. Gooit met de machine-leesbare `reason`
+ * (bv. "api_not_approved") of de foutmelding van de backend.
+ */
+export async function googleBusinessUpdateDescription(
+  locationName: string,
+  description: string,
+): Promise<{ ok: true; description: string }> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/description`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationName, description }),
+    },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      // message is gebruikersvriendelijker dan reason als 'ie er is.
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { ok: true; description: string };
+}
+
+/**
+ * Schrijft de weekopeningstijden naar Google (locations.patch,
+ * updateMask=regularHours). Gooit met de backend-melding/reason bij fouten.
+ */
+export async function googleBusinessUpdateHours(
+  locationName: string,
+  days: GoogleDayHours[],
+): Promise<{ ok: true; hours: GoogleDayHours[] }> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/hours`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationName, days }),
+    },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { ok: true; hours: GoogleDayHours[] };
+}
+
+/**
+ * Zet de opgegeven sluitingsdata als afwijkende openingstijden (specialHours,
+ * gesloten) op de Google-listing. `closedDates` = ISO 'YYYY-MM-DD'.
+ */
+export async function googleBusinessUpdateSpecialDays(
+  locationName: string,
+  closedDates: string[],
+): Promise<{ ok: true; count: number }> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/special-days`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationName, closedDates }),
+    },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { ok: true; count: number };
+}
+
+export type GoogleReview = {
+  name: string; // 'accounts/{a}/locations/{l}/reviews/{r}'
+  reviewer: string;
+  stars: number;
+  comment: string | null;
+  createTime: string | null;
+  reply: string | null;
+};
+
+/**
+ * Haalt de Google-reviews van een locatie op (Google My Business API v4).
+ * Gooit met de backend-melding/reason (bv. "api_not_approved" als de v4-API
+ * nog niet is ingeschakeld).
+ */
+export async function googleBusinessReviews(
+  locationName: string,
+): Promise<{
+  averageRating: number | null;
+  totalReviewCount: number;
+  reviews: GoogleReview[];
+}> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/reviews?locationName=${encodeURIComponent(
+      locationName,
+    )}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as {
+    averageRating: number | null;
+    totalReviewCount: number;
+    reviews: GoogleReview[];
+  };
+}
+
+/**
+ * Plaatst (of vervangt) het antwoord van de zaak op een Google-review.
+ * `reviewName` is de volledige review-resource.
+ */
+export async function googleBusinessReplyReview(
+  reviewName: string,
+  comment: string,
+): Promise<{ ok: true; comment: string }> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/reviews/reply`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewName, comment }),
+    },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { ok: true; comment: string };
+}
+
 /**
  * submitContactForm, publieke (NIET-authed) call voor het
  * contactformulier op /contact. Gebruikt gewone `fetch` zonder

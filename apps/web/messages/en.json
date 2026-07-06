@@ -1657,6 +1657,7 @@
     "badge": {
       "visible": "Visible via Google",
       "editLater": "Editable after connecting",
+      "editable": "Editable",
       "afterConnect": "Available after connecting"
     },
     "banner": {
@@ -1674,17 +1675,51 @@
     },
     "hours": {
       "title": "Opening hours",
-      "empty": "No opening hours available from Google yet."
+      "empty": "No opening hours available from Google yet.",
+      "editableHint": "Edit your opening hours and put them straight on Google.",
+      "closedLabel": "Closed",
+      "to": "to",
+      "save": "Save opening hours to Google",
+      "saved": "Opening hours saved to Google.",
+      "days": {
+        "MONDAY": "Monday",
+        "TUESDAY": "Tuesday",
+        "WEDNESDAY": "Wednesday",
+        "THURSDAY": "Thursday",
+        "FRIDAY": "Friday",
+        "SATURDAY": "Saturday",
+        "SUNDAY": "Sunday"
+      }
     },
     "specialDays": {
       "title": "Special days & closing dates",
       "closed": "Closed",
       "manage": "Manage these days via <link>Account → Closing dates</link>. When connected, they are sent to Google as special hours.",
-      "empty": "No special days set. Add them via <link>Account → Closing dates</link> (e.g. Christmas Day or a holiday week)."
+      "empty": "No special days set. Add them via <link>Account → Closing dates</link> (e.g. Christmas Day or a holiday week).",
+      "push": "Send closing dates to Google",
+      "saved": "Sent {count} closing dates to Google."
     },
     "description": {
       "title": "Description",
-      "empty": "Google does not show an editorial description for your profile yet."
+      "empty": "Google does not show an editorial description for your profile yet.",
+      "editableHint": "Edit your business description and save it directly to Google.",
+      "placeholder": "Briefly describe what makes your place special.",
+      "charCount": "{count}/750 characters",
+      "save": "Save to Google",
+      "saving": "Saving",
+      "saved": "Saved to Google.",
+      "loadError": "Could not load the Google location: {reason}",
+      "noLocation": "No editable Google location found for this account.",
+      "locationLabel": "Location"
+    },
+    "reviews": {
+      "title": "Reply to reviews",
+      "loadHint": "Load your recent Google reviews to reply to them directly.",
+      "load": "Load reviews from Google",
+      "empty": "No reviews found for this location yet.",
+      "existingReply": "Your reply",
+      "replyPlaceholder": "Write a reply on behalf of the business.",
+      "reply": "Post reply"
     },
     "stats": {
       "title": "Status & numbers",

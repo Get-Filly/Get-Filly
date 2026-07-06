@@ -7,12 +7,22 @@ import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "../../_components/skeleton";
 import {
   fetchGoogleProfileMine,
   fetchRestaurant,
+  googleBusinessLocations,
+  googleBusinessReplyReview,
+  googleBusinessReviews,
+  googleBusinessUpdateDescription,
+  googleBusinessUpdateHours,
+  googleBusinessUpdateSpecialDays,
+  type GoogleBusinessLocation,
+  type GoogleDayHours,
   type GooglePlaceDetails,
   type GoogleProfileMine,
+  type GoogleReview,
   type Restaurant,
 } from "@/lib/api";
 
@@ -137,6 +147,10 @@ export default function GoogleProfilePreviewPage() {
   const editLaterBadge = (
     <Badge variant="neutral">{t("badge.editLater")}</Badge>
   );
+  // Badge: veld is NU bewerkbaar en wordt naar Google gepusht (na koppeling).
+  const editableBadge = (
+    <Badge variant="success">{t("badge.editable")}</Badge>
+  );
   // Badge: feature bestaat alleen ná koppeling (geen Places-equivalent).
   const afterConnectBadge = (
     <Badge variant="neutral">{t("badge.afterConnect")}</Badge>
@@ -145,6 +159,44 @@ export default function GoogleProfilePreviewPage() {
   const [mine, setMine] = useState<GoogleProfileMine | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // ---- Bewerkbare Google-omschrijving (de business.manage-write) ----
+  // null = nog niet geladen, [] = geladen maar geen locatie gevonden.
+  const [locations, setLocations] = useState<GoogleBusinessLocation[] | null>(
+    null,
+  );
+  const [locIndex, setLocIndex] = useState(0);
+  const [descDraft, setDescDraft] = useState("");
+  const [descSaving, setDescSaving] = useState(false);
+  const [descStatus, setDescStatus] = useState<"idle" | "saved" | "error">(
+    "idle",
+  );
+  const [descMessage, setDescMessage] = useState<string | null>(null);
+
+  // Bewerkbare openingstijden (regularHours-write).
+  const [hoursDraft, setHoursDraft] = useState<GoogleDayHours[]>([]);
+  const [hoursSaving, setHoursSaving] = useState(false);
+  const [hoursStatus, setHoursStatus] = useState<"idle" | "saved" | "error">(
+    "idle",
+  );
+  const [hoursMessage, setHoursMessage] = useState<string | null>(null);
+
+  // Speciale dagen (sluitingsdata) naar Google pushen (specialHours-write).
+  const [specialSaving, setSpecialSaving] = useState(false);
+  const [specialStatus, setSpecialStatus] = useState<
+    "idle" | "saved" | "error"
+  >("idle");
+  const [specialMessage, setSpecialMessage] = useState<string | null>(null);
+
+  // Reviews (Google My Business API v4). Op aanvraag geladen zodat de pagina
+  // niet faalt als de v4-API nog niet is ingeschakeld.
+  const [reviews, setReviews] = useState<GoogleReview[] | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  // Antwoord-concept + bezig-status per review (op review-naam).
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyingName, setReplyingName] = useState<string | null>(null);
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +213,158 @@ export default function GoogleProfilePreviewPage() {
       cancelled = true;
     };
   }, []);
+
+  // Locaties + huidige omschrijving ophalen zodra de koppeling verbonden is.
+  // Losse effect (niet in de eerste fetch) omdat het van de connected-status
+  // afhangt en een andere (schrijfbare) API raakt.
+  useEffect(() => {
+    if (!mine?.connected) return;
+    let cancelled = false;
+    googleBusinessLocations()
+      .then((res) => {
+        if (cancelled) return;
+        setLocations(res.locations);
+        setLocIndex(0);
+        setDescDraft(res.locations[0]?.description ?? "");
+        setHoursDraft(res.locations[0]?.hours ?? []);
+      })
+      .catch((e: Error) => {
+        if (cancelled) return;
+        setLocations([]);
+        setDescStatus("error");
+        setDescMessage(t("description.loadError", { reason: e.message }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mine?.connected, t]);
+
+  // Schrijft de bewerkte omschrijving terug naar Google (locations.patch).
+  const handleSaveDescription = async () => {
+    const loc = locations?.[locIndex];
+    if (!loc) return;
+    setDescSaving(true);
+    setDescStatus("idle");
+    setDescMessage(null);
+    try {
+      const res = await googleBusinessUpdateDescription(loc.name, descDraft);
+      // Lokale kopie bijwerken zodat de char-count/legenda blijft kloppen.
+      setLocations((prev) =>
+        prev
+          ? prev.map((l, i) =>
+              i === locIndex ? { ...l, description: res.description } : l,
+            )
+          : prev,
+      );
+      setDescDraft(res.description);
+      setDescStatus("saved");
+      setDescMessage(t("description.saved"));
+    } catch (e) {
+      setDescStatus("error");
+      setDescMessage((e as Error).message);
+    } finally {
+      setDescSaving(false);
+    }
+  };
+
+  // Eén weekdag in de openingstijden-editor bijwerken.
+  const updateDay = (i: number, patch: Partial<GoogleDayHours>) => {
+    setHoursDraft((prev) =>
+      prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)),
+    );
+    setHoursStatus("idle");
+  };
+
+  // Schrijft de weekopeningstijden terug naar Google (regularHours).
+  const handleSaveHours = async () => {
+    const loc = locations?.[locIndex];
+    if (!loc) return;
+    setHoursSaving(true);
+    setHoursStatus("idle");
+    setHoursMessage(null);
+    try {
+      const res = await googleBusinessUpdateHours(loc.name, hoursDraft);
+      setHoursDraft(res.hours);
+      setLocations((prev) =>
+        prev
+          ? prev.map((l, i) =>
+              i === locIndex ? { ...l, hours: res.hours } : l,
+            )
+          : prev,
+      );
+      setHoursStatus("saved");
+      setHoursMessage(t("hours.saved"));
+    } catch (e) {
+      setHoursStatus("error");
+      setHoursMessage((e as Error).message);
+    } finally {
+      setHoursSaving(false);
+    }
+  };
+
+  // Zet de (toekomstige) sluitingsdata als specialHours op de listing.
+  const handleSaveSpecialDays = async () => {
+    const loc = locations?.[locIndex];
+    if (!loc) return;
+    setSpecialSaving(true);
+    setSpecialStatus("idle");
+    setSpecialMessage(null);
+    try {
+      const res = await googleBusinessUpdateSpecialDays(loc.name, closedDates);
+      setSpecialStatus("saved");
+      setSpecialMessage(t("specialDays.saved", { count: res.count }));
+    } catch (e) {
+      setSpecialStatus("error");
+      setSpecialMessage((e as Error).message);
+    } finally {
+      setSpecialSaving(false);
+    }
+  };
+
+  // Reviews van de geselecteerde locatie laden (v4-API).
+  const handleLoadReviews = async () => {
+    const loc = locations?.[locIndex];
+    if (!loc) return;
+    setReviewsLoading(true);
+    setReviewsError(null);
+    try {
+      const res = await googleBusinessReviews(loc.name);
+      setReviews(res.reviews);
+    } catch (e) {
+      setReviews(null);
+      setReviewsError((e as Error).message);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // Antwoord op één review plaatsen (v4 reviews.reply).
+  const handleReply = async (reviewName: string) => {
+    const comment = (replyDrafts[reviewName] ?? "").trim();
+    if (!comment) return;
+    setReplyingName(reviewName);
+    setReplyError(null);
+    try {
+      const res = await googleBusinessReplyReview(reviewName, comment);
+      // Antwoord lokaal tonen + concept wissen.
+      setReviews((prev) =>
+        prev
+          ? prev.map((r) =>
+              r.name === reviewName ? { ...r, reply: res.comment } : r,
+            )
+          : prev,
+      );
+      setReplyDrafts((prev) => {
+        const next = { ...prev };
+        delete next[reviewName];
+        return next;
+      });
+    } catch (e) {
+      setReplyError((e as Error).message);
+    } finally {
+      setReplyingName(null);
+    }
+  };
 
   const p: GooglePlaceDetails | null = mine?.data ?? null;
   const connected = mine?.connected ?? false;
@@ -237,9 +441,145 @@ export default function GoogleProfilePreviewPage() {
             <FieldRow label={t("basics.address")} value={p?.formattedAddress} />
           </SectionCard>
 
-          {/* ---- Openingstijden ---- */}
-          <SectionCard title={t("hours.title")} badge={editLaterBadge}>
-            {p?.regularOpeningHours?.weekdayDescriptions?.length ? (
+          {/* ---- Openingstijden ----
+              Verbonden → per-dag editor die via regularHours naar Google
+              wordt geschreven. Niet verbonden → read-only Places-tekst. */}
+          <SectionCard
+            title={t("hours.title")}
+            badge={connected ? editableBadge : editLaterBadge}
+          >
+            {connected ? (
+              locations === null ? (
+                <Skeleton style={{ height: 200 }} />
+              ) : locations.length === 0 ? (
+                <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
+                  {descMessage ?? t("description.noLocation")}
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--tl, #6B6F71)",
+                      marginBottom: 10,
+                    }}
+                  >
+                    {t("hours.editableHint")}
+                  </div>
+                  {hoursDraft.map((d, i) => (
+                    <div
+                      key={d.day}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        padding: "8px 0",
+                        borderBottom: "1px solid var(--border, #E5DFD0)",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          width: 150,
+                          fontSize: 14,
+                          cursor: "pointer",
+                          marginBottom: 0,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={d.open}
+                          onChange={(e) =>
+                            updateDay(i, { open: e.target.checked })
+                          }
+                        />
+                        {t(`hours.days.${d.day}`)}
+                      </label>
+                      {d.open ? (
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <input
+                            type="time"
+                            value={d.openTime}
+                            onChange={(e) =>
+                              updateDay(i, { openTime: e.target.value })
+                            }
+                            style={{
+                              padding: "6px 8px",
+                              border: "1px solid var(--border, #E5DFD0)",
+                              borderRadius: 6,
+                              fontSize: 14,
+                              fontFamily: "inherit",
+                            }}
+                          />
+                          <span style={{ fontSize: 13, color: "var(--tl)" }}>
+                            {t("hours.to")}
+                          </span>
+                          <input
+                            type="time"
+                            value={d.closeTime}
+                            onChange={(e) =>
+                              updateDay(i, { closeTime: e.target.value })
+                            }
+                            style={{
+                              padding: "6px 8px",
+                              border: "1px solid var(--border, #E5DFD0)",
+                              borderRadius: 6,
+                              fontSize: 14,
+                              fontFamily: "inherit",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span
+                          style={{ fontSize: 13, color: "var(--tl, #6B6F71)" }}
+                        >
+                          {t("hours.closedLabel")}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      gap: 10,
+                      marginTop: 12,
+                    }}
+                  >
+                    {hoursMessage && (
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color:
+                            hoursStatus === "error"
+                              ? "var(--red, #DC2626)"
+                              : "var(--color-brand, #1F4A2D)",
+                        }}
+                      >
+                        {hoursMessage}
+                      </span>
+                    )}
+                    <Button
+                      variant="primary"
+                      loading={hoursSaving}
+                      onClick={handleSaveHours}
+                    >
+                      {t("hours.save")}
+                    </Button>
+                  </div>
+                </div>
+              )
+            ) : p?.regularOpeningHours?.weekdayDescriptions?.length ? (
               p.regularOpeningHours.weekdayDescriptions.map((d, i) => (
                 <div
                   key={i}
@@ -265,7 +605,7 @@ export default function GoogleProfilePreviewPage() {
               (afwijkende openingstijden op feestdagen/vakanties). */}
           <SectionCard
             title={t("specialDays.title")}
-            badge={editLaterBadge}
+            badge={connected ? editableBadge : editLaterBadge}
           >
             {closedDates.length > 0 ? (
               <>
@@ -297,6 +637,40 @@ export default function GoogleProfilePreviewPage() {
                     ),
                   })}
                 </div>
+                {/* Verbonden → deze sluitingsdagen als specialHours naar
+                    Google pushen. */}
+                {connected && (locations?.length ?? 0) > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      gap: 10,
+                      marginTop: 14,
+                    }}
+                  >
+                    {specialMessage && (
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color:
+                            specialStatus === "error"
+                              ? "var(--red, #DC2626)"
+                              : "var(--color-brand, #1F4A2D)",
+                        }}
+                      >
+                        {specialMessage}
+                      </span>
+                    )}
+                    <Button
+                      variant="secondary"
+                      loading={specialSaving}
+                      onClick={handleSaveSpecialDays}
+                    >
+                      {t("specialDays.push")}
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
@@ -317,20 +691,334 @@ export default function GoogleProfilePreviewPage() {
             )}
           </SectionCard>
 
-          {/* ---- Beschrijving ---- */}
-          <SectionCard title={t("description.title")} badge={editLaterBadge}>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.5,
-                color: p?.editorialSummary
-                  ? "var(--text, #18181B)"
-                  : "var(--tl, #6B6F71)",
-              }}
-            >
-              {p?.editorialSummary ?? t("description.empty")}
-            </div>
+          {/* ---- Beschrijving ----
+              Verbonden → bewerkbaar veld dat via locations.patch naar Google
+              wordt geschreven (de business.manage-write). Niet verbonden →
+              read-only redactionele samenvatting uit de Places-data. */}
+          <SectionCard
+            title={t("description.title")}
+            badge={connected ? editableBadge : editLaterBadge}
+          >
+            {connected ? (
+              locations === null ? (
+                <Skeleton style={{ height: 120 }} />
+              ) : locations.length === 0 ? (
+                <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
+                  {descMessage ?? t("description.noLocation")}
+                </div>
+              ) : (
+                <div>
+                  {/* Bij meerdere vestigingen: kies welke je bewerkt. */}
+                  {locations.length > 1 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <label
+                        htmlFor="gbp-location"
+                        style={{
+                          fontSize: 13,
+                          color: "var(--tl, #6B6F71)",
+                          display: "block",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {t("description.locationLabel")}
+                      </label>
+                      <select
+                        id="gbp-location"
+                        value={locIndex}
+                        onChange={(e) => {
+                          const i = parseInt(e.target.value, 10);
+                          setLocIndex(i);
+                          setDescDraft(locations[i]?.description ?? "");
+                          setHoursDraft(locations[i]?.hours ?? []);
+                          setDescStatus("idle");
+                          setDescMessage(null);
+                          setHoursStatus("idle");
+                          setHoursMessage(null);
+                          setSpecialStatus("idle");
+                          setSpecialMessage(null);
+                        }}
+                        style={{
+                          padding: "8px 12px",
+                          border: "1px solid var(--border, #E5DFD0)",
+                          borderRadius: 6,
+                          fontSize: 14,
+                          background: "var(--white, #FFFFFF)",
+                          color: "var(--text, #18181B)",
+                          maxWidth: 360,
+                        }}
+                      >
+                        {locations.map((l, i) => (
+                          <option key={l.name} value={i}>
+                            {l.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--tl, #6B6F71)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {t("description.editableHint")}
+                  </div>
+
+                  <textarea
+                    value={descDraft}
+                    onChange={(e) => {
+                      setDescDraft(e.target.value);
+                      setDescStatus("idle");
+                    }}
+                    rows={5}
+                    maxLength={750}
+                    placeholder={t("description.placeholder")}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: "1px solid var(--border, #E5DFD0)",
+                      borderRadius: 6,
+                      fontSize: 14,
+                      background: "var(--white, #FFFFFF)",
+                      color: "var(--text, #18181B)",
+                      resize: "vertical",
+                      fontFamily: "inherit",
+                      lineHeight: 1.5,
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginTop: 8,
+                    }}
+                  >
+                    <span
+                      style={{ fontSize: 12, color: "var(--tl, #6B6F71)" }}
+                    >
+                      {t("description.charCount", {
+                        count: descDraft.trim().length,
+                      })}
+                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      {descMessage && (
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color:
+                              descStatus === "error"
+                                ? "var(--red, #DC2626)"
+                                : "var(--color-brand, #1F4A2D)",
+                          }}
+                        >
+                          {descMessage}
+                        </span>
+                      )}
+                      <Button
+                        variant="primary"
+                        loading={descSaving}
+                        onClick={handleSaveDescription}
+                      >
+                        {t("description.save")}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : (
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  color: p?.editorialSummary
+                    ? "var(--text, #18181B)"
+                    : "var(--tl, #6B6F71)",
+                }}
+              >
+                {p?.editorialSummary ?? t("description.empty")}
+              </div>
+            )}
           </SectionCard>
+
+          {/* ---- Reviews beantwoorden (v4-API) ----
+              Alleen verbonden. Op aanvraag geladen zodat de pagina niet faalt
+              als de v4-API nog niet is ingeschakeld. */}
+          {connected && (
+            <SectionCard title={t("reviews.title")} badge={editableBadge}>
+              {reviews === null ? (
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--tl, #6B6F71)",
+                      marginBottom: 10,
+                    }}
+                  >
+                    {t("reviews.loadHint")}
+                  </div>
+                  {reviewsError && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--red, #DC2626)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {reviewsError}
+                    </div>
+                  )}
+                  <Button
+                    variant="secondary"
+                    loading={reviewsLoading}
+                    onClick={handleLoadReviews}
+                    disabled={(locations?.length ?? 0) === 0}
+                  >
+                    {t("reviews.load")}
+                  </Button>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
+                  {t("reviews.empty")}
+                </div>
+              ) : (
+                <div>
+                  {replyError && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--red, #DC2626)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {replyError}
+                    </div>
+                  )}
+                  {reviews.map((r) => (
+                    <div
+                      key={r.name}
+                      style={{
+                        padding: "14px 0",
+                        borderBottom: "1px solid var(--border, #E5DFD0)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          marginBottom: 4,
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>
+                          {r.reviewer}
+                        </span>
+                        <span
+                          style={{
+                            color: "#E8B04B",
+                            fontSize: 14,
+                            flexShrink: 0,
+                            letterSpacing: 1,
+                          }}
+                          aria-label={`${r.stars}/5`}
+                        >
+                          {"★".repeat(r.stars)}
+                          {"☆".repeat(5 - r.stars)}
+                        </span>
+                      </div>
+                      {r.comment && (
+                        <div
+                          style={{
+                            fontSize: 14,
+                            lineHeight: 1.5,
+                            color: "var(--text, #18181B)",
+                            marginBottom: 8,
+                          }}
+                        >
+                          {r.comment}
+                        </div>
+                      )}
+                      {r.reply !== null ? (
+                        <div
+                          style={{
+                            marginTop: 6,
+                            padding: "8px 12px",
+                            background: "var(--brand-soft, #EDF2EE)",
+                            borderRadius: 8,
+                            fontSize: 13,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: "var(--color-brand, #1F4A2D)",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {t("reviews.existingReply")}
+                          </div>
+                          {r.reply}
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 6 }}>
+                          <textarea
+                            value={replyDrafts[r.name] ?? ""}
+                            onChange={(e) =>
+                              setReplyDrafts((prev) => ({
+                                ...prev,
+                                [r.name]: e.target.value,
+                              }))
+                            }
+                            rows={2}
+                            placeholder={t("reviews.replyPlaceholder")}
+                            style={{
+                              width: "100%",
+                              padding: "8px 12px",
+                              border: "1px solid var(--border, #E5DFD0)",
+                              borderRadius: 6,
+                              fontSize: 14,
+                              background: "var(--white, #FFFFFF)",
+                              color: "var(--text, #18181B)",
+                              resize: "vertical",
+                              fontFamily: "inherit",
+                              lineHeight: 1.5,
+                            }}
+                          />
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              marginTop: 6,
+                            }}
+                          >
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              loading={replyingName === r.name}
+                              disabled={!(replyDrafts[r.name] ?? "").trim()}
+                              onClick={() => handleReply(r.name)}
+                            >
+                              {t("reviews.reply")}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
 
           {/* ---- Status & cijfers (puur read-only, Google bepaalt deze) ---- */}
           <SectionCard title={t("stats.title")} badge={visibleBadge}>
