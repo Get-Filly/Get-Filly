@@ -1719,7 +1719,8 @@
       "empty": "Nog geen reviews gevonden voor deze locatie.",
       "existingReply": "Jouw antwoord",
       "replyPlaceholder": "Schrijf een antwoord namens de zaak.",
-      "reply": "Antwoord plaatsen"
+      "reply": "Antwoord plaatsen",
+      "suggest": "✨ Filly-antwoord"
     },
     "stats": {
       "title": "Status & cijfers",
@@ -1731,7 +1732,11 @@
     },
     "posts": {
       "title": "Posts & updates",
-      "body": "Plaats aanbiedingen, evenementen en nieuws rechtstreeks op je Google-profiel. Filly stelt de teksten voor; jij keurt goed."
+      "body": "Plaats aanbiedingen, evenementen en nieuws rechtstreeks op je Google-profiel. Filly stelt de teksten voor; jij keurt goed.",
+      "editableHint": "Schrijf een update en publiceer 'm rechtstreeks op je Google-profiel.",
+      "placeholder": "Bijvoorbeeld: nieuw seizoensmenu, een actie of een evenement.",
+      "publish": "Publiceren naar Google",
+      "saved": "Post geplaatst op Google."
     },
     "qa": {
       "title": "Vragen & antwoorden",

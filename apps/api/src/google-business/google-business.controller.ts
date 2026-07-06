@@ -173,6 +173,26 @@ export class GoogleBusinessController {
     );
   }
 
+  // POST /api/integrations/google-business/posts
+  // body { locationName, summary, actionUrl? } — plaatst een Google Post.
+  @Post('posts')
+  @HttpCode(200)
+  createPost(
+    @RestaurantId() restaurantId: string,
+    @Body()
+    body: { locationName?: string; summary?: string; actionUrl?: string },
+  ) {
+    if (!body?.locationName || typeof body.summary !== 'string') {
+      throw new BadRequestException('locationName en summary zijn verplicht');
+    }
+    return this.google.createLocalPost(
+      restaurantId,
+      body.locationName,
+      body.summary,
+      body.actionUrl || undefined,
+    );
+  }
+
   // DELETE /api/integrations/google-business  (koppeling intrekken)
   @Delete()
   @HttpCode(200)

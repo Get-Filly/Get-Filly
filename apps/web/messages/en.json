@@ -1719,7 +1719,8 @@
       "empty": "No reviews found for this location yet.",
       "existingReply": "Your reply",
       "replyPlaceholder": "Write a reply on behalf of the business.",
-      "reply": "Post reply"
+      "reply": "Post reply",
+      "suggest": "✨ Filly reply"
     },
     "stats": {
       "title": "Status & numbers",
@@ -1731,7 +1732,11 @@
     },
     "posts": {
       "title": "Posts & updates",
-      "body": "Post offers, events and news directly to your Google profile. Filly suggests the text; you approve it."
+      "body": "Post offers, events and news directly to your Google profile. Filly suggests the text; you approve it.",
+      "editableHint": "Write an update and publish it straight to your Google profile.",
+      "placeholder": "For example: a new seasonal menu, an offer or an event.",
+      "publish": "Publish to Google",
+      "saved": "Post published to Google."
     },
     "qa": {
       "title": "Questions & answers",

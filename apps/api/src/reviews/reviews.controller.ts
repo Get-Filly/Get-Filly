@@ -50,6 +50,24 @@ export class ReviewsController {
     );
   }
 
+  // Filly-suggestie op basis van LOSSE reviewvelden (rating/tekst/auteur),
+  // voor Google-Bedrijfsprofiel-reviews die niet in onze DB staan. Zelfde
+  // AiRateLimitGuard als de id-variant.
+  @UseGuards(AiRateLimitGuard)
+  @Post('suggest-for-text')
+  generateReplyForText(
+    @RestaurantId() restaurantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body()
+    body: { rating?: number; body?: string | null; author?: string | null },
+  ) {
+    return this.reviews.generateReplyForText(restaurantId, user.id, {
+      rating: typeof body?.rating === 'number' ? body.rating : 0,
+      body: body?.body ?? null,
+      author: body?.author ?? null,
+    });
+  }
+
   // Lees gecachte filly-varianten + meta. Géén Claude-call (gratis),
   // dus geen rate-limit guard nodig.
   @Get(':id/variants')

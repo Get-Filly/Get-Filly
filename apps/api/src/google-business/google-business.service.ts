@@ -100,6 +100,21 @@ function isHhMm(s: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 }
 
+// Google's storefrontAddress → één leesbare regel (voor scène 5 "lezen").
+type GbpAddress = {
+  addressLines?: string[];
+  postalCode?: string;
+  locality?: string;
+  administrativeArea?: string;
+};
+function formatStorefrontAddress(a?: GbpAddress): string | null {
+  if (!a) return null;
+  const line = (a.addressLines ?? []).filter(Boolean).join(', ');
+  const cityPart = [a.postalCode, a.locality].filter(Boolean).join(' ');
+  const parts = [line, cityPart, a.administrativeArea].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
 function nextWeekday(day: WeekdayCode): WeekdayCode {
   const i = WEEKDAYS.indexOf(day);
   return WEEKDAYS[(i + 1) % 7];
@@ -510,6 +525,10 @@ export class GoogleBusinessService {
       title: string;
       description: string | null;
       hours: DayHours[];
+      address: string | null;
+      categories: string[];
+      phone: string | null;
+      website: string | null;
     }>
   > {
     // Locaties hangen onder een account; hergebruik de bestaande accounts.list.
@@ -517,10 +536,13 @@ export class GoogleBusinessService {
     if (accounts.length === 0) return [];
 
     const accessToken = await this.getAccessToken(restaurantId);
-    // readMask is verplicht; we lezen de velden die we (kunnen) bewerken.
+    // readMask is verplicht; we lezen de bewerkbare velden + de basics die we
+    // in scène 5 tonen (naam/adres/categorieën/telefoon/website) — bewust via
+    // de geauthenticeerde API i.p.v. de openbare Places-data.
     const url =
       `${BUSINESS_INFO_BASE}/${accounts[0].name}/locations` +
-      `?readMask=name,title,profile.description,regularHours&pageSize=100`;
+      `?readMask=name,title,profile.description,regularHours,` +
+      `storefrontAddress,categories,phoneNumbers,websiteUri&pageSize=100`;
 
     let res: Response;
     try {
@@ -545,14 +567,31 @@ export class GoogleBusinessService {
         title?: string;
         profile?: { description?: string };
         regularHours?: { periods?: GbpTimePeriod[] };
+        storefrontAddress?: GbpAddress;
+        categories?: {
+          primaryCategory?: { displayName?: string };
+          additionalCategories?: Array<{ displayName?: string }>;
+        };
+        phoneNumbers?: { primaryPhone?: string };
+        websiteUri?: string;
       }>;
     };
-    return (data.locations ?? []).map((l) => ({
-      name: l.name, // vorm: 'locations/{id}'
-      title: l.title ?? '—',
-      description: l.profile?.description ?? null,
-      hours: normalizeRegularHours(l.regularHours?.periods),
-    }));
+    return (data.locations ?? []).map((l) => {
+      const cats = [
+        l.categories?.primaryCategory?.displayName,
+        ...(l.categories?.additionalCategories ?? []).map((c) => c.displayName),
+      ].filter((c): c is string => !!c);
+      return {
+        name: l.name, // vorm: 'locations/{id}'
+        title: l.title ?? '—',
+        description: l.profile?.description ?? null,
+        hours: normalizeRegularHours(l.regularHours?.periods),
+        address: formatStorefrontAddress(l.storefrontAddress),
+        categories: cats,
+        phone: l.phoneNumbers?.primaryPhone ?? null,
+        website: l.websiteUri ?? null,
+      };
+    });
   }
 
   /**
@@ -860,6 +899,84 @@ export class GoogleBusinessService {
       `GBP review beantwoord (restaurant ${restaurantId}, ${reviewName})`,
     );
     return { ok: true, comment: data.comment ?? trimmed };
+  }
+
+  /**
+   * Maakt een Google Post (update) op de locatie aan (v4 localPosts.create).
+   * Een STANDARD-post met alleen tekst; optioneel een call-to-action-knop met
+   * URL. Reviewer ziet zo dat de posts-scope-claim echt gebruikt wordt.
+   */
+  async createLocalPost(
+    restaurantId: string,
+    locationName: string,
+    summary: string,
+    actionUrl?: string,
+  ): Promise<{ ok: true; name: string; searchUrl: string | null }> {
+    if (!/^locations\/[^/]+$/.test(locationName)) {
+      throw new BadRequestException('Ongeldige locationName');
+    }
+    const trimmed = summary.trim();
+    if (!trimmed) {
+      throw new BadRequestException('De posttekst mag niet leeg zijn');
+    }
+    // Google's limiet op de summary van een local post is 1500 tekens.
+    if (trimmed.length > 1500) {
+      throw new BadRequestException(
+        `De post mag maximaal 1500 tekens zijn (nu ${trimmed.length}).`,
+      );
+    }
+
+    const accounts = await this.listAccounts(restaurantId);
+    if (accounts.length === 0) {
+      throw new BadRequestException('Geen beheerd Google-account gevonden');
+    }
+    const accessToken = await this.getAccessToken(restaurantId);
+    const url = `${MYBUSINESS_V4_BASE}/${accounts[0].name}/${locationName}/localPosts`;
+
+    const body: Record<string, unknown> = {
+      languageCode: 'nl',
+      summary: trimmed,
+      topicType: 'STANDARD',
+    };
+    if (actionUrl) {
+      body.callToAction = { actionType: 'LEARN_MORE', url: actionUrl };
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      this.logger.error(
+        `GBP localPosts.create onbereikbaar: ${(err as Error).message}`,
+      );
+      throw new ServiceUnavailableException(
+        'Google is tijdelijk niet bereikbaar',
+      );
+    }
+    if (!res.ok) {
+      this.throwGoogleApiError(
+        res.status,
+        await res.text(),
+        'localPosts.create',
+      );
+    }
+
+    const data = (await res.json()) as { name?: string; searchUrl?: string };
+    this.logger.log(
+      `GBP post geplaatst (restaurant ${restaurantId}, ${locationName})`,
+    );
+    return {
+      ok: true,
+      name: data.name ?? '',
+      searchUrl: data.searchUrl ?? null,
+    };
   }
 
   /** Koppeling intrekken: best-effort revoke bij Google + rij wissen. */

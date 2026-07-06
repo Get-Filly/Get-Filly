@@ -321,6 +321,10 @@ export type GoogleBusinessLocation = {
   title: string;
   description: string | null;
   hours: GoogleDayHours[];
+  address: string | null;
+  categories: string[];
+  phone: string | null;
+  website: string | null;
 };
 
 /**
@@ -509,6 +513,67 @@ export async function googleBusinessReplyReview(
     throw new Error(reason);
   }
   return (await res.json()) as { ok: true; comment: string };
+}
+
+/**
+ * Plaatst een Google Post (update) op de gekoppelde locatie via de API.
+ * `actionUrl` optioneel voor een "Meer info"-knop.
+ */
+export async function googleBusinessCreatePost(
+  locationName: string,
+  summary: string,
+  actionUrl?: string,
+): Promise<{ ok: true; name: string; searchUrl: string | null }> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/posts`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationName, summary, actionUrl }),
+    },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as {
+    ok: true;
+    name: string;
+    searchUrl: string | null;
+  };
+}
+
+/**
+ * Vraagt Filly een concept-antwoord op een (Google-)review op basis van losse
+ * velden (rating/tekst/auteur). Voor GBP-reviews die niet in onze DB staan.
+ */
+export async function reviewsSuggestReplyForText(
+  rating: number,
+  body: string | null,
+  author: string | null,
+): Promise<{ suggestion: string }> {
+  const res = await authedFetch(`${API_URL}/reviews/suggest-for-text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rating, body, author }),
+  });
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const b = (await res.json()) as { reason?: string; message?: string };
+      reason = b?.message ?? b?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { suggestion: string };
 }
 
 /**

@@ -12,12 +12,14 @@ import { Skeleton } from "../../_components/skeleton";
 import {
   fetchGoogleProfileMine,
   fetchRestaurant,
+  googleBusinessCreatePost,
   googleBusinessLocations,
   googleBusinessReplyReview,
   googleBusinessReviews,
   googleBusinessUpdateDescription,
   googleBusinessUpdateHours,
   googleBusinessUpdateSpecialDays,
+  reviewsSuggestReplyForText,
   type GoogleBusinessLocation,
   type GoogleDayHours,
   type GooglePlaceDetails,
@@ -197,6 +199,16 @@ export default function GoogleProfilePreviewPage() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyingName, setReplyingName] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
+  // Welke review laat Filly nu een concept voor genereren (op review-naam).
+  const [suggestingName, setSuggestingName] = useState<string | null>(null);
+
+  // Google Post (localPosts.create).
+  const [postDraft, setPostDraft] = useState("");
+  const [postSaving, setPostSaving] = useState(false);
+  const [postStatus, setPostStatus] = useState<"idle" | "saved" | "error">(
+    "idle",
+  );
+  const [postMessage, setPostMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -366,8 +378,50 @@ export default function GoogleProfilePreviewPage() {
     }
   };
 
+  // Filly een concept-antwoord laten genereren voor een review; vult het
+  // antwoordveld dat de eigenaar daarna zelf bewerkt en goedkeurt.
+  const handleSuggestReply = async (r: GoogleReview) => {
+    setSuggestingName(r.name);
+    setReplyError(null);
+    try {
+      const { suggestion } = await reviewsSuggestReplyForText(
+        r.stars,
+        r.comment,
+        r.reviewer,
+      );
+      setReplyDrafts((prev) => ({ ...prev, [r.name]: suggestion }));
+    } catch (e) {
+      setReplyError((e as Error).message);
+    } finally {
+      setSuggestingName(null);
+    }
+  };
+
+  // Een Google Post plaatsen op de geselecteerde locatie.
+  const handleCreatePost = async () => {
+    const loc = locations?.[locIndex];
+    if (!loc || !postDraft.trim()) return;
+    setPostSaving(true);
+    setPostStatus("idle");
+    setPostMessage(null);
+    try {
+      await googleBusinessCreatePost(loc.name, postDraft.trim());
+      setPostDraft("");
+      setPostStatus("saved");
+      setPostMessage(t("posts.saved"));
+    } catch (e) {
+      setPostStatus("error");
+      setPostMessage((e as Error).message);
+    } finally {
+      setPostSaving(false);
+    }
+  };
+
   const p: GooglePlaceDetails | null = mine?.data ?? null;
   const connected = mine?.connected ?? false;
+  // De geselecteerde, via de Google-API gelezen locatie (null tot geladen).
+  const loc =
+    connected && locations && locations[locIndex] ? locations[locIndex] : null;
 
   // Speciale dagen / sluitingsdata uit account-instellingen. Alleen
   // datums van vandaag of later tonen (verleden is niet relevant voor
@@ -432,13 +486,42 @@ export default function GoogleProfilePreviewPage() {
         </>
       ) : (
         <>
-          {/* ---- Basisgegevens (Places read-only, bewerken na OAuth) ---- */}
-          <SectionCard title={t("basics.title")} badge={editLaterBadge}>
-            <FieldRow label={t("basics.name")} value={p?.displayName} />
-            <FieldRow label={t("basics.category")} value={prettyType(p?.primaryType ?? null)} />
-            <FieldRow label={t("basics.phone")} value={p?.internationalPhoneNumber} />
-            <FieldRow label={t("basics.website")} value={p?.websiteUri} />
-            <FieldRow label={t("basics.address")} value={p?.formattedAddress} />
+          {/* ---- Basisgegevens ----
+              Verbonden → gelezen via de geauthenticeerde Business Profile API
+              (scène 5 "read"). Niet verbonden → openbare Places-data. */}
+          <SectionCard
+            title={t("basics.title")}
+            badge={connected ? visibleBadge : editLaterBadge}
+          >
+            {connected && loc ? (
+              <>
+                <FieldRow label={t("basics.name")} value={loc.title} />
+                <FieldRow
+                  label={t("basics.category")}
+                  value={loc.categories.length ? loc.categories.join(", ") : null}
+                />
+                <FieldRow label={t("basics.phone")} value={loc.phone} />
+                <FieldRow label={t("basics.website")} value={loc.website} />
+                <FieldRow label={t("basics.address")} value={loc.address} />
+              </>
+            ) : (
+              <>
+                <FieldRow label={t("basics.name")} value={p?.displayName} />
+                <FieldRow
+                  label={t("basics.category")}
+                  value={prettyType(p?.primaryType ?? null)}
+                />
+                <FieldRow
+                  label={t("basics.phone")}
+                  value={p?.internationalPhoneNumber}
+                />
+                <FieldRow label={t("basics.website")} value={p?.websiteUri} />
+                <FieldRow
+                  label={t("basics.address")}
+                  value={p?.formattedAddress}
+                />
+              </>
+            )}
           </SectionCard>
 
           {/* ---- Openingstijden ----
@@ -998,9 +1081,20 @@ export default function GoogleProfilePreviewPage() {
                             style={{
                               display: "flex",
                               justifyContent: "flex-end",
+                              gap: 8,
                               marginTop: 6,
                             }}
                           >
+                            {/* Filly stelt een concept voor; eigenaar bewerkt
+                                + keurt het daarna zelf goed. */}
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              loading={suggestingName === r.name}
+                              onClick={() => handleSuggestReply(r)}
+                            >
+                              {t("reviews.suggest")}
+                            </Button>
                             <Button
                               variant="primary"
                               size="sm"
@@ -1046,14 +1140,83 @@ export default function GoogleProfilePreviewPage() {
             />
           </SectionCard>
 
-          {/* ---- Alleen na koppeling: GBP-only features ---- */}
+          {/* ---- Google Posts ----
+              Verbonden → tekst schrijven + publiceren naar Google
+              (localPosts.create). Niet verbonden → placeholder. */}
           <SectionCard
             title={t("posts.title")}
-            badge={afterConnectBadge}
+            badge={connected ? editableBadge : afterConnectBadge}
           >
-            <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              {t("posts.body")}
-            </div>
+            {connected && loc ? (
+              <div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--tl, #6B6F71)",
+                    marginBottom: 8,
+                  }}
+                >
+                  {t("posts.editableHint")}
+                </div>
+                <textarea
+                  value={postDraft}
+                  onChange={(e) => {
+                    setPostDraft(e.target.value);
+                    setPostStatus("idle");
+                  }}
+                  rows={4}
+                  maxLength={1500}
+                  placeholder={t("posts.placeholder")}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    background: "var(--white, #FFFFFF)",
+                    color: "var(--text, #18181B)",
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                    lineHeight: 1.5,
+                  }}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: 10,
+                    marginTop: 8,
+                  }}
+                >
+                  {postMessage && (
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color:
+                          postStatus === "error"
+                            ? "var(--red, #DC2626)"
+                            : "var(--color-brand, #1F4A2D)",
+                      }}
+                    >
+                      {postMessage}
+                    </span>
+                  )}
+                  <Button
+                    variant="primary"
+                    loading={postSaving}
+                    disabled={!postDraft.trim()}
+                    onClick={handleCreatePost}
+                  >
+                    {t("posts.publish")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
+                {t("posts.body")}
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard title={t("qa.title")} badge={afterConnectBadge}>

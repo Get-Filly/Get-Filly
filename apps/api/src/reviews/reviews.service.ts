@@ -76,9 +76,7 @@ export class ReviewsService {
   // Haalt de eigen reviews-toon op (mig 0051). Leeg/null = de aanroeper
   // valt terug op de algemene merkstem uit het profileBlock. Aparte
   // lichte query zodat de prompt-bouwers 'm los kunnen meegeven.
-  private async getReviewsTone(
-    restaurantId: string,
-  ): Promise<string | null> {
+  private async getReviewsTone(restaurantId: string): Promise<string | null> {
     const { data } = await this.supabase.client
       .from('restaurants')
       .select('reviews_tone_of_voice')
@@ -220,7 +218,10 @@ export class ReviewsService {
     }
 
     const reviewsTone = await this.getReviewsTone(restaurantId);
-    const systemPrompt = buildReviewReplySystemPrompt(profileBlock, reviewsTone);
+    const systemPrompt = buildReviewReplySystemPrompt(
+      profileBlock,
+      reviewsTone,
+    );
     const userPrompt = buildReviewReplyUserPrompt(review);
 
     const suggestion = await this.ai.generateText({
@@ -230,6 +231,49 @@ export class ReviewsService {
       // toon-register raken, en iets van empathie tonen bij kritiek.
       // Haiku zou voor 5-sterren-bedankjes kunnen, maar we houden het
       // consistent voor nu.
+      model: 'claude-sonnet-4-6',
+      maxTokens: 400,
+      meta: {
+        restaurantId,
+        userId,
+        feature: 'review_reply',
+      },
+    });
+
+    return { suggestion: suggestion.trim() };
+  }
+
+  /**
+   * Als generateReplySuggestion, maar op basis van LOSSE velden i.p.v. een
+   * review-id uit de DB. Nodig voor Google-Bedrijfsprofiel-reviews (die via de
+   * v4-API binnenkomen en niet in de reviews-tabel staan). Hergebruikt dezelfde
+   * profiel-context + toon + prompts zodat de stijl identiek is.
+   */
+  async generateReplyForText(
+    restaurantId: string,
+    userId: string,
+    input: { rating: number; body: string | null; author: string | null },
+  ): Promise<{ suggestion: string }> {
+    const profileBlock = await this.context.buildProfileBlock(restaurantId);
+    if (!profileBlock) {
+      throw new NotFoundException('Restaurant niet gevonden.');
+    }
+    const reviewsTone = await this.getReviewsTone(restaurantId);
+    const systemPrompt = buildReviewReplySystemPrompt(
+      profileBlock,
+      reviewsTone,
+    );
+    const userPrompt = buildReviewReplyUserPrompt({
+      source: 'google',
+      rating: input.rating,
+      title: null,
+      body: input.body,
+      author: input.author,
+    });
+
+    const suggestion = await this.ai.generateText({
+      system: systemPrompt,
+      prompt: userPrompt,
       model: 'claude-sonnet-4-6',
       maxTokens: 400,
       meta: {
