@@ -218,7 +218,12 @@ function ReviewsPageInner() {
             prev.filter((p) => p.isLiveGoogle).map((p) => p.googleName),
           );
           const fresh = mapped.filter((m) => !existing.has(m.googleName));
-          return [...prev, ...fresh];
+          // Verberg DB-reviews met bron "google" (seed/voorbeelddata): nu er
+          // een live-koppeling is, is Google zelf de bron van waarheid.
+          const withoutSeedGoogle = prev.filter(
+            (p) => p.isLiveGoogle || p.source !== "google",
+          );
+          return [...withoutSeedGoogle, ...fresh];
         });
       } catch {
         /* niet gekoppeld / API nog niet goedgekeurd → alleen DB-reviews */
