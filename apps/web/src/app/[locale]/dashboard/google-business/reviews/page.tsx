@@ -124,6 +124,9 @@ function ReviewsPageInner() {
   // Status van het live ophalen van Google-reviews (niet stil meer).
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  // Neutrale info (geen fout): bv. gekoppeld maar API gaf 0 reviews terug,
+  // of geen Google-locatie gevonden onder het account.
+  const [googleInfo, setGoogleInfo] = useState<string | null>(null);
   const [filter, setFilter] = useState<SourceFilter>("alle");
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
   const [replyTo, setReplyTo] = useState<DisplayReview | null>(null);
@@ -196,8 +199,10 @@ function ReviewsPageInner() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // Eerst de locatie: faalt dit (niet gekoppeld / geen locatie), dan
-      // stil terugvallen op alleen de DB-reviews — geen foutmelding.
+      // Eerst de locatie. Gooit googleBusinessLocations (niet gekoppeld / API
+      // niet goedgekeurd), dan stil terugvallen op alleen de DB-reviews. Maar
+      // als 'ie slaagt zónder locatie, is het profiel wél gekoppeld maar zien
+      // we geen beheerde vestiging — dat tonen we expliciet.
       let locName: string | null = null;
       try {
         const { locations } = await googleBusinessLocations();
@@ -205,7 +210,11 @@ function ReviewsPageInner() {
       } catch {
         return;
       }
-      if (!locName || cancelled) return;
+      if (cancelled) return;
+      if (!locName) {
+        setGoogleInfo(t("googleNoLocation"));
+        return;
+      }
 
       // Wél gekoppeld → vanaf hier de status tonen, zodat een lege lijst of
       // fout zichtbaar is i.p.v. een stil leeg scherm.
@@ -213,7 +222,12 @@ function ReviewsPageInner() {
       try {
         const { reviews: gReviews } = await googleBusinessReviews(locName);
         if (cancelled) return;
-        if (gReviews.length === 0) return;
+        if (gReviews.length === 0) {
+          // Gekoppeld + locatie gevonden, maar Google gaf (nog) 0 reviews:
+          // vrijwel altijd API-vertraging op een net geplaatste review.
+          setGoogleInfo(t("googleNoReviewsYet"));
+          return;
+        }
         const mapped: DisplayReview[] = gReviews.map((r) => ({
           id: r.name, // v4-resourcenaam is uniek; dient als React-key + id
           source: "google" as const,
@@ -727,6 +741,21 @@ function ReviewsPageInner() {
           }}
         >
           {t("googleError", { reason: googleError })}
+        </div>
+      )}
+      {googleInfo && !googleError && (
+        <div
+          style={{
+            margin: "0 0 12px",
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "var(--surface-2, #F3F0E8)",
+            border: "1px solid var(--border, #E5DFD0)",
+            color: "var(--tl, #6B6F71)",
+            fontSize: 13,
+          }}
+        >
+          {googleInfo}
         </div>
       )}
 

@@ -1785,6 +1785,8 @@
     "suggestReply": "✨ Filly-antwoord",
     "googleLoading": "Google-reviews laden…",
     "googleError": "Google-reviews ophalen mislukt: {reason}",
+    "googleNoLocation": "Google-profiel gekoppeld, maar er is geen beheerde vestiging gevonden onder dit account.",
+    "googleNoReviewsYet": "Gekoppeld met Google, maar de API geeft nog 0 reviews terug. Een net geplaatste review kan even duren voordat Google 'm via de API vrijgeeft; probeer straks opnieuw.",
     "bannerMaxTitle": "{count} versies klaar.",
     "bannerMaxBody": "Maximum bereikt, kies hieronder je favoriet en pas 'm naar wens aan.",
     "variantLabel": "Variant {number}",

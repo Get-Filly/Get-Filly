@@ -1785,6 +1785,8 @@
     "suggestReply": "✨ Filly reply",
     "googleLoading": "Loading Google reviews…",
     "googleError": "Could not load Google reviews: {reason}",
+    "googleNoLocation": "Google profile connected, but no managed location was found under this account.",
+    "googleNoReviewsYet": "Connected to Google, but the API returns 0 reviews so far. A just-posted review can take a while before Google exposes it via the API; try again shortly.",
     "bannerMaxTitle": "{count} versions ready.",
     "bannerMaxBody": "Maximum reached, pick your favorite below and tweak it as you like.",
     "variantLabel": "Variant {number}",
