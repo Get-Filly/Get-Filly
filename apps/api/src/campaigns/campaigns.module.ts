@@ -17,6 +17,9 @@ import { MetaModule } from '../meta/meta.module';
 // TikTokModule levert TikTokService: social-campagnes (platform 'tiktok')
 // publiceren via Direct Post.
 import { TikTokModule } from '../tiktok/tiktok.module';
+// GoogleBusinessModule levert GoogleBusinessService: campagnes met kanaal
+// 'google_business' publiceren als Google Post (localPosts.create).
+import { GoogleBusinessModule } from '../google-business/google-business.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -39,6 +42,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     EventsModule,
     MetaModule,
     TikTokModule,
+    GoogleBusinessModule,
   ],
   controllers: [
     CampaignsController,

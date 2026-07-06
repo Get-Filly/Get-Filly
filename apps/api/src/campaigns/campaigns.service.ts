@@ -30,6 +30,9 @@ import { MetaService } from '../meta/meta.service';
 // TikTokService: publiceert social-campagnes met platform 'tiktok' via de
 // Content Posting API (Direct Post). Spiegelt de Meta-publish.
 import { TikTokService } from '../tiktok/tiktok.service';
+// GoogleBusinessService: publiceert campagnes met kanaal 'google_business'
+// als Google Post (localPosts.create) op de gekoppelde vestiging.
+import { GoogleBusinessService } from '../google-business/google-business.service';
 import type Anthropic from '@anthropic-ai/sdk';
 
 // Schema voor 3-varianten-tool. minItems/maxItems forceert
@@ -72,8 +75,7 @@ const CAMPAIGN_SCHEDULE_SUGGESTION_SCHEMA = {
     },
     reasoning: {
       type: 'string',
-      description:
-        'Korte NL-uitleg (max 200 tekens) waarom dit tijdstip past.',
+      description: 'Korte NL-uitleg (max 200 tekens) waarom dit tijdstip past.',
     },
     alternative_datetime_iso: {
       type: 'string',
@@ -97,11 +99,7 @@ type CampaignScheduleSuggestionFromTool = {
 };
 
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
-export type CampaignStatus =
-  | 'concept'
-  | 'ingepland'
-  | 'actief'
-  | 'afgerond';
+export type CampaignStatus = 'concept' | 'ingepland' | 'actief' | 'afgerond';
 
 export type CampaignResultStats = {
   extra_reservations?: number;
@@ -210,6 +208,8 @@ export class CampaignsService {
     private readonly meta: MetaService,
     // TikTokService: social-campagne met platform 'tiktok' → Direct Post.
     private readonly tiktok: TikTokService,
+    // GoogleBusinessService: campagne met kanaal 'google_business' → Google Post.
+    private readonly google: GoogleBusinessService,
     // Admin (service-role) client voor de cron: die draait zonder
     // ingelogde user, dus de request-client (RLS) kan daar niet.
     private readonly admin: SupabaseService,
@@ -264,14 +264,14 @@ export class CampaignsService {
 
     const { data: content, error: scErr } = await client
       .from('campaign_social_content')
-      .select(
-        'caption, platforms, hashtags, media_urls, published_at',
-      )
+      .select('caption, platforms, hashtags, media_urls, published_at')
       .eq('campaign_id', campaignId)
       .maybeSingle();
     if (scErr) throw new InternalServerErrorException(scErr.message);
     if (!content) {
-      throw new BadRequestException('Social-content ontbreekt voor deze campagne.');
+      throw new BadRequestException(
+        'Social-content ontbreekt voor deze campagne.',
+      );
     }
 
     // 2. Idempotent: al gepubliceerd → niet opnieuw posten.
@@ -288,7 +288,9 @@ export class CampaignsService {
       : '';
     const message = [caption, hashtags].filter(Boolean).join('\n\n');
     if (!message) {
-      throw new BadRequestException('Deze social-campagne heeft nog geen tekst.');
+      throw new BadRequestException(
+        'Deze social-campagne heeft nog geen tekst.',
+      );
     }
     // Defense-in-depth: een via "Maak eigen campagne" aangemaakt concept houdt
     // de placeholdertekst tot de eigenaar inhoud schrijft/genereert. Nooit de
@@ -310,6 +312,7 @@ export class CampaignsService {
       ? (content.platforms as string[])
       : [];
     const toTikTok = platforms.includes('tiktok');
+    const toGoogle = platforms.includes('google_business');
     // Meta gevraagd als: legacy/leeg (default Meta) óf expliciet FB/IG.
     const metaRequested =
       platforms.length === 0 ||
@@ -356,7 +359,9 @@ export class CampaignsService {
         // een FB-tekstpost mag zonder.
         const imageUrl =
           paths.length > 0
-            ? await this.signMediaPath(paths[0], useAdmin).catch(() => undefined)
+            ? await this.signMediaPath(paths[0], useAdmin).catch(
+                () => undefined,
+              )
             : undefined;
         const toFacebook =
           platforms.length === 0 ? true : platforms.includes('facebook');
@@ -421,6 +426,31 @@ export class CampaignsService {
             ? reason
             : `TikTok-post mislukt: ${reason}`,
         );
+      }
+    }
+
+    // 6b. Google-Bedrijfsprofiel-tak. Publiceert de tekst als Google Post
+    //     (localPosts.create) op de eerste beheerde vestiging. Spiegelt de
+    //     Meta/TikTok-takken: mislukt → nette fout in `errors`, gelukt → id.
+    if (toGoogle) {
+      try {
+        const locations = await this.google.listLocations(restaurantId);
+        const loc = locations[0];
+        if (!loc) {
+          errors.push(
+            'Google Bedrijfsprofiel: geen beheerde vestiging gevonden.',
+          );
+        } else {
+          const res = await this.google.createLocalPost(
+            restaurantId,
+            loc.name,
+            message,
+          );
+          postIds.google_business = res.name;
+        }
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        errors.push(`Google Post mislukt: ${reason}`);
       }
     }
 
@@ -566,14 +596,15 @@ export class CampaignsService {
     if (rows.length === 0) return [];
 
     const mailIds = rows.filter((r) => r.type === 'mail').map((r) => r.id);
-    const socialIds = rows
-      .filter((r) => r.type === 'social')
-      .map((r) => r.id);
+    const socialIds = rows.filter((r) => r.type === 'social').map((r) => r.id);
 
     const previewMap = new Map<string, string>();
     // Per kanban Stop-popup: actieve social-campagnes met een live IG-post.
     const igLiveMap = new Map<string, string>();
-    const truncate = (s: string | null | undefined, max = 140): string | null => {
+    const truncate = (
+      s: string | null | undefined,
+      max = 140,
+    ): string | null => {
       if (!s) return null;
       const trimmed = s.replace(/\s+/g, ' ').trim();
       if (!trimmed) return null;
@@ -724,9 +755,7 @@ export class CampaignsService {
     // findById doet content + signed media + reasoning. Bundles
     // hebben typisch 1-4 kanalen, parallel is dus geen overload.
     const details = await Promise.all(
-      (rows ?? []).map((r) =>
-        this.findById(restaurantId, r.id as string),
-      ),
+      (rows ?? []).map((r) => this.findById(restaurantId, r.id as string)),
     );
 
     return { group: groupMeta, campaigns: details };
@@ -766,9 +795,7 @@ export class CampaignsService {
         ? (content.media_urls as string[])
         : [];
       const signed = await Promise.all(
-        paths.map((p) =>
-          this.signMediaPath(p).catch(() => null),
-        ),
+        paths.map((p) => this.signMediaPath(p).catch(() => null)),
       );
       signedContent = {
         ...content,
@@ -880,9 +907,7 @@ export class CampaignsService {
       throw new InternalServerErrorException('Campagne-naam is verplicht.');
     }
     if (!body) {
-      throw new InternalServerErrorException(
-        'Campagne-inhoud is verplicht.',
-      );
+      throw new InternalServerErrorException('Campagne-inhoud is verplicht.');
     }
 
     // Per 2026-05-13 (mig 0041): variants is bron-van-waarheid voor
@@ -1316,7 +1341,6 @@ export class CampaignsService {
     return result;
   }
 
-
   // Status-transitie. Levenscyclus met twee bewuste "shortcuts":
   //   concept   → ingepland   (Plan in-knop op /campagnes)
   //   concept   → actief      (▶ Direct activeren — versturen NU)
@@ -1599,9 +1623,7 @@ export class CampaignsService {
     }
     const minFuture = Date.now() - 60 * 1000;
     if (newSched.getTime() < minFuture) {
-      throw new BadRequestException(
-        'Nieuwe datum moet in de toekomst liggen.',
-      );
+      throw new BadRequestException('Nieuwe datum moet in de toekomst liggen.');
     }
 
     // Haal de campagne op + verifieer dat hij in de historie hoort.
@@ -1672,7 +1694,6 @@ export class CampaignsService {
 
     return { id, status: nextStatus };
   }
-
 
   // ============================================================
   // VARIANT-OPERATIES (mig 0041 — nieuwe bron-van-waarheid)
@@ -1851,9 +1872,7 @@ export class CampaignsService {
       typeof patch.subject_line === 'string' &&
       patch.subject_line.length > 200
     ) {
-      throw new BadRequestException(
-        'Onderwerp mag maximaal 200 tekens zijn.',
-      );
+      throw new BadRequestException('Onderwerp mag maximaal 200 tekens zijn.');
     }
 
     const { data: existing, error: fetchErr } = await this.supabase.client
@@ -1919,7 +1938,10 @@ export class CampaignsService {
       action: 'campaign_variant_edited',
       entity_type: 'campaign',
       entity_id: id,
-      payload: { index, was_selected: existing.selected_variant_index === index },
+      payload: {
+        index,
+        was_selected: existing.selected_variant_index === index,
+      },
     });
 
     return { id, variants: newVariants };
@@ -1944,7 +1966,9 @@ export class CampaignsService {
 
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
-      .select('id, type, status, name, variants, selected_variant_index, updated_at')
+      .select(
+        'id, type, status, name, variants, selected_variant_index, updated_at',
+      )
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
