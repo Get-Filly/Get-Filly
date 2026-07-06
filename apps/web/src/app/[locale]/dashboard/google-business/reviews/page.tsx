@@ -10,6 +10,10 @@ import {
   fetchReviews,
   refineReviewVariants,
   saveReviewReply,
+  googleBusinessLocations,
+  googleBusinessReviews,
+  googleBusinessReplyReview,
+  reviewsSuggestReplyForText,
   type Review,
   type ReviewSource,
 } from "@/lib/api";
@@ -27,6 +31,12 @@ const sourceInfo: Record<ReviewSource, { label: string }> = {
 };
 
 type SourceFilter = "alle" | ReviewSource;
+
+// Reviews in de UI = DB-reviews (Review) + live opgehaalde Google-reviews.
+// Live Google-reviews krijgen isLiveGoogle=true + de v4-resourcenaam, zodat
+// de antwoord-flow naar Google gaat (replyToReview) i.p.v. de DB-opslag, en de
+// Filly-suggestie via de losse-velden-endpoint loopt (ze staan niet in de DB).
+type DisplayReview = Review & { isLiveGoogle?: boolean; googleName?: string };
 
 function formatDate(s: string | null, tag: string): string {
   if (!s) return "—";
@@ -109,11 +119,11 @@ function ReviewsPageInner() {
   // opnieuw (en sluiten van de modal zou direct heropenen).
   const autoOpenedRef = useRef<string | null>(null);
 
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<DisplayReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<SourceFilter>("alle");
   // Modal-state: welke review wordt er beantwoord + de actuele tekst.
-  const [replyTo, setReplyTo] = useState<Review | null>(null);
+  const [replyTo, setReplyTo] = useState<DisplayReview | null>(null);
   const [replyText, setReplyText] = useState("");
   // Spiegel van replyText in een ref zodat closeReply (o.a. de Escape-
   // listener met deps [replyTo]) altijd de actuele waarde leest.
@@ -175,6 +185,48 @@ function ReviewsPageInner() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  // Live Google-reviews erbij halen zodra de DB-lijst er is. Fail-soft: als
+  // het profiel niet gekoppeld is of de API nog niet is goedgekeurd, laten we
+  // gewoon alleen de DB-reviews zien (geen harde fout op de pagina).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { locations } = await googleBusinessLocations();
+        const loc = locations[0];
+        if (!loc) return;
+        const { reviews: gReviews } = await googleBusinessReviews(loc.name);
+        if (cancelled || gReviews.length === 0) return;
+        const mapped: DisplayReview[] = gReviews.map((r) => ({
+          id: r.name, // v4-resourcenaam is uniek; dient als React-key + id
+          source: "google" as const,
+          rating: r.stars,
+          title: null,
+          body: r.comment,
+          author: r.reviewer,
+          review_date: r.createTime,
+          response_text: r.reply,
+          responded_at: r.reply ? r.createTime : null,
+          isLiveGoogle: true,
+          googleName: r.name,
+        }));
+        setReviews((prev) => {
+          // Dedup op googleName zodat een tweede load niet dubbel toevoegt.
+          const existing = new Set(
+            prev.filter((p) => p.isLiveGoogle).map((p) => p.googleName),
+          );
+          const fresh = mapped.filter((m) => !existing.has(m.googleName));
+          return [...prev, ...fresh];
+        });
+      } catch {
+        /* niet gekoppeld / API nog niet goedgekeurd → alleen DB-reviews */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Escape sluit de reply-modal.
@@ -362,13 +414,17 @@ function ReviewsPageInner() {
     ...(Object.keys(sourceInfo) as ReviewSource[]),
   ];
 
-  const openReply = async (r: Review) => {
+  const openReply = async (r: DisplayReview) => {
     // Modal openen + tekstveld leegmaken (niet auto-vullen met variant
     //, user kiest zelf welke 'ie wil hebben). Daarna fetchen we de
     // gecachte set; als die leeg is, genereren we automatisch 3.
     setReplyTo(r);
     setReplyText("");
     setError(null);
+
+    // Live Google-reviews staan niet in de DB → geen variant-cache. De modal
+    // toont voor deze reviews een losse "Filly-antwoord"-knop.
+    if (r.isLiveGoogle) return;
 
     // Als we al state hebben in geheugen (modal-toggle binnen sessie):
     // hoeft niet opnieuw te fetchen. Anders: fetch DB-cache.
@@ -424,23 +480,59 @@ function ReviewsPageInner() {
     setReplyText(text);
   };
 
+  // Filly-suggestie voor een LIVE Google-review (staat niet in de DB, dus via
+  // de losse-velden-endpoint). Vult het antwoordveld dat de eigenaar bewerkt.
+  const requestGoogleSuggestion = async () => {
+    if (!replyTo?.isLiveGoogle || generating) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const { suggestion } = await reviewsSuggestReplyForText(
+        replyTo.rating,
+        replyTo.body,
+        replyTo.author,
+      );
+      setReplyText(suggestion);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("errors.generate"));
+      logger.error(e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const sendReply = async () => {
     if (!replyTo || !replyText.trim()) return;
     setSaving(true);
     setError(null);
     try {
-      const updated = await saveReviewReply(replyTo.id, replyText);
-      // Vervang de review in state door wat de backend teruggeeft,
-      // zo hebben we gegarandeerd dezelfde data als de server (incl.
-      // responded_at-timestamp).
-      setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-      // Opgeruimd: varianten voor deze review hebben we niet meer
-      // nodig, de reactie is definitief verstuurd.
-      setVariantsByReview((prev) => {
-        const next = { ...prev };
-        delete next[replyTo.id];
-        return next;
-      });
+      if (replyTo.isLiveGoogle && replyTo.googleName) {
+        // Antwoord rechtstreeks naar Google publiceren (v4 reviews.reply).
+        const { comment } = await googleBusinessReplyReview(
+          replyTo.googleName,
+          replyText,
+        );
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === replyTo.id ? { ...r, response_text: comment } : r,
+          ),
+        );
+      } else {
+        const updated = await saveReviewReply(replyTo.id, replyText);
+        // Vervang de review in state door wat de backend teruggeeft,
+        // zo hebben we gegarandeerd dezelfde data als de server (incl.
+        // responded_at-timestamp).
+        setReviews((prev) =>
+          prev.map((r) => (r.id === updated.id ? updated : r)),
+        );
+        // Opgeruimd: varianten voor deze review hebben we niet meer
+        // nodig, de reactie is definitief verstuurd.
+        setVariantsByReview((prev) => {
+          const next = { ...prev };
+          delete next[replyTo.id];
+          return next;
+        });
+      }
       setReplyTo(null);
       setReplyText("");
       setSuccess(t("replySent"));
@@ -730,7 +822,22 @@ function ReviewsPageInner() {
                 gecached en getoond. Knop "Genereer 3 nieuwe" voegt
                 3 extra toe (totaal 6). Daarna disabled,
                 kostenbeheersing. Server cachet alles per review. */}
-            {bootstrapping ? (
+            {replyTo.isLiveGoogle ? (
+              // Live Google-review: losse Filly-suggestie (geen DB-varianten).
+              <div className="review-modal-filly-banner">
+                <div>
+                  <strong>{t("googleFillyTitle")}</strong>{" "}
+                  {t("googleFillyBody")}
+                </div>
+                <button
+                  className="sg-btn"
+                  onClick={requestGoogleSuggestion}
+                  disabled={generating}
+                >
+                  {generating ? t("thinking") : t("suggestReply")}
+                </button>
+              </div>
+            ) : bootstrapping ? (
               <div className="review-modal-filly-banner">
                 <div>
                   <strong>{t("bannerLoadingTitle")}</strong>{" "}
@@ -774,7 +881,7 @@ function ReviewsPageInner() {
                 Klik op een kaartje = tekstveld wordt overschreven. Het
                 actieve kaartje (= wat in het veld staat) markeren we
                 met een brand-groene rand zodat het duidelijk is. */}
-            {variants.length > 0 && (
+            {!replyTo.isLiveGoogle && variants.length > 0 && (
               <div
                 style={{
                   display: "grid",
