@@ -3,6 +3,7 @@
 // drijft"; daarna "Waar we staan" (papier-warm) + CTA. (2026-06-13)
 // =============================================================================
 
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { COMPANY } from "@/config/company";
@@ -72,13 +73,31 @@ export default async function AboutPage({
                   (boven) naar vol (onder). Bestanden in apps/web/public/images/. */}
               <div className="about-hero-media">
                 <div className="about-photo">
-                  <img src="/images/about-1.jpeg" alt={t("alt1")} loading="lazy" />
+                  <Image
+                    src="/images/about-1.jpeg"
+                    alt={t("alt1")}
+                    fill
+                    sizes="(max-width: 860px) 90vw, 320px"
+                    style={{ objectFit: "cover" }}
+                  />
                 </div>
                 <div className="about-photo">
-                  <img src="/images/about-2.jpeg" alt={t("alt2")} loading="lazy" />
+                  <Image
+                    src="/images/about-2.jpeg"
+                    alt={t("alt2")}
+                    fill
+                    sizes="(max-width: 860px) 90vw, 320px"
+                    style={{ objectFit: "cover" }}
+                  />
                 </div>
                 <div className="about-photo">
-                  <img src="/images/about-3.jpeg" alt={t("alt3")} loading="lazy" />
+                  <Image
+                    src="/images/about-3.jpeg"
+                    alt={t("alt3")}
+                    fill
+                    sizes="(max-width: 860px) 90vw, 320px"
+                    style={{ objectFit: "cover" }}
+                  />
                 </div>
               </div>
             </div>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -279,11 +280,12 @@ export default async function ProductPage({
                     <span className="pmock-ig-live">{t("mock.live")}</span>
                   </div>
                   <div className="pmock-ig-photo">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src="/images/instagram-gerechten.jpg"
                       alt="Drie gangen bij Bistro Get-Filly"
-                      loading="lazy"
+                      fill
+                      sizes="440px"
+                      style={{ objectFit: "cover" }}
                     />
                     <span className="pmock-ig-photo-tag">{t("mock.igPhotoTag1")}<br />{t("mock.igPhotoTag2")}</span>
                   </div>

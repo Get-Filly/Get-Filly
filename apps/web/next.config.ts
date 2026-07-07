@@ -9,6 +9,11 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
 const nextConfig: NextConfig = {
+  // next/image: serveer AVIF (kleinst) met WebP-fallback. Default is alleen
+  // WebP; AVIF geeft nog eens ~20-30% kleiner voor de marketing-foto's.
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   async rewrites() {
     // TikTok Content Posting (PULL_FROM_URL) eist dat de video-URL op het in
     // het TikTok-portal GEVERIFIEERDE domein (get-filly.com) staat. De
