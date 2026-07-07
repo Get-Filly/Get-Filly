@@ -478,7 +478,7 @@ export default function CampagnesPage() {
       | "whatsapp"
       | "google_business"
     >
-  >(["instagram"]);
+  >([]);
   const [creatingOwn, setCreatingOwn] = useState(false);
   const [builderError, setBuilderError] = useState<string | null>(null);
   // Per-item actie-state. Sleutel = cardKey(item) zodat zowel single
@@ -597,7 +597,7 @@ export default function CampagnesPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("nieuw") === "eigen") {
       setBuilderName("");
-      setBuilderChannels(["instagram"]);
+      setBuilderChannels([]);
       setBuilderError(null);
       setBuilderOpen(true);
       params.delete("nieuw");
@@ -1008,7 +1008,7 @@ export default function CampagnesPage() {
               variant="primary"
               onClick={() => {
                 setBuilderName("");
-                setBuilderChannels(["instagram"]);
+                setBuilderChannels([]);
                 setBuilderError(null);
                 setBuilderOpen(true);
               }}
