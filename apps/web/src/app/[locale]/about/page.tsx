@@ -77,6 +77,8 @@ export default async function AboutPage({
                     src="/images/about-1.jpeg"
                     alt={t("alt1")}
                     fill
+                    // Boven de vouw + LCP-afbeelding → eager laden i.p.v. lazy.
+                    priority
                     sizes="(max-width: 860px) 90vw, 320px"
                     style={{ objectFit: "cover" }}
                   />
