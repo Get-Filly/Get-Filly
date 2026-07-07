@@ -911,6 +911,7 @@ export class GoogleBusinessService {
     locationName: string,
     summary: string,
     actionUrl?: string,
+    mediaUrl?: string,
   ): Promise<{ ok: true; name: string; searchUrl: string | null }> {
     if (!/^locations\/[^/]+$/.test(locationName)) {
       throw new BadRequestException('Ongeldige locationName');
@@ -940,6 +941,11 @@ export class GoogleBusinessService {
     };
     if (actionUrl) {
       body.callToAction = { actionType: 'LEARN_MORE', url: actionUrl };
+    }
+    // Foto meesturen: Google haalt 'm server-side op via de (publiek
+    // bereikbare) URL. Een signed Supabase-URL volstaat, net als bij Meta.
+    if (mediaUrl) {
+      body.media = [{ mediaFormat: 'PHOTO', sourceUrl: mediaUrl }];
     }
 
     let res: Response;

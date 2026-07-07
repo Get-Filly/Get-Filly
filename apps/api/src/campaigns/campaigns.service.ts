@@ -448,10 +448,20 @@ export class CampaignsService {
             'Google Bedrijfsprofiel: geen beheerde vestiging gevonden.',
           );
         } else {
+          // Foto is verplicht voor Google Business; Google haalt 'm op via de
+          // signed URL. Lukt signen niet, dan gaat de post zonder beeld.
+          const gbpImageUrl =
+            paths.length > 0
+              ? await this.signMediaPath(paths[0], useAdmin).catch(
+                  () => undefined,
+                )
+              : undefined;
           const res = await this.google.createLocalPost(
             restaurantId,
             loc.name,
             message,
+            undefined,
+            gbpImageUrl,
           );
           postIds.google_business = res.name;
         }

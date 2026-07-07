@@ -41,16 +41,19 @@ export function getMissingLabel(
   }
 }
 
-// Kanalen waarbij visuele media écht vereist is. Facebook + Google
-// Business: aanbevolen maar niet blokkerend (tekst-only post mag).
-// Mail + WhatsApp: tekst-only kanalen.
-export const PHOTO_REQUIRED = new Set(["instagram", "tiktok"]);
+// Kanalen waarbij visuele media vereist is. Per 2026-07-07 (Floris-wens):
+// óók Facebook en Google Business verplichten nu een foto — een beeldloze
+// post presteert te slecht om te publiceren. Mail + WhatsApp zijn tekst-only.
+export const PHOTO_REQUIRED = new Set([
+  "instagram",
+  "tiktok",
+  "facebook",
+  "google_business",
+]);
 
-// Kanalen waarbij foto/video optioneel is — niet blokkerend, wel
-// aanbevolen (een Facebook-post zonder beeld presteert minder). De
-// UI toont deze velden in Missende aspecten als ○ (open bolletje)
-// i.p.v. ● (gevuld = vereist) zodat eigenaar het verschil ziet.
-export const PHOTO_OPTIONAL = new Set(["facebook", "google_business"]);
+// Geen kanalen meer met optionele foto (Facebook + Google Business zijn per
+// 2026-07-07 verplicht). Leeg zodat bestaande verwijzingen blijven werken.
+export const PHOTO_OPTIONAL = new Set<string>([]);
 
 // Mens-leesbare labels voor de chips en de Missende aspecten-koppen.
 export const PLATFORM_LABEL: Record<string, string> = {

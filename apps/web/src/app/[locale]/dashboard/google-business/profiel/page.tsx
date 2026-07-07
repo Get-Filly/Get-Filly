@@ -1219,17 +1219,9 @@ export default function GoogleProfilePreviewPage() {
             )}
           </SectionCard>
 
-          <SectionCard title={t("qa.title")} badge={afterConnectBadge}>
-            <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              {t("qa.body")}
-            </div>
-          </SectionCard>
-
-          <SectionCard title={t("insights.title")} badge={afterConnectBadge}>
-            <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              {t("insights.body")}
-            </div>
-          </SectionCard>
+          {/* Vragen & antwoorden verwijderd (2026-07-07): Google's Q&A-API is
+              in november 2025 stopgezet. Inzichten verwijderd: vereist de
+              aparte Performance API en is voor nu geen must-have. */}
 
           <SectionCard title={t("photoManagement.title")} badge={afterConnectBadge}>
             <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
