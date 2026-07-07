@@ -99,7 +99,12 @@ function detectPlatform(c: CampaignDetail): Platform {
   if (c.type === "whatsapp") return "whatsapp";
   const platforms = c.content?.platforms ?? [];
   const first = platforms[0];
-  if (first === "instagram" || first === "facebook" || first === "tiktok") {
+  if (
+    first === "instagram" ||
+    first === "facebook" ||
+    first === "tiktok" ||
+    first === "google_business"
+  ) {
     return first;
   }
   return "instagram";

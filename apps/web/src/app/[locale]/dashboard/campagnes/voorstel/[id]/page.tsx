@@ -172,7 +172,8 @@ export default function VoorstelDetailPage() {
       sc.platform === "whatsapp" ||
       sc.platform === "instagram" ||
       sc.platform === "facebook" ||
-      sc.platform === "tiktok"
+      sc.platform === "tiktok" ||
+      sc.platform === "google_business"
     ) {
       return sc.platform;
     }

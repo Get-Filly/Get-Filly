@@ -1500,7 +1500,8 @@ export type AiSuggestion = {
       | "whatsapp"
       | "instagram"
       | "facebook"
-      | "tiktok";
+      | "tiktok"
+      | "google_business";
     // Per 2026-05-07 fase 2b: multi-channel-array. Wanneer aanwezig,
     // bron-van-waarheid voor de UI; legacy top-level velden zijn dan
     // niet meer direct relevant maar worden gesynced met channels[0]
@@ -1512,7 +1513,8 @@ export type AiSuggestion = {
         | "whatsapp"
         | "instagram"
         | "facebook"
-        | "tiktok";
+        | "tiktok"
+        | "google_business";
       variants: Array<{ subject_line?: string; body?: string }>;
       selected_index: number;
       scheduled_for?: string;
