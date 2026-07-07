@@ -30,7 +30,7 @@ apps/
         (publieke site: home, product, pricing, about, login, signup, invite/accept, auth/confirm)
         dashboard/
           (campagnes[/id], reserveringen, gasten, reviews, menu, rapportages, koppelingen, account[/team])
-          (legacy-routes, niet meer in sidebar: taken/, suggesties/ — detail-views + fallback-links)
+          (marketing/ — kanaaldetails vanuit rapportages, niet in sidebar; taken/ + suggesties/ zijn verwijderd)
           _components/  (sidebar, topbar, kpi-row, filly-chat, tasks-strip, suggestion-detail-modal, skeleton, access-guard, …)
       components/navbar.tsx
       lib/
@@ -87,7 +87,7 @@ packages/
 - **Chat-proposal genereert 3 varianten**: prompt-update, modal toont 3 kaarten naast elkaar, user kiest favoriet via `selectVariant`-endpoint. Refine herschrijft alleen geselecteerde variant.
 - **Campagne-varianten** (mig 0041): de unified detail-page gebruikt `campaigns.variants[]` + `selected_variant_index` als bron-van-waarheid. 3 alternatieven via `POST /campaigns/:id/variants` (`generateMoreVariants`, max 6), wisselen via `selectVariant`, bewerken via `editVariant`. _(De oude `/refine` + `filly_variants`-cache uit mig 0014 is verwijderd in mig 0060, 2026-06-22.)_
 - **Review-reply-varianten** met zelfde cache-patroon: 3 vooraf, 1× regenerate, lock op 6.
-- **Verzendmoment**: het brein kiest bij het genereren al een moment + reden per kanaal (`scheduled_for` + `scheduled_reasoning` in de voorstel-prompt; timing-kennis in `ai/filly-brain.config.ts`, `bestHours` per kanaal). Eigenaar bevestigt/wijzigt zelf via `PATCH /campaigns/:id/scheduled` (`setSchedule`). _(De losse `POST /:id/suggest-schedule` + `suggested_scheduled_*`-kolommen zijn verwijderd/dead-on-write sinds mig 0060; zie BACKLOG "Wanneer plaatsen-card".)_
+- **Verzendmoment**: het brein kiest bij het genereren al een moment + reden per kanaal (`scheduled_for` + `scheduled_reasoning` in de voorstel-prompt; timing-kennis in `ai/filly-brain.config.ts`, `bestHours` per kanaal). Eigenaar bevestigt/wijzigt zelf via `PATCH /campaigns/:id/scheduled` (`setSchedule`). _(De losse `POST /:id/suggest-schedule` is verwijderd, maar de `suggested_scheduled_for`/`_reasoning`-kolommen zijn sinds 2026-06-22 wéér in gebruik: bij approve schrijven we Filly's gekozen moment + reden erin, voor de "Wanneer plaatsen"-card.)_
 - Usage-tracking in `ai_usage`-tabel (nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
 
 **/dashboard/campagnes is nu dé hub**:

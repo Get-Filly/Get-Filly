@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { throwDbError } from '../common/db-error';
 import type Anthropic from '@anthropic-ai/sdk';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
@@ -684,7 +685,7 @@ export class SuggestionsService {
     }
 
     const { data, error } = await query;
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     return (data ?? []) as AiSuggestion[];
   }
 
@@ -701,7 +702,7 @@ export class SuggestionsService {
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     if (!data) throw new NotFoundException('Suggestie niet gevonden.');
     return data as AiSuggestion;
   }
@@ -728,7 +729,7 @@ export class SuggestionsService {
       .select('id, name')
       .eq('id', restaurantId)
       .maybeSingle();
-    if (restErr) throw new InternalServerErrorException(restErr.message);
+    if (restErr) throwDbError(this.logger, restErr);
     if (!restaurantRow) {
       throw new NotFoundException('Restaurant niet gevonden.');
     }
@@ -1010,7 +1011,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       );
 
-    if (insErr) throw new InternalServerErrorException(insErr.message);
+    if (insErr) throwDbError(this.logger, insErr);
 
     return {
       created: inserted?.length ?? 0,
@@ -1093,7 +1094,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       .lt('occupancy_pct', thresholdPct)
       .order('date', { ascending: true });
 
-    if (occErr) throw new InternalServerErrorException(occErr.message);
+    if (occErr) throwDbError(this.logger, occErr);
 
     const candidates = (rawCandidates ?? []) as Array<{
       date: string;
@@ -1116,7 +1117,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       .eq('trigger_type', 'low_occupancy')
       .eq('status', 'pending');
 
-    if (existErr) throw new InternalServerErrorException(existErr.message);
+    if (existErr) throwDbError(this.logger, existErr);
 
     const alreadyHandled = new Set<string>();
     for (const row of existing ?? []) {
@@ -2314,7 +2315,7 @@ Maak dit tastbaar volgens de regels.`;
       )
       .single();
 
-    if (updateErr) throw new InternalServerErrorException(updateErr.message);
+    if (updateErr) throwDbError(this.logger, updateErr);
 
     return { suggestion: updated as AiSuggestion, campaignId };
   }
@@ -2357,7 +2358,7 @@ Maak dit tastbaar volgens de regels.`;
       })
       .select('id')
       .single();
-    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    if (groupErr) throwDbError(this.logger, groupErr);
     const groupId = group.id as string;
 
     // 2) Per kanaal: campagne aanmaken met channel-specifieke content.
@@ -2513,7 +2514,7 @@ Maak dit tastbaar volgens de regels.`;
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
       .single();
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
 
     return {
       suggestion: updated as AiSuggestion,
@@ -2674,7 +2675,7 @@ Maak dit tastbaar volgens de regels.`;
       })
       .select('id')
       .single();
-    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    if (groupErr) throwDbError(this.logger, groupErr);
     const groupId = group.id as string;
 
     // 2) Per gevraagd kanaal een campagne aanmaken via CampaignsService.create,
@@ -2820,7 +2821,7 @@ Maak dit tastbaar volgens de regels.`;
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
       .single();
-    if (updateErr) throw new InternalServerErrorException(updateErr.message);
+    if (updateErr) throwDbError(this.logger, updateErr);
 
     return {
       suggestion: updated as AiSuggestion,
@@ -2883,7 +2884,7 @@ Maak dit tastbaar volgens de regels.`;
       )
       .single();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     return data as AiSuggestion;
   }
 
@@ -3058,7 +3059,7 @@ Maak dit tastbaar volgens de regels.`;
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
       .single();
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
     return updated as AiSuggestion;
   }
 
@@ -3085,7 +3086,7 @@ Maak dit tastbaar volgens de regels.`;
         .eq('id', mediaId)
         .eq('restaurant_id', restaurantId)
         .maybeSingle();
-      if (lookupErr) throw new InternalServerErrorException(lookupErr.message);
+      if (lookupErr) throwDbError(this.logger, lookupErr);
       if (!row) {
         throw new BadRequestException(
           'Foto niet gevonden in jouw bibliotheek.',
@@ -3459,7 +3460,7 @@ ${channelRules}
       )
       .single();
 
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
     return updated as AiSuggestion;
   }
 
@@ -3483,7 +3484,7 @@ ${channelRules}
       .select('id')
       .single();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     const suggestionId = data.id as string;
     // Per 2026-06-24: uitingen vanuit de chat landen direct als Concept
     // (geen aparte Voorstel-fase meer). approve() maakt de concept-campagne
@@ -3538,7 +3539,7 @@ ${channelRules}
       .select('id')
       .single();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     const suggestionId = data.id as string;
     // Per 2026-06-24: bundel-uitingen vanuit de chat landen direct als
     // Concept. approveBundle zonder kanaal-lijst maakt alle kanalen uit de

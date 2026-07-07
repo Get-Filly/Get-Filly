@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { throwDbError } from '../common/db-error';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { Resend } from 'resend';
@@ -123,7 +124,7 @@ export class MailService {
         .eq('restaurant_id', restaurantId)
         .eq('mail_opt_in', true)
         .not('email', 'is', null);
-      if (error) throw new InternalServerErrorException(error.message);
+      if (error) throwDbError(this.logger, error);
 
       type Row = {
         id: string;
@@ -259,7 +260,7 @@ export class MailService {
       .eq('id', campaignId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
-    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (campErr) throwDbError(this.logger, campErr);
     if (!campaign) throw new NotFoundException('Campagne niet gevonden.');
     if (campaign.type !== 'mail') {
       throw new BadRequestException(
@@ -304,7 +305,7 @@ export class MailService {
       .select('name, contact_email, mail_domain_status, mail_from_address')
       .eq('id', restaurantId)
       .maybeSingle();
-    if (restErr) throw new InternalServerErrorException(restErr.message);
+    if (restErr) throwDbError(this.logger, restErr);
     if (!restaurant) throw new NotFoundException('Restaurant niet gevonden.');
 
     // Stap 3, bepaal From + Reply-To. Eigen domein verified → klant-
@@ -633,7 +634,7 @@ export class MailService {
       .select('token, restaurant_id, guest_id, email, used_at')
       .eq('token', token)
       .maybeSingle();
-    if (tokErr) throw new InternalServerErrorException(tokErr.message);
+    if (tokErr) throwDbError(this.logger, tokErr);
     if (!tokenRow) throw new NotFoundException('Onbekende unsubscribe-link.');
 
     // Markeer guest als opted-out (als 'ie nog bestaat, bij

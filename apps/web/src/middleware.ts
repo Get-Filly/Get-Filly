@@ -85,7 +85,8 @@ export async function middleware(request: NextRequest) {
     return redirect;
   };
 
-  // Alleen /login is nog een echte auth-pagina (/signup redirect naar /contact).
+  // Alleen /login is een auth-pagina met formulier. /signup is een uitleg-/
+  // doorverwijspagina (geen self-service signup), dus geen auth-flow.
   const isAuthPage = pathname === "/login";
   const isDashboard = pathname.startsWith("/dashboard");
   const isOnboarding = pathname.startsWith("/onboarding");

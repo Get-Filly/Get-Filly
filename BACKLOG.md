@@ -92,8 +92,8 @@ of data-integriteit · 🟡 = robuustheid/flow · 🟢 = opruimen/polish.
   - [ ] Account-delete + handmatige user-delete laten **wees-restaurants** achter (geen FK/trigger) — `account-deletion.service.ts:72`. Fix: DB-trigger op laatste-owner-verwijdering. *(overlapt COO P0 "Test-account FK-cascade")*
   - [ ] Invite-`upsert` kan een **owner stil downgraden** naar staff — `team.service.ts:484`. Fix: niet downgraden bij bestaande hogere rol.
   - [ ] Uitgenodigd teamlid met gefaalde accept belandt in de **onboarding-wizard** en maakt een eigen restaurant — `middleware.ts:130`. Fix: pending-invite detecteren → banner i.p.v. wizard.
-  - [ ] 3 van 4 wachtwoord-flows tonen **rauwe Engelse Supabase-fouten** (forgot/reset/welkom); alleen login gebruikt `authErrorKey`. Fix: alle vier door `authErrorKey` + `t()`.
-  - [ ] **State-conflicten als 500 i.p.v. 4xx** + rauwe Postgres-message lekt naar client — `suggestions.service.ts:2007,2500`; `throw new InternalServerErrorException(error.message)` verspreid (`campaigns.service.ts:248,263,691`; `mail.service.ts:126,262`). Fix: 4xx voor state-conflicten; rauwe message loggen, generieke NL teruggeven (zoals `ai.service.ts toNlException`).
+  - [x] ~~3 van 4 wachtwoord-flows tonen **rauwe Engelse Supabase-fouten**~~ (✅ 2026-07-07, al opgelost) — forgot/reset/welkom/login gebruiken allemaal `authErrorKey`/`translateAuthError`/`translateInviteError` + `t()`; geen rauwe Supabase-fout meer in beeld.
+  - [x] ~~**State-conflicten als 500 i.p.v. 4xx** + rauwe Postgres-message lekt naar client~~ (✅ 2026-07-07) — nieuwe gedeelde `throwDbError(logger, error)` (`common/db-error.ts`) logt de rauwe DB-melding server-side en geeft een generieke NL-melding terug; toegepast op alle ~63 `InternalServerErrorException(err.message)`-sites in campaigns/suggestions/mail. State-conflicten in `suggestions.service.ts` gebruikten al `ConflictException`/`BadRequestException` (4xx).
 
 ### 🟡 UX — werk-verlies & onduidelijkheid
 - [x] ~~**Review-reply concept verdwijnt**~~ (✅ 2026-06-25, `ee404d7`) — backdrop/×/Esc/Annuleren vragen nu bevestiging bij een nog niet verzonden antwoord (`closeReply` + `discardConfirm`).
@@ -115,7 +115,7 @@ of data-integriteit · 🟡 = robuustheid/flow · 🟢 = opruimen/polish.
 - [x] ~~**`/dashboard/design-system`** voor elke ingelogde klant opvraagbaar~~ (✅ 2026-06-25, `d115721`) — achter env-flag `NEXT_PUBLIC_DESIGN_SYSTEM` (default uit); klant ziet "Niet beschikbaar".
 - [ ] **`findBundle` N+1** (`campaigns.service.ts:674`) + serial N+1 in `channelCampaignsInGroup` (`:1230`). *(bewust uitgesteld 2026-06-25: draait al parallel en bundels zijn ≤6 kanalen → geen reële last; de queries scopen wél netjes op `restaurant_id`. Batch-`IN` blijft de nette fix zodra >10-kanaal-bundels bestaan.)*
 - [x] ~~**Dode tweede `mapAuthError`**~~ (✅ 2026-06-25, `d115721`) — module-niveau variant verwijderd; de lokale i18n-variant blijft.
-- [ ] **Doc-drift opruimen** — middleware-comment + CLAUDE.md zeggen "/signup → /contact redirect" (is nu een echte uitlegpagina); CLAUDE.md zegt ten onrechte dat `suggested_scheduled_*` dood is sinds mig 0060. Corrigeren.
+- [x] ~~**Doc-drift opruimen**~~ (✅ 2026-07-07) — middleware-comment gecorrigeerd (/signup is een uitlegpagina, geen redirect); CLAUDE.md: `suggested_scheduled_*` is wéér in gebruik (niet dood) + structuurnoot bijgewerkt (taken/suggesties verwijderd, marketing/ = rapportage-kanaaldetails).
 
 ---
 

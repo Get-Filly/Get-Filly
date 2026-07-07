@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
+import { throwDbError } from '../common/db-error';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 // Service-role-client (RLS-bypass) — nodig voor de context-loze cron
@@ -261,7 +262,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .eq('id', campaignId)
       .maybeSingle();
-    if (cErr) throw new InternalServerErrorException(cErr.message);
+    if (cErr) throwDbError(this.logger, cErr);
     if (!campaign) throw new BadRequestException('Campagne niet gevonden.');
     if (campaign.type !== 'social') {
       throw new BadRequestException(
@@ -274,7 +275,7 @@ export class CampaignsService {
       .select('caption, platforms, hashtags, media_urls, published_at')
       .eq('campaign_id', campaignId)
       .maybeSingle();
-    if (scErr) throw new InternalServerErrorException(scErr.message);
+    if (scErr) throwDbError(this.logger, scErr);
     if (!content) {
       throw new BadRequestException(
         'Social-content ontbreekt voor deze campagne.',
@@ -538,7 +539,7 @@ export class CampaignsService {
       .eq('status', 'ingepland')
       .is('deleted_at', null)
       .lte('scheduled_for', nowIso);
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
 
     let published = 0;
     let skipped = 0;
@@ -606,7 +607,7 @@ export class CampaignsService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new InternalServerErrorException(error.message);
+      throwDbError(this.logger, error);
     }
 
     const rows = (data ?? []) as Array<Omit<Campaign, 'body_preview'>>;
@@ -714,7 +715,7 @@ export class CampaignsService {
       .eq('id', idOrGroupId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
-    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    if (groupErr) throwDbError(this.logger, groupErr);
 
     let resolvedGroupId: string | null = null;
     let groupMeta: {
@@ -740,8 +741,7 @@ export class CampaignsService {
         .eq('restaurant_id', restaurantId)
         .is('deleted_at', null)
         .maybeSingle();
-      if (campRowErr)
-        throw new InternalServerErrorException(campRowErr.message);
+      if (campRowErr) throwDbError(this.logger, campRowErr);
       if (!campRow) {
         throw new BadRequestException('Campagne of bundle niet gevonden.');
       }
@@ -782,7 +782,7 @@ export class CampaignsService {
       .eq('group_id', resolvedGroupId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true });
-    if (rowsErr) throw new InternalServerErrorException(rowsErr.message);
+    if (rowsErr) throwDbError(this.logger, rowsErr);
 
     // Stap 3 — per campaign de volledige detail enrichen (parallel).
     // findById doet content + signed media + reasoning. Bundles
@@ -802,7 +802,7 @@ export class CampaignsService {
       .eq('id', id)
       .single();
 
-    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (campErr) throwDbError(this.logger, campErr);
 
     const table =
       campaign.type === 'mail'
@@ -1018,7 +1018,7 @@ export class CampaignsService {
       .select('id')
       .single();
 
-    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (campErr) throwDbError(this.logger, campErr);
 
     const campaignId = campaign.id as string;
 
@@ -1071,7 +1071,7 @@ export class CampaignsService {
         .from('campaigns')
         .delete()
         .eq('id', campaignId);
-      throw new InternalServerErrorException(contentErr.message);
+      throwDbError(this.logger, contentErr);
     }
 
     // Audit: nieuwe campagne aangemaakt door een specifieke user.
@@ -1133,7 +1133,7 @@ export class CampaignsService {
       .insert({ restaurant_id: restaurantId, name, created_by: userId })
       .select('id')
       .single();
-    if (groupErr) throw new InternalServerErrorException(groupErr.message);
+    if (groupErr) throwDbError(this.logger, groupErr);
     const groupId = group.id as string;
 
     for (const platform of platforms) {
@@ -1278,7 +1278,7 @@ export class CampaignsService {
       .eq('id', idOrGroupId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
-    if (gErr) throw new InternalServerErrorException(gErr.message);
+    if (gErr) throwDbError(this.logger, gErr);
     if (g) return { groupId: g.id as string, name: g.name as string };
 
     const { data: camp, error: cErr } = await client
@@ -1288,7 +1288,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .is('deleted_at', null)
       .maybeSingle();
-    if (cErr) throw new InternalServerErrorException(cErr.message);
+    if (cErr) throwDbError(this.logger, cErr);
     if (!camp) {
       throw new BadRequestException('Campagne of bundle niet gevonden.');
     }
@@ -1316,13 +1316,13 @@ export class CampaignsService {
       })
       .select('id, name')
       .single();
-    if (ngErr) throw new InternalServerErrorException(ngErr.message);
+    if (ngErr) throwDbError(this.logger, ngErr);
     const { error: upErr } = await client
       .from('campaigns')
       .update({ group_id: newGroup.id as string })
       .eq('id', camp.id as string)
       .eq('restaurant_id', restaurantId);
-    if (upErr) throw new InternalServerErrorException(upErr.message);
+    if (upErr) throwDbError(this.logger, upErr);
     return { groupId: newGroup.id as string, name: newGroup.name as string };
   }
 
@@ -1348,7 +1348,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .eq('group_id', groupId)
       .is('deleted_at', null);
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     const result: Array<{ id: string; platforms: string[] }> = [];
     for (const c of camps ?? []) {
       const id = c.id as string;
@@ -1409,7 +1409,7 @@ export class CampaignsService {
       .eq('id', id)
       .maybeSingle();
 
-    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (fetchErr) throwDbError(this.logger, fetchErr);
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -1467,7 +1467,7 @@ export class CampaignsService {
       .update(updates)
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
 
     // Audit: status-overgang. Cruciaal voor debugging ("waarom staat
     // deze campagne nu op afgerond terwijl ie nog actief had moeten
@@ -1666,7 +1666,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
-    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (fetchErr) throwDbError(this.logger, fetchErr);
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -1707,7 +1707,7 @@ export class CampaignsService {
       .update(updates)
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
 
     // Audit: wie heeft een historie-campagne weer actief gemaakt?
     // Verwarring later voorkomen ("dachten dat 'ie al klaar was").
@@ -1768,19 +1768,19 @@ export class CampaignsService {
           updated_at: now,
         })
         .eq('campaign_id', id);
-      if (error) throw new InternalServerErrorException(error.message);
+      if (error) throwDbError(this.logger, error);
     } else if (type === 'social') {
       const { error } = await this.supabase.client
         .from('campaign_social_content')
         .update({ caption: variant.body, updated_at: now })
         .eq('campaign_id', id);
-      if (error) throw new InternalServerErrorException(error.message);
+      if (error) throwDbError(this.logger, error);
     } else {
       const { error } = await this.supabase.client
         .from('campaign_whatsapp_content')
         .update({ message_text: variant.body, updated_at: now })
         .eq('campaign_id', id);
-      if (error) throw new InternalServerErrorException(error.message);
+      if (error) throwDbError(this.logger, error);
     }
   }
 
@@ -1804,7 +1804,7 @@ export class CampaignsService {
     // Alleen schrijven als de versie-stempel nog gelijk is aan wat we inlazen.
     if (prevUpdatedAt) query = query.eq('updated_at', prevUpdatedAt);
     const { data, error } = await query.select('id');
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     if (!data || data.length === 0) {
       throw new ConflictException(
         'Deze campagne is net ergens anders gewijzigd. Ververs de pagina en probeer het opnieuw.',
@@ -1832,7 +1832,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
-    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (fetchErr) throwDbError(this.logger, fetchErr);
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -1863,7 +1863,7 @@ export class CampaignsService {
       })
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
 
     await this.syncContentFromVariant(
       id,
@@ -1914,7 +1914,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
-    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (fetchErr) throwDbError(this.logger, fetchErr);
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -2005,7 +2005,7 @@ export class CampaignsService {
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
-    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (campErr) throwDbError(this.logger, campErr);
     if (!campaign) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -2260,7 +2260,7 @@ ${menuBlock}
       .eq('restaurant_id', restaurantId)
       .eq('id', campaignId)
       .maybeSingle();
-    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (campErr) throwDbError(this.logger, campErr);
     if (!campaign) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -2298,7 +2298,7 @@ ${menuBlock}
         contentType: file.mimeType,
         upsert: false,
       });
-    if (upErr) throw new InternalServerErrorException(upErr.message);
+    if (upErr) throwDbError(this.logger, upErr);
 
     // Path in juiste content-tabel zetten. Voor social: array met 1
     // path. Voor whatsapp: scalar.
@@ -2310,7 +2310,7 @@ ${menuBlock}
           updated_at: new Date().toISOString(),
         })
         .eq('campaign_id', campaignId);
-      if (updErr) throw new InternalServerErrorException(updErr.message);
+      if (updErr) throwDbError(this.logger, updErr);
     } else {
       const { error: updErr } = await this.supabase.client
         .from('campaign_whatsapp_content')
@@ -2319,7 +2319,7 @@ ${menuBlock}
           updated_at: new Date().toISOString(),
         })
         .eq('campaign_id', campaignId);
-      if (updErr) throw new InternalServerErrorException(updErr.message);
+      if (updErr) throwDbError(this.logger, updErr);
     }
 
     const signed_url = await this.signMediaPath(path);
@@ -2337,7 +2337,7 @@ ${menuBlock}
       .eq('restaurant_id', restaurantId)
       .eq('id', campaignId)
       .maybeSingle();
-    if (campErr) throw new InternalServerErrorException(campErr.message);
+    if (campErr) throwDbError(this.logger, campErr);
     if (!campaign) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -2357,7 +2357,7 @@ ${menuBlock}
           updated_at: new Date().toISOString(),
         })
         .eq('campaign_id', campaignId);
-      if (updErr) throw new InternalServerErrorException(updErr.message);
+      if (updErr) throwDbError(this.logger, updErr);
     } else if (campaign.type === 'whatsapp') {
       const { error: updErr } = await this.supabase.client
         .from('campaign_whatsapp_content')
@@ -2366,7 +2366,7 @@ ${menuBlock}
           updated_at: new Date().toISOString(),
         })
         .eq('campaign_id', campaignId);
-      if (updErr) throw new InternalServerErrorException(updErr.message);
+      if (updErr) throwDbError(this.logger, updErr);
     }
 
     return { id: campaignId };
@@ -2411,7 +2411,7 @@ ${menuBlock}
       .eq('restaurant_id', restaurantId)
       .eq('id', id)
       .maybeSingle();
-    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (fetchErr) throwDbError(this.logger, fetchErr);
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -2429,7 +2429,7 @@ ${menuBlock}
       })
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
-    if (updErr) throw new InternalServerErrorException(updErr.message);
+    if (updErr) throwDbError(this.logger, updErr);
 
     return { id, scheduled_for: datetimeIso };
   }
@@ -2442,7 +2442,7 @@ ${menuBlock}
     const { data, error } = await client.storage
       .from('campaign-media')
       .createSignedUrl(path, 60 * 60);
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     return data.signedUrl;
   }
 
@@ -2461,7 +2461,7 @@ ${menuBlock}
       .select('media_urls')
       .eq('campaign_id', campaignId)
       .maybeSingle();
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) throwDbError(this.logger, error);
     const paths = Array.isArray(data?.media_urls)
       ? (data.media_urls as string[])
       : [];
@@ -2486,7 +2486,7 @@ ${menuBlock}
       .eq('id', id)
       .maybeSingle();
 
-    if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
+    if (fetchErr) throwDbError(this.logger, fetchErr);
     if (!existing) {
       throw new BadRequestException('Campagne niet gevonden.');
     }
@@ -2512,7 +2512,7 @@ ${menuBlock}
       })
       .eq('id', id)
       .eq('restaurant_id', restaurantId);
-    if (delErr) throw new InternalServerErrorException(delErr.message);
+    if (delErr) throwDbError(this.logger, delErr);
 
     await this.audit.log({
       restaurantId,
@@ -2540,7 +2540,7 @@ ${menuBlock}
       .order('deleted_at', { ascending: false });
 
     if (error) {
-      throw new InternalServerErrorException(error.message);
+      throwDbError(this.logger, error);
     }
 
     return (data ?? []).map((r) => ({
