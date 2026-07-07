@@ -8,6 +8,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { BackToReportsLink } from "../../_components/back-to-reports-link";
 import {
   fetchMarketingMailStats,
   fetchMarketingMailCampaigns,
@@ -135,6 +136,7 @@ export default function MailMarketingPage() {
 
   return (
     <div className="page-full">
+      <BackToReportsLink />
       <PageHeader
         title={t("title")}
         subtitle={t("summary", {

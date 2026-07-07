@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BackToReportsLink } from "../_components/back-to-reports-link";
 import {
   fetchMarketingMailStats,
   type MailStats,
@@ -111,6 +112,7 @@ export default function MarketingHubPage() {
 
   return (
     <div className="page-full">
+      <BackToReportsLink />
       <PageHeader
         title={t("title")}
         subtitle={t("subtitle")}

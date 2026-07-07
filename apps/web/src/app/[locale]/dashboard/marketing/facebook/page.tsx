@@ -8,6 +8,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MetaLiveInsights } from "../_components/meta-live-insights";
+import { BackToReportsLink } from "../../_components/back-to-reports-link";
 
 /**
  * ============================================================
@@ -186,6 +187,7 @@ export default function FacebookMarketingPage() {
 
   return (
     <div className="page-full">
+      <BackToReportsLink />
       <PageHeader
         title={`Facebook · ${PREVIEW.page.name}`}
         subtitle={t("subtitle")}

@@ -1,4 +1,7 @@
 {
+  "common": {
+    "backToReports": "← Terug naar rapportages"
+  },
   "language": {
     "label": "Taal",
     "nl": "Nederlands",

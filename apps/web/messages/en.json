@@ -1,4 +1,7 @@
 {
+  "common": {
+    "backToReports": "← Back to reports"
+  },
   "language": {
     "label": "Language",
     "nl": "Nederlands",
