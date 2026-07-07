@@ -11,6 +11,7 @@ import {
   updateRestaurant,
   type Restaurant,
 } from "@/lib/api";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -194,6 +195,9 @@ function IdentiteitPageInner() {
     }
     return n;
   })();
+
+  // Waarschuw bij wegklikken/verversen zolang er onopgeslagen wijzigingen zijn.
+  useUnsavedChangesWarning(dirtyCount > 0);
 
   // ============================================================
   // Filly-analyse: vult de bestaande identiteit-velden in op basis

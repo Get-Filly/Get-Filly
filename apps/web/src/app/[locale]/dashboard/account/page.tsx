@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useLocaleTag } from "@/lib/locale-format";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { MailDomainSection } from "../_components/mail-domain-section";
 import { RestaurantMediaSection } from "../_components/restaurant-media-section";
@@ -73,6 +74,10 @@ function AccountPageInner() {
   const t = useTranslations("dash_account_page");
   const localeTag = useLocaleTag();
   const [form, setForm] = useState<Restaurant | null>(null);
+  // Onopgeslagen-wijzigingen-vlag: true zodra de eigenaar iets aanpast, weer
+  // false na opslaan of (her)laden. Voedt de beforeunload-waarschuwing.
+  const [dirty, setDirty] = useState(false);
+  useUnsavedChangesWarning(dirty);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +133,10 @@ function AccountPageInner() {
 
   useEffect(() => {
     fetchRestaurant()
-      .then(setForm)
+      .then((r) => {
+        setForm(r);
+        setDirty(false);
+      })
       .catch((e: Error) => setError(e.message));
   }, []);
 
@@ -160,6 +168,7 @@ function AccountPageInner() {
   const update = <K extends keyof Restaurant>(key: K, value: Restaurant[K]) => {
     setForm((f) => (f ? { ...f, [key]: value } : f));
     setSaveStatus("idle");
+    setDirty(true);
   };
 
   const handleSave = async () => {
@@ -168,6 +177,7 @@ function AccountPageInner() {
     try {
       const updated = await updateRestaurant(form);
       setForm(updated);
+      setDirty(false);
       setSaveStatus("success");
       setSaveMessage(t("saveSuccess"));
       setTimeout(() => setSaveStatus("idle"), 2500);
