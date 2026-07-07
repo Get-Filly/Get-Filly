@@ -16,6 +16,29 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-07-07 — Google Bedrijfsprofiel end-to-end live + campagne-fixes (live op main)
+
+Google Bedrijfsprofiel is van "code-af, wacht op API" naar **volledig werkend op productie** gegaan, plus een reeks campagne-bugfixes. Alles live op `main` + Vercel.
+
+- **`invalid_client` opgelost** — de Vercel-env `GOOGLE_OAUTH_CLIENT_ID` had letterlijk de placeholder-string als *waarde* (op web én api). Juiste waarde gezet (`167329672884-…apps.googleusercontent.com`) + redeploy → consent-scherm werkt, verbinden lukt, tokens (access + refresh) bevestigd opgeslagen in `integration_credentials`.
+- **Cloud-project (167329672884, developer@get-filly):** Account Management + Business Information + Google My Business API v4 staan aan; gekoppeld aan Get-Filly's eigen GBP.
+- **Beheer-writes (business.manage echt in gebruik):**
+  - Omschrijving, openingstijden (regularHours) en speciale dagen (specialHours) bewerkbaar → `locations.patch` (Business Information API).
+  - Reviews lezen + beantwoorden (v4) + Filly-suggestie (`generateReplyForText` op losse velden). De **Reviews-sectie** toont nu live Google-reviews (en verbergt seed-reviews met bron google); elke ophaaluitkomst is zichtbaar (laden/0-reviews/fout).
+  - Google Posts plaatsen (`localPosts.create`) — met foto — óók vanuit campagnes + Filly-chat.
+  - Foto-beheer: upload uit de Filly-bibliotheek naar het profiel (`media.create`, omslag/logo/extra).
+  - Basisgegevens (naam/adres/categorie/telefoon/website) worden nu via de geauthenticeerde API gelezen i.p.v. Places (demovideo scène 5).
+- **Campagne-fixes:**
+  - `publishSocialCampaign` had geen `google_business`-tak → GBP-campagne activeren gaf "Publiceren mislukt". Tak toegevoegd (post + foto naar Google).
+  - Builder-default `["instagram"]` → `[]` (geen kanaal meer voorgevinkt).
+  - `detectPlatform` kende `google_business` niet → koos je GBP, dan toonde de editor Instagram. Gefixt (+ voorstel-pagina + suggestie-types).
+  - Kanban "Compleet" telde de vereiste foto niet mee (lijst-API miste media/kanaal-info) → `social_platform` + `has_media` toegevoegd; foto telt nu mee.
+- **Foto verplicht** voor Instagram, TikTok, **Facebook én Google Business** (`PHOTO_REQUIRED` uitgebreid; `PHOTO_OPTIONAL` leeg).
+- **Profiel-pagina opgeschoond:** kaarten "Vragen & antwoorden" (Q&A-API stopgezet nov 2025) en "Inzichten" (Performance API, geen must-have) verwijderd.
+- **Nog open:** OAuth-app-verificatie (sensitive scope) + demovideo opnemen (nu is er écht beheer om te tonen); privacybeleid moet Anthropic als subverwerker noemen (voor de Filly-reviewreply / Limited Use).
+
+---
+
 ## 🗓️ 2026-06-25 — Filly-chat / geleide-flow opgeschoond (live op main)
 
 De geleide campagne-flow in de dashboard-chat strakker getrokken. Alles live op `main` + Vercel.
@@ -115,7 +138,7 @@ Campagne-detailpagina gelijkgetrokken met de voorstel/"foto"-interface, kanaalbe
 **Nog open / context (geen bug):**
 - [ ] **Filly geleide flow leeft náást het chat-model** — de flow is een parallel UI-spoor dat z'n stappen niet als chatberichten vastlegt (alleen de losse `active_action` + component-state). Daardoor blijft 'm fragiel (state na-ijlen, weinig historie). Grotere refactor: de flow-stappen/resultaat als compacte chat-gebeurtenissen vastleggen zodat "terugkomen" = "je gesprek terugzien". *(architectuur, los plannen)*
 - [x] ~~**Geplande social-posts timing**~~ (✅ 2026-06-25) — Vercel Pro actief; cron `/api/campaigns/cron/run-scheduled` staat nu op `*/30 * * * *` (elk half uur, `apps/api/vercel.json`). Ingeplande social gaat ~30 min na z'n tijd live. Direct = "Activeer nu" (synchroon, geen cron). ⚠️ Vereist op Vercel: project onder het Pro-team (✅ get-filly-api staat daar) + `CRON_SECRET` gezet in get-filly-api. **Mail blijft open** — zie "Ingeplande mail wordt nooit automatisch verstuurd".
-- [ ] Instagram vereist een afbeelding/video (Meta-API-eis); FB/Google Business mogen tekst-only. Al afgedwongen via `PHOTO_REQUIRED` + de blokkade hierboven.
+- [x] ~~Instagram vereist een afbeelding/video (Meta-API-eis)~~ (✅) — afgedwongen via `PHOTO_REQUIRED` + de blokkade hierboven. **Update 2026-07-07:** foto is nu óók verplicht voor **Facebook en Google Business** (Floris-wens); `PHOTO_OPTIONAL` leeg. GBP-post stuurt de foto mee (`localPosts` media).
 
 ---
 
@@ -665,13 +688,13 @@ Demovideo-script: `~/Downloads/Demovideo TikTok script.docx`.
     - **B1 terugtrekken** (actief→concept): FB-post wordt écht verwijderd (`DELETE`); **Instagram kan NIET via de Graph API verwijderd worden** → handmatig (stop-confirm vermeldt dit).
     - **B2 cron**: `runScheduledSocial()` + publiek `/api/campaigns/cron/run-scheduled` (CRON_SECRET) publiceert due `ingepland`-campagnes; `useAdmin`-flag voor de context-loze run.
     - ⚠️ **TODO bij overstap Vercel Hobby → Pro**: cron in `apps/api/vercel.json` staat nu dagelijks 08:00 (Hobby-limiet, niet punctueel); bumpen naar `*/10 * * * *` voor on-time posten.
-    - Nog open: Google Bedrijfsprofiel-posts via dezelfde campagne-flow zodra die API-toegang rond is; WhatsApp/TikTok publiceren (geen API-koppeling).
+    - ~~Google Bedrijfsprofiel-posts via dezelfde campagne-flow~~ (✅ 2026-07-07 — `google_business`-tak in `publishSocialCampaign`, post + foto). Nog open: WhatsApp publiceren (geen API-koppeling); TikTok is er al.
   - 👉 **VOLGENDE STAP (volgende sessie)**: redirect-URI in Meta opslaan → Verbind-flow doorlopen → bevestigen dat pagina-ophalen + testpost werkt.
 - [ ] **Publiceren vanuit de campagne-sectie** (echte product-UX i.p.v. het losse test-paneel) — de publiceer-backend is al af (`POST /api/integrations/meta/publish` + versleutelde token-opslag); wat ontbreekt is de knop in de campagne die 'm aanroept. Twee niveaus:
   - **"Nu publiceren"** — knop op een social-campagne (`campagnes/[id]`) die de campagnetekst + geüploade foto naar `metaPublish` stuurt (FB en/of IG). Klein; hergebruikt alles wat er is. Daarna kan het losse `meta-publish-panel.tsx` op de koppelingen-tab test-only worden of verdwijnen.
   - **Ingepland automatisch posten** — op de geplande datum/tijd afvuren. Vereist een achtergrond-worker/cron (Vercel Cron) die due social-campagnes oppakt en publiceert. Groter; aparte stap (mail wil dit straks ook).
-  - Idem voor Google Bedrijfsprofiel-posts zodra die API-toegang rond is (zelfde campagne-knop, andere provider).
-- [~] **Google Business Profile** — multi-fase implementatie (zie sectie hieronder)
+  - ~~Idem voor Google Bedrijfsprofiel-posts~~ (✅ 2026-07-07 — GBP-post via de campagne-knop werkt, zie changelog).
+- [x] **Google Business Profile** — kern live (verbinden + profiel lezen/schrijven + reviews + posts + foto's). ✅ 2026-07-07; alleen OAuth-app-verificatie + demovideo resteren. Zie sectie hieronder.
 - [ ] **Zenchef OAuth** — reserveringen syncen
 - [ ] **OpenTable / SevenRooms / Resengo** — volgorde bepalen met klantvraag
 - [ ] **TripAdvisor / The Fork / IENS** — reviews importeren
@@ -720,15 +743,16 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
     volwaardig kanaal in de chat-bundel-flow naast Mail/IG/FB + WhatsApp
     (zie Recent voltooid 2026-06-02).
 
-- [~] **Fase C — Google Business Profile API approval-aanvraag**.
-  Doc-stub klaar: [docs/google-business-approval.md](docs/google-business-approval.md)
-  met voorbereidingsstappen + invul-tekst voor het formulier. **Jouw
-  actie**: APIs enablen in Cloud Console (5 stuks), OAuth consent screen
-  configureren, formulier indienen. Wachttijd 2-6 weken voor approval.
+- [x] ~~**Fase C — Google Business Profile API approval-aanvraag**~~ (✅ 2026-07-07)
+  — API-toegang goedgekeurd + quotum live (~300 req/min). Account Management,
+  Business Information én Google My Business API v4 staan aan in project
+  167329672884 (developer@get-filly). Zie changelog 2026-07-07.
 
-- [~] **Fase D — OAuth-koppeling (business.manage, offline)** — **code-kant af**
+- [x] **Fase D — OAuth-koppeling (business.manage, offline)** — ✅ **LIVE op `main`**
+  (verbinden werkt, `invalid_client` opgelost, beheer-writes geshipt — zie changelog
+  2026-07-07). Historie hieronder ter referentie.
   (2026-06-14, branch `feat/active-action-state`, commits `e050733` + `fcaa97e`;
-  **nog niet gemerged naar `main`**, dus nog niet op productie). Afwijkend van het
+  gemerged naar `main` + live). Afwijkend van het
   oorspronkelijke plan (géén nieuwe `oauth_connections`-tabel / generieke
   `OAuthModule`): **hergebruikt het Meta-patroon** — tabel `integration_credentials`
   (mig 0052) + `TokenCryptoService`. **Migratie 0057** voegt `refresh_token_encrypted`
@@ -749,7 +773,7 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
     status-banner voor `?google=connected|denied|error&reason=`.
   - Foutafhandeling: weigeren, `redirect_uri_mismatch`, verlopen/ongeldige state,
     ontbrekende refresh-token (alle gemapt naar nette `reason`-codes).
-  - ⏳ **NOG TE DOEN — Google Cloud-kant (geen code), blokkerend voor de echte test:**
+  - ✅ **AFGEROND (2026-07-07) — Google Cloud-kant** (client-id/redirect-URI's/consent/env allemaal goed; APIs aan). Historische to-do's hieronder ter referentie:
     1. ⚠️ **OAuth-client in het JUISTE account/project.** Client-id in `.env` is
        `167329672884-...` (project-nummer `167329672884`). Uitzoeken of dat het
        **officiële Filly-account** is of per ongeluk Floris' persoonlijke gmail —
@@ -767,30 +791,32 @@ profiel-edits en inzichten. Fase A is af; fase B-F staan open.
        (web), `INTEGRATIONS_ENCRYPTION_KEY` (api). Lokaal al gezet (zie `.env.example`).
     5. **Fase C** (API-toegang aanvragen, quotum 0) blijft de lange-doorlooptijd-
        blocker vóór écht profielbeheer.
-  - 👉 **VOLGENDE STAP**: account/project-eigenaarschap uitzoeken (Floris + Tim) →
-    redirect-URI op de juiste client → lokaal Verbind doorlopen → tokens in
-    `integration_credentials` verifiëren → daarna pas mergen/deployen.
+  - 👉 **VOLGENDE STAP**: alleen nog de OAuth-app-verificatie (sensitive scope) +
+    demovideo opnemen (nu is er écht beheer om te tonen). Zie changelog 2026-07-07.
   - **Verificatie-prep klaar** (2026-06-15): `GET /integrations/google-business/profile`
     (accounts.list via getAccessToken — bewijst scope-gebruik, 403→`api_not_approved`
     tot de API-grant) + `GoogleConnectedPanel` (zichtbaar bewijs in de koppelingen-tab).
     Justificatie-tekst (EN) + demovideo-script + test-checklist + Meta-parallel staan
     in [docs/google-business-oauth-verification.md](docs/google-business-oauth-verification.md).
 
-- [ ] **Fase E — Reviews écht uit Google ophalen** (na approval).
-  Sync-job 1× per uur per gekoppelde klant via
-  `accounts.locations.reviews.list`. Bestaande reply-engine
-  (`ReviewsService.refineVariants` etc — al klaar!) hergebruiken,
-  alleen nieuwe push-stap naar Google's `accounts.locations.reviews.reply`.
-  Migratie 0036: `reviews.google_review_id` + `responded_to_google_at`.
-  Bestaande handmatig-ingevoerde reviews migreren / opruimen.
+- [x] ~~**Fase E — Reviews écht uit Google ophalen**~~ (✅ 2026-07-07) — live
+  Google-reviews (v4 `reviews.list`) verschijnen in de Reviews-sectie; antwoorden
+  gaat rechtstreeks naar Google (`reviews.reply`) met Filly-suggestie. Gekozen voor
+  **live ophalen** i.p.v. een sync-tabel (geen migratie); seed-reviews met bron
+  google worden verborgen zodra de live-koppeling reviews levert. Zie changelog
+  2026-07-07. *(Optioneel later: alsnog naar een `reviews`-sync-tabel + cron als we
+  offline-verwerking/attributie willen.)*
 
-- [ ] **Fase F — Profiel-edits + foto-sync + Q&A**.
-  Edit-queue met twee gates: eigenaar approves in Filly → push naar
-  Google → Google's eigen review-queue (sommige velden direct live,
-  andere door moderation). Foto-sync: media-library uit migratie 0031
-  (al klaar!) + push naar `accounts.locations.media.create`. Q&A
-  monitoring + Filly-antwoord-suggesties via
-  `accounts.locations.questions.list`.
+- [~] **Fase F — Profiel-edits + foto-sync (+ Q&A/Inzichten geschrapt)**.
+  - [x] ~~Profiel-edits~~ (✅ 2026-07-07) — omschrijving, openingstijden en speciale
+    dagen bewerkbaar + push naar Google (`locations.patch`). Basisgegevens worden
+    gelezen via de API.
+  - [x] ~~Foto-sync~~ (✅ 2026-07-07) — upload uit de Filly-bibliotheek naar het
+    profiel (`media.create`, omslag/logo/extra) + foto op Google Posts.
+  - ❌ **Q&A geschrapt** — Google's Q&A-API is in nov 2025 stopgezet (kaart verwijderd).
+  - ❌ **Inzichten geschrapt** — vereist de Performance API; geen must-have (kaart weg).
+  - [ ] **Rest open:** naam/telefoon/website/categorie *bewerkbaar* maken (nu alleen
+    gelezen); adres + categorie zijn gestructureerder werk.
 
 ### Mock-data in frontend (opruimen zodra backend er is)
 - [x] ~~**`FILLY_MOCK`** in kpi-row.tsx~~ (2026-04-29) — verwijderd, alleen echte attributie via `reservations.via_campaign_id`-FK.
