@@ -136,6 +136,13 @@ export type Campaign = {
   // popup te tonen met een directe link: Instagram kan niet via de API
   // verwijderd worden, dus de eigenaar moet 'm zelf weghalen.
   ig_live_permalink?: string | null;
+  // Per 2026-07-07: genoeg info om op de kanban de foto-eis te checken
+  // zonder de detail-call. social_platform = het specifieke kanaal
+  // (instagram/facebook/tiktok/google_business) uit
+  // campaign_social_content.platforms[0]; has_media = of er al beeld hangt.
+  // Alleen gevuld voor type='social'.
+  social_platform?: string | null;
+  has_media?: boolean;
 };
 
 // Shape van een enkele variant binnen campaigns.variants[]. Identiek
@@ -601,6 +608,9 @@ export class CampaignsService {
     const previewMap = new Map<string, string>();
     // Per kanban Stop-popup: actieve social-campagnes met een live IG-post.
     const igLiveMap = new Map<string, string>();
+    // Per 2026-07-07: kanaal + media-aanwezigheid voor de foto-eis-check.
+    const socialPlatformMap = new Map<string, string | null>();
+    const hasMediaMap = new Map<string, boolean>();
     const truncate = (
       s: string | null | undefined,
       max = 140,
@@ -626,11 +636,22 @@ export class CampaignsService {
     if (socialIds.length > 0) {
       const { data: socialRows } = await this.supabase.client
         .from('campaign_social_content')
-        .select('campaign_id, caption, published_post_ids')
+        .select(
+          'campaign_id, caption, published_post_ids, platforms, media_urls',
+        )
         .in('campaign_id', socialIds);
       for (const s of socialRows ?? []) {
         const preview = truncate(s.caption);
         if (preview) previewMap.set(s.campaign_id as string, preview);
+        const cid = s.campaign_id as string;
+        const platforms = Array.isArray(s.platforms)
+          ? (s.platforms as string[])
+          : [];
+        socialPlatformMap.set(cid, platforms[0] ?? null);
+        hasMediaMap.set(
+          cid,
+          Array.isArray(s.media_urls) && s.media_urls.length > 0,
+        );
         // Live IG-post? Dan de permalink bewaren (of 'manual' als die er
         // niet is) zodat de Stop-popup een directe link kan tonen.
         const postIds = (s.published_post_ids ?? null) as {
@@ -652,6 +673,8 @@ export class CampaignsService {
       ...r,
       body_preview: previewMap.get(r.id) ?? null,
       ig_live_permalink: igLiveMap.get(r.id) ?? null,
+      social_platform: socialPlatformMap.get(r.id) ?? null,
+      has_media: hasMediaMap.get(r.id) ?? false,
     })) as Campaign[];
   }
 

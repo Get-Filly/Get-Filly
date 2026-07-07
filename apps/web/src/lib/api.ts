@@ -657,6 +657,11 @@ export type Campaign = {
   // maar geen bekende permalink. Null = geen live IG-post. De kanban toont
   // hierop bij Stop een popup met directe link naar die post.
   ig_live_permalink?: string | null;
+  // Per 2026-07-07: kanban-foto-eis zonder detail-call. social_platform =
+  // specifiek kanaal (instagram/facebook/tiktok/google_business) uit de
+  // social-content; has_media = of er al beeld hangt. Alleen bij type=social.
+  social_platform?: string | null;
+  has_media?: boolean;
 };
 
 export async function fetchCampaigns(): Promise<Campaign[]> {

@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import {
   GENERIC_MISSING_LABEL,
+  PHOTO_REQUIRED,
   PLATFORM_LABEL,
   getChannelMissing,
   toBundleChannel,
@@ -280,13 +281,21 @@ function buildCampaignRow(c: Campaign, tag: string): ChannelRow {
     if (c.status === "ingepland" && c.scheduled_for) {
       return { kind: "planned", relative: relativeWhen(c.scheduled_for) };
     }
-    // Concept: check datum + tekst (rest is sowieso al gevuld bij approve).
-    // Subject/foto-check zou backend-list-uitbreiding nodig hebben — voor
-    // nu pragmatisch beperkt tot wat we wél weten.
+    // Concept: check datum + tekst + (voor Instagram/TikTok) de foto. De
+    // lijst-API levert sinds 2026-07-07 social_platform + has_media mee, zodat
+    // een social-concept zonder vereiste foto niet onterecht "Compleet" toont.
     if (c.status === "concept") {
       const missing: MissingField[] = [];
       if (!c.scheduled_for) missing.push("date");
       if (!c.body_preview || !c.body_preview.trim()) missing.push("body");
+      if (
+        c.type === "social" &&
+        c.social_platform &&
+        PHOTO_REQUIRED.has(c.social_platform) &&
+        !c.has_media
+      ) {
+        missing.push("photo");
+      }
       return missing.length === 0
         ? { kind: "ready" }
         : { kind: "missing", fields: missing };
