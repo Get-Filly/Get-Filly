@@ -19,6 +19,7 @@ import {
   googleBusinessUpdateDescription,
   googleBusinessUpdateHours,
   googleBusinessUpdateSpecialDays,
+  googleBusinessUploadMedia,
   reviewsSuggestReplyForText,
   type GoogleBusinessLocation,
   type GoogleDayHours,
@@ -26,7 +27,9 @@ import {
   type GoogleProfileMine,
   type GoogleReview,
   type Restaurant,
+  type RestaurantMediaItem,
 } from "@/lib/api";
+import { MediaLibraryPicker } from "../../_components/media-library-picker";
 
 // ============================================================
 // /dashboard/google-business/profiel — Google Business Profiel preview
@@ -209,6 +212,17 @@ export default function GoogleProfilePreviewPage() {
     "idle",
   );
   const [postMessage, setPostMessage] = useState<string | null>(null);
+
+  // Foto-beheer: upload naar het profiel (v4 media.create).
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
+  const [photoCategory, setPhotoCategory] = useState<
+    "COVER" | "LOGO" | "ADDITIONAL"
+  >("ADDITIONAL");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState<"idle" | "saved" | "error">(
+    "idle",
+  );
+  const [photoMessage, setPhotoMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -394,6 +408,26 @@ export default function GoogleProfilePreviewPage() {
       setReplyError((e as Error).message);
     } finally {
       setSuggestingName(null);
+    }
+  };
+
+  // Foto uit de bibliotheek uploaden naar het Google-profiel.
+  const handlePickPhoto = async (item: RestaurantMediaItem) => {
+    setPhotoPickerOpen(false);
+    const loc = locations?.[locIndex];
+    if (!loc || !item.url) return;
+    setPhotoUploading(true);
+    setPhotoStatus("idle");
+    setPhotoMessage(null);
+    try {
+      await googleBusinessUploadMedia(loc.name, item.url, photoCategory);
+      setPhotoStatus("saved");
+      setPhotoMessage(t("photoManagement.saved"));
+    } catch (e) {
+      setPhotoStatus("error");
+      setPhotoMessage((e as Error).message);
+    } finally {
+      setPhotoUploading(false);
     }
   };
 
@@ -1223,13 +1257,99 @@ export default function GoogleProfilePreviewPage() {
               in november 2025 stopgezet. Inzichten verwijderd: vereist de
               aparte Performance API en is voor nu geen must-have. */}
 
-          <SectionCard title={t("photoManagement.title")} badge={afterConnectBadge}>
-            <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
-              {t("photoManagement.body")}
-            </div>
+          <SectionCard
+            title={t("photoManagement.title")}
+            badge={connected ? editableBadge : afterConnectBadge}
+          >
+            {connected && loc ? (
+              <div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--tl, #6B6F71)",
+                    marginBottom: 10,
+                  }}
+                >
+                  {t("photoManagement.editableHint")}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <select
+                    value={photoCategory}
+                    onChange={(e) => {
+                      setPhotoCategory(
+                        e.target.value as "COVER" | "LOGO" | "ADDITIONAL",
+                      );
+                      setPhotoStatus("idle");
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid var(--border, #E5DFD0)",
+                      borderRadius: 6,
+                      fontSize: 14,
+                      background: "var(--white, #FFFFFF)",
+                      color: "var(--text, #18181B)",
+                    }}
+                  >
+                    <option value="ADDITIONAL">
+                      {t("photoManagement.catAdditional")}
+                    </option>
+                    <option value="COVER">
+                      {t("photoManagement.catCover")}
+                    </option>
+                    <option value="LOGO">
+                      {t("photoManagement.catLogo")}
+                    </option>
+                  </select>
+                  <Button
+                    variant="primary"
+                    loading={photoUploading}
+                    onClick={() => {
+                      setPhotoStatus("idle");
+                      setPhotoMessage(null);
+                      setPhotoPickerOpen(true);
+                    }}
+                  >
+                    {t("photoManagement.pick")}
+                  </Button>
+                  {photoMessage && (
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color:
+                          photoStatus === "error"
+                            ? "var(--red, #DC2626)"
+                            : "var(--color-brand, #1F4A2D)",
+                      }}
+                    >
+                      {photoMessage}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: "var(--tl, #6B6F71)" }}>
+                {t("photoManagement.body")}
+              </div>
+            )}
           </SectionCard>
         </>
       )}
+
+      {/* Foto-bibliotheek-picker voor Foto-beheer: kies een foto → upload naar
+          het Google-profiel in de gekozen categorie. */}
+      <MediaLibraryPicker
+        open={photoPickerOpen}
+        onClose={() => setPhotoPickerOpen(false)}
+        onPick={handlePickPhoto}
+        initialFilter="image"
+      />
     </div>
   );
 }

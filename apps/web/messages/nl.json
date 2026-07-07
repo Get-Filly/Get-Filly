@@ -1748,7 +1748,13 @@
     },
     "photoManagement": {
       "title": "Foto-beheer",
-      "body": "Upload foto's uit je Filly-bibliotheek rechtstreeks naar je Google-profiel."
+      "body": "Upload foto's uit je Filly-bibliotheek rechtstreeks naar je Google-profiel.",
+      "editableHint": "Kies een foto uit je bibliotheek en zet 'm rechtstreeks op je Google-profiel.",
+      "pick": "Foto kiezen en uploaden",
+      "catAdditional": "Extra foto",
+      "catCover": "Omslagfoto",
+      "catLogo": "Profielfoto (logo)",
+      "saved": "Foto geüpload naar Google."
     }
   },
   "dash_google_business_reviews_page": {

@@ -550,6 +550,37 @@ export async function googleBusinessCreatePost(
 }
 
 /**
+ * Uploadt een foto naar het Google-Bedrijfsprofiel (v4 media.create). `sourceUrl`
+ * is een publiek bereikbare (signed) foto-URL; `category` bepaalt de plek:
+ * COVER (omslag), LOGO (profielfoto) of ADDITIONAL (extra foto, default).
+ */
+export async function googleBusinessUploadMedia(
+  locationName: string,
+  sourceUrl: string,
+  category: "COVER" | "LOGO" | "ADDITIONAL" = "ADDITIONAL",
+): Promise<{ ok: true; name: string }> {
+  const res = await authedFetch(
+    `${API_URL}/integrations/google-business/media`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationName, sourceUrl, category }),
+    },
+  );
+  if (!res.ok) {
+    let reason = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { reason?: string; message?: string };
+      reason = body?.message ?? body?.reason ?? reason;
+    } catch {
+      /* geen JSON-body */
+    }
+    throw new Error(reason);
+  }
+  return (await res.json()) as { ok: true; name: string };
+}
+
+/**
  * Vraagt Filly een concept-antwoord op een (Google-)review op basis van losse
  * velden (rating/tekst/auteur). Voor GBP-reviews die niet in onze DB staan.
  */

@@ -985,6 +985,65 @@ export class GoogleBusinessService {
     };
   }
 
+  /**
+   * Uploadt een foto naar het Bedrijfsprofiel (v4 media.create). Google haalt
+   * de foto server-side op via de (publiek bereikbare) sourceUrl — een signed
+   * bibliotheek-URL volstaat. `category` bepaalt waar de foto landt:
+   * COVER (omslag), LOGO (profielfoto) of ADDITIONAL (extra foto, default).
+   */
+  async uploadLocationMedia(
+    restaurantId: string,
+    locationName: string,
+    sourceUrl: string,
+    category: 'COVER' | 'LOGO' | 'ADDITIONAL' = 'ADDITIONAL',
+  ): Promise<{ ok: true; name: string }> {
+    if (!/^locations\/[^/]+$/.test(locationName)) {
+      throw new BadRequestException('Ongeldige locationName');
+    }
+    if (!sourceUrl || !/^https?:\/\//.test(sourceUrl)) {
+      throw new BadRequestException('Een geldige foto-URL is verplicht');
+    }
+
+    const accounts = await this.listAccounts(restaurantId);
+    if (accounts.length === 0) {
+      throw new BadRequestException('Geen beheerd Google-account gevonden');
+    }
+    const accessToken = await this.getAccessToken(restaurantId);
+    const url = `${MYBUSINESS_V4_BASE}/${accounts[0].name}/${locationName}/media`;
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mediaFormat: 'PHOTO',
+          locationAssociation: { category },
+          sourceUrl,
+        }),
+      });
+    } catch (err) {
+      this.logger.error(
+        `GBP media.create onbereikbaar: ${(err as Error).message}`,
+      );
+      throw new ServiceUnavailableException(
+        'Google is tijdelijk niet bereikbaar',
+      );
+    }
+    if (!res.ok) {
+      this.throwGoogleApiError(res.status, await res.text(), 'media.create');
+    }
+
+    const data = (await res.json()) as { name?: string };
+    this.logger.log(
+      `GBP foto geüpload (restaurant ${restaurantId}, ${locationName}, ${category})`,
+    );
+    return { ok: true, name: data.name ?? '' };
+  }
+
   /** Koppeling intrekken: best-effort revoke bij Google + rij wissen. */
   async disconnect(restaurantId: string): Promise<{ ok: true }> {
     const row = await this.loadRow(restaurantId);

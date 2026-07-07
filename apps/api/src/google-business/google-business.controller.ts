@@ -193,6 +193,31 @@ export class GoogleBusinessController {
     );
   }
 
+  // POST /api/integrations/google-business/media
+  // body { locationName, sourceUrl, category? } — uploadt een foto naar het
+  // profiel (COVER/LOGO/ADDITIONAL).
+  @Post('media')
+  @HttpCode(200)
+  uploadMedia(
+    @RestaurantId() restaurantId: string,
+    @Body()
+    body: {
+      locationName?: string;
+      sourceUrl?: string;
+      category?: 'COVER' | 'LOGO' | 'ADDITIONAL';
+    },
+  ) {
+    if (!body?.locationName || !body?.sourceUrl) {
+      throw new BadRequestException('locationName en sourceUrl zijn verplicht');
+    }
+    return this.google.uploadLocationMedia(
+      restaurantId,
+      body.locationName,
+      body.sourceUrl,
+      body.category ?? 'ADDITIONAL',
+    );
+  }
+
   // DELETE /api/integrations/google-business  (koppeling intrekken)
   @Delete()
   @HttpCode(200)

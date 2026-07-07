@@ -1748,7 +1748,13 @@
     },
     "photoManagement": {
       "title": "Photo management",
-      "body": "Upload photos from your Filly library directly to your Google profile."
+      "body": "Upload photos from your Filly library directly to your Google profile.",
+      "editableHint": "Pick a photo from your library and put it straight on your Google profile.",
+      "pick": "Pick a photo and upload",
+      "catAdditional": "Additional photo",
+      "catCover": "Cover photo",
+      "catLogo": "Profile photo (logo)",
+      "saved": "Photo uploaded to Google."
     }
   },
   "dash_google_business_reviews_page": {
