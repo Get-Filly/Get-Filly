@@ -729,7 +729,8 @@ export default function UnifiedDetailPage() {
     activePlatform === "instagram" ||
     activePlatform === "facebook" ||
     activePlatform === "tiktok" ||
-    activePlatform === "whatsapp";
+    activePlatform === "whatsapp" ||
+    activePlatform === "google_business";
 
   // Actie-knoppen per status. Volgorde rechts→links: destructief
   // links, primair rechts.
@@ -1270,7 +1271,12 @@ export default function UnifiedDetailPage() {
               campaignId={activeCampaign.id}
               signedUrl={activeChannel?.media_url ?? null}
               canEdit={canEdit}
-              allowVideo={activeChannel?.platform !== "mail"}
+              // Google Business-posts sturen alleen een foto mee (localPosts
+              // PHOTO), dus daar geen video toestaan.
+              allowVideo={
+                activeChannel?.platform !== "mail" &&
+                activeChannel?.platform !== "google_business"
+              }
               onMediaChanged={() => {
                 void load();
               }}
