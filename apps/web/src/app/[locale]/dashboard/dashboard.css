@@ -4352,10 +4352,10 @@
  * krijgen. Op smalle schermen 2×2. */
 .dashboard-shell .kpi-rings-card .card-b { padding: 14px 18px; }
 .dashboard-shell .ring-grid { grid-template-columns: repeat(4, 1fr); gap: 10px 14px; }
-.dashboard-shell .rcell { flex-direction: row; align-items: center; gap: 11px; text-align: left; }
-.dashboard-shell .ring { width: 52px; height: 52px; }
+.dashboard-shell .rcell { flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.dashboard-shell .ring { width: 54px; height: 54px; }
 .dashboard-shell .ring .ctr { font-size: 12.5px; }
-.dashboard-shell .rcell .lab { max-width: none; }
+.dashboard-shell .rcell .lab { max-width: 130px; }
 @media (max-width: 900px) {
   .dashboard-shell .ring-grid { grid-template-columns: repeat(2, 1fr); }
 }
