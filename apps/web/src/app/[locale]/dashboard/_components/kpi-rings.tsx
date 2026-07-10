@@ -78,7 +78,7 @@ export function KpiRings() {
     // PLACEHOLDER — nog geen uitingen-quota in het datamodel.
     { value: "10/30", pct: 10 / 30, label: t("r1_uitingen") },
     {
-      value: `${benut}/${totaalKansen}`,
+      value: totaalKansen > 0 ? `${benut}/${totaalKansen}` : "—",
       pct: totaalKansen > 0 ? benut / totaalKansen : 0,
       label: t("r2_kansen"),
     },

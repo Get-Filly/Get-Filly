@@ -21,7 +21,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page dash-home">
       <div className="dash-top">
         <BusynessCard onMakeConcept={handleMakeConcept} />
       </div>
