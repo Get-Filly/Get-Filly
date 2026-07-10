@@ -16,7 +16,7 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
-## 🗓️ 2026-07-10 — Dashboard-herontwerp fase 1 (branch `feat/dashboard-bezetting-redesign`, NIET live)
+## 🗓️ 2026-07-10 — Dashboard-herontwerp fase 1 (GEMERGED naar main + live)
 
 Nieuw dashboard-home gebouwd na akkoord op het prototype. Kernidee: bezetting
 draait niet meer om exacte percentages maar om **relatieve drukte + rustige
@@ -46,9 +46,10 @@ weigeren; mail-parsing viel af om AVG). Bron wordt Google "populaire tijden".
     ring 2 (rustige momenten benut) + ring 3 (lopende campagnes) = echte data.
   - **"Maak concept"-CTA** koppelt nu alleen naar de Filly-chat (scroll). Fase 2:
     de gekozen dag vooraf invullen in de geleide flow.
-  - Oude `CalendarCard` / `KpiRow` / `UpcomingActionsBlock` + `_lib/hour-heatmap`
-    per-tafel-mock zijn nu ongebruikt op home (nog niet verwijderd; elders in
-    gebruik? checken vóór opschonen).
+  - [x] Dode code opgeruimd: `calendar-card.tsx`, `kpi-row.tsx`,
+    `service-grid.tsx`, `hour-heatmap.tsx` (render) verwijderd. Bewust
+    behouden: `upcoming-actions-block` (nog op /campagnes), `use-actionable-days`,
+    `calendar-data` (chart-card/occupancy-window), `_lib/hour-heatmap` (busyness.ts).
 
 ---
 
