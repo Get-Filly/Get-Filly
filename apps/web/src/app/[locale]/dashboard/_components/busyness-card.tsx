@@ -48,9 +48,9 @@ const PLOT_W = W - PL - PR;
 const PLOT_H = H - PT - PB;
 const BASE_Y = PT + PLOT_H;
 
-// Verwacht/voorspeld = blauw; werkelijk = groen (huisstijl-accent). Blauw
-// heeft geen huisstijl-token, dus hier als vaste waarde.
-const BLUE = "#2f6cae";
+// Verwacht/voorspeld = huisstijl-bruin (copper); werkelijk = donkergroen
+// (huisstijl-accent).
+const EXPECTED = "var(--copper)";
 
 const xAt = (i: number) => PL + (i / (SLOT_COUNT - 1)) * PLOT_W;
 const yAt = (v: number) => PT + (1 - v / 100) * PLOT_H;
@@ -290,7 +290,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
             {isFuture ? (
               <>
                 <span className="bz-lg">
-                  <span className="bz-ln blue dash" />
+                  <span className="bz-ln expected dash" />
                   {t("predictedLine")}
                 </span>
                 <span className="bz-lg bz-hint">{t("predictedNote")}</span>
@@ -298,7 +298,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
             ) : (
               <>
                 <span className="bz-lg">
-                  <span className="bz-ln blue" />
+                  <span className="bz-ln expected" />
                   {t("avgLine")}
                 </span>
                 <span className="bz-lg">
@@ -342,7 +342,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
               <path
                 d={linePath(day.pattern)}
                 fill="none"
-                stroke={BLUE}
+                stroke={EXPECTED}
                 strokeWidth="2.4"
                 strokeDasharray="6 5"
                 strokeLinejoin="round"
@@ -353,7 +353,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 <path
                   d={linePath(day.pattern)}
                   fill="none"
-                  stroke={BLUE}
+                  stroke={EXPECTED}
                   strokeWidth="2.2"
                   strokeLinejoin="round"
                   strokeLinecap="round"
