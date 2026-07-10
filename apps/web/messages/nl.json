@@ -4387,5 +4387,38 @@
     "publishing": "Bezig met plaatsen…",
     "successTitleDirect": "Geplaatst op TikTok",
     "successBodyDirect": "De video is naar je TikTok-account gestuurd. Afhankelijk van het privacy-niveau verschijnt die op je profiel."
+  },
+  "dash__components_busyness": {
+    "title": "Wanneer kan Filly je helpen",
+    "subtitle": "Relatieve drukte per dag, op basis van je Google-patroon",
+    "prevWeek": "Vorige week",
+    "nextWeek": "Volgende week",
+    "subThis": "deze week",
+    "subPrev": "vorige week",
+    "subNext": "volgende week",
+    "today": "Vandaag",
+    "legendQuiet": "Rustig moment",
+    "legendSpecial": "Speciale dag",
+    "legendHint": "Tik op een dag voor het verloop",
+    "avgLine": "Gemiddeld patroon",
+    "actualLine": "Werkelijke drukte",
+    "predictedLine": "Voorspeld patroon",
+    "predictedNote": "geen werkelijke data, dag ligt in de toekomst",
+    "bandRustig": "rustig",
+    "tfPast": "Afgelopen",
+    "tfToday": "Vandaag",
+    "tfFuture": "Voorspeld",
+    "noteSpecialPast": "Druk door {name}, geen actie nodig.",
+    "noteSpecialFuture": "Let op: {name} kan de dag opdrijven.",
+    "noteKans": "Rustig moment, kans om te vullen.",
+    "noteNoKans": "Geen duidelijk rustig moment om op te sturen.",
+    "ctaFor": "Maak concept voor {date}"
+  },
+  "dash__components_kpi_rings": {
+    "title": "Deze maand",
+    "r1_uitingen": "Uitingen deze maand",
+    "r2_kansen": "Rustige momenten benut",
+    "r3_campagnes": "Lopende campagnes",
+    "r4_vindbaarheid": "Vindbaarheid"
   }
 }

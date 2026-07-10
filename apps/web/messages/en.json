@@ -4387,5 +4387,38 @@
     "publishing": "Posting…",
     "successTitleDirect": "Posted to TikTok",
     "successBodyDirect": "The video has been sent to your TikTok account. Depending on the privacy level it appears on your profile."
+  },
+  "dash__components_busyness": {
+    "title": "When can Filly help you",
+    "subtitle": "Relative busyness per day, based on your Google pattern",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "subThis": "this week",
+    "subPrev": "last week",
+    "subNext": "next week",
+    "today": "Today",
+    "legendQuiet": "Quiet moment",
+    "legendSpecial": "Special day",
+    "legendHint": "Tap a day to see the pattern",
+    "avgLine": "Average pattern",
+    "actualLine": "Actual busyness",
+    "predictedLine": "Predicted pattern",
+    "predictedNote": "no actual data, day is in the future",
+    "bandRustig": "quiet",
+    "tfPast": "Past",
+    "tfToday": "Today",
+    "tfFuture": "Predicted",
+    "noteSpecialPast": "Busy due to {name}, no action needed.",
+    "noteSpecialFuture": "Heads up: {name} may drive the day up.",
+    "noteKans": "Quiet moment, a chance to fill.",
+    "noteNoKans": "No clear quiet moment to act on.",
+    "ctaFor": "Create concept for {date}"
+  },
+  "dash__components_kpi_rings": {
+    "title": "This month",
+    "r1_uitingen": "Posts this month",
+    "r2_kansen": "Quiet moments used",
+    "r3_campagnes": "Active campaigns",
+    "r4_vindbaarheid": "Findability"
   }
 }

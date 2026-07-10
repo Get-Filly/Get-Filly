@@ -16,6 +16,42 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-07-10 — Dashboard-herontwerp fase 1 (branch `feat/dashboard-bezetting-redesign`, NIET live)
+
+Nieuw dashboard-home gebouwd na akkoord op het prototype. Kernidee: bezetting
+draait niet meer om exacte percentages maar om **relatieve drukte + rustige
+momenten (kansen)**, want er is geen echte bezettingsdata (Zenchef/SevenRooms
+weigeren; mail-parsing viel af om AVG). Bron wordt Google "populaire tijden".
+
+- [x] **BusynessCard** (`_components/busyness-card.tsx`) vervangt de kalender +
+  de twee groene banners. Eén blok: week-navigatie (vorige/deze/volgende week;
+  toekomst = voorspeld), dag-strip met 7 mini-sparklines + markers (● rustig
+  moment, ★ speciale dag), en een dag-grafiek met **dubbele lijn** (gemiddeld
+  patroon vs werkelijke drukte; toekomst = 1 gestippelde voorspel-lijn) met
+  gearceerd rustig-venster. Datums als dd/mm.
+- [x] **KPI-ringen** (`_components/kpi-rings.tsx`) vervangen de platte KPI-rij:
+  4 ring-meters onder de bezetting, links; Filly-chat rechts (ongewijzigd,
+  alleen verplaatst).
+- [x] **Data-adapter** `_lib/busyness.ts` = de naad naar de latere Google-bron.
+  Leidt nu af uit `occupancy_days` (seed) + patronen in `hour-heatmap.ts`.
+  Hergebruikt `special-days.ts` (markers) + `useActionableDays` (kansen).
+- [x] i18n NL+EN toegevoegd (`dash__components_busyness`, `_kpi_rings`).
+  `tsc` + `next build` groen.
+- **Nog open (P2):**
+  - **Echte databron**: Google "populaire tijden" scraper achter
+    `getBusyness(placeId)` (zelf scrapen bij 1 demo-account, third-party bij
+    schaal). Backend als lagen per restaurant (ruw → baseline → context → kansen).
+  - **KPI-ringen definitief maken** — Floris herziet welke 4 metingen. Ring 1
+    (uitingen-quota 10/30) en ring 4 (vindbaarheid 85%) zijn nog PLACEHOLDER;
+    ring 2 (rustige momenten benut) + ring 3 (lopende campagnes) = echte data.
+  - **"Maak concept"-CTA** koppelt nu alleen naar de Filly-chat (scroll). Fase 2:
+    de gekozen dag vooraf invullen in de geleide flow.
+  - Oude `CalendarCard` / `KpiRow` / `UpcomingActionsBlock` + `_lib/hour-heatmap`
+    per-tafel-mock zijn nu ongebruikt op home (nog niet verwijderd; elders in
+    gebruik? checken vóór opschonen).
+
+---
+
 ## 🗓️ 2026-07-07 — Google Bedrijfsprofiel end-to-end live + campagne-fixes (live op main)
 
 Google Bedrijfsprofiel is van "code-af, wacht op API" naar **volledig werkend op productie** gegaan, plus een reeks campagne-bugfixes. Alles live op `main` + Vercel.
