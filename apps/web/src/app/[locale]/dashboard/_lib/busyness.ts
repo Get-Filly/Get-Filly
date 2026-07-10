@@ -81,10 +81,19 @@ const hourOf = (hhmm: string) => parseInt(hhmm.slice(0, 2), 10);
 const minsOf = (hhmm: string) => parseInt(hhmm.slice(3, 5), 10);
 
 // Open-bereik → [openHour, closeHour] voor de x-as, PER dag.
-// Bron 1: service_periods (dít bewerkt de eigenaar op /account) — vroegste
-// service-start t/m laatste service-eind. Bron 2: opening_hours. Fallback 9-23.
+// Bron 1: opening_hours (dít bewerkt de eigenaar nu op /account, per dag).
+// Bron 2: service_periods (terugval; onboarding zet dit nog). Fallback 9-23.
 function openRange(restaurant: Restaurant | null, date: Date): [number, number] {
   const dayKey = WEEKDAY_KEYS[date.getDay()];
+
+  const oh = restaurant?.opening_hours?.[dayKey];
+  if (oh && oh.open && oh.close) {
+    const open = hourOf(oh.open);
+    // Sluit op een half uur → rond omhoog zodat dat laatste uur zichtbaar is.
+    const e = hourOf(oh.close) + (minsOf(oh.close) > 0 ? 1 : 0);
+    const close = e <= open ? 23 : Math.min(e, 23); // sluit na middernacht → t/m 23
+    if (close > open) return [Math.max(0, open), close];
+  }
 
   const sp = restaurant?.service_periods;
   if (sp) {
@@ -94,7 +103,6 @@ function openRange(restaurant: Restaurant | null, date: Date): [number, number] 
       const cfg = sp[svc]?.[dayKey];
       if (cfg && cfg.start && cfg.end) {
         const s = hourOf(cfg.start);
-        // Eind op een half uur → rond omhoog zodat dat laatste uur zichtbaar is.
         const e = hourOf(cfg.end) + (minsOf(cfg.end) > 0 ? 1 : 0);
         if (s < minStart) minStart = s;
         if (e > maxEnd) maxEnd = e;
@@ -103,14 +111,6 @@ function openRange(restaurant: Restaurant | null, date: Date): [number, number] 
     if (maxEnd > minStart) {
       return [Math.max(0, minStart), Math.min(23, maxEnd)];
     }
-  }
-
-  const oh = restaurant?.opening_hours?.[dayKey];
-  if (oh && oh.open && oh.close) {
-    const open = hourOf(oh.open);
-    const c = hourOf(oh.close);
-    const close = c <= open ? 23 : Math.min(c, 23); // sluit na middernacht → t/m 23
-    if (close > open) return [open, close];
   }
 
   return [9, 23];
