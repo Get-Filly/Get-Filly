@@ -48,13 +48,19 @@ weigeren; mail-parsing viel af om AVG). Bron wordt Google "populaire tijden".
       werkelijk = live-metingen per weekdag/uur (mediaan tegen uitschieters).
     - Voor campagne-effect: werkelijk op campagnedag vs mediaan andere
       same-weekdays, met feestdagen/campagnedatums getagd.
-    - **Spike-bevindingen (niet opnieuw doen):** eigen scrape = te fragiel.
-      Consent-wall omzeilbaar met cookie `CONSENT=YES+...; SOCS=CAI` → 200, maar
-      populaire tijden zitten NIET in de place-pagina (JS-shell) of het
-      `/maps/preview/place`-endpoint; ze zitten achter Google's interne
-      `pb`-protobuf (breekt bij elke Google-wijziging → onderhoudslast). Plus
-      Vercel-datacenter-IP wordt wrsch geblokkeerd → scraper hoort sowieso
-      losgekoppeld (residentieel IP/worker → Supabase; Vercel leest alleen).
+    - **Spike-bevindingen (2026-07-10, NIET opnieuw doen — eigen scrape werkt niet):**
+      - Consent-wall omzeilbaar met cookie `CONSENT=YES+...; SOCS=CAI` → 200.
+      - HTTP-scrape: populaire tijden zitten NIET in de place-pagina (JS-shell) of
+        `/maps/preview/place`. Zoek-endpoint (`tbm=map&tch=1&pb=...`) mét de
+        VOLLEDIGE populartimes-`pb` geeft de plek terug maar `detail[84]` (de
+        populaire-tijden-slot) blijft `null` — Google heeft dit dichtgezet voor
+        kale HTTP-verzoeken.
+      - Headless browser (Playwright, niet ingelogd): laadt het paneel wél, maar
+        toont "You're seeing a limited view of Google Maps" ZONDER
+        populaire-tijden-sectie.
+      - Conclusie: ze verschijnen alleen in een INGELOGDE Google-sessie
+        (ToS-schending, hoog detectierisico, fragiel). Betrouwbaar gratis zelf
+        scrapen = niet haalbaar. → **Third-party is de enige realistische route.**
     - Uurlijkse live-meting tijdens openingstijden nodig voor de volledige
       dagcurve (Google geeft geen historische per-dag data, alleen "nu").
   - **KPI-ringen definitief maken** — Floris herziet welke 4 metingen. Ring 1
