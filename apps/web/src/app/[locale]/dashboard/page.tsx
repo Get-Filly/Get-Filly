@@ -5,8 +5,10 @@ import { KpiRings } from "./_components/kpi-rings";
 import { FillyChat } from "./_components/filly-chat";
 
 // Herontworpen dashboard (2026-07):
-//   - Bovenaan, vol de breedte: BusynessCard (dag-strip + dag-grafiek).
-//   - Daaronder: KPI-ringen links, Filly-chat rechts.
+//   - Bovenaan, vol de breedte: horizontale KPI-ringen-strook.
+//   - Daaronder twee blokken: links BusynessCard (dag-strip + dag-grafiek),
+//     rechts de Filly-chat. Doel: alles in één oogopslag (past in de
+//     viewport, vaste-hoogte-model, geen pagina-scroll).
 // De oude banners (UpcomingActionsBlock), de platte KPI-rij (KpiRow) en
 // de kalender (CalendarCard) zijn vervangen. De drukte komt nu uit
 // _lib/busyness.ts (naad naar de latere Google "populaire tijden"-bron).
@@ -21,13 +23,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page dash-home">
+    <div className="page">
       <div className="dash-top">
-        <BusynessCard onMakeConcept={handleMakeConcept} />
+        <KpiRings />
       </div>
       <div className="dash-body">
         <div className="left-col">
-          <KpiRings />
+          <BusynessCard onMakeConcept={handleMakeConcept} />
         </div>
         <div className="right-col" id="filly-panel">
           <FillyChat />

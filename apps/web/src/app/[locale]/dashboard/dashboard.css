@@ -4346,17 +4346,12 @@
 .dashboard-shell .ring .ctr { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--text); }
 .dashboard-shell .rcell .lab { font-size: 12.5px; color: var(--ts); font-weight: 500; line-height: 1.3; max-width: 130px; }
 
-/* Het herontworpen home-dashboard is hoger dan één viewport (groot
- * bezetting-blok + KPI-ringen + chat). Daarom scrollt de home-pagina als
- * geheel i.p.v. de oude vaste-hoogte-flex (waarbij de onderste rij onder
- * de vouw viel). Alleen op desktop; ≤900px scrollt de body al. */
-@media (min-width: 901px) {
-  .dashboard-shell .page.dash-home {
-    display: block;
-    height: calc(100% - 64px);
-    overflow-y: auto;
-  }
-  .dashboard-shell .page.dash-home .dash-body { align-items: start; }
-  .dashboard-shell .page.dash-home .left-col { overflow: visible; }
-  .dashboard-shell .page.dash-home .right-col { height: 560px; }
+/* KPI-ringen als horizontale strook bovenaan (dash-top): 4 op een rij,
+ * compact zodat de twee blokken eronder (bezetting + chat) in dezelfde
+ * viewport passen. Op smalle schermen 2×2. */
+.dashboard-shell .ring-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.dashboard-shell .ring { width: 78px; height: 78px; }
+.dashboard-shell .ring .ctr { font-size: 15px; }
+@media (max-width: 900px) {
+  .dashboard-shell .ring-grid { grid-template-columns: repeat(2, 1fr); }
 }
