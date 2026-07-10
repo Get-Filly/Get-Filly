@@ -77,22 +77,43 @@ function hourly24(scale: number, seed: string): number[] {
   return BASE24.map((b, i) => clamp(b * scale + (((h + i * 13) % 7) - 3)));
 }
 
-// Openingstijden → [openHour, closeHour] voor de x-as. Fallback 9-23.
+const hourOf = (hhmm: string) => parseInt(hhmm.slice(0, 2), 10);
+const minsOf = (hhmm: string) => parseInt(hhmm.slice(3, 5), 10);
+
+// Open-bereik → [openHour, closeHour] voor de x-as, PER dag.
+// Bron 1: service_periods (dít bewerkt de eigenaar op /account) — vroegste
+// service-start t/m laatste service-eind. Bron 2: opening_hours. Fallback 9-23.
 function openRange(restaurant: Restaurant | null, date: Date): [number, number] {
-  const oh = restaurant?.opening_hours?.[WEEKDAY_KEYS[date.getDay()]];
-  let open = 9;
-  let close = 23;
+  const dayKey = WEEKDAY_KEYS[date.getDay()];
+
+  const sp = restaurant?.service_periods;
+  if (sp) {
+    let minStart = 99;
+    let maxEnd = -1;
+    for (const svc of Object.keys(sp)) {
+      const cfg = sp[svc]?.[dayKey];
+      if (cfg && cfg.start && cfg.end) {
+        const s = hourOf(cfg.start);
+        // Eind op een half uur → rond omhoog zodat dat laatste uur zichtbaar is.
+        const e = hourOf(cfg.end) + (minsOf(cfg.end) > 0 ? 1 : 0);
+        if (s < minStart) minStart = s;
+        if (e > maxEnd) maxEnd = e;
+      }
+    }
+    if (maxEnd > minStart) {
+      return [Math.max(0, minStart), Math.min(23, maxEnd)];
+    }
+  }
+
+  const oh = restaurant?.opening_hours?.[dayKey];
   if (oh && oh.open && oh.close) {
-    open = parseInt(oh.open.slice(0, 2), 10);
-    let c = parseInt(oh.close.slice(0, 2), 10);
-    // Sluit na middernacht (bv. 02:00) → toon t/m 23:00.
-    close = c <= open ? 23 : Math.min(c, 23);
+    const open = hourOf(oh.open);
+    const c = hourOf(oh.close);
+    const close = c <= open ? 23 : Math.min(c, 23); // sluit na middernacht → t/m 23
+    if (close > open) return [open, close];
   }
-  if (!(close > open)) {
-    open = 9;
-    close = 23;
-  }
-  return [open, close];
+
+  return [9, 23];
 }
 
 // Langste aaneengesloten laag-drukte-reeks binnen de open uren (het dal).
