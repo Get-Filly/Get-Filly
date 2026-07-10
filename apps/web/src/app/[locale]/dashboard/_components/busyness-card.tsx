@@ -48,10 +48,9 @@ const PLOT_W = W - PL - PR;
 const PLOT_H = H - PT - PB;
 const BASE_Y = PT + PLOT_H;
 
-// Verwacht/voorspeld = warm licht-bruin uit het huisstijl-palet (zelfde
-// warme familie als de cream/surface-achtergrond, maar donker genoeg om
-// als lijn zichtbaar te zijn); werkelijk = donkergroen (huisstijl-accent).
-const EXPECTED = "#a88a63";
+// Verwacht/voorspeld = grijs (rustige referentielijn); werkelijk =
+// donkergroen (huisstijl-accent) zodat de echte drukte eruit springt.
+const EXPECTED = "var(--tl)";
 
 const xAt = (i: number) => PL + (i / (SLOT_COUNT - 1)) * PLOT_W;
 const yAt = (v: number) => PT + (1 - v / 100) * PLOT_H;
