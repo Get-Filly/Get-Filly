@@ -48,6 +48,10 @@ const PLOT_W = W - PL - PR;
 const PLOT_H = H - PT - PB;
 const BASE_Y = PT + PLOT_H;
 
+// Verwacht/voorspeld = blauw; werkelijk = groen (huisstijl-accent). Blauw
+// heeft geen huisstijl-token, dus hier als vaste waarde.
+const BLUE = "#2f6cae";
+
 const xAt = (i: number) => PL + (i / (SLOT_COUNT - 1)) * PLOT_W;
 const yAt = (v: number) => PT + (1 - v / 100) * PLOT_H;
 
@@ -55,13 +59,6 @@ function linePath(arr: number[]): string {
   return arr
     .map((v, i) => `${i ? "L" : "M"}${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`)
     .join(" ");
-}
-
-function areaPath(arr: number[]): string {
-  const top = arr
-    .map((v, i) => `L${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`)
-    .join(" ");
-  return `M${xAt(0)} ${BASE_Y} ${top} L${xAt(arr.length - 1)} ${BASE_Y} Z`;
 }
 
 // Mini-sparkline (dag-strip): compacte polyline over de eigen viewBox.
@@ -293,7 +290,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
             {isFuture ? (
               <>
                 <span className="bz-lg">
-                  <span className="bz-ln dash" />
+                  <span className="bz-ln blue dash" />
                   {t("predictedLine")}
                 </span>
                 <span className="bz-lg bz-hint">{t("predictedNote")}</span>
@@ -301,7 +298,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
             ) : (
               <>
                 <span className="bz-lg">
-                  <span className="bz-ln muted" />
+                  <span className="bz-ln blue" />
                   {t("avgLine")}
                 </span>
                 <span className="bz-lg">
@@ -342,26 +339,22 @@ export function BusynessCard({ onMakeConcept }: Props) {
               </>
             )}
             {isFuture ? (
-              <>
-                <path d={areaPath(day.pattern)} fill="var(--accent)" opacity="0.07" />
-                <path
-                  d={linePath(day.pattern)}
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="2.4"
-                  strokeDasharray="6 5"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-              </>
+              <path
+                d={linePath(day.pattern)}
+                fill="none"
+                stroke={BLUE}
+                strokeWidth="2.4"
+                strokeDasharray="6 5"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
             ) : (
               <>
-                <path d={areaPath(day.actual ?? day.pattern)} fill="var(--accent)" opacity="0.10" />
                 <path
                   d={linePath(day.pattern)}
                   fill="none"
-                  stroke="var(--tl)"
-                  strokeWidth="2"
+                  stroke={BLUE}
+                  strokeWidth="2.2"
                   strokeLinejoin="round"
                   strokeLinecap="round"
                 />

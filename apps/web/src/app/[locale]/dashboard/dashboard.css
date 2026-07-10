@@ -4359,3 +4359,11 @@
 @media (max-width: 900px) {
   .dashboard-shell .ring-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* KPI-strook zonder witte kaart: ringen direct op de crème-achtergrond. */
+.dashboard-shell .kpi-rings-card { background: transparent; border: 0; border-radius: 0; }
+.dashboard-shell .kpi-rings-card .card-b { padding: 2px 2px 10px; }
+/* Verwacht/voorspeld-lijn = blauw (swatch in de legenda). */
+.dashboard-shell .bz-ln.blue { border-top-color: #2f6cae; }
+/* Bezetting-blok even hoog als de Filly-chat ernaast. */
+.dashboard-shell .left-col .bz-card { min-height: 100%; }
