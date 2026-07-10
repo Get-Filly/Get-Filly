@@ -4412,7 +4412,7 @@
     "noteSpecialFuture": "Heads up: {name} may drive the day up.",
     "noteKans": "Quiet moment, a chance to fill.",
     "noteNoKans": "No clear quiet moment to act on.",
-    "ctaFor": "Create concept for {date}"
+    "ctaFor": "Create a campaign"
   },
   "dash__components_kpi_rings": {
     "title": "This month",

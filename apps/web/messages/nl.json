@@ -4412,7 +4412,7 @@
     "noteSpecialFuture": "Let op: {name} kan de dag opdrijven.",
     "noteKans": "Rustig moment, kans om te vullen.",
     "noteNoKans": "Geen duidelijk rustig moment om op te sturen.",
-    "ctaFor": "Maak concept voor {date}"
+    "ctaFor": "Maak een campagne"
   },
   "dash__components_kpi_rings": {
     "title": "Deze maand",
