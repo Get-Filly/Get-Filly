@@ -38,9 +38,25 @@ weigeren; mail-parsing viel af om AVG). Bron wordt Google "populaire tijden".
 - [x] i18n NL+EN toegevoegd (`dash__components_busyness`, `_kpi_rings`).
   `tsc` + `next build` groen.
 - **Nog open (P2):**
-  - **Echte databron**: Google "populaire tijden" scraper achter
-    `getBusyness(placeId)` (zelf scrapen bij 1 demo-account, third-party bij
-    schaal). Backend als lagen per restaurant (ruw → baseline → context → kansen).
+  - [ ] **Echte databron via THIRD-PARTY** (bijv. Outscraper/SerpAPI) achter de
+    `getBusyness(placeId)`-seam. Besloten 2026-07-10 na scraper-spike. Levert
+    populaire tijden + live als schone JSON, regelt pb/IP/consent. Nog te doen:
+    provider kiezen + API-key in env, fetch-adapter, cron.
+    - Datamodel staat al: tabel `busyness_snapshots` (migratie gedraaid) =
+      per scrape `pattern` (7×24, Google's gemiddelde = "verwacht") + `live_pct`
+      (accumuleert tot eigen "werkelijk"-historie). Verwacht = laatste pattern;
+      werkelijk = live-metingen per weekdag/uur (mediaan tegen uitschieters).
+    - Voor campagne-effect: werkelijk op campagnedag vs mediaan andere
+      same-weekdays, met feestdagen/campagnedatums getagd.
+    - **Spike-bevindingen (niet opnieuw doen):** eigen scrape = te fragiel.
+      Consent-wall omzeilbaar met cookie `CONSENT=YES+...; SOCS=CAI` → 200, maar
+      populaire tijden zitten NIET in de place-pagina (JS-shell) of het
+      `/maps/preview/place`-endpoint; ze zitten achter Google's interne
+      `pb`-protobuf (breekt bij elke Google-wijziging → onderhoudslast). Plus
+      Vercel-datacenter-IP wordt wrsch geblokkeerd → scraper hoort sowieso
+      losgekoppeld (residentieel IP/worker → Supabase; Vercel leest alleen).
+    - Uurlijkse live-meting tijdens openingstijden nodig voor de volledige
+      dagcurve (Google geeft geen historische per-dag data, alleen "nu").
   - **KPI-ringen definitief maken** — Floris herziet welke 4 metingen. Ring 1
     (uitingen-quota 10/30) en ring 4 (vindbaarheid 85%) zijn nog PLACEHOLDER;
     ring 2 (rustige momenten benut) + ring 3 (lopende campagnes) = echte data.
