@@ -4277,3 +4277,95 @@
     display: none;
   }
 }
+
+/* ============================================================
+ * Herontworpen dashboard 2026-07: BusynessCard + KPI-ringen
+ * ============================================================ */
+.dashboard-shell .bz-head { align-items: flex-start; flex-wrap: wrap; gap: var(--space-4); }
+.dashboard-shell .bz-nav { display: flex; align-items: center; gap: 8px; }
+.dashboard-shell .bz-navbtn {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--white); color: var(--ts); cursor: pointer; font-size: 18px;
+  line-height: 1; display: flex; align-items: center; justify-content: center;
+}
+.dashboard-shell .bz-navbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.dashboard-shell .bz-navbtn:disabled { opacity: 0.4; cursor: default; }
+.dashboard-shell .bz-lbl { text-align: center; min-width: 130px; font-size: 13px; font-weight: 600; }
+.dashboard-shell .bz-lbl small { display: block; font-weight: 500; color: var(--tl); font-size: 11px; margin-top: 1px; }
+.dashboard-shell .bz-today {
+  border: 0; background: var(--accent-light); color: var(--accent-dark); font-size: 12.5px;
+  font-weight: 600; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+}
+.dashboard-shell .bz-today:hover { background: var(--accent); color: var(--white); }
+
+.dashboard-shell .bz-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.dashboard-shell .bz-day {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 9px 4px 7px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--white); cursor: pointer; color: var(--tl);
+}
+.dashboard-shell .bz-day:hover { border-color: var(--accent); }
+.dashboard-shell .bz-day.on {
+  border: 2px solid var(--accent); background: var(--accent-light);
+  color: var(--accent-dark); padding: 8px 3px 6px;
+}
+.dashboard-shell .bz-ab { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ts); }
+.dashboard-shell .bz-day.on .bz-ab { color: var(--accent-dark); }
+.dashboard-shell .bz-dm { font-size: 13px; font-weight: 600; color: var(--text); }
+.dashboard-shell .bz-day.on .bz-dm { color: var(--accent-dark); }
+.dashboard-shell .bz-spark { width: 100%; height: 28px; display: block; margin-top: 3px; }
+.dashboard-shell .bz-mks { height: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 1px; }
+.dashboard-shell .bz-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.dashboard-shell .bz-star { color: var(--accent); font-size: 11px; line-height: 1; }
+
+.dashboard-shell .bz-legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--ts); }
+.dashboard-shell .bz-lg { display: flex; align-items: center; gap: 6px; }
+.dashboard-shell .bz-hint { color: var(--tl); }
+.dashboard-shell .bz-legend .bz-hint { margin-left: auto; }
+
+.dashboard-shell .bz-detail { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.dashboard-shell .bz-dhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.dashboard-shell .bz-dhead h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.dashboard-shell .bz-dtag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 100px; background: var(--hover); color: var(--ts); }
+.dashboard-shell .bz-dtag.future { background: var(--accent-light); color: var(--accent-dark); }
+.dashboard-shell .bz-spill { font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 100px; background: var(--accent-light); color: var(--accent-dark); }
+.dashboard-shell .bz-llegend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; font-size: 12px; color: var(--ts); }
+.dashboard-shell .bz-ln { width: 20px; height: 0; border-top: 2.6px solid var(--accent); display: inline-block; }
+.dashboard-shell .bz-ln.muted { border-top-width: 2px; border-top-color: var(--tl); }
+.dashboard-shell .bz-ln.dash { border-top-style: dashed; }
+.dashboard-shell .bz-line { width: 100%; height: auto; max-height: 260px; display: block; }
+.dashboard-shell .bz-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.dashboard-shell .bz-note { margin: 0; font-size: 13px; color: var(--ts); }
+.dashboard-shell .bz-cta { border: 0; border-radius: 8px; background: var(--accent); color: var(--white); font-size: 13.5px; font-weight: 600; padding: 10px 16px; cursor: pointer; }
+.dashboard-shell .bz-cta:hover { background: var(--accent-dark); }
+
+.dashboard-shell .ring-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px; }
+.dashboard-shell .rcell { display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; }
+.dashboard-shell .ring { position: relative; width: 92px; height: 92px; }
+.dashboard-shell .ring svg { width: 100%; height: 100%; display: block; transform: rotate(-90deg); }
+.dashboard-shell .ring .ctr { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--text); }
+.dashboard-shell .rcell .lab { font-size: 12.5px; color: var(--ts); font-weight: 500; line-height: 1.3; max-width: 130px; }
+
+/* KPI-ringen als compacte horizontale strook bovenaan (dash-top): 4 op
+ * een rij, ring + label náást elkaar en geen aparte kop, zodat de strook
+ * laag blijft en de blokken eronder (bezetting + chat) meer hoogte
+ * krijgen. Op smalle schermen 2×2. */
+.dashboard-shell .kpi-rings-card .card-b { padding: 14px 18px; }
+.dashboard-shell .ring-grid { grid-template-columns: repeat(4, 1fr); gap: 10px 14px; }
+.dashboard-shell .rcell { flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.dashboard-shell .ring { width: 72px; height: 72px; }
+.dashboard-shell .ring .ctr { font-size: 15px; }
+.dashboard-shell .rcell .lab { max-width: 130px; }
+@media (max-width: 900px) {
+  .dashboard-shell .ring-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Verwacht/voorspeld-lijn = grijs (swatch in de legenda). */
+.dashboard-shell .bz-ln.expected { border-top-color: var(--tl); }
+/* Bezetting-blok even hoog als de Filly-chat ernaast, en de
+ * "Maak een campagne"-knop onderaan gepind zodat 'ie op dezelfde hoogte
+ * staat als de "Vraag Filly iets"-invoer in de chat. */
+.dashboard-shell .left-col .bz-card { min-height: 100%; display: flex; flex-direction: column; }
+.dashboard-shell .bz-card .bz-body { flex: 1; display: flex; flex-direction: column; }
+.dashboard-shell .bz-detail { flex: 1; display: flex; flex-direction: column; }
+.dashboard-shell .bz-foot { margin-top: auto; }
