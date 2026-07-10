@@ -2,23 +2,19 @@
 // busyness.ts — drukte-model voor het herontworpen dashboard
 // ============================================================
 //
-// Dit is de NAAD tussen de UI en de databron. Vandaag leiden we de
-// drukte af uit de bestaande occupancy_days (seed) + de patronen in
-// hour-heatmap.ts. Zodra de Google "populaire tijden"-scraper er is,
-// hoeft alleen `buildDayBusyness` z'n bron te wisselen; de hele
-// BusynessCard blijft ongemoeid.
+// Naad tussen UI en databron. Vandaag afgeleid uit occupancy_days (seed)
+// + een generiek uur-patroon; later vervangbaar door de echte bron
+// (zie BACKLOG: third-party achter deze functie).
 //
 // Twee lijnen per dag:
-//   - pattern : het TYPISCHE verloop voor die weekdag ("gemiddeld")
-//   - actual  : het WERKELIJKE verloop van díe datum ("werkelijk"),
-//               alleen voor dagen tot en met vandaag. Toekomst = null
-//               (dan tonen we het patroon als voorspelling).
+//   - hours  : verwacht uur-verloop (Google's typische patroon)
+//   - actual : werkelijk uur-verloop van díe datum (null in de toekomst)
 //
-// Alles is relatief (0-100 t.o.v. de eigen piek), nooit exacte tafels
-// of gasten — conform de privacy-/AVG-keuze rond bezettingsdata.
+// Nieuw t.o.v. eerder: 24-uurs model (index 0-23) i.p.v. vaste
+// half-uur-slots, en het zichtbare bereik volgt de OPENINGSTIJDEN van
+// het restaurant (opent om 08:00 → x-as begint bij 08:00).
 
-import { seededOccupancy, mondayIndex } from "./calendar-data";
-import { hourlyForDay, HALF_HOUR_SLOTS } from "./hour-heatmap";
+import { mondayIndex } from "./calendar-data";
 import { getSpecialDays, type SpecialDay } from "@/lib/special-days";
 import { isOpenOn } from "@/lib/occupancy-window";
 import type { OccupancyDay, Restaurant } from "@/lib/api";
@@ -27,26 +23,28 @@ export type Timeframe = "past" | "today" | "future";
 
 export type DayBusyness = {
   date: Date;
-  iso: string; // YYYY-MM-DD
+  iso: string;
   colMon: number; // 0=ma … 6=zo
-  // Overall relatieve drukte (0-100) waarmee we "rustig/druk" bepalen.
-  displayPct: number;
-  // Uur-verloop (22 half-uur-slots, aligned met HALF_HOUR_SLOTS).
-  pattern: number[];
-  actual: number[] | null;
+  displayPct: number; // gemiddelde drukte over open uren (voor rustig/druk)
+  hours: number[]; // 24 waarden (0-100), verwacht
+  actual: number[] | null; // 24 waarden, werkelijk; null in de toekomst
+  openHour: number; // eerste zichtbare uur (uit openingstijden)
+  closeHour: number; // laatste zichtbare uur
   timeframe: Timeframe;
-  // [start, eind] indices in de slots voor het gearceerde rustige
-  // venster, afgeleid uit het patroon. Null als er geen dal is.
-  quiet: [number, number] | null;
-  // Rustig moment = kans (onder de eigenaar-drempel + open die dag).
-  isQuiet: boolean;
+  quiet: [number, number] | null; // [startUur, eindUur] van het rustige dal
+  isQuiet: boolean; // rustig moment = kans
   special: SpecialDay | null;
 };
 
-// X-as: welke slots een tijd-label krijgen op de dag-grafiek.
-export const AXIS_TICKS = [0, 4, 8, 12, 16, 20] as const;
-export const AXIS_LABELS = AXIS_TICKS.map((i) => HALF_HOUR_SLOTS[i]);
-export const SLOT_COUNT = HALF_HOUR_SLOTS.length;
+// Typisch restaurant-dagverloop (0-100), index = uur 0..23. Piek ~90 zodat
+// er ruimte boven blijft (de grafiek tekent tot ~115). Lunch + diner.
+const BASE24 = [
+  0, 0, 0, 0, 0, 0, 0, 3, 8, 15, 26, 55, 85, 88, 62, 38, 30, 46, 72, 90, 86, 66,
+  40, 18,
+];
+// Weekdag-factor (ma..zo): weekend drukker.
+const WD_FACTOR = [0.85, 0.8, 0.9, 0.98, 1.08, 1.18, 1.0];
+const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 export function isoOf(date: Date): string {
   const y = date.getFullYear();
@@ -61,24 +59,55 @@ export function addDays(base: Date, days: number): Date {
   return d;
 }
 
-// Maandag (00:00) van de week waar `date` in valt. Onze grid start op ma.
 export function mondayOfWeek(date: Date): Date {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   d.setDate(d.getDate() - mondayIndex(d.getDay()));
   return d;
 }
 
-// Langste aaneengesloten reeks lage-drukte-slots (het middag-dal).
-// Dient als het "rustig"-venster op de grafiek. Drempel 40 = tier-0/1
-// grens uit hour-heatmap (occupancyTier).
-function quietWindow(pattern: number[]): [number, number] | null {
+const hash = (s: string) => {
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+};
+const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+
+function hourly24(scale: number, seed: string): number[] {
+  const h = hash(seed);
+  return BASE24.map((b, i) => clamp(b * scale + (((h + i * 13) % 7) - 3)));
+}
+
+// Openingstijden → [openHour, closeHour] voor de x-as. Fallback 9-23.
+function openRange(restaurant: Restaurant | null, date: Date): [number, number] {
+  const oh = restaurant?.opening_hours?.[WEEKDAY_KEYS[date.getDay()]];
+  let open = 9;
+  let close = 23;
+  if (oh && oh.open && oh.close) {
+    open = parseInt(oh.open.slice(0, 2), 10);
+    let c = parseInt(oh.close.slice(0, 2), 10);
+    // Sluit na middernacht (bv. 02:00) → toon t/m 23:00.
+    close = c <= open ? 23 : Math.min(c, 23);
+  }
+  if (!(close > open)) {
+    open = 9;
+    close = 23;
+  }
+  return [open, close];
+}
+
+// Langste aaneengesloten laag-drukte-reeks binnen de open uren (het dal).
+function quietWindow(
+  hours: number[],
+  open: number,
+  close: number,
+): [number, number] | null {
   let best: [number, number] | null = null;
   let start = -1;
-  for (let i = 0; i <= pattern.length; i++) {
-    const low = i < pattern.length && pattern[i] <= 40;
-    if (low && start === -1) start = i;
+  for (let h = open; h <= close + 1; h++) {
+    const low = h <= close && hours[h] <= 40;
+    if (low && start === -1) start = h;
     if (!low && start !== -1) {
-      const run: [number, number] = [start, i - 1];
+      const run: [number, number] = [start, h - 1];
       if (!best || run[1] - run[0] > best[1] - best[0]) best = run;
       start = -1;
     }
@@ -86,22 +115,12 @@ function quietWindow(pattern: number[]): [number, number] | null {
   return best;
 }
 
-// Speciale dagen voor een set jaren, als iso→SpecialDay map (memobaar
-// door de caller). Twee jaren dekken een week over de jaargrens.
 export function specialDayMap(years: number[]): Map<string, SpecialDay> {
   const map = new Map<string, SpecialDay>();
-  for (const y of years) {
-    for (const s of getSpecialDays(y)) map.set(s.date, s);
-  }
+  for (const y of years) for (const s of getSpecialDays(y)) map.set(s.date, s);
   return map;
 }
 
-function timeframeOf(iso: string, todayIso: string): Timeframe {
-  if (iso === todayIso) return "today";
-  return iso < todayIso ? "past" : "future";
-}
-
-// Bouw één dag. `realByIso` = echte occupancy_days (relatief pct).
 export function buildDayBusyness(
   date: Date,
   realByIso: Map<string, number>,
@@ -112,38 +131,50 @@ export function buildDayBusyness(
 ): DayBusyness {
   const iso = isoOf(date);
   const colMon = mondayIndex(date.getDay());
-  const tf = timeframeOf(iso, todayIso);
+  const tf: Timeframe = iso === todayIso ? "today" : iso < todayIso ? "past" : "future";
+  const wd = WD_FACTOR[colMon];
 
-  // "Gemiddeld patroon" = stabiele weekdag-baseline (vaste dag-seed 15
-  // zodat het niet per datum verspringt).
-  const weekdayBaselinePct = seededOccupancy(15, colMon);
-  // "Werkelijk" = echte data indien aanwezig, anders de dag-specifieke
-  // seed (varieert wél per datum → toont "drukker/rustiger dan normaal").
-  // Toekomst: geen werkelijke data.
-  const actualPct =
-    tf === "future"
-      ? null
-      : realByIso.get(iso) ?? seededOccupancy(date.getDate(), colMon);
+  // Verwacht: stabiel per weekdag (seed op weekdag, niet op datum).
+  const hours = hourly24(wd, `wd${colMon}`);
 
-  const pattern = hourlyForDay(weekdayBaselinePct, colMon);
-  const actual = actualPct === null ? null : hourlyForDay(actualPct, date.getDate());
-  const displayPct = actualPct ?? weekdayBaselinePct;
+  // Werkelijk: per datum, varieert rond verwacht (toont drukker/rustiger
+  // dan normaal). Echte occupancy_days schalen de dag mee als aanwezig.
+  let actual: number[] | null = null;
+  if (tf !== "future") {
+    const hb = hash(iso);
+    let dayFactor = 0.85 + (hb % 30) / 100;
+    if (specials.get(iso)) dayFactor += 0.2;
+    const real = realByIso.get(iso);
+    if (real !== undefined) dayFactor *= real / 60; // echte dag-pct t.o.v. baseline
+    actual = hourly24(wd * dayFactor, iso);
+  }
+
+  const [openHour, closeHour] = openRange(restaurant, date);
+  const disp = actual ?? hours;
+  let sum = 0;
+  let n = 0;
+  for (let h = openHour; h <= closeHour; h++) {
+    sum += disp[h];
+    n++;
+  }
+  const displayPct = n ? Math.round(sum / n) : 0;
 
   return {
     date,
     iso,
     colMon,
     displayPct,
-    pattern,
+    hours,
     actual,
+    openHour,
+    closeHour,
     timeframe: tf,
-    quiet: quietWindow(pattern),
+    quiet: quietWindow(hours, openHour, closeHour),
     isQuiet: displayPct < threshold && isOpenOn(restaurant, iso),
     special: specials.get(iso) ?? null,
   };
 }
 
-// Bouw een hele week (ma..zo) vanaf een maandag-datum.
 export function buildWeek(
   monday: Date,
   realByIso: Map<string, number>,
@@ -159,7 +190,6 @@ export function buildWeek(
   );
 }
 
-// occupancy_days[] → iso→pct map. Klein hulpje voor de caller.
 export function occupancyMap(rows: OccupancyDay[]): Map<string, number> {
   const m = new Map<string, number>();
   for (const r of rows) m.set(r.date.slice(0, 10), r.occupancy_pct);

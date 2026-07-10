@@ -4333,10 +4333,21 @@
 .dashboard-shell .bz-ln { width: 20px; height: 0; border-top: 2.6px solid var(--accent); display: inline-block; }
 .dashboard-shell .bz-ln.muted { border-top-width: 2px; border-top-color: var(--tl); }
 .dashboard-shell .bz-ln.dash { border-top-style: dashed; }
-.dashboard-shell .bz-line { width: 100%; height: auto; max-height: 260px; display: block; }
-.dashboard-shell .bz-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-.dashboard-shell .bz-note { margin: 0; font-size: 13px; color: var(--ts); }
-.dashboard-shell .bz-cta { border: 0; border-radius: 8px; background: var(--accent); color: var(--white); font-size: 13.5px; font-weight: 600; padding: 10px 16px; cursor: pointer; }
+.dashboard-shell .bz-note { margin: 0 0 6px; font-size: 13px; color: var(--ts); }
+/* Grafiek vult de resterende hoogte; SVG in unit-ruimte (0-100) rekt mee
+ * via preserveAspectRatio=none. Onderaan 18px voor de tijd-labels; de
+ * grijze basislijn (border-bottom) is de x-as. */
+.dashboard-shell .bz-chart { position: relative; flex: 1; min-height: 130px; margin-top: 4px; }
+.dashboard-shell .bz-svg { position: absolute; top: 0; left: 0; right: 0; bottom: 18px; display: block; border-bottom: 1px solid var(--border); }
+.dashboard-shell .bz-band-label { position: absolute; top: 2px; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--accent-dark); pointer-events: none; }
+.dashboard-shell .bz-xlabels { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; }
+.dashboard-shell .bz-xlabels span { position: absolute; bottom: 0; font-size: 11px; color: var(--tl); white-space: nowrap; transform: translateX(-50%); }
+.dashboard-shell .bz-xlabels span.start { transform: none; }
+.dashboard-shell .bz-xlabels span.end { transform: translateX(-100%); }
+/* Footer spiegelt .chat-input: scheidingslijn + volledige-breedte-actie
+ * op dezelfde hoogte als "Vraag Filly iets". */
+.dashboard-shell .bz-footbar { padding: 10px 16px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.dashboard-shell .bz-cta { display: block; width: 100%; border: 0; border-radius: 10px; background: var(--accent); color: var(--white); font-size: 14px; font-weight: 600; padding: 12px 16px; cursor: pointer; }
 .dashboard-shell .bz-cta:hover { background: var(--accent-dark); }
 
 .dashboard-shell .ring-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px; }
@@ -4366,6 +4377,5 @@
  * "Maak een campagne"-knop onderaan gepind zodat 'ie op dezelfde hoogte
  * staat als de "Vraag Filly iets"-invoer in de chat. */
 .dashboard-shell .left-col .bz-card { min-height: 100%; display: flex; flex-direction: column; }
-.dashboard-shell .bz-card .bz-body { flex: 1; display: flex; flex-direction: column; }
-.dashboard-shell .bz-detail { flex: 1; display: flex; flex-direction: column; }
-.dashboard-shell .bz-foot { margin-top: auto; }
+.dashboard-shell .bz-card .bz-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.dashboard-shell .bz-detail { flex: 1; display: flex; flex-direction: column; min-height: 0; }

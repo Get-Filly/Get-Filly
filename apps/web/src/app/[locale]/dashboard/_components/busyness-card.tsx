@@ -3,13 +3,12 @@
 // ============================================================
 // BusynessCard — "Wanneer kan Filly je helpen"
 // ============================================================
-// Vervangt de oude CalendarCard + de twee groene banners. Eén blok:
-//   - week-navigatie (vorige / deze / volgende week; toekomst = voorspeld)
-//   - dag-strip: 7 mini-sparklines met markers (rustig moment / speciale dag)
-//   - dag-grafiek: dubbele lijn (gemiddeld patroon vs werkelijke drukte),
-//     met gearceerd rustig-venster. Toekomst = 1 gestippelde voorspel-lijn.
-//
-// Data komt uit _lib/busyness.ts (de naad naar de latere Google-bron).
+// Eén blok: week-navigatie, dag-strip met markers, en een dag-grafiek
+// (verwacht = grijs, werkelijk = groen). De x-as volgt de openingstijden
+// van het restaurant; de y-as heeft kopruimte zodat pieken niet tegen
+// het plafond plakken. De kaart spiegelt de Filly-chat ernaast: content
+// boven, scheidingslijn, en onderaan een volledige-breedte-actie op
+// dezelfde hoogte als de chat-invoer.
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -26,46 +25,25 @@ import {
   mondayOfWeek,
   addDays,
   isoOf,
-  AXIS_TICKS,
-  AXIS_LABELS,
-  SLOT_COUNT,
   type DayBusyness,
 } from "../_lib/busyness";
 
-// Week-offset t.o.v. deze week. We halen prev/cur/next maand op, dus
-// -1..+1 week blijft altijd binnen de opgehaalde data.
 const MIN_OFFSET = -1;
 const MAX_OFFSET = 1;
 
-// SVG-grafiek afmetingen (viewBox-eenheden; schaalt mee naar 100% breed).
-const W = 640;
-const H = 190;
-const PL = 10;
-const PR = 10;
-const PT = 20;
-const PB = 26;
-const PLOT_W = W - PL - PR;
-const PLOT_H = H - PT - PB;
-const BASE_Y = PT + PLOT_H;
-
-// Verwacht/voorspeld = grijs (rustige referentielijn); werkelijk =
-// donkergroen (huisstijl-accent) zodat de echte drukte eruit springt.
+// Grijs = verwacht/voorspeld; groen = werkelijk (huisstijl-accent).
 const EXPECTED = "var(--tl)";
+// Y-as tekent tot 115 i.p.v. 100 → kopruimte, zodat de 100-piek niet op
+// de bovenrand plakt en je boven/onder gemiddeld kunt zien.
+const Y_MAX = 115;
 
-const xAt = (i: number) => PL + (i / (SLOT_COUNT - 1)) * PLOT_W;
-const yAt = (v: number) => PT + (1 - v / 100) * PLOT_H;
-
-function linePath(arr: number[]): string {
-  return arr
-    .map((v, i) => `${i ? "L" : "M"}${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`)
-    .join(" ");
-}
-
-// Mini-sparkline (dag-strip): compacte polyline over de eigen viewBox.
-function sparkPoints(arr: number[]): string {
-  return arr
+function sparkPoints(arr: number[], open: number, close: number): string {
+  const vis = [];
+  for (let h = open; h <= close; h++) vis.push(arr[h]);
+  const n = vis.length;
+  return vis
     .map((v, i) => {
-      const x = (i / (arr.length - 1)) * 100;
+      const x = n > 1 ? (i / (n - 1)) * 100 : 50;
       const y = 27 - (v / 100) * 24;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
@@ -77,16 +55,9 @@ function formatDM(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   return `${d}/${m}`;
 }
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 type Props = {
-  // Aangeroepen als de eigenaar op "Maak concept" klikt (of een kans
-  // aantikt in de strip). De pagina koppelt dit voorlopig aan het
-  // scrollen naar de Filly-chat; latere fase: de dag vooraf invullen
-  // in de geleide flow.
   onMakeConcept?: (iso: string) => void;
 };
 
@@ -102,14 +73,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const thisMonday = useMemo(() => mondayOfWeek(today), [today]);
 
   const [offset, setOffset] = useState(0);
-  const [col, setCol] = useState(() => {
-    // Standaard: vandaag geselecteerd.
-    const d = new Date();
-    return (d.getDay() + 6) % 7;
-  });
+  const [col, setCol] = useState(() => (new Date().getDay() + 6) % 7);
 
-  // Occupancy voor prev/cur/next maand ophalen — dekt het hele
-  // navigeerbare venster (-1..+1 week) in één keer.
   useEffect(() => {
     let cancelled = false;
     const y = today.getFullYear();
@@ -120,12 +85,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
       [m === 11 ? y + 1 : y, (m + 1) % 12],
     ];
     Promise.all(months.map(([yy, mm]) => fetchOccupancy(yy, mm).catch(() => [])))
-      .then((chunks) => {
-        if (!cancelled) setOccupancy(chunks.flat());
-      })
-      .catch(() => {
-        if (!cancelled) setOccupancy([]);
-      });
+      .then((chunks) => !cancelled && setOccupancy(chunks.flat()))
+      .catch(() => !cancelled && setOccupancy([]));
     fetchRestaurant()
       .then((r) => !cancelled && setRestaurant(r))
       .catch(() => !cancelled && setRestaurant(null));
@@ -137,42 +98,26 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const realMap = useMemo(() => occupancyMap(occupancy), [occupancy]);
   const threshold = restaurant?.low_occupancy_threshold ?? 50;
 
-  const monday = useMemo(
-    () => addDays(thisMonday, offset * 7),
-    [thisMonday, offset],
-  );
+  const monday = useMemo(() => addDays(thisMonday, offset * 7), [thisMonday, offset]);
   const week = useMemo(
     () => buildWeek(monday, realMap, restaurant, threshold, todayIso),
     [monday, realMap, restaurant, threshold, todayIso],
   );
   const day: DayBusyness = week[col] ?? week[0];
 
-  const shortWd = useMemo(
-    () => new Intl.DateTimeFormat(localeTag, { weekday: "short" }),
-    [localeTag],
-  );
-  const longWd = useMemo(
-    () => new Intl.DateTimeFormat(localeTag, { weekday: "long" }),
-    [localeTag],
-  );
+  const shortWd = useMemo(() => new Intl.DateTimeFormat(localeTag, { weekday: "short" }), [localeTag]);
+  const longWd = useMemo(() => new Intl.DateTimeFormat(localeTag, { weekday: "long" }), [localeTag]);
   const rangeFmt = useMemo(
     () => new Intl.DateTimeFormat(localeTag, { day: "numeric", month: "short" }),
     [localeTag],
   );
 
   const weekLabel = `${rangeFmt.format(week[0].date)} - ${rangeFmt.format(week[6].date)}`;
-  const weekSub =
-    offset === 0 ? t("subThis") : offset < 0 ? t("subPrev") : t("subNext");
+  const weekSub = offset === 0 ? t("subThis") : offset < 0 ? t("subPrev") : t("subNext");
 
   const isFuture = day.timeframe === "future";
-  const mainLine = isFuture ? day.pattern : (day.actual ?? day.pattern);
-
   const tfLabel =
-    day.timeframe === "today"
-      ? t("tfToday")
-      : day.timeframe === "future"
-        ? t("tfFuture")
-        : t("tfPast");
+    day.timeframe === "today" ? t("tfToday") : isFuture ? t("tfFuture") : t("tfPast");
 
   let note: string;
   if (day.special && !isFuture) note = t("noteSpecialPast", { name: day.special.name });
@@ -180,9 +125,33 @@ export function BusynessCard({ onMakeConcept }: Props) {
   else if (day.isQuiet) note = t("noteKans");
   else note = t("noteNoKans");
 
-  function pick(nextCol: number) {
-    setCol(nextCol);
-  }
+  // Zichtbare uren volgen de openingstijden.
+  const vis = useMemo(() => {
+    const arr: number[] = [];
+    for (let h = day.openHour; h <= day.closeHour; h++) arr.push(h);
+    return arr;
+  }, [day.openHour, day.closeHour]);
+  const N = vis.length;
+  const xPct = (i: number) => (N > 1 ? (i / (N - 1)) * 100 : 50);
+  const yPct = (v: number) => (1 - v / Y_MAX) * 100;
+  const linePts = (arr: number[]) =>
+    vis.map((h, i) => `${xPct(i).toFixed(2)},${yPct(arr[h]).toFixed(2)}`).join(" ");
+
+  const ticks = useMemo(() => {
+    const step = N <= 9 ? 2 : N <= 15 ? 3 : 4;
+    const out: number[] = [];
+    for (let i = 0; i < N; i += step) out.push(i);
+    if (out[out.length - 1] !== N - 1) out.push(N - 1);
+    return out;
+  }, [N]);
+
+  const band =
+    day.quiet && day.quiet[1] >= day.openHour && day.quiet[0] <= day.closeHour
+      ? {
+          x0: xPct(Math.max(0, day.quiet[0] - day.openHour)),
+          x1: xPct(Math.min(N - 1, day.quiet[1] - day.openHour)),
+        }
+      : null;
 
   return (
     <div className="card bz-card">
@@ -227,25 +196,20 @@ export function BusynessCard({ onMakeConcept }: Props) {
       <div className="card-b bz-body">
         <div className="bz-strip">
           {week.map((d, i) => {
-            const line = d.actual ?? d.pattern;
+            const line = d.actual ?? d.hours;
             const isToday = d.iso === todayIso;
             return (
               <button
                 key={d.iso}
                 className={`bz-day${i === col ? " on" : ""}${isToday ? " today" : ""}`}
                 aria-label={`${cap(longWd.format(d.date))} ${formatDM(d.date)}`}
-                onClick={() => pick(i)}
+                onClick={() => setCol(i)}
               >
                 <span className="bz-ab">{shortWd.format(d.date).replace(".", "")}</span>
                 <span className="bz-dm">{formatDM(d.date)}</span>
-                <svg
-                  className="bz-spark"
-                  viewBox="0 0 100 30"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
+                <svg className="bz-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
                   <polyline
-                    points={sparkPoints(line)}
+                    points={sparkPoints(line, d.openHour, d.closeHour)}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -281,16 +245,14 @@ export function BusynessCard({ onMakeConcept }: Props) {
               {cap(longWd.format(day.date))} {formatDM(day.date)}
             </h3>
             <span className={`bz-dtag${isFuture ? " future" : ""}`}>{tfLabel}</span>
-            {day.special && (
-              <span className="bz-spill">★ {day.special.name}</span>
-            )}
+            {day.special && <span className="bz-spill">★ {day.special.name}</span>}
           </div>
 
           <div className="bz-llegend">
             {isFuture ? (
               <>
                 <span className="bz-lg">
-                  <span className="bz-ln expected dash" />
+                  <span className="bz-ln expected" />
                   {t("predictedLine")}
                 </span>
                 <span className="bz-lg bz-hint">{t("predictedNote")}</span>
@@ -309,86 +271,77 @@ export function BusynessCard({ onMakeConcept }: Props) {
             )}
           </div>
 
-          <svg
-            className="bz-line"
-            viewBox={`0 0 ${W} ${H}`}
-            role="img"
-            aria-label={`${cap(longWd.format(day.date))} ${formatDM(day.date)}`}
-          >
-            <line x1={PL} y1={BASE_Y} x2={W - PR} y2={BASE_Y} stroke="var(--border)" />
-            {day.quiet && (
-              <>
+          <p className="bz-note">{note}</p>
+
+          <div className="bz-chart">
+            <svg className="bz-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {band && (
                 <rect
-                  x={xAt(day.quiet[0]).toFixed(1)}
-                  y={PT}
-                  width={(xAt(day.quiet[1]) - xAt(day.quiet[0])).toFixed(1)}
-                  height={PLOT_H}
+                  x={band.x0}
+                  y="0"
+                  width={band.x1 - band.x0}
+                  height="100"
                   fill="var(--accent-light)"
                   opacity="0.55"
                 />
-                <text
-                  x={((xAt(day.quiet[0]) + xAt(day.quiet[1])) / 2).toFixed(1)}
-                  y={PT + 13}
-                  fill="var(--accent-dark)"
-                  fontSize="12"
-                  fontWeight="600"
-                  textAnchor="middle"
-                >
-                  {t("bandRustig")}
-                </text>
-              </>
-            )}
-            {isFuture ? (
-              <path
-                d={linePath(day.pattern)}
-                fill="none"
-                stroke={EXPECTED}
-                strokeWidth="2.4"
-                strokeDasharray="6 5"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            ) : (
-              <>
-                <path
-                  d={linePath(day.pattern)}
+              )}
+              {isFuture ? (
+                <polyline
+                  points={linePts(day.hours)}
                   fill="none"
                   stroke={EXPECTED}
                   strokeWidth="2.2"
                   strokeLinejoin="round"
                   strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
                 />
-                <path
-                  d={linePath(day.actual ?? day.pattern)}
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="2.6"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-              </>
+              ) : (
+                <>
+                  <polyline
+                    points={linePts(day.hours)}
+                    fill="none"
+                    stroke={EXPECTED}
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <polyline
+                    points={linePts(day.actual ?? day.hours)}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="2.4"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </>
+              )}
+            </svg>
+            {band && (
+              <span className="bz-band-label" style={{ left: `${(band.x0 + band.x1) / 2}%` }}>
+                {t("bandRustig")}
+              </span>
             )}
-            {AXIS_TICKS.map((i, k) => (
-              <text
-                key={i}
-                x={xAt(i).toFixed(1)}
-                y={H - 8}
-                fill="var(--tl)"
-                fontSize="11"
-                textAnchor="middle"
-              >
-                {AXIS_LABELS[k]}
-              </text>
-            ))}
-          </svg>
-
-          <div className="bz-foot">
-            <p className="bz-note">{note}</p>
-            <button className="bz-cta" onClick={() => onMakeConcept?.(day.iso)}>
-              {t("ctaFor", { date: formatDM(day.date) })}
-            </button>
+            <div className="bz-xlabels">
+              {ticks.map((i) => (
+                <span
+                  key={i}
+                  className={i === 0 ? "start" : i === N - 1 ? "end" : ""}
+                  style={{ left: `${xPct(i)}%` }}
+                >
+                  {String(vis[i]).padStart(2, "0")}:00
+                </span>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="bz-footbar">
+        <button className="bz-cta" onClick={() => onMakeConcept?.(day.iso)}>
+          {t("ctaFor", { date: formatDM(day.date) })}
+        </button>
       </div>
     </div>
   );
