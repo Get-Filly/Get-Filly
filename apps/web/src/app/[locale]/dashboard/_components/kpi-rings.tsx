@@ -93,6 +93,9 @@ export function KpiRings() {
 
   return (
     <div className="card kpi-rings-card">
+      <div className="card-h">
+        <div className="card-t">{t("title")}</div>
+      </div>
       <div className="card-b">
         <div className="ring-grid">
           {rings.map((r) => (

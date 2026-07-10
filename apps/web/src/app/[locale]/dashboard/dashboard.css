@@ -4360,9 +4360,6 @@
   .dashboard-shell .ring-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* KPI-strook zonder witte kaart: ringen direct op de crème-achtergrond. */
-.dashboard-shell .kpi-rings-card { background: transparent; border: 0; border-radius: 0; }
-.dashboard-shell .kpi-rings-card .card-b { padding: 2px 2px 10px; }
 /* Verwacht/voorspeld-lijn = grijs (swatch in de legenda). */
 .dashboard-shell .bz-ln.expected { border-top-color: var(--tl); }
 /* Bezetting-blok even hoog als de Filly-chat ernaast, en de
