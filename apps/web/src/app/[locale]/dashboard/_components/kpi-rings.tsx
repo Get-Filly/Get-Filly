@@ -75,8 +75,9 @@ export function KpiRings() {
   const totaalKansen = benut + actionable.lowOccupancyDays.length;
 
   const rings: Ring[] = [
-    // PLACEHOLDER — nog geen uitingen-quota in het datamodel.
-    { value: "10/30", pct: 10 / 30, label: t("r1_uitingen") },
+    // PLACEHOLDER — nog geen uitingen-quota in het datamodel. Toont "—"
+    // (geen verzonnen cijfer) tot de KPI's definitief zijn.
+    { value: "—", pct: 0, label: t("r1_uitingen") },
     {
       value: totaalKansen > 0 ? `${benut}/${totaalKansen}` : "—",
       pct: totaalKansen > 0 ? benut / totaalKansen : 0,
@@ -88,7 +89,8 @@ export function KpiRings() {
       label: t("r3_campagnes"),
     },
     // PLACEHOLDER — vindbaarheid-score komt later uit het Google-profiel.
-    { value: "85%", pct: 0.85, label: t("r4_vindbaarheid") },
+    // Toont "—" tot er een databron is.
+    { value: "—", pct: 0, label: t("r4_vindbaarheid") },
   ];
 
   return (
