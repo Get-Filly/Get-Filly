@@ -4337,8 +4337,8 @@
 /* Grafiek vult de resterende hoogte; SVG in unit-ruimte (0-100) rekt mee
  * via preserveAspectRatio=none. Onderaan 18px voor de tijd-labels; de
  * grijze basislijn (border-bottom) is de x-as. */
-.dashboard-shell .bz-chart { position: relative; flex: 1; min-height: 130px; margin-top: 4px; }
-.dashboard-shell .bz-svg { position: absolute; top: 0; left: 0; right: 0; bottom: 18px; display: block; border-bottom: 1px solid var(--border); }
+.dashboard-shell .bz-chart { position: relative; flex: 1; min-height: 130px; margin-top: 4px; overflow: hidden; }
+.dashboard-shell .bz-svg { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 18px); display: block; border-bottom: 1px solid var(--border); }
 .dashboard-shell .bz-band-label { position: absolute; top: 2px; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--accent-dark); pointer-events: none; }
 .dashboard-shell .bz-xlabels { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; }
 .dashboard-shell .bz-xlabels span { position: absolute; bottom: 0; font-size: 11px; color: var(--tl); white-space: nowrap; transform: translateX(-50%); }
