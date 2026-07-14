@@ -1070,8 +1070,8 @@
       "hasKidsMenu": "Has a kids' menu"
     },
     "servicePeriods": {
-      "title": "Service times",
-      "desc": "Set per day when you serve breakfast, lunch and dinner. One or more shifts, you decide. The dashboard uses these times for the weekly and daily occupancy per service."
+      "title": "Opening hours",
+      "desc": "Set your open and close time per day. The dashboard uses these times for the daily busyness graph."
     },
     "languages": {
       "title": "Languages your staff speaks",

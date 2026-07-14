@@ -24,7 +24,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { ServicePeriodsEditor } from "@/components/service-periods-editor";
+import { OpeningHoursEditor } from "@/components/opening-hours-editor";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 
@@ -725,9 +725,9 @@ function AccountPageInner() {
         <div className="form-section-title">{t("servicePeriods.title")}</div>
         <div className="form-section-desc">{t("servicePeriods.desc")}</div>
         <div className="form-field full">
-          <ServicePeriodsEditor
-            value={form.service_periods}
-            onChange={(next) => update("service_periods", next)}
+          <OpeningHoursEditor
+            value={form.opening_hours}
+            onChange={(next) => update("opening_hours", next)}
           />
         </div>
       </div>

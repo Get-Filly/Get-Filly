@@ -1402,7 +1402,8 @@ export type Restaurant = {
   // (overdekbaar: zonnescherm met regen-stand, glas-schuifwanden).
   // Bepaalt of Filly bij regen alsnog terras kan voorstellen.
   terrace_type: "open" | "covered" | "convertible" | null;
-  opening_hours: Record<string, { open: string; close: string }> | null;
+  // Per weekdag (mon..sun): open/sluit, of null = gesloten die dag.
+  opening_hours: Record<string, { open: string; close: string } | null> | null;
   closed_dates: string[] | null;
   // Per-dag service-tijden (ontbijt/lunch/diner). Sinds mig 0038.
   // Top-level keys: breakfast/lunch/dinner. Dag-keys: mon..sun.

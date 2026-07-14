@@ -1070,8 +1070,8 @@
       "hasKidsMenu": "Heeft een kindermenu"
     },
     "servicePeriods": {
-      "title": "Service-tijden",
-      "desc": "Per dag aangeven wanneer je ontbijt, lunch en diner serveert. Eén of meerdere shifts, jij bepaalt. Dashboard gebruikt deze tijden voor de week- en dag-bezetting per service."
+      "title": "Openingstijden",
+      "desc": "Geef per dag je open- en sluitingstijd op. Het dashboard gebruikt deze tijden voor de drukte-grafiek per dag."
     },
     "languages": {
       "title": "Talen die je personeel spreekt",
