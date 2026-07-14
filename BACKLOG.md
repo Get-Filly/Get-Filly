@@ -16,6 +16,27 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-07-14 — Reserveringen weg + Filly-detectie op busyness-grafiek (live op main)
+
+Commit 96100a2:
+- **Reserveringen uit het menu**: sidebar-item + pagina `dashboard/reserveringen/`
+  + de reserverings-functies/types in web `api.ts` verwijderd. Backend
+  reservations-module + tabel BLIJVEN (Filly's `restaurant-context.service`
+  gebruikt `ReservationsService`; tabel gelezen door KPI/Rapportages/data-export).
+- **Chat-detectie gekoppeld aan de grafiek (fase A)**: `useActionableDays` draait
+  nu op het busyness-model (`buildDayBusyness`→`isQuiet`) i.p.v. ruwe
+  occupancy_days → chat-chips, campagnes-strook en KPI-ring tonen dezelfde
+  rustige momenten als de grafiek. Grafiek-knop "Maak een campagne" opent de
+  geleide flow voor die dag (`FillyChat.seedDate`).
+- **Fase B (later, met de echte scraper-data):** busyness-model naar de backend
+  (Filly LLM-context + `detectAndGenerateLowOccupancy`), ruwe-occupancy_days-
+  detectie uitfaseren. Generatie-pijplijn (`generate-for-dates`) is datum-gedreven
+  en blijft ongemoeid.
+- Follow-up: onboarding gebruikt nog de per-shift `service-periods-editor`
+  (omzetten naar per-dag openingstijden, dan die editor opruimen).
+
+---
+
 ## 🗓️ 2026-07-14 — Dashboard-grafiek + openingstijden per dag (live op main)
 
 Vervolgronde op het dashboard-blok (commit 9c7abed):
