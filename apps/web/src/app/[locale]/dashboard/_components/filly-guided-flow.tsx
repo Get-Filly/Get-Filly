@@ -624,7 +624,7 @@ export function FillyGuidedFlow({
                         toggleOpenerDay({
                           date: d.date,
                           kind: "low_occupancy",
-                          label: `${formatDayNl(d.date, localeTag)} · ${d.occupancy_pct}% bezet`,
+                          label: `${formatDayNl(d.date, localeTag)} · ${d.occupancy_pct}% drukte`,
                         })
                       }
                     >

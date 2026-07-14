@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { BusynessCard } from "./_components/busyness-card";
 import { KpiRings } from "./_components/kpi-rings";
 import { FillyChat } from "./_components/filly-chat";
@@ -13,10 +14,13 @@ import { FillyChat } from "./_components/filly-chat";
 // de kalender (CalendarCard) zijn vervangen. De drukte komt nu uit
 // _lib/busyness.ts (naad naar de latere Google "populaire tijden"-bron).
 export default function DashboardPage() {
-  // Voorlopige koppeling: bij "Maak concept" scrollen we naar de Filly-
-  // chat zodat de eigenaar de dag daar oppakt. Latere fase: de gekozen
-  // datum vooraf invullen in de geleide flow.
-  function handleMakeConcept() {
+  // "Maak een campagne" op een rustig moment in de grafiek → de gekozen dag
+  // wordt aan de Filly-chat doorgegeven, die de geleide flow direct voor die
+  // dag opent. We scrollen ook even naar de chat.
+  const [seedDate, setSeedDate] = useState<string | null>(null);
+
+  function handleMakeConcept(iso: string) {
+    setSeedDate(iso);
     document
       .getElementById("filly-panel")
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -32,7 +36,7 @@ export default function DashboardPage() {
           <BusynessCard onMakeConcept={handleMakeConcept} />
         </div>
         <div className="right-col" id="filly-panel">
-          <FillyChat />
+          <FillyChat seedDate={seedDate} onSeedConsumed={() => setSeedDate(null)} />
         </div>
       </div>
     </div>

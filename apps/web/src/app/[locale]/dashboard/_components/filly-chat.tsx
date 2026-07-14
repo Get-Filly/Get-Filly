@@ -62,7 +62,16 @@ import { logger } from "@/lib/logger";
 //
 // ============================================================
 
-export function FillyChat() {
+export function FillyChat({
+  seedDate = null,
+  onSeedConsumed,
+}: {
+  // Dag aangeklikt in de dashboard-grafiek ("Maak een campagne"). Opent de
+  // geleide flow direct voor die dag. onSeedConsumed wist 'm in de parent
+  // zodat dezelfde dag later opnieuw aangeklikt kan worden.
+  seedDate?: string | null;
+  onSeedConsumed?: () => void;
+} = {}) {
   const t = useTranslations("dash__components_filly_chat");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -420,6 +429,21 @@ export function FillyChat() {
       logger.error(e);
     }
   };
+
+  // Vanuit de dashboard-grafiek ("Maak een campagne" op een rustig moment):
+  // open de geleide flow direct voor die dag zodra er een gesprek is.
+  useEffect(() => {
+    if (!seedDate || !conversationId) return;
+    let cancelled = false;
+    (async () => {
+      await handleActiveActionChange({ date: seedDate, step: "angles" });
+      if (!cancelled) onSeedConsumed?.();
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedDate, conversationId]);
 
   // De geleide flow laat ná het genereren een Filly-notitie achter in de
   // historie, zodat de eigenaar bij terugkomst ziet wat er gebeurd is i.p.v.
