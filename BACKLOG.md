@@ -16,6 +16,20 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-07-14 — Dashboard-grafiek + openingstijden per dag (live op main)
+
+Vervolgronde op het dashboard-blok (commit 9c7abed):
+- Dag-grafiek vult de kaart, y-as met kopruimte (tot 115, pieken plakken niet
+  meer aan de bovenkant), verwacht=grijs / werkelijk=groen zonder area-fill.
+- "Maak een campagne" = volledige-breedte-knop, uitgelijnd met de chat-invoer.
+- **Openingstijden nu PER DAG** i.p.v. per shift: nieuwe `OpeningHoursEditor`
+  op /account schrijft `opening_hours`; grafiek-x-as volgt die (service_periods
+  als terugval). `Restaurant.opening_hours` mag nu null per dag (= gesloten).
+- **Follow-ups:** onboarding zet nog `service_periods` → omzetten naar de per-dag
+  openingstijden; daarna `service-periods-editor.tsx` opruimen.
+
+---
+
 ## 🗓️ 2026-07-10 — Dashboard-herontwerp fase 1 (GEMERGED naar main + live)
 
 Nieuw dashboard-home gebouwd na akkoord op het prototype. Kernidee: bezetting
