@@ -12,7 +12,14 @@ import {
   type Restaurant,
 } from "./api";
 import { getUpcomingSpecialDays, type SpecialDay } from "./special-days";
-import { buildWindowOccupancy, isOpenOn } from "./occupancy-window";
+import { isOpenOn } from "./occupancy-window";
+import {
+  buildDayBusyness,
+  specialDayMap,
+  occupancyMap,
+  addDays,
+  isoOf,
+} from "@/app/[locale]/dashboard/_lib/busyness";
 
 // ============================================================
 // useActionableDays — rustige + speciale dagen voor Filly-flows
@@ -110,26 +117,43 @@ export function useActionableDays(): ActionableDays {
     return dates;
   }, [pendingSuggestions, campaigns]);
 
-  // Rustige dagen binnen het window die open zijn. Splits in "open"
-  // (nog actie nodig) en "afgedekt" (al voorstel/campagne) in één pass.
+  // Rustige dagen = het NIEUWE busyness-model (zelfde bron als de dashboard-
+  // grafiek): per dag in het venster het Google-patroon → isQuiet (relatieve
+  // drukte onder de eigenaar-drempel + open die dag). Zo tonen de chat en de
+  // grafiek exact dezelfde rustige momenten. (Verving de ruwe occupancy_days-
+  // detectie + seeded fallback, 2026-07-14.)
+  const realMap = useMemo(() => occupancyMap(windowOccupancy), [windowOccupancy]);
   const { lowOccupancyDays, coveredLowOccupancyCount } = useMemo(() => {
-    // seedMissing=false: alleen ECHTE lage-bezettingsdagen, geen seeded
-    // nep-data (Floris-feedback 2026-06-13). Zonder occupancy_days is dit
-    // dus leeg; de flow valt dan terug op upcomingOpenDays.
-    const windowDays = buildWindowOccupancy(
-      windowOccupancy,
-      today,
-      LOW_OCCUPANCY_WINDOW_DAYS,
-      false,
-    ).filter(
-      (d) => d.occupancy_pct < occupancyThreshold && isOpenOn(restaurant, d.date),
-    );
-    const open = windowDays.filter((d) => !coveredDates.has(d.date));
-    return {
-      lowOccupancyDays: open,
-      coveredLowOccupancyCount: windowDays.length - open.length,
-    };
-  }, [windowOccupancy, today, occupancyThreshold, restaurant, coveredDates]);
+    const todayIso = isoOf(today);
+    const specials = specialDayMap([
+      today.getFullYear(),
+      today.getFullYear() + 1,
+    ]);
+    const quiet: OccupancyDay[] = [];
+    let covered = 0;
+    for (let i = 1; i <= LOW_OCCUPANCY_WINDOW_DAYS; i++) {
+      const b = buildDayBusyness(
+        addDays(today, i),
+        realMap,
+        restaurant,
+        occupancyThreshold,
+        todayIso,
+        specials,
+      );
+      if (!b.isQuiet) continue; // isQuiet checkt al drempel + open
+      if (coveredDates.has(b.iso)) {
+        covered++;
+        continue;
+      }
+      quiet.push({
+        date: b.iso,
+        occupancy_pct: b.displayPct,
+        estimated_guests: 0,
+        estimated_revenue_cents: 0,
+      });
+    }
+    return { lowOccupancyDays: quiet, coveredLowOccupancyCount: covered };
+  }, [realMap, today, occupancyThreshold, restaurant, coveredDates]);
 
   // Komende open dagen (los van bezetting): de eerlijke "elke open dag is
   // rustig"-lijst voor de flow wanneer er geen occupancy_days zijn.
@@ -144,7 +168,10 @@ export function useActionableDays(): ActionableDays {
     return out;
   }, [today, restaurant, coveredDates]);
 
-  const hasOccupancyData = windowOccupancy.length > 0;
+  // We hebben altijd een drukte-signaal (het Google-patroon uit busyness.ts),
+  // dus de flow toont de rustige momenten uit dat model i.p.v. de oude
+  // "geen reserveringen"-terugval.
+  const hasOccupancyData = true;
 
   const { specialDays, coveredSpecialCount } = useMemo(() => {
     const all = getUpcomingSpecialDays(today, SPECIAL_DAYS_WEEKS_AHEAD);
