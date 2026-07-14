@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Megaphone,
   Search,
-  CalendarDays,
   BarChart3,
 } from "lucide-react";
 import { type Module } from "@getfilly/shared";
@@ -61,7 +60,6 @@ const allMenuItems: MenuItem[] = [
   // dekt de lading beter. Route + module-key blijven google-business /
   // google_business voor backwards-compat met deep-links + permissies.
   { href: "/dashboard/google-business", labelKey: "findability", module: "google_business", icon: Search },
-  { href: "/dashboard/reserveringen", labelKey: "reservations", module: "reserveringen", icon: CalendarDays },
   // Gasten-pagina uit sidebar verwijderd 2026-05-12: gast-info zit
   // nu inline in elke reservering-rij (totaal bezoeken, laatste
   // bezoek). Route /dashboard/gasten blijft bestaan voor deep-links.
