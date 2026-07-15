@@ -14,6 +14,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
 import {
+  fetchBusyness,
+  fetchBusynessActual,
   fetchOccupancy,
   fetchRestaurant,
   type OccupancyDay,
@@ -67,6 +69,16 @@ export function BusynessCard({ onMakeConcept }: Props) {
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  // Echt Google-patroon (7x24) uit busyness_snapshots; null = terugval op seed.
+  const [pattern, setPattern] = useState<number[][] | null>(null);
+  // Openingstijden uit de pull; sturen de grafiek-x-as (terugval na eigen tijden).
+  const [busynessHours, setBusynessHours] = useState<
+    Record<string, { open: string; close: string } | null> | null
+  >(null);
+  // Echte werkelijk-drukte per datum ([uur, pct]) uit de live-metingen.
+  const [actualByDate, setActualByDate] = useState<
+    Record<string, [number, number][]>
+  >({});
 
   const today = useMemo(() => new Date(), []);
   const todayIso = useMemo(() => isoOf(today), [today]);
@@ -90,18 +102,45 @@ export function BusynessCard({ onMakeConcept }: Props) {
     fetchRestaurant()
       .then((r) => !cancelled && setRestaurant(r))
       .catch(() => !cancelled && setRestaurant(null));
+    fetchBusyness()
+      .then((b) => {
+        if (cancelled) return;
+        setPattern(b.pattern);
+        setBusynessHours(b.openingHours);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPattern(null);
+        setBusynessHours(null);
+      });
+    // Werkelijk-drukte voor het zichtbare bereik (vorige t/m volgende week).
+    const from = isoOf(addDays(thisMonday, -7));
+    const to = isoOf(addDays(thisMonday, 13));
+    fetchBusynessActual(from, to)
+      .then((a) => !cancelled && setActualByDate(a))
+      .catch(() => !cancelled && setActualByDate({}));
     return () => {
       cancelled = true;
     };
-  }, [today]);
+  }, [today, thisMonday]);
 
   const realMap = useMemo(() => occupancyMap(occupancy), [occupancy]);
   const threshold = restaurant?.low_occupancy_threshold ?? 50;
 
   const monday = useMemo(() => addDays(thisMonday, offset * 7), [thisMonday, offset]);
   const week = useMemo(
-    () => buildWeek(monday, realMap, restaurant, threshold, todayIso),
-    [monday, realMap, restaurant, threshold, todayIso],
+    () =>
+      buildWeek(
+        monday,
+        realMap,
+        restaurant,
+        threshold,
+        todayIso,
+        pattern,
+        busynessHours,
+        actualByDate,
+      ),
+    [monday, realMap, restaurant, threshold, todayIso, pattern, busynessHours, actualByDate],
   );
   const day: DayBusyness = week[col] ?? week[0];
 
@@ -136,6 +175,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const yPct = (v: number) => (1 - v / Y_MAX) * 100;
   const linePts = (arr: number[]) =>
     vis.map((h, i) => `${xPct(i).toFixed(2)},${yPct(arr[h]).toFixed(2)}`).join(" ");
+  // Echte gemeten punten (real-modus): uur → x (index binnen open bereik),
+  // pct → y. Alleen uren binnen de zichtbare openingsuren.
+  const actualDots = (pairs: [number, number][]) =>
+    pairs
+      .filter(([h]) => h >= day.openHour && h <= day.closeHour)
+      .map(([h, pct]) => ({ x: xPct(h - day.openHour), y: yPct(pct) }));
 
   const ticks = useMemo(() => {
     const step = N <= 9 ? 2 : N <= 15 ? 3 : 4;
@@ -306,15 +351,46 @@ export function BusynessCard({ onMakeConcept }: Props) {
                     strokeLinecap="round"
                     vectorEffect="non-scaling-stroke"
                   />
-                  <polyline
-                    points={linePts(day.actual ?? day.hours)}
-                    fill="none"
-                    stroke="var(--accent)"
-                    strokeWidth="2.4"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
+                  {day.actualPoints ? (
+                    // Real-modus: groene lijn + stippen uit de echte metingen.
+                    // (Stippen zorgen dat ook één losse meting zichtbaar is.)
+                    <>
+                      {day.actualPoints.length > 1 && (
+                        <polyline
+                          points={actualDots(day.actualPoints)
+                            .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+                            .join(" ")}
+                          fill="none"
+                          stroke="var(--accent)"
+                          strokeWidth="2.4"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      )}
+                      {actualDots(day.actualPoints).map((p, i) => (
+                        <circle
+                          key={i}
+                          cx={p.x}
+                          cy={p.y}
+                          r="1.1"
+                          fill="var(--accent)"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      ))}
+                    </>
+                  ) : day.actual ? (
+                    // Seed-modus (zaak zonder echte drukte-bron): oude lijn.
+                    <polyline
+                      points={linePts(day.actual)}
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="2.4"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ) : null}
                 </>
               )}
             </svg>

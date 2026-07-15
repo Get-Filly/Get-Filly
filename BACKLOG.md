@@ -16,6 +16,38 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-07-15 — Bezetting: echte databron via Outscraper (fase B, live op main)
+
+De `getBusyness`-naad heeft nu een echte bron: **Outscraper** (Google
+"Populaire tijden"), los-gekoppeld gebouwd achter de bestaande grafiek.
+Nieuwe module `apps/api/src/busyness/`.
+
+- **Parser** (`outscraper.parser.ts`, getest tegen een echte Bar Barolo-pull):
+  `popular_times` → 7×24 patroon (dag 1=ma…7=zo, uren 6-23, 0-5=0),
+  live-drukte uit het `{day:"live"}`-element, `working_hours` → `opening_hours`.
+- **Client** (`outscraper.client.ts`): `/google-maps-search` (sync + async-poll-terugval), `X-API-KEY`, geen enrichments.
+- **Service**: `refreshRestaurant`/`refreshAll` (weekpatroon) + `refreshLive`
+  (belt alleen open zaken) + `getLatest`/`getActualByDate` (leeskant).
+- **Cron**: `GET /api/busyness/cron/live` (elk uur) + `/refresh` (wekelijks vangnet),
+  zelfde `CRON_SECRET`-patroon. Handmatig: `POST /api/busyness/me/refresh`.
+- **Dashboard**: verwachte lijn = Google's patroon, werkelijke lijn = echte
+  live-metingen per dag (mediaan per uur), grafiek-x-as volgt de
+  openingstijden uit de pull. Seed blijft terugval voor zaken zonder bron.
+- **Migraties (gedraaid):** `0062_busyness_snapshots`, `0063_restaurant_busyness_place_id`
+  (drukte-bron LOS van GBP `google_place_id`), `0064_busyness_opening_hours`.
+- **Env:** `OUTSCRAPER_API_KEY` (in .env + Vercel-api). Demo's "Trattoria Demo"
+  + "Demo Bistro" wijzen via `busyness_place_id` naar Bar Barolo (GBP ongemoeid).
+- **Nog open (P2):**
+  - [ ] Werkelijk-lijn vult zich pas met echte historie zodra de uurlijkse
+    cron op productie draait (na deze deploy).
+  - [ ] Fase B-backend: busyness-model naar `restaurant-context.service` +
+    `detectAndGenerateLowOccupancy` (Filly's LLM-context + auto-detectie).
+  - [ ] Snapshot-bloat: nu `raw`+`pattern` bij elke live-tick → later lite
+    live-rows / prunen van oude snapshots.
+  - [ ] Onboarding zet nog `service_periods` → omzetten naar `opening_hours`.
+
+---
+
 ## 🗓️ 2026-07-14 — Reserveringen weg + Filly-detectie op busyness-grafiek (live op main)
 
 Commit 96100a2:
