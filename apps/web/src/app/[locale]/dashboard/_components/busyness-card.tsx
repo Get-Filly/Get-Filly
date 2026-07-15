@@ -70,6 +70,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   // Echt Google-patroon (7x24) uit busyness_snapshots; null = terugval op seed.
   const [pattern, setPattern] = useState<number[][] | null>(null);
+  // Openingstijden uit de pull; sturen de grafiek-x-as (terugval na eigen tijden).
+  const [busynessHours, setBusynessHours] = useState<
+    Record<string, { open: string; close: string } | null> | null
+  >(null);
 
   const today = useMemo(() => new Date(), []);
   const todayIso = useMemo(() => isoOf(today), [today]);
@@ -94,8 +98,16 @@ export function BusynessCard({ onMakeConcept }: Props) {
       .then((r) => !cancelled && setRestaurant(r))
       .catch(() => !cancelled && setRestaurant(null));
     fetchBusyness()
-      .then((b) => !cancelled && setPattern(b.pattern))
-      .catch(() => !cancelled && setPattern(null));
+      .then((b) => {
+        if (cancelled) return;
+        setPattern(b.pattern);
+        setBusynessHours(b.openingHours);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPattern(null);
+        setBusynessHours(null);
+      });
     return () => {
       cancelled = true;
     };
@@ -106,8 +118,9 @@ export function BusynessCard({ onMakeConcept }: Props) {
 
   const monday = useMemo(() => addDays(thisMonday, offset * 7), [thisMonday, offset]);
   const week = useMemo(
-    () => buildWeek(monday, realMap, restaurant, threshold, todayIso, pattern),
-    [monday, realMap, restaurant, threshold, todayIso, pattern],
+    () =>
+      buildWeek(monday, realMap, restaurant, threshold, todayIso, pattern, busynessHours),
+    [monday, realMap, restaurant, threshold, todayIso, pattern, busynessHours],
   );
   const day: DayBusyness = week[col] ?? week[0];
 

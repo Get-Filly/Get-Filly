@@ -80,13 +80,24 @@ function hourly24(scale: number, seed: string): number[] {
 const hourOf = (hhmm: string) => parseInt(hhmm.slice(0, 2), 10);
 const minsOf = (hhmm: string) => parseInt(hhmm.slice(3, 5), 10);
 
+export type OpeningHoursMap = Record<
+  string,
+  { open: string; close: string } | null
+>;
+
 // Open-bereik → [openHour, closeHour] voor de x-as, PER dag.
 // Bron 1: opening_hours (dít bewerkt de eigenaar nu op /account, per dag).
-// Bron 2: service_periods (terugval; onboarding zet dit nog). Fallback 9-23.
-function openRange(restaurant: Restaurant | null, date: Date): [number, number] {
+// Bron 2: openingstijden uit de busyness-pull (Google working_hours).
+// Bron 3: service_periods (terugval; onboarding zet dit nog). Fallback 9-23.
+function openRange(
+  restaurant: Restaurant | null,
+  date: Date,
+  busynessHours?: OpeningHoursMap | null,
+): [number, number] {
   const dayKey = WEEKDAY_KEYS[date.getDay()];
 
-  const oh = restaurant?.opening_hours?.[dayKey];
+  // Eigen ingestelde tijden winnen; anders die uit de pull.
+  const oh = restaurant?.opening_hours?.[dayKey] ?? busynessHours?.[dayKey];
   if (oh && oh.open && oh.close) {
     const open = hourOf(oh.open);
     // Sluit op een half uur → rond omhoog zodat dat laatste uur zichtbaar is.
@@ -152,6 +163,8 @@ export function buildDayBusyness(
   // Echt weekpatroon uit busyness_snapshots (7x24, 0=ma..6=zo). Als
   // aanwezig is dít de verwachte lijn i.p.v. de seed. null = terugval.
   pattern?: number[][] | null,
+  // Openingstijden uit de busyness-pull (grafiek-x-as terugval).
+  busynessHours?: OpeningHoursMap | null,
 ): DayBusyness {
   const iso = isoOf(date);
   const colMon = mondayIndex(date.getDay());
@@ -178,7 +191,7 @@ export function buildDayBusyness(
     actual = hourly24(wd * dayFactor, iso);
   }
 
-  const [openHour, closeHour] = openRange(restaurant, date);
+  const [openHour, closeHour] = openRange(restaurant, date, busynessHours);
   const disp = actual ?? hours;
   let sum = 0;
   let n = 0;
@@ -211,12 +224,22 @@ export function buildWeek(
   threshold: number,
   todayIso: string,
   pattern?: number[][] | null,
+  busynessHours?: OpeningHoursMap | null,
 ): DayBusyness[] {
   const days: Date[] = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const years = Array.from(new Set(days.map((d) => d.getFullYear())));
   const specials = specialDayMap(years);
   return days.map((d) =>
-    buildDayBusyness(d, realByIso, restaurant, threshold, todayIso, specials, pattern),
+    buildDayBusyness(
+      d,
+      realByIso,
+      restaurant,
+      threshold,
+      todayIso,
+      specials,
+      pattern,
+      busynessHours,
+    ),
   );
 }
 

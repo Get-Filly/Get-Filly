@@ -1482,6 +1482,8 @@ export async function fetchRestaurant(): Promise<Restaurant> {
 // snapshot → de dashboard-grafiek valt terug op de seed.
 export type BusynessLatest = {
   pattern: number[][] | null;
+  // Openingstijden uit de Outscraper-pull (grafiek-x-as); null = terugval.
+  openingHours: Record<string, { open: string; close: string } | null> | null;
   livePct: number | null;
   liveHour: number | null;
   liveWeekday: number | null;

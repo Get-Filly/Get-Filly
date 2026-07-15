@@ -9,7 +9,11 @@ import {
 // op de handmatige endpoint komt van de RestaurantAccessGuard.
 import { SupabaseService } from '../supabase/supabase.service';
 import { OutscraperClient } from './outscraper.client';
-import { parsePopularTimes } from './outscraper.parser';
+import {
+  parsePopularTimes,
+  parseWorkingHours,
+  type OpeningHours,
+} from './outscraper.parser';
 
 export interface RefreshResult {
   restaurantId: string;
@@ -97,6 +101,7 @@ export class BusynessService {
     const { pattern, livePct, liveHour } = parsePopularTimes(
       place.popular_times,
     );
+    const openingHours = parseWorkingHours(place.working_hours);
     const now = this.nowAmsterdam();
     const hasLive = livePct !== null;
 
@@ -107,6 +112,7 @@ export class BusynessService {
         place_id: placeId,
         source: 'outscraper',
         pattern, // 7x24 verwacht, of null bij kleine zaak
+        opening_hours: openingHours, // uit working_hours, voor de grafiek-x-as
         live_pct: livePct,
         // live_hour/weekday alleen zetten als er live-drukte is (constraint
         // laat null toe). Voorkeur voor Google's opgegeven uur, anders "nu".
@@ -130,6 +136,7 @@ export class BusynessService {
    */
   async getLatest(restaurantId: string): Promise<{
     pattern: number[][] | null;
+    openingHours: OpeningHours | null;
     livePct: number | null;
     liveHour: number | null;
     liveWeekday: number | null;
@@ -137,7 +144,9 @@ export class BusynessService {
   }> {
     const { data, error } = await this.supabase.client
       .from('busyness_snapshots')
-      .select('pattern, live_pct, live_hour, live_weekday, captured_at')
+      .select(
+        'pattern, opening_hours, live_pct, live_hour, live_weekday, captured_at',
+      )
       .eq('restaurant_id', restaurantId)
       .not('pattern', 'is', null)
       .order('captured_at', { ascending: false })
@@ -147,6 +156,7 @@ export class BusynessService {
     if (!data) {
       return {
         pattern: null,
+        openingHours: null,
         livePct: null,
         liveHour: null,
         liveWeekday: null,
@@ -155,6 +165,7 @@ export class BusynessService {
     }
     return {
       pattern: (data.pattern as number[][] | null) ?? null,
+      openingHours: (data.opening_hours as OpeningHours | null) ?? null,
       livePct: data.live_pct ?? null,
       liveHour: data.live_hour ?? null,
       liveWeekday: data.live_weekday ?? null,
