@@ -62,8 +62,17 @@ export class BusynessService {
    * Haalt de drukte voor één restaurant op bij Outscraper en schrijft een
    * snapshot weg. Overslaan (geen fout) als er geen place_id of geen
    * Outscraper-resultaat is.
+   *
+   * opts.lite = true (uurlijkse live-cron): schrijf een LICHTE rij met
+   * alleen de live-meting (geen pattern/opening_hours/raw). Dat voorkomt
+   * dat elke uur-tick het volledige patroon + ruwe JSON dupliceert. Het
+   * patroon (verwacht) ververst de wekelijkse volledige refresh. Geen
+   * live-waarde in lite-modus → niks opslaan.
    */
-  async refreshRestaurant(restaurantId: string): Promise<RefreshResult> {
+  async refreshRestaurant(
+    restaurantId: string,
+    opts?: { lite?: boolean },
+  ): Promise<RefreshResult> {
     const { data: rest, error } = await this.supabase.client
       .from('restaurants')
       .select('id, busyness_place_id, google_place_id')
@@ -101,10 +110,37 @@ export class BusynessService {
     const { pattern, livePct, liveHour } = parsePopularTimes(
       place.popular_times,
     );
-    const openingHours = parseWorkingHours(place.working_hours);
     const now = this.nowAmsterdam();
     const hasLive = livePct !== null;
 
+    // Lite-modus (live-cron): alleen de live-meting, geen zware velden.
+    if (opts?.lite) {
+      if (!hasLive) {
+        return {
+          restaurantId,
+          placeId,
+          hasPattern: false,
+          livePct: null,
+          skipped: 'geen live',
+        };
+      }
+      const { error: liteErr } = await this.supabase.client
+        .from('busyness_snapshots')
+        .insert({
+          restaurant_id: restaurantId,
+          place_id: placeId,
+          source: 'outscraper',
+          live_pct: livePct,
+          live_hour: liveHour ?? now.hour,
+          live_weekday: now.weekday,
+        });
+      if (liteErr) throw new InternalServerErrorException(liteErr.message);
+      this.logger.log(`busyness ${restaurantId}: live-tick ${livePct}`);
+      return { restaurantId, placeId, hasPattern: false, livePct };
+    }
+
+    // Volledige rij (wekelijkse/handmatige refresh): patroon + openingstijden.
+    const openingHours = parseWorkingHours(place.working_hours);
     const { error: insErr } = await this.supabase.client
       .from('busyness_snapshots')
       .insert({
@@ -392,7 +428,7 @@ export class BusynessService {
         continue;
       }
       try {
-        results.push(await this.refreshRestaurant(id));
+        results.push(await this.refreshRestaurant(id, { lite: true }));
         called++;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -417,6 +453,7 @@ export class BusynessService {
   async refreshAll(): Promise<{
     total: number;
     refreshed: number;
+    pruned: number;
     results: RefreshResult[];
   }> {
     const { data, error } = await this.supabase.client
@@ -448,6 +485,34 @@ export class BusynessService {
     this.logger.log(
       `busyness-refresh klaar: ${refreshed}/${ids.length} met data.`,
     );
-    return { total: ids.length, refreshed, results };
+
+    // Oude snapshots opruimen (de wekelijkse refresh is een mooi moment).
+    // Live-metingen > 120 dagen zijn ruim voldoende voor de mediaan-per-
+    // weekdag; oudere rijen (incl. verouderde patronen) mogen weg.
+    const pruned = await this.pruneOldSnapshots().catch((e) => {
+      this.logger.warn(`Prune faalde: ${String(e)}`);
+      return 0;
+    });
+
+    return { total: ids.length, refreshed, pruned, results };
+  }
+
+  /**
+   * Verwijdert snapshots ouder dan keepDays. Veilig omdat de wekelijkse
+   * refresh telkens een vers patroon wegschrijft, dus de laatste
+   * (verwacht-)snapshot blijft altijd recent.
+   */
+  async pruneOldSnapshots(keepDays = 120): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - keepDays);
+    const { data, error } = await this.supabase.client
+      .from('busyness_snapshots')
+      .delete()
+      .lt('captured_at', cutoff.toISOString())
+      .select('id');
+    if (error) throw new InternalServerErrorException(error.message);
+    const n = data?.length ?? 0;
+    if (n) this.logger.log(`busyness-prune: ${n} oude snapshots verwijderd.`);
+    return n;
   }
 }
