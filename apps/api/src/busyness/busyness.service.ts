@@ -173,6 +173,87 @@ export class BusynessService {
     };
   }
 
+  // Is de zaak NU open volgens deze openingstijden? Uur-precisie is genoeg
+  // voor de "moeten we live meten"-beslissing. close "00:00"/na middernacht
+  // → tot eind van de dag.
+  private isOpenNow(
+    oh: OpeningHours | null,
+    now: { weekday: number; hour: number },
+  ): boolean {
+    if (!oh) return false;
+    const key = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][now.weekday];
+    const day = oh[key];
+    if (!day || !day.open || !day.close) return false;
+    const openH = parseInt(day.open.slice(0, 2), 10);
+    let closeH = parseInt(day.close.slice(0, 2), 10);
+    if (closeH <= openH) closeH = 24; // 00:00 of over middernacht
+    return now.hour >= openH && now.hour < closeH;
+  }
+
+  /**
+   * Uurlijkse live-meting: belt per restaurant ALLEEN als het nu open is
+   * (bespaart calls buiten openingstijden). Elke call haalt pattern + live
+   * op, dus dit ververst het verwachte patroon meteen mee. Onbekende
+   * openingstijden (nog nooit gepulld) → tóch bellen om te bootstrappen.
+   */
+  async refreshLive(): Promise<{
+    total: number;
+    called: number;
+    skipped: number;
+    results: RefreshResult[];
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('restaurants')
+      .select('id, opening_hours')
+      .or('busyness_place_id.not.is.null,google_place_id.not.is.null');
+    if (error) throw new InternalServerErrorException(error.message);
+
+    const now = this.nowAmsterdam();
+    const results: RefreshResult[] = [];
+    let called = 0;
+    let skipped = 0;
+
+    for (const r of data ?? []) {
+      const id = r.id as string;
+      const owner = (r.opening_hours as OpeningHours | null) ?? null;
+      // Openingstijden uit de laatste pull (voor zaken zonder/eigen-lege tijden).
+      const pull = (await this.getLatest(id)).openingHours;
+      const known = owner || pull;
+      // Open = eigen OF pull zegt open (permissief: liever een call te veel
+      // dan een gemiste meting bij deels-lege eigen tijden). Bekend én dicht
+      // → overslaan. Onbekend → tóch bellen (bootstrap).
+      const openNow =
+        this.isOpenNow(owner, now) || this.isOpenNow(pull, now);
+      if (known && !openNow) {
+        skipped++;
+        results.push({
+          restaurantId: id,
+          placeId: null,
+          hasPattern: false,
+          livePct: null,
+          skipped: 'gesloten',
+        });
+        continue;
+      }
+      try {
+        results.push(await this.refreshRestaurant(id));
+        called++;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        this.logger.error(`live-refresh faalde voor ${id}: ${msg}`);
+        results.push({
+          restaurantId: id,
+          placeId: null,
+          hasPattern: false,
+          livePct: null,
+          skipped: `fout: ${msg}`,
+        });
+      }
+    }
+    this.logger.log(`live-refresh: ${called} gebeld, ${skipped} dicht/over.`);
+    return { total: (data ?? []).length, called, skipped, results };
+  }
+
   /**
    * Ververst alle restaurants met een google_place_id. Eén kapotte plek
    * blokkeert de rest niet (per zaak gevangen + gelogd).
