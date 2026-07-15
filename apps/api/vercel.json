@@ -19,6 +19,7 @@
     { "path": "/api/seo-report/run", "schedule": "0 5 * * 1" },
     { "path": "/api/events/sync", "schedule": "0 4 * * 0" },
     { "path": "/api/campaigns/cron/run-scheduled", "schedule": "*/30 * * * *" },
-    { "path": "/api/chat/cron/cleanup", "schedule": "0 3 * * *" }
+    { "path": "/api/chat/cron/cleanup", "schedule": "0 3 * * *" },
+    { "path": "/api/busyness/cron/refresh", "schedule": "0 4 * * 1" }
   ]
 }
