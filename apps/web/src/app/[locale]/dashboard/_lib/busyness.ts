@@ -27,7 +27,10 @@ export type DayBusyness = {
   colMon: number; // 0=ma … 6=zo
   displayPct: number; // gemiddelde drukte over open uren (voor rustig/druk)
   hours: number[]; // 24 waarden (0-100), verwacht
-  actual: number[] | null; // 24 waarden, werkelijk; null in de toekomst
+  actual: number[] | null; // 24 waarden, werkelijk (seed-modus); null in de toekomst
+  // Echte gemeten drukte (real-modus): [uur, pct]-punten die dag. null =
+  // geen metingen / geen echte bron. Gebruikt i.p.v. `actual` als aanwezig.
+  actualPoints: [number, number][] | null;
   openHour: number; // eerste zichtbare uur (uit openingstijden)
   closeHour: number; // laatste zichtbare uur
   timeframe: Timeframe;
@@ -165,11 +168,17 @@ export function buildDayBusyness(
   pattern?: number[][] | null,
   // Openingstijden uit de busyness-pull (grafiek-x-as terugval).
   busynessHours?: OpeningHoursMap | null,
+  // Echte werkelijk-drukte per datum ([uur, pct]) uit de live-metingen.
+  actualByDate?: Record<string, [number, number][]> | null,
 ): DayBusyness {
   const iso = isoOf(date);
   const colMon = mondayIndex(date.getDay());
   const tf: Timeframe = iso === todayIso ? "today" : iso < todayIso ? "past" : "future";
   const wd = WD_FACTOR[colMon];
+
+  // Real-modus zodra er een echt weekpatroon is: dan komt de werkelijk-lijn
+  // uit de live-metingen (actualPoints) i.p.v. de seed.
+  const useReal = !!(pattern && pattern.length === 7);
 
   // Verwacht: echt Google-patroon indien beschikbaar, anders seed op
   // weekdag (stabiel per weekdag, niet per datum).
@@ -179,16 +188,22 @@ export function buildDayBusyness(
       ? realDay.map(clamp)
       : hourly24(wd, `wd${colMon}`);
 
-  // Werkelijk: per datum, varieert rond verwacht (toont drukker/rustiger
-  // dan normaal). Echte occupancy_days schalen de dag mee als aanwezig.
+  // Werkelijk. Real-modus: echte gemeten uren (of null als nog geen meting
+  // die dag). Seed-modus: het oude afgeleide dagverloop.
   let actual: number[] | null = null;
+  let actualPoints: [number, number][] | null = null;
   if (tf !== "future") {
-    const hb = hash(iso);
-    let dayFactor = 0.85 + (hb % 30) / 100;
-    if (specials.get(iso)) dayFactor += 0.2;
-    const real = realByIso.get(iso);
-    if (real !== undefined) dayFactor *= real / 60; // echte dag-pct t.o.v. baseline
-    actual = hourly24(wd * dayFactor, iso);
+    if (useReal) {
+      const pts = actualByDate?.[iso];
+      actualPoints = pts && pts.length ? pts : null;
+    } else {
+      const hb = hash(iso);
+      let dayFactor = 0.85 + (hb % 30) / 100;
+      if (specials.get(iso)) dayFactor += 0.2;
+      const real = realByIso.get(iso);
+      if (real !== undefined) dayFactor *= real / 60; // echte dag-pct t.o.v. baseline
+      actual = hourly24(wd * dayFactor, iso);
+    }
   }
 
   const [openHour, closeHour] = openRange(restaurant, date, busynessHours);
@@ -208,6 +223,7 @@ export function buildDayBusyness(
     displayPct,
     hours,
     actual,
+    actualPoints,
     openHour,
     closeHour,
     timeframe: tf,
@@ -225,6 +241,7 @@ export function buildWeek(
   todayIso: string,
   pattern?: number[][] | null,
   busynessHours?: OpeningHoursMap | null,
+  actualByDate?: Record<string, [number, number][]> | null,
 ): DayBusyness[] {
   const days: Date[] = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const years = Array.from(new Set(days.map((d) => d.getFullYear())));
@@ -239,6 +256,7 @@ export function buildWeek(
       specials,
       pattern,
       busynessHours,
+      actualByDate,
     ),
   );
 }

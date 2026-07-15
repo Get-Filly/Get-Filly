@@ -190,6 +190,83 @@ export class BusynessService {
     return now.hour >= openH && now.hour < closeH;
   }
 
+  // Amsterdam-kalenderdatum (YYYY-MM-DD) van een tijdstip.
+  private amsterdamDate(d: Date): string {
+    const p = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Amsterdam',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const y = p.find((x) => x.type === 'year')?.value ?? '1970';
+    const m = p.find((x) => x.type === 'month')?.value ?? '01';
+    const day = p.find((x) => x.type === 'day')?.value ?? '01';
+    return `${y}-${m}-${day}`;
+  }
+
+  private median(nums: number[]): number {
+    const s = [...nums].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
+  }
+
+  /**
+   * Echte werkelijk-drukte per dag uit de live-metingen, voor een
+   * datumbereik (de zichtbare weken). Per (datum, uur) de MEDIAAN van de
+   * live_pct-waarden (tegen uitschieters). Retourneert per Amsterdam-datum
+   * een gesorteerde lijst [uur, pct]. Alleen dagen/uren met een meting.
+   */
+  async getActualByDate(
+    restaurantId: string,
+    fromIso: string,
+    toIso: string,
+  ): Promise<Record<string, [number, number][]>> {
+    // UTC-marge van een dag aan beide kanten (Amsterdam-datum ≠ UTC-datum).
+    const lower = new Date(`${fromIso}T00:00:00Z`);
+    lower.setUTCDate(lower.getUTCDate() - 1);
+    const upper = new Date(`${toIso}T00:00:00Z`);
+    upper.setUTCDate(upper.getUTCDate() + 2);
+
+    const { data, error } = await this.supabase.client
+      .from('busyness_snapshots')
+      .select('captured_at, live_pct, live_hour')
+      .eq('restaurant_id', restaurantId)
+      .not('live_pct', 'is', null)
+      .gte('captured_at', lower.toISOString())
+      .lte('captured_at', upper.toISOString())
+      .order('captured_at', { ascending: true });
+    if (error) throw new InternalServerErrorException(error.message);
+
+    // bucket[datum][uur] = [pct, ...]
+    const bucket: Record<string, Record<number, number[]>> = {};
+    for (const row of data ?? []) {
+      const when = new Date(row.captured_at as string);
+      const date = this.amsterdamDate(when);
+      if (date < fromIso || date > toIso) continue;
+      const hour =
+        row.live_hour ??
+        parseInt(
+          new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Europe/Amsterdam',
+            hour: '2-digit',
+            hour12: false,
+          }).format(when),
+          10,
+        );
+      if (hour == null || hour < 0 || hour > 23) continue;
+      (bucket[date] ??= {})[hour] ??= [];
+      bucket[date][hour].push(row.live_pct as number);
+    }
+
+    const out: Record<string, [number, number][]> = {};
+    for (const [date, hours] of Object.entries(bucket)) {
+      out[date] = Object.entries(hours)
+        .map(([h, pcts]) => [Number(h), this.median(pcts)] as [number, number])
+        .sort((a, b) => a[0] - b[0]);
+    }
+    return out;
+  }
+
   /**
    * Uurlijkse live-meting: belt per restaurant ALLEEN als het nu open is
    * (bespaart calls buiten openingstijden). Elke call haalt pattern + live

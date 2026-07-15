@@ -1496,6 +1496,22 @@ export async function fetchBusyness(): Promise<BusynessLatest> {
   return res.json();
 }
 
+// Echte werkelijk-drukte per dag (uit live-metingen). Per Amsterdam-datum
+// een lijst [uur, pct]; alleen dagen/uren met een meting.
+export type BusynessActual = Record<string, [number, number][]>;
+
+export async function fetchBusynessActual(
+  fromIso: string,
+  toIso: string,
+): Promise<BusynessActual> {
+  const res = await authedFetch(
+    `${API_URL}/busyness/me/actual?from=${fromIso}&to=${toIso}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateRestaurant(
   updates: Partial<Restaurant>,
 ): Promise<Restaurant> {

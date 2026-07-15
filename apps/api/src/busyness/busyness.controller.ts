@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
@@ -26,5 +26,16 @@ export class BusynessController {
   @Get('me')
   getMine(@RestaurantId() restaurantId: string) {
     return this.busyness.getLatest(restaurantId);
+  }
+
+  // GET /api/busyness/me/actual?from=YYYY-MM-DD&to=YYYY-MM-DD
+  // Echte werkelijk-drukte per dag (uit live-metingen) voor de grafiek.
+  @Get('me/actual')
+  getActual(
+    @RestaurantId() restaurantId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.busyness.getActualByDate(restaurantId, from, to);
   }
 }
