@@ -62,13 +62,17 @@ export class BusynessService {
   async refreshRestaurant(restaurantId: string): Promise<RefreshResult> {
     const { data: rest, error } = await this.supabase.client
       .from('restaurants')
-      .select('id, google_place_id')
+      .select('id, busyness_place_id, google_place_id')
       .eq('id', restaurantId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
     if (!rest) throw new NotFoundException('Restaurant niet gevonden.');
 
-    const placeId = (rest.google_place_id as string | null) ?? null;
+    // Drukte-bron: eigen veld eerst, anders terugval op de GBP-place_id.
+    const placeId =
+      (rest.busyness_place_id as string | null) ??
+      (rest.google_place_id as string | null) ??
+      null;
     if (!placeId) {
       return {
         restaurantId,
@@ -170,7 +174,7 @@ export class BusynessService {
     const { data, error } = await this.supabase.client
       .from('restaurants')
       .select('id')
-      .not('google_place_id', 'is', null);
+      .or('busyness_place_id.not.is.null,google_place_id.not.is.null');
     if (error) throw new InternalServerErrorException(error.message);
 
     const ids = (data ?? []).map((r) => r.id as string);
