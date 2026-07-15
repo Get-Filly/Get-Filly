@@ -7,6 +7,7 @@ import { CampaignsModule } from '../campaigns/campaigns.module';
 import { AiModule } from '../ai/ai.module';
 import { EventsModule } from '../events/events.module';
 import { WeatherModule } from '../weather/weather.module';
+import { BusynessModule } from '../busyness/busyness.module';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 
@@ -23,6 +24,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     AiModule,
     EventsModule,
     WeatherModule,
+    BusynessModule,
   ],
   controllers: [SuggestionsController],
   providers: [SuggestionsService, AuthGuard, RestaurantAccessGuard],
