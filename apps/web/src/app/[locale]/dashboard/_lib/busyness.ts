@@ -149,14 +149,22 @@ export function buildDayBusyness(
   threshold: number,
   todayIso: string,
   specials: Map<string, SpecialDay>,
+  // Echt weekpatroon uit busyness_snapshots (7x24, 0=ma..6=zo). Als
+  // aanwezig is dít de verwachte lijn i.p.v. de seed. null = terugval.
+  pattern?: number[][] | null,
 ): DayBusyness {
   const iso = isoOf(date);
   const colMon = mondayIndex(date.getDay());
   const tf: Timeframe = iso === todayIso ? "today" : iso < todayIso ? "past" : "future";
   const wd = WD_FACTOR[colMon];
 
-  // Verwacht: stabiel per weekdag (seed op weekdag, niet op datum).
-  const hours = hourly24(wd, `wd${colMon}`);
+  // Verwacht: echt Google-patroon indien beschikbaar, anders seed op
+  // weekdag (stabiel per weekdag, niet per datum).
+  const realDay = pattern?.[colMon];
+  const hours =
+    realDay && realDay.length === 24
+      ? realDay.map(clamp)
+      : hourly24(wd, `wd${colMon}`);
 
   // Werkelijk: per datum, varieert rond verwacht (toont drukker/rustiger
   // dan normaal). Echte occupancy_days schalen de dag mee als aanwezig.
@@ -202,12 +210,13 @@ export function buildWeek(
   restaurant: Restaurant | null,
   threshold: number,
   todayIso: string,
+  pattern?: number[][] | null,
 ): DayBusyness[] {
   const days: Date[] = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const years = Array.from(new Set(days.map((d) => d.getFullYear())));
   const specials = specialDayMap(years);
   return days.map((d) =>
-    buildDayBusyness(d, realByIso, restaurant, threshold, todayIso, specials),
+    buildDayBusyness(d, realByIso, restaurant, threshold, todayIso, specials, pattern),
   );
 }
 

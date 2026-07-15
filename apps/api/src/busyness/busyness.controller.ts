@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { RestaurantId } from '../common/restaurant-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
@@ -20,5 +20,11 @@ export class BusynessController {
   @Post('me/refresh')
   refresh(@RestaurantId() restaurantId: string) {
     return this.busyness.refreshRestaurant(restaurantId);
+  }
+
+  // GET /api/busyness/me — laatste weekpatroon + live voor het dashboard.
+  @Get('me')
+  getMine(@RestaurantId() restaurantId: string) {
+    return this.busyness.getLatest(restaurantId);
   }
 }

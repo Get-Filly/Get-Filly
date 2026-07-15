@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
 import {
+  fetchBusyness,
   fetchOccupancy,
   fetchRestaurant,
   type OccupancyDay,
@@ -67,6 +68,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  // Echt Google-patroon (7x24) uit busyness_snapshots; null = terugval op seed.
+  const [pattern, setPattern] = useState<number[][] | null>(null);
 
   const today = useMemo(() => new Date(), []);
   const todayIso = useMemo(() => isoOf(today), [today]);
@@ -90,6 +93,9 @@ export function BusynessCard({ onMakeConcept }: Props) {
     fetchRestaurant()
       .then((r) => !cancelled && setRestaurant(r))
       .catch(() => !cancelled && setRestaurant(null));
+    fetchBusyness()
+      .then((b) => !cancelled && setPattern(b.pattern))
+      .catch(() => !cancelled && setPattern(null));
     return () => {
       cancelled = true;
     };
@@ -100,8 +106,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
 
   const monday = useMemo(() => addDays(thisMonday, offset * 7), [thisMonday, offset]);
   const week = useMemo(
-    () => buildWeek(monday, realMap, restaurant, threshold, todayIso),
-    [monday, realMap, restaurant, threshold, todayIso],
+    () => buildWeek(monday, realMap, restaurant, threshold, todayIso, pattern),
+    [monday, realMap, restaurant, threshold, todayIso, pattern],
   );
   const day: DayBusyness = week[col] ?? week[0];
 

@@ -119,6 +119,46 @@ export class BusynessService {
   }
 
   /**
+   * De meest recente snapshot MET een weekpatroon (verwacht) voor dit
+   * restaurant, plus de laatste live-meting. Gebruikt door het dashboard
+   * (busyness.ts) als bron voor de verwachte lijn; geen snapshot → null
+   * (frontend valt dan terug op de seed).
+   */
+  async getLatest(restaurantId: string): Promise<{
+    pattern: number[][] | null;
+    livePct: number | null;
+    liveHour: number | null;
+    liveWeekday: number | null;
+    capturedAt: string | null;
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('busyness_snapshots')
+      .select('pattern, live_pct, live_hour, live_weekday, captured_at')
+      .eq('restaurant_id', restaurantId)
+      .not('pattern', 'is', null)
+      .order('captured_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data) {
+      return {
+        pattern: null,
+        livePct: null,
+        liveHour: null,
+        liveWeekday: null,
+        capturedAt: null,
+      };
+    }
+    return {
+      pattern: (data.pattern as number[][] | null) ?? null,
+      livePct: data.live_pct ?? null,
+      liveHour: data.live_hour ?? null,
+      liveWeekday: data.live_weekday ?? null,
+      capturedAt: data.captured_at ?? null,
+    };
+  }
+
+  /**
    * Ververst alle restaurants met een google_place_id. Eén kapotte plek
    * blokkeert de rest niet (per zaak gevangen + gelogd).
    */

@@ -1477,6 +1477,23 @@ export async function fetchRestaurant(): Promise<Restaurant> {
   return res.json();
 }
 
+// Drukte-patroon uit busyness_snapshots (Google "Populaire tijden" via
+// Outscraper). pattern = 7x24 (0=ma..6=zo, uur 0-23); null = nog geen
+// snapshot → de dashboard-grafiek valt terug op de seed.
+export type BusynessLatest = {
+  pattern: number[][] | null;
+  livePct: number | null;
+  liveHour: number | null;
+  liveWeekday: number | null;
+  capturedAt: string | null;
+};
+
+export async function fetchBusyness(): Promise<BusynessLatest> {
+  const res = await authedFetch(`${API_URL}/busyness/me`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateRestaurant(
   updates: Partial<Restaurant>,
 ): Promise<Restaurant> {
