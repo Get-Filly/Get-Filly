@@ -40,8 +40,12 @@ Nieuwe module `apps/api/src/busyness/`.
 - **Nog open (P2):**
   - [ ] Werkelijk-lijn vult zich pas met echte historie zodra de uurlijkse
     cron op productie draait (na deze deploy).
-  - [ ] Fase B-backend: busyness-model naar `restaurant-context.service` +
-    `detectAndGenerateLowOccupancy` (Filly's LLM-context + auto-detectie).
+  - [x] ~~Fase B-backend~~ (✅ 2026-07-15): `getDailyExpectation` (verwachte
+    drukte + relatief niveau) gedeeld door `restaurant-context.service`
+    (Filly's LLM-context: verwachte drukte + live) en
+    `detectAndGenerateLowOccupancy` (kandidaat-rustige-dagen uit het
+    busyness-model, level 'rustig'). `occupancy_days` blijft terugval voor
+    zaken zonder `busyness_place_id`. DI-boot + builds groen.
   - [ ] Snapshot-bloat: nu `raw`+`pattern` bij elke live-tick → later lite
     live-rows / prunen van oude snapshots.
   - [ ] Onboarding zet nog `service_periods` → omzetten naar `opening_hours`.
