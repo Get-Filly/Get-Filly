@@ -190,6 +190,85 @@ export class BusynessService {
     return now.hour >= openH && now.hour < closeH;
   }
 
+  // Verwachte drukte per dag uit het weekpatroon (spiegelt fase A's
+  // isQuiet). Voor Filly's context + auto-detectie. hasSource=false als er
+  // (nog) geen echt patroon is → caller valt terug op occupancy_days.
+  async getDailyExpectation(
+    restaurantId: string,
+    fromIso: string,
+    toIso: string,
+    threshold: number,
+  ): Promise<{
+    hasSource: boolean;
+    days: {
+      date: string;
+      weekday: number; // 0=ma..6=zo
+      expectedPct: number; // gemiddelde over actieve uren
+      level: 'rustig' | 'normaal' | 'druk';
+      quiet: boolean; // expectedPct < threshold
+    }[];
+  }> {
+    const latest = await this.getLatest(restaurantId);
+    if (!latest.pattern) return { hasSource: false, days: [] };
+    const pattern = latest.pattern;
+
+    // Gemiddelde over de ACTIEVE uren (waar Google een waarde >0 geeft ≈
+    // openingsuren) per weekdag.
+    const avgActive = (row: number[] | undefined): number => {
+      if (!row) return 0;
+      const active = row.filter((v) => v > 0);
+      if (!active.length) return 0;
+      return Math.round(active.reduce((a, b) => a + b, 0) / active.length);
+    };
+    const weekAvg = [0, 1, 2, 3, 4, 5, 6].map((wd) => avgActive(pattern[wd]));
+    const weekMean =
+      weekAvg.reduce((a, b) => a + b, 0) / (weekAvg.filter((v) => v).length || 1);
+
+    const days: {
+      date: string;
+      weekday: number;
+      expectedPct: number;
+      level: 'rustig' | 'normaal' | 'druk';
+      quiet: boolean;
+    }[] = [];
+    for (const date of this.eachDate(fromIso, toIso)) {
+      const weekday = this.mondayIndex(date);
+      const expectedPct = weekAvg[weekday];
+      // Niveau relatief aan het eigen weekgemiddelde (afwijking van eigen
+      // patroon), rustig-detectie op de door de eigenaar ingestelde drempel.
+      const level: 'rustig' | 'normaal' | 'druk' =
+        expectedPct <= weekMean * 0.9
+          ? 'rustig'
+          : expectedPct >= weekMean * 1.1
+            ? 'druk'
+            : 'normaal';
+      days.push({
+        date,
+        weekday,
+        expectedPct,
+        level,
+        quiet: expectedPct < threshold,
+      });
+    }
+    return { hasSource: true, days };
+  }
+
+  // Weekdag 0=ma..6=zo voor een YYYY-MM-DD (UTC-noon → tz-veilig).
+  private mondayIndex(iso: string): number {
+    const dow = new Date(`${iso}T12:00:00Z`).getUTCDay(); // 0=zo..6=za
+    return (dow + 6) % 7; // 0=ma..6=zo
+  }
+
+  // Itereer YYYY-MM-DD van..t/m (inclusief).
+  private *eachDate(fromIso: string, toIso: string): Generator<string> {
+    const d = new Date(`${fromIso}T12:00:00Z`);
+    const end = new Date(`${toIso}T12:00:00Z`);
+    while (d <= end) {
+      yield d.toISOString().slice(0, 10);
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+  }
+
   // Amsterdam-kalenderdatum (YYYY-MM-DD) van een tijdstip.
   private amsterdamDate(d: Date): string {
     const p = new Intl.DateTimeFormat('en-CA', {
