@@ -16,6 +16,7 @@ import {
 } from '../campaigns/campaigns.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { BusynessService } from '../busyness/busyness.service';
 import {
   buildAllChannelsBlock,
   buildAllTimingBlock,
@@ -654,6 +655,9 @@ export class SuggestionsService {
     // Weer-forecast voor de geleide flow (day-context): inspelen op
     // terras-/comfortweer op de gekozen dag.
     private readonly weather: WeatherService,
+    // Echte drukte-detectie (Google-patroon via Outscraper) voor de
+    // low-occupancy-flow; occupancy_days blijft terugval.
+    private readonly busyness: BusynessService,
   ) {}
 
   async findAll(
@@ -1075,8 +1079,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       (restaurantRow?.low_occupancy_threshold as number | null) ??
       LOW_OCCUPANCY_THRESHOLD_PCT;
 
-    // Stap 2, kandidaat-dagen ophalen: occupancy_days in window
-    // 2-14 dagen vooruit, percentage onder drempel.
+    // Stap 2, kandidaat-dagen in window 2-14 dagen vooruit.
     const today = new Date();
     const fromDate = new Date(today);
     fromDate.setDate(today.getDate() + LOW_OCCUPANCY_WINDOW_MIN_DAYS);
@@ -1085,23 +1088,66 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     const fromIso = fromDate.toISOString().slice(0, 10);
     const toIso = toDate.toISOString().slice(0, 10);
 
-    const { data: rawCandidates, error: occErr } = await this.supabase.client
-      .from('occupancy_days')
-      .select('date, occupancy_pct, estimated_guests, reservations_count')
-      .eq('restaurant_id', restaurantId)
-      .gte('date', fromIso)
-      .lte('date', toIso)
-      .lt('occupancy_pct', thresholdPct)
-      .order('date', { ascending: true });
-
-    if (occErr) throwDbError(this.logger, occErr);
-
-    const candidates = (rawCandidates ?? []) as Array<{
+    type Candidate = {
       date: string;
-      occupancy_pct: number | null;
-      estimated_guests: number | null;
-      reservations_count: number | null;
-    }>;
+      source: 'busyness' | 'occupancy';
+      expectedPct?: number; // busyness: relatieve verwachte drukte
+      occupancy_pct?: number | null;
+      estimated_guests?: number | null;
+      reservations_count?: number | null;
+    };
+
+    // Voorkeur: echt busyness-model (Google-patroon via Outscraper).
+    // Rustige dag = relatief onder het eigen weekgemiddelde (level
+    // 'rustig'), niet een absolute drempel — dat matcht "afwijking van
+    // het eigen patroon" en voorkomt dat bijna elke dag flagt.
+    let candidates: Candidate[] = [];
+    let expectation: Awaited<
+      ReturnType<BusynessService['getDailyExpectation']>
+    > | null = null;
+    try {
+      expectation = await this.busyness.getDailyExpectation(
+        restaurantId,
+        fromIso,
+        toIso,
+        thresholdPct,
+      );
+    } catch (e) {
+      this.logger.warn(
+        `Busyness-detectie faalde, terugval op occupancy: ${String(e)}`,
+      );
+    }
+
+    if (expectation?.hasSource) {
+      candidates = expectation.days
+        .filter((d) => d.level === 'rustig')
+        .map((d) => ({
+          date: d.date,
+          source: 'busyness' as const,
+          expectedPct: d.expectedPct,
+        }));
+    } else {
+      // Terugval: seed occupancy_days onder de ingestelde drempel.
+      const { data: rawCandidates, error: occErr } = await this.supabase.client
+        .from('occupancy_days')
+        .select('date, occupancy_pct, estimated_guests, reservations_count')
+        .eq('restaurant_id', restaurantId)
+        .gte('date', fromIso)
+        .lte('date', toIso)
+        .lt('occupancy_pct', thresholdPct)
+        .order('date', { ascending: true });
+
+      if (occErr) throwDbError(this.logger, occErr);
+
+      candidates = (
+        (rawCandidates ?? []) as Array<{
+          date: string;
+          occupancy_pct: number | null;
+          estimated_guests: number | null;
+          reservations_count: number | null;
+        }>
+      ).map((c) => ({ ...c, source: 'occupancy' as const }));
+    }
     const detected = candidates.length;
 
     if (detected === 0) {
@@ -1188,11 +1234,16 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         (dateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
 
+      const drukteRegels =
+        day.source === 'busyness'
+          ? `- Verwachte drukte: relatief rustig voor deze zaak (Google-patroon: ${day.expectedPct}/100, onder het eigen weekgemiddelde)`
+          : `- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${thresholdPct}%)
+- Geschat aantal gasten: ${day.estimated_guests ?? '?'}
+- Reserveringen tot nu: ${day.reservations_count ?? 0}`;
+
       const dayContext = `RUSTIGE DAG OM TE ACTIVEREN:
 - Datum: ${day.date} (${weekdayNl}, over ${daysFromNow} dagen)
-- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${thresholdPct}%)
-- Geschat aantal gasten: ${day.estimated_guests ?? '?'}
-- Reserveringen tot nu: ${day.reservations_count ?? 0}
+${drukteRegels}
 
 GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - Mail-opt-in: ${segmentCounts.mail_opt_in} gasten
@@ -1289,8 +1340,12 @@ ${dayContext}`;
           trigger_context: {
             target_date: day.date,
             weekday: weekdayNl,
-            occupancy_pct: day.occupancy_pct,
-            estimated_guests: day.estimated_guests,
+            ...(day.source === 'busyness'
+              ? { expected_pct: day.expectedPct, source: 'busyness' }
+              : {
+                  occupancy_pct: day.occupancy_pct,
+                  estimated_guests: day.estimated_guests,
+                }),
             target_segment: raw.target_segment,
           },
           suggested_campaign: {

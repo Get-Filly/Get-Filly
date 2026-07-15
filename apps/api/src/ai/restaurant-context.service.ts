@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OccupancyService, type OccupancyDay } from '../occupancy/occupancy.service';
+import { BusynessService } from '../busyness/busyness.service';
 import { WeatherService, type ForecastDay } from '../weather/weather.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import type { Reservation } from '../reservations/reservations.service';
@@ -49,6 +50,7 @@ export class RestaurantContextService {
     private readonly weather: WeatherService,
     private readonly reservations: ReservationsService,
     private readonly supabase: RequestSupabaseService,
+    private readonly busyness: BusynessService,
   ) {}
 
   // ============================================================
@@ -569,17 +571,48 @@ export class RestaurantContextService {
       parts.push(`Weersverwachting:\n${weatherLines.join('\n')}`);
     }
 
-    // Bezetting: alleen vandaag + komende 6 dagen. De maand hebben we
-    // al in geheugen, we filteren op datumbereik.
-    const upcomingOcc = occ
-      .filter((d) => d.date >= today && d.date <= in7days)
-      .slice(0, 7);
-    if (upcomingOcc.length > 0) {
-      const occLines = upcomingOcc.map(
-        (d) =>
-          `  - ${d.date}: ${d.occupancy_pct}% bezetting (~${d.estimated_guests} gasten)`,
+    // Drukte komende dagen. Voorkeur: het echte busyness-model (Google
+    // "Populaire tijden" via Outscraper). Geen bron → terugval op de
+    // (seed) occupancy_days zodat zaken zonder koppeling niet regresseren.
+    const expectation = await this.busyness
+      .getDailyExpectation(restaurantId, today, in7days, 50)
+      .catch((e) => {
+        this.logger.warn(`Busyness-verwachting niet beschikbaar: ${String(e)}`);
+        return { hasSource: false, days: [] as never[] };
+      });
+
+    if (expectation.hasSource && expectation.days.length > 0) {
+      const wd = new Intl.DateTimeFormat('nl-NL', {
+        weekday: 'short',
+        timeZone: 'Europe/Amsterdam',
+      });
+      const lines = expectation.days.slice(0, 7).map((d) => {
+        const label = wd.format(new Date(`${d.date}T12:00:00Z`));
+        return `  - ${label} ${d.date}: verwacht ${d.level}`;
+      });
+      parts.push(
+        `Verwachte drukte komende dagen (Google-patroon; rustige dagen = kansen voor een campagne):\n${lines.join('\n')}`,
       );
-      parts.push(`Bezetting komende dagen:\n${occLines.join('\n')}`);
+
+      // Live "nu"-drukte indien Google die geeft (relatief 0-100).
+      const live = await this.busyness
+        .getLatest(restaurantId)
+        .catch(() => null);
+      if (live?.livePct != null) {
+        parts.push(`Nu is het relatief ${live.livePct}% druk (live).`);
+      }
+    } else {
+      // Terugval: seed-bezetting vandaag + komende 6 dagen.
+      const upcomingOcc = occ
+        .filter((d) => d.date >= today && d.date <= in7days)
+        .slice(0, 7);
+      if (upcomingOcc.length > 0) {
+        const occLines = upcomingOcc.map(
+          (d) =>
+            `  - ${d.date}: ${d.occupancy_pct}% bezetting (~${d.estimated_guests} gasten)`,
+        );
+        parts.push(`Bezetting komende dagen:\n${occLines.join('\n')}`);
+      }
     }
 
     // Reserveringen: alleen totalen noemen. Lijst van namen is privacy-

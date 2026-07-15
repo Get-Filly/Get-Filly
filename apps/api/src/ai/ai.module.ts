@@ -8,6 +8,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { OccupancyModule } from '../occupancy/occupancy.module';
 import { WeatherModule } from '../weather/weather.module';
 import { ReservationsModule } from '../reservations/reservations.module';
+import { BusynessModule } from '../busyness/busyness.module';
 
 // AiModule levert twee services aan de rest van de app:
 //   - AiService: centrale Claude-wrapper (generate + auto-logging)
@@ -22,6 +23,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
     OccupancyModule,
     WeatherModule,
     ReservationsModule,
+    BusynessModule,
   ],
   providers: [
     AiService,
