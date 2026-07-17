@@ -14,7 +14,7 @@ import { BusynessService } from './busyness.service';
 // Busyness-cron — wekelijks het drukte-patroon ophalen (PUBLIEK)
 // ============================================================
 // Haalt per restaurant (met google_place_id) Google's populaire tijden op
-// via Outscraper en schrijft een busyness_snapshots-rij. Zelfde
+// via Apify en schrijft een busyness_snapshots-rij. Zelfde
 // beveiligings-patroon als de andere crons: Vercel Cron stuurt
 // `Authorization: Bearer <CRON_SECRET>` mee; zonder geldige secret → 401.
 // @Public(): globale AuthGuard slaat 'm over; beveiliging = de secret-check.
