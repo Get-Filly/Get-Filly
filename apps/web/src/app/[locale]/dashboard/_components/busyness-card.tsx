@@ -372,21 +372,21 @@ export function BusynessCard({ onMakeConcept }: Props) {
                     vectorEffect="non-scaling-stroke"
                   />
                   {day.actualPoints ? (
-                    // Real-modus: groene lijn + stippen uit de echte metingen.
-                    // (Stippen zorgen dat ook één losse meting zichtbaar is.)
-                    <>
-                      {day.actualPoints.length > 1 && (
-                        <path
-                          d={smoothPath(actualDots(day.actualPoints))}
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="2.4"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      )}
-                      {actualDots(day.actualPoints).map((p, i) => (
+                    // Real-modus: gladde groene curve uit de echte metingen,
+                    // zonder losse meetpunt-stippen. Alleen bij één enkele
+                    // meting tonen we een stip (anders zou je niets zien).
+                    day.actualPoints.length > 1 ? (
+                      <path
+                        d={smoothPath(actualDots(day.actualPoints))}
+                        fill="none"
+                        stroke="var(--accent)"
+                        strokeWidth="2.4"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    ) : (
+                      actualDots(day.actualPoints).map((p, i) => (
                         <circle
                           key={i}
                           cx={p.x}
@@ -395,8 +395,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
                           fill="var(--accent)"
                           vectorEffect="non-scaling-stroke"
                         />
-                      ))}
-                    </>
+                      ))
+                    )
                   ) : day.actual ? (
                     // Seed-modus (zaak zonder echte drukte-bron): oude lijn.
                     <polyline
