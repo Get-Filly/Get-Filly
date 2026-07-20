@@ -82,9 +82,12 @@ const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 //   2. de afwijking t.o.v. het VERWACHTE (historische) patroon dempen
 //      (ACTUAL_DAMP), zodat 0/100-pieken naar het normaal toe getrokken
 //      worden maar een echte drukke/rustige dag zichtbaar blijft.
-// Naarmate er meer weken data zijn, wordt de mediaan-per-weekdag vanzelf
-// stabieler; dit dempt de ruis in de tussentijd.
-const ACTUAL_DAMP = 0.55;
+// ACTUAL_DAMP = gewicht op de (gladgestreken) meting; de rest gaat naar
+// het historische normaal. 0.4 = 40% meting / 60% normaal → de historie
+// domineert (bewuste keuze, want Google-live is grof). Naarmate er meer
+// weken eigen data zijn, kan dit losser en verschuift het anker naar de
+// eigen mediaan-per-weekdag.
+const ACTUAL_DAMP = 0.4;
 function shapeActual(
   raw: [number, number][],
   expected: number[],
