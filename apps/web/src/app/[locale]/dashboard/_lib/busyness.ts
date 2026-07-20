@@ -100,10 +100,14 @@ function shapeActual(
     .map(([h]) => {
       let sum = 0;
       let wsum = 0;
+      // 5-punts gewogen gemiddelde (midden zwaarst), alleen beschikbare
+      // buren → bredere gladstrijking dan 3-punts.
       for (const [dh, w] of [
-        [-1, 1],
-        [0, 2],
-        [1, 1],
+        [-2, 1],
+        [-1, 2],
+        [0, 3],
+        [1, 2],
+        [2, 1],
       ] as const) {
         const v = byHour.get(h + dh);
         if (v !== undefined) {
