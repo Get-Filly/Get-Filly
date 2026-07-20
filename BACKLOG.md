@@ -16,7 +16,49 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
-## 🗓️ 2026-07-15 — Bezetting: echte databron via Outscraper (fase B, live op main)
+## 🗓️ 2026-07-18 — Bezetting: Apify vervangt Outscraper + werkelijk-lijn glad (live op main)
+
+**Outscraper bleek de live-drukte te CACHEN** (bevroren `100@13`, ververste
+niet binnen een dag; getest: async, cache-buster, én Outscraper's eigen
+UI-endpoint gaven allemaal dezelfde bevroren waarde). **Overgestapt naar
+Apify** (`compass/crawler-google-places`) — die scrapet echt vers; live-
+waarde varieert per uur en matcht Google. Merge `dc8cfe4`.
+
+- **Client** (`apify.client.ts`): batched `run-sync-get-dataset-items` —
+  ALLE place_ids in één run (scrape duurt ~15-90s, dus niet per zaak).
+  `scrapePlaceDetailPage:true` levert populaire tijden + live + openingstijden.
+- **Parser** (`apify.parser.ts`, getest 9/9): `popularTimesHistogram`
+  (`Mo…Su`, `occupancyPercent`) → 7×24; `popularTimesLivePercent` → live
+  (getal, ook 0 = echt; null = geen live); `openingHours`-tekst → opening_hours.
+- **Service** batched: `refreshAll`/`refreshLive`/`refreshRestaurant`.
+  `getLatest`/`getActualByDate`/`getDailyExpectation` ongewijzigd.
+- **`vercel.json`** `maxDuration` 60→300 (Apify-run past niet in 60s).
+- **Env:** `APIFY_TOKEN` (in .env + Vercel-api). `OUTSCRAPER_API_KEY` weg.
+  Outscraper-client/parser/fixture verwijderd; oude snapshots opgeruimd.
+- **Werkelijk-lijn gladgestreken** (merges `a17f518`, `3601ac4`): Google-live
+  is grof (springt 0↔100). In `busyness.ts` `shapeActual`: 5-punts gewogen
+  gemiddelde + demping naar het historische patroon (`ACTUAL_DAMP=0.4` = 40%
+  meting / 60% normaal) + als Catmull-Rom bezier-curve getekend, zonder
+  meetpunt-stippen. Ruwe data blijft in de DB (altijd bij te stellen). Geldt
+  bij het tekenen, dus ook voor al gemeten dagen.
+- **Nog open (P2/P3):**
+  - [ ] Zodra er weken eigen live-data zijn: anker verschuiven van Google's
+    generieke patroon naar de **eigen mediaan-per-weekdag/uur** + demping
+    losser (evt. adaptief op hoeveelheid historie).
+  - [ ] Werkelijk blijft een grove bron; voor écht precieze bezetting later
+    eigen reserveringen/POS. Cron draait uurlijks (open zaken); check dat de
+    live-waarden per uur variëren.
+  - [ ] Filly-chat/detectie strakker koppelen aan de grafiek (rustige
+    dagen/momenten beter bepalen + hoe erop inspelen) — aparte sessie.
+
+---
+
+## 🗓️ 2026-07-15 — Bezetting: echte databron via Outscraper (fase B, historisch)
+
+> ⚠️ Superseded 2026-07-18: Outscraper vervangen door Apify (zie entry hierboven).
+> Onderstaande beschrijft de eerste opzet; parser/client/env zijn sindsdien
+> gewijzigd, maar het datamodel (busyness_snapshots, busyness_place_id,
+> opening_hours) + de fase B-backend gelden nog.
 
 De `getBusyness`-naad heeft nu een echte bron: **Outscraper** (Google
 "Populaire tijden"), los-gekoppeld gebouwd achter de bestaande grafiek.
