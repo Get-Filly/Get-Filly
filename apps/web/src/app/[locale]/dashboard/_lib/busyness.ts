@@ -75,6 +75,49 @@ const hash = (s: string) => {
 };
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
+// Google's live-drukte (via Apify) is een GROVE bron: 'ie springt tussen
+// extremen (0 ↔ 100), wat onrealistisch is voor echte bezetting. We maken
+// de werkelijk-lijn plausibel zonder de echte afwijking te verliezen:
+//   1. licht gladstrijken over aangrenzende uren (3-punts, midden zwaarder);
+//   2. de afwijking t.o.v. het VERWACHTE (historische) patroon dempen
+//      (ACTUAL_DAMP), zodat 0/100-pieken naar het normaal toe getrokken
+//      worden maar een echte drukke/rustige dag zichtbaar blijft.
+// Naarmate er meer weken data zijn, wordt de mediaan-per-weekdag vanzelf
+// stabieler; dit dempt de ruis in de tussentijd.
+const ACTUAL_DAMP = 0.55;
+function shapeActual(
+  raw: [number, number][],
+  expected: number[],
+): [number, number][] {
+  if (!raw.length) return raw;
+  const byHour = new Map(raw.map(([h, p]) => [h, p]));
+  return raw
+    .slice()
+    .sort((a, b) => a[0] - b[0])
+    .map(([h]) => {
+      let sum = 0;
+      let wsum = 0;
+      for (const [dh, w] of [
+        [-1, 1],
+        [0, 2],
+        [1, 1],
+      ] as const) {
+        const v = byHour.get(h + dh);
+        if (v !== undefined) {
+          sum += v * w;
+          wsum += w;
+        }
+      }
+      const smoothed = wsum ? sum / wsum : (byHour.get(h) ?? 0);
+      const exp = expected[h] ?? smoothed;
+      // Naar historisch toe: toon de gedempte afwijking rond het verwachte.
+      return [h, clamp(exp + ACTUAL_DAMP * (smoothed - exp))] as [
+        number,
+        number,
+      ];
+    });
+}
+
 function hourly24(scale: number, seed: string): number[] {
   const h = hash(seed);
   return BASE24.map((b, i) => clamp(b * scale + (((h + i * 13) % 7) - 3)));
@@ -195,7 +238,7 @@ export function buildDayBusyness(
   if (tf !== "future") {
     if (useReal) {
       const pts = actualByDate?.[iso];
-      actualPoints = pts && pts.length ? pts : null;
+      actualPoints = pts && pts.length ? shapeActual(pts, hours) : null;
     } else {
       const hb = hash(iso);
       let dayFactor = 0.85 + (hb % 30) / 100;
