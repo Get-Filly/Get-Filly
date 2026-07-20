@@ -75,6 +75,56 @@ const hash = (s: string) => {
 };
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
+// Google's live-drukte (via Apify) is een GROVE bron: 'ie springt tussen
+// extremen (0 ↔ 100), wat onrealistisch is voor echte bezetting. We maken
+// de werkelijk-lijn plausibel zonder de echte afwijking te verliezen:
+//   1. licht gladstrijken over aangrenzende uren (3-punts, midden zwaarder);
+//   2. de afwijking t.o.v. het VERWACHTE (historische) patroon dempen
+//      (ACTUAL_DAMP), zodat 0/100-pieken naar het normaal toe getrokken
+//      worden maar een echte drukke/rustige dag zichtbaar blijft.
+// ACTUAL_DAMP = gewicht op de (gladgestreken) meting; de rest gaat naar
+// het historische normaal. 0.4 = 40% meting / 60% normaal → de historie
+// domineert (bewuste keuze, want Google-live is grof). Naarmate er meer
+// weken eigen data zijn, kan dit losser en verschuift het anker naar de
+// eigen mediaan-per-weekdag.
+const ACTUAL_DAMP = 0.4;
+function shapeActual(
+  raw: [number, number][],
+  expected: number[],
+): [number, number][] {
+  if (!raw.length) return raw;
+  const byHour = new Map(raw.map(([h, p]) => [h, p]));
+  return raw
+    .slice()
+    .sort((a, b) => a[0] - b[0])
+    .map(([h]) => {
+      let sum = 0;
+      let wsum = 0;
+      // 5-punts gewogen gemiddelde (midden zwaarst), alleen beschikbare
+      // buren → bredere gladstrijking dan 3-punts.
+      for (const [dh, w] of [
+        [-2, 1],
+        [-1, 2],
+        [0, 3],
+        [1, 2],
+        [2, 1],
+      ] as const) {
+        const v = byHour.get(h + dh);
+        if (v !== undefined) {
+          sum += v * w;
+          wsum += w;
+        }
+      }
+      const smoothed = wsum ? sum / wsum : (byHour.get(h) ?? 0);
+      const exp = expected[h] ?? smoothed;
+      // Naar historisch toe: toon de gedempte afwijking rond het verwachte.
+      return [h, clamp(exp + ACTUAL_DAMP * (smoothed - exp))] as [
+        number,
+        number,
+      ];
+    });
+}
+
 function hourly24(scale: number, seed: string): number[] {
   const h = hash(seed);
   return BASE24.map((b, i) => clamp(b * scale + (((h + i * 13) % 7) - 3)));
@@ -195,7 +245,7 @@ export function buildDayBusyness(
   if (tf !== "future") {
     if (useReal) {
       const pts = actualByDate?.[iso];
-      actualPoints = pts && pts.length ? pts : null;
+      actualPoints = pts && pts.length ? shapeActual(pts, hours) : null;
     } else {
       const hb = hash(iso);
       let dayFactor = 0.85 + (hb % 30) / 100;

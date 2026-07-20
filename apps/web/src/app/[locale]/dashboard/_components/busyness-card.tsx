@@ -182,6 +182,26 @@ export function BusynessCard({ onMakeConcept }: Props) {
       .filter(([h]) => h >= day.openHour && h <= day.closeHour)
       .map(([h, pct]) => ({ x: xPct(h - day.openHour), y: yPct(pct) }));
 
+  // Vloeiende curve (Catmull-Rom → cubic bezier) door de punten, zodat de
+  // werkelijk-lijn een gladde lijn wordt i.p.v. hoekige rechte stukjes.
+  const smoothPath = (p: { x: number; y: number }[]): string => {
+    if (p.length < 2) return "";
+    const f = (n: number) => n.toFixed(2);
+    let d = `M${f(p[0].x)},${f(p[0].y)}`;
+    for (let i = 0; i < p.length - 1; i++) {
+      const p0 = p[i - 1] ?? p[i];
+      const p1 = p[i];
+      const p2 = p[i + 1];
+      const p3 = p[i + 2] ?? p2;
+      const c1x = p1.x + (p2.x - p0.x) / 6;
+      const c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6;
+      const c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2.x)},${f(p2.y)}`;
+    }
+    return d;
+  };
+
   const ticks = useMemo(() => {
     const step = N <= 9 ? 2 : N <= 15 ? 3 : 4;
     const out: number[] = [];
@@ -356,10 +376,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
                     // (Stippen zorgen dat ook één losse meting zichtbaar is.)
                     <>
                       {day.actualPoints.length > 1 && (
-                        <polyline
-                          points={actualDots(day.actualPoints)
-                            .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
-                            .join(" ")}
+                        <path
+                          d={smoothPath(actualDots(day.actualPoints))}
                           fill="none"
                           stroke="var(--accent)"
                           strokeWidth="2.4"
