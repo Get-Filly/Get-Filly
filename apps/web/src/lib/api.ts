@@ -1512,6 +1512,34 @@ export async function fetchBusynessActual(
   return res.json();
 }
 
+// Rustig moment (dag + dagdeel), voorspellend uit het weekpatroon. Eén bron
+// voor de dashboard-markers én de chat-blokjes (zie backend getQuietMoments).
+export type QuietMoment = {
+  date: string; // YYYY-MM-DD
+  weekday: number; // 0=ma..6=zo
+  daypart: string; // ochtend|lunch|middag|diner|avond
+  daypartLabel: string;
+  expectedPct: number;
+  deviation: number; // negatief = rustiger dan verwacht
+  gap: number;
+  unusual: boolean; // ongewoon rustig vs vaste rustige stand
+  fromHour: number;
+  toHour: number;
+};
+
+export async function fetchQuietMoments(
+  fromIso?: string,
+  toIso?: string,
+): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
+  const qs =
+    fromIso && toIso ? `?from=${fromIso}&to=${toIso}` : "";
+  const res = await authedFetch(`${API_URL}/busyness/me/quiet-moments${qs}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function updateRestaurant(
   updates: Partial<Restaurant>,
 ): Promise<Restaurant> {

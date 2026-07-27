@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   fetchCampaigns,
   fetchOccupancy,
+  fetchQuietMoments,
   fetchRestaurant,
   fetchSuggestions,
   type AiSuggestion,
   type Campaign,
   type OccupancyDay,
+  type QuietMoment,
   type Restaurant,
 } from "./api";
 import { getUpcomingSpecialDays, type SpecialDay } from "./special-days";
@@ -66,6 +68,10 @@ export function useActionableDays(): ActionableDays {
     [],
   );
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [quiet, setQuiet] = useState<{
+    hasSource: boolean;
+    moments: QuietMoment[];
+  }>({ hasSource: false, moments: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -80,13 +86,18 @@ export function useActionableDays(): ActionableDays {
       fetchRestaurant(),
       fetchSuggestions("pending").catch(() => [] as AiSuggestion[]),
       fetchCampaigns().catch(() => [] as Campaign[]),
+      fetchQuietMoments().catch(() => ({
+        hasSource: false,
+        moments: [] as QuietMoment[],
+      })),
     ])
-      .then(([cur, nxt, r, ss, cs]) => {
+      .then(([cur, nxt, r, ss, cs, qm]) => {
         if (cancelled) return;
         setWindowOccupancy([...cur, ...nxt]);
         setRestaurant(r);
         setPendingSuggestions(ss);
         setCampaigns(cs);
+        setQuiet(qm);
         setLoading(false);
       })
       .catch(() => {
@@ -124,12 +135,41 @@ export function useActionableDays(): ActionableDays {
   // detectie + seeded fallback, 2026-07-14.)
   const realMap = useMemo(() => occupancyMap(windowOccupancy), [windowOccupancy]);
   const { lowOccupancyDays, coveredLowOccupancyCount } = useMemo(() => {
+    const mk = (date: string, pct: number): OccupancyDay => ({
+      date,
+      occupancy_pct: pct,
+      estimated_guests: 0,
+      estimated_revenue_cents: 0,
+    });
+
+    // Voorkeur: het echte model (rustige momenten uit de backend, per dagdeel).
+    // De chat werkt op dagniveau, dus per unieke datum één blokje; het dagdeel
+    // zit in de detectie en de dashboard-grafiek. Zelfde bron als beide.
+    if (quiet.hasSource) {
+      const byDate = new Map<string, number>();
+      for (const m of quiet.moments) {
+        if (!byDate.has(m.date)) byDate.set(m.date, m.expectedPct);
+      }
+      const days: OccupancyDay[] = [];
+      let covered = 0;
+      for (const [date, pct] of byDate) {
+        if (coveredDates.has(date)) {
+          covered++;
+          continue;
+        }
+        days.push(mk(date, pct));
+      }
+      days.sort((a, b) => (a.date < b.date ? -1 : 1));
+      return { lowOccupancyDays: days, coveredLowOccupancyCount: covered };
+    }
+
+    // Terugval (geen echt patroon): het oude busyness-model op seed + occupancy.
     const todayIso = isoOf(today);
     const specials = specialDayMap([
       today.getFullYear(),
       today.getFullYear() + 1,
     ]);
-    const quiet: OccupancyDay[] = [];
+    const quietDays: OccupancyDay[] = [];
     let covered = 0;
     for (let i = 1; i <= LOW_OCCUPANCY_WINDOW_DAYS; i++) {
       const b = buildDayBusyness(
@@ -145,15 +185,10 @@ export function useActionableDays(): ActionableDays {
         covered++;
         continue;
       }
-      quiet.push({
-        date: b.iso,
-        occupancy_pct: b.displayPct,
-        estimated_guests: 0,
-        estimated_revenue_cents: 0,
-      });
+      quietDays.push(mk(b.iso, b.displayPct));
     }
-    return { lowOccupancyDays: quiet, coveredLowOccupancyCount: covered };
-  }, [realMap, today, occupancyThreshold, restaurant, coveredDates]);
+    return { lowOccupancyDays: quietDays, coveredLowOccupancyCount: covered };
+  }, [quiet, realMap, today, occupancyThreshold, restaurant, coveredDates]);
 
   // Komende open dagen (los van bezetting): de eerlijke "elke open dag is
   // rustig"-lijst voor de flow wanneer er geen occupancy_days zijn.

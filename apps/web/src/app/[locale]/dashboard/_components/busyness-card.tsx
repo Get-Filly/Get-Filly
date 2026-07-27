@@ -17,8 +17,10 @@ import {
   fetchBusyness,
   fetchBusynessActual,
   fetchOccupancy,
+  fetchQuietMoments,
   fetchRestaurant,
   type OccupancyDay,
+  type QuietMoment,
   type Restaurant,
 } from "@/lib/api";
 import {
@@ -79,6 +81,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const [actualByDate, setActualByDate] = useState<
     Record<string, [number, number][]>
   >({});
+  // Rustige momenten (dag + dagdeel) uit het model — zelfde bron als de chat +
+  // de auto-detectie. Voedt de ● marker en het gearceerde rustig-venster.
+  const [quiet, setQuiet] = useState<{
+    hasSource: boolean;
+    moments: QuietMoment[];
+  }>({ hasSource: false, moments: [] });
 
   const today = useMemo(() => new Date(), []);
   const todayIso = useMemo(() => isoOf(today), [today]);
@@ -119,6 +127,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
     fetchBusynessActual(from, to)
       .then((a) => !cancelled && setActualByDate(a))
       .catch(() => !cancelled && setActualByDate({}));
+    // Rustige momenten voor hetzelfde bereik (markers + venster).
+    fetchQuietMoments(from, to)
+      .then((q) => !cancelled && setQuiet(q))
+      .catch(
+        () => !cancelled && setQuiet({ hasSource: false, moments: [] }),
+      );
     return () => {
       cancelled = true;
     };
@@ -144,6 +158,21 @@ export function BusynessCard({ onMakeConcept }: Props) {
   );
   const day: DayBusyness = week[col] ?? week[0];
 
+  // Rustige momenten per datum. Bij een echt model (hasSource) sturen déze de
+  // ● marker + het venster; anders valt de kaart terug op het lokale
+  // buildDayBusyness-oordeel (isQuiet / quietWindow).
+  const quietByDate = useMemo(() => {
+    const m = new Map<string, QuietMoment[]>();
+    for (const q of quiet.moments) {
+      const arr = m.get(q.date) ?? [];
+      arr.push(q);
+      m.set(q.date, arr);
+    }
+    return m;
+  }, [quiet]);
+  const dayHasQuiet = (d: DayBusyness) =>
+    quiet.hasSource ? quietByDate.has(d.iso) : d.isQuiet;
+
   const shortWd = useMemo(() => new Intl.DateTimeFormat(localeTag, { weekday: "short" }), [localeTag]);
   const longWd = useMemo(() => new Intl.DateTimeFormat(localeTag, { weekday: "long" }), [localeTag]);
   const rangeFmt = useMemo(
@@ -161,7 +190,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
   let note: string;
   if (day.special && !isFuture) note = t("noteSpecialPast", { name: day.special.name });
   else if (day.special && isFuture) note = t("noteSpecialFuture", { name: day.special.name });
-  else if (day.isQuiet) note = t("noteKans");
+  else if (dayHasQuiet(day)) note = t("noteKans");
   else note = t("noteNoKans");
 
   // Zichtbare uren volgen de openingstijden.
@@ -210,11 +239,21 @@ export function BusynessCard({ onMakeConcept }: Props) {
     return out;
   }, [N]);
 
+  // Rustig-venster: bij een echt model het dagdeel-venster van de gedetecteerde
+  // momenten op deze dag; anders het lokale quietWindow (terugval).
+  const qmWindow: [number, number] | null = quiet.hasSource
+    ? quietByDate.has(day.iso)
+      ? [
+          Math.min(...quietByDate.get(day.iso)!.map((m) => m.fromHour)),
+          Math.max(...quietByDate.get(day.iso)!.map((m) => m.toHour)),
+        ]
+      : null
+    : day.quiet;
   const band =
-    day.quiet && day.quiet[1] >= day.openHour && day.quiet[0] <= day.closeHour
+    qmWindow && qmWindow[1] >= day.openHour && qmWindow[0] <= day.closeHour
       ? {
-          x0: xPct(Math.max(0, day.quiet[0] - day.openHour)),
-          x1: xPct(Math.min(N - 1, day.quiet[1] - day.openHour)),
+          x0: xPct(Math.max(0, qmWindow[0] - day.openHour)),
+          x1: xPct(Math.min(N - 1, qmWindow[1] - day.openHour)),
         }
       : null;
 
@@ -284,7 +323,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
                   />
                 </svg>
                 <span className="bz-mks">
-                  {d.isQuiet && <span className="bz-dot" />}
+                  {dayHasQuiet(d) && <span className="bz-dot" />}
                   {d.special && <span className="bz-star">★</span>}
                 </span>
               </button>

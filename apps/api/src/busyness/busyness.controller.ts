@@ -38,4 +38,26 @@ export class BusynessController {
   ) {
     return this.busyness.getActualByDate(restaurantId, from, to);
   }
+
+  // GET /api/busyness/me/quiet-moments?from=YYYY-MM-DD&to=YYYY-MM-DD
+  // Rustige momenten (dag + dagdeel), voorspellend. Zelfde bron als de auto-
+  // detectie; voedt de dashboard-markers + de chat-blokjes (één bron). Zonder
+  // from/to: vandaag t/m +14 dagen.
+  @Get('me/quiet-moments')
+  getQuiet(
+    @RestaurantId() restaurantId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const today = new Date();
+    const start = from ?? iso(today);
+    let end = to;
+    if (!end) {
+      const e = new Date(today);
+      e.setDate(e.getDate() + 14);
+      end = iso(e);
+    }
+    return this.busyness.getQuietMoments(restaurantId, start, end);
+  }
 }
