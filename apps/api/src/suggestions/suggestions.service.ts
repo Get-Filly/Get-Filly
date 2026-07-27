@@ -655,7 +655,7 @@ export class SuggestionsService {
     // Weer-forecast voor de geleide flow (day-context): inspelen op
     // terras-/comfortweer op de gekozen dag.
     private readonly weather: WeatherService,
-    // Echte drukte-detectie (Google-patroon via Outscraper) voor de
+    // Echte drukte-detectie (Google-patroon via Apify) voor de
     // low-occupancy-flow; occupancy_days blijft terugval.
     private readonly busyness: BusynessService,
   ) {}
@@ -1091,41 +1091,49 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     type Candidate = {
       date: string;
       source: 'busyness' | 'occupancy';
-      expectedPct?: number; // busyness: relatieve verwachte drukte
+      // busyness: het rustige dagdeel + hoe rustig/ongewoon het is
+      daypart?: string;
+      daypartLabel?: string;
+      expectedPct?: number; // verwachte drukte in dat dagdeel (0-100)
+      deviation?: number; // afwijking t.o.v. eigen verwachting (negatief)
+      unusual?: boolean; // ongewoon rustig vs vaste rustige stand
+      fromHour?: number;
+      toHour?: number;
+      // occupancy-terugval
       occupancy_pct?: number | null;
       estimated_guests?: number | null;
       reservations_count?: number | null;
     };
 
-    // Voorkeur: echt busyness-model (Google-patroon via Outscraper).
-    // Rustige dag = relatief onder het eigen weekgemiddelde (level
-    // 'rustig'), niet een absolute drempel — dat matcht "afwijking van
-    // het eigen patroon" en voorkomt dat bijna elke dag flagt.
+    // Voorkeur: echt busyness-model (Google-patroon via Apify). Rustige
+    // MOMENTEN per dagdeel, voorspellend: onder je eigen verwachting én buiten
+    // de normale schommeling, gecapt op een paar per week (median polish + MAD;
+    // zie BusynessService.getQuietMoments). Geen bron → terugval op de seed
+    // occupancy_days onder de ingestelde drempel.
     let candidates: Candidate[] = [];
-    let expectation: Awaited<
-      ReturnType<BusynessService['getDailyExpectation']>
+    let quiet: Awaited<
+      ReturnType<BusynessService['getQuietMoments']>
     > | null = null;
     try {
-      expectation = await this.busyness.getDailyExpectation(
-        restaurantId,
-        fromIso,
-        toIso,
-        thresholdPct,
-      );
+      quiet = await this.busyness.getQuietMoments(restaurantId, fromIso, toIso);
     } catch (e) {
       this.logger.warn(
         `Busyness-detectie faalde, terugval op occupancy: ${String(e)}`,
       );
     }
 
-    if (expectation?.hasSource) {
-      candidates = expectation.days
-        .filter((d) => d.level === 'rustig')
-        .map((d) => ({
-          date: d.date,
-          source: 'busyness' as const,
-          expectedPct: d.expectedPct,
-        }));
+    if (quiet?.hasSource) {
+      candidates = quiet.moments.map((m) => ({
+        date: m.date,
+        source: 'busyness' as const,
+        daypart: m.daypart,
+        daypartLabel: m.daypartLabel,
+        expectedPct: m.expectedPct,
+        deviation: m.deviation,
+        unusual: m.unusual,
+        fromHour: m.fromHour,
+        toHour: m.toHour,
+      }));
     } else {
       // Terugval: seed occupancy_days onder de ingestelde drempel.
       const { data: rawCandidates, error: occErr } = await this.supabase.client
@@ -1167,11 +1175,18 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 
     const alreadyHandled = new Set<string>();
     for (const row of existing ?? []) {
-      const ctx = row.trigger_context as { target_date?: string } | null;
-      if (ctx?.target_date) alreadyHandled.add(ctx.target_date);
+      const ctx = row.trigger_context as {
+        target_date?: string;
+        target_daypart?: string;
+      } | null;
+      if (ctx?.target_date) {
+        alreadyHandled.add(`${ctx.target_date}|${ctx.target_daypart ?? ''}`);
+      }
     }
 
-    const todoDays = candidates.filter((c) => !alreadyHandled.has(c.date));
+    const todoDays = candidates.filter(
+      (c) => !alreadyHandled.has(`${c.date}|${c.daypart ?? ''}`),
+    );
     const skipped = candidates.length - todoDays.length;
 
     if (todoDays.length === 0) {
@@ -1234,14 +1249,24 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         (dateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
 
+      const venster =
+        day.fromHour != null && day.toHour != null
+          ? ` (${String(day.fromHour).padStart(2, '0')}:00–${String(day.toHour + 1).padStart(2, '0')}:00)`
+          : '';
       const drukteRegels =
         day.source === 'busyness'
-          ? `- Verwachte drukte: relatief rustig voor deze zaak (Google-patroon: ${day.expectedPct}/100, onder het eigen weekgemiddelde)`
+          ? `- Rustig moment: ${day.daypartLabel ?? 'overdag'}${venster}
+- Verwachte drukte dan: ${day.expectedPct}/100 — ${day.unusual ? 'ONGEWOON rustig' : 'rustiger dan normaal'} voor deze zaak (Google-patroon, ${day.deviation} onder je eigen verwachting voor dit dagdeel)`
           : `- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${thresholdPct}%)
 - Geschat aantal gasten: ${day.estimated_guests ?? '?'}
 - Reserveringen tot nu: ${day.reservations_count ?? 0}`;
 
-      const dayContext = `RUSTIGE DAG OM TE ACTIVEREN:
+      const contextHeader =
+        day.source === 'busyness' && day.daypartLabel
+          ? `RUSTIG MOMENT OM TE ACTIVEREN (${weekdayNl} ${day.daypartLabel}):`
+          : 'RUSTIGE DAG OM TE ACTIVEREN:';
+
+      const dayContext = `${contextHeader}
 - Datum: ${day.date} (${weekdayNl}, over ${daysFromNow} dagen)
 ${drukteRegels}
 
@@ -1252,7 +1277,7 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
-      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke rustige dag in de komende 2 weken bedenk je het beste activatie-voorstel.
+      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifiek rustig moment (een dagdeel) in de komende 2 weken bedenk je het beste activatie-voorstel om juist dán meer gasten te trekken.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
@@ -1260,6 +1285,7 @@ Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone.
 - Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
+- Richt het voorstel op het genoemde dagdeel en noem dat moment concreet ("kom lunchen", "borrel", "aan tafel vanavond"), zodat de gast weet wánneer het bedoeld is.
 - Kies campagne-type op basis van weekdag + segment:
   * vaste-gast/VIP-segment + acute dag (<5 dagen) → whatsapp (snel, persoonlijk)
   * brede zaal/weekend → social (zichtbaar, sfeervol)
@@ -1289,7 +1315,11 @@ ${menuBlock}
 ---
 ${dayContext}`;
 
-      const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${day.date}.`;
+      const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${day.date}${
+        day.source === 'busyness' && day.daypartLabel
+          ? ` (${day.daypartLabel})`
+          : ''
+      }.`;
 
       try {
         const generateProposal = (prompt: string) =>
@@ -1341,7 +1371,14 @@ ${dayContext}`;
             target_date: day.date,
             weekday: weekdayNl,
             ...(day.source === 'busyness'
-              ? { expected_pct: day.expectedPct, source: 'busyness' }
+              ? {
+                  source: 'busyness',
+                  expected_pct: day.expectedPct,
+                  target_daypart: day.daypart,
+                  daypart_label: day.daypartLabel,
+                  deviation: day.deviation,
+                  unusual: day.unusual,
+                }
               : {
                   occupancy_pct: day.occupancy_pct,
                   estimated_guests: day.estimated_guests,

@@ -572,7 +572,7 @@ export class RestaurantContextService {
     }
 
     // Drukte komende dagen. Voorkeur: het echte busyness-model (Google
-    // "Populaire tijden" via Outscraper). Geen bron → terugval op de
+    // "Populaire tijden" via Apify). Geen bron → terugval op de
     // (seed) occupancy_days zodat zaken zonder koppeling niet regresseren.
     const expectation = await this.busyness
       .getDailyExpectation(restaurantId, today, in7days, 50)
@@ -593,6 +593,20 @@ export class RestaurantContextService {
       parts.push(
         `Verwachte drukte komende dagen (Google-patroon; rustige dagen = kansen voor een campagne):\n${lines.join('\n')}`,
       );
+
+      // Rustige MOMENTEN per dagdeel (voorspellend): dé kansen om op in te
+      // spelen. Zelfde bron als de auto-detectie + het dashboard.
+      const quiet = await this.busyness
+        .getQuietMoments(restaurantId, today, in7days)
+        .catch(() => null);
+      if (quiet?.hasSource && quiet.moments.length > 0) {
+        const mlines = quiet.moments.map((m) => {
+          const label = wd.format(new Date(`${m.date}T12:00:00Z`));
+          const toon = m.unusual ? 'ongewoon rustig' : 'rustiger dan normaal';
+          return `  - ${label} ${m.date}, ${m.daypartLabel}: ${toon} (kans voor een actie)`;
+        });
+        parts.push(`Rustige momenten om op in te spelen:\n${mlines.join('\n')}`);
+      }
 
       // Live "nu"-drukte indien Google die geeft (relatief 0-100).
       const live = await this.busyness

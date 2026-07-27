@@ -21,6 +21,22 @@ export interface RefreshResult {
   skipped?: string; // reden als er niets is weggeschreven
 }
 
+// Eén gedetecteerd rustig moment (dag + dagdeel), voorspellend uit het
+// weekpatroon. Voedt de dashboard-markers, de chat-blokjes en de auto-
+// detectie — allemaal via dezelfde bron.
+export interface QuietMoment {
+  date: string; // YYYY-MM-DD
+  weekday: number; // 0=ma..6=zo
+  daypart: string; // ochtend|lunch|middag|diner|avond
+  daypartLabel: string; // 'middag'
+  expectedPct: number; // verwachte drukte in dat dagdeel (0-100)
+  deviation: number; // werkelijk − voorspeld (negatief = rustiger dan verwacht)
+  gap: number; // piek − dagdeel (vulbaarheid, punten)
+  unusual: boolean; // ongewoon rustig (sterke afwijking) vs vaste rustige stand
+  fromHour: number; // eerste open uur van het dagdeel (voor het rustig-venster)
+  toHour: number; // laatste open uur van het dagdeel
+}
+
 // Weekdag-mapping voor Intl (en-US short) → onze index 0=ma..6=zo.
 const WEEKDAY_INDEX: Record<string, number> = {
   Mon: 0,
@@ -31,6 +47,27 @@ const WEEKDAY_INDEX: Record<string, number> = {
   Sat: 5,
   Sun: 6,
 };
+
+// Vaste dagdeel-vensters (uur-grenzen, [from, to)). Een dagdeel wordt per zaak
+// bijgesneden op de open uren (uren met patroon > 0); dagdelen zonder genoeg
+// open uren tellen niet mee. Zo krijgt een lunchroom wél ochtend en een
+// dinner-only zaak niet.
+const DAYPART_DEFS: { key: string; label: string; from: number; to: number }[] =
+  [
+    { key: 'ochtend', label: 'ochtend', from: 6, to: 11 },
+    { key: 'lunch', label: 'lunch', from: 11, to: 14 },
+    { key: 'middag', label: 'middag', from: 14, to: 17 },
+    { key: 'diner', label: 'diner', from: 17, to: 21 },
+    { key: 'avond', label: 'avond', from: 21, to: 24 },
+  ];
+
+// Model-constanten voor de rustig-bepaling.
+const MIN_COVERAGE = 2; // min. open uren voordat een dagdeel meetelt
+const GAP_FLOOR = 15; // min. vulbaarheid: punten onder de eigen piek
+const ABS_DEV_FLOOR = 2; // ondergrens (punten) voor vlakke zaken waar de schommeling ~0 is
+const QUIET_SPREAD_MULT = 1.0; // rustig = zóveel × de normale schommeling onder verwachting
+const UNUSUAL_SPREAD_MULT = 2.0; // toon 'ongewoon rustig' vanaf deze afwijking (× schommeling)
+const DEFAULT_QUIET_PER_WEEK = 2; // tempo: max rustige momenten per week (instelbaar per zaak)
 
 @Injectable()
 export class BusynessService {
@@ -333,6 +370,219 @@ export class BusynessService {
       });
     }
     return { hasSource: true, days };
+  }
+
+  /**
+   * Rustige momenten per dagdeel, voorspellend, voor een datumbereik. Draait op
+   * het verwachte weekpatroon (geen live). Rekenwijze:
+   *   1. Dagdeel-rooster: gemiddelde drukte per open uur, per (weekdag, dagdeel),
+   *      op vaste vensters, bijgesneden op de open uren (min-dekking).
+   *   2. Robuuste two-way ontleding (median polish): verwacht niveau per cel =
+   *      overall + weekdag-effect + dagdeel-effect (medianen, dus ongevoelig voor
+   *      uitschieters die anders hun eigen baseline zouden vervuilen).
+   *   3. Afwijking = werkelijk − verwacht (het residu). Normale schommeling =
+   *      robuuste MAD; rustig = buiten die schommeling onder verwachting.
+   *   4. Kandidaat = vulbaar (gat t.o.v. eigen piek) én buiten de normale
+   *      schommeling onder verwachting.
+   *   5. Rangschikken op gecombineerde score en cappen op `perWeek` momenten per
+   *      week (spreiding: max één per dagdeel-type per week).
+   * hasSource=false als er (nog) geen echt patroon is → caller valt terug.
+   */
+  async getQuietMoments(
+    restaurantId: string,
+    fromIso: string,
+    toIso: string,
+    perWeek = DEFAULT_QUIET_PER_WEEK,
+  ): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
+    const latest = await this.getLatest(restaurantId);
+    if (!latest.pattern || latest.pattern.length < 7) {
+      return { hasSource: false, moments: [] };
+    }
+    const pattern = latest.pattern;
+
+    // 1. Dagdeel-rooster. cel = gemiddelde drukte per open uur; null = onder
+    //    min-dekking → telt niet mee. from/to = het open-uur-venster (voor de
+    //    rustig-band op de grafiek).
+    type Cell = { avg: number; from: number; to: number };
+    const cells: (Cell | null)[][] = pattern.map((row) =>
+      DAYPART_DEFS.map((dp) => {
+        const hrs: number[] = [];
+        for (let h = dp.from; h < dp.to; h++) if ((row[h] ?? 0) > 0) hrs.push(h);
+        if (hrs.length < MIN_COVERAGE) return null;
+        const sum = hrs.reduce((a, h) => a + row[h], 0);
+        return { avg: sum / hrs.length, from: hrs[0], to: hrs[hrs.length - 1] };
+      }),
+    );
+
+    // 2. Robuuste two-way ontleding (median polish): niveau + weekdag-effect +
+    //    dagdeel-effect, met medianen i.p.v. gemiddelden zodat één rustige
+    //    uitschieter z'n eigen baseline niet vervuilt. `residual` = wat overblijft
+    //    = de afwijking (werkelijk − verwacht); negatief = rustiger dan verwacht.
+    const grid: (number | null)[][] = cells.map((row) =>
+      row.map((c) => (c ? c.avg : null)),
+    );
+    const { residual } = this.medianPolish(grid);
+
+    // Piek (drukste dagdeel) + alle residu-waarden voor de schommeling.
+    let peak = 0;
+    const resVals: number[] = [];
+    cells.forEach((row, d) =>
+      row.forEach((c, j) => {
+        if (!c) return;
+        if (c.avg > peak) peak = c.avg;
+        const r = residual[d][j];
+        if (r != null) resVals.push(r);
+      }),
+    );
+    if (!resVals.length || !peak) return { hasSource: true, moments: [] };
+
+    // 3. Normale schommeling = robuuste MAD (mediane absolute afwijking t.o.v. de
+    //    mediaan), op std-schaal gebracht (×1,4826) zodat de multiplier intuïtief
+    //    blijft. Grenzen: rustig = buiten die schommeling onder verwachting,
+    //    'ongewoon' = duidelijk verder eronder. ABS_DEV_FLOOR vangt vlakke zaken.
+    const medRes = this.medianExact(resVals);
+    const mad = this.medianExact(resVals.map((r) => Math.abs(r - medRes)));
+    const spread = 1.4826 * mad || 1;
+    const quietThreshold = -Math.max(ABS_DEV_FLOOR, QUIET_SPREAD_MULT * spread);
+    const unusualThreshold = -Math.max(
+      ABS_DEV_FLOOR,
+      UNUSUAL_SPREAD_MULT * spread,
+    );
+
+    // 4. Kandidaten over het datumbereik (weekdag → zijn dagdeel-cellen).
+    type Cand = QuietMoment & { score: number; week: string };
+    const cand: Cand[] = [];
+    for (const date of this.eachDate(fromIso, toIso)) {
+      const weekday = this.mondayIndex(date);
+      DAYPART_DEFS.forEach((dp, j) => {
+        const c = cells[weekday][j];
+        const dev = residual[weekday][j];
+        if (!c || dev == null) return;
+        const gap = peak - c.avg;
+        if (gap < GAP_FLOOR) return; // te weinig te vullen
+        if (dev > quietThreshold) return; // binnen de normale schommeling → geen moment
+        cand.push({
+          date,
+          weekday,
+          daypart: dp.key,
+          daypartLabel: dp.label,
+          expectedPct: Math.round(c.avg),
+          deviation: Math.round(dev * 10) / 10,
+          gap: Math.round(gap),
+          unusual: dev <= unusualThreshold,
+          fromHour: c.from,
+          toHour: c.to,
+          score: -dev / spread + gap / (peak || 1),
+          week: this.mondayOf(date),
+        });
+      });
+    }
+
+    // 5. Rangschikken + cadans-cap per week (spreiding: max 1 per dagdeel/week).
+    cand.sort((a, b) => b.score - a.score);
+    const perWeekCount = new Map<string, number>();
+    const usedDaypart = new Set<string>();
+    const picked: Cand[] = [];
+    for (const c of cand) {
+      if ((perWeekCount.get(c.week) ?? 0) >= perWeek) continue;
+      const dpKey = c.week + '|' + c.daypart;
+      if (usedDaypart.has(dpKey)) continue;
+      perWeekCount.set(c.week, (perWeekCount.get(c.week) ?? 0) + 1);
+      usedDaypart.add(dpKey);
+      picked.push(c);
+    }
+    picked.sort((a, b) =>
+      a.date < b.date ? -1 : a.date > b.date ? 1 : a.fromHour - b.fromHour,
+    );
+    const moments: QuietMoment[] = picked.map((c) => ({
+      date: c.date,
+      weekday: c.weekday,
+      daypart: c.daypart,
+      daypartLabel: c.daypartLabel,
+      expectedPct: c.expectedPct,
+      deviation: c.deviation,
+      gap: c.gap,
+      unusual: c.unusual,
+      fromHour: c.fromHour,
+      toHour: c.toHour,
+    }));
+    return { hasSource: true, moments };
+  }
+
+  // Exacte mediaan (zonder afronding) — voor median polish + MAD.
+  private medianExact(nums: number[]): number {
+    if (!nums.length) return 0;
+    const s = [...nums].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+
+  /**
+   * Median polish (Tukey): robuuste two-way ontleding van een tabel in
+   *   waarde = overall + rijEffect + kolomEffect + residu.
+   * Werkt met medianen i.p.v. gemiddelden, dus ongevoelig voor uitschieters
+   * (juist de dips die we zoeken vervuilen dan hun eigen baseline niet). Lege
+   * cellen (null) doen niet mee aan de medianen en houden residu = null.
+   */
+  private medianPolish(matrix: (number | null)[][]): {
+    overall: number;
+    rowEff: number[];
+    colEff: number[];
+    residual: (number | null)[][];
+  } {
+    const R = matrix.length;
+    const C = matrix[0]?.length ?? 0;
+    const res: (number | null)[][] = matrix.map((row) => row.slice());
+    const rowEff = new Array<number>(R).fill(0);
+    const colEff = new Array<number>(C).fill(0);
+    let overall = 0;
+
+    for (let iter = 0; iter < 10; iter++) {
+      let maxShift = 0;
+      // Rijen: trek de rij-mediaan eraf, tel op bij het rij-effect.
+      for (let d = 0; d < R; d++) {
+        const vals = res[d].filter((v): v is number => v != null);
+        if (!vals.length) continue;
+        const m = this.medianExact(vals);
+        for (let j = 0; j < C; j++) {
+          if (res[d][j] != null) res[d][j] = (res[d][j] as number) - m;
+        }
+        rowEff[d] += m;
+        maxShift = Math.max(maxShift, Math.abs(m));
+      }
+      // Centreer de rij-effecten in het overall-niveau.
+      const rm = this.medianExact(rowEff);
+      for (let d = 0; d < R; d++) rowEff[d] -= rm;
+      overall += rm;
+      // Kolommen: idem.
+      for (let j = 0; j < C; j++) {
+        const vals: number[] = [];
+        for (let d = 0; d < R; d++) {
+          const v = res[d][j];
+          if (v != null) vals.push(v);
+        }
+        if (!vals.length) continue;
+        const m = this.medianExact(vals);
+        for (let d = 0; d < R; d++) {
+          if (res[d][j] != null) res[d][j] = (res[d][j] as number) - m;
+        }
+        colEff[j] += m;
+        maxShift = Math.max(maxShift, Math.abs(m));
+      }
+      const cm = this.medianExact(colEff);
+      for (let j = 0; j < C; j++) colEff[j] -= cm;
+      overall += cm;
+
+      if (maxShift < 0.01) break; // gestabiliseerd
+    }
+    return { overall, rowEff, colEff, residual: res };
+  }
+
+  // Maandag (YYYY-MM-DD) van de week waarin `iso` valt — weeksleutel voor de cap.
+  private mondayOf(iso: string): string {
+    const d = new Date(`${iso}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - this.mondayIndex(iso));
+    return d.toISOString().slice(0, 10);
   }
 
   // Weekdag 0=ma..6=zo voor een YYYY-MM-DD (UTC-noon → tz-veilig).
