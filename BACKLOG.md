@@ -16,6 +16,29 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-07-27 — Rustige momenten per dagdeel (branch `feat/rustige-momenten`, NIET gemerged)
+
+Voorspellende detectie van rustige **dagdelen** (was: hele dagen). Draait op het
+verwachte Google-weekpatroon, niet op live. Zelfde bron voedt grafiek + chat +
+auto-detectie. Volledige uitleg + verantwoording afgevallen methodes in
+[`docs/rustige-momenten-detectie.docx`](docs/rustige-momenten-detectie.docx).
+
+- [x] **Model** `BusynessService.getQuietMoments` — dagdeel-rooster (vaste
+  vensters, bijgesneden op open uren, gemiddelde per open uur, min-dekking) →
+  robuuste two-way ontleding (**median polish**) → afwijking = werkelijk −
+  verwacht → rustig = onder verwachting én buiten de normale schommeling
+  (**MAD**) → vulbaarheid als poort → **tempo-cap per week**.
+- [x] **Detectie + Filly** — `detectAndGenerateLowOccupancy` + Filly's
+  chat-context draaien op de momenten (dag + dagdeel + toon).
+- [x] **Dashboard + chat** — endpoint `GET /busyness/me/quiet-moments`;
+  busyness-card markers/venster + chat-blokjes (`use-actionable-days`) uit
+  dezelfde bron. Bestaande UI ongemoeid.
+- [x] **Tempo instelbaar per zaak** — migratie **0065**
+  (`restaurants.quiet_moments_per_week`, default 2, 1–6) + account-instelling.
+  ⚠️ **Migratie 0065 nog draaien in Supabase** (code valt veilig terug op 2).
+- [ ] **Fase 5: end-to-end verifiëren** op de live dashboard (na de migratie).
+- [ ] Branch mergen naar main na verificatie.
+
 ## 🗓️ 2026-07-18 — Bezetting: Apify vervangt Outscraper + werkelijk-lijn glad (live op main)
 
 **Outscraper bleek de live-drukte te CACHEN** (bevroren `100@13`, ververste
