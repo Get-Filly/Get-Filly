@@ -1118,7 +1118,10 @@
       "reviewThresholdHint": "Reviews that don't have a reply yet and fall below this threshold automatically appear in “Other actions”. The default is 3 stars, so only real problems get your attention.",
       "occupancyThresholdLabel": "Occupancy below this threshold counts as a quiet day",
       "below": "Below {pct}%",
-      "occupancyThresholdHint": "Filly scans the next 14 days for quiet days and adds them to “Other actions”. As soon as a day's occupancy reaches the threshold (e.g. through new reservations), it automatically disappears from the list. Closing days are not shown."
+      "occupancyThresholdHint": "Filly scans the next 14 days for quiet days and adds them to “Other actions”. As soon as a day's occupancy reaches the threshold (e.g. through new reservations), it automatically disappears from the list. Closing days are not shown.",
+      "quietTempoLabel": "How many quiet moments Filly surfaces per week",
+      "quietTempoValue": "{count} per week",
+      "quietTempoHint": "The ceiling: Filly surfaces at most this many quiet moments per week, strongest first. A calm week yields fewer; it is never padded with moments that aren't actually quiet."
     },
     "events": {
       "label": "Nearby events in Filly's suggestions",

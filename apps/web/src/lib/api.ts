@@ -1439,6 +1439,9 @@ export type Restaurant = {
   // verschijnt 'ie in de overige-acties-strip (14 dgn vooruit).
   // Range 10-100, default 50 (sinds mig 0037).
   low_occupancy_threshold: number;
+  // Tempo van de rustige-momenten-detectie: max rustige momenten per week die
+  // Filly aandraagt (het plafond). Range 1-6, default 2 (mig 0065).
+  quiet_moments_per_week: number;
   // ----- Evenementen in voorstellen (mig 0054) -----
   // Welke event-typen Filly meeneemt in voorstellen.
   // null = alle categorieën; lege array = events uit.

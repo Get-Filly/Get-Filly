@@ -955,6 +955,46 @@ function AccountPageInner() {
             </div>
           </div>
 
+          {/* ----- Tempo rustige momenten (mig 0065) ----- */}
+          <div className="form-field full">
+            <label htmlFor="quiet-tempo">
+              {t("notifications.quietTempoLabel")}
+            </label>
+            <select
+              id="quiet-tempo"
+              value={form.quiet_moments_per_week ?? 2}
+              onChange={(e) =>
+                update("quiet_moments_per_week", parseInt(e.target.value, 10))
+              }
+              style={{
+                padding: "8px 12px",
+                border: "1px solid var(--border, #E5DFD0)",
+                borderRadius: 6,
+                fontSize: 14,
+                background: "var(--white, #FFFFFF)",
+                color: "var(--text, #18181B)",
+                width: "100%",
+                maxWidth: 280,
+              }}
+            >
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>
+                  {t("notifications.quietTempoValue", { count: n })}
+                </option>
+              ))}
+            </select>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              {t("notifications.quietTempoHint")}
+            </div>
+          </div>
+
           {/* ----- Evenementen in voorstellen (mig 0054) ----- */}
           <div className="form-field full">
             <label>{t("events.label")}</label>

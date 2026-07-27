@@ -1118,7 +1118,10 @@
       "reviewThresholdHint": "Reviews die nog geen reactie hebben en onder deze drempel vallen, verschijnen automatisch in “Overige acties”. Standaard is 3 sterren, zodat alleen echte problemen je aandacht vragen.",
       "occupancyThresholdLabel": "Bezetting onder deze drempel telt als rustige dag",
       "below": "Onder {pct}%",
-      "occupancyThresholdHint": "Filly scant de komende 14 dagen op rustige dagen en zet ze in “Overige acties”. Zodra de bezetting van een dag de drempel haalt (bv. door nieuwe reserveringen), verdwijnt 'ie automatisch uit het lijstje. Sluitingsdagen worden niet getoond."
+      "occupancyThresholdHint": "Filly scant de komende 14 dagen op rustige dagen en zet ze in “Overige acties”. Zodra de bezetting van een dag de drempel haalt (bv. door nieuwe reserveringen), verdwijnt 'ie automatisch uit het lijstje. Sluitingsdagen worden niet getoond.",
+      "quietTempoLabel": "Hoeveel rustige momenten Filly per week aandraagt",
+      "quietTempoValue": "{count} per week",
+      "quietTempoHint": "Het plafond: Filly draagt maximaal dit aantal rustige momenten per week aan, de sterkste eerst. Een rustige week levert er minder op; het wordt nooit opgevuld met momenten die eigenlijk niet rustig zijn."
     },
     "events": {
       "label": "Evenementen uit de buurt in Filly's voorstellen",

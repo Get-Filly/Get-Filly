@@ -392,13 +392,17 @@ export class BusynessService {
     restaurantId: string,
     fromIso: string,
     toIso: string,
-    perWeek = DEFAULT_QUIET_PER_WEEK,
+    // Tempo (max per week). Niet meegegeven → de per-zaak-instelling
+    // (quiet_moments_per_week), anders de default.
+    perWeek?: number,
   ): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
     const latest = await this.getLatest(restaurantId);
     if (!latest.pattern || latest.pattern.length < 7) {
       return { hasSource: false, moments: [] };
     }
     const pattern = latest.pattern;
+    const effectivePerWeek =
+      perWeek ?? (await this.getQuietPerWeek(restaurantId));
 
     // 1. Dagdeel-rooster. cel = gemiddelde drukte per open uur; null = onder
     //    min-dekking → telt niet mee. from/to = het open-uur-venster (voor de
@@ -484,7 +488,7 @@ export class BusynessService {
     const usedDaypart = new Set<string>();
     const picked: Cand[] = [];
     for (const c of cand) {
-      if ((perWeekCount.get(c.week) ?? 0) >= perWeek) continue;
+      if ((perWeekCount.get(c.week) ?? 0) >= effectivePerWeek) continue;
       const dpKey = c.week + '|' + c.daypart;
       if (usedDaypart.has(dpKey)) continue;
       perWeekCount.set(c.week, (perWeekCount.get(c.week) ?? 0) + 1);
@@ -507,6 +511,17 @@ export class BusynessService {
       toHour: c.toHour,
     }));
     return { hasSource: true, moments };
+  }
+
+  // Het per-zaak ingestelde tempo (quiet_moments_per_week); default als leeg.
+  private async getQuietPerWeek(restaurantId: string): Promise<number> {
+    const { data } = await this.supabase.client
+      .from('restaurants')
+      .select('quiet_moments_per_week')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    const v = data?.quiet_moments_per_week as number | null | undefined;
+    return typeof v === 'number' && v >= 1 ? v : DEFAULT_QUIET_PER_WEEK;
   }
 
   // Exacte mediaan (zonder afronding) — voor median polish + MAD.

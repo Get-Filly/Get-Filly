@@ -332,6 +332,15 @@ export const RestaurantUpdateSchema = z
       .max(100, 'Drempel moet 10-100 zijn.')
       .optional(),
 
+    // Tempo van de rustige-momenten-detectie: max rustige momenten per week
+    // die Filly aandraagt (het plafond). Default 2 (mig 0065).
+    quiet_moments_per_week: z
+      .number()
+      .int()
+      .min(1, 'Tempo moet 1-6 zijn.')
+      .max(6, 'Tempo moet 1-6 zijn.')
+      .optional(),
+
     // ----- Evenementen in voorstellen (mig 0054) -----
     // Welke event-typen Filly meeneemt; null = alle, lege array =
     // events volledig uit voor deze zaak.
