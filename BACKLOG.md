@@ -43,6 +43,9 @@ auto-detectie. Volledige uitleg + verantwoording afgevallen methodes in
 - [x] **Week-navigatie uitgebreid** — terug tot begin dit jaar (minOffset uit
   1 jan) + 6 weken vooruit; werkelijk-lijn volgt de bekeken week; rustige
   markers blijven vooruitkijkend (vast venster vanaf vandaag).
+- [x] **Kans per dag** — aaneengesloten rustige dagdelen (bv. diner + avond)
+  worden één kans; tempo capt op het aantal DAGEN per week (max 1 kans/dag).
+  Plafond blijft (geen opvulling). Word-doc + account-instelling bijgewerkt.
 - [ ] Visuele check op de ingelogde dashboard (markers, terugbladeren, chat-blokjes).
 - [ ] Branch mergen naar main na de visuele check.
 
