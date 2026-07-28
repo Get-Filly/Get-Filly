@@ -36,8 +36,22 @@ auto-detectie. Volledige uitleg + verantwoording afgevallen methodes in
 - [x] **Tempo instelbaar per zaak** — migratie **0065**
   (`restaurants.quiet_moments_per_week`, default 2, 1–6) + account-instelling.
   ⚠️ **Migratie 0065 nog draaien in Supabase** (code valt veilig terug op 2).
-- [ ] **Fase 5: end-to-end verifiëren** op de live dashboard (na de migratie).
-- [ ] Branch mergen naar main na verificatie.
+- [x] **Migratie 0065 gedraaid** (2026-07-28).
+- [x] **Fase 5 backend geverifieerd** — `getQuietMoments` tegen echte Supabase-data
+  (demo-zaken, Bar Barolo-patroon): tempo uit DB, zinnige momenten, week-cap klopt.
+  Ingelogde dashboard-render nog niet visueel gecheckt (auth).
+- [x] **Week-navigatie uitgebreid** — terug tot begin dit jaar (minOffset uit
+  1 jan) + 6 weken vooruit; werkelijk-lijn volgt de bekeken week; rustige
+  markers blijven vooruitkijkend (vast venster vanaf vandaag).
+- [ ] Visuele check op de ingelogde dashboard (markers, terugbladeren, chat-blokjes).
+- [ ] Branch mergen naar main na de visuele check.
+
+**Verwachte lijn = Google-patroon, niet historische werkelijk.** De grijze lijn is
+altijd het weekpatroon uit het Google-profiel per weekdag (zelfde voor elke
+dinsdag); een toekomstige dag toont alleen die lijn (geen werkelijk-lijn). De
+werkelijk-lijn bestaat enkel voor gemeten dagen en is 40/60 naar het patroon
+gedempt. Vervolgstap (ongebouwd): anker verschuiven naar eigen mediaan-per-weekdag
+zodra er weken metingen zijn.
 
 ## 🗓️ 2026-07-18 — Bezetting: Apify vervangt Outscraper + werkelijk-lijn glad (live op main)
 

@@ -32,8 +32,10 @@ import {
   type DayBusyness,
 } from "../_lib/busyness";
 
-const MIN_OFFSET = -1;
-const MAX_OFFSET = 1;
+// Week-navigatie: vooruit een paar weken (de detectie kijkt 14 dagen vooruit).
+// Terug loopt tot begin dit jaar; die ondergrens (minOffset) wordt per render
+// uit de huidige datum berekend in de component.
+const MAX_OFFSET = 6;
 
 // Grijs = verwacht/voorspeld; groen = werkelijk (huisstijl-accent).
 const EXPECTED = "var(--tl)";
@@ -95,6 +97,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const [offset, setOffset] = useState(0);
   const [col, setCol] = useState(() => (new Date().getDay() + 6) % 7);
 
+  // Terug tot de week van 1 januari van dit jaar (negatief aantal weken).
+  const minOffset = useMemo(() => {
+    const jan = mondayOfWeek(new Date(today.getFullYear(), 0, 1));
+    return Math.round((jan.getTime() - thisMonday.getTime()) / (7 * 86400000));
+  }, [today, thisMonday]);
+
   useEffect(() => {
     let cancelled = false;
     const y = today.getFullYear();
@@ -121,27 +129,35 @@ export function BusynessCard({ onMakeConcept }: Props) {
         setPattern(null);
         setBusynessHours(null);
       });
-    // Werkelijk-drukte voor het zichtbare bereik (vorige t/m volgende week).
-    const from = isoOf(addDays(thisMonday, -7));
-    const to = isoOf(addDays(thisMonday, 13));
-    fetchBusynessActual(from, to)
-      .then((a) => !cancelled && setActualByDate(a))
-      .catch(() => !cancelled && setActualByDate({}));
-    // Rustige momenten voor hetzelfde bereik (markers + venster).
-    fetchQuietMoments(from, to)
+    // Rustige momenten = vooruitkijkend (kansen); vast venster vanaf vandaag.
+    // Markers verschijnen dus alleen op komende dagen, ook als je terugbladert.
+    const qFrom = isoOf(today);
+    const qTo = isoOf(addDays(today, 21));
+    fetchQuietMoments(qFrom, qTo)
       .then((q) => !cancelled && setQuiet(q))
-      .catch(
-        () => !cancelled && setQuiet({ hasSource: false, moments: [] }),
-      );
+      .catch(() => !cancelled && setQuiet({ hasSource: false, moments: [] }));
     return () => {
       cancelled = true;
     };
-  }, [today, thisMonday]);
+  }, [today]);
 
   const realMap = useMemo(() => occupancyMap(occupancy), [occupancy]);
   const threshold = restaurant?.low_occupancy_threshold ?? 50;
 
   const monday = useMemo(() => addDays(thisMonday, offset * 7), [thisMonday, offset]);
+
+  // Werkelijke drukte voor de zichtbare week; volgt de navigatie zodat eerdere
+  // weken hun gemeten data tonen (en niet alleen de week rond vandaag).
+  useEffect(() => {
+    let cancelled = false;
+    fetchBusynessActual(isoOf(monday), isoOf(addDays(monday, 6)))
+      .then((a) => !cancelled && setActualByDate(a))
+      .catch(() => !cancelled && setActualByDate({}));
+    return () => {
+      cancelled = true;
+    };
+  }, [monday]);
+
   const week = useMemo(
     () =>
       buildWeek(
@@ -179,9 +195,21 @@ export function BusynessCard({ onMakeConcept }: Props) {
     () => new Intl.DateTimeFormat(localeTag, { day: "numeric", month: "short" }),
     [localeTag],
   );
+  const monthYearFmt = useMemo(
+    () => new Intl.DateTimeFormat(localeTag, { month: "long", year: "numeric" }),
+    [localeTag],
+  );
 
   const weekLabel = `${rangeFmt.format(week[0].date)} - ${rangeFmt.format(week[6].date)}`;
-  const weekSub = offset === 0 ? t("subThis") : offset < 0 ? t("subPrev") : t("subNext");
+  // Dichtbij: deze/vorige/volgende week. Verder weg: maand + jaar voor context.
+  const weekSub =
+    offset === 0
+      ? t("subThis")
+      : offset === -1
+        ? t("subPrev")
+        : offset === 1
+          ? t("subNext")
+          : monthYearFmt.format(week[0].date);
 
   const isFuture = day.timeframe === "future";
   const tfLabel =
@@ -268,8 +296,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
           <button
             className="bz-navbtn"
             aria-label={t("prevWeek")}
-            disabled={offset <= MIN_OFFSET}
-            onClick={() => setOffset((o) => Math.max(MIN_OFFSET, o - 1))}
+            disabled={offset <= minOffset}
+            onClick={() => setOffset((o) => Math.max(minOffset, o - 1))}
           >
             ‹
           </button>
