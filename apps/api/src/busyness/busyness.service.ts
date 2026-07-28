@@ -384,8 +384,9 @@ export class BusynessService {
    *      robuuste MAD; rustig = buiten die schommeling onder verwachting.
    *   4. Kandidaat = vulbaar (gat t.o.v. eigen piek) én buiten de normale
    *      schommeling onder verwachting.
-   *   5. Rangschikken op gecombineerde score en cappen op `perWeek` momenten per
-   *      week (spreiding: max één per dagdeel-type per week).
+   *   5. Aaneengesloten rustige dagdelen op één dag = één kans (bv. diner +
+   *      avond); max één kans per dag. Rangschikken en cappen op `perWeek`
+   *      DAGEN per week.
    * hasSource=false als er (nog) geen echt patroon is → caller valt terug.
    */
   async getQuietMoments(
@@ -453,64 +454,108 @@ export class BusynessService {
       UNUSUAL_SPREAD_MULT * spread,
     );
 
-    // 4. Kandidaten over het datumbereik (weekdag → zijn dagdeel-cellen).
-    type Cand = QuietMoment & { score: number; week: string };
-    const cand: Cand[] = [];
+    // 4. Kandidaat-dagdelen per datum verzamelen (met dagdeel-index j, nodig om
+    //    aaneengesloten dagdelen hieronder samen te voegen).
+    type PartCand = {
+      j: number;
+      label: string;
+      key: string;
+      dev: number;
+      gap: number;
+      from: number;
+      to: number;
+      expectedPct: number;
+    };
+    const perDate = new Map<string, PartCand[]>();
     for (const date of this.eachDate(fromIso, toIso)) {
       const weekday = this.mondayIndex(date);
+      const arr: PartCand[] = [];
       DAYPART_DEFS.forEach((dp, j) => {
         const c = cells[weekday][j];
         const dev = residual[weekday][j];
         if (!c || dev == null) return;
         const gap = peak - c.avg;
         if (gap < GAP_FLOOR) return; // te weinig te vullen
-        if (dev > quietThreshold) return; // binnen de normale schommeling → geen moment
-        cand.push({
-          date,
-          weekday,
-          daypart: dp.key,
-          daypartLabel: dp.label,
-          expectedPct: Math.round(c.avg),
-          deviation: Math.round(dev * 10) / 10,
-          gap: Math.round(gap),
-          unusual: dev <= unusualThreshold,
-          fromHour: c.from,
-          toHour: c.to,
-          score: -dev / spread + gap / (peak || 1),
-          week: this.mondayOf(date),
+        if (dev > quietThreshold) return; // binnen de normale schommeling
+        arr.push({
+          j,
+          label: dp.label,
+          key: dp.key,
+          dev,
+          gap,
+          from: c.from,
+          to: c.to,
+          expectedPct: c.avg,
         });
+      });
+      if (arr.length) perDate.set(date, arr);
+    }
+
+    // 5. Per dag: aaneengesloten dagdelen (opeenvolgende j) samenvoegen tot één
+    //    kans (bv. diner + avond = één rustig blok). De sterkste aaneengesloten
+    //    reeks is dé kans van die dag → max één kans per dag. Daarna rangschikken
+    //    en het tempo cappen op het aantal DAGEN per week.
+    type Kans = QuietMoment & { score: number; week: string };
+    const runScore = (run: PartCand[]) =>
+      Math.max(...run.map((p) => -p.dev / spread + p.gap / (peak || 1)));
+    const dayKansen: Kans[] = [];
+    for (const [date, parts] of perDate) {
+      parts.sort((a, b) => a.j - b.j);
+      const runs: PartCand[][] = [];
+      for (const p of parts) {
+        const last = runs[runs.length - 1];
+        if (last && p.j === last[last.length - 1].j + 1) last.push(p);
+        else runs.push([p]);
+      }
+      const best = runs.reduce((a, b) => (runScore(b) > runScore(a) ? b : a));
+      const devMin = Math.min(...best.map((p) => p.dev)); // sterkste afwijking
+      const gapMax = Math.max(...best.map((p) => p.gap));
+      dayKansen.push({
+        date,
+        weekday: this.mondayIndex(date),
+        daypart: best[0].key,
+        daypartLabel: this.joinDayparts(best.map((p) => p.label)),
+        expectedPct: Math.round(
+          best.reduce((s, p) => s + p.expectedPct, 0) / best.length,
+        ),
+        deviation: Math.round(devMin * 10) / 10,
+        gap: Math.round(gapMax),
+        unusual: devMin <= unusualThreshold,
+        fromHour: Math.min(...best.map((p) => p.from)),
+        toHour: Math.max(...best.map((p) => p.to)),
+        score: runScore(best),
+        week: this.mondayOf(date),
       });
     }
 
-    // 5. Rangschikken + cadans-cap per week (spreiding: max 1 per dagdeel/week).
-    cand.sort((a, b) => b.score - a.score);
+    dayKansen.sort((a, b) => b.score - a.score);
     const perWeekCount = new Map<string, number>();
-    const usedDaypart = new Set<string>();
-    const picked: Cand[] = [];
-    for (const c of cand) {
-      if ((perWeekCount.get(c.week) ?? 0) >= effectivePerWeek) continue;
-      const dpKey = c.week + '|' + c.daypart;
-      if (usedDaypart.has(dpKey)) continue;
-      perWeekCount.set(c.week, (perWeekCount.get(c.week) ?? 0) + 1);
-      usedDaypart.add(dpKey);
-      picked.push(c);
+    const picked: Kans[] = [];
+    for (const k of dayKansen) {
+      if ((perWeekCount.get(k.week) ?? 0) >= effectivePerWeek) continue;
+      perWeekCount.set(k.week, (perWeekCount.get(k.week) ?? 0) + 1);
+      picked.push(k);
     }
-    picked.sort((a, b) =>
-      a.date < b.date ? -1 : a.date > b.date ? 1 : a.fromHour - b.fromHour,
-    );
-    const moments: QuietMoment[] = picked.map((c) => ({
-      date: c.date,
-      weekday: c.weekday,
-      daypart: c.daypart,
-      daypartLabel: c.daypartLabel,
-      expectedPct: c.expectedPct,
-      deviation: c.deviation,
-      gap: c.gap,
-      unusual: c.unusual,
-      fromHour: c.fromHour,
-      toHour: c.toHour,
+    picked.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const moments: QuietMoment[] = picked.map((k) => ({
+      date: k.date,
+      weekday: k.weekday,
+      daypart: k.daypart,
+      daypartLabel: k.daypartLabel,
+      expectedPct: k.expectedPct,
+      deviation: k.deviation,
+      gap: k.gap,
+      unusual: k.unusual,
+      fromHour: k.fromHour,
+      toHour: k.toHour,
     }));
     return { hasSource: true, moments };
+  }
+
+  // Dagdeel-labels natuurlijk aan elkaar: ["diner","avond"] → "diner en avond".
+  private joinDayparts(labels: string[]): string {
+    if (labels.length <= 1) return labels[0] ?? '';
+    return `${labels.slice(0, -1).join(', ')} en ${labels[labels.length - 1]}`;
   }
 
   // Het per-zaak ingestelde tempo (quiet_moments_per_week); default als leeg.
