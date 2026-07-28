@@ -608,24 +608,26 @@ export class RestaurantContextService {
         parts.push(`Rustige momenten om op in te spelen:\n${mlines.join('\n')}`);
       }
 
-      // Live "nu"-drukte indien Google die geeft (relatief 0-100).
+      // Live "nu"-drukte kwalitatief (geen exacte percentages in de chat).
       const live = await this.busyness
         .getLatest(restaurantId)
         .catch(() => null);
       if (live?.livePct != null) {
-        parts.push(`Nu is het relatief ${live.livePct}% druk (live).`);
+        const nu =
+          live.livePct < 40 ? 'rustig' : live.livePct > 70 ? 'druk' : 'normaal';
+        parts.push(`Nu is het ${nu} (live-inschatting).`);
       }
     } else {
-      // Terugval: seed-bezetting vandaag + komende 6 dagen.
+      // Terugval: seed-bezetting vandaag + komende 6 dagen. Geen drukte-%
+      // in de chat; alleen het geschatte aantal gasten (concreet, geen "53%").
       const upcomingOcc = occ
         .filter((d) => d.date >= today && d.date <= in7days)
         .slice(0, 7);
       if (upcomingOcc.length > 0) {
         const occLines = upcomingOcc.map(
-          (d) =>
-            `  - ${d.date}: ${d.occupancy_pct}% bezetting (~${d.estimated_guests} gasten)`,
+          (d) => `  - ${d.date}: ~${d.estimated_guests} gasten verwacht`,
         );
-        parts.push(`Bezetting komende dagen:\n${occLines.join('\n')}`);
+        parts.push(`Verwachte gasten komende dagen:\n${occLines.join('\n')}`);
       }
     }
 
