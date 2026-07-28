@@ -604,6 +604,15 @@ export type DayContext = {
     distanceKm: number;
   }>;
   channels: DayContextChannel[];
+  // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
+  quietMoment: {
+    daypart: string;
+    daypartLabel: string;
+    fromHour: number;
+    toHour: number;
+    deviation: number;
+    unusual: boolean;
+  } | null;
 };
 
 // Shape van een ai_suggestions-insert vanuit generate-for-dates
@@ -1531,7 +1540,25 @@ ${dayContext}`;
       note: r.note,
     }));
 
-    return { date, weather, events, channels };
+    // Rustig dagdeel voor deze datum (uit het busyness-model), zodat de flow
+    // het moment kan tonen en de generatie erop mikt. Uncapped (perWeek hoog);
+    // null als de dag niet als rustig gedetecteerd is.
+    const qm = await this.busyness
+      .getQuietMoments(restaurantId, date, date, 999)
+      .catch(() => null);
+    const m = qm?.moments?.[0] ?? null;
+    const quietMoment = m
+      ? {
+          daypart: m.daypart,
+          daypartLabel: m.daypartLabel,
+          fromHour: m.fromHour,
+          toHour: m.toHour,
+          deviation: m.deviation,
+          unusual: m.unusual,
+        }
+      : null;
+
+    return { date, weather, events, channels, quietMoment };
   }
 
   async generateForSelectedDates(
@@ -1616,6 +1643,35 @@ ${dayContext}`;
       );
     }
 
+    // Rustige MOMENTEN (dagdeel + venster + reden) voor de gekozen dagen, uit
+    // het busyness-model. Zo mikt de gegenereerde campagne op het juiste
+    // dagdeel i.p.v. de hele dag. Uncapped (perWeek hoog): de eigenaar koos de
+    // dag zelf, dus het tempo-plafond mag hier niet filteren. Leeg → terugval
+    // op de occupancy-context.
+    type QuietInfo = {
+      daypartLabel: string;
+      fromHour: number;
+      toHour: number;
+      deviation: number;
+      unusual: boolean;
+    };
+    const quietByDate = new Map<string, QuietInfo>();
+    if (lowOccDates.length > 0) {
+      const sorted = [...lowOccDates].sort();
+      const qm = await this.busyness
+        .getQuietMoments(restaurantId, sorted[0], sorted[sorted.length - 1], 999)
+        .catch(() => null);
+      for (const m of qm?.moments ?? []) {
+        quietByDate.set(m.date, {
+          daypartLabel: m.daypartLabel,
+          fromHour: m.fromHour,
+          toHour: m.toHour,
+          deviation: m.deviation,
+          unusual: m.unusual,
+        });
+      }
+    }
+
     // Segment-counts (zelfde shape als detect-flow).
     const { data: guestStats } = await this.supabase.client
       .from('guests')
@@ -1667,19 +1723,40 @@ ${dayContext}`;
       let triggerContextBase: Record<string, unknown>;
 
       if (item.kind === 'low_occupancy') {
-        const occ = occByDate.get(item.date);
         triggerType = 'low_occupancy';
-        dayContext = `RUSTIGE DAG OM TE ACTIVEREN:
+        const qm = quietByDate.get(item.date);
+        if (qm) {
+          // Voorkeur: het gedetecteerde rustige dagdeel → campagne mikt op dát
+          // moment (niet de hele dag). Geen exacte percentages in de context.
+          const venster = `${String(qm.fromHour).padStart(2, '0')}:00–${String(
+            qm.toHour + 1,
+          ).padStart(2, '0')}:00`;
+          dayContext = `RUSTIG MOMENT OM TE ACTIVEREN (${weekdayNl} ${qm.daypartLabel}):
 - Datum: ${item.date} (${weekdayNl}, over ${daysFromNow} dagen)
-- Verwachte bezetting: ${occ?.occupancy_pct ?? '?'}% (drempel: ${lowOccupancyThreshold}%)
+- Rustig dagdeel: ${qm.daypartLabel} (${venster})
+- Hoe rustig: ${qm.unusual ? 'ONGEWOON rustig' : 'rustiger dan normaal'} voor deze zaak (Google-patroon, onder je eigen verwachting voor dit dagdeel)`;
+          triggerContextBase = {
+            target_date: item.date,
+            weekday: weekdayNl,
+            source: 'busyness',
+            daypart_label: qm.daypartLabel,
+            deviation: qm.deviation,
+            unusual: qm.unusual,
+          };
+        } else {
+          // Terugval: seed-occupancy (geen busyness-patroon voor deze zaak).
+          const occ = occByDate.get(item.date);
+          dayContext = `RUSTIGE DAG OM TE ACTIVEREN:
+- Datum: ${item.date} (${weekdayNl}, over ${daysFromNow} dagen)
 - Geschat aantal gasten: ${occ?.estimated_guests ?? '?'}
 - Reserveringen tot nu: ${occ?.reservations_count ?? 0}`;
-        triggerContextBase = {
-          target_date: item.date,
-          weekday: weekdayNl,
-          occupancy_pct: occ?.occupancy_pct ?? null,
-          estimated_guests: occ?.estimated_guests ?? null,
-        };
+          triggerContextBase = {
+            target_date: item.date,
+            weekday: weekdayNl,
+            occupancy_pct: occ?.occupancy_pct ?? null,
+            estimated_guests: occ?.estimated_guests ?? null,
+          };
+        }
       } else {
         // special_day
         triggerType = 'special_day';
@@ -1743,6 +1820,7 @@ Inhoudsregels:
 - Schrijf in het Nederlands. Match de brand_tone.
 - Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
+- Is er een rustig DAGDEEL genoemd, richt het voorstel dan op dát moment en noem het concreet ("kom lunchen", "borrel", "aan tafel vanavond"). Noem geen exacte drukte-percentages.
 - Kies campagne-type op basis van urgentie + segment:
   * Acute dag (<5 dgn) + vaste-gast/VIP → whatsapp (snel, persoonlijk)
   * Brede zaal/weekend → social (zichtbaar, sfeervol)

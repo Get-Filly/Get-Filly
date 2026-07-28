@@ -1792,6 +1792,15 @@ export type DayContext = {
     distanceKm: number;
   }>;
   channels: DayContextChannel[];
+  // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
+  quietMoment: {
+    daypart: string;
+    daypartLabel: string;
+    fromHour: number;
+    toHour: number;
+    deviation: number;
+    unusual: boolean;
+  } | null;
 };
 
 // Leesbare context voor één gekozen dag: events in de buurt + weer +
