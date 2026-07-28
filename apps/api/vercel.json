@@ -7,7 +7,7 @@
   "buildCommand": "pnpm --filter api build",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 60,
+      "maxDuration": 300,
       "memory": 1024
     }
   },
