@@ -558,6 +558,36 @@ export class BusynessService {
     return `${labels.slice(0, -1).join(', ')} en ${labels[labels.length - 1]}`;
   }
 
+  /**
+   * De dagdelen waarin de zaak op deze datum OPEN is (uren met patroon > 0,
+   * min-dekking), met hun venster. Voor de geleide flow: zodat de eigenaar een
+   * ander dagdeel dan het gedetecteerde kan kiezen. Leeg zonder patroon.
+   */
+  async getDaypartsForDate(
+    restaurantId: string,
+    dateIso: string,
+  ): Promise<
+    { key: string; label: string; fromHour: number; toHour: number }[]
+  > {
+    const latest = await this.getLatest(restaurantId);
+    if (!latest.pattern || latest.pattern.length < 7) return [];
+    const row = latest.pattern[this.mondayIndex(dateIso)] ?? [];
+    const out: { key: string; label: string; fromHour: number; toHour: number }[] =
+      [];
+    for (const dp of DAYPART_DEFS) {
+      const hrs: number[] = [];
+      for (let h = dp.from; h < dp.to; h++) if ((row[h] ?? 0) > 0) hrs.push(h);
+      if (hrs.length < MIN_COVERAGE) continue;
+      out.push({
+        key: dp.key,
+        label: dp.label,
+        fromHour: hrs[0],
+        toHour: hrs[hrs.length - 1],
+      });
+    }
+    return out;
+  }
+
   // Het per-zaak ingestelde tempo (quiet_moments_per_week); default als leeg.
   private async getQuietPerWeek(restaurantId: string): Promise<number> {
     const { data } = await this.supabase.client

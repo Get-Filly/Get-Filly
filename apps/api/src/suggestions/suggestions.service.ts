@@ -613,6 +613,9 @@ export type DayContext = {
     deviation: number;
     unusual: boolean;
   } | null;
+  // De dagdelen waarin de zaak die dag open is (voor het kiezen van een
+  // ander dagdeel dan het gedetecteerde). Leeg zonder busyness-patroon.
+  dayparts: { key: string; label: string; fromHour: number; toHour: number }[];
 };
 
 // Shape van een ai_suggestions-insert vanuit generate-for-dates
@@ -1543,9 +1546,12 @@ ${dayContext}`;
     // Rustig dagdeel voor deze datum (uit het busyness-model), zodat de flow
     // het moment kan tonen en de generatie erop mikt. Uncapped (perWeek hoog);
     // null als de dag niet als rustig gedetecteerd is.
-    const qm = await this.busyness
-      .getQuietMoments(restaurantId, date, date, 999)
-      .catch(() => null);
+    const [qm, dayparts] = await Promise.all([
+      this.busyness.getQuietMoments(restaurantId, date, date, 999).catch(
+        () => null,
+      ),
+      this.busyness.getDaypartsForDate(restaurantId, date).catch(() => []),
+    ]);
     const m = qm?.moments?.[0] ?? null;
     const quietMoment = m
       ? {
@@ -1558,7 +1564,7 @@ ${dayContext}`;
         }
       : null;
 
-    return { date, weather, events, channels, quietMoment };
+    return { date, weather, events, channels, quietMoment, dayparts };
   }
 
   async generateForSelectedDates(
@@ -1574,6 +1580,13 @@ ${dayContext}`;
       // zich exact als voorheen (de popover-route blijft ongemoeid).
       channels?: string[];
       context?: string[];
+      // Door de eigenaar gekozen dagdeel (kan afwijken van het gedetecteerde).
+      daypart?: {
+        key: string;
+        label: string;
+        fromHour: number;
+        toHour: number;
+      };
     }>,
   ): Promise<{
     generated: number;
@@ -1724,24 +1737,50 @@ ${dayContext}`;
 
       if (item.kind === 'low_occupancy') {
         triggerType = 'low_occupancy';
-        const qm = quietByDate.get(item.date);
-        if (qm) {
-          // Voorkeur: het gedetecteerde rustige dagdeel → campagne mikt op dát
-          // moment (niet de hele dag). Geen exacte percentages in de context.
-          const venster = `${String(qm.fromHour).padStart(2, '0')}:00–${String(
-            qm.toHour + 1,
+        const detected = quietByDate.get(item.date);
+        // Door de eigenaar gekozen dagdeel wint; anders het gedetecteerde.
+        const dp = item.daypart
+          ? {
+              label: item.daypart.label,
+              fromHour: item.daypart.fromHour,
+              toHour: item.daypart.toHour,
+              unusual:
+                detected?.daypartLabel === item.daypart.label
+                  ? detected.unusual
+                  : false,
+              chosen:
+                !detected || detected.daypartLabel !== item.daypart.label,
+            }
+          : detected
+            ? {
+                label: detected.daypartLabel,
+                fromHour: detected.fromHour,
+                toHour: detected.toHour,
+                unusual: detected.unusual,
+                chosen: false,
+              }
+            : null;
+        if (dp) {
+          // Campagne mikt op dít dagdeel (niet de hele dag). Geen exacte
+          // percentages in de context.
+          const venster = `${String(dp.fromHour).padStart(2, '0')}:00–${String(
+            dp.toHour + 1,
           ).padStart(2, '0')}:00`;
-          dayContext = `RUSTIG MOMENT OM TE ACTIVEREN (${weekdayNl} ${qm.daypartLabel}):
+          const context = dp.chosen
+            ? 'door de eigenaar gekozen dagdeel om te activeren'
+            : dp.unusual
+              ? 'ONGEWOON rustig voor deze zaak (Google-patroon)'
+              : 'rustiger dan normaal voor deze zaak (Google-patroon)';
+          dayContext = `RUSTIG MOMENT OM TE ACTIVEREN (${weekdayNl} ${dp.label}):
 - Datum: ${item.date} (${weekdayNl}, over ${daysFromNow} dagen)
-- Rustig dagdeel: ${qm.daypartLabel} (${venster})
-- Hoe rustig: ${qm.unusual ? 'ONGEWOON rustig' : 'rustiger dan normaal'} voor deze zaak (Google-patroon, onder je eigen verwachting voor dit dagdeel)`;
+- Dagdeel: ${dp.label} (${venster})
+- Context: ${context}`;
           triggerContextBase = {
             target_date: item.date,
             weekday: weekdayNl,
             source: 'busyness',
-            daypart_label: qm.daypartLabel,
-            deviation: qm.deviation,
-            unusual: qm.unusual,
+            daypart_label: dp.label,
+            unusual: dp.unusual,
           };
         } else {
           // Terugval: seed-occupancy (geen busyness-patroon voor deze zaak).

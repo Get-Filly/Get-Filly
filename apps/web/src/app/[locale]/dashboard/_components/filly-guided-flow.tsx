@@ -193,6 +193,9 @@ export function FillyGuidedFlow({
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
   );
+  // Gekozen dagdeel voor de huidige dag (default = het gedetecteerde). Alleen
+  // relevant voor low_occupancy-dagen met een busyness-patroon.
+  const [selectedDaypart, setSelectedDaypart] = useState<string | null>(null);
   // "Bedenk er zelf een": eigen-campagne-spoor. Geselecteerd + Verder →
   // we sturen de eigenaar naar de "maak eigen campagne"-builder op de
   // campagnes-pagina i.p.v. Filly een voorstel te laten schrijven.
@@ -275,6 +278,11 @@ export function FillyGuidedFlow({
               .map((c) => c.channel)
           : ctx.channels.filter((c) => c.recommended).map((c) => c.channel);
       setSelectedChannels(new Set(preselect));
+      // Dagdeel default: het gedetecteerde rustige dagdeel, anders het eerste
+      // open dagdeel. De eigenaar kan in de hoeken-stap een ander kiezen.
+      setSelectedDaypart(
+        ctx.quietMoment?.daypart ?? ctx.dayparts[0]?.key ?? null,
+      );
     } catch (e) {
       logger.error(e);
       setDayContext(null);
@@ -403,6 +411,16 @@ export function FillyGuidedFlow({
   const buildCurrentItem = (fillyChooses: boolean): GenerateForDatesItem | null => {
     if (!picked) return null;
     const hints = fillyChooses ? [] : buildContextHints();
+    // Alleen een dagdeel meesturen als de eigenaar een ANDER dagdeel koos dan
+    // het gedetecteerde. Anders laten we de backend het (mogelijk samengestelde,
+    // bv. "diner en avond") gedetecteerde moment gebruiken i.p.v. in te krimpen.
+    const changed =
+      !!selectedDaypart &&
+      selectedDaypart !== dayContext?.quietMoment?.daypart;
+    const dp =
+      picked.kind === "low_occupancy" && changed
+        ? dayContext?.dayparts.find((d) => d.key === selectedDaypart)
+        : undefined;
     return {
       date: picked.date,
       kind: picked.kind,
@@ -411,6 +429,7 @@ export function FillyGuidedFlow({
         ? { channels: [...selectedChannels] }
         : {}),
       ...(hints.length > 0 ? { context: hints } : {}),
+      ...(dp ? { daypart: dp } : {}),
     };
   };
 
@@ -426,6 +445,7 @@ export function FillyGuidedFlow({
     setSelectedAngle(null);
     setAngleText({});
     setSelectedChannels(new Set());
+    setSelectedDaypart(null);
     if (queue.length > 0) {
       const [next, ...rest] = queue;
       setPlanned(nextPlanned);
@@ -777,11 +797,57 @@ export function FillyGuidedFlow({
                 day: picked ? picked.label : t("angles.thatDay"),
               })}
             </div>
-            {dayContext?.quietMoment && (
-              <div className="fg-opt-sub" style={{ marginBottom: 8 }}>
-                {t("angles.momentNote", {
-                  daypart: dayContext.quietMoment.daypartLabel,
-                })}
+            {dayContext && dayContext.dayparts.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div className="fg-group-label">
+                  {t("angles.daypartLabel")}
+                  <span
+                    style={{
+                      marginLeft: 6,
+                      fontWeight: 400,
+                      color: "var(--text-muted, #71717A)",
+                    }}
+                  >
+                    {t("angles.daypartHint")}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    marginTop: 4,
+                  }}
+                >
+                  {dayContext.dayparts.map((dp) => {
+                    const on = selectedDaypart === dp.key;
+                    const detected =
+                      dayContext.quietMoment?.daypartLabel.includes(dp.label) ??
+                      false;
+                    return (
+                      <button
+                        key={dp.key}
+                        type="button"
+                        onClick={() => setSelectedDaypart(dp.key)}
+                        style={{
+                          font: "inherit",
+                          fontSize: 13,
+                          padding: "5px 11px",
+                          borderRadius: 999,
+                          border: `1px solid ${on ? "var(--accent, #1F4A2D)" : "var(--border, #E5DFD0)"}`,
+                          background: on
+                            ? "var(--accent, #1F4A2D)"
+                            : "var(--white, #FFFFFF)",
+                          color: on ? "#FFFFFF" : "var(--text, #18181B)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {detected ? "● " : ""}
+                        {dp.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

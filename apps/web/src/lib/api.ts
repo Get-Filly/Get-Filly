@@ -1761,6 +1761,14 @@ export type GenerateForDatesItem = {
   // sturen. Beide optioneel.
   channels?: string[];
   context?: string[];
+  // Geleide flow: door de eigenaar gekozen dagdeel (kan afwijken van het
+  // gedetecteerde). De generatie mikt hier dan op i.p.v. de hele dag.
+  daypart?: {
+    key: string;
+    label: string;
+    fromHour: number;
+    toHour: number;
+  };
 };
 
 // Day-context voor de geleide chat-flow (stap 2 + 3). Spiegelt
@@ -1801,6 +1809,8 @@ export type DayContext = {
     deviation: number;
     unusual: boolean;
   } | null;
+  // Dagdelen waarin de zaak die dag open is (om een ander dagdeel te kiezen).
+  dayparts: { key: string; label: string; fromHour: number; toHour: number }[];
 };
 
 // Leesbare context voor één gekozen dag: events in de buurt + weer +

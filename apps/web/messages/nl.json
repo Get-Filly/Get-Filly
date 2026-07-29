@@ -3098,6 +3098,8 @@
       "loading": "Filly kijkt wat er die dag kan…",
       "question": "Voor {day}, waarop wil je inspelen?",
       "momentNote": "Rustig dagdeel: {daypart}",
+      "daypartLabel": "Welk dagdeel?",
+      "daypartHint": "● = wat we als rustigste zien",
       "thatDay": "die dag",
       "fillyChoose": "Laat Filly de sterkste hoek kiezen",
       "fastest": "snelste",

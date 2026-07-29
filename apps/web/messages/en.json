@@ -3098,6 +3098,8 @@
       "loading": "Filly is checking what's possible that day…",
       "question": "For {day}, what do you want to focus on?",
       "momentNote": "Quiet daypart: {daypart}",
+      "daypartLabel": "Which daypart?",
+      "daypartHint": "● = what we see as quietest",
       "thatDay": "that day",
       "fillyChoose": "Let Filly pick the strongest angle",
       "fastest": "fastest",
