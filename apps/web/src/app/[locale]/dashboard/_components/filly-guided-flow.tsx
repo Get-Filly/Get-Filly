@@ -149,12 +149,21 @@ export function FillyGuidedFlow({
   const router = useRouter();
   const {
     lowOccupancyDays,
+    quietMoments,
     specialDays,
     occupancyThreshold,
     loading,
     upcomingOpenDays,
     hasOccupancyData,
   } = useActionableDays();
+
+  // Rustig moment per datum, zodat de opener het dagdeel + de toon kan tonen
+  // i.p.v. een kaal drukte-%.
+  const momentByDate = useMemo(() => {
+    const m = new Map<string, (typeof quietMoments)[number]>();
+    for (const q of quietMoments) if (!m.has(q.date)) m.set(q.date, q);
+    return m;
+  }, [quietMoments]);
 
   const [step, setStep] = useState<Step>(
     initialStep === "idle" ? "idle" : initialDate ? "angles" : "opener",
@@ -254,19 +263,18 @@ export function FillyGuidedFlow({
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
       setSelectedContext(new Set()); // gedetecteerde context standaard uit
-      // Voor-aanvinken ALLEEN wanneer de eigenaar zelf een kanaal noemde
-      // (initialChannels, bv. "een tiktok campagne"). Noemde 'ie niets, dan
-      // laten we de selectie LEEG zodat de eigenaar bewust zelf kiest — geen
-      // automatische voorselectie van alle gekoppelde kanalen meer (dat zette
-      // bv. TikTok aan terwijl daar niet om gevraagd was). De "Genereer"-knop
-      // is disabled tot er minstens één kanaal gekozen is.
-      const explicit =
+      // Voor-aanvinken: noemde de eigenaar zelf kanalen (initialChannels, bv.
+      // "een tiktok campagne"), dan die. Anders de AANBEVOLEN kanalen
+      // (recommended = verbonden/bereik) alvast aanvinken, zodat de eigenaar
+      // niet vanaf nul hoeft te kiezen. Hij kan altijd bijstellen; de
+      // "Genereer"-knop blijft disabled tot er ≥1 kanaal gekozen is.
+      const preselect =
         initialChannels && initialChannels.length > 0
           ? ctx.channels
               .filter((c) => initialChannels.includes(c.channel))
               .map((c) => c.channel)
-          : [];
-      setSelectedChannels(new Set(explicit));
+          : ctx.channels.filter((c) => c.recommended).map((c) => c.channel);
+      setSelectedChannels(new Set(preselect));
     } catch (e) {
       logger.error(e);
       setDayContext(null);
@@ -615,6 +623,15 @@ export function FillyGuidedFlow({
               <div className="fg-options">
                 {quietToShow.map((d) => {
                   const sel = openerHas(d.date);
+                  const mom = momentByDate.get(d.date);
+                  const sub = mom
+                    ? t(
+                        mom.unusual
+                          ? "opener.momentUnusual"
+                          : "opener.momentUsual",
+                        { daypart: mom.daypartLabel },
+                      )
+                    : t("opener.quietDayGeneric");
                   return (
                     <button
                       key={`low-${d.date}`}
@@ -624,7 +641,7 @@ export function FillyGuidedFlow({
                         toggleOpenerDay({
                           date: d.date,
                           kind: "low_occupancy",
-                          label: `${formatDayNl(d.date, localeTag)} · ${d.occupancy_pct}% drukte`,
+                          label: `${formatDayNl(d.date, localeTag)}${mom ? ` · ${mom.daypartLabel}` : ""}`,
                         })
                       }
                     >
@@ -632,9 +649,7 @@ export function FillyGuidedFlow({
                         <span className="fg-opt-main">
                           {formatDayNl(d.date, localeTag)}
                         </span>
-                        <span className="fg-opt-sub-inline">
-                          {t("opener.occupied", { pct: d.occupancy_pct })}
-                        </span>
+                        <span className="fg-opt-sub-inline">{sub}</span>
                       </span>
                       {sel && <Check size={15} strokeWidth={2.5} />}
                     </button>
@@ -762,6 +777,13 @@ export function FillyGuidedFlow({
                 day: picked ? picked.label : t("angles.thatDay"),
               })}
             </div>
+            {dayContext?.quietMoment && (
+              <div className="fg-opt-sub" style={{ marginBottom: 8 }}>
+                {t("angles.momentNote", {
+                  daypart: dayContext.quietMoment.daypartLabel,
+                })}
+              </div>
+            )}
 
             <button
               type="button"

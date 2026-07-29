@@ -3081,8 +3081,11 @@
     "opener": {
       "loading": "Even kijken welke kansen er zijn…",
       "quietDays": "Rustige dagen",
-      "belowThreshold": " (onder {threshold}%)",
+      "belowThreshold": "",
       "occupied": "{pct}% drukte",
+      "momentUnusual": "{daypart} · ongewoon rustig",
+      "momentUsual": "{daypart} · rustiger dan normaal",
+      "quietDayGeneric": "rustige dag",
       "showLess": "Minder tonen",
       "showMore": "+ {count} meer rustige dagen",
       "noReservations": "Geen duidelijk rustig moment gevonden; kies zelf een dag.",
@@ -3094,6 +3097,7 @@
     "angles": {
       "loading": "Filly kijkt wat er die dag kan…",
       "question": "Voor {day}, waarop wil je inspelen?",
+      "momentNote": "Rustig dagdeel: {daypart}",
       "thatDay": "die dag",
       "fillyChoose": "Laat Filly de sterkste hoek kiezen",
       "fastest": "snelste",

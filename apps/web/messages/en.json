@@ -3081,8 +3081,11 @@
     "opener": {
       "loading": "Just checking which opportunities there are…",
       "quietDays": "Quiet days",
-      "belowThreshold": " (below {threshold}%)",
+      "belowThreshold": "",
       "occupied": "{pct}% busy",
+      "momentUnusual": "{daypart} · unusually quiet",
+      "momentUsual": "{daypart} · quieter than usual",
+      "quietDayGeneric": "quiet day",
       "showLess": "Show less",
       "showMore": "+ {count} more quiet days",
       "noReservations": "No clearly quiet moment found; pick a day yourself.",
@@ -3094,6 +3097,7 @@
     "angles": {
       "loading": "Filly is checking what's possible that day…",
       "question": "For {day}, what do you want to focus on?",
+      "momentNote": "Quiet daypart: {daypart}",
       "thatDay": "that day",
       "fillyChoose": "Let Filly pick the strongest angle",
       "fastest": "fastest",

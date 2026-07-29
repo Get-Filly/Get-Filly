@@ -44,6 +44,9 @@ const LOW_OCCUPANCY_WINDOW_DAYS = 14;
 
 export type ActionableDays = {
   lowOccupancyDays: OccupancyDay[];
+  // De ruwe rustige momenten (dag + dagdeel + reden) achter lowOccupancyDays,
+  // zodat de flow per dag het dagdeel en de toon kan tonen.
+  quietMoments: QuietMoment[];
   specialDays: SpecialDay[];
   occupancyThreshold: number;
   loading: boolean;
@@ -216,6 +219,7 @@ export function useActionableDays(): ActionableDays {
 
   return {
     lowOccupancyDays,
+    quietMoments: quiet.moments,
     specialDays,
     occupancyThreshold,
     loading,
