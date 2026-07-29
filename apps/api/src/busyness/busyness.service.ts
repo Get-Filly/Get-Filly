@@ -64,6 +64,7 @@ const DAYPART_DEFS: { key: string; label: string; from: number; to: number }[] =
 // Model-constanten voor de rustig-bepaling.
 const MIN_COVERAGE = 2; // min. open uren voordat een dagdeel meetelt
 const GAP_FLOOR = 15; // min. vulbaarheid: punten onder de eigen piek
+const EDGE_ACTIVITY_FRAC = 0.3; // het eerste/laatste open dagdeel (opening/afsluiting) telt alleen mee als het ≥ dit deel van de eigen piek is; anders is het de dode rand van de shift. Tussenliggende dagdelen (bv. een rustige middag) hebben deze drempel niet.
 const ABS_DEV_FLOOR = 2; // ondergrens (punten) voor vlakke zaken waar de schommeling ~0 is
 const QUIET_SPREAD_MULT = 1.0; // rustig = zóveel × de normale schommeling onder verwachting
 const UNUSUAL_SPREAD_MULT = 2.0; // toon 'ongewoon rustig' vanaf deze afwijking (× schommeling)
@@ -383,7 +384,9 @@ export class BusynessService {
    *   3. Afwijking = werkelijk − verwacht (het residu). Normale schommeling =
    *      robuuste MAD; rustig = buiten die schommeling onder verwachting.
    *   4. Kandidaat = vulbaar (gat t.o.v. eigen piek) én buiten de normale
-   *      schommeling onder verwachting.
+   *      schommeling onder verwachting. Het eerste/laatste open dagdeel (de
+   *      rand van de shift) valt af als het doods is (< EDGE_ACTIVITY_FRAC ×
+   *      piek); tussenliggende dagdelen hebben die drempel niet.
    *   5. Aaneengesloten rustige dagdelen op één dag = één kans (bv. diner +
    *      avond); max één kans per dag. Rangschikken en cappen op `perWeek`
    *      DAGEN per week.
@@ -469,11 +472,22 @@ export class BusynessService {
     const perDate = new Map<string, PartCand[]>();
     for (const date of this.eachDate(fromIso, toIso)) {
       const weekday = this.mondayIndex(date);
+      // Eerste/laatste open dagdeel = de rand van de shift (opening/afsluiting).
+      const openIdx = cells[weekday]
+        .map((c, j) => (c ? j : -1))
+        .filter((j) => j >= 0);
+      const firstIdx = openIdx[0];
+      const lastIdx = openIdx[openIdx.length - 1];
       const arr: PartCand[] = [];
       DAYPART_DEFS.forEach((dp, j) => {
         const c = cells[weekday][j];
         const dev = residual[weekday][j];
         if (!c || dev == null) return;
+        // Rand van de shift (opening/afsluiting): alleen meenemen als er echt
+        // iets te vullen is. Een doods eerste/laatste dagdeel is logisch rustig
+        // maar geen kans. Tussenliggende dagdelen (bv. rustige middag) blijven.
+        const isEdge = j === firstIdx || j === lastIdx;
+        if (isEdge && c.avg < EDGE_ACTIVITY_FRAC * peak) return;
         const gap = peak - c.avg;
         if (gap < GAP_FLOOR) return; // te weinig te vullen
         if (dev > quietThreshold) return; // binnen de normale schommeling
