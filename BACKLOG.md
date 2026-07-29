@@ -16,7 +16,29 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
-## 🗓️ 2026-07-27 — Rustige momenten per dagdeel (branch `feat/rustige-momenten`, NIET gemerged)
+## 🗓️ 2026-07-29 — Filly-chat + geleide flow op de dagdeel-detectie (live op main)
+
+De chat en de geleide flow hangen nu aan de rustige-momenten-detectie.
+
+- [x] **Geen percentages in de chat** — live-drukte/bezetting kwalitatief
+  (rustig/normaal/druk) + dagdeel; guardrail in de chat-prompt tegen "53%".
+- [x] **Dagdeel door de flow-keten** — `generate-for-dates` mikt op het
+  gedetecteerde rustige dagdeel (venster + reden) i.p.v. de hele dag;
+  `getDayContext` levert `quietMoment` + `dayparts` per datum.
+- [x] **Flow-UI** — opener toont dagdeel + toon i.p.v. %, hoeken-stap heeft een
+  **dagdeel-selector** (● = gedetecteerd), aanbevolen kanalen voorgevinkt.
+  Ander dagdeel kiezen kan; kiest de eigenaar niks anders, dan blijft het
+  samengestelde gedetecteerde moment intact. (Segment-keuze bewust NIET: geen
+  klantgegevens.)
+- [x] **Rand-van-de-shift eruit** — eerste/laatste open dagdeel (opening/
+  afsluiting) telt alleen mee als het niet doods is (≥ 30% van de piek), zodat
+  logisch-lege sluitings-/openingsmomenten niet meer flaggen.
+- [ ] **Vervolg (bekend):** anker verschuiven van Google-gemiddelde naar eigen
+  gemeten historie per weekdag/uur — pas mogelijk na weken live-data. Nu rollen
+  structureel-slechte dagen (ma/wo) elke week terug; dat is inherent aan de
+  gemiddelde-bron.
+
+## 🗓️ 2026-07-27 — Rustige momenten per dagdeel (live op main)
 
 Voorspellende detectie van rustige **dagdelen** (was: hele dagen). Draait op het
 verwachte Google-weekpatroon, niet op live. Zelfde bron voedt grafiek + chat +
@@ -35,7 +57,7 @@ auto-detectie. Volledige uitleg + verantwoording afgevallen methodes in
   dezelfde bron. Bestaande UI ongemoeid.
 - [x] **Tempo instelbaar per zaak** — migratie **0065**
   (`restaurants.quiet_moments_per_week`, default 2, 1–6) + account-instelling.
-  ⚠️ **Migratie 0065 nog draaien in Supabase** (code valt veilig terug op 2).
+  Migratie 0065 gedraaid in Supabase (2026-07-28).
 - [x] **Migratie 0065 gedraaid** (2026-07-28).
 - [x] **Fase 5 backend geverifieerd** — `getQuietMoments` tegen echte Supabase-data
   (demo-zaken, Bar Barolo-patroon): tempo uit DB, zinnige momenten, week-cap klopt.
