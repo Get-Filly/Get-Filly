@@ -281,7 +281,7 @@ export function FillyGuidedFlow({
       // Dagdeel default: het gedetecteerde rustige dagdeel, anders het eerste
       // open dagdeel. De eigenaar kan in de hoeken-stap een ander kiezen.
       setSelectedDaypart(
-        ctx.quietMoment?.daypart ?? ctx.dayparts[0]?.key ?? null,
+        ctx.quietMoment?.daypart ?? ctx.dayparts?.[0]?.key ?? null,
       );
     } catch (e) {
       logger.error(e);
@@ -419,7 +419,7 @@ export function FillyGuidedFlow({
       selectedDaypart !== dayContext?.quietMoment?.daypart;
     const dp =
       picked.kind === "low_occupancy" && changed
-        ? dayContext?.dayparts.find((d) => d.key === selectedDaypart)
+        ? dayContext?.dayparts?.find((d) => d.key === selectedDaypart)
         : undefined;
     return {
       date: picked.date,
@@ -797,7 +797,7 @@ export function FillyGuidedFlow({
                 day: picked ? picked.label : t("angles.thatDay"),
               })}
             </div>
-            {dayContext && dayContext.dayparts.length > 0 && (
+            {dayContext?.dayparts && dayContext.dayparts.length > 0 && (
               <div style={{ marginBottom: 10 }}>
                 <div className="fg-group-label">
                   {t("angles.daypartLabel")}
