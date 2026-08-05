@@ -3130,7 +3130,7 @@
       }
     },
     "channels": {
-      "question": "Op welke kanalen? Ik heb de aanbevolen alvast aangevinkt.",
+      "question": "Op welke kanalen wil je dit? Kies er minstens één.",
       "autoQuestion": "Ik kies zelf het beste kanaal. Zal ik 'm maken?",
       "makeAction": "Maak de actie",
       "nextDay": "Volgende dag",

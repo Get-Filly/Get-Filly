@@ -3130,7 +3130,7 @@
       }
     },
     "channels": {
-      "question": "Which channels? I've already checked the recommended ones.",
+      "question": "Which channels do you want? Pick at least one.",
       "autoQuestion": "I'll pick the best channel myself. Shall I make it?",
       "makeAction": "Create the action",
       "nextDay": "Next day",

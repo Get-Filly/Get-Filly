@@ -39,7 +39,8 @@ import { logger } from "@/lib/logger";
 //                  (weer/event van die dag) + altijd-beschikbare hoeken
 //                  (gerecht, deal, sfeer, doelgroep, iets anders) + een
 //                  1-klik "laat Filly de sterkste hoek kiezen".
-//   3. "channels"— Kanalen; Filly vinkt de aanbevolen alvast aan.
+//   3. "channels"— Kanalen; de eigenaar kiest zelf (niks voor-aangevinkt,
+//      tenzij 'ie in de chat expliciet een kanaal noemde).
 //   4. genereren → resultaat inline.
 //
 // Een getypt verzoek met datum slaat de opener over; een getypt thema
@@ -266,18 +267,17 @@ export function FillyGuidedFlow({
       const ctx = await fetchDayContext(day.date);
       setDayContext(ctx);
       setSelectedContext(new Set()); // gedetecteerde context standaard uit
-      // Voor-aanvinken: noemde de eigenaar zelf kanalen (initialChannels, bv.
-      // "een tiktok campagne"), dan die. Anders de AANBEVOLEN kanalen
-      // (recommended = verbonden/bereik) alvast aanvinken, zodat de eigenaar
-      // niet vanaf nul hoeft te kiezen. Hij kan altijd bijstellen; de
-      // "Genereer"-knop blijft disabled tot er ≥1 kanaal gekozen is.
-      const preselect =
+      // Voor-aanvinken ALLEEN als de eigenaar zelf een kanaal noemde
+      // (initialChannels, bv. "een tiktok campagne"). Anders LEEG laten zodat
+      // 'ie bewust zelf kiest — geen automatische voorselectie van gekoppelde
+      // kanalen (dat zette bv. TikTok aan terwijl daar niet om gevraagd was).
+      const explicit =
         initialChannels && initialChannels.length > 0
           ? ctx.channels
               .filter((c) => initialChannels.includes(c.channel))
               .map((c) => c.channel)
-          : ctx.channels.filter((c) => c.recommended).map((c) => c.channel);
-      setSelectedChannels(new Set(preselect));
+          : [];
+      setSelectedChannels(new Set(explicit));
       // Dagdeel default: het gedetecteerde rustige dagdeel, anders het eerste
       // open dagdeel. De eigenaar kan in de hoeken-stap een ander kiezen.
       setSelectedDaypart(
@@ -323,7 +323,11 @@ export function FillyGuidedFlow({
         ? {
             date: initialDate,
             kind: "low_occupancy",
-            label: `${formatDayNl(initialDate, localeTag)} · ${low.occupancy_pct}% bezet`,
+            label: `${formatDayNl(initialDate, localeTag)}${
+              momentByDate.get(initialDate)
+                ? ` · ${momentByDate.get(initialDate)!.daypartLabel}`
+                : ""
+            }`,
           }
         : {
             date: initialDate,
