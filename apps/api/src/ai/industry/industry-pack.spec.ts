@@ -3,6 +3,7 @@ import {
   buildVaktaalBlock,
   vaktaalPrefix,
 } from './industry-pack';
+import { buildAllChannelsBlock } from '../filly-brain.config';
 
 // ============================================================
 // Byte-identiek-garantie voor horeca (Fase 3-regressie-bewijs)
@@ -41,6 +42,27 @@ describe('IndustryPack — horeca byte-identiek', () => {
     expect(horeca.menuGuardMessage).toBe(
       'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
     );
+  });
+});
+
+describe('channelFlavor — horeca byte-identiek, niet-horeca geneutraliseerd', () => {
+  const horeca = getIndustryPack('horeca');
+  const kapper = getIndustryPack('kapper');
+
+  it('horeca heeft geen channelFlavor → kanaalblok identiek aan zonder override', () => {
+    expect(horeca.channelFlavor).toBeUndefined();
+    expect(buildAllChannelsBlock(undefined, horeca.channelFlavor)).toBe(
+      buildAllChannelsBlock(),
+    );
+  });
+
+  it('generieke pack verwijdert de horeca-brand-woorden (F&B / voor horeca)', () => {
+    const horecaBlock = buildAllChannelsBlock(undefined, horeca.channelFlavor);
+    const kapperBlock = buildAllChannelsBlock(undefined, kapper.channelFlavor);
+    expect(horecaBlock).toContain('voor horeca');
+    expect(kapperBlock).not.toContain('voor horeca');
+    expect(kapperBlock).not.toContain('F&B');
+    expect(kapperBlock).not.toContain('traditionele horeca');
   });
 });
 

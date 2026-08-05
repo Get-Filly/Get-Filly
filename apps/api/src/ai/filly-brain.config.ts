@@ -703,12 +703,59 @@ export const ANTI_REPETITION_THRESHOLDS = {
 // HELPER FUNCTIONS
 // ============================================================
 
+// ============================================================
+// Branche-smaak-overrides (channelFlavor)
+// ============================================================
+// CHANNEL_RULES is horeca-geijkt in de vrije-tekstvelden (role/note/
+// fallback/specifics staan vol "eetmoment", "F&B", "voor horeca"). Een
+// IndustryPack kan die per kanaal overschrijven zónder de mechanica
+// (lengtes/hashtags/timing-getallen) aan te raken. De format-functies
+// hieronder accepteren zo'n override en passen 'm toe vóór het formatteren.
+//
+// Het type leeft HIER (niet in industry-pack) zodat filly-brain.config
+// geen import uit de industry-laag nodig heeft; industry-pack importeert
+// 'm juist hiervandaan (zelfde richting als FillyChannel/ThemeType).
+export interface ChannelFlavorOverride {
+  role?: string;
+  /** Overschrijft bestTimes.note (timing-context). */
+  note?: string;
+  /** Overschrijft bestTimes.fallback (tweede-beste venster). */
+  fallback?: string;
+  specifics?: string[];
+}
+
+/**
+ * Pas een branche-smaak-override toe op de kanaal-regels. `undefined`
+ * (zoals bij horeca) → de regels ongewijzigd terug, dus byte-identiek.
+ * Alleen de aangeleverde velden worden vervangen; de rest blijft staan.
+ */
+function applyChannelFlavor(
+  r: ChannelRules,
+  o?: ChannelFlavorOverride,
+): ChannelRules {
+  if (!o) return r;
+  return {
+    ...r,
+    role: o.role ?? r.role,
+    specifics: o.specifics ?? r.specifics,
+    bestTimes: {
+      ...r.bestTimes,
+      note: o.note ?? r.bestTimes.note,
+      fallback: o.fallback ?? r.bestTimes.fallback,
+    },
+  };
+}
+
 /**
  * Format de regels van één kanaal als plain text voor in een
  * system-prompt. Gebruikt door chat.service en suggestions.service.
+ * Optionele `flavor` overschrijft de horeca-gekleurde vrije-tekstvelden.
  */
-export function formatChannelRulesForPrompt(channel: FillyChannel): string {
-  const r = CHANNEL_RULES[channel];
+export function formatChannelRulesForPrompt(
+  channel: FillyChannel,
+  flavor?: ChannelFlavorOverride,
+): string {
+  const r = applyChannelFlavor(CHANNEL_RULES[channel], flavor);
   const lines: string[] = [];
   lines.push(`KANAAL: ${r.label}`);
   lines.push(`Rol: ${r.role}`);
@@ -785,7 +832,10 @@ export function checkCopyLength(
  *   const block = buildAllChannelsBlock();
  *   const systemPrompt = `...${block}...`;
  */
-export function buildAllChannelsBlock(channels?: FillyChannel[]): string {
+export function buildAllChannelsBlock(
+  channels?: FillyChannel[],
+  flavors?: Partial<Record<FillyChannel, ChannelFlavorOverride>>,
+): string {
   const list: FillyChannel[] = channels ?? [
     'mail',
     'instagram_feed',
@@ -797,7 +847,9 @@ export function buildAllChannelsBlock(channels?: FillyChannel[]): string {
     'google_business',
   ];
   const sep = '\n\n────────────────────────────────────────\n\n';
-  const formatted = list.map((c) => formatChannelRulesForPrompt(c)).join(sep);
+  const formatted = list
+    .map((c) => formatChannelRulesForPrompt(c, flavors?.[c]))
+    .join(sep);
   return `────────────────────────────────────────
 REGELS PER KANAAL (bron-van-waarheid, bij conflict met andere regels: HIER staat de juiste waarde)
 ────────────────────────────────────────
@@ -838,8 +890,11 @@ export function mapCampaignTypeToChannel(
  * lengte/hashtag-regels (die horen bij content-generatie, niet bij
  * het tijdstip-vraagstuk).
  */
-export function formatTimingForPrompt(channel: FillyChannel): string {
-  const r = CHANNEL_RULES[channel];
+export function formatTimingForPrompt(
+  channel: FillyChannel,
+  flavor?: ChannelFlavorOverride,
+): string {
+  const r = applyChannelFlavor(CHANNEL_RULES[channel], flavor);
   const dayNames = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
   const days = r.bestTimes.bestDays.map((d) => dayNames[d]).join(' / ');
   const lines: string[] = [];
@@ -869,7 +924,10 @@ export function formatTimingForPrompt(channel: FillyChannel): string {
  * De generieke urgentie-regel staat er één keer onder in plaats van
  * per kanaal herhaald (scheelt prompt-tokens).
  */
-export function buildAllTimingBlock(channels?: FillyChannel[]): string {
+export function buildAllTimingBlock(
+  channels?: FillyChannel[],
+  flavors?: Partial<Record<FillyChannel, ChannelFlavorOverride>>,
+): string {
   const list: FillyChannel[] = channels ?? [
     'mail',
     'instagram_feed',
@@ -882,7 +940,7 @@ export function buildAllTimingBlock(channels?: FillyChannel[]): string {
   const lines: string[] = [];
   lines.push('TIMING PER KANAAL (bron-van-waarheid voor scheduled_for):');
   for (const c of list) {
-    const r = CHANNEL_RULES[c];
+    const r = applyChannelFlavor(CHANNEL_RULES[c], flavors?.[c]);
     const days = r.bestTimes.bestDays.map((d) => dayNames[d]).join('/');
     lines.push(
       `- ${r.label}: ${days} ${r.bestTimes.bestHours.join(' of ')}; lead-time min ${r.leadTime.minHours}u, optimaal ${r.leadTime.optimalRangeHours[0]}-${r.leadTime.optimalRangeHours[1]}u vóór de doel-datum.${r.bestTimes.note ? ` Let op: ${r.bestTimes.note}` : ''}${r.bestTimes.fallback ? ` Tweede-beste: ${r.bestTimes.fallback}` : ''}`,

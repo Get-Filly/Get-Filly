@@ -30,6 +30,7 @@ import type {
   FillyChannel,
   ThemeType,
   CtaTemplate,
+  ChannelFlavorOverride,
 } from '../filly-brain.config';
 import { DEFAULT_INDUSTRY, type Industry } from './industry.registry';
 import { HORECA_PACK } from './packs/horeca.pack';
@@ -66,18 +67,11 @@ export interface IndustryLexicon {
   professional: string;
 }
 
-/**
- * Optionele per-kanaal smaak-override. Overschrijft alléén de
- * horeca-gekleurde vrije-tekstvelden van CHANNEL_RULES; de mechanica
- * (lengtes/hashtags/timing-getallen) blijft uit filly-brain.config komen.
- * `undefined` (zoals bij horeca) = gebruik CHANNEL_RULES ongewijzigd.
- */
-export interface ChannelFlavorOverride {
-  role?: string;
-  note?: string;
-  fallback?: string;
-  specifics?: string[];
-}
+// De per-kanaal smaak-override (role/note/fallback/specifics) leeft in
+// filly-brain.config, zodat de format-functies daar 'm kennen zonder een
+// import uit de industry-laag. We her-exporteren 'm hier voor het gemak
+// van pack-auteurs.
+export type { ChannelFlavorOverride };
 
 export interface IndustryPack {
   /** De branche waar deze (resolved) pack voor staat. */

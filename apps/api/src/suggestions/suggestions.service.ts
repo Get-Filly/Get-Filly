@@ -843,9 +843,9 @@ Per voorstel-niveau:
 Vandaag is ${todayIso}.
 
 ---
-${buildAllChannelsBlock()}
+${buildAllChannelsBlock(undefined, pack.channelFlavor)}
 ---
-${buildAllTimingBlock()}
+${buildAllTimingBlock(undefined, pack.channelFlavor)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, {
   includeHolidays: await this.events.holidaysEnabled(restaurantId),
@@ -1330,7 +1330,7 @@ ${langWriteRules(lang)}
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
 ---
-${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'])}
+${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'], pack.channelFlavor)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -1892,7 +1892,7 @@ ${langWriteRules(lang)}
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
 ---
-${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'])}
+${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'], pack.channelFlavor)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -3578,7 +3578,10 @@ Maak dit tastbaar volgens de regels.`;
             null)
         : null,
     );
-    const channelRules = formatChannelRulesForPrompt(fillyChannel);
+    const channelRules = formatChannelRulesForPrompt(
+      fillyChannel,
+      pack.channelFlavor?.[fillyChannel],
+    );
 
     // Tool-use forceert het JSON-schema (3 variants exact). Wij geven
     // Filly het bestaande materiaal mee als 'vermijd-lijst' zodat de
