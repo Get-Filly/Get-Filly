@@ -36,6 +36,7 @@ import {
   type ForecastDay,
 } from '../weather/weather.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
+import { vaktaalPrefix } from '../ai/industry/industry-pack';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
 // 1-variant-replace naar 3-variants-append. Eigenaar krijgt 3 nieuwe
@@ -770,6 +771,7 @@ export class SuggestionsService {
       throw new NotFoundException('Restaurant niet gevonden.');
     }
     const lang = await this.getFillyLang(restaurantId);
+    const pack = await this.context.getIndustryPack(restaurantId);
 
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
@@ -778,9 +780,7 @@ export class SuggestionsService {
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(
-        'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
-      );
+      throw new BadRequestException(pack.menuGuardMessage);
     }
 
     // Stap 2, context bouwen. Profile + menu zijn altijd nodig; live-
@@ -795,7 +795,7 @@ export class SuggestionsService {
     const todayIso = today.toISOString().slice(0, 10);
     const monthName = today.toLocaleString('nl-NL', { month: 'long' });
 
-    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
+    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
 
 Je antwoord komt via de tool 'generate_proactive_suggestions'. Vul de tool-args met 3-5 verschillende voorstellen die elk een eigen invalshoek hebben.
 
@@ -1085,6 +1085,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     suggestions: AiSuggestion[];
   }> {
     const lang = await this.getFillyLang(restaurantId);
+    const pack = await this.context.getIndustryPack(restaurantId);
     // Stap 1, Pre-flight: minstens 3 menu-items zodat Filly concrete
     // gerechten kan noemen. Zelfde guard als generateOnDemand.
     const { count: menuCount } = await this.supabase.client
@@ -1094,9 +1095,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(
-        'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
-      );
+      throw new BadRequestException(pack.menuGuardMessage);
     }
 
     // Stap 1b, drempel per restaurant: de eigenaar stelt deze in op
@@ -1310,7 +1309,7 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
-      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifiek rustig moment (een dagdeel) in de komende 2 weken bedenk je het beste activatie-voorstel om juist dán meer gasten te trekken.
+      const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifiek rustig moment (een dagdeel) in de komende 2 weken bedenk je het beste activatie-voorstel om juist dán meer gasten te trekken.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
@@ -1623,6 +1622,8 @@ ${dayContext}`;
       );
     }
 
+    const pack = await this.context.getIndustryPack(restaurantId);
+
     // Pre-flight: zelfde guard als de andere generate-flows.
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
@@ -1631,9 +1632,7 @@ ${dayContext}`;
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(
-        'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
-      );
+      throw new BadRequestException(pack.menuGuardMessage);
     }
 
     // Restaurant-config voor de bezetting-drempel.
@@ -1824,7 +1823,7 @@ ${dayContext}`;
 - Datum: ${item.date} (${weekdayNl}, over ${daysFromNow} dagen)
 - Aanleiding: ${item.name ?? 'Speciale dag'}
 
-Dit is een commerciële kans voor horeca. Bedenk een campagne die past
+Dit is een commerciële kans voor ${pack.sectorLabel}. Bedenk een campagne die past
 bij DEZE specifieke gelegenheid (themamenu, gastenactivatie, mailing,
 cadeaubon, sfeer-actie). Spreek de juiste doelgroep aan voor deze dag:
 bv. Moederdag/Vaderdag = families, Valentijn = stelletjes, Kerst =
@@ -1872,7 +1871,7 @@ groepen + traditie.`;
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
-      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke datum bedenk je het beste marketing-voorstel.
+      const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke datum bedenk je het beste marketing-voorstel.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel: campagne-type, naam, body, doelgroep en verwacht effect.
 
@@ -2189,6 +2188,7 @@ ${segmentsBlock}`;
       return cached;
     }
     const lang = await this.getFillyLang(restaurantId);
+    const pack = await this.context.getIndustryPack(restaurantId);
 
     // Bouw rijke context: profile (sfeer/USPs/doelgroep) + menu
     // (echte gerechten met prijzen) + live-block (huidige bezetting,
@@ -2210,7 +2210,7 @@ ${segmentsBlock}`;
       2,
     );
 
-    const systemPrompt = `Je bent Filly. Je krijgt een campagne-voorstel voor een specifiek restaurant en moet het concreet maken: welk hoofdgerecht past, welke bijgerechten, welk tijdstip, welke bundle-prijs, welke foto.
+    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly. Je krijgt een campagne-voorstel voor een specifiek restaurant en moet het concreet maken: welk hoofdgerecht past, welke bijgerechten, welk tijdstip, welke bundle-prijs, welke foto.
 
 Je antwoord komt via de tool 'build_proposal_details'. Vul de tool-args in met een tastbare invulling van het voorstel.
 
@@ -3465,6 +3465,7 @@ Maak dit tastbaar volgens de regels.`;
       );
     }
     const lang = await this.getFillyLang(restaurantId);
+    const pack = await this.context.getIndustryPack(restaurantId);
 
     const sc = suggestion.suggested_campaign ?? {};
     const currentName =
@@ -3582,7 +3583,7 @@ Maak dit tastbaar volgens de regels.`;
     // Tool-use forceert het JSON-schema (3 variants exact). Wij geven
     // Filly het bestaande materiaal mee als 'vermijd-lijst' zodat de
     // alternatieven inhoudelijk anders zijn dan wat al gegenereerd is.
-    const systemPrompt = `Je bent Filly, een AI-assistent voor de horeca. Je krijgt een bestaande campagne en moet drie alternatieve versies bedenken die wezenlijk anders zijn van toon en invalshoek.
+    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, ${pack.systemFraming}. Je krijgt een bestaande campagne en moet drie alternatieve versies bedenken die wezenlijk anders zijn van toon en invalshoek.
 
 Je antwoord komt via de tool 'generate_alternatives'. Lever exact 3 varianten.
 

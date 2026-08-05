@@ -137,6 +137,16 @@ export function getIndustryPack(industry: Industry): IndustryPack {
  * niets toegevoegd. Alleen voor afwijkende branches krijgt Filly een
  * expliciete vertaal-instructie mee.
  */
+/**
+ * Prefix-vorm van het VAKTAAL-blok voor bovenaan een system-prompt:
+ * het blok + een scheiding, of een lege string. Horeca → '' zodat de
+ * prompt byte-identiek blijft. Gebruik als `${vaktaalPrefix(pack)}Je bent Filly…`.
+ */
+export function vaktaalPrefix(pack: IndustryPack): string {
+  const block = buildVaktaalBlock(pack);
+  return block ? `${block}\n\n` : '';
+}
+
 export function buildVaktaalBlock(pack: IndustryPack): string {
   if (pack.industry === DEFAULT_INDUSTRY) return '';
   const lex = pack.lexicon;

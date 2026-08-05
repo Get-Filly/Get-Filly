@@ -9,6 +9,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
 import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { vaktaalPrefix } from '../ai/industry/industry-pack';
 import { AuditLogService } from '../common/audit-log.service';
 
 // ============================================================
@@ -316,10 +317,10 @@ export class MenuSuggestionsService {
       .eq('is_available', true);
     if (countErr) throw new InternalServerErrorException(countErr.message);
 
+    const pack = await this.context.getIndustryPack(restaurantId);
+
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(
-        'Vul eerst je menukaart in (minimaal 3 gerechten) zodat Filly concrete voorstellen kan doen.',
-      );
+      throw new BadRequestException(pack.menuGuardMessage);
     }
 
     // Stap 2, context. Profile + menu via dezelfde blocks die ook
@@ -334,7 +335,7 @@ export class MenuSuggestionsService {
     const monthName = today.toLocaleString('nl-NL', { month: 'long' });
     const season = currentSeasonNL(today);
 
-    const systemPrompt = `Je bent Filly, een AI-sparring-partner voor de chef van het hieronder beschreven restaurant. Hij drukt op "Vraag Filly om voorstellen" om EEN ANDERE INVALSHOEK te zien voor zijn menu, niet om automatisch z'n menu te laten vullen. Geef hem precies 3 voorstellen met elk een DUIDELIJK ANDERE invalshoek.
+    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-sparring-partner voor de chef van het hieronder beschreven restaurant. Hij drukt op "Vraag Filly om voorstellen" om EEN ANDERE INVALSHOEK te zien voor zijn menu, niet om automatisch z'n menu te laten vullen. Geef hem precies 3 voorstellen met elk een DUIDELIJK ANDERE invalshoek.
 
 Je antwoord komt via de tool 'generate_menu_suggestions'.
 
@@ -605,6 +606,7 @@ ${menuBlock}
     }
 
     // Context bouwen.
+    const pack = await this.context.getIndustryPack(restaurantId);
     const [profileBlock, menuBlock] = await Promise.all([
       this.context.buildProfileBlock(restaurantId).catch(() => ''),
       this.context.buildMenuBlock(restaurantId).catch(() => ''),
@@ -630,7 +632,7 @@ ${menuBlock}
     const today = new Date();
     const season = currentSeasonNL(today);
 
-    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar bekeek dit voorstel en wil een wezenlijk ANDERE variant.
+    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar bekeek dit voorstel en wil een wezenlijk ANDERE variant.
 
 Je antwoord komt via de tool 'refine_menu_suggestion' met één voorstel.
 

@@ -14,6 +14,7 @@ import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { type ToneSignature } from '../ai/filly-brain.config';
 import { naturalizeDashes } from '../ai/copy-style.guard';
+import { vaktaalPrefix } from '../ai/industry/industry-pack';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 import { resolveDutchDate } from '../common/dutch-date';
 
@@ -1344,7 +1345,7 @@ export class ChatService {
     // gecachete system-prompt gaat, en een VOLATIEL live-blok (weer/
     // bezetting/reserveringen, verandert elke call) dat de caller ná de
     // cache-grens hangt. Zo breekt de live-data de cache niet meer.
-    const [restaurantResult, profile, menu, photos, live, memories] =
+    const [restaurantResult, profile, menu, photos, live, memories, pack] =
       await Promise.all([
         this.supabase.client
           .from('restaurants')
@@ -1364,6 +1365,9 @@ export class ChatService {
         // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
         // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
         this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
+        // Branche-pack: stuurt de vaktaal bovenaan de (statische) system-
+        // prompt. Voor horeca is het VAKTAAL-blok leeg → prompt ongewijzigd.
+        this.context.getIndustryPack(restaurantId),
       ]);
 
     // Statische context: profiel + menu + foto's, gescheiden door "---".
@@ -1392,7 +1396,7 @@ export class ChatService {
       ? '\n\nIMPORTANT: Always reply to the owner in English, even though these instructions are written in Dutch.'
       : '';
 
-    const system = `Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.${languageDirective}
+    const system = `${vaktaalPrefix(pack)}Je bent Filly, de AI-assistent van ${name}${type}. Je praat met de eigenaar via de dashboard-chat.${languageDirective}
 
 Wie je bent:
 - Een behulpzame, praktische assistent die CAMPAGNES voor het restaurant maakt.
