@@ -230,8 +230,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const N = vis.length;
   const xPct = (i: number) => (N > 1 ? (i / (N - 1)) * 100 : 50);
   const yPct = (v: number) => (1 - v / Y_MAX) * 100;
-  const linePts = (arr: number[]) =>
-    vis.map((h, i) => `${xPct(i).toFixed(2)},${yPct(arr[h]).toFixed(2)}`).join(" ");
+  // Punten als {x,y} voor de gladde curve (smoothPath) i.p.v. een hoekige
+  // polyline. Gebruikt voor de verwacht-lijn en de seed-werkelijk-lijn.
+  const linePoints = (arr: number[]) =>
+    vis.map((h, i) => ({ x: xPct(i), y: yPct(arr[h]) }));
   // Echte gemeten punten (real-modus): uur → x (index binnen open bereik),
   // pct → y. Alleen uren binnen de zichtbare openingsuren.
   const actualDots = (pairs: [number, number][]) =>
@@ -418,8 +420,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 />
               )}
               {isFuture ? (
-                <polyline
-                  points={linePts(day.hours)}
+                <path
+                  d={smoothPath(linePoints(day.hours))}
                   fill="none"
                   stroke={EXPECTED}
                   strokeWidth="2.2"
@@ -429,8 +431,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 />
               ) : (
                 <>
-                  <polyline
-                    points={linePts(day.hours)}
+                  <path
+                    d={smoothPath(linePoints(day.hours))}
                     fill="none"
                     stroke={EXPECTED}
                     strokeWidth="2"
@@ -466,8 +468,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
                     )
                   ) : day.actual ? (
                     // Seed-modus (zaak zonder echte drukte-bron): oude lijn.
-                    <polyline
-                      points={linePts(day.actual)}
+                    <path
+                      d={smoothPath(linePoints(day.actual))}
                       fill="none"
                       stroke="var(--accent)"
                       strokeWidth="2.4"
