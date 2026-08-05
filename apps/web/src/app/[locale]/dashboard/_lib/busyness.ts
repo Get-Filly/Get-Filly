@@ -94,7 +94,8 @@ function shapeActual(
 ): [number, number][] {
   if (!raw.length) return raw;
   const byHour = new Map(raw.map(([h, p]) => [h, p]));
-  return raw
+  // 1. Gladstrijken + naar het historische patroon dempen, op de gemeten uren.
+  const shaped = raw
     .slice()
     .sort((a, b) => a[0] - b[0])
     .map(([h]) => {
@@ -123,6 +124,29 @@ function shapeActual(
         number,
       ];
     });
+
+  // 2. Doorlopend maken: lineair interpoleren naar elk heel uur tussen de
+  //    eerste en laatste meting. Zo geven gaten in de metingen geen losse
+  //    punten of hoeken, maar wordt de werkelijk-lijn één gladde curve.
+  const dense: [number, number][] = [];
+  const last = shaped.length - 1;
+  for (let h = shaped[0][0]; h <= shaped[last][0]; h++) {
+    let lo = shaped[0];
+    let hi = shaped[last];
+    for (const p of shaped) {
+      if (p[0] <= h) lo = p;
+      if (p[0] >= h) {
+        hi = p;
+        break;
+      }
+    }
+    const v =
+      hi[0] === lo[0]
+        ? lo[1]
+        : lo[1] + ((hi[1] - lo[1]) * (h - lo[0])) / (hi[0] - lo[0]);
+    dense.push([h, clamp(v)]);
+  }
+  return dense;
 }
 
 function hourly24(scale: number, seed: string): number[] {
