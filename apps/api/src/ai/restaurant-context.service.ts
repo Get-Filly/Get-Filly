@@ -67,7 +67,7 @@ export class RestaurantContextService {
         // Alle velden uit restaurants + onboarding-extensies (0003).
         // Bewust géén logo_url / brand_colors, irrelevant voor tekst-LLM.
         `
-        name, type, cuisine_style, description, tagline,
+        name, industry, type, cuisine_style, description, tagline,
         target_audience, atmosphere, unique_selling_points,
         special_events, signature_dishes, brand_tone, languages_spoken,
         city, address, postal_code, country,
