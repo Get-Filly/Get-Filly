@@ -234,6 +234,33 @@ export function BusynessCard({ onMakeConcept }: Props) {
   // polyline. Gebruikt voor de verwacht-lijn en de seed-werkelijk-lijn.
   const linePoints = (arr: number[]) =>
     vis.map((h, i) => ({ x: xPct(i), y: yPct(arr[h]) }));
+  // Lichte 5-punts gladstrijking (midden zwaarst) binnen de open uren, zodat de
+  // verwacht-lijn vloeiend loopt i.p.v. elke uur-sprong te volgen — net als de
+  // werkelijk-lijn. Buren buiten het open bereik tellen niet mee (geen
+  // kunstmatige dip aan de randen). Puur visueel; de detectie blijft op de ruwe
+  // waarden draaien.
+  const smoothVisible = (arr: number[]): number[] => {
+    const out = arr.slice();
+    for (const h of vis) {
+      let s = 0;
+      let w = 0;
+      for (const [dh, wt] of [
+        [-2, 1],
+        [-1, 2],
+        [0, 3],
+        [1, 2],
+        [2, 1],
+      ] as const) {
+        const nb = h + dh;
+        if (nb >= day.openHour && nb <= day.closeHour) {
+          s += arr[nb] * wt;
+          w += wt;
+        }
+      }
+      out[h] = w ? s / w : arr[h];
+    }
+    return out;
+  };
   // Echte gemeten punten (real-modus): uur → x (index binnen open bereik),
   // pct → y. Alleen uren binnen de zichtbare openingsuren.
   const actualDots = (pairs: [number, number][]) =>
@@ -421,7 +448,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
               )}
               {isFuture ? (
                 <path
-                  d={smoothPath(linePoints(day.hours))}
+                  d={smoothPath(linePoints(smoothVisible(day.hours)))}
                   fill="none"
                   stroke={EXPECTED}
                   strokeWidth="2.2"
@@ -432,7 +459,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
               ) : (
                 <>
                   <path
-                    d={smoothPath(linePoints(day.hours))}
+                    d={smoothPath(linePoints(smoothVisible(day.hours)))}
                     fill="none"
                     stroke={EXPECTED}
                     strokeWidth="2"
