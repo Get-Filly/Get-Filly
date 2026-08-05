@@ -643,6 +643,15 @@ type SuggestionInsertRow = {
   expected_impact: { extra_reservations: number; extra_revenue_cents: number };
 };
 
+// Taal-regels voor campagne-generatie (volgt de Filly-taal-instelling van de
+// zaak). NL = default; EN als de eigenaar Filly op Engels heeft gezet.
+function langWriteRules(lang: 'nl' | 'en'): string {
+  return lang === 'en'
+    ? `- Write everything in English. Match the brand_tone from the profile.
+- Do not use em or en dashes (— or –) as connectors; write naturally with commas and periods. That reads less AI-written.`
+    : `${langWriteRules(lang)}`;
+}
+
 @Injectable()
 export class SuggestionsService {
   private readonly logger = new Logger(SuggestionsService.name);
@@ -671,6 +680,17 @@ export class SuggestionsService {
     // low-occupancy-flow; occupancy_days blijft terugval.
     private readonly busyness: BusynessService,
   ) {}
+
+  // Filly-taal van de zaak (account-instelling): stuurt de taal van de
+  // gegenereerde campagne-teksten. Default nl.
+  private async getFillyLang(restaurantId: string): Promise<'nl' | 'en'> {
+    const { data } = await this.supabase.client
+      .from('restaurants')
+      .select('filly_language')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    return (data?.filly_language as string | null) === 'en' ? 'en' : 'nl';
+  }
 
   async findAll(
     restaurantId: string,
@@ -749,6 +769,7 @@ export class SuggestionsService {
     if (!restaurantRow) {
       throw new NotFoundException('Restaurant niet gevonden.');
     }
+    const lang = await this.getFillyLang(restaurantId);
 
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
@@ -787,8 +808,7 @@ Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 - general: een sterk concept dat los staat van een specifieke trigger, een signature-event of menu-launch.
 
 Inhoudsregels:
-- Schrijf alles in het Nederlands. Match de brand_tone uit het profiel.
-- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
+${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
 - Per voorstel: kies 1-3 KANALEN waarop dit voorstel uit moet gaan. Niet elk voorstel hoeft multi-channel te zijn:
   - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 mail of 1 whatsapp aan vaste gasten), of zeer kanaal-specifiek concept.
@@ -1064,6 +1084,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     skipped: number;
     suggestions: AiSuggestion[];
   }> {
+    const lang = await this.getFillyLang(restaurantId);
     // Stap 1, Pre-flight: minstens 3 menu-items zodat Filly concrete
     // gerechten kan noemen. Zelfde guard als generateOnDemand.
     const { count: menuCount } = await this.supabase.client
@@ -1294,8 +1315,7 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
 Inhoudsregels:
-- Schrijf in het Nederlands. Match de brand_tone.
-- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
+${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Richt het voorstel op het genoemde dagdeel en noem dat moment concreet ("kom lunchen", "borrel", "aan tafel vanavond"), zodat de gast weet wánneer het bedoeld is.
 - Kies campagne-type op basis van weekdag + segment:
@@ -1668,6 +1688,7 @@ ${dayContext}`;
       deviation: number;
       unusual: boolean;
     };
+    const lang = await this.getFillyLang(restaurantId);
     const quietByDate = new Map<string, QuietInfo>();
     if (lowOccDates.length > 0) {
       const sorted = [...lowOccDates].sort();
@@ -1856,8 +1877,7 @@ groepen + traditie.`;
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel: campagne-type, naam, body, doelgroep en verwacht effect.
 
 Inhoudsregels:
-- Schrijf in het Nederlands. Match de brand_tone.
-- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
+${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Is er een rustig DAGDEEL genoemd, richt het voorstel dan op dát moment en noem het concreet ("kom lunchen", "borrel", "aan tafel vanavond"). Noem geen exacte drukte-percentages.
 - Kies campagne-type op basis van urgentie + segment:
@@ -2168,6 +2188,7 @@ ${segmentsBlock}`;
     if (cached && cached.mainDish) {
       return cached;
     }
+    const lang = await this.getFillyLang(restaurantId);
 
     // Bouw rijke context: profile (sfeer/USPs/doelgroep) + menu
     // (echte gerechten met prijzen) + live-block (huidige bezetting,
@@ -2194,8 +2215,7 @@ ${segmentsBlock}`;
 Je antwoord komt via de tool 'build_proposal_details'. Vul de tool-args in met een tastbare invulling van het voorstel.
 
 Inhoudsregels:
-- Schrijf in het Nederlands. Match de brand_tone uit het profiel.
-- Gebruik geen gedachtestreepjes (— of –) als zinsverbinder; schrijf natuurlijk Nederlands met komma's en punten. Dat leest minder als door-een-AI-geschreven.
+${langWriteRules(lang)}
 - main_dish en sides: GEBRUIK BIJ VOORKEUR gerechten uit MENU (zie context). Zet source='menu' en pak de échte naam, beschrijving en prijs uit MENU.
 - Alleen als geen passend menu-gerecht beschikbaar is, mag je een nieuw gerecht voorstellen met source='new'. Beschrijf het concreet (ingrediënten, bereiding) zodat de eigenaar weet wat hij zou koken.
 - Maximaal 3 bijgerechten/sides. Geen losse drankjes als sides, alleen bij eet-gerechten relevant.
@@ -3444,6 +3464,7 @@ Maak dit tastbaar volgens de regels.`;
         `Alleen open voorstellen zijn te bewerken (deze is ${suggestion.status}).`,
       );
     }
+    const lang = await this.getFillyLang(restaurantId);
 
     const sc = suggestion.suggested_campaign ?? {};
     const currentName =
@@ -3566,7 +3587,7 @@ Maak dit tastbaar volgens de regels.`;
 Je antwoord komt via de tool 'generate_alternatives'. Lever exact 3 varianten.
 
 Inhoudsregels:
-- Schrijf in het Nederlands, in dezelfde campagne-context (zelfde gerecht/aanbod).
+${lang === 'en' ? '- Write in English, in the same campaign context (same dish/offer).' : '- Schrijf in het Nederlands, in dezelfde campagne-context (zelfde gerecht/aanbod).'}
 - Drie tonen: bv. zakelijk-professioneel, warm-persoonlijk, kort-prikkelend. Onderling duidelijk verschillend.
 - Houd élke variant binnen de lengte-bandbreedte uit KANAAL-REGELS hieronder, nooit erbuiten.
 - Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.
