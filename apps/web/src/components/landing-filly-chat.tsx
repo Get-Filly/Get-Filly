@@ -25,6 +25,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Send, Mail, Camera, MessageCircle, Check } from "lucide-react";
 
@@ -36,26 +37,9 @@ type Campaign = {
   meta: string;
 };
 
-const CAMPAIGN_1: Campaign = {
-  title: "Last-minute lunchdeal",
-  date: "di 5 mei",
-  channels: [
-    { Icon: Camera, label: "Instagram" },
-    { Icon: Mail, label: "E-mail" },
-    { Icon: MessageCircle, label: "WhatsApp" },
-  ],
-  meta: "Naar 248 vaste gasten · verstuurt automatisch di 11:00",
-};
-
-const CAMPAIGN_2: Campaign = {
-  title: "Midweek bistro-avond",
-  date: "wo 13 mei",
-  channels: [
-    { Icon: Camera, label: "Instagram" },
-    { Icon: Mail, label: "E-mail" },
-  ],
-  meta: "Naar 312 gasten in de buurt · verstuurt automatisch ma 16:00",
-};
+// De campagne-kaarten en de gesprek-beurten worden per-locale opgebouwd binnen
+// de component (useTranslations), zie buildTurns() hieronder. Instagram/WhatsApp
+// blijven merk-namen; alleen het e-mail-kanaal-label vertaalt mee.
 
 // Eén beurt in het gesprek.
 //   'proposal' = een voorstel-kaart (approvable = de Goedkeuren-knop wordt hier ingedrukt).
@@ -66,24 +50,6 @@ type Turn =
   | { id: string; kind: "user"; text: string }
   | { id: string; kind: "proposal"; campaign: Campaign; approvable?: boolean }
   | { id: string; kind: "final" };
-
-const TURNS: Turn[] = [
-  {
-    id: "ai-vraag",
-    kind: "ai",
-    big: true,
-    text: "Dinsdag 5 mei staat op 43%, ruim onder je gemiddelde. Zal ik daar een actie voor klaarzetten?",
-  },
-  { id: "user-ja", kind: "user", text: "Ja, graag 👍" },
-  { id: "proposal-1", kind: "proposal", campaign: CAMPAIGN_1, approvable: true },
-  { id: "ai-final", kind: "final" },
-  {
-    id: "user-meer",
-    kind: "user",
-    text: "Bedenk nog een campagne voor volgende week woensdag",
-  },
-  { id: "proposal-2", kind: "proposal", campaign: CAMPAIGN_2 },
-];
 
 // Fases van het gesprek: hoeveel beurten zichtbaar zijn, of Filly op dat
 // moment "typt", en of het eerste voorstel al is goedgekeurd (knop ingedrukt).
@@ -119,6 +85,7 @@ function ProposalCard({
   campaign: Campaign;
   approved: boolean;
 }) {
+  const t = useTranslations("home");
   return (
     <div className="md-proposal">
       <div className="md-proposal-head">
@@ -138,12 +105,12 @@ function ProposalCard({
         {approved ? (
           <span className="md-proposal-btn primary approved">
             <Check size={11} strokeWidth={2.5} />
-            Goedgekeurd
+            {t("mockup.chat.approved")}
           </span>
         ) : (
           <>
-            <span className="md-proposal-btn primary">Goedkeuren</span>
-            <span className="md-proposal-btn">Aanpassen</span>
+            <span className="md-proposal-btn primary">{t("mockup.chat.approve")}</span>
+            <span className="md-proposal-btn">{t("mockup.chat.edit")}</span>
           </>
         )}
       </div>
@@ -152,6 +119,50 @@ function ProposalCard({
 }
 
 export function LandingFillyChat() {
+  const t = useTranslations("home");
+
+  // De twee voorstel-kaarten (locale-afhankelijk). Instagram/WhatsApp blijven
+  // merk-namen; alleen het e-mail-kanaal-label vertaalt mee.
+  const CAMPAIGN_1: Campaign = {
+    title: t("mockup.chat.campaign1Title"),
+    date: t("mockup.chat.campaign1Date"),
+    channels: [
+      { Icon: Camera, label: "Instagram" },
+      { Icon: Mail, label: t("mockup.chat.channelEmail") },
+      { Icon: MessageCircle, label: "WhatsApp" },
+    ],
+    meta: t("mockup.chat.campaign1Meta"),
+  };
+
+  const CAMPAIGN_2: Campaign = {
+    title: t("mockup.chat.campaign2Title"),
+    date: t("mockup.chat.campaign2Date"),
+    channels: [
+      { Icon: Camera, label: "Instagram" },
+      { Icon: Mail, label: t("mockup.chat.channelEmail") },
+    ],
+    meta: t("mockup.chat.campaign2Meta"),
+  };
+
+  // Het scripted gesprek (zie het verhaal bovenaan dit bestand).
+  const TURNS: Turn[] = [
+    {
+      id: "ai-vraag",
+      kind: "ai",
+      big: true,
+      text: t("mockup.chat.askProposal"),
+    },
+    { id: "user-ja", kind: "user", text: t("mockup.chat.userYes") },
+    { id: "proposal-1", kind: "proposal", campaign: CAMPAIGN_1, approvable: true },
+    { id: "ai-final", kind: "final" },
+    {
+      id: "user-meer",
+      kind: "user",
+      text: t("mockup.chat.userMore"),
+    },
+    { id: "proposal-2", kind: "proposal", campaign: CAMPAIGN_2 },
+  ];
+
   // Welke fase van het gesprek nu getoond wordt. Start op 0 (Filly typt).
   const [phase, setPhase] = useState(0);
   // De chat blijft leeg tot 'started' true wordt — pas ná de pushmelding.
@@ -231,7 +242,7 @@ export function LandingFillyChat() {
           <div className="md-chat-name">Filly AI</div>
         </div>
         <div className="md-chat-head-right">
-          <span className="md-chat-status">Online</span>
+          <span className="md-chat-status">{t("mockup.chat.status")}</span>
         </div>
       </div>
 
@@ -254,9 +265,9 @@ export function LandingFillyChat() {
           if (turn.kind === "final") {
             return (
               <div key={turn.id} className="md-chat-msg ai">
-                Top! Bekijk het concept en keur het definitief goed in{" "}
+                {t("mockup.chat.final")}{" "}
                 <Link className="md-chat-link" href="/dashboard/campagnes">
-                  Campagnes →
+                  {t("mockup.chat.finalLink")}
                 </Link>
               </div>
             );
@@ -278,7 +289,7 @@ export function LandingFillyChat() {
           <div
             className="md-chat-msg ai md-typing"
             role="status"
-            aria-label="Filly is aan het typen"
+            aria-label={t("mockup.chat.typingAria")}
           >
             <span className="md-typing-dot" />
             <span className="md-typing-dot" />
@@ -288,7 +299,7 @@ export function LandingFillyChat() {
       </div>
 
       <div className="md-chat-input">
-        <div className="md-chat-input-text">Vraag Filly iets…</div>
+        <div className="md-chat-input-text">{t("mockup.chat.inputPlaceholder")}</div>
         <div className="md-chat-send">
           <Send size={10} strokeWidth={2} />
         </div>

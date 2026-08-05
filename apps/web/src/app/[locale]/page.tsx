@@ -44,22 +44,24 @@ import { LandingPhone } from "@/components/landing-phone";
 // MiniDashboard, visuele namaak van het echte Get-Filly-dashboard,
 // gerenderd binnen het MacBook-scherm in de hero.
 // =============================================================================
-function MiniDashboard() {
+async function MiniDashboard() {
+  const t = await getTranslations("home");
+
   // Nav: dezelfde 5 items + lucide-iconen als de echte sidebar.
   const NAV = [
-    { Icon: LayoutDashboard, label: "Dashboard", active: true },
-    { Icon: Megaphone, label: "Campagnes" },
-    { Icon: Search, label: "Vindbaarheid" },
-    { Icon: CalendarDays, label: "Reserveringen" },
-    { Icon: BarChart3, label: "Rapportages" },
+    { Icon: LayoutDashboard, label: t("mockup.dashboard.nav.dashboard"), active: true },
+    { Icon: Megaphone, label: t("mockup.dashboard.nav.campaigns") },
+    { Icon: Search, label: t("mockup.dashboard.nav.findability") },
+    { Icon: CalendarDays, label: t("mockup.dashboard.nav.reservations") },
+    { Icon: BarChart3, label: t("mockup.dashboard.nav.reports") },
   ];
 
   // KPI-rij: 4 kaarten zoals op het nieuwe dashboard.
   const KPIS = [
-    { label: "Bezetting vandaag", val: "55%" },
-    { label: "Gasten vandaag", val: "43", extra: "0 via Filly" },
-    { label: "Lopende campagnes", val: "3", extra: "actief of ingepland" },
-    { label: "Voorgestelde campagnes", val: "1", extra: "wachten op goedkeuring" },
+    { label: t("mockup.dashboard.kpi.occupancyLabel"), val: "55%" },
+    { label: t("mockup.dashboard.kpi.guestsLabel"), val: "43", extra: t("mockup.dashboard.kpi.guestsExtra") },
+    { label: t("mockup.dashboard.kpi.runningLabel"), val: "3", extra: t("mockup.dashboard.kpi.runningExtra") },
+    { label: t("mockup.dashboard.kpi.proposedLabel"), val: "1", extra: t("mockup.dashboard.kpi.proposedExtra") },
   ];
 
   // Heatmap-kalender mei 2026 (1 mei = vrijdag). p = bezetting%, lvl =
@@ -89,7 +91,7 @@ function MiniDashboard() {
           <ChevronDown className="md-ws-chevron" size={11} strokeWidth={2} />
         </div>
         <div>
-          <div className="md-section-label">Menu</div>
+          <div className="md-section-label">{t("mockup.dashboard.menuLabel")}</div>
           <div className="md-nav">
             {NAV.map((n) => (
               <div key={n.label} className={`md-nav-item ${n.active ? "active" : ""}`}>
@@ -106,9 +108,9 @@ function MiniDashboard() {
       {/* Main */}
       <div className="md-main">
         <div className="md-topbar">
-          <div className="md-page-title">Dashboard</div>
+          <div className="md-page-title">{t("mockup.dashboard.pageTitle")}</div>
           <div className="md-top-actions">
-            <span className="md-sync">Laatste sync: 2 min geleden</span>
+            <span className="md-sync">{t("mockup.dashboard.sync")}</span>
             <span className="md-icon-btn"><Bell size={11} strokeWidth={1.75} /></span>
             <span className="md-icon-btn"><Search size={11} strokeWidth={1.75} /></span>
           </div>
@@ -118,13 +120,13 @@ function MiniDashboard() {
         <div className="md-alerts">
           <div className="md-alert-stack">
             <div className="md-alert">
-              <strong>3 rustige dagen</strong> komende 2 weken: 5 mei (43%), 8 mei (44%), 13 mei (43%)
+              {t.rich("mockup.dashboard.alertQuiet", { strong: (c) => <strong>{c}</strong> })}
             </div>
             <div className="md-alert">
-              <strong>1 speciale dag</strong> komende 6 weken: Moederdag (10 mei)
+              {t.rich("mockup.dashboard.alertSpecial", { strong: (c) => <strong>{c}</strong> })}
             </div>
           </div>
-          <div className="md-cta-btn">Vraag Filly om voorstellen</div>
+          <div className="md-cta-btn">{t("mockup.dashboard.alertCta")}</div>
         </div>
 
         <div className="md-kpi-row">
@@ -143,19 +145,19 @@ function MiniDashboard() {
             <div className="md-card-head">
               <div className="md-cal-nav">
                 <span className="md-cal-arrow"><ChevronLeft size={11} strokeWidth={2} /></span>
-                <span className="md-card-title">Mei 2026</span>
+                <span className="md-card-title">{t("mockup.dashboard.calMonth")}</span>
                 <span className="md-cal-arrow"><ChevronRight size={11} strokeWidth={2} /></span>
-                <span className="md-cal-today-btn">Vandaag</span>
+                <span className="md-cal-today-btn">{t("mockup.dashboard.calToday")}</span>
               </div>
               <div className="md-tabs">
-                <span className="md-tab">Dag</span>
-                <span className="md-tab">Week</span>
-                <span className="md-tab active">Maand</span>
-                <span className="md-tab">Jaar</span>
+                <span className="md-tab">{t("mockup.dashboard.calTabs.day")}</span>
+                <span className="md-tab">{t("mockup.dashboard.calTabs.week")}</span>
+                <span className="md-tab active">{t("mockup.dashboard.calTabs.month")}</span>
+                <span className="md-tab">{t("mockup.dashboard.calTabs.year")}</span>
               </div>
             </div>
             <div className="md-cal">
-              {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map((d) => (
+              {(t.raw("mockup.dashboard.calDow") as string[]).map((d) => (
                 <div key={d} className="md-cal-dow">{d}</div>
               ))}
               {CAL.flat().map((cell, i) => {
@@ -384,12 +386,17 @@ export default async function HomePage({
           .pillars-cta-kaart naar de full-bleed groene .cta-section,
           identiek aan de product- en over-pagina (eigen tekst). */}
       <section className="cta-section">
-        <h2 className="section-title">Klaar om jouw tafels te vullen?</h2>
-        <p className="section-subtitle">Vraag een demo aan en ontdek wat Get-Filly voor jouw restaurant kan doen.</p>
-        <Link href="/contact" className="cta-btn">Plan een gratis kennismaking in</Link>
+        <h2 className="section-title">{t("finalCta.title")}</h2>
+        <p className="section-subtitle">{t("finalCta.subtitle")}</p>
+        <Link href="/contact" className="cta-btn">{t("finalCta.button")}</Link>
         <p className="section-subtitle" style={{ marginTop: 32, fontSize: 15 }}>
-          Of bekijk eerst{" "}
-          <Link href="/pricing" style={{ color: "#FFFFFF", textDecoration: "underline" }}>de prijzen</Link>.
+          {t.rich("finalCta.orSee", {
+            link: (c) => (
+              <Link href="/pricing" style={{ color: "#FFFFFF", textDecoration: "underline" }}>
+                {c}
+              </Link>
+            ),
+          })}
         </p>
       </section>
 

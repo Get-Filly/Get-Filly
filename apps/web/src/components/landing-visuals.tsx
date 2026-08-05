@@ -6,6 +6,7 @@
 // beeld scrollt, identiek aan de rest van de pagina. Geen eigen hook.
 // ============================================================
 
+import { getTranslations } from "next-intl/server";
 import { BrandLogo, type BrandId } from "./brand-logos";
 import "./landing-visuals.css";
 
@@ -29,7 +30,8 @@ function SearchIcon() {
 }
 
 // === 01 Vindbaarheid: zoekresultaat + AI-chat + review ===
-export function VindbaarheidVisual() {
+export async function VindbaarheidVisual() {
+  const t = await getTranslations("home");
   return (
     <div className="lv lv-find" aria-hidden="true">
       {/* Klassiek zoekresultaat met echte zoekbalk (SEO) */}
@@ -39,13 +41,13 @@ export function VindbaarheidVisual() {
         </span>
         <div className="lv-searchbar">
           <SearchIcon />
-          <span>restaurant Haarlem reserveren</span>
+          <span>{t("mockup.visuals.find.searchQuery")}</span>
         </div>
         <div className="lv-result">
           <div className="lv-result-name">Bistro Get-Filly</div>
-          <div className="lv-result-url">bistrogetfilly.nl &rsaquo; reserveren</div>
+          <div className="lv-result-url">{t("mockup.visuals.find.resultUrl")}</div>
           <div className="lv-result-meta">
-            <b>&#9733; 4,8</b> (320) &middot; Italiaans &middot; &euro;&euro; &middot; Nu open
+            {t.rich("mockup.visuals.find.resultMeta", { b: (c) => <b>{c}</b> })}
           </div>
         </div>
       </div>
@@ -53,14 +55,13 @@ export function VindbaarheidVisual() {
       {/* AI-zoekmachine als chatgesprek (GEO) */}
       <div className="lv-card lv-chat" data-reveal>
         <div className="lv-chat-head">
-          <Logo id="chatgpt" size={16} /> AI-zoekmachine
+          <Logo id="chatgpt" size={16} /> {t("mockup.visuals.find.chatHead")}
         </div>
-        <div className="lv-chat-q">Waar kan ik in Haarlem lekker uit eten voor een verjaardag?</div>
+        <div className="lv-chat-q">{t("mockup.visuals.find.chatQ")}</div>
         <div className="lv-chat-a">
           <span className="lv-chat-ava"><Logo id="chatgpt" size={15} /></span>
           <span className="lv-chat-bubble">
-            Een mooie keuze is <b>Bistro Get-Filly</b>, sfeervol, met uitstekende
-            reviews (4,8&#9733;) en ruimte voor groepen. Je kunt direct online reserveren.
+            {t.rich("mockup.visuals.find.chatBubble", { b: (c) => <b>{c}</b> })}
           </span>
         </div>
       </div>
@@ -68,22 +69,22 @@ export function VindbaarheidVisual() {
       {/* Review als echte review-kaart (met eigenaar-antwoord) */}
       <div className="lv-card lv-rev" data-reveal>
         <div className="lv-rev-head">
-          <Logo id="tripadvisor" size={16} /> Tripadvisor-review
+          <Logo id="tripadvisor" size={16} /> {t("mockup.visuals.find.revHead")}
         </div>
         <div className="lv-rev-top">
           <span className="lv-avatar">S</span>
           <div>
             <div className="lv-rev-name">Sophie M.</div>
-            <div className="lv-rev-date">2 dagen geleden</div>
+            <div className="lv-rev-date">{t("mockup.visuals.find.revDate")}</div>
           </div>
           <span className="lv-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
         </div>
         <div className="lv-rev-q">
-          &ldquo;Geweldige avond gehad, het eten was top en de service heel attent.&rdquo;
+          {t("mockup.visuals.find.revQuote")}
         </div>
         <div className="lv-rev-reply">
-          <div className="lv-rev-reply-from">Bistro Get-Filly &middot; eigenaar</div>
-          <div className="lv-rev-reply-txt">Wat fijn om te horen, Sophie! Tot snel weer. &#128075;</div>
+          <div className="lv-rev-reply-from">{t("mockup.visuals.find.revReplyFrom")}</div>
+          <div className="lv-rev-reply-txt">{t("mockup.visuals.find.revReplyTxt")}</div>
         </div>
       </div>
     </div>
@@ -91,7 +92,8 @@ export function VindbaarheidVisual() {
 }
 
 // === 02 Zichtbaarheid: overlappende social-posts (TikTok eerst) ===
-export function ZichtbaarheidVisual() {
+export async function ZichtbaarheidVisual() {
+  const t = await getTranslations("home");
   return (
     <div className="lv lv-social" aria-hidden="true">
       {/* Facebook — achterste (foto: pasta), popt als eerste op */}
@@ -105,8 +107,8 @@ export function ZichtbaarheidVisual() {
             <img src="/visuals/facebook.jpg" alt="" loading="lazy" />
           </div>
           <div className="lv-post-foot">
-            <div className="lv-post-cap">Verse pasta, elke dag huisgemaakt &#127837;</div>
-            <div className="lv-post-stats">&#128077; 132 &middot; 27 keer gedeeld</div>
+            <div className="lv-post-cap">{t("mockup.visuals.social.fbCap")}</div>
+            <div className="lv-post-stats">{t("mockup.visuals.social.fbStats")}</div>
           </div>
         </article>
       </div>
@@ -123,8 +125,8 @@ export function ZichtbaarheidVisual() {
             <span className="lv-post-tag">&#9654; 12k</span>
           </div>
           <div className="lv-post-foot">
-            <div className="lv-post-cap">Achter de schermen in de keuken &#128293;</div>
-            <div className="lv-post-stats">&#9829; 1.204 &middot; 89 reacties</div>
+            <div className="lv-post-cap">{t("mockup.visuals.social.ttCap")}</div>
+            <div className="lv-post-stats">{t("mockup.visuals.social.ttStats")}</div>
           </div>
         </article>
       </div>
@@ -140,8 +142,8 @@ export function ZichtbaarheidVisual() {
             <img src="/visuals/instagram.jpg" alt="" loading="lazy" />
           </div>
           <div className="lv-post-foot">
-            <div className="lv-post-cap">Donderdag livemuziek &#127926; Reserveer op tijd!</div>
-            <div className="lv-post-stats">&#9829; 1.248 &middot; 214 reacties</div>
+            <div className="lv-post-cap">{t("mockup.visuals.social.igCap")}</div>
+            <div className="lv-post-stats">{t("mockup.visuals.social.igStats")}</div>
           </div>
         </article>
       </div>
@@ -150,7 +152,8 @@ export function ZichtbaarheidVisual() {
 }
 
 // === 03 Bereikbaarheid: mail + WhatsApp ===
-export function BereikbaarheidVisual() {
+export async function BereikbaarheidVisual() {
+  const t = await getTranslations("home");
   return (
     <div className="lv lv-reach" aria-hidden="true">
       {/* E-mailcampagne */}
@@ -163,12 +166,11 @@ export function BereikbaarheidVisual() {
           </div>
           <span className="lv-mail-time">10:14</span>
         </div>
-        <div className="lv-mail-subj">We zien je graag weer, deze week nog een tafel vrij!</div>
+        <div className="lv-mail-subj">{t("mockup.visuals.reach.mailSubj")}</div>
         <div className="lv-mail-body">
-          Hoi Marieke, het is alweer even geleden! Donderdag hebben we nog een mooi
-          plekje vrij. Als welkom terug trakteren we op een glas wijn van het huis. &#127863;
+          {t("mockup.visuals.reach.mailBody")}
         </div>
-        <span className="lv-mail-cta">Reserveer mijn tafel</span>
+        <span className="lv-mail-cta">{t("mockup.visuals.reach.mailCta")}</span>
       </div>
 
       {/* WhatsApp-gesprek (zonder dubbele vinkjes) */}
@@ -177,16 +179,16 @@ export function BereikbaarheidVisual() {
           <span className="lv-wa-av">B</span>
           <div className="lv-wa-contact">
             <div className="lv-wa-name">Bistro Get-Filly</div>
-            <div className="lv-wa-online">online</div>
+            <div className="lv-wa-online">{t("mockup.visuals.reach.waOnline")}</div>
           </div>
         </div>
         <div className="lv-wa-chat">
           <div className="lv-wa-bubble lv-wa-in">
-            Hoi Marieke! Donderdag om 19:00 nog een tafeltje vrij, kom je langs? &#127837;
+            {t("mockup.visuals.reach.waIn")}
             <span className="lv-wa-meta">10:15</span>
           </div>
           <div className="lv-wa-bubble lv-wa-out">
-            Ja leuk! Doe maar voor 2 personen &#128522;
+            {t("mockup.visuals.reach.waOut")}
             <span className="lv-wa-meta">10:18</span>
           </div>
         </div>

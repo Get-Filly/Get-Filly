@@ -13,6 +13,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Vertraging (ms) ná het in beeld komen voordat de pushmelding opspringt.
 // 1,4s: de pagina settelt eerst, dan popt de melding duidelijk als allereerste
@@ -21,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 const NOTIF_DELAY = 1400;
 
 export function LandingPhone() {
+  const t = useTranslations("home");
   const ref = useRef<HTMLDivElement>(null);
   const [arrived, setArrived] = useState(false);
 
@@ -65,7 +67,7 @@ export function LandingPhone() {
         <div className="phone-screen">
           <div className="phone-island"></div>
           <div className="phone-lock-time">9:41</div>
-          <div className="phone-lock-date">maandag 4 mei</div>
+          <div className="phone-lock-date">{t("mockup.phone.date")}</div>
           {/* De pushmelding zelf — schuift binnen zodra `arrived` true wordt. */}
           <div className={`phone-notif${arrived ? " arrived" : ""}`}>
             <span className="phone-notif-icon">
@@ -77,9 +79,9 @@ export function LandingPhone() {
             <div className="phone-notif-main">
               <div className="phone-notif-meta">
                 <span className="phone-notif-app">Get-Filly</span>
-                <span className="phone-notif-time">nu</span>
+                <span className="phone-notif-time">{t("mockup.phone.now")}</span>
               </div>
-              <div className="phone-notif-title">Rustige dagen gedetecteerd</div>
+              <div className="phone-notif-title">{t("mockup.phone.title")}</div>
             </div>
           </div>
           <div className="phone-home-indicator"></div>

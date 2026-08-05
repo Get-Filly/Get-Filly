@@ -87,6 +87,103 @@
         "eyebrow": "Posten",
         "title": "Structureel posten: 3 tot 5× per week is de sweet spot"
       }
+    },
+    "mockup": {
+      "dashboard": {
+        "nav": {
+          "dashboard": "Dashboard",
+          "campaigns": "Campagnes",
+          "findability": "Vindbaarheid",
+          "reservations": "Reserveringen",
+          "reports": "Rapportages"
+        },
+        "menuLabel": "Menu",
+        "kpi": {
+          "occupancyLabel": "Bezetting vandaag",
+          "guestsLabel": "Gasten vandaag",
+          "guestsExtra": "0 via Filly",
+          "runningLabel": "Lopende campagnes",
+          "runningExtra": "actief of ingepland",
+          "proposedLabel": "Voorgestelde campagnes",
+          "proposedExtra": "wachten op goedkeuring"
+        },
+        "pageTitle": "Dashboard",
+        "sync": "Laatste sync: 2 min geleden",
+        "alertQuiet": "<strong>3 rustige dagen</strong> komende 2 weken: 5 mei (43%), 8 mei (44%), 13 mei (43%)",
+        "alertSpecial": "<strong>1 speciale dag</strong> komende 6 weken: Moederdag (10 mei)",
+        "alertCta": "Vraag Filly om voorstellen",
+        "calMonth": "Mei 2026",
+        "calToday": "Vandaag",
+        "calTabs": {
+          "day": "Dag",
+          "week": "Week",
+          "month": "Maand",
+          "year": "Jaar"
+        },
+        "calDow": ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"]
+      },
+      "phone": {
+        "date": "maandag 4 mei",
+        "now": "nu",
+        "title": "Rustige dagen gedetecteerd"
+      },
+      "chat": {
+        "status": "Online",
+        "inputPlaceholder": "Vraag Filly iets…",
+        "channelEmail": "E-mail",
+        "campaign1Title": "Last-minute lunchdeal",
+        "campaign1Date": "di 5 mei",
+        "campaign1Meta": "Naar 248 vaste gasten · verstuurt automatisch di 11:00",
+        "campaign2Title": "Midweek bistro-avond",
+        "campaign2Date": "wo 13 mei",
+        "campaign2Meta": "Naar 312 gasten in de buurt · verstuurt automatisch ma 16:00",
+        "askProposal": "Dinsdag 5 mei staat op 43%, ruim onder je gemiddelde. Zal ik daar een actie voor klaarzetten?",
+        "userYes": "Ja, graag 👍",
+        "userMore": "Bedenk nog een campagne voor volgende week woensdag",
+        "approve": "Goedkeuren",
+        "edit": "Aanpassen",
+        "approved": "Goedgekeurd",
+        "final": "Top! Bekijk het concept en keur het definitief goed in",
+        "finalLink": "Campagnes →",
+        "typingAria": "Filly is aan het typen"
+      },
+      "visuals": {
+        "find": {
+          "searchQuery": "restaurant Haarlem reserveren",
+          "resultUrl": "bistrogetfilly.nl › reserveren",
+          "resultMeta": "<b>★ 4,8</b> (320) · Italiaans · €€ · Nu open",
+          "chatHead": "AI-zoekmachine",
+          "chatQ": "Waar kan ik in Haarlem lekker uit eten voor een verjaardag?",
+          "chatBubble": "Een mooie keuze is <b>Bistro Get-Filly</b>, sfeervol, met uitstekende reviews (4,8★) en ruimte voor groepen. Je kunt direct online reserveren.",
+          "revHead": "Tripadvisor-review",
+          "revDate": "2 dagen geleden",
+          "revQuote": "“Geweldige avond gehad, het eten was top en de service heel attent.”",
+          "revReplyFrom": "Bistro Get-Filly · eigenaar",
+          "revReplyTxt": "Wat fijn om te horen, Sophie! Tot snel weer. 👋"
+        },
+        "social": {
+          "fbCap": "Verse pasta, elke dag huisgemaakt 🍝",
+          "fbStats": "👍 132 · 27 keer gedeeld",
+          "ttCap": "Achter de schermen in de keuken 🔥",
+          "ttStats": "♥ 1.204 · 89 reacties",
+          "igCap": "Donderdag livemuziek 🎶 Reserveer op tijd!",
+          "igStats": "♥ 1.248 · 214 reacties"
+        },
+        "reach": {
+          "mailSubj": "We zien je graag weer, deze week nog een tafel vrij!",
+          "mailBody": "Hoi Marieke, het is alweer even geleden! Donderdag hebben we nog een mooi plekje vrij. Als welkom terug trakteren we op een glas wijn van het huis. 🍷",
+          "mailCta": "Reserveer mijn tafel",
+          "waOnline": "online",
+          "waIn": "Hoi Marieke! Donderdag om 19:00 nog een tafeltje vrij, kom je langs? 🍝",
+          "waOut": "Ja leuk! Doe maar voor 2 personen 😊"
+        }
+      }
+    },
+    "finalCta": {
+      "title": "Klaar om jouw tafels te vullen?",
+      "subtitle": "Vraag een demo aan en ontdek wat Get-Filly voor jouw restaurant kan doen.",
+      "button": "Plan een gratis kennismaking in",
+      "orSee": "Of bekijk eerst <link>de prijzen</link>."
     }
   },
   "pricing": {

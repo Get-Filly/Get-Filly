@@ -87,6 +87,103 @@
         "eyebrow": "Posting",
         "title": "Posting consistently: 3 to 5 times a week is the sweet spot"
       }
+    },
+    "mockup": {
+      "dashboard": {
+        "nav": {
+          "dashboard": "Dashboard",
+          "campaigns": "Campaigns",
+          "findability": "Findability",
+          "reservations": "Reservations",
+          "reports": "Reports"
+        },
+        "menuLabel": "Menu",
+        "kpi": {
+          "occupancyLabel": "Occupancy today",
+          "guestsLabel": "Guests today",
+          "guestsExtra": "0 via Filly",
+          "runningLabel": "Running campaigns",
+          "runningExtra": "active or scheduled",
+          "proposedLabel": "Proposed campaigns",
+          "proposedExtra": "awaiting approval"
+        },
+        "pageTitle": "Dashboard",
+        "sync": "Last sync: 2 min ago",
+        "alertQuiet": "<strong>3 quiet days</strong> in the next 2 weeks: 5 May (43%), 8 May (44%), 13 May (43%)",
+        "alertSpecial": "<strong>1 special day</strong> in the next 6 weeks: Mother's Day (10 May)",
+        "alertCta": "Ask Filly for suggestions",
+        "calMonth": "May 2026",
+        "calToday": "Today",
+        "calTabs": {
+          "day": "Day",
+          "week": "Week",
+          "month": "Month",
+          "year": "Year"
+        },
+        "calDow": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+      },
+      "phone": {
+        "date": "Monday 4 May",
+        "now": "now",
+        "title": "Quiet days detected"
+      },
+      "chat": {
+        "status": "Online",
+        "inputPlaceholder": "Ask Filly something…",
+        "channelEmail": "Email",
+        "campaign1Title": "Last-minute lunch deal",
+        "campaign1Date": "Tue 5 May",
+        "campaign1Meta": "To 248 regular guests · sends automatically Tue 11:00",
+        "campaign2Title": "Midweek bistro evening",
+        "campaign2Date": "Wed 13 May",
+        "campaign2Meta": "To 312 guests nearby · sends automatically Mon 16:00",
+        "askProposal": "Tuesday 5 May is at 43%, well below your average. Shall I set up a promotion for it?",
+        "userYes": "Yes please 👍",
+        "userMore": "Come up with another campaign for next week Wednesday",
+        "approve": "Approve",
+        "edit": "Adjust",
+        "approved": "Approved",
+        "final": "Great! Review the draft and give it final approval in",
+        "finalLink": "Campaigns →",
+        "typingAria": "Filly is typing"
+      },
+      "visuals": {
+        "find": {
+          "searchQuery": "restaurant Haarlem reservations",
+          "resultUrl": "bistrogetfilly.nl › reservations",
+          "resultMeta": "<b>★ 4.8</b> (320) · Italian · €€ · Open now",
+          "chatHead": "AI search engine",
+          "chatQ": "Where can I go for a nice birthday dinner in Haarlem?",
+          "chatBubble": "A great choice is <b>Bistro Get-Filly</b>, atmospheric, with excellent reviews (4.8★) and room for groups. You can book online right away.",
+          "revHead": "Tripadvisor review",
+          "revDate": "2 days ago",
+          "revQuote": "“Had a wonderful evening, the food was great and the service very attentive.”",
+          "revReplyFrom": "Bistro Get-Filly · owner",
+          "revReplyTxt": "So lovely to hear, Sophie! See you again soon. 👋"
+        },
+        "social": {
+          "fbCap": "Fresh pasta, homemade every day 🍝",
+          "fbStats": "👍 132 · 27 shares",
+          "ttCap": "Behind the scenes in the kitchen 🔥",
+          "ttStats": "♥ 1,204 · 89 comments",
+          "igCap": "Live music Thursday 🎶 Book in time!",
+          "igStats": "♥ 1,248 · 214 comments"
+        },
+        "reach": {
+          "mailSubj": "We'd love to see you again, a table's still free this week!",
+          "mailBody": "Hi Marieke, it's been a while! We still have a lovely spot free on Thursday. As a welcome back, we'll treat you to a glass of house wine. 🍷",
+          "mailCta": "Book my table",
+          "waOnline": "online",
+          "waIn": "Hi Marieke! We still have a table free Thursday at 19:00, will you come by? 🍝",
+          "waOut": "Sounds good! Make it for 2 people 😊"
+        }
+      }
+    },
+    "finalCta": {
+      "title": "Ready to fill your tables?",
+      "subtitle": "Request a demo and discover what Get-Filly can do for your restaurant.",
+      "button": "Schedule a free intro",
+      "orSee": "Or first take a look at <link>the pricing</link>."
     }
   },
   "pricing": {
