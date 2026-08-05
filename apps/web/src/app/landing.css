@@ -3866,6 +3866,12 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   transition: color .15s; cursor: pointer; text-decoration: none;
 }
 .site-footer-link:hover { color: var(--accent); }
+.site-footer-socials { display: flex; gap: 12px; margin-top: 16px; }
+.site-footer-social {
+  color: var(--text-secondary); display: inline-flex;
+  transition: color .15s;
+}
+.site-footer-social:hover { color: var(--accent); }
 .site-footer-bottom {
   max-width: 1100px; margin: 0 auto; padding-top: 20px;
   display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
