@@ -55,8 +55,6 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
   const {
     lowOccupancyDays: criticalDays,
     specialDays: upcomingSpecial,
-    coveredLowOccupancyCount: coveredCritical,
-    coveredSpecialCount: coveredSpecial,
   } = useActionableDays();
 
   // Strook-styling: witte bg, dunne 4px kleurstreep links, zwarte tekst.
@@ -76,79 +74,52 @@ export function UpcomingActionsBlock({ layout = "flex" }: Props) {
     lineHeight: 1.4,
   };
   const RED = "#B91C1C"; // rood-700 — actie nodig
-  const GREEN = "#1F4A2D"; // British Racing Green — onder controle
   const accentStrip = (color: string): React.CSSProperties => ({
     ...stripBase,
     boxShadow: `inset 4px 0 0 0 ${color}`,
   });
 
-  // Rustige-dagen-strook: ALTIJD zichtbaar. Rood als er nog open rustige
-  // dagen zijn, groen als alles onder controle is. De groene tekst
-  // onderscheidt "alle afgedekt met campagnes" van "simpelweg geen
-  // rustige dagen".
-  const occupancyStrip = (
-    <div style={accentStrip(criticalDays.length > 0 ? RED : GREEN)}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {criticalDays.length > 0 ? (
-          <>
-            <strong>
-              {t("lowOccupancyCount", { count: criticalDays.length })}
-            </strong>{" "}
-            {t("nextTwoWeeks")}{" "}
-            {criticalDays
-              .slice(0, 5)
-              .map((d) => `${formatDayNl(d.date, localeTag)} (${d.occupancy_pct}%)`)
-              .join(", ")}
-            {criticalDays.length > 5 &&
-              t("moreSuffix", { count: criticalDays.length - 5 })}
-          </>
-        ) : coveredCritical > 0 ? (
-          <>
-            <strong>{t("lowOccupancyCoveredTitle")}</strong>{" "}
-            {t("lowOccupancyCovered", { count: coveredCritical })}
-          </>
-        ) : (
-          <>
-            <strong>{t("noLowOccupancyTitle")}</strong>{" "}
-            {t("noLowOccupancy")}
-          </>
-        )}
+  // Rustige-dagen-strook: alleen tonen als er open rustige dagen zijn die
+  // actie vragen. De geruststellings-banners ("alles afgedekt" / "geen
+  // rustige dagen") zijn er bewust uit — geen ruis als er niks te doen is.
+  const occupancyStrip =
+    criticalDays.length > 0 ? (
+      <div style={accentStrip(RED)}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>
+            {t("lowOccupancyCount", { count: criticalDays.length })}
+          </strong>{" "}
+          {t("nextTwoWeeks")}{" "}
+          {criticalDays
+            .slice(0, 5)
+            .map((d) => `${formatDayNl(d.date, localeTag)} (${d.occupancy_pct}%)`)
+            .join(", ")}
+          {criticalDays.length > 5 &&
+            t("moreSuffix", { count: criticalDays.length - 5 })}
+        </div>
       </div>
-    </div>
-  );
+    ) : null;
 
-  // Speciale-dagen-strook: ALTIJD zichtbaar. Zelfde rood/groen-logica
-  // voor de komende 6 weken.
-  const specialStrip = (
-    <div style={accentStrip(upcomingSpecial.length > 0 ? RED : GREEN)}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {upcomingSpecial.length > 0 ? (
-          <>
-            <strong>
-              {t("specialCount", { count: upcomingSpecial.length })}
-            </strong>{" "}
-            {t("nextSixWeeks")}{" "}
-            {upcomingSpecial
-              .slice(0, 5)
-              .map((s) => `${s.name} (${formatDayNl(s.date, localeTag)})`)
-              .join(", ")}
-            {upcomingSpecial.length > 5 &&
-              t("moreSuffix", { count: upcomingSpecial.length - 5 })}
-          </>
-        ) : coveredSpecial > 0 ? (
-          <>
-            <strong>{t("specialCoveredTitle")}</strong>{" "}
-            {t("specialCovered", { count: coveredSpecial })}
-          </>
-        ) : (
-          <>
-            <strong>{t("noSpecialTitle")}</strong>{" "}
-            {t("noSpecial")}
-          </>
-        )}
+  // Speciale-dagen-strook: alleen tonen als er speciale dagen aankomen; de
+  // "geen speciale dagen"-banner is er bewust uit.
+  const specialStrip =
+    upcomingSpecial.length > 0 ? (
+      <div style={accentStrip(RED)}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>{t("specialCount", { count: upcomingSpecial.length })}</strong>{" "}
+          {t("nextSixWeeks")}{" "}
+          {upcomingSpecial
+            .slice(0, 5)
+            .map((s) => `${s.name} (${formatDayNl(s.date, localeTag)})`)
+            .join(", ")}
+          {upcomingSpecial.length > 5 &&
+            t("moreSuffix", { count: upcomingSpecial.length - 5 })}
+        </div>
       </div>
-    </div>
-  );
+    ) : null;
+
+  // Niks te tonen → helemaal geen blok (geen lege ruimte/marges).
+  if (!occupancyStrip && !specialStrip) return null;
 
   // grid-4col: dashboard-mode, 4 even cols zodat strips/knop precies
   // uitlijnen met de KPI-rij eronder (3 cols strips + 1 col knop).
