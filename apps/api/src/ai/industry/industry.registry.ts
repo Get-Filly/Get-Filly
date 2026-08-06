@@ -25,9 +25,11 @@
 /** Alle branches die de registry kent. Uitbreiden = hier + een pack. */
 export const INDUSTRIES = [
   'horeca',
-  'wellness',
   'kapper',
+  'schoonheid',
+  'wellness',
   'sportschool',
+  'recreatie',
 ] as const;
 
 export type Industry = (typeof INDUSTRIES)[number];
@@ -48,18 +50,14 @@ export interface IndustryMeta {
   enabled: boolean;
 }
 
+// Volgorde = weergave-volgorde in de onboarding. Horeca eerst (enige
+// die nu kiesbaar is); de rest staat op de roadmap (enabled=false).
 export const INDUSTRY_REGISTRY: Record<Industry, IndustryMeta> = {
   horeca: {
     slug: 'horeca',
     label: 'Horeca',
-    description: 'Restaurant, café, bistro, brasserie — eten en drinken.',
+    description: 'Restaurant, café, bistro, brasserie.',
     enabled: true,
-  },
-  wellness: {
-    slug: 'wellness',
-    label: 'Wellness & spa',
-    description: 'Sauna, spa, massage- en beautysalon.',
-    enabled: false,
   },
   kapper: {
     slug: 'kapper',
@@ -67,10 +65,28 @@ export const INDUSTRY_REGISTRY: Record<Industry, IndustryMeta> = {
     description: 'Kapsalon, barbershop.',
     enabled: false,
   },
+  schoonheid: {
+    slug: 'schoonheid',
+    label: 'Schoonheid & nagels',
+    description: 'Schoonheidssalon, nagelstudio, huidverzorging.',
+    enabled: false,
+  },
+  wellness: {
+    slug: 'wellness',
+    label: 'Wellness & massage',
+    description: 'Spa, sauna, massagesalon.',
+    enabled: false,
+  },
   sportschool: {
     slug: 'sportschool',
-    label: 'Sportschool',
-    description: 'Gym, fitnessclub, personal-training-studio.',
+    label: 'Sportschool & fitness',
+    description: 'Gym, fitnessclub, yoga- of pilatesstudio.',
+    enabled: false,
+  },
+  recreatie: {
+    slug: 'recreatie',
+    label: 'Recreatie & vrije tijd',
+    description: 'Bowling, escape room, klimhal, indoor speeltuin.',
     enabled: false,
   },
 };

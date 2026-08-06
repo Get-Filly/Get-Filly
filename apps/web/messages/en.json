@@ -4317,6 +4317,17 @@
       "nameLabel": "Business name",
       "required": "(required)",
       "namePlaceholder": "Bistro Centraal",
+      "industryLabel": "What kind of business do you run?",
+      "industrySubtitle": "Filly tailors her language, tone and tips to your industry. You can change this later.",
+      "industryComingSoon": "Coming soon",
+      "industries": {
+        "horeca": { "label": "Hospitality", "description": "Restaurant, café, bistro, brasserie." },
+        "kapper": { "label": "Hair & barber", "description": "Hair salon, barbershop." },
+        "schoonheid": { "label": "Beauty & nails", "description": "Beauty salon, nail studio, skincare." },
+        "wellness": { "label": "Wellness & massage", "description": "Spa, sauna, massage salon." },
+        "sportschool": { "label": "Gym & fitness", "description": "Gym, fitness club, yoga or pilates studio." },
+        "recreatie": { "label": "Leisure & recreation", "description": "Bowling, escape room, climbing gym, indoor playground." }
+      },
       "typeLabel": "Business type",
       "typePlaceholder": "Choose a type…",
       "websiteLabel": "Your business website",

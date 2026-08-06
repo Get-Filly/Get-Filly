@@ -4317,6 +4317,17 @@
       "nameLabel": "Naam van de onderneming",
       "required": "(verplicht)",
       "namePlaceholder": "Bistro Centraal",
+      "industryLabel": "Wat voor zaak run je?",
+      "industrySubtitle": "Filly stemt haar taal, toon en tips af op je branche. Je kunt dit later altijd wijzigen.",
+      "industryComingSoon": "Binnenkort",
+      "industries": {
+        "horeca": { "label": "Horeca", "description": "Restaurant, café, bistro, brasserie." },
+        "kapper": { "label": "Kapper & barbier", "description": "Kapsalon, barbershop." },
+        "schoonheid": { "label": "Schoonheid & nagels", "description": "Schoonheidssalon, nagelstudio, huidverzorging." },
+        "wellness": { "label": "Wellness & massage", "description": "Spa, sauna, massagesalon." },
+        "sportschool": { "label": "Sportschool & fitness", "description": "Gym, fitnessclub, yoga- of pilatesstudio." },
+        "recreatie": { "label": "Recreatie & vrije tijd", "description": "Bowling, escape room, klimhal, indoor speeltuin." }
+      },
       "typeLabel": "Type onderneming",
       "typePlaceholder": "Kies een type…",
       "websiteLabel": "Website van je onderneming",
