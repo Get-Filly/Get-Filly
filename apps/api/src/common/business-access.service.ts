@@ -77,17 +77,20 @@ export class BusinessAccessService {
     // een array kan zijn). We weten hier zeker dat het één restaurant
     // per rij is (FK-relatie 1-op-veel van restaurants naar
     // business_users), dus we forceren het type.
+    // Het embed-veld heet 'businesses' (= de tabelnaam in de select).
+    // LET OP: deze cast is geforceerd, dus TypeScript bewaakt de veldnaam
+    // NIET — bij de restaurants→businesses-rename lag hier de valkuil.
     const rows = (data ?? []) as unknown as Array<{
       role: Role;
       permissions: StoredPermissions | null;
-      restaurants: { id: string; name: string } | null;
+      businesses: { id: string; name: string } | null;
     }>;
 
     return rows
-      .filter((row) => row.restaurants !== null)
+      .filter((row) => row.businesses !== null)
       .map((row) => ({
-        businessId: row.restaurants!.id,
-        restaurantName: row.restaurants!.name,
+        businessId: row.businesses!.id,
+        restaurantName: row.businesses!.name,
         role: row.role,
         permissions: resolvePermissions(row.role, row.permissions),
       }));
