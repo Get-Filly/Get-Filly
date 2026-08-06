@@ -92,17 +92,6 @@ export class SuggestionsController {
     return this.suggestions.findById(restaurantId, id);
   }
 
-  // Detail-modal: hoofdgerecht + bijgerechten + timing + bundle-prijs
-  // + hero-foto-suggestie. Eerste call genereert via Claude (~2s),
-  // daarna gecachet op de suggestie (instant).
-  @Get(':id/proposal-details')
-  getProposalDetails(
-    @RestaurantId() restaurantId: string,
-    @Param('id') id: string,
-  ) {
-    return this.suggestions.getProposalDetails(restaurantId, id);
-  }
-
   // Filly aan het werk-knop: genereert 3-5 nieuwe voorstellen op
   // basis van profiel + menu + bezetting/weer. AiRateLimitGuard
   // hangt erop zodat een eigenaar niet 100x per minuut kan klikken
