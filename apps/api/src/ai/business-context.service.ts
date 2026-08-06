@@ -622,7 +622,10 @@ export class BusinessContextService {
       if (quiet?.hasSource && quiet.moments.length > 0) {
         const mlines = quiet.moments.map((m) => {
           const label = wd.format(new Date(`${m.date}T12:00:00Z`));
-          const toon = m.unusual ? 'ongewoon rustig' : 'rustiger dan normaal';
+          // Vulbaarheid-first model: 'doorgaans rustig' = structureel leeg
+          // (betrouwbaar vulbaar); 'ongewoon rustig' = een echte dip onder de
+          // eigen norm. Beide zijn kansen, maar de toon verschilt.
+          const toon = m.unusual ? 'ongewoon rustig' : 'doorgaans rustig';
           return `  - ${label} ${m.date}, ${m.daypartLabel}: ${toon} (kans voor een actie)`;
         });
         parts.push(`Rustige momenten om op in te spelen:\n${mlines.join('\n')}`);

@@ -62,12 +62,21 @@ const DAYPART_DEFS: { key: string; label: string; from: number; to: number }[] =
   ];
 
 // Model-constanten voor de rustig-bepaling.
+// ------------------------------------------------------------
+// Model = VULBAARHEID-FIRST (2026-08-06). Hoofdmaat is de `gap`: hoeveel
+// een dagdeel structureel onder de eigen piek zit = hoeveel er te vullen is.
+// De anomalie (median-polish-restant t.o.v. wat dat weekdag×dagdeel normaal
+// doet) is GEEN poort meer maar een RANKING-BONUS + het 'ongewoon rustig'-
+// label. Zo komen structureel-lege dagen (ma/di) — je beste campagne-targets
+// — weer bovendrijven, terwijl een verrassende dip alsnog extra omhoog scoort.
+// (Voorheen was het pure anomalie-detectie, die juist die structureel-lege
+// dagen wegfilterde als "geen afwijking, dus geen kans".)
 const MIN_COVERAGE = 2; // min. open uren voordat een dagdeel meetelt
-const GAP_FLOOR = 15; // min. vulbaarheid: punten onder de eigen piek
+const GAP_FLOOR = 15; // min. vulbaarheid: punten onder de eigen piek (hoofd-relevantiepoort)
 const EDGE_ACTIVITY_FRAC = 0.3; // het eerste/laatste open dagdeel (opening/afsluiting) telt alleen mee als het ≥ dit deel van de eigen piek is; anders is het de dode rand van de shift. Tussenliggende dagdelen (bv. een rustige middag) hebben deze drempel niet.
 const ABS_DEV_FLOOR = 2; // ondergrens (punten) voor vlakke zaken waar de schommeling ~0 is
-const QUIET_SPREAD_MULT = 1.0; // rustig = zóveel × de normale schommeling onder verwachting
-const UNUSUAL_SPREAD_MULT = 2.0; // toon 'ongewoon rustig' vanaf deze afwijking (× schommeling)
+const ANOMALY_WEIGHT = 0.5; // hoe zwaar een 'ongewoon rustig'-afwijking meeweegt bovenop de vulbaarheid in de ranking
+const UNUSUAL_SPREAD_MULT = 2.0; // label 'ongewoon rustig' vanaf deze afwijking (× normale schommeling)
 const DEFAULT_QUIET_PER_WEEK = 2; // tempo: max rustige momenten per week (instelbaar per zaak)
 
 @Injectable()
@@ -381,15 +390,17 @@ export class BusynessService {
    *   2. Robuuste two-way ontleding (median polish): verwacht niveau per cel =
    *      overall + weekdag-effect + dagdeel-effect (medianen, dus ongevoelig voor
    *      uitschieters die anders hun eigen baseline zouden vervuilen).
-   *   3. Afwijking = werkelijk − verwacht (het residu). Normale schommeling =
-   *      robuuste MAD; rustig = buiten die schommeling onder verwachting.
-   *   4. Kandidaat = vulbaar (gat t.o.v. eigen piek) én buiten de normale
-   *      schommeling onder verwachting. Het eerste/laatste open dagdeel (de
-   *      rand van de shift) valt af als het doods is (< EDGE_ACTIVITY_FRAC ×
-   *      piek); tussenliggende dagdelen hebben die drempel niet.
+   *   3. Afwijking = werkelijk − verwacht (het residu), met robuuste MAD als
+   *      maat voor de normale schommeling. VULBAARHEID-FIRST: de afwijking is
+   *      geen poort meer (dat verborg structureel-lege dagen), maar een
+   *      ranking-bonus + het 'ongewoon rustig'-label.
+   *   4. Kandidaat = vulbaar: gat t.o.v. de eigen piek ≥ GAP_FLOOR. Ook een
+   *      structureel-leeg-maar-"normaal" dagdeel telt dus mee. Het eerste/
+   *      laatste open dagdeel (de rand van de shift) valt af als het doods is
+   *      (< EDGE_ACTIVITY_FRAC × piek); tussenliggende dagdelen niet.
    *   5. Aaneengesloten rustige dagdelen op één dag = één kans (bv. diner +
-   *      avond); max één kans per dag. Rangschikken en cappen op `perWeek`
-   *      DAGEN per week.
+   *      avond); max één kans per dag. Ranking = vulbaarheid + anomalie-bonus,
+   *      daarna cappen op `perWeek` DAGEN per week.
    * hasSource=false als er (nog) geen echt patroon is → caller valt terug.
    */
   async getQuietMoments(
@@ -445,13 +456,14 @@ export class BusynessService {
     if (!resVals.length || !peak) return { hasSource: true, moments: [] };
 
     // 3. Normale schommeling = robuuste MAD (mediane absolute afwijking t.o.v. de
-    //    mediaan), op std-schaal gebracht (×1,4826) zodat de multiplier intuïtief
-    //    blijft. Grenzen: rustig = buiten die schommeling onder verwachting,
-    //    'ongewoon' = duidelijk verder eronder. ABS_DEV_FLOOR vangt vlakke zaken.
+    //    mediaan), op std-schaal gebracht (×1,4826). Deze `spread` gebruiken we
+    //    NIET meer als poort (dat filterde structureel-lege dagen weg), maar (a)
+    //    om de anomalie-bonus te normaliseren en (b) voor het 'ongewoon rustig'-
+    //    label vanaf UNUSUAL_SPREAD_MULT × de schommeling. ABS_DEV_FLOOR vangt
+    //    vlakke zaken waar de schommeling ~0 is.
     const medRes = this.medianExact(resVals);
     const mad = this.medianExact(resVals.map((r) => Math.abs(r - medRes)));
     const spread = 1.4826 * mad || 1;
-    const quietThreshold = -Math.max(ABS_DEV_FLOOR, QUIET_SPREAD_MULT * spread);
     const unusualThreshold = -Math.max(
       ABS_DEV_FLOOR,
       UNUSUAL_SPREAD_MULT * spread,
@@ -489,8 +501,10 @@ export class BusynessService {
         const isEdge = j === firstIdx || j === lastIdx;
         if (isEdge && c.avg < EDGE_ACTIVITY_FRAC * peak) return;
         const gap = peak - c.avg;
-        if (gap < GAP_FLOOR) return; // te weinig te vullen
-        if (dev > quietThreshold) return; // binnen de normale schommeling
+        if (gap < GAP_FLOOR) return; // te weinig te vullen (hoofd-relevantiepoort)
+        // GEEN anomalie-poort meer: ook een structureel-leeg (maar "normaal"
+        // rustig) dagdeel is een vulbare kans. De afwijking `dev` weegt straks
+        // alleen mee in de ranking + bepaalt het 'ongewoon rustig'-label.
         arr.push({
           j,
           label: dp.label,
@@ -510,8 +524,18 @@ export class BusynessService {
     //    reeks is dé kans van die dag → max één kans per dag. Daarna rangschikken
     //    en het tempo cappen op het aantal DAGEN per week.
     type Kans = QuietMoment & { score: number; week: string };
+    // Vulbaarheid-first: gap/peak (0..~1) is de hoofdmaat; een negatieve
+    // afwijking (rustiger dan verwacht) geeft een bonus zodat verrassende
+    // dips bovenop even-lege-maar-normale slots uitkomen. Een positieve
+    // afwijking straft niet (structureel-leeg blijft een volwaardige kans).
     const runScore = (run: PartCand[]) =>
-      Math.max(...run.map((p) => -p.dev / spread + p.gap / (peak || 1)));
+      Math.max(
+        ...run.map(
+          (p) =>
+            p.gap / (peak || 1) +
+            ANOMALY_WEIGHT * (Math.max(0, -p.dev) / spread),
+        ),
+      );
     const dayKansen: Kans[] = [];
     for (const [date, parts] of perDate) {
       parts.sort((a, b) => a.j - b.j);

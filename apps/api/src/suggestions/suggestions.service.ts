@@ -1185,10 +1185,16 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         day.fromHour != null && day.toHour != null
           ? ` (${String(day.fromHour).padStart(2, '0')}:00–${String(day.toHour + 1).padStart(2, '0')}:00)`
           : '';
+      // Vulbaarheid-first: 'doorgaans rustig' = structureel leeg dagdeel (geen
+      // afwijking, wél goed vulbaar); 'ONGEWOON rustig' = een echte dip onder
+      // de eigen norm (dan is de deviation-context zinvol).
+      const toonRegel = day.unusual
+        ? `ONGEWOON rustig voor deze zaak (Google-patroon, ${day.deviation} onder je eigen verwachting voor dit dagdeel)`
+        : `doorgaans rustig voor deze zaak (Google-patroon; structureel een rustig dagdeel, dus goed te vullen)`;
       const drukteRegels =
         day.source === 'busyness'
           ? `- Rustig moment: ${day.daypartLabel ?? 'overdag'}${venster}
-- Verwachte drukte dan: ${day.expectedPct}/100 — ${day.unusual ? 'ONGEWOON rustig' : 'rustiger dan normaal'} voor deze zaak (Google-patroon, ${day.deviation} onder je eigen verwachting voor dit dagdeel)`
+- Verwachte drukte dan: ${day.expectedPct}/100 — ${toonRegel}`
           : `- Verwachte bezetting: ${day.occupancy_pct}% (drempel: ${thresholdPct}%)
 - Geschat aantal gasten: ${day.estimated_guests ?? '?'}
 - Reserveringen tot nu: ${day.reservations_count ?? 0}`;
@@ -1690,7 +1696,7 @@ ${dayContext}`;
             ? 'door de eigenaar gekozen dagdeel om te activeren'
             : dp.unusual
               ? 'ONGEWOON rustig voor deze zaak (Google-patroon)'
-              : 'rustiger dan normaal voor deze zaak (Google-patroon)';
+              : 'doorgaans rustig voor deze zaak (Google-patroon; structureel een rustig dagdeel, dus goed te vullen)';
           dayContext = `RUSTIG MOMENT OM TE ACTIVEREN (${weekdayNl} ${dp.label}):
 - Datum: ${item.date} (${weekdayNl}, over ${daysFromNow} dagen)
 - Dagdeel: ${dp.label} (${venster})

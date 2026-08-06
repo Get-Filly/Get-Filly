@@ -3181,7 +3181,7 @@
       "belowThreshold": "",
       "occupied": "{pct}% busy",
       "momentUnusual": "{daypart} · unusually quiet",
-      "momentUsual": "{daypart} · quieter than usual",
+      "momentUsual": "{daypart} · usually quiet",
       "quietDayGeneric": "quiet day",
       "showLess": "Show less",
       "showMore": "+ {count} more quiet days",

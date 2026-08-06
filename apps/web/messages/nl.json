@@ -3181,7 +3181,7 @@
       "belowThreshold": "",
       "occupied": "{pct}% drukte",
       "momentUnusual": "{daypart} · ongewoon rustig",
-      "momentUsual": "{daypart} · rustiger dan normaal",
+      "momentUsual": "{daypart} · doorgaans rustig",
       "quietDayGeneric": "rustige dag",
       "showLess": "Minder tonen",
       "showMore": "+ {count} meer rustige dagen",
