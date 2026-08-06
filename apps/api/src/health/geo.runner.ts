@@ -196,7 +196,7 @@ export class GeoRunner implements HealthRunner {
       },
       {
         id: 'recommendation',
-        text: `Restaurant-aanrader voor een avondje uit in ${city}`,
+        text: `Business-aanrader voor een avondje uit in ${city}`,
       },
     ];
 
@@ -232,7 +232,7 @@ export class GeoRunner implements HealthRunner {
     ctx: RunnerContext,
   ): Promise<PromptOutcome> {
     try {
-      const text = await this.callClaudeWithTimeout(prompt.text, ctx.restaurantId);
+      const text = await this.callClaudeWithTimeout(prompt.text, ctx.businessId);
       const list = this.parseRestaurantList(text);
       const rank = this.findRank(list, ctx.name);
 
@@ -245,7 +245,7 @@ export class GeoRunner implements HealthRunner {
       };
     } catch (err) {
       this.logger.warn(
-        `GEO-prompt ${prompt.id} faalde voor ${ctx.restaurantId}: ${
+        `GEO-prompt ${prompt.id} faalde voor ${ctx.businessId}: ${
           err instanceof Error ? err.message : err
         }`,
       );
@@ -261,18 +261,18 @@ export class GeoRunner implements HealthRunner {
 
   private async callClaudeWithTimeout(
     promptText: string,
-    restaurantId: string,
+    businessId: string,
   ): Promise<string> {
     const result = await Promise.race([
       this.ai.generateText({
         system:
-          'Je bent een lokale food-expert die concrete restaurant-namen aanbeveelt. Geef alleen ECHTE restaurant-namen (geen verzonnen namen, geen algemene termen). Format ALTIJD als genummerde lijst met 8-10 items: "1. Restaurant Naam — korte beschrijving". Als je geen specifieke namen kent voor de gevraagde stad, zeg dat dan eerlijk in plaats van iets te verzinnen.',
+          'Je bent een lokale food-expert die concrete restaurant-namen aanbeveelt. Geef alleen ECHTE restaurant-namen (geen verzonnen namen, geen algemene termen). Format ALTIJD als genummerde lijst met 8-10 items: "1. Business Naam — korte beschrijving". Als je geen specifieke namen kent voor de gevraagde stad, zeg dat dan eerlijk in plaats van iets te verzinnen.',
         prompt: promptText,
         // Sonnet 4.6 = beste balans kwaliteit/kosten voor deze taak.
         model: 'claude-sonnet-4-6',
         maxTokens: 800,
         meta: {
-          restaurantId,
+          businessId,
           feature: 'health_geo_audit',
         },
       }),
@@ -288,7 +288,7 @@ export class GeoRunner implements HealthRunner {
 
   /**
    * Parse Claude's antwoord: zoek regels van het patroon
-   * "1. Restaurant Naam — beschrijving" of varianten met . of )
+   * "1. Business Naam — beschrijving" of varianten met . of )
    * Returnt de gevonden restaurant-namen in volgorde.
    */
   private parseRestaurantList(text: string): string[] {
@@ -319,7 +319,7 @@ export class GeoRunner implements HealthRunner {
     const norm = (s: string): string =>
       s
         .toLowerCase()
-        // Strip "Restaurant"/"Bistro"/"Café" prefixen die Claude graag toevoegt
+        // Strip "Business"/"Bistro"/"Café" prefixen die Claude graag toevoegt
         .replace(/^(restaurant|bistro|brasserie|caf[eé]|eetcafe|eethuis)\s+/i, '')
         // Strip alle non-alfanumerieke chars voor robuuste match
         .replace(/[^a-z0-9]/g, '')

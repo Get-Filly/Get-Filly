@@ -13,16 +13,16 @@ import {
   type SuggestionStatus,
   type AiSuggestion,
 } from './suggestions.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('suggestions')
 export class SuggestionsController {
   constructor(private readonly suggestions: SuggestionsService) {}
@@ -34,7 +34,7 @@ export class SuggestionsController {
   // Fail-soft: een approve die faalt laat dat voorstel ongemoeid (zeldzaam,
   // geen blokkade van de hele generatie).
   private async approveGeneratedToConcept(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     suggestions: AiSuggestion[],
   ): Promise<AiSuggestion[]> {
@@ -42,7 +42,7 @@ export class SuggestionsController {
     for (const s of suggestions) {
       try {
         const { campaignId } = await this.suggestions.approve(
-          restaurantId,
+          businessId,
           s.id,
           userId,
         );
@@ -56,7 +56,7 @@ export class SuggestionsController {
 
   @Get()
   findAll(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('status') status?: SuggestionStatus,
     // 'exclude' kan een comma-gescheiden lijst trigger_types zijn die
     // niet getoond moeten worden. Gebruikt door /dashboard/campagnes
@@ -70,7 +70,7 @@ export class SuggestionsController {
           .map((s) => s.trim())
           .filter((s) => s.length > 0)
       : undefined;
-    return this.suggestions.findAll(restaurantId, status, excludeList);
+    return this.suggestions.findAll(businessId, status, excludeList);
   }
 
   // Geleide flow (fase 2): leesbare context voor één gekozen dag —
@@ -78,18 +78,18 @@ export class SuggestionsController {
   // ':id'-route staan, anders matcht Nest 'day-context' als een id.
   @Get('day-context')
   getDayContext(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('date') date?: string,
   ) {
-    return this.suggestions.getDayContext(restaurantId, date ?? '');
+    return this.suggestions.getDayContext(businessId, date ?? '');
   }
 
   @Get(':id')
   findOne(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
   ) {
-    return this.suggestions.findById(restaurantId, id);
+    return this.suggestions.findById(businessId, id);
   }
 
   // Filly aan het werk-knop: genereert 3-5 nieuwe voorstellen op
@@ -99,17 +99,17 @@ export class SuggestionsController {
   @Post('generate')
   @UseGuards(AiRateLimitGuard)
   async generate(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const result = await this.suggestions.generateOnDemand(
-      restaurantId,
+      businessId,
       user.id,
     );
     return {
       ...result,
       suggestions: await this.approveGeneratedToConcept(
-        restaurantId,
+        businessId,
         user.id,
         result.suggestions,
       ),
@@ -123,17 +123,17 @@ export class SuggestionsController {
   @Post('detect-low-occupancy')
   @UseGuards(AiRateLimitGuard)
   async detectLowOccupancy(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const result = await this.suggestions.detectAndGenerateLowOccupancy(
-      restaurantId,
+      businessId,
       user.id,
     );
     return {
       ...result,
       suggestions: await this.approveGeneratedToConcept(
-        restaurantId,
+        businessId,
         user.id,
         result.suggestions,
       ),
@@ -147,7 +147,7 @@ export class SuggestionsController {
   @Post('generate-for-dates')
   @UseGuards(AiRateLimitGuard)
   async generateForDates(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body()
     body: {
@@ -199,14 +199,14 @@ export class SuggestionsController {
     }
 
     const result = await this.suggestions.generateForSelectedDates(
-      restaurantId,
+      businessId,
       user.id,
       items,
     );
     return {
       ...result,
       suggestions: await this.approveGeneratedToConcept(
-        restaurantId,
+        businessId,
         user.id,
         result.suggestions,
       ),
@@ -219,14 +219,14 @@ export class SuggestionsController {
   // de nieuwe campagne zodat de frontend daarheen kan linken.
   @Post(':id/approve')
   approve(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
     // userId mee zodat de campagne-create die hieruit volgt geen
     // null-actor in de audit-log laat, bij een team weten we dan
     // wié op "Goedkeuren" klikte.
-    return this.suggestions.approve(restaurantId, id, user.id);
+    return this.suggestions.approve(businessId, id, user.id);
   }
 
   // Goedkeur-flow voor multi-channel-bundle (sinds 2026-05-04).
@@ -236,7 +236,7 @@ export class SuggestionsController {
   // kan tonen.
   @Post(':id/approve-bundle')
   approveBundle(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body()
@@ -270,7 +270,7 @@ export class SuggestionsController {
         (allowedBundleChannels as readonly string[]).includes(c),
     );
     return this.suggestions.approveBundle(
-      restaurantId,
+      businessId,
       id,
       user.id,
       validChannels.length > 0 ? validChannels : undefined,
@@ -284,12 +284,12 @@ export class SuggestionsController {
   // het op sc.variants (geen channel_id nodig).
   @Post(':id/refine')
   refine(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { instruction?: string; channel_id?: string },
   ) {
     return this.suggestions.refine(
-      restaurantId,
+      businessId,
       id,
       body.instruction ?? '',
       body.channel_id,
@@ -300,13 +300,13 @@ export class SuggestionsController {
   // verkiest als basis voor refine/approve. Body: { index: number }.
   @Post(':id/select-variant')
   selectVariant(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { index?: number; channel_id?: string },
   ) {
     const idx = typeof body.index === 'number' ? body.index : -1;
     return this.suggestions.selectVariant(
-      restaurantId,
+      businessId,
       id,
       idx,
       body.channel_id,
@@ -319,12 +319,12 @@ export class SuggestionsController {
   // voor multi-channel-voorstellen.
   @Post(':id/scheduled')
   setScheduled(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { scheduled_for?: string; channel_id?: string },
   ) {
     return this.suggestions.setScheduled(
-      restaurantId,
+      businessId,
       id,
       body.scheduled_for ?? '',
       body.channel_id,
@@ -336,12 +336,12 @@ export class SuggestionsController {
   // 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' }.
   @Post(':id/channels')
   addChannel(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { platform?: string },
   ) {
     return this.suggestions.addChannel(
-      restaurantId,
+      businessId,
       id,
       (body.platform ?? '') as
         | 'mail'
@@ -356,11 +356,11 @@ export class SuggestionsController {
   // mag niet verwijderd worden (dan zou er geen voorstel meer zijn).
   @Post(':id/channels/:channelId/remove')
   removeChannel(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Param('channelId') channelId: string,
   ) {
-    return this.suggestions.removeChannel(restaurantId, id, channelId);
+    return this.suggestions.removeChannel(businessId, id, channelId);
   }
 
   // Per 2026-05-07: eigenaar koppelt vóór goedkeuring een foto uit
@@ -368,12 +368,12 @@ export class SuggestionsController {
   // media_id=null verbreekt de koppeling.
   @Post(':id/media')
   setMedia(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { media_id?: string | null; channel_id?: string },
   ) {
     return this.suggestions.setMedia(
-      restaurantId,
+      businessId,
       id,
       body.media_id ?? null,
       body.channel_id,
@@ -385,7 +385,7 @@ export class SuggestionsController {
   // (null/lege string = wis), body (lege body = blijft staan).
   @Post(':id/edit-variant')
   editVariant(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body()
     body: {
@@ -397,7 +397,7 @@ export class SuggestionsController {
   ) {
     const idx = typeof body.index === 'number' ? body.index : -1;
     return this.suggestions.editVariant(
-      restaurantId,
+      businessId,
       id,
       idx,
       {
@@ -410,12 +410,12 @@ export class SuggestionsController {
 
   @Patch(':id')
   updateStatus(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { status: SuggestionStatus; rejection_reason?: string },
   ) {
     return this.suggestions.updateStatus(
-      restaurantId,
+      businessId,
       id,
       body.status,
       body.rejection_reason,

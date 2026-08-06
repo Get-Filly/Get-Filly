@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   const oauthError = searchParams.get("error");
 
   const expectedState = request.cookies.get("tiktok_oauth_state")?.value ?? null;
-  const restaurantId = request.cookies.get("tiktok_oauth_rid")?.value ?? null;
+  const businessId = request.cookies.get("tiktok_oauth_rid")?.value ?? null;
 
   if (oauthError) {
     return back(origin, { tiktok: "denied" });
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
   if (!code) {
     return back(origin, { tiktok: "error", reason: "no_code" });
   }
-  if (!restaurantId) {
+  if (!businessId) {
     return back(origin, { tiktok: "error", reason: "no_restaurant" });
   }
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "X-Restaurant-Id": restaurantId,
+        "X-Business-Id": businessId,
       },
       body: JSON.stringify({ code, redirectUri: tiktokRedirectUri(origin) }),
       cache: "no-store",

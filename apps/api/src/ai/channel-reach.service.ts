@@ -56,7 +56,7 @@ export class ChannelReachService {
    * Gemeten bereik per kanaal. Fail-soft: een query-fout levert
    * "onbekend" op in plaats van een gecrashte AI-feature.
    */
-  async fetchReach(restaurantId: string): Promise<ChannelReach[]> {
+  async fetchReach(businessId: string): Promise<ChannelReach[]> {
     // Opt-in-tellingen (mail + whatsapp) uit de gasten-tabel.
     let mailOptIn = 0;
     let whatsappOptIn = 0;
@@ -64,7 +64,7 @@ export class ChannelReachService {
       const { data } = await this.supabase.client
         .from('guests')
         .select('mail_opt_in, whatsapp_opt_in')
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
       const guests = (data ?? []) as Array<{
         mail_opt_in: boolean | null;
         whatsapp_opt_in: boolean | null;
@@ -82,7 +82,7 @@ export class ChannelReachService {
       const { data } = await this.supabase.client
         .from('integration_credentials')
         .select('provider')
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
       for (const row of (data ?? []) as Array<{ provider: string }>) {
         providers.add(row.provider);
       }
@@ -157,8 +157,8 @@ export class ChannelReachService {
    * Bouwt het BEREIK PER KANAAL-blok voor injectie in een
    * system-prompt, inclusief de afweeg-regels.
    */
-  async buildReachBlock(restaurantId: string): Promise<string> {
-    const reach = await this.fetchReach(restaurantId);
+  async buildReachBlock(businessId: string): Promise<string> {
+    const reach = await this.fetchReach(businessId);
 
     const labels: Record<ReachChannel, string> = {
       mail: 'Mail',

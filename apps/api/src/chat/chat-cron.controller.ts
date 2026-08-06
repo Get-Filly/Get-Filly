@@ -18,7 +18,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 // dus zonder opruimen stapelt de history zich op. Deze cron verwijdert
 // gesprekken die > 7 dagen niet meer zijn aangeraakt (updated_at). De
 // chat_messages cascaden mee via de FK. Geleerde voorkeuren leven los in
-// restaurant_chat_memory en blijven dus bewaard.
+// business_chat_memory en blijven dus bewaard.
 //
 // Context-loos (Vercel Cron, geen ingelogde user) → service-role admin-client.
 // Beveiliging = de CRON_SECRET-bearer, net als de andere crons. @Public()

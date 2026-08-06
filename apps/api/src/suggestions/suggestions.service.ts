@@ -15,7 +15,7 @@ import {
   type CampaignType,
 } from '../campaigns/campaigns.service';
 import { AiService } from '../ai/ai.service';
-import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { BusinessContextService } from '../ai/business-context.service';
 import { BusynessService } from '../busyness/busyness.service';
 import {
   buildAllChannelsBlock,
@@ -525,7 +525,7 @@ export type DayContext = {
 // (single- én multi-channel-tak). Vervangt het oude losse
 // Record<string, unknown> zodat de twee takken type-gecheckt blijven.
 type SuggestionInsertRow = {
-  restaurant_id: string;
+  business_id: string;
   trigger_type: 'low_occupancy' | 'special_day';
   trigger_context: Record<string, unknown>;
   suggested_campaign: {
@@ -565,7 +565,7 @@ export class SuggestionsService {
     private readonly ai: AiService,
     // Levert profile + menu-block (+ industry-pack) zodat Filly kan
     // refereren aan écht aanbod met échte prijzen ipv generieke tekst.
-    private readonly context: RestaurantContextService,
+    private readonly context: BusinessContextService,
     // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
     // tractie meeweegt bij kanaal-keuze en alternatieven voorstelt.
     private readonly reach: ChannelReachService,
@@ -585,17 +585,17 @@ export class SuggestionsService {
 
   // Filly-taal van de zaak (account-instelling): stuurt de taal van de
   // gegenereerde campagne-teksten. Default nl.
-  private async getFillyLang(restaurantId: string): Promise<'nl' | 'en'> {
+  private async getFillyLang(businessId: string): Promise<'nl' | 'en'> {
     const { data } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('filly_language')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     return (data?.filly_language as string | null) === 'en' ? 'en' : 'nl';
   }
 
   async findAll(
-    restaurantId: string,
+    businessId: string,
     status?: SuggestionStatus,
     excludeTriggerTypes?: string[],
   ): Promise<AiSuggestion[]> {
@@ -604,7 +604,7 @@ export class SuggestionsService {
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('created_at', { ascending: false });
 
     if (status) query = query.eq('status', status);
@@ -628,7 +628,7 @@ export class SuggestionsService {
   }
 
   async findById(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
   ): Promise<AiSuggestion> {
     const { data, error } = await this.supabase.client
@@ -637,7 +637,7 @@ export class SuggestionsService {
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
 
     if (error) throwDbError(this.logger, error);
@@ -658,26 +658,26 @@ export class SuggestionsService {
   // zijn de voorstellen te generiek om waardevol te zijn → BadRequest
   // met een helpende NL-foutmelding.
   async generateOnDemand(
-    restaurantId: string,
+    businessId: string,
     userId: string | null,
   ): Promise<{ created: number; suggestions: AiSuggestion[] }> {
     // Stap 1, minimaal restaurant-naam + ≥3 menu-items vereist.
     const { data: restaurantRow, error: restErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('id, name')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (restErr) throwDbError(this.logger, restErr);
     if (!restaurantRow) {
-      throw new NotFoundException('Restaurant niet gevonden.');
+      throw new NotFoundException('Business niet gevonden.');
     }
-    const lang = await this.getFillyLang(restaurantId);
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const lang = await this.getFillyLang(businessId);
+    const pack = await this.context.getIndustryPack(businessId);
 
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
@@ -687,9 +687,9 @@ export class SuggestionsService {
     // Stap 2, context bouwen. Profile + menu zijn altijd nodig; live-
     // block is optioneel (lege string als bezetting/weer onbekend).
     const [profileBlock, menuBlock, liveBlock] = await Promise.all([
-      this.context.buildProfileBlock(restaurantId).catch(() => ''),
-      this.context.buildMenuBlock(restaurantId).catch(() => ''),
-      this.context.buildLiveBlock(restaurantId).catch(() => ''),
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
+      this.context.buildLiveBlock(businessId).catch(() => ''),
     ]);
 
     const today = new Date();
@@ -749,15 +749,15 @@ ${buildAllChannelsBlock(undefined, pack.channelFlavor)}
 ${buildAllTimingBlock(undefined, pack.channelFlavor)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, {
-  includeHolidays: await this.events.holidaysEnabled(restaurantId),
+  includeHolidays: await this.events.holidaysEnabled(businessId),
 })}
 ---
-${await this.reach.buildReachBlock(restaurantId)}
+${await this.reach.buildReachBlock(businessId)}
 ---
 ${await this.events
-  .buildEventsBlock(restaurantId)
+  .buildEventsBlock(businessId)
   .then((b) => (b ? `${b}\n---` : ''))}
-${await this.fingerprint.buildLearningContextBlock(restaurantId)}
+${await this.fingerprint.buildLearningContextBlock(businessId)}
 ---
 CONTEXT, alles wat je weet over deze onderneming:
 
@@ -780,7 +780,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         'Lever 3-5 concrete campagne-voorstellen voor dit restaurant op basis van profiel, menu en actuele context.',
       inputSchema: GENERATE_SUGGESTIONS_SCHEMA,
       meta: {
-        restaurantId,
+        businessId,
         userId: userId ?? undefined,
         feature: 'suggestions_generate',
       },
@@ -818,7 +818,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     }
     if (!suggestionsArr || suggestionsArr.length === 0) {
       this.logger.warn(
-        `Filly's voorstellen-tool gaf geen geldige array terug voor restaurant ${restaurantId}. Raw response: ${JSON.stringify(raw)?.slice(0, 300)}`,
+        `Filly's voorstellen-tool gaf geen geldige array terug voor restaurant ${businessId}. Raw response: ${JSON.stringify(raw)?.slice(0, 300)}`,
       );
       throw new InternalServerErrorException(
         'Filly kon nu geen voorstellen genereren. Dat gebeurt soms, probeer het over een minuut opnieuw.',
@@ -901,7 +901,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
             : s.reasoning;
 
         return {
-          restaurant_id: restaurantId,
+          business_id: businessId,
           trigger_type: s.trigger_type,
           trigger_context: {
             generated_on: todayIso,
@@ -977,7 +977,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
   // Returnt het aantal nieuwe suggesties + de gegenereerde rijen
   // zodat de UI direct kan navigeren of een notificatie tonen.
   async detectAndGenerateLowOccupancy(
-    restaurantId: string,
+    businessId: string,
     userId: string | null,
   ): Promise<{
     detected: number;
@@ -985,14 +985,14 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     skipped: number;
     suggestions: AiSuggestion[];
   }> {
-    const lang = await this.getFillyLang(restaurantId);
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const lang = await this.getFillyLang(businessId);
+    const pack = await this.context.getIndustryPack(businessId);
     // Stap 1, Pre-flight: minstens 3 menu-items zodat Filly concrete
     // gerechten kan noemen. Zelfde guard als generateOnDemand.
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
@@ -1003,9 +1003,9 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     // de account-pagina (slider → kolom low_occupancy_threshold).
     // Fallback op de oude hard-coded waarde als de kolom leeg is.
     const { data: restaurantRow } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('low_occupancy_threshold')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     const thresholdPct =
       (restaurantRow?.low_occupancy_threshold as number | null) ??
@@ -1047,7 +1047,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       ReturnType<BusynessService['getQuietMoments']>
     > | null = null;
     try {
-      quiet = await this.busyness.getQuietMoments(restaurantId, fromIso, toIso);
+      quiet = await this.busyness.getQuietMoments(businessId, fromIso, toIso);
     } catch (e) {
       this.logger.warn(
         `Busyness-detectie faalde, terugval op occupancy: ${String(e)}`,
@@ -1071,7 +1071,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       const { data: rawCandidates, error: occErr } = await this.supabase.client
         .from('occupancy_days')
         .select('date, occupancy_pct, estimated_guests, reservations_count')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .gte('date', fromIso)
         .lte('date', toIso)
         .lt('occupancy_pct', thresholdPct)
@@ -1099,7 +1099,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     const { data: existing, error: existErr } = await this.supabase.client
       .from('ai_suggestions')
       .select('trigger_context')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('trigger_type', 'low_occupancy')
       .eq('status', 'pending');
 
@@ -1134,8 +1134,8 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     // worden (profile + menu). Live-block laten we weg, vervangen
     // door per-dag-context die we zelf opbouwen.
     const [profileBlock, menuBlock] = await Promise.all([
-      this.context.buildProfileBlock(restaurantId).catch(() => ''),
-      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
     ]);
 
     // Stap 5, segment-counts voor extra context (welke segmenten
@@ -1143,7 +1143,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     const { data: guestStats } = await this.supabase.client
       .from('guests')
       .select('mail_opt_in, whatsapp_opt_in, tags')
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
 
     const guestPool = (guestStats ?? []) as Array<{
       mail_opt_in: boolean | null;
@@ -1163,10 +1163,10 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 
     // Bereik- en events-blok zijn per restaurant constant: één keer
     // ophalen vóór de dag-loop i.p.v. queries per dag.
-    const reachBlock = await this.reach.buildReachBlock(restaurantId);
-    const eventsBlockRaw = await this.events.buildEventsBlock(restaurantId);
+    const reachBlock = await this.reach.buildReachBlock(businessId);
+    const eventsBlockRaw = await this.events.buildEventsBlock(businessId);
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
-    const includeHolidays = await this.events.holidaysEnabled(restaurantId);
+    const includeHolidays = await this.events.holidaysEnabled(businessId);
 
     // Stap 6, per dag een Claude-call met dag-specifieke context.
     // Sequentieel zodat we de rate-limit niet over de kop laten
@@ -1264,7 +1264,7 @@ ${dayContext}`;
               'Lever één toegespitst marketing-voorstel om de bezetting van een rustige dag te verhogen.',
             inputSchema: LOW_OCCUPANCY_SCHEMA,
             meta: {
-              restaurantId,
+              businessId,
               userId: userId ?? undefined,
               feature: 'low_occupancy_detect',
             },
@@ -1296,7 +1296,7 @@ ${dayContext}`;
             : raw.reasoning;
 
         const row = {
-          restaurant_id: restaurantId,
+          business_id: businessId,
           trigger_type: 'low_occupancy' as const,
           trigger_context: {
             target_date: day.date,
@@ -1403,7 +1403,7 @@ ${dayContext}`;
   // welke events spelen er die dag in de buurt, wat is het weer, en
   // welke kanalen hebben bereik (vóórgevinkt). Read-only, geen AI.
   async getDayContext(
-    restaurantId: string,
+    businessId: string,
     date: string,
   ): Promise<DayContext> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -1412,12 +1412,12 @@ ${dayContext}`;
 
     const [allEvents, forecast, reach] = await Promise.all([
       this.events
-        .findNearby(restaurantId)
+        .findNearby(businessId)
         .catch(() => [] as NearbyEvent[]),
       this.weather
-        .getForecastForRestaurant(restaurantId)
+        .getForecastForRestaurant(businessId)
         .catch(() => [] as ForecastDay[]),
-      this.reach.fetchReach(restaurantId).catch(() => [] as ChannelReach[]),
+      this.reach.fetchReach(businessId).catch(() => [] as ChannelReach[]),
     ]);
 
     const events = allEvents
@@ -1466,10 +1466,10 @@ ${dayContext}`;
     // het moment kan tonen en de generatie erop mikt. Uncapped (perWeek hoog);
     // null als de dag niet als rustig gedetecteerd is.
     const [qm, dayparts] = await Promise.all([
-      this.busyness.getQuietMoments(restaurantId, date, date, 999).catch(
+      this.busyness.getQuietMoments(businessId, date, date, 999).catch(
         () => null,
       ),
-      this.busyness.getDaypartsForDate(restaurantId, date).catch(() => []),
+      this.busyness.getDaypartsForDate(businessId, date).catch(() => []),
     ]);
     const m = qm?.moments?.[0] ?? null;
     const quietMoment = m
@@ -1487,7 +1487,7 @@ ${dayContext}`;
   }
 
   async generateForSelectedDates(
-    restaurantId: string,
+    businessId: string,
     userId: string | null,
     items: Array<{
       date: string;
@@ -1522,32 +1522,32 @@ ${dayContext}`;
       );
     }
 
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const pack = await this.context.getIndustryPack(businessId);
 
     // Pre-flight: zelfde guard als de andere generate-flows.
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
       throw new BadRequestException(pack.menuGuardMessage);
     }
 
-    // Restaurant-config voor de bezetting-drempel.
+    // Business-config voor de bezetting-drempel.
     const { data: restaurant } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('low_occupancy_threshold')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     const lowOccupancyThreshold =
       (restaurant?.low_occupancy_threshold as number | null) ?? 50;
 
     // Context-blocks 1× ophalen (cacheable in Claude-prompt-cache).
     const [profileBlock, menuBlock] = await Promise.all([
-      this.context.buildProfileBlock(restaurantId).catch(() => ''),
-      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
     ]);
 
     // Voor low_occupancy-items: occupancy-data per datum ophalen
@@ -1568,7 +1568,7 @@ ${dayContext}`;
       const { data: occRows } = await this.supabase.client
         .from('occupancy_days')
         .select('date, occupancy_pct, estimated_guests, reservations_count')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .in('date', lowOccDates);
       occByDate = new Map(
         ((occRows ?? []) as OccRow[]).map((r) => [r.date, r]),
@@ -1587,12 +1587,12 @@ ${dayContext}`;
       deviation: number;
       unusual: boolean;
     };
-    const lang = await this.getFillyLang(restaurantId);
+    const lang = await this.getFillyLang(businessId);
     const quietByDate = new Map<string, QuietInfo>();
     if (lowOccDates.length > 0) {
       const sorted = [...lowOccDates].sort();
       const qm = await this.busyness
-        .getQuietMoments(restaurantId, sorted[0], sorted[sorted.length - 1], 999)
+        .getQuietMoments(businessId, sorted[0], sorted[sorted.length - 1], 999)
         .catch(() => null);
       for (const m of qm?.moments ?? []) {
         quietByDate.set(m.date, {
@@ -1609,7 +1609,7 @@ ${dayContext}`;
     const { data: guestStats } = await this.supabase.client
       .from('guests')
       .select('mail_opt_in, whatsapp_opt_in, tags')
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     const guestPool = (guestStats ?? []) as Array<{
       mail_opt_in: boolean | null;
       whatsapp_opt_in: boolean | null;
@@ -1631,10 +1631,10 @@ ${dayContext}`;
 
     // Bereik- en events-blok zijn per restaurant constant: één keer
     // ophalen vóór de item-loop i.p.v. queries per item.
-    const reachBlock = await this.reach.buildReachBlock(restaurantId);
-    const eventsBlockRaw = await this.events.buildEventsBlock(restaurantId);
+    const reachBlock = await this.reach.buildReachBlock(businessId);
+    const eventsBlockRaw = await this.events.buildEventsBlock(businessId);
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
-    const includeHolidays = await this.events.holidaysEnabled(restaurantId);
+    const includeHolidays = await this.events.holidaysEnabled(businessId);
 
     // Per item (dag) een voorstel bouwen. Geëxtraheerd naar processItem
     // zodat we de dagen PARALLEL kunnen draaien (zie de primer + pool onder
@@ -1824,7 +1824,7 @@ ${segmentsBlock}`;
               'Lever één toegespitst marketing-voorstel voor de opgegeven datum.',
             inputSchema: LOW_OCCUPANCY_SCHEMA,
             meta: {
-              restaurantId,
+              businessId,
               userId: userId ?? undefined,
               feature:
                 item.kind === 'special_day'
@@ -1918,7 +1918,7 @@ ${segmentsBlock}`;
           if (validatedChannels.length === 0) return null;
           const primary = validatedChannels[0];
           row = {
-            restaurant_id: restaurantId,
+            business_id: businessId,
             trigger_type: triggerType,
             trigger_context: {
               ...triggerContextBase,
@@ -1972,7 +1972,7 @@ ${segmentsBlock}`;
               : raw.reasoning;
 
           row = {
-            restaurant_id: restaurantId,
+            business_id: businessId,
             trigger_type: triggerType,
             trigger_context: {
               ...triggerContextBase,
@@ -2077,11 +2077,11 @@ ${segmentsBlock}`;
   // het probleem maar rollen de campagne niet terug, hij is dan al
   // zichtbaar in /campagnes en kan de gebruiker handmatig doorlopen.
   async approve(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     userId: string,
   ): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
 
     // Idempotent: als de suggestie al een keer is goedgekeurd (en de
     // campagne bestaat), geven we dezelfde campaignId terug zonder
@@ -2113,7 +2113,7 @@ ${segmentsBlock}`;
     // suggestion meerdere kanalen heeft, route naar approveMultiChannel
     // die N campagnes onder 1 campaign_groups-anker maakt.
     if (Array.isArray(sc.channels) && sc.channels.length > 1) {
-      return this.approveMultiChannel(restaurantId, suggestionId, userId);
+      return this.approveMultiChannel(businessId, suggestionId, userId);
     }
     const type = sc.type;
     const name = typeof sc.name === 'string' ? sc.name.trim() : '';
@@ -2224,7 +2224,7 @@ ${segmentsBlock}`;
     // bij content-insert-fout; hier hoeven we daar niet nog een laag
     // omheen.
     const { id: campaignId } = await this.campaigns.create(
-      restaurantId,
+      businessId,
       {
         name,
         type: type as CampaignType,
@@ -2266,7 +2266,7 @@ ${segmentsBlock}`;
     if (customScheduledFor) {
       try {
         await this.campaigns.setSchedule(
-          restaurantId,
+          businessId,
           campaignId,
           customScheduledFor,
         );
@@ -2291,10 +2291,10 @@ ${segmentsBlock}`;
     if (customMediaId && (type === 'social' || type === 'whatsapp')) {
       try {
         const { data: mediaRow } = await this.supabase.client
-          .from('restaurant_media')
+          .from('business_media')
           .select('file_path, file_name, mime_type')
           .eq('id', customMediaId)
-          .eq('restaurant_id', restaurantId)
+          .eq('business_id', businessId)
           .maybeSingle();
         if (mediaRow?.file_path) {
           const { data: blob, error: dlErr } =
@@ -2303,7 +2303,7 @@ ${segmentsBlock}`;
               .download(mediaRow.file_path as string);
           if (!dlErr && blob) {
             const buffer = Buffer.from(await blob.arrayBuffer());
-            await this.campaigns.uploadMedia(restaurantId, campaignId, {
+            await this.campaigns.uploadMedia(businessId, campaignId, {
               buffer,
               originalName: (mediaRow.file_name as string) ?? 'photo.jpg',
               mimeType:
@@ -2326,7 +2326,7 @@ ${segmentsBlock}`;
         approved_campaign_id: campaignId,
       })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
@@ -2352,11 +2352,11 @@ ${segmentsBlock}`;
   // campagne; van daaruit kan eigenaar via bundle-navigation de andere
   // bekijken (campagne-detail toont de groep).
   private async approveMultiChannel(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     userId: string,
   ): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
     const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
     const channels = ensureChannels(sc);
     const bundleName =
@@ -2368,7 +2368,7 @@ ${segmentsBlock}`;
     const { data: group, error: groupErr } = await this.supabase.client
       .from('campaign_groups')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         name: bundleName,
         theme: suggestion.trigger_type ?? 'multi_channel',
         created_by: userId,
@@ -2414,7 +2414,7 @@ ${segmentsBlock}`;
         Math.max(channelVariantsClean.length - 1, 0),
       );
       const { id: campaignId } = await this.campaigns.create(
-        restaurantId,
+        businessId,
         {
           name: channelName.slice(0, 120),
           type: campaignType,
@@ -2452,7 +2452,7 @@ ${segmentsBlock}`;
       if (channel.scheduled_for) {
         try {
           await this.campaigns.setSchedule(
-            restaurantId,
+            businessId,
             campaignId,
             channel.scheduled_for,
           );
@@ -2466,10 +2466,10 @@ ${segmentsBlock}`;
       if (channel.restaurant_media_id && campaignType !== 'mail') {
         try {
           const { data: mediaRow } = await this.supabase.client
-            .from('restaurant_media')
+            .from('business_media')
             .select('file_path, file_name, mime_type')
             .eq('id', channel.restaurant_media_id)
-            .eq('restaurant_id', restaurantId)
+            .eq('business_id', businessId)
             .maybeSingle();
           if (mediaRow?.file_path) {
             const { data: blob } = await this.supabase.client.storage
@@ -2477,7 +2477,7 @@ ${segmentsBlock}`;
               .download(mediaRow.file_path as string);
             if (blob) {
               const buffer = Buffer.from(await blob.arrayBuffer());
-              await this.campaigns.uploadMedia(restaurantId, campaignId, {
+              await this.campaigns.uploadMedia(businessId, campaignId, {
                 buffer,
                 originalName:
                   (mediaRow.file_name as string) ?? 'photo.jpg',
@@ -2502,13 +2502,13 @@ ${segmentsBlock}`;
           .from('campaigns')
           .delete()
           .in('id', createdCampaignIds)
-          .eq('restaurant_id', restaurantId);
+          .eq('business_id', businessId);
       }
       await this.supabase.client
         .from('campaign_groups')
         .delete()
         .eq('id', groupId)
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
       this.logger.error(
         `[approveMultiChannel] aanmaken mislukt, rollback uitgevoerd (group ${groupId}, ${createdCampaignIds.length} kanalen): ${String(loopErr)}`,
       );
@@ -2526,7 +2526,7 @@ ${segmentsBlock}`;
         approved_campaign_id: anchorCampaignId,
       })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
@@ -2554,7 +2554,7 @@ ${segmentsBlock}`;
   //     vindbaar)
   // Idempotent: bij al-approved bundle returnen we de bestaande state.
   async approveBundle(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     userId: string,
     // Welke kanalen wil de eigenaar daadwerkelijk aanmaken? Komt uit de
@@ -2574,7 +2574,7 @@ ${segmentsBlock}`;
     googleBusinessCampaignId: string | null;
     tiktokCampaignId: string | null;
   }> {
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
 
     if (suggestion.trigger_type !== 'chat_bundle') {
       // Verkeerd endpoint voor dit type suggestie → 400, geen serverfout.
@@ -2685,7 +2685,7 @@ ${segmentsBlock}`;
     const { data: group, error: groupErr } = await this.supabase.client
       .from('campaign_groups')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         name: bundleName,
         theme,
         created_by: userId,
@@ -2708,7 +2708,7 @@ ${segmentsBlock}`;
     for (const channel of requested) {
       if (channel === 'mail' && ch.mail) {
         const { id } = await this.campaigns.create(
-          restaurantId,
+          businessId,
           {
             name: `${bundleName}, mail`,
             type: 'mail',
@@ -2721,7 +2721,7 @@ ${segmentsBlock}`;
         campaignIds.mail = id;
       } else if (channel === 'instagram' && ch.instagram) {
         const { id } = await this.campaigns.create(
-          restaurantId,
+          businessId,
           {
             name: `${bundleName}, Instagram`,
             type: 'social',
@@ -2735,7 +2735,7 @@ ${segmentsBlock}`;
         campaignIds.instagram = id;
       } else if (channel === 'facebook' && ch.facebook) {
         const { id } = await this.campaigns.create(
-          restaurantId,
+          businessId,
           {
             name: `${bundleName}, Facebook`,
             type: 'social',
@@ -2748,7 +2748,7 @@ ${segmentsBlock}`;
         campaignIds.facebook = id;
       } else if (channel === 'whatsapp' && ch.whatsapp) {
         const { id } = await this.campaigns.create(
-          restaurantId,
+          businessId,
           {
             name: `${bundleName}, WhatsApp`,
             type: 'whatsapp',
@@ -2760,7 +2760,7 @@ ${segmentsBlock}`;
         campaignIds.whatsapp = id;
       } else if (channel === 'google_business' && ch.google_business) {
         const { id } = await this.campaigns.create(
-          restaurantId,
+          businessId,
           {
             name: `${bundleName}, Google Business`,
             type: 'social',
@@ -2773,7 +2773,7 @@ ${segmentsBlock}`;
         campaignIds.google_business = id;
       } else if (channel === 'tiktok' && ch.tiktok) {
         const { id } = await this.campaigns.create(
-          restaurantId,
+          businessId,
           {
             name: `${bundleName}, TikTok`,
             type: 'social',
@@ -2800,13 +2800,13 @@ ${segmentsBlock}`;
           .from('campaigns')
           .delete()
           .in('id', createdIds)
-          .eq('restaurant_id', restaurantId);
+          .eq('business_id', businessId);
       }
       await this.supabase.client
         .from('campaign_groups')
         .delete()
         .eq('id', groupId)
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
       this.logger.error(
         `[approveBundle] aanmaken mislukt, rollback uitgevoerd (group ${groupId}, ${createdIds.length} kanalen): ${String(loopErr)}`,
       );
@@ -2833,7 +2833,7 @@ ${segmentsBlock}`;
         approved_campaign_id: anchorCampaignId,
       })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
@@ -2878,7 +2878,7 @@ ${segmentsBlock}`;
   }
 
   async updateStatus(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     status: SuggestionStatus,
     rejectionReason?: string,
@@ -2895,7 +2895,7 @@ ${segmentsBlock}`;
       .from('ai_suggestions')
       .update(updates)
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
@@ -2912,12 +2912,12 @@ ${segmentsBlock}`;
   // Centraliseert de read-find-mutate-write flow zodat 4 methodes niet
   // ieder hun eigen pad hoeven te onderhouden.
   private async mutateChannel(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     channelId: string | undefined,
     mutator: (channel: SuggestionChannel) => SuggestionChannel,
   ): Promise<AiSuggestion> {
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
     if (suggestion.status !== 'pending') {
       throw new BadRequestException(
         `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
@@ -2935,7 +2935,7 @@ ${segmentsBlock}`;
       i === targetIdx ? mutator(c) : c,
     );
     const newSc: SuggestedCampaign = { ...sc, channels: newChannels };
-    return this.persistChannels(restaurantId, suggestionId, newSc);
+    return this.persistChannels(businessId, suggestionId, newSc);
   }
 
   // Selecteer welke variant de gebruiker als favoriet markeert.
@@ -2943,7 +2943,7 @@ ${segmentsBlock}`;
   // varianten zodat user nog kan terugswitchen vóór goedkeuring.
   // Per 2026-05-07 fase 2c: channel-aware (default = primair kanaal).
   async selectVariant(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     index: number,
     channelId?: string,
@@ -2953,7 +2953,7 @@ ${segmentsBlock}`;
     }
 
     return this.mutateChannel(
-      restaurantId,
+      businessId,
       suggestionId,
       channelId,
       (channel) => {
@@ -2979,7 +2979,7 @@ ${segmentsBlock}`;
   // vóór deze migratie zijn gegenereerd.
 
   async addChannel(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     platform: SuggestionPlatform,
   ): Promise<AiSuggestion> {
@@ -2988,7 +2988,7 @@ ${segmentsBlock}`;
         `Onbekend platform: ${platform}. Geldig: ${SUGGESTION_PLATFORMS.join(', ')}.`,
       );
     }
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
     if (suggestion.status !== 'pending') {
       throw new BadRequestException(
         `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
@@ -3023,15 +3023,15 @@ ${segmentsBlock}`;
     };
     const newChannels = [...existing, newChannel];
     const newSc: SuggestedCampaign = { ...sc, channels: newChannels };
-    return this.persistChannels(restaurantId, suggestionId, newSc);
+    return this.persistChannels(businessId, suggestionId, newSc);
   }
 
   async removeChannel(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     channelId: string,
   ): Promise<AiSuggestion> {
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
     if (suggestion.status !== 'pending') {
       throw new BadRequestException(
         `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
@@ -3049,14 +3049,14 @@ ${segmentsBlock}`;
       throw new BadRequestException('Kanaal niet gevonden.');
     }
     const newSc: SuggestedCampaign = { ...sc, channels: filtered };
-    return this.persistChannels(restaurantId, suggestionId, newSc);
+    return this.persistChannels(businessId, suggestionId, newSc);
   }
 
   // Helper voor channel-mutaties: schrijft de hele channels-array weg.
   // Houdt 'type' top-level in sync met het primaire kanaal (= channels[0])
   // zodat oude readers (kaart-preview) niet kapot gaan.
   private async persistChannels(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     newSc: SuggestedCampaign,
   ): Promise<AiSuggestion> {
@@ -3071,7 +3071,7 @@ ${segmentsBlock}`;
       .from('ai_suggestions')
       .update({ suggested_campaign: naturalizeSuggestedCampaign(syncedSc) })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
@@ -3090,7 +3090,7 @@ ${segmentsBlock}`;
   // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
   // Mail-kanalen weigeren we (consistent met campaigns.uploadMedia).
   async setMedia(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     mediaId: string | null,
     channelId?: string,
@@ -3098,10 +3098,10 @@ ${segmentsBlock}`;
     let validatedId: string | null = null;
     if (mediaId) {
       const { data: row, error: lookupErr } = await this.supabase.client
-        .from('restaurant_media')
+        .from('business_media')
         .select('id')
         .eq('id', mediaId)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .maybeSingle();
       if (lookupErr) throwDbError(this.logger, lookupErr);
       if (!row) {
@@ -3113,7 +3113,7 @@ ${segmentsBlock}`;
     }
 
     return this.mutateChannel(
-      restaurantId,
+      businessId,
       suggestionId,
       channelId,
       (channel) => {
@@ -3131,7 +3131,7 @@ ${segmentsBlock}`;
   // subject_line patch-semantiek: undefined = laat staan, null/lege
   // string = wis, niet-lege string = vervang.
   async editVariant(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     index: number,
     patch: { subject_line?: string | null; body?: string },
@@ -3144,7 +3144,7 @@ ${segmentsBlock}`;
     }
 
     return this.mutateChannel(
-      restaurantId,
+      businessId,
       suggestionId,
       channelId,
       (channel) => {
@@ -3189,7 +3189,7 @@ ${segmentsBlock}`;
   // neemt 'm over op de aangemaakte campagne.
   // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
   async setScheduled(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     scheduledForIso: string,
     channelId?: string,
@@ -3219,7 +3219,7 @@ ${segmentsBlock}`;
     }
 
     return this.mutateChannel(
-      restaurantId,
+      businessId,
       suggestionId,
       channelId,
       (channel) => ({ ...channel, scheduled_for: dt.toISOString() }),
@@ -3234,7 +3234,7 @@ ${segmentsBlock}`;
   // Instructie blijft optioneel, default genereert Filly fris in
   // andere tonen/invalshoeken dan de bestaande set.
   async refine(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     instruction: string,
     channelId?: string,
@@ -3246,14 +3246,14 @@ ${segmentsBlock}`;
       );
     }
 
-    const suggestion = await this.findById(restaurantId, suggestionId);
+    const suggestion = await this.findById(businessId, suggestionId);
     if (suggestion.status !== 'pending') {
       throw new BadRequestException(
         `Alleen open voorstellen zijn te bewerken (deze is ${suggestion.status}).`,
       );
     }
-    const lang = await this.getFillyLang(restaurantId);
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const lang = await this.getFillyLang(businessId);
+    const pack = await this.context.getIndustryPack(businessId);
 
     const sc = suggestion.suggested_campaign ?? {};
     const currentName =
@@ -3409,7 +3409,7 @@ ${channelRules}
           'Lever exact drie alternatieve versies van de campagne, in andere tonen/invalshoeken dan de bestaande set.',
         inputSchema: SUGGESTION_REFINE_SCHEMA,
         meta: {
-          restaurantId,
+          businessId,
           feature: 'suggestion_refine',
         },
       });
@@ -3476,7 +3476,7 @@ ${channelRules}
       .from('ai_suggestions')
       .update({ suggested_campaign: naturalizeSuggestedCampaign(newSuggested) })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, trigger_type, trigger_context, suggested_campaign, status, rejection_reason, approved_campaign_id, created_at, acted_at, confidence_score, expected_impact, urgency, reasoning',
       )
@@ -3491,14 +3491,14 @@ ${channelRules}
   // verliezen tussen parser en DB. Retourneert de id zodat de caller
   // 'm kan koppelen aan het chat-bericht (chat_messages.ai_suggestion_id).
   async createFromChat(
-    restaurantId: string,
+    businessId: string,
     suggested: SuggestedCampaign,
     userId: string,
   ): Promise<{ id: string; campaignId: string }> {
     const { data, error } = await this.supabase.client
       .from('ai_suggestions')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         trigger_type: 'chat',
         suggested_campaign: naturalizeSuggestedCampaign(suggested),
         status: 'pending',
@@ -3512,7 +3512,7 @@ ${channelRules}
     // (geen aparte Voorstel-fase meer). approve() maakt de concept-campagne
     // ook bij ontbrekende datum/foto — die tonen daarna als "Nog nodig".
     const { campaignId } = await this.approve(
-      restaurantId,
+      businessId,
       suggestionId,
       userId,
     );
@@ -3532,7 +3532,7 @@ ${channelRules}
   //   - 3 content-rijen (campaign_mail_content + 2× campaign_social_content)
   // Eigenaar kan elk kanaal individueel pushen of inplannen daarna.
   async createBundleFromChat(
-    restaurantId: string,
+    businessId: string,
     bundle: {
       name: string;
       theme: string;
@@ -3553,7 +3553,7 @@ ${channelRules}
     const { data, error } = await this.supabase.client
       .from('ai_suggestions')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         trigger_type: 'chat_bundle',
         suggested_campaign: naturalizeSuggestedCampaign(bundle),
         status: 'pending',
@@ -3566,7 +3566,7 @@ ${channelRules}
     // Per 2026-06-24: bundel-uitingen vanuit de chat landen direct als
     // Concept. approveBundle zonder kanaal-lijst maakt alle kanalen uit de
     // bundel onder één group_id (waar de bundel-kaart naar linkt).
-    const res = await this.approveBundle(restaurantId, suggestionId, userId);
+    const res = await this.approveBundle(businessId, suggestionId, userId);
     return { id: suggestionId, groupId: res.groupId };
   }
 }

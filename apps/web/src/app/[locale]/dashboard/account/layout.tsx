@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 
 /**
  * AccountLayout, sub-navigatie voor Account-instellingen.

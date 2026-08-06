@@ -17,26 +17,26 @@ import {
   type CreateMenuItemInput,
   type UpdateMenuItemInput,
 } from './menu.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
-// AuthGuard verifieert het Supabase-JWT; RestaurantAccessGuard zorgt dat
+// AuthGuard verifieert het Supabase-JWT; BusinessAccessGuard zorgt dat
 // de huidige gebruiker bij dit restaurant hoort. Beide guards op klasse-
 // niveau zodat álle endpoints automatisch beschermd zijn, een nieuwe
 // route per ongeluk vergeten beveiligen kán hier niet meer.
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('menu')
 export class MenuController {
   constructor(private readonly menu: MenuService) {}
 
   @Get()
-  findAll(@RestaurantId() restaurantId: string) {
-    return this.menu.findAll(restaurantId);
+  findAll(@BusinessId() businessId: string) {
+    return this.menu.findAll(businessId);
   }
 
   // Nieuw gerecht. Body wordt door MenuService gevalideerd; eventuele
@@ -44,11 +44,11 @@ export class MenuController {
   // tonen aan de eigenaar.
   @Post()
   create(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: CreateMenuItemInput,
   ) {
-    return this.menu.create(restaurantId, body, user.id);
+    return this.menu.create(businessId, body, user.id);
   }
 
   // Gerecht bewerken. PATCH (niet PUT) omdat we partial-updates
@@ -56,21 +56,21 @@ export class MenuController {
   // zonder de hele set velden mee te sturen.
   @Patch(':id')
   update(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: UpdateMenuItemInput,
   ) {
-    return this.menu.update(restaurantId, id, body, user.id);
+    return this.menu.update(businessId, id, body, user.id);
   }
 
   @Delete(':id')
   remove(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.menu.remove(restaurantId, id, user.id);
+    return this.menu.remove(businessId, id, user.id);
   }
 
   // ============================================================
@@ -92,7 +92,7 @@ export class MenuController {
     }),
   )
   importCard(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser | undefined,
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
@@ -102,7 +102,7 @@ export class MenuController {
       );
     }
     return this.menu.importCard(
-      restaurantId,
+      businessId,
       user?.id ?? null,
       {
         buffer: file.buffer,
@@ -123,7 +123,7 @@ export class MenuController {
     }),
   )
   importDrinksCard(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser | undefined,
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
@@ -133,7 +133,7 @@ export class MenuController {
       );
     }
     return this.menu.importCard(
-      restaurantId,
+      businessId,
       user?.id ?? null,
       {
         buffer: file.buffer,
@@ -148,18 +148,18 @@ export class MenuController {
   // banners te tonen, één voor de menukaart en één voor de
   // drankkaart, met elk hun eigen "vervangen" / "verwijderen"-acties.
   @Get('active-cards')
-  getActiveCards(@RestaurantId() restaurantId: string) {
-    return this.menu.getActiveCards(restaurantId);
+  getActiveCards(@BusinessId() businessId: string) {
+    return this.menu.getActiveCards(businessId);
   }
 
   // Genereert een 1-uur signed URL voor het bron-bestand van een
   // upload zodat de UI 'm in een nieuw tabblad kan openen.
   @Get('cards/:uploadId/url')
   getCardUrl(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('uploadId') uploadId: string,
   ) {
-    return this.menu.getCardSignedUrl(restaurantId, uploadId);
+    return this.menu.getCardSignedUrl(businessId, uploadId);
   }
 
   // Verwijder een menukaart (storage + db-rij + alle gekoppelde items).
@@ -167,10 +167,10 @@ export class MenuController {
   // deze kaart gekoppeld.
   @Delete('cards/:uploadId')
   removeCard(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('uploadId') uploadId: string,
   ) {
-    return this.menu.removeCard(restaurantId, uploadId, user.id);
+    return this.menu.removeCard(businessId, uploadId, user.id);
   }
 }

@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown } from "lucide-react";
 
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import {
   metaStatus,
   metaListPages,
@@ -62,7 +62,7 @@ export function MetaPageSelector() {
           setPages([]);
         }
       } catch {
-        // Geen koppeling / geen restaurant-context: niets tonen.
+        // Geen koppeling / geen business-context: niets tonen.
         if (!cancelled) setConnected(false);
       } finally {
         if (!cancelled) setLoading(false);

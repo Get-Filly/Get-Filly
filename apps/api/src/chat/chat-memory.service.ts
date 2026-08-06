@@ -21,7 +21,7 @@ import { AiService } from '../ai/ai.service';
 // Oplossing:
 //   Bij cap-bereikt vat Haiku 4.5 de afgesloten chat samen, wat heeft
 //   de eigenaar geprefereerd / afgewezen / geleerd. Die samenvatting
-//   gaat in restaurant_chat_memory en wordt in de system-prompt van
+//   gaat in business_chat_memory en wordt in de system-prompt van
 //   álle volgende chats meegegeven (laatste 5 memories, cacheable).
 //
 // Waarom Haiku 4.5 (niet Sonnet of Opus):
@@ -87,13 +87,13 @@ export class ChatMemoryService {
   // Geeft een lege array bij geen memories, caller moet daar tegen
   // kunnen (geen "Eerder geleerd"-blok in de prompt is OK).
   async getRecentMemories(
-    restaurantId: string,
+    businessId: string,
     limit = 5,
   ): Promise<Array<{ summary: string; created_at: string }>> {
     const { data, error } = await this.supabase.client
-      .from('restaurant_chat_memory')
+      .from('business_chat_memory')
       .select('summary, created_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) {
@@ -142,14 +142,14 @@ export class ChatMemoryService {
   // dubbele cap-trigger (race tussen 2 user-msg-attempts) twee
   // memories voor dezelfde chat schrijft.
   async summarizeAndSave(opts: {
-    restaurantId: string;
+    businessId: string;
     userId: string;
     conversationId: string;
   }): Promise<void> {
     try {
       // 1) Idempotent-check: bestaat er al een memory voor deze conv?
       const { data: existing, error: existsErr } = await this.supabase.client
-        .from('restaurant_chat_memory')
+        .from('business_chat_memory')
         .select('id')
         .eq('source_conversation_id', opts.conversationId)
         .limit(1)
@@ -171,7 +171,7 @@ export class ChatMemoryService {
         .from('chat_messages')
         .select('role, content')
         .eq('conversation_id', opts.conversationId)
-        .eq('restaurant_id', opts.restaurantId)
+        .eq('business_id', opts.businessId)
         .order('created_at', { ascending: true });
       if (msgErr) {
         this.logger.warn(
@@ -208,7 +208,7 @@ export class ChatMemoryService {
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 400,
         meta: {
-          restaurantId: opts.restaurantId,
+          businessId: opts.businessId,
           userId: opts.userId,
           feature: 'chat-memory-summary',
         },
@@ -231,9 +231,9 @@ export class ChatMemoryService {
       // komt later wanneer we expliciete velden op de account-pagina
       // toevoegen ({forbidden_words, style_notes}).
       const { error: insertErr } = await this.supabase.client
-        .from('restaurant_chat_memory')
+        .from('business_chat_memory')
         .insert({
-          restaurant_id: opts.restaurantId,
+          business_id: opts.businessId,
           source_conversation_id: opts.conversationId,
           summary: result.summary.trim(),
           preferences_extracted: null,

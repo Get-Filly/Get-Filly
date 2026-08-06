@@ -153,7 +153,7 @@ export class TikTokService {
    * tokens op. Eén rij per (restaurant, provider) via upsert.
    */
   async connect(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     code: string,
     redirectUri: string,
@@ -173,7 +173,7 @@ export class TikTokService {
       .from('integration_credentials')
       .upsert(
         {
-          restaurant_id: restaurantId,
+          business_id: businessId,
           provider: PROVIDER,
           access_token_encrypted: accessEnc,
           refresh_token_encrypted: refreshEnc,
@@ -193,7 +193,7 @@ export class TikTokService {
           connected_by: userId,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'restaurant_id,provider' },
+        { onConflict: 'business_id,provider' },
       );
 
     if (error) {
@@ -207,7 +207,7 @@ export class TikTokService {
 
   /** Koppelingsstatus (zonder tokens) voor de UI: account + scopes. */
   async status(
-    restaurantId: string,
+    businessId: string,
     useAdmin = false,
   ): Promise<{
     connected: boolean;
@@ -220,7 +220,7 @@ export class TikTokService {
     const { data, error } = await this.db(useAdmin)
       .from('integration_credentials')
       .select('scopes, expires_at, updated_at, meta')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
 
@@ -241,11 +241,11 @@ export class TikTokService {
   }
 
   /** Verwijdert de TikTok-koppeling van dit restaurant. */
-  async disconnect(restaurantId: string): Promise<{ ok: true }> {
+  async disconnect(businessId: string): Promise<{ ok: true }> {
     const { error } = await this.supabase.client
       .from('integration_credentials')
       .delete()
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
 
     if (error) {
@@ -265,13 +265,13 @@ export class TikTokService {
    * versleuteld teruggeschreven.
    */
   async getValidAccessToken(
-    restaurantId: string,
+    businessId: string,
     useAdmin = false,
   ): Promise<string> {
     const { data, error } = await this.db(useAdmin)
       .from('integration_credentials')
       .select('access_token_encrypted, refresh_token_encrypted, expires_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
     if (error) {
@@ -310,7 +310,7 @@ export class TikTokService {
         expires_at: newExpiresAt,
         updated_at: new Date().toISOString(),
       })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
     return refreshed.access_token;
   }
@@ -320,7 +320,7 @@ export class TikTokService {
    * Levert creator-nickname/avatar + toegestane privacy-opties + max videoduur,
    * die de UI vóór het posten moet tonen (compliance, audit-vereiste).
    */
-  async queryCreatorInfo(restaurantId: string): Promise<{
+  async queryCreatorInfo(businessId: string): Promise<{
     nickname: string | null;
     avatarUrl: string | null;
     privacyOptions: string[];
@@ -329,7 +329,7 @@ export class TikTokService {
     duetDisabled: boolean;
     stitchDisabled: boolean;
   }> {
-    const token = await this.getValidAccessToken(restaurantId);
+    const token = await this.getValidAccessToken(businessId);
     const res = await fetch(
       'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
       {
@@ -381,7 +381,7 @@ export class TikTokService {
    *     aanstaan (dat zet de eigenaar in de UI).
    */
   async directPost(
-    restaurantId: string,
+    businessId: string,
     opts: {
       videoUrl: string;
       title?: string;
@@ -394,7 +394,7 @@ export class TikTokService {
     },
     useAdmin = false,
   ): Promise<{ publishId: string }> {
-    const token = await this.getValidAccessToken(restaurantId, useAdmin);
+    const token = await this.getValidAccessToken(businessId, useAdmin);
     const res = await fetch(
       'https://open.tiktokapis.com/v2/post/publish/video/init/',
       {

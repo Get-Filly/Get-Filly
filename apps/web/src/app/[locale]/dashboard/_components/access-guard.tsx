@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { type Module } from "@getfilly/shared";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 
 /**
  * ============================================================
@@ -24,7 +24,7 @@ import { useRestaurant } from "@/lib/restaurant-context";
  *
  * Belangrijk:
  *   Dit is de FRONTEND-guard. De échte beveiliging gebeurt op de
- *   backend (AuthGuard + RestaurantAccessGuard). Deze component is
+ *   backend (AuthGuard + BusinessAccessGuard). Deze component is
  *   puur voor UX, voorkomen dat iemand een pagina ziet waar hij
  *   toch geen data op kan zien.
  */

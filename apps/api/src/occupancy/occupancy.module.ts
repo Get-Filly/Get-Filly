@@ -4,12 +4,12 @@ import { OccupancyService } from './occupancy.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 @Module({
   imports: [SupabaseModule, MeModule],
   controllers: [OccupancyController],
-  providers: [OccupancyService, AuthGuard, RestaurantAccessGuard],
+  providers: [OccupancyService, AuthGuard, BusinessAccessGuard],
   // Exporteren zodat AiModule de service mag hergebruiken voor
   // context-injectie in Filly-prompts (chat, suggesties, campagnes).
   exports: [OccupancyService],

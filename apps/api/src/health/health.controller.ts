@@ -8,16 +8,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { HealthService } from './health.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 /**
  * ============================================================
  * HealthController, REST-endpoints voor de Vindbaarheid-hub
  * ============================================================
  *
- * Endpoints (allemaal AuthGuard + RestaurantAccessGuard):
+ * Endpoints (allemaal AuthGuard + BusinessAccessGuard):
  *
  *   POST  /health/run          , nieuwe audit-run starten (manual)
  *   GET   /health/latest       , laatste snapshot + findings + concurrenten
@@ -32,7 +32,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
  *   alle restaurants. Beveiligd met een aparte cron-secret in header.
  * ============================================================
  */
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('health')
 export class HealthController {
   constructor(private readonly service: HealthService) {}
@@ -43,8 +43,8 @@ export class HealthController {
    */
   @Post('run')
   @HttpCode(HttpStatus.OK)
-  run(@RestaurantId() restaurantId: string) {
-    return this.service.run(restaurantId, 'manual');
+  run(@BusinessId() businessId: string) {
+    return this.service.run(businessId, 'manual');
   }
 
   /**
@@ -52,8 +52,8 @@ export class HealthController {
    * geweest — front-end toont dan een "Run je eerste audit"-CTA.
    */
   @Get('latest')
-  getLatest(@RestaurantId() restaurantId: string) {
-    return this.service.getLatest(restaurantId);
+  getLatest(@BusinessId() businessId: string) {
+    return this.service.getLatest(businessId);
   }
 
   /**
@@ -62,7 +62,7 @@ export class HealthController {
    */
   @Get('history')
   getHistory(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('limit') limit?: string,
   ) {
     // Parse + clamp; we vertrouwen geen rauwe query-strings van de client.
@@ -70,6 +70,6 @@ export class HealthController {
     const safe = Number.isFinite(parsed)
       ? Math.min(Math.max(parsed, 1), 52)
       : 12;
-    return this.service.getHistory(restaurantId, safe);
+    return this.service.getHistory(businessId, safe);
   }
 }

@@ -71,7 +71,7 @@ export class CrmInviteService {
 
       if (userExists) {
         await this.audit.log({
-          restaurantId: null,
+          businessId: null,
           userId: null,
           action: 'customer_invite_skipped_exists',
           entity_type: 'user',
@@ -87,7 +87,7 @@ export class CrmInviteService {
     }
 
     await this.audit.log({
-      restaurantId: null,
+      businessId: null,
       userId: data?.user?.id ?? null,
       action: 'customer_invited',
       entity_type: 'user',

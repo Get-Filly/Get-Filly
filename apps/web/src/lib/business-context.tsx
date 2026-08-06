@@ -12,7 +12,7 @@ import {
 
 /**
  * ============================================================
- * RestaurantContext, actief restaurant + rol + permissies
+ * BusinessContext, actief restaurant + rol + permissies
  * ============================================================
  *
  * Wat is een "Context" in React?
@@ -22,7 +22,7 @@ import {
  * Wat houden we hier bij:
  *   - Lijst van restaurants waar de ingelogde user toegang toe heeft
  *   - Welk restaurant NU actief is (dit geeft de backend als
- *     X-Restaurant-Id mee)
+ *     X-Business-Id mee)
  *   - Rol + permissies binnen dat restaurant (voor het filteren van
  *     menu-items etc.)
  *   - Helper om van restaurant te wisselen
@@ -38,21 +38,21 @@ import {
  *   (standaard het eerste restaurant).
  */
 
-export type RestaurantSummary = {
+export type BusinessSummary = {
   id: string;
   name: string;
   role: "owner" | "manager" | "staff";
   permissions: string[];
 };
 
-type RestaurantContextValue = {
+type BusinessContextValue = {
   /** Alle restaurants waar de user toegang toe heeft. */
-  restaurants: RestaurantSummary[];
+  restaurants: BusinessSummary[];
   /** Het actieve restaurant (null tijdens laden of bij 0 restaurants). */
-  active: RestaurantSummary | null;
+  active: BusinessSummary | null;
   /** Wisselen naar een ander restaurant (bewaart keuze in localStorage). */
   setActive: (id: string) => void;
-  /** Ingevuld tijdens de initiële fetch naar /me/restaurants. */
+  /** Ingevuld tijdens de initiële fetch naar /me/businesses. */
   loading: boolean;
   /** Error bij laden, null als alles goed ging. */
   error: string | null;
@@ -63,7 +63,7 @@ type RestaurantContextValue = {
  * component buiten de Provider wordt gebruikt, dan is er geen
  * echte data, maar ook geen crash.
  */
-const RestaurantContext = createContext<RestaurantContextValue>({
+const BusinessContext = createContext<BusinessContextValue>({
   restaurants: [],
   active: null,
   setActive: () => undefined,
@@ -100,9 +100,9 @@ function writeStoredActiveId(id: string): void {
 
 /**
  * Provider-component, zet deze om de dashboard-layout heen.
- * Laadt bij mount de lijst van restaurants via /me/restaurants.
+ * Laadt bij mount de lijst van restaurants via /me/businesses.
  */
-export function RestaurantProvider({
+export function BusinessProvider({
   children,
   jwt,
 }: {
@@ -114,12 +114,12 @@ export function RestaurantProvider({
    */
   jwt: () => Promise<string | null>;
 }) {
-  const [restaurants, setRestaurants] = useState<RestaurantSummary[]>([]);
+  const [restaurants, setRestaurants] = useState<BusinessSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Laad /me/restaurants één keer bij mount.
+  // Laad /me/businesses één keer bij mount.
   useEffect(() => {
     let cancelled = false;
 
@@ -134,7 +134,7 @@ export function RestaurantProvider({
           return;
         }
 
-        const res = await fetch(`${API_URL}/me/restaurants`, {
+        const res = await fetch(`${API_URL}/me/businesses`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -143,7 +143,7 @@ export function RestaurantProvider({
           throw new Error(`HTTP ${res.status}`);
         }
 
-        const list = (await res.json()) as RestaurantSummary[];
+        const list = (await res.json()) as BusinessSummary[];
         if (cancelled) return;
 
         setRestaurants(list);
@@ -184,15 +184,15 @@ export function RestaurantProvider({
 
   // useMemo voorkomt dat de context-value bij elke render een nieuw
   // object is (anders zouden consumers onnodig re-renderen).
-  const value = useMemo<RestaurantContextValue>(
+  const value = useMemo<BusinessContextValue>(
     () => ({ restaurants, active, setActive, loading, error }),
     [restaurants, active, setActive, loading, error],
   );
 
   return (
-    <RestaurantContext.Provider value={value}>
+    <BusinessContext.Provider value={value}>
       {children}
-    </RestaurantContext.Provider>
+    </BusinessContext.Provider>
   );
 }
 
@@ -201,8 +201,8 @@ export function RestaurantProvider({
  * Gebruik:
  *   const { active, restaurants, setActive } = useRestaurant();
  */
-export function useRestaurant(): RestaurantContextValue {
-  return useContext(RestaurantContext);
+export function useRestaurant(): BusinessContextValue {
+  return useContext(BusinessContext);
 }
 
 /**

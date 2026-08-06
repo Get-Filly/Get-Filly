@@ -20,15 +20,15 @@ import {
 import { CampaignPerformanceService } from './campaign-performance.service';
 import { CampaignFingerprintService } from './campaign-fingerprint.service';
 import { MailService } from '../mail/mail.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('campaigns')
 export class CampaignsController {
   constructor(
@@ -42,8 +42,8 @@ export class CampaignsController {
   ) {}
 
   @Get()
-  findAll(@RestaurantId() restaurantId: string) {
-    return this.campaigns.findAll(restaurantId);
+  findAll(@BusinessId() businessId: string) {
+    return this.campaigns.findAll(businessId);
   }
 
   // Per 2026-05-12 (mig 0040): verwijderde (soft-deleted) campagnes
@@ -51,8 +51,8 @@ export class CampaignsController {
   // query-param zodat URLs zelf-documenterend zijn en RLS makkelijk
   // te lezen blijft.
   @Get('deleted')
-  findDeleted(@RestaurantId() restaurantId: string) {
-    return this.campaigns.findDeleted(restaurantId);
+  findDeleted(@BusinessId() businessId: string) {
+    return this.campaigns.findDeleted(businessId);
   }
 
   // Per 2026-05-07 fase 4: bundle-detail. Retourneert de campaign_groups
@@ -60,15 +60,15 @@ export class CampaignsController {
   // bundle-pagina kan tonen waarin eigenaar tussen kanalen kan switchen.
   @Get('bundle/:groupId')
   findBundle(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('groupId') groupId: string,
   ) {
-    return this.campaigns.findBundle(restaurantId, groupId);
+    return this.campaigns.findBundle(businessId, groupId);
   }
 
   @Get(':id')
-  findOne(@RestaurantId() restaurantId: string, @Param('id') id: string) {
-    return this.campaigns.findById(restaurantId, id);
+  findOne(@BusinessId() businessId: string, @Param('id') id: string) {
+    return this.campaigns.findById(businessId, id);
   }
 
   // ============================================================
@@ -105,11 +105,11 @@ export class CampaignsController {
   // de Filly-chat zodra de eigenaar op "Ja, maak aan" klikt. Body:
   //   { name: string, type: 'mail'|'social'|'whatsapp',
   //     subject_line?: string, body: string }
-  // RestaurantAccessGuard zorgt dat de user alleen mag schrijven naar
+  // BusinessAccessGuard zorgt dat de user alleen mag schrijven naar
   // een restaurant waar hij toegang toe heeft.
   @Post()
   create(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body()
     body: {
@@ -137,7 +137,7 @@ export class CampaignsController {
     // (geen groep) zelf af, dus we routeren hier elk niet-leeg platforms[].
     if (Array.isArray(body.platforms) && body.platforms.length > 0) {
       return this.campaigns.createBundle(
-        restaurantId,
+        businessId,
         { name, platforms: body.platforms },
         user.id,
       );
@@ -181,7 +181,7 @@ export class CampaignsController {
       'Deze campagne is nog niet uitgewerkt. Klik op Bewerk om je tekst toe te voegen.';
 
     return this.campaigns.create(
-      restaurantId,
+      businessId,
       {
         name,
         type,
@@ -197,7 +197,7 @@ export class CampaignsController {
   // een group_id zijn (service resolved beide; promoveert losse concepten).
   @Post(':id/channels')
   addChannel(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { platform?: string },
@@ -205,18 +205,18 @@ export class CampaignsController {
     if (!body.platform) {
       throw new BadRequestException('Kanaal is verplicht.');
     }
-    return this.campaigns.addChannel(restaurantId, id, body.platform, user.id);
+    return this.campaigns.addChannel(businessId, id, body.platform, user.id);
   }
 
   // Kanaal verwijderen uit een concept(-bundel). Laat min. één kanaal staan.
   @Delete(':id/channels/:platform')
   removeChannel(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('platform') platform: string,
   ) {
-    return this.campaigns.removeChannel(restaurantId, id, platform, user.id);
+    return this.campaigns.removeChannel(businessId, id, platform, user.id);
   }
 
   // Status-transitie endpoint. Aparte route i.p.v. status-veld in
@@ -225,7 +225,7 @@ export class CampaignsController {
   // wijziging meestuurt).
   @Patch(':id/status')
   updateStatus(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { status?: string },
@@ -242,7 +242,7 @@ export class CampaignsController {
       );
     }
     return this.campaigns.updateStatus(
-      restaurantId,
+      businessId,
       id,
       status as CampaignStatus,
       user.id,
@@ -251,21 +251,21 @@ export class CampaignsController {
 
   @Delete(':id')
   remove(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
     // userId mee zodat audit-log laat zien wié verwijderde, onomkeerbaar
     // dus extra belangrijk dat de actor traceerbaar is.
-    return this.campaigns.remove(restaurantId, id, user.id);
+    return this.campaigns.remove(businessId, id, user.id);
   }
 
   // POST /api/campaigns/:id/publish — publiceer een social-campagne nu
   // naar Facebook/Instagram. Idempotent (al gepubliceerd → no-op).
   // Gebruikt door "Activeer nu" in de detail-page.
   @Post(':id/publish')
-  publish(@RestaurantId() restaurantId: string, @Param('id') id: string) {
-    return this.campaigns.publishSocialCampaign(restaurantId, id);
+  publish(@BusinessId() businessId: string, @Param('id') id: string) {
+    return this.campaigns.publishSocialCampaign(businessId, id);
   }
 
   // ============================================================
@@ -286,7 +286,7 @@ export class CampaignsController {
 
   @Patch(':id/variants/:idx/select')
   selectVariant(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('idx') idxParam: string,
@@ -297,12 +297,12 @@ export class CampaignsController {
         'Variant-index in URL moet een geheel getal zijn.',
       );
     }
-    return this.campaigns.selectVariant(restaurantId, id, idx, user.id);
+    return this.campaigns.selectVariant(businessId, id, idx, user.id);
   }
 
   @Patch(':id/variants/:idx')
   editVariant(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('idx') idxParam: string,
@@ -315,7 +315,7 @@ export class CampaignsController {
       );
     }
     return this.campaigns.editVariant(
-      restaurantId,
+      businessId,
       id,
       idx,
       {
@@ -328,12 +328,12 @@ export class CampaignsController {
 
   @Post(':id/variants')
   generateMoreVariants(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { instruction?: string },
   ) {
     return this.campaigns.generateMoreVariants(
-      restaurantId,
+      businessId,
       id,
       body?.instruction,
     );
@@ -352,7 +352,7 @@ export class CampaignsController {
     }),
   )
   uploadMedia(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
@@ -361,7 +361,7 @@ export class CampaignsController {
         'Geen bestand ontvangen. Selecteer een foto om te uploaden.',
       );
     }
-    return this.campaigns.uploadMedia(restaurantId, id, {
+    return this.campaigns.uploadMedia(businessId, id, {
       buffer: file.buffer,
       mimeType: file.mimetype,
       originalName: file.originalname,
@@ -370,10 +370,10 @@ export class CampaignsController {
 
   @Delete(':id/media')
   deleteMedia(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
   ) {
-    return this.campaigns.deleteMedia(restaurantId, id);
+    return this.campaigns.deleteMedia(businessId, id);
   }
 
   // Bevestig of override het verzendmoment. Body { datetime: ISO }.
@@ -381,14 +381,14 @@ export class CampaignsController {
   // stuurt suggested_scheduled_for) of bij handmatige edit.
   @Patch(':id/scheduled')
   setSchedule(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { datetime?: string },
   ) {
     if (!body.datetime) {
       throw new BadRequestException('Tijdstip ontbreekt in request.');
     }
-    return this.campaigns.setSchedule(restaurantId, id, body.datetime);
+    return this.campaigns.setSchedule(businessId, id, body.datetime);
   }
 
   // ============================================================
@@ -401,7 +401,7 @@ export class CampaignsController {
   // zitten).
   @Post(':id/restore')
   restore(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { status?: string; scheduled_for?: string },
@@ -420,7 +420,7 @@ export class CampaignsController {
       throw new BadRequestException('Nieuwe datum ontbreekt in request.');
     }
     return this.campaigns.restoreFromHistory(
-      restaurantId,
+      businessId,
       id,
       status,
       body.scheduled_for,
@@ -448,8 +448,8 @@ export class CampaignsController {
   // Gebruikt door de detail-page verstuur-sectie zodat eigenaar
   // zie wie 'ie aanschrijft vóór 'ie op verstuur klikt.
   @Get(':id/recipients-preview')
-  recipientsPreview(@RestaurantId() restaurantId: string) {
-    return this.mail.getRecipientsPreview(restaurantId);
+  recipientsPreview(@BusinessId() businessId: string) {
+    return this.mail.getRecipientsPreview(businessId);
   }
 
   // Anti-repetitie-check (filly-brein hfst 8.6): vergelijkt de huidige
@@ -458,15 +458,15 @@ export class CampaignsController {
   // Lege array = niets aan de hand. UI toont de warnings naast de variant.
   @Get(':id/repetition-check')
   repetitionCheck(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
   ) {
-    return this.fingerprint.checkForCampaign(restaurantId, id);
+    return this.fingerprint.checkForCampaign(businessId, id);
   }
 
   @Post(':id/send')
   send(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body()
@@ -479,7 +479,7 @@ export class CampaignsController {
       );
     }
     return this.mail.sendCampaignByMode(
-      restaurantId,
+      businessId,
       id,
       mode,
       { testEmail: body?.testEmail },

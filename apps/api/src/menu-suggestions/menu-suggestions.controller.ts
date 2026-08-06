@@ -9,19 +9,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MenuSuggestionsService } from './menu-suggestions.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
-// AuthGuard verifieert het JWT; RestaurantAccessGuard zorgt dat de
+// AuthGuard verifieert het JWT; BusinessAccessGuard zorgt dat de
 // user bij dit restaurant hoort. Beide op klasse-niveau zodat álle
 // endpoints automatisch beschermd zijn.
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('menu-suggestions')
 export class MenuSuggestionsController {
   constructor(private readonly service: MenuSuggestionsService) {}
@@ -31,7 +31,7 @@ export class MenuSuggestionsController {
   // Lazy expire-cleanup van pending gebeurt in de service.
   @Get()
   list(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('status') status?: string,
   ) {
     if (status && status !== 'pending' && status !== 'rejected') {
@@ -39,7 +39,7 @@ export class MenuSuggestionsController {
         "Ongeldige status. Gebruik 'pending' of 'rejected'.",
       );
     }
-    return this.service.list(restaurantId, status as 'pending' | 'rejected' | undefined);
+    return this.service.list(businessId, status as 'pending' | 'rejected' | undefined);
   }
 
   // "✨ Vraag Filly om gerecht-voorstellen". AiRateLimitGuard staat
@@ -48,20 +48,20 @@ export class MenuSuggestionsController {
   @Post('generate')
   @UseGuards(AiRateLimitGuard)
   generate(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.generate(restaurantId, user.id);
+    return this.service.generate(businessId, user.id);
   }
 
   // 1-klik accept: voorstel → echt menu_item.
   @Post(':id/accept')
   accept(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.service.accept(restaurantId, id, user.id);
+    return this.service.accept(businessId, id, user.id);
   }
 
   // Reject = status='rejected'. Niet hard-deleten zodat we later
@@ -69,11 +69,11 @@ export class MenuSuggestionsController {
   // prompt-tuning).
   @Delete(':id')
   reject(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.service.reject(restaurantId, id, user.id);
+    return this.service.reject(businessId, id, user.id);
   }
 
   // "Andere variant"-knop. Genereert nieuwe pending-rij; oude wordt
@@ -81,10 +81,10 @@ export class MenuSuggestionsController {
   @Post(':id/refine')
   @UseGuards(AiRateLimitGuard)
   refine(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.service.refine(restaurantId, id, user.id);
+    return this.service.refine(businessId, id, user.id);
   }
 }

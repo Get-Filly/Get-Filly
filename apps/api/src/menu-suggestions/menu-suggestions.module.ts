@@ -6,12 +6,12 @@ import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
 // SupabaseModule levert RequestSupabaseService (RLS-active) +
 // SupabaseService (admin), wij gebruiken RequestSupabaseService.
-// AiModule levert AiService + RestaurantContextService voor de
+// AiModule levert AiService + BusinessContextService voor de
 // generate/refine-flows.
 // AuditLogModule logt elke generate/accept/reject/refine zodat we
 // kunnen herleiden welke voorstellen waar vandaan kwamen.
@@ -21,7 +21,7 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
   providers: [
     MenuSuggestionsService,
     AuthGuard,
-    RestaurantAccessGuard,
+    BusinessAccessGuard,
     AiRateLimitGuard,
   ],
 })

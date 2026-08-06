@@ -13,7 +13,7 @@ import { CampaignsService } from './campaigns.service';
 // ============================================================
 // Campagne-cron — ingeplande social-campagnes publiceren (PUBLIEK)
 // ============================================================
-// Geen AuthGuard/RestaurantAccessGuard: dit wordt door Vercel Cron
+// Geen AuthGuard/BusinessAccessGuard: dit wordt door Vercel Cron
 // aangeroepen, niet door een ingelogde user (zelfde patroon als
 // seo-report/run). Vercel zet bij cron-aanroepen automatisch
 // `Authorization: Bearer <CRON_SECRET>`; zonder geldige secret → 401.

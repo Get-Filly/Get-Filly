@@ -10,7 +10,7 @@ import { getIndustryPack, type IndustryPack } from './industry/industry-pack';
 import { coerceIndustry } from './industry/industry.registry';
 
 // ============================================================
-// RestaurantContextService, feiten + identiteit voor AI-prompts
+// BusinessContextService, feiten + identiteit voor AI-prompts
 // ============================================================
 //
 // Bouwt drie verschillende NL-tekstblokken die Filly nodig heeft om
@@ -44,8 +44,8 @@ import { coerceIndustry } from './industry/industry.registry';
 // ============================================================
 
 @Injectable()
-export class RestaurantContextService {
-  private readonly logger = new Logger(RestaurantContextService.name);
+export class BusinessContextService {
+  private readonly logger = new Logger(BusinessContextService.name);
 
   constructor(
     private readonly occupancy: OccupancyService,
@@ -64,11 +64,11 @@ export class RestaurantContextService {
   // gebruiken de pack voor het VAKTAAL-blok, de system-framing en de
   // menu-guard-melding. Voor horeca is de pack byte-identiek aan het
   // oude, hardcoded gedrag.
-  async getIndustryPack(restaurantId: string): Promise<IndustryPack> {
+  async getIndustryPack(businessId: string): Promise<IndustryPack> {
     const { data } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('industry')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     return getIndustryPack(coerceIndustry(data?.industry));
   }
@@ -80,9 +80,9 @@ export class RestaurantContextService {
   // bullet-lijst. Lege velden worden overgeslagen zodat Filly geen
   // valse "ik weet het niet"-signalen krijgt. Volgorde van bullets
   // gaat van "wat voor zaak ben je" → "voor wie" → "operationeel".
-  async buildProfileBlock(restaurantId: string): Promise<string> {
+  async buildProfileBlock(businessId: string): Promise<string> {
     const { data: r, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select(
         // Alle velden uit restaurants + onboarding-extensies (0003).
         // Bewust géén logo_url / brand_colors, irrelevant voor tekst-LLM.
@@ -98,7 +98,7 @@ export class RestaurantContextService {
         social_media, website_url, website_summary
         `,
       )
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
 
     if (error) {
@@ -255,7 +255,7 @@ export class RestaurantContextService {
   // Dat scheelt fors input-tokens per chatbeurt. Generatie-callers laten
   // `compact` weg en krijgen het volledige menu zoals voorheen.
   async buildMenuBlock(
-    restaurantId: string,
+    businessId: string,
     opts?: { compact?: boolean },
   ): Promise<string> {
     const compact = opts?.compact === true;
@@ -303,7 +303,7 @@ export class RestaurantContextService {
           'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
           { count: 'exact' },
         )
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('is_available', true)
         .neq('category', 'drank');
     const baseDrink = () =>
@@ -313,7 +313,7 @@ export class RestaurantContextService {
           'name, category, subcategory, price_cents, is_signature, dietary_tags, created_at',
           { count: 'exact' },
         )
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('is_available', true)
         .eq('category', 'drank');
 
@@ -511,11 +511,11 @@ export class RestaurantContextService {
   //
   // Bij 0 foto's: lege string. Filly krijgt dan geen FOTO'S-sectie
   // en weet dat 'r geen referenties mogelijk zijn.
-  async buildPhotosBlock(restaurantId: string): Promise<string> {
+  async buildPhotosBlock(businessId: string): Promise<string> {
     const { data, error } = await this.supabase.client
-      .from('restaurant_media')
+      .from('business_media')
       .select('id, description, tags, uploaded_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('uploaded_at', { ascending: false })
       .limit(20);
     if (error) {
@@ -545,7 +545,7 @@ export class RestaurantContextService {
     ].join('\n');
   }
 
-  async buildLiveBlock(restaurantId: string): Promise<string> {
+  async buildLiveBlock(businessId: string): Promise<string> {
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
     const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -559,16 +559,16 @@ export class RestaurantContextService {
       [Promise<OccupancyDay[]>, Promise<ForecastDay[]>, Promise<Reservation[]>]
     >([
       this.occupancy
-        .getMonth(restaurantId, now.getFullYear(), now.getMonth())
+        .getMonth(businessId, now.getFullYear(), now.getMonth())
         .catch((e) => {
           this.logger.warn(`Occupancy niet beschikbaar: ${String(e)}`);
           return [] as OccupancyDay[];
         }),
-      this.weather.getForecastForRestaurant(restaurantId).catch((e) => {
+      this.weather.getForecastForRestaurant(businessId).catch((e) => {
         this.logger.warn(`Weer niet beschikbaar: ${String(e)}`);
         return [] as ForecastDay[];
       }),
-      this.reservations.findRange(restaurantId, today, in7days).catch((e) => {
+      this.reservations.findRange(businessId, today, in7days).catch((e) => {
         this.logger.warn(`Reserveringen niet beschikbaar: ${String(e)}`);
         return [] as Reservation[];
       }),
@@ -595,7 +595,7 @@ export class RestaurantContextService {
     // "Populaire tijden" via Apify). Geen bron → terugval op de
     // (seed) occupancy_days zodat zaken zonder koppeling niet regresseren.
     const expectation = await this.busyness
-      .getDailyExpectation(restaurantId, today, in7days, 50)
+      .getDailyExpectation(businessId, today, in7days, 50)
       .catch((e) => {
         this.logger.warn(`Busyness-verwachting niet beschikbaar: ${String(e)}`);
         return { hasSource: false, days: [] as never[] };
@@ -617,7 +617,7 @@ export class RestaurantContextService {
       // Rustige MOMENTEN per dagdeel (voorspellend): dé kansen om op in te
       // spelen. Zelfde bron als de auto-detectie + het dashboard.
       const quiet = await this.busyness
-        .getQuietMoments(restaurantId, today, in7days)
+        .getQuietMoments(businessId, today, in7days)
         .catch(() => null);
       if (quiet?.hasSource && quiet.moments.length > 0) {
         const mlines = quiet.moments.map((m) => {
@@ -630,7 +630,7 @@ export class RestaurantContextService {
 
       // Live "nu"-drukte kwalitatief (geen exacte percentages in de chat).
       const live = await this.busyness
-        .getLatest(restaurantId)
+        .getLatest(businessId)
         .catch(() => null);
       if (live?.livePct != null) {
         const nu =
@@ -673,21 +673,21 @@ export class RestaurantContextService {
   // Volgorde matters: profiel + menu (statisch) komen eerst zodat
   // we ze later kunnen laten cachen door Anthropic prompt-caching.
   // Live-data komt onderaan zodat alleen dat deel "vers" hoeft.
-  async buildFullContext(restaurantId: string): Promise<string> {
+  async buildFullContext(businessId: string): Promise<string> {
     const [profile, menu, photos, live] = await Promise.all([
-      this.buildProfileBlock(restaurantId).catch((e) => {
+      this.buildProfileBlock(businessId).catch((e) => {
         this.logger.warn(`Profiel-blok faalde: ${String(e)}`);
         return '';
       }),
-      this.buildMenuBlock(restaurantId).catch((e) => {
+      this.buildMenuBlock(businessId).catch((e) => {
         this.logger.warn(`Menu-blok faalde: ${String(e)}`);
         return '';
       }),
-      this.buildPhotosBlock(restaurantId).catch((e) => {
+      this.buildPhotosBlock(businessId).catch((e) => {
         this.logger.warn(`Foto's-blok faalde: ${String(e)}`);
         return '';
       }),
-      this.buildLiveBlock(restaurantId).catch((e) => {
+      this.buildLiveBlock(businessId).catch((e) => {
         this.logger.warn(`Live-blok faalde: ${String(e)}`);
         return '';
       }),
@@ -701,8 +701,8 @@ export class RestaurantContextService {
   // buildContextBlock voor alléén de live-data. Behouden zodat we
   // niets breken; nieuwe code roept buildFullContext / buildLiveBlock
   // expliciet aan.
-  async buildContextBlock(restaurantId: string): Promise<string> {
-    return this.buildLiveBlock(restaurantId);
+  async buildContextBlock(businessId: string): Promise<string> {
+    return this.buildLiveBlock(businessId);
   }
 }
 

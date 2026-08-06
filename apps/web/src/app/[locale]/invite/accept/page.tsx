@@ -34,7 +34,7 @@ import { acceptInvite } from "@/lib/api";
  * door naar /dashboard.
  */
 
-// Sleutel die RestaurantContext gebruikt, zie restaurant-context.tsx.
+// Sleutel die BusinessContext gebruikt, zie business-context.tsx.
 // Door deze hier óók te zetten hoeft de gebruiker niet handmatig
 // van restaurant te wisselen na accept.
 const ACTIVE_RESTAURANT_STORAGE_KEY = "getfilly.activeRestaurantId";
@@ -96,14 +96,14 @@ function AcceptInner() {
       //    restaurant en retourneert restaurant-id + rol.
       setStatus("accepting");
       try {
-        const { restaurantId } = await acceptInvite(inviteToken);
+        const { businessId } = await acceptInvite(inviteToken);
 
         // Nieuw gekoppeld restaurant alvast actief maken zodat
         // de gebruiker direct op dat restaurant landt.
         try {
           window.localStorage.setItem(
             ACTIVE_RESTAURANT_STORAGE_KEY,
-            restaurantId,
+            businessId,
           );
         } catch {
           // localStorage kan in privé-modus falen, geen blocker.

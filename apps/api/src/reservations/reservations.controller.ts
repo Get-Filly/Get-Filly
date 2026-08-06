@@ -9,22 +9,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('reservations')
 export class ReservationsController {
   constructor(private readonly reservations: ReservationsService) {}
 
   @Get()
   findRange(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
@@ -36,7 +36,7 @@ export class ReservationsController {
       new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
         .toISOString()
         .slice(0, 10);
-    return this.reservations.findRange(restaurantId, defaultFrom, defaultTo);
+    return this.reservations.findRange(businessId, defaultFrom, defaultTo);
   }
 
   // Handmatige boeking (telefoon / walk-in) toevoegen. Body bevat
@@ -45,7 +45,7 @@ export class ReservationsController {
   // knop rechtsboven op de reserveringen-pagina.
   @Post()
   create(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body()
     body: {
       guest_name: string;
@@ -58,7 +58,7 @@ export class ReservationsController {
       notes?: string | null;
     },
   ) {
-    return this.reservations.create(restaurantId, body);
+    return this.reservations.create(businessId, body);
   }
 
   // Koppel reservering aan een Filly-campagne (handmatig vanuit de UI)
@@ -68,7 +68,7 @@ export class ReservationsController {
   // om data in de attributie-FK te krijgen.
   @Patch(':id/attribution')
   setAttribution(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { campaign_id: string | null },
@@ -77,7 +77,7 @@ export class ReservationsController {
     // welke reservering aan welke campagne gekoppeld is, Filly-ROI
     // staat of valt met deze attributie, dus auditbaarheid is cruciaal.
     return this.reservations.setAttribution(
-      restaurantId,
+      businessId,
       id,
       body.campaign_id,
       user.id,
@@ -90,13 +90,13 @@ export class ReservationsController {
   // 5 toegestane enum-values.
   @Patch(':id/status')
   setStatus(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { status: string },
   ) {
     return this.reservations.setStatus(
-      restaurantId,
+      businessId,
       id,
       body.status,
       user.id,

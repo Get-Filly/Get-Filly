@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   const oauthError = searchParams.get("error");
 
   const expectedState = request.cookies.get("meta_oauth_state")?.value ?? null;
-  const restaurantId = request.cookies.get("meta_oauth_rid")?.value ?? null;
+  const businessId = request.cookies.get("meta_oauth_rid")?.value ?? null;
 
   // 1. Eigenaar heeft in de Meta-dialog geweigerd, of Meta gaf een fout.
   if (oauthError) {
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 4. Zonder restaurant-id weten we niet aan welke zaak we koppelen.
-  if (!restaurantId) {
+  if (!businessId) {
     return back(origin, { meta: "error", reason: "no_restaurant" });
   }
 
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "X-Restaurant-Id": restaurantId,
+        "X-Business-Id": businessId,
       },
       body: JSON.stringify({ code, redirectUri: metaRedirectUri(origin) }),
       cache: "no-store",

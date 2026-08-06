@@ -9,7 +9,7 @@ import { EventsModule } from '../events/events.module';
 import { WeatherModule } from '../weather/weather.module';
 import { BusynessModule } from '../busyness/busyness.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 // CampaignsModule: approve-flow (suggestie → campagne aanmaken + FK
 // koppelen).
@@ -27,7 +27,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     BusynessModule,
   ],
   controllers: [SuggestionsController],
-  providers: [SuggestionsService, AuthGuard, RestaurantAccessGuard],
+  providers: [SuggestionsService, AuthGuard, BusinessAccessGuard],
   exports: [SuggestionsService],
 })
 export class SuggestionsModule {}

@@ -20,7 +20,7 @@ import {
   updateSuggestion,
   type AiSuggestion,
   type BundleChannel,
-  type RestaurantMediaItem,
+  type BusinessMediaItem,
 } from "@/lib/api";
 import { Skeleton } from "../../../_components/skeleton";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,7 @@ export default function VoorstelDetailPage() {
   //  alternatieven hebben hun eigen rij, geen aparte markering.)
 
   // Foto-koppeling: bibliotheek + picker-modal-state.
-  const [mediaLibrary, setMediaLibrary] = useState<RestaurantMediaItem[]>([]);
+  const [mediaLibrary, setMediaLibrary] = useState<BusinessMediaItem[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // Per 2026-05-07 fase 2b: multi-channel-toggle. Eigenaar kan extra
@@ -646,7 +646,7 @@ export default function VoorstelDetailPage() {
     }
   };
 
-  const handlePickMedia = async (item: RestaurantMediaItem) => {
+  const handlePickMedia = async (item: BusinessMediaItem) => {
     setPickerOpen(false);
     if (!suggestion || busy) return;
     setActionError(null);

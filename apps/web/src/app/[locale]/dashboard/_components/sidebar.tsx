@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { type Module } from "@getfilly/shared";
 import { createClient } from "@/lib/supabase-browser";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 
 /**
  * Menu-definitie met een module-key per item.
@@ -226,7 +226,7 @@ export function Sidebar() {
 
         {menuOpen && (
           <div className="sb-workspace-menu" role="menu">
-            {/* Restaurant-switcher, alleen tonen als de user toegang
+            {/* Business-switcher, alleen tonen als de user toegang
                 heeft tot meer dan één restaurant, anders is dit stukje
                 visuele ruis zonder doel. */}
             {restaurants.length > 1 && (

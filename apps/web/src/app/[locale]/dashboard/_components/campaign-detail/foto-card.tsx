@@ -28,7 +28,7 @@ import { useTranslations } from "next-intl";
 import {
   deleteCampaignMedia,
   uploadCampaignMedia,
-  type RestaurantMediaItem,
+  type BusinessMediaItem,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { MediaLibraryPicker } from "../media-library-picker";
@@ -75,7 +75,7 @@ export function FotoCard({
   // Geen aparte backend-call: het campaign krijgt een eigen kopie
   // in campaign_media en de bibliotheek-rij blijft intact voor
   // hergebruik (zelfde patroon als CampaignMediaSlot).
-  const useFromLibrary = async (item: RestaurantMediaItem) => {
+  const useFromLibrary = async (item: BusinessMediaItem) => {
     setPickerOpen(false);
     if (!item.url) {
       setError(t("errors.libraryLoadFailed"));

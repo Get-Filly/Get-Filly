@@ -12,7 +12,7 @@ import {
   tiktokStatus,
   tiktokDisconnect,
 } from "@/lib/api";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import { MetaPageSelector } from "./meta-publish-panel";
 
 // ============================================================
@@ -461,11 +461,11 @@ function OAuthAction({
   const t = useTranslations("dash__components_account_connections");
   const provider = integration.provider;
 
-  // Restaurant-id alleen meegeven aan échte OAuth-start-routes; interne
+  // Business-id alleen meegeven aan échte OAuth-start-routes; interne
   // dashboard-links (Beheer → hub) hebben 'm niet nodig.
   const withRid = (path: string) =>
     path.startsWith("/oauth/") && activeRestaurantId
-      ? `${path}?restaurantId=${encodeURIComponent(activeRestaurantId)}`
+      ? `${path}?businessId=${encodeURIComponent(activeRestaurantId)}`
       : path;
 
   // Verbonden maar token verlopen: "Herverbinden nodig" + opnieuw verbinden

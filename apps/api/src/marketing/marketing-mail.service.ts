@@ -34,7 +34,7 @@ export class MarketingMailService {
    * te veel ruis.
    */
   async getMailStats(
-    restaurantId: string,
+    businessId: string,
     periodDays: number = 30,
   ): Promise<MailStats> {
     const now = new Date();
@@ -46,7 +46,7 @@ export class MarketingMailService {
     const { data: campaigns, error: campErr } = await this.supabase.client
       .from('campaigns')
       .select('id')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('type', 'mail')
       .gte('created_at', start.toISOString());
 
@@ -54,7 +54,7 @@ export class MarketingMailService {
 
     const campaignIds = (campaigns ?? []).map((c) => c.id);
     if (campaignIds.length === 0) {
-      return emptyStats(restaurantId, start, now, periodDays);
+      return emptyStats(businessId, start, now, periodDays);
     }
 
     // Stap 2: alle sends voor deze campagnes ophalen (alleen de
@@ -96,7 +96,7 @@ export class MarketingMailService {
    * input voor toekomstige Filly-analyse ("vergelijk je beste 3").
    */
   async getCampaignMailStats(
-    restaurantId: string,
+    businessId: string,
     periodDays: number = 90,
   ): Promise<CampaignMailStats[]> {
     const now = new Date();
@@ -108,7 +108,7 @@ export class MarketingMailService {
     const { data: campaigns, error: campErr } = await this.supabase.client
       .from('campaigns')
       .select('id, name, type, status, scheduled_for, executed_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('type', 'mail')
       .gte('created_at', start.toISOString())
       .order('created_at', { ascending: false });
@@ -251,7 +251,7 @@ function emptyStats(
 }
 
 // Industrie-mediaan voor horeca-mail. Bron: Mailchimp/Campaign Monitor
-// industry-reports (Restaurant & Hospitality category 2024-2025). Voor
+// industry-reports (Business & Hospitality category 2024-2025). Voor
 // MVP volstaat dit; bij ≥100 actieve klanten vervangen door dynamische
 // berekening uit eigen `campaign_benchmarks`-data (bestaat sinds mig 0023).
 const HORECA_MAIL_BENCHMARK = {

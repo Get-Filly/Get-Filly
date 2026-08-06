@@ -181,7 +181,7 @@ export class SeoReportService {
         // voor een wekelijkse job; ruim voldoende voor deze analyse.
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 900,
-        meta: { restaurantId: null, feature: 'seo_weekly_audit' },
+        meta: { businessId: null, feature: 'seo_weekly_audit' },
       });
     } catch (err) {
       this.logger.warn(`Claude-analyse faalde: ${String(err)}`);

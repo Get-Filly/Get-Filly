@@ -8,7 +8,7 @@ import { RequestSupabaseService } from './request-supabase.service';
  *   - SupabaseService          → service_role, singleton, RLS-bypass.
  *                                Voor audit-log, anonymization,
  *                                account-deletion, pre-onboarding,
- *                                ai_usage zonder restaurant_id.
+ *                                ai_usage zonder business_id.
  *
  *   - RequestSupabaseService   → user-JWT, per-request scope, RLS-actief.
  *                                Voor alle user-facing reads/writes.

@@ -5,12 +5,12 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 @Module({
   imports: [SupabaseModule, MeModule, AuditLogModule],
   controllers: [ReservationsController],
-  providers: [ReservationsService, AuthGuard, RestaurantAccessGuard],
+  providers: [ReservationsService, AuthGuard, BusinessAccessGuard],
   // Exporteren zodat AiModule reserveringen kan ophalen voor context-
   // injectie in Filly-prompts.
   exports: [ReservationsService],

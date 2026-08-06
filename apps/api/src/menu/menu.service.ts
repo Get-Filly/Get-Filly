@@ -38,7 +38,7 @@ export type MenuItem = {
 
 // Input voor create. Alle velden behalve `name` zijn optioneel; defaults
 // worden door de DB gezet (is_available=true, is_signature=false, etc.).
-// Bewust geen `id` of `restaurant_id`, die zetten we server-side zodat
+// Bewust geen `id` of `business_id`, die zetten we server-side zodat
 // de cliënt nooit kan schrijven naar een andere tenant.
 export type CreateMenuItemInput = {
   name: string;
@@ -107,13 +107,13 @@ export class MenuService {
     private readonly audit: AuditLogService,
   ) {}
 
-  async findAll(restaurantId: string): Promise<MenuItem[]> {
+  async findAll(businessId: string): Promise<MenuItem[]> {
     const { data, error } = await this.supabase.client
       .from('menu_items')
       .select(
         'id, name, description, category, subcategory, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('category', { ascending: true });
 
     if (error) throw new InternalServerErrorException(error.message);
@@ -122,10 +122,10 @@ export class MenuService {
 
   // Maak een nieuw menu-item aan. Validatie hier (niet alleen DB-CHECK)
   // zodat we duidelijke NL-foutmeldingen aan de UI kunnen geven i.p.v.
-  // ruwe Postgres-errors. restaurant_id wordt door de controller via
+  // ruwe Postgres-errors. business_id wordt door de controller via
   // de tenant-context bepaald; cliënt kan dit niet zelf instellen.
   async create(
-    restaurantId: string,
+    businessId: string,
     input: CreateMenuItemInput,
     userId: string,
   ): Promise<MenuItem> {
@@ -134,7 +134,7 @@ export class MenuService {
     const { data, error } = await this.supabase.client
       .from('menu_items')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         ...payload,
       })
       .select(
@@ -148,7 +148,7 @@ export class MenuService {
     // bron, bij een klacht "Filly noemt een gerecht dat niet bestaat"
     // kunnen we via audit-log zien wie wanneer wat heeft toegevoegd.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_item_created',
       entity_type: 'menu_item',
@@ -164,10 +164,10 @@ export class MenuService {
   }
 
   // Bijwerken van een bestaand item. We doen eerst een gericht eq op
-  // restaurant_id zodat een gebruiker van tenant A nooit een item van
-  // tenant B kan raken (defense-in-depth bovenop de RestaurantAccessGuard).
+  // business_id zodat een gebruiker van tenant A nooit een item van
+  // tenant B kan raken (defense-in-depth bovenop de BusinessAccessGuard).
   async update(
-    restaurantId: string,
+    businessId: string,
     id: string,
     input: UpdateMenuItemInput,
     userId: string,
@@ -184,7 +184,7 @@ export class MenuService {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, name, description, category, subcategory, price_cents, is_signature, is_seasonal, season, is_available, dietary_tags',
       )
@@ -199,7 +199,7 @@ export class MenuService {
     // dat we prijs- of beschrijvings-history in audit_log dumpen.
     // Voor "wat is veranderd?" hebben we daarna nog de DB-row zelf.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_item_updated',
       entity_type: 'menu_item',
@@ -211,7 +211,7 @@ export class MenuService {
   }
 
   async remove(
-    restaurantId: string,
+    businessId: string,
     id: string,
     userId: string,
   ): Promise<{ id: string }> {
@@ -225,7 +225,7 @@ export class MenuService {
       .from('menu_items')
       .select('id, name')
       .eq('id', id)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!existing) {
@@ -236,14 +236,14 @@ export class MenuService {
       .from('menu_items')
       .delete()
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
 
     // Audit: gerecht verwijderd. Onomkeerbaar, bij een klacht
     // ("waarom is mijn signature dish weg?") moeten we kunnen zien
     // wie het heeft weggehaald en wanneer.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_item_deleted',
       entity_type: 'menu_item',
@@ -363,7 +363,7 @@ export class MenuService {
   // ============================================================
   // Volledige flow van geüpload bestand naar menu_items in de DB:
   //   1. Bestand opslaan in `menu-uploads` Storage-bucket onder
-  //      <restaurant_id>/<uuid>-<safeName>.
+  //      <business_id>/<uuid>-<safeName>.
   //   2. menu_uploads-rij aanmaken (processed_at = null).
   //   3. MenuImporterService aanroepen → Claude Vision extraheert
   //      gerechten uit het bestand.
@@ -377,7 +377,7 @@ export class MenuService {
   // upload met processing_error zodat de eigenaar het kan zien en
   // opnieuw proberen. Het bron-bestand blijft staan voor audit.
   async importCard(
-    restaurantId: string,
+    businessId: string,
     userId: string | null,
     file: { buffer: Buffer; originalName: string; mimeType: string },
     kind: 'menu' | 'drinks' = 'menu',
@@ -388,7 +388,7 @@ export class MenuService {
     const safeName = file.originalName
       .replace(/[^a-zA-Z0-9._-]/g, '_')
       .slice(0, 80) || 'menu';
-    const path = `${restaurantId}/${randomUUID()}-${safeName}`;
+    const path = `${businessId}/${randomUUID()}-${safeName}`;
 
     const { error: upErr } = await this.supabase.client.storage
       .from(MENU_UPLOADS_BUCKET)
@@ -408,7 +408,7 @@ export class MenuService {
     const { data: uploadRow, error: insErr } = await this.supabase.client
       .from('menu_uploads')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         file_path: path,
         file_name: file.originalName,
         file_size_bytes: file.buffer.length,
@@ -439,7 +439,7 @@ export class MenuService {
           mimeType: file.mimeType,
           originalName: file.originalName,
         },
-        { restaurantId, userId: userId ?? undefined },
+        { businessId, userId: userId ?? undefined },
         kind,
       );
     } catch (e) {
@@ -461,7 +461,7 @@ export class MenuService {
     const rowsToInsert = extracted.items
       .filter((it) => it.name && it.name.trim().length > 0)
       .map((it, idx) => ({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         menu_upload_id: uploadId,
         name: it.name.trim().slice(0, 200),
         description: it.description?.trim() || null,
@@ -520,7 +520,7 @@ export class MenuService {
       .eq('id', uploadId);
 
     this.logger.log(
-      `Menu-kaart geïmporteerd voor restaurant ${restaurantId}: ${insertedItems.length} items uit ${file.originalName}`,
+      `Menu-kaart geïmporteerd voor restaurant ${businessId}: ${insertedItems.length} items uit ${file.originalName}`,
     );
 
     // Audit: succesvolle kaart-import. Belangrijk omdat één import 50+
@@ -528,7 +528,7 @@ export class MenuService {
     // heeft ineens veel meer items" zien we precies welke upload de
     // bron was. userId kan null zijn bij pre-onboarding-uploads.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_card_imported',
       entity_type: 'menu_upload',
@@ -555,14 +555,14 @@ export class MenuService {
   // Returnt maximaal twee rijen: 1 menu-kaart + 1 drankkaart, beide
   // de meest recent succesvol verwerkte upload van dat type. UI
   // gebruikt deze info om twee aparte banners te tonen.
-  async getActiveCards(restaurantId: string): Promise<ActiveMenuCard[]> {
+  async getActiveCards(businessId: string): Promise<ActiveMenuCard[]> {
     const fetchByKind = async (
       kind: 'menu' | 'drinks',
     ): Promise<ActiveMenuCard | null> => {
       const { data, error } = await this.supabase.client
         .from('menu_uploads')
         .select('id, kind, file_name, created_at, extracted_items_count')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('kind', kind)
         .not('processed_at', 'is', null)
         .is('processing_error', null)
@@ -595,16 +595,16 @@ export class MenuService {
   // hier expliciet, anders zou een gebruiker een upload-id van een
   // andere zaak kunnen raden en de URL claimen.
   async getCardSignedUrl(
-    restaurantId: string,
+    businessId: string,
     uploadId: string,
   ): Promise<{ url: string }> {
     const { data: row, error: fetchErr } = await this.supabase.client
       .from('menu_uploads')
-      .select('file_path, restaurant_id')
+      .select('file_path, business_id')
       .eq('id', uploadId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
-    if (!row || row.restaurant_id !== restaurantId) {
+    if (!row || row.business_id !== businessId) {
       throw new InternalServerErrorException('Upload niet gevonden.');
     }
 
@@ -624,7 +624,7 @@ export class MenuService {
   // gaan weg. Handmatig toegevoegde gerechten (zonder menu_upload_id)
   // blijven staan, die zijn niet aan deze kaart gebonden.
   async removeCard(
-    restaurantId: string,
+    businessId: string,
     uploadId: string,
     userId: string,
   ): Promise<{ id: string; items_deleted: number }> {
@@ -634,7 +634,7 @@ export class MenuService {
       .from('menu_uploads')
       .select('id, file_path, file_name, kind')
       .eq('id', uploadId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!existing) {
@@ -646,7 +646,7 @@ export class MenuService {
     const { count: itemsCount, error: countErr } = await this.supabase.client
       .from('menu_items')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('menu_upload_id', uploadId);
     if (countErr) throw new InternalServerErrorException(countErr.message);
 
@@ -654,7 +654,7 @@ export class MenuService {
       const { error: delItemsErr } = await this.supabase.client
         .from('menu_items')
         .delete()
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('menu_upload_id', uploadId);
       if (delItemsErr) {
         throw new InternalServerErrorException(delItemsErr.message);
@@ -680,14 +680,14 @@ export class MenuService {
       .from('menu_uploads')
       .delete()
       .eq('id', uploadId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (delUpErr) throw new InternalServerErrorException(delUpErr.message);
 
     // Audit: kaart verwijderd. Kan tientallen items in één klap weghalen
     // (cascade), bij een klacht "ineens is mijn halve menu weg" zien
     // we wié de kaart-delete heeft gedaan en hoeveel items eraan hingen.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_card_removed',
       entity_type: 'menu_upload',

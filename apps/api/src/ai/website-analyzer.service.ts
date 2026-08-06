@@ -178,9 +178,9 @@ export class WebsiteAnalyzerService {
       inputSchema: WEBSITE_PROFILE_SCHEMA,
       meta: {
         // Pre-onboarding call: user heeft nog geen restaurant-id. Sinds
-        // migratie 0012 is ai_usage.restaurant_id nullable, dus deze
+        // migratie 0012 is ai_usage.business_id nullable, dus deze
         // call wordt correct gelogd als "pre-onboarding".
-        restaurantId: null,
+        businessId: null,
         feature: 'analyze_website',
       },
     });

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 // Service-role client: busyness_snapshots heeft RLS aan zonder policies,
 // dus alleen de service-role mag hier lezen/schrijven. De tenant-isolatie
-// op de handmatige endpoint komt van de RestaurantAccessGuard.
+// op de handmatige endpoint komt van de BusinessAccessGuard.
 import { SupabaseService } from '../supabase/supabase.service';
 import { ApifyClient } from './apify.client';
 import { parseApifyPlace, type ApifyPlace, type OpeningHours } from './apify.parser';
@@ -14,7 +14,7 @@ import { parseApifyPlace, type ApifyPlace, type OpeningHours } from './apify.par
 const SOURCE = 'apify';
 
 export interface RefreshResult {
-  restaurantId: string;
+  businessId: string;
   placeId: string | null;
   hasPattern: boolean;
   livePct: number | null;
@@ -108,7 +108,7 @@ export class BusynessService {
   // niet het volledige patroon + ruwe JSON dupliceren. Geen live in
   // lite-modus → niks opslaan.
   private async writeSnapshot(
-    restaurantId: string,
+    businessId: string,
     placeId: string,
     place: ApifyPlace,
     lite: boolean,
@@ -120,7 +120,7 @@ export class BusynessService {
     if (lite) {
       if (!hasLive) {
         return {
-          restaurantId,
+          businessId,
           placeId,
           hasPattern: false,
           livePct: null,
@@ -130,7 +130,7 @@ export class BusynessService {
       const { error } = await this.supabase.client
         .from('busyness_snapshots')
         .insert({
-          restaurant_id: restaurantId,
+          business_id: businessId,
           place_id: placeId,
           source: SOURCE,
           live_pct: livePct,
@@ -138,15 +138,15 @@ export class BusynessService {
           live_weekday: now.weekday,
         });
       if (error) throw new InternalServerErrorException(error.message);
-      this.logger.log(`busyness ${restaurantId}: live-tick ${livePct}`);
-      return { restaurantId, placeId, hasPattern: false, livePct };
+      this.logger.log(`busyness ${businessId}: live-tick ${livePct}`);
+      return { businessId, placeId, hasPattern: false, livePct };
     }
 
     // Volledige rij (wekelijkse/handmatige refresh): patroon + openingstijden.
     const { error } = await this.supabase.client
       .from('busyness_snapshots')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         place_id: placeId,
         source: SOURCE,
         pattern, // 7x24 verwacht, of null bij kleine zaak
@@ -158,9 +158,9 @@ export class BusynessService {
       });
     if (error) throw new InternalServerErrorException(error.message);
     this.logger.log(
-      `busyness ${restaurantId}: pattern=${pattern ? 'ja' : 'nee'} live=${livePct ?? '-'}`,
+      `busyness ${businessId}: pattern=${pattern ? 'ja' : 'nee'} live=${livePct ?? '-'}`,
     );
-    return { restaurantId, placeId, hasPattern: pattern !== null, livePct };
+    return { businessId, placeId, hasPattern: pattern !== null, livePct };
   }
 
   // Batched kern: haalt alle place_ids in ÉÉN Apify-run op en schrijft per
@@ -177,7 +177,7 @@ export class BusynessService {
       const msg = e instanceof Error ? e.message : String(e);
       this.logger.error(`Apify-run faalde: ${msg}`);
       return targets.map((t) => ({
-        restaurantId: t.id,
+        businessId: t.id,
         placeId: t.placeId,
         hasPattern: false,
         livePct: null,
@@ -190,7 +190,7 @@ export class BusynessService {
       const place = places.get(t.placeId);
       if (!place) {
         results.push({
-          restaurantId: t.id,
+          businessId: t.id,
           placeId: t.placeId,
           hasPattern: false,
           livePct: null,
@@ -204,7 +204,7 @@ export class BusynessService {
         const msg = e instanceof Error ? e.message : String(e);
         this.logger.error(`snapshot-write faalde voor ${t.id}: ${msg}`);
         results.push({
-          restaurantId: t.id,
+          businessId: t.id,
           placeId: t.placeId,
           hasPattern: false,
           livePct: null,
@@ -220,21 +220,21 @@ export class BusynessService {
    * place_id of geen Apify-resultaat is.
    */
   async refreshRestaurant(
-    restaurantId: string,
+    businessId: string,
     opts?: { lite?: boolean },
   ): Promise<RefreshResult> {
     const { data: rest, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('id, busyness_place_id, google_place_id')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
-    if (!rest) throw new NotFoundException('Restaurant niet gevonden.');
+    if (!rest) throw new NotFoundException('Business niet gevonden.');
 
     const placeId = this.placeIdOf(rest);
     if (!placeId) {
       return {
-        restaurantId,
+        businessId,
         placeId: null,
         hasPattern: false,
         livePct: null,
@@ -242,7 +242,7 @@ export class BusynessService {
       };
     }
     const results = await this.batchRefresh(
-      [{ id: restaurantId, placeId }],
+      [{ id: businessId, placeId }],
       opts?.lite ?? false,
     );
     return results[0];
@@ -254,7 +254,7 @@ export class BusynessService {
    * (busyness.ts) als bron voor de verwachte lijn; geen snapshot → null
    * (frontend valt dan terug op de seed).
    */
-  async getLatest(restaurantId: string): Promise<{
+  async getLatest(businessId: string): Promise<{
     pattern: number[][] | null;
     openingHours: OpeningHours | null;
     livePct: number | null;
@@ -267,7 +267,7 @@ export class BusynessService {
       .select(
         'pattern, opening_hours, live_pct, live_hour, live_weekday, captured_at',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .not('pattern', 'is', null)
       .order('captured_at', { ascending: false })
       .limit(1)
@@ -314,7 +314,7 @@ export class BusynessService {
   // isQuiet). Voor Filly's context + auto-detectie. hasSource=false als er
   // (nog) geen echt patroon is → caller valt terug op occupancy_days.
   async getDailyExpectation(
-    restaurantId: string,
+    businessId: string,
     fromIso: string,
     toIso: string,
     threshold: number,
@@ -328,7 +328,7 @@ export class BusynessService {
       quiet: boolean; // expectedPct < threshold
     }[];
   }> {
-    const latest = await this.getLatest(restaurantId);
+    const latest = await this.getLatest(businessId);
     if (!latest.pattern) return { hasSource: false, days: [] };
     const pattern = latest.pattern;
 
@@ -393,20 +393,20 @@ export class BusynessService {
    * hasSource=false als er (nog) geen echt patroon is → caller valt terug.
    */
   async getQuietMoments(
-    restaurantId: string,
+    businessId: string,
     fromIso: string,
     toIso: string,
     // Tempo (max per week). Niet meegegeven → de per-zaak-instelling
     // (quiet_moments_per_week), anders de default.
     perWeek?: number,
   ): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
-    const latest = await this.getLatest(restaurantId);
+    const latest = await this.getLatest(businessId);
     if (!latest.pattern || latest.pattern.length < 7) {
       return { hasSource: false, moments: [] };
     }
     const pattern = latest.pattern;
     const effectivePerWeek =
-      perWeek ?? (await this.getQuietPerWeek(restaurantId));
+      perWeek ?? (await this.getQuietPerWeek(businessId));
 
     // 1. Dagdeel-rooster. cel = gemiddelde drukte per open uur; null = onder
     //    min-dekking → telt niet mee. from/to = het open-uur-venster (voor de
@@ -578,12 +578,12 @@ export class BusynessService {
    * ander dagdeel dan het gedetecteerde kan kiezen. Leeg zonder patroon.
    */
   async getDaypartsForDate(
-    restaurantId: string,
+    businessId: string,
     dateIso: string,
   ): Promise<
     { key: string; label: string; fromHour: number; toHour: number }[]
   > {
-    const latest = await this.getLatest(restaurantId);
+    const latest = await this.getLatest(businessId);
     if (!latest.pattern || latest.pattern.length < 7) return [];
     const row = latest.pattern[this.mondayIndex(dateIso)] ?? [];
     const out: { key: string; label: string; fromHour: number; toHour: number }[] =
@@ -603,11 +603,11 @@ export class BusynessService {
   }
 
   // Het per-zaak ingestelde tempo (quiet_moments_per_week); default als leeg.
-  private async getQuietPerWeek(restaurantId: string): Promise<number> {
+  private async getQuietPerWeek(businessId: string): Promise<number> {
     const { data } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('quiet_moments_per_week')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     const v = data?.quiet_moments_per_week as number | null | undefined;
     return typeof v === 'number' && v >= 1 ? v : DEFAULT_QUIET_PER_WEEK;
@@ -732,7 +732,7 @@ export class BusynessService {
    * een gesorteerde lijst [uur, pct]. Alleen dagen/uren met een meting.
    */
   async getActualByDate(
-    restaurantId: string,
+    businessId: string,
     fromIso: string,
     toIso: string,
   ): Promise<Record<string, [number, number][]>> {
@@ -745,7 +745,7 @@ export class BusynessService {
     const { data, error } = await this.supabase.client
       .from('busyness_snapshots')
       .select('captured_at, live_pct, live_hour')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .not('live_pct', 'is', null)
       .gte('captured_at', lower.toISOString())
       .lte('captured_at', upper.toISOString())
@@ -794,7 +794,7 @@ export class BusynessService {
     results: RefreshResult[];
   }> {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('id, opening_hours, busyness_place_id, google_place_id')
       .or('busyness_place_id.not.is.null,google_place_id.not.is.null');
     if (error) throw new InternalServerErrorException(error.message);
@@ -816,7 +816,7 @@ export class BusynessService {
       const openNow = this.isOpenNow(owner, now) || this.isOpenNow(pull, now);
       if (known && !openNow) {
         results.push({
-          restaurantId: r.id as string,
+          businessId: r.id as string,
           placeId,
           hasPattern: false,
           livePct: null,
@@ -851,7 +851,7 @@ export class BusynessService {
     results: RefreshResult[];
   }> {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('id, busyness_place_id, google_place_id')
       .or('busyness_place_id.not.is.null,google_place_id.not.is.null');
     if (error) throw new InternalServerErrorException(error.message);

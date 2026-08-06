@@ -109,13 +109,13 @@ export async function middleware(request: NextRequest) {
   //      → terug naar dashboard (per ongeluk daar beland)
   //   C. Wel een restaurant + bezoekt /onboarding?mode=add
   //      → laat door (eigenaar wil 2e/3e zaak toevoegen, sinds 2026-05-01)
-  // We checken dat door te vragen of er een restaurant_users-rij is
+  // We checken dat door te vragen of er een business_users-rij is
   // voor deze user. Dankzij RLS (user_id = auth.uid()) hoeven we geen
   // service_role te gebruiken: de user mag z'n eigen koppeling zien.
   if (user && (isDashboard || isOnboarding)) {
     const { data: membership } = await supabase
-      .from("restaurant_users")
-      .select("restaurant_id")
+      .from("business_users")
+      .select("business_id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();

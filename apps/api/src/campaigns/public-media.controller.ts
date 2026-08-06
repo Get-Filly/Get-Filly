@@ -10,7 +10,7 @@ import { CampaignsService } from './campaigns.service';
 // ============================================================
 // PublicMediaController — publieke campagne-video voor TikTok PULL_FROM_URL
 // ============================================================
-// BEWUST ZONDER AuthGuard/RestaurantAccessGuard: TikTok (en de web-route
+// BEWUST ZONDER AuthGuard/BusinessAccessGuard: TikTok (en de web-route
 // /media/c/:campaignId die ervoor proxyt) roept dit context-loos aan om de
 // campagne-video op te halen. We geven alleen een KORTE signed URL terug
 // voor de eerste video in de social-content van de campagne — geen andere

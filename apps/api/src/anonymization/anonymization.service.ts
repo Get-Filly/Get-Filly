@@ -6,7 +6,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 // ============================================================
 // Bouwt geanonimiseerde benchmark-rijen op basis van afgeronde
 // campagnes. GDPR Recital 26: alleen geaggregeerde / generieke
-// velden, géén restaurant_id, géén naam/adres, géén body-tekst.
+// velden, géén business_id, géén naam/adres, géén body-tekst.
 //
 // Wordt aangeroepen op twee momenten:
 //   1. Bij `CampaignsService.updateStatus(... → 'afgerond')`,
@@ -55,7 +55,7 @@ export class AnonymizationService {
       const { data: campaign, error: campErr } = await this.supabase.client
         .from('campaigns')
         .select(
-          'id, restaurant_id, type, tags, executed_at, created_at, result_stats',
+          'id, business_id, type, tags, executed_at, created_at, result_stats',
         )
         .eq('id', campaignId)
         .maybeSingle();
@@ -63,13 +63,13 @@ export class AnonymizationService {
       if (campErr) throw new Error(campErr.message);
       if (!campaign) return false;
 
-      // 2. Restaurant-archetype.
+      // 2. Business-archetype.
       const { data: restaurant, error: restErr } = await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .select(
           'type, cuisine_style, postal_code, capacity_seats, price_range, brand_tone, has_terrace, has_kids_menu',
         )
-        .eq('id', campaign.restaurant_id)
+        .eq('id', campaign.business_id)
         .maybeSingle();
 
       if (restErr) throw new Error(restErr.message);
@@ -93,7 +93,7 @@ export class AnonymizationService {
       );
 
       const benchmarkRow = {
-        // Restaurant-archetype
+        // Business-archetype
         restaurant_type: (restaurant.type as string | null) ?? null,
         cuisine_style:
           (restaurant.cuisine_style as string[] | null) ?? null,
@@ -142,16 +142,16 @@ export class AnonymizationService {
   // benchmarken. Wordt vóór de account-delete aangeroepen om
   // zeker te weten dat we niets verliezen wat eerder gemist is.
   // Returnt het aantal succesvol geschreven rijen.
-  async benchmarkAllCompletedFor(restaurantId: string): Promise<number> {
+  async benchmarkAllCompletedFor(businessId: string): Promise<number> {
     const { data, error } = await this.supabase.client
       .from('campaigns')
       .select('id')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('status', 'afgerond');
 
     if (error || !data) {
       this.logger.warn(
-        `benchmarkAllCompletedFor(${restaurantId}) listing faalde: ${
+        `benchmarkAllCompletedFor(${businessId}) listing faalde: ${
           error?.message ?? 'unknown'
         }`,
       );

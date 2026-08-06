@@ -11,13 +11,13 @@ import { AuditLogService } from '../common/audit-log.service';
 import { MediaTaggerService } from './media-tagger.service';
 
 // ============================================================
-// RestaurantMediaService, foto-bibliotheek per restaurant
+// BusinessMediaService, foto-bibliotheek per restaurant
 // ============================================================
 //
 // Eigenaar uploadt foto's via account-pagina. Maximaal 20 foto's per
 // restaurant, gecapt om Filly's prompt-context behapbaar te houden
 // en storage-kosten te beperken. Bestanden komen in de bestaande
-// 'restaurant-assets' bucket onder pad <restaurant_id>/photos/<uuid>.
+// 'restaurant-assets' bucket onder pad <business_id>/photos/<uuid>.
 //
 // Bij elke upload: synchrone Vision-tag-call via MediaTaggerService.
 // Eigenaar wacht ~3-5s maar krijgt direct een foto met description +
@@ -39,7 +39,7 @@ const ALLOWED_VIDEO_MIME = new Set([
 ]);
 const isVideoMime = (m: string): boolean => ALLOWED_VIDEO_MIME.has(m);
 
-export type RestaurantMediaItem = {
+export type BusinessMediaItem = {
   id: string;
   file_name: string;
   mime_type: string;
@@ -53,8 +53,8 @@ export type RestaurantMediaItem = {
 };
 
 @Injectable()
-export class RestaurantMediaService {
-  private readonly logger = new Logger(RestaurantMediaService.name);
+export class BusinessMediaService {
+  private readonly logger = new Logger(BusinessMediaService.name);
 
   constructor(
     private readonly supabase: RequestSupabaseService,
@@ -75,13 +75,13 @@ export class RestaurantMediaService {
   //     niet raadbaar
   //   - foto's zijn sowieso bedoeld om in publieke campagne-mails te
   //     verschijnen
-  async list(restaurantId: string): Promise<RestaurantMediaItem[]> {
+  async list(businessId: string): Promise<BusinessMediaItem[]> {
     const { data, error } = await this.supabase.client
-      .from('restaurant_media')
+      .from('business_media')
       .select(
         'id, file_path, file_name, mime_type, size_bytes, description, tags, uploaded_at',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('uploaded_at', { ascending: false });
     if (error) throw new InternalServerErrorException(error.message);
     if (!data || data.length === 0) return [];
@@ -107,10 +107,10 @@ export class RestaurantMediaService {
   // UPLOAD, nieuwe foto + Vision-tag
   // ============================================================
   async upload(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     file: { buffer: Buffer; originalName: string; mimeType: string },
-  ): Promise<RestaurantMediaItem> {
+  ): Promise<BusinessMediaItem> {
     // Stap 1, input-validatie. Eigenaar krijgt een nette NL-melding
     // ipv ruwe Multer/Supabase-fouten bij verkeerde mime-types of
     // te grote files.
@@ -131,9 +131,9 @@ export class RestaurantMediaService {
     // de 21e foto kan uploaden. Cap helpt ook Filly's prompt-context
     // behapbaar te houden bij campagne-suggesties.
     const { count, error: countErr } = await this.supabase.client
-      .from('restaurant_media')
+      .from('business_media')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (countErr) throw new InternalServerErrorException(countErr.message);
     if ((count ?? 0) >= MAX_PHOTOS_PER_RESTAURANT) {
       throw new BadRequestException(
@@ -148,7 +148,7 @@ export class RestaurantMediaService {
     const fileName =
       file.originalName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) ||
       `${isVideo ? 'video' : 'photo'}${ext}`;
-    const path = `${restaurantId}/${isVideo ? 'videos' : 'photos'}/${randomUUID()}${ext}`;
+    const path = `${businessId}/${isVideo ? 'videos' : 'photos'}/${randomUUID()}${ext}`;
 
     // Stap 4, Storage upload. Bij fout: nette NL-melding, geen DB-rij.
     const { error: upErr } = await this.supabase.client.storage
@@ -172,15 +172,15 @@ export class RestaurantMediaService {
       ? { description: '', tags: [] as string[] }
       : await this.tagger.tag(
           { buffer: file.buffer, mimeType: file.mimeType },
-          { restaurantId, userId },
+          { businessId, userId },
         );
 
     // Stap 6, DB-rij. Bij DB-fout rollback we de Storage-upload zodat
     // we geen weeszooi krijgen.
     const { data: row, error: insErr } = await this.supabase.client
-      .from('restaurant_media')
+      .from('business_media')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         file_path: path,
         file_name: fileName,
         mime_type: file.mimeType,
@@ -204,10 +204,10 @@ export class RestaurantMediaService {
     // Stap 7, audit-log voor traceerbaarheid bij latere AVG-vragen
     // ("welke foto's zijn er ooit van mij geüpload?").
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'restaurant_media_uploaded',
-      entity_type: 'restaurant_media',
+      entity_type: 'business_media',
       entity_id: row.id as string,
       payload: {
         file_name: fileName,
@@ -238,15 +238,15 @@ export class RestaurantMediaService {
   // REMOVE, foto definitief verwijderen
   // ============================================================
   async remove(
-    restaurantId: string,
+    businessId: string,
     mediaId: string,
     userId: string,
   ): Promise<{ id: string }> {
     const { data: row, error: fetchErr } = await this.supabase.client
-      .from('restaurant_media')
+      .from('business_media')
       .select('id, file_path, file_name')
       .eq('id', mediaId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!row) throw new NotFoundException('Foto niet gevonden.');
@@ -264,17 +264,17 @@ export class RestaurantMediaService {
     }
 
     const { error: delErr } = await this.supabase.client
-      .from('restaurant_media')
+      .from('business_media')
       .delete()
       .eq('id', mediaId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'restaurant_media_deleted',
-      entity_type: 'restaurant_media',
+      entity_type: 'business_media',
       entity_id: mediaId,
       payload: { file_name: row.file_name },
     });

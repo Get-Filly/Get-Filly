@@ -1,5 +1,5 @@
 import { createClient } from "./supabase-browser";
-import { getActiveRestaurantIdSync } from "./restaurant-context";
+import { getActiveRestaurantIdSync } from "./business-context";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
@@ -7,19 +7,19 @@ const API_URL =
 /**
  * authedFetch, zoals `fetch`, maar stuurt automatisch mee:
  *   - Authorization: Bearer <jwt>  → wie ben je?
- *   - X-Restaurant-Id: <uuid>      → welk restaurant bekijk je?
+ *   - X-Business-Id: <uuid>      → welk restaurant bekijk je?
  *
  * Hoe dit werkt:
  *   1. Supabase-sessie uit de browser halen (cookie/localStorage).
  *   2. Actieve restaurant-id uit localStorage halen (gezet door
- *      RestaurantContext zodra de user is ingelogd).
+ *      BusinessContext zodra de user is ingelogd).
  *   3. Beide als headers meegeven aan fetch.
  *
  * Wat als er geen sessie / geen restaurant is:
  *   Dan stuurt hij de header niet mee. De backend geeft dan 401 of
  *   400 terug, de component die de call deed kan dat netjes als
  *   error tonen. Normaal gesproken gebeurt dit alleen heel kort op
- *   de eerste render voordat RestaurantContext geladen is.
+ *   de eerste render voordat BusinessContext geladen is.
  */
 export async function authedFetch(
   input: RequestInfo | URL,
@@ -38,9 +38,9 @@ export async function authedFetch(
   // Voeg het actieve restaurant-id toe (als we er een hebben).
   // Zo weet de backend welk restaurant de user op dit moment
   // bekijkt, essentieel voor multi-tenant isolatie.
-  const restaurantId = getActiveRestaurantIdSync();
-  if (restaurantId) {
-    headers.set("X-Restaurant-Id", restaurantId);
+  const businessId = getActiveRestaurantIdSync();
+  if (businessId) {
+    headers.set("X-Business-Id", businessId);
   }
 
   return fetch(input, { ...init, headers });
@@ -610,7 +610,7 @@ export async function reviewsSuggestReplyForText(
 /**
  * submitContactForm, publieke (NIET-authed) call voor het
  * contactformulier op /contact. Gebruikt gewone `fetch` zonder
- * Authorization/X-Restaurant-Id, want een bezoeker die een demo
+ * Authorization/X-Business-Id, want een bezoeker die een demo
  * aanvraagt heeft nog geen account/restaurant. De backend-route
  * (`POST /public/contact`) is @Public() en mailt de aanvraag naar
  * info@get-filly.com.
@@ -990,7 +990,7 @@ export async function uploadCampaignMedia(
 ): Promise<{ path: string; signed_url: string }> {
   const formData = new FormData();
   formData.append("file", file);
-  // authedFetch voegt JWT + X-Restaurant-Id toe; multipart Content-
+  // authedFetch voegt JWT + X-Business-Id toe; multipart Content-
   // Type laat browser zelf bepalen (incl. boundary).
   const res = await authedFetch(
     `${API_URL}/campaigns/${campaignId}/media`,
@@ -1367,7 +1367,7 @@ export type ServicePeriods = {
   };
 };
 
-export type Restaurant = {
+export type Business = {
   id: string;
   name: string;
   slug: string | null;
@@ -1474,7 +1474,7 @@ export type Restaurant = {
   target_audience_segments: string[] | null;
 };
 
-export async function fetchRestaurant(): Promise<Restaurant> {
+export async function fetchRestaurant(): Promise<Business> {
   const res = await authedFetch(`${API_URL}/restaurant/me`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -1544,8 +1544,8 @@ export async function fetchQuietMoments(
 }
 
 export async function updateRestaurant(
-  updates: Partial<Restaurant>,
-): Promise<Restaurant> {
+  updates: Partial<Business>,
+): Promise<Business> {
   const res = await authedFetch(`${API_URL}/restaurant/me`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -1559,9 +1559,9 @@ export async function updateRestaurant(
 
 // Trigger handmatig de website-analyse. Backend leest de huidige
 // website_url, draait Claude, en vult tagline/sfeer/USPs/etc op het
-// restaurant. Returnt de bijgewerkte Restaurant zodat de UI de nieuwe
+// restaurant. Returnt de bijgewerkte Business zodat de UI de nieuwe
 // velden direct kan tonen.
-export async function analyzeRestaurantWebsite(): Promise<Restaurant> {
+export async function analyzeRestaurantWebsite(): Promise<Business> {
   const res = await authedFetch(`${API_URL}/restaurant/me/analyze-website`, {
     method: "POST",
   });
@@ -2235,14 +2235,14 @@ export async function refineMenuSuggestion(
 }
 
 // ============================================================
-// Restaurant media-bibliotheek (foto's per restaurant)
+// Business media-bibliotheek (foto's per restaurant)
 // ============================================================
 // Eigenaar uploadt foto's via account-pagina; gebruikt door
 // CampaignMediaSlot ("Kies uit bibliotheek") en straks door Filly's
 // suggesties. Cap: 20 foto's per restaurant. Vision-tag bij upload
 // (Haiku 4.5) genereert description + tags voor matching.
 
-export type RestaurantMediaItem = {
+export type BusinessMediaItem = {
   id: string;
   file_name: string;
   mime_type: string;
@@ -2255,8 +2255,8 @@ export type RestaurantMediaItem = {
   url: string;
 };
 
-export async function fetchRestaurantMedia(): Promise<RestaurantMediaItem[]> {
-  const res = await authedFetch(`${API_URL}/restaurant-media`, {
+export async function fetchRestaurantMedia(): Promise<BusinessMediaItem[]> {
+  const res = await authedFetch(`${API_URL}/business-media`, {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -2267,10 +2267,10 @@ export async function fetchRestaurantMedia(): Promise<RestaurantMediaItem[]> {
 
 export async function uploadRestaurantMedia(
   file: File,
-): Promise<RestaurantMediaItem> {
+): Promise<BusinessMediaItem> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await authedFetch(`${API_URL}/restaurant-media`, {
+  const res = await authedFetch(`${API_URL}/business-media`, {
     method: "POST",
     body: formData,
   });
@@ -2283,7 +2283,7 @@ export async function uploadRestaurantMedia(
 export async function deleteRestaurantMedia(
   id: string,
 ): Promise<{ id: string }> {
-  const res = await authedFetch(`${API_URL}/restaurant-media/${id}`, {
+  const res = await authedFetch(`${API_URL}/business-media/${id}`, {
     method: "DELETE",
   });
   if (!res.ok) {
@@ -2420,7 +2420,7 @@ export type ActiveMenuCard = {
 export async function importMenuCard(file: File): Promise<ImportCardResult> {
   const fd = new FormData();
   fd.append("file", file);
-  // authedFetch zet automatisch JWT + X-Restaurant-Id; multipart
+  // authedFetch zet automatisch JWT + X-Business-Id; multipart
   // Content-Type laten we aan de browser zodat de boundary klopt.
   const res = await authedFetch(`${API_URL}/menu/import-card`, {
     method: "POST",
@@ -2768,7 +2768,7 @@ export async function fetchActiveChat(): Promise<ActiveChatState> {
 // Lijst van alle conversaties voor de chat-history-dropdown. Limit 50
 // in de backend; oudere conversaties zijn niet meer bereikbaar via UI
 // (bewust, Filly's memory-systeem onthoudt geleerde voorkeuren in
-// restaurant_chat_memory, dus oude chats hoeven niet doorzoekbaar).
+// business_chat_memory, dus oude chats hoeven niet doorzoekbaar).
 export async function fetchChatConversations(): Promise<
   ChatConversationSummary[]
 > {
@@ -2805,7 +2805,7 @@ export async function createChatConversation(): Promise<ActiveChatState> {
 
 // Verwijder een conversatie + bijhorende berichten. Voor delete probeert
 // backend de Haiku-summary op te slaan zodat geleerde voorkeuren in
-// restaurant_chat_memory bewaard blijven.
+// business_chat_memory bewaard blijven.
 export async function deleteChatConversation(
   conversationId: string,
 ): Promise<{ id: string }> {
@@ -3045,7 +3045,7 @@ export async function removeTeamMember(userId: string): Promise<void> {
 
 export type InvitationRecord = {
   id: string;
-  restaurant_id: string;
+  business_id: string;
   email: string;
   role: Role;
   permissions: { modules: Module[] } | null;
@@ -3102,7 +3102,7 @@ export async function revokeInvite(inviteId: string): Promise<void> {
  */
 export async function acceptInvite(
   token: string,
-): Promise<{ restaurantId: string; role: Role }> {
+): Promise<{ businessId: string; role: Role }> {
   const res = await authedFetch(`${API_URL}/invites/accept`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3191,7 +3191,7 @@ export async function fetchGoogleProfileMine(): Promise<GoogleProfileMine> {
 }
 
 // Tekst-zoekopdracht naar Google Places. Werkt ALLEEN voor klanten met
-// een actief restaurant (RestaurantAccessGuard op de hub-route).
+// een actief restaurant (BusinessAccessGuard op de hub-route).
 // Voor de onboarding-wizard gebruiken we /onboarding/google-search.
 export async function searchGoogleProfile(
   query: string,
@@ -3408,7 +3408,7 @@ export type HealthRunSource = "manual" | "cron" | "onboarding";
 export interface HealthFinding {
   id: string;
   healthScoreId: string;
-  restaurantId: string;
+  businessId: string;
   category: HealthCategory;
   checkKey: string;
   passed: boolean;
@@ -3425,7 +3425,7 @@ export interface HealthFinding {
 export interface HealthCompetitor {
   id: string;
   healthScoreId: string;
-  restaurantId: string;
+  businessId: string;
   placeId: string;
   name: string;
   distanceM: number;
@@ -3438,7 +3438,7 @@ export interface HealthCompetitor {
 
 export interface HealthSnapshot {
   id: string;
-  restaurantId: string;
+  businessId: string;
   scoreTotal: number;
   scoreSeo: number;
   scoreGbp: number;
@@ -3516,7 +3516,7 @@ export type CampaignClassification =
 export interface CampaignPerformance {
   id: string;
   campaign_id: string;
-  restaurant_id: string;
+  business_id: string;
 
   mail_delivered: number | null;
   mail_opened: number | null;

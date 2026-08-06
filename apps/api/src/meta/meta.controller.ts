@@ -9,8 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessAccessGuard } from '../common/business-access.guard';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -20,11 +20,11 @@ import { MetaService } from './meta.service';
 // ============================================================
 // Meta (Facebook/Instagram) koppeling — ingelogde-user-endpoints
 // ============================================================
-// Restaurant-gescoped: AuthGuard (geldige JWT) + RestaurantAccessGuard
-// (X-Restaurant-Id + toegangscheck). De web-callback roept /connect
+// Business-gescoped: AuthGuard (geldige JWT) + BusinessAccessGuard
+// (X-Business-Id + toegangscheck). De web-callback roept /connect
 // aan met de OAuth-code; de UI gebruikt /status en DELETE.
 @Controller('integrations/meta')
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 export class MetaController {
   constructor(private readonly meta: MetaService) {}
 
@@ -32,7 +32,7 @@ export class MetaController {
   @Post('connect')
   @HttpCode(200)
   connect(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { code?: string; redirectUri?: string },
   ) {
@@ -40,7 +40,7 @@ export class MetaController {
       throw new BadRequestException('code en redirectUri zijn verplicht');
     }
     return this.meta.connect(
-      restaurantId,
+      businessId,
       user.id,
       body.code,
       body.redirectUri,
@@ -49,33 +49,33 @@ export class MetaController {
 
   // GET /api/integrations/meta/status
   @Get('status')
-  status(@RestaurantId() restaurantId: string) {
-    return this.meta.status(restaurantId);
+  status(@BusinessId() businessId: string) {
+    return this.meta.status(businessId);
   }
 
   // GET /api/integrations/meta/pages  → lijst FB-pagina's
   @Get('pages')
-  pages(@RestaurantId() restaurantId: string) {
-    return this.meta.listPages(restaurantId);
+  pages(@BusinessId() businessId: string) {
+    return this.meta.listPages(businessId);
   }
 
   // GET /api/integrations/meta/insights  → live social-engagement
   @Get('insights')
-  insights(@RestaurantId() restaurantId: string) {
-    return this.meta.getInsights(restaurantId);
+  insights(@BusinessId() businessId: string) {
+    return this.meta.getInsights(businessId);
   }
 
   // POST /api/integrations/meta/select-page   body { pageId }
   @Post('select-page')
   @HttpCode(200)
   selectPage(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body() body: { pageId?: string },
   ) {
     if (!body?.pageId) {
       throw new BadRequestException('pageId is verplicht');
     }
-    return this.meta.selectPage(restaurantId, body.pageId);
+    return this.meta.selectPage(businessId, body.pageId);
   }
 
   // POST /api/integrations/meta/publish
@@ -83,7 +83,7 @@ export class MetaController {
   @Post('publish')
   @HttpCode(200)
   publish(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body()
     body: {
       message?: string;
@@ -95,7 +95,7 @@ export class MetaController {
     if (!body?.message || !body.message.trim()) {
       throw new BadRequestException('message is verplicht');
     }
-    return this.meta.publish(restaurantId, {
+    return this.meta.publish(businessId, {
       message: body.message,
       imageUrl: body.imageUrl,
       toFacebook: body.toFacebook ?? true,
@@ -106,7 +106,7 @@ export class MetaController {
   // DELETE /api/integrations/meta   (koppeling intrekken)
   @Delete()
   @HttpCode(200)
-  disconnect(@RestaurantId() restaurantId: string) {
-    return this.meta.disconnect(restaurantId);
+  disconnect(@BusinessId() businessId: string) {
+    return this.meta.disconnect(businessId);
   }
 }

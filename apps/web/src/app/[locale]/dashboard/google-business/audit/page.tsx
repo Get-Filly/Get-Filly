@@ -19,7 +19,7 @@ import {
   type HealthCategory,
   type HealthSeverity,
 } from "@/lib/api";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import { useLocaleTag } from "@/lib/locale-format";
 
 /**

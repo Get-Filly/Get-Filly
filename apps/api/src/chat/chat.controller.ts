@@ -11,16 +11,16 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ChatService, type ActiveActionInput } from './chat.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chat: ChatService) {}
@@ -30,46 +30,46 @@ export class ChatController {
   // laatste 20 berichten + messageCount zodat de UI de history direct
   // kan renderen + cap-indicator kan tonen.
   @Get('active')
-  getActive(@RestaurantId() restaurantId: string) {
-    return this.chat.getOrCreateActiveConversation(restaurantId);
+  getActive(@BusinessId() businessId: string) {
+    return this.chat.getOrCreateActiveConversation(businessId);
   }
 
   // Lijst van alle conversaties voor de chat-history-dropdown. Title +
   // message_count + updated_at, geen messages of memory-summaries
   // (die zijn lazy bij switch).
   @Get('conversations')
-  listConversations(@RestaurantId() restaurantId: string) {
-    return this.chat.listConversations(restaurantId);
+  listConversations(@BusinessId() businessId: string) {
+    return this.chat.listConversations(businessId);
   }
 
   // Switcht naar een specifieke conversatie. Frontend roept dit aan
   // wanneer de eigenaar een titel aanklikt in de dropdown.
   @Get('conversations/:id')
   getConversation(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
   ) {
-    return this.chat.getConversation(restaurantId, id);
+    return this.chat.getConversation(businessId, id);
   }
 
   // Start expliciet een nieuwe lege conversatie. Aangeroepen via
   // "+ Nieuw gesprek"-knop in de dropdown, OF wanneer de eigenaar
   // bij een vol-gesprek op "Start nieuw gesprek"-CTA klikt.
   @Post('conversations')
-  createConversation(@RestaurantId() restaurantId: string) {
-    return this.chat.createConversation(restaurantId);
+  createConversation(@BusinessId() businessId: string) {
+    return this.chat.createConversation(businessId);
   }
 
   // Verwijder een conversatie + bijhorende berichten. Voor delete
   // probeert ChatService eerst de Haiku-summary op te slaan zodat
-  // geleerde voorkeuren bewaard blijven in restaurant_chat_memory.
+  // geleerde voorkeuren bewaard blijven in business_chat_memory.
   @Delete('conversations/:id')
   deleteConversation(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.chat.deleteConversation(restaurantId, id, user.id);
+    return this.chat.deleteConversation(businessId, id, user.id);
   }
 
   // Lopende actie bijwerken (audit-item #8). De geleide flow PATCHt hier
@@ -79,11 +79,11 @@ export class ChatController {
   // geen rate-limit-guard — alleen de class-level auth/tenant-guards.
   @Patch('conversations/:id/active-action')
   updateActiveAction(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: ActiveActionInput,
   ) {
-    return this.chat.setActiveAction(restaurantId, id, body);
+    return this.chat.setActiveAction(businessId, id, body);
   }
 
   // Schrijf een Filly-notitie bij het gesprek (geen Claude-call). De geleide
@@ -91,11 +91,11 @@ export class ChatController {
   // zodat de eigenaar bij terugkomst ziet wat er gebeurd is.
   @Post('conversations/:id/note')
   appendNote(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') id: string,
     @Body() body: { text?: string; card?: unknown },
   ) {
-    return this.chat.appendNote(restaurantId, id, body?.text ?? '', body?.card);
+    return this.chat.appendNote(businessId, id, body?.text ?? '', body?.card);
   }
 
   // Bericht sturen. Rate-limit-guard draait hier extra bovenop de
@@ -104,12 +104,12 @@ export class ChatController {
   @UseGuards(AiRateLimitGuard)
   @Post('messages')
   sendMessage(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { conversation_id: string; content: string },
   ) {
     return this.chat.sendMessage(
-      restaurantId,
+      businessId,
       user.id,
       body.conversation_id,
       body.content,
@@ -125,7 +125,7 @@ export class ChatController {
   @UseGuards(AiRateLimitGuard)
   @Post('messages/stream')
   async streamMessage(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { conversation_id: string; content: string },
     @Res() res: Response,
@@ -144,7 +144,7 @@ export class ChatController {
 
     try {
       const result = await this.chat.streamMessage(
-        restaurantId,
+        businessId,
         user.id,
         body.conversation_id,
         body.content,

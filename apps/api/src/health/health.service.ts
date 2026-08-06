@@ -69,18 +69,18 @@ export class HealthService {
    * geeft het volledige snapshot terug (scores + findings + concurrenten).
    */
   async run(
-    restaurantId: string,
+    businessId: string,
     source: HealthRunSource = 'manual',
   ): Promise<HealthSnapshotFull> {
     const startedAt = Date.now();
 
-    const ctx = await this.buildRunnerContext(restaurantId);
+    const ctx = await this.buildRunnerContext(businessId);
 
     // Alle runners + concurrent-collector parallel. allSettled zodat
     // één gefaalde tak de rest niet meesleurt.
     const [runnerSettled, competitorSettled] = await Promise.all([
       Promise.allSettled(this.runners.map((runner) => runner.run(ctx))),
-      this.competitorCollector.collect(restaurantId).then(
+      this.competitorCollector.collect(businessId).then(
         (rows) => ({ status: 'fulfilled' as const, value: rows }),
         (reason) => ({ status: 'rejected' as const, reason }),
       ),
@@ -94,7 +94,7 @@ export class HealthService {
       competitorRows = competitorSettled.value;
     } else {
       this.logger.warn(
-        `Concurrent-collector faalde voor ${restaurantId}: ${
+        `Concurrent-collector faalde voor ${businessId}: ${
           competitorSettled.reason instanceof Error
             ? competitorSettled.reason.message
             : String(competitorSettled.reason)
@@ -106,7 +106,7 @@ export class HealthService {
       if (s.status === 'fulfilled') return s.value;
       const runner = this.runners[i];
       this.logger.error(
-        `Runner ${runner.category} faalde voor restaurant ${restaurantId}: ${
+        `Runner ${runner.category} faalde voor restaurant ${businessId}: ${
           s.reason instanceof Error ? s.reason.message : String(s.reason)
         }`,
       );
@@ -141,7 +141,7 @@ export class HealthService {
     // single transaction nodig: als findings-insert faalt blijft er
     // een snapshot zonder findings, wat de UI als "leeg" toont.
     return this.persist(
-      restaurantId,
+      businessId,
       source,
       durationMs,
       results,
@@ -154,11 +154,11 @@ export class HealthService {
    * Laatste snapshot inclusief findings + concurrenten.
    * Voor de hoofdpagina van /vindbaarheid.
    */
-  async getLatest(restaurantId: string): Promise<HealthSnapshotFull | null> {
+  async getLatest(businessId: string): Promise<HealthSnapshotFull | null> {
     const { data: snapshot, error } = await this.supabase.client
       .from('health_scores')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('ran_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -176,11 +176,11 @@ export class HealthService {
    * Laatste N snapshots zonder findings/concurrenten — voor de
    * trend-grafiek. Default 12 (≈ 3 maanden bij wekelijkse run).
    */
-  async getHistory(restaurantId: string, limit = 12): Promise<HealthSnapshot[]> {
+  async getHistory(businessId: string, limit = 12): Promise<HealthSnapshot[]> {
     const { data, error } = await this.supabase.client
       .from('health_scores')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('ran_at', { ascending: false })
       .limit(limit);
 
@@ -201,21 +201,21 @@ export class HealthService {
    * restaurants + place_data; runners hoeven zelf niet de DB te raken
    * voor basis-info.
    */
-  private async buildRunnerContext(restaurantId: string): Promise<RunnerContext> {
+  private async buildRunnerContext(businessId: string): Promise<RunnerContext> {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select(
         'id, name, city, cuisine_style, latitude, longitude, website_url, google_place_id',
       )
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
 
     if (error || !data) {
-      throw new NotFoundException('Restaurant niet gevonden of geen toegang.');
+      throw new NotFoundException('Business niet gevonden of geen toegang.');
     }
 
     return {
-      restaurantId: data.id,
+      businessId: data.id,
       name: data.name,
       city: data.city ?? null,
       cuisineStyle: data.cuisine_style ?? null,
@@ -262,7 +262,7 @@ export class HealthService {
   // ============================================================
 
   private async persist(
-    restaurantId: string,
+    businessId: string,
     source: HealthRunSource,
     durationMs: number,
     results: RunnerResult[],
@@ -273,7 +273,7 @@ export class HealthService {
     const { data: snapshot, error: snapshotError } = await this.supabase.client
       .from('health_scores')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         score_total: scoreTotal,
         score_seo: this.subScore(results, 'seo'),
         score_gbp: this.subScore(results, 'gbp'),
@@ -295,7 +295,7 @@ export class HealthService {
     const findingRows = results.flatMap((r) =>
       r.findings.map((f) => ({
         health_score_id: snapshot.id,
-        restaurant_id: restaurantId,
+        business_id: businessId,
         category: f.category,
         check_key: f.checkKey,
         passed: f.passed,
@@ -325,7 +325,7 @@ export class HealthService {
     if (competitorRows.length > 0) {
       const competitorInsertRows = competitorRows.map((c) => ({
         health_score_id: snapshot.id,
-        restaurant_id: restaurantId,
+        business_id: businessId,
         place_id: c.placeId,
         name: c.name,
         distance_m: c.distanceM,
@@ -382,7 +382,7 @@ export class HealthService {
   private mapSnapshot(row: Record<string, unknown>): HealthSnapshot {
     return {
       id: row.id as string,
-      restaurantId: row.restaurant_id as string,
+      businessId: row.business_id as string,
       scoreTotal: row.score_total as number,
       scoreSeo: row.score_seo as number,
       scoreGbp: row.score_gbp as number,
@@ -399,7 +399,7 @@ export class HealthService {
     return {
       id: row.id as string,
       healthScoreId: row.health_score_id as string,
-      restaurantId: row.restaurant_id as string,
+      businessId: row.business_id as string,
       category: row.category as HealthFinding['category'],
       checkKey: row.check_key as string,
       passed: row.passed as boolean,
@@ -418,7 +418,7 @@ export class HealthService {
     return {
       id: row.id as string,
       healthScoreId: row.health_score_id as string,
-      restaurantId: row.restaurant_id as string,
+      businessId: row.business_id as string,
       placeId: row.place_id as string,
       name: row.name as string,
       distanceM: row.distance_m as number,

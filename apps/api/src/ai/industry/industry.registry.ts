@@ -56,7 +56,7 @@ export const INDUSTRY_REGISTRY: Record<Industry, IndustryMeta> = {
   horeca: {
     slug: 'horeca',
     label: 'Horeca',
-    description: 'Restaurant, café, bistro, brasserie.',
+    description: 'Business, café, bistro, brasserie.',
     enabled: true,
   },
   kapper: {

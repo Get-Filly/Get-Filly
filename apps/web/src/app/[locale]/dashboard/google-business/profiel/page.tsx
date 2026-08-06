@@ -26,8 +26,8 @@ import {
   type GooglePlaceDetails,
   type GoogleProfileMine,
   type GoogleReview,
-  type Restaurant,
-  type RestaurantMediaItem,
+  type Business,
+  type BusinessMediaItem,
 } from "@/lib/api";
 import { MediaLibraryPicker } from "../../_components/media-library-picker";
 
@@ -162,7 +162,7 @@ export default function GoogleProfilePreviewPage() {
   );
 
   const [mine, setMine] = useState<GoogleProfileMine | null>(null);
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [restaurant, setRestaurant] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
 
   // ---- Bewerkbare Google-omschrijving (de business.manage-write) ----
@@ -412,7 +412,7 @@ export default function GoogleProfilePreviewPage() {
   };
 
   // Foto uit de bibliotheek uploaden naar het Google-profiel.
-  const handlePickPhoto = async (item: RestaurantMediaItem) => {
+  const handlePickPhoto = async (item: BusinessMediaItem) => {
     setPhotoPickerOpen(false);
     const loc = locations?.[locIndex];
     if (!loc || !item.url) return;

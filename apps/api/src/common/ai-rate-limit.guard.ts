@@ -8,13 +8,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import type { RestaurantAccess } from './restaurant-access.service';
+import type { BusinessAccess } from './business-access.service';
 
 // ============================================================
 // AiRateLimitGuard, beschermt AI-endpoints tegen runaway-kosten
 // ============================================================
 //
-// Draait PAS NA de AuthGuard + RestaurantAccessGuard zodat
+// Draait PAS NA de AuthGuard + BusinessAccessGuard zodat
 // req.restaurant gevuld is. Telt hoeveel Claude-calls dit
 // restaurant het laatste uur heeft gedaan (via de ai_usage-tabel)
 // en gooit 429 als het plafond is bereikt.
@@ -42,16 +42,16 @@ export class AiRateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<{
-      restaurant?: RestaurantAccess;
+      restaurant?: BusinessAccess;
     }>();
 
     if (!req.restaurant) {
       throw new InternalServerErrorException(
-        'AiRateLimitGuard draait zonder RestaurantAccessGuard, developer-fout.',
+        'AiRateLimitGuard draait zonder BusinessAccessGuard, developer-fout.',
       );
     }
 
-    const restaurantId = req.restaurant.restaurantId;
+    const businessId = req.restaurant.businessId;
     const limit = Number(process.env.AI_HOURLY_LIMIT_PER_RESTAURANT ?? 100);
     const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
@@ -60,7 +60,7 @@ export class AiRateLimitGuard implements CanActivate {
     const { count, error } = await this.supabase.client
       .from('ai_usage')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('created_at', sinceIso);
 
     if (error) {

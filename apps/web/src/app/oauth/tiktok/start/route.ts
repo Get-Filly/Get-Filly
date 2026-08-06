@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
  * Spiegelt /oauth/meta/start:
  *   1. Server-side check dat er een ingelogde eigenaar is (anders → /login).
  *   2. CSRF-`state` genereren + in httpOnly-cookie bewaren.
- *   3. Restaurant-id (indien meegegeven) in een aparte cookie, zodat het
+ *   3. Business-id (indien meegegeven) in een aparte cookie, zodat het
  *      niet in de URL naar TikTok lekt; de token wordt straks aan dit id
  *      gehangen.
  *   4. Redirect naar TikTok's toestemmingsscherm.
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   const state = crypto.randomUUID();
-  const restaurantId = searchParams.get("restaurantId") ?? "";
+  const businessId = searchParams.get("businessId") ?? "";
 
   let authorizeUrl: string;
   try {
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
     maxAge: 600,
   };
   response.cookies.set("tiktok_oauth_state", state, cookieBase);
-  if (restaurantId) {
-    response.cookies.set("tiktok_oauth_rid", restaurantId, cookieBase);
+  if (businessId) {
+    response.cookies.set("tiktok_oauth_rid", businessId, cookieBase);
   }
   return response;
 }

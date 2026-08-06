@@ -6,7 +6,7 @@ import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
 // AuditLogModule logt het opslaan van een review-antwoord, straks
@@ -15,6 +15,6 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 @Module({
   imports: [SupabaseModule, MeModule, AiModule, AuditLogModule],
   controllers: [ReviewsController],
-  providers: [ReviewsService, AuthGuard, RestaurantAccessGuard, AiRateLimitGuard],
+  providers: [ReviewsService, AuthGuard, BusinessAccessGuard, AiRateLimitGuard],
 })
 export class ReviewsModule {}

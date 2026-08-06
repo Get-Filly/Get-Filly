@@ -29,7 +29,7 @@ import {
   type MissingField,
 } from "@/lib/campaign-checks";
 import { Button } from "@/components/ui/button";
-import { type RestaurantMediaItem } from "@/lib/api";
+import { type BusinessMediaItem } from "@/lib/api";
 import { MediaLibraryPicker } from "../media-library-picker";
 import { toDatetimeLocalValue, formatDutchDateTime } from "./types";
 
@@ -63,7 +63,7 @@ type Props = {
   onSetSchedule: (channelId: string, iso: string) => Promise<void>;
   onApplyMedia: (
     channelIds: string[],
-    item: RestaurantMediaItem,
+    item: BusinessMediaItem,
   ) => Promise<void>;
   // Genereer nieuwe versies (incl. onderwerp) voor één kanaal.
   onRegenerate: (channelId: string) => Promise<void>;
@@ -222,7 +222,7 @@ function InlineFixPanel({
   onSetSchedule: (channelId: string, iso: string) => Promise<void>;
   onApplyMedia: (
     channelIds: string[],
-    item: RestaurantMediaItem,
+    item: BusinessMediaItem,
   ) => Promise<void>;
   onRegenerate: (channelId: string) => Promise<void>;
 }) {
@@ -374,7 +374,7 @@ function PhotoFix({
   channel: MissendeAspectenChannel;
   mediaChannels: Array<{ id: string; hasMedia: boolean }>;
   busy: boolean;
-  onApply: (channelIds: string[], item: RestaurantMediaItem) => void;
+  onApply: (channelIds: string[], item: BusinessMediaItem) => void;
 }) {
   const t = useTranslations(
     "dash__components_campaign_detail_missende_aspecten_card",

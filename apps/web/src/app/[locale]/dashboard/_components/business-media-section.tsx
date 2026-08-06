@@ -6,12 +6,12 @@ import {
   deleteRestaurantMedia,
   fetchRestaurantMedia,
   uploadRestaurantMedia,
-  type RestaurantMediaItem,
+  type BusinessMediaItem,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
 // ============================================================
-// RestaurantMediaSection, foto-bibliotheek op account-pagina
+// BusinessMediaSection, foto-bibliotheek op account-pagina
 // ============================================================
 //
 // Toont een grid van geüploade foto's met thumbnail, beschrijving en
@@ -27,9 +27,9 @@ import { Button } from "@/components/ui/button";
 
 const MAX_PHOTOS = 20;
 
-export function RestaurantMediaSection() {
+export function BusinessMediaSection() {
   const t = useTranslations("dash__components_restaurant_media_section");
-  const [items, setItems] = useState<RestaurantMediaItem[]>([]);
+  const [items, setItems] = useState<BusinessMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +202,7 @@ function MediaCard({
   busy,
   onDelete,
 }: {
-  item: RestaurantMediaItem;
+  item: BusinessMediaItem;
   busy: boolean;
   onDelete: () => void;
 }) {

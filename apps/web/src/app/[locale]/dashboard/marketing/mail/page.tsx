@@ -15,7 +15,7 @@ import {
   type MailStats,
   type CampaignMailStats,
 } from "@/lib/api";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import { useLocaleTag } from "@/lib/locale-format";
 
 /**

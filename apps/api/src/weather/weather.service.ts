@@ -50,11 +50,11 @@ type OpenMeteoResponse = {
 export class WeatherService {
   constructor(private readonly supabase: RequestSupabaseService) {}
 
-  async getForecastForRestaurant(restaurantId: string): Promise<ForecastDay[]> {
+  async getForecastForRestaurant(businessId: string): Promise<ForecastDay[]> {
     const { data: restaurant, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('latitude, longitude')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);

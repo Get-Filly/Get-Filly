@@ -13,7 +13,7 @@ export const runtime = "nodejs";
  * GET /oauth/google/start, begin de Google-Bedrijfsprofiel-koppeling
  * ============================================================
  *
- * De "Verbind Google"-knop linkt hierheen met ?restaurantId=<id>.
+ * De "Verbind Google"-knop linkt hierheen met ?businessId=<id>.
  *   1. Auth-check: alleen ingelogde eigenaars (anders -> /login).
  *   2. Teken een state die het restaurant-id + een nonce meedraagt.
  *   3. Zet de nonce in een httpOnly-cookie (double-submit-CSRF).
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   // Welke zaak koppelen we? Verplicht; zonder weten we straks niet aan
   // wie de tokens horen.
-  const restaurantId = searchParams.get("restaurantId") ?? "";
+  const businessId = searchParams.get("businessId") ?? "";
 
   // 1. Ingelogde eigenaar vereist (zelfde SSR-patroon als Meta-start).
   const cookieStore = await cookies();
@@ -50,13 +50,13 @@ export async function GET(request: NextRequest) {
     const login = new URL("/login", origin);
     login.searchParams.set(
       "next",
-      `/oauth/google/start${restaurantId ? `?restaurantId=${restaurantId}` : ""}`,
+      `/oauth/google/start${businessId ? `?businessId=${businessId}` : ""}`,
     );
     return NextResponse.redirect(login);
   }
 
   // 2a. Zonder restaurant-id kunnen we de tokens nergens aan hangen.
-  if (!restaurantId) {
+  if (!businessId) {
     const back = new URL("/dashboard/account?tab=koppelingen", origin);
     back.searchParams.set("google", "error");
     back.searchParams.set("reason", "no_restaurant");
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   let authorizeUrl: string;
   let nonce: string;
   try {
-    const signed = signState(restaurantId);
+    const signed = signState(businessId);
     nonce = signed.nonce;
     authorizeUrl = buildAuthorizeUrl({ origin, state: signed.state });
   } catch (err) {

@@ -4,7 +4,7 @@ import { MarketingMailService } from './marketing-mail.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 /**
  * MarketingModule, read-only metrics voor de Marketing-hub.
@@ -16,7 +16,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 @Module({
   imports: [SupabaseModule, MeModule],
   controllers: [MarketingController],
-  providers: [MarketingMailService, AuthGuard, RestaurantAccessGuard],
+  providers: [MarketingMailService, AuthGuard, BusinessAccessGuard],
   exports: [MarketingMailService],
 })
 export class MarketingModule {}

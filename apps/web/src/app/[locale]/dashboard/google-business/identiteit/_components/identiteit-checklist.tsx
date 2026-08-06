@@ -19,7 +19,7 @@
 // en geeft 't' door aan elke builder.
 
 import type { useTranslations } from "next-intl";
-import type { Restaurant } from "@/lib/api";
+import type { Business } from "@/lib/api";
 import {
   ProgressChecklist,
   type ProgressChecklistItem,
@@ -40,7 +40,7 @@ function strFilled(v: unknown): boolean {
 }
 
 export function buildBasicsChecklist(
-  r: Restaurant,
+  r: Business,
   mediaCount: number,
   t: ChecklistT,
 ): ProgressChecklistItem[] {
@@ -87,7 +87,7 @@ export function buildBasicsChecklist(
 }
 
 export function buildToonChecklist(
-  r: Restaurant,
+  r: Business,
   t: ChecklistT,
 ): ProgressChecklistItem[] {
   return [
@@ -135,7 +135,7 @@ export function buildToonChecklist(
 }
 
 export function buildSeoChecklist(
-  r: Restaurant,
+  r: Business,
   t: ChecklistT,
 ): ProgressChecklistItem[] {
   return [

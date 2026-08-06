@@ -44,7 +44,7 @@ export type TeamMember = {
  */
 export type InvitationRecord = {
   id: string;
-  restaurant_id: string;
+  business_id: string;
   email: string;
   role: Role;
   permissions: StoredPermissions | null;
@@ -101,17 +101,17 @@ export class TeamService {
   /**
    * Haalt alle teamleden voor een restaurant op.
    * Roept de get_restaurant_members RPC aan (zie migratie 0007),
-   * die joint restaurant_users met public.users en auth.users.
+   * die joint business_users met public.users en auth.users.
    */
-  async listMembers(restaurantId: string): Promise<TeamMember[]> {
+  async listMembers(businessId: string): Promise<TeamMember[]> {
     const { data, error } = await this.supabase.client.rpc(
-      'get_restaurant_members',
-      { rid: restaurantId },
+      'get_business_members',
+      { rid: businessId },
     );
 
     if (error) {
       this.logger.error(
-        `Kon teamleden niet ophalen voor restaurant ${restaurantId}: ${error.message}`,
+        `Kon teamleden niet ophalen voor restaurant ${businessId}: ${error.message}`,
       );
       throw error;
     }
@@ -128,15 +128,15 @@ export class TeamService {
    *   eerst of er nog minstens één andere owner overblijft.
    */
   async updateMember(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     updates: { role?: Role; permissions?: Module[] | null },
   ): Promise<TeamMember> {
     // Haal huidige koppeling op (nodig voor laatste-owner-check).
     const { data: existing, error: existErr } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .select('role')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -145,7 +145,7 @@ export class TeamService {
 
     // Als we een owner gaan downgraden: mag alleen als er een andere owner is.
     if (existing.role === 'owner' && updates.role && updates.role !== 'owner') {
-      await this.assertNotLastOwner(restaurantId, userId);
+      await this.assertNotLastOwner(businessId, userId);
     }
 
     // Bouw de update-payload. Alleen velden meesturen die echt zijn
@@ -166,9 +166,9 @@ export class TeamService {
     }
 
     const { data, error } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .update(patch)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('user_id', userId)
       .select()
       .single();
@@ -177,7 +177,7 @@ export class TeamService {
 
     // Haal de volledige member-row opnieuw op (incl. email/full_name)
     // zodat de frontend direct een complete TeamMember terugkrijgt.
-    const list = await this.listMembers(restaurantId);
+    const list = await this.listMembers(businessId);
     const updated = list.find((m) => m.user_id === userId);
     if (!updated) throw new NotFoundException('Teamlid niet gevonden na update.');
     return updated;
@@ -188,11 +188,11 @@ export class TeamService {
    *, dat doet de controller (kent current user). Hier checken we dat
    * we niet de laatste owner ontkoppelen.
    */
-  async removeMember(restaurantId: string, userId: string): Promise<void> {
+  async removeMember(businessId: string, userId: string): Promise<void> {
     const { data: existing, error: existErr } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .select('role')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -200,13 +200,13 @@ export class TeamService {
     if (!existing) throw new NotFoundException('Teamlid niet gevonden.');
 
     if (existing.role === 'owner') {
-      await this.assertNotLastOwner(restaurantId, userId);
+      await this.assertNotLastOwner(businessId, userId);
     }
 
     const { error } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .delete()
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('user_id', userId);
 
     if (error) throw error;
@@ -232,7 +232,7 @@ export class TeamService {
    *     vervangen we dit door een eigen mail-provider zoals Resend.)
    */
   async createInvite(
-    restaurantId: string,
+    businessId: string,
     invitedByUserId: string,
     input: { email: string; role: Role; permissions?: Module[] | null },
     acceptBaseUrl: string,
@@ -251,7 +251,7 @@ export class TeamService {
     const { data: existing, error: existErr } = await this.supabase.client
       .from('invitations')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('email', normalizedEmail)
       .eq('status', 'pending')
       .maybeSingle();
@@ -266,7 +266,7 @@ export class TeamService {
       const { data: created, error: createErr } = await this.supabase.client
         .from('invitations')
         .insert({
-          restaurant_id: restaurantId,
+          business_id: businessId,
           email: normalizedEmail,
           role: input.role,
           permissions:
@@ -350,7 +350,7 @@ export class TeamService {
    * URL terug zolang de invite nog pending is.
    */
   async generateMagicLinkForInvite(
-    restaurantId: string,
+    businessId: string,
     inviteId: string,
     acceptBaseUrl: string,
   ): Promise<string> {
@@ -358,7 +358,7 @@ export class TeamService {
       .from('invitations')
       .select('*')
       .eq('id', inviteId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('status', 'pending')
       .maybeSingle();
 
@@ -394,11 +394,11 @@ export class TeamService {
    * om op de team-pagina te laten zien onder "Uitgenodigd, nog niet
    * geaccepteerd".
    */
-  async listInvites(restaurantId: string): Promise<InvitationRecord[]> {
+  async listInvites(businessId: string): Promise<InvitationRecord[]> {
     const { data, error } = await this.supabase.client
       .from('invitations')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
@@ -409,12 +409,12 @@ export class TeamService {
   /**
    * Intrekken van een nog niet-geaccepteerde invite.
    */
-  async revokeInvite(restaurantId: string, inviteId: string): Promise<void> {
+  async revokeInvite(businessId: string, inviteId: string): Promise<void> {
     const { data, error } = await this.supabase.client
       .from('invitations')
       .update({ status: 'revoked' })
       .eq('id', inviteId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('status', 'pending')
       .select()
       .maybeSingle();
@@ -440,7 +440,7 @@ export class TeamService {
     token: string,
     acceptingUserId: string,
     acceptingEmail: string | null,
-  ): Promise<{ restaurantId: string; role: Role }> {
+  ): Promise<{ businessId: string; role: Role }> {
     // Haal invite op.
     const { data: invite, error: findErr } = await this.supabase.client
       .from('invitations')
@@ -484,9 +484,9 @@ export class TeamService {
     // stil downgraden (bv. een owner die per ongeluk een staff-invite
     // accepteert zou anders z'n owner-rol verliezen → restaurant zonder owner).
     const { data: existingLink } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .select('role')
-      .eq('restaurant_id', inv.restaurant_id)
+      .eq('business_id', inv.business_id)
       .eq('user_id', acceptingUserId)
       .maybeSingle();
     const roleRank = (r: string | null | undefined): number =>
@@ -495,19 +495,19 @@ export class TeamService {
       !!existingLink &&
       roleRank(existingLink.role as string) > roleRank(inv.role);
 
-    // Maak/overwrite de restaurant_users-koppeling met rol + permissies.
+    // Maak/overwrite de business_users-koppeling met rol + permissies.
     // Bij een downgrade laten we de bestaande (hogere) rol staan.
     if (!wouldDowngrade) {
       const { error: linkErr } = await this.supabase.client
-        .from('restaurant_users')
+        .from('business_users')
         .upsert(
           {
-            restaurant_id: inv.restaurant_id,
+            business_id: inv.business_id,
             user_id: acceptingUserId,
             role: inv.role,
             permissions: inv.permissions,
           },
-          { onConflict: 'restaurant_id,user_id' },
+          { onConflict: 'business_id,user_id' },
         );
 
       if (linkErr) throw linkErr;
@@ -525,7 +525,7 @@ export class TeamService {
 
     if (updateErr) throw updateErr;
 
-    return { restaurantId: inv.restaurant_id, role: inv.role };
+    return { businessId: inv.business_id, role: inv.role };
   }
 
   /**
@@ -533,13 +533,13 @@ export class TeamService {
    * van deze user zou betekenen dat er geen owners meer overblijven.
    */
   private async assertNotLastOwner(
-    restaurantId: string,
+    businessId: string,
     userIdBeingChanged: string,
   ): Promise<void> {
     const { count, error } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .select('user_id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('role', 'owner')
       .neq('user_id', userIdBeingChanged);
 

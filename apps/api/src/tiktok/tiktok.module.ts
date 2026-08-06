@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { TokenCryptoService } from '../common/token-crypto.service';
 import { TikTokController } from './tiktok.controller';
 import { TikTokService } from './tiktok.service';
@@ -21,7 +21,7 @@ import { TikTokService } from './tiktok.service';
     TikTokService,
     TokenCryptoService,
     AuthGuard,
-    RestaurantAccessGuard,
+    BusinessAccessGuard,
   ],
   exports: [TikTokService],
 })

@@ -6,14 +6,14 @@ import { AiService } from '../ai/ai.service';
 // MediaTaggerService, Vision-tag bij foto-upload
 // ============================================================
 //
-// Wordt eenmalig per upload aangeroepen door RestaurantMediaService.
+// Wordt eenmalig per upload aangeroepen door BusinessMediaService.
 // Genereert een korte Nederlandse beschrijving + 3-5 tags die Filly
 // later gebruikt om foto's voor te stellen bij campagne-creatie
 // ("voor de pasta-campagne past foto X, beschrijving: ...").
 //
 // Cost-strategie: Haiku 4.5 Vision, ~€0.005 per foto. 20 foto's per
 // restaurant = €0.10 eenmalig. Geen runtime-cost tijdens campagnes
-// omdat de tekst opgeslagen blijft in restaurant_media.description.
+// omdat de tekst opgeslagen blijft in business_media.description.
 // ============================================================
 
 const TAG_SCHEMA = {
@@ -57,10 +57,10 @@ export class MediaTaggerService {
 
   // Foto → description + tags. Bij Claude-fout returnen we lege defaults
   // zodat de upload niet faalt, eigenaar kan handmatig een description
-  // bewerken later (TODO: edit-flow op restaurant_media).
+  // bewerken later (TODO: edit-flow op business_media).
   async tag(
     file: { buffer: Buffer; mimeType: string },
-    meta: { restaurantId: string; userId?: string },
+    meta: { businessId: string; userId?: string },
   ): Promise<MediaTagResult> {
     try {
       const result = await this.ai.generateStructuredFromFile<MediaTagResult>({
@@ -85,7 +85,7 @@ export class MediaTaggerService {
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 250,
         meta: {
-          restaurantId: meta.restaurantId,
+          businessId: meta.businessId,
           userId: meta.userId,
           feature: 'media_tagger',
         },
@@ -107,7 +107,7 @@ export class MediaTaggerService {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       this.logger.warn(
-        `MediaTagger faalde voor restaurant ${meta.restaurantId}: ${msg}`,
+        `MediaTagger faalde voor restaurant ${meta.businessId}: ${msg}`,
       );
       // Fail-soft: lege defaults zodat de upload zelf wel slaagt.
       return { description: '', tags: [] };

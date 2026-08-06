@@ -43,7 +43,7 @@ interface ChannelWeights {
 
 export interface PerformanceUpsertInput {
   campaignId: string;
-  restaurantId: string;
+  businessId: string;
 }
 
 export interface PerformanceIncrementInput {
@@ -104,7 +104,7 @@ export class CampaignPerformanceService {
       .upsert(
         {
           campaign_id: input.campaignId,
-          restaurant_id: input.restaurantId,
+          business_id: input.businessId,
         },
         { onConflict: 'campaign_id', ignoreDuplicates: true },
       );
@@ -366,13 +366,13 @@ export class CampaignPerformanceService {
    * extraheren; v1 retourneert alleen campaign_id-lijst.
    */
   async getTopWinners(
-    restaurantId: string,
+    businessId: string,
     limitN: number = 3,
   ): Promise<string[]> {
     const { data, error } = await this.requestSupabase.client
       .from('campaign_performance')
       .select('campaign_id, success_score')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('classification', 'winner')
       .eq('marked_outlier', false)
       .order('success_score', { ascending: false })
@@ -431,13 +431,13 @@ export class CampaignPerformanceService {
   }
 
   async getTopUnderperformers(
-    restaurantId: string,
+    businessId: string,
     limitN: number = 3,
   ): Promise<string[]> {
     const { data, error } = await this.requestSupabase.client
       .from('campaign_performance')
       .select('campaign_id, success_score')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('classification', 'underperformer')
       .eq('marked_outlier', false)
       .order('success_score', { ascending: true })

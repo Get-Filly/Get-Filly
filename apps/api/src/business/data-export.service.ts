@@ -30,16 +30,16 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 export class DataExportService {
   constructor(private readonly supabase: RequestSupabaseService) {}
 
-  async exportRestaurantData(restaurantId: string): Promise<{
+  async exportRestaurantData(businessId: string): Promise<{
     exported_at: string;
-    restaurant_id: string;
+    business_id: string;
     data: Record<string, unknown>;
   }> {
     // Parallel ophalen om snelheid hoog te houden. Alle queries scopen
-    // op restaurant_id zodat we geen data van andere klanten meenemen
+    // op business_id zodat we geen data van andere klanten meenemen
     // (defense-in-depth bovenop tenant-guards).
     const tables = [
-      'restaurants',
+      'businesses',
       'guests',
       'guest_visits',
       'reservations',
@@ -61,14 +61,14 @@ export class DataExportService {
 
     const data: Record<string, unknown> = {};
 
-    // Per tabel: select * where restaurant_id = X. Sommige tabellen
+    // Per tabel: select * where business_id = X. Sommige tabellen
     // (campaign_*_content, chat_messages, campaign_recipients) hebben
-    // geen directe restaurant_id-kolom, die filteren we via een join
+    // geen directe business_id-kolom, die filteren we via een join
     // op campaign-id of conversation-id van wat we al hebben.
 
-    // Direct gerelateerd aan restaurant_id
+    // Direct gerelateerd aan business_id
     const directTables = [
-      'restaurants',
+      'businesses',
       'guests',
       'guest_visits',
       'reservations',
@@ -87,7 +87,7 @@ export class DataExportService {
       const { data: rows, error } = await this.supabase.client
         .from(table)
         .select('*')
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
       if (error) {
         throw new InternalServerErrorException(
           `Export-fout op tabel ${table}: ${error.message}`,
@@ -153,7 +153,7 @@ export class DataExportService {
 
     return {
       exported_at: new Date().toISOString(),
-      restaurant_id: restaurantId,
+      business_id: businessId,
       data,
     };
   }

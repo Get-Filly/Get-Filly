@@ -32,7 +32,7 @@ import type {
   ChoiceState,
 } from "./filly-chat-choice-card";
 import type { DateChoiceState } from "./filly-chat-date-card";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import { notifyCampaignsChanged } from "@/lib/campaign-events";
 import type { ProposalStatus } from "./filly-chat-types";
 import { FillyChatMessageList } from "./filly-chat-message-list";
@@ -47,7 +47,7 @@ import { logger } from "@/lib/logger";
 //
 // Verantwoordelijkheden in dit bestand:
 //   - State (messages, input, loading/sending, proposalStatus, modal)
-//   - Restaurant-context-aware fetch van chat-historie + reeds
+//   - Business-context-aware fetch van chat-historie + reeds
 //     beoordeelde suggesties (approved/rejected) zodat oude proposal-
 //     kaarten in de juiste eindstaat verschijnen na page-reload.
 //   - Send-handler met optimistic UI + error-fallback.
@@ -137,10 +137,10 @@ export function FillyChat({
   const nearBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
 
-  // Wacht tot de RestaurantContext een actief restaurant heeft geresolved
+  // Wacht tot de BusinessContext een actief restaurant heeft geresolved
   // voordat we de chat-thread ophalen. Zonder deze check vuurt fetchActiveChat
   // soms af vóór localStorage de juiste restaurant-id heeft → leeg
-  // X-Restaurant-Id → 400 van de backend. Context.loading afwachten
+  // X-Business-Id → 400 van de backend. Context.loading afwachten
   // voorkomt die race.
   const { active: activeRestaurant, loading: restaurantLoading } =
     useRestaurant();
@@ -620,7 +620,7 @@ export function FillyChat({
   };
 
   // Verwijder een conversatie. Backend bewaart eerst de Haiku-summary
-  // in restaurant_chat_memory zodat geleerde voorkeuren behouden
+  // in business_chat_memory zodat geleerde voorkeuren behouden
   // blijven. Bij delete van de actieve conversatie: switch automatisch
   // naar een nieuwe lege chat, anders zou eigenaar in een 404-state
   // belanden.
@@ -825,7 +825,7 @@ export function FillyChat({
 
       {capReached ? (
         // Cap-bereikt: input verbergen, vervangen door duidelijke CTA.
-        // Filly heeft de chat al samengevat in restaurant_chat_memory
+        // Filly heeft de chat al samengevat in business_chat_memory
         // (background-call bij cap-bereikt), vandaar de "onthoudt
         // wat 'ie heeft geleerd"-tekst.
         <div

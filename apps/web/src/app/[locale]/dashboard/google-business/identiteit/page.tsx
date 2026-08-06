@@ -9,7 +9,7 @@ import {
   fetchRestaurant,
   fetchRestaurantMedia,
   updateRestaurant,
-  type Restaurant,
+  type Business,
 } from "@/lib/api";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import MenuPage from "../../menu/page";
-import { RestaurantMediaSection } from "../../_components/restaurant-media-section";
+import { BusinessMediaSection } from "../../_components/business-media-section";
 import {
   IdentiteitChecklist,
   buildBasicsChecklist,
@@ -105,8 +105,8 @@ function IdentiteitPageInner() {
     { key: "online", label: t("tabs.online") },
   ];
 
-  const [form, setForm] = useState<Restaurant | null>(null);
-  const [original, setOriginal] = useState<Restaurant | null>(null);
+  const [form, setForm] = useState<Business | null>(null);
+  const [original, setOriginal] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -139,7 +139,7 @@ function IdentiteitPageInner() {
 
   // Helper: lokaal in form-state een veld updaten. Houdt 'original'
   // intact zodat we 'dirty'-detection kunnen doen.
-  const update = <K extends EditableFields>(key: K, value: Restaurant[K]) => {
+  const update = <K extends EditableFields>(key: K, value: Business[K]) => {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
@@ -239,7 +239,7 @@ function IdentiteitPageInner() {
       // Bouw payload met alleen gewijzigde velden zodat we niet
       // per ongeluk velden overschrijven die WebsiteAnalyzer parallel
       // heeft ge-update.
-      const payload: Partial<Restaurant> = {};
+      const payload: Partial<Business> = {};
       const keys: EditableFields[] = [
         "name",
         "tagline",
@@ -494,13 +494,13 @@ function IdentiteitPageInner() {
       </FormSection>
 
       {/* Foto-bibliotheek (verhuisd van de oude Visueel-tab). Heeft
-          eigen state + upload-flow in <RestaurantMediaSection />,
+          eigen state + upload-flow in <BusinessMediaSection />,
           dus we plaatsen 'm hier direct als embedded sectie. */}
       <FormSection
         title={t("basics.photoLibraryTitle")}
         desc={t("basics.photoLibraryDesc")}
       >
-        <RestaurantMediaSection />
+        <BusinessMediaSection />
       </FormSection>
 
       {/* Branding: logo + brand-kleuren voor mail-templates en

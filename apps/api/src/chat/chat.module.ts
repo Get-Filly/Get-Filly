@@ -9,12 +9,12 @@ import { AiModule } from '../ai/ai.module';
 import { SuggestionsModule } from '../suggestions/suggestions.module';
 import { CampaignsModule } from '../campaigns/campaigns.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
 // ChatModule bundelt alles wat Filly-chat op het dashboard nodig heeft.
 // - SupabaseModule: om berichten op te slaan + op te halen
-// - MeModule: exporteert RestaurantAccessService die de guard nodig heeft
+// - MeModule: exporteert BusinessAccessService die de guard nodig heeft
 // - AiModule: om Claude aan te roepen via onze centrale wrapper
 // - SuggestionsModule: chat-proposals landen als ai_suggestion (niet
 //   direct als campagne) zodat ze ook in de /campagnes-suggesties-
@@ -29,7 +29,7 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
     ChatService,
     ChatMemoryService,
     AuthGuard,
-    RestaurantAccessGuard,
+    BusinessAccessGuard,
     AiRateLimitGuard,
   ],
 })

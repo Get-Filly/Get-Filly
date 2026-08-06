@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../common/auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import type { AuthenticatedUser } from '../common/current-user.decorator';
-import { RestaurantAccessService } from '../common/restaurant-access.service';
+import { BusinessAccessService } from '../common/business-access.service';
 
 /**
  * ============================================================
@@ -11,11 +11,11 @@ import { RestaurantAccessService } from '../common/restaurant-access.service';
  *
  * Deze controller gaat NIET over één restaurant, maar over de user
  * en zijn relaties tot zijn restaurants. Daarom gebruiken we hier
- * alleen de AuthGuard, niet de RestaurantAccessGuard, de user hoeft
+ * alleen de AuthGuard, niet de BusinessAccessGuard, de user hoeft
  * nog geen actief restaurant te hebben gekozen.
  *
  * Endpoints:
- *   GET /me/restaurants, lijst van restaurants waar de user toegang
+ *   GET /me/businesses, lijst van restaurants waar de user toegang
  *                         toe heeft, met rol en permissies.
  *
  * De frontend gebruikt dit bij het inloggen om:
@@ -26,9 +26,9 @@ import { RestaurantAccessService } from '../common/restaurant-access.service';
 @UseGuards(AuthGuard)
 @Controller('me')
 export class MeController {
-  constructor(private readonly access: RestaurantAccessService) {}
+  constructor(private readonly access: BusinessAccessService) {}
 
-  @Get('restaurants')
+  @Get('businesses')
   async getMyRestaurants(@CurrentUser() user: AuthenticatedUser) {
     // Haal alle koppelingen op + hun effectieve permissies.
     // De service filtert eventuele "wees"-koppelingen (waar het
@@ -38,7 +38,7 @@ export class MeController {
     // We geven alleen wat de frontend nodig heeft terug, geen
     // interne velden, geen stale data.
     return list.map((item) => ({
-      id: item.restaurantId,
+      id: item.businessId,
       name: item.restaurantName,
       role: item.role,
       permissions: item.permissions,

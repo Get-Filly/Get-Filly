@@ -64,7 +64,7 @@ export class MenuImporterService {
 
   async analyze(
     file: { buffer: Buffer; mimeType: string; originalName?: string },
-    meta: { restaurantId: string | null; userId?: string },
+    meta: { businessId: string | null; userId?: string },
     kind: CardKind = 'menu',
   ): Promise<ExtractedMenu> {
     // Input-validatie. Beter hier vangen dan pas bij Claude met een
@@ -118,7 +118,7 @@ export class MenuImporterService {
         ? DRINK_EXTRACTION_SCHEMA
         : MENU_EXTRACTION_SCHEMA,
       meta: {
-        restaurantId: meta.restaurantId,
+        businessId: meta.businessId,
         userId: meta.userId,
         feature: isDrinks ? 'drinks_vision' : 'menu_vision',
       },

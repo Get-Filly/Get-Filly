@@ -11,7 +11,7 @@ import {
   fetchMarketingMailStats,
   type MailStats,
 } from "@/lib/api";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 
 /**
  * ============================================================

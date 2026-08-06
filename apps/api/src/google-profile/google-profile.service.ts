@@ -42,7 +42,7 @@ import { runAudit, type AuditResult } from './audit';
  *
  * ALLE methods gebruiken de per-request Supabase-client zodat RLS
  * automatisch het juiste restaurant filtert. We schrijven alleen via
- * eq('id', restaurantId) als extra veiligheid (defense-in-depth).
+ * eq('id', businessId) als extra veiligheid (defense-in-depth).
  *
  * Geen retry-logic ingebouwd. Places API is doorgaans betrouwbaar;
  * bij uitval krijgt de gebruiker een nette NL-foutmelding en kan 'ie
@@ -132,7 +132,7 @@ export class GoogleProfileService {
    * gewoon ververst. Bij een ander place_id wordt het oude vervangen.
    */
   async connect(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     placeId: string,
   ): Promise<{ data: PlaceDetails; syncedAt: string }> {
@@ -146,24 +146,24 @@ export class GoogleProfileService {
     const now = new Date().toISOString();
 
     const { error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({
         google_place_id: placeId,
         google_place_data: details,
         google_place_synced_at: now,
       })
-      .eq('id', restaurantId);
+      .eq('id', businessId);
 
     if (error) throw new InternalServerErrorException(error.message);
 
     // Audit: wie koppelde welk place_id wanneer. Niet de hele blob
     // loggen, alleen de identifier zodat het log compact blijft.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'google_profile_connected',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: {
         place_id: placeId,
         display_name: details.displayName,
@@ -180,17 +180,17 @@ export class GoogleProfileService {
    * Returnt `connected: false` als het restaurant geen place_id heeft
    *, dat is GEEN error, dat is gewoon de "nog niet gekoppeld"-state.
    */
-  async getMine(restaurantId: string): Promise<{
+  async getMine(businessId: string): Promise<{
     connected: boolean;
     data: PlaceDetails | null;
     syncedAt: string | null;
   }> {
     const { data: row, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select(
         'google_place_id, google_place_data, google_place_synced_at',
       )
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
 
     if (error) throw new InternalServerErrorException(error.message);
@@ -206,12 +206,12 @@ export class GoogleProfileService {
 
     if (stale) {
       try {
-        return await this.refreshInternal(restaurantId, row.google_place_id);
+        return await this.refreshInternal(businessId, row.google_place_id);
       } catch (err) {
         // Refresh-fout is niet kritiek, return de stale cache met een
         // log-warning. Beter oude data dan helemaal niks.
         this.logger.warn(
-          `Stale-refresh voor restaurant ${restaurantId} faalde: ${(err as Error).message}. Toon cached.`,
+          `Stale-refresh voor restaurant ${businessId} faalde: ${(err as Error).message}. Toon cached.`,
         );
       }
     }
@@ -228,13 +228,13 @@ export class GoogleProfileService {
    * knop op de hub. Bypasst de TTL-check.
    */
   async refresh(
-    restaurantId: string,
+    businessId: string,
     userId: string,
   ): Promise<{ data: PlaceDetails; syncedAt: string }> {
     const { data: row, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('google_place_id')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
     if (!row?.google_place_id) {
@@ -243,14 +243,14 @@ export class GoogleProfileService {
       );
     }
 
-    const result = await this.refreshInternal(restaurantId, row.google_place_id);
+    const result = await this.refreshInternal(businessId, row.google_place_id);
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'google_profile_refreshed',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: { place_id: row.google_place_id },
     });
 
@@ -265,8 +265,8 @@ export class GoogleProfileService {
    * Verloopt door `getMine()` zodat we de dezelfde TTL-refresh-logica
    * krijgen, dus altijd recent data tenzij Places API down is.
    */
-  async getAudit(restaurantId: string): Promise<AuditResult> {
-    const me = await this.getMine(restaurantId);
+  async getAudit(businessId: string): Promise<AuditResult> {
+    const me = await this.getMine(businessId);
     if (!me.connected || !me.data) {
       throw new NotFoundException(
         'Geen Google-koppeling. Verbind eerst je profiel via de hub.',
@@ -287,14 +287,14 @@ export class GoogleProfileService {
    * je eigen profiel.
    */
   async getCompetitors(
-    restaurantId: string,
+    businessId: string,
     radiusMeters: number = 1000,
   ): Promise<NearbyPlace[]> {
     if (radiusMeters < 100 || radiusMeters > 5000) {
       throw new BadRequestException('Straal moet tussen 100 en 5000 meter.');
     }
 
-    const me = await this.getMine(restaurantId);
+    const me = await this.getMine(businessId);
     if (!me.connected || !me.data || !me.data.location) {
       throw new NotFoundException(
         'Geen Google-koppeling met locatie. Verbind eerst je profiel.',
@@ -355,25 +355,25 @@ export class GoogleProfileService {
    * (handig bij support-vragen "ineens werkt mijn profiel-audit niet").
    */
   async disconnect(
-    restaurantId: string,
+    businessId: string,
     userId: string,
   ): Promise<{ ok: true }> {
     const { error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({
         google_place_id: null,
         google_place_data: null,
         google_place_synced_at: null,
       })
-      .eq('id', restaurantId);
+      .eq('id', businessId);
     if (error) throw new InternalServerErrorException(error.message);
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'google_profile_disconnected',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: {},
     });
 
@@ -458,19 +458,19 @@ export class GoogleProfileService {
    * refresh-endpoint. Bevat de daadwerkelijke fetch + DB-update.
    */
   private async refreshInternal(
-    restaurantId: string,
+    businessId: string,
     placeId: string,
   ): Promise<{ connected: true; data: PlaceDetails; syncedAt: string }> {
     const details = await this.fetchPlaceDetails(placeId);
     const now = new Date().toISOString();
 
     const { error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({
         google_place_data: details,
         google_place_synced_at: now,
       })
-      .eq('id', restaurantId);
+      .eq('id', businessId);
     if (error) throw new InternalServerErrorException(error.message);
 
     return { connected: true, data: details, syncedAt: now };

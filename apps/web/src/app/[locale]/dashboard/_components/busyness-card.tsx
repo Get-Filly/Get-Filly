@@ -21,7 +21,7 @@ import {
   fetchRestaurant,
   type OccupancyDay,
   type QuietMoment,
-  type Restaurant,
+  type Business,
 } from "@/lib/api";
 import {
   buildWeek,
@@ -72,7 +72,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const localeTag = useLocaleTag();
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [restaurant, setRestaurant] = useState<Business | null>(null);
   // Echt Google-patroon (7x24) uit busyness_snapshots; null = terugval op seed.
   const [pattern, setPattern] = useState<number[][] | null>(null);
   // Openingstijden uit de pull; sturen de grafiek-x-as (terugval na eigen tijden).

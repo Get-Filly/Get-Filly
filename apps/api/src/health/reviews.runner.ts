@@ -67,10 +67,10 @@ export class ReviewsRunner implements HealthRunner {
 
     // Place-data ophalen (cached, zelfde call als GbpRunner — Places
     // counts deze maar 1× per restaurant per 24u, dus geen extra kosten).
-    const me = await this.googleProfile.getMine(ctx.restaurantId);
+    const me = await this.googleProfile.getMine(ctx.businessId);
     if (!me.connected || !me.data) {
       this.logger.warn(
-        `Reviews: Place-data ontbreekt voor restaurant ${ctx.restaurantId}`,
+        `Reviews: Place-data ontbreekt voor restaurant ${ctx.businessId}`,
       );
       throw new Error('Google Place-data niet beschikbaar voor reviews-audit.');
     }

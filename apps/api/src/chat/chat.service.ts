@@ -8,7 +8,7 @@ import {
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
-import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { BusinessContextService } from '../ai/business-context.service';
 import { ChannelReachService } from '../ai/channel-reach.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { ChatMemoryService } from './chat-memory.service';
@@ -228,7 +228,7 @@ export class ChatService {
   // Kostenbescherming: bij elke chat-call sturen we de volledige
   // history mee, dus elke extra turn vergroot de input-tokens.
   // Combineert met chat-memory: bij cap-bereikt vat Filly de
-  // conversatie samen en slaat 'm op in restaurant_chat_memory zodat
+  // conversatie samen en slaat 'm op in business_chat_memory zodat
   // geleerde voorkeuren bewaard blijven voor volgende chats.
   // Bumped 30 → 50 (2026-05-12): ruimere chat zodat eigenaars meerdere
   // bundle-iteraties achter elkaar kunnen doen zonder steeds een
@@ -245,7 +245,7 @@ export class ChatService {
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
-    private readonly context: RestaurantContextService,
+    private readonly context: BusinessContextService,
     private readonly suggestionsService: SuggestionsService,
     private readonly memory: ChatMemoryService,
     // Voor leerloop-injectie: top-3 winners + underperformers per
@@ -265,12 +265,12 @@ export class ChatService {
   // Uitzondering: een lege oude thread hergebruiken we (geen zin om
   // elke dag een lege conversatie bij te maken).
   async getOrCreateActiveConversation(
-    restaurantId: string,
+    businessId: string,
   ): Promise<ActiveChatState> {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('chat_conversations')
       .select('id, updated_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -286,7 +286,7 @@ export class ChatService {
 
     let conversationId: string;
     if (!existing) {
-      conversationId = await this.createConversationRow(restaurantId);
+      conversationId = await this.createConversationRow(businessId);
     } else if (
       amsterdamDay(existing.updated_at as string) === amsterdamDay(new Date())
     ) {
@@ -301,31 +301,31 @@ export class ChatService {
       conversationId =
         (count ?? 0) === 0
           ? existing.id
-          : await this.createConversationRow(restaurantId);
+          : await this.createConversationRow(businessId);
     }
 
-    return this.loadConversationState(restaurantId, conversationId);
+    return this.loadConversationState(businessId, conversationId);
   }
 
   // Switcht naar een specifieke conversatie. Gebruikt door de chat-
   // history-dropdown op de frontend wanneer de eigenaar een eerdere
   // conversatie aanklikt. Verifieert tenant-isolatie (dubbel scopen op
-  // restaurant_id) zodat niemand een conversation-id van een andere
+  // business_id) zodat niemand een conversation-id van een andere
   // tenant kan opvragen door 'm te raden.
   async getConversation(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
   ): Promise<ActiveChatState> {
     const { data: conv, error: fetchErr } = await this.supabase.client
       .from('chat_conversations')
       .select('id')
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!conv) throw new NotFoundException('Gesprek niet gevonden.');
 
-    return this.loadConversationState(restaurantId, conversationId);
+    return this.loadConversationState(businessId, conversationId);
   }
 
   // Lijst van alle conversaties voor dit restaurant, gesorteerd op
@@ -335,12 +335,12 @@ export class ChatService {
   // teruggraven kan in een latere iteratie een "load more"-knop
   // krijgen. Voor nu: 50 is genoeg voor maanden actieve chat.
   async listConversations(
-    restaurantId: string,
+    businessId: string,
   ): Promise<ChatConversationSummary[]> {
     const { data, error } = await this.supabase.client
       .from('chat_conversations')
       .select('id, title, updated_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('updated_at', { ascending: false })
       .limit(50);
     if (error) throw new InternalServerErrorException(error.message);
@@ -380,9 +380,9 @@ export class ChatService {
   // aangeroepen via "+ Nieuw gesprek"-knop in de dropdown, OF
   // automatisch wanneer de cap bereikt is op de huidige conversatie.
   // Krijgt direct het welkomstbericht zodat de UI nooit leeg oogt.
-  async createConversation(restaurantId: string): Promise<ActiveChatState> {
-    const conversationId = await this.createConversationRow(restaurantId);
-    return this.loadConversationState(restaurantId, conversationId);
+  async createConversation(businessId: string): Promise<ActiveChatState> {
+    const conversationId = await this.createConversationRow(businessId);
+    return this.loadConversationState(businessId, conversationId);
   }
 
   // ============================================================
@@ -393,7 +393,7 @@ export class ChatService {
   // leeft het resultaat alleen in component-state en zie je bij terugkomst
   // een leeg scherm (de flow draait náást de chat). Geen Claude-call.
   async appendNote(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
     text: string,
     card?: unknown,
@@ -413,7 +413,7 @@ export class ChatService {
       .from('chat_conversations')
       .select('id')
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (convErr) throw new InternalServerErrorException(convErr.message);
     if (!conv) throw new BadRequestException('Gesprek niet gevonden.');
@@ -429,7 +429,7 @@ export class ChatService {
       .from('chat_messages')
       .insert({
         conversation_id: conversationId,
-        restaurant_id: restaurantId,
+        business_id: businessId,
         role: 'filly',
         content,
         message_card: messageCard,
@@ -443,7 +443,7 @@ export class ChatService {
       .from('chat_conversations')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
 
     return msg as {
       id: string;
@@ -461,7 +461,7 @@ export class ChatService {
   // voorkeuren (toon-correcties, woord-afwijzingen) moeten behouden
   // blijven voor volgende gesprekken. Daarom:
   //   1. Voor delete: probeer `summarizeAndSave` te draaien zodat
-  //      eventuele leerpunten in `restaurant_chat_memory` landen.
+  //      eventuele leerpunten in `business_chat_memory` landen.
   //      Idempotent, bij 2e poging skipt 'ie zichzelf.
   //   2. Daarna delete chat_conversations. CASCADE op chat_messages
   //      ruimt de berichten zelf op.
@@ -470,7 +470,7 @@ export class ChatService {
   // Claude down) deleten we toch, eigenaar wil 't weg en wachten op
   // Anthropic-uptime is een slechte UX. Niet-kritieke data-loss.
   async deleteConversation(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
     userId: string,
   ): Promise<{ id: string }> {
@@ -479,9 +479,9 @@ export class ChatService {
     // NotFoundException ipv silent succes.
     const { data: conv, error: fetchErr } = await this.supabase.client
       .from('chat_conversations')
-      .select('id, restaurant_id')
+      .select('id, business_id')
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!conv) {
@@ -492,7 +492,7 @@ export class ChatService {
     // service zelf via has_learning-flag.
     try {
       await this.memory.summarizeAndSave({
-        restaurantId,
+        businessId,
         userId,
         conversationId,
       });
@@ -509,7 +509,7 @@ export class ChatService {
       .from('chat_conversations')
       .delete()
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (delErr) throw new InternalServerErrorException(delErr.message);
 
     return { id: conversationId };
@@ -520,10 +520,10 @@ export class ChatService {
   // frontend de geleide on-ramp (FillyGuidedFlow) tonen — Filly's
   // openingsvraag met de dagen-keuze. Een geseed welkomstbericht
   // maakte het gesprek "niet-leeg" en blokkeerde die flow.
-  private async createConversationRow(restaurantId: string): Promise<string> {
+  private async createConversationRow(businessId: string): Promise<string> {
     const { data: created, error: createErr } = await this.supabase.client
       .from('chat_conversations')
-      .insert({ restaurant_id: restaurantId })
+      .insert({ business_id: businessId })
       .select('id')
       .single();
     if (createErr) throw new InternalServerErrorException(createErr.message);
@@ -534,16 +534,16 @@ export class ChatService {
   // een gegeven conversation. Gedeeld tussen getOrCreateActive,
   // getConversation, createConversation.
   private async loadConversationState(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
   ): Promise<ActiveChatState> {
     const messages = await this.getRecentMessages(
       conversationId,
-      restaurantId,
+      businessId,
     );
     const messageCount = await this.countMessages(conversationId);
     const activeAction = await this.getActiveAction(
-      restaurantId,
+      businessId,
       conversationId,
     );
     return { conversationId, messages, messageCount, activeAction };
@@ -553,18 +553,18 @@ export class ChatService {
   // ACTIVE ACTION, gedeelde "lopende actie"-state (audit-item #8)
   // ============================================================
   // Leest de active_action-kolom voor één gesprek. Dubbel scopen op
-  // restaurant_id = defense-in-depth; gooit NotFound als het gesprek
+  // business_id = defense-in-depth; gooit NotFound als het gesprek
   // niet (van deze tenant) is, zodat het PATCH-endpoint geen vreemde
   // conversation-id kan muteren.
   async getActiveAction(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
   ): Promise<ActiveAction | null> {
     const { data, error } = await this.supabase.client
       .from('chat_conversations')
       .select('active_action')
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
     if (!data) throw new NotFoundException('Gesprek niet gevonden.');
@@ -577,7 +577,7 @@ export class ChatService {
   // huidige state (server-authoritative: we herlezen de actuele waarde
   // zodat een gelijktijdige flow-PATCH niet stil overschreven wordt).
   async updateActiveAction(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
     delta: ActiveActionDelta | null,
   ): Promise<ActiveAction | null> {
@@ -586,18 +586,18 @@ export class ChatService {
         .from('chat_conversations')
         .update({ active_action: null })
         .eq('id', conversationId)
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
       if (error) throw new InternalServerErrorException(error.message);
       return null;
     }
-    const current = await this.getActiveAction(restaurantId, conversationId);
+    const current = await this.getActiveAction(businessId, conversationId);
     const merged = mergeActiveAction(current, delta);
     merged.updated_at = new Date().toISOString();
     const { error } = await this.supabase.client
       .from('chat_conversations')
       .update({ active_action: merged })
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (error) throw new InternalServerErrorException(error.message);
     return merged;
   }
@@ -606,15 +606,15 @@ export class ChatService {
   // een delta (of null bij reset) voor updateActiveAction. Houdt de
   // sanitisatie (ISO-datum, topic-cap, kanaal-whitelist) op één plek.
   async setActiveAction(
-    restaurantId: string,
+    businessId: string,
     conversationId: string,
     input: ActiveActionInput,
   ): Promise<ActiveAction | null> {
     if (input?.reset) {
-      return this.updateActiveAction(restaurantId, conversationId, null);
+      return this.updateActiveAction(businessId, conversationId, null);
     }
     return this.updateActiveAction(
-      restaurantId,
+      businessId,
       conversationId,
       sanitizeActionInput(input),
     );
@@ -635,7 +635,7 @@ export class ChatService {
 
   private async getRecentMessages(
     conversationId: string,
-    restaurantId: string,
+    businessId: string,
   ): Promise<ChatMessage[]> {
     // Chat-berichten ophalen. ai_suggestion_id pakken we ook mee
     // zodat we daarna per campaign-proposal de actuele status +
@@ -649,7 +649,7 @@ export class ChatService {
         'id, role, content, message_card, ai_suggestion_id, created_at',
       )
       .eq('conversation_id', conversationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('created_at', { ascending: false })
       .limit(this.CONTEXT_WINDOW);
 
@@ -752,19 +752,19 @@ export class ChatService {
   // via SSE. Beide delen runTurn (alle pre/post-logica); alleen de Claude-
   // call verschilt (generateText vs streamText).
   async sendMessage(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     conversationId: string,
     content: string,
   ): Promise<TurnResult> {
-    return this.runTurn(restaurantId, userId, conversationId, content, (p) =>
+    return this.runTurn(businessId, userId, conversationId, content, (p) =>
       this.ai.generateText({
         system: p.system,
         systemVolatile: p.volatile,
         prompt: p.prompt,
         model: 'claude-sonnet-4-6',
         maxTokens: 2000,
-        meta: { restaurantId, userId, feature: 'chat' },
+        meta: { businessId, userId, feature: 'chat' },
         cacheSystem: true,
       }),
     );
@@ -776,21 +776,21 @@ export class ChatService {
   // alsnog door het na-werk (finalize) heen, zodat kaartjes/voorstellen
   // exact gelijk blijven aan de niet-streamende flow.
   async streamMessage(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     conversationId: string,
     content: string,
     onVisible: (text: string) => void,
   ): Promise<TurnResult> {
     const forward = makeMachineBlockSuppressor(onVisible);
-    return this.runTurn(restaurantId, userId, conversationId, content, (p) =>
+    return this.runTurn(businessId, userId, conversationId, content, (p) =>
       this.ai.streamText({
         system: p.system,
         systemVolatile: p.volatile,
         prompt: p.prompt,
         model: 'claude-sonnet-4-6',
         maxTokens: 2000,
-        meta: { restaurantId, userId, feature: 'chat' },
+        meta: { businessId, userId, feature: 'chat' },
         cacheSystem: true,
         onDelta: forward,
       }),
@@ -801,7 +801,7 @@ export class ChatService {
   // (streamend of niet) en geeft het volledige antwoord terug; al het
   // andere (cap-check, opslaan, parsen, suggestie, persist) is identiek.
   private async runTurn(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     conversationId: string,
     content: string,
@@ -819,12 +819,12 @@ export class ChatService {
 
     // Defense-in-depth: verifieer dat deze conversation bij dit
     // restaurant hoort. Anders kan iemand een conversation-id van
-    // een andere tenant proberen met zijn eigen X-Restaurant-Id.
+    // een andere tenant proberen met zijn eigen X-Business-Id.
     const { data: conv, error: convErr } = await this.supabase.client
       .from('chat_conversations')
       .select('id, active_action')
       .eq('id', conversationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (convErr) throw new InternalServerErrorException(convErr.message);
     if (!conv) throw new NotFoundException('Gesprek niet gevonden.');
@@ -861,7 +861,7 @@ export class ChatService {
       .from('chat_messages')
       .insert({
         conversation_id: conversationId,
-        restaurant_id: restaurantId,
+        business_id: businessId,
         role: 'user',
         content: trimmed,
       })
@@ -871,13 +871,13 @@ export class ChatService {
 
     // 2) Context opbouwen: laatste N berichten (INCL. het net-opgeslagen
     // user-bericht) als "messages" naar Claude. System-prompt bevat
-    // Filly's persona + restaurant-context.
+    // Filly's persona + business-context.
     // Parallel: de historie-fetch en de (zwaardere) system-prompt-opbouw
     // (profiel + menu + live weer/bezetting + memories) zijn onafhankelijk.
     // Sequentieel wachtte de prompt-opbouw onnodig op de historie-query.
     const [history, systemPrompt] = await Promise.all([
-      this.getRecentMessages(conversationId, restaurantId),
-      this.buildSystemPrompt(restaurantId),
+      this.getRecentMessages(conversationId, businessId),
+      this.buildSystemPrompt(businessId),
     ]);
     // Sinds audit-item #8: GEEN per-bericht-annotatie meer. De lopende
     // dag/thema komt deterministisch uit active_action (zie het
@@ -996,7 +996,7 @@ export class ChatService {
       }
       try {
         activeAction = await this.updateActiveAction(
-          restaurantId,
+          businessId,
           conversationId,
           delta,
         );
@@ -1049,7 +1049,7 @@ export class ChatService {
         new Set(tones).size < parsedSingle.proposal.variants.length
       ) {
         this.logger.warn(
-          `Filly-proposal voor ${restaurantId} heeft niet-unieke tone-signatures (${
+          `Filly-proposal voor ${businessId} heeft niet-unieke tone-signatures (${
             tones.join(', ') || 'geen labels'
           }) over ${parsedSingle.proposal.variants.length} varianten.`,
         );
@@ -1060,7 +1060,7 @@ export class ChatService {
         // en gebruikt die variant voor de campagne-aanmaak.
         const { id, campaignId } =
           await this.suggestionsService.createFromChat(
-            restaurantId,
+            businessId,
             {
               type: parsedSingle.proposal.type,
               name: parsedSingle.proposal.name,
@@ -1095,7 +1095,7 @@ export class ChatService {
         // campaign_groups + 3 campaigns tegelijk.
         const { id, groupId } =
           await this.suggestionsService.createBundleFromChat(
-            restaurantId,
+            businessId,
             parsedBundle.bundle,
             userId,
           );
@@ -1120,7 +1120,7 @@ export class ChatService {
       .from('chat_messages')
       .insert({
         conversation_id: conversationId,
-        restaurant_id: restaurantId,
+        business_id: businessId,
         role: 'filly',
         // Dash-sanitizer ook op chat-proza: de prompt-nudge alleen hield
         // de em-dashes er niet uit (audit-feedback Floris, 2026-06-12).
@@ -1149,7 +1149,7 @@ export class ChatService {
     // de gebruiker NIET op de extra Claude-call hoeft te wachten,
     // de chat-response gaat al terug. Loopt alleen als de title nog
     // niet gezet is. Zie maybeGenerateTitle voor de drempel + flow.
-    void this.maybeGenerateTitle(restaurantId, userId, conversationId).catch(
+    void this.maybeGenerateTitle(businessId, userId, conversationId).catch(
       (e) => {
         this.logger.warn(
           `Auto-title gefaald voor conversation ${conversationId}: ${
@@ -1168,7 +1168,7 @@ export class ChatService {
     // al een memory voor deze conversation bestaat.
     if (existingCount + 2 >= this.CONVERSATION_CAP) {
       void this.memory
-        .summarizeAndSave({ restaurantId, userId, conversationId })
+        .summarizeAndSave({ businessId, userId, conversationId })
         .catch((e) => {
           this.logger.warn(
             `Memory-summary gefaald voor conv ${conversationId}: ${
@@ -1207,7 +1207,7 @@ export class ChatService {
   // 'm vullen, anders krijgen we geen response. Conform het tool-use-
   // pattern dat sinds 2026-04-30 voor alle Filly-flows geldt.
   private async maybeGenerateTitle(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     conversationId: string,
   ): Promise<void> {
@@ -1270,7 +1270,7 @@ export class ChatService {
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 100,
         meta: {
-          restaurantId,
+          businessId,
           userId,
           feature: 'chat-title',
         },
@@ -1322,7 +1322,7 @@ export class ChatService {
 
   // System-prompt voor chat: Filly's persona + volledige restaurant-
   // context (profiel + menu + actuele feiten). De context komt uit
-  // RestaurantContextService die alle blokken parallel ophaalt. ~200ms
+  // BusinessContextService die alle blokken parallel ophaalt. ~200ms
   // extra is verwaarloosbaar op een 1-3s Claude-call, en het verschil
   // in antwoord-kwaliteit is groot: Filly kent nu doelgroep, USPs,
   // menu-items + prijzen, openingstijden, socials, etc.
@@ -1332,7 +1332,7 @@ export class ChatService {
   // persoonlijker als de eerste zin "van Bistro X" zegt i.p.v. "deze
   // zaak". Twee queries kosten minder dan 50ms verschil.
   private async buildSystemPrompt(
-    restaurantId: string,
+    businessId: string,
   ): Promise<{ system: string; volatile: string }> {
     // Sinds 2026-06-12: de chat schrijft zelf GEEN campagnes meer — een
     // campagne-verzoek start de geleide flow (FILLY_START_GUIDED), die
@@ -1348,26 +1348,26 @@ export class ChatService {
     const [restaurantResult, profile, menu, photos, live, memories, pack] =
       await Promise.all([
         this.supabase.client
-          .from('restaurants')
+          .from('businesses')
           .select('name, type, filly_language')
-          .eq('id', restaurantId)
+          .eq('id', businessId)
           .maybeSingle(),
-        this.context.buildProfileBlock(restaurantId).catch(() => ''),
+        this.context.buildProfileBlock(businessId).catch(() => ''),
         // Compacte kaart voor de chat (chat-perf #2): de chat routeert naar
         // de geleide flow en schrijft zelf geen copy, dus de volledige kaart
         // is hier overbodig. Generatie gebruikt buildMenuBlock zonder compact.
-        this.context.buildMenuBlock(restaurantId, { compact: true }).catch(
+        this.context.buildMenuBlock(businessId, { compact: true }).catch(
           () => '',
         ),
-        this.context.buildPhotosBlock(restaurantId).catch(() => ''),
-        this.context.buildLiveBlock(restaurantId).catch(() => ''),
+        this.context.buildPhotosBlock(businessId).catch(() => ''),
+        this.context.buildLiveBlock(businessId).catch(() => ''),
         // Laatste N memories ophalen, Filly's leerschat uit afgesloten
         // chats. Wordt onderaan de prompt geplakt zodat 'ie weet wat de
         // eigenaar in eerdere chats heeft afgewezen / geprefereerd.
-        this.memory.getRecentMemories(restaurantId, this.MEMORY_CONTEXT_LIMIT),
+        this.memory.getRecentMemories(businessId, this.MEMORY_CONTEXT_LIMIT),
         // Branche-pack: stuurt de vaktaal bovenaan de (statische) system-
         // prompt. Voor horeca is het VAKTAAL-blok leeg → prompt ongewijzigd.
-        this.context.getIndustryPack(restaurantId),
+        this.context.getIndustryPack(businessId),
       ]);
 
     // Statische context: profiel + menu + foto's, gescheiden door "---".

@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     return back(origin, { google: "error", reason: "state" });
   }
 
-  const restaurantId = payload.rid; // tenant uit de GETEKENDE state
+  const businessId = payload.rid; // tenant uit de GETEKENDE state
   if (!code) return back(origin, { google: "error", reason: "no_code" });
 
   // 3. Sessie-token om de API-call te authenticeren. De user kwam net via
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
   const accessToken = session?.access_token;
   if (!accessToken) return back(origin, { google: "error", reason: "auth" });
 
-  // 4. Code doorsturen. X-Restaurant-Id = tenant uit de state; de API-
+  // 4. Code doorsturen. X-Business-Id = tenant uit de state; de API-
   //    guard checkt dat deze user toegang heeft tot dat restaurant
   //    (defense-in-depth). De API mapt Google-fouten naar `reason`.
   try {
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "X-Restaurant-Id": restaurantId,
+        "X-Business-Id": businessId,
       },
       body: JSON.stringify({ code, redirectUri: googleRedirectUri(origin) }),
       cache: "no-store",

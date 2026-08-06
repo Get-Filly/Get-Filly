@@ -16,7 +16,7 @@ import { coerceIndustry } from '../ai/industry/industry.registry';
 // Runt éénmalig per user bij het afronden van de onboarding-wizard:
 //   1. Valideert de input (naam + type zijn minimaal nodig).
 //   2. Maakt een nieuwe restaurants-rij met de opgegeven basics.
-//   3. Koppelt de ingelogde user als OWNER in restaurant_users.
+//   3. Koppelt de ingelogde user als OWNER in business_users.
 //   4. Zet onboarded_at = now() zodat dashboard 'm niet terugstuurt.
 //
 // Defense-in-depth:
@@ -25,7 +25,7 @@ import { coerceIndustry } from '../ai/industry/industry.registry';
 //     door de wizard heen-en-weer te klikken tientallen restaurants
 //     aanmaken.
 //   - Alle writes via service_role (standaard), maar we scopen de
-//     uniqueness-check op user_id, niet op restaurant_id.
+//     uniqueness-check op user_id, niet op business_id.
 // ============================================================
 
 export type OnboardingInput = {
@@ -109,7 +109,7 @@ type ImportResult = {
 };
 
 export type OnboardingResult = {
-  restaurantId: string;
+  businessId: string;
   menuImport: ImportResult | null;
   drinkImport: ImportResult | null;
   // True als Filly's Google-match is geaccepteerd én de connect-call
@@ -159,15 +159,15 @@ export class OnboardingService {
     // away na succes). Backend houdt alleen een count voor de audit-log
     // zodat we kunnen zien hoeveelste zaak dit was voor deze eigenaar.
     const { count: existingCount, error: countErr } = await this.supabase.client
-      .from('restaurant_users')
-      .select('restaurant_id', { count: 'exact', head: true })
+      .from('business_users')
+      .select('business_id', { count: 'exact', head: true })
       .eq('user_id', userId);
     if (countErr) throw new InternalServerErrorException(countErr.message);
     const isAdditionalRestaurant = (existingCount ?? 0) > 0;
 
     // Stap 3, FIRST public.users-spiegel-rij aanmaken (idempotent).
-    // Zonder deze rij faalt de restaurant_users-insert later op zijn
-    // FK (restaurant_users.user_id → public.users.id). Deze rij hoort
+    // Zonder deze rij faalt de business_users-insert later op zijn
+    // FK (business_users.user_id → public.users.id). Deze rij hoort
     // normaal door /auth/confirm of een trigger gezet te worden, maar
     // bij disabled email-confirmation is er nooit een moment waarop
     // dat gebeurt, dus zelf verzekeren hier.
@@ -179,7 +179,7 @@ export class OnboardingService {
     // Stap 4, maak het restaurant aan met de ingevulde basics.
     // onboarded_at vullen we direct: dit ís het einde van de wizard.
     const { data: restaurant, error: createErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .insert({
         // Basics
         name,
@@ -232,11 +232,11 @@ export class OnboardingService {
     if (createErr) throw new InternalServerErrorException(createErr.message);
 
     // Stap 5, de user als owner koppelen. Dat is het moment waarop
-    // RestaurantAccessGuard vanaf nu groen zal zeggen op het dashboard.
+    // BusinessAccessGuard vanaf nu groen zal zeggen op het dashboard.
     const { error: linkErr } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .insert({
-        restaurant_id: restaurant.id,
+        business_id: restaurant.id,
         user_id: userId,
         role: 'owner',
       });
@@ -246,7 +246,7 @@ export class OnboardingService {
       // zonder eigenaar. Opruimen zodat we niet in een vreemde
       // half-staat blijven hangen.
       await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .delete()
         .eq('id', restaurant.id);
       throw new InternalServerErrorException(linkErr.message);
@@ -262,7 +262,7 @@ export class OnboardingService {
     if (input.menu_items && input.menu_items.length > 0) {
       const attempted = input.menu_items.length;
       const rows = input.menu_items.map((item) => ({
-        restaurant_id: restaurant.id,
+        business_id: restaurant.id,
         name: item.name.trim(),
         description: item.description?.trim() || null,
         price_cents: item.price_cents ?? null,
@@ -294,7 +294,7 @@ export class OnboardingService {
     if (input.drink_items && input.drink_items.length > 0) {
       const attempted = input.drink_items.length;
       const rows = input.drink_items.map((item) => ({
-        restaurant_id: restaurant.id,
+        business_id: restaurant.id,
         name: item.name.trim(),
         description: item.description?.trim() || null,
         price_cents: item.price_cents ?? null,
@@ -332,7 +332,7 @@ export class OnboardingService {
     // onboarding gewoon door. Eigenaar kan later via de hub alsnog
     // koppelen.
     //
-    // Bewust ná de restaurant_users-link zodat connect() (die
+    // Bewust ná de business_users-link zodat connect() (die
     // RequestSupabaseService met user-JWT gebruikt) de update
     // mag uitvoeren, RLS-policy ziet de net-aangemaakte link.
     let googlePlaceConnected = false;
@@ -357,7 +357,7 @@ export class OnboardingService {
     // begonnen?"). Inclusief telling van geïmporteerde items zodat
     // we kunnen zien hoe rijk de start-data was.
     await this.audit.log({
-      restaurantId: restaurant.id,
+      businessId: restaurant.id,
       userId,
       action: 'onboarding_completed',
       entity_type: 'restaurant',
@@ -376,7 +376,7 @@ export class OnboardingService {
     });
 
     return {
-      restaurantId: restaurant.id,
+      businessId: restaurant.id,
       menuImport,
       drinkImport,
       googlePlaceConnected,
@@ -388,7 +388,7 @@ export class OnboardingService {
   // succes: logger.log met weergavenaam. Bij falen: GeocodingService
   // heeft al een warn gelogd, hier stil doorgaan.
   private async geocodeAndUpdate(
-    restaurantId: string,
+    businessId: string,
     address: {
       address?: string | null;
       postal_code?: string | null;
@@ -400,20 +400,20 @@ export class OnboardingService {
       return;
     }
     const { error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({
         latitude: coords.latitude,
         longitude: coords.longitude,
       })
-      .eq('id', restaurantId);
+      .eq('id', businessId);
     if (error) {
       this.logger.warn(
-        `Coords-update gefaald voor ${restaurantId}: ${error.message}`,
+        `Coords-update gefaald voor ${businessId}: ${error.message}`,
       );
       return;
     }
     this.logger.log(
-      `Geocode OK voor ${restaurantId}: ${coords.matched_name} (type=${coords.match_type})`,
+      `Geocode OK voor ${businessId}: ${coords.matched_name} (type=${coords.match_type})`,
     );
   }
 }

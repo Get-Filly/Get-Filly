@@ -11,7 +11,7 @@ import {
   type Campaign,
   type OccupancyDay,
   type QuietMoment,
-  type Restaurant,
+  type Business,
 } from "./api";
 import { getUpcomingSpecialDays, type SpecialDay } from "./special-days";
 import { isOpenOn } from "./occupancy-window";
@@ -66,7 +66,7 @@ export type ActionableDays = {
 
 export function useActionableDays(): ActionableDays {
   const [windowOccupancy, setWindowOccupancy] = useState<OccupancyDay[]>([]);
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [restaurant, setRestaurant] = useState<Business | null>(null);
   const [pendingSuggestions, setPendingSuggestions] = useState<AiSuggestion[]>(
     [],
   );

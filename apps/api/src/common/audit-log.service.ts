@@ -39,7 +39,7 @@ export type AuditEntityType =
 // Gebruik:
 //   constructor(private readonly audit: AuditLogService) {}
 //   await this.audit.log({
-//     restaurantId,
+//     businessId,
 //     userId,
 //     action: 'campaign_created',
 //     entity_type: 'campaign',
@@ -67,7 +67,7 @@ export class AuditLogService {
   constructor(private readonly supabase: SupabaseService) {}
 
   async log(opts: {
-    restaurantId: string | null;
+    businessId: string | null;
     userId: string | null;
     action: AuditAction;
     entity_type?: AuditEntityType;
@@ -78,7 +78,7 @@ export class AuditLogService {
   }): Promise<void> {
     try {
       const { error } = await this.supabase.client.from('audit_log').insert({
-        restaurant_id: opts.restaurantId,
+        business_id: opts.businessId,
         user_id: opts.userId,
         action: opts.action,
         entity_type: opts.entity_type ?? null,

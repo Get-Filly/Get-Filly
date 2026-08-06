@@ -12,7 +12,7 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 // (geen ingelogde user), zie runScheduledSocial.
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
-import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { BusinessContextService } from '../ai/business-context.service';
 import { vaktaalPrefix } from '../ai/industry/industry-pack';
 import {
   mapCampaignTypeToChannel,
@@ -191,11 +191,11 @@ export class CampaignsService {
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
-    // RestaurantContextService levert profile + menu + live blocks die
+    // BusinessContextService levert profile + menu + live blocks die
     // Filly nodig heeft voor goede campagne-varianten (echte gerechten,
     // USPs, doelgroep) en realistische tijdstip-suggesties (rekening
     // houdend met bezetting + special events).
-    private readonly context: RestaurantContextService,
+    private readonly context: BusinessContextService,
     // Lokale evenementen binnen de staffel-radius: extra signaal voor
     // het verzendmoment (event = piek- óf uitwijk-moment).
     private readonly events: EventsService,
@@ -243,7 +243,7 @@ export class CampaignsService {
    * BadRequest die naar boven bubbelt (de activeer-flow toont 'm).
    */
   async publishSocialCampaign(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
     useAdmin = false,
   ): Promise<{
@@ -260,7 +260,7 @@ export class CampaignsService {
     const { data: campaign, error: cErr } = await client
       .from('campaigns')
       .select('id, type')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', campaignId)
       .maybeSingle();
     if (cErr) throwDbError(this.logger, cErr);
@@ -336,7 +336,7 @@ export class CampaignsService {
     //    vóór deze feature, status flipt naar 'actief'); zit er óók TikTok
     //    in, dan gaan we daar gewoon mee door.
     if (metaRequested) {
-      const metaStatus = await this.meta.status(restaurantId, useAdmin);
+      const metaStatus = await this.meta.status(businessId, useAdmin);
       if (!metaStatus.connected || !metaStatus.page) {
         if (!toTikTok) {
           // User-flow ("Activeer nu"): NIET stil overslaan. Anders flipt de
@@ -378,7 +378,7 @@ export class CampaignsService {
           platforms.length === 0 ? !!imageUrl : platforms.includes('instagram');
         if (toFacebook || toInstagram) {
           const result = await this.meta.publish(
-            restaurantId,
+            businessId,
             { message, imageUrl, toFacebook, toInstagram },
             useAdmin,
           );
@@ -400,7 +400,7 @@ export class CampaignsService {
     //    PULL_FROM_URL kan ophalen. Onaudited/sandbox = alleen SELF_ONLY.
     if (toTikTok) {
       try {
-        const ttStatus = await this.tiktok.status(restaurantId, useAdmin);
+        const ttStatus = await this.tiktok.status(businessId, useAdmin);
         const hasVideo = paths.some((p) => /\.(mp4|mov|webm|m4v)$/i.test(p));
         if (!ttStatus.connected) {
           errors.push('TikTok niet gekoppeld; video niet geplaatst.');
@@ -413,7 +413,7 @@ export class CampaignsService {
             process.env.WEB_URL ?? 'https://www.get-filly.com'
           ).replace(/\/$/, '');
           const { publishId } = await this.tiktok.directPost(
-            restaurantId,
+            businessId,
             {
               videoUrl: `${webUrl}/media/c/${campaignId}`,
               title: message.slice(0, 2200),
@@ -443,7 +443,7 @@ export class CampaignsService {
     //     Meta/TikTok-takken: mislukt → nette fout in `errors`, gelukt → id.
     if (toGoogle) {
       try {
-        const locations = await this.google.listLocations(restaurantId);
+        const locations = await this.google.listLocations(businessId);
         const loc = locations[0];
         if (!loc) {
           errors.push(
@@ -459,7 +459,7 @@ export class CampaignsService {
                 )
               : undefined;
           const res = await this.google.createLocalPost(
-            restaurantId,
+            businessId,
             loc.name,
             message,
             undefined,
@@ -535,7 +535,7 @@ export class CampaignsService {
     const nowIso = new Date().toISOString();
     const { data: due, error } = await this.admin.client
       .from('campaigns')
-      .select('id, restaurant_id')
+      .select('id, business_id')
       .eq('type', 'social')
       .eq('status', 'ingepland')
       .is('deleted_at', null)
@@ -547,11 +547,11 @@ export class CampaignsService {
     let failed = 0;
 
     for (const c of due ?? []) {
-      const restaurantId = c.restaurant_id as string;
+      const businessId = c.business_id as string;
       const campaignId = c.id as string;
       try {
         const r = await this.publishSocialCampaign(
-          restaurantId,
+          businessId,
           campaignId,
           true, // admin-client: geen user-context in de cron
         );
@@ -570,7 +570,7 @@ export class CampaignsService {
             updated_at: nowIso,
           })
           .eq('id', campaignId)
-          .eq('restaurant_id', restaurantId);
+          .eq('business_id', businessId);
       } catch (err) {
         // Echte publicatiefout (wél gekoppeld): op 'ingepland' laten staan
         // zodat de volgende run het opnieuw probeert. Loggen.
@@ -586,7 +586,7 @@ export class CampaignsService {
     return { processed: (due ?? []).length, published, skipped, failed };
   }
 
-  async findAll(restaurantId: string): Promise<Campaign[]> {
+  async findAll(businessId: string): Promise<Campaign[]> {
     // Eerst de campagne-rijen, daarna 2 batch-queries voor de content-
     // tabellen (mail + social). Per type pakken we de juiste snippet
     // en koppelen 'm aan de campaign-id. WhatsApp heeft nog geen
@@ -603,7 +603,7 @@ export class CampaignsService {
         // i.p.v. als losse campagnes.
         'id, name, type, meta, status, result_stats, group_id, scheduled_for',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -703,7 +703,7 @@ export class CampaignsService {
   //     multi-channel campagnes.
   //   - group is nullable: null = standalone campagne zonder group.
   async findBundle(
-    restaurantId: string,
+    businessId: string,
     idOrGroupId: string,
   ): Promise<{
     group: { id: string; name: string; theme: string | null } | null;
@@ -714,7 +714,7 @@ export class CampaignsService {
       .from('campaign_groups')
       .select('id, name, theme')
       .eq('id', idOrGroupId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (groupErr) throwDbError(this.logger, groupErr);
 
@@ -739,7 +739,7 @@ export class CampaignsService {
         .from('campaigns')
         .select('id, group_id')
         .eq('id', idOrGroupId)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .is('deleted_at', null)
         .maybeSingle();
       if (campRowErr) throwDbError(this.logger, campRowErr);
@@ -755,7 +755,7 @@ export class CampaignsService {
           .from('campaign_groups')
           .select('id, name, theme')
           .eq('id', campGroupId)
-          .eq('restaurant_id', restaurantId)
+          .eq('business_id', businessId)
           .maybeSingle();
         if (g) {
           resolvedGroupId = g.id as string;
@@ -770,7 +770,7 @@ export class CampaignsService {
       // Standalone-pad: campagne hoort bij geen (bestaande) group.
       // Retourneer direct 1 detail; geen tweede round-trip nodig.
       if (!resolvedGroupId) {
-        const detail = await this.findById(restaurantId, idOrGroupId);
+        const detail = await this.findById(businessId, idOrGroupId);
         return { group: null, campaigns: [detail] };
       }
     }
@@ -779,7 +779,7 @@ export class CampaignsService {
     const { data: rows, error: rowsErr } = await this.supabase.client
       .from('campaigns')
       .select('id')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('group_id', resolvedGroupId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true });
@@ -789,17 +789,17 @@ export class CampaignsService {
     // findById doet content + signed media + reasoning. Bundles
     // hebben typisch 1-4 kanalen, parallel is dus geen overload.
     const details = await Promise.all(
-      (rows ?? []).map((r) => this.findById(restaurantId, r.id as string)),
+      (rows ?? []).map((r) => this.findById(businessId, r.id as string)),
     );
 
     return { group: groupMeta, campaigns: details };
   }
 
-  async findById(restaurantId: string, id: string): Promise<CampaignDetail> {
+  async findById(businessId: string, id: string): Promise<CampaignDetail> {
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .single();
 
@@ -855,7 +855,7 @@ export class CampaignsService {
         .from('ai_suggestions')
         .select('reasoning')
         .eq('id', campaign.ai_suggestion_id)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .maybeSingle();
       if (suggestion && typeof suggestion.reasoning === 'string') {
         reasoning = suggestion.reasoning;
@@ -896,7 +896,7 @@ export class CampaignsService {
   // zodat we geen half-leeg record achterlaten dat overal als broken
   // verschijnt in het overzicht.
   async create(
-    restaurantId: string,
+    businessId: string,
     input: {
       name: string;
       type: CampaignType;
@@ -991,7 +991,7 @@ export class CampaignsService {
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         name,
         type: input.type,
         status: 'concept',
@@ -1077,7 +1077,7 @@ export class CampaignsService {
 
     // Audit: nieuwe campagne aangemaakt door een specifieke user.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_created',
       entity_type: 'campaign',
@@ -1099,7 +1099,7 @@ export class CampaignsService {
   // het id om naartoe te navigeren: het group_id bij meerdere kanalen,
   // anders het campagne-id (findBundle smart-detect resolved beide).
   async createBundle(
-    restaurantId: string,
+    businessId: string,
     input: { name: string; platforms: string[] },
     userId: string,
   ): Promise<{ id: string }> {
@@ -1121,7 +1121,7 @@ export class CampaignsService {
     // Eén kanaal → geen bundel, gewoon een losse concept-campagne.
     if (platforms.length === 1) {
       return this.createConceptForPlatform(
-        restaurantId,
+        businessId,
         name,
         platforms[0],
         userId,
@@ -1131,7 +1131,7 @@ export class CampaignsService {
     // Meerdere kanalen → groep-anker + één concept per kanaal.
     const { data: group, error: groupErr } = await this.supabase.client
       .from('campaign_groups')
-      .insert({ restaurant_id: restaurantId, name, created_by: userId })
+      .insert({ business_id: businessId, name, created_by: userId })
       .select('id')
       .single();
     if (groupErr) throwDbError(this.logger, groupErr);
@@ -1139,7 +1139,7 @@ export class CampaignsService {
 
     for (const platform of platforms) {
       await this.createConceptForPlatform(
-        restaurantId,
+        businessId,
         name,
         platform,
         userId,
@@ -1154,7 +1154,7 @@ export class CampaignsService {
   // single- en multi-channel builder-pad (dezelfde mapping als de POST-
   // controller, maar hier herbruikbaar voor bundels).
   private async createConceptForPlatform(
-    restaurantId: string,
+    businessId: string,
     name: string,
     platform: string,
     userId: string,
@@ -1190,7 +1190,7 @@ export class CampaignsService {
       ? `${name}, ${CHANNEL_LABEL[platform] ?? platform}`
       : name;
     return this.create(
-      restaurantId,
+      businessId,
       {
         name: campaignName,
         type,
@@ -1209,24 +1209,24 @@ export class CampaignsService {
   // Maakt een leeg concept voor het nieuwe kanaal onder hetzelfde group_id.
   // Retourneert het group_id zodat de frontend de bundel kan herladen.
   async addChannel(
-    restaurantId: string,
+    businessId: string,
     idOrGroupId: string,
     platform: string,
     userId: string,
   ): Promise<{ id: string }> {
     const { groupId, name } = await this.resolveOrCreateGroup(
-      restaurantId,
+      businessId,
       idOrGroupId,
       userId,
     );
-    const existing = await this.platformsInGroup(restaurantId, groupId);
+    const existing = await this.platformsInGroup(businessId, groupId);
     if (existing.includes(platform)) {
       // Al aanwezig → idempotent.
       return { id: groupId };
     }
     // createConceptForPlatform valideert het platform (BadRequest bij onzin).
     await this.createConceptForPlatform(
-      restaurantId,
+      businessId,
       name,
       platform,
       userId,
@@ -1239,17 +1239,17 @@ export class CampaignsService {
   // van dat kanaal (via remove(), dus met de bestaande status-regels +
   // audit). Laat minstens één kanaal staan.
   async removeChannel(
-    restaurantId: string,
+    businessId: string,
     idOrGroupId: string,
     platform: string,
     userId: string,
   ): Promise<{ id: string }> {
     const { groupId } = await this.resolveOrCreateGroup(
-      restaurantId,
+      businessId,
       idOrGroupId,
       userId,
     );
-    const members = await this.channelCampaignsInGroup(restaurantId, groupId);
+    const members = await this.channelCampaignsInGroup(businessId, groupId);
     if (members.length <= 1) {
       throw new BadRequestException(
         'Een campagne moet minstens één kanaal houden.',
@@ -1260,7 +1260,7 @@ export class CampaignsService {
       // Niet aanwezig → idempotent.
       return { id: groupId };
     }
-    await this.remove(restaurantId, target.id, userId);
+    await this.remove(businessId, target.id, userId);
     return { id: groupId };
   }
 
@@ -1268,7 +1268,7 @@ export class CampaignsService {
   // campagne tot bundel (groep aanmaken + group_id zetten). Alleen toegestaan
   // op een concept. Retourneert group_id + groep-naam (bron voor sub-namen).
   private async resolveOrCreateGroup(
-    restaurantId: string,
+    businessId: string,
     idOrGroupId: string,
     userId: string,
   ): Promise<{ groupId: string; name: string }> {
@@ -1277,7 +1277,7 @@ export class CampaignsService {
       .from('campaign_groups')
       .select('id, name')
       .eq('id', idOrGroupId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (gErr) throwDbError(this.logger, gErr);
     if (g) return { groupId: g.id as string, name: g.name as string };
@@ -1286,7 +1286,7 @@ export class CampaignsService {
       .from('campaigns')
       .select('id, name, group_id, status')
       .eq('id', idOrGroupId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .is('deleted_at', null)
       .maybeSingle();
     if (cErr) throwDbError(this.logger, cErr);
@@ -1303,7 +1303,7 @@ export class CampaignsService {
         .from('campaign_groups')
         .select('id, name')
         .eq('id', camp.group_id as string)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .maybeSingle();
       if (g2) return { groupId: g2.id as string, name: g2.name as string };
     }
@@ -1311,7 +1311,7 @@ export class CampaignsService {
     const { data: newGroup, error: ngErr } = await client
       .from('campaign_groups')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         name: camp.name as string,
         created_by: userId,
       })
@@ -1322,31 +1322,31 @@ export class CampaignsService {
       .from('campaigns')
       .update({ group_id: newGroup.id as string })
       .eq('id', camp.id as string)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (upErr) throwDbError(this.logger, upErr);
     return { groupId: newGroup.id as string, name: newGroup.name as string };
   }
 
   // Kanaal-keys die al in een groep zitten (over alle sub-campagnes heen).
   private async platformsInGroup(
-    restaurantId: string,
+    businessId: string,
     groupId: string,
   ): Promise<string[]> {
-    const members = await this.channelCampaignsInGroup(restaurantId, groupId);
+    const members = await this.channelCampaignsInGroup(businessId, groupId);
     return members.flatMap((m) => m.platforms);
   }
 
   // Per niet-verwijderde campagne in de groep: id + kanaal-keys. mail/whatsapp
   // = het type zelf; social = campaign_social_content.platforms.
   private async channelCampaignsInGroup(
-    restaurantId: string,
+    businessId: string,
     groupId: string,
   ): Promise<Array<{ id: string; platforms: string[] }>> {
     const client = this.supabase.client;
     const { data: camps, error } = await client
       .from('campaigns')
       .select('id, type')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('group_id', groupId)
       .is('deleted_at', null);
     if (error) throwDbError(this.logger, error);
@@ -1386,7 +1386,7 @@ export class CampaignsService {
   // Verwijderen gebeurt apart via remove() en mag op concept of
   // ingepland (zolang de campagne nog niet daadwerkelijk uitgegaan is).
   async updateStatus(
-    restaurantId: string,
+    businessId: string,
     id: string,
     nextStatus: CampaignStatus,
     userId: string,
@@ -1406,7 +1406,7 @@ export class CampaignsService {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, status, type, scheduled_for, suggested_scheduled_for')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
 
@@ -1441,7 +1441,7 @@ export class CampaignsService {
     // TikTok OAuth, fase later); zodra die er is wordt hier de echte
     // delete-call gedaan.
     if (currentStatus === 'actief' && nextStatus === 'concept') {
-      await this.retractFromChannel(restaurantId, id, campaignType);
+      await this.retractFromChannel(businessId, id, campaignType);
     }
 
     const updates: Record<string, unknown> = {
@@ -1467,14 +1467,14 @@ export class CampaignsService {
       .from('campaigns')
       .update(updates)
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) throwDbError(this.logger, updErr);
 
     // Audit: status-overgang. Cruciaal voor debugging ("waarom staat
     // deze campagne nu op afgerond terwijl ie nog actief had moeten
     // zijn") en voor compliance-audit ("wie heeft de campagne stopgezet").
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_status_changed',
       entity_type: 'campaign',
@@ -1498,7 +1498,7 @@ export class CampaignsService {
     // blokkeren.
     if (nextStatus === 'actief') {
       void this.performance
-        .ensureRow({ campaignId: id, restaurantId })
+        .ensureRow({ campaignId: id, businessId })
         .catch((err) =>
           this.logger.warn(
             `campaign_performance.ensureRow gefaald voor ${id}: ${
@@ -1532,7 +1532,7 @@ export class CampaignsService {
   // eigen DB niet blokkeren (anders blijft de campagne 'vastzitten' op
   // actief). We loggen een warning.
   private async retractFromChannel(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
     type: string | null,
   ): Promise<void> {
@@ -1569,7 +1569,7 @@ export class CampaignsService {
     // Fail-soft: een mislukte kanaal-delete mag de terugtrekking in onze
     // eigen DB niet blokkeren (anders blijft de campagne op 'actief' hangen).
     const res = await this.meta
-      .retract(restaurantId, {
+      .retract(businessId, {
         facebook: postIds.facebook ?? null,
         instagram: postIds.instagram ?? null,
       })
@@ -1629,7 +1629,7 @@ export class CampaignsService {
   // backend later dat de campagne al een keer is afgevuurd, wat
   // verwarring geeft in stats + retentie-analyse.
   async restoreFromHistory(
-    restaurantId: string,
+    businessId: string,
     id: string,
     nextStatus: 'concept' | 'ingepland' | 'actief',
     scheduledFor: string,
@@ -1664,7 +1664,7 @@ export class CampaignsService {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, status, scheduled_for, deleted_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
     if (fetchErr) throwDbError(this.logger, fetchErr);
@@ -1707,13 +1707,13 @@ export class CampaignsService {
       .from('campaigns')
       .update(updates)
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) throwDbError(this.logger, updErr);
 
     // Audit: wie heeft een historie-campagne weer actief gemaakt?
     // Verwarring later voorkomen ("dachten dat 'ie al klaar was").
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_restored_from_history',
       entity_type: 'campaign',
@@ -1792,7 +1792,7 @@ export class CampaignsService {
   // "Met Filly bewerken"-actie je werk niet meer stil; bij een botsing
   // krijg je een nette melding i.p.v. stil dataverlies.
   private async writeVariantsGuarded(
-    restaurantId: string,
+    businessId: string,
     id: string,
     prevUpdatedAt: string | null,
     patch: { variants?: CampaignVariant[]; selected_variant_index?: number },
@@ -1801,7 +1801,7 @@ export class CampaignsService {
       .from('campaigns')
       .update({ ...patch, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     // Alleen schrijven als de versie-stempel nog gelijk is aan wat we inlazen.
     if (prevUpdatedAt) query = query.eq('updated_at', prevUpdatedAt);
     const { data, error } = await query.select('id');
@@ -1819,7 +1819,7 @@ export class CampaignsService {
   // werken met de geselecteerde tekst. Alleen toegestaan op concept;
   // immutable na ingepland.
   async selectVariant(
-    restaurantId: string,
+    businessId: string,
     id: string,
     index: number,
     userId: string,
@@ -1830,7 +1830,7 @@ export class CampaignsService {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, type, status, variants, selected_variant_index')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
     if (fetchErr) throwDbError(this.logger, fetchErr);
@@ -1863,7 +1863,7 @@ export class CampaignsService {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) throwDbError(this.logger, updErr);
 
     await this.syncContentFromVariant(
@@ -1873,7 +1873,7 @@ export class CampaignsService {
     );
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_variant_selected',
       entity_type: 'campaign',
@@ -1888,7 +1888,7 @@ export class CampaignsService {
   // variants[idx] in place. Als idx==selected_variant_index syncen
   // we ook de content-tabel zodat de "Gekozen" versie matched.
   async editVariant(
-    restaurantId: string,
+    businessId: string,
     id: string,
     index: number,
     patch: { subject_line?: string | null; body?: string },
@@ -1912,7 +1912,7 @@ export class CampaignsService {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, type, status, variants, selected_variant_index, updated_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
     if (fetchErr) throwDbError(this.logger, fetchErr);
@@ -1949,7 +1949,7 @@ export class CampaignsService {
     // Optimistisch slot: alleen schrijven als niemand anders de campagne
     // ondertussen wijzigde (anders raak je een gelijktijdige bewerking kwijt).
     await this.writeVariantsGuarded(
-      restaurantId,
+      businessId,
       id,
       (existing as { updated_at?: string }).updated_at ?? null,
       { variants: newVariants },
@@ -1967,7 +1967,7 @@ export class CampaignsService {
     }
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_variant_edited',
       entity_type: 'campaign',
@@ -1986,7 +1986,7 @@ export class CampaignsService {
   // refine()). Optionele instructie stuurt de stijl. Werkt vanuit
   // de huidige Gekozen-versie als basis.
   async generateMoreVariants(
-    restaurantId: string,
+    businessId: string,
     id: string,
     instruction: string | undefined,
   ): Promise<{ id: string; variants: CampaignVariant[] }> {
@@ -2003,7 +2003,7 @@ export class CampaignsService {
       .select(
         'id, type, status, name, variants, selected_variant_index, updated_at',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
     if (campErr) throwDbError(this.logger, campErr);
@@ -2049,15 +2049,15 @@ export class CampaignsService {
       socialPlatform = (social?.platforms as string[] | null)?.[0] ?? null;
     }
     const channel = mapCampaignTypeToChannel(type, socialPlatform);
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const pack = await this.context.getIndustryPack(businessId);
     const channelRules = formatChannelRulesForPrompt(
       channel,
       pack.channelFlavor?.[channel],
     );
 
     const [profileBlock, menuBlock] = await Promise.all([
-      this.context.buildProfileBlock(restaurantId).catch(() => ''),
-      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
     ]);
 
     const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
@@ -2131,7 +2131,7 @@ ${menuBlock}
         toolDescription:
           'Lever precies 3 alternatieve campagne-varianten in verschillende tonen op basis van de huidige versie en (optionele) instructie.',
         inputSchema: CAMPAIGN_VARIANTS_SCHEMA,
-        meta: { restaurantId, feature: 'campaign_variants_more' },
+        meta: { businessId, feature: 'campaign_variants_more' },
         cacheSystem: true,
       });
 
@@ -2205,7 +2205,7 @@ ${menuBlock}
     // een andere tab de tekst hebben bewerkt. Schrijf alleen weg als de
     // campagne sindsdien niet gewijzigd is, anders raken we die edit kwijt.
     await this.writeVariantsGuarded(
-      restaurantId,
+      businessId,
       id,
       (campaign as { updated_at?: string }).updated_at ?? null,
       { variants: newAll },
@@ -2216,14 +2216,14 @@ ${menuBlock}
 
   // Upload een foto en koppel 'm aan een concept-campagne. Patroon:
   //   - Bestand wordt opgeslagen in bucket 'campaign-media' onder
-  //     <restaurant_id>/<campaign_id>/<timestamp>-<safeName>
+  //     <business_id>/<campaign_id>/<timestamp>-<safeName>
   //   - Voor social: vervangt media_urls[] door [path] (max 1 foto in v1)
   //   - Voor whatsapp: zet media_url op path
   //   - Voor mail: weigeren (header-image is later werk)
   // Bij her-upload wissen we de oude file zodat we geen weeszooi
   // krijgen in storage.
   async uploadMedia(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
     file: { buffer: Buffer; originalName: string; mimeType: string },
   ): Promise<{
@@ -2262,7 +2262,7 @@ ${menuBlock}
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .select('id, type, status')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', campaignId)
       .maybeSingle();
     if (campErr) throwDbError(this.logger, campErr);
@@ -2281,7 +2281,7 @@ ${menuBlock}
     }
 
     // Oude file wissen om wees-bestanden te voorkomen.
-    await this.deleteMediaFiles(restaurantId, campaignId).catch((err) => {
+    await this.deleteMediaFiles(businessId, campaignId).catch((err) => {
       // Niet fataal: zelfs als opruim faalt, kunnen we de nieuwe upload
       // doorzetten. Logwaardig zodat we 't kunnen monitoren.
       console.warn(
@@ -2295,7 +2295,7 @@ ${menuBlock}
     const safeName = file.originalName
       .replace(/[^a-zA-Z0-9._-]/g, '_')
       .slice(0, 80);
-    const path = `${restaurantId}/${campaignId}/${Date.now()}-${safeName}`;
+    const path = `${businessId}/${campaignId}/${Date.now()}-${safeName}`;
 
     const { error: upErr } = await this.supabase.client.storage
       .from('campaign-media')
@@ -2333,13 +2333,13 @@ ${menuBlock}
 
   // Wist de huidige foto van een concept-campagne (storage + DB-veld).
   async deleteMedia(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
   ): Promise<{ id: string }> {
     const { data: campaign, error: campErr } = await this.supabase.client
       .from('campaigns')
       .select('id, type, status')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', campaignId)
       .maybeSingle();
     if (campErr) throwDbError(this.logger, campErr);
@@ -2352,7 +2352,7 @@ ${menuBlock}
       );
     }
 
-    await this.deleteMediaFiles(restaurantId, campaignId);
+    await this.deleteMediaFiles(businessId, campaignId);
 
     if (campaign.type === 'social') {
       const { error: updErr } = await this.supabase.client
@@ -2380,10 +2380,10 @@ ${menuBlock}
   // Helper: list + delete alle objects onder <restaurant>/<campaign>/.
   // Gebruikt door uploadMedia (her-upload-cleanup) en deleteMedia.
   private async deleteMediaFiles(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
   ): Promise<void> {
-    const prefix = `${restaurantId}/${campaignId}`;
+    const prefix = `${businessId}/${campaignId}`;
     const { data: existing, error: listErr } =
       await this.supabase.client.storage
         .from('campaign-media')
@@ -2402,7 +2402,7 @@ ${menuBlock}
   // óf zelf een tijdstip kiest. Geen status-transitie hier, die
   // gebeurt apart via updateStatus (concept → ingepland).
   async setSchedule(
-    restaurantId: string,
+    businessId: string,
     id: string,
     datetimeIso: string,
   ): Promise<{ id: string; scheduled_for: string }> {
@@ -2413,7 +2413,7 @@ ${menuBlock}
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, status')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
     if (fetchErr) throwDbError(this.logger, fetchErr);
@@ -2433,7 +2433,7 @@ ${menuBlock}
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) throwDbError(this.logger, updErr);
 
     return { id, scheduled_for: datetimeIso };
@@ -2480,14 +2480,14 @@ ${menuBlock}
   // impact (geen ontvangers, geen meet-data). Actieve en afgeronde
   // campagnes zijn audit-relevant: die blijven in de DB staan.
   async remove(
-    restaurantId: string,
+    businessId: string,
     id: string,
     userId: string,
   ): Promise<{ id: string }> {
     const { data: existing, error: fetchErr } = await this.supabase.client
       .from('campaigns')
       .select('id, status, deleted_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('id', id)
       .maybeSingle();
 
@@ -2516,11 +2516,11 @@ ${menuBlock}
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (delErr) throwDbError(this.logger, delErr);
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_deleted',
       entity_type: 'campaign',
@@ -2534,13 +2534,13 @@ ${menuBlock}
   // Verwijderde campagnes voor de Verwijderd-tab op /campagnes/history.
   // Zelfde shape als findAll, maar gefilterd op deleted_at IS NOT NULL.
   // Geen body_preview-join: voor de archief-view voldoet de naam + datum.
-  async findDeleted(restaurantId: string): Promise<Campaign[]> {
+  async findDeleted(businessId: string): Promise<Campaign[]> {
     const { data, error } = await this.supabase.client
       .from('campaigns')
       .select(
         'id, name, type, meta, status, result_stats, group_id, scheduled_for, deleted_at',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false });
 

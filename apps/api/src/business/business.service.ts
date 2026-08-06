@@ -12,17 +12,17 @@ import { GeocodingService } from '../geocoding/geocoding.service';
 import { WebsiteAnalyzerService } from '../ai/website-analyzer.service';
 import { AuditLogService } from '../common/audit-log.service';
 import {
-  RestaurantUpdateSchema,
+  BusinessUpdateSchema,
   firstZodMessage,
-} from './restaurant-update.schema';
+} from './business-update.schema';
 
 // Velden die geocoding triggeren als ze wijzigen. Bij een wijziging
 // op een van deze sleutels halen we automatisch nieuwe lat/long op.
 const ADDRESS_FIELDS = new Set(['address', 'postal_code', 'city']);
 
 @Injectable()
-export class RestaurantService {
-  private readonly logger = new Logger(RestaurantService.name);
+export class BusinessService {
+  private readonly logger = new Logger(BusinessService.name);
 
   constructor(
     private readonly supabase: RequestSupabaseService,
@@ -31,11 +31,11 @@ export class RestaurantService {
     private readonly audit: AuditLogService,
   ) {}
 
-  async getById(restaurantId: string) {
+  async getById(businessId: string) {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('*')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
@@ -51,13 +51,13 @@ export class RestaurantService {
   //      ziet dat het niet meer klopt, geen oude coords laten staan
   //      die fout zijn.
   //
-  // Het zod-schema (RestaurantUpdateSchema) is .strict(), een veld
+  // Het zod-schema (BusinessUpdateSchema) is .strict(), een veld
   // dat niet expliciet is toegestaan wordt geweigerd, in plaats van
   // dat we een handmatige denylist moeten onderhouden. Bij elke nieuwe
   // DB-kolom: voeg toe aan het schema (bewuste keuze) of houd 'm
   // server-managed (default).
   async update(
-    restaurantId: string,
+    businessId: string,
     updates: Record<string, unknown>,
     userId: string,
   ) {
@@ -71,7 +71,7 @@ export class RestaurantService {
       // (.strip is default zod-gedrag), zie schema-comments voor de
       // afweging. Hieronder loggen we welke keys we wegfilterden,
       // zodat we hygiëne-visibiliteit houden zonder de frontend te breken.
-      safe = RestaurantUpdateSchema.parse(updates) as Record<string, unknown>;
+      safe = BusinessUpdateSchema.parse(updates) as Record<string, unknown>;
     } catch (e) {
       if (e instanceof ZodError) {
         throw new BadRequestException(firstZodMessage(e));
@@ -87,7 +87,7 @@ export class RestaurantService {
     );
     if (stripped.length > 0) {
       this.logger.debug(
-        `Restaurant ${restaurantId} update: gefilterde velden ${stripped.join(', ')}`,
+        `Business ${businessId} update: gefilterde velden ${stripped.join(', ')}`,
       );
     }
 
@@ -102,9 +102,9 @@ export class RestaurantService {
     );
     if (addressChanging) {
       const { data: current, error: curErr } = await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .select('address, postal_code, city')
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle();
       if (curErr) throw new InternalServerErrorException(curErr.message);
 
@@ -120,7 +120,7 @@ export class RestaurantService {
         safe.latitude = result.latitude;
         safe.longitude = result.longitude;
         this.logger.log(
-          `Geocoded ${restaurantId}: ${result.latitude},${result.longitude}`,
+          `Geocoded ${businessId}: ${result.latitude},${result.longitude}`,
         );
       } else {
         // Adres gewijzigd maar geen match meer: lat/long resetten
@@ -129,15 +129,15 @@ export class RestaurantService {
         safe.latitude = null;
         safe.longitude = null;
         this.logger.warn(
-          `Geocode mislukt voor ${restaurantId}, coords gereset.`,
+          `Geocode mislukt voor ${businessId}, coords gereset.`,
         );
       }
     }
 
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({ ...safe, updated_at: new Date().toISOString() })
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .select()
       .single();
 
@@ -148,11 +148,11 @@ export class RestaurantService {
     // emails, KvK staan dan niet in dat logboek. Voor compliance is
     // "veld X is om 14:32 aangepast" voldoende.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'restaurant_updated',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: { fields_changed: Object.keys(safe) },
     });
 
@@ -164,15 +164,15 @@ export class RestaurantService {
   // website"-knop op de account-pagina. Endpoint vraagt expliciet
   // om analyse, niet automatisch, want website-analyse kost een
   // Claude-call (~€0,05) en eigenaar moet bewust kiezen.
-  async analyzeWebsite(restaurantId: string, userId: string) {
+  async analyzeWebsite(businessId: string, userId: string) {
     // Pak de huidige website_url op. Geen URL = duidelijke fout.
     const { data: r, error: rErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('website_url')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (rErr) throw new InternalServerErrorException(rErr.message);
-    if (!r) throw new NotFoundException('Restaurant niet gevonden.');
+    if (!r) throw new NotFoundException('Business niet gevonden.');
     const url = (r.website_url as string | null)?.trim();
     if (!url) {
       throw new BadRequestException(
@@ -236,26 +236,26 @@ export class RestaurantService {
     if (profile.legal_name) updates.legal_name = profile.legal_name;
 
     const { data: updated, error: updErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .select()
       .single();
     if (updErr) throw new InternalServerErrorException(updErr.message);
 
     this.logger.log(
-      `Website-analyse uitgevoerd voor ${restaurantId} door user ${userId}`,
+      `Website-analyse uitgevoerd voor ${businessId} door user ${userId}`,
     );
 
     // Audit: handmatige website-analyse. Belangrijk omdat dit bestaande
     // tagline/sfeer/USPs kan overschrijven, bij een klacht "mijn
     // tagline is veranderd" weten we wie + wanneer.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'website_analyzed',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: {
         url,
         confidence: profile.confidence,
@@ -269,7 +269,7 @@ export class RestaurantService {
   }
 
   // Note: validatie + formaat-stripping (KvK-spaties, VAT-uppercase,
-  // e-mail-regex etc) draait nu in RestaurantUpdateSchema (zie
-  // restaurant-update.schema.ts). Eén schema = single source of truth
+  // e-mail-regex etc) draait nu in BusinessUpdateSchema (zie
+  // business-update.schema.ts). Eén schema = single source of truth
   // voor "wat mag eigenaar wijzigen + in welk formaat".
 }

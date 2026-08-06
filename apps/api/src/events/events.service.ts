@@ -56,12 +56,12 @@ export class EventsService {
    * 21 dagen. Fail-soft: geen coördinaten of een query-fout levert
    * een lege lijst op, nooit een gecrashte AI-feature.
    */
-  async findNearby(restaurantId: string): Promise<NearbyEvent[]> {
+  async findNearby(businessId: string): Promise<NearbyEvent[]> {
     try {
       const { data: restaurant } = await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .select('latitude, longitude, event_categories, event_max_distance_km')
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle();
       const lat = restaurant?.latitude as number | null;
       const lng = restaurant?.longitude as number | null;
@@ -149,12 +149,12 @@ export class EventsService {
    * account-pagina (mig 0055). Bepaalt de includeHolidays-vlag voor
    * buildExternalFactorsBlock. Fail-soft → true bij een query-fout.
    */
-  async holidaysEnabled(restaurantId: string): Promise<boolean> {
+  async holidaysEnabled(businessId: string): Promise<boolean> {
     try {
       const { data } = await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .select('event_holidays_enabled')
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle();
       // null/undefined = nooit ingesteld → default aan.
       return (data?.event_holidays_enabled as boolean | null) ?? true;
@@ -167,8 +167,8 @@ export class EventsService {
    * Bouwt het EVENEMENTEN IN DE BUURT-blok voor een system-prompt.
    * Lege string als er niets in de buurt is (geen blok = geen ruis).
    */
-  async buildEventsBlock(restaurantId: string): Promise<string> {
-    const nearby = await this.findNearby(restaurantId);
+  async buildEventsBlock(businessId: string): Promise<string> {
+    const nearby = await this.findNearby(businessId);
     if (nearby.length === 0) return '';
 
     const dayNames = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];

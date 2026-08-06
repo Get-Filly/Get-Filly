@@ -95,13 +95,13 @@ export class GbpRunner implements HealthRunner {
     // Place-data + audit-findings ophalen (cached, 24u TTL).
     let audit: { findings: AuditFinding[] };
     try {
-      audit = await this.googleProfile.getAudit(ctx.restaurantId);
+      audit = await this.googleProfile.getAudit(ctx.businessId);
     } catch (err) {
       // Profile-data niet beschikbaar (place verwijderd, API down, etc.).
       // We gooien om Promise.allSettled in HealthService 'm op te vangen
       // en als 'runner_failed' te markeren.
       this.logger.warn(
-        `GBP-audit niet beschikbaar voor ${ctx.restaurantId}: ${
+        `GBP-audit niet beschikbaar voor ${ctx.businessId}: ${
           err instanceof Error ? err.message : err
         }`,
       );

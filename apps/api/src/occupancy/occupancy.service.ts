@@ -14,7 +14,7 @@ export class OccupancyService {
   constructor(private readonly supabase: RequestSupabaseService) {}
 
   async getMonth(
-    restaurantId: string,
+    businessId: string,
     year: number,
     month: number,
   ): Promise<OccupancyDay[]> {
@@ -24,7 +24,7 @@ export class OccupancyService {
     const { data, error } = await this.supabase.client
       .from('occupancy_days')
       .select('date, occupancy_pct, estimated_guests, estimated_revenue_cents')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('date', monthStart)
       .lte('date', monthEnd)
       .order('date', { ascending: true });

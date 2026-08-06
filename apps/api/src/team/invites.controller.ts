@@ -16,7 +16,7 @@ import type { AuthenticatedUser } from '../common/current-user.decorator';
  * ============================================================
  *
  * Dit endpoint staat los van de TeamController omdat het:
- *   - Geen actieve restaurant-context heeft (user heeft juist net de
+ *   - Geen actieve business-context heeft (user heeft juist net de
  *     invite geklikt en wil gekoppeld WORDEN aan een restaurant).
  *   - Alleen AuthGuard vereist (user moet ingelogd zijn, de magic
  *     link van Supabase regelt die login automatisch).

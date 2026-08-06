@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { INDUSTRIES } from '../ai/industry/industry.registry';
 
 // ============================================================
-// RestaurantUpdateSchema, strikte allowlist voor PATCH /restaurant/me
+// BusinessUpdateSchema, strikte allowlist voor PATCH /restaurant/me
 // ============================================================
 //
 // Waarom een schema in plaats van handmatig FORBIDDEN_PATCH_FIELDS?
@@ -141,9 +141,9 @@ const ServicePeriodsSchema = z.record(
 // Hoofd-schema
 // ------------------------------------------------------------
 
-export const RestaurantUpdateSchema = z
+export const BusinessUpdateSchema = z
   .object({
-    // ----- Restaurant -----
+    // ----- Business -----
     name: optionalText(200),
     // Branche-taxonomie (mig 0066). Gestructureerd, gevalideerd tegen de
     // code-registry (ai/industry). Stuurt Filly's industry-pack. Los van
@@ -402,9 +402,9 @@ export const RestaurantUpdateSchema = z
   // save het complete form-object incl. server-managed velden (id,
   // plan, latitude, etc). Met .strict() zou élke save 400 geven.
   //
-  // RestaurantService.update detecteert + logt welke keys gestripped
+  // BusinessService.update detecteert + logt welke keys gestripped
   // zijn zodat we visibiliteit houden, en bij een nieuwe DB-kolom
-  // die per ongeluk in de Restaurant-type belandt zonder schema-update,
+  // die per ongeluk in de Business-type belandt zonder schema-update,
   // zien we 't in de logs i.p.v. dat een eigenaar een gat ontdekt.
   //
   // Alternatief voor de toekomst: frontend bouwen om alleen-changed-
@@ -412,7 +412,7 @@ export const RestaurantUpdateSchema = z
   // aanzetten voor harde garantie.
   ;
 
-export type RestaurantUpdateInput = z.infer<typeof RestaurantUpdateSchema>;
+export type BusinessUpdateInput = z.infer<typeof BusinessUpdateSchema>;
 
 // Helper: werp de eerste zod-fout om als BadRequestException-message.
 // Gebruikt door de service zodat de UI een nette NL-tekst krijgt

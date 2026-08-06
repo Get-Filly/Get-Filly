@@ -9,14 +9,14 @@ import {
   updateRestaurant,
   downloadRestaurantExport,
   deleteAccount,
-  type Restaurant,
+  type Business,
 } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useLocaleTag } from "@/lib/locale-format";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 import { OnboardingChecklist } from "../_components/onboarding-checklist";
 import { MailDomainSection } from "../_components/mail-domain-section";
-import { RestaurantMediaSection } from "../_components/restaurant-media-section";
+import { BusinessMediaSection } from "../_components/business-media-section";
 import { ConnectionsSection } from "../_components/account-connections";
 import { GoogleConnectedPanel } from "../_components/google-connected-panel";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ const LANGUAGE_OPTIONS: string[] = ["nl", "en", "de", "fr", "es", "it"];
 function AccountPageInner() {
   const t = useTranslations("dash_account_page");
   const localeTag = useLocaleTag();
-  const [form, setForm] = useState<Restaurant | null>(null);
+  const [form, setForm] = useState<Business | null>(null);
   // Onopgeslagen-wijzigingen-vlag: true zodra de eigenaar iets aanpast, weer
   // false na opslaan of (her)laden. Voedt de beforeunload-waarschuwing.
   const [dirty, setDirty] = useState(false);
@@ -165,7 +165,7 @@ function AccountPageInner() {
     );
   }
 
-  const update = <K extends keyof Restaurant>(key: K, value: Restaurant[K]) => {
+  const update = <K extends keyof Business>(key: K, value: Business[K]) => {
     setForm((f) => (f ? { ...f, [key]: value } : f));
     setSaveStatus("idle");
     setDirty(true);
@@ -289,7 +289,7 @@ function AccountPageInner() {
       {activeTab === "algemeen" && <OnboardingChecklist />}
 
       {/* ============================================================
-          Sectie 1, Restaurant — ALGEMEEN
+          Sectie 1, Business — ALGEMEEN
           ============================================================ */}
       {activeTab === "algemeen" && (
       <div className="form-section">
@@ -299,7 +299,7 @@ function AccountPageInner() {
         {/* Eigenaar met meerdere zaken (vestigingen, 2e concept) kan
             hier een nieuwe zaak aanmaken. Hergebruikt de onboarding-
             wizard met ?mode=add, backend laat sinds 2026-05-01
-            meerdere restaurant_users-rijen per user toe. Wisselen tussen
+            meerdere business_users-rijen per user toe. Wisselen tussen
             zaken na aanmaken kan via het account-menu linksboven
             (workspace-dropdown). */}
         <div

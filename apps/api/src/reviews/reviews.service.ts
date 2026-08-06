@@ -9,7 +9,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
-import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { BusinessContextService } from '../ai/business-context.service';
 import { AuditLogService } from '../common/audit-log.service';
 
 // Schema voor de 3-varianten-tool. minItems/maxItems forceert
@@ -52,21 +52,21 @@ export class ReviewsService {
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
-    // RestaurantContextService levert het profile-block (USPs, tagline,
+    // BusinessContextService levert het profile-block (USPs, tagline,
     // sfeer, doelgroep, signature dishes etc). Filly gebruikt dat om
     // het review-antwoord echt bij DEZE zaak te laten passen i.p.v.
     // generieke "bedankt-voor-uw-bezoek"-tekst.
-    private readonly context: RestaurantContextService,
+    private readonly context: BusinessContextService,
     private readonly audit: AuditLogService,
   ) {}
 
-  async findAll(restaurantId: string): Promise<Review[]> {
+  async findAll(businessId: string): Promise<Review[]> {
     const { data, error } = await this.supabase.client
       .from('reviews')
       .select(
         'id, source, rating, title, body, author, review_date, response_text, responded_at',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .order('review_date', { ascending: false });
 
     if (error) throw new InternalServerErrorException(error.message);
@@ -76,11 +76,11 @@ export class ReviewsService {
   // Haalt de eigen reviews-toon op (mig 0051). Leeg/null = de aanroeper
   // valt terug op de algemene merkstem uit het profileBlock. Aparte
   // lichte query zodat de prompt-bouwers 'm los kunnen meegeven.
-  private async getReviewsTone(restaurantId: string): Promise<string | null> {
+  private async getReviewsTone(businessId: string): Promise<string | null> {
     const { data } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('reviews_tone_of_voice')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     const tone = (data?.reviews_tone_of_voice as string | null) ?? null;
     return tone && tone.trim() ? tone : null;
@@ -104,17 +104,17 @@ export class ReviewsService {
   // Faalt fail-soft: een mislukte auto-reply mag de review-sync of
   // -invoer nooit blokkeren.
   async maybeAutoReply(
-    restaurantId: string,
+    businessId: string,
     reviewId: string,
     userId: string,
   ): Promise<void> {
     try {
       const { data: settings } = await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .select(
           'reviews_auto_reply_enabled, reviews_auto_reply_mode, low_review_threshold',
         )
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle();
       if (!settings?.reviews_auto_reply_enabled) return;
 
@@ -127,7 +127,7 @@ export class ReviewsService {
         .from('reviews')
         .select('id, rating, response_text, filly_variants')
         .eq('id', reviewId)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .maybeSingle();
       if (!review) return;
       // Al beantwoord of al een concept klaar? Niet dubbel doen.
@@ -145,7 +145,7 @@ export class ReviewsService {
 
       // Genereer één concept-reactie en zet 'm klaar als variant.
       const { suggestion } = await this.generateReplySuggestion(
-        restaurantId,
+        businessId,
         reviewId,
         userId,
       );
@@ -153,10 +153,10 @@ export class ReviewsService {
         .from('reviews')
         .update({ filly_variants: [suggestion] })
         .eq('id', reviewId)
-        .eq('restaurant_id', restaurantId);
+        .eq('business_id', businessId);
 
       if (mode === 'publish') {
-        await this.publishReplyToGoogle(restaurantId, reviewId, suggestion);
+        await this.publishReplyToGoogle(businessId, reviewId, suggestion);
       }
     } catch (err) {
       // Fail-soft: log alleen, blokkeer de aanroeper niet.
@@ -176,24 +176,24 @@ export class ReviewsService {
   // Tot dan: bewust een no-op met waarschuwing, zodat mode 'publish'
   // nooit stilletjes lijkt te werken terwijl er niks naar Google gaat.
   private async publishReplyToGoogle(
-    restaurantId: string,
+    businessId: string,
     reviewId: string,
     _replyText: string,
   ): Promise<void> {
     this.logger.warn(
       `publishReplyToGoogle nog niet actief (wacht op GBP OAuth, fase E) — ` +
-        `review ${reviewId} van restaurant ${restaurantId} blijft als concept staan.`,
+        `review ${reviewId} van restaurant ${businessId} blijft als concept staan.`,
     );
   }
 
   // Genereert een reply-voorstel via Claude. We scopen bewust op BEIDE
   // id's (review-id + restaurant-id) in de DB-query, zo kan een
   // kwaadwillende gebruiker niet iemand anders zijn review-id opsturen
-  // en een suggestie afdwingen met zijn eigen X-Restaurant-Id header.
+  // en een suggestie afdwingen met zijn eigen X-Business-Id header.
   // De tenant-isolation zit dus niet alleen in de guard, maar ook in
   // de query zelf: defense-in-depth.
   async generateReplySuggestion(
-    restaurantId: string,
+    businessId: string,
     reviewId: string,
     userId: string,
   ): Promise<{ suggestion: string }> {
@@ -201,7 +201,7 @@ export class ReviewsService {
       .from('reviews')
       .select('id, source, rating, title, body, author')
       .eq('id', reviewId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
 
     if (reviewErr) throw new InternalServerErrorException(reviewErr.message);
@@ -212,12 +212,12 @@ export class ReviewsService {
     // toon hij moet aanslaan en kan in zijn reactie iets specifieks
     // noemen ("fijn dat je onze open keuken zo hebt ervaren") als de
     // gast iets aanstipt dat in het profiel staat.
-    const profileBlock = await this.context.buildProfileBlock(restaurantId);
+    const profileBlock = await this.context.buildProfileBlock(businessId);
     if (!profileBlock) {
-      throw new NotFoundException('Restaurant niet gevonden.');
+      throw new NotFoundException('Business niet gevonden.');
     }
 
-    const reviewsTone = await this.getReviewsTone(restaurantId);
+    const reviewsTone = await this.getReviewsTone(businessId);
     const systemPrompt = buildReviewReplySystemPrompt(
       profileBlock,
       reviewsTone,
@@ -234,7 +234,7 @@ export class ReviewsService {
       model: 'claude-sonnet-4-6',
       maxTokens: 400,
       meta: {
-        restaurantId,
+        businessId,
         userId,
         feature: 'review_reply',
       },
@@ -250,15 +250,15 @@ export class ReviewsService {
    * profiel-context + toon + prompts zodat de stijl identiek is.
    */
   async generateReplyForText(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     input: { rating: number; body: string | null; author: string | null },
   ): Promise<{ suggestion: string }> {
-    const profileBlock = await this.context.buildProfileBlock(restaurantId);
+    const profileBlock = await this.context.buildProfileBlock(businessId);
     if (!profileBlock) {
-      throw new NotFoundException('Restaurant niet gevonden.');
+      throw new NotFoundException('Business niet gevonden.');
     }
-    const reviewsTone = await this.getReviewsTone(restaurantId);
+    const reviewsTone = await this.getReviewsTone(businessId);
     const systemPrompt = buildReviewReplySystemPrompt(
       profileBlock,
       reviewsTone,
@@ -277,7 +277,7 @@ export class ReviewsService {
       model: 'claude-sonnet-4-6',
       maxTokens: 400,
       meta: {
-        restaurantId,
+        businessId,
         userId,
         feature: 'review_reply',
       },
@@ -291,7 +291,7 @@ export class ReviewsService {
   // bepalen of er al een set staat (=> tonen) of dat er gegenereerd
   // moet (=> POST /refine).
   async getVariants(
-    restaurantId: string,
+    businessId: string,
     reviewId: string,
   ): Promise<{
     variants: string[];
@@ -302,7 +302,7 @@ export class ReviewsService {
       .from('reviews')
       .select('filly_variants, filly_variants_regen_count')
       .eq('id', reviewId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
 
     if (error) throw new InternalServerErrorException(error.message);
@@ -328,7 +328,7 @@ export class ReviewsService {
   // cachet ze. count=0 → 3 nieuwe; count=1 → 3 extra (totaal 6);
   // count>=2 → BadRequest (kostenbeheersing).
   async refineVariants(
-    restaurantId: string,
+    businessId: string,
     reviewId: string,
     userId: string,
   ): Promise<{
@@ -342,7 +342,7 @@ export class ReviewsService {
         'id, source, rating, title, body, author, filly_variants, filly_variants_regen_count',
       )
       .eq('id', reviewId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
 
     if (reviewErr) throw new InternalServerErrorException(reviewErr.message);
@@ -366,14 +366,14 @@ export class ReviewsService {
     // Volledig profile-block voor toon-match + restaurant-identiteit.
     // Zelfde context als bij de single-suggestion call, zodat alle
     // varianten consistent klinken met de zaak.
-    const profileBlock = await this.context.buildProfileBlock(restaurantId);
+    const profileBlock = await this.context.buildProfileBlock(businessId);
     if (!profileBlock) {
-      throw new NotFoundException('Restaurant niet gevonden.');
+      throw new NotFoundException('Business niet gevonden.');
     }
 
     // System-prompt: vraag 3 alternatieven via tool-use. Schema dwingt
     // precies 3 strings af in de variants-array.
-    const reviewsTone = await this.getReviewsTone(restaurantId);
+    const reviewsTone = await this.getReviewsTone(businessId);
     const baseSystem = buildReviewReplySystemPrompt(profileBlock, reviewsTone);
     const systemPrompt = `${baseSystem}
 
@@ -392,7 +392,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
           'Lever 3 verschillende reactie-varianten op de gegeven review met onderling andere tonen.',
         inputSchema: REVIEW_REPLY_VARIANTS_SCHEMA,
         meta: {
-          restaurantId,
+          businessId,
           userId,
           feature: 'review_reply_variants',
         },
@@ -424,7 +424,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
         filly_variants_regen_count: newCount,
       })
       .eq('id', reviewId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) throw new InternalServerErrorException(updErr.message);
 
     return {
@@ -441,7 +441,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
   // werk (OAuth + platform-specifieke API's); voor nu is dit puur
   // opslaan in onze DB.
   async updateResponse(
-    restaurantId: string,
+    businessId: string,
     reviewId: string,
     responseText: string,
     userId: string,
@@ -465,7 +465,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
         responded_at: new Date().toISOString(),
       })
       .eq('id', reviewId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(
         'id, source, rating, title, body, author, review_date, response_text, responded_at',
       )
@@ -479,7 +479,7 @@ EXTRA-REGEL VOOR DEZE CALL: lever je antwoord via de tool 'generate_review_reply
     // het audit-logboek belanden. De DB-rij zelf bevat het volledige
     // antwoord nog, dus reconstructie is altijd mogelijk via de review.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'review_response_updated',
       entity_type: 'review',

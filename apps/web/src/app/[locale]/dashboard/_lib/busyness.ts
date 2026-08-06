@@ -17,7 +17,7 @@
 import { mondayIndex } from "./calendar-data";
 import { getSpecialDays, type SpecialDay } from "@/lib/special-days";
 import { isOpenOn } from "@/lib/occupancy-window";
-import type { OccupancyDay, Restaurant } from "@/lib/api";
+import type { OccupancyDay, Business } from "@/lib/api";
 
 export type Timeframe = "past" | "today" | "future";
 
@@ -167,7 +167,7 @@ export type OpeningHoursMap = Record<
 // Bron 2: openingstijden uit de busyness-pull (Google working_hours).
 // Bron 3: service_periods (terugval; onboarding zet dit nog). Fallback 9-23.
 function openRange(
-  restaurant: Restaurant | null,
+  restaurant: Business | null,
   date: Date,
   busynessHours?: OpeningHoursMap | null,
 ): [number, number] {
@@ -233,7 +233,7 @@ export function specialDayMap(years: number[]): Map<string, SpecialDay> {
 export function buildDayBusyness(
   date: Date,
   realByIso: Map<string, number>,
-  restaurant: Restaurant | null,
+  restaurant: Business | null,
   threshold: number,
   todayIso: string,
   specials: Map<string, SpecialDay>,
@@ -310,7 +310,7 @@ export function buildDayBusyness(
 export function buildWeek(
   monday: Date,
   realByIso: Map<string, number>,
-  restaurant: Restaurant | null,
+  restaurant: Business | null,
   threshold: number,
   todayIso: string,
   pattern?: number[][] | null,

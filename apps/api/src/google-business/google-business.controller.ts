@@ -11,8 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessAccessGuard } from '../common/business-access.guard';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -25,11 +25,11 @@ import {
 // ============================================================
 // Google Bedrijfsprofiel koppeling — ingelogde-user-endpoints
 // ============================================================
-// Restaurant-gescoped: AuthGuard (geldige JWT) + RestaurantAccessGuard
-// (X-Restaurant-Id + toegangscheck). De web-callback roept /connect aan
+// Business-gescoped: AuthGuard (geldige JWT) + BusinessAccessGuard
+// (X-Business-Id + toegangscheck). De web-callback roept /connect aan
 // met de OAuth-code; de UI gebruikt /status en DELETE.
 @Controller('integrations/google-business')
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 export class GoogleBusinessController {
   constructor(private readonly google: GoogleBusinessService) {}
 
@@ -37,7 +37,7 @@ export class GoogleBusinessController {
   @Post('connect')
   @HttpCode(200)
   connect(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { code?: string; redirectUri?: string },
   ) {
@@ -45,7 +45,7 @@ export class GoogleBusinessController {
       throw new BadRequestException('code en redirectUri zijn verplicht');
     }
     return this.google.connect(
-      restaurantId,
+      businessId,
       user.id,
       body.code,
       body.redirectUri,
@@ -54,24 +54,24 @@ export class GoogleBusinessController {
 
   // GET /api/integrations/google-business/status
   @Get('status')
-  status(@RestaurantId() restaurantId: string) {
-    return this.google.status(restaurantId);
+  status(@BusinessId() businessId: string) {
+    return this.google.status(businessId);
   }
 
   // GET /api/integrations/google-business/profile
   // Haalt de beheerde GBP-accounts op (accounts.list) — bewijst dat de
   // business.manage-scope echt gebruikt wordt. 403 vóór API-goedkeuring.
   @Get('profile')
-  async profile(@RestaurantId() restaurantId: string) {
-    const accounts = await this.google.listAccounts(restaurantId);
+  async profile(@BusinessId() businessId: string) {
+    const accounts = await this.google.listAccounts(businessId);
     return { accounts };
   }
 
   // GET /api/integrations/google-business/locations
   // Locaties onder het beheerde account + hun huidige omschrijving.
   @Get('locations')
-  async locations(@RestaurantId() restaurantId: string) {
-    const locations = await this.google.listLocations(restaurantId);
+  async locations(@BusinessId() businessId: string) {
+    const locations = await this.google.listLocations(businessId);
     return { locations };
   }
 
@@ -81,7 +81,7 @@ export class GoogleBusinessController {
   @Patch('description')
   @HttpCode(200)
   updateDescription(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body() body: { locationName?: string; description?: string },
   ) {
     if (!body?.locationName || typeof body.description !== 'string') {
@@ -90,7 +90,7 @@ export class GoogleBusinessController {
       );
     }
     return this.google.updateDescription(
-      restaurantId,
+      businessId,
       body.locationName,
       body.description,
     );
@@ -101,7 +101,7 @@ export class GoogleBusinessController {
   @Patch('hours')
   @HttpCode(200)
   updateHours(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body()
     body: {
       locationName?: string;
@@ -117,7 +117,7 @@ export class GoogleBusinessController {
       throw new BadRequestException('locationName en days zijn verplicht');
     }
     return this.google.updateHours(
-      restaurantId,
+      businessId,
       body.locationName,
       body.days as DayHours[],
     );
@@ -128,7 +128,7 @@ export class GoogleBusinessController {
   @Patch('special-days')
   @HttpCode(200)
   updateSpecialDays(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body() body: { locationName?: string; closedDates?: string[] },
   ) {
     if (!body?.locationName || !Array.isArray(body.closedDates)) {
@@ -137,7 +137,7 @@ export class GoogleBusinessController {
       );
     }
     return this.google.updateSpecialDays(
-      restaurantId,
+      businessId,
       body.locationName,
       body.closedDates,
     );
@@ -146,13 +146,13 @@ export class GoogleBusinessController {
   // GET /api/integrations/google-business/reviews?locationName=locations/{id}
   @Get('reviews')
   reviews(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('locationName') locationName?: string,
   ) {
     if (!locationName) {
       throw new BadRequestException('locationName is verplicht');
     }
-    return this.google.listReviews(restaurantId, locationName);
+    return this.google.listReviews(businessId, locationName);
   }
 
   // POST /api/integrations/google-business/reviews/reply
@@ -160,14 +160,14 @@ export class GoogleBusinessController {
   @Post('reviews/reply')
   @HttpCode(200)
   replyToReview(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body() body: { reviewName?: string; comment?: string },
   ) {
     if (!body?.reviewName || typeof body.comment !== 'string') {
       throw new BadRequestException('reviewName en comment zijn verplicht');
     }
     return this.google.replyToReview(
-      restaurantId,
+      businessId,
       body.reviewName,
       body.comment,
     );
@@ -178,7 +178,7 @@ export class GoogleBusinessController {
   @Post('posts')
   @HttpCode(200)
   createPost(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body()
     body: { locationName?: string; summary?: string; actionUrl?: string },
   ) {
@@ -186,7 +186,7 @@ export class GoogleBusinessController {
       throw new BadRequestException('locationName en summary zijn verplicht');
     }
     return this.google.createLocalPost(
-      restaurantId,
+      businessId,
       body.locationName,
       body.summary,
       body.actionUrl || undefined,
@@ -199,7 +199,7 @@ export class GoogleBusinessController {
   @Post('media')
   @HttpCode(200)
   uploadMedia(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body()
     body: {
       locationName?: string;
@@ -211,7 +211,7 @@ export class GoogleBusinessController {
       throw new BadRequestException('locationName en sourceUrl zijn verplicht');
     }
     return this.google.uploadLocationMedia(
-      restaurantId,
+      businessId,
       body.locationName,
       body.sourceUrl,
       body.category ?? 'ADDITIONAL',
@@ -221,7 +221,7 @@ export class GoogleBusinessController {
   // DELETE /api/integrations/google-business  (koppeling intrekken)
   @Delete()
   @HttpCode(200)
-  disconnect(@RestaurantId() restaurantId: string) {
-    return this.google.disconnect(restaurantId);
+  disconnect(@BusinessId() businessId: string) {
+    return this.google.disconnect(businessId);
   }
 }

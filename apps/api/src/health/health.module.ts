@@ -12,7 +12,7 @@ import { MeModule } from '../me/me.module';
 import { GoogleProfileModule } from '../google-profile/google-profile.module';
 import { AiModule } from '../ai/ai.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 /**
  * ============================================================
@@ -28,7 +28,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
  *
  * Imports:
  *   - SupabaseModule        , per-request user-JWT-client (RLS actief).
- *   - MeModule              , RestaurantAccessService voor de guard.
+ *   - MeModule              , BusinessAccessService voor de guard.
  *   - GoogleProfileModule   , exporteert GoogleProfileService die
  *                              GbpRunner + ReviewsRunner gebruiken voor
  *                              gecachete Place-data (24u TTL).
@@ -59,7 +59,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
       inject: [SeoRunner, GbpRunner, ReviewsRunner, GeoRunner],
     },
     AuthGuard,
-    RestaurantAccessGuard,
+    BusinessAccessGuard,
   ],
   exports: [HealthService],
 })

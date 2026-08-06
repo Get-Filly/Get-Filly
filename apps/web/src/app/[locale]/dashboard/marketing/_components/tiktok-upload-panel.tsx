@@ -8,16 +8,16 @@ import {
   tiktokUpload,
   type TikTokStatus,
   type TikTokCreatorInfo,
-  type RestaurantMediaItem,
+  type BusinessMediaItem,
 } from "@/lib/api";
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import { MediaLibraryPicker } from "../../_components/media-library-picker";
 
-// Map een publieke restaurant-media-URL (op *.supabase.co) naar het
+// Map een publieke business-media-URL (op *.supabase.co) naar het
 // geverifieerde get-filly.com-pad (zie de rewrite in next.config.ts), zodat
 // TikTok PULL_FROM_URL het bestand van een geverifieerd domein kan ophalen.
 function toVerifiedUrl(supabaseUrl: string): string | null {
-  const marker = "/object/public/restaurant-media/";
+  const marker = "/object/public/business-media/";
   const idx = supabaseUrl.indexOf(marker);
   if (idx === -1) return null;
   const path = supabaseUrl.slice(idx + marker.length).split("?")[0];
@@ -42,7 +42,7 @@ export function TikTokUploadPanel() {
 
   const [status, setStatus] = useState<TikTokStatus | null>(null);
   const [creator, setCreator] = useState<TikTokCreatorInfo | null>(null);
-  const [picked, setPicked] = useState<RestaurantMediaItem | null>(null);
+  const [picked, setPicked] = useState<BusinessMediaItem | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [privacyLevel, setPrivacyLevel] = useState("");
@@ -79,7 +79,7 @@ export function TikTokUploadPanel() {
 
   // Niet verbonden → eerst koppelen.
   if (!status.connected) {
-    const startHref = `/oauth/tiktok/start${active?.id ? `?restaurantId=${encodeURIComponent(active.id)}` : ""}`;
+    const startHref = `/oauth/tiktok/start${active?.id ? `?businessId=${encodeURIComponent(active.id)}` : ""}`;
     return (
       <div style={cardStyle}>
         <h3 style={titleStyle}>{t("title")}</h3>
@@ -166,7 +166,7 @@ export function TikTokUploadPanel() {
         </div>
       </div>
 
-      {/* Video-bron: kies uit de media-bibliotheek (restaurant-media, publiek).
+      {/* Video-bron: kies uit de media-bibliotheek (business-media, publiek).
           De gekozen URL wordt naar het get-filly.com-pad gemapt (PULL_FROM_URL). */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>

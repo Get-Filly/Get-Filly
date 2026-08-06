@@ -34,7 +34,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
  *      - AnonymizationService (background, geen user-context)
  *      - AccountDeletionService (verwijdert auth.users)
  *      - OnboardingService bij restaurant-creatie (link bestaat nog niet)
- *      - ai_usage logging zonder restaurant_id
+ *      - ai_usage logging zonder business_id
  *      Die blijven SupabaseService (service_role) gebruiken.
  *
  * Hoe te gebruiken in een service:
@@ -43,14 +43,14 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
  *   export class MenuService {
  *     constructor(private readonly supabase: RequestSupabaseService) {}
  *
- *     async list(restaurantId: string) {
- *       // Geen .eq('restaurant_id', ...) meer nodig om security
+ *     async list(businessId: string) {
+ *       // Geen .eq('business_id', ...) meer nodig om security
  *       // af te dwingen, RLS doet dat. Je MAG het wel houden voor
  *       // duidelijkheid, maar het is geen veiligheidsmaatregel meer.
  *       const { data, error } = await this.supabase.client
  *         .from('menu_items')
  *         .select('*')
- *         .eq('restaurant_id', restaurantId);
+ *         .eq('business_id', businessId);
  *       // ...
  *     }
  *   }

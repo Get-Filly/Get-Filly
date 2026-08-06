@@ -6,7 +6,7 @@ import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 // AiModule levert MenuImporterService, Claude Vision-analyse van een
 // geüploade menukaart. Wordt gebruikt door MenuService.importCard om
@@ -18,6 +18,6 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 @Module({
   imports: [SupabaseModule, MeModule, AiModule, AuditLogModule],
   controllers: [MenuController],
-  providers: [MenuService, AuthGuard, RestaurantAccessGuard],
+  providers: [MenuService, AuthGuard, BusinessAccessGuard],
 })
 export class MenuModule {}

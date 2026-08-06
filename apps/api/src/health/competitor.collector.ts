@@ -62,14 +62,14 @@ export class CompetitorCollector {
    * Verzamelt + scoort de buurt-concurrenten. Returnt een (mogelijk
    * lege) lijst rijen klaar voor insert in health_competitors.
    */
-  async collect(restaurantId: string): Promise<CompetitorRow[]> {
+  async collect(businessId: string): Promise<CompetitorRow[]> {
     let nearby: NearbyPlace[];
     try {
-      nearby = await this.googleProfile.getCompetitors(restaurantId, RADIUS_METERS);
+      nearby = await this.googleProfile.getCompetitors(businessId, RADIUS_METERS);
     } catch (err) {
       // NotFoundException = geen GBP-koppeling = normale staat, geen failure
       this.logger.log(
-        `Geen concurrenten ophaalbaar voor ${restaurantId} (${
+        `Geen concurrenten ophaalbaar voor ${businessId} (${
           err instanceof Error ? err.message : err
         })`,
       );

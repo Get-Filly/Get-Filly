@@ -5,7 +5,7 @@ import { type NextRequest } from "next/server";
 // ============================================================
 // TikTok haalt via PULL_FROM_URL de video op van het GEVERIFIEERDE domein
 // (www.get-filly.com). campaign-media is een private bucket, dus we kunnen
-// geen directe publieke URL geven (zoals /media/r voor restaurant-media).
+// geen directe publieke URL geven (zoals /media/r voor business-media).
 // In plaats daarvan:
 //   1. vraag de API om een korte signed URL voor de campagne-video,
 //   2. stream de bytes door via dít domein.

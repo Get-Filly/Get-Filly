@@ -9,13 +9,13 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { GuestsModule } from './guests/guests.module';
 import { KpiModule } from './kpi/kpi.module';
 import { OccupancyModule } from './occupancy/occupancy.module';
-import { RestaurantModule } from './restaurant/restaurant.module';
+import { BusinessModule } from './business/business.module';
 import { WeatherModule } from './weather/weather.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { MenuModule } from './menu/menu.module';
 import { MenuSuggestionsModule } from './menu-suggestions/menu-suggestions.module';
 import { MailModule } from './mail/mail.module';
-import { RestaurantMediaModule } from './restaurant-media/restaurant-media.module';
+import { BusinessMediaModule } from './business-media/business-media.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { MeModule } from './me/me.module';
@@ -42,13 +42,13 @@ import { BusynessModule } from './busyness/busyness.module';
     GuestsModule,
     KpiModule,
     OccupancyModule,
-    RestaurantModule,
+    BusinessModule,
     WeatherModule,
     SuggestionsModule,
     MenuModule,
     MenuSuggestionsModule,
     MailModule,
-    RestaurantMediaModule,
+    BusinessMediaModule,
     ReservationsModule,
     ReviewsModule,
     MeModule,
@@ -71,7 +71,7 @@ import { BusynessModule } from './busyness/busyness.module';
   // AuthGuard is nu GLOBAAL (APP_GUARD): élke route vereist een geldige login,
   // tenzij expliciet @Public() (deny-by-default). Zo kan een nieuwe controller
   // niet meer per ongeluk publiek zijn. De guard blijft óók als gewone provider
-  // staan zodat @UseGuards(AuthGuard[, RestaurantAccessGuard]) op controllers
+  // staan zodat @UseGuards(AuthGuard[, BusinessAccessGuard]) op controllers
   // blijft resolven; useExisting hergebruikt diezelfde instantie als globale guard.
   providers: [
     AppService,

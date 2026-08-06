@@ -55,12 +55,12 @@ type StatePayload = { rid: string; nonce: string; iat: number };
 // Tekent een state: base64url(payload).base64url(hmac). De nonce komt
 // ook in een cookie (zie start-route) zodat de callback kan checken dat
 // dezelfde browser de flow startte.
-export function signState(restaurantId: string): {
+export function signState(businessId: string): {
   state: string;
   nonce: string;
 } {
   const nonce = randomBytes(16).toString("hex");
-  const payload: StatePayload = { rid: restaurantId, nonce, iat: Date.now() };
+  const payload: StatePayload = { rid: businessId, nonce, iat: Date.now() };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const sig = createHmac("sha256", stateSecret())
     .update(body)

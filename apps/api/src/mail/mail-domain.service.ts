@@ -85,16 +85,16 @@ export class MailDomainService {
   // Returnt huidige domein-staat + altijd-actuele DNS-records.
   // Bij 'pending' pollt frontend deze endpoint elke ~10s totdat
   // 'verified' of 'failed' verschijnt.
-  async getStatus(restaurantId: string): Promise<MailDomainStatus> {
+  async getStatus(businessId: string): Promise<MailDomainStatus> {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select(
         'mail_domain, mail_from_address, mail_domain_status, mail_resend_domain_id, mail_domain_verified_at',
       )
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
-    if (!data) throw new NotFoundException('Restaurant niet gevonden.');
+    if (!data) throw new NotFoundException('Business niet gevonden.');
 
     if (!data.mail_resend_domain_id) {
       return {
@@ -132,9 +132,9 @@ export class MailDomainService {
         update.mail_domain_verified_at = new Date().toISOString();
       }
       await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .update(update)
-        .eq('id', restaurantId);
+        .eq('id', businessId);
     }
 
     return {
@@ -154,7 +154,7 @@ export class MailDomainService {
   // REGISTER, domein aanmaken bij Resend + opslaan
   // ============================================================
   async register(
-    restaurantId: string,
+    businessId: string,
     domain: string,
     fromAddress: string,
     userId: string,
@@ -176,9 +176,9 @@ export class MailDomainService {
     // Check of er al een domein staat, voorkom dat we een tweede
     // Resend-domain aanmaken zonder de oude eerst op te ruimen.
     const { data: existing, error: exErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('mail_resend_domain_id, mail_domain')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (exErr) throw new InternalServerErrorException(exErr.message);
     if (existing?.mail_resend_domain_id) {
@@ -204,7 +204,7 @@ export class MailDomainService {
     // Opslaan in restaurants. Status begint op 'pending', eigenaar
     // heeft nog geen DNS-records geplakt.
     const { error: updErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({
         mail_domain: cleanDomain,
         mail_from_address: cleanFrom,
@@ -212,7 +212,7 @@ export class MailDomainService {
         mail_resend_domain_id: resendDomainId,
         mail_domain_verified_at: null,
       })
-      .eq('id', restaurantId);
+      .eq('id', businessId);
     if (updErr) {
       // Rollback bij Resend zodat we geen zwevende domein-rij hebben
       await this.resend.domains.remove(resendDomainId).catch(() => undefined);
@@ -220,11 +220,11 @@ export class MailDomainService {
     }
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'mail_domain_registered',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: { domain: cleanDomain, from: cleanFrom },
     });
 
@@ -241,13 +241,13 @@ export class MailDomainService {
   // VERIFY, Resend laat DNS opnieuw controleren
   // ============================================================
   async verify(
-    restaurantId: string,
+    businessId: string,
     userId: string,
   ): Promise<MailDomainStatus> {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('mail_resend_domain_id, mail_domain_status')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
     if (!data?.mail_resend_domain_id) {
@@ -268,15 +268,15 @@ export class MailDomainService {
       );
     }
 
-    const fresh = await this.getStatus(restaurantId);
+    const fresh = await this.getStatus(businessId);
 
     if (fresh.status === 'verified') {
       await this.audit.log({
-        restaurantId,
+        businessId,
         userId,
         action: 'mail_domain_verified',
         entity_type: 'restaurant',
-        entity_id: restaurantId,
+        entity_id: businessId,
         payload: { domain: fresh.domain },
       });
     }
@@ -290,13 +290,13 @@ export class MailDomainService {
   // Verwijdert het domein bij Resend en leegt onze velden. Daarna
   // valt de send-flow automatisch terug op social@get-filly.com.
   async remove(
-    restaurantId: string,
+    businessId: string,
     userId: string,
   ): Promise<{ removed: true }> {
     const { data, error } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('mail_resend_domain_id, mail_domain')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (error) throw new InternalServerErrorException(error.message);
     if (!data?.mail_resend_domain_id) {
@@ -315,7 +315,7 @@ export class MailDomainService {
     }
 
     const { error: updErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .update({
         mail_domain: null,
         mail_from_address: null,
@@ -323,15 +323,15 @@ export class MailDomainService {
         mail_resend_domain_id: null,
         mail_domain_verified_at: null,
       })
-      .eq('id', restaurantId);
+      .eq('id', businessId);
     if (updErr) throw new InternalServerErrorException(updErr.message);
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'mail_domain_removed',
       entity_type: 'restaurant',
-      entity_id: restaurantId,
+      entity_id: businessId,
       payload: { domain: data.mail_domain },
     });
 

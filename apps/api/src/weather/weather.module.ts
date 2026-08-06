@@ -4,12 +4,12 @@ import { WeatherService } from './weather.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 @Module({
   imports: [SupabaseModule, MeModule],
   controllers: [WeatherController],
-  providers: [WeatherService, AuthGuard, RestaurantAccessGuard],
+  providers: [WeatherService, AuthGuard, BusinessAccessGuard],
   // Exporteren zodat AiModule de forecast kan ophalen voor context-
   // injectie in Filly-prompts.
   exports: [WeatherService],

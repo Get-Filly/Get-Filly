@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   fetchRestaurantMedia,
   uploadRestaurantMedia,
-  type RestaurantMediaItem,
+  type BusinessMediaItem,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 // MediaLibraryPicker, modal voor "Kies uit bibliotheek"
 // ============================================================
 //
-// Toont alle foto's uit restaurant_media in een grid. Bij selectie
+// Toont alle foto's uit business_media in een grid. Bij selectie
 // returnt de modal het gekozen item via onPick. De parent regelt
 // daarna wat er gebeurt (bv. uploaden naar campaign_media via
 // fetch-as-blob).
@@ -31,10 +31,10 @@ type MediaFilter = "all" | "image" | "video";
 type Props = {
   open: boolean;
   onClose: () => void;
-  onPick: (item: RestaurantMediaItem) => void;
+  onPick: (item: BusinessMediaItem) => void;
   // Begin-filter ("video" opent direct op video's, bv. vanuit een TikTok-
   // campagne). De eigenaar kan altijd wisselen via de filter-chips. Eén
-  // gedeelde bibliotheek (restaurant_media) met foto's én video's.
+  // gedeelde bibliotheek (business_media) met foto's én video's.
   initialFilter?: MediaFilter;
 };
 
@@ -46,7 +46,7 @@ export function MediaLibraryPicker({
 }: Props) {
   const t = useTranslations("dash__components_media_library_picker");
   const [filter, setFilter] = useState<MediaFilter>(initialFilter);
-  const [items, setItems] = useState<RestaurantMediaItem[]>([]);
+  const [items, setItems] = useState<BusinessMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);

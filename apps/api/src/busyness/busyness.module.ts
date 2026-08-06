@@ -6,7 +6,7 @@ import { ApifyClient } from './apify.client';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 @Module({
   imports: [SupabaseModule, MeModule],
@@ -15,7 +15,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     BusynessService,
     ApifyClient,
     AuthGuard,
-    RestaurantAccessGuard,
+    BusinessAccessGuard,
   ],
   // Exporteren zodat de fase B-backend (Filly-context + auto-detectie)
   // de service later kan hergebruiken.

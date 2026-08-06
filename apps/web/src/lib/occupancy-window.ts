@@ -15,7 +15,7 @@
 //      filtert deze code een nieuw restaurant (zonder ingevulde
 //      openingstijden) z'n hele week weg.
 
-import type { OccupancyDay, Restaurant } from "./api";
+import type { OccupancyDay, Business } from "./api";
 import {
   seededOccupancy,
   mondayIndex,
@@ -83,7 +83,7 @@ export function buildWindowOccupancy(
 // alles verbergen voor restaurants die hun openingstijden nog niet
 // hebben ingevuld.
 export function isOpenOn(
-  restaurant: Pick<Restaurant, "closed_dates" | "opening_hours"> | null,
+  restaurant: Pick<Business, "closed_dates" | "opening_hours"> | null,
   date: string,
 ): boolean {
   if (!restaurant) return true; // geen restaurant geladen, niet filteren

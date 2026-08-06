@@ -11,10 +11,10 @@ import {
 } from '@nestjs/common';
 import { TeamService } from './team.service';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
-import { CurrentRestaurant } from '../common/current-restaurant.decorator';
+import { BusinessAccessGuard } from '../common/business-access.guard';
+import { CurrentRestaurant } from '../common/current-business.decorator';
 import { CurrentUser } from '../common/current-user.decorator';
-import type { RestaurantAccess } from '../common/restaurant-access.service';
+import type { BusinessAccess } from '../common/business-access.service';
 import type { AuthenticatedUser } from '../common/current-user.decorator';
 import type { Module, Role } from '@getfilly/shared';
 
@@ -23,7 +23,7 @@ import type { Module, Role } from '@getfilly/shared';
  * TeamController, endpoints voor team-management
  * ============================================================
  *
- * Alle endpoints vereisen AuthGuard + RestaurantAccessGuard + rol "owner".
+ * Alle endpoints vereisen AuthGuard + BusinessAccessGuard + rol "owner".
  * De owner-check doen we per methode (geen aparte guard nodig voor
  * één controller).
  */
@@ -43,15 +43,15 @@ const ACCEPT_BASE_URL = `${
   process.env.WEB_URL ?? process.env.FRONTEND_URL ?? 'http://localhost:3000'
 }/invite/accept`;
 
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('team')
 export class TeamController {
   constructor(private readonly team: TeamService) {}
 
   @Get()
-  async list(@CurrentRestaurant() ctx: RestaurantAccess) {
+  async list(@CurrentRestaurant() ctx: BusinessAccess) {
     this.requireOwner(ctx);
-    return this.team.listMembers(ctx.restaurantId);
+    return this.team.listMembers(ctx.businessId);
   }
 
   // ============================================================
@@ -59,20 +59,20 @@ export class TeamController {
   // ============================================================
 
   @Get('invites')
-  async listInvites(@CurrentRestaurant() ctx: RestaurantAccess) {
+  async listInvites(@CurrentRestaurant() ctx: BusinessAccess) {
     this.requireOwner(ctx);
-    return this.team.listInvites(ctx.restaurantId);
+    return this.team.listInvites(ctx.businessId);
   }
 
   @Post('invites')
   async createInvite(
-    @CurrentRestaurant() ctx: RestaurantAccess,
+    @CurrentRestaurant() ctx: BusinessAccess,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { email: string; role: Role; permissions?: Module[] | null },
   ) {
     this.requireOwner(ctx);
     return this.team.createInvite(
-      ctx.restaurantId,
+      ctx.businessId,
       user.id,
       body,
       ACCEPT_BASE_URL,
@@ -86,12 +86,12 @@ export class TeamController {
    */
   @Post('invites/:inviteId/magic-link')
   async getInviteLink(
-    @CurrentRestaurant() ctx: RestaurantAccess,
+    @CurrentRestaurant() ctx: BusinessAccess,
     @Param('inviteId') inviteId: string,
   ) {
     this.requireOwner(ctx);
     const link = await this.team.generateMagicLinkForInvite(
-      ctx.restaurantId,
+      ctx.businessId,
       inviteId,
       ACCEPT_BASE_URL,
     );
@@ -100,27 +100,27 @@ export class TeamController {
 
   @Delete('invites/:inviteId')
   async revokeInvite(
-    @CurrentRestaurant() ctx: RestaurantAccess,
+    @CurrentRestaurant() ctx: BusinessAccess,
     @Param('inviteId') inviteId: string,
   ) {
     this.requireOwner(ctx);
-    await this.team.revokeInvite(ctx.restaurantId, inviteId);
+    await this.team.revokeInvite(ctx.businessId, inviteId);
     return { ok: true };
   }
 
   @Patch(':userId')
   async update(
-    @CurrentRestaurant() ctx: RestaurantAccess,
+    @CurrentRestaurant() ctx: BusinessAccess,
     @Param('userId') userId: string,
     @Body() body: { role?: Role; permissions?: Module[] | null },
   ) {
     this.requireOwner(ctx);
-    return this.team.updateMember(ctx.restaurantId, userId, body);
+    return this.team.updateMember(ctx.businessId, userId, body);
   }
 
   @Delete(':userId')
   async remove(
-    @CurrentRestaurant() ctx: RestaurantAccess,
+    @CurrentRestaurant() ctx: BusinessAccess,
     @CurrentUser() user: AuthenticatedUser,
     @Param('userId') userId: string,
   ) {
@@ -136,7 +136,7 @@ export class TeamController {
       );
     }
 
-    await this.team.removeMember(ctx.restaurantId, userId);
+    await this.team.removeMember(ctx.businessId, userId);
     return { ok: true };
   }
 
@@ -145,7 +145,7 @@ export class TeamController {
    * restaurant. In elke methode aangeroepen zodat we één plek hebben
    * om de regel aan te passen.
    */
-  private requireOwner(ctx: RestaurantAccess): void {
+  private requireOwner(ctx: BusinessAccess): void {
     if (ctx.role !== 'owner') {
       throw new ForbiddenException(
         'Alleen de eigenaar van dit restaurant mag het team beheren.',

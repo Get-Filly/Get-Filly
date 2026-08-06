@@ -7,7 +7,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 // MailService levert de send-flow (gebruikt door CampaignsModule)
 // + webhook-handler + unsubscribe-flow.
@@ -17,12 +17,12 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
 // SupabaseModule levert beide supabase-clients (admin voor webhook,
 // request-scoped voor send + domein-flow).
 @Module({
-  // MeModule levert RestaurantAccessService, die de
-  // RestaurantAccessGuard gebruikt om tenant-toegang te checken op de
+  // MeModule levert BusinessAccessService, die de
+  // BusinessAccessGuard gebruikt om tenant-toegang te checken op de
   // domein-endpoints.
   imports: [SupabaseModule, AuditLogModule, MeModule],
   controllers: [MailController, MailDomainController],
-  providers: [MailService, MailDomainService, AuthGuard, RestaurantAccessGuard],
+  providers: [MailService, MailDomainService, AuthGuard, BusinessAccessGuard],
   exports: [MailService],
 })
 export class MailModule {}

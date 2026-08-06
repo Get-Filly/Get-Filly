@@ -25,16 +25,16 @@ import {
 // ============================================================
 // /api/onboarding, eenmalige setup voor nieuwe users
 // ============================================================
-// Deze controller staat BEWUST buiten de RestaurantAccessGuard-keten
+// Deze controller staat BEWUST buiten de BusinessAccessGuard-keten
 // (anders dan alle andere restaurant-endpoints). Reden: tijdens
 // onboarding HEEFT de user nog geen restaurant, hij maakt 'm net
-// aan. Dus we kunnen niet eisen dat X-Restaurant-Id meegestuurd wordt.
+// aan. Dus we kunnen niet eisen dat X-Business-Id meegestuurd wordt.
 //
 // Wel AuthGuard: de user moet ingelogd zijn (JWT valide).
 // ============================================================
 
 // Simpele in-memory rate-limit voor pre-onboarding AI-calls. De
-// bestaande AiRateLimitGuard hangt aan restaurant_id; die bestaat
+// bestaande AiRateLimitGuard hangt aan business_id; die bestaat
 // hier nog niet. Vervanging: per user max N calls per window.
 // Overleeft geen api-restart, is niet multi-instance correct. Voor
 // een lokale dev-omgeving is dat prima; bij deploy naar Railway +
@@ -70,7 +70,7 @@ export class OnboardingController {
     private readonly menuImporter: MenuImporterService,
     // Voor de Filly-Google-match na website-analyse (fase B,
     // 2026-05-05). searchByText doet géén DB-call dus het werkt
-    // ook tijdens onboarding (geen restaurant_id nodig).
+    // ook tijdens onboarding (geen business_id nodig).
     private readonly googleProfile: GoogleProfileService,
   ) {}
 
@@ -91,7 +91,7 @@ export class OnboardingController {
   // de public.users-spiegelrij bestaat pas na onboarding-complete, dus
   // een user_id-referentie zou een FK-violation geven. We loggen deze
   // calls als "anonymous pre-onboarding", je ziet ze terug met
-  // restaurant_id IS NULL en user_id IS NULL in ai_usage.
+  // business_id IS NULL en user_id IS NULL in ai_usage.
   @Post('analyze-website')
   async analyzeWebsite(
     @CurrentUser() user: AuthenticatedUser,
@@ -137,7 +137,7 @@ export class OnboardingController {
   // Search-endpoint specifiek voor de onboarding-wizard. Wordt
   // aangeroepen door de "Wijzigen"-knop bij Filly's Google-match,
   // eigenaar typt z'n eigen zoekopdracht en kiest uit max 5
-  // alternatieven. Geen RestaurantAccessGuard want het restaurant
+  // alternatieven. Geen BusinessAccessGuard want het restaurant
   // bestaat nog niet; alleen AuthGuard via klasse-niveau.
   //
   // Gebruikt dezelfde rate-limit als de andere AI-endpoints zodat
@@ -184,7 +184,7 @@ export class OnboardingController {
       // userId bewust niet meegeven: public.users-spiegelrij bestaat
       // pas na onboarding-complete, FK zou falen. Zie comment bij
       // analyzeWebsite hierboven.
-      { restaurantId: null },
+      { businessId: null },
       'menu',
     );
   }
@@ -215,7 +215,7 @@ export class OnboardingController {
         mimeType: file.mimetype,
         originalName: file.originalname,
       },
-      { restaurantId: null },
+      { businessId: null },
       'drinks',
     );
   }

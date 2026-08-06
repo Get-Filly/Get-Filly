@@ -9,16 +9,16 @@ import {
 
 /**
  * ============================================================
- * RestaurantAccessService
+ * BusinessAccessService
  * ============================================================
  *
  * Centrale plek voor alle vragen rond "mag deze user bij dit
  * restaurant?" en "welke modules mag hij zien?".
  *
  * Gebruik:
- *   - @RestaurantId() in controllers → roept dit onder water aan
+ *   - @BusinessId() in controllers → roept dit onder water aan
  *     om toegang te verifiëren.
- *   - GET /me/restaurants → gebruikt getUserRestaurants()
+ *   - GET /me/businesses → gebruikt getUserRestaurants()
  *   - Later: team-management UI gebruikt deze ook voor de lijst
  *     van gekoppelde users.
  */
@@ -29,16 +29,16 @@ import {
  *   - de rol van de user binnen dat restaurant
  *   - de uiteindelijke permissies (na toepassing van defaults)
  */
-export type RestaurantAccess = {
-  restaurantId: string;
+export type BusinessAccess = {
+  businessId: string;
   restaurantName: string;
   role: Role;
   permissions: readonly Module[];
 };
 
 @Injectable()
-export class RestaurantAccessService {
-  private readonly logger = new Logger(RestaurantAccessService.name);
+export class BusinessAccessService {
+  private readonly logger = new Logger(BusinessAccessService.name);
 
   constructor(private readonly supabase: SupabaseService) {}
 
@@ -46,20 +46,20 @@ export class RestaurantAccessService {
    * Haal alle restaurants op waar deze user toegang toe heeft.
    * Returned per restaurant de rol + effectieve permissies.
    *
-   * Wordt gebruikt door GET /me/restaurants om de frontend te laten
+   * Wordt gebruikt door GET /me/businesses om de frontend te laten
    * weten: "dit zijn jouw restaurants, dit mag je per restaurant".
    */
-  async getUserRestaurants(userId: string): Promise<RestaurantAccess[]> {
-    // We joinen restaurant_users met restaurants zodat we de naam
+  async getUserRestaurants(userId: string): Promise<BusinessAccess[]> {
+    // We joinen business_users met restaurants zodat we de naam
     // meteen meekrijgen, scheelt een tweede query.
     //
     // Supabase's JS-SDK gebruikt de PostgREST-syntax voor joins:
-    //   select('role, permissions, restaurants(id, name)')
-    // Dit doet een embed: je krijgt per rij een "restaurants" veld
+    //   select('role, permissions, businesses(id, name)')
+    // Dit doet een embed: je krijgt per rij een "businesses" veld
     // met het gekoppelde restaurant-record.
     const { data, error } = await this.supabase.client
-      .from('restaurant_users')
-      .select('role, permissions, restaurants(id, name)')
+      .from('business_users')
+      .select('role, permissions, businesses(id, name)')
       .eq('user_id', userId);
 
     if (error) {
@@ -69,14 +69,14 @@ export class RestaurantAccessService {
       throw error;
     }
 
-    // Vorm de ruwe DB-rijen om naar onze RestaurantAccess-structuur.
+    // Vorm de ruwe DB-rijen om naar onze BusinessAccess-structuur.
     // We filteren stille fouten (ontbrekende restaurant-koppeling) eruit.
     //
     // Cast via `unknown` omdat Supabase's TS-types voor joins vrij
     // los zijn (ze modelleren ook een edge-case waarin het embed-veld
     // een array kan zijn). We weten hier zeker dat het één restaurant
     // per rij is (FK-relatie 1-op-veel van restaurants naar
-    // restaurant_users), dus we forceren het type.
+    // business_users), dus we forceren het type.
     const rows = (data ?? []) as unknown as Array<{
       role: Role;
       permissions: StoredPermissions | null;
@@ -86,7 +86,7 @@ export class RestaurantAccessService {
     return rows
       .filter((row) => row.restaurants !== null)
       .map((row) => ({
-        restaurantId: row.restaurants!.id,
+        businessId: row.restaurants!.id,
         restaurantName: row.restaurants!.name,
         role: row.role,
         permissions: resolvePermissions(row.role, row.permissions),
@@ -98,7 +98,7 @@ export class RestaurantAccessService {
    * Returned rol + permissies als het klopt; gooit 403/404 als niet.
    *
    * Dit is DE poortwachter voor multi-tenant isolatie:
-   *   - Restaurant bestaat niet, OF user heeft er geen koppeling?
+   *   - Business bestaat niet, OF user heeft er geen koppeling?
    *     → in BEIDE gevallen 403 Forbidden met dezelfde boodschap.
    *       Anti-enumeration: een non-member mag niet kunnen afleiden of
    *       een restaurant-UUID bestaat (anders kun je het ID-bereik
@@ -107,19 +107,19 @@ export class RestaurantAccessService {
    */
   async requireAccess(
     userId: string,
-    restaurantId: string,
-  ): Promise<RestaurantAccess> {
+    businessId: string,
+  ): Promise<BusinessAccess> {
     // Stap 1: bestaat het restaurant überhaupt?
     // (Service_role bypasst RLS, dus we zien het altijd als het bestaat.)
     const { data: restaurant, error: restErr } = await this.supabase.client
-      .from('restaurants')
+      .from('businesses')
       .select('id, name')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
 
     if (restErr) {
       this.logger.error(
-        `Fout bij ophalen restaurant ${restaurantId}: ${restErr.message}`,
+        `Fout bij ophalen restaurant ${businessId}: ${restErr.message}`,
       );
       throw restErr;
     }
@@ -128,22 +128,22 @@ export class RestaurantAccessService {
       // tak hieronder, zodat een non-member niet kan afleiden of dit
       // UUID een bestaand restaurant is. Server-side loggen we het wél.
       this.logger.debug(
-        `requireAccess: restaurant ${restaurantId} bestaat niet — uniforme 403 voor user ${userId}.`,
+        `requireAccess: restaurant ${businessId} bestaat niet — uniforme 403 voor user ${userId}.`,
       );
       throw new ForbiddenException('Geen toegang tot dit restaurant.');
     }
 
-    // Stap 2: heeft de user een koppeling in restaurant_users?
+    // Stap 2: heeft de user een koppeling in business_users?
     const { data: link, error: linkErr } = await this.supabase.client
-      .from('restaurant_users')
+      .from('business_users')
       .select('role, permissions')
       .eq('user_id', userId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
 
     if (linkErr) {
       this.logger.error(
-        `Fout bij ophalen access user ${userId} → restaurant ${restaurantId}: ${linkErr.message}`,
+        `Fout bij ophalen access user ${userId} → restaurant ${businessId}: ${linkErr.message}`,
       );
       throw linkErr;
     }
@@ -158,7 +158,7 @@ export class RestaurantAccessService {
     const typed = link as { role: Role; permissions: StoredPermissions | null };
 
     return {
-      restaurantId: restaurant.id,
+      businessId: restaurant.id,
       restaurantName: restaurant.name,
       role: typed.role,
       permissions: resolvePermissions(typed.role, typed.permissions),

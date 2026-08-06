@@ -69,10 +69,10 @@ export class ReservationsService {
     partySize: number,
   ): Promise<void> {
     try {
-      // Eerst campaign + restaurant_id ophalen.
+      // Eerst campaign + business_id ophalen.
       const { data: campaign, error: campErr } = await this.serviceSupabase.client
         .from('campaigns')
-        .select('restaurant_id')
+        .select('business_id')
         .eq('id', campaignId)
         .maybeSingle();
       if (campErr || !campaign) return;
@@ -81,7 +81,7 @@ export class ReservationsService {
       await this.serviceSupabase.client.from('campaign_performance').upsert(
         {
           campaign_id: campaignId,
-          restaurant_id: (campaign as { restaurant_id: string }).restaurant_id,
+          business_id: (campaign as { business_id: string }).business_id,
         },
         { onConflict: 'campaign_id', ignoreDuplicates: true },
       );
@@ -113,14 +113,14 @@ export class ReservationsService {
   }
 
   async findRange(
-    restaurantId: string,
+    businessId: string,
     from: string,
     to: string,
   ): Promise<Reservation[]> {
     const { data, error } = await this.supabase.client
       .from('reservations')
       .select(RESERVATION_COLUMNS)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('reservation_date', from)
       .lte('reservation_date', to)
       .order('reservation_date', { ascending: true })
@@ -137,7 +137,7 @@ export class ReservationsService {
   // source = 'handmatig' zodat analytics later onderscheid kunnen
   // maken tussen bron-gevoed en door-ons-ingetikt.
   async create(
-    restaurantId: string,
+    businessId: string,
     input: {
       guest_name: string;
       reservation_date: string;
@@ -167,7 +167,7 @@ export class ReservationsService {
     const { data, error } = await this.supabase.client
       .from('reservations')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         guest_name: name,
         reservation_date: input.reservation_date,
         reservation_time: input.reservation_time,
@@ -196,7 +196,7 @@ export class ReservationsService {
   //     (anders zou je via een ID-gok een vreemde campagne kunnen
   //     koppelen, defense-in-depth bovenop de auth-guards).
   async setAttribution(
-    restaurantId: string,
+    businessId: string,
     reservationId: string,
     campaignId: string | null,
     userId: string,
@@ -206,7 +206,7 @@ export class ReservationsService {
         .from('campaigns')
         .select('id')
         .eq('id', campaignId)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .maybeSingle();
       if (campErr) throw new InternalServerErrorException(campErr.message);
       if (!campaign) {
@@ -218,7 +218,7 @@ export class ReservationsService {
       .from('reservations')
       .update({ via_campaign_id: campaignId })
       .eq('id', reservationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(RESERVATION_COLUMNS)
       .maybeSingle();
 
@@ -239,7 +239,7 @@ export class ReservationsService {
         .from('guests')
         .update({ acquired_via_campaign_id: campaignId })
         .eq('id', data.guest_id)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         // Alleen overschrijven als nog niet gezet, eerste-attributie
         // wint. Latere koppelingen veranderen niet wie de gast oorspronkelijk
         // heeft binnengehaald.
@@ -256,7 +256,7 @@ export class ReservationsService {
     // Audit: attributie-wijziging, de meest cruciale logging want
     // hierop bouwen alle Filly-ROI cijfers.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'reservation_attribution_set',
       entity_type: 'reservation',
@@ -283,7 +283,7 @@ export class ReservationsService {
   // (bevestigd → ingecheckt). Strict enum-check zodat een typo niet
   // de DB-check-constraint hoeft te triggeren.
   async setStatus(
-    restaurantId: string,
+    businessId: string,
     reservationId: string,
     status: string,
     userId: string,
@@ -305,7 +305,7 @@ export class ReservationsService {
       .from('reservations')
       .update({ status })
       .eq('id', reservationId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .select(RESERVATION_COLUMNS)
       .maybeSingle();
 
@@ -318,7 +318,7 @@ export class ReservationsService {
     // status gezet). Niet kritiek voor business-flow maar wel voor
     // ondersteuning bij gast-disputen.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'reservation_status_set',
       entity_type: 'reservation',

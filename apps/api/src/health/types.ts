@@ -40,7 +40,7 @@ export type HealthRunSource = 'manual' | 'cron' | 'onboarding';
 export interface HealthFinding {
   id: string;
   healthScoreId: string;
-  restaurantId: string;
+  businessId: string;
   category: HealthCategory;
   /** Stabiele identifier, bv. 'seo.meta_description_present'. */
   checkKey: string;
@@ -60,7 +60,7 @@ export interface HealthFinding {
 export interface HealthCompetitor {
   id: string;
   healthScoreId: string;
-  restaurantId: string;
+  businessId: string;
   placeId: string;
   name: string;
   distanceM: number;
@@ -73,7 +73,7 @@ export interface HealthCompetitor {
 
 export interface HealthSnapshot {
   id: string;
-  restaurantId: string;
+  businessId: string;
   scoreTotal: number;
   scoreSeo: number;
   scoreGbp: number;
@@ -113,7 +113,7 @@ export interface RunnerResult {
 /** Een finding zoals een runner 'm produceert, voordat ie in de DB landt. */
 export type RunnerFinding = Omit<
   HealthFinding,
-  'id' | 'healthScoreId' | 'restaurantId' | 'createdAt'
+  'id' | 'healthScoreId' | 'businessId' | 'createdAt'
 >;
 
 /**
@@ -122,7 +122,7 @@ export type RunnerFinding = Omit<
  * lat/lng). Runners pakken alleen wat ze nodig hebben.
  */
 export interface RunnerContext {
-  restaurantId: string;
+  businessId: string;
   /** Website-URL voor SEO-checks. Kan ontbreken; runner skipped dan. */
   websiteUrl: string | null;
   /** Google Place-ID; nodig voor GBP/Reviews/Competitors. */

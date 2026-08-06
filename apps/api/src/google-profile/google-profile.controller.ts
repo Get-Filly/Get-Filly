@@ -9,9 +9,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { GoogleProfileService } from './google-profile.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -22,7 +22,7 @@ import {
  * GoogleProfileController, REST-endpoints voor de GBP-hub
  * ============================================================
  *
- * Endpoints (allemaal beschermd door AuthGuard + RestaurantAccessGuard):
+ * Endpoints (allemaal beschermd door AuthGuard + BusinessAccessGuard):
  *
  *   POST   /google-profile/search         , text-search (onboarding-detect)
  *   GET    /google-profile/me             , gecachete profile-data
@@ -35,7 +35,7 @@ import {
  * `types.ts`. Front-end kan deze direct in de hub-pagina renderen.
  * ============================================================
  */
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('google-profile')
 export class GoogleProfileController {
   constructor(private readonly service: GoogleProfileService) {}
@@ -57,47 +57,47 @@ export class GoogleProfileController {
   }
 
   @Get('me')
-  getMine(@RestaurantId() restaurantId: string) {
-    return this.service.getMine(restaurantId);
+  getMine(@BusinessId() businessId: string) {
+    return this.service.getMine(businessId);
   }
 
   @Post('me/connect')
   connect(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { placeId: string },
   ) {
     if (!body?.placeId || typeof body.placeId !== 'string') {
       throw new BadRequestException('Body moet een `placeId` (string) bevatten.');
     }
-    return this.service.connect(restaurantId, user.id, body.placeId);
+    return this.service.connect(businessId, user.id, body.placeId);
   }
 
   @Post('me/refresh')
   refresh(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.refresh(restaurantId, user.id);
+    return this.service.refresh(businessId, user.id);
   }
 
   @Get('me/audit')
-  getAudit(@RestaurantId() restaurantId: string) {
-    return this.service.getAudit(restaurantId);
+  getAudit(@BusinessId() businessId: string) {
+    return this.service.getAudit(businessId);
   }
 
   // ?radius=1000 (in meter). Default 1km, past bij stadsbuurten;
   // voor grotere steden kan de eigenaar straks 2km/3km kiezen via UI.
   @Get('me/competitors')
   getCompetitors(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Query('radius') radiusRaw?: string,
   ) {
     const radius = radiusRaw ? parseInt(radiusRaw, 10) : 1000;
     if (!Number.isFinite(radius)) {
       throw new BadRequestException('`radius` moet een getal in meters zijn.');
     }
-    return this.service.getCompetitors(restaurantId, radius);
+    return this.service.getCompetitors(businessId, radius);
   }
 
   // DELETE om de koppeling weer los te maken. Wist place_id +
@@ -105,9 +105,9 @@ export class GoogleProfileController {
   // (dat zit in AccountDeletionService).
   @Delete('me')
   disconnect(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.disconnect(restaurantId, user.id);
+    return this.service.disconnect(businessId, user.id);
   }
 }

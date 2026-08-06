@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AiService } from './ai.service';
-import { RestaurantContextService } from './restaurant-context.service';
+import { BusinessContextService } from './business-context.service';
 import { ChannelReachService } from './channel-reach.service';
 import { WebsiteAnalyzerService } from './website-analyzer.service';
 import { MenuImporterService } from './menu-importer.service';
@@ -12,7 +12,7 @@ import { BusynessModule } from '../busyness/busyness.module';
 
 // AiModule levert twee services aan de rest van de app:
 //   - AiService: centrale Claude-wrapper (generate + auto-logging)
-//   - RestaurantContextService: batch-ophaal van actuele restaurant-
+//   - BusinessContextService: batch-ophaal van actuele restaurant-
 //     feiten (weer/bezetting/reserveringen) voor in AI-prompts
 //
 // SupabaseModule → ai_usage logging
@@ -27,14 +27,14 @@ import { BusynessModule } from '../busyness/busyness.module';
   ],
   providers: [
     AiService,
-    RestaurantContextService,
+    BusinessContextService,
     ChannelReachService,
     WebsiteAnalyzerService,
     MenuImporterService,
   ],
   exports: [
     AiService,
-    RestaurantContextService,
+    BusinessContextService,
     ChannelReachService,
     WebsiteAnalyzerService,
     MenuImporterService,

@@ -8,7 +8,7 @@ import {
 import type Anthropic from '@anthropic-ai/sdk';
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { AiService } from '../ai/ai.service';
-import { RestaurantContextService } from '../ai/restaurant-context.service';
+import { BusinessContextService } from '../ai/business-context.service';
 import { vaktaalPrefix } from '../ai/industry/industry-pack';
 import { AuditLogService } from '../common/audit-log.service';
 
@@ -27,7 +27,7 @@ import { AuditLogService } from '../common/audit-log.service';
 //
 // Waarom een aparte tabel ipv menu_items met status-veld:
 //   Voorgestelde gerechten mogen niet meetellen in:
-//     - Filly's eigen prompts (RestaurantContextService.buildMenuBlock)
+//     - Filly's eigen prompts (BusinessContextService.buildMenuBlock)
 //     - dashboard counts ("X gerechten")
 //     - de data-export (AVG art. 20)
 //   Dat is veiliger met fysieke scheiding dan met een filter dat overal
@@ -216,10 +216,10 @@ export class MenuSuggestionsService {
   constructor(
     private readonly supabase: RequestSupabaseService,
     private readonly ai: AiService,
-    // RestaurantContextService levert profile + menu blocks zodat
+    // BusinessContextService levert profile + menu blocks zodat
     // Filly weet welke USPs/sfeer/keukenstijl dit restaurant heeft
     // én welke gerechten er al staan (gat-analyse).
-    private readonly context: RestaurantContextService,
+    private readonly context: BusinessContextService,
     private readonly audit: AuditLogService,
   ) {}
 
@@ -233,7 +233,7 @@ export class MenuSuggestionsService {
   //   chef wil terug kunnen kijken wat ie eerder afwees, en eventueel
   //   alsnog accepteren.
   async list(
-    restaurantId: string,
+    businessId: string,
     status: 'pending' | 'rejected' = 'pending',
   ): Promise<SuggestedMenuItem[]> {
     if (status === 'pending') {
@@ -247,7 +247,7 @@ export class MenuSuggestionsService {
       await this.supabase.client
         .from('suggested_menu_items')
         .update({ status: 'expired', acted_at: new Date().toISOString() })
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('status', 'pending')
         .lt('created_at', cutoff);
     }
@@ -259,7 +259,7 @@ export class MenuSuggestionsService {
     let query = this.supabase.client
       .from('suggested_menu_items')
       .select(SUGGESTED_COLUMNS)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('status', status);
 
     if (status === 'rejected') {
@@ -281,7 +281,7 @@ export class MenuSuggestionsService {
   // GENERATE, nieuwe voorstellen op basis van menu + profiel
   // ============================================================
   async generate(
-    restaurantId: string,
+    businessId: string,
     userId: string,
   ): Promise<SuggestedMenuItem[]> {
     // Stap 0, daily cap. Eén batch per kalenderdag per restaurant.
@@ -295,7 +295,7 @@ export class MenuSuggestionsService {
       await this.supabase.client
         .from('audit_log')
         .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('action', 'menu_suggestions_generated')
         .gte('created_at', startOfDay.toISOString());
     if (capErr) throw new InternalServerErrorException(capErr.message);
@@ -313,11 +313,11 @@ export class MenuSuggestionsService {
     const { count: menuCount, error: countErr } = await this.supabase.client
       .from('menu_items')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('is_available', true);
     if (countErr) throw new InternalServerErrorException(countErr.message);
 
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const pack = await this.context.getIndustryPack(businessId);
 
     if (!menuCount || menuCount < 3) {
       throw new BadRequestException(pack.menuGuardMessage);
@@ -326,8 +326,8 @@ export class MenuSuggestionsService {
     // Stap 2, context. Profile + menu via dezelfde blocks die ook
     // de chat en campagne-flow gebruiken (consistente persona).
     const [profileBlock, menuBlock] = await Promise.all([
-      this.context.buildProfileBlock(restaurantId).catch(() => ''),
-      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
     ]);
 
     const today = new Date();
@@ -379,7 +379,7 @@ ${menuBlock}
         'Lever 3-5 nieuwe gerecht-voorstellen voor dit restaurant op basis van profiel, bestaand menu en huidig seizoen.',
       inputSchema: GENERATE_SUGGESTIONS_SCHEMA,
       meta: {
-        restaurantId,
+        businessId,
         userId,
         feature: 'menu_suggestions_generate',
       },
@@ -398,7 +398,7 @@ ${menuBlock}
     // Stap 3, wegschrijven als pending-rijen. Bulk-insert; bij DB-fout
     // gaat alles tegelijk terug en krijgt de UI een nette foutmelding.
     const rows = raw.suggestions.map((s) => ({
-      restaurant_id: restaurantId,
+      business_id: businessId,
       source_type: s.source_type,
       name: s.name.trim().slice(0, 200),
       description: s.description?.trim() || null,
@@ -421,7 +421,7 @@ ${menuBlock}
     // Audit: één rij per generate-batch, niet per voorstel, 5 voorstellen
     // ineens is één eigenaars-actie, niet 5 verschillende beslissingen.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_suggestions_generated',
       entity_type: 'suggested_menu_items',
@@ -433,7 +433,7 @@ ${menuBlock}
     });
 
     this.logger.log(
-      `MenuSuggestions: ${inserted?.length ?? 0} voorstellen gegenereerd voor restaurant ${restaurantId}`,
+      `MenuSuggestions: ${inserted?.length ?? 0} voorstellen gegenereerd voor restaurant ${businessId}`,
     );
 
     return (inserted ?? []) as SuggestedMenuItem[];
@@ -443,7 +443,7 @@ ${menuBlock}
   // ACCEPT, voorstel → echt menu_item
   // ============================================================
   async accept(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     userId: string,
   ): Promise<{ menu_item_id: string }> {
@@ -456,7 +456,7 @@ ${menuBlock}
         'id, status, name, description, category, subcategory, price_cents_low, price_cents_high, dietary_tags',
       )
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!sugg) throw new NotFoundException('Voorstel niet gevonden.');
@@ -477,7 +477,7 @@ ${menuBlock}
     const { data: newItem, error: insErr } = await this.supabase.client
       .from('menu_items')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         name: sugg.name,
         description: sugg.description,
         category: sugg.category,
@@ -501,7 +501,7 @@ ${menuBlock}
         acted_at: new Date().toISOString(),
       })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) {
       this.logger.warn(
         `Voorstel ${suggestionId} update faalde na succesvolle menu-insert: ${updErr.message}`,
@@ -509,7 +509,7 @@ ${menuBlock}
     }
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_suggestion_accepted',
       entity_type: 'menu_item',
@@ -524,7 +524,7 @@ ${menuBlock}
   // REJECT, voorstel afwijzen (status='rejected')
   // ============================================================
   async reject(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     userId: string,
   ): Promise<{ id: string }> {
@@ -532,7 +532,7 @@ ${menuBlock}
       .from('suggested_menu_items')
       .select('id, status, name')
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!sugg) throw new NotFoundException('Voorstel niet gevonden.');
@@ -546,11 +546,11 @@ ${menuBlock}
       .from('suggested_menu_items')
       .update({ status: 'rejected', acted_at: new Date().toISOString() })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (updErr) throw new InternalServerErrorException(updErr.message);
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_suggestion_rejected',
       entity_type: 'suggested_menu_item',
@@ -569,7 +569,7 @@ ${menuBlock}
   // op". Resultaat: nieuwe pending-rij met source_type='refined' en
   // refined_from_id-keten naar het origineel.
   async refine(
-    restaurantId: string,
+    businessId: string,
     suggestionId: string,
     userId: string,
   ): Promise<SuggestedMenuItem> {
@@ -579,7 +579,7 @@ ${menuBlock}
         'id, status, name, description, category, subcategory, price_cents_low, price_cents_high, dietary_tags, reasoning, refined_from_id, refine_count, source_type',
       )
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (fetchErr) throw new InternalServerErrorException(fetchErr.message);
     if (!original) throw new NotFoundException('Voorstel niet gevonden.');
@@ -595,7 +595,7 @@ ${menuBlock}
     const { count: refineCount, error: countErr } = await this.supabase.client
       .from('suggested_menu_items')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('refined_from_id', rootId);
     if (countErr) throw new InternalServerErrorException(countErr.message);
 
@@ -606,10 +606,10 @@ ${menuBlock}
     }
 
     // Context bouwen.
-    const pack = await this.context.getIndustryPack(restaurantId);
+    const pack = await this.context.getIndustryPack(businessId);
     const [profileBlock, menuBlock] = await Promise.all([
-      this.context.buildProfileBlock(restaurantId).catch(() => ''),
-      this.context.buildMenuBlock(restaurantId).catch(() => ''),
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
     ]);
 
     // Verzamel ook eerdere refines (zelfde root) zodat Filly geen
@@ -617,7 +617,7 @@ ${menuBlock}
     const { data: siblings } = await this.supabase.client
       .from('suggested_menu_items')
       .select('name, description')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .or(`id.eq.${rootId},refined_from_id.eq.${rootId}`)
       .neq('id', suggestionId)
       .order('created_at', { ascending: true });
@@ -671,7 +671,7 @@ ${menuBlock}
         'Lever één wezenlijk andere variant op een eerder gegenereerd menu-voorstel.',
       inputSchema: REFINE_SUGGESTION_SCHEMA,
       meta: {
-        restaurantId,
+        businessId,
         userId,
         feature: 'menu_suggestions_refine',
       },
@@ -683,7 +683,7 @@ ${menuBlock}
     const { data: newRow, error: insErr } = await this.supabase.client
       .from('suggested_menu_items')
       .insert({
-        restaurant_id: restaurantId,
+        business_id: businessId,
         source_type: 'refined' as const,
         name: raw.name.trim().slice(0, 200),
         description: raw.description?.trim() || null,
@@ -712,7 +712,7 @@ ${menuBlock}
         acted_at: new Date().toISOString(),
       })
       .eq('id', suggestionId)
-      .eq('restaurant_id', restaurantId);
+      .eq('business_id', businessId);
     if (oldUpdErr) {
       this.logger.warn(
         `Voorstel ${suggestionId} kon niet op refined_into gezet: ${oldUpdErr.message}`,
@@ -720,7 +720,7 @@ ${menuBlock}
     }
 
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'menu_suggestion_refined',
       entity_type: 'suggested_menu_item',

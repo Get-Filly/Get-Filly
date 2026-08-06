@@ -76,10 +76,10 @@ function toNlException(
 
 // Metadata die elke AI-call ons moet geven, dit is verplicht zodat
 // geen enkele Filly-feature per ongeluk zonder tracking draait.
-// TypeScript dwingt de caller om feature mee te geven; restaurantId
+// TypeScript dwingt de caller om feature mee te geven; businessId
 // mag null zijn voor pre-onboarding calls (user heeft nog geen zaak).
 export type AiCallMeta = {
-  restaurantId: string | null;
+  businessId: string | null;
   // Optioneel: scheduled jobs hebben geen user die klikt.
   userId?: string;
   // Snake-case identificatie van de Filly-feature.
@@ -606,7 +606,7 @@ export class AiService {
     // krijgt de read-hits zodat het kosten-dashboard straks per call
     // kan zien hoeveel cache scheelde.
     const { error } = await this.supabase.client.from('ai_usage').insert({
-      restaurant_id: meta.restaurantId,
+      business_id: meta.businessId,
       user_id: meta.userId ?? null,
       feature: meta.feature,
       model,

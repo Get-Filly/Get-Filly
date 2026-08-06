@@ -8,9 +8,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MailDomainService } from './mail-domain.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -18,7 +18,7 @@ import {
 
 // Endpoints onder /restaurant/me/mail-domain, vereist auth + tenant.
 // Hoort logisch bij de restaurant-instellingen, vandaar de URL-prefix.
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('restaurant/me/mail-domain')
 export class MailDomainController {
   constructor(private readonly service: MailDomainService) {}
@@ -27,15 +27,15 @@ export class MailDomainController {
   // nog op DNS-niveau gezet moeten worden. Frontend pollt dit elke
   // 10s in pending-modus totdat verified of failed.
   @Get()
-  getStatus(@RestaurantId() restaurantId: string) {
-    return this.service.getStatus(restaurantId);
+  getStatus(@BusinessId() businessId: string) {
+    return this.service.getStatus(businessId);
   }
 
   // Domein registreren bij Resend. Body: { domain, fromAddress }.
   // Returnt direct de DNS-records zodat de UI ze kan tonen.
   @Post()
   register(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { domain?: string; fromAddress?: string },
   ) {
@@ -45,7 +45,7 @@ export class MailDomainController {
       );
     }
     return this.service.register(
-      restaurantId,
+      businessId,
       body.domain,
       body.fromAddress,
       user.id,
@@ -56,10 +56,10 @@ export class MailDomainController {
   // klikt deze nadat 'ie de records bij z'n DNS-host heeft toegevoegd.
   @Post('verify')
   verify(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.verify(restaurantId, user.id);
+    return this.service.verify(businessId, user.id);
   }
 
   // Koppeling verbreken: domein verdwijnt bij Resend, mail-flow valt
@@ -67,9 +67,9 @@ export class MailDomainController {
   // domein registreren als gewenst.
   @Delete()
   remove(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.remove(restaurantId, user.id);
+    return this.service.remove(businessId, user.id);
   }
 }

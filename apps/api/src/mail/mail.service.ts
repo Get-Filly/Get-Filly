@@ -100,7 +100,7 @@ export class MailService {
   // De resolve-stap loopt via de RLS-client zodat ook de recipient-
   // lookup tenant-veilig is.
   async sendCampaignByMode(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
     mode: 'test' | 'all_opted_in',
     options: { testEmail?: string },
@@ -121,7 +121,7 @@ export class MailService {
       const { data: guests, error } = await this.userScoped.client
         .from('guests')
         .select('id, first_name, last_name, email')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('mail_opt_in', true)
         .not('email', 'is', null);
       if (error) throwDbError(this.logger, error);
@@ -152,7 +152,7 @@ export class MailService {
     }
 
     return this.sendCampaign(
-      restaurantId,
+      businessId,
       campaignId,
       recipients,
       userId,
@@ -167,7 +167,7 @@ export class MailService {
   // worden + eerste 5 namen ter herkenning. Eigenaar ziet hierop
   // "47 gasten, waaronder Anna, Mark, Sophie…" en weet wat 'ie
   // verstuurt voordat 'ie op de send-knop drukt.
-  async getRecipientsPreview(restaurantId: string): Promise<{
+  async getRecipientsPreview(businessId: string): Promise<{
     totalCount: number;
     sampleNames: string[];
     ownerEmail: string | null;
@@ -176,14 +176,14 @@ export class MailService {
       this.userScoped.client
         .from('guests')
         .select('first_name, last_name, email')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('mail_opt_in', true)
         .not('email', 'is', null)
         .limit(5),
       this.userScoped.client
-        .from('restaurants')
+        .from('businesses')
         .select('contact_email')
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle(),
     ]);
 
@@ -192,7 +192,7 @@ export class MailService {
     const { count } = await this.userScoped.client
       .from('guests')
       .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('mail_opt_in', true)
       .not('email', 'is', null);
 
@@ -234,7 +234,7 @@ export class MailService {
   // rollback van de hele campagne, gefaalde recipients zien we via
   // status, eigenaar kan ze later opnieuw proberen.
   async sendCampaign(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
     recipients: MailRecipient[],
     userId: string,
@@ -255,10 +255,10 @@ export class MailService {
     const { data: campaign, error: campErr } = await this.userScoped.client
       .from('campaigns')
       .select(
-        'id, name, type, restaurant_id, campaign_mail_content(subject_line, body_html, body_plain, from_name, reply_to)',
+        'id, name, type, business_id, campaign_mail_content(subject_line, body_html, body_plain, from_name, reply_to)',
       )
       .eq('id', campaignId)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .maybeSingle();
     if (campErr) throwDbError(this.logger, campErr);
     if (!campaign) throw new NotFoundException('Campagne niet gevonden.');
@@ -301,12 +301,12 @@ export class MailService {
     // eigen-domein-status. Geen restaurant gevonden = niet je tenant
     // (RLS); onmogelijk te bereiken vanaf de controllers, defense-in-depth.
     const { data: restaurant, error: restErr } = await this.userScoped.client
-      .from('restaurants')
+      .from('businesses')
       .select('name, contact_email, mail_domain_status, mail_from_address')
-      .eq('id', restaurantId)
+      .eq('id', businessId)
       .maybeSingle();
     if (restErr) throwDbError(this.logger, restErr);
-    if (!restaurant) throw new NotFoundException('Restaurant niet gevonden.');
+    if (!restaurant) throw new NotFoundException('Business niet gevonden.');
 
     // Stap 3, bepaal From + Reply-To. Eigen domein verified → klant-
     // adres als From, geen reply-to nodig (replies komen direct binnen
@@ -323,7 +323,7 @@ export class MailService {
     const tokens = recipients.map(() => randomBytes(24).toString('hex'));
     const tokenRows = recipients.map((r, i) => ({
       token: tokens[i],
-      restaurant_id: restaurantId,
+      business_id: businessId,
       guest_id: r.guestId ?? null,
       email: r.email.toLowerCase().trim(),
     }));
@@ -443,7 +443,7 @@ export class MailService {
     // zodat het audit-log behapbaar blijft. Detail-info per recipient
     // staat in campaign_sends zelf.
     await this.audit.log({
-      restaurantId,
+      businessId,
       userId,
       action: 'campaign_sent',
       entity_type: 'campaign',
@@ -585,15 +585,15 @@ export class MailService {
     campaignId: string,
     field: 'mail_delivered' | 'mail_opened' | 'mail_clicked' | 'mail_bounced',
   ): Promise<void> {
-    // Eerst restaurant_id achterhalen via campaigns-FK.
+    // Eerst business_id achterhalen via campaigns-FK.
     const { data: campaign, error: campErr } = await this.admin.client
       .from('campaigns')
-      .select('restaurant_id')
+      .select('business_id')
       .eq('id', campaignId)
       .maybeSingle();
     if (campErr || !campaign) {
       this.logger.warn(
-        `Kon restaurant_id niet vinden voor campaign ${campaignId}`,
+        `Kon business_id niet vinden voor campaign ${campaignId}`,
       );
       return;
     }
@@ -603,7 +603,7 @@ export class MailService {
     await this.admin.client.from('campaign_performance').upsert(
       {
         campaign_id: campaignId,
-        restaurant_id: (campaign as { restaurant_id: string }).restaurant_id,
+        business_id: (campaign as { business_id: string }).business_id,
       },
       { onConflict: 'campaign_id', ignoreDuplicates: true },
     );
@@ -631,7 +631,7 @@ export class MailService {
   async unsubscribeByToken(token: string): Promise<{ restaurantName: string }> {
     const { data: tokenRow, error: tokErr } = await this.admin.client
       .from('unsubscribe_tokens')
-      .select('token, restaurant_id, guest_id, email, used_at')
+      .select('token, business_id, guest_id, email, used_at')
       .eq('token', token)
       .maybeSingle();
     if (tokErr) throwDbError(this.logger, tokErr);
@@ -657,14 +657,14 @@ export class MailService {
       // Recente sends voor deze gast als 'unsubscribed' markeren,
       // niet kritisch maar handig voor reporting. We draaien op de
       // admin-client (RLS-bypass), dus we MOETEN zelf tenant-scopen:
-      // campaign_sends heeft geen restaurant_id, dus we beperken tot de
+      // campaign_sends heeft geen business_id, dus we beperken tot de
       // campagnes van DIT restaurant. Zonder die scope zou een unsubscribe
       // de reporting van álle restaurants raken waar dit mailadres ook
       // gast is (cross-tenant data-vervuiling).
       const { data: ownCampaigns } = await this.admin.client
         .from('campaigns')
         .select('id')
-        .eq('restaurant_id', tokenRow.restaurant_id);
+        .eq('business_id', tokenRow.business_id);
       const campaignIds = (ownCampaigns ?? []).map(
         (c) => (c as { id: string }).id,
       );
@@ -681,11 +681,11 @@ export class MailService {
       }
     }
 
-    // Restaurant-naam ophalen voor de UI ("Je bent uitgeschreven van X")
+    // Business-naam ophalen voor de UI ("Je bent uitgeschreven van X")
     const { data: rest } = await this.admin.client
-      .from('restaurants')
+      .from('businesses')
       .select('name')
-      .eq('id', tokenRow.restaurant_id)
+      .eq('id', tokenRow.business_id)
       .maybeSingle();
 
     return { restaurantName: (rest?.name as string) ?? 'het restaurant' };
@@ -786,7 +786,7 @@ export class MailService {
     // Nette HTML met de ingevulde velden + plain-text fallback.
     const rows: Array<[string, string]> = [
       ['Naam', name],
-      ['Restaurant', restaurant],
+      ['Business', restaurant],
       ['E-mail', email],
       ['Telefoon', phone || '—'],
     ];
@@ -811,7 +811,7 @@ export class MailService {
       'Nieuwe demo-aanvraag',
       '',
       `Naam: ${name}`,
-      `Restaurant: ${restaurant}`,
+      `Business: ${restaurant}`,
       `E-mail: ${email}`,
       `Telefoon: ${phone || '—'}`,
       '',

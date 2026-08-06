@@ -22,7 +22,7 @@ import { useTranslations } from "next-intl";
 import {
   fetchCampaigns,
   fetchRestaurant,
-  type Restaurant,
+  type Business,
 } from "@/lib/api";
 import {
   ProgressChecklist,
@@ -30,7 +30,7 @@ import {
 } from "./progress-checklist";
 
 function buildChecklist(
-  restaurant: Restaurant,
+  restaurant: Business,
   campaignCount: number,
   t: ReturnType<typeof useTranslations>,
 ): ProgressChecklistItem[] {

@@ -27,7 +27,7 @@ import { AnonymizationService } from '../anonymization/anonymization.service';
 //      om leerwaarde te bewaren voordat de FK-cascade alles wist.
 //   5. Delete restaurants → cascade alle business-data
 //   6. Delete auth.users via Supabase Admin API → cascade
-//      public.users + restaurant_users
+//      public.users + business_users
 //   7. Insert account_deletions-bewijsrij (geen PII, alleen
 //      tellers + datum) voor AVG art. 30 verantwoordingsplicht
 //
@@ -71,8 +71,8 @@ export class AccountDeletionService {
 
     // Stap 2: alle owner-memberships ophalen.
     const { data: memberships, error: memErr } = await this.supabase.client
-      .from('restaurant_users')
-      .select('restaurant_id, role')
+      .from('business_users')
+      .select('business_id, role')
       .eq('user_id', userId)
       .eq('role', 'owner');
 
@@ -83,7 +83,7 @@ export class AccountDeletionService {
     }
 
     const ownerRestaurantIds = (memberships ?? []).map(
-      (r) => r.restaurant_id as string,
+      (r) => r.business_id as string,
     );
 
     // Stap 3: per restaurant checken op andere actieve members.
@@ -91,9 +91,9 @@ export class AccountDeletionService {
     // staff verwijderen of overdracht regelen (later P3).
     if (ownerRestaurantIds.length > 0) {
       const { data: otherMembers, error: omErr } = await this.supabase.client
-        .from('restaurant_users')
-        .select('restaurant_id, user_id')
-        .in('restaurant_id', ownerRestaurantIds)
+        .from('business_users')
+        .select('business_id, user_id')
+        .in('business_id', ownerRestaurantIds)
         .neq('user_id', userId);
 
       if (omErr) {
@@ -104,7 +104,7 @@ export class AccountDeletionService {
 
       if (otherMembers && otherMembers.length > 0) {
         const blocked = new Set(
-          otherMembers.map((r) => r.restaurant_id as string),
+          otherMembers.map((r) => r.business_id as string),
         );
         throw new ConflictException(
           `Je restaurant heeft nog ${otherMembers.length} ander${
@@ -131,26 +131,26 @@ export class AccountDeletionService {
     // Stap 5: restaurants verwijderen → cascade business-data.
     if (ownerRestaurantIds.length > 0) {
       const { error: delRestErr } = await this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .delete()
         .in('id', ownerRestaurantIds);
 
       if (delRestErr) {
         throw new InternalServerErrorException(
-          `Restaurants verwijderen faalde: ${delRestErr.message}`,
+          `Businesses verwijderen faalde: ${delRestErr.message}`,
         );
       }
     }
 
     // Stap 6: auth.users verwijderen via Supabase Admin API.
-    // Cascade op auth.users → public.users → restaurant_users
+    // Cascade op auth.users → public.users → business_users
     // (laatste resterende non-owner memberships voor andere
     // restaurants verdwijnen ook netjes).
     const { error: authErr } = await this.supabase.client.auth.admin.deleteUser(
       userId,
     );
     if (authErr) {
-      // Restaurants zijn al weg op dit punt, user staat dan in
+      // Businesses zijn al weg op dit punt, user staat dan in
       // weeskind-staat in auth.users zonder profile. Loggen + 500
       // zodat support kan ingrijpen.
       this.logger.error(

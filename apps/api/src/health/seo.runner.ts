@@ -291,9 +291,9 @@ export class SeoRunner implements HealthRunner {
         key: 'seo.schema_restaurant',
         severity: 'critical',
         pointsBudget: 12,
-        title: 'Schema.org Restaurant-markup',
+        title: 'Schema.org Business-markup',
         description:
-          'JSON-LD met type "Restaurant" of "FoodEstablishment" is het belangrijkste signaal voor lokale SEO. Zonder dit ranken concurrenten met markup altijd hoger.',
+          'JSON-LD met type "Business" of "FoodEstablishment" is het belangrijkste signaal voor lokale SEO. Zonder dit ranken concurrenten met markup altijd hoger.',
         evaluate: ({ $ }) => {
           if (!$) return { passed: false };
           let found = false;
@@ -306,7 +306,7 @@ export class SeoRunner implements HealthRunner {
               for (const item of items) {
                 const type = item?.['@type'];
                 const types = Array.isArray(type) ? type : [type];
-                if (types.some((t) => t === 'Restaurant' || t === 'FoodEstablishment' || t === 'LocalBusiness')) {
+                if (types.some((t) => t === 'Business' || t === 'FoodEstablishment' || t === 'LocalBusiness')) {
                   found = true;
                   return false; // break .each
                 }
@@ -319,7 +319,7 @@ export class SeoRunner implements HealthRunner {
             passed: found,
             fixSuggestion: found
               ? undefined
-              : 'Voeg JSON-LD schema toe met "@type": "Restaurant", inclusief naam, adres, openingstijden en cuisine. Zie schema.org/Restaurant.',
+              : 'Voeg JSON-LD schema toe met "@type": "Business", inclusief naam, adres, openingstijden en cuisine. Zie schema.org/Business.',
           };
         },
       },

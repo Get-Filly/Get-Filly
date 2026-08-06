@@ -9,8 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessAccessGuard } from '../common/business-access.guard';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -20,10 +20,10 @@ import { TikTokService } from './tiktok.service';
 // ============================================================
 // TikTok-koppeling — ingelogde-user-endpoints
 // ============================================================
-// Restaurant-gescoped (AuthGuard + RestaurantAccessGuard). De web-callback
+// Business-gescoped (AuthGuard + BusinessAccessGuard). De web-callback
 // roept /connect aan met de OAuth-code; de UI gebruikt /status en DELETE.
 @Controller('integrations/tiktok')
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 export class TikTokController {
   constructor(private readonly tiktok: TikTokService) {}
 
@@ -31,7 +31,7 @@ export class TikTokController {
   @Post('connect')
   @HttpCode(200)
   connect(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { code?: string; redirectUri?: string },
   ) {
@@ -39,7 +39,7 @@ export class TikTokController {
       throw new BadRequestException('code en redirectUri zijn verplicht');
     }
     return this.tiktok.connect(
-      restaurantId,
+      businessId,
       user.id,
       body.code,
       body.redirectUri,
@@ -48,15 +48,15 @@ export class TikTokController {
 
   // GET /api/integrations/tiktok/status
   @Get('status')
-  status(@RestaurantId() restaurantId: string) {
-    return this.tiktok.status(restaurantId);
+  status(@BusinessId() businessId: string) {
+    return this.tiktok.status(businessId);
   }
 
   // GET /api/integrations/tiktok/creator-info
   // Creator-nickname/avatar + privacy-opties + max videoduur (compliance-UX).
   @Get('creator-info')
-  creatorInfo(@RestaurantId() restaurantId: string) {
-    return this.tiktok.queryCreatorInfo(restaurantId);
+  creatorInfo(@BusinessId() businessId: string) {
+    return this.tiktok.queryCreatorInfo(businessId);
   }
 
   // POST /api/integrations/tiktok/upload
@@ -66,7 +66,7 @@ export class TikTokController {
   @Post('upload')
   @HttpCode(200)
   upload(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Body()
     body: {
       videoUrl?: string;
@@ -85,7 +85,7 @@ export class TikTokController {
     if (!body?.privacyLevel) {
       throw new BadRequestException('privacyLevel is verplicht');
     }
-    return this.tiktok.directPost(restaurantId, {
+    return this.tiktok.directPost(businessId, {
       videoUrl: body.videoUrl,
       title: body.title,
       privacyLevel: body.privacyLevel,
@@ -100,7 +100,7 @@ export class TikTokController {
   // DELETE /api/integrations/tiktok   (koppeling intrekken)
   @Delete()
   @HttpCode(200)
-  disconnect(@RestaurantId() restaurantId: string) {
-    return this.tiktok.disconnect(restaurantId);
+  disconnect(@BusinessId() businessId: string) {
+    return this.tiktok.disconnect(businessId);
   }
 }

@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { RestaurantAccess } from './restaurant-access.service';
+import { BusinessAccess } from './business-access.service';
 
 /**
  * ============================================================
@@ -8,21 +8,21 @@ import { RestaurantAccess } from './restaurant-access.service';
  *
  * Gebruik:
  *   @Get('summary')
- *   getSummary(@CurrentRestaurant() ctx: RestaurantAccess) {
- *     console.log(ctx.restaurantId, ctx.role, ctx.permissions);
+ *   getSummary(@CurrentRestaurant() ctx: BusinessAccess) {
+ *     console.log(ctx.businessId, ctx.role, ctx.permissions);
  *     ...
  *   }
  *
  * Voorwaarde:
- *   De RestaurantAccessGuard moet hebben gedraaid. Die zet
+ *   De BusinessAccessGuard moet hebben gedraaid. Die zet
  *   req.restaurant. Zonder die guard is er geen data en geeft
  *   deze decorator undefined terug.
  */
 export const CurrentRestaurant = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): RestaurantAccess | undefined => {
+  (_data: unknown, ctx: ExecutionContext): BusinessAccess | undefined => {
     const req = ctx
       .switchToHttp()
-      .getRequest<{ restaurant?: RestaurantAccess }>();
+      .getRequest<{ restaurant?: BusinessAccess }>();
     return req.restaurant;
   },
 );

@@ -21,7 +21,7 @@ import { TikTokModule } from '../tiktok/tiktok.module';
 // 'google_business' publiceren als Google Post (localPosts.create).
 import { GoogleBusinessModule } from '../google-business/google-business.module';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 
 // CampaignsService wordt ook gebruikt door SuggestionsService (voor de
 // approve-flow: suggestie → campagne aanmaken + FK koppelen) en door
@@ -54,7 +54,7 @@ import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
     CampaignPerformanceService,
     CampaignFingerprintService,
     AuthGuard,
-    RestaurantAccessGuard,
+    BusinessAccessGuard,
   ],
   exports: [
     CampaignsService,

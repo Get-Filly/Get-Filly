@@ -63,7 +63,7 @@ export type FillyRoiMonth = {
 export class KpiService {
   constructor(private readonly supabase: RequestSupabaseService) {}
 
-  async getKpis(restaurantId: string): Promise<Kpis> {
+  async getKpis(businessId: string): Promise<Kpis> {
     // Alle datum-grenzen in Europe/Amsterdam berekenen, niet UTC. Anders
     // valt 'vandaag' rond middernacht NL-tijd een dag verkeerd en vindt
     // today_pct geen matchende occupancy_days-rij (→ "—" in de UI).
@@ -94,31 +94,31 @@ export class KpiService {
         .select(
           'date, occupancy_pct, estimated_guests, estimated_revenue_cents',
         )
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .gte('date', monthStart)
         .lte('date', monthEnd),
       this.supabase.client
         .from('ai_suggestions')
         .select('id')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('status', 'pending'),
       this.supabase.client
         .from('reservations')
         .select('id, party_size')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .gte('reservation_date', monthStart)
         .lte('reservation_date', monthEnd)
         .not('via_campaign_id', 'is', null),
       this.supabase.client
         .from('occupancy_days')
         .select('date, occupancy_pct')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .gte('date', sixMonthsAgo)
         .lt('date', monthStart), // <-- alleen historie, niet huidige maand
       this.supabase.client
-        .from('restaurants')
+        .from('businesses')
         .select('target_weekday_occupancy_pct')
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle(),
       // Filly-attributie ALLEEN vandaag, voor het dashboard-KPI-blok.
       // Aparte query van de maand-Filly om geen client-side filter te
@@ -127,7 +127,7 @@ export class KpiService {
       this.supabase.client
         .from('reservations')
         .select('id, party_size')
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .eq('reservation_date', todayStr)
         .not('via_campaign_id', 'is', null),
       // Lopende campagnes = status ingepland of actief (concept en
@@ -137,7 +137,7 @@ export class KpiService {
       this.supabase.client
         .from('campaigns')
         .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .in('status', ['ingepland', 'actief']),
     ]);
 
@@ -228,7 +228,7 @@ export class KpiService {
   // de rapportages-pagina (ROI per kanaal). Aggregeert over alle
   // reservations met via_campaign_id = X gegroupeerd per campagne.
   async getCampaignAttributionThisMonth(
-    restaurantId: string,
+    businessId: string,
   ): Promise<CampaignAttribution[]> {
     const { year, month } = amsterdamParts();
     const monthStart = ymd(year, month, 1);
@@ -244,7 +244,7 @@ export class KpiService {
         `id, party_size, via_campaign_id,
          campaign:campaigns!reservations_via_campaign_id_fkey(id, name, type)`,
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('reservation_date', monthStart)
       .lte('reservation_date', monthEnd)
       .not('via_campaign_id', 'is', null);
@@ -256,7 +256,7 @@ export class KpiService {
     const { data: monthTotals } = await this.supabase.client
       .from('occupancy_days')
       .select('estimated_guests, estimated_revenue_cents')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('date', monthStart)
       .lte('date', monthEnd);
 
@@ -297,7 +297,7 @@ export class KpiService {
   }
 
   // 6 maanden Filly-ROI voor de bar-grafiek op rapportages.
-  async getFillyRoi6Months(restaurantId: string): Promise<FillyRoiMonth[]> {
+  async getFillyRoi6Months(businessId: string): Promise<FillyRoiMonth[]> {
     // Begin van 6 maanden geleden (dus 5 maanden terug + huidige maand
     // = 6 buckets). In Europe/Amsterdam zodat de maand-buckets kloppen.
     const { year, month } = amsterdamParts();
@@ -306,7 +306,7 @@ export class KpiService {
     const { data: reservations, error } = await this.supabase.client
       .from('reservations')
       .select('reservation_date, party_size')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('reservation_date', start)
       .not('via_campaign_id', 'is', null);
 
@@ -316,7 +316,7 @@ export class KpiService {
     const { data: occ } = await this.supabase.client
       .from('occupancy_days')
       .select('date, estimated_guests, estimated_revenue_cents')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .gte('date', start);
 
     const occByMonth = new Map<string, { guests: number; rev: number }>();

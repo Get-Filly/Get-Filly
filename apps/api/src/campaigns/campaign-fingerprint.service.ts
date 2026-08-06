@@ -110,7 +110,7 @@ export class CampaignFingerprintService {
       const { data: campaign } = await this.serviceSupabase.client
         .from('campaigns')
         .select(
-          'id, restaurant_id, type, name, campaign_mail_content(subject_line, body_html, body_plain), campaign_social_content(platform, caption, hashtags)',
+          'id, business_id, type, name, campaign_mail_content(subject_line, body_html, body_plain), campaign_social_content(platform, caption, hashtags)',
         )
         .eq('id', campaignId)
         .maybeSingle();
@@ -122,11 +122,11 @@ export class CampaignFingerprintService {
         return;
       }
 
-      // 2) Restaurant-menu voor primary_dish-match.
+      // 2) Business-menu voor primary_dish-match.
       const { data: menu } = await this.serviceSupabase.client
         .from('menu_items')
         .select('name')
-        .eq('restaurant_id', (campaign as { restaurant_id: string }).restaurant_id);
+        .eq('business_id', (campaign as { business_id: string }).business_id);
 
       const menuNames = (menu ?? []).map(
         (m) => (m as { name: string }).name,
@@ -147,7 +147,7 @@ export class CampaignFingerprintService {
       // terug op v1-gedrag.
       const classified = await this.classifyToneAndTheme(
         body,
-        (campaign as { restaurant_id: string }).restaurant_id,
+        (campaign as { business_id: string }).business_id,
       );
 
       // 5) Insert (idempotent via UNIQUE op campaign_id).
@@ -156,7 +156,7 @@ export class CampaignFingerprintService {
         .upsert(
           {
             campaign_id: campaignId,
-            restaurant_id: (campaign as { restaurant_id: string }).restaurant_id,
+            business_id: (campaign as { business_id: string }).business_id,
             channel,
             opening_pattern: opening,
             hashtag_set: hashtagsRaw,
@@ -191,7 +191,7 @@ export class CampaignFingerprintService {
    */
   private async classifyToneAndTheme(
     body: string,
-    restaurantId: string,
+    businessId: string,
   ): Promise<{ tone_signature: ToneSignature; theme: string } | null> {
     const clean = body.replace(/<[^>]+>/g, ' ').trim();
     if (clean.length < 20) return null; // te weinig tekst om te classificeren
@@ -212,7 +212,7 @@ export class CampaignFingerprintService {
           'Classificeer de tone_signature en theme van de campagnetekst.',
         inputSchema: CampaignFingerprintService.CLASSIFY_SCHEMA,
         meta: {
-          restaurantId,
+          businessId,
           feature: 'fingerprint_classify',
         },
       });
@@ -239,14 +239,14 @@ export class CampaignFingerprintService {
    * door chat.service vóór generation om "vermijd dit"-blok te bouwen.
    */
   async getRecentFingerprints(
-    restaurantId: string,
+    businessId: string,
     channel: FillyChannel,
     limit = 10,
   ): Promise<Fingerprint[]> {
     const { data, error } = await this.requestSupabase.client
       .from('campaign_style_fingerprints')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('channel', channel)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -277,13 +277,13 @@ export class CampaignFingerprintService {
    * herhaald mogen worden (SEO); de caller bouwt ze met buildAnchorKeywords.
    */
   async checkRepetition(
-    restaurantId: string,
+    businessId: string,
     channel: FillyChannel,
     candidate: { body: string; hashtags?: string[] },
     anchorKeywords: string[] = [],
   ): Promise<RepetitionWarning[]> {
     const recent = await this.getRecentFingerprints(
-      restaurantId,
+      businessId,
       channel,
       ANTI_REPETITION_THRESHOLDS.fingerprintLookbackCount,
     );
@@ -369,7 +369,7 @@ export class CampaignFingerprintService {
    * variant kan tonen. RLS-active via requestSupabase.
    */
   async checkForCampaign(
-    restaurantId: string,
+    businessId: string,
     campaignId: string,
   ): Promise<RepetitionWarning[]> {
     // Campagne + content + restaurant-anker-data in één keer.
@@ -380,12 +380,12 @@ export class CampaignFingerprintService {
           'id, type, campaign_mail_content(body_plain, body_html), campaign_social_content(platform, caption, hashtags)',
         )
         .eq('id', campaignId)
-        .eq('restaurant_id', restaurantId)
+        .eq('business_id', businessId)
         .maybeSingle(),
       this.requestSupabase.client
-        .from('restaurants')
+        .from('businesses')
         .select('name, city, cuisine_style, keywords')
-        .eq('id', restaurantId)
+        .eq('id', businessId)
         .maybeSingle(),
     ]);
 
@@ -411,7 +411,7 @@ export class CampaignFingerprintService {
       anchors.push(...r.keywords.map((k) => k.toLowerCase()));
 
     return this.checkRepetition(
-      restaurantId,
+      businessId,
       channel,
       { body, hashtags },
       Array.from(new Set(anchors)),
@@ -446,12 +446,12 @@ export class CampaignFingerprintService {
    * Voor Filly's "SUCCESSFUL PATTERNS"-blok in de system-prompt.
    */
   async getWinnerFingerprints(
-    restaurantId: string,
+    businessId: string,
     channel: FillyChannel,
     limit = 3,
   ): Promise<Fingerprint[]> {
     return this.getClassifiedFingerprints(
-      restaurantId,
+      businessId,
       channel,
       'winner',
       'desc',
@@ -460,12 +460,12 @@ export class CampaignFingerprintService {
   }
 
   async getUnderperformerFingerprints(
-    restaurantId: string,
+    businessId: string,
     channel: FillyChannel,
     limit = 3,
   ): Promise<Fingerprint[]> {
     return this.getClassifiedFingerprints(
-      restaurantId,
+      businessId,
       channel,
       'underperformer',
       'asc',
@@ -478,7 +478,7 @@ export class CampaignFingerprintService {
    * success_score, returnt fingerprints. Skipt outliers.
    */
   private async getClassifiedFingerprints(
-    restaurantId: string,
+    businessId: string,
     channel: FillyChannel,
     classification: 'winner' | 'underperformer',
     order: 'asc' | 'desc',
@@ -491,7 +491,7 @@ export class CampaignFingerprintService {
       .select(
         '*, campaign_performance!campaign_id(success_score, classification, marked_outlier)',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('channel', channel)
       .limit(50); // ruimer ophalen, filteren we client-side
 
@@ -563,7 +563,7 @@ export class CampaignFingerprintService {
    * wanneer er al bekend is op welk kanaal Filly gaat genereren.
    */
   async buildLearningContextBlock(
-    restaurantId: string,
+    businessId: string,
     channels: FillyChannel[] = ['mail', 'instagram_feed', 'facebook'],
   ): Promise<string> {
     const winnersByChannel: Record<string, Fingerprint[]> = {};
@@ -572,10 +572,10 @@ export class CampaignFingerprintService {
     // Per kanaal parallel laden om latency laag te houden.
     await Promise.all(
       channels.flatMap((c) => [
-        this.getWinnerFingerprints(restaurantId, c, 3).then((fps) => {
+        this.getWinnerFingerprints(businessId, c, 3).then((fps) => {
           winnersByChannel[c] = fps;
         }),
-        this.getUnderperformerFingerprints(restaurantId, c, 3).then((fps) => {
+        this.getUnderperformerFingerprints(businessId, c, 3).then((fps) => {
           underByChannel[c] = fps;
         }),
       ]),

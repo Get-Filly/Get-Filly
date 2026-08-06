@@ -186,7 +186,7 @@ export class MetaService {
    * Eén rij per (restaurant, provider) via upsert.
    */
   async connect(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     code: string,
     redirectUri: string,
@@ -212,7 +212,7 @@ export class MetaService {
       .from('integration_credentials')
       .upsert(
         {
-          restaurant_id: restaurantId,
+          business_id: businessId,
           provider: PROVIDER,
           access_token_encrypted: encrypted,
           scopes: grantedScopes,
@@ -221,7 +221,7 @@ export class MetaService {
           connected_by: userId,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'restaurant_id,provider' },
+        { onConflict: 'business_id,provider' },
       );
 
     if (error) {
@@ -234,11 +234,11 @@ export class MetaService {
   }
 
   /** Verwijdert de Meta-koppeling van dit restaurant (data-deletion). */
-  async disconnect(restaurantId: string): Promise<{ ok: true }> {
+  async disconnect(businessId: string): Promise<{ ok: true }> {
     const { error } = await this.supabase.client
       .from('integration_credentials')
       .delete()
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
 
     if (error) {
@@ -256,7 +256,7 @@ export class MetaService {
    * client; nodig voor context-loze flows (bv. de campagne-cron).
    */
   async status(
-    restaurantId: string,
+    businessId: string,
     useAdmin = false,
   ): Promise<{
     connected: boolean;
@@ -273,7 +273,7 @@ export class MetaService {
     const { data, error } = await client
       .from('integration_credentials')
       .select('scopes, expires_at, updated_at, meta')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
 
@@ -312,14 +312,14 @@ export class MetaService {
 
   // Haalt + ontsleutelt de user-token + meta-jsonb van dit restaurant.
   private async loadCredential(
-    restaurantId: string,
+    businessId: string,
     useAdmin = false,
   ): Promise<{ token: string; meta: Record<string, unknown> }> {
     const client = useAdmin ? this.admin.client : this.supabase.client;
     const { data, error } = await client
       .from('integration_credentials')
       .select('access_token_encrypted, meta')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
     if (error) {
@@ -365,9 +365,9 @@ export class MetaService {
 
   /** Lijst van Facebook-pagina's (zonder de page-token naar de client). */
   async listPages(
-    restaurantId: string,
+    businessId: string,
   ): Promise<Array<{ id: string; name: string; hasInstagram: boolean }>> {
-    const { token } = await this.loadCredential(restaurantId);
+    const { token } = await this.loadCredential(businessId);
     const accounts = await this.fetchAccounts(token);
     return accounts.map((a) => ({
       id: a.id,
@@ -378,10 +378,10 @@ export class MetaService {
 
   /** Kiest de pagina waarop we publiceren; bewaart id + IG-account in meta. */
   async selectPage(
-    restaurantId: string,
+    businessId: string,
     pageId: string,
   ): Promise<{ ok: true }> {
-    const { token, meta } = await this.loadCredential(restaurantId);
+    const { token, meta } = await this.loadCredential(businessId);
     const accounts = await this.fetchAccounts(token);
     const page = accounts.find((a) => a.id === pageId);
     if (!page) {
@@ -396,7 +396,7 @@ export class MetaService {
     const { error } = await this.supabase.client
       .from('integration_credentials')
       .update({ meta: nextMeta, updated_at: new Date().toISOString() })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
     if (error) {
       this.logger.error(`Pagina opslaan faalde: ${error.message}`);
@@ -466,7 +466,7 @@ export class MetaService {
    * gekoppelde Instagram-account. IG vereist een afbeelding-URL.
    */
   async publish(
-    restaurantId: string,
+    businessId: string,
     opts: {
       message: string;
       imageUrl?: string;
@@ -479,7 +479,7 @@ export class MetaService {
     instagram?: { id: string; permalink?: string };
     errors: string[];
   }> {
-    const { token, meta } = await this.loadCredential(restaurantId, useAdmin);
+    const { token, meta } = await this.loadCredential(businessId, useAdmin);
     const pageId = meta.page_id as string | undefined;
     const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
     if (!pageId) {
@@ -612,8 +612,8 @@ export class MetaService {
    * instagram_manage_insights (fase 2, nieuwe App Review).
    * Fail-soft per kanaal: een fout in FB blokkeert IG niet, en andersom.
    */
-  async getInsights(restaurantId: string): Promise<MetaInsights> {
-    const { token, meta } = await this.loadCredential(restaurantId);
+  async getInsights(businessId: string): Promise<MetaInsights> {
+    const { token, meta } = await this.loadCredential(businessId);
     const pageId = (meta.page_id as string | undefined) ?? undefined;
     const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
     const notes: string[] = [];
@@ -777,7 +777,7 @@ export class MetaService {
    * eigen DB niet (caller logt/negeert).
    */
   async retract(
-    restaurantId: string,
+    businessId: string,
     postIds: { facebook?: string | null; instagram?: string | null },
   ): Promise<{
     facebookDeleted: boolean;
@@ -788,7 +788,7 @@ export class MetaService {
 
     if (postIds.facebook) {
       try {
-        const { token, meta } = await this.loadCredential(restaurantId);
+        const { token, meta } = await this.loadCredential(businessId);
         const pageId = meta.page_id as string | undefined;
         const accounts = await this.fetchAccounts(token);
         const page = accounts.find((a) => a.id === pageId);

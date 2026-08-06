@@ -11,7 +11,7 @@ import { logger } from "@/lib/logger";
  * ============================================================
  *
  * De "Verbind Facebook/Instagram"-knop linkt hierheen (optioneel
- * met ?restaurantId=<id> om te weten welke zaak we koppelen). Deze
+ * met ?businessId=<id> om te weten welke zaak we koppelen). Deze
  * route:
  *   1. Checkt server-side dat er een ingelogde eigenaar is. Anders
  *      → /login, daarna terug hierheen.
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   const state = crypto.randomUUID();
 
   // 3. Welke zaak koppelen we? (optioneel meegegeven door de knop)
-  const restaurantId = searchParams.get("restaurantId") ?? "";
+  const businessId = searchParams.get("businessId") ?? "";
 
   // 4. Authorize-URL bouwen. Faalt dit (bv. META_APP_ID ontbreekt in
   //    de omgeving), dan geen harde 500 maar netjes terug naar de
@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
     maxAge: 600,
   };
   response.cookies.set("meta_oauth_state", state, cookieBase);
-  if (restaurantId) {
-    response.cookies.set("meta_oauth_rid", restaurantId, cookieBase);
+  if (businessId) {
+    response.cookies.set("meta_oauth_rid", businessId, cookieBase);
   }
   return response;
 }

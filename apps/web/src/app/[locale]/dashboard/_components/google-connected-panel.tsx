@@ -15,7 +15,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import { useRestaurant } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/business-context";
 import {
   googleBusinessStatus,
   googleBusinessProfile,

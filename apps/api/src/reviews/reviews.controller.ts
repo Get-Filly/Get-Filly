@@ -8,23 +8,23 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessId } from '../common/business-id.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 
-@UseGuards(AuthGuard, RestaurantAccessGuard)
+@UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviews: ReviewsService) {}
 
   @Get()
-  findAll(@RestaurantId() restaurantId: string) {
-    return this.reviews.findAll(restaurantId);
+  findAll(@BusinessId() businessId: string) {
+    return this.reviews.findAll(businessId);
   }
 
   // POST (geen GET) omdat deze call Claude aanroept en dus geld kost +
@@ -39,12 +39,12 @@ export class ReviewsController {
   @UseGuards(AiRateLimitGuard)
   @Post(':id/reply-suggestion')
   generateReplySuggestion(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') reviewId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.reviews.generateReplySuggestion(
-      restaurantId,
+      businessId,
       reviewId,
       user.id,
     );
@@ -56,12 +56,12 @@ export class ReviewsController {
   @UseGuards(AiRateLimitGuard)
   @Post('suggest-for-text')
   generateReplyForText(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body()
     body: { rating?: number; body?: string | null; author?: string | null },
   ) {
-    return this.reviews.generateReplyForText(restaurantId, user.id, {
+    return this.reviews.generateReplyForText(businessId, user.id, {
       rating: typeof body?.rating === 'number' ? body.rating : 0,
       body: body?.body ?? null,
       author: body?.author ?? null,
@@ -72,10 +72,10 @@ export class ReviewsController {
   // dus geen rate-limit guard nodig.
   @Get(':id/variants')
   getVariants(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') reviewId: string,
   ) {
-    return this.reviews.getVariants(restaurantId, reviewId);
+    return this.reviews.getVariants(businessId, reviewId);
   }
 
   // Genereert 3 alternatieve reactie-varianten en cachet ze. Eerste
@@ -84,24 +84,24 @@ export class ReviewsController {
   @UseGuards(AiRateLimitGuard)
   @Post(':id/refine')
   refineVariants(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @Param('id') reviewId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.reviews.refineVariants(restaurantId, reviewId, user.id);
+    return this.reviews.refineVariants(businessId, reviewId, user.id);
   }
 
   // PATCH omdat we een bestaand record gedeeltelijk aanpassen (alleen
   // response_text + responded_at). PUT zou "vervang alles" betekenen.
   @Patch(':id')
   updateResponse(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') reviewId: string,
     @Body() body: { response_text: string },
   ) {
     return this.reviews.updateResponse(
-      restaurantId,
+      businessId,
       reviewId,
       body.response_text,
       user.id,

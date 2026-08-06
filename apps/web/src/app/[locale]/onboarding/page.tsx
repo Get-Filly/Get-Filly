@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { OpeningHoursEditor } from "@/components/opening-hours-editor";
 import { logger } from "@/lib/logger";
 
-// Localstorage-key die de RestaurantContext gebruikt om de actieve
+// Localstorage-key die de BusinessContext gebruikt om de actieve
 // zaak te onthouden tussen sessies. Bij het toevoegen van een 2e zaak
 // (mode=add) zetten we 'm direct na succes zodat de eigenaar in z'n
 // nieuwe restaurant landt zonder eerst handmatig te switchen.
@@ -496,17 +496,17 @@ function OnboardingPageContent() {
         error: string | null;
       };
       const result = (await res.json()) as {
-        restaurantId: string;
+        businessId: string;
         menuImport?: ImportStatus | null;
         drinkImport?: ImportStatus | null;
       };
-      const { restaurantId, menuImport, drinkImport } = result;
+      const { businessId, menuImport, drinkImport } = result;
 
-      if (typeof window !== "undefined" && restaurantId) {
+      if (typeof window !== "undefined" && businessId) {
         try {
           window.localStorage.setItem(
             ACTIVE_RESTAURANT_LS_KEY,
-            restaurantId,
+            businessId,
           );
         } catch {
           // negeer privé-modus
@@ -535,7 +535,7 @@ function OnboardingPageContent() {
         );
       }
 
-      // Add-mode: harde reload nodig zodat de RestaurantContext + alle
+      // Add-mode: harde reload nodig zodat de BusinessContext + alle
       // dashboard-pagina's vers mounten voor de nieuwe tenant. Een
       // soft router.push houdt useEffect-gefetchte data van het oude
       // restaurant in client-state hangen, zelfde issue als bij de

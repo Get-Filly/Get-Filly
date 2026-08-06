@@ -22,7 +22,7 @@ import { authErrorKey } from "@/lib/auth-errors";
 //   3. Hier kiest de klant zijn wachtwoord (updateUser). Een uitgenodigde
 //      gebruiker heeft namelijk nog géén wachtwoord; zonder deze stap kan
 //      'ie later niet met e-mail+wachtwoord inloggen.
-//   4. Na succes → /dashboard → middleware ziet geen restaurant_users-rij
+//   4. Na succes → /dashboard → middleware ziet geen business_users-rij
 //      → stuurt automatisch door naar /onboarding (wizard).
 //
 // Géén geldige sessie (link verlopen/al gebruikt, of direct geopend):
@@ -84,7 +84,7 @@ function WelkomForm() {
     }
 
     // Oude stored restaurant-id wegflikkeren: een verse klant mag geen
-    // X-Restaurant-Id van een vorige sessie meesturen (zou 403 geven).
+    // X-Business-Id van een vorige sessie meesturen (zou 403 geven).
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem("getfilly.activeRestaurantId");

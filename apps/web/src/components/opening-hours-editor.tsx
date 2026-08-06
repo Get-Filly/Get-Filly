@@ -1,6 +1,6 @@
 "use client";
 
-import type { Restaurant } from "../lib/api";
+import type { Business } from "../lib/api";
 
 // ============================================================
 // OpeningHoursEditor — openingstijden PER DAG (open–sluit)
@@ -9,7 +9,7 @@ import type { Restaurant } from "../lib/api";
 // sluittijd per weekdag. Het dashboard-drukte-blok koppelt z'n x-as
 // hieraan (opening_hours). Een dag kan gesloten zijn (waarde null).
 
-type OpeningHours = NonNullable<Restaurant["opening_hours"]>;
+type OpeningHours = NonNullable<Business["opening_hours"]>;
 type DayHours = { open: string; close: string };
 
 const DEFAULT: DayHours = { open: "09:00", close: "22:00" };
@@ -25,7 +25,7 @@ const WEEKDAYS: Array<{ key: string; label: string }> = [
 ];
 
 type Props = {
-  value: Restaurant["opening_hours"];
+  value: Business["opening_hours"];
   onChange: (next: OpeningHours) => void;
 };
 

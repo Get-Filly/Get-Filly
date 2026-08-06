@@ -10,29 +10,29 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { RestaurantMediaService } from './restaurant-media.service';
-import { RestaurantId } from '../common/restaurant-id.decorator';
+import { BusinessMediaService } from './business-media.service';
+import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
-import { RestaurantAccessGuard } from '../common/restaurant-access.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../common/current-user.decorator';
 
-// AuthGuard verifieert het JWT, RestaurantAccessGuard zorgt dat de
+// AuthGuard verifieert het JWT, BusinessAccessGuard zorgt dat de
 // user bij dit restaurant hoort. Beide op klasse-niveau zodat álle
 // endpoints automatisch beschermd zijn.
-@UseGuards(AuthGuard, RestaurantAccessGuard)
-@Controller('restaurant-media')
-export class RestaurantMediaController {
-  constructor(private readonly service: RestaurantMediaService) {}
+@UseGuards(AuthGuard, BusinessAccessGuard)
+@Controller('business-media')
+export class BusinessMediaController {
+  constructor(private readonly service: BusinessMediaService) {}
 
   // Lijst van alle foto's incl. signed URLs. Wordt gebruikt door de
   // foto-bibliotheek-sectie op de account-pagina én door de
   // "Kies uit bibliotheek"-modal op de campagne-pagina.
   @Get()
-  list(@RestaurantId() restaurantId: string) {
-    return this.service.list(restaurantId);
+  list(@BusinessId() businessId: string) {
+    return this.service.list(businessId);
   }
 
   // Single-file upload. Multipart-limit ruim boven de service-cap
@@ -47,7 +47,7 @@ export class RestaurantMediaController {
     }),
   )
   upload(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
@@ -56,7 +56,7 @@ export class RestaurantMediaController {
         'Geen bestand ontvangen. Selecteer een foto.',
       );
     }
-    return this.service.upload(restaurantId, user.id, {
+    return this.service.upload(businessId, user.id, {
       buffer: file.buffer,
       originalName: file.originalname,
       mimeType: file.mimetype,
@@ -65,10 +65,10 @@ export class RestaurantMediaController {
 
   @Delete(':id')
   remove(
-    @RestaurantId() restaurantId: string,
+    @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.service.remove(restaurantId, id, user.id);
+    return this.service.remove(businessId, id, user.id);
   }
 }

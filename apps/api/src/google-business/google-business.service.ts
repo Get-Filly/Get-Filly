@@ -189,7 +189,7 @@ export class GoogleBusinessService {
     private readonly config: ConfigService,
     private readonly supabase: RequestSupabaseService,
     // Toegang tot de rij is bij user-facing calls al afgedwongen door
-    // RestaurantAccessGuard; de admin-client gebruiken we voor de
+    // BusinessAccessGuard; de admin-client gebruiken we voor de
     // token-reads/refresh zodat die ook context-loos herbruikbaar zijn.
     private readonly admin: SupabaseService,
     private readonly crypto: TokenCryptoService,
@@ -267,7 +267,7 @@ export class GoogleBusinessService {
    * Eén rij per (restaurant, provider) via upsert.
    */
   async connect(
-    restaurantId: string,
+    businessId: string,
     userId: string,
     code: string,
     redirectUri: string,
@@ -288,11 +288,11 @@ export class GoogleBusinessService {
     // token kunnen we niet langdurig namens de zaak handelen.
     let refreshToken = token.refresh_token ?? null;
     if (!refreshToken) {
-      const existing = await this.loadRow(restaurantId);
+      const existing = await this.loadRow(businessId);
       if (existing?.refresh_token_encrypted) {
         refreshToken = this.crypto.decrypt(existing.refresh_token_encrypted);
         this.logger.log(
-          `Geen nieuwe refresh-token; hergebruik bestaande (${restaurantId})`,
+          `Geen nieuwe refresh-token; hergebruik bestaande (${businessId})`,
         );
       } else {
         throw new BadRequestException({
@@ -313,7 +313,7 @@ export class GoogleBusinessService {
       .from('integration_credentials')
       .upsert(
         {
-          restaurant_id: restaurantId,
+          business_id: businessId,
           provider: PROVIDER,
           access_token_encrypted: this.crypto.encrypt(token.access_token),
           refresh_token_encrypted: this.crypto.encrypt(refreshToken),
@@ -323,7 +323,7 @@ export class GoogleBusinessService {
           connected_by: userId,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'restaurant_id,provider' },
+        { onConflict: 'business_id,provider' },
       );
     if (error) {
       this.logger.error(`Opslaan google-credentials faalde: ${error.message}`);
@@ -337,8 +337,8 @@ export class GoogleBusinessService {
    * verlopen is. Dit is dé methode die de "namens de zaak"-API-calls
    * straks aanroepen.
    */
-  async getAccessToken(restaurantId: string): Promise<string> {
-    const row = await this.loadRow(restaurantId);
+  async getAccessToken(businessId: string): Promise<string> {
+    const row = await this.loadRow(businessId);
     if (!row)
       throw new BadRequestException(
         'Geen Google-koppeling voor dit restaurant',
@@ -348,15 +348,15 @@ export class GoogleBusinessService {
     if (expMs - EXPIRY_SKEW_MS > Date.now()) {
       return this.crypto.decrypt(row.access_token_encrypted);
     }
-    return this.refreshAccessToken(restaurantId);
+    return this.refreshAccessToken(businessId);
   }
 
   /**
    * Token-refresh-helper: gebruikt de opgeslagen refresh-token om een
    * nieuwe access-token te halen en werkt de opslag bij.
    */
-  async refreshAccessToken(restaurantId: string): Promise<string> {
-    const row = await this.loadRow(restaurantId);
+  async refreshAccessToken(businessId: string): Promise<string> {
+    const row = await this.loadRow(businessId);
     if (!row)
       throw new BadRequestException(
         'Geen Google-koppeling voor dit restaurant',
@@ -387,7 +387,7 @@ export class GoogleBusinessService {
           ? (err.getResponse() as { reason?: string })?.reason
           : undefined;
       if (reason === 'invalid_grant') {
-        await this.markExpired(restaurantId);
+        await this.markExpired(businessId);
         throw new BadRequestException({
           reason: 'refresh_revoked',
           message:
@@ -412,7 +412,7 @@ export class GoogleBusinessService {
     const { error } = await this.admin.client
       .from('integration_credentials')
       .update(update)
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
     if (error) {
       this.logger.error(`Bijwerken access-token faalde: ${error.message}`);
@@ -422,7 +422,7 @@ export class GoogleBusinessService {
   }
 
   /** Koppelingsstatus (zonder de tokens) voor de UI. */
-  async status(restaurantId: string): Promise<{
+  async status(businessId: string): Promise<{
     connected: boolean;
     scopes?: string[];
     expiresAt?: string | null;
@@ -431,7 +431,7 @@ export class GoogleBusinessService {
     const { data, error } = await this.supabase.client
       .from('integration_credentials')
       .select('scopes, expires_at, updated_at')
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
     if (error) throw new InternalServerErrorException('Status ophalen mislukt');
@@ -456,11 +456,11 @@ export class GoogleBusinessService {
    * melding kan tonen i.p.v. een generieke fout.
    */
   async listAccounts(
-    restaurantId: string,
+    businessId: string,
   ): Promise<
     Array<{ name: string; accountName: string; type: string | null }>
   > {
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
 
     let res: Response;
     try {
@@ -519,7 +519,7 @@ export class GoogleBusinessService {
    * horecazaak; bij meerdere accounts pakken we bewust de eerste (de UI toont
    * de locaties en kiest er één om te bewerken).
    */
-  async listLocations(restaurantId: string): Promise<
+  async listLocations(businessId: string): Promise<
     Array<{
       name: string;
       title: string;
@@ -532,10 +532,10 @@ export class GoogleBusinessService {
     }>
   > {
     // Locaties hangen onder een account; hergebruik de bestaande accounts.list.
-    const accounts = await this.listAccounts(restaurantId);
+    const accounts = await this.listAccounts(businessId);
     if (accounts.length === 0) return [];
 
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     // readMask is verplicht; we lezen de bewerkbare velden + de basics die we
     // in scène 5 tonen (naam/adres/categorieën/telefoon/website) — bewust via
     // de geauthenticeerde API i.p.v. de openbare Places-data.
@@ -602,7 +602,7 @@ export class GoogleBusinessService {
    * horecazaken met één doorlopend blok per dag is dat prima.
    */
   async updateHours(
-    restaurantId: string,
+    businessId: string,
     locationName: string,
     days: DayHours[],
   ): Promise<{ ok: true; hours: DayHours[] }> {
@@ -621,7 +621,7 @@ export class GoogleBusinessService {
       }
     }
 
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     const url = `${BUSINESS_INFO_BASE}/${locationName}?updateMask=regularHours`;
 
     let res: Response;
@@ -650,7 +650,7 @@ export class GoogleBusinessService {
       regularHours?: { periods?: GbpTimePeriod[] };
     };
     this.logger.log(
-      `GBP openingstijden bijgewerkt (restaurant ${restaurantId}, ${locationName})`,
+      `GBP openingstijden bijgewerkt (restaurant ${businessId}, ${locationName})`,
     );
     return {
       ok: true,
@@ -664,7 +664,7 @@ export class GoogleBusinessService {
    * Overschrijft de volledige specialHours van de locatie.
    */
   async updateSpecialDays(
-    restaurantId: string,
+    businessId: string,
     locationName: string,
     closedDates: string[],
   ): Promise<{ ok: true; count: number }> {
@@ -684,7 +684,7 @@ export class GoogleBusinessService {
       return { startDate: date, endDate: date, closed: true };
     });
 
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     const url = `${BUSINESS_INFO_BASE}/${locationName}?updateMask=specialHours`;
 
     let res: Response;
@@ -714,7 +714,7 @@ export class GoogleBusinessService {
     }
 
     this.logger.log(
-      `GBP speciale dagen bijgewerkt (restaurant ${restaurantId}, ${periods.length} dagen)`,
+      `GBP speciale dagen bijgewerkt (restaurant ${businessId}, ${periods.length} dagen)`,
     );
     return { ok: true, count: periods.length };
   }
@@ -726,7 +726,7 @@ export class GoogleBusinessService {
    * alleen lezen maar ook gebruiken om de listing te bewerken.
    */
   async updateDescription(
-    restaurantId: string,
+    businessId: string,
     locationName: string,
     description: string,
   ): Promise<{ ok: true; description: string }> {
@@ -743,7 +743,7 @@ export class GoogleBusinessService {
       );
     }
 
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     const url = `${BUSINESS_INFO_BASE}/${locationName}?updateMask=profile.description`;
 
     let res: Response;
@@ -770,7 +770,7 @@ export class GoogleBusinessService {
 
     const data = (await res.json()) as { profile?: { description?: string } };
     this.logger.log(
-      `GBP omschrijving bijgewerkt (restaurant ${restaurantId}, ${locationName})`,
+      `GBP omschrijving bijgewerkt (restaurant ${businessId}, ${locationName})`,
     );
     return { ok: true, description: data.profile?.description ?? trimmed };
   }
@@ -781,7 +781,7 @@ export class GoogleBusinessService {
    * account-naam vóór de locationName ('locations/{l}').
    */
   async listReviews(
-    restaurantId: string,
+    businessId: string,
     locationName: string,
   ): Promise<{
     averageRating: number | null;
@@ -798,11 +798,11 @@ export class GoogleBusinessService {
     if (!/^locations\/[^/]+$/.test(locationName)) {
       throw new BadRequestException('Ongeldige locationName');
     }
-    const accounts = await this.listAccounts(restaurantId);
+    const accounts = await this.listAccounts(businessId);
     if (accounts.length === 0) {
       throw new BadRequestException('Geen beheerd Google-account gevonden');
     }
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     // v4-pad: accounts/{a}/locations/{l}/reviews
     const url =
       `${MYBUSINESS_V4_BASE}/${accounts[0].name}/${locationName}/reviews` +
@@ -855,7 +855,7 @@ export class GoogleBusinessService {
    * volledige 'accounts/{a}/locations/{l}/reviews/{r}'-resource.
    */
   async replyToReview(
-    restaurantId: string,
+    businessId: string,
     reviewName: string,
     comment: string,
   ): Promise<{ ok: true; comment: string }> {
@@ -869,7 +869,7 @@ export class GoogleBusinessService {
       throw new BadRequestException('Het antwoord mag niet leeg zijn');
     }
 
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     const url = `${MYBUSINESS_V4_BASE}/${reviewName}/reply`;
 
     let res: Response;
@@ -896,7 +896,7 @@ export class GoogleBusinessService {
 
     const data = (await res.json()) as { comment?: string };
     this.logger.log(
-      `GBP review beantwoord (restaurant ${restaurantId}, ${reviewName})`,
+      `GBP review beantwoord (restaurant ${businessId}, ${reviewName})`,
     );
     return { ok: true, comment: data.comment ?? trimmed };
   }
@@ -907,7 +907,7 @@ export class GoogleBusinessService {
    * URL. Reviewer ziet zo dat de posts-scope-claim echt gebruikt wordt.
    */
   async createLocalPost(
-    restaurantId: string,
+    businessId: string,
     locationName: string,
     summary: string,
     actionUrl?: string,
@@ -927,11 +927,11 @@ export class GoogleBusinessService {
       );
     }
 
-    const accounts = await this.listAccounts(restaurantId);
+    const accounts = await this.listAccounts(businessId);
     if (accounts.length === 0) {
       throw new BadRequestException('Geen beheerd Google-account gevonden');
     }
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     const url = `${MYBUSINESS_V4_BASE}/${accounts[0].name}/${locationName}/localPosts`;
 
     const body: Record<string, unknown> = {
@@ -976,7 +976,7 @@ export class GoogleBusinessService {
 
     const data = (await res.json()) as { name?: string; searchUrl?: string };
     this.logger.log(
-      `GBP post geplaatst (restaurant ${restaurantId}, ${locationName})`,
+      `GBP post geplaatst (restaurant ${businessId}, ${locationName})`,
     );
     return {
       ok: true,
@@ -992,7 +992,7 @@ export class GoogleBusinessService {
    * COVER (omslag), LOGO (profielfoto) of ADDITIONAL (extra foto, default).
    */
   async uploadLocationMedia(
-    restaurantId: string,
+    businessId: string,
     locationName: string,
     sourceUrl: string,
     category: 'COVER' | 'LOGO' | 'ADDITIONAL' = 'ADDITIONAL',
@@ -1004,11 +1004,11 @@ export class GoogleBusinessService {
       throw new BadRequestException('Een geldige foto-URL is verplicht');
     }
 
-    const accounts = await this.listAccounts(restaurantId);
+    const accounts = await this.listAccounts(businessId);
     if (accounts.length === 0) {
       throw new BadRequestException('Geen beheerd Google-account gevonden');
     }
-    const accessToken = await this.getAccessToken(restaurantId);
+    const accessToken = await this.getAccessToken(businessId);
     const url = `${MYBUSINESS_V4_BASE}/${accounts[0].name}/${locationName}/media`;
 
     let res: Response;
@@ -1039,14 +1039,14 @@ export class GoogleBusinessService {
 
     const data = (await res.json()) as { name?: string };
     this.logger.log(
-      `GBP foto geüpload (restaurant ${restaurantId}, ${locationName}, ${category})`,
+      `GBP foto geüpload (restaurant ${businessId}, ${locationName}, ${category})`,
     );
     return { ok: true, name: data.name ?? '' };
   }
 
   /** Koppeling intrekken: best-effort revoke bij Google + rij wissen. */
-  async disconnect(restaurantId: string): Promise<{ ok: true }> {
-    const row = await this.loadRow(restaurantId);
+  async disconnect(businessId: string): Promise<{ ok: true }> {
+    const row = await this.loadRow(businessId);
     if (row?.refresh_token_encrypted) {
       try {
         await fetch(REVOKE_URL, {
@@ -1065,7 +1065,7 @@ export class GoogleBusinessService {
     const { error } = await this.supabase.client
       .from('integration_credentials')
       .delete()
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
     if (error)
       throw new InternalServerErrorException('Koppeling verwijderen mislukt');
@@ -1105,13 +1105,13 @@ export class GoogleBusinessService {
   }
 
   // Admin-client: werkt in zowel request- als achtergrond-context.
-  private async loadRow(restaurantId: string): Promise<CredRow | null> {
+  private async loadRow(businessId: string): Promise<CredRow | null> {
     const { data, error } = await this.admin.client
       .from('integration_credentials')
       .select(
         'access_token_encrypted, refresh_token_encrypted, expires_at, scopes',
       )
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
     if (error) {
@@ -1121,14 +1121,14 @@ export class GoogleBusinessService {
     return (data as CredRow) ?? null;
   }
 
-  private async markExpired(restaurantId: string): Promise<void> {
+  private async markExpired(businessId: string): Promise<void> {
     await this.admin.client
       .from('integration_credentials')
       .update({
         expires_at: new Date(0).toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('restaurant_id', restaurantId)
+      .eq('business_id', businessId)
       .eq('provider', PROVIDER);
   }
 }
