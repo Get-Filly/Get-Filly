@@ -21,7 +21,10 @@ function makePattern(): number[][] {
   return p;
 }
 
-function makeService(pattern: number[][]): BusynessService {
+function makeService(
+  pattern: number[][],
+  window: { start: number; end: number } | null = null,
+): BusynessService {
   const svc = new BusynessService({} as never, {} as never);
   jest.spyOn(svc, 'getLatest').mockResolvedValue({
     pattern,
@@ -31,7 +34,20 @@ function makeService(pattern: number[][]): BusynessService {
     liveWeekday: null,
     capturedAt: null,
   });
+  // getQuietWindow (mig 0069) doet een DB-query; mocken zodat de unit-test
+  // geen supabase nodig heeft. Default: geen venster.
+  jest
+    .spyOn(svc as unknown as { getQuietWindow: () => Promise<unknown> }, 'getQuietWindow')
+    .mockResolvedValue(window);
   return svc;
+}
+
+// Patroon dat elke dag 09:00–21:00 open is; maandag is de vlakke, leegste dag.
+function makeAllDayPattern(): number[][] {
+  const base = [25, 55, 55, 60, 70, 78, 55]; // ma..zo
+  const p = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+  for (let d = 0; d < 7; d++) for (let h = 9; h <= 20; h++) p[d][h] = base[d];
+  return p;
 }
 
 // Ma 2026-08-10 t/m zo 2026-08-16.
@@ -74,5 +90,27 @@ describe('getQuietMoments — vulbaarheid-first', () => {
     const thu = moments.find((m) => m.date === '2026-08-13');
     expect(thu).toBeDefined();
     expect(thu!.unusual).toBe(true);
+  });
+});
+
+describe('getQuietMoments — tijdvenster (mig 0069)', () => {
+  it('zonder venster loopt een rustige dag door tot in de avond', async () => {
+    const svc = makeService(makeAllDayPattern()); // geen venster
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 7);
+    const ma = moments.find((m) => m.date === '2026-08-10');
+    expect(ma).toBeDefined();
+    // Open tot 20:00 → het rustige blok reikt voorbij 17:00.
+    expect(ma!.toHour).toBeGreaterThanOrEqual(17);
+  });
+
+  it('met venster 11–18 vallen voorstellen binnen die uren', async () => {
+    const svc = makeService(makeAllDayPattern(), { start: 11, end: 18 });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 7);
+    expect(moments.length).toBeGreaterThan(0);
+    // Elk voorgesteld moment valt binnen 11:00–18:00.
+    for (const m of moments) {
+      expect(m.fromHour).toBeGreaterThanOrEqual(11);
+      expect(m.toHour).toBeLessThan(18);
+    }
   });
 });

@@ -1218,7 +1218,13 @@
       "occupancyThresholdHint": "Filly scans the next 14 days for quiet days and adds them to “Other actions”. As soon as a day's occupancy reaches the threshold (e.g. through new reservations), it automatically disappears from the list. Closing days are not shown.",
       "quietTempoLabel": "How many quiet moments Filly surfaces per week",
       "quietTempoValue": "{count} per week",
-      "quietTempoHint": "The ceiling: Filly surfaces at most this many quiet moments per week, strongest first. A calm week yields fewer; it is never padded with moments that aren't actually quiet."
+      "quietTempoHint": "The ceiling: Filly surfaces at most this many quiet moments per week, strongest first. A calm week yields fewer; it is never padded with moments that aren't actually quiet.",
+      "quietWindowLabel": "Within which hours Filly may suggest",
+      "quietWindowEnable": "Limit suggestions to a time window",
+      "quietWindowFrom": "from",
+      "quietWindowTo": "to",
+      "quietWindowHintOn": "Filly only suggests quiet moments between {from} and {to}. Moments outside that (e.g. late evening) are skipped.",
+      "quietWindowHintOff": "No limit: Filly looks at the whole open day."
     },
     "events": {
       "label": "Nearby events in Filly's suggestions",

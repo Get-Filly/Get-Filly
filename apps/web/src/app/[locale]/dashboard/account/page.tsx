@@ -995,6 +995,111 @@ function AccountPageInner() {
             </div>
           </div>
 
+          {/* ----- Tijdvenster rustige momenten (mig 0069) ----- */}
+          <div className="form-field full">
+            <label>{t("notifications.quietWindowLabel")}</label>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 14,
+                margin: "2px 0 10px",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={form.quiet_window_start_hour != null}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    update("quiet_window_start_hour", 11);
+                    update("quiet_window_end_hour", 18);
+                  } else {
+                    update("quiet_window_start_hour", null);
+                    update("quiet_window_end_hour", null);
+                  }
+                }}
+              />
+              {t("notifications.quietWindowEnable")}
+            </label>
+            {form.quiet_window_start_hour != null && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 14 }}>
+                  {t("notifications.quietWindowFrom")}
+                </span>
+                <select
+                  value={form.quiet_window_start_hour ?? 11}
+                  onChange={(e) =>
+                    update(
+                      "quiet_window_start_hour",
+                      parseInt(e.target.value, 10),
+                    )
+                  }
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    background: "var(--white, #FFFFFF)",
+                    color: "var(--text, #18181B)",
+                  }}
+                >
+                  {Array.from({ length: 18 }, (_, i) => i + 6)
+                    .filter((h) => h < (form.quiet_window_end_hour ?? 24))
+                    .map((h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                </select>
+                <span style={{ fontSize: 14 }}>
+                  {t("notifications.quietWindowTo")}
+                </span>
+                <select
+                  value={form.quiet_window_end_hour ?? 18}
+                  onChange={(e) =>
+                    update(
+                      "quiet_window_end_hour",
+                      parseInt(e.target.value, 10),
+                    )
+                  }
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    background: "var(--white, #FFFFFF)",
+                    color: "var(--text, #18181B)",
+                  }}
+                >
+                  {Array.from({ length: 19 }, (_, i) => i + 6)
+                    .filter((h) => h > (form.quiet_window_start_hour ?? 0))
+                    .map((h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--tl)",
+                lineHeight: 1.4,
+              }}
+            >
+              {form.quiet_window_start_hour != null
+                ? t("notifications.quietWindowHintOn", {
+                    from: `${String(form.quiet_window_start_hour).padStart(2, "0")}:00`,
+                    to: `${String(form.quiet_window_end_hour ?? 18).padStart(2, "0")}:00`,
+                  })
+                : t("notifications.quietWindowHintOff")}
+            </div>
+          </div>
+
           {/* ----- Evenementen in voorstellen (mig 0054) ----- */}
           <div className="form-field full">
             <label>{t("events.label")}</label>

@@ -1442,6 +1442,10 @@ export type Business = {
   // Tempo van de rustige-momenten-detectie: max rustige momenten per week die
   // Filly aandraagt (het plafond). Range 1-6, default 2 (mig 0065).
   quiet_moments_per_week: number;
+  // Tijdvenster waarbinnen voorstellen mogen vallen (mig 0069). Beide null =
+  // geen beperking (hele open dag). start 0-23, end 1-24 (exclusief).
+  quiet_window_start_hour: number | null;
+  quiet_window_end_hour: number | null;
   // ----- Evenementen in voorstellen (mig 0054) -----
   // Welke event-typen Filly meeneemt in voorstellen.
   // null = alle categorieën; lege array = events uit.

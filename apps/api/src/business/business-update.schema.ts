@@ -346,6 +346,24 @@ export const BusinessUpdateSchema = z
       .max(6, 'Tempo moet 1-6 zijn.')
       .optional(),
 
+    // Tijdvenster voor rustige-momenten-voorstellen (mig 0069). Beide null =
+    // geen beperking (hele open dag). start 0-23, end 1-24 (exclusief).
+    // De start < end-check gebeurt in de object-refine hieronder + de DB.
+    quiet_window_start_hour: z
+      .number()
+      .int()
+      .min(0, 'Begin-uur moet 0-23 zijn.')
+      .max(23, 'Begin-uur moet 0-23 zijn.')
+      .nullable()
+      .optional(),
+    quiet_window_end_hour: z
+      .number()
+      .int()
+      .min(1, 'Eind-uur moet 1-24 zijn.')
+      .max(24, 'Eind-uur moet 1-24 zijn.')
+      .nullable()
+      .optional(),
+
     // ----- Evenementen in voorstellen (mig 0054) -----
     // Welke event-typen Filly meeneemt; null = alle, lege array =
     // events volledig uit voor deze zaak.
@@ -395,6 +413,18 @@ export const BusinessUpdateSchema = z
       ])
       .optional()
       .transform((v) => (v === '' ? null : v)),
+  })
+  // Tijdvenster-integriteit: is een venster gezet, dan moet start < end.
+  .superRefine((val, ctx) => {
+    const s = val.quiet_window_start_hour;
+    const e = val.quiet_window_end_hour;
+    if (typeof s === 'number' && typeof e === 'number' && s >= e) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['quiet_window_end_hour'],
+        message: 'Eind-uur moet ná het begin-uur liggen.',
+      });
+    }
   })
   // **Default zod-gedrag (.strip)**: keys die NIET in het schema staan
   // worden stilletjes weggegooid (i.p.v. een ZodError zoals .strict()

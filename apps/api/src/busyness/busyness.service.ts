@@ -418,6 +418,10 @@ export class BusynessService {
     const pattern = latest.pattern;
     const effectivePerWeek =
       perWeek ?? (await this.getQuietPerWeek(businessId));
+    // Tijdvenster (mig 0069): null = geen beperking (hele open dag). Anders
+    // [startUur, eindUur) — een dagdeel telt alleen mee als het genoeg open
+    // uren binnen dit venster heeft.
+    const win = await this.getQuietWindow(businessId);
 
     // 1. Dagdeel-rooster. cel = gemiddelde drukte per open uur; null = onder
     //    min-dekking → telt niet mee. from/to = het open-uur-venster (voor de
@@ -505,14 +509,34 @@ export class BusynessService {
         // GEEN anomalie-poort meer: ook een structureel-leeg (maar "normaal"
         // rustig) dagdeel is een vulbare kans. De afwijking `dev` weegt straks
         // alleen mee in de ranking + bepaalt het 'ongewoon rustig'-label.
+        //
+        // Tijdvenster (mig 0069): is er een venster ingesteld, dan telt dit
+        // dagdeel alleen mee als het ≥ MIN_COVERAGE open uren bínnen het venster
+        // heeft. Het getoonde venster (from/to) knippen we bij op het venster,
+        // zodat de eigenaar geen tijd buiten z'n keuze te zien krijgt. De
+        // drukte/afwijking (avg/dev/gap) blijven op het hele dagdeel (t.o.v. de
+        // echte piek), dat is de juiste maat voor "hoeveel valt er te vullen".
+        let from = c.from;
+        let to = c.to;
+        if (win) {
+          const inWin: number[] = [];
+          for (let h = dp.from; h < dp.to; h++) {
+            if ((pattern[weekday][h] ?? 0) > 0 && h >= win.start && h < win.end) {
+              inWin.push(h);
+            }
+          }
+          if (inWin.length < MIN_COVERAGE) return; // dagdeel valt buiten het venster
+          from = inWin[0];
+          to = inWin[inWin.length - 1];
+        }
         arr.push({
           j,
           label: dp.label,
           key: dp.key,
           dev,
           gap,
-          from: c.from,
-          to: c.to,
+          from,
+          to,
           expectedPct: c.avg,
         });
       });
@@ -635,6 +659,25 @@ export class BusynessService {
       .maybeSingle();
     const v = data?.quiet_moments_per_week as number | null | undefined;
     return typeof v === 'number' && v >= 1 ? v : DEFAULT_QUIET_PER_WEEK;
+  }
+
+  // Tijdvenster (mig 0069) waarbinnen voorstellen mogen vallen. Beide kolommen
+  // leeg → null (geen beperking). Alleen een geldig venster (start < end)
+  // telt; anders vallen we terug op geen beperking.
+  private async getQuietWindow(
+    businessId: string,
+  ): Promise<{ start: number; end: number } | null> {
+    const { data } = await this.supabase.client
+      .from('businesses')
+      .select('quiet_window_start_hour, quiet_window_end_hour')
+      .eq('id', businessId)
+      .maybeSingle();
+    const s = data?.quiet_window_start_hour as number | null | undefined;
+    const e = data?.quiet_window_end_hour as number | null | undefined;
+    if (typeof s === 'number' && typeof e === 'number' && s < e) {
+      return { start: s, end: e };
+    }
+    return null;
   }
 
   // Exacte mediaan (zonder afronding) — voor median polish + MAD.
