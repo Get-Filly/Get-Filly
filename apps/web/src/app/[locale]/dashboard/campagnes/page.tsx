@@ -22,9 +22,9 @@ import {
   PLATFORM_LABEL,
   getChannelMissing,
   toBundleChannel,
+  isPastHistoryGrace,
   type MissingField,
 } from "@/lib/campaign-checks";
-import { UpcomingActionsBlock } from "../_components/upcoming-actions-block";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "../_components/skeleton";
@@ -680,16 +680,11 @@ export default function CampagnesPage() {
     // status nog op concept/ingepland/actief staat omdat pg_cron-job
     // 0043 nog niet gedraaid heeft sinds verstrijken). Safety-net
     // tegen de gap tussen verstrijken en nightly cleanup.
-    const nowIso = new Date().toISOString();
-    // Expired = scheduled_for in het verleden EN nog niet 'actief'.
-    // Een actieve mail-campagne kan een verstreken scheduled_for hebben
-    // (geactiveerd op of na de geplande tijd; mail moet nog uit) en
-    // hoort dan gewoon in de Actief-kolom te blijven tot nightly cron
-    // 'm op 'afgerond' zet.
-    const isExpired = (c: Campaign) =>
-      typeof c.scheduled_for === "string" &&
-      c.scheduled_for < nowIso &&
-      c.status !== "actief";
+    // Historie-grens (Floris 2026-08-06): een campagne blijft 24u ná z'n
+    // scheduled_for op het bord (ook 'actief' — een geplaatste campagne is
+    // 24u zichtbaar), en zakt daarna naar de history-route. Zelfde 24u-regel
+    // als de history-pagina + de backend-cron (isPastHistoryGrace).
+    const isExpired = (c: Campaign) => isPastHistoryGrace(c.scheduled_for);
     const byGroup = new Map<string, Campaign[]>();
     const standalone: Campaign[] = [];
     for (const c of campaigns) {
@@ -1033,12 +1028,6 @@ export default function CampagnesPage() {
           </div>
         }
       />
-
-      {/* Alert-block: rustige + speciale dagen + "Vraag Filly om
-          voorstellen"-knop. Zelfde block als op het dashboard, hier
-          plek-relevant want eigenaar landt op /campagnes als hij iets
-          met die dagen wil doen. */}
-      <UpcomingActionsBlock layout="flex" />
 
       {/* Eenmalige opruiming: oude pending-voorstellen (van vóór de
           "voorstel naar concept"-omzetting) in één klik naar Concept.

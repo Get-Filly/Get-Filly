@@ -1677,14 +1677,17 @@ export class CampaignsService {
       );
     }
 
-    // "In de historie" = status='afgerond' OF verstreken (scheduled_for
-    // < nu, ongeacht status). Anders zou eigenaar een lopende campagne
-    // via deze endpoint kunnen "resetten" — niet de bedoeling.
+    // "In de historie" = status='afgerond' OF >24u ná scheduled_for
+    // (de 24u-historie-grens; een geplaatste campagne blijft 24u actief).
+    // Zelfde regel als de frontend-kanban/history + de pg_cron-job 0070.
+    // Anders zou eigenaar een nog-lopende campagne kunnen "resetten".
     const isAfgerond = existing.status === 'afgerond';
-    const nowIso = new Date().toISOString();
+    const graceCutoffIso = new Date(
+      Date.now() - 24 * 60 * 60 * 1000,
+    ).toISOString();
     const isExpired =
       typeof existing.scheduled_for === 'string' &&
-      existing.scheduled_for < nowIso;
+      existing.scheduled_for < graceCutoffIso;
     if (!isAfgerond && !isExpired) {
       throw new BadRequestException(
         'Deze campagne staat niet in de historie. Gebruik de gewone status-acties op /campagnes.',

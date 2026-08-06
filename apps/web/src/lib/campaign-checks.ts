@@ -155,3 +155,23 @@ export function getChannelChecklist(
   }
   return items;
 }
+
+// ============================================================
+// Historie-grens: wanneer telt een campagne als "in de historie"?
+// ============================================================
+// Regel (Floris 2026-08-06): een geplaatste campagne blijft 24u zichtbaar
+// op het bord en zakt daarna naar historie. We meten dat op scheduled_for
+// (het geplande/geplaatste moment): >24u geleden = historie. Eén bron voor
+// zowel de kanban (Actief-kolom vasthouden) als de history-pagina. De
+// backend (pg_cron 0070 + restore-gate) hanteert dezelfde 24u.
+export const HISTORY_GRACE_HOURS = 24;
+
+/** True als scheduled_for meer dan HISTORY_GRACE_HOURS geleden is. */
+export function isPastHistoryGrace(
+  scheduledForIso: string | null | undefined,
+): boolean {
+  if (!scheduledForIso) return false;
+  const t = new Date(scheduledForIso).getTime();
+  if (!Number.isFinite(t)) return false;
+  return t < Date.now() - HISTORY_GRACE_HOURS * 60 * 60 * 1000;
+}

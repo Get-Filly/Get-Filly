@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { useLocaleTag } from "@/lib/locale-format";
+import { isPastHistoryGrace } from "@/lib/campaign-checks";
 import {
   fetchCampaigns,
   fetchDeletedCampaigns,
@@ -91,18 +92,14 @@ export default function CampagnesHistoryPage() {
     Promise.all([fetchCampaigns(), fetchDeletedCampaigns()])
       .then(([all, del]) => {
         // 'Afgerond'-tab toont 2 categorieën:
-        //  1. status='afgerond' (door eigenaar of pg_cron-job 0043 gezet)
-        //  2. status !== 'afgerond' MAAR scheduled_for in het verleden
-        //     (cron heeft 'm nog niet kunnen migreren). Zo ziet eigenaar
-        //     geen "vergeten" actieve campagne met verstreken datum
-        //     tussen cron-runs.
-        const nowIso = new Date().toISOString();
-        const archived = all.filter((c) => {
-          if (c.status === "afgerond") return true;
-          return (
-            typeof c.scheduled_for === "string" && c.scheduled_for < nowIso
-          );
-        });
+        //  1. status='afgerond' (door eigenaar of pg_cron-job 0070 gezet)
+        //  2. status !== 'afgerond' MAAR meer dan 24u ná scheduled_for
+        //     (24u-historie-grens; cron heeft 'm nog niet gemigreerd).
+        // Zelfde 24u-regel als de kanban + de backend-cron: een geplaatste
+        // campagne blijft 24u zichtbaar en verschijnt daarna hier.
+        const archived = all.filter(
+          (c) => c.status === "afgerond" || isPastHistoryGrace(c.scheduled_for),
+        );
         setDone(archived);
         setDeleted(del);
       })
