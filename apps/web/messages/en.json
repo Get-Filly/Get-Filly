@@ -3136,6 +3136,20 @@
     "retry": "Try again"
   },
   "dash__components_filly_chat": {
+    "feedback": {
+      "disclaimer": "Filly is an AI chat and can make mistakes. Please double-check important answers.",
+      "link": "Give us feedback",
+      "title": "Feedback",
+      "intro": "What could be better about Filly, or what's working well? We read everything.",
+      "placeholder": "Write your feedback here…",
+      "submit": "Send",
+      "sending": "Sending…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "doneTitle": "Thanks for your feedback!",
+      "doneBody": "We've received it and will take it on board.",
+      "error": "Sending failed. Please try again later."
+    },
     "title": "Filly AI",
     "subtitle": "Marketing assistant",
     "online": "Online",

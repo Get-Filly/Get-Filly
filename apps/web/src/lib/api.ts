@@ -84,6 +84,19 @@ export async function metaSelectPage(pageId: string): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+// Feedback vanuit de Filly-chat. Backend mailt 'm naar info@get-filly.com
+// met de ingelogde gebruiker als reply-to + de onderneming als context.
+export async function sendFillyFeedback(message: string): Promise<void> {
+  const res = await authedFetch(`${API_URL}/mail/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Versturen mislukt"));
+  }
+}
+
 // ---- Social-insights (fase 1: live engagement) ----
 export type MetaPostStat = {
   id: string;

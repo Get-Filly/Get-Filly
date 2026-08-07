@@ -3136,6 +3136,20 @@
     "retry": "Opnieuw proberen"
   },
   "dash__components_filly_chat": {
+    "feedback": {
+      "disclaimer": "Filly is een AI-chat en kan fouten maken. Controleer belangrijke antwoorden.",
+      "link": "Geef ons feedback",
+      "title": "Feedback",
+      "intro": "Wat kan beter aan Filly, of wat gaat juist goed? We lezen alles.",
+      "placeholder": "Schrijf hier je feedback…",
+      "submit": "Versturen",
+      "sending": "Versturen…",
+      "cancel": "Annuleren",
+      "close": "Sluiten",
+      "doneTitle": "Bedankt voor je feedback!",
+      "doneBody": "We hebben 'm ontvangen en nemen 'm mee.",
+      "error": "Versturen mislukt. Probeer het later opnieuw."
+    },
     "title": "Filly AI",
     "subtitle": "Marketing-assistent",
     "online": "Online",

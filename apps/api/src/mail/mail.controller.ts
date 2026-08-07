@@ -8,12 +8,20 @@ import {
   Post,
   Req,
   UnauthorizedException,
+  UseGuards,
   type RawBodyRequest,
 } from '@nestjs/common';
 import { type Request } from 'express';
 import { MailService } from './mail.service';
 import { Public } from '../common/public.decorator';
 import { verifySvixSignature } from '../common/svix-verify';
+import { AuthGuard } from '../common/auth.guard';
+import { BusinessAccessGuard } from '../common/business-access.guard';
+import { BusinessId } from '../common/business-id.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../common/current-user.decorator';
 
 // ============================================================
 // MailController, publieke routes voor webhook + unsubscribe
@@ -156,6 +164,28 @@ export class MailController {
       phone: body.phone,
       message: body.message ?? '',
       honeypot: body.honeypot,
+    });
+    return { ok: true };
+  }
+
+  // ============================================================
+  // Feedback vanaf de Filly-chat (ingelogde gebruiker)
+  // ============================================================
+  // De disclaimer-regel onder de dashboard-chat linkt hierheen. Authed +
+  // BusinessAccessGuard, zodat we de indiener (reply-to) + de onderneming
+  // (context) uit de sessie halen. Body = alleen het bericht.
+  @UseGuards(AuthGuard, BusinessAccessGuard)
+  @Post('feedback')
+  async feedback(
+    @CurrentUser() user: AuthenticatedUser,
+    @BusinessId() businessId: string,
+    @Body() body: { message?: string },
+  ): Promise<{ ok: true }> {
+    await this.mail.sendFeedback({
+      message: body.message ?? '',
+      userEmail: user.email,
+      userId: user.id,
+      businessId,
     });
     return { ok: true };
   }

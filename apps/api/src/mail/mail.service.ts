@@ -843,6 +843,107 @@ export class MailService {
     }
   }
 
+  // ============================================================
+  // FEEDBACK vanaf de Filly-chat (ingelogde gebruiker)
+  // ============================================================
+  // De disclaimer-regel onder de dashboard-chat linkt naar een klein
+  // feedbackformulier. Bij versturen mailen we de feedback naar het
+  // Get-Filly-team (info@) met de gebruiker als reply-to + de onderneming
+  // als context. Message-only: de identiteit halen we uit de sessie (JWT +
+  // BusinessAccessGuard), niet uit het formulier. From = geverifieerd
+  // get-filly.com-adres (anders weigert Resend).
+  async sendFeedback(input: {
+    message: string;
+    userEmail: string | null;
+    userId: string;
+    businessId?: string | null;
+  }): Promise<void> {
+    const message = input.message?.trim();
+    if (!message) {
+      throw new BadRequestException(
+        'Schrijf even je feedback voordat je verstuurt.',
+      );
+    }
+    if (message.length > 4000) {
+      throw new BadRequestException('Je feedback is te lang (max 4000 tekens).');
+    }
+
+    // Onderneming voor context; fail-soft (naam is nice-to-have).
+    let businessName: string | null = null;
+    if (input.businessId) {
+      const { data } = await this.admin.client
+        .from('businesses')
+        .select('name')
+        .eq('id', input.businessId)
+        .maybeSingle();
+      businessName = (data?.name as string | null) ?? null;
+    }
+
+    const replyTo =
+      input.userEmail && isValidEmail(input.userEmail)
+        ? input.userEmail
+        : undefined;
+    const to = 'info@get-filly.com';
+    const subject = `Nieuwe feedback via Filly-chat${
+      businessName ? `, ${businessName}` : ''
+    }`;
+
+    const rows: Array<[string, string]> = [
+      ['Van', input.userEmail || '—'],
+      ['Onderneming', businessName || input.businessId || '—'],
+      ['User-id', input.userId],
+    ];
+    const tableHtml = rows
+      .map(
+        ([label, value]) =>
+          `<tr><td style="padding:4px 16px 4px 0;color:#6B6F71;white-space:nowrap;">${escapeHtml(label)}</td><td style="padding:4px 0;"><strong>${escapeHtml(value)}</strong></td></tr>`,
+      )
+      .join('');
+    const html = `<!DOCTYPE html>
+<html lang="nl"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a;background:#FAF7F1;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 24px;background:#fff;">
+    <h2 style="margin:0 0 16px;">Nieuwe feedback via Filly-chat</h2>
+    <table style="border-collapse:collapse;font-size:14px;">${tableHtml}</table>
+    <p style="margin:20px 0 4px;color:#6B6F71;font-size:14px;">Feedback:</p>
+    <div style="font-size:14px;line-height:1.6;">${plainToHtml(message)}</div>
+  </div>
+</body></html>`;
+    const text = [
+      'Nieuwe feedback via Filly-chat',
+      '',
+      `Van: ${input.userEmail || '—'}`,
+      `Onderneming: ${businessName || input.businessId || '—'}`,
+      `User-id: ${input.userId}`,
+      '',
+      'Feedback:',
+      message,
+    ].join('\n');
+
+    try {
+      const { error } = await this.resend.emails.send({
+        from: `Get-Filly <${WEBSITE_FROM_ADDRESS}>`,
+        to,
+        replyTo,
+        subject,
+        html,
+        text,
+      });
+      if (error) {
+        this.logger.error(`Feedback-mail versturen mislukt: ${error.message}`);
+        throw new InternalServerErrorException(
+          'Versturen mislukt. Probeer het later opnieuw.',
+        );
+      }
+    } catch (e) {
+      if (e instanceof InternalServerErrorException) throw e;
+      this.logger.error(`Feedback-mail onverwachte fout: ${String(e)}`);
+      throw new InternalServerErrorException(
+        'Versturen mislukt. Probeer het later opnieuw.',
+      );
+    }
+  }
+
   /**
    * Verstuurt het wekelijkse interne vindbaarheid-rapport naar
    * info@get-filly.com (Filly → Get-Filly over de eigen site).

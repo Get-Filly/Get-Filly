@@ -22,6 +22,7 @@ import {
   type CampaignBundleCard,
   type ChannelChoiceCard,
   type ChatConversationSummary,
+  sendFillyFeedback,
   type MessageCard,
   type ChatMessage,
   type CampaignProposalCard,
@@ -136,6 +137,41 @@ export function FillyChat({
   // rust en tonen een "↓ nieuwe berichten"-pil i.p.v. 'm te yanken.
   const nearBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
+
+  // Feedback-modal (via de disclaimer-link onder de chat). Bij versturen
+  // mailt de backend de feedback naar info@get-filly.com.
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
+  const [feedbackErr, setFeedbackErr] = useState<string | null>(null);
+
+  const submitFeedback = async () => {
+    const msg = feedbackText.trim();
+    if (!msg || feedbackBusy) return;
+    setFeedbackBusy(true);
+    setFeedbackErr(null);
+    try {
+      await sendFillyFeedback(msg);
+      setFeedbackDone(true);
+      setFeedbackText("");
+    } catch (e) {
+      setFeedbackErr(
+        e instanceof Error ? e.message : t("feedback.error"),
+      );
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
+
+  const closeFeedback = () => {
+    setShowFeedback(false);
+    // Reset ná het sluiten zodat de "bedankt"-staat niet flikkert.
+    setTimeout(() => {
+      setFeedbackDone(false);
+      setFeedbackErr(null);
+    }, 200);
+  };
 
   // Wacht tot de BusinessContext een actief restaurant heeft geresolved
   // voordat we de chat-thread ophalen. Zonder deze check vuurt fetchActiveChat
@@ -866,6 +902,193 @@ export function FillyChat({
           onChange={setInput}
           onSend={sendMsg}
         />
+      )}
+
+      {/* Disclaimer + feedback-link onder de chat. De link is onderstreept
+          en klikbaar; opent het feedback-venster dat naar info@get-filly.com
+          mailt. */}
+      <div
+        style={{
+          padding: "8px 14px 2px",
+          fontSize: 11.5,
+          lineHeight: 1.5,
+          color: "var(--tl, #8a8a8a)",
+          textAlign: "center",
+        }}
+      >
+        {t("feedback.disclaimer")}{" "}
+        <button
+          type="button"
+          onClick={() => setShowFeedback(true)}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            font: "inherit",
+            color: "inherit",
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+            cursor: "pointer",
+          }}
+        >
+          {t("feedback.link")}
+        </button>
+      </div>
+
+      {/* Feedback-venster (popup). Alleen een berichtveld; identiteit +
+          onderneming hangt de backend er automatisch aan. */}
+      {showFeedback && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closeFeedback}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 440,
+              background: "var(--white, #FFFFFF)",
+              borderRadius: 12,
+              padding: 20,
+              boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+            }}
+          >
+            {feedbackDone ? (
+              <>
+                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
+                  {t("feedback.doneTitle")}
+                </div>
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: "var(--tl, #6B6B6B)",
+                    margin: "0 0 16px",
+                  }}
+                >
+                  {t("feedback.doneBody")}
+                </p>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={closeFeedback}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "var(--brand, #1F4A2D)",
+                      color: "#fff",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {t("feedback.close")}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+                  {t("feedback.title")}
+                </div>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--tl, #6B6B6B)",
+                    margin: "0 0 12px",
+                  }}
+                >
+                  {t("feedback.intro")}
+                </p>
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder={t("feedback.placeholder")}
+                  rows={5}
+                  autoFocus
+                  maxLength={4000}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "1px solid var(--border, #E5DFD0)",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {feedbackErr && (
+                  <div
+                    style={{
+                      color: "var(--danger, #DC2626)",
+                      fontSize: 13,
+                      marginTop: 8,
+                    }}
+                  >
+                    {feedbackErr}
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                    marginTop: 14,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={closeFeedback}
+                    disabled={feedbackBusy}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border, #E5DFD0)",
+                      background: "var(--white, #fff)",
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {t("feedback.cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitFeedback}
+                    disabled={feedbackBusy || !feedbackText.trim()}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "var(--brand, #1F4A2D)",
+                      color: "#fff",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      cursor:
+                        feedbackBusy || !feedbackText.trim()
+                          ? "default"
+                          : "pointer",
+                      opacity: feedbackBusy || !feedbackText.trim() ? 0.6 : 1,
+                    }}
+                  >
+                    {feedbackBusy ? t("feedback.sending") : t("feedback.submit")}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Per 2026-05-07: SuggestionDetailModal hier verwijderd. 'Bekijk
