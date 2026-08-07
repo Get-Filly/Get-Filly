@@ -16,6 +16,23 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-08-07 — Site-herpositionering: asset-ronde (P3, open)
+
+De publieke site is tekstueel herpositioneerd van "AI-marketing voor horeca"
+naar **AI-capaciteitoptimalisator voor lokale ondernemers** (multi-branche,
+NL + EN, live op main). De copy is neutraal/multi-branche; de **visual-mockups
+met vaste beelden zijn nog horeca** en moeten mee. Vergt nieuw beeldmateriaal
+(andere-branche-foto's + evt. andere logo's).
+
+- [ ] Home feature-visual-kaarten (`components/landing-visuals.tsx`):
+  zoekmachine/AI/review (ingebakken ChatGPT/Tripadvisor-logo's) + de 3
+  social-foto's (`public/visuals/{facebook,tiktok,instagram}.jpg`) + mail/WhatsApp.
+- [ ] Product-visual-mock (nog horeca: bezetting / 3-gangen / terras).
+- [ ] Over-ons-foto's (leeg → vol restaurant) + hun alt-teksten (`about.alt1/2/3`).
+
+Het home-hoofddashboard-mockup is al omgezet naar een kapper-case; de rest
+hierboven kan pas met beeld. Zie memory `getfilly-site-herpositionering`.
+
 ## 🗓️ 2026-07-29 — Filly-chat + geleide flow op de dagdeel-detectie (live op main)
 
 De chat en de geleide flow hangen nu aan de rustige-momenten-detectie.

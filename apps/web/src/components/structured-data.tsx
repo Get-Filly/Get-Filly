@@ -70,7 +70,7 @@ export async function StructuredData() {
         operatingSystem: "Web",
         url: SITE_URL,
         description:
-          "AI-marketingassistent voor de horeca: analyseert bezetting, stelt campagnes voor en zet ze met jouw goedkeuring live via mail, social en WhatsApp.",
+          "AI-capaciteitoptimalisator voor lokale ondernemers: detecteert rustige momenten en zet met jouw goedkeuring de juiste actie in via mail, social, WhatsApp en Google. Voor horeca, wellness, kappers, sportscholen en meer.",
         publisher: { "@id": `${SITE_URL}/#organization` },
         // Prijsindicatie obv de pricing-pagina (Growth €99 / Ultimate €169).
         offers: {
