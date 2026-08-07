@@ -187,38 +187,38 @@
     }
   },
   "pricing": {
-    "heroTitle": "Kies het pakket dat bij jouw restaurant past.",
-    "heroSubtitle": "Geen verborgen kosten. Geen lange contracten. Gewoon meer gasten aan tafel.",
+    "heroTitle": "Kies het pakket dat bij jouw onderneming past.",
+    "heroSubtitle": "Geen verborgen kosten. Geen lange contracten. Gewoon meer klanten op je rustige momenten.",
     "comingSoon": "Prijzen binnenkort beschikbaar",
     "popular": "Meest gekozen",
     "perMonth": "/maand",
     "plans": {
       "growth": {
         "tagline": "Word gevonden en blijf zichtbaar.",
-        "desc": "Voor restaurants die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media, zonder er zelf tijd in te steken.",
+        "desc": "Voor ondernemers die online beter gevonden willen worden en zichtbaarder willen zijn op sociale media, zonder er zelf tijd in te steken.",
         "features": [
           "Google Business optimalisatie en beheer",
           "Automatisch beantwoorden van reviews",
           "Verbeterde vindbaarheid in Google door SEO optimalisatie",
-          "Vindbaarheid TripAdvisor, TheFork en OpenTable",
+          "Vindbaarheid op de relevante boekings- en reviewplatforms",
           "Vindbaarheid in AI-zoekmachines zoals ChatGPT, Claude en Gemini",
           "Contentplanning voor Instagram, TikTok en Facebook",
-          "AI-gegenereerde posts in tone-of-voice van jouw restaurant",
+          "AI-gegenereerde posts in tone-of-voice van jouw onderneming",
           "Live dashboard met rapportage over vindbaarheid en bereik"
         ],
         "ctaText": "Start met Growth"
       },
       "ultimate": {
-        "tagline": "Vul je lege tafels automatisch.",
-        "desc": "Alles van Growth, plus directe campagnes via e-mail en WhatsApp op basis van jouw bezettingsdata. Inclusief koppeling met jouw reserveringssysteem.",
+        "tagline": "Vul je rustige momenten automatisch.",
+        "desc": "Alles van Growth, plus directe campagnes via e-mail en WhatsApp op basis van jouw bezettingsdata. Inclusief koppeling met jouw boekings- of reserveringssysteem.",
         "features": [
           "Alles uit het Growth pakket",
-          "Koppeling met Zenchef, TheFork of Guestplan",
-          "Koppeling met POS-systeem",
+          "Koppeling met je boekings- of reserveringssysteem",
+          "Koppeling met je kassa (POS)",
           "Automatische e-mailcampagnes op basis van bezetting",
-          "WhatsApp campagnes voor last-minute reserveringen",
-          "Segmentatie op vaste, nieuwe en slapende gasten",
-          "Gepersonaliseerde e-mail en WhatsApp campagnes in de tone-of-voice van jouw restaurant"
+          "WhatsApp campagnes voor last-minute boekingen",
+          "Segmentatie op vaste, nieuwe en slapende klanten",
+          "Gepersonaliseerde e-mail en WhatsApp campagnes in de tone-of-voice van jouw onderneming"
         ],
         "ctaText": "Start met Ultimate"
       }
@@ -230,7 +230,7 @@
     "faqs": [
       {
         "q": "Hoelang duurt de onboarding?",
-        "a": "Binnen één dag ben je volledig onboard. Je koppelt je reserveringssysteem en je Google Business-profiel, bevestigt je menu en Get-Filly gaat dezelfde dag voor je aan de slag."
+        "a": "Binnen één dag ben je volledig onboard. Je koppelt je boekings- of reserveringssysteem en je Google Bedrijfsprofiel, bevestigt je aanbod en Get-Filly gaat dezelfde dag voor je aan de slag."
       },
       {
         "q": "Welke kanalen gebruikt Get-Filly?",
@@ -261,8 +261,8 @@
         "a": "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Get-Filly beschikbaar tot het einde van de al betaalde periode."
       },
       {
-        "q": "Wat gebeurt er met de gegevens van mijn gasten?",
-        "a": "Jij blijft eigenaar van je gastgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties."
+        "q": "Wat gebeurt er met de gegevens van mijn klanten?",
+        "a": "Jij blijft eigenaar van je klantgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties."
       },
       {
         "q": "Hoe veilig zijn mijn gegevens?",
@@ -423,7 +423,7 @@
     },
     "fields": {
       "email": "E-mailadres",
-      "emailPlaceholder": "naam@restaurant.nl",
+      "emailPlaceholder": "naam@onderneming.nl",
       "password": "Wachtwoord"
     },
     "login": {
@@ -499,30 +499,30 @@
   "about": {
     "heroTitle": "Van idee naar impact.",
     "story": {
-      "p1": "Het beste restaurant zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, zaken met fantastisch eten en trouwe gasten maar alsnog een aantal lege tafels. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.",
-      "p2": "En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n zaak op z’n eigen manier wil laten groeien.",
-      "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten aan tafel."
+      "p1": "De beste onderneming zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, ondernemers met een fantastisch aanbod en trouwe klanten maar alsnog rustige momenten. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je klanten steekt.",
+      "p2": "En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n onderneming op z’n eigen manier wil laten groeien.",
+      "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer klanten op je rustige momenten."
     },
     "alt1": "Rustig restaurant met slechts een enkele tafel bezet",
     "alt2": "Hetzelfde restaurant dat voller loopt, meerdere bezette tafels",
     "alt3": "Hetzelfde restaurant volledig vol, gasten aan alle tafels",
     "missionLabel": "Missie",
-    "missionText": "Onafhankelijke restaurants laten groeien zonder dat de ondernemer verdrinkt in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je zaak en je gasten.",
+    "missionText": "Onafhankelijke ondernemers laten groeien zonder dat ze verdrinken in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je onderneming en je klanten.",
     "visionLabel": "Visie",
-    "visionText": "Een horecawereld waarin elk lokaal restaurant dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
+    "visionText": "Een wereld waarin elke lokale ondernemer dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
     "driveTitle": "Wat ons drijft.",
     "pillars": {
       "ownerFirst": {
         "title": "Ondernemer eerst",
-        "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op de gasten en dienstverlening."
+        "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op je klanten en je vak."
       },
       "ownData": {
         "title": "Eigen data, eigen keuzes",
-        "desc": "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren."
+        "desc": "Jouw bezettingsdata en klantenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren."
       },
       "aiPays": {
         "title": "AI die zichzelf terugverdient",
-        "desc": "Geen AI om de AI. We zetten jouw data in voor extra reserveringen en meer omzet."
+        "desc": "Geen AI om de AI. We zetten jouw data in voor meer klanten en omzet."
       }
     },
     "journeyTitle": "Waar we staan.",
@@ -548,7 +548,7 @@
     ],
     "ctaTitle": "Laten we kennismaken.",
     "ctaSubtitle": "Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.",
-    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor restaurants</product> of <pricing>de prijzen</pricing>."
+    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor lokale ondernemers</product> of <pricing>de prijzen</pricing>."
   },
   "contact": {
     "sentTitle": "Bedankt voor je aanvraag!",
@@ -558,10 +558,10 @@
     "intro": "Laat je gegevens achter, dan plannen we een vrijblijvende kennismaking in.",
     "name": "Naam",
     "namePlaceholder": "Voor- en achternaam",
-    "restaurant": "Restaurant",
-    "restaurantPlaceholder": "Naam van je zaak",
+    "restaurant": "Onderneming",
+    "restaurantPlaceholder": "Naam van je onderneming",
     "email": "E-mailadres",
-    "emailPlaceholder": "naam@restaurant.nl",
+    "emailPlaceholder": "naam@onderneming.nl",
     "phone": "Telefoonnummer",
     "optional": "(optioneel)",
     "phonePlaceholder": "06 12345678",
@@ -634,7 +634,7 @@
   },
   "blog": {
     "hubTitle": "De marketing cocktail",
-    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor de horeca.",
+    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor lokale ondernemers.",
     "recentTitle": "Meest recent",
     "comingSoon": "Binnenkort online",
     "comingSoonAria": "{label} (binnenkort online)",
@@ -657,8 +657,8 @@
     ],
     "featured": {
       "eyebrow": "Vindbaarheid",
-      "title": "7 SEO-tips om meer gasten naar je restaurant te trekken",
-      "excerpt": "Zo beheers je je Google Bedrijfsprofiel en zorg je voor consistente vermeldingen, zodat jouw zaak de eerste keuze is in de buurt."
+      "title": "7 SEO-tips om meer klanten naar je onderneming te trekken",
+      "excerpt": "Zo beheers je je Google Bedrijfsprofiel en zorg je voor consistente vermeldingen, zodat jouw onderneming de eerste keuze is in de buurt."
     },
     "topics": {
       "findability": {
@@ -693,7 +693,7 @@
       },
       "gbpChecklist": {
         "eyebrow": "Vindbaarheid",
-        "title": "Google Bedrijfsprofiel: de complete checklist voor horeca"
+        "title": "Google Bedrijfsprofiel: de complete checklist voor lokale ondernemers"
       },
       "quietEvenings": {
         "eyebrow": "Bezetting",
@@ -701,8 +701,8 @@
       }
     },
     "cta": {
-      "title": "Van lezen naar volle tafels.",
-      "subtitle": "Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts regelen, zodat jij je op je gasten kunt richten.",
+      "title": "Van lezen naar volle dagen.",
+      "subtitle": "Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts regelen, zodat jij je op je klanten kunt richten.",
       "button": "Plan een gratis kennismaking in",
       "productLink": "Nieuwsgierig hoe Filly dit doet? Bekijk <link>het product</link>."
     }
@@ -3448,28 +3448,28 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. Meer gasten. Minder lege momenten.",
-      "description": "Get-Filly is een AI-platform voor restaurants. Het regelt je marketing, reviews, vindbaarheid in Google en AI-zoekmachines."
+      "title": "Get-Filly. Vul je rustige momenten. Automatisch.",
+      "description": "Get-Filly is de AI-capaciteitoptimalisator voor lokale ondernemers. Het vult je rustige momenten via marketing, reviews en vindbaarheid in Google en AI-zoekmachines. Voor horeca, wellness, kappers, sportscholen en meer."
     },
     "product": {
       "title": "De oplossing",
-      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer reserveringen."
+      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer klanten op je rustige momenten. Voor lokale ondernemers in meerdere branches."
     },
     "pricing": {
       "title": "Prijzen",
-      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, geen lange contracten, gewoon meer gasten aan tafel. Vind het abonnement dat bij jouw restaurant past."
+      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, geen lange contracten, gewoon meer klanten op je rustige momenten. Vind het abonnement dat bij jouw onderneming past."
     },
     "about": {
       "title": "Over ons",
-      "description": "Get-Filly is opgericht door twee ondernemers met één missie: horeca helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
+      "description": "Get-Filly is opgericht door twee ondernemers met één missie: lokale ondernemers helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
     },
     "contact": {
       "title": "Contact & demo",
-      "description": "Vraag een demo aan of plan een gratis kennismaking met Get-Filly. We laten je graag zien hoe je met AI meer reserveringen uit je bestaande gasten haalt."
+      "description": "Vraag een demo aan of plan een gratis kennismaking met Get-Filly. We laten je graag zien hoe je met AI meer klanten uit je rustige momenten haalt."
     },
     "blog": {
       "title": "De marketing cocktail",
-      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly."
+      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor lokale ondernemers, van Get-Filly."
     }
   },
   "leg_government_requests": {

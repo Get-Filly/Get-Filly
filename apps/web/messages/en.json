@@ -22,34 +22,34 @@
     "menuClose": "Close menu"
   },
   "home": {
-    "heroTitle": "More guests.<br></br>Fewer empty tables.",
-    "heroSubtitle": "Get-Filly is an AI platform for restaurants. It runs your marketing, reviews and visibility in Google and AI search engines. With your approval, each message goes out through the right channel at the moment it drives the most bookings.",
+    "heroTitle": "Fill your quiet moments.<br></br>Automatically.",
+    "heroSubtitle": "Get-Filly spots when things get quiet and, with your approval, sets the right action in motion, via email, social, WhatsApp and Google. For hospitality, wellness, hair salons, gyms and more.",
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
     "whyTitle": "Why it works",
-    "whySubtitle": "The numbers don't lie. Better profiles and a steady rhythm mean guests find you online more often.",
+    "whySubtitle": "The numbers don't lie. Better profiles and a steady rhythm mean customers find you online more often.",
     "pillars": {
-      "sectionTitle": "More guests.<br></br>Full tables. Automatically.",
+      "sectionTitle": "More customers.<br></br>Fuller days. Automatically.",
       "findability": {
         "eyebrow": "Findability",
         "title": "Getting found starts here.",
-        "desc": "Guests search online before they book. We make sure your restaurant ranks at the top in search engines.",
+        "desc": "Customers search online before they book. We make sure your business ranks at the top in search engines.",
         "bullets": [
           "Google Business always up to date with current hours, photos and description",
-          "Reviews answered automatically in your restaurant's tone of voice",
+          "Reviews answered automatically in your business's tone of voice",
           "SEO so you get found for searches in your neighbourhood",
           "GEO optimisation for AI search engines like ChatGPT, Claude and Gemini",
-          "Keyword strategy tailored to your type of restaurant and location",
+          "Keyword strategy tailored to your type of business and location",
           "Live dashboard reporting on your visibility in search engines"
         ]
       },
       "visibility": {
         "eyebrow": "Visibility",
         "title": "Stay in sight. Even when they don't book.",
-        "desc": "Guests who know you but haven't booked yet are exactly who you need on quiet evenings. We keep you top of mind on social media, automatically and in your style.",
+        "desc": "Customers who know you but haven't booked yet are exactly who you need during quiet moments. We keep you top of mind on social media, automatically and in your style.",
         "bullets": [
           "Automatic content planning for Instagram, Facebook and TikTok based on your occupancy data",
-          "AI-generated content fully in your restaurant's style and tone",
+          "AI-generated content fully in your business's style and tone",
           "Strategic, data-based timing for more visibility on quiet days",
           "Suggestions for stories and reels tailored to your region and audience",
           "Fully white-label, guests see your name, not Get-Filly's",
@@ -59,13 +59,13 @@
       },
       "reachability": {
         "eyebrow": "Reachability",
-        "title": "The right message. At the right moment. To the right guest.",
-        "desc": "Your existing guests are the easiest way to fill empty tables. We reach them automatically via email and WhatsApp exactly when your occupancy needs it.",
+        "title": "The right message. At the right moment. To the right customer.",
+        "desc": "Your existing customers are the easiest way to fill your quiet moments. We reach them automatically via email and WhatsApp exactly when your capacity needs it.",
         "bullets": [
           "Automatic email campaigns based on real-time occupancy data",
           "WhatsApp campaigns with a high open rate for last-minute bookings",
-          "Personalised messages in your restaurant's tone of voice",
-          "Segmentation by regular guests, new guests and dormant guests",
+          "Personalised messages in your business's tone of voice",
+          "Segmentation by regular customers, new customers and dormant customers",
           "You approve every message before it goes out"
         ]
       }
@@ -94,13 +94,13 @@
           "dashboard": "Dashboard",
           "campaigns": "Campaigns",
           "findability": "Findability",
-          "reservations": "Reservations",
+          "reservations": "Appointments",
           "reports": "Reports"
         },
         "menuLabel": "Menu",
         "kpi": {
           "occupancyLabel": "Occupancy today",
-          "guestsLabel": "Guests today",
+          "guestsLabel": "Customers today",
           "guestsExtra": "0 via Filly",
           "runningLabel": "Running campaigns",
           "runningExtra": "active or scheduled",
@@ -131,12 +131,12 @@
         "status": "Online",
         "inputPlaceholder": "Ask Filly something…",
         "channelEmail": "Email",
-        "campaign1Title": "Last-minute lunch deal",
+        "campaign1Title": "Last-minute haircut deal",
         "campaign1Date": "Tue 5 May",
-        "campaign1Meta": "To 248 regular guests · sends automatically Tue 11:00",
-        "campaign2Title": "Midweek bistro evening",
+        "campaign1Meta": "To 248 regular customers · sends automatically Tue 11:00",
+        "campaign2Title": "Quiet Wednesday afternoon",
         "campaign2Date": "Wed 13 May",
-        "campaign2Meta": "To 312 guests nearby · sends automatically Mon 16:00",
+        "campaign2Meta": "To 312 customers nearby · sends automatically Mon 16:00",
         "askProposal": "Tuesday 5 May is at 43%, well below your average. Shall I set up a promotion for it?",
         "userYes": "Yes please 👍",
         "userMore": "Come up with another campaign for next week Wednesday",
@@ -180,45 +180,45 @@
       }
     },
     "finalCta": {
-      "title": "Ready to fill your tables?",
-      "subtitle": "Request a demo and discover what Get-Filly can do for your restaurant.",
+      "title": "Ready to fill your quiet moments?",
+      "subtitle": "Request a demo and discover what Get-Filly can do for your business.",
       "button": "Schedule a free intro",
       "orSee": "Or first take a look at <link>the pricing</link>."
     }
   },
   "pricing": {
-    "heroTitle": "Choose the plan that fits your restaurant.",
-    "heroSubtitle": "No hidden costs. No long contracts. Just more guests at the table.",
+    "heroTitle": "Choose the plan that fits your business.",
+    "heroSubtitle": "No hidden costs. No long contracts. Just more customers during your quiet moments.",
     "comingSoon": "Pricing available soon",
     "popular": "Most chosen",
     "perMonth": "/month",
     "plans": {
       "growth": {
         "tagline": "Get found and stay visible.",
-        "desc": "For restaurants that want to be found online and become more visible on social media, without spending time on it themselves.",
+        "desc": "For businesses that want to be found online and become more visible on social media, without spending time on it themselves.",
         "features": [
           "Google Business optimisation and management",
           "Automatic review replies",
           "Better visibility in Google through SEO optimisation",
-          "Visibility on TripAdvisor, TheFork and OpenTable",
+          "Visibility on the relevant booking and review platforms",
           "Visibility in AI search engines like ChatGPT, Claude and Gemini",
           "Content planning for Instagram, TikTok and Facebook",
-          "AI-generated posts in your restaurant's tone of voice",
+          "AI-generated posts in your business's tone of voice",
           "Live dashboard with reporting on visibility and reach"
         ],
         "ctaText": "Start with Growth"
       },
       "ultimate": {
-        "tagline": "Fill your empty tables automatically.",
-        "desc": "Everything in Growth, plus direct campaigns via email and WhatsApp based on your occupancy data. Includes a connection with your reservation system.",
+        "tagline": "Fill your quiet moments automatically.",
+        "desc": "Everything in Growth, plus direct campaigns via email and WhatsApp based on your occupancy data. Includes a connection with your booking or reservation system.",
         "features": [
           "Everything in the Growth plan",
-          "Connection with Zenchef, TheFork or Guestplan",
-          "Connection with your POS system",
+          "Connection with your booking or reservation system",
+          "Connection with your till (POS)",
           "Automatic email campaigns based on occupancy",
-          "WhatsApp campaigns for last-minute reservations",
-          "Segmentation by regular, new and dormant guests",
-          "Personalised email and WhatsApp campaigns in your restaurant's tone of voice"
+          "WhatsApp campaigns for last-minute bookings",
+          "Segmentation by regular, new and dormant customers",
+          "Personalised email and WhatsApp campaigns in your business's tone of voice"
         ],
         "ctaText": "Start with Ultimate"
       }
@@ -230,7 +230,7 @@
     "faqs": [
       {
         "q": "How long does onboarding take?",
-        "a": "You're fully onboarded within a day. You connect your reservation system and your Google Business profile, confirm your menu, and Get-Filly starts working for you the same day."
+        "a": "You're fully onboarded within a day. You connect your booking or reservation system and your Google Business profile, confirm your offering, and Get-Filly starts working for you the same day."
       },
       {
         "q": "Which channels does Get-Filly use?",
@@ -261,8 +261,8 @@
         "a": "Yes. You cancel monthly through your dashboard, before the end of the current period. After that Get-Filly stays available until the end of the period you already paid for."
       },
       {
-        "q": "What happens to my guests' data?",
-        "a": "You remain the owner of your guest data. Get-Filly processes it solely on your behalf, under a data processing agreement in line with the GDPR. We never sell your data and don't use it for our own advertising."
+        "q": "What happens to my customers' data?",
+        "a": "You remain the owner of your customer data. Get-Filly processes it solely on your behalf, under a data processing agreement in line with the GDPR. We never sell your data and don't use it for our own advertising."
       },
       {
         "q": "How secure is my data?",
@@ -274,12 +274,12 @@
     "ctaProduct": "Want to see what Get-Filly does first? Check out <link>the solution</link>."
   },
   "product": {
-    "heroTitle": "Your AI assistant for hospitality.",
-    "heroSubtitle": "Get-Filly detects quiet moments, works out the right action and picks the right audience, for campaigns, reviews and your visibility in Google and AI search engines. With your approval, Get-Filly puts it live automatically, so you get more bookings.",
+    "heroTitle": "This is how Get-Filly fills your quiet moments.",
+    "heroSubtitle": "Get-Filly detects quiet moments, works out the right action and picks the right audience, for campaigns, reviews and your visibility in Google and AI search engines. With your approval, Get-Filly puts it live automatically, so you get more customers during your quiet moments.",
     "diffs": {
       "approve": {
         "title": "AI does the work, you approve",
-        "desc": "From spotting quiet moments to setting up complete campaigns: Get-Filly automates the whole process for more guests and revenue."
+        "desc": "From spotting quiet moments to setting up complete campaigns: Get-Filly automates the whole process for more customers and revenue."
       },
       "noMarketing": {
         "title": "No marketing knowledge needed",
@@ -287,33 +287,33 @@
       },
       "integrates": {
         "title": "Fits your systems",
-        "desc": "You keep your reservation platform, POS and socials. Get-Filly integrates in a few clicks, not a switch but your partner."
+        "desc": "You keep your booking or reservation system, till and socials. Get-Filly integrates in a few clicks, not a switch but your partner."
       },
       "measures": {
         "title": "Measures what really works",
-        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, guests and revenue each campaign actually delivers."
+        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, customers and revenue each campaign actually delivers."
       }
     },
-    "walkTitle": "A week with Get-Filly, from empty seats to a full house.",
-    "walkSubtitle": "Follow a campaign from start to finish. Three minutes of work for a week full of extra bookings.",
+    "walkTitle": "A week with Get-Filly, from empty slots to fuller days.",
+    "walkSubtitle": "Follow a campaign from start to finish. Three minutes of work for a week full of extra customers.",
     "steps": {
       "detection": {
         "label": "Detection",
         "eyebrow": "Monday · 09:14",
         "title": "Get-Filly detects a dip and flags it.",
-        "desc": "Get-Filly continuously watches your reservation data. A Thursday at 38% isn't a disaster, as long as you know in time. Get-Filly sends you one message: “Thursday is lagging, shall I run something?”"
+        "desc": "Get-Filly continuously watches your occupancy data. A Thursday at 38% isn't a disaster, as long as you know in time. Get-Filly sends you one message: “Thursday is lagging, shall I run something?”"
       },
       "proposal": {
         "label": "Proposal",
         "eyebrow": "Monday · 09:15",
         "title": "Three channels, one proposal, ready within a minute.",
-        "desc": "Get-Filly proposes a complete campaign: an email to regulars, an Instagram post for late bookers, and a WhatsApp message for your most loyal guests. Tone of voice, imagery and timing, all tailored to your restaurant."
+        "desc": "Get-Filly proposes a complete campaign: an email to regulars, an Instagram post for late bookers, and a WhatsApp message for your most loyal customers. Tone of voice, imagery and timing, all tailored to your business."
       },
       "approval": {
         "label": "Approval",
         "eyebrow": "Monday · 09:16",
         "title": "One approval, Get-Filly does the rest.",
-        "desc": "Get-Filly sends all three messages at the right moment, on the right channel and to the right guests. You approve once, and after that you don't have to worry about timing or separate channels."
+        "desc": "Get-Filly sends all three messages at the right moment, on the right channel and to the right customers. You approve once, and after that you don't have to worry about timing or separate channels."
       },
       "placement": {
         "label": "Publishing",
@@ -383,11 +383,11 @@
       },
       "chatbot": {
         "title": "AI chatbot",
-        "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and restaurant, makes proposals and carries them out after your approval."
+        "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and your business, makes proposals and carries them out after your approval."
       },
       "campaigns": {
         "title": "Campaigns",
-        "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right guests and sends it at the best moment."
+        "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right customers and sends it at the best moment."
       },
       "social": {
         "title": "Social media posts",
@@ -399,11 +399,11 @@
       },
       "google": {
         "title": "Google Business",
-        "desc": "Appear at the top of Google when people search for restaurants nearby. Get-Filly publishes posts, replies to reviews and keeps your profile up to date so you get found more easily."
+        "desc": "Appear at the top of Google when people search for a business like yours nearby. Get-Filly publishes posts, replies to reviews and keeps your profile up to date so you get found more easily."
       }
     },
     "ctaTitle": "Ready to turn quiet moments into revenue?",
-    "ctaSubtitle": "Request a demo and discover what Get-Filly can do for your restaurant.",
+    "ctaSubtitle": "Request a demo and discover what Get-Filly can do for your business.",
     "ctaButton": "Request a demo",
     "ctaPricing": "Curious what it costs? Check <link>the pricing</link>."
   },
@@ -423,7 +423,7 @@
     },
     "fields": {
       "email": "Email address",
-      "emailPlaceholder": "name@restaurant.com",
+      "emailPlaceholder": "name@business.com",
       "password": "Password"
     },
     "login": {
@@ -499,30 +499,30 @@
   "about": {
     "heroTitle": "From idea to impact.",
     "story": {
-      "p1": "The best restaurant isn't always full, but the most findable one is. We saw it everywhere: places with fantastic food and loyal guests, yet still a few empty tables. Not because they did anything wrong, but because marketing has become a profession of its own. A profession you need an expensive agency for, or your own time and attention that you'd rather spend on your guests.",
-      "p2": "And the tools that are supposed to fix that? They're built for chains with a marketing department. Not for the owner who wants to grow their place their own way.",
-      "p3": "We put an end to that. Get-Filly takes over the marketing work, runs on your own data and comes up with proposals itself. All you have to do is say yes. No empty promises, no jargon. Just more guests at the table."
+      "p1": "The best business isn't always full, but the most findable one is. We saw it everywhere: owners with a fantastic offering and loyal customers, yet still quiet moments. Not because they did anything wrong, but because marketing has become a profession of its own. A profession you need an expensive agency for, or your own time and attention that you'd rather spend on your customers.",
+      "p2": "And the tools that are supposed to fix that? They're built for chains with a marketing department. Not for the owner who wants to grow their business their own way.",
+      "p3": "We put an end to that. Get-Filly takes over the marketing work, runs on your own data and comes up with proposals itself. All you have to do is say yes. No empty promises, no jargon. Just more customers during your quiet moments."
     },
     "alt1": "Quiet restaurant with just a single table occupied",
     "alt2": "The same restaurant filling up, several tables occupied",
     "alt3": "The same restaurant completely full, guests at every table",
     "missionLabel": "Mission",
-    "missionText": "Help independent restaurants grow without the owner drowning in marketing. We take the work off your hands, so you can focus on what you're good at: your place and your guests.",
+    "missionText": "Help independent businesses grow without owners drowning in marketing. We take the work off your hands, so you can focus on what you're good at: your business and your customers.",
     "visionLabel": "Vision",
-    "visionText": "A hospitality world where every local restaurant has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
+    "visionText": "A world where every local business has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
     "driveTitle": "What drives us.",
     "pillars": {
       "ownerFirst": {
         "title": "Owner first",
-        "desc": "The owner shouldn't have to spend hours on marketing or website optimisation. Get-Filly does the work, you focus on your guests and service."
+        "desc": "The owner shouldn't have to spend hours on marketing or website optimisation. Get-Filly does the work, you focus on your customers and your craft."
       },
       "ownData": {
         "title": "Your data, your choices",
-        "desc": "Your occupancy data and guest list stay yours. No reselling, you're never locked in, everything is exportable."
+        "desc": "Your occupancy data and customer list stay yours. No reselling, you're never locked in, everything is exportable."
       },
       "aiPays": {
         "title": "AI that pays for itself",
-        "desc": "No AI for the sake of AI. We put your data to work for extra bookings and more revenue."
+        "desc": "No AI for the sake of AI. We put your data to work for more customers and revenue."
       }
     },
     "journeyTitle": "Where we stand.",
@@ -548,7 +548,7 @@
     ],
     "ctaTitle": "Let's get to know each other.",
     "ctaSubtitle": "Questions about Get-Filly, working together or sparring about your marketing? Send an email, we reply fast.",
-    "ctaLinks": "Prefer to look around first? Check <product>our solution for restaurants</product> or <pricing>the pricing</pricing>."
+    "ctaLinks": "Prefer to look around first? Check <product>our solution for local businesses</product> or <pricing>the pricing</pricing>."
   },
   "contact": {
     "sentTitle": "Thanks for your request!",
@@ -558,10 +558,10 @@
     "intro": "Leave your details and we'll schedule a no-obligation intro.",
     "name": "Name",
     "namePlaceholder": "First and last name",
-    "restaurant": "Restaurant",
-    "restaurantPlaceholder": "Name of your venue",
+    "restaurant": "Business",
+    "restaurantPlaceholder": "Name of your business",
     "email": "Email address",
-    "emailPlaceholder": "name@restaurant.com",
+    "emailPlaceholder": "name@business.com",
     "phone": "Phone number",
     "optional": "(optional)",
     "phonePlaceholder": "06 12345678",
@@ -634,7 +634,7 @@
   },
   "blog": {
     "hubTitle": "The marketing cocktail",
-    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for hospitality.",
+    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for local businesses.",
     "recentTitle": "Most recent",
     "comingSoon": "Coming soon",
     "comingSoonAria": "{label} (coming soon)",
@@ -657,8 +657,8 @@
     ],
     "featured": {
       "eyebrow": "Findability",
-      "title": "7 SEO tips to bring more guests to your restaurant",
-      "excerpt": "How to master your Google Business profile and keep listings consistent, so your venue is the first choice nearby."
+      "title": "7 SEO tips to bring more customers to your business",
+      "excerpt": "How to master your Google Business profile and keep listings consistent, so your business is the first choice nearby."
     },
     "topics": {
       "findability": {
@@ -693,7 +693,7 @@
       },
       "gbpChecklist": {
         "eyebrow": "Findability",
-        "title": "Google Business profile: the complete checklist for hospitality"
+        "title": "Google Business profile: the complete checklist for local businesses"
       },
       "quietEvenings": {
         "eyebrow": "Occupancy",
@@ -701,8 +701,8 @@
       }
     },
     "cta": {
-      "title": "From reading to full tables.",
-      "subtitle": "You know the theory now. Let Filly handle your findability, reviews and posts, so you can focus on your guests.",
+      "title": "From reading to fuller days.",
+      "subtitle": "You know the theory now. Let Filly handle your findability, reviews and posts, so you can focus on your customers.",
       "button": "Book a free intro call",
       "productLink": "Curious how Filly does this? Check <link>the product</link>."
     }
@@ -3448,28 +3448,28 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. More guests. Fewer empty tables.",
-      "description": "Get-Filly is an AI platform for restaurants. It runs your marketing, reviews and visibility in Google and AI search engines."
+      "title": "Get-Filly. Fill your quiet moments. Automatically.",
+      "description": "Get-Filly is the AI capacity optimiser for local businesses. It fills your quiet moments through marketing, reviews and visibility in Google and AI search engines. For hospitality, wellness, hair salons, gyms and more."
     },
     "product": {
       "title": "The solution",
-      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more bookings."
+      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more customers during your quiet moments. For local businesses across multiple industries."
     },
     "pricing": {
       "title": "Pricing",
-      "description": "See Get-Filly's plans. No hidden costs, no long contracts, just more guests at the table. Find the plan that fits your restaurant."
+      "description": "See Get-Filly's plans. No hidden costs, no long contracts, just more customers during your quiet moments. Find the plan that fits your business."
     },
     "about": {
       "title": "About",
-      "description": "Get-Filly was founded by two entrepreneurs with one mission: help hospitality turn quiet moments into revenue, without hours of work or big marketing budgets."
+      "description": "Get-Filly was founded by two entrepreneurs with one mission: help local businesses turn quiet moments into revenue, without hours of work or big marketing budgets."
     },
     "contact": {
       "title": "Contact & demo",
-      "description": "Request a demo or book a free intro with Get-Filly. We are happy to show you how AI gets more bookings from your existing guests."
+      "description": "Request a demo or book a free intro with Get-Filly. We are happy to show you how AI gets more customers from your quiet moments."
     },
     "blog": {
       "title": "The marketing cocktail",
-      "description": "Insights on AI marketing, online findability and higher occupancy for hospitality, from Get-Filly."
+      "description": "Insights on AI marketing, online findability and higher occupancy for local businesses, from Get-Filly."
     }
   },
   "leg_government_requests": {
