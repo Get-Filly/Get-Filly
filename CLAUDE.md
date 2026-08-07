@@ -10,7 +10,26 @@ alle niet-gefixte issues. Werk die file bij als je iets afmaakt of
 nieuwe punten tegenkomt.
 
 ## Wat het is
-AI-gedreven marketing- en bezettings-dashboard voor Nederlandse horecaondernemers. SaaS met Filly als AI-marketingassistent die namens de zaak reviews beantwoordt, campagnes voorstelt en via chat meedenkt over marketing-acties.
+**AI-capaciteitoptimalisator voor lokale ondernemers** (multi-branche: horeca,
+wellness, kappers, sportscholen, recreatie — niet meer horeca-only). SaaS met
+Filly als AI-assistent die rustige momenten detecteert en met goedkeuring van de
+ondernemer de juiste actie inzet (campagnes, reviews, vindbaarheid) om lege
+capaciteit te vullen. "Get-Filly" = het bedrijf; "Filly" = de assistent.
+
+> **⚠️ Belangrijke wijzigingen (aug 2026) — deze doc is deels nog ouder:**
+> - **Multi-branche**: elke zaak heeft een `industry` (mig 0066); Filly's brein
+>   leest een branche-pack (`apps/api/src/ai/industry/`). Horeca-gedrag byte-
+>   identiek; andere branches erven een generieke pack + VAKTAAL-blok.
+> - **Rename `restaurants`→`businesses`, `restaurant_id`→`business_id`,
+>   header `X-Restaurant-Id`→`X-Business-Id`** (mig 0068). Ook `RestaurantAccessGuard`
+>   →`BusinessAccessGuard`, `RestaurantContextService`→`BusinessContextService`,
+>   map `restaurant/`→`business/`, `restaurant-context.tsx`→`business-context.tsx`.
+>   Let op de PostgREST-embed/cast-valkuil bij zulke renames (zie memory).
+> - **Publieke site herpositioneerd** naar capaciteit-optimalisator (NL+EN), hero
+>   "Vul je rustige momenten. Automatisch."
+> - **Rustige-momenten-model** = vulbaarheid-first (was anomalie-only); tijdvenster
+>   instelbaar (mig 0069). Campagnes: 24u-historie-grace (mig 0070).
+> - Migraties staan nu op **0070**. Zie de memory-index + BACKLOG voor details.
 
 ## Stack
 - **Frontend**: Next.js 16 App Router (Turbopack) — `apps/web/`
@@ -35,7 +54,7 @@ apps/
       components/navbar.tsx
       lib/
         api.ts              (authedFetch + alle backend-calls)
-        restaurant-context.tsx  (actieve restaurant in localStorage)
+        business-context.tsx  (actieve business in localStorage; was restaurant-context.tsx)
         supabase-{browser,server}.ts
       middleware.ts         (auth-guard: redirect naar /login)
   api/
@@ -45,7 +64,7 @@ apps/
       chat/                 (Filly-chat: dashboard-home assistent)
       {campaigns,guests,kpi,occupancy,restaurant,weather,suggestions,menu,reservations,reviews,me,team}/
       supabase/
-    supabase/migrations/    (SQL 0001-0016, handmatig runnen in Supabase SQL Editor)
+    supabase/migrations/    (SQL 0001-0070, handmatig runnen in Supabase SQL Editor)
 packages/
   shared/                   (gedeelde TypeScript types + DEFAULT_PERMISSIONS per rol)
 ```
@@ -58,9 +77,9 @@ packages/
 - **`pnpm dev`** start web op :3000 en api op :3001
 
 ## Conventies
-- **Multi-tenant**: alle restaurant-gescopete controllers onder `@UseGuards(AuthGuard, RestaurantAccessGuard)`. `X-Restaurant-Id` header is verplicht, géén fallback-id. Queries dubbel scopen op `(entity_id + restaurant_id)` = defense-in-depth.
-- **AI-calls**: altijd via `AiService.generateText({ meta: { restaurantId, userId, feature } })`. TypeScript dwingt tracking af. Rate-limit via `AiRateLimitGuard` op elk endpoint dat Claude aanroept.
-- **Frontend fetch**: via `authedFetch` in `src/lib/api.ts` — stuurt JWT + X-Restaurant-Id automatisch.
+- **Multi-tenant**: alle business-gescopete controllers onder `@UseGuards(AuthGuard, BusinessAccessGuard)`. `X-Business-Id` header is verplicht, géén fallback-id. Queries dubbel scopen op `(entity_id + business_id)` = defense-in-depth. (Was vóór mig 0068: RestaurantAccessGuard / X-Restaurant-Id / restaurant_id.)
+- **AI-calls**: altijd via `AiService.generateText({ meta: { restaurantId, userId, feature } })` (de `meta`-veldnaam heet intern nog `restaurantId`; bevat een business-id). TypeScript dwingt tracking af. Rate-limit via `AiRateLimitGuard` op elk endpoint dat Claude aanroept.
+- **Frontend fetch**: via `authedFetch` in `src/lib/api.ts` — stuurt JWT + X-Business-Id automatisch.
 - **Seed-restaurant-id**: `00000000-0000-0000-0000-000000000001` (Bistro Get-Filly).
 - **Tweede test-restaurant**: `00000000-0000-0000-0000-000000000002` (Cafe Get-Filly, handmatig aangemaakt via seed-snippet).
 - **`.env`-bestanden** in `apps/{web,api}/` — niet in Git, wel vereist voor dev. Zie `.env.example` per app.

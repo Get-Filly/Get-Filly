@@ -33,6 +33,30 @@ met vaste beelden zijn nog horeca** en moeten mee. Vergt nieuw beeldmateriaal
 Het home-hoofddashboard-mockup is al omgezet naar een kapper-case; de rest
 hierboven kan pas met beeld. Zie memory `getfilly-site-herpositionering`.
 
+## 🗓️ 2026-08-06/07 — Grote sessie: multi-branche, rename, site, feedback (alles live op main)
+
+Samenvatting van wat deze sessie live ging (migraties 0066 t/m 0070 gedraaid):
+
+- [x] **Multi-branche (Deel 1)** — `businesses.industry` (mig 0066) + code-registry
+  `apps/api/src/ai/industry/`; Filly's brein leest per branche een pack
+  (lexicon/framing/channelFlavor). Horeca byte-identiek. Onboarding branche-keuze.
+  Analytics-dimensie `industry` op performance-tabellen (mig 0067, trigger).
+- [x] **Rename → business (Deel 2)** — `restaurants→businesses`,
+  `restaurant_id→business_id`, functies, header `X-Restaurant-Id→X-Business-Id`,
+  guards/services/decorators/mappen (mig 0068). Hotfix embed-mapping-bug (access).
+- [x] **Rustige momenten = vulbaarheid-first** (was anomalie-only) — structureel-
+  lege dagen tellen weer mee; docx bijgewerkt. **Tijdvenster** instelbaar (mig 0069).
+- [x] **Campagne-flow** — 24u-historie-grace (mig 0070, cron uurlijks) + de
+  "rustige/speciale dagen"-balk verwijderd van /campagnes.
+- [x] **Publieke site herpositioneerd** → AI-capaciteitoptimalisator (NL+EN):
+  home/product/about/pricing/contact/blog + SEO-meta + JSON-LD + favicon.ico.
+  Hero "Vul je rustige momenten. Automatisch." Home-mockup = kapper-case.
+- [x] **Feedback-tool** — disclaimer + "Geef ons feedback"-link onder de Filly-chat
+  → `POST /mail/feedback` → info@get-filly.com.
+
+Details in de memory-index (multi-branche-plan, rustige-momenten, site-
+herpositionering, postgrest-embed-cast-gotcha).
+
 ## 🗓️ 2026-07-29 — Filly-chat + geleide flow op de dagdeel-detectie (live op main)
 
 De chat en de geleide flow hangen nu aan de rustige-momenten-detectie.
