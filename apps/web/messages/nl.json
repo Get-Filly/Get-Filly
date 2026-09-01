@@ -2826,6 +2826,40 @@
       "fileTooLarge": "Bestand te groot ({size}MB). Max 10MB.",
       "uploadFailed": "Upload mislukt. Probeer opnieuw.",
       "removeFailed": "Verwijderen mislukt."
+    },
+    "studio": {
+      "open": "✨ Filly beeld-studio",
+      "title": "Filly beeld-studio",
+      "close": "Sluiten",
+      "done": "Klaar",
+      "intro": "Maak of verbeter de foto. Filly zet 'm daarna in het juiste formaat op alle kanalen van deze campagne.",
+      "modes": {
+        "verbeteren": { "title": "✨ Verbeteren", "desc": "Licht, kleur en scherpte oppoetsen. Inhoud blijft gelijk." },
+        "aanpassen": { "title": "🖌️ Aanpassen", "desc": "Iets toevoegen of veranderen op je eigen foto." },
+        "genereren": { "title": "🎨 Genereren", "desc": "Geen foto? Filly maakt er een op basis van de campagne." }
+      },
+      "instructionLabel": "Wat wil je aanpassen?",
+      "instructionPlaceholder": "Bijv: leg er wat bittergarnituur en twee glazen rode wijn bij, warmer avondlicht",
+      "promptLabel": "Beschrijf de foto die Filly moet maken",
+      "promptPlaceholder": "Bijv: sfeervolle najaarsborrel met bittergarnituur en rode wijn op een houten tafel",
+      "variantCount": "Aantal varianten",
+      "actions": { "enhance": "Verbeter foto", "edit": "Pas foto aan", "generate": "Genereer foto" },
+      "pickHint": "Kies de foto die je wilt gebruiken. Je origineel blijft bewaard.",
+      "placeAll": "Plaats op alle kanalen",
+      "placing": "Filly plaatst de foto op alle kanalen...",
+      "doneTitle": "Geplaatst",
+      "doneHint": "Zo staat de foto nu op je kanalen:",
+      "aiLabel": "AI",
+      "status": {
+        "master": "geplaatst",
+        "reformatted": "geplaatst",
+        "skipped_mail": "overgeslagen (mail heeft geen foto)",
+        "failed": "mislukt"
+      },
+      "errors": {
+        "createFailed": "Er ging iets mis bij het maken van het beeld. Probeer het opnieuw.",
+        "placeFailed": "Plaatsen op de kanalen is mislukt. Probeer het opnieuw."
+      }
     }
   },
   "dash__components_campaign_detail_inhoud_card": {

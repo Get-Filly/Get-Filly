@@ -2826,6 +2826,40 @@
       "fileTooLarge": "File too large ({size}MB). Max 10MB.",
       "uploadFailed": "Upload failed. Please try again.",
       "removeFailed": "Removal failed."
+    },
+    "studio": {
+      "open": "✨ Filly photo studio",
+      "title": "Filly photo studio",
+      "close": "Close",
+      "done": "Done",
+      "intro": "Create or improve the photo. Filly then places it in the right format on every channel of this campaign.",
+      "modes": {
+        "verbeteren": { "title": "✨ Improve", "desc": "Polish light, colour and sharpness. Content stays the same." },
+        "aanpassen": { "title": "🖌️ Adjust", "desc": "Add or change something on your own photo." },
+        "genereren": { "title": "🎨 Generate", "desc": "No photo? Filly creates one based on the campaign." }
+      },
+      "instructionLabel": "What would you like to change?",
+      "instructionPlaceholder": "E.g. add some bar snacks and two glasses of red wine, warmer evening light",
+      "promptLabel": "Describe the photo Filly should create",
+      "promptPlaceholder": "E.g. cosy autumn drinks with bar snacks and red wine on a wooden table",
+      "variantCount": "Number of variants",
+      "actions": { "enhance": "Improve photo", "edit": "Adjust photo", "generate": "Generate photo" },
+      "pickHint": "Pick the photo you want to use. Your original is kept.",
+      "placeAll": "Place on all channels",
+      "placing": "Filly is placing the photo on all channels...",
+      "doneTitle": "Placed",
+      "doneHint": "Here is how the photo now appears on your channels:",
+      "aiLabel": "AI",
+      "status": {
+        "master": "placed",
+        "reformatted": "placed",
+        "skipped_mail": "skipped (email has no photo)",
+        "failed": "failed"
+      },
+      "errors": {
+        "createFailed": "Something went wrong creating the image. Please try again.",
+        "placeFailed": "Placing on the channels failed. Please try again."
+      }
     }
   },
   "dash__components_campaign_detail_inhoud_card": {

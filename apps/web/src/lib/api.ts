@@ -1019,6 +1019,150 @@ export async function uploadCampaignMedia(
   return res.json();
 }
 
+// ============================================================
+// Filly-beeldtool (campagne-foto genereren / bewerken)
+// ============================================================
+// Praat met de image-module (/campaigns/:id/image/*). Alle calls geven
+// varianten terug als { path, signed_url }; de eigenaar keurt er één goed
+// en zet 'm via applyCampaignImage als campagne-foto. Feature-gated: als
+// GEMINI_API_KEY (backend) ontbreekt, geeft status.configured === false.
+
+export type CampaignImageVariant = { path: string; signed_url: string };
+
+// Is de beeldtool beschikbaar? (key gezet in de API-env). Gebruik dit om
+// de beeld-knoppen te tonen/verbergen i.p.v. ze te laten falen.
+export async function getCampaignImageStatus(
+  campaignId: string,
+): Promise<{ configured: boolean }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/image/status`,
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Stand 1: huidige campagne-foto mooier maken (fotografen-polish).
+export async function enhanceCampaignImage(
+  campaignId: string,
+  count = 1,
+): Promise<{ variants: CampaignImageVariant[] }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/image/enhance`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ count }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Stand 2: huidige foto aanpassen op instructie ("doe hier tapas op").
+export async function editCampaignImage(
+  campaignId: string,
+  instruction: string,
+  count = 1,
+): Promise<{ variants: CampaignImageVariant[] }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/image/edit`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instruction, count }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Stand 3: een foto genereren vanaf tekst (geen invoerfoto nodig).
+export async function generateCampaignImage(
+  campaignId: string,
+  prompt: string,
+  count = 1,
+): Promise<{ variants: CampaignImageVariant[] }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/image/generate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, count }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Een goedgekeurde variant als campagne-foto instellen. Geeft de nieuwe
+// signed URL terug voor de preview (zelfde vorm als uploadCampaignMedia).
+export async function applyCampaignImage(
+  campaignId: string,
+  path: string,
+): Promise<{ path: string; signed_url: string }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/image/apply`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Resultaat per kanaal bij de fan-out. status:
+//   'master'       = entree-kanaal, master direct geplaatst
+//   'reformatted'  = master herkaderd naar dit kanaal-formaat en geplaatst
+//   'skipped_mail' = mail heeft geen foto, overgeslagen
+//   'failed'       = dit kanaal faalde (de rest ging gewoon door)
+export type CampaignImageChannelResult = {
+  campaignId: string;
+  label: string;
+  aspectRatio: string;
+  status: "master" | "reformatted" | "skipped_mail" | "failed";
+  path?: string;
+  signed_url?: string;
+};
+
+// Fan-out: de gekozen master op ALLE kanalen van de campagne-bundel plaatsen,
+// elk in het juiste formaat. Geeft per kanaal het resultaat terug. Voor een
+// losse (single-channel) campagne = plaatsen op dat ene kanaal.
+export async function applyAllCampaignImage(
+  campaignId: string,
+  path: string,
+): Promise<{ channels: CampaignImageChannelResult[] }> {
+  const res = await authedFetch(
+    `${API_URL}/campaigns/${campaignId}/image/apply-all`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Bevestig of override het scheduled_for-veld. Backend valideert dat
 // status concept of ingepland is.
 export async function setCampaignSchedule(

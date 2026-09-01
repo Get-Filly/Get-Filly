@@ -33,6 +33,7 @@ import { SeoReportModule } from './seo-report/seo-report.module';
 import { EventsModule } from './events/events.module';
 import { GoogleBusinessModule } from './google-business/google-business.module';
 import { BusynessModule } from './busyness/busyness.module';
+import { ImageModule } from './image/image.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { BusynessModule } from './busyness/busyness.module';
     EventsModule,
     GoogleBusinessModule,
     BusynessModule,
+    ImageModule,
   ],
   controllers: [AppController],
   // AuthGuard is nu GLOBAAL (APP_GUARD): élke route vereist een geldige login,

@@ -2718,7 +2718,7 @@ Open: prompt-caching activeren op profiel+menu (P2 in BACKLOG). Campagne-service
 - ✅ Endpoints: `POST /:id/suggest-schedule` + `PATCH /:id/scheduled`.
 - ✅ Frontend `CampaignSchedulePanel`: auto-bootstrap bij eerste open van concept zonder voorstel; toont "Filly stelt voor: [datetime]" met reasoning + "Accepteer / Wijzig zelf / Andere suggestie"-knoppen. Bij scheduled_for gezet: definitieve tijd + Wijzig-knop. Native datetime-local input voor handmatige override.
 
-Open: AI-foto genereren via fal.ai/Replicate/OpenAI (provider-keuze ligt bij Floris).
+AI-beeldtool: backend + FotoCard-UI AF op branch `feat/foto-tool-infra` (stap 1+2, 2026-09-01). Provider = Google Gemini image ("Nano Banana"), feature-gated op `GEMINI_API_KEY` (lokaal gezet + geldig getest). Drie standen (verbeteren / aanpassen-op-instructie / genereren) + multi-channel fan-out: één master -> per kanaal in het juiste formaat via `POST image/apply-all` (ratio per platform, GBP crop-only, mail/video overslaan, partial success, caps vooraf). Module `apps/api/src/image/` + `BeeldStudio` in FotoCard + i18n NL/EN + migratie 0071 `image_usage` (gedraaid). Open: (1) live e2e-test in dashboard, (2) `GEMINI_API_KEY` in Vercel, (3) proto-pagina (`/proto-fototool`) weghalen + branch mergen, (4) evt. deterministische crop op aspect-ratio (sharp).
 
 ### 2026-04-25 — Foto-upload op concept-campagnes (social + whatsapp)
 - ✅ Migratie 0015: `campaign-media` Storage-bucket (private) met RLS-policies — zelfde patroon als menu-uploads, eerste path-segment is restaurant_id voor tenant-check via `user_has_restaurant_access`.
@@ -2727,7 +2727,7 @@ Open: AI-foto genereren via fal.ai/Replicate/OpenAI (provider-keuze ligt bij Flo
 - ✅ Nieuwe `CampaignMediaSlot`-component: drop-zone bij geen foto, `<img>`-preview bij wel foto met overlay-knoppen "↻ Vervang" / "✕". Drag-and-drop ondersteund. Geïntegreerd in social-preview én whatsapp-preview.
 - ✅ Path-conventie `<restaurant_id>/<campaign_id>/<timestamp>-<safeName>` zodat we per campagne kunnen wissen + filenames sanitizen tegen path-traversal.
 
-Open: AI-foto genereren via fal.ai/Replicate/OpenAI (provider-keuze ligt bij Floris).
+AI-beeldtool: backend + FotoCard-UI AF op branch `feat/foto-tool-infra` (stap 1+2, 2026-09-01). Provider = Google Gemini image ("Nano Banana"), feature-gated op `GEMINI_API_KEY` (lokaal gezet + geldig getest). Drie standen (verbeteren / aanpassen-op-instructie / genereren) + multi-channel fan-out: één master -> per kanaal in het juiste formaat via `POST image/apply-all` (ratio per platform, GBP crop-only, mail/video overslaan, partial success, caps vooraf). Module `apps/api/src/image/` + `BeeldStudio` in FotoCard + i18n NL/EN + migratie 0071 `image_usage` (gedraaid). Open: (1) live e2e-test in dashboard, (2) `GEMINI_API_KEY` in Vercel, (3) proto-pagina (`/proto-fototool`) weghalen + branch mergen, (4) evt. deterministische crop op aspect-ratio (sharp).
 
 ### 2026-04-25 — Filly-varianten-cache + 1× regenerate (campagnes + reviews)
 - ✅ Migratie 0014: `campaigns.filly_variants jsonb` + `filly_variants_regen_count int` (idem voor reviews). Cachet 3-of-6 alternatieven server-side zodat her-bezoek geen Claude-calls triggert.

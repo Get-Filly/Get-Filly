@@ -23,15 +23,17 @@
 //
 // onMediaChanged(newSignedUrl|null) triggert refetch in parent.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   deleteCampaignMedia,
   uploadCampaignMedia,
+  getCampaignImageStatus,
   type BusinessMediaItem,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { MediaLibraryPicker } from "../media-library-picker";
+import { BeeldStudio } from "./beeld-studio";
 
 const ACCEPT_IMAGE = "image/jpeg,image/jpg,image/png,image/webp,image/gif";
 const ACCEPT_VIDEO = "video/mp4,video/quicktime,video/webm";
@@ -68,8 +70,27 @@ export function FotoCard({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Beeldtool: alleen tonen als de backend een GEMINI_API_KEY heeft. Zonder
+  // key verbergen we de knop liever dan 'm te laten falen. null = nog onbekend.
+  const [imageToolConfigured, setImageToolConfigured] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
 
   const busy = uploading || deleting;
+
+  // Eenmalig checken of de beeldtool beschikbaar is (feature-flag).
+  useEffect(() => {
+    let active = true;
+    getCampaignImageStatus(campaignId)
+      .then((s) => {
+        if (active) setImageToolConfigured(s.configured);
+      })
+      .catch(() => {
+        if (active) setImageToolConfigured(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [campaignId]);
 
   // Bibliotheek-foto → fetch URL → blob → File → upload-endpoint.
   // Geen aparte backend-call: het campaign krijgt een eigen kopie
@@ -257,6 +278,29 @@ export function FotoCard({
             )}
           </div>
         )}
+        {/* Filly-beeldtool: openen vanuit dezelfde media-pop-up. Alleen als
+            de backend een key heeft (feature-flag) en de campagne bewerkbaar
+            is (concept). Met foto -> alle standen; zonder foto -> genereren. */}
+        {canEdit && imageToolConfigured && !studioOpen && (
+          <div style={{ marginTop: 12 }}>
+            <Button
+              variant="brand-soft"
+              onClick={() => setStudioOpen(true)}
+              disabled={busy}
+            >
+              {t("studio.open")}
+            </Button>
+          </div>
+        )}
+        {studioOpen && (
+          <BeeldStudio
+            campaignId={campaignId}
+            hasPhoto={!!signedUrl}
+            onApplied={(url) => onMediaChanged(url)}
+            onClose={() => setStudioOpen(false)}
+          />
+        )}
+
         {/* Hidden file input — fungeert als upload-trigger voor de
             "Upload nieuw"-knop. Native picker, zelfde MIME-filter
             als het backend-endpoint. */}
