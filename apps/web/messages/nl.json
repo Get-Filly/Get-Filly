@@ -23,7 +23,7 @@
   },
   "home": {
     "heroTitle": "Vul je rustige momenten.<br></br>Automatisch.",
-    "heroSubtitle": "Get-Filly ziet wanneer het rustig wordt en zet met jouw goedkeuring de juiste actie in, via mail, social, WhatsApp en Google. Voor horeca, wellness, kappers, sportscholen en meer.",
+    "heroSubtitle": "Get-Filly ziet wanneer het rustig wordt en zet met jouw goedkeuring de juiste actie in, via mail, social, WhatsApp en Google. Voor de horeca.",
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
     "whyTitle": "Waarom het werkt",
@@ -509,7 +509,7 @@
     "missionLabel": "Missie",
     "missionText": "Onafhankelijke ondernemers laten groeien zonder dat ze verdrinken in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je onderneming en je klanten.",
     "visionLabel": "Visie",
-    "visionText": "Een wereld waarin elke lokale ondernemer dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
+    "visionText": "Een wereld waarin elke horecaondernemer dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
     "driveTitle": "Wat ons drijft.",
     "pillars": {
       "ownerFirst": {
@@ -548,7 +548,7 @@
     ],
     "ctaTitle": "Laten we kennismaken.",
     "ctaSubtitle": "Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.",
-    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor lokale ondernemers</product> of <pricing>de prijzen</pricing>."
+    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor de horeca</product> of <pricing>de prijzen</pricing>."
   },
   "contact": {
     "sentTitle": "Bedankt voor je aanvraag!",
@@ -634,7 +634,7 @@
   },
   "blog": {
     "hubTitle": "De marketing cocktail",
-    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor lokale ondernemers.",
+    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor de horeca.",
     "recentTitle": "Meest recent",
     "comingSoon": "Binnenkort online",
     "comingSoonAria": "{label} (binnenkort online)",
@@ -693,7 +693,7 @@
       },
       "gbpChecklist": {
         "eyebrow": "Vindbaarheid",
-        "title": "Google Bedrijfsprofiel: de complete checklist voor lokale ondernemers"
+        "title": "Google Bedrijfsprofiel: de complete checklist voor horecaondernemers"
       },
       "quietEvenings": {
         "eyebrow": "Bezetting",
@@ -3463,11 +3463,11 @@
   "meta": {
     "home": {
       "title": "Get-Filly. Vul je rustige momenten. Automatisch.",
-      "description": "Get-Filly is de AI-capaciteitoptimalisator voor lokale ondernemers. Het vult je rustige momenten via marketing, reviews en vindbaarheid in Google en AI-zoekmachines. Voor horeca, wellness, kappers, sportscholen en meer."
+      "description": "Get-Filly is de AI-capaciteitoptimalisator voor de horeca. Het vult je rustige momenten via marketing, reviews en vindbaarheid in Google en AI-zoekmachines."
     },
     "product": {
       "title": "De oplossing",
-      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer klanten op je rustige momenten. Voor lokale ondernemers in meerdere branches."
+      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer klanten op je rustige momenten. Voor de horeca."
     },
     "pricing": {
       "title": "Prijzen",
@@ -3475,7 +3475,7 @@
     },
     "about": {
       "title": "Over ons",
-      "description": "Get-Filly is opgericht door twee ondernemers met één missie: lokale ondernemers helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
+      "description": "Get-Filly is opgericht door twee ondernemers met één missie: horecaondernemers helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
     },
     "contact": {
       "title": "Contact & demo",
@@ -3483,7 +3483,7 @@
     },
     "blog": {
       "title": "De marketing cocktail",
-      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor lokale ondernemers, van Get-Filly."
+      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly."
     }
   },
   "leg_government_requests": {
@@ -3605,7 +3605,7 @@
         "heading": "2.2 Gegevens over jouw onderneming",
         "intro": "Om Get-Filly goed te laten werken, verwerken wij gegevens over jouw onderneming. Dit kunnen onder meer zijn:",
         "name": "naam van de onderneming",
-        "type": "type onderneming, bijvoorbeeld restaurant, hotel, lunchroom, wellnesslocatie of andere horecagelegenheid",
+        "type": "type horecazaak, bijvoorbeeld restaurant, café, bistro of lunchroom",
         "address": "adres, vestigingsplaats en contactgegevens",
         "hours": "openingstijden",
         "website": "website en publiek toegankelijke website-inhoud",
@@ -4143,7 +4143,7 @@
     },
     "s4": {
       "heading": "4. Onze dienst",
-      "p1": "Get-Filly biedt een SaaS-platform waarmee horeca-, wellness- en hotelondernemers hun marketing, online zichtbaarheid, bezetting en klantactivatie kunnen analyseren en verbeteren met behulp van AI, automatisering en data-analyse. De dienst kan onder meer bestaan uit:",
+      "p1": "Get-Filly biedt een SaaS-platform waarmee horecaondernemers hun marketing, online zichtbaarheid, bezetting en klantactivatie kunnen analyseren en verbeteren met behulp van AI, automatisering en data-analyse. De dienst kan onder meer bestaan uit:",
       "li1": "een dashboard met inzicht in reserveringen, bezetting, gasten en marketingactiviteiten;",
       "li2": "AI-gegenereerde review-antwoorden, campagnesuggesties, teksten en chatfunctionaliteiten;",
       "li3": "menu-analyse via beeldherkenning en AI;",
@@ -4337,17 +4337,6 @@
       "nameLabel": "Naam van de onderneming",
       "required": "(verplicht)",
       "namePlaceholder": "Bistro Centraal",
-      "industryLabel": "Wat voor zaak run je?",
-      "industrySubtitle": "Filly stemt haar taal, toon en tips af op je branche. Je kunt dit later altijd wijzigen.",
-      "industryComingSoon": "Binnenkort",
-      "industries": {
-        "horeca": { "label": "Horeca", "description": "Restaurant, café, bistro, brasserie." },
-        "kapper": { "label": "Kapper & barbier", "description": "Kapsalon, barbershop." },
-        "schoonheid": { "label": "Schoonheid & nagels", "description": "Schoonheidssalon, nagelstudio, huidverzorging." },
-        "wellness": { "label": "Wellness & massage", "description": "Spa, sauna, massagesalon." },
-        "sportschool": { "label": "Sportschool & fitness", "description": "Gym, fitnessclub, yoga- of pilatesstudio." },
-        "recreatie": { "label": "Recreatie & vrije tijd", "description": "Bowling, escape room, klimhal, indoor speeltuin." }
-      },
       "typeLabel": "Type onderneming",
       "typePlaceholder": "Kies een type…",
       "websiteLabel": "Website van je onderneming",

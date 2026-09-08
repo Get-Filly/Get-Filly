@@ -23,7 +23,7 @@
   },
   "home": {
     "heroTitle": "Fill your quiet moments.<br></br>Automatically.",
-    "heroSubtitle": "Get-Filly spots when things get quiet and, with your approval, sets the right action in motion, via email, social, WhatsApp and Google. For hospitality, wellness, hair salons, gyms and more.",
+    "heroSubtitle": "Get-Filly spots when things get quiet and, with your approval, sets the right action in motion, via email, social, WhatsApp and Google. For hospitality.",
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
     "whyTitle": "Why it works",
@@ -509,7 +509,7 @@
     "missionLabel": "Mission",
     "missionText": "Help independent businesses grow without owners drowning in marketing. We take the work off your hands, so you can focus on what you're good at: your business and your customers.",
     "visionLabel": "Vision",
-    "visionText": "A world where every local business has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
+    "visionText": "A world where every hospitality business has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
     "driveTitle": "What drives us.",
     "pillars": {
       "ownerFirst": {
@@ -548,7 +548,7 @@
     ],
     "ctaTitle": "Let's get to know each other.",
     "ctaSubtitle": "Questions about Get-Filly, working together or sparring about your marketing? Send an email, we reply fast.",
-    "ctaLinks": "Prefer to look around first? Check <product>our solution for local businesses</product> or <pricing>the pricing</pricing>."
+    "ctaLinks": "Prefer to look around first? Check <product>our solution for hospitality</product> or <pricing>the pricing</pricing>."
   },
   "contact": {
     "sentTitle": "Thanks for your request!",
@@ -634,7 +634,7 @@
   },
   "blog": {
     "hubTitle": "The marketing cocktail",
-    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for local businesses.",
+    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for hospitality.",
     "recentTitle": "Most recent",
     "comingSoon": "Coming soon",
     "comingSoonAria": "{label} (coming soon)",
@@ -693,7 +693,7 @@
       },
       "gbpChecklist": {
         "eyebrow": "Findability",
-        "title": "Google Business profile: the complete checklist for local businesses"
+        "title": "Google Business profile: the complete checklist for hospitality"
       },
       "quietEvenings": {
         "eyebrow": "Occupancy",
@@ -3463,11 +3463,11 @@
   "meta": {
     "home": {
       "title": "Get-Filly. Fill your quiet moments. Automatically.",
-      "description": "Get-Filly is the AI capacity optimiser for local businesses. It fills your quiet moments through marketing, reviews and visibility in Google and AI search engines. For hospitality, wellness, hair salons, gyms and more."
+      "description": "Get-Filly is the AI capacity optimiser for hospitality. It fills your quiet moments through marketing, reviews and visibility in Google and AI search engines."
     },
     "product": {
       "title": "The solution",
-      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more customers during your quiet moments. For local businesses across multiple industries."
+      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more customers during your quiet moments. For hospitality."
     },
     "pricing": {
       "title": "Pricing",
@@ -3475,7 +3475,7 @@
     },
     "about": {
       "title": "About",
-      "description": "Get-Filly was founded by two entrepreneurs with one mission: help local businesses turn quiet moments into revenue, without hours of work or big marketing budgets."
+      "description": "Get-Filly was founded by two entrepreneurs with one mission: help hospitality businesses turn quiet moments into revenue, without hours of work or big marketing budgets."
     },
     "contact": {
       "title": "Contact & demo",
@@ -3483,7 +3483,7 @@
     },
     "blog": {
       "title": "The marketing cocktail",
-      "description": "Insights on AI marketing, online findability and higher occupancy for local businesses, from Get-Filly."
+      "description": "Insights on AI marketing, online findability and higher occupancy for hospitality, from Get-Filly."
     }
   },
   "leg_government_requests": {
@@ -3605,7 +3605,7 @@
         "heading": "2.2 Data about your business",
         "intro": "To make Get-Filly work properly, we process data about your business. This may include among other things:",
         "name": "name of the business",
-        "type": "type of business, for example restaurant, hotel, lunchroom, wellness venue or other hospitality establishment",
+        "type": "type of hospitality business, for example restaurant, café, bistro or lunchroom",
         "address": "address, location and contact details",
         "hours": "opening hours",
         "website": "website and publicly accessible website content",
@@ -4143,7 +4143,7 @@
     },
     "s4": {
       "heading": "4. Our service",
-      "p1": "Get-Filly offers a SaaS platform that lets hospitality, wellness and hotel entrepreneurs analyze and improve their marketing, online visibility, occupancy and customer activation using AI, automation and data analysis. The service may consist of, among other things:",
+      "p1": "Get-Filly offers a SaaS platform that lets hospitality entrepreneurs analyze and improve their marketing, online visibility, occupancy and customer activation using AI, automation and data analysis. The service may consist of, among other things:",
       "li1": "a dashboard with insight into reservations, occupancy, guests and marketing activities;",
       "li2": "AI-generated review replies, campaign suggestions, copy and chat features;",
       "li3": "menu analysis through image recognition and AI;",
@@ -4337,17 +4337,6 @@
       "nameLabel": "Business name",
       "required": "(required)",
       "namePlaceholder": "Bistro Centraal",
-      "industryLabel": "What kind of business do you run?",
-      "industrySubtitle": "Filly tailors her language, tone and tips to your industry. You can change this later.",
-      "industryComingSoon": "Coming soon",
-      "industries": {
-        "horeca": { "label": "Hospitality", "description": "Restaurant, café, bistro, brasserie." },
-        "kapper": { "label": "Hair & barber", "description": "Hair salon, barbershop." },
-        "schoonheid": { "label": "Beauty & nails", "description": "Beauty salon, nail studio, skincare." },
-        "wellness": { "label": "Wellness & massage", "description": "Spa, sauna, massage salon." },
-        "sportschool": { "label": "Gym & fitness", "description": "Gym, fitness club, yoga or pilates studio." },
-        "recreatie": { "label": "Leisure & recreation", "description": "Bowling, escape room, climbing gym, indoor playground." }
-      },
       "typeLabel": "Business type",
       "typePlaceholder": "Choose a type…",
       "websiteLabel": "Your business website",
