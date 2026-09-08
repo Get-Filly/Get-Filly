@@ -239,8 +239,8 @@ function TiktokLogo() {
   );
 }
 
-// Zenchef — lime-green gestileerde "z" (reserveringsplatform).
-// Recreatie als groene letter-glyph; te vervangen door het officiële
+// Zenchef, lime-green gestileerde "z" (reserveringsplatform).
+// Placeholder letter-glyph, te vervangen door het officiële
 // SVG-logo zodra Floris dat aanlevert.
 function ZenchefLogo() {
   return (
