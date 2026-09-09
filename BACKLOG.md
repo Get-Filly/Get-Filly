@@ -61,17 +61,31 @@ agnostisch. Het is bijstellen, niet herbouwen.
   `mail|social|whatsapp` heeft — GBP loopt daar nu om heen via het
   platform-pad (`type='social'` + `platforms=['google_business']`). Of de
   constraint verruimen, of dat schema helemaal naar het platform-pad trekken.
-- [~] **3. Succes-score per kanaal i.p.v. mail-only** (P0 voor de leerloop).
-  **Migratie 0071 is geschreven én gedraaid** (2026-09-09): vier kolommen
-  (`spend_cents`, `link_clicks`, `paid`, `score_basis`),
-  `classify_campaign_performance()` herschreven naar drie paden (rate per
-  kanaal-familie / conversion_only op de eigen mediaan / no_data), plus de
-  views `campaign_channel_map` en `campaign_performance_report`. **Nog te
-  doen:** de API-laag (endpoint dat de view leest) en de echte rapportage-
-  pagina. Visueel voorstel staat in `get-filly-proto/rapportages-v2.html`
-  (mockdata, filters op periode/soort/kanaal werken echt).
-  Let op: de functie pakt alleen rijen met `classification is null`, dus
-  bestaande `no_data`-rijen worden niet herbeoordeeld zonder reset.
+- [x] **3. Succes-score per kanaal i.p.v. mail-only** (P0 voor de leerloop) —
+  AF 2026-09-09, migraties **0071 + 0072 gedraaid**.
+  - 0071: vier kolommen (`spend_cents`, `link_clicks`, `paid`, `score_basis`),
+    `classify_campaign_performance()` naar drie paden (rate per kanaal-familie /
+    conversion_only op de eigen mediaan / no_data), views
+    `campaign_channel_map` + `campaign_performance_report`.
+  - 0072: **bugfix op 0071.** De FOR-loop joinde campaigns met een INNER JOIN
+    plus `deleted_at is null`; rijen van soft-deleted campagnes vielen daardoor
+    buiten de loop en hielden `classification = null`, waardoor ze eeuwig in de
+    wachtrij bleven (32 rijen wachtend, 0 verwerkt). Nu LEFT JOIN + expliciet
+    `no_data` voor die rijen.
+  - API: `CampaignReportService` + `GET /campaigns/report?days=&kind=&channels=`
+    levert één payload voor de hele pagina. Route staat vóór `@Get(':id')`.
+  - Pagina: `/dashboard/rapportages` herbouwd (was de hub met mail als kopstuk
+    en "Binnenkort"-tegels). Filters op periode/soort/kanaal, NL + EN.
+    `/rapportages/bezetting` blijft ongewijzigd.
+  - Verificatie tegen productie: de select + filters van de service geven 200
+    met 29 rijen over 90 dagen (google_business 3, facebook 13, instagram 13);
+    `paid=eq.true` geeft 0, want er is nog geen advertentiebudget.
+  - **Let op:** de functie pakt alleen rijen met `classification is null`. Na
+    0072 moet `select * from public.classify_campaign_performance();` één keer
+    lopen (of de nachtelijke pg_cron van 03:17 UTC afwachten) voordat er scores
+    in de UI staan. Bestaande `no_data`-rijen worden niet herbeoordeeld zonder
+    reset-update.
+  - Prototype met mockdata blijft staan in `get-filly-proto/rapportages-v2.html`.
   De nachtelijke classificatie is 100% mail: geen `mail_delivered` →
   `classification='no_data'`, `success_score=null`. Zowel in SQL
   (`0047_campaign_performance_classification.sql:76`) als in TS
