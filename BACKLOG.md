@@ -16,6 +16,102 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-09-09 — Backend naar sociale media: analyse + stappenplan (P0/P1)
+
+Grondige backend-analyse na de site-omzetting. Het kanaal-model zit in drie
+lagen die niet gelijk zijn: `campaigns.type` (check-constraint
+`mail|social|whatsapp`), `campaign_social_content.platforms[]` (vrij tekstveld,
+géén constraint — hier zit het echte kanaal) en `FillyChannel` (8 waarden) in
+het brein. Google Business rijdt mee als `type='social'` +
+`platforms=['google_business']`. Een platform toevoegen vraagt dus GEEN
+migratie op die tabel.
+
+**Het social-publiceerpad zelf is in orde** en hoeft niet om:
+`publishSocialCampaign` routeert al naar Meta (FB+IG), TikTok (Direct Post via
+`/media/c/:id`) en GBP, is idempotent op `published_at`, de cron pakt
+ingeplande social-campagnes op, en terugtrekken werkt. Bundels, per-kanaal-
+concepten, media, varianten en de anti-repetitie-fingerprint zijn kanaal-
+agnostisch. Het is bijstellen, niet herbouwen.
+
+### Stappen (in deze volgorde)
+
+- [x] **1. WhatsApp onzichtbaar + de twee prompt-blokken repareren** (P0, geen
+  migratie) — AF 2026-09-09. Drie dingen die nu actief tegen de positionering in werken:
+  (a) de generatie-prompt stuurt Filly hardcoded naar WhatsApp voor precies de
+  kern-usecase — `* vaste-gast/VIP-segment + acute dag (<5 dagen) → whatsapp`
+  op `suggestions.service.ts:1227` en `:1789` — terwijl WhatsApp GEEN
+  verzendpad heeft (alleen een content-tabel; de verzend-modal zegt "alleen
+  mail"); (b) diezelfde twee prompts geven
+  `buildAllChannelsBlock(['mail','instagram_feed','whatsapp','tiktok'])`: géén
+  Facebook en géén GBP, terwijl de kanaalkeuze die wél aanbiedt, dus schrijft
+  Filly FB-copy zonder FB-regels; (c) WhatsApp staat in
+  `ALLOWED_ACTION_CHANNELS`, in de chat-system-prompt en in de kanaalkeuze.
+  WhatsApp NIET slopen (legitiem toekomstig retentie-kanaal, zie memory
+  "ongebruikte code kan toekomstig zijn") — alleen niet meer aanbieden of
+  genereren. Parsen/renderen van bestaande opgeslagen kaarten blijft werken.
+- [ ] **2. Kanaal-lijsten samentrekken naar één bron** (P1). Nu op 7 plekken
+  los: `FillyChannel` (filly-brain.config:52), `ALLOWED_ACTION_CHANNELS`
+  (chat.service:1533), de toegestane waarden in de chat-system-prompt
+  (chat.service:1459), `ReachChannel` (channel-reach.service:29), `REACH_LABEL`
+  (suggestions.service:1450), `CHANNEL_LABEL` + platform→type-mapping
+  (campaigns.service:1163) en `ChannelChoice` (filly-chat-choice-card.tsx:38).
+  Neem hierin mee: het legacy single-type tool-schema
+  (`campaign_type: enum ['social','mail']`, suggestions.service:285) kan
+  `google_business` niet aanbieden zolang `campaigns.type` de check-constraint
+  `mail|social|whatsapp` heeft — GBP loopt daar nu om heen via het
+  platform-pad (`type='social'` + `platforms=['google_business']`). Of de
+  constraint verruimen, of dat schema helemaal naar het platform-pad trekken.
+- [ ] **3. Succes-score per kanaal i.p.v. mail-only** (P0 voor de leerloop).
+  De nachtelijke classificatie is 100% mail: geen `mail_delivered` →
+  `classification='no_data'`, `success_score=null`. Zowel in SQL
+  (`0047_campaign_performance_classification.sql:76`) als in TS
+  (`campaign-performance.service.ts:250`); de score is open-rate + click-rate +
+  reserverings-rate. Zonder mail krijgt élke campagne `no_data` en leert Filly
+  niets meer — en "boekingen per uiting" op de site blijft leeg. Minimale
+  variant zonder nieuwe scopes: score op `reservations_attributed` per uiting.
+  Volledige variant vraagt Insights fase 2. `social_reach`,
+  `social_engagement`, `social_video_views` en `social_watch_time_seconds`
+  staan al in `campaign_performance`.
+- [ ] **4. Kanaalkeuze + voorselectie social-first** (P1). Nu vinkt de geleide
+  flow bij "nergens bereik" **mail + Instagram** voor
+  (`suggestions.service.ts:1466`). Moet worden: de gekoppelde kanalen, en
+  zonder koppeling Instagram + Facebook met een nudge "koppel eerst je
+  accounts" i.p.v. stil terugvallen op mail. `ChannelReach` meet voor social
+  alleen koppelstatus, geen volgers — volger-aantallen vragen Insights fase 2.
+- [ ] **5. Organisch vs. betaald in de flow** (P1). Extra stap met per kanaal
+  een toggle + budgetveld dat naar `campaigns.budget_cents` schrijft (die kolom
+  bestaat al met comment "v2: voor betaalde ads" en wordt nu 0× gebruikt).
+  Vóór `ads_management` als "voorbereid, jij zet 'm live in Ads Manager"; dan
+  is de flow al af zodra de scope er is. Voor "kosten per boeking" is nodig:
+  budget + spend + reach per uiting (attributie bestaat al).
+- [ ] **6. YouTube als platform** (P2). Ontbreekt volledig in de backend: geen
+  provider-module (naast `meta/` en `tiktok/`), geen OAuth, geen publish-tak in
+  `publishSocialCampaign`, geen `CHANNEL_RULES`-entry (dus geen lengte-band in
+  de copy-guard), en `createConceptForPlatform` gooit `'Ongeldig kanaal.'`.
+  Eén echte migratie nodig: `campaign_style_fingerprints.channel` heeft een
+  check-constraint zonder youtube (`0048:30`), dus anti-repetitie faalt
+  fail-soft voor YouTube.
+- [ ] **7. Dode code opruimen** (P3). Nul verwijzingen buiten hun eigen
+  definitie, geen feature eraan: tabel `campaign_templates`, en in
+  `filly-brain.config.ts` de constanten `CHANNEL_MIX_PER_THEME` (schrijft nota
+  bene `whatsapp` voor bij `rustige_dag_actie`), `FUNNEL_STAGE_TO_CHANNELS`,
+  `RETENTION_ACQUISITION_BALANCE`, `PERSUASION_EXAMPLES`, `DEFAULT_RATE_LIMITS`
+  plus de functies `classifyLeadTime`, `planChannelPlacement` en
+  `suggestChannelMix`. **Laten staan** (scaffolding of superseded, niet dood):
+  `campaigns.budget_cents` (nodig in stap 5), `ab_variant`, `unsubscribe_token`,
+  `campaign_recipients` (superseded door `campaign_sends`),
+  `campaign_benchmarks` (leeg, `MailStats.benchmark` is hardcoded), `segments` /
+  `target_segment_id` (nooit gevuld, segmentatie staat wel op de site).
+- [ ] **8. Marketing-hub-statussen omdraaien** (P2). Mail staat op `"live"`,
+  Instagram/Facebook/TikTok op `"coming-soon"` en WhatsApp op `"future"`
+  (`dashboard/marketing/page.tsx:70`) — omgekeerd t.o.v. de site, terwijl social
+  publiceren écht werkt.
+
+Let op: `MailService` blijft nodig ook als campagne-mail verdwijnt — contact-
+formulier, feedback-tool, SEO-rapport en team-invites lopen erlangs. Alleen
+`sendCampaign`/`sendCampaignByMode`, de recipients-preview, unsubscribe, de
+Resend-webhook-stats en het mail-domein zijn campagne-specifiek.
+
 ## 🗓️ 2026-09-09 — Site praat sociale media, product nog niet (P2, open)
 
 De publieke site is live omgezet van "campagnes via e-mail en WhatsApp" naar

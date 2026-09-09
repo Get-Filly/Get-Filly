@@ -53,24 +53,32 @@ type Props = {
 // Translation-keys per optie (label/hint worden in de component via
 // useTranslations opgehaald). De icon's blijven hier, want dat is geen
 // vertaalbare tekst.
+// Per 2026-09-09: sociale media eerst en WhatsApp eruit. Voor WhatsApp is
+// geen verzendpad (alleen een content-tabel), dus aanvinken leverde een
+// campagne op die nooit de deur uit kon. De ChannelChoice-union houdt
+// 'whatsapp' wél, zodat eerder opgeslagen kaarten blijven typechecken.
 const OPTIONS: Array<{
   key: ChannelChoice;
   icon: string;
   labelKey: string;
   hintKey: string;
 }> = [
-  { key: "mail", icon: "✉️", labelKey: "options.mail.label", hintKey: "options.mail.hint" },
   { key: "instagram", icon: "📷", labelKey: "options.instagram.label", hintKey: "options.instagram.hint" },
   { key: "facebook", icon: "📘", labelKey: "options.facebook.label", hintKey: "options.facebook.hint" },
-  { key: "whatsapp", icon: "💬", labelKey: "options.whatsapp.label", hintKey: "options.whatsapp.hint" },
-  // Google Business: post op je Google Business Profile (zichtbaar in
-  // Maps + zoekresultaten). Voor horeca een ondergewaardeerd kanaal
-  // qua bereik. Bundle-handling nog niet beschikbaar, dus splitten we
-  // 'm af bij multi-select (zie comment hierboven).
-  { key: "google_business", icon: "📍", labelKey: "options.googleBusiness.label", hintKey: "options.googleBusiness.hint" },
   // TikTok: korte video-post. Sinds 2026-06-22 volwaardig kanaal.
   { key: "tiktok", icon: "🎵", labelKey: "options.tiktok.label", hintKey: "options.tiktok.hint" },
+  // Google Business: post op je Google Business Profile (zichtbaar in
+  // Maps + zoekresultaten). Een ondergewaardeerd kanaal qua bereik.
+  // Bundle-handling nog niet beschikbaar, dus splitten we 'm af bij
+  // multi-select (zie comment hierboven).
+  { key: "google_business", icon: "📍", labelKey: "options.googleBusiness.label", hintKey: "options.googleBusiness.hint" },
+  { key: "mail", icon: "✉️", labelKey: "options.mail.label", hintKey: "options.mail.hint" },
 ];
+
+// De keys die daadwerkelijk aan te vinken zijn, afgeleid van OPTIONS zodat
+// selectie-state, "selecteer alles" en de submit niet uit de pas kunnen
+// lopen met wat er in beeld staat.
+const OFFERED: ChannelChoice[] = OPTIONS.map((o) => o.key);
 
 export function FillyChatChoiceCard({
   card,
@@ -79,16 +87,11 @@ export function FillyChatChoiceCard({
 }: Props) {
   const t = useTranslations("dash__components_filly_chat_choice_card");
 
-  // Multi-select state, alle 4 starten uitgevinkt zodat eigenaar
-  // bewust een keuze maakt (geen accidentele submit-bij-default).
-  const [selected, setSelected] = useState<Record<ChannelChoice, boolean>>({
-    mail: false,
-    instagram: false,
-    facebook: false,
-    whatsapp: false,
-    google_business: false,
-    tiktok: false,
-  });
+  // Multi-select state, alles start uitgevinkt zodat eigenaar bewust een
+  // keuze maakt (geen accidentele submit-bij-default).
+  const [selected, setSelected] = useState<Partial<Record<ChannelChoice, boolean>>>(
+    {},
+  );
 
   const disabled = state !== "pending";
 
@@ -97,14 +100,7 @@ export function FillyChatChoiceCard({
     setSelected((s) => ({ ...s, [key]: !s[key] }));
   };
 
-  const allKeys: ChannelChoice[] = [
-    "mail",
-    "instagram",
-    "facebook",
-    "whatsapp",
-    "google_business",
-    "tiktok",
-  ];
+  const allKeys: ChannelChoice[] = OFFERED;
   const chosenList: ChannelChoice[] = allKeys.filter((c) => selected[c]);
   const chosenCount = chosenList.length;
   const allSelected = chosenCount === allKeys.length;
@@ -115,14 +111,11 @@ export function FillyChatChoiceCard({
   const toggleAll = () => {
     if (disabled) return;
     const newValue = !allSelected;
-    setSelected({
-      mail: newValue,
-      instagram: newValue,
-      facebook: newValue,
-      whatsapp: newValue,
-      google_business: newValue,
-      tiktok: newValue,
-    });
+    setSelected(
+      Object.fromEntries(OFFERED.map((k) => [k, newValue])) as Partial<
+        Record<ChannelChoice, boolean>
+      >,
+    );
   };
 
   // Knop-label hangt af van de combinatie, geeft eigenaar voor klikken
@@ -182,7 +175,7 @@ export function FillyChatChoiceCard({
         }}
       >
         {OPTIONS.map((opt) => {
-          const isSelected = selected[opt.key];
+          const isSelected = !!selected[opt.key];
           return (
             <button
               key={opt.key}

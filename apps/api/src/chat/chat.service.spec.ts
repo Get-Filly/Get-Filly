@@ -215,6 +215,17 @@ describe('sanitizeActionInput', () => {
     expect(sanitizeActionInput({ channels: 'mail' }).channels).toBeUndefined();
   });
 
+  // Per 2026-09-09: WhatsApp heeft geen verzendpad, dus mag niet meer als
+  // gevraagd kanaal binnenkomen — anders zet de flow een campagne klaar
+  // die nooit de deur uit kan.
+  it('whatsapp wordt geweerd, de overige kanalen blijven', () => {
+    expect(
+      sanitizeActionInput({
+        channels: ['whatsapp', 'instagram', 'facebook', 'tiktok', 'google_business', 'mail'],
+      }).channels,
+    ).toEqual(['instagram', 'facebook', 'tiktok', 'google_business', 'mail']);
+  });
+
   it('expliciet null → wis-delta (voor "+ Nog een dag")', () => {
     expect(
       sanitizeActionInput({
