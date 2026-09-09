@@ -16,6 +16,36 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-09-09 — Site praat sociale media, product nog niet (P2, open)
+
+De publieke site is live omgezet van "campagnes via e-mail en WhatsApp" naar
+**uitingen op sociale media** (organisch én betaald), met Instagram, Facebook,
+TikTok en YouTube als kanalen. Commit `04f1091` op main. Daarmee belooft de
+site nu drie dingen die de app nog niet kan, plus één losse asset:
+
+- [ ] **Dashboard meetrekken naar sociale media** (P2). De app-kant praat nog
+  over mail en WhatsApp en loopt dus uit de pas met de site. Raakt in elk geval:
+  `dash_marketing_mail_page`, de campagne-voorstellen in de Filly-chat
+  (`dash__components_filly_chat_proposal_card`: `typeMail`/`typeWhatsapp`),
+  de kanaal-labels op de koppelingen-pagina en de "alleen mail-campagnes kunnen
+  via deze flow"-melding in de verzend-modal.
+- [ ] **YouTube-koppeling aanvragen en bouwen** (P2). Er is nu alleen een
+  Meta- (FB/IG) en TikTok-integratie. YouTube vraagt een eigen Google-OAuth-
+  koppeling (YouTube Data API, upload-scope) plus API-review. Het merk-logo
+  staat al in `brand-logos.tsx` en YouTube staat al op de site.
+- [ ] **Betaalde advertenties: `ads_management` aanvragen** (P2). De Meta- en
+  TikTok-koppelingen publiceren alleen organisch; er is geen advertentie-
+  account, budget of targeting in de code. De site noemt betaald bereik wel
+  ("Betaald bereik op de dagen die gevuld moeten worden", Ultimate-pakket,
+  FAQ over advertentiebudget). Vergt nieuwe app-review bij beide platforms.
+- [ ] **Eigen beeld voor de YouTube-kaart** (P3). `public/visuals/youtube.jpg`
+  is nu een kopie van `facebook.jpg`, dus in de social-waaier op de home staat
+  dezelfde foto twee keer. Geen webfoto's gebruiken (licentie), Floris levert aan.
+
+Let bij werk aan de home op: **de drie feature-rijen moeten exact even hoog
+blijven** (nu alle drie 600px, de `min-height` van `.feature-row`); houd elke
+pijler-visual onder ~488px. Zie memory `getfilly-site-sociale-media-uitingen`.
+
 ## 🗓️ 2026-08-07 — Site-herpositionering: asset-ronde (P3, open)
 
 De publieke site is tekstueel herpositioneerd van "AI-marketing voor horeca"
@@ -25,8 +55,10 @@ met vaste beelden zijn nog horeca** en moeten mee. Vergt nieuw beeldmateriaal
 (andere-branche-foto's + evt. andere logo's).
 
 - [ ] Home feature-visual-kaarten (`components/landing-visuals.tsx`):
-  zoekmachine/AI/review (ingebakken ChatGPT/Tripadvisor-logo's) + de 3
-  social-foto's (`public/visuals/{facebook,tiktok,instagram}.jpg`) + mail/WhatsApp.
+  zoekmachine/AI/review (ingebakken ChatGPT/Tripadvisor-logo's) + de 4
+  social-foto's (`public/visuals/{facebook,tiktok,instagram,youtube}.jpg`) + de
+  thumbnail op de Bereikbaarheid-kaart. De mail/WhatsApp-visual bestaat niet
+  meer (2026-09-09).
 - [ ] Product-visual-mock (nog horeca: bezetting / 3-gangen / terras).
 - [ ] Over-ons-foto's (leeg → vol restaurant) + hun alt-teksten (`about.alt1/2/3`).
 
