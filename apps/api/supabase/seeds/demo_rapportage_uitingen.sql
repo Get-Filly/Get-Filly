@@ -11,9 +11,14 @@
 --   Wil je een ander demo-bedrijf vullen, pas alleen v_business aan.
 --
 -- Wat je krijgt over de laatste 30 dagen (= de standaard-selectie):
---   14 uitingen · 41.200 bereik · 1.093 doorkliks · 63 boekingen
---   €4.410 omzet · €285 advertentiebudget · €11,88 per boeking
---   5 nog niet beoordeeld (meet-window van 14 dagen), 9 met een score
+--   14 uitingen · 41.200 bereik · 1.093 doorkliks · 2.940 interacties
+--   €285 advertentiebudget · 5 nog niet beoordeeld (meet-window van 14
+--   dagen), 9 met een score
+--
+-- De boekingen en omzet die deze seed óók vult worden sinds migratie 0073
+-- niet meer op de pagina gepresenteerd (reserveringen zijn niet meetbaar
+-- zonder koppeling met een reserveringssysteem), maar ze blijven in de
+-- kolommen staan zodat we ze kunnen aanzetten zodra dat verandert.
 -- En 4 oudere uitingen, zodat de 90-dagen-selectie ook wat laat zien én
 -- de vergelijking "vs vorige 30 dagen" een echt getal oplevert.
 --
@@ -150,13 +155,12 @@ end $$;
 -- Controle
 -- ------------------------------------------------------------
 -- Verwacht over 30 dagen: 14 uitingen, 41200 bereik, 1093 kliks,
--- 63 boekingen, 441000 cent omzet, 28500 cent budget.
+-- 2940 interacties, 28500 cent budget.
 select
   count(*)                       as uitingen,
   sum(coalesce(reach, 0))        as bereik,
   sum(coalesce(clicks, 0))       as doorkliks,
-  sum(bookings)                  as boekingen,
-  sum(revenue_cents)             as omzet_cent,
+  sum(coalesce(interactions, 0)) as interacties,
   sum(spend_cents)               as budget_cent,
   count(*) filter (where paid)   as betaald
 from public.campaign_performance_report

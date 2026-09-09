@@ -2554,26 +2554,27 @@
       "whatsapp": "WhatsApp"
     },
     "kpi": {
-      "bookings": "Boekingen via Filly",
+      "reachHero": "Bereik",
+      "reachSub": "{n} mensen bereikt met {u} uitingen",
       "vsPrevious": "vs vorige {n} dagen",
       "noHistory": "te weinig historie om te vergelijken",
-      "revenue": "Extra omzet",
-      "guests": "{n} gasten",
-      "reach": "Bereik",
-      "clicks": "{n} doorkliks",
+      "clicks": "Doorkliks",
+      "clickRate": "{pct}% van het bereik klikt door",
+      "interactions": "Interacties",
+      "interactionsSub": "likes, reacties en shares",
       "budget": "Advertentiebudget",
       "paidOf": "{paid} van {total} uitingen betaald",
-      "costPerBooking": "Kosten per boeking",
-      "overPaidBookings": "over {n} betaalde boekingen",
+      "costPerClick": "Kosten per doorklik",
+      "overPaidClicks": "over {n} betaalde doorkliks",
       "noPaid": "geen betaalde uitingen"
     },
     "perChannel": {
-      "title": "Boekingen per kanaal",
-      "subtitle": "Donkerder is meer boekingen. Gesorteerd, dus de bovenste is je sterkste kanaal.",
+      "title": "Bereik per kanaal",
+      "subtitle": "Donkerder is meer bereik. Gesorteerd, dus de bovenste is je grootste kanaal.",
       "subtitleFiltered": "Alle kanalen van deze periode; je selectie staat in kleur, de rest is context.",
       "empty": "Geen uitingen in deze periode.",
-      "bestConversion": "{channel} heeft de hoogste conversie: {bookings} boekingen uit {reach} bereik, dat is {pct}%.",
-      "tip": "{bookings} boekingen uit {n} uitingen · {reach} bereik · {clicks} doorkliks"
+      "bestCtr": "{channel} heeft de hoogste doorklik-ratio: {clicks} doorkliks op {reach} bereik, dat is {pct}%.",
+      "tip": "{reach} bereik uit {n} uitingen · {clicks} doorkliks · {interactions} interacties"
     },
     "budget": {
       "title": "Waar ging je budget heen",
@@ -2587,20 +2588,20 @@
     },
     "split": {
       "title": "Organisch en betaald naast elkaar",
-      "subtitle": "Boekingen per kanaal, uitgesplitst naar vrij bereik en advertentiebudget.",
+      "subtitle": "Bereik per kanaal, uitgesplitst naar vrij bereik en advertentiebudget.",
       "organic": "Organisch",
       "paid": "Betaald",
       "empty": "Geen uitingen in deze selectie.",
-      "noteBoth": "Betaald bereik levert {paid} van de {total} boekingen op met {budget} budget. Organisch doet de rest gratis, maar groeit langzamer.",
-      "notePaidOnly": "Alle {paid} boekingen in deze selectie komen uit betaald bereik, met {budget} budget.",
-      "noteOrganicOnly": "Alle {organic} boekingen in deze selectie komen uit vrij bereik, zonder budget."
+      "noteBoth": "Betaald bereik levert {paid} van de {total} bereikte mensen op, met {budget} budget. Organisch doet de rest gratis, maar groeit langzamer.",
+      "notePaidOnly": "Al het bereik in deze selectie is betaald, met {budget} budget.",
+      "noteOrganicOnly": "Al het bereik in deze selectie is organisch, zonder budget."
     },
     "trend": {
-      "title": "Boekingen over tijd",
-      "subtitleDaily": "Boekingen per dag over de laatste 7 dagen.",
-      "subtitleWeekly": "Boekingen per week over de laatste {n} dagen.",
-      "tipDay": "{date}: {bookings} boekingen · {n} uitingen",
-      "tipWeek": "Week van {date}: {bookings} boekingen · {n} uitingen"
+      "title": "Bereik over tijd",
+      "subtitleDaily": "Bereik per dag over de laatste 7 dagen.",
+      "subtitleWeekly": "Bereik per week over de laatste {n} dagen.",
+      "tipDay": "{date}: {reach} bereik · {clicks} doorkliks · {n} uitingen",
+      "tipWeek": "Week van {date}: {reach} bereik · {clicks} doorkliks · {n} uitingen"
     },
     "scores": {
       "sectionTitle": "Wat Filly ervan leert",
@@ -2623,12 +2624,13 @@
       "thKind": "Soort",
       "thReach": "Bereik",
       "thClicks": "Doorkliks",
-      "thBookings": "Boekingen",
-      "thRevenue": "Omzet",
+      "thCtr": "Doorklik-ratio",
+      "thInteractions": "Interacties",
       "thBudget": "Budget",
-      "thPerBooking": "Per boeking",
+      "thPerClick": "Per doorklik",
       "thVerdict": "Oordeel"
-    }
+    },
+    "bookingsNote": "Reserveringen staan hier bewust niet bij. Meta, TikTok en Google rapporteren bereik, doorkliks en kosten, maar niet of iemand daarna echt een tafel boekt. Zodra we aan je reserveringssysteem gekoppeld zijn komt dat erbij."
   },
   "dash_reserveringen_page": {
     "title": "Reserveringen",

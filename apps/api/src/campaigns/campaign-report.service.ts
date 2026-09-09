@@ -73,19 +73,32 @@ export type CampaignReportTotals = {
   spendCents: number;
   /** Boekingen die aan een betaalde uiting hangen. */
   paidBookings: number;
+  /** Doorkliks op de betaalde uitingen; de deler van kosten-per-klik. */
+  paidClicks: number;
   /** spend / paidBookings; null als er geen budget of geen boeking is. */
   costPerBookingCents: number | null;
+  /**
+   * spend / clicks. Dit is de kosten-maat die we wél kunnen meten: het
+   * advertentieplatform rapporteert kliks en uitgegeven budget zelf.
+   * Kosten per boeking kan pas als we reserveringen kunnen uitlezen.
+   */
+  costPerClickCents: number | null;
 };
 
 export type CampaignReportChannel = CampaignReportTotals & {
   channel: ReportChannel | string;
   organicBookings: number;
   paidBookings: number;
+  /** Bereik gesplitst naar vrij en betaald, voor de gestapelde staaf. */
+  organicReach: number;
+  paidReach: number;
 };
 
 export type CampaignReportBucket = {
   /** Startdatum van de bucket (ISO, YYYY-MM-DD). */
   from: string;
+  reach: number;
+  clicks: number;
   bookings: number;
   uitingen: number;
 };
@@ -97,7 +110,7 @@ export type CampaignReport = {
   to: string;
   totals: CampaignReportTotals;
   /** Vorige, even lange periode. Null als daar te weinig in zit om te vergelijken. */
-  previous: { bookings: number; uitingen: number } | null;
+  previous: { reach: number; clicks: number; bookings: number; uitingen: number } | null;
   /**
    * Per kanaal, over de periode + soort MAAR ZONDER het kanaal-filter.
    * De per-kanaal-grafiek dimt niet-geselecteerde kanalen i.p.v. ze te
@@ -186,6 +199,8 @@ export class CampaignReportService {
       previous:
         vorigActief.length >= 2
           ? {
+              reach: vorigActief.reduce((s, r) => s + (r.reach ?? 0), 0),
+              clicks: vorigActief.reduce((s, r) => s + (r.clicks ?? 0), 0),
               bookings: vorigActief.reduce((s, r) => s + r.bookings, 0),
               uitingen: vorigActief.length,
             }
@@ -261,6 +276,7 @@ export class CampaignReportService {
     const paidRows = rows.filter((r) => r.paid);
     const spendCents = rows.reduce((s, r) => s + (r.spend_cents ?? 0), 0);
     const paidBookings = paidRows.reduce((s, r) => s + r.bookings, 0);
+    const paidClicks = paidRows.reduce((s, r) => s + (r.clicks ?? 0), 0);
     return {
       uitingen: rows.length,
       paidUitingen: paidRows.length,
@@ -272,10 +288,17 @@ export class CampaignReportService {
       revenueCents: rows.reduce((s, r) => s + r.revenue_cents, 0),
       spendCents,
       paidBookings,
+      paidClicks,
       // Alleen zinvol als er zowel budget als betaalde boekingen zijn.
       costPerBookingCents:
         spendCents > 0 && paidBookings > 0
           ? Math.round(spendCents / paidBookings)
+          : null,
+      // Alleen over de betaalde uitingen: organische kliks kosten niks,
+      // dus die horen niet in de deler van een kosten-per-klik.
+      costPerClickCents:
+        spendCents > 0 && paidClicks > 0
+          ? Math.round(spendCents / paidClicks)
           : null,
     };
   }
@@ -297,8 +320,15 @@ export class CampaignReportService {
         paidBookings: rs
           .filter((r) => r.paid)
           .reduce((s, r) => s + r.bookings, 0),
+        organicReach: rs
+          .filter((r) => !r.paid)
+          .reduce((s, r) => s + (r.reach ?? 0), 0),
+        paidReach: rs
+          .filter((r) => r.paid)
+          .reduce((s, r) => s + (r.reach ?? 0), 0),
       }))
-      .sort((a, b) => b.bookings - a.bookings);
+      // Sorteren op bereik: dat is de maat die we kunnen meten.
+      .sort((a, b) => b.reach - a.reach);
   }
 
   private buckets(
@@ -321,6 +351,8 @@ export class CampaignReportService {
       });
       buckets.push({
         from: ymd(van),
+        reach: rs.reduce((s, r) => s + (r.reach ?? 0), 0),
+        clicks: rs.reduce((s, r) => s + (r.clicks ?? 0), 0),
         bookings: rs.reduce((s, r) => s + r.bookings, 0),
         uitingen: rs.length,
       });

@@ -9,11 +9,21 @@
 // t.o.v. wat het product doet: social publiceren werkt, mail is uit het
 // verhaal.
 //
-// Nu: één pagina die per uiting rapporteert, organisch én betaald, met
-// boekingen en omzet als kern in plaats van open-rates. Alles komt uit
-// GET /campaigns/report, dat de view campaign_performance_report leest
-// (migratie 0071 + 0072). Eén call voor de hele pagina, dus elke kaart
-// ziet gegarandeerd dezelfde cijfers.
+// Nu: één pagina die per uiting rapporteert, organisch én betaald. Alles
+// komt uit GET /campaigns/report, dat de view campaign_performance_report
+// leest (migratie 0071 + 0072). Eén call voor de hele pagina, dus elke
+// kaart ziet gegarandeerd dezelfde cijfers.
+//
+// BOEKINGEN STAAN HIER BEWUST NIET IN (besluit 2026-09-09). Meta, TikTok
+// en Google rapporteren via hun API's bereik, doorkliks, interacties en
+// besteed budget — dat kunnen we dus meten. Of iemand daarna écht een
+// tafel boekt weten zij niet, en wij ook niet zolang we niet aan een
+// reserveringssysteem gekoppeld zijn. Een boekingen-kolom zou dan een
+// door de eigenaar zelf ingevuld getal presenteren alsof het gemeten is.
+// De kolommen blijven wél in de database en in de API-payload staan
+// (`bookings`, `revenue_cents`, `cost_per_booking_cents`), zodat we ze
+// kunnen aanzetten zodra ze echt meetbaar zijn. Zie de noot onderaan de
+// pagina, die dit ook aan de eigenaar uitlegt.
 //
 // De bezettings-rapportage en de retentie-cohort blijven waar ze waren
 // (/dashboard/rapportages/bezetting): die zijn kanaal-onafhankelijk.
@@ -190,10 +200,10 @@ export default function RapportagesPage() {
         t("table.thKind"),
         t("table.thReach"),
         t("table.thClicks"),
-        t("table.thBookings"),
-        t("table.thRevenue"),
+        t("table.thCtr"),
+        t("table.thInteractions"),
         t("table.thBudget"),
-        t("table.thPerBooking"),
+        t("table.thPerClick"),
         t("table.thVerdict"),
       ],
       data.rows.map((r) => [
@@ -203,11 +213,13 @@ export default function RapportagesPage() {
         r.paid ? t("split.paid") : t("split.organic"),
         String(r.reach ?? ""),
         String(r.clicks ?? ""),
-        String(r.bookings),
-        (r.revenue_cents / 100).toFixed(2),
+        r.reach && r.clicks !== null
+          ? ((r.clicks / r.reach) * 100).toFixed(1)
+          : "",
+        String(r.interactions ?? ""),
         r.spend_cents ? (r.spend_cents / 100).toFixed(2) : "",
-        r.cost_per_booking_cents
-          ? (r.cost_per_booking_cents / 100).toFixed(2)
+        r.spend_cents && r.clicks
+          ? (r.spend_cents / r.clicks / 100).toFixed(2)
           : "",
         verdictLabel(r, t),
       ]),
@@ -358,11 +370,11 @@ export default function RapportagesPage() {
           </div>
 
           <div className="rap-grid1">
-            <Split data={data} t={t} eur={eur} kanaalNaam={kanaalNaam} />
+            <Split data={data} t={t} eur={eur} num={num} kanaalNaam={kanaalNaam} />
           </div>
 
           <div className="rap-grid1">
-            <Trend data={data} t={t} localeTag={localeTag} />
+            <Trend data={data} t={t} num={num} localeTag={localeTag} />
           </div>
 
           <h2 className="rap-sec">{t("scores.sectionTitle")}</h2>
@@ -427,17 +439,17 @@ function Kpis({
   // Minder dan 2 uitingen in de vorige periode? Dan geeft de backend
   // previous=null, want een percentage zou misleidend precies zijn.
   const pct =
-    previous && previous.bookings > 0
-      ? Math.round(
-          ((totals.bookings - previous.bookings) / previous.bookings) * 100,
-        )
+    previous && previous.reach > 0
+      ? Math.round(((totals.reach - previous.reach) / previous.reach) * 100)
       : null;
+  const ctr =
+    totals.reach > 0 ? ((totals.clicks / totals.reach) * 100).toFixed(1) : null;
 
   return (
     <div className="rap-kpis">
       <div className="rap-kpi hero">
-        <div className="rap-kpi-lbl">{t("kpi.bookings")}</div>
-        <div className="rap-kpi-val">{totals.bookings}</div>
+        <div className="rap-kpi-lbl">{t("kpi.reachHero")}</div>
+        <div className="rap-kpi-val">{num(totals.reach)}</div>
         <div className="rap-kpi-sub">
           {pct === null ? (
             <span style={{ color: "var(--text-muted)" }}>
@@ -454,14 +466,16 @@ function Kpis({
         </div>
       </div>
       <div className="rap-kpi">
-        <div className="rap-kpi-lbl">{t("kpi.revenue")}</div>
-        <div className="rap-kpi-val">{eur(totals.revenueCents)}</div>
-        <div className="rap-kpi-sub">{t("kpi.guests", { n: totals.guests })}</div>
+        <div className="rap-kpi-lbl">{t("kpi.clicks")}</div>
+        <div className="rap-kpi-val">{num(totals.clicks)}</div>
+        <div className="rap-kpi-sub">
+          {ctr ? t("kpi.clickRate", { pct: ctr }) : "—"}
+        </div>
       </div>
       <div className="rap-kpi">
-        <div className="rap-kpi-lbl">{t("kpi.reach")}</div>
-        <div className="rap-kpi-val">{num(totals.reach)}</div>
-        <div className="rap-kpi-sub">{t("kpi.clicks", { n: totals.clicks })}</div>
+        <div className="rap-kpi-lbl">{t("kpi.interactions")}</div>
+        <div className="rap-kpi-val">{num(totals.interactions)}</div>
+        <div className="rap-kpi-sub">{t("kpi.interactionsSub")}</div>
       </div>
       <div className="rap-kpi">
         <div className="rap-kpi-lbl">{t("kpi.budget")}</div>
@@ -476,13 +490,13 @@ function Kpis({
         </div>
       </div>
       <div className="rap-kpi">
-        <div className="rap-kpi-lbl">{t("kpi.costPerBooking")}</div>
+        <div className="rap-kpi-lbl">{t("kpi.costPerClick")}</div>
         <div className="rap-kpi-val">
-          {totals.costPerBookingCents ? eur2(totals.costPerBookingCents) : "—"}
+          {totals.costPerClickCents ? eur2(totals.costPerClickCents) : "—"}
         </div>
         <div className="rap-kpi-sub">
-          {totals.costPerBookingCents
-            ? t("kpi.overPaidBookings", { n: totals.paidBookings })
+          {totals.costPerClickCents
+            ? t("kpi.overPaidClicks", { n: totals.paidClicks })
             : t("kpi.noPaid")}
         </div>
       </div>
@@ -507,11 +521,11 @@ function PerKanaal({
   kanaalNaam: (k: string) => string;
 }) {
   const rijen = data.byChannel;
-  const max = Math.max(...rijen.map((r) => r.bookings), 1);
-  // Het kanaal met de hoogste conversie, gerekend en niet vast.
+  const max = Math.max(...rijen.map((r) => r.reach), 1);
+  // Het kanaal met de hoogste doorklik-ratio, gerekend en niet vast.
   const beste = [...rijen]
     .filter((r) => r.reach > 0)
-    .sort((a, b) => b.bookings / b.reach - a.bookings / a.reach)[0];
+    .sort((a, b) => b.clicks / b.reach - a.clicks / a.reach)[0];
 
   return (
     <Card>
@@ -535,10 +549,10 @@ function PerKanaal({
                   key={r.channel}
                   className={`rap-bar-row${aan ? "" : " off"}`}
                   title={t("perChannel.tip", {
-                    bookings: r.bookings,
-                    n: r.uitingen,
                     reach: num(r.reach),
+                    n: r.uitingen,
                     clicks: r.clicks,
+                    interactions: r.interactions,
                   })}
                 >
                   <span className="rap-bar-lbl">
@@ -554,25 +568,25 @@ function PerKanaal({
                     <span
                       className="rap-bar-fill"
                       style={{
-                        width: `${((r.bookings / max) * 100).toFixed(1)}%`,
+                        width: `${((r.reach / max) * 100).toFixed(1)}%`,
                         background: aan
                           ? (RAMP[i] ?? "var(--g300)")
                           : "var(--rap-dim)",
                       }}
                     />
                   </span>
-                  <span className="rap-bar-val">{r.bookings}</span>
+                  <span className="rap-bar-val">{num(r.reach)}</span>
                 </div>
               );
             })}
           </div>
-          {beste && (
+          {beste && beste.clicks > 0 && (
             <div className="rap-note">
-              {t("perChannel.bestConversion", {
+              {t("perChannel.bestCtr", {
                 channel: kanaalNaam(beste.channel),
-                bookings: beste.bookings,
+                clicks: beste.clicks,
                 reach: num(beste.reach),
-                pct: ((beste.bookings / beste.reach) * 100).toFixed(2),
+                pct: ((beste.clicks / beste.reach) * 100).toFixed(1),
               })}
             </div>
           )}
@@ -783,11 +797,13 @@ function Split({
   data,
   t,
   eur,
+  num,
   kanaalNaam,
 }: {
   data: CampaignReport;
   t: T;
   eur: (c: number) => string;
+  num: (n: number) => string;
   kanaalNaam: (k: string) => string;
 }) {
   // Alleen de kanalen in de actieve selectie: dit is een deel-van-geheel
@@ -795,10 +811,10 @@ function Split({
   const gekozen = data.filters.channels;
   const rijen = data.byChannel
     .filter((c) => (gekozen.length ? gekozen.includes(c.channel) : true))
-    .filter((c) => c.bookings > 0);
-  const max = Math.max(...rijen.map((r) => r.bookings), 1);
-  const tOrg = rijen.reduce((s, r) => s + r.organicBookings, 0);
-  const tPaid = rijen.reduce((s, r) => s + r.paidBookings, 0);
+    .filter((c) => c.reach > 0);
+  const max = Math.max(...rijen.map((r) => r.reach), 1);
+  const tOrg = rijen.reduce((s, r) => s + r.organicReach, 0);
+  const tPaid = rijen.reduce((s, r) => s + r.paidReach, 0);
   const tBud = rijen.reduce((s, r) => s + r.spendCents, 0);
 
   return (
@@ -823,13 +839,15 @@ function Split({
         <>
           <div className="rap-bars">
             {rijen.map((r) => {
-              const breedte = ((r.bookings / max) * 100).toFixed(1);
-              const o = ((r.organicBookings / r.bookings) * 100).toFixed(1);
-              const p = ((r.paidBookings / r.bookings) * 100).toFixed(1);
+              const breedte = ((r.reach / max) * 100).toFixed(1);
+              const o = ((r.organicReach / r.reach) * 100).toFixed(1);
+              const p = ((r.paidReach / r.reach) * 100).toFixed(1);
               // Label alleen in het segment als het ruim past. De waarde
-              // staat altijd in het rij-totaal en in de tabel.
-              const toonO = (r.organicBookings / max) * 100 >= 12;
-              const toonP = (r.paidBookings / max) * 100 >= 12;
+              // staat altijd in het rij-totaal en in de tabel. Bereik-
+              // getallen zijn lang, dus de drempel ligt hoger dan bij
+              // boekingen: pas vanaf 22% van de breedste rij.
+              const toonO = (r.organicReach / max) * 100 >= 22;
+              const toonP = (r.paidReach / max) * 100 >= 22;
               return (
                 <div key={r.channel} className="rap-bar-row">
                   <span className="rap-bar-lbl">
@@ -846,33 +864,33 @@ function Split({
                     style={{ background: "transparent" }}
                   >
                     <span className="rap-stack" style={{ width: `${breedte}%` }}>
-                      {r.organicBookings > 0 && (
+                      {r.organicReach > 0 && (
                         <i
                           style={{ width: `${o}%`, background: "var(--organic)" }}
-                          title={`${kanaalNaam(r.channel)} · ${t("split.organic")}: ${r.organicBookings}`}
+                          title={`${kanaalNaam(r.channel)} · ${t("split.organic")}: ${num(r.organicReach)}`}
                         >
                           {toonO && (
                             <span className="rap-seg-lbl">
-                              {r.organicBookings}
+                              {num(r.organicReach)}
                             </span>
                           )}
                         </i>
                       )}
-                      {r.paidBookings > 0 && (
+                      {r.paidReach > 0 && (
                         <i
                           style={{ width: `${p}%`, background: "var(--paid)" }}
-                          title={`${kanaalNaam(r.channel)} · ${t("split.paid")}: ${r.paidBookings}`}
+                          title={`${kanaalNaam(r.channel)} · ${t("split.paid")}: ${num(r.paidReach)}`}
                         >
                           {toonP && (
                             <span className="rap-seg-lbl">
-                              {r.paidBookings}
+                              {num(r.paidReach)}
                             </span>
                           )}
                         </i>
                       )}
                     </span>
                   </span>
-                  <span className="rap-bar-val">{r.bookings}</span>
+                  <span className="rap-bar-val">{num(r.reach)}</span>
                 </div>
               );
             })}
@@ -880,13 +898,13 @@ function Split({
           <div className="rap-note">
             {tPaid > 0 && tOrg > 0
               ? t("split.noteBoth", {
-                  paid: tPaid,
-                  total: tOrg + tPaid,
+                  paid: num(tPaid),
+                  total: num(tOrg + tPaid),
                   budget: eur(tBud),
                 })
               : tPaid > 0
-                ? t("split.notePaidOnly", { paid: tPaid, budget: eur(tBud) })
-                : t("split.noteOrganicOnly", { organic: tOrg })}
+                ? t("split.notePaidOnly", { budget: eur(tBud) })
+                : t("split.noteOrganicOnly")}
           </div>
         </>
       )}
@@ -900,10 +918,12 @@ function Split({
 function Trend({
   data,
   t,
+  num,
   localeTag,
 }: {
   data: CampaignReport;
   t: T;
+  num: (n: number) => string;
   localeTag: string;
 }) {
   const buckets = data.buckets;
@@ -918,10 +938,11 @@ function Trend({
   const iw = W - PL - PR;
   const ih = H - PT - PB;
   // Bovengrens deelbaar door 4, zodat de ticks hele getallen zijn.
-  const max = Math.max(
-    4,
-    Math.ceil(Math.max(...buckets.map((b) => b.bookings), 0) / 4) * 4,
-  );
+  // Bovengrens afronden op iets nets: bereik loopt in duizenden, dus
+  // ronden we op een veelvoud van 4 "stappen" van 500 af.
+  const ruw = Math.max(...buckets.map((b) => b.reach), 0);
+  const stap = Math.max(500, Math.ceil(ruw / 4 / 500) * 500);
+  const max = Math.max(stap * 4, 2000);
   const x = (i: number) => (n === 1 ? PL + iw / 2 : PL + (iw / (n - 1)) * i);
   const y = (v: number) => PT + ih - (v / max) * ih;
   const label = (iso: string) =>
@@ -930,7 +951,7 @@ function Trend({
       month: "short",
     });
   const piek = buckets.reduce(
-    (best, b, i) => (b.bookings > buckets[best].bookings ? i : best),
+    (best, b, i) => (b.reach > buckets[best].reach ? i : best),
     0,
   );
   const markers = Array.from(new Set([piek, n - 1]));
@@ -973,7 +994,8 @@ function Trend({
                 fill="var(--text-muted)"
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {v}
+                {/* Duizenden afkorten, anders duwt de as-tekst het vlak weg. */}
+                {v >= 1000 ? `${v / 1000}k` : v}
               </text>
             </g>
           );
@@ -981,13 +1003,13 @@ function Trend({
         {n > 1 && (
           <>
             <polygon
-              points={`${buckets.map((b, i) => `${x(i)},${y(b.bookings)}`).join(" ")} ${x(n - 1)},${y(0)} ${x(0)},${y(0)}`}
+              points={`${buckets.map((b, i) => `${x(i)},${y(b.reach)}`).join(" ")} ${x(n - 1)},${y(0)} ${x(0)},${y(0)}`}
               fill="var(--organic)"
               opacity={0.13}
             />
             <polyline
               points={buckets
-                .map((b, i) => `${x(i)},${y(b.bookings)}`)
+                .map((b, i) => `${x(i)},${y(b.reach)}`)
                 .join(" ")}
               fill="none"
               stroke="var(--organic)"
@@ -1000,7 +1022,7 @@ function Trend({
               <g key={i}>
                 <circle
                   cx={x(i)}
-                  cy={y(buckets[i].bookings)}
+                  cy={y(buckets[i].reach)}
                   r={4.5}
                   fill="var(--organic)"
                   stroke="var(--white)"
@@ -1008,13 +1030,13 @@ function Trend({
                 />
                 <text
                   x={x(i)}
-                  y={y(buckets[i].bookings) - 12}
+                  y={y(buckets[i].reach) - 12}
                   textAnchor="middle"
                   fontSize="12"
                   fontWeight="700"
                   fill="var(--text)"
                 >
-                  {buckets[i].bookings}
+                  {num(buckets[i].reach)}
                 </text>
               </g>
             ))}
@@ -1060,12 +1082,14 @@ function Trend({
                 {perDag
                   ? t("trend.tipDay", {
                       date: label(b.from),
-                      bookings: b.bookings,
+                      reach: num(b.reach),
+                      clicks: b.clicks,
                       n: b.uitingen,
                     })
                   : t("trend.tipWeek", {
                       date: label(b.from),
-                      bookings: b.bookings,
+                      reach: num(b.reach),
+                      clicks: b.clicks,
                       n: b.uitingen,
                     })}
               </title>
@@ -1167,10 +1191,10 @@ function Tabel({
                 <th>{t("table.thKind")}</th>
                 <th className="num">{t("table.thReach")}</th>
                 <th className="num">{t("table.thClicks")}</th>
-                <th className="num">{t("table.thBookings")}</th>
-                <th className="num">{t("table.thRevenue")}</th>
+                <th className="num">{t("table.thCtr")}</th>
+                <th className="num">{t("table.thInteractions")}</th>
                 <th className="num">{t("table.thBudget")}</th>
-                <th className="num">{t("table.thPerBooking")}</th>
+                <th className="num">{t("table.thPerClick")}</th>
                 <th>{t("table.thVerdict")}</th>
               </tr>
             </thead>
@@ -1201,18 +1225,24 @@ function Tabel({
                       {r.paid ? t("split.paid") : t("split.organic")}
                     </span>
                   </td>
-                  <td className="num">{r.reach !== null ? num(r.reach) : "—"}</td>
+                  <td className="num">
+                    {r.reach !== null ? <b>{num(r.reach)}</b> : "—"}
+                  </td>
                   <td className="num">{r.clicks !== null ? r.clicks : "—"}</td>
                   <td className="num">
-                    <b>{r.bookings}</b>
+                    {r.reach && r.clicks !== null
+                      ? `${((r.clicks / r.reach) * 100).toFixed(1)}%`
+                      : "—"}
                   </td>
-                  <td className="num">{eur(r.revenue_cents)}</td>
+                  <td className="num">
+                    {r.interactions !== null ? num(r.interactions) : "—"}
+                  </td>
                   <td className="num">
                     {r.spend_cents ? eur(r.spend_cents) : "—"}
                   </td>
                   <td className="num">
-                    {r.cost_per_booking_cents
-                      ? eur2(r.cost_per_booking_cents)
+                    {r.spend_cents && r.clicks
+                      ? eur2(Math.round(r.spend_cents / r.clicks))
                       : "—"}
                   </td>
                   <td>
@@ -1230,6 +1260,7 @@ function Tabel({
           </table>
         </div>
       )}
+      <div className="rap-note">{t("bookingsNote")}</div>
     </Card>
   );
 }

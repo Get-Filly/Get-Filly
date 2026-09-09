@@ -3762,13 +3762,17 @@ export type CampaignReportTotals = {
   revenueCents: number;
   spendCents: number;
   paidBookings: number;
+  paidClicks: number;
   costPerBookingCents: number | null;
+  costPerClickCents: number | null;
 };
 
 export type CampaignReportChannel = CampaignReportTotals & {
   channel: string;
   organicBookings: number;
   paidBookings: number;
+  organicReach: number;
+  paidReach: number;
 };
 
 export type CampaignReport = {
@@ -3776,9 +3780,20 @@ export type CampaignReport = {
   from: string;
   to: string;
   totals: CampaignReportTotals;
-  previous: { bookings: number; uitingen: number } | null;
+  previous: {
+    reach: number;
+    clicks: number;
+    bookings: number;
+    uitingen: number;
+  } | null;
   byChannel: CampaignReportChannel[];
-  buckets: Array<{ from: string; bookings: number; uitingen: number }>;
+  buckets: Array<{
+    from: string;
+    reach: number;
+    clicks: number;
+    bookings: number;
+    uitingen: number;
+  }>;
   bucketSizeDays: number;
   scores: {
     winner: number;
