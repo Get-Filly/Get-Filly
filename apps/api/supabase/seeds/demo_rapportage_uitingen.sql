@@ -43,7 +43,7 @@ with seed(
 ) as (
   values
   -- ---- Nog binnen het meet-window van 14 dagen: geen oordeel ----
-  ('Weekend-teaser met terrasfoto',       'instagram',       1,  true,  3600,  96, 210, 4, 4000, null,             null, null),
+  ('Weekend-teaser met terrasfoto',       'instagram',       1,  true,  3600,  96, 210, 4, 4000, null::text,       null::int, null::text),
   ('Donderdag-deal, drie gangen',         'instagram',       4,  true,  4820, 143, 289, 5, 4500, null,             null, null),
   ('Achter de schermen in de keuken',     'tiktok',          6,  false, 3100,  38, 402, 5,    0, null,             null, null),
   ('Nieuw op de kaart, burrata',          'facebook',        9,  true,  5240, 121, 188, 6, 5000, null,             null, null),
