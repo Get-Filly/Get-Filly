@@ -61,7 +61,17 @@ agnostisch. Het is bijstellen, niet herbouwen.
   `mail|social|whatsapp` heeft — GBP loopt daar nu om heen via het
   platform-pad (`type='social'` + `platforms=['google_business']`). Of de
   constraint verruimen, of dat schema helemaal naar het platform-pad trekken.
-- [ ] **3. Succes-score per kanaal i.p.v. mail-only** (P0 voor de leerloop).
+- [~] **3. Succes-score per kanaal i.p.v. mail-only** (P0 voor de leerloop).
+  **Migratie 0071 is geschreven én gedraaid** (2026-09-09): vier kolommen
+  (`spend_cents`, `link_clicks`, `paid`, `score_basis`),
+  `classify_campaign_performance()` herschreven naar drie paden (rate per
+  kanaal-familie / conversion_only op de eigen mediaan / no_data), plus de
+  views `campaign_channel_map` en `campaign_performance_report`. **Nog te
+  doen:** de API-laag (endpoint dat de view leest) en de echte rapportage-
+  pagina. Visueel voorstel staat in `get-filly-proto/rapportages-v2.html`
+  (mockdata, filters op periode/soort/kanaal werken echt).
+  Let op: de functie pakt alleen rijen met `classification is null`, dus
+  bestaande `no_data`-rijen worden niet herbeoordeeld zonder reset.
   De nachtelijke classificatie is 100% mail: geen `mail_delivered` →
   `classification='no_data'`, `success_score=null`. Zowel in SQL
   (`0047_campaign_performance_classification.sql:76`) als in TS
