@@ -23,6 +23,7 @@ type BrandId =
   | "instagram"
   | "facebook"
   | "tiktok"
+  | "youtube"
   | "zenchef";
 
 // Google G — multi-color officieel logo. Houden we als 4-color
@@ -199,6 +200,17 @@ function InstagramLogo() {
   );
 }
 
+// YouTube — rode rounded-rect met witte play-driehoek, de signature-vorm
+// van het merk. Per 2026-09-09 toegevoegd: YouTube hoort bij de kanalen.
+function YoutubeLogo() {
+  return (
+    <g>
+      <rect x="1" y="5" width="22" height="14" rx="4" fill="#FF0000" />
+      <path d="M10.2 8.9 16.2 12l-6 3.1z" fill="#FFFFFF" />
+    </g>
+  );
+}
+
 // Facebook — blauwe disc met witte "f". Simple-Icons-path (officieel).
 function FacebookLogo() {
   return (
@@ -283,6 +295,7 @@ export function BrandLogo({ id, x, y, size = 24 }: {
     instagram: InstagramLogo,
     facebook: FacebookLogo,
     tiktok: TiktokLogo,
+    youtube: YoutubeLogo,
     zenchef: ZenchefLogo,
   };
   const Logo = map[id];

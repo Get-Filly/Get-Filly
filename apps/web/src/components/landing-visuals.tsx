@@ -131,6 +131,25 @@ export async function ZichtbaarheidVisual() {
         </article>
       </div>
 
+      {/* YouTube — rechts-onder (foto: nog te vervangen, staat nu op een
+          kopie van facebook.jpg tot Floris een 4e beeld aanlevert) */}
+      <div className="lv-post-slot lv-post-4" data-reveal>
+        <article className="lv-post">
+          <div className="lv-post-head">
+            <span className="lv-post-ic"><Logo id="youtube" /></span>
+            <span className="lv-post-name">Bistro Get-Filly</span>
+          </div>
+          <div className="lv-post-media lv-media-yt">
+            <img src="/visuals/youtube.jpg" alt="" loading="lazy" />
+            <span className="lv-post-tag">&#9654; 0:38</span>
+          </div>
+          <div className="lv-post-foot">
+            <div className="lv-post-cap">{t("mockup.visuals.social.ytCap")}</div>
+            <div className="lv-post-stats">{t("mockup.visuals.social.ytStats")}</div>
+          </div>
+        </article>
+      </div>
+
       {/* Instagram — voorste (foto: sfeer/ambiance) */}
       <div className="lv-post-slot lv-post-3" data-reveal>
         <article className="lv-post">
@@ -151,45 +170,67 @@ export async function ZichtbaarheidVisual() {
   );
 }
 
-// === 03 Bereikbaarheid: mail + WhatsApp ===
+// === 03 Bereikbaarheid: doelgroep + uiting + resultaat ===
+// Per 2026-09-09 herzien: was een mailkaart + WhatsApp-gesprek, daarna kort een
+// grote advertentie-preview. Die laatste maakte de derde feature-rij ~130px
+// hoger dan de eerste twee, waardoor de rijen niet meer uitlijnden. Nu drie
+// compacte kaarten (zelfde aantal als pijler 1 en 2, dus ook dezelfde
+// gestaffelde pop-in) met een kleine vierkante thumbnail i.p.v. een 16:9-beeld,
+// samen ~500px hoog. De platform-chrome blijft generiek: de site houdt de
+// koepelterm "uitingen op sociale media" aan.
 export async function BereikbaarheidVisual() {
   const t = await getTranslations("home");
   return (
     <div className="lv lv-reach" aria-hidden="true">
-      {/* E-mailcampagne */}
-      <div className="lv-card lv-mail" data-reveal>
-        <div className="lv-mail-top">
-          <span className="lv-mail-av">B</span>
-          <div className="lv-mail-meta">
-            <div className="lv-mail-from">Bistro Get-Filly</div>
-            <div className="lv-mail-addr">reserveren@bistrogetfilly.nl</div>
-          </div>
-          <span className="lv-mail-time">10:14</span>
+      {/* 1. Wie ga je bereiken */}
+      <div className="lv-card lv-aud" data-reveal>
+        <div className="lv-aud-head">
+          <span className="lv-aud-pin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z" />
+              <circle cx="12" cy="10" r="2.4" />
+            </svg>
+          </span>
+          <span className="lv-aud-title">{t("mockup.visuals.reach.audienceTitle")}</span>
         </div>
-        <div className="lv-mail-subj">{t("mockup.visuals.reach.mailSubj")}</div>
-        <div className="lv-mail-body">
-          {t("mockup.visuals.reach.mailBody")}
+        <div className="lv-aud-tags">
+          <span>{t("mockup.visuals.reach.audienceRadius")}</span>
+          <span>{t("mockup.visuals.reach.audienceAge")}</span>
+          <span className="lv-aud-tag-hi">{t("mockup.visuals.reach.audienceReach")}</span>
         </div>
-        <span className="lv-mail-cta">{t("mockup.visuals.reach.mailCta")}</span>
       </div>
 
-      {/* WhatsApp-gesprek (zonder dubbele vinkjes) */}
-      <div className="lv-wa-phone" data-reveal>
-        <div className="lv-wa-bar">
-          <span className="lv-wa-av">B</span>
-          <div className="lv-wa-contact">
-            <div className="lv-wa-name">Bistro Get-Filly</div>
-            <div className="lv-wa-online">{t("mockup.visuals.reach.waOnline")}</div>
-          </div>
+      {/* 2. De uiting zoals die klant hem ziet, compact */}
+      <div className="lv-card lv-uit" data-reveal>
+        <div className="lv-uit-thumb">
+          <img src="/visuals/instagram.jpg" alt="" loading="lazy" />
         </div>
-        <div className="lv-wa-chat">
-          <div className="lv-wa-bubble lv-wa-in">
-            {t("mockup.visuals.reach.waIn")}
-            <span className="lv-wa-meta">10:15</span>
+        <div className="lv-uit-body">
+          <div className="lv-uit-brand">
+            <span className="lv-uit-logo"><Logo id="instagram" size={15} /></span>
+            {t("mockup.visuals.reach.brand")}
+            <span className="lv-uit-sponsored">{t("mockup.visuals.reach.sponsored")}</span>
           </div>
-          <div className="lv-wa-bubble lv-wa-out">
-            {t("mockup.visuals.reach.waOut")}
-            <span className="lv-wa-meta">10:18</span>
+          <div className="lv-uit-cap">{t("mockup.visuals.reach.cap")}</div>
+          <span className="lv-uit-cta">{t("mockup.visuals.reach.cta")}</span>
+        </div>
+      </div>
+
+      {/* 3. Wat het opleverde */}
+      <div className="lv-card lv-res" data-reveal>
+        <div className="lv-res-title">{t("mockup.visuals.reach.resultTitle")}</div>
+        <div className="lv-res-stats">
+          <div className="lv-res-stat">
+            <b>{t("mockup.visuals.reach.resultBookings")}</b>
+            <span>{t("mockup.visuals.reach.resultBookingsLabel")}</span>
+          </div>
+          <div className="lv-res-stat">
+            <b>{t("mockup.visuals.reach.resultCost")}</b>
+            <span>{t("mockup.visuals.reach.resultCostLabel")}</span>
+          </div>
+          <div className="lv-res-stat">
+            <b>{t("mockup.visuals.reach.resultOcc")}</b>
+            <span>{t("mockup.visuals.reach.resultOccLabel")}</span>
           </div>
         </div>
       </div>

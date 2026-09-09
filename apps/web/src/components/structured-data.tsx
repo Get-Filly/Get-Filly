@@ -70,7 +70,7 @@ export async function StructuredData() {
         operatingSystem: "Web",
         url: SITE_URL,
         description:
-          "AI-capaciteitoptimalisator voor de horeca: detecteert rustige momenten en zet met jouw goedkeuring de juiste actie in via mail, social, WhatsApp en Google.",
+          "AI-capaciteitoptimalisator voor de horeca: detecteert rustige momenten en zet met jouw goedkeuring uitingen op sociale media en updates op Google live.",
         publisher: { "@id": `${SITE_URL}/#organization` },
         // Prijsindicatie obv de pricing-pagina (Growth €99 / Ultimate €169).
         offers: {

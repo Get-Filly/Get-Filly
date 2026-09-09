@@ -23,11 +23,11 @@
   },
   "home": {
     "heroTitle": "Fill your quiet moments.<br></br>Automatically.",
-    "heroSubtitle": "Never an empty venue again with Get-Filly. Our hospitality AI predicts your quiet moments and, with your approval, takes the right action, via email, social, WhatsApp and Google.",
+    "heroSubtitle": "Never an empty venue again with Get-Filly. Our hospitality AI predicts your quiet moments and, with your approval, puts the right social media content live, aimed at the people in your neighbourhood.",
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
     "whyTitle": "Why it works",
-    "whySubtitle": "The numbers don't lie. Better profiles and a steady rhythm mean customers find you online more often.",
+    "whySubtitle": "The numbers don't lie. Better profiles and posts at the right moment mean customers find you more often and book more often.",
     "pillars": {
       "sectionTitle": "More customers.<br></br>Fuller days. Automatically.",
       "findability": {
@@ -46,27 +46,26 @@
       "visibility": {
         "eyebrow": "Visibility",
         "title": "Stay in sight. Even when they don't book.",
-        "desc": "Customers who know you but haven't booked yet are exactly who you need during quiet moments. We keep you top of mind on social media, automatically and in your style.",
+        "desc": "Customers who know you but haven't booked yet are exactly who you need during quiet moments. We put the right content on social media to keep you top of mind, automatically and in your style.",
         "bullets": [
-          "Automatic content planning for Instagram, Facebook and TikTok based on your occupancy data",
-          "AI-generated content fully in your business's style and tone",
-          "Strategic, data-based timing for more visibility on quiet days",
-          "Suggestions for stories and reels tailored to your region and audience",
-          "Fully white-label, guests see your name, not Get-Filly's",
-          "You approve every message before it goes out",
-          "Live dashboard reporting on reach, engagement and click-throughs"
+          "Social media posts, scheduled based on your occupancy data",
+          "Imagery and copy automatically in your business's style and tone",
+          "Strategic timing, more visibility on the days that are quiet",
+          "Everything under your name, customers see your brand, not Get-Filly's",
+          "You approve every post before it goes live",
+          "Live dashboard reporting on reach and engagement"
         ]
       },
       "reachability": {
         "eyebrow": "Reachability",
         "title": "The right message. At the right moment. To the right customer.",
-        "desc": "Your existing customers are the easiest way to fill your quiet moments. We reach them automatically via email and WhatsApp exactly when your capacity needs it.",
+        "desc": "Being in sight is one thing, reaching the right people is what fills your quiet moments. For every post we pick the audience, add paid reach where it helps, and trace it all back to bookings.",
         "bullets": [
-          "Automatic email campaigns based on real-time occupancy data",
-          "WhatsApp campaigns with a high open rate for last-minute bookings",
-          "Personalised messages in your business's tone of voice",
-          "Segmentation by regular customers, new customers and dormant customers",
-          "You approve every message before it goes out"
+          "Audience by radius around your venue, age and interests",
+          "Paid reach on the days that need filling",
+          "Segmentation by regular customers, new customers and the neighbourhood",
+          "Bookings per post, not just clicks and likes",
+          "Monthly report in plain language, no marketing jargon"
         ]
       }
     },
@@ -129,14 +128,16 @@
       },
       "chat": {
         "status": "Online",
+        "channelSocial": "Social media",
+        "channelFormatReel": "Reel",
+        "channelFormatPost": "Post",
         "inputPlaceholder": "Ask Filly something…",
-        "channelEmail": "Email",
-        "campaign1Title": "Last-minute haircut deal",
+        "campaign1Title": "Last-minute offer for Tuesday",
         "campaign1Date": "Tue 5 May",
-        "campaign1Meta": "To 248 regular customers · sends automatically Tue 11:00",
+        "campaign1Meta": "3 km around your venue · starts Tue 11:00",
         "campaign2Title": "Quiet Wednesday afternoon",
         "campaign2Date": "Wed 13 May",
-        "campaign2Meta": "To 312 customers nearby · sends automatically Mon 16:00",
+        "campaign2Meta": "New customers nearby · starts Mon 16:00",
         "askProposal": "Tuesday 5 May is at 43%, well below your average. Shall I set up a promotion for it?",
         "userYes": "Yes please 👍",
         "userMore": "Come up with another campaign for next week Wednesday",
@@ -163,19 +164,30 @@
         },
         "social": {
           "fbCap": "Fresh pasta, homemade every day 🍝",
-          "fbStats": "👍 132 · 27 shares",
+          "fbStats": "Reach 8,400 · 👍 132",
           "ttCap": "Behind the scenes in the kitchen 🔥",
-          "ttStats": "♥ 1,204 · 89 comments",
+          "ttStats": "12,800 views · ♥ 1,204",
+          "ytCap": "A day in our kitchen 👨‍🍳",
+          "ytStats": "1,870 views · 4:12 watch time",
           "igCap": "Live music Thursday 🎶 Book in time!",
-          "igStats": "♥ 1,248 · 214 comments"
+          "igStats": "Sponsored · reach 9,600"
         },
         "reach": {
-          "mailSubj": "We'd love to see you again, a table's still free this week!",
-          "mailBody": "Hi Marieke, it's been a while! We still have a lovely spot free on Thursday. As a welcome back, we'll treat you to a glass of house wine. 🍷",
-          "mailCta": "Book my table",
-          "waOnline": "online",
-          "waIn": "Hi Marieke! We still have a table free Thursday at 19:00, will you come by? 🍝",
-          "waOut": "Sounds good! Make it for 2 people 😊"
+          "audienceTitle": "Audience Thursday",
+          "audienceRadius": "3 km around your venue",
+          "audienceAge": "Ages 25 to 55",
+          "audienceReach": "9,600 people",
+          "sponsored": "Sponsored",
+          "brand": "Bistro Get-Filly",
+          "cap": "A few tables still free on Thursday. Three courses for €24.50.",
+          "cta": "Book now",
+          "resultTitle": "Result",
+          "resultBookings": "12",
+          "resultBookingsLabel": "bookings",
+          "resultCost": "€3.40",
+          "resultCostLabel": "per booking",
+          "resultOcc": "84%",
+          "resultOccLabel": "final occupancy"
         }
       }
     },
@@ -202,23 +214,23 @@
           "Better visibility in Google through SEO optimisation",
           "Visibility on the relevant booking and review platforms",
           "Visibility in AI search engines like ChatGPT, Claude and Gemini",
-          "Content planning for Instagram, TikTok and Facebook",
+          "Content planning for social media",
           "AI-generated posts in your business's tone of voice",
           "Live dashboard with reporting on visibility and reach"
         ],
         "ctaText": "Start with Growth"
       },
       "ultimate": {
-        "tagline": "Fill your quiet moments automatically.",
-        "desc": "Everything in Growth, plus direct campaigns via email and WhatsApp based on your occupancy data. Includes a connection with your booking or reservation system.",
+        "tagline": "Fill your quiet moments with the right content.",
+        "desc": "Everything in Growth, plus social media content based on your occupancy data, with organic and paid reach. Including a connection to your booking or reservation system.",
         "features": [
           "Everything in the Growth plan",
-          "Connection with your booking or reservation system",
-          "Connection with your till (POS)",
-          "Automatic email campaigns based on occupancy",
-          "WhatsApp campaigns for last-minute bookings",
-          "Segmentation by regular, new and dormant customers",
-          "Personalised email and WhatsApp campaigns in your business's tone of voice"
+          "Social media content based on your occupancy",
+          "Paid reach on the days that need filling",
+          "Audience based on your neighbourhood and your customer profile",
+          "Connection to your booking or reservation system",
+          "Connection to your point of sale (POS)",
+          "Reporting on bookings and revenue per post"
         ],
         "ctaText": "Start with Ultimate"
       }
@@ -234,11 +246,19 @@
       },
       {
         "q": "Which channels does Get-Filly use?",
-        "a": "Email, WhatsApp, Instagram, Facebook, TikTok and Google Business. Get-Filly writes for each channel in your house style and schedules every message at the best moment for the right audience."
+        "a": "Instagram, Facebook, TikTok and YouTube, plus your Google Business Profile. Get-Filly creates the right post per channel in your brand voice and puts it live at the best moment for the right audience."
       },
       {
-        "q": "Do I stay in control of what Get-Filly sends?",
-        "a": "Yes. Get-Filly generates proposals, you approve or adjust them. Nothing goes out without your approval."
+        "q": "Does Get-Filly also run paid ads?",
+        "a": "Yes, where it helps. Paid reach runs through your own ad budget, which you set yourself. The subscription covers the software and all the work Get-Filly does for you."
+      },
+      {
+        "q": "Do I need business social accounts?",
+        "a": "Yes, you need a business account per platform. We connect them together during onboarding, which takes you a few minutes."
+      },
+      {
+        "q": "Do I stay in control of what Get-Filly puts live?",
+        "a": "Yes. Get-Filly generates proposals, you approve or adjust. Nothing goes live without your sign-off."
       },
       {
         "q": "How does Get-Filly know which action to propose?",
@@ -275,7 +295,7 @@
   },
   "product": {
     "heroTitle": "This is how Get-Filly fills your quiet moments.",
-    "heroSubtitle": "Get-Filly detects quiet moments, works out the right action and picks the right audience, for campaigns, reviews and your visibility in Google and AI search engines. With your approval, Get-Filly puts it live automatically, so you get more customers during your quiet moments.",
+    "heroSubtitle": "Get-Filly spots quiet moments, creates the post and picks the audience for social media, and keeps your reviews and your visibility in Google and AI search engines in order. With your approval, Get-Filly puts it live automatically, so you get more customers during your quiet moments.",
     "diffs": {
       "approve": {
         "title": "AI does the work, you approve",
@@ -291,7 +311,7 @@
       },
       "measures": {
         "title": "Measures what really works",
-        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, customers and revenue each campaign actually delivers."
+        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, customers and revenue each post actually delivers."
       }
     },
     "walkTitle": "A week with Get-Filly, from empty slots to fuller days.",
@@ -306,26 +326,26 @@
       "proposal": {
         "label": "Proposal",
         "eyebrow": "Monday · 09:15",
-        "title": "Three channels, one proposal, ready within a minute.",
-        "desc": "Get-Filly proposes a complete campaign: an email to regulars, an Instagram post for late bookers, and a WhatsApp message for your most loyal customers. Tone of voice, imagery and timing, all tailored to your business."
+        "title": "Four posts, one proposal, ready within a minute.",
+        "desc": "Get-Filly proposes a complete campaign: four social media posts, each for its own channel and audience. Imagery, copy, audience, reach and timing, all tailored to your business."
       },
       "approval": {
         "label": "Approval",
         "eyebrow": "Monday · 09:16",
         "title": "One approval, Get-Filly does the rest.",
-        "desc": "Get-Filly sends all three messages at the right moment, on the right channel and to the right customers. You approve once, and after that you don't have to worry about timing or separate channels."
+        "desc": "Get-Filly puts all three posts live at the right moment and in front of the right audience. You approve once, and after that you don't have to worry about timing or separate channels."
       },
       "placement": {
         "label": "Publishing",
         "eyebrow": "Thursday · 17:00",
         "title": "You see your post go live, right on time.",
-        "desc": "On Thursday Get-Filly publishes the Instagram post and story automatically, the moment late bookers are scrolling. You don't have to do a thing, you just see it pass by in your feed, fully in your style, while the bookings come in."
+        "desc": "On Thursday, Get-Filly puts the posts live automatically, at the moment late bookers are scrolling. You don't have to do a thing, you simply see it come by on your own timeline, fully in your style, while the bookings roll in."
       },
       "result": {
         "label": "Result",
         "eyebrow": "Sunday · 23:00",
         "title": "Result: 12 extra bookings on a quiet Thursday.",
-        "desc": "At the end of the week Get-Filly checks in with a short summary: what worked, which channel scored, and what could be different next time."
+        "desc": "At the end of the week Get-Filly checks in with a short summary: what worked, which channel delivered the most bookings, and what could be different next time."
       }
     },
     "mock": {
@@ -343,37 +363,46 @@
         "sat": "Sat",
         "sun": "Sun"
       },
-      "channelsTitle": "Get-Filly proposes, 3 channels",
-      "mailLabel": "Email · 412 recipients",
-      "mailPreview": "“A quiet Thursday? Come for lunch for €24.50.”",
-      "mailMeta": "Thu 11:00",
-      "igLabel": "Instagram · feed & story",
+      "channelsTitle": "Get-Filly proposes, 4 posts",
+      "mailLabel": "Instagram · reel for late bookers",
+      "mailPreview": "“Still room on Thursday. Three courses for €24.50.”",
+      "mailMeta": "Thu 17:00",
+      "igLabel": "Facebook · neighbourhood within 3 km",
       "igPreview": "Terrace photo · “Thursday deal: 3 courses for €24.50”",
-      "igMeta": "Thu 17:00",
-      "waLabel": "WhatsApp · top 40 regulars",
-      "waPreview": "“Hi! Still room at our kitchen table tomorrow, book here.”",
+      "igMeta": "Thu 11:00 · sponsored",
+      "waLabel": "TikTok · ages 18 to 34",
+      "waPreview": "Quick video · “Thursday deal”",
       "waMeta": "Thu 09:30",
-      "channelsCta": "Approve & send",
+      "ytLabel": "YouTube · short about the kitchen",
+      "ytPreview": "Short video · “How we make our pasta”",
+      "ytMeta": "Thu 12:00",
+      "channelsCta": "Approve & go live",
       "approveTitle": "Campaign scheduled",
       "approveSub": "Approved by Sophie · 09:16",
-      "approveRow1": "Email to 412 regulars",
-      "approveRow2": "Instagram post + story",
-      "approveRow3": "WhatsApp to top 40",
+      "approveRow1": "Instagram reel for late bookers",
+      "approveRow2": "Facebook post in the neighbourhood, 3 km",
+      "approveRow3": "TikTok video, ages 18 to 34",
+      "approveRow4": "YouTube short about the kitchen",
       "approveFoot": "Get-Filly checks in on Sunday with the results.",
       "igLoc": "Amsterdam · Restaurant",
       "igPhotoTag1": "Thursday deal",
       "igPhotoTag2": "3 courses · €24.50",
       "igLikes": "Likes",
       "igCaptionText": "A few tables still free tonight. Three courses for €24.50. #thursdaydeal",
+      "igSponsored": "Sponsored",
       "igTime": "2 hours ago",
       "resultEyebrow": "THURSDAY CAMPAIGN · COMPLETED",
       "resultHeadline": "Thursday evening, from 38% to 84%",
       "resultStat1": "extra bookings",
       "resultStat2": "extra guests",
       "resultStat3": "final occupancy",
-      "resultBreakdown": "By channel",
+      "resultBreakdown": "Per post",
+      "resultBar1": "Instagram",
+      "resultBar2": "Facebook",
+      "resultBar3": "TikTok",
+      "resultBar4": "YouTube",
       "resultRes": "res.",
-      "resultNote": "Email worked best, next time I'll scale that one up first."
+      "resultNote": "Instagram delivered the most bookings, next time I'll scale that one up first."
     },
     "featuresTitle": "What's included.",
     "features": {
@@ -386,12 +415,12 @@
         "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and your business, makes proposals and carries them out after your approval."
       },
       "campaigns": {
-        "title": "Campaigns",
-        "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right customers and sends it at the best moment."
+        "title": "Social media content",
+        "desc": "From idea to live in a single chat. Get-Filly creates the imagery, writes the copy in your brand voice, picks the audience and puts the post live at the best moment."
       },
       "social": {
-        "title": "Social media posts",
-        "desc": "Get-Filly creates posts for Instagram, Facebook and TikTok. Tailored to your brand, your offering, and the days that need filling."
+        "title": "Reach and audience",
+        "desc": "For every post Get-Filly picks who you want to reach, organically or with paid reach, and keeps the audience focused on the people in your neighbourhood."
       },
       "season": {
         "title": "Seasonal strategy",
@@ -3463,11 +3492,11 @@
   "meta": {
     "home": {
       "title": "Get-Filly. Fill your quiet moments. Automatically.",
-      "description": "Get-Filly is the AI capacity optimiser for hospitality. It fills your quiet moments through marketing, reviews and visibility in Google and AI search engines."
+      "description": "Get-Filly is the AI capacity optimiser for hospitality. It fills your quiet moments with social media content and with better visibility in Google and AI search engines."
     },
     "product": {
       "title": "The solution",
-      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more customers during your quiet moments. For hospitality."
+      "description": "Discover how Get-Filly spots quiet moments, comes up with the right post and puts it live on social media with your approval, for more customers during your quiet moments. For hospitality."
     },
     "pricing": {
       "title": "Pricing",

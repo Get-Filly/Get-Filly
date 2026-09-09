@@ -27,19 +27,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { Send, Mail, Camera, MessageCircle, Check } from "lucide-react";
+import { Send, Share2, Film, Camera, Check } from "lucide-react";
 
-// Camera staat voor Instagram (lucide 1.14 heeft geen los Instagram-icoon).
+// Per 2026-09-09 zijn de kanaal-chips generiek: de site houdt de koepelterm
+// "uitingen op sociale media" aan (organisch én betaald) en specificeert de
+// platforms (nog) niet. Camera staat voor een gewoon bericht, Film voor een reel.
 type Campaign = {
   title: string;
   date: string;
-  channels: { Icon: typeof Mail; label: string }[];
+  channels: { Icon: typeof Share2; label: string }[];
   meta: string;
 };
 
 // De campagne-kaarten en de gesprek-beurten worden per-locale opgebouwd binnen
-// de component (useTranslations), zie buildTurns() hieronder. Instagram/WhatsApp
-// blijven merk-namen; alleen het e-mail-kanaal-label vertaalt mee.
+// de component (useTranslations), zie buildTurns() hieronder. De kanaal-chips
+// zijn generiek ("sociale media" + "advertentie") en vertalen dus mee.
 
 // Eén beurt in het gesprek.
 //   'proposal' = een voorstel-kaart (approvable = de Goedkeuren-knop wordt hier ingedrukt).
@@ -121,15 +123,13 @@ function ProposalCard({
 export function LandingFillyChat() {
   const t = useTranslations("home");
 
-  // De twee voorstel-kaarten (locale-afhankelijk). Instagram/WhatsApp blijven
-  // merk-namen; alleen het e-mail-kanaal-label vertaalt mee.
+  // De twee voorstel-kaarten (locale-afhankelijk).
   const CAMPAIGN_1: Campaign = {
     title: t("mockup.chat.campaign1Title"),
     date: t("mockup.chat.campaign1Date"),
     channels: [
-      { Icon: Camera, label: "Instagram" },
-      { Icon: Mail, label: t("mockup.chat.channelEmail") },
-      { Icon: MessageCircle, label: "WhatsApp" },
+      { Icon: Share2, label: t("mockup.chat.channelSocial") },
+      { Icon: Film, label: t("mockup.chat.channelFormatReel") },
     ],
     meta: t("mockup.chat.campaign1Meta"),
   };
@@ -138,8 +138,8 @@ export function LandingFillyChat() {
     title: t("mockup.chat.campaign2Title"),
     date: t("mockup.chat.campaign2Date"),
     channels: [
-      { Icon: Camera, label: "Instagram" },
-      { Icon: Mail, label: t("mockup.chat.channelEmail") },
+      { Icon: Share2, label: t("mockup.chat.channelSocial") },
+      { Icon: Camera, label: t("mockup.chat.channelFormatPost") },
     ],
     meta: t("mockup.chat.campaign2Meta"),
   };
