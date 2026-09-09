@@ -3718,3 +3718,92 @@ export async function sendCampaignToAll(
   }
   return res.json();
 }
+
+// ============================================================
+// Rapportage per uiting (GET /campaigns/report)
+// ============================================================
+// Leest de view campaign_performance_report (migratie 0071 + 0072). Eén
+// call voor de hele rapportagepagina: totalen, per kanaal, tijdreeks,
+// score-verdeling én de losse rijen voor de tabel. Bewust één payload,
+// zodat elke kaart op de pagina dezelfde cijfers ziet.
+
+export type ReportKind = "all" | "organic" | "paid";
+
+export type CampaignReportRow = {
+  campaign_id: string;
+  campaign_name: string;
+  channel: string;
+  status: string | null;
+  happened_at: string | null;
+  paid: boolean;
+  reach: number | null;
+  clicks: number | null;
+  interactions: number | null;
+  bookings: number;
+  guests: number;
+  revenue_cents: number;
+  spend_cents: number;
+  cost_per_booking_cents: number | null;
+  roas: number | null;
+  success_score: number | null;
+  classification: "winner" | "average" | "underperformer" | "no_data" | null;
+  score_basis: "rate" | "conversion_only" | null;
+  marked_outlier: boolean;
+};
+
+export type CampaignReportTotals = {
+  uitingen: number;
+  paidUitingen: number;
+  reach: number;
+  clicks: number;
+  interactions: number;
+  bookings: number;
+  guests: number;
+  revenueCents: number;
+  spendCents: number;
+  paidBookings: number;
+  costPerBookingCents: number | null;
+};
+
+export type CampaignReportChannel = CampaignReportTotals & {
+  channel: string;
+  organicBookings: number;
+  paidBookings: number;
+};
+
+export type CampaignReport = {
+  filters: { days: number; kind: ReportKind; channels: string[] };
+  from: string;
+  to: string;
+  totals: CampaignReportTotals;
+  previous: { bookings: number; uitingen: number } | null;
+  byChannel: CampaignReportChannel[];
+  buckets: Array<{ from: string; bookings: number; uitingen: number }>;
+  bucketSizeDays: number;
+  scores: {
+    winner: number;
+    average: number;
+    underperformer: number;
+    no_data: number;
+    pending: number;
+    conversionOnly: number;
+    scored: number;
+  };
+  rows: CampaignReportRow[];
+};
+
+export async function fetchCampaignReport(opts?: {
+  days?: 7 | 30 | 90;
+  kind?: ReportKind;
+  channels?: string[];
+}): Promise<CampaignReport> {
+  const q = new URLSearchParams();
+  if (opts?.days) q.set("days", String(opts.days));
+  if (opts?.kind) q.set("kind", opts.kind);
+  if (opts?.channels?.length) q.set("channels", opts.channels.join(","));
+  const res = await authedFetch(`${API_URL}/campaigns/report?${q.toString()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}

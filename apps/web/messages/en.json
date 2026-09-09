@@ -2522,53 +2522,112 @@
   },
   "dash_rapportages_page": {
     "title": "Reports",
+    "subtitle": "What your social media content delivered, organic and paid, traced back to bookings and revenue.",
+    "loading": "Loading…",
+    "error": "The figures could not be loaded. Please try again later.",
+    "occupancyLink": "Occupancy report",
     "actions": {
       "pdf": "🖨 PDF",
       "exportCsv": "⬇ Export CSV"
     },
-    "csv": {
+    "filters": {
+      "period": "Period",
+      "days": "{n} days",
+      "kind": "Type",
+      "kindAll": "All",
+      "kindOrganic": "Organic",
+      "kindPaid": "Paid",
       "channel": "Channel",
-      "status": "Status",
-      "stat": "Statistic",
-      "value": "Value"
-    },
-    "statusLabel": {
-      "live": "Live",
-      "comingSoon": "Coming soon",
-      "future": "Later"
-    },
-    "badge": {
-      "active": "Active",
-      "comingSoon": "Coming soon",
-      "future": "Later"
+      "channelAll": "All",
+      "metaAll": "all channels",
+      "metaKindAll": "organic and paid",
+      "metaKindOrganic": "organic only",
+      "metaKindPaid": "paid only"
     },
     "channels": {
-      "occupancy": "Occupancy",
-      "mail": "Mail",
-      "reviews": "Reviews",
       "instagram": "Instagram",
       "facebook": "Facebook",
       "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "google_business": "Google profile",
+      "mail": "Mail",
       "whatsapp": "WhatsApp"
     },
-    "stats": {
-      "today": "Today",
-      "monthAvg": "Avg. this month",
-      "guestsToday": "Guests today",
-      "viaFillyMonth": "Via Filly (month)",
-      "campaigns30d": "Campaigns (30d)",
-      "sent": "Sent",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "average": "Average",
-      "totalReviews": "Total reviews",
-      "responseNeeded": "Response needed"
+    "kpi": {
+      "bookings": "Bookings via Filly",
+      "vsPrevious": "vs previous {n} days",
+      "noHistory": "not enough history to compare",
+      "revenue": "Extra revenue",
+      "guests": "{n} guests",
+      "reach": "Reach",
+      "clicks": "{n} click-throughs",
+      "budget": "Ad budget",
+      "paidOf": "{paid} of {total} posts paid",
+      "costPerBooking": "Cost per booking",
+      "overPaidBookings": "over {n} paid bookings",
+      "noPaid": "no paid posts"
     },
-    "placeholders": {
-      "instagram": "Live likes, comments & followers from your connection (+ sample insights).",
-      "facebook": "Live likes, comments & shares from your connection (+ sample insights).",
-      "tiktok": "Stats appear after the TikTok Marketing API connection.",
-      "whatsapp": "Coming in a later phase."
+    "perChannel": {
+      "title": "Bookings per channel",
+      "subtitle": "Darker means more bookings. Sorted, so the top one is your strongest channel.",
+      "subtitleFiltered": "All channels in this period; your selection is in colour, the rest is context.",
+      "empty": "No posts in this period.",
+      "bestConversion": "{channel} has the highest conversion: {bookings} bookings from {reach} reach, which is {pct}%.",
+      "tip": "{bookings} bookings from {n} posts · {reach} reach · {clicks} click-throughs"
+    },
+    "budget": {
+      "title": "Where your budget went",
+      "subtitle": "How your ad budget was split.",
+      "subtitleSplit": "{total} split across {n} channels.",
+      "subtitleSingle": "One paid channel in this selection.",
+      "spentOn": "Spent on {channel}",
+      "spent": "spent",
+      "bookingsAnd": "{n} bookings · {cost} per booking",
+      "empty": "No paid posts in this selection. Every booking here came from organic reach."
+    },
+    "split": {
+      "title": "Organic and paid side by side",
+      "subtitle": "Bookings per channel, split into organic reach and ad budget.",
+      "organic": "Organic",
+      "paid": "Paid",
+      "empty": "No posts in this selection.",
+      "noteBoth": "Paid reach delivers {paid} of the {total} bookings on {budget} of budget. Organic does the rest for free, but grows more slowly.",
+      "notePaidOnly": "All {paid} bookings in this selection came from paid reach, on {budget} of budget.",
+      "noteOrganicOnly": "All {organic} bookings in this selection came from organic reach, without budget."
+    },
+    "trend": {
+      "title": "Bookings over time",
+      "subtitleDaily": "Bookings per day over the last 7 days.",
+      "subtitleWeekly": "Bookings per week over the last {n} days.",
+      "tipDay": "{date}: {bookings} bookings · {n} posts",
+      "tipWeek": "Week of {date}: {bookings} bookings · {n} posts"
+    },
+    "scores": {
+      "sectionTitle": "What Filly learns from it",
+      "title": "Score per post",
+      "subtitle": "Every post gets a score from 0 to 100 and a verdict 14 days after it goes live.",
+      "winner": "Strong",
+      "average": "Average",
+      "underperformer": "Below expectation",
+      "pending": "No verdict yet",
+      "noneScored": "No post in this selection is 14 days old yet, so nothing has been judged. That is the measurement window.",
+      "noteConversion": "For {n} of the {total} judged posts the score is based on bookings relative to your own average, because the platform does not report reach yet. Once those figures arrive Filly uses reach, click-throughs and bookings."
+    },
+    "table": {
+      "title": "Per post",
+      "subtitle": "All the figures behind the charts. {n} posts in this selection.",
+      "empty": "No posts in this selection.",
+      "thName": "Post",
+      "thChannel": "Channel",
+      "thDate": "Date",
+      "thKind": "Type",
+      "thReach": "Reach",
+      "thClicks": "Clicks",
+      "thBookings": "Bookings",
+      "thRevenue": "Revenue",
+      "thBudget": "Budget",
+      "thPerBooking": "Per booking",
+      "thVerdict": "Verdict"
     }
   },
   "dash_reserveringen_page": {

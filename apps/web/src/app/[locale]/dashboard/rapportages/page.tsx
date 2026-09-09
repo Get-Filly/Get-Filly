@@ -1,460 +1,1235 @@
 "use client";
 
+// ============================================================
+// /dashboard/rapportages — rapportage per uiting
+// ============================================================
+// Herbouwd per 2026-09-09. Was een hub met kanaal-tegels waarin mail het
+// enige "live" kanaal was (open-rate + klikratio als kern-KPI) en de
+// sociale kanalen "Binnenkort"-tegels zonder cijfers. Dat stond omgekeerd
+// t.o.v. wat het product doet: social publiceren werkt, mail is uit het
+// verhaal.
+//
+// Nu: één pagina die per uiting rapporteert, organisch én betaald, met
+// boekingen en omzet als kern in plaats van open-rates. Alles komt uit
+// GET /campaigns/report, dat de view campaign_performance_report leest
+// (migratie 0071 + 0072). Eén call voor de hele pagina, dus elke kaart
+// ziet gegarandeerd dezelfde cijfers.
+//
+// De bezettings-rapportage en de retentie-cohort blijven waar ze waren
+// (/dashboard/rapportages/bezetting): die zijn kanaal-onafhankelijk.
+//
+// Vormkeuzes (en waarom, zodat ze niet per ongeluk sneuvelen):
+//   - Boekingen per kanaal = magnitude, dus één groentint waarin donkerder
+//     meer betekent. Het kanaal-identiteitskleurtje zit in het blokje
+//     ernaast, niet in de balk.
+//   - Een kanaalselectie DIMT de andere kanalen in die grafiek in plaats
+//     van ze te verbergen: anders houd je een staafdiagram met één staaf
+//     over, en dat is geen diagram.
+//   - De budget-donut wisselt naar een stat tile bij één kanaal en naar
+//     een tekstregel bij nul. Een cirkel met één punt zegt niets.
+//   - Organisch vs betaald is de enige plek waar kleur écht identiteit
+//     draagt: groen vs koper, met legenda + labels + de tabel als opvang
+//     (koper zit net onder 3:1 contrast op wit).
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { useEffect, useState } from "react";
 import {
-  fetchKpis,
-  fetchMarketingMailStats,
-  fetchReviews,
-  type Kpis,
-  type MailStats,
-  type Review,
+  fetchCampaignReport,
+  type CampaignReport,
+  type CampaignReportRow,
+  type ReportKind,
 } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardBody } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
 import { useLocaleTag } from "@/lib/locale-format";
+import "./rapportage.css";
 
-// ============================================================
-// /dashboard/rapportages — hub-pagina
-// ============================================================
-// Sinds 2026-05-12 een hub i.p.v. één enorme detail-pagina (Floris-
-// keuze: marketing-hub uit sidebar, kanaal-blokken hierheen
-// verhuisd). Eigenaar kiest welk kanaal te bekijken; klik = detail-
-// pagina met de volledige rapportage.
-//
-// Per kanaal-blok 0-3 mini-stats: de belangrijkste KPI's zodat de
-// hub al iets vertelt zonder dat je hoeft te klikken. Mail haalt
-// echte cijfers uit Resend; Bezetting uit KpiService. Sociale
-// kanalen blijven kale Coming-Soon-cards tot OAuth-koppelingen live
-// staan.
-//
-// Detail-pagina's:
-//   - Bezetting → /dashboard/rapportages/bezetting (eigen route)
-//   - Mail/IG/FB/TikTok → /dashboard/marketing/<kanaal> (legacy
-//     routes, blijven bestaan)
-//   - WhatsApp → geen detail-pagina (Later-status)
+// De kanalen die de filterrij aanbiedt, in vaste volgorde. WhatsApp staat
+// hier bewust NIET: er is geen verzendpad, dus valt er niets te
+// rapporteren. Bestaande rijen met dat kanaal komen wel in de tabel.
+const KANALEN = [
+  { key: "instagram", kleur: "#E1306C" },
+  { key: "facebook", kleur: "#1877F2" },
+  { key: "google_business", kleur: "#34A853" },
+  { key: "tiktok", kleur: "#111111" },
+  { key: "youtube", kleur: "#FF0000" },
+] as const;
 
-type ChannelStatus = "live" | "coming-soon" | "future";
-type MiniStat = { label: string; value: string };
-
-type ReportChannel = {
-  key: string;
-  name: string;
-  status: ChannelStatus;
-  href?: string;
-  // Korte placeholder voor coming-soon / future-kanalen die nog geen
-  // stats hebben. Wordt vervangen door echte cijfers zodra de
-  // koppeling live is.
-  placeholder?: string;
-  // Loading-state per kanaal: cijfers worden async opgehaald, anders
-  // ziet de eerste render eruit alsof er niks aan data is.
-  miniStatsLoading?: boolean;
-  miniStats?: MiniStat[];
+const KANAAL_KLEUR: Record<string, string> = {
+  ...Object.fromEntries(KANALEN.map((k) => [k.key, k.kleur])),
+  mail: "#1F4A2D",
+  whatsapp: "#25D366",
 };
 
-// ============================================================
-// exportChannelsToCsv, download het kanaal-overzicht als CSV
-// ============================================================
-// Eén rij per mini-stat (kanaal + status + statistiek + waarde);
-// kanalen zonder stats krijgen één rij met alleen kanaal + status.
-function exportChannelsToCsv(
-  channels: ReportChannel[],
-  labels: {
-    headers: { channel: string; status: string; stat: string; value: string };
-    statusLabel: Record<ChannelStatus, string>;
-  },
-) {
-  const headers = [
-    labels.headers.channel,
-    labels.headers.status,
-    labels.headers.stat,
-    labels.headers.value,
-  ];
-  const rows = channels.flatMap((c) =>
-    c.miniStats && c.miniStats.length > 0
-      ? c.miniStats.map((s) => [
-          c.name,
-          labels.statusLabel[c.status],
-          s.label,
-          s.value,
-        ])
-      : [[c.name, labels.statusLabel[c.status], "", ""]],
-  );
-  downloadCsv("rapportages", headers, rows);
-}
+// Sequentiële groen-ramp: donkerder = meer. Voorbij 5 kanalen valt de
+// staart terug op de lichtste stap; dat is beter dan hues genereren.
+const RAMP = [
+  "var(--g700)",
+  "var(--g600)",
+  "var(--g500)",
+  "var(--g400)",
+  "var(--g300)",
+];
 
-export default function RapportagesHubPage() {
+const PERIODES = [7, 30, 90] as const;
+const SOORTEN: ReportKind[] = ["all", "organic", "paid"];
+
+export default function RapportagesPage() {
   const t = useTranslations("dash_rapportages_page");
   const localeTag = useLocaleTag();
-  const [kpis, setKpis] = useState<Kpis | null>(null);
-  const [mailStats, setMailStats] = useState<MailStats | null>(null);
-  const [reviews, setReviews] = useState<Review[] | null>(null);
-  const [loadingMail, setLoadingMail] = useState(true);
-  const [loadingKpis, setLoadingKpis] = useState(true);
-  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  const [dagen, setDagen] = useState<(typeof PERIODES)[number]>(30);
+  const [soort, setSoort] = useState<ReportKind>("all");
+  const [kanalen, setKanalen] = useState<string[]>([]);
+  // Eén state-object met de sleutel van de selectie waar het bij hoort.
+  // Zo hoeven we geen setState in de effect-body te doen (dat veroorzaakt
+  // cascading renders) en kunnen we "laden" afleiden: de gevraagde
+  // selectie wijkt af van de geladen selectie. `data` blijft bovendien de
+  // laatste geslaagde render, zodat we die op halve dekking kunnen
+  // vasthouden i.p.v. een skeleton te flitsen.
+  const selectie = `${dagen}|${soort}|${[...kanalen].sort().join(",")}`;
+  const [snap, setSnap] = useState<{
+    selectie: string;
+    data: CampaignReport | null;
+    fout: boolean;
+  }>({ selectie: "", data: null, fout: false });
+
+  const laden = snap.selectie !== selectie;
+  const data = snap.data;
+  const fout = snap.selectie === selectie && snap.fout;
 
   useEffect(() => {
-    let cancelled = false;
-    fetchKpis()
-      .then((data) => {
-        if (!cancelled) {
-          setKpis(data);
-          setLoadingKpis(false);
-        }
+    let afgebroken = false;
+    fetchCampaignReport({ days: dagen, kind: soort, channels: kanalen })
+      .then((d) => {
+        if (afgebroken) return;
+        setSnap({ selectie, data: d, fout: false });
       })
-      .catch(() => !cancelled && setLoadingKpis(false));
-    fetchMarketingMailStats(30)
-      .then((data) => {
-        if (!cancelled) {
-          setMailStats(data);
-          setLoadingMail(false);
-        }
-      })
-      .catch(() => !cancelled && setLoadingMail(false));
-    fetchReviews()
-      .then((data) => {
-        if (!cancelled) {
-          setReviews(data);
-          setLoadingReviews(false);
-        }
-      })
-      .catch(() => !cancelled && setLoadingReviews(false));
+      .catch(() => {
+        if (afgebroken) return;
+        // Vorige data laten staan; de foutmelding komt erboven.
+        setSnap((vorig) => ({ selectie, data: vorig.data, fout: true }));
+      });
     return () => {
-      cancelled = true;
+      afgebroken = true;
     };
-  }, []);
+  }, [dagen, soort, kanalen, selectie]);
 
-  // Review-stats afgeleid voor de Reviews-tegel: gemiddelde rating,
-  // totaal, en hoeveel reviews nog actie vragen (≤3★ zonder reactie —
-  // zelfde drempel die de reviews-pagina als 'Reactie nodig' toont).
-  const reviewStats = reviews
-    ? {
-        avg: reviews.length
-          ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-          : 0,
-        total: reviews.length,
-        needsResponse: reviews.filter(
-          (r) => r.rating <= 3 && !r.response_text,
-        ).length,
-      }
-    : null;
+  // ---- formatters ----
+  const eur = useCallback(
+    (cents: number) =>
+      new Intl.NumberFormat(localeTag, {
+        style: "currency",
+        currency: "EUR",
+        maximumFractionDigits: 0,
+      }).format(Math.round(cents / 100)),
+    [localeTag],
+  );
+  const eur2 = useCallback(
+    (cents: number) =>
+      new Intl.NumberFormat(localeTag, {
+        style: "currency",
+        currency: "EUR",
+        minimumFractionDigits: 2,
+      }).format(cents / 100),
+    [localeTag],
+  );
+  const num = useCallback(
+    (n: number) => n.toLocaleString(localeTag),
+    [localeTag],
+  );
+  const dm = useCallback(
+    (iso: string | null) =>
+      iso
+        ? new Date(iso).toLocaleDateString(localeTag, {
+            day: "numeric",
+            month: "short",
+          })
+        : "—",
+    [localeTag],
+  );
 
-  const channels: ReportChannel[] = [
-    {
-      key: "occupancy",
-      name: t("channels.occupancy"),
-      href: "/dashboard/rapportages/bezetting",
-      status: "live",
-      miniStatsLoading: loadingKpis,
-      miniStats: kpis
-        ? [
-            {
-              label: t("stats.today"),
-              value:
-                kpis.today_pct !== null ? `${kpis.today_pct}%` : "—",
-            },
-            {
-              label: t("stats.monthAvg"),
-              value:
-                kpis.month_avg_pct !== null
-                  ? `${kpis.month_avg_pct}%`
-                  : "—",
-            },
-            {
-              label: t("stats.guestsToday"),
-              value: kpis.today_guests.toLocaleString(localeTag),
-            },
-            {
-              label: t("stats.viaFillyMonth"),
-              value: kpis.month_filly_guests.toLocaleString(localeTag),
-            },
-          ]
-        : undefined,
+  const kanaalNaam = useCallback(
+    (key: string) => {
+      // Onbekend kanaal (bv. een oude waarde) tonen we ruw i.p.v. leeg.
+      const bekend = [
+        "instagram",
+        "facebook",
+        "tiktok",
+        "youtube",
+        "google_business",
+        "mail",
+        "whatsapp",
+      ];
+      return bekend.includes(key) ? t(`channels.${key}`) : key;
     },
-    {
-      key: "mail",
-      name: t("channels.mail"),
-      href: "/dashboard/marketing/mail",
-      status: "live",
-      miniStatsLoading: loadingMail,
-      miniStats: mailStats
-        ? [
-            { label: t("stats.campaigns30d"), value: `${mailStats.campaignCount}` },
-            {
-              label: t("stats.sent"),
-              value: mailStats.sent.toLocaleString(localeTag),
-            },
-            {
-              label: t("stats.openRate"),
-              value:
-                mailStats.openRate !== null
-                  ? `${Math.round(mailStats.openRate * 100)}%`
-                  : "—",
-            },
-            {
-              label: t("stats.clickRate"),
-              value:
-                mailStats.clickRate !== null
-                  ? `${Math.round(mailStats.clickRate * 100)}%`
-                  : "—",
-            },
-          ]
-        : undefined,
-    },
-    {
-      key: "reviews",
-      name: t("channels.reviews"),
-      href: "/dashboard/google-business/reviews",
-      status: "live",
-      miniStatsLoading: loadingReviews,
-      miniStats: reviewStats
-        ? [
-            {
-              label: t("stats.average"),
-              value: reviewStats.total
-                ? `${reviewStats.avg.toFixed(1)} ★`
-                : "—",
-            },
-            {
-              label: t("stats.totalReviews"),
-              value: `${reviewStats.total}`,
-            },
-            {
-              label: t("stats.responseNeeded"),
-              value: `${reviewStats.needsResponse}`,
-            },
-          ]
-        : undefined,
-    },
-    {
-      key: "instagram",
-      name: t("channels.instagram"),
-      href: "/dashboard/marketing/instagram",
-      status: "live",
-      placeholder: t("placeholders.instagram"),
-    },
-    {
-      key: "facebook",
-      name: t("channels.facebook"),
-      href: "/dashboard/marketing/facebook",
-      status: "live",
-      placeholder: t("placeholders.facebook"),
-    },
-    {
-      key: "tiktok",
-      name: t("channels.tiktok"),
-      href: "/dashboard/marketing/tiktok",
-      status: "coming-soon",
-      placeholder: t("placeholders.tiktok"),
-    },
-    {
-      key: "whatsapp",
-      name: t("channels.whatsapp"),
-      status: "future",
-      placeholder: t("placeholders.whatsapp"),
-    },
-  ];
+    [t],
+  );
+
+  const toggleKanaal = (key: string) => {
+    setKanalen((huidig) => {
+      const next = huidig.includes(key)
+        ? huidig.filter((k) => k !== key)
+        : [...huidig, key];
+      // Alles aangevinkt is hetzelfde als geen filter.
+      return next.length === KANALEN.length ? [] : next;
+    });
+  };
+
+  const exportCsv = () => {
+    if (!data) return;
+    downloadCsv(
+      "rapportage-uitingen",
+      [
+        t("table.thName"),
+        t("table.thChannel"),
+        t("table.thDate"),
+        t("table.thKind"),
+        t("table.thReach"),
+        t("table.thClicks"),
+        t("table.thBookings"),
+        t("table.thRevenue"),
+        t("table.thBudget"),
+        t("table.thPerBooking"),
+        t("table.thVerdict"),
+      ],
+      data.rows.map((r) => [
+        r.campaign_name,
+        kanaalNaam(r.channel),
+        r.happened_at ? r.happened_at.slice(0, 10) : "",
+        r.paid ? t("split.paid") : t("split.organic"),
+        String(r.reach ?? ""),
+        String(r.clicks ?? ""),
+        String(r.bookings),
+        (r.revenue_cents / 100).toFixed(2),
+        r.spend_cents ? (r.spend_cents / 100).toFixed(2) : "",
+        r.cost_per_booking_cents
+          ? (r.cost_per_booking_cents / 100).toFixed(2)
+          : "",
+        verdictLabel(r, t),
+      ]),
+    );
+  };
+
+  const filterMeta = useMemo(() => {
+    if (!data) return "";
+    const kanaalTxt = kanalen.length
+      ? KANALEN.filter((k) => kanalen.includes(k.key))
+          .map((k) => kanaalNaam(k.key))
+          .join(", ")
+      : t("filters.metaAll");
+    const soortTxt =
+      soort === "all"
+        ? t("filters.metaKindAll")
+        : soort === "organic"
+          ? t("filters.metaKindOrganic")
+          : t("filters.metaKindPaid");
+    return `${dm(data.from)} — ${dm(data.to)} · ${kanaalTxt} · ${soortTxt}`;
+  }, [data, kanalen, soort, t, dm, kanaalNaam]);
 
   return (
-    <div className="page-full">
+    <div className="page-full rap">
       <PageHeader
         title={t("title")}
+        subtitle={t("subtitle")}
         actions={
           <>
-            {/* PDF = browser-printdialoog ("Bewaar als PDF"); CSV
-                exporteert het kanaal-overzicht met de kerncijfers. */}
+            <Link
+              href="/dashboard/rapportages/bezetting"
+              className="ui-btn ui-btn--secondary ui-btn--sm"
+            >
+              {t("occupancyLink")}
+            </Link>
             <Button variant="secondary" onClick={exportPagePdf}>
               {t("actions.pdf")}
             </Button>
-            <Button
-              variant="primary"
-              onClick={() =>
-                exportChannelsToCsv(channels, {
-                  headers: {
-                    channel: t("csv.channel"),
-                    status: t("csv.status"),
-                    stat: t("csv.stat"),
-                    value: t("csv.value"),
-                  },
-                  statusLabel: {
-                    live: t("statusLabel.live"),
-                    "coming-soon": t("statusLabel.comingSoon"),
-                    future: t("statusLabel.future"),
-                  },
-                })
-              }
-            >
+            <Button variant="primary" onClick={exportCsv} disabled={!data}>
               {t("actions.exportCsv")}
             </Button>
           </>
         }
       />
 
-      <div
-        style={{
-          display: "grid",
-          // Grotere tegels (min 340px), max 3 per rij op brede
-          // viewports zodat de mini-stats ademruimte hebben.
-          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-          gap: "var(--space-4)",
-        }}
-      >
-        {channels.map((channel) => (
-          <ReportChannelCard key={channel.key} channel={channel} />
-        ))}
+      {/* Eén filterrij boven alles wat ze scopet, niet per kaart. */}
+      <div className="rap-filters">
+        <span className="rap-fgroup">
+          <span className="rap-lbl">{t("filters.period")}</span>
+          <span className="rap-seg">
+            {PERIODES.map((p) => (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={dagen === p}
+                onClick={() => setDagen(p)}
+              >
+                {t("filters.days", { n: p })}
+              </button>
+            ))}
+          </span>
+        </span>
+        <span className="rap-fgroup">
+          <span className="rap-lbl">{t("filters.kind")}</span>
+          <span className="rap-seg">
+            {SOORTEN.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={soort === s}
+                onClick={() => setSoort(s)}
+              >
+                {s === "all"
+                  ? t("filters.kindAll")
+                  : s === "organic"
+                    ? t("filters.kindOrganic")
+                    : t("filters.kindPaid")}
+              </button>
+            ))}
+          </span>
+        </span>
+        <span className="rap-fgroup">
+          <span className="rap-lbl">{t("filters.channel")}</span>
+          <span className="rap-chips">
+            <button
+              type="button"
+              className="rap-chip"
+              aria-pressed={kanalen.length === 0}
+              onClick={() => setKanalen([])}
+            >
+              {t("filters.channelAll")}
+            </button>
+            {KANALEN.map((k) => (
+              <button
+                key={k.key}
+                type="button"
+                className="rap-chip"
+                aria-pressed={kanalen.includes(k.key)}
+                onClick={() => toggleKanaal(k.key)}
+              >
+                <i style={{ background: k.kleur }} />
+                {kanaalNaam(k.key)}
+              </button>
+            ))}
+          </span>
+        </span>
+      </div>
+
+      <p className="rap-meta">
+        {data ? (
+          <>
+            <b>{data.totals.uitingen}</b> · {filterMeta}
+          </>
+        ) : laden ? (
+          t("loading")
+        ) : (
+          ""
+        )}
+      </p>
+
+      {fout && (
+        <Card>
+          <p className="rap-empty">{t("error")}</p>
+        </Card>
+      )}
+
+      {/* Bij een refetch houden we de vorige render vast op halve dekking:
+          geen skeleton-flits en geen layout-sprong. */}
+      {data && (
+        <div style={{ opacity: laden ? 0.55 : 1, transition: "opacity .15s" }}>
+          <Kpis data={data} t={t} eur={eur} eur2={eur2} num={num} />
+
+          <div className="rap-grid2">
+            <PerKanaal
+              data={data}
+              gekozen={kanalen}
+              t={t}
+              num={num}
+              kanaalNaam={kanaalNaam}
+            />
+            <Budget
+              data={data}
+              t={t}
+              eur={eur}
+              eur2={eur2}
+              kanaalNaam={kanaalNaam}
+            />
+          </div>
+
+          <div className="rap-grid1">
+            <Split data={data} t={t} eur={eur} kanaalNaam={kanaalNaam} />
+          </div>
+
+          <div className="rap-grid1">
+            <Trend data={data} t={t} localeTag={localeTag} />
+          </div>
+
+          <h2 className="rap-sec">{t("scores.sectionTitle")}</h2>
+          <div className="rap-grid1">
+            <Scores data={data} t={t} />
+          </div>
+
+          <div className="rap-grid1">
+            <Tabel
+              data={data}
+              t={t}
+              eur={eur}
+              eur2={eur2}
+              num={num}
+              dm={dm}
+              kanaalNaam={kanaalNaam}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Hulpjes
+// ============================================================
+
+type T = ReturnType<typeof useTranslations<"dash_rapportages_page">>;
+
+function verdictLabel(r: CampaignReportRow, t: T): string {
+  if (r.classification === "winner") return t("scores.winner");
+  if (r.classification === "average") return t("scores.average");
+  if (r.classification === "underperformer") return t("scores.underperformer");
+  return t("scores.pending");
+}
+
+function verdictKleur(r: CampaignReportRow): string {
+  if (r.classification === "winner") return "var(--success, #16A34A)";
+  if (r.classification === "average") return "#F59E0B";
+  if (r.classification === "underperformer") return "var(--danger, #DC2626)";
+  return "var(--text-muted)";
+}
+
+// ============================================================
+// KPI-rij
+// ============================================================
+function Kpis({
+  data,
+  t,
+  eur,
+  eur2,
+  num,
+}: {
+  data: CampaignReport;
+  t: T;
+  eur: (c: number) => string;
+  eur2: (c: number) => string;
+  num: (n: number) => string;
+}) {
+  const { totals, previous, filters } = data;
+  // Minder dan 2 uitingen in de vorige periode? Dan geeft de backend
+  // previous=null, want een percentage zou misleidend precies zijn.
+  const pct =
+    previous && previous.bookings > 0
+      ? Math.round(
+          ((totals.bookings - previous.bookings) / previous.bookings) * 100,
+        )
+      : null;
+
+  return (
+    <div className="rap-kpis">
+      <div className="rap-kpi hero">
+        <div className="rap-kpi-lbl">{t("kpi.bookings")}</div>
+        <div className="rap-kpi-val">{totals.bookings}</div>
+        <div className="rap-kpi-sub">
+          {pct === null ? (
+            <span style={{ color: "var(--text-muted)" }}>
+              {t("kpi.noHistory")}
+            </span>
+          ) : (
+            <>
+              <span className={`rap-delta ${pct >= 0 ? "up" : "down"}`}>
+                {pct >= 0 ? "▲" : "▼"} {Math.abs(pct)}%
+              </span>{" "}
+              {t("kpi.vsPrevious", { n: filters.days })}
+            </>
+          )}
+        </div>
+      </div>
+      <div className="rap-kpi">
+        <div className="rap-kpi-lbl">{t("kpi.revenue")}</div>
+        <div className="rap-kpi-val">{eur(totals.revenueCents)}</div>
+        <div className="rap-kpi-sub">{t("kpi.guests", { n: totals.guests })}</div>
+      </div>
+      <div className="rap-kpi">
+        <div className="rap-kpi-lbl">{t("kpi.reach")}</div>
+        <div className="rap-kpi-val">{num(totals.reach)}</div>
+        <div className="rap-kpi-sub">{t("kpi.clicks", { n: totals.clicks })}</div>
+      </div>
+      <div className="rap-kpi">
+        <div className="rap-kpi-lbl">{t("kpi.budget")}</div>
+        <div className="rap-kpi-val">
+          {totals.spendCents ? eur(totals.spendCents) : "—"}
+        </div>
+        <div className="rap-kpi-sub">
+          {t("kpi.paidOf", {
+            paid: totals.paidUitingen,
+            total: totals.uitingen,
+          })}
+        </div>
+      </div>
+      <div className="rap-kpi">
+        <div className="rap-kpi-lbl">{t("kpi.costPerBooking")}</div>
+        <div className="rap-kpi-val">
+          {totals.costPerBookingCents ? eur2(totals.costPerBookingCents) : "—"}
+        </div>
+        <div className="rap-kpi-sub">
+          {totals.costPerBookingCents
+            ? t("kpi.overPaidBookings", { n: totals.paidBookings })
+            : t("kpi.noPaid")}
+        </div>
       </div>
     </div>
   );
 }
 
 // ============================================================
-// ReportChannelCard, kanaal-tegel met mini-stats
+// Boekingen per kanaal
 // ============================================================
-// Klikbaar voor live + coming-soon (link naar detail-pagina).
-// Future-status (WhatsApp) is niet klikbaar.
-function ReportChannelCard({ channel }: { channel: ReportChannel }) {
-  const t = useTranslations("dash_rapportages_page");
-  const isClickable =
-    (channel.status === "live" || channel.status === "coming-soon") &&
-    !!channel.href;
-  const cardContent = (
-    <Card
-      elevated
-      style={{
-        height: "100%",
-        opacity:
-          channel.status === "live"
-            ? 1
-            : channel.status === "coming-soon"
-              ? 0.85
-              : 0.7,
-        cursor: isClickable ? "pointer" : "default",
-        transition: "transform 120ms ease, box-shadow 120ms ease",
-      }}
-      className={isClickable ? "ui-card--hoverable" : undefined}
-    >
-      <CardBody style={{ padding: "var(--space-5)" }}>
-        {/* Header: naam + status-badge */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "var(--space-4)",
-          }}
-        >
+function PerKanaal({
+  data,
+  gekozen,
+  t,
+  num,
+  kanaalNaam,
+}: {
+  data: CampaignReport;
+  gekozen: string[];
+  t: T;
+  num: (n: number) => string;
+  kanaalNaam: (k: string) => string;
+}) {
+  const rijen = data.byChannel;
+  const max = Math.max(...rijen.map((r) => r.bookings), 1);
+  // Het kanaal met de hoogste conversie, gerekend en niet vast.
+  const beste = [...rijen]
+    .filter((r) => r.reach > 0)
+    .sort((a, b) => b.bookings / b.reach - a.bookings / a.reach)[0];
+
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("perChannel.title")}</p>
+        <p className="rap-card-s">
+          {gekozen.length
+            ? t("perChannel.subtitleFiltered")
+            : t("perChannel.subtitle")}
+        </p>
+      </div>
+      {rijen.length === 0 ? (
+        <p className="rap-empty">{t("perChannel.empty")}</p>
+      ) : (
+        <>
+          <div className="rap-bars">
+            {rijen.map((r, i) => {
+              const aan = gekozen.length === 0 || gekozen.includes(r.channel);
+              return (
+                <div
+                  key={r.channel}
+                  className={`rap-bar-row${aan ? "" : " off"}`}
+                  title={t("perChannel.tip", {
+                    bookings: r.bookings,
+                    n: r.uitingen,
+                    reach: num(r.reach),
+                    clicks: r.clicks,
+                  })}
+                >
+                  <span className="rap-bar-lbl">
+                    <i
+                      className="rap-ch-ic"
+                      style={{
+                        background: KANAAL_KLEUR[r.channel] ?? "var(--brand)",
+                      }}
+                    />
+                    {kanaalNaam(r.channel)}
+                  </span>
+                  <span className="rap-bar-track">
+                    <span
+                      className="rap-bar-fill"
+                      style={{
+                        width: `${((r.bookings / max) * 100).toFixed(1)}%`,
+                        background: aan
+                          ? (RAMP[i] ?? "var(--g300)")
+                          : "var(--rap-dim)",
+                      }}
+                    />
+                  </span>
+                  <span className="rap-bar-val">{r.bookings}</span>
+                </div>
+              );
+            })}
+          </div>
+          {beste && (
+            <div className="rap-note">
+              {t("perChannel.bestConversion", {
+                channel: kanaalNaam(beste.channel),
+                bookings: beste.bookings,
+                reach: num(beste.reach),
+                pct: ((beste.bookings / beste.reach) * 100).toFixed(2),
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ============================================================
+// Budget: donut bij 2+, stat tile bij 1, tekst bij 0
+// ============================================================
+function Budget({
+  data,
+  t,
+  eur,
+  eur2,
+  kanaalNaam,
+}: {
+  data: CampaignReport;
+  t: T;
+  eur: (c: number) => string;
+  eur2: (c: number) => string;
+  kanaalNaam: (k: string) => string;
+}) {
+  const posten = data.byChannel
+    .filter((c) => c.spendCents > 0)
+    .sort((a, b) => b.spendCents - a.spendCents);
+  const totaal = posten.reduce((s, p) => s + p.spendCents, 0);
+
+  const R = 66;
+  const SW = 22;
+  const C = 88;
+  const circ = 2 * Math.PI * R;
+
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("budget.title")}</p>
+        <p className="rap-card-s">
+          {posten.length > 1
+            ? t("budget.subtitleSplit", {
+                total: eur(totaal),
+                n: posten.length,
+              })
+            : posten.length === 1
+              ? t("budget.subtitleSingle")
+              : t("budget.subtitle")}
+        </p>
+      </div>
+
+      {posten.length === 0 && <p className="rap-empty">{t("budget.empty")}</p>}
+
+      {posten.length === 1 && (
+        <div style={{ padding: "12px 2px 6px" }}>
           <div
             style={{
+              fontSize: 12,
+              color: "var(--text-muted)",
               fontWeight: 600,
-              fontSize: 18,
-              color: "var(--text, #18181B)",
+              marginBottom: 4,
             }}
           >
-            {channel.name}
+            {t("budget.spentOn", { channel: kanaalNaam(posten[0].channel) })}
           </div>
-          {channel.status === "live" && (
-            <Badge variant="success" withDot>
-              {t("badge.active")}
-            </Badge>
-          )}
-          {channel.status === "coming-soon" && (
-            <Badge variant="info">{t("badge.comingSoon")}</Badge>
-          )}
-          {channel.status === "future" && (
-            <Badge variant="neutral">{t("badge.future")}</Badge>
-          )}
-        </div>
-
-        {/* Loading-skeleton voor live kanalen waarvan stats nog komen. */}
-        {channel.miniStatsLoading && (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: "var(--space-3)",
+              fontSize: 40,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
             }}
           >
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                style={{
-                  height: 50,
-                  background: "var(--bg-soft, #FAF7F1)",
-                  borderRadius: 6,
-                }}
-              />
-            ))}
+            {eur(posten[0].spendCents)}
           </div>
-        )}
-
-        {/* Mini-stats: 2-koloms grid voor leesbare prominente cijfers.
-            Cijfer groot, label klein erboven. */}
-        {!channel.miniStatsLoading && channel.miniStats && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: "var(--space-3) var(--space-4)",
-            }}
-          >
-            {channel.miniStats.map((s) => (
-              <div key={s.label}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--tl)",
-                    marginBottom: 4,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {s.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 600,
-                    color: "var(--text, #18181B)",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {s.value}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Placeholder voor coming-soon / future-kanalen die nog
-            geen stats hebben. */}
-        {!channel.miniStats && !channel.miniStatsLoading && channel.placeholder && (
           <div
             style={{
               fontSize: 13,
-              color: "var(--tl)",
-              lineHeight: 1.5,
-              fontStyle: "italic",
+              color: "var(--text-soft)",
+              marginTop: 6,
             }}
           >
-            {channel.placeholder}
+            {posten[0].paidBookings > 0
+              ? t("budget.bookingsAnd", {
+                  n: posten[0].paidBookings,
+                  cost: eur2(
+                    Math.round(posten[0].spendCents / posten[0].paidBookings),
+                  ),
+                })
+              : t("kpi.noPaid")}
           </div>
-        )}
-      </CardBody>
+        </div>
+      )}
+
+      {posten.length > 1 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <svg width="176" height="176" viewBox="0 0 176 176" aria-hidden="true">
+            <circle
+              cx={C}
+              cy={C}
+              r={R}
+              fill="none"
+              stroke="var(--rap-hair)"
+              strokeWidth={SW}
+            />
+            {
+              posten.reduce<{ offset: number; nodes: React.ReactNode[] }>(
+                (acc, p, i) => {
+                  const frac = p.spendCents / totaal;
+                  // 2px oppervlak-gat tussen segmenten i.p.v. een randje.
+                  const len = Math.max(0, circ * frac - 3);
+                  acc.nodes.push(
+                    <circle
+                      key={p.channel}
+                      cx={C}
+                      cy={C}
+                      r={R}
+                      fill="none"
+                      stroke={RAMP[i] ?? "var(--g300)"}
+                      strokeWidth={SW}
+                      strokeDasharray={`${len} ${circ - len}`}
+                      strokeDashoffset={-acc.offset}
+                      transform={`rotate(-90 ${C} ${C})`}
+                    />,
+                  );
+                  acc.offset += circ * frac;
+                  return acc;
+                },
+                { offset: 0, nodes: [] },
+              ).nodes
+            }
+            <text
+              x={C}
+              y={C - 4}
+              textAnchor="middle"
+              fontSize="21"
+              fontWeight="700"
+              fill="var(--text)"
+            >
+              {eur(totaal)}
+            </text>
+            <text
+              x={C}
+              y={C + 14}
+              textAnchor="middle"
+              fontSize="11"
+              fill="var(--text-muted)"
+            >
+              {t("budget.spent")}
+            </text>
+          </svg>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 150,
+              display: "flex",
+              flexDirection: "column",
+              gap: 9,
+            }}
+          >
+            {posten.map((p, i) => (
+              <div
+                key={p.channel}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                }}
+              >
+                <i
+                  className="rap-swatch"
+                  style={{ background: RAMP[i] ?? "var(--g300)" }}
+                />
+                <span style={{ flex: 1 }}>{kanaalNaam(p.channel)}</span>
+                <b style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {eur(p.spendCents)}
+                </b>
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    width: 38,
+                    textAlign: "right",
+                  }}
+                >
+                  {Math.round((p.spendCents / totaal) * 100)}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
+}
 
-  if (isClickable && channel.href) {
-    return (
-      <Link
-        href={channel.href}
-        style={{ textDecoration: "none", color: "inherit" }}
+// ============================================================
+// Organisch vs betaald
+// ============================================================
+function Split({
+  data,
+  t,
+  eur,
+  kanaalNaam,
+}: {
+  data: CampaignReport;
+  t: T;
+  eur: (c: number) => string;
+  kanaalNaam: (k: string) => string;
+}) {
+  // Alleen de kanalen in de actieve selectie: dit is een deel-van-geheel
+  // per kanaal, geen vergelijking met de rest.
+  const gekozen = data.filters.channels;
+  const rijen = data.byChannel
+    .filter((c) => (gekozen.length ? gekozen.includes(c.channel) : true))
+    .filter((c) => c.bookings > 0);
+  const max = Math.max(...rijen.map((r) => r.bookings), 1);
+  const tOrg = rijen.reduce((s, r) => s + r.organicBookings, 0);
+  const tPaid = rijen.reduce((s, r) => s + r.paidBookings, 0);
+  const tBud = rijen.reduce((s, r) => s + r.spendCents, 0);
+
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("split.title")}</p>
+        <p className="rap-card-s">{t("split.subtitle")}</p>
+      </div>
+      <div className="rap-legend">
+        <span>
+          <i className="rap-swatch" style={{ background: "var(--organic)" }} />
+          {t("split.organic")}
+        </span>
+        <span>
+          <i className="rap-swatch" style={{ background: "var(--paid)" }} />
+          {t("split.paid")}
+        </span>
+      </div>
+      {rijen.length === 0 ? (
+        <p className="rap-empty">{t("split.empty")}</p>
+      ) : (
+        <>
+          <div className="rap-bars">
+            {rijen.map((r) => {
+              const breedte = ((r.bookings / max) * 100).toFixed(1);
+              const o = ((r.organicBookings / r.bookings) * 100).toFixed(1);
+              const p = ((r.paidBookings / r.bookings) * 100).toFixed(1);
+              // Label alleen in het segment als het ruim past. De waarde
+              // staat altijd in het rij-totaal en in de tabel.
+              const toonO = (r.organicBookings / max) * 100 >= 12;
+              const toonP = (r.paidBookings / max) * 100 >= 12;
+              return (
+                <div key={r.channel} className="rap-bar-row">
+                  <span className="rap-bar-lbl">
+                    <i
+                      className="rap-ch-ic"
+                      style={{
+                        background: KANAAL_KLEUR[r.channel] ?? "var(--brand)",
+                      }}
+                    />
+                    {kanaalNaam(r.channel)}
+                  </span>
+                  <span
+                    className="rap-bar-track"
+                    style={{ background: "transparent" }}
+                  >
+                    <span className="rap-stack" style={{ width: `${breedte}%` }}>
+                      {r.organicBookings > 0 && (
+                        <i
+                          style={{ width: `${o}%`, background: "var(--organic)" }}
+                          title={`${kanaalNaam(r.channel)} · ${t("split.organic")}: ${r.organicBookings}`}
+                        >
+                          {toonO && (
+                            <span className="rap-seg-lbl">
+                              {r.organicBookings}
+                            </span>
+                          )}
+                        </i>
+                      )}
+                      {r.paidBookings > 0 && (
+                        <i
+                          style={{ width: `${p}%`, background: "var(--paid)" }}
+                          title={`${kanaalNaam(r.channel)} · ${t("split.paid")}: ${r.paidBookings}`}
+                        >
+                          {toonP && (
+                            <span className="rap-seg-lbl">
+                              {r.paidBookings}
+                            </span>
+                          )}
+                        </i>
+                      )}
+                    </span>
+                  </span>
+                  <span className="rap-bar-val">{r.bookings}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="rap-note">
+            {tPaid > 0 && tOrg > 0
+              ? t("split.noteBoth", {
+                  paid: tPaid,
+                  total: tOrg + tPaid,
+                  budget: eur(tBud),
+                })
+              : tPaid > 0
+                ? t("split.notePaidOnly", { paid: tPaid, budget: eur(tBud) })
+                : t("split.noteOrganicOnly", { organic: tOrg })}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ============================================================
+// Verloop over tijd
+// ============================================================
+function Trend({
+  data,
+  t,
+  localeTag,
+}: {
+  data: CampaignReport;
+  t: T;
+  localeTag: string;
+}) {
+  const buckets = data.buckets;
+  const perDag = data.bucketSizeDays === 1;
+  const n = buckets.length;
+  const W = 1040;
+  const H = 220;
+  const PL = 44;
+  const PR = 16;
+  const PT = 16;
+  const PB = 34;
+  const iw = W - PL - PR;
+  const ih = H - PT - PB;
+  // Bovengrens deelbaar door 4, zodat de ticks hele getallen zijn.
+  const max = Math.max(
+    4,
+    Math.ceil(Math.max(...buckets.map((b) => b.bookings), 0) / 4) * 4,
+  );
+  const x = (i: number) => (n === 1 ? PL + iw / 2 : PL + (iw / (n - 1)) * i);
+  const y = (v: number) => PT + ih - (v / max) * ih;
+  const label = (iso: string) =>
+    new Date(`${iso}T12:00:00`).toLocaleDateString(localeTag, {
+      day: "numeric",
+      month: "short",
+    });
+  const piek = buckets.reduce(
+    (best, b, i) => (b.bookings > buckets[best].bookings ? i : best),
+    0,
+  );
+  const markers = Array.from(new Set([piek, n - 1]));
+  const skip = n > 8 ? 2 : 1;
+
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("trend.title")}</p>
+        <p className="rap-card-s">
+          {perDag
+            ? t("trend.subtitleDaily")
+            : t("trend.subtitleWeekly", { n: data.filters.days })}
+        </p>
+      </div>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: "100%", height: "auto", display: "block" }}
+        role="img"
+        aria-label={t("trend.title")}
       >
-        {cardContent}
-      </Link>
-    );
-  }
-  return <div>{cardContent}</div>;
+        {/* Rasterlijnen: doorlopende haarlijnen, nooit gestreept. */}
+        {[0, 1, 2, 3, 4].map((tick) => {
+          const v = (max / 4) * tick;
+          return (
+            <g key={tick}>
+              <line
+                x1={PL}
+                x2={W - PR}
+                y1={y(v)}
+                y2={y(v)}
+                stroke="var(--rap-grid)"
+                strokeWidth={1}
+              />
+              <text
+                x={PL - 10}
+                y={y(v) + 4}
+                textAnchor="end"
+                fontSize="11"
+                fill="var(--text-muted)"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {v}
+              </text>
+            </g>
+          );
+        })}
+        {n > 1 && (
+          <>
+            <polygon
+              points={`${buckets.map((b, i) => `${x(i)},${y(b.bookings)}`).join(" ")} ${x(n - 1)},${y(0)} ${x(0)},${y(0)}`}
+              fill="var(--organic)"
+              opacity={0.13}
+            />
+            <polyline
+              points={buckets
+                .map((b, i) => `${x(i)},${y(b.bookings)}`)
+                .join(" ")}
+              fill="none"
+              stroke="var(--organic)"
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            {/* Alleen de piek en het eindpunt krijgen een marker + label. */}
+            {markers.map((i) => (
+              <g key={i}>
+                <circle
+                  cx={x(i)}
+                  cy={y(buckets[i].bookings)}
+                  r={4.5}
+                  fill="var(--organic)"
+                  stroke="var(--white)"
+                  strokeWidth={2}
+                />
+                <text
+                  x={x(i)}
+                  y={y(buckets[i].bookings) - 12}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fontWeight="700"
+                  fill="var(--text)"
+                >
+                  {buckets[i].bookings}
+                </text>
+              </g>
+            ))}
+          </>
+        )}
+        {/* De assebalk hoort binnen de container, anders krijgt de kaart
+            een eigen scrollbar. */}
+        <line
+          x1={PL}
+          x2={W - PR}
+          y1={y(0)}
+          y2={y(0)}
+          stroke="var(--rap-axis)"
+          strokeWidth={1}
+        />
+        {buckets.map((b, i) =>
+          i % skip !== 0 && i !== n - 1 ? null : (
+            <text
+              key={b.from}
+              x={x(i)}
+              y={H - 12}
+              textAnchor="middle"
+              fontSize="11"
+              fill="var(--text-muted)"
+            >
+              {label(b.from)}
+            </text>
+          ),
+        )}
+        {/* Hitzones, ruim genoeg om te raken. */}
+        {buckets.map((b, i) => {
+          const bw = n === 1 ? iw : iw / (n - 1);
+          return (
+            <rect
+              key={`hit-${b.from}`}
+              x={x(i) - bw / 2}
+              y={PT}
+              width={bw}
+              height={ih}
+              fill="transparent"
+            >
+              <title>
+                {perDag
+                  ? t("trend.tipDay", {
+                      date: label(b.from),
+                      bookings: b.bookings,
+                      n: b.uitingen,
+                    })
+                  : t("trend.tipWeek", {
+                      date: label(b.from),
+                      bookings: b.bookings,
+                      n: b.uitingen,
+                    })}
+              </title>
+            </rect>
+          );
+        })}
+      </svg>
+    </Card>
+  );
+}
+
+// ============================================================
+// Score-strip
+// ============================================================
+function Scores({ data, t }: { data: CampaignReport; t: T }) {
+  const s = data.scores;
+  const groepen = [
+    { label: t("scores.winner"), n: s.winner, kleur: "var(--success, #16A34A)" },
+    { label: t("scores.average"), n: s.average, kleur: "#F59E0B" },
+    {
+      label: t("scores.underperformer"),
+      n: s.underperformer,
+      kleur: "var(--danger, #DC2626)",
+    },
+    {
+      label: t("scores.pending"),
+      n: s.pending + s.no_data,
+      kleur: "var(--text-muted)",
+    },
+  ];
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("scores.title")}</p>
+        <p className="rap-card-s">{t("scores.subtitle")}</p>
+      </div>
+      <div className="rap-scores">
+        {groepen.map((g) => (
+          <div key={g.label} className="rap-score">
+            <div className="rap-score-top">
+              <i className="rap-dot" style={{ background: g.kleur }} />
+              {g.label}
+            </div>
+            <div className="rap-score-n">{g.n}</div>
+          </div>
+        ))}
+      </div>
+      <div className="rap-note">
+        {s.scored === 0
+          ? t("scores.noneScored")
+          : t("scores.noteConversion", {
+              n: s.conversionOnly,
+              total: s.scored,
+            })}
+      </div>
+    </Card>
+  );
+}
+
+// ============================================================
+// Tabel — alle cijfers, en de opvang voor de kleuren die op wit
+// onder 3:1 contrast zitten.
+// ============================================================
+function Tabel({
+  data,
+  t,
+  eur,
+  eur2,
+  num,
+  dm,
+  kanaalNaam,
+}: {
+  data: CampaignReport;
+  t: T;
+  eur: (c: number) => string;
+  eur2: (c: number) => string;
+  num: (n: number) => string;
+  dm: (iso: string | null) => string;
+  kanaalNaam: (k: string) => string;
+}) {
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("table.title")}</p>
+        <p className="rap-card-s">
+          {t("table.subtitle", { n: data.rows.length })}
+        </p>
+      </div>
+      {data.rows.length === 0 ? (
+        <p className="rap-empty">{t("table.empty")}</p>
+      ) : (
+        <div className="rap-tbl-wrap">
+          <table className="rap-tbl">
+            <thead>
+              <tr>
+                <th>{t("table.thName")}</th>
+                <th>{t("table.thChannel")}</th>
+                <th>{t("table.thDate")}</th>
+                <th>{t("table.thKind")}</th>
+                <th className="num">{t("table.thReach")}</th>
+                <th className="num">{t("table.thClicks")}</th>
+                <th className="num">{t("table.thBookings")}</th>
+                <th className="num">{t("table.thRevenue")}</th>
+                <th className="num">{t("table.thBudget")}</th>
+                <th className="num">{t("table.thPerBooking")}</th>
+                <th>{t("table.thVerdict")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((r) => (
+                <tr key={r.campaign_id}>
+                  <td>{r.campaign_name}</td>
+                  <td>
+                    <span className="rap-ch">
+                      <i
+                        className="rap-ch-ic"
+                        style={{
+                          background: KANAAL_KLEUR[r.channel] ?? "var(--brand)",
+                        }}
+                      />
+                      {kanaalNaam(r.channel)}
+                    </span>
+                  </td>
+                  <td>{dm(r.happened_at)}</td>
+                  <td>
+                    <span className="rap-pill">
+                      <i
+                        className="rap-swatch"
+                        style={{
+                          background: r.paid ? "var(--paid)" : "var(--organic)",
+                        }}
+                      />
+                      {r.paid ? t("split.paid") : t("split.organic")}
+                    </span>
+                  </td>
+                  <td className="num">{r.reach !== null ? num(r.reach) : "—"}</td>
+                  <td className="num">{r.clicks !== null ? r.clicks : "—"}</td>
+                  <td className="num">
+                    <b>{r.bookings}</b>
+                  </td>
+                  <td className="num">{eur(r.revenue_cents)}</td>
+                  <td className="num">
+                    {r.spend_cents ? eur(r.spend_cents) : "—"}
+                  </td>
+                  <td className="num">
+                    {r.cost_per_booking_cents
+                      ? eur2(r.cost_per_booking_cents)
+                      : "—"}
+                  </td>
+                  <td>
+                    <span className="rap-pill">
+                      <i
+                        className="rap-dot"
+                        style={{ background: verdictKleur(r) }}
+                      />
+                      {verdictLabel(r, t)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
 }

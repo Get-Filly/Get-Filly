@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -19,6 +20,7 @@ import {
 } from './campaigns.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
 import { CampaignFingerprintService } from './campaign-fingerprint.service';
+import { CampaignReportService } from './campaign-report.service';
 import { MailService } from '../mail/mail.service';
 import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
@@ -39,7 +41,30 @@ export class CampaignsController {
     private readonly mail: MailService,
     private readonly performance: CampaignPerformanceService,
     private readonly fingerprint: CampaignFingerprintService,
+    private readonly report: CampaignReportService,
   ) {}
+
+  // Rapportage per uiting (migratie 0071 + 0072). Eén payload voor de hele
+  // rapportagepagina: totalen, per kanaal, tijdreeks, score-verdeling én de
+  // losse rijen voor de tabel. Bewust één call: zo ziet elke kaart op de
+  // pagina gegarandeerd dezelfde cijfers.
+  //
+  // Deze route staat VÓÓR @Get(':id'), anders matcht Nest 'report' als een
+  // campagne-id (zelfde valkuil als bij de cron-controller).
+  //   days=7|30|90 · kind=all|organic|paid · channels=instagram,facebook
+  @Get('report')
+  getReport(
+    @BusinessId() businessId: string,
+    @Query('days') days?: string,
+    @Query('kind') kind?: string,
+    @Query('channels') channels?: string,
+  ) {
+    return this.report.getReport(businessId, {
+      days: days ? Number(days) : undefined,
+      kind,
+      channels: channels ? channels.split(',') : undefined,
+    });
+  }
 
   @Get()
   findAll(@BusinessId() businessId: string) {

@@ -2522,53 +2522,112 @@
   },
   "dash_rapportages_page": {
     "title": "Rapportages",
+    "subtitle": "Wat je uitingen op sociale media hebben opgeleverd, organisch en betaald, teruggerekend naar boekingen en omzet.",
+    "loading": "Laden…",
+    "error": "De cijfers konden niet worden geladen. Probeer het later opnieuw.",
+    "occupancyLink": "Bezettings-rapportage",
     "actions": {
       "pdf": "🖨 PDF",
       "exportCsv": "⬇ Exporteer CSV"
     },
-    "csv": {
+    "filters": {
+      "period": "Periode",
+      "days": "{n} dagen",
+      "kind": "Soort",
+      "kindAll": "Alles",
+      "kindOrganic": "Organisch",
+      "kindPaid": "Betaald",
       "channel": "Kanaal",
-      "status": "Status",
-      "stat": "Statistiek",
-      "value": "Waarde"
-    },
-    "statusLabel": {
-      "live": "Live",
-      "comingSoon": "Binnenkort",
-      "future": "Later"
-    },
-    "badge": {
-      "active": "Actief",
-      "comingSoon": "Binnenkort",
-      "future": "Later"
+      "channelAll": "Alle",
+      "metaAll": "alle kanalen",
+      "metaKindAll": "organisch en betaald",
+      "metaKindOrganic": "alleen organisch",
+      "metaKindPaid": "alleen betaald"
     },
     "channels": {
-      "occupancy": "Bezetting",
-      "mail": "Mail",
-      "reviews": "Reviews",
       "instagram": "Instagram",
       "facebook": "Facebook",
       "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "google_business": "Google profiel",
+      "mail": "Mail",
       "whatsapp": "WhatsApp"
     },
-    "stats": {
-      "today": "Vandaag",
-      "monthAvg": "Gem. deze maand",
-      "guestsToday": "Gasten vandaag",
-      "viaFillyMonth": "Via Filly (maand)",
-      "campaigns30d": "Campagnes (30d)",
-      "sent": "Verstuurd",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "average": "Gemiddelde",
-      "totalReviews": "Totaal reviews",
-      "responseNeeded": "Reactie nodig"
+    "kpi": {
+      "bookings": "Boekingen via Filly",
+      "vsPrevious": "vs vorige {n} dagen",
+      "noHistory": "te weinig historie om te vergelijken",
+      "revenue": "Extra omzet",
+      "guests": "{n} gasten",
+      "reach": "Bereik",
+      "clicks": "{n} doorkliks",
+      "budget": "Advertentiebudget",
+      "paidOf": "{paid} van {total} uitingen betaald",
+      "costPerBooking": "Kosten per boeking",
+      "overPaidBookings": "over {n} betaalde boekingen",
+      "noPaid": "geen betaalde uitingen"
     },
-    "placeholders": {
-      "instagram": "Live likes, reacties & volgers uit je koppeling (+ voorbeeld-insights).",
-      "facebook": "Live likes, reacties & shares uit je koppeling (+ voorbeeld-insights).",
-      "tiktok": "Stats verschijnen na TikTok Marketing API-koppeling.",
-      "whatsapp": "Komt in een latere fase."
+    "perChannel": {
+      "title": "Boekingen per kanaal",
+      "subtitle": "Donkerder is meer boekingen. Gesorteerd, dus de bovenste is je sterkste kanaal.",
+      "subtitleFiltered": "Alle kanalen van deze periode; je selectie staat in kleur, de rest is context.",
+      "empty": "Geen uitingen in deze periode.",
+      "bestConversion": "{channel} heeft de hoogste conversie: {bookings} boekingen uit {reach} bereik, dat is {pct}%.",
+      "tip": "{bookings} boekingen uit {n} uitingen · {reach} bereik · {clicks} doorkliks"
+    },
+    "budget": {
+      "title": "Waar ging je budget heen",
+      "subtitle": "Verdeling van je advertentiebudget.",
+      "subtitleSplit": "Verdeling van {total} over {n} kanalen.",
+      "subtitleSingle": "Eén betaald kanaal in deze selectie.",
+      "spentOn": "Besteed op {channel}",
+      "spent": "besteed",
+      "bookingsAnd": "{n} boekingen · {cost} per boeking",
+      "empty": "Geen betaalde uitingen in deze selectie. Alle boekingen hier komen uit vrij bereik."
+    },
+    "split": {
+      "title": "Organisch en betaald naast elkaar",
+      "subtitle": "Boekingen per kanaal, uitgesplitst naar vrij bereik en advertentiebudget.",
+      "organic": "Organisch",
+      "paid": "Betaald",
+      "empty": "Geen uitingen in deze selectie.",
+      "noteBoth": "Betaald bereik levert {paid} van de {total} boekingen op met {budget} budget. Organisch doet de rest gratis, maar groeit langzamer.",
+      "notePaidOnly": "Alle {paid} boekingen in deze selectie komen uit betaald bereik, met {budget} budget.",
+      "noteOrganicOnly": "Alle {organic} boekingen in deze selectie komen uit vrij bereik, zonder budget."
+    },
+    "trend": {
+      "title": "Boekingen over tijd",
+      "subtitleDaily": "Boekingen per dag over de laatste 7 dagen.",
+      "subtitleWeekly": "Boekingen per week over de laatste {n} dagen.",
+      "tipDay": "{date}: {bookings} boekingen · {n} uitingen",
+      "tipWeek": "Week van {date}: {bookings} boekingen · {n} uitingen"
+    },
+    "scores": {
+      "sectionTitle": "Wat Filly ervan leert",
+      "title": "Score per uiting",
+      "subtitle": "Elke uiting krijgt 14 dagen na plaatsing een score van 0 tot 100 en een oordeel.",
+      "winner": "Sterk",
+      "average": "Gemiddeld",
+      "underperformer": "Onder verwachting",
+      "pending": "Nog geen oordeel",
+      "noneScored": "Nog geen uiting in deze selectie is 14 dagen oud, dus er is nog niets beoordeeld. Dat is het meet-window.",
+      "noteConversion": "Bij {n} van de {total} beoordeelde uitingen is de score gebaseerd op boekingen ten opzichte van je eigen gemiddelde, omdat het platform het bereik nog niet doorgeeft. Zodra die cijfers binnenkomen rekent Filly met bereik, doorkliks én boekingen."
+    },
+    "table": {
+      "title": "Per uiting",
+      "subtitle": "Alle cijfers achter de grafieken. {n} uitingen in deze selectie.",
+      "empty": "Geen uitingen in deze selectie.",
+      "thName": "Uiting",
+      "thChannel": "Kanaal",
+      "thDate": "Datum",
+      "thKind": "Soort",
+      "thReach": "Bereik",
+      "thClicks": "Doorkliks",
+      "thBookings": "Boekingen",
+      "thRevenue": "Omzet",
+      "thBudget": "Budget",
+      "thPerBooking": "Per boeking",
+      "thVerdict": "Oordeel"
     }
   },
   "dash_reserveringen_page": {
