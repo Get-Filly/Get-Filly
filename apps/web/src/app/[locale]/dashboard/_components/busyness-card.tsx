@@ -68,6 +68,24 @@ function barPath(x: number, y: number, w: number, h: number, radius: number): st
   );
 }
 
+/** Catmull-Rom naar cubic bezier: vloeiende curve door de punten. */
+function smoothPath(points: { x: number; y: number }[]): string {
+  if (points.length < 2) return "";
+  const f = (n: number) => n.toFixed(2);
+  let d = `M${f(points[0].x)},${f(points[0].y)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? p2;
+    d +=
+      ` C${f(p1.x + (p2.x - p0.x) / 6)},${f(p1.y + (p2.y - p0.y) / 6)}` +
+      ` ${f(p2.x - (p3.x - p1.x) / 6)},${f(p2.y - (p3.y - p1.y) / 6)}` +
+      ` ${f(p2.x)},${f(p2.y)}`;
+  }
+  return d;
+}
+
 type Bar = {
   key: string;
   iso: string | null; // gezet op dag-staven: klikbaar
@@ -499,6 +517,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const X = (i: number) => L + slot * (i + 0.5);
   const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
 
+  const expectedLine = smoothPath(bars.map((b, i) => ({ x: X(i), y: Y(b.expected) })));
+
   const markerIndex = bars.findIndex((b) =>
     view === "dag"
       ? focusChance
@@ -660,7 +680,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 const x = X(i) - bw / 2;
                 const ay = Y(b.value);
                 const ah = Math.max(2, T + ph - ay);
-                const ey = Y(b.expected);
                 const roomTop = b.normal !== null ? Y(b.normal) : null;
                 const hasRoom = roomTop !== null && ay - roomTop > 3;
                 return (
@@ -680,21 +699,38 @@ export function BusynessCard({ onMakeConcept }: Props) {
                       d={barPath(x, ay, bw, ah, hasRoom ? 0 : 5)}
                       fill={b.measured ? "var(--bzv-act)" : "var(--bzv-exp)"}
                     />
-                    {b.measured && (
-                      <line
-                        x1={x - 7}
-                        y1={ey}
-                        x2={x + bw + 7}
-                        y2={ey}
-                        stroke="var(--bzv-ink)"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    )}
                   </g>
                 );
               })}
+
+              {/* De verwachting als één doorlopende lijn. Waar nog niets
+                  gemeten is volgt de staaf de lijn: dan is de verwachting
+                  alles wat we hebben. Zodra er gemeten is wijkt de staaf af.
+                  Het lichte spoor eronder houdt de lijn leesbaar waar hij
+                  over een donkere staaf loopt. */}
+              {bars.length > 1 && (
+                <g aria-hidden="true">
+                  <path
+                    d={expectedLine}
+                    fill="none"
+                    stroke="var(--white)"
+                    strokeWidth="5"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    opacity="0.5"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <path
+                    d={expectedLine}
+                    fill="none"
+                    stroke="var(--bzv-ink)"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </g>
+              )}
 
               {markerIndex >= 0 && (
                 <g aria-hidden="true">
@@ -789,7 +825,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           </div>
 
           <p className="bzv-foot">
-            {t("footLine")}
+            {t("footLine")} {t("footFuture")}
             {view !== "dag" && ` ${t("footClick")}`}
           </p>
         </div>
