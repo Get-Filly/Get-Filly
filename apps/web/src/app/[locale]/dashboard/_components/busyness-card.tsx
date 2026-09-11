@@ -38,8 +38,8 @@ import {
 import {
   buildDays,
   dayLevelIndex,
-  dayLevels,
   daypartOf,
+  mondayOfWeek,
   normalForWindow,
   occupancyMap,
   weekdayCurves,
@@ -225,12 +225,41 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const focusChance = chanceByDate.get(focus?.iso ?? "") ?? null;
   const chancesInPeriod = days.filter((d) => chanceByDate.has(d.iso)).length;
 
-  // ---------- normaal-niveaus ----------
+  // ---------- schaal en normaal-niveaus ----------
+  // De meetlat hoort bij de zaak, niet bij wat je aanklikt. Hij komt daarom
+  // uit een vaste referentieweek (deze week, ma t/m zo) op het patroon, en
+  // niet uit de openingstijden van de gekozen dag. Anders verspringt de hele
+  // grafiek zodra je een dag met andere openingstijden aanklikt.
   const curves = useMemo(() => weekdayCurves(pattern), [pattern]);
-  const levels = useMemo(
-    () => dayLevels(curves, focus?.openHour ?? 9, focus?.closeHour ?? 22),
-    [curves, focus?.openHour, focus?.closeHour],
-  );
+  const levels = useMemo(() => {
+    const monday = mondayOfWeek(today);
+    const ref = buildDays(
+      Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
+      new Map<string, number>(),
+      restaurant,
+      threshold,
+      todayIso,
+      pattern,
+      busynessHours,
+      null,
+    );
+    // Per weekdag het verwachte dagniveau, elk over zijn eigen open uren.
+    const perDay = ref.map((d) => {
+      let sum = 0;
+      let n = 0;
+      for (let h = d.openHour; h <= d.closeHour; h++) {
+        sum += d.hours[h];
+        n++;
+      }
+      return n ? sum / n : 0;
+    });
+    const sorted = perDay.slice().sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return {
+      peak: Math.max(...perDay, 1),
+      normal: sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
+    };
+  }, [today, restaurant, threshold, todayIso, pattern, busynessHours]);
 
   /** Gemeten uren van een dag; vandaag knipt op het huidige uur. */
   const measuredHours = useCallback(
@@ -497,7 +526,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const slot = pw / n;
   const bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
   const X = (i: number) => L + slot * (i + 0.5);
-  const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
+  // Tot 115 zodat een dag die drukker was dan je drukste verwachte dag er
+  // ook echt bovenuit kan steken in plaats van tegen het plafond te plakken.
+  const Y_MAX = 115;
+  const Y = (v: number) => T + ph - (Math.max(0, Math.min(Y_MAX, v)) / Y_MAX) * ph;
 
   const markerIndex = bars.findIndex((b) =>
     view === "dag"
