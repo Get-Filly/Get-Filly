@@ -131,8 +131,7 @@ export async function ZichtbaarheidVisual() {
         </article>
       </div>
 
-      {/* YouTube — rechts-onder (foto: nog te vervangen, staat nu op een
-          kopie van facebook.jpg tot Floris een 4e beeld aanlevert) */}
+      {/* YouTube — rechts-onder (foto: geroosterd rack met vijgen) */}
       <div className="lv-post-slot lv-post-4" data-reveal>
         <article className="lv-post">
           <div className="lv-post-head">
