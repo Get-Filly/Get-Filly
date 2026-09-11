@@ -496,6 +496,9 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const n = Math.max(1, bars.length);
   const slot = pw / n;
   const bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
+  // Het streepje boven verwachting steekt buiten de staaf uit zodat het als
+  // merkteken leest, maar nooit zo ver dat het de buurstaaf raakt.
+  const markOver = Math.min(6, Math.max(1.5, (slot - bw) / 2 - 1.5));
   const X = (i: number) => L + slot * (i + 0.5);
   const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
 
@@ -606,10 +609,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 {t("legendPredicted")}
               </span>
               <span>
-                <i className="bzv-sw line" />
-                {t("legendExpectedLevel")}
-              </span>
-              <span>
                 <i className="bzv-sw room" />
                 {t("legendRoom")}
               </span>
@@ -656,13 +655,21 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 {t("axisQuiet")}
               </text>
 
+              {/* De staaf is de verwachting, in mid-groen. Is er gemeten, dan
+                  vult donkergroen hem van onderaf: blijft het donker onder de
+                  bovenkant, dan viel het lager uit dan verwacht. Kwam er meer,
+                  dan loopt het donker erbovenuit en markeert een mid-groen
+                  streepje waar de verwachting lag. */}
               {bars.map((b, i) => {
                 const x = X(i) - bw / 2;
+                const ey = Y(b.expected);
+                const eh = Math.max(2, T + ph - ey);
                 const ay = Y(b.value);
                 const ah = Math.max(2, T + ph - ay);
-                const ey = Y(b.expected);
+                const over = b.measured && ay < ey - 1.5;
+                const top = Math.min(ey, ay);
                 const roomTop = b.normal !== null ? Y(b.normal) : null;
-                const hasRoom = roomTop !== null && ay - roomTop > 3;
+                const hasRoom = roomTop !== null && top - roomTop > 3;
                 return (
                   <g
                     key={b.key}
@@ -674,20 +681,29 @@ export function BusynessCard({ onMakeConcept }: Props) {
                       <rect x={L + slot * i} y={T} width={slot} height={ph} fill="transparent" />
                     )}
                     {hasRoom && (
-                      <path d={barPath(x, roomTop!, bw, ay - roomTop!, 5)} fill="var(--bzv-room)" />
+                      <path d={barPath(x, roomTop!, bw, top - roomTop!, 5)} fill="var(--bzv-room)" />
                     )}
+                    {/* verwachting */}
                     <path
-                      d={barPath(x, ay, bw, ah, hasRoom ? 0 : 5)}
-                      fill={b.measured ? "var(--bzv-act)" : "var(--bzv-exp)"}
+                      d={barPath(x, ey, bw, eh, hasRoom || over ? 0 : 5)}
+                      fill="var(--bzv-exp)"
                     />
+                    {/* werkelijk, vult van onderaf */}
                     {b.measured && (
+                      <path
+                        d={barPath(x, ay, bw, ah, over && !hasRoom ? 5 : 0)}
+                        fill="var(--bzv-act)"
+                      />
+                    )}
+                    {/* boven verwachting: markeer waar de verwachting lag */}
+                    {over && (
                       <line
-                        x1={x - 7}
+                        x1={x - markOver}
                         y1={ey}
-                        x2={x + bw + 7}
+                        x2={x + bw + markOver}
                         y2={ey}
-                        stroke="var(--bzv-ink)"
-                        strokeWidth="2.4"
+                        stroke="var(--bzv-exp)"
+                        strokeWidth="3"
                         strokeLinecap="round"
                         vectorEffect="non-scaling-stroke"
                       />
