@@ -38,9 +38,7 @@ import {
 import {
   buildDays,
   dayLevelIndex,
-  dayLevels,
-  daypartOf,
-  normalForWindow,
+  mondayOfWeek,
   occupancyMap,
   weekdayCurves,
   addDays,
@@ -76,7 +74,6 @@ type Bar = {
   expected: number; // 0-100
   measured: boolean;
   kans: boolean;
-  normal: number | null; // bovenkant van het lichte blok
   label: string;
   sub: string | null;
   isToday: boolean;
@@ -225,12 +222,41 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const focusChance = chanceByDate.get(focus?.iso ?? "") ?? null;
   const chancesInPeriod = days.filter((d) => chanceByDate.has(d.iso)).length;
 
-  // ---------- normaal-niveaus ----------
+  // ---------- schaal en normaal-niveaus ----------
+  // De meetlat hoort bij de zaak, niet bij wat je aanklikt. Hij komt daarom
+  // uit een vaste referentieweek (deze week, ma t/m zo) op het patroon, en
+  // niet uit de openingstijden van de gekozen dag. Anders verspringt de hele
+  // grafiek zodra je een dag met andere openingstijden aanklikt.
   const curves = useMemo(() => weekdayCurves(pattern), [pattern]);
-  const levels = useMemo(
-    () => dayLevels(curves, focus?.openHour ?? 9, focus?.closeHour ?? 22),
-    [curves, focus?.openHour, focus?.closeHour],
-  );
+  const levels = useMemo(() => {
+    const monday = mondayOfWeek(today);
+    const ref = buildDays(
+      Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
+      new Map<string, number>(),
+      restaurant,
+      threshold,
+      todayIso,
+      pattern,
+      busynessHours,
+      null,
+    );
+    // Per weekdag het verwachte dagniveau, elk over zijn eigen open uren.
+    const perDay = ref.map((d) => {
+      let sum = 0;
+      let n = 0;
+      for (let h = d.openHour; h <= d.closeHour; h++) {
+        sum += d.hours[h];
+        n++;
+      }
+      return n ? sum / n : 0;
+    });
+    const sorted = perDay.slice().sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return {
+      peak: Math.max(...perDay, 1),
+      normal: sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
+    };
+  }, [today, restaurant, threshold, todayIso, pattern, busynessHours]);
 
   /** Gemeten uren van een dag; vandaag knipt op het huidige uur. */
   const measuredHours = useCallback(
@@ -310,7 +336,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
       const out: Bar[] = [];
       for (let h = d.openHour; h <= d.closeHour; h++) {
         const isKans = !!ch && h >= ch.fromHour && h <= ch.toHour;
-        const part = daypartOf(h);
         out.push({
           key: `h${h}`,
           iso: null,
@@ -319,7 +344,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
           expected: d.hours[h],
           measured: meas.has(h),
           kans: isKans,
-          normal: isKans && part ? normalForWindow(curves, part.from, part.to - 1) : null,
           label: `${pad(h)}:00`,
           sub: null,
           isToday: false,
@@ -340,7 +364,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
         expected: dayIndex(d, true),
         measured: meas.size > 0,
         kans: !!ch,
-        normal: ch ? dayLevelIndex(levels.normal, levels.peak) : null,
         label:
           view === "week"
             ? shortWd.format(d.date).replace(".", "")
@@ -363,9 +386,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
     view,
     measuredHours,
     chanceByDate,
-    curves,
     dayIndex,
-    levels,
     shortWd,
     dayFull,
     todayIso,
@@ -496,11 +517,11 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const n = Math.max(1, bars.length);
   const slot = pw / n;
   const bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
-  // Het streepje boven verwachting steekt buiten de staaf uit zodat het als
-  // merkteken leest, maar nooit zo ver dat het de buurstaaf raakt.
-  const markOver = Math.min(6, Math.max(1.5, (slot - bw) / 2 - 1.5));
   const X = (i: number) => L + slot * (i + 0.5);
-  const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
+  // Tot 115 zodat een dag die drukker was dan je drukste verwachte dag er
+  // ook echt bovenuit kan steken in plaats van tegen het plafond te plakken.
+  const Y_MAX = 115;
+  const Y = (v: number) => T + ph - (Math.max(0, Math.min(Y_MAX, v)) / Y_MAX) * ph;
 
   const markerIndex = bars.findIndex((b) =>
     view === "dag"
@@ -599,23 +620,27 @@ export function BusynessCard({ onMakeConcept }: Props) {
             <span className="bzv-chart-t">
               {view === "dag" ? t("chartPerHour") : t("chartPerDay")}
             </span>
+            {/* Alleen uitleggen wat er in beeld staat: een legenda die dingen
+                benoemt die je nergens ziet, is ruis. */}
             <div className="bzv-legend">
-              <span>
-                <i className="bzv-sw act" />
-                {t("legendMeasured")}
-              </span>
-              <span>
-                <i className="bzv-sw exp" />
-                {t("legendPredicted")}
-              </span>
-              <span>
-                <i className="bzv-sw room" />
-                {t("legendRoom")}
-              </span>
-              <span>
-                <b className="bzv-star">★</b>
-                {t("legendChance")}
-              </span>
+              {bars.some((b) => b.measured) && (
+                <span>
+                  <i className="bzv-sw act" />
+                  {t("legendMeasured")}
+                </span>
+              )}
+              {bars.some((b) => !b.measured || b.expected > b.value) && (
+                <span>
+                  <i className="bzv-sw exp" />
+                  {t("legendPredicted")}
+                </span>
+              )}
+              {bars.some((b) => b.kans) && (
+                <span>
+                  <b className="bzv-star">★</b>
+                  {t("legendChance")}
+                </span>
+              )}
             </div>
           </div>
 
@@ -666,10 +691,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 const eh = Math.max(2, T + ph - ey);
                 const ay = Y(b.value);
                 const ah = Math.max(2, T + ph - ay);
-                const over = b.measured && ay < ey - 1.5;
-                const top = Math.min(ey, ay);
-                const roomTop = b.normal !== null ? Y(b.normal) : null;
-                const hasRoom = roomTop !== null && top - roomTop > 3;
+                // Boven verwachting: de staaf loopt door boven de verwachte
+                // hoogte. Een spleet van 3px markeert waar die lag, zodat we
+                // er geen horizontale lijn overheen hoeven te leggen.
+                const over = b.measured && ay < ey - 5;
                 return (
                   <g
                     key={b.key}
@@ -680,33 +705,28 @@ export function BusynessCard({ onMakeConcept }: Props) {
                     {b.iso && (
                       <rect x={L + slot * i} y={T} width={slot} height={ph} fill="transparent" />
                     )}
-                    {hasRoom && (
-                      <path d={barPath(x, roomTop!, bw, top - roomTop!, 5)} fill="var(--bzv-room)" />
-                    )}
                     {/* verwachting */}
                     <path
-                      d={barPath(x, ey, bw, eh, hasRoom || over ? 0 : 5)}
+                      d={barPath(x, ey, bw, eh, over ? 0 : 5)}
                       fill="var(--bzv-exp)"
                     />
-                    {/* werkelijk, vult van onderaf */}
-                    {b.measured && (
-                      <path
-                        d={barPath(x, ay, bw, ah, over && !hasRoom ? 5 : 0)}
-                        fill="var(--bzv-act)"
-                      />
+                    {/* werkelijk, vult van onderaf. Boven verwachting valt de
+                        staaf in tweeën: tot de verwachte hoogte, en het
+                        overschot erboven, met een spleet ertussen. */}
+                    {b.measured && !over && (
+                      <path d={barPath(x, ay, bw, ah, 0)} fill="var(--bzv-act)" />
                     )}
-                    {/* boven verwachting: markeer waar de verwachting lag */}
-                    {over && (
-                      <line
-                        x1={x - markOver}
-                        y1={ey}
-                        x2={x + bw + markOver}
-                        y2={ey}
-                        stroke="var(--bzv-exp)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        vectorEffect="non-scaling-stroke"
-                      />
+                    {b.measured && over && (
+                      <>
+                        <path
+                          d={barPath(x, ey + 3, bw, T + ph - ey - 3, 0)}
+                          fill="var(--bzv-act)"
+                        />
+                        <path
+                          d={barPath(x, ay, bw, ey - ay, 5)}
+                          fill="var(--bzv-act)"
+                        />
+                      </>
                     )}
                   </g>
                 );

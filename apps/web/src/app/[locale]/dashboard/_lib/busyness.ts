@@ -394,19 +394,11 @@ export function normalForWindow(curves: number[][], from: number, to: number): n
   return medianOf(curves.map((c) => windowMean(c, from, to)));
 }
 
-/** Dagniveau van een weekdagcurve, als index waarin 100 = je drukste dag. */
+/** Dagniveau van een weekdagcurve, als index waarin 100 = je drukste dag.
+ *  Mag boven de 100 uitkomen: een dag kan drukker zijn geweest dan je
+ *  drukste verwachte dag, en dat moet je kunnen zien. */
 export function dayLevelIndex(level: number, peak: number): number {
-  return peak > 0 ? Math.min(100, (level / peak) * 100) : 0;
-}
-
-/** Normaal en piek op dagniveau, over de open uren. */
-export function dayLevels(
-  curves: number[][],
-  openHour: number,
-  closeHour: number,
-): { normal: number; peak: number } {
-  const levels = curves.map((c) => windowMean(c, openHour, closeHour));
-  return { normal: medianOf(levels), peak: Math.max(...levels, 1) };
+  return peak > 0 ? Math.min(140, (level / peak) * 100) : 0;
 }
 
 /** Zelfde als buildWeek, maar voor een willekeurige reeks datums. */
