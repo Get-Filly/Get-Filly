@@ -1,16 +1,28 @@
 "use client";
 
 // ============================================================
-// BusynessCard — "Wanneer kan Filly je helpen"
+// BusynessCard — drukte per dag/week/maand, met kansen
 // ============================================================
-// Eén blok: week-navigatie, dag-strip met markers, en een dag-grafiek
-// (verwacht = grijs, werkelijk = groen). De x-as volgt de openingstijden
-// van het restaurant; de y-as heeft kopruimte zodat pieken niet tegen
-// het plafond plakken. De kaart spiegelt de Filly-chat ernaast: content
-// boven, scheidingslijn, en onderaan een volledige-breedte-actie op
-// dezelfde hoogte als de chat-invoer.
+// Dashboard v2 (2026-09). Verving de dag-strip met mini-lijntjes plus de
+// losse lijngrafiek door één staafgrafiek met een periode-schakelaar.
+//
+// De staaf:
+//   - donker  = gemeten (live-metingen uit busyness_snapshots)
+//   - licht   = nog voorspeld (het Google-patroon)
+//   - op gemeten staven ligt één horizontale lijn op de verwachte hoogte;
+//     erboven is beter dan verwacht, eronder is minder
+//   - lichtgroen blok bovenop = de ruimte tot je normale niveau, alleen op
+//     dagen/uren waar de backend een kans detecteert, met een ★ onder de staaf
+//
+// Waarom geen normaal-lijn op voorspelde staven: het Google-patroon is
+// tegelijk de voorspelling én "normaal voor dat uur", dus die staaf zou per
+// definitie zijn eigen lijn raken. Vooruitkijken kan alleen zijwaarts, en
+// daarom is "normaal" hier de mediaan van dat dagdeel over je weekdagen.
+//
+// De grafiek tekent in echte containerpixels (geen preserveAspectRatio=none),
+// anders rekt de tekst mee met de kaartbreedte.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
 import {
@@ -24,44 +36,53 @@ import {
   type Business,
 } from "@/lib/api";
 import {
-  buildWeek,
+  buildDays,
+  dayLevelIndex,
+  dayLevels,
+  daypartOf,
+  normalForWindow,
   occupancyMap,
-  mondayOfWeek,
+  weekdayCurves,
   addDays,
   isoOf,
   type DayBusyness,
 } from "../_lib/busyness";
 
-// Week-navigatie: vooruit een paar weken (de detectie kijkt 14 dagen vooruit).
-// Terug loopt tot begin dit jaar; die ondergrens (minOffset) wordt per render
-// uit de huidige datum berekend in de component.
-const MAX_OFFSET = 6;
+type View = "dag" | "week" | "maand";
 
-// Grijs = verwacht/voorspeld; groen = werkelijk (huisstijl-accent).
-const EXPECTED = "var(--tl)";
-// Y-as tekent tot 115 i.p.v. 100 → kopruimte, zodat de 100-piek niet op
-// de bovenrand plakt en je boven/onder gemiddeld kunt zien.
-const Y_MAX = 115;
+// Kansen worden een paar weken vooruit bepaald; daarbuiten tonen we alleen
+// het patroon. Spiegelt het venster waarmee de moments worden opgehaald.
+const HORIZON_DAYS = 21;
 
-function sparkPoints(arr: number[], open: number, close: number): string {
-  const vis = [];
-  for (let h = open; h <= close; h++) vis.push(arr[h]);
-  const n = vis.length;
-  return vis
-    .map((v, i) => {
-      const x = n > 1 ? (i / (n - 1)) * 100 : 50;
-      const y = 27 - (v / 100) * 24;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
-
-function formatDM(date: Date): string {
-  const d = String(date.getDate()).padStart(2, "0");
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  return `${d}/${m}`;
-}
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Staafpad: platte onderkant, ronde bovenkant alleen waar de staaf eindigt. */
+function barPath(x: number, y: number, w: number, h: number, radius: number): string {
+  const r = Math.max(0, Math.min(radius, w / 2, h));
+  const f = (n: number) => n.toFixed(1);
+  return (
+    `M${f(x)},${f(y + h)} L${f(x)},${f(y + r)} Q${f(x)},${f(y)} ${f(x + r)},${f(y)}` +
+    ` L${f(x + w - r)},${f(y)} Q${f(x + w)},${f(y)} ${f(x + w)},${f(y + r)}` +
+    ` L${f(x + w)},${f(y + h)} Z`
+  );
+}
+
+type Bar = {
+  key: string;
+  iso: string | null; // gezet op dag-staven: klikbaar
+  hour: number | null;
+  value: number; // 0-100
+  expected: number; // 0-100
+  measured: boolean;
+  kans: boolean;
+  normal: number | null; // bovenkant van het lichte blok
+  label: string;
+  sub: string | null;
+  isToday: boolean;
+  isFocus: boolean;
+  title: string;
+};
 
 type Props = {
   onMakeConcept?: (iso: string) => void;
@@ -73,36 +94,36 @@ export function BusynessCard({ onMakeConcept }: Props) {
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
   const [restaurant, setRestaurant] = useState<Business | null>(null);
-  // Echt Google-patroon (7x24) uit busyness_snapshots; null = terugval op seed.
   const [pattern, setPattern] = useState<number[][] | null>(null);
-  // Openingstijden uit de pull; sturen de grafiek-x-as (terugval na eigen tijden).
-  const [busynessHours, setBusynessHours] = useState<
-    Record<string, { open: string; close: string } | null> | null
-  >(null);
-  // Echte werkelijk-drukte per datum ([uur, pct]) uit de live-metingen.
-  const [actualByDate, setActualByDate] = useState<
-    Record<string, [number, number][]>
-  >({});
-  // Rustige momenten (dag + dagdeel) uit het model — zelfde bron als de chat +
-  // de auto-detectie. Voedt de ● marker en het gearceerde rustig-venster.
-  const [quiet, setQuiet] = useState<{
-    hasSource: boolean;
-    moments: QuietMoment[];
-  }>({ hasSource: false, moments: [] });
+  const [busynessHours, setBusynessHours] = useState<Record<
+    string,
+    { open: string; close: string } | null
+  > | null>(null);
+  const [actualByDate, setActualByDate] = useState<Record<string, [number, number][]>>({});
+  const [quiet, setQuiet] = useState<{ hasSource: boolean; moments: QuietMoment[] }>({
+    hasSource: false,
+    moments: [],
+  });
 
-  const today = useMemo(() => new Date(), []);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
   const todayIso = useMemo(() => isoOf(today), [today]);
-  const thisMonday = useMemo(() => mondayOfWeek(today), [today]);
+  const nowHour = useMemo(() => new Date().getHours(), []);
 
-  const [offset, setOffset] = useState(0);
-  const [col, setCol] = useState(() => (new Date().getDay() + 6) % 7);
+  const [view, setView] = useState<View>("week");
+  // Dag-weergave: de dag zelf. Week: de eerste dag van het rollende venster.
+  // Maand: een dag in die maand.
+  const [anchor, setAnchor] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [focusIso, setFocusIso] = useState<string | null>(null);
 
-  // Terug tot de week van 1 januari van dit jaar (negatief aantal weken).
-  const minOffset = useMemo(() => {
-    const jan = mondayOfWeek(new Date(today.getFullYear(), 0, 1));
-    return Math.round((jan.getTime() - thisMonday.getTime()) / (7 * 86400000));
-  }, [today, thisMonday]);
-
+  // ---------- data ----------
   useEffect(() => {
     let cancelled = false;
     const y = today.getFullYear();
@@ -129,11 +150,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
         setPattern(null);
         setBusynessHours(null);
       });
-    // Rustige momenten = vooruitkijkend (kansen); vast venster vanaf vandaag.
-    // Markers verschijnen dus alleen op komende dagen, ook als je terugbladert.
-    const qFrom = isoOf(today);
-    const qTo = isoOf(addDays(today, 21));
-    fetchQuietMoments(qFrom, qTo)
+    // Kansen zijn vooruitkijkend; vast venster vanaf vandaag.
+    fetchQuietMoments(isoOf(today), isoOf(addDays(today, HORIZON_DAYS)))
       .then((q) => !cancelled && setQuiet(q))
       .catch(() => !cancelled && setQuiet({ hasSource: false, moments: [] }));
     return () => {
@@ -141,27 +159,37 @@ export function BusynessCard({ onMakeConcept }: Props) {
     };
   }, [today]);
 
-  const realMap = useMemo(() => occupancyMap(occupancy), [occupancy]);
-  const threshold = restaurant?.low_occupancy_threshold ?? 50;
+  // ---------- periode ----------
+  const dates = useMemo<Date[]>(() => {
+    if (view === "dag") return [anchor];
+    if (view === "week") return Array.from({ length: 7 }, (_, i) => addDays(anchor, i));
+    const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
+    return Array.from(
+      { length: last },
+      (_, i) => new Date(anchor.getFullYear(), anchor.getMonth(), i + 1),
+    );
+  }, [view, anchor]);
 
-  const monday = useMemo(() => addDays(thisMonday, offset * 7), [thisMonday, offset]);
-
-  // Werkelijke drukte voor de zichtbare week; volgt de navigatie zodat eerdere
-  // weken hun gemeten data tonen (en niet alleen de week rond vandaag).
+  // Werkelijke drukte voor precies de zichtbare periode.
   useEffect(() => {
     let cancelled = false;
-    fetchBusynessActual(isoOf(monday), isoOf(addDays(monday, 6)))
+    const from = isoOf(dates[0]);
+    const to = isoOf(dates[dates.length - 1]);
+    fetchBusynessActual(from, to)
       .then((a) => !cancelled && setActualByDate(a))
       .catch(() => !cancelled && setActualByDate({}));
     return () => {
       cancelled = true;
     };
-  }, [monday]);
+  }, [dates]);
 
-  const week = useMemo(
+  const realMap = useMemo(() => occupancyMap(occupancy), [occupancy]);
+  const threshold = restaurant?.low_occupancy_threshold ?? 50;
+
+  const days = useMemo(
     () =>
-      buildWeek(
-        monday,
+      buildDays(
+        dates,
         realMap,
         restaurant,
         threshold,
@@ -170,368 +198,679 @@ export function BusynessCard({ onMakeConcept }: Props) {
         busynessHours,
         actualByDate,
       ),
-    [monday, realMap, restaurant, threshold, todayIso, pattern, busynessHours, actualByDate],
+    [dates, realMap, restaurant, threshold, todayIso, pattern, busynessHours, actualByDate],
   );
-  const day: DayBusyness = week[col] ?? week[0];
 
-  // Rustige momenten per datum. Bij een echt model (hasSource) sturen déze de
-  // ● marker + het venster; anders valt de kaart terug op het lokale
-  // buildDayBusyness-oordeel (isQuiet / quietWindow).
-  const quietByDate = useMemo(() => {
-    const m = new Map<string, QuietMoment[]>();
+  // Kans per datum: het dagdeel met de grootste vulbaarheid (gap).
+  const chanceByDate = useMemo(() => {
+    const m = new Map<string, QuietMoment>();
     for (const q of quiet.moments) {
-      const arr = m.get(q.date) ?? [];
-      arr.push(q);
-      m.set(q.date, arr);
+      const cur = m.get(q.date);
+      if (!cur || q.gap > cur.gap) m.set(q.date, q);
     }
     return m;
   }, [quiet]);
-  const dayHasQuiet = (d: DayBusyness) =>
-    quiet.hasSource ? quietByDate.has(d.iso) : d.isQuiet;
 
-  const shortWd = useMemo(() => new Intl.DateTimeFormat(localeTag, { weekday: "short" }), [localeTag]);
-  const longWd = useMemo(() => new Intl.DateTimeFormat(localeTag, { weekday: "long" }), [localeTag]);
-  const rangeFmt = useMemo(
+  const focus = useMemo<DayBusyness>(() => {
+    if (view === "dag") return days[0];
+    const chosen = days.find((d) => d.iso === focusIso);
+    if (chosen) return chosen;
+    const withChance = days
+      .filter((d) => chanceByDate.has(d.iso))
+      .sort((a, b) => (chanceByDate.get(b.iso)!.gap ?? 0) - (chanceByDate.get(a.iso)!.gap ?? 0));
+    if (withChance.length) return withChance[0];
+    return days.find((d) => d.iso === todayIso) ?? days[0];
+  }, [view, days, focusIso, chanceByDate, todayIso]);
+
+  const focusChance = chanceByDate.get(focus?.iso ?? "") ?? null;
+  const chancesInPeriod = days.filter((d) => chanceByDate.has(d.iso)).length;
+
+  // ---------- normaal-niveaus ----------
+  const curves = useMemo(() => weekdayCurves(pattern), [pattern]);
+  const levels = useMemo(
+    () => dayLevels(curves, focus?.openHour ?? 9, focus?.closeHour ?? 22),
+    [curves, focus?.openHour, focus?.closeHour],
+  );
+
+  /** Gemeten uren van een dag; vandaag knipt op het huidige uur. */
+  const measuredHours = useCallback(
+    (d: DayBusyness): Map<number, number> => {
+      const m = new Map<number, number>();
+      if (d.timeframe === "future") return m;
+      const cut = d.timeframe === "today" ? nowHour : 23;
+      if (d.actualPoints) {
+        for (const [h, pct] of d.actualPoints) if (h <= cut) m.set(h, pct);
+      } else if (d.actual) {
+        for (let h = d.openHour; h <= Math.min(d.closeHour, cut); h++) m.set(h, d.actual[h]);
+      }
+      return m;
+    },
+    [nowHour],
+  );
+
+  /** Staat deze weekdag bij de twee stilste van je week? */
+  const weekdayQuiet = useMemo(() => {
+    if (!focus) return false;
+    const mean = (c: number[]) => {
+      let sum = 0;
+      let n = 0;
+      for (let h = focus.openHour; h <= focus.closeHour; h++) {
+        sum += c[h] ?? 0;
+        n++;
+      }
+      return n ? sum / n : 0;
+    };
+    const mine = mean(curves[focus.colMon]);
+    return curves.map(mean).filter((v) => v < mine).length <= 1;
+  }, [curves, focus]);
+
+  /** Dagniveau als index (100 = je drukste dag), gemeten waar het kan. */
+  const dayIndex = useCallback(
+    (d: DayBusyness, expectedOnly = false): number => {
+      const meas = expectedOnly ? new Map<number, number>() : measuredHours(d);
+      let sum = 0;
+      let n = 0;
+      for (let h = d.openHour; h <= d.closeHour; h++) {
+        sum += meas.get(h) ?? d.hours[h];
+        n++;
+      }
+      return dayLevelIndex(n ? sum / n : 0, levels.peak);
+    },
+    [measuredHours, levels.peak],
+  );
+
+  // ---------- staven ----------
+  const shortWd = useMemo(
+    () => new Intl.DateTimeFormat(localeTag, { weekday: "short" }),
+    [localeTag],
+  );
+  const longWd = useMemo(
+    () => new Intl.DateTimeFormat(localeTag, { weekday: "long" }),
+    [localeTag],
+  );
+  const dayMonth = useMemo(
     () => new Intl.DateTimeFormat(localeTag, { day: "numeric", month: "short" }),
     [localeTag],
   );
-  const monthYearFmt = useMemo(
+  const monthYear = useMemo(
     () => new Intl.DateTimeFormat(localeTag, { month: "long", year: "numeric" }),
     [localeTag],
   );
+  const dayFull = useMemo(
+    () => new Intl.DateTimeFormat(localeTag, { weekday: "long", day: "numeric", month: "short" }),
+    [localeTag],
+  );
 
-  const weekLabel = `${rangeFmt.format(week[0].date)} - ${rangeFmt.format(week[6].date)}`;
-  // Dichtbij: deze/vorige/volgende week. Verder weg: maand + jaar voor context.
-  const weekSub =
-    offset === 0
-      ? t("subThis")
-      : offset === -1
-        ? t("subPrev")
-        : offset === 1
-          ? t("subNext")
-          : monthYearFmt.format(week[0].date);
-
-  const isFuture = day.timeframe === "future";
-  const tfLabel =
-    day.timeframe === "today" ? t("tfToday") : isFuture ? t("tfFuture") : t("tfPast");
-
-  let note: string;
-  if (day.special && !isFuture) note = t("noteSpecialPast", { name: day.special.name });
-  else if (day.special && isFuture) note = t("noteSpecialFuture", { name: day.special.name });
-  else if (dayHasQuiet(day)) note = t("noteKans");
-  else note = t("noteNoKans");
-
-  // Zichtbare uren volgen de openingstijden.
-  const vis = useMemo(() => {
-    const arr: number[] = [];
-    for (let h = day.openHour; h <= day.closeHour; h++) arr.push(h);
-    return arr;
-  }, [day.openHour, day.closeHour]);
-  const N = vis.length;
-  const xPct = (i: number) => (N > 1 ? (i / (N - 1)) * 100 : 50);
-  const yPct = (v: number) => (1 - v / Y_MAX) * 100;
-  // Punten als {x,y} voor de gladde curve (smoothPath) i.p.v. een hoekige
-  // polyline. Gebruikt voor de verwacht-lijn en de seed-werkelijk-lijn.
-  const linePoints = (arr: number[]) =>
-    vis.map((h, i) => ({ x: xPct(i), y: yPct(arr[h]) }));
-  // Lichte 5-punts gladstrijking (midden zwaarst) binnen de open uren, zodat de
-  // verwacht-lijn vloeiend loopt i.p.v. elke uur-sprong te volgen — net als de
-  // werkelijk-lijn. Buren buiten het open bereik tellen niet mee (geen
-  // kunstmatige dip aan de randen). Puur visueel; de detectie blijft op de ruwe
-  // waarden draaien.
-  const smoothVisible = (arr: number[]): number[] => {
-    const out = arr.slice();
-    for (const h of vis) {
-      let s = 0;
-      let w = 0;
-      for (const [dh, wt] of [
-        [-2, 1],
-        [-1, 2],
-        [0, 3],
-        [1, 2],
-        [2, 1],
-      ] as const) {
-        const nb = h + dh;
-        if (nb >= day.openHour && nb <= day.closeHour) {
-          s += arr[nb] * wt;
-          w += wt;
-        }
+  const bars = useMemo<Bar[]>(() => {
+    if (!days.length) return [];
+    if (view === "dag") {
+      const d = days[0];
+      const meas = measuredHours(d);
+      const ch = chanceByDate.get(d.iso) ?? null;
+      const out: Bar[] = [];
+      for (let h = d.openHour; h <= d.closeHour; h++) {
+        const isKans = !!ch && h >= ch.fromHour && h <= ch.toHour;
+        const part = daypartOf(h);
+        out.push({
+          key: `h${h}`,
+          iso: null,
+          hour: h,
+          value: meas.get(h) ?? d.hours[h],
+          expected: d.hours[h],
+          measured: meas.has(h),
+          kans: isKans,
+          normal: isKans && part ? normalForWindow(curves, part.from, part.to - 1) : null,
+          label: `${pad(h)}:00`,
+          sub: null,
+          isToday: false,
+          isFocus: false,
+          title: `${pad(h)}:00 · ${meas.has(h) ? t("legendMeasured") : t("legendPredicted")}`,
+        });
       }
-      out[h] = w ? s / w : arr[h];
+      return out;
     }
-    return out;
-  };
-  // Echte gemeten punten (real-modus): uur → x (index binnen open bereik),
-  // pct → y. Alleen uren binnen de zichtbare openingsuren.
-  const actualDots = (pairs: [number, number][]) =>
-    pairs
-      .filter(([h]) => h >= day.openHour && h <= day.closeHour)
-      .map(([h, pct]) => ({ x: xPct(h - day.openHour), y: yPct(pct) }));
+    return days.map((d) => {
+      const ch = chanceByDate.get(d.iso) ?? null;
+      const meas = measuredHours(d);
+      return {
+        key: d.iso,
+        iso: d.iso,
+        hour: null,
+        value: dayIndex(d),
+        expected: dayIndex(d, true),
+        measured: meas.size > 0,
+        kans: !!ch,
+        normal: ch ? dayLevelIndex(levels.normal, levels.peak) : null,
+        label:
+          view === "week"
+            ? shortWd.format(d.date).replace(".", "")
+            : String(d.date.getDate()),
+        sub:
+          view === "week"
+            ? d.iso === todayIso
+              ? t("today").toLowerCase()
+              : `${pad(d.date.getDate())}/${pad(d.date.getMonth() + 1)}`
+            : null,
+        isToday: d.iso === todayIso,
+        isFocus: d.iso === focus?.iso,
+        title: `${cap(dayFull.format(d.date))} · ${
+          ch ? t("titleChance", { part: ch.daypartLabel }) : t("titleNoChance")
+        }`,
+      };
+    });
+  }, [
+    days,
+    view,
+    measuredHours,
+    chanceByDate,
+    curves,
+    dayIndex,
+    levels,
+    shortWd,
+    dayFull,
+    todayIso,
+    focus?.iso,
+    t,
+  ]);
 
-  // Vloeiende curve (Catmull-Rom → cubic bezier) door de punten, zodat de
-  // werkelijk-lijn een gladde lijn wordt i.p.v. hoekige rechte stukjes.
-  const smoothPath = (p: { x: number; y: number }[]): string => {
-    if (p.length < 2) return "";
-    const f = (n: number) => n.toFixed(2);
-    let d = `M${f(p[0].x)},${f(p[0].y)}`;
-    for (let i = 0; i < p.length - 1; i++) {
-      const p0 = p[i - 1] ?? p[i];
-      const p1 = p[i];
-      const p2 = p[i + 1];
-      const p3 = p[i + 2] ?? p2;
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2.x)},${f(p2.y)}`;
+  // ---------- grafiek-afmetingen in echte pixels ----------
+  const plotRef = useRef<HTMLDivElement | null>(null);
+  const [box, setBox] = useState({ w: 720, h: 230 });
+  useEffect(() => {
+    const el = plotRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let pending = false;
+    const ro = new ResizeObserver(() => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        if (!plotRef.current) return;
+        setBox({
+          w: Math.max(320, Math.round(plotRef.current.clientWidth)),
+          h: Math.max(150, Math.round(plotRef.current.clientHeight)),
+        });
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // ---------- navigatie ----------
+  function shift(step: number) {
+    setFocusIso(null);
+    setAnchor((a) => {
+      if (view === "dag") return addDays(a, step);
+      if (view === "week") return addDays(a, 7 * step);
+      return new Date(a.getFullYear(), a.getMonth() + step, 1);
+    });
+  }
+  function switchView(next: View) {
+    if ((next === "dag" || next === "week") && focus) setAnchor(new Date(focus.date));
+    setView(next);
+  }
+  // Eerste klik kiest een staaf, tweede klik opent die dag per uur.
+  function onBarClick(iso: string) {
+    if (focus?.iso === iso) {
+      setAnchor(new Date(`${iso}T00:00:00`));
+      setView("dag");
+      return;
     }
-    return d;
-  };
+    setFocusIso(iso);
+  }
 
-  const ticks = useMemo(() => {
-    const step = N <= 9 ? 2 : N <= 15 ? 3 : 4;
-    const out: number[] = [];
-    for (let i = 0; i < N; i += step) out.push(i);
-    if (out[out.length - 1] !== N - 1) out.push(N - 1);
-    return out;
-  }, [N]);
+  if (!days.length || !focus) return null;
 
-  // Rustig-venster: bij een echt model het dagdeel-venster van de gedetecteerde
-  // momenten op deze dag; anders het lokale quietWindow (terugval).
-  const qmWindow: [number, number] | null = quiet.hasSource
-    ? quietByDate.has(day.iso)
-      ? [
-          Math.min(...quietByDate.get(day.iso)!.map((m) => m.fromHour)),
-          Math.max(...quietByDate.get(day.iso)!.map((m) => m.toHour)),
-        ]
-      : null
-    : day.quiet;
-  const band =
-    qmWindow && qmWindow[1] >= day.openHour && qmWindow[0] <= day.closeHour
-      ? {
-          x0: xPct(Math.max(0, qmWindow[0] - day.openHour)),
-          x1: xPct(Math.min(N - 1, qmWindow[1] - day.openHour)),
-        }
-      : null;
+  // ---------- kop-teksten ----------
+  const rangeLabel =
+    view === "dag"
+      ? cap(dayFull.format(focus.date))
+      : view === "week"
+        ? `${dayMonth.format(days[0].date)} – ${dayMonth.format(days[days.length - 1].date)}`
+        : cap(monthYear.format(anchor));
+  const rangeNote =
+    view === "dag"
+      ? focus.iso === todayIso
+        ? t("today").toLowerCase()
+        : focus.timeframe === "past"
+          ? t("tfPast").toLowerCase()
+          : ""
+      : view === "week"
+        ? days[0].iso === todayIso
+          ? t("subNext7")
+          : ""
+        : anchor.getMonth() === today.getMonth() && anchor.getFullYear() === today.getFullYear()
+          ? t("subThisMonth")
+          : "";
+
+  const beyondHorizon = days.every(
+    (d) => Math.round((d.date.getTime() - today.getTime()) / 86400000) > HORIZON_DAYS,
+  );
+  const periodWord = view === "week" ? t("periodWeek") : t("periodMonth");
+
+  let insightTitle: string;
+  let insightSub: string;
+  if (focusChance) {
+    const who = view === "week" && focus.iso === todayIso
+      ? cap(longWd.format(focus.date))
+      : cap(dayFull.format(focus.date));
+    const bestIso = days
+      .filter((d) => chanceByDate.has(d.iso))
+      .sort((a, b) => chanceByDate.get(b.iso)!.gap - chanceByDate.get(a.iso)!.gap)[0]?.iso;
+    const isBest = view !== "dag" && chancesInPeriod > 1 && focus.iso === bestIso;
+    insightTitle = isBest
+      ? t("insBiggest", { day: who, part: focusChance.daypartLabel, period: periodWord })
+      : t("insChance", { day: who, part: focusChance.daypartLabel });
+    const window = `${pad(focusChance.fromHour)}:00–${pad(focusChance.toHour + 1)}:00`;
+    const parts = [window, t("insQuieter", { part: focusChance.daypartLabel })];
+    if (chancesInPeriod > 1) {
+      parts.push(t("insMore", { count: chancesInPeriod - 1, period: periodWord }));
+    }
+    if (focus.special) parts.push(`★ ${focus.special.name}`);
+    insightSub = parts.join("  ·  ");
+  } else if (beyondHorizon && view !== "dag") {
+    insightTitle = t("insTooFar");
+    insightSub = t("insTooFarSub", { days: HORIZON_DAYS });
+  } else {
+    insightTitle = t("insFullEnough", { day: cap(dayFull.format(focus.date)) });
+    const best = days
+      .filter((d) => chanceByDate.has(d.iso))
+      .sort((a, b) => chanceByDate.get(b.iso)!.gap - chanceByDate.get(a.iso)!.gap)[0];
+    insightSub = best
+      ? t("insBestElsewhere", {
+          day: `${shortWd.format(best.date).replace(".", "")} ${dayMonth.format(best.date)}`,
+          part: chanceByDate.get(best.iso)!.daypartLabel,
+        })
+      : t("insAllNormal");
+  }
+
+  // ---------- geometrie ----------
+  const W = box.w;
+  const H = box.h;
+  const L = 44;
+  const R = 14;
+  const T = 34;
+  const B = view === "week" ? 54 : view === "dag" ? 30 : 40;
+  const pw = W - L - R;
+  const ph = Math.max(40, H - T - B);
+  const n = Math.max(1, bars.length);
+  const slot = pw / n;
+  const bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
+  const X = (i: number) => L + slot * (i + 0.5);
+  const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
+
+  const markerIndex = bars.findIndex((b) =>
+    view === "dag"
+      ? focusChance
+        ? b.hour === Math.round((focusChance.fromHour + focusChance.toHour) / 2)
+        : focus.iso === todayIso && b.hour === nowHour
+      : b.isFocus,
+  );
+  const markerText =
+    view === "dag"
+      ? focusChance
+        ? focusChance.daypartLabel
+        : t("markerNow", { hour: `${pad(nowHour)}:00` })
+      : focus.iso === todayIso
+        ? t("today").toLowerCase()
+        : `${shortWd.format(focus.date).replace(".", "")} ${dayMonth.format(focus.date)}`;
 
   return (
-    <div className="card bz-card">
-      <div className="card-h bz-head">
+    <div className="bzv">
+     <div className="bzv-scroll">
+      <div className={`bzv-insight${focusChance ? " kans" : ""}`}>
+        <span className="bzv-mark" aria-hidden="true" />
         <div>
-          <div className="card-t">{t("title")}</div>
-          <div className="card-st">{t("subtitle")}</div>
-        </div>
-        <div className="bz-nav">
-          <button
-            className="bz-navbtn"
-            aria-label={t("prevWeek")}
-            disabled={offset <= minOffset}
-            onClick={() => setOffset((o) => Math.max(minOffset, o - 1))}
-          >
-            ‹
-          </button>
-          <div className="bz-lbl">
-            {weekLabel}
-            <small>{weekSub}</small>
-          </div>
-          <button
-            className="bz-navbtn"
-            aria-label={t("nextWeek")}
-            disabled={offset >= MAX_OFFSET}
-            onClick={() => setOffset((o) => Math.min(MAX_OFFSET, o + 1))}
-          >
-            ›
-          </button>
-          <button
-            className="bz-today"
-            onClick={() => {
-              setOffset(0);
-              setCol((today.getDay() + 6) % 7);
-            }}
-          >
-            {t("today")}
-          </button>
+          <h2 className="bzv-ins-h">{insightTitle}</h2>
+          <p className="bzv-ins-sub">{insightSub}</p>
         </div>
       </div>
 
-      <div className="card-b bz-body">
-        <div className="bz-strip">
-          {week.map((d, i) => {
-            const line = d.actual ?? d.hours;
-            const isToday = d.iso === todayIso;
-            return (
+      <div className="card bzv-card">
+        <div className="card-h bzv-head">
+          <div className="bzv-switch" role="group" aria-label={t("periodGroup")}>
+            {(["dag", "week", "maand"] as View[]).map((v) => (
               <button
-                key={d.iso}
-                className={`bz-day${i === col ? " on" : ""}${isToday ? " today" : ""}`}
-                aria-label={`${cap(longWd.format(d.date))} ${formatDM(d.date)}`}
-                onClick={() => setCol(i)}
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => switchView(v)}
               >
-                <span className="bz-ab">{shortWd.format(d.date).replace(".", "")}</span>
-                <span className="bz-dm">{formatDM(d.date)}</span>
-                <svg className="bz-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-                  <polyline
-                    points={sparkPoints(line, d.openHour, d.closeHour)}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    strokeDasharray={d.timeframe === "future" ? "3 3" : undefined}
-                  />
-                </svg>
-                <span className="bz-mks">
-                  {dayHasQuiet(d) && <span className="bz-dot" />}
-                  {d.special && <span className="bz-star">★</span>}
-                </span>
+                {t(`view_${v}`)}
               </button>
-            );
-          })}
-        </div>
-
-        <div className="bz-legend">
-          <span className="bz-lg">
-            <span className="bz-dot" />
-            {t("legendQuiet")}
-          </span>
-          <span className="bz-lg">
-            <span className="bz-star">★</span>
-            {t("legendSpecial")}
-          </span>
-          <span className="bz-lg bz-hint">{t("legendHint")}</span>
-        </div>
-
-        <div className="bz-detail">
-          <div className="bz-dhead">
-            <h3>
-              {cap(longWd.format(day.date))} {formatDM(day.date)}
-            </h3>
-            <span className={`bz-dtag${isFuture ? " future" : ""}`}>{tfLabel}</span>
-            {day.special && <span className="bz-spill">★ {day.special.name}</span>}
+            ))}
           </div>
-
-          <div className="bz-llegend">
-            {isFuture ? (
-              <>
-                <span className="bz-lg">
-                  <span className="bz-ln expected" />
-                  {t("predictedLine")}
-                </span>
-                <span className="bz-lg bz-hint">{t("predictedNote")}</span>
-              </>
+          <div className="bzv-daterow">
+            <button
+              type="button"
+              className="bzv-nav"
+              aria-label={t("prev")}
+              onClick={() => shift(-1)}
+            >
+              ‹
+            </button>
+            <span className="bzv-range">
+              {rangeLabel}
+              {rangeNote && <small> · {rangeNote}</small>}
+            </span>
+            <button
+              type="button"
+              className="bzv-nav"
+              aria-label={t("next")}
+              onClick={() => shift(1)}
+            >
+              ›
+            </button>
+          </div>
+          <div className="bzv-quick">
+            {view === "dag" ? (
+              [0, 1, 2].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={isoOf(addDays(today, d)) === focus.iso}
+                  onClick={() => {
+                    setFocusIso(null);
+                    setAnchor(addDays(today, d));
+                  }}
+                >
+                  {t(`jump_${d}`)}
+                </button>
+              ))
             ) : (
-              <>
-                <span className="bz-lg">
-                  <span className="bz-ln expected" />
-                  {t("avgLine")}
-                </span>
-                <span className="bz-lg">
-                  <span className="bz-ln" />
-                  {t("actualLine")}
-                </span>
-              </>
+              <button
+                type="button"
+                onClick={() => {
+                  setFocusIso(null);
+                  setAnchor(today);
+                }}
+              >
+                {t("today")}
+              </button>
             )}
           </div>
+        </div>
 
-          <p className="bz-note">{note}</p>
+        <div className="bzv-chart">
+          <div className="bzv-chart-head">
+            <span className="bzv-chart-t">
+              {view === "dag" ? t("chartPerHour") : t("chartPerDay")}
+            </span>
+            <div className="bzv-legend">
+              <span>
+                <i className="bzv-sw act" />
+                {t("legendMeasured")}
+              </span>
+              <span>
+                <i className="bzv-sw exp" />
+                {t("legendPredicted")}
+              </span>
+              <span>
+                <i className="bzv-sw line" />
+                {t("legendExpectedLevel")}
+              </span>
+              <span>
+                <i className="bzv-sw room" />
+                {t("legendRoom")}
+              </span>
+              <span>
+                <b className="bzv-star">★</b>
+                {t("legendChance")}
+              </span>
+            </div>
+          </div>
 
-          <div className="bz-chart">
-            <svg className="bz-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-              {band && (
-                <rect
-                  x={band.x0}
-                  y="0"
-                  width={band.x1 - band.x0}
-                  height="100"
-                  fill="var(--accent-light)"
-                  opacity="0.55"
-                />
-              )}
-              {isFuture ? (
-                <path
-                  d={smoothPath(linePoints(smoothVisible(day.hours)))}
-                  fill="none"
-                  stroke={EXPECTED}
-                  strokeWidth="2.2"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
+          <div className="bzv-plot" ref={plotRef}>
+            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("chartAria")}>
+              {[25, 50, 75, 100].map((v) => (
+                <line
+                  key={v}
+                  x1={L}
+                  y1={Y(v)}
+                  x2={W - R}
+                  y2={Y(v)}
+                  stroke="var(--bzv-grid)"
+                  strokeWidth="1"
                   vectorEffect="non-scaling-stroke"
                 />
-              ) : (
-                <>
-                  <path
-                    d={smoothPath(linePoints(smoothVisible(day.hours)))}
-                    fill="none"
-                    stroke={EXPECTED}
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  {day.actualPoints ? (
-                    // Real-modus: gladde groene curve uit de echte metingen,
-                    // zonder losse meetpunt-stippen. Alleen bij één enkele
-                    // meting tonen we een stip (anders zou je niets zien).
-                    day.actualPoints.length > 1 ? (
-                      <path
-                        d={smoothPath(actualDots(day.actualPoints))}
-                        fill="none"
-                        stroke="var(--accent)"
+              ))}
+              <line
+                x1={L}
+                y1={Y(0)}
+                x2={W - R}
+                y2={Y(0)}
+                stroke="var(--bzv-grid)"
+                strokeWidth="1.4"
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x={L - 10}
+                y={Y(100) + 4}
+                textAnchor="end"
+                fontSize="11"
+                fill="var(--tl)"
+              >
+                {t("axisBusy")}
+              </text>
+              <text x={L - 10} y={Y(0) + 4} textAnchor="end" fontSize="11" fill="var(--tl)">
+                {t("axisQuiet")}
+              </text>
+
+              {bars.map((b, i) => {
+                const x = X(i) - bw / 2;
+                const ay = Y(b.value);
+                const ah = Math.max(2, T + ph - ay);
+                const ey = Y(b.expected);
+                const roomTop = b.normal !== null ? Y(b.normal) : null;
+                const hasRoom = roomTop !== null && ay - roomTop > 3;
+                return (
+                  <g
+                    key={b.key}
+                    className={b.iso ? "bzv-bar clickable" : "bzv-bar"}
+                    onClick={b.iso ? () => onBarClick(b.iso!) : undefined}
+                  >
+                    <title>{b.title}</title>
+                    {b.iso && (
+                      <rect x={L + slot * i} y={T} width={slot} height={ph} fill="transparent" />
+                    )}
+                    {hasRoom && (
+                      <path d={barPath(x, roomTop!, bw, ay - roomTop!, 5)} fill="var(--bzv-room)" />
+                    )}
+                    <path
+                      d={barPath(x, ay, bw, ah, hasRoom ? 0 : 5)}
+                      fill={b.measured ? "var(--bzv-act)" : "var(--bzv-exp)"}
+                    />
+                    {b.measured && (
+                      <line
+                        x1={x - 7}
+                        y1={ey}
+                        x2={x + bw + 7}
+                        y2={ey}
+                        stroke="var(--bzv-ink)"
                         strokeWidth="2.4"
-                        strokeLinejoin="round"
                         strokeLinecap="round"
                         vectorEffect="non-scaling-stroke"
                       />
-                    ) : (
-                      actualDots(day.actualPoints).map((p, i) => (
-                        <circle
-                          key={i}
-                          cx={p.x}
-                          cy={p.y}
-                          r="1.1"
-                          fill="var(--accent)"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      ))
-                    )
-                  ) : day.actual ? (
-                    // Seed-modus (zaak zonder echte drukte-bron): oude lijn.
-                    <path
-                      d={smoothPath(linePoints(day.actual))}
-                      fill="none"
-                      stroke="var(--accent)"
-                      strokeWidth="2.4"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  ) : null}
-                </>
+                    )}
+                  </g>
+                );
+              })}
+
+              {markerIndex >= 0 && (
+                <g aria-hidden="true">
+                  <line
+                    x1={X(markerIndex)}
+                    y1={T - 9}
+                    x2={X(markerIndex)}
+                    y2={T + ph}
+                    stroke="var(--bzv-ink)"
+                    strokeWidth="1.2"
+                    strokeDasharray="3 3"
+                    opacity="0.55"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <rect
+                    x={Math.min(
+                      W - R - (markerText.length * 6.1 + 20) / 2,
+                      Math.max(
+                        L + (markerText.length * 6.1 + 20) / 2,
+                        X(markerIndex),
+                      ),
+                    ) - (markerText.length * 6.1 + 20) / 2}
+                    y={1}
+                    width={markerText.length * 6.1 + 20}
+                    height={21}
+                    rx={10.5}
+                    fill="var(--text)"
+                  />
+                  <text
+                    x={Math.min(
+                      W - R - (markerText.length * 6.1 + 20) / 2,
+                      Math.max(L + (markerText.length * 6.1 + 20) / 2, X(markerIndex)),
+                    )}
+                    y={15.5}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="600"
+                    fill="var(--white)"
+                  >
+                    {markerText}
+                  </text>
+                </g>
               )}
+
+              {bars.map((b, i) => {
+                const show =
+                  view === "dag"
+                    ? (b.hour ?? 0) % 2 === 0
+                    : view === "maand"
+                      ? slot >= 19 || i % 2 === 0
+                      : true;
+                if (!show) return null;
+                const strong = b.isToday || b.isFocus;
+                return (
+                  <g key={`lbl${b.key}`} aria-hidden="true">
+                    <text
+                      x={X(i)}
+                      y={T + ph + 16}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fontWeight={strong ? 600 : 400}
+                      fill={strong ? "var(--text)" : "var(--tl)"}
+                    >
+                      {b.label}
+                    </text>
+                    {b.sub && (
+                      <text
+                        x={X(i)}
+                        y={T + ph + 30}
+                        textAnchor="middle"
+                        fontSize="10.5"
+                        fill={b.isToday ? "var(--text)" : "var(--tl)"}
+                      >
+                        {b.sub}
+                      </text>
+                    )}
+                    {view !== "dag" && b.kans && (
+                      <text
+                        x={X(i)}
+                        y={T + ph + (b.sub ? 45 : 30)}
+                        textAnchor="middle"
+                        fontSize="13"
+                        fill="var(--accent)"
+                      >
+                        ★
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
             </svg>
-            {band && (
-              <span className="bz-band-label" style={{ left: `${(band.x0 + band.x1) / 2}%` }}>
-                {t("bandRustig")}
-              </span>
-            )}
-            <div className="bz-xlabels">
-              {ticks.map((i) => (
-                <span
-                  key={i}
-                  className={i === 0 ? "start" : i === N - 1 ? "end" : ""}
-                  style={{ left: `${xPct(i)}%` }}
-                >
-                  {String(vis[i]).padStart(2, "0")}:00
-                </span>
-              ))}
-            </div>
           </div>
+
+          <p className="bzv-foot">
+            {t("footLine")}
+            {view !== "dag" && ` ${t("footClick")}`}
+          </p>
         </div>
       </div>
 
-      <div className="bz-footbar">
-        <button className="bz-cta" onClick={() => onMakeConcept?.(day.iso)}>
-          {t("ctaFor", { date: formatDM(day.date) })}
+      <div className="card bzv-why">
+        <div className="bzv-why-h">
+          {focusChance
+            ? t("whyChance", {
+                day: cap(dayFull.format(focus.date)),
+                part: focusChance.daypartLabel,
+              })
+            : t("whyPlain", { day: cap(dayFull.format(focus.date)) })}
+        </div>
+        <div className="bzv-why-rows">
+          <div className="bzv-wrow">
+            <span className={`bzv-wdir ${weekdayQuiet ? "down" : "flat"}`}>
+              {weekdayQuiet ? "↓" : "·"}
+            </span>
+            <span>
+              <span className="bzv-wk">{t("factorWeekday")}</span>{" "}
+              <span className="bzv-wv">
+                {t(weekdayQuiet ? "factorWeekdayQuiet" : "factorWeekdayNormal", {
+                  day: shortWd.format(focus.date).replace(".", ""),
+                })}
+              </span>
+            </span>
+          </div>
+          <div className="bzv-wrow">
+            <span className={`bzv-wdir ${focus.special ? "up" : "flat"}`}>
+              {focus.special ? "↑" : "·"}
+            </span>
+            <span>
+              <span className="bzv-wk">{t("factorSpecial")}</span>{" "}
+              <span className="bzv-wv">{focus.special?.name ?? t("factorSpecialNone")}</span>
+            </span>
+          </div>
+          <div className="bzv-wrow">
+            <span className={`bzv-wdir ${focusChance ? "down" : "flat"}`}>
+              {focusChance ? "↓" : "·"}
+            </span>
+            <span>
+              <span className="bzv-wk">{t("factorPattern")}</span>{" "}
+              <span className="bzv-wv">
+                {focusChance
+                  ? t(focusChance.unusual ? "factorPatternUnusual" : "factorPatternStructural", {
+                      part: focusChance.daypartLabel,
+                    })
+                  : t("factorPatternNormal")}
+              </span>
+            </span>
+          </div>
+          <div className="bzv-wrow">
+            <span className="bzv-wdir flat">·</span>
+            <span>
+              <span className="bzv-wk">{t("factorSource")}</span>{" "}
+              <span className="bzv-wv">
+                {quiet.hasSource ? t("factorSourceLive") : t("factorSourceSeed")}
+              </span>
+            </span>
+          </div>
+        </div>
+        <div className="bzv-why-foot">{t("whyFoot")}</div>
+      </div>
+     </div>
+
+      <div className="bzv-footbar">
+        <button
+          type="button"
+          className="bzv-cta"
+          disabled={focus.timeframe === "past"}
+          onClick={() => onMakeConcept?.(focus.iso)}
+        >
+          {focusChance
+            ? t("ctaForPart", {
+                day: shortWd.format(focus.date).replace(".", ""),
+                part: focusChance.daypartLabel,
+              })
+            : t("ctaPlain")}
         </button>
+        <p className="bzv-note">{pattern ? t("noteSource") : t("noteSeed")}</p>
       </div>
     </div>
   );

@@ -340,3 +340,99 @@ export function occupancyMap(rows: OccupancyDay[]): Map<string, number> {
   for (const r of rows) m.set(r.date.slice(0, 10), r.occupancy_pct);
   return m;
 }
+
+// ============================================================
+// Dashboard v2 — helpers voor de staafgrafiek
+// ============================================================
+// De grafiek toont per periode (dag/week/maand) één staaf, met daarop de
+// verwachte hoogte en, bij een gedetecteerde kans, de ruimte tot je normale
+// niveau. "Normaal" is hier de mediaan over je weekdagen: de voorspelling
+// zelf is het Google-patroon, dus daar tegen afzetten zou rondjes draaien.
+
+// Spiegelt DAYPART_DEFS in apps/api/src/busyness/busyness.service.ts
+// ([from, to) = half-open). De frontend gebruikt ze alleen om een
+// normaal-niveau per dagdeel te tekenen; de kans-detectie blijft backend.
+export const DAYPARTS: { key: string; from: number; to: number }[] = [
+  { key: "ochtend", from: 6, to: 11 },
+  { key: "lunch", from: 11, to: 14 },
+  { key: "middag", from: 14, to: 17 },
+  { key: "diner", from: 17, to: 21 },
+  { key: "avond", from: 21, to: 24 },
+];
+
+export function daypartOf(hour: number): { key: string; from: number; to: number } | null {
+  return DAYPARTS.find((d) => hour >= d.from && hour < d.to) ?? null;
+}
+
+function medianOf(nums: number[]): number {
+  if (!nums.length) return 0;
+  const s = nums.slice().sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/** De zeven weekdagcurves (0=ma..6=zo) waarop "normaal" gerekend wordt. */
+export function weekdayCurves(pattern?: number[][] | null): number[][] {
+  return [0, 1, 2, 3, 4, 5, 6].map((wd) => {
+    const p = pattern?.[wd];
+    return p && p.length === 24 ? p.map(clamp) : hourly24(WD_FACTOR[wd], `wd${wd}`);
+  });
+}
+
+function windowMean(curve: number[], from: number, to: number): number {
+  let sum = 0;
+  let n = 0;
+  for (let h = from; h <= to; h++) {
+    sum += curve[h] ?? 0;
+    n++;
+  }
+  return n ? sum / n : 0;
+}
+
+/** Wat dit dagdeel bij deze zaak normaal doet: mediaan over de weekdagen. */
+export function normalForWindow(curves: number[][], from: number, to: number): number {
+  return medianOf(curves.map((c) => windowMean(c, from, to)));
+}
+
+/** Dagniveau van een weekdagcurve, als index waarin 100 = je drukste dag. */
+export function dayLevelIndex(level: number, peak: number): number {
+  return peak > 0 ? Math.min(100, (level / peak) * 100) : 0;
+}
+
+/** Normaal en piek op dagniveau, over de open uren. */
+export function dayLevels(
+  curves: number[][],
+  openHour: number,
+  closeHour: number,
+): { normal: number; peak: number } {
+  const levels = curves.map((c) => windowMean(c, openHour, closeHour));
+  return { normal: medianOf(levels), peak: Math.max(...levels, 1) };
+}
+
+/** Zelfde als buildWeek, maar voor een willekeurige reeks datums. */
+export function buildDays(
+  dates: Date[],
+  realByIso: Map<string, number>,
+  restaurant: Business | null,
+  threshold: number,
+  todayIso: string,
+  pattern?: number[][] | null,
+  busynessHours?: OpeningHoursMap | null,
+  actualByDate?: Record<string, [number, number][]> | null,
+): DayBusyness[] {
+  const years = Array.from(new Set(dates.map((d) => d.getFullYear())));
+  const specials = specialDayMap(years);
+  return dates.map((d) =>
+    buildDayBusyness(
+      d,
+      realByIso,
+      restaurant,
+      threshold,
+      todayIso,
+      specials,
+      pattern,
+      busynessHours,
+      actualByDate,
+    ),
+  );
+}
