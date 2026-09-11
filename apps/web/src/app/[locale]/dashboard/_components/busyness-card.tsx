@@ -635,6 +635,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
                   {t("legendPredicted")}
                 </span>
               )}
+              {bars.some((b) => b.measured && b.value > b.expected + 1) && (
+                <span>
+                  <i className="bzv-sw over" />
+                  {t("legendOver")}
+                </span>
+              )}
               {bars.some((b) => b.kans) && (
                 <span>
                   <b className="bzv-star">★</b>
@@ -722,10 +728,11 @@ export function BusynessCard({ onMakeConcept }: Props) {
                           d={barPath(x, ey + 3, bw, T + ph - ey - 3, 0)}
                           fill="var(--bzv-act)"
                         />
-                        <path
-                          d={barPath(x, ay, bw, ey - ay, 5)}
-                          fill="var(--bzv-act)"
-                        />
+                        <path d={barPath(x, ay, bw, ey - ay, 5)} fill="var(--bzv-act)" />
+                        {/* Waar normaal lag, in oranje: eigen kleur voor
+                            "drukker dan normaal", zodat het niet lijkt op de
+                            midgroene rest bovenop een dag die achterbleef. */}
+                        <rect x={x} y={ey} width={bw} height={3} fill="var(--copper)" />
                       </>
                     )}
                   </g>
