@@ -38,9 +38,7 @@ import {
 import {
   buildDays,
   dayLevelIndex,
-  daypartOf,
   mondayOfWeek,
-  normalForWindow,
   occupancyMap,
   weekdayCurves,
   addDays,
@@ -76,7 +74,6 @@ type Bar = {
   expected: number; // 0-100
   measured: boolean;
   kans: boolean;
-  normal: number | null; // bovenkant van het lichte blok
   label: string;
   sub: string | null;
   isToday: boolean;
@@ -339,7 +336,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
       const out: Bar[] = [];
       for (let h = d.openHour; h <= d.closeHour; h++) {
         const isKans = !!ch && h >= ch.fromHour && h <= ch.toHour;
-        const part = daypartOf(h);
         out.push({
           key: `h${h}`,
           iso: null,
@@ -348,7 +344,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
           expected: d.hours[h],
           measured: meas.has(h),
           kans: isKans,
-          normal: isKans && part ? normalForWindow(curves, part.from, part.to - 1) : null,
           label: `${pad(h)}:00`,
           sub: null,
           isToday: false,
@@ -369,7 +364,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
         expected: dayIndex(d, true),
         measured: meas.size > 0,
         kans: !!ch,
-        normal: ch ? dayLevelIndex(levels.normal, levels.peak) : null,
         label:
           view === "week"
             ? shortWd.format(d.date).replace(".", "")
@@ -392,9 +386,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
     view,
     measuredHours,
     chanceByDate,
-    curves,
     dayIndex,
-    levels,
     shortWd,
     dayFull,
     todayIso,
@@ -644,16 +636,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 </span>
               )}
               {bars.some((b) => b.kans) && (
-                <>
-                  <span>
-                    <i className="bzv-sw room" />
-                    {t("legendRoom")}
-                  </span>
-                  <span>
-                    <b className="bzv-star">★</b>
-                    {t("legendChance")}
-                  </span>
-                </>
+                <span>
+                  <b className="bzv-star">★</b>
+                  {t("legendChance")}
+                </span>
               )}
             </div>
           </div>
@@ -709,9 +695,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 // hoogte. Een spleet van 3px markeert waar die lag, zodat we
                 // er geen horizontale lijn overheen hoeven te leggen.
                 const over = b.measured && ay < ey - 5;
-                const top = Math.min(ey, ay);
-                const roomTop = b.normal !== null ? Y(b.normal) : null;
-                const hasRoom = roomTop !== null && top - roomTop > 3;
                 return (
                   <g
                     key={b.key}
@@ -722,12 +705,9 @@ export function BusynessCard({ onMakeConcept }: Props) {
                     {b.iso && (
                       <rect x={L + slot * i} y={T} width={slot} height={ph} fill="transparent" />
                     )}
-                    {hasRoom && (
-                      <path d={barPath(x, roomTop!, bw, top - roomTop!, 5)} fill="var(--bzv-room)" />
-                    )}
                     {/* verwachting */}
                     <path
-                      d={barPath(x, ey, bw, eh, hasRoom || over ? 0 : 5)}
+                      d={barPath(x, ey, bw, eh, over ? 0 : 5)}
                       fill="var(--bzv-exp)"
                     />
                     {/* werkelijk, vult van onderaf. Boven verwachting valt de
@@ -743,7 +723,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
                           fill="var(--bzv-act)"
                         />
                         <path
-                          d={barPath(x, ay, bw, ey - ay, hasRoom ? 0 : 5)}
+                          d={barPath(x, ay, bw, ey - ay, 5)}
                           fill="var(--bzv-act)"
                         />
                       </>
