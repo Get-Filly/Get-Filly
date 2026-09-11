@@ -496,9 +496,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const n = Math.max(1, bars.length);
   const slot = pw / n;
   const bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
-  // Het streepje boven verwachting steekt buiten de staaf uit zodat het als
-  // merkteken leest, maar nooit zo ver dat het de buurstaaf raakt.
-  const markOver = Math.min(6, Math.max(1.5, (slot - bw) / 2 - 1.5));
   const X = (i: number) => L + slot * (i + 0.5);
   const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
 
@@ -599,23 +596,33 @@ export function BusynessCard({ onMakeConcept }: Props) {
             <span className="bzv-chart-t">
               {view === "dag" ? t("chartPerHour") : t("chartPerDay")}
             </span>
+            {/* Alleen uitleggen wat er in beeld staat: een legenda die dingen
+                benoemt die je nergens ziet, is ruis. */}
             <div className="bzv-legend">
-              <span>
-                <i className="bzv-sw act" />
-                {t("legendMeasured")}
-              </span>
-              <span>
-                <i className="bzv-sw exp" />
-                {t("legendPredicted")}
-              </span>
-              <span>
-                <i className="bzv-sw room" />
-                {t("legendRoom")}
-              </span>
-              <span>
-                <b className="bzv-star">★</b>
-                {t("legendChance")}
-              </span>
+              {bars.some((b) => b.measured) && (
+                <span>
+                  <i className="bzv-sw act" />
+                  {t("legendMeasured")}
+                </span>
+              )}
+              {bars.some((b) => !b.measured || b.expected > b.value) && (
+                <span>
+                  <i className="bzv-sw exp" />
+                  {t("legendPredicted")}
+                </span>
+              )}
+              {bars.some((b) => b.kans) && (
+                <>
+                  <span>
+                    <i className="bzv-sw room" />
+                    {t("legendRoom")}
+                  </span>
+                  <span>
+                    <b className="bzv-star">★</b>
+                    {t("legendChance")}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -666,7 +673,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 const eh = Math.max(2, T + ph - ey);
                 const ay = Y(b.value);
                 const ah = Math.max(2, T + ph - ay);
-                const over = b.measured && ay < ey - 1.5;
+                // Boven verwachting: de staaf loopt door boven de verwachte
+                // hoogte. Een spleet van 3px markeert waar die lag, zodat we
+                // er geen horizontale lijn overheen hoeven te leggen.
+                const over = b.measured && ay < ey - 5;
                 const top = Math.min(ey, ay);
                 const roomTop = b.normal !== null ? Y(b.normal) : null;
                 const hasRoom = roomTop !== null && top - roomTop > 3;
@@ -688,25 +698,23 @@ export function BusynessCard({ onMakeConcept }: Props) {
                       d={barPath(x, ey, bw, eh, hasRoom || over ? 0 : 5)}
                       fill="var(--bzv-exp)"
                     />
-                    {/* werkelijk, vult van onderaf */}
-                    {b.measured && (
-                      <path
-                        d={barPath(x, ay, bw, ah, over && !hasRoom ? 5 : 0)}
-                        fill="var(--bzv-act)"
-                      />
+                    {/* werkelijk, vult van onderaf. Boven verwachting valt de
+                        staaf in tweeën: tot de verwachte hoogte, en het
+                        overschot erboven, met een spleet ertussen. */}
+                    {b.measured && !over && (
+                      <path d={barPath(x, ay, bw, ah, 0)} fill="var(--bzv-act)" />
                     )}
-                    {/* boven verwachting: markeer waar de verwachting lag */}
-                    {over && (
-                      <line
-                        x1={x - markOver}
-                        y1={ey}
-                        x2={x + bw + markOver}
-                        y2={ey}
-                        stroke="var(--bzv-exp)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        vectorEffect="non-scaling-stroke"
-                      />
+                    {b.measured && over && (
+                      <>
+                        <path
+                          d={barPath(x, ey + 3, bw, T + ph - ey - 3, 0)}
+                          fill="var(--bzv-act)"
+                        />
+                        <path
+                          d={barPath(x, ay, bw, ey - ay, hasRoom ? 0 : 5)}
+                          fill="var(--bzv-act)"
+                        />
+                      </>
                     )}
                   </g>
                 );
