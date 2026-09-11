@@ -4616,7 +4616,6 @@
 .dashboard-shell .bzv-sw.act { background: var(--bzv-act); }
 .dashboard-shell .bzv-sw.exp { background: var(--bzv-exp); }
 .dashboard-shell .bzv-sw.room { background: var(--bzv-room); }
-.dashboard-shell .bzv-sw.line { height: 0; width: 14px; border-radius: 0; border-top: 2px solid var(--bzv-ink); }
 .dashboard-shell .bzv-star { color: var(--accent); font-size: 12px; }
 .dashboard-shell .bzv-plot { flex: 1; min-height: 220px; }
 .dashboard-shell .bzv-plot svg { width: 100%; height: 100%; display: block; }

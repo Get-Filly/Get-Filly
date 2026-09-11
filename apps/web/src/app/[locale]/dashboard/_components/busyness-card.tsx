@@ -68,24 +68,6 @@ function barPath(x: number, y: number, w: number, h: number, radius: number): st
   );
 }
 
-/** Catmull-Rom naar cubic bezier: vloeiende curve door de punten. */
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length < 2) return "";
-  const f = (n: number) => n.toFixed(2);
-  let d = `M${f(points[0].x)},${f(points[0].y)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] ?? p2;
-    d +=
-      ` C${f(p1.x + (p2.x - p0.x) / 6)},${f(p1.y + (p2.y - p0.y) / 6)}` +
-      ` ${f(p2.x - (p3.x - p1.x) / 6)},${f(p2.y - (p3.y - p1.y) / 6)}` +
-      ` ${f(p2.x)},${f(p2.y)}`;
-  }
-  return d;
-}
-
 type Bar = {
   key: string;
   iso: string | null; // gezet op dag-staven: klikbaar
@@ -514,10 +496,11 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const n = Math.max(1, bars.length);
   const slot = pw / n;
   const bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
+  // Het streepje boven verwachting steekt buiten de staaf uit zodat het als
+  // merkteken leest, maar nooit zo ver dat het de buurstaaf raakt.
+  const markOver = Math.min(6, Math.max(1.5, (slot - bw) / 2 - 1.5));
   const X = (i: number) => L + slot * (i + 0.5);
   const Y = (v: number) => T + ph - (Math.max(0, Math.min(100, v)) / 100) * ph;
-
-  const expectedLine = smoothPath(bars.map((b, i) => ({ x: X(i), y: Y(b.expected) })));
 
   const markerIndex = bars.findIndex((b) =>
     view === "dag"
@@ -626,10 +609,6 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 {t("legendPredicted")}
               </span>
               <span>
-                <i className="bzv-sw line" />
-                {t("legendExpectedLevel")}
-              </span>
-              <span>
                 <i className="bzv-sw room" />
                 {t("legendRoom")}
               </span>
@@ -676,12 +655,21 @@ export function BusynessCard({ onMakeConcept }: Props) {
                 {t("axisQuiet")}
               </text>
 
+              {/* De staaf is de verwachting, in mid-groen. Is er gemeten, dan
+                  vult donkergroen hem van onderaf: blijft het donker onder de
+                  bovenkant, dan viel het lager uit dan verwacht. Kwam er meer,
+                  dan loopt het donker erbovenuit en markeert een mid-groen
+                  streepje waar de verwachting lag. */}
               {bars.map((b, i) => {
                 const x = X(i) - bw / 2;
+                const ey = Y(b.expected);
+                const eh = Math.max(2, T + ph - ey);
                 const ay = Y(b.value);
                 const ah = Math.max(2, T + ph - ay);
+                const over = b.measured && ay < ey - 1.5;
+                const top = Math.min(ey, ay);
                 const roomTop = b.normal !== null ? Y(b.normal) : null;
-                const hasRoom = roomTop !== null && ay - roomTop > 3;
+                const hasRoom = roomTop !== null && top - roomTop > 3;
                 return (
                   <g
                     key={b.key}
@@ -693,44 +681,36 @@ export function BusynessCard({ onMakeConcept }: Props) {
                       <rect x={L + slot * i} y={T} width={slot} height={ph} fill="transparent" />
                     )}
                     {hasRoom && (
-                      <path d={barPath(x, roomTop!, bw, ay - roomTop!, 5)} fill="var(--bzv-room)" />
+                      <path d={barPath(x, roomTop!, bw, top - roomTop!, 5)} fill="var(--bzv-room)" />
                     )}
+                    {/* verwachting */}
                     <path
-                      d={barPath(x, ay, bw, ah, hasRoom ? 0 : 5)}
-                      fill={b.measured ? "var(--bzv-act)" : "var(--bzv-exp)"}
+                      d={barPath(x, ey, bw, eh, hasRoom || over ? 0 : 5)}
+                      fill="var(--bzv-exp)"
                     />
+                    {/* werkelijk, vult van onderaf */}
+                    {b.measured && (
+                      <path
+                        d={barPath(x, ay, bw, ah, over && !hasRoom ? 5 : 0)}
+                        fill="var(--bzv-act)"
+                      />
+                    )}
+                    {/* boven verwachting: markeer waar de verwachting lag */}
+                    {over && (
+                      <line
+                        x1={x - markOver}
+                        y1={ey}
+                        x2={x + bw + markOver}
+                        y2={ey}
+                        stroke="var(--bzv-exp)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
                   </g>
                 );
               })}
-
-              {/* De verwachting als één doorlopende lijn. Waar nog niets
-                  gemeten is volgt de staaf de lijn: dan is de verwachting
-                  alles wat we hebben. Zodra er gemeten is wijkt de staaf af.
-                  Het lichte spoor eronder houdt de lijn leesbaar waar hij
-                  over een donkere staaf loopt. */}
-              {bars.length > 1 && (
-                <g aria-hidden="true">
-                  <path
-                    d={expectedLine}
-                    fill="none"
-                    stroke="var(--white)"
-                    strokeWidth="5"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    opacity="0.5"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d={expectedLine}
-                    fill="none"
-                    stroke="var(--bzv-ink)"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </g>
-              )}
 
               {markerIndex >= 0 && (
                 <g aria-hidden="true">
@@ -825,7 +805,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           </div>
 
           <p className="bzv-foot">
-            {t("footLine")} {t("footFuture")}
+            {t("footLine")}
             {view !== "dag" && ` ${t("footClick")}`}
           </p>
         </div>
