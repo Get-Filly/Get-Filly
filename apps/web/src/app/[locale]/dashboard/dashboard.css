@@ -4400,17 +4400,14 @@
 }
 
 /* ---------- metriek-strook ---------- */
-.dashboard-shell .dash-strip {
-  flex-shrink: 0;
-  padding: var(--space-4) var(--space-6) 0;
-}
+/* Vol de breedte onder de topbar, alleen een onderrand als scheiding. Zo
+ * loopt hij door tot tegen de rail rechts. */
+.dashboard-shell .dash-strip { flex-shrink: 0; }
 .dashboard-shell .kpi-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  overflow: hidden;
+  border-bottom: 1px solid var(--border);
 }
 .dashboard-shell .kpi-cell {
   padding: 11px 18px 13px;
@@ -4465,21 +4462,48 @@
 .dashboard-shell .kpi-link:hover { text-decoration: underline; }
 
 /* ---------- rail-indeling ---------- */
-/* Chat krijgt een vaste breedte i.p.v. de helft van het raster: de grafiek
- * heeft de ruimte nodig, de chat niet meer dan dit. */
-.dashboard-shell .dash-v2 .dash-body { grid-template-columns: minmax(0, 1fr) 400px; }
+/* Filly staat rechts als vaste rail over de volle hoogte, tegen de rand aan
+ * en met alleen een linkerrand. Geen kaart meer: een kaart-in-een-kolom gaf
+ * een rand plus een marge plus een radius voor iets dat toch al een eigen
+ * kolom is. De linkerkolom houdt zijn padding, de rail niet. */
+.dashboard-shell .dash-v2 .dash-body {
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 0;
+  padding: var(--space-4) 0 0 var(--space-6);
+}
 .dashboard-shell .dash-v2 .left-col,
 .dashboard-shell .dash-v2 .right-col { grid-column: auto; }
 /* De linkerkolom scrollt niet zelf; dat doet .bzv-scroll, zodat de
- * knoppenrij eronder blijft staan naast de chat-invoer. */
+ * knoppenrij eronder blijft staan. De 14px onderaan is dezelfde als de
+ * onderpadding van .chat-input, zodat de knop op precies dezelfde hoogte
+ * eindigt als het invoerveld van de chat ernaast. */
 .dashboard-shell .dash-v2 .left-col {
   overflow: hidden;
-  padding-right: 0;
+  padding: 0 var(--space-5) 0 0;
   gap: 0;
 }
+.dashboard-shell .dash-v2 .right-col { min-height: 0; }
+.dashboard-shell .dash-v2 .right-col .chat-card {
+  height: 100%;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+}
+/* Smal scherm: kolommen stapelen, dan is de rail weer gewoon een kaart. */
 @media (max-width: 1100px) {
-  .dashboard-shell .dash-v2 .dash-body { grid-template-columns: minmax(0, 1fr); }
-  .dashboard-shell .dash-v2 .left-col { overflow-y: auto; }
+  .dashboard-shell .dash-v2 .dash-body {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4) var(--space-6) var(--space-5);
+  }
+  .dashboard-shell .dash-v2 .left-col {
+    overflow-y: auto;
+    padding: 0 0 var(--space-4);
+  }
+  .dashboard-shell .dash-v2 .right-col .chat-card {
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    min-height: 520px;
+  }
 }
 
 /* ---------- werkgebied ---------- */
@@ -4632,7 +4656,17 @@
 }
 
 /* ---------- knoppenrij ---------- */
+/* De knop eindigt op dezelfde hoogte als het invoerveld van de chat ernaast,
+ * en de regel eronder spiegelt de disclaimer onder die invoer. */
 .dashboard-shell .bzv-footbar { flex: none; padding: 12px 0 0; }
+.dashboard-shell .bzv-note {
+  padding: 8px 0 2px;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--tl);
+  text-align: center;
+}
 .dashboard-shell .bzv-cta {
   display: block;
   width: 100%;

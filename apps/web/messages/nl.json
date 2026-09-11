@@ -4653,6 +4653,8 @@
     "legendRoom": "ruimte tot normaal",
     "markerNow": "nu · {hour}",
     "next": "Volgende",
+    "noteSeed": "Nog geen Google-patroon voor deze zaak. Je ziet een voorbeeldverloop.",
+    "noteSource": "Drukte komt uit je Google-patroon.",
     "periodGroup": "Periode",
     "periodMonth": "deze maand",
     "periodWeek": "de komende 7 dagen",

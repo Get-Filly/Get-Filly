@@ -4653,6 +4653,8 @@
     "legendRoom": "room to normal",
     "markerNow": "now · {hour}",
     "next": "Next",
+    "noteSeed": "No Google pattern for this business yet. You are seeing an example curve.",
+    "noteSource": "Busyness comes from your Google pattern.",
     "periodGroup": "Period",
     "periodMonth": "this month",
     "periodWeek": "in the next 7 days",

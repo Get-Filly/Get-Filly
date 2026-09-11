@@ -870,6 +870,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
               })
             : t("ctaPlain")}
         </button>
+        <p className="bzv-note">{pattern ? t("noteSource") : t("noteSeed")}</p>
       </div>
     </div>
   );
