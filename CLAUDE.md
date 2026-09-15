@@ -29,6 +29,12 @@ capaciteit te vullen. "Get-Filly" = het bedrijf; "Filly" = de assistent.
 >   "Vul je rustige momenten. Automatisch."
 > - **Rustige-momenten-model** = vulbaarheid-first (was anomalie-only); tijdvenster
 >   instelbaar (mig 0069). Campagnes: 24u-historie-grace (mig 0070).
+> - **Rustige momenten varieren per datum** (sep 2026): weer, evenementen en
+>   feestdagen schuiven de verwachte drukte per kalenderdatum (vóór de gap-poort,
+>   niet op de score), plus een beleidslaag met feestdag-poort, uitsluiting van
+>   afgedekte dagen en een cool-down. Rekenregels in `busyness/quiet-signals.ts`.
+>   Aanroepers die een door de eigenaar zélf gekozen dag bevragen geven
+>   `applyPolicy: false` mee.
 > - Migraties staan nu op **0070**. Zie de memory-index + BACKLOG voor details.
 
 ## Stack
