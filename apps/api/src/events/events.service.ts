@@ -115,7 +115,9 @@ export class EventsService {
       const lngMargin = boxKm / 68;
       const { data, error } = await this.supabase.client
         .from('events')
-        .select('source_slug, name, category, place, starts_on, latitude, longitude')
+        .select(
+          'source_slug, name, category, place, starts_on, latitude, longitude',
+        )
         .gte('starts_on', today)
         .lte('starts_on', until)
         .not('latitude', 'is', null)

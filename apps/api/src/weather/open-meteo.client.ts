@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 
 // ============================================================
 // OpenMeteoClient — de pure weerbron (singleton, geen Supabase)
@@ -104,7 +108,7 @@ export class OpenMeteoClient {
       throw new InternalServerErrorException(`Weather API fout: ${res.status}`);
     }
 
-    const data: OpenMeteoResponse = await res.json();
+    const data = (await res.json()) as OpenMeteoResponse;
     const days = data.daily.time.map((date, i) => {
       const d = new Date(date);
       const code = data.daily.weather_code[i];

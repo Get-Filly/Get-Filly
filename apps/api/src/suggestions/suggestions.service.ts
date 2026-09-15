@@ -1059,6 +1059,12 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       expectedPct?: number; // verwachte drukte in dat dagdeel (0-100)
       deviation?: number; // afwijking t.o.v. eigen verwachting (negatief)
       unusual?: boolean; // ongewoon rustig vs vaste rustige stand
+      // structureel = deze weekdag is hier altijd stil; incidenteel = juist
+      // déze datum wijkt af door weer of een evenement. Bepaalt de toon van
+      // het voorstel en is straks de meetdimensie voor de terugkoppeling.
+      kind?: 'structureel' | 'incidenteel';
+      reasonKey?: string;
+      reasonParams?: Record<string, string | number>;
       fromHour?: number;
       toHour?: number;
       // occupancy-terugval
@@ -1093,6 +1099,9 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         expectedPct: m.expectedPct,
         deviation: m.deviation,
         unusual: m.unusual,
+        kind: m.kind,
+        reasonKey: m.reasonKey,
+        reasonParams: m.reasonParams,
         fromHour: m.fromHour,
         toHour: m.toHour,
       }));
@@ -1348,6 +1357,9 @@ ${dayContext}`;
                   daypart_label: day.daypartLabel,
                   deviation: day.deviation,
                   unusual: day.unusual,
+                  kind: day.kind,
+                  reason_key: day.reasonKey,
+                  reason_params: day.reasonParams,
                 }
               : {
                   occupancy_pct: day.occupancy_pct,
@@ -1511,9 +1523,12 @@ ${dayContext}`;
     // het moment kan tonen en de generatie erop mikt. Uncapped (perWeek hoog);
     // null als de dag niet als rustig gedetecteerd is.
     const [qm, dayparts] = await Promise.all([
-      this.busyness.getQuietMoments(businessId, date, date, 999).catch(
-        () => null,
-      ),
+      // applyPolicy:false — de eigenaar koos deze dag zélf. De beleidslaag
+      // (feestdag-poort, al-afgedekt, cool-down) mag hier het dagdeel niet
+      // wegfilteren; we vragen alleen "wélk dagdeel is hier rustig".
+      this.busyness
+        .getQuietMoments(businessId, date, date, 999, { applyPolicy: false })
+        .catch(() => null),
       this.busyness.getDaypartsForDate(businessId, date).catch(() => []),
     ]);
     const m = qm?.moments?.[0] ?? null;
@@ -1637,7 +1652,11 @@ ${dayContext}`;
     if (lowOccDates.length > 0) {
       const sorted = [...lowOccDates].sort();
       const qm = await this.busyness
-        .getQuietMoments(businessId, sorted[0], sorted[sorted.length - 1], 999)
+        // applyPolicy:false — zelfde reden als in getDayContext: dit zijn door
+        // de eigenaar geselecteerde dagen, geen voorstel-selectie.
+        .getQuietMoments(businessId, sorted[0], sorted[sorted.length - 1], 999, {
+          applyPolicy: false,
+        })
         .catch(() => null);
       for (const m of qm?.moments ?? []) {
         quietByDate.set(m.date, {
