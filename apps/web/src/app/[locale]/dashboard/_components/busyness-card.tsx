@@ -512,7 +512,14 @@ export function BusynessCard({ onMakeConcept }: Props) {
         ? quietReasonText(t, focusChance)
         : t("insQuieter", { part: focusChance.daypartLabel }),
     ];
-    if (focusChance.kind === "structureel" && focusChance.reasonKey !== "structural") {
+    // Bij een structurele kans alleen een reden TOEVOEGEN als die iets zegt
+    // wat "rustiger dan je normale {dagdeel}" niet al zegt. 'structural' en
+    // 'unusual' zijn precies dat, dus die zouden de zin verdubbelen.
+    if (
+      focusChance.kind === "structureel" &&
+      (focusChance.reasonKey === "structuralRotated" ||
+        focusChance.reasonKey === "eventNearby")
+    ) {
       parts.push(quietReasonText(t, focusChance));
     }
     if (chancesInPeriod > 1) {
