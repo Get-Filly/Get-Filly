@@ -47,8 +47,12 @@ export interface RefreshResult {
 export interface QuietMoment {
   date: string; // YYYY-MM-DD
   weekday: number; // 0=ma..6=zo
-  daypart: string; // ochtend|lunch|middag|diner|avond
-  daypartLabel: string; // 'middag'
+  daypart: string; // ochtend|lunch|middag|diner|avond (eerste van de reeks)
+  // Alle dagdeel-sleutels in deze kans, op volgorde. De frontend vertaalt
+  // hiermee zelf; `daypartLabel` is een Nederlandse zin en hoort dus alleen
+  // in de prompts thuis, niet in de UI (de app is NL/EN).
+  dayparts: string[];
+  daypartLabel: string; // 'middag en diner' — NL, voor prompts/trigger_context
   expectedPct: number; // verwachte drukte in dat dagdeel (0-100), incl. datum-signalen
   deviation: number; // werkelijk − voorspeld (negatief = rustiger dan verwacht)
   gap: number; // piek − dagdeel (vulbaarheid, punten)
@@ -762,6 +766,7 @@ export class BusynessService {
         date,
         weekday: this.mondayIndex(date),
         daypart: best[0].key,
+        dayparts: best.map((p) => p.key),
         daypartLabel: this.joinDayparts(best.map((p) => p.label)),
         expectedPct: Math.round(
           best.reduce((s, p) => s + p.expectedPct, 0) / best.length,
@@ -794,6 +799,7 @@ export class BusynessService {
       date: k.date,
       weekday: k.weekday,
       daypart: k.daypart,
+      dayparts: k.dayparts,
       daypartLabel: k.daypartLabel,
       expectedPct: k.expectedPct,
       deviation: k.deviation,

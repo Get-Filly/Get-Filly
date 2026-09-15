@@ -541,6 +541,8 @@ export type DayContext = {
   // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
   quietMoment: {
     daypart: string;
+    // Alle dagdeel-sleutels in dit blok; de frontend vertaalt daarmee zelf.
+    dayparts: string[];
     daypartLabel: string;
     fromHour: number;
     toHour: number;
@@ -1535,6 +1537,7 @@ ${dayContext}`;
     const quietMoment = m
       ? {
           daypart: m.daypart,
+          dayparts: m.dayparts,
           daypartLabel: m.daypartLabel,
           fromHour: m.fromHour,
           toHour: m.toHour,

@@ -1,6 +1,6 @@
 {
   "_comment": "Gegenereerd door apps/api/scripts/gen-quiet-fixture.js met de echte BusynessService. Niet met de hand bijwerken.",
-  "generatedAt": "2026-09-15T13:34:12.986Z",
+  "generatedAt": "2026-09-15T13:45:27.606Z",
   "from": "2026-09-15",
   "to": "2026-10-06",
   "pattern": [
@@ -221,6 +221,10 @@
         "date": "2026-09-15",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -236,6 +240,11 @@
         "date": "2026-09-17",
         "weekday": 3,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 28,
         "deviation": -7.6,
@@ -251,6 +260,11 @@
         "date": "2026-09-25",
         "weekday": 4,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -266,6 +280,10 @@
         "date": "2026-09-26",
         "weekday": 5,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag"
+        ],
         "daypartLabel": "lunch en middag",
         "expectedPct": 47,
         "deviation": -7,
@@ -281,6 +299,10 @@
         "date": "2026-09-29",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -296,6 +318,11 @@
         "date": "2026-10-02",
         "weekday": 4,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -311,6 +338,10 @@
         "date": "2026-10-06",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -337,6 +368,10 @@
         "date": "2026-09-15",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -352,6 +387,11 @@
         "date": "2026-09-18",
         "weekday": 4,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -367,6 +407,10 @@
         "date": "2026-09-22",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -382,6 +426,11 @@
         "date": "2026-09-25",
         "weekday": 4,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -397,6 +446,10 @@
         "date": "2026-09-29",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -412,6 +465,11 @@
         "date": "2026-10-02",
         "weekday": 4,
         "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -427,6 +485,10 @@
         "date": "2026-10-06",
         "weekday": 1,
         "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,

@@ -1537,7 +1537,10 @@ export async function fetchBusynessActual(
 export type QuietMoment = {
   date: string; // YYYY-MM-DD
   weekday: number; // 0=ma..6=zo
-  daypart: string; // ochtend|lunch|middag|diner|avond
+  daypart: string; // ochtend|lunch|middag|diner|avond (eerste van de reeks)
+  // Alle dagdeel-sleutels in deze kans; hiermee vertaalt de UI zelf
+  // (zie lib/dayparts.ts). daypartLabel is NL en alleen de terugval.
+  dayparts: string[];
   daypartLabel: string;
   expectedPct: number;
   deviation: number; // negatief = rustiger dan verwacht
@@ -1808,6 +1811,7 @@ export type DayContext = {
   // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
   quietMoment: {
     daypart: string;
+    dayparts: string[];
     daypartLabel: string;
     fromHour: number;
     toHour: number;

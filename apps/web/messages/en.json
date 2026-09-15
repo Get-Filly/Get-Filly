@@ -1,6 +1,14 @@
 {
   "common": {
-    "backToReports": "← Back to reports"
+    "backToReports": "← Back to reports",
+    "dayparts": {
+      "ochtend": "morning",
+      "lunch": "lunch",
+      "middag": "afternoon",
+      "diner": "dinner",
+      "avond": "evening",
+      "and": "and"
+    }
   },
   "language": {
     "label": "Language",
@@ -4620,6 +4628,7 @@
     "chartPerHour": "Busyness per hour",
     "ctaForPart": "Create a campaign for {day} {part}",
     "ctaPlain": "Create a campaign",
+    "factorDate": "Weather and surroundings",
     "factorPattern": "Your pattern",
     "factorPatternNormal": "the day sits around your normal level",
     "factorPatternStructural": "this {part} is structurally quiet for you",
@@ -4678,7 +4687,7 @@
     "view_maand": "Month",
     "view_week": "Week",
     "whyChance": "Why {day} {part} is quieter",
-    "whyFoot": "Filly factors this into your campaign angle. Weather and calendar are not connected yet.",
+    "whyFoot": "Filly factors this into your campaign angle. Your calendar is not connected yet.",
     "whyPlain": "How {day} runs"
   },
   "dash__components_kpi_rings": {

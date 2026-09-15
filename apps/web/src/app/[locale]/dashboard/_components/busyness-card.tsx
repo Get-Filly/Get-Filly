@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
+import { daypartsText } from "@/lib/dayparts";
 import {
   fetchBusyness,
   fetchBusynessActual,
@@ -56,6 +57,16 @@ const HORIZON_DAYS = 21;
 // Waarom is juist deze dag een kans? De backend stuurt een key + params
 // (QuietMoment.reasonKey/reasonParams) in plaats van een kant-en-klare zin,
 // omdat de app NL/EN is. Hier wordt daar één leesbare zin van.
+// Redenen die uit een datum-signaal komen (weer, evenement). Alleen die
+// horen in de "Weer en omgeving"-regel van het waarom-paneel; 'structural' en
+// 'unusual' gaan over het weekpatroon en staan al in de patroon-regel.
+const DATE_REASONS: string[] = [
+  "weatherRain",
+  "weatherCold",
+  "weatherHeat",
+  "eventNearby",
+];
+
 function quietReasonText(
   t: (key: string, values?: Record<string, string | number>) => string,
   m: QuietMoment,
@@ -99,6 +110,9 @@ type Props = {
 
 export function BusynessCard({ onMakeConcept }: Props) {
   const t = useTranslations("dash__components_busyness");
+  // Dagdeel-namen staan in een gedeelde namespace: ze komen ook in de
+  // geleide flow voor. De backend levert de sleutels, wij de taal.
+  const tDp = useTranslations("common.dayparts");
   const localeTag = useLocaleTag();
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
@@ -397,7 +411,11 @@ export function BusynessCard({ onMakeConcept }: Props) {
         isToday: d.iso === todayIso,
         isFocus: d.iso === focus?.iso,
         title: `${cap(dayFull.format(d.date))} · ${
-          ch ? t("titleChance", { part: ch.daypartLabel }) : t("titleNoChance")
+          ch
+            ? t("titleChance", {
+                part: daypartsText(tDp, ch.dayparts, ch.daypartLabel),
+              })
+            : t("titleNoChance")
         }`,
       };
     });
@@ -412,6 +430,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
     todayIso,
     focus?.iso,
     t,
+    tDp,
   ]);
 
   // ---------- grafiek-afmetingen in echte pixels ----------
@@ -489,6 +508,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
   );
   const periodWord = view === "week" ? t("periodWeek") : t("periodMonth");
 
+  // Dagdelen van de kans in beeld, vertaald. De backend stuurt zowel de
+  // sleutels als een NL-label; het label is alleen de terugval.
+  const focusPart = focusChance
+    ? daypartsText(tDp, focusChance.dayparts, focusChance.daypartLabel)
+    : "";
+
   let insightTitle: string;
   let insightSub: string;
   if (focusChance) {
@@ -500,8 +525,8 @@ export function BusynessCard({ onMakeConcept }: Props) {
       .sort((a, b) => chanceByDate.get(b.iso)!.gap - chanceByDate.get(a.iso)!.gap)[0]?.iso;
     const isBest = view !== "dag" && chancesInPeriod > 1 && focus.iso === bestIso;
     insightTitle = isBest
-      ? t("insBiggest", { day: who, part: focusChance.daypartLabel, period: periodWord })
-      : t("insChance", { day: who, part: focusChance.daypartLabel });
+      ? t("insBiggest", { day: who, part: focusPart, period: periodWord })
+      : t("insChance", { day: who, part: focusPart });
     const window = `${pad(focusChance.fromHour)}:00–${pad(focusChance.toHour + 1)}:00`;
     // Waarom juist deze dag. Bij een incidentele kans (weer, evenement) is de
     // reden hét antwoord; bij een structurele kans blijft "rustiger dan je
@@ -510,7 +535,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
       window,
       focusChance.kind === "incidenteel"
         ? quietReasonText(t, focusChance)
-        : t("insQuieter", { part: focusChance.daypartLabel }),
+        : t("insQuieter", { part: focusPart }),
     ];
     // Bij een structurele kans alleen een reden TOEVOEGEN als die iets zegt
     // wat "rustiger dan je normale {dagdeel}" niet al zegt. 'structural' en
@@ -549,7 +574,11 @@ export function BusynessCard({ onMakeConcept }: Props) {
     insightSub = best
       ? t("insBestElsewhere", {
           day: `${shortWd.format(best.date).replace(".", "")} ${dayMonth.format(best.date)}`,
-          part: chanceByDate.get(best.iso)!.daypartLabel,
+          part: daypartsText(
+            tDp,
+            chanceByDate.get(best.iso)!.dayparts,
+            chanceByDate.get(best.iso)!.daypartLabel,
+          ),
         })
       : coveredHere > 0
         ? coveredHere === 1
@@ -588,7 +617,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const markerText =
     view === "dag"
       ? focusChance
-        ? focusChance.daypartLabel
+        ? focusPart
         : t("markerNow", { hour: `${pad(nowHour)}:00` })
       : focus.iso === todayIso
         ? t("today").toLowerCase()
@@ -898,7 +927,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           {focusChance
             ? t("whyChance", {
                 day: cap(dayFull.format(focus.date)),
-                part: focusChance.daypartLabel,
+                part: focusPart,
               })
             : t("whyPlain", { day: cap(dayFull.format(focus.date)) })}
         </div>
@@ -934,12 +963,32 @@ export function BusynessCard({ onMakeConcept }: Props) {
               <span className="bzv-wv">
                 {focusChance
                   ? t(focusChance.unusual ? "factorPatternUnusual" : "factorPatternStructural", {
-                      part: focusChance.daypartLabel,
+                      part: focusPart,
                     })
                   : t("factorPatternNormal")}
               </span>
             </span>
           </div>
+          {/* Weer/omgeving alleen tonen als er écht een signaal is. Buiten de
+              7-daagse weerhorizon is er geen verwachting, en dan zou "geen
+              bijzonderheden" een bewering zijn die we niet kunnen waarmaken. */}
+          {focusChance && DATE_REASONS.includes(focusChance.reasonKey) && (
+            <div className="bzv-wrow">
+              <span
+                className={`bzv-wdir ${
+                  focusChance.reasonKey === "eventNearby" ? "up" : "down"
+                }`}
+              >
+                {focusChance.reasonKey === "eventNearby" ? "↑" : "↓"}
+              </span>
+              <span>
+                <span className="bzv-wk">{t("factorDate")}</span>{" "}
+                <span className="bzv-wv">
+                  {quietReasonText(t, focusChance)}
+                </span>
+              </span>
+            </div>
+          )}
           <div className="bzv-wrow">
             <span className="bzv-wdir flat">·</span>
             <span>
@@ -964,7 +1013,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           {focusChance
             ? t("ctaForPart", {
                 day: shortWd.format(focus.date).replace(".", ""),
-                part: focusChance.daypartLabel,
+                part: focusPart,
               })
             : t("ctaPlain")}
         </button>
