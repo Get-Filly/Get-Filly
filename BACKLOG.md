@@ -93,6 +93,23 @@ aandeel 31%. Acceptatie-eis was ≤ 50%.
       `unusual` uit de MAD-drempel, dus de chat zegt bijna altijd "ongewoon
       rustig". Drempel `UNUSUAL_SPREAD_MULT` een keer tegen echte data ijken.
 
+**Prototype om het te bekijken zonder login:** `/proto-kansen` rendert de échte
+BusynessCard met een gestubde netwerk-laag; `?oud=1` zet de beleidslaag uit.
+De kansen in `fixture.json` komen uit de echte service
+(`apps/api/scripts/gen-quiet-fixture.js` — opnieuw draaien na `nest build` als
+de detectie wijzigt). Maandweergave op het bistro-testpatroon:
+oud = di 15, vr 18, di 22, vr 25, di 29; nieuw = di 15, do 17 (regen), vr 25,
+za 26, di 29 (22 sep viel af, al afgedekt).
+
+**Meegenomen i18n-fix (2026-09-15).** `daypartLabel` is een in de backend
+gebouwde Nederlandse zin en stond zo in de Engelse UI ("Tuesday middag en diner
+is your biggest opportunity"). `QuietMoment` stuurt nu ook de kale sleutels mee
+(`dayparts`); `apps/web/src/lib/dayparts.ts` maakt daar een zin van. Het label
+blijft voor de prompts + trigger_context, waar NL juist klopt. Regel voor later:
+**geen samengestelde zinnen uit de backend naar de UI** — sleutel + params, de
+frontend maakt de zin. De geleide flow matchte hier trouwens op met
+`daypartLabel.includes(dp.label)`; dat is nu een vergelijking op sleutels.
+
 ---
 
 ## 🗓️ 2026-09-09 — Backend naar sociale media: analyse + stappenplan (P0/P1)
