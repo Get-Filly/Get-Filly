@@ -33,6 +33,7 @@ import {
   fetchRestaurant,
   type OccupancyDay,
   type QuietMoment,
+  type QuietNote,
   type Business,
 } from "@/lib/api";
 import {
@@ -51,6 +52,17 @@ type View = "dag" | "week" | "maand";
 // Kansen worden een paar weken vooruit bepaald; daarbuiten tonen we alleen
 // het patroon. Spiegelt het venster waarmee de moments worden opgehaald.
 const HORIZON_DAYS = 21;
+
+// Waarom is juist deze dag een kans? De backend stuurt een key + params
+// (QuietMoment.reasonKey/reasonParams) in plaats van een kant-en-klare zin,
+// omdat de app NL/EN is. Hier wordt daar één leesbare zin van.
+function quietReasonText(
+  t: (key: string, values?: Record<string, string | number>) => string,
+  m: QuietMoment,
+): string {
+  const key = `reason${m.reasonKey.charAt(0).toUpperCase()}${m.reasonKey.slice(1)}`;
+  return t(key, m.reasonParams);
+}
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -97,9 +109,14 @@ export function BusynessCard({ onMakeConcept }: Props) {
     { open: string; close: string } | null
   > | null>(null);
   const [actualByDate, setActualByDate] = useState<Record<string, [number, number][]>>({});
-  const [quiet, setQuiet] = useState<{ hasSource: boolean; moments: QuietMoment[] }>({
+  const [quiet, setQuiet] = useState<{
+    hasSource: boolean;
+    moments: QuietMoment[];
+    notes: QuietNote[];
+  }>({
     hasSource: false,
     moments: [],
+    notes: [],
   });
 
   const today = useMemo(() => {
@@ -150,7 +167,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
     // Kansen zijn vooruitkijkend; vast venster vanaf vandaag.
     fetchQuietMoments(isoOf(today), isoOf(addDays(today, HORIZON_DAYS)))
       .then((q) => !cancelled && setQuiet(q))
-      .catch(() => !cancelled && setQuiet({ hasSource: false, moments: [] }));
+      .catch(
+        () =>
+          !cancelled && setQuiet({ hasSource: false, moments: [], notes: [] }),
+      );
     return () => {
       cancelled = true;
     };
@@ -483,7 +503,18 @@ export function BusynessCard({ onMakeConcept }: Props) {
       ? t("insBiggest", { day: who, part: focusChance.daypartLabel, period: periodWord })
       : t("insChance", { day: who, part: focusChance.daypartLabel });
     const window = `${pad(focusChance.fromHour)}:00–${pad(focusChance.toHour + 1)}:00`;
-    const parts = [window, t("insQuieter", { part: focusChance.daypartLabel })];
+    // Waarom juist deze dag. Bij een incidentele kans (weer, evenement) is de
+    // reden hét antwoord; bij een structurele kans blijft "rustiger dan je
+    // normale {dagdeel}" de betere zin, want die zegt iets over de zaak zelf.
+    const parts = [
+      window,
+      focusChance.kind === "incidenteel"
+        ? quietReasonText(t, focusChance)
+        : t("insQuieter", { part: focusChance.daypartLabel }),
+    ];
+    if (focusChance.kind === "structureel" && focusChance.reasonKey !== "structural") {
+      parts.push(quietReasonText(t, focusChance));
+    }
     if (chancesInPeriod > 1) {
       parts.push(t("insMore", { count: chancesInPeriod - 1, period: periodWord }));
     }
@@ -497,12 +528,29 @@ export function BusynessCard({ onMakeConcept }: Props) {
     const best = days
       .filter((d) => chanceByDate.has(d.iso))
       .sort((a, b) => chanceByDate.get(b.iso)!.gap - chanceByDate.get(a.iso)!.gap)[0];
+    // Geen kans in beeld kan twee dingen betekenen: er is niets aan de hand,
+    // of alles is al afgedekt. Dat verschil is voor de eigenaar relevant, en
+    // de backend geeft het nu mee als notes.
+    const coveredHere = quiet.notes.filter(
+      (n) =>
+        n.reason === "al_afgedekt" &&
+        days.some((d) => d.iso === n.date),
+    ).length;
+    const holidayHere = quiet.notes.find(
+      (n) => n.reason === "feestdag" && days.some((d) => d.iso === n.date),
+    );
     insightSub = best
       ? t("insBestElsewhere", {
           day: `${shortWd.format(best.date).replace(".", "")} ${dayMonth.format(best.date)}`,
           part: chanceByDate.get(best.iso)!.daypartLabel,
         })
-      : t("insAllNormal");
+      : coveredHere > 0
+        ? coveredHere === 1
+          ? t("noteCoveredOne")
+          : t("noteCoveredMore", { count: coveredHere })
+        : holidayHere?.label
+          ? t("noteHoliday", { label: holidayHere.label })
+          : t("insAllNormal");
   }
 
   // ---------- geometrie ----------

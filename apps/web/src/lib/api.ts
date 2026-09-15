@@ -1545,12 +1545,41 @@ export type QuietMoment = {
   unusual: boolean; // ongewoon rustig vs vaste rustige stand
   fromHour: number;
   toHour: number;
+  // structureel = deze weekdag is hier altijd stil (strategisch);
+  // incidenteel = juist déze datum wijkt af door weer of een evenement.
+  kind: "structureel" | "incidenteel";
+  // Waarom juist deze dag. Key + params i.p.v. een kant-en-klare zin, omdat
+  // de app NL/EN is; de vertaling staat in messages/*.json onder bzv.reason*.
+  reasonKey: QuietReasonKey;
+  reasonParams: Record<string, string | number>;
+};
+
+export type QuietReasonKey =
+  | "structural"
+  | "structuralRotated"
+  | "unusual"
+  | "weatherRain"
+  | "weatherCold"
+  | "weatherHeat"
+  | "eventNearby";
+
+// Een dag die kandidaat was maar door een harde poort afvalt. Zo kan de UI
+// "deze week niets, want alles is al afgedekt" onderscheiden van "niets aan
+// de hand" — zonder dat de frontend die regels zelf naloopt.
+export type QuietNote = {
+  date: string;
+  reason: "feestdag" | "al_afgedekt";
+  label?: string;
 };
 
 export async function fetchQuietMoments(
   fromIso?: string,
   toIso?: string,
-): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
+): Promise<{
+  hasSource: boolean;
+  moments: QuietMoment[];
+  notes: QuietNote[];
+}> {
   const qs =
     fromIso && toIso ? `?from=${fromIso}&to=${toIso}` : "";
   const res = await authedFetch(`${API_URL}/busyness/me/quiet-moments${qs}`, {
