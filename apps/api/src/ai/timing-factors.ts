@@ -92,6 +92,14 @@ export function getNlHolidays(year: number): NlHoliday[] {
 
   const holidays: NlHoliday[] = [
     {
+      date: toIso(new Date(Date.UTC(year, 0, 1))),
+      name: 'Nieuwjaarsdag',
+      impact:
+        'Veel zaken dicht of pas in de avond open; gasten zitten thuis bij te komen. NIET actief promoten.',
+      promoLeadDays: 0,
+      avoid: true,
+    },
+    {
       date: toIso(new Date(Date.UTC(year, 1, 14))),
       name: 'Valentijnsdag',
       impact:
@@ -165,6 +173,14 @@ export function getNlHolidays(year: number): NlHoliday[] {
       impact:
         'Familie-dinerdag analoog aan Moederdag (geen Rabobank-cijfer; branchekennis).',
       promoLeadDays: 14,
+    },
+    {
+      date: toIso(new Date(Date.UTC(year, 11, 5))),
+      name: 'Sinterklaasavond',
+      impact:
+        'Pakjesavond: families zitten thuis, een van de stilste avonden van december. NIET actief promoten; verschuif naar de dagen erna.',
+      promoLeadDays: 0,
+      avoid: true,
     },
     {
       date: toIso(new Date(Date.UTC(year, 11, 25))),
