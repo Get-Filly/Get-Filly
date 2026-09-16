@@ -85,10 +85,40 @@ aandeel 31%. Acceptatie-eis was ≤ 50%.
       het incidentele blok is het nieuws om mee te beginnen, bij het
       structurele blok staat dat het elke week zo is en hooguit één keer
       benoemd hoeft te worden.
-- [ ] Fase 4 (terugkoppeling) ongebouwd. Let op: de aanname dat de definitie
-      "campagnedag vs mediaan van andere gelijke weekdagen" al bestaat klopt
-      NIET. Wat er is, is `classify_campaign_performance()` (mig 0071): een
-      succes-score per kanaal op mail/social/GBP-metrics, niet een drukte-lift.
+- [x] **Fase 4 gebouwd** (mig 0074 `campaign_quiet_effect`). De aanname in de
+      briefing dat de definitie al bestond klopte niet: `classify_campaign_
+      performance()` (mig 0071) scoort kanaal-metrics, geen drukte-lift. Dit is
+      dus nieuwe meetcode. Definitie: `actual` = gemeten drukte in het
+      doel-dagdeel op de doeldatum (per uur de mediaan van `live_pct`, dan het
+      gemiddelde over de uren), `baseline` = mediaan over vergelijkbare dagen
+      (zelfde weekdag + dagdeel, geen campagne), `lift` = het verschil in
+      drukte-punten. Per campagne vastgelegd omdat `busyness_snapshots` na 120
+      dagen geprund wordt. Cron `/api/busyness/cron/measure`, dagelijks 03:30.
+      De weging meet **relatief** tegen de eigen mediaan van de zaak: een slot
+      dat niets doet terwijl andere slots wél werken zakt, maar als er nergens
+      iets beweegt zakt er niets (dan ligt het niet aan het slot).
+  - [ ] **Dit doet voorlopig bijna niets, en dat hoort.** Onder 3 metingen per
+        slot weegt er niets mee, en daarboven krimpt de uitslag met n/(n+4).
+        Bij 4 metingen per slot is het verschil tussen een bewezen en een
+        do-niets-slot ~8% op de score (gemeten op een synthetische reeks van
+        12 weken). Het begint pas te sturen na een stuk of tien campagnes per
+        slot, dus na maanden. De loop moet nu gaan verzamelen om later iets
+        waard te zijn.
+  - [ ] **Geen controlegroep.** Weer, evenementen en feestdagen op de doeldatum
+        tellen mee in de "lift". Daarom mediaan over meerdere campagnes en een
+        kleine begrenzing (±25%, tegenover −60% voor de cool-down). Wie dit
+        ooit serieus wil: de datum-factor die de detectie al berekent zou bij
+        de meting opgeslagen kunnen worden om voor te corrigeren.
+  - [ ] **Campagnes zonder `ai_suggestion_id` worden niet gemeten.** Het
+        doelmoment staat in `ai_suggestions.trigger_context`;
+        `campaigns.scheduled_for` is het verzendmoment en daar is geen dagdeel
+        uit af te leiden. Als er veel campagnes buiten de voorstel-flow om
+        ontstaan, is een eigen doel-kolom op `campaigns` de volgende stap.
+  - [ ] **Nog niet zichtbaar voor de eigenaar.** De metingen staan in de tabel
+        en sturen de ranking, maar er is geen rapportage-weergave. Bewust niet
+        als reden op de kaart gezet ("dit moment werkte eerder") — dat is een
+        te stellige claim op drie ruizige metingen. Een rapportage-blok dat de
+        lift per slot toont met het aantal metingen erbij is eerlijker.
 - [ ] Bron-beperkingen om rekening mee te houden: `events` heeft geen omvang en
       geen einddatum, dus een meerdaags festival matcht alleen z'n startdag en
       "groot" is alleen te benaderen via categorie × afstand. Weer reikt 7 dagen,

@@ -33,6 +33,32 @@
  */
 
 // ============================================================
+// Dagdeel-rooster
+// ============================================================
+
+// Vaste dagdeel-vensters (uur-grenzen, [from, to)). Een dagdeel wordt per zaak
+// bijgesneden op de open uren (uren met patroon > 0); dagdelen zonder genoeg
+// open uren tellen niet mee. Zo krijgt een lunchroom wél ochtend en een
+// dinner-only zaak niet.
+//
+// Staat hier, in het bron-loze module, en niet in busyness.service.ts: de
+// meetservice (quiet-feedback) heeft het rooster óók nodig, en een import
+// over en weer tussen die twee services levert een module-cyclus op waar
+// NestJS' DI op stukloopt (de constructor-metadata wordt dan undefined).
+export const DAYPART_DEFS: {
+  key: string;
+  label: string;
+  from: number;
+  to: number;
+}[] = [
+  { key: 'ochtend', label: 'ochtend', from: 6, to: 11 },
+  { key: 'lunch', label: 'lunch', from: 11, to: 14 },
+  { key: 'middag', label: 'middag', from: 14, to: 17 },
+  { key: 'diner', label: 'diner', from: 17, to: 21 },
+  { key: 'avond', label: 'avond', from: 21, to: 24 },
+];
+
+// ============================================================
 // Typen
 // ============================================================
 
@@ -290,4 +316,53 @@ export function cooldownFactor(hits: SlotHit[]): number {
     factor *= 1 - strength * Math.pow(COOLDOWN_DECAY, h.weeksAgo);
   }
   return Math.max(COOLDOWN_FLOOR, factor);
+}
+
+// ============================================================
+// Terugkoppeling (fase 4)
+// ============================================================
+
+/** Hoeveel metingen een slot minstens nodig heeft voordat het meeweegt. */
+export const FEEDBACK_MIN_SAMPLES = 3;
+/** Krimp naar neutraal: n/(n+k). Bij n=3 telt de uitslag voor ~43%. */
+const FEEDBACK_SHRINK_K = 4;
+/** Drukte-punten verschil dat een volle uitslag geeft. */
+const FEEDBACK_LIFT_SCALE = 15;
+/** Maximale uitslag op de score, naar boven én naar beneden. */
+const FEEDBACK_MAX = 0.25;
+
+export type SlotPerformance = {
+  /** Mediane lift van dit slot, in drukte-punten. */
+  medianLift: number;
+  /** Aantal gemeten campagnes op dit slot. */
+  samples: number;
+};
+
+/**
+ * Weging van een weekdag×dagdeel-slot op basis van wat campagnes dáár eerder
+ * deden. 1 = geen signaal.
+ *
+ * Het ijkpunt is de EIGEN mediaan van de zaak over al haar slots, niet nul.
+ * Dat implementeert "slots waar campagnes structureel niets doen, demp je"
+ * zoals bedoeld: een slot dat niets oplevert terwijl andere slots wél werken
+ * zakt, maar als er nergens iets beweegt zakt er ook niets — dan ligt het
+ * niet aan het slot en zou dempen een verkeerde conclusie zijn.
+ *
+ * Twee remmen, want dit is dunne data (een zaak maakt hooguit een paar
+ * campagnes per week en er is geen controlegroep):
+ *   1. onder FEEDBACK_MIN_SAMPLES doet een slot niets;
+ *   2. daarboven krimpt de uitslag met n/(n+k), dus drie metingen verzetten
+ *      minder dan twaalf.
+ * De uitslag is begrensd op ±FEEDBACK_MAX, ruim onder de cool-down. De
+ * terugkoppeling mag bijsturen, niet overrulen.
+ */
+export function feedbackFactor(
+  slot: SlotPerformance | undefined,
+  businessMedianLift: number,
+): number {
+  if (!slot || slot.samples < FEEDBACK_MIN_SAMPLES) return 1;
+  const relative = slot.medianLift - businessMedianLift;
+  const shrunk = relative * (slot.samples / (slot.samples + FEEDBACK_SHRINK_K));
+  const scaled = Math.max(-1, Math.min(1, shrunk / FEEDBACK_LIFT_SCALE));
+  return 1 + scaled * FEEDBACK_MAX;
 }

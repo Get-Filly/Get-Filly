@@ -2,8 +2,10 @@ import {
   cooldownFactor,
   dateBusynessFactor,
   eventBusynessFactor,
+  feedbackFactor,
   weatherBusynessFactor,
   COOLDOWN_WEEKS,
+  FEEDBACK_MIN_SAMPLES,
 } from './quiet-signals';
 
 // ============================================================
@@ -193,5 +195,57 @@ describe('cooldownFactor', () => {
     const veel = Array.from({ length: 10 }, () => ({ weeksAgo: 0 }));
     expect(cooldownFactor(veel)).toBeGreaterThan(0);
     expect(cooldownFactor(veel)).toBeGreaterThanOrEqual(0.25);
+  });
+});
+
+describe('feedbackFactor', () => {
+  it('geen historie = geen signaal', () => {
+    expect(feedbackFactor(undefined, 0)).toBe(1);
+  });
+
+  it('doet niets onder het minimum aantal metingen', () => {
+    expect(
+      feedbackFactor({ medianLift: 20, samples: FEEDBACK_MIN_SAMPLES - 1 }, 0),
+    ).toBe(1);
+  });
+
+  it('beloont een slot dat het beter doet dan de eigen mediaan', () => {
+    const f = feedbackFactor({ medianLift: 12, samples: 8 }, 0);
+    expect(f).toBeGreaterThan(1);
+  });
+
+  it('dempt een slot dat het slechter doet dan de eigen mediaan', () => {
+    const f = feedbackFactor({ medianLift: -12, samples: 8 }, 0);
+    expect(f).toBeLessThan(1);
+  });
+
+  it('meet relatief: presteren alle slots gelijk, dan gebeurt er niets', () => {
+    // Overal +14 en de eigen mediaan is +14 → geen reden om te sturen. Dit is
+    // het verschil met een ijkpunt op nul: als nergens iets beweegt, ligt het
+    // niet aan het slot.
+    expect(feedbackFactor({ medianLift: 14, samples: 8 }, 14)).toBe(1);
+  });
+
+  it('krimpt de uitslag bij weinig metingen', () => {
+    const weinig = feedbackFactor({ medianLift: 12, samples: 3 }, 0);
+    const veel = feedbackFactor({ medianLift: 12, samples: 20 }, 0);
+    expect(weinig).toBeLessThan(veel);
+    expect(weinig).toBeGreaterThan(1);
+  });
+
+  it('blijft binnen ±25%, ook bij een absurde uitslag', () => {
+    expect(
+      feedbackFactor({ medianLift: 500, samples: 200 }, 0),
+    ).toBeLessThanOrEqual(1.25);
+    expect(
+      feedbackFactor({ medianLift: -500, samples: 200 }, 0),
+    ).toBeGreaterThanOrEqual(0.75);
+  });
+
+  it('blijft zwakker dan de cool-down, zodat het bijstuurt en niet overruled', () => {
+    const maxFeedback =
+      1 - feedbackFactor({ medianLift: -500, samples: 200 }, 0);
+    const cooldownDezeWeek = 1 - cooldownFactor([{ weeksAgo: 0 }]);
+    expect(maxFeedback).toBeLessThan(cooldownDezeWeek);
   });
 });
