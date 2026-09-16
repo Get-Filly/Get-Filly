@@ -2547,7 +2547,15 @@
     "thu": "Donderdag",
     "fri": "Vrijdag",
     "sat": "Zaterdag",
-    "sun": "Zondag"
+    "sun": "Zondag",
+    "gapCardTitle": "Waar blijf je achter bij je eigen patroon",
+    "gapCardSubtitle": "Verwacht naast gemeten, over de laatste {weeks} weken",
+    "gapTooltip": "Verwacht {expected}, gemeten {actual} · {days} dagen gemeten",
+    "gapFoot": "In drukte-punten: koper is achterblijven bij wat Google voor dit moment verwacht, groen is voorlopen. Beide zijn relatief aan je eigen drukste moment, dus geen bezetting van je stoelen.",
+    "heatDays": "{days} dagen gemeten",
+    "heatTooFew": "{days} van {min} dagen gemeten — te weinig voor een betrouwbare waarde",
+    "heatNoData": "Hier is niets gemeten",
+    "hourCardSubtitleReal": "Gemeten drukte, mediaan over de laatste {weeks} weken · gestreept = nog niet genoeg gemeten"
   },
   "dash_rapportages_page": {
     "title": "Rapportages",
@@ -2659,7 +2667,9 @@
       "thPerClick": "Per doorklik",
       "thVerdict": "Oordeel"
     },
-    "bookingsNote": "Reserveringen staan hier bewust niet bij. Meta, TikTok en Google rapporteren bereik, doorkliks en kosten, maar niet of iemand daarna echt een tafel boekt. Zodra we aan je reserveringssysteem gekoppeld zijn komt dat erbij."
+    "bookingsNote": "Reserveringen staan hier bewust niet bij. Meta, TikTok en Google rapporteren bereik, doorkliks en kosten, maar niet of iemand daarna echt een tafel boekt. Zodra we aan je reserveringssysteem gekoppeld zijn komt dat erbij.",
+    "tabResult": "Resultaat",
+    "tabOccupancy": "Bezetting"
   },
   "dash_reserveringen_page": {
     "title": "Reserveringen",

@@ -43,7 +43,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
 import {
   fetchCampaignReport,
   type CampaignReport,
@@ -51,6 +50,7 @@ import {
   type ReportKind,
 } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
+import { RapportageTabs } from "./_components/rapportage-tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
@@ -249,12 +249,6 @@ export default function RapportagesPage() {
         subtitle={t("subtitle")}
         actions={
           <>
-            <Link
-              href="/dashboard/rapportages/bezetting"
-              className="ui-btn ui-btn--secondary ui-btn--sm"
-            >
-              {t("occupancyLink")}
-            </Link>
             <Button variant="secondary" onClick={exportPagePdf}>
               {t("actions.pdf")}
             </Button>
@@ -264,6 +258,7 @@ export default function RapportagesPage() {
           </>
         }
       />
+      <RapportageTabs />
 
       {/* Eén filterrij boven alles wat ze scopet, niet per kaart. */}
       <div className="rap-filters">

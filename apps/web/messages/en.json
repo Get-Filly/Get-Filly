@@ -2547,7 +2547,15 @@
     "thu": "Thursday",
     "fri": "Friday",
     "sat": "Saturday",
-    "sun": "Sunday"
+    "sun": "Sunday",
+    "gapCardTitle": "Where you lag behind your own pattern",
+    "gapCardSubtitle": "Expected next to measured, over the last {weeks} weeks",
+    "gapTooltip": "Expected {expected}, measured {actual} · {days} days measured",
+    "gapFoot": "In busyness points: copper means falling short of what Google expects for this moment, green means running ahead. Both are relative to your own busiest moment, so not a percentage of your seats.",
+    "heatDays": "{days} days measured",
+    "heatTooFew": "{days} of {min} days measured — too few for a reliable value",
+    "heatNoData": "Nothing measured here",
+    "hourCardSubtitleReal": "Measured busyness, median over the last {weeks} weeks · striped = not enough measurements yet"
   },
   "dash_rapportages_page": {
     "title": "Reports",
@@ -2659,7 +2667,9 @@
       "thPerClick": "Per click",
       "thVerdict": "Verdict"
     },
-    "bookingsNote": "Bookings are deliberately not shown here. Meta, TikTok and Google report reach, clicks and cost, but not whether someone actually booked a table afterwards. That arrives once we are connected to your reservation system."
+    "bookingsNote": "Bookings are deliberately not shown here. Meta, TikTok and Google report reach, clicks and cost, but not whether someone actually booked a table afterwards. That arrives once we are connected to your reservation system.",
+    "tabResult": "Results",
+    "tabOccupancy": "Occupancy"
   },
   "dash_reserveringen_page": {
     "title": "Reservations",
