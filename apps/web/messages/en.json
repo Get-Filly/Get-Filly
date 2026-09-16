@@ -2535,7 +2535,19 @@
     "marketingTitle": "What works campaign-wise?",
     "marketingDesc": "Top campaigns based on status and run time.",
     "topCampaignsTitle": "Top campaigns",
-    "topCampaignsSubtitle": "Most successful this period"
+    "topCampaignsSubtitle": "Most successful this period",
+    "liftCardTitle": "What a campaign did to your busyness",
+    "liftCardSubtitle": "Per moment: how much busier it got than on comparable days without a campaign",
+    "liftCounts": "{n} campaigns measured",
+    "liftTooFew": "{n} of {min} measurements — not counted yet",
+    "liftFoot": "In busyness points compared to the same weekday without a campaign. There is no control group, so weather and events count too. From three measurements on, a moment starts weighing in what Filly proposes.",
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday"
   },
   "dash_rapportages_page": {
     "title": "Reports",
@@ -3380,7 +3392,8 @@
     },
     "hint": {
       "typeOwn": "Or type your own question below"
-    }
+    },
+    "partiallyFailedNote": "Something went wrong with {count, plural, one {# proposal} other {# proposals}}: those are not ready as a concept. Try that day again."
   },
   "dash__components_google_connected_panel": {
     "title": "Google Business Profile",
