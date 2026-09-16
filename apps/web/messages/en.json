@@ -77,12 +77,12 @@
       "reachability": {
         "eyebrow": "Reachability",
         "title": "The right message. At the right moment. To the right customer.",
-        "desc": "Being in sight is one thing, reaching the right people is what fills your quiet moments. For every post we pick the audience, add paid reach where it helps, and trace it all back to bookings.",
+        "desc": "Being in sight is one thing, reaching the right people is what fills your quiet moments. For every post we pick the audience, add paid reach where it helps, and set the result against how busy that day actually was.",
         "bullets": [
           "Audience by radius around your venue, age and interests",
           "Paid reach on the days that need filling",
           "Segmentation by regular customers, new customers and the neighbourhood",
-          "Bookings per post, not just clicks and likes",
+          "Per post you see reach, clicks and what it did to how busy you were",
           "Monthly report in plain language, no marketing jargon"
         ]
       }
@@ -208,12 +208,12 @@
           "cap": "A few tables still free on Thursday. Three courses for €24.50.",
           "cta": "Book now",
           "resultTitle": "Result",
-          "resultBookings": "12",
-          "resultBookingsLabel": "bookings",
-          "resultCost": "€3.40",
-          "resultCostLabel": "per booking",
-          "resultOcc": "84%",
-          "resultOccLabel": "final occupancy"
+          "resultReach": "7,400",
+          "resultReachLabel": "people reached",
+          "resultClicks": "268",
+          "resultClicksLabel": "clicks to book",
+          "resultLocal": "84%",
+          "resultLocalLabel": "reached within 3 km"
         }
       }
     },
