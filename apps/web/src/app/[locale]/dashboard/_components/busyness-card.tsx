@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
-import { daypartsText } from "@/lib/dayparts";
+import { quietBlockText } from "@/lib/dayparts";
 import {
   fetchBusyness,
   fetchBusynessActual,
@@ -419,7 +419,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
         title: `${cap(dayFull.format(d.date))} · ${
           ch
             ? t("titleChance", {
-                part: daypartsText(tDp, ch.dayparts, ch.daypartLabel),
+                part: quietBlockText(tDp, ch),
               })
             : t("titleNoChance")
         }`,
@@ -517,7 +517,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
   // Dagdelen van de kans in beeld, vertaald. De backend stuurt zowel de
   // sleutels als een NL-label; het label is alleen de terugval.
   const focusPart = focusChance
-    ? daypartsText(tDp, focusChance.dayparts, focusChance.daypartLabel)
+    ? quietBlockText(tDp, focusChance)
     : "";
 
   let insightTitle: string;
@@ -580,11 +580,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
     insightSub = best
       ? t("insBestElsewhere", {
           day: `${shortWd.format(best.date).replace(".", "")} ${dayMonth.format(best.date)}`,
-          part: daypartsText(
-            tDp,
-            chanceByDate.get(best.iso)!.dayparts,
-            chanceByDate.get(best.iso)!.daypartLabel,
-          ),
+          part: quietBlockText(tDp, chanceByDate.get(best.iso)!),
         })
       : coveredHere > 0
         ? coveredHere === 1

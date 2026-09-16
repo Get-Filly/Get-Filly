@@ -28,6 +28,20 @@ export function daypartName(t: Translator, key: string): string {
 }
 
 /**
+ * Hoe je een rustig blok noemt. Beslaat het élk open dagdeel van die dag,
+ * dan is "de hele dag" het eerlijke antwoord: de opsomming "lunch, middag,
+ * diner en avond" zegt precies hetzelfde maar leest verwarrend, want lunch
+ * zit ín de middag en diner ín de avond.
+ */
+export function quietBlockText(
+  t: Translator,
+  m: { dayparts?: string[]; coversOpenDay?: boolean; daypartLabel?: string },
+): string {
+  if (m.coversOpenDay) return t("wholeDay");
+  return daypartsText(t, m.dayparts, m.daypartLabel ?? "");
+}
+
+/**
  * Meerdere dagdelen natuurlijk aan elkaar, in de taal van de gebruiker:
  * ["diner", "avond"] → "diner en avond" / "dinner and evening".
  * Spiegelt joinDayparts in de backend, maar dan vertaald.

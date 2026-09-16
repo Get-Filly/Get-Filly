@@ -1,6 +1,6 @@
 {
   "_comment": "Gegenereerd door apps/api/scripts/gen-quiet-fixture.js met de echte BusynessService. Niet met de hand bijwerken.",
-  "generatedAt": "2026-09-16T08:47:50.531Z",
+  "generatedAt": "2026-09-16T09:48:44.334Z",
   "from": "2026-09-16",
   "to": "2026-10-07",
   "pattern": [
@@ -226,6 +226,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": true,
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 37,
         "deviation": -6,
@@ -245,6 +246,7 @@
           "lunch",
           "middag"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "lunch en middag",
         "expectedPct": 47,
         "deviation": -7,
@@ -264,6 +266,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -284,6 +287,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": true,
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 33,
         "deviation": -0.4,
@@ -303,6 +307,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 28,
         "deviation": 0,
@@ -322,6 +327,7 @@
           "lunch",
           "middag"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "lunch en middag",
         "expectedPct": 47,
         "deviation": -7,
@@ -341,6 +347,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -360,6 +367,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 28,
         "deviation": 0,
@@ -391,6 +399,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": true,
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -410,6 +419,7 @@
           "lunch",
           "middag"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "lunch en middag",
         "expectedPct": 47,
         "deviation": -7,
@@ -429,6 +439,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -449,6 +460,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": true,
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -468,6 +480,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -488,6 +501,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": true,
         "daypartLabel": "lunch, middag en diner",
         "expectedPct": 44,
         "deviation": -2,
@@ -507,6 +521,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 27,
         "deviation": -2.4,
@@ -526,6 +541,7 @@
           "middag",
           "diner"
         ],
+        "coversOpenDay": false,
         "daypartLabel": "middag en diner",
         "expectedPct": 28,
         "deviation": 0,

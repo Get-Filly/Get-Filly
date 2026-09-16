@@ -115,6 +115,9 @@ const volleContext = {
   hasTerrace: true,
   covered,
   recentSlots: new Map(),
+  // Fase 4: nog geen gemeten campagnes in het prototype, dus geen weging.
+  slotPerformance: new Map(),
+  businessMedianLift: 0,
 };
 
 (async () => {
