@@ -17,9 +17,20 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
   // cyclus: geen van beide importeert BusynessModule.
   imports: [SupabaseModule, MeModule, EventsModule, WeatherModule],
   controllers: [BusynessController, BusynessCronController],
-  providers: [BusynessService, ApifyClient, AuthGuard, BusinessAccessGuard],
+  providers: [
+    BusynessService,
+    // QuietFeedbackService stond wél in exports maar niet hier. Nest weigert
+    // dan de hele module te laden (UnknownExportException) en de API start
+    // niet meer op — elk endpoint geeft 500. Zie de opmerking bij exports.
+    QuietFeedbackService,
+    ApifyClient,
+    AuthGuard,
+    BusinessAccessGuard,
+  ],
   // Exporteren zodat de fase B-backend (Filly-context + auto-detectie)
-  // de service later kan hergebruiken.
+  // de service later kan hergebruiken. Wat je hier exporteert MOET ook in
+  // providers staan; anders faalt het opstarten van de hele applicatie en
+  // niet alleen deze module.
   exports: [BusynessService, QuietFeedbackService],
 })
 export class BusynessModule {}
