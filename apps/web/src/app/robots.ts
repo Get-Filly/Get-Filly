@@ -25,6 +25,10 @@ export default function robots(): MetadataRoute.Robots {
         "/account-verwijderd",
         "/auth/",
         "/api/",
+        // Klik-prototypes (/proto-*): intern gereedschap om een UX-voorstel te
+        // bekijken zonder login. Publiek bereikbaar, maar geen zoekwaarde en
+        // ze tonen mock-data, dus uit de index houden.
+        "/proto-",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

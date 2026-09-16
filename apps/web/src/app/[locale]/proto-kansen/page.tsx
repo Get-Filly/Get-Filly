@@ -23,7 +23,8 @@
 // i.p.v. React-state, zodat de kaart bij het wisselen een verse mount krijgt
 // (ze haalt haar data in een useEffect op).
 //
-// Bereikbaar op: http://localhost:3000/proto-kansen
+// Bereikbaar op: http://localhost:3000/proto-kansen. Staat ook live, maar uit
+// de zoekindex: noindex hieronder + /proto- in de disallow-lijst van robots.ts.
 // ============================================================
 
 // De kaart hangt aan de --bzv-*-variabelen uit de dashboard-stylesheet; buiten
