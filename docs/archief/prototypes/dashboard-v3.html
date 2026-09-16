@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get-Filly prototype — dashboard v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ==========================================================
+     PALET — de hele regel in vier tokens.
+     1. inkt-ladder  : alle structuur, alle tekst, ALLE data
+     2. groen        : precies één betekenis = hier zit een kans / dit is de actie
+     3. amber        : precies één betekenis = nog niet gekoppeld
+     4. wit/oppervlak: vlakken
+     Groen mag NIET op: deltas, statusbolletjes, links, voortgangsbalken.
+     Verschil binnen data maak je met vulling en vorm, niet met een tint erbij.
+     ========================================================== */
+  :root {
+    --paper: #FAFAF9; --card: #FFFFFF; --surface: #F4F4F2;
+
+    --ink: #16181A;          /* koppen, getallen */
+    --ink-600: #5B6068;      /* lopende tekst */
+    --ink-400: #8B9099;      /* labels, meta */
+    --ink-300: #B6BAC1;      /* data: voorspeld, rand */
+    --ink-200: #DFE1E4;      /* randen */
+    --ink-100: #ECEDEF;      /* haarlijnen, grid */
+
+    --bar: #5B6068;          /* data: gemeten */
+    --bar-soft: #DFE1E4;     /* data: voorspeld / nog te meten */
+
+    --go: #1F4A2D;           /* kans + actie. verder niets. */
+    --go-ink: #16381F;
+    --go-soft: #E7EFE9;
+
+    --warn: #A9601B;
+    --warn-soft: #F6EFE4;
+
+    --r: 10px;
+  }
+  html[data-theme="dark"] {
+    --paper: #101214; --card: #171A1D; --surface: #1E2226;
+    --ink: #F0F1F2; --ink-600: #A7ACB3; --ink-400: #7C828A;
+    --ink-300: #4B5158; --ink-200: #2A2F34; --ink-100: #23272B;
+    --bar: #A7ACB3; --bar-soft: #2E3439;
+    --go: #6FAE84; --go-ink: #B7DCC4; --go-soft: #1A2A20;
+    --warn: #D9A05B; --warn-soft: #2A2318;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- topbar ---------- */
+  .top {
+    flex: none; height: 54px; display: flex; align-items: center; gap: 12px;
+    padding: 0 22px; border-bottom: 1px solid var(--ink-100); background: var(--card);
+  }
+  .t-name { font-size: 14px; font-weight: 600; letter-spacing: -.1px; }
+  .t-biz { font-size: 13px; color: var(--ink-400); }
+  .t-biz::before { content: "/"; margin-right: 10px; color: var(--ink-300); }
+  .t-proto { font-size: 11px; color: var(--ink-400); border: 1px solid var(--ink-200); border-radius: 999px; padding: 2px 9px; }
+  .t-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .ico { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: var(--ink-400); }
+  .ico:hover { background: var(--surface); color: var(--ink); }
+  .av { width: 27px; height: 27px; border-radius: 999px; background: var(--ink); color: var(--card); font-size: 11px; font-weight: 600; display: grid; place-items: center; margin-left: 6px; }
+  .t-link { font-size: 12px; color: var(--ink-400); text-decoration: none; border: 1px solid var(--ink-200); border-radius: 999px; padding: 3px 10px; }
+  .t-link:hover { color: var(--ink); border-color: var(--ink-300); }
+
+  /* ---------- pagina ---------- */
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .page { max-width: 940px; margin: 0 auto; padding: 30px 22px 90px; }
+
+  /* ---------- 1. de kop: het enige dat er nu toe doet ---------- */
+  .lead { display: flex; align-items: flex-start; gap: 18px; }
+  .lead-body { flex: 1; min-width: 0; }
+  .kicker { font-size: 11px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; color: var(--ink-400); }
+  .lead h1 { margin: 7px 0 0; font-size: 27px; font-weight: 600; letter-spacing: -.5px; line-height: 1.24; }
+  .lead h1 b { font-weight: 600; box-shadow: inset 0 -.5em 0 var(--go-soft); }
+  .lead p { margin: 7px 0 0; font-size: 14px; color: var(--ink-600); max-width: 62ch; }
+  .lead-act { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 22px; }
+
+  .btn {
+    border: 0; border-radius: var(--r); padding: 0 16px; height: 40px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 13.5px; font-weight: 600; background: var(--go); color: #fff; white-space: nowrap;
+  }
+  html[data-theme="dark"] .btn:not(.quiet) { color: #0E1512; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.quiet { background: none; border: 1px solid var(--ink-200); color: var(--ink-600); font-weight: 500; }
+  .btn.quiet:hover { border-color: var(--ink-300); color: var(--ink); filter: none; }
+  .btn.sm { height: 32px; font-size: 12.5px; padding: 0 12px; }
+  .btn[disabled] { opacity: .4; cursor: not-allowed; filter: none; }
+  .link { border: 0; background: none; padding: 0; font-size: 13px; font-weight: 500; color: var(--ink-600); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--ink-300); }
+  .link:hover { color: var(--ink); }
+
+  .meta-line { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--ink-100); display: flex; flex-wrap: wrap; gap: 0 22px; font-size: 12.5px; color: var(--ink-400); }
+  .meta-line b { font-weight: 600; color: var(--ink); }
+
+  /* ---------- 2. de wachtrij ---------- */
+  .sec { margin-top: 34px; }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .sec-head h2 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .2px; }
+  .sec-head .cnt { font-size: 12.5px; color: var(--ink-400); }
+  .sec-head .right { margin-left: auto; display: flex; gap: 4px; }
+
+  .queue { border: 1px solid var(--ink-200); border-radius: var(--r); background: var(--card); overflow: hidden; }
+  .row { border-top: 1px solid var(--ink-100); }
+  .row:first-child { border-top: 0; }
+  .row-main {
+    width: 100%; border: 0; background: none; text-align: left;
+    display: grid; grid-template-columns: 62px 1fr 96px 130px 26px;
+    align-items: center; gap: 16px; padding: 13px 16px;
+  }
+  .row-main:hover { background: var(--surface); }
+  .row[data-open="true"] .row-main { background: var(--surface); }
+  .r-date { font-size: 13px; font-weight: 600; }
+  .r-date span { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-400); }
+  .r-what { font-size: 14px; }
+  .r-what b { font-weight: 600; }
+  .r-what span { display: block; font-size: 12.5px; color: var(--ink-400); }
+  .r-spark { height: 30px; }
+  .r-spark svg { display: block; width: 96px; height: 30px; }
+  .r-status { font-size: 12.5px; color: var(--ink-400); display: flex; align-items: center; gap: 7px; }
+  .r-status i { width: 6px; height: 6px; border-radius: 999px; background: var(--ink-300); flex: none; }
+  .r-status.done i { background: var(--bar); }
+  .r-status.open i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-300); }
+  .r-caret { color: var(--ink-300); display: grid; place-items: center; }
+  .row[data-open="true"] .r-caret { transform: rotate(180deg); color: var(--ink-600); }
+  .row.go .r-what b { color: var(--go-ink); }
+  html[data-theme="dark"] .row.go .r-what b { color: var(--go-ink); }
+
+  .row-body { display: none; padding: 4px 16px 18px; border-top: 1px solid var(--ink-100); }
+  .row[data-open="true"] .row-body { display: block; }
+  .ev { display: grid; grid-template-columns: 1fr 260px; gap: 22px; align-items: start; }
+  .ev-chart { min-width: 0; }
+  .ev-chart .plot { height: 168px; }
+  .ev-chart .plot svg { width: 100%; height: 100%; display: block; }
+  .ev-cap { font-size: 11.5px; color: var(--ink-400); margin-top: 6px; }
+  .ev-side h4 { margin: 12px 0 8px; font-size: 12px; font-weight: 600; }
+  .why { display: flex; flex-direction: column; gap: 6px; }
+  .why div { font-size: 12.5px; color: var(--ink-600); display: flex; gap: 8px; }
+  .why div i { flex: none; width: 12px; color: var(--ink-400); font-style: normal; text-align: center; }
+  .why b { font-weight: 500; color: var(--ink); }
+  .notlinked { margin-top: 10px; font-size: 12px; color: var(--warn); display: flex; align-items: center; gap: 7px; }
+  .notlinked i { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); flex: none; }
+  .notlinked button { border: 0; background: none; padding: 0; color: var(--warn); text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
+  .ev-act { margin-top: 16px; display: flex; gap: 8px; }
+
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--ink-400); align-items: center; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; display: block; }
+  .legend i.solid { background: var(--bar); }
+  .legend i.soft { background: var(--bar-soft); }
+  .legend i.go { background: var(--go); }
+
+  /* ---------- 3. het patroon, gedegradeerd ---------- */
+  .fold { border: 1px solid var(--ink-200); border-radius: var(--r); background: var(--card); }
+  .fold-head { width: 100%; border: 0; background: none; display: flex; align-items: center; gap: 12px; padding: 13px 16px; text-align: left; }
+  .fold-head:hover { background: var(--surface); }
+  .fold-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
+  .fold-head .sub { font-size: 12.5px; color: var(--ink-400); }
+  .fold-head .r-caret { margin-left: auto; }
+  .fold[data-open="true"] .fold-head .r-caret { transform: rotate(180deg); }
+  .fold-body { display: none; padding: 2px 16px 16px; border-top: 1px solid var(--ink-100); }
+  .fold[data-open="true"] .fold-body { display: block; }
+  .ctrl { display: flex; align-items: center; gap: 10px; padding: 12px 0 4px; }
+  .switch { display: flex; gap: 2px; padding: 2px; background: var(--surface); border-radius: 8px; }
+  .switch button { border: 0; background: none; border-radius: 6px; padding: 5px 13px; font-size: 12.5px; font-weight: 500; color: var(--ink-600); }
+  .switch button[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 600; border: 1px solid var(--ink-200); padding: 4px 12px; }
+  .nav { width: 27px; height: 27px; border: 1px solid var(--ink-200); background: var(--card); border-radius: 7px; display: grid; place-items: center; color: var(--ink-600); }
+  .nav:hover { border-color: var(--ink-300); color: var(--ink); }
+  .rangelab { font-size: 13px; font-weight: 600; min-width: 190px; text-align: center; }
+  .rangelab small { font-weight: 400; color: var(--ink-400); }
+  .fold .plot { height: 240px; }
+  .fold .plot svg { width: 100%; height: 100%; display: block; }
+  .fold .plot [data-iso] { cursor: pointer; }
+
+  /* ---------- 4. koppelen, onderaan waar het hoort ---------- */
+  .setup { margin-top: 30px; border-top: 1px solid var(--ink-100); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 10px 26px; }
+  .su { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-400); }
+  .su i { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); flex: none; }
+  .su b { font-weight: 500; color: var(--ink-600); }
+  .su button { border: 0; background: none; padding: 0; font-size: 12.5px; font-weight: 500; color: var(--ink-600); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--ink-300); }
+  .su button:hover { color: var(--ink); }
+
+  /* ---------- Filly: launcher + sheet, geen vaste rail ---------- */
+  .launch {
+    position: fixed; right: 22px; bottom: 20px; z-index: 40;
+    display: flex; align-items: center; gap: 9px; height: 42px; padding: 0 16px 0 13px;
+    border: 1px solid var(--ink-200); border-radius: 999px; background: var(--card);
+    font-size: 13px; font-weight: 500; color: var(--ink);
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+  .launch:hover { border-color: var(--ink-300); }
+  .launch .dot { width: 21px; height: 21px; border-radius: 999px; background: var(--ink); color: var(--card); font-size: 10.5px; font-weight: 600; display: grid; place-items: center; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(16,18,20,.34); opacity: 0; pointer-events: none; transition: opacity .18s ease; z-index: 50; }
+  .sheet {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 428px; max-width: 92vw; z-index: 51;
+    background: var(--card); border-left: 1px solid var(--ink-200);
+    display: flex; flex-direction: column; transform: translateX(100%); transition: transform .2s cubic-bezier(.22,.7,.3,1);
+  }
+  body[data-sheet="true"] .scrim { opacity: 1; pointer-events: auto; }
+  body[data-sheet="true"] .sheet { transform: none; }
+  .sh-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--ink-100); }
+  .sh-head .dot { width: 26px; height: 26px; border-radius: 999px; background: var(--ink); color: var(--card); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+  .sh-head h3 { margin: 0; font-size: 13.5px; font-weight: 600; }
+  .sh-head .sub { font-size: 11.5px; color: var(--ink-400); }
+  .sh-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px 8px; }
+  .sh-foot { flex: none; padding: 12px 18px 14px; border-top: 1px solid var(--ink-100); }
+  .step { font-size: 11px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--ink-400); margin: 18px 0 8px; }
+  .step:first-child { margin-top: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; border: 1px solid var(--ink-200); background: var(--card); border-radius: 999px; padding: 5px 12px; color: var(--ink); }
+  .chip.set { background: var(--go-soft); border-color: transparent; color: var(--go-ink); font-weight: 500; }
+  .chip.set em { font-style: normal; opacity: .65; font-weight: 400; }
+  .opt { display: flex; flex-direction: column; gap: 7px; }
+  .opt button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid var(--ink-200); background: var(--card); border-radius: var(--r); padding: 11px 13px; font-size: 13px; }
+  .opt button:hover { border-color: var(--ink-300); }
+  .opt button.first { background: var(--go); border-color: transparent; color: #fff; font-weight: 600; }
+  html[data-theme="dark"] .opt button.first { color: #0E1512; }
+  .opt button.first:hover { filter: brightness(1.08); }
+  .opt button .tag { margin-left: auto; font-size: 10.5px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; opacity: .8; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .grid2 button { display: flex; align-items: center; gap: 8px; border: 1px solid var(--ink-200); background: var(--card); border-radius: var(--r); padding: 9px 11px; font-size: 12.5px; text-align: left; }
+  .grid2 button:hover { border-color: var(--ink-300); }
+  .grid2 svg { flex: none; color: var(--ink-400); }
+  .composer { display: flex; align-items: center; gap: 8px; min-height: 42px; border: 1px solid var(--ink-200); border-radius: var(--r); background: var(--paper); padding: 6px 8px 6px 12px; }
+  .composer input { flex: 1; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); outline: none; }
+  .composer input::placeholder { color: var(--ink-400); }
+  .send { width: 30px; height: 30px; border-radius: 7px; border: 0; background: var(--ink); color: var(--card); display: grid; place-items: center; }
+  .disc { font-size: 11px; color: var(--ink-400); text-align: center; margin-top: 9px; }
+
+  @media (max-width: 820px) {
+    .lead { flex-direction: column; } .lead-act { padding-top: 4px; align-items: stretch; width: 100%; }
+    .row-main { grid-template-columns: 56px 1fr 26px; }
+    .r-spark, .r-status { display: none; }
+    .ev { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="t-name">Dashboard</span>
+  <span class="t-biz">De Kaap · Rotterdam</span>
+  <span class="t-proto">prototype v3 · geen echte data</span>
+  <div class="t-right">
+    <a class="t-link" href="dashboard-v2.html">← v2</a>
+    <button class="ico" id="theme" title="Licht / donker" aria-label="Licht of donker">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+    </button>
+    <button class="ico" title="Zoeken" aria-label="Zoeken">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="ico" title="Meldingen" aria-label="Meldingen">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15V10a6 6 0 10-12 0v5l-1.5 3h15z"/><path d="M10 21h4"/></svg>
+    </button>
+    <div class="av">FK</div>
+  </div>
+</header>
+
+<div class="scroll">
+ <div class="page">
+
+  <section class="lead">
+    <div class="lead-body">
+      <div class="kicker" id="kicker">Nu aan de slag</div>
+      <h1 id="leadH">—</h1>
+      <p id="leadP"></p>
+    </div>
+    <div class="lead-act">
+      <button class="btn" id="leadCta">
+        <svg id="leadCtaIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span id="leadCtaLab">Maak een campagne</span>
+      </button>
+      <button class="link" id="leadSkip">Waarom deze dag?</button>
+    </div>
+  </section>
+
+  <div class="meta-line" id="metaLine"></div>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Kansen die eraan komen</h2>
+      <span class="cnt" id="queueCnt"></span>
+      <div class="right"><button class="btn quiet sm" id="histBtn">Afgelopen kansen</button></div>
+    </div>
+    <div class="queue" id="queue"></div>
+  </section>
+
+  <section class="sec">
+    <div class="fold" id="fold" data-open="false">
+      <button class="fold-head" id="foldHead">
+        <h2>Hoe je drukte loopt</h2>
+        <span class="sub" id="foldSub">het Google-patroon per uur, dag en maand</span>
+        <span class="r-caret"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="fold-body">
+        <div class="ctrl">
+          <div class="switch" id="switch">
+            <button data-view="dag">Dag</button>
+            <button data-view="week">Week</button>
+            <button data-view="maand">Maand</button>
+          </div>
+          <button class="nav" id="prev" aria-label="Vorige">‹</button>
+          <span class="rangelab num" id="range">—</span>
+          <button class="nav" id="next" aria-label="Volgende">›</button>
+          <div class="legend" style="margin-left:auto" id="bigLegend"></div>
+        </div>
+        <div class="plot" id="bigPlot"></div>
+        <div class="ev-cap" id="bigCap"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="setup">
+    <div class="su"><i></i><b>Vindbaarheid</b> nog niet gemeten <button>Verbind Google</button></div>
+    <div class="su"><i></i><b>Weer en agenda</b> nog niet gekoppeld <button>Koppelen</button></div>
+  </div>
+
+ </div>
+</div>
+
+<button class="launch" id="launch"><span class="dot">F</span> Vraag Filly</button>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-hidden="true">
+  <div class="sh-head">
+    <div class="dot">F</div>
+    <div>
+      <h3 id="shTitle">Nieuwe campagne</h3>
+      <div class="sub">Filly · marketing-assistent</div>
+    </div>
+    <button class="ico" id="shClose" style="margin-left:auto" aria-label="Sluiten">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sh-body">
+    <div id="shCtx">
+      <div class="step">Waarvoor</div>
+      <div class="chips" id="shChips"></div>
+
+      <div class="step">Hoe pakken we het aan?</div>
+      <div class="opt">
+        <button class="first">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>
+          Laat Filly de sterkste hoek kiezen <span class="tag">snelste</span>
+        </button>
+        <button>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg>
+          Bedenk er zelf een
+        </button>
+      </div>
+
+      <div class="step">Of kies een hoek</div>
+      <div class="grid2">
+        <button><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v8a3 3 0 006 0V3M8 11v10M19 3c-2 3-2 6 0 9v9"/></svg> Gerecht of drankje</button>
+        <button><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-8-8 8-8h8z"/><circle cx="15" cy="9" r="1.4"/></svg> Deal of aanbieding</button>
+        <button><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg> Sfeer &amp; beleving</button>
+        <button><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0M17 11a3 3 0 100-6"/></svg> Voor een doelgroep</button>
+        <button style="grid-column:1/-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg> Iets anders</button>
+      </div>
+    </div>
+  </div>
+  <div class="sh-foot">
+    <div class="composer">
+      <input id="shInput" placeholder="Of typ wat je wilt…" />
+      <button class="send" aria-label="Versturen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 8 6 8z"/></svg>
+      </button>
+    </div>
+    <div class="disc">Filly is een AI-chat en kan fouten maken.</div>
+  </div>
+</aside>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==========================================================
+     Model: identiek aan v2 (Google-patroon, zijwaartse benchmark
+     per dagdeel, kansen tot 21 dagen vooruit). Alleen de
+     presentatie is nieuw.
+     ========================================================== */
+  var OPEN = 12, CLOSE = 23, HORIZON = 21;
+  var DAY_NAMES = ["ma","di","wo","do","vr","za","zo"];
+  var DAY_FULL = ["Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag","Zondag"];
+  var MONTHS = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+  var MONTHS_FULL = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+
+  var SEGMENTS = [
+    { key: "lunch",  label: "lunch",  from: 12, to: 14 },
+    { key: "middag", label: "middag", from: 15, to: 17 },
+    { key: "diner",  label: "diner",  from: 18, to: 20 },
+    { key: "avond",  label: "avond",  from: 21, to: 23 }
+  ];
+  var AMP = [
+    { lunch: 22, diner: 44, avond: 14 },
+    { lunch: 26, diner: 52, avond: 16 },
+    { lunch: 40, diner: 62, avond: 20 },
+    { lunch: 44, diner: 74, avond: 30 },
+    { lunch: 52, diner: 96, avond: 62 },
+    { lunch: 66, diner: 100, avond: 74 },
+    { lunch: 72, diner: 70, avond: 24 }
+  ];
+  var SPECIAL = {};
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function addDays(d, n) { var x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() + n); return x; }
+  function dmShort(d) { return d.getDate() + " " + MONTHS[d.getMonth()]; }
+  function daysOut(d) { return Math.round((d - today) / 86400000); }
+  function median(a) { var s = a.slice().sort(function (x, y) { return x - y; }), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2; }
+  function noise(seed) { var x = Math.sin(seed * 12.9898) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; }
+  function bump(h, c, w, a) { return a * Math.exp(-Math.pow(h - c, 2) / w); }
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function clamp(v) { return Math.max(0, Math.min(100, v)); }
+
+  function expectedCurve(wd) {
+    var a = AMP[wd], out = [];
+    for (var h = 0; h < 24; h++) out.push(clamp(Math.round(bump(h,13,2.1,a.lunch) + bump(h,20,3.0,a.diner) + bump(h,22.3,2.2,a.avond))));
+    return out;
+  }
+  function actualCurve(exp, seed) {
+    var out = [], drift = noise(seed) * 0.14;
+    for (var h = 0; h < 24; h++) {
+      if (exp[h] < 3) { out.push(exp[h]); continue; }
+      out.push(clamp(Math.round(exp[h] * (1 + drift + noise(seed * 7 + h) * 0.12))));
+    }
+    return out;
+  }
+  var WEEK_EXP = [0,1,2,3,4,5,6].map(expectedCurve);
+  function segMean(curve, sg) { var t = 0, n = 0; for (var h = sg.from; h <= sg.to; h++) { t += curve[h]; n++; } return t / n; }
+  function curveMean(curve) { var t = 0, n = 0; for (var h = OPEN; h <= CLOSE; h++) { t += curve[h]; n++; } return t / n; }
+
+  var SEG_NORMAL = SEGMENTS.map(function (sg) { return median(WEEK_EXP.map(function (c) { return segMean(c, sg); })); });
+  var SEG_PEAK = Math.max.apply(null, WEEK_EXP.map(function (c) { return Math.max.apply(null, SEGMENTS.map(function (sg) { return segMean(c, sg); })); }));
+  var DAY_PEAK = Math.max.apply(null, WEEK_EXP.map(curveMean));
+  var DAY_NORMAL = median(WEEK_EXP.map(curveMean)) / DAY_PEAK * 100;
+
+  var TARGETABLE = 22, MIN_BELOW = 24;
+  function findChance(exp) {
+    var best = null;
+    SEGMENTS.forEach(function (sg, i) {
+      if (SEG_NORMAL[i] < TARGETABLE) return;
+      var below = Math.round((1 - segMean(exp, sg) / SEG_NORMAL[i]) * 100);
+      if (below < MIN_BELOW) return;
+      if (!best || below > best.below) best = { key: sg.key, label: sg.label, from: sg.from, to: sg.to, below: below, idx: i };
+    });
+    return best;
+  }
+  function strength(below) {
+    if (below >= 40) return { word: "grote kans", phrase: "duidelijk rustiger" };
+    if (below >= 25) return { word: "kans", phrase: "rustiger" };
+    return { word: "kleine kans", phrase: "iets rustiger" };
+  }
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayIso = iso(today);
+  var nowHour = new Date().getHours();
+  SPECIAL[iso(addDays(today, 3))] = "Open Monumentendag";
+  SPECIAL[iso(addDays(today, 11))] = "Wijnfestival om de hoek";
+
+  /* Kleine per-datum afwijking op het weekpatroon, zodat niet elke dag
+     dezelfde kans oplevert (in productie komt dit uit de echte snapshots). */
+  function varyCurve(base, seed) {
+    var f = SEGMENTS.map(function (sg, i) { return 1 + noise(seed * (i + 2.3)) * 0.26; });
+    var out = base.slice();
+    SEGMENTS.forEach(function (sg, i) {
+      for (var h = sg.from; h <= sg.to; h++) out[h] = clamp(Math.round(base[h] * f[i]));
+    });
+    return out;
+  }
+
+  function buildDay(date) {
+    var d0 = new Date(date); d0.setHours(0,0,0,0);
+    var wd = (d0.getDay() + 6) % 7, key = iso(d0);
+    var exp = varyCurve(WEEK_EXP[wd], d0.getDate() * 1.7 + d0.getMonth() * 5.1);
+    var isPast = key < todayIso, isToday = key === todayIso;
+    var act = null;
+    if (isPast || isToday) {
+      act = actualCurve(exp, d0.getDate() + wd * 3.7);
+      if (isToday) for (var h = 0; h < 24; h++) if (h > nowHour) act[h] = null;
+    }
+    var out = daysOut(d0);
+    return {
+      date: d0, iso: key, wd: wd, exp: exp, act: act,
+      isPast: isPast, isToday: isToday, isFuture: key > todayIso,
+      chance: (out >= 0 && out <= HORIZON) ? findChance(exp) : null,
+      beyondHorizon: out > HORIZON, special: SPECIAL[key] || null
+    };
+  }
+  function val(d, h) { return (d.act && d.act[h] !== null && d.act[h] !== undefined) ? d.act[h] : d.exp[h]; }
+  function measuredAt(d, h) { return !!(d.act && d.act[h] !== null && d.act[h] !== undefined); }
+  function hasMeasurement(d) { for (var h = OPEN; h <= CLOSE; h++) if (measuredAt(d, h)) return true; return false; }
+  function dayIndex(d) { var t = 0, n = 0; for (var h = OPEN; h <= CLOSE; h++) { t += val(d, h); n++; } return t / n / DAY_PEAK * 100; }
+  function segLevel(d, sg) { var t = 0, n = 0; for (var h = sg.from; h <= sg.to; h++) { t += val(d, h); n++; } return t / n; }
+  function span(c) { return c.from + ":00 tot " + (c.to + 1) + ":00"; }
+
+  /* Werkvoorraad: kansen vanaf vandaag, met een verzonnen status per dag. */
+  function statusFor(i) {
+    if (i === 0) return { key: "concept", text: "Concept klaar", cls: "open", act: "Bekijk concept" };
+    if (i === 2) return { key: "gepland", text: "Gepland", cls: "done", act: "Bekijk campagne" };
+    return { key: "leeg", text: "Nog niets", cls: "", act: "Maak campagne" };
+  }
+  function chancesAhead() {
+    var out = [];
+    for (var i = 0; i <= HORIZON; i++) { var d = buildDay(addDays(today, i)); if (d.chance) out.push(d); }
+    return out;
+  }
+
+  /* ==========================================================
+     Staafidioom — één accent.
+       gemeten     = volle inkt-staaf
+       nog te meten= zelfde staaf, lichte inktvulling
+       kans        = zelfde staaf, groen (het enige groen in data)
+       normaal     = kort inkt-streepje over de breedte van het dagdeel
+     Verschil zit dus in VULLING en VORM, niet in extra kleuren.
+     ========================================================== */
+  function barPath(x, y, w, hh, rr) {
+    var r = Math.max(0, Math.min(rr, w / 2, hh));
+    return "M" + x.toFixed(1) + "," + (y + hh).toFixed(1)
+      + " L" + x.toFixed(1) + "," + (y + r).toFixed(1)
+      + " Q" + x.toFixed(1) + "," + y.toFixed(1) + " " + (x + r).toFixed(1) + "," + y.toFixed(1)
+      + " L" + (x + w - r).toFixed(1) + "," + y.toFixed(1)
+      + " Q" + (x + w).toFixed(1) + "," + y.toFixed(1) + " " + (x + w).toFixed(1) + "," + (y + r).toFixed(1)
+      + " L" + (x + w).toFixed(1) + "," + (y + hh).toFixed(1) + " Z";
+  }
+  function txt(x, y, t, o) {
+    o = o || {};
+    return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + (o.anchor || "middle")
+      + '" font-size="' + (o.size || 11) + '" font-weight="' + (o.weight || 400) + '" fill="' + (o.fill || "var(--ink-400)")
+      + '" font-family="Inter, sans-serif">' + esc(t) + "</text>";
+  }
+  function gridline(x1, x2, y, strong) {
+    return '<line x1="' + x1.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y.toFixed(1)
+      + '" stroke="' + (strong ? "var(--ink-200)" : "var(--ink-100)") + '" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+  }
+
+  /* mini-bulletje in de rij: vier dagdelen, streepje = normaal */
+  function sparkline(d) {
+    var W = 96, H = 30, bw = 13, gap = (W - 4 * bw) / 3;
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" aria-hidden="true">';
+    SEGMENTS.forEach(function (sg, i) {
+      var x = i * (bw + gap);
+      var lvl = segLevel(d, sg) / SEG_PEAK * 100;
+      var nrm = SEG_NORMAL[i] / SEG_PEAK * 100;
+      var dead = SEG_NORMAL[i] < TARGETABLE;
+      var isGo = !!(d.chance && d.chance.key === sg.key);
+      var h = Math.max(2, (H - 6) * lvl / 100);
+      var fill = isGo ? "var(--go)" : (hasMeasurement(d) ? "var(--bar)" : "var(--bar-soft)");
+      s += '<path d="' + barPath(x, H - 4 - h, bw, h, 2) + '" fill="' + fill + '" opacity="' + (dead ? ".4" : "1") + '"/>';
+      if (!dead) {
+        var ny = H - 4 - (H - 6) * nrm / 100;
+        s += '<line x1="' + (x - 1) + '" y1="' + ny.toFixed(1) + '" x2="' + (x + bw + 1) + '" y2="' + ny.toFixed(1)
+          + '" stroke="var(--ink-300)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>';
+      }
+    });
+    s += gridline(0, W, H - 3.5, true);
+    s += "</svg>";
+    return s;
+  }
+
+  /* uurgrafiek van één dag, gebruikt in de uitgeklapte rij */
+  function renderDayChart(host, d) {
+    var W = Math.max(360, Math.round(host.clientWidth) || 520);
+    var H = Math.max(140, Math.round(host.clientHeight) || 168);
+    var L = 40, R = 10, T = 14, B = 40, pw = W - L - R, ph = H - T - B;
+    var n = CLOSE - OPEN + 1, slot = pw / n, bw = Math.min(30, slot * 0.56);
+    function X(i) { return L + slot * (i + 0.5); }
+    function Y(v) { return T + ph - clamp(v) / 100 * ph; }
+
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img">';
+    [25, 50, 75, 100].forEach(function (v) { s += gridline(L, W - R, Y(v)); });
+    s += gridline(L, W - R, Y(0), true);
+    s += txt(L - 8, Y(100) + 4, "druk", { anchor: "end" });
+    s += txt(L - 8, Y(0) + 4, "stil", { anchor: "end" });
+
+    for (var h = OPEN; h <= CLOSE; h++) {
+      var i = h - OPEN, x = X(i) - bw / 2;
+      var si = 0; SEGMENTS.forEach(function (sg, k) { if (h >= sg.from && h <= sg.to) si = k; });
+      var isGo = !!(d.chance && h >= d.chance.from && h <= d.chance.to);
+      var dead = SEG_NORMAL[si] < TARGETABLE;
+      var v = val(d, h), y = Y(v), hh = Math.max(2, T + ph - y);
+      var fill = isGo ? "var(--go)" : (measuredAt(d, h) ? "var(--bar)" : "var(--bar-soft)");
+      s += "<g><title>" + esc(h + ":00 · " + (measuredAt(d, h) ? "gemeten" : "voorspeld")) + "</title>";
+      s += '<path d="' + barPath(x, y, bw, hh, 3) + '" fill="' + fill + '" opacity="' + (dead ? ".55" : "1") + '"/></g>';
+      if (h % 2 === 0) s += txt(X(i), T + ph + 15, h + ":00", { fill: "var(--ink-400)" });
+    }
+
+    /* normaal per dagdeel: één streepje over de hele dagdeelbreedte */
+    SEGMENTS.forEach(function (sg, k) {
+      if (SEG_NORMAL[k] < TARGETABLE) return;
+      var x1 = L + slot * (sg.from - OPEN) + 2, x2 = L + slot * (sg.to - OPEN + 1) - 2;
+      var y = Y(SEG_NORMAL[k]);
+      s += '<line x1="' + x1.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y.toFixed(1)
+        + '" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="5 4" opacity=".55" vector-effect="non-scaling-stroke"/>';
+      var mid = (x1 + x2) / 2;
+      var isGo = !!(d.chance && d.chance.key === sg.key);
+      s += txt(mid, T + ph + 31, sg.label, { weight: isGo ? 600 : 400, fill: isGo ? "var(--ink)" : "var(--ink-400)", size: 11 });
+    });
+    s += "</svg>";
+    host.innerHTML = s;
+  }
+
+  /* ---------- 1. kop ---------- */
+  var upcoming = chancesAhead();                       // op datum
+  var leadDay = upcoming.length ? upcoming[0] : null;  // eerstvolgende = waar je nu iets aan hebt
+  var strongest = upcoming.length
+    ? upcoming.slice().sort(function (a, b) { return b.chance.below - a.chance.below || (a.date - b.date); })[0] : null;
+
+  function renderLead() {
+    var h = document.getElementById("leadH"), p = document.getElementById("leadP");
+    if (!leadDay) {
+      document.getElementById("kicker").textContent = "Rustig vooruit";
+      h.textContent = "Geen kans in de komende drie weken";
+      p.textContent = "Elke dag ligt rond je normale niveau. Filly kijkt " + HORIZON + " dagen vooruit en meldt zich zodra er een dagdeel achterblijft.";
+      document.getElementById("leadCta").disabled = true;
+      return;
+    }
+    var c = leadDay.chance, st = strength(c.below);
+    var when = leadDay.isToday ? "Vandaag" : daysOut(leadDay.date) === 1 ? "Morgen"
+      : DAY_FULL[leadDay.wd] + " " + dmShort(leadDay.date);
+    document.getElementById("kicker").textContent = leadDay.isToday ? "Vandaag" : "Eerstvolgende kans";
+    h.innerHTML = when + " is de <b>" + esc(c.label) + "</b> " + esc(st.phrase) + " dan normaal";
+    var tail = "";
+    if (strongest && strongest.iso !== leadDay.iso) {
+      tail = " Je grootste kans is " + DAY_NAMES[strongest.wd] + " " + dmShort(strongest.date)
+        + ", " + strongest.chance.label + ".";
+    } else if (upcoming.length > 1) {
+      tail = " Er staan er nog " + (upcoming.length - 1) + " in de rij.";
+    }
+    p.textContent = span(c) + ". Dat dagdeel doet bij jou normaal meer, dus daar valt iets te vullen."
+      + (leadDay.special ? " Let op: " + leadDay.special + " in de buurt." : "") + tail;
+    var lstat = statusFor(0);
+    document.getElementById("leadCtaLab").textContent = lstat.key === "leeg"
+      ? "Campagne voor " + DAY_NAMES[leadDay.wd] + " " + c.label
+      : lstat.act + " voor " + DAY_NAMES[leadDay.wd] + " " + c.label;
+    document.getElementById("leadCtaIcon").style.display = lstat.key === "leeg" ? "" : "none";
+  }
+
+  document.getElementById("metaLine").innerHTML =
+    '<span><b>1 van 6</b> rustige momenten benut deze maand</span>'
+    + '<span><b>5</b> lopende campagnes, 2 publiceren deze week</span>'
+    + '<span>Drukte bijgewerkt <b>2 min</b> geleden</span>';
+
+  /* ---------- 2. wachtrij ---------- */
+  function renderQueue() {
+    var host = document.getElementById("queue");
+    document.getElementById("queueCnt").textContent = upcoming.length
+      ? upcoming.length + " in de komende " + HORIZON + " dagen" : "";
+    if (!upcoming.length) {
+      host.innerHTML = '<div style="padding:22px 16px;font-size:13px;color:var(--ink-400)">Niets in de rij. Filly meldt zich zodra een dagdeel achterblijft.</div>';
+      return;
+    }
+    host.innerHTML = upcoming.map(function (d, i) {
+      var c = d.chance, st = strength(c.below), stat = statusFor(i);
+      var when = d.isToday ? "vandaag" : daysOut(d.date) === 1 ? "morgen" : DAY_NAMES[d.wd];
+      return '<div class="row go" data-iso="' + d.iso + '" data-open="' + (i === 0 ? "true" : "false") + '">'
+        + '<button class="row-main">'
+        + '<span class="r-date num">' + when + "<span>" + dmShort(d.date) + "</span></span>"
+        + '<span class="r-what"><b>' + esc(c.label) + "</b> " + esc(st.phrase) + " dan normaal"
+        + "<span>" + span(c) + (d.special ? " · " + esc(d.special) : "") + "</span></span>"
+        + '<span class="r-spark">' + sparkline(d) + "</span>"
+        + '<span class="r-status ' + stat.cls + '"><i></i>' + stat.text + "</span>"
+        + '<span class="r-caret"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span>'
+        + "</button>"
+        + '<div class="row-body"><div class="ev">'
+        + '<div class="ev-chart"><div class="plot"></div>'
+        + '<div class="legend" style="margin-top:8px"><span><i class="go"></i> kans</span><span><i class="soft"></i> voorspeld</span><span><i class="solid"></i> gemeten</span><span>streepje = normaal voor dit dagdeel</span></div>'
+        + "</div>"
+        + '<div class="ev-side"><h4>Waarom dit dagdeel achterblijft</h4>'
+        + '<div class="why">' + whyRows(d) + "</div>"
+        + '<div class="notlinked"><i></i>Weer en agenda nog niet gekoppeld <button>Koppelen</button></div>'
+        + '<div class="ev-act"><button class="btn sm" data-make="' + d.iso + '">' + stat.act + '</button>'
+        + '<button class="btn quiet sm" data-open-day="' + d.iso + '">Bekijk hele dag</button></div>'
+        + "</div></div></div></div>";
+    }).join("");
+
+    Array.prototype.forEach.call(host.querySelectorAll(".row"), function (row) {
+      var d = buildDay(new Date(row.getAttribute("data-iso") + "T00:00:00"));
+      row.querySelector(".row-main").addEventListener("click", function () {
+        var open = row.getAttribute("data-open") === "true";
+        row.setAttribute("data-open", open ? "false" : "true");
+        if (!open) drawRow(row, d);
+      });
+      if (row.getAttribute("data-open") === "true") drawRow(row, d);
+    });
+    Array.prototype.forEach.call(host.querySelectorAll("[data-make]"), function (b) {
+      b.addEventListener("click", function (e) { e.stopPropagation(); openSheet(buildDay(new Date(b.getAttribute("data-make") + "T00:00:00"))); });
+    });
+    Array.prototype.forEach.call(host.querySelectorAll("[data-open-day]"), function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        anchor = new Date(b.getAttribute("data-open-day") + "T00:00:00");
+        view = "dag";
+        setFold(true);
+        renderBig();
+        document.getElementById("fold").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+  }
+  function drawRow(row, d) {
+    var host = row.querySelector(".plot");
+    requestAnimationFrame(function () { renderDayChart(host, d); });
+    if (window.ResizeObserver && !host.__ro) {
+      host.__ro = new ResizeObserver(function () { renderDayChart(host, d); });
+      host.__ro.observe(host);
+    }
+  }
+
+  var WEATHER = ["zonnig","half bewolkt","bewolkt","buien","regen"];
+  var DAY_RANK = (function () {
+    var means = WEEK_EXP.map(curveMean);
+    var order = means.map(function (v, i) { return { i: i, v: v }; }).sort(function (a, b) { return a.v - b.v; });
+    var out = []; order.forEach(function (o, pos) { out[o.i] = pos; });
+    return out;
+  })();
+  /* Alleen regels die iets zeggen. Een factor zonder signaal krijgt geen regel. */
+  function whyRows(d) {
+    var rows = [], rank = DAY_RANK[d.wd];
+    rows.push(rank <= 1 ? { dir: "↓", t: "<b>" + DAY_NAMES[d.wd] + "</b> is een van je stilste dagen" }
+      : rank >= 5 ? { dir: "↑", t: "<b>" + DAY_NAMES[d.wd] + "</b> is normaal een van je drukste dagen" }
+      : { dir: "·", t: "<b>" + DAY_NAMES[d.wd] + "</b> loopt bij jou gemiddeld" });
+    rows.push({ dir: "·", t: "Andere dagen halen dit " + d.chance.label + " <b>meer</b>, daar zit de ruimte" });
+    rows.push({ dir: "↓", t: "Dit <b>" + d.chance.label + "</b> bleef de afgelopen weken ook achter" });
+    if (d.special) rows.push({ dir: "↑", t: "<b>" + esc(d.special) + "</b> in de buurt" });
+    return rows.map(function (r) { return "<div><i>" + r.dir + "</i><span>" + r.t + "</span></div>"; }).join("");
+  }
+
+  /* ---------- 3. het patroon ---------- */
+  var view = "week", anchor = new Date(today), days = [], focusIso = null;
+
+  function periodDays() {
+    var out = [], i;
+    if (view === "dag") return [buildDay(anchor)];
+    if (view === "week") { for (i = 0; i < 7; i++) out.push(buildDay(addDays(anchor, i))); return out; }
+    var y = anchor.getFullYear(), mo = anchor.getMonth(), last = new Date(y, mo + 1, 0).getDate();
+    for (i = 1; i <= last; i++) out.push(buildDay(new Date(y, mo, i)));
+    return out;
+  }
+  function renderBig() {
+    days = periodDays();
+    Array.prototype.forEach.call(document.querySelectorAll("#switch button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === view));
+    });
+    var label = "", note = "";
+    if (view === "dag") {
+      var d = days[0];
+      label = DAY_FULL[d.wd] + " " + dmShort(d.date);
+      note = d.isToday ? "vandaag" : d.isPast ? "afgelopen" : "";
+    } else if (view === "week") {
+      label = dmShort(days[0].date) + " – " + dmShort(days[6].date);
+      note = days[0].iso === todayIso ? "komende 7 dagen" : "";
+    } else {
+      label = MONTHS_FULL[anchor.getMonth()] + " " + anchor.getFullYear();
+      note = (anchor.getMonth() === today.getMonth() && anchor.getFullYear() === today.getFullYear()) ? "deze maand" : "";
+    }
+    document.getElementById("range").innerHTML = esc(label) + (note ? ' <small>· ' + note + "</small>" : "");
+    document.getElementById("bigLegend").innerHTML = view === "dag"
+      ? '<span><i class="go"></i> kans</span><span><i class="soft"></i> voorspeld</span><span><i class="solid"></i> gemeten</span>'
+      : '<span><i class="go"></i> kans</span><span><i class="soft"></i> voorspeld</span><span><i class="solid"></i> gemeten</span>';
+    document.getElementById("bigCap").textContent = view === "dag"
+      ? "Het gestreepte streepje is wat dat dagdeel bij jou normaal doet, gerekend over je week."
+      : "De gestreepte lijn is wat een dag bij jou normaal doet. Klik een staaf om de uren van die dag te openen.";
+    drawBig();
+  }
+  function drawBig() {
+    var host = document.getElementById("bigPlot");
+    if (document.getElementById("fold").getAttribute("data-open") !== "true") return;
+    if (view === "dag") { renderDayChart(host, days[0]); return; }
+
+    var W = Math.max(460, Math.round(host.clientWidth) || 860);
+    var H = Math.max(200, Math.round(host.clientHeight) || 240);
+    var L = 40, R = 12, T = 16, B = view === "week" ? 46 : 32, pw = W - L - R, ph = H - T - B;
+    var n = days.length, slot = pw / n, bw = Math.max(7, Math.min(46, slot * (view === "maand" ? 0.64 : 0.5)));
+    function X(i) { return L + slot * (i + 0.5); }
+    function Y(v) { return T + ph - clamp(v) / 100 * ph; }
+
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img">';
+    [25, 50, 75, 100].forEach(function (v) { s += gridline(L, W - R, Y(v)); });
+    s += gridline(L, W - R, Y(0), true);
+    s += txt(L - 8, Y(100) + 4, "druk", { anchor: "end" });
+    s += txt(L - 8, Y(0) + 4, "stil", { anchor: "end" });
+
+    days.forEach(function (d, i) {
+      var lvl = dayIndex(d), y = Y(lvl), hh = Math.max(2, T + ph - y), x = X(i) - bw / 2;
+      var fill = d.chance ? "var(--go)" : (hasMeasurement(d) ? "var(--bar)" : "var(--bar-soft)");
+      s += '<g data-iso="' + d.iso + '"><title>' + esc(DAY_NAMES[d.wd] + " " + dmShort(d.date) + " · "
+        + (d.chance ? strength(d.chance.below).word + " (" + d.chance.label + ")"
+           : d.beyondHorizon ? "te ver vooruit voor kansen" : "vol genoeg")) + "</title>";
+      s += '<rect x="' + (L + slot * i).toFixed(1) + '" y="' + T + '" width="' + slot.toFixed(1) + '" height="' + ph + '" fill="transparent"/>';
+      s += '<path d="' + barPath(x, y, bw, hh, 3) + '" fill="' + fill + '"/></g>';
+      var show = view === "week" || slot >= 19 || i % 2 === 0;
+      if (show) {
+        var strong = d.isToday;
+        s += txt(X(i), T + ph + 15, view === "week" ? DAY_NAMES[d.wd] : String(d.date.getDate()),
+          { weight: strong ? 600 : 400, fill: strong ? "var(--ink)" : "var(--ink-400)" });
+        if (view === "week") s += txt(X(i), T + ph + 29, d.isToday ? "vandaag" : pad(d.date.getDate()) + "/" + pad(d.date.getMonth() + 1),
+          { size: 10.5, fill: "var(--ink-400)" });
+      }
+    });
+    var ny = Y(DAY_NORMAL);
+    s += '<line x1="' + L + '" y1="' + ny.toFixed(1) + '" x2="' + (W - R) + '" y2="' + ny.toFixed(1)
+      + '" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="5 4" opacity=".5" vector-effect="non-scaling-stroke"/>';
+    s += txt(W - R, ny - 6, "normaal voor jou", { anchor: "end", size: 10.5, fill: "var(--ink-400)" });
+    s += "</svg>";
+    host.innerHTML = s;
+  }
+  function setFold(open) {
+    document.getElementById("fold").setAttribute("data-open", open ? "true" : "false");
+    if (open) requestAnimationFrame(drawBig);
+  }
+  document.getElementById("foldHead").addEventListener("click", function () {
+    setFold(document.getElementById("fold").getAttribute("data-open") !== "true");
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#switch button"), function (b) {
+    b.addEventListener("click", function () { view = b.getAttribute("data-view"); focusIso = null; renderBig(); });
+  });
+  document.getElementById("prev").addEventListener("click", function () { shift(-1); });
+  document.getElementById("next").addEventListener("click", function () { shift(1); });
+  function shift(step) {
+    if (view === "dag") anchor = addDays(anchor, step);
+    else if (view === "week") anchor = addDays(anchor, 7 * step);
+    else anchor = new Date(anchor.getFullYear(), anchor.getMonth() + step, 1);
+    renderBig();
+  }
+  document.getElementById("bigPlot").addEventListener("click", function (e) {
+    var g = e.target.closest ? e.target.closest("[data-iso]") : null;
+    if (!g) return;
+    anchor = new Date(g.getAttribute("data-iso") + "T00:00:00");
+    view = "dag";
+    renderBig();
+  });
+
+  /* ---------- Filly-sheet ---------- */
+  function openSheet(d) {
+    var chips = document.getElementById("shChips");
+    if (d && d.chance) {
+      document.getElementById("shTitle").textContent = "Nieuwe campagne";
+      chips.innerHTML = '<span class="chip set">' + DAY_NAMES[d.wd] + " " + dmShort(d.date) + ' <em>wijzig</em></span>'
+        + '<span class="chip set">' + esc(d.chance.label) + ' <em>wijzig</em></span>';
+    } else {
+      document.getElementById("shTitle").textContent = "Filly";
+      chips.innerHTML = '<span class="chip">Kies een dag</span><span class="chip">Kies een dagdeel</span>';
+    }
+    document.body.setAttribute("data-sheet", "true");
+    document.getElementById("sheet").setAttribute("aria-hidden", "false");
+  }
+  function closeSheet() {
+    document.body.setAttribute("data-sheet", "false");
+    document.getElementById("sheet").setAttribute("aria-hidden", "true");
+  }
+  document.getElementById("leadCta").addEventListener("click", function () { openSheet(leadDay); });
+  document.getElementById("launch").addEventListener("click", function () { openSheet(null); });
+  document.getElementById("shClose").addEventListener("click", closeSheet);
+  document.getElementById("scrim").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
+  document.getElementById("leadSkip").addEventListener("click", function () {
+    var row = document.querySelector('.row[data-iso="' + (leadDay ? leadDay.iso : "") + '"]');
+    if (!row) return;
+    if (row.getAttribute("data-open") !== "true") row.querySelector(".row-main").click();
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  document.getElementById("histBtn").addEventListener("click", function () {
+    alert("Prototype: hier komt de terugblik — welke kansen je benutte en hoe die dagen liepen.");
+  });
+
+  /* ---------- thema ---------- */
+  document.getElementById("theme").addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    var next = cur === "dark" ? "light" : cur === "light" ? "dark"
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", next);
+  });
+  if (window.matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.setAttribute("data-theme", "dark");
+
+  renderLead();
+  renderQueue();
+  renderBig();
+  window.addEventListener("resize", function () { drawBig(); });
+})();
+</script>
+</body>
+</html>
