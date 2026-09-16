@@ -4618,6 +4618,21 @@
 .dashboard-shell .bzv-sw.room { background: var(--bzv-room); }
 .dashboard-shell .bzv-sw.over { background: var(--copper); height: 4px; border-radius: 2px; }
 .dashboard-shell .bzv-star { color: var(--accent); font-size: 12px; }
+/* Kans die alleen déze week geldt (weer/evenement): eigen kleur én een ring,
+   zodat het onderscheid ook zonder kleurwaarneming leesbaar blijft. Spiegelt
+   de markering onder de staaf in busyness-card.tsx. */
+.dashboard-shell .bzv-star.inc {
+  color: var(--copper);
+  border: 1px solid var(--copper);
+  border-radius: 999px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+}
 .dashboard-shell .bzv-plot { flex: 1; min-height: 220px; }
 .dashboard-shell .bzv-plot svg { width: 100%; height: 100%; display: block; }
 .dashboard-shell .bzv-bar.clickable { cursor: pointer; }

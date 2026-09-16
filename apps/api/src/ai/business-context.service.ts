@@ -634,32 +634,50 @@ export class BusinessContextService {
         .getQuietMoments(businessId, today, in7days)
         .catch(() => null);
       if (quiet?.hasSource && quiet.moments.length > 0) {
-        const mlines = quiet.moments.map((m) => {
+        // Waarom juist deze dag (2026-09-15). Zonder dit wist de detectie
+        // niets van het festival om de hoek waar Filly in dezelfde chat wél
+        // over kon praten: het evenementen-blok en de detectie stonden los
+        // van elkaar. Nu vertelt de detectie zelf waar de dag vandaan komt.
+        const lijn = (m: (typeof quiet.moments)[number]) => {
           const label = wd.format(new Date(`${m.date}T12:00:00Z`));
-          // Vulbaarheid-first model: 'doorgaans rustig' = structureel leeg
-          // (betrouwbaar vulbaar); 'ongewoon rustig' = een echte dip onder de
-          // eigen norm. Beide zijn kansen, maar de toon verschilt.
-          const toon = m.unusual ? 'ongewoon rustig' : 'doorgaans rustig';
-          // Waarom juist deze dag (2026-09-15). Zonder dit wist de detectie
-          // niets van het festival om de hoek waar Filly in dezelfde chat wél
-          // over kon praten: het evenementen-blok en de detectie stonden los
-          // van elkaar. Nu vertelt de detectie zelf waar de dag vandaan komt.
           const waarom =
             m.kind === 'incidenteel'
-              ? QUIET_REASON_NL[m.reasonKey] ?? 'wijkt deze datum af'
+              ? (QUIET_REASON_NL[m.reasonKey] ?? 'wijkt deze datum af')
               : m.reasonKey === 'eventNearby'
                 ? QUIET_REASON_NL.eventNearby
                 : m.reasonKey === 'structuralRotated'
                   ? QUIET_REASON_NL.structuralRotated
                   : null;
           const eventNaam =
-            m.reasonKey === 'eventNearby' ? String(m.reasonParams.name ?? '') : '';
+            m.reasonKey === 'eventNearby'
+              ? String(m.reasonParams.name ?? '')
+              : '';
           const suffix = waarom
             ? ` — ${waarom}${eventNaam ? `: ${eventNaam} op ${m.reasonParams.distanceKm} km` : ''}`
             : '';
-          return `  - ${label} ${m.date}, ${m.daypartLabel}: ${toon} (kans voor een actie)${suffix}`;
-        });
-        parts.push(`Rustige momenten om op in te spelen:\n${mlines.join('\n')}`);
+          return `  - ${label} ${m.date}, ${m.daypartLabel}${suffix}`;
+        };
+
+        // Twee soorten kansen, en ze vragen een ander gesprek. Structureel is
+        // een strategisch gegeven ("maandaglunch is bij jou altijd stil"): dat
+        // hoef je één keer te zeggen en pak je met een meerwekenplan aan, niet
+        // met een wekelijks nieuwsbericht. Incidenteel is tactisch en heeft een
+        // houdbaarheidsdatum. Door ze gescheiden aan te bieden kan Filly ze ook
+        // verschillend behandelen in plaats van alles als "kans" te noemen.
+        const incidenteel = quiet.moments.filter((m) => m.kind === 'incidenteel');
+        const structureel = quiet.moments.filter((m) => m.kind !== 'incidenteel');
+        if (incidenteel.length > 0) {
+          parts.push(
+            'DEZE WEEK AFWIJKEND (tactisch, vervalt na die dag — dit is het nieuws waar je mee mag beginnen):\n' +
+              incidenteel.map(lijn).join('\n'),
+          );
+        }
+        if (structureel.length > 0) {
+          parts.push(
+            'STRUCTUREEL RUSTIG (dit is elke week zo — strategisch, dus benoem het hooguit één keer en denk in een meerwekenplan, niet in losse acties):\n' +
+              structureel.map(lijn).join('\n'),
+          );
+        }
       }
 
       // Live "nu"-drukte kwalitatief (geen exacte percentages in de chat).

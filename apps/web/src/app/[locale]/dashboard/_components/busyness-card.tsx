@@ -97,6 +97,10 @@ type Bar = {
   expected: number; // 0-100
   measured: boolean;
   kans: boolean;
+  // Soort kans, voor de markering onder de staaf. Structureel = je vaste
+  // stille moment (strategisch, elke week zo). Incidenteel = juist déze datum
+  // wijkt af door weer of een evenement (tactisch, vervalt).
+  kansKind: "structureel" | "incidenteel" | null;
   label: string;
   sub: string | null;
   isToday: boolean;
@@ -378,6 +382,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           expected: d.hours[h],
           measured: meas.has(h),
           kans: isKans,
+          kansKind: isKans ? (ch?.kind ?? null) : null,
           label: `${pad(h)}:00`,
           sub: null,
           isToday: false,
@@ -398,6 +403,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
         expected: dayIndex(d, true),
         measured: meas.size > 0,
         kans: !!ch,
+        kansKind: ch?.kind ?? null,
         label:
           view === "week"
             ? shortWd.format(d.date).replace(".", "")
@@ -725,10 +731,16 @@ export function BusynessCard({ onMakeConcept }: Props) {
                   {t("legendOver")}
                 </span>
               )}
-              {bars.some((b) => b.kans) && (
+              {bars.some((b) => b.kans && b.kansKind !== "incidenteel") && (
                 <span>
                   <b className="bzv-star">★</b>
-                  {t("legendChance")}
+                  {t("legendChanceStructural")}
+                </span>
+              )}
+              {bars.some((b) => b.kansKind === "incidenteel") && (
+                <span>
+                  <b className="bzv-star inc">★</b>
+                  {t("legendChanceIncidental")}
                 </span>
               )}
             </div>
@@ -899,15 +911,34 @@ export function BusynessCard({ onMakeConcept }: Props) {
                       </text>
                     )}
                     {view !== "dag" && b.kans && (
-                      <text
-                        x={X(i)}
-                        y={T + ph + (b.sub ? 45 : 30)}
-                        textAnchor="middle"
-                        fontSize="13"
-                        fill="var(--accent)"
-                      >
-                        ★
-                      </text>
+                      // Incidenteel krijgt een ring óm de ster en een eigen
+                      // kleur: vorm én kleur verschillen, zodat het onderscheid
+                      // ook zonder kleurwaarneming leesbaar blijft.
+                      <>
+                        {b.kansKind === "incidenteel" && (
+                          <circle
+                            cx={X(i)}
+                            cy={T + ph + (b.sub ? 41 : 26)}
+                            r="9"
+                            fill="none"
+                            stroke="var(--copper)"
+                            strokeWidth="1.2"
+                          />
+                        )}
+                        <text
+                          x={X(i)}
+                          y={T + ph + (b.sub ? 45 : 30)}
+                          textAnchor="middle"
+                          fontSize="13"
+                          fill={
+                            b.kansKind === "incidenteel"
+                              ? "var(--copper)"
+                              : "var(--accent)"
+                          }
+                        >
+                          ★
+                        </text>
+                      </>
                     )}
                   </g>
                 );

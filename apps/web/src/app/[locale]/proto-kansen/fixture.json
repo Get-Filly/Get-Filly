@@ -1,8 +1,8 @@
 {
   "_comment": "Gegenereerd door apps/api/scripts/gen-quiet-fixture.js met de echte BusynessService. Niet met de hand bijwerken.",
-  "generatedAt": "2026-09-15T13:45:27.606Z",
-  "from": "2026-09-15",
-  "to": "2026-10-06",
+  "generatedAt": "2026-09-16T08:47:50.531Z",
+  "from": "2026-09-16",
+  "to": "2026-10-07",
   "pattern": [
     [
       0,
@@ -218,46 +218,7 @@
     "hasSource": true,
     "moments": [
       {
-        "date": "2026-09-15",
-        "weekday": 1,
-        "daypart": "middag",
-        "dayparts": [
-          "middag",
-          "diner"
-        ],
-        "daypartLabel": "middag en diner",
-        "expectedPct": 27,
-        "deviation": -2.4,
-        "gap": 73,
-        "unusual": true,
-        "fromHour": 14,
-        "toHour": 20,
-        "kind": "structureel",
-        "reasonKey": "unusual",
-        "reasonParams": {}
-      },
-      {
-        "date": "2026-09-17",
-        "weekday": 3,
-        "daypart": "lunch",
-        "dayparts": [
-          "lunch",
-          "middag",
-          "diner"
-        ],
-        "daypartLabel": "lunch, middag en diner",
-        "expectedPct": 28,
-        "deviation": -7.6,
-        "gap": 70,
-        "unusual": true,
-        "fromHour": 12,
-        "toHour": 20,
-        "kind": "incidenteel",
-        "reasonKey": "weatherRain",
-        "reasonParams": {}
-      },
-      {
-        "date": "2026-09-25",
+        "date": "2026-09-18",
         "weekday": 4,
         "daypart": "lunch",
         "dayparts": [
@@ -266,18 +227,18 @@
           "diner"
         ],
         "daypartLabel": "lunch, middag en diner",
-        "expectedPct": 44,
-        "deviation": -2,
-        "gap": 61,
+        "expectedPct": 37,
+        "deviation": -6,
+        "gap": 65,
         "unusual": true,
         "fromHour": 12,
         "toHour": 20,
-        "kind": "structureel",
-        "reasonKey": "unusual",
+        "kind": "incidenteel",
+        "reasonKey": "weatherRain",
         "reasonParams": {}
       },
       {
-        "date": "2026-09-26",
+        "date": "2026-09-19",
         "weekday": 5,
         "daypart": "lunch",
         "dayparts": [
@@ -296,7 +257,7 @@
         "reasonParams": {}
       },
       {
-        "date": "2026-09-29",
+        "date": "2026-09-22",
         "weekday": 1,
         "daypart": "middag",
         "dayparts": [
@@ -315,8 +276,8 @@
         "reasonParams": {}
       },
       {
-        "date": "2026-10-02",
-        "weekday": 4,
+        "date": "2026-09-24",
+        "weekday": 3,
         "daypart": "lunch",
         "dayparts": [
           "lunch",
@@ -324,12 +285,50 @@
           "diner"
         ],
         "daypartLabel": "lunch, middag en diner",
-        "expectedPct": 44,
-        "deviation": -2,
-        "gap": 61,
-        "unusual": true,
+        "expectedPct": 33,
+        "deviation": -0.4,
+        "gap": 67,
+        "unusual": false,
         "fromHour": 12,
         "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structuralRotated",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-30",
+        "weekday": 2,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 28,
+        "deviation": 0,
+        "gap": 74,
+        "unusual": false,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structuralRotated",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-03",
+        "weekday": 5,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag"
+        ],
+        "daypartLabel": "lunch en middag",
+        "expectedPct": 47,
+        "deviation": -7,
+        "gap": 49,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 16,
         "kind": "structureel",
         "reasonKey": "unusual",
         "reasonParams": {}
@@ -352,11 +351,30 @@
         "kind": "structureel",
         "reasonKey": "unusual",
         "reasonParams": {}
+      },
+      {
+        "date": "2026-10-07",
+        "weekday": 2,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 28,
+        "deviation": 0,
+        "gap": 74,
+        "unusual": false,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structural",
+        "reasonParams": {}
       }
     ],
     "notes": [
       {
-        "date": "2026-09-22",
+        "date": "2026-09-23",
         "reason": "al_afgedekt"
       }
     ]
@@ -364,25 +382,6 @@
   "zonderBeleid": {
     "hasSource": true,
     "moments": [
-      {
-        "date": "2026-09-15",
-        "weekday": 1,
-        "daypart": "middag",
-        "dayparts": [
-          "middag",
-          "diner"
-        ],
-        "daypartLabel": "middag en diner",
-        "expectedPct": 27,
-        "deviation": -2.4,
-        "gap": 73,
-        "unusual": true,
-        "fromHour": 14,
-        "toHour": 20,
-        "kind": "structureel",
-        "reasonKey": "unusual",
-        "reasonParams": {}
-      },
       {
         "date": "2026-09-18",
         "weekday": 4,
@@ -404,6 +403,25 @@
         "reasonParams": {}
       },
       {
+        "date": "2026-09-19",
+        "weekday": 5,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag"
+        ],
+        "daypartLabel": "lunch en middag",
+        "expectedPct": 47,
+        "deviation": -7,
+        "gap": 49,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 16,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
         "date": "2026-09-22",
         "weekday": 1,
         "daypart": "middag",
@@ -498,6 +516,25 @@
         "toHour": 20,
         "kind": "structureel",
         "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-07",
+        "weekday": 2,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 28,
+        "deviation": 0,
+        "gap": 74,
+        "unusual": false,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structural",
         "reasonParams": {}
       }
     ],
