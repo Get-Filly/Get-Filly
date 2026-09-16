@@ -9,6 +9,15 @@
       "avond": "evening",
       "and": "and",
       "wholeDay": "the whole day"
+    },
+    "quietReasons": {
+      "structural": "usually your quietest moment",
+      "structuralRotated": "you just did your usual quiet slot",
+      "unusual": "quieter than normal here",
+      "weatherRain": "rain forecast, people stay in",
+      "weatherCold": "cold forecast ({temp}°), people stay in",
+      "weatherHeat": "hot forecast ({temp}°), visits drop",
+      "eventNearby": "{name}, {distanceKm} km away"
     }
   },
   "language": {
@@ -3019,7 +3028,9 @@
     "photoOverwrite": "Also overwrite {count, plural, one {# channel} other {# channels}} that already have one"
   },
   "dash__components_campaign_detail_waarom_card": {
-    "title": "Why this proposal"
+    "title": "Why this proposal",
+    "whyDay": "Why this day:",
+    "whyDayIncidental": "Why this day in particular:"
   },
   "dash__components_campaign_detail_wanneer_card": {
     "title": "When to post",
@@ -4707,13 +4718,6 @@
     "periodMonth": "this month",
     "periodWeek": "in the next 7 days",
     "prev": "Previous",
-    "reasonEventNearby": "{name}, {distanceKm} km away",
-    "reasonStructural": "usually your quietest moment",
-    "reasonStructuralRotated": "you just did your usual quiet slot",
-    "reasonUnusual": "quieter than normal here",
-    "reasonWeatherCold": "cold forecast ({temp}°), people stay in",
-    "reasonWeatherHeat": "hot forecast ({temp}°), visits drop",
-    "reasonWeatherRain": "rain forecast, people stay in",
     "subNext7": "next 7 days",
     "subThisMonth": "this month",
     "tfPast": "Past",

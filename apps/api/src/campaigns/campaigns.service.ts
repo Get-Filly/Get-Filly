@@ -171,6 +171,16 @@ export type CampaignDetail = Campaign & {
   // of het voorstel is intussen verwijderd). Detail-pagina toont
   // een "Waarom dit voorstel"-card als deze gevuld is.
   reasoning: string | null;
+  // Waarom Filly juist DEZE dag koos, uit het gekoppelde voorstel. Als
+  // sleutel + gegevens, niet als zin: de app is NL/EN en de zin hoort in de
+  // frontend gemaakt te worden. Null als de campagne niet uit een
+  // rustig-moment-voorstel komt (handmatig, of een speciale dag).
+  dayReason: {
+    key: string;
+    params: Record<string, string | number>;
+    kind: 'structureel' | 'incidenteel' | null;
+    targetDate: string | null;
+  } | null;
   // Per 2026-05-13 (mig 0041): alle versies + welke 'Gekozen' is.
   // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
   // body/subject_line hierboven zijn afgeleid van
@@ -850,15 +860,42 @@ export class CampaignsService {
     // beschikbaar. Frontend toont 'm op de Concept-detail-pagina als
     // "Waarom dit voorstel"-card, identiek aan de voorstel-detail.
     let reasoning: string | null = null;
+    let dayReason: CampaignDetail['dayReason'] = null;
     if (campaign.ai_suggestion_id) {
       const { data: suggestion } = await this.supabase.client
         .from('ai_suggestions')
-        .select('reasoning')
+        .select('reasoning, trigger_context')
         .eq('id', campaign.ai_suggestion_id)
         .eq('business_id', businessId)
         .maybeSingle();
       if (suggestion && typeof suggestion.reasoning === 'string') {
         reasoning = suggestion.reasoning;
+      }
+      // De dag-keuze zat al in trigger_context maar bleef daar hangen: op de
+      // campagne kon je later niet meer zien waaróm Filly die dag koos.
+      const ctx = suggestion?.trigger_context as
+        | {
+            reason_key?: unknown;
+            reason_params?: unknown;
+            kind?: unknown;
+            target_date?: unknown;
+          }
+        | null
+        | undefined;
+      if (ctx && typeof ctx.reason_key === 'string') {
+        dayReason = {
+          key: ctx.reason_key,
+          params:
+            ctx.reason_params && typeof ctx.reason_params === 'object'
+              ? (ctx.reason_params as Record<string, string | number>)
+              : {},
+          kind:
+            ctx.kind === 'structureel' || ctx.kind === 'incidenteel'
+              ? ctx.kind
+              : null,
+          targetDate:
+            typeof ctx.target_date === 'string' ? ctx.target_date : null,
+        };
       }
     }
 
@@ -883,6 +920,7 @@ export class CampaignsService {
       ...campaign,
       content: signedContent,
       reasoning,
+      dayReason,
       sent_count: sentCount,
     } as CampaignDetail;
   }
@@ -1365,7 +1403,7 @@ export class CampaignsService {
           .eq('campaign_id', id)
           .maybeSingle();
         const ps = Array.isArray(sc?.platforms)
-          ? (sc!.platforms as string[])
+          ? (sc.platforms as string[])
           : [];
         result.push({ id, platforms: ps });
       } else {
@@ -1762,7 +1800,7 @@ export class CampaignsService {
         .maybeSingle();
       const fallback =
         existingName?.name && typeof existingName.name === 'string'
-          ? (existingName.name as string)
+          ? existingName.name
           : 'Concept';
       const { error } = await this.supabase.client
         .from('campaign_mail_content')

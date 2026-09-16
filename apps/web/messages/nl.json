@@ -9,6 +9,15 @@
       "avond": "avond",
       "and": "en",
       "wholeDay": "de hele dag"
+    },
+    "quietReasons": {
+      "structural": "doorgaans je stilste moment",
+      "structuralRotated": "je vaste rustige moment deed je net al",
+      "unusual": "rustiger dan hier normaal is",
+      "weatherRain": "regen verwacht, mensen blijven thuis",
+      "weatherCold": "koud verwacht ({temp}°), mensen blijven thuis",
+      "weatherHeat": "warm verwacht ({temp}°), bezoek daalt",
+      "eventNearby": "{name} op {distanceKm} km"
     }
   },
   "language": {
@@ -3019,7 +3028,9 @@
     "photoOverwrite": "Overschrijf ook {count, plural, one {# kanaal} other {# kanalen}} met al een foto"
   },
   "dash__components_campaign_detail_waarom_card": {
-    "title": "Waarom dit voorstel"
+    "title": "Waarom dit voorstel",
+    "whyDay": "Waarom deze dag:",
+    "whyDayIncidental": "Waarom juist deze dag:"
   },
   "dash__components_campaign_detail_wanneer_card": {
     "title": "Wanneer plaatsen",
@@ -4707,13 +4718,6 @@
     "periodMonth": "deze maand",
     "periodWeek": "de komende 7 dagen",
     "prev": "Vorige",
-    "reasonEventNearby": "{name} op {distanceKm} km",
-    "reasonStructural": "doorgaans je stilste moment",
-    "reasonStructuralRotated": "je vaste rustige moment deed je net al",
-    "reasonUnusual": "rustiger dan hier normaal is",
-    "reasonWeatherCold": "koud verwacht ({temp}°), mensen blijven thuis",
-    "reasonWeatherHeat": "warm verwacht ({temp}°), bezoek daalt",
-    "reasonWeatherRain": "regen verwacht, mensen blijven thuis",
     "subNext7": "komende 7 dagen",
     "subThisMonth": "deze maand",
     "tfPast": "Afgelopen",

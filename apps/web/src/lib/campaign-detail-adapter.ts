@@ -75,6 +75,14 @@ export type UnifiedDetailView = {
   // (zie findById). Bij bundle: pak de eerste niet-null waarde —
   // alle kanalen van dezelfde suggestie delen dezelfde reasoning.
   reasoning: string | null;
+  // Waarom Filly juist DEZE dag koos. Zelfde bron als reasoning (het
+  // gekoppelde voorstel), dus binnen een bundel delen alle kanalen 'm.
+  dayReason: {
+    key: string;
+    params: Record<string, string | number>;
+    kind: "structureel" | "incidenteel" | null;
+    targetDate: string | null;
+  } | null;
   // Per-kanaal data voor de KanalenCard / InhoudCard / WanneerCard.
   channels: UnifiedChannel[];
   // Per-kanaal checklist voor MissendeAspectenCard. Wordt hier al
@@ -227,6 +235,9 @@ export function bundleToView(bundle: CampaignBundle): UnifiedDetailView {
   const reasoning =
     bundle.campaigns.find((c) => typeof c.reasoning === "string" && c.reasoning)
       ?.reasoning ?? null;
+  // Idem voor de dag-reden: die hangt aan het voorstel, niet aan het kanaal.
+  const dayReason =
+    bundle.campaigns.find((c) => c.dayReason)?.dayReason ?? null;
 
   const first = bundle.campaigns[0];
   const status = earliestStatus(bundle.campaigns);
@@ -243,6 +254,7 @@ export function bundleToView(bundle: CampaignBundle): UnifiedDetailView {
     name,
     status,
     reasoning,
+    dayReason,
     channels,
     channelsChecklist,
     campaignsByChannelId,
