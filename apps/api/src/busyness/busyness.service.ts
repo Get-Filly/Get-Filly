@@ -56,6 +56,11 @@ export interface QuietMoment {
   // hiermee zelf; `daypartLabel` is een Nederlandse zin en hoort dus alleen
   // in de prompts thuis, niet in de UI (de app is NL/EN).
   dayparts: string[];
+  // Beslaat dit blok élk dagdeel waarop de zaak die dag open is? Dan is
+  // "de hele dag" de eerlijke omschrijving; een opsomming als "lunch,
+  // middag, diner en avond" leest raar (lunch zit in de middag, diner in
+  // de avond) en zegt precies hetzelfde.
+  coversOpenDay: boolean;
   daypartLabel: string; // 'middag en diner' — NL, voor prompts/trigger_context
   expectedPct: number; // verwachte drukte in dat dagdeel (0-100), incl. datum-signalen
   deviation: number; // werkelijk − voorspeld (negatief = rustiger dan verwacht)
@@ -609,6 +614,9 @@ export class BusynessService {
     const dateReason = new Map<string, QuietReason | null>();
     const dateFactor = new Map<string, number>();
     const notes: QuietNote[] = [];
+    // Aantal dagdelen waarop de zaak die dag open is, om "de hele dag" te
+    // kunnen herkennen.
+    const openDayparts = new Map<string, number>();
 
     for (const date of this.eachDate(fromIso, toIso)) {
       // Harde poort 1: feestdag. Een feestdag is geen rustig moment om te
@@ -647,6 +655,7 @@ export class BusynessService {
       const openIdx = cells[weekday]
         .map((c, j) => (c ? j : -1))
         .filter((j) => j >= 0);
+      openDayparts.set(date, openIdx.length);
       const firstIdx = openIdx[0];
       const lastIdx = openIdx[openIdx.length - 1];
       const arr: PartCand[] = [];
@@ -767,6 +776,7 @@ export class BusynessService {
         weekday: this.mondayIndex(date),
         daypart: best[0].key,
         dayparts: best.map((p) => p.key),
+        coversOpenDay: best.length >= (openDayparts.get(date) ?? 0),
         daypartLabel: this.joinDayparts(best.map((p) => p.label)),
         expectedPct: Math.round(
           best.reduce((s, p) => s + p.expectedPct, 0) / best.length,
@@ -800,6 +810,7 @@ export class BusynessService {
       weekday: k.weekday,
       daypart: k.daypart,
       dayparts: k.dayparts,
+      coversOpenDay: k.coversOpenDay,
       daypartLabel: k.daypartLabel,
       expectedPct: k.expectedPct,
       deviation: k.deviation,

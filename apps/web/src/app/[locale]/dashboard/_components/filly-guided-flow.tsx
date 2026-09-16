@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { daypartName, daypartsText } from "@/lib/dayparts";
+import { daypartName, quietBlockText } from "@/lib/dayparts";
 import { useRouter } from "@/i18n/navigation";
 import {
   Sparkles,
@@ -328,7 +328,7 @@ export function FillyGuidedFlow({
             kind: "low_occupancy",
             label: `${formatDayNl(initialDate, localeTag)}${
               momentByDate.get(initialDate)
-                ? ` · ${daypartsText(tDp, momentByDate.get(initialDate)!.dayparts, momentByDate.get(initialDate)!.daypartLabel)}`
+                ? ` · ${quietBlockText(tDp, momentByDate.get(initialDate)!)}`
                 : ""
             }`,
           }
@@ -657,11 +657,7 @@ export function FillyGuidedFlow({
                           ? "opener.momentUnusual"
                           : "opener.momentUsual",
                         {
-                          daypart: daypartsText(
-                            tDp,
-                            mom.dayparts,
-                            mom.daypartLabel,
-                          ),
+                          daypart: quietBlockText(tDp, mom),
                         },
                       )
                     : t("opener.quietDayGeneric");
@@ -674,7 +670,7 @@ export function FillyGuidedFlow({
                         toggleOpenerDay({
                           date: d.date,
                           kind: "low_occupancy",
-                          label: `${formatDayNl(d.date, localeTag)}${mom ? ` · ${daypartsText(tDp, mom.dayparts, mom.daypartLabel)}` : ""}`,
+                          label: `${formatDayNl(d.date, localeTag)}${mom ? ` · ${quietBlockText(tDp, mom)}` : ""}`,
                         })
                       }
                     >

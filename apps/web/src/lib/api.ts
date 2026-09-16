@@ -1541,6 +1541,9 @@ export type QuietMoment = {
   // Alle dagdeel-sleutels in deze kans; hiermee vertaalt de UI zelf
   // (zie lib/dayparts.ts). daypartLabel is NL en alleen de terugval.
   dayparts: string[];
+  // Beslaat het blok élk open dagdeel van die dag? Dan toont de UI "de hele
+  // dag" in plaats van een opsomming die hetzelfde zegt maar raar leest.
+  coversOpenDay: boolean;
   daypartLabel: string;
   expectedPct: number;
   deviation: number; // negatief = rustiger dan verwacht
