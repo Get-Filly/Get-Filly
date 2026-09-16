@@ -220,16 +220,16 @@ export async function BereikbaarheidVisual() {
         <div className="lv-res-title">{t("mockup.visuals.reach.resultTitle")}</div>
         <div className="lv-res-stats">
           <div className="lv-res-stat">
-            <b>{t("mockup.visuals.reach.resultBookings")}</b>
-            <span>{t("mockup.visuals.reach.resultBookingsLabel")}</span>
+            <b>{t("mockup.visuals.reach.resultReach")}</b>
+            <span>{t("mockup.visuals.reach.resultReachLabel")}</span>
           </div>
           <div className="lv-res-stat">
-            <b>{t("mockup.visuals.reach.resultCost")}</b>
-            <span>{t("mockup.visuals.reach.resultCostLabel")}</span>
+            <b>{t("mockup.visuals.reach.resultClicks")}</b>
+            <span>{t("mockup.visuals.reach.resultClicksLabel")}</span>
           </div>
           <div className="lv-res-stat">
-            <b>{t("mockup.visuals.reach.resultOcc")}</b>
-            <span>{t("mockup.visuals.reach.resultOccLabel")}</span>
+            <b>{t("mockup.visuals.reach.resultLocal")}</b>
+            <span>{t("mockup.visuals.reach.resultLocalLabel")}</span>
           </div>
         </div>
       </div>

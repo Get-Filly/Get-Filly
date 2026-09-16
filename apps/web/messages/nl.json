@@ -77,12 +77,12 @@
       "reachability": {
         "eyebrow": "Bereikbaarheid",
         "title": "De juiste boodschap. Op het juiste moment. Bij de juiste klant.",
-        "desc": "In beeld zijn is één ding, de juiste mensen bereiken is wat je rustige momenten vult. Wij kiezen per uiting de doelgroep, zetten waar nodig betaald bereik in en rekenen alles terug naar boekingen.",
+        "desc": "In beeld zijn is één ding, de juiste mensen bereiken is wat je rustige momenten vult. Wij kiezen per uiting de doelgroep, zetten waar nodig betaald bereik in en leggen het resultaat naast je drukte op die dag.",
         "bullets": [
           "Doelgroep op straal rond je zaak, leeftijd en interesses",
           "Betaald bereik op de dagen die gevuld moeten worden",
           "Segmentatie op vaste klanten, nieuwe klanten en de buurt",
-          "Boekingen per uiting, niet alleen kliks en likes",
+          "Per uiting zie je bereik, doorkliks en wat het deed met je drukte",
           "Maandrapport in gewone taal, zonder marketingjargon"
         ]
       }
@@ -208,12 +208,12 @@
           "cap": "Donderdag nog een paar tafels vrij. Drie gangen voor €24,50.",
           "cta": "Reserveer nu",
           "resultTitle": "Resultaat",
-          "resultBookings": "12",
-          "resultBookingsLabel": "boekingen",
-          "resultCost": "€3,40",
-          "resultCostLabel": "per boeking",
-          "resultOcc": "84%",
-          "resultOccLabel": "eindbezetting"
+          "resultReach": "7.400",
+          "resultReachLabel": "mensen bereikt",
+          "resultClicks": "268",
+          "resultClicksLabel": "kliks naar reserveren",
+          "resultLocal": "84%",
+          "resultLocalLabel": "binnen 3 km bereikt"
         }
       }
     },
