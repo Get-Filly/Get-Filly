@@ -39,6 +39,27 @@ export type ReportChannel = (typeof REPORT_CHANNELS)[number];
 
 export type ReportKind = 'all' | 'organic' | 'paid';
 
+/**
+ * Eén regel in "wat werkt bij jou": één kanaal, over álles wat we tot nu
+ * toe gemeten hebben.
+ *
+ * `uitingen` staat er bewust bij. Een mediaan-score op twee posts is geen
+ * bevinding maar toeval, en zonder dat getal leest een toevalstreffer als
+ * bewijs. Onder MIN_UITINGEN geven we daarom geen oordeel maar tonen we
+ * alleen hoeveel er nog nodig zijn.
+ */
+export type WhatWorksRow = {
+  channel: string;
+  uitingen: number;
+  /** Mediaan van de succes-score (0-100); null als geen enkele uiting er een heeft. */
+  medianScore: number | null;
+  bookings: number;
+  /** Genoeg uitingen om er iets over te zeggen? */
+  counts: boolean;
+  /** Alleen gezet als counts=true. */
+  verdict: 'sterk' | 'gemiddeld' | 'zwak' | null;
+};
+
 export type CampaignReportRow = {
   campaign_id: string;
   campaign_name: string;
@@ -110,13 +131,27 @@ export type CampaignReport = {
   to: string;
   totals: CampaignReportTotals;
   /** Vorige, even lange periode. Null als daar te weinig in zit om te vergelijken. */
-  previous: { reach: number; clicks: number; bookings: number; uitingen: number } | null;
+  previous: {
+    reach: number;
+    clicks: number;
+    bookings: number;
+    uitingen: number;
+  } | null;
   /**
    * Per kanaal, over de periode + soort MAAR ZONDER het kanaal-filter.
    * De per-kanaal-grafiek dimt niet-geselecteerde kanalen i.p.v. ze te
    * verbergen, anders houd je een staafdiagram met één staaf over.
    */
   byChannel: CampaignReportChannel[];
+  /**
+   * Wat werkt bij deze zaak, per kanaal. Bewust NIET over de gekozen
+   * periode maar over alles wat we tot nu toe gemeten hebben: "welk kanaal
+   * werkt voor mij" is een vraag over de lange lijn, en over 30 dagen heb je
+   * zelden genoeg uitingen per kanaal om er iets over te zeggen.
+   */
+  whatWorks: WhatWorksRow[];
+  /** Vanaf hoeveel uitingen we een oordeel geven. */
+  whatWorksMin: number;
   /** Tijdreeks over de gefilterde rijen: dagen bij 7, weken daarboven. */
   buckets: CampaignReportBucket[];
   bucketSizeDays: number;
@@ -142,6 +177,22 @@ const SELECT_COLS =
   'marked_outlier';
 
 const DAY_MS = 86_400_000;
+
+// Vanaf hoeveel uitingen per kanaal we een oordeel geven. Onder dit aantal
+// tonen we het kanaal wél (dan zie je dat het bestaat) maar zonder verdict:
+// een mediaan op twee posts is toeval, geen bevinding.
+const WHAT_WORKS_MIN = 3;
+// Score-grenzen voor het oordeel. Sluiten aan op de classificatie uit
+// migratie 0050/0071, die op dezelfde schaal werkt.
+const WHAT_WORKS_STRONG = 60;
+const WHAT_WORKS_WEAK = 40;
+
+/** Mediaan; robuuster dan een gemiddelde tegen één uitschieter. */
+function median(nums: number[]): number {
+  const a = [...nums].sort((x, y) => x - y);
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+}
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -174,9 +225,16 @@ export class CampaignReportService {
     // Twee queries: de huidige periode en de periode ervóór. De vorige
     // hebben we alleen als totaal nodig, maar dezelfde filters moeten
     // erop, anders vergelijk je appels met peren.
-    const [huidig, vorig] = await Promise.all([
+    const [huidig, vorig, alles] = await Promise.all([
       this.fetchRows(businessId, from, now, kind),
       this.fetchRows(businessId, prevFrom, from, kind),
+      // Zonder datumgrenzen en zonder soort-filter: "wat werkt bij mij" gaat
+      // over de hele lijn, niet over de gekozen periode. Fail-soft — dit blok
+      // mag de rest van de rapportage niet meeslepen.
+      this.fetchAllRows(businessId).catch((e) => {
+        this.logger.warn(`wat-werkt-rijen ophalen faalde: ${String(e)}`);
+        return [] as CampaignReportRow[];
+      }),
     ]);
 
     // periodeRows = periode + soort, zonder kanaal-filter (voor de
@@ -193,6 +251,8 @@ export class CampaignReportService {
       from: from.toISOString(),
       to: now.toISOString(),
       totals: this.totals(actief),
+      whatWorks: this.whatWorks(alles),
+      whatWorksMin: WHAT_WORKS_MIN,
       // Minder dan 2 uitingen in de vorige periode? Dan is een percentage
       // misleidend precies (63 tegen 7 is "+800%" en zegt niets). De UI
       // toont dan "te weinig historie" i.p.v. een getal.
@@ -270,7 +330,66 @@ export class CampaignReportService {
     return (data ?? []) as unknown as CampaignReportRow[];
   }
 
+  /** Alle gemeten uitingen van deze zaak, ongeacht periode of soort. */
+  private async fetchAllRows(businessId: string): Promise<CampaignReportRow[]> {
+    const { data, error } = await this.supabase.client
+      .from('campaign_performance_report')
+      .select(SELECT_COLS)
+      .eq('business_id', businessId)
+      .order('happened_at', { ascending: false });
+    if (error) throwDbError(this.logger, error);
+    return (data ?? []) as unknown as CampaignReportRow[];
+  }
+
   // ---------------- aggregaties ----------------
+
+  /**
+   * Wat werkt bij deze zaak, per kanaal. Mediaan van de succes-score, niet
+   * het gemiddelde: één uitschieter (een post die toevallig viraal ging)
+   * hoort het beeld van een kanaal niet te bepalen.
+   *
+   * Uitingen die als uitschieter gemarkeerd zijn of nog geen score hebben,
+   * tellen niet mee in de score — maar wel in het aantal uitingen, want dat
+   * is wat de eigenaar op dat kanaal heeft gedaan.
+   */
+  private whatWorks(rows: CampaignReportRow[]): WhatWorksRow[] {
+    const perKanaal = new Map<string, CampaignReportRow[]>();
+    for (const r of rows) {
+      const arr = perKanaal.get(r.channel);
+      if (arr) arr.push(r);
+      else perKanaal.set(r.channel, [r]);
+    }
+
+    const out: WhatWorksRow[] = [];
+    for (const [channel, groep] of perKanaal) {
+      const scores = groep
+        .filter((r) => !r.marked_outlier && typeof r.success_score === 'number')
+        .map((r) => r.success_score as number);
+      const medianScore = scores.length ? median(scores) : null;
+      // Een oordeel vraagt genoeg uitingen ÉN genoeg gescoorde uitingen.
+      const counts = scores.length >= WHAT_WORKS_MIN && medianScore !== null;
+      out.push({
+        channel,
+        uitingen: groep.length,
+        medianScore: medianScore === null ? null : Math.round(medianScore),
+        bookings: groep.reduce((s, r) => s + r.bookings, 0),
+        counts,
+        verdict: !counts
+          ? null
+          : medianScore >= WHAT_WORKS_STRONG
+            ? 'sterk'
+            : medianScore < WHAT_WORKS_WEAK
+              ? 'zwak'
+              : 'gemiddeld',
+      });
+    }
+    // Kanalen met een oordeel eerst, daarbinnen op score; de rest erachter.
+    out.sort((a, b) => {
+      if (a.counts !== b.counts) return a.counts ? -1 : 1;
+      return (b.medianScore ?? -1) - (a.medianScore ?? -1);
+    });
+    return out;
+  }
 
   private totals(rows: CampaignReportRow[]): CampaignReportTotals {
     const paidRows = rows.filter((r) => r.paid);
@@ -310,25 +429,27 @@ export class CampaignReportService {
       list.push(r);
       perKanaal.set(r.channel, list);
     }
-    return [...perKanaal.entries()]
-      .map(([channel, rs]) => ({
-        channel,
-        ...this.totals(rs),
-        organicBookings: rs
-          .filter((r) => !r.paid)
-          .reduce((s, r) => s + r.bookings, 0),
-        paidBookings: rs
-          .filter((r) => r.paid)
-          .reduce((s, r) => s + r.bookings, 0),
-        organicReach: rs
-          .filter((r) => !r.paid)
-          .reduce((s, r) => s + (r.reach ?? 0), 0),
-        paidReach: rs
-          .filter((r) => r.paid)
-          .reduce((s, r) => s + (r.reach ?? 0), 0),
-      }))
-      // Sorteren op bereik: dat is de maat die we kunnen meten.
-      .sort((a, b) => b.reach - a.reach);
+    return (
+      [...perKanaal.entries()]
+        .map(([channel, rs]) => ({
+          channel,
+          ...this.totals(rs),
+          organicBookings: rs
+            .filter((r) => !r.paid)
+            .reduce((s, r) => s + r.bookings, 0),
+          paidBookings: rs
+            .filter((r) => r.paid)
+            .reduce((s, r) => s + r.bookings, 0),
+          organicReach: rs
+            .filter((r) => !r.paid)
+            .reduce((s, r) => s + (r.reach ?? 0), 0),
+          paidReach: rs
+            .filter((r) => r.paid)
+            .reduce((s, r) => s + (r.reach ?? 0), 0),
+        }))
+        // Sorteren op bereik: dat is de maat die we kunnen meten.
+        .sort((a, b) => b.reach - a.reach)
+    );
   }
 
   private buckets(

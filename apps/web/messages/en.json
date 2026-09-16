@@ -2669,7 +2669,19 @@
     },
     "bookingsNote": "Bookings are deliberately not shown here. Meta, TikTok and Google report reach, clicks and cost, but not whether someone actually booked a table afterwards. That arrives once we are connected to your reservation system.",
     "tabResult": "Results",
-    "tabOccupancy": "Occupancy"
+    "tabOccupancy": "Occupancy",
+    "whatWorks": {
+      "title": "What works for you",
+      "subtitle": "Per channel, across everything measured so far — not just the selected period",
+      "measured": "{n} posts measured · {bookings} bookings",
+      "tooFew": "{n} of {min} posts — no verdict yet",
+      "foot": "The verdict comes from the median success score per post, so one outlier does not define a channel. From three measured posts on, we say something about it.",
+      "verdict": {
+        "sterk": "Works well",
+        "gemiddeld": "Average",
+        "zwak": "Falls behind"
+      }
+    }
   },
   "dash_reserveringen_page": {
     "title": "Reservations",

@@ -355,6 +355,7 @@ export default function RapportagesPage() {
               num={num}
               kanaalNaam={kanaalNaam}
             />
+        <WatWerkt data={data} t={t} kanaalNaam={kanaalNaam} />
             <Budget
               data={data}
               t={t}
@@ -502,6 +503,92 @@ function Kpis({
 // ============================================================
 // Boekingen per kanaal
 // ============================================================
+// ============================================================
+// WatWerkt — welk kanaal levert bij deze zaak echt iets op
+// ============================================================
+// Anders dan de rest van deze pagina kijkt dit blok NIET naar de gekozen
+// periode maar naar alles wat we tot nu toe gemeten hebben. "Welk kanaal
+// werkt voor mij" is een vraag over de lange lijn; over 30 dagen heb je
+// zelden genoeg uitingen per kanaal om er iets zinnigs over te zeggen.
+//
+// Het aantal uitingen staat altijd naast het oordeel. Zonder dat getal
+// leest een toevalstreffer als bewijs, en dat is precies hoe een
+// rapportage vertrouwen verspeelt.
+function WatWerkt({
+  data,
+  t,
+  kanaalNaam,
+}: {
+  data: CampaignReport;
+  t: T;
+  kanaalNaam: (k: string) => string;
+}) {
+  const rijen = data.whatWorks ?? [];
+  if (rijen.length === 0) return null;
+
+  const kleur = (v: string | null) =>
+    v === "sterk"
+      ? "var(--accent, #1F4A2D)"
+      : v === "zwak"
+        ? "var(--copper, #A8641F)"
+        : "var(--text)";
+
+  return (
+    <Card>
+      <div className="rap-card-hd">
+        <p className="rap-card-t">{t("whatWorks.title")}</p>
+        <p className="rap-card-s">{t("whatWorks.subtitle")}</p>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {rijen.map((r) => (
+          <div
+            key={r.channel}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: 12,
+              alignItems: "baseline",
+            }}
+          >
+            <div style={{ fontSize: 13.5 }}>
+              <span style={{ fontWeight: 600 }}>{kanaalNaam(r.channel)}</span>
+              <span
+                style={{ color: "var(--tl)", marginLeft: 8, fontSize: 12.5 }}
+              >
+                {r.counts
+                  ? t("whatWorks.measured", {
+                      n: r.uitingen,
+                      bookings: r.bookings,
+                    })
+                  : t("whatWorks.tooFew", {
+                      n: r.uitingen,
+                      min: data.whatWorksMin,
+                    })}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: kleur(r.verdict),
+                fontVariantNumeric: "tabular-nums",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {r.counts && r.verdict
+                ? t(`whatWorks.verdict.${r.verdict}`)
+                : "—"}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="rap-card-s" style={{ marginTop: 12 }}>
+        {t("whatWorks.foot")}
+      </p>
+    </Card>
+  );
+}
+
 function PerKanaal({
   data,
   gekozen,

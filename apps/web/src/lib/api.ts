@@ -3885,6 +3885,19 @@ export type CampaignReport = {
     uitingen: number;
   } | null;
   byChannel: CampaignReportChannel[];
+  // Wat werkt bij deze zaak, per kanaal. Over álles wat gemeten is, niet
+  // over de gekozen periode: "welk kanaal werkt voor mij" is een vraag over
+  // de lange lijn. `uitingen` hoort altijd zichtbaar te zijn — een mediaan
+  // op twee posts is toeval, geen bevinding.
+  whatWorks: Array<{
+    channel: string;
+    uitingen: number;
+    medianScore: number | null;
+    bookings: number;
+    counts: boolean;
+    verdict: "sterk" | "gemiddeld" | "zwak" | null;
+  }>;
+  whatWorksMin: number;
   buckets: Array<{
     from: string;
     reach: number;
