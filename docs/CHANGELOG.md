@@ -1722,7 +1722,7 @@ beschikbaar. Nu één hub waar Filly later cross-channel kan adviseren.
   voor owner + manager). Geen migratie nodig — bestaande klanten
   zonder custom permissions krijgen 'm automatisch.
 
-**Mail-pagina LIVE** ([apps/web/.../marketing/mail/](../apps/web/src/app/dashboard/marketing/mail/)):
+**Mail-pagina LIVE** (`apps/web/.../marketing/mail/`):
 - 5 KPI-tegels: verzonden / open rate / click rate / bounce rate /
   unsubscribes
 - Industrie-mediaan-vergelijking (horeca-benchmark, hardcoded uit
@@ -1784,7 +1784,7 @@ direct waarde geeft — dat is precies wat de Places API mogelijk maakt.
 - Migratie 0034: `restaurants.google_place_id` (text) + `google_place_data`
   (jsonb) + `google_place_synced_at` (timestamptz) + index op place_id.
 
-**Frontend** ([apps/web/src/app/dashboard/google-business/](../apps/web/src/app/dashboard/google-business/)):
+**Frontend** (`apps/web/src/app/dashboard/google-business/`):
 - Hub van server-component naar client-component met `GET /me` fetch
   bij mount. Drie banner-states (loading/connected/disconnected).
   `GoogleConnectModal` voor de "Koppel met Google"-flow met search
@@ -1875,7 +1875,7 @@ zelf gaan weg.
 Drie features in één sessie, opgebouwd op de mail-flow van eerder
 deze dag.
 
-**Foto-bibliotheek per restaurant** ([apps/api/src/restaurant-media/](../apps/api/src/restaurant-media/)):
+**Foto-bibliotheek per restaurant** (`apps/api/src/restaurant-media/`):
 - Migratie 0031: `restaurant_media`-tabel + RLS. Cap 20 foto's, 5MB
   per stuk, JPEG/PNG/WebP.
 - `MediaTaggerService`: Haiku 4.5 Vision genereert NL-beschrijving +
@@ -1921,7 +1921,7 @@ deze dag.
   (3 kanaal-versies + JSON) was te groot voor 600, kreeg truncated
   antwoord en daardoor failed parser.
 
-**Channel-choice-kaart** ([apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx](../apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx)):
+**Channel-choice-kaart** (`apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx`):
 - Nieuwe `<<FILLY_PROPOSE_CHOICE>>` tag — Filly stelt eerst een keuze-
   vraag aan eigenaar i.p.v. zelf het kanaal te beslissen.
 - Multi-select met 4 checkboxes (Mail / Instagram / Facebook / WhatsApp)
@@ -2027,7 +2027,7 @@ zelfde pattern als menu_items.
   voorstel op `accepted` met FK naar nieuwe item. Reject = soft
   (status='rejected') — chef kan in Afgewezen-tab alsnog accepteren.
 
-**Frontend** ([apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx](../apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx)):
+**Frontend** (`apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx`):
 - "Voorgesteld"-tab direct na Overig in de filter-rij + "Afgewezen"-tab
   daarnaast. Beide met aantal-tellers in de label.
 - Voorgesteld-tab: brand-soft banner met generate-knop, grid van
