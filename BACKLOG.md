@@ -16,7 +16,10 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
-## 🔴 Vóór externe testers — openstaand (2026-09-16)
+## 🔴 Vóór externe testers — de korte lijst (bijgewerkt 2026-09-16)
+
+Dit zijn de punten die er tussen nu en een klant-testbare versie staan. De
+eerste twee kan Claude niet zelf doen.
 
 - [ ] **E-mailbevestiging aanzetten in Supabase.** Staat uit als dev-gemak, dus
       iedereen kan zich met een willekeurig adres aanmelden. Dit is het enige
@@ -24,9 +27,35 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
       één keer de hele registratieflow doorlopen. *(Kan Claude niet doen.)*
 - [ ] **De flow één keer end-to-end doorlopen op een echt account.** Het
       grootste gat in alles wat er deze week gebouwd is: er is geen enkel
-      scherm als ingelogde gebruiker gezien — alles is beredeneerd uit code en
-      prototypes. Met een testaccount is dit wél na te lopen.
-      *(Vraagt een login die Claude niet heeft.)*
+      scherm als ingelogde gebruiker gezien — alles is beredeneerd uit code,
+      unit-tests en prototypes op `/proto-*`. Concreet na te lopen: kans op het
+      dashboard → geleide flow → concept op het bord → detailpagina (staat de
+      "waarom juist deze dag"-regel er?) → rapportage. *(Vraagt een login die
+      Claude niet heeft.)*
+- [ ] **Jaarview-heatmap draait nog op verzonnen data** (`chart-card.tsx`,
+      `calendar-card.tsx`). Zelfde soort fout als de bezettingspagina had, en
+      nog niet opgeruimd. Zie "Mock-data als echt gepresenteerd" hieronder.
+- [ ] **Koppelingen opnieuw verbinden.** In de hele database staat één
+      credential: een TikTok-token dat op 1 juli is verlopen. Meta en Google
+      Bedrijfsprofiel zijn voor géén enkele zaak opgeslagen. Voor een demo of
+      een test moet dat via de koppelingen-pagina opnieuw verbonden worden;
+      een OAuth-flow kan Claude niet doorlopen.
+- [ ] **WAF / Vercel Firewall.** De rem per IP (mig 0076) stopt één bron die
+      doorramt, geen gedistribueerde aanval.
+
+### Wat deze week is afgerond
+
+- [x] Rustige momenten variëren per datum (weer, evenementen, feestdagen) +
+      beleidslaag — fase 1 t/m 4, live
+- [x] Terugkoppeling: meet of het moment waarvoor een campagne bedoeld was ook
+      echt voller werd (mig 0074)
+- [x] Maandoverzicht dat de prune overleeft (mig 0075), zodat "vs vorig jaar"
+      over twaalf maanden kan
+- [x] Bezettingsrapportage op echte data; verzonnen heatmap, YoY en cohort weg
+- [x] "Wat werkt bij jou" per kanaal op Resultaat
+- [x] Mail eruit als campagnekanaal
+- [x] Rem per IP op contactformulier en onboarding-AI (mig 0076)
+- [x] De reden voor de dagkeuze zichtbaar op de campagne
 
 ---
 
@@ -454,7 +483,7 @@ De chat en de geleide flow hangen nu aan de rustige-momenten-detectie.
 - [x] **Rand-van-de-shift eruit** — eerste/laatste open dagdeel (opening/
   afsluiting) telt alleen mee als het niet doods is (≥ 30% van de piek), zodat
   logisch-lege sluitings-/openingsmomenten niet meer flaggen.
-- [ ] **Vervolg (bekend):** anker verschuiven van Google-gemiddelde naar eigen
+- [ ] **Vervolg (bekend), maar LET OP:** dit lost het "elke week dezelfde weekdagen"-probleem NIET op (zie de entry van 2026-09-15) — het verbetert de terugblik, niet de vooruitblik. Anker verschuiven van Google-gemiddelde naar eigen
   gemeten historie per weekdag/uur — pas mogelijk na weken live-data. Nu rollen
   structureel-slechte dagen (ma/wo) elke week terug; dat is inherent aan de
   gemiddelde-bron.
@@ -735,10 +764,10 @@ of data-integriteit · 🟡 = robuustheid/flow · 🟢 = opruimen/polish.
 - [x] ~~**Cross-tenant unsubscribe**~~ (✅ 2026-06-25, `8605644`) — `mail.service.ts` scopet de `campaign_sends`-update nu via de campagne-id's van het restaurant (`campaign_sends` heeft geen `restaurant_id`-kolom). Geen cross-tenant reporting-vervuiling meer.
 - [x] ~~**Resend-webhook fail-open**~~ (✅ 2026-06-25, `8605644`) — `mail.controller.ts` is nu fail-closed: 401 zonder secret/rawBody/geldige signature. ⚠️ Vereist `RESEND_WEBHOOK_SECRET` in de API-env, anders worden ALLE webhook-events geweigerd.
 - [x] ~~**Open-redirect op /login**~~ (✅ 2026-06-25, `8605644`) — `login/page.tsx` valideert `?next=` via `safeNextPath` (alleen interne paden, geen `//`/scheme).
-- [ ] **Geen IP-rate-limiting** — nergens `ThrottlerGuard`. `/public/contact` heeft alleen een honeypot → bot kan ongelimiteerd mails pompen (Resend-kosten). Pre-onboarding AI-limiet is in-memory `Map` (per serverless-instance → triviaal te omzeilen). Fix: globale throttle per IP + pre-onboarding-limiet naar DB/Redis. *(overlapt P1 "pre-onboarding rate-limit naar Redis")*
+- [x] ~~**Geen IP-rate-limiting**~~ (✅ 2026-09-16, mig 0076) — `check_rate_limit()` telt in de database, net als `AiRateLimitGuard` al deed; geen Redis nodig. Contactformulier 5/kwartier per IP, onboarding-AI 5/10min per user. Fail-open bij een fout in de teller (kosten, geen authenticiteit — anders dan de webhook-validatie), IP gehasht opgeslagen. Geverifieerd op productie: 5 door, dan 429, ander IP niet meegeblokkeerd. ⚠️ **Stopt één bron die doorramt, geen gedistribueerde aanval** — daarvoor blijft een WAF (Vercel Firewall) nodig; dat punt staat nog open.
 
 ### 🟡 Robuustheid & flows
-- [ ] **Ingeplande mail wordt nooit automatisch verstuurd** — cron `runScheduledSocial` (`campaigns.service.ts:445`) selecteert alleen `type='social'`. Een "ingeplande" mail blijft liggen tot handmatig "Activeer nu" → dead-end in de lifecycle. Fix: mail-cron toevoegen, óf UI duidelijk maken dat "ingepland" voor mail alleen een herinnering is.
+- [x] ~~**Ingeplande mail wordt nooit automatisch verstuurd**~~ (vervallen 2026-09-16) — mail is eruit als campagnekanaal (besluit Floris), dus er komen geen nieuwe mail-campagnes meer bij. ⚠️ Bestaande campagnes met `type='mail'` en status `ingepland` blijven wél liggen; die moeten handmatig afgehandeld of gearchiveerd worden.
 - [ ] **Geleide-flow verliest state bij on-ramp→active wissel** — `filly-chat-message-list.tsx:151-291`: bij het eerste bericht rendert een nieuwe `FillyGuidedFlow`-instantie (andere `key`) → gekozen hoek/aangevinkte context weg; `active_action` herstelt alleen datum/topic/kanalen/step. *(bekend pijnpunt, nog open; hangt aan de grotere flow-refactor)*
 - [x] ~~**Ontbrekende sequence-guards (stale-data races)**~~ (✅ 2026-06-25, `ee404d7`) — `cancelled`-flag toegevoegd op reserveringen, bezetting, dashboard-kalender + unmount-guard op kpi-row.
 - [x] ~~**Stille fout = lege empty-state**~~ (✅ 2026-07-07, al opgelost) — `reserveringen`, `gasten` en `campagnes/history` hebben een aparte foutstaat (`error`/`loadError` + `retryNonce`) met een **"Probeer opnieuw"**-knop; een fout is dus onderscheiden van "geen data". `suggesties` bestaat niet meer als route.
@@ -757,13 +786,13 @@ of data-integriteit · 🟡 = robuustheid/flow · 🟢 = opruimen/polish.
 - [x] ~~**Geen onopgeslagen-wijzigingen-waarschuwing** op account + identiteit~~ (✅ 2026-07-07) — gedeelde `useUnsavedChangesWarning(dirty)`-hook (`lib/use-unsaved-changes.ts`) met `beforeunload`. Account: nieuwe `dirty`-flag (true bij `update`, false na opslaan/laden). Identiteit: hergebruikt de bestaande `dirtyCount`. Dekt harde navigatie (sluiten/verversen/externe link); in-app Next-navigatie bewust buiten scope.
 - [x] ~~**Dubbele-submit + eeuwig "submitting"** op choice/date-cards~~ (✅ 2026-06-25, UX-ronde 3) — `sendingRef` als synchroon slot (blokkeert de 2e snelle klik vóór de state update), en `sendText` geeft nu een boolean terug zodat de keuze-kaart alleen "verstuurd" toont als het écht ging (anders terug naar pending).
 - [x] ~~**Filly-chat instance-switch reset niet alle card-states**~~ (✅ geverifieerd 2026-07-01 — claim was achterhaald) — `switchConversation` én `startNewConversation` resetten al `proposalStatus` + `bundleStatus` + `choiceState` + `dateChoiceState` (`filly-chat.tsx:560-563, 584-587`). Geen actie nodig.
-- [ ] **Mock-data als echt gepresenteerd** — uur-heatmap + YoY-deltas + cohort-tabel op `bezetting/page.tsx:59-71,200`; jaarview-heatmap (`chart-card.tsx:50`, `calendar-card.tsx:224,388`). Fix: "voorbeeld/schatting"-badge of echte data.
+- [~] **Mock-data als echt gepresenteerd** — bezettingspagina is schoon (2026-09-16): `generateMockHourly()`, de hardgecodeerde YoY-deltas en de cohort-tabel zijn weg, de uur-heatmap draait nu op echte live-metingen. ⚠️ **Nog open**: de jaarview-heatmap (`chart-card.tsx:50`, `calendar-card.tsx:224,388`). Dat is dezelfde soort fout — verzonnen cijfers zonder markering, voor élke klant hetzelfde — en het blijft het punt waar een testklant het snelst z'n vertrouwen op verliest.
 - [~] **Modals zonder `aria-labelledby`/focus-trap/Escape** — (✅ grotendeels) UX-ronde 3 (2026-06-25): review-antwoord, "maak eigen campagne"-builder, media-pop-up (campagne-detail). UX-ronde 4 (2026-07-01): `role="dialog"` + `aria-modal` + `aria-labelledby` + Escape op delete-modal (account), invite-modal (team) en media-library-picker; history-restore had al `role="menu"` + Escape. **Rest open:** alleen nog **focus-trap** (focus binnen de modal houden) — bewust apart, vereist een gedeelde trap-helper.
 - [ ] **Responsive-gaten** — uur-heatmap, brede tabellen (gasten/bezetting), `aspecten-tabel.tsx:134` (5 koloms nowrap op ~380px), `missende-aspecten-card.tsx:325` (`marginLeft:126` off-canvas), chat-choice-cards `repeat(2,1fr)`, identiteit-savebar `left:220` (hardcoded sidebar-breedte).
 
 ### 🟢 Dode / verweesde flows + opruimen
 - [x] ~~**Orphaned routes `taken` + `suggesties` verwijderd**~~ (✅ 2026-06-25) — beide routes + hun `PATH_MODULE_MAP`/`titleKeyFor`/`MODULE_KEYS`-entries + de `taken`/`suggesties`-modules uit `packages/shared/permissions.ts` (rol-defaults + Module-type) weg. `resolvePermissions` filtert oude opgeslagen rechten met die namen automatisch weg → geen breuk. `marketing` (hub + IG/FB/mail/TikTok) BEWUST behouden: daar loopt echte Meta-data en Rapportages linkt ernaar. Restje (onschadelijk): ongebruikte i18n-keys `dash_taken_page`/`dash_suggesties_page` in `messages/{nl,en}.json` + 2 historische comments in `sidebar.tsx`.
-- [ ] **Pending/accept/dismiss-flow vrijwel dood** — proposals worden sinds 24-06 bij aanmaak al goedgekeurd; `acceptProposal`/`acceptBundle` + de "Nee bedankt"-knop (die niets persisteert, `filly-chat.tsx:629`) lopen niet meer. Fix: bevestig of historische pending-kaarten voorkomen; zo niet opruimen.
+- [~] **Pending/accept/dismiss-flow vrijwel dood** — de dode voorstel-berekening op het campagnebord is weg (2026-09-16) en een mislukte goedkeuring faalt niet meer in stilte: die wordt gelogd én gemeld aan de eigenaar. ⚠️ **Nog open**: `acceptProposal`/`acceptBundle` en de "Nee bedankt"-knop (`filly-chat.tsx`, persisteert niets) lopen nog steeds niet. Eerst bevestigen of historische pending-kaarten voorkomen, dan opruimen.
 - [x] ~~**`step==="done"`-blok + ongebruikte `result`-state**~~ (✅ 2026-06-25, dead-code-ronde) — onbereikbaar dood blok verwijderd, inclusief `result`/`setResult`, de `restart`-helper, de `CHANNEL_LABEL`-map en het ongebruikte `AiSuggestion`-type-import. ~85 regels weg. (i18n-keys `done.*`/`result.viewEdit` nu ongebruikt maar onschadelijk; `result.fallbackName` blijft elders in gebruik.)
 - [ ] **Legacy FORMAAT-parsers** (`chat.service.ts:1547`) draaien elke chat-beurt als "vangnet". *(BEWUST NIET verwijderd 2026-06-25: de parse-tak draait nog elke beurt; verwijderen vereist eerst verifiëren dat geen enkele render-/historie-pad op de oude kaarten leunt. Net als bij `approveMultiChannel` — dat "dood" leek maar via `approve()` wordt aangeroepen — eerst zorgvuldig narekenen. Aparte stap.)*
 - [x] ~~**Frontend cap-detectie matcht op stale string**~~ (✅ 2026-06-25, `d115721`) — stale `"grens van 20"` weg; matcht nu op de stabiele `"nieuw gesprek"`-formulering. (HTTP-status/error-code blijft de nettere vervolgstap.)

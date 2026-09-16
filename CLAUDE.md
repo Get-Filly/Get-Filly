@@ -4,6 +4,10 @@ Dit bestand wordt automatisch door Claude Code geladen. Lees het als je in deze 
 
 ## Belangrijk: eerst dit doen
 
+**Laatste grote sessie:** zie [docs/overdracht-2026-09-16.md](docs/overdracht-2026-09-16.md)
+— rustige momenten per datum, terugkoppeling, rapportages op echte data, mail
+eruit, rem per IP. Inclusief twee incidenten en wat daaruit te leren valt.
+
 **Open altijd eerst [BACKLOG.md](BACKLOG.md)** — dat is dé lijst met
 openstaande punten (P0-P3), bekende mocks, ontbrekende migraties en
 alle niet-gefixte issues. Werk die file bij als je iets afmaakt of
