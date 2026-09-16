@@ -1593,6 +1593,41 @@ export type SlotReport = {
   minSamples: number;
 };
 
+// Bezettingsrapportage: gemeten drukte per weekdag+uur, en verwacht naast
+// werkelijk per dagdeel. `actual: null` = te weinig gemeten dagen voor een
+// betrouwbare waarde; die cel blijft leeg in plaats van dat we iets verzinnen.
+export type OccupancyReport = {
+  hasSource: boolean;
+  weeks: number;
+  minDays: number;
+  hourly: Array<{
+    weekday: number;
+    hour: number;
+    actual: number | null;
+    days: number;
+  }>;
+  dayparts: Array<{
+    weekday: number;
+    daypart: string;
+    expected: number;
+    actual: number;
+    diff: number;
+    hours: number;
+    days: number;
+  }>;
+};
+
+export async function fetchOccupancyReport(
+  weeks = 16,
+): Promise<OccupancyReport> {
+  const res = await authedFetch(
+    `${API_URL}/busyness/me/occupancy-report?weeks=${weeks}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function fetchSlotReport(): Promise<SlotReport> {
   const res = await authedFetch(`${API_URL}/busyness/me/slot-report`, {
     cache: "no-store",

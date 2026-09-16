@@ -9,16 +9,19 @@ import {
   fetchFillyRoi6Months,
   fetchGuests,
   fetchOccupancy,
+  fetchOccupancyReport,
   fetchSlotReport,
   type Campaign,
   type CampaignAttribution,
   type FillyRoiMonth,
   type Guest,
+  type OccupancyReport,
   type SlotReport,
   type OccupancyDay,
 } from "@/lib/api";
 import { Skeleton } from "../../_components/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
+import { RapportageTabs } from "../_components/rapportage-tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useLocaleTag } from "@/lib/locale-format";
 
@@ -58,19 +61,11 @@ function heatmapCell(pct: number): string {
   return `rgba(31, 74, 45, ${alpha})`;
 }
 
-// Mock hourly occupancy: 7 days x 11 time-slots (11:00-22:00).
-const hourLabels = ["11", "12", "13", "14", "15", "17", "18", "19", "20", "21", "22"];
-function generateMockHourly(): number[][] {
-  const baseline = [40, 75, 80, 35, 15, 25, 65, 90, 95, 70, 40];
-  return dayLabels.map((_, dayIdx) => {
-    const dayBoost = dayIdx >= 4 ? 20 : dayIdx === 3 ? 5 : 0;
-    return baseline.map((b, i) => {
-      const jitter = ((dayIdx * 3 + i * 7) % 13) - 6;
-      return Math.max(0, Math.min(100, b + dayBoost + jitter));
-    });
-  });
-}
-const hourlyData = generateMockHourly();
+// De uren-as van de heatmap. Werd tot 2026-09-16 gevuld door een
+// generateMockHourly() met een vaste basislijn en wat ruis — verzonnen data,
+// zonder markering, voor élke klant hetzelfde. Nu komt de drukte uit de
+// live-metingen (fetchOccupancyReport) en bepalen die zelf welke uren er in
+// beeld komen.
 
 // Filly-ROI cijfers komen sinds 2026-04-29 uit échte aggregaties
 // over reservations.via_campaign_id (migratie 0022). Eigenaar koppelt
@@ -100,6 +95,8 @@ export default function RapportagesPage() {
   // Wat campagnes met de drukte deden, per weekdag+dagdeel. Leeg zolang er
   // te weinig gemeten campagnes zijn — dan tonen we het blok niet.
   const [slotReport, setSlotReport] = useState<SlotReport | null>(null);
+  // Gemeten drukte per weekdag+uur en verwacht-vs-werkelijk per dagdeel.
+  const [occReport, setOccReport] = useState<OccupancyReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Geselecteerde maand waar de bezetting- en gast-KPI's op gebaseerd zijn.
@@ -119,13 +116,15 @@ export default function RapportagesPage() {
       fetchFillyRoi6Months(),
       fetchFillyAttribution(),
       fetchSlotReport().catch(() => null),
+      fetchOccupancyReport().catch(() => null),
     ])
-      .then(([c, g, roi, attr, slots]) => {
+      .then(([c, g, roi, attr, slots, occ]) => {
         setCampaigns(c);
         setGuests(g);
         setFillyRoi6m(roi);
         setFillyByCampaign(attr);
         setSlotReport(slots);
+        setOccReport(occ);
       })
       .catch(() => {});
   }, []);
@@ -212,19 +211,54 @@ export default function RapportagesPage() {
     };
   }, [campaigns, guests, occupancy]);
 
-  // YoY-cijfers zijn nog placeholder, komen straks uit een
-  // `getMonthMetrics(year-1, month)`-call. Gemarkeerd als TODO.
-  const yoy = { occ: 7, guests: 12, revenue: 9 };
+  // "vs vorig jaar" is weg (2026-09-16). Het stond hier als hardgecodeerde
+  // +7/+12/+9 en werd zo aan élke klant getoond. Het kán ook niet met wat we
+  // bewaren: busyness_snapshots wordt na 120 dagen geprund, er ís geen vorig
+  // jaar. Terug zodra er een maand-aggregaat is dat de prune overleeft.
 
-  const cohortData = [
-    { month: "Dec 2025", size: 42, m1: 38, m2: 29, m3: 22, m4: 18 },
-    { month: "Jan 2026", size: 38, m1: 32, m2: 25, m3: 20, m4: null },
-    { month: "Feb 2026", size: 45, m1: 40, m2: 31, m3: null, m4: null },
-    { month: "Mar 2026", size: 51, m1: 44, m2: null, m3: null, m4: null },
-  ];
+  // De retentie-cohort-tabel is weg (2026-09-16). Hij stond hier als
+  // hardgecodeerde array met vaste maandnamen (Dec 2025…) en werd zo aan
+  // elke klant getoond. Hij kán ook niet met wat we bewaren: guests telt
+  // bezoeken maar niet wannéér, dus er is geen tijdlijn per gast om een
+  // cohort op te bouwen.
 
   const worstDay = dayOfWeekAvg.indexOf(Math.min(...dayOfWeekAvg));
   const bestDay = dayOfWeekAvg.indexOf(Math.max(...dayOfWeekAvg));
+
+  // Uren-as van de heatmap: precies de uren waarop iets gemeten is. Zo
+  // bepaalt de data de as, en niet een hardgecodeerde lijst die bij een
+  // ontbijtzaak of een nachtclub niet klopt.
+  const heatHours = useMemo(() => {
+    const uren = new Set<number>();
+    for (const c of occReport?.hourly ?? []) uren.add(c.hour);
+    return [...uren].sort((a, b) => a - b);
+  }, [occReport]);
+
+  const heatIndex = useMemo(() => {
+    const m = new Map<string, { actual: number | null; days: number }>();
+    for (const c of occReport?.hourly ?? []) {
+      m.set(`${c.weekday}|${c.hour}`, { actual: c.actual, days: c.days });
+    }
+    return m;
+  }, [occReport]);
+  const heatCell = (weekday: number, hour: number) =>
+    heatIndex.get(`${weekday}|${hour}`) ?? null;
+
+  // Verwacht naast werkelijk, sterkste afwijking eerst. Voorlopen is net zo
+  // interessant als achterblijven, dus sorteren op absolute afwijking.
+  //
+  // Alleen afwijkingen die iets betekenen: onder de 3 punten is het ruis in
+  // een grove meting, en een rij "+1" naast een rij "0" leidt de aandacht af
+  // van de twee momenten waar het wél om gaat. Wijkt niets af, dan verdwijnt
+  // het blok — dat is dan ook het eerlijke antwoord.
+  const GAP_MIN = 3;
+  const gapRows = useMemo(() => {
+    const rows = (occReport?.dayparts ?? []).filter(
+      (r) => Math.abs(r.diff) >= GAP_MIN,
+    );
+    rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+    return rows.slice(0, 8);
+  }, [occReport]);
 
   // Gelokaliseerde weekdag-afkortingen (MA..ZO), zelfde volgorde als dayLabels.
   const dayShort = [
@@ -257,6 +291,7 @@ export default function RapportagesPage() {
         title={t("pageTitle")}
         subtitle={t("pageSubtitle")}
       />
+      <RapportageTabs />
 
       {/* Maand-navigator: bladeren door historische maanden. Vervangt de
           oude periode-tabs die niks filterden. */}
@@ -289,7 +324,13 @@ export default function RapportagesPage() {
         <div className="table-empty">{t("loading")}</div>
       ) : guests.length === 0 &&
         campaigns.length === 0 &&
-        occupancy.length === 0 ? (
+        occupancy.length === 0 &&
+        // Drukte-metingen tellen óók als data (2026-09-16). Die komen uit
+        // Google en staan los van reserveringen en gasten: een zaak die nog
+        // niets heeft ingevoerd maar wél gemeten wordt, heeft hier wel
+        // degelijk iets te zien. Zonder deze regel verstopte de lege staat
+        // precies de twee blokken die geen invoer van de eigenaar vragen.
+        (occReport?.hourly.length ?? 0) === 0 ? (
         // Volledige empty-state voor nieuwe klanten zonder data. Zonder
         // deze check zien ze overal "0%" + "0 gasten" en denken ze dat
         // er iets mis is. Beter expliciet uitleggen dat data nog moet
@@ -315,47 +356,17 @@ export default function RapportagesPage() {
             <div className="stat-card">
               <div className="stat-card-label">{t("statAvgOccupancy")}</div>
               <div className="stat-card-val">{stats.avgOcc}%</div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--accent)",
-                  marginTop: 2,
-                  fontWeight: 500,
-                }}
-              >
-                ↑ {t("vsLastYear", { pct: yoy.occ })}
-              </div>
             </div>
             <div className="stat-card">
               <div className="stat-card-label">{t("statTotalGuests")}</div>
               <div className="stat-card-val">
                 {stats.totalEstGuests.toLocaleString(localeTag)}
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--accent)",
-                  marginTop: 2,
-                  fontWeight: 500,
-                }}
-              >
-                ↑ {t("vsLastYear", { pct: yoy.guests })}
-              </div>
             </div>
             <div className="stat-card">
               <div className="stat-card-label">{t("statRevenue")}</div>
               <div className="stat-card-val">
                 €{Math.round(stats.totalRevenue / 100).toLocaleString(localeTag)}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--accent)",
-                  marginTop: 2,
-                  fontWeight: 500,
-                }}
-              >
-                ↑ {t("vsLastYear", { pct: yoy.revenue })}
               </div>
             </div>
             <div className="stat-card">
@@ -438,6 +449,100 @@ export default function RapportagesPage() {
               </div>
             </div>
           </div>
+
+          {/* Verwacht naast werkelijk. Staat nergens anders in de app: het
+              Google-patroon zegt wat een dagdeel normaal doet, onze metingen
+              wat het écht deed. Structureel achterblijven is waar een
+              campagne iets kan betekenen. */}
+          {gapRows.length > 0 && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="card-h">
+                <div>
+                  <div className="card-t">{t("gapCardTitle")}</div>
+                  <div className="card-st">
+                    {t("gapCardSubtitle", { weeks: occReport?.weeks ?? 16 })}
+                  </div>
+                </div>
+              </div>
+              <div className="card-b">
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 9 }}
+                >
+                  {gapRows.map((r) => {
+                    const onder = r.diff < 0;
+                    // Halve balk naar links (achter) of rechts (voor). 30
+                    // punten verschil vult de halve breedte.
+                    const breedte = Math.min(50, (Math.abs(r.diff) / 30) * 50);
+                    return (
+                      <div
+                        key={`${r.weekday}-${r.daypart}`}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "104px 1fr 52px",
+                          gap: 10,
+                          alignItems: "center",
+                          fontSize: 13,
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 600 }}>
+                            {dayShort[r.weekday]}
+                          </span>{" "}
+                          {tDp(r.daypart)}
+                        </div>
+                        <div
+                          style={{
+                            height: 10,
+                            background: "var(--surface-2, #F3F0E8)",
+                            borderRadius: 5,
+                            position: "relative",
+                          }}
+                          title={t("gapTooltip", {
+                            expected: r.expected,
+                            actual: r.actual,
+                            days: r.days,
+                          })}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              bottom: 0,
+                              borderRadius: 5,
+                              background: onder
+                                ? "var(--copper, #A8641F)"
+                                : "var(--accent, #1F4A2D)",
+                              ...(onder
+                                ? { right: "50%", width: `${breedte}%` }
+                                : { left: "50%", width: `${breedte}%` }),
+                            }}
+                          />
+                        </div>
+                        <div
+                          style={{
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                            fontWeight: 600,
+                            color: onder
+                              ? "var(--copper, #A8641F)"
+                              : "var(--accent, #1F4A2D)",
+                          }}
+                        >
+                          {r.diff > 0 ? "+" : ""}
+                          {r.diff}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div
+                  style={{ marginTop: 12, fontSize: 12.5, color: "var(--tl)" }}
+                >
+                  {t("gapFoot")}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Wat een campagne met de drukte deed, per moment. Alleen tonen
               als er iets gemeten is: een leeg blok met nullen suggereert dat
@@ -525,7 +630,9 @@ export default function RapportagesPage() {
             <div className="card-h">
               <div>
                 <div className="card-t">{t("hourCardTitle")}</div>
-                <div className="card-st">{t("hourCardSubtitle")}</div>
+                <div className="card-st">
+                  {t("hourCardSubtitleReal", { weeks: occReport?.weeks ?? 16 })}
+                </div>
               </div>
             </div>
             <div className="card-b">
@@ -533,12 +640,12 @@ export default function RapportagesPage() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: `36px repeat(${hourLabels.length}, 1fr)`,
+                    gridTemplateColumns: `36px repeat(${heatHours.length}, 1fr)`,
                     gap: 2,
                   }}
                 >
                   <div></div>
-                  {hourLabels.map((h) => (
+                  {heatHours.map((h) => (
                     <div
                       key={h}
                       style={{
@@ -551,12 +658,12 @@ export default function RapportagesPage() {
                     </div>
                   ))}
                 </div>
-                {hourlyData.map((row, dIdx) => (
+                {dayShort.map((dagNaam, dIdx) => (
                   <div
                     key={dIdx}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: `36px repeat(${hourLabels.length}, 1fr)`,
+                      gridTemplateColumns: `36px repeat(${heatHours.length}, 1fr)`,
                       gap: 2,
                     }}
                   >
@@ -569,20 +676,49 @@ export default function RapportagesPage() {
                         alignItems: "center",
                       }}
                     >
-                      {dayShort[dIdx]}
+                      {dagNaam}
                     </div>
-                    {row.map((pct, hIdx) => (
-                      <div
-                        key={hIdx}
-                        title={`${dayShort[dIdx]} ${hourLabels[hIdx]}:00, ${pct}%`}
-                        style={{
-                          height: 22,
-                          background: heatmapCell(pct),
-                          borderRadius: 3,
-                          cursor: "pointer",
-                        }}
-                      />
-                    ))}
+                    {heatHours.map((h) => {
+                      const cel = heatCell(dIdx, h);
+                      // Geen cel of te weinig gemeten dagen: leeg laten. Dat
+                      // lege vakje is zelf informatie (dicht, of nog niet
+                      // genoeg gemeten) en beter dan een verzonnen getal.
+                      if (!cel || cel.actual === null) {
+                        return (
+                          <div
+                            key={h}
+                            title={
+                              cel
+                                ? t("heatTooFew", {
+                                    days: cel.days,
+                                    min: occReport?.minDays ?? 3,
+                                  })
+                                : t("heatNoData")
+                            }
+                            style={{
+                              height: 22,
+                              borderRadius: 3,
+                              background:
+                                "repeating-linear-gradient(45deg, var(--surface-2, #F3F0E8), var(--surface-2, #F3F0E8) 3px, var(--border, #E5DFD0) 3px, var(--border, #E5DFD0) 5px)",
+                            }}
+                          />
+                        );
+                      }
+                      return (
+                        <div
+                          key={h}
+                          title={`${dagNaam} ${h}:00 · ${cel.actual}% · ${t(
+                            "heatDays",
+                            { days: cel.days },
+                          )}`}
+                          style={{
+                            height: 22,
+                            background: heatmapCell(cel.actual),
+                            borderRadius: 3,
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 ))}
                 <div
@@ -848,54 +984,6 @@ export default function RapportagesPage() {
             <div className="rep-section-eyebrow">{t("retentionEyebrow")}</div>
             <div className="rep-section-title">{t("retentionTitle")}</div>
             <div className="rep-section-desc">{t("retentionDesc")}</div>
-          </div>
-
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-h">
-              <div>
-                <div className="card-t">{t("retentionCardTitle")}</div>
-                <div className="card-st">{t("retentionCardSubtitle")}</div>
-              </div>
-            </div>
-            <div className="card-b">
-              <table className="data-table" style={{ fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    <th>{t("thCohort")}</th>
-                    <th style={{ textAlign: "right" }}>{t("thSize")}</th>
-                    <th style={{ textAlign: "right" }}>{t("thMonthN", { n: 1 })}</th>
-                    <th style={{ textAlign: "right" }}>{t("thMonthN", { n: 2 })}</th>
-                    <th style={{ textAlign: "right" }}>{t("thMonthN", { n: 3 })}</th>
-                    <th style={{ textAlign: "right" }}>{t("thMonthN", { n: 4 })}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cohortData.map((c) => (
-                    <tr key={c.month}>
-                      <td style={{ fontWeight: 500 }}>{c.month}</td>
-                      <td style={{ textAlign: "right" }}>{c.size}</td>
-                      {[c.m1, c.m2, c.m3, c.m4].map((v, i) => (
-                        <td
-                          key={i}
-                          style={{
-                            textAlign: "right",
-                            color: v === null ? "var(--tl)" : "var(--text)",
-                            background:
-                              v === null
-                                ? "transparent"
-                                : `rgba(31, 74, 45, ${(v / c.size) * 0.18})`,
-                          }}
-                        >
-                          {v === null
-                            ? "—"
-                            : `${Math.round((v / c.size) * 100)}%`}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
 
           {/* =====================================================

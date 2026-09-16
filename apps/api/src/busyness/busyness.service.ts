@@ -161,6 +161,137 @@ const EMPTY_QUIET_CONTEXT: QuietContext = {
   businessMedianLift: 0,
 };
 
+/** Eén live-meting zoals hij uit busyness_snapshots komt. */
+export type LiveRow = {
+  captured_at: string;
+  live_pct: number;
+  live_hour: number | null;
+};
+
+export type OccupancyHourly = {
+  weekday: number;
+  hour: number;
+  actual: number | null;
+  days: number;
+};
+
+export type OccupancyDaypart = {
+  weekday: number;
+  daypart: string;
+  expected: number;
+  actual: number;
+  diff: number;
+  hours: number;
+  days: number;
+};
+
+/**
+ * De rekenkern van de bezettingsrapportage, puur zodat 'ie zonder database
+ * te testen is. Zie getOccupancyReport voor het waarom van de twee stappen
+ * en van de "verwachting over precies dezelfde uren"-regel.
+ */
+export function aggregateOccupancyReport(
+  rows: LiveRow[],
+  pattern: number[][] | null,
+  minDays: number,
+): { hourly: OccupancyHourly[]; dayparts: OccupancyDaypart[] } {
+  const med = (nums: number[]): number => {
+    const a = [...nums].sort((x, y) => x - y);
+    const m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  };
+  const amsDate = (d: Date): string => {
+    const p = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Amsterdam',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const g = (t: string) => p.find((x) => x.type === t)?.value ?? '01';
+    return `${g('year')}-${g('month')}-${g('day')}`;
+  };
+  const amsHour = (d: Date): number =>
+    parseInt(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Amsterdam',
+        hour: '2-digit',
+        hour12: false,
+      }).format(d),
+      10,
+    );
+  const weekdayOf = (iso: string): number =>
+    (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;
+
+  // Stap 1: per (datum, uur) de mediaan van de metingen in dat uur.
+  const bucket: Record<string, Record<number, number[]>> = {};
+  for (const row of rows) {
+    const when = new Date(row.captured_at);
+    const date = amsDate(when);
+    const hour = row.live_hour ?? amsHour(when);
+    if (hour == null || hour < 0 || hour > 23) continue;
+    (bucket[date] ??= {})[hour] ??= [];
+    bucket[date][hour].push(row.live_pct);
+  }
+
+  // Stap 2: per (weekdag, uur) de mediaan over de datums.
+  const perCell = new Map<string, number[]>();
+  for (const [date, hours] of Object.entries(bucket)) {
+    const wd = weekdayOf(date);
+    for (const [h, pcts] of Object.entries(hours)) {
+      const key = `${wd}|${h}`;
+      const arr = perCell.get(key);
+      if (arr) arr.push(med(pcts));
+      else perCell.set(key, [med(pcts)]);
+    }
+  }
+
+  const hourly: OccupancyHourly[] = [];
+  const cellValue = new Map<string, number>();
+  for (let wd = 0; wd < 7; wd++) {
+    for (let h = 0; h < 24; h++) {
+      const vals = perCell.get(`${wd}|${h}`) ?? [];
+      if (vals.length === 0) continue;
+      const enough = vals.length >= minDays;
+      const value = enough ? Math.round(med(vals)) : null;
+      if (value !== null) cellValue.set(`${wd}|${h}`, value);
+      hourly.push({ weekday: wd, hour: h, actual: value, days: vals.length });
+    }
+  }
+
+  const dayparts: OccupancyDaypart[] = [];
+  if (pattern && pattern.length >= 7) {
+    for (let wd = 0; wd < 7; wd++) {
+      for (const dp of DAYPART_DEFS) {
+        const act: number[] = [];
+        const exp: number[] = [];
+        let days = 0;
+        for (let h = dp.from; h < dp.to; h++) {
+          const v = cellValue.get(`${wd}|${h}`);
+          if (v === undefined) continue;
+          const p = pattern[wd]?.[h] ?? 0;
+          if (p <= 0) continue; // volgens Google dicht → niets te vergelijken
+          act.push(v);
+          exp.push(p);
+          days = Math.max(days, (perCell.get(`${wd}|${h}`) ?? []).length);
+        }
+        if (act.length < MIN_COVERAGE) continue;
+        const a = act.reduce((x, y) => x + y, 0) / act.length;
+        const e = exp.reduce((x, y) => x + y, 0) / exp.length;
+        dayparts.push({
+          weekday: wd,
+          daypart: dp.key,
+          expected: Math.round(e),
+          actual: Math.round(a),
+          diff: Math.round(a - e),
+          hours: act.length,
+          days,
+        });
+      }
+    }
+  }
+  return { hourly, dayparts };
+}
+
 @Injectable()
 export class BusynessService {
   private readonly logger = new Logger(BusynessService.name);
@@ -1382,6 +1513,72 @@ export class BusynessService {
    * live_pct-waarden (tegen uitschieters). Retourneert per Amsterdam-datum
    * een gesorteerde lijst [uur, pct]. Alleen dagen/uren met een meting.
    */
+  /**
+   * Bezettingsrapportage: wat de metingen zeggen over een langere periode,
+   * en hoe dat zich verhoudt tot het Google-weekpatroon.
+   *
+   * Twee dingen uit één scan, want ze delen dezelfde bron:
+   *   1. `hourly`  — gemeten drukte per (weekdag, uur). Per datum-uur eerst
+   *      de mediaan van de metingen, dan de mediaan over de datums. Cellen
+   *      met te weinig gemeten dagen blijven null: liever een leeg vakje dan
+   *      een getal op één waarneming.
+   *   2. `dayparts` — verwacht naast werkelijk per (weekdag, dagdeel).
+   *
+   * Cruciaal bij (2): de verwachting rekenen we over PRECIES dezelfde uren
+   * die we ook gemeten hebben. Anders vergelijk je een dagdeel waarvan je
+   * twee uur meet met een verwachting over vier uur, en is het verschil een
+   * rekenfout in plaats van een bevinding.
+   *
+   * Beide maten zijn relatief: Google normaliseert op de eigen piek van de
+   * zaak (drukste moment = 100). Het is dus geen bezettingspercentage van de
+   * stoelen, en niet vergelijkbaar tussen zaken.
+   */
+  async getOccupancyReport(
+    businessId: string,
+    weeks = 16,
+  ): Promise<{
+    hasSource: boolean;
+    weeks: number;
+    /** Aantal dagen dat een cel minstens moet hebben om te tellen. */
+    minDays: number;
+    hourly: OccupancyHourly[];
+    dayparts: OccupancyDaypart[];
+  }> {
+    const MIN_DAYS = 3;
+    const empty = {
+      hasSource: false,
+      weeks,
+      minDays: MIN_DAYS,
+      hourly: [],
+      dayparts: [],
+    };
+
+    const latest = await this.getLatest(businessId);
+    const pattern = latest.pattern;
+
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - weeks * 7);
+    const { data, error } = await this.supabase.client
+      .from('busyness_snapshots')
+      .select('captured_at, live_pct, live_hour')
+      .eq('business_id', businessId)
+      .not('live_pct', 'is', null)
+      .gte('captured_at', since.toISOString());
+    if (error) {
+      this.logger.warn(`bezettingsrapportage faalde: ${error.message}`);
+      return empty;
+    }
+
+    const { hourly, dayparts } = aggregateOccupancyReport(
+      (data ?? []) as LiveRow[],
+      pattern,
+      MIN_DAYS,
+    );
+    if (hourly.length === 0) return empty;
+
+    return { hasSource: true, weeks, minDays: MIN_DAYS, hourly, dayparts };
+  }
+
   async getActualByDate(
     businessId: string,
     fromIso: string,
