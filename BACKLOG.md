@@ -78,9 +78,13 @@ aandeel 31%. Acceptatie-eis was ≤ 50%.
 **Nog open:**
 - [ ] Visuele check op het ingelogde dashboard (sterretjes, reden-regel, de
       "alles al afgedekt"-tekst). Niet gedaan: vraagt een echte login.
-- [ ] Fase 3 (dashboard/chat structureel vs incidenteel écht anders behandelen)
-      is maar half gedaan: het veld `kind` bestaat en de chat gebruikt het, de
-      visuele scheiding op de kaart nog niet.
+- [x] **Fase 3 af** — een incidentele kans krijgt op de kaart een eigen
+      markering (ring om de ster, koper; vorm én kleur, dus ook zonder
+      kleurwaarneming leesbaar) en de legenda noemt "vaste kans" en "kans deze
+      week" apart. In de chat gaan de momenten als twee blokken de prompt in:
+      het incidentele blok is het nieuws om mee te beginnen, bij het
+      structurele blok staat dat het elke week zo is en hooguit één keer
+      benoemd hoeft te worden.
 - [ ] Fase 4 (terugkoppeling) ongebouwd. Let op: de aanname dat de definitie
       "campagnedag vs mediaan van andere gelijke weekdagen" al bestaat klopt
       NIET. Wat er is, is `classify_campaign_performance()` (mig 0071): een
