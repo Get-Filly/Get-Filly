@@ -2535,7 +2535,19 @@
     "marketingTitle": "Wat werkt er qua campagnes?",
     "marketingDesc": "Top-campagnes op basis van status en doorlooptijd.",
     "topCampaignsTitle": "Top campagnes",
-    "topCampaignsSubtitle": "Meest succesvol deze periode"
+    "topCampaignsSubtitle": "Meest succesvol deze periode",
+    "liftCardTitle": "Wat een campagne met je drukte deed",
+    "liftCardSubtitle": "Per moment: hoeveel drukker het werd dan op vergelijkbare dagen zonder campagne",
+    "liftCounts": "{n} campagnes gemeten",
+    "liftTooFew": "{n} van {min} metingen — telt nog niet mee",
+    "liftFoot": "In drukte-punten ten opzichte van dezelfde weekdag zonder campagne. Er is geen controlegroep, dus weer en evenementen tellen mee. Vanaf drie metingen weegt een moment mee in wat Filly voorstelt.",
+    "mon": "Maandag",
+    "tue": "Dinsdag",
+    "wed": "Woensdag",
+    "thu": "Donderdag",
+    "fri": "Vrijdag",
+    "sat": "Zaterdag",
+    "sun": "Zondag"
   },
   "dash_rapportages_page": {
     "title": "Rapportages",
@@ -3380,7 +3392,8 @@
     },
     "hint": {
       "typeOwn": "Of typ hieronder zelf een vraag"
-    }
+    },
+    "partiallyFailedNote": "Er ging iets mis bij {count, plural, one {# voorstel} other {# voorstellen}}: die staan niet als concept klaar. Probeer die dag opnieuw."
   },
   "dash__components_google_connected_panel": {
     "title": "Google Bedrijfsprofiel",

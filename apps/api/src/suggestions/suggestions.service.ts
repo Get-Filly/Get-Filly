@@ -746,12 +746,13 @@ ${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
 - Per voorstel: kies 1-3 KANALEN waarop dit voorstel uit moet gaan. Niet elk voorstel hoeft multi-channel te zijn:
   - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 Instagram-post of story voor laat-boekers), of zeer kanaal-specifiek concept.
-  - 2 kanalen: standaardmix voor seizoen/event (bv. mail aan vaste gasten + Instagram-post voor bredere awareness).
-  - 3 kanalen: brede pushes (bv. seizoenslancering: mail + Instagram + Facebook).
+  - 2 kanalen: standaardmix voor seizoen/event (bv. Instagram-post + Facebook voor bredere awareness).
+  - 3 kanalen: brede pushes (bv. seizoenslancering: Instagram + Facebook + Google Business).
 
-Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend):
+Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend).
+LET OP: mail is GEEN kanaal meer. Stel nooit een mailing voor.
+
   - instagram: visueel, snel gezien, sterk voor laat-boekers (foto-first, korte caption, hashtags).
-  - mail: lange-vorm, voor vaste klanten met opt-in (formeler, persoonlijker, klikbare CTA).
   - facebook: bredere doelgroep + lokale buurt, iets meer tekst dan Instagram.
   - tiktok: jong (<25), trendy, korte zinnen, alleen als de tone-of-voice past.
   - google_business: lokaal-actie-gericht, hoge SEO-impact (zie REGELS PER KANAAL).
@@ -1496,17 +1497,20 @@ ${dayContext}`;
     // zonder WhatsApp: daar is geen verzendpad voor, dus aanbieden leverde
     // een campagne op die nooit de deur uit kon. Bereik bepaalt de
     // voorselectie; is er nergens bereik, dan vinken we Instagram +
-    // Facebook voor (was mail + Instagram) zodat we niet stil op mail
-    // terugvallen nu sociale media het hoofdkanaal is.
+    // Facebook voor.
+    //
+    // Mail is er per 2026-09-16 uit als campagnekanaal (besluit Floris): we
+    // mailen niet meer. WhatsApp stond er al niet in, daar is geen
+    // verzendpad voor. Wat overblijft zijn de kanalen die we echt kunnen
+    // publiceren. Het transactionele mailpad (contactformulier,
+    // uitnodigingen via Supabase) staat hier los van en blijft.
     const REACH_LABEL: Record<string, string> = {
       instagram: 'Instagram',
       facebook: 'Facebook',
       tiktok: 'TikTok',
       google_business: 'Google Business',
-      mail: 'Mail',
     };
-    // Volgorde volgt REACH_LABEL (social eerst, mail achteraan), niet de
-    // volgorde van fetchReach — die begint historisch met mail.
+    // Volgorde volgt REACH_LABEL, niet de volgorde van fetchReach.
     const order = Object.keys(REACH_LABEL);
     const surfaced = reach
       .filter((r) => r.channel in REACH_LABEL)

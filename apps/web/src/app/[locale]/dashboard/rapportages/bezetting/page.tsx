@@ -9,10 +9,12 @@ import {
   fetchFillyRoi6Months,
   fetchGuests,
   fetchOccupancy,
+  fetchSlotReport,
   type Campaign,
   type CampaignAttribution,
   type FillyRoiMonth,
   type Guest,
+  type SlotReport,
   type OccupancyDay,
 } from "@/lib/api";
 import { Skeleton } from "../../_components/skeleton";
@@ -80,6 +82,8 @@ const hourlyData = generateMockHourly();
 
 export default function RapportagesPage() {
   const t = useTranslations("dash_rapportages_bezetting_page");
+  // Dagdeel-namen uit de gedeelde namespace (zie lib/dayparts.ts).
+  const tDp = useTranslations("common.dayparts");
   const locale = useLocale();
   const localeTag = useLocaleTag();
   const today = new Date();
@@ -93,6 +97,9 @@ export default function RapportagesPage() {
   const [fillyByCampaign, setFillyByCampaign] = useState<
     CampaignAttribution[]
   >([]);
+  // Wat campagnes met de drukte deden, per weekdag+dagdeel. Leeg zolang er
+  // te weinig gemeten campagnes zijn — dan tonen we het blok niet.
+  const [slotReport, setSlotReport] = useState<SlotReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Geselecteerde maand waar de bezetting- en gast-KPI's op gebaseerd zijn.
@@ -111,12 +118,14 @@ export default function RapportagesPage() {
       fetchGuests(),
       fetchFillyRoi6Months(),
       fetchFillyAttribution(),
+      fetchSlotReport().catch(() => null),
     ])
-      .then(([c, g, roi, attr]) => {
+      .then(([c, g, roi, attr, slots]) => {
         setCampaigns(c);
         setGuests(g);
         setFillyRoi6m(roi);
         setFillyByCampaign(attr);
+        setSlotReport(slots);
       })
       .catch(() => {});
   }, []);
@@ -429,6 +438,87 @@ export default function RapportagesPage() {
               </div>
             </div>
           </div>
+
+          {/* Wat een campagne met de drukte deed, per moment. Alleen tonen
+              als er iets gemeten is: een leeg blok met nullen suggereert dat
+              campagnes niets doen, terwijl we het gewoon nog niet weten. */}
+          {slotReport && slotReport.slots.length > 0 && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="card-h">
+                <div>
+                  <div className="card-t">{t("liftCardTitle")}</div>
+                  <div className="card-st">{t("liftCardSubtitle")}</div>
+                </div>
+              </div>
+              <div className="card-b">
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                >
+                  {slotReport.slots.map((row) => {
+                    const dag = [
+                      t("mon"),
+                      t("tue"),
+                      t("wed"),
+                      t("thu"),
+                      t("fri"),
+                      t("sat"),
+                      t("sun"),
+                    ][row.weekday];
+                    const positief = row.medianLift > 0;
+                    return (
+                      <div
+                        key={`${row.weekday}-${row.daypart}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "baseline",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ fontSize: 13.5 }}>
+                          <span style={{ fontWeight: 600 }}>{dag}</span>{" "}
+                          {tDp(row.daypart)}
+                          <span
+                            style={{
+                              color: "var(--tl)",
+                              marginLeft: 8,
+                              fontSize: 12.5,
+                            }}
+                          >
+                            {row.counts
+                              ? t("liftCounts", { n: row.samples })
+                              : t("liftTooFew", {
+                                  n: row.samples,
+                                  min: slotReport.minSamples,
+                                })}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 13.5,
+                            fontWeight: 600,
+                            fontVariantNumeric: "tabular-nums",
+                            color: positief
+                              ? "var(--accent, #1F4A2D)"
+                              : "var(--tl)",
+                          }}
+                        >
+                          {positief ? "+" : ""}
+                          {row.medianLift}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div
+                  style={{ marginTop: 12, fontSize: 12.5, color: "var(--tl)" }}
+                >
+                  {t("liftFoot")}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Uur-van-dag heatmap */}
           <div className="card" style={{ marginBottom: 16 }}>

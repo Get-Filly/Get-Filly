@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { DAYPART_DEFS, type SlotPerformance } from './quiet-signals';
+import {
+  DAYPART_DEFS,
+  FEEDBACK_MIN_SAMPLES,
+  type SlotPerformance,
+} from './quiet-signals';
 
 // ============================================================
 // QuietFeedbackService — deed de campagne iets met de drukte? (fase 4)
@@ -287,6 +291,49 @@ export class QuietFeedbackService {
   // ============================================================
   // Lezen (voedt de detectie)
   // ============================================================
+
+  /**
+   * Leesbaar overzicht per weekdag×dagdeel voor de rapportage: hoeveel
+   * campagnes er gemeten zijn en wat ze gemiddeld met de drukte deden.
+   *
+   * Bewust mét `samples` erbij: een lift op drie metingen zegt iets heel
+   * anders dan een op twaalf, en zonder dat getal leest de eigenaar een
+   * toevalstreffer als een bewezen effect. De weging die de detectie zelf
+   * gebruikt staat er ook bij, zodat zichtbaar is of dit moment de ranking
+   * daadwerkelijk beïnvloedt of nog onder de drempel zit.
+   */
+  async getSlotReport(businessId: string): Promise<{
+    slots: Array<{
+      weekday: number;
+      daypart: string;
+      samples: number;
+      medianLift: number;
+      /** Telt dit moment al mee in de ranking? */
+      counts: boolean;
+    }>;
+    businessMedianLift: number;
+    minSamples: number;
+  }> {
+    const { slots, businessMedianLift } =
+      await this.getSlotPerformance(businessId);
+    const out = [...slots.entries()]
+      .map(([key, v]) => {
+        const [weekday, daypart] = key.split('|');
+        return {
+          weekday: Number(weekday),
+          daypart,
+          samples: v.samples,
+          medianLift: Math.round(v.medianLift * 10) / 10,
+          counts: v.samples >= FEEDBACK_MIN_SAMPLES,
+        };
+      })
+      .sort((a, b) => b.medianLift - a.medianLift);
+    return {
+      slots: out,
+      businessMedianLift: Math.round(businessMedianLift * 10) / 10,
+      minSamples: FEEDBACK_MIN_SAMPLES,
+    };
+  }
 
   /**
    * Wat campagnes per weekdag×dagdeel-slot hebben opgeleverd, plus de eigen

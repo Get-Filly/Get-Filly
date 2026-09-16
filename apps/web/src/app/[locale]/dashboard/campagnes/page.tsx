@@ -53,7 +53,9 @@ import { CAMPAIGNS_CHANGED_EVENT } from "@/lib/campaign-events";
 // dashboard + de groene Filly-tile beschikbaar.
 
 type KanbanColumn = {
-  key: "voorstel" | "concept" | "ingepland" | "actief";
+  // 'voorstel' bestaat niet meer als kolom (2026-06-24): gegenereerde
+  // voorstellen worden meteen goedgekeurd tot Concept.
+  key: "concept" | "ingepland" | "actief";
 };
 
 // Labels + beschrijvingen worden per kolom vertaald in de KanbanColumn-
@@ -639,38 +641,17 @@ export default function CampagnesPage() {
       return channels.some((c) => channelFilter.has(c));
     };
     const result: Record<KanbanColumn["key"], BoardItem[]> = {
-      voorstel: [],
       concept: [],
       ingepland: [],
       actief: [],
     };
 
-    // Een voorstel is verlopen als z'n doel-datum (target_date) gisteren of
-    // eerder was: een actie voor een al-gepasseerde dag heeft geen zin meer.
-    // Voorstellen zonder datum blijven staan (de eigenaar kiest zelf nog een
-    // dag). Spiegelt de expired-logica van de campagne-kolommen hieronder.
-    const isSuggestionExpired = (s: AiSuggestion): boolean => {
-      const td = getSuggestionTargetDate(s);
-      if (!td || !/^\d{4}-\d{2}-\d{2}$/.test(td)) return false;
-      // Einde van de doel-dag: target_date === vandaag blijft dus zichtbaar.
-      return new Date(`${td}T23:59:59`).getTime() < Date.now();
-    };
-
-    // Voorstel-kolom: ai_suggestions, split op trigger_type voor bundles.
-    for (const s of suggestions) {
-      if (isSuggestionExpired(s)) continue;
-      const sc = s.suggested_campaign;
-      const channels =
-        sc.channels && sc.channels.length > 0
-          ? sc.channels.map((ch) => ch.platform)
-          : [sc.platform ?? sc.type ?? "mail"];
-      if (!matchesFilter(channels)) continue;
-      if (s.trigger_type === "chat_bundle") {
-        result.voorstel.push({ kind: "bundle-suggestion", data: s });
-      } else {
-        result.voorstel.push({ kind: "suggestion", data: s });
-      }
-    }
+    // De Voorstel-kolom is op 2026-06-24 uit het bord gehaald: gegenereerde
+    // voorstellen worden meteen goedgekeurd tot Concept. De berekening die
+    // 'm vulde bleef staan en draaide sindsdien voor niets — erger nog, ze
+    // verborg dat een mislukte goedkeuring werk achterlaat dat nergens meer
+    // te zien is. Die vangnet-functie zit nu waar 'ie hoort: de goedkeuring
+    // meldt z'n eigen fout (suggestions.controller.ts).
 
     // Campagne-kolommen: groepeer per group_id. Afgeronde campagnes
     // skippen (verhuisden naar /history-route).
@@ -740,7 +721,7 @@ export default function CampagnesPage() {
       if (!db) return -1; // b heeft geen datum → b naar achter
       return da.localeCompare(db); // ISO-strings zijn lexicografisch sorteer-baar
     };
-    for (const key of ["voorstel", "concept", "ingepland", "actief"] as const) {
+    for (const key of ["concept", "ingepland", "actief"] as const) {
       result[key].sort(sortByDate);
     }
 
@@ -778,8 +759,10 @@ export default function CampagnesPage() {
   // Default kanalen bij bundle-approve. Sinds 2026-06-22 ondersteunt de
   // approve-bundle alle 6 chat-kanalen; we geven ze allemaal mee en de
   // backend maakt alleen de kanalen die daadwerkelijk in de bundel zitten.
+  // Mail staat hier per 2026-09-16 niet meer in: we maken geen
+  // mail-campagnes meer aan. Bestaande mail-campagnes blijven gewoon op
+  // het bord staan, we bieden het alleen niet meer aan.
   const DEFAULT_BUNDLE: BundleChannel[] = [
-    "mail",
     "instagram",
     "facebook",
     "whatsapp",
@@ -958,7 +941,6 @@ export default function CampagnesPage() {
             >
               {(
                 [
-                  { key: "mail", label: "Mail" },
                   { key: "instagram", label: "Instagram" },
                   { key: "facebook", label: "Facebook" },
                   { key: "tiktok", label: "TikTok" },
@@ -1185,7 +1167,6 @@ export default function CampagnesPage() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {(
                 [
-                  { key: "mail", label: "Mail" },
                   { key: "instagram", label: "Instagram" },
                   { key: "facebook", label: "Facebook" },
                   { key: "tiktok", label: "TikTok" },

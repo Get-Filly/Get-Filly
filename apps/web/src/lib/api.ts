@@ -1578,6 +1578,29 @@ export type QuietNote = {
   label?: string;
 };
 
+// Wat campagnes per weekdag+dagdeel met de drukte deden. `samples` staat er
+// bewust bij: een lift op drie campagnes zegt iets heel anders dan een op
+// twaalf, en zonder dat getal leest een toevalstreffer als bewijs.
+export type SlotReport = {
+  slots: Array<{
+    weekday: number; // 0=ma..6=zo
+    daypart: string;
+    samples: number;
+    medianLift: number; // drukte-punten t.o.v. vergelijkbare dagen
+    counts: boolean; // telt dit moment al mee in de ranking?
+  }>;
+  businessMedianLift: number;
+  minSamples: number;
+};
+
+export async function fetchSlotReport(): Promise<SlotReport> {
+  const res = await authedFetch(`${API_URL}/busyness/me/slot-report`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function fetchQuietMoments(
   fromIso?: string,
   toIso?: string,
@@ -1842,6 +1865,10 @@ export async function generateSuggestionsForDates(
 ): Promise<{
   generated: number;
   suggestions: AiSuggestion[];
+  // Aantal voorstellen dat wél gegenereerd is maar niet tot een concept
+  // kwam. Was voorheen onzichtbaar: de backend slikte die fout, en de
+  // eigenaar kreeg "concept klaargezet" terwijl er niets op het bord stond.
+  failedToConcept?: number;
 }> {
   const res = await authedFetch(
     `${API_URL}/suggestions/generate-for-dates`,

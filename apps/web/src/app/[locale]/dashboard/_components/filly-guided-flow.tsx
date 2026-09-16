@@ -472,7 +472,8 @@ export function FillyGuidedFlow({
     setError(null);
     onActionChange?.({ step: "generating" });
     try {
-      const { suggestions } = await generateSuggestionsForDates(items);
+      const { suggestions, failedToConcept } =
+        await generateSuggestionsForDates(items);
       if (!suggestions || suggestions.length === 0) {
         // Geen stille redirect: duidelijke melding en terug naar de dag-keuze
         // (daar rendert de fout-banner; de idle-stap doet dat niet). Batch-
@@ -493,10 +494,16 @@ export function FillyGuidedFlow({
             name: primary.suggested_campaign?.name ?? t("result.fallbackName"),
           }
         : undefined;
+      // Kwam een voorstel niet tot een concept, dan zeggen we dat. Stil
+      // "klaargezet" melden terwijl er niets op het bord staat is precies
+      // hoe werk eerder onvindbaar werd.
+      const failed = failedToConcept ?? 0;
       const note =
-        items.length === 1
-          ? t("generatedNote", { day: formatDayNl(items[0].date, localeTag) })
-          : t("batchGeneratedNote", { count: suggestions.length });
+        failed > 0
+          ? t("partiallyFailedNote", { count: failed })
+          : items.length === 1
+            ? t("generatedNote", { day: formatDayNl(items[0].date, localeTag) })
+            : t("batchGeneratedNote", { count: suggestions.length });
       onGenerated?.(note, card);
       // Smart flow: alle behandelde dagen als "gedaan" markeren.
       items.forEach((it) => onDayUsed?.(it.date));

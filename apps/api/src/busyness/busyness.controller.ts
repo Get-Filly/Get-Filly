@@ -3,6 +3,7 @@ import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
 import { BusynessService } from './busyness.service';
+import { QuietFeedbackService } from './quiet-feedback.service';
 
 // ============================================================
 // Busyness-controller — handmatige trigger (getest via de app)
@@ -14,7 +15,10 @@ import { BusynessService } from './busyness.service';
 @UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('busyness')
 export class BusynessController {
-  constructor(private readonly busyness: BusynessService) {}
+  constructor(
+    private readonly busyness: BusynessService,
+    private readonly feedback: QuietFeedbackService,
+  ) {}
 
   // POST /api/busyness/me/refresh
   @Post('me/refresh')
@@ -37,6 +41,15 @@ export class BusynessController {
     @Query('to') to: string,
   ) {
     return this.busyness.getActualByDate(businessId, from, to);
+  }
+
+  // GET /api/busyness/me/slot-report
+  // Wat campagnes per weekdag+dagdeel met de drukte deden. Voedt het
+  // rapportage-blok; bevat bewust het aantal metingen, zodat een lift op
+  // drie campagnes niet als bewezen effect leest.
+  @Get('me/slot-report')
+  getSlotReport(@BusinessId() businessId: string) {
+    return this.feedback.getSlotReport(businessId);
   }
 
   // GET /api/busyness/me/quiet-moments?from=YYYY-MM-DD&to=YYYY-MM-DD
