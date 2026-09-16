@@ -16,6 +16,53 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-09-16 — Bezettingsrapportage op echte data + maandoverzicht
+
+**Wat er weg is.** De bezettingspagina toonde drie dingen die module-constanten
+in de frontend waren, geen demo-fallback: `generateMockHourly()` (uur-heatmap
+uit een vaste basislijn + ruis), `yoy = { occ: 7, guests: 12, revenue: 9 }` en
+een hardgecodeerde retentie-cohort met vaste maandnamen. Die werden aan élke
+klant getoond. Weg.
+
+**Wat ervoor in de plaats komt.** `GET /busyness/me/occupancy-report`:
+- **Bezetting per uur**, echt: per (datum, uur) de mediaan van de metingen,
+  daarna de mediaan over de dagen. Cellen onder 3 gemeten dagen blijven leeg
+  (gestreept) — dat vakje is zelf informatie.
+- **Waar blijf je achter bij je eigen patroon**: Google-patroon naast de eigen
+  metingen, per weekdag×dagdeel. Staat nergens anders in de app. Alleen
+  afwijkingen ≥ 3 punten; anders verdrinken de momenten die ertoe doen.
+
+Het subtiele stuk: de verwachting wordt gerekend over **precies de uren die ook
+gemeten zijn**, en uren waar het patroon 0 is (dicht) tellen niet mee. Anders is
+het "verschil" een rekenfout. 9 tests in `occupancy-report.spec.ts`.
+
+**Tabs.** De pagina hing aan één secundaire knop en stond nergens in de zijbalk.
+Nu twee tabs bovenaan Rapportages: Resultaat / Bezetting.
+
+**Maandoverzicht (mig 0075, `busyness_monthly`).** `busyness_snapshots` wordt na
+120 dagen geprund, dus "vs vorig jaar" is per definitie onbeantwoordbaar — dat
+was de reden dat die percentages hardgecodeerd stonden. Er wordt nu per zaak,
+maand, weekdag en uur een overzicht weggeschreven **vóór** de prune, met de
+gemeten drukte, het aantal dagen waarop die rust, én de verwachting van dát
+moment (het Google-patroon verschuift).
+
+- Draait mee in `refreshAll()`, vóór `pruneOldSnapshots()`. **Gaat de rollup
+  mis, dan wordt de prune overgeslagen**: ruwe data die we nog hebben is beter
+  dan een gat in de historie. De volgende run pakt het hele venster en haalt de
+  overgeslagen maand vanzelf in.
+- Handmatig vangnet: `GET /api/busyness/cron/rollup`.
+- Omvang: ~60-80 rijen per zaak per maand (alleen open uren), dus een paar
+  honderd per jaar.
+
+- [ ] **Over twaalf maanden**: de vergelijking met vorig jaar daadwerkelijk
+      bouwen op `busyness_monthly`. Tot die tijd staat er niets over vorig jaar
+      op de pagina, en dat is correct.
+- [ ] **Controleren dat er echt iets in `busyness_monthly` landt** zodra 0075
+      gedraaid is. Ik kan dat niet zien zonder productie-toegang; één keer
+      `/api/busyness/cron/rollup` aanroepen en de tabel bekijken volstaat.
+
+---
+
 ## 🗓️ 2026-09-15 — Rustige momenten: variatie per datum (branch `feat/rustige-momenten-variatie`)
 
 **Het probleem.** `getQuietMoments` rekende alleen op het Google-weekpatroon, en

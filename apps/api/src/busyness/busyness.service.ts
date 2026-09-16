@@ -113,7 +113,11 @@ const EDGE_ACTIVITY_FRAC = 0.3; // het eerste/laatste open dagdeel (opening/afsl
 const ABS_DEV_FLOOR = 2; // ondergrens (punten) voor vlakke zaken waar de schommeling ~0 is
 const ANOMALY_WEIGHT = 0.5; // hoe zwaar een 'ongewoon rustig'-afwijking maximaal meeweegt bovenop de vulbaarheid in de ranking
 const UNUSUAL_SPREAD_MULT = 2.0; // label 'ongewoon rustig' vanaf deze afwijking (× normale schommeling)
-const DEFAULT_QUIET_PER_WEEK = 2; // tempo: max rustige momenten per week (instelbaar per zaak)
+const DEFAULT_QUIET_PER_WEEK = 2;
+// Hoe ver het maandoverzicht terugkijkt. Gelijk aan de retentie van
+// busyness_snapshots: verder terug is de bron toch al geprund, en het hele
+// venster meenemen laat een overgeslagen run zichzelf repareren.
+const MONTHLY_LOOKBACK_DAYS = 120; // tempo: max rustige momenten per week (instelbaar per zaak)
 
 // Staffel per event-categorie, gespiegeld aan EventsService: hier alleen als
 // SCHAAL om nabijheid op te wegen (een festival op 9 van de 10 km weegt licht,
@@ -290,6 +294,109 @@ export function aggregateOccupancyReport(
     }
   }
   return { hourly, dayparts };
+}
+
+export type MonthlyCell = {
+  month: string; // YYYY-MM-01
+  weekday: number;
+  hour: number;
+  actualPct: number;
+  expectedPct: number | null;
+  days: number;
+};
+
+/**
+ * Maandoverzicht uit ruwe live-metingen. Zelfde meetdefinitie als de
+ * rapportage: per (datum, uur) de mediaan van de metingen, daarna de mediaan
+ * over de dagen — maar hier gegroepeerd per kalendermaand in plaats van over
+ * het hele venster.
+ *
+ * `pattern` is het Google-weekpatroon zoals het NU is; dat wordt per cel
+ * meebewaard als verwachting. Het patroon verschuift met de tijd, en zonder
+ * de verwachting van toen valt een vergelijking met vorig jaar niet uit te
+ * leggen.
+ *
+ * Puur, zodat 'ie zonder database te testen is.
+ */
+export function aggregateMonthly(
+  rows: LiveRow[],
+  pattern: number[][] | null,
+): MonthlyCell[] {
+  const med = (nums: number[]): number => {
+    const a = [...nums].sort((x, y) => x - y);
+    const m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  };
+  const amsDate = (d: Date): string => {
+    const p = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Amsterdam',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const g = (t: string) => p.find((x) => x.type === t)?.value ?? '01';
+    return `${g('year')}-${g('month')}-${g('day')}`;
+  };
+  const amsHour = (d: Date): number =>
+    parseInt(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Amsterdam',
+        hour: '2-digit',
+        hour12: false,
+      }).format(d),
+      10,
+    );
+  const weekdayOf = (iso: string): number =>
+    (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;
+
+  // Stap 1: per (datum, uur) de mediaan van de metingen in dat uur.
+  const perDateHour = new Map<string, number[]>();
+  for (const row of rows) {
+    const when = new Date(row.captured_at);
+    const date = amsDate(when);
+    const hour = row.live_hour ?? amsHour(when);
+    if (hour == null || hour < 0 || hour > 23) continue;
+    const key = `${date}|${hour}`;
+    const arr = perDateHour.get(key);
+    if (arr) arr.push(row.live_pct);
+    else perDateHour.set(key, [row.live_pct]);
+  }
+
+  // Stap 2: groeperen per (maand, weekdag, uur).
+  const perCell = new Map<string, number[]>();
+  for (const [key, pcts] of perDateHour) {
+    const [date, h] = key.split('|');
+    const maand = `${date.slice(0, 7)}-01`;
+    const wd = weekdayOf(date);
+    const cell = `${maand}|${wd}|${h}`;
+    const arr = perCell.get(cell);
+    if (arr) arr.push(med(pcts));
+    else perCell.set(cell, [med(pcts)]);
+  }
+
+  const out: MonthlyCell[] = [];
+  for (const [cell, vals] of perCell) {
+    const [month, wd, h] = cell.split('|');
+    const weekday = Number(wd);
+    const hour = Number(h);
+    const exp = pattern?.[weekday]?.[hour];
+    out.push({
+      month,
+      weekday,
+      hour,
+      actualPct: Math.round(med(vals) * 100) / 100,
+      expectedPct: typeof exp === 'number' && exp > 0 ? exp : null,
+      days: vals.length,
+    });
+  }
+  // Stabiele volgorde; maakt de upsert-batches en de tests leesbaar.
+  out.sort(
+    (a, b) =>
+      a.month.localeCompare(b.month) ||
+      a.weekday - b.weekday ||
+      a.hour - b.hour,
+  );
+  return out;
 }
 
 @Injectable()
@@ -1716,15 +1823,122 @@ export class BusynessService {
       `busyness-refresh klaar: ${refreshed}/${targets.length} met data.`,
     );
 
+    // Maandoverzicht wegschrijven VÓÓR de prune (mig 0075). De volgorde is
+    // de hele reden dat die tabel bestaat: prunen we eerst, dan is de bron
+    // weg en is die maand voorgoed onherleidbaar.
+    const rollup = await this.rollupMonthly().catch((e) => {
+      this.logger.error(`Maandoverzicht faalde volledig: ${String(e)}`);
+      return null;
+    });
+
     // Oude snapshots opruimen (de wekelijkse refresh is een mooi moment).
     // Live-metingen > 120 dagen zijn ruim voldoende voor de mediaan-per-
     // weekdag; oudere rijen (incl. verouderde patronen) mogen weg.
-    const pruned = await this.pruneOldSnapshots().catch((e) => {
-      this.logger.warn(`Prune faalde: ${String(e)}`);
-      return 0;
-    });
+    //
+    // Maar alleen als het maandoverzicht gelukt is. Ging daar iets mis, dan
+    // slaan we de prune over: ruwe data die we nog hebben is altijd beter
+    // dan een gat in de historie. De volgende wekelijkse run probeert het
+    // opnieuw, en omdat de rollup het hele venster pakt haalt 'ie de
+    // overgeslagen maand vanzelf in.
+    let pruned = 0;
+    if (rollup && rollup.failed === 0) {
+      pruned = await this.pruneOldSnapshots().catch((e) => {
+        this.logger.warn(`Prune faalde: ${String(e)}`);
+        return 0;
+      });
+    } else {
+      this.logger.warn(
+        'Prune overgeslagen: het maandoverzicht is niet voor alle zaken gelukt.',
+      );
+    }
 
     return { total: targets.length, refreshed, pruned, results };
+  }
+
+  /**
+   * Schrijft het maandoverzicht weg voor alle zaken met live-metingen in het
+   * retentievenster. Moet VÓÓR pruneOldSnapshots draaien, anders is de bron
+   * al weg — dat is de hele reden dat deze tabel bestaat.
+   *
+   * Idempotent: upsert op (business_id, month, weekday, hour), dus een maand
+   * die nog loopt wordt bij elke run bijgewerkt en een afgesloten maand
+   * blijft staan zoals hij was.
+   *
+   * Fail-soft per zaak: één kapotte rollup mag de rest niet blokkeren. Maar
+   * het totaalresultaat meldt wél of er iets misging, want de caller gebruikt
+   * dat om te beslissen of prunen veilig is.
+   */
+  async rollupMonthly(): Promise<{
+    businesses: number;
+    rows: number;
+    failed: number;
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('businesses')
+      .select('id');
+    if (error) throw new InternalServerErrorException(error.message);
+    const ids = ((data ?? []) as Array<{ id: string }>).map((b) => b.id);
+
+    let rows = 0;
+    let failed = 0;
+    let touched = 0;
+    for (const businessId of ids) {
+      try {
+        const n = await this.rollupMonthlyFor(businessId);
+        if (n > 0) touched += 1;
+        rows += n;
+      } catch (e) {
+        failed += 1;
+        this.logger.error(
+          `maandoverzicht faalde voor ${businessId}: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+      }
+    }
+    this.logger.log(
+      `maandoverzicht: ${rows} rijen voor ${touched} zaken, ${failed} mislukt.`,
+    );
+    return { businesses: touched, rows, failed };
+  }
+
+  /** Maandoverzicht voor één zaak. Retourneert het aantal weggeschreven rijen. */
+  private async rollupMonthlyFor(businessId: string): Promise<number> {
+    // Het hele retentievenster meenemen, niet alleen de vorige maand: zo
+    // repareert een run die een keer overgeslagen is zichzelf, en wordt de
+    // lopende maand steeds bijgewerkt.
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - MONTHLY_LOOKBACK_DAYS);
+
+    const { data, error } = await this.supabase.client
+      .from('busyness_snapshots')
+      .select('captured_at, live_pct, live_hour')
+      .eq('business_id', businessId)
+      .not('live_pct', 'is', null)
+      .gte('captured_at', since.toISOString());
+    if (error) throw new InternalServerErrorException(error.message);
+    const metingen = (data ?? []) as LiveRow[];
+    if (metingen.length === 0) return 0;
+
+    const latest = await this.getLatest(businessId);
+    const cells = aggregateMonthly(metingen, latest.pattern);
+    if (cells.length === 0) return 0;
+
+    const payload = cells.map((c) => ({
+      business_id: businessId,
+      month: c.month,
+      weekday: c.weekday,
+      hour: c.hour,
+      actual_pct: c.actualPct,
+      expected_pct: c.expectedPct,
+      days: c.days,
+      updated_at: new Date().toISOString(),
+    }));
+    const { error: upErr } = await this.supabase.client
+      .from('busyness_monthly')
+      .upsert(payload, { onConflict: 'business_id,month,weekday,hour' });
+    if (upErr) throw new InternalServerErrorException(upErr.message);
+    return payload.length;
   }
 
   /**

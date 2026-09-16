@@ -40,7 +40,13 @@ capaciteit te vullen. "Get-Filly" = het bedrijf; "Filly" = de assistent.
 >   de mediaan van vergelijkbare dagen). Cron `/api/busyness/cron/measure`.
 >   De weging is relatief t.o.v. de eigen mediaan van de zaak en bewust klein
 >   (±25%); onder 3 metingen per slot doet 'ie niets.
-> - Migraties staan nu op **0074** (0074 handmatig draaien).
+> - **Bezettingsrapportage op echte data** (sep 2026): verzonnen uur-heatmap,
+>   "vs vorig jaar" en cohort-tabel eruit; gemeten drukte per weekdag+uur en
+>   verwacht-vs-werkelijk erin. Rapportages heeft twee tabs.
+> - **Maandoverzicht** (mig 0075, `busyness_monthly`): wordt weggeschreven vóór
+>   de prune van `busyness_snapshots`, zodat "vs vorig jaar" over twaalf maanden
+>   wél kan. Mislukt de rollup, dan wordt er niet geprund.
+> - Migraties staan nu op **0075** (0074 en 0075 handmatig draaien).
 > - Migraties staan nu op **0070**. Zie de memory-index + BACKLOG voor details.
 
 ## Stack
