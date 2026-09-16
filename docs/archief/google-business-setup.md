@@ -1,5 +1,9 @@
 # Google Business Profile — setup-guide
 
+> **📦 Gearchiveerd — Afgerond.** Google Bedrijfsprofiel is sinds juli 2026 end-to-end live: verbinden werkt,
+> en beheer-writes (omschrijving, tijden, speciale dagen, reviews) zijn geshipt.
+
+
 Dit document beschrijft de externe setup die nodig is voor de
 Google-Business-Profile-integratie van Get Filly. Het is opgedeeld
 in twee fases:
@@ -74,7 +78,7 @@ Voeg de key toe aan `apps/api/.env`:
 ```bash
 # Google Places API (New) — server-side key voor place-lookup,
 # nearby-search en place-details. Restrictie: IP + Places-API-only.
-# Setup-guide: docs/google-business-setup.md
+# Setup-guide: docs/archief/google-business-setup.md
 GOOGLE_PLACES_API_KEY=AIzaSy...
 ```
 

@@ -1,5 +1,10 @@
 # Scaling-roadmap — van 1 instance naar 1000+ klanten
 
+> **📦 Gearchiveerd — Deels achterhaald.** Bottleneck nummer 1 (de in-memory rate-limit `Map`) is opgelost met migratie
+> 0076: `check_rate_limit()` telt nu in de database. De rest is een routekaart,
+> geen takenlijst.
+
+
 Op dit moment draait Get-Filly op één Node-process. Dat werkt prima
 tot ~50-100 actieve klanten. Daarna komen er stuk voor stuk
 bottlenecks. Deze doc is geen actie-lijst — het is een routekaart

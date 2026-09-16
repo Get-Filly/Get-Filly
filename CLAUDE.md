@@ -194,6 +194,6 @@ stap-labels: pill weg, groene eyebrow; stap-tijd subtiel grijs). Zie changelog
 
 ## Handmatige Supabase-config (niet in migraties)
 
-Zie [`docs/supabase-manual-setup.md`](docs/supabase-manual-setup.md)
+Zie [`docs/setup/supabase-handmatig.md`](docs/setup/supabase-handmatig.md)
 voor email-templates, redirect-URLs en test-data die handmatig zijn
 ingesteld en bij een schone Supabase-project-reset opnieuw moeten.

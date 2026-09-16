@@ -1,5 +1,9 @@
 # Brief — audit-item #8: één `active_action`-state voor de Filly-chat
 
+> **📦 Gearchiveerd — Afgerond.** De `active_action`-state is gebouwd en staat live op `main` sinds juni 2026.
+> Dit was de opdrachtbriefing; bewaard omdat de afwegingen erin staan.
+
+
 > **Voor een nieuwe Claude-sessie.** Dit document is zelfstandig: alles
 > wat je nodig hebt om audit-item #8 op te pakken staat hieronder.
 > Lees ook `BACKLOG.md` → sectie "🔧 Filly-flow developer-audit" (items

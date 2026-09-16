@@ -259,7 +259,7 @@ Cache van weersvoorspellingen per locatie + dag (Open-Meteo API).
 
 ## Open punten op DB-niveau
 
-Volgens [BACKLOG](../BACKLOG.md):
+Volgens [BACKLOG](../../BACKLOG.md):
 - `reservations.via_campaign_id` FK — voor échte Filly-ROI
 - `guests.acquired_via_campaign_id` FK
 - `campaigns.metrics` uitbreiding (extra_reservations / revenue / retention)

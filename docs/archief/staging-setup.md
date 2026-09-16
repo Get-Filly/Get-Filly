@@ -1,5 +1,10 @@
 # Staging-omgeving — setup
 
+> **📦 Gearchiveerd — Nooit uitgevoerd.** Er is geen staging-omgeving; een push naar `main` is meteen productie.
+> De aanleiding (Meta App Review) is inmiddels weg, dus de vraag óf dit nog
+> moet staat open in `BACKLOG.md` onder P1.
+
+
 Op dit moment is "code committen" hetzelfde als "live op productie" —
 geen tussenlaag voor tests, geen veilige plek voor Meta-OAuth-flows
 of andere reviews. Een staging-omgeving lost dat op.

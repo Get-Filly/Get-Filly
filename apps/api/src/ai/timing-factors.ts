@@ -4,7 +4,7 @@
  * ============================================================
  *
  * Vertaalt hoofdstuk 4 van het social-posting-brein-document
- * (`docs/social-posting-brein.docx`): weer, NL-feestdagen,
+ * (`docs/werking/social-posting-brein.docx`): weer, NL-feestdagen,
  * loondagen en seizoenen passen de basis-timing per kanaal aan.
  *
  * Bewuste keuze: dit wordt in códe berekend, niet aan Claude

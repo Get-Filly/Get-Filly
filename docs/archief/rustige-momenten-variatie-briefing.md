@@ -1,5 +1,10 @@
 # Opdracht: haal het vaste patroon uit de rustige-momenten-detectie
 
+> **📦 Gearchiveerd — Afgerond.** Uitgevoerd in de sessie van 15/16 september 2026 — met zeven correcties,
+> waarvan twee het ontwerp veranderden. Wat het geworden is staat in
+> `docs/CHANGELOG.md` en `docs/werking/rustige-momenten-detectie.docx`.
+
+
 Je werkt in de repo `Get-Filly/Get-Filly` (monorepo: `apps/api` = NestJS,
 `apps/web` = Next.js). Lees de genoemde code voordat je iets voorstelt. Alles
 hieronder is in de code geverifieerd, niet uit het hoofd.

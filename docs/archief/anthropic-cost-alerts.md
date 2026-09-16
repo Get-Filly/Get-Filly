@@ -1,5 +1,9 @@
 # Anthropic API — kosten-grenzen + alerts
 
+> **📦 Gearchiveerd — Status onbekend.** Dit is console-configuratie bij Anthropic, van buitenaf niet te controleren.
+> Staat als na te kijken punt in `BACKLOG.md` onder P1.
+
+
 Claude Opus 4.7 (Vision) kost $15/Mtok input en $75/Mtok output. Eén
 foute upload (50-pagina PDF, herhaaldelijk gefaald) kan zomaar een
 paar honderd dollar kosten. Met cost-alerts en harde limits voorkom

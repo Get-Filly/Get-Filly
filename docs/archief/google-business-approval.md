@@ -1,5 +1,8 @@
 # Google Business Profile API — approval-aanvraag (fase C)
 
+> **📦 Gearchiveerd — Afgerond.** De approval is binnen; Google Bedrijfsprofiel draait live sinds juli 2026.
+
+
 Dit document begeleidt de aanvraag voor toegang tot de **Business
 Profile APIs**. Dit is iets anders dan de Places API (die hebben we al
 in fase B). Pas met deze approval kunnen we:

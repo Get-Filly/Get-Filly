@@ -5,7 +5,7 @@
 > Bijwerken: pas de config aan en draai `pnpm brein:doc`. Gegenereerd op 2026-06-11.
 
 Dit hoofdstuk vult het social-posting-brein-document
-(`docs/social-posting-brein.docx`, de timing-laag) aan met de lengte-,
+(`docs/werking/social-posting-brein.docx`, de timing-laag) aan met de lengte-,
 hashtag-, toon- en CTA-regels per kanaal die Filly bij élke
 tekst-generatie afgedwongen krijgt (prompt-injectie + lengte-guard in code).
 

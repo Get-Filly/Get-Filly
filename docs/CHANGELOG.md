@@ -449,7 +449,7 @@ De chat en de geleide flow hangen nu aan de rustige-momenten-detectie.
 Voorspellende detectie van rustige **dagdelen** (was: hele dagen). Draait op het
 verwachte Google-weekpatroon, niet op live. Zelfde bron voedt grafiek + chat +
 auto-detectie. Volledige uitleg + verantwoording afgevallen methodes in
-[`docs/rustige-momenten-detectie.docx`](docs/rustige-momenten-detectie.docx).
+[`docs/werking/rustige-momenten-detectie.docx`](../docs/werking/rustige-momenten-detectie.docx).
 
 - [x] **Model** `BusynessService.getQuietMoments` — dagdeel-rooster (vaste
   vensters, bijgesneden op open uren, gemiddelde per open uur, min-dekking) →
@@ -1105,15 +1105,15 @@ verplaatsen naar de juiste P-bucket.
 - [ ] 🟢 **`@RequireModule`-decorator** voor module-permissies ontbreekt (alleen frontend-filtering).
 
 ### CTO
-- [~] 🔴 **20 migraties handmatig** — setup-guide in [docs/database-migrations.md](docs/database-migrations.md). **Jouw actie**: Supabase CLI installeren + `supabase migration repair` runnen om bestaande migraties als applied te markeren.
+- [~] 🔴 **20 migraties handmatig** — setup-guide in [docs/archief/database-migrations.md](../docs/archief/database-migrations.md). **Jouw actie**: Supabase CLI installeren + `supabase migration repair` runnen om bestaande migraties als applied te markeren.
 - [x] ~~🔴 Prompt-caching activeren~~ (2026-04-29) — `cache_control: ephemeral` actief in `AiService` op chat + campaign-refine + reviews-refine. ~90% korting op input-tokens bij recurring calls binnen 5 min cache-TTL.
-- [~] 🔴 **Sentry / error-tracking** — setup-guide in [docs/sentry-setup.md](docs/sentry-setup.md). **Jouw actie**: account aanmaken + 2 projecten + DSN's invullen.
-- [~] 🔴 **Cost-alerts Anthropic** — setup-guide in [docs/anthropic-cost-alerts.md](docs/anthropic-cost-alerts.md). **Jouw actie**: monthly spending limit + alerts in Anthropic Console + aparte API-keys per environment.
-- [~] 🟡 **Staging-omgeving** — setup-guide in [docs/staging-setup.md](docs/staging-setup.md). **Jouw actie**: 2e Supabase-project + 2e Railway-instance + Vercel preview-branch.
+- [~] 🔴 **Sentry / error-tracking** — setup-guide in [docs/archief/sentry-setup.md](../docs/archief/sentry-setup.md). **Jouw actie**: account aanmaken + 2 projecten + DSN's invullen.
+- [~] 🔴 **Cost-alerts Anthropic** — setup-guide in [docs/archief/anthropic-cost-alerts.md](../docs/archief/anthropic-cost-alerts.md). **Jouw actie**: monthly spending limit + alerts in Anthropic Console + aparte API-keys per environment.
+- [~] 🟡 **Staging-omgeving** — setup-guide in [docs/archief/staging-setup.md](../docs/archief/staging-setup.md). **Jouw actie**: 2e Supabase-project + 2e Railway-instance + Vercel preview-branch.
 - [ ] 🟡 **Geen feature-flag systeem** — bij 1000+ klanten kan een release niet veilig naar 5% eerst.
-- [~] 🟡 **Multi-instance scaling roadmap** — gedocumenteerd in [docs/scaling-roadmap.md](docs/scaling-roadmap.md). Concrete actie pas nodig bij ~100+ klanten (Redis voor rate-limits, BullMQ voor zware AI-calls).
+- [~] 🟡 **Multi-instance scaling roadmap** — gedocumenteerd in [docs/archief/scaling-roadmap.md](../docs/archief/scaling-roadmap.md). Concrete actie pas nodig bij ~100+ klanten (Redis voor rate-limits, BullMQ voor zware AI-calls).
 - [x] ~~🟢 Graceful degradation bij Claude-downtime~~ (2026-04-29) — `AiService` vangt nu Anthropic-errors specifiek af (connection / rate-limit / 5xx / auth) en gooit NL-vriendelijke `ServiceUnavailable` i.p.v. raw 500.
-- [x] ~~🟢 DB-schema-documentatie~~ (2026-04-29) — [docs/database-schema.md](docs/database-schema.md) met overzicht van alle 25 tabellen + relaties + open punten.
+- [x] ~~🟢 DB-schema-documentatie~~ (2026-04-29) — [docs/werking/database-schema.md](../docs/werking/database-schema.md) met overzicht van alle 25 tabellen + relaties + open punten.
 
 ### CEO
 - [ ] 🔴 **Stripe-billing ontbreekt** (was Mollie; besluit 2026-05-30 = Stripe) — eerste klant kan niet betalen. 4 sub-taken: SDK + checkout, subscriptions-tabel, plan-enforcement, webhook. Zie P0 → Billing.
@@ -1202,7 +1202,7 @@ Visuele ronde op de publieke site (live op **www.get-filly.com**), in losse bran
 
 **Naamgeving + opslag (op verzoek Floris):** dit geheel heet het
 **social-posting-brein**. Opslaglocaties:
-- `docs/social-posting-brein.docx` — het brondocument (Floris' Word-doc,
+- `docs/werking/social-posting-brein.docx` — het brondocument (Floris' Word-doc,
   voorheen "Timing Brein" / Posting-Tijden v1.1; origineel stond op Desktop,
   nu ook in de repo onder versiebeheer).
 - `apps/api/src/ai/filly-brain.config.ts` — de uitvoerbare kern
@@ -1210,7 +1210,7 @@ Visuele ronde op de publieke site (live op **www.get-filly.com**), in losse bran
 - `apps/api/src/ai/timing-factors.ts` — externe factoren (feestdagen/
   loondagen/seizoenen/weer-regels), deterministisch.
 - `apps/api/src/ai/copy-length.guard.ts` — lengte-handhaving na generatie.
-- `docs/social-posting-brein-kanalen.md` — gegenereerd lengte-hoofdstuk
+- `docs/werking/social-posting-brein-kanalen.md` — gegenereerd lengte-hoofdstuk
   (`pnpm brein:doc`), nooit handmatig bewerken.
 
 Aanleiding: Floris merkte dat het brein (lengte per uiting, timing) niet
@@ -1234,7 +1234,7 @@ P2 → "Filly-brein v2 → code-vertaling".
 - **Lengte-guard** (`70afd79`): `ai/copy-length.guard.ts` — check op
   `copyLength` per kanaal + max 1 gerichte herschrijf, op 5 routes.
 - **Doc-generator** (`985cf5d`): `pnpm brein:doc` →
-  `docs/social-posting-brein-kanalen.md`, het lengte-hoofdstuk dat het
+  `docs/werking/social-posting-brein-kanalen.md`, het lengte-hoofdstuk dat het
   brondocument miste, gegenereerd uit code.
 - **Ronde 3 — flexibiliteit** (`38bc620` + `5f3ae91` + `53b565c`, n.a.v.
   Floris' feedback "hij moet verder denken dan alleen het beste moment"):
@@ -1721,14 +1721,14 @@ beschikbaar. Nu één hub waar Filly later cross-channel kan adviseren.
   voor owner + manager). Geen migratie nodig — bestaande klanten
   zonder custom permissions krijgen 'm automatisch.
 
-**Mail-pagina LIVE** ([apps/web/.../marketing/mail/](apps/web/src/app/dashboard/marketing/mail/)):
+**Mail-pagina LIVE** ([apps/web/.../marketing/mail/](../apps/web/src/app/dashboard/marketing/mail/)):
 - 5 KPI-tegels: verzonden / open rate / click rate / bounce rate /
   unsubscribes
 - Industrie-mediaan-vergelijking (horeca-benchmark, hardcoded uit
   Mailchimp 2024-2025 industry-report)
 - Per-campagne tabel (laatste 90 dagen) met clickable links naar
   campagne-detail
-- Backend: [apps/api/src/marketing/](apps/api/src/marketing/) met
+- Backend: [apps/api/src/marketing/](../apps/api/src/marketing/) met
   `MarketingMailService` die `campaign_sends`-data aggregeert.
   Endpoints `/marketing/mail/stats` en `/marketing/mail/campaigns`.
 - Empty-state als nog geen mail verzonden — verwijst naar /campagnes
@@ -1771,7 +1771,7 @@ direct waarde geeft — dat is precies wat de Places API mogelijk maakt.
   voor lokaal dev (productie krijgt Railway-IP later)
 - `.env`-var: `GOOGLE_PLACES_API_KEY`
 
-**Backend** ([apps/api/src/google-profile/](apps/api/src/google-profile/)):
+**Backend** ([apps/api/src/google-profile/](../apps/api/src/google-profile/)):
 - `GoogleProfileModule` + `GoogleProfileService` met 7 public methods:
   searchByText, connect, getMine, refresh, disconnect, getAudit,
   getCompetitors, generatePostVariants.
@@ -1783,7 +1783,7 @@ direct waarde geeft — dat is precies wat de Places API mogelijk maakt.
 - Migratie 0034: `restaurants.google_place_id` (text) + `google_place_data`
   (jsonb) + `google_place_synced_at` (timestamptz) + index op place_id.
 
-**Frontend** ([apps/web/src/app/dashboard/google-business/](apps/web/src/app/dashboard/google-business/)):
+**Frontend** ([apps/web/src/app/dashboard/google-business/](../apps/web/src/app/dashboard/google-business/)):
 - Hub van server-component naar client-component met `GET /me` fetch
   bij mount. Drie banner-states (loading/connected/disconnected).
   `GoogleConnectModal` voor de "Koppel met Google"-flow met search
@@ -1874,7 +1874,7 @@ zelf gaan weg.
 Drie features in één sessie, opgebouwd op de mail-flow van eerder
 deze dag.
 
-**Foto-bibliotheek per restaurant** ([apps/api/src/restaurant-media/](apps/api/src/restaurant-media/)):
+**Foto-bibliotheek per restaurant** ([apps/api/src/restaurant-media/](../apps/api/src/restaurant-media/)):
 - Migratie 0031: `restaurant_media`-tabel + RLS. Cap 20 foto's, 5MB
   per stuk, JPEG/PNG/WebP.
 - `MediaTaggerService`: Haiku 4.5 Vision genereert NL-beschrijving +
@@ -1893,7 +1893,7 @@ deze dag.
   met description + tags in indices [1]-[20] in z'n campagne-context
   zodat 'ie kan suggereren welke foto past.
 
-**Multi-channel campaign-bundles** ([apps/api/src/chat/](apps/api/src/chat/) + [campaigns/](apps/api/src/campaigns/) + [suggestions/](apps/api/src/suggestions/)):
+**Multi-channel campaign-bundles** ([apps/api/src/chat/](../apps/api/src/chat/) + [campaigns/](../apps/api/src/campaigns/) + [suggestions/](../apps/api/src/suggestions/)):
 - Migratie 0032: `campaign_groups` + `campaigns.group_id`. Optie A
   uit overleg: bestaande campaigns-rijen blijven single-type, group
   is alleen aggregaat-anker voor UI en accept-flow.
@@ -1920,14 +1920,14 @@ deze dag.
   (3 kanaal-versies + JSON) was te groot voor 600, kreeg truncated
   antwoord en daardoor failed parser.
 
-**Channel-choice-kaart** ([apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx](apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx)):
+**Channel-choice-kaart** ([apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx](../apps/web/src/app/dashboard/_components/filly-chat-choice-card.tsx)):
 - Nieuwe `<<FILLY_PROPOSE_CHOICE>>` tag — Filly stelt eerst een keuze-
   vraag aan eigenaar i.p.v. zelf het kanaal te beslissen.
 - Multi-select met 4 checkboxes (Mail / Instagram / Facebook / WhatsApp)
   + "Selecteer alles"-toggle + Verstuur-knop met dynamic label.
 - Submit-logica: 1 keuze → single proposal voor dat kanaal; 2+ keuzes
   → bundel.
-- Server-side `detectChannelHint` in [chat.service.ts](apps/api/src/chat/chat.service.ts):
+- Server-side `detectChannelHint` in [chat.service.ts](../apps/api/src/chat/chat.service.ts):
   scant user-message op kanaal-keywords en injecteert keiharde
   routing-instructie in de Claude-prompt ("Gebruik FORMAAT 0 — NIET
   direct een proposal/bundle"). Voorkomt dat Claude de prompt-regels
@@ -1943,7 +1943,7 @@ deze dag.
 in de DB. Geen daadwerkelijke verzending naar klant-gasten mogelijk —
 de "actief"-status in Filly's flow betekende niets praktisch.
 
-**Foundation** ([apps/api/src/mail/](apps/api/src/mail/)):
+**Foundation** ([apps/api/src/mail/](../apps/api/src/mail/)):
 - `MailService` met Resend SDK. From-header `<restaurant-naam> <social@get-filly.com>`
   als default, klant-eigen `mail_from_address` zodra geverifieerd.
 - Reply-to via `restaurant.contact_email` zodat replies bij de klant
@@ -2009,7 +2009,7 @@ pending → accepted/rejected/refined_into/expired. Lazy expire op 30
 dagen voor pending, 90 dagen retention voor rejected. RLS-policy
 zelfde pattern als menu_items.
 
-**Backend** ([apps/api/src/menu-suggestions/](apps/api/src/menu-suggestions/)):
+**Backend** ([apps/api/src/menu-suggestions/](../apps/api/src/menu-suggestions/)):
 - `MenuSuggestionsService` met generate/list/accept/reject/refine.
   Sonnet 4.6 tool-use voor 3 voorstellen per batch met enum
   `confidence: high|medium|low` waarbij `low` = "Out of the box"
@@ -2026,7 +2026,7 @@ zelfde pattern als menu_items.
   voorstel op `accepted` met FK naar nieuwe item. Reject = soft
   (status='rejected') — chef kan in Afgewezen-tab alsnog accepteren.
 
-**Frontend** ([apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx](apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx)):
+**Frontend** ([apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx](../apps/web/src/app/dashboard/menu/_components/menu-suggestions-tab.tsx)):
 - "Voorgesteld"-tab direct na Overig in de filter-rij + "Afgewezen"-tab
   daarnaast. Beide met aantal-tellers in de label.
 - Voorgesteld-tab: brand-soft banner met generate-knop, grid van
@@ -2422,13 +2422,13 @@ Grote sessie met ~20 commits. Hoofdpunten:
 ### 2026-04-29 — CTO-taken: prompt-caching + graceful degradation + setup-docs
 - ✅ **Prompt-caching live** — `AiService.generateText` accepteert nu `cacheSystem: true`. Wordt gebruikt door chat (elke bericht), campaign-refine (regenerate), reviews-refine (regenerate). Anthropic prompt-caching geeft ~90% korting op input-tokens bij recurring calls binnen 5 min TTL. `ai_usage` logt nu ook `cache_creation_input_tokens` correct.
 - ✅ **Graceful Claude-downtime** — nieuwe `toNlException`-helper in `AiService` vangt `APIConnectionError` / `RateLimitError` / `AuthenticationError` / 5xx / 4xx specifiek af en gooit een NL-vriendelijke `ServiceUnavailable` ("Filly is even druk", "Filly is niet bereikbaar") i.p.v. raw 500.
-- ✅ **DB-schema-documentatie**: [docs/database-schema.md](docs/database-schema.md) met alle tabellen + relaties + storage-buckets + migratie-overzicht + open DB-punten.
+- ✅ **DB-schema-documentatie**: [docs/werking/database-schema.md](../docs/werking/database-schema.md) met alle tabellen + relaties + storage-buckets + migratie-overzicht + open DB-punten.
 - ✅ **Setup-guides geschreven** voor de CTO-taken die externe accounts vereisen:
-  - [docs/database-migrations.md](docs/database-migrations.md) — Supabase CLI workflow
-  - [docs/sentry-setup.md](docs/sentry-setup.md) — error-tracking setup
-  - [docs/anthropic-cost-alerts.md](docs/anthropic-cost-alerts.md) — cost-control + budget-alerts
-  - [docs/staging-setup.md](docs/staging-setup.md) — 2e Supabase + Railway + Vercel preview
-  - [docs/scaling-roadmap.md](docs/scaling-roadmap.md) — multi-instance scaling per groei-fase
+  - [docs/archief/database-migrations.md](../docs/archief/database-migrations.md) — Supabase CLI workflow
+  - [docs/archief/sentry-setup.md](../docs/archief/sentry-setup.md) — error-tracking setup
+  - [docs/archief/anthropic-cost-alerts.md](../docs/archief/anthropic-cost-alerts.md) — cost-control + budget-alerts
+  - [docs/archief/staging-setup.md](../docs/archief/staging-setup.md) — 2e Supabase + Railway + Vercel preview
+  - [docs/archief/scaling-roadmap.md](../docs/archief/scaling-roadmap.md) — multi-instance scaling per groei-fase
 
 ### 2026-04-29 — Empty-states-sweep afgerond
 - ✅ KpiRow: rode "Fout bij laden KPI's" → "Cijfers nog niet beschikbaar — zodra reserveringen en campagnes binnenkomen verschijnen ze hier."
@@ -2588,5 +2588,5 @@ Open: AI-foto genereren via fal.ai/Replicate/OpenAI (provider-keuze ligt bij Flo
 - ✅ `RestaurantContextService` — herbruikbaar context-blok voor alle Filly-prompts
 - ✅ Chat v2: live weer + bezetting + reserveringen in system-prompt
 - ✅ `CLAUDE.md` bijgewerkt
-- ✅ `docs/supabase-manual-setup.md` — alles wat niet in migraties staat
+- ✅ `docs/setup/supabase-handmatig.md` — alles wat niet in migraties staat
 - ✅ `apps/api/supabase/seeds/test_restaurants.sql`

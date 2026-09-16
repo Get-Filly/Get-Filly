@@ -52,7 +52,7 @@ magic-links te genereren naar niet-allowlisted URLs).
 ## 3. Authentication → Email Templates
 
 **Geautomatiseerd via `pnpm supabase:apply-templates`** — zie
-[scripts/README.md](../scripts/README.md) voor eenmalige setup
+[scripts/README.md](../../scripts/README.md) voor eenmalige setup
 (Personal Access Token aanmaken, toevoegen aan `apps/api/.env`).
 
 Het script zet in één keer alle 4 templates op Supabase:

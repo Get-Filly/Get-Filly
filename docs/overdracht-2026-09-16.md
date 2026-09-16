@@ -14,7 +14,7 @@ uit het Google-weekpatroon, en dat is per weekdag constant. De score van
 "maandag lunch" was dus een vast getal, en sorteren met een plafond van 2 gaf
 onvermijdelijk elke week dezelfde twee dagen.
 
-Er lag een briefing (`docs/rustige-momenten-variatie-briefing.md`) met een
+Er lag een briefing (`docs/archief/rustige-momenten-variatie-briefing.md`) met een
 analyse in vier fasen. Die analyse klopte in de kern, met zeven correcties —
 waarvan twee het ontwerp veranderden. Zie het detectie-document hieronder.
 
@@ -191,7 +191,7 @@ reflog. **Dat werk staat al de hele week ongecommit in `messages/*.json` en
 echte aggregatie, via `apps/api/scripts/gen-*-fixture.js`. Handig omdat het
 dashboard achter login zit.
 
-**Documentatie:** `docs/rustige-momenten-detectie.docx` is bijgewerkt met vier
+**Documentatie:** `docs/werking/rustige-momenten-detectie.docx` is bijgewerkt met vier
 nieuwe hoofdstukken (datum-signalen, beleidslaag, structureel vs incidenteel,
 terugkoppeling). Let op: de layout is niet visueel gecontroleerd — LibreOffice
 ontbrak op deze machine.
