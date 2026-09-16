@@ -26,6 +26,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
 import { quietBlockText } from "@/lib/dayparts";
+// Reden-teksten staan in één gedeelde bron (common.quietReasons), zodat de
+// campagne-detailpagina dezelfde zin toont als deze kaart.
+import { DATE_REASONS, quietReasonText } from "@/lib/quiet-reason";
 import {
   fetchBusyness,
   fetchBusynessActual,
@@ -53,27 +56,6 @@ type View = "dag" | "week" | "maand";
 // Kansen worden een paar weken vooruit bepaald; daarbuiten tonen we alleen
 // het patroon. Spiegelt het venster waarmee de moments worden opgehaald.
 const HORIZON_DAYS = 21;
-
-// Waarom is juist deze dag een kans? De backend stuurt een key + params
-// (QuietMoment.reasonKey/reasonParams) in plaats van een kant-en-klare zin,
-// omdat de app NL/EN is. Hier wordt daar één leesbare zin van.
-// Redenen die uit een datum-signaal komen (weer, evenement). Alleen die
-// horen in de "Weer en omgeving"-regel van het waarom-paneel; 'structural' en
-// 'unusual' gaan over het weekpatroon en staan al in de patroon-regel.
-const DATE_REASONS: string[] = [
-  "weatherRain",
-  "weatherCold",
-  "weatherHeat",
-  "eventNearby",
-];
-
-function quietReasonText(
-  t: (key: string, values?: Record<string, string | number>) => string,
-  m: QuietMoment,
-): string {
-  const key = `reason${m.reasonKey.charAt(0).toUpperCase()}${m.reasonKey.slice(1)}`;
-  return t(key, m.reasonParams);
-}
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -117,6 +99,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
   // Dagdeel-namen staan in een gedeelde namespace: ze komen ook in de
   // geleide flow voor. De backend levert de sleutels, wij de taal.
   const tDp = useTranslations("common.dayparts");
+  const tReason = useTranslations("common.quietReasons");
   const localeTag = useLocaleTag();
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
@@ -540,7 +523,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
     const parts = [
       window,
       focusChance.kind === "incidenteel"
-        ? quietReasonText(t, focusChance)
+        ? quietReasonText(tReason, focusChance.reasonKey, focusChance.reasonParams)
         : t("insQuieter", { part: focusPart }),
     ];
     // Bij een structurele kans alleen een reden TOEVOEGEN als die iets zegt
@@ -551,7 +534,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
       (focusChance.reasonKey === "structuralRotated" ||
         focusChance.reasonKey === "eventNearby")
     ) {
-      parts.push(quietReasonText(t, focusChance));
+      parts.push(quietReasonText(tReason, focusChance.reasonKey, focusChance.reasonParams));
     }
     if (chancesInPeriod > 1) {
       parts.push(t("insMore", { count: chancesInPeriod - 1, period: periodWord }));
@@ -1011,7 +994,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
               <span>
                 <span className="bzv-wk">{t("factorDate")}</span>{" "}
                 <span className="bzv-wv">
-                  {quietReasonText(t, focusChance)}
+                  {quietReasonText(tReason, focusChance.reasonKey, focusChance.reasonParams)}
                 </span>
               </span>
             </div>

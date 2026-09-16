@@ -428,6 +428,11 @@ export function FillyGuidedFlow({
       picked.kind === "low_occupancy" && changed
         ? dayContext?.dayparts?.find((d) => d.key === selectedDaypart)
         : undefined;
+    // Het gedetecteerde moment van deze dag, zoals op het dashboard getoond.
+    const moment =
+      picked.kind === "low_occupancy"
+        ? momentByDate.get(picked.date)
+        : undefined;
     return {
       date: picked.date,
       kind: picked.kind,
@@ -437,6 +442,17 @@ export function FillyGuidedFlow({
         : {}),
       ...(hints.length > 0 ? { context: hints } : {}),
       ...(dp ? { daypart: dp } : {}),
+      // De reden die de eigenaar op de kaart zag, meesturen zodat de
+      // campagne 'm later nog kan tonen.
+      ...(moment
+        ? {
+            reason: {
+              key: moment.reasonKey,
+              params: moment.reasonParams,
+              kind: moment.kind,
+            },
+          }
+        : {}),
     };
   };
 

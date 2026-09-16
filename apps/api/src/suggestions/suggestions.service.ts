@@ -1573,6 +1573,15 @@ ${dayContext}`;
         fromHour: number;
         toHour: number;
       };
+      // Waarom deze dag een kans was, zoals de eigenaar het op het dashboard
+      // zag. Meegestuurd door de frontend: hieronder vragen we het dagdeel
+      // op met de beleidslaag UIT (de eigenaar koos de dag zelf), en dan
+      // zijn de weer- en evenement-redenen niet bekend.
+      reason?: {
+        key: string;
+        params?: Record<string, string | number>;
+        kind?: 'structureel' | 'incidenteel';
+      };
     }>,
   ): Promise<{
     generated: number;
@@ -1772,6 +1781,14 @@ ${dayContext}`;
             source: 'busyness',
             daypart_label: dp.label,
             unusual: dp.unusual,
+            // Zodat de campagne later nog kan tonen waaróm deze dag.
+            ...(item.reason
+              ? {
+                  reason_key: item.reason.key,
+                  reason_params: item.reason.params ?? {},
+                  ...(item.reason.kind ? { kind: item.reason.kind } : {}),
+                }
+              : {}),
           };
         } else {
           // Terugval: seed-occupancy (geen busyness-patroon voor deze zaak).

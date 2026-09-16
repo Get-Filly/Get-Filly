@@ -178,6 +178,7 @@ export class SuggestionsController {
         name?: unknown;
         channels?: unknown;
         context?: unknown;
+        reason?: unknown;
       }>;
     },
   ) {
@@ -189,6 +190,15 @@ export class SuggestionsController {
       name?: string;
       channels?: string[];
       context?: string[];
+      // Waarom deze dag een kans was, zoals de eigenaar het zag. Komt van
+      // de frontend omdat de backend het dagdeel hier met de beleidslaag
+      // UIT opvraagt (de eigenaar koos de dag zelf) en de weer-/event-reden
+      // daar dus niet kent.
+      reason?: {
+        key: string;
+        params?: Record<string, string | number>;
+        kind?: 'structureel' | 'incidenteel';
+      };
     };
     // Helper: maak een schone string-array (max 6 items, elk getrimd
     // + gecapt) van onbekende input. Geleide flow stuurt channels +
@@ -216,6 +226,28 @@ export class SuggestionsController {
       if (channels) item.channels = channels;
       const context = cleanStrings(r.context);
       if (context) item.context = context;
+      // Alleen een reden met een sleutel telt; params en soort zijn optioneel
+      // en worden gefilterd op wat we verwachten.
+      const raw = r.reason as
+        | { key?: unknown; params?: unknown; kind?: unknown }
+        | undefined;
+      if (raw && typeof raw.key === 'string' && raw.key.length <= 40) {
+        const params: Record<string, string | number> = {};
+        if (raw.params && typeof raw.params === 'object') {
+          for (const [k, v] of Object.entries(
+            raw.params as Record<string, unknown>,
+          )) {
+            if (typeof v === 'string' || typeof v === 'number') params[k] = v;
+          }
+        }
+        item.reason = {
+          key: raw.key,
+          params,
+          ...(raw.kind === 'structureel' || raw.kind === 'incidenteel'
+            ? { kind: raw.kind }
+            : {}),
+        };
+      }
       items.push(item);
     }
 

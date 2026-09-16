@@ -773,6 +773,15 @@ export type CampaignDetail = Campaign & {
   // handmatig aangemaakt of voorstel is verwijderd. Concept-detail
   // toont 'Waarom dit voorstel'-card als deze gevuld is.
   reasoning: string | null;
+  // Waarom Filly juist DEZE dag koos, uit het gekoppelde voorstel. Sleutel +
+  // gegevens; de zin maakt de frontend (lib/quiet-reason.ts), want de app is
+  // NL/EN. Null als de campagne niet uit een rustig-moment-voorstel komt.
+  dayReason: {
+    key: string;
+    params: Record<string, string | number>;
+    kind: "structureel" | "incidenteel" | null;
+    targetDate: string | null;
+  } | null;
   // Per 2026-05-13 (mig 0041): alle versies + welke Gekozen is.
   // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
   // body/subject_line hierboven zijn afgeleid van
@@ -1837,6 +1846,16 @@ export type GenerateForDatesItem = {
     label: string;
     fromHour: number;
     toHour: number;
+  };
+  // Waarom deze dag een kans was, zoals de eigenaar het op het dashboard
+  // zag. Gaat mee zodat de campagne later nog kan tonen waaróm die dag
+  // gekozen is. Komt van de frontend en niet uit een herberekening in de
+  // backend: die vraagt het dagdeel op met de beleidslaag UIT (de eigenaar
+  // koos de dag zelf), en kent de weer- en evenement-reden daar dus niet.
+  reason?: {
+    key: string;
+    params?: Record<string, string | number>;
+    kind?: "structureel" | "incidenteel";
   };
 };
 

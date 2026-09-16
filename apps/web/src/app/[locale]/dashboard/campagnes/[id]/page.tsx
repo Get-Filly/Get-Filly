@@ -1226,7 +1226,7 @@ export default function UnifiedDetailPage() {
       {/* Waarom dit voorstel — Filly's redenering als context onderaan,
           ná de inhoud. Hier eindigt het concept-scherm: geen losse
           foto/video-card en geen performance-card op een concept. */}
-      <WaaromCard reasoning={view.reasoning} />
+      <WaaromCard reasoning={view.reasoning} dayReason={view.dayReason} />
 
       {/* Mail-verstuur + performance horen bij een lopende campagne, niet
           bij een concept. Daarom pas tonen zodra de campagne uit de
