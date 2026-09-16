@@ -1,0 +1,543 @@
+{
+  "_comment": "Gegenereerd door apps/api/scripts/gen-quiet-fixture.js met de echte BusynessService. Niet met de hand bijwerken.",
+  "generatedAt": "2026-09-16T08:47:50.531Z",
+  "from": "2026-09-16",
+  "to": "2026-10-07",
+  "pattern": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      22,
+      22,
+      22,
+      11,
+      13,
+      38,
+      38,
+      38,
+      38,
+      38,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      20,
+      20,
+      20,
+      10,
+      12,
+      42,
+      42,
+      42,
+      42,
+      42,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      30,
+      30,
+      30,
+      15,
+      18,
+      48,
+      48,
+      48,
+      48,
+      48,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      38,
+      38,
+      38,
+      19,
+      23,
+      66,
+      66,
+      66,
+      66,
+      66,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      55,
+      55,
+      55,
+      28,
+      33,
+      88,
+      88,
+      88,
+      88,
+      88,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      62,
+      62,
+      62,
+      31,
+      37,
+      70,
+      70,
+      70,
+      70,
+      70,
+      0,
+      0
+    ]
+  ],
+  "openingHours": {
+    "mon": null,
+    "tue": {
+      "open": "12:00",
+      "close": "22:00"
+    },
+    "wed": {
+      "open": "12:00",
+      "close": "22:00"
+    },
+    "thu": {
+      "open": "12:00",
+      "close": "22:00"
+    },
+    "fri": {
+      "open": "12:00",
+      "close": "22:00"
+    },
+    "sat": {
+      "open": "12:00",
+      "close": "22:00"
+    },
+    "sun": {
+      "open": "12:00",
+      "close": "22:00"
+    }
+  },
+  "metBeleid": {
+    "hasSource": true,
+    "moments": [
+      {
+        "date": "2026-09-18",
+        "weekday": 4,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "lunch, middag en diner",
+        "expectedPct": 37,
+        "deviation": -6,
+        "gap": 65,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 20,
+        "kind": "incidenteel",
+        "reasonKey": "weatherRain",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-19",
+        "weekday": 5,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag"
+        ],
+        "daypartLabel": "lunch en middag",
+        "expectedPct": 47,
+        "deviation": -7,
+        "gap": 49,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 16,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-22",
+        "weekday": 1,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 27,
+        "deviation": -2.4,
+        "gap": 73,
+        "unusual": true,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-24",
+        "weekday": 3,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "lunch, middag en diner",
+        "expectedPct": 33,
+        "deviation": -0.4,
+        "gap": 67,
+        "unusual": false,
+        "fromHour": 12,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structuralRotated",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-30",
+        "weekday": 2,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 28,
+        "deviation": 0,
+        "gap": 74,
+        "unusual": false,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structuralRotated",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-03",
+        "weekday": 5,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag"
+        ],
+        "daypartLabel": "lunch en middag",
+        "expectedPct": 47,
+        "deviation": -7,
+        "gap": 49,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 16,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-06",
+        "weekday": 1,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 27,
+        "deviation": -2.4,
+        "gap": 73,
+        "unusual": true,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-07",
+        "weekday": 2,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 28,
+        "deviation": 0,
+        "gap": 74,
+        "unusual": false,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structural",
+        "reasonParams": {}
+      }
+    ],
+    "notes": [
+      {
+        "date": "2026-09-23",
+        "reason": "al_afgedekt"
+      }
+    ]
+  },
+  "zonderBeleid": {
+    "hasSource": true,
+    "moments": [
+      {
+        "date": "2026-09-18",
+        "weekday": 4,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "lunch, middag en diner",
+        "expectedPct": 44,
+        "deviation": -2,
+        "gap": 61,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-19",
+        "weekday": 5,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag"
+        ],
+        "daypartLabel": "lunch en middag",
+        "expectedPct": 47,
+        "deviation": -7,
+        "gap": 49,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 16,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-22",
+        "weekday": 1,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 27,
+        "deviation": -2.4,
+        "gap": 73,
+        "unusual": true,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-25",
+        "weekday": 4,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "lunch, middag en diner",
+        "expectedPct": 44,
+        "deviation": -2,
+        "gap": 61,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-09-29",
+        "weekday": 1,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 27,
+        "deviation": -2.4,
+        "gap": 73,
+        "unusual": true,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-02",
+        "weekday": 4,
+        "daypart": "lunch",
+        "dayparts": [
+          "lunch",
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "lunch, middag en diner",
+        "expectedPct": 44,
+        "deviation": -2,
+        "gap": 61,
+        "unusual": true,
+        "fromHour": 12,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-06",
+        "weekday": 1,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 27,
+        "deviation": -2.4,
+        "gap": 73,
+        "unusual": true,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "unusual",
+        "reasonParams": {}
+      },
+      {
+        "date": "2026-10-07",
+        "weekday": 2,
+        "daypart": "middag",
+        "dayparts": [
+          "middag",
+          "diner"
+        ],
+        "daypartLabel": "middag en diner",
+        "expectedPct": 28,
+        "deviation": 0,
+        "gap": 74,
+        "unusual": false,
+        "fromHour": 14,
+        "toHour": 20,
+        "kind": "structureel",
+        "reasonKey": "structural",
+        "reasonParams": {}
+      }
+    ],
+    "notes": []
+  }
+}

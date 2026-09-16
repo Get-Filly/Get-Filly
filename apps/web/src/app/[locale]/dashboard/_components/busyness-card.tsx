@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocaleTag } from "@/lib/locale-format";
+import { daypartsText } from "@/lib/dayparts";
 import {
   fetchBusyness,
   fetchBusynessActual,
@@ -33,6 +34,7 @@ import {
   fetchRestaurant,
   type OccupancyDay,
   type QuietMoment,
+  type QuietNote,
   type Business,
 } from "@/lib/api";
 import {
@@ -51,6 +53,27 @@ type View = "dag" | "week" | "maand";
 // Kansen worden een paar weken vooruit bepaald; daarbuiten tonen we alleen
 // het patroon. Spiegelt het venster waarmee de moments worden opgehaald.
 const HORIZON_DAYS = 21;
+
+// Waarom is juist deze dag een kans? De backend stuurt een key + params
+// (QuietMoment.reasonKey/reasonParams) in plaats van een kant-en-klare zin,
+// omdat de app NL/EN is. Hier wordt daar één leesbare zin van.
+// Redenen die uit een datum-signaal komen (weer, evenement). Alleen die
+// horen in de "Weer en omgeving"-regel van het waarom-paneel; 'structural' en
+// 'unusual' gaan over het weekpatroon en staan al in de patroon-regel.
+const DATE_REASONS: string[] = [
+  "weatherRain",
+  "weatherCold",
+  "weatherHeat",
+  "eventNearby",
+];
+
+function quietReasonText(
+  t: (key: string, values?: Record<string, string | number>) => string,
+  m: QuietMoment,
+): string {
+  const key = `reason${m.reasonKey.charAt(0).toUpperCase()}${m.reasonKey.slice(1)}`;
+  return t(key, m.reasonParams);
+}
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -74,6 +97,10 @@ type Bar = {
   expected: number; // 0-100
   measured: boolean;
   kans: boolean;
+  // Soort kans, voor de markering onder de staaf. Structureel = je vaste
+  // stille moment (strategisch, elke week zo). Incidenteel = juist déze datum
+  // wijkt af door weer of een evenement (tactisch, vervalt).
+  kansKind: "structureel" | "incidenteel" | null;
   label: string;
   sub: string | null;
   isToday: boolean;
@@ -87,6 +114,9 @@ type Props = {
 
 export function BusynessCard({ onMakeConcept }: Props) {
   const t = useTranslations("dash__components_busyness");
+  // Dagdeel-namen staan in een gedeelde namespace: ze komen ook in de
+  // geleide flow voor. De backend levert de sleutels, wij de taal.
+  const tDp = useTranslations("common.dayparts");
   const localeTag = useLocaleTag();
 
   const [occupancy, setOccupancy] = useState<OccupancyDay[]>([]);
@@ -97,9 +127,14 @@ export function BusynessCard({ onMakeConcept }: Props) {
     { open: string; close: string } | null
   > | null>(null);
   const [actualByDate, setActualByDate] = useState<Record<string, [number, number][]>>({});
-  const [quiet, setQuiet] = useState<{ hasSource: boolean; moments: QuietMoment[] }>({
+  const [quiet, setQuiet] = useState<{
+    hasSource: boolean;
+    moments: QuietMoment[];
+    notes: QuietNote[];
+  }>({
     hasSource: false,
     moments: [],
+    notes: [],
   });
 
   const today = useMemo(() => {
@@ -150,7 +185,10 @@ export function BusynessCard({ onMakeConcept }: Props) {
     // Kansen zijn vooruitkijkend; vast venster vanaf vandaag.
     fetchQuietMoments(isoOf(today), isoOf(addDays(today, HORIZON_DAYS)))
       .then((q) => !cancelled && setQuiet(q))
-      .catch(() => !cancelled && setQuiet({ hasSource: false, moments: [] }));
+      .catch(
+        () =>
+          !cancelled && setQuiet({ hasSource: false, moments: [], notes: [] }),
+      );
     return () => {
       cancelled = true;
     };
@@ -344,6 +382,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           expected: d.hours[h],
           measured: meas.has(h),
           kans: isKans,
+          kansKind: isKans ? (ch?.kind ?? null) : null,
           label: `${pad(h)}:00`,
           sub: null,
           isToday: false,
@@ -364,6 +403,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
         expected: dayIndex(d, true),
         measured: meas.size > 0,
         kans: !!ch,
+        kansKind: ch?.kind ?? null,
         label:
           view === "week"
             ? shortWd.format(d.date).replace(".", "")
@@ -377,7 +417,11 @@ export function BusynessCard({ onMakeConcept }: Props) {
         isToday: d.iso === todayIso,
         isFocus: d.iso === focus?.iso,
         title: `${cap(dayFull.format(d.date))} · ${
-          ch ? t("titleChance", { part: ch.daypartLabel }) : t("titleNoChance")
+          ch
+            ? t("titleChance", {
+                part: daypartsText(tDp, ch.dayparts, ch.daypartLabel),
+              })
+            : t("titleNoChance")
         }`,
       };
     });
@@ -392,6 +436,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
     todayIso,
     focus?.iso,
     t,
+    tDp,
   ]);
 
   // ---------- grafiek-afmetingen in echte pixels ----------
@@ -469,6 +514,12 @@ export function BusynessCard({ onMakeConcept }: Props) {
   );
   const periodWord = view === "week" ? t("periodWeek") : t("periodMonth");
 
+  // Dagdelen van de kans in beeld, vertaald. De backend stuurt zowel de
+  // sleutels als een NL-label; het label is alleen de terugval.
+  const focusPart = focusChance
+    ? daypartsText(tDp, focusChance.dayparts, focusChance.daypartLabel)
+    : "";
+
   let insightTitle: string;
   let insightSub: string;
   if (focusChance) {
@@ -480,10 +531,28 @@ export function BusynessCard({ onMakeConcept }: Props) {
       .sort((a, b) => chanceByDate.get(b.iso)!.gap - chanceByDate.get(a.iso)!.gap)[0]?.iso;
     const isBest = view !== "dag" && chancesInPeriod > 1 && focus.iso === bestIso;
     insightTitle = isBest
-      ? t("insBiggest", { day: who, part: focusChance.daypartLabel, period: periodWord })
-      : t("insChance", { day: who, part: focusChance.daypartLabel });
+      ? t("insBiggest", { day: who, part: focusPart, period: periodWord })
+      : t("insChance", { day: who, part: focusPart });
     const window = `${pad(focusChance.fromHour)}:00–${pad(focusChance.toHour + 1)}:00`;
-    const parts = [window, t("insQuieter", { part: focusChance.daypartLabel })];
+    // Waarom juist deze dag. Bij een incidentele kans (weer, evenement) is de
+    // reden hét antwoord; bij een structurele kans blijft "rustiger dan je
+    // normale {dagdeel}" de betere zin, want die zegt iets over de zaak zelf.
+    const parts = [
+      window,
+      focusChance.kind === "incidenteel"
+        ? quietReasonText(t, focusChance)
+        : t("insQuieter", { part: focusPart }),
+    ];
+    // Bij een structurele kans alleen een reden TOEVOEGEN als die iets zegt
+    // wat "rustiger dan je normale {dagdeel}" niet al zegt. 'structural' en
+    // 'unusual' zijn precies dat, dus die zouden de zin verdubbelen.
+    if (
+      focusChance.kind === "structureel" &&
+      (focusChance.reasonKey === "structuralRotated" ||
+        focusChance.reasonKey === "eventNearby")
+    ) {
+      parts.push(quietReasonText(t, focusChance));
+    }
     if (chancesInPeriod > 1) {
       parts.push(t("insMore", { count: chancesInPeriod - 1, period: periodWord }));
     }
@@ -497,12 +566,33 @@ export function BusynessCard({ onMakeConcept }: Props) {
     const best = days
       .filter((d) => chanceByDate.has(d.iso))
       .sort((a, b) => chanceByDate.get(b.iso)!.gap - chanceByDate.get(a.iso)!.gap)[0];
+    // Geen kans in beeld kan twee dingen betekenen: er is niets aan de hand,
+    // of alles is al afgedekt. Dat verschil is voor de eigenaar relevant, en
+    // de backend geeft het nu mee als notes.
+    const coveredHere = quiet.notes.filter(
+      (n) =>
+        n.reason === "al_afgedekt" &&
+        days.some((d) => d.iso === n.date),
+    ).length;
+    const holidayHere = quiet.notes.find(
+      (n) => n.reason === "feestdag" && days.some((d) => d.iso === n.date),
+    );
     insightSub = best
       ? t("insBestElsewhere", {
           day: `${shortWd.format(best.date).replace(".", "")} ${dayMonth.format(best.date)}`,
-          part: chanceByDate.get(best.iso)!.daypartLabel,
+          part: daypartsText(
+            tDp,
+            chanceByDate.get(best.iso)!.dayparts,
+            chanceByDate.get(best.iso)!.daypartLabel,
+          ),
         })
-      : t("insAllNormal");
+      : coveredHere > 0
+        ? coveredHere === 1
+          ? t("noteCoveredOne")
+          : t("noteCoveredMore", { count: coveredHere })
+        : holidayHere?.label
+          ? t("noteHoliday", { label: holidayHere.label })
+          : t("insAllNormal");
   }
 
   // ---------- geometrie ----------
@@ -533,7 +623,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
   const markerText =
     view === "dag"
       ? focusChance
-        ? focusChance.daypartLabel
+        ? focusPart
         : t("markerNow", { hour: `${pad(nowHour)}:00` })
       : focus.iso === todayIso
         ? t("today").toLowerCase()
@@ -641,10 +731,16 @@ export function BusynessCard({ onMakeConcept }: Props) {
                   {t("legendOver")}
                 </span>
               )}
-              {bars.some((b) => b.kans) && (
+              {bars.some((b) => b.kans && b.kansKind !== "incidenteel") && (
                 <span>
                   <b className="bzv-star">★</b>
-                  {t("legendChance")}
+                  {t("legendChanceStructural")}
+                </span>
+              )}
+              {bars.some((b) => b.kansKind === "incidenteel") && (
+                <span>
+                  <b className="bzv-star inc">★</b>
+                  {t("legendChanceIncidental")}
                 </span>
               )}
             </div>
@@ -815,15 +911,34 @@ export function BusynessCard({ onMakeConcept }: Props) {
                       </text>
                     )}
                     {view !== "dag" && b.kans && (
-                      <text
-                        x={X(i)}
-                        y={T + ph + (b.sub ? 45 : 30)}
-                        textAnchor="middle"
-                        fontSize="13"
-                        fill="var(--accent)"
-                      >
-                        ★
-                      </text>
+                      // Incidenteel krijgt een ring óm de ster en een eigen
+                      // kleur: vorm én kleur verschillen, zodat het onderscheid
+                      // ook zonder kleurwaarneming leesbaar blijft.
+                      <>
+                        {b.kansKind === "incidenteel" && (
+                          <circle
+                            cx={X(i)}
+                            cy={T + ph + (b.sub ? 41 : 26)}
+                            r="9"
+                            fill="none"
+                            stroke="var(--copper)"
+                            strokeWidth="1.2"
+                          />
+                        )}
+                        <text
+                          x={X(i)}
+                          y={T + ph + (b.sub ? 45 : 30)}
+                          textAnchor="middle"
+                          fontSize="13"
+                          fill={
+                            b.kansKind === "incidenteel"
+                              ? "var(--copper)"
+                              : "var(--accent)"
+                          }
+                        >
+                          ★
+                        </text>
+                      </>
                     )}
                   </g>
                 );
@@ -843,7 +958,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           {focusChance
             ? t("whyChance", {
                 day: cap(dayFull.format(focus.date)),
-                part: focusChance.daypartLabel,
+                part: focusPart,
               })
             : t("whyPlain", { day: cap(dayFull.format(focus.date)) })}
         </div>
@@ -879,12 +994,32 @@ export function BusynessCard({ onMakeConcept }: Props) {
               <span className="bzv-wv">
                 {focusChance
                   ? t(focusChance.unusual ? "factorPatternUnusual" : "factorPatternStructural", {
-                      part: focusChance.daypartLabel,
+                      part: focusPart,
                     })
                   : t("factorPatternNormal")}
               </span>
             </span>
           </div>
+          {/* Weer/omgeving alleen tonen als er écht een signaal is. Buiten de
+              7-daagse weerhorizon is er geen verwachting, en dan zou "geen
+              bijzonderheden" een bewering zijn die we niet kunnen waarmaken. */}
+          {focusChance && DATE_REASONS.includes(focusChance.reasonKey) && (
+            <div className="bzv-wrow">
+              <span
+                className={`bzv-wdir ${
+                  focusChance.reasonKey === "eventNearby" ? "up" : "down"
+                }`}
+              >
+                {focusChance.reasonKey === "eventNearby" ? "↑" : "↓"}
+              </span>
+              <span>
+                <span className="bzv-wk">{t("factorDate")}</span>{" "}
+                <span className="bzv-wv">
+                  {quietReasonText(t, focusChance)}
+                </span>
+              </span>
+            </div>
+          )}
           <div className="bzv-wrow">
             <span className="bzv-wdir flat">·</span>
             <span>
@@ -909,7 +1044,7 @@ export function BusynessCard({ onMakeConcept }: Props) {
           {focusChance
             ? t("ctaForPart", {
                 day: shortWd.format(focus.date).replace(".", ""),
-                part: focusChance.daypartLabel,
+                part: focusPart,
               })
             : t("ctaPlain")}
         </button>

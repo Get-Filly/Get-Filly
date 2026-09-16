@@ -16,6 +16,106 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🗓️ 2026-09-15 — Rustige momenten: variatie per datum (branch `feat/rustige-momenten-variatie`)
+
+**Het probleem.** `getQuietMoments` rekende alleen op het Google-weekpatroon, en
+dat is per weekdag constant. `gap` en `afwijking` kwamen er allebei uit, dus de
+score van "maandag lunch" was een constante. Sorteren met een cap van 2 gaf
+onvermijdelijk elke week dezelfde twee weekdagen (ma 14, di 15, ma 21, di 22, …).
+Er bestond geen enkel signaal waarmee het model kon zien dat júist aanstaande
+vrijdag afwijkt.
+
+**Let op de valkuil.** Het anker verschuiven van het Google-gemiddelde naar de
+eigen mediaan-per-weekdag (staat verderop in deze backlog) lost dit NIET op: je
+ruilt één weekdag-constante voor een andere. Dat verbetert de terugblik, niet de
+vooruitblik.
+
+**Wat er gebouwd is (fase 1 + 2 samen, één PR).**
+
+- **Datum-signalen** (`busyness/quiet-signals.ts`, puur en los te testen): weer
+  (Open-Meteo, 7 dagen) en evenementen (evenementen.nl via `events`) leveren een
+  drukte-factor per kalenderdatum. Die werkt op de **verwachte drukte, vóór de
+  gap-poort**, niet op de eindscore. Op de score kan een signaal alleen
+  herschikken; op de verwachting kan een vrijdag met te weinig gat alsnog over
+  `GAP_FLOOR` komen als er storm staat. Dát is het verschil tussen een andere
+  volgorde van dezelfde lijst en een echte incidentele kans.
+- **Feestdag = harde poort.** Bewust niet gekoppeld aan `event_holidays_enabled`
+  (mig 0055): die voorkeur gaat over feestdag-promoties.
+- **Uitsluiting** van dagen met een lopende campagne of een openstaand voorstel,
+  **vóór** de week-cap. Dat was de echte bug: de frontend filterde ze erná, dus
+  een afgedekte dag vrat een weekplek op en maakte de lijst korter i.p.v. anders.
+- **Cool-down** op weekdag×dagdeel: ×0,40 deze week, ×0,70 vorige week, bodem
+  0,25. Multiplicatief want de score-schaal verschilt per zaak. Dempend, nooit
+  uitsluitend. Werkt ook **vooruit** binnen het venster — zonder dat deel
+  verandert een stateless GET over een rollend venster nog steeds niets.
+- **`kind: structureel | incidenteel`** + een `reasonKey`/`reasonParams` per kans,
+  en `notes` voor dagen die op een harde poort afvielen. Zichtbaar op de kaart en
+  in Filly's chat-context. Key i.p.v. zin, want de app is NL/EN.
+- **`applyPolicy: false`** voor de drie aanroepers die een door de eigenaar zélf
+  gekozen dag bevragen (geleide flow); daar mag de beleidslaag niet filteren.
+
+**Meegenomen modelfix.** De anomalie-bonus was onbegrensd: bij een vlakke
+residu-verdeling valt `spread` terug op 1 en levert een afwijking van 35 punten
+een bonus van 17,5 tegenover een vulbaarheidsterm van hooguit 1. De vulbaarheid,
+de bedoelde hoofdmaat, verdween daarmee in de ruis en élke factor op de score was
+betekenisloos. Nu begrensd op `ANOMALY_WEIGHT`, met `ABS_DEV_FLOOR` als
+ondergrens voor de schaal. **Dit verandert de ranking in productie** voor zaken
+met een bijna-vlakke residu-verdeling.
+
+**Architectuur-detail dat bijna misging.** `WeatherService` injecteert
+`RequestSupabaseService` en is dus `Scope.REQUEST`. Hem in `BusynessService`
+injecteren maakt die ook request-scoped en breekt de cron-controllers. De pure
+HTTP-call staat daarom nu in `OpenMeteoClient` (singleton, TTL-cache 30 min);
+`WeatherService` delegeert ernaar.
+
+**Geen migratie.** Alles leest bestaande tabellen (`campaigns`, `ai_suggestions`,
+`events`, `businesses`) of rekent in code.
+
+**Gemeten effect** (realistisch synthetisch patroon, 8 weken, tempo 2): van 2
+weekdag×dagdeel-combinaties (8× di-middag, 8× vr-lunch) naar 4 (5/4/4/3), grootste
+aandeel 31%. Acceptatie-eis was ≤ 50%.
+
+**Nog open:**
+- [ ] Visuele check op het ingelogde dashboard (sterretjes, reden-regel, de
+      "alles al afgedekt"-tekst). Niet gedaan: vraagt een echte login.
+- [x] **Fase 3 af** — een incidentele kans krijgt op de kaart een eigen
+      markering (ring om de ster, koper; vorm én kleur, dus ook zonder
+      kleurwaarneming leesbaar) en de legenda noemt "vaste kans" en "kans deze
+      week" apart. In de chat gaan de momenten als twee blokken de prompt in:
+      het incidentele blok is het nieuws om mee te beginnen, bij het
+      structurele blok staat dat het elke week zo is en hooguit één keer
+      benoemd hoeft te worden.
+- [ ] Fase 4 (terugkoppeling) ongebouwd. Let op: de aanname dat de definitie
+      "campagnedag vs mediaan van andere gelijke weekdagen" al bestaat klopt
+      NIET. Wat er is, is `classify_campaign_performance()` (mig 0071): een
+      succes-score per kanaal op mail/social/GBP-metrics, niet een drukte-lift.
+- [ ] Bron-beperkingen om rekening mee te houden: `events` heeft geen omvang en
+      geen einddatum, dus een meerdaags festival matcht alleen z'n startdag en
+      "groot" is alleen te benaderen via categorie × afstand. Weer reikt 7 dagen,
+      de detectie kijkt 21 dagen vooruit.
+- [ ] Observatie, niet gefixt: op realistische patronen komt bijna elk moment als
+      `unusual` uit de MAD-drempel, dus de chat zegt bijna altijd "ongewoon
+      rustig". Drempel `UNUSUAL_SPREAD_MULT` een keer tegen echte data ijken.
+
+**Prototype om het te bekijken zonder login:** `/proto-kansen` rendert de échte
+BusynessCard met een gestubde netwerk-laag; `?oud=1` zet de beleidslaag uit.
+De kansen in `fixture.json` komen uit de echte service
+(`apps/api/scripts/gen-quiet-fixture.js` — opnieuw draaien na `nest build` als
+de detectie wijzigt). Maandweergave op het bistro-testpatroon:
+oud = di 15, vr 18, di 22, vr 25, di 29; nieuw = di 15, do 17 (regen), vr 25,
+za 26, di 29 (22 sep viel af, al afgedekt).
+
+**Meegenomen i18n-fix (2026-09-15).** `daypartLabel` is een in de backend
+gebouwde Nederlandse zin en stond zo in de Engelse UI ("Tuesday middag en diner
+is your biggest opportunity"). `QuietMoment` stuurt nu ook de kale sleutels mee
+(`dayparts`); `apps/web/src/lib/dayparts.ts` maakt daar een zin van. Het label
+blijft voor de prompts + trigger_context, waar NL juist klopt. Regel voor later:
+**geen samengestelde zinnen uit de backend naar de UI** — sleutel + params, de
+frontend maakt de zin. De geleide flow matchte hier trouwens op met
+`daypartLabel.includes(dp.label)`; dat is nu een vergelijking op sleutels.
+
+---
+
 ## 🗓️ 2026-09-09 — Backend naar sociale media: analyse + stappenplan (P0/P1)
 
 Grondige backend-analyse na de site-omzetting. Het kanaal-model zit in drie

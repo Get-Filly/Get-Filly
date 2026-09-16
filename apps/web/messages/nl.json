@@ -1,6 +1,14 @@
 {
   "common": {
-    "backToReports": "← Terug naar rapportages"
+    "backToReports": "← Terug naar rapportages",
+    "dayparts": {
+      "ochtend": "ochtend",
+      "lunch": "lunch",
+      "middag": "middag",
+      "diner": "diner",
+      "avond": "avond",
+      "and": "en"
+    }
   },
   "language": {
     "label": "Taal",
@@ -4620,6 +4628,7 @@
     "chartPerHour": "Drukte per uur",
     "ctaForPart": "Maak een campagne voor {day} {part}",
     "ctaPlain": "Maak een campagne",
+    "factorDate": "Weer en omgeving",
     "factorPattern": "Jouw patroon",
     "factorPatternNormal": "de dag zit rond je normale niveau",
     "factorPatternStructural": "dit {part} is bij jou structureel rustig",
@@ -4646,18 +4655,29 @@
     "jump_0": "Vandaag",
     "jump_1": "Morgen",
     "jump_2": "Overmorgen",
-    "legendChance": "kans",
+    "legendChanceIncidental": "kans deze week",
+    "legendChanceStructural": "vaste kans",
     "legendMeasured": "gemeten",
     "legendOver": "drukker dan normaal",
     "legendPredicted": "normaal",
     "markerNow": "nu · {hour}",
     "next": "Volgende",
+    "noteCoveredMore": "{count} dagen staan al klaar",
+    "noteCoveredOne": "1 dag staat al klaar",
+    "noteHoliday": "{label} laat Filly met rust",
     "noteSeed": "Nog geen Google-patroon voor deze zaak. Je ziet een voorbeeldverloop.",
     "noteSource": "Drukte komt uit je Google-patroon.",
     "periodGroup": "Periode",
     "periodMonth": "deze maand",
     "periodWeek": "de komende 7 dagen",
     "prev": "Vorige",
+    "reasonEventNearby": "{name} op {distanceKm} km",
+    "reasonStructural": "doorgaans je stilste moment",
+    "reasonStructuralRotated": "je vaste rustige moment deed je net al",
+    "reasonUnusual": "rustiger dan hier normaal is",
+    "reasonWeatherCold": "koud verwacht ({temp}°), mensen blijven thuis",
+    "reasonWeatherHeat": "warm verwacht ({temp}°), bezoek daalt",
+    "reasonWeatherRain": "regen verwacht, mensen blijven thuis",
     "subNext7": "komende 7 dagen",
     "subThisMonth": "deze maand",
     "tfPast": "Afgelopen",
@@ -4668,7 +4688,7 @@
     "view_maand": "Maand",
     "view_week": "Week",
     "whyChance": "Waarom {day} {part} rustiger is",
-    "whyFoot": "Filly weegt dit mee in de hoek van je campagne. Weer en agenda zijn nog niet gekoppeld.",
+    "whyFoot": "Filly weegt dit mee in de hoek van je campagne. Je agenda is nog niet gekoppeld.",
     "whyPlain": "Waarom {day} zo loopt"
   },
   "dash__components_kpi_rings": {

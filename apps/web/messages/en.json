@@ -1,6 +1,14 @@
 {
   "common": {
-    "backToReports": "← Back to reports"
+    "backToReports": "← Back to reports",
+    "dayparts": {
+      "ochtend": "morning",
+      "lunch": "lunch",
+      "middag": "afternoon",
+      "diner": "dinner",
+      "avond": "evening",
+      "and": "and"
+    }
   },
   "language": {
     "label": "Language",
@@ -4620,6 +4628,7 @@
     "chartPerHour": "Busyness per hour",
     "ctaForPart": "Create a campaign for {day} {part}",
     "ctaPlain": "Create a campaign",
+    "factorDate": "Weather and surroundings",
     "factorPattern": "Your pattern",
     "factorPatternNormal": "the day sits around your normal level",
     "factorPatternStructural": "this {part} is structurally quiet for you",
@@ -4646,18 +4655,29 @@
     "jump_0": "Today",
     "jump_1": "Tomorrow",
     "jump_2": "Day after",
-    "legendChance": "opportunity",
+    "legendChanceIncidental": "opportunity this week",
+    "legendChanceStructural": "standing opportunity",
     "legendMeasured": "measured",
     "legendOver": "busier than normal",
     "legendPredicted": "normal",
     "markerNow": "now · {hour}",
     "next": "Next",
+    "noteCoveredMore": "{count} days are already covered",
+    "noteCoveredOne": "1 day is already covered",
+    "noteHoliday": "Filly leaves {label} alone",
     "noteSeed": "No Google pattern for this business yet. You are seeing an example curve.",
     "noteSource": "Busyness comes from your Google pattern.",
     "periodGroup": "Period",
     "periodMonth": "this month",
     "periodWeek": "in the next 7 days",
     "prev": "Previous",
+    "reasonEventNearby": "{name}, {distanceKm} km away",
+    "reasonStructural": "usually your quietest moment",
+    "reasonStructuralRotated": "you just did your usual quiet slot",
+    "reasonUnusual": "quieter than normal here",
+    "reasonWeatherCold": "cold forecast ({temp}°), people stay in",
+    "reasonWeatherHeat": "hot forecast ({temp}°), visits drop",
+    "reasonWeatherRain": "rain forecast, people stay in",
     "subNext7": "next 7 days",
     "subThisMonth": "this month",
     "tfPast": "Past",
@@ -4668,7 +4688,7 @@
     "view_maand": "Month",
     "view_week": "Week",
     "whyChance": "Why {day} {part} is quieter",
-    "whyFoot": "Filly factors this into your campaign angle. Weather and calendar are not connected yet.",
+    "whyFoot": "Filly factors this into your campaign angle. Your calendar is not connected yet.",
     "whyPlain": "How {day} runs"
   },
   "dash__components_kpi_rings": {

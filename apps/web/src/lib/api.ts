@@ -1537,7 +1537,10 @@ export async function fetchBusynessActual(
 export type QuietMoment = {
   date: string; // YYYY-MM-DD
   weekday: number; // 0=ma..6=zo
-  daypart: string; // ochtend|lunch|middag|diner|avond
+  daypart: string; // ochtend|lunch|middag|diner|avond (eerste van de reeks)
+  // Alle dagdeel-sleutels in deze kans; hiermee vertaalt de UI zelf
+  // (zie lib/dayparts.ts). daypartLabel is NL en alleen de terugval.
+  dayparts: string[];
   daypartLabel: string;
   expectedPct: number;
   deviation: number; // negatief = rustiger dan verwacht
@@ -1545,12 +1548,41 @@ export type QuietMoment = {
   unusual: boolean; // ongewoon rustig vs vaste rustige stand
   fromHour: number;
   toHour: number;
+  // structureel = deze weekdag is hier altijd stil (strategisch);
+  // incidenteel = juist déze datum wijkt af door weer of een evenement.
+  kind: "structureel" | "incidenteel";
+  // Waarom juist deze dag. Key + params i.p.v. een kant-en-klare zin, omdat
+  // de app NL/EN is; de vertaling staat in messages/*.json onder bzv.reason*.
+  reasonKey: QuietReasonKey;
+  reasonParams: Record<string, string | number>;
+};
+
+export type QuietReasonKey =
+  | "structural"
+  | "structuralRotated"
+  | "unusual"
+  | "weatherRain"
+  | "weatherCold"
+  | "weatherHeat"
+  | "eventNearby";
+
+// Een dag die kandidaat was maar door een harde poort afvalt. Zo kan de UI
+// "deze week niets, want alles is al afgedekt" onderscheiden van "niets aan
+// de hand" — zonder dat de frontend die regels zelf naloopt.
+export type QuietNote = {
+  date: string;
+  reason: "feestdag" | "al_afgedekt";
+  label?: string;
 };
 
 export async function fetchQuietMoments(
   fromIso?: string,
   toIso?: string,
-): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
+): Promise<{
+  hasSource: boolean;
+  moments: QuietMoment[];
+  notes: QuietNote[];
+}> {
   const qs =
     fromIso && toIso ? `?from=${fromIso}&to=${toIso}` : "";
   const res = await authedFetch(`${API_URL}/busyness/me/quiet-moments${qs}`, {
@@ -1779,6 +1811,7 @@ export type DayContext = {
   // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
   quietMoment: {
     daypart: string;
+    dayparts: string[];
     daypartLabel: string;
     fromHour: number;
     toHour: number;
