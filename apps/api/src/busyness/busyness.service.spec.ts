@@ -1,5 +1,5 @@
 import { BusynessService } from './busyness.service';
-import type { WeatherSignal } from './quiet-signals';
+import type { SlotPerformance, WeatherSignal } from './quiet-signals';
 
 // ============================================================
 // getQuietMoments — vulbaarheid-first model (2026-08-06)
@@ -37,6 +37,9 @@ type ContextOverrides = {
   events?: Map<string, unknown[]>;
   recentSlots?: Map<string, { weekIndex: number; weak?: boolean }[]>;
   hasTerrace?: boolean;
+  // Fase 4: wat campagnes per slot eerder deden, plus het ijkpunt.
+  slotPerformance?: Map<string, SlotPerformance>;
+  businessMedianLift?: number;
 };
 
 function makeService(
@@ -44,6 +47,7 @@ function makeService(
   overrides: ContextOverrides = {},
 ): BusynessService {
   const svc = new BusynessService(
+    {} as never,
     {} as never,
     {} as never,
     {} as never,
@@ -86,6 +90,8 @@ function makeService(
       hasTerrace: overrides.hasTerrace ?? false,
       covered: overrides.covered ?? new Set<string>(),
       recentSlots: overrides.recentSlots ?? new Map(),
+      slotPerformance: overrides.slotPerformance ?? new Map(),
+      businessMedianLift: overrides.businessMedianLift ?? 0,
     });
   return svc;
 }
@@ -432,5 +438,65 @@ describe('getQuietMoments — applyPolicy:false voor een zelfgekozen dag', () =>
     expect(moments).toHaveLength(1);
     expect(moments[0].date).toBe('2026-04-06');
     expect(moments[0].daypartLabel).toBeTruthy();
+  });
+});
+
+// ============================================================
+// Terugkoppeling (fase 4)
+// ============================================================
+
+describe('getQuietMoments — terugkoppeling', () => {
+  it('een bewezen slot wint van een gelijkwaardig slot zonder historie', async () => {
+    // Ma en di zijn even leeg; alleen de gemeten uitkomst verschilt.
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const kaal = await makeService(p).getQuietMoments('biz', FROM, TO, 1);
+    expect(kaal.moments[0].date).toBe('2026-08-10'); // ma op datumvolgorde
+
+    const svc = makeService(p, {
+      // Dinsdag-lunch leverde eerder duidelijk meer op dan de eigen mediaan.
+      slotPerformance: new Map([['1|lunch', { medianLift: 14, samples: 8 }]]),
+      businessMedianLift: 0,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-11'); // di
+  });
+
+  it('doet niets onder het minimum aantal metingen', async () => {
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const svc = makeService(p, {
+      // Zelfde forse uitslag, maar op twee metingen: te dun om te sturen.
+      slotPerformance: new Map([['1|lunch', { medianLift: 14, samples: 2 }]]),
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-10'); // ongewijzigd
+  });
+
+  it('weegt af tegen de eigen mediaan, niet tegen nul', async () => {
+    // Beide slots leverden +14 op, maar dat is bij deze zaak normaal. Er is
+    // dan geen reden om het ene boven het andere te zetten.
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const svc = makeService(p, {
+      slotPerformance: new Map([
+        ['0|lunch', { medianLift: 14, samples: 8 }],
+        ['1|lunch', { medianLift: 14, samples: 8 }],
+      ]),
+      businessMedianLift: 14,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-10'); // datumvolgorde beslist weer
+  });
+
+  it('dempt een slot dat het slechter doet dan de rest', async () => {
+    const p = makeFlatPattern([25, 26, 55, 60, 65, 70, 60]);
+    const kaal = await makeService(p).getQuietMoments('biz', FROM, TO, 1);
+    expect(kaal.moments[0].date).toBe('2026-08-10'); // ma is het leegst
+
+    const svc = makeService(p, {
+      // Maandag-lunch blijft achter bij wat deze zaak normaal haalt.
+      slotPerformance: new Map([['0|lunch', { medianLift: -10, samples: 8 }]]),
+      businessMedianLift: 6,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-11'); // di
   });
 });

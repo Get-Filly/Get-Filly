@@ -17,9 +17,12 @@ import {
 import { EventsService } from '../events/events.service';
 import { OpenMeteoClient } from '../weather/open-meteo.client';
 import { getNlHolidays } from '../ai/timing-factors';
+import { QuietFeedbackService } from './quiet-feedback.service';
 import {
   cooldownFactor,
   dateBusynessFactor,
+  feedbackFactor,
+  DAYPART_DEFS,
   INCIDENTAL_MIN_DAMP,
   COOLDOWN_WEEKS,
   SAME_WEEK_DAYPART_DAMP,
@@ -28,6 +31,7 @@ import {
   type QuietNote,
   type QuietReason,
   type SlotHit,
+  type SlotPerformance,
   type WeatherSignal,
 } from './quiet-signals';
 
@@ -88,19 +92,6 @@ const WEEKDAY_INDEX: Record<string, number> = {
   Sun: 6,
 };
 
-// Vaste dagdeel-vensters (uur-grenzen, [from, to)). Een dagdeel wordt per zaak
-// bijgesneden op de open uren (uren met patroon > 0); dagdelen zonder genoeg
-// open uren tellen niet mee. Zo krijgt een lunchroom wél ochtend en een
-// dinner-only zaak niet.
-const DAYPART_DEFS: { key: string; label: string; from: number; to: number }[] =
-  [
-    { key: 'ochtend', label: 'ochtend', from: 6, to: 11 },
-    { key: 'lunch', label: 'lunch', from: 11, to: 14 },
-    { key: 'middag', label: 'middag', from: 14, to: 17 },
-    { key: 'diner', label: 'diner', from: 17, to: 21 },
-    { key: 'avond', label: 'avond', from: 21, to: 24 },
-  ];
-
 // Model-constanten voor de rustig-bepaling.
 // ------------------------------------------------------------
 // Model = VULBAARHEID-FIRST (2026-08-06). Hoofdmaat is de `gap`: hoeveel
@@ -145,6 +136,10 @@ type QuietContext = {
   hasTerrace: boolean;
   covered: Set<string>;
   recentSlots: Map<string, SlotUse[]>;
+  // Fase 4: wat campagnes per weekdag×dagdeel eerder deden met de drukte,
+  // plus de eigen mediaan van de zaak als ijkpunt.
+  slotPerformance: Map<string, SlotPerformance>;
+  businessMedianLift: number;
 };
 
 // Lege context = geen enkel datum-signaal en geen beleid: het model draait dan
@@ -157,6 +152,8 @@ const EMPTY_QUIET_CONTEXT: QuietContext = {
   hasTerrace: false,
   covered: new Set(),
   recentSlots: new Map(),
+  slotPerformance: new Map(),
+  businessMedianLift: 0,
 };
 
 @Injectable()
@@ -172,6 +169,9 @@ export class BusynessService {
     // Scope.REQUEST en zou deze service meetrekken — daarom de client.)
     private readonly events: EventsService,
     private readonly openMeteo: OpenMeteoClient,
+    // Fase 4: de leerloop. Alleen gelezen tijdens de detectie; het meten
+    // zelf draait in een cron.
+    private readonly feedback: QuietFeedbackService,
   ) {}
 
   // "Nu" in Europe/Amsterdam als {weekday 0-6, hour 0-23}. Apify geeft
@@ -898,6 +898,14 @@ export class BusynessService {
           // regel die een vast patroon oplevert. (Verschillende weekdagen
           // hoeven we niet af te dwingen: er is al max één kans per dag.)
           if (pickedDayparts.has(k.daypart)) factor *= SAME_WEEK_DAYPART_DAMP;
+          // Fase 4: wat campagnes op dit slot eerder deden met de drukte.
+          // Bewust een kleine uitslag (±25%) tegenover de cool-down (tot
+          // −60%): dunne data zonder controlegroep mag bijsturen, niet
+          // overrulen. Onder het minimum aantal metingen doet dit niets.
+          factor *= feedbackFactor(
+            ctx.slotPerformance.get(slotKey(k.weekday, k.daypart)),
+            ctx.businessMedianLift,
+          );
 
           if (factor < 1) anyDamped = true;
           const score = k.score * factor;
@@ -952,15 +960,23 @@ export class BusynessService {
       }
     }
 
-    const [profile, covered, recentSlots, events] = await Promise.all([
-      this.getQuietProfile(businessId),
-      this.getCoveredDates(businessId, fromIso, toIso),
-      this.getRecentSlots(businessId, fromIso),
-      this.events.findNearbyInRange(businessId, fromIso, toIso).catch((e) => {
-        this.logger.warn(`events-signaal faalde: ${String(e)}`);
-        return [] as Awaited<ReturnType<EventsService['findNearbyInRange']>>;
-      }),
-    ]);
+    const [profile, covered, recentSlots, events, performance] =
+      await Promise.all([
+        this.getQuietProfile(businessId),
+        this.getCoveredDates(businessId, fromIso, toIso),
+        this.getRecentSlots(businessId, fromIso),
+        this.events.findNearbyInRange(businessId, fromIso, toIso).catch((e) => {
+          this.logger.warn(`events-signaal faalde: ${String(e)}`);
+          return [] as Awaited<ReturnType<EventsService['findNearbyInRange']>>;
+        }),
+        this.feedback.getSlotPerformance(businessId).catch((e) => {
+          this.logger.warn(`slot-prestaties faalden: ${String(e)}`);
+          return {
+            slots: new Map<string, SlotPerformance>(),
+            businessMedianLift: 0,
+          };
+        }),
+      ]);
 
     const eventsByDate = new Map<string, EventSignal[]>();
     for (const e of events) {
@@ -1005,6 +1021,8 @@ export class BusynessService {
       hasTerrace: profile.hasTerrace,
       covered,
       recentSlots,
+      slotPerformance: performance.slots,
+      businessMedianLift: performance.businessMedianLift,
     };
   }
 
