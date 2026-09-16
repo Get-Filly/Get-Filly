@@ -57,6 +57,17 @@ export class BusynessCronController {
     return this.feedback.measurePending();
   }
 
+  // GET /api/busyness/cron/rollup  (handmatig vangnet)
+  // Het maandoverzicht draait normaal mee met de wekelijkse refresh, vóór de
+  // prune. Dit endpoint is er om 'm los te kunnen draaien: na een mislukte
+  // week, of om te controleren dat er iets in busyness_monthly landt zonder
+  // de hele Apify-run af te wachten.
+  @Get('rollup')
+  async rollup(@Headers('authorization') auth?: string) {
+    if (!this.authorized(auth)) throw new UnauthorizedException();
+    return this.busyness.rollupMonthly();
+  }
+
   private authorized(auth?: string): boolean {
     const secret = this.config.get<string>('CRON_SECRET');
     if (!timingSafeBearer(auth, secret)) {
