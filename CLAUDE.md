@@ -35,6 +35,12 @@ capaciteit te vullen. "Get-Filly" = het bedrijf; "Filly" = de assistent.
 >   afgedekte dagen en een cool-down. Rekenregels in `busyness/quiet-signals.ts`.
 >   Aanroepers die een door de eigenaar zélf gekozen dag bevragen geven
 >   `applyPolicy: false` mee.
+> - **Leerloop op rustige momenten** (mig 0074): `campaign_quiet_effect` legt
+>   per campagne vast of het doel-dagdeel echt voller werd (gemeten drukte vs
+>   de mediaan van vergelijkbare dagen). Cron `/api/busyness/cron/measure`.
+>   De weging is relatief t.o.v. de eigen mediaan van de zaak en bewust klein
+>   (±25%); onder 3 metingen per slot doet 'ie niets.
+> - Migraties staan nu op **0074** (0074 handmatig draaien).
 > - Migraties staan nu op **0070**. Zie de memory-index + BACKLOG voor details.
 
 ## Stack
