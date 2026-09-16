@@ -2669,7 +2669,19 @@
     },
     "bookingsNote": "Reserveringen staan hier bewust niet bij. Meta, TikTok en Google rapporteren bereik, doorkliks en kosten, maar niet of iemand daarna echt een tafel boekt. Zodra we aan je reserveringssysteem gekoppeld zijn komt dat erbij.",
     "tabResult": "Resultaat",
-    "tabOccupancy": "Bezetting"
+    "tabOccupancy": "Bezetting",
+    "whatWorks": {
+      "title": "Wat werkt bij jou",
+      "subtitle": "Per kanaal, over alles wat we tot nu toe gemeten hebben — niet alleen de gekozen periode",
+      "measured": "{n} uitingen gemeten · {bookings} boekingen",
+      "tooFew": "{n} van {min} uitingen — nog geen oordeel",
+      "foot": "Het oordeel komt uit de mediaan van de succes-score per uiting, zodat één uitschieter het beeld van een kanaal niet bepaalt. Vanaf drie gemeten uitingen zeggen we er iets over.",
+      "verdict": {
+        "sterk": "Werkt goed",
+        "gemiddeld": "Gemiddeld",
+        "zwak": "Blijft achter"
+      }
+    }
   },
   "dash_reserveringen_page": {
     "title": "Reserveringen",
