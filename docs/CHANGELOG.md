@@ -2590,3 +2590,92 @@ Open: AI-foto genereren via fal.ai/Replicate/OpenAI (provider-keuze ligt bij Flo
 - ✅ `CLAUDE.md` bijgewerkt
 - ✅ `docs/setup/supabase-handmatig.md` — alles wat niet in migraties staat
 - ✅ `apps/api/supabase/seeds/test_restaurants.sql`
+
+---
+
+## 📍 Stand van de functionaliteit (peildatum 2026-04-25, later bijgewerkt)
+
+Dit blok stond tot september 2026 in `CLAUDE.md`. Het is een momentopname met
+losse latere aanvullingen erin — nuttig als naslag over wat wanneer werkte, maar
+geen betrouwbaar beeld van vandaag. Daarvoor is dit changelog zelf de bron.
+
+**UI + backend**: dashboard + publieke site werken met echte data uit Supabase. Middleware-auth actief. Multi-tenant met auth-guards + rol-filter + team-invite-flow live.
+
+**Auth + onboarding live**:
+- Signup + login + logout (email/password, Supabase Auth)
+- Password-reset via `/forgot-password` + `/reset-password` (gebruikt `/auth/confirm`-SSR-route)
+- Sterk-wachtwoord-UI: `<PasswordStrength>` met live 4-checks op signup én reset
+- 3-stappen onboarding-wizard op `/onboarding` voor nieuwe users (middleware-redirect op dashboard-bezoek zonder restaurant)
+- **Geocoding live**: onboarding-flow zet adres → lat/long via PDOK Locatieserver (Kadaster, gratis, EU, geen API-key). Fail-soft.
+- Supabase email-templates beheer via `pnpm supabase:apply-templates` (Management API-script, geen handwerk)
+
+**Filly AI live**:
+- Review-reply-suggesties (Claude Sonnet 4.6, 3-varianten-kiezer)
+- Filly-chat op dashboard-home met persistente historie + live restaurant-context (weer/bezetting/reserveringen)
+- **Chat → campagne-actie**: Filly kan in chat een campagne voorstellen (machine-blok `<<FILLY_PROPOSE_CAMPAIGN>>`). Proposal-card met "Ja, maak aan / Nee, bedankt". Lineage via ai_suggestions → campaigns FK.
+- **Website-analyzer**: crawl homepage + Claude-extractie van heel profiel.
+- **Menu-importer**: Claude Opus 4.7 Vision op PDF/JPG/PNG — extraheert gerechten + prijzen + categorieën + allergenen (kolom toegevoegd in migratie 0013).
+- **Suggestion-refine**: `POST /api/suggestions/:id/refine` laat Filly pending-voorstel aanpassen op instructie van eigenaar ("maak huiselijker", "korter"). Gebruikt in SuggestionDetailModal met side-chat.
+- **Chat-proposal genereert 3 varianten**: prompt-update, modal toont 3 kaarten naast elkaar, user kiest favoriet via `selectVariant`-endpoint. Refine herschrijft alleen geselecteerde variant.
+- **Campagne-varianten** (mig 0041): de unified detail-page gebruikt `campaigns.variants[]` + `selected_variant_index` als bron-van-waarheid. 3 alternatieven via `POST /campaigns/:id/variants` (`generateMoreVariants`, max 6), wisselen via `selectVariant`, bewerken via `editVariant`. _(De oude `/refine` + `filly_variants`-cache uit mig 0014 is verwijderd in mig 0060, 2026-06-22.)_
+- **Review-reply-varianten** met zelfde cache-patroon: 3 vooraf, 1× regenerate, lock op 6.
+- **Verzendmoment**: het brein kiest bij het genereren al een moment + reden per kanaal (`scheduled_for` + `scheduled_reasoning` in de voorstel-prompt; timing-kennis in `ai/filly-brain.config.ts`, `bestHours` per kanaal). Eigenaar bevestigt/wijzigt zelf via `PATCH /campaigns/:id/scheduled` (`setSchedule`). _(De losse `POST /:id/suggest-schedule` is verwijderd, maar de `suggested_scheduled_for`/`_reasoning`-kolommen zijn sinds 2026-06-22 wéér in gebruik: bij approve schrijven we Filly's gekozen moment + reden erin, voor de "Wanneer plaatsen"-card.)_
+- Usage-tracking in `ai_usage`-tabel (nullable `restaurant_id` voor pre-onboarding calls), rate-limit 100/uur/restaurant + pre-onboarding in-memory limit
+
+**/dashboard/campagnes is nu dé hub**:
+- Voorstellen-strip bovenaan (auto-gegenereerd + chat-voorstellen samen; tabs Open/Afgewezen met Terugzetten-knop)
+- Overige acties (TasksStrip): reviews-zonder-reactie, lage bezetting, grote reserveringen, verjaardagen — met filter "Actie vereist (high+medium)" / "Alle" en scroll-container (max 320px)
+- Campagnes-tabel daaronder (concept/ingepland/actief/afgerond + filters + zoek + **quick-actions kolom** per status: Inplannen/Verwijder/Activeer/Stop/Archiveer)
+- Concept-campagnes bewerkbaar via detail-page ("✎ Bewerken" → past de gekozen variant aan via `editVariant`; de oude generieke `PATCH /campaigns/:id` is verwijderd in mig 0060)
+- **"✨ Met Filly bewerken"** op detail-page: 3 alternatieven via de variants-flow (`generateMoreVariants`), 1× extra = 6 totaal max, daarna lock voor kostenbeheersing.
+- **Foto-upload** op social/whatsapp concept-campagnes (Supabase Storage `campaign-media`, signed URLs, 10MB cap, drag-and-drop). WhatsApp-foto in aparte card; social-foto in Instagram-preview.
+- **"📅 Wanneer plaatsen?"-card** met Filly's tijdstipsuggestie: type-specifieke regels (mail 9-10:30/19:30-20:30, social 17-20, whatsapp 18-20:30), reasoning meegeleverd. Eigenaar accepteert / wijzigt zelf / vraagt andere suggestie.
+- "Suggesties" en "Taken" zijn uit de sidebar verwijderd; routes bestaan nog als legacy
+
+**Reserveringen**:
+- Handmatige invoer via modal (naam + datum + tijd + groep verplicht, rest optioneel)
+- Filter op status + zoek op naam/telefoon/mail
+- "Via Filly"-badge consistent met gasten-pagina
+
+**Gasten**:
+- "Via Filly" als prominente eerste kolom met groene "✓ Ja"-badge
+
+**Legal (concept-v1)**:
+- `/privacy` en `/voorwaarden` live met gele draft-banner
+- Alle AVG-secties ingevuld op basis van stack (Supabase/Anthropic/Resend/Vercel/Mollie)
+- `[INVULLEN:...]`-placeholders voor bedrijfsgegevens — wacht op Floris voor invullen
+- Jurist-review als P0 in BACKLOG
+
+**Mock nog steeds** (zie BACKLOG.md P2-sectie):
+- Menu-upload via menu-pagina (onboarding-upload werkt wel al, maar menu-pagina zelf laat alleen GET zien)
+- Menu CRUD-endpoints (POST/PATCH/DELETE nog niet gebouwd)
+- Campagne-send engine (Resend ontbreekt)
+- **Meta (Facebook/Instagram): code-kant af** (2026-06-06) — verbinden + versleutelde token-opslag + deauthorize/data-deletion-callbacks + publiceren (FB/IG). Wacht op Meta App Review + business-verificatie; zie BACKLOG "Integraties (OAuth)".
+- Overige externe integraties (Google Business, Zenchef, etc.) nog mock
+
+**Live op Vercel** (bijgewerkt 2026-06-05): zowel web (Next.js) als api
+(Nest.js, serverless functions, regio `fra1` — zie `apps/api/vercel.json`)
+draaien in productie via Vercel. Deploy gaat automatisch bij een push naar
+`main`. **Canoniek domein: `https://www.get-filly.com`** (apex `get-filly.com`
+redirect 308 → www, afgehandeld in code via `next.config.ts` `redirects()`). De `railway.json` is legacy
+en kan vermoedelijk weg. Lokaal draaien (`pnpm dev`) werkt nog steeds voor
+ontwikkeling, maar Floris werkt rechtstreeks tegen de live-omgeving.
+
+**SEO live** (2026-06-05): per-pagina metadata, `sitemap.ts`, `robots.ts`,
+JSON-LD (Organization/WebSite/SoftwareApplication) en gegenereerde OG-image.
+Centrale config in `apps/web/src/config/seo.ts` (`SITE_URL` = canoniek domein).
+Nog te doen: Google Search Console + sitemap indienen. (apex→www 308 al in code via `next.config.ts`.)
+
+**Publieke site, visuele ronde** (2026-06-17): `/blog` is nu de kennishub
+**"De marketing cocktail"** (uitgelicht pijler-artikel + 6 kernpunt-kaarten +
+"Meest recent"; `app/blog.css` + `app/blog/blog-index.tsx`). Kaarten tonen een
+"binnenkort online"-toast en worden echte links zodra er een `content/blog/<slug>.md`
+bestaat; pagina blijft `noindex` tot er content is. Home heeft een nieuwe sectie
+**"Waarom het werkt"** (4 kernpunt-kaarten, scroll-reveal, doorlink naar `/blog`);
+hero + die sectie + pijlers staan in één `.home-flow` (wit + doorlopende groene
+gloed). /about: nieuwe intro + Missie/Visie als groene eyebrows + uitlijning "Wat
+ons drijft". Eyebrow-stijl site-breed gelijkgetrokken (home-pijlers + /product-
+stap-labels: pill weg, groene eyebrow; stap-tijd subtiel grijs). Zie changelog
+2026-06-17 in BACKLOG.md.
+
+**Belangrijke dev-toggle**: email-confirmation staat **UIT** in Supabase (dev-bypass). **Terug AAN zetten voordat er productie-klanten op komen** — staat als ⚠️ in BACKLOG P0.

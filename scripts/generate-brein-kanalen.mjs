@@ -127,7 +127,7 @@ for (const rules of Object.values(CHANNEL_RULES)) {
   lines.push('');
 }
 
-const target = join(repoRoot, 'docs', 'social-posting-brein-kanalen.md');
+const target = join(repoRoot, 'docs', 'werking', 'social-posting-brein-kanalen.md');
 writeFileSync(target, lines.join('\n'), 'utf8');
 rmSync(outDir, { recursive: true, force: true });
 console.log(`✓ ${target} gegenereerd (CHANNEL_RULES ${CHANNEL_RULES_VERSION}, ${Object.keys(CHANNEL_RULES).length} kanalen).`);
