@@ -6,6 +6,7 @@ import { AiModule } from '../ai/ai.module';
 import { GeocodingModule } from '../geocoding/geocoding.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AuthGuard } from '../common/auth.guard';
+import { RateLimitGuard } from '../common/rate-limit.guard';
 import { GoogleProfileModule } from '../google-profile/google-profile.module';
 
 // OnboardingModule, aparte module omdat het endpoint BUITEN de
@@ -27,6 +28,6 @@ import { GoogleProfileModule } from '../google-profile/google-profile.module';
     GoogleProfileModule,
   ],
   controllers: [OnboardingController],
-  providers: [OnboardingService, AuthGuard],
+  providers: [OnboardingService, AuthGuard, RateLimitGuard],
 })
 export class OnboardingModule {}

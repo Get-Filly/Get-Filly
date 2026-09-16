@@ -8,6 +8,7 @@ import { AuditLogModule } from '../common/audit-log.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
+import { RateLimitGuard } from '../common/rate-limit.guard';
 
 // MailService levert de send-flow (gebruikt door CampaignsModule)
 // + webhook-handler + unsubscribe-flow.
@@ -22,7 +23,13 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
   // domein-endpoints.
   imports: [SupabaseModule, AuditLogModule, MeModule],
   controllers: [MailController, MailDomainController],
-  providers: [MailService, MailDomainService, AuthGuard, BusinessAccessGuard],
+  providers: [
+    MailService,
+    MailDomainService,
+    AuthGuard,
+    BusinessAccessGuard,
+    RateLimitGuard,
+  ],
   exports: [MailService],
 })
 export class MailModule {}
