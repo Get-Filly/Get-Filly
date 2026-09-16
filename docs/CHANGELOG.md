@@ -294,6 +294,7 @@ agnostisch. Het is bijstellen, niet herbouwen.
     in de UI staan. Bestaande `no_data`-rijen worden niet herbeoordeeld zonder
     reset-update.
   - Prototype met mockdata blijft staan in `get-filly-proto/rapportages-v2.html`.
+    *(Sinds september 2026: [`docs/archief/prototypes/rapportages-v2.html`](archief/prototypes/rapportages-v2.html).)*
   De nachtelijke classificatie is 100% mail: geen `mail_delivered` →
   `classification='no_data'`, `success_score=null`. Zowel in SQL
   (`0047_campaign_performance_classification.sql:76`) als in TS
