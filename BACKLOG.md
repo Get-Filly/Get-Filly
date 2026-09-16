@@ -16,6 +16,57 @@ Status-markers: `[ ]` = todo · `[~]` = in progress · `[x]` = done
 
 ---
 
+## 🔴 Vóór externe testers — openstaand (2026-09-16)
+
+- [ ] **E-mailbevestiging aanzetten in Supabase.** Staat uit als dev-gemak, dus
+      iedereen kan zich met een willekeurig adres aanmelden. Dit is het enige
+      echt blokkerende punt voor mensen van buiten. Handmatig in Supabase +
+      één keer de hele registratieflow doorlopen. *(Kan Claude niet doen.)*
+- [ ] **De flow één keer end-to-end doorlopen op een echt account.** Het
+      grootste gat in alles wat er deze week gebouwd is: er is geen enkel
+      scherm als ingelogde gebruiker gezien — alles is beredeneerd uit code en
+      prototypes. Met een testaccount is dit wél na te lopen.
+      *(Vraagt een login die Claude niet heeft.)*
+
+---
+
+## 🗓️ 2026-09-16 — Rem per IP op de endpoints die geld kosten (mig 0076)
+
+**Wat er mis was.** `/public/contact` had alleen een honeypot en stuurt per
+aanroep een mail (Resend kost geld). De pre-onboarding AI-limiet was een `Map`
+in het geheugen — de code zei zelf al dat dat "niet multi-instance correct" is,
+en op Vercel is elke request een mogelijk verse functie-instantie, dus die Map
+telde in de praktijk bijna niets.
+
+**Wat het nu is.** `check_rate_limit()` (mig 0076) telt in de database, net als
+`AiRateLimitGuard` al deed. Eén atomaire statement, dus twee gelijktijdige
+requests kunnen de limiet niet samen omzeilen. `RateLimitGuard` + `@RateLimit()`
+hangt 'm op een endpoint:
+- contactformulier: 5 per kwartier per IP
+- onboarding-AI (4 endpoints): 5 per 10 minuten per user
+
+**Keuzes die erin zitten:**
+- **Vaste vensters**, geen glijdend. Rond een vensterovergang is tot 2× de
+  limiet mogelijk. Voor een rem tegen kostenmisbruik ruim voldoende.
+- **Fail-open** bij een fout in de teller. Bewust de andere kant op dan de
+  Resend-webhook (die is fail-closed): daar gaat het om authenticiteit, hier om
+  kosten, en een klant die geen contact kan opnemen is erger dan een uur zonder
+  rem. De fout wordt luid gelogd.
+- **Het IP wordt gehasht** opgeslagen, met salt. Een IP is een persoonsgegeven
+  en voor een teller is de hash genoeg; een kale sha256 over de IPv4-ruimte is
+  triviaal terug te rekenen, vandaar de salt (`RATE_LIMIT_SALT`, valt terug op
+  `CRON_SECRET`).
+
+- [ ] **Dit is geen bescherming tegen een gedistribueerde aanval.** Een botnet
+      met duizend IP's loopt er gewoon omheen. Daarvoor is een WAF nodig
+      (Vercel Firewall staat al als los punt in de backlog). Dit vangt het
+      meest voorkomende geval af: één bron die doorramt.
+- [ ] Optioneel `RATE_LIMIT_SALT` in de API-env zetten. Zonder die var valt
+      'ie terug op `CRON_SECRET`, wat prima werkt; zonder allebei logt de guard
+      een waarschuwing en zijn de hashes terug te rekenen.
+
+---
+
 ## 🗓️ 2026-09-16 — Bezettingsrapportage op echte data + maandoverzicht
 
 **Wat er weg is.** De bezettingspagina toonde drie dingen die module-constanten

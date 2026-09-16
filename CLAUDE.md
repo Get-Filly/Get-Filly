@@ -46,7 +46,10 @@ capaciteit te vullen. "Get-Filly" = het bedrijf; "Filly" = de assistent.
 > - **Maandoverzicht** (mig 0075, `busyness_monthly`): wordt weggeschreven vóór
 >   de prune van `busyness_snapshots`, zodat "vs vorig jaar" over twaalf maanden
 >   wél kan. Mislukt de rollup, dan wordt er niet geprund.
-> - Migraties staan nu op **0075** (0074 en 0075 handmatig draaien).
+> - **Rem per IP** (mig 0076): `check_rate_limit()` in de database + de
+>   `@RateLimit()`-decorator. Op het contactformulier en de onboarding-AI.
+>   Fail-open bij een fout in de teller; het IP wordt gehasht opgeslagen.
+> - Migraties staan nu op **0076** (0076 nog handmatig draaien).
 > - Migraties staan nu op **0070**. Zie de memory-index + BACKLOG voor details.
 
 ## Stack
