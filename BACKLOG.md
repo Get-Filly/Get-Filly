@@ -249,10 +249,10 @@ Het UX-voorstel is te bekijken op `/proto-fototool`.
       sindsdien veranderd zijn (`lib/api.ts`, `messages/{nl,en}.json`,
       `campaign-detail/foto-card.tsx`). Eerst bijwerken, dan pas kijken of 'ie
       nog werkt.
-- [ ] 🔴 **Migratienummer botst.** De branch brengt
-      `0071_image_usage.sql` mee, maar 0071 is op main al
-      `0071_campaign_performance_per_channel.sql`. Hernummeren naar het
-      eerstvolgende vrije nummer vóór er iets gedraaid wordt.
+- [x] ~~🔴 **Migratienummer botst.**~~ Opgelost 2026-09-25: hernummerd naar
+      `0077_image_usage.sql` en gedraaid. De branch bevat nog het oude
+      `0071_image_usage.sql`; dat bestand moet weg bij het bijwerken, anders
+      staat 'ie er dubbel in.
 - [ ] **Staat niet op `origin`.** De branch bestaat alleen op deze laptop; er
       is geen kopie. Pushen zou dat oplossen.
 - [ ] De API-sleutel voor de beeld-provider ontbreekt nog.
