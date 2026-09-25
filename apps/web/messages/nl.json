@@ -929,10 +929,10 @@
       "mailAction": "{count, plural, one {de mail wordt direct verstuurd naar alle opt-in gasten} other {# mails worden direct verstuurd naar alle opt-in gasten}}",
       "socialAction": "{count, plural, one {de social-post wordt direct op Facebook/Instagram geplaatst} other {# social-posts worden direct op Facebook/Instagram geplaatst}}"
     },
-    "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe.",
+    "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De geplaatste posts worden van Facebook en Instagram verwijderd en de campagne gaat terug naar concept.",
     "igManualDelete": {
       "title": "Instagram-post staat nog live",
-      "body": "We konden de Facebook-post verwijderen, maar Instagram staat geen automatisch verwijderen toe via de API. Verwijder de post zelf in Instagram.",
+      "body": "Het verwijderen van de Instagram-post is niet gelukt. Haal hem zelf weg in Instagram om zeker te weten dat hij offline is.",
       "open": "Open in Instagram"
     },
     "deleteConfirm": {
@@ -1068,12 +1068,27 @@
     },
     "igStopPopup": {
       "title": "Campagne stoppen?",
-      "body": "De campagne gaat terug naar Concept. Een eventuele Facebook-post wordt automatisch verwijderd.",
-      "noticeTitle": "Instagram-post staat nog live",
-      "noticeBody": "Instagram laat niet toe een post via de koppeling te verwijderen. Haal 'm zelf weg in de Instagram-app.",
-      "open": "Open in Instagram",
+      "body": "De campagne gaat terug naar Concept en de geplaatste posts worden van Facebook en Instagram verwijderd.",
+      "doneTitle": "Campagne gestopt",
+      "doneTitlePartial": "Campagne gestopt, maar let op",
+      "doneBody": "De campagne staat weer op Concept.",
+      "removed": {
+        "facebook": "Facebook-post verwijderd",
+        "instagram": "Instagram-post verwijderd"
+      },
+      "failed": {
+        "facebook": "Facebook-post kon niet verwijderd worden",
+        "instagram": "Instagram-post kon niet verwijderd worden"
+      },
+      "reconnectTitle": "Koppeling mist rechten",
+      "reconnectBody": "Om posts te kunnen verwijderen heeft Filly extra toestemming nodig. Verbind Facebook en Instagram opnieuw; daarna lukt verwijderen wel.",
+      "reconnectCta": "Naar koppelingen",
+      "noticeTitle": "Post staat nog live",
+      "noticeBody": "Het verwijderen is niet gelukt. Haal de post zelf weg om zeker te weten dat hij offline is.",
+      "open": "Open de post",
       "cancel": "Annuleren",
-      "confirm": "Stop campagne"
+      "confirm": "Stop campagne",
+      "close": "Sluiten"
     },
     "tooltips": {
       "finishMail": "Mail is al verstuurd, campagne afronden.",

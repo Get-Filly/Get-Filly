@@ -26,7 +26,7 @@
 // versies ~2 jaar na release. Houd dit gelijk aan de versie in het
 // Meta-dashboard (App → Instellingen → Geavanceerd → API-versie).
 // Override via env als je bumpt.
-export const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION ?? "v21.0";
+export const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION ?? "v23.0";
 
 // Scopes die nodig zijn om namens de zaak te posten op Facebook + Instagram.
 //   - pages_show_list           : lijst van FB-pagina's die de gebruiker beheert
@@ -34,6 +34,12 @@ export const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION ?? "v21.0";
 //   - pages_manage_posts        : posts publiceren op de FB-pagina
 //   - instagram_basic           : het aan de pagina gekoppelde IG-account lezen
 //   - instagram_content_publish : posts publiceren op het IG-account
+//   - instagram_manage_contents : een geplaatste IG-post weer VERWIJDEREN
+//     (DELETE /{ig-media-id}). Zonder deze scope kan Instagram alleen
+//     publiceren en blijft een gestopte campagne live staan; de eigenaar
+//     moest 'm dan handmatig in de app weghalen. Let op: een koppeling
+//     die vóór 2026-09-25 is gelegd heeft deze scope NIET — die moet
+//     opnieuw verbonden worden voordat verwijderen werkt.
 //   - business_management        : Business-assets (pagina's/IG) koppelen
 export const META_SCOPES = [
   "pages_show_list",
@@ -41,6 +47,7 @@ export const META_SCOPES = [
   "pages_manage_posts",
   "instagram_basic",
   "instagram_content_publish",
+  "instagram_manage_contents",
   "business_management",
 ] as const;
 

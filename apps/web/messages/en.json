@@ -929,10 +929,10 @@
       "mailAction": "{count, plural, one {the email will be sent immediately to all opted-in guests} other {# emails will be sent immediately to all opted-in guests}}",
       "socialAction": "{count, plural, one {the social post will be published immediately on Facebook/Instagram} other {# social posts will be published immediately on Facebook/Instagram}}"
     },
-    "stopConfirm": "Are you sure you want to stop this campaign? The Facebook post will be deleted and the campaign will go back to draft. Any Instagram post you will need to delete manually in the Instagram app, because Instagram does not allow deleting via the API.",
+    "stopConfirm": "Are you sure you want to stop this campaign? The published posts will be deleted from Facebook and Instagram and the campaign will go back to draft.",
     "igManualDelete": {
       "title": "Instagram post is still live",
-      "body": "We were able to delete the Facebook post, but Instagram does not allow deleting via the API. Please remove the post yourself in Instagram.",
+      "body": "Deleting the Instagram post failed. Remove it yourself in Instagram to be sure it is offline.",
       "open": "Open in Instagram"
     },
     "deleteConfirm": {
@@ -1068,12 +1068,27 @@
     },
     "igStopPopup": {
       "title": "Stop campaign?",
-      "body": "The campaign goes back to draft. Any Facebook post is deleted automatically.",
-      "noticeTitle": "Instagram post is still live",
-      "noticeBody": "Instagram does not allow deleting a post through the connection. Remove it yourself in the Instagram app.",
-      "open": "Open in Instagram",
+      "body": "The campaign moves back to Draft and the published posts are deleted from Facebook and Instagram.",
+      "doneTitle": "Campaign stopped",
+      "doneTitlePartial": "Campaign stopped, but please check",
+      "doneBody": "The campaign is back in Draft.",
+      "removed": {
+        "facebook": "Facebook post deleted",
+        "instagram": "Instagram post deleted"
+      },
+      "failed": {
+        "facebook": "Facebook post could not be deleted",
+        "instagram": "Instagram post could not be deleted"
+      },
+      "reconnectTitle": "Connection is missing permissions",
+      "reconnectBody": "Filly needs extra permission to delete posts. Reconnect Facebook and Instagram, and deleting will work.",
+      "reconnectCta": "Go to connections",
+      "noticeTitle": "Post is still live",
+      "noticeBody": "Deleting failed. Remove the post yourself to be sure it is offline.",
+      "open": "Open the post",
       "cancel": "Cancel",
-      "confirm": "Stop campaign"
+      "confirm": "Stop campaign",
+      "close": "Close"
     },
     "tooltips": {
       "finishMail": "Email has already been sent, finish the campaign.",

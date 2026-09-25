@@ -48,6 +48,17 @@ eerste twee kan Claude niet zelf doen.
 - [ ] **WAF / Vercel Firewall.** De rem per IP (mig 0076) stopt één bron die
       doorramt, geen gedistribueerde aanval.
 
+- [ ] **`instagram_manage_contents` door Meta App Review.** De scope is
+      toegevoegd (2026-09-25) zodat een gestopte campagne de Instagram-post
+      echt verwijdert. In Development Mode werkt dat meteen voor accounts mét
+      een rol in de app — genoeg om de screencast op te nemen — maar voor
+      klanten moet de scope goedgekeurd zijn. **Controleer ook of
+      `META_GRAPH_VERSION` mee moet**: de default staat nu op v23.0; geeft Meta
+      "Unknown path components" op een delete, zet 'm dan een versie hoger.
+- [ ] **Bestaande Meta-koppelingen opnieuw leggen.** Een koppeling van vóór
+      25 september heeft de nieuwe scope niet. Verwijderen faalt dan met een
+      permissiefout; de app zegt dat ook en linkt naar de koppelingen-pagina.
+
 ### Wat deze week is afgerond
 
 - [x] Rustige momenten variëren per datum (weer, evenementen, feestdagen) +
@@ -174,7 +185,11 @@ website-analyzer (tekens, onboarding).
 Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d26ed) heeft `/campagnes/[id]` één gedeelde detail-view (status-aware) die identiek is aan `/voorstel/[id]`. Mig 0041 + 0042 zijn live, smart-detect op bundle-API werkt, 5 gedeelde componenten in `_components/campaign-detail/`. Hieronder de openstaande punten uit de data-analyst-review.
 
 **Bugs (urgent):**
-- [ ] **IG "handmatig verwijderen"-label ook op de overzichtskaart** (P3/polish, 2026-06-25) — de "Instagram-post staat nog live → Open in Instagram"-kaart staat nu alleen op de campagne-detailpagina. Op het kanban-overzicht zie je 'm niet (alleen de Stop-bevestiging waarschuwt). Toevoegen: `ig_pending_manual_delete_url` meesturen in de campagnes-lijst-API (`fetchCampaigns`, naast `body_preview`) + een klein klikbaar "Instagram nog verwijderen → open"-label op de concept-kaart. Dan ziet de eigenaar de link ook zonder de campagne te openen.
+- [x] ~~**IG "handmatig verwijderen"-label ook op de overzichtskaart**~~
+      (vervallen 2026-09-25) — Instagram-posts worden nu gewoon verwijderd bij
+      het stoppen, dus het label is geen standaardgeval meer. Blijft alleen
+      staan als vangnet wanneer verwijderen écht mislukt, en dan toont de
+      stop-popup het meteen.
 - [x] ~~**"Activeer nu" stuurt mail niet daadwerkelijk**~~ (2026-05-28) — `handleStatusChange('actief')` op `/campagnes/[id]` roept nu `sendCampaign(channelId, 'all_opted_in')` aan voor elke mail-channel met `sent_count=0`, dáárna pas de status-flip. Volgorde send-first → status-flip zorgt dat status op concept/ingepland blijft als de send faalt (geen 'actief zonder mail'-toestand). `sent_count>0` = defensief skip tegen dubbele bezorging. Confirm-tekst aangepast aan single/multi/no-mail-bundle.
 - [x] ~~**InhoudCard `originalIdxRef` reset niet**~~ (✅ 2026-06-25, `ee404d7`) — reset nu in een effect gekeyd op `sectionId`; ✕ revert niet meer naar de variant van de vorige campagne.
 - [~] **Multi-channel status-overgang heeft geen rollback** — (✅ deels 2026-06-25, `ee404d7`) de activeer-flow flipt nu per kanaal de status direct na zijn eigen geslaagde send/publish, met fout-attributie → geen "alles-of-niets-Promise.all" meer en geslaagde kanalen blijven actief bij een deelfout. **Rest open:** een echt transactioneel `PATCH /campaigns/bundle/:id/status`-endpoint (DB-niveau atomair over alle siblings).
