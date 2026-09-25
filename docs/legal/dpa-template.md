@@ -116,7 +116,7 @@ Get Filly treft passende technische en organisatorische maatregelen om persoonsg
 - Periodieke security-reviews en patch-management
 - Backup-strategie (Supabase Point-in-Time-Recovery)
 
-Een actuele lijst van maatregelen is beschikbaar in [docs/security-measures.md](../security-measures.md) (op aanvraag).
+Een actuele lijst van technische en organisatorische maatregelen is op aanvraag beschikbaar bij Get Filly.
 
 ### 6.4 Bijstand aan Klant
 Get Filly verleent op verzoek redelijke bijstand aan Klant bij:
@@ -201,7 +201,7 @@ Indien een betrokkene zich rechtstreeks tot Get Filly wendt, stuurt Get Filly he
 - **Actieve klantdata**: zolang de Hoofdovereenkomst loopt
 - **Audit-log**: 7 jaar (boekhoudkundige bewaarplicht)
 - **Mail-send-history (`campaign_sends`)**: 2 jaar voor reporting + bounce-tracking
-- **Anonieme campagne-benchmarks**: onbeperkt (geen persoonsgegevens — zie [docs/data-classification.md](../data-classification.md))
+- **Anonieme campagne-benchmarks**: onbeperkt (geen persoonsgegevens, zie artikel 8)
 - **Backups**: zoals Supabase point-in-time-recovery — 7 dagen voor de huidige snapshot
 
 Na beëindiging van de Hoofdovereenkomst gelden artikel 13.
@@ -236,7 +236,7 @@ Bij beëindiging van de Hoofdovereenkomst — om welke reden dan ook — biedt G
 Na die 30 dagen worden alle persoonsgegevens van Klant uit de productie-omgeving van Get Filly verwijderd, inclusief bij sub-verwerkers, behoudens:
 
 - Wat wettelijk bewaard moet worden (bv. boekhouding)
-- Geanonimiseerde benchmarks die niet herleidbaar zijn (zie [docs/data-classification.md](../data-classification.md))
+- Geanonimiseerde benchmarks die niet herleidbaar zijn
 - Backups: maximaal 7 dagen na de laatste backup-creatie
 
 ### 13.2 Bevestiging

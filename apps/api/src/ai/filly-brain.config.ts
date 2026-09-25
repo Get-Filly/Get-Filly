@@ -7,18 +7,18 @@
  * waarde, dan past Filly's gedrag automatisch aan zonder dat we
  * door losse system-prompts moeten zoeken.
  *
- * Vertaalt het Word-document `docs/filly-brein.docx` (v1, 24 hfst)
+ * Vertaalt het Word-document `docs/werking/filly-brein.docx` (v1, 24 hfst)
  * 1-op-1 naar code. Wanneer er een conflict ontstaat tussen doc en
  * deze file: de doc is leading; pas de file aan, niet andersom.
  *
  * Timing (bestTimes/leadTime per kanaal) is per 2026-06-11 bijgewerkt
  * vanuit het social-posting-brein-document
- * (`docs/social-posting-brein.docx`, onderzoeksgedreven:
+ * (`docs/werking/social-posting-brein.docx`, onderzoeksgedreven:
  * Buffer/Sprout/MailerLite/Rabobank e.a.). Externe timing-factoren
  * (weer/feestdagen/loondagen/seizoenen, hfst 4 van dat doc) leven in
  * `timing-factors.ts` — deterministisch berekend, niet aan Claude
  * gevraagd. Leesbaar lengte-hoofdstuk genereren: `pnpm brein:doc` →
- * `docs/social-posting-brein-kanalen.md`.
+ * `docs/werking/social-posting-brein-kanalen.md`.
  *
  * Gebruik:
  *   import { CHANNEL_RULES, formatChannelRulesForPrompt } from './filly-brain.config';

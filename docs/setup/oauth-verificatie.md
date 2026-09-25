@@ -8,8 +8,8 @@ flow live werkt (Google) of de business-verificatie rond is (Meta).
 > beoordelen in het Engels. De demovideo mag Engels zijn, of Nederlands met
 > Engelse ondertiteling/samenvatting.
 
-Zie ook: [google-business-setup.md](google-business-setup.md) (Places-API-setup)
-en [google-business-approval.md](google-business-approval.md) (API-toegang fase C).
+Zie ook: [google-business-setup.md](../archief/google-business-setup.md) (Places-API-setup)
+en [google-business-approval.md](../archief/google-business-approval.md) (API-toegang fase C).
 
 ---
 

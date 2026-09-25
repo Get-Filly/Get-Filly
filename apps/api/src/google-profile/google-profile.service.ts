@@ -68,7 +68,7 @@ export class GoogleProfileService {
     const key = config.get<string>('GOOGLE_PLACES_API_KEY');
     if (!key) {
       throw new Error(
-        'GOOGLE_PLACES_API_KEY ontbreekt in env. Zie docs/google-business-setup.md.',
+        'GOOGLE_PLACES_API_KEY ontbreekt in env. Zie docs/archief/google-business-setup.md.',
       );
     }
     this.apiKey = key;

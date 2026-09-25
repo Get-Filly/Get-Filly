@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get-Filly prototype — dashboard v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* shell: warm wit i.p.v. beige */
+    --bg: #FBFAF7; --white: #FFFFFF; --surface: #F1F4F0;
+    --border: #E3E7E1; --hair: #EDF1EA;
+    --text: #161915; --text-soft: #4C5450; --text-muted: #7B857D;
+    --tl: #C6CCC3;
+
+    /* merk-accent: het huisgroen uit tokens.css */
+    --brand: #1F4A2D; --brand-deep: #0E2B17; --brand-soft: #DCEAE1;
+
+    /* één groene familie: mid = voorspeld, diep = actueel,
+       licht = ruimte tot normaal. Geen tweede kleurtoon in de grafiek. */
+    --exp: #8FC4A8; --act: #1E5A3C; --room: #D7EDE0; --g-ink: #0B2416;
+    --grid: #ECF1EE;
+    --tick: #161915; --hot: #E0762B;
+    --kans-top: #2F6B48; --kans-bot: #2A6B47; --marker: #161915;
+
+    --r: 8px; --r-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0F130F; --white: #161B16; --surface: #1D231C;
+      --border: #2A322A; --hair: #232A23;
+      --text: #ECEFEA; --text-soft: #ADB5AB; --text-muted: #828B80;
+      --tl: #3B443A;
+      --brand: #4E8C63; --brand-deep: #6FAE84; --brand-soft: #1B3623;
+      --exp: #3E7A5A; --act: #8FD9AE; --room: #24402F; --g-ink: #BFE3CE;
+      --grid: #1F2A23;
+      --tick: #ECEFEA; --hot: #E9974F;
+      --kans-top: #5EA97C; --kans-bot: #3F8358; --marker: #ECEFEA;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* ---------- topbar ---------- */
+  .topbar {
+    flex: none; height: 52px; display: flex; align-items: center; gap: 14px;
+    padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--white);
+  }
+  .tb-title { font-size: 14px; font-weight: 600; letter-spacing: -.1px; }
+  .tb-biz { font-size: 13px; color: var(--text-muted); }
+  .tb-biz::before { content: "/"; margin-right: 9px; color: var(--tl); }
+  .protonote { font-size: 11px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; }
+  .tb-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .icobtn { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid transparent; border-radius: var(--r); background: none; color: var(--text-muted); }
+  .icobtn:hover { background: var(--surface); color: var(--text); }
+  .avatar {
+    width: 27px; height: 27px; border-radius: 999px;
+    background: linear-gradient(140deg, var(--brand), var(--brand-deep));
+    color: #fff; font-size: 11px; font-weight: 600; display: grid; place-items: center; margin-left: 4px;
+  }
+  .protobar { display: flex; align-items: center; gap: 2px; padding: 2px; background: var(--surface); border-radius: var(--r); margin-right: 8px; }
+  .protobar span { font-size: 10px; font-weight: 500; letter-spacing: .4px; text-transform: uppercase; color: var(--text-muted); padding: 0 6px; }
+  .protobar button { border: 0; background: none; border-radius: 6px; padding: 4px 9px; font-size: 12px; font-weight: 500; color: var(--text-soft); }
+  .protobar button[aria-pressed="true"] { background: var(--white); color: var(--text); box-shadow: 0 1px 2px rgba(20,28,20,.10); font-weight: 600; }
+
+  /* ---------- metriek-strip ---------- */
+  .metrics { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); background: var(--white); }
+  .m { padding: 11px 20px 12px; border-left: 1px solid var(--hair); }
+  .m:first-child { border-left: 0; }
+  .m-lab { font-size: 10.5px; font-weight: 500; letter-spacing: .4px; text-transform: uppercase; color: var(--text-muted); }
+  .m-row { display: flex; align-items: baseline; gap: 8px; margin-top: 3px; }
+  .m-val { font-size: 21px; font-weight: 600; letter-spacing: -.3px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .m-meta { font-size: 12px; color: var(--text-muted); }
+  .m-up { font-weight: 600; color: var(--brand); }
+  .m-bar { height: 4px; border-radius: 999px; background: var(--surface); margin-top: 8px; overflow: hidden; max-width: 190px; }
+  .m-bar > i { display: block; height: 4px; border-radius: 999px; background: var(--brand); }
+  .m-bar.v > i { background: var(--act); }
+  .m.empty .m-val { font-size: 14px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+  .m-link { font-size: 12px; font-weight: 600; color: var(--brand); background: none; border: 0; padding: 0; text-align: left; margin-top: 5px; }
+  .m-link:hover { text-decoration: underline; }
+
+  /* ---------- body ---------- */
+  .body { flex: 1; min-height: 0; display: flex; }
+  .work { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .work-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 16px 20px 4px; }
+  .work-foot { flex: none; padding: 10px 20px 12px; }
+  .work-note { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 8px; }
+  .rail { flex: none; width: 396px; border-left: 1px solid var(--border); background: var(--white); display: flex; flex-direction: column; min-height: 0; transition: width .18s ease; }
+  .body[data-variant="b"] .rail { width: 52px; }
+  .body[data-variant="b"] .rail-inner { display: none; }
+  .body[data-variant="b"] .rail-tab { display: flex; }
+  .rail-tab { display: none; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0; }
+  .rail-tab .avatar { margin: 0; width: 28px; height: 28px; }
+  .rail-tab .vert { writing-mode: vertical-rl; font-size: 11.5px; font-weight: 500; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); }
+  .rail-inner { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+
+  /* ---------- inzicht ---------- */
+  .insight { flex: none; display: flex; align-items: flex-start; gap: 12px; padding: 0 2px 14px; }
+  .insight-mark { flex: none; width: 6px; align-self: stretch; border-radius: 999px; margin-top: 3px; background: var(--brand); }
+  .insight.flat .insight-mark { background: var(--act); }
+  .ins-h { font-size: 19px; font-weight: 600; letter-spacing: -.25px; line-height: 1.3; }
+  .ins-h em { font-style: normal; color: var(--brand); }
+  .ins-sub { font-size: 13px; color: var(--text-soft); margin-top: 3px; }
+  .ins-sub .sep { color: var(--tl); margin: 0 7px; }
+  .ins-sub .hot { color: var(--marker); font-weight: 600; }
+
+  /* ---------- paneel ---------- */
+  .panel { flex: 1 1 auto; min-height: 380px; display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); }
+  .panel-head { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--hair); }
+  .switch { display: flex; gap: 2px; padding: 2px; background: var(--surface); border-radius: var(--r); }
+  .switch button { border: 0; background: none; border-radius: 6px; padding: 5px 13px; font-size: 12.5px; font-weight: 500; color: var(--text-soft); }
+  .switch button:hover { color: var(--text); }
+  .switch button[aria-pressed="true"] { background: var(--white); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(20,28,20,.10); }
+  .daterow { display: flex; align-items: center; gap: 4px; }
+  .nav { width: 26px; height: 26px; border: 1px solid var(--border); background: var(--white); border-radius: 6px; display: grid; place-items: center; color: var(--text-soft); font-size: 13px; }
+  .nav:hover { border-color: var(--brand); color: var(--brand); }
+  .ph-range { font-size: 13px; font-weight: 600; min-width: 208px; text-align: center; font-variant-numeric: tabular-nums; }
+  .ph-range small { font-weight: 400; color: var(--text-muted); }
+  .quick { display: flex; gap: 4px; }
+  .quick button { border: 1px solid var(--border); background: var(--white); border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--text-soft); }
+  .quick button:hover { border-color: var(--brand); color: var(--brand); }
+  .quick button[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-deep); font-weight: 600; }
+  @media (max-width: 1400px) { .sync { display: none; } }
+  .sync { margin-left: auto; font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+  .sync i { width: 6px; height: 6px; border-radius: 999px; background: var(--brand); display: block; box-shadow: 0 0 0 3px var(--brand-soft); }
+
+  /* ---------- grafiek ---------- */
+  .chart { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 14px 0; }
+  .chart-head { flex: none; display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+  .chart-title { font-size: 13px; font-weight: 600; }
+  .legend { margin-left: auto; display: flex; gap: 13px; font-size: 11.5px; font-weight: 400; color: var(--text-soft); align-items: center; }
+  .legend span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .sw { width: 11px; height: 11px; border-radius: 3px; display: block; }
+  .sw.exp { background: var(--exp); }
+  .sw.expline { height: 0; border-top: 2px solid var(--g-ink); border-radius: 0; width: 14px; }
+  .sw.act { background: var(--act); }
+  .sw.room { background: var(--room); }
+  .sw.room { background: var(--room-kans); }
+  .plot { flex: 1; min-height: 220px; }
+  .plot svg { width: 100%; height: 100%; display: block; }
+  .plot [data-iso] { cursor: pointer; }
+  .chart-foot { flex: none; font-size: 11.5px; font-weight: 400; color: var(--text-muted); padding: 7px 0 10px; }
+
+  /* ---------- waarom-vak ---------- */
+  .why { flex: none; margin-top: 12px; background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px 16px 13px; }
+  .why-head { font-size: 13px; font-weight: 600; margin-bottom: 9px; }
+  .why-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 22px; }
+  .wrow { display: flex; gap: 9px; align-items: baseline; }
+  .wdir { flex: none; width: 16px; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--text-muted); }
+  .wdir.down { color: var(--brand); }
+  .wdir.up { color: var(--marker); }
+  .wrow .wk { font-size: 12.5px; color: var(--text-muted); }
+  .wrow .wv { font-size: 12.5px; }
+  .why-foot { font-size: 11.5px; color: var(--text-muted); margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--hair); }
+  .why-foot b { font-weight: 600; color: var(--text-soft); }
+
+  /* ---------- acties ---------- */
+  .actions { flex: none; display: flex; gap: 8px; }
+  .btn {
+    border: 0; border-radius: var(--r); padding: 9px 16px; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-deep)); color: #fff;
+    box-shadow: 0 1px 2px rgba(15,157,88,.28);
+  }
+  .btn:hover { filter: brightness(1.07); }
+  .btn.ghost { background: none; border: 1px solid var(--border); color: var(--text-soft); box-shadow: none; }
+  .btn.ghost:hover { border-color: var(--brand); color: var(--brand); filter: none; }
+  .btn.wide { flex: 1; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; filter: none; }
+  .work-foot .btn { height: 44px; }
+
+  /* ---------- filly-rail ---------- */
+  .rail-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+  .rh-name { font-size: 13px; font-weight: 600; }
+  .rh-sub { font-size: 11.5px; color: var(--text-muted); }
+  .rail-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 4px; }
+  .msg { font-size: 13.5px; }
+  .msg-body p { margin: 0 0 8px; }
+  .msg-body .lead { font-weight: 600; }
+  .chip-done { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; border: 1px solid var(--brand-soft); background: var(--brand-soft); border-radius: 999px; padding: 3px 10px; color: var(--brand-deep); }
+  .chip-done b { font-weight: 600; }
+  .steplab { font-size: 10.5px; font-weight: 500; letter-spacing: .4px; text-transform: uppercase; color: var(--text-muted); margin: 16px 0 7px; display: flex; gap: 8px; align-items: baseline; }
+  .steplab .hint { font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 11.5px; color: var(--tl); }
+  .segs { display: flex; gap: 6px; }
+  .seg { flex: 1; border: 1px solid var(--border); background: var(--white); border-radius: var(--r); padding: 7px 4px; font-size: 12.5px; font-weight: 500; text-align: center; position: relative; }
+  .seg:hover { border-color: var(--brand); }
+  .seg.dead { color: var(--text-muted); background: var(--bg); }
+  .seg[aria-pressed="true"] { background: linear-gradient(135deg, var(--brand), var(--brand-deep)); border-color: transparent; color: #fff; font-weight: 600; }
+  .seg .qd { position: absolute; top: 4px; right: 5px; width: 5px; height: 5px; border-radius: 999px; background: var(--brand); }
+  .seg[aria-pressed="true"] .qd { background: #fff; }
+  .primaries { display: flex; flex-direction: column; gap: 7px; }
+  .pbtn {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; border: 0;
+    background: linear-gradient(135deg, var(--brand), var(--brand-deep)); color: #fff;
+    border-radius: var(--r); padding: 10px 12px; font-size: 13px; font-weight: 600;
+  }
+  .pbtn:hover { filter: brightness(1.07); }
+  .pbtn .tagr { margin-left: auto; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; opacity: .85; }
+  .pbtn.sec { background: none; color: var(--text); border: 1px solid var(--border); font-weight: 500; }
+  .pbtn.sec:hover { border-color: var(--brand); filter: none; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .cchip { border: 1px solid var(--border); background: var(--white); border-radius: var(--r); padding: 8px 10px; font-size: 12.5px; text-align: left; display: flex; align-items: center; gap: 7px; }
+  .cchip:hover { border-color: var(--brand); }
+  .cchip svg { flex: none; color: var(--text-muted); }
+  .rail-foot { flex: none; padding: 10px 16px 12px; border-top: 1px solid var(--hair); }
+  .composer { display: flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); padding: 7px 10px; }
+  .composer input { flex: 1; border: 0; background: none; font: inherit; font-size: 13px; color: var(--text); outline: none; }
+  .composer input::placeholder { color: var(--text-muted); }
+  .send { width: 28px; height: 28px; border-radius: 6px; border: 0; background: linear-gradient(135deg, var(--brand), var(--brand-deep)); color: #fff; display: grid; place-items: center; }
+  .disc { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 8px; }
+  .disc a { color: var(--text-muted); }
+
+  .askbar { display: none; }
+  .body[data-variant="b"] .askbar { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .body[data-variant="b"] .work-note { display: none; }
+  .askbar .composer { flex: 1; }
+  .askbar .btn { height: 44px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="tb-title">Dashboard</span>
+  <span class="tb-biz">De Kaap · Rotterdam</span>
+  <span class="protonote">prototype · geen echte data</span>
+  <div class="tb-right">
+    <div class="protobar">
+      <span>proto</span>
+      <button id="vA" aria-pressed="true">A · rail</button>
+      <button id="vB" aria-pressed="false">B · breed</button>
+    </div>
+    <button class="icobtn" title="Zoeken" aria-label="Zoeken">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="icobtn" title="Meldingen" aria-label="Meldingen">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15V10a6 6 0 10-12 0v5l-1.5 3h15z"/><path d="M10 21h4"/></svg>
+    </button>
+    <div class="avatar">FK</div>
+  </div>
+</header>
+
+<div class="metrics">
+  <div class="m">
+    <div class="m-lab">Rustige momenten benut</div>
+    <div class="m-row"><span class="m-val">1 / 6</span><span class="m-meta"><span class="m-up">+1</span> vs vorige maand</span></div>
+    <div class="m-bar"><i style="width:17%"></i></div>
+  </div>
+  <div class="m">
+    <div class="m-lab">Lopende campagnes</div>
+    <div class="m-row"><span class="m-val">5</span><span class="m-meta">2 publiceren deze week</span></div>
+    <div class="m-bar v"><i style="width:62%"></i></div>
+  </div>
+  <div class="m empty">
+    <div class="m-lab">Uitingen deze maand</div>
+    <div class="m-row"><span class="m-val">Nog geen uitingen</span></div>
+    <button class="m-link">Maak je eerste →</button>
+  </div>
+  <div class="m empty">
+    <div class="m-lab">Vindbaarheid</div>
+    <div class="m-row"><span class="m-val">Nog niet gemeten</span></div>
+    <button class="m-link">Verbind Google →</button>
+  </div>
+</div>
+
+<main class="body" id="body" data-variant="a">
+  <section class="work">
+   <div class="work-scroll">
+    <div class="insight" id="insight">
+      <div class="insight-mark"></div>
+      <div>
+        <div class="ins-h" id="insH">—</div>
+        <div class="ins-sub" id="insSub"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="switch" id="switch">
+          <button data-view="dag">Dag</button>
+          <button data-view="week">Week</button>
+          <button data-view="maand">Maand</button>
+        </div>
+        <div class="daterow">
+          <button class="nav" id="prev" aria-label="Vorige">‹</button>
+          <span class="ph-range" id="range">—</span>
+          <button class="nav" id="next" aria-label="Volgende">›</button>
+        </div>
+        <div class="quick" id="quick"></div>
+        <span class="sync"><i></i> 2 min geleden</span>
+      </div>
+
+      <div class="chart">
+        <div class="chart-head">
+          <span class="chart-title" id="chartTitle">—</span>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="plot" id="plot"></div>
+        <div class="chart-foot" id="chartFoot"></div>
+      </div>
+    </div>
+
+    <div class="why">
+      <div class="why-head" id="whyHead">Waarom deze dag zo loopt</div>
+      <div class="why-rows" id="whyRows"></div>
+      <div class="why-foot" id="whyFoot"></div>
+    </div>
+   </div>
+
+    <div class="work-foot">
+    <div class="actions">
+      <button class="btn wide" id="cta">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span id="ctaLabel">Maak een campagne</span>
+      </button>
+      <button class="btn ghost" id="allChances">Alle kansen</button>
+    </div>
+    <div class="askbar">
+      <div class="composer">
+        <input placeholder="Vraag Filly iets over deze dag…" />
+        <button class="send" aria-label="Versturen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 8 6 8z"/></svg>
+        </button>
+      </div>
+      <button class="btn ghost" id="openRail">Open Filly →</button>
+    </div>
+    <div class="work-note">Drukte komt uit je Google-patroon. Bijgewerkt 2 min geleden.</div>
+    </div>
+  </section>
+
+  <aside class="rail">
+    <div class="rail-tab">
+      <div class="avatar">F</div>
+      <span class="vert">Filly</span>
+    </div>
+
+    <div class="rail-inner">
+      <div class="rail-head">
+        <div class="avatar" style="margin:0">F</div>
+        <div>
+          <div class="rh-name">Filly</div>
+          <div class="rh-sub">Marketing-assistent</div>
+        </div>
+        <div class="quick" style="margin-left:auto"><button>Gesprekken</button></div>
+      </div>
+
+      <div class="rail-scroll">
+        <div class="msg">
+          <div class="msg-body">
+            <p class="lead">Waar kan ik je mee helpen?</p>
+            <p><span class="chip-done">✓ <b id="chipDay">—</b> <span style="opacity:.7">wijzig</span></span></p>
+            <p style="color:var(--text-soft)">Waarop wil je inspelen?</p>
+          </div>
+        </div>
+
+        <div class="steplab">Welk dagdeel? <span class="hint">● = kans volgens de grafiek</span></div>
+        <div class="segs" id="segs"></div>
+
+        <div class="steplab">Hoe pakken we het aan?</div>
+        <div class="primaries">
+          <button class="pbtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>
+            Laat Filly de sterkste hoek kiezen
+            <span class="tagr">snelste</span>
+          </button>
+          <button class="pbtn sec">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg>
+            Bedenk er zelf een
+          </button>
+        </div>
+
+        <div class="steplab">Of kies een hoek</div>
+        <div class="grid2">
+          <button class="cchip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v8a3 3 0 006 0V3M8 11v10M19 3c-2 3-2 6 0 9v9"/></svg> Gerecht of drankje</button>
+          <button class="cchip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-8-8 8-8h8z"/><circle cx="15" cy="9" r="1.4"/></svg> Deal of aanbieding</button>
+          <button class="cchip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg> Sfeer &amp; beleving</button>
+          <button class="cchip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0M17 11a3 3 0 100-6"/></svg> Voor een doelgroep</button>
+          <button class="cchip" style="grid-column:1/-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg> Iets anders</button>
+        </div>
+      </div>
+
+      <div class="rail-foot">
+        <div class="composer">
+          <input placeholder="Vraag Filly iets…" />
+          <button class="send" aria-label="Versturen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 8 6 8z"/></svg>
+          </button>
+        </div>
+        <div class="disc">Filly is een AI-chat en kan fouten maken. <a href="#">Geef ons feedback</a></div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var OPEN = 12, CLOSE = 23;
+  var DAY_NAMES = ["ma","di","wo","do","vr","za","zo"];
+  var DAY_FULL = ["Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag","Zondag"];
+  var MONTHS = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+  var MONTHS_FULL = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+
+  var SEGMENTS = [
+    { key: "lunch",  label: "lunch",  from: 12, to: 14 },
+    { key: "middag", label: "middag", from: 15, to: 17 },
+    { key: "diner",  label: "diner",  from: 18, to: 20 },
+    { key: "avond",  label: "avond",  from: 21, to: 23 }
+  ];
+  var AMP = [
+    { lunch: 22, diner: 44, avond: 14 },
+    { lunch: 26, diner: 52, avond: 16 },
+    { lunch: 40, diner: 62, avond: 20 },
+    { lunch: 44, diner: 74, avond: 30 },
+    { lunch: 52, diner: 96, avond: 62 },
+    { lunch: 66, diner: 100, avond: 74 },
+    { lunch: 72, diner: 70, avond: 24 }
+  ];
+  var SPECIAL = {};
+  var HORIZON = 21;
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function addDays(d, n) { var x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() + n); return x; }
+  function dmShort(d) { return d.getDate() + " " + MONTHS[d.getMonth()]; }
+  function daysOut(d) { return Math.round((d - today) / 86400000); }
+  function median(arr) {
+    var s = arr.slice().sort(function (a, b) { return a - b; });
+    var m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function noise(seed) { var x = Math.sin(seed * 12.9898) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; }
+  function bump(h, c, w, a) { return a * Math.exp(-Math.pow(h - c, 2) / w); }
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  function expectedCurve(wd) {
+    var a = AMP[wd], out = [];
+    for (var h = 0; h < 24; h++) {
+      var v = bump(h, 13, 2.1, a.lunch) + bump(h, 20, 3.0, a.diner) + bump(h, 22.3, 2.2, a.avond);
+      out.push(Math.max(0, Math.min(100, Math.round(v))));
+    }
+    return out;
+  }
+  function actualCurve(exp, seed) {
+    var out = [], drift = noise(seed) * 0.14;
+    for (var h = 0; h < 24; h++) {
+      if (exp[h] < 3) { out.push(exp[h]); continue; }
+      out.push(Math.max(0, Math.min(100, Math.round(exp[h] * (1 + drift + noise(seed * 7 + h) * 0.12)))));
+    }
+    return out;
+  }
+
+  var WEEK_EXP = [0,1,2,3,4,5,6].map(expectedCurve);
+  function segMean(curve, sg) {
+    var t = 0, n = 0;
+    for (var h = sg.from; h <= sg.to; h++) { t += curve[h]; n++; }
+    return t / n;
+  }
+  function curveMean(curve) {
+    var t = 0, n = 0;
+    for (var h = OPEN; h <= CLOSE; h++) { t += curve[h]; n++; }
+    return t / n;
+  }
+  var SEG_NORMAL = SEGMENTS.map(function (sg) { return median(WEEK_EXP.map(function (c) { return segMean(c, sg); })); });
+  var HOUR_NORMAL = (function () {
+    var out = [];
+    for (var h = 0; h < 24; h++) out.push(median(WEEK_EXP.map(function (c) { return c[h]; })));
+    return out;
+  })();
+  var DAY_PEAK = Math.max.apply(null, WEEK_EXP.map(curveMean));
+  var DAY_NORMAL = median(WEEK_EXP.map(curveMean)) / DAY_PEAK * 100;
+
+  var TARGETABLE = 22, MIN_BELOW = 15;
+  function findChance(exp) {
+    var best = null;
+    SEGMENTS.forEach(function (sg, i) {
+      if (SEG_NORMAL[i] < TARGETABLE) return;
+      var mean = segMean(exp, sg);
+      var below = Math.round((1 - mean / SEG_NORMAL[i]) * 100);
+      if (below < MIN_BELOW) return;
+      if (!best || below > best.below) best = { key: sg.key, label: sg.label, from: sg.from, to: sg.to, below: below };
+    });
+    return best;
+  }
+  function strength(below) {
+    if (below >= 40) return { chance: "grote kans", phrase: "duidelijk rustiger" };
+    if (below >= 25) return { chance: "kans", phrase: "rustiger" };
+    return { chance: "kleine kans", phrase: "iets rustiger" };
+  }
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayIso = iso(today);
+  var nowHour = new Date().getHours();
+  SPECIAL[iso(addDays(today, 3))] = "Open Monumentendag";
+  SPECIAL[iso(addDays(today, 11))] = "Wijnfestival om de hoek";
+
+  function buildDay(date) {
+    var d0 = new Date(date); d0.setHours(0,0,0,0);
+    var wd = (d0.getDay() + 6) % 7;
+    var key = iso(d0);
+    var exp = WEEK_EXP[wd];
+    var isPast = key < todayIso, isToday = key === todayIso;
+    var act = null;
+    if (isPast || isToday) {
+      act = actualCurve(exp, d0.getDate() + wd * 3.7);
+      if (isToday) for (var h = 0; h < 24; h++) if (h > nowHour) act[h] = null;
+    }
+    var out = daysOut(d0);
+    return {
+      date: d0, iso: key, wd: wd, exp: exp, act: act,
+      isPast: isPast, isToday: isToday, isFuture: key > todayIso,
+      chance: (out >= 0 && out <= HORIZON) ? findChance(exp) : null,
+      beyondHorizon: out > HORIZON,
+      special: SPECIAL[key] || null
+    };
+  }
+  function dayLevel(d) {
+    var t = 0, n = 0;
+    for (var h = OPEN; h <= CLOSE; h++) {
+      var v = (d.act && d.act[h] !== null && d.act[h] !== undefined) ? d.act[h] : d.exp[h];
+      t += v; n++;
+    }
+    return t / n;
+  }
+  function dayIndex(d) { return dayLevel(d) / DAY_PEAK * 100; }
+  function hasMeasurement(d) {
+    if (!d.act) return false;
+    for (var h = OPEN; h <= CLOSE; h++) if (d.act[h] !== null && d.act[h] !== undefined) return true;
+    return false;
+  }
+  // Alleen het patroon, dus zonder metingen: dat is de verwachting voor die dag.
+  function expIndex(d) { return curveMean(d.exp) / DAY_PEAK * 100; }
+
+  // ---------- periode ----------
+  var view = "week";                 // dag | week | maand
+  var anchor = new Date(today);      // dag = die dag; week = eerste dag van het venster
+  var days = [], focus = null, focusIso = null;
+
+  function periodDays() {
+    var out = [], i;
+    if (view === "dag") return [buildDay(anchor)];
+    if (view === "week") { for (i = 0; i < 7; i++) out.push(buildDay(addDays(anchor, i))); return out; }
+    var y = anchor.getFullYear(), mo = anchor.getMonth();
+    var last = new Date(y, mo + 1, 0).getDate();
+    for (i = 1; i <= last; i++) out.push(buildDay(new Date(y, mo, i)));
+    return out;
+  }
+  function pickFocus(list) {
+    if (view === "dag") return list[0];
+    var chosen = list.filter(function (d) { return d.iso === focusIso; });
+    if (chosen.length) return chosen[0];
+    var withChance = list.filter(function (d) { return d.chance; })
+      .sort(function (a, b) { return b.chance.below - a.chance.below; });
+    if (withChance.length) return withChance[0];
+    var t = list.filter(function (d) { return d.iso === todayIso; });
+    return t.length ? t[0] : list[0];
+  }
+  function nextChanceAfter(date) {
+    for (var i = 1; i <= HORIZON; i++) {
+      var d = buildDay(addDays(date, i));
+      if (d.chance) return d;
+    }
+    return null;
+  }
+  function chancesAhead() {
+    var out = [];
+    for (var i = 0; i <= HORIZON; i++) {
+      var d = buildDay(addDays(today, i));
+      if (d.chance) out.push(d);
+    }
+    return out;
+  }
+  function span(c) { return c.from + ":00–" + (c.to + 1) + ":00"; }
+
+  // ---------- kop ----------
+  function renderHead() {
+    Array.prototype.forEach.call(document.querySelectorAll("#switch button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === view));
+    });
+
+    var label = "", note = "";
+    if (view === "dag") {
+      var d = days[0];
+      label = DAY_FULL[d.wd] + " " + d.date.getDate() + " " + MONTHS[d.date.getMonth()];
+      note = d.isToday ? "vandaag" : (d.isPast ? "afgelopen" : "");
+    } else if (view === "week") {
+      label = dmShort(days[0].date) + " – " + dmShort(days[6].date);
+      note = days[0].iso === todayIso ? "komende 7 dagen" : "";
+    } else {
+      label = MONTHS_FULL[anchor.getMonth()] + " " + anchor.getFullYear();
+      note = (anchor.getMonth() === today.getMonth() && anchor.getFullYear() === today.getFullYear()) ? "deze maand" : "";
+    }
+    document.getElementById("range").innerHTML = label + (note ? ' <small>· ' + note + "</small>" : "");
+
+    var q = document.getElementById("quick");
+    if (view === "dag") {
+      var opts = [{ n: 0, t: "Vandaag" }, { n: 1, t: "Morgen" }, { n: 2, t: "Overmorgen" }];
+      q.innerHTML = opts.map(function (o) {
+        return '<button data-jump="' + o.n + '" aria-pressed="' + (iso(addDays(today, o.n)) === days[0].iso) + '">' + o.t + "</button>";
+      }).join("");
+    } else {
+      q.innerHTML = '<button data-jump="0">Vandaag</button>';
+    }
+    Array.prototype.forEach.call(q.querySelectorAll("[data-jump]"), function (b) {
+      b.addEventListener("click", function () {
+        anchor = addDays(today, parseInt(b.getAttribute("data-jump"), 10));
+        focusIso = null;
+        renderAll();
+      });
+    });
+  }
+
+  // ---------- grafiek ----------
+  function renderChart() {
+    var host = document.getElementById("plot");
+    var W = Math.max(420, Math.round(host.clientWidth) || 900);
+    var H = Math.max(170, Math.round(host.clientHeight) || 250);
+    var L = 44, R = 14, T = 36, B = view === "dag" ? 48 : view === "week" ? 54 : 40;
+    var pw = W - L - R, ph = H - T - B, yMax = 100;
+
+    var items = [];
+    if (view === "dag") {
+      var d = days[0];
+      for (var h = OPEN; h <= CLOSE; h++) {
+        var a = d.act ? d.act[h] : null;
+        var measured = a !== null && a !== undefined;
+        var si = 0;
+        SEGMENTS.forEach(function (sg, k) { if (h >= sg.from && h <= sg.to) si = k; });
+        var targetable = SEG_NORMAL[si] >= TARGETABLE;
+        items.push({
+          value: measured ? a : d.exp[h],
+          expected: d.exp[h],
+          norm: targetable ? SEG_NORMAL[si] : null,
+          measured: measured, seg: si, targetable: targetable,
+          kans: !!(d.chance && h >= d.chance.from && h <= d.chance.to),
+          label: h + ":00", sub: null, hour: h, iso: null, weekend: false,
+          tip: h + ":00 · " + (measured ? "gemeten" : "voorspeld")
+        });
+      }
+    } else {
+      days.forEach(function (dd) {
+        items.push({
+          value: dayIndex(dd), expected: expIndex(dd), norm: DAY_NORMAL,
+          measured: hasMeasurement(dd), kans: !!dd.chance,
+          label: view === "week" ? DAY_NAMES[dd.wd] : String(dd.date.getDate()),
+          sub: view === "week" ? (dd.isToday ? "vandaag" : pad(dd.date.getDate()) + "/" + pad(dd.date.getMonth() + 1)) : null,
+          weekend: dd.wd >= 5, iso: dd.iso, today: dd.isToday, isFocus: dd.iso === (focus && focus.iso),
+          tip: DAY_NAMES[dd.wd] + " " + dmShort(dd.date) + " · "
+            + (dd.chance ? strength(dd.chance.below).chance + " (" + dd.chance.label + ")"
+               : dd.beyondHorizon ? "te ver vooruit voor kansen" : "vol genoeg")
+            + " · klik om te kiezen, nog een klik voor de uren"
+        });
+      });
+    }
+
+    var n = items.length, slot = pw / n;
+    var bw = Math.max(6, Math.min(46, slot * (view === "maand" ? 0.62 : 0.46)));
+    function X(i) { return L + slot * (i + 0.5); }
+    function Y(v) { return T + ph - (v / yMax) * ph; }
+
+    // Staafpad: platte onderkant, ronde bovenkant alleen waar de staaf eindigt.
+    function barPath(x, y, w, hh, rr) {
+      var r = Math.max(0, Math.min(rr, w / 2, hh));
+      return "M" + x.toFixed(1) + "," + (y + hh).toFixed(1)
+        + " L" + x.toFixed(1) + "," + (y + r).toFixed(1)
+        + " Q" + x.toFixed(1) + "," + y.toFixed(1) + " " + (x + r).toFixed(1) + "," + y.toFixed(1)
+        + " L" + (x + w - r).toFixed(1) + "," + y.toFixed(1)
+        + " Q" + (x + w).toFixed(1) + "," + y.toFixed(1) + " " + (x + w).toFixed(1) + "," + (y + r).toFixed(1)
+        + " L" + (x + w).toFixed(1) + "," + (y + hh).toFixed(1) + " Z";
+    }
+
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img">';
+
+    // Lichte gridlijnen als hoogtehulp, zonder getallen.
+    [25, 50, 75, 100].forEach(function (v) {
+      s += '<line x1="' + L + '" y1="' + Y(v).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Y(v).toFixed(1)
+        + '" stroke="var(--grid)" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    });
+    s += '<line x1="' + L + '" y1="' + Y(0).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Y(0).toFixed(1)
+      + '" stroke="var(--grid)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>';
+
+    // Weekendritme in de maand-weergave.
+    if (view === "maand") {
+      items.forEach(function (it, i) {
+        if (!it.weekend) return;
+        s += '<rect x="' + (L + slot * i).toFixed(1) + '" y="' + T + '" width="' + slot.toFixed(1)
+          + '" height="' + ph + '" fill="var(--surface)" opacity=".7"/>';
+      });
+    }
+
+    // Assewoorden: de staaf loopt van leeg naar vol.
+    s += '<text x="' + (L - 10) + '" y="' + (Y(100) + 4) + '" text-anchor="end" font-size="11" fill="var(--text-muted)" font-family="Inter, sans-serif">druk</text>';
+    s += '<text x="' + (L - 10) + '" y="' + (Y(0) + 4) + '" text-anchor="end" font-size="11" fill="var(--text-muted)" font-family="Inter, sans-serif">stil</text>';
+
+    // Dagdeel-zones in de dag-weergave: scheidingslijnen + een tweede labelrij.
+    if (view === "dag") {
+      SEGMENTS.forEach(function (sg, k) {
+        var i0 = sg.from - OPEN, i1 = sg.to - OPEN;
+        var zx = L + slot * i0, zx2 = L + slot * (i1 + 1);
+        if (k > 0) {
+          s += '<line x1="' + zx.toFixed(1) + '" y1="' + T + '" x2="' + zx.toFixed(1) + '" y2="' + (T + ph + 38)
+            + '" stroke="var(--hair)" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+        }
+        var targetable = SEG_NORMAL[k] >= TARGETABLE;
+        var isKans = !!(days[0].chance && days[0].chance.key === sg.key);
+        var lx0 = (zx + zx2) / 2;
+        s += '<text x="' + lx0.toFixed(1) + '" y="' + (T + ph + 36) + '" text-anchor="middle" font-size="11" font-weight="'
+          + (isKans ? "600" : "500") + '" fill="' + (isKans ? "var(--text)" : "var(--text-muted)") + '" opacity="'
+          + (targetable ? "1" : ".55") + '" font-family="Inter, sans-serif">' + sg.label + "</text>";
+        if (isKans) {
+          s += '<text x="' + (lx0 - sg.label.length * 3.1 - 9).toFixed(1) + '" y="' + (T + ph + 37)
+            + '" text-anchor="middle" font-size="12" fill="var(--brand)" font-family="Inter, sans-serif">★</text>';
+        }
+      });
+    }
+
+    // Eén massieve staaf per periode: diep groen als het gemeten is, mid groen
+    // als het nog voorspeld is. Op gemeten staven ligt één horizontale lijn op
+    // de hoogte die we verwacht hadden: ligt de staaf erboven, dan liep het
+    // beter. Lichtgroen bovenop is de ruimte tot je normaal (alleen bij een
+    // kans). Bij een dag die nog moet komen tekenen we geen lijn: die staaf
+    // IS de voorspelling.
+    items.forEach(function (it, i) {
+      var cx = X(i), x = cx - bw / 2;
+      var ey = Y(Math.max(0, Math.min(100, it.expected)));
+      var ay = Y(Math.max(0, Math.min(100, it.value)));
+      var ah = Math.max(2, T + ph - ay);
+      var roomTop = (it.kans && it.norm !== null && it.norm !== undefined)
+        ? Y(Math.max(0, Math.min(100, it.norm))) : null;
+      var hasRoom = roomTop !== null && ay - roomTop > 3;
+
+      s += it.iso ? '<g data-iso="' + it.iso + '">' : "<g>";
+      s += "<title>" + esc(it.tip) + "</title>";
+      if (it.iso) {
+        s += '<rect x="' + (L + slot * i).toFixed(1) + '" y="' + T + '" width="' + slot.toFixed(1) + '" height="' + ph + '" fill="transparent"/>';
+      }
+      if (hasRoom) {
+        s += '<path d="' + barPath(x, roomTop, bw, ay - roomTop, 5) + '" fill="var(--room)"/>';
+      }
+      s += '<path d="' + barPath(x, ay, bw, ah, hasRoom ? 0 : 5) + '" fill="'
+        + (it.measured ? "var(--act)" : "var(--exp)") + '"/>';
+      // verwacht: altijd dezelfde horizontale lijn, iets breder dan de staaf
+      // zodat de uiteinden ook leesbaar zijn als hij op de staaf valt
+      if (it.measured) {
+        var lx1 = x - 7, lx2 = x + bw + 7;
+        s += '<line x1="' + lx1.toFixed(1) + '" y1="' + ey.toFixed(1) + '" x2="' + lx2.toFixed(1) + '" y2="' + ey.toFixed(1)
+          + '" stroke="var(--g-ink)" stroke-width="2.4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+      }
+      s += "</g>";
+    });
+
+    // Markeerlijn + label op wat nu van toepassing is.
+    var mk = null;
+    if (view === "dag") {
+      var dd0 = days[0];
+      if (dd0.chance) {
+        mk = { i0: dd0.chance.from - OPEN, i1: dd0.chance.to - OPEN, text: dd0.chance.label };
+      } else if (dd0.isToday && nowHour >= OPEN && nowHour <= CLOSE) {
+        mk = { i0: nowHour - OPEN, i1: nowHour - OPEN, text: "nu · " + nowHour + ":00" };
+      }
+    } else {
+      var fi = -1;
+      items.forEach(function (it, i) { if (it.iso === (focus && focus.iso)) fi = i; });
+      if (fi >= 0) {
+        mk = { i0: fi, i1: fi,
+               text: focus.isToday ? "vandaag" : DAY_NAMES[focus.wd] + " " + dmShort(focus.date) };
+      }
+    }
+    if (mk) {
+      var mx = (X(mk.i0) + X(mk.i1)) / 2;
+      var tw = mk.text.length * 6.05 + 20;
+      var px = Math.min(W - R - tw / 2, Math.max(L + tw / 2, mx));
+      s += '<line x1="' + mx.toFixed(1) + '" y1="' + (T - 9) + '" x2="' + mx.toFixed(1) + '" y2="' + (T + ph)
+        + '" stroke="var(--tick)" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity=".55"/>';
+      s += '<rect x="' + (px - tw / 2).toFixed(1) + '" y="1" width="' + tw.toFixed(1) + '" height="21" rx="10.5" fill="var(--text)"/>';
+      s += '<text x="' + px.toFixed(1) + '" y="15.5" text-anchor="middle" font-size="11" font-weight="600" fill="var(--white)" font-family="Inter, sans-serif">'
+        + esc(mk.text) + "</text>";
+    }
+
+    // Aslabels, met een groene stip onder de dagen waar een kans zit.
+    items.forEach(function (it, i) {
+      var show = true;
+      if (view === "dag") show = it.hour % 2 === 0;
+      if (view === "maand") show = slot >= 19 || i % 2 === 0;
+      if (!show) return;
+      var strong = it.today || it.isFocus;
+      s += '<text x="' + X(i).toFixed(1) + '" y="' + (T + ph + 16) + '" text-anchor="middle" font-size="11" font-weight="'
+        + (strong ? "600" : "400") + '" fill="' + (strong ? "var(--text)" : "var(--text-muted)") + '" font-family="Inter, sans-serif">' + it.label + "</text>";
+      if (it.sub) {
+        s += '<text x="' + X(i).toFixed(1) + '" y="' + (T + ph + 30) + '" text-anchor="middle" font-size="10.5" fill="'
+          + (it.today ? "var(--text)" : "var(--text-muted)") + '" font-family="Inter, sans-serif">' + it.sub + "</text>";
+      }
+      // Kans: sterretje ONDER de staaf, onder de labels.
+      if (view !== "dag" && it.kans) {
+        s += '<text x="' + X(i).toFixed(1) + '" y="' + (T + ph + (it.sub ? 45 : 30)) + '" text-anchor="middle" font-size="13" fill="var(--brand)" font-family="Inter, sans-serif">★</text>';
+      }
+
+    });
+
+    s += "</svg>";
+    host.innerHTML = s;
+
+    document.getElementById("chartTitle").textContent = view === "dag" ? "Drukte per uur"
+      : view === "week" ? "Drukte per dag" : "Drukte per dag deze maand";
+
+    document.getElementById("legend").innerHTML =
+      '<span><i class="sw act"></i> gemeten</span>'
+      + '<span><i class="sw exp"></i> voorspeld</span>'
+      + '<span><i class="sw expline"></i> verwacht</span>'
+      + '<span><i class="sw room"></i> ruimte tot normaal</span>'
+      + '<span><b style="font-size:12px;color:var(--brand)">★</b> kans</span>';
+
+    var foot = "Gemeten staven hebben een lijn op de verwachte hoogte. Erboven is beter dan verwacht.";
+    if (view !== "dag") foot += " Klik een staaf voor die dag.";
+    if (view !== "dag" && days.some(function (d) { return d.beyondHorizon; })) {
+      foot += " Kansen tot " + HORIZON + " dagen vooruit.";
+    }
+    document.getElementById("chartFoot").textContent = foot;
+  }
+
+  // ---------- inzicht ----------
+  function renderInsight() {
+    var insEl = document.getElementById("insight");
+    var h = document.getElementById("insH"), sub = document.getElementById("insSub");
+    var SEP = '<span class="sep">·</span>';
+    var periodWord = view === "week" ? "de komende 7 dagen" : view === "maand" ? "deze maand" : "";
+    var chances = days.filter(function (d) { return d.chance; });
+
+    if (focus && focus.chance) {
+      var c = focus.chance, st = strength(c.below);
+      insEl.classList.remove("flat");
+      var who = (view === "maand" || (view === "week" && !focus.isToday))
+        ? DAY_FULL[focus.wd] + " " + focus.date.getDate() + " " + MONTHS[focus.date.getMonth()]
+        : DAY_FULL[focus.wd];
+      var isBest = chances.length && chances.sort(function (a, b) { return b.chance.below - a.chance.below; })[0].iso === focus.iso;
+      h.innerHTML = who + " <em>" + c.label + "</em>"
+        + (view !== "dag" && isBest ? " is je grootste kans " + periodWord : " is een kans");
+      sub.innerHTML = span(c) + SEP + st.phrase + " dan je normale " + c.label
+        + (chances.length > 1 ? SEP + "nog " + (chances.length - 1) + " kans" + (chances.length > 2 ? "en" : "") + (view !== "dag" ? " " + periodWord : "") : "")
+        + (focus.special ? SEP + '<span class="hot">★ ' + focus.special + "</span>" : "");
+    } else {
+      insEl.classList.add("flat");
+      if (view !== "dag" && days.every(function (d) { return d.beyondHorizon; })) {
+        h.textContent = (view === "week" ? "Dit venster" : MONTHS_FULL[anchor.getMonth()]) + " ligt te ver vooruit";
+        sub.textContent = "Filly bepaalt kansen tot " + HORIZON + " dagen vooruit. Het patroon staat er al wel.";
+      } else if (view === "dag") {
+        h.textContent = DAY_FULL[focus.wd] + " zit vol genoeg";
+        var nx1 = nextChanceAfter(focus.date);
+        sub.innerHTML = (focus.isPast ? "Afgelopen dag" : "Elk dagdeel ligt rond je normale niveau")
+          + (nx1 ? SEP + "eerstvolgende kans: " + DAY_NAMES[nx1.wd] + " " + dmShort(nx1.date) + ", " + nx1.chance.label : "");
+      } else if (chances.length) {
+        var best = chances.slice().sort(function (a, b) { return b.chance.below - a.chance.below; })[0];
+        h.textContent = DAY_FULL[focus.wd] + " " + dmShort(focus.date) + " zit vol genoeg";
+        sub.innerHTML = "Elk dagdeel ligt rond je normale niveau"
+          + SEP + "grootste kans " + periodWord + ": " + DAY_NAMES[best.wd] + " " + dmShort(best.date) + ", " + best.chance.label;
+      } else {
+        var nx2 = nextChanceAfter(days[days.length - 1].date);
+        h.textContent = "Geen kans " + periodWord;
+        sub.innerHTML = "Alle dagen liggen rond je normale niveau"
+          + (nx2 ? SEP + "eerstvolgende kans: " + DAY_NAMES[nx2.wd] + " " + dmShort(nx2.date) + ", " + nx2.chance.label : "");
+      }
+    }
+
+    document.getElementById("ctaLabel").textContent = (focus && focus.chance)
+      ? "Maak een campagne voor " + DAY_NAMES[focus.wd] + " " + focus.chance.label
+      : "Maak een campagne";
+    document.getElementById("cta").disabled = !(focus && !focus.isPast);
+    var ahead = chancesAhead().length;
+    document.getElementById("allChances").textContent = ahead ? "Alle kansen (" + ahead + ")" : "Alle kansen";
+    document.getElementById("chipDay").textContent = focus
+      ? DAY_NAMES[focus.wd] + " " + focus.date.getDate() + " " + MONTHS[focus.date.getMonth()] : "—";
+  }
+
+  // ---------- waarom-vak ----------
+  var WEATHER = [
+    { text: "zonnig", effect: 1 }, { text: "half bewolkt", effect: 0 },
+    { text: "bewolkt", effect: 0 }, { text: "buien", effect: -1 }, { text: "regen", effect: -1 }
+  ];
+  var DAY_RANK = (function () {
+    var means = WEEK_EXP.map(curveMean);
+    var order = means.map(function (v, i) { return { i: i, v: v }; }).sort(function (a, b) { return a.v - b.v; });
+    var out = [];
+    order.forEach(function (o, pos) { out[o.i] = pos; });
+    return out;
+  })();
+
+  function factorsFor(d) {
+    var rows = [], rank = DAY_RANK[d.wd];
+    rows.push({
+      dir: rank <= 1 ? "down" : rank >= 5 ? "up" : "flat", k: "Weekdag",
+      v: DAY_NAMES[d.wd] + (rank <= 1 ? " is een van je stilste dagen"
+        : rank >= 5 ? " is een van je drukste dagen" : " loopt bij jou gemiddeld")
+    });
+    var out = daysOut(d.date);
+    if (out > 9 || out < -1) {
+      rows.push({ dir: "flat", k: "Weer", v: "geen verwachting voor deze dag" });
+    } else {
+      var seed = d.date.getDate() * 3.3 + d.date.getMonth();
+      var w = WEATHER[Math.abs(Math.round(noise(seed) * 97)) % WEATHER.length];
+      var temp = 14 + Math.abs(Math.round(noise(seed * 1.7) * 12));
+      rows.push({
+        dir: w.effect > 0 ? "up" : w.effect < 0 ? "down" : "flat", k: "Weer",
+        v: temp + "° en " + w.text + (w.effect < 0 ? ", terras valt weg" : "")
+      });
+    }
+    rows.push(d.special ? { dir: "up", k: "In de buurt", v: d.special }
+                        : { dir: "flat", k: "In de buurt", v: "geen evenement bekend" });
+    rows.push(d.chance ? { dir: "down", k: "Jouw patroon", v: "dit " + d.chance.label + " bleef ook de afgelopen weken achter" }
+                       : { dir: "flat", k: "Jouw patroon", v: "de dag zit rond je normale niveau" });
+    return rows;
+  }
+
+  function renderWhy() {
+    var d = focus;
+    var when = DAY_FULL[d.wd].toLowerCase() + (view === "dag" ? "" : " " + d.date.getDate() + " " + MONTHS[d.date.getMonth()]);
+    document.getElementById("whyHead").textContent = d.chance
+      ? "Waarom " + when + " " + d.chance.label + " rustiger is"
+      : "Waarom " + when + " zo loopt";
+    document.getElementById("whyRows").innerHTML = factorsFor(d).map(function (r) {
+      var sym = r.dir === "down" ? "↓" : r.dir === "up" ? "↑" : "·";
+      var t = r.dir === "down" ? "drukt de drukte" : r.dir === "up" ? "duwt de drukte op" : "geen duidelijk effect";
+      return '<div class="wrow"><span class="wdir ' + r.dir + '" title="' + t + '">' + sym + "</span>"
+        + '<span><span class="wk">' + r.k + '</span> <span class="wv">' + r.v + "</span></span></div>";
+    }).join("");
+    document.getElementById("whyFoot").innerHTML = d.chance
+      ? "Filly weegt dit mee in de hoek van je campagne. <b>Weer en agenda zijn nog niet gekoppeld.</b>"
+      : "Weer en agenda zijn nog niet gekoppeld. Daarna ziet Filly hier ook eenmalige oorzaken.";
+  }
+
+  // ---------- dagdeel-chips ----------
+  function renderSegs() {
+    var pick = focus && focus.chance ? focus.chance.key : null;
+    document.getElementById("segs").innerHTML = SEGMENTS.map(function (sg, i) {
+      var dead = SEG_NORMAL[i] < TARGETABLE;
+      return '<button class="seg' + (dead ? " dead" : "") + '" aria-pressed="' + (sg.key === pick) + '"'
+        + (dead ? ' title="bij jou altijd stil"' : "") + ">"
+        + (sg.key === pick ? '<span class="qd"></span>' : "") + sg.label + "</button>";
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll(".seg"), function (el) {
+      el.addEventListener("click", function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".seg"), function (o) { o.setAttribute("aria-pressed", "false"); });
+        el.setAttribute("aria-pressed", "true");
+      });
+    });
+  }
+
+  function renderAll() {
+    days = periodDays();
+    focus = pickFocus(days);
+    renderHead(); renderChart(); renderInsight(); renderWhy(); renderSegs();
+  }
+
+  // ---------- interactie ----------
+  Array.prototype.forEach.call(document.querySelectorAll("#switch button"), function (b) {
+    b.addEventListener("click", function () {
+      var next = b.getAttribute("data-view");
+      if (next === "dag" && focus) anchor = new Date(focus.date);
+      if (next === "week" && focus) anchor = new Date(focus.date);
+      view = next;
+      renderAll();
+    });
+  });
+  function shift(step) {
+    if (view === "dag") anchor = addDays(anchor, step);
+    else if (view === "week") anchor = addDays(anchor, 7 * step);
+    else anchor = new Date(anchor.getFullYear(), anchor.getMonth() + step, 1);
+    focusIso = null;
+    renderAll();
+  }
+  document.getElementById("prev").addEventListener("click", function () { shift(-1); });
+  document.getElementById("next").addEventListener("click", function () { shift(1); });
+
+  // Eerste klik kiest de staaf, tweede klik opent die dag per uur.
+  document.getElementById("plot").addEventListener("click", function (e) {
+    var g = e.target.closest ? e.target.closest("[data-iso]") : null;
+    if (!g) return;
+    var key = g.getAttribute("data-iso");
+    if (focusIso === key || (focus && focus.iso === key)) {
+      anchor = new Date(key + "T00:00:00");
+      view = "dag";
+    } else {
+      focusIso = key;
+    }
+    renderAll();
+  });
+
+  var body = document.getElementById("body");
+  function variant(v) {
+    body.setAttribute("data-variant", v);
+    document.getElementById("vA").setAttribute("aria-pressed", String(v === "a"));
+    document.getElementById("vB").setAttribute("aria-pressed", String(v === "b"));
+  }
+  document.getElementById("vA").addEventListener("click", function () { variant("a"); });
+  document.getElementById("vB").addEventListener("click", function () { variant("b"); });
+  document.getElementById("openRail").addEventListener("click", function () { variant("a"); });
+
+  if (window.ResizeObserver) {
+    var pending = false;
+    new ResizeObserver(function () {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; renderChart(); });
+    }).observe(document.getElementById("plot"));
+  } else {
+    window.addEventListener("resize", renderChart);
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

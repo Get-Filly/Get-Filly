@@ -1,5 +1,9 @@
 # Sentry setup — error-tracking voor backend + frontend
 
+> **📦 Gearchiveerd — Nooit uitgevoerd.** Er is geen `@sentry`-pakket geïnstalleerd; error-tracking draait niet.
+> Als beslissing staat dit nog open in `BACKLOG.md` onder P1.
+
+
 Op dit moment zien we productie-bugs pas wanneer een klant mailt.
 Sentry vangt elke onverwachte error op en stuurt 'm naar een dashboard
 met stacktrace, request-context en de gebruiker waarbij het misging.

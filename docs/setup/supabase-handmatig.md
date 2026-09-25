@@ -52,7 +52,7 @@ magic-links te genereren naar niet-allowlisted URLs).
 ## 3. Authentication → Email Templates
 
 **Geautomatiseerd via `pnpm supabase:apply-templates`** — zie
-[scripts/README.md](../scripts/README.md) voor eenmalige setup
+[scripts/README.md](../../scripts/README.md) voor eenmalige setup
 (Personal Access Token aanmaken, toevoegen aan `apps/api/.env`).
 
 Het script zet in één keer alle 4 templates op Supabase:
@@ -60,7 +60,7 @@ Het script zet in één keer alle 4 templates op Supabase:
 - Met onderwerpen + HTML-body in Get-Filly-huisstijl
 - Alle links wijzen naar onze `/auth/confirm`-route
 
-De bron-templates leven in [scripts/supabase-email-templates.mjs](../scripts/supabase-email-templates.mjs).
+De bron-templates leven in [scripts/supabase-email-templates.mjs](../../scripts/supabase-email-templates.mjs).
 Wijzig daar, run het script opnieuw. Geen git-hook voor auto-sync —
 we willen niet dat elke push naar main per ongeluk de prod-mails wijzigt.
 

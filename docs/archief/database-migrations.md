@@ -1,5 +1,10 @@
 # Database-migraties — workflow + Supabase CLI
 
+> **📦 Gearchiveerd — Nooit uitgevoerd.** Het beschreven `pnpm db:migrate` bestaat niet. Migraties gaan nog steeds
+> handmatig door de Supabase SQL Editor — zie
+> `docs/setup/supabase-handmatig.md` voor hoe het wél gaat.
+
+
 Tot nu toe runden we elke SQL-file handmatig in de Supabase SQL Editor.
 Dat is een single-point-of-failure: vergeten = silent productie-bug.
 Deze doc beschrijft de "veilige" workflow met de officiële Supabase CLI
@@ -147,7 +152,7 @@ productie is toegepast en runt alleen wat nieuw is.
   (snel), update in batches, set dan default — i.p.v. één grote
   migratie die de tabel uren lockt.
 - **Test op staging eerst** zodra staging-omgeving live is (zie
-  `docs/staging-setup.md`).
+  `docs/archief/staging-setup.md`).
 
 ---
 
