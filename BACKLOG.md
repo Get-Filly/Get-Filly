@@ -239,6 +239,24 @@ Sinds [main 61d26ed](https://github.com/Florisbwkoevermans/get-filly/commit/61d2
 - [x] ~~**Wekelijkse interne AI-vindbaarheid-mail (Filly → Get-Filly over get-filly.com)**~~ (2026-06-08, gebouwd) — `apps/api/src/seo-report`: Vercel Cron (`apps/api/vercel.json` → `crons`, `0 5 * * 1` = ma 07:00 Amsterdam in de zomer / 06:00 in de winter — Vercel-cron kent geen DST) → `GET /api/seo-report/run` (publiek, beveiligd met `CRON_SECRET` via `Authorization: Bearer`) → audit over **4 pijlers**: AI-zoekmachines, klassieke SEO (per pagina title/description/H1/canonical/og:image/JSON-LD + /llms.txt /robots.txt /sitemap.xml), **eigen Google Business** (rating + #reviews via Places API v1, env-gated op `GETFILLY_PLACE_ID` + `GOOGLE_PLACES_API_KEY`) en algehele internetvindbaarheid → korte Claude-analyse (Haiku, feature `seo_weekly_audit`, restaurantId null) met score + kansen per pijler + top-3 acties → HTML+text-mail via `MailService.sendSeoReport` naar info@get-filly.com. Fail-soft. Lean i.v.m. 10s-functielimiet. **⚠️ Vereist (Floris-actie):** `CRON_SECRET` in Vercel `get-filly-api` (`openssl rand -hex 32`) + redeploy. **Optioneel:** `GETFILLY_PLACE_ID` voor de Google-Business-sectie (anders "niet gekoppeld").
 - [ ] **Per-klant vindbaarheid-mail/-check** (later, op verzoek) — zelfde idee maar per restaurant naar de eigenaar (Google Business + eigen site). Bouwt voort op de bestaande Health-score-runner (`/dashboard/google-business/audit`). Eerst de interne mail af, dan dit per-tenant uitrollen.
 
+### Foto-tool ("Filly Beeld-studio") — ligt klaar op een branch
+Eén bronfoto die Filly per kanaal in het juiste formaat zet. Backend én UI
+staan op de lokale branch `feat/foto-tool-infra` (één commit, `cd2edd1`,
+~1975 regels: `api/src/image/`, `beeld-studio.tsx`, api-laag, NL/EN-teksten).
+Het UX-voorstel is te bekijken op `/proto-fototool`.
+
+- [ ] **De branch is 75 commits achter op `main`** en raakt bestanden die
+      sindsdien veranderd zijn (`lib/api.ts`, `messages/{nl,en}.json`,
+      `campaign-detail/foto-card.tsx`). Eerst bijwerken, dan pas kijken of 'ie
+      nog werkt.
+- [ ] 🔴 **Migratienummer botst.** De branch brengt
+      `0071_image_usage.sql` mee, maar 0071 is op main al
+      `0071_campaign_performance_per_channel.sql`. Hernummeren naar het
+      eerstvolgende vrije nummer vóór er iets gedraaid wordt.
+- [ ] **Staat niet op `origin`.** De branch bestaat alleen op deze laptop; er
+      is geen kopie. Pushen zou dat oplossen.
+- [ ] De API-sleutel voor de beeld-provider ontbreekt nog.
+
 ### Documenten die er nog niet zijn
 - [ ] **`docs/security-measures.md`** — de verwerkersovereenkomst
       ([`docs/legal/dpa-template.md`](docs/legal/dpa-template.md)) beloofde een
