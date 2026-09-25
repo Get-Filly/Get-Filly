@@ -63,7 +63,7 @@ apps/
                             industry/ (branche-packs)
     busyness/               rustige momenten: detectie, signalen, terugkoppeling
     campaigns/ chat/ reviews/ menu/ guests/ team/ meta/ tiktok/ google-business/ …
-    supabase/migrations/    SQL 0001–0076, handmatig runnen in de SQL Editor
+    supabase/migrations/    SQL 0001–0077, handmatig runnen in de SQL Editor
 packages/shared/            gedeelde types + DEFAULT_PERMISSIONS per rol
 ```
 
