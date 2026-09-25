@@ -920,10 +920,29 @@ export async function removeCampaignChannel(
 // Status-transitie. Backend valideert toegestane mappings
 // (concept→ingepland, ingepland→actief, actief→afgerond, etc).
 // Voor Activeren wordt executed_at automatisch op now() gezet.
+// Wat er bij het stoppen van een actieve social-campagne met de
+// gepubliceerde post is gebeurd. Alleen aanwezig bij actief → concept.
+// 'skipped' = er stond niets op dat kanaal, dus er viel niets te
+// verwijderen — bewust iets anders dan 'deleted'.
+export type CampaignRetractReport = {
+  facebook: "deleted" | "failed" | "skipped";
+  instagram: "deleted" | "failed" | "skipped";
+  /** Meta wees af op een ontbrekende permissie → opnieuw verbinden. */
+  needsReconnect: boolean;
+  /** Alleen als Instagram niet verwijderd kon worden: directe link naar
+   *  de post, of 'manual' als de permalink onbekend is. */
+  instagramManualUrl: string | null;
+  errors: string[];
+};
+
 export async function updateCampaignStatus(
   id: string,
   status: CampaignStatus,
-): Promise<{ id: string; status: CampaignStatus }> {
+): Promise<{
+  id: string;
+  status: CampaignStatus;
+  retract?: CampaignRetractReport;
+}> {
   const res = await authedFetch(`${API_URL}/campaigns/${id}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

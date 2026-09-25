@@ -103,6 +103,23 @@ type CampaignScheduleSuggestionFromTool = {
 export type CampaignType = 'mail' | 'social' | 'whatsapp';
 export type CampaignStatus = 'concept' | 'ingepland' | 'actief' | 'afgerond';
 
+// Wat er bij het stoppen van een actieve campagne op elk kanaal is
+// gebeurd. Gaat mee terug naar het scherm, zodat de eigenaar ziet dát
+// de post verwijderd is — of juist waarom niet. Vóór 2026-09-25 gebeurde
+// dat stil: een mislukte verwijdering stond alleen in de serverlogs,
+// dus in het scherm was een gestopte campagne met een nog live post niet
+// te onderscheiden van een die echt weg was.
+export type CampaignRetractReport = {
+  facebook: 'deleted' | 'failed' | 'skipped';
+  instagram: 'deleted' | 'failed' | 'skipped';
+  /** Meta wees af op een ontbrekende permissie → koppeling opnieuw leggen. */
+  needsReconnect: boolean;
+  /** Alleen gezet als Instagram NIET verwijderd kon worden: directe link
+   *  naar de post, of 'manual' als de permalink onbekend is. */
+  instagramManualUrl: string | null;
+  errors: string[];
+};
+
 export type CampaignResultStats = {
   extra_reservations?: number;
   extra_revenue_cents?: number;
@@ -134,9 +151,9 @@ export type Campaign = {
   // null als er geen IG-post live staat. Komt uit
   // campaign_social_content.published_post_ids.instagram_permalink (bewaard
   // bij publiceren). Sentinel 'manual' = wel een live IG-post maar geen
-  // permalink bekend (oudere post). De kanban gebruikt dit om bij Stop een
-  // popup te tonen met een directe link: Instagram kan niet via de API
-  // verwijderd worden, dus de eigenaar moet 'm zelf weghalen.
+  // permalink bekend (oudere post). De kanban gebruikt dit in de
+  // Stop-bevestiging, en als vangnet wanneer verwijderen bij Meta mislukt:
+  // dan kan de eigenaar 'm alsnog zelf weghalen.
   ig_live_permalink?: string | null;
   // Per 2026-07-07: genoeg info om op de kanban de foto-eis te checken
   // zonder de detail-call. social_platform = het specifieke kanaal
@@ -1428,7 +1445,13 @@ export class CampaignsService {
     id: string,
     nextStatus: CampaignStatus,
     userId: string,
-  ): Promise<{ id: string; status: CampaignStatus }> {
+  ): Promise<{
+    id: string;
+    status: CampaignStatus;
+    /** Alleen bij stoppen van een actieve social-campagne: wat er op elk
+     *  kanaal met de gepubliceerde post is gebeurd. */
+    retract?: CampaignRetractReport;
+  }> {
     // actief → concept toegevoegd (2026-05-29): een actieve SOCIAL-
     // campagne mag je stoppen + terugtrekken van het kanaal (post
     // verwijderen) en terug naar concept zetten om opnieuw te plannen.
@@ -1474,12 +1497,12 @@ export class CampaignsService {
       );
     }
 
-    // Social/WhatsApp terugtrekken: verwijder de gepubliceerde post van
-    // het kanaal vóór de status-flip. Nu nog een stub (vereist Meta/
-    // TikTok OAuth, fase later); zodra die er is wordt hier de echte
-    // delete-call gedaan.
+    // Social terugtrekken: verwijder de gepubliceerde post bij Facebook
+    // en Instagram vóór de status-flip. Het verslag daarvan reist mee
+    // terug naar het scherm.
+    let retractReport: CampaignRetractReport | null = null;
     if (currentStatus === 'actief' && nextStatus === 'concept') {
-      await this.retractFromChannel(businessId, id, campaignType);
+      retractReport = await this.retractFromChannel(businessId, id, campaignType);
     }
 
     const updates: Record<string, unknown> = {
@@ -1548,44 +1571,50 @@ export class CampaignsService {
       void this.fingerprint.extractFromCampaign(id);
     }
 
-    return { id, status: nextStatus };
+    return {
+      id,
+      status: nextStatus,
+      ...(retractReport ? { retract: retractReport } : {}),
+    };
   }
 
   // ============================================================
   // retractFromChannel — gepubliceerde post van het kanaal halen
   // ============================================================
-  // Wordt aangeroepen wanneer een ACTIEVE social/WhatsApp-campagne
-  // wordt teruggetrokken (actief → concept). Doel: de daadwerkelijk
-  // geplaatste post verwijderen bij Instagram/Facebook/TikTok/WhatsApp
-  // zodat de campagne niet meer live staat.
+  // Wordt aangeroepen wanneer een ACTIEVE social-campagne wordt
+  // teruggetrokken (actief → concept). Doel: de daadwerkelijk geplaatste
+  // post verwijderen bij Facebook en Instagram, zodat een gestopte
+  // campagne ook echt niet meer live staat.
   //
-  // STATUS: stub. De echte delete-call vereist de Meta Graph API /
-  // TikTok API OAuth-koppeling (nog niet live). Tot die er is loggen
-  // we de intentie en gaat de status-flip gewoon door — de eigenaar
-  // kan de post desnoods handmatig verwijderen. Zodra OAuth er is:
-  // hier per platform de delete-endpoint aanroepen met de opgeslagen
-  // post-id (die we dan bij publicatie bewaren).
+  // Sinds 2026-09-25 verwijdert Instagram ook écht. Daarvóór ging de
+  // app ervan uit dat de Graph API dat niet kon en kreeg de eigenaar
+  // het verzoek 'm zelf in de app weg te halen; het endpoint bestond
+  // wel, alleen de scope ontbrak.
+  //
+  // WhatsApp en TikTok hebben hier nog geen delete-pad: daar blijft het
+  // bij een logregel en verwijdert de eigenaar handmatig.
   //
   // Fail-soft: een mislukte kanaal-delete mag de terugtrekking in onze
-  // eigen DB niet blokkeren (anders blijft de campagne 'vastzitten' op
-  // actief). We loggen een warning.
+  // eigen database niet blokkeren (anders blijft de campagne vastzitten
+  // op 'actief'). Wát er misging geven we wél terug, zodat het scherm
+  // het kan melden in plaats van te doen alsof alles gelukt is.
   private async retractFromChannel(
     businessId: string,
     campaignId: string,
     type: string | null,
-  ): Promise<void> {
+  ): Promise<CampaignRetractReport | null> {
     // Mail komt hier nooit (geblokkeerd in updateStatus), maar dubbel
     // vangen kan geen kwaad.
-    if (type === 'mail') return;
+    if (type === 'mail') return null;
 
-    // Alleen social heeft nu een echte koppeling (Meta). WhatsApp/TikTok:
+    // Alleen social heeft een delete-koppeling (Meta). WhatsApp/TikTok:
     // nog geen API → alleen loggen, eigenaar verwijdert handmatig.
     if (type !== 'social') {
       this.logger.log(
         `Terugtrekken van ${type ?? 'onbekend'}-kanaal voor ${campaignId} ` +
           `nog niet ondersteund (geen API-koppeling). Verwijder handmatig.`,
       );
-      return;
+      return null;
     }
 
     // Bewaarde post-id's ophalen (gezet bij publiceren).
@@ -1601,11 +1630,8 @@ export class CampaignsService {
     } | null;
 
     // Niets gepubliceerd (of al teruggetrokken) → niets te doen.
-    if (!postIds || (!postIds.facebook && !postIds.instagram)) return;
+    if (!postIds || (!postIds.facebook && !postIds.instagram)) return null;
 
-    // Facebook echt verwijderen; Instagram kan niet via de API (handmatig).
-    // Fail-soft: een mislukte kanaal-delete mag de terugtrekking in onze
-    // eigen DB niet blokkeren (anders blijft de campagne op 'actief' hangen).
     const res = await this.meta
       .retract(businessId, {
         facebook: postIds.facebook ?? null,
@@ -1618,24 +1644,25 @@ export class CampaignsService {
         return null;
       });
 
-    // Instagram kan niet via de API verwijderd worden → herinnering bewaren
-    // met de directe postlink (permalink uit publiceren). Geen permalink
-    // bekend (oudere post) → sentinel 'manual' zodat de UI alsnog de melding
-    // toont met een generieke Instagram-link.
-    const igManualUrl = res?.instagramManual
+    // Alleen als Instagram NIET verwijderd kon worden bewaren we de
+    // herinnering met de directe postlink, zodat de eigenaar 'm alsnog
+    // zelf kan weghalen. Lukt het wel, dan is die melding niet meer
+    // relevant en moet 'ie juist weg.
+    const igFailed = res?.instagram === 'failed';
+    const igManualUrl = igFailed
       ? (postIds.instagram_permalink ?? 'manual')
       : null;
-    if (igManualUrl) {
-      this.logger.log(
-        `Campagne ${campaignId}: Instagram-post kan niet via de API worden ` +
-          `verwijderd — eigenaar moet 'm handmatig in de IG-app verwijderen.`,
+    if (igFailed) {
+      this.logger.warn(
+        `Campagne ${campaignId}: Instagram-post kon niet verwijderd worden — ` +
+          `eigenaar moet 'm zelf weghalen.`,
       );
     }
 
     // Publicatiestaat wissen zodat de campagne niet meer als 'gepubliceerd'
-    // geldt en bij her-activeren opnieuw geplaatst kan worden. De IG-handmatig-
-    // herinnering zetten we in een EIGEN veld (niet publish_error → dat kleurt
-    // rood als 'mislukt'; dit is een nette let-op-melding).
+    // geldt en bij her-activeren opnieuw geplaatst kan worden. De
+    // handmatig-herinnering staat in een EIGEN veld (niet publish_error →
+    // dat kleurt rood als 'mislukt'; dit is een nette let-op-melding).
     await this.supabase.client
       .from('campaign_social_content')
       .update({
@@ -1646,6 +1673,15 @@ export class CampaignsService {
         updated_at: new Date().toISOString(),
       })
       .eq('campaign_id', campaignId);
+
+    if (!res) return null;
+    return {
+      facebook: res.facebook,
+      instagram: res.instagram,
+      needsReconnect: res.needsReconnect,
+      instagramManualUrl: igManualUrl,
+      errors: res.errors,
+    };
   }
 
   // ============================================================

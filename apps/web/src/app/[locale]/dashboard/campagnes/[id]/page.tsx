@@ -593,10 +593,10 @@ export default function UnifiedDetailPage() {
       // Stop & verwijderen van kanaal (actief → concept): destructief,
       // de gepubliceerde post wordt teruggetrokken. Vraag bevestiging.
       if (view.status === "actief" && next === "concept") {
-        // stopConfirm vermeldt al dat een eventuele Instagram-post handmatig
-        // verwijderd moet worden (kan niet via de API). Na het stoppen toont
-        // de detailpagina bovendien een info-kaart met een directe link naar
-        // de te-verwijderen post (zie ig_pending_manual_delete_url).
+        // De backend verwijdert de posts bij Facebook én Instagram. Lukt
+        // dat niet, dan blijft ig_pending_manual_delete_url staan en toont
+        // deze pagina daaronder een kaart met een directe link, zodat de
+        // eigenaar 'm alsnog zelf kan weghalen.
         if (!window.confirm(t("stopConfirm"))) {
           return;
         }

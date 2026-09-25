@@ -37,6 +37,22 @@ type MetaTokenResponse = {
   expires_in?: number;
 };
 
+// ---- Terugtrekken van een gepubliceerde post ----
+// Per kanaal wat er gebeurd is. 'skipped' = er stond niets gepubliceerd
+// op dat kanaal, dus er viel niets te verwijderen — bewust iets anders
+// dan 'deleted', want het scherm moet niet melden dat er iets weg is
+// als er nooit iets stond.
+export type MetaRetractOutcome = 'deleted' | 'failed' | 'skipped';
+
+export type MetaRetractResult = {
+  facebook: MetaRetractOutcome;
+  instagram: MetaRetractOutcome;
+  /** Meta wees de verwijdering af op een ontbrekende permissie: de
+   *  eigenaar moet de koppeling opnieuw leggen (nieuwe scope). */
+  needsReconnect: boolean;
+  errors: string[];
+};
+
 // ---- Social-insights (fase 1: live engagement, geen reach/impressions) ----
 export type MetaPostStat = {
   id: string;
@@ -83,8 +99,14 @@ export class MetaService {
     private readonly crypto: TokenCryptoService,
   ) {}
 
+  // Graph-API-versie. Gelijk houden aan META_GRAPH_VERSION in
+  // apps/web/src/lib/meta-oauth.ts en aan de versie in het Meta-dashboard.
+  // Verhoogd van v21.0 (okt 2024) naar v23.0 toen het verwijderen van
+  // IG-media erbij kwam: DELETE /{ig-media-id} bestond nog niet in v21.
+  // Geeft Meta op een delete "Unknown path components" terug, zet dan
+  // META_GRAPH_VERSION in de API-env een versie hoger.
   private graphVersion(): string {
-    return this.config.get<string>('META_GRAPH_VERSION') ?? 'v21.0';
+    return this.config.get<string>('META_GRAPH_VERSION') ?? 'v23.0';
   }
 
   private appId(): string {
@@ -767,53 +789,128 @@ export class MetaService {
   }
 
   /**
-   * Trekt een eerder geplaatste post terug (campagne actief → concept).
-   *   - Facebook: post echt verwijderen via DELETE /{post-id} met een
-   *     verse page-token.
-   *   - Instagram: de Graph API kent GÉÉN delete voor geplaatste media,
-   *     dus dat kan niet via de API. We melden dat de eigenaar de
-   *     IG-post handmatig moet verwijderen (`instagramManual: true`).
-   * Fail-soft: een mislukte FB-delete blokkeert de terugtrekking in onze
-   * eigen DB niet (caller logt/negeert).
+   * Trekt een eerder geplaatste post terug (campagne actief → concept)
+   * en verwijdert de post écht bij Meta.
+   *
+   *   - Facebook : DELETE /{post-id} met een verse page-token.
+   *   - Instagram: DELETE /{ig-media-id} met diezelfde page-token. Dit
+   *     vereist de scope `instagram_manage_contents`. Ondersteund zijn
+   *     gewone posts, Stories, Reels en hele carrousels; een losse foto
+   *     binnen een carrousel kan Meta niet verwijderen.
+   *
+   * Vóór 2026-09-25 stond hier dat Instagram verwijderen niet kón en
+   * werd de eigenaar naar de IG-app gestuurd. Dat klopte niet meer: het
+   * endpoint bestaat, alleen de scope ontbrak.
+   *
+   * Koppelingen van vóór die datum hebben de nieuwe scope niet. Meta
+   * antwoordt dan met een permissiefout; die vertalen we naar
+   * `needsReconnect`, zodat de UI kan zeggen "verbind Instagram opnieuw"
+   * in plaats van een ruwe API-fout te tonen.
+   *
+   * Fail-soft: een mislukte delete blokkeert de terugtrekking in onze
+   * eigen database niet — anders blijft de campagne op 'actief' hangen
+   * terwijl de eigenaar 'm wil stoppen. Wát er misging reist wel mee
+   * naar boven, zodat het scherm het kan melden.
    */
   async retract(
     businessId: string,
     postIds: { facebook?: string | null; instagram?: string | null },
-  ): Promise<{
-    facebookDeleted: boolean;
-    instagramManual: boolean;
-    errors: string[];
-  }> {
-    const result = { facebookDeleted: false, instagramManual: false, errors: [] as string[] };
+  ): Promise<MetaRetractResult> {
+    const result: MetaRetractResult = {
+      facebook: 'skipped',
+      instagram: 'skipped',
+      needsReconnect: false,
+      errors: [],
+    };
 
-    if (postIds.facebook) {
-      try {
-        const { token, meta } = await this.loadCredential(businessId);
-        const pageId = meta.page_id as string | undefined;
-        const accounts = await this.fetchAccounts(token);
-        const page = accounts.find((a) => a.id === pageId);
-        if (!page) {
-          throw new Error('gekoppelde pagina niet meer beschikbaar');
-        }
-        const res = await this.fetchWithTimeout(
-          `https://graph.facebook.com/${this.graphVersion()}/${postIds.facebook}?access_token=${encodeURIComponent(page.access_token)}`,
-          { method: 'DELETE' },
-        );
-        const json = (await res.json()) as { success?: boolean; error?: unknown };
-        if (!res.ok) throw new Error(JSON.stringify(json));
-        result.facebookDeleted = true;
-      } catch (err) {
-        this.logger.warn(`FB-post verwijderen faalde: ${String(err)}`);
-        result.errors.push('Facebook-post verwijderen mislukt');
-      }
+    // Niets gepubliceerd → niets te doen. Scheelt een onnodige
+    // token-uitwisseling met Meta.
+    if (!postIds.facebook && !postIds.instagram) return result;
+
+    // Eén keer een verse page-token ophalen voor beide kanalen: IG-media
+    // hangen aan de gekoppelde pagina en gebruiken dezelfde token als
+    // waarmee ze gepubliceerd zijn.
+    let pageToken: string;
+    try {
+      const { token, meta } = await this.loadCredential(businessId);
+      const pageId = meta.page_id as string | undefined;
+      const accounts = await this.fetchAccounts(token);
+      const page = accounts.find((a) => a.id === pageId);
+      if (!page) throw new Error('gekoppelde pagina niet meer beschikbaar');
+      pageToken = page.access_token;
+    } catch (err) {
+      this.logger.warn(`Meta-retract: geen bruikbare koppeling: ${String(err)}`);
+      if (postIds.facebook) result.facebook = 'failed';
+      if (postIds.instagram) result.instagram = 'failed';
+      result.needsReconnect = true;
+      result.errors.push(
+        'De Meta-koppeling is niet meer geldig. Verbind Facebook en Instagram opnieuw en verwijder de post daarna, of haal hem zelf weg.',
+      );
+      return result;
     }
 
-    // Instagram-media kan niet via de API verwijderd worden → handmatig.
+    if (postIds.facebook) {
+      result.facebook = await this.deleteMetaObject(
+        postIds.facebook,
+        pageToken,
+        'Facebook',
+        result,
+      );
+    }
+
     if (postIds.instagram) {
-      result.instagramManual = true;
+      result.instagram = await this.deleteMetaObject(
+        postIds.instagram,
+        pageToken,
+        'Instagram',
+        result,
+      );
     }
 
     return result;
+  }
+
+  /**
+   * Eén object bij Meta verwijderen. Facebook-posts en IG-media gebruiken
+   * hetzelfde patroon — DELETE op het id met de page-token — dus dit staat
+   * één keer.
+   *
+   * Meta antwoordt bij een ontbrekende scope met code 10 of 200 ("requires
+   * extended permission"); dat is geen storing maar een koppeling die
+   * opnieuw gelegd moet worden, en dat onderscheid bepaalt wat de eigenaar
+   * te zien krijgt.
+   */
+  private async deleteMetaObject(
+    objectId: string,
+    pageToken: string,
+    label: 'Facebook' | 'Instagram',
+    result: MetaRetractResult,
+  ): Promise<MetaRetractOutcome> {
+    try {
+      const res = await this.fetchWithTimeout(
+        `https://graph.facebook.com/${this.graphVersion()}/${objectId}?access_token=${encodeURIComponent(pageToken)}`,
+        { method: 'DELETE' },
+      );
+      const json = (await res.json()) as {
+        success?: boolean;
+        error?: { code?: number; error_subcode?: number };
+      };
+      if (!res.ok) {
+        const code = json.error?.code;
+        if (code === 10 || code === 200 || code === 294) {
+          result.needsReconnect = true;
+        }
+        throw new Error(JSON.stringify(json));
+      }
+      this.logger.log(`${label}-post ${objectId} verwijderd`);
+      return 'deleted';
+    } catch (err) {
+      this.logger.warn(`${label}-post verwijderen faalde: ${String(err)}`);
+      result.errors.push(
+        `${label}-post verwijderen mislukt: ${this.describeMetaError(err)}`,
+      );
+      return 'failed';
+    }
   }
 
   // ----------------------------------------------------------------

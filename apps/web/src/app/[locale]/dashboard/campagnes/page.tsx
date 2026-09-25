@@ -15,6 +15,7 @@ import {
   type AiSuggestion,
   type BundleChannel,
   type Campaign,
+  type CampaignRetractReport,
 } from "@/lib/api";
 import {
   GENERIC_MISSING_LABEL,
@@ -374,7 +375,7 @@ function getItemPlatforms(item: BoardItem): string[] {
 }
 
 // Permalink naar een live Instagram-post binnen dit item, of null. De
-// post kan niet via de API verwijderd worden, dus bij Stop tonen we een
+// post wordt bij Stop verwijderd; lukt dat niet, dan tonen we een
 // directe link. Bij een bundle pakken we de eerste die er één heeft.
 // Sentinel "manual" = wel een live IG-post maar geen bekende permalink.
 function igLivePermalink(item: BoardItem): string | null {
@@ -497,9 +498,15 @@ export default function CampagnesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   // Campagne waarvoor de Stop-bevestigingspopup openstaat (null = dicht).
   // Gezet voor social-campagnes; bevat bij een live IG-post een directe
-  // link naar die post (Instagram kan niet via de API verwijderd worden).
+  // link naar die post, als vangnet wanneer verwijderen mislukt.
   // Mail-only campagnes ronden af via de simpele window.confirm.
   const [pendingStop, setPendingStop] = useState<BoardItem | null>(null);
+  // Uitkomst van het stoppen: wat er met de Facebook- en Instagram-post
+  // is gebeurd. Blijft na afloop in de popup staan, zodat de eigenaar
+  // ziet dát de post verwijderd is in plaats van het te moeten aannemen.
+  const [stopResult, setStopResult] = useState<CampaignRetractReport | null>(
+    null,
+  );
   // Filter op kanaal. Lege set = alles tonen. Klik op chip = toggle.
   const [channelFilter, setChannelFilter] = useState<Set<string>>(new Set());
   const toggleChannel = (key: string) => {
@@ -736,21 +743,26 @@ export default function CampagnesPage() {
   // bundles loopt 'ie parallel over alle items in de groep.
 
   // Wrapper om error-handling + busy-state niet 6× te dupliceren.
-  const runAction = async (
+  // Generiek in de uitkomst: de meeste acties geven niets terug, maar
+  // stoppen levert een verslag op van wat er met de gepubliceerde post
+  // is gebeurd. Bij een fout is de uitkomst undefined.
+  const runAction = async <T,>(
     item: BoardItem,
     actionLabel: string,
-    fn: () => Promise<void>,
-  ) => {
+    fn: () => Promise<T>,
+  ): Promise<T | undefined> => {
     setBusyId(cardKey(item));
     try {
-      await fn();
+      const out = await fn();
       await refetch();
+      return out;
     } catch (e) {
       alert(
         e instanceof Error
           ? e.message
           : t("actionFailed", { action: actionLabel }),
       );
+      return undefined;
     } finally {
       setBusyId(null);
     }
@@ -869,34 +881,59 @@ export default function CampagnesPage() {
         : item.kind === "bundle-campaign"
           ? item.campaigns
           : [];
-    if (campaigns.length === 0) return Promise.resolve();
+    if (campaigns.length === 0) return Promise.resolve(undefined);
     return runAction(item, t("actions.stop"), async () => {
-      await Promise.all(
+      const results = await Promise.all(
         campaigns.map((c) =>
           updateCampaignStatus(c.id, c.type === "mail" ? "afgerond" : "concept"),
         ),
       );
+      // Bij een bundel stoppen we meerdere campagnes tegelijk. We vatten
+      // de verslagen samen tot één: een kanaal geldt als verwijderd zodra
+      // er érgens iets verwijderd is, en als mislukt zodra er érgens iets
+      // misging — dat laatste weegt zwaarder, want dan staat er nog iets
+      // live.
+      const reports = results
+        .map((r) => r.retract)
+        .filter((r): r is CampaignRetractReport => !!r);
+      if (reports.length === 0) return undefined;
+      const roll = (k: "facebook" | "instagram") =>
+        reports.some((r) => r[k] === "failed")
+          ? ("failed" as const)
+          : reports.some((r) => r[k] === "deleted")
+            ? ("deleted" as const)
+            : ("skipped" as const);
+      return {
+        facebook: roll("facebook"),
+        instagram: roll("instagram"),
+        needsReconnect: reports.some((r) => r.needsReconnect),
+        instagramManualUrl:
+          reports.find((r) => r.instagramManualUrl)?.instagramManualUrl ?? null,
+        errors: reports.flatMap((r) => r.errors),
+      } satisfies CampaignRetractReport;
     });
   };
 
-  const handleStop = (item: BoardItem) => {
+  // Let op het retourtype: dit is een ActionHandler (void). Het verslag
+  // van het stoppen komt uit performStop, dat de popup zelf aanroept.
+  const handleStop = (item: BoardItem): void => {
     const campaigns =
       item.kind === "campaign"
         ? [item.data]
         : item.kind === "bundle-campaign"
           ? item.campaigns
           : [];
-    if (campaigns.length === 0) return Promise.resolve();
+    if (campaigns.length === 0) return;
     const hasSocial = campaigns.some((c) => c.type !== "mail");
-    // Social/whatsapp: nette popup (toont bij een live IG-post de directe
-    // link, want Instagram kan niet via de API verwijderd worden).
+    // Social: popup met bevestiging vooraf en het resultaat achteraf.
     if (hasSocial) {
+      setStopResult(null);
       setPendingStop(item);
       return;
     }
     // Mail-only: niets terug te trekken, simpele bevestiging volstaat.
-    if (!window.confirm(t("confirm.finishMail"))) return Promise.resolve();
-    return performStop(item);
+    if (!window.confirm(t("confirm.finishMail"))) return;
+    void performStop(item);
   };
 
   // Verwijderen: hard-delete. Backend staat 't alleen toe op concept
@@ -1258,19 +1295,27 @@ export default function CampagnesPage() {
           API verwijderd worden. */}
       {pendingStop &&
         (() => {
-          const raw = igLivePermalink(pendingStop) ?? "";
-          const hasIg = raw.length > 0;
-          const href = raw.startsWith("http")
-            ? raw
-            : "https://www.instagram.com";
+          const raw = stopResult?.instagramManualUrl ?? "";
+          const href =
+            raw && raw.startsWith("http") ? raw : "https://www.instagram.com";
           const busy = busyId === cardKey(pendingStop);
+          const done = stopResult !== null;
+          // Iets is blijven staan: dan is de link naar de post het enige
+          // dat de eigenaar nog verder helpt.
+          const stuck =
+            done &&
+            (stopResult.facebook === "failed" ||
+              stopResult.instagram === "failed");
           return (
             <div
               role="dialog"
               aria-modal="true"
               aria-labelledby="ig-stop-title"
               onClick={() => {
-                if (!busy) setPendingStop(null);
+                if (!busy) {
+                  setPendingStop(null);
+                  setStopResult(null);
+                }
               }}
               style={{
                 position: "fixed",
@@ -1297,7 +1342,11 @@ export default function CampagnesPage() {
                   id="ig-stop-title"
                   style={{ margin: "0 0 6px", fontSize: 18 }}
                 >
-                  {t("igStopPopup.title")}
+                  {done
+                    ? stuck
+                      ? t("igStopPopup.doneTitlePartial")
+                      : t("igStopPopup.doneTitle")
+                    : t("igStopPopup.title")}
                 </h3>
                 <p
                   style={{
@@ -1307,53 +1356,91 @@ export default function CampagnesPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  {t("igStopPopup.body")}
+                  {done ? t("igStopPopup.doneBody") : t("igStopPopup.body")}
                 </p>
 
-                {hasIg && (
-                  <div
+                {/* Na afloop: per kanaal wat er gebeurd is. Dit is het
+                    bewijs dat de post echt weg is — niet alleen dat de
+                    campagne van kolom is gewisseld. */}
+                {done && (
+                  <ul
                     style={{
                       margin: "0 0 16px",
-                      padding: "12px 14px",
-                      background: "#FBF1DD",
-                      border: "1px solid #EAD9AE",
-                      borderRadius: 8,
+                      padding: 0,
+                      listStyle: "none",
+                      display: "grid",
+                      gap: 6,
+                      fontSize: 13,
                     }}
                   >
-                    <div
-                      style={{
-                        fontWeight: 600,
-                        fontSize: 13,
-                        color: "#8A5A00",
-                        marginBottom: 4,
-                      }}
+                    {(["facebook", "instagram"] as const)
+                      .filter((k) => stopResult[k] !== "skipped")
+                      .map((k) => (
+                        <li
+                          key={k}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <span aria-hidden="true">
+                            {stopResult[k] === "deleted" ? "✓" : "✕"}
+                          </span>
+                          <span
+                            style={{
+                              color:
+                                stopResult[k] === "deleted"
+                                  ? "var(--brand, #1F4A2D)"
+                                  : "#B3261E",
+                            }}
+                          >
+                            {t(
+                              stopResult[k] === "deleted"
+                                ? `igStopPopup.removed.${k}`
+                                : `igStopPopup.failed.${k}`,
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+
+                {/* Opnieuw verbinden is iets anders dan een storing: de
+                    koppeling mist de rechten om te verwijderen. */}
+                {done && stopResult.needsReconnect && (
+                  <div style={noticeBox}>
+                    <div style={noticeTitleStyle}>
+                      {t("igStopPopup.reconnectTitle")}
+                    </div>
+                    <div style={noticeBodyStyle}>
+                      {t("igStopPopup.reconnectBody")}
+                    </div>
+                    {/* Link uit @/i18n/navigation, niet <a>: anders valt de
+                        gebruiker op /en terug naar het Nederlandse pad. */}
+                    <Link
+                      href="/dashboard/koppelingen"
+                      style={noticeLinkStyle}
                     >
+                      {t("igStopPopup.reconnectCta")}
+                    </Link>
+                  </div>
+                )}
+
+                {/* Vangnet: staat er nog iets live, dan de directe link. */}
+                {stuck && (
+                  <div style={noticeBox}>
+                    <div style={noticeTitleStyle}>
                       {t("igStopPopup.noticeTitle")}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12.5,
-                        lineHeight: 1.55,
-                        color: "#8A5A00",
-                      }}
-                    >
+                    <div style={noticeBodyStyle}>
                       {t("igStopPopup.noticeBody")}
                     </div>
                     <a
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{
-                        display: "inline-block",
-                        marginTop: 10,
-                        padding: "7px 13px",
-                        fontSize: 12.5,
-                        fontWeight: 500,
-                        background: "var(--brand, #1F4A2D)",
-                        color: "#FFFFFF",
-                        borderRadius: 7,
-                        textDecoration: "none",
-                      }}
+                      style={noticeLinkStyle}
                     >
                       {t("igStopPopup.open")}
                     </a>
@@ -1367,25 +1454,41 @@ export default function CampagnesPage() {
                     gap: 8,
                   }}
                 >
-                  <Button
-                    variant="secondary"
-                    onClick={() => setPendingStop(null)}
-                    disabled={busy}
-                  >
-                    {t("igStopPopup.cancel")}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    loading={busy}
-                    disabled={busy}
-                    onClick={async () => {
-                      const item = pendingStop;
-                      await performStop(item);
-                      setPendingStop(null);
-                    }}
-                  >
-                    {t("igStopPopup.confirm")}
-                  </Button>
+                  {done ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setPendingStop(null);
+                        setStopResult(null);
+                      }}
+                    >
+                      {t("igStopPopup.close")}
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setPendingStop(null)}
+                        disabled={busy}
+                      >
+                        {t("igStopPopup.cancel")}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        loading={busy}
+                        disabled={busy}
+                        onClick={async () => {
+                          const report = await performStop(pendingStop);
+                          // Niets te melden (geen social-post, of de actie
+                          // faalde en toonde al een melding) → gewoon sluiten.
+                          if (report) setStopResult(report);
+                          else setPendingStop(null);
+                        }}
+                      >
+                        {t("igStopPopup.confirm")}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1997,6 +2100,38 @@ function CardActions({
     </div>
   );
 }
+
+// Melding-blok in de stop-popup (opnieuw verbinden / nog live).
+// Amber, niet rood: het is een let-op, geen storing.
+const noticeBox: React.CSSProperties = {
+  margin: "0 0 16px",
+  padding: "12px 14px",
+  background: "#FBF1DD",
+  border: "1px solid #EAD9AE",
+  borderRadius: 8,
+};
+const noticeTitleStyle: React.CSSProperties = {
+  fontWeight: 600,
+  fontSize: 13,
+  color: "#8A5A00",
+  marginBottom: 4,
+};
+const noticeBodyStyle: React.CSSProperties = {
+  fontSize: 12.5,
+  lineHeight: 1.55,
+  color: "#8A5A00",
+};
+const noticeLinkStyle: React.CSSProperties = {
+  display: "inline-block",
+  marginTop: 10,
+  padding: "7px 13px",
+  fontSize: 12.5,
+  fontWeight: 500,
+  background: "var(--brand, #1F4A2D)",
+  color: "#FFFFFF",
+  borderRadius: 7,
+  textDecoration: "none",
+};
 
 // ============================================================
 // Shared card styles

@@ -50,7 +50,8 @@ export type UnifiedChannel = {
   // publicatie niet meer stil is.
   published_at: string | null;
   publish_error: string | null;
-  // IG-post die nog handmatig in de Instagram-app verwijderd moet worden
+  // IG-post die bij het stoppen niet verwijderd kon worden en die de
+  // eigenaar dus zelf nog moet weghalen
   // (Instagram laat geen verwijderen via de API toe). Bevat de directe
   // permalink, of "manual" als die niet bewaard is (oudere post). Null = niets.
   ig_pending_manual_delete_url: string | null;
