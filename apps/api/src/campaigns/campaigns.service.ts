@@ -410,6 +410,11 @@ export class CampaignsService {
             useAdmin,
           );
           if (result.facebook?.id) postIds.facebook = result.facebook.id;
+          // Fotoposts: het foto-object apart bewaren, want verwijderen kan
+          // alleen daarop (zie MetaService.retract).
+          if (result.facebook?.photoId) {
+            postIds.facebook_photo = result.facebook.photoId;
+          }
           if (result.instagram?.id) postIds.instagram = result.instagram.id;
           // IG-permalink bewaren zodat we bij terugtrekken een directe link
           // naar de (handmatig te verwijderen) post kunnen tonen.
@@ -1625,6 +1630,7 @@ export class CampaignsService {
       .maybeSingle();
     const postIds = (content?.published_post_ids ?? null) as {
       facebook?: string;
+      facebook_photo?: string;
       instagram?: string;
       instagram_permalink?: string;
     } | null;
@@ -1635,6 +1641,7 @@ export class CampaignsService {
     const res = await this.meta
       .retract(businessId, {
         facebook: postIds.facebook ?? null,
+        facebookPhoto: postIds.facebook_photo ?? null,
         instagram: postIds.instagram ?? null,
       })
       .catch((err) => {

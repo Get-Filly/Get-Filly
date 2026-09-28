@@ -519,7 +519,7 @@ export class MetaService {
     },
     useAdmin = false,
   ): Promise<{
-    facebook?: { id: string };
+    facebook?: { id: string; photoId?: string | null };
     instagram?: { id: string; permalink?: string };
     errors: string[];
   }> {
@@ -541,7 +541,7 @@ export class MetaService {
     const pageToken = page.access_token;
     const v = this.graphVersion();
     const result: {
-      facebook?: { id: string };
+      facebook?: { id: string; photoId?: string | null };
       instagram?: { id: string; permalink?: string };
       errors: string[];
     } = { errors: [] };
@@ -562,7 +562,16 @@ export class MetaService {
           );
           const json = (await res.json()) as { id?: string; post_id?: string };
           if (!res.ok) throw new Error(JSON.stringify(json));
-          result.facebook = { id: json.post_id ?? json.id ?? '' };
+          // Een fotopost levert TWEE objecten op: het foto-object (`id`) en
+          // de bijbehorende story op de feed (`post_id`, van de vorm
+          // {page-id}_{post-id}). Voor links en statistieken wil je het
+          // post_id, maar VERWIJDEREN kan alleen op het foto-object -- een
+          // DELETE op de feed-story van een foto weigert Facebook. Daarom
+          // allebei bewaren.
+          result.facebook = {
+            id: json.post_id ?? json.id ?? '',
+            photoId: json.id ?? null,
+          };
         } else {
           // Tekst/link-post op de pagina-feed.
           const params = new URLSearchParams({
@@ -836,7 +845,13 @@ export class MetaService {
    */
   async retract(
     businessId: string,
-    postIds: { facebook?: string | null; instagram?: string | null },
+    postIds: {
+      facebook?: string | null;
+      /** Het foto-object van een fotopost. Facebook weigert een DELETE op de
+       *  feed-story van een foto, dus hierop verwijderen we als 'ie er is. */
+      facebookPhoto?: string | null;
+      instagram?: string | null;
+    },
   ): Promise<MetaRetractResult> {
     const result: MetaRetractResult = {
       facebook: 'skipped',
@@ -874,12 +889,23 @@ export class MetaService {
     }
 
     if (postIds.facebook) {
+      // Bij een fotopost het foto-object nemen: dat verwijdert de post
+      // inclusief de story op de feed. Andersom werkt niet.
       result.facebook = await this.deleteMetaObject(
-        postIds.facebook,
+        postIds.facebookPhoto || postIds.facebook,
         pageToken,
         'Facebook',
         result,
       );
+      // Oudere campagnes hebben geen photo-id bewaard. Mislukt de delete op
+      // het feed-id, dan is dat vrijwel zeker dit geval; de eigenaar ziet
+      // de melding en kan 'm zelf weghalen.
+      if (result.facebook === 'failed' && !postIds.facebookPhoto) {
+        this.logger.warn(
+          `FB-post ${postIds.facebook} niet verwijderd en geen photo-id ` +
+            `bewaard: als dit een fotopost is, moet 'ie handmatig weg.`,
+        );
+      }
     }
 
     if (postIds.instagram) {

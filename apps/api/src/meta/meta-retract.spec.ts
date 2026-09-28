@@ -233,3 +233,37 @@ describe('MetaService.retract — koppeling zonder delete-permissie', () => {
     expect(calls).toHaveLength(1);
   });
 });
+
+describe('MetaService.retract — fotoposts op Facebook', () => {
+  // Een fotopost levert twee objecten op: het foto-object en de story op
+  // de feed. Facebook weigert een DELETE op die story, dus we moeten het
+  // foto-object pakken. Dit werkte eerder niet.
+  it('verwijdert op het foto-object, niet op het feed-id', async () => {
+    const { service, calls } = makeService({
+      responses: { photo1: { ok: true, body: { success: true } } },
+    });
+
+    const res = await service.retract('biz1', {
+      facebook: '111_222',
+      facebookPhoto: 'photo1',
+    });
+
+    expect(res.facebook).toBe('deleted');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toContain('/photo1?');
+    expect(calls[0].url).not.toContain('111_222');
+  });
+
+  it('valt terug op het feed-id als er geen foto-object bewaard is', async () => {
+    // Campagnes van vóór deze fix hebben alleen het feed-id. Voor een
+    // tekstpost is dat ook het juiste object.
+    const { service, calls } = makeService({
+      responses: { '111_222': { ok: true, body: { success: true } } },
+    });
+
+    const res = await service.retract('biz1', { facebook: '111_222' });
+
+    expect(res.facebook).toBe('deleted');
+    expect(calls[0].url).toContain('111_222');
+  });
+});
