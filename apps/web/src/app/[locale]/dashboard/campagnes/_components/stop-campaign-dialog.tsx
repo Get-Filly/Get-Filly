@@ -42,9 +42,15 @@ export function StopCampaignDialog({
 
   const done = result !== null;
   // Er staat nog iets live. Dan is de directe link het enige dat de
-  // eigenaar nog verder helpt.
+  // eigenaar nog verder helpt. 'unavailable' telt hier mee: de post is
+  // net zo goed niet weg, alleen is de reden een andere.
+  const blijftStaan = (v: CampaignRetractReport[keyof CampaignRetractReport]) =>
+    v === "failed" || v === "unavailable";
   const stuck =
-    done && (result.facebook === "failed" || result.instagram === "failed");
+    done && (blijftStaan(result.facebook) || blijftStaan(result.instagram));
+  // Verwijderen kan helemaal niet met deze koppeling. Opnieuw verbinden
+  // biedt dan geen uitweg, dus dat moeten we ook niet voorstellen.
+  const nietBeschikbaar = done && result.instagram === "unavailable";
   const raw = result?.instagramManualUrl ?? "";
   const href = raw && raw.startsWith("http") ? raw : "https://www.instagram.com";
 
@@ -80,7 +86,16 @@ export function StopCampaignDialog({
               // verwijderd is.
               .filter((k) => result[k] !== "skipped")
               .map((k) => {
-                const deleted = result[k] === "deleted";
+                const uitkomst = result[k];
+                const deleted = uitkomst === "deleted";
+                // Drie standen, drie teksten. "kon niet" en "kan niet" is
+                // voor de eigenaar een wezenlijk verschil: het eerste kun
+                // je opnieuw proberen, het tweede niet.
+                const sleutel = deleted
+                  ? `igStopPopup.removed.${k}`
+                  : uitkomst === "unavailable"
+                    ? `igStopPopup.unavailable.${k}`
+                    : `igStopPopup.failed.${k}`;
                 return (
                   <li key={k} style={rowStyle}>
                     <span aria-hidden="true">{deleted ? "✓" : "✕"}</span>
@@ -89,11 +104,7 @@ export function StopCampaignDialog({
                         color: deleted ? "var(--brand, #1F4A2D)" : "#B3261E",
                       }}
                     >
-                      {t(
-                        deleted
-                          ? `igStopPopup.removed.${k}`
-                          : `igStopPopup.failed.${k}`,
-                      )}
+                      {t(sleutel)}
                     </span>
                   </li>
                 );
@@ -109,17 +120,21 @@ export function StopCampaignDialog({
         {stuck && (
           <div style={noticeBox}>
             <div style={noticeTitle}>
-              {result.needsReconnect
-                ? t("igStopPopup.reconnectTitle")
-                : t("igStopPopup.noticeTitle")}
+              {nietBeschikbaar
+                ? t("igStopPopup.unavailableTitle")
+                : result.needsReconnect
+                  ? t("igStopPopup.reconnectTitle")
+                  : t("igStopPopup.noticeTitle")}
             </div>
             <div style={noticeBody}>
-              {result.needsReconnect
-                ? t("igStopPopup.reconnectBody")
-                : t("igStopPopup.noticeBody")}
+              {nietBeschikbaar
+                ? t("igStopPopup.unavailableBody")
+                : result.needsReconnect
+                  ? t("igStopPopup.reconnectBody")
+                  : t("igStopPopup.noticeBody")}
             </div>
             <div style={noticeActions}>
-              {result.needsReconnect && (
+              {result.needsReconnect && !nietBeschikbaar && (
                 // Link uit @/i18n/navigation, niet <a>: anders valt de
                 // gebruiker op /en terug naar het Nederlandse pad.
                 <Link href="/dashboard/koppelingen" style={noticeLink}>
@@ -130,7 +145,11 @@ export function StopCampaignDialog({
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={result.needsReconnect ? noticeLinkGhost : noticeLink}
+                style={
+                  result.needsReconnect && !nietBeschikbaar
+                    ? noticeLinkGhost
+                    : noticeLink
+                }
               >
                 {t("igStopPopup.open")}
               </a>

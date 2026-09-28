@@ -1088,7 +1088,13 @@
       "open": "Open the post",
       "cancel": "Cancel",
       "confirm": "Stop campaign",
-      "close": "Close"
+      "close": "Close",
+      "unavailable": {
+        "facebook": "Facebook post not deleted",
+        "instagram": "Instagram post not deleted"
+      },
+      "unavailableTitle": "Instagram post is still live",
+      "unavailableBody": "Instagram does not yet allow deleting through this connection. Remove the post yourself in Instagram; we are working on making this automatic."
     },
     "tooltips": {
       "finishMail": "Email has already been sent, finish the campaign.",

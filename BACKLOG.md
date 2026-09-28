@@ -48,13 +48,20 @@ eerste twee kan Claude niet zelf doen.
 - [ ] **WAF / Vercel Firewall.** De rem per IP (mig 0076) stopt één bron die
       doorramt, geen gedistribueerde aanval.
 
-- [ ] **`instagram_manage_contents` door Meta App Review.** De scope is
-      toegevoegd (2026-09-25) zodat een gestopte campagne de Instagram-post
-      echt verwijdert. In Development Mode werkt dat meteen voor accounts mét
-      een rol in de app — genoeg om de screencast op te nemen — maar voor
-      klanten moet de scope goedgekeurd zijn. **Controleer ook of
-      `META_GRAPH_VERSION` mee moet**: de default staat nu op v23.0; geeft Meta
-      "Unknown path components" op een delete, zet 'm dan een versie hoger.
+- [ ] 🔴 **`instagram_manage_contents` beschikbaar maken in het App Dashboard.**
+      Meta weigert de scope in de inlogdialoog: *"Invalid Scopes:
+      instagram_manage_contents"* (28-09). De permissie staat wél in hun
+      documentatie voor `DELETE /{ig-media-id}`, maar een permissie hangt bij
+      Meta aan een **use case** — zolang die niet aan de app is toegevoegd,
+      kent de dialoog de naam niet. Dit is een actie in het App Dashboard
+      (Dashboard → de use case → permissies toevoegen), geen codewijziging.
+      Daarna volgt nog App Review voor klanten; in Development Mode werkt 'ie
+      meteen voor accounts mét een rol in de app.
+      **Zodra het werkt:** `META_REQUEST_IG_DELETE_SCOPE=true` in de web-env
+      van Vercel. De code vraagt de scope dan weer aan, zonder deploy.
+- [ ] Controleer of `META_GRAPH_VERSION` mee moet: de default staat op v23.0;
+      geeft Meta "Unknown path components" op een delete, zet 'm een versie
+      hoger.
 - [ ] **Bestaande Meta-koppelingen opnieuw leggen.** Een koppeling van vóór
       25 september heeft de nieuwe scope niet. Verwijderen faalt dan met een
       permissiefout; de app zegt dat ook en linkt naar de koppelingen-pagina.
