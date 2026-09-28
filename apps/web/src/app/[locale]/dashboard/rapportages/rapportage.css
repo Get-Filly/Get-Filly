@@ -1,0 +1,429 @@
+/* ============================================================
+   Rapportage per uiting — eigen stijlen
+   ============================================================
+   De data-kleuren staan hier los van de huisstijl-tokens omdat ze
+   gevalideerd zijn op kleurenblindheid en contrast (organisch vs
+   betaald: CVD ΔE 8.6, normaal zicht ΔE 24.3 op wit). Niet zomaar
+   vervangen door een andere groen/oranje.
+
+   "Betaald" (#D97F3C) zit net onder 3:1 contrast op wit. Dat mag,
+   maar alleen mét opvang: er staat altijd een label in het segment,
+   een legenda erboven en de volledige tabel eronder. Haal je die weg,
+   dan is de kleur niet meer leesbaar voor iedereen.
+   ============================================================ */
+.rap {
+  --organic: #2f7d4b;
+  --paid: #d97f3c;
+  /* Sequentiële groen-ramp: één tint, meer = donkerder. */
+  --g300: #8fbea3;
+  --g400: #63a47f;
+  --g500: #2f7d4b;
+  --g600: #24603a;
+  --g700: #1f4a2d;
+  /* "Niet in je selectie": grijs, nooit een serie-kleur. */
+  --rap-dim: #d8d3c6;
+  --rap-grid: #e7e2d6;
+  --rap-axis: #d6d0c2;
+  --rap-hair: #efeadf;
+}
+
+/* ---- Filterrij: één rij boven alles wat ze scopet ---- */
+.rap-filters {
+  display: flex;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 11px 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.rap-fgroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.rap-lbl {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.rap-seg {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+}
+.rap-seg button {
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.rap-seg button[aria-pressed="true"] {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+}
+.rap-chips {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+/* Het merkkleurtje blijft ook uitgevinkt zichtbaar, zodat je het
+   kanaal herkent zonder de tekst te lezen. */
+.rap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.rap-chip[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-deep, var(--brand));
+  font-weight: 600;
+}
+.rap-chip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.rap-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 0 20px 2px;
+}
+.rap-meta b {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+/* ---- KPI-rij: stat tiles, de eerste is de hero ---- */
+.rap-kpis {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 1080px) {
+  .rap-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.rap-kpi {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px 15px;
+}
+.rap-kpi-lbl {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+/* Grote losse getallen: proportionele cijfers. tabular-nums maakt een
+   getal als 121 op deze grootte juist los. */
+.rap-kpi-val {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.rap-kpi.hero .rap-kpi-val {
+  font-size: 42px;
+}
+.rap-kpi-sub {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-top: 4px;
+}
+.rap-delta {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.rap-delta.up {
+  color: var(--success, #16a34a);
+}
+.rap-delta.down {
+  color: var(--danger, #dc2626);
+}
+
+/* ---- Kaart-grid ---- */
+.rap-grid2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.rap-grid1 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+/* min-width:0 is nodig: grid-items hebben min-width:auto, waardoor de
+   brede tabel de kaart oprekt en de hele pagina horizontaal scrolt. */
+.rap-grid1 > *,
+.rap-grid2 > * {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .rap-grid2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.rap-card-hd {
+  margin-bottom: 14px;
+}
+.rap-card-t {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+.rap-card-s {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ---- Legenda ---- */
+.rap-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+.rap-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.rap-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ---- Horizontale staven ---- */
+.rap-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rap-bar-row {
+  display: grid;
+  grid-template-columns: 132px 1fr 74px;
+  align-items: center;
+  gap: 12px;
+}
+.rap-bar-lbl {
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.rap-bar-row.off .rap-bar-lbl,
+.rap-bar-row.off .rap-bar-val {
+  color: var(--text-muted);
+}
+.rap-bar-row.off .rap-bar-val {
+  font-weight: 500;
+}
+.rap-bar-track {
+  height: 18px;
+  background: var(--rap-hair);
+  border-radius: 4px;
+  position: relative;
+}
+/* display:block is essentieel: als kind van de track is dit geen
+   grid-item, dus zou het een inline-span blijven waarop width/height
+   niet gelden en wordt de balk 0px breed. */
+.rap-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+.rap-bar-val {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Gestapeld: 2px oppervlak-gat tussen de segmenten, geen randje. */
+.rap-stack {
+  display: flex;
+  height: 18px;
+  gap: 2px;
+}
+.rap-stack > i {
+  display: block;
+  height: 100%;
+  position: relative;
+}
+.rap-stack > i:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.rap-stack > i:last-child {
+  border-radius: 0 4px 4px 0;
+}
+.rap-stack > i:only-child {
+  border-radius: 4px;
+}
+.rap-seg-lbl {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ---- Score-strip ---- */
+.rap-scores {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .rap-scores {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.rap-score {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg);
+}
+.rap-score-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.rap-score-n {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.rap-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Tabel ---- */
+.rap-tbl-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.rap-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 900px;
+}
+.rap-tbl th,
+.rap-tbl td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--rap-hair);
+  white-space: nowrap;
+}
+.rap-tbl th {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--rap-axis);
+}
+/* tabular-nums hier juist wél: kolommen moeten verticaal uitlijnen. */
+.rap-tbl td.num,
+.rap-tbl th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rap-tbl tbody tr:hover {
+  background: var(--bg);
+}
+.rap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+}
+.rap-ch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rap-ch-ic {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ---- Noot + leegte ---- */
+.rap-note {
+  margin-top: 14px;
+  padding: 11px 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.rap-note b {
+  color: var(--text);
+}
+.rap-empty {
+  padding: 26px 4px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+.rap-sec {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin: 30px 0 12px;
+}

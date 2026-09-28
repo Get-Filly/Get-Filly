@@ -57,6 +57,32 @@ export class EventsService {
    * een lege lijst op, nooit een gecrashte AI-feature.
    */
   async findNearby(businessId: string): Promise<NearbyEvent[]> {
+    const today = new Date().toISOString().slice(0, 10);
+    const until = new Date(Date.now() + WINDOW_DAYS * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    return this.findNearbyInRange(businessId, today, until, MAX_IN_BLOCK);
+  }
+
+  /**
+   * Zelfde staffel-matching, maar voor een expliciet datumbereik en met een
+   * instelbare limiet. Nodig voor de rustige-momenten-detectie: die kijkt
+   * over een eigen venster en mag NIET op MAX_IN_BLOCK afgekapt worden.
+   * Die cap knipt namelijk ná `order('starts_on')`, dus met de prompt-limiet
+   * zie je alleen de eerste 8 events chronologisch — een festival op dag 19
+   * bestaat dan niet.
+   *
+   * Let op de grenzen van de bron (mig 0053): `events` heeft alleen
+   * `starts_on`, geen einddatum en geen omvang. Een meerdaags festival
+   * matcht dus alleen z'n startdag, en "groot" is niet afleesbaar — alleen
+   * te benaderen via categorie + afstand.
+   */
+  async findNearbyInRange(
+    businessId: string,
+    fromIso: string,
+    toIso: string,
+    limit = 200,
+  ): Promise<NearbyEvent[]> {
     try {
       const { data: restaurant } = await this.supabase.client
         .from('businesses')
@@ -79,10 +105,8 @@ export class EventsService {
         | number
         | null;
 
-      const today = new Date().toISOString().slice(0, 10);
-      const until = new Date(Date.now() + WINDOW_DAYS * 86_400_000)
-        .toISOString()
-        .slice(0, 10);
+      const today = fromIso;
+      const until = toIso;
 
       // Grove bounding-box in SQL (1° lat ≈ 111 km; 1° lng ≈ 68 km
       // op NL-breedte), daarna exacte haversine + staffel in JS.
@@ -91,7 +115,9 @@ export class EventsService {
       const lngMargin = boxKm / 68;
       const { data, error } = await this.supabase.client
         .from('events')
-        .select('source_slug, name, category, place, starts_on, latitude, longitude')
+        .select(
+          'source_slug, name, category, place, starts_on, latitude, longitude',
+        )
         .gte('starts_on', today)
         .lte('starts_on', until)
         .not('latitude', 'is', null)
@@ -134,11 +160,11 @@ export class EventsService {
           distanceKm: Math.round(distanceKm * 10) / 10,
           sourceUrl: `https://evenementen.nl/events/${row.source_slug}`,
         });
-        if (nearby.length >= MAX_IN_BLOCK) break;
+        if (nearby.length >= limit) break;
       }
       return nearby;
     } catch (err) {
-      this.logger.warn(`findNearby faalde: ${String(err)}`);
+      this.logger.warn(`findNearbyInRange faalde: ${String(err)}`);
       return [];
     }
   }

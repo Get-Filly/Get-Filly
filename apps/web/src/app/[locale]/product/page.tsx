@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { pageMetadata } from "@/config/seo";
+import { BrandLogo, type BrandId } from "@/components/brand-logos";
 
 // =============================================================================
 // PRODUCT-PAGINA, 1-op-1 conversie van Claude Design app.jsx → ProductPage.
@@ -10,6 +11,17 @@ import { pageMetadata } from "@/config/seo";
 // (namespace "product"). Alleen structurele data (bezettingspercentages,
 // kanaal-iconen, count-up-getallen) staat hier in code.
 // =============================================================================
+
+// De drie voorgestelde uitingen dragen sinds 2026-09-09 platform-namen, dus
+// ook de echte merk-logo's i.p.v. generieke vorm-iconen. BrandLogo rendert een
+// <g>, hier gewrapt in een eigen <svg> zodat het een los icoontje is.
+function ChannelLogo({ id }: { id: BrandId }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <BrandLogo id={id} x={12} y={12} size={24} />
+    </svg>
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -156,11 +168,8 @@ export default async function ProductPage({
                   </div>
                   <div className="pmock-channels-list">
                     <div className="pmock-ch">
-                      <div className="pmock-ch-icon pmock-ch-icon--mail">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="5" width="18" height="14" rx="2" />
-                          <path d="m3 7 9 6 9-6" />
-                        </svg>
+                      <div className="pmock-ch-icon pmock-ch-icon--brand">
+                        <ChannelLogo id="instagram" />
                       </div>
                       <div className="pmock-ch-body">
                         <div className="pmock-ch-label">{t("mock.mailLabel")}</div>
@@ -170,12 +179,8 @@ export default async function ProductPage({
                     </div>
 
                     <div className="pmock-ch">
-                      <div className="pmock-ch-icon pmock-ch-icon--ig">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="5" />
-                          <circle cx="12" cy="12" r="4" />
-                          <circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" />
-                        </svg>
+                      <div className="pmock-ch-icon pmock-ch-icon--brand">
+                        <ChannelLogo id="facebook" />
                       </div>
                       <div className="pmock-ch-body">
                         <div className="pmock-ch-label">{t("mock.igLabel")}</div>
@@ -185,16 +190,25 @@ export default async function ProductPage({
                     </div>
 
                     <div className="pmock-ch">
-                      <div className="pmock-ch-icon pmock-ch-icon--wa">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 17 0z" />
-                        </svg>
+                      <div className="pmock-ch-icon pmock-ch-icon--brand">
+                        <ChannelLogo id="tiktok" />
                       </div>
                       <div className="pmock-ch-body">
                         <div className="pmock-ch-label">{t("mock.waLabel")}</div>
                         <div className="pmock-ch-preview">{t("mock.waPreview")}</div>
                       </div>
                       <div className="pmock-ch-meta">{t("mock.waMeta")}</div>
+                    </div>
+
+                    <div className="pmock-ch">
+                      <div className="pmock-ch-icon pmock-ch-icon--brand">
+                        <ChannelLogo id="youtube" />
+                      </div>
+                      <div className="pmock-ch-body">
+                        <div className="pmock-ch-label">{t("mock.ytLabel")}</div>
+                        <div className="pmock-ch-preview">{t("mock.ytPreview")}</div>
+                      </div>
+                      <div className="pmock-ch-meta">{t("mock.ytMeta")}</div>
                     </div>
                   </div>
                   <button className="pmock-channels-cta" type="button">
@@ -245,9 +259,14 @@ export default async function ProductPage({
                       <div className="pmock-approve-row-meta">{t("mock.igMeta")}</div>
                     </div>
                     <div className="pmock-approve-row">
-                      <div className="pmock-approve-row-dot is-pending" />
+                      <div className="pmock-approve-row-dot is-done" />
                       <div className="pmock-approve-row-label">{t("mock.approveRow3")}</div>
                       <div className="pmock-approve-row-meta">{t("mock.waMeta")}</div>
+                    </div>
+                    <div className="pmock-approve-row">
+                      <div className="pmock-approve-row-dot is-pending" />
+                      <div className="pmock-approve-row-label">{t("mock.approveRow4")}</div>
+                      <div className="pmock-approve-row-meta">{t("mock.ytMeta")}</div>
                     </div>
                   </div>
                   <div className="pmock-approve-foot">
@@ -275,7 +294,7 @@ export default async function ProductPage({
                     <div className="pmock-ig-avatar">B</div>
                     <div className="pmock-ig-meta">
                       <div className="pmock-ig-name">bistrogetfilly</div>
-                      <div className="pmock-ig-loc">{t("mock.igLoc")}</div>
+                      <div className="pmock-ig-loc">{t("mock.igSponsored")} · {t("mock.igLoc")}</div>
                     </div>
                     <span className="pmock-ig-live">{t("mock.live")}</span>
                   </div>
@@ -349,18 +368,35 @@ export default async function ProductPage({
                   <div className="pmock-result-breakdown">
                     <div className="pmock-result-breakdown-title">{t("mock.resultBreakdown")}</div>
                     <div className="pmock-result-bar">
-                      <div className="pmock-result-bar-label">E-mail</div>
+                      <div className="pmock-result-bar-label">
+                        <span className="pmock-result-bar-logo"><ChannelLogo id="instagram" /></span>
+                        {t("mock.resultBar1")}
+                      </div>
                       <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "58%" }} /></div>
-                      <div className="pmock-result-bar-val">7 {t("mock.resultRes")}</div>
+                      <div className="pmock-result-bar-val">5 {t("mock.resultRes")}</div>
                     </div>
                     <div className="pmock-result-bar">
-                      <div className="pmock-result-bar-label">Instagram</div>
-                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "33%" }} /></div>
+                      <div className="pmock-result-bar-label">
+                        <span className="pmock-result-bar-logo"><ChannelLogo id="facebook" /></span>
+                        {t("mock.resultBar2")}
+                      </div>
+                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "47%" }} /></div>
                       <div className="pmock-result-bar-val">4 {t("mock.resultRes")}</div>
                     </div>
                     <div className="pmock-result-bar">
-                      <div className="pmock-result-bar-label">WhatsApp</div>
-                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "9%" }} /></div>
+                      <div className="pmock-result-bar-label">
+                        <span className="pmock-result-bar-logo"><ChannelLogo id="tiktok" /></span>
+                        {t("mock.resultBar3")}
+                      </div>
+                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "24%" }} /></div>
+                      <div className="pmock-result-bar-val">2 {t("mock.resultRes")}</div>
+                    </div>
+                    <div className="pmock-result-bar">
+                      <div className="pmock-result-bar-label">
+                        <span className="pmock-result-bar-logo"><ChannelLogo id="youtube" /></span>
+                        {t("mock.resultBar4")}
+                      </div>
+                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "12%" }} /></div>
                       <div className="pmock-result-bar-val">1 {t("mock.resultRes")}</div>
                     </div>
                   </div>

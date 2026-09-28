@@ -17,7 +17,10 @@
 export type BusynessPattern = number[][];
 
 /** doel-vorm van restaurants.opening_hours: per dagsleutel open/close of null (dicht). */
-export type OpeningHours = Record<string, { open: string; close: string } | null>;
+export type OpeningHours = Record<
+  string,
+  { open: string; close: string } | null
+>;
 
 export interface ApifyPlace {
   placeId?: string;
@@ -69,10 +72,17 @@ function parseHistogram(
     for (const r of rows) {
       if (!r || typeof r !== 'object') continue;
       const hr = (r as { hour?: unknown }).hour;
-      if (typeof hr !== 'number' || !Number.isInteger(hr) || hr < 0 || hr > 23) {
+      if (
+        typeof hr !== 'number' ||
+        !Number.isInteger(hr) ||
+        hr < 0 ||
+        hr > 23
+      ) {
         continue;
       }
-      pattern[idx][hr] = clampPct((r as { occupancyPercent?: unknown }).occupancyPercent);
+      pattern[idx][hr] = clampPct(
+        (r as { occupancyPercent?: unknown }).occupancyPercent,
+      );
       saw = true;
     }
   }

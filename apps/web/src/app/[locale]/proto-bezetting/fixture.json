@@ -1,0 +1,370 @@
+{
+  "_comment": "Gegenereerd door apps/api/scripts/gen-bezetting-fixture.js met de echte aggregatie. Niet met de hand bijwerken.",
+  "hasSource": true,
+  "weeks": 16,
+  "minDays": 3,
+  "hourly": [
+    {
+      "weekday": 1,
+      "hour": 12,
+      "actual": 17,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "hour": 13,
+      "actual": 18,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "hour": 14,
+      "actual": 5,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "hour": 17,
+      "actual": 41,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "hour": 18,
+      "actual": 40,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "hour": 19,
+      "actual": 40,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "hour": 20,
+      "actual": 40,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 12,
+      "actual": 15,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 13,
+      "actual": 15,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 14,
+      "actual": 4,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 17,
+      "actual": 44,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 18,
+      "actual": 45,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 19,
+      "actual": 44,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "hour": 20,
+      "actual": 45,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 12,
+      "actual": 37,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 13,
+      "actual": 36,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 14,
+      "actual": 22,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 17,
+      "actual": 50,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 18,
+      "actual": 50,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 19,
+      "actual": 51,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "hour": 20,
+      "actual": 50,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 12,
+      "actual": 44,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 13,
+      "actual": 45,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 14,
+      "actual": 26,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 17,
+      "actual": 68,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 18,
+      "actual": 68,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 19,
+      "actual": 68,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "hour": 20,
+      "actual": 68,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 12,
+      "actual": 58,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 13,
+      "actual": 58,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 14,
+      "actual": 36,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 17,
+      "actual": 97,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 18,
+      "actual": 98,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 19,
+      "actual": 97,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "hour": 20,
+      "actual": 97,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 12,
+      "actual": 66,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 13,
+      "actual": 66,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 14,
+      "actual": 40,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 17,
+      "actual": 73,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 18,
+      "actual": 72,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 19,
+      "actual": 73,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "hour": 20,
+      "actual": 72,
+      "days": 16
+    }
+  ],
+  "dayparts": [
+    {
+      "weekday": 1,
+      "daypart": "lunch",
+      "expected": 30,
+      "actual": 18,
+      "diff": -12,
+      "hours": 2,
+      "days": 16
+    },
+    {
+      "weekday": 1,
+      "daypart": "diner",
+      "expected": 40,
+      "actual": 40,
+      "diff": 0,
+      "hours": 4,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "daypart": "lunch",
+      "expected": 28,
+      "actual": 15,
+      "diff": -13,
+      "hours": 2,
+      "days": 16
+    },
+    {
+      "weekday": 2,
+      "daypart": "diner",
+      "expected": 44,
+      "actual": 45,
+      "diff": 1,
+      "hours": 4,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "daypart": "lunch",
+      "expected": 36,
+      "actual": 37,
+      "diff": 1,
+      "hours": 2,
+      "days": 16
+    },
+    {
+      "weekday": 3,
+      "daypart": "diner",
+      "expected": 50,
+      "actual": 50,
+      "diff": 0,
+      "hours": 4,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "daypart": "lunch",
+      "expected": 44,
+      "actual": 45,
+      "diff": 1,
+      "hours": 2,
+      "days": 16
+    },
+    {
+      "weekday": 4,
+      "daypart": "diner",
+      "expected": 68,
+      "actual": 68,
+      "diff": 0,
+      "hours": 4,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "daypart": "lunch",
+      "expected": 58,
+      "actual": 58,
+      "diff": 0,
+      "hours": 2,
+      "days": 16
+    },
+    {
+      "weekday": 5,
+      "daypart": "diner",
+      "expected": 88,
+      "actual": 97,
+      "diff": 9,
+      "hours": 4,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "daypart": "lunch",
+      "expected": 66,
+      "actual": 66,
+      "diff": 0,
+      "hours": 2,
+      "days": 16
+    },
+    {
+      "weekday": 6,
+      "daypart": "diner",
+      "expected": 72,
+      "actual": 73,
+      "diff": 1,
+      "hours": 4,
+      "days": 16
+    }
+  ]
+}

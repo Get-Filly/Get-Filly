@@ -14,7 +14,6 @@ import {
   ChevronRight,
   ChevronDown,
   Flame,
-  Mail,
 } from "lucide-react";
 import {
   VindbaarheidVisual,
@@ -66,16 +65,16 @@ async function MiniDashboard() {
 
   // Heatmap-kalender mei 2026 (1 mei = vrijdag). p = bezetting%, lvl =
   // kleurtier (zie .md-cal-day.lvl-* in landing.css). today = 4 mei.
-  // mail = klein envelop-markertje (geplande uiting), fire = drukke dag.
+  // ad = klein megafoon-markertje (geplande advertentie), fire = drukke dag.
   type CalCell =
-    | { d: number; p: number; lvl: number; today?: boolean; mail?: boolean; fire?: boolean }
+    | { d: number; p: number; lvl: number; today?: boolean; ad?: boolean; fire?: boolean }
     | null;
   const CAL: CalCell[][] = [
-    [null, null, null, null, { d: 1, p: 42, lvl: 1 }, { d: 2, p: 41, lvl: 1 }, { d: 3, p: 80, lvl: 3, mail: true }],
-    [{ d: 4, p: 55, lvl: 1, today: true }, { d: 5, p: 43, lvl: 1 }, { d: 6, p: 68, lvl: 2 }, { d: 7, p: 64, lvl: 1 }, { d: 8, p: 44, lvl: 1 }, { d: 9, p: 54, lvl: 1 }, { d: 10, p: 56, lvl: 1, mail: true }],
-    [{ d: 11, p: 42, lvl: 1 }, { d: 12, p: 82, lvl: 3 }, { d: 13, p: 43, lvl: 1 }, { d: 14, p: 56, lvl: 1 }, { d: 15, p: 89, lvl: 3, mail: true }, { d: 16, p: 81, lvl: 3 }, { d: 17, p: 85, lvl: 3 }],
-    [{ d: 18, p: 46, lvl: 1 }, { d: 19, p: 54, lvl: 1 }, { d: 20, p: 42, lvl: 1 }, { d: 21, p: 65, lvl: 2 }, { d: 22, p: 92, lvl: 3 }, { d: 23, p: 84, lvl: 3 }, { d: 24, p: 88, lvl: 3, mail: true }],
-    [{ d: 25, p: 65, lvl: 2 }, { d: 26, p: 53, lvl: 1 }, { d: 27, p: 61, lvl: 1 }, { d: 28, p: 74, lvl: 2 }, { d: 29, p: 95, lvl: 4, fire: true }, { d: 30, p: 67, lvl: 2 }, { d: 31, p: 91, lvl: 3, mail: true }],
+    [null, null, null, null, { d: 1, p: 42, lvl: 1 }, { d: 2, p: 41, lvl: 1 }, { d: 3, p: 80, lvl: 3, ad: true }],
+    [{ d: 4, p: 55, lvl: 1, today: true }, { d: 5, p: 43, lvl: 1 }, { d: 6, p: 68, lvl: 2 }, { d: 7, p: 64, lvl: 1 }, { d: 8, p: 44, lvl: 1 }, { d: 9, p: 54, lvl: 1 }, { d: 10, p: 56, lvl: 1, ad: true }],
+    [{ d: 11, p: 42, lvl: 1 }, { d: 12, p: 82, lvl: 3 }, { d: 13, p: 43, lvl: 1 }, { d: 14, p: 56, lvl: 1 }, { d: 15, p: 89, lvl: 3, ad: true }, { d: 16, p: 81, lvl: 3 }, { d: 17, p: 85, lvl: 3 }],
+    [{ d: 18, p: 46, lvl: 1 }, { d: 19, p: 54, lvl: 1 }, { d: 20, p: 42, lvl: 1 }, { d: 21, p: 65, lvl: 2 }, { d: 22, p: 92, lvl: 3 }, { d: 23, p: 84, lvl: 3 }, { d: 24, p: 88, lvl: 3, ad: true }],
+    [{ d: 25, p: 65, lvl: 2 }, { d: 26, p: 53, lvl: 1 }, { d: 27, p: 61, lvl: 1 }, { d: 28, p: 74, lvl: 2 }, { d: 29, p: 95, lvl: 4, fire: true }, { d: 30, p: 67, lvl: 2 }, { d: 31, p: 91, lvl: 3, ad: true }],
   ];
 
   return (
@@ -169,7 +168,7 @@ async function MiniDashboard() {
                       {cell.fire && <Flame className="md-cal-fire" size={9} />}
                     </span>
                     <span className="md-cal-bottom">
-                      {cell.mail && <Mail className="md-cal-mark" size={8} strokeWidth={2} />}
+                      {cell.ad && <Megaphone className="md-cal-mark" size={8} strokeWidth={2} />}
                       <span className="md-cal-pct">{cell.p}%</span>
                     </span>
                   </div>
@@ -298,7 +297,9 @@ export default async function HomePage({
         <div className="container">
           {/* Per 2026-05-13: sectie herschreven naar 3 pijlers
               (Vindbaarheid / Zichtbaarheid / Bereikbaarheid) i.p.v.
-              de tijd-as (Vandaag / Deze week / Seizoenen). De mockups
+              de tijd-as (Vandaag / Deze week / Seizoenen). De drie rijen
+              horen op desktop gelijk uit te lijnen: houd de visuals dus
+              ongeveer even hoog (~500px) als je er iets aan wijzigt. De mockups
               op de visual-plek blijven voor nu; Floris vervangt
               foto's later met pijler-specifieke beelden (bv. Google-
               Maps listing voor Vindbaarheid). */}
@@ -331,11 +332,14 @@ export default async function HomePage({
               </div>
             </div>
 
-            {/* Pijler 2 — Zichtbaarheid (social media, content,
-                white-label). Visual = ZichtbaarheidVisual: drie
-                overlappende social-posts (Facebook · TikTok · Instagram)
-                met echte foto's uit public/visuals/, die via de
-                scroll-reveal na elkaar opkomen. */}
+            {/* Pijler 2 — Zichtbaarheid (uitingen op sociale media:
+                organisch én betaald, later gesplitst). Visual =
+                ZichtbaarheidVisual: drie overlappende gesponsorde posts
+                (Facebook · TikTok · Instagram) met echte foto's uit
+                public/visuals/, die via de scroll-reveal na elkaar opkomen.
+                Twee ervan tonen vrij bereik, één is gesponsord. De copy houdt
+                bewust de koepelterm "uitingen op sociale media" aan; de
+                platform-namen staan alleen nog in de mockup. */}
             <div className="feature-row feature-row--reverse" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">
@@ -354,10 +358,11 @@ export default async function HomePage({
               </div>
             </div>
 
-            {/* Pijler 3 — Bereikbaarheid (e-mail, WhatsApp,
-                segmentatie). Visual = BereikbaarheidVisual: een
-                e-mailcampagne-kaart + een WhatsApp-gesprek met echte
-                chat-chrome. Per 2026-06-02; vervangt de losse fmock-email. */}
+            {/* Pijler 3 — Bereikbaarheid (de juiste mensen daadwerkelijk
+                bereiken). Visual = BereikbaarheidVisual: doelgroep-kaart,
+                de uiting compact met kleine thumbnail, en het resultaat in
+                drie cijfers. Drie kaarten, net als pijler 1 en 2, en samen
+                laag genoeg om met die rijen uit te lijnen. */}
             <div className="feature-row" data-reveal>
               <div className="feature-row-text">
                 <p className="feature-eyebrow">

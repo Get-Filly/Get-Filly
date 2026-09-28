@@ -22,6 +22,7 @@ import {
   buildAllTimingBlock,
   formatChannelRulesForPrompt,
   mapCampaignTypeToChannel,
+  type FillyChannel,
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
@@ -98,6 +99,9 @@ export type SuggestionPlatform =
   | 'tiktok'
   | 'google_business';
 
+// Alle platform-waarden die in de data KUNNEN voorkomen. Bewust inclusief
+// 'whatsapp': eerder opgeslagen suggesties met dat platform moeten leesbaar
+// en goedkeurbaar blijven.
 const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
   'mail',
   'whatsapp',
@@ -105,6 +109,33 @@ const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
   'facebook',
   'tiktok',
   'google_business',
+];
+
+// Wat Filly NIEUW mag voorstellen. Per 2026-09-09 zonder 'whatsapp': daar is
+// geen verzendpad voor, dus zo'n voorstel eindigt als een campagne die niet
+// de deur uit kan. Deze set voedt het tool-schema én de validatie van verse
+// LLM-output; de ACCEPTED-set hierboven blijft voor bestaande rijen.
+const GENERATABLE_PLATFORMS: SuggestionPlatform[] = [
+  'instagram',
+  'facebook',
+  'tiktok',
+  'google_business',
+  'mail',
+];
+
+// Kanalen waarvan Filly de REGELS PER KANAAL meekrijgt in de generatie-
+// prompts van de geleide flow. Per 2026-09-09 gelijkgetrokken met wat de
+// kanaalkeuze daadwerkelijk aanbiedt: Facebook en Google Business stonden er
+// niet in (Filly schreef dus FB-copy zonder FB-regels) en WhatsApp wél,
+// terwijl daar geen verzendpad voor is. Instagram-reels/-stories laten we uit
+// dit blok: het voorstel kiest 'social' als type, de feed-band is de
+// bandbreedte waarop de copy-guard toetst.
+const PROMPT_CHANNELS: FillyChannel[] = [
+  'instagram_feed',
+  'facebook',
+  'tiktok',
+  'google_business',
+  'mail',
 ];
 
 // Kanalen die een multi-channel-bundel kan bevatten. Sinds 2026-06-22 ook
@@ -175,7 +206,7 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
             items: {
               type: 'object',
               properties: {
-                platform: { type: 'string', enum: SUGGESTION_PLATFORMS },
+                platform: { type: 'string', enum: GENERATABLE_PLATFORMS },
                 subject_line: { type: 'string' },
                 body: { type: 'string' },
                 scheduled_for: {
@@ -251,7 +282,7 @@ type GenerateSuggestionsFromTool = {
 const LOW_OCCUPANCY_SCHEMA = {
   type: 'object',
   properties: {
-    campaign_type: { type: 'string', enum: ['mail', 'social', 'whatsapp'] },
+    campaign_type: { type: 'string', enum: ['social', 'mail'] },
     name: { type: 'string' },
     subject_line: { type: 'string' },
     body: { type: 'string' },
@@ -259,7 +290,7 @@ const LOW_OCCUPANCY_SCHEMA = {
     reasoning: { type: 'string' },
     alternative_channel: {
       type: 'string',
-      enum: ['mail', 'social', 'whatsapp'],
+      enum: ['social', 'mail'],
       description:
         'Het beste alternatieve kanaal als de primaire keuze tegenvalt qua bereik of timing. Moet verschillen van campaign_type.',
     },
@@ -510,6 +541,8 @@ export type DayContext = {
   // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
   quietMoment: {
     daypart: string;
+    // Alle dagdeel-sleutels in dit blok; de frontend vertaalt daarmee zelf.
+    dayparts: string[];
     daypartLabel: string;
     fromHour: number;
     toHour: number;
@@ -712,14 +745,14 @@ Inhoudsregels:
 ${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
 - Per voorstel: kies 1-3 KANALEN waarop dit voorstel uit moet gaan. Niet elk voorstel hoeft multi-channel te zijn:
-  - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 mail of 1 whatsapp aan vaste gasten), of zeer kanaal-specifiek concept.
-  - 2 kanalen: standaardmix voor seizoen/event (bv. mail aan vaste gasten + Instagram-post voor bredere awareness).
-  - 3 kanalen: brede pushes (bv. seizoenslancering: mail + Instagram + Facebook).
+  - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 Instagram-post of story voor laat-boekers), of zeer kanaal-specifiek concept.
+  - 2 kanalen: standaardmix voor seizoen/event (bv. Instagram-post + Facebook voor bredere awareness).
+  - 3 kanalen: brede pushes (bv. seizoenslancering: Instagram + Facebook + Google Business).
 
-Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend):
-  - mail: lange-vorm, voor vaste klanten met opt-in (formeler, persoonlijker, klikbare CTA).
-  - whatsapp: kort en direct, voor topgasten met telefoonnummer (vriendelijke top-tafel-aanpak).
-  - instagram: visueel, jongere doelgroep (foto-first, korte caption, hashtags).
+Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend).
+LET OP: mail is GEEN kanaal meer. Stel nooit een mailing voor.
+
+  - instagram: visueel, snel gezien, sterk voor laat-boekers (foto-first, korte caption, hashtags).
   - facebook: bredere doelgroep + lokale buurt, iets meer tekst dan Instagram.
   - tiktok: jong (<25), trendy, korte zinnen, alleen als de tone-of-voice past.
   - google_business: lokaal-actie-gericht, hoge SEO-impact (zie REGELS PER KANAAL).
@@ -727,7 +760,7 @@ Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend):
 Per channel-object in 'channels':
 - platform: één van de bovenstaande, geen dubbele platforms binnen 1 voorstel.
 - body: volledige uitgeschreven tekst voor DIT kanaal (mail = langer, social = korter), klaar om te versturen. SCHRIJF voor elk kanaal een eigen variant — kopieer niet zomaar dezelfde body.
-- subject_line: alleen voor mail-kanalen; voor whatsapp/instagram/facebook/tiktok laat je 'm weg.
+- subject_line: alleen voor mail-kanalen; voor instagram/facebook/tiktok/google_business laat je 'm weg.
 - scheduled_for + scheduled_reasoning: kies het moment per platform op
   basis van TIMING PER KANAAL onderaan (bron-van-waarheid, géén eigen
   tijden verzinnen). In scheduled_reasoning een 1-zin uitleg WAAROM dit
@@ -843,7 +876,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
           const c = rawChannels[i];
           if (
             !c ||
-            !SUGGESTION_PLATFORMS.includes(c.platform) ||
+            !GENERATABLE_PLATFORMS.includes(c.platform) ||
             seenPlatforms.has(c.platform)
           ) {
             continue;
@@ -1029,6 +1062,12 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       expectedPct?: number; // verwachte drukte in dat dagdeel (0-100)
       deviation?: number; // afwijking t.o.v. eigen verwachting (negatief)
       unusual?: boolean; // ongewoon rustig vs vaste rustige stand
+      // structureel = deze weekdag is hier altijd stil; incidenteel = juist
+      // déze datum wijkt af door weer of een evenement. Bepaalt de toon van
+      // het voorstel en is straks de meetdimensie voor de terugkoppeling.
+      kind?: 'structureel' | 'incidenteel';
+      reasonKey?: string;
+      reasonParams?: Record<string, string | number>;
       fromHour?: number;
       toHour?: number;
       // occupancy-terugval
@@ -1063,6 +1102,9 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
         expectedPct: m.expectedPct,
         deviation: m.deviation,
         unusual: m.unusual,
+        kind: m.kind,
+        reasonKey: m.reasonKey,
+        reasonParams: m.reasonParams,
         fromHour: m.fromHour,
         toHour: m.toHour,
       }));
@@ -1223,10 +1265,13 @@ Inhoudsregels:
 ${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Richt het voorstel op het genoemde dagdeel en noem dat moment concreet ("kom lunchen", "borrel", "aan tafel vanavond"), zodat de gast weet wánneer het bedoeld is.
-- Kies campagne-type op basis van weekdag + segment:
-  * vaste-gast/VIP-segment + acute dag (<5 dagen) → whatsapp (snel, persoonlijk)
-  * brede zaal/weekend → social (zichtbaar, sfeervol)
-  * 5-14 dagen vooruit + nieuwsbrief-segment → mail (uitgewerkter)
+- Kies campagne-type op basis van weekdag + segment. Sociale media is het
+  hoofdkanaal; kies daarbinnen het platform dat bij de doelgroep past:
+  * acute dag (<5 dagen), laat-boekers → social (Instagram-reel: snel gezien)
+  * brede zaal/weekend, mensen uit de buurt → social (Facebook: lokaal bereik)
+  * jonger publiek, sfeer/achter-de-schermen → social (TikTok-video)
+  * mensen die je in Maps of Google zoeken → google_business
+  * 5-14 dagen vooruit én je hebt een mailbestand → mail (uitgewerkter)
 - Houd de body binnen de lengte-bandbreedte van het gekozen kanaal
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
@@ -1236,7 +1281,7 @@ ${langWriteRules(lang)}
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
 ---
-${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'], pack.channelFlavor)}
+${buildAllChannelsBlock(PROMPT_CHANNELS, pack.channelFlavor)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -1315,6 +1360,9 @@ ${dayContext}`;
                   daypart_label: day.daypartLabel,
                   deviation: day.deviation,
                   unusual: day.unusual,
+                  kind: day.kind,
+                  reason_key: day.reasonKey,
+                  reason_params: day.reasonParams,
                 }
               : {
                   occupancy_pct: day.occupancy_pct,
@@ -1445,26 +1493,35 @@ ${dayContext}`;
         }
       : null;
 
-    // De kanalen die in de geleide flow aangeboden worden. Sinds
-    // 2026-06-22 ook TikTok (volwaardig kanaal). Bereik bepaalt de
-    // voorselectie; is er nergens bereik, dan vinken we mail + Instagram
-    // als verstandige default voor.
+    // De kanalen die in de geleide flow aangeboden worden. Per 2026-09-09
+    // zonder WhatsApp: daar is geen verzendpad voor, dus aanbieden leverde
+    // een campagne op die nooit de deur uit kon. Bereik bepaalt de
+    // voorselectie; is er nergens bereik, dan vinken we Instagram +
+    // Facebook voor.
+    //
+    // Mail is er per 2026-09-16 uit als campagnekanaal (besluit Floris): we
+    // mailen niet meer. WhatsApp stond er al niet in, daar is geen
+    // verzendpad voor. Wat overblijft zijn de kanalen die we echt kunnen
+    // publiceren. Het transactionele mailpad (contactformulier,
+    // uitnodigingen via Supabase) staat hier los van en blijft.
     const REACH_LABEL: Record<string, string> = {
-      mail: 'Mail',
       instagram: 'Instagram',
       facebook: 'Facebook',
-      whatsapp: 'WhatsApp',
-      google_business: 'Google Business',
       tiktok: 'TikTok',
+      google_business: 'Google Business',
     };
-    const surfaced = reach.filter((r) => r.channel in REACH_LABEL);
+    // Volgorde volgt REACH_LABEL, niet de volgorde van fetchReach.
+    const order = Object.keys(REACH_LABEL);
+    const surfaced = reach
+      .filter((r) => r.channel in REACH_LABEL)
+      .sort((a, b) => order.indexOf(a.channel) - order.indexOf(b.channel));
     const anyReach = surfaced.some((r) => r.connected);
     const channels: DayContextChannel[] = surfaced.map((r) => ({
       channel: r.channel as DayContextChannel['channel'],
       label: REACH_LABEL[r.channel],
       recommended: anyReach
         ? r.connected
-        : r.channel === 'mail' || r.channel === 'instagram',
+        : r.channel === 'instagram' || r.channel === 'facebook',
       note: r.note,
     }));
 
@@ -1472,15 +1529,19 @@ ${dayContext}`;
     // het moment kan tonen en de generatie erop mikt. Uncapped (perWeek hoog);
     // null als de dag niet als rustig gedetecteerd is.
     const [qm, dayparts] = await Promise.all([
-      this.busyness.getQuietMoments(businessId, date, date, 999).catch(
-        () => null,
-      ),
+      // applyPolicy:false — de eigenaar koos deze dag zélf. De beleidslaag
+      // (feestdag-poort, al-afgedekt, cool-down) mag hier het dagdeel niet
+      // wegfilteren; we vragen alleen "wélk dagdeel is hier rustig".
+      this.busyness
+        .getQuietMoments(businessId, date, date, 999, { applyPolicy: false })
+        .catch(() => null),
       this.busyness.getDaypartsForDate(businessId, date).catch(() => []),
     ]);
     const m = qm?.moments?.[0] ?? null;
     const quietMoment = m
       ? {
           daypart: m.daypart,
+          dayparts: m.dayparts,
           daypartLabel: m.daypartLabel,
           fromHour: m.fromHour,
           toHour: m.toHour,
@@ -1511,6 +1572,15 @@ ${dayContext}`;
         label: string;
         fromHour: number;
         toHour: number;
+      };
+      // Waarom deze dag een kans was, zoals de eigenaar het op het dashboard
+      // zag. Meegestuurd door de frontend: hieronder vragen we het dagdeel
+      // op met de beleidslaag UIT (de eigenaar koos de dag zelf), en dan
+      // zijn de weer- en evenement-redenen niet bekend.
+      reason?: {
+        key: string;
+        params?: Record<string, string | number>;
+        kind?: 'structureel' | 'incidenteel';
       };
     }>,
   ): Promise<{
@@ -1598,7 +1668,11 @@ ${dayContext}`;
     if (lowOccDates.length > 0) {
       const sorted = [...lowOccDates].sort();
       const qm = await this.busyness
-        .getQuietMoments(businessId, sorted[0], sorted[sorted.length - 1], 999)
+        // applyPolicy:false — zelfde reden als in getDayContext: dit zijn door
+        // de eigenaar geselecteerde dagen, geen voorstel-selectie.
+        .getQuietMoments(businessId, sorted[0], sorted[sorted.length - 1], 999, {
+          applyPolicy: false,
+        })
         .catch(() => null);
       for (const m of qm?.moments ?? []) {
         quietByDate.set(m.date, {
@@ -1707,6 +1781,14 @@ ${dayContext}`;
             source: 'busyness',
             daypart_label: dp.label,
             unusual: dp.unusual,
+            // Zodat de campagne later nog kan tonen waaróm deze dag.
+            ...(item.reason
+              ? {
+                  reason_key: item.reason.key,
+                  reason_params: item.reason.params ?? {},
+                  ...(item.reason.kind ? { kind: item.reason.kind } : {}),
+                }
+              : {}),
           };
         } else {
           // Terugval: seed-occupancy (geen busyness-patroon voor deze zaak).
@@ -1785,10 +1867,13 @@ Inhoudsregels:
 ${langWriteRules(lang)}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Is er een rustig DAGDEEL genoemd, richt het voorstel dan op dát moment en noem het concreet ("kom lunchen", "borrel", "aan tafel vanavond"). Noem geen exacte drukte-percentages.
-- Kies campagne-type op basis van urgentie + segment:
-  * Acute dag (<5 dgn) + vaste-gast/VIP → whatsapp (snel, persoonlijk)
-  * Brede zaal/weekend → social (zichtbaar, sfeervol)
-  * 5+ dgn vooruit + nieuwsbrief-segment → mail (uitgewerkter)
+- Kies campagne-type op basis van urgentie + segment. Sociale media is het
+  hoofdkanaal; kies daarbinnen het platform dat bij de doelgroep past:
+  * Acute dag (<5 dgn), laat-boekers → social (Instagram-reel: snel gezien)
+  * Brede zaal/weekend, buurt → social (Facebook: lokaal bereik)
+  * Jonger publiek, sfeer/achter-de-schermen → social (TikTok-video)
+  * Mensen die je in Maps of Google zoeken → google_business
+  * 5+ dgn vooruit én je hebt een mailbestand → mail (uitgewerkter)
 - Houd de body binnen de lengte-bandbreedte van het gekozen kanaal
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
@@ -1798,7 +1883,7 @@ ${langWriteRules(lang)}
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
 ---
-${buildAllChannelsBlock(['mail', 'instagram_feed', 'whatsapp', 'tiktok'], pack.channelFlavor)}
+${buildAllChannelsBlock(PROMPT_CHANNELS, pack.channelFlavor)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -1856,7 +1941,7 @@ ${segmentsBlock}`;
           // 'm ongewijzigd aankunnen. Fail-soft: een kanaal dat faalt
           // wordt overgeslagen, niks gelukt → dag overslaan.
           const platforms = item.channels.filter((p): p is SuggestionPlatform =>
-            (SUGGESTION_PLATFORMS as string[]).includes(p),
+            (GENERATABLE_PLATFORMS as string[]).includes(p),
           );
 
           // Audit-item #6: de kanalen PARALLEL genereren i.p.v.

@@ -2196,8 +2196,10 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   border: 1px solid var(--border-soft);
 }
 .pmock-ch-icon svg { width: 18px; height: 18px; }
-.pmock-ch-icon--ig { color: #C13584; }
-.pmock-ch-icon--wa { color: #25D366; }
+/* Per 2026-09-09 dragen de drie slots de echte merk-logo's (Instagram /
+   Facebook / TikTok) via <ChannelLogo>. Die brengen hun eigen kleur mee,
+   dus geen color-override; iets ruimer dan de oude lijn-iconen. */
+.pmock-ch-icon--brand svg { width: 22px; height: 22px; }
 .pmock-ch-body { flex: 1; min-width: 0; }
 .pmock-ch-label {
   font-size: 12px; font-weight: 700; color: var(--text);
@@ -2335,12 +2337,16 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   margin-bottom: 2px;
 }
 .pmock-result-bar {
-  display: grid; grid-template-columns: 70px 1fr 50px; gap: 10px;
+  /* Label-kolom iets breder sinds het merk-logo ervoor staat (2026-09-09). */
+  display: grid; grid-template-columns: 92px 1fr 50px; gap: 10px;
   align-items: center;
 }
 .pmock-result-bar-label {
+  display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 600; color: var(--text);
 }
+.pmock-result-bar-logo { flex-shrink: 0; display: flex; }
+.pmock-result-bar-logo svg { width: 15px; height: 15px; }
 .pmock-result-bar-track {
   height: 8px;
   background: var(--bg);

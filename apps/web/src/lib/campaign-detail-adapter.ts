@@ -50,7 +50,8 @@ export type UnifiedChannel = {
   // publicatie niet meer stil is.
   published_at: string | null;
   publish_error: string | null;
-  // IG-post die nog handmatig in de Instagram-app verwijderd moet worden
+  // IG-post die bij het stoppen niet verwijderd kon worden en die de
+  // eigenaar dus zelf nog moet weghalen
   // (Instagram laat geen verwijderen via de API toe). Bevat de directe
   // permalink, of "manual" als die niet bewaard is (oudere post). Null = niets.
   ig_pending_manual_delete_url: string | null;
@@ -75,6 +76,14 @@ export type UnifiedDetailView = {
   // (zie findById). Bij bundle: pak de eerste niet-null waarde —
   // alle kanalen van dezelfde suggestie delen dezelfde reasoning.
   reasoning: string | null;
+  // Waarom Filly juist DEZE dag koos. Zelfde bron als reasoning (het
+  // gekoppelde voorstel), dus binnen een bundel delen alle kanalen 'm.
+  dayReason: {
+    key: string;
+    params: Record<string, string | number>;
+    kind: "structureel" | "incidenteel" | null;
+    targetDate: string | null;
+  } | null;
   // Per-kanaal data voor de KanalenCard / InhoudCard / WanneerCard.
   channels: UnifiedChannel[];
   // Per-kanaal checklist voor MissendeAspectenCard. Wordt hier al
@@ -227,6 +236,9 @@ export function bundleToView(bundle: CampaignBundle): UnifiedDetailView {
   const reasoning =
     bundle.campaigns.find((c) => typeof c.reasoning === "string" && c.reasoning)
       ?.reasoning ?? null;
+  // Idem voor de dag-reden: die hangt aan het voorstel, niet aan het kanaal.
+  const dayReason =
+    bundle.campaigns.find((c) => c.dayReason)?.dayReason ?? null;
 
   const first = bundle.campaigns[0];
   const status = earliestStatus(bundle.campaigns);
@@ -243,6 +255,7 @@ export function bundleToView(bundle: CampaignBundle): UnifiedDetailView {
     name,
     status,
     reasoning,
+    dayReason,
     channels,
     channelsChecklist,
     campaignsByChannelId,

@@ -11,6 +11,7 @@ import {
   type Campaign,
   type OccupancyDay,
   type QuietMoment,
+  type QuietNote,
   type Business,
 } from "./api";
 import { getUpcomingSpecialDays, type SpecialDay } from "./special-days";
@@ -74,7 +75,8 @@ export function useActionableDays(): ActionableDays {
   const [quiet, setQuiet] = useState<{
     hasSource: boolean;
     moments: QuietMoment[];
-  }>({ hasSource: false, moments: [] });
+    notes: QuietNote[];
+  }>({ hasSource: false, moments: [], notes: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export function useActionableDays(): ActionableDays {
       fetchQuietMoments().catch(() => ({
         hasSource: false,
         moments: [] as QuietMoment[],
+        notes: [] as QuietNote[],
       })),
     ])
       .then(([cur, nxt, r, ss, cs, qm]) => {
@@ -149,20 +152,21 @@ export function useActionableDays(): ActionableDays {
     // De chat werkt op dagniveau, dus per unieke datum één blokje; het dagdeel
     // zit in de detectie en de dashboard-grafiek. Zelfde bron als beide.
     if (quiet.hasSource) {
+      // De backend weert afgedekte dagen sinds 2026-09-15 zélf, en vóór de
+      // week-cap, zodat er een andere dag voor in de plaats schuift. Hier dus
+      // niet nóg eens filteren: het aantal komt uit notes. De coveredDates-set
+      // blijft wel in gebruik voor de speciale dagen en voor de terugval
+      // hieronder, waar geen backend-model achter zit.
       const byDate = new Map<string, number>();
       for (const m of quiet.moments) {
         if (!byDate.has(m.date)) byDate.set(m.date, m.expectedPct);
       }
       const days: OccupancyDay[] = [];
-      let covered = 0;
-      for (const [date, pct] of byDate) {
-        if (coveredDates.has(date)) {
-          covered++;
-          continue;
-        }
-        days.push(mk(date, pct));
-      }
+      for (const [date, pct] of byDate) days.push(mk(date, pct));
       days.sort((a, b) => (a.date < b.date ? -1 : 1));
+      const covered = quiet.notes.filter(
+        (n) => n.reason === "al_afgedekt",
+      ).length;
       return { lowOccupancyDays: days, coveredLowOccupancyCount: covered };
     }
 

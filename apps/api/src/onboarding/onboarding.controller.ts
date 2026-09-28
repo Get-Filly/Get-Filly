@@ -2,8 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  HttpException,
-  HttpStatus,
   Post,
   UploadedFile,
   UseGuards,
@@ -16,6 +14,7 @@ import { MenuImporterService } from '../ai/menu-importer.service';
 import { GoogleProfileService } from '../google-profile/google-profile.service';
 import type { PlaceSearchResult } from '../google-profile/types';
 import { AuthGuard } from '../common/auth.guard';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
 import { Logger } from '@nestjs/common';
 import {
   CurrentUser,
@@ -33,31 +32,22 @@ import {
 // Wel AuthGuard: de user moet ingelogd zijn (JWT valide).
 // ============================================================
 
-// Simpele in-memory rate-limit voor pre-onboarding AI-calls. De
-// bestaande AiRateLimitGuard hangt aan business_id; die bestaat
-// hier nog niet. Vervanging: per user max N calls per window.
-// Overleeft geen api-restart, is niet multi-instance correct. Voor
-// een lokale dev-omgeving is dat prima; bij deploy naar Railway +
-// meerdere instances verplaatst dit naar Redis (BACKLOG).
-const AI_WINDOW_MS = 10 * 60 * 1000; // 10 min
-const AI_MAX_PER_WINDOW = 5; // één user kan max 5 AI-calls/10min tijdens onboarding
-const aiCallLog = new Map<string, number[]>();
-
-function enforceAiRateLimit(userId: string): void {
-  const now = Date.now();
-  const history = aiCallLog.get(userId) ?? [];
-  const recent = history.filter((t) => now - t < AI_WINDOW_MS);
-  if (recent.length >= AI_MAX_PER_WINDOW) {
-    throw new HttpException(
-      {
-        message: `Je hebt net ${recent.length} AI-analyses gedaan. Probeer over 10 minuten opnieuw.`,
-      },
-      HttpStatus.TOO_MANY_REQUESTS,
-    );
-  }
-  recent.push(now);
-  aiCallLog.set(userId, recent);
-}
+// Rem op de pre-onboarding AI-calls. De bestaande AiRateLimitGuard hangt
+// aan business_id, en die bestaat hier nog niet — de user maakt z'n zaak
+// net aan. Dus tellen we per user.
+//
+// Stond tot 2026-09-16 in een Map in het geheugen. Op Vercel is elke
+// request een mogelijk verse functie-instantie, dus die Map telde in de
+// praktijk bijna niets; de code zei dat zelf ook ("bij deploy naar Railway
+// + meerdere instances verplaatst dit naar Redis"). Nu via
+// check_rate_limit() in de database (mig 0076), net als AiRateLimitGuard.
+// Geen Redis nodig: de teller staat waar de rest van de staat ook staat.
+const AI_LIMIT_OPTS = {
+  bucket: 'onboarding_ai',
+  limit: 5,
+  windowSeconds: 10 * 60,
+  keyBy: 'user',
+} as const;
 
 @UseGuards(AuthGuard)
 @Controller('onboarding')
@@ -92,12 +82,13 @@ export class OnboardingController {
   // een user_id-referentie zou een FK-violation geven. We loggen deze
   // calls als "anonymous pre-onboarding", je ziet ze terug met
   // business_id IS NULL en user_id IS NULL in ai_usage.
+  @UseGuards(RateLimitGuard)
+  @RateLimit(AI_LIMIT_OPTS)
   @Post('analyze-website')
   async analyzeWebsite(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { url: string },
   ) {
-    enforceAiRateLimit(user.id);
     const result = await this.analyzer.analyze(body.url);
 
     // Filly-Google-match: als WebsiteAnalyzer een naam + adres of
@@ -142,6 +133,8 @@ export class OnboardingController {
   //
   // Gebruikt dezelfde rate-limit als de andere AI-endpoints zodat
   // een script dat dit spamt onze Places-API-quota niet leegtrekt.
+  @UseGuards(RateLimitGuard)
+  @RateLimit(AI_LIMIT_OPTS)
   @Post('google-search')
   async googleSearch(
     @CurrentUser() user: AuthenticatedUser,
@@ -150,7 +143,6 @@ export class OnboardingController {
     if (!body?.query || typeof body.query !== 'string') {
       throw new BadRequestException('Body moet een `query` (string) bevatten.');
     }
-    enforceAiRateLimit(user.id);
     return this.googleProfile.searchByText(body.query);
   }
 
@@ -159,6 +151,8 @@ export class OnboardingController {
   // het bronbestand NIET in Storage, user heeft nog geen restaurant-id,
   // dus geen pad waar we 'm kunnen opslaan. Bij heropen vanuit de
   // menu-pagina gaat het wél naar Storage (fase later).
+  @UseGuards(RateLimitGuard)
+  @RateLimit(AI_LIMIT_OPTS)
   @Post('analyze-menu')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -174,7 +168,6 @@ export class OnboardingController {
         'Geen bestand ontvangen. Upload een foto of PDF van je menukaart.',
       );
     }
-    enforceAiRateLimit(user.id);
     return this.menuImporter.analyze(
       {
         buffer: file.buffer,
@@ -193,6 +186,8 @@ export class OnboardingController {
   // upload-pattern als analyze-menu maar gebruikt een ander tool-
   // schema (subcategory-enum: wijn-rood/bier/cocktail/etc.) en
   // forceert server-side category='drank' op alle items.
+  @UseGuards(RateLimitGuard)
+  @RateLimit(AI_LIMIT_OPTS)
   @Post('analyze-drinks')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -208,7 +203,6 @@ export class OnboardingController {
         'Geen bestand ontvangen. Upload een foto of PDF van je drankkaart.',
       );
     }
-    enforceAiRateLimit(user.id);
     return this.menuImporter.analyze(
       {
         buffer: file.buffer,

@@ -1,6 +1,24 @@
 {
   "common": {
-    "backToReports": "← Back to reports"
+    "backToReports": "← Back to reports",
+    "dayparts": {
+      "ochtend": "morning",
+      "lunch": "lunch",
+      "middag": "afternoon",
+      "diner": "dinner",
+      "avond": "evening",
+      "and": "and",
+      "wholeDay": "the whole day"
+    },
+    "quietReasons": {
+      "structural": "usually your quietest moment",
+      "structuralRotated": "you just did your usual quiet slot",
+      "unusual": "quieter than normal here",
+      "weatherRain": "rain forecast, people stay in",
+      "weatherCold": "cold forecast ({temp}°), people stay in",
+      "weatherHeat": "hot forecast ({temp}°), visits drop",
+      "eventNearby": "{name}, {distanceKm} km away"
+    }
   },
   "language": {
     "label": "Language",
@@ -23,11 +41,11 @@
   },
   "home": {
     "heroTitle": "Fill your quiet moments.<br></br>Automatically.",
-    "heroSubtitle": "Get-Filly spots when things get quiet and, with your approval, sets the right action in motion, via email, social, WhatsApp and Google. For hospitality, wellness, hair salons, gyms and more.",
+    "heroSubtitle": "Never an empty venue again with Get-Filly. Our hospitality AI predicts your quiet moments and, with your approval, puts the right social media content live, aimed at the people in your neighbourhood.",
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
     "whyTitle": "Why it works",
-    "whySubtitle": "The numbers don't lie. Better profiles and a steady rhythm mean customers find you online more often.",
+    "whySubtitle": "The numbers don't lie. Better profiles and posts at the right moment mean customers find you more often and book more often.",
     "pillars": {
       "sectionTitle": "More customers.<br></br>Fuller days. Automatically.",
       "findability": {
@@ -46,27 +64,26 @@
       "visibility": {
         "eyebrow": "Visibility",
         "title": "Stay in sight. Even when they don't book.",
-        "desc": "Customers who know you but haven't booked yet are exactly who you need during quiet moments. We keep you top of mind on social media, automatically and in your style.",
+        "desc": "Customers who know you but haven't booked yet are exactly who you need during quiet moments. We put the right content on social media to keep you top of mind, automatically and in your style.",
         "bullets": [
-          "Automatic content planning for Instagram, Facebook and TikTok based on your occupancy data",
-          "AI-generated content fully in your business's style and tone",
-          "Strategic, data-based timing for more visibility on quiet days",
-          "Suggestions for stories and reels tailored to your region and audience",
-          "Fully white-label, guests see your name, not Get-Filly's",
-          "You approve every message before it goes out",
-          "Live dashboard reporting on reach, engagement and click-throughs"
+          "Social media posts, scheduled based on your occupancy data",
+          "Imagery and copy automatically in your business's style and tone",
+          "Strategic timing, more visibility on the days that are quiet",
+          "Everything under your name, customers see your brand, not Get-Filly's",
+          "You approve every post before it goes live",
+          "Live dashboard reporting on reach and engagement"
         ]
       },
       "reachability": {
         "eyebrow": "Reachability",
         "title": "The right message. At the right moment. To the right customer.",
-        "desc": "Your existing customers are the easiest way to fill your quiet moments. We reach them automatically via email and WhatsApp exactly when your capacity needs it.",
+        "desc": "Being in sight is one thing, reaching the right people is what fills your quiet moments. For every post we pick the audience, add paid reach where it helps, and set the result against how busy that day actually was.",
         "bullets": [
-          "Automatic email campaigns based on real-time occupancy data",
-          "WhatsApp campaigns with a high open rate for last-minute bookings",
-          "Personalised messages in your business's tone of voice",
-          "Segmentation by regular customers, new customers and dormant customers",
-          "You approve every message before it goes out"
+          "Audience by radius around your venue, age and interests",
+          "Paid reach on the days that need filling",
+          "Segmentation by regular customers, new customers and the neighbourhood",
+          "Per post you see reach, clicks and what it did to how busy you were",
+          "Monthly report in plain language, no marketing jargon"
         ]
       }
     },
@@ -120,7 +137,15 @@
           "month": "Month",
           "year": "Year"
         },
-        "calDow": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+        "calDow": [
+          "Mo",
+          "Tu",
+          "We",
+          "Th",
+          "Fr",
+          "Sa",
+          "Su"
+        ]
       },
       "phone": {
         "date": "Monday 4 May",
@@ -129,14 +154,16 @@
       },
       "chat": {
         "status": "Online",
+        "channelSocial": "Social media",
+        "channelFormatReel": "Reel",
+        "channelFormatPost": "Post",
         "inputPlaceholder": "Ask Filly something…",
-        "channelEmail": "Email",
-        "campaign1Title": "Last-minute haircut deal",
+        "campaign1Title": "Last-minute offer for Tuesday",
         "campaign1Date": "Tue 5 May",
-        "campaign1Meta": "To 248 regular customers · sends automatically Tue 11:00",
+        "campaign1Meta": "3 km around your venue · starts Tue 11:00",
         "campaign2Title": "Quiet Wednesday afternoon",
         "campaign2Date": "Wed 13 May",
-        "campaign2Meta": "To 312 customers nearby · sends automatically Mon 16:00",
+        "campaign2Meta": "New customers nearby · starts Mon 16:00",
         "askProposal": "Tuesday 5 May is at 43%, well below your average. Shall I set up a promotion for it?",
         "userYes": "Yes please 👍",
         "userMore": "Come up with another campaign for next week Wednesday",
@@ -163,19 +190,30 @@
         },
         "social": {
           "fbCap": "Fresh pasta, homemade every day 🍝",
-          "fbStats": "👍 132 · 27 shares",
+          "fbStats": "Reach 8,400 · 👍 132",
           "ttCap": "Behind the scenes in the kitchen 🔥",
-          "ttStats": "♥ 1,204 · 89 comments",
+          "ttStats": "12,800 views · ♥ 1,204",
+          "ytCap": "A day in our kitchen 👨‍🍳",
+          "ytStats": "1,870 views · 4:12 watch time",
           "igCap": "Live music Thursday 🎶 Book in time!",
-          "igStats": "♥ 1,248 · 214 comments"
+          "igStats": "Sponsored · reach 9,600"
         },
         "reach": {
-          "mailSubj": "We'd love to see you again, a table's still free this week!",
-          "mailBody": "Hi Marieke, it's been a while! We still have a lovely spot free on Thursday. As a welcome back, we'll treat you to a glass of house wine. 🍷",
-          "mailCta": "Book my table",
-          "waOnline": "online",
-          "waIn": "Hi Marieke! We still have a table free Thursday at 19:00, will you come by? 🍝",
-          "waOut": "Sounds good! Make it for 2 people 😊"
+          "audienceTitle": "Audience Thursday",
+          "audienceRadius": "3 km around your venue",
+          "audienceAge": "Ages 25 to 55",
+          "audienceReach": "9,600 people",
+          "sponsored": "Sponsored",
+          "brand": "Bistro Get-Filly",
+          "cap": "A few tables still free on Thursday. Three courses for €24.50.",
+          "cta": "Book now",
+          "resultTitle": "Result",
+          "resultReach": "7,400",
+          "resultReachLabel": "people reached",
+          "resultClicks": "268",
+          "resultClicksLabel": "clicks to book",
+          "resultLocal": "84%",
+          "resultLocalLabel": "reached within 3 km"
         }
       }
     },
@@ -202,23 +240,23 @@
           "Better visibility in Google through SEO optimisation",
           "Visibility on the relevant booking and review platforms",
           "Visibility in AI search engines like ChatGPT, Claude and Gemini",
-          "Content planning for Instagram, TikTok and Facebook",
+          "Content planning for social media",
           "AI-generated posts in your business's tone of voice",
           "Live dashboard with reporting on visibility and reach"
         ],
         "ctaText": "Start with Growth"
       },
       "ultimate": {
-        "tagline": "Fill your quiet moments automatically.",
-        "desc": "Everything in Growth, plus direct campaigns via email and WhatsApp based on your occupancy data. Includes a connection with your booking or reservation system.",
+        "tagline": "Fill your quiet moments with the right content.",
+        "desc": "Everything in Growth, plus social media content based on your occupancy data, with organic and paid reach. Including a connection to your booking or reservation system.",
         "features": [
           "Everything in the Growth plan",
-          "Connection with your booking or reservation system",
-          "Connection with your till (POS)",
-          "Automatic email campaigns based on occupancy",
-          "WhatsApp campaigns for last-minute bookings",
-          "Segmentation by regular, new and dormant customers",
-          "Personalised email and WhatsApp campaigns in your business's tone of voice"
+          "Social media content based on your occupancy",
+          "Paid reach on the days that need filling",
+          "Audience based on your neighbourhood and your customer profile",
+          "Connection to your booking or reservation system",
+          "Connection to your point of sale (POS)",
+          "Reporting on bookings and revenue per post"
         ],
         "ctaText": "Start with Ultimate"
       }
@@ -234,11 +272,19 @@
       },
       {
         "q": "Which channels does Get-Filly use?",
-        "a": "Email, WhatsApp, Instagram, Facebook, TikTok and Google Business. Get-Filly writes for each channel in your house style and schedules every message at the best moment for the right audience."
+        "a": "Instagram, Facebook, TikTok and YouTube, plus your Google Business Profile. Get-Filly creates the right post per channel in your brand voice and puts it live at the best moment for the right audience."
       },
       {
-        "q": "Do I stay in control of what Get-Filly sends?",
-        "a": "Yes. Get-Filly generates proposals, you approve or adjust them. Nothing goes out without your approval."
+        "q": "Does Get-Filly also run paid ads?",
+        "a": "Yes, where it helps. Paid reach runs through your own ad budget, which you set yourself. The subscription covers the software and all the work Get-Filly does for you."
+      },
+      {
+        "q": "Do I need business social accounts?",
+        "a": "Yes, you need a business account per platform. We connect them together during onboarding, which takes you a few minutes."
+      },
+      {
+        "q": "Do I stay in control of what Get-Filly puts live?",
+        "a": "Yes. Get-Filly generates proposals, you approve or adjust. Nothing goes live without your sign-off."
       },
       {
         "q": "How does Get-Filly know which action to propose?",
@@ -275,7 +321,7 @@
   },
   "product": {
     "heroTitle": "This is how Get-Filly fills your quiet moments.",
-    "heroSubtitle": "Get-Filly detects quiet moments, works out the right action and picks the right audience, for campaigns, reviews and your visibility in Google and AI search engines. With your approval, Get-Filly puts it live automatically, so you get more customers during your quiet moments.",
+    "heroSubtitle": "Get-Filly spots quiet moments, creates the post and picks the audience for social media, and keeps your reviews and your visibility in Google and AI search engines in order. With your approval, Get-Filly puts it live automatically, so you get more customers during your quiet moments.",
     "diffs": {
       "approve": {
         "title": "AI does the work, you approve",
@@ -291,7 +337,7 @@
       },
       "measures": {
         "title": "Measures what really works",
-        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, customers and revenue each campaign actually delivers."
+        "desc": "No open rates or clicks that get you nowhere, but insight into how many bookings, customers and revenue each post actually delivers."
       }
     },
     "walkTitle": "A week with Get-Filly, from empty slots to fuller days.",
@@ -306,26 +352,26 @@
       "proposal": {
         "label": "Proposal",
         "eyebrow": "Monday · 09:15",
-        "title": "Three channels, one proposal, ready within a minute.",
-        "desc": "Get-Filly proposes a complete campaign: an email to regulars, an Instagram post for late bookers, and a WhatsApp message for your most loyal customers. Tone of voice, imagery and timing, all tailored to your business."
+        "title": "Four posts, one proposal, ready within a minute.",
+        "desc": "Get-Filly proposes a complete campaign: four social media posts, each for its own channel and audience. Imagery, copy, audience, reach and timing, all tailored to your business."
       },
       "approval": {
         "label": "Approval",
         "eyebrow": "Monday · 09:16",
         "title": "One approval, Get-Filly does the rest.",
-        "desc": "Get-Filly sends all three messages at the right moment, on the right channel and to the right customers. You approve once, and after that you don't have to worry about timing or separate channels."
+        "desc": "Get-Filly puts all three posts live at the right moment and in front of the right audience. You approve once, and after that you don't have to worry about timing or separate channels."
       },
       "placement": {
         "label": "Publishing",
         "eyebrow": "Thursday · 17:00",
         "title": "You see your post go live, right on time.",
-        "desc": "On Thursday Get-Filly publishes the Instagram post and story automatically, the moment late bookers are scrolling. You don't have to do a thing, you just see it pass by in your feed, fully in your style, while the bookings come in."
+        "desc": "On Thursday, Get-Filly puts the posts live automatically, at the moment late bookers are scrolling. You don't have to do a thing, you simply see it come by on your own timeline, fully in your style, while the bookings roll in."
       },
       "result": {
         "label": "Result",
         "eyebrow": "Sunday · 23:00",
         "title": "Result: 12 extra bookings on a quiet Thursday.",
-        "desc": "At the end of the week Get-Filly checks in with a short summary: what worked, which channel scored, and what could be different next time."
+        "desc": "At the end of the week Get-Filly checks in with a short summary: what worked, which channel delivered the most bookings, and what could be different next time."
       }
     },
     "mock": {
@@ -343,37 +389,46 @@
         "sat": "Sat",
         "sun": "Sun"
       },
-      "channelsTitle": "Get-Filly proposes, 3 channels",
-      "mailLabel": "Email · 412 recipients",
-      "mailPreview": "“A quiet Thursday? Come for lunch for €24.50.”",
-      "mailMeta": "Thu 11:00",
-      "igLabel": "Instagram · feed & story",
+      "channelsTitle": "Get-Filly proposes, 4 posts",
+      "mailLabel": "Instagram · reel for late bookers",
+      "mailPreview": "“Still room on Thursday. Three courses for €24.50.”",
+      "mailMeta": "Thu 17:00",
+      "igLabel": "Facebook · neighbourhood within 3 km",
       "igPreview": "Terrace photo · “Thursday deal: 3 courses for €24.50”",
-      "igMeta": "Thu 17:00",
-      "waLabel": "WhatsApp · top 40 regulars",
-      "waPreview": "“Hi! Still room at our kitchen table tomorrow, book here.”",
+      "igMeta": "Thu 11:00 · sponsored",
+      "waLabel": "TikTok · ages 18 to 34",
+      "waPreview": "Quick video · “Thursday deal”",
       "waMeta": "Thu 09:30",
-      "channelsCta": "Approve & send",
+      "ytLabel": "YouTube · short about the kitchen",
+      "ytPreview": "Short video · “How we make our pasta”",
+      "ytMeta": "Thu 12:00",
+      "channelsCta": "Approve & go live",
       "approveTitle": "Campaign scheduled",
       "approveSub": "Approved by Sophie · 09:16",
-      "approveRow1": "Email to 412 regulars",
-      "approveRow2": "Instagram post + story",
-      "approveRow3": "WhatsApp to top 40",
+      "approveRow1": "Instagram reel for late bookers",
+      "approveRow2": "Facebook post in the neighbourhood, 3 km",
+      "approveRow3": "TikTok video, ages 18 to 34",
+      "approveRow4": "YouTube short about the kitchen",
       "approveFoot": "Get-Filly checks in on Sunday with the results.",
       "igLoc": "Amsterdam · Restaurant",
       "igPhotoTag1": "Thursday deal",
       "igPhotoTag2": "3 courses · €24.50",
       "igLikes": "Likes",
       "igCaptionText": "A few tables still free tonight. Three courses for €24.50. #thursdaydeal",
+      "igSponsored": "Sponsored",
       "igTime": "2 hours ago",
       "resultEyebrow": "THURSDAY CAMPAIGN · COMPLETED",
       "resultHeadline": "Thursday evening, from 38% to 84%",
       "resultStat1": "extra bookings",
       "resultStat2": "extra guests",
       "resultStat3": "final occupancy",
-      "resultBreakdown": "By channel",
+      "resultBreakdown": "Per post",
+      "resultBar1": "Instagram",
+      "resultBar2": "Facebook",
+      "resultBar3": "TikTok",
+      "resultBar4": "YouTube",
       "resultRes": "res.",
-      "resultNote": "Email worked best, next time I'll scale that one up first."
+      "resultNote": "Instagram delivered the most bookings, next time I'll scale that one up first."
     },
     "featuresTitle": "What's included.",
     "features": {
@@ -386,12 +441,12 @@
         "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and your business, makes proposals and carries them out after your approval."
       },
       "campaigns": {
-        "title": "Campaigns",
-        "desc": "From concept to send in one chat. Get-Filly writes an email or WhatsApp message in your house style, selects the right customers and sends it at the best moment."
+        "title": "Social media content",
+        "desc": "From idea to live in a single chat. Get-Filly creates the imagery, writes the copy in your brand voice, picks the audience and puts the post live at the best moment."
       },
       "social": {
-        "title": "Social media posts",
-        "desc": "Get-Filly creates posts for Instagram, Facebook and TikTok. Tailored to your brand, your offering, and the days that need filling."
+        "title": "Reach and audience",
+        "desc": "For every post Get-Filly picks who you want to reach, organically or with paid reach, and keeps the audience focused on the people in your neighbourhood."
       },
       "season": {
         "title": "Seasonal strategy",
@@ -509,7 +564,7 @@
     "missionLabel": "Mission",
     "missionText": "Help independent businesses grow without owners drowning in marketing. We take the work off your hands, so you can focus on what you're good at: your business and your customers.",
     "visionLabel": "Vision",
-    "visionText": "A world where every local business has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
+    "visionText": "A world where every hospitality business has the same marketing power as a big chain. Without a marketing department, without an expensive agency, and without needing any technical know-how.",
     "driveTitle": "What drives us.",
     "pillars": {
       "ownerFirst": {
@@ -548,7 +603,7 @@
     ],
     "ctaTitle": "Let's get to know each other.",
     "ctaSubtitle": "Questions about Get-Filly, working together or sparring about your marketing? Send an email, we reply fast.",
-    "ctaLinks": "Prefer to look around first? Check <product>our solution for local businesses</product> or <pricing>the pricing</pricing>."
+    "ctaLinks": "Prefer to look around first? Check <product>our solution for hospitality</product> or <pricing>the pricing</pricing>."
   },
   "contact": {
     "sentTitle": "Thanks for your request!",
@@ -634,7 +689,7 @@
   },
   "blog": {
     "hubTitle": "The marketing cocktail",
-    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for local businesses.",
+    "hubSubtitle": "Insights on online findability, AI marketing and higher occupancy for hospitality.",
     "recentTitle": "Most recent",
     "comingSoon": "Coming soon",
     "comingSoonAria": "{label} (coming soon)",
@@ -693,7 +748,7 @@
       },
       "gbpChecklist": {
         "eyebrow": "Findability",
-        "title": "Google Business profile: the complete checklist for local businesses"
+        "title": "Google Business profile: the complete checklist for hospitality"
       },
       "quietEvenings": {
         "eyebrow": "Occupancy",
@@ -874,10 +929,10 @@
       "mailAction": "{count, plural, one {the email will be sent immediately to all opted-in guests} other {# emails will be sent immediately to all opted-in guests}}",
       "socialAction": "{count, plural, one {the social post will be published immediately on Facebook/Instagram} other {# social posts will be published immediately on Facebook/Instagram}}"
     },
-    "stopConfirm": "Are you sure you want to stop this campaign? The Facebook post will be deleted and the campaign will go back to draft. Any Instagram post you will need to delete manually in the Instagram app, because Instagram does not allow deleting via the API.",
+    "stopConfirm": "Are you sure you want to stop this campaign? The published posts will be deleted from Facebook and Instagram and the campaign will go back to draft.",
     "igManualDelete": {
       "title": "Instagram post is still live",
-      "body": "We were able to delete the Facebook post, but Instagram does not allow deleting via the API. Please remove the post yourself in Instagram.",
+      "body": "Deleting the Instagram post failed. Remove it yourself in Instagram to be sure it is offline.",
       "open": "Open in Instagram"
     },
     "deleteConfirm": {
@@ -1013,12 +1068,27 @@
     },
     "igStopPopup": {
       "title": "Stop campaign?",
-      "body": "The campaign goes back to draft. Any Facebook post is deleted automatically.",
-      "noticeTitle": "Instagram post is still live",
-      "noticeBody": "Instagram does not allow deleting a post through the connection. Remove it yourself in the Instagram app.",
-      "open": "Open in Instagram",
+      "body": "The campaign moves back to Draft and the published posts are deleted from Facebook and Instagram.",
+      "doneTitle": "Campaign stopped",
+      "doneTitlePartial": "Campaign stopped, but please check",
+      "doneBody": "The campaign is back in Draft.",
+      "removed": {
+        "facebook": "Facebook post deleted",
+        "instagram": "Instagram post deleted"
+      },
+      "failed": {
+        "facebook": "Facebook post could not be deleted",
+        "instagram": "Instagram post could not be deleted"
+      },
+      "reconnectTitle": "Connection is missing permissions",
+      "reconnectBody": "Filly needs extra permission to delete posts. Reconnect Facebook and Instagram, and deleting will work.",
+      "reconnectCta": "Go to connections",
+      "noticeTitle": "Post is still live",
+      "noticeBody": "Deleting failed. Remove the post yourself to be sure it is offline.",
+      "open": "Open the post",
       "cancel": "Cancel",
-      "confirm": "Stop campaign"
+      "confirm": "Stop campaign",
+      "close": "Close"
     },
     "tooltips": {
       "finishMail": "Email has already been sent, finish the campaign.",
@@ -2489,57 +2559,152 @@
     "marketingTitle": "What works campaign-wise?",
     "marketingDesc": "Top campaigns based on status and run time.",
     "topCampaignsTitle": "Top campaigns",
-    "topCampaignsSubtitle": "Most successful this period"
+    "topCampaignsSubtitle": "Most successful this period",
+    "liftCardTitle": "What a campaign did to your busyness",
+    "liftCardSubtitle": "Per moment: how much busier it got than on comparable days without a campaign",
+    "liftCounts": "{n} campaigns measured",
+    "liftTooFew": "{n} of {min} measurements — not counted yet",
+    "liftFoot": "In busyness points compared to the same weekday without a campaign. There is no control group, so weather and events count too. From three measurements on, a moment starts weighing in what Filly proposes.",
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday",
+    "gapCardTitle": "Where you lag behind your own pattern",
+    "gapCardSubtitle": "Expected next to measured, over the last {weeks} weeks",
+    "gapTooltip": "Expected {expected}, measured {actual} · {days} days measured",
+    "gapFoot": "In busyness points: copper means falling short of what Google expects for this moment, green means running ahead. Both are relative to your own busiest moment, so not a percentage of your seats.",
+    "heatDays": "{days} days measured",
+    "heatTooFew": "{days} of {min} days measured — too few for a reliable value",
+    "heatNoData": "Nothing measured here",
+    "hourCardSubtitleReal": "Measured busyness, median over the last {weeks} weeks · striped = not enough measurements yet"
   },
   "dash_rapportages_page": {
     "title": "Reports",
+    "subtitle": "What your social media content delivered, organic and paid, traced back to bookings and revenue.",
+    "loading": "Loading…",
+    "error": "The figures could not be loaded. Please try again later.",
+    "occupancyLink": "Occupancy report",
     "actions": {
       "pdf": "🖨 PDF",
       "exportCsv": "⬇ Export CSV"
     },
-    "csv": {
+    "filters": {
+      "period": "Period",
+      "days": "{n} days",
+      "kind": "Type",
+      "kindAll": "All",
+      "kindOrganic": "Organic",
+      "kindPaid": "Paid",
       "channel": "Channel",
-      "status": "Status",
-      "stat": "Statistic",
-      "value": "Value"
-    },
-    "statusLabel": {
-      "live": "Live",
-      "comingSoon": "Coming soon",
-      "future": "Later"
-    },
-    "badge": {
-      "active": "Active",
-      "comingSoon": "Coming soon",
-      "future": "Later"
+      "channelAll": "All",
+      "metaAll": "all channels",
+      "metaKindAll": "organic and paid",
+      "metaKindOrganic": "organic only",
+      "metaKindPaid": "paid only"
     },
     "channels": {
-      "occupancy": "Occupancy",
-      "mail": "Mail",
-      "reviews": "Reviews",
       "instagram": "Instagram",
       "facebook": "Facebook",
       "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "google_business": "Google profile",
+      "mail": "Mail",
       "whatsapp": "WhatsApp"
     },
-    "stats": {
-      "today": "Today",
-      "monthAvg": "Avg. this month",
-      "guestsToday": "Guests today",
-      "viaFillyMonth": "Via Filly (month)",
-      "campaigns30d": "Campaigns (30d)",
-      "sent": "Sent",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "average": "Average",
-      "totalReviews": "Total reviews",
-      "responseNeeded": "Response needed"
+    "kpi": {
+      "reachHero": "Reach",
+      "reachSub": "{n} people reached with {u} posts",
+      "vsPrevious": "vs previous {n} days",
+      "noHistory": "not enough history to compare",
+      "clicks": "Click-throughs",
+      "clickRate": "{pct}% of the reach clicks through",
+      "interactions": "Interactions",
+      "interactionsSub": "likes, comments and shares",
+      "budget": "Ad budget",
+      "paidOf": "{paid} of {total} posts paid",
+      "costPerClick": "Cost per click",
+      "overPaidClicks": "over {n} paid clicks",
+      "noPaid": "no paid posts"
     },
-    "placeholders": {
-      "instagram": "Live likes, comments & followers from your connection (+ sample insights).",
-      "facebook": "Live likes, comments & shares from your connection (+ sample insights).",
-      "tiktok": "Stats appear after the TikTok Marketing API connection.",
-      "whatsapp": "Coming in a later phase."
+    "perChannel": {
+      "title": "Reach per channel",
+      "subtitle": "Darker means more reach. Sorted, so the top one is your biggest channel.",
+      "subtitleFiltered": "All channels in this period; your selection is in colour, the rest is context.",
+      "empty": "No posts in this period.",
+      "bestCtr": "{channel} has the highest click-through rate: {clicks} clicks on {reach} reach, which is {pct}%.",
+      "tip": "{reach} reach from {n} posts · {clicks} clicks · {interactions} interactions"
+    },
+    "budget": {
+      "title": "Where your budget went",
+      "subtitle": "How your ad budget was split.",
+      "subtitleSplit": "{total} split across {n} channels.",
+      "subtitleSingle": "One paid channel in this selection.",
+      "spentOn": "Spent on {channel}",
+      "spent": "spent",
+      "bookingsAnd": "{n} bookings · {cost} per booking",
+      "empty": "No paid posts in this selection. Every booking here came from organic reach."
+    },
+    "split": {
+      "title": "Organic and paid side by side",
+      "subtitle": "Reach per channel, split into organic reach and ad budget.",
+      "organic": "Organic",
+      "paid": "Paid",
+      "empty": "No posts in this selection.",
+      "noteBoth": "Paid reach delivers {paid} of the {total} people reached, on {budget} of budget. Organic does the rest for free, but grows more slowly.",
+      "notePaidOnly": "All reach in this selection is paid, on {budget} of budget.",
+      "noteOrganicOnly": "All reach in this selection is organic, without budget."
+    },
+    "trend": {
+      "title": "Reach over time",
+      "subtitleDaily": "Reach per day over the last 7 days.",
+      "subtitleWeekly": "Reach per week over the last {n} days.",
+      "tipDay": "{date}: {reach} reach · {clicks} clicks · {n} posts",
+      "tipWeek": "Week of {date}: {reach} reach · {clicks} clicks · {n} posts"
+    },
+    "scores": {
+      "sectionTitle": "What Filly learns from it",
+      "title": "Score per post",
+      "subtitle": "Every post gets a score from 0 to 100 and a verdict 14 days after it goes live.",
+      "winner": "Strong",
+      "average": "Average",
+      "underperformer": "Below expectation",
+      "pending": "No verdict yet",
+      "noneScored": "No post in this selection is 14 days old yet, so nothing has been judged. That is the measurement window.",
+      "noteConversion": "For {n} of the {total} judged posts the score is based on bookings relative to your own average, because the platform does not report reach yet. Once those figures arrive Filly uses reach, click-throughs and bookings."
+    },
+    "table": {
+      "title": "Per post",
+      "subtitle": "All the figures behind the charts. {n} posts in this selection.",
+      "empty": "No posts in this selection.",
+      "thName": "Post",
+      "thChannel": "Channel",
+      "thDate": "Date",
+      "thKind": "Type",
+      "thReach": "Reach",
+      "thClicks": "Clicks",
+      "thCtr": "Click rate",
+      "thInteractions": "Interactions",
+      "thBudget": "Budget",
+      "thPerClick": "Per click",
+      "thVerdict": "Verdict"
+    },
+    "bookingsNote": "Bookings are deliberately not shown here. Meta, TikTok and Google report reach, clicks and cost, but not whether someone actually booked a table afterwards. That arrives once we are connected to your reservation system.",
+    "tabResult": "Results",
+    "tabOccupancy": "Occupancy",
+    "whatWorks": {
+      "title": "What works for you",
+      "subtitle": "Per channel, across everything measured so far — not just the selected period",
+      "measured": "{n} posts measured · {bookings} bookings",
+      "tooFew": "{n} of {min} posts — no verdict yet",
+      "foot": "The verdict comes from the median success score per post, so one outlier does not define a channel. From three measured posts on, we say something about it.",
+      "verdict": {
+        "sterk": "Works well",
+        "gemiddeld": "Average",
+        "zwak": "Falls behind"
+      }
     }
   },
   "dash_reserveringen_page": {
@@ -2912,7 +3077,9 @@
     "photoOverwrite": "Also overwrite {count, plural, one {# channel} other {# channels}} that already have one"
   },
   "dash__components_campaign_detail_waarom_card": {
-    "title": "Why this proposal"
+    "title": "Why this proposal",
+    "whyDay": "Why this day:",
+    "whyDayIncidental": "Why this day in particular:"
   },
   "dash__components_campaign_detail_wanneer_card": {
     "title": "When to post",
@@ -3307,7 +3474,8 @@
     },
     "hint": {
       "typeOwn": "Or type your own question below"
-    }
+    },
+    "partiallyFailedNote": "Something went wrong with {count, plural, one {# proposal} other {# proposals}}: those are not ready as a concept. Try that day again."
   },
   "dash__components_google_connected_panel": {
     "title": "Google Business Profile",
@@ -3497,11 +3665,11 @@
   "meta": {
     "home": {
       "title": "Get-Filly. Fill your quiet moments. Automatically.",
-      "description": "Get-Filly is the AI capacity optimiser for local businesses. It fills your quiet moments through marketing, reviews and visibility in Google and AI search engines. For hospitality, wellness, hair salons, gyms and more."
+      "description": "Get-Filly is the AI capacity optimiser for hospitality. It fills your quiet moments with social media content and with better visibility in Google and AI search engines."
     },
     "product": {
       "title": "The solution",
-      "description": "Discover how Get-Filly detects quiet moments, works out the right action and, with your approval, puts campaigns live via email, social and WhatsApp for more customers during your quiet moments. For local businesses across multiple industries."
+      "description": "Discover how Get-Filly spots quiet moments, comes up with the right post and puts it live on social media with your approval, for more customers during your quiet moments. For hospitality."
     },
     "pricing": {
       "title": "Pricing",
@@ -3509,7 +3677,7 @@
     },
     "about": {
       "title": "About",
-      "description": "Get-Filly was founded by two entrepreneurs with one mission: help local businesses turn quiet moments into revenue, without hours of work or big marketing budgets."
+      "description": "Get-Filly was founded by two entrepreneurs with one mission: help hospitality businesses turn quiet moments into revenue, without hours of work or big marketing budgets."
     },
     "contact": {
       "title": "Contact & demo",
@@ -3517,7 +3685,7 @@
     },
     "blog": {
       "title": "The marketing cocktail",
-      "description": "Insights on AI marketing, online findability and higher occupancy for local businesses, from Get-Filly."
+      "description": "Insights on AI marketing, online findability and higher occupancy for hospitality, from Get-Filly."
     }
   },
   "leg_government_requests": {
@@ -3639,7 +3807,7 @@
         "heading": "2.2 Data about your business",
         "intro": "To make Get-Filly work properly, we process data about your business. This may include among other things:",
         "name": "name of the business",
-        "type": "type of business, for example restaurant, hotel, lunchroom, wellness venue or other hospitality establishment",
+        "type": "type of hospitality business, for example restaurant, café, bistro or lunchroom",
         "address": "address, location and contact details",
         "hours": "opening hours",
         "website": "website and publicly accessible website content",
@@ -4177,7 +4345,7 @@
     },
     "s4": {
       "heading": "4. Our service",
-      "p1": "Get-Filly offers a SaaS platform that lets hospitality, wellness and hotel entrepreneurs analyze and improve their marketing, online visibility, occupancy and customer activation using AI, automation and data analysis. The service may consist of, among other things:",
+      "p1": "Get-Filly offers a SaaS platform that lets hospitality entrepreneurs analyze and improve their marketing, online visibility, occupancy and customer activation using AI, automation and data analysis. The service may consist of, among other things:",
       "li1": "a dashboard with insight into reservations, occupancy, guests and marketing activities;",
       "li2": "AI-generated review replies, campaign suggestions, copy and chat features;",
       "li3": "menu analysis through image recognition and AI;",
@@ -4371,17 +4539,6 @@
       "nameLabel": "Business name",
       "required": "(required)",
       "namePlaceholder": "Bistro Centraal",
-      "industryLabel": "What kind of business do you run?",
-      "industrySubtitle": "Filly tailors her language, tone and tips to your industry. You can change this later.",
-      "industryComingSoon": "Coming soon",
-      "industries": {
-        "horeca": { "label": "Hospitality", "description": "Restaurant, café, bistro, brasserie." },
-        "kapper": { "label": "Hair & barber", "description": "Hair salon, barbershop." },
-        "schoonheid": { "label": "Beauty & nails", "description": "Beauty salon, nail studio, skincare." },
-        "wellness": { "label": "Wellness & massage", "description": "Spa, sauna, massage salon." },
-        "sportschool": { "label": "Gym & fitness", "description": "Gym, fitness club, yoga or pilates studio." },
-        "recreatie": { "label": "Leisure & recreation", "description": "Bowling, escape room, climbing gym, indoor playground." }
-      },
       "typeLabel": "Business type",
       "typePlaceholder": "Choose a type…",
       "websiteLabel": "Your business website",
@@ -4560,36 +4717,80 @@
     "successBodyDirect": "The video has been sent to your TikTok account. Depending on the privacy level it appears on your profile."
   },
   "dash__components_busyness": {
-    "title": "When can Filly help you",
-    "subtitle": "Relative busyness per day, based on your Google pattern",
-    "prevWeek": "Previous week",
-    "nextWeek": "Next week",
-    "subThis": "this week",
-    "subPrev": "last week",
-    "subNext": "next week",
-    "today": "Today",
-    "legendQuiet": "Quiet moment",
-    "legendSpecial": "Special day",
-    "legendHint": "Tap a day to see the pattern",
-    "avgLine": "Expected",
-    "actualLine": "Actual",
-    "predictedLine": "Predicted",
-    "predictedNote": "no actual data, day is in the future",
-    "bandRustig": "quiet",
+    "axisBusy": "busy",
+    "axisQuiet": "quiet",
+    "chartAria": "Bar chart of busyness per period",
+    "chartPerDay": "Busyness per day",
+    "chartPerHour": "Busyness per hour",
+    "ctaForPart": "Create a campaign for {day} {part}",
+    "ctaPlain": "Create a campaign",
+    "factorDate": "Weather and surroundings",
+    "factorPattern": "Your pattern",
+    "factorPatternNormal": "the day sits around your normal level",
+    "factorPatternStructural": "this {part} is structurally quiet for you",
+    "factorPatternUnusual": "this {part} is unusually quiet for you",
+    "factorSource": "Source",
+    "factorSourceLive": "live measurements from Google",
+    "factorSourceSeed": "no live measurements yet, pattern only",
+    "factorSpecial": "Special day",
+    "factorSpecialNone": "no special day known",
+    "factorWeekday": "Weekday",
+    "factorWeekdayNormal": "{day} is average for you",
+    "factorWeekdayQuiet": "{day} is a quiet day for you",
+    "footClick": "Click a bar to open that day.",
+    "footLine": "The bar is what is normal for this day. Dark green is what actually came in: if it does not fill the bar, it fell short. If it rises above, the orange mark shows where normal was.",
+    "insAllNormal": "Every part of the day sits around your normal level.",
+    "insBestElsewhere": "Biggest opportunity: {day}, {part}",
+    "insBiggest": "{day} {part} is your biggest opportunity {period}",
+    "insChance": "{day} {part} is an opportunity",
+    "insFullEnough": "{day} is busy enough",
+    "insMore": "{count, plural, one {# more opportunity} other {# more opportunities}} {period}",
+    "insQuieter": "quieter than your usual {part}",
+    "insTooFar": "This period is too far ahead",
+    "insTooFarSub": "Filly finds opportunities up to {days} days ahead. The pattern is already there.",
+    "jump_0": "Today",
+    "jump_1": "Tomorrow",
+    "jump_2": "Day after",
+    "legendChanceIncidental": "opportunity this week",
+    "legendChanceStructural": "standing opportunity",
+    "legendMeasured": "measured",
+    "legendOver": "busier than normal",
+    "legendPredicted": "normal",
+    "markerNow": "now · {hour}",
+    "next": "Next",
+    "noteCoveredMore": "{count} days are already covered",
+    "noteCoveredOne": "1 day is already covered",
+    "noteHoliday": "Filly leaves {label} alone",
+    "noteSeed": "No Google pattern for this business yet. You are seeing an example curve.",
+    "noteSource": "Busyness comes from your Google pattern.",
+    "periodGroup": "Period",
+    "periodMonth": "this month",
+    "periodWeek": "in the next 7 days",
+    "prev": "Previous",
+    "subNext7": "next 7 days",
+    "subThisMonth": "this month",
     "tfPast": "Past",
-    "tfToday": "Today",
-    "tfFuture": "Predicted",
-    "noteSpecialPast": "Busy due to {name}, no action needed.",
-    "noteSpecialFuture": "Heads up: {name} may drive the day up.",
-    "noteKans": "Quiet moment, a chance to fill.",
-    "noteNoKans": "No clear quiet moment to act on.",
-    "ctaFor": "Create a campaign"
+    "titleChance": "opportunity at {part}",
+    "titleNoChance": "busy enough",
+    "today": "Today",
+    "view_dag": "Day",
+    "view_maand": "Month",
+    "view_week": "Week",
+    "whyChance": "Why {day} {part} is quieter",
+    "whyFoot": "Filly factors this into your campaign angle. Your calendar is not connected yet.",
+    "whyPlain": "How {day} runs"
   },
   "dash__components_kpi_rings": {
     "title": "This month",
     "r1_uitingen": "Posts this month",
     "r2_kansen": "Quiet moments used",
     "r3_campagnes": "Active campaigns",
-    "r4_vindbaarheid": "Findability"
+    "r4_vindbaarheid": "Findability",
+    "kansenMeta": "{open} still open",
+    "campagnesMeta": "{n} proposals open",
+    "uitingenEmpty": "No content yet",
+    "uitingenCta": "Create your first",
+    "vindbaarheidEmpty": "Not measured yet",
+    "vindbaarheidCta": "Connect Google"
   }
 }

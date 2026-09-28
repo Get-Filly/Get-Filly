@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -25,20 +26,30 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 @UseGuards(AuthGuard, BusinessAccessGuard)
 @Controller('suggestions')
 export class SuggestionsController {
+  private readonly logger = new Logger(SuggestionsController.name);
+
   constructor(private readonly suggestions: SuggestionsService) {}
 
   // Per 2026-06-24: gegenereerde voorstellen (geleide flow / detectie) landen
   // direct als Concept i.p.v. een aparte Voorstel-fase. We keuren elk net-
   // gemaakt voorstel meteen goed en hangen approved_campaign_id aan de
   // teruggegeven rij, zodat de frontend naar de concept-campagne kan linken.
-  // Fail-soft: een approve die faalt laat dat voorstel ongemoeid (zeldzaam,
-  // geen blokkade van de hele generatie).
+  //
+  // Fail-soft blijft: één mislukte goedkeuring blokkeert de rest van de
+  // generatie niet. Maar niet meer STIL (2026-09-16). De catch slikte hier
+  // alles, en dat was precies het scenario "ik heb een campagne gemaakt en
+  // ik zie er geen een": de eigenaar kreeg "concept klaargezet" te zien,
+  // terwijl er alleen een openstaand voorstel was — dat sinds het schrappen
+  // van de Voorstel-kolom nergens meer zichtbaar is. Nu loggen we de fout
+  // (zodat 'ie te vinden is) én geven we 'm mee in de response, zodat de
+  // frontend eerlijk kan zijn over wat er wél en niet gelukt is.
   private async approveGeneratedToConcept(
     businessId: string,
     userId: string,
     suggestions: AiSuggestion[],
-  ): Promise<AiSuggestion[]> {
+  ): Promise<{ suggestions: AiSuggestion[]; failed: number }> {
     const out: AiSuggestion[] = [];
+    let failed = 0;
     for (const s of suggestions) {
       try {
         const { campaignId } = await this.suggestions.approve(
@@ -46,12 +57,22 @@ export class SuggestionsController {
           s.id,
           userId,
         );
-        out.push({ ...s, status: 'approved', approved_campaign_id: campaignId });
-      } catch {
+        out.push({
+          ...s,
+          status: 'approved',
+          approved_campaign_id: campaignId,
+        });
+      } catch (e) {
+        failed += 1;
+        this.logger.error(
+          `Voorstel ${s.id} kon niet naar concept (business ${businessId}): ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
         out.push(s);
       }
     }
-    return out;
+    return { suggestions: out, failed };
   }
 
   @Get()
@@ -85,10 +106,7 @@ export class SuggestionsController {
   }
 
   @Get(':id')
-  findOne(
-    @BusinessId() businessId: string,
-    @Param('id') id: string,
-  ) {
+  findOne(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.suggestions.findById(businessId, id);
   }
 
@@ -102,17 +120,17 @@ export class SuggestionsController {
     @BusinessId() businessId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const result = await this.suggestions.generateOnDemand(
+    const result = await this.suggestions.generateOnDemand(businessId, user.id);
+    const approved = await this.approveGeneratedToConcept(
       businessId,
       user.id,
+      result.suggestions,
     );
     return {
       ...result,
-      suggestions: await this.approveGeneratedToConcept(
-        businessId,
-        user.id,
-        result.suggestions,
-      ),
+      suggestions: approved.suggestions,
+      // Aantal voorstellen dat niet tot concept kwam. 0 = alles gelukt.
+      failedToConcept: approved.failed,
     };
   }
 
@@ -130,13 +148,16 @@ export class SuggestionsController {
       businessId,
       user.id,
     );
+    const approved = await this.approveGeneratedToConcept(
+      businessId,
+      user.id,
+      result.suggestions,
+    );
     return {
       ...result,
-      suggestions: await this.approveGeneratedToConcept(
-        businessId,
-        user.id,
-        result.suggestions,
-      ),
+      suggestions: approved.suggestions,
+      // Aantal voorstellen dat niet tot concept kwam. 0 = alles gelukt.
+      failedToConcept: approved.failed,
     };
   }
 
@@ -157,6 +178,7 @@ export class SuggestionsController {
         name?: unknown;
         channels?: unknown;
         context?: unknown;
+        reason?: unknown;
       }>;
     },
   ) {
@@ -168,6 +190,15 @@ export class SuggestionsController {
       name?: string;
       channels?: string[];
       context?: string[];
+      // Waarom deze dag een kans was, zoals de eigenaar het zag. Komt van
+      // de frontend omdat de backend het dagdeel hier met de beleidslaag
+      // UIT opvraagt (de eigenaar koos de dag zelf) en de weer-/event-reden
+      // daar dus niet kent.
+      reason?: {
+        key: string;
+        params?: Record<string, string | number>;
+        kind?: 'structureel' | 'incidenteel';
+      };
     };
     // Helper: maak een schone string-array (max 6 items, elk getrimd
     // + gecapt) van onbekende input. Geleide flow stuurt channels +
@@ -195,6 +226,28 @@ export class SuggestionsController {
       if (channels) item.channels = channels;
       const context = cleanStrings(r.context);
       if (context) item.context = context;
+      // Alleen een reden met een sleutel telt; params en soort zijn optioneel
+      // en worden gefilterd op wat we verwachten.
+      const raw = r.reason as
+        | { key?: unknown; params?: unknown; kind?: unknown }
+        | undefined;
+      if (raw && typeof raw.key === 'string' && raw.key.length <= 40) {
+        const params: Record<string, string | number> = {};
+        if (raw.params && typeof raw.params === 'object') {
+          for (const [k, v] of Object.entries(
+            raw.params as Record<string, unknown>,
+          )) {
+            if (typeof v === 'string' || typeof v === 'number') params[k] = v;
+          }
+        }
+        item.reason = {
+          key: raw.key,
+          params,
+          ...(raw.kind === 'structureel' || raw.kind === 'incidenteel'
+            ? { kind: raw.kind }
+            : {}),
+        };
+      }
       items.push(item);
     }
 
@@ -203,13 +256,16 @@ export class SuggestionsController {
       user.id,
       items,
     );
+    const approved = await this.approveGeneratedToConcept(
+      businessId,
+      user.id,
+      result.suggestions,
+    );
     return {
       ...result,
-      suggestions: await this.approveGeneratedToConcept(
-        businessId,
-        user.id,
-        result.suggestions,
-      ),
+      suggestions: approved.suggestions,
+      // Aantal voorstellen dat niet tot concept kwam. 0 = alles gelukt.
+      failedToConcept: approved.failed,
     };
   }
 
@@ -305,12 +361,7 @@ export class SuggestionsController {
     @Body() body: { index?: number; channel_id?: string },
   ) {
     const idx = typeof body.index === 'number' ? body.index : -1;
-    return this.suggestions.selectVariant(
-      businessId,
-      id,
-      idx,
-      body.channel_id,
-    );
+    return this.suggestions.selectVariant(businessId, id, idx, body.channel_id);
   }
 
   // Per 2026-05-07: eigenaar zet zelf een verzendmoment op een pending

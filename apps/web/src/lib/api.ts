@@ -773,6 +773,15 @@ export type CampaignDetail = Campaign & {
   // handmatig aangemaakt of voorstel is verwijderd. Concept-detail
   // toont 'Waarom dit voorstel'-card als deze gevuld is.
   reasoning: string | null;
+  // Waarom Filly juist DEZE dag koos, uit het gekoppelde voorstel. Sleutel +
+  // gegevens; de zin maakt de frontend (lib/quiet-reason.ts), want de app is
+  // NL/EN. Null als de campagne niet uit een rustig-moment-voorstel komt.
+  dayReason: {
+    key: string;
+    params: Record<string, string | number>;
+    kind: "structureel" | "incidenteel" | null;
+    targetDate: string | null;
+  } | null;
   // Per 2026-05-13 (mig 0041): alle versies + welke Gekozen is.
   // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
   // body/subject_line hierboven zijn afgeleid van
@@ -911,10 +920,29 @@ export async function removeCampaignChannel(
 // Status-transitie. Backend valideert toegestane mappings
 // (concept→ingepland, ingepland→actief, actief→afgerond, etc).
 // Voor Activeren wordt executed_at automatisch op now() gezet.
+// Wat er bij het stoppen van een actieve social-campagne met de
+// gepubliceerde post is gebeurd. Alleen aanwezig bij actief → concept.
+// 'skipped' = er stond niets op dat kanaal, dus er viel niets te
+// verwijderen — bewust iets anders dan 'deleted'.
+export type CampaignRetractReport = {
+  facebook: "deleted" | "failed" | "skipped";
+  instagram: "deleted" | "failed" | "skipped";
+  /** Meta wees af op een ontbrekende permissie → opnieuw verbinden. */
+  needsReconnect: boolean;
+  /** Alleen als Instagram niet verwijderd kon worden: directe link naar
+   *  de post, of 'manual' als de permalink onbekend is. */
+  instagramManualUrl: string | null;
+  errors: string[];
+};
+
 export async function updateCampaignStatus(
   id: string,
   status: CampaignStatus,
-): Promise<{ id: string; status: CampaignStatus }> {
+): Promise<{
+  id: string;
+  status: CampaignStatus;
+  retract?: CampaignRetractReport;
+}> {
   const res = await authedFetch(`${API_URL}/campaigns/${id}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -1681,7 +1709,13 @@ export async function fetchBusynessActual(
 export type QuietMoment = {
   date: string; // YYYY-MM-DD
   weekday: number; // 0=ma..6=zo
-  daypart: string; // ochtend|lunch|middag|diner|avond
+  daypart: string; // ochtend|lunch|middag|diner|avond (eerste van de reeks)
+  // Alle dagdeel-sleutels in deze kans; hiermee vertaalt de UI zelf
+  // (zie lib/dayparts.ts). daypartLabel is NL en alleen de terugval.
+  dayparts: string[];
+  // Beslaat het blok élk open dagdeel van die dag? Dan toont de UI "de hele
+  // dag" in plaats van een opsomming die hetzelfde zegt maar raar leest.
+  coversOpenDay: boolean;
   daypartLabel: string;
   expectedPct: number;
   deviation: number; // negatief = rustiger dan verwacht
@@ -1689,12 +1723,99 @@ export type QuietMoment = {
   unusual: boolean; // ongewoon rustig vs vaste rustige stand
   fromHour: number;
   toHour: number;
+  // structureel = deze weekdag is hier altijd stil (strategisch);
+  // incidenteel = juist déze datum wijkt af door weer of een evenement.
+  kind: "structureel" | "incidenteel";
+  // Waarom juist deze dag. Key + params i.p.v. een kant-en-klare zin, omdat
+  // de app NL/EN is; de vertaling staat in messages/*.json onder bzv.reason*.
+  reasonKey: QuietReasonKey;
+  reasonParams: Record<string, string | number>;
 };
+
+export type QuietReasonKey =
+  | "structural"
+  | "structuralRotated"
+  | "unusual"
+  | "weatherRain"
+  | "weatherCold"
+  | "weatherHeat"
+  | "eventNearby";
+
+// Een dag die kandidaat was maar door een harde poort afvalt. Zo kan de UI
+// "deze week niets, want alles is al afgedekt" onderscheiden van "niets aan
+// de hand" — zonder dat de frontend die regels zelf naloopt.
+export type QuietNote = {
+  date: string;
+  reason: "feestdag" | "al_afgedekt";
+  label?: string;
+};
+
+// Wat campagnes per weekdag+dagdeel met de drukte deden. `samples` staat er
+// bewust bij: een lift op drie campagnes zegt iets heel anders dan een op
+// twaalf, en zonder dat getal leest een toevalstreffer als bewijs.
+export type SlotReport = {
+  slots: Array<{
+    weekday: number; // 0=ma..6=zo
+    daypart: string;
+    samples: number;
+    medianLift: number; // drukte-punten t.o.v. vergelijkbare dagen
+    counts: boolean; // telt dit moment al mee in de ranking?
+  }>;
+  businessMedianLift: number;
+  minSamples: number;
+};
+
+// Bezettingsrapportage: gemeten drukte per weekdag+uur, en verwacht naast
+// werkelijk per dagdeel. `actual: null` = te weinig gemeten dagen voor een
+// betrouwbare waarde; die cel blijft leeg in plaats van dat we iets verzinnen.
+export type OccupancyReport = {
+  hasSource: boolean;
+  weeks: number;
+  minDays: number;
+  hourly: Array<{
+    weekday: number;
+    hour: number;
+    actual: number | null;
+    days: number;
+  }>;
+  dayparts: Array<{
+    weekday: number;
+    daypart: string;
+    expected: number;
+    actual: number;
+    diff: number;
+    hours: number;
+    days: number;
+  }>;
+};
+
+export async function fetchOccupancyReport(
+  weeks = 16,
+): Promise<OccupancyReport> {
+  const res = await authedFetch(
+    `${API_URL}/busyness/me/occupancy-report?weeks=${weeks}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSlotReport(): Promise<SlotReport> {
+  const res = await authedFetch(`${API_URL}/busyness/me/slot-report`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
 export async function fetchQuietMoments(
   fromIso?: string,
   toIso?: string,
-): Promise<{ hasSource: boolean; moments: QuietMoment[] }> {
+): Promise<{
+  hasSource: boolean;
+  moments: QuietMoment[];
+  notes: QuietNote[];
+}> {
   const qs =
     fromIso && toIso ? `?from=${fromIso}&to=${toIso}` : "";
   const res = await authedFetch(`${API_URL}/busyness/me/quiet-moments${qs}`, {
@@ -1889,6 +2010,16 @@ export type GenerateForDatesItem = {
     fromHour: number;
     toHour: number;
   };
+  // Waarom deze dag een kans was, zoals de eigenaar het op het dashboard
+  // zag. Gaat mee zodat de campagne later nog kan tonen waaróm die dag
+  // gekozen is. Komt van de frontend en niet uit een herberekening in de
+  // backend: die vraagt het dagdeel op met de beleidslaag UIT (de eigenaar
+  // koos de dag zelf), en kent de weer- en evenement-reden daar dus niet.
+  reason?: {
+    key: string;
+    params?: Record<string, string | number>;
+    kind?: "structureel" | "incidenteel";
+  };
 };
 
 // Day-context voor de geleide chat-flow (stap 2 + 3). Spiegelt
@@ -1923,6 +2054,7 @@ export type DayContext = {
   // Rustig dagdeel voor deze datum (busyness-model); null = niet rustig.
   quietMoment: {
     daypart: string;
+    dayparts: string[];
     daypartLabel: string;
     fromHour: number;
     toHour: number;
@@ -1950,6 +2082,10 @@ export async function generateSuggestionsForDates(
 ): Promise<{
   generated: number;
   suggestions: AiSuggestion[];
+  // Aantal voorstellen dat wél gegenereerd is maar niet tot een concept
+  // kwam. Was voorheen onzichtbaar: de backend slikte die fout, en de
+  // eigenaar kreeg "concept klaargezet" terwijl er niets op het bord stond.
+  failedToConcept?: number;
 }> {
   const res = await authedFetch(
     `${API_URL}/suggestions/generate-for-dates`,
@@ -3860,5 +3996,122 @@ export async function sendCampaignToAll(
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `HTTP ${res.status}`);
   }
+  return res.json();
+}
+
+// ============================================================
+// Rapportage per uiting (GET /campaigns/report)
+// ============================================================
+// Leest de view campaign_performance_report (migratie 0071 + 0072). Eén
+// call voor de hele rapportagepagina: totalen, per kanaal, tijdreeks,
+// score-verdeling én de losse rijen voor de tabel. Bewust één payload,
+// zodat elke kaart op de pagina dezelfde cijfers ziet.
+
+export type ReportKind = "all" | "organic" | "paid";
+
+export type CampaignReportRow = {
+  campaign_id: string;
+  campaign_name: string;
+  channel: string;
+  status: string | null;
+  happened_at: string | null;
+  paid: boolean;
+  reach: number | null;
+  clicks: number | null;
+  interactions: number | null;
+  bookings: number;
+  guests: number;
+  revenue_cents: number;
+  spend_cents: number;
+  cost_per_booking_cents: number | null;
+  roas: number | null;
+  success_score: number | null;
+  classification: "winner" | "average" | "underperformer" | "no_data" | null;
+  score_basis: "rate" | "conversion_only" | null;
+  marked_outlier: boolean;
+};
+
+export type CampaignReportTotals = {
+  uitingen: number;
+  paidUitingen: number;
+  reach: number;
+  clicks: number;
+  interactions: number;
+  bookings: number;
+  guests: number;
+  revenueCents: number;
+  spendCents: number;
+  paidBookings: number;
+  paidClicks: number;
+  costPerBookingCents: number | null;
+  costPerClickCents: number | null;
+};
+
+export type CampaignReportChannel = CampaignReportTotals & {
+  channel: string;
+  organicBookings: number;
+  paidBookings: number;
+  organicReach: number;
+  paidReach: number;
+};
+
+export type CampaignReport = {
+  filters: { days: number; kind: ReportKind; channels: string[] };
+  from: string;
+  to: string;
+  totals: CampaignReportTotals;
+  previous: {
+    reach: number;
+    clicks: number;
+    bookings: number;
+    uitingen: number;
+  } | null;
+  byChannel: CampaignReportChannel[];
+  // Wat werkt bij deze zaak, per kanaal. Over álles wat gemeten is, niet
+  // over de gekozen periode: "welk kanaal werkt voor mij" is een vraag over
+  // de lange lijn. `uitingen` hoort altijd zichtbaar te zijn — een mediaan
+  // op twee posts is toeval, geen bevinding.
+  whatWorks: Array<{
+    channel: string;
+    uitingen: number;
+    medianScore: number | null;
+    bookings: number;
+    counts: boolean;
+    verdict: "sterk" | "gemiddeld" | "zwak" | null;
+  }>;
+  whatWorksMin: number;
+  buckets: Array<{
+    from: string;
+    reach: number;
+    clicks: number;
+    bookings: number;
+    uitingen: number;
+  }>;
+  bucketSizeDays: number;
+  scores: {
+    winner: number;
+    average: number;
+    underperformer: number;
+    no_data: number;
+    pending: number;
+    conversionOnly: number;
+    scored: number;
+  };
+  rows: CampaignReportRow[];
+};
+
+export async function fetchCampaignReport(opts?: {
+  days?: 7 | 30 | 90;
+  kind?: ReportKind;
+  channels?: string[];
+}): Promise<CampaignReport> {
+  const q = new URLSearchParams();
+  if (opts?.days) q.set("days", String(opts.days));
+  if (opts?.kind) q.set("kind", opts.kind);
+  if (opts?.channels?.length) q.set("channels", opts.channels.join(","));
+  const res = await authedFetch(`${API_URL}/campaigns/report?${q.toString()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

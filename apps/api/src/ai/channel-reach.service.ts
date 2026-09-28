@@ -57,19 +57,18 @@ export class ChannelReachService {
    * "onbekend" op in plaats van een gecrashte AI-feature.
    */
   async fetchReach(businessId: string): Promise<ChannelReach[]> {
-    // Opt-in-tellingen (mail + whatsapp) uit de gasten-tabel.
-    let mailOptIn = 0;
+    // Opt-in-telling voor WhatsApp uit de gasten-tabel. De mail-opt-in
+    // telden we hier ook, maar mail is per 2026-09-16 geen campagnekanaal
+    // meer; de kolom blijft in guests staan voor bestaande gegevens.
     let whatsappOptIn = 0;
     try {
       const { data } = await this.supabase.client
         .from('guests')
-        .select('mail_opt_in, whatsapp_opt_in')
+        .select('whatsapp_opt_in')
         .eq('business_id', businessId);
       const guests = (data ?? []) as Array<{
-        mail_opt_in: boolean | null;
         whatsapp_opt_in: boolean | null;
       }>;
-      mailOptIn = guests.filter((g) => g.mail_opt_in).length;
       whatsappOptIn = guests.filter((g) => g.whatsapp_opt_in).length;
     } catch (err) {
       this.logger.warn(`Opt-in-telling gefaald: ${String(err)}`);
@@ -91,17 +90,10 @@ export class ChannelReachService {
     }
     const metaConnected = providers.has('meta');
 
+    // Mail staat er per 2026-09-16 niet meer tussen: we mailen niet meer als
+    // campagnekanaal (besluit Floris). De opt-in-telling blijft bestaan in
+    // guests, maar we bieden er geen kanaal meer op aan.
     return [
-      {
-        channel: 'mail',
-        connected: mailOptIn > 0,
-        audienceSize: mailOptIn,
-        source: 'opt_in',
-        note:
-          mailOptIn > 0
-            ? `${mailOptIn} gasten met mail-opt-in — direct, gegarandeerd bereik.`
-            : 'Nog geen gasten met mail-opt-in; een mailing bereikt nu niemand.',
-      },
       {
         channel: 'whatsapp',
         connected: whatsappOptIn > 0,
@@ -170,7 +162,9 @@ export class ChannelReachService {
     };
 
     const lines: string[] = [];
-    lines.push('BEREIK PER KANAAL (gemeten — weeg dit zwaar mee bij de kanaal-keuze):');
+    lines.push(
+      'BEREIK PER KANAAL (gemeten — weeg dit zwaar mee bij de kanaal-keuze):',
+    );
     for (const r of reach) {
       lines.push(`- ${labels[r.channel]}: ${r.note}`);
     }

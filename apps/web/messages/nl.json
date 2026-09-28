@@ -1,6 +1,24 @@
 {
   "common": {
-    "backToReports": "← Terug naar rapportages"
+    "backToReports": "← Terug naar rapportages",
+    "dayparts": {
+      "ochtend": "ochtend",
+      "lunch": "lunch",
+      "middag": "middag",
+      "diner": "diner",
+      "avond": "avond",
+      "and": "en",
+      "wholeDay": "de hele dag"
+    },
+    "quietReasons": {
+      "structural": "doorgaans je stilste moment",
+      "structuralRotated": "je vaste rustige moment deed je net al",
+      "unusual": "rustiger dan hier normaal is",
+      "weatherRain": "regen verwacht, mensen blijven thuis",
+      "weatherCold": "koud verwacht ({temp}°), mensen blijven thuis",
+      "weatherHeat": "warm verwacht ({temp}°), bezoek daalt",
+      "eventNearby": "{name} op {distanceKm} km"
+    }
   },
   "language": {
     "label": "Taal",
@@ -23,11 +41,11 @@
   },
   "home": {
     "heroTitle": "Vul je rustige momenten.<br></br>Automatisch.",
-    "heroSubtitle": "Get-Filly ziet wanneer het rustig wordt en zet met jouw goedkeuring de juiste actie in, via mail, social, WhatsApp en Google. Voor horeca, wellness, kappers, sportscholen en meer.",
+    "heroSubtitle": "Nooit meer een lege zaak met Get-Filly. Onze horeca-AI voorspelt je rustige momenten en zet met jouw goedkeuring de juiste uitingen op sociale media live, precies bij de mensen in jouw buurt.",
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
     "whyTitle": "Waarom het werkt",
-    "whySubtitle": "De cijfers liegen niet, betere profielen en een vast ritme zorgen dat klanten je vaker online vinden.",
+    "whySubtitle": "De cijfers liegen niet, betere profielen en uitingen op het juiste moment zorgen dat klanten je vaker vinden en vaker boeken.",
     "pillars": {
       "sectionTitle": "Meer klanten.<br></br>Vollere dagen. Automatisch.",
       "findability": {
@@ -46,27 +64,26 @@
       "visibility": {
         "eyebrow": "Zichtbaarheid",
         "title": "Blijf in beeld. Ook als ze niet boeken.",
-        "desc": "Klanten die jou kennen maar nog niet hebben geboekt, heb je nodig op je rustige momenten. Wij zorgen dat jij top of mind blijft via sociale media, automatisch en in jouw stijl.",
+        "desc": "Klanten die jou kennen maar nog niet hebben geboekt, heb je nodig op je rustige momenten. Wij plaatsen de juiste uitingen op sociale media zodat jij top of mind blijft, automatisch en in jouw stijl.",
         "bullets": [
-          "Automatische contentplanning voor Instagram, Facebook en TikTok op basis van jouw bezettingsdata",
-          "AI-gegenereerde content volledig in de stijl en toon van jouw onderneming",
-          "Strategische timing gebaseerd op data, meer zichtbaarheid op dagen dat het rustig is",
-          "Suggesties voor stories en reels afgestemd op jouw regio en doelgroep",
-          "Alles white-label, klanten zien jouw naam, niet die van Get-Filly",
-          "Jij keurt elk bericht goed voordat het verstuurd wordt",
-          "Live dashboard rapportage over bereik, engagement en doorkliks"
+          "Uitingen op sociale media, ingepland op basis van jouw bezettingsdata",
+          "Beeld en tekst automatisch in de stijl en toon van jouw onderneming",
+          "Strategische timing, meer zichtbaarheid op dagen dat het rustig is",
+          "Alles onder jouw naam, klanten zien jouw merk, niet dat van Get-Filly",
+          "Jij keurt elke uiting goed voordat hij live gaat",
+          "Live dashboard met rapportage over bereik en betrokkenheid"
         ]
       },
       "reachability": {
         "eyebrow": "Bereikbaarheid",
         "title": "De juiste boodschap. Op het juiste moment. Bij de juiste klant.",
-        "desc": "Jouw bestaande klanten zijn de makkelijkste manier om je rustige momenten te vullen. Wij bereiken hen automatisch via e-mail en WhatsApp precies wanneer je capaciteit het nodig heeft.",
+        "desc": "In beeld zijn is één ding, de juiste mensen bereiken is wat je rustige momenten vult. Wij kiezen per uiting de doelgroep, zetten waar nodig betaald bereik in en leggen het resultaat naast je drukte op die dag.",
         "bullets": [
-          "Automatische e-mailcampagnes op basis van real-time bezettingsdata",
-          "WhatsApp-campagnes met hoge openratio voor last-minute boekingen",
-          "Gepersonaliseerde berichten in de tone-of-voice van je onderneming",
-          "Segmentatie op vaste klanten, nieuwe klanten en slapende klanten",
-          "Jij keurt elk bericht goed voordat het verstuurd wordt"
+          "Doelgroep op straal rond je zaak, leeftijd en interesses",
+          "Betaald bereik op de dagen die gevuld moeten worden",
+          "Segmentatie op vaste klanten, nieuwe klanten en de buurt",
+          "Per uiting zie je bereik, doorkliks en wat het deed met je drukte",
+          "Maandrapport in gewone taal, zonder marketingjargon"
         ]
       }
     },
@@ -120,7 +137,15 @@
           "month": "Maand",
           "year": "Jaar"
         },
-        "calDow": ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"]
+        "calDow": [
+          "Ma",
+          "Di",
+          "Wo",
+          "Do",
+          "Vr",
+          "Za",
+          "Zo"
+        ]
       },
       "phone": {
         "date": "maandag 4 mei",
@@ -129,14 +154,16 @@
       },
       "chat": {
         "status": "Online",
+        "channelSocial": "Sociale media",
+        "channelFormatReel": "Reel",
+        "channelFormatPost": "Bericht",
         "inputPlaceholder": "Vraag Filly iets…",
-        "channelEmail": "E-mail",
-        "campaign1Title": "Last-minute knip-actie",
+        "campaign1Title": "Last-minute actie voor dinsdag",
         "campaign1Date": "di 5 mei",
-        "campaign1Meta": "Naar 248 vaste klanten · verstuurt automatisch di 11:00",
+        "campaign1Meta": "3 km rond je zaak · start di 11:00",
         "campaign2Title": "Rustige woensdagmiddag",
         "campaign2Date": "wo 13 mei",
-        "campaign2Meta": "Naar 312 klanten in de buurt · verstuurt automatisch ma 16:00",
+        "campaign2Meta": "Nieuwe klanten in de buurt · start ma 16:00",
         "askProposal": "Dinsdag 5 mei staat op 43%, ruim onder je gemiddelde. Zal ik daar een actie voor klaarzetten?",
         "userYes": "Ja, graag 👍",
         "userMore": "Bedenk nog een campagne voor volgende week woensdag",
@@ -163,19 +190,30 @@
         },
         "social": {
           "fbCap": "Verse pasta, elke dag huisgemaakt 🍝",
-          "fbStats": "👍 132 · 27 keer gedeeld",
+          "fbStats": "Bereik 8.400 · 👍 132",
           "ttCap": "Achter de schermen in de keuken 🔥",
-          "ttStats": "♥ 1.204 · 89 reacties",
+          "ttStats": "12.800 weergaven · ♥ 1.204",
+          "ytCap": "Een dag in onze keuken 👨‍🍳",
+          "ytStats": "1.870 weergaven · 4:12 kijktijd",
           "igCap": "Donderdag livemuziek 🎶 Reserveer op tijd!",
-          "igStats": "♥ 1.248 · 214 reacties"
+          "igStats": "Gesponsord · bereik 9.600"
         },
         "reach": {
-          "mailSubj": "We zien je graag weer, deze week nog een tafel vrij!",
-          "mailBody": "Hoi Marieke, het is alweer even geleden! Donderdag hebben we nog een mooi plekje vrij. Als welkom terug trakteren we op een glas wijn van het huis. 🍷",
-          "mailCta": "Reserveer mijn tafel",
-          "waOnline": "online",
-          "waIn": "Hoi Marieke! Donderdag om 19:00 nog een tafeltje vrij, kom je langs? 🍝",
-          "waOut": "Ja leuk! Doe maar voor 2 personen 😊"
+          "audienceTitle": "Doelgroep donderdag",
+          "audienceRadius": "3 km rond je zaak",
+          "audienceAge": "25 tot 55 jaar",
+          "audienceReach": "9.600 mensen",
+          "sponsored": "Gesponsord",
+          "brand": "Bistro Get-Filly",
+          "cap": "Donderdag nog een paar tafels vrij. Drie gangen voor €24,50.",
+          "cta": "Reserveer nu",
+          "resultTitle": "Resultaat",
+          "resultReach": "7.400",
+          "resultReachLabel": "mensen bereikt",
+          "resultClicks": "268",
+          "resultClicksLabel": "kliks naar reserveren",
+          "resultLocal": "84%",
+          "resultLocalLabel": "binnen 3 km bereikt"
         }
       }
     },
@@ -202,23 +240,23 @@
           "Verbeterde vindbaarheid in Google door SEO optimalisatie",
           "Vindbaarheid op de relevante boekings- en reviewplatforms",
           "Vindbaarheid in AI-zoekmachines zoals ChatGPT, Claude en Gemini",
-          "Contentplanning voor Instagram, TikTok en Facebook",
+          "Contentplanning voor sociale media",
           "AI-gegenereerde posts in tone-of-voice van jouw onderneming",
           "Live dashboard met rapportage over vindbaarheid en bereik"
         ],
         "ctaText": "Start met Growth"
       },
       "ultimate": {
-        "tagline": "Vul je rustige momenten automatisch.",
-        "desc": "Alles van Growth, plus directe campagnes via e-mail en WhatsApp op basis van jouw bezettingsdata. Inclusief koppeling met jouw boekings- of reserveringssysteem.",
+        "tagline": "Vul je rustige momenten met de juiste uitingen.",
+        "desc": "Alles van Growth, plus uitingen op sociale media op basis van jouw bezettingsdata, met vrij én betaald bereik. Inclusief koppeling met jouw boekings- of reserveringssysteem.",
         "features": [
           "Alles uit het Growth pakket",
+          "Uitingen op sociale media op basis van je bezetting",
+          "Betaald bereik op de dagen die gevuld moeten worden",
+          "Doelgroep op basis van je buurt en je klantprofiel",
           "Koppeling met je boekings- of reserveringssysteem",
           "Koppeling met je kassa (POS)",
-          "Automatische e-mailcampagnes op basis van bezetting",
-          "WhatsApp campagnes voor last-minute boekingen",
-          "Segmentatie op vaste, nieuwe en slapende klanten",
-          "Gepersonaliseerde e-mail en WhatsApp campagnes in de tone-of-voice van jouw onderneming"
+          "Rapportage over boekingen en omzet per uiting"
         ],
         "ctaText": "Start met Ultimate"
       }
@@ -234,11 +272,19 @@
       },
       {
         "q": "Welke kanalen gebruikt Get-Filly?",
-        "a": "E-mail, WhatsApp, Instagram, Facebook, TikTok en Google Business. Get-Filly schrijft per kanaal in jouw huisstijl en plant elk bericht op het beste moment voor de juiste doelgroep."
+        "a": "Instagram, Facebook, TikTok en YouTube, plus je Google Bedrijfsprofiel. Get-Filly maakt per kanaal de juiste uiting in jouw huisstijl en zet die live op het beste moment voor de juiste doelgroep."
       },
       {
-        "q": "Houd ik controle over wat Get-Filly verstuurt?",
-        "a": "Ja. Get-Filly genereert voorstellen, jij keurt goed of past aan. Er gaat niets de deur uit zonder jouw akkoord."
+        "q": "Zet Get-Filly ook betaalde advertenties in?",
+        "a": "Ja, waar dat helpt. Betaald bereik loopt via je eigen advertentiebudget dat je zelf instelt. Het abonnement dekt de software en al het werk dat Get-Filly voor je doet."
+      },
+      {
+        "q": "Heb ik zakelijke social-accounts nodig?",
+        "a": "Ja, per platform heb je een zakelijk account nodig. In de onboarding koppelen we die samen, dat kost je een paar minuten."
+      },
+      {
+        "q": "Houd ik controle over wat Get-Filly live zet?",
+        "a": "Ja. Get-Filly genereert voorstellen, jij keurt goed of past aan. Er gaat geen uiting live zonder jouw akkoord."
       },
       {
         "q": "Hoe weet Get-Filly welke actie ze moet voorstellen?",
@@ -275,7 +321,7 @@
   },
   "product": {
     "heroTitle": "Zo vult Get-Filly je rustige momenten.",
-    "heroSubtitle": "Get-Filly detecteert rustige momenten, bedenkt de juiste actie en kiest de juiste doelgroep, voor campagnes, reviews én je vindbaarheid in Google en AI-zoekmachines. Met jouw goedkeuring zet Get-Filly het automatisch live, zodat je meer klanten krijgt op je rustige momenten.",
+    "heroSubtitle": "Get-Filly detecteert rustige momenten, maakt de uiting en kiest de doelgroep voor sociale media, en houdt daarnaast je reviews en je vindbaarheid in Google en AI-zoekmachines op orde. Met jouw goedkeuring zet Get-Filly het automatisch live, zodat je meer klanten krijgt op je rustige momenten.",
     "diffs": {
       "approve": {
         "title": "AI werkt, jij keurt goed",
@@ -291,7 +337,7 @@
       },
       "measures": {
         "title": "Meet wat echt werkt",
-        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel boekingen, klanten en omzet elke campagne daadwerkelijk oplevert."
+        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel boekingen, klanten en omzet elke uiting daadwerkelijk oplevert."
       }
     },
     "walkTitle": "Een week met Get-Filly, van lege plekken naar volle dagen.",
@@ -306,26 +352,26 @@
       "proposal": {
         "label": "Voorstel",
         "eyebrow": "Maandag · 09:15",
-        "title": "Drie kanalen, één voorstel, klaar binnen een minuut.",
-        "desc": "Get-Filly stelt een complete campagne voor: een e-mail aan vaste klanten, een Instagram-post voor laat-boekers, en een WhatsApp-bericht voor je trouwste klanten. Tone-of-voice, beeld en timing, alles afgestemd op je onderneming."
+        "title": "Vier uitingen, één voorstel, klaar binnen een minuut.",
+        "desc": "Get-Filly stelt een complete campagne voor: vier uitingen op sociale media, elk voor een eigen kanaal en doelgroep. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming."
       },
       "approval": {
         "label": "Goedkeuring",
         "eyebrow": "Maandag · 09:16",
         "title": "Eén goedkeuring, Get-Filly doet de rest.",
-        "desc": "Get-Filly verstuurt alle drie de berichten op het juiste moment, op het juiste kanaal en naar de juiste klanten. Jij geeft één keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen."
+        "desc": "Get-Filly zet alle drie de uitingen live op het juiste moment en bij de juiste doelgroep. Jij geeft één keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen."
       },
       "placement": {
         "label": "Plaatsing",
         "eyebrow": "Donderdag · 17:00",
-        "title": "Je ziet je post live verschijnen, precies op tijd.",
-        "desc": "Op donderdag plaatst Get-Filly de Instagram-post en story automatisch, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen, je ziet ’m gewoon voorbijkomen in je feed, volledig in jouw stijl, terwijl de boekingen binnenlopen."
+        "title": "Je ziet je uiting live verschijnen, precies op tijd.",
+        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen, je ziet ’m gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de boekingen binnenlopen."
       },
       "result": {
         "label": "Resultaat",
         "eyebrow": "Zondag · 23:00",
         "title": "Resultaat: 12 extra boekingen op een rustige donderdag.",
-        "desc": "Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal heeft gescoord, en wat kan de volgende keer anders."
+        "desc": "Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal leverde de meeste boekingen op, en wat kan de volgende keer anders."
       }
     },
     "mock": {
@@ -343,37 +389,46 @@
         "sat": "za",
         "sun": "zo"
       },
-      "channelsTitle": "Get-Filly stelt voor, 3 kanalen",
-      "mailLabel": "E-mail · 412 ontvangers",
-      "mailPreview": "“Een rustige donderdag? Kom lunchen voor €24,50.”",
-      "mailMeta": "do 11:00",
-      "igLabel": "Instagram · feed & story",
+      "channelsTitle": "Get-Filly stelt voor, 4 uitingen",
+      "mailLabel": "Instagram · reel voor laat-boekers",
+      "mailPreview": "“Nog plek donderdag. Drie gangen voor €24,50.”",
+      "mailMeta": "do 17:00",
+      "igLabel": "Facebook · buurt binnen 3 km",
       "igPreview": "Terras-foto · “Donderdag-deal: 3 gangen voor €24,50”",
-      "igMeta": "do 17:00",
-      "waLabel": "WhatsApp · top 40 vaste gasten",
-      "waPreview": "“Hoi! Morgen nog plek aan onze keukentafel, reserveer hier.”",
+      "igMeta": "do 11:00 · gesponsord",
+      "waLabel": "TikTok · 18 tot 34 jaar",
+      "waPreview": "Snelle video · “Donderdag-deal”",
       "waMeta": "do 09:30",
-      "channelsCta": "Goedkeuren & versturen",
+      "ytLabel": "YouTube · short over de keuken",
+      "ytPreview": "Korte video · “Zo maken we onze pasta”",
+      "ytMeta": "do 12:00",
+      "channelsCta": "Goedkeuren & live zetten",
       "approveTitle": "Campagne ingepland",
       "approveSub": "Goedgekeurd door Sophie · 09:16",
-      "approveRow1": "E-mail naar 412 vaste gasten",
-      "approveRow2": "Instagram-post + story",
-      "approveRow3": "WhatsApp naar top 40",
+      "approveRow1": "Instagram-reel voor laat-boekers",
+      "approveRow2": "Facebook-uiting in de buurt, 3 km",
+      "approveRow3": "TikTok-video, 18 tot 34 jaar",
+      "approveRow4": "YouTube-short over de keuken",
       "approveFoot": "Get-Filly meldt zich zondag met de resultaten.",
       "igLoc": "Amsterdam · Restaurant",
       "igPhotoTag1": "Donderdag-deal",
       "igPhotoTag2": "3 gangen · €24,50",
       "igLikes": "Likes",
       "igCaptionText": "Nog een paar tafels vrij vanavond. Drie gangen voor €24,50. #donderdagdeal",
+      "igSponsored": "Gesponsord",
       "igTime": "2 uur geleden",
       "resultEyebrow": "DONDERDAG-CAMPAGNE · AFGEROND",
       "resultHeadline": "Donderdagavond, van 38% naar 84%",
       "resultStat1": "extra reserveringen",
       "resultStat2": "extra klanten",
       "resultStat3": "eindbezetting",
-      "resultBreakdown": "Per kanaal",
+      "resultBreakdown": "Per uiting",
+      "resultBar1": "Instagram",
+      "resultBar2": "Facebook",
+      "resultBar3": "TikTok",
+      "resultBar4": "YouTube",
       "resultRes": "res.",
-      "resultNote": "E-mail werkte het best, volgende keer schaal ik die als eerste op."
+      "resultNote": "Instagram leverde de meeste boekingen op, volgende keer schaal ik dat als eerste op."
     },
     "featuresTitle": "Wat zit er in.",
     "features": {
@@ -386,12 +441,12 @@
         "desc": "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
       },
       "campaigns": {
-        "title": "Campagnes",
-        "desc": "Van concept tot verzending in één chat. Get-Filly schrijft een mail of WhatsApp-bericht in jouw huisstijl, selecteert de juiste klanten en verzendt dit op het beste moment."
+        "title": "Uitingen op sociale media",
+        "desc": "Van idee tot live in één chat. Get-Filly maakt het beeld, schrijft de tekst in jouw huisstijl, kiest de doelgroep en zet de uiting op het beste moment live."
       },
       "social": {
-        "title": "Social media posts",
-        "desc": "Get-Filly maakt posts voor Instagram, Facebook en TikTok. Afgestemd op je merk, je aanbod, en de dagen die gevuld moeten worden."
+        "title": "Bereik en doelgroep",
+        "desc": "Get-Filly kiest per uiting wie je wil bereiken, vrij of met betaald bereik, en houdt de doelgroep scherp op de mensen in jouw buurt."
       },
       "season": {
         "title": "Seizoensstrategie",
@@ -509,7 +564,7 @@
     "missionLabel": "Missie",
     "missionText": "Onafhankelijke ondernemers laten groeien zonder dat ze verdrinken in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je onderneming en je klanten.",
     "visionLabel": "Visie",
-    "visionText": "Een wereld waarin elke lokale ondernemer dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
+    "visionText": "Een wereld waarin elke horecaondernemer dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
     "driveTitle": "Wat ons drijft.",
     "pillars": {
       "ownerFirst": {
@@ -548,7 +603,7 @@
     ],
     "ctaTitle": "Laten we kennismaken.",
     "ctaSubtitle": "Vragen over Get-Filly, samenwerken of sparren over je marketing? Stuur een mail, we reageren snel.",
-    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor lokale ondernemers</product> of <pricing>de prijzen</pricing>."
+    "ctaLinks": "Liever eerst rondkijken? Bekijk <product>onze oplossing voor de horeca</product> of <pricing>de prijzen</pricing>."
   },
   "contact": {
     "sentTitle": "Bedankt voor je aanvraag!",
@@ -634,7 +689,7 @@
   },
   "blog": {
     "hubTitle": "De marketing cocktail",
-    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor lokale ondernemers.",
+    "hubSubtitle": "Inzichten over online vindbaarheid, AI-marketing en meer bezetting voor de horeca.",
     "recentTitle": "Meest recent",
     "comingSoon": "Binnenkort online",
     "comingSoonAria": "{label} (binnenkort online)",
@@ -693,7 +748,7 @@
       },
       "gbpChecklist": {
         "eyebrow": "Vindbaarheid",
-        "title": "Google Bedrijfsprofiel: de complete checklist voor lokale ondernemers"
+        "title": "Google Bedrijfsprofiel: de complete checklist voor horecaondernemers"
       },
       "quietEvenings": {
         "eyebrow": "Bezetting",
@@ -874,10 +929,10 @@
       "mailAction": "{count, plural, one {de mail wordt direct verstuurd naar alle opt-in gasten} other {# mails worden direct verstuurd naar alle opt-in gasten}}",
       "socialAction": "{count, plural, one {de social-post wordt direct op Facebook/Instagram geplaatst} other {# social-posts worden direct op Facebook/Instagram geplaatst}}"
     },
-    "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De Facebook-post wordt verwijderd en de campagne gaat terug naar concept. Een eventuele Instagram-post moet je handmatig in de Instagram-app verwijderen, want Instagram staat verwijderen via de API niet toe.",
+    "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De geplaatste posts worden van Facebook en Instagram verwijderd en de campagne gaat terug naar concept.",
     "igManualDelete": {
       "title": "Instagram-post staat nog live",
-      "body": "We konden de Facebook-post verwijderen, maar Instagram staat geen automatisch verwijderen toe via de API. Verwijder de post zelf in Instagram.",
+      "body": "Het verwijderen van de Instagram-post is niet gelukt. Haal hem zelf weg in Instagram om zeker te weten dat hij offline is.",
       "open": "Open in Instagram"
     },
     "deleteConfirm": {
@@ -1013,12 +1068,27 @@
     },
     "igStopPopup": {
       "title": "Campagne stoppen?",
-      "body": "De campagne gaat terug naar Concept. Een eventuele Facebook-post wordt automatisch verwijderd.",
-      "noticeTitle": "Instagram-post staat nog live",
-      "noticeBody": "Instagram laat niet toe een post via de koppeling te verwijderen. Haal 'm zelf weg in de Instagram-app.",
-      "open": "Open in Instagram",
+      "body": "De campagne gaat terug naar Concept en de geplaatste posts worden van Facebook en Instagram verwijderd.",
+      "doneTitle": "Campagne gestopt",
+      "doneTitlePartial": "Campagne gestopt, maar let op",
+      "doneBody": "De campagne staat weer op Concept.",
+      "removed": {
+        "facebook": "Facebook-post verwijderd",
+        "instagram": "Instagram-post verwijderd"
+      },
+      "failed": {
+        "facebook": "Facebook-post kon niet verwijderd worden",
+        "instagram": "Instagram-post kon niet verwijderd worden"
+      },
+      "reconnectTitle": "Koppeling mist rechten",
+      "reconnectBody": "Om posts te kunnen verwijderen heeft Filly extra toestemming nodig. Verbind Facebook en Instagram opnieuw; daarna lukt verwijderen wel.",
+      "reconnectCta": "Naar koppelingen",
+      "noticeTitle": "Post staat nog live",
+      "noticeBody": "Het verwijderen is niet gelukt. Haal de post zelf weg om zeker te weten dat hij offline is.",
+      "open": "Open de post",
       "cancel": "Annuleren",
-      "confirm": "Stop campagne"
+      "confirm": "Stop campagne",
+      "close": "Sluiten"
     },
     "tooltips": {
       "finishMail": "Mail is al verstuurd, campagne afronden.",
@@ -2489,57 +2559,152 @@
     "marketingTitle": "Wat werkt er qua campagnes?",
     "marketingDesc": "Top-campagnes op basis van status en doorlooptijd.",
     "topCampaignsTitle": "Top campagnes",
-    "topCampaignsSubtitle": "Meest succesvol deze periode"
+    "topCampaignsSubtitle": "Meest succesvol deze periode",
+    "liftCardTitle": "Wat een campagne met je drukte deed",
+    "liftCardSubtitle": "Per moment: hoeveel drukker het werd dan op vergelijkbare dagen zonder campagne",
+    "liftCounts": "{n} campagnes gemeten",
+    "liftTooFew": "{n} van {min} metingen — telt nog niet mee",
+    "liftFoot": "In drukte-punten ten opzichte van dezelfde weekdag zonder campagne. Er is geen controlegroep, dus weer en evenementen tellen mee. Vanaf drie metingen weegt een moment mee in wat Filly voorstelt.",
+    "mon": "Maandag",
+    "tue": "Dinsdag",
+    "wed": "Woensdag",
+    "thu": "Donderdag",
+    "fri": "Vrijdag",
+    "sat": "Zaterdag",
+    "sun": "Zondag",
+    "gapCardTitle": "Waar blijf je achter bij je eigen patroon",
+    "gapCardSubtitle": "Verwacht naast gemeten, over de laatste {weeks} weken",
+    "gapTooltip": "Verwacht {expected}, gemeten {actual} · {days} dagen gemeten",
+    "gapFoot": "In drukte-punten: koper is achterblijven bij wat Google voor dit moment verwacht, groen is voorlopen. Beide zijn relatief aan je eigen drukste moment, dus geen bezetting van je stoelen.",
+    "heatDays": "{days} dagen gemeten",
+    "heatTooFew": "{days} van {min} dagen gemeten — te weinig voor een betrouwbare waarde",
+    "heatNoData": "Hier is niets gemeten",
+    "hourCardSubtitleReal": "Gemeten drukte, mediaan over de laatste {weeks} weken · gestreept = nog niet genoeg gemeten"
   },
   "dash_rapportages_page": {
     "title": "Rapportages",
+    "subtitle": "Wat je uitingen op sociale media hebben opgeleverd, organisch en betaald, teruggerekend naar boekingen en omzet.",
+    "loading": "Laden…",
+    "error": "De cijfers konden niet worden geladen. Probeer het later opnieuw.",
+    "occupancyLink": "Bezettings-rapportage",
     "actions": {
       "pdf": "🖨 PDF",
       "exportCsv": "⬇ Exporteer CSV"
     },
-    "csv": {
+    "filters": {
+      "period": "Periode",
+      "days": "{n} dagen",
+      "kind": "Soort",
+      "kindAll": "Alles",
+      "kindOrganic": "Organisch",
+      "kindPaid": "Betaald",
       "channel": "Kanaal",
-      "status": "Status",
-      "stat": "Statistiek",
-      "value": "Waarde"
-    },
-    "statusLabel": {
-      "live": "Live",
-      "comingSoon": "Binnenkort",
-      "future": "Later"
-    },
-    "badge": {
-      "active": "Actief",
-      "comingSoon": "Binnenkort",
-      "future": "Later"
+      "channelAll": "Alle",
+      "metaAll": "alle kanalen",
+      "metaKindAll": "organisch en betaald",
+      "metaKindOrganic": "alleen organisch",
+      "metaKindPaid": "alleen betaald"
     },
     "channels": {
-      "occupancy": "Bezetting",
-      "mail": "Mail",
-      "reviews": "Reviews",
       "instagram": "Instagram",
       "facebook": "Facebook",
       "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "google_business": "Google profiel",
+      "mail": "Mail",
       "whatsapp": "WhatsApp"
     },
-    "stats": {
-      "today": "Vandaag",
-      "monthAvg": "Gem. deze maand",
-      "guestsToday": "Gasten vandaag",
-      "viaFillyMonth": "Via Filly (maand)",
-      "campaigns30d": "Campagnes (30d)",
-      "sent": "Verstuurd",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "average": "Gemiddelde",
-      "totalReviews": "Totaal reviews",
-      "responseNeeded": "Reactie nodig"
+    "kpi": {
+      "reachHero": "Bereik",
+      "reachSub": "{n} mensen bereikt met {u} uitingen",
+      "vsPrevious": "vs vorige {n} dagen",
+      "noHistory": "te weinig historie om te vergelijken",
+      "clicks": "Doorkliks",
+      "clickRate": "{pct}% van het bereik klikt door",
+      "interactions": "Interacties",
+      "interactionsSub": "likes, reacties en shares",
+      "budget": "Advertentiebudget",
+      "paidOf": "{paid} van {total} uitingen betaald",
+      "costPerClick": "Kosten per doorklik",
+      "overPaidClicks": "over {n} betaalde doorkliks",
+      "noPaid": "geen betaalde uitingen"
     },
-    "placeholders": {
-      "instagram": "Live likes, reacties & volgers uit je koppeling (+ voorbeeld-insights).",
-      "facebook": "Live likes, reacties & shares uit je koppeling (+ voorbeeld-insights).",
-      "tiktok": "Stats verschijnen na TikTok Marketing API-koppeling.",
-      "whatsapp": "Komt in een latere fase."
+    "perChannel": {
+      "title": "Bereik per kanaal",
+      "subtitle": "Donkerder is meer bereik. Gesorteerd, dus de bovenste is je grootste kanaal.",
+      "subtitleFiltered": "Alle kanalen van deze periode; je selectie staat in kleur, de rest is context.",
+      "empty": "Geen uitingen in deze periode.",
+      "bestCtr": "{channel} heeft de hoogste doorklik-ratio: {clicks} doorkliks op {reach} bereik, dat is {pct}%.",
+      "tip": "{reach} bereik uit {n} uitingen · {clicks} doorkliks · {interactions} interacties"
+    },
+    "budget": {
+      "title": "Waar ging je budget heen",
+      "subtitle": "Verdeling van je advertentiebudget.",
+      "subtitleSplit": "Verdeling van {total} over {n} kanalen.",
+      "subtitleSingle": "Eén betaald kanaal in deze selectie.",
+      "spentOn": "Besteed op {channel}",
+      "spent": "besteed",
+      "bookingsAnd": "{n} boekingen · {cost} per boeking",
+      "empty": "Geen betaalde uitingen in deze selectie. Alle boekingen hier komen uit vrij bereik."
+    },
+    "split": {
+      "title": "Organisch en betaald naast elkaar",
+      "subtitle": "Bereik per kanaal, uitgesplitst naar vrij bereik en advertentiebudget.",
+      "organic": "Organisch",
+      "paid": "Betaald",
+      "empty": "Geen uitingen in deze selectie.",
+      "noteBoth": "Betaald bereik levert {paid} van de {total} bereikte mensen op, met {budget} budget. Organisch doet de rest gratis, maar groeit langzamer.",
+      "notePaidOnly": "Al het bereik in deze selectie is betaald, met {budget} budget.",
+      "noteOrganicOnly": "Al het bereik in deze selectie is organisch, zonder budget."
+    },
+    "trend": {
+      "title": "Bereik over tijd",
+      "subtitleDaily": "Bereik per dag over de laatste 7 dagen.",
+      "subtitleWeekly": "Bereik per week over de laatste {n} dagen.",
+      "tipDay": "{date}: {reach} bereik · {clicks} doorkliks · {n} uitingen",
+      "tipWeek": "Week van {date}: {reach} bereik · {clicks} doorkliks · {n} uitingen"
+    },
+    "scores": {
+      "sectionTitle": "Wat Filly ervan leert",
+      "title": "Score per uiting",
+      "subtitle": "Elke uiting krijgt 14 dagen na plaatsing een score van 0 tot 100 en een oordeel.",
+      "winner": "Sterk",
+      "average": "Gemiddeld",
+      "underperformer": "Onder verwachting",
+      "pending": "Nog geen oordeel",
+      "noneScored": "Nog geen uiting in deze selectie is 14 dagen oud, dus er is nog niets beoordeeld. Dat is het meet-window.",
+      "noteConversion": "Bij {n} van de {total} beoordeelde uitingen is de score gebaseerd op boekingen ten opzichte van je eigen gemiddelde, omdat het platform het bereik nog niet doorgeeft. Zodra die cijfers binnenkomen rekent Filly met bereik, doorkliks én boekingen."
+    },
+    "table": {
+      "title": "Per uiting",
+      "subtitle": "Alle cijfers achter de grafieken. {n} uitingen in deze selectie.",
+      "empty": "Geen uitingen in deze selectie.",
+      "thName": "Uiting",
+      "thChannel": "Kanaal",
+      "thDate": "Datum",
+      "thKind": "Soort",
+      "thReach": "Bereik",
+      "thClicks": "Doorkliks",
+      "thCtr": "Doorklik-ratio",
+      "thInteractions": "Interacties",
+      "thBudget": "Budget",
+      "thPerClick": "Per doorklik",
+      "thVerdict": "Oordeel"
+    },
+    "bookingsNote": "Reserveringen staan hier bewust niet bij. Meta, TikTok en Google rapporteren bereik, doorkliks en kosten, maar niet of iemand daarna echt een tafel boekt. Zodra we aan je reserveringssysteem gekoppeld zijn komt dat erbij.",
+    "tabResult": "Resultaat",
+    "tabOccupancy": "Bezetting",
+    "whatWorks": {
+      "title": "Wat werkt bij jou",
+      "subtitle": "Per kanaal, over alles wat we tot nu toe gemeten hebben — niet alleen de gekozen periode",
+      "measured": "{n} uitingen gemeten · {bookings} boekingen",
+      "tooFew": "{n} van {min} uitingen — nog geen oordeel",
+      "foot": "Het oordeel komt uit de mediaan van de succes-score per uiting, zodat één uitschieter het beeld van een kanaal niet bepaalt. Vanaf drie gemeten uitingen zeggen we er iets over.",
+      "verdict": {
+        "sterk": "Werkt goed",
+        "gemiddeld": "Gemiddeld",
+        "zwak": "Blijft achter"
+      }
     }
   },
   "dash_reserveringen_page": {
@@ -2912,7 +3077,9 @@
     "photoOverwrite": "Overschrijf ook {count, plural, one {# kanaal} other {# kanalen}} met al een foto"
   },
   "dash__components_campaign_detail_waarom_card": {
-    "title": "Waarom dit voorstel"
+    "title": "Waarom dit voorstel",
+    "whyDay": "Waarom deze dag:",
+    "whyDayIncidental": "Waarom juist deze dag:"
   },
   "dash__components_campaign_detail_wanneer_card": {
     "title": "Wanneer plaatsen",
@@ -3307,7 +3474,8 @@
     },
     "hint": {
       "typeOwn": "Of typ hieronder zelf een vraag"
-    }
+    },
+    "partiallyFailedNote": "Er ging iets mis bij {count, plural, one {# voorstel} other {# voorstellen}}: die staan niet als concept klaar. Probeer die dag opnieuw."
   },
   "dash__components_google_connected_panel": {
     "title": "Google Bedrijfsprofiel",
@@ -3497,11 +3665,11 @@
   "meta": {
     "home": {
       "title": "Get-Filly. Vul je rustige momenten. Automatisch.",
-      "description": "Get-Filly is de AI-capaciteitoptimalisator voor lokale ondernemers. Het vult je rustige momenten via marketing, reviews en vindbaarheid in Google en AI-zoekmachines. Voor horeca, wellness, kappers, sportscholen en meer."
+      "description": "Get-Filly is de AI-capaciteitoptimalisator voor de horeca. Het vult je rustige momenten met uitingen op sociale media en met betere vindbaarheid in Google en AI-zoekmachines."
     },
     "product": {
       "title": "De oplossing",
-      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste actie bedenkt en met jouw goedkeuring campagnes via mail, social en WhatsApp live zet voor meer klanten op je rustige momenten. Voor lokale ondernemers in meerdere branches."
+      "description": "Ontdek hoe Get-Filly rustige momenten detecteert, de juiste uiting bedenkt en die met jouw goedkeuring live zet op sociale media, voor meer klanten op je rustige momenten. Voor de horeca."
     },
     "pricing": {
       "title": "Prijzen",
@@ -3509,7 +3677,7 @@
     },
     "about": {
       "title": "Over ons",
-      "description": "Get-Filly is opgericht door twee ondernemers met één missie: lokale ondernemers helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
+      "description": "Get-Filly is opgericht door twee ondernemers met één missie: horecaondernemers helpen rustige momenten om te zetten in omzet, zonder uren of grote marketingbudgetten."
     },
     "contact": {
       "title": "Contact & demo",
@@ -3517,7 +3685,7 @@
     },
     "blog": {
       "title": "De marketing cocktail",
-      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor lokale ondernemers, van Get-Filly."
+      "description": "Inzichten over AI-marketing, online vindbaarheid en meer bezetting voor de horeca, van Get-Filly."
     }
   },
   "leg_government_requests": {
@@ -3639,7 +3807,7 @@
         "heading": "2.2 Gegevens over jouw onderneming",
         "intro": "Om Get-Filly goed te laten werken, verwerken wij gegevens over jouw onderneming. Dit kunnen onder meer zijn:",
         "name": "naam van de onderneming",
-        "type": "type onderneming, bijvoorbeeld restaurant, hotel, lunchroom, wellnesslocatie of andere horecagelegenheid",
+        "type": "type horecazaak, bijvoorbeeld restaurant, café, bistro of lunchroom",
         "address": "adres, vestigingsplaats en contactgegevens",
         "hours": "openingstijden",
         "website": "website en publiek toegankelijke website-inhoud",
@@ -4177,7 +4345,7 @@
     },
     "s4": {
       "heading": "4. Onze dienst",
-      "p1": "Get-Filly biedt een SaaS-platform waarmee horeca-, wellness- en hotelondernemers hun marketing, online zichtbaarheid, bezetting en klantactivatie kunnen analyseren en verbeteren met behulp van AI, automatisering en data-analyse. De dienst kan onder meer bestaan uit:",
+      "p1": "Get-Filly biedt een SaaS-platform waarmee horecaondernemers hun marketing, online zichtbaarheid, bezetting en klantactivatie kunnen analyseren en verbeteren met behulp van AI, automatisering en data-analyse. De dienst kan onder meer bestaan uit:",
       "li1": "een dashboard met inzicht in reserveringen, bezetting, gasten en marketingactiviteiten;",
       "li2": "AI-gegenereerde review-antwoorden, campagnesuggesties, teksten en chatfunctionaliteiten;",
       "li3": "menu-analyse via beeldherkenning en AI;",
@@ -4371,17 +4539,6 @@
       "nameLabel": "Naam van de onderneming",
       "required": "(verplicht)",
       "namePlaceholder": "Bistro Centraal",
-      "industryLabel": "Wat voor zaak run je?",
-      "industrySubtitle": "Filly stemt haar taal, toon en tips af op je branche. Je kunt dit later altijd wijzigen.",
-      "industryComingSoon": "Binnenkort",
-      "industries": {
-        "horeca": { "label": "Horeca", "description": "Restaurant, café, bistro, brasserie." },
-        "kapper": { "label": "Kapper & barbier", "description": "Kapsalon, barbershop." },
-        "schoonheid": { "label": "Schoonheid & nagels", "description": "Schoonheidssalon, nagelstudio, huidverzorging." },
-        "wellness": { "label": "Wellness & massage", "description": "Spa, sauna, massagesalon." },
-        "sportschool": { "label": "Sportschool & fitness", "description": "Gym, fitnessclub, yoga- of pilatesstudio." },
-        "recreatie": { "label": "Recreatie & vrije tijd", "description": "Bowling, escape room, klimhal, indoor speeltuin." }
-      },
       "typeLabel": "Type onderneming",
       "typePlaceholder": "Kies een type…",
       "websiteLabel": "Website van je onderneming",
@@ -4560,36 +4717,80 @@
     "successBodyDirect": "De video is naar je TikTok-account gestuurd. Afhankelijk van het privacy-niveau verschijnt die op je profiel."
   },
   "dash__components_busyness": {
-    "title": "Wanneer kan Filly je helpen",
-    "subtitle": "Relatieve drukte per dag, op basis van je Google-patroon",
-    "prevWeek": "Vorige week",
-    "nextWeek": "Volgende week",
-    "subThis": "deze week",
-    "subPrev": "vorige week",
-    "subNext": "volgende week",
-    "today": "Vandaag",
-    "legendQuiet": "Rustig moment",
-    "legendSpecial": "Speciale dag",
-    "legendHint": "Tik op een dag voor het verloop",
-    "avgLine": "Verwacht",
-    "actualLine": "Werkelijk",
-    "predictedLine": "Voorspeld",
-    "predictedNote": "geen werkelijke data, dag ligt in de toekomst",
-    "bandRustig": "rustig",
+    "axisBusy": "druk",
+    "axisQuiet": "stil",
+    "chartAria": "Staafgrafiek met de drukte per periode",
+    "chartPerDay": "Drukte per dag",
+    "chartPerHour": "Drukte per uur",
+    "ctaForPart": "Maak een campagne voor {day} {part}",
+    "ctaPlain": "Maak een campagne",
+    "factorDate": "Weer en omgeving",
+    "factorPattern": "Jouw patroon",
+    "factorPatternNormal": "de dag zit rond je normale niveau",
+    "factorPatternStructural": "dit {part} is bij jou structureel rustig",
+    "factorPatternUnusual": "dit {part} is ongewoon rustig voor jou",
+    "factorSource": "Bron",
+    "factorSourceLive": "live-metingen van Google",
+    "factorSourceSeed": "nog geen live-metingen, alleen het patroon",
+    "factorSpecial": "Bijzondere dag",
+    "factorSpecialNone": "geen bijzondere dag bekend",
+    "factorWeekday": "Weekdag",
+    "factorWeekdayNormal": "{day} loopt bij jou gemiddeld",
+    "factorWeekdayQuiet": "{day} is bij jou een stille dag",
+    "footClick": "Klik een staaf voor die dag.",
+    "footLine": "De staaf is wat op deze dag normaal is. Donkergroen is wat er werkelijk kwam: vult het de staaf niet, dan bleef het achter. Loopt het erbovenuit, dan laat het oranje streepje zien waar normaal lag.",
+    "insAllNormal": "Elk dagdeel ligt rond je normale niveau.",
+    "insBestElsewhere": "Grootste kans: {day}, {part}",
+    "insBiggest": "{day} {part} is je grootste kans {period}",
+    "insChance": "{day} {part} is een kans",
+    "insFullEnough": "{day} zit vol genoeg",
+    "insMore": "nog {count, plural, one {# kans} other {# kansen}} {period}",
+    "insQuieter": "rustiger dan je normale {part}",
+    "insTooFar": "Deze periode ligt te ver vooruit",
+    "insTooFarSub": "Filly bepaalt kansen tot {days} dagen vooruit. Het patroon staat er al wel.",
+    "jump_0": "Vandaag",
+    "jump_1": "Morgen",
+    "jump_2": "Overmorgen",
+    "legendChanceIncidental": "kans deze week",
+    "legendChanceStructural": "vaste kans",
+    "legendMeasured": "gemeten",
+    "legendOver": "drukker dan normaal",
+    "legendPredicted": "normaal",
+    "markerNow": "nu · {hour}",
+    "next": "Volgende",
+    "noteCoveredMore": "{count} dagen staan al klaar",
+    "noteCoveredOne": "1 dag staat al klaar",
+    "noteHoliday": "{label} laat Filly met rust",
+    "noteSeed": "Nog geen Google-patroon voor deze zaak. Je ziet een voorbeeldverloop.",
+    "noteSource": "Drukte komt uit je Google-patroon.",
+    "periodGroup": "Periode",
+    "periodMonth": "deze maand",
+    "periodWeek": "de komende 7 dagen",
+    "prev": "Vorige",
+    "subNext7": "komende 7 dagen",
+    "subThisMonth": "deze maand",
     "tfPast": "Afgelopen",
-    "tfToday": "Vandaag",
-    "tfFuture": "Voorspeld",
-    "noteSpecialPast": "Druk door {name}, geen actie nodig.",
-    "noteSpecialFuture": "Let op: {name} kan de dag opdrijven.",
-    "noteKans": "Rustig moment, kans om te vullen.",
-    "noteNoKans": "Geen duidelijk rustig moment om op te sturen.",
-    "ctaFor": "Maak een campagne"
+    "titleChance": "kans op {part}",
+    "titleNoChance": "vol genoeg",
+    "today": "Vandaag",
+    "view_dag": "Dag",
+    "view_maand": "Maand",
+    "view_week": "Week",
+    "whyChance": "Waarom {day} {part} rustiger is",
+    "whyFoot": "Filly weegt dit mee in de hoek van je campagne. Je agenda is nog niet gekoppeld.",
+    "whyPlain": "Waarom {day} zo loopt"
   },
   "dash__components_kpi_rings": {
     "title": "Deze maand",
     "r1_uitingen": "Uitingen deze maand",
     "r2_kansen": "Rustige momenten benut",
     "r3_campagnes": "Lopende campagnes",
-    "r4_vindbaarheid": "Vindbaarheid"
+    "r4_vindbaarheid": "Vindbaarheid",
+    "kansenMeta": "{open} nog open",
+    "campagnesMeta": "{n} voorstellen open",
+    "uitingenEmpty": "Nog geen uitingen",
+    "uitingenCta": "Maak je eerste",
+    "vindbaarheidEmpty": "Nog niet gemeten",
+    "vindbaarheidCta": "Verbind Google"
   }
 }

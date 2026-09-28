@@ -5,6 +5,7 @@ import { PublicMediaController } from './public-media.controller';
 import { CampaignsService } from './campaigns.service';
 import { CampaignPerformanceService } from './campaign-performance.service';
 import { CampaignFingerprintService } from './campaign-fingerprint.service';
+import { CampaignReportService } from './campaign-report.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { MeModule } from '../me/me.module';
 import { AiModule } from '../ai/ai.module';
@@ -53,6 +54,7 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
     CampaignsService,
     CampaignPerformanceService,
     CampaignFingerprintService,
+    CampaignReportService,
     AuthGuard,
     BusinessAccessGuard,
   ],
@@ -60,6 +62,7 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
     CampaignsService,
     CampaignPerformanceService,
     CampaignFingerprintService,
+    CampaignReportService,
   ],
 })
 export class CampaignsModule {}

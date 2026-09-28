@@ -119,19 +119,6 @@ const TYPE_OPTIONS: Array<{ value: string }> = [
   { value: "anders" },
 ];
 
-// Branche-opties (spiegelt apps/api/src/ai/industry/industry.registry.ts).
-// Volgorde = weergave-volgorde; label + description komen uit next-intl via
-// t("step1.industries.<slug>.label" / ".description"). Alleen horeca is nu
-// kiesbaar; de rest staat op de roadmap (enabled=false → "Binnenkort").
-const INDUSTRY_OPTIONS: Array<{ slug: string; enabled: boolean }> = [
-  { slug: "horeca", enabled: true },
-  { slug: "kapper", enabled: false },
-  { slug: "schoonheid", enabled: false },
-  { slug: "wellness", enabled: false },
-  { slug: "sportschool", enabled: false },
-  { slug: "recreatie", enabled: false },
-];
-
 // Alleen de waarden; label + hint komen uit next-intl via
 // t("toneOptions.<value>.label" / ".hint").
 const TONE_OPTIONS: Array<{ value: WizardData["brand_tone"] }> = [
@@ -756,116 +743,6 @@ function Step1Sources({
           placeholder={t("step1.namePlaceholder")}
           autoFocus
         />
-      </div>
-
-      {/* Branche-keuze (mig 0066). Kaartjes i.p.v. dropdown: top-level
-          keuze die Filly's brein stuurt. Alleen horeca kiesbaar; de rest
-          toont een "Binnenkort"-badge en is uitgeschakeld. */}
-      <div className="form-group">
-        <label className="form-label">{t("step1.industryLabel")}</label>
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--tl, #6B6B6B)",
-            margin: "0 0 10px",
-            lineHeight: 1.5,
-          }}
-        >
-          {t("step1.industrySubtitle")}
-        </p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 10,
-          }}
-        >
-          {INDUSTRY_OPTIONS.map((ind) => {
-            const selected = data.industry === ind.slug;
-            const disabled = !ind.enabled;
-            return (
-              <button
-                key={ind.slug}
-                type="button"
-                disabled={disabled}
-                onClick={() =>
-                  !disabled && setData({ ...data, industry: ind.slug })
-                }
-                style={{
-                  position: "relative",
-                  textAlign: "left",
-                  padding: "14px 14px 12px",
-                  borderRadius: 10,
-                  border: selected
-                    ? "2px solid var(--brand, #1F4A2D)"
-                    : "1px solid var(--border, #E5DFD0)",
-                  background: selected ? "#EEF3EF" : "var(--white, #FFFFFF)",
-                  cursor: disabled ? "not-allowed" : "pointer",
-                  opacity: disabled ? 0.55 : 1,
-                }}
-              >
-                {selected && (
-                  <span
-                    aria-hidden
-                    style={{
-                      position: "absolute",
-                      top: 10,
-                      right: 10,
-                      width: 18,
-                      height: 18,
-                      borderRadius: "50%",
-                      background: "var(--brand, #1F4A2D)",
-                      color: "#fff",
-                      fontSize: 11,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    ✓
-                  </span>
-                )}
-                {disabled && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 10,
-                      right: 10,
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      color: "#8a6d0b",
-                      background: "#FBF3D5",
-                      border: "1px solid #F0E2B0",
-                      borderRadius: 999,
-                      padding: "2px 7px",
-                    }}
-                  >
-                    {t("step1.industryComingSoon")}
-                  </span>
-                )}
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    marginBottom: 2,
-                    paddingRight: disabled ? 72 : 22,
-                  }}
-                >
-                  {t(`step1.industries.${ind.slug}.label`)}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    color: "var(--tl, #6B6B6B)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {t(`step1.industries.${ind.slug}.description`)}
-                </div>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <div className="form-group">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { daypartName, quietBlockText } from "@/lib/dayparts";
 import { useRouter } from "@/i18n/navigation";
 import {
   Sparkles,
@@ -146,6 +147,8 @@ export function FillyGuidedFlow({
   onGenerated?: (text: string, card?: CampaignCreatedCard) => void;
 }) {
   const t = useTranslations("dash__components_filly_guided_flow");
+  // Dagdeel-namen: de backend levert sleutels, wij de taal (lib/dayparts.ts).
+  const tDp = useTranslations("common.dayparts");
   const localeTag = useLocaleTag();
   const router = useRouter();
   const {
@@ -325,7 +328,7 @@ export function FillyGuidedFlow({
             kind: "low_occupancy",
             label: `${formatDayNl(initialDate, localeTag)}${
               momentByDate.get(initialDate)
-                ? ` · ${momentByDate.get(initialDate)!.daypartLabel}`
+                ? ` · ${quietBlockText(tDp, momentByDate.get(initialDate)!)}`
                 : ""
             }`,
           }
@@ -425,6 +428,11 @@ export function FillyGuidedFlow({
       picked.kind === "low_occupancy" && changed
         ? dayContext?.dayparts?.find((d) => d.key === selectedDaypart)
         : undefined;
+    // Het gedetecteerde moment van deze dag, zoals op het dashboard getoond.
+    const moment =
+      picked.kind === "low_occupancy"
+        ? momentByDate.get(picked.date)
+        : undefined;
     return {
       date: picked.date,
       kind: picked.kind,
@@ -434,6 +442,17 @@ export function FillyGuidedFlow({
         : {}),
       ...(hints.length > 0 ? { context: hints } : {}),
       ...(dp ? { daypart: dp } : {}),
+      // De reden die de eigenaar op de kaart zag, meesturen zodat de
+      // campagne 'm later nog kan tonen.
+      ...(moment
+        ? {
+            reason: {
+              key: moment.reasonKey,
+              params: moment.reasonParams,
+              kind: moment.kind,
+            },
+          }
+        : {}),
     };
   };
 
@@ -469,7 +488,8 @@ export function FillyGuidedFlow({
     setError(null);
     onActionChange?.({ step: "generating" });
     try {
-      const { suggestions } = await generateSuggestionsForDates(items);
+      const { suggestions, failedToConcept } =
+        await generateSuggestionsForDates(items);
       if (!suggestions || suggestions.length === 0) {
         // Geen stille redirect: duidelijke melding en terug naar de dag-keuze
         // (daar rendert de fout-banner; de idle-stap doet dat niet). Batch-
@@ -490,10 +510,16 @@ export function FillyGuidedFlow({
             name: primary.suggested_campaign?.name ?? t("result.fallbackName"),
           }
         : undefined;
+      // Kwam een voorstel niet tot een concept, dan zeggen we dat. Stil
+      // "klaargezet" melden terwijl er niets op het bord staat is precies
+      // hoe werk eerder onvindbaar werd.
+      const failed = failedToConcept ?? 0;
       const note =
-        items.length === 1
-          ? t("generatedNote", { day: formatDayNl(items[0].date, localeTag) })
-          : t("batchGeneratedNote", { count: suggestions.length });
+        failed > 0
+          ? t("partiallyFailedNote", { count: failed })
+          : items.length === 1
+            ? t("generatedNote", { day: formatDayNl(items[0].date, localeTag) })
+            : t("batchGeneratedNote", { count: suggestions.length });
       onGenerated?.(note, card);
       // Smart flow: alle behandelde dagen als "gedaan" markeren.
       items.forEach((it) => onDayUsed?.(it.date));
@@ -653,7 +679,9 @@ export function FillyGuidedFlow({
                         mom.unusual
                           ? "opener.momentUnusual"
                           : "opener.momentUsual",
-                        { daypart: mom.daypartLabel },
+                        {
+                          daypart: quietBlockText(tDp, mom),
+                        },
                       )
                     : t("opener.quietDayGeneric");
                   return (
@@ -665,7 +693,7 @@ export function FillyGuidedFlow({
                         toggleOpenerDay({
                           date: d.date,
                           kind: "low_occupancy",
-                          label: `${formatDayNl(d.date, localeTag)}${mom ? ` · ${mom.daypartLabel}` : ""}`,
+                          label: `${formatDayNl(d.date, localeTag)}${mom ? ` · ${quietBlockText(tDp, mom)}` : ""}`,
                         })
                       }
                     >
@@ -826,7 +854,7 @@ export function FillyGuidedFlow({
                   {dayContext.dayparts.map((dp) => {
                     const on = selectedDaypart === dp.key;
                     const detected =
-                      dayContext.quietMoment?.daypartLabel.includes(dp.label) ??
+                      dayContext.quietMoment?.dayparts.includes(dp.key) ??
                       false;
                     return (
                       <button
@@ -847,7 +875,7 @@ export function FillyGuidedFlow({
                         }}
                       >
                         {detected ? "● " : ""}
-                        {dp.label}
+                        {daypartName(tDp, dp.key)}
                       </button>
                     );
                   })}

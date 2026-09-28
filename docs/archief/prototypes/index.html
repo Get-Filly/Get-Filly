@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get-Filly prototype, campagne-voorstel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #FAF7F1; --surface: #EFE8D8; --white: #FFFFFF;
+    --brand: #1F4A2D; --brand-deep: #0E2B17; --brand-soft: #D6E0D8;
+    --copper: #D97F3C; --border: #E5DFD0;
+    --text: #18181B; --text-soft: #52525B; --text-muted: #71717A;
+    --success: #16A34A; --success-soft: #EAF6EE; --warning: #F97316; --danger: #DC2626;
+    --r: 8px; --r-lg: 12px; --r-sm: 6px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 80px; }
+
+  .back { font-size: 13px; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .back:hover { color: var(--brand); }
+  .title { font-size: 26px; font-weight: 700; letter-spacing: -0.4px; margin: 14px 0 2px; }
+  .subtitle { font-size: 15px; color: var(--text-soft); margin: 0 0 12px; }
+  .chip { display: inline-flex; align-items: center; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: var(--r-sm); background: var(--white); color: var(--brand-deep); border: 1px solid var(--brand); }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 16px; }
+  .btn { font: inherit; font-size: 14px; font-weight: 500; padding: 8px 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--white); color: var(--text); cursor: pointer; transition: background .12s, border-color .12s; }
+  .btn:hover { background: var(--surface); }
+  .btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-deep); }
+  .btn-danger { color: var(--danger); border-color: #F0C9C9; }
+  .btn-danger:hover { background: #FBEDED; }
+  .btn-sm { font-size: 13px; padding: 5px 12px; }
+  .btn-primary:disabled, .btn:disabled { background: #C3CDC6; border-color: #C3CDC6; color: #fff; cursor: not-allowed; }
+  .btn:disabled:hover { background: #C3CDC6; }
+
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .progress-track { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--warning); border-radius: 999px; transition: width .2s, background .2s; }
+  .progress-label { font-size: 12px; color: var(--text-muted); min-width: 150px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .strip-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
+  .chan-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .chan-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px 6px 7px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-soft); transition: all .12s; }
+  .chan-chip:hover { border-color: var(--brand-soft); }
+  .chan-chip.on { border-color: var(--brand); background: var(--success-soft); color: var(--brand-deep); }
+  .chan-chip.off { opacity: .65; }
+  .ch-logo-sm { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 11px; }
+  .chan-state { font-size: 12px; color: var(--text-muted); }
+  .chan-chip.on .chan-state { color: var(--brand); }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 22px; overflow: hidden; }
+  .card-head { padding: 18px 22px 4px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .card-title { font-size: 16px; font-weight: 600; }
+  .card-body { padding: 8px 22px 20px; }
+
+  table.aspect { width: 100%; border-collapse: collapse; }
+  table.aspect thead th { text-align: left; font-size: 12px; font-weight: 500; color: var(--text-muted); padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.aspect tbody td { padding: 16px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.aspect tbody tr.channel-row:last-child td { border-bottom: none; }
+  table.aspect tbody tr.channel-row { cursor: pointer; transition: background .12s; }
+  table.aspect tbody tr.channel-row:hover { background: #FBF9F4; }
+  table.aspect tbody tr.channel-row.active { background: var(--success-soft); }
+  table.aspect tbody tr.channel-row.active td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
+
+  .ch { display: flex; align-items: center; gap: 10px; }
+  .ch-logo { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .ch-name { font-weight: 600; font-size: 14px; }
+
+  .miss-col { width: 170px; }
+  .miss-list { font-size: 13.5px; line-height: 1.7; }
+  .miss-item { color: #DC2626; font-weight: 500; text-decoration: underline; text-decoration-color: #F0A8A8; text-underline-offset: 2px; cursor: pointer; }
+  .miss-item:hover { color: #B91C1C; text-decoration-color: #DC2626; }
+  .miss-ok { font-size: 13px; color: #15703A; display: inline-flex; align-items: center; gap: 6px; }
+  .miss-ok svg { width: 14px; height: 14px; }
+
+  .when-date { font-size: 14px; }
+  .when-time { font-size: 14px; color: var(--text-soft); display: inline-flex; align-items: center; gap: 6px; }
+  .pencil { color: var(--text-muted); cursor: pointer; }
+  .pencil:hover { color: var(--brand); }
+
+  .photo-col { width: 200px; }
+  .thumbs { display: flex; gap: 6px; align-items: center; }
+  .thumb-add { width: 64px; height: 50px; border: 1px dashed #CBBF9E; border-radius: 8px; background: transparent; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; text-align: center; line-height: 1.2; }
+  .thumb-add:hover { border-color: var(--brand); color: var(--brand); }
+  .thumb { width: 50px; height: 50px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: #B9A77E; position: relative; }
+  .thumb svg { width: 20px; height: 20px; }
+  .photo-na { font-size: 13px; color: var(--text-muted); }
+
+  .content-cell { max-width: 360px; }
+  .content-text { font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-line; margin-bottom: 8px; }
+  .content-subject { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .content-edit { width: 100%; font: inherit; font-size: 13.5px; line-height: 1.55; padding: 8px 10px; border: 1px solid var(--brand-soft); border-radius: var(--r-sm); resize: vertical; min-height: 90px; }
+
+  .fix-panel td { background: #FBF9F4 !important; border-top: 1px dashed var(--border); padding: 0 !important; }
+  .fix-inner { padding: 16px 16px 18px; }
+  .fix-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .fix-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .fix-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; }
+  .fix-close:hover { color: var(--text); }
+  .fix-thumbs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fix-thumb { width: 60px; height: 60px; border-radius: 8px; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #B9A77E; cursor: pointer; }
+  .fix-thumb.sel { border-color: var(--brand); }
+  .fix-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .fix-input { font: inherit; font-size: 13.5px; padding: 8px 10px; border: 1px solid var(--brand-soft); border-radius: var(--r-sm); width: 100%; max-width: 420px; }
+  .check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-soft); cursor: pointer; }
+
+  .lower-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .chan-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chan-tab { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); color: var(--text-soft); cursor: pointer; }
+  .chan-tab.sel { border-color: var(--brand); background: var(--brand); color: #fff; }
+
+  .sugg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .sugg { background: #F1F6EE; border: 1px solid #DDE8D6; border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; }
+  .sugg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .sugg-label { font-size: 13px; font-weight: 600; color: var(--brand-deep); }
+  .sugg-body { display: flex; gap: 12px; }
+  .sugg-text { font-size: 12.5px; line-height: 1.5; color: var(--text); flex: 1; white-space: pre-line; }
+  .sugg-img { width: 84px; height: 96px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #B9A77E; }
+  .sugg-use { font-size: 12px; font-weight: 500; padding: 5px 11px; border-radius: var(--r-sm); background: var(--brand); color: #fff; border: none; cursor: pointer; }
+  .sugg-use:hover { background: var(--brand-deep); }
+  .hint { font-size: 13px; color: var(--text-soft); margin: 0 0 14px; }
+
+  .why-text { font-size: 14px; line-height: 1.6; color: var(--text); margin: 0 0 16px; }
+  .why-grid { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+  .why-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-soft); }
+  .why-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-deep); display: flex; align-items: center; justify-content: center; }
+  .why-ic svg { width: 15px; height: 15px; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--brand-deep); color: #fff; font-size: 13px; padding: 10px 18px; border-radius: var(--r); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 200; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Media-pop-up */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(14,43,23,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+  .modal { background: var(--white); border-radius: var(--r-lg); width: 100%; max-width: 580px; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 44px rgba(0,0,0,.22); }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 18px 20px; overflow: auto; }
+  .modal-foot { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border); }
+  .media-filter { display: flex; gap: 6px; margin-bottom: 14px; }
+  .mf-btn { font-size: 13px; padding: 5px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); color: var(--text-soft); cursor: pointer; }
+  .mf-btn.sel { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .media-tile { border: 2px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--surface); }
+  .media-tile:hover { border-color: var(--brand-soft); }
+  .media-tile.sel { border-color: var(--brand); }
+  .media-thumb { height: 78px; display: flex; align-items: center; justify-content: center; color: #B9A77E; position: relative; }
+  .media-thumb svg { width: 24px; height: 24px; }
+  .media-badge { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,.6); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+  .media-name { font-size: 11px; color: var(--text-soft); padding: 5px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--white); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Terug naar campagnes</a>
+
+  <h1 class="title">Woensdag Dolce Vita</h1>
+  <p class="subtitle">Bar Barolo Oud Zuid</p>
+  <span class="chip">Voorstel</span>
+
+  <div class="actions">
+    <button class="btn btn-danger">Afwijzen</button>
+    <button class="btn" id="planBtn">Direct inplannen</button>
+    <button class="btn btn-primary" id="approveBtn">Goedkeuren</button>
+  </div>
+
+  <div class="progress-row">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel"></div>
+  </div>
+
+  <div class="strip-label">Kanaal in deze campagne (klik om toe te voegen of te verwijderen)</div>
+  <div class="chan-strip" id="chanStrip"></div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">Aspecten</div></div>
+    <div class="card-body" style="padding-top:0;">
+      <table class="aspect">
+        <thead>
+          <tr>
+            <th style="width:160px;">Kanaal</th>
+            <th class="miss-col">Missende items</th>
+            <th style="width:150px;">Datum &amp; tijd</th>
+            <th class="photo-col">Foto&rsquo;s / video&rsquo;s</th>
+            <th>Inhoud</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="lower-head">
+        <div class="card-title">Suggesties</div>
+        <div class="chan-tabs" id="suggTabs"></div>
+      </div>
+      <button class="btn btn-sm" onclick="toast('3 nieuwe suggesties gegenereerd')"><span style="margin-right:6px;">&#x21bb;</span>Genereer 3 nieuwe</button>
+    </div>
+    <div class="card-body">
+      <p class="hint" id="suggHint"></p>
+      <div class="sugg-grid" id="suggGrid"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">Waarom dit voorstel <span id="whyChannel" style="color:var(--text-muted);font-weight:500;"></span></div></div>
+    <div class="card-body">
+      <p class="why-text" id="whyText"></p>
+      <div class="why-grid" id="whyGrid"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="mediaModal" style="display:none;" onclick="if(event.target===this)closeMedia()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="mediaTitle">Foto of video kiezen</div>
+      <button class="fix-close" onclick="closeMedia()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="media-filter" id="mediaFilter"></div>
+      <div class="media-grid" id="mediaGrid"></div>
+    </div>
+    <div class="modal-foot">
+      <label class="check"><input type="checkbox" id="mediaAll"> Gebruik voor alle kanalen</label>
+      <div style="flex:1;"></div>
+      <button class="btn btn-sm" onclick="closeMedia()">Annuleren</button>
+      <button class="btn btn-sm btn-primary" onclick="confirmMedia()">Toevoegen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var imgIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+  var checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>';
+
+  var LABEL = { foto: "foto", onderwerp: "onderwerp", tekst: "tekst" };
+
+  var channels = [
+    { key: "email", name: "E-mail", color: "#0E7490", initial: "@", selected: true, isMail: true, supportsMedia: false, requiresPhoto: false,
+      subject: "", date: "woensdag 24 juni", time: "09:30",
+      content: "Beste gast, woensdag 24 juni vieren we Dolce Vita op ons terras. Drie zomerse gangen, een glas Barolo en alle tijd. We bewaren graag een tafel voor je.",
+      why: "Directe uitnodiging naar je eigen gastenbestand, het kanaal met de hoogste attentiewaarde.",
+      points: ["Eigen bereik", "Persoonlijke uitnodiging", "Hoge attentiewaarde"] },
+    { key: "instagram", name: "Instagram", color: "#E1306C", initial: "IG", selected: true, isMail: false, supportsMedia: true, requiresPhoto: true,
+      photoAdded: false, date: "woensdag 24 juni", time: "17:00",
+      content: "Zomerse woensdag? Gewoon een reden om lekker te gaan zitten.\nTerras, een glas Barolo en een bord Burrata di Puglia, meer heb je niet nodig om de week goed door te komen.",
+      why: "Visueel terras-moment dat aanzet tot reserveren bij een breed bereik.",
+      points: ["Zomerse terrasbeleving", "Barolo in beeld", "Reserveer via bio"] },
+    { key: "facebook", name: "Facebook", color: "#1877F2", initial: "f", selected: true, isMail: false, supportsMedia: true, requiresPhoto: false,
+      photoAdded: false, date: "woensdag 24 juni", time: "19:00",
+      content: "Begin met onze fluweelzachte Vitello Tonnato, ga door met Tagliatelle al Tartufo en sluit af met een Tiramisu della Casa die smaakt naar vakantie.",
+      why: "Bereikt vaste gasten met het volledige menu-verhaal.",
+      points: ["Drie-gangen-verhaal", "Vaste gasten", "Reserveringslink"] },
+    { key: "tiktok", name: "TikTok", color: "#111111", initial: "TT", selected: true, isMail: false, supportsMedia: true, requiresPhoto: true,
+      photoAdded: false, date: "woensdag 24 juni", time: "20:30",
+      content: "Nog slechts één op 24 juni. Stuur dit naar je tafelgenoot en regel het gewoon.\nBar Barolo, Oud Zuid. Link in bio.",
+      why: "Korte, energieke hook voor een jonger bereik.",
+      points: ["Schaarste, nog 1 tafel", "Tag een vriend", "Link in bio"] },
+    { key: "google", name: "Google Business", color: "#4285F4", initial: "G", selected: true, isMail: false, supportsMedia: true, requiresPhoto: false,
+      photoAdded: false, date: "woensdag 24 juni", time: "18:00",
+      content: "Woensdag is hier nieuwe zaterdag. Bewijs: dit terras.\nVitello Tonnato, Tagliatelle al Tartufo, Tiramisu della Casa, Barolo. Herhalen.",
+      why: "Vindbaarheid op het moment dat mensen lokaal zoeken.",
+      points: ["Lokale vindbaarheid", "Seizoenskaart", "Woensdag-aanbod"] },
+    { key: "whatsapp", name: "WhatsApp", color: "#25D366", initial: "W", selected: false, isMail: false, supportsMedia: true, requiresPhoto: false,
+      photoAdded: false, date: "woensdag 24 juni", time: "18:30",
+      content: "Hoi! Woensdag 24 juni: Dolce Vita op het terras. Zin om aan te schuiven? Laat het ons weten.",
+      why: "Persoonlijk, direct kanaal voor vaste gasten die je nummer hebben.",
+      points: ["1-op-1", "Hoge open rate", "Snel reserveren"] }
+  ];
+
+  var suggestions = {
+    "email": [
+      "Onderwerp: Woensdag 24 juni, Dolce Vita op ons terras\n\nReserveer je tafel voor een zomerse avond met drie gangen en Barolo.",
+      "Onderwerp: Een tafel met jouw naam erop\n\nWoensdag 24 juni bewaren we graag een plek voor je op het terras in Oud Zuid.",
+      "Onderwerp: Kleine vrijdag, grote smaak\n\nVitello Tonnato, Tagliatelle al Tartufo en Tiramisu della Casa. Tot woensdag bij Bar Barolo."
+    ],
+    "instagram": [
+      "Bar Barolo. Tartufo. Barolo. Woensdag.\n\nBegin je week goed op ons terras. Tagliatelle al Tartufo en een glas dat het afmaakt.\n\n#BarBarolo #OudZuid #Amsterdam #ItaliaansRestaurant",
+      "De zomer smaakt beter met Barolo. Dit is jouw moment.\n\nTafel, terras, vrienden en een bord Burrata di Puglia.\n\n#BarBarolo #OudZuid #DolceVita",
+      "Woensdag = kleine vrijdag. Bewijs: dit glas Barolo.\n\nLaat je verwennen in Oud Zuid.\n\n#BarBarolo #OudZuid #Terras"
+    ],
+    "facebook": [
+      "Drie gangen, één avond, alle reden om te blijven. Vitello Tonnato, Tagliatelle al Tartufo en Tiramisu della Casa. Reserveer voor woensdag 24 juni.",
+      "De zomer is begonnen op ons terras in Oud Zuid. Kom proeven wat een woensdag bijzonder maakt.",
+      "Familie, vrienden en een fles Barolo. Zo hoort woensdag te voelen. Tot 24 juni bij Bar Barolo."
+    ],
+    "tiktok": [
+      "POV: het is woensdag en je zit toch op een terras in Oud Zuid met een glas Barolo.",
+      "Tagliatelle al Tartufo die je niet meer loslaat. Bar Barolo, woensdag 24 juni.",
+      "Nog één tafel vrij. Tag je tafelgenoot en regel het. Bar Barolo, Oud Zuid."
+    ],
+    "google": [
+      "Woensdag 24 juni: zomerse terrasavond met seizoensgerechten en Barolo. Reserveer een tafel in Oud Zuid.",
+      "Vitello Tonnato, Tagliatelle al Tartufo en Tiramisu della Casa. Kom proeven bij Bar Barolo.",
+      "Nieuwe zomerkaart, vertrouwd terras. We zien je graag op woensdag 24 juni."
+    ],
+    "whatsapp": [
+      "Hoi! Woensdag 24 juni Dolce Vita op het terras. Zin om aan te schuiven?",
+      "We bewaren graag een tafel voor je op woensdag. Laat het ons weten!",
+      "Zomerse woensdag bij Bar Barolo. Reageer met je gewenste tijd."
+    ]
+  };
+
+  var whyIconPaths = ["M21 12a9 9 0 1 1-18 0", "M12 2v20M2 12h20", "M6 3v6a6 6 0 0 0 12 0V3", "M3 17l6-6 4 4 8-8"];
+
+  var activeKey = "instagram";
+  var openFix = null;
+
+  function selected() { return channels.filter(function (c) { return c.selected; }); }
+  function byKey(k) { return channels.find(function (c) { return c.key === k; }); }
+
+  function missingItems(c) {
+    var m = [];
+    if (c.isMail && !c.subject) m.push("onderwerp");
+    if (!c.content) m.push("tekst");
+    if (c.requiresPhoto && !c.photoAdded) m.push("foto");
+    return m;
+  }
+  function outstanding() { var n = 0; selected().forEach(function (c) { n += missingItems(c).length; }); return n; }
+  function totalSlots() {
+    var t = 0;
+    selected().forEach(function (c) { t += 1; if (c.isMail) t += 1; if (c.requiresPhoto) t += 1; });
+    return t;
+  }
+
+  function renderStrip() {
+    var el = document.getElementById("chanStrip");
+    el.innerHTML = "";
+    channels.forEach(function (c) {
+      var d = document.createElement("div");
+      d.className = "chan-chip " + (c.selected ? "on" : "off");
+      d.onclick = function () { toggleChannel(c.key); };
+      d.innerHTML = '<span class="ch-logo-sm" style="background:' + c.color + '">' + c.initial + '</span>' + c.name +
+        '<span class="chan-state">' + (c.selected ? "&#10003;" : "+") + '</span>';
+      el.appendChild(d);
+    });
+  }
+
+  function toggleChannel(k) {
+    var c = byKey(k);
+    c.selected = !c.selected;
+    if (!c.selected && activeKey === k) {
+      var s = selected();
+      activeKey = s.length ? s[0].key : null;
+    }
+    if (c.selected) activeKey = k;
+    openFix = null;
+    renderAll();
+    toast(c.selected ? c.name + " toegevoegd" : c.name + " verwijderd");
+  }
+
+  function photoCell(c, i) {
+    if (!c.supportsMedia) return '<span class="photo-na">Geen foto bij e-mail</span>';
+    if (c.photoAdded) {
+      return '<div class="thumbs"><div class="thumb">' + imgIcon + '</div><div class="thumb-add" onclick="fixAspect(' + i + ',\'foto\')">+<span>Meer</span></div></div>';
+    }
+    return '<div class="thumb-add" onclick="fixAspect(' + i + ',\'foto\')">+<span>Voeg foto of video toe</span></div>';
+  }
+
+  function missCell(c, i) {
+    var m = missingItems(c);
+    if (m.length === 0) return '<span class="miss-ok">' + checkIcon + ' Compleet</span>';
+    var links = m.map(function (a) {
+      return '<span class="miss-item" onclick="event.stopPropagation();fixAspect(' + i + ',\'' + a + '\')">' + LABEL[a] + '</span>';
+    }).join(", ");
+    return '<div class="miss-list">' + links + '</div>';
+  }
+
+  function contentCell(c) {
+    var html = "";
+    if (c.isMail) html += '<div class="content-subject">Onderwerp: ' + (c.subject ? c.subject : '<em style="color:#DC2626;font-style:normal;">nog invullen</em>') + '</div>';
+    html += '<div class="content-text">' + c.content + '</div>';
+    return html;
+  }
+
+  function renderRows() {
+    var tb = document.getElementById("rows");
+    tb.innerHTML = "";
+    var sel = selected();
+    sel.forEach(function (c) {
+      var i = channels.indexOf(c);
+      var tr = document.createElement("tr");
+      tr.className = "channel-row" + (c.key === activeKey ? " active" : "");
+      tr.onclick = function (e) { if (e.target.closest(".bewerk,.thumb-add,.pencil,.miss-item")) return; setActive(c.key); };
+      tr.innerHTML =
+        '<td><div class="ch"><div class="ch-logo" style="background:' + c.color + '">' + c.initial + '</div><div class="ch-name">' + c.name + '</div></div></td>' +
+        '<td>' + missCell(c, i) + '</td>' +
+        '<td><div class="when-date">' + c.date + '</div><div class="when-time">' + c.time + ' <span class="pencil" title="Wijzig tijd">&#9998;</span></div></td>' +
+        '<td>' + photoCell(c, i) + '</td>' +
+        '<td class="content-cell">' + contentCell(c) + '<button class="btn btn-sm bewerk" onclick="fixAspect(' + i + ',\'tekst\')">Bewerk</button></td>';
+      tb.appendChild(tr);
+      if (openFix && openFix.i === i) tb.appendChild(fixRow(i, openFix.field));
+    });
+    renderProgress();
+  }
+
+  function fixRow(i, field) {
+    var c = channels[i];
+    var tr = document.createElement("tr");
+    tr.className = "fix-panel";
+    var inner = "";
+    if (field === "foto") {
+      var thumbs = "";
+      for (var k = 0; k < 4; k++) thumbs += '<div class="fix-thumb" onclick="selThumb(this)">' + imgIcon + '</div>';
+      inner =
+        '<div class="fix-head"><span class="fix-title">Foto of video kiezen voor ' + c.name + '</span><button class="fix-close" onclick="closeFix()">&times;</button></div>' +
+        '<div class="fix-thumbs">' + thumbs + '</div>' +
+        '<div class="fix-row"><label class="check"><input type="checkbox" id="fixAll"> Gebruik voor alle kanalen</label>' +
+        '<button class="btn btn-sm btn-primary" onclick="resolveFoto(' + i + ')">Klaar</button></div>';
+    } else if (field === "onderwerp") {
+      inner =
+        '<div class="fix-head"><span class="fix-title">Onderwerp invullen voor ' + c.name + '</span><button class="fix-close" onclick="closeFix()">&times;</button></div>' +
+        '<input class="fix-input" id="fixSub" placeholder="Bijv. Woensdag 24 juni, Dolce Vita op ons terras" value="' + c.subject + '">' +
+        '<div class="fix-row" style="margin-top:12px;"><button class="btn btn-sm btn-primary" onclick="resolveSubject(' + i + ')">Opslaan</button>' +
+        '<button class="btn btn-sm" onclick="suggestSubject(' + i + ')">Laat Filly er een voorstellen</button></div>';
+    } else {
+      inner =
+        '<div class="fix-head"><span class="fix-title">Tekst bewerken voor ' + c.name + '</span><button class="fix-close" onclick="closeFix()">&times;</button></div>' +
+        '<textarea class="content-edit" id="fixTa">' + c.content + '</textarea>' +
+        '<div class="fix-row" style="margin-top:12px;"><button class="btn btn-sm btn-primary" onclick="resolveText(' + i + ')">Opslaan</button>' +
+        '<button class="btn btn-sm" onclick="toast(\'Hier zou Filly 3 nieuwe versies maken\')">Genereer nieuwe versies</button></div>';
+    }
+    tr.innerHTML = '<td colspan="5"><div class="fix-inner">' + inner + '</div></td>';
+    return tr;
+  }
+
+  function fixAspect(i, field) {
+    activeKey = channels[i].key;
+    if (field === "foto") { openMediaModal(i); return; }
+    openFix = { i: i, field: field };
+    renderAll();
+  }
+
+  var videoIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m22 8-6 4 6 4V8z"/></svg>';
+  var mediaItems = [
+    { type: "foto", name: "Terras zomer" }, { type: "foto", name: "Barolo glas" },
+    { type: "video", name: "Sfeer reel" }, { type: "foto", name: "Tagliatelle al Tartufo" },
+    { type: "video", name: "Terras timelapse" }, { type: "foto", name: "Tiramisu della Casa" },
+    { type: "foto", name: "Vitello Tonnato" }, { type: "video", name: "Chef aan het werk" }
+  ];
+  var mediaChannel = null, mediaSelected = null, mediaFilter = "alles";
+
+  function openMediaModal(i) {
+    mediaChannel = i; mediaSelected = null; mediaFilter = "alles";
+    document.getElementById("mediaTitle").textContent = "Foto of video kiezen voor " + channels[i].name;
+    document.getElementById("mediaAll").checked = false;
+    renderMedia();
+    document.getElementById("mediaModal").style.display = "flex";
+  }
+  function closeMedia() { document.getElementById("mediaModal").style.display = "none"; }
+  function setMediaFilter(f) { mediaFilter = f; renderMedia(); }
+  function renderMedia() {
+    var fb = document.getElementById("mediaFilter");
+    fb.innerHTML = "";
+    [["alles", "Alles"], ["foto", "Foto"], ["video", "Video"]].forEach(function (pair) {
+      var b = document.createElement("button");
+      b.className = "mf-btn" + (mediaFilter === pair[0] ? " sel" : "");
+      b.textContent = pair[1];
+      b.onclick = function () { setMediaFilter(pair[0]); };
+      fb.appendChild(b);
+    });
+    var grid = document.getElementById("mediaGrid");
+    grid.innerHTML = "";
+    mediaItems.forEach(function (m, idx) {
+      if (mediaFilter !== "alles" && m.type !== mediaFilter) return;
+      var d = document.createElement("div");
+      d.className = "media-tile" + (mediaSelected === idx ? " sel" : "");
+      d.onclick = function () { mediaSelected = idx; renderMedia(); };
+      d.innerHTML = '<div class="media-thumb">' + (m.type === "video" ? videoIcon + '<span class="media-badge">video</span>' : imgIcon) + '</div><div class="media-name">' + m.name + '</div>';
+      grid.appendChild(d);
+    });
+  }
+  function confirmMedia() {
+    if (mediaSelected === null) { toast("Kies eerst een foto of video"); return; }
+    var i = mediaChannel;
+    var all = document.getElementById("mediaAll").checked;
+    channels[i].photoAdded = true;
+    if (all) channels.forEach(function (c) { if (c.supportsMedia) c.photoAdded = true; });
+    closeMedia(); renderAll();
+    toast(all ? "Media toegepast op alle kanalen" : "Media toegevoegd aan " + channels[i].name);
+  }
+  function closeFix() { openFix = null; renderRows(); }
+  function selThumb(el) { el.parentNode.querySelectorAll(".fix-thumb").forEach(function (s) { s.classList.remove("sel"); }); el.classList.add("sel"); }
+  function resolveFoto(i) {
+    var all = document.getElementById("fixAll") && document.getElementById("fixAll").checked;
+    channels[i].photoAdded = true;
+    if (all) channels.forEach(function (c) { if (c.supportsMedia) c.photoAdded = true; });
+    openFix = null; renderAll();
+    toast(all ? "Foto toegepast op alle kanalen" : "Foto toegevoegd aan " + channels[i].name);
+  }
+  function resolveSubject(i) { var el = document.getElementById("fixSub"); channels[i].subject = el ? el.value.trim() : ""; openFix = null; renderAll(); toast("Onderwerp opgeslagen"); }
+  function suggestSubject(i) { var el = document.getElementById("fixSub"); if (el) el.value = "Woensdag 24 juni, Dolce Vita op ons terras"; }
+  function resolveText(i) { var ta = document.getElementById("fixTa"); if (ta) channels[i].content = ta.value; openFix = null; renderAll(); toast("Tekst opgeslagen voor " + channels[i].name); }
+
+  function setActive(k) { activeKey = k; openFix = null; renderAll(); }
+
+  function renderProgress() {
+    var total = totalSlots();
+    var done = total - outstanding();
+    var pct = total === 0 ? 100 : Math.round((done / total) * 100);
+    var complete = outstanding() === 0 && selected().length > 0;
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("progressFill").style.background = complete ? "var(--brand)" : "var(--warning)";
+    document.getElementById("progressLabel").textContent = done + " van " + total + " velden compleet";
+    var n = selected().length;
+    var ap = document.getElementById("approveBtn");
+    ap.textContent = "Goedkeuren (" + n + " " + (n === 1 ? "campagne" : "campagnes") + ")";
+    ap.disabled = !complete;
+    document.getElementById("planBtn").disabled = !complete;
+  }
+
+  function renderLower() {
+    var tabs = document.getElementById("suggTabs");
+    tabs.innerHTML = "";
+    selected().forEach(function (c) {
+      var b = document.createElement("button");
+      b.className = "chan-tab" + (c.key === activeKey ? " sel" : "");
+      b.onclick = function () { setActive(c.key); };
+      b.innerHTML = '<span class="ch-logo-sm" style="width:16px;height:16px;font-size:9px;background:' + c.color + '">' + c.initial + '</span>' + c.name;
+      tabs.appendChild(b);
+    });
+    var ac = byKey(activeKey);
+    if (!ac) return;
+    document.getElementById("suggHint").textContent = "Kies een suggestie voor " + ac.name + ", of genereer 3 nieuwe.";
+    var grid = document.getElementById("suggGrid");
+    grid.innerHTML = "";
+    (suggestions[ac.key] || []).forEach(function (s, i) {
+      var d = document.createElement("div");
+      d.className = "sugg";
+      d.innerHTML =
+        '<div class="sugg-head"><span class="sugg-label">Voorstel ' + (i + 1) + '</span><button class="sugg-use" onclick="useSugg(' + i + ')">Gebruik dit voorstel</button></div>' +
+        '<div class="sugg-text">' + s + '</div>';
+      grid.appendChild(d);
+    });
+    document.getElementById("whyChannel").textContent = "voor " + ac.name;
+    document.getElementById("whyText").textContent = ac.why;
+    var wg = document.getElementById("whyGrid");
+    wg.innerHTML = "";
+    ac.points.forEach(function (t, i) {
+      var d = document.createElement("div");
+      d.className = "why-item";
+      d.innerHTML = '<span class="why-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="' + whyIconPaths[i % whyIconPaths.length] + '"/></svg></span>' + t;
+      wg.appendChild(d);
+    });
+  }
+
+  function useSugg(i) {
+    var ac = byKey(activeKey);
+    var list = suggestions[ac.key] || [];
+    ac.content = list[i];
+    if (ac.isMail && !ac.subject) ac.subject = "Woensdag 24 juni, Dolce Vita op ons terras";
+    renderAll();
+    toast("Voorstel " + (i + 1) + " toegepast op " + ac.name);
+  }
+
+  function renderAll() { renderStrip(); renderRows(); renderLower(); }
+
+  var toastTimer;
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 1800);
+  }
+
+  renderAll();
+</script>
+</body>
+</html>

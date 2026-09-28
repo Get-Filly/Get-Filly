@@ -14,6 +14,7 @@ import {
 import { type Request } from 'express';
 import { MailService } from './mail.service';
 import { Public } from '../common/public.decorator';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
 import { verifySvixSignature } from '../common/svix-verify';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
@@ -99,7 +100,6 @@ export class MailController {
       'type' in payload &&
       'data' in payload
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await this.mail.handleWebhook(payload as any);
     }
     return { ok: true };
@@ -144,7 +144,14 @@ export class MailController {
   // een lead vóór er een account bestaat. De service valideert alle
   // velden serverside, filtert bots via de honeypot en mailt de
   // aanvraag naar info@get-filly.com (reply-to = de bezoeker).
+  //
+  // Rem erop sinds 2026-09-16: dit endpoint verstuurt een mail per aanroep
+  // (Resend kost geld) en had alleen een honeypot, die een script van drie
+  // regels omzeilt. Vijf per kwartier per IP is ruim voor een mens die zich
+  // vertypt, en dood voor een bot.
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ bucket: 'contact', limit: 5, windowSeconds: 900 })
   @Post('public/contact')
   async contact(
     @Body()

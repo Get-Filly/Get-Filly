@@ -2,21 +2,18 @@
 
 import { useState } from "react";
 import { BusynessCard } from "./_components/busyness-card";
-import { KpiRings } from "./_components/kpi-rings";
+import { KpiStrip } from "./_components/kpi-strip";
 import { FillyChat } from "./_components/filly-chat";
 
-// Herontworpen dashboard (2026-07):
-//   - Bovenaan, vol de breedte: horizontale KPI-ringen-strook.
-//   - Daaronder twee blokken: links BusynessCard (dag-strip + dag-grafiek),
-//     rechts de Filly-chat. Doel: alles in één oogopslag (past in de
-//     viewport, vaste-hoogte-model, geen pagina-scroll).
-// De oude banners (UpcomingActionsBlock), de platte KPI-rij (KpiRow) en
-// de kalender (CalendarCard) zijn vervangen. De drukte komt nu uit
-// _lib/busyness.ts (naad naar de latere Google "populaire tijden"-bron).
+// Herontworpen dashboard (2026-09, v2):
+//   - Bovenaan een dunne metriek-strook (was: vier ring-meters).
+//   - Daaronder een werkgebied met de staafgrafiek, het inzicht en het
+//     waarom-vak, en rechts Filly als vaste rail over de volle hoogte.
+// Beide kolommen scrollen apart; de pagina zelf scrollt niet. De knoppenrij
+// onder het werkgebied eindigt op dezelfde hoogte als de chat-invoer.
 export default function DashboardPage() {
-  // "Maak een campagne" op een rustig moment in de grafiek → de gekozen dag
-  // wordt aan de Filly-chat doorgegeven, die de geleide flow direct voor die
-  // dag opent. We scrollen ook even naar de chat.
+  // "Maak een campagne" geeft de gekozen dag door aan de chat, die de
+  // geleide flow direct voor die dag opent.
   const [seedDate, setSeedDate] = useState<string | null>(null);
 
   function handleMakeConcept(iso: string) {
@@ -27,9 +24,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page">
-      <div className="dash-top">
-        <KpiRings />
+    <div className="page dash-v2">
+      <div className="dash-strip">
+        <KpiStrip />
       </div>
       <div className="dash-body">
         <div className="left-col">

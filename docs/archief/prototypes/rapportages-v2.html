@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get-Filly prototype — rapportages per uiting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     Tokens — de huisstijl (papier-warm + British Racing Green).
+     De data-kleuren staan apart: die zijn gevalideerd op
+     kleurenblindheid en contrast, dus niet zomaar vervangen.
+     ============================================================ */
+  :root {
+    --bg: #FAF7F1; --white: #FFFFFF; --surface: #EFE8D8;
+    --border: #E5DFD0; --hair: #EFEADF;
+    --text: #18181B; --text-soft: #52525B; --text-muted: #71717A;
+    --brand: #1F4A2D; --brand-deep: #0E2B17; --brand-soft: #D6E0D8;
+
+    /* Data: twee klassen die identiteit dragen (organisch vs betaald).
+       Gevalideerd op #FFFFFF: CVD ΔE 8.6, normaal zicht ΔE 24.3.
+       Betaald zit onder 3:1 contrast, daarom staat er ALTIJD een
+       label + legenda + tabel bij — dat is de verplichte opvang. */
+    --organic: #2F7D4B;
+    --paid: #D97F3C;
+
+    /* Sequentiële groen-ramp (één tint, meer = donkerder) voor
+       magnitude-vergelijkingen. */
+    --g300: #8FBEA3; --g400: #63A47F; --g500: #2F7D4B;
+    --g600: #24603A; --g700: #1F4A2D;
+    /* De "niet in je selectie"-tint: grijs, nooit een serie-kleur. */
+    --dim: #D8D3C6;
+
+    /* Status — vast, nooit als serie-kleur hergebruikt. */
+    --good: #16A34A; --warn: #F59E0B; --bad: #DC2626;
+
+    --grid: #E7E2D6; --axis: #D6D0C2;
+    --r: 8px; --r-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12130F; --white: #1A1B16; --surface: #22241D;
+      --border: #2E3128; --hair: #262922;
+      --text: #F5F4EE; --text-soft: #C7C4B6; --text-muted: #918D7E;
+      --brand: #6FAE84; --brand-deep: #8CC49F; --brand-soft: #1E2E23;
+      /* Eigen stappen voor de donkere ondergrond, geen omgeklapte
+         lichte waarden. */
+      --organic: #4E9E6A; --paid: #E0904F;
+      --g300: #2C4636; --g400: #3B6B4C; --g500: #4E9E6A;
+      --g600: #6FBE88; --g700: #8FD3A3;
+      --dim: #34382D;
+      --good: #22C55E; --warn: #FBBF24; --bad: #F87171;
+      --grid: #2A2D24; --axis: #3A3E32;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 72px; }
+
+  h1 { font-size: 26px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--text-soft); font-size: 14px; margin: 0; max-width: 560px; }
+  .proto-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--brand); background: var(--brand-soft);
+    padding: 3px 9px; border-radius: 999px; margin-bottom: 10px;
+  }
+
+  /* Eén filterrij boven alles wat hij scopet, niet per kaart. */
+  .filters {
+    display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center;
+    margin: 22px 0 8px; padding: 11px 13px;
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg);
+  }
+  .fgroup { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .filters .lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  .seg { display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 2px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-soft);
+    font: inherit; font-size: 12.5px; font-weight: 500;
+    padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: #fff; font-weight: 600; }
+  /* Kanaal-chips: meerdere tegelijk aan te vinken. Het merkkleurtje
+     blijft altijd zichtbaar, ook uitgevinkt, zodat je het kanaal
+     herkent zonder de tekst te lezen. */
+  .chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-soft);
+    font: inherit; font-size: 12.5px; font-weight: 500;
+    padding: 5px 11px 5px 9px; border-radius: 999px; cursor: pointer;
+  }
+  .chip[aria-pressed="true"] {
+    border-color: var(--brand); background: var(--brand-soft);
+    color: var(--brand-deep); font-weight: 600;
+  }
+  .chip i { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .chip.all { padding-left: 11px; }
+  .fmeta { font-size: 12px; color: var(--text-muted); margin: 0 0 20px 2px; }
+  .fmeta b { color: var(--text-soft); font-weight: 600; }
+
+  .card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 18px 20px 20px;
+  }
+  .card-hd { margin-bottom: 14px; }
+  .card-t { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .card-s { font-size: 12.5px; color: var(--text-muted); margin: 0; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+  .grid1 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+  .card, .grid1 > *, .grid2 > * { min-width: 0; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+
+  /* KPI-rij: stat tiles, de eerste is de hero. */
+  .kpis { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 980px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px 15px; }
+  .kpi .k-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+  .kpi .k-val { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+  .kpi.hero .k-val { font-size: 42px; }
+  .kpi .k-sub { font-size: 12px; color: var(--text-soft); margin-top: 4px; }
+  .delta { font-size: 12.5px; font-weight: 600; }
+  .delta.up { color: var(--good); }
+  .delta.down { color: var(--bad); }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 0 0 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-soft); }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* Staafdiagram, horizontaal. */
+  .bars { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 132px 1fr 74px; align-items: center; gap: 12px; }
+  .bar-lbl { font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 7px; }
+  .bar-row.off .bar-lbl, .bar-row.off .bar-val { color: var(--text-muted); }
+  .bar-row.off .bar-val { font-weight: 500; }
+  .bar-track { height: 18px; background: var(--hair); border-radius: 4px; position: relative; }
+  /* display:block is hier essentieel: als kind van .bar-track is dit geen
+     grid-item, dus blijft het een inline-span waarop width/height niet
+     gelden en wordt de balk 0px breed. */
+  .bar-fill { display: block; height: 100%; border-radius: 4px; }
+  .bar-val { font-size: 13px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  /* Gestapeld: 2px oppervlak-gat tussen segmenten, geen randje. */
+  .stack { display: flex; height: 18px; gap: 2px; }
+  .stack i { display: block; height: 100%; position: relative; }
+  .stack i:first-child { border-radius: 4px 0 0 4px; }
+  .stack i:last-child { border-radius: 0 4px 4px 0; }
+  .stack i:only-child { border-radius: 4px; }
+  .seg-lbl {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+
+  .scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .scores { grid-template-columns: repeat(2, 1fr); } }
+  .score { border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px; background: var(--bg); }
+  .score .s-top { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--text-soft); }
+  .score .s-n { font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  .tbl-wrap { overflow-x: auto; max-width: 100%; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+  th {
+    font-size: 11.5px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--axis);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: var(--bg); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text-soft);
+  }
+  .ch { display: inline-flex; align-items: center; gap: 6px; }
+  .ch-ic { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+
+  .tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .12s;
+    background: var(--text); color: var(--bg); font-size: 12px; line-height: 1.45;
+    padding: 7px 10px; border-radius: 6px; z-index: 40; max-width: 230px;
+    box-shadow: 0 6px 20px -8px rgba(0,0,0,.4);
+  }
+  .tip b { color: #fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tip b { color: var(--text); } }
+
+  .note {
+    margin-top: 14px; padding: 11px 13px; background: var(--bg);
+    border: 1px solid var(--border); border-left: 3px solid var(--brand);
+    border-radius: 0 var(--r) var(--r) 0; font-size: 12.5px; color: var(--text-soft);
+  }
+  .note b { color: var(--text); }
+  .empty { padding: 26px 4px; text-align: center; color: var(--text-muted); font-size: 13px; margin: 0; }
+  h2.sec {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--brand); margin: 30px 0 12px;
+  }
+  .removed { display: flex; flex-direction: column; gap: 8px; }
+  .removed div { font-size: 13px; color: var(--text-soft); display: flex; gap: 9px; }
+  .removed s { color: var(--text-muted); }
+  .arrow { color: var(--brand); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <span class="proto-tag">Prototype · mockdata</span>
+    <h1>Rapportages</h1>
+    <p class="sub">
+      Wat je uitingen op sociale media hebben opgeleverd, organisch en betaald,
+      teruggerekend naar boekingen en omzet.
+    </p>
+  </div>
+
+  <!-- Eén filterrij boven alles: elke kaart hieronder rekent op dezelfde
+       selectie, dus periode + soort + kanaal werken op alles tegelijk. -->
+  <div class="filters">
+    <span class="fgroup">
+      <span class="lbl">Periode</span>
+      <span class="seg" id="f-period">
+        <button data-v="7">7 dagen</button>
+        <button data-v="30" aria-pressed="true">30 dagen</button>
+        <button data-v="90">90 dagen</button>
+      </span>
+    </span>
+    <span class="fgroup">
+      <span class="lbl">Soort</span>
+      <span class="seg" id="f-kind">
+        <button data-v="all" aria-pressed="true">Alles</button>
+        <button data-v="org">Organisch</button>
+        <button data-v="paid">Betaald</button>
+      </span>
+    </span>
+    <span class="fgroup">
+      <span class="lbl">Kanaal</span>
+      <span class="chips" id="f-channel"></span>
+    </span>
+  </div>
+  <p class="fmeta" id="fmeta"></p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-hd">
+        <p class="card-t">Boekingen per kanaal</p>
+        <p class="card-s" id="ch-sub"></p>
+      </div>
+      <div class="bars" id="bars-channel"></div>
+      <div class="note" id="ch-note"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <p class="card-t">Waar ging je budget heen</p>
+        <p class="card-s" id="budget-sub"></p>
+      </div>
+      <div id="budget-body"></div>
+    </div>
+  </div>
+
+  <div class="grid1">
+    <div class="card">
+      <div class="card-hd">
+        <p class="card-t">Organisch en betaald naast elkaar</p>
+        <p class="card-s">Boekingen per kanaal, uitgesplitst naar vrij bereik en advertentiebudget.</p>
+      </div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--organic)"></i> Organisch</span>
+        <span><i class="swatch" style="background:var(--paid)"></i> Betaald</span>
+      </div>
+      <div class="bars" id="bars-split"></div>
+      <div class="note" id="split-note"></div>
+    </div>
+  </div>
+
+  <div class="grid1">
+    <div class="card">
+      <div class="card-hd">
+        <p class="card-t">Boekingen over tijd</p>
+        <p class="card-s" id="trend-sub"></p>
+      </div>
+      <svg id="trend" viewBox="0 0 1040 220" style="width:100%;height:auto;display:block"
+           role="img" aria-label="Boekingen per periode"></svg>
+    </div>
+  </div>
+
+  <h2 class="sec">Wat Filly ervan leert</h2>
+  <div class="grid1">
+    <div class="card">
+      <div class="card-hd">
+        <p class="card-t">Score per uiting</p>
+        <p class="card-s">Elke uiting krijgt 14 dagen na plaatsing een score van 0 tot 100 en een oordeel.</p>
+      </div>
+      <div class="scores" id="scores"></div>
+      <div class="note" id="score-note"></div>
+    </div>
+  </div>
+
+  <div class="grid1">
+    <div class="card">
+      <div class="card-hd">
+        <p class="card-t">Per uiting</p>
+        <p class="card-s" id="tbl-sub"></p>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Uiting</th><th>Kanaal</th><th>Datum</th><th>Soort</th>
+              <th class="num">Bereik</th><th class="num">Doorkliks</th><th class="num">Boekingen</th>
+              <th class="num">Omzet</th><th class="num">Budget</th><th class="num">Per boeking</th>
+              <th>Oordeel</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec">Wat er van de huidige pagina af gaat</h2>
+  <div class="card">
+    <div class="removed">
+      <div><s>Mail als enige "live" kanaal met open-rate en doorklik-ratio</s>
+        <span class="arrow">→</span> mail is één kanaal in de filterrij, geen kopstuk</div>
+      <div><s>Open-rate en klikratio als kern-KPI</s>
+        <span class="arrow">→</span> bereik, doorkliks, boekingen, omzet en kosten per boeking</div>
+      <div><s>WhatsApp-tegel met "Later"-label</s>
+        <span class="arrow">→</span> weg; geen verzendpad, dus geen rapportage</div>
+      <div><s>Instagram, Facebook en TikTok als "Binnenkort"-tegels zonder cijfers</s>
+        <span class="arrow">→</span> dit zijn nu de hoofdkanalen met echte cijfers</div>
+      <div><s>Per-campagne-tabel met kolom "Type: mail / social / whatsapp"</s>
+        <span class="arrow">→</span> kolom "Kanaal" per platform, plus organisch of betaald</div>
+    </div>
+    <div class="note">
+      <b>Blijft staan:</b> de bezettings-rapportage (per weekdag en per uur) en de
+      gastretentie-cohort. Die zijn kanaal-onafhankelijk en veranderen niet mee.
+    </div>
+  </div>
+
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+// ============================================================
+// Mockdata: één rij per uiting, precies de shape die de echte pagina
+// straks uit de view campaign_performance_report leest. Alle grafieken
+// én de KPI-rij worden hieruit gerekend, dus ze kunnen niet uit elkaar
+// lopen, en elk filter is een echte slice in plaats van een plaatje.
+// ============================================================
+const TODAY = new Date("2026-09-30T12:00:00");
+
+const KANALEN = [
+  { key: "instagram", naam: "Instagram",      kleur: "#E1306C" },
+  { key: "facebook",  naam: "Facebook",       kleur: "#1877F2" },
+  { key: "gbp",       naam: "Google profiel", kleur: "#34A853" },
+  { key: "tiktok",    naam: "TikTok",         kleur: "#111111" },
+  { key: "youtube",   naam: "YouTube",        kleur: "#FF0000" },
+];
+const K = Object.fromEntries(KANALEN.map((k) => [k.key, k]));
+
+// Omzet is afgeleid: gemiddeld 2,2 gasten × €31,80 ≈ €70 per boeking.
+const OMZET_PER_BOEKING_CENTS = 7000;
+
+// budget in centen. oordeel null = meet-window van 14 dagen nog niet om.
+// basis: hoe de score berekend zou zijn (zie migratie 0071 score_basis).
+const UITINGEN = [
+  { naam: "Weekend-teaser met terrasfoto",      ch: "instagram", d: "2026-09-29", paid: true,  bereik: 3600, kliks:  96, boek: 4, budget: 4000, oordeel: null,        basis: null },
+  { naam: "Donderdag-deal, drie gangen",        ch: "instagram", d: "2026-09-26", paid: true,  bereik: 4820, kliks: 143, boek: 5, budget: 4500, oordeel: null,        basis: null },
+  { naam: "Achter de schermen in de keuken",    ch: "tiktok",    d: "2026-09-24", paid: false, bereik: 3100, kliks:  38, boek: 5, budget: 0,    oordeel: null,        basis: null },
+  { naam: "Nieuw op de kaart, burrata",         ch: "facebook",  d: "2026-09-22", paid: true,  bereik: 5240, kliks: 121, boek: 6, budget: 5000, oordeel: "sterk",     basis: "conversie" },
+  { naam: "Update: verlengde terrasuren",       ch: "gbp",       d: "2026-09-20", paid: false, bereik: 1740, kliks:  96, boek: 5, budget: 0,    oordeel: "sterk",     basis: "ratio" },
+  { naam: "Rustige woensdagmiddag",             ch: "instagram", d: "2026-09-18", paid: false, bereik: 2960, kliks:  71, boek: 6, budget: 0,    oordeel: "sterk",     basis: "conversie" },
+  { naam: "Zo maken we onze pasta",             ch: "youtube",   d: "2026-09-16", paid: false, bereik: 1200, kliks:  34, boek: 2, budget: 0,    oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Weekend-borrel aankondiging",        ch: "facebook",  d: "2026-09-13", paid: false, bereik: 3410, kliks:  84, boek: 8, budget: 0,    oordeel: "sterk",     basis: "conversie" },
+  { naam: "Wat is er vandaag, foto van de dag", ch: "gbp",       d: "2026-09-12", paid: false, bereik: 1420, kliks:  58, boek: 4, budget: 0,    oordeel: "gemiddeld", basis: "ratio" },
+  { naam: "Late-boeker reel",                   ch: "instagram", d: "2026-09-11", paid: true,  bereik: 2040, kliks:  62, boek: 2, budget: 3500, oordeel: "onder",     basis: "conversie" },
+  { naam: "Sfeerbeelden vrijdagavond",          ch: "tiktok",    d: "2026-09-08", paid: true,  bereik: 5500, kliks: 116, boek: 4, budget: 7000, oordeel: "onder",     basis: "conversie" },
+  { naam: "Herfstmenu teaser",                  ch: "instagram", d: "2026-09-05", paid: false, bereik: 1980, kliks:  40, boek: 7, budget: 0,    oordeel: "sterk",     basis: "conversie" },
+  { naam: "Buurtactie, 3 km rondom",            ch: "facebook",  d: "2026-09-03", paid: true,  bereik: 3250, kliks: 100, boek: 3, budget: 4500, oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Openingstijden feestdagen",          ch: "gbp",       d: "2026-09-02", paid: false, bereik:  940, kliks:  34, boek: 2, budget: 0,    oordeel: "gemiddeld", basis: "ratio" },
+  // Ouder dan 30 dagen: alleen zichtbaar in de 90-dagen-selectie. Augustus is
+  // bewust net zo gevuld als september, zodat de periode-vergelijking in de
+  // KPI-rij een realistisch percentage oplevert.
+  { naam: "Laatste zomerweek, terrasmenu",      ch: "gbp",       d: "2026-08-28", paid: false, bereik: 1600, kliks:  74, boek: 5, budget: 0,    oordeel: "sterk",     basis: "ratio" },
+  { naam: "Zomeravond op het terras",           ch: "facebook",  d: "2026-08-26", paid: false, bereik: 2800, kliks:  61, boek: 4, budget: 0,    oordeel: "sterk",     basis: "conversie" },
+  { naam: "Zomerse cocktails, reel",            ch: "instagram", d: "2026-08-25", paid: true,  bereik: 4100, kliks: 118, boek: 6, budget: 4000, oordeel: "sterk",     basis: "conversie" },
+  { naam: "Keukenpraat met de chef",            ch: "tiktok",    d: "2026-08-23", paid: false, bereik: 2900, kliks:  41, boek: 4, budget: 0,    oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Zondagse lunch aankondiging",        ch: "facebook",  d: "2026-08-20", paid: false, bereik: 3200, kliks:  78, boek: 6, budget: 0,    oordeel: "sterk",     basis: "conversie" },
+  { naam: "Nieuwe voorgerechten",               ch: "instagram", d: "2026-08-18", paid: false, bereik: 2600, kliks:  63, boek: 5, budget: 0,    oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Foto van de dag, terras",            ch: "gbp",       d: "2026-08-16", paid: false, bereik: 1300, kliks:  52, boek: 3, budget: 0,    oordeel: "gemiddeld", basis: "ratio" },
+  { naam: "Aspergeweek, laatste kans",          ch: "instagram", d: "2026-08-14", paid: true,  bereik: 3100, kliks:  88, boek: 3, budget: 3000, oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Buurtactie augustus",                ch: "facebook",  d: "2026-08-11", paid: true,  bereik: 3600, kliks: 104, boek: 5, budget: 4000, oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Sfeer op de late zomeravond",        ch: "instagram", d: "2026-08-08", paid: false, bereik: 2200, kliks:  48, boek: 4, budget: 0,    oordeel: "onder",     basis: "conversie" },
+  { naam: "Onze pasta van dichtbij",            ch: "youtube",   d: "2026-08-05", paid: false, bereik: 1100, kliks:  28, boek: 2, budget: 0,    oordeel: "gemiddeld", basis: "conversie" },
+  { naam: "Wokken achter de bar",               ch: "tiktok",    d: "2026-08-02", paid: false, bereik: 2700, kliks:  36, boek: 6, budget: 0,    oordeel: "sterk",     basis: "conversie" },
+  { naam: "Vakantie-openingstijden",            ch: "tiktok",    d: "2026-07-30", paid: false, bereik: 2400, kliks:  31, boek: 2, budget: 0,    oordeel: "onder",     basis: "conversie" },
+  { naam: "Nieuwe wijnkaart",                   ch: "instagram", d: "2026-07-12", paid: false, bereik: 1700, kliks:  36, boek: 3, budget: 0,    oordeel: "gemiddeld", basis: "conversie" },
+].map((u) => ({
+  ...u,
+  dt: new Date(u.d + "T12:00:00"),
+  omzet: u.boek * OMZET_PER_BOEKING_CENTS,
+}));
+
+const OORDEEL = {
+  sterk:     { label: "Sterk",             kleur: "var(--good)" },
+  gemiddeld: { label: "Gemiddeld",         kleur: "var(--warn)" },
+  onder:     { label: "Onder verwachting", kleur: "var(--bad)" },
+  geen:      { label: "Nog geen oordeel",  kleur: "var(--text-muted)" },
+};
+const RAMP = ["var(--g700)", "var(--g600)", "var(--g500)", "var(--g400)", "var(--g300)"];
+
+const eur = (c) => "€" + Math.round(c / 100).toLocaleString("nl-NL");
+const eur2 = (c) => "€" + (c / 100).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (n) => n.toLocaleString("nl-NL");
+const dm = (d) => d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+const som = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
+
+// Filter-state. Lege kanalen-set = geen kanaalfilter, dus alles.
+const state = { dagen: 30, soort: "all", kanalen: new Set() };
+
+// Tooltip: één laag, hergebruikt door alle marks.
+const tip = document.getElementById("tip");
+function bindTip(el, html) {
+  el.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.opacity = 1; });
+  el.addEventListener("mousemove", (e) => {
+    tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 250) + "px";
+    tip.style.top = (e.clientY - 12) + "px";
+  });
+  el.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+}
+
+// ============================================================
+// Slices. periodeRows = periode + soort, ZONDER het kanaalfilter:
+// die gebruikt de per-kanaal-grafiek, zodat een kanaalselectie de
+// andere kanalen dimt in plaats van ze te verbergen. Anders hou je
+// een staafdiagram met één staaf over, en dat is geen diagram.
+// ============================================================
+function slices() {
+  const grens = new Date(TODAY.getTime() - state.dagen * 864e5);
+  let rows = UITINGEN.filter((u) => u.dt >= grens && u.dt <= TODAY);
+  if (state.soort === "org") rows = rows.filter((u) => !u.paid);
+  if (state.soort === "paid") rows = rows.filter((u) => u.paid);
+  const actief = state.kanalen.size === 0 ? rows : rows.filter((u) => state.kanalen.has(u.ch));
+  return { periodeRows: rows, actief, grens };
+}
+
+// ---- Filterrij opbouwen + luisteren ----
+(() => {
+  document.getElementById("f-channel").innerHTML =
+    `<button class="chip all" data-k="" aria-pressed="true">Alle</button>` +
+    KANALEN.map((k) => `<button class="chip" data-k="${k.key}" aria-pressed="false">
+      <i style="background:${k.kleur}"></i>${k.naam}</button>`).join("");
+
+  document.getElementById("f-channel").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    const k = b.dataset.k;
+    if (!k) state.kanalen.clear();
+    else {
+      state.kanalen.has(k) ? state.kanalen.delete(k) : state.kanalen.add(k);
+      // Alles aangevinkt is hetzelfde als geen filter; dan terug naar "Alle".
+      if (state.kanalen.size === KANALEN.length) state.kanalen.clear();
+    }
+    render();
+  });
+  document.getElementById("f-period").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.dagen = +b.dataset.v; render();
+  });
+  document.getElementById("f-kind").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.soort = b.dataset.v; render();
+  });
+})();
+
+function paintFilters() {
+  document.querySelectorAll("#f-channel .chip").forEach((b) => {
+    const k = b.dataset.k;
+    b.setAttribute("aria-pressed", String(k ? state.kanalen.has(k) : state.kanalen.size === 0));
+  });
+  document.querySelectorAll("#f-period button").forEach((b) =>
+    b.setAttribute("aria-pressed", String(+b.dataset.v === state.dagen)));
+  document.querySelectorAll("#f-kind button").forEach((b) =>
+    b.setAttribute("aria-pressed", String(b.dataset.v === state.soort)));
+}
+
+// ============================================================
+// 1. KPI-rij
+// ============================================================
+function renderKpis(rows) {
+  const boek = som(rows, "boek");
+  const budget = som(rows, "budget");
+  const betaaldeRijen = rows.filter((r) => r.paid);
+  const betaaldeBoek = som(betaaldeRijen, "boek");
+  const cpb = betaaldeBoek > 0 && budget > 0 ? budget / betaaldeBoek : null;
+
+  // Vergelijking met de even lange periode ervóór, op dezelfde soort + kanalen.
+  const vorigeGrens = new Date(TODAY.getTime() - state.dagen * 2 * 864e5);
+  const huidigeGrens = new Date(TODAY.getTime() - state.dagen * 864e5);
+  let vorige = UITINGEN.filter((u) => u.dt >= vorigeGrens && u.dt < huidigeGrens);
+  if (state.soort === "org") vorige = vorige.filter((u) => !u.paid);
+  if (state.soort === "paid") vorige = vorige.filter((u) => u.paid);
+  if (state.kanalen.size) vorige = vorige.filter((u) => state.kanalen.has(u.ch));
+  const vorigeBoek = som(vorige, "boek");
+  // Minder dan 2 uitingen in de vorige periode? Dan is een percentage
+  // misleidend precies (63 tegen 7 is "+800%" en zegt niets). Liever eerlijk
+  // melden dat er te weinig historie is.
+  const pct = vorige.length >= 2 && vorigeBoek > 0
+    ? Math.round((boek - vorigeBoek) / vorigeBoek * 100)
+    : null;
+
+  const deltaHtml = pct === null
+    ? `<span style="color:var(--text-muted)">te weinig historie om te vergelijken</span>`
+    : `<span class="delta ${pct >= 0 ? "up" : "down"}">${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}%</span>
+       vs vorige ${state.dagen} dagen`;
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi hero">
+      <div class="k-lbl">Boekingen via Filly</div>
+      <div class="k-val">${boek}</div>
+      <div class="k-sub">${deltaHtml}</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Extra omzet</div>
+      <div class="k-val">${eur(som(rows, "omzet"))}</div>
+      <div class="k-sub">${Math.round(boek * 2.2)} gasten × €31,80</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Bereik</div>
+      <div class="k-val">${num(som(rows, "bereik"))}</div>
+      <div class="k-sub">${num(som(rows, "kliks"))} doorkliks</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Advertentiebudget</div>
+      <div class="k-val">${budget ? eur(budget) : "—"}</div>
+      <div class="k-sub">${betaaldeRijen.length} van ${rows.length} uitingen betaald</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Kosten per boeking</div>
+      <div class="k-val">${cpb ? eur2(cpb) : "—"}</div>
+      <div class="k-sub">${cpb ? `over ${betaaldeBoek} betaalde boekingen` : "geen betaalde uitingen"}</div>
+    </div>`;
+}
+
+// ============================================================
+// 2. Boekingen per kanaal — magnitude, dus één tint, meer = donkerder.
+//    Toont altijd alle kanalen van de periode; een kanaalselectie dimt
+//    de rest naar grijs in plaats van hem te verbergen.
+// ============================================================
+function renderPerChannel(periodeRows) {
+  const per = KANALEN.map((k) => {
+    const rs = periodeRows.filter((r) => r.ch === k.key);
+    return { ...k, n: rs.length, boek: som(rs, "boek"), bereik: som(rs, "bereik"), kliks: som(rs, "kliks") };
+  }).filter((k) => k.n > 0).sort((a, b) => b.boek - a.boek);
+
+  const box = document.getElementById("bars-channel");
+  const note = document.getElementById("ch-note");
+  document.getElementById("ch-sub").textContent = state.kanalen.size
+    ? "Alle kanalen van deze periode; je selectie staat in kleur, de rest is context."
+    : "Donkerder = meer boekingen. Gesorteerd, dus de bovenste is je sterkste kanaal.";
+
+  if (!per.length) {
+    box.innerHTML = `<p class="empty">Geen uitingen in deze periode.</p>`;
+    note.style.display = "none"; return;
+  }
+
+  const max = Math.max(...per.map((r) => r.boek), 1);
+  box.innerHTML = per.map((r, i) => {
+    const aan = state.kanalen.size === 0 || state.kanalen.has(r.key);
+    return `<div class="bar-row${aan ? "" : " off"}">
+      <span class="bar-lbl"><i class="ch-ic" style="background:${r.kleur}"></i>${r.naam}</span>
+      <span class="bar-track"><span class="bar-fill" data-i="${i}"
+        style="width:${(r.boek / max * 100).toFixed(1)}%;background:${aan ? RAMP[i] : "var(--dim)"}"></span></span>
+      <span class="bar-val">${r.boek}</span>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".bar-fill").forEach((el) => {
+    const r = per[+el.dataset.i];
+    const conv = r.bereik ? (r.boek / r.bereik * 100).toFixed(2) : "0";
+    bindTip(el, `<b>${r.naam}</b><br>${r.boek} boekingen uit ${r.n} uiting${r.n === 1 ? "" : "en"}<br>
+      ${num(r.bereik)} bereik · ${r.kliks} doorkliks<br>${conv}% van het bereik boekt`);
+  });
+
+  // De noot noemt het kanaal met de hoogste conversie, gerekend en niet vast.
+  const beste = [...per].filter((r) => r.bereik > 0)
+    .sort((a, b) => b.boek / b.bereik - a.boek / a.bereik)[0];
+  note.style.display = "";
+  note.innerHTML = beste
+    ? `<b>${beste.naam}</b> heeft de hoogste conversie: ${beste.boek} boekingen uit
+       ${num(beste.bereik)} bereik, dat is ${(beste.boek / beste.bereik * 100).toFixed(2)}%.`
+    : "";
+}
+
+// ============================================================
+// 3. Budget: donut bij 2 of meer posten, een stat tile bij één, en
+//    een uitleg bij nul. Een cirkel met één punt is geen diagram.
+// ============================================================
+function renderBudget(rows) {
+  const posten = KANALEN.map((k) => {
+    const rs = rows.filter((r) => r.ch === k.key && r.paid);
+    return { ...k, budget: som(rs, "budget"), boek: som(rs, "boek") };
+  }).filter((p) => p.budget > 0).sort((a, b) => b.budget - a.budget);
+  const totaal = som(posten, "budget");
+  const body = document.getElementById("budget-body");
+  const sub = document.getElementById("budget-sub");
+
+  if (!posten.length) {
+    sub.textContent = "Verdeling van je advertentiebudget.";
+    body.innerHTML = `<p class="empty">Geen betaalde uitingen in deze selectie.<br>
+      Alle boekingen hier komen uit vrij bereik.</p>`;
+    return;
+  }
+
+  if (posten.length === 1) {
+    const p = posten[0];
+    sub.textContent = "Eén betaald kanaal in deze selectie.";
+    body.innerHTML = `<div style="padding:12px 2px 6px">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
+          Besteed op ${p.naam}</div>
+        <div style="font-size:40px;font-weight:700;letter-spacing:-0.02em;line-height:1.1">${eur(p.budget)}</div>
+        <div style="font-size:13px;color:var(--text-soft);margin-top:6px">
+          ${p.boek} boekingen${p.boek ? " · " + eur2(p.budget / p.boek) + " per boeking" : ""}</div>
+      </div>`;
+    return;
+  }
+
+  sub.textContent = `Verdeling van ${eur(totaal)} over ${posten.length} kanalen.`;
+  const R = 66, SW = 22, C = 88, circ = 2 * Math.PI * R;
+  let offset = 0;
+  let parts = `<circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="var(--hair)" stroke-width="${SW}"/>`;
+  posten.forEach((p, i) => {
+    const frac = p.budget / totaal;
+    // 2px oppervlak-gat tussen segmenten i.p.v. een randje eromheen.
+    const len = Math.max(0, circ * frac - 3);
+    parts += `<circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="${RAMP[i]}"
+      stroke-width="${SW}" stroke-dasharray="${len} ${circ - len}"
+      stroke-dashoffset="${-offset}" transform="rotate(-90 ${C} ${C})" data-i="${i}"/>`;
+    offset += circ * frac;
+  });
+  parts += `<text x="${C}" y="${C - 4}" text-anchor="middle" font-size="21" font-weight="700"
+      fill="var(--text)">${eur(totaal)}</text>
+    <text x="${C}" y="${C + 14}" text-anchor="middle" font-size="11" fill="var(--text-muted)">besteed</text>`;
+
+  body.innerHTML = `<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <svg width="176" height="176" viewBox="0 0 176 176" role="img"
+        aria-label="Budgetverdeling per kanaal">${parts}</svg>
+      <div style="flex:1;min-width:150px;display:flex;flex-direction:column;gap:9px">
+        ${posten.map((p, i) => `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <i class="swatch" style="background:${RAMP[i]}"></i>
+          <span style="flex:1">${p.naam}</span>
+          <b style="font-variant-numeric:tabular-nums">${eur(p.budget)}</b>
+          <span style="color:var(--text-muted);width:34px;text-align:right">${Math.round(p.budget / totaal * 100)}%</span>
+        </div>`).join("")}
+      </div>
+    </div>`;
+
+  body.querySelectorAll("circle[data-i]").forEach((el) => {
+    const p = posten[+el.dataset.i];
+    bindTip(el, `<b>${p.naam}</b><br>${eur(p.budget)} budget · ${p.boek} boekingen<br>
+      ${p.boek ? eur2(p.budget / p.boek) + " per boeking" : "nog geen boekingen"}`);
+  });
+}
+
+// ============================================================
+// 4. Organisch vs betaald — deel-van-geheel per kanaal, dus een
+//    gestapelde staaf. Twee klassen die identiteit dragen, dus een
+//    legenda plus labels in de segmenten waar ze passen.
+// ============================================================
+function renderSplit(rows) {
+  const per = KANALEN.map((k) => {
+    const rs = rows.filter((r) => r.ch === k.key);
+    return {
+      ...k,
+      boek: som(rs, "boek"),
+      org: som(rs.filter((r) => !r.paid), "boek"),
+      paid: som(rs.filter((r) => r.paid), "boek"),
+      budget: som(rs.filter((r) => r.paid), "budget"),
+    };
+  }).filter((k) => k.boek > 0).sort((a, b) => b.boek - a.boek);
+
+  const box = document.getElementById("bars-split");
+  const note = document.getElementById("split-note");
+  if (!per.length) {
+    box.innerHTML = `<p class="empty">Geen uitingen in deze selectie.</p>`;
+    note.style.display = "none"; return;
+  }
+
+  const max = Math.max(...per.map((r) => r.boek), 1);
+  box.innerHTML = per.map((r, i) => {
+    const w = (r.boek / max * 100).toFixed(1);
+    const o = (r.org / r.boek * 100).toFixed(1);
+    const p = (r.paid / r.boek * 100).toFixed(1);
+    return `<div class="bar-row">
+      <span class="bar-lbl"><i class="ch-ic" style="background:${r.kleur}"></i>${r.naam}</span>
+      <span class="bar-track" style="background:transparent">
+        <span class="stack" style="width:${w}%">
+          ${r.org ? `<i style="width:${o}%;background:var(--organic)" data-k="${i}" data-t="org"><span class="seg-lbl">${r.org}</span></i>` : ""}
+          ${r.paid ? `<i style="width:${p}%;background:var(--paid)" data-k="${i}" data-t="paid"><span class="seg-lbl">${r.paid}</span></i>` : ""}
+        </span>
+      </span>
+      <span class="bar-val">${r.boek}</span>
+    </div>`;
+  }).join("");
+
+  // Een label dat niet met marge in z'n segment past gaat eruit; de waarde
+  // blijft leesbaar via de tooltip, het rij-totaal en de tabel.
+  box.querySelectorAll(".seg-lbl").forEach((lbl) => {
+    if (lbl.parentElement.getBoundingClientRect().width < 26) lbl.remove();
+  });
+  box.querySelectorAll(".stack i").forEach((el) => {
+    const r = per[+el.dataset.k];
+    bindTip(el, el.dataset.t === "paid"
+      ? `<b>${r.naam} · betaald</b><br>${r.paid} boekingen · ${eur(r.budget)} budget<br>
+         ${eur2(r.budget / r.paid)} per boeking`
+      : `<b>${r.naam} · organisch</b><br>${r.org} boekingen · geen budget`);
+  });
+
+  const tOrg = som(per, "org"), tPaid = som(per, "paid"), tBud = som(per, "budget");
+  note.style.display = "";
+  note.innerHTML = tPaid && tOrg
+    ? `Betaald bereik levert <b>${tPaid} van de ${tOrg + tPaid} boekingen</b> op met
+       ${eur(tBud)} budget. Organisch doet de rest gratis, maar groeit langzamer.`
+    : tPaid
+      ? `Alle <b>${tPaid} boekingen</b> in deze selectie komen uit betaald bereik, met ${eur(tBud)} budget.`
+      : `Alle <b>${tOrg} boekingen</b> in deze selectie komen uit vrij bereik, zonder budget.`;
+}
+
+// ============================================================
+// 5. Verloop: één reeks over tijd, dus een vlak in de merkkleur met
+//    een 2px lijn. Bucket-grootte volgt de periode: dagen bij 7,
+//    weken bij 30 en 90.
+// ============================================================
+function renderTrend(rows, grens) {
+  const perDag = state.dagen === 7;
+  const stap = perDag ? 1 : 7;
+  const n = Math.round(state.dagen / stap);
+  const buckets = Array.from({ length: n }, (_, i) => {
+    const van = new Date(grens.getTime() + i * stap * 864e5);
+    const tot = new Date(van.getTime() + stap * 864e5);
+    const rs = rows.filter((r) => r.dt >= van && r.dt < tot);
+    return { van, boek: som(rs, "boek"), n: rs.length };
+  });
+
+  document.getElementById("trend-sub").textContent = perDag
+    ? "Boekingen per dag over de laatste 7 dagen."
+    : `Boekingen per week over de laatste ${state.dagen} dagen.`;
+
+  const svg = document.getElementById("trend");
+  const W = 1040, H = 220, PL = 44, PR = 16, PT = 16, PB = 34;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  // Bovengrens altijd deelbaar door 4, zodat de ticks hele getallen zijn.
+  const max = Math.max(4, Math.ceil(Math.max(...buckets.map((b) => b.boek)) / 4) * 4);
+  const x = (i) => (n === 1 ? PL + iw / 2 : PL + (iw / (n - 1)) * i);
+  const y = (v) => PT + ih - (v / max) * ih;
+
+  let g = "";
+  // Rasterlijnen: doorlopende haarlijnen, nooit gestreept.
+  for (let t = 0; t <= 4; t++) {
+    const v = (max / 4) * t;
+    g += `<line x1="${PL}" x2="${W - PR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/>
+      <text x="${PL - 10}" y="${y(v) + 4}" text-anchor="end" font-size="11"
+        fill="var(--text-muted)" style="font-variant-numeric:tabular-nums">${v}</text>`;
+  }
+  if (n > 1) {
+    const pts = buckets.map((b, i) => `${x(i)},${y(b.boek)}`).join(" ");
+    g += `<polygon points="${pts} ${x(n - 1)},${y(0)} ${x(0)},${y(0)}" fill="var(--organic)" opacity="0.13"/>`;
+    g += `<polyline points="${pts}" fill="none" stroke="var(--organic)" stroke-width="2"
+      stroke-linejoin="round" stroke-linecap="round"/>`;
+    // Alleen de piek en het eindpunt krijgen een marker met label.
+    const piek = buckets.reduce((b, c, i) => (c.boek > buckets[b].boek ? i : b), 0);
+    [...new Set([piek, n - 1])].forEach((i) => {
+      g += `<circle cx="${x(i)}" cy="${y(buckets[i].boek)}" r="4.5" fill="var(--organic)"
+          stroke="var(--white)" stroke-width="2"/>
+        <text x="${x(i)}" y="${y(buckets[i].boek) - 12}" text-anchor="middle" font-size="12"
+          font-weight="700" fill="var(--text)">${buckets[i].boek}</text>`;
+    });
+  } else {
+    g += `<circle cx="${x(0)}" cy="${y(buckets[0].boek)}" r="5" fill="var(--organic)"/>`;
+  }
+  // De assebalk hoort binnen de container, anders krijgt de kaart een scrollbar.
+  g += `<line x1="${PL}" x2="${W - PR}" y1="${y(0)}" y2="${y(0)}" stroke="var(--axis)" stroke-width="1"/>`;
+  const skip = n > 8 ? 2 : 1;
+  buckets.forEach((b, i) => {
+    if (i % skip !== 0 && i !== n - 1) return;
+    g += `<text x="${x(i)}" y="${H - 12}" text-anchor="middle" font-size="11"
+      fill="var(--text-muted)">${dm(b.van)}</text>`;
+  });
+  // Hitzones, ruim genoeg om te raken.
+  buckets.forEach((b, i) => {
+    const bw = n === 1 ? iw : iw / (n - 1);
+    g += `<rect x="${x(i) - bw / 2}" y="${PT}" width="${bw}" height="${ih}" fill="transparent" data-b="${i}"/>`;
+  });
+  svg.innerHTML = g;
+  svg.querySelectorAll("rect[data-b]").forEach((el) => {
+    const b = buckets[+el.dataset.b];
+    bindTip(el, `<b>${perDag ? dm(b.van) : "Week van " + dm(b.van)}</b><br>
+      ${b.boek} boekingen · ${b.n} uiting${b.n === 1 ? "" : "en"}`);
+  });
+}
+
+// ============================================================
+// 6. Score-strip + de eerlijkheidsnoot over de score-basis.
+// ============================================================
+function renderScores(rows) {
+  const groepen = [
+    { k: "sterk", ...OORDEEL.sterk },
+    { k: "gemiddeld", ...OORDEEL.gemiddeld },
+    { k: "onder", ...OORDEEL.onder },
+    { k: null, ...OORDEEL.geen },
+  ];
+  document.getElementById("scores").innerHTML = groepen.map((g) => `
+    <div class="score">
+      <div class="s-top"><i class="dot" style="background:${g.kleur}"></i> ${g.label}</div>
+      <div class="s-n">${rows.filter((r) => r.oordeel === g.k).length}</div>
+    </div>`).join("");
+
+  const gescoord = rows.filter((r) => r.oordeel !== null);
+  const opConversie = gescoord.filter((r) => r.basis === "conversie").length;
+  const note = document.getElementById("score-note");
+  note.innerHTML = !gescoord.length
+    ? `Nog geen uiting in deze selectie is <b>14 dagen oud</b>, dus er is nog niets
+       beoordeeld. Dat is het meet-window.`
+    : `Bij <b>${opConversie} van de ${gescoord.length}</b> beoordeelde uitingen is de score
+       gebaseerd op boekingen ten opzichte van je eigen gemiddelde, omdat het platform het
+       bereik nog niet doorgeeft. Zodra die cijfers binnenkomen rekent Filly met bereik,
+       doorkliks én boekingen.`;
+}
+
+// ============================================================
+// 7. Tabel — alle cijfers, en tegelijk de opvang voor de kleuren die
+//    op wit onder 3:1 contrast zitten.
+// ============================================================
+function renderTable(rows) {
+  document.getElementById("tbl-sub").textContent =
+    `Alle cijfers achter de grafieken. ${rows.length} uiting${rows.length === 1 ? "" : "en"} in deze selectie.`;
+  const tb = document.getElementById("tbody");
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="11"><p class="empty">Geen uitingen in deze selectie.</p></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map((u) => {
+    const c = K[u.ch];
+    const o = u.oordeel ? OORDEEL[u.oordeel] : OORDEEL.geen;
+    return `<tr>
+      <td>${u.naam}</td>
+      <td><span class="ch"><i class="ch-ic" style="background:${c.kleur}"></i>${c.naam}</span></td>
+      <td>${dm(u.dt)}</td>
+      <td><span class="pill">
+        <i class="swatch" style="background:${u.paid ? "var(--paid)" : "var(--organic)"}"></i>
+        ${u.paid ? "Betaald" : "Organisch"}</span></td>
+      <td class="num">${num(u.bereik)}</td>
+      <td class="num">${u.kliks}</td>
+      <td class="num"><b>${u.boek}</b></td>
+      <td class="num">${eur(u.omzet)}</td>
+      <td class="num">${u.budget ? eur(u.budget) : "—"}</td>
+      <td class="num">${u.budget && u.boek ? eur2(u.budget / u.boek) : "—"}</td>
+      <td><span class="pill"><i class="dot" style="background:${o.kleur}"></i>${o.label}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+// ============================================================
+// Eén render-pass voor alles, zodat elke kaart dezelfde slice ziet.
+// ============================================================
+function render() {
+  const { periodeRows, actief, grens } = slices();
+  paintFilters();
+
+  const kanaalTxt = state.kanalen.size === 0
+    ? "alle kanalen"
+    : KANALEN.filter((k) => state.kanalen.has(k.key)).map((k) => k.naam).join(", ");
+  const soortTxt = { all: "organisch en betaald", org: "alleen organisch", paid: "alleen betaald" }[state.soort];
+  document.getElementById("fmeta").innerHTML =
+    `<b>${actief.length}</b> uiting${actief.length === 1 ? "" : "en"} ·
+     ${dm(grens)} t/m ${dm(TODAY)} · ${kanaalTxt} · ${soortTxt}`;
+
+  renderKpis(actief);
+  renderPerChannel(periodeRows);
+  renderBudget(actief);
+  renderSplit(actief);
+  renderTrend(actief, grens);
+  renderScores(actief);
+  renderTable(actief);
+}
+
+render();
+</script>
+</body>
+</html>

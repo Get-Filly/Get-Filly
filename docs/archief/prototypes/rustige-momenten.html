@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get-Filly prototype — rustige momenten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #FAF7F1; --surface: #EFE8D8; --white: #FFFFFF;
+    --brand: #1F4A2D; --brand-deep: #0E2B17; --brand-soft: #D6E0D8;
+    --copper: #D97F3C; --border: #E5DFD0;
+    --text: #18181B; --text-soft: #52525B; --text-muted: #71717A;
+    --success: #16A34A; --success-soft: #EAF6EE; --warning: #F97316; --danger: #DC2626;
+    --r: 8px; --r-lg: 12px; --r-sm: 6px;
+    --grid-line: #EDE6D6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14170F; --surface: #1E241A; --white: #1A1F16;
+      --brand: #4E8C63; --brand-deep: #8FBB9E; --brand-soft: #24301F;
+      --border: #2C3325; --grid-line: #262D20;
+      --text: #ECEAE0; --text-soft: #B7BAAB; --text-muted: #8B9080;
+      --success-soft: #1C2A1E;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 80px; }
+  .title { font-size: 26px; font-weight: 700; letter-spacing: -0.4px; margin: 4px 0 2px; }
+  .subtitle { font-size: 15px; color: var(--text-soft); margin: 0 0 20px; max-width: 760px; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--brand); }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 22px; overflow: hidden; }
+  .card-head { padding: 18px 22px 6px; }
+  .card-title { font-size: 16px; font-weight: 600; }
+  .card-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .card-body { padding: 14px 22px 22px; }
+
+  .cols { display: grid; grid-template-columns: 1fr; gap: 22px; }
+  @media (min-width: 940px) { .cols { grid-template-columns: 1.15fr .85fr; align-items: start; } }
+
+  /* sliders */
+  .controls { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 720px) { .controls { grid-template-columns: repeat(3, 1fr); } }
+  .ctrl label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .ctrl .hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; min-height: 32px; }
+  .ctrl input[type=range] { width: 100%; accent-color: var(--brand); }
+  .ctrl .val { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--brand); }
+
+  /* heatmap */
+  table.grid { width: 100%; border-collapse: separate; border-spacing: 4px; }
+  table.grid th { font-size: 11.5px; font-weight: 600; color: var(--text-muted); padding: 2px; text-align: center; }
+  table.grid th.rowh { text-align: right; padding-right: 8px; width: 78px; }
+  .cell { border-radius: 7px; padding: 8px 4px 7px; text-align: center; position: relative; cursor: default; border: 1px solid transparent; }
+  .cell .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cell .d { font-size: 10.5px; font-variant-numeric: tabular-nums; margin-top: 1px; opacity: .85; }
+  .cell.na { background: repeating-linear-gradient(45deg, var(--surface), var(--surface) 6px, transparent 6px, transparent 12px); }
+  .cell.na .v { color: var(--text-muted); font-weight: 500; font-size: 12px; }
+  .cell.kans { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+  .cell.kans::after { content: "kans"; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: var(--brand); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 999px; letter-spacing: .3px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--text-soft); align-items: center; }
+  .swatch { display: inline-block; width: 26px; height: 12px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+
+  /* factor tables */
+  details.facs { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.facs summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--brand); }
+  .factab { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .factab th, .factab td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid-line); font-variant-numeric: tabular-nums; }
+  .factab th { color: var(--text-muted); font-weight: 500; }
+  .factab td.f { font-weight: 700; color: var(--brand); }
+
+  /* opportunities */
+  .opp { border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; margin-bottom: 12px; background: var(--white); }
+  .opp.top { border-color: var(--brand); background: var(--success-soft); }
+  .opp-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .opp-when { font-size: 15px; font-weight: 700; }
+  .opp-rank { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .opp-tone { font-size: 13px; color: var(--text-soft); margin: 3px 0 10px; }
+  .opp-metrics { display: flex; gap: 18px; margin-bottom: 12px; }
+  .metric { font-size: 12px; color: var(--text-muted); }
+  .metric b { display: block; font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .metric .bar { display: block; height: 5px; border-radius: 999px; background: var(--surface); margin-top: 6px; overflow: hidden; width: 120px; }
+  .metric .bar > i { display: block; height: 5px; border-radius: 999px; }
+  .filly { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px; font-size: 13.5px; }
+  .filly .fh { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--brand-deep); margin-bottom: 6px; }
+  .filly .dot { width: 22px; height: 22px; border-radius: 6px; background: var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; }
+  .filly .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 10px; }
+  .tag { font-size: 11.5px; font-weight: 500; padding: 3px 9px; border-radius: 999px; background: var(--white); border: 1px solid var(--border); color: var(--text-soft); }
+  .tag.on { border-color: var(--brand); background: var(--success-soft); color: var(--brand-deep); }
+  .btn { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: var(--r); border: 1px solid var(--brand); background: var(--brand); color: #fff; cursor: pointer; }
+  .btn:hover { background: var(--brand-deep); }
+  .empty { font-size: 13.5px; color: var(--text-muted); padding: 8px 2px; }
+
+  /* day graph */
+  .daygraph { margin-top: 8px; }
+  .dg-svg { width: 100%; height: 150px; display: block; }
+  .dg-x { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+  .note { font-size: 12px; color: var(--text-muted); margin-top: 18px; line-height: 1.6; }
+  code { background: var(--surface); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">Prototype · nog niet in de echte flow</span>
+  <h1 class="title">Rustige momenten — per dagdeel, voorspellend</h1>
+  <p class="subtitle">
+    Filly bepaalt een paar dagen vooruit welke <b>dagdelen</b> waarschijnlijk een zetje nodig hebben.
+    Niet reactief op de live-drukte, maar op het verwachte patroon. "Rustig" = het gat t.o.v. je drukste moment
+    (kan het gevuld worden?) plus hoe ongebruikelijk laag het is voor jóú (weekdag- én dagdeel-effect eruit gerekend).
+    Schuif hieronder en zie het meteen herrekenen.
+  </p>
+
+  <!-- Instellingen -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Instellingen</div>
+      <div class="card-sub">Deze bepalen wanneer een dagdeel een "kans" wordt en hoe we ranken.</div>
+    </div>
+    <div class="card-body">
+      <div class="controls">
+        <div class="ctrl">
+          <label>Gevoeligheid poort — <span class="val" id="poortVal"></span></label>
+          <div class="hint">Minimaal gat t.o.v. je drukste moment vóór een dagdeel meetelt. Hoger = strenger, minder kansen.</div>
+          <input type="range" id="poort" min="10" max="70" step="5" value="35" />
+        </div>
+        <div class="ctrl">
+          <label>Gewicht "ongewoon" — <span class="val" id="wgtVal"></span></label>
+          <div class="hint">Hoe zwaar een ongebruikelijk lage stand meetelt in de volgorde t.o.v. puur lege stoelen.</div>
+          <input type="range" id="wgt" min="0" max="100" step="10" value="50" />
+        </div>
+        <div class="ctrl">
+          <label>Min. dekking — <span class="val" id="covVal"></span></label>
+          <div class="hint">Aantal open uren dat een dagdeel minstens moet hebben om mee te tellen (anders te dun/ruis).</div>
+          <input type="range" id="cov" min="1" max="4" step="1" value="2" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- Links: heatmap + factoren -->
+    <div class="card" style="margin:0;">
+      <div class="card-head">
+        <div class="card-title">Verwacht patroon per dagdeel</div>
+        <div class="card-sub">Gemiddelde drukte per open uur (0–100). Klein cijfer = afwijking t.o.v. wat weekdag + dagdeel samen voorspellen.</div>
+      </div>
+      <div class="card-body">
+        <div id="heat"></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:linear-gradient(90deg,#EAF6EE,#1F4A2D)"></span>rustig → druk</span>
+          <span><span class="swatch" style="background:#fff;border:1px solid var(--brand);box-shadow:0 0 0 1px var(--brand)"></span>kans in de shortlist</span>
+        </div>
+        <details class="facs">
+          <summary>Laat de berekening zien (factoren + totaal)</summary>
+          <div id="facs"></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- Rechts: kansen -->
+    <div class="card" style="margin:0;">
+      <div class="card-head">
+        <div class="card-title">Kansen — komende 14 dagen</div>
+        <div class="card-sub">Gerangschikt, gecapt op de sterkste. Elk met Filly's voorstel per moment.</div>
+      </div>
+      <div class="card-body">
+        <div id="opps"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dag-grafiek -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title" id="dgTitle">Op de grafiek — klik een dagdeel</div>
+      <div class="card-sub">Zo koppelt het aan het dashboard: het rustige dagdeel is gearceerd en klikbaar → opent Filly's flow voor precies dat moment.</div>
+    </div>
+    <div class="card-body">
+      <div class="daygraph">
+        <svg class="dg-svg" id="dgSvg" viewBox="0 0 100 50" preserveAspectRatio="none"></svg>
+        <div class="dg-x" id="dgX"></div>
+      </div>
+      <p class="note" id="dgNote"></p>
+    </div>
+  </div>
+
+  <p class="note">
+    Model: cel = gemiddelde per open uur · weekdagfactor = dag-gem ÷ totaal · dagdeelfactor = dagdeel-gem ÷ totaal ·
+    voorspeld = totaal × weekdagfactor × dagdeelfactor · <b>afwijking = werkelijk − voorspeld</b> (opvallendheid) ·
+    <b>gat = piek − cel</b> (vulbaarheid, de poort). Data hieronder is demo; in het echt komt het patroon uit Google via Apify.
+  </p>
+</div>
+
+<script>
+// ============================================================
+// Demo-data: 7 dagen × 24 uur verwacht patroon (0-100).
+// Zaak open 11:00–23:00. Donderdagmiddag heeft een bewuste dip.
+// ============================================================
+const DAYS = ["Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag","Zondag"];
+const SHORT = ["ma","di","wo","do","vr","za","zo"];
+const OPEN = 11, CLOSE = 23; // open-uren = 11..22
+const weekdayBase = [42, 44, 48, 49, 60, 68, 55]; // ma..zo overall
+// relatieve vorm over uren 11..22 (lunchpiek + dinerpiek + rustige middag)
+const shape = { 11:0.70,12:0.95,13:1.10, 14:0.80,15:0.62,16:0.70, 17:1.15,18:1.45,19:1.60,20:1.50, 21:1.10,22:0.80 };
+const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
+
+const pattern = DAYS.map((_, d) => {
+  const row = new Array(24).fill(0);
+  for (let h = OPEN; h < CLOSE; h++) {
+    let v = weekdayBase[d] * (shape[h] ?? 0);
+    if (d === 3 && h >= 14 && h < 17) v *= 0.42; // donderdagmiddag ongewoon rustig
+    row[h] = clamp(v);
+  }
+  return row;
+});
+
+const DAYPARTS = [
+  { key:"ochtend", label:"Ochtend", from:6,  to:11 },
+  { key:"lunch",   label:"Lunch",   from:11, to:14 },
+  { key:"middag",  label:"Middag",  from:14, to:17 },
+  { key:"diner",   label:"Diner",   from:17, to:21 },
+  { key:"avond",   label:"Avond",   from:21, to:24 },
+];
+
+// open uren binnen een dagdeel op een dag
+function hoursOf(d, dp) {
+  const out = [];
+  for (let h = dp.from; h < dp.to; h++) if (pattern[d][h] > 0) out.push(h);
+  return out;
+}
+
+// ---- kern van het model ----
+function computeModel(minCoverage) {
+  // cel = gem per open uur; null als onder min-dekking
+  const cell = {}, count = {};
+  DAYS.forEach((_, d) => {
+    DAYPARTS.forEach(dp => {
+      const hrs = hoursOf(d, dp);
+      const key = d + "|" + dp.key;
+      if (hrs.length < minCoverage) { cell[key] = null; count[key] = hrs.length; return; }
+      cell[key] = hrs.reduce((a,h)=>a+pattern[d][h],0) / hrs.length;
+      count[key] = hrs.length;
+    });
+  });
+  // hour-weighted rij/kolom/totaal (per open uur)
+  const rowSum = {}, rowN = {}, colSum = {}, colN = {}; let gSum = 0, gN = 0;
+  DAYS.forEach((_, d) => {
+    DAYPARTS.forEach(dp => {
+      const key = d + "|" + dp.key;
+      if (cell[key] === null) return;
+      const hrs = hoursOf(d, dp), s = hrs.reduce((a,h)=>a+pattern[d][h],0), n = hrs.length;
+      rowSum[d] = (rowSum[d]||0)+s; rowN[d] = (rowN[d]||0)+n;
+      colSum[dp.key] = (colSum[dp.key]||0)+s; colN[dp.key] = (colN[dp.key]||0)+n;
+      gSum += s; gN += n;
+    });
+  });
+  const grand = gN ? gSum/gN : 0;
+  const rowAvg = {}, colAvg = {}, wf = {}, df = {};
+  DAYS.forEach((_, d) => { rowAvg[d] = rowN[d] ? rowSum[d]/rowN[d] : null; wf[d] = rowAvg[d]!=null && grand ? rowAvg[d]/grand : null; });
+  DAYPARTS.forEach(dp => { colAvg[dp.key] = colN[dp.key] ? colSum[dp.key]/colN[dp.key] : null; df[dp.key] = colAvg[dp.key]!=null && grand ? colAvg[dp.key]/grand : null; });
+
+  // afwijking + gat per cel
+  let peak = 0;
+  Object.values(cell).forEach(v => { if (v!=null && v>peak) peak = v; });
+  const dev = {}, gap = {}, pred = {};
+  DAYS.forEach((_, d) => DAYPARTS.forEach(dp => {
+    const key = d + "|" + dp.key;
+    if (cell[key] === null) { dev[key]=null; gap[key]=null; pred[key]=null; return; }
+    pred[key] = grand * wf[d] * df[dp.key];
+    dev[key] = cell[key] - pred[key];      // negatief = opvallend rustig
+    gap[key] = peak - cell[key];           // groot = vulbaar
+  }));
+  return { cell, count, rowAvg, colAvg, wf, df, grand, dev, gap, pred, peak };
+}
+
+// ---- kleur voor heatmap ----
+function heatColor(v) {
+  // 0 -> licht, 100 -> brand
+  const t = Math.max(0, Math.min(1, v/100));
+  const c0 = [234,246,238], c1 = [31,74,45];
+  const c = c0.map((a,i)=>Math.round(a + (c1[i]-a)*t));
+  const text = t > 0.5 ? "#fff" : "#18181B";
+  return { bg:`rgb(${c.join(",")})`, text };
+}
+
+// ---- Filly's inspeling per dagdeel ----
+function fillyPlan(dpKey, daysAhead, unusual) {
+  const overdag = dpKey === "ochtend" || dpKey === "lunch" || dpKey === "middag";
+  const kanaal = overdag
+    ? { on:["WhatsApp","Mail"], off:["Instagram"] }
+    : { on:["Instagram","Mail"], off:["WhatsApp"] };
+  const segment = overdag ? "Vaste gasten" : "Hele lijst";
+  const timing = overdag
+    ? "Verstuur 's ochtends (zelfde dag of dag ervoor) — last-minute werkt overdag het best."
+    : "Plaats vroeg op de dag, ruim vóór het diner.";
+  const copy = unusual
+    ? "Toon: 'ongewoon rustig' — een gerichte last-minute actie kan het verschil maken."
+    : "Toon: je vaste rustige moment — een terugkerende actie houdt het gevuld.";
+  return { kanaal, segment, timing, copy };
+}
+
+// ============================================================
+// Render
+// ============================================================
+let selected = { d: 3, dp: "middag" }; // default: donderdagmiddag
+
+function fmtDev(x){ return (x>=0?"+":"−") + Math.abs(x).toFixed(1); }
+
+function render() {
+  const poort = +document.getElementById("poort").value;
+  const wgt = +document.getElementById("wgt").value;
+  const cov = +document.getElementById("cov").value;
+  document.getElementById("poortVal").textContent = poort + " punten";
+  document.getElementById("wgtVal").textContent = wgt + "%";
+  document.getElementById("covVal").textContent = cov + (cov===1?" uur":" uur");
+
+  const m = computeModel(cov);
+
+  // ---- kansen komende 14 dagen (eerst, zodat de heatmap dezelfde shortlist markeert) ----
+  const today = new Date();
+  const cand = [];
+  for (let i = 1; i <= 14; i++) {
+    const dt = new Date(today); dt.setDate(today.getDate()+i);
+    const d = (dt.getDay()+6)%7; // 0=ma
+    DAYPARTS.forEach(dp => {
+      const key = d + "|" + dp.key;
+      if (m.cell[key] === null) return;
+      if (m.gap[key] < poort) return;                 // poort: genoeg te vullen?
+      const shortfall = Math.max(0, -m.dev[key]);      // hoe ongewoon rustig
+      const k = wgt/50;                                // 0..2
+      const score = m.gap[key] + k*shortfall;
+      cand.push({ date: dt, d, dp, gap:m.gap[key], shortfall, dev:m.dev[key], score, i });
+    });
+  }
+  cand.sort((a,b) => b.score - a.score);
+  const seen = new Set(), ranked = [];
+  for (const c of cand) { const k = c.d+"|"+c.dp.key; if (seen.has(k)) continue; seen.add(k); ranked.push(c); }
+  const TOP = ranked.slice(0, 4);
+  const topKeys = new Set(TOP.map(c => c.d + "|" + c.dp.key));
+
+  // ---- heatmap ----
+  let h = '<table class="grid"><thead><tr><th class="rowh"></th>';
+  DAYPARTS.forEach(dp => h += `<th>${dp.label}</th>`);
+  h += "</tr></thead><tbody>";
+  DAYS.forEach((day, d) => {
+    h += `<tr><th class="rowh">${day}</th>`;
+    DAYPARTS.forEach(dp => {
+      const key = d + "|" + dp.key;
+      const v = m.cell[key];
+      if (v === null) { h += `<td><div class="cell na"><span class="v">—</span></div></td>`; return; }
+      const isKans = topKeys.has(key);
+      const col = heatColor(v);
+      h += `<td><div class="cell${isKans?" kans":""}" style="background:${col.bg};color:${col.text}"
+              data-d="${d}" data-dp="${dp.key}" title="${day} ${dp.label}: ${Math.round(v)} · afwijking ${fmtDev(m.dev[key])}">
+              <div class="v">${Math.round(v)}</div>
+              <div class="d">${fmtDev(m.dev[key])}</div></div></td>`;
+    });
+    h += "</tr>";
+  });
+  h += "</tbody></table>";
+  document.getElementById("heat").innerHTML = h;
+
+  // klik op cel → grafiek
+  document.querySelectorAll(".cell[data-d]").forEach(el => {
+    el.style.cursor = "pointer";
+    el.onclick = () => { selected = { d:+el.dataset.d, dp: el.dataset.dp }; render(); };
+  });
+
+  // ---- factoren ----
+  let f = '<table class="factab"><tr><th>Weekdag</th><th>dag-gem</th><th>factor</th></tr>';
+  DAYS.forEach((day,d) => { if (m.wf[d]==null) return;
+    f += `<tr><td>${day}</td><td>${m.rowAvg[d].toFixed(1)}</td><td class="f">${m.wf[d].toFixed(2)}</td></tr>`; });
+  f += `</table><table class="factab" style="margin-top:14px"><tr><th>Dagdeel</th><th>dagdeel-gem</th><th>factor</th></tr>`;
+  DAYPARTS.forEach(dp => { if (m.df[dp.key]==null) return;
+    f += `<tr><td>${dp.label}</td><td>${m.colAvg[dp.key].toFixed(1)}</td><td class="f">${m.df[dp.key].toFixed(2)}</td></tr>`; });
+  f += `</table><p class="note">Totaal-gemiddelde (de middenlijn): <b>${m.grand.toFixed(1)}</b> · drukste moment (piek): <b>${Math.round(m.peak)}</b></p>`;
+  document.getElementById("facs").innerHTML = f;
+
+  // ---- kansen komende 14 dagen (TOP al hierboven berekend) ----
+  const fmtDate = dt => dt.toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" });
+  let o = "";
+  if (TOP.length === 0) {
+    o = `<div class="empty">Geen kansen bij deze instellingen — de komende dagen zitten allemaal rond of boven verwachting. Zet de poort soepeler om er meer te zien.</div>`;
+  }
+  TOP.forEach((c, idx) => {
+    const unusual = c.shortfall >= 4;
+    const plan = fillyPlan(c.dp.key, c.i, unusual);
+    const gapPct = Math.min(100, Math.round(c.gap/Math.max(1,m.peak)*100));
+    const devPct = Math.min(100, Math.round(c.shortfall/15*100));
+    o += `<div class="opp${idx===0?" top":""}">
+      <div class="opp-h">
+        <span class="opp-when">${fmtDate(c.date)} — ${c.dp.label.toLowerCase()}</span>
+        <span class="opp-rank">#${idx+1}${idx===0?" · sterkste":""}</span>
+      </div>
+      <div class="opp-tone">${unusual ? "Ongewoon rustig voor jou (" + fmtDev(c.dev) + " onder verwachting)." : "Je vaste rustige moment (rond verwachting)."}</div>
+      <div class="opp-metrics">
+        <div class="metric">Vulbaarheid<b>${Math.round(c.gap)}</b><span class="bar"><i style="width:${gapPct}%;background:var(--brand)"></i></span></div>
+        <div class="metric">Opvallendheid<b>${c.shortfall>0?fmtDev(c.dev):"—"}</b><span class="bar"><i style="width:${devPct}%;background:var(--copper)"></i></span></div>
+      </div>
+      <div class="filly">
+        <div class="fh"><span class="dot">F</span> Filly's voorstel</div>
+        <div>${plan.copy}</div>
+        <div class="tags">
+          ${plan.kanaal.on.map(k=>`<span class="tag on">✓ ${k}</span>`).join("")}
+          ${plan.kanaal.off.map(k=>`<span class="tag">${k}</span>`).join("")}
+          <span class="tag">Segment: ${plan.segment}</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px">${plan.timing}</div>
+        <button class="btn" onclick="alert('In het echt: opent Filly\\'s geleide flow voor ${fmtDate(c.date)} — ${c.dp.label.toLowerCase()}, met kanalen al voorgevinkt.')">Maak campagne</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById("opps").innerHTML = o;
+
+  renderDayGraph(m);
+}
+
+function renderDayGraph(m) {
+  const d = selected.d;
+  const dp = DAYPARTS.find(x => x.key === selected.dp);
+  document.getElementById("dgTitle").textContent = `${DAYS[d]} — uurverloop`;
+  const hrs = [];
+  for (let hh = OPEN; hh < CLOSE; hh++) hrs.push(hh);
+  const N = hrs.length;
+  const X = i => (i/(N-1))*100;
+  const Y = v => 48 - (v/100)*44;
+  const pts = hrs.map((hh,i)=>`${X(i).toFixed(1)},${Y(pattern[d][hh]).toFixed(1)}`).join(" ");
+  // band voor het geselecteerde dagdeel
+  const inDp = hrs.map((hh,i)=>({hh,i})).filter(o => o.hh>=dp.from && o.hh<dp.to && pattern[d][o.hh]>0);
+  let band = "";
+  if (inDp.length) {
+    const x0 = X(inDp[0].i), x1 = X(inDp[inDp.length-1].i);
+    band = `<rect x="${x0}" y="0" width="${x1-x0}" height="48" fill="var(--brand-soft)" opacity="0.7"/>`;
+  }
+  document.getElementById("dgSvg").innerHTML =
+    band +
+    `<polyline points="${pts}" fill="none" stroke="var(--brand)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+  let xl = "";
+  for (let i=0;i<N;i+=2) xl += `<span>${String(hrs[i]).padStart(2,"0")}:00</span>`;
+  document.getElementById("dgX").innerHTML = xl;
+
+  const key = d + "|" + dp.key;
+  const dev = m.dev[key];
+  let note;
+  if (m.cell[key]==null) note = `${dp.label} telt hier niet mee (te weinig open uren bij de huidige min-dekking).`;
+  else if (dev < -4) note = `${DAYS[d]} ${dp.label.toLowerCase()} is ${fmtDev(dev)} onder verwachting — ongewoon rustig. Dit is precies het soort moment dat Filly vooruit oppakt.`;
+  else if (dev > 4) note = `${DAYS[d]} ${dp.label.toLowerCase()} is juist ${fmtDev(dev)} boven verwachting — druk, geen actie nodig.`;
+  else note = `${DAYS[d]} ${dp.label.toLowerCase()} zit rond verwachting — gewoon, geen vals alarm.`;
+  document.getElementById("dgNote").textContent = note;
+}
+
+["poort","wgt","cov"].forEach(id => document.getElementById(id).addEventListener("input", render));
+render();
+</script>
+</body>
+</html>

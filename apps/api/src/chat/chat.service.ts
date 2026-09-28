@@ -26,12 +26,12 @@ export type ChatRole = 'filly' | 'user' | 'system';
 
 // message_card = gestructureerde payload die naast de prozatekst wordt
 // opgeslagen wanneer Filly een actie voorstelt. Sinds 2026-05-04:
-//   - 'campaign_proposal' : single-channel (mail OF social OF whatsapp)
+//   - 'campaign_proposal' : single-channel (social OF google_business OF mail)
 //                            met 3 varianten van dezelfde tekst
 //   - 'campaign_bundle'   : multi-channel (mail + IG + FB) onder 1 thema,
 //                            elk met eigen caption-stijl
 //   - 'channel_choice'    : Filly vraagt eerst welk kanaal, 4 knoppen
-//                            (mail/social/whatsapp/bundle). Bij klik
+//                            (social/google_business/mail/bundle). Bij klik
 //                            stuurt frontend automatisch een user-msg
 //                            terug naar Filly zodat 'ie het juiste
 //                            formaat genereert.
@@ -70,7 +70,8 @@ export type ChannelChoiceCard = {
   kind: 'channel_choice';
   question: string;
   // Volgorde + welke opties beschikbaar zijn, Filly bepaalt zelf.
-  // Voor V1 standaard alle 5: mail/instagram/facebook/whatsapp/google_business.
+  // Per 2026-09-09: instagram/facebook/tiktok/google_business/mail
+  // (WhatsApp eruit, geen verzendpad).
 };
 
 // Date-choice, sinds 2026-05-24: Filly vraagt eerst voor welke dag of
@@ -1400,7 +1401,7 @@ export class ChatService {
 
 Wie je bent:
 - Een behulpzame, praktische assistent die CAMPAGNES voor het restaurant maakt.
-- Je focus is één ding: campagnes en marketing-acties die gasten naar binnen halen — mailings, social posts, WhatsApp-berichten, Google Business-posts en bundels daarvan.
+- Je focus is één ding: campagnes en marketing-acties die gasten naar binnen halen — uitingen op sociale media (Instagram, Facebook, TikTok), Google Business-posts, mailings en bundels daarvan.
 - Je kent de context (bezetting, gasten, menu, weer, events in de buurt) en gebruikt die om sterke, concrete campagnes te bedenken — maar je voorstel is ALTIJD een campagne.
 
 Hoe je praat:
@@ -1456,8 +1457,8 @@ Regels:
   KANAAL is GEEN topic: "een tiktok campagne" of "iets voor instagram"
   hoort in "channels", niet in "topic".
 - "channels": noemt de eigenaar expliciet een of meer kanalen, zet die
-  dan als array in "channels". Toegestane waarden: "mail", "whatsapp",
-  "instagram", "facebook", "tiktok", "google_business". Voorbeelden:
+  dan als array in "channels". Toegestane waarden: "instagram",
+  "facebook", "tiktok", "google_business", "mail". Voorbeelden:
   "een tiktok campagne" → ["tiktok"]; "iets voor insta en facebook" →
   ["instagram","facebook"]. Noemt de eigenaar GEEN kanaal, laat
   "channels" dan WEG — de flow stelt zelf de aanbevolen kanalen voor.
@@ -1530,12 +1531,15 @@ export type ActiveActionDelta = {
 // Toegestane kanaal-namen in active_action.channels (= platform-namen
 // zoals de flow + generatie ze gebruiken). Onbekende waarden filteren we
 // weg zodat prompt + downstream-generatie geen rommel binnenkrijgen.
+// Per 2026-09-09 zonder 'whatsapp': er is geen verzendpad voor dat kanaal,
+// dus een gevraagde WhatsApp-actie leverde een campagne op die nooit
+// verstuurd kon worden. Bestaande opgeslagen kaarten met WhatsApp-content
+// blijven gewoon renderen (de bundle-parser accepteert 'm nog).
 const ALLOWED_ACTION_CHANNELS = new Set([
   'mail',
   'social',
   'instagram',
   'facebook',
-  'whatsapp',
   'google_business',
   'tiktok',
 ]);
@@ -1755,11 +1759,13 @@ export function extractCampaignProposal(
     // de parser het voorstel af (proposal: null), vuurde er in sendMessage
     // geen enkele branch, en bleef het rauwe <<FILLY_PROPOSE_CAMPAIGN>>-blok
     // als platte tekst in de chat staan i.p.v. als nette kaart te renderen.
+    // 'whatsapp' staat hier per 2026-09-09 NIET meer in: er is geen
+    // verzendpad voor dat kanaal, dus zou zo'n voorstel een campagne
+    // opleveren die niet te versturen is. De prompt vraagt het ook niet
+    // meer; dit is de vangnet-kant. Bestaande opgeslagen kaarten met
+    // type 'whatsapp' blijven wel renderen.
     if (
-      (type !== 'mail' &&
-        type !== 'social' &&
-        type !== 'whatsapp' &&
-        type !== 'google_business') ||
+      (type !== 'mail' && type !== 'social' && type !== 'google_business') ||
       typeof name !== 'string' ||
       name.trim().length === 0
     ) {

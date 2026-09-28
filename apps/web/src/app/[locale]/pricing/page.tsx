@@ -1,8 +1,9 @@
 // =============================================================================
 // PRICING-PAGINA — per 2026-05-13 herzien naar 2 pakketten (was 3):
-//   - Growth (€99)   = vindbaarheid + zichtbaarheid
-//   - Ultimate (€169) = alles van Growth + bereikbaarheid (e-mail + WhatsApp
-//                       campagnes op basis van bezettingsdata)
+//   - Growth (€99)   = vindbaarheid + organische zichtbaarheid
+//   - Ultimate (€169) = alles van Growth + uitingen op sociale media op basis
+//                       van bezettingsdata, vrij én betaald bereik (per
+//                       2026-09-09; was e-mail + WhatsApp-campagnes)
 // Floris heeft de tekst aangeleverd; tagline is nieuw veld per plan.
 //
 // I18N: de structurele data (naam, prijs, populariteit) staat hier in code;

@@ -50,7 +50,9 @@ describe('parseApifyPlace (randgevallen)', () => {
   });
 
   it('livePct null als er geen live-getal is', () => {
-    expect(parseApifyPlace({ popularTimesLivePercent: null }).livePct).toBeNull();
+    expect(
+      parseApifyPlace({ popularTimesLivePercent: null }).livePct,
+    ).toBeNull();
     expect(parseApifyPlace({}).livePct).toBeNull();
   });
 
