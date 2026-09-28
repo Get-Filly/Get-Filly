@@ -31,6 +31,13 @@ import { parseSignedRequest } from './meta-signed-request';
 
 const PROVIDER = 'meta';
 
+// De permissie die Meta vraagt voor DELETE /{ig-media-id}. Staat zo in hun
+// documentatie, maar de inlogdialoog weigerde 'm op 2026-09-28 met "Invalid
+// Scopes" — de app-configuratie moet de permissie eerst aan een use case
+// koppelen. Zolang dat niet gebeurd is zit 'ie niet in de verleende scopes
+// en heeft een delete-poging geen zin.
+const IG_DELETE_SCOPE = 'instagram_manage_contents';
+
 type MetaTokenResponse = {
   access_token: string;
   token_type?: string;
@@ -42,13 +49,20 @@ type MetaTokenResponse = {
 // op dat kanaal, dus er viel niets te verwijderen — bewust iets anders
 // dan 'deleted', want het scherm moet niet melden dat er iets weg is
 // als er nooit iets stond.
-export type MetaRetractOutcome = 'deleted' | 'failed' | 'skipped';
+// 'unavailable' = de koppeling heeft de permissie niet die Meta voor
+// verwijderen vraagt. Bewust apart van 'failed': er is niets stuk en
+// opnieuw proberen helpt niet, dus het scherm moet iets anders zeggen.
+export type MetaRetractOutcome =
+  | 'deleted'
+  | 'failed'
+  | 'skipped'
+  | 'unavailable';
 
 export type MetaRetractResult = {
   facebook: MetaRetractOutcome;
   instagram: MetaRetractOutcome;
-  /** Meta wees de verwijdering af op een ontbrekende permissie: de
-   *  eigenaar moet de koppeling opnieuw leggen (nieuwe scope). */
+  /** Meta wees de verwijdering af op een ontbrekende permissie terwijl de
+   *  app die permissie wél kan krijgen: opnieuw verbinden lost het op. */
   needsReconnect: boolean;
   errors: string[];
 };
@@ -336,11 +350,18 @@ export class MetaService {
   private async loadCredential(
     businessId: string,
     useAdmin = false,
-  ): Promise<{ token: string; meta: Record<string, unknown> }> {
+  ): Promise<{
+    token: string;
+    meta: Record<string, unknown>;
+    // Wat Meta bij het verbinden daadwerkelijk heeft toegekend. Niet
+    // hetzelfde als wat we hebben gevraagd: een permissie die de app niet
+    // mag gebruiken wordt stil weggelaten (of weigert de dialoog helemaal).
+    scopes: string[];
+  }> {
     const client = useAdmin ? this.admin.client : this.supabase.client;
     const { data, error } = await client
       .from('integration_credentials')
-      .select('access_token_encrypted, meta')
+      .select('access_token_encrypted, meta, scopes')
       .eq('business_id', businessId)
       .eq('provider', PROVIDER)
       .maybeSingle();
@@ -354,6 +375,7 @@ export class MetaService {
     return {
       token: this.crypto.decrypt(data.access_token_encrypted as string),
       meta: (data.meta ?? {}) as Record<string, unknown>,
+      scopes: (data.scopes ?? []) as string[],
     };
   }
 
@@ -831,8 +853,10 @@ export class MetaService {
     // hangen aan de gekoppelde pagina en gebruiken dezelfde token als
     // waarmee ze gepubliceerd zijn.
     let pageToken: string;
+    let grantedScopes: string[] = [];
     try {
-      const { token, meta } = await this.loadCredential(businessId);
+      const { token, meta, scopes } = await this.loadCredential(businessId);
+      grantedScopes = scopes;
       const pageId = meta.page_id as string | undefined;
       const accounts = await this.fetchAccounts(token);
       const page = accounts.find((a) => a.id === pageId);
@@ -859,12 +883,25 @@ export class MetaService {
     }
 
     if (postIds.instagram) {
-      result.instagram = await this.deleteMetaObject(
-        postIds.instagram,
-        pageToken,
-        'Instagram',
-        result,
-      );
+      // Vóór de call kijken of de permissie er überhaupt is. Meta zou 'm
+      // anders weigeren, maar dan weten we niet of het aan de koppeling
+      // ligt (opnieuw verbinden helpt) of aan de app-configuratie
+      // (opnieuw verbinden helpt niet, en dan moet het scherm dat ook
+      // niet voorstellen).
+      if (!grantedScopes.includes(IG_DELETE_SCOPE)) {
+        this.logger.warn(
+          `IG-post ${postIds.instagram} niet verwijderd: koppeling mist ` +
+            `${IG_DELETE_SCOPE}. Verleend: ${grantedScopes.join(', ') || 'niets'}`,
+        );
+        result.instagram = 'unavailable';
+      } else {
+        result.instagram = await this.deleteMetaObject(
+          postIds.instagram,
+          pageToken,
+          'Instagram',
+          result,
+        );
+      }
     }
 
     return result;

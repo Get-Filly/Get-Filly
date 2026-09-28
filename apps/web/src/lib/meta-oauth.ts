@@ -34,22 +34,41 @@ export const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION ?? "v23.0";
 //   - pages_manage_posts        : posts publiceren op de FB-pagina
 //   - instagram_basic           : het aan de pagina gekoppelde IG-account lezen
 //   - instagram_content_publish : posts publiceren op het IG-account
-//   - instagram_manage_contents : een geplaatste IG-post weer VERWIJDEREN
-//     (DELETE /{ig-media-id}). Zonder deze scope kan Instagram alleen
-//     publiceren en blijft een gestopte campagne live staan; de eigenaar
-//     moest 'm dan handmatig in de app weghalen. Let op: een koppeling
-//     die vóór 2026-09-25 is gelegd heeft deze scope NIET — die moet
-//     opnieuw verbonden worden voordat verwijderen werkt.
 //   - business_management        : Business-assets (pagina's/IG) koppelen
-export const META_SCOPES = [
+const BASIS_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_posts",
   "instagram_basic",
   "instagram_content_publish",
-  "instagram_manage_contents",
   "business_management",
 ] as const;
+
+// `instagram_manage_contents` laat ons een geplaatste IG-post weer
+// VERWIJDEREN (DELETE /{ig-media-id}). Het staat zo in Meta's eigen
+// documentatie, maar de inlogdialoog weigerde 'm op 2026-09-28 met
+// "Invalid Scopes: instagram_manage_contents" — en dat blokkeert het
+// verbinden helemaal, dus ook publiceren.
+//
+// De oorzaak zit niet in deze code maar in de app-configuratie: een
+// permissie is bij Meta gebonden aan een use case, en zolang die er niet
+// aan toegevoegd is, kent de dialoog de naam niet. Dat is een actie in
+// het App Dashboard.
+//
+// Daarom een vlag en geen vaste waarde: zonder de env-var werkt
+// verbinden gewoon (en blijft verwijderen bij Instagram achterwege),
+// met de var gaat de scope mee. Zet `META_REQUEST_IG_DELETE_SCOPE=true`
+// in de web-env zodra het dashboard de permissie accepteert; dan is dit
+// één env-wijziging en geen deploy.
+const IG_DELETE_SCOPE = "instagram_manage_contents";
+
+export function vraagtIgDeleteScope(): boolean {
+  return process.env.META_REQUEST_IG_DELETE_SCOPE === "true";
+}
+
+export const META_SCOPES: readonly string[] = vraagtIgDeleteScope()
+  ? [...BASIS_SCOPES, IG_DELETE_SCOPE]
+  : BASIS_SCOPES;
 
 // De redirect_uri leiden we af van de origin van het inkomende
 // verzoek. Zo gebruiken start + callback gegarandeerd dezelfde host

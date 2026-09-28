@@ -110,8 +110,8 @@ export type CampaignStatus = 'concept' | 'ingepland' | 'actief' | 'afgerond';
 // dus in het scherm was een gestopte campagne met een nog live post niet
 // te onderscheiden van een die echt weg was.
 export type CampaignRetractReport = {
-  facebook: 'deleted' | 'failed' | 'skipped';
-  instagram: 'deleted' | 'failed' | 'skipped';
+  facebook: 'deleted' | 'failed' | 'skipped' | 'unavailable';
+  instagram: 'deleted' | 'failed' | 'skipped' | 'unavailable';
   /** Meta wees af op een ontbrekende permissie → koppeling opnieuw leggen. */
   needsReconnect: boolean;
   /** Alleen gezet als Instagram NIET verwijderd kon worden: directe link
@@ -1648,7 +1648,8 @@ export class CampaignsService {
     // herinnering met de directe postlink, zodat de eigenaar 'm alsnog
     // zelf kan weghalen. Lukt het wel, dan is die melding niet meer
     // relevant en moet 'ie juist weg.
-    const igFailed = res?.instagram === 'failed';
+    const igFailed =
+      res?.instagram === 'failed' || res?.instagram === 'unavailable';
     const igManualUrl = igFailed
       ? (postIds.instagram_permalink ?? 'manual')
       : null;

@@ -1088,7 +1088,13 @@
       "open": "Open de post",
       "cancel": "Annuleren",
       "confirm": "Stop campagne",
-      "close": "Sluiten"
+      "close": "Sluiten",
+      "unavailable": {
+        "facebook": "Facebook-post niet verwijderd",
+        "instagram": "Instagram-post niet verwijderd"
+      },
+      "unavailableTitle": "Instagram-post staat nog live",
+      "unavailableBody": "Instagram staat verwijderen via deze koppeling nog niet toe. Haal de post zelf weg in Instagram; we werken eraan dat dit automatisch gaat."
     },
     "tooltips": {
       "finishMail": "Mail is al verstuurd, campagne afronden.",

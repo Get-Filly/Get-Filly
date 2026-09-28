@@ -20,6 +20,9 @@ function makeService(opts: {
   responses: Record<string, { ok: boolean; body: unknown }>;
   /** Koppeling stuk: loadCredential/fetchAccounts gooit. */
   brokenCredential?: boolean;
+  /** Wat Meta bij het verbinden heeft toegekend. Default: alles inclusief
+   *  de delete-permissie. */
+  scopes?: string[];
 }) {
   const calls: FetchCall[] = [];
   const service = Object.create(MetaService.prototype) as MetaService;
@@ -32,7 +35,15 @@ function makeService(opts: {
     if (opts.brokenCredential) {
       return Promise.reject(new Error('Geen Meta-koppeling voor dit restaurant'));
     }
-    return Promise.resolve({ token: 'user-token', meta: { page_id: 'page1' } });
+    return Promise.resolve({
+      token: 'user-token',
+      meta: { page_id: 'page1' },
+      scopes: opts.scopes ?? [
+        'instagram_basic',
+        'instagram_content_publish',
+        'instagram_manage_contents',
+      ],
+    });
   };
   priv.fetchAccounts = () =>
     Promise.resolve([{ id: 'page1', access_token: 'page-token' }]);
@@ -180,5 +191,45 @@ describe('MetaService.retract — post van het kanaal halen', () => {
     expect(res.instagram).toBe('failed');
     expect(res.needsReconnect).toBe(true);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('MetaService.retract — koppeling zonder delete-permissie', () => {
+  // Meta weigerde instagram_manage_contents op 2026-09-28 met "Invalid
+  // Scopes": de permissie moet in het App Dashboard aan een use case
+  // hangen. Tot dat geregeld is komt 'ie niet in de verleende scopes.
+  //
+  // Waar het om gaat: dan mag de app NIET zeggen "verbind opnieuw". Dat is
+  // een lus — opnieuw verbinden levert precies dezelfde scopes op.
+  it('probeert de IG-delete niet eens en vraagt niet om opnieuw verbinden', async () => {
+    const { service, calls } = makeService({
+      responses: { fb1: { ok: true, body: { success: true } } },
+      scopes: ['instagram_basic', 'instagram_content_publish'],
+    });
+
+    const res = await service.retract('biz1', {
+      facebook: 'fb1',
+      instagram: 'ig1',
+    });
+
+    expect(res.facebook).toBe('deleted');
+    expect(res.instagram).toBe('unavailable');
+    // Geen zinloze lus naar de koppelingen-pagina.
+    expect(res.needsReconnect).toBe(false);
+    // En geen call die toch gaat falen: alleen Facebook is aangeroepen.
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toContain('/fb1?');
+  });
+
+  it('verwijdert Instagram wél zodra de permissie er is', async () => {
+    const { service, calls } = makeService({
+      responses: { ig1: { ok: true, body: { success: true } } },
+      scopes: ['instagram_basic', 'instagram_manage_contents'],
+    });
+
+    const res = await service.retract('biz1', { instagram: 'ig1' });
+
+    expect(res.instagram).toBe('deleted');
+    expect(calls).toHaveLength(1);
   });
 });

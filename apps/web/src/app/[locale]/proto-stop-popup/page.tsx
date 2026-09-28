@@ -64,8 +64,21 @@ const GEVALLEN: Geval[] = [
     },
   },
   {
+    key: "niet-beschikbaar",
+    label: "4. Instagram mag nog niet verwijderen",
+    uitleg:
+      "Meta weigerde de permissie instagram_manage_contents op 28 september met \"Invalid Scopes\". Tot dat in het App Dashboard geregeld is, kan de koppeling Instagram niet verwijderen. Opnieuw verbinden helpt dan niet, dus dat bieden we ook niet aan; alleen de directe link naar de post.",
+    result: {
+      facebook: "deleted",
+      instagram: "unavailable",
+      needsReconnect: false,
+      instagramManualUrl: "https://www.instagram.com/p/voorbeeld/",
+      errors: [],
+    },
+  },
+  {
     key: "mislukt",
-    label: "4. Verwijderen mislukt",
+    label: "5. Verwijderen mislukt",
     uitleg:
       "Meta was onbereikbaar of gaf een fout. De campagne gaat wél naar Concept, anders kun je 'm helemaal niet meer stoppen, maar de post staat nog live. Dan is de directe link het enige dat verder helpt.",
     result: {

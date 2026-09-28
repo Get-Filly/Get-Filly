@@ -925,8 +925,10 @@ export async function removeCampaignChannel(
 // 'skipped' = er stond niets op dat kanaal, dus er viel niets te
 // verwijderen — bewust iets anders dan 'deleted'.
 export type CampaignRetractReport = {
-  facebook: "deleted" | "failed" | "skipped";
-  instagram: "deleted" | "failed" | "skipped";
+  facebook: "deleted" | "failed" | "skipped" | "unavailable";
+  // 'unavailable' = de koppeling heeft de permissie niet die Meta voor
+  // verwijderen vraagt. Er is niets stuk en opnieuw proberen helpt niet.
+  instagram: "deleted" | "failed" | "skipped" | "unavailable";
   /** Meta wees af op een ontbrekende permissie → opnieuw verbinden. */
   needsReconnect: boolean;
   /** Alleen als Instagram niet verwijderd kon worden: directe link naar
