@@ -249,8 +249,12 @@ de Meta-app.
       afstemmen), scoreformules per kanaal, leerfasen-weergave.
 - [ ] Website-laag: pixels/CAPI, cookie-consent v2, Plausible/PostHog.
 - [ ] Meta-extra's: UGC-tagdetectie, FB Events, auto-DM's, CAPI, lookalike-export.
-- [ ] Betaalde advertenties (`ads_management`): nieuwe App Review bij Meta én TikTok.
-      De site belooft dit al. *(Compagnon voor Meta.)*
+- [ ] Betaalde advertenties (`ads_management`): nieuwe App Review bij Meta én TikTok, plus
+      Google Ads. De site belooft dit al. Ontwerp-onderdeel: doelgroep- en buurttargeting
+      (straal rond het adres of postcode/plaats; leeftijd en interesses; eigen klantenlijst
+      als doelgroep voor "vaste klanten", uitsluiten daarvan voor "nieuwe klanten"). Een
+      klantenlijst uploaden raakt AVG (toestemming, verwerkersovereenkomst) en moet eerst met
+      de jurist. *(Compagnon voor Meta.)*
 - [ ] Integraties: Zenchef, OpenTable/SevenRooms, TripAdvisor/TheFork, call-tracking,
       POS. *(Floris kiest, Claude bouwt.)*
 - [ ] Autonome detectie en push-meldingen (eerst e-mail, later web push).
@@ -335,9 +339,10 @@ Gevonden bij de volledige controle. Zonder beslissing van jou blijven ze hier st
 
 - **Segmentatie per campagne.** De site belooft "Segmentatie op vaste klanten, nieuwe klanten
   en de buurt" (`nl.json`, homepage). In de app bestaat alleen een profielveld
-  "Doelgroep-segmenten" waarmee Filly toon en aanbod varieert. Een campagne zelf kan niet aan
-  een doelgroep worden gekoppeld (`target_segment_id` wordt nooit gevuld). Bouwen, of de
-  belofte op de site afzwakken?
+  "Doelgroep-segmenten"; een campagne zelf kan niet aan een doelgroep worden gekoppeld
+  (`target_segment_id` wordt nooit gevuld). Voorstel 29-9: dit wordt een onderdeel van de
+  betaalde-campagnes-functie (doelgroep en buurt als targeting bij Meta, TikTok en Google).
+  Open: tot die tijd de zin op de site afzwakken, of laten staan?
 - **GBP-event-posts via de campagne-flow** (Google-evenementen aanmaken vanuit een campagne).
 - **Nog te bevestigen:** ongecommit werk in `messages/*.json` en `landing-visuals.tsx`
   (overdracht 16-9), waarschijnlijk al weg via de i18n- en site-branches.
