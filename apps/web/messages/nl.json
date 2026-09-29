@@ -193,8 +193,6 @@
           "fbStats": "Bereik 8.400 · 👍 132",
           "ttCap": "Achter de schermen in de keuken 🔥",
           "ttStats": "12.800 weergaven · ♥ 1.204",
-          "ytCap": "Een dag in onze keuken 👨‍🍳",
-          "ytStats": "1.870 weergaven · 4:12 kijktijd",
           "igCap": "Donderdag livemuziek 🎶 Reserveer op tijd!",
           "igStats": "Gesponsord · bereik 9.600"
         },
@@ -272,7 +270,7 @@
       },
       {
         "q": "Welke kanalen gebruikt Get-Filly?",
-        "a": "Instagram, Facebook, TikTok en YouTube, plus je Google Bedrijfsprofiel. Get-Filly maakt per kanaal de juiste uiting in jouw huisstijl en zet die live op het beste moment voor de juiste doelgroep."
+        "a": "Instagram, Facebook en TikTok, plus je Google Bedrijfsprofiel. Get-Filly maakt per kanaal de juiste uiting in jouw huisstijl en zet die live op het beste moment voor de juiste doelgroep."
       },
       {
         "q": "Zet Get-Filly ook betaalde advertenties in?",
@@ -332,8 +330,8 @@
         "desc": "Get-Filly doet het werk van een marketingbureau, maar dan automatisch, sneller en volledig gebaseerd op jouw data."
       },
       "integrates": {
-        "title": "Sluit aan op je systemen",
-        "desc": "Je boekings- of reserveringssysteem, kassa en socials houd je. Get-Filly integreert in een paar klikken, geen overstap maar je partner."
+        "title": "Sluit aan op wat je al hebt",
+        "desc": "Je blijft werken zoals je gewend bent. Get-Filly koppelt aan je sociale media en je Google Bedrijfsprofiel, zonder overstap."
       },
       "measures": {
         "title": "Meet wat echt werkt",
@@ -352,8 +350,8 @@
       "proposal": {
         "label": "Voorstel",
         "eyebrow": "Maandag · 09:15",
-        "title": "Vier uitingen, één voorstel, klaar binnen een minuut.",
-        "desc": "Get-Filly stelt een complete campagne voor: vier uitingen op sociale media, elk voor een eigen kanaal en doelgroep. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming."
+        "title": "Drie uitingen, één voorstel, klaar binnen een minuut.",
+        "desc": "Get-Filly stelt een complete campagne voor: drie uitingen op sociale media, elk voor een eigen kanaal en doelgroep. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming."
       },
       "approval": {
         "label": "Goedkeuring",
@@ -389,7 +387,7 @@
         "sat": "za",
         "sun": "zo"
       },
-      "channelsTitle": "Get-Filly stelt voor, 4 uitingen",
+      "channelsTitle": "Get-Filly stelt voor, 3 uitingen",
       "mailLabel": "Instagram · reel voor laat-boekers",
       "mailPreview": "“Nog plek donderdag. Drie gangen voor €24,50.”",
       "mailMeta": "do 17:00",
@@ -399,16 +397,12 @@
       "waLabel": "TikTok · 18 tot 34 jaar",
       "waPreview": "Snelle video · “Donderdag-deal”",
       "waMeta": "do 09:30",
-      "ytLabel": "YouTube · short over de keuken",
-      "ytPreview": "Korte video · “Zo maken we onze pasta”",
-      "ytMeta": "do 12:00",
       "channelsCta": "Goedkeuren & live zetten",
       "approveTitle": "Campagne ingepland",
       "approveSub": "Goedgekeurd door Sophie · 09:16",
       "approveRow1": "Instagram-reel voor laat-boekers",
       "approveRow2": "Facebook-uiting in de buurt, 3 km",
       "approveRow3": "TikTok-video, 18 tot 34 jaar",
-      "approveRow4": "YouTube-short over de keuken",
       "approveFoot": "Get-Filly meldt zich zondag met de resultaten.",
       "igLoc": "Amsterdam · Restaurant",
       "igPhotoTag1": "Donderdag-deal",
@@ -426,7 +420,6 @@
       "resultBar1": "Instagram",
       "resultBar2": "Facebook",
       "resultBar3": "TikTok",
-      "resultBar4": "YouTube",
       "resultRes": "res.",
       "resultNote": "Instagram leverde de meeste boekingen op, volgende keer schaal ik dat als eerste op."
     },

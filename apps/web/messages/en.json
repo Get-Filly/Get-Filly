@@ -193,8 +193,6 @@
           "fbStats": "Reach 8,400 · 👍 132",
           "ttCap": "Behind the scenes in the kitchen 🔥",
           "ttStats": "12,800 views · ♥ 1,204",
-          "ytCap": "A day in our kitchen 👨‍🍳",
-          "ytStats": "1,870 views · 4:12 watch time",
           "igCap": "Live music Thursday 🎶 Book in time!",
           "igStats": "Sponsored · reach 9,600"
         },
@@ -272,7 +270,7 @@
       },
       {
         "q": "Which channels does Get-Filly use?",
-        "a": "Instagram, Facebook, TikTok and YouTube, plus your Google Business Profile. Get-Filly creates the right post per channel in your brand voice and puts it live at the best moment for the right audience."
+        "a": "Instagram, Facebook and TikTok, plus your Google Business Profile. Get-Filly creates the right post per channel in your brand voice and puts it live at the best moment for the right audience."
       },
       {
         "q": "Does Get-Filly also run paid ads?",
@@ -332,8 +330,8 @@
         "desc": "Get-Filly does the work of a marketing agency, but automatically, faster and entirely based on your data."
       },
       "integrates": {
-        "title": "Fits your systems",
-        "desc": "You keep your booking or reservation system, till and socials. Get-Filly integrates in a few clicks, not a switch but your partner."
+        "title": "Fits what you already have",
+        "desc": "You keep working the way you are used to. Get-Filly connects to your social media and your Google Business Profile, without a switch."
       },
       "measures": {
         "title": "Measures what really works",
@@ -352,8 +350,8 @@
       "proposal": {
         "label": "Proposal",
         "eyebrow": "Monday · 09:15",
-        "title": "Four posts, one proposal, ready within a minute.",
-        "desc": "Get-Filly proposes a complete campaign: four social media posts, each for its own channel and audience. Imagery, copy, audience, reach and timing, all tailored to your business."
+        "title": "Three posts, one proposal, ready within a minute.",
+        "desc": "Get-Filly proposes a complete campaign: three social media posts, each for its own channel and audience. Imagery, copy, audience, reach and timing, all tailored to your business."
       },
       "approval": {
         "label": "Approval",
@@ -389,7 +387,7 @@
         "sat": "Sat",
         "sun": "Sun"
       },
-      "channelsTitle": "Get-Filly proposes, 4 posts",
+      "channelsTitle": "Get-Filly proposes, 3 posts",
       "mailLabel": "Instagram · reel for late bookers",
       "mailPreview": "“Still room on Thursday. Three courses for €24.50.”",
       "mailMeta": "Thu 17:00",
@@ -399,16 +397,12 @@
       "waLabel": "TikTok · ages 18 to 34",
       "waPreview": "Quick video · “Thursday deal”",
       "waMeta": "Thu 09:30",
-      "ytLabel": "YouTube · short about the kitchen",
-      "ytPreview": "Short video · “How we make our pasta”",
-      "ytMeta": "Thu 12:00",
       "channelsCta": "Approve & go live",
       "approveTitle": "Campaign scheduled",
       "approveSub": "Approved by Sophie · 09:16",
       "approveRow1": "Instagram reel for late bookers",
       "approveRow2": "Facebook post in the neighbourhood, 3 km",
       "approveRow3": "TikTok video, ages 18 to 34",
-      "approveRow4": "YouTube short about the kitchen",
       "approveFoot": "Get-Filly checks in on Sunday with the results.",
       "igLoc": "Amsterdam · Restaurant",
       "igPhotoTag1": "Thursday deal",
@@ -426,7 +420,6 @@
       "resultBar1": "Instagram",
       "resultBar2": "Facebook",
       "resultBar3": "TikTok",
-      "resultBar4": "YouTube",
       "resultRes": "res.",
       "resultNote": "Instagram delivered the most bookings, next time I'll scale that one up first."
     },
