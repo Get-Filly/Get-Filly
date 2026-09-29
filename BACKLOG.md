@@ -221,8 +221,14 @@ de Meta-app.
       ("Koppeling met je boekings- of reserveringssysteem") en de FAQ "Hoelang duurt de
       onboarding?". Mogen die ook weg, nu de koppeling van de site af is? *(Floris beslist)*
 - [ ] **`CLAUDE.md` bijwerken:** die noemt Get-Filly nog "multi-branche", terwijl de publieke site
-      horeca-only is. Voorstel schrijven en laten goedkeuren. Open: blijft het product zelf
-      (code, branche-packs) multi-branche, of wordt dat ook teruggebracht? *(Claude + Floris)*
+      horeca-only is. Voorstel schrijven en laten goedkeuren. Besluit 29-9: het product wordt ook
+      teruggebracht naar horeca-only (zie het volgende punt). *(Claude + Floris)*
+- [ ] **Product terugbrengen naar horeca-only.** Besluit Floris 29-9. Het multi-branche-werk
+      (kolom `industry` mig 0066, branche-packs in `apps/api/src/ai/industry/`, branchekeuze in de
+      onboarding, branche-specifieke taal en voorbeelden) hoort er niet meer bij. Eerst een plan:
+      wat verbergen, wat verwijderen, en wat doen we met bestaande zaken en de hernoeming naar
+      `businesses` (mig 0068, blijft). Voorzichtigheid: eerst uitzetten en pas daarna verwijderen,
+      want horeca-gedrag moet byte-identiek blijven. *(Claude maakt het plan, Floris keurt goed)*
 - [ ] **Prijzen en juridische pagina's nalopen.** *(Floris, in een andere chat)*
 - [ ] **Schema.org uitbreiden.** `structured-data.tsx` heeft alleen Organization,
       WebSite en SoftwareApplication; FAQPage en BlogPosting/Article ontbreken. *(Claude)*
