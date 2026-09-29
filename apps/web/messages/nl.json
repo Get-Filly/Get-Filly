@@ -45,7 +45,7 @@
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
     "whyTitle": "Waarom het werkt",
-    "whySubtitle": "De cijfers liegen niet, betere profielen en uitingen op het juiste moment zorgen dat klanten je vaker vinden en vaker boeken.",
+    "whySubtitle": "Betere profielen en uitingen op het juiste moment zorgen ervoor dat klanten je vaker vinden en vaker boeken.",
     "pillars": {
       "sectionTitle": "Meer klanten.<br></br>Vollere dagen. Automatisch.",
       "findability": {
@@ -68,8 +68,8 @@
         "bullets": [
           "Uitingen op sociale media, ingepland op basis van jouw bezettingsdata",
           "Beeld en tekst automatisch in de stijl en toon van jouw onderneming",
-          "Strategische timing, meer zichtbaarheid op dagen dat het rustig is",
-          "Alles onder jouw naam, klanten zien jouw merk, niet dat van Get-Filly",
+          "Slimme timing zorgt voor meer zichtbaarheid op de dagen dat het rustig is",
+          "Alles staat onder jouw naam, dus klanten zien jouw merk en niet dat van Get-Filly",
           "Jij keurt elke uiting goed voordat hij live gaat",
           "Live dashboard met rapportage over bereik en betrokkenheid"
         ]
@@ -77,7 +77,7 @@
       "reachability": {
         "eyebrow": "Bereikbaarheid",
         "title": "De juiste boodschap. Op het juiste moment. Bij de juiste klant.",
-        "desc": "In beeld zijn is één ding, de juiste mensen bereiken is wat je rustige momenten vult. Wij kiezen per uiting de doelgroep, zetten waar nodig betaald bereik in en leggen het resultaat naast je drukte op die dag.",
+        "desc": "In beeld zijn is één ding, maar je rustige momenten vul je pas door de juiste mensen te bereiken. Per uiting kiezen wij de doelgroep, zetten we waar nodig betaald bereik in en leggen we het resultaat naast je drukte op die dag.",
         "bullets": [
           "Doelgroep op straal rond je zaak, leeftijd en interesses",
           "Betaald bereik op de dagen die gevuld moeten worden",
@@ -193,8 +193,6 @@
           "fbStats": "Bereik 8.400 · 👍 132",
           "ttCap": "Achter de schermen in de keuken 🔥",
           "ttStats": "12.800 weergaven · ♥ 1.204",
-          "ytCap": "Een dag in onze keuken 👨‍🍳",
-          "ytStats": "1.870 weergaven · 4:12 kijktijd",
           "igCap": "Donderdag livemuziek 🎶 Reserveer op tijd!",
           "igStats": "Gesponsord · bereik 9.600"
         },
@@ -255,7 +253,6 @@
           "Betaald bereik op de dagen die gevuld moeten worden",
           "Doelgroep op basis van je buurt en je klantprofiel",
           "Koppeling met je boekings- of reserveringssysteem",
-          "Koppeling met je kassa (POS)",
           "Rapportage over boekingen en omzet per uiting"
         ],
         "ctaText": "Start met Ultimate"
@@ -272,7 +269,7 @@
       },
       {
         "q": "Welke kanalen gebruikt Get-Filly?",
-        "a": "Instagram, Facebook, TikTok en YouTube, plus je Google Bedrijfsprofiel. Get-Filly maakt per kanaal de juiste uiting in jouw huisstijl en zet die live op het beste moment voor de juiste doelgroep."
+        "a": "Instagram, Facebook en TikTok, plus je Google Bedrijfsprofiel. Get-Filly maakt per kanaal de juiste uiting in jouw huisstijl en zet die live op het beste moment voor de juiste doelgroep."
       },
       {
         "q": "Zet Get-Filly ook betaalde advertenties in?",
@@ -332,8 +329,8 @@
         "desc": "Get-Filly doet het werk van een marketingbureau, maar dan automatisch, sneller en volledig gebaseerd op jouw data."
       },
       "integrates": {
-        "title": "Sluit aan op je systemen",
-        "desc": "Je boekings- of reserveringssysteem, kassa en socials houd je. Get-Filly integreert in een paar klikken, geen overstap maar je partner."
+        "title": "Sluit aan op wat je al hebt",
+        "desc": "Je blijft werken zoals je gewend bent. Get-Filly koppelt aan je sociale media en je Google Bedrijfsprofiel, zonder overstap."
       },
       "measures": {
         "title": "Meet wat echt werkt",
@@ -352,8 +349,8 @@
       "proposal": {
         "label": "Voorstel",
         "eyebrow": "Maandag · 09:15",
-        "title": "Vier uitingen, één voorstel, klaar binnen een minuut.",
-        "desc": "Get-Filly stelt een complete campagne voor: vier uitingen op sociale media, elk voor een eigen kanaal en doelgroep. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming."
+        "title": "Drie uitingen, één voorstel, klaar binnen een minuut.",
+        "desc": "Get-Filly stelt een complete campagne voor: drie uitingen op sociale media, elk voor een eigen kanaal en doelgroep. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming."
       },
       "approval": {
         "label": "Goedkeuring",
@@ -365,7 +362,7 @@
         "label": "Plaatsing",
         "eyebrow": "Donderdag · 17:00",
         "title": "Je ziet je uiting live verschijnen, precies op tijd.",
-        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen, je ziet ’m gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de boekingen binnenlopen."
+        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen. Je ziet de uiting gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de boekingen binnenlopen."
       },
       "result": {
         "label": "Resultaat",
@@ -389,7 +386,7 @@
         "sat": "za",
         "sun": "zo"
       },
-      "channelsTitle": "Get-Filly stelt voor, 4 uitingen",
+      "channelsTitle": "Get-Filly stelt voor, 3 uitingen",
       "mailLabel": "Instagram · reel voor laat-boekers",
       "mailPreview": "“Nog plek donderdag. Drie gangen voor €24,50.”",
       "mailMeta": "do 17:00",
@@ -399,16 +396,12 @@
       "waLabel": "TikTok · 18 tot 34 jaar",
       "waPreview": "Snelle video · “Donderdag-deal”",
       "waMeta": "do 09:30",
-      "ytLabel": "YouTube · short over de keuken",
-      "ytPreview": "Korte video · “Zo maken we onze pasta”",
-      "ytMeta": "do 12:00",
       "channelsCta": "Goedkeuren & live zetten",
       "approveTitle": "Campagne ingepland",
       "approveSub": "Goedgekeurd door Sophie · 09:16",
       "approveRow1": "Instagram-reel voor laat-boekers",
       "approveRow2": "Facebook-uiting in de buurt, 3 km",
       "approveRow3": "TikTok-video, 18 tot 34 jaar",
-      "approveRow4": "YouTube-short over de keuken",
       "approveFoot": "Get-Filly meldt zich zondag met de resultaten.",
       "igLoc": "Amsterdam · Restaurant",
       "igPhotoTag1": "Donderdag-deal",
@@ -426,7 +419,6 @@
       "resultBar1": "Instagram",
       "resultBar2": "Facebook",
       "resultBar3": "TikTok",
-      "resultBar4": "YouTube",
       "resultRes": "res.",
       "resultNote": "Instagram leverde de meeste boekingen op, volgende keer schaal ik dat als eerste op."
     },
@@ -438,7 +430,7 @@
       },
       "chatbot": {
         "title": "AI-chatbot",
-        "desc": "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
+        "desc": "Chat met Get-Filly zoals je met een collega praat. Get-Filly kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
       },
       "campaigns": {
         "title": "Uitingen op sociale media",
@@ -450,7 +442,7 @@
       },
       "season": {
         "title": "Seizoensstrategie",
-        "desc": "Valentijnsdag, aspergeseizoen, Koningsdag, kerst, Get-Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren."
+        "desc": "Get-Filly denkt vooruit, van Valentijnsdag en aspergeseizoen tot Koningsdag en kerst. Je krijgt automatisch voorstellen, weken van tevoren."
       },
       "google": {
         "title": "Google Business",
@@ -554,7 +546,7 @@
   "about": {
     "heroTitle": "Van idee naar impact.",
     "story": {
-      "p1": "De beste onderneming zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, ondernemers met een fantastisch aanbod en trouwe klanten maar alsnog rustige momenten. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je klanten steekt.",
+      "p1": "De beste onderneming zit niet altijd vol, maar de best vindbare wel. Wij zagen het overal bij ondernemers met een fantastisch aanbod en trouwe klanten, die toch rustige momenten hadden. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je klanten steekt.",
       "p2": "En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n onderneming op z’n eigen manier wil laten groeien.",
       "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer klanten op je rustige momenten."
     },
@@ -582,11 +574,11 @@
     },
     "journeyTitle": "Waar we staan.",
     "now": "Nu",
-    "ch1Title": "Hoofdstuk 1, Founded",
+    "ch1Title": "Hoofdstuk 1, De start",
     "ch1": [
       "Get-Filly opgericht door twee ambitieuze vrienden",
       "MVP live",
-      "Eerste klanten aan boord"
+      "Eerste klanten in aantocht"
     ],
     "ch2Title": "Hoofdstuk 2, Eerste 100 klanten",
     "ch2": [
@@ -744,7 +736,7 @@
     "recentPlaceholders": {
       "fillyReviews": {
         "eyebrow": "Marketing",
-        "title": "Zo laat je Filly je reviews beantwoorden"
+        "title": "Zo laat je Get-Filly je reviews beantwoorden"
       },
       "gbpChecklist": {
         "eyebrow": "Vindbaarheid",
@@ -757,9 +749,9 @@
     },
     "cta": {
       "title": "Van lezen naar volle dagen.",
-      "subtitle": "Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts regelen, zodat jij je op je klanten kunt richten.",
+      "subtitle": "Laat Get-Filly je vindbaarheid, reviews en uitingen regelen, zodat jij je op je klanten kunt richten.",
       "button": "Plan een gratis kennismaking in",
-      "productLink": "Nieuwsgierig hoe Filly dit doet? Bekijk <link>het product</link>."
+      "productLink": "Nieuwsgierig hoe Get-Filly dit doet? Bekijk <link>het product</link>."
     }
   },
   "dashboard": {

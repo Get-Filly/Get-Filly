@@ -131,24 +131,6 @@ export async function ZichtbaarheidVisual() {
         </article>
       </div>
 
-      {/* YouTube — rechts-onder (foto: geroosterd rack met vijgen) */}
-      <div className="lv-post-slot lv-post-4" data-reveal>
-        <article className="lv-post">
-          <div className="lv-post-head">
-            <span className="lv-post-ic"><Logo id="youtube" /></span>
-            <span className="lv-post-name">Bistro Get-Filly</span>
-          </div>
-          <div className="lv-post-media lv-media-yt">
-            <img src="/visuals/youtube.jpg" alt="" loading="lazy" />
-            <span className="lv-post-tag">&#9654; 0:38</span>
-          </div>
-          <div className="lv-post-foot">
-            <div className="lv-post-cap">{t("mockup.visuals.social.ytCap")}</div>
-            <div className="lv-post-stats">{t("mockup.visuals.social.ytStats")}</div>
-          </div>
-        </article>
-      </div>
-
       {/* Instagram — voorste (foto: sfeer/ambiance) */}
       <div className="lv-post-slot lv-post-3" data-reveal>
         <article className="lv-post">

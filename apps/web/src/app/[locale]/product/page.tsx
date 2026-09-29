@@ -199,17 +199,6 @@ export default async function ProductPage({
                       </div>
                       <div className="pmock-ch-meta">{t("mock.waMeta")}</div>
                     </div>
-
-                    <div className="pmock-ch">
-                      <div className="pmock-ch-icon pmock-ch-icon--brand">
-                        <ChannelLogo id="youtube" />
-                      </div>
-                      <div className="pmock-ch-body">
-                        <div className="pmock-ch-label">{t("mock.ytLabel")}</div>
-                        <div className="pmock-ch-preview">{t("mock.ytPreview")}</div>
-                      </div>
-                      <div className="pmock-ch-meta">{t("mock.ytMeta")}</div>
-                    </div>
                   </div>
                   <button className="pmock-channels-cta" type="button">
                     {t("mock.channelsCta")}
@@ -262,11 +251,6 @@ export default async function ProductPage({
                       <div className="pmock-approve-row-dot is-done" />
                       <div className="pmock-approve-row-label">{t("mock.approveRow3")}</div>
                       <div className="pmock-approve-row-meta">{t("mock.waMeta")}</div>
-                    </div>
-                    <div className="pmock-approve-row">
-                      <div className="pmock-approve-row-dot is-pending" />
-                      <div className="pmock-approve-row-label">{t("mock.approveRow4")}</div>
-                      <div className="pmock-approve-row-meta">{t("mock.ytMeta")}</div>
                     </div>
                   </div>
                   <div className="pmock-approve-foot">
@@ -372,8 +356,8 @@ export default async function ProductPage({
                         <span className="pmock-result-bar-logo"><ChannelLogo id="instagram" /></span>
                         {t("mock.resultBar1")}
                       </div>
-                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "58%" }} /></div>
-                      <div className="pmock-result-bar-val">5 {t("mock.resultRes")}</div>
+                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "70%" }} /></div>
+                      <div className="pmock-result-bar-val">6 {t("mock.resultRes")}</div>
                     </div>
                     <div className="pmock-result-bar">
                       <div className="pmock-result-bar-label">
@@ -390,14 +374,6 @@ export default async function ProductPage({
                       </div>
                       <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "24%" }} /></div>
                       <div className="pmock-result-bar-val">2 {t("mock.resultRes")}</div>
-                    </div>
-                    <div className="pmock-result-bar">
-                      <div className="pmock-result-bar-label">
-                        <span className="pmock-result-bar-logo"><ChannelLogo id="youtube" /></span>
-                        {t("mock.resultBar4")}
-                      </div>
-                      <div className="pmock-result-bar-track"><div className="pmock-result-bar-fill" style={{ width: "12%" }} /></div>
-                      <div className="pmock-result-bar-val">1 {t("mock.resultRes")}</div>
                     </div>
                   </div>
                   <div className="pmock-result-note">

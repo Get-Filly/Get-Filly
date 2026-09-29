@@ -215,6 +215,11 @@ de Meta-app.
       ChatGPT/Tripadvisor-logo's, 4 social-foto's, thumbnail Bereikbaarheid-kaart),
       product-visual-mock (nog horeca: bezetting, 3-gangen, terras), over-ons-foto's
       en alt-teksten (`about.alt1/2/3`). *(Floris levert, Claude plaatst)*
+- [ ] **Koppeling boekings- en kassasysteem** via samenwerkingen. Staat sinds 29-9 niet meer
+      op de publieke site (product, "Sluit aan op wat je al hebt"); terugzetten zodra er een
+      partner is. *(Floris regelt partners, Claude bouwt)*
+- [ ] **Blog-menu-item verbergen** (navbar en footer) tot het eerste artikel gepubliceerd is;
+      nu staan er alleen "binnenkort online"-kaarten. *(Claude, lage prio)*
 - [ ] Off-site autoriteit: backlinks, directories, Google Bedrijfsprofiel voor
       Get-Filly zelf. *(Floris)*
 
