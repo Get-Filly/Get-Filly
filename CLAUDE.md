@@ -7,7 +7,7 @@ repo werkt.
 
 1. **[BACKLOG.md](BACKLOG.md)** — alles wat nog open staat (P0–P3), bekende
    mocks en niet-gefixte issues. Werk die lijst bij als je iets afmaakt of iets
-   nieuws tegenkomt. Opent met "Vóór externe testers — de korte lijst".
+   nieuws tegenkomt. Gesorteerd op prioriteit, met per punt de eigenaar (Floris / Claude / Compagnon). Oude versie: docs/archief/backlog-2026-09-29-voor-opschoning.md.
 2. **[docs/CHANGELOG.md](docs/CHANGELOG.md)** — wat er wanneer gebouwd is en
    waarom de keuzes zo vielen. Zoek hier als je je afvraagt waarom iets is zoals
    het is.
