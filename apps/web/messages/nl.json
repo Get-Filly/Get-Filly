@@ -45,7 +45,7 @@
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
     "whyTitle": "Waarom het werkt",
-    "whySubtitle": "De cijfers liegen niet, betere profielen en uitingen op het juiste moment zorgen dat klanten je vaker vinden en vaker boeken.",
+    "whySubtitle": "Betere profielen en uitingen op het juiste moment zorgen ervoor dat klanten je vaker vinden en vaker boeken.",
     "pillars": {
       "sectionTitle": "Meer klanten.<br></br>Vollere dagen. Automatisch.",
       "findability": {
@@ -68,8 +68,8 @@
         "bullets": [
           "Uitingen op sociale media, ingepland op basis van jouw bezettingsdata",
           "Beeld en tekst automatisch in de stijl en toon van jouw onderneming",
-          "Strategische timing, meer zichtbaarheid op dagen dat het rustig is",
-          "Alles onder jouw naam, klanten zien jouw merk, niet dat van Get-Filly",
+          "Slimme timing zorgt voor meer zichtbaarheid op de dagen dat het rustig is",
+          "Alles staat onder jouw naam, dus klanten zien jouw merk en niet dat van Get-Filly",
           "Jij keurt elke uiting goed voordat hij live gaat",
           "Live dashboard met rapportage over bereik en betrokkenheid"
         ]
@@ -77,7 +77,7 @@
       "reachability": {
         "eyebrow": "Bereikbaarheid",
         "title": "De juiste boodschap. Op het juiste moment. Bij de juiste klant.",
-        "desc": "In beeld zijn is één ding, de juiste mensen bereiken is wat je rustige momenten vult. Wij kiezen per uiting de doelgroep, zetten waar nodig betaald bereik in en leggen het resultaat naast je drukte op die dag.",
+        "desc": "In beeld zijn is één ding, maar je rustige momenten vul je pas door de juiste mensen te bereiken. Per uiting kiezen wij de doelgroep, zetten we waar nodig betaald bereik in en leggen we het resultaat naast je drukte op die dag.",
         "bullets": [
           "Doelgroep op straal rond je zaak, leeftijd en interesses",
           "Betaald bereik op de dagen die gevuld moeten worden",
@@ -363,7 +363,7 @@
         "label": "Plaatsing",
         "eyebrow": "Donderdag · 17:00",
         "title": "Je ziet je uiting live verschijnen, precies op tijd.",
-        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen, je ziet ’m gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de boekingen binnenlopen."
+        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen. Je ziet de uiting gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de boekingen binnenlopen."
       },
       "result": {
         "label": "Resultaat",
@@ -431,7 +431,7 @@
       },
       "chatbot": {
         "title": "AI-chatbot",
-        "desc": "Chat met Get-Filly zoals je met een collega praat. Hij kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
+        "desc": "Chat met Get-Filly zoals je met een collega praat. Get-Filly kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
       },
       "campaigns": {
         "title": "Uitingen op sociale media",
@@ -443,7 +443,7 @@
       },
       "season": {
         "title": "Seizoensstrategie",
-        "desc": "Valentijnsdag, aspergeseizoen, Koningsdag, kerst, Get-Filly denkt vooruit. Je krijgt automatisch voorstellen, weken van tevoren."
+        "desc": "Get-Filly denkt vooruit, van Valentijnsdag en aspergeseizoen tot Koningsdag en kerst. Je krijgt automatisch voorstellen, weken van tevoren."
       },
       "google": {
         "title": "Google Business",

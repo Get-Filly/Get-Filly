@@ -45,7 +45,7 @@
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
     "whyTitle": "Why it works",
-    "whySubtitle": "The numbers don't lie. Better profiles and posts at the right moment mean customers find you more often and book more often.",
+    "whySubtitle": "Better profiles and posts at the right moment mean customers find you more often and book more often.",
     "pillars": {
       "sectionTitle": "More customers.<br></br>Fuller days. Automatically.",
       "findability": {
@@ -68,8 +68,8 @@
         "bullets": [
           "Social media posts, scheduled based on your occupancy data",
           "Imagery and copy automatically in your business's style and tone",
-          "Strategic timing, more visibility on the days that are quiet",
-          "Everything under your name, customers see your brand, not Get-Filly's",
+          "Smart timing means more visibility on the days that are quiet",
+          "Everything is under your name, so customers see your brand and not Get-Filly's",
           "You approve every post before it goes live",
           "Live dashboard reporting on reach and engagement"
         ]
@@ -77,7 +77,7 @@
       "reachability": {
         "eyebrow": "Reachability",
         "title": "The right message. At the right moment. To the right customer.",
-        "desc": "Being in sight is one thing, reaching the right people is what fills your quiet moments. For every post we pick the audience, add paid reach where it helps, and set the result against how busy that day actually was.",
+        "desc": "Being in sight is one thing, but you only fill your quiet moments by reaching the right people. For every post we pick the audience, add paid reach where it helps, and set the result against how busy that day actually was.",
         "bullets": [
           "Audience by radius around your venue, age and interests",
           "Paid reach on the days that need filling",
@@ -363,7 +363,7 @@
         "label": "Publishing",
         "eyebrow": "Thursday · 17:00",
         "title": "You see your post go live, right on time.",
-        "desc": "On Thursday, Get-Filly puts the posts live automatically, at the moment late bookers are scrolling. You don't have to do a thing, you simply see it come by on your own timeline, fully in your style, while the bookings roll in."
+        "desc": "On Thursday, Get-Filly puts the posts live automatically, at the moment late bookers are scrolling. You don't have to do a thing. You simply see the post come by on your own timeline, fully in your style, while the bookings roll in."
       },
       "result": {
         "label": "Result",
@@ -431,7 +431,7 @@
       },
       "chatbot": {
         "title": "AI chatbot",
-        "desc": "Chat with Get-Filly like you'd talk to a colleague. It knows your data and your business, makes proposals and carries them out after your approval."
+        "desc": "Chat with Get-Filly like you'd talk to a colleague. Get-Filly knows your data and your business, makes proposals and carries them out after your approval."
       },
       "campaigns": {
         "title": "Social media content",
@@ -443,7 +443,7 @@
       },
       "season": {
         "title": "Seasonal strategy",
-        "desc": "Valentine's Day, asparagus season, King's Day, Christmas, Get-Filly thinks ahead. You get proposals automatically, weeks in advance."
+        "desc": "Get-Filly thinks ahead, from Valentine's Day and asparagus season to King's Day and Christmas. You get proposals automatically, weeks in advance."
       },
       "google": {
         "title": "Google Business",
