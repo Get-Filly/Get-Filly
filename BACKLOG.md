@@ -342,7 +342,7 @@ Gevonden bij de volledige controle. Zonder beslissing van jou blijven ze hier st
   "Doelgroep-segmenten"; een campagne zelf kan niet aan een doelgroep worden gekoppeld
   (`target_segment_id` wordt nooit gevuld). Voorstel 29-9: dit wordt een onderdeel van de
   betaalde-campagnes-functie (doelgroep en buurt als targeting bij Meta, TikTok en Google).
-  Open: tot die tijd de zin op de site afzwakken, of laten staan?
+  De zin op de site is op 29-9 afgezwakt (vaste klanten eruit).
 - **GBP-event-posts via de campagne-flow** (Google-evenementen aanmaken vanuit een campagne).
 - **Nog te bevestigen:** ongecommit werk in `messages/*.json` en `landing-visuals.tsx`
   (overdracht 16-9), waarschijnlijk al weg via de i18n- en site-branches.
