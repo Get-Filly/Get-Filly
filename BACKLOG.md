@@ -56,8 +56,9 @@ zijn vooral configuratie, nepdata op een paar plekken, betaling en Meta-review.
       `docs/legal/dpa-template.md`. `/sub-verwerkers` publiceren bij de eerste klant.)*
 - [ ] **Betalingen met Stripe.** Checkout op de prijzenpagina, `subscriptions`-tabel,
       limieten per plan, webhook (trial → active → past_due → cancelled). De
-      prijzenpagina staat geblurd (`HIDE_PRICING`). *(Floris kiest plannen en
-      prijzen en maakt het Stripe-account, Claude bouwt.)*
+      prijzenpagina staat geblurd (`HIDE_PRICING`). Beslissing 29-9: **geen gratis
+      proefflow**. *(Floris kiest plannen en prijzen en maakt het Stripe-account,
+      Claude bouwt.)*
 - [ ] **Foutmonitoring en kostenalarm.** Sentry of alternatief (Floris kiest het
       account, Claude installeert; zie `docs/archief/sentry-setup.md`) en een
       limiet met alerts in de Anthropic Console (`docs/archief/anthropic-cost-alerts.md`).
@@ -221,8 +222,12 @@ de Meta-app.
 - [ ] Legacy FORMAAT-parsers (`extractCampaignProposal/Bundle/Choice` in `chat.service.ts`)
       en de pending-kaarten (`acceptProposal`/`acceptBundle`, `onDismiss` in `filly-chat.tsx`)
       opruimen. Eerst narekenen dat geen render- of historiepad op de oude kaarten leunt.
-- [ ] Health-score reviews: recency-check (<60 dagen), antwoord-ratio en sentiment-analyse
-      (Claude, top-3 onderwerpen) nu de GBP-API live is. `health/reviews.runner.ts` doet dit niet.
+- [ ] **Per-klant vindbaarheidsrapport.** Een gedetailleerd rapport per zaak: hoe je gevonden
+      wordt, hoe je uitingen scoren, wat betaalde campagnes opleveren, plus nog te bepalen
+      onderdelen. Bouwt voort op de health-score-runner (`/dashboard/google-business/audit`) en
+      de interne wekelijkse SEO-mail (`apps/api/src/seo-report`). Deel van de cijfers hangt aan
+      Meta Insights en betaalde advertenties (beide P0 Meta / P2). Eerst de inhoud uitwerken.
+      *(Floris + Claude)*
 - [ ] Events vervolg: schoolvakanties per regio in `timing-factors.ts`, handmatige eigen
       events (kermis, braderie), feeds (Eredivisie, F1, beurzen, gemeenten), licentie
       evenementen.nl (databankenrecht), en waar de interne eventsdatabase leeft.
@@ -242,7 +247,7 @@ de Meta-app.
       correctie-feedbackloop, zelfreflectiescore, rate-limits per kanaal.
 - [ ] Prestatiemeting: benchmark per zaak met shrinkage (eerst met Floris
       afstemmen), scoreformules per kanaal, leerfasen-weergave.
-- [ ] Website-laag: pixels/CAPI, cookie-consent v2, Plausible/PostHog, preference-center.
+- [ ] Website-laag: pixels/CAPI, cookie-consent v2, Plausible/PostHog.
 - [ ] Meta-extra's: UGC-tagdetectie, FB Events, auto-DM's, CAPI, lookalike-export.
 - [ ] Betaalde advertenties (`ads_management`): nieuwe App Review bij Meta én TikTok.
       De site belooft dit al. *(Compagnon voor Meta.)*
@@ -284,8 +289,13 @@ de Meta-app.
 - [ ] ~62 zwakke types in `apps/api` (`any`, `as`, `Record<string,unknown>`) vervangen door
       rij-types of zod bij het inlezen.
 - [ ] Weer reikt 7 dagen, detectie kijkt 21 dagen vooruit: dagen 8-21 hebben geen weerdata.
-- [ ] Health-score v2 (of schrappen): SEO-keyword-suggesties, GBP-veldenchecklist, Perplexity als
-      GEO-bron, PageSpeed-gemiddelde van 3 runs, configureerbare concurrentstraal.
+- [ ] **Health-score verder ontwikkelen. Absoluut geen prio (besluit 29-9).** Reviews: recency-check
+      (<60 dagen), antwoord-ratio, sentiment-analyse (`health/reviews.runner.ts` doet dit niet).
+      Verder: SEO-keyword-suggesties, GBP-veldenchecklist, Perplexity als GEO-bron,
+      PageSpeed-gemiddelde van 3 runs, configureerbare concurrentstraal.
+- [ ] bunq-koppeling voor bankadministratie en reconciliatie. Wel koppelen, geen prio; pas
+      relevant zodra er een boekhoudflow is. Bunq staat nu alleen als verwerker in de
+      juridische teksten. *(Floris kiest, Claude bouwt.)*
 - [ ] Webhook-receivers per integratie met rijtests (bij de integratie-regel in P2).
 - [ ] Dode code: `ChartCard` (ongebruikt), `campaign_templates`, ongebruikte
       constanten in `filly-brain.config.ts`. **Let op:** code voor Meta/Google die
@@ -315,21 +325,20 @@ Niet meer opgenomen omdat ze achterhaald of al opgelost zijn (details in het arc
   vervallen of gedaan.
 - GBP fase C-F, GBP Insights-fetcher: gedaan of geschrapt (Q&A- en Performance-API stopgezet).
 - Rate-limit op `/public/contact`: aanwezig (bucket `contact`, 5 per 15 min).
+- Gratis proefflow ("Probeer gratis") en reserveringsflow (UTM-hook, reserveringspagina-UX):
+  besluit Floris 29-9, komt er niet.
 - Alle afgevinkte punten (staan in de changelog en in het archief).
 
 ## Twijfelgevallen: behouden of schrappen? *(Floris beslist)*
 
 Gevonden bij de volledige controle. Zonder beslissing van jou blijven ze hier staan.
 
-- **Gratis-proefflow** ("Probeer gratis") naast de Stripe-checkout: wel of niet bouwen?
-- **bunq-koppeling** voor reconciliatie: pas relevant met een boekhoudflow. Bunq staat nu
-  alleen als verwerker in de juridische teksten.
-- **Segmentatie** (`segments`/`target_segment_id` worden nooit gevuld terwijl de site
-  segmentatie noemt): bouwen of de belofte van de site schrappen.
-- **Reserveringsflow** (UTM-hook, reserveringspagina-UX): bestaat die nog na de pivot?
-- **Per-klant vindbaarheidsmail** (de interne SEO-mail uitrollen naar klanten) en
-  **GBP-event-posts via de campagne-flow**.
-- **Health-score v2** (zie P3): nog strategisch na de pivot?
+- **Segmentatie per campagne.** De site belooft "Segmentatie op vaste klanten, nieuwe klanten
+  en de buurt" (`nl.json`, homepage). In de app bestaat alleen een profielveld
+  "Doelgroep-segmenten" waarmee Filly toon en aanbod varieert. Een campagne zelf kan niet aan
+  een doelgroep worden gekoppeld (`target_segment_id` wordt nooit gevuld). Bouwen, of de
+  belofte op de site afzwakken?
+- **GBP-event-posts via de campagne-flow** (Google-evenementen aanmaken vanuit een campagne).
 - **Nog te bevestigen:** ongecommit werk in `messages/*.json` en `landing-visuals.tsx`
   (overdracht 16-9), waarschijnlijk al weg via de i18n- en site-branches.
 
