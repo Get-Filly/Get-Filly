@@ -175,6 +175,12 @@ de Meta-app.
       `llms-full.txt`, interne linking.
 - [ ] **Site-herpositionering** afmaken: home + product NL af; rest, SEO en EN open
       (branch `feat/site-capaciteit-copy`).
+- [ ] **Schema.org uitbreiden.** `structured-data.tsx` heeft alleen Organization,
+      WebSite en SoftwareApplication; FAQPage en BlogPosting/Article ontbreken. *(Claude)*
+- [ ] **Site-assets vervangen** (asset-ronde 2026-08-07): landing-visuals (ingebakken
+      ChatGPT/Tripadvisor-logo's, 4 social-foto's, thumbnail Bereikbaarheid-kaart),
+      product-visual-mock (nog horeca: bezetting, 3-gangen, terras), over-ons-foto's
+      en alt-teksten (`about.alt1/2/3`). *(Floris levert, Claude plaatst)*
 - [ ] Off-site autoriteit: backlinks, directories, Google Bedrijfsprofiel voor
       Get-Filly zelf. *(Floris)*
 
@@ -184,6 +190,8 @@ de Meta-app.
       op `selectVariant` en `suggested_campaign`-jsonb.
 - [ ] `restaurant-context` slikt query-fouten (dan genereert Filly generiek);
       zod-validatie op Claude-output; "Nee bedankt" doet niets.
+- [ ] Lost-update-slot ook op `mutateChannel` en `refine` (nu alleen `editVariant` en
+      `generateMoreVariants` zijn geslot), of `jsonb_set` via `rpc()`.
 - [ ] **Kanaallijsten op 7 plekken** samenvoegen tot één bron + het
       `google_business`/`campaigns.type`-probleem.
 - [ ] **Organisch versus betaald** in de flow (toggle, `budget_cents`).
@@ -204,14 +212,31 @@ de Meta-app.
 - [ ] Bezetting-bron: snapshot-groei begrenzen, onboarding-`service_periods` omzetten
       naar `opening_hours`, controleren of de uurlijkse cron echt varieert.
 - [ ] Filly-chat en detectie strakker koppelen aan de grafiek (aparte sessie).
+- [ ] **Menukaart- en drankkaart-upload via Supabase Storage signed URLs.** De multipart-upload
+      in `menu.controller.ts` stuit op de Vercel-bodylimiet van 4,5 MB (`createSignedUploadUrl`
+      komt nergens voor). De oude 10s-timeout is opgelost (`maxDuration` 300).
+- [ ] Geleide flow: als geen enkel kanaal gekoppeld is, een nudge "koppel eerst je accounts"
+      (nu vinkt `suggestions.service.ts` ~r.1521 stil IG+FB voor). Bereik voor social meet
+      alleen koppelstatus, geen volgers (hangt aan Insights).
+- [ ] Legacy FORMAAT-parsers (`extractCampaignProposal/Bundle/Choice` in `chat.service.ts`)
+      en de pending-kaarten (`acceptProposal`/`acceptBundle`, `onDismiss` in `filly-chat.tsx`)
+      opruimen. Eerst narekenen dat geen render- of historiepad op de oude kaarten leunt.
+- [ ] Health-score reviews: recency-check (<60 dagen), antwoord-ratio en sentiment-analyse
+      (Claude, top-3 onderwerpen) nu de GBP-API live is. `health/reviews.runner.ts` doet dit niet.
+- [ ] Events vervolg: schoolvakanties per regio in `timing-factors.ts`, handmatige eigen
+      events (kermis, braderie), feeds (Eredivisie, F1, beurzen, gemeenten), licentie
+      evenementen.nl (databankenrecht), en waar de interne eventsdatabase leeft.
 - [ ] **Publiceren naar Reels en Stories** (IG eerst, dan FB). *(Claude; compagnon
       checkt het App Dashboard.)*
 - [ ] **YouTube als kanaal** (Google-OAuth, review, publish, migratie voor de
       check-constraint). *(Floris aanvraag, Claude bouwt.)*
 - [ ] TikTok: video-upload en filter in de mediabibliotheek, TikTok Insights.
 - [ ] Google Bedrijfsprofiel: naam, telefoon, website en categorie bewerkbaar maken.
-- [ ] Foto-tool ("Beeld-studio"): API-sleutel van de beeldprovider in Vercel en een
-      echte end-to-end test. Code staat op main sinds 28-9.
+- [ ] **Foto-tool ("Beeld-studio") mergen.** De code staat alleen op branch
+      `feat/foto-tool-infra` (op origin, nog niet in `main`). Op `main` staan alleen
+      migratie 0077 (`image_usage`) en het prototype `/proto-fototool`. Nog nodig: branch
+      bijwerken, API-sleutel van de beeldprovider in Vercel, een echte end-to-end test.
+      Details: archief, sectie "Foto-tool". *(Claude + Floris)*
 - [ ] Dashboard meetrekken naar sociale media (marketing-hub-statussen, labels).
 - [ ] Filly-brein v2: brand-archetype en do/don't-velden, taalniveau, stop-condities,
       correctie-feedbackloop, zelfreflectiescore, rate-limits per kanaal.
@@ -243,6 +268,25 @@ de Meta-app.
 - [ ] Terugkoppeling: campagnes buiten de voorstelflow meten, controlegroep;
       `UNUSUAL_SPREAD_MULT` ijken op echte data; `events` mist omvang en einddatum.
 - [ ] Media-labels bewerkbaar maken (`media-tagger.service.ts`, regel 60).
+- [ ] Filly-brein v2, restjes: Cialdini-bibliotheek opt-in per zaak, uitlegbaarheidsniveau
+      (diep/kort met herkomst), log-only lengtecheck in de chat-flow, channel-fatigue
+      (30-dagen frequentie × engagement met alarm), tool-use in plaats van
+      `<<FILLY_PROPOSE_CAMPAIGN>>`-markers.
+- [ ] Geleide flow-stappen en resultaat als compacte chatgebeurtenissen vastleggen, zodat
+      terugkomen = je gesprek terugzien. Grotere refactor, los plannen.
+- [ ] Campagne-detail UX: acties consistent benoemen (`Terugtrekken` naast `Terug naar concept`),
+      tijdzone-hint bij het plan-veld, onopgeslagen-markering op de kanaal-tab, succes-toast met
+      undo na goedkeuren, duidelijkere disabled-stijl op knoppen in de geleide flow.
+- [ ] CSS-consolidatie: breakpoints naar 880/640/480, `font-weight: 800` en losse hex-kleuren
+      naar tokens, heatmap-tiers naar `--heat-0..4`, kop-`px` naar `--fs-*`, kaart-radii-tokens.
+- [ ] Toegankelijkheid: aria-labels op icoonknoppen, klikbare divs echte `<button>`
+      (verifieer of dit na dashboard-v2 nog speelt), naast de focus-trap.
+- [ ] ~62 zwakke types in `apps/api` (`any`, `as`, `Record<string,unknown>`) vervangen door
+      rij-types of zod bij het inlezen.
+- [ ] Weer reikt 7 dagen, detectie kijkt 21 dagen vooruit: dagen 8-21 hebben geen weerdata.
+- [ ] Health-score v2 (of schrappen): SEO-keyword-suggesties, GBP-veldenchecklist, Perplexity als
+      GEO-bron, PageSpeed-gemiddelde van 3 runs, configureerbare concurrentstraal.
+- [ ] Webhook-receivers per integratie met rijtests (bij de integratie-regel in P2).
 - [ ] Dode code: `ChartCard` (ongebruikt), `campaign_templates`, ongebruikte
       constanten in `filly-brain.config.ts`. **Let op:** code voor Meta/Google die
       "ongebruikt" lijkt kan scaffolding zijn en moet blijven.
@@ -263,13 +307,31 @@ Niet meer opgenomen omdat ze achterhaald of al opgelost zijn (details in het arc
 - Mail en WhatsApp als campagnekanaal; kanaalvoorselectie "mail + Instagram".
 - "Echte databron via third-party" en Outscraper-punten: sinds 17-7 is Apify de bron.
 - Zenchef-event-variant van autonome detectie.
+- Chat sneller/goedkoper (streaming, compact menu, prompt-cache): live sinds 30-6.
+- Mail-flows (welkom, reviewverzoek, verjaardag, win-back), preference-center, IP-warming, DNS-hulp
+  voor klanten: vervallen met mail als campagnekanaal.
+- Platform-specifieke output per post: gedaan via `CHANNEL_RULES` in `filly-brain.config.ts`.
+- Password-protected preview op `app.get-filly.com`, Railway/Render-config, `WEB_URL` op api leeg:
+  vervallen of gedaan.
+- GBP fase C-F, GBP Insights-fetcher: gedaan of geschrapt (Q&A- en Performance-API stopgezet).
+- Rate-limit op `/public/contact`: aanwezig (bucket `contact`, 5 per 15 min).
 - Alle afgevinkte punten (staan in de changelog en in het archief).
 
-## Nog te bevestigen door Floris
+## Twijfelgevallen: behouden of schrappen? *(Floris beslist)*
 
-- [ ] Nog ongecommit werk in `messages/*.json` en `landing-visuals.tsx` (uit de
-      overdracht van 16-9)? Waarschijnlijk via de i18n- en site-branches al weg.
-- [ ] Zijn "CRM-uitnodigingsflow", "Resend-webhook" en "`CRON_SECRET`" nog nodig/gedaan?
+Gevonden bij de volledige controle. Zonder beslissing van jou blijven ze hier staan.
+
+- **Gratis-proefflow** ("Probeer gratis") naast de Stripe-checkout: wel of niet bouwen?
+- **bunq-koppeling** voor reconciliatie: pas relevant met een boekhoudflow. Bunq staat nu
+  alleen als verwerker in de juridische teksten.
+- **Segmentatie** (`segments`/`target_segment_id` worden nooit gevuld terwijl de site
+  segmentatie noemt): bouwen of de belofte van de site schrappen.
+- **Reserveringsflow** (UTM-hook, reserveringspagina-UX): bestaat die nog na de pivot?
+- **Per-klant vindbaarheidsmail** (de interne SEO-mail uitrollen naar klanten) en
+  **GBP-event-posts via de campagne-flow**.
+- **Health-score v2** (zie P3): nog strategisch na de pivot?
+- **Nog te bevestigen:** ongecommit werk in `messages/*.json` en `landing-visuals.tsx`
+  (overdracht 16-9), waarschijnlijk al weg via de i18n- en site-branches.
 
 ---
 
