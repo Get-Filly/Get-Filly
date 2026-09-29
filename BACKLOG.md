@@ -33,6 +33,39 @@ zijn vooral configuratie, nepdata op een paar plekken, betaling en Meta-review.
 
 ---
 
+## Focus van Floris (aangeleverd 2026-09-29)
+
+Negen punten die Floris zelf als eerstvolgende werk heeft benoemd. De volgorde is nog niet
+bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet dubbel gezet.
+
+- [ ] **Website-frontend nalopen op teksten en afbeeldingen.** Loopt samen op met "Site-assets
+      vervangen" (P1, Site en vertrouwen). *(Floris + Claude)*
+- [ ] **Filly-brein doorlopen.** Samen de werking nalopen: `docs/werking/filly-brein.docx`,
+      `apps/api/src/ai/filly-brain.config.ts`, branche-packs. *(Floris + Claude)*
+- [ ] **Parameters van het Filly-brein bepalen, en voor het voorstellen van (potentieel) rustige
+      dagen.** Onder andere `low_occupancy_threshold`, `UNUSUAL_SPREAD_MULT`, het tempo (mig 0065),
+      de kansdrempel per dag en de beleidslaag. *(Floris bepaalt, Claude zet klaar met voorstellen)*
+- [ ] **Betaalde-campagneflow bouwen, met de parameters die de prestaties meten** (Meta, TikTok,
+      Google). Bevat doelgroep- en buurttargeting; zie "Betaalde advertenties" in P2 en
+      "Segmentatie per campagne". *(Claude, Floris kiest KPI's)*
+- [ ] **Suggestietekst per type uiting.** Filly zegt welk soort uiting werkt ("maak zo'n filmpje",
+      "dit soort foto's scoren"), zodat het voor de klant makkelijker wordt. Bouwt op "Wat werkt
+      bij jou" per kanaal (Resultaat). *(Claude)*
+- [ ] **Foto-bewerkingstool laten werken:** de "Google studio" afmaken (aanname: de Google-beeldprovider
+      met API-sleutel) en de foto-tool mergen. Zie "Foto-tool mergen" in P2. *(Floris + Claude)*
+- [ ] **Filly-chat laat Google-bedrijfsgegevens controleren en aanpassen.** Filly stelt voor om te
+      checken of de gegevens op het Google Bedrijfsprofiel kloppen, of om ze aan te passen vanwege
+      een event. Daarvoor komt een melding; na akkoord van de eigenaar voert Filly de wijziging
+      zelf door. Nu schrijft de app al omschrijving, tijden, speciale dagen en reviews; naam,
+      telefoon, website en categorie zijn nog alleen lezen. *(Claude)*
+- [ ] **Stories plaatsen op Instagram en Facebook.** Zie "Reels en Stories" in P2. *(Claude;
+      compagnon controleert het App Dashboard.)*
+- [ ] **Duidelijk aangeven dat je altijd ook een event of post kunt plaatsen via het Google
+      Bedrijfsprofiel** (in de campagneflow en in Filly's voorstellen). Besluit 29-9: de
+      GBP-event-posts komen erbij. *(Claude)*
+
+---
+
 ## P0: voor de eerste klant
 
 - [ ] **Flow één keer end-to-end doorlopen op een echt account.** Dashboard →
@@ -343,7 +376,6 @@ Gevonden bij de volledige controle. Zonder beslissing van jou blijven ze hier st
   (`target_segment_id` wordt nooit gevuld). Voorstel 29-9: dit wordt een onderdeel van de
   betaalde-campagnes-functie (doelgroep en buurt als targeting bij Meta, TikTok en Google).
   De zin op de site is op 29-9 afgezwakt (vaste klanten eruit).
-- **GBP-event-posts via de campagne-flow** (Google-evenementen aanmaken vanuit een campagne).
 - **Nog te bevestigen:** ongecommit werk in `messages/*.json` en `landing-visuals.tsx`
   (overdracht 16-9), waarschijnlijk al weg via de i18n- en site-branches.
 
