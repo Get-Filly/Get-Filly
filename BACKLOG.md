@@ -38,8 +38,12 @@ zijn vooral configuratie, nepdata op een paar plekken, betaling en Meta-review.
 Negen punten die Floris zelf als eerstvolgende werk heeft benoemd. De volgorde is nog niet
 bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet dubbel gezet.
 
-- [ ] **Website-frontend nalopen op teksten en afbeeldingen.** Loopt samen op met "Site-assets
-      vervangen" (P1, Site en vertrouwen). *(Floris + Claude)*
+- [~] **Website-frontend nalopen op teksten en afbeeldingen.** Gedaan en live op 29-9
+      (branch `feat/site-tekstronde`): home, product, over ons, blog, contact. YouTube van de site,
+      integratie-tekst zonder kassa en boekingssysteem, opgeknipte zinnen herschreven in NL en EN.
+      **Nog open:** prijzen en juridisch (Floris, andere chat), afbeeldingen (zie "Site-assets
+      vervangen"), de hero-mockups op `/en`, en de vraag over de boekingssysteem-zinnen (zie
+      "Site en vertrouwen"). *(Floris + Claude)*
 - [ ] **Filly-brein doorlopen.** Samen de werking nalopen: `docs/werking/filly-brein.docx`,
       `apps/api/src/ai/filly-brain.config.ts`, branche-packs. *(Floris + Claude)*
 - [ ] **Parameters van het Filly-brein bepalen, en voor het voorstellen van (potentieel) rustige
@@ -207,14 +211,25 @@ de Meta-app.
       `consistente-gegevens`, `compleet-profiel`, `fotos-meer-bezoek`, `recente-reviews`,
       `structureel-posten` + 4 onderwerpen van Floris), 'Wat is Get-Filly'-content,
       `llms-full.txt`, interne linking.
-- [ ] **Site-herpositionering** afmaken: home + product NL af; rest, SEO en EN open
-      (branch `feat/site-capaciteit-copy`).
+- [ ] **Site: SEO en Engelse versie nalopen.** Besluit Floris 29-9: **horeca-only**. De
+      multi-branche-herpositionering voor de publieke site vervalt; horeca-voorbeelden,
+      horeca-beelden en "horeca-AI" blijven staan. Beloftes over betaald bereik, doelgroep en
+      segmentatie mogen blijven (worden gebouwd). Cijfers in mocks en blogtitels zijn bewust nep.
+      "Realtime" mag blijven. Wijzig de breedte, hoogte en marges van de uitingskaarten niet.
+      *(Claude)*
+- [ ] **Overgebleven boekingssysteem-zinnen op de site.** Prijzen, het Ultimate-pakket
+      ("Koppeling met je boekings- of reserveringssysteem") en de FAQ "Hoelang duurt de
+      onboarding?". Mogen die ook weg, nu de koppeling van de site af is? *(Floris beslist)*
+- [ ] **`CLAUDE.md` bijwerken:** die noemt Get-Filly nog "multi-branche", terwijl de publieke site
+      horeca-only is. Voorstel schrijven en laten goedkeuren. Open: blijft het product zelf
+      (code, branche-packs) multi-branche, of wordt dat ook teruggebracht? *(Claude + Floris)*
+- [ ] **Prijzen en juridische pagina's nalopen.** *(Floris, in een andere chat)*
 - [ ] **Schema.org uitbreiden.** `structured-data.tsx` heeft alleen Organization,
       WebSite en SoftwareApplication; FAQPage en BlogPosting/Article ontbreken. *(Claude)*
 - [ ] **Site-assets vervangen** (asset-ronde 2026-08-07): landing-visuals (ingebakken
-      ChatGPT/Tripadvisor-logo's, 4 social-foto's, thumbnail Bereikbaarheid-kaart),
-      product-visual-mock (nog horeca: bezetting, 3-gangen, terras), over-ons-foto's
-      en alt-teksten (`about.alt1/2/3`). *(Floris levert, Claude plaatst)*
+      ChatGPT/Tripadvisor-logo's, social-foto's (nu 3 na het schrappen van YouTube), thumbnail
+      Bereikbaarheid-kaart), product-visual-mock, over-ons-foto's en alt-teksten
+      (`about.alt1/2/3`). Horeca-beelden zijn juist de bedoeling. *(Floris levert, Claude plaatst)*
 - [ ] **Koppeling boekings- en kassasysteem** via samenwerkingen. Staat sinds 29-9 niet meer
       op de publieke site (product, "Sluit aan op wat je al hebt"); terugzetten zodra er een
       partner is. *(Floris regelt partners, Claude bouwt)*
@@ -272,7 +287,8 @@ de Meta-app.
 - [ ] **Publiceren naar Reels en Stories** (IG eerst, dan FB). *(Claude; compagnon
       checkt het App Dashboard.)*
 - [ ] **YouTube als kanaal** (Google-OAuth, review, publish, migratie voor de
-      check-constraint). *(Floris aanvraag, Claude bouwt.)*
+      check-constraint). Sinds 29-9 staat YouTube niet meer op de site; kanalen zijn Instagram,
+      Facebook, TikTok en Google Bedrijfsprofiel. Bouwen we het nog, of schrappen? *(Floris beslist)*
 - [ ] TikTok: video-upload en filter in de mediabibliotheek, TikTok Insights.
 - [ ] Google Bedrijfsprofiel: naam, telefoon, website en categorie bewerkbaar maken.
 - [ ] **Foto-tool ("Beeld-studio") mergen.** De code staat alleen op branch
@@ -301,8 +317,9 @@ de Meta-app.
 
 ## P3: later of nice-to-have
 
-- [ ] Filly-Engels doortrekken naar de rest van de AI-output; hero-mockups op `/en`
-      nog Nederlands.
+- [ ] Filly-Engels doortrekken naar de rest van de AI-output. Controleren of de hero-mockups op
+      `/en` nog Nederlandse tekst in de afbeeldingen zelf hebben (de teksten in `en.json` zijn
+      al Engels).
 - [ ] Variant-delete-knop en bewerken-knop onder de variant; `findBundle` N+1 batchen
       (pas bij bundels >10 kanalen).
 - [ ] Geleide flow: state bij wissel on-ramp → actief; resultaat als interactieve kaart;
