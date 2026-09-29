@@ -218,6 +218,8 @@ de Meta-app.
 - [ ] **Koppeling boekings- en kassasysteem** via samenwerkingen. Staat sinds 29-9 niet meer
       op de publieke site (product, "Sluit aan op wat je al hebt"); terugzetten zodra er een
       partner is. *(Floris regelt partners, Claude bouwt)*
+- [ ] **Blog-menu-item verbergen** (navbar en footer) tot het eerste artikel gepubliceerd is;
+      nu staan er alleen "binnenkort online"-kaarten. *(Claude, lage prio)*
 - [ ] Off-site autoriteit: backlinks, directories, Google Bedrijfsprofiel voor
       Get-Filly zelf. *(Floris)*
 

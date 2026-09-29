@@ -546,7 +546,7 @@
   "about": {
     "heroTitle": "From idea to impact.",
     "story": {
-      "p1": "The best business isn't always full, but the most findable one is. We saw it everywhere: owners with a fantastic offering and loyal customers, yet still quiet moments. Not because they did anything wrong, but because marketing has become a profession of its own. A profession you need an expensive agency for, or your own time and attention that you'd rather spend on your customers.",
+      "p1": "The best business isn't always full, but the most findable one is. We saw it everywhere among owners with a fantastic offering and loyal customers, who still had quiet moments. Not because they did anything wrong, but because marketing has become a profession of its own. A profession you need an expensive agency for, or your own time and attention that you'd rather spend on your customers.",
       "p2": "And the tools that are supposed to fix that? They're built for chains with a marketing department. Not for the owner who wants to grow their business their own way.",
       "p3": "We put an end to that. Get-Filly takes over the marketing work, runs on your own data and comes up with proposals itself. All you have to do is say yes. No empty promises, no jargon. Just more customers during your quiet moments."
     },
@@ -578,7 +578,7 @@
     "ch1": [
       "Get-Filly founded by two ambitious friends",
       "MVP live",
-      "First customers on board"
+      "First customers coming up"
     ],
     "ch2Title": "Chapter 2, First 100 customers",
     "ch2": [
@@ -736,7 +736,7 @@
     "recentPlaceholders": {
       "fillyReviews": {
         "eyebrow": "Marketing",
-        "title": "How to let Filly answer your reviews"
+        "title": "How to let Get-Filly answer your reviews"
       },
       "gbpChecklist": {
         "eyebrow": "Findability",
@@ -749,9 +749,9 @@
     },
     "cta": {
       "title": "From reading to fuller days.",
-      "subtitle": "You know the theory now. Let Filly handle your findability, reviews and posts, so you can focus on your customers.",
+      "subtitle": "Let Get-Filly handle your findability, reviews and posts, so you can focus on your customers.",
       "button": "Book a free intro call",
-      "productLink": "Curious how Filly does this? Check <link>the product</link>."
+      "productLink": "Curious how Get-Filly does this? Check <link>the product</link>."
     }
   },
   "dashboard": {

@@ -546,7 +546,7 @@
   "about": {
     "heroTitle": "Van idee naar impact.",
     "story": {
-      "p1": "De beste onderneming zit niet altijd vol maar de best vindbare wel. Wij zagen het overal, ondernemers met een fantastisch aanbod en trouwe klanten maar alsnog rustige momenten. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je klanten steekt.",
+      "p1": "De beste onderneming zit niet altijd vol, maar de best vindbare wel. Wij zagen het overal bij ondernemers met een fantastisch aanbod en trouwe klanten, die toch rustige momenten hadden. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je klanten steekt.",
       "p2": "En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n onderneming op z’n eigen manier wil laten groeien.",
       "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer klanten op je rustige momenten."
     },
@@ -574,11 +574,11 @@
     },
     "journeyTitle": "Waar we staan.",
     "now": "Nu",
-    "ch1Title": "Hoofdstuk 1, Founded",
+    "ch1Title": "Hoofdstuk 1, De start",
     "ch1": [
       "Get-Filly opgericht door twee ambitieuze vrienden",
       "MVP live",
-      "Eerste klanten aan boord"
+      "Eerste klanten in aantocht"
     ],
     "ch2Title": "Hoofdstuk 2, Eerste 100 klanten",
     "ch2": [
@@ -736,7 +736,7 @@
     "recentPlaceholders": {
       "fillyReviews": {
         "eyebrow": "Marketing",
-        "title": "Zo laat je Filly je reviews beantwoorden"
+        "title": "Zo laat je Get-Filly je reviews beantwoorden"
       },
       "gbpChecklist": {
         "eyebrow": "Vindbaarheid",
@@ -749,9 +749,9 @@
     },
     "cta": {
       "title": "Van lezen naar volle dagen.",
-      "subtitle": "Je kent nu de theorie. Laat Filly je vindbaarheid, reviews en posts regelen, zodat jij je op je klanten kunt richten.",
+      "subtitle": "Laat Get-Filly je vindbaarheid, reviews en uitingen regelen, zodat jij je op je klanten kunt richten.",
       "button": "Plan een gratis kennismaking in",
-      "productLink": "Nieuwsgierig hoe Filly dit doet? Bekijk <link>het product</link>."
+      "productLink": "Nieuwsgierig hoe Get-Filly dit doet? Bekijk <link>het product</link>."
     }
   },
   "dashboard": {
