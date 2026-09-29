@@ -292,9 +292,11 @@ de Meta-app.
       evenementen.nl (databankenrecht), en waar de interne eventsdatabase leeft.
 - [ ] **Publiceren naar Reels en Stories** (IG eerst, dan FB). *(Claude; compagnon
       checkt het App Dashboard.)*
-- [ ] **YouTube als kanaal** (Google-OAuth, review, publish, migratie voor de
-      check-constraint). Sinds 29-9 staat YouTube niet meer op de site; kanalen zijn Instagram,
-      Facebook, TikTok en Google Bedrijfsprofiel. Bouwen we het nog, of schrappen? *(Floris beslist)*
+- [ ] **YouTube uit de app halen.** Besluit Floris 29-9: YouTube is geen kanaal meer (van de site
+      is het al weg). Kanalen zijn Instagram, Facebook, TikTok en Google Bedrijfsprofiel. Eerst
+      uitzoeken waar YouTube nog in de app en de code zit (kanaalkeuze, `check`-constraint op
+      kanalen, Google-OAuth-scopes, teksten) en dan opruimen. Verwijder daarbij geen Google-code
+      die het Bedrijfsprofiel nodig heeft. *(Claude)*
 - [ ] TikTok: video-upload en filter in de mediabibliotheek, TikTok Insights.
 - [ ] Google Bedrijfsprofiel: naam, telefoon, website en categorie bewerkbaar maken.
 - [ ] **Foto-tool ("Beeld-studio") mergen.** De code staat alleen op branch
