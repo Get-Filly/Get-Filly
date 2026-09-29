@@ -51,7 +51,7 @@ bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet
 - [ ] **Suggestietekst per type uiting.** Filly zegt welk soort uiting werkt ("maak zo'n filmpje",
       "dit soort foto's scoren"), zodat het voor de klant makkelijker wordt. Bouwt op "Wat werkt
       bij jou" per kanaal (Resultaat). *(Claude)*
-- [ ] **Foto-bewerkingstool laten werken:** de "Google studio" afmaken (aanname: de Google-beeldprovider
+- [ ] **Foto-bewerkingstool laten werken:** de "Google studio" afmaken (bevestigd 29-9: de Google-beeldprovider
       met API-sleutel) en de foto-tool mergen. Zie "Foto-tool mergen" in P2. *(Floris + Claude)*
 - [ ] **Filly-chat laat Google-bedrijfsgegevens controleren en aanpassen.** Filly stelt voor om te
       checken of de gegevens op het Google Bedrijfsprofiel kloppen, of om ze aan te passen vanwege
