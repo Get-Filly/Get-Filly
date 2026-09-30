@@ -7,6 +7,28 @@ het hier bijgehouden wordt.
 
 ---
 
+## 🗓️ 2026-09-30 (later) — Filly-brein, rustige momenten v2, mail en WhatsApp weg (mig 0079 t/m 0084)
+
+**Rustige momenten model v2.** Alle drempels staan centraal in `busyness/quiet-params.ts`
+(met uitleg in gewoon Nederlands en vastgepind in tests). Detectie op uurniveau, beste
+2 uur per dagdeel, "ongewoon rustig" via mediaan-polish en MAD, kans per dag, tempo per
+week, cool-down en spreiding, feestdagen als kans. Eigenaar kan momenten en feestdagen aan
+of uit zetten ("Mijn momenten", mig 0080 en 0082). Werking: `docs/werking/rustige-momenten-model-v2.docx`.
+
+**Data-archief.** Dagelijkse samenvatting van de drukte (`busyness_daily`, mig 0079) en
+dagcontext met weer per uur (mig 0081), vier weer-snapshots per dag via cron. Open-Meteo
+gratis tier is niet-commercieel, staat op BACKLOG.
+
+**Posttijd.** `ai/post-timing.ts` plant een uiting 24 tot 48 uur voor het rustige moment
+(alle vier kanalen); te laat kanaal wordt overgeslagen, weinig tijd geeft "zo snel mogelijk".
+
+**Mail aan gasten en WhatsApp eruit.** Geen campagne-type mail of whatsapp meer (mig 0083,
+0084). Mail naar onze eigen klanten en transactionele mail blijven. Ook een oneindige
+recursie in `langWriteRules` (NL) opgelost. Zachte waarschuwing "veel uitingen op een kanaal"
+in de geleide flow, startstand geen limiet.
+
+---
+
 ## 🗓️ 2026-09-30 — Horeca-only (site + product), YouTube eruit (mig 0078)
 
 **Besluit (Floris, 29-9).** Get-Filly is horeca-only. Er komen geen andere branches

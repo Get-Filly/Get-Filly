@@ -19,7 +19,9 @@ repo werkt.
 **AI-capaciteitoptimalisator voor horeca-ondernemers.** SaaS met Filly als
 AI-assistent die rustige momenten detecteert en, met goedkeuring van de
 ondernemer, de juiste actie inzet (campagnes, reviews, vindbaarheid) om lege
-capaciteit te vullen. Get-Filly is horeca-only (besluit 29-9-2026).
+capaciteit te vullen. Get-Filly is horeca-only (besluit 29-9-2026). Kanalen: Instagram, Facebook, TikTok,
+Google Bedrijfsprofiel. Geen mail naar gasten en geen WhatsApp (30-9-2026); mail naar
+onze eigen klanten en transactionele mail blijven.
 
 "Get-Filly" = het bedrijf, "Filly" = de assistent. Die scheiding geldt ook in de
 teksten: marketingcopy zegt Get-Filly, de chat en de mockups zeggen Filly.
@@ -60,9 +62,11 @@ apps/
                             ai-rate-limit.guard, token-crypto, decorators
     ai/                     ai.service (centrale Claude-wrapper), filly-brain.config,
                             horeca-taal.ts (Filly's horeca-teksten)
-    busyness/               rustige momenten: detectie, signalen, terugkoppeling
+    busyness/               rustige momenten: quiet-model + quiet-params (alle drempels),
+                            signalen, terugkoppeling, dagelijkse archivering
+    weather/                weer-snapshots (4x per dag) voor het model
     campaigns/ chat/ reviews/ menu/ guests/ team/ meta/ tiktok/ google-business/ …
-    supabase/migrations/    SQL 0001–0078, handmatig runnen in de SQL Editor
+    supabase/migrations/    SQL 0001–0084, handmatig runnen in de SQL Editor
 packages/shared/            gedeelde types + DEFAULT_PERMISSIONS per rol
 ```
 
