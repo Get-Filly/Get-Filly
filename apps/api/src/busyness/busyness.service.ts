@@ -18,6 +18,7 @@ import { EventsService } from '../events/events.service';
 import { OpenMeteoClient } from '../weather/open-meteo.client';
 import { getNlHolidays } from '../ai/timing-factors';
 import { QUIET_PARAMS, type QuietParams } from './quiet-params';
+import { aggregateDaily, buildDayContext } from './daily-rollup';
 import { QuietFeedbackService } from './quiet-feedback.service';
 import {
   cooldownFactor,
@@ -112,6 +113,8 @@ const WEEKDAY_INDEX: Record<string, number> = {
 // busyness_snapshots: verder terug is de bron toch al geprund, en het hele
 // venster meenemen laat een overgeslagen run zichzelf repareren.
 const MONTHLY_LOOKBACK_DAYS = 120;
+// Zelfde venster voor het dagoverzicht: gelijk aan de retentie van de ruwe metingen.
+const DAILY_LOOKBACK_DAYS = 120;
 
 // Staffel per event-categorie, gespiegeld aan EventsService: hier alleen als
 // SCHAAL om nabijheid op te wegen (een festival op 9 van de 10 km weegt licht,
@@ -1836,15 +1839,21 @@ export class BusynessService {
     // dan een gat in de historie. De volgende wekelijkse run probeert het
     // opnieuw, en omdat de rollup het hele venster pakt haalt 'ie de
     // overgeslagen maand vanzelf in.
+    // Hetzelfde geldt voor het dagoverzicht (mig 0079).
+    const daily = await this.rollupDaily().catch((e) => {
+      this.logger.error(`Dagoverzicht faalde volledig: ${String(e)}`);
+      return null;
+    });
+
     let pruned = 0;
-    if (rollup && rollup.failed === 0) {
+    if (rollup && rollup.failed === 0 && daily && daily.failed === 0) {
       pruned = await this.pruneOldSnapshots().catch((e) => {
         this.logger.warn(`Prune faalde: ${String(e)}`);
         return 0;
       });
     } else {
       this.logger.warn(
-        'Prune overgeslagen: het maandoverzicht is niet voor alle zaken gelukt.',
+        'Prune overgeslagen: het maand- of dagoverzicht is niet voor alle zaken gelukt.',
       );
     }
 
@@ -1935,6 +1944,208 @@ export class BusynessService {
       .upsert(payload, { onConflict: 'business_id,month,weekday,hour' });
     if (upErr) throw new InternalServerErrorException(upErr.message);
     return payload.length;
+  }
+
+  /**
+   * Dagoverzicht (mig 0079): per zaak, datum en uur de gemeten drukte, plus
+   * per datum de omstandigheden. Draait dagelijks (zodat een dag direct
+   * bewaard is) en nogmaals vóór de wekelijkse prune. Idempotent en
+   * zelfherstellend: elke run neemt het hele retentievenster mee.
+   */
+  async rollupDaily(): Promise<{
+    businesses: number;
+    rows: number;
+    failed: number;
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('businesses')
+      .select('id');
+    if (error) throw new InternalServerErrorException(error.message);
+    const ids = ((data ?? []) as Array<{ id: string }>).map((b) => b.id);
+
+    let rows = 0;
+    let failed = 0;
+    let touched = 0;
+    for (const businessId of ids) {
+      try {
+        const n = await this.rollupDailyFor(businessId);
+        if (n > 0) touched += 1;
+        rows += n;
+      } catch (e) {
+        failed += 1;
+        this.logger.error(
+          `dagoverzicht faalde voor ${businessId}: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+      }
+    }
+    this.logger.log(
+      `dagoverzicht: ${rows} rijen voor ${touched} zaken, ${failed} mislukt.`,
+    );
+    return { businesses: touched, rows, failed };
+  }
+
+  private async rollupDailyFor(businessId: string): Promise<number> {
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - DAILY_LOOKBACK_DAYS);
+
+    const { data, error } = await this.supabase.client
+      .from('busyness_snapshots')
+      .select('captured_at, live_pct, live_hour')
+      .eq('business_id', businessId)
+      .not('live_pct', 'is', null)
+      .gte('captured_at', since.toISOString());
+    if (error) throw new InternalServerErrorException(error.message);
+    const metingen = (data ?? []) as LiveRow[];
+    if (metingen.length === 0) return 0;
+
+    const latest = await this.getLatest(businessId);
+    const cells = aggregateDaily(metingen, latest.pattern);
+    if (cells.length === 0) return 0;
+
+    const now = new Date().toISOString();
+    const payload = cells.map((c) => ({
+      business_id: businessId,
+      day: c.day,
+      weekday: c.weekday,
+      hour: c.hour,
+      actual_pct: c.actualPct,
+      expected_pct: c.expectedPct,
+      measurements: c.measurements,
+      updated_at: now,
+    }));
+    for (let i = 0; i < payload.length; i += 500) {
+      const { error: upErr } = await this.supabase.client
+        .from('busyness_daily')
+        .upsert(payload.slice(i, i + 500), {
+          onConflict: 'business_id,day,hour',
+        });
+      if (upErr) throw new InternalServerErrorException(upErr.message);
+    }
+
+    // De omstandigheden zijn secundair aan de drukte zelf: mislukt dat, dan
+    // blijft de drukte bewaard en probeert de volgende run het opnieuw.
+    await this.rollupDayContextFor(
+      businessId,
+      [...new Set(cells.map((c) => c.day))].sort(),
+    ).catch((e) =>
+      this.logger.warn(
+        `dagcontext faalde voor ${businessId}: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      ),
+    );
+    return payload.length;
+  }
+
+  /** Weer, feestdag en evenementen per gemeten datum bewaren. */
+  private async rollupDayContextFor(
+    businessId: string,
+    days: string[],
+  ): Promise<void> {
+    if (days.length === 0) return;
+    const first = days[0];
+    const last = days[days.length - 1];
+
+    const { data: biz } = await this.supabase.client
+      .from('businesses')
+      .select('latitude, longitude')
+      .eq('id', businessId)
+      .maybeSingle();
+    const lat = biz?.latitude as number | null | undefined;
+    const lng = biz?.longitude as number | null | undefined;
+
+    // Wat er al staat: gevuld weer blijft staan, ontbrekend weer proberen we opnieuw.
+    const { data: existing } = await this.supabase.client
+      .from('busyness_day_context')
+      .select('day, weather_code, temp_max, temp_min')
+      .eq('business_id', businessId)
+      .gte('day', first)
+      .lte('day', last);
+    const weather = new Map<
+      string,
+      { code: number; tempMax: number; tempMin: number }
+    >();
+    for (const r of (existing ?? []) as Array<{
+      day: string;
+      weather_code: number | null;
+      temp_max: number | null;
+      temp_min: number | null;
+    }>) {
+      if (r.weather_code != null && r.temp_max != null && r.temp_min != null) {
+        weather.set(r.day, {
+          code: r.weather_code,
+          tempMax: Number(r.temp_max),
+          tempMin: Number(r.temp_min),
+        });
+      }
+    }
+
+    const missing = days.filter((d) => !weather.has(d));
+    if (missing.length > 0 && lat != null && lng != null) {
+      const ageDays = Math.ceil(
+        (Date.now() - Date.parse(`${missing[0]}T00:00:00Z`)) / 86_400_000,
+      );
+      if (ageDays <= 92) {
+        const history = await this.openMeteo
+          .getHistory(lat, lng, ageDays + 1)
+          .catch(() => []);
+        for (const h of history) {
+          if (missing.includes(h.date)) {
+            weather.set(h.date, {
+              code: h.code,
+              tempMax: h.tempMax,
+              tempMin: h.tempMin,
+            });
+          }
+        }
+      }
+    }
+
+    const holidays = new Map<string, string>();
+    const years = new Set(days.map((d) => Number(d.slice(0, 4))));
+    for (const y of years) {
+      for (const h of getNlHolidays(y)) holidays.set(h.date, h.name);
+    }
+
+    const events = new Map<
+      string,
+      { name: string; category: string; distanceKm: number }[]
+    >();
+    const nearby = await this.events
+      .findNearbyInRange(businessId, first, last, 2000)
+      .catch(() => []);
+    for (const e of nearby) {
+      const arr = events.get(e.startsOn) ?? [];
+      arr.push({
+        name: e.name,
+        category: e.category,
+        distanceKm: e.distanceKm,
+      });
+      events.set(e.startsOn, arr);
+    }
+
+    const now = new Date().toISOString();
+    const payload = buildDayContext(days, weather, holidays, events).map(
+      (r) => ({
+        business_id: businessId,
+        day: r.day,
+        weekday: r.weekday,
+        weather_code: r.weatherCode,
+        temp_max: r.tempMax,
+        temp_min: r.tempMin,
+        holiday: r.holiday,
+        events: r.events,
+        updated_at: now,
+      }),
+    );
+    for (let i = 0; i < payload.length; i += 500) {
+      const { error } = await this.supabase.client
+        .from('busyness_day_context')
+        .upsert(payload.slice(i, i + 500), { onConflict: 'business_id,day' });
+      if (error) throw new InternalServerErrorException(error.message);
+    }
   }
 
   /**

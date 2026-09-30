@@ -54,7 +54,14 @@ export class BusynessCronController {
   @Get('measure')
   async measure(@Headers('authorization') auth?: string) {
     if (!this.authorized(auth)) throw new UnauthorizedException();
-    return this.feedback.measurePending();
+    const measured = await this.feedback.measurePending();
+    // Het dagoverzicht (mig 0079) draait dagelijks mee, zodat een gemeten dag
+    // direct bewaard is en niet pas bij de wekelijkse run.
+    const daily = await this.busyness.rollupDaily().catch((e) => {
+      this.logger.error(`Dagoverzicht faalde volledig: ${String(e)}`);
+      return null;
+    });
+    return { ...measured, daily };
   }
 
   // GET /api/busyness/cron/rollup  (handmatig vangnet)
@@ -65,7 +72,9 @@ export class BusynessCronController {
   @Get('rollup')
   async rollup(@Headers('authorization') auth?: string) {
     if (!this.authorized(auth)) throw new UnauthorizedException();
-    return this.busyness.rollupMonthly();
+    const monthly = await this.busyness.rollupMonthly();
+    const daily = await this.busyness.rollupDaily();
+    return { monthly, daily };
   }
 
   private authorized(auth?: string): boolean {
