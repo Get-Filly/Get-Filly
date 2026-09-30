@@ -24,14 +24,29 @@ Prioriteit: **P0** blokkeert de eerste klant · **P1** vóór publieke launch ·
 **P2** uitbreiden · **P3** later of nice-to-have.
 Status: `[ ]` todo · `[~]` deels · `[x]` klaar (dan naar de changelog).
 
-## Stand van zaken (2026-09-29)
+## Stand van zaken (2026-09-30)
 
-Basis is degelijk: typecheck schoon, 220 API-tests groen, auth deny-by-default,
+Basis is degelijk: typecheck schoon, 566 API-tests groen, migraties tot en met 0085 gedraaid, auth deny-by-default,
 RLS overal aan, geen fouten in de Vercel-logs van de laatste 24 uur. Web en API
 draaien allebei op Vercel (`get-filly-web`, `get-filly-api`). De klant-blokkers
 zijn vooral configuratie, nepdata op een paar plekken, betaling en Meta-review.
 
 ---
+
+## Eerstvolgend na de sessie van 30-9 (uit de brein-ronde)
+
+- [ ] **Live-checklist doorlopen** op www.get-filly.com: `docs/werking/live-checklist.md`, met vooral
+      Nederlandse campagne-generatie (er zat een oneindige lus in `langWriteRules`, opgelost). *(Floris)*
+- [ ] **Eerste bron in de kennisbank laden en testen.** Compagnon levert bronnen (wensen in
+      `docs/werking/kennisbank-aanlevering.md`), daarna `scripts/kb.js import`, `analyse`, `brief`.
+      Schema kan nog bijgesteld worden na de eerste levering. *(Compagnon levert, Claude laadt en test)*
+- [ ] **Twee foto- en twee videosuggesties bij elk voorstel** en de plek om ze te tonen: eerst prototype.
+      *(Claude prototype, Floris kiest plek)*
+- [ ] **Plek om de kennisbank in te zien** voor Floris. *(Claude na overleg met Floris)*
+- [ ] **Kleine opruiming:** `campaigns.module.ts` importeert `MailModule` zonder het te gebruiken; het
+      `mail`-trefwoord in `CAMPAIGN_INTENT` (chat) mag weg. *(Claude, laag)*
+- [ ] **Rustige momenten, na ~60 dagen data:** weer per venster calibreren en "leren in lagen"
+      (kanaal, dagdeel, hoek) uit de eigen resultaten. *(Claude)*
 
 ## Focus van Floris (aangeleverd 2026-09-29)
 
@@ -247,10 +262,6 @@ de Meta-app.
       betaalde-campagneflow (zie "Focus van Floris"). In de campagnes-sectie blijven de statussen
       concept, ingepland en actief; elke campagne krijgt een **label "betaald" of "normaal"**.
       *(Claude bouwt, Floris kiest KPI's en budgetgrenzen)*
-- [x] **Mail aan gasten en WhatsApp eruit (klaar 2026-09-30).** Campagne-type mail en whatsapp bestaan niet
-      meer in code en database (mig 0083 verwijderde de 38 demo-rijen en de tabellen; mig 0084 de
-      account-velden afzender en reply-to). **Blijft:** mail naar onze eigen klanten (afmelden, nieuwsbrieven,
-      updates, rapportages) en transactionele mail. Gasten-opt-ins en de afmeldpagina staan nog. *(afgerond)*
 - [ ] **Kennisbank "wat werkt" voor campagnevoorstellen.** Intern databestand dat steeds gevuld wordt
       met nieuwe data (eigen ervaring plus externe bronnen) en waarop wij regelmatig analyseren wat nu
       werkt en wat minder. Doel: voorstellen met de meeste kans op traffic naar de reserveringslink.
