@@ -111,13 +111,13 @@
           "dashboard": "Dashboard",
           "campaigns": "Campagnes",
           "findability": "Vindbaarheid",
-          "reservations": "Afspraken",
+          "reservations": "Reserveringen",
           "reports": "Rapportages"
         },
         "menuLabel": "Menu",
         "kpi": {
           "occupancyLabel": "Bezetting vandaag",
-          "guestsLabel": "Klanten vandaag",
+          "guestsLabel": "Gasten vandaag",
           "guestsExtra": "0 via Filly",
           "runningLabel": "Lopende campagnes",
           "runningExtra": "actief of ingepland",
@@ -265,7 +265,7 @@
     "faqs": [
       {
         "q": "Hoelang duurt de onboarding?",
-        "a": "Binnen één dag ben je volledig onboard. Je koppelt je boekings- of reserveringssysteem en je Google Bedrijfsprofiel, bevestigt je aanbod en Get-Filly gaat dezelfde dag voor je aan de slag."
+        "a": "Binnen één dag ben je volledig onboard. Je koppelt je sociale media en je Google Bedrijfsprofiel, bevestigt je aanbod en Get-Filly gaat dezelfde dag voor je aan de slag."
       },
       {
         "q": "Welke kanalen gebruikt Get-Filly?",

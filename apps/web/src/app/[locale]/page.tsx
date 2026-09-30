@@ -82,9 +82,9 @@ async function MiniDashboard() {
       {/* Sidebar */}
       <aside className="md-sidebar">
         <div className="md-workspace">
-          <div className="md-avatar">KN</div>
+          <div className="md-avatar">BG</div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="md-ws-name">Kapsalon Nova</div>
+            <div className="md-ws-name">Bistro Get-Filly</div>
             <div className="md-ws-role">demo@get-filly.com</div>
           </div>
           <ChevronDown className="md-ws-chevron" size={11} strokeWidth={2} />
