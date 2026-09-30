@@ -27,7 +27,7 @@ plat.
 | Map | Waarvoor |
 |---|---|
 | `common/` | guards (auth, business-access, rate-limit), decorators, token-encryptie |
-| `ai/` | centrale Claude-wrapper, Filly's brein-config, branche-packs |
+| `ai/` | centrale Claude-wrapper, Filly's brein-config en horeca-teksten |
 | `busyness/` | rustige momenten: detectie, datum-signalen, terugkoppeling |
 | `campaigns/`, `chat/`, `reviews/`, `menu/`, `guests/`, `team/` | de features |
 | `meta/`, `tiktok/`, `google-business/` | koppelingen met versleutelde tokens |
