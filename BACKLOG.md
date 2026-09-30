@@ -251,6 +251,19 @@ de Meta-app.
       meer in code en database (mig 0083 verwijderde de 38 demo-rijen en de tabellen; mig 0084 de
       account-velden afzender en reply-to). **Blijft:** mail naar onze eigen klanten (afmelden, nieuwsbrieven,
       updates, rapportages) en transactionele mail. Gasten-opt-ins en de afmeldpagina staan nog. *(afgerond)*
+- [ ] **Kennisbank "wat werkt" voor campagnevoorstellen.** Intern databestand dat steeds gevuld wordt
+      met nieuwe data (eigen ervaring plus externe bronnen) en waarop wij regelmatig analyseren wat nu
+      werkt en wat minder. Doel: voorstellen met de meeste kans op traffic naar de reserveringslink.
+      Bronnen zoekt de compagnon; data kan schoon of ruw binnenkomen, dat weten we pas na de eerste
+      leveringen, dus het schema wordt pas na de eerste bron vastgezet. Aanlever-wensen staan in
+      `docs/werking/kennisbank-aanlevering.md`. **Later:** een plek waar Floris de kennisbank kan inzien
+      (vorm nog te bepalen). *(Compagnon: bronnen, Claude: bouwen, Floris: inzien-plek kiezen)*
+- [ ] **Foto- en video-suggesties bij elk voorstel.** Filly schrijft altijd 2 fotosuggesties en 2
+      videosuggesties (wat de eigenaar het best kan maken, gebaseerd op de kennisbank). Nog te bepalen
+      waar dit in de app getoond wordt (concept-pagina, geleide flow of beide): eerst een prototype.
+      *(Claude prototype, Floris kiest plek)*
+- [ ] **AI die foto's maakt, aanpast of verbetert** op basis van de kennisbank. Bewust later, na de
+      kennisbank en de suggesties hierboven. *(later)*
 - [ ] **Jurist: Meta-data samengevat naar Claude.** Bevestigen dat een geanonimiseerde, samengevatte
       uitkomst (geen bedrijfsnamen, geen losse posts) niet als Meta Platform Data telt, voordat we
       "welk type uiting scoort" met Meta-cijfers laten leren. Ontwerp: `docs/werking/uiting-type-scoort-ontwerp.md`. *(Floris, jurist)*
