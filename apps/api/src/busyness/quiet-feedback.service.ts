@@ -351,6 +351,7 @@ export class QuietFeedbackService {
     const { slots, businessMedianLift } =
       await this.getSlotPerformance(businessId);
     const out = [...slots.entries()]
+      .filter(([key]) => !key.startsWith('*|')) // dagdeel-laag hoort niet in de lijst per moment
       .map(([key, v]) => {
         const [weekday, daypart] = key.split('|');
         return {
@@ -417,6 +418,23 @@ export class QuietFeedbackService {
       const slots = new Map<string, SlotPerformance>();
       for (const [key, lifts] of perSlot) {
         slots.set(key, { medianLift: median(lifts), samples: lifts.length });
+      }
+      // Tweede laag: per dagdeel over alle weekdagen, sleutel `*|dagdeel`. Een
+      // los moment (bv. woensdagmiddag) heeft bij een paar campagnes per week
+      // pas na maanden genoeg metingen; het dagdeel als geheel veel eerder. De
+      // detectie gebruikt deze laag zolang het moment zelf te weinig heeft.
+      const perDaypart = new Map<string, number[]>();
+      for (const [key, lifts] of perSlot) {
+        const dp = key.split('|')[1];
+        const arr = perDaypart.get(dp);
+        if (arr) arr.push(...lifts);
+        else perDaypart.set(dp, [...lifts]);
+      }
+      for (const [dp, lifts] of perDaypart) {
+        slots.set(`*|${dp}`, {
+          medianLift: median(lifts),
+          samples: lifts.length,
+        });
       }
       return { slots, businessMedianLift: all.length ? median(all) : 0 };
     } catch (e) {

@@ -32,6 +32,7 @@ import {
   cooldownFactor,
   feedbackFactor,
   SAME_WEEK_DAYPART_DAMP,
+  FEEDBACK_MIN_SAMPLES,
   type WeatherSignal,
   type HourlyWeather,
   type EventSignal,
@@ -466,10 +467,14 @@ export function computeQuiet(
         if (!signals.noPolicy) {
           factor = cooldownFactor(uses);
           if (usedDayparts.has(k.daypart)) factor *= SAME_WEEK_DAYPART_DAMP;
-          factor *= feedbackFactor(
-            signals.slotPerformance?.get(`${k.weekday}|${k.daypart}`),
-            signals.businessMedianLift ?? 0,
-          );
+          // Leren in lagen: eerst het moment zelf; heeft dat nog te weinig
+          // metingen, dan het dagdeel over alle weekdagen (`*|dagdeel`).
+          const own = signals.slotPerformance?.get(`${k.weekday}|${k.daypart}`);
+          const perf =
+            own && own.samples >= FEEDBACK_MIN_SAMPLES
+              ? own
+              : signals.slotPerformance?.get(`*|${k.daypart}`);
+          factor *= feedbackFactor(perf, signals.businessMedianLift ?? 0);
         }
         if (factor < 1) anyDamped = true;
         const score = k.score * factor;

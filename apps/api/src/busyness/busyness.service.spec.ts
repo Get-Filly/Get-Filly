@@ -542,3 +542,42 @@ describe('getQuietMoments — terugkoppeling', () => {
     expect(moments[0].date).toBe('2026-08-11');
   });
 });
+
+describe('getQuietMoments — leren in lagen', () => {
+  it('gebruikt het dagdeel als het moment zelf te weinig metingen heeft', async () => {
+    // Ma en di zijn even leeg; zonder terugkoppeling wint ma op datumvolgorde.
+    // Ma heeft genoeg eigen metingen en zit precies op het niveau van de zaak.
+    // Di heeft er te weinig, maar het dagdeel als geheel werkt bewezen beter
+    // dan gemiddeld: dat tilt di boven ma uit.
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const kaal = await makeService(p).getQuietMoments('biz', FROM, TO, 1);
+    const top = kaal.moments[0];
+    expect(top.date).toBe('2026-08-10');
+
+    const svc = makeService(p, {
+      slotPerformance: new Map([
+        [`0|${top.daypart}`, { medianLift: 0, samples: 8 }],
+        [`1|${top.daypart}`, { medianLift: 14, samples: 1 }], // te dun
+        [`*|${top.daypart}`, { medianLift: 14, samples: 20 }],
+      ]),
+      businessMedianLift: 0,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-11'); // di, dankzij de dagdeel-laag
+  });
+
+  it('een moment met genoeg eigen metingen gaat voor op het dagdeel', async () => {
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const kaal = await makeService(p).getQuietMoments('biz', FROM, TO, 1);
+    const top = kaal.moments[0];
+    const svc = makeService(p, {
+      slotPerformance: new Map([
+        [`0|${top.daypart}`, { medianLift: -10, samples: 8 }], // ma: bewezen slecht
+        [`*|${top.daypart}`, { medianLift: 14, samples: 20 }],
+      ]),
+      businessMedianLift: 0,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-11'); // di wint: ma is bewezen slechter
+  });
+});

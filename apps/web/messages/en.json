@@ -1340,7 +1340,27 @@
       "maxDistanceLabel": "Maximum distance from the business",
       "distanceSmart": "Smart per type (default)",
       "distanceKm": "Up to {km} km",
-      "hint": "Filly weighs nearby events (source: evenementen.nl) and annual public holidays (Valentine's Day, Easter, King's Day, Christmas...) into campaign suggestions and timing. Untick what doesn't fit your business. The maximum distance applies only to nearby events, not to public holidays. “Smart per type” means: markets and funfairs up to 2 km, concerts and sports up to 5 km, festivals up to 10 km. A fixed distance applies to all types, wider is handy in rural areas, tighter in the city center."
+      "hint": "Filly weighs nearby events (source: evenementen.nl) and annual public holidays (Valentine's Day, Easter, King's Day, Christmas...) into campaign suggestions and timing. Untick what doesn't fit your business. The maximum distance applies only to nearby events, not to public holidays. “Smart per type” means: markets and funfairs up to 2 km, concerts and sports up to 5 km, festivals up to 10 km. A fixed distance applies to all types, wider is handy in rural areas, tighter in the city center.",
+      "holidayListLabel": "Which holidays does Filly play into?",
+      "holidayListHint": "All holidays are on. Untick a holiday that Filly should not play into.",
+      "holiday": {
+        "nieuwjaarsdag": "New Year's Day",
+        "valentijnsdag": "Valentine's Day",
+        "goede-vrijdag": "Good Friday",
+        "1e-paasdag": "Easter Sunday",
+        "2e-paasdag": "Easter Monday",
+        "koningsdag": "King's Day",
+        "bevrijdingsdag": "Liberation Day",
+        "moederdag": "Mother's Day",
+        "hemelvaartsdag": "Ascension Day",
+        "1e-pinksterdag": "Whit Sunday",
+        "2e-pinksterdag": "Whit Monday",
+        "vaderdag": "Father's Day",
+        "sinterklaasavond": "Saint Nicholas' Eve",
+        "1e-kerstdag": "Christmas Day",
+        "2e-kerstdag": "Second Christmas Day",
+        "oudejaarsavond": "New Year's Eve"
+      }
     },
     "autoReply": {
       "toggleLabel": "Filly replies automatically to reviews",
