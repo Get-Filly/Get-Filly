@@ -219,11 +219,11 @@ de Meta-app.
       segmentatie mogen blijven (worden gebouwd). Cijfers in mocks en blogtitels zijn bewust nep.
       "Realtime" mag blijven. Wijzig de breedte, hoogte en marges van de uitingskaarten niet.
       *(Claude)*
-- [ ] **Boekingssysteem in het Ultimate-pakket op de prijzenpagina.** In `nl.json` en `en.json`
-      staat nog de beschrijving ("Inclusief koppeling met jouw boekings- of reserveringssysteem"),
-      de feature "Koppeling met je boekings- of reserveringssysteem" en de regel "Rapportage over
-      boekingen en omzet per uiting". De FAQ over onboarding is op 30-9 al aangepast. Mag dit ook
-      weg, nu de koppeling van de site af is? *(Floris beslist)*
+- [ ] **Boekingssysteem in het Ultimate-pakket op de prijzenpagina.** Besluit Floris 30-9: voorlopig
+      laten staan. Het gaat om de beschrijving, de feature "Koppeling met je boekings- of
+      reserveringssysteem" en de regel "Rapportage over boekingen en omzet per uiting" in `nl.json` en
+      `en.json`. Terugkomen op dit punt zodra de koppeling via samenwerkingen concreet wordt.
+      *(Floris beslist)*
 - [ ] **Prijzen en juridische pagina's nalopen.** *(Floris, in een andere chat)*
 - [ ] **Schema.org uitbreiden.** `structured-data.tsx` heeft alleen Organization,
       WebSite en SoftwareApplication; FAQPage en BlogPosting/Article ontbreken. *(Claude)*
