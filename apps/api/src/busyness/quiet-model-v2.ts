@@ -50,7 +50,8 @@ export interface QuietParamsV2 {
   gapFrac: number;
   anomalyWeight: number;
   unusualSpreadMult: number;
-  absDevFloor: number;
+  /** Ondergrens voor "ongewoon": minimaal dit deel (0,08 = 8%) onder het verwachte niveau. */
+  relDevFloor: number;
   /** Hoe zwaar een evenement in de buurt meetelt in de score. */
   eventBonusWeight: number;
   /** Vanaf welke score een evenement-kans boven het tempo uit mag. */
@@ -66,7 +67,7 @@ export const QUIET_PARAMS_V2: QuietParamsV2 = {
   gapFrac: 0.35,
   anomalyWeight: 0.5,
   unusualSpreadMult: 2.0,
-  absDevFloor: 2,
+  relDevFloor: 0.12,
   eventBonusWeight: 0.5,
   exceptionScore: 0.8,
   haalbaarheid: {
@@ -250,16 +251,21 @@ export function computeQuietV2(
   };
   if (!peak) return empty;
 
-  // 4. Normale schommeling (MAD) van de afwijkingen.
-  const grid = cells.map((row) => row.map((c) => (c ? c.avg : null)));
+  // 4. Normale schommeling (MAD), gemeten in VERHOUDINGEN. We ontleden de
+  //    logaritme van de drukte, dus een drukke weekenddag met grotere dalen in
+  //    punten wordt niet per definitie "ongewoon". (Op punten rekenen liet elke
+  //    weekenddag ongewoon lijken en gaf het label aan bijna de helft.)
+  const grid = cells.map((row) =>
+    row.map((c) => (c ? Math.log(Math.max(c.avg, 1)) : null)),
+  );
   const residual = medianPolish(grid);
   const resVals = residual.flat().filter((v): v is number => v != null);
   if (!resVals.length) return empty;
   const medRes = medianExact(resVals);
   const mad = medianExact(resVals.map((r) => Math.abs(r - medRes)));
-  const spread = 1.4826 * mad || 1;
+  const spread = 1.4826 * mad;
   const unusualThreshold = Math.max(
-    P.absDevFloor,
+    P.relDevFloor,
     P.unusualSpreadMult * spread,
   );
 
@@ -283,7 +289,11 @@ export function computeQuietV2(
       const base = residual[weekday][j];
       if (!c || base == null) return;
       const adjusted = Math.max(0, Math.min(100, c.avg * factor));
-      const dev = base + (adjusted - c.avg);
+      // Verwacht niveau van deze cel (uit de ontleding), en hoeveel het
+      // werkelijke (weer-gecorrigeerde) niveau daaronder of erboven zit, als
+      // verhouding.
+      const expected = c.avg * Math.exp(-base);
+      const dev = adjusted / Math.max(expected, 1) - 1;
       const gap = peak - adjusted;
       if (gap < P.gapFrac * peak) return;
       const haal = P.haalbaarheid[dp][weekday] ?? 1;
