@@ -23,7 +23,7 @@ horeca (Bistro Get-Filly, Reserveringen, Gasten). Kassa-regel van de prijzenpagi
 Geen migratie nodig: de check-constraint kende YouTube nooit.
 
 **Product terug naar horeca-only.** Branche-code weg (registry, packs, VAKTAAL,
-channelFlavor, onboarding-veld). Migratie 0078 dropt `industry` op `businesses`,
+channelFlavor, onboarding-veld). Migratie 0078 (gedraaid door Floris op 30-9) dropt `industry` op `businesses`,
 `campaign_performance` en `campaign_style_fingerprints`, plus de snapshot-triggers uit
 mig 0067. De hernoeming naar `businesses` (mig 0068) blijft. Het multi-branche-plan en
 de herpositionering naar capaciteitoptimalisator voor meerdere branches zijn daarmee
