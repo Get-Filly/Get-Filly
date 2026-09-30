@@ -937,10 +937,14 @@ export class BusynessService {
   }
 
   /**
-   * Datums in het venster waarvoor al iets klaarstaat: een campagne die nog
-   * loopt (concept/ingepland/actief) of een openstaand rustig-moment-voorstel.
-   * Die dagen zijn geen kans meer — en door ze hier te weren, vóór de week-cap,
-   * schuift er wél iets anders voor in de plaats.
+   * Datums waarvoor al iets staat, vanaf de maandag van de eerste week in het
+   * venster: een concept, een ingeplande of actieve campagne, een al geplaatste
+   * (afgeronde) campagne of een openstaand rustig-moment-voorstel.
+   *
+   * Vanaf de maandag en niet vanaf het venster: het tempo telt alles van die
+   * week mee, ook wat al geplaatst is (donderdag met maandag en dinsdag al
+   * gedaan telt als twee, niet als nul). Datums vóór het venster zijn zelf
+   * geen kandidaat meer; ze tellen alleen mee voor het tempo.
    */
   private async getCoveredDates(
     businessId: string,
@@ -948,17 +952,16 @@ export class BusynessService {
     toIso: string,
   ): Promise<Set<string>> {
     const out = new Set<string>();
+    const startIso = this.mondayOf(fromIso);
     try {
       const { data } = await this.supabase.client
         .from('campaigns')
         .select('scheduled_for, status')
         .eq('business_id', businessId)
         .not('scheduled_for', 'is', null)
-        .gte('scheduled_for', `${fromIso}T00:00:00Z`)
+        .gte('scheduled_for', `${startIso}T00:00:00Z`)
         .lte('scheduled_for', `${toIso}T23:59:59Z`);
       for (const row of data ?? []) {
-        const status = row.status as string | null;
-        if (status === 'afgerond' || status === 'gearchiveerd') continue;
         out.add(this.amsterdamDate(new Date(row.scheduled_for as string)));
       }
     } catch (e) {
@@ -975,7 +978,7 @@ export class BusynessService {
       for (const row of data ?? []) {
         const ctx = row.trigger_context as { target_date?: string } | null;
         const d = ctx?.target_date;
-        if (d && d >= fromIso && d <= toIso) out.add(d);
+        if (d && d >= startIso && d <= toIso) out.add(d);
       }
     } catch (e) {
       this.logger.warn(`voorstel-uitsluiting faalde: ${String(e)}`);

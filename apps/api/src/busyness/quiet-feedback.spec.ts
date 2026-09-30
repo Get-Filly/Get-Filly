@@ -1,4 +1,5 @@
 import {
+  aggregateWindowActuals,
   aggregateDaypartActuals,
   comparableDays,
 } from './quiet-feedback.service';
@@ -114,5 +115,27 @@ describe('comparableDays', () => {
     expect(comparableDays(actuals, '2026-09-01', 'avond', new Set())).toEqual(
       [],
     );
+  });
+});
+
+describe('aggregateWindowActuals', () => {
+  // 5 oktober 2026, zomertijd: 13:00 UTC = 15:00, 15:00 UTC = 17:00, 17:00 UTC = 19:00
+  const rows = [
+    { captured_at: '2026-10-05T13:10:00Z', live_pct: 20, live_hour: 15 },
+    { captured_at: '2026-10-05T14:10:00Z', live_pct: 30, live_hour: 16 },
+    { captured_at: '2026-10-05T15:10:00Z', live_pct: 80, live_hour: 17 },
+    { captured_at: '2026-10-05T16:10:00Z', live_pct: 90, live_hour: 18 },
+  ];
+
+  it('meet het venster en niet het hele dagdeel', () => {
+    const venster = aggregateWindowActuals(rows, 15, 17);
+    expect(venster.get('2026-10-05|15-17')).toEqual({ avg: 25, hours: 2 });
+    // Het hele diner (17 tot 24) zou 85 laten zien: een ander beeld.
+    const dagdeel = aggregateDaypartActuals(rows);
+    expect(dagdeel.get('2026-10-05|diner')!.avg).toBe(85);
+  });
+
+  it('geeft niets terug voor een venster zonder metingen', () => {
+    expect(aggregateWindowActuals(rows, 9, 11).size).toBe(0);
   });
 });

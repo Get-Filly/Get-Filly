@@ -167,4 +167,15 @@ describe('computeQuiet', () => {
     expect(vr).toBeDefined();
     expect(vr!.reasonKey).toBe('weatherRain');
   });
+
+  it('telt wat eerder in de week al gedaan of ingepland is mee voor het tempo', () => {
+    // Donderdag 8 oktober als begin van het venster; maandag en dinsdag van
+    // dezelfde week zijn al gedaan. Tempo 2 is dan vol.
+    const planned = new Set(['2026-10-05', '2026-10-06']);
+    const r = computeQuiet(makePattern(), '2026-10-08', '2026-10-11', 2, {
+      planned,
+    });
+    expect(r.moments).toHaveLength(0);
+    expect(r.weeks[0]).toMatchObject({ planned: 2, cap: 2, picked: 0 });
+  });
 });

@@ -1348,6 +1348,14 @@ ${dayContext}`;
                   source: 'busyness',
                   expected_pct: day.expectedPct,
                   target_daypart: day.daypart,
+                  // Het voorgestelde tijdvenster [van, tot) in uren, zodat de
+                  // terugkoppeling precies dat venster meet en niet het hele dagdeel.
+                  ...(day.fromHour != null && day.toHour != null
+                    ? {
+                        target_from_hour: day.fromHour,
+                        target_to_hour: day.toHour + 1,
+                      }
+                    : {}),
                   daypart_label: day.daypartLabel,
                   deviation: day.deviation,
                   unusual: day.unusual,

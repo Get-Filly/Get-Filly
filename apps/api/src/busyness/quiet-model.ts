@@ -436,7 +436,8 @@ export function computeQuiet(
     );
   const plannedPerWeek = new Map<string, number>();
   for (const p of signals.planned ?? []) {
-    if (p < fromIso || p > toIso) continue;
+    // Ook wat al eerder in de eerste week staat telt mee voor het tempo.
+    if (p < weekList[0] || p > toIso) continue;
     plannedPerWeek.set(mondayOf(p), (plannedPerWeek.get(mondayOf(p)) ?? 0) + 1);
   }
   const hits = new Map<string, { weekIndex: number; weak?: boolean }[]>(

@@ -50,6 +50,10 @@ type TargetedCampaign = {
   businessId: string;
   targetDate: string;
   daypart: string;
+  // Het voorgestelde tijdvenster [van, tot) in uren, als het voorstel dat
+  // bewaarde. Dan meten we precies dat venster; anders het hele dagdeel.
+  fromHour?: number;
+  toHour?: number;
 };
 
 export type MeasureResult = {
@@ -174,16 +178,26 @@ export class QuietFeedbackService {
         'id',
         pending.map((p) => p.ai_suggestion_id),
       );
-    const ctxById = new Map<string, { date?: string; daypart?: string }>();
+    const ctxById = new Map<
+      string,
+      { date?: string; daypart?: string; from?: number; to?: number }
+    >();
     for (const s of (suggestions ?? []) as Array<{
       id: string;
-      trigger_context: { target_date?: string; target_daypart?: string } | null;
+      trigger_context: {
+        target_date?: string;
+        target_daypart?: string;
+        target_from_hour?: number;
+        target_to_hour?: number;
+      } | null;
     }>) {
       ctxById.set(s.id, {
         date: s.trigger_context?.target_date,
         daypart: s.trigger_context?.target_daypart
           ? normalizeDaypart(s.trigger_context.target_daypart)
           : undefined,
+        from: s.trigger_context?.target_from_hour,
+        to: s.trigger_context?.target_to_hour,
       });
     }
 
@@ -197,6 +211,8 @@ export class QuietFeedbackService {
         businessId: r.business_id,
         targetDate: ctx.date,
         daypart: ctx.daypart,
+        fromHour: ctx.from,
+        toHour: ctx.to,
       });
     }
     return out;
@@ -207,19 +223,44 @@ export class QuietFeedbackService {
     businessId: string,
     campaigns: TargetedCampaign[],
   ): Promise<number> {
-    const byDate = await this.loadDaypartActuals(businessId);
+    const liveRows = await this.loadLiveRows(businessId);
+    const byDate = aggregateDaypartActuals(liveRows);
+    // Per voorgesteld tijdvenster de gemeten drukte, één keer berekend.
+    const byWindow = new Map<string, Map<string, DaypartActual>>();
     // Dagen mét een campagne horen niet in de baseline: die meten we juist.
     const campaignDates = new Set(campaigns.map((c) => `${c.targetDate}`));
 
     const rows: Record<string, unknown>[] = [];
     for (const c of campaigns) {
       const weekday = mondayIndex(c.targetDate);
-      const target = byDate.get(`${c.targetDate}|${c.daypart}`) ?? null;
+      // Heeft het voorstel een tijdvenster (bv. 15 tot 17 uur), meet dan dat
+      // venster en vergelijk het met hetzelfde venster op vergelijkbare dagen.
+      // Anders het hele dagdeel (oudere voorstellen).
+      const windowKey =
+        c.fromHour != null && c.toHour != null && c.toHour > c.fromHour
+          ? `${c.fromHour}-${c.toHour}`
+          : null;
+      let actuals = byDate;
+      let slot = c.daypart;
+      if (windowKey) {
+        let w = byWindow.get(windowKey);
+        if (!w) {
+          w = aggregateWindowActuals(
+            liveRows,
+            c.fromHour as number,
+            c.toHour as number,
+          );
+          byWindow.set(windowKey, w);
+        }
+        actuals = w;
+        slot = windowKey;
+      }
+      const target = actuals.get(`${c.targetDate}|${slot}`) ?? null;
 
       const comparable = comparableDays(
-        byDate,
+        actuals,
         c.targetDate,
-        c.daypart,
+        slot,
         campaignDates,
       );
 
@@ -260,14 +301,11 @@ export class QuietFeedbackService {
   }
 
   /**
-   * Gemeten drukte per (datum, dagdeel) uit de live-metingen, voor het hele
-   * retentievenster van één zaak. Per (datum, uur) de MEDIAAN van live_pct
-   * (tegen uitschieters), daarna het gemiddelde over de gemeten uren binnen
-   * het dagdeel. Spiegelt getActualByDate; hier per dagdeel geaggregeerd.
+   * De ruwe live-metingen van één zaak over het meetvenster. Het omzetten naar
+   * gemeten drukte per dagdeel of per tijdvenster gebeurt in de pure functies
+   * aggregateDaypartActuals en aggregateWindowActuals.
    */
-  private async loadDaypartActuals(
-    businessId: string,
-  ): Promise<Map<string, { avg: number; hours: number }>> {
+  private async loadLiveRows(businessId: string): Promise<LiveRowInput[]> {
     const since = new Date();
     since.setUTCDate(since.getUTCDate() - MEASURE_LOOKBACK_DAYS - 1);
 
@@ -279,16 +317,9 @@ export class QuietFeedbackService {
       .gte('captured_at', since.toISOString());
     if (error) {
       this.logger.warn(`live-metingen ophalen faalde: ${error.message}`);
-      return new Map();
+      return [];
     }
-
-    return aggregateDaypartActuals(
-      (data ?? []) as Array<{
-        captured_at: string;
-        live_pct: number;
-        live_hour: number | null;
-      }>,
-    );
+    return (data ?? []) as LiveRowInput[];
   }
 
   // ============================================================
@@ -401,6 +432,50 @@ export class QuietFeedbackService {
 
 export type DaypartActual = { avg: number; hours: number };
 
+export type LiveRowInput = {
+  captured_at: string;
+  live_pct: number;
+  live_hour: number | null;
+};
+
+// bucket[datum][uur] = de mediaan van alle metingen in dat uur
+function medianPerHour(
+  rows: LiveRowInput[],
+): Record<string, Record<number, number>> {
+  const bucket: Record<string, Record<number, number[]>> = {};
+  for (const row of rows) {
+    const when = new Date(row.captured_at);
+    const date = amsterdamDate(when);
+    const hour = row.live_hour ?? amsterdamHour(when);
+    if (hour == null || hour < 0 || hour > 23) continue;
+    (bucket[date] ??= {})[hour] ??= [];
+    bucket[date][hour].push(row.live_pct);
+  }
+  const out: Record<string, Record<number, number>> = {};
+  for (const [date, hours] of Object.entries(bucket)) {
+    out[date] = {};
+    for (const [h, pcts] of Object.entries(hours))
+      out[date][Number(h)] = median(pcts);
+  }
+  return out;
+}
+
+function windowAverage(
+  hours: Record<number, number>,
+  from: number,
+  to: number,
+): DaypartActual | null {
+  const vals: number[] = [];
+  for (let h = from; h < to; h++) {
+    if (hours[h] !== undefined) vals.push(hours[h]);
+  }
+  if (vals.length === 0) return null;
+  return {
+    avg: vals.reduce((a, b) => a + b, 0) / vals.length,
+    hours: vals.length,
+  };
+}
+
 /**
  * Live-metingen omzetten naar gemeten drukte per (datum, dagdeel).
  * Sleutel is `YYYY-MM-DD|dagdeel`.
@@ -413,37 +488,34 @@ export type DaypartActual = { avg: number; hours: number };
  * geen betrouwbare waarneming.
  */
 export function aggregateDaypartActuals(
-  rows: Array<{
-    captured_at: string;
-    live_pct: number;
-    live_hour: number | null;
-  }>,
+  rows: LiveRowInput[],
 ): Map<string, DaypartActual> {
-  // bucket[datum][uur] = [pct, ...]
-  const bucket: Record<string, Record<number, number[]>> = {};
-  for (const row of rows) {
-    const when = new Date(row.captured_at);
-    const date = amsterdamDate(when);
-    const hour = row.live_hour ?? amsterdamHour(when);
-    if (hour == null || hour < 0 || hour > 23) continue;
-    (bucket[date] ??= {})[hour] ??= [];
-    bucket[date][hour].push(row.live_pct);
-  }
-
+  const perHour = medianPerHour(rows);
   const out = new Map<string, DaypartActual>();
-  for (const [date, hours] of Object.entries(bucket)) {
+  for (const [date, hours] of Object.entries(perHour)) {
     for (const dp of DAYPART_DEFS) {
-      const vals: number[] = [];
-      for (let h = dp.from; h < dp.to; h++) {
-        const pcts = hours[h];
-        if (pcts?.length) vals.push(median(pcts));
-      }
-      if (vals.length === 0) continue;
-      out.set(`${date}|${dp.key}`, {
-        avg: vals.reduce((a, b) => a + b, 0) / vals.length,
-        hours: vals.length,
-      });
+      const w = windowAverage(hours, dp.from, dp.to);
+      if (w) out.set(`${date}|${dp.key}`, w);
     }
+  }
+  return out;
+}
+
+/**
+ * Zelfde maat, maar over een eigen tijdvenster [from, to) in plaats van een
+ * heel dagdeel. Sleutel is `YYYY-MM-DD|from-to`. Een voorstel is een venster
+ * van 2 uur; het hele dagdeel meten (diner is 7 uur) verdunt het effect.
+ */
+export function aggregateWindowActuals(
+  rows: LiveRowInput[],
+  from: number,
+  to: number,
+): Map<string, DaypartActual> {
+  const perHour = medianPerHour(rows);
+  const out = new Map<string, DaypartActual>();
+  for (const [date, hours] of Object.entries(perHour)) {
+    const w = windowAverage(hours, from, to);
+    if (w) out.set(`${date}|${from}-${to}`, w);
   }
   return out;
 }
