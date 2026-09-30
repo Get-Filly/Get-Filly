@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { throwDbError } from '../common/db-error';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import type Anthropic from '@anthropic-ai/sdk';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
@@ -545,7 +546,21 @@ export class SuggestionsService {
     // Echte drukte-detectie (Google-patroon via Apify) voor de
     // low-occupancy-flow; occupancy_days blijft terugval.
     private readonly busyness: BusynessService,
+    // Interne kennisbank "wat werkt" (mig 0085): kort kennisblok in de
+    // prompts. Leeg zolang er geen data is, en nooit een fout.
+    private readonly knowledge: KnowledgeService,
   ) {}
+
+  // Kennisblok voor de prompt: lege string of een regel met een
+  // voorafgaande nieuwe regel. Zonder kanaal-keuze gelden alle vier de kanalen.
+  private async knowledgeBlock(channels?: string[]): Promise<string> {
+    const list =
+      channels && channels.length > 0
+        ? channels
+        : ['instagram', 'facebook', 'tiktok', 'google_business'];
+    const brief = await this.knowledge.getBrief(list);
+    return brief ? `\n${brief}` : '';
+  }
 
   // Filly-taal van de zaak (account-instelling): stuurt de taal van de
   // gegenereerde campagne-teksten. Default nl.
@@ -659,6 +674,7 @@ export class SuggestionsService {
     const todayIso = today.toISOString().slice(0, 10);
     const monthName = today.toLocaleString('nl-NL', { month: 'long' });
 
+    const knowledgeBrief = await this.knowledgeBlock();
     const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
 
 Je antwoord komt via de tool 'generate_proactive_suggestions'. Vul de tool-args met 3-5 verschillende voorstellen die elk een eigen invalshoek hebben.
@@ -672,7 +688,7 @@ Strategie voor variëteit (kies 3-5 verschillende invalshoeken):
 - general: een sterk concept dat los staat van een specifieke trigger, een signature-event of menu-launch.
 
 Inhoudsregels:
-${langWriteRules(lang)}
+${langWriteRules(lang)}${knowledgeBrief}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan. Verzin geen gerechten, gebruik échte namen + prijzen voor concreetheid.
 - Per voorstel: kies 1-3 KANALEN waarop dit voorstel uit moet gaan. Niet elk voorstel hoeft multi-channel te zijn:
   - 1 kanaal: tactisch/snel (low_occupancy + urgency=high → 1 Instagram-post of story voor laat-boekers), of zeer kanaal-specifiek concept.
@@ -1171,12 +1187,13 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
+      const knowledgeBrief = await this.knowledgeBlock();
       const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifiek rustig moment (een dagdeel) in de komende 2 weken bedenk je het beste activatie-voorstel om juist dán meer gasten te trekken.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
 Inhoudsregels:
-${langWriteRules(lang)}
+${langWriteRules(lang)}${knowledgeBrief}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Richt het voorstel op het genoemde dagdeel en noem dat moment concreet ("kom lunchen", "borrel", "aan tafel vanavond"), zodat de gast weet wánneer het bedoeld is.
 - Kies campagne-type op basis van weekdag + segment. Sociale media is het
@@ -1828,12 +1845,13 @@ groepen + traditie.`;
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
+      const knowledgeBrief = await this.knowledgeBlock(item.channels);
       const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke datum bedenk je het beste marketing-voorstel.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel: campagne-type, naam, body, doelgroep en verwacht effect.
 
 Inhoudsregels:
-${langWriteRules(lang)}
+${langWriteRules(lang)}${knowledgeBrief}
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
 - Is er een rustig DAGDEEL genoemd, richt het voorstel dan op dát moment en noem het concreet ("kom lunchen", "borrel", "aan tafel vanavond"). Noem geen exacte drukte-percentages.
 - Kies campagne-type op basis van urgentie + segment. Sociale media is het

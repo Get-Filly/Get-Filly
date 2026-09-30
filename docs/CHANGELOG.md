@@ -27,6 +27,11 @@ gratis tier is niet-commercieel, staat op BACKLOG.
 recursie in `langWriteRules` (NL) opgelost. Zachte waarschuwing "veel uitingen op een kanaal"
 in de geleide flow, startstand geen limiet.
 
+**Kennisbank "wat werkt" (mig 0085).** Interne architectuur: bron, ruwe import in elke vorm, mapping
+naar metingen, analyse per kanaal (formaat, hoek, dagdeel), kennisblok in Filly's prompts (leeg zonder
+data, nooit een fout). Code in `apps/api/src/knowledge`, hulpmiddel `scripts/kb.js`, uitleg in
+`docs/werking/kennisbank.md`. Wacht op de eerste bronnen van de compagnon.
+
 ---
 
 ## 🗓️ 2026-09-30 — Horeca-only (site + product), YouTube eruit (mig 0078)

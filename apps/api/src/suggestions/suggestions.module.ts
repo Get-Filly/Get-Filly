@@ -8,6 +8,7 @@ import { AiModule } from '../ai/ai.module';
 import { EventsModule } from '../events/events.module';
 import { WeatherModule } from '../weather/weather.module';
 import { BusynessModule } from '../busyness/busyness.module';
+import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
 
@@ -25,6 +26,7 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
     EventsModule,
     WeatherModule,
     BusynessModule,
+    KnowledgeModule,
   ],
   controllers: [SuggestionsController],
   providers: [SuggestionsService, AuthGuard, BusinessAccessGuard],
