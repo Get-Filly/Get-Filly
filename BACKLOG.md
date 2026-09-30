@@ -241,6 +241,22 @@ de Meta-app.
       1 miljoen aanroepen per maand; prijs opvragen), of een andere bron (bijvoorbeeld KNMI open
       data). Sinds 30-9 halen we het weer nog maar 4 keer per dag op per locatie (ochtend, lunch,
       middag, diner) plus 2 keer 's nachts voor het dagoverzicht. *(Floris beslist, Claude bouwt)*
+- [ ] **Betaalde campagnes: wanneer starten.** Betaald moet eerder starten dan een gewone uiting
+      (een advertentie bouwt bereik op): startmoment, looptijd en budget per moment. Beginwaarde als
+      aanname 3 dagen voor het moment, bij te stellen met eigen metingen. Bij het bouwen van de
+      betaalde-campagneflow (zie "Focus van Floris"). In de campagnes-sectie blijven de statussen
+      concept, ingepland en actief; elke campagne krijgt een **label "betaald" of "normaal"**.
+      *(Claude bouwt, Floris kiest KPI's en budgetgrenzen)*
+- [ ] **Mail aan gasten van klanten eruit; mail aan onze klanten blijft.** Get-Filly mailt geen gasten
+      meer (geen concurrentie met boekingsplatformen). Weg: campagne-type mail, `campaign_mail_content`,
+      verzenden naar gasten, mail-statistieken, mail-pagina onder Marketing, mail-kaarten in chat en
+      campagne-detail. **Blijft (mag niets van verwijderd worden):** e-mail naar onze eigen klanten
+      (eigenaren): afmelden, nieuwsbrieven, updates, rapportages, plus transactionele mail (contactformulier,
+      uitnodigingen, wachtwoord). Eerst uitzetten, dan code verwijderen, database als laatste. Gasten-opt-ins
+      en de afmeldpagina blijven voorlopig staan. *(Claude, Floris keurt de lijst goed)*
+- [ ] **Maximum uitingen per kanaal.** Voor nu is er geen limiet. Zodra de kosten duidelijk zijn kan een
+      maximum per kanaal worden ingesteld; het waarschuwingsscherm in de geleide flow is er dan klaar voor.
+      *(Floris beslist zodra de kosten bekend zijn)*
 - [ ] Off-site autoriteit: backlinks, directories, Google Bedrijfsprofiel voor
       Get-Filly zelf. *(Floris)*
 

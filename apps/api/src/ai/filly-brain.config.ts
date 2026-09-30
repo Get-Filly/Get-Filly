@@ -430,8 +430,13 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 12,
-      optimalRangeHours: [48, 120], // 2-5 dagen
-      rationale: 'FB-feed langzamer maar verzadigd; lange aanloop helpt.',
+      // 1-3 dagen. Was 2-5 dagen (bedoeld voor geplande events). Een actie om
+      // een rustig moment te vullen is last-minute: bronnen (2026) zeggen
+      // geplande events 4-6 weken vooraf aan te kondigen, maar aanbiedingen op
+      // korte termijn juist direct te plaatsen. Niet te ver vooruit dus.
+      optimalRangeHours: [24, 72],
+      rationale:
+        'Last-minute actie: liever dichtbij het moment dan dagen eerder, zodat het bericht nog vers is.',
     },
     frequency: { maxPerWeek: 4, maxPerMonth: 16 },
     visual: {
