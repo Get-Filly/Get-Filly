@@ -60,7 +60,6 @@ export default function AccountVerwijderdPage() {
           <ul>
             <li>{t("retainedNoPii")}</li>
             <li>{t("retainedContext")}</li>
-            <li>{t("retainedCampaignMeta")}</li>
             <li>{t("retainedNoFreeText")}</li>
           </ul>
           <p>{t("retainedAuditLog")}</p>

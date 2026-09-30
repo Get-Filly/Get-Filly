@@ -106,11 +106,11 @@ export class CampaignFingerprintService {
    */
   async extractFromCampaign(campaignId: string): Promise<void> {
     try {
-      // 1) Campagne ophalen + content (mail- of social-tabel).
+      // 1) Campagne ophalen + content (social-tabel).
       const { data: campaign } = await this.serviceSupabase.client
         .from('campaigns')
         .select(
-          'id, business_id, type, name, campaign_mail_content(subject_line, body_html, body_plain), campaign_social_content(platform, caption, hashtags)',
+          'id, business_id, type, name, campaign_social_content(platform, caption, hashtags)',
         )
         .eq('id', campaignId)
         .maybeSingle();
@@ -375,7 +375,7 @@ export class CampaignFingerprintService {
       this.requestSupabase.client
         .from('campaigns')
         .select(
-          'id, type, campaign_mail_content(body_plain, body_html), campaign_social_content(platform, caption, hashtags)',
+          'id, type, campaign_social_content(platform, caption, hashtags)',
         )
         .eq('id', campaignId)
         .eq('business_id', businessId)
@@ -559,7 +559,7 @@ export class CampaignFingerprintService {
    * dan op industry-benchmarks alleen.
    *
    * Default-kanalen zijn de drie hoogste-frequentie kanalen voor
-   * horeca (mail/IG-feed/FB). Caller mag een eigen subset doorgeven
+   * horeca (IG-feed/FB). Caller mag een eigen subset doorgeven
    * wanneer er al bekend is op welk kanaal Filly gaat genereren.
    */
   async buildLearningContextBlock(
@@ -655,24 +655,8 @@ export class CampaignFingerprintService {
     return 'instagram_feed';
   }
 
-  /** Combineert body uit mail of social naar een platte string. */
+  /** Haalt de body uit de social-content als platte string. */
   private deriveBodyText(campaign: Record<string, unknown>): string {
-    const mail = Array.isArray(campaign.campaign_mail_content)
-      ? campaign.campaign_mail_content[0]
-      : campaign.campaign_mail_content;
-    if (mail) {
-      const m = mail as {
-        subject_line?: string;
-        body_plain?: string;
-        body_html?: string;
-      };
-      return (
-        m.body_plain ||
-        (m.body_html ? this.stripHtml(m.body_html) : '') ||
-        m.subject_line ||
-        ''
-      );
-    }
     const social = Array.isArray(campaign.campaign_social_content)
       ? campaign.campaign_social_content[0]
       : campaign.campaign_social_content;
@@ -682,7 +666,7 @@ export class CampaignFingerprintService {
     return '';
   }
 
-  /** Pakt hashtags uit social_content of detecteert ze in mail-body. */
+  /** Pakt hashtags uit social_content of detecteert ze in de body. */
   private deriveHashtags(campaign: Record<string, unknown>): string[] {
     const social = Array.isArray(campaign.campaign_social_content)
       ? campaign.campaign_social_content[0]
@@ -750,12 +734,5 @@ export class CampaignFingerprintService {
       }
     }
     return null;
-  }
-
-  private stripHtml(html: string): string {
-    return html
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
   }
 }

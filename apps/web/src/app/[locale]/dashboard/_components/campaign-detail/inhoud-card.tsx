@@ -35,10 +35,6 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 export type InhoudVariant = {
-  // Per 2026-05-13: null toegestaan zodat de unified-page
-  // (CampaignVariant uit lib/api) hetzelfde shape kan doorgeven
-  // zonder mapping-stap.
-  subject_line?: string | null;
   body?: string;
 };
 
@@ -47,8 +43,6 @@ type Props = {
   sectionId?: string;
   variants: InhoudVariant[];
   selectedIndex: number;
-  // 'mail' toont onderwerp-veld in edit-modus; social/whatsapp niet.
-  type: "mail" | "social" | "whatsapp";
   // canEdit = mogen Bewerk / Genereer / klik-alternatief / ✕-terug
   // actief zijn? Op voorstel/concept: true. Op ingepland/actief: false.
   canEdit: boolean;
@@ -57,7 +51,6 @@ type Props = {
   busy: boolean;
   // Edit-state (parent owned)
   editingVariantIdx: number | null;
-  draftSubject: string;
   draftBody: string;
   savingEdit: boolean;
   refining: boolean;
@@ -66,7 +59,6 @@ type Props = {
   onStartEditVariant: (idx: number) => void;
   onCancelEditVariant: () => void;
   onSaveEditVariant: () => void;
-  onDraftSubjectChange: (val: string) => void;
   onDraftBodyChange: (val: string) => void;
   onRegenerate: () => void;
 };
@@ -75,11 +67,9 @@ export function InhoudCard({
   sectionId,
   variants,
   selectedIndex,
-  type,
   canEdit,
   busy,
   editingVariantIdx,
-  draftSubject,
   draftBody,
   savingEdit,
   refining,
@@ -87,7 +77,6 @@ export function InhoudCard({
   onStartEditVariant,
   onCancelEditVariant,
   onSaveEditVariant,
-  onDraftSubjectChange,
   onDraftBodyChange,
   onRegenerate,
 }: Props) {
@@ -152,12 +141,9 @@ export function InhoudCard({
         ───────────────────────────────────────────────── */}
         {editingSelected ? (
           <SelectedEditor
-            type={type}
-            draftSubject={draftSubject}
             draftBody={draftBody}
             savingEdit={savingEdit}
             busy={busy}
-            onDraftSubjectChange={onDraftSubjectChange}
             onDraftBodyChange={onDraftBodyChange}
             onSave={onSaveEditVariant}
             onCancel={onCancelEditVariant}
@@ -166,7 +152,6 @@ export function InhoudCard({
         ) : (
           <SelectedReader
             variant={selected}
-            type={type}
             versieLabel={t("versionLabel", { n: safeSelected + 1 })}
             canEdit={canEdit}
             busy={busy}
@@ -243,7 +228,6 @@ export function InhoudCard({
                 <AlternativeBlock
                   key={idx}
                   variant={v}
-                  type={type}
                   versieLabel={t("versionLabel", { n: idx + 1 })}
                   canEdit={canEdit}
                   busy={busy}
@@ -265,14 +249,12 @@ function SelectedReader({
   variant,
   versieLabel,
   canEdit,
-  type,
   busy,
   canRevert,
   onEdit,
   onRevert,
 }: {
   variant: InhoudVariant | undefined;
-  type: "mail" | "social" | "whatsapp";
   versieLabel: string;
   canEdit: boolean;
   busy: boolean;
@@ -377,44 +359,6 @@ function SelectedReader({
           )}
         </div>
       </div>
-      {/* Onderwerp HOORT alleen bij mail. Voor social/whatsapp tonen we
-          'm nooit — ook niet als de data per ongeluk een subject_line
-          bevat (bv. een Instagram-campagne mag geen onderwerpregel). */}
-      {type === "mail" &&
-        (variant?.subject_line ? (
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text)",
-            }}
-          >
-            <span style={{ opacity: 0.6, fontWeight: 500 }}>
-              {t("subjectPrefix")}
-            </span>{" "}
-            {variant.subject_line}
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={canEdit ? onEdit : undefined}
-            disabled={!canEdit || busy}
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              fontStyle: "italic",
-              color: "var(--danger, #DC2626)",
-              background: "transparent",
-              border: "1px dashed var(--danger, #DC2626)",
-              borderRadius: 6,
-              padding: "6px 10px",
-              textAlign: "left",
-              cursor: canEdit ? "pointer" : "default",
-            }}
-          >
-            ◦ {t("subjectMissing")}
-          </button>
-        ))}
       <div
         style={{
           fontSize: 13,
@@ -434,25 +378,18 @@ function SelectedReader({
 // ============================================================
 // SelectedEditor — Gekozen versie in edit-modus
 // ============================================================
-// Mail krijgt onderwerp-input; andere kanalen alleen body-textarea.
 function SelectedEditor({
-  type,
-  draftSubject,
   draftBody,
   savingEdit,
   busy,
-  onDraftSubjectChange,
   onDraftBodyChange,
   onSave,
   onCancel,
   versieLabel,
 }: {
-  type: "mail" | "social" | "whatsapp";
-  draftSubject: string;
   draftBody: string;
   savingEdit: boolean;
   busy: boolean;
-  onDraftSubjectChange: (val: string) => void;
   onDraftBodyChange: (val: string) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -484,23 +421,6 @@ function SelectedEditor({
       >
         {t("editingLabel", { label: versieLabel })}
       </div>
-      {type === "mail" && (
-        <input
-          type="text"
-          value={draftSubject}
-          onChange={(e) => onDraftSubjectChange(e.target.value)}
-          placeholder={t("subjectPlaceholder")}
-          maxLength={200}
-          style={{
-            padding: "8px 10px",
-            border: "1px solid var(--border, #E5DFD0)",
-            borderRadius: 6,
-            fontSize: 13,
-            fontFamily: "inherit",
-            background: "var(--white, #FFFFFF)",
-          }}
-        />
-      )}
       <textarea
         value={draftBody}
         onChange={(e) => onDraftBodyChange(e.target.value)}
@@ -549,14 +469,12 @@ function SelectedEditor({
 // 260px zodat we op smalle schermen netjes onder elkaar wrappen.
 function AlternativeBlock({
   variant,
-  type,
   versieLabel,
   canEdit,
   busy,
   onPick,
 }: {
   variant: InhoudVariant;
-  type: "mail" | "social" | "whatsapp";
   versieLabel: string;
   canEdit: boolean;
   busy: boolean;
@@ -597,17 +515,6 @@ function AlternativeBlock({
       >
         {versieLabel}
       </div>
-      {type === "mail" && variant.subject_line && (
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text)",
-          }}
-        >
-          {variant.subject_line}
-        </div>
-      )}
       <div
         style={{
           fontSize: 13,

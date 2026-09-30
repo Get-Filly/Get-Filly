@@ -9,15 +9,15 @@ import type { ChannelChoiceCard } from "@/lib/api";
 // ============================================================
 //
 // Wordt onder Filly's bericht getoond wanneer message_card.kind ===
-// 'channel_choice'. Vijf checkboxes (Mail / Instagram / Facebook /
-// WhatsApp / Google Business) + "Selecteer alles"-knop + Verstuur-knop.
+// 'channel_choice'. Checkboxes (Instagram / Facebook / TikTok /
+// Google Business) + "Selecteer alles"-knop + Verstuur-knop.
 // Eigenaar kan 1 of meerdere kanalen aanvinken, pas bij klik op
 // Verstuur stuurt de orchestrator een follow-up-bericht naar Filly.
 //
 // Submit-logica (in parent):
 //   - 1 single-kanaal aangevinkt        → FORMAAT 1 (single proposal)
-//   - 2+ kanalen aangevinkt zonder GBP  → FORMAAT 2 (bundle mail+IG+FB)
-//   - GBP samen met mail/IG/FB/WA       → split: bundle voor de
+//   - 2+ kanalen aangevinkt zonder GBP  → FORMAAT 2 (bundle IG+FB)
+//   - GBP samen met IG/FB/TikTok      → split: bundle voor de
 //                                          rest + apart single voor GBP
 //                                          (bundle ondersteunt nog
 //                                          geen GBP, zie
@@ -51,10 +51,6 @@ type Props = {
 // Translation-keys per optie (label/hint worden in de component via
 // useTranslations opgehaald). De icon's blijven hier, want dat is geen
 // vertaalbare tekst.
-// Per 2026-09-09: sociale media eerst en WhatsApp eruit. Voor WhatsApp is
-// geen verzendpad (alleen een content-tabel), dus aanvinken leverde een
-// campagne op die nooit de deur uit kon. De ChannelChoice-union houdt
-// 'whatsapp' wél, zodat eerder opgeslagen kaarten blijven typechecken.
 const OPTIONS: Array<{
   key: ChannelChoice;
   icon: string;

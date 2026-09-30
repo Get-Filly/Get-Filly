@@ -665,7 +665,7 @@ export async function submitContactForm(
   }
 }
 
-export type CampaignType = "mail" | "social" | "whatsapp";
+export type CampaignType = "social";
 export type CampaignStatus = "actief" | "concept" | "ingepland" | "afgerond";
 
 export type CampaignResultStats = {
@@ -755,12 +755,10 @@ export async function fetchCampaignBundle(
 // aan ai_suggestions.suggested_campaign.channels[].variants zodat
 // dezelfde frontend-component beide kan renderen.
 export type CampaignVariant = {
-  subject_line?: string | null;
   body: string;
 };
 
 export type CampaignDetail = Campaign & {
-  subject_line: string | null;
   body: string | null;
   scheduled_for: string | null;
   // Door Filly voorgesteld tijdstip + reasoning. Frontend toont deze
@@ -784,35 +782,19 @@ export type CampaignDetail = Campaign & {
   } | null;
   // Per 2026-05-13 (mig 0041): alle versies + welke Gekozen is.
   // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
-  // body/subject_line hierboven zijn afgeleid van
+  // body hierboven zijn afgeleid van
   // variants[selected_variant_index].
   variants: CampaignVariant[];
   selected_variant_index: number;
-  // Aantal verstuurde mails (alleen mail-type). Voor status-label-keuze:
-  // 'actief' + sent_count=0 → "Klaar voor verzending", >0 → "Verstuurd".
-  sent_count: number;
   tags: string[] | null;
   created_at: string;
   content: {
-    // mail
-    subject_line?: string;
-    preheader?: string;
-    body_html?: string;
-    body_plain?: string;
-    from_name?: string;
-    reply_to?: string;
     // social
     caption?: string;
     hashtags?: string[];
     media_urls?: string[];
     platforms?: string[];
     cta_link?: string;
-    // whatsapp
-    message_text?: string;
-    template_name?: string;
-    // media_url is whatsapp-specifiek (1 foto/video). Backend levert
-    // hier een 1-uur signed URL voor preview, niet het ruwe storage-pad.
-    media_url?: string | null;
     // shared
     stats?: Record<string, number>;
   } | null;
@@ -834,11 +816,9 @@ export async function fetchCampaign(id: string): Promise<CampaignDetail> {
 export async function createCampaign(input: {
   name: string;
   platform:
-    | "mail"
     | "instagram"
     | "facebook"
     | "tiktok"
-    | "whatsapp"
     | "google_business";
 }): Promise<{ id: string }> {
   const res = await authedFetch(`${API_URL}/campaigns`, {
@@ -860,11 +840,9 @@ export async function createCampaign(input: {
 export async function createCampaignBundle(input: {
   name: string;
   platforms: Array<
-    | "mail"
     | "instagram"
     | "facebook"
     | "tiktok"
-    | "whatsapp"
     | "google_business"
   >;
 }): Promise<{ id: string }> {
@@ -986,7 +964,7 @@ export async function selectCampaignVariant(
 export async function editCampaignVariant(
   campaignId: string,
   index: number,
-  patch: { subject_line?: string | null; body: string },
+  patch: { body: string },
 ): Promise<{ id: string; variants: CampaignVariant[] }> {
   const res = await authedFetch(
     `${API_URL}/campaigns/${campaignId}/variants/${index}`,
@@ -1024,7 +1002,7 @@ export async function generateMoreCampaignVariants(
   return res.json();
 }
 
-// Upload foto bij concept-campagne (social/whatsapp). Multipart-form
+// Upload foto bij concept-campagne (social). Multipart-form
 // met 1 file-veld 'file'. Backend valideert type + size, vervangt
 // eventueel oude foto, returnt 1-uur signed URL voor preview.
 export async function uploadCampaignMedia(
@@ -1245,7 +1223,7 @@ export async function fetchKpis(): Promise<Kpis> {
 export type CampaignAttribution = {
   campaign_id: string;
   campaign_name: string;
-  campaign_type: "mail" | "social" | "whatsapp";
+  campaign_type: "social";
   reservations: number;
   guests: number;
   estimated_revenue_cents: number;
@@ -1642,13 +1620,11 @@ export type AiSuggestion = {
   trigger_context: Record<string, unknown> | null;
   suggested_campaign: {
     name?: string;
-    type?: "mail" | "social" | "whatsapp";
+    type?: "social";
     // Per 2026-05-07: specifieker platform-veld dan 'type'. 'type' blijft
     // voor backwards-compat met legacy seed-data. Voor social-campagnes
     // specificeert 'platform' welk netwerk (instagram/facebook/tiktok).
     platform?:
-      | "mail"
-      | "whatsapp"
       | "instagram"
       | "facebook"
       | "tiktok"
@@ -1660,13 +1636,11 @@ export type AiSuggestion = {
     channels?: Array<{
       id: string;
       platform:
-        | "mail"
-        | "whatsapp"
         | "instagram"
         | "facebook"
         | "tiktok"
         | "google_business";
-      variants: Array<{ subject_line?: string; body?: string }>;
+      variants: Array<{ body?: string }>;
       selected_index: number;
       scheduled_for?: string;
       filly_scheduled_for?: string;
@@ -1675,13 +1649,10 @@ export type AiSuggestion = {
     }>;
     // Nieuwe shape (sinds 3-varianten-flow):
     variants?: Array<{
-      subject_line?: string;
       body?: string;
     }>;
     selected_index?: number;
     // Legacy single-body shape (voor seed-data):
-    subject?: string;
-    subject_line?: string;
     caption?: string;
     segment?: string;
     body?: string;
@@ -1691,7 +1662,7 @@ export type AiSuggestion = {
     // nog niet gezet, CampaignSchedulePanel doet voorstel post-approve.
     scheduled_for?: string;
     // Per 2026-05-07: eigenaar koppelt een foto uit de bibliotheek
-    // aan de suggestie. Alleen voor social/whatsapp. Bij approve
+    // aan de suggestie. Alleen voor social. Bij approve
     // wordt het bestand gekopieerd naar campaign-media.
     restaurant_media_id?: string | null;
   };
@@ -1792,10 +1763,8 @@ export type GenerateForDatesItem = {
 // DayContext in apps/api suggestions.service.ts.
 export type DayContextChannel = {
   channel:
-    | "mail"
     | "instagram"
     | "facebook"
-    | "whatsapp"
     | "google_business"
     | "tiktok";
   label: string;
@@ -1911,10 +1880,8 @@ export async function approveSuggestion(
 // chat-card welke kanalen hij wil; backend slaat ongekozen kanalen
 // over (returnt null voor die IDs).
 export type BundleChannel =
-  | "mail"
   | "instagram"
   | "facebook"
-  | "whatsapp"
   | "google_business"
   | "tiktok";
 
@@ -1924,10 +1891,8 @@ export type ApproveBundleResult = {
   // Generieke map kanaal → aangemaakte campagne-id (alleen aangemaakte).
   campaignIds: Partial<Record<BundleChannel, string>>;
   // Backwards-compat losse velden.
-  mailCampaignId: string | null;
   instagramCampaignId: string | null;
   facebookCampaignId: string | null;
-  whatsappCampaignId: string | null;
   googleBusinessCampaignId: string | null;
   tiktokCampaignId: string | null;
 };
@@ -1977,13 +1942,11 @@ export async function selectSuggestionVariant(
 
 // Per 2026-05-07 fase 2b: voeg een extra kanaal toe aan een pending
 // suggestie. Wordt gebruikt voor multi-channel-voorstellen: eigenaar
-// kiest 'Instagram + WhatsApp' i.p.v. één kanaal. Backend syntheseert
+// kiest 'Instagram + Facebook' i.p.v. één kanaal. Backend syntheseert
 // het kanaal met de body van het primaire kanaal als seed.
 export async function addSuggestionChannel(
   suggestionId: string,
   platform:
-    | "mail"
-    | "whatsapp"
     | "instagram"
     | "facebook"
     | "tiktok"
@@ -2025,7 +1988,7 @@ export async function removeSuggestionChannel(
 }
 
 // Per 2026-05-07: eigenaar koppelt een foto uit de bibliotheek aan
-// een pending suggestie (alleen social/whatsapp). mediaId=null verbreekt
+// een pending suggestie (alleen social). mediaId=null verbreekt
 // de koppeling. Bij approve wordt het bestand server-side gekopieerd
 // naar campaign-media zodat de campagne een eigen kopie heeft.
 export async function setSuggestionMedia(
@@ -2049,12 +2012,12 @@ export async function setSuggestionMedia(
 }
 
 // Per 2026-05-07: eigenaar bewerkt vóór goedkeuring de inhoud van
-// een specifieke variant (subject + body). subject_line=null wist het.
+// een specifieke variant (body).
 // body lege string laat de oorspronkelijke staan (backend negeert).
 export async function editSuggestionVariant(
   suggestionId: string,
   index: number,
-  patch: { subject_line?: string | null; body?: string },
+  patch: { body?: string },
   channelId?: string,
 ): Promise<AiSuggestion> {
   const res = await authedFetch(
@@ -2660,7 +2623,6 @@ export type ChatRole = "filly" | "user" | "system";
 // meer kinds (review_reply, guest_message, etc.). Frontend rendert
 // een bijpassend kaartje onder het bericht.
 export type ProposalVariant = {
-  subject_line?: string;
   body: string;
 };
 
@@ -2671,7 +2633,7 @@ export type CampaignProposalCard = {
   // /api/suggestions/:id/approve loopt, zelfde endpoint als bij
   // auto-gegenereerde suggesties die we op /campagnes tonen.
   suggestion_id: string;
-  type: "mail" | "social" | "whatsapp";
+  type: "social";
   name: string;
   // 3 varianten naast elkaar. Frontend toont ze in een grid; user
   // kiest favoriet (selected_index) en kan eventueel refinen voor
@@ -2697,11 +2659,9 @@ export type CampaignBundleCard = {
   theme: string;
   channels: {
     // Sinds 2026-06-02 optioneel + 5 kanalen: een bundel bevat precies
-    // de aangevinkte kanalen. WhatsApp/Google Business hebben alleen body.
-    mail?: { subject_line: string; body: string };
+    // de aangevinkte kanalen. Google Business heeft alleen body.
     instagram?: { caption: string; hashtags?: string[] };
     facebook?: { caption: string };
-    whatsapp?: { body: string };
     google_business?: { body: string };
     tiktok?: { caption: string; hashtags?: string[] };
   };
@@ -2711,7 +2671,7 @@ export type CampaignBundleCard = {
 
 // Channel-choice, Filly's keuzeprompt vóór 'ie een campagne genereert.
 // Geen ai_suggestion erachter; bij klik op een knop verstuurt frontend
-// automatisch een user-bericht ("Maak een mail-campagne") zodat Filly
+// automatisch een user-bericht ("Maak een campagne") zodat Filly
 // in de volgende beurt het juiste formaat (proposal of bundle) levert.
 export type ChannelChoiceCard = {
   kind: "channel_choice";
@@ -3513,22 +3473,12 @@ export interface CampaignPerformance {
   campaign_id: string;
   business_id: string;
 
-  mail_delivered: number | null;
-  mail_opened: number | null;
-  mail_clicked: number | null;
-  mail_bounced: number | null;
-  mail_unsubscribed: number | null;
-
   social_reach: number | null;
   social_impressions: number | null;
   social_engagement: number | null;
   social_saves: number | null;
   social_video_views: number | null;
   social_watch_time_seconds: number | null;
-
-  whatsapp_delivered: number | null;
-  whatsapp_read: number | null;
-  whatsapp_clicked: number | null;
 
   gbp_impressions: number | null;
   gbp_clicks: number | null;

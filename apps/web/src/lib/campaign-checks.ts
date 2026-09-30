@@ -10,7 +10,7 @@
 // nooit "alles compleet" ziet en in de detail-pagina alsnog tegen
 // een rood vlaggetje aanloopt.
 
-export type MissingField = "date" | "body" | "subject" | "photo";
+export type MissingField = "date" | "body" | "photo";
 
 // Generieke labels voor de korte samenvatting (kanban-pill,
 // header-statusregel). Platform-onafhankelijk; voor de detail-pagina
@@ -19,7 +19,6 @@ export type MissingField = "date" | "body" | "subject" | "photo";
 export const GENERIC_MISSING_LABEL: Record<MissingField, string> = {
   date: "Datum & tijd",
   body: "Tekst",
-  subject: "Onderwerp",
   photo: "Foto",
 };
 
@@ -34,8 +33,6 @@ export function getMissingLabel(
       return "Datum & tijd";
     case "body":
       return "Tekst";
-    case "subject":
-      return "Onderwerp";
     case "photo":
       return platform === "tiktok" ? "Foto of video" : "Foto";
   }
@@ -43,7 +40,7 @@ export function getMissingLabel(
 
 // Kanalen waarbij visuele media vereist is. Per 2026-07-07 (Floris-wens):
 // óók Facebook en Google Business verplichten nu een foto — een beeldloze
-// post presteert te slecht om te publiceren. Mail + WhatsApp zijn tekst-only.
+// post presteert te slecht om te publiceren.
 export const PHOTO_REQUIRED = new Set([
   "instagram",
   "tiktok",
@@ -57,31 +54,25 @@ export const PHOTO_OPTIONAL = new Set<string>([]);
 
 // Mens-leesbare labels voor de chips en de Missende aspecten-koppen.
 export const PLATFORM_LABEL: Record<string, string> = {
-  mail: "Mail",
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
-  whatsapp: "WhatsApp",
   google_business: "Google Business",
 };
 
-// Voor de approve-bundle-API: sinds 2026-06-22 ondersteunt de bundle alle
-// 6 chat-kanalen (mail/instagram/facebook/whatsapp/google_business/tiktok).
+// Voor de approve-bundle-API: ondersteunt de bundle 4 chat-kanalen
+// (instagram/facebook/google_business/tiktok).
 export function toBundleChannel(
   platform: string,
 ):
-  | "mail"
   | "instagram"
   | "facebook"
-  | "whatsapp"
   | "google_business"
   | "tiktok"
   | null {
   if (
-    platform === "mail" ||
     platform === "instagram" ||
     platform === "facebook" ||
-    platform === "whatsapp" ||
     platform === "google_business" ||
     platform === "tiktok"
   ) {
@@ -104,21 +95,17 @@ export function isUnwrittenBody(body: string | undefined | null): boolean {
 
 // Kernfunctie: gegeven een kanaal-config, retourneer welke velden
 // nog niet ingevuld zijn. Volgorde van push() bepaalt de volgorde
-// waarin de fields in de UI verschijnen (date → body → subject → photo).
+// waarin de fields in de UI verschijnen (date → body → photo).
 // Telt alleen VEREISTE velden — voor de Goedkeur/Plan-in-blokking.
 export function getChannelMissing(
   platform: string,
   body: string | undefined | null,
-  subject: string | undefined | null,
   scheduled: string | undefined | null,
   mediaId: string | undefined | null,
 ): MissingField[] {
   const missing: MissingField[] = [];
   if (!scheduled) missing.push("date");
   if (isUnwrittenBody(body)) missing.push("body");
-  if (platform === "mail" && (!subject || !subject.trim())) {
-    missing.push("subject");
-  }
   if (PHOTO_REQUIRED.has(platform) && !mediaId) {
     missing.push("photo");
   }
@@ -138,16 +125,12 @@ export type ChecklistItem = {
 export function getChannelChecklist(
   platform: string,
   body: string | undefined | null,
-  subject: string | undefined | null,
   scheduled: string | undefined | null,
   mediaId: string | undefined | null,
 ): ChecklistItem[] {
   const items: ChecklistItem[] = [];
   if (!scheduled) items.push({ field: "date", required: true });
   if (isUnwrittenBody(body)) items.push({ field: "body", required: true });
-  if (platform === "mail" && (!subject || !subject.trim())) {
-    items.push({ field: "subject", required: true });
-  }
   if (PHOTO_REQUIRED.has(platform) && !mediaId) {
     items.push({ field: "photo", required: true });
   } else if (PHOTO_OPTIONAL.has(platform) && !mediaId) {

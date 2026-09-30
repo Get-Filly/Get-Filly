@@ -31,7 +31,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import {
   SECTION_ID,
   fillySuggestedIso,
-  platformToType,
   toDatetimeLocalValue,
 } from "../../_components/campaign-detail/types";
 import { WaaromCard } from "../../_components/campaign-detail/waarom-card";
@@ -69,26 +68,6 @@ import { useLocaleTag } from "@/lib/locale-format";
 // Add/remove kanalen op campagne-bundles: nog niet ondersteund
 // door backend (zou een nieuwe campaign in dezelfde group moeten
 // aanmaken). Voor nu disabled — komt in een latere fase.
-
-/**
- * Status-label dat per campagne-type aanpast wat 'Actief' betekent.
- * Voor mail: 'actief' is dubbelzinnig (geactiveerd vs daadwerkelijk
- * verstuurd). We tonen daarom:
- *   - 'Klaar voor verzending' zolang sent_count = 0
- *   - 'Verstuurd' zodra minimaal 1 recipient een mail heeft gekregen
- * Voor social/whatsapp blijft 'Actief' want daar is push = live.
- */
-function getDisplayStatus(
-  t: (key: string) => string,
-  status: CampaignStatus,
-  type: string | null | undefined,
-  sentCount: number,
-): string {
-  if (status === "actief" && type === "mail") {
-    return sentCount > 0 ? t("statusSent") : t("statusReadyToSend");
-  }
-  return t(`status.${status}`);
-}
 
 const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
   const palette: Record<CampaignStatus, { bg: string; fg: string }> = {
@@ -139,7 +118,6 @@ export default function UnifiedDetailPage() {
   const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(
     null,
   );
-  const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
 
   // Schedule-edit-state.
@@ -294,8 +272,7 @@ export default function UnifiedDetailPage() {
   // ────────────────────────────────────────────────────────────
   // Wanneer-card afgeleiden — analoog aan voorstel-page
   // ────────────────────────────────────────────────────────────
-  const activePlatform = activeChannel?.platform ?? "mail";
-  const activePlatformType = platformToType(activePlatform);
+  const activePlatform = activeChannel?.platform ?? "instagram";
   // (De losse Wanneer-card-afgeleiden zijn vervallen: datum/tijd zit nu
   // per kanaal in de Aspecten-tabel; de fallback-tijd wordt daar berekend.)
 
@@ -314,20 +291,18 @@ export default function UnifiedDetailPage() {
       const checklist = getChannelChecklist(
         c.platform,
         sel?.body,
-        sel?.subject_line,
         c.scheduled_for,
         c.media_url ? "x" : null,
       );
       const missing = checklist
         .filter((it) => it.required && it.field !== "date")
         .map((it) => it.field);
-      const type = platformToType(c.platform);
       let effective = c.scheduled_for ?? c.filly_scheduled_for ?? null;
       if (!effective) {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-        effective = fillySuggestedIso(ymd, type);
+        effective = fillySuggestedIso(ymd);
       }
       return {
         id: c.id,
@@ -335,10 +310,8 @@ export default function UnifiedDetailPage() {
         missing,
         scheduledFor: c.scheduled_for ?? null,
         effectiveIso: effective,
-        supportsMedia: c.platform !== "mail",
         mediaUrl: c.media_url ?? null,
         mediaIsVideo: /\.(mp4|mov|webm)(\?|$)/i.test(c.media_url ?? ""),
-        subjectLine: sel?.subject_line ?? null,
         bodyPreview: sel?.body ?? "",
       };
     });
@@ -353,7 +326,6 @@ export default function UnifiedDetailPage() {
     content: tAspect("colContent"),
     complete: tAspect("rowComplete"),
     addPhoto: tAspect("addPhoto"),
-    noPhotoMail: tAspect("noPhotoMail"),
     edit: tAspect("editContent"),
     chooseTime: tAspect("chooseTime"),
     save: tAspect("saveTime"),
@@ -385,7 +357,6 @@ export default function UnifiedDetailPage() {
     (idx: number) => {
       if (busy || !canEdit) return;
       const v = variants[idx];
-      setDraftSubject(v?.subject_line ?? "");
       setDraftBody(v?.body ?? "");
       setEditingVariantIdx(idx);
       setActionError(null);
@@ -396,7 +367,6 @@ export default function UnifiedDetailPage() {
   const handleCancelEditVariant = useCallback(() => {
     if (savingVariant) return;
     setEditingVariantIdx(null);
-    setDraftSubject("");
     setDraftBody("");
   }, [savingVariant]);
 
@@ -410,7 +380,6 @@ export default function UnifiedDetailPage() {
     setSavingVariant(true);
     try {
       await editCampaignVariant(activeChannel.id, editingVariantIdx, {
-        subject_line: draftSubject.trim() || null,
         body: draftBody.trim(),
       });
       await load();
@@ -425,7 +394,6 @@ export default function UnifiedDetailPage() {
     editingVariantIdx,
     busy,
     draftBody,
-    draftSubject,
     load,
     t,
   ]);
@@ -629,7 +597,6 @@ export default function UnifiedDetailPage() {
     let missing = 0;
     for (const c of view.channels) {
       total += 2; // datum + body altijd
-      if (c.platform === "mail") total += 1;
       if (c.platform === "instagram" || c.platform === "tiktok") total += 1;
     }
     for (const c of view.channelsChecklist) {
@@ -757,25 +724,8 @@ export default function UnifiedDetailPage() {
       );
     }
     if (status === "actief") {
-      // Mail kan niet teruggetrokken worden (al verstuurd) → 'Afronden'
-      // zet 'm naar afgerond zonder iets te verwijderen. Social/WhatsApp
-      // kan wél: 'Stop & verwijderen' trekt de post terug van het kanaal
+      // 'Stop & verwijderen' trekt de post terug van het kanaal
       // (backend-stub tot Meta/TikTok OAuth) + zet terug naar concept.
-      const isMail = activeCampaign?.type === "mail";
-      if (isMail) {
-        return (
-          <Button
-            variant="secondary"
-            onClick={() => handleStatusChange("afgerond")}
-            loading={changingStatus}
-            disabled={busy}
-            style={{ color: "#B91C1C" }}
-            title={t("actions.finishMailTitle")}
-          >
-            {t("actions.finish")}
-          </Button>
-        );
-      }
       return (
         <>
           <Button
@@ -850,12 +800,7 @@ export default function UnifiedDetailPage() {
           }}
         >
           <span style={statusChipStyle(status)}>
-            {getDisplayStatus(
-              t,
-              status,
-              activeCampaign?.type ?? null,
-              activeCampaign?.sent_count ?? 0,
-            )}
+            {t(`status.${status}`)}
           </span>
           {view.bundleName && view.channels.length > 1 && (
             <span style={{ color: "var(--tl)", fontSize: 12 }}>
@@ -1114,7 +1059,6 @@ export default function UnifiedDetailPage() {
           const idx = ch?.selected_index ?? 0;
           const v = ch?.variants[idx];
           setActiveChannelId(channelId);
-          setDraftSubject(v?.subject_line ?? "");
           setDraftBody(v?.body ?? "");
           setEditingVariantIdx(idx);
           document
@@ -1127,11 +1071,9 @@ export default function UnifiedDetailPage() {
         sectionId={SECTION_ID.inhoud}
         variants={variants}
         selectedIndex={selectedIndex}
-        type={activePlatformType}
         canEdit={canEdit}
         busy={busy}
         editingVariantIdx={editingVariantIdx}
-        draftSubject={draftSubject}
         draftBody={draftBody}
         savingEdit={savingVariant}
         refining={refining}
@@ -1139,7 +1081,6 @@ export default function UnifiedDetailPage() {
         onStartEditVariant={handleStartEditVariant}
         onCancelEditVariant={handleCancelEditVariant}
         onSaveEditVariant={handleSaveEditVariant}
-        onDraftSubjectChange={setDraftSubject}
         onDraftBodyChange={setDraftBody}
         onRegenerate={handleRegenerate}
       />
@@ -1227,7 +1168,6 @@ export default function UnifiedDetailPage() {
               // Google Business-posts sturen alleen een foto mee (localPosts
               // PHOTO), dus daar geen video toestaan.
               allowVideo={
-                activeChannel?.platform !== "mail" &&
                 activeChannel?.platform !== "google_business"
               }
               onMediaChanged={() => {

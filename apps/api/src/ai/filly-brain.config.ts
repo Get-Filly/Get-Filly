@@ -114,10 +114,6 @@ export interface CopyLength {
   maxWords?: number;
   minChars: number;
   maxChars: number;
-  /** Voor mail: aparte regel voor subject-line. */
-  subject?: { minChars: number; maxChars: number };
-  /** Voor mail: preheader. */
-  preheader?: { minChars: number; maxChars: number };
 }
 
 /** Hashtag-strategie (hfst 4 per kanaal). */
@@ -172,7 +168,7 @@ export interface FrequencyLimits {
 
 /** Visuele eisen per kanaal (hfst 13.1 + 13.2). */
 export interface VisualRequirements {
-  /** Verplicht visueel? (true voor IG/TT/GBP, optioneel voor mail/FB) */
+  /** Verplicht visueel? (true voor IG/TT/GBP, optioneel voor FB) */
   required: boolean;
   /** Aspect-ratios die het kanaal accepteert. */
   aspectRatios: string[];
@@ -208,7 +204,6 @@ export interface ChannelRules {
 // ============================================================
 
 export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
-
   // ----------- Instagram Feed -----------
   instagram_feed: {
     channel: 'instagram_feed',
@@ -453,7 +448,6 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     ],
   },
 
-
   // ----------- Google Business Profile -----------
   google_business: {
     channel: 'google_business',
@@ -624,16 +618,6 @@ export function formatChannelRulesForPrompt(channel: FillyChannel): string {
   lines.push(`Rol: ${r.role}`);
   lines.push(``);
   lines.push(`Lengte:`);
-  if (r.copyLength.subject) {
-    lines.push(
-      `  - Subject: ${r.copyLength.subject.minChars}-${r.copyLength.subject.maxChars} tekens`,
-    );
-  }
-  if (r.copyLength.preheader) {
-    lines.push(
-      `  - Preheader: ${r.copyLength.preheader.minChars}-${r.copyLength.preheader.maxChars} tekens`,
-    );
-  }
   if (r.copyLength.minWords && r.copyLength.maxWords) {
     lines.push(
       `  - Body: ${r.copyLength.minWords}-${r.copyLength.maxWords} woorden (${r.copyLength.minChars}-${r.copyLength.maxChars} tekens)`,
@@ -698,7 +682,7 @@ export function checkCopyLength(
 /**
  * Bouwt het complete "regels per kanaal"-blok voor injectie in een
  * system-prompt. Default: alle 8 kanalen. Caller kan een subset
- * doorgeven (bv. alleen mail+IG voor een specifieke campagne-context).
+ * doorgeven (bv. alleen IG+FB voor een specifieke campagne-context).
  *
  * Gebruik in services:
  *   import { buildAllChannelsBlock } from '../ai/filly-brain.config';
@@ -725,14 +709,13 @@ ${formatted}
 }
 
 /**
- * Mapt het legacy campaign.type ('mail' | 'social' | 'whatsapp') naar
+ * Mapt het campaign.type ('social') naar
  * een FillyChannel voor de scheduling-flow. 'social' defaultt naar
  * instagram_feed (meest voorkomende social-tijd-profiel). Bij een
  * expliciet social_platform kan de caller dit overschrijven.
  */
 export function mapCampaignTypeToChannel(
-  // Alleen 'social' is nog een echt kanaal. Oude mail- en WhatsApp-campagnes
-  // (uit de database) vallen terug op het Instagram-profiel.
+  // Alleen 'social' bestaat nog als campagne-type.
   _type: string,
   socialPlatform?: string | null,
 ): FillyChannel {

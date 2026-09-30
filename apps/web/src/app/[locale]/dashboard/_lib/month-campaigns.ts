@@ -4,18 +4,18 @@ export type CampaignStatus = "actief" | "concept" | "ingepland" | "afgerond";
 
 export type Campaign = {
   id: string;
-  type: "mail" | "social";
+  type: "social";
   name: string;
-  meta: string; // bv. "17 apr · 248 gasten"
+  meta: string; // bv. "Instagram · 17 apr"
   status: CampaignStatus;
 };
 
 export const aprilCampaigns: Campaign[] = [
   {
     id: "c1",
-    type: "mail",
+    type: "social",
     name: "Chef's Lunch, donderdag",
-    meta: "17 apr · 248 gasten",
+    meta: "Instagram · 17 apr",
     status: "actief",
   },
   {
@@ -27,9 +27,9 @@ export const aprilCampaigns: Campaign[] = [
   },
   {
     id: "c3",
-    type: "mail",
+    type: "social",
     name: "Voorjaarsmenu aankondiging",
-    meta: "25 apr · 1.120 gasten",
+    meta: "Facebook · 25 apr",
     status: "concept",
   },
   {

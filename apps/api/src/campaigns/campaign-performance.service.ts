@@ -13,7 +13,7 @@ import { SupabaseService } from '../supabase/supabase.service';
  * Verantwoordelijkheden (uit filly-brein hoofdstuk 9):
  *   1. Een rij aanmaken in `campaign_performance` zodra een campagne
  *      de status `actief` of `afgerond` bereikt (caller: campaigns-flow).
- *   2. Webhook-events (mail/social/whatsapp/gbp) verwerken en de
+ *   2. Webhook-events (social/gbp) verwerken en de
  *      bijbehorende kolommen incrementen.
  *   3. Reservation-attributie hooks: zodra een reservering met
  *      via_campaign_id wordt aangemaakt, increment reservations_attributed
@@ -24,21 +24,13 @@ import { SupabaseService } from '../supabase/supabase.service';
  *
  * Welke client gebruikt deze service waar?
  *   - User-getriggerde reads (UI-card / detail-page) → RequestSupabaseService.
- *   - Webhooks van Resend/Meta/Twilio (geen user-context) → SupabaseService.
+ *   - Webhooks van Meta (geen user-context) → SupabaseService.
  *   - Nightly job draait in cron-process zonder user → SupabaseService.
  *
  * Dit is v1: data-collectie en classification. Filly's gebruik in
  * prompts (top-3 winners / underperformers) volgt in een vervolgstap.
  * ============================================================
  */
-
-/** Schaal-factoren per kanaal voor de gewogen succes-score-berekening. */
-interface ChannelWeights {
-  // Mail: opens × 0.3 + clicks × 0.5 + reservations × 0.2 (last is hoogste signaal)
-  // Maar: alles ge-normaliseerd naar % van mail_delivered.
-  // Voor v1 houden we het simpel: open_rate + click_rate * 2 + reservations_per_send * 10
-  // → max ~100 bij realistische horeca-percentages.
-}
 
 export interface PerformanceUpsertInput {
   campaignId: string;
@@ -49,20 +41,12 @@ export interface PerformanceIncrementInput {
   campaignId: string;
   /** Welk veld te incrementen (snake_case key uit de tabel). */
   field:
-    | 'mail_delivered'
-    | 'mail_opened'
-    | 'mail_clicked'
-    | 'mail_bounced'
-    | 'mail_unsubscribed'
     | 'social_reach'
     | 'social_impressions'
     | 'social_engagement'
     | 'social_saves'
     | 'social_video_views'
     | 'social_watch_time_seconds'
-    | 'whatsapp_delivered'
-    | 'whatsapp_read'
-    | 'whatsapp_clicked'
     | 'gbp_impressions'
     | 'gbp_clicks'
     | 'gbp_calls'
@@ -119,8 +103,7 @@ export class CampaignPerformanceService {
   // ============================================================
 
   /**
-   * Incrementeer één kolom. Gebruik vanuit Resend-webhook (mail-events),
-   * Meta-webhooks (social-events) etc. Service-role client want webhooks
+   * Incrementeer één kolom. Gebruik vanuit Meta-webhooks (social-events) etc. Service-role client want webhooks
    * komen binnen zonder user-context.
    */
   async incrementField(input: PerformanceIncrementInput): Promise<void> {
@@ -142,7 +125,7 @@ export class CampaignPerformanceService {
       return;
     }
     if (!row) {
-      // Geen rij voor deze campagne — Resend-webhook kwam binnen vóór
+      // Geen rij voor deze campagne — webhook kwam binnen vóór
       // status→actief. We loggen, maar slaan niets op. Zou kunnen
       // betekenen dat ensureRow() niet werd aangeroepen.
       this.logger.warn(

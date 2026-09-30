@@ -9,8 +9,8 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 // Het social-posting-brein weet wat statistisch het beste werkt voor
 // een gemiddeld restaurant, maar niet of DIT restaurant op dat kanaal
 // überhaupt publiek heeft. 200 woorden perfecte Instagram-copy om
-// 21:00 is zinloos met 40 volgers terwijl er 600 mail-opt-ins klaar
-// staan. Deze service meet wat we nú kunnen meten en bouwt daar een
+// 21:00 is zinloos met 40 volgers terwijl Facebook wél een groot
+// publiek heeft. Deze service meet wat we nú kunnen meten en bouwt daar een
 // prompt-blok van, zodat Filly bereik meeweegt bij de kanaal-keuze
 // en een alternatief kanaal voorstelt als het bereik tegenvalt.
 //
@@ -70,8 +70,7 @@ export class ChannelReachService {
     }
     const metaConnected = providers.has('meta');
 
-    // Get-Filly mailt geen gasten meer en doet geen WhatsApp: alleen de vier
-    // kanalen die we aanbieden.
+    // Alleen de vier kanalen die we aanbieden.
     return [
       {
         channel: 'instagram',
@@ -141,7 +140,7 @@ export class ChannelReachService {
       '- Een statistisch perfect tijdstip compenseert nooit een kanaal zonder publiek. Kies bij voorkeur kanalen met aantoonbaar bereik.',
     );
     lines.push(
-      '- Is het inhoudelijk best passende kanaal zwak, onbekend of niet gekoppeld? Stel dan óók (of in plaats daarvan) een kanaal met bewezen bereik voor en benoem die afweging expliciet in je reasoning (bv. "je hebt 612 mail-adressen en Instagram is niet gekoppeld — dit werkt nú beter als mail").',
+      '- Is het inhoudelijk best passende kanaal zwak, onbekend of niet gekoppeld? Stel dan óók (of in plaats daarvan) een kanaal met bewezen bereik voor en benoem die afweging expliciet in je reasoning (bv. "Instagram is niet gekoppeld maar Facebook wel, dit werkt nú beter op Facebook").',
     );
     lines.push(
       '- Onbekend bereik is zélf een signaal: benoem het eerlijk, doe niet alsof het er is.',

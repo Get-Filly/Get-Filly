@@ -61,8 +61,9 @@ describe('CampaignsService — kanalen toevoegen/verwijderen', () => {
           },
         }, // resolve als campaign
         { error: null }, // update group_id
-        { data: [{ id: 'camp1', type: 'mail' }] }, // bestaande kanalen
+        { data: [{ id: 'camp1', type: 'social' }] }, // bestaande kanalen
       ],
+      campaign_social_content: [{ data: { platforms: ['facebook'] } }],
     });
     const createSpy = jest
       .spyOn(service, 'create')
@@ -101,14 +102,15 @@ describe('CampaignsService — kanalen toevoegen/verwijderen', () => {
   it('removeChannel weigert het laatste kanaal te verwijderen', async () => {
     const service = makeService({
       campaign_groups: [{ data: { id: 'grp1', name: 'Zomer' } }],
-      campaigns: [{ data: [{ id: 'c1', type: 'mail' }] }], // één kanaal
+      campaigns: [{ data: [{ id: 'c1', type: 'social' }] }], // één kanaal
+      campaign_social_content: [{ data: { platforms: ['facebook'] } }],
     });
     const removeSpy = jest
       .spyOn(service, 'remove')
       .mockResolvedValue({ id: 'c1' });
 
     await expect(
-      service.removeChannel('rest1', 'grp1', 'mail', 'u1'),
+      service.removeChannel('rest1', 'grp1', 'facebook', 'u1'),
     ).rejects.toThrow(/minstens één kanaal/i);
     expect(removeSpy).not.toHaveBeenCalled();
   });
@@ -119,12 +121,15 @@ describe('CampaignsService — kanalen toevoegen/verwijderen', () => {
       campaigns: [
         {
           data: [
-            { id: 'cm', type: 'mail' },
+            { id: 'cf', type: 'social' },
             { id: 'ci', type: 'social' },
           ],
         },
       ],
-      campaign_social_content: [{ data: { platforms: ['instagram'] } }],
+      campaign_social_content: [
+        { data: { platforms: ['facebook'] } },
+        { data: { platforms: ['instagram'] } },
+      ],
     });
     const removeSpy = jest
       .spyOn(service, 'remove')

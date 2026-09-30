@@ -123,8 +123,7 @@ export class CampaignsController {
 
   // Maakt een nieuwe campagne als 'concept'. Wordt aangeroepen vanaf
   // de Filly-chat zodra de eigenaar op "Ja, maak aan" klikt. Body:
-  //   { name: string, type: 'mail'|'social'|'whatsapp',
-  //     subject_line?: string, body: string }
+  //   { name: string, type: 'social', body: string }
   // BusinessAccessGuard zorgt dat de user alleen mag schrijven naar
   // een restaurant waar hij toegang toe heeft.
   @Post()
@@ -138,12 +137,11 @@ export class CampaignsController {
       // meerdere kanalen maakt de service een bundel (groep + concept per
       // kanaal). Heeft voorrang op het enkelvoudige 'platform' hieronder.
       platforms?: string[];
-      // 'Eigen campagne'-builder: specifiek kanaal (mail/instagram/facebook/
-      // tiktok/whatsapp/google_business). Daaruit leiden we type + (voor
+      // 'Eigen campagne'-builder: specifiek kanaal (instagram/facebook/
+      // tiktok/google_business). Daaruit leiden we type + (voor
       // social) het platform af. Legacy: 'type' wordt nog geaccepteerd.
       platform?: string;
       type?: string;
-      subject_line?: string | null;
       body?: string;
     },
   ) {
@@ -168,11 +166,7 @@ export class CampaignsController {
     let socialPlatforms: string[] | undefined;
     const platform = body.platform;
     if (platform) {
-      if (platform === 'mail' || platform === 'whatsapp') {
-        throw new BadRequestException(
-          'Mail- en WhatsApp-campagnes bestaan niet meer.',
-        );
-      } else if (
+      if (
         platform === 'instagram' ||
         platform === 'facebook' ||
         platform === 'tiktok' ||
@@ -183,10 +177,6 @@ export class CampaignsController {
       } else {
         throw new BadRequestException('Ongeldig kanaal.');
       }
-    } else if (body.type === 'mail' || body.type === 'whatsapp') {
-      throw new BadRequestException(
-        'Mail- en WhatsApp-campagnes bestaan niet meer.',
-      );
     } else if (body.type === 'social') {
       type = body.type;
     } else {
@@ -207,7 +197,6 @@ export class CampaignsController {
       {
         name,
         type,
-        subject_line: body.subject_line ?? null,
         body: content,
         ...(socialPlatforms ? { social_platforms: socialPlatforms } : {}),
       },
@@ -328,7 +317,7 @@ export class CampaignsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('idx') idxParam: string,
-    @Body() body: { subject_line?: string | null; body?: string },
+    @Body() body: { body?: string },
   ) {
     const idx = Number.parseInt(idxParam, 10);
     if (!Number.isFinite(idx)) {
@@ -340,10 +329,7 @@ export class CampaignsController {
       businessId,
       id,
       idx,
-      {
-        subject_line: body?.subject_line,
-        body: body?.body,
-      },
+      { body: body?.body },
       user.id,
     );
   }
@@ -361,7 +347,7 @@ export class CampaignsController {
     );
   }
 
-  // Upload een foto voor een concept-campagne (social of whatsapp).
+  // Upload een foto voor een concept-campagne (social).
   // Multipart-upload met 1 bestand. 10MB cap, JPG/PNG/WebP/GIF.
   // Vervangt eventueel oude foto in storage zodat we geen wezen
   // krijgen. Returnt het pad + 1-uur signed URL.

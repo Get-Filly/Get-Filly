@@ -44,7 +44,7 @@ export type Kpis = {
 export type CampaignAttribution = {
   campaign_id: string;
   campaign_name: string;
-  campaign_type: 'mail' | 'social' | 'whatsapp';
+  campaign_type: 'social';
   reservations: number;
   guests: number;
   estimated_revenue_cents: number;
@@ -280,7 +280,7 @@ export class KpiService {
       const existing = map.get(camp.id) ?? {
         campaign_id: camp.id,
         campaign_name: camp.name,
-        campaign_type: camp.type as 'mail' | 'social' | 'whatsapp',
+        campaign_type: camp.type as 'social',
         reservations: 0,
         guests: 0,
         estimated_revenue_cents: 0,
@@ -355,7 +355,9 @@ export class KpiService {
     for (const bucket of buckets.values()) {
       const totals = occByMonth.get(bucket.month);
       const avgSpend =
-        totals && totals.guests > 0 ? Math.round(totals.rev / totals.guests) : 0;
+        totals && totals.guests > 0
+          ? Math.round(totals.rev / totals.guests)
+          : 0;
       bucket.estimated_revenue_cents = bucket.guests * avgSpend;
     }
 
@@ -406,9 +408,6 @@ function computeWeekdayAvgPct(
     return 68;
   }
 
-  const sum = weekdays.reduce(
-    (s, d) => s + Number(d.occupancy_pct ?? 0),
-    0,
-  );
+  const sum = weekdays.reduce((s, d) => s + Number(d.occupancy_pct ?? 0), 0);
   return Math.round(sum / weekdays.length);
 }

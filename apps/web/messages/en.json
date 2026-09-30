@@ -791,7 +791,6 @@
         "findability": "Findability",
         "findabilityReviews": "Findability · Reviews",
         "marketing": "Marketing",
-        "marketingMail": "Marketing · Mail",
         "marketingInstagram": "Marketing · Instagram",
         "marketingFacebook": "Marketing · Facebook",
         "marketingTiktok": "Marketing · TikTok",
@@ -804,13 +803,12 @@
   },
   "campagnes_id_components_campaign_performance_card": {
     "title": "Performance",
-    "emptyState": "No measurement data yet. Performance is recorded once the campaign becomes 'active' and Resend events come in (delivered, opens, clicks). Reservations that come in through this campaign are counted here too.",
+    "emptyState": "No measurement data yet. Performance is recorded once the campaign becomes 'active'. Reservations that come in through this campaign are counted here too.",
     "loadError": "Could not load performance data: {error}",
     "scoreOutOf": "/ 100",
     "measurementOpen": "Measurement window running (14 days)",
     "noScore": "No score",
     "outlierBadge": "Outlier (no learning input)",
-    "mailHeading": "Mail",
     "conversionHeading": "Conversion",
     "markOutlierLink": "Mark as outlier (\"out of our control\")",
     "outlierPrompt": "Why is this campaign outside your control? The reason goes into Filly's learning loop as context (e.g. \"bad weather\", \"strike\", \"atypical event\").",
@@ -828,10 +826,6 @@
       "noData": "No data"
     },
     "metrics": {
-      "delivered": "Delivered",
-      "opened": "Opened",
-      "clicked": "Clicked",
-      "bounced": "Bounced",
       "reservations": "Reservations",
       "guests": "Guests",
       "revenue": "Revenue"
@@ -840,45 +834,6 @@
       "generic": "Error",
       "markFailed": "Marking outlier failed",
       "unmarkFailed": "Undo failed"
-    }
-  },
-  "campagnes_id_components_campaign_send_card": {
-    "heading": "Send",
-    "errors": {
-      "generic": "Error",
-      "unknown": "Unknown error"
-    },
-    "preview": {
-      "loadError": "Could not load recipients: {error}",
-      "optInCount": "{count, plural, =0 {No opt-in guests yet} =1 {1 guest with email opt-in} other {# guests with email opt-in}}",
-      "including": "Including: {names}"
-    },
-    "test": {
-      "label": "Test email to yourself",
-      "emailPlaceholder": "name@example.com",
-      "sending": "Sending…",
-      "sendButton": "Send test"
-    },
-    "testResult": {
-      "success": "Sent to {email} ({sent}).",
-      "error": "Error: {message}"
-    },
-    "all": {
-      "label": "Send to all opt-in guests",
-      "sendButton": "Send to {count} guests",
-      "noGuests": "No opt-in guests"
-    },
-    "allResult": {
-      "success": "Sent to {sent} guests.",
-      "successWithFailures": "Sent to {sent} guests, {failed} failed delivery(ies).",
-      "error": "Error: {message}"
-    },
-    "confirm": {
-      "title": "Are you sure?",
-      "body": "Email will be sent irreversibly to <strong>{count}</strong> guests. Send a test email first to check the text.",
-      "sending": "Sending…",
-      "confirmButton": "Yes, send now",
-      "cancelButton": "Cancel"
     }
   },
   "campagnes_id_page": {
@@ -892,8 +847,6 @@
     "channelCount": "{count} channels",
     "progressFields": "{completed} of {total} fields complete",
     "repetitionTipTitle": "Variation tip from Filly",
-    "statusSent": "Sent",
-    "statusReadyToSend": "Ready to send",
     "status": {
       "concept": "Draft",
       "ingepland": "Scheduled",
@@ -911,7 +864,6 @@
       "backToConcept": "Back to draft",
       "backToConceptTitle": "Cancel scheduling, back to draft so you can edit again",
       "finish": "Complete",
-      "finishMailTitle": "The email has already been sent and cannot be retracted, you can only complete it.",
       "stopAndRemove": "Stop & remove from channel",
       "stopAndRemoveTitle": "Remove the post from the channel and set the campaign back to draft."
     },
@@ -1014,7 +966,6 @@
     "missingFields": {
       "date": "date",
       "body": "text",
-      "subject": "subject",
       "photo": "photo or video"
     },
     "extraReservations": "+{count, plural, one {# reservation} other {# reservations}}",
@@ -1050,11 +1001,9 @@
       "plan": "Schedule",
       "retract": "Withdraw",
       "stop": "Stop",
-      "finish": "Finish",
       "delete": "Delete"
     },
     "confirm": {
-      "finishMail": "Finish this campaign? The sent email stays in place; the campaign moves to history.",
       "deleteBundle": "Delete all campaigns in this bundle? This is permanent.",
       "deleteCampaign": "Delete this campaign? This is permanent."
     },
@@ -1089,7 +1038,6 @@
       "unavailableBody": "Instagram does not yet allow deleting through this connection. Remove the post yourself in Instagram; we are working on making this automatic."
     },
     "tooltips": {
-      "finishMail": "Email has already been sent, finish the campaign.",
       "stopSocial": "Remove the post from the channel and go back to draft.",
       "approveReady": "Approve suggestion, becomes a draft",
       "approveIncomplete": "Fill in the missing fields first, click to open the suggestion",
@@ -1123,7 +1071,6 @@
     "colContent": "Content",
     "rowComplete": "Complete",
     "addPhoto": "Add photo or video",
-    "noPhotoMail": "No photo for email",
     "editContent": "Edit",
     "chooseTime": "Choose",
     "acceptFillyTime": "Accept",
@@ -2045,8 +1992,7 @@
     "notAvailableTitle": "Not available yet",
     "notAvailableBody": "We're working on {approvalDescription} to officially connect your {channelName} account. This typically takes a few weeks. After that we'll get to everything in the overview below right away.",
     "featuresHeading": "What you'll see on this page",
-    "backToHub": "Back to Marketing hub",
-    "viewMail": "View Mail (already works)"
+    "backToHub": "Back to Marketing hub"
   },
   "dash_marketing_components_meta_live_insights": {
     "colPost": "Post",
@@ -2251,8 +2197,8 @@
     "subtitle": "How are your channels performing? Filly measures, compares and suggests improvements.",
     "banner": {
       "activeCount": "{live} of {total} channels active",
-      "someActive": "Mail statistics are live. Social channels follow after the Meta + TikTok approval requests.",
-      "noneActive": "No channels active. Send a mail campaign first to see your first statistics."
+      "someActive": "Social channels follow after the Meta + TikTok approval requests.",
+      "noneActive": "No channels active. Connect a social channel first to see your first statistics."
     },
     "status": {
       "live": "Active",
@@ -2590,9 +2536,7 @@
       "instagram": "Instagram",
       "facebook": "Facebook",
       "tiktok": "TikTok",
-      "google_business": "Google profile",
-      "mail": "Mail",
-      "whatsapp": "WhatsApp"
+      "google_business": "Google profile"
     },
     "kpi": {
       "reachHero": "Reach",
@@ -2830,17 +2774,11 @@
       "dragOrClick": "Drag or click",
       "replacePhotoHint": "Replace Filly's suggestion with your own photo."
     },
-    "mailPreview": {
-      "from": "From",
-      "to": "To",
-      "regularGuests": "Regular guests"
-    },
     "socialPreview": {
       "justPosted": "Just posted"
     },
     "content": {
       "title": "Campaign content",
-      "subject": "Subject",
       "caption": "Caption",
       "message": "Message"
     }
@@ -2977,8 +2915,6 @@
     "chosen": "Chosen",
     "edit": "Edit",
     "revertTitle": "Back to the original version",
-    "subjectPrefix": "Subject:",
-    "subjectMissing": "Subject missing, click to fill in",
     "noContent": "No content.",
     "regenerateTitle": "Filly generates 3 new alternatives",
     "regenerateMaxTitle": "Maximum 6 versions, edit an existing one or pick an alternative",
@@ -2987,7 +2923,6 @@
     "regenerateLabel": "Generate 3 new versions",
     "otherVersions": "Other versions ({count})",
     "editingLabel": "Editing {label}",
-    "subjectPlaceholder": "Subject",
     "bodyPlaceholder": "Message content",
     "save": "Save",
     "cancel": "Cancel",
@@ -3012,7 +2947,6 @@
     "dateSave": "Save",
     "textOtherVersions": "Other versions:",
     "textSave": "Save",
-    "subjectPlaceholder": "Email subject",
     "bodyPlaceholder": "Campaign text",
     "inlineClose": "Close",
     "textGenerate": "✨ Generate new versions",
@@ -3073,7 +3007,6 @@
     "canGenerateMore": "Filly can make 3 more (6 total max).",
     "editVersionLabel": "Edit version {number}",
     "versionLabel": "Version {number}",
-    "subjectPlaceholder": "Subject",
     "bodyPlaceholder": "Message content",
     "save": "Save",
     "cancel": "Cancel",
@@ -3113,30 +3046,6 @@
       "regenerateFailed": "New suggestion failed. Please try again."
     }
   },
-  "dash__components_campaign_send_modal": {
-    "notPossibleTitle": "Not possible",
-    "notPossibleBody": "Only mail campaigns can be sent through this flow. Social and WhatsApp will come later via a separate integration.",
-    "close": "Close",
-    "sendFailed": "Sending failed.",
-    "resultSuccessTitle": "✓ Sent",
-    "resultPartialTitle": "Partially sent",
-    "resultSummary": "<strong>{sent}</strong> of <strong>{total}</strong> mails sent to Resend successfully.",
-    "resultFailed": "{failed} failed.",
-    "failedAddresses": "Failed addresses:",
-    "resultWebhookNote": "Resend confirms delivery via webhooks (delivered/bounced); that status will appear shortly in the campaign stats.",
-    "done": "Done",
-    "formTitle": "Send \"{name}\"",
-    "modeTestTitle": "Test to myself",
-    "modeTestSubtitle": "One mail to 1 address to check how it looks",
-    "modeRealTitle": "Send for real",
-    "modeRealSubtitle": "To all guests with mail consent",
-    "testEmailLabel": "Test email address",
-    "testEmailHint": "Send it to your own mailbox to see how guests receive it.",
-    "confirmNotice": "<strong>Irreversible.</strong> The campaign will now go out to all guests with mail consent. Type the campaign name to confirm:",
-    "cancel": "Cancel",
-    "sendTest": "Send test",
-    "sendToGuests": "Send to guests"
-  },
   "dash__components_chart_card": {
     "title": "Occupancy trend",
     "subtitleDay": "{weekday}, past 6 months",
@@ -3167,7 +3076,6 @@
     "draftCampaignsReady": "✓ Draft campaigns ready",
     "openChannel": "Open {channel}",
     "retry": "Try again",
-    "subjectLabel": "Subject",
     "bodyLabel": "Body",
     "chooseChannelAria": "Select {channel}",
     "collapseChannelAria": "Collapse {channel}",
@@ -3257,11 +3165,8 @@
     "typing": "Filly is typing…"
   },
   "dash__components_filly_chat_proposal_card": {
-    "typeMail": "Email",
     "typeSocial": "Social",
-    "typeWhatsapp": "WhatsApp",
     "proposalLabel": "Campaign proposal",
-    "subject": "Subject: {subject}",
     "multipleVersions": "Filly came up with {count} versions, pick your favorite via \"View versions\".",
     "accept": "Yes, create it",
     "viewVersions": "View versions →",
@@ -3982,7 +3887,7 @@
         "location": "United States / international, with appropriate safeguards"
       },
       "resend": {
-        "function": "Transactional and marketing emails",
+        "function": "Transactional emails",
         "location": "EU/United States, depending on configuration"
       },
       "vercel": {
@@ -4543,7 +4448,6 @@
     "retainedIntro": "We keep a strongly anonymized knowledge base so Filly can keep making better suggestions for other business owners. Under Recital 26 of the GDPR, <em>fully anonymous</em> data no longer falls under the regulation, and we do our utmost to keep it that way here:",
     "retainedNoPii": "No restaurant name, address, owner name or email address",
     "retainedContext": "Yes: cuisine style (\"italian\"), region at province level, capacity category and month of the year",
-    "retainedCampaignMeta": "Yes: campaign type (mail / social / whatsapp), theme and, where available, the success signal (extra reservations, revenue impact)",
     "retainedNoFreeText": "No free text, no photos, no identifiable link back to you or your business",
     "retainedAuditLog": "We also keep an anonymous proof record, just a date plus counters, so we can demonstrate that we carried out your deletion request (GDPR art. 30 accountability obligation). No personal data.",
     "questionsHeading": "Questions or concerns?",

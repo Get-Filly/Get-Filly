@@ -28,10 +28,6 @@ describe('filly-brain.config', () => {
   });
 
   describe('mapCampaignTypeToChannel', () => {
-    it('valt voor oude mail- en whatsapp-campagnes terug op het Instagram-profiel', () => {
-      expect(mapCampaignTypeToChannel('mail')).toBe('instagram_feed');
-      expect(mapCampaignTypeToChannel('whatsapp')).toBe('instagram_feed');
-    });
     it('social → instagram_feed als default', () => {
       expect(mapCampaignTypeToChannel('social')).toBe('instagram_feed');
     });

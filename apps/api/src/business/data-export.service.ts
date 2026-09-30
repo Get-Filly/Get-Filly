@@ -46,10 +46,7 @@ export class DataExportService {
       'menu_items',
       'menu_uploads',
       'campaigns',
-      'campaign_mail_content',
       'campaign_social_content',
-      'campaign_whatsapp_content',
-      'campaign_recipients',
       'reviews',
       'ai_suggestions',
       'chat_conversations',
@@ -62,7 +59,7 @@ export class DataExportService {
     const data: Record<string, unknown> = {};
 
     // Per tabel: select * where business_id = X. Sommige tabellen
-    // (campaign_*_content, chat_messages, campaign_recipients) hebben
+    // (campaign_social_content, chat_messages) hebben
     // geen directe business_id-kolom, die filteren we via een join
     // op campaign-id of conversation-id van wat we al hebben.
 
@@ -100,12 +97,7 @@ export class DataExportService {
     // data.campaigns; daarop joinen via `in` filter.
     const campaignIds = (data.campaigns as { id: string }[]).map((c) => c.id);
     if (campaignIds.length > 0) {
-      for (const subTable of [
-        'campaign_mail_content',
-        'campaign_social_content',
-        'campaign_whatsapp_content',
-        'campaign_recipients',
-      ]) {
+      for (const subTable of ['campaign_social_content']) {
         const { data: rows, error } = await this.supabase.client
           .from(subTable)
           .select('*')
@@ -120,10 +112,7 @@ export class DataExportService {
     } else {
       // Geen campagnes = geen content. Lege arrays voor consistente
       // structuur in de export.
-      data['campaign_mail_content'] = [];
       data['campaign_social_content'] = [];
-      data['campaign_whatsapp_content'] = [];
-      data['campaign_recipients'] = [];
     }
 
     // Indirect: chat_messages. Conversation-ids al opgehaald.

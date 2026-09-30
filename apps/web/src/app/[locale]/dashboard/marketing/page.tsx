@@ -134,7 +134,7 @@ function ChannelCard({ channel }: { channel: Channel }) {
   const t = useTranslations("dash_marketing_page");
   // Klikbaar als de pagina bestaat, ook voor Coming Soon, want die
   // pagina's tonen óf een preview met voorbeeld-data (Instagram) óf
-  // een nette uitleg "wat krijg je straks". Future-status (WhatsApp)
+  // een nette uitleg "wat krijg je straks". Future-status
   // heeft géén pagina dus blijft niet-klikbaar.
   const isClickable =
     (channel.status === "live" || channel.status === "coming-soon") &&

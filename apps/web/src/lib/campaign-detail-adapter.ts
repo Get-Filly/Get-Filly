@@ -40,9 +40,7 @@ export type UnifiedChannel = {
   // CampaignDetail). Null als Filly nooit een tijd heeft voorgesteld.
   filly_scheduled_for: string | null;
   filly_scheduled_reasoning: string | null;
-  // Media: signed URL (1u TTL). Voor social = media_urls[0], voor
-  // whatsapp = media_url. Voor mail altijd null (ondersteunt geen
-  // foto's in deze versie).
+  // Media: signed URL (1u TTL), media_urls[0].
   media_url: string | null;
   // Publicatie-status (social). published_at = succesvol naar Meta/IG/FB
   // gepost; publish_error = laatste publicatiefout (bv. "Instagram vereist
@@ -99,13 +97,11 @@ export type UnifiedDetailView = {
   campaignsByChannelId: Record<string, CampaignDetail>;
 };
 
-// Bepaalt het specifieke platform van een campagne. Mail/whatsapp
-// = type-equivalent. Social = uit content.platforms[0]. Backwards-
+// Bepaalt het specifieke platform van een campagne uit
+// content.platforms[0]. Backwards-
 // compat: legacy social-campagnes zonder platforms-veld vallen
 // terug op 'instagram' (eerste pure social-platform in onze stack).
 function detectPlatform(c: CampaignDetail): Platform {
-  if (c.type === "mail") return "mail";
-  if (c.type === "whatsapp") return "whatsapp";
   const platforms = c.content?.platforms ?? [];
   const first = platforms[0];
   if (
@@ -124,10 +120,6 @@ function detectPlatform(c: CampaignDetail): Platform {
 // getChannelChecklist zijn bestaande mediaId-arg blijft begrijpen
 // zonder dat we 'm hoeven aan te passen.
 function mediaTokenForChecklist(c: CampaignDetail): string | null {
-  if (c.type === "whatsapp") {
-    const url = c.content?.media_url;
-    return typeof url === "string" && url.trim().length > 0 ? "has" : null;
-  }
   const arr = c.content?.media_urls;
   return Array.isArray(arr) && arr.length > 0 ? "has" : null;
 }
@@ -166,12 +158,7 @@ function toUnifiedChannel(c: CampaignDetail): UnifiedChannel {
     Math.max(selectedIdxRaw, 0),
     Math.max(variants.length - 1, 0),
   );
-  const mediaUrl =
-    c.type === "whatsapp"
-      ? (typeof c.content?.media_url === "string"
-          ? c.content.media_url
-          : null)
-      : (c.content?.media_urls?.[0] ?? null);
+  const mediaUrl = c.content?.media_urls?.[0] ?? null;
   const pubMeta = c.content as
     | {
         published_at?: unknown;
@@ -221,7 +208,6 @@ export function bundleToView(bundle: CampaignBundle): UnifiedDetailView {
     const items = getChannelChecklist(
       channel.platform,
       v?.body,
-      v?.subject_line ?? undefined,
       // Alleen een VASTGELEGD moment (scheduled_for) telt als gekozen. Een
       // door Filly voorgesteld moment moet de eigenaar eerst accepteren via
       // de "Akkoord"-knop in de Wanneer-plaatsen-card (legt scheduled_for vast).

@@ -254,7 +254,7 @@ export function FillyChat({
           } else if (card.kind === "campaign_bundle") {
             if (approvedMap.has(suggId)) {
               // Bundle is al geaccepteerd, toon "approved_existing"-state
-              // met anker naar de mail-campagne. De andere 2 sub-campagnes
+              // met anker naar de eerste campagne. De andere 2 sub-campagnes
               // zijn via campagnes-pagina (group_id) bereikbaar.
               initialBundleStatus[msg.id] = {
                 state: "approved_existing",
@@ -723,7 +723,7 @@ export function FillyChat({
         ...s,
         [messageId]: {
           state: "created",
-          // Generieke map: alle aangemaakte kanalen (incl. WhatsApp + GBP).
+          // Generieke map: alle aangemaakte kanalen (incl. GBP).
           campaignIds: result.campaignIds ?? {},
         },
       }));

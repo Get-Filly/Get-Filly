@@ -174,9 +174,7 @@ export class ChatMemoryService {
         .eq('business_id', opts.businessId)
         .order('created_at', { ascending: true });
       if (msgErr) {
-        this.logger.warn(
-          `Memory msgs-fetch faalde: ${msgErr.message}`,
-        );
+        this.logger.warn(`Memory msgs-fetch faalde: ${msgErr.message}`);
         return;
       }
       if (!msgs || msgs.length === 0) return;
@@ -239,9 +237,7 @@ export class ChatMemoryService {
           preferences_extracted: null,
         });
       if (insertErr) {
-        this.logger.warn(
-          `Memory insert faalde: ${insertErr.message}`,
-        );
+        this.logger.warn(`Memory insert faalde: ${insertErr.message}`);
         return;
       }
 

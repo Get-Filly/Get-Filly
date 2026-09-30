@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 //   1. Visueel: rounded-pills met border (horizontaal scrollbaar
 //      indien nodig), niet onderstreping-stijl.
 //   2. Optionele icon per chip, handig voor type-filters waarbij
-//      de eigenaar visueel snel "mail vs social vs whatsapp" wil
+//      de eigenaar visueel snel "Instagram vs Facebook" wil
 //      onderscheiden.
 //
 // Vervangt het patroon in campagnes-pagina:

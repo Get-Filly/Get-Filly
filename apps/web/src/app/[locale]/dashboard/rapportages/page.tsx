@@ -57,9 +57,7 @@ import { downloadCsv, exportPagePdf } from "@/lib/csv-export";
 import { useLocaleTag } from "@/lib/locale-format";
 import "./rapportage.css";
 
-// De kanalen die de filterrij aanbiedt, in vaste volgorde. WhatsApp staat
-// hier bewust NIET: er is geen verzendpad, dus valt er niets te
-// rapporteren. Bestaande rijen met dat kanaal komen wel in de tabel.
+// De kanalen die de filterrij aanbiedt, in vaste volgorde.
 const KANALEN = [
   { key: "instagram", kleur: "#E1306C" },
   { key: "facebook", kleur: "#1877F2" },
@@ -69,8 +67,6 @@ const KANALEN = [
 
 const KANAAL_KLEUR: Record<string, string> = {
   ...Object.fromEntries(KANALEN.map((k) => [k.key, k.kleur])),
-  mail: "#1F4A2D",
-  whatsapp: "#25D366",
 };
 
 // Sequentiële groen-ramp: donkerder = meer. Voorbij 5 kanalen valt de
@@ -169,8 +165,6 @@ export default function RapportagesPage() {
         "facebook",
         "tiktok",
         "google_business",
-        "mail",
-        "whatsapp",
       ];
       return bekend.includes(key) ? t(`channels.${key}`) : key;
     },

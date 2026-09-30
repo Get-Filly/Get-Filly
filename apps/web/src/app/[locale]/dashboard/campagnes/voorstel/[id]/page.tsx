@@ -35,7 +35,6 @@ import {
   PLATFORM_ICON,
   SECTION_ID,
   fillySuggestedIso,
-  platformToType,
   shortPlatformName,
   toDatetimeLocalValue,
   type Platform,
@@ -113,7 +112,6 @@ export default function VoorstelDetailPage() {
   const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(
     null,
   );
-  const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
 
   // 'Nieuw'-badges: na een Genereer-actie onthouden we vanaf welke
@@ -168,8 +166,6 @@ export default function VoorstelDetailPage() {
   // zodat oude suggesties niet als generic 'social' blijven hangen.
   const platform: Platform = (() => {
     if (
-      sc.platform === "mail" ||
-      sc.platform === "whatsapp" ||
       sc.platform === "instagram" ||
       sc.platform === "facebook" ||
       sc.platform === "tiktok" ||
@@ -177,13 +173,8 @@ export default function VoorstelDetailPage() {
     ) {
       return sc.platform;
     }
-    if (sc.type === "mail" || sc.type === "whatsapp") return sc.type;
-    if (sc.type === "social") return "instagram";
-    return "mail";
+    return "instagram";
   })();
-  // 'type' (mail/social/whatsapp) is wat de variant-rendering en de
-  // foto-flow nog gebruiken; mappen vanuit platform.
-  const type: "mail" | "social" | "whatsapp" = platformToType(platform);
   const name = sc.name ?? t("untitledProposal");
 
   // Per 2026-05-07 fase 2d: channels[]-array. Backwards-compat:
@@ -203,10 +194,7 @@ export default function VoorstelDetailPage() {
           Array.isArray(sc.variants) && sc.variants.length > 0
             ? sc.variants
             : [
-                {
-                  body: sc.body ?? sc.caption ?? "",
-                  subject_line: sc.subject_line ?? sc.subject,
-                },
+                { body: sc.body ?? sc.caption ?? "" },
               ],
         selected_index:
           typeof sc.selected_index === "number" ? sc.selected_index : 0,
@@ -220,8 +208,6 @@ export default function VoorstelDetailPage() {
     sc.variants,
     sc.body,
     sc.caption,
-    sc.subject_line,
-    sc.subject,
     sc.selected_index,
     sc.scheduled_for,
     sc.restaurant_media_id,
@@ -241,7 +227,6 @@ export default function VoorstelDetailPage() {
       const items = getChannelChecklist(
         c.platform,
         v?.body,
-        v?.subject_line,
         // Alleen een vastgelegd moment telt; Filly's voorstel accepteert de
         // eigenaar via de "Akkoord"-knop (legt scheduled_for vast).
         c.scheduled_for,
@@ -253,7 +238,7 @@ export default function VoorstelDetailPage() {
   // Voor de blokkering (Goedkeur/Direct inplannen disabled) tellen
   // alleen de VEREISTE missende velden — optionele zijn aanbevelingen.
   const allMissing: MissingField[] = useMemo(() => {
-    const order: MissingField[] = ["date", "body", "subject", "photo"];
+    const order: MissingField[] = ["date", "body", "photo"];
     const set = new Set<MissingField>();
     for (const c of perChannelChecklist) {
       for (const item of c.items) {
@@ -264,7 +249,7 @@ export default function VoorstelDetailPage() {
   }, [perChannelChecklist]);
 
   // Voortgang voor de progress-bar bovenaan. Telt alleen VEREISTE
-  // velden per kanaal (datum, tekst, onderwerp voor mail, foto voor
+  // velden per kanaal (datum, tekst, foto voor
   // IG/TT). Optionele velden tellen niet mee — die zouden 100%-streven
   // verstoren ook als eigenaar legitiem geen foto toevoegt op Facebook.
   const progress = useMemo(() => {
@@ -272,7 +257,6 @@ export default function VoorstelDetailPage() {
     let missing = 0;
     for (const c of fullChannels) {
       total += 2; // datum + tekst voor elk kanaal
-      if (c.platform === "mail") total += 1; // onderwerp
       if (c.platform === "instagram" || c.platform === "tiktok") total += 1; // foto
     }
     for (const c of perChannelChecklist) {
@@ -315,12 +299,11 @@ export default function VoorstelDetailPage() {
       ? activeChannel.selected_index
       : 0;
 
-  // Foto-koppeling per kanaal. Mail-kanalen ondersteunen geen foto.
+  // Foto-koppeling per kanaal.
   const supportsMedia =
     activePlatform === "instagram" ||
     activePlatform === "facebook" ||
-    activePlatform === "tiktok" ||
-    activePlatform === "whatsapp";
+    activePlatform === "tiktok";
 
   // Rijen voor de gedeelde Aspecten-tabel (zelfde data als de inline-versie:
   // missende VEREISTE items zonder datum, Filly's voorgestelde tijd, media).
@@ -335,7 +318,6 @@ export default function VoorstelDetailPage() {
       const checklist = getChannelChecklist(
         ch.platform,
         sv?.body,
-        sv?.subject_line,
         ch.scheduled_for,
         ch.restaurant_media_id,
       );
@@ -345,7 +327,7 @@ export default function VoorstelDetailPage() {
       const effective =
         ch.scheduled_for ??
         ch.filly_scheduled_for ??
-        fillySuggestedIso(targetDate, platformToType(ch.platform));
+        fillySuggestedIso(targetDate);
       const chMedia =
         mediaLibrary.find((m) => m.id === ch.restaurant_media_id) ?? null;
       return {
@@ -354,10 +336,8 @@ export default function VoorstelDetailPage() {
         missing,
         scheduledFor: ch.scheduled_for ?? null,
         effectiveIso: effective,
-        supportsMedia: ch.platform !== "mail",
         mediaUrl: chMedia?.url ?? null,
         mediaIsVideo: chMedia?.mime_type.startsWith("video/") ?? false,
-        subjectLine: sv?.subject_line ?? null,
         bodyPreview: sv?.body ?? "",
       };
     });
@@ -372,7 +352,6 @@ export default function VoorstelDetailPage() {
     content: t("colContent"),
     complete: t("rowComplete"),
     addPhoto: t("addPhoto"),
-    noPhotoMail: t("noPhotoMail"),
     edit: t("editContent"),
     chooseTime: t("chooseTime"),
     save: t("saveTime"),
@@ -424,7 +403,7 @@ export default function VoorstelDetailPage() {
   };
 
   // Bibliotheek lazy laden zodra we weten dat dit voorstel media
-  // ondersteunt. Mail-suggesties slaan we over.
+  // ondersteunt. 
   useEffect(() => {
     if (!supportsMedia) return;
     let cancelled = false;
@@ -539,7 +518,7 @@ export default function VoorstelDetailPage() {
       const isBundle = suggestion.trigger_type === "chat_bundle";
       if (isBundle) {
         // Alle actieve kanalen meenemen die de bundle-API ondersteunt
-        // (mail/instagram/facebook). Tiktok/whatsapp in een bundle
+        // (instagram/facebook/tiktok/google_business). Sommige kanalen in een bundle
         // ondersteunt de backend nog niet.
         const channels = fullChannels
           .map((c) => toBundleChannel(c.platform))
@@ -552,7 +531,6 @@ export default function VoorstelDetailPage() {
           channels,
         );
         const ids = [
-          result.mailCampaignId,
           result.instagramCampaignId,
           result.facebookCampaignId,
         ].filter((id): id is string => !!id);
@@ -567,8 +545,8 @@ export default function VoorstelDetailPage() {
         const { campaignId } = await approveSuggestion(suggestion.id);
         await updateCampaignStatus(campaignId, "ingepland");
         // Single-channel: direct naar de detail-page van de zojuist
-        // ingeplande campagne. Daar staat de Versturen-sectie (voor
-        // mail) en kan de eigenaar meteen testen of laten gaan.
+        // ingeplande campagne. Daar kan de eigenaar
+        // meteen verder.
         router.push(`/dashboard/campagnes/${campaignId}`);
       }
     } catch (e) {
@@ -604,7 +582,6 @@ export default function VoorstelDetailPage() {
   const handleStartEditVariant = (idx: number) => {
     if (busy) return;
     const v = variants[idx];
-    setDraftSubject(v?.subject_line ?? "");
     setDraftBody(v?.body ?? "");
     setEditingVariantIdx(idx);
     setActionError(null);
@@ -613,7 +590,6 @@ export default function VoorstelDetailPage() {
   const handleCancelEditVariant = () => {
     if (savingEdit) return;
     setEditingVariantIdx(null);
-    setDraftSubject("");
     setDraftBody("");
   };
 
@@ -630,7 +606,6 @@ export default function VoorstelDetailPage() {
         suggestion.id,
         editingVariantIdx,
         {
-          subject_line: draftSubject.trim() || null,
           body: draftBody.trim(),
         },
         activeId,
@@ -899,8 +874,6 @@ export default function VoorstelDetailPage() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {(
                 [
-                  "mail",
-                  "whatsapp",
                   "instagram",
                   "facebook",
                   "tiktok",
@@ -995,7 +968,6 @@ export default function VoorstelDetailPage() {
           );
           const v = chVariants[idx];
           setActiveChannelId(channelId);
-          setDraftSubject(v?.subject_line ?? "");
           setDraftBody(v?.body ?? "");
           setEditingVariantIdx(idx);
           document
@@ -1012,11 +984,9 @@ export default function VoorstelDetailPage() {
         sectionId={SECTION_ID.inhoud}
         variants={variants}
         selectedIndex={selectedIndex}
-        type={type}
         canEdit={isPending}
         busy={busy}
         editingVariantIdx={editingVariantIdx}
-        draftSubject={draftSubject}
         draftBody={draftBody}
         savingEdit={savingEdit}
         refining={refining}
@@ -1024,7 +994,6 @@ export default function VoorstelDetailPage() {
         onStartEditVariant={handleStartEditVariant}
         onCancelEditVariant={handleCancelEditVariant}
         onSaveEditVariant={handleSaveEditVariant}
-        onDraftSubjectChange={setDraftSubject}
         onDraftBodyChange={setDraftBody}
         onRegenerate={handleRegenerate}
       />
