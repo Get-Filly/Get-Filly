@@ -55,7 +55,7 @@ with seed(
   ('Update: verlengde terrasuren',        'google_business', 12, false, 1740,  96,  24, 5,    0, null,             null, null),
   -- ---- Ouder dan 14 dagen: wél een score ----
   ('Rustige woensdagmiddag',              'instagram',       16, false, 2960,  71, 244, 6,    0, 'winner',           78, 'conversion_only'),
-  ('Zo maken we onze pasta',              'youtube',         18, false, 1200,  34,  88, 2,    0, 'average',          50, 'conversion_only'),
+  ('Zo maken we onze pasta',              'tiktok',          18, false, 1200,  34,  88, 2,    0, 'average',          50, 'conversion_only'),
   ('Weekend-borrel aankondiging',         'facebook',        20, false, 3410,  84, 196, 8,    0, 'winner',           84, 'conversion_only'),
   ('Wat is er vandaag, foto van de dag',  'google_business', 21, false, 1420,  58,  18, 4,    0, 'average',          55, 'rate'),
   ('Late-boeker reel',                    'instagram',       23, true,  2040,  62, 121, 2, 3500, 'underperformer',   32, 'conversion_only'),
