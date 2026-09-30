@@ -65,7 +65,6 @@ const KANALEN = [
   { key: "facebook", kleur: "#1877F2" },
   { key: "google_business", kleur: "#34A853" },
   { key: "tiktok", kleur: "#111111" },
-  { key: "youtube", kleur: "#FF0000" },
 ] as const;
 
 const KANAAL_KLEUR: Record<string, string> = {
@@ -169,7 +168,6 @@ export default function RapportagesPage() {
         "instagram",
         "facebook",
         "tiktok",
-        "youtube",
         "google_business",
         "mail",
         "whatsapp",

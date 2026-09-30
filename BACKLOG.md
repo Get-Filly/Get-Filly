@@ -292,7 +292,7 @@ de Meta-app.
       evenementen.nl (databankenrecht), en waar de interne eventsdatabase leeft.
 - [ ] **Publiceren naar Reels en Stories** (IG eerst, dan FB). *(Claude; compagnon
       checkt het App Dashboard.)*
-- [ ] **YouTube uit de app halen.** Besluit Floris 29-9: YouTube is geen kanaal meer (van de site
+- [x] **YouTube uit de app halen.** *(Klaar 30-9: rapportage-filter, kanaallijsten, label, logo en demo-seed; geen migratie nodig, de check-constraint had YouTube nooit.)* Oorspronkelijk: Besluit Floris 29-9: YouTube is geen kanaal meer (van de site
       is het al weg). Kanalen zijn Instagram, Facebook, TikTok en Google Bedrijfsprofiel. Eerst
       uitzoeken waar YouTube nog in de app en de code zit (kanaalkeuze, `check`-constraint op
       kanalen, Google-OAuth-scopes, teksten) en dan opruimen. Verwijder daarbij geen Google-code

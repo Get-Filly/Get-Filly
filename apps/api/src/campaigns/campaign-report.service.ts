@@ -28,7 +28,6 @@ export const REPORT_CHANNELS = [
   'instagram',
   'facebook',
   'tiktok',
-  'youtube',
   'google_business',
   'mail',
   // Historisch: bestaande rijen kunnen dit kanaal nog hebben. Niet meer
