@@ -7,6 +7,30 @@ het hier bijgehouden wordt.
 
 ---
 
+## 🗓️ 2026-09-30 — Horeca-only (site + product), YouTube eruit (mig 0078)
+
+**Besluit (Floris, 29-9).** Get-Filly is horeca-only. Er komen geen andere branches
+meer bij, en YouTube is geen kanaal meer. Kanalen: Instagram, Facebook, TikTok en
+Google Bedrijfsprofiel.
+
+**Publieke site (`feat/site-tekstronde`).** Home en product doorgelopen: YouTube weg
+(home-visual terug naar 3 kaarten, product-mock naar 3 uitingen, FAQ), integratietekst
+zonder kassa en boekingssysteem, opgeknipte zinnen herschreven in NL en EN. Over ons:
+eerste alinea herschreven. Blog: overal Get-Filly in plaats van Filly. Product-mock naar
+horeca (Bistro Get-Filly, Reserveringen, Gasten). Kassa-regel van de prijzenpagina.
+
+**YouTube uit de app.** Rapportage-filter, kanaallijsten, label, logo en demo-seed.
+Geen migratie nodig: de check-constraint kende YouTube nooit.
+
+**Product terug naar horeca-only.** Branche-code weg (registry, packs, VAKTAAL,
+channelFlavor, onboarding-veld). Migratie 0078 (gedraaid door Floris op 30-9) dropt `industry` op `businesses`,
+`campaign_performance` en `campaign_style_fingerprints`, plus de snapshot-triggers uit
+mig 0067. De hernoeming naar `businesses` (mig 0068) blijft. Het multi-branche-plan en
+de herpositionering naar capaciteitoptimalisator voor meerdere branches zijn daarmee
+vervallen.
+
+---
+
 ## 🗓️ 2026-09-16 — Rem per IP op de endpoints die geld kosten (mig 0076)
 
 **Wat er mis was.** `/public/contact` had alleen een honeypot en stuurt per
