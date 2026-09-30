@@ -111,13 +111,13 @@
           "dashboard": "Dashboard",
           "campaigns": "Campaigns",
           "findability": "Findability",
-          "reservations": "Appointments",
+          "reservations": "Reservations",
           "reports": "Reports"
         },
         "menuLabel": "Menu",
         "kpi": {
           "occupancyLabel": "Occupancy today",
-          "guestsLabel": "Customers today",
+          "guestsLabel": "Guests today",
           "guestsExtra": "0 via Filly",
           "runningLabel": "Running campaigns",
           "runningExtra": "active or scheduled",
@@ -265,7 +265,7 @@
     "faqs": [
       {
         "q": "How long does onboarding take?",
-        "a": "You're fully onboarded within a day. You connect your booking or reservation system and your Google Business profile, confirm your offering, and Get-Filly starts working for you the same day."
+        "a": "You're fully onboarded within a day. You connect your social media and your Google Business profile, confirm your offering, and Get-Filly starts working for you the same day."
       },
       {
         "q": "Which channels does Get-Filly use?",
