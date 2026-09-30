@@ -43,10 +43,8 @@ export type AspectRow = {
   scheduledFor: string | null;
   // Standaardwaarde voor de datetime-input bij bewerken (Filly's voorstel).
   effectiveIso: string | null;
-  supportsMedia: boolean;
   mediaUrl: string | null;
   mediaIsVideo: boolean;
-  subjectLine: string | null;
   bodyPreview: string;
 };
 
@@ -59,7 +57,6 @@ export type AspectenLabels = {
   content: string;
   complete: string;
   addPhoto: string;
-  noPhotoMail: string;
   edit: string;
   chooseTime: string;
   save: string;
@@ -304,11 +301,7 @@ export function AspectenTabel({
 
                   {/* Foto's / video's */}
                   <td style={tdStyle}>
-                    {!row.supportsMedia ? (
-                      <span style={{ color: "var(--text)", fontSize: 13 }}>
-                        {labels.noPhotoMail}
-                      </span>
-                    ) : row.mediaUrl ? (
+                    {row.mediaUrl ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -384,23 +377,6 @@ export function AspectenTabel({
 
                   {/* Inhoud */}
                   <td style={{ ...tdStyle, maxWidth: 340 }}>
-                    {row.platform === "mail" && (
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--ts)",
-                          marginBottom: 4,
-                        }}
-                      >
-                        {row.subjectLine ? (
-                          row.subjectLine
-                        ) : (
-                          <span style={{ color: "var(--danger, #DC2626)" }}>
-                            {getMissingLabel("subject", row.platform)}
-                          </span>
-                        )}
-                      </div>
-                    )}
                     <div
                       style={{
                         fontSize: 13,

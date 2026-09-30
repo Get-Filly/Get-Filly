@@ -164,7 +164,7 @@ describe('mergeActiveAction', () => {
   });
 
   it('lege delta → ongewijzigde kopie', () => {
-    const prev = { date: '2026-06-17', channels: ['mail'] };
+    const prev = { date: '2026-06-17', channels: ['tiktok'] };
     const out = mergeActiveAction(prev, {});
     expect(out).toEqual(prev);
     expect(out).not.toBe(prev); // pure: nieuwe referentie
@@ -206,24 +206,32 @@ describe('sanitizeActionInput', () => {
   it('kanalen worden gefilterd op de whitelist + ontdubbeld', () => {
     expect(
       sanitizeActionInput({
-        channels: ['mail', 'instagram', 'mail', 'hacker', 42],
+        channels: ['instagram', 'facebook', 'instagram', 'hacker', 42],
       }).channels,
-    ).toEqual(['mail', 'instagram']);
+    ).toEqual(['instagram', 'facebook']);
   });
 
   it('niet-array channels → veld weggelaten', () => {
-    expect(sanitizeActionInput({ channels: 'mail' }).channels).toBeUndefined();
+    expect(
+      sanitizeActionInput({ channels: 'tiktok' }).channels,
+    ).toBeUndefined();
   });
 
-  // Per 2026-09-09: WhatsApp heeft geen verzendpad, dus mag niet meer als
-  // gevraagd kanaal binnenkomen — anders zet de flow een campagne klaar
-  // die nooit de deur uit kan.
-  it('whatsapp wordt geweerd, de overige kanalen blijven', () => {
+  // Onbekende kanaalnamen mogen niet binnenkomen — anders zet de flow een
+  // campagne klaar voor een kanaal dat niet bestaat.
+  it('onbekende kanalen worden geweerd, de overige kanalen blijven', () => {
     expect(
       sanitizeActionInput({
-        channels: ['whatsapp', 'instagram', 'facebook', 'tiktok', 'google_business', 'mail'],
+        channels: [
+          'onbekend',
+          'instagram',
+          'facebook',
+          'tiktok',
+          'google_business',
+          'nog-een-onbekende',
+        ],
       }).channels,
-    ).toEqual(['instagram', 'facebook', 'tiktok', 'google_business', 'mail']);
+    ).toEqual(['instagram', 'facebook', 'tiktok', 'google_business']);
   });
 
   it('expliciet null → wis-delta (voor "+ Nog een dag")', () => {
@@ -300,8 +308,8 @@ describe('formatActiveActionBlock', () => {
   });
 
   it('alleen kanalen (nog geen datum) → toont "nog niet gekozen"', () => {
-    const block = formatActiveActionBlock({ channels: ['mail', 'facebook'] });
+    const block = formatActiveActionBlock({ channels: ['tiktok', 'facebook'] });
     expect(block).toContain('doel-datum: nog niet gekozen');
-    expect(block).toContain('gekozen kanalen: mail, facebook');
+    expect(block).toContain('gekozen kanalen: tiktok, facebook');
   });
 });

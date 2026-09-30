@@ -25,12 +25,12 @@ export type ChatRole = 'filly' | 'user' | 'system';
 
 // message_card = gestructureerde payload die naast de prozatekst wordt
 // opgeslagen wanneer Filly een actie voorstelt. Sinds 2026-05-04:
-//   - 'campaign_proposal' : single-channel (social OF google_business OF mail)
+//   - 'campaign_proposal' : single-channel (social OF google_business)
 //                            met 3 varianten van dezelfde tekst
-//   - 'campaign_bundle'   : multi-channel (mail + IG + FB) onder 1 thema,
+//   - 'campaign_bundle'   : multi-channel (IG + FB + ...) onder 1 thema,
 //                            elk met eigen caption-stijl
 //   - 'channel_choice'    : Filly vraagt eerst welk kanaal, 4 knoppen
-//                            (social/google_business/mail/bundle). Bij klik
+//                            (social/google_business/bundle). Bij klik
 //                            stuurt frontend automatisch een user-msg
 //                            terug naar Filly zodat 'ie het juiste
 //                            formaat genereert.
@@ -69,8 +69,7 @@ export type ChannelChoiceCard = {
   kind: 'channel_choice';
   question: string;
   // Volgorde + welke opties beschikbaar zijn, Filly bepaalt zelf.
-  // Per 2026-09-09: instagram/facebook/tiktok/google_business/mail
-  // (WhatsApp eruit, geen verzendpad).
+  // instagram/facebook/tiktok/google_business.
 };
 
 // Date-choice, sinds 2026-05-24: Filly vraagt eerst voor welke dag of
@@ -87,22 +86,18 @@ export type DateChoiceCard = {
 // Bundle-versie van CampaignProposalCard. Wordt opgeslagen in
 // chat_messages.message_card en in ai_suggestions.suggested_campaign
 // (met trigger_type='chat_bundle'). Approve-flow detecteert kind en
-// maakt 1 campaign_groups-rij + 3 campaigns + 3 content-rijen.
+// maakt 1 campaign_groups-rij + per kanaal een campaign + content-rij.
 export type CampaignBundleCard = {
   kind: 'campaign_bundle';
   suggestion_id: string;
   name: string;
   theme: string;
   channels: {
-    // Sinds 2026-06-02: de bundel ondersteunt alle 5 chat-kanalen, niet
-    // langer alleen mail+IG+FB. Velden zijn OPTIONEEL: een bundel bevat
-    // precies de kanalen die de eigenaar aanvinkte (minimaal 2).
-    // WhatsApp (persoonlijk bericht) en Google Business (lokale profiel-
-    // post) hebben geen onderwerp of hashtags, dus enkel een `body`.
-    mail?: { subject_line: string; body: string };
+    // Velden zijn OPTIONEEL: een bundel bevat precies de kanalen die de
+    // eigenaar aanvinkte (minimaal 2). Google Business (lokale profiel-
+    // post) heeft geen hashtags, dus enkel een `body`.
     instagram?: { caption: string; hashtags?: string[] };
     facebook?: { caption: string };
-    whatsapp?: { body: string };
     google_business?: { body: string };
     // TikTok-video: caption + hashtags (zelfde shape als Instagram).
     tiktok?: { caption: string; hashtags?: string[] };
@@ -116,7 +111,6 @@ export type CampaignBundleCard = {
 // drie naast elkaar zodat de eigenaar kan kiezen i.p.v. iteratief
 // blijven sparren.
 export type ProposalVariant = {
-  subject_line?: string;
   body: string;
   // Verteltechniek van deze variant (filly-brein hfst 8.4). Filly labelt
   // 'm zelf bij generatie zodat we 3 verschillende tones kunnen afdwingen
@@ -132,8 +126,8 @@ export type CampaignProposalCard = {
   suggestion_id: string;
   // 'social' = Instagram/Facebook/TikTok (legacy umbrella).
   // 'google_business' is een eigen type omdat de post-shape én de
-  // approve-flow afwijken (geen subject, alleen body; geen bundle-pad).
-  type: 'mail' | 'social' | 'whatsapp' | 'google_business';
+  // approve-flow afwijken (alleen body; geen bundle-pad).
+  type: 'social' | 'google_business';
   name: string;
   // 3 varianten van Filly. Modal toont ze naast elkaar; eigenaar
   // selecteert favoriet, kan vervolgens bewerken/refinen voor
@@ -251,7 +245,7 @@ export class ChatService {
     // Voor leerloop-injectie: top-3 winners + underperformers per
     // kanaal als "SUCCESSFUL/AVOID PATTERNS" in de system-prompt.
     private readonly fingerprint: CampaignFingerprintService,
-    // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
+    // Gemeten bereik per kanaal (koppel-status + volgers) zodat Filly
     // tractie meeweegt bij kanaal-keuze en alternatieven voorstelt.
     private readonly reach: ChannelReachService,
   ) {}
@@ -537,15 +531,9 @@ export class ChatService {
     businessId: string,
     conversationId: string,
   ): Promise<ActiveChatState> {
-    const messages = await this.getRecentMessages(
-      conversationId,
-      businessId,
-    );
+    const messages = await this.getRecentMessages(conversationId, businessId);
     const messageCount = await this.countMessages(conversationId);
-    const activeAction = await this.getActiveAction(
-      businessId,
-      conversationId,
-    );
+    const activeAction = await this.getActiveAction(businessId, conversationId);
     return { conversationId, messages, messageCount, activeAction };
   }
 
@@ -645,9 +633,7 @@ export class ChatService {
     // 100% voorspelbaar en voegt maar ~5ms toe.
     const { data, error } = await this.supabase.client
       .from('chat_messages')
-      .select(
-        'id, role, content, message_card, ai_suggestion_id, created_at',
-      )
+      .select('id, role, content, message_card, ai_suggestion_id, created_at')
       .eq('conversation_id', conversationId)
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
@@ -1058,17 +1044,16 @@ export class ChatService {
         // We slaan de hele proposal op in suggested_campaign (incl.
         // alle varianten). Approve-flow leest later selected_index
         // en gebruikt die variant voor de campagne-aanmaak.
-        const { id, campaignId } =
-          await this.suggestionsService.createFromChat(
-            businessId,
-            {
-              type: parsedSingle.proposal.type,
-              name: parsedSingle.proposal.name,
-              variants: parsedSingle.proposal.variants,
-              selected_index: parsedSingle.proposal.selected_index,
-            },
-            userId,
-          );
+        const { id, campaignId } = await this.suggestionsService.createFromChat(
+          businessId,
+          {
+            type: parsedSingle.proposal.type,
+            name: parsedSingle.proposal.name,
+            variants: parsedSingle.proposal.variants,
+            selected_index: parsedSingle.proposal.selected_index,
+          },
+          userId,
+        );
         suggestionId = id;
         // Per 2026-06-24: meteen goedgekeurd → het voorstel IS al een
         // concept. De kaart krijgt approved_campaign_id mee zodat 'ie
@@ -1275,8 +1260,7 @@ export class ChatService {
           feature: 'chat-title',
         },
         toolName: 'set_title',
-        toolDescription:
-          'Sla de bedachte titel op voor deze chat-conversatie.',
+        toolDescription: 'Sla de bedachte titel op voor deze chat-conversatie.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -1356,9 +1340,9 @@ export class ChatService {
         // Compacte kaart voor de chat (chat-perf #2): de chat routeert naar
         // de geleide flow en schrijft zelf geen copy, dus de volledige kaart
         // is hier overbodig. Generatie gebruikt buildMenuBlock zonder compact.
-        this.context.buildMenuBlock(businessId, { compact: true }).catch(
-          () => '',
-        ),
+        this.context
+          .buildMenuBlock(businessId, { compact: true })
+          .catch(() => ''),
         this.context.buildPhotosBlock(businessId).catch(() => ''),
         this.context.buildLiveBlock(businessId).catch(() => ''),
         // Laatste N memories ophalen, Filly's leerschat uit afgesloten
@@ -1386,7 +1370,7 @@ export class ChatService {
       'en';
     const languageLine = english
       ? '- English, friendly but not over-the-top American. No exclamation marks, no emoji, no em/en dashes (— or –): write with commas and periods.'
-      : '- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma\'s en punten.';
+      : "- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma's en punten.";
     // Harde directieve bovenaan zodat de taalkeuze niet ondersneeuwt in de
     // (Nederlandse) instructies eronder.
     const languageDirective = english
@@ -1397,7 +1381,7 @@ export class ChatService {
 
 Wie je bent:
 - Een behulpzame, praktische assistent die CAMPAGNES voor het restaurant maakt.
-- Je focus is één ding: campagnes en marketing-acties die gasten naar binnen halen — uitingen op sociale media (Instagram, Facebook, TikTok), Google Business-posts, mailings en bundels daarvan.
+- Je focus is één ding: campagnes en marketing-acties die gasten naar binnen halen — uitingen op sociale media (Instagram, Facebook, TikTok), Google Business-posts en bundels daarvan.
 - Je kent de context (bezetting, gasten, menu, weer, events in de buurt) en gebruikt die om sterke, concrete campagnes te bedenken — maar je voorstel is ALTIJD een campagne.
 
 Hoe je praat:
@@ -1420,7 +1404,7 @@ ACTIES: HET STARTEN VAN EEN CAMPAGNE
 
 Je schrijft campagnes NIET zelf in proza. Zodra de eigenaar iets wil
 maken, posten, versturen of bedenken — óf je een campagne-gerelateerde
-vraag stelt — een campagne, actie, mail, post, bericht, "doe iets voor
+vraag stelt — een campagne, actie, post, bericht, "doe iets voor
 ...", "bedenk een actie", "wat kan ik doen?", "wat stel je voor?", "welke
 dag(en) raad je aan?" — start je de geleide flow met dit machine-blok. De
 eigenaar ziet het blok niet; de frontend toont op basis daarvan de
@@ -1454,7 +1438,7 @@ Regels:
   hoort in "channels", niet in "topic".
 - "channels": noemt de eigenaar expliciet een of meer kanalen, zet die
   dan als array in "channels". Toegestane waarden: "instagram",
-  "facebook", "tiktok", "google_business", "mail". Voorbeelden:
+  "facebook", "tiktok", "google_business". Voorbeelden:
   "een tiktok campagne" → ["tiktok"]; "iets voor insta en facebook" →
   ["instagram","facebook"]. Noemt de eigenaar GEEN kanaal, laat
   "channels" dan WEG — de flow stelt zelf de aanbevolen kanalen voor.
@@ -1527,12 +1511,7 @@ export type ActiveActionDelta = {
 // Toegestane kanaal-namen in active_action.channels (= platform-namen
 // zoals de flow + generatie ze gebruiken). Onbekende waarden filteren we
 // weg zodat prompt + downstream-generatie geen rommel binnenkrijgen.
-// Per 2026-09-09 zonder 'whatsapp': er is geen verzendpad voor dat kanaal,
-// dus een gevraagde WhatsApp-actie leverde een campagne op die nooit
-// verstuurd kon worden. Bestaande opgeslagen kaarten met WhatsApp-content
-// blijven gewoon renderen (de bundle-parser accepteert 'm nog).
 const ALLOWED_ACTION_CHANNELS = new Set([
-  'mail',
   'social',
   'instagram',
   'facebook',
@@ -1684,13 +1663,12 @@ export function makeMachineBlockSuppressor(
 //
 // Format van een legacy-blok:
 //   <<FILLY_PROPOSE_CAMPAIGN>>
-//   {"type":"mail", ...}
+//   {"type":"social", ...}
 //   <<END>>
 // Bij een parse-/validatie-fout: volledige tekst terug + geen kaart
 // (de chat gedraagt zich alsof er geen blok was).
 
-const PROPOSAL_REGEX =
-  /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
+const PROPOSAL_REGEX = /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
 
 // Intermediair type: de parser kent het suggestion_id nog niet (die
 // wordt pas toegekend na insert in ai_suggestions). Caller bouwt de
@@ -1714,12 +1692,6 @@ function sanitizeVariant(v: unknown): ProposalVariant | null {
   const o = v as Record<string, unknown>;
   if (typeof o.body !== 'string' || o.body.trim().length === 0) return null;
   const variant: ProposalVariant = { body: o.body.trim() };
-  if (
-    typeof o.subject_line === 'string' &&
-    o.subject_line.trim().length > 0
-  ) {
-    variant.subject_line = o.subject_line.trim().slice(0, 200);
-  }
   // tone_signature: alleen overnemen als 't een geldige enum-waarde is.
   // Ongeldige/ontbrekende waarde → laat weg (backwards-compat).
   if (
@@ -1731,9 +1703,10 @@ function sanitizeVariant(v: unknown): ProposalVariant | null {
   return variant;
 }
 
-export function extractCampaignProposal(
-  raw: string,
-): { cleanText: string; proposal: ParsedProposal | null } {
+export function extractCampaignProposal(raw: string): {
+  cleanText: string;
+  proposal: ParsedProposal | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(PROPOSAL_REGEX);
   if (!match) {
@@ -1755,13 +1728,8 @@ export function extractCampaignProposal(
     // de parser het voorstel af (proposal: null), vuurde er in sendMessage
     // geen enkele branch, en bleef het rauwe <<FILLY_PROPOSE_CAMPAIGN>>-blok
     // als platte tekst in de chat staan i.p.v. als nette kaart te renderen.
-    // 'whatsapp' staat hier per 2026-09-09 NIET meer in: er is geen
-    // verzendpad voor dat kanaal, dus zou zo'n voorstel een campagne
-    // opleveren die niet te versturen is. De prompt vraagt het ook niet
-    // meer; dit is de vangnet-kant. Bestaande opgeslagen kaarten met
-    // type 'whatsapp' blijven wel renderen.
     if (
-      (type !== 'mail' && type !== 'social' && type !== 'google_business') ||
+      (type !== 'social' && type !== 'google_business') ||
       typeof name !== 'string' ||
       name.trim().length === 0
     ) {
@@ -1792,10 +1760,7 @@ export function extractCampaignProposal(
         .map(sanitizeVariant)
         .filter((v): v is ProposalVariant => v !== null);
     } else if (typeof parsed.body === 'string' && parsed.body.trim()) {
-      const single = sanitizeVariant({
-        body: parsed.body,
-        subject_line: parsed.subject_line,
-      });
+      const single = sanitizeVariant({ body: parsed.body });
       if (single) variants = [single];
     }
 
@@ -1819,35 +1784,27 @@ export function extractCampaignProposal(
 }
 
 // ============================================================
-// BUNDLE-parser (multi-channel: mail + IG + FB samen)
+// BUNDLE-parser (multi-channel: IG + FB + ... samen)
 // ============================================================
-// Filly's tweede formaat: één thema met 3 kanaal-versies tegelijk.
+// Filly's tweede formaat: één thema met meerdere kanaal-versies tegelijk.
 // Format:
 //   <<FILLY_PROPOSE_BUNDLE>>
-//   {"name":"...","theme":"...","channels":{"mail":{...},"instagram":{...},"facebook":{...}}}
+//   {"name":"...","theme":"...","channels":{"instagram":{...},"facebook":{...}}}
 //   <<END>>
 // Regels parser:
-//   - Alle 3 kanalen verplicht (mail + instagram + facebook)
-//   - Mail heeft subject_line + body; IG/FB hebben caption
+//   - Minimaal 2 geldige kanalen; IG/FB hebben caption
 //   - Bij elk ontbrekend/leeg veld → null returnen (chat behandelt 'm
 //     dan als gewone tekst zonder voorstel)
 
-const BUNDLE_REGEX =
-  /<<FILLY_PROPOSE_BUNDLE>>\s*([\s\S]*?)\s*<<END>>/i;
-
-export type BundleMailContent = {
-  subject_line: string;
-  body: string;
-};
+const BUNDLE_REGEX = /<<FILLY_PROPOSE_BUNDLE>>\s*([\s\S]*?)\s*<<END>>/i;
 
 export type BundleSocialContent = {
   caption: string;
   hashtags?: string[];
 };
 
-// WhatsApp + Google Business: platte tekst zonder onderwerp of hashtags.
-// WhatsApp = persoonlijk bericht naar opt-in-gasten, Google Business =
-// lokale profiel-post. Beide hebben alleen een body.
+// Google Business: platte tekst zonder hashtags (lokale profiel-post).
+// Heeft alleen een body.
 export type BundleTextContent = {
   body: string;
 };
@@ -1859,26 +1816,12 @@ export type ParsedBundle = {
   // Optionele velden: een bundel bevat precies de aangevinkte kanalen
   // (minimaal 2). Zie extractCampaignBundle voor de validatie.
   channels: {
-    mail?: BundleMailContent;
     instagram?: BundleSocialContent;
     facebook?: BundleSocialContent;
-    whatsapp?: BundleTextContent;
     google_business?: BundleTextContent;
     tiktok?: BundleSocialContent;
   };
 };
-
-function sanitizeBundleMail(v: unknown): BundleMailContent | null {
-  if (!v || typeof v !== 'object') return null;
-  const o = v as Record<string, unknown>;
-  if (typeof o.subject_line !== 'string' || !o.subject_line.trim())
-    return null;
-  if (typeof o.body !== 'string' || !o.body.trim()) return null;
-  return {
-    subject_line: o.subject_line.trim().slice(0, 200),
-    body: o.body.trim(),
-  };
-}
 
 function sanitizeBundleSocial(v: unknown): BundleSocialContent | null {
   if (!v || typeof v !== 'object') return null;
@@ -1895,7 +1838,7 @@ function sanitizeBundleSocial(v: unknown): BundleSocialContent | null {
   return out;
 }
 
-// Sanitize een platte-tekst-kanaal (WhatsApp / Google Business): enkel
+// Sanitize een platte-tekst-kanaal (Google Business): enkel
 // een niet-lege body. Returnt null als de body ontbreekt of leeg is.
 function sanitizeBundleText(v: unknown): BundleTextContent | null {
   if (!v || typeof v !== 'object') return null;
@@ -1904,9 +1847,10 @@ function sanitizeBundleText(v: unknown): BundleTextContent | null {
   return { body: o.body.trim() };
 }
 
-export function extractCampaignBundle(
-  raw: string,
-): { cleanText: string; bundle: ParsedBundle | null } {
+export function extractCampaignBundle(raw: string): {
+  cleanText: string;
+  bundle: ParsedBundle | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(BUNDLE_REGEX);
   if (!match) {
@@ -1933,18 +1877,14 @@ export function extractCampaignBundle(
     }
 
     // Per kanaal sanitizen; alleen geldige kanalen nemen we mee. Zo kan
-    // Filly een willekeurige subset van de 5 kanalen leveren — precies de
-    // kanalen die de eigenaar aanvinkte. mail/IG/FB houden hun bestaande
-    // shape; whatsapp/google_business zijn platte tekst (alleen body).
+    // Filly een willekeurige subset van de kanalen leveren — precies de
+    // kanalen die de eigenaar aanvinkte. IG/FB/TikTok hebben een caption;
+    // google_business is platte tekst (alleen body).
     const out: ParsedBundle['channels'] = {};
-    const mail = sanitizeBundleMail(channels.mail);
-    if (mail) out.mail = mail;
     const instagram = sanitizeBundleSocial(channels.instagram);
     if (instagram) out.instagram = instagram;
     const facebook = sanitizeBundleSocial(channels.facebook);
     if (facebook) out.facebook = facebook;
-    const whatsapp = sanitizeBundleText(channels.whatsapp);
-    if (whatsapp) out.whatsapp = whatsapp;
     const googleBusiness = sanitizeBundleText(channels.google_business);
     if (googleBusiness) out.google_business = googleBusiness;
     const tiktok = sanitizeBundleSocial(channels.tiktok);
@@ -2015,19 +1955,19 @@ export function detectCampaignHint(userMessage: string): string | null {
 //   {"question":"Waarvoor zal ik een campagne maken?"}
 //   <<END>>
 // Veel eenvoudiger dan proposal/bundle: alleen een vraag-tekst.
-// De 4 opties (mail/social/whatsapp/bundle) zijn vast in de UI.
+// De opties (social/google_business/bundle) zijn vast in de UI.
 
-const CHOICE_REGEX =
-  /<<FILLY_PROPOSE_CHOICE>>\s*([\s\S]*?)\s*<<END>>/i;
+const CHOICE_REGEX = /<<FILLY_PROPOSE_CHOICE>>\s*([\s\S]*?)\s*<<END>>/i;
 
 export type ParsedChoice = {
   kind: 'channel_choice';
   question: string;
 };
 
-export function extractCampaignChoice(
-  raw: string,
-): { cleanText: string; choice: ParsedChoice | null } {
+export function extractCampaignChoice(raw: string): {
+  cleanText: string;
+  choice: ParsedChoice | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(CHOICE_REGEX);
   if (!match) {
@@ -2071,8 +2011,7 @@ export function extractCampaignChoice(
 // (ISO, geldig, niet ver in 't verleden, ≤120 dgn vooruit). Een leeg
 // of misvormd blok levert nog steeds een guided_start-kaart op zónder
 // datum — de flow vraagt dan zelf de dag.
-const GUIDED_START_REGEX =
-  /<<FILLY_START_GUIDED>>\s*([\s\S]*?)\s*<<END>>/i;
+const GUIDED_START_REGEX = /<<FILLY_START_GUIDED>>\s*([\s\S]*?)\s*<<END>>/i;
 
 export function extractGuidedStart(
   raw: string,
@@ -2111,8 +2050,7 @@ export function extractGuidedStart(
       !Number.isNaN(Date.parse(candidate))
     ) {
       const days =
-        (new Date(`${candidate}T12:00:00`).getTime() - Date.now()) /
-        86_400_000;
+        (new Date(`${candidate}T12:00:00`).getTime() - Date.now()) / 86_400_000;
       if (days >= -1 && days <= 120) date = candidate;
     }
     if (typeof parsed.topic === 'string' && parsed.topic.trim()) {
@@ -2150,9 +2088,10 @@ export type ParsedDateChoice = {
   question: string;
 };
 
-export function extractDateChoice(
-  raw: string,
-): { cleanText: string; choice: ParsedDateChoice | null } {
+export function extractDateChoice(raw: string): {
+  cleanText: string;
+  choice: ParsedDateChoice | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(DATE_CHOICE_REGEX);
   if (!match) {

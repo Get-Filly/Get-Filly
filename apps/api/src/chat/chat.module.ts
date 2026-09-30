@@ -23,7 +23,13 @@ import { AiRateLimitGuard } from '../common/ai-rate-limit.guard';
 //   system-prompt van toekomstige chats met geleerde voorkeuren
 // - Guards: standaard auth + tenant-isolation + AI-rate-limit
 @Module({
-  imports: [SupabaseModule, MeModule, AiModule, SuggestionsModule, CampaignsModule],
+  imports: [
+    SupabaseModule,
+    MeModule,
+    AiModule,
+    SuggestionsModule,
+    CampaignsModule,
+  ],
   controllers: [ChatController, ChatCronController],
   providers: [
     ChatService,

@@ -38,9 +38,8 @@ export type MissendeAspectenChannel = {
   platform: string;
   items: ChecklistItem[];
   // Inline-bewerk-data per kanaal:
-  subjectLine: string;
   body: string;
-  variants: Array<{ subject_line?: string | null; body?: string }>;
+  variants: Array<{ body?: string }>;
   selectedIndex: number;
   // Filly's voorgestelde verzendmoment (of een fallback); null = geen.
   fillyIso: string | null;
@@ -48,7 +47,7 @@ export type MissendeAspectenChannel = {
 
 type Props = {
   channels: MissendeAspectenChannel[];
-  // Kanalen die foto's/video's ondersteunen (mail uitgezonderd), met of ze
+  // Kanalen die foto's/video's ondersteunen met of ze
   // al media hebben — voor "gebruik voor alle kanalen".
   mediaChannels: Array<{ id: string; hasMedia: boolean }>;
   canEdit: boolean;
@@ -57,7 +56,7 @@ type Props = {
   onSaveText: (
     channelId: string,
     index: number,
-    patch: { subject_line?: string; body: string },
+    patch: { body: string },
   ) => Promise<void>;
   onSelectVariant: (channelId: string, index: number) => Promise<void>;
   onSetSchedule: (channelId: string, iso: string) => Promise<void>;
@@ -216,7 +215,7 @@ function InlineFixPanel({
   onSaveText: (
     channelId: string,
     index: number,
-    patch: { subject_line?: string; body: string },
+    patch: { body: string },
   ) => Promise<void>;
   onSelectVariant: (channelId: string, index: number) => Promise<void>;
   onSetSchedule: (channelId: string, iso: string) => Promise<void>;
@@ -305,9 +304,7 @@ function InlineFixPanel({
             onSaveText(
               channel.id,
               channel.selectedIndex,
-              field === "subject"
-                ? { subject_line: value, body: channel.body }
-                : { body: value },
+              { body: value },
             ),
           )
         }
@@ -380,7 +377,7 @@ function PhotoFix({
     "dash__components_campaign_detail_missende_aspecten_card",
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  // Andere media-kanalen (mail is door de parent al uitgesloten).
+  // Andere media-kanalen.
   const others = mediaChannels.filter((c) => c.id !== channel.id);
   const withoutPhoto = others.filter((c) => !c.hasMedia);
   const withPhoto = others.filter((c) => c.hasMedia);
@@ -532,35 +529,15 @@ function TextFix({
   const t = useTranslations(
     "dash__components_campaign_detail_missende_aspecten_card",
   );
-  const isSubject = field === "subject";
-  const initial = isSubject ? channel.subjectLine : channel.body;
+  const initial = channel.body;
   const [value, setValue] = useState(initial);
   // Andere varianten als snelkeuze (alleen wanneer er meer dan 1 is).
   const altVariants = channel.variants
     .map((v, idx) => ({ v, idx }))
     .filter((x) => x.idx !== channel.selectedIndex)
-    .filter((x) =>
-      isSubject ? !!x.v.subject_line?.trim() : !!x.v.body?.trim(),
-    );
+    .filter((x) => !!x.v.body?.trim());
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {isSubject ? (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={t("subjectPlaceholder")}
-          maxLength={200}
-          style={{
-            padding: "8px 10px",
-            border: "1px solid var(--border, #E5DFD0)",
-            borderRadius: 6,
-            fontSize: 13,
-            fontFamily: "inherit",
-            background: "var(--white, #FFFFFF)",
-          }}
-        />
-      ) : (
         <textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -578,7 +555,6 @@ function TextFix({
             resize: "vertical",
           }}
         />
-      )}
       {altVariants.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontSize: 11, color: "var(--tl)" }}>
@@ -591,7 +567,7 @@ function TextFix({
                 type="button"
                 onClick={() => onPickVariant(idx)}
                 disabled={busy}
-                title={isSubject ? (v.subject_line ?? "") : (v.body ?? "")}
+                title={v.body ?? ""}
                 style={{
                   padding: "4px 10px",
                   fontSize: 12,
@@ -605,7 +581,7 @@ function TextFix({
                   whiteSpace: "nowrap",
                 }}
               >
-                {(isSubject ? v.subject_line : v.body)?.slice(0, 40)}
+                {v.body?.slice(0, 40)}
               </button>
             ))}
           </div>

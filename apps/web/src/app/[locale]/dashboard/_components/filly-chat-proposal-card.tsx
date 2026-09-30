@@ -29,12 +29,7 @@ export function FillyChatProposalCard({
 }) {
   const t = useTranslations("dash__components_filly_chat_proposal_card");
 
-  const typeLabel =
-    proposal.type === "mail"
-      ? t("typeMail")
-      : proposal.type === "social"
-        ? t("typeSocial")
-        : t("typeWhatsapp");
+  const typeLabel = t("typeSocial");
 
   return (
     <div
@@ -76,26 +71,10 @@ export function FillyChatProposalCard({
       <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
         {proposal.name}
       </div>
-      {/* Pak de geselecteerde variant (default 0). Toon onderwerp +
-          korte body-preview zodat user zonder modal-klik kan zien
-          wat er gemaakt wordt. */}
+      {/* Toon of er meerdere versies zijn. */}
       {(() => {
-        const variant =
-          proposal.variants?.[proposal.selected_index ?? 0] ?? null;
-        const subject = variant?.subject_line;
         return (
           <>
-            {subject && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-secondary, #52525B)",
-                  marginBottom: 4,
-                }}
-              >
-                {t("subject", { subject })}
-              </div>
-            )}
             {proposal.variants && proposal.variants.length > 1 && (
               <div
                 style={{

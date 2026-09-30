@@ -80,8 +80,6 @@ type BoardItem =
 
 function typeIcon(t: string | undefined | null): string {
   if (!t) return "📋";
-  if (t === "mail") return "✉️";
-  if (t === "whatsapp") return "💬";
   if (t === "instagram") return "📱";
   if (t === "facebook") return "👥";
   if (t === "tiktok") return "🎵";
@@ -160,9 +158,8 @@ type ChannelCheck = {
   platform: string;
   label: string;
   // Voor bundle-approve hebben we de BundleChannel-string nodig
-  // (mail|instagram|facebook). null = dit kanaal kan niet via
-  // approveBundleSuggestion mee (bv. tiktok/whatsapp ondersteund
-  // de backend nog niet). UI verbergt 'm dan niet, maar Plan in
+  // (instagram|facebook|tiktok|google_business). null = dit kanaal kan niet via
+  // approveBundleSuggestion mee (niet-ondersteunde kanalen). UI verbergt 'm dan niet, maar Plan in
   // werkt alleen voor de wél-ondersteunde channels.
   bundleChannel: BundleChannel | null;
   missing: MissingField[];
@@ -181,14 +178,13 @@ function computeSuggestionChecks(s: AiSuggestion): ChannelCheck[] {
         missing: getChannelMissing(
           ch.platform,
           v?.body,
-          v?.subject_line,
           ch.scheduled_for ?? ch.filly_scheduled_for,
           ch.restaurant_media_id,
         ),
       };
     });
   }
-  const platform = sc.platform ?? sc.type ?? "mail";
+  const platform = sc.platform ?? "instagram";
   const v = sc.variants?.[sc.selected_index ?? 0] ?? sc.variants?.[0];
   return [
     {
@@ -199,7 +195,6 @@ function computeSuggestionChecks(s: AiSuggestion): ChannelCheck[] {
       missing: getChannelMissing(
         platform,
         v?.body ?? sc.body ?? sc.caption,
-        v?.subject_line ?? sc.subject_line ?? sc.subject,
         sc.scheduled_for,
         sc.restaurant_media_id,
       ),
@@ -339,7 +334,7 @@ function getAllMissing(rows: ChannelRow[]): MissingField[] {
       for (const f of row.status.fields) fields.add(f);
     }
   }
-  const order: MissingField[] = ["date", "body", "subject", "photo"];
+  const order: MissingField[] = ["date", "body", "photo"];
   return order.filter((f) => fields.has(f));
 }
 
@@ -348,7 +343,7 @@ function getAllMissing(rows: ChannelRow[]): MissingField[] {
 function getItemPlatforms(item: BoardItem): string[] {
   if (item.kind === "suggestion") {
     const sc = item.data.suggested_campaign;
-    return [sc.platform ?? sc.type ?? "mail"];
+    return [sc.platform ?? "instagram"];
   }
   if (item.kind === "bundle-suggestion") {
     // Defensive: ?? [] vangt alleen null/undefined op. Bij oude
@@ -484,11 +479,9 @@ export default function CampagnesPage() {
   // backend een bundel (groep + concept per kanaal).
   const [builderChannels, setBuilderChannels] = useState<
     Array<
-      | "mail"
       | "instagram"
       | "facebook"
       | "tiktok"
-      | "whatsapp"
       | "google_business"
     >
   >([]);
@@ -500,7 +493,6 @@ export default function CampagnesPage() {
   // Campagne waarvoor de Stop-bevestigingspopup openstaat (null = dicht).
   // Gezet voor social-campagnes; bevat bij een live IG-post een directe
   // link naar die post, als vangnet wanneer verwijderen mislukt.
-  // Mail-only campagnes ronden af via de simpele window.confirm.
   const [pendingStop, setPendingStop] = useState<BoardItem | null>(null);
   // Uitkomst van het stoppen: wat er met de Facebook- en Instagram-post
   // is gebeurd. Blijft na afloop in de popup staan, zodat de eigenaar
@@ -772,20 +764,16 @@ export default function CampagnesPage() {
   // Default kanalen bij bundle-approve. Sinds 2026-06-22 ondersteunt de
   // approve-bundle alle 6 chat-kanalen; we geven ze allemaal mee en de
   // backend maakt alleen de kanalen die daadwerkelijk in de bundel zitten.
-  // Mail staat hier per 2026-09-16 niet meer in: we maken geen
-  // mail-campagnes meer aan. Bestaande mail-campagnes blijven gewoon op
-  // het bord staan, we bieden het alleen niet meer aan.
   const DEFAULT_BUNDLE: BundleChannel[] = [
     "instagram",
     "facebook",
-    "whatsapp",
     "google_business",
     "tiktok",
   ];
 
   // Goedkeur: voorstel → concept. Niet voor campaign-items.
   // Single-channel: redirect naar concept-detail-page zodat eigenaar
-  // 'm meteen kan afronden (datum + onderwerp voor mail invullen).
+  // 'm meteen kan afronden (datum en foto invullen).
   // Bundle: blijft op kanban — eigenaar kiest welk kanaal verder.
   const handleApprove = (item: BoardItem) =>
     runAction(item, t("actions.approve"), async () => {
@@ -810,8 +798,7 @@ export default function CampagnesPage() {
   // ingepland, campagne = directe status-overgang.
   //
   // Voor single-channel-flows redirecten we direct naar de detail-page
-  // van de zojuist-ingeplande campagne (daar staat de Versturen-sectie
-  // voor mail-campagnes). Bundle blijft op kanban — eigenaar kiest zelf
+  // van de zojuist-ingeplande campagne. Bundle blijft op kanban — eigenaar kiest zelf
   // welk kanaal hij verder wil afhandelen.
   const handlePlan = (item: BoardItem) =>
     runAction(item, t("actions.plan"), async () => {
@@ -826,7 +813,6 @@ export default function CampagnesPage() {
           DEFAULT_BUNDLE,
         );
         const ids = [
-          result.mailCampaignId,
           result.instagramCampaignId,
           result.facebookCampaignId,
         ].filter((id): id is string => !!id);
@@ -866,15 +852,10 @@ export default function CampagnesPage() {
     });
 
   // Stop: actieve campagne stopzetten. Per kanaal verschilt het doel:
-  //   - mail  → afronden (→ afgerond). Verstuurde mail valt niet terug
-  //     te trekken, dus enkel afsluiten.
-  //   - social/whatsapp → terugtrekken van het kanaal (→ concept). De
-  //     backend verwijdert de post (stub tot Meta/TikTok OAuth) en zet
-  //     de campagne terug naar concept zodat 'ie opnieuw kan.
-  // Een gemengde bundle krijgt per kanaal de juiste transitie.
-  // De daadwerkelijke stop (los van de bevestiging): mail → afgerond
-  // (verstuurd, niet terug te trekken), social/whatsapp → terug naar
-  // concept (post wordt waar mogelijk teruggetrokken).
+  // Terugtrekken van het kanaal (→ concept). De backend verwijdert de
+  // post (stub tot Meta/TikTok OAuth) en zet de campagne terug naar
+  // concept zodat 'ie opnieuw kan. De daadwerkelijke stop (los van de
+  // bevestiging) trekt de post waar mogelijk terug.
   const performStop = (item: BoardItem) => {
     const campaigns =
       item.kind === "campaign"
@@ -886,7 +867,7 @@ export default function CampagnesPage() {
     return runAction(item, t("actions.stop"), async () => {
       const results = await Promise.all(
         campaigns.map((c) =>
-          updateCampaignStatus(c.id, c.type === "mail" ? "afgerond" : "concept"),
+          updateCampaignStatus(c.id, "concept"),
         ),
       );
       // Bij een bundel stoppen we meerdere campagnes tegelijk. We vatten
@@ -925,16 +906,9 @@ export default function CampagnesPage() {
           ? item.campaigns
           : [];
     if (campaigns.length === 0) return;
-    const hasSocial = campaigns.some((c) => c.type !== "mail");
-    // Social: popup met bevestiging vooraf en het resultaat achteraf.
-    if (hasSocial) {
-      setStopResult(null);
-      setPendingStop(item);
-      return;
-    }
-    // Mail-only: niets terug te trekken, simpele bevestiging volstaat.
-    if (!window.confirm(t("confirm.finishMail"))) return;
-    void performStop(item);
+    // Popup met bevestiging vooraf en het resultaat achteraf.
+    setStopResult(null);
+    setPendingStop(item);
   };
 
   // Verwijderen: hard-delete. Backend staat 't alleen toe op concept
@@ -982,7 +956,6 @@ export default function CampagnesPage() {
                   { key: "instagram", label: "Instagram" },
                   { key: "facebook", label: "Facebook" },
                   { key: "tiktok", label: "TikTok" },
-                  { key: "whatsapp", label: "WhatsApp" },
                   { key: "google_business", label: "Google Business" },
                 ] as const
               ).map((ch) => {
@@ -1208,7 +1181,6 @@ export default function CampagnesPage() {
                   { key: "instagram", label: "Instagram" },
                   { key: "facebook", label: "Facebook" },
                   { key: "tiktok", label: "TikTok" },
-                  { key: "whatsapp", label: "WhatsApp" },
                   { key: "google_business", label: "Google Business" },
                 ] as const
               ).map((c) => {
@@ -1509,7 +1481,7 @@ function cardTitleText(item: BoardItem): {
     const first = item.campaigns[0];
     const cleaned =
       first.name.replace(
-        /\s*[—\-·]\s*(mail|instagram|facebook|tiktok|whatsapp)\s*$/i,
+        /\s*[—\-·]\s*(instagram|facebook|tiktok)\s*$/i,
         "",
       ) || first.name;
     return { text: cleaned, isBundle: true };
@@ -1583,7 +1555,7 @@ function BoardCard({
         <div style={cardHeaderRow}>
           <span style={cardTitle}>{title.text ?? t("suggestionFallbackName")}</span>
           {/* Bundle-pill verwijderd per 2026-05-13 op verzoek:
-              de "WhatsApp · social · Mail"-regel hieronder geeft
+              de kanaalregel hieronder geeft
               al aan dat het multi-channel is, een extra label
               zou alleen ruis zijn. */}
         </div>
@@ -1717,7 +1689,7 @@ function CardStatusBlock({
   // SPECIFIEKE hint over wat er nog mist ("Nog nodig: foto of video") i.p.v.
   // een generieke oranje "Incompleet"-muur. Velden ontdubbeld over kanalen,
   // in vaste volgorde (date → body → subject → photo).
-  const order: MissingField[] = ["date", "body", "subject", "photo"];
+  const order: MissingField[] = ["date", "body", "photo"];
   const missing = order.filter((f) => getAllMissing(rows).includes(f));
   if (missing.length === 0) {
     return <div style={statusTextReady}>{t("complete")}</div>;
@@ -1788,18 +1760,8 @@ function CardActions({
     e.preventDefault();
   };
 
-  // Actief: stop-knop. Mail → 'Afronden' (verstuurd, niet terug te
-  // trekken); social/whatsapp → 'Stop' (post van kanaal halen + terug
-  // naar concept). De handler kiest per kanaal de juiste transitie.
+  // Actief: stop-knop (post van kanaal halen + terug naar concept).
   if (status === "actief") {
-    const campaigns =
-      item.kind === "campaign"
-        ? [item.data]
-        : item.kind === "bundle-campaign"
-          ? item.campaigns
-          : [];
-    const onlyMail =
-      campaigns.length > 0 && campaigns.every((c) => c.type === "mail");
     return (
       <div style={actionsContainer} onClick={stop}>
         <div style={actionRow}>
@@ -1811,13 +1773,9 @@ function CardActions({
               onStop(item);
             }}
             style={btnDangerGhost}
-            title={
-              onlyMail
-                ? t("tooltips.finishMail")
-                : t("tooltips.stopSocial")
-            }
+            title={t("tooltips.stopSocial")}
           >
-            {busy ? "..." : onlyMail ? t("actions.finish") : t("actions.stop")}
+            {busy ? "..." : t("actions.stop")}
           </button>
         </div>
       </div>

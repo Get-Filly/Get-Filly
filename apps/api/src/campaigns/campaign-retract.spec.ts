@@ -79,7 +79,11 @@ const ok: MetaRetractResult = {
 describe('retractFromChannel — staat opruimen na het terugtrekken', () => {
   it('wist de publicatiestaat en laat géén herinnering achter als alles verwijderd is', async () => {
     const { run, updates } = makeService({
-      postIds: { facebook: 'fb1', instagram: 'ig1', instagram_permalink: 'https://insta/p/1' },
+      postIds: {
+        facebook: 'fb1',
+        instagram: 'ig1',
+        instagram_permalink: 'https://insta/p/1',
+      },
       metaResult: ok,
     });
 
@@ -129,10 +133,10 @@ describe('retractFromChannel — staat opruimen na het terugtrekken', () => {
     expect(report).toBeNull();
   });
 
-  it('raakt Meta niet aan voor een kanaal zonder koppeling (whatsapp)', async () => {
+  it('raakt Meta niet aan voor een kanaal zonder koppeling (onbekend type)', async () => {
     const { run, metaCalls } = makeService({ postIds: { facebook: 'fb1' } });
 
-    const report = await run('whatsapp');
+    const report = await run('onbekend');
 
     expect(metaCalls).toHaveLength(0);
     expect(report).toBeNull();

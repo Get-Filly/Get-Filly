@@ -13,8 +13,8 @@ import type { BundleChannel, CampaignBundleCard } from "@/lib/api";
 // 'campaign_bundle'. Toont:
 //   - bundle-naam + thema
 //   - een collapsible per kanaal dat in de bundel zit (sinds 2026-06-02
-//     kan dat elke subset van de 5 kanalen zijn: mail / Instagram /
-//     Facebook / WhatsApp / Google Business), default ingeklapt
+//     kan dat elke subset van de kanalen zijn: Instagram /
+//     Facebook / TikTok / Google Business), default ingeklapt
 //   - 1 actieknop "Maak N campagnes aan" of dismiss
 //
 // Na accept: per aangemaakt kanaal een link naar de campagne-detail-
@@ -47,10 +47,8 @@ export type BundleStatus =
 // Volgorde + presentatie per kanaal. We renderen alleen de kanalen die
 // daadwerkelijk in de bundel zitten.
 const CHANNEL_META: { key: BundleChannel; icon: string; label: string }[] = [
-  { key: "mail", icon: "✉️", label: "Mail" },
   { key: "instagram", icon: "📷", label: "Instagram" },
   { key: "facebook", icon: "📘", label: "Facebook" },
-  { key: "whatsapp", icon: "💬", label: "WhatsApp" },
   { key: "google_business", icon: "📍", label: "Google Business" },
   { key: "tiktok", icon: "🎵", label: "TikTok" },
 ];
@@ -315,8 +313,7 @@ export function FillyChatBundleCard({
 }
 
 // Rendert de inhoud van één kanaal-collapsible. Per kanaal een eigen
-// vorm: mail = onderwerp + tekst, IG/FB = caption (IG + hashtags),
-// WhatsApp + Google Business = enkel een body-tekst.
+// vorm: IG/FB = caption (IG + hashtags), Google Business = enkel een body-tekst.
 function renderChannelContent(
   key: BundleChannel,
   bundle: CampaignBundleCard,
@@ -330,18 +327,6 @@ function renderChannelContent(
   } as const;
   const bodyStyle = { whiteSpace: "pre-wrap", lineHeight: 1.5 } as const;
 
-  if (key === "mail" && ch.mail) {
-    return (
-      <>
-        <div style={labelStyle}>{t("subjectLabel")}</div>
-        <div style={{ fontWeight: 500, marginBottom: 8 }}>
-          {ch.mail.subject_line}
-        </div>
-        <div style={labelStyle}>{t("bodyLabel")}</div>
-        <div style={bodyStyle}>{ch.mail.body}</div>
-      </>
-    );
-  }
   if (key === "instagram" && ch.instagram) {
     return (
       <>
@@ -408,9 +393,6 @@ function renderChannelContent(
         )}
       </>
     );
-  }
-  if (key === "whatsapp" && ch.whatsapp) {
-    return <div style={bodyStyle}>{ch.whatsapp.body}</div>;
   }
   if (key === "google_business" && ch.google_business) {
     return <div style={bodyStyle}>{ch.google_business.body}</div>;

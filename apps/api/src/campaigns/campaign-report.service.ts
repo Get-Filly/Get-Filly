@@ -29,10 +29,6 @@ export const REPORT_CHANNELS = [
   'facebook',
   'tiktok',
   'google_business',
-  'mail',
-  // Historisch: bestaande rijen kunnen dit kanaal nog hebben. Niet meer
-  // aan te bieden in de UI, wel te rapporteren.
-  'whatsapp',
 ] as const;
 export type ReportChannel = (typeof REPORT_CHANNELS)[number];
 

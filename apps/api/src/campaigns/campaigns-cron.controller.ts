@@ -25,7 +25,7 @@ import { CampaignsService } from './campaigns.service';
 // publiceert alles waarvan `scheduled_for <= now`. Een ingeplande campagne
 // gaat dus binnen ~30 min na z'n geplande tijd live. Direct publiceren loopt
 // NIET via deze cron maar synchroon via "Activeer nu". NB: alleen
-// type='social' — ingeplande mail wordt (nog) niet automatisch verstuurd.
+// type='social'.
 // @Public(): globale AuthGuard slaat 'm over; beveiliging = de CRON_SECRET-check.
 @Public()
 @Controller('campaigns/cron')
@@ -48,9 +48,7 @@ export class CampaignsCronController {
       throw new UnauthorizedException();
     }
     const result = await this.campaigns.runScheduledSocial();
-    this.logger.log(
-      `Cron-publiceren klaar: ${JSON.stringify(result)}`,
-    );
+    this.logger.log(`Cron-publiceren klaar: ${JSON.stringify(result)}`);
     return result;
   }
 }

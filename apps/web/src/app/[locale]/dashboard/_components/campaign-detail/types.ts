@@ -13,14 +13,11 @@
 // De voorstel-pagina blijft state + API-calls zelf doen; de
 // componenten zijn 'controlled' en krijgen alles via props.
 
-// Welke kanalen Filly kan inplannen. Mail + WhatsApp = direct-
-// communicatie (1-op-1), social = openbare post. Google Business
+// Welke kanalen Filly kan inplannen. Social = openbare post. Google Business
 // (per 2026-05-21 toegevoegd) is een openbare locatie-post via GBP;
 // concept-fase werkt volledig, auto-publish wacht op Google's API-
 // approval (BACKLOG fase F).
 export type Platform =
-  | "mail"
-  | "whatsapp"
   | "instagram"
   | "facebook"
   | "tiktok"
@@ -29,8 +26,6 @@ export type Platform =
 // Lange label-vorm voor knoppen/chips ('Instagram-post' i.p.v.
 // 'Instagram'). Voor compactere weergave gebruik shortPlatformName().
 export const PLATFORM_ICON: Record<Platform, string> = {
-  mail: "✉️",
-  whatsapp: "💬",
   instagram: "📷",
   facebook: "👥",
   tiktok: "🎬",
@@ -38,8 +33,6 @@ export const PLATFORM_ICON: Record<Platform, string> = {
 };
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
-  mail: "E-mail",
-  whatsapp: "WhatsApp-bericht",
   instagram: "Instagram-post",
   facebook: "Facebook-post",
   tiktok: "TikTok-video",
@@ -55,14 +48,6 @@ export function shortPlatformName(p: Platform): string {
     .replace("-video", "");
 }
 
-// 'type' = legacy categorie (mail/social/whatsapp) die de variant-
-// rendering en foto-flow nog gebruiken. Map vanuit Platform.
-// google_business → 'social' want de content-shape (caption + media
-// + scheduled_for) matcht 1-op-1 met de social-content-tabel.
-export function platformToType(p: Platform): "mail" | "social" | "whatsapp" {
-  if (p === "mail" || p === "whatsapp") return p;
-  return "social";
-}
 
 // ============================================================
 // Datum-helpers
@@ -104,15 +89,13 @@ export function timesEqualToMinute(
 }
 
 // Filly's voorgestelde tijdstip = target_date + standaard uur per
-// platform-type. Mail/whatsapp 11:00 (lunch-bel-momentum), social
-// 17:00 (after-work attention-window). Klanten zijn NL-only, dus
+// platform-type. social 17:00 (after-work attention-window). Klanten zijn NL-only, dus
 // browser-locale (de facto Europe/Amsterdam) volstaat.
 export function fillySuggestedIso(
   targetDate: string | undefined,
-  type: "mail" | "social" | "whatsapp",
 ): string | null {
   if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) return null;
-  const hour = type === "social" ? 17 : 11;
+  const hour = 17;
   const [y, m, d] = targetDate.split("-").map((s) => parseInt(s, 10));
   const dt = new Date(y, m - 1, d, hour, 0, 0, 0);
   return dt.toISOString();

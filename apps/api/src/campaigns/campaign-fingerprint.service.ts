@@ -106,11 +106,11 @@ export class CampaignFingerprintService {
    */
   async extractFromCampaign(campaignId: string): Promise<void> {
     try {
-      // 1) Campagne ophalen + content (mail- of social-tabel).
+      // 1) Campagne ophalen + content (social-tabel).
       const { data: campaign } = await this.serviceSupabase.client
         .from('campaigns')
         .select(
-          'id, business_id, type, name, campaign_mail_content(subject_line, body_html, body_plain), campaign_social_content(platform, caption, hashtags)',
+          'id, business_id, type, name, campaign_social_content(platform, caption, hashtags)',
         )
         .eq('id', campaignId)
         .maybeSingle();
@@ -128,9 +128,7 @@ export class CampaignFingerprintService {
         .select('name')
         .eq('business_id', (campaign as { business_id: string }).business_id);
 
-      const menuNames = (menu ?? []).map(
-        (m) => (m as { name: string }).name,
-      );
+      const menuNames = (menu ?? []).map((m) => (m as { name: string }).name);
 
       // 3) Bepaal kanaal + ruwe body-text voor extractie.
       const channel: FillyChannel = this.deriveChannel(campaign);
@@ -377,7 +375,7 @@ export class CampaignFingerprintService {
       this.requestSupabase.client
         .from('campaigns')
         .select(
-          'id, type, campaign_mail_content(body_plain, body_html), campaign_social_content(platform, caption, hashtags)',
+          'id, type, campaign_social_content(platform, caption, hashtags)',
         )
         .eq('id', campaignId)
         .eq('business_id', businessId)
@@ -504,15 +502,17 @@ export class CampaignFingerprintService {
 
     // Filter op classification + non-outlier; sorteer op score.
     type RowWithPerf = Fingerprint & {
-      campaign_performance: {
-        success_score: number | null;
-        classification: string | null;
-        marked_outlier: boolean;
-      } | Array<{
-        success_score: number | null;
-        classification: string | null;
-        marked_outlier: boolean;
-      }>;
+      campaign_performance:
+        | {
+            success_score: number | null;
+            classification: string | null;
+            marked_outlier: boolean;
+          }
+        | Array<{
+            success_score: number | null;
+            classification: string | null;
+            marked_outlier: boolean;
+          }>;
     };
 
     const filtered = (data ?? [])
@@ -531,8 +531,8 @@ export class CampaignFingerprintService {
           x.perf.success_score !== null,
       )
       .sort((a, b) => {
-        const sa = a.perf!.success_score ?? 0;
-        const sb = b.perf!.success_score ?? 0;
+        const sa = a.perf.success_score ?? 0;
+        const sb = b.perf.success_score ?? 0;
         return order === 'desc' ? sb - sa : sa - sb;
       })
       .slice(0, limit)
@@ -559,12 +559,12 @@ export class CampaignFingerprintService {
    * dan op industry-benchmarks alleen.
    *
    * Default-kanalen zijn de drie hoogste-frequentie kanalen voor
-   * horeca (mail/IG-feed/FB). Caller mag een eigen subset doorgeven
+   * horeca (IG-feed/FB). Caller mag een eigen subset doorgeven
    * wanneer er al bekend is op welk kanaal Filly gaat genereren.
    */
   async buildLearningContextBlock(
     businessId: string,
-    channels: FillyChannel[] = ['mail', 'instagram_feed', 'facebook'],
+    channels: FillyChannel[] = ['instagram_feed', 'facebook'],
   ): Promise<string> {
     const winnersByChannel: Record<string, Fingerprint[]> = {};
     const underByChannel: Record<string, Fingerprint[]> = {};
@@ -641,12 +641,7 @@ export class CampaignFingerprintService {
   // ============================================================
 
   /** Mapt campaign.type + content naar onze FillyChannel-enum. */
-  private deriveChannel(
-    campaign: Record<string, unknown>,
-  ): FillyChannel {
-    const type = campaign.type as string;
-    if (type === 'mail') return 'mail';
-    if (type === 'whatsapp') return 'whatsapp';
+  private deriveChannel(campaign: Record<string, unknown>): FillyChannel {
     // Social: platform-onderscheid uit campaign_social_content
     const social = Array.isArray(campaign.campaign_social_content)
       ? campaign.campaign_social_content[0]
@@ -660,24 +655,8 @@ export class CampaignFingerprintService {
     return 'instagram_feed';
   }
 
-  /** Combineert body uit mail of social naar een platte string. */
+  /** Haalt de body uit de social-content als platte string. */
   private deriveBodyText(campaign: Record<string, unknown>): string {
-    const mail = Array.isArray(campaign.campaign_mail_content)
-      ? campaign.campaign_mail_content[0]
-      : campaign.campaign_mail_content;
-    if (mail) {
-      const m = mail as {
-        subject_line?: string;
-        body_plain?: string;
-        body_html?: string;
-      };
-      return (
-        m.body_plain ||
-        (m.body_html ? this.stripHtml(m.body_html) : '') ||
-        m.subject_line ||
-        ''
-      );
-    }
     const social = Array.isArray(campaign.campaign_social_content)
       ? campaign.campaign_social_content[0]
       : campaign.campaign_social_content;
@@ -687,7 +666,7 @@ export class CampaignFingerprintService {
     return '';
   }
 
-  /** Pakt hashtags uit social_content of detecteert ze in mail-body. */
+  /** Pakt hashtags uit social_content of detecteert ze in de body. */
   private deriveHashtags(campaign: Record<string, unknown>): string[] {
     const social = Array.isArray(campaign.campaign_social_content)
       ? campaign.campaign_social_content[0]
@@ -725,9 +704,13 @@ export class CampaignFingerprintService {
     // Volgorde matters: meest-specifieke eerst.
     if (/reserveer|boek\s+je|reserveren/i.test(lower)) return 'reserveer';
     if (/bel(\s+|\s*ons|\s*nu)/i.test(lower)) return 'bel';
-    if (/menu\s*(bekijk|zien)|onze\s+kaart|bekijk\s+(ons|de)\s+menu/i.test(lower))
+    if (
+      /menu\s*(bekijk|zien)|onze\s+kaart|bekijk\s+(ons|de)\s+menu/i.test(lower)
+    )
       return 'bekijk_menu';
-    if (/in\s+de\s+comment|reageer\s+hieronder|comment\s+hieronder/i.test(lower))
+    if (
+      /in\s+de\s+comment|reageer\s+hieronder|comment\s+hieronder/i.test(lower)
+    )
       return 'vraag_in_comment';
     if (/tag\s+(een|je|jouw)\s+vriend/i.test(lower)) return 'tag_vriend';
     if (/save\s+(this|voor)|sla\s+(dit\s+)?op/i.test(lower))
@@ -741,10 +724,7 @@ export class CampaignFingerprintService {
    * Match body tegen menu-namen. Returnt eerste match (langste eerst
    * zodat "Pasta Carbonara" wint van "Pasta").
    */
-  private matchPrimaryDish(
-    body: string,
-    menuNames: string[],
-  ): string | null {
+  private matchPrimaryDish(body: string, menuNames: string[]): string | null {
     if (!body || menuNames.length === 0) return null;
     const lower = body.toLowerCase();
     const sorted = [...menuNames].sort((a, b) => b.length - a.length);
@@ -754,9 +734,5 @@ export class CampaignFingerprintService {
       }
     }
     return null;
-  }
-
-  private stripHtml(html: string): string {
-    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   }
 }

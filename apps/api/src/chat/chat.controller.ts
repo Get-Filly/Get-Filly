@@ -45,10 +45,7 @@ export class ChatController {
   // Switcht naar een specifieke conversatie. Frontend roept dit aan
   // wanneer de eigenaar een titel aanklikt in de dropdown.
   @Get('conversations/:id')
-  getConversation(
-    @BusinessId() businessId: string,
-    @Param('id') id: string,
-  ) {
+  getConversation(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.chat.getConversation(businessId, id);
   }
 

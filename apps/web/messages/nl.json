@@ -791,7 +791,6 @@
         "findability": "Vindbaarheid",
         "findabilityReviews": "Vindbaarheid · Reviews",
         "marketing": "Marketing",
-        "marketingMail": "Marketing · Mail",
         "marketingInstagram": "Marketing · Instagram",
         "marketingFacebook": "Marketing · Facebook",
         "marketingTiktok": "Marketing · TikTok",
@@ -804,13 +803,12 @@
   },
   "campagnes_id_components_campaign_performance_card": {
     "title": "Performance",
-    "emptyState": "Nog geen meet-data. Performance wordt vastgelegd zodra de campagne 'actief' wordt en Resend-events binnenkomen (delivered, opens, clicks). Reserveringen die via deze campagne komen worden hier ook geteld.",
+    "emptyState": "Nog geen meet-data. Performance wordt vastgelegd zodra de campagne 'actief' wordt. Reserveringen die via deze campagne komen worden hier ook geteld.",
     "loadError": "Kon performance-data niet laden: {error}",
     "scoreOutOf": "/ 100",
     "measurementOpen": "Meet-window loopt (14 dagen)",
     "noScore": "Geen score",
     "outlierBadge": "Outlier (geen leerinput)",
-    "mailHeading": "Mail",
     "conversionHeading": "Conversie",
     "markOutlierLink": "Markeer als outlier (\"viel buiten controle\")",
     "outlierPrompt": "Waarom valt deze campagne buiten je controle? Reden komt in Filly's leerloop als context (bv. \"slecht weer\", \"staking\", \"atypisch evenement\").",
@@ -828,10 +826,6 @@
       "noData": "Geen data"
     },
     "metrics": {
-      "delivered": "Verzonden",
-      "opened": "Geopend",
-      "clicked": "Geklikt",
-      "bounced": "Bounced",
       "reservations": "Reserveringen",
       "guests": "Gasten",
       "revenue": "Omzet"
@@ -840,45 +834,6 @@
       "generic": "Fout",
       "markFailed": "Outlier-markering faalde",
       "unmarkFailed": "Herroepen faalde"
-    }
-  },
-  "campagnes_id_components_campaign_send_card": {
-    "heading": "Versturen",
-    "errors": {
-      "generic": "Fout",
-      "unknown": "Onbekende fout"
-    },
-    "preview": {
-      "loadError": "Kon ontvangers niet laden: {error}",
-      "optInCount": "{count, plural, =0 {Nog geen opt-in-gasten} =1 {1 gast met mail-opt-in} other {# gasten met mail-opt-in}}",
-      "including": "Waaronder: {names}"
-    },
-    "test": {
-      "label": "Test-mail naar jezelf",
-      "emailPlaceholder": "naam@voorbeeld.nl",
-      "sending": "Bezig…",
-      "sendButton": "Stuur test"
-    },
-    "testResult": {
-      "success": "Verstuurd naar {email} ({sent}).",
-      "error": "Fout: {message}"
-    },
-    "all": {
-      "label": "Verstuur naar alle opt-in-gasten",
-      "sendButton": "Verstuur naar {count} gasten",
-      "noGuests": "Geen opt-in-gasten"
-    },
-    "allResult": {
-      "success": "Verstuurd naar {sent} gasten.",
-      "successWithFailures": "Verstuurd naar {sent} gasten, {failed} mislukte verzending(en).",
-      "error": "Fout: {message}"
-    },
-    "confirm": {
-      "title": "Weet je het zeker?",
-      "body": "Mail wordt onomkeerbaar verstuurd naar <strong>{count}</strong> gasten. Test eerst met een test-mail om de tekst te checken.",
-      "sending": "Bezig met versturen…",
-      "confirmButton": "Ja, verstuur nu",
-      "cancelButton": "Annuleer"
     }
   },
   "campagnes_id_page": {
@@ -892,8 +847,6 @@
     "channelCount": "{count} kanalen",
     "progressFields": "{completed} van {total} velden compleet",
     "repetitionTipTitle": "Variatie-tip van Filly",
-    "statusSent": "Verstuurd",
-    "statusReadyToSend": "Klaar voor verzending",
     "status": {
       "concept": "Concept",
       "ingepland": "Ingepland",
@@ -911,7 +864,6 @@
       "backToConcept": "Terug naar concept",
       "backToConceptTitle": "Annuleer planning, terug naar concept zodat je weer kan bewerken",
       "finish": "Afronden",
-      "finishMailTitle": "Mail is al verstuurd en kan niet teruggetrokken worden, alleen afronden.",
       "stopAndRemove": "Stop & verwijderen van kanaal",
       "stopAndRemoveTitle": "Verwijder de post van het kanaal en zet de campagne terug naar concept."
     },
@@ -919,7 +871,6 @@
       "base": "Weet je zeker dat je deze campagne nu wil activeren?",
       "withActions": "Weet je zeker dat je deze campagne nu wil activeren? {actions}.",
       "and": " en ",
-      "mailAction": "{count, plural, one {de mail wordt direct verstuurd naar alle opt-in gasten} other {# mails worden direct verstuurd naar alle opt-in gasten}}",
       "socialAction": "{count, plural, one {de social-post wordt direct op Facebook/Instagram geplaatst} other {# social-posts worden direct op Facebook/Instagram geplaatst}}"
     },
     "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De geplaatste posts worden van Facebook en Instagram verwijderd en de campagne gaat terug naar concept.",
@@ -1015,7 +966,6 @@
     "missingFields": {
       "date": "datum",
       "body": "tekst",
-      "subject": "onderwerp",
       "photo": "foto of video"
     },
     "extraReservations": "+{count, plural, one {# reservering} other {# reserveringen}}",
@@ -1051,11 +1001,9 @@
       "plan": "Plan in",
       "retract": "Terugtrekken",
       "stop": "Stop",
-      "finish": "Afronden",
       "delete": "Verwijderen"
     },
     "confirm": {
-      "finishMail": "Deze campagne afronden? De verstuurde mail blijft staan; de campagne verdwijnt naar de historie.",
       "deleteBundle": "Verwijder alle campagnes in deze bundle? Dit is permanent.",
       "deleteCampaign": "Verwijder deze campagne? Dit is permanent."
     },
@@ -1090,7 +1038,6 @@
       "unavailableBody": "Instagram staat verwijderen via deze koppeling nog niet toe. Haal de post zelf weg in Instagram; we werken eraan dat dit automatisch gaat."
     },
     "tooltips": {
-      "finishMail": "Mail is al verstuurd, campagne afronden.",
       "stopSocial": "Post van het kanaal verwijderen en terug naar concept.",
       "approveReady": "Voorstel goedkeuren, wordt concept",
       "approveIncomplete": "Vul eerst de ontbrekende velden in, klik om naar het voorstel te gaan",
@@ -1124,7 +1071,6 @@
     "colContent": "Inhoud",
     "rowComplete": "Compleet",
     "addPhoto": "Voeg foto of video toe",
-    "noPhotoMail": "Geen foto bij e-mail",
     "editContent": "Bewerk",
     "chooseTime": "Nog kiezen",
     "acceptFillyTime": "Akkoord",
@@ -2046,8 +1992,7 @@
     "notAvailableTitle": "Nog niet beschikbaar",
     "notAvailableBody": "We werken aan {approvalDescription} om je {channelName}-account officieel te kunnen koppelen. Dit duurt typisch enkele weken. Daarna pakken we direct alles uit dit overzicht hieronder op.",
     "featuresHeading": "Wat je straks ziet op deze pagina",
-    "backToHub": "Terug naar Marketing-hub",
-    "viewMail": "Bekijk Mail (werkt al)"
+    "backToHub": "Terug naar Marketing-hub"
   },
   "dash_marketing_components_meta_live_insights": {
     "colPost": "Bericht",
@@ -2247,63 +2192,13 @@
     "ignore": "Negeren",
     "backToMarketingHub": "← Terug naar Marketing-hub"
   },
-  "dash_marketing_mail_page": {
-    "title": "Mail-prestaties",
-    "subtitle": "Open rates, click rates en industrie-vergelijking, uit je Resend-data.",
-    "loading": "Statistieken laden…",
-    "summary": "{sent} verzonden mails over {count} {count, plural, one {campagne} other {campagnes}}, laatste {days} dagen.",
-    "benchmarkSource": "Mediaan-cijfers uit {source}",
-    "footnote": "Heatmap (beste verzendmoment) en trends-grafiek volgen zodra je meer dan 10 campagnes hebt verzonden, anders zegt het beeld weinig.",
-    "errors": {
-      "unknown": "Onbekende fout"
-    },
-    "empty": {
-      "title": "Nog geen verzonden mails",
-      "description": "Zodra je je eerste mail-campagne verstuurt verschijnen hier open rates, click rates en de vergelijking met de horeca-mediaan.",
-      "cta": "Naar campagnes"
-    },
-    "kpi": {
-      "sent": "Verzonden",
-      "delivered": "{delivered} aangekomen",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "bounceRate": "Bounce rate",
-      "unsubscribes": "Uitschrijvingen",
-      "unsubscribedPeople": "{people} mensen"
-    },
-    "benchmark": {
-      "above": "Boven mediaan",
-      "below": "Onder mediaan",
-      "median": "Mediaan: {value}"
-    },
-    "table": {
-      "campaign": "Campagne",
-      "status": "Status",
-      "sent": "Verzonden",
-      "open": "Open",
-      "click": "Click",
-      "bounce": "Bounce",
-      "emptyPeriod": "Geen campagnes in deze periode.",
-      "sentOn": "Verzonden {date}"
-    },
-    "status": {
-      "afgerond": "Afgerond",
-      "actief": "Actief",
-      "ingepland": "Ingepland",
-      "concept": "Concept",
-      "gearchiveerd": "Gearchiveerd"
-    }
-  },
   "dash_marketing_page": {
     "title": "Marketing",
     "subtitle": "Hoe presteren je kanalen? Filly meet, vergelijkt en stelt verbeteringen voor.",
     "banner": {
       "activeCount": "{live} van {total} kanalen actief",
-      "someActive": "Mail-statistieken zijn live. Sociale kanalen volgen na de Meta + TikTok approval-aanvragen.",
-      "noneActive": "Geen kanalen actief. Verstuur eerst een mail-campagne om je eerste statistieken te zien."
-    },
-    "report": {
-      "heading": "Filly's wekelijks rapport"
+      "someActive": "Sociale kanalen volgen na de Meta + TikTok approval-aanvragen.",
+      "noneActive": "Geen kanalen actief. Koppel eerst een sociaal kanaal om je eerste statistieken te zien."
     },
     "status": {
       "live": "Actief",
@@ -2311,10 +2206,6 @@
       "future": "Later"
     },
     "channels": {
-      "mail": {
-        "name": "Mail",
-        "description": "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden, direct uit Resend."
-      },
       "instagram": {
         "name": "Instagram",
         "description": "Bereik, engagement, top-posts en beste posttijd zodra je via OAuth koppelt."
@@ -2326,21 +2217,7 @@
       "tiktok": {
         "name": "TikTok",
         "description": "Plays, watch-time, shares en for-you-ratio via TikTok Marketing API."
-      },
-      "whatsapp": {
-        "name": "WhatsApp",
-        "description": "Directe gast-communicatie met read-rates en reply-conversie. Komt in een latere fase."
       }
-    },
-    "summary": {
-      "noCampaigns": "Je hebt deze maand nog geen mail-campagnes verzonden. Eerste campagne maak je via /campagnes.",
-      "openAbove": "Je open rate van {rate}% zit {diff}% boven de horeca-mediaan, sterk.",
-      "openBelow": "Je open rate van {rate}% zit {diff}% onder de horeca-mediaan. Onderwerp-regels herzien?",
-      "openAround": "Je open rate van {rate}% ligt rond de horeca-mediaan.",
-      "clickAbove": "Click rate van {rate}% is {diff}% boven mediaan.",
-      "clickLow": "Click rate van {rate}% is laag, duidelijke CTA toevoegen?",
-      "bounceHigh": "Let op: bounce rate is {rate}%, hoger dan ideaal (<2%). Lijst opschonen.",
-      "fallback": "Je verstuurde {sent} mails over {count} {count, plural, one {campagne} other {campagnes}}. Voor diepere analyse open de Mail-pagina."
     },
     "errors": {
       "unknown": "Onbekende fout"
@@ -2659,9 +2536,7 @@
       "instagram": "Instagram",
       "facebook": "Facebook",
       "tiktok": "TikTok",
-      "google_business": "Google profiel",
-      "mail": "Mail",
-      "whatsapp": "WhatsApp"
+      "google_business": "Google profiel"
     },
     "kpi": {
       "reachHero": "Bereik",
@@ -2899,17 +2774,11 @@
       "dragOrClick": "Sleep of klik",
       "replacePhotoHint": "Vervang Filly's voorstel door een eigen foto."
     },
-    "mailPreview": {
-      "from": "Van",
-      "to": "Aan",
-      "regularGuests": "Vaste gasten"
-    },
     "socialPreview": {
       "justPosted": "Net geplaatst"
     },
     "content": {
       "title": "Inhoud van de campagne",
-      "subject": "Onderwerp",
       "caption": "Caption",
       "message": "Bericht"
     }
@@ -2955,10 +2824,8 @@
       "sevenrooms": "SevenRooms",
       "resengo": "Resengo",
       "googleBusiness": "Google Bedrijfsprofiel",
-      "mail": "E-mail (campagnes)",
       "meta": "Facebook & Instagram",
       "tiktok": "TikTok for Business",
-      "whatsapp": "WhatsApp Business",
       "tripadvisor": "TripAdvisor",
       "thefork": "The Fork",
       "lightspeed": "Lightspeed / POS",
@@ -3048,8 +2915,6 @@
     "chosen": "Gekozen",
     "edit": "Bewerk",
     "revertTitle": "Terug naar de oorspronkelijke versie",
-    "subjectPrefix": "Onderwerp:",
-    "subjectMissing": "Onderwerp ontbreekt, klik om in te vullen",
     "noContent": "Geen inhoud.",
     "regenerateTitle": "Filly genereert 3 nieuwe alternatieven",
     "regenerateMaxTitle": "Maximum 6 versies, bewerk een bestaande of kies een alternatief",
@@ -3058,7 +2923,6 @@
     "regenerateLabel": "Genereer 3 nieuwe versies",
     "otherVersions": "Andere versies ({count})",
     "editingLabel": "{label} bewerken",
-    "subjectPlaceholder": "Onderwerp",
     "bodyPlaceholder": "Bericht-inhoud",
     "save": "Opslaan",
     "cancel": "Annuleren",
@@ -3083,7 +2947,6 @@
     "dateSave": "Opslaan",
     "textOtherVersions": "Andere versies:",
     "textSave": "Opslaan",
-    "subjectPlaceholder": "Onderwerp van de mail",
     "bodyPlaceholder": "Tekst van de campagne",
     "inlineClose": "Sluiten",
     "textGenerate": "✨ Genereer nieuwe versies",
@@ -3144,7 +3007,6 @@
     "canGenerateMore": "Filly kan nog 3 nieuwe maken (max 6 totaal).",
     "editVersionLabel": "Versie {number} bewerken",
     "versionLabel": "Versie {number}",
-    "subjectPlaceholder": "Onderwerp",
     "bodyPlaceholder": "Bericht-inhoud",
     "save": "Opslaan",
     "cancel": "Annuleren",
@@ -3184,30 +3046,6 @@
       "regenerateFailed": "Nieuw voorstel mislukt. Probeer opnieuw."
     }
   },
-  "dash__components_campaign_send_modal": {
-    "notPossibleTitle": "Niet mogelijk",
-    "notPossibleBody": "Alleen mail-campagnes kunnen via deze flow worden verzonden. Social en WhatsApp komen later via een aparte koppeling.",
-    "close": "Sluiten",
-    "sendFailed": "Versturen mislukt.",
-    "resultSuccessTitle": "✓ Verstuurd",
-    "resultPartialTitle": "Deels verstuurd",
-    "resultSummary": "<strong>{sent}</strong> van <strong>{total}</strong> mails succesvol naar Resend gestuurd.",
-    "resultFailed": "{failed} mislukt.",
-    "failedAddresses": "Mislukte adressen:",
-    "resultWebhookNote": "Resend bevestigt aankomst via webhooks (delivered/bounced), die status verschijnt zo bij de campagne-stats.",
-    "done": "Klaar",
-    "formTitle": "Verstuur \"{name}\"",
-    "modeTestTitle": "Test naar mezelf",
-    "modeTestSubtitle": "Eén mail naar 1 adres om te checken hoe 'ie eruit ziet",
-    "modeRealTitle": "Echt verzenden",
-    "modeRealSubtitle": "Naar alle gasten met mail-toestemming",
-    "testEmailLabel": "Test-mailadres",
-    "testEmailHint": "Stuur 'm naar je eigen mailbox om te zien hoe gasten 't ontvangen.",
-    "confirmNotice": "<strong>Onomkeerbaar.</strong> De campagne gaat nu uit naar alle gasten met mail-toestemming. Typ de campagne-naam ter bevestiging:",
-    "cancel": "Annuleren",
-    "sendTest": "Verstuur test",
-    "sendToGuests": "Verstuur naar gasten"
-  },
   "dash__components_chart_card": {
     "title": "Bezettingstrend",
     "subtitleDay": "{weekday}, afgelopen 6 maanden",
@@ -3238,7 +3076,6 @@
     "draftCampaignsReady": "✓ Concept-campagnes klaar",
     "openChannel": "Open {channel}",
     "retry": "Probeer opnieuw",
-    "subjectLabel": "Onderwerp",
     "bodyLabel": "Tekst",
     "chooseChannelAria": "{channel} kiezen",
     "collapseChannelAria": "{channel} inklappen",
@@ -3254,10 +3091,6 @@
       "bundle": "Verstuur (bundel {count} kanalen)"
     },
     "options": {
-      "mail": {
-        "label": "Mail",
-        "hint": "Naar gastenlijst"
-      },
       "instagram": {
         "label": "Instagram",
         "hint": "IG-post"
@@ -3265,10 +3098,6 @@
       "facebook": {
         "label": "Facebook",
         "hint": "FB-post"
-      },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "hint": "Persoonlijk bericht"
       },
       "googleBusiness": {
         "label": "Google Business",
@@ -3336,11 +3165,8 @@
     "typing": "Filly is aan het typen…"
   },
   "dash__components_filly_chat_proposal_card": {
-    "typeMail": "E-mail",
     "typeSocial": "Social",
-    "typeWhatsapp": "WhatsApp",
     "proposalLabel": "Campagne-voorstel",
-    "subject": "Onderwerp: {subject}",
     "multipleVersions": "Filly bedacht {count} versies, kies je favoriet via \"Bekijk versies\".",
     "accept": "Ja, maak aan",
     "viewVersions": "Bekijk versies →",
@@ -3385,12 +3211,11 @@
       "bundleFailed": "Bundle-aanmaken mislukt. Probeer nog eens."
     },
     "prompts": {
-      "mail": "Maak een mail-campagne",
       "instagram": "Maak een Instagram-post",
       "facebook": "Maak een Facebook-post",
-      "whatsapp": "Maak een WhatsApp-bericht",
       "googleBusiness": "Maak een Google Business-post",
-      "bundle": "Maak een bundel-campagne voor {channels}"
+      "bundle": "Maak een bundel-campagne voor {channels}",
+      "tiktok": "Maak een TikTok-video"
     }
   },
   "dash__components_filly_guided_flow": {
@@ -3516,59 +3341,6 @@
     "awaitingApproval": "wachten op goedkeuring",
     "notAvailableTitle": "Cijfers nog niet beschikbaar",
     "notAvailableBody": "Zodra je reserveringen en campagnes binnenkomen verschijnen de KPI's hier."
-  },
-  "dash__components_mail_domain_section": {
-    "sectionTitle": "Mail-instellingen",
-    "sectionDesc": "Vanuit welk adres je campagne-mails worden verstuurd.",
-    "loading": "Bezig met laden…",
-    "removeConfirm": "Weet je zeker dat je dit eigen domein wil loskoppelen? Mail valt daarna terug op social@get-filly.com.",
-    "errors": {
-      "unknown": "Onbekende fout.",
-      "register": "Registreren mislukt.",
-      "verify": "Verificatie mislukt.",
-      "remove": "Verwijderen mislukt."
-    },
-    "verified": {
-      "label": "Eigen domein actief: {address}",
-      "sub": "Mails worden verzonden vanuit je eigen domein. Replies komen direct in je mailbox.",
-      "disconnect": "Loskoppelen"
-    },
-    "pending": {
-      "label": "DNS-controle loopt voor {domain}",
-      "sub": "Voeg de onderstaande records toe bij je DNS-host. Klik daarna op 'Verifieer'. DNS-propagatie kan 5-30 minuten duren.",
-      "verify": "Verifieer",
-      "cancel": "Annuleren / loskoppelen"
-    },
-    "failed": {
-      "label": "DNS-records nog niet correct voor {domain}",
-      "sub": "Controleer dat alle records exact zijn overgenomen. Sommige DNS-hosts voegen automatisch het domein achter de hostname toe, corrigeer dan zo nodig."
-    },
-    "none": {
-      "label": "Standaard-verzending via Get-Filly",
-      "sub": "Je campagne-mails komen van social@get-filly.com met je restaurant-naam als afzender. Voor pure klant-branding kun je je eigen domein koppelen.",
-      "setup": "Eigen domein instellen"
-    },
-    "setup": {
-      "title": "Eigen domein koppelen",
-      "domainLabel": "Domein",
-      "domainHint": "Zonder http:// of www., alleen de domeinnaam.",
-      "fromLabel": "Verzendadres",
-      "fromHint": "Het adres dat ontvangers zien in 'Van'. Moet eindigen op je domein.",
-      "create": "Aanmaken",
-      "cancel": "Annuleren",
-      "note": "Na aanmaken krijg je 4 DNS-records die je bij je DNS-host (TransIP / Versio / Namecheap / etc.) moet toevoegen. Daarna kun je verifiëren, duurt meestal 5-15 minuten na DNS-update."
-    },
-    "table": {
-      "empty": "Geen records beschikbaar. Probeer de pagina te herladen.",
-      "type": "Type",
-      "hostname": "Hostname",
-      "value": "Waarde",
-      "priority": "Prio",
-      "status": "Status",
-      "copy": "Kopieer",
-      "copyTitle": "Kopieer waarde naar klembord",
-      "hostnameTip": "Hostname-tip: bij sommige DNS-hosts hoef je <code>.jouw-domein.nl</code> niet zelf achter de hostname te zetten, die voegt 'm zelf toe. Bij andere moet je de volledige hostname (bv. <code>resend._domainkey.jouw-domein.nl</code>) invoeren."
-    }
   },
   "dash__components_media_library_picker": {
     "title": "Kies uit bibliotheek",
@@ -4115,7 +3887,7 @@
         "location": "Verenigde Staten / internationaal, met passende waarborgen"
       },
       "resend": {
-        "function": "Transactionele en marketing-e-mails",
+        "function": "Transactionele e-mails",
         "location": "EU/Verenigde Staten, afhankelijk van configuratie"
       },
       "vercel": {
@@ -4676,7 +4448,6 @@
     "retainedIntro": "We bewaren een sterk geanonimiseerde leerschat zodat Filly voor andere ondernemers betere voorstellen kan blijven doen. Onder Recital 26 van de AVG/GDPR vallen <em>volledig anonieme</em> gegevens niet langer onder de verordening, we doen ons uiterste best om dat hier zo te houden:",
     "retainedNoPii": "Geen restaurant-naam, adres, eigenaar-naam of e-mailadres",
     "retainedContext": "Wel: cuisine-stijl (\"italiaans\"), regio op provincie-niveau, capaciteit-categorie en maand van het jaar",
-    "retainedCampaignMeta": "Wel: type campagne (mail / social / whatsapp), thema en, indien beschikbaar, het succes-signaal (extra reserveringen, omzet-impact)",
     "retainedNoFreeText": "Geen vrije tekst, geen fotos, geen identificeerbare relatie terug naar jou of jouw onderneming",
     "retainedAuditLog": "Daarnaast houden we een anonieme bewijsregel bij, alleen datum + tellers, zodat we kunnen aantonen dat we je verwijderverzoek hebben uitgevoerd (AVG art. 30 verantwoordingsplicht). Geen persoonsgegevens.",
     "questionsHeading": "Vragen of bedenkingen?",

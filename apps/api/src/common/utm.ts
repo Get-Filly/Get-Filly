@@ -4,27 +4,27 @@
  * ============================================================
  *
  * Bron-van-waarheid voor de UTM-naming-conventie uit filly-brein
- * hoofdstuk 14.1. Alle links die Filly genereert (in mail-bodies, in
- * GBP-posts, in WhatsApp-berichten, etc.) moeten via deze helper om
+ * hoofdstuk 14.1. Alle links die Filly genereert (in social-captions, in
+ * GBP-posts, etc.) moeten via deze helper om
  * GA4/Plausible-data leesbaar te houden.
  *
  * Vaste structuur:
- *   utm_source   = kanaal (mail / instagram / facebook / tiktok /
- *                          whatsapp / google_business)
+ *   utm_source   = kanaal (instagram / facebook / tiktok /
+ *                          google_business)
  *   utm_medium   = format (feed / reels / stories / post / event /
- *                          dm / newsletter / etc.)
+ *                          video / etc.)
  *   utm_campaign = campagne-slug (kebab-case, max 64 chars)
  *   utm_content  = variant-id of slug ("variant-2", "signature-photo")
  *   utm_term     = alleen bij betaalde search ads (keyword)
  *
  * Voorbeeld:
  *   buildUtmUrl('https://bistro-x.nl/reserveren', {
- *     source: 'mail',
- *     medium: 'newsletter',
+ *     source: 'instagram',
+ *     medium: 'feed',
  *     campaign: 'moederdag-2026',
  *     content: 'variant-2',
  *   })
- *   → https://bistro-x.nl/reserveren?utm_source=mail&utm_medium=newsletter
+ *   → https://bistro-x.nl/reserveren?utm_source=instagram&utm_medium=feed
  *     &utm_campaign=moederdag-2026&utm_content=variant-2
  *
  * Robust against:
@@ -35,13 +35,7 @@
  */
 
 /** Kanaal-conventies, matching filly-brain.config FillyChannel. */
-export type UtmSource =
-  | 'mail'
-  | 'instagram'
-  | 'facebook'
-  | 'tiktok'
-  | 'whatsapp'
-  | 'google_business';
+export type UtmSource = 'instagram' | 'facebook' | 'tiktok' | 'google_business';
 
 export interface UtmParams {
   source: UtmSource;
@@ -92,7 +86,7 @@ export function buildUtmUrl(baseUrl: string, params: UtmParams): string {
  *
  * Strip accenten via NFD-normalisatie, lower-case, vervang niet-
  * alfanumerieke chars door koppeltekens, collaps multi-dash. Max 64
- * tekens om URL-lengte beheersbaar te houden (sommige mail-clients
+ * tekens om URL-lengte beheersbaar te houden (sommige clients
  * truncaten lange URLs).
  */
 export function slugify(input: string): string {
@@ -114,26 +108,19 @@ export function slugify(input: string): string {
  * Bouw de utm_medium-waarde op basis van kanaal + format. Conform
  * filly-brein hoofdstuk 14.1.
  *
- *   defaultMedium('mail')              → 'newsletter'
- *   defaultMedium('instagram', 'reel') → 'reels'
- *   defaultMedium('whatsapp')          → 'dm'
+ *   defaultMedium('instagram')         → 'feed'
+ *   defaultMedium('instagram', 'reel') → 'reel'
+ *   defaultMedium('tiktok')            → 'video'
  */
-export function defaultMedium(
-  source: UtmSource,
-  format?: string,
-): string {
+export function defaultMedium(source: UtmSource, format?: string): string {
   if (format) return slugify(format);
   switch (source) {
-    case 'mail':
-      return 'newsletter';
     case 'instagram':
       return 'feed';
     case 'facebook':
       return 'post';
     case 'tiktok':
       return 'video';
-    case 'whatsapp':
-      return 'dm';
     case 'google_business':
       return 'post-update';
   }
@@ -145,7 +132,7 @@ export function defaultMedium(
  * dubbele tagging krijgen wanneer Filly's gegenereerde body een externe
  * link bevat die al getracked wordt.
  *
- * Gebruik in MailService bij send-time, niet bij generatie — zo zijn de
+ * Gebruik bij publiceer-tijd, niet bij generatie — zo zijn de
  * UTMs altijd consistent met de actuele campaign-naam, ook na rename
  * of varianten-switch.
  */

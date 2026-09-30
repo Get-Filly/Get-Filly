@@ -1,35 +1,22 @@
 import { Module } from '@nestjs/common';
 import { MailService } from './mail.service';
-import { MailDomainService } from './mail-domain.service';
 import { MailController } from './mail.controller';
-import { MailDomainController } from './mail-domain.controller';
 import { SupabaseModule } from '../supabase/supabase.module';
-import { AuditLogModule } from '../common/audit-log.module';
 import { MeModule } from '../me/me.module';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
 import { RateLimitGuard } from '../common/rate-limit.guard';
 
-// MailService levert de send-flow (gebruikt door CampaignsModule)
-// + webhook-handler + unsubscribe-flow.
-// MailDomainService levert de eigen-domein-flow (Resend Domains API)
-// die de account-pagina gebruikt om een klant z'n eigen verzendadres
-// te laten configureren.
-// SupabaseModule levert beide supabase-clients (admin voor webhook,
-// request-scoped voor send + domein-flow).
+// MailService verstuurt alleen nog mail van Get-Filly zelf: het
+// contactformulier, feedback en het SEO-rapport aan onze klanten, plus de
+// afmeld-flow. Get-Filly mailt GEEN gasten van klanten meer: campagne-mail,
+// het eigen verzenddomein en de Resend-webhook voor campagne-statistieken zijn
+// verwijderd (2026-09-30).
 @Module({
-  // MeModule levert BusinessAccessService, die de
-  // BusinessAccessGuard gebruikt om tenant-toegang te checken op de
-  // domein-endpoints.
-  imports: [SupabaseModule, AuditLogModule, MeModule],
-  controllers: [MailController, MailDomainController],
-  providers: [
-    MailService,
-    MailDomainService,
-    AuthGuard,
-    BusinessAccessGuard,
-    RateLimitGuard,
-  ],
+  // MeModule levert BusinessAccessService voor de BusinessAccessGuard.
+  imports: [SupabaseModule, MeModule],
+  controllers: [MailController],
+  providers: [MailService, AuthGuard, BusinessAccessGuard, RateLimitGuard],
   exports: [MailService],
 })
 export class MailModule {}

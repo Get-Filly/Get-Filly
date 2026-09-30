@@ -1,6 +1,6 @@
 // Deterministische mock-data voor de kalender. Vervangen door backend-data later.
 
-export type CampaignMark = "mail" | "social";
+export type CampaignMark = "social";
 
 export type DayData = {
   day: number;
@@ -22,7 +22,6 @@ export function seededOccupancy(day: number, weekday: number): number {
 
 function seededCampaigns(day: number): CampaignMark[] {
   const out: CampaignMark[] = [];
-  if (day % 7 === 3 || day === 17) out.push("mail");
   if (day % 11 === 4 || day === 25) out.push("social");
   return out;
 }

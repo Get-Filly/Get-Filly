@@ -254,7 +254,7 @@ export function FillyChat({
           } else if (card.kind === "campaign_bundle") {
             if (approvedMap.has(suggId)) {
               // Bundle is al geaccepteerd, toon "approved_existing"-state
-              // met anker naar de mail-campagne. De andere 2 sub-campagnes
+              // met anker naar de eerste campagne. De andere 2 sub-campagnes
               // zijn via campagnes-pagina (group_id) bereikbaar.
               initialBundleStatus[msg.id] = {
                 state: "approved_existing",
@@ -545,29 +545,25 @@ export function FillyChat({
     if (choices.length === 1) {
       const single = choices[0];
       promptText =
-        single === "mail"
-          ? t("prompts.mail")
-          : single === "instagram"
-            ? t("prompts.instagram")
-            : single === "facebook"
-              ? t("prompts.facebook")
-              : single === "whatsapp"
-                ? t("prompts.whatsapp")
-                : t("prompts.googleBusiness");
+        single === "instagram"
+          ? t("prompts.instagram")
+          : single === "facebook"
+            ? t("prompts.facebook")
+            : single === "tiktok"
+              ? t("prompts.tiktok")
+              : t("prompts.googleBusiness");
     } else {
       // 2+ kanalen → één bundel-campagne voor álle gekozen kanalen. Sinds
-      // 2026-06-02 ondersteunt de bundel alle 5 kanalen (incl. WhatsApp +
+      // 2026-06-02 ondersteunt de bundel al onze kanalen (incl.
       // Google Business), dus we splitsen niets meer af.
       const labelFor = (c: ChannelChoice): string =>
-        c === "mail"
-          ? "mail"
-          : c === "instagram"
-            ? "Instagram"
-            : c === "facebook"
-              ? "Facebook"
-              : c === "whatsapp"
-                ? "WhatsApp"
-                : "Google Business";
+        c === "instagram"
+          ? "Instagram"
+          : c === "facebook"
+            ? "Facebook"
+            : c === "tiktok"
+              ? "TikTok"
+              : "Google Business";
       const labels = choices.map(labelFor);
       promptText = t("prompts.bundle", { channels: labels.join(", ") });
     }
@@ -727,7 +723,7 @@ export function FillyChat({
         ...s,
         [messageId]: {
           state: "created",
-          // Generieke map: alle aangemaakte kanalen (incl. WhatsApp + GBP).
+          // Generieke map: alle aangemaakte kanalen (incl. GBP).
           campaignIds: result.campaignIds ?? {},
         },
       }));

@@ -1544,7 +1544,7 @@
   padding: var(--space-3) var(--space-4);
 }
 
-/* WhatsApp campagne-detail: Inhoud-card en Foto-card naast elkaar.
+/* Campagne-detail: Inhoud-card en Foto-card naast elkaar.
    Foto-kolom heeft een vaste niet-te-grote breedte (320px); de Inhoud-
    card krijgt de rest. Geen align-items: start, default grid-stretch
    zorgt dat beide cards zelfde hoogte krijgen, zodat onderkanten
@@ -1726,7 +1726,7 @@
 }
 
 /* Type-chip, kleine pill-knop met icon + label voor het filteren op
-   kanaal (mail / social / whatsapp). Actieve chip krijgt brand-soft bg. */
+   kanaal. Actieve chip krijgt brand-soft bg. */
 .dashboard-shell .type-chips {
   display: flex;
   gap: 6px;
@@ -1775,60 +1775,9 @@
 }
 
 /* ==== Campagne-preview mockups ====
-   Visuele voorbeelden van hoe mail / social / whatsapp eruit gaan zien.
+   Visuele voorbeelden van hoe social eruit gaat zien.
    Het doel is dat de gebruiker een gevoel krijgt van het kanaal, niet
    pixel-perfect (dat is het echte versturen-platform). */
-
-.dashboard-shell .mail-preview {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  overflow: hidden;
-  max-width: 640px;
-}
-.dashboard-shell .mail-preview-meta {
-  display: flex;
-  gap: 24px;
-  padding: 14px 18px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-.dashboard-shell .mail-preview-meta > div {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.dashboard-shell .mail-preview-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--tl);
-  font-weight: 600;
-}
-.dashboard-shell .mail-preview-val {
-  font-size: 12px;
-  color: var(--text);
-}
-.dashboard-shell .mail-preview-subject {
-  font-size: 17px;
-  font-weight: 700;
-  padding: 18px 18px 2px;
-  letter-spacing: -0.2px;
-}
-.dashboard-shell .mail-preview-preheader {
-  font-size: 12px;
-  color: var(--tl);
-  padding: 0 18px 14px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.dashboard-shell .mail-preview-body {
-  font-size: 13px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  padding: 18px;
-  color: var(--text);
-}
 
 .dashboard-shell .social-preview {
   background: var(--white);
@@ -1895,25 +1844,6 @@
   font-weight: 500;
 }
 
-.dashboard-shell .whatsapp-preview {
-  padding: 20px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  display: flex;
-  justify-content: flex-end;
-  max-width: 440px;
-}
-.dashboard-shell .whatsapp-preview-bubble {
-  background: var(--accent);
-  color: var(--white);
-  padding: 10px 14px;
-  border-radius: 14px 14px 4px 14px;
-  font-size: 13px;
-  line-height: 1.5;
-  max-width: 85%;
-  white-space: pre-wrap;
-}
 .dashboard-shell .save-bar {
   display: flex;
   align-items: center;
@@ -2741,7 +2671,6 @@
   background: var(--bg);
   color: var(--ts);
 }
-.dashboard-shell .sg-chip.type-mail { background: var(--accent-light); color: var(--accent); }
 .dashboard-shell .sg-chip.type-social {
   /* Brand-consistent: brand-soft + brand-accent i.p.v. paarse off-brand. */
   background: var(--hover);
@@ -3175,23 +3104,9 @@
 }
 
 /* Container om de kanaal-preview in de suggesties-modal. Geeft wat
-   ademruimte en max-width zodat mail-preview niet te breed wordt. */
+   ademruimte en max-width. */
 .dashboard-shell .channel-preview-wrap {
   margin-top: 4px;
-}
-
-/* Optionele hero-image bovenaan een mail-preview (zodra er een foto is
-   gekozen). Past visueel bij de e-mail, verschijnt net onder de van/aan
-   meta-rij en boven het onderwerp. */
-.dashboard-shell .mail-preview-hero {
-  aspect-ratio: 16 / 9;
-  background: linear-gradient(135deg, var(--accent-light) 0%, var(--hover) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 72px;
-  color: var(--accent);
-  border-bottom: 1px solid var(--border);
 }
 
 /* ==== Taken-pagina ====

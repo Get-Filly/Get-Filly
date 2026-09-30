@@ -916,12 +916,7 @@ export default function RapportagesPage() {
                             </thead>
                             <tbody>
                               {fillyByCampaign.map((c) => {
-                                const icon =
-                                  c.campaign_type === "mail"
-                                    ? "✉️"
-                                    : c.campaign_type === "social"
-                                      ? "📱"
-                                      : "💬";
+                                const icon = "📱";
                                 return (
                                   <tr key={c.campaign_id}>
                                     <td style={{ fontWeight: 500 }}>

@@ -303,9 +303,8 @@ export class SuggestionsController {
 
   // Goedkeur-flow voor multi-channel-bundle (sinds 2026-05-04).
   // Werkt alleen op suggesties met trigger_type='chat_bundle'. Maakt
-  // 1 campaign_groups + 3 campaigns (mail / IG / FB) tegelijk en geeft
-  // alle 4 IDs terug zodat de frontend de drie campagne-detail-links
-  // kan tonen.
+  // 1 campaign_groups + per kanaal een campaign (IG / FB / ...) tegelijk en geeft
+  // alle IDs terug zodat de frontend de campagne-detail-links kan tonen.
   @Post(':id/approve-bundle')
   approveBundle(
     @BusinessId() businessId: string,
@@ -315,25 +314,18 @@ export class SuggestionsController {
     body:
       | {
           channels?: Array<
-            | 'mail'
-            | 'instagram'
-            | 'facebook'
-            | 'whatsapp'
-            | 'google_business'
-            | 'tiktok'
+            'instagram' | 'facebook' | 'google_business' | 'tiktok'
           >;
         }
       | undefined,
   ) {
     // Frontend stuurt 'channels' vanuit de checkboxes mee; ongeselecteerde
-    // kanalen worden niet aangemaakt. Sinds 2026-06-02 ook whatsapp +
+    // kanalen worden niet aangemaakt. Sinds 2026-06-02 ook
     // google_business, sinds 2026-06-22 ook tiktok. Validatie van de
     // waardes gebeurt in de service.
     const allowedBundleChannels = [
-      'mail',
       'instagram',
       'facebook',
-      'whatsapp',
       'google_business',
       'tiktok',
     ] as const;
@@ -399,8 +391,8 @@ export class SuggestionsController {
   }
 
   // Per 2026-05-07 fase 2b: eigenaar voegt een extra kanaal toe aan
-  // een pending-suggestie (multi-channel). Body { platform: 'mail' |
-  // 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' }.
+  // een pending-suggestie (multi-channel). Body { platform: 'instagram' |
+  // 'facebook' | 'tiktok' | 'google_business' }.
   @Post(':id/channels')
   addChannel(
     @BusinessId() businessId: string,
@@ -411,11 +403,10 @@ export class SuggestionsController {
       businessId,
       id,
       (body.platform ?? '') as
-        | 'mail'
-        | 'whatsapp'
         | 'instagram'
         | 'facebook'
-        | 'tiktok',
+        | 'tiktok'
+        | 'google_business',
     );
   }
 
@@ -431,8 +422,7 @@ export class SuggestionsController {
   }
 
   // Per 2026-05-07: eigenaar koppelt vóór goedkeuring een foto uit
-  // de bibliotheek aan een suggestie. Alleen voor social/whatsapp.
-  // media_id=null verbreekt de koppeling.
+  // de bibliotheek aan een suggestie.   // media_id=null verbreekt de koppeling.
   @Post(':id/media')
   setMedia(
     @BusinessId() businessId: string,
@@ -448,8 +438,8 @@ export class SuggestionsController {
   }
 
   // Per 2026-05-07: eigenaar bewerkt vóór goedkeuring een specifieke
-  // variant (subject + body). Verplicht: index. Optioneel: subject_line
-  // (null/lege string = wis), body (lege body = blijft staan).
+  // variant (body). Verplicht: index. Optioneel: body (lege body = blijft
+  // staan).
   @Post(':id/edit-variant')
   editVariant(
     @BusinessId() businessId: string,
@@ -457,7 +447,6 @@ export class SuggestionsController {
     @Body()
     body: {
       index?: number;
-      subject_line?: string | null;
       body?: string;
       channel_id?: string;
     },
@@ -467,10 +456,7 @@ export class SuggestionsController {
       businessId,
       id,
       idx,
-      {
-        subject_line: body.subject_line,
-        body: body.body,
-      },
+      { body: body.body },
       body.channel_id,
     );
   }

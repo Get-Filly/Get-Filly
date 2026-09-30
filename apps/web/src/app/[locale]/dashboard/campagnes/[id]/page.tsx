@@ -12,7 +12,6 @@ import {
   fetchCampaignBundle,
   generateMoreCampaignVariants,
   selectCampaignVariant,
-  sendCampaign,
   publishCampaign,
   setCampaignSchedule,
   updateCampaignStatus,
@@ -32,7 +31,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import {
   SECTION_ID,
   fillySuggestedIso,
-  platformToType,
   toDatetimeLocalValue,
 } from "../../_components/campaign-detail/types";
 import { WaaromCard } from "../../_components/campaign-detail/waarom-card";
@@ -44,7 +42,6 @@ import { getChannelChecklist } from "@/lib/campaign-checks";
 import { InhoudCard } from "../../_components/campaign-detail/inhoud-card";
 import { FotoCard } from "../../_components/campaign-detail/foto-card";
 import { CampaignPerformanceCard } from "./_components/campaign-performance-card";
-import { CampaignSendCard } from "./_components/campaign-send-card";
 import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
@@ -71,26 +68,6 @@ import { useLocaleTag } from "@/lib/locale-format";
 // Add/remove kanalen op campagne-bundles: nog niet ondersteund
 // door backend (zou een nieuwe campaign in dezelfde group moeten
 // aanmaken). Voor nu disabled — komt in een latere fase.
-
-/**
- * Status-label dat per campagne-type aanpast wat 'Actief' betekent.
- * Voor mail: 'actief' is dubbelzinnig (geactiveerd vs daadwerkelijk
- * verstuurd). We tonen daarom:
- *   - 'Klaar voor verzending' zolang sent_count = 0
- *   - 'Verstuurd' zodra minimaal 1 recipient een mail heeft gekregen
- * Voor social/whatsapp blijft 'Actief' want daar is push = live.
- */
-function getDisplayStatus(
-  t: (key: string) => string,
-  status: CampaignStatus,
-  type: string | null | undefined,
-  sentCount: number,
-): string {
-  if (status === "actief" && type === "mail") {
-    return sentCount > 0 ? t("statusSent") : t("statusReadyToSend");
-  }
-  return t(`status.${status}`);
-}
 
 const statusChipStyle = (status: CampaignStatus): React.CSSProperties => {
   const palette: Record<CampaignStatus, { bg: string; fg: string }> = {
@@ -141,7 +118,6 @@ export default function UnifiedDetailPage() {
   const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(
     null,
   );
-  const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
 
   // Schedule-edit-state.
@@ -264,11 +240,9 @@ export default function UnifiedDetailPage() {
   // chips klikbaar: inactief aanklikken voegt het kanaal toe (extra rij),
   // actief aanklikken verwijdert het (min. 1 kanaal blijft staan).
   const ALL_CHANNELS: Array<{ key: string; label: string }> = [
-    { key: "mail", label: "E-mail" },
     { key: "instagram", label: "Instagram" },
     { key: "facebook", label: "Facebook" },
     { key: "tiktok", label: "TikTok" },
-    { key: "whatsapp", label: "WhatsApp" },
     { key: "google_business", label: "Google Business" },
   ];
 
@@ -298,8 +272,7 @@ export default function UnifiedDetailPage() {
   // ────────────────────────────────────────────────────────────
   // Wanneer-card afgeleiden — analoog aan voorstel-page
   // ────────────────────────────────────────────────────────────
-  const activePlatform = activeChannel?.platform ?? "mail";
-  const activePlatformType = platformToType(activePlatform);
+  const activePlatform = activeChannel?.platform ?? "instagram";
   // (De losse Wanneer-card-afgeleiden zijn vervallen: datum/tijd zit nu
   // per kanaal in de Aspecten-tabel; de fallback-tijd wordt daar berekend.)
 
@@ -318,20 +291,18 @@ export default function UnifiedDetailPage() {
       const checklist = getChannelChecklist(
         c.platform,
         sel?.body,
-        sel?.subject_line,
         c.scheduled_for,
         c.media_url ? "x" : null,
       );
       const missing = checklist
         .filter((it) => it.required && it.field !== "date")
         .map((it) => it.field);
-      const type = platformToType(c.platform);
       let effective = c.scheduled_for ?? c.filly_scheduled_for ?? null;
       if (!effective) {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const ymd = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-        effective = fillySuggestedIso(ymd, type);
+        effective = fillySuggestedIso(ymd);
       }
       return {
         id: c.id,
@@ -339,10 +310,8 @@ export default function UnifiedDetailPage() {
         missing,
         scheduledFor: c.scheduled_for ?? null,
         effectiveIso: effective,
-        supportsMedia: c.platform !== "mail",
         mediaUrl: c.media_url ?? null,
         mediaIsVideo: /\.(mp4|mov|webm)(\?|$)/i.test(c.media_url ?? ""),
-        subjectLine: sel?.subject_line ?? null,
         bodyPreview: sel?.body ?? "",
       };
     });
@@ -357,7 +326,6 @@ export default function UnifiedDetailPage() {
     content: tAspect("colContent"),
     complete: tAspect("rowComplete"),
     addPhoto: tAspect("addPhoto"),
-    noPhotoMail: tAspect("noPhotoMail"),
     edit: tAspect("editContent"),
     chooseTime: tAspect("chooseTime"),
     save: tAspect("saveTime"),
@@ -389,7 +357,6 @@ export default function UnifiedDetailPage() {
     (idx: number) => {
       if (busy || !canEdit) return;
       const v = variants[idx];
-      setDraftSubject(v?.subject_line ?? "");
       setDraftBody(v?.body ?? "");
       setEditingVariantIdx(idx);
       setActionError(null);
@@ -400,7 +367,6 @@ export default function UnifiedDetailPage() {
   const handleCancelEditVariant = useCallback(() => {
     if (savingVariant) return;
     setEditingVariantIdx(null);
-    setDraftSubject("");
     setDraftBody("");
   }, [savingVariant]);
 
@@ -414,7 +380,6 @@ export default function UnifiedDetailPage() {
     setSavingVariant(true);
     try {
       await editCampaignVariant(activeChannel.id, editingVariantIdx, {
-        subject_line: draftSubject.trim() || null,
         body: draftBody.trim(),
       });
       await load();
@@ -429,7 +394,6 @@ export default function UnifiedDetailPage() {
     editingVariantIdx,
     busy,
     draftBody,
-    draftSubject,
     load,
     t,
   ]);
@@ -477,30 +441,13 @@ export default function UnifiedDetailPage() {
   // Bundle-niveau: alle campaigns krijgen dezelfde status-overgang
   // tegelijk (Promise.all). Bij single-channel = 1 call.
   //
-  // Bij activeren (next='actief') versturen we ook de daadwerkelijke
-  // mail voor elke mail-channel met sent_count=0. Reden: vroeger deed
-  // 'Activeer nu' alleen de status-flip → stille no-send waardoor de
-  // confirm-tekst ("Mail wordt direct verstuurd") loog. Volgorde:
-  //   1. mail-sends eerst (zwaarste operatie, kan minutenlang duren)
-  //   2. status-flip op alle channels
-  // Als de send faalt blijft status op concept/ingepland zodat we geen
-  // 'actief zonder mail'-toestand krijgen — eigenaar kan dan via de
-  // foutmelding bijsturen (bv. opt-in gasten toevoegen) en opnieuw
-  // proberen. sent_count>0 = al een keer verstuurd → defensief skippen
-  // om dubbele bezorging te voorkomen.
+  // Bij activeren (next='actief') publiceren we de sociale kanalen en flippen
+  // we de status per kanaal.
   const handleStatusChange = useCallback(
     async (next: CampaignStatus) => {
       if (!view || busy) return;
 
       if (next === "actief") {
-        // Identificeer welke mail-channels nog nooit verstuurd zijn.
-        const mailChannelsToSend = view.channels.filter((c) => {
-          if (c.platform !== "mail") return false;
-          const campaign = view.campaignsByChannelId[c.id];
-          return (campaign?.sent_count ?? 0) === 0;
-        });
-        const mailCount = mailChannelsToSend.length;
-
         // Social-kanalen publiceren naar FB/IG bij activeren. We filteren
         // op campagne-type (niet op het granulaire platform-veld); de
         // backend is idempotent, dus al-gepubliceerde kanalen worden
@@ -512,9 +459,6 @@ export default function UnifiedDetailPage() {
 
         // Confirm-tekst opbouwen uit wat er daadwerkelijk gebeurt.
         const actions: string[] = [];
-        if (mailCount > 0) {
-          actions.push(t("activateConfirm.mailAction", { count: mailCount }));
-        }
         if (socialCount > 0) {
           actions.push(
             t("activateConfirm.socialAction", { count: socialCount }),
@@ -530,32 +474,15 @@ export default function UnifiedDetailPage() {
 
         setActionError(null);
         setChangingStatus(true);
-        // Per kanaal: send/publish én direct daarna de status flippen, zodat
-        // een deelfout (bv. één social zonder Meta-pagina) de al-geslaagde
-        // kanalen NIET op concept laat hangen. Vroeger gebeurde de status-
-        // flip pas helemaal aan het eind via één Promise.all; faalde een
-        // publish daarvoor, dan was de mail al verstuurd maar bleef de hele
-        // bundel concept (en werd de mail bij retry overgeslagen → stille
-        // 'actief zonder iets geplaatst'-toestand).
+        // Per kanaal: publish én direct daarna de status flippen, zodat een
+        // deelfout (bv. één social zonder Meta-pagina) de al-geslaagde
+        // kanalen NIET op concept laat hangen.
         const errors: string[] = [];
         const handledIds = new Set<string>();
         const activate = async (channelId: string) => {
           await updateCampaignStatus(channelId, next);
         };
         try {
-          // Mail: versturen (sequentieel i.v.m. Resend-rate-limits) + bij
-          // succes meteen activeren. sent_count>0 zat al niet in deze set.
-          for (const c of mailChannelsToSend) {
-            handledIds.add(c.id);
-            try {
-              await sendCampaign(c.id, "all_opted_in");
-              await activate(c.id);
-            } catch (e) {
-              errors.push(
-                e instanceof Error ? e.message : t("errors.activateFailed"),
-              );
-            }
-          }
           // Social: publiceren naar FB/IG (idempotent) + bij succes activeren.
           for (const c of socialChannelsToPublish) {
             handledIds.add(c.id);
@@ -568,7 +495,7 @@ export default function UnifiedDetailPage() {
               );
             }
           }
-          // Overige kanalen (al-verstuurde mail, niet-publiceerbare types):
+          // Overige kanalen (niet-publiceerbare types):
           // alleen de status flippen.
           for (const c of view.channels) {
             if (handledIds.has(c.id)) continue;
@@ -670,7 +597,6 @@ export default function UnifiedDetailPage() {
     let missing = 0;
     for (const c of view.channels) {
       total += 2; // datum + body altijd
-      if (c.platform === "mail") total += 1;
       if (c.platform === "instagram" || c.platform === "tiktok") total += 1;
     }
     for (const c of view.channelsChecklist) {
@@ -729,7 +655,6 @@ export default function UnifiedDetailPage() {
     activePlatform === "instagram" ||
     activePlatform === "facebook" ||
     activePlatform === "tiktok" ||
-    activePlatform === "whatsapp" ||
     activePlatform === "google_business";
 
   // Actie-knoppen per status. Volgorde rechts→links: destructief
@@ -799,25 +724,8 @@ export default function UnifiedDetailPage() {
       );
     }
     if (status === "actief") {
-      // Mail kan niet teruggetrokken worden (al verstuurd) → 'Afronden'
-      // zet 'm naar afgerond zonder iets te verwijderen. Social/WhatsApp
-      // kan wél: 'Stop & verwijderen' trekt de post terug van het kanaal
+      // 'Stop & verwijderen' trekt de post terug van het kanaal
       // (backend-stub tot Meta/TikTok OAuth) + zet terug naar concept.
-      const isMail = activeCampaign?.type === "mail";
-      if (isMail) {
-        return (
-          <Button
-            variant="secondary"
-            onClick={() => handleStatusChange("afgerond")}
-            loading={changingStatus}
-            disabled={busy}
-            style={{ color: "#B91C1C" }}
-            title={t("actions.finishMailTitle")}
-          >
-            {t("actions.finish")}
-          </Button>
-        );
-      }
       return (
         <>
           <Button
@@ -892,12 +800,7 @@ export default function UnifiedDetailPage() {
           }}
         >
           <span style={statusChipStyle(status)}>
-            {getDisplayStatus(
-              t,
-              status,
-              activeCampaign?.type ?? null,
-              activeCampaign?.sent_count ?? 0,
-            )}
+            {t(`status.${status}`)}
           </span>
           {view.bundleName && view.channels.length > 1 && (
             <span style={{ color: "var(--tl)", fontSize: 12 }}>
@@ -1156,7 +1059,6 @@ export default function UnifiedDetailPage() {
           const idx = ch?.selected_index ?? 0;
           const v = ch?.variants[idx];
           setActiveChannelId(channelId);
-          setDraftSubject(v?.subject_line ?? "");
           setDraftBody(v?.body ?? "");
           setEditingVariantIdx(idx);
           document
@@ -1169,11 +1071,9 @@ export default function UnifiedDetailPage() {
         sectionId={SECTION_ID.inhoud}
         variants={variants}
         selectedIndex={selectedIndex}
-        type={activePlatformType}
         canEdit={canEdit}
         busy={busy}
         editingVariantIdx={editingVariantIdx}
-        draftSubject={draftSubject}
         draftBody={draftBody}
         savingEdit={savingVariant}
         refining={refining}
@@ -1181,7 +1081,6 @@ export default function UnifiedDetailPage() {
         onStartEditVariant={handleStartEditVariant}
         onCancelEditVariant={handleCancelEditVariant}
         onSaveEditVariant={handleSaveEditVariant}
-        onDraftSubjectChange={setDraftSubject}
         onDraftBodyChange={setDraftBody}
         onRegenerate={handleRegenerate}
       />
@@ -1228,12 +1127,7 @@ export default function UnifiedDetailPage() {
           foto/video-card en geen performance-card op een concept. */}
       <WaaromCard reasoning={view.reasoning} dayReason={view.dayReason} />
 
-      {/* Mail-verstuur + performance horen bij een lopende campagne, niet
-          bij een concept. Daarom pas tonen zodra de campagne uit de
-          concept-fase is (ingepland/actief). */}
-      {status !== "concept" && activeCampaign?.type === "mail" && (
-        <CampaignSendCard campaignId={activeCampaign.id} />
-      )}
+      {/* Performance hoort bij een lopende campagne, niet bij een concept. */}
       {status !== "concept" && <CampaignPerformanceCard campaignId={id} />}
 
       {/* Media-pop-up: foto óf video toevoegen vanuit de cel in de
@@ -1274,7 +1168,6 @@ export default function UnifiedDetailPage() {
               // Google Business-posts sturen alleen een foto mee (localPosts
               // PHOTO), dus daar geen video toestaan.
               allowVideo={
-                activeChannel?.platform !== "mail" &&
                 activeChannel?.platform !== "google_business"
               }
               onMediaChanged={() => {

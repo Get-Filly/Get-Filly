@@ -75,10 +75,9 @@ export class AnonymizationService {
       if (restErr) throw new Error(restErr.message);
       if (!restaurant) return false;
 
-      // 3. Has-media-signaal: alleen relevant voor social/whatsapp,
-      //    mail-campagnes hebben dat veld niet (header-image is later
-      //    werk volgens 0015). Aparte mini-query houdt de hoofd-call
-      //    schoon en voorkomt RLS-/join-edge-cases.
+      // 3. Has-media-signaal: alleen relevant voor social. Aparte
+      //    mini-query houdt de hoofd-call schoon en voorkomt
+      //    RLS-/join-edge-cases.
       const hasMedia = await this.detectHasMedia(
         campaignId,
         campaign.type as string,
@@ -95,19 +94,15 @@ export class AnonymizationService {
       const benchmarkRow = {
         // Business-archetype
         restaurant_type: (restaurant.type as string | null) ?? null,
-        cuisine_style:
-          (restaurant.cuisine_style as string[] | null) ?? null,
-        region: this.postcodeToRegion(
-          restaurant.postal_code as string | null,
-        ),
+        cuisine_style: (restaurant.cuisine_style as string[] | null) ?? null,
+        region: this.postcodeToRegion(restaurant.postal_code as string | null),
         capacity_bucket: this.capacitySeatsToBucket(
           restaurant.capacity_seats as number | null,
         ),
         price_range: (restaurant.price_range as number | null) ?? null,
         brand_tone: (restaurant.brand_tone as string | null) ?? null,
         has_terrace: (restaurant.has_terrace as boolean | null) ?? null,
-        has_kids_menu:
-          (restaurant.has_kids_menu as boolean | null) ?? null,
+        has_kids_menu: (restaurant.has_kids_menu as boolean | null) ?? null,
         // Campagne-archetype
         campaign_type: campaign.type as string,
         theme_tags: (campaign.tags as string[] | null) ?? [],
@@ -181,10 +176,8 @@ export class AnonymizationService {
     return 'large';
   }
 
-  // Detecteert of er een foto bij de campagne hangt. Per type:
-  //   - social   → campaign_social_content.media_urls (array)
-  //   - whatsapp → campaign_whatsapp_content.media_url (string)
-  //   - mail     → niet ondersteund (header-image is later werk)
+  // Detecteert of er een foto bij de campagne hangt:
+  //   - social → campaign_social_content.media_urls (array)
   private async detectHasMedia(
     campaignId: string,
     type: string,
@@ -197,14 +190,6 @@ export class AnonymizationService {
         .maybeSingle();
       const urls = (data?.media_urls as string[] | null) ?? [];
       return urls.length > 0;
-    }
-    if (type === 'whatsapp') {
-      const { data } = await this.supabase.client
-        .from('campaign_whatsapp_content')
-        .select('media_url')
-        .eq('campaign_id', campaignId)
-        .maybeSingle();
-      return Boolean(data?.media_url);
     }
     return false;
   }

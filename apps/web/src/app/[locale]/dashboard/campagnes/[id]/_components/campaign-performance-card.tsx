@@ -210,11 +210,6 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
   const score = data.success_score;
   const measurementOpen = !classification && !data.measurement_complete_at;
 
-  // Mail-rates (geformatteerd).
-  const openRate = formatPercent(data.mail_opened, data.mail_delivered);
-  const clickRate = formatPercent(data.mail_clicked, data.mail_delivered);
-  const bounceRate = formatPercent(data.mail_bounced, data.mail_delivered);
-
   return (
     <Card>
       <CardBody>
@@ -287,39 +282,6 @@ export function CampaignPerformanceCard({ campaignId }: Props) {
             </div>
           </div>
         </div>
-
-        {/* Mail-metrics */}
-        {(data.mail_delivered ?? 0) > 0 && (
-          <div style={{ marginBottom: "var(--space-3)" }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--text-secondary, #52525B)",
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {t("mailHeading")}
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                gap: "var(--space-2)",
-              }}
-            >
-              <MetricCell label={t("metrics.delivered")} value={String(data.mail_delivered ?? 0)} />
-              <MetricCell label={t("metrics.opened")} value={`${data.mail_opened ?? 0} (${openRate})`} />
-              <MetricCell label={t("metrics.clicked")} value={`${data.mail_clicked ?? 0} (${clickRate})`} />
-              <MetricCell
-                label={t("metrics.bounced")}
-                value={`${data.mail_bounced ?? 0} (${bounceRate})`}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Conversie */}
         <div style={{ marginBottom: "var(--space-3)" }}>

@@ -49,7 +49,6 @@ const CAMPAIGN_VARIANTS_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          subject_line: { type: 'string' },
           body: { type: 'string' },
         },
         required: ['body'],
@@ -60,7 +59,7 @@ const CAMPAIGN_VARIANTS_SCHEMA = {
 } as const satisfies Anthropic.Tool.InputSchema;
 
 type CampaignVariantsFromTool = {
-  variants: Array<{ subject_line?: string; body: string }>;
+  variants: Array<{ body: string }>;
 };
 
 // Schema voor tijdstip-suggestie. Strikt ISO-8601 datetime in
@@ -99,7 +98,7 @@ type CampaignScheduleSuggestionFromTool = {
   alternative_reasoning?: string;
 };
 
-export type CampaignType = 'mail' | 'social' | 'whatsapp';
+export type CampaignType = 'social';
 export type CampaignStatus = 'concept' | 'ingepland' | 'actief' | 'afgerond';
 
 // Wat er bij het stoppen van een actieve campagne op elk kanaal is
@@ -139,8 +138,7 @@ export type Campaign = {
   group_id: string | null;
   scheduled_for: string | null;
   // Per 2026-05-12: korte body-preview voor de kanban-cards.
-  // Komt voor mail uit campaign_mail_content.body_plain, voor
-  // social uit campaign_social_content.caption. Null als de
+  // Komt uit campaign_social_content.caption. Null als de
   // campagne nog geen content heeft (verse concept).
   body_preview: string | null;
   // Per 2026-05-12 (mig 0040): soft-delete-tijdstip. Optional want
@@ -168,12 +166,10 @@ export type Campaign = {
 // unified-detail-page één component over voorstel én campagne kan
 // renderen.
 export type CampaignVariant = {
-  subject_line?: string | null;
   body: string;
 };
 
 export type CampaignDetail = Campaign & {
-  subject_line: string | null;
   body: string | null;
   preview_data: Record<string, unknown> | null;
   // scheduled_for zit nu in Campaign (per 2026-05-07).
@@ -199,15 +195,10 @@ export type CampaignDetail = Campaign & {
   } | null;
   // Per 2026-05-13 (mig 0041): alle versies + welke 'Gekozen' is.
   // Bron-van-waarheid voor de Versies-grid op de unified-detail-page;
-  // body/subject_line hierboven zijn afgeleid van
+  // body hierboven is afgeleid van
   // variants[selected_variant_index].
   variants: CampaignVariant[];
   selected_variant_index: number;
-  // Aantal recipients waar deze campagne naartoe is verstuurd. Voor
-  // mail-type leest dit uit campaign_sends. Gebruikt door de UI om
-  // het status-label aan te passen ("Actief" → "Klaar voor verzending"
-  // wanneer count=0; → "Verstuurd" zodra >0).
-  sent_count: number;
 };
 
 @Injectable()
@@ -618,10 +609,9 @@ export class CampaignsService {
   }
 
   async findAll(businessId: string): Promise<Campaign[]> {
-    // Eerst de campagne-rijen, daarna 2 batch-queries voor de content-
-    // tabellen (mail + social). Per type pakken we de juiste snippet
-    // en koppelen 'm aan de campaign-id. WhatsApp heeft nog geen
-    // content-tabel; daar blijft body_preview null.
+    // Eerst de campagne-rijen, daarna 1 batch-query voor de social-
+    // content-tabel. We pakken de juiste snippet en koppelen 'm aan de
+    // campaign-id.
     //
     // Per 2026-05-12 (mig 0040): soft-delete via deleted_at. Standaard
     // lijst toont alleen actieve campagnes; verwijderde zijn alleen
@@ -645,7 +635,6 @@ export class CampaignsService {
     const rows = (data ?? []) as Array<Omit<Campaign, 'body_preview'>>;
     if (rows.length === 0) return [];
 
-    const mailIds = rows.filter((r) => r.type === 'mail').map((r) => r.id);
     const socialIds = rows.filter((r) => r.type === 'social').map((r) => r.id);
 
     const previewMap = new Map<string, string>();
@@ -666,16 +655,6 @@ export class CampaignsService {
         : trimmed;
     };
 
-    if (mailIds.length > 0) {
-      const { data: mailRows } = await this.supabase.client
-        .from('campaign_mail_content')
-        .select('campaign_id, body_plain, subject_line')
-        .in('campaign_id', mailIds);
-      for (const m of mailRows ?? []) {
-        const preview = truncate(m.body_plain) ?? truncate(m.subject_line);
-        if (preview) previewMap.set(m.campaign_id as string, preview);
-      }
-    }
     if (socialIds.length > 0) {
       const { data: socialRows } = await this.supabase.client
         .from('campaign_social_content')
@@ -836,15 +815,8 @@ export class CampaignsService {
 
     if (campErr) throwDbError(this.logger, campErr);
 
-    const table =
-      campaign.type === 'mail'
-        ? 'campaign_mail_content'
-        : campaign.type === 'social'
-          ? 'campaign_social_content'
-          : 'campaign_whatsapp_content';
-
     const { data: content } = await this.supabase.client
-      .from(table)
+      .from('campaign_social_content')
       .select('*')
       .eq('campaign_id', id)
       .maybeSingle();
@@ -866,15 +838,6 @@ export class CampaignsService {
         ...content,
         media_urls: signed.filter((u): u is string => !!u),
       };
-    } else if (
-      content &&
-      campaign.type === 'whatsapp' &&
-      typeof content.media_url === 'string'
-    ) {
-      const signed = await this.signMediaPath(content.media_url).catch(
-        () => null,
-      );
-      signedContent = { ...content, media_url: signed };
     }
 
     // Filly's reasoning uit het bijbehorende voorstel ophalen wanneer
@@ -920,29 +883,11 @@ export class CampaignsService {
       }
     }
 
-    // Aantal verstuurde mails (voor mail-status-label: "Klaar voor
-    // verzending" zolang sent_count=0, anders "Verstuurd"). Voor
-    // niet-mail-campagnes blijft het altijd 0 — daar is sent geen
-    // concept (social/GBP gaan via OAuth-post-flow die we apart loggen).
-    //
-    // Test-mails (send_mode='test') tellen NIET mee — eigenaar mag
-    // onbeperkt testen zonder dat het status-label op 'Verstuurd' springt.
-    let sentCount = 0;
-    if (campaign.type === 'mail') {
-      const { count } = await this.supabase.client
-        .from('campaign_sends')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', id)
-        .eq('send_mode', 'all_opted_in');
-      sentCount = count ?? 0;
-    }
-
     return {
       ...campaign,
       content: signedContent,
       reasoning,
       dayReason,
-      sent_count: sentCount,
     } as CampaignDetail;
   }
 
@@ -959,13 +904,12 @@ export class CampaignsService {
     input: {
       name: string;
       type: CampaignType;
-      subject_line?: string | null;
       body: string;
       // Per 2026-05-13 (mig 0041): volledige versies-set incl. de
       // gekozen versie. Wanneer meegegeven hoeven we 'variants' niet
       // post-hoc te backfillen vanuit body/subject. selected_index
       // wijst naar de versie die in campaign_*_content terechtkomt.
-      variants?: Array<{ subject_line?: string | null; body: string }>;
+      variants?: Array<{ body: string }>;
       selected_variant_index?: number;
       // Per 2026-05-13: bron-suggestion-id voor de 'Waarom dit voorstel'-
       // join in findById. Zonder deze koppeling toont concept-detail
@@ -1005,39 +949,20 @@ export class CampaignsService {
 
     // Per 2026-05-13 (mig 0041): variants is bron-van-waarheid voor
     // de versies-grid. Wanneer caller 'm meegeeft schrijven we 'm
-    // direct; anders backfillen we met 1 variant uit body/subject zodat
+    // direct; anders backfillen we met 1 variant uit body zodat
     // de DB-default (`[]`) niet leeg blijft staan voor nieuwe rijen.
-    // Subject_line wordt op `null` genormaliseerd voor niet-mail
-    // campagnes om het lezen aan frontend-kant rust te geven.
     const rawVariants = Array.isArray(input.variants)
       ? input.variants
-      : [{ subject_line: input.subject_line ?? null, body }];
+      : [{ body }];
     const sanitizedVariants = rawVariants
       .filter((v) => typeof v.body === 'string' && v.body.trim().length > 0)
-      .map((v) => ({
-        subject_line:
-          typeof v.subject_line === 'string' && v.subject_line.trim().length > 0
-            ? v.subject_line.trim()
-            : null,
-        body: v.body.trim(),
-      }))
+      .map((v) => ({ body: v.body.trim() }))
       .slice(0, 6);
     // Fallback voor de edge-case 'caller gaf alleen lege variants':
-    // we maken 1 entry uit body/subject zodat we nooit met
+    // we maken 1 entry uit body zodat we nooit met
     // variants=[] eindigen (zou later sync-issues geven).
     const variantsToWrite =
-      sanitizedVariants.length > 0
-        ? sanitizedVariants
-        : [
-            {
-              subject_line:
-                typeof input.subject_line === 'string' &&
-                input.subject_line.trim().length > 0
-                  ? input.subject_line.trim()
-                  : null,
-              body,
-            },
-          ];
+      sanitizedVariants.length > 0 ? sanitizedVariants : [{ body }];
     const selectedIdxRaw =
       typeof input.selected_variant_index === 'number'
         ? input.selected_variant_index
@@ -1082,46 +1007,22 @@ export class CampaignsService {
 
     const campaignId = campaign.id as string;
 
-    let contentErr: { message: string } | null = null;
-    if (input.type === 'mail') {
-      // Mail-tabel eist subject_line NOT NULL. Als Filly 'm niet gaf
-      // (wat niet zou moeten bij type=mail), vallen we terug op de
-      // campagne-naam, beter een zinvol onderwerp dan een DB-fout.
-      const { error } = await this.supabase.client
-        .from('campaign_mail_content')
-        .insert({
-          campaign_id: campaignId,
-          subject_line: input.subject_line?.trim() || name,
-          body_plain: body,
-        });
-      contentErr = error;
-    } else if (input.type === 'social') {
-      const { error } = await this.supabase.client
-        .from('campaign_social_content')
-        .insert({
-          campaign_id: campaignId,
-          caption: body,
-          // platforms en hashtags alleen vullen als meegegeven
-          // (bundle-flow); anders default uit DB-schema (lege arrays).
-          platforms:
-            input.social_platforms && input.social_platforms.length > 0
-              ? input.social_platforms
-              : undefined,
-          hashtags:
-            input.social_hashtags && input.social_hashtags.length > 0
-              ? input.social_hashtags
-              : undefined,
-        });
-      contentErr = error;
-    } else {
-      const { error } = await this.supabase.client
-        .from('campaign_whatsapp_content')
-        .insert({
-          campaign_id: campaignId,
-          message_text: body,
-        });
-      contentErr = error;
-    }
+    const { error: contentErr } = await this.supabase.client
+      .from('campaign_social_content')
+      .insert({
+        campaign_id: campaignId,
+        caption: body,
+        // platforms en hashtags alleen vullen als meegegeven
+        // (bundle-flow); anders default uit DB-schema (lege arrays).
+        platforms:
+          input.social_platforms && input.social_platforms.length > 0
+            ? input.social_platforms
+            : undefined,
+        hashtags:
+          input.social_hashtags && input.social_hashtags.length > 0
+            ? input.social_hashtags
+            : undefined,
+      });
 
     if (contentErr) {
       // Rollback: de campagne-rij weggooien zodat we geen lege kaart
@@ -1144,7 +1045,7 @@ export class CampaignsService {
       payload: {
         name,
         type: input.type,
-        source: input.subject_line ? 'mail-with-subject' : 'inline',
+        source: 'inline',
       },
     });
 
@@ -1220,18 +1121,14 @@ export class CampaignsService {
     groupId?: string,
   ): Promise<{ id: string }> {
     const CHANNEL_LABEL: Record<string, string> = {
-      mail: 'Mail',
       instagram: 'Instagram',
       facebook: 'Facebook',
       tiktok: 'TikTok',
-      whatsapp: 'WhatsApp',
       google_business: 'Google Business',
     };
     let type: CampaignType;
     let socialPlatforms: string[] | undefined;
-    if (platform === 'mail' || platform === 'whatsapp') {
-      type = platform;
-    } else if (
+    if (
       platform === 'instagram' ||
       platform === 'facebook' ||
       platform === 'tiktok' ||
@@ -1253,7 +1150,6 @@ export class CampaignsService {
       {
         name: campaignName,
         type,
-        subject_line: null,
         body: 'Deze campagne is nog niet uitgewerkt. Klik op Bewerk om je tekst toe te voegen.',
         ...(socialPlatforms ? { social_platforms: socialPlatforms } : {}),
         ...(groupId ? { group_id: groupId } : {}),
@@ -1395,8 +1291,8 @@ export class CampaignsService {
     return members.flatMap((m) => m.platforms);
   }
 
-  // Per niet-verwijderde campagne in de groep: id + kanaal-keys. mail/whatsapp
-  // = het type zelf; social = campaign_social_content.platforms.
+  // Per niet-verwijderde campagne in de groep: id + kanaal-keys uit
+  // campaign_social_content.platforms.
   private async channelCampaignsInGroup(
     businessId: string,
     groupId: string,
@@ -1413,11 +1309,7 @@ export class CampaignsService {
     for (const c of camps ?? []) {
       const id = c.id as string;
       const type = c.type as string;
-      if (type === 'mail') {
-        result.push({ id, platforms: ['mail'] });
-      } else if (type === 'whatsapp') {
-        result.push({ id, platforms: ['whatsapp'] });
-      } else if (type === 'social') {
+      if (type === 'social') {
         const { data: sc } = await client
           .from('campaign_social_content')
           .select('platforms')
@@ -1440,7 +1332,7 @@ export class CampaignsService {
   //   ingepland → actief      (Activeer-knop)
   //   ingepland → concept     (↩ Terugtrekken vanaf /campagnes)
   //   actief    → afgerond    (Afronden-knop, alle kanalen)
-  //   actief    → concept     (Stop + terugtrekken van kanaal, NIET mail)
+  //   actief    → concept     (Stop + terugtrekken van kanaal)
   //   afgerond  → eindstaat   (geen verdere actie mogelijk)
   // Verwijderen gebeurt apart via remove() en mag op concept of
   // ingepland (zolang de campagne nog niet daadwerkelijk uitgegaan is).
@@ -1459,8 +1351,6 @@ export class CampaignsService {
     // actief → concept toegevoegd (2026-05-29): een actieve SOCIAL-
     // campagne mag je stoppen + terugtrekken van het kanaal (post
     // verwijderen) en terug naar concept zetten om opnieuw te plannen.
-    // Voor mail is dit GEBLOKKEERD (zie type-check hieronder): een
-    // verstuurde mail kun je niet terugtrekken.
     const allowed: Record<CampaignStatus, CampaignStatus[]> = {
       concept: ['ingepland', 'actief'],
       ingepland: ['actief', 'concept'],
@@ -1488,25 +1378,16 @@ export class CampaignsService {
       );
     }
 
-    // Mail-campagnes kunnen niet van actief terug naar concept: de mail
-    // is al verstuurd en valt niet terug te trekken. Alleen 'afronden'
-    // (→ afgerond) is dan toegestaan.
-    if (
-      currentStatus === 'actief' &&
-      nextStatus === 'concept' &&
-      campaignType === 'mail'
-    ) {
-      throw new BadRequestException(
-        'Een verstuurde mail-campagne kan niet teruggetrokken worden. Je kunt deze wel afronden.',
-      );
-    }
-
     // Social terugtrekken: verwijder de gepubliceerde post bij Facebook
     // en Instagram vóór de status-flip. Het verslag daarvan reist mee
     // terug naar het scherm.
     let retractReport: CampaignRetractReport | null = null;
     if (currentStatus === 'actief' && nextStatus === 'concept') {
-      retractReport = await this.retractFromChannel(businessId, id, campaignType);
+      retractReport = await this.retractFromChannel(
+        businessId,
+        id,
+        campaignType,
+      );
     }
 
     const updates: Record<string, unknown> = {
@@ -1595,7 +1476,7 @@ export class CampaignsService {
   // het verzoek 'm zelf in de app weg te halen; het endpoint bestond
   // wel, alleen de scope ontbrak.
   //
-  // WhatsApp en TikTok hebben hier nog geen delete-pad: daar blijft het
+  // TikTok en Google Bedrijfsprofiel hebben hier nog geen delete-pad: daar blijft het
   // bij een logregel en verwijdert de eigenaar handmatig.
   //
   // Fail-soft: een mislukte kanaal-delete mag de terugtrekking in onze
@@ -1607,12 +1488,7 @@ export class CampaignsService {
     campaignId: string,
     type: string | null,
   ): Promise<CampaignRetractReport | null> {
-    // Mail komt hier nooit (geblokkeerd in updateStatus), maar dubbel
-    // vangen kan geen kwaad.
-    if (type === 'mail') return null;
-
-    // Alleen social heeft een delete-koppeling (Meta). WhatsApp/TikTok:
-    // nog geen API → alleen loggen, eigenaar verwijdert handmatig.
+    // Alleen social heeft een delete-koppeling (Meta). Overig: nog geen API → alleen loggen, eigenaar verwijdert handmatig.
     if (type !== 'social') {
       this.logger.log(
         `Terugtrekken van ${type ?? 'onbekend'}-kanaal voor ${campaignId} ` +
@@ -1821,52 +1697,20 @@ export class CampaignsService {
   //   editVariant(idx, …)    — wijzig één entry, sync content als idx=selected
   //   generateMoreVariants() — Claude levert 3 nieuwe, append tot max 6
 
-  // Helper: sync campaign_*_content uit variants[selectedIdx]. Wordt
+  // Helper: sync campaign_social_content uit variants[selectedIdx]. Wordt
   // gebruikt na elke selectVariant + na editVariant op de geselecteerde
-  // entry. Houdt de "afgeleide" body/subject in de content-tabel in
+  // entry. Houdt de "afgeleide" body in de content-tabel in
   // lijn met de bron-van-waarheid op campaigns.variants[].
   private async syncContentFromVariant(
     id: string,
-    type: 'mail' | 'social' | 'whatsapp',
     variant: CampaignVariant,
   ): Promise<void> {
     const now = new Date().toISOString();
-    if (type === 'mail') {
-      // Mail.subject_line is NOT NULL in DB: lege subject vallen we
-      // terug op de campagne-naam om DB-constraint-fout te voorkomen.
-      // Dat is vrijwel altijd ondergeschikt (concept-fase, eigenaar
-      // bewerkt 't toch nog).
-      const { data: existingName } = await this.supabase.client
-        .from('campaigns')
-        .select('name')
-        .eq('id', id)
-        .maybeSingle();
-      const fallback =
-        existingName?.name && typeof existingName.name === 'string'
-          ? existingName.name
-          : 'Concept';
-      const { error } = await this.supabase.client
-        .from('campaign_mail_content')
-        .update({
-          subject_line: variant.subject_line ?? fallback,
-          body_plain: variant.body,
-          updated_at: now,
-        })
-        .eq('campaign_id', id);
-      if (error) throwDbError(this.logger, error);
-    } else if (type === 'social') {
-      const { error } = await this.supabase.client
-        .from('campaign_social_content')
-        .update({ caption: variant.body, updated_at: now })
-        .eq('campaign_id', id);
-      if (error) throwDbError(this.logger, error);
-    } else {
-      const { error } = await this.supabase.client
-        .from('campaign_whatsapp_content')
-        .update({ message_text: variant.body, updated_at: now })
-        .eq('campaign_id', id);
-      if (error) throwDbError(this.logger, error);
-    }
+    const { error } = await this.supabase.client
+      .from('campaign_social_content')
+      .update({ caption: variant.body, updated_at: now })
+      .eq('campaign_id', id);
+    if (error) throwDbError(this.logger, error);
   }
 
   // Optimistische slot-check voor variant-schrijfacties. Schrijft de patch
@@ -1950,11 +1794,7 @@ export class CampaignsService {
       .eq('business_id', businessId);
     if (updErr) throwDbError(this.logger, updErr);
 
-    await this.syncContentFromVariant(
-      id,
-      existing.type as 'mail' | 'social' | 'whatsapp',
-      variants[index],
-    );
+    await this.syncContentFromVariant(id, variants[index]);
 
     await this.audit.log({
       businessId,
@@ -1975,7 +1815,7 @@ export class CampaignsService {
     businessId: string,
     id: string,
     index: number,
-    patch: { subject_line?: string | null; body?: string },
+    patch: { body?: string },
     userId: string,
   ): Promise<{ id: string; variants: CampaignVariant[] }> {
     if (!Number.isInteger(index) || index < 0) {
@@ -1983,14 +1823,6 @@ export class CampaignsService {
     }
     if (typeof patch.body !== 'string' || patch.body.trim().length === 0) {
       throw new BadRequestException('Body mag niet leeg zijn.');
-    }
-    // Subject_line beperken op 200 zoals refine() doet — zelfde DB-
-    // veiligheid, zelfde mail-norm.
-    if (
-      typeof patch.subject_line === 'string' &&
-      patch.subject_line.length > 200
-    ) {
-      throw new BadRequestException('Onderwerp mag maximaal 200 tekens zijn.');
     }
 
     const { data: existing, error: fetchErr } = await this.supabase.client
@@ -2020,13 +1852,6 @@ export class CampaignsService {
     // Patch in place: behoud bestaande velden tenzij overschreven.
     const updated: CampaignVariant = {
       body: patch.body.trim(),
-      subject_line:
-        patch.subject_line === null
-          ? null
-          : typeof patch.subject_line === 'string' &&
-              patch.subject_line.trim().length > 0
-            ? patch.subject_line.trim()
-            : (variants[index].subject_line ?? null),
     };
     const newVariants = variants.map((v, i) => (i === index ? updated : v));
 
@@ -2043,11 +1868,7 @@ export class CampaignsService {
     // geselecteerde is — anders is dit een "stille" alternatief-edit
     // die de huidige tekst niet raakt.
     if (existing.selected_variant_index === index) {
-      await this.syncContentFromVariant(
-        id,
-        existing.type as 'mail' | 'social' | 'whatsapp',
-        updated,
-      );
+      await this.syncContentFromVariant(id, updated);
     }
 
     await this.audit.log({
@@ -2113,12 +1934,9 @@ export class CampaignsService {
       Math.max(campaign.selected_variant_index ?? 0, 0),
       Math.max(existingVariants.length - 1, 0),
     );
-    const current = existingVariants[selectedIdx] ?? {
-      body: '',
-      subject_line: null,
-    };
+    const current = existingVariants[selectedIdx] ?? { body: '' };
 
-    const type = campaign.type as 'mail' | 'social' | 'whatsapp';
+    const type = campaign.type as CampaignType;
 
     // Kanaal-regels uit het centrale brein, zelfde aanpak als refine().
     // De platforms-kolom leeft in campaign_social_content; één lichte
@@ -2154,7 +1972,6 @@ Inhoudsregels:
 - Verwerk concrete elementen uit het profiel (USPs, doelgroep, sfeer)
   en menu (echte gerechten + prijzen).
 - Refereer ALLEEN aan menu-items die letterlijk in MENU staan.
-- subject_line alleen voor mail-campagnes.
 - Schrijf in het Nederlands.
 
 ---
@@ -2182,7 +1999,6 @@ ${menuBlock}
     const currentSnapshot = {
       name: campaign.name as string,
       type,
-      ...(current.subject_line ? { subject_line: current.subject_line } : {}),
       body: currentBody,
     };
     let userPrompt: string;
@@ -2203,7 +2019,7 @@ ${menuBlock}
         system: systemPrompt,
         prompt,
         model: 'claude-sonnet-4-6',
-        // 3 varianten (mail-bodies kunnen lang zijn) + JSON-overhead. Te
+        // 3 varianten (bodies kunnen lang zijn) + JSON-overhead. Te
         // krap → stop_reason=max_tokens kapt de tool-call af → lege/halve
         // variants-array → "geen bruikbare versies". Ruim genomen.
         maxTokens: 4096,
@@ -2244,11 +2060,7 @@ ${menuBlock}
       for (const v of arr) {
         const body = typeof v?.body === 'string' ? v.body.trim() : '';
         if (!body) continue;
-        const variant: CampaignVariant = { body, subject_line: null };
-        if (v.subject_line && v.subject_line.trim().length > 0) {
-          variant.subject_line = v.subject_line.trim().slice(0, 200);
-        }
-        out.push(variant);
+        out.push({ body });
       }
       return out;
     };
@@ -2297,9 +2109,7 @@ ${menuBlock}
   // Upload een foto en koppel 'm aan een concept-campagne. Patroon:
   //   - Bestand wordt opgeslagen in bucket 'campaign-media' onder
   //     <business_id>/<campaign_id>/<timestamp>-<safeName>
-  //   - Voor social: vervangt media_urls[] door [path] (max 1 foto in v1)
-  //   - Voor whatsapp: zet media_url op path
-  //   - Voor mail: weigeren (header-image is later werk)
+  //   - Vervangt media_urls[] door [path] (max 1 foto in v1)
   // Bij her-upload wissen we de oude file zodat we geen weeszooi
   // krijgen in storage.
   async uploadMedia(
@@ -2354,12 +2164,6 @@ ${menuBlock}
         `Foto's kunnen alleen bij concept-campagnes worden geüpload (deze is ${campaign.status}).`,
       );
     }
-    if (campaign.type === 'mail') {
-      throw new BadRequestException(
-        'Mail-campagnes ondersteunen nog geen foto-upload (komt later).',
-      );
-    }
-
     // Oude file wissen om wees-bestanden te voorkomen.
     await this.deleteMediaFiles(businessId, campaignId).catch((err) => {
       // Niet fataal: zelfs als opruim faalt, kunnen we de nieuwe upload
@@ -2385,27 +2189,15 @@ ${menuBlock}
       });
     if (upErr) throwDbError(this.logger, upErr);
 
-    // Path in juiste content-tabel zetten. Voor social: array met 1
-    // path. Voor whatsapp: scalar.
-    if (campaign.type === 'social') {
-      const { error: updErr } = await this.supabase.client
-        .from('campaign_social_content')
-        .update({
-          media_urls: [path],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('campaign_id', campaignId);
-      if (updErr) throwDbError(this.logger, updErr);
-    } else {
-      const { error: updErr } = await this.supabase.client
-        .from('campaign_whatsapp_content')
-        .update({
-          media_url: path,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('campaign_id', campaignId);
-      if (updErr) throwDbError(this.logger, updErr);
-    }
+    // Path in de content-tabel zetten: array met 1 path.
+    const { error: updErr } = await this.supabase.client
+      .from('campaign_social_content')
+      .update({
+        media_urls: [path],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('campaign_id', campaignId);
+    if (updErr) throwDbError(this.logger, updErr);
 
     const signed_url = await this.signMediaPath(path);
     return { path, signed_url };
@@ -2439,15 +2231,6 @@ ${menuBlock}
         .from('campaign_social_content')
         .update({
           media_urls: [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('campaign_id', campaignId);
-      if (updErr) throwDbError(this.logger, updErr);
-    } else if (campaign.type === 'whatsapp') {
-      const { error: updErr } = await this.supabase.client
-        .from('campaign_whatsapp_content')
-        .update({
-          media_url: null,
           updated_at: new Date().toISOString(),
         })
         .eq('campaign_id', campaignId);
@@ -2587,7 +2370,7 @@ ${menuBlock}
 
     // Per 2026-05-12 (mig 0040): soft-delete via deleted_at. De rij
     // blijft staan zodat eigenaar 'm terugvindt in /campagnes/history
-    // → Verwijderd-tab. Content-tabellen + recipients blijven daardoor
+    // → Verwijderd-tab. Content-tabellen blijven daardoor
     // ook bestaan (geen cascade-effect bij UPDATE).
     const { error: delErr } = await this.supabase.client
       .from('campaigns')

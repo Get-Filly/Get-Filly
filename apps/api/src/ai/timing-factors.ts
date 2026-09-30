@@ -286,7 +286,7 @@ export const WEATHER_TIMING_RULES = `WEER-REGELS (pas toe op de actuele weerdata
 - Hittegolf (>30°C) → restaurantbezoek dáált (mensen blijven binnen); benadruk koeling/airco of delivery.
 - Storm/onweer → geen actieve promoties plannen; hooguit wijzen op delivery/takeaway.
 - Eerste warme dag van het seizoen → "eerste terrasdag" is een cultureel moment in NL: 2-3 dagen vooraf communiceren.
-- Mooie zondag in lente/zomer → spontaan dineren piekt: "last-minute tafels vrij" via WhatsApp + Instagram Stories.`;
+- Mooie zondag in lente/zomer → spontaan dineren piekt: "last-minute tafels vrij" via Instagram Stories.`;
 
 // ============================================================
 // Prompt-blok-bouwer

@@ -44,13 +44,11 @@
  * lengte, timing en format verschillen fundamenteel.
  */
 export type FillyChannel =
-  | 'mail'
   | 'instagram_feed'
   | 'instagram_reels'
   | 'instagram_stories'
   | 'facebook'
   | 'tiktok'
-  | 'whatsapp'
   | 'google_business';
 
 /** Funnel-fase van een uiting (hfst 11.1). */
@@ -116,10 +114,6 @@ export interface CopyLength {
   maxWords?: number;
   minChars: number;
   maxChars: number;
-  /** Voor mail: aparte regel voor subject-line. */
-  subject?: { minChars: number; maxChars: number };
-  /** Voor mail: preheader. */
-  preheader?: { minChars: number; maxChars: number };
 }
 
 /** Hashtag-strategie (hfst 4 per kanaal). */
@@ -174,7 +168,7 @@ export interface FrequencyLimits {
 
 /** Visuele eisen per kanaal (hfst 13.1 + 13.2). */
 export interface VisualRequirements {
-  /** Verplicht visueel? (true voor IG/TT/GBP, optioneel voor mail/FB) */
+  /** Verplicht visueel? (true voor IG/TT/GBP, optioneel voor FB) */
   required: boolean;
   /** Aspect-ratios die het kanaal accepteert. */
   aspectRatios: string[];
@@ -210,56 +204,6 @@ export interface ChannelRules {
 // ============================================================
 
 export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
-  // ----------- Mail -----------
-  mail: {
-    channel: 'mail',
-    label: 'Mail',
-    role: 'Directe communicatie naar bestaande gasten. Hoogste conversie, langste tekst toegestaan.',
-    copyLength: {
-      minWords: 75,
-      maxWords: 200,
-      minChars: 400,
-      maxChars: 1200,
-      subject: { minChars: 30, maxChars: 60 },
-      preheader: { minChars: 50, maxChars: 90 },
-    },
-    hashtags: {
-      countMin: 0,
-      countMax: 0,
-      excludeAnchorsFromCount: false,
-      placement: 'niet_van_toepassing',
-    },
-    bestTimes: {
-      bestDays: [4, 5], // do/vr
-      bestHours: ['09:00-11:00', '17:30-18:30'],
-      note: 'Vrijdag 18:00 = piek in open- én click-rate (MailerLite, 2.1M campagnes); do-ochtend ideaal voor weekend-promoties (+30% CTR vs ma/di). Vermijd zondag (click-rate -32%). Maand-begin (1-5) en rond de 25e (loondag) geven extra boost.',
-      fallback:
-        'di-wo 09:00-11:00 (ochtend-open-piek werkt door de week prima); alleen zondag blijft af te raden.',
-    },
-    leadTime: {
-      minHours: 24,
-      optimalRangeHours: [72, 168], // 3-7 dagen
-      rationale:
-        'Mensen plannen uit-eten 2-5 dagen vooruit; onder 24u keldert open-rate.',
-    },
-    frequency: { maxPerWeek: 1, maxPerMonth: 4 },
-    visual: {
-      required: false,
-      aspectRatios: ['16:9', '4:3'],
-      altTextRequired: true,
-    },
-    toneModulation:
-      'Persoonlijk, warm, ondertekend door eigenaar of Filly. Schrijf alsof je een vaste gast persoonlijk benadert.',
-    ctaStyle:
-      'Eén primaire CTA als button, max 3 woorden ("Reserveer nu" / "Bekijk menu"). Geen 2e of 3e CTA.',
-    specifics: [
-      'Subject ≤ 40 tekens zichtbaar op mobiel; eerste 30 zijn cruciaal.',
-      'Preheader complementair aan subject, niet herhalen.',
-      'Personalisatie (voornaam) in subject of opening = +26% open-rate.',
-      'Niet meer dan 1 mailing per 10 dagen voor horeca.',
-    ],
-  },
-
   // ----------- Instagram Feed -----------
   instagram_feed: {
     channel: 'instagram_feed',
@@ -287,7 +231,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 6,
-      optimalRangeHours: [24, 72], // 1-3 dagen
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale: 'Recent in feed = bovenaan; te ver vooruit = vergeten.',
     },
     frequency: { maxPerWeek: 5, maxPerMonth: 20 },
@@ -430,8 +374,13 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 12,
-      optimalRangeHours: [48, 120], // 2-5 dagen
-      rationale: 'FB-feed langzamer maar verzadigd; lange aanloop helpt.',
+      // 1-2 dagen. Was 2-5 dagen (bedoeld voor geplande events). Een actie om
+      // een rustig moment te vullen is last-minute: bronnen (2026) zeggen
+      // geplande events 4-6 weken vooraf aan te kondigen, maar aanbiedingen op
+      // korte termijn juist direct te plaatsen. Niet te ver vooruit dus.
+      optimalRangeHours: [24, 48], // 1-2 dagen
+      rationale:
+        'Last-minute actie: liever dichtbij het moment dan dagen eerder, zodat het bericht nog vers is.',
     },
     frequency: { maxPerWeek: 4, maxPerMonth: 16 },
     visual: {
@@ -479,7 +428,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 6,
-      optimalRangeHours: [24, 72],
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale: 'Algoritme heeft tijd nodig om bereik te bouwen.',
     },
     frequency: { maxPerWeek: 5, maxPerMonth: 16 },
@@ -496,53 +445,6 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       'Trending sound essentieel voor algoritme-boost.',
       'Seed-comment van eigen account in eerste minuut stuurt het gesprek.',
       'Voor traditionele horeca zelden de hoogste ROI; overweeg of de tijd-investering loont.',
-    ],
-  },
-
-  // ----------- WhatsApp -----------
-  whatsapp: {
-    channel: 'whatsapp',
-    label: 'WhatsApp',
-    role: 'Persoonlijke last-minute-push naar opt-in gasten. Hoogste open-rate én hoogste ergernis-risico.',
-    copyLength: {
-      minWords: 50,
-      maxWords: 120,
-      minChars: 300,
-      maxChars: 700,
-    },
-    hashtags: {
-      countMin: 0,
-      countMax: 0,
-      excludeAnchorsFromCount: false,
-      placement: 'niet_van_toepassing',
-    },
-    bestTimes: {
-      bestDays: [2, 3, 4], // di-do
-      bestHours: ['16:00-18:00', '11:00-15:00'],
-      note: 'Vaste gasten di-do 16:00-18:00 (last-minute zelfde-avond-uitnodiging, 67% prefereert messaging boven bellen); lege-tafels-broadcast op de dag zelf om 11:00 of 15:00. NOOIT 22:00-09:00 of zondagavond (AVG redelijke uren). Verjaardags-bericht 7 dagen vóór de datum. Conservatief gebruiken; opt-in juridisch verplicht.',
-      fallback:
-        'vr 11:00-15:00 voor weekend-gerichte last-minute acties; de verboden uren (22:00-09:00, zondagavond) blijven altijd gelden.',
-    },
-    leadTime: {
-      minHours: 0.5,
-      optimalRangeHours: [4, 24],
-      rationale: 'Last-minute persoonlijke nudge; te vroeg voelt formeel.',
-    },
-    frequency: { maxPerWeek: 1, maxPerMonth: 1 }, // max 1× per 3 weken aan zelfde nummer
-    visual: {
-      required: false,
-      aspectRatios: ['1:1', '4:3'],
-      altTextRequired: false,
-    },
-    toneModulation:
-      'Persoonlijk, alsof eigenaar zelf typt. Vermijd marketing-toon.',
-    ctaStyle:
-      'Directe reserveer-link of telefoon-tap. Eén klik, geen UTM-tracking zichtbaar.',
-    specifics: [
-      'Opt-in verplicht (AVG + WhatsApp Business policy).',
-      "Max 1-2 emoji's; ALL-CAPS triggert spam-filter.",
-      'Eerste outreach naar nummer (buiten 24u-window) vereist Meta-goedgekeurd template.',
-      'Max 1× per 3 weken voor zelfde nummer om ergernis te voorkomen.',
     ],
   },
 
@@ -573,7 +475,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 12,
-      optimalRangeHours: [24, 168], // 1-7 dagen
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale:
         'Google indexeert binnen uren maar zoekers vinden 1-3 dagen na.',
     },
@@ -716,16 +618,6 @@ export function formatChannelRulesForPrompt(channel: FillyChannel): string {
   lines.push(`Rol: ${r.role}`);
   lines.push(``);
   lines.push(`Lengte:`);
-  if (r.copyLength.subject) {
-    lines.push(
-      `  - Subject: ${r.copyLength.subject.minChars}-${r.copyLength.subject.maxChars} tekens`,
-    );
-  }
-  if (r.copyLength.preheader) {
-    lines.push(
-      `  - Preheader: ${r.copyLength.preheader.minChars}-${r.copyLength.preheader.maxChars} tekens`,
-    );
-  }
   if (r.copyLength.minWords && r.copyLength.maxWords) {
     lines.push(
       `  - Body: ${r.copyLength.minWords}-${r.copyLength.maxWords} woorden (${r.copyLength.minChars}-${r.copyLength.maxChars} tekens)`,
@@ -790,7 +682,7 @@ export function checkCopyLength(
 /**
  * Bouwt het complete "regels per kanaal"-blok voor injectie in een
  * system-prompt. Default: alle 8 kanalen. Caller kan een subset
- * doorgeven (bv. alleen mail+IG voor een specifieke campagne-context).
+ * doorgeven (bv. alleen IG+FB voor een specifieke campagne-context).
  *
  * Gebruik in services:
  *   import { buildAllChannelsBlock } from '../ai/filly-brain.config';
@@ -799,13 +691,11 @@ export function checkCopyLength(
  */
 export function buildAllChannelsBlock(channels?: FillyChannel[]): string {
   const list: FillyChannel[] = channels ?? [
-    'mail',
     'instagram_feed',
     'instagram_reels',
     'instagram_stories',
     'facebook',
     'tiktok',
-    'whatsapp',
     'google_business',
   ];
   const sep = '\n\n────────────────────────────────────────\n\n';
@@ -819,17 +709,16 @@ ${formatted}
 }
 
 /**
- * Mapt het legacy campaign.type ('mail' | 'social' | 'whatsapp') naar
+ * Mapt het campaign.type ('social') naar
  * een FillyChannel voor de scheduling-flow. 'social' defaultt naar
  * instagram_feed (meest voorkomende social-tijd-profiel). Bij een
  * expliciet social_platform kan de caller dit overschrijven.
  */
 export function mapCampaignTypeToChannel(
-  type: 'mail' | 'social' | 'whatsapp',
+  // Alleen 'social' bestaat nog als campagne-type.
+  _type: string,
   socialPlatform?: string | null,
 ): FillyChannel {
-  if (type === 'mail') return 'mail';
-  if (type === 'whatsapp') return 'whatsapp';
   // social → bepaal op platform indien bekend
   switch (socialPlatform) {
     case 'facebook':
@@ -892,11 +781,9 @@ export function formatTimingForPrompt(channel: FillyChannel): string {
  */
 export function buildAllTimingBlock(channels?: FillyChannel[]): string {
   const list: FillyChannel[] = channels ?? [
-    'mail',
     'instagram_feed',
     'facebook',
     'tiktok',
-    'whatsapp',
     'google_business',
   ];
   const dayNames = [

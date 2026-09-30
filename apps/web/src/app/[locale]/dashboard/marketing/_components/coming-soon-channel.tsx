@@ -121,9 +121,6 @@ export function ComingSoonChannel({
         <Link href="/dashboard/marketing">
           <Button variant="secondary">{t("backToHub")}</Button>
         </Link>
-        <Link href="/dashboard/marketing/mail">
-          <Button variant="primary">{t("viewMail")}</Button>
-        </Link>
       </div>
     </div>
   );

@@ -56,25 +56,21 @@ describe('naturalizeSuggestedCampaign', () => {
   it('poetst dashes uit alle geneste copy-velden', () => {
     const sc = {
       name: 'Actie — woensdag',
-      subject_line: 'Tafel vrij — kom langs',
       body: 'Eerste zin — tweede zin.',
       channels: [
         {
-          platform: 'mail',
-          variants: [
-            { body: 'Variant — met dash', subject_line: 'Sub – line' },
-          ],
+          platform: 'instagram',
+          variants: [{ body: 'Variant — met dash' }],
         },
       ],
     };
     expect(naturalizeSuggestedCampaign(sc)).toEqual({
       name: 'Actie, woensdag',
-      subject_line: 'Tafel vrij, kom langs',
       body: 'Eerste zin, tweede zin.',
       channels: [
         {
-          platform: 'mail',
-          variants: [{ body: 'Variant, met dash', subject_line: 'Sub, line' }],
+          platform: 'instagram',
+          variants: [{ body: 'Variant, met dash' }],
         },
       ],
     });

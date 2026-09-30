@@ -54,7 +54,6 @@ const SUGGESTION_REFINE_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          subject_line: { type: 'string' },
           body: { type: 'string' },
         },
         required: ['body'],
@@ -65,7 +64,7 @@ const SUGGESTION_REFINE_SCHEMA = {
 } as const satisfies Anthropic.Tool.InputSchema;
 
 type RefinedCampaignFromTool = {
-  variants: Array<{ subject_line?: string; body: string }>;
+  variants: Array<{ body: string }>;
 };
 
 // Cap op totaal aantal varianten per suggestie. Init = 3 (uit chat-
@@ -82,7 +81,7 @@ const SUGGESTION_VARIANTS_MAX = 6;
 // zodat de UI 'm correct labelt (lage bezetting, weer, seizoen, etc).
 // Per 2026-05-07: 'social' is gesplitst in specifieke platforms
 // (instagram/facebook/tiktok) zodat Filly per platform kan kiezen.
-// 'mail' en 'whatsapp' blijven 1-op-1. Backwards-compat: oude
+// Backwards-compat: oude
 // suggestions met campaign_type='social' worden bij read genormaliseerd
 // naar platform='instagram' (default).
 //
@@ -93,41 +92,25 @@ const SUGGESTION_VARIANTS_MAX = 6;
 // media + scheduled_for) matcht social, dus de bestaande
 // campaign_social_content-tabel volstaat met platform='google_business'.
 export type SuggestionPlatform =
-  | 'mail'
-  | 'whatsapp'
   | 'instagram'
   | 'facebook'
   | 'tiktok'
   | 'google_business';
 
-// Alle platform-waarden die in de data KUNNEN voorkomen. Bewust inclusief
-// 'whatsapp': eerder opgeslagen suggesties met dat platform moeten leesbaar
-// en goedkeurbaar blijven.
+// Alle platform-waarden die in de data kunnen voorkomen. Dit zijn ook de
+// kanalen die Filly NIEUW mag voorstellen: de set voedt het tool-schema, de
+// validatie van verse LLM-output en de controle op bestaande rijen.
 const SUGGESTION_PLATFORMS: SuggestionPlatform[] = [
-  'mail',
-  'whatsapp',
   'instagram',
   'facebook',
   'tiktok',
   'google_business',
 ];
-
-// Wat Filly NIEUW mag voorstellen. Per 2026-09-09 zonder 'whatsapp': daar is
-// geen verzendpad voor, dus zo'n voorstel eindigt als een campagne die niet
-// de deur uit kan. Deze set voedt het tool-schema én de validatie van verse
-// LLM-output; de ACCEPTED-set hierboven blijft voor bestaande rijen.
-const GENERATABLE_PLATFORMS: SuggestionPlatform[] = [
-  'instagram',
-  'facebook',
-  'tiktok',
-  'google_business',
-];
+const GENERATABLE_PLATFORMS: SuggestionPlatform[] = SUGGESTION_PLATFORMS;
 
 // Kanalen waarvan Filly de REGELS PER KANAAL meekrijgt in de generatie-
-// prompts van de geleide flow. Per 2026-09-09 gelijkgetrokken met wat de
-// kanaalkeuze daadwerkelijk aanbiedt: Facebook en Google Business stonden er
-// niet in (Filly schreef dus FB-copy zonder FB-regels) en WhatsApp wél,
-// terwijl daar geen verzendpad voor is. Instagram-reels/-stories laten we uit
+// prompts van de geleide flow. Gelijkgetrokken met wat de
+// kanaalkeuze daadwerkelijk aanbiedt. Instagram-reels/-stories laten we uit
 // dit blok: het voorstel kiest 'social' als type, de feed-band is de
 // bandbreedte waarop de copy-guard toetst.
 const PROMPT_CHANNELS: FillyChannel[] = [
@@ -138,30 +121,18 @@ const PROMPT_CHANNELS: FillyChannel[] = [
 ];
 
 // Kanalen die een multi-channel-bundel kan bevatten. Sinds 2026-06-22 ook
-// tiktok (volwaardig campagne-kanaal): de chat-keuze-kaart biedt deze 6
-// (mail/instagram/facebook/whatsapp/google_business/tiktok). Deze union
+// tiktok (volwaardig campagne-kanaal): de chat-keuze-kaart biedt deze 4
+// (instagram/facebook/google_business/tiktok). Deze union
 // gebruiken approveBundle + de controller.
 export type BundleApproveChannel =
-  | 'mail'
   | 'instagram'
   | 'facebook'
-  | 'whatsapp'
   | 'google_business'
   | 'tiktok';
 
-// Mapper: SuggestionPlatform → campaigns.type. Specifieke socials gaan
-// naar campaign.type='social' met platforms=[platform] in social_content
-// zodat de bestaande campagne-data-laag niet hoeft te veranderen.
-function platformToCampaignType(
-  p: SuggestionPlatform,
-): 'mail' | 'social' | 'whatsapp' {
-  if (p === 'mail' || p === 'whatsapp') return p;
-  return 'social';
-}
-
 // Per 2026-05-07 fase 3b: per voorstel een channels-array i.p.v. een
 // enkel platform. Filly kiest 1 of meerdere kanalen voor hetzelfde
-// voorstel (bv. mail + Instagram + WhatsApp voor een seizoens-actie),
+// voorstel (bv. Instagram + Facebook voor een seizoens-actie),
 // en levert per kanaal eigen content + timing + reasoning. Cap = 5
 // (= 1 per platform-type, geen dubbele Instagrams binnen één voorstel).
 const GENERATE_SUGGESTIONS_SCHEMA = {
@@ -206,7 +177,6 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
               type: 'object',
               properties: {
                 platform: { type: 'string', enum: GENERATABLE_PLATFORMS },
-                subject_line: { type: 'string' },
                 body: { type: 'string' },
                 scheduled_for: {
                   type: 'string',
@@ -237,7 +207,6 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
 
 type GeneratedChannelFromTool = {
   platform: SuggestionPlatform;
-  subject_line?: string;
   body: string;
   scheduled_for: string;
   scheduled_reasoning: string;
@@ -277,7 +246,6 @@ const LOW_OCCUPANCY_SCHEMA = {
   properties: {
     campaign_type: { type: 'string', enum: ['social'] },
     name: { type: 'string' },
-    subject_line: { type: 'string' },
     body: { type: 'string' },
     target_segment: { type: 'string' },
     reasoning: { type: 'string' },
@@ -289,9 +257,8 @@ const LOW_OCCUPANCY_SCHEMA = {
 } as const satisfies Anthropic.Tool.InputSchema;
 
 type LowOccupancyCampaignFromTool = {
-  campaign_type: 'mail' | 'social' | 'whatsapp';
+  campaign_type: CampaignType;
   name: string;
-  subject_line?: string;
   body: string;
   target_segment?: string;
   reasoning: string;
@@ -386,13 +353,13 @@ export type AiSuggestion = {
 // Structuur van ai_suggestions.suggested_campaign. We ondersteunen
 // twee shapes:
 //   - Nieuw (sinds 3-varianten-flow): variants[] + selected_index
-//   - Legacy: directe subject_line/body (voor seed-data en oudere
+//   - Legacy: directe body (voor seed-data en oudere
 //     suggestion-rijen)
 // Approve- en refine-logic checken eerst variants[], vallen anders
 // terug op de legacy-velden.
 // Per 2026-05-07 fase 2b: per-kanaal-shape voor multi-channel-voorstellen.
-// Eén SuggestedCampaign kan nu N kanalen bevatten (mail + Instagram
-// + WhatsApp bv.) met elk eigen variants, scheduling, foto. Bij approve
+// Eén SuggestedCampaign kan nu N kanalen bevatten (Instagram + Facebook
+// bv.) met elk eigen variants, scheduling, foto. Bij approve
 // wordt elk kanaal een aparte campagne; multi-channel = bundle via
 // campaign_groups.
 export type SuggestionChannel = {
@@ -400,12 +367,12 @@ export type SuggestionChannel = {
   // kan refereren bij edits. Ge-genereerd bij addChannel.
   id: string;
   platform: SuggestionPlatform;
-  variants: Array<{ subject_line?: string; body?: string }>;
+  variants: Array<{ body?: string }>;
   selected_index: number;
   // Eigenaar's gekozen tijd (override van Filly's voorstel).
   scheduled_for?: string;
   // Filly's voorgestelde tijd + reasoning voor dít kanaal. Per kanaal
-  // verschillend (mail werkt 's ochtends, social 17:00 etc).
+  // verschillend (social 17:00 etc).
   filly_scheduled_for?: string;
   filly_scheduled_reasoning?: string;
   restaurant_media_id?: string | null;
@@ -413,10 +380,9 @@ export type SuggestionChannel = {
 
 export type SuggestedCampaign = {
   // 'google_business' toegevoegd 2026-05-24 voor chat-flow GBP-keuze.
-  // Behandelt zich als single-channel post (subject_line optioneel,
-  // alleen body); approve-flow gebruikt platform='google_business'
-  // in campaign_social_content.
-  type?: 'mail' | 'social' | 'whatsapp' | 'google_business';
+  // Behandelt zich als single-channel post (alleen body); approve-flow
+  // gebruikt platform='google_business' in campaign_social_content.
+  type?: 'social' | 'google_business';
   // Per 2026-05-07: specifieker platform-veld naast 'type'. 'type' blijft
   // voor backwards-compat met legacy seed-data; nieuwe suggesties zetten
   // beide. Voor 'social'-campaigns specificeert platform welk netwerk
@@ -430,13 +396,10 @@ export type SuggestedCampaign = {
   name?: string;
   // Nieuwe shape: max 3 alternatieven naast elkaar.
   variants?: Array<{
-    subject_line?: string;
     body?: string;
   }>;
   selected_index?: number;
   // Legacy single-body shape (blijft bestaan voor seed-data).
-  subject_line?: string;
-  subject?: string;
   caption?: string;
   body?: string;
   segment?: string;
@@ -454,23 +417,13 @@ export function ensureChannels(sc: SuggestedCampaign): SuggestionChannel[] {
   }
   // Backwards-compat: bouw 1 kanaal uit de oude shape.
   const platform: SuggestionPlatform =
-    sc.platform &&
-    ['mail', 'whatsapp', 'instagram', 'facebook', 'tiktok'].includes(
-      sc.platform,
-    )
+    sc.platform && SUGGESTION_PLATFORMS.includes(sc.platform)
       ? sc.platform
-      : sc.type === 'mail' || sc.type === 'whatsapp'
-        ? sc.type
-        : 'instagram';
+      : 'instagram';
   const variants =
     Array.isArray(sc.variants) && sc.variants.length > 0
       ? sc.variants
-      : [
-          {
-            body: sc.body ?? sc.caption ?? '',
-            subject_line: sc.subject_line ?? sc.subject,
-          },
-        ];
+      : [{ body: sc.body ?? sc.caption ?? '' }];
   return [
     {
       id: `${platform}-0`,
@@ -495,13 +448,7 @@ export function ensureChannels(sc: SuggestedCampaign): SuggestionChannel[] {
 // Day-context voor de geleide flow (stap 2 + 3). Gedeeld met de
 // frontend (zie lib/api.ts DayContext).
 export type DayContextChannel = {
-  channel:
-    | 'mail'
-    | 'instagram'
-    | 'facebook'
-    | 'whatsapp'
-    | 'google_business'
-    | 'tiktok';
+  channel: 'instagram' | 'facebook' | 'google_business' | 'tiktok';
   label: string;
   recommended: boolean;
   note: string;
@@ -545,10 +492,9 @@ type SuggestionInsertRow = {
   trigger_type: 'low_occupancy' | 'special_day';
   trigger_context: Record<string, unknown>;
   suggested_campaign: {
-    type: 'mail' | 'social' | 'whatsapp';
+    type: CampaignType;
     platform?: SuggestionPlatform;
     name: string;
-    subject_line?: string;
     body: string;
     channels?: SuggestionChannel[];
     // Door de brain gekozen verzendmoment (datum = gekozen dag, tijd = beste
@@ -568,7 +514,8 @@ function langWriteRules(lang: 'nl' | 'en'): string {
   return lang === 'en'
     ? `- Write everything in English. Match the brand_tone from the profile.
 - Do not use em or en dashes (— or –) as connectors; write naturally with commas and periods. That reads less AI-written.`
-    : `${langWriteRules(lang)}`;
+    : `- Schrijf alles in het Nederlands. Sluit aan bij de brand_tone uit het profiel.
+- Gebruik geen gedachtestreepjes (— of –) als verbinding en ook geen dubbele punten of puntkomma's in lopende zinnen; schrijf natuurlijk met komma's en punten. Dat leest minder AI-achtig.`;
 }
 
 @Injectable()
@@ -582,7 +529,7 @@ export class SuggestionsService {
     // Levert profile + menu-block zodat Filly kan
     // refereren aan écht aanbod met échte prijzen ipv generieke tekst.
     private readonly context: BusinessContextService,
-    // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
+    // Gemeten bereik per kanaal (koppel-status + volgers) zodat Filly
     // tractie meeweegt bij kanaal-keuze en alternatieven voorstelt.
     private readonly reach: ChannelReachService,
     // Lokale evenementen (evenementen.nl-sync) binnen de staffel-
@@ -732,8 +679,6 @@ ${langWriteRules(lang)}
   - 3 kanalen: brede pushes (bv. seizoenslancering: Instagram + Facebook + Google Business).
 
 Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend).
-LET OP: mail is GEEN kanaal meer. Stel nooit een mailing voor.
-
 ${buildThemeChannelMixBlock()}
 
   - instagram: visueel, snel gezien, sterk voor laat-boekers (foto-first, korte caption, hashtags).
@@ -743,13 +688,12 @@ ${buildThemeChannelMixBlock()}
 
 Per channel-object in 'channels':
 - platform: één van de bovenstaande, geen dubbele platforms binnen 1 voorstel.
-- body: volledige uitgeschreven tekst voor DIT kanaal (mail = langer, social = korter), klaar om te versturen. SCHRIJF voor elk kanaal een eigen variant — kopieer niet zomaar dezelfde body.
-- subject_line: alleen voor mail-kanalen; voor instagram/facebook/tiktok/google_business laat je 'm weg.
+- body: volledige uitgeschreven tekst voor DIT kanaal (social = kort), klaar om te versturen. SCHRIJF voor elk kanaal een eigen variant — kopieer niet zomaar dezelfde body.
 - scheduled_for + scheduled_reasoning: kies het moment per platform op
   basis van TIMING PER KANAAL onderaan (bron-van-waarheid, géén eigen
   tijden verzinnen). In scheduled_reasoning een 1-zin uitleg WAAROM dit
   moment past bij dit kanaal én deze campagne (bv. "Vrijdag 9:30 =
-  pre-weekend mail-check, mensen plannen hun zaterdag-uitje").
+  pre-weekend scroll-moment, mensen plannen hun zaterdag-uitje").
 
 Per voorstel-niveau:
 - name: korte werknaam (max 60 tekens), bv. "Pasta-week ${monthName.toLowerCase()}".
@@ -870,13 +814,6 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
           const body =
             typeof c.body === 'string' ? c.body.trim().slice(0, 5000) : '';
           if (!body) continue;
-          const subject =
-            c.platform === 'mail' &&
-            typeof c.subject_line === 'string' &&
-            c.subject_line.trim().length > 0
-              ? c.subject_line.trim().slice(0, 200)
-              : undefined;
-
           let scheduledForIso: string | undefined;
           if (typeof c.scheduled_for === 'string') {
             const dt = new Date(c.scheduled_for);
@@ -898,7 +835,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
           validatedChannels.push({
             id: `${c.platform}-${i}`,
             platform: c.platform,
-            variants: [{ body, subject_line: subject }],
+            variants: [{ body }],
             selected_index: 0,
             filly_scheduled_for: scheduledForIso,
             filly_scheduled_reasoning: scheduledReasoning,
@@ -929,10 +866,9 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
             // Top-level type/platform/body sync'en met het primaire
             // kanaal voor backwards-compat met de kaart-preview op
             // /campagnes en de approve-flow.
-            type: platformToCampaignType(primaryChannel.platform),
+            type: 'social',
             platform: primaryChannel.platform,
             name: s.name,
-            subject_line: primaryVariant.subject_line,
             body: primaryVariant.body,
             channels: validatedChannels,
           },
@@ -1164,20 +1100,16 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     ]);
 
     // Stap 5, segment-counts voor extra context (welke segmenten
-    // zijn beschikbaar als doelgroep voor mail/whatsapp).
+    // zijn beschikbaar als doelgroep).
     const { data: guestStats } = await this.supabase.client
       .from('guests')
-      .select('mail_opt_in, whatsapp_opt_in, tags')
+      .select('tags')
       .eq('business_id', businessId);
 
     const guestPool = (guestStats ?? []) as Array<{
-      mail_opt_in: boolean | null;
-      whatsapp_opt_in: boolean | null;
       tags: string[] | null;
     }>;
     const segmentCounts = {
-      mail_opt_in: guestPool.filter((g) => g.mail_opt_in).length,
-      whatsapp_opt_in: guestPool.filter((g) => g.whatsapp_opt_in).length,
       vaste_gast: guestPool.filter((g) => (g.tags ?? []).includes('vaste_gast'))
         .length,
       vip: guestPool.filter((g) => (g.tags ?? []).includes('vip')).length,
@@ -1234,7 +1166,6 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 ${drukteRegels}
 
 GASTEN-SEGMENTEN VOOR ACTIVATIE:
-- WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
 - Vaste gasten: ${segmentCounts.vaste_gast}
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
@@ -1257,7 +1188,6 @@ ${langWriteRules(lang)}
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
-- Mail is GEEN kanaal meer. Stel nooit een mailing voor.
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt, verwijs naar concrete getallen.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
@@ -1361,7 +1291,6 @@ ${dayContext}`;
           suggested_campaign: {
             type: raw.campaign_type,
             name: raw.name,
-            subject_line: raw.subject_line,
             body: raw.body,
           },
           status: 'pending' as const,
@@ -1526,17 +1455,9 @@ ${dayContext}`;
         }
       : null;
 
-    // De kanalen die in de geleide flow aangeboden worden. Per 2026-09-09
-    // zonder WhatsApp: daar is geen verzendpad voor, dus aanbieden leverde
-    // een campagne op die nooit de deur uit kon. Bereik bepaalt de
-    // voorselectie; is er nergens bereik, dan vinken we Instagram +
-    // Facebook voor.
-    //
-    // Mail is er per 2026-09-16 uit als campagnekanaal (besluit Floris): we
-    // mailen niet meer. WhatsApp stond er al niet in, daar is geen
-    // verzendpad voor. Wat overblijft zijn de kanalen die we echt kunnen
-    // publiceren. Het transactionele mailpad (contactformulier,
-    // uitnodigingen via Supabase) staat hier los van en blijft.
+    // De kanalen die in de geleide flow aangeboden worden: de kanalen die we
+    // echt kunnen publiceren. Bereik bepaalt de voorselectie; is er nergens
+    // bereik, dan vinken we Instagram + Facebook voor.
     const REACH_LABEL: Record<string, string> = {
       instagram: 'Instagram',
       facebook: 'Facebook',
@@ -1727,16 +1648,12 @@ ${dayContext}`;
     // Segment-counts (zelfde shape als detect-flow).
     const { data: guestStats } = await this.supabase.client
       .from('guests')
-      .select('mail_opt_in, whatsapp_opt_in, tags')
+      .select('tags')
       .eq('business_id', businessId);
     const guestPool = (guestStats ?? []) as Array<{
-      mail_opt_in: boolean | null;
-      whatsapp_opt_in: boolean | null;
       tags: string[] | null;
     }>;
     const segmentCounts = {
-      mail_opt_in: guestPool.filter((g) => g.mail_opt_in).length,
-      whatsapp_opt_in: guestPool.filter((g) => g.whatsapp_opt_in).length,
       vaste_gast: guestPool.filter((g) => (g.tags ?? []).includes('vaste_gast'))
         .length,
       vip: guestPool.filter((g) => (g.tags ?? []).includes('vip')).length,
@@ -1864,7 +1781,7 @@ ${dayContext}`;
 - Aanleiding: ${item.name ?? 'Speciale dag'}
 
 Dit is een commerciële kans voor ${HORECA_PACK.sectorLabel}. Bedenk een campagne die past
-bij DEZE specifieke gelegenheid (themamenu, gastenactivatie, mailing,
+bij DEZE specifieke gelegenheid (themamenu, gastenactivatie,
 cadeaubon, sfeer-actie). Spreek de juiste doelgroep aan voor deze dag:
 bv. Moederdag/Vaderdag = families, Valentijn = stelletjes, Kerst =
 groepen + traditie.`;
@@ -1889,19 +1806,14 @@ groepen + traditie.`;
           selected_channels: item.channels,
         };
       }
-      const platformToType = (p: string): 'mail' | 'social' | 'whatsapp' =>
-        p === 'mail' ? 'mail' : p === 'whatsapp' ? 'whatsapp' : 'social';
       const channelDirective =
         item.channels && item.channels.length > 0
           ? `\nKANAAL-KEUZE VAN DE EIGENAAR: maak dit voor ${item.channels.join(
               ', ',
-            )}. Zet campaign_type op het primaire kanaal '${platformToType(
-              item.channels[0],
-            )}' en schrijf de body zo dat 'ie ook past op de andere gekozen kanalen.`
+            )}. Zet campaign_type op 'social' en schrijf de body zo dat 'ie ook past op de andere gekozen kanalen.`
           : '';
 
       const segmentsBlock = `GASTEN-SEGMENTEN VOOR ACTIVATIE:
-- WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
 - Vaste gasten: ${segmentCounts.vaste_gast}
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
@@ -1924,7 +1836,6 @@ ${langWriteRules(lang)}
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
-- Mail is GEEN kanaal meer. Stel nooit een mailing voor.
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/aanleiding werkt.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
@@ -2030,13 +1941,13 @@ ${segmentsBlock}`;
           const settled = await Promise.all(
             platforms.map(async (p, i) => {
               const channelPrompt = (extra: string) =>
-                `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='${platformToType(p)}'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}${
+                `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='social'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}${
                   planOf.get(p)?.urgencyInCopy ? URGENCY_NOTE : ''
                 }`;
               try {
                 const firstCh = await generateProposal(channelPrompt(''));
                 const ch = await enforceCopyLength({
-                  channel: mapCampaignTypeToChannel(platformToType(p), p),
+                  channel: mapCampaignTypeToChannel('social', p),
                   first: firstCh,
                   getBodies: (r) => [r.body],
                   regenerate: (instruction) =>
@@ -2065,12 +1976,6 @@ ${segmentsBlock}`;
             variants: [
               {
                 body: r.body,
-                subject_line:
-                  r.platform === 'mail' &&
-                  typeof r.ch.subject_line === 'string' &&
-                  r.ch.subject_line.trim().length > 0
-                    ? r.ch.subject_line.trim().slice(0, 200)
-                    : undefined,
               },
             ],
             selected_index: 0,
@@ -2093,10 +1998,9 @@ ${segmentsBlock}`;
               target_segment: lead?.target_segment,
             },
             suggested_campaign: {
-              type: platformToCampaignType(primary.platform),
+              type: 'social',
               platform: primary.platform,
               name: lead?.name ?? 'Voorstel',
-              subject_line: primary.variants[0].subject_line,
               // Altijd gevuld (validatedChannels pusht alleen kanalen
               // mét body); ?? '' alleen om het optionele variant-type
               // sluitend te maken.
@@ -2145,7 +2049,6 @@ ${segmentsBlock}`;
             suggested_campaign: {
               type: raw.campaign_type,
               name: raw.name,
-              subject_line: raw.subject_line,
               body: raw.body,
               // Plaatsmoment relatief aan het voorgestelde venster. Te laat voor
               // het kanaal? Dan toch zo snel mogelijk: de eigenaar koos deze dag.
@@ -2285,7 +2188,6 @@ ${segmentsBlock}`;
     // Pak geselecteerde variant; als selected_index out-of-range is,
     // val terug op 0 zodat we niet falen op corrupte state.
     let variantBody = '';
-    let variantSubject = '';
     if (Array.isArray(sc.variants) && sc.variants.length > 0) {
       const idx =
         typeof sc.selected_index === 'number' &&
@@ -2295,10 +2197,6 @@ ${segmentsBlock}`;
           : 0;
       const variant = sc.variants[idx] ?? {};
       variantBody = typeof variant.body === 'string' ? variant.body.trim() : '';
-      variantSubject =
-        typeof variant.subject_line === 'string'
-          ? variant.subject_line.trim()
-          : '';
     }
 
     // Body-fallback-keten: variant → body → caption (legacy seed).
@@ -2313,51 +2211,34 @@ ${segmentsBlock}`;
           ? sc.caption.trim()
           : '');
 
-    const rawSubject =
-      variantSubject ||
-      (typeof sc.subject_line === 'string' && sc.subject_line.trim().length > 0
-        ? sc.subject_line.trim()
-        : typeof sc.subject === 'string' && sc.subject.trim().length > 0
-          ? sc.subject.trim()
-          : '');
-
-    // Als er geen body is, vallen we terug op het onderwerp + reasoning
-    // zodat de concept-campagne tenminste iets leesbaars bevat om vanuit
-    // te werken.
+    // Als er geen body is, vallen we terug op de reasoning zodat de
+    // concept-campagne tenminste iets leesbaars bevat om vanuit te werken.
     const body =
       rawBody ||
-      [rawSubject, suggestion.reasoning]
+      [suggestion.reasoning]
         .filter((x): x is string => typeof x === 'string' && x.length > 0)
         .join('\n\n') ||
       'Deze campagne is nog niet inhoudelijk uitgewerkt, klik op bewerken om de tekst toe te voegen.';
 
-    if (
-      (type !== 'mail' && type !== 'social' && type !== 'whatsapp') ||
-      !name
-    ) {
+    if (type !== 'social' || !name) {
       throw new InternalServerErrorException(
         'Suggestie mist type of naam. Kan niet omzetten naar campagne.',
       );
     }
 
-    const subject_line = rawSubject || null;
-
     // Variants uit de chat-flow meegeven aan de NIEUWE campagne. Sinds
     // mig 0041 zijn campaigns.variants[] (alle versies) +
     // selected_variant_index de bron-van-waarheid. De gekozen versie
-    // wordt óók als body/subject doorgegeven zodat
-    // campaign_*_content.body_plain/caption/message_text gevuld is.
+    // wordt óók als body doorgegeven zodat
+    // campaign_social_content.caption gevuld is.
     const allVariants =
       Array.isArray(sc.variants) && sc.variants.length > 0
         ? sc.variants
             .filter(
-              (v): v is { body: string; subject_line?: string } =>
+              (v): v is { body: string } =>
                 typeof v?.body === 'string' && v.body.trim().length > 0,
             )
-            .map((v) => ({
-              body: v.body.trim(),
-              subject_line: v.subject_line?.trim() || null,
-            }))
+            .map((v) => ({ body: v.body.trim() }))
         : [];
     const approveSelectedIdx =
       typeof sc.selected_index === 'number' &&
@@ -2372,13 +2253,11 @@ ${segmentsBlock}`;
     // Default 'instagram' als platform niet expliciet gezet is maar
     // type wel 'social' is (legacy fallback).
     const scWithPlatform = sc as { platform?: SuggestionPlatform };
-    const socialPlatforms: string[] | undefined =
-      type === 'social'
-        ? scWithPlatform.platform &&
-          ['instagram', 'facebook', 'tiktok'].includes(scWithPlatform.platform)
-          ? [scWithPlatform.platform]
-          : ['instagram']
-        : undefined;
+    const socialPlatforms: string[] =
+      scWithPlatform.platform &&
+      ['instagram', 'facebook', 'tiktok'].includes(scWithPlatform.platform)
+        ? [scWithPlatform.platform]
+        : ['instagram'];
 
     // Campagne aanmaken als concept. CampaignsService rolt zelf terug
     // bij content-insert-fout; hier hoeven we daar niet nog een laag
@@ -2387,8 +2266,7 @@ ${segmentsBlock}`;
       businessId,
       {
         name,
-        type: type as CampaignType,
-        subject_line,
+        type,
         body,
         // Per 2026-05-13 (mig 0041): alle versies doorgeven zodat de
         // campagne de Versies-grid behoudt na approve.
@@ -2442,14 +2320,14 @@ ${segmentsBlock}`;
     // campaign-media bucket. We downloaden de bytes server-side en
     // re-uploaden via campaigns.uploadMedia, identiek aan de "Kies uit
     // bibliotheek"-flow op de campagne-detail-pagina. Werkt alleen voor
-    // social/whatsapp (campaigns.uploadMedia weigert mail expliciet).
+    // social-campagnes.
     const customMediaId =
       typeof (sc as { restaurant_media_id?: string | null })
         .restaurant_media_id === 'string'
         ? ((sc as { restaurant_media_id?: string })
             .restaurant_media_id as string)
         : null;
-    if (customMediaId && (type === 'social' || type === 'whatsapp')) {
+    if (customMediaId) {
       try {
         const { data: mediaRow } = await this.supabase.client
           .from('business_media')
@@ -2552,23 +2430,17 @@ ${segmentsBlock}`;
         );
         const variant = channel.variants[selectedIdx];
         const body = (variant?.body ?? '').trim();
-        const subject = (variant?.subject_line ?? '').trim();
-        const campaignType = platformToCampaignType(channel.platform);
         const channelName = `${bundleName}, ${channel.platform.charAt(0).toUpperCase()}${channel.platform.slice(1)}`;
 
         // Per 2026-05-13 (mig 0041): per kanaal de complete versies-set
         // doorgeven, en de juiste gekozen-index. Sanitize hier identiek
-        // aan single-channel-approve (filter lege bodies, normalise
-        // subject_line).
+        // aan single-channel-approve (filter lege bodies).
         const channelVariantsClean = channel.variants
           .filter(
-            (v): v is { body: string; subject_line?: string } =>
+            (v): v is { body: string } =>
               typeof v?.body === 'string' && v.body.trim().length > 0,
           )
-          .map((v) => ({
-            body: v.body.trim(),
-            subject_line: v.subject_line?.trim() || null,
-          }));
+          .map((v) => ({ body: v.body.trim() }));
         const channelSelectedIdxClamped = Math.min(
           selectedIdx,
           Math.max(channelVariantsClean.length - 1, 0),
@@ -2577,8 +2449,7 @@ ${segmentsBlock}`;
           businessId,
           {
             name: channelName.slice(0, 120),
-            type: campaignType,
-            subject_line: subject || null,
+            type: 'social',
             body: body || 'Inhoud volgt — bewerk deze campagne.',
             group_id: groupId,
             variants:
@@ -2593,8 +2464,7 @@ ${segmentsBlock}`;
             // join op concept-detail. Multi-channel: alle kanalen van
             // de bundle wijzen naar dezelfde bron-suggestie.
             ai_suggestion_id: suggestion.id,
-            social_platforms:
-              campaignType === 'social' ? [channel.platform] : undefined,
+            social_platforms: [channel.platform],
             // Per-kanaal Filly-moment + reden bewaren voor de
             // "Wanneer plaatsen"-card.
             suggested_scheduled_for: channel.scheduled_for ?? null,
@@ -2622,8 +2492,8 @@ ${segmentsBlock}`;
           }
         }
 
-        // Foto kopiëren naar campaign-media (alleen non-mail).
-        if (channel.restaurant_media_id && campaignType !== 'mail') {
+        // Foto kopiëren naar campaign-media.
+        if (channel.restaurant_media_id) {
           try {
             const { data: mediaRow } = await this.supabase.client
               .from('business_media')
@@ -2703,12 +2573,11 @@ ${segmentsBlock}`;
   // Specifiek voor ai_suggestions met trigger_type='chat_bundle'.
   // Maakt:
   //   - 1 campaign_groups-rij (de bundle)
-  //   - 3 campaigns met dezelfde group_id:
-  //       * type='mail'   met subject_line + body in campaign_mail_content
+  //   - per gekozen kanaal een campaign met dezelfde group_id:
   //       * type='social' platforms=['instagram'] in campaign_social_content
   //       * type='social' platforms=['facebook']  in campaign_social_content
   //   - ai_suggestions: status=approved, approved_campaign_id wijst
-  //     naar de mail-campagne (anker; andere twee zijn via group_id
+  //     naar de eerste campagne (anker; de rest is via group_id
   //     vindbaar)
   // Idempotent: bij al-approved bundle returnen we de bestaande state.
   async approveBundle(
@@ -2725,10 +2594,8 @@ ${segmentsBlock}`;
     // Generieke map kanaal → aangemaakte campagne-id (alleen aanwezige).
     campaignIds: Partial<Record<BundleApproveChannel, string>>;
     // Backwards-compat losse velden (bestaande frontend leest deze nog).
-    mailCampaignId: string | null;
     instagramCampaignId: string | null;
     facebookCampaignId: string | null;
-    whatsappCampaignId: string | null;
     googleBusinessCampaignId: string | null;
     tiktokCampaignId: string | null;
   }> {
@@ -2766,10 +2633,8 @@ ${segmentsBlock}`;
           suggestion,
           groupId: anchorCamp.group_id as string,
           campaignIds,
-          mailCampaignId: campaignIds.mail ?? null,
           instagramCampaignId: campaignIds.instagram ?? null,
           facebookCampaignId: campaignIds.facebook ?? null,
-          whatsappCampaignId: campaignIds.whatsapp ?? null,
           googleBusinessCampaignId: campaignIds.google_business ?? null,
           tiktokCampaignId: campaignIds.tiktok ?? null,
         };
@@ -2790,10 +2655,8 @@ ${segmentsBlock}`;
       name?: string;
       theme?: string;
       channels?: {
-        mail?: { subject_line?: string; body?: string };
         instagram?: { caption?: string; hashtags?: string[] };
         facebook?: { caption?: string };
-        whatsapp?: { body?: string };
         google_business?: { body?: string };
         tiktok?: { caption?: string; hashtags?: string[] };
       };
@@ -2808,14 +2671,10 @@ ${segmentsBlock}`;
     const ch = sc?.channels ?? {};
 
     // Welke kanalen hebben daadwerkelijk bruikbare content in de payload?
-    // mail eist onderwerp + body; IG/FB een caption; whatsapp/GBP een body.
+    // IG/FB/TikTok een caption; GBP een body.
     const available: BundleApproveChannel[] = [];
-    if (ch.mail?.subject_line?.trim() && ch.mail?.body?.trim()) {
-      available.push('mail');
-    }
     if (ch.instagram?.caption?.trim()) available.push('instagram');
     if (ch.facebook?.caption?.trim()) available.push('facebook');
-    if (ch.whatsapp?.body?.trim()) available.push('whatsapp');
     if (ch.google_business?.body?.trim()) available.push('google_business');
     if (ch.tiktok?.caption?.trim()) available.push('tiktok');
 
@@ -2849,7 +2708,7 @@ ${segmentsBlock}`;
     const groupId = group.id as string;
 
     // 2) Per gevraagd kanaal een campagne aanmaken via CampaignsService.create,
-    // allemaal onder hetzelfde group_id. WhatsApp = type 'whatsapp', Google
+    // allemaal onder hetzelfde group_id. Google
     // Business = type 'social' + platform 'google_business' (zelfde calls als
     // de losse single-channel approve). We bewaren de id's in een map.
     const campaignIds: Partial<Record<BundleApproveChannel, string>> = {};
@@ -2859,20 +2718,7 @@ ${segmentsBlock}`;
     // retry schoon begint i.p.v. duplicaten + een wees-group te stapelen.
     try {
       for (const channel of requested) {
-        if (channel === 'mail' && ch.mail) {
-          const { id } = await this.campaigns.create(
-            businessId,
-            {
-              name: `${bundleName}, mail`,
-              type: 'mail',
-              subject_line: ch.mail.subject_line!.trim().slice(0, 200),
-              body: ch.mail.body!.trim(),
-              group_id: groupId,
-            },
-            userId,
-          );
-          campaignIds.mail = id;
-        } else if (channel === 'instagram' && ch.instagram) {
+        if (channel === 'instagram' && ch.instagram) {
           const { id } = await this.campaigns.create(
             businessId,
             {
@@ -2899,18 +2745,6 @@ ${segmentsBlock}`;
             userId,
           );
           campaignIds.facebook = id;
-        } else if (channel === 'whatsapp' && ch.whatsapp) {
-          const { id } = await this.campaigns.create(
-            businessId,
-            {
-              name: `${bundleName}, WhatsApp`,
-              type: 'whatsapp',
-              body: ch.whatsapp.body!.trim(),
-              group_id: groupId,
-            },
-            userId,
-          );
-          campaignIds.whatsapp = id;
         } else if (channel === 'google_business' && ch.google_business) {
           const { id } = await this.campaigns.create(
             businessId,
@@ -2970,10 +2804,8 @@ ${segmentsBlock}`;
     // aangemaakte kanaal (vaste prioriteit) zodat we altijd één anker
     // hebben voor de "bekijk campagne"-link.
     const anchorCampaignId =
-      campaignIds.mail ??
       campaignIds.instagram ??
       campaignIds.facebook ??
-      campaignIds.whatsapp ??
       campaignIds.google_business ??
       campaignIds.tiktok ??
       null;
@@ -2997,10 +2829,8 @@ ${segmentsBlock}`;
       suggestion: updated as AiSuggestion,
       groupId,
       campaignIds,
-      mailCampaignId: campaignIds.mail ?? null,
       instagramCampaignId: campaignIds.instagram ?? null,
       facebookCampaignId: campaignIds.facebook ?? null,
-      whatsappCampaignId: campaignIds.whatsapp ?? null,
       googleBusinessCampaignId: campaignIds.google_business ?? null,
       tiktokCampaignId: campaignIds.tiktok ?? null,
     };
@@ -3008,8 +2838,8 @@ ${segmentsBlock}`;
 
   // Classificeert een campagne-rij terug naar z'n bundel-kanaal. Gebruikt
   // door de idempotente rehydratie van approveBundle (na dubbele klik).
-  // mail/whatsapp volgen uit campaign.type; de socials uit het platform
-  // in campaign_social_content (instagram / facebook / google_business).
+  // Het kanaal volgt uit het platform in campaign_social_content
+  // (instagram / facebook / google_business / tiktok).
   private classifyBundleCampaign(row: {
     type?: string | null;
     campaign_social_content?:
@@ -3017,8 +2847,6 @@ ${segmentsBlock}`;
       | { platforms?: string[] }
       | null;
   }): BundleApproveChannel | null {
-    if (row.type === 'mail') return 'mail';
-    if (row.type === 'whatsapp') return 'whatsapp';
     if (row.type === 'social') {
       const pl = row.campaign_social_content;
       const platforms = Array.isArray(pl) ? pl[0]?.platforms : pl?.platforms;
@@ -3217,7 +3045,7 @@ ${segmentsBlock}`;
     const primary = channels[0];
     const syncedSc: SuggestedCampaign = {
       ...newSc,
-      type: primary ? platformToCampaignType(primary.platform) : newSc.type,
+      type: primary ? 'social' : newSc.type,
       platform: primary?.platform ?? newSc.platform,
     };
     const { data: updated, error: updErr } = await this.supabase.client
@@ -3234,14 +3062,11 @@ ${segmentsBlock}`;
   }
 
   // Per 2026-05-07: eigenaar koppelt vóór goedkeuring een foto uit de
-  // restaurant-bibliotheek aan een pending-suggestie. Alleen voor
-  // social/whatsapp-types; mail ondersteunt nog geen media (consistent
-  // met campaigns.uploadMedia). mediaId=null wist de koppeling.
+  // restaurant-bibliotheek aan een pending-suggestie. mediaId=null wist de koppeling.
   // Bij goedkeuring kopieert approve() het bestand van restaurant-
   // assets naar de campaign-media bucket zodat de campagne een eigen
   // kopie heeft (los van bibliotheek-deletions).
   // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
-  // Mail-kanalen weigeren we (consistent met campaigns.uploadMedia).
   async setMedia(
     businessId: string,
     suggestionId: string,
@@ -3269,25 +3094,16 @@ ${segmentsBlock}`;
       businessId,
       suggestionId,
       channelId,
-      (channel) => {
-        if (channel.platform === 'mail') {
-          throw new BadRequestException(
-            "Mail-kanalen ondersteunen nog geen foto's.",
-          );
-        }
-        return { ...channel, restaurant_media_id: validatedId };
-      },
+      (channel) => ({ ...channel, restaurant_media_id: validatedId }),
     );
   }
 
   // Per 2026-05-07 fase 2c: channel-aware. Default = primair kanaal.
-  // subject_line patch-semantiek: undefined = laat staan, null/lege
-  // string = wis, niet-lege string = vervang.
   async editVariant(
     businessId: string,
     suggestionId: string,
     index: number,
-    patch: { subject_line?: string | null; body?: string },
+    patch: { body?: string },
     channelId?: string,
   ): Promise<AiSuggestion> {
     if (!Number.isInteger(index) || index < 0) {
@@ -3314,17 +3130,8 @@ ${segmentsBlock}`;
         if (!newBody) {
           throw new BadRequestException('Body mag niet leeg zijn.');
         }
-        let newSubject: string | undefined = current.subject_line;
-        if (patch.subject_line === null || patch.subject_line === '') {
-          newSubject = undefined;
-        } else if (
-          typeof patch.subject_line === 'string' &&
-          patch.subject_line.trim().length > 0
-        ) {
-          newSubject = patch.subject_line.trim().slice(0, 200);
-        }
         const newVariants = channel.variants.map((v, i) =>
-          i === index ? { body: newBody, subject_line: newSubject } : v,
+          i === index ? { body: newBody } : v,
         );
         return { ...channel, variants: newVariants };
       },
@@ -3432,70 +3239,40 @@ ${segmentsBlock}`;
       }
     }
 
-    // Bepaal type per pad. Multi-channel = type van het target-kanaal
-    // (mail/instagram/facebook/tiktok/whatsapp) naar de drie generieke
-    // soorten (mail/social/whatsapp) voor de Claude-prompt.
-    let currentType: 'mail' | 'social' | 'whatsapp';
-    if (isMultiChannel) {
-      const platform = channels[targetChannelIdx]?.platform ?? 'mail';
-      currentType =
-        platform === 'mail'
-          ? 'mail'
-          : platform === 'whatsapp'
-            ? 'whatsapp'
-            : 'social';
-    } else {
-      currentType =
-        sc.type === 'mail' || sc.type === 'social' || sc.type === 'whatsapp'
-          ? sc.type
-          : 'mail';
-    }
+    // Het type is voor de Claude-prompt altijd 'social'; het echte platform
+    // (instagram/facebook/tiktok/google_business) zit in het target-kanaal.
+    const currentType: CampaignType = 'social';
 
     // Bestaande varianten — voor multi-channel uit het target-kanaal,
     // voor legacy uit sc.variants (of synthetisch uit sc.body/caption).
-    const existingVariants: Array<{ subject_line?: string; body: string }> =
-      isMultiChannel
-        ? (() => {
-            const chanVariants = channels[targetChannelIdx]?.variants;
-            return Array.isArray(chanVariants)
-              ? chanVariants
-                  .filter(
-                    (v): v is { body: string; subject_line?: string } =>
-                      typeof v?.body === 'string' && v.body.length > 0,
-                  )
-                  .map((v) => ({
-                    body: v.body,
-                    subject_line: v.subject_line,
-                  }))
-              : [];
-          })()
-        : Array.isArray(sc.variants) && sc.variants.length > 0
-          ? sc.variants
-              .filter(
-                (v): v is { body: string; subject_line?: string } =>
-                  typeof v?.body === 'string' && v.body.length > 0,
-              )
-              .map((v) => ({
-                body: v.body,
-                subject_line: v.subject_line,
-              }))
-          : (() => {
-              const legacyBody =
-                typeof sc.body === 'string' && sc.body.length > 0
-                  ? sc.body
-                  : typeof sc.caption === 'string'
-                    ? sc.caption
-                    : '';
-              const legacySubject =
-                typeof sc.subject_line === 'string'
-                  ? sc.subject_line
-                  : typeof sc.subject === 'string'
-                    ? sc.subject
-                    : undefined;
-              return legacyBody
-                ? [{ body: legacyBody, subject_line: legacySubject }]
-                : [];
-            })();
+    const existingVariants: Array<{ body: string }> = isMultiChannel
+      ? (() => {
+          const chanVariants = channels[targetChannelIdx]?.variants;
+          return Array.isArray(chanVariants)
+            ? chanVariants
+                .filter(
+                  (v): v is { body: string } =>
+                    typeof v?.body === 'string' && v.body.length > 0,
+                )
+                .map((v) => ({ body: v.body }))
+            : [];
+        })()
+      : Array.isArray(sc.variants) && sc.variants.length > 0
+        ? sc.variants
+            .filter(
+              (v): v is { body: string } =>
+                typeof v?.body === 'string' && v.body.length > 0,
+            )
+            .map((v) => ({ body: v.body }))
+        : (() => {
+            const legacyBody =
+              typeof sc.body === 'string' && sc.body.length > 0
+                ? sc.body
+                : typeof sc.caption === 'string'
+                  ? sc.caption
+                  : '';
+            return legacyBody ? [{ body: legacyBody }] : [];
+          })();
 
     if (existingVariants.length >= SUGGESTION_VARIANTS_MAX) {
       throw new BadRequestException(
@@ -3526,7 +3303,6 @@ ${lang === 'en' ? '- Write in English, in the same campaign context (same dish/o
 - Drie tonen: bv. zakelijk-professioneel, warm-persoonlijk, kort-prikkelend. Onderling duidelijk verschillend.
 - Houd élke variant binnen de lengte-bandbreedte uit KANAAL-REGELS hieronder, nooit erbuiten.
 - Verzin geen cijfers of feiten die niet in de oorspronkelijke versie stonden.
-- Bij type=mail vul je per variant ook subject_line; bij social/whatsapp laat je subject_line weg.
 - Vermijd de exacte zinnen uit de bestaande varianten.
 
 ---
@@ -3572,10 +3348,6 @@ ${channelRules}
     const newAlternatives = (parsed.variants ?? [])
       .map((v) => ({
         body: typeof v.body === 'string' ? v.body.trim().slice(0, 5000) : '',
-        subject_line:
-          typeof v.subject_line === 'string' && v.subject_line.trim().length > 0
-            ? v.subject_line.trim().slice(0, 200)
-            : undefined,
       }))
       .filter((v) => v.body.length > 0)
       // Cap zodat we nooit over de max heen gaan, ook als de claude-
@@ -3656,7 +3428,7 @@ ${channelRules}
   }
 
   // ============================================================
-  // BUNDLE, multi-channel proposal vanuit chat (mail + IG + FB)
+  // BUNDLE, multi-channel proposal vanuit chat (IG + FB)
   // ============================================================
   // Sinds 2026-05-04: Filly kan in chat een bundle voorstellen, één
   // thema over drie kanalen tegelijk. Slaan we op als één
@@ -3664,23 +3436,21 @@ ${channelRules}
   // bundle in suggested_campaign-jsonb. Approve-flow detecteert het
   // trigger_type en maakt:
   //   - 1 campaign_groups-rij (de bundel)
-  //   - 3 campaigns met dezelfde group_id (mail / social-IG / social-FB)
-  //   - 3 content-rijen (campaign_mail_content + 2× campaign_social_content)
+  //   - per kanaal een campaign met dezelfde group_id (social-IG / social-FB)
+  //   - per kanaal een campaign_social_content-rij
   // Eigenaar kan elk kanaal individueel pushen of inplannen daarna.
   async createBundleFromChat(
     businessId: string,
     bundle: {
       name: string;
       theme: string;
-      // Optionele velden: bundel kan elke subset van de 5 chat-kanalen
-      // bevatten (sinds 2026-06-02). WhatsApp + Google Business hebben
-      // alleen een body (geen onderwerp/hashtags). De approve-flow
+      // Optionele velden: bundel kan elke subset van de chat-kanalen
+      // bevatten (sinds 2026-06-02). Google Business heeft
+      // alleen een body (geen hashtags). De approve-flow
       // (approveBundle) leest straks per aanwezig kanaal.
       channels: {
-        mail?: { subject_line: string; body: string };
         instagram?: { caption: string; hashtags?: string[] };
         facebook?: { caption: string };
-        whatsapp?: { body: string };
         google_business?: { body: string };
       };
     },
