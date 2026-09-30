@@ -105,6 +105,22 @@ export class SuggestionsController {
     return this.suggestions.getDayContext(businessId, date ?? '');
   }
 
+  // Zachte waarschuwing: hoeveel uitingen staan er al op dit kanaal in de week
+  // van dit moment, tegenover het maximum uit de kanaalregels. MOET vóór de
+  // ':id'-route staan.
+  @Get('channel-load')
+  getChannelLoad(
+    @BusinessId() businessId: string,
+    @Query('channel') channel?: string,
+    @Query('when') when?: string,
+  ) {
+    return this.suggestions.getChannelLoad(
+      businessId,
+      channel ?? '',
+      when ?? new Date().toISOString(),
+    );
+  }
+
   @Get(':id')
   findOne(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.suggestions.findById(businessId, id);

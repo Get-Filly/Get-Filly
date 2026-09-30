@@ -23,6 +23,8 @@ import {
   formatChannelRulesForPrompt,
   mapCampaignTypeToChannel,
   type FillyChannel,
+  CHANNEL_RULES,
+  buildThemeChannelMixBlock,
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
 import { enforceCopyLength } from '../ai/copy-length.guard';
@@ -35,6 +37,8 @@ import { EventsService, type NearbyEvent } from '../events/events.service';
 import { WeatherService, type ForecastDay } from '../weather/weather.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 import { HORECA_PACK } from '../ai/horeca-taal';
+import { planPostTime, type PostPlan } from '../ai/post-timing';
+import { amsterdamIsoAtHour, todayNl } from '../common/date-nl';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
 // 1-variant-replace naar 3-variants-append. Eigenaar krijgt 3 nieuwe
@@ -117,7 +121,6 @@ const GENERATABLE_PLATFORMS: SuggestionPlatform[] = [
   'facebook',
   'tiktok',
   'google_business',
-  'mail',
 ];
 
 // Kanalen waarvan Filly de REGELS PER KANAAL meekrijgt in de generatie-
@@ -132,7 +135,6 @@ const PROMPT_CHANNELS: FillyChannel[] = [
   'facebook',
   'tiktok',
   'google_business',
-  'mail',
 ];
 
 // Kanalen die een multi-channel-bundel kan bevatten. Sinds 2026-06-22 ook
@@ -273,22 +275,12 @@ type GenerateSuggestionsFromTool = {
 const LOW_OCCUPANCY_SCHEMA = {
   type: 'object',
   properties: {
-    campaign_type: { type: 'string', enum: ['social', 'mail'] },
+    campaign_type: { type: 'string', enum: ['social'] },
     name: { type: 'string' },
     subject_line: { type: 'string' },
     body: { type: 'string' },
     target_segment: { type: 'string' },
     reasoning: { type: 'string' },
-    alternative_channel: {
-      type: 'string',
-      enum: ['social', 'mail'],
-      description:
-        'Het beste alternatieve kanaal als de primaire keuze tegenvalt qua bereik of timing. Moet verschillen van campaign_type.',
-    },
-    alternative_reasoning: {
-      type: 'string',
-      description: 'Eén zin NL: waarom dit alternatief en wat de trade-off is.',
-    },
     confidence: { type: 'number' },
     expected_extra_reservations: { type: 'integer' },
     expected_extra_revenue_cents: { type: 'integer' },
@@ -303,8 +295,6 @@ type LowOccupancyCampaignFromTool = {
   body: string;
   target_segment?: string;
   reasoning: string;
-  alternative_channel?: 'mail' | 'social' | 'whatsapp';
-  alternative_reasoning?: string;
   confidence?: number;
   expected_extra_reservations?: number;
   expected_extra_revenue_cents?: number;
@@ -331,41 +321,44 @@ const WEEKDAY_NL = [
   'zaterdag',
 ];
 
-// Beste plaats-uur (Amsterdamse wandkloktijd) per kanaal, afgeleid van de
-// brain-config bestHours. De eigenaar kiest een DAG in de geleide flow; Filly
-// bepaalt hier het TIJDSTIP op basis van het gekozen kanaal. De eigenaar kan
-// het moment altijd nog bijstellen via de "Wanneer plaatsen?"-kaart.
-const BEST_HOUR_BY_PLATFORM: Record<string, number> = {
-  mail: 10,
-  instagram: 18,
-  facebook: 18,
-  tiktok: 17,
-  whatsapp: 18,
-  google_business: 11,
-};
-const BEST_HOUR_BY_TYPE: Record<string, number> = {
-  mail: 10,
-  social: 18,
-  whatsapp: 18,
-};
+// Wanneer een uiting geplaatst wordt bepaalt planPostTime (ai/post-timing.ts):
+// vanaf het begin van het voorgestelde tijdvenster terug, met de voorsprong en
+// de beste uren van het kanaal. De eigenaar kan het moment altijd nog
+// bijstellen via de "Wanneer plaatsen?"-kaart.
+const platformToFillyChannel = (p: string): FillyChannel =>
+  p === 'instagram' ? 'instagram_feed' : (p as FillyChannel);
 
-// Bouwt een ISO-tijdstip voor `dateStr` (YYYY-MM-DD) om `hour`:00 Amsterdamse
-// wandkloktijd, met de juiste offset (+01:00 winter / +02:00 zomer). De API
-// draait in UTC, dus we bepalen de offset via een probe zodat DST klopt.
-function amsterdamIsoAtHour(dateStr: string, hour: number): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const cand = new Date(Date.UTC(y, m - 1, d, hour, 0, 0));
-  const amsHour = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/Amsterdam',
-      hour: '2-digit',
-      hour12: false,
-    }).format(cand),
+/**
+ * Plan alle gekozen platforms. Kanalen waarvoor het te laat is vallen af;
+ * blijft er zo niets over, dan houden we het eerste platform zo snel mogelijk
+ * aan (de eigenaar koos deze dag bewust), met urgentie in de tekst.
+ */
+function planPlatforms(
+  platforms: SuggestionPlatform[],
+  windowStartIso: string,
+  now: Date,
+): Array<{ platform: SuggestionPlatform; plan: PostPlan }> {
+  const plans = platforms.map((platform) => ({
+    platform,
+    plan: planPostTime(platformToFillyChannel(platform), windowStartIso, now),
+  }));
+  const kept = plans.filter((x) => !x.plan.skip);
+  if (kept.length > 0 || plans.length === 0) return kept;
+  const first = plans[0];
+  const asap = new Date(
+    Math.ceil((now.getTime() + 3_600_000) / 3_600_000) * 3_600_000,
   );
-  let offset = amsHour - hour; // uren dat Amsterdam vóórloopt op UTC
-  if (offset < -12) offset += 24;
-  if (offset > 12) offset -= 24;
-  return new Date(Date.UTC(y, m - 1, d, hour - offset, 0, 0)).toISOString();
+  return [
+    {
+      platform: first.platform,
+      plan: {
+        ...first.plan,
+        skip: false,
+        urgencyInCopy: true,
+        scheduledFor: asap.toISOString(),
+      },
+    },
+  ];
 }
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected' | 'expired';
@@ -740,6 +733,8 @@ ${langWriteRules(lang)}
 
 Platform-keuze per kanaal (BIJ CONFLICT: REGELS PER KANAAL onderaan is leidend).
 LET OP: mail is GEEN kanaal meer. Stel nooit een mailing voor.
+
+${buildThemeChannelMixBlock()}
 
   - instagram: visueel, snel gezien, sterk voor laat-boekers (foto-first, korte caption, hashtags).
   - facebook: bredere doelgroep + lokale buurt, iets meer tekst dan Instagram.
@@ -1239,7 +1234,6 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 ${drukteRegels}
 
 GASTEN-SEGMENTEN VOOR ACTIVATIE:
-- Mail-opt-in: ${segmentCounts.mail_opt_in} gasten
 - WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
 - Vaste gasten: ${segmentCounts.vaste_gast}
 - VIP: ${segmentCounts.vip}
@@ -1259,12 +1253,11 @@ ${langWriteRules(lang)}
   * brede zaal/weekend, mensen uit de buurt → social (Facebook: lokaal bereik)
   * jonger publiek, sfeer/achter-de-schermen → social (TikTok-video)
   * mensen die je in Maps of Google zoeken → google_business
-  * 5-14 dagen vooruit én je hebt een mailbestand → mail (uitgewerkter)
 - Houd de body binnen de lengte-bandbreedte van het gekozen kanaal
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
-- alternative_channel + alternative_reasoning: geef ALTIJD ook het beste alternatieve kanaal (anders dan je primaire keuze) met 1 zin trade-off, zodat de eigenaar kan wisselen als het bereik tegenvalt (zie BEREIK PER KANAAL).
+- Mail is GEEN kanaal meer. Stel nooit een mailing voor.
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/weekdag werkt, verwijs naar concrete getallen.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
@@ -1331,11 +1324,7 @@ ${dayContext}`;
 
         // Alternatief kanaal achter de reasoning: zichtbaar in de
         // bestaande UI zonder kolom-wijziging.
-        const reasoningWithAlt =
-          raw.alternative_channel &&
-          raw.alternative_channel !== raw.campaign_type
-            ? `${raw.reasoning}\n\n💡 Alternatief: ${raw.alternative_channel}${raw.alternative_reasoning ? ` — ${raw.alternative_reasoning.trim().slice(0, 300)}` : ''}`
-            : raw.reasoning;
+        const reasoningWithAlt = raw.reasoning;
 
         const row = {
           business_id: businessId,
@@ -1455,6 +1444,56 @@ ${dayContext}`;
   // Voedt stap 2 + 3 van de geleide chat-flow (FillyGuidedFlow):
   // welke events spelen er die dag in de buurt, wat is het weer, en
   // welke kanalen hebben bereik (vóórgevinkt). Read-only, geen AI.
+  /**
+   * Hoeveel uitingen op dit kanaal staan er al in de week (maandag tot zondag)
+   * van `whenIso`, tegenover het maximum per week uit de kanaalregels? Voor de
+   * zachte waarschuwing: de eigenaar mag altijd meer inplannen, maar we
+   * zeggen het als het veel wordt. Telt alle uitingen van Get-Filly (concept,
+   * ingepland, actief en afgerond), niet wat de eigenaar zelf buiten Filly
+   * plaatst; het maximum is dus een ondergrens voor wat de eigenaar merkt.
+   */
+  async getChannelLoad(
+    businessId: string,
+    channel: string,
+    whenIso: string,
+  ): Promise<{
+    channel: string;
+    weekStart: string;
+    count: number;
+    max: number;
+    exceeded: boolean;
+  }> {
+    const fillyChannel = platformToFillyChannel(channel);
+    const rules = CHANNEL_RULES[fillyChannel];
+    if (!rules) throw new BadRequestException('Onbekend kanaal.');
+    const when = new Date(whenIso);
+    if (Number.isNaN(when.getTime())) {
+      throw new BadRequestException('Ongeldig moment.');
+    }
+    // Maandag 00:00 tot volgende maandag 00:00, op Amsterdamse kalenderdatum.
+    const day = todayNl(when);
+    const dow = (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7;
+    const monday = new Date(`${day}T12:00:00Z`);
+    monday.setUTCDate(monday.getUTCDate() - dow);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const next = new Date(monday);
+    next.setUTCDate(next.getUTCDate() + 7);
+    const nextStart = next.toISOString().slice(0, 10);
+
+    const { count, error } = await this.supabase.client
+      .from('campaign_channel_map')
+      .select('campaign_id', { count: 'exact', head: true })
+      .eq('business_id', businessId)
+      .eq('channel', channel)
+      .gte('happened_at', amsterdamIsoAtHour(weekStart, 0))
+      .lt('happened_at', amsterdamIsoAtHour(nextStart, 0));
+    if (error) throwDbError(this.logger, error);
+
+    const max = rules.frequency.maxPerWeek;
+    const n = count ?? 0;
+    return { channel, weekStart, count: n, max, exceeded: n >= max };
+  }
+
   async getDayContext(businessId: string, date: string): Promise<DayContext> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new BadRequestException('Ongeldige datum.');
@@ -1649,6 +1688,7 @@ ${dayContext}`;
     // dag zelf, dus het tempo-plafond mag hier niet filteren. Leeg → terugval
     // op de occupancy-context.
     type QuietInfo = {
+      daypart: string;
       daypartLabel: string;
       fromHour: number;
       toHour: number;
@@ -1674,6 +1714,7 @@ ${dayContext}`;
         .catch(() => null);
       for (const m of qm?.moments ?? []) {
         quietByDate.set(m.date, {
+          daypart: m.daypart,
           daypartLabel: m.daypartLabel,
           fromHour: m.fromHour,
           toHour: m.toHour,
@@ -1730,6 +1771,8 @@ ${dayContext}`;
 
       // Per-item prompt + trigger_context bouwen.
       let dayContext: string;
+      // Begin van het voorgestelde tijdvenster (uur), voor het plaatsmoment.
+      let windowFromHour: number | null = null;
       let triggerType: 'low_occupancy' | 'special_day';
       let triggerContextBase: Record<string, unknown>;
 
@@ -1739,6 +1782,7 @@ ${dayContext}`;
         // Door de eigenaar gekozen dagdeel wint; anders het gedetecteerde.
         const dp = item.daypart
           ? {
+              key: item.daypart.key,
               label: item.daypart.label,
               fromHour: item.daypart.fromHour,
               toHour: item.daypart.toHour,
@@ -1750,6 +1794,7 @@ ${dayContext}`;
             }
           : detected
             ? {
+                key: detected.daypart,
                 label: detected.daypartLabel,
                 fromHour: detected.fromHour,
                 toHour: detected.toHour,
@@ -1758,6 +1803,7 @@ ${dayContext}`;
               }
             : null;
         if (dp) {
+          windowFromHour = dp.fromHour;
           // Campagne mikt op dít dagdeel (niet de hele dag). Geen exacte
           // percentages in de context.
           const venster = `${String(dp.fromHour).padStart(2, '0')}:00–${String(
@@ -1776,6 +1822,15 @@ ${dayContext}`;
             target_date: item.date,
             weekday: weekdayNl,
             source: 'busyness',
+            // Sleutel + venster van het doelmoment: zonder deze werkt de
+            // cool-down niet en wordt de campagne niet gemeten.
+            ...(dp.key
+              ? {
+                  target_daypart: dp.key,
+                  target_from_hour: dp.fromHour,
+                  target_to_hour: dp.toHour + 1,
+                }
+              : {}),
             daypart_label: dp.label,
             unusual: dp.unusual,
             // Zodat de campagne later nog kan tonen waaróm deze dag.
@@ -1842,15 +1897,10 @@ groepen + traditie.`;
               ', ',
             )}. Zet campaign_type op het primaire kanaal '${platformToType(
               item.channels[0],
-            )}' en schrijf de body zo dat 'ie ook past op de andere gekozen kanalen.${
-              item.channels.length > 1
-                ? ` Zet alternative_channel op '${platformToType(item.channels[1])}'.`
-                : ''
-            }`
+            )}' en schrijf de body zo dat 'ie ook past op de andere gekozen kanalen.`
           : '';
 
       const segmentsBlock = `GASTEN-SEGMENTEN VOOR ACTIVATIE:
-- Mail-opt-in: ${segmentCounts.mail_opt_in} gasten
 - WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
 - Vaste gasten: ${segmentCounts.vaste_gast}
 - VIP: ${segmentCounts.vip}
@@ -1870,12 +1920,11 @@ ${langWriteRules(lang)}
   * Brede zaal/weekend, buurt → social (Facebook: lokaal bereik)
   * Jonger publiek, sfeer/achter-de-schermen → social (TikTok-video)
   * Mensen die je in Maps of Google zoeken → google_business
-  * 5+ dgn vooruit én je hebt een mailbestand → mail (uitgewerkter)
 - Houd de body binnen de lengte-bandbreedte van het gekozen kanaal
   (zie REGELS PER KANAAL hieronder; type 'social' volgt het
   Instagram (feed)-profiel).
 - Beschrijf doelgroep concreet (welk segment + waarom dat segment voor DEZE dag werkt).
-- alternative_channel + alternative_reasoning: geef ALTIJD ook het beste alternatieve kanaal (anders dan je primaire keuze) met 1 zin trade-off, zodat de eigenaar kan wisselen als het bereik tegenvalt (zie BEREIK PER KANAAL).
+- Mail is GEEN kanaal meer. Stel nooit een mailing voor.
 - reasoning: 1-2 zinnen NL waarom dit voor DEZE specifieke dag/aanleiding werkt.
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
@@ -1901,7 +1950,23 @@ ${dayContext}
 
 ${segmentsBlock}`;
 
-      const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${item.date}.`;
+      // Begin van het voorgestelde venster (feestdagen: rond de lunch, zonder
+      // venster: het diner), en daarvan uit terug het plaatsmoment per kanaal.
+      const windowStartIso = amsterdamIsoAtHour(
+        item.date,
+        windowFromHour ?? (item.kind === 'special_day' ? 12 : 17),
+      );
+      const planNow = new Date();
+      const URGENCY_NOTE =
+        ' Er is weinig tijd tot het moment: gebruik urgentie-taal ("vanavond nog", "nog een paar tafels vrij"), zonder te overdrijven.';
+      const singlePlan = planPostTime(
+        'instagram_feed',
+        windowStartIso,
+        planNow,
+      );
+      const userPrompt = `Maak één concreet voorstel voor ${weekdayNl} ${item.date}.${
+        singlePlan.urgencyInCopy || singlePlan.skip ? URGENCY_NOTE : ''
+      }`;
 
       try {
         const generateProposal = (prompt: string) =>
@@ -1940,9 +2005,20 @@ ${segmentsBlock}`;
           // generateOnDemand zodat de voorstellen-strip + bundel-approve
           // 'm ongewijzigd aankunnen. Fail-soft: een kanaal dat faalt
           // wordt overgeslagen, niks gelukt → dag overslaan.
-          const platforms = item.channels.filter((p): p is SuggestionPlatform =>
+          const wanted = item.channels.filter((p): p is SuggestionPlatform =>
             (GENERATABLE_PLATFORMS as string[]).includes(p),
           );
+          // Plaatsmoment per kanaal; kanalen waarvoor het te laat is vallen af.
+          const planned = planPlatforms(wanted, windowStartIso, planNow);
+          const planOf = new Map(planned.map((x) => [x.platform, x.plan]));
+          const platforms = planned.map((x) => x.platform);
+          if (platforms.length < wanted.length) {
+            this.logger.log(
+              `kanalen te laat voor ${item.date}: ${wanted
+                .filter((p) => !planOf.has(p))
+                .join(', ')}`,
+            );
+          }
 
           // Audit-item #6: de kanalen PARALLEL genereren i.p.v.
           // sequentieel — bij 4 kanalen scheelt dat ~15-30s wachttijd
@@ -1954,7 +2030,9 @@ ${segmentsBlock}`;
           const settled = await Promise.all(
             platforms.map(async (p, i) => {
               const channelPrompt = (extra: string) =>
-                `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='${platformToType(p)}'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}`;
+                `${userPrompt}\n\nMaak dit ALLEEN voor kanaal '${p}' (campaign_type='${platformToType(p)}'). Schrijf de tekst specifiek voor ${p}.${extra ? ` ${extra}` : ''}${
+                  planOf.get(p)?.urgencyInCopy ? URGENCY_NOTE : ''
+                }`;
               try {
                 const firstCh = await generateProposal(channelPrompt(''));
                 const ch = await enforceCopyLength({
@@ -1996,12 +2074,11 @@ ${segmentsBlock}`;
               },
             ],
             selected_index: 0,
-            // Datum = de gekozen dag; tijd = beste uur voor dit kanaal.
-            // De approve-flow neemt scheduled_for over op de campagne.
-            scheduled_for: amsterdamIsoAtHour(
-              item.date,
-              BEST_HOUR_BY_PLATFORM[r.platform] ?? 18,
-            ),
+            // Plaatsmoment relatief aan het voorgestelde venster (zie
+            // planPostTime). De approve-flow neemt scheduled_for over op de
+            // campagne.
+            scheduled_for: planOf.get(r.platform)?.scheduledFor ?? undefined,
+            filly_scheduled_reasoning: planOf.get(r.platform)?.reasoning,
           }));
           // Lead = eerste geslaagde kanaal (voor naam/reasoning/impact).
           const lead: LowOccupancyCampaignFromTool | null = ok[0]?.ch ?? null;
@@ -2056,11 +2133,7 @@ ${segmentsBlock}`;
           });
 
           // Zelfde alternatief-in-reasoning-patroon als low-occupancy.
-          const reasoningWithAlt =
-            raw.alternative_channel &&
-            raw.alternative_channel !== raw.campaign_type
-              ? `${raw.reasoning}\n\n💡 Alternatief: ${raw.alternative_channel}${raw.alternative_reasoning ? ` — ${raw.alternative_reasoning.trim().slice(0, 300)}` : ''}`
-              : raw.reasoning;
+          const reasoningWithAlt = raw.reasoning;
 
           row = {
             business_id: businessId,
@@ -2074,12 +2147,14 @@ ${segmentsBlock}`;
               name: raw.name,
               subject_line: raw.subject_line,
               body: raw.body,
-              // Datum = de gekozen dag; tijd = beste uur voor dit type. De
-              // approve-flow neemt scheduled_for over op de concept-campagne.
-              scheduled_for: amsterdamIsoAtHour(
-                item.date,
-                BEST_HOUR_BY_TYPE[raw.campaign_type] ?? 18,
-              ),
+              // Plaatsmoment relatief aan het voorgestelde venster. Te laat voor
+              // het kanaal? Dan toch zo snel mogelijk: de eigenaar koos deze dag.
+              scheduled_for:
+                singlePlan.scheduledFor ??
+                new Date(
+                  Math.ceil((planNow.getTime() + 3_600_000) / 3_600_000) *
+                    3_600_000,
+                ).toISOString(),
             },
             status: 'pending' as const,
             urgency: daysFromNow <= 4 ? 'high' : 'medium',

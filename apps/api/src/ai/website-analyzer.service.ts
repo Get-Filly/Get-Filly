@@ -156,8 +156,7 @@ export class WebsiteAnalyzerService {
     // welk stukje vandaan komt ("dit is de menu-pagina, dit is over-ons").
     const combined = pages
       .map(
-        (p) =>
-          `--- ${p.url} ---\n${p.text.slice(0, 4000)}`, // max ~4k per pagina
+        (p) => `--- ${p.url} ---\n${p.text.slice(0, 4000)}`, // max ~4k per pagina
       )
       .join('\n\n')
       .slice(0, this.MAX_TOTAL_CHARS);
@@ -198,14 +197,9 @@ export class WebsiteAnalyzerService {
   // metadata) / een interne range. Zonder deze check zou een ingelogde
   // gebruiker onze server interne endpoints laten ophalen en de inhoud
   // via Claude terugkrijgen.
-  private async fetchPage(
-    url: string,
-  ): Promise<{ html: string } | null> {
+  private async fetchPage(url: string): Promise<{ html: string } | null> {
     const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      this.FETCH_TIMEOUT_MS,
-    );
+    const timeout = setTimeout(() => controller.abort(), this.FETCH_TIMEOUT_MS);
     try {
       let currentUrl = url;
       for (let hop = 0; hop <= this.MAX_REDIRECTS; hop++) {
@@ -537,8 +531,13 @@ function extractSameOriginLinks(html: string, origin: string): string[] {
 
   $('a[href]').each((_, el) => {
     const raw = $(el).attr('href') ?? '';
-    if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') ||
-        raw.startsWith('tel:') || raw.startsWith('javascript:')) {
+    if (
+      !raw ||
+      raw.startsWith('#') ||
+      raw.startsWith('mailto:') ||
+      raw.startsWith('tel:') ||
+      raw.startsWith('javascript:')
+    ) {
       return;
     }
     try {

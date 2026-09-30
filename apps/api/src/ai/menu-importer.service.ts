@@ -114,9 +114,7 @@ export class MenuImporterService {
       toolDescription: isDrinks
         ? 'Extract alle drankjes van de meegeleverde drankkaart als gestructureerde lijst, met subcategorie (wijn-rood, bier, etc).'
         : 'Extract alle gerechten van de meegeleverde menukaart als gestructureerde lijst.',
-      inputSchema: isDrinks
-        ? DRINK_EXTRACTION_SCHEMA
-        : MENU_EXTRACTION_SCHEMA,
+      inputSchema: isDrinks ? DRINK_EXTRACTION_SCHEMA : MENU_EXTRACTION_SCHEMA,
       meta: {
         businessId: meta.businessId,
         userId: meta.userId,
@@ -346,9 +344,7 @@ function coerceMenu(raw: RawMenuFromTool, kind: CardKind): ExtractedMenu {
     // tool-use-respons valt 'm terug op 'low'.
     confidence: raw?.confidence ?? 'low',
     notes:
-      raw?.notes && raw.notes.trim().length > 0
-        ? raw.notes.trim()
-        : undefined,
+      raw?.notes && raw.notes.trim().length > 0 ? raw.notes.trim() : undefined,
   };
 }
 

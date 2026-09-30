@@ -14,11 +14,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 // uitlegbaars met "probeer over een paar minuten opnieuw"-flow waar
 // dat past. We loggen het origineel zodat we in de api-logs nog wel
 // kunnen debuggen.
-function toNlException(
-  error: unknown,
-  feature: string,
-  logger: Logger,
-): never {
+function toNlException(error: unknown, feature: string, logger: Logger): never {
   // Connection-fouten (netwerk, DNS, timeout), Anthropic onbereikbaar.
   // 503 zodat de UI duidelijk kan zeggen "even niet beschikbaar".
   if (error instanceof Anthropic.APIConnectionError) {
@@ -172,9 +168,7 @@ export class AiService {
             text: opts.system,
             cache_control: { type: 'ephemeral' },
           },
-          ...(volatile
-            ? [{ type: 'text' as const, text: volatile }]
-            : []),
+          ...(volatile ? [{ type: 'text' as const, text: volatile }] : []),
         ]
       : volatile
         ? `${opts.system}\n\n${volatile}`
