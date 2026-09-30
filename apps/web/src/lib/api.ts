@@ -1352,8 +1352,6 @@ export type Business = {
   vat_number: string | null;
   contact_email: string | null;
   contact_phone: string | null;
-  email_from_name: string | null;
-  email_reply_to: string | null;
   // Vanaf welke sterren-rating telt een review als "lage review" en
   // verschijnt 'ie in de overige-acties-strip op /dashboard/campagnes.
   // Range 1-5, default 3 (sinds mig 0036).
@@ -1808,6 +1806,29 @@ export async function fetchDayContext(date: string): Promise<DayContext> {
   );
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Dag-context laden mislukt"));
+  }
+  return res.json();
+}
+
+// Hoeveel uitingen staan er al op dit kanaal in de week van `when`?
+// `max` is null zolang er geen waarschuwingsgrens is ingesteld.
+export type ChannelLoad = {
+  channel: string;
+  weekStart: string;
+  count: number;
+  max: number | null;
+  exceeded: boolean;
+};
+
+export async function fetchChannelLoad(
+  channel: string,
+  when: string,
+): Promise<ChannelLoad> {
+  const res = await authedFetch(
+    `${API_URL}/suggestions/channel-load?channel=${encodeURIComponent(channel)}&when=${encodeURIComponent(when)}`,
+  );
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Kanaalbelasting laden mislukt"));
   }
   return res.json();
 }

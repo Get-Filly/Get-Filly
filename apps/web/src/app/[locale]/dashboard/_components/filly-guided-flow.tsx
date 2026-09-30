@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import {
   fetchDayContext,
+  fetchChannelLoad,
   generateSuggestionsForDates,
   type ActiveActionDelta,
   type CampaignCreatedCard,
@@ -207,6 +208,11 @@ export function FillyGuidedFlow({
   const [buildOwn, setBuildOwn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllQuiet, setShowAllQuiet] = useState(false);
+  // Kanalen waar deze week al "veel" op staat (zachte waarschuwing, blokkeert
+  // niets). Blijft leeg zolang er geen waarschuwingsgrens is ingesteld.
+  const [busyChannels, setBusyChannels] = useState<
+    Array<{ channel: string; label: string; count: number }>
+  >([]);
 
   // ---- Multi-dag (batch) ----
   // De eigenaar kan in de opener meerdere dagen aanvinken. Na "Verder" loopt
@@ -223,6 +229,36 @@ export function FillyGuidedFlow({
   const [queue, setQueue] = useState<PickedDay[]>([]);
   const [planned, setPlanned] = useState<GenerateForDatesItem[]>([]);
   const [batchTotal, setBatchTotal] = useState(0);
+  useEffect(() => {
+    const date = picked?.date;
+    if (step !== "channels" || !date || !dayContext) {
+      setBusyChannels([]);
+      return;
+    }
+    const chosen = dayContext.channels.filter((c) =>
+      selectedChannels.has(c.channel),
+    );
+    let cancelled = false;
+    Promise.all(
+      chosen.map((c) =>
+        fetchChannelLoad(c.channel, `${date}T12:00:00Z`)
+          .then((l) =>
+            l.exceeded
+              ? { channel: c.channel, label: c.label, count: l.count }
+              : null,
+          )
+          .catch(() => null),
+      ),
+    ).then((rows) => {
+      if (!cancelled) {
+        setBusyChannels(rows.filter((r): r is NonNullable<typeof r> => !!r));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [step, picked?.date, dayContext, selectedChannels]);
+
   const openerHas = (date: string) => openerDays.some((d) => d.date === date);
   const toggleOpenerDay = (day: PickedDay) =>
     setOpenerDays((cur) =>
@@ -1023,6 +1059,13 @@ export function FillyGuidedFlow({
                     {sel && <Check size={15} strokeWidth={2.5} />}
                   </button>
                 );
+              })}
+            </div>
+          )}
+          {busyChannels.length > 0 && (
+            <div className="fg-hint" role="status">
+              {t("channels.busyWarning", {
+                channels: busyChannels.map((b) => b.label).join(", "),
               })}
             </div>
           )}

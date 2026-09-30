@@ -820,38 +820,6 @@ function AccountPageInner() {
       )}
 
       {/* ============================================================
-          Sectie 12, E-mailinstellingen — KOPPELINGEN
-          ============================================================ */}
-      {activeTab === "koppelingen" && (
-      <div className="form-section">
-        <div className="form-section-title">{t("emailSettings.title")}</div>
-        <div className="form-section-desc">{t("emailSettings.desc")}</div>
-        <div className="form-grid">
-          <Input
-            label={t("emailSettings.fromName")}
-            type="text"
-            value={form.email_from_name ?? ""}
-            onChange={(e) =>
-              update("email_from_name", e.target.value || null)
-            }
-            placeholder="Bistro Get-Filly"
-            hint={t("emailSettings.fromNameHint")}
-          />
-          <Input
-            label={t("emailSettings.replyTo")}
-            type="email"
-            value={form.email_reply_to ?? ""}
-            onChange={(e) =>
-              update("email_reply_to", e.target.value || null)
-            }
-            placeholder="reservaties@jouwrestaurant.nl"
-            hint={t("emailSettings.replyToHint")}
-          />
-        </div>
-      </div>
-      )}
-
-      {/* ============================================================
           Sectie 12b, Meldingen — ALGEMEEN
           ============================================================ */}
       {activeTab === "algemeen" && (

@@ -1151,7 +1151,7 @@
     },
     "closedDates": {
       "title": "Sluitingsdata & vakanties",
-      "desc": "Specifieke dagen waarop de onderneming dicht is (vakanties, feestdagen). Filly mijdt deze voor mailings en reservering-suggesties.",
+      "desc": "Specifieke dagen waarop de onderneming dicht is (vakanties, feestdagen). Filly mijdt deze bij campagnes en reservering-suggesties.",
       "addDate": "Voeg een datum toe",
       "removeDate": "Verwijder deze datum",
       "empty": "Geen sluitingsdata. Voeg er bv. één toe voor 1e Kerstdag of jouw vaste vakantieweek."
@@ -1199,9 +1199,9 @@
     },
     "company": {
       "title": "Bedrijfsgegevens",
-      "desc": "Voor mail-footers (verplicht volgens AVG/CAN-SPAM), je privacy-verklaring en algemene voorwaarden.",
+      "desc": "Voor je privacy-verklaring, je algemene voorwaarden en de juiste bedrijfsgegevens.",
       "legalName": "Volledige bedrijfsnaam (juridisch)",
-      "legalNameHint": "Zoals geregistreerd bij de KvK. Verschijnt in de footer van mailings.",
+      "legalNameHint": "Zoals geregistreerd bij de KvK.",
       "kvkNumber": "KvK-nummer",
       "kvkNumberHint": "8 cijfers.",
       "vatNumber": "BTW-nummer",
@@ -1209,14 +1209,6 @@
       "contactEmail": "Contact-e-mail",
       "contactEmailHint": "Het officiële klantcontactadres.",
       "contactPhone": "Contact-telefoon"
-    },
-    "emailSettings": {
-      "title": "E-mailinstellingen voor mailings",
-      "desc": "Bepaalt hoe campagne-mails er voor de ontvanger uitzien.",
-      "fromName": "Afzender-naam",
-      "fromNameHint": "Verschijnt in de inbox van de ontvanger als “van”.",
-      "replyTo": "Reply-to adres",
-      "replyToHint": "Waar antwoorden van ontvangers naartoe komen. Mag hetzelfde zijn als contact-e-mail."
     },
     "notifications": {
       "title": "Meldingen",
@@ -1802,7 +1794,7 @@
       "websiteUrlLabel": "Website-URL",
       "websiteNote": "Volledige website-analyse (auto-invul van tagline, sfeer, USP's) blijft voorlopig beschikbaar via de Account-pagina.",
       "socialTitle": "Social media",
-      "socialDesc": "Filly verwerkt deze handles in social-campagnes en mail-footers.",
+      "socialDesc": "Filly verwerkt deze handles in social-campagnes.",
       "instagramLabel": "Instagram",
       "facebookLabel": "Facebook",
       "tiktokLabel": "TikTok",
@@ -3291,6 +3283,7 @@
       "question": "Op welke kanalen wil je dit? Kies er minstens één.",
       "autoQuestion": "Ik kies zelf het beste kanaal. Zal ik 'm maken?",
       "makeAction": "Maak de actie",
+      "busyWarning": "Let op, er staan deze week al veel uitingen op {channels}. Je kunt gewoon doorgaan.",
       "nextDay": "Volgende dag",
       "makeBatch": "Genereer {count} concepten"
     },
@@ -3386,7 +3379,7 @@
       },
       "hours": {
         "label": "Openingstijden invullen",
-        "hint": "Voorkomt dat Filly mailings verstuurt op gesloten dagen."
+        "hint": "Voorkomt dat Filly campagnes voorstelt op gesloten dagen."
       },
       "campaign": {
         "label": "Eerste campagne aanmaken",
@@ -3394,7 +3387,7 @@
       },
       "business": {
         "label": "Bedrijfsgegevens (legal name + KvK)",
-        "hint": "Verschijnt in mail-footers en is verplicht voor mailings naar gasten."
+        "hint": "Zo staan je bedrijfsgegevens overal goed in Get-Filly."
       }
     }
   },
