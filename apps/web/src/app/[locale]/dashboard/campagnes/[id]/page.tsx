@@ -262,11 +262,9 @@ export default function UnifiedDetailPage() {
   // chips klikbaar: inactief aanklikken voegt het kanaal toe (extra rij),
   // actief aanklikken verwijdert het (min. 1 kanaal blijft staan).
   const ALL_CHANNELS: Array<{ key: string; label: string }> = [
-    { key: "mail", label: "E-mail" },
     { key: "instagram", label: "Instagram" },
     { key: "facebook", label: "Facebook" },
     { key: "tiktok", label: "TikTok" },
-    { key: "whatsapp", label: "WhatsApp" },
     { key: "google_business", label: "Google Business" },
   ];
 
@@ -690,7 +688,6 @@ export default function UnifiedDetailPage() {
     activePlatform === "instagram" ||
     activePlatform === "facebook" ||
     activePlatform === "tiktok" ||
-    activePlatform === "whatsapp" ||
     activePlatform === "google_business";
 
   // Actie-knoppen per status. Volgorde rechts→links: destructief

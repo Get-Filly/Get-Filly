@@ -15,7 +15,6 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 // en een alternatief kanaal voorstelt als het bereik tegenvalt.
 //
 // Databronnen per kanaal:
-//   - mail / whatsapp  → opt-in-tellingen uit guests (nu al hard).
 //   - instagram / facebook → koppel-status uit integration_credentials
 //     (provider 'meta'). Volger-/bereik-aantallen komen uit de Meta
 //     Insights API zodra die koppeling live is (zie BACKLOG
@@ -27,8 +26,6 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 
 /** Kanalen zoals de voorstellen-flows ze kennen (platform-namen). */
 export type ReachChannel =
-  | 'mail'
-  | 'whatsapp'
   | 'instagram'
   | 'facebook'
   | 'tiktok'
@@ -41,7 +38,7 @@ export type ChannelReach = {
   /** Gemeten publieksgrootte; null = (nog) niet meetbaar. */
   audienceSize: number | null;
   /** Waar het getal vandaan komt. */
-  source: 'opt_in' | 'followers' | 'none';
+  source: 'followers' | 'none';
   /** NL-toelichting, gaat letterlijk de prompt in. */
   note: string;
 };
@@ -57,23 +54,6 @@ export class ChannelReachService {
    * "onbekend" op in plaats van een gecrashte AI-feature.
    */
   async fetchReach(businessId: string): Promise<ChannelReach[]> {
-    // Opt-in-telling voor WhatsApp uit de gasten-tabel. De mail-opt-in
-    // telden we hier ook, maar mail is per 2026-09-16 geen campagnekanaal
-    // meer; de kolom blijft in guests staan voor bestaande gegevens.
-    let whatsappOptIn = 0;
-    try {
-      const { data } = await this.supabase.client
-        .from('guests')
-        .select('whatsapp_opt_in')
-        .eq('business_id', businessId);
-      const guests = (data ?? []) as Array<{
-        whatsapp_opt_in: boolean | null;
-      }>;
-      whatsappOptIn = guests.filter((g) => g.whatsapp_opt_in).length;
-    } catch (err) {
-      this.logger.warn(`Opt-in-telling gefaald: ${String(err)}`);
-    }
-
     // Gekoppelde integraties: welke providers hebben een credential?
     // 'meta' dekt Instagram + Facebook; 'tiktok'/'google' volgen later.
     const providers = new Set<string>();
@@ -90,20 +70,9 @@ export class ChannelReachService {
     }
     const metaConnected = providers.has('meta');
 
-    // Mail staat er per 2026-09-16 niet meer tussen: we mailen niet meer als
-    // campagnekanaal (besluit Floris). De opt-in-telling blijft bestaan in
-    // guests, maar we bieden er geen kanaal meer op aan.
+    // Get-Filly mailt geen gasten meer en doet geen WhatsApp: alleen de vier
+    // kanalen die we aanbieden.
     return [
-      {
-        channel: 'whatsapp',
-        connected: whatsappOptIn > 0,
-        audienceSize: whatsappOptIn,
-        source: 'opt_in',
-        note:
-          whatsappOptIn > 0
-            ? `${whatsappOptIn} gasten met WhatsApp-opt-in (98% open-rate).`
-            : 'Nog geen WhatsApp-opt-ins; dit kanaal bereikt nu niemand.',
-      },
       {
         channel: 'instagram',
         connected: metaConnected,
@@ -153,8 +122,6 @@ export class ChannelReachService {
     const reach = await this.fetchReach(businessId);
 
     const labels: Record<ReachChannel, string> = {
-      mail: 'Mail',
-      whatsapp: 'WhatsApp',
       instagram: 'Instagram',
       facebook: 'Facebook',
       tiktok: 'TikTok',

@@ -53,12 +53,6 @@ export default function MarketingHubPage() {
       description: t("channels.tiktok.description"),
       status: "coming-soon",
     },
-    {
-      key: "whatsapp",
-      name: t("channels.whatsapp.name"),
-      description: t("channels.whatsapp.description"),
-      status: "future",
-    },
   ];
 
   const liveCount = channels.filter((c) => c.status === "live").length;

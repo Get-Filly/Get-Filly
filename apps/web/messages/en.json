@@ -2271,10 +2271,6 @@
       "tiktok": {
         "name": "TikTok",
         "description": "Plays, watch time, shares and for-you ratio via the TikTok Marketing API."
-      },
-      "whatsapp": {
-        "name": "WhatsApp",
-        "description": "Direct guest communication with read rates and reply conversion. Coming in a later phase."
       }
     },
     "errors": {
@@ -2892,7 +2888,6 @@
       "googleBusiness": "Google Business Profile",
       "meta": "Facebook & Instagram",
       "tiktok": "TikTok for Business",
-      "whatsapp": "WhatsApp Business",
       "tripadvisor": "TripAdvisor",
       "thefork": "The Fork",
       "lightspeed": "Lightspeed / POS",
@@ -3196,10 +3191,6 @@
         "label": "Facebook",
         "hint": "FB post"
       },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "hint": "Personal message"
-      },
       "googleBusiness": {
         "label": "Google Business",
         "hint": "Post to your profile"
@@ -3317,7 +3308,6 @@
     "prompts": {
       "instagram": "Create an Instagram post",
       "facebook": "Create a Facebook post",
-      "whatsapp": "Create a WhatsApp message",
       "googleBusiness": "Create a Google Business post",
       "bundle": "Create a bundle campaign for {channels}",
       "tiktok": "Create a TikTok video"

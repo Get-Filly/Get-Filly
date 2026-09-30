@@ -994,11 +994,13 @@ export class CampaignsService {
     // SuggestionsService.approve) reiken 'm door.
     userId: string,
   ): Promise<{ id: string }> {
-    // Get-Filly mailt geen gasten van klanten meer: nieuwe mail-campagnes
-    // bestaan niet. (Oude, ingeplande voorstellen met mail kunnen hier nog
-    // binnenkomen en worden dan netjes geweigerd.)
-    if ((input.type as string) === 'mail') {
-      throw new BadRequestException('Mail-campagnes bestaan niet meer.');
+    // Get-Filly mailt geen gasten van klanten meer en doet geen WhatsApp:
+    // nieuwe mail- of WhatsApp-campagnes bestaan niet. (Oude, nog openstaande
+    // voorstellen met die types kunnen hier binnenkomen en worden geweigerd.)
+    if ((input.type as string) === 'mail' || (input.type as string) === 'whatsapp') {
+      throw new BadRequestException(
+        'Mail- en WhatsApp-campagnes bestaan niet meer.',
+      );
     }
     const name = input.name.trim();
     const body = input.body.trim();

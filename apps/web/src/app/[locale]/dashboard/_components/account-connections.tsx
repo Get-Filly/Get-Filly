@@ -127,13 +127,6 @@ const integrations: Integration[] = [
     connectPath: "/oauth/tiktok/start",
   },
   {
-    key: "whatsapp",
-    icon: "💬",
-    nameKey: "providers.whatsapp",
-    method: "soon",
-    category: "communicatie",
-  },
-  {
     key: "tripadvisor",
     icon: "🧳",
     nameKey: "providers.tripadvisor",

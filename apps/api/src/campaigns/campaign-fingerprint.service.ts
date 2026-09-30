@@ -642,9 +642,6 @@ export class CampaignFingerprintService {
 
   /** Mapt campaign.type + content naar onze FillyChannel-enum. */
   private deriveChannel(campaign: Record<string, unknown>): FillyChannel {
-    const type = campaign.type as string;
-    if (type === 'mail') return 'mail';
-    if (type === 'whatsapp') return 'whatsapp';
     // Social: platform-onderscheid uit campaign_social_content
     const social = Array.isArray(campaign.campaign_social_content)
       ? campaign.campaign_social_content[0]

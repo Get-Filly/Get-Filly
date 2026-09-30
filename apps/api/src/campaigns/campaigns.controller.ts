@@ -168,10 +168,10 @@ export class CampaignsController {
     let socialPlatforms: string[] | undefined;
     const platform = body.platform;
     if (platform) {
-      if (platform === 'mail') {
-        throw new BadRequestException('Mail-campagnes bestaan niet meer.');
-      } else if (platform === 'whatsapp') {
-        type = platform;
+      if (platform === 'mail' || platform === 'whatsapp') {
+        throw new BadRequestException(
+          'Mail- en WhatsApp-campagnes bestaan niet meer.',
+        );
       } else if (
         platform === 'instagram' ||
         platform === 'facebook' ||
@@ -183,9 +183,11 @@ export class CampaignsController {
       } else {
         throw new BadRequestException('Ongeldig kanaal.');
       }
-    } else if (body.type === 'mail') {
-      throw new BadRequestException('Mail-campagnes bestaan niet meer.');
-    } else if (body.type === 'social' || body.type === 'whatsapp') {
+    } else if (body.type === 'mail' || body.type === 'whatsapp') {
+      throw new BadRequestException(
+        'Mail- en WhatsApp-campagnes bestaan niet meer.',
+      );
+    } else if (body.type === 'social') {
       type = body.type;
     } else {
       throw new BadRequestException(

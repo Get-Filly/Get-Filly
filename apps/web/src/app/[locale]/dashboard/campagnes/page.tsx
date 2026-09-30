@@ -778,7 +778,6 @@ export default function CampagnesPage() {
   const DEFAULT_BUNDLE: BundleChannel[] = [
     "instagram",
     "facebook",
-    "whatsapp",
     "google_business",
     "tiktok",
   ];
@@ -982,7 +981,6 @@ export default function CampagnesPage() {
                   { key: "instagram", label: "Instagram" },
                   { key: "facebook", label: "Facebook" },
                   { key: "tiktok", label: "TikTok" },
-                  { key: "whatsapp", label: "WhatsApp" },
                   { key: "google_business", label: "Google Business" },
                 ] as const
               ).map((ch) => {
@@ -1208,7 +1206,6 @@ export default function CampagnesPage() {
                   { key: "instagram", label: "Instagram" },
                   { key: "facebook", label: "Facebook" },
                   { key: "tiktok", label: "TikTok" },
-                  { key: "whatsapp", label: "WhatsApp" },
                   { key: "google_business", label: "Google Business" },
                 ] as const
               ).map((c) => {

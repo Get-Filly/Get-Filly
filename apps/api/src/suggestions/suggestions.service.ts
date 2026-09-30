@@ -1234,7 +1234,6 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
 ${drukteRegels}
 
 GASTEN-SEGMENTEN VOOR ACTIVATIE:
-- WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
 - Vaste gasten: ${segmentCounts.vaste_gast}
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
@@ -1901,7 +1900,6 @@ groepen + traditie.`;
           : '';
 
       const segmentsBlock = `GASTEN-SEGMENTEN VOOR ACTIVATIE:
-- WhatsApp-opt-in: ${segmentCounts.whatsapp_opt_in} gasten
 - Vaste gasten: ${segmentCounts.vaste_gast}
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;

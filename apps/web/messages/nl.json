@@ -2271,10 +2271,6 @@
       "tiktok": {
         "name": "TikTok",
         "description": "Plays, watch-time, shares en for-you-ratio via TikTok Marketing API."
-      },
-      "whatsapp": {
-        "name": "WhatsApp",
-        "description": "Directe gast-communicatie met read-rates en reply-conversie. Komt in een latere fase."
       }
     },
     "errors": {
@@ -2892,7 +2888,6 @@
       "googleBusiness": "Google Bedrijfsprofiel",
       "meta": "Facebook & Instagram",
       "tiktok": "TikTok for Business",
-      "whatsapp": "WhatsApp Business",
       "tripadvisor": "TripAdvisor",
       "thefork": "The Fork",
       "lightspeed": "Lightspeed / POS",
@@ -3196,10 +3191,6 @@
         "label": "Facebook",
         "hint": "FB-post"
       },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "hint": "Persoonlijk bericht"
-      },
       "googleBusiness": {
         "label": "Google Business",
         "hint": "Post op je profiel"
@@ -3317,7 +3308,6 @@
     "prompts": {
       "instagram": "Maak een Instagram-post",
       "facebook": "Maak een Facebook-post",
-      "whatsapp": "Maak een WhatsApp-bericht",
       "googleBusiness": "Maak een Google Business-post",
       "bundle": "Maak een bundel-campagne voor {channels}",
       "tiktok": "Maak een TikTok-video"

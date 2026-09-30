@@ -38,7 +38,6 @@ export type ChoiceState = "pending" | "chosen" | "submitting";
 export type ChannelChoice =
   | "instagram"
   | "facebook"
-  | "whatsapp"
   | "google_business"
   | "tiktok";
 
