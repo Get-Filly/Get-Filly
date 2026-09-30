@@ -18,15 +18,24 @@
  *      (mensen in de buurt) in plaats van de dag "drukker" te rekenen.
  *   6. TEMPO TELT INGEPLANDE DAGEN MEE, en een uitzonderlijke kans (evenement
  *      plus hoge score) mag boven het tempo uit, als "kans van de week".
+ *   7. EIGENAAR-INSTELLING: momenten (weekdag x dagdeel) die de eigenaar uit
+ *      heeft gezet, krijgen nooit een voorstel.
+ *   8. BELEIDSLAAG (zelfde regels als het live model): feestdagen en al
+ *      afgedekte dagen vallen af; cool-down op recent gebruikte momenten;
+ *      spreiding over dagdelen binnen een week; leren van uitkomsten.
  *
- * Puur (geen database). De beleidslaag (feestdag, cool-down, leren van
- * uitkomsten) zit hier nog niet in.
+ * Puur (geen database).
  */
 import {
   weatherBusynessFactor,
   eventBusynessFactor,
+  cooldownFactor,
+  feedbackFactor,
+  SAME_WEEK_DAYPART_DAMP,
   type WeatherSignal,
   type EventSignal,
+  type SlotHit,
+  type SlotPerformance,
 } from './quiet-signals';
 
 export type Dagdeel = 'ochtend' | 'lunch' | 'middag' | 'diner';
@@ -84,6 +93,19 @@ export type SignalsV2 = {
   hasTerrace?: boolean;
   /** Datums waarvoor al een concept, campagne of voorstel staat. */
   planned?: Set<string>;
+  /** Feestdagen (datum -> naam). Vallen af, ook de drukke. */
+  holidays?: Map<string, string>;
+  /**
+   * Door de eigenaar uitgezette momenten, als "weekdag|dagdeel" met weekdag
+   * 0=ma..6=zo, bijvoorbeeld "2|middag" (woensdagmiddag). Daar komt nooit
+   * een voorstel.
+   */
+  disabledSlots?: Set<string>;
+  /** Eerder gebruikte momenten voor de cool-down, per "weekdag|dagdeel". */
+  recentSlots?: Map<string, { weekIndex: number; weak?: boolean }[]>;
+  /** Wat campagnes op een moment eerder deden (leren van uitkomsten). */
+  slotPerformance?: Map<string, SlotPerformance>;
+  businessMedianLift?: number;
 };
 
 export type MomentV2 = {
@@ -100,6 +122,8 @@ export type MomentV2 = {
   eventBoost: number; // 0..1
   /** true = boven het tempo uit, als "kans van de week". */
   exception: boolean;
+  /** true = gekozen omdat het gebruikelijke moment recent al gebruikt is. */
+  rotated: boolean;
 };
 
 export type WeekSummary = {
@@ -274,6 +298,7 @@ export function computeQuietV2(
   const cands: Cand[] = [];
   for (const date of eachDate(fromIso, toIso)) {
     if (signals.planned?.has(date)) continue; // staat al iets voor
+    if (signals.holidays?.has(date)) continue; // feestdag: geen rustig moment
     const weekday = mondayIndex(date);
     const { factor } = weatherBusynessFactor(
       signals.weather?.get(date) ?? null,
@@ -288,6 +313,7 @@ export function computeQuietV2(
       const c = cells[weekday][j];
       const base = residual[weekday][j];
       if (!c || base == null) return;
+      if (signals.disabledSlots?.has(`${weekday}|${dp}`)) return; // uit gezet door de eigenaar
       const adjusted = Math.max(0, Math.min(100, c.avg * factor));
       // Verwacht niveau van deze cel (uit de ontleding), en hoeveel het
       // werkelijke (weer-gecorrigeerde) niveau daaronder of erboven zit, als
@@ -317,6 +343,7 @@ export function computeQuietV2(
           kind: factor <= 0.92 ? 'incidenteel' : 'structureel',
           eventBoost: Math.round(eventBoost * 100) / 100,
           exception: false,
+          rotated: false,
           week: mondayOf(date),
         };
       }
@@ -324,29 +351,74 @@ export function computeQuietV2(
     if (best) cands.push(best);
   }
 
-  // 6. Selectie per week: tempo minus wat al ingepland staat. Een uitzonderlijke
+  // 6. Selectie per week, in datumvolgorde, met de beleidslaag: tempo minus wat
+  //    al ingepland staat, cool-down op recent gebruikte momenten (en elke
+  //    keuze telt meteen mee voor de weken erna), spreiding over dagdelen
+  //    binnen een week en leren van uitkomsten. Een uitzonderlijke
   //    evenement-kans mag daarboven uit (max één per week).
   const weekKeys = new Set<string>();
   for (const d of eachDate(fromIso, toIso)) weekKeys.add(mondayOf(d));
+  const weekList = [...weekKeys].sort();
+  const weekIndex = (monday: string) =>
+    Math.round(
+      (Date.parse(`${monday}T12:00:00Z`) -
+        Date.parse(`${weekList[0]}T12:00:00Z`)) /
+        (7 * 86_400_000),
+    );
   const plannedPerWeek = new Map<string, number>();
   for (const p of signals.planned ?? []) {
     if (p < fromIso || p > toIso) continue;
     plannedPerWeek.set(mondayOf(p), (plannedPerWeek.get(mondayOf(p)) ?? 0) + 1);
   }
+  const hits = new Map<string, { weekIndex: number; weak?: boolean }[]>(
+    [...(signals.recentSlots?.entries() ?? [])].map(([k, v]) => [k, [...v]]),
+  );
   const moments: MomentV2[] = [];
   const weeks: WeekSummary[] = [];
-  for (const week of [...weekKeys].sort()) {
+  for (const week of weekList) {
+    const wi = weekIndex(week);
     const planned = plannedPerWeek.get(week) ?? 0;
     const slots = Math.max(0, perWeek - planned);
-    const pool = cands
-      .filter((c) => c.week === week)
-      .sort((a, b) => b.score - a.score);
-    const picked = pool.slice(0, slots);
+    const remaining = cands.filter((c) => c.week === week);
+    const picked: Cand[] = [];
+    const usedDayparts = new Set<Dagdeel>();
+    for (let n = 0; n < slots && remaining.length > 0; n++) {
+      let bestIdx = -1;
+      let bestScore = -Infinity;
+      let bestFactor = 1;
+      let anyDamped = false;
+      remaining.forEach((k, idx) => {
+        const uses: SlotHit[] = (
+          hits.get(`${k.weekday}|${k.daypart}`) ?? []
+        ).map((u) => ({ weeksAgo: wi - u.weekIndex, weak: u.weak }));
+        let factor = cooldownFactor(uses);
+        if (usedDayparts.has(k.daypart)) factor *= SAME_WEEK_DAYPART_DAMP;
+        factor *= feedbackFactor(
+          signals.slotPerformance?.get(`${k.weekday}|${k.daypart}`),
+          signals.businessMedianLift ?? 0,
+        );
+        if (factor < 1) anyDamped = true;
+        const score = k.score * factor;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = idx;
+          bestFactor = factor;
+        }
+      });
+      if (bestIdx < 0) break;
+      const chosen = remaining.splice(bestIdx, 1)[0];
+      if (anyDamped && bestFactor >= 1 && chosen.kind === 'structureel') {
+        chosen.rotated = true;
+      }
+      picked.push(chosen);
+      usedDayparts.add(chosen.daypart);
+      const key = `${chosen.weekday}|${chosen.daypart}`;
+      hits.set(key, [...(hits.get(key) ?? []), { weekIndex: wi }]);
+    }
     let exception = false;
-    const rest = pool.slice(slots);
-    const ex = rest.find(
-      (c) => c.eventBoost > 0 && c.score >= P.exceptionScore,
-    );
+    const ex = remaining
+      .sort((a, b) => b.score - a.score)
+      .find((c) => c.eventBoost > 0 && c.score >= P.exceptionScore);
     if (ex) {
       picked.push({ ...ex, exception: true });
       exception = true;

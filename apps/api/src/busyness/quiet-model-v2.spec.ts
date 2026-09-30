@@ -94,4 +94,42 @@ describe('computeQuietV2', () => {
     expect(r.moments[0]).toMatchObject({ date: '2026-10-10', exception: true });
     expect(r.weeks[0].exception).toBe(true);
   });
+
+  it('roteert: het moment van vorige week weegt minder (cool-down)', () => {
+    const r = computeQuietV2(makePattern(), '2026-10-05', '2026-10-25', 1);
+    const perWeek = r.weeks.map((w) =>
+      r.moments.filter(
+        (m) =>
+          m.date >= w.week &&
+          m.date <
+            new Date(Date.parse(`${w.week}T12:00:00Z`) + 7 * 86400000)
+              .toISOString()
+              .slice(0, 10),
+      ),
+    );
+    const keys = perWeek.map((ms) => `${ms[0].weekday}|${ms[0].daypart}`);
+    // zonder cool-down zou elke week dezelfde combinatie winnen
+    expect(new Set(keys).size).toBeGreaterThan(1);
+  });
+
+  it('doet nooit een voorstel voor een moment dat de eigenaar uit heeft gezet', () => {
+    const free = computeQuietV2(makePattern(), FROM, TO, 6);
+    const first = free.moments[0];
+    const disabled = new Set([`${first.weekday}|${first.daypart}`]);
+    const r = computeQuietV2(makePattern(), FROM, TO, 6, {
+      disabledSlots: disabled,
+    });
+    r.moments.forEach((m) => {
+      expect(`${m.weekday}|${m.daypart}`).not.toBe(
+        `${first.weekday}|${first.daypart}`,
+      );
+    });
+  });
+
+  it('laat een feestdag helemaal af', () => {
+    const r = computeQuietV2(makePattern(), FROM, TO, 6, {
+      holidays: new Map([['2026-10-10', 'Testdag']]),
+    });
+    expect(r.moments.find((m) => m.date === '2026-10-10')).toBeUndefined();
+  });
 });
