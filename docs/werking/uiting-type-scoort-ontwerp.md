@@ -9,10 +9,9 @@ extra reserveringen oplevert, en stuurt daar zachtjes op bij.
 ## Wat we meten
 De beste maat is wat we zelf kunnen zien, zonder afhankelijk te zijn van wat
 Meta of Google aan cijfers teruggeeft:
-1. Reserveringen die via een campagnelink binnenkomen (UTM, `via_campaign_id`).
-2. Bezetting van het rustige moment waarvoor de uiting was bedoeld, tegenover de
+1. Bezetting van het rustige moment waarvoor de uiting was bedoeld, tegenover de
    verwachte bezetting (dat meet `quiet-feedback.service` al per venster).
-3. Alleen als aanvulling, en alleen samengevat: bereik en interactie per uiting.
+2. Alleen als aanvulling, en alleen samengevat: bereik en interactie per uiting.
 
 ## Hoe het leert (in lagen)
 1. Laag 1, zaak breed: gemiddelde extra bezetting per kanaal.
@@ -27,15 +26,16 @@ rustige momenten al werkt (`*|dagdeel`).
 - Toon eerlijke cijfers ("dit werkte de laatste 5 keer"), nooit verzonnen.
 - Nooit iets blokkeren: de eigenaar beslist.
 
-## De Meta-privacyvraag
-Meta-gegevens (bereik, likes, reacties per post) zijn "Meta Platform Data".
-Onze afspraak is dat die NIET naar Claude (Anthropic) gaan. Zodra we
-post-insights in een prompt stoppen, verandert dat. Voorstel:
-- De rekensom (welk type scoort) doet gewone code in onze eigen backend, geen AI.
-- Naar Claude gaat alleen de uitkomst in eigen woorden ("carrousels op Instagram
-  leverden meer op"), zonder Meta-cijfers of losse posts.
-- Reserveringen via UTM zijn onze eigen data en mogen wel de prompt in.
-- Laat een jurist bevestigen dat een samengevatte uitkomst niet als Platform Data telt.
+## De Meta-privacyvraag (besluit Floris 30-9)
+- Gewone code in onze eigen backend rekent uit wat scoort, geen AI.
+- Naar Claude mag data, zolang er GEEN bedrijfsnamen bij zitten. Geaggregeerde
+  inzichten zoals "in Nederland, in deze regio, scoren carrousels op Instagram
+  goed" mogen dus mee. Nooit een zaaknaam, nooit losse posts van een zaak.
+- Reserveringen via campagnelinks tellen we niet mee: dat is volgens Floris niet
+  betrouwbaar te meten. De hoofdmaat blijft de bezetting van het rustige moment
+  tegenover de verwachting (punt 2 hierboven).
+- Jurist laten bevestigen dat een samengevatte, geanonimiseerde uitkomst niet als
+  Meta Platform Data telt: later, staat op BACKLOG.
 
 ## Open punten
 - Minimum aantal uitingen per laag.
