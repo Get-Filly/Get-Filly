@@ -41,11 +41,13 @@ bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet
 - [~] **Website-frontend nalopen op teksten en afbeeldingen.** Gedaan en live op 29-9
       (branch `feat/site-tekstronde`): home, product, over ons, blog, contact. YouTube van de site,
       integratie-tekst zonder kassa en boekingssysteem, opgeknipte zinnen herschreven in NL en EN.
+      Op 30-9 ook de product-mock naar horeca (Bistro Get-Filly, Reserveringen, Gasten) en de FAQ
+      over onboarding zonder boekingssysteem.
       **Nog open:** prijzen en juridisch (Floris, andere chat), afbeeldingen (zie "Site-assets
-      vervangen"), de hero-mockups op `/en`, en de vraag over de boekingssysteem-zinnen (zie
+      vervangen"), de hero-mockups op `/en`, en het boekingssysteem in het Ultimate-pakket (zie
       "Site en vertrouwen"). *(Floris + Claude)*
 - [ ] **Filly-brein doorlopen.** Samen de werking nalopen: `docs/werking/filly-brein.docx`,
-      `apps/api/src/ai/filly-brain.config.ts`, branche-packs. *(Floris + Claude)*
+      `apps/api/src/ai/filly-brain.config.ts`, horeca-taal (`horeca-taal.ts`). *(Floris + Claude)*
 - [ ] **Parameters van het Filly-brein bepalen, en voor het voorstellen van (potentieel) rustige
       dagen.** Onder andere `low_occupancy_threshold`, `UNUSUAL_SPREAD_MULT`, het tempo (mig 0065),
       de kansdrempel per dag en de beleidslaag. *(Floris bepaalt, Claude zet klaar met voorstellen)*
@@ -217,18 +219,11 @@ de Meta-app.
       segmentatie mogen blijven (worden gebouwd). Cijfers in mocks en blogtitels zijn bewust nep.
       "Realtime" mag blijven. Wijzig de breedte, hoogte en marges van de uitingskaarten niet.
       *(Claude)*
-- [ ] **Overgebleven boekingssysteem-zinnen op de site.** Prijzen, het Ultimate-pakket
-      ("Koppeling met je boekings- of reserveringssysteem") en de FAQ "Hoelang duurt de
-      onboarding?". Mogen die ook weg, nu de koppeling van de site af is? *(Floris beslist)*
-- [ ] **`CLAUDE.md` bijwerken:** die noemt Get-Filly nog "multi-branche", terwijl de publieke site
-      horeca-only is. Voorstel schrijven en laten goedkeuren. Besluit 29-9: het product wordt ook
-      teruggebracht naar horeca-only (zie het volgende punt). *(Claude + Floris)*
-- [x] **Product terugbrengen naar horeca-only.** *(Klaar 30-9: branche-code weg, kolom `industry` gedropt met mig 0078.)* Oorspronkelijk: Besluit Floris 29-9. Het multi-branche-werk
-      (kolom `industry` mig 0066, branche-packs in `apps/api/src/ai/industry/`, branchekeuze in de
-      onboarding, branche-specifieke taal en voorbeelden) hoort er niet meer bij. Eerst een plan:
-      wat verbergen, wat verwijderen, en wat doen we met bestaande zaken en de hernoeming naar
-      `businesses` (mig 0068, blijft). Voorzichtigheid: eerst uitzetten en pas daarna verwijderen,
-      want horeca-gedrag moet byte-identiek blijven. *(Claude maakt het plan, Floris keurt goed)*
+- [ ] **Boekingssysteem in het Ultimate-pakket op de prijzenpagina.** In `nl.json` en `en.json`
+      staat nog de beschrijving ("Inclusief koppeling met jouw boekings- of reserveringssysteem"),
+      de feature "Koppeling met je boekings- of reserveringssysteem" en de regel "Rapportage over
+      boekingen en omzet per uiting". De FAQ over onboarding is op 30-9 al aangepast. Mag dit ook
+      weg, nu de koppeling van de site af is? *(Floris beslist)*
 - [ ] **Prijzen en juridische pagina's nalopen.** *(Floris, in een andere chat)*
 - [ ] **Schema.org uitbreiden.** `structured-data.tsx` heeft alleen Organization,
       WebSite en SoftwareApplication; FAQPage en BlogPosting/Article ontbreken. *(Claude)*
@@ -292,11 +287,6 @@ de Meta-app.
       evenementen.nl (databankenrecht), en waar de interne eventsdatabase leeft.
 - [ ] **Publiceren naar Reels en Stories** (IG eerst, dan FB). *(Claude; compagnon
       checkt het App Dashboard.)*
-- [x] **YouTube uit de app halen.** *(Klaar 30-9: rapportage-filter, kanaallijsten, label, logo en demo-seed; geen migratie nodig, de check-constraint had YouTube nooit.)* Oorspronkelijk: Besluit Floris 29-9: YouTube is geen kanaal meer (van de site
-      is het al weg). Kanalen zijn Instagram, Facebook, TikTok en Google Bedrijfsprofiel. Eerst
-      uitzoeken waar YouTube nog in de app en de code zit (kanaalkeuze, `check`-constraint op
-      kanalen, Google-OAuth-scopes, teksten) en dan opruimen. Verwijder daarbij geen Google-code
-      die het Bedrijfsprofiel nodig heeft. *(Claude)*
 - [ ] TikTok: video-upload en filter in de mediabibliotheek, TikTok Insights.
 - [ ] Google Bedrijfsprofiel: naam, telefoon, website en categorie bewerkbaar maken.
 - [ ] **Foto-tool ("Beeld-studio") mergen.** De code staat alleen op branch
