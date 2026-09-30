@@ -28,7 +28,8 @@ function makePattern(): number[][] {
 
 type ContextOverrides = {
   window?: { start: number; end: number } | null;
-  holidays?: boolean; // feestdagen-poort actief laten (default: uit in tests)
+  // Feestdagen waarop de eigenaar wil inspelen (datum -> naam).
+  holidays?: Record<string, string>;
   covered?: Set<string>;
   weather?: Map<string, WeatherSignal>;
   events?: Map<string, unknown[]>;
@@ -46,6 +47,7 @@ function makeService(
   overrides: ContextOverrides = {},
 ): BusynessService {
   const svc = new BusynessService(
+    {} as never,
     {} as never,
     {} as never,
     {} as never,
@@ -79,11 +81,9 @@ function makeService(
   // De hele datum-/beleidscontext in één mock: dat is precies de naad waar in
   // productie de DB, Open-Meteo en de events-tabel achter zitten, en waar de
   // fail-soft-terugval op uitkomt.
-  const holidayByDate = new Map<string, string>();
-  if (overrides.holidays) {
-    // 2e Paasdag 2026 valt op ma 6 april.
-    holidayByDate.set('2026-04-06', '2e Paasdag');
-  }
+  const holidayByDate = new Map<string, string>(
+    Object.entries(overrides.holidays ?? {}),
+  );
   jest
     .spyOn(
       svc as unknown as { loadQuietContext: () => Promise<unknown> },
@@ -239,20 +239,23 @@ describe('getQuietMoments — rotatie over acht weken', () => {
 });
 
 describe('getQuietMoments — harde poorten en tempo', () => {
-  it('een feestdag verschijnt niet als kans, maar wel als note', async () => {
-    const svc = makeService(makePattern(), { holidays: true });
+  it('een gewone feestdag is een moment om op in te spelen (bonus, met reden)', async () => {
+    // 2e Paasdag 2026 is ma 6 april. Zonder feestdag wint dinsdag op gelijke
+    // stand; met feestdag wint maandag, met de feestdag als reden.
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const svc = makeService(p, {
+      holidays: { '2026-04-07': 'Testfeest' },
+    });
     const { moments, notes } = await svc.getQuietMoments(
       'biz',
       '2026-04-06',
       '2026-04-12',
-      7,
+      1,
     );
-    expect(dates(moments)).not.toContain('2026-04-06');
-    expect(notes).toContainEqual({
-      date: '2026-04-06',
-      reason: 'feestdag',
-      label: '2e Paasdag',
-    });
+    expect(moments[0].date).toBe('2026-04-07');
+    expect(moments[0].reasonKey).toBe('holiday');
+    expect(moments[0].reasonParams).toEqual({ name: 'Testfeest' });
+    expect(notes).toEqual([]);
   });
 
   it('een al ingeplande dag telt mee voor het tempo en valt zelf af', async () => {
@@ -460,7 +463,7 @@ describe('getQuietMoments — fail-soft', () => {
 describe('getQuietMoments — applyPolicy:false voor een zelfgekozen dag', () => {
   it('geeft het dagdeel terug, ook op een feestdag of een afgedekte dag', async () => {
     const svc = makeService(makePattern(), {
-      holidays: true,
+      holidays: { '2026-04-06': 'Stille dag' },
       covered: new Set(['2026-04-06']),
     });
     const { moments } = await svc.getQuietMoments(
@@ -537,5 +540,44 @@ describe('getQuietMoments — terugkoppeling', () => {
     });
     const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
     expect(moments[0].date).toBe('2026-08-11');
+  });
+});
+
+describe('getQuietMoments — leren in lagen', () => {
+  it('gebruikt het dagdeel als het moment zelf te weinig metingen heeft', async () => {
+    // Ma en di zijn even leeg; zonder terugkoppeling wint ma op datumvolgorde.
+    // Ma heeft genoeg eigen metingen en zit precies op het niveau van de zaak.
+    // Di heeft er te weinig, maar het dagdeel als geheel werkt bewezen beter
+    // dan gemiddeld: dat tilt di boven ma uit.
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const kaal = await makeService(p).getQuietMoments('biz', FROM, TO, 1);
+    const top = kaal.moments[0];
+    expect(top.date).toBe('2026-08-10');
+
+    const svc = makeService(p, {
+      slotPerformance: new Map([
+        [`0|${top.daypart}`, { medianLift: 0, samples: 8 }],
+        [`1|${top.daypart}`, { medianLift: 14, samples: 1 }], // te dun
+        [`*|${top.daypart}`, { medianLift: 14, samples: 20 }],
+      ]),
+      businessMedianLift: 0,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-11'); // di, dankzij de dagdeel-laag
+  });
+
+  it('een moment met genoeg eigen metingen gaat voor op het dagdeel', async () => {
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const kaal = await makeService(p).getQuietMoments('biz', FROM, TO, 1);
+    const top = kaal.moments[0];
+    const svc = makeService(p, {
+      slotPerformance: new Map([
+        [`0|${top.daypart}`, { medianLift: -10, samples: 8 }], // ma: bewezen slecht
+        [`*|${top.daypart}`, { medianLift: 14, samples: 20 }],
+      ]),
+      businessMedianLift: 0,
+    });
+    const { moments } = await svc.getQuietMoments('biz', FROM, TO, 1);
+    expect(moments[0].date).toBe('2026-08-11'); // di wint: ma is bewezen slechter
   });
 });

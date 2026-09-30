@@ -31,7 +31,9 @@ export interface QuietParams {
   relDevFloor: number;
   /** Hoe zwaar een evenement in de buurt meetelt in de score. */
   eventBonusWeight: number;
-  /** Vanaf welke score een evenement-kans boven het tempo uit mag ("kans van de week"). */
+  /** Hoe zwaar een feestdag meetelt in de score (een feestdag is een moment om op in te spelen). */
+  holidayBonusWeight: number;
+  /** Vanaf welke score een evenement- of feestdag-kans boven het tempo uit mag ("kans van de week"). */
   exceptionScore: number;
   /**
    * Haalbaarheid 0 tot 1 per dagdeel en weekdag (ma tot zo). Hoe goed een
@@ -54,6 +56,7 @@ export const QUIET_PARAMS: QuietParams = {
   unusualSpreadMult: 2.0,
   relDevFloor: 0.12,
   eventBonusWeight: 0.5,
+  holidayBonusWeight: 0.5,
   exceptionScore: 0.8,
   haalbaarheid: {
     ochtend: [0.3, 0.3, 0.3, 0.3, 0.4, 0.7, 0.7],
@@ -63,4 +66,72 @@ export const QUIET_PARAMS: QuietParams = {
   },
   minCoverage: 2,
   defaultPerWeek: 2,
+};
+
+/**
+ * Datum-signalen: hoe weer en evenementen de verwachte drukte of de score
+ * verschuiven. De waarden komen uit de literatuur (Rabobank, Ohio State,
+ * evenementen.nl-categorieen) en zijn nog niet met eigen metingen getoetst;
+ * zie docs/werking/calibratie-weer-evenementen.sql.
+ */
+export interface SignalParams {
+  /** Weer: vanaf deze temperatuur (graden) en droog telt het als terrasweer. */
+  weatherWarmMinC: number;
+  /** Weer: boven deze temperatuur blijven mensen binnen (hitte). */
+  weatherHeatMinC: number;
+  /** Weer: bij deze temperatuur of lager is het koud. */
+  weatherColdMaxC: number;
+  /** Verwachte drukte bij terrasweer, met eigen terras (1,25 = 25% drukker). */
+  weatherTerraceBoost: number;
+  /** Verwachte drukte bij terrasweer zonder terras. */
+  weatherWarmBoost: number;
+  /** Verwachte drukte bij regen, buien of onweer (0,85 = 15% rustiger). */
+  weatherWetDamp: number;
+  /** Verwachte drukte bij kou. */
+  weatherColdDamp: number;
+  /** Verwachte drukte bij hitte. */
+  weatherHeatDamp: number;
+  /** Gewicht per soort evenement (1,0 = het zwaarst). */
+  eventWeight: Record<string, number>;
+  /** Gewicht voor een onbekende soort. */
+  eventDefaultWeight: number;
+  /** Een festival op de stoep telt maximaal zoveel mee (0,5 = plus 50%). */
+  eventMaxBoost: number;
+  /** Plafond op het gezamenlijke effect van meerdere evenementen. */
+  eventFactorCeil: number;
+  /** Tot hoeveel kilometer een soort evenement meetelt (afstandsstaffel). */
+  eventRadiusKm: Record<string, number>;
+  /** Vanaf hoeveel afwijking van 1 noemen we een dag incidenteel in plaats van structureel. */
+  incidentalMinDamp: number;
+}
+
+export const SIGNAL_PARAMS: SignalParams = {
+  weatherWarmMinC: 22,
+  weatherHeatMinC: 30,
+  weatherColdMaxC: 8,
+  weatherTerraceBoost: 1.25,
+  weatherWarmBoost: 1.1,
+  weatherWetDamp: 0.85,
+  weatherColdDamp: 0.88,
+  weatherHeatDamp: 0.9,
+  eventWeight: {
+    festivals: 1.0,
+    concerten_theater: 0.8,
+    sportevenementen: 0.8,
+    events: 0.6,
+    kermis: 0.4,
+    markten: 0.4,
+  },
+  eventDefaultWeight: 0.6,
+  eventMaxBoost: 0.5,
+  eventFactorCeil: 1.6,
+  eventRadiusKm: {
+    kermis: 2,
+    markten: 2,
+    concerten_theater: 5,
+    sportevenementen: 5,
+    events: 5,
+    festivals: 10,
+  },
+  incidentalMinDamp: 0.08,
 };

@@ -17,15 +17,17 @@ import {
 import { EventsService } from '../events/events.service';
 import { OpenMeteoClient } from '../weather/open-meteo.client';
 import { getNlHolidays } from '../ai/timing-factors';
-import { QUIET_PARAMS, type QuietParams } from './quiet-params';
+import { QUIET_PARAMS, SIGNAL_PARAMS, type QuietParams } from './quiet-params';
 import { computeQuiet } from './quiet-model';
 import { aggregateDaily, buildDayContext } from './daily-rollup';
 import { QuietFeedbackService } from './quiet-feedback.service';
+import { WeatherSnapshotService } from '../weather/weather-snapshot.service';
 import {
   DAYPART_DEFS,
   COOLDOWN_WEEKS,
   normalizeDaypart,
   type EventSignal,
+  type HourlyWeather,
   type QuietNote,
   type QuietReason,
   type SlotPerformance,
@@ -111,19 +113,6 @@ const MONTHLY_LOOKBACK_DAYS = 120;
 // Zelfde venster voor het dagoverzicht: gelijk aan de retentie van de ruwe metingen.
 const DAILY_LOOKBACK_DAYS = 120;
 
-// Staffel per event-categorie, gespiegeld aan EventsService: hier alleen als
-// SCHAAL om nabijheid op te wegen (een festival op 9 van de 10 km weegt licht,
-// een kermis op 0,2 van de 2 km zwaar). De filtering op afstand heeft
-// findNearbyInRange al gedaan.
-const STAFFEL_KM: Record<string, number> = {
-  kermis: 2,
-  markten: 2,
-  concerten_theater: 5,
-  sportevenementen: 5,
-  events: 5,
-  festivals: 10,
-};
-
 // Eén gebruik van een weekdag×dagdeel-slot, voor de cool-down. `weekIndex` is
 // de week t.o.v. de eerste week van het opgevraagde venster (historie is dus
 // negatief); `weak` = we kennen alleen de weekdag, niet het dagdeel.
@@ -131,9 +120,12 @@ type SlotUse = { weekIndex: number; weak?: boolean };
 
 // Alles wat per kalenderdatum verschilt, in één keer geladen voor het venster.
 type QuietContext = {
+  // Feestdagen in het venster waarop de eigenaar wil inspelen (bonus).
   holidayByDate: Map<string, string>;
   eventsByDate: Map<string, EventSignal[]>;
   weatherByDate: Map<string, WeatherSignal>;
+  // Weer per uur, voor het weer over het voorgestelde tijdvenster.
+  weatherHourlyByDate: Map<string, HourlyWeather>;
   hasTerrace: boolean;
   covered: Set<string>;
   recentSlots: Map<string, SlotUse[]>;
@@ -150,6 +142,7 @@ const EMPTY_QUIET_CONTEXT: QuietContext = {
   holidayByDate: new Map(),
   eventsByDate: new Map(),
   weatherByDate: new Map(),
+  weatherHourlyByDate: new Map(),
   hasTerrace: false,
   covered: new Set(),
   recentSlots: new Map(),
@@ -407,6 +400,8 @@ export class BusynessService {
     // Fase 4: de leerloop. Alleen gelezen tijdens de detectie; het meten
     // zelf draait in een cron.
     private readonly feedback: QuietFeedbackService,
+    // Weer: vier vaste opnames per dag (mig 0081), niet live per aanroep.
+    private readonly weatherSnapshots: WeatherSnapshotService,
   ) {}
 
   // "Nu" in Europe/Amsterdam als {weekday 0-6, hour 0-23}. Apify geeft
@@ -758,6 +753,7 @@ export class BusynessService {
       {
         window,
         weather: ctx.weatherByDate,
+        weatherHourly: ctx.weatherHourlyByDate,
         events: ctx.eventsByDate,
         hasTerrace: ctx.hasTerrace,
         planned: ctx.covered,
@@ -792,15 +788,11 @@ export class BusynessService {
     }));
 
     // Dagen die een harde poort raakten, zodat het dashboard kan zeggen waarom
-    // er (nog) geen voorstel voor is.
+    // er (nog) geen voorstel voor is: alleen nog dagen waar al iets voor staat.
     const notes: QuietNote[] = [];
     if (applyPolicy) {
       for (const date of this.eachDate(fromIso, toIso)) {
-        const holiday = ctx.holidayByDate.get(date);
-        if (holiday) notes.push({ date, reason: 'feestdag', label: holiday });
-        else if (ctx.covered.has(date)) {
-          notes.push({ date, reason: 'al_afgedekt' });
-        }
+        if (ctx.covered.has(date)) notes.push({ date, reason: 'al_afgedekt' });
       }
     }
     return { hasSource: true, moments, notes };
@@ -835,6 +827,10 @@ export class BusynessService {
   ): Promise<QuietContext> {
     // Feestdagen zijn pure code (deterministisch, Meeus) — geen IO, geen
     // fail-soft nodig. Alle jaren die het venster raakt.
+    // Staan feestdagen bij deze zaak aan (mig 0055), en welke heeft de eigenaar
+    // per stuk uitgezet (mig 0082)? Uitgezette feestdagen krijgen geen bonus.
+    const holidaysOn = await this.events.holidaysEnabled(businessId);
+    const disabledHolidays = await this.events.disabledHolidays(businessId);
     const holidayByDate = new Map<string, string>();
     const years = new Set<number>([
       Number(fromIso.slice(0, 4)),
@@ -843,8 +839,9 @@ export class BusynessService {
     for (const y of years) {
       if (!Number.isFinite(y)) continue;
       for (const h of getNlHolidays(y)) {
-        if (h.date >= fromIso && h.date <= toIso)
-          holidayByDate.set(h.date, h.name);
+        if (h.date < fromIso || h.date > toIso) continue;
+        if (!holidaysOn || disabledHolidays.has(h.id)) continue;
+        holidayByDate.set(h.date, h.name);
       }
     }
 
@@ -877,7 +874,7 @@ export class BusynessService {
         // findNearbyInRange heeft de staffel al toegepast, dus de afstand valt
         // binnen de radius van deze categorie. Die radius is hier de schaal
         // waarop we nabijheid wegen.
-        radiusKm: STAFFEL_KM[e.category] ?? 5,
+        radiusKm: SIGNAL_PARAMS.eventRadiusKm[e.category] ?? 5,
       };
       if (arr) arr.push(signal);
       else eventsByDate.set(e.startsOn, [signal]);
@@ -886,19 +883,18 @@ export class BusynessService {
     // Weer: alleen zinvol binnen de 7-daagse Open-Meteo-horizon. Daarbuiten
     // geen entry → factor 1. Dat is hetzelfde codepad als "weerbron weg", dus
     // die fallback loopt elke aanroep sowieso mee.
+    // Weer per uur uit de laatste opname (een van de vier per dag). Het
+    // daggemiddelde is niet meer nodig: het model kijkt naar het weer over het
+    // voorgestelde tijdvenster.
     const weatherByDate = new Map<string, WeatherSignal>();
+    const weatherHourlyByDate = new Map<string, HourlyWeather>();
     if (profile.latitude != null && profile.longitude != null) {
-      const forecast = await this.openMeteo.getForecastSafe(
+      const hourly = await this.weatherSnapshots.getHourly(
         profile.latitude,
         profile.longitude,
       );
-      for (const d of forecast) {
-        if (d.date < fromIso || d.date > toIso) continue;
-        weatherByDate.set(d.date, {
-          tempMin: d.tempMin,
-          tempMax: d.tempMax,
-          code: d.code,
-        });
+      for (const [date, h] of hourly) {
+        if (date >= fromIso && date <= toIso) weatherHourlyByDate.set(date, h);
       }
     }
 
@@ -906,6 +902,7 @@ export class BusynessService {
       holidayByDate,
       eventsByDate,
       weatherByDate,
+      weatherHourlyByDate,
       hasTerrace: profile.hasTerrace,
       covered,
       recentSlots,
@@ -940,10 +937,14 @@ export class BusynessService {
   }
 
   /**
-   * Datums in het venster waarvoor al iets klaarstaat: een campagne die nog
-   * loopt (concept/ingepland/actief) of een openstaand rustig-moment-voorstel.
-   * Die dagen zijn geen kans meer — en door ze hier te weren, vóór de week-cap,
-   * schuift er wél iets anders voor in de plaats.
+   * Datums waarvoor al iets staat, vanaf de maandag van de eerste week in het
+   * venster: een concept, een ingeplande of actieve campagne, een al geplaatste
+   * (afgeronde) campagne of een openstaand rustig-moment-voorstel.
+   *
+   * Vanaf de maandag en niet vanaf het venster: het tempo telt alles van die
+   * week mee, ook wat al geplaatst is (donderdag met maandag en dinsdag al
+   * gedaan telt als twee, niet als nul). Datums vóór het venster zijn zelf
+   * geen kandidaat meer; ze tellen alleen mee voor het tempo.
    */
   private async getCoveredDates(
     businessId: string,
@@ -951,17 +952,16 @@ export class BusynessService {
     toIso: string,
   ): Promise<Set<string>> {
     const out = new Set<string>();
+    const startIso = this.mondayOf(fromIso);
     try {
       const { data } = await this.supabase.client
         .from('campaigns')
         .select('scheduled_for, status')
         .eq('business_id', businessId)
         .not('scheduled_for', 'is', null)
-        .gte('scheduled_for', `${fromIso}T00:00:00Z`)
+        .gte('scheduled_for', `${startIso}T00:00:00Z`)
         .lte('scheduled_for', `${toIso}T23:59:59Z`);
       for (const row of data ?? []) {
-        const status = row.status as string | null;
-        if (status === 'afgerond' || status === 'gearchiveerd') continue;
         out.add(this.amsterdamDate(new Date(row.scheduled_for as string)));
       }
     } catch (e) {
@@ -978,7 +978,7 @@ export class BusynessService {
       for (const row of data ?? []) {
         const ctx = row.trigger_context as { target_date?: string } | null;
         const d = ctx?.target_date;
-        if (d && d >= fromIso && d <= toIso) out.add(d);
+        if (d && d >= startIso && d <= toIso) out.add(d);
       }
     } catch (e) {
       this.logger.warn(`voorstel-uitsluiting faalde: ${String(e)}`);
@@ -1626,7 +1626,7 @@ export class BusynessService {
     // Wat er al staat: gevuld weer blijft staan, ontbrekend weer proberen we opnieuw.
     const { data: existing } = await this.supabase.client
       .from('busyness_day_context')
-      .select('day, weather_code, temp_max, temp_min')
+      .select('day, weather_code, temp_max, temp_min, weather_hourly')
       .eq('business_id', businessId)
       .gte('day', first)
       .lte('day', last);
@@ -1634,12 +1634,24 @@ export class BusynessService {
       string,
       { code: number; tempMax: number; tempMin: number }
     >();
+    const hourly = new Map<string, HourlyWeather>();
     for (const r of (existing ?? []) as Array<{
       day: string;
       weather_code: number | null;
       temp_max: number | null;
       temp_min: number | null;
+      weather_hourly: {
+        temp: (number | null)[];
+        code: (number | null)[];
+      } | null;
     }>) {
+      if (r.weather_hourly) {
+        const nan = (a: (number | null)[]) => a.map((v) => v ?? NaN);
+        hourly.set(r.day, {
+          temp: nan(r.weather_hourly.temp),
+          code: nan(r.weather_hourly.code),
+        });
+      }
       if (r.weather_code != null && r.temp_max != null && r.temp_min != null) {
         weather.set(r.day, {
           code: r.weather_code,
@@ -1670,6 +1682,22 @@ export class BusynessService {
       }
     }
 
+    // Het weer per uur, voor de dagen waar het nog ontbreekt.
+    const missingHourly = days.filter((d) => !hourly.has(d));
+    if (missingHourly.length > 0 && lat != null && lng != null) {
+      const ageDays = Math.ceil(
+        (Date.now() - Date.parse(`${missingHourly[0]}T00:00:00Z`)) / 86_400_000,
+      );
+      if (ageDays <= 92) {
+        const history = await this.openMeteo
+          .getHourlyHistory(lat, lng, ageDays + 1)
+          .catch(() => new Map<string, HourlyWeather>());
+        for (const [date, h] of history) {
+          if (missingHourly.includes(date)) hourly.set(date, h);
+        }
+      }
+    }
+
     const holidays = new Map<string, string>();
     const years = new Set(days.map((d) => Number(d.slice(0, 4))));
     for (const y of years) {
@@ -1694,19 +1722,24 @@ export class BusynessService {
     }
 
     const now = new Date().toISOString();
-    const payload = buildDayContext(days, weather, holidays, events).map(
-      (r) => ({
-        business_id: businessId,
-        day: r.day,
-        weekday: r.weekday,
-        weather_code: r.weatherCode,
-        temp_max: r.tempMax,
-        temp_min: r.tempMin,
-        holiday: r.holiday,
-        events: r.events,
-        updated_at: now,
-      }),
-    );
+    const payload = buildDayContext(
+      days,
+      weather,
+      holidays,
+      events,
+      hourly,
+    ).map((r) => ({
+      business_id: businessId,
+      day: r.day,
+      weekday: r.weekday,
+      weather_code: r.weatherCode,
+      temp_max: r.tempMax,
+      temp_min: r.tempMin,
+      holiday: r.holiday,
+      weather_hourly: r.weatherHourly,
+      events: r.events,
+      updated_at: now,
+    }));
     for (let i = 0; i < payload.length; i += 500) {
       const { error } = await this.supabase.client
         .from('busyness_day_context')

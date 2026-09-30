@@ -5,6 +5,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { QuietSlotsGrid } from "../_components/quiet-slots-grid";
 import { Switch } from "../_components/switch";
+import { HolidayToggles } from "../_components/holiday-toggles";
 import { Suspense, useEffect, useState } from "react";
 import {
   fetchRestaurant,
@@ -1193,6 +1194,12 @@ function AccountPageInner() {
                 );
               })()}
             </div>
+            {(form.event_holidays_enabled ?? true) && (
+              <HolidayToggles
+                disabled={form.disabled_holidays ?? []}
+                onChange={(next) => update("disabled_holidays", next)}
+              />
+            )}
             <div style={{ marginTop: 14 }}>
               {/* Label expliciet als blok bóven de select, zoals bij de
                   andere velden in deze kaart (stond anders ernaast en

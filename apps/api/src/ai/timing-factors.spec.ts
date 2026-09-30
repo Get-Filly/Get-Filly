@@ -1,5 +1,6 @@
 import {
   getNlHolidays,
+  holidayId,
   buildExternalFactorsBlock,
   salaryContext,
   seasonContext,
@@ -99,6 +100,33 @@ describe('timing-factors', () => {
       expect(seasonContext(new Date('2026-06-12T12:00:00Z'))).toContain(
         'Zomer',
       );
+    });
+  });
+
+  describe('feestdagen per stuk aan of uit (mig 0082)', () => {
+    it('geeft elke feestdag een vaste sleutel', () => {
+      const ids = getNlHolidays(2026).map((h) => h.id);
+      expect(ids).toContain('1e-paasdag');
+      expect(ids).toContain('nieuwjaarsdag');
+      expect(new Set(ids).size).toBe(ids.length);
+      expect(holidayId('Goede Vrijdag')).toBe('goede-vrijdag');
+    });
+
+    it('laat een door de eigenaar uitgezette feestdag uit het blok', () => {
+      const today = new Date(Date.UTC(2026, 11, 20));
+      const alles = buildExternalFactorsBlock(today, 21);
+      expect(alles).toContain('- 1e Kerstdag (');
+      const zonder = buildExternalFactorsBlock(today, 21, {
+        disabledHolidays: new Set(['1e-kerstdag']),
+      });
+      expect(zonder).not.toContain('- 1e Kerstdag (');
+      expect(zonder).toContain('- 2e Kerstdag (');
+    });
+
+    it('zegt bij een rustige dag dat de eigenaar inspelen toestaat', () => {
+      const today = new Date(Date.UTC(2026, 11, 30));
+      const blok = buildExternalFactorsBlock(today, 21);
+      expect(blok).toContain('De eigenaar staat inspelen op deze dag toe');
     });
   });
 });

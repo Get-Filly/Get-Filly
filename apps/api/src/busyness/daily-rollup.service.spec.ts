@@ -44,7 +44,15 @@ describe('rollupDaily', () => {
         },
       ]),
     };
+    const uur = {
+      temp: new Array<number>(24).fill(11),
+      code: new Array<number>(24).fill(3),
+    };
+    uur.code[15] = 63;
     const openMeteo = {
+      getHourlyHistory: jest
+        .fn()
+        .mockResolvedValue(new Map([['2026-09-28', uur]])),
       getHistory: jest
         .fn()
         .mockResolvedValue([
@@ -56,6 +64,7 @@ describe('rollupDaily', () => {
       {} as never,
       events as never,
       openMeteo as never,
+      {} as never,
       {} as never,
     );
     const pattern = Array.from({ length: 7 }, () =>
@@ -92,6 +101,9 @@ describe('rollupDaily', () => {
         temp_max: 14,
         holiday: null,
         events: [{ name: 'Festival', category: 'festivals', distanceKm: 0.8 }],
+        weather_hourly: expect.objectContaining({
+          temp: expect.arrayContaining([11]),
+        }),
       }),
     ]);
   });
@@ -109,12 +121,14 @@ describe('rollupDaily', () => {
     };
     const openMeteo = {
       getHistory: jest.fn().mockRejectedValue(new Error('offline')),
+      getHourlyHistory: jest.fn().mockRejectedValue(new Error('offline')),
     };
     const svc = new BusynessService(
       sb as never,
       {} as never,
       events as never,
       openMeteo as never,
+      {} as never,
       {} as never,
     );
     jest.spyOn(svc, 'getLatest').mockResolvedValue({
@@ -130,7 +144,11 @@ describe('rollupDaily', () => {
     expect(res.failed).toBe(0);
     expect(sb.upserts.busyness_daily).toHaveLength(1);
     expect(sb.upserts.busyness_day_context).toEqual([
-      expect.objectContaining({ weather_code: null, events: [] }),
+      expect.objectContaining({
+        weather_code: null,
+        weather_hourly: null,
+        events: [],
+      }),
     ]);
   });
 });

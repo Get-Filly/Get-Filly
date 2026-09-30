@@ -22,6 +22,10 @@
     { "path": "/api/chat/cron/cleanup", "schedule": "0 3 * * *" },
     { "path": "/api/busyness/cron/refresh", "schedule": "0 4 * * 1" },
     { "path": "/api/busyness/cron/live", "schedule": "0 * * * *" },
-    { "path": "/api/busyness/cron/measure", "schedule": "30 3 * * *" }
+    { "path": "/api/busyness/cron/measure", "schedule": "30 3 * * *" },
+    { "path": "/api/busyness/cron/weather", "schedule": "30 4 * * *" },
+    { "path": "/api/busyness/cron/weather", "schedule": "30 9 * * *" },
+    { "path": "/api/busyness/cron/weather", "schedule": "30 12 * * *" },
+    { "path": "/api/busyness/cron/weather", "schedule": "30 15 * * *" }
   ]
 }

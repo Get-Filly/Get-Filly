@@ -236,6 +236,11 @@ de Meta-app.
       partner is. *(Floris regelt partners, Claude bouwt)*
 - [ ] **Blog-menu-item verbergen** (navbar en footer) tot het eerste artikel gepubliceerd is;
       nu staan er alleen "binnenkort online"-kaarten. *(Claude, lage prio)*
+- [ ] **Weer-bron: Open-Meteo is gratis alleen voor niet-commercieel gebruik.** Get-Filly is een
+      betaald product, dus vóór de eerste klant is een abonnement bij Open-Meteo nodig (Standaard,
+      1 miljoen aanroepen per maand; prijs opvragen), of een andere bron (bijvoorbeeld KNMI open
+      data). Sinds 30-9 halen we het weer nog maar 4 keer per dag op per locatie (ochtend, lunch,
+      middag, diner) plus 2 keer 's nachts voor het dagoverzicht. *(Floris beslist, Claude bouwt)*
 - [ ] Off-site autoriteit: backlinks, directories, Google Bedrijfsprofiel voor
       Get-Filly zelf. *(Floris)*
 

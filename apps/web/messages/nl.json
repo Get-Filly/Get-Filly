@@ -17,7 +17,8 @@
       "weatherRain": "regen verwacht, mensen blijven thuis",
       "weatherCold": "koud verwacht ({temp}°), mensen blijven thuis",
       "weatherHeat": "warm verwacht ({temp}°), bezoek daalt",
-      "eventNearby": "{name} op {distanceKm} km"
+      "eventNearby": "{name} op {distanceKm} km",
+      "holiday": "{name}, een moment om op in te spelen"
     }
   },
   "language": {
@@ -1339,7 +1340,27 @@
       "maxDistanceLabel": "Maximale afstand vanaf de zaak",
       "distanceSmart": "Slim per type (standaard)",
       "distanceKm": "Tot {km} km",
-      "hint": "Filly weegt evenementen in de buurt (bron: evenementen.nl) en jaarlijkse feestdagen (Valentijn, Pasen, Koningsdag, Kerst...) mee in campagne-voorstellen en timing. Vink uit wat niet bij je zaak past. De maximale afstand geldt alleen voor evenementen uit de buurt, niet voor feestdagen. “Slim per type” betekent: markt en kermis tot 2 km, concert en sport tot 5 km, festival tot 10 km. Een vaste afstand geldt voor alle typen, ruimer is handig in landelijk gebied, krapper in de binnenstad."
+      "hint": "Filly weegt evenementen in de buurt (bron: evenementen.nl) en jaarlijkse feestdagen (Valentijn, Pasen, Koningsdag, Kerst...) mee in campagne-voorstellen en timing. Vink uit wat niet bij je zaak past. De maximale afstand geldt alleen voor evenementen uit de buurt, niet voor feestdagen. “Slim per type” betekent: markt en kermis tot 2 km, concert en sport tot 5 km, festival tot 10 km. Een vaste afstand geldt voor alle typen, ruimer is handig in landelijk gebied, krapper in de binnenstad.",
+      "holidayListLabel": "Op welke feestdagen speelt Filly in?",
+      "holidayListHint": "Alle feestdagen staan aan. Haal het vinkje weg bij een feestdag waarop Filly niet moet inspelen.",
+      "holiday": {
+        "nieuwjaarsdag": "Nieuwjaarsdag",
+        "valentijnsdag": "Valentijnsdag",
+        "goede-vrijdag": "Goede Vrijdag",
+        "1e-paasdag": "1e Paasdag",
+        "2e-paasdag": "2e Paasdag",
+        "koningsdag": "Koningsdag",
+        "bevrijdingsdag": "Bevrijdingsdag",
+        "moederdag": "Moederdag",
+        "hemelvaartsdag": "Hemelvaartsdag",
+        "1e-pinksterdag": "1e Pinksterdag",
+        "2e-pinksterdag": "2e Pinksterdag",
+        "vaderdag": "Vaderdag",
+        "sinterklaasavond": "Sinterklaasavond",
+        "1e-kerstdag": "1e Kerstdag",
+        "2e-kerstdag": "2e Kerstdag",
+        "oudejaarsavond": "Oudejaarsavond"
+      }
     },
     "autoReply": {
       "toggleLabel": "Filly reageert automatisch op reviews",

@@ -1492,6 +1492,9 @@ export type Business = {
   // "Mijn momenten" (mig 0080): uitgezette momenten als "weekdag|dagdeel"
   // (0=ma..6=zo; ochtend, lunch, middag, diner). Leeg = alles aan.
   quiet_disabled_slots: string[];
+  // Feestdagen die de eigenaar per stuk heeft uitgezet (mig 0082), als
+  // sleutels zoals '1e-paasdag'. Leeg = alle feestdagen aan.
+  disabled_holidays: string[];
   // ----- Evenementen in voorstellen (mig 0054) -----
   // Welke event-typen Filly meeneemt in voorstellen.
   // null = alle categorieën; lege array = events uit.

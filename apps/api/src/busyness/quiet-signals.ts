@@ -31,6 +31,7 @@
  * Alles hier is puur (geen IO), zodat het zonder Supabase en zonder netwerk
  * te testen is.
  */
+import { SIGNAL_PARAMS } from './quiet-params';
 
 // ============================================================
 // Dagdeel-rooster
@@ -78,6 +79,9 @@ export type WeatherSignal = {
   code: number;
 };
 
+/** Weer per uur van één dag: index = uur (0 tot 23); NaN als een uur ontbreekt. */
+export type HourlyWeather = { temp: number[]; code: number[] };
+
 export type EventSignal = {
   name: string;
   category: string;
@@ -96,7 +100,8 @@ export type QuietReason = {
     | 'weatherRain' // regen/storm houdt mensen thuis
     | 'weatherCold' // kou houdt mensen thuis
     | 'weatherHeat' // hitte: bezoek daalt
-    | 'eventNearby'; // evenement vlakbij trekt publiek weg/aan
+    | 'eventNearby' // evenement vlakbij trekt publiek weg/aan
+    | 'holiday'; // feestdag: een moment om op in te spelen
   reasonParams: Record<string, string | number>;
 };
 
@@ -118,14 +123,7 @@ export type QuietNote = {
 // en de prompt niet tegenstrijdig kunnen worden. Factor > 1 = DRUKKER dan
 // het patroon zegt, < 1 = rustiger. Temperatuur weegt zwaarder dan regen
 // (zie de onderbouwing bij WEATHER_TIMING_RULES).
-const WEATHER_WARM_MIN_C = 22;
-const WEATHER_HEAT_MIN_C = 30;
-const WEATHER_COLD_MAX_C = 8;
-const WEATHER_TERRACE_BOOST = 1.25; // terrasweer + eigen terras
-const WEATHER_WARM_BOOST = 1.1; // terrasweer zonder terras
-const WEATHER_WET_DAMP = 0.85; // regen/buien/onweer
-const WEATHER_COLD_DAMP = 0.88;
-const WEATHER_HEAT_DAMP = 0.9; // hittegolf: mensen blijven binnen
+const S = SIGNAL_PARAMS; // alle getallen staan in quiet-params.ts, met uitleg
 
 const isDryCode = (code: number) => code <= 2; // 0 zonnig, 1, 2 deels bewolkt
 const isWetCode = (code: number) => (code >= 61 && code <= 82) || code >= 95; // regen, buien, onweer
@@ -141,27 +139,27 @@ export function weatherBusynessFactor(
 ): { factor: number; reason: QuietReason | null } {
   if (!w) return { factor: 1, reason: null };
 
-  if (w.tempMax > WEATHER_HEAT_MIN_C) {
+  if (w.tempMax > S.weatherHeatMinC) {
     return {
-      factor: WEATHER_HEAT_DAMP,
+      factor: S.weatherHeatDamp,
       reason: { reasonKey: 'weatherHeat', reasonParams: { temp: w.tempMax } },
     };
   }
   if (isWetCode(w.code)) {
     return {
-      factor: WEATHER_WET_DAMP,
+      factor: S.weatherWetDamp,
       reason: { reasonKey: 'weatherRain', reasonParams: {} },
     };
   }
-  if (w.tempMax <= WEATHER_COLD_MAX_C) {
+  if (w.tempMax <= S.weatherColdMaxC) {
     return {
-      factor: WEATHER_COLD_DAMP,
+      factor: S.weatherColdDamp,
       reason: { reasonKey: 'weatherCold', reasonParams: { temp: w.tempMax } },
     };
   }
-  if (isDryCode(w.code) && w.tempMax >= WEATHER_WARM_MIN_C) {
+  if (isDryCode(w.code) && w.tempMax >= S.weatherWarmMinC) {
     return {
-      factor: hasTerrace ? WEATHER_TERRACE_BOOST : WEATHER_WARM_BOOST,
+      factor: hasTerrace ? S.weatherTerraceBoost : S.weatherWarmBoost,
       reason: null, // drukker dan normaal is geen reden om de dag te kiezen
     };
   }
@@ -176,18 +174,6 @@ export function weatherBusynessFactor(
 // "Groot" is dus niet afleesbaar; we benaderen het met categorie × nabijheid.
 // Een meerdaags festival matcht daardoor alleen z'n startdag — bekende
 // beperking van de bron, niet van deze rekenregel.
-const EVENT_WEIGHT: Record<string, number> = {
-  festivals: 1.0,
-  concerten_theater: 0.8,
-  sportevenementen: 0.8,
-  events: 0.6,
-  kermis: 0.4,
-  markten: 0.4,
-};
-const EVENT_DEFAULT_WEIGHT = 0.6;
-const EVENT_MAX_BOOST = 0.5; // een festival op de stoep: tot +50% drukte
-const EVENT_FACTOR_CEIL = 1.6;
-
 /**
  * Drukte-factor uit de evenementen op één datum. Meerdere events stapelen
  * (multiplicatief), met een plafond. De reden noemt het zwaarste event.
@@ -205,8 +191,8 @@ export function eventBusynessFactor(events: EventSignal[]): {
     // Lineair van 1 op de stoep naar 0 op de staffel-grens.
     const proximity = Math.max(0, 1 - e.distanceKm / radius);
     const boost =
-      EVENT_MAX_BOOST *
-      (EVENT_WEIGHT[e.category] ?? EVENT_DEFAULT_WEIGHT) *
+      S.eventMaxBoost *
+      (S.eventWeight[e.category] ?? S.eventDefaultWeight) *
       proximity;
     if (boost <= 0) continue;
     factor *= 1 + boost;
@@ -216,7 +202,7 @@ export function eventBusynessFactor(events: EventSignal[]): {
     }
   }
 
-  factor = Math.min(EVENT_FACTOR_CEIL, factor);
+  factor = Math.min(S.eventFactorCeil, factor);
   if (!strongest) return { factor: 1, reason: null };
   return {
     factor,
@@ -233,49 +219,6 @@ export function eventBusynessFactor(events: EventSignal[]): {
 }
 
 // ============================================================
-// Gecombineerde datum-factor
-// ============================================================
-
-const FACTOR_FLOOR = 0.7;
-const FACTOR_CEIL = 1.6;
-/** Vanaf hoeveel afwijking van 1 noemen we een dag incidenteel i.p.v. structureel. */
-export const INCIDENTAL_MIN_DAMP = 0.08;
-
-export type DateSignals = {
-  weather: WeatherSignal | null;
-  events: EventSignal[];
-};
-
-/**
- * De drukte-factor voor één kalenderdatum. > 1 = drukker dan het weekpatroon
- * zegt (minder kans), < 1 = rustiger (meer kans). Deze gaat op de VERWACHTE
- * DRUKTE vóór de gap-poort, niet op de eindscore — anders kan een signaal
- * alleen herschikken en nooit een kans laten ontstaan.
- */
-export function dateBusynessFactor(
-  signals: DateSignals,
-  hasTerrace: boolean,
-): { factor: number; reason: QuietReason | null } {
-  const w = weatherBusynessFactor(signals.weather, hasTerrace);
-  const e = eventBusynessFactor(signals.events);
-  const factor = Math.min(
-    FACTOR_CEIL,
-    Math.max(FACTOR_FLOOR, w.factor * e.factor),
-  );
-
-  // De reden is het signaal dat het verst van 1 af ligt. Een event dat de
-  // dag drúkker maakt is ook een reden (het verklaart de rangorde), maar
-  // een weersignaal dat de dag rustiger maakt gaat voor: dat is wat de dag
-  // tot kans maakt.
-  const wDelta = Math.abs(w.factor - 1);
-  const eDelta = Math.abs(e.factor - 1);
-  let reason: QuietReason | null = null;
-  if (w.reason && (wDelta >= eDelta || !e.reason)) reason = w.reason;
-  else if (e.reason) reason = e.reason;
-
-  return { factor, reason };
-}
-
 // ============================================================
 // Cool-down
 // ============================================================

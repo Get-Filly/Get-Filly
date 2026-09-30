@@ -27,12 +27,18 @@
 export type NlHoliday = {
   /** ISO-datum (YYYY-MM-DD). */
   date: string;
+  /** Vaste sleutel, bv. '1e-paasdag'. De eigenaar zet feestdagen hiermee aan of uit. */
+  id: string;
   name: string;
   /** Omzet-impact + advies, gaat letterlijk de prompt in. */
   impact: string;
   /** Hoeveel dagen vóór de feestdag de promotie moet starten. */
   promoLeadDays: number;
-  /** true = negatieve omzetdag, NIET actief promoten. */
+  /**
+   * true = een dag waarop gasten minder actief zijn. Filly stelt hier niet
+   * uit zichzelf tegen in, maar de eigenaar kan de dag aanzetten (standaard
+   * staan alle feestdagen aan; per feestdag uit te zetten in de instellingen).
+   */
   avoid?: boolean;
 };
 
@@ -83,14 +89,23 @@ function nthWeekdayOfMonth(
  * omzet-impact en promotie-lead-time uit het Timing Brein-doc
  * (Rabobank 2024 + KHN-branchedata).
  */
+/** Vaste sleutel voor een feestdag-naam: '1e Paasdag' wordt '1e-paasdag'. */
+export function holidayId(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export function getNlHolidays(year: number): NlHoliday[] {
   const easter = easterSunday(year);
 
   // Koningsdag: 27 april, tenzij dat een zondag is → 26 april.
   const kd = new Date(Date.UTC(year, 3, 27));
-  const koningsdag = kd.getUTCDay() === 0 ? new Date(Date.UTC(year, 3, 26)) : kd;
+  const koningsdag =
+    kd.getUTCDay() === 0 ? new Date(Date.UTC(year, 3, 26)) : kd;
 
-  const holidays: NlHoliday[] = [
+  const holidays: Omit<NlHoliday, 'id'>[] = [
     {
       date: toIso(new Date(Date.UTC(year, 0, 1))),
       name: 'Nieuwjaarsdag',
@@ -204,7 +219,9 @@ export function getNlHolidays(year: number): NlHoliday[] {
     },
   ];
 
-  return holidays.sort((a, b) => a.date.localeCompare(b.date));
+  return holidays
+    .map((h) => ({ ...h, id: holidayId(h.name) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ============================================================
@@ -254,7 +271,7 @@ export function seasonContext(date: Date): string {
     return 'Zomer: hoogste horeca-bestedingen van het jaar (terras-cultuur, vakantie, festivals). Terras- en buitencontent prioriteit.';
   }
   if (month >= 9 && month <= 11) {
-    return 'Najaar: stabilisatie na de zomer; herfst-thema\'s werken. Vanaf november de kerstdiner-promotie starten.';
+    return "Najaar: stabilisatie na de zomer; herfst-thema's werken. Vanaf november de kerstdiner-promotie starten.";
   }
   return 'Winter: december piekt (Kerst/Oudjaar); januari-februari zijn de rustigste maanden ("januari-dip") — activatie-campagnes wegen dan extra zwaar.';
 }
@@ -288,9 +305,9 @@ export function buildExternalFactorsBlock(
   // includeHolidays=false laat de feestdagen-sectie weg (eigenaar-
   // voorkeur, mig 0055). Loondagen/seizoen/weer blijven altijd staan;
   // die zijn niet uitschakelbaar want puur context, geen actie-trigger.
-  opts: { includeHolidays?: boolean } = {},
+  opts: { includeHolidays?: boolean; disabledHolidays?: Set<string> } = {},
 ): string {
-  const { includeHolidays = true } = opts;
+  const { includeHolidays = true, disabledHolidays } = opts;
   const todayUtc = new Date(
     Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
   );
@@ -311,6 +328,7 @@ export function buildExternalFactorsBlock(
       );
       return { ...h, daysUntil };
     })
+    .filter((h) => !disabledHolidays?.has(h.id)) // door de eigenaar uitgezet
     .filter(
       (h) =>
         h.daysUntil >= 0 &&
@@ -329,8 +347,10 @@ export function buildExternalFactorsBlock(
       for (const h of upcoming) {
         const weekday = dayNames[new Date(Date.parse(h.date)).getUTCDay()];
         const windowOpen = h.daysUntil <= h.promoLeadDays;
+        // Op een rustige dag staat de eigenaar inspelen toe (anders had hij de
+        // dag uitgezet): kies dan een passende, rustige toon.
         const promoNote = h.avoid
-          ? ''
+          ? ' De eigenaar staat inspelen op deze dag toe: kies een passende, rustige toon en geen harde actie.'
           : windowOpen
             ? ' Promotie-window is NU open.'
             : ` Promotie start over ${h.daysUntil - h.promoLeadDays} dagen (lead ${h.promoLeadDays}d).`;
