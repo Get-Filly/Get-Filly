@@ -223,7 +223,7 @@ de Meta-app.
 - [ ] **`CLAUDE.md` bijwerken:** die noemt Get-Filly nog "multi-branche", terwijl de publieke site
       horeca-only is. Voorstel schrijven en laten goedkeuren. Besluit 29-9: het product wordt ook
       teruggebracht naar horeca-only (zie het volgende punt). *(Claude + Floris)*
-- [ ] **Product terugbrengen naar horeca-only.** Besluit Floris 29-9. Het multi-branche-werk
+- [x] **Product terugbrengen naar horeca-only.** *(Klaar 30-9: branche-code weg, kolom `industry` gedropt met mig 0078.)* Oorspronkelijk: Besluit Floris 29-9. Het multi-branche-werk
       (kolom `industry` mig 0066, branche-packs in `apps/api/src/ai/industry/`, branchekeuze in de
       onboarding, branche-specifieke taal en voorbeelden) hoort er niet meer bij. Eerst een plan:
       wat verbergen, wat verwijderen, en wat doen we met bestaande zaken en de hernoeming naar
