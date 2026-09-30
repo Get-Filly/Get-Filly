@@ -1075,9 +1075,9 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     };
 
     // Voorkeur: echt busyness-model (Google-patroon via Apify). Rustige
-    // MOMENTEN per dagdeel, voorspellend: onder je eigen verwachting én buiten
-    // de normale schommeling, gecapt op een paar per week (median polish + MAD;
-    // zie BusynessService.getQuietMoments). Geen bron → terugval op de seed
+    // MOMENTEN per dagdeel, voorspellend: de dagdelen met de meeste lege
+    // capaciteit t.o.v. je eigen piek, gecapt op een paar per week (zie
+    // BusynessService.getQuietMoments en quiet-params.ts). Geen bron → terugval op de seed
     // occupancy_days onder de ingestelde drempel.
     let candidates: Candidate[] = [];
     let quiet: Awaited<

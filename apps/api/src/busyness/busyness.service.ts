@@ -17,6 +17,7 @@ import {
 import { EventsService } from '../events/events.service';
 import { OpenMeteoClient } from '../weather/open-meteo.client';
 import { getNlHolidays } from '../ai/timing-factors';
+import { QUIET_PARAMS, type QuietParams } from './quiet-params';
 import { QuietFeedbackService } from './quiet-feedback.service';
 import {
   cooldownFactor,
@@ -107,17 +108,10 @@ const WEEKDAY_INDEX: Record<string, number> = {
 // — weer bovendrijven, terwijl een verrassende dip alsnog extra omhoog scoort.
 // (Voorheen was het pure anomalie-detectie, die juist die structureel-lege
 // dagen wegfilterde als "geen afwijking, dus geen kans".)
-const MIN_COVERAGE = 2; // min. open uren voordat een dagdeel meetelt
-const GAP_FLOOR = 15; // min. vulbaarheid: punten onder de eigen piek (hoofd-relevantiepoort)
-const EDGE_ACTIVITY_FRAC = 0.3; // het eerste/laatste open dagdeel (opening/afsluiting) telt alleen mee als het ≥ dit deel van de eigen piek is; anders is het de dode rand van de shift. Tussenliggende dagdelen (bv. een rustige middag) hebben deze drempel niet.
-const ABS_DEV_FLOOR = 2; // ondergrens (punten) voor vlakke zaken waar de schommeling ~0 is
-const ANOMALY_WEIGHT = 0.5; // hoe zwaar een 'ongewoon rustig'-afwijking maximaal meeweegt bovenop de vulbaarheid in de ranking
-const UNUSUAL_SPREAD_MULT = 2.0; // label 'ongewoon rustig' vanaf deze afwijking (× normale schommeling)
-const DEFAULT_QUIET_PER_WEEK = 2;
 // Hoe ver het maandoverzicht terugkijkt. Gelijk aan de retentie van
 // busyness_snapshots: verder terug is de bron toch al geprund, en het hele
 // venster meenemen laat een overgeslagen run zichzelf repareren.
-const MONTHLY_LOOKBACK_DAYS = 120; // tempo: max rustige momenten per week (instelbaar per zaak)
+const MONTHLY_LOOKBACK_DAYS = 120;
 
 // Staffel per event-categorie, gespiegeld aan EventsService: hier alleen als
 // SCHAAL om nabijheid op te wegen (een festival op 9 van de 10 km weegt licht,
@@ -278,7 +272,7 @@ export function aggregateOccupancyReport(
           exp.push(p);
           days = Math.max(days, (perCell.get(`${wd}|${h}`) ?? []).length);
         }
-        if (act.length < MIN_COVERAGE) continue;
+        if (act.length < QUIET_PARAMS.minCoverage) continue;
         const a = act.reduce((x, y) => x + y, 0) / act.length;
         const e = exp.reduce((x, y) => x + y, 0) / exp.length;
         dayparts.push({
@@ -730,10 +724,10 @@ export class BusynessService {
    *      met robuuste MAD als maat voor de normale schommeling. VULBAARHEID-FIRST:
    *      de afwijking is geen poort maar een ranking-bonus + het 'ongewoon
    *      rustig'-label.
-   *   5. Kandidaat = vulbaar: gat t.o.v. de eigen piek ≥ GAP_FLOOR. Ook een
+   *   5. Kandidaat = vulbaar: gat t.o.v. de eigen piek ≥ gapFloor. Ook een
    *      structureel-leeg-maar-"normaal" dagdeel telt dus mee. Het eerste/
    *      laatste open dagdeel (de rand van de shift) valt af als het doods is
-   *      (< EDGE_ACTIVITY_FRAC × piek); tussenliggende dagdelen niet.
+   *      (< edgeActivityFrac × piek); tussenliggende dagdelen niet.
    *   6. Aaneengesloten rustige dagdelen op één dag = één kans (bv. diner +
    *      avond); max één kans per dag.
    *   7. BELEIDSLAAG (2026-09-15): harde poorten (feestdag, datum al afgedekt
@@ -760,9 +754,11 @@ export class BusynessService {
     // Tempo (max per week). Niet meegegeven → de per-zaak-instelling
     // (quiet_moments_per_week), anders de default.
     perWeek?: number,
-    opts?: { applyPolicy?: boolean },
+    // `params` overschrijft de standaardwaarden uit quiet-params.ts (speeltuin, tests).
+    opts?: { applyPolicy?: boolean; params?: Partial<QuietParams> },
   ): Promise<QuietMomentsResult> {
     const applyPolicy = opts?.applyPolicy ?? true;
+    const P: QuietParams = { ...QUIET_PARAMS, ...opts?.params };
     const latest = await this.getLatest(businessId);
     if (!latest.pattern || latest.pattern.length < 7) {
       return { hasSource: false, moments: [], notes: [] };
@@ -790,7 +786,7 @@ export class BusynessService {
         const hrs: number[] = [];
         for (let h = dp.from; h < dp.to; h++)
           if ((row[h] ?? 0) > 0) hrs.push(h);
-        if (hrs.length < MIN_COVERAGE) return null;
+        if (hrs.length < P.minCoverage) return null;
         const sum = hrs.reduce((a, h) => a + row[h], 0);
         return { avg: sum / hrs.length, from: hrs[0], to: hrs[hrs.length - 1] };
       }),
@@ -826,14 +822,14 @@ export class BusynessService {
     //    mediaan), op std-schaal gebracht (×1,4826). Deze `spread` gebruiken we
     //    NIET als poort (dat filterde structureel-lege dagen weg), maar (a) om de
     //    anomalie-bonus te normaliseren en (b) voor het 'ongewoon rustig'-label
-    //    vanaf UNUSUAL_SPREAD_MULT × de schommeling. ABS_DEV_FLOOR vangt vlakke
+    //    vanaf unusualSpreadMult × de schommeling. ABS_DEV_FLOOR vangt vlakke
     //    zaken waar de schommeling ~0 is.
     const medRes = this.medianExact(resVals);
     const mad = this.medianExact(resVals.map((r) => Math.abs(r - medRes)));
     const spread = 1.4826 * mad || 1;
     const unusualThreshold = -Math.max(
-      ABS_DEV_FLOOR,
-      UNUSUAL_SPREAD_MULT * spread,
+      P.absDevFloor,
+      P.unusualSpreadMult * spread,
     );
 
     // 4. Kandidaat-dagdelen per datum verzamelen (met dagdeel-index j, nodig om
@@ -906,7 +902,7 @@ export class BusynessService {
         // maar geen kans. Deze toets blijft op de STRUCTURELE waarde: regen
         // hoort een dode ochtend niet tot kans te promoveren.
         const isEdge = j === firstIdx || j === lastIdx;
-        if (isEdge && c.avg < EDGE_ACTIVITY_FRAC * peak) return;
+        if (isEdge && c.avg < P.edgeActivityFrac * peak) return;
 
         // Datum-schuif op de verwachte drukte. De schuif telt óók mee als
         // afwijking, zodat een regendag vanzelf 'ongewoon rustig' wordt en de
@@ -914,13 +910,13 @@ export class BusynessService {
         const adjusted = Math.max(0, Math.min(100, c.avg * factor));
         const dev = baseDev + (adjusted - c.avg);
         const gap = peak - adjusted;
-        if (gap < GAP_FLOOR) return; // te weinig te vullen (hoofd-relevantiepoort)
+        if (gap < P.gapFloor) return; // te weinig te vullen (hoofd-relevantiepoort)
         // GEEN anomalie-poort: ook een structureel-leeg (maar "normaal" rustig)
         // dagdeel is een vulbare kans. De afwijking weegt alleen mee in de
         // ranking + bepaalt het 'ongewoon rustig'-label.
         //
         // Tijdvenster (mig 0069): is er een venster ingesteld, dan telt dit
-        // dagdeel alleen mee als het ≥ MIN_COVERAGE open uren bínnen het venster
+        // dagdeel alleen mee als het ≥ minCoverage open uren bínnen het venster
         // heeft. Het getoonde venster (from/to) knippen we bij op het venster,
         // zodat de eigenaar geen tijd buiten z'n keuze te zien krijgt.
         let from = c.from;
@@ -936,7 +932,7 @@ export class BusynessService {
               inWin.push(h);
             }
           }
-          if (inWin.length < MIN_COVERAGE) return; // dagdeel valt buiten het venster
+          if (inWin.length < P.minCoverage) return; // dagdeel valt buiten het venster
           from = inWin[0];
           to = inWin[inWin.length - 1];
         }
@@ -963,21 +959,21 @@ export class BusynessService {
     // dips bovenop even-lege-maar-normale slots uitkomen. Een positieve
     // afwijking straft niet (structureel-leeg blijft een volwaardige kans).
     //
-    // De anomalie-bonus is BEGRENSD op ANOMALY_WEIGHT (2026-09-15). Zonder die
+    // De anomalie-bonus is BEGRENSD op anomalyWeight (2026-09-15). Zonder die
     // begrenzing loopt hij weg zodra de residu-verdeling vlak is: `spread` valt
     // dan terug op 1 en een afwijking van 35 punten levert een bonus van 17,5
     // tegenover een vulbaarheidsterm van hooguit 1. De vulbaarheid, die de
     // hoofdmaat hoort te zijn, verdween daarmee in de ruis, en elke factor op
     // de score (cool-down, spreiding) werd betekenisloos. Ook `spread` zelf
-    // krijgt nu ABS_DEV_FLOOR als ondergrens, dezelfde bodem die het 'ongewoon
-    // rustig'-label al gebruikt. Score blijft zo binnen 0..1 + ANOMALY_WEIGHT.
-    const devScale = Math.max(spread, ABS_DEV_FLOOR);
+    // krijgt nu absDevFloor als ondergrens, dezelfde bodem die het 'ongewoon
+    // rustig'-label al gebruikt. Score blijft zo binnen 0..1 + anomalyWeight.
+    const devScale = Math.max(spread, P.absDevFloor);
     const runScore = (run: PartCand[]) =>
       Math.max(
         ...run.map(
           (p) =>
             p.gap / (peak || 1) +
-            ANOMALY_WEIGHT * Math.min(1, Math.max(0, -p.dev) / devScale),
+            P.anomalyWeight * Math.min(1, Math.max(0, -p.dev) / devScale),
         ),
       );
     const dayKansen: Kans[] = [];
@@ -1461,7 +1457,7 @@ export class BusynessService {
     for (const dp of DAYPART_DEFS) {
       const hrs: number[] = [];
       for (let h = dp.from; h < dp.to; h++) if ((row[h] ?? 0) > 0) hrs.push(h);
-      if (hrs.length < MIN_COVERAGE) continue;
+      if (hrs.length < QUIET_PARAMS.minCoverage) continue;
       out.push({
         key: dp.key,
         label: dp.label,
@@ -1480,7 +1476,7 @@ export class BusynessService {
       .eq('id', businessId)
       .maybeSingle();
     const v = data?.quiet_moments_per_week as number | null | undefined;
-    return typeof v === 'number' && v >= 1 ? v : DEFAULT_QUIET_PER_WEEK;
+    return typeof v === 'number' && v >= 1 ? v : QUIET_PARAMS.defaultPerWeek;
   }
 
   // Tijdvenster (mig 0069) waarbinnen voorstellen mogen vallen. Beide kolommen
