@@ -251,6 +251,9 @@ de Meta-app.
       meer in code en database (mig 0083 verwijderde de 38 demo-rijen en de tabellen; mig 0084 de
       account-velden afzender en reply-to). **Blijft:** mail naar onze eigen klanten (afmelden, nieuwsbrieven,
       updates, rapportages) en transactionele mail. Gasten-opt-ins en de afmeldpagina staan nog. *(afgerond)*
+- [ ] **Jurist: Meta-data samengevat naar Claude.** Bevestigen dat een geanonimiseerde, samengevatte
+      uitkomst (geen bedrijfsnamen, geen losse posts) niet als Meta Platform Data telt, voordat we
+      "welk type uiting scoort" met Meta-cijfers laten leren. Ontwerp: `docs/werking/uiting-type-scoort-ontwerp.md`. *(Floris, jurist)*
 - [ ] **Maximum uitingen per kanaal.** Voor nu is er geen limiet. Het waarschuwingsscherm in de geleide flow
       is gebouwd (zachte melding, blokkeert niets). Zodra de kosten duidelijk zijn vul je per kanaal een
       grens in bij `CHANNEL_WEEKLY_WARNING_LIMIT` in `filly-brain.config.ts` (nu overal `null`).
