@@ -29,9 +29,29 @@ describe('computeQuietV2', () => {
   });
 
   it('kiest het rustigste tijdvenster binnen het dagdeel', () => {
-    const r = computeQuietV2(makePattern(), FROM, TO, 6);
-    const m = r.moments[0];
-    expect(m.toHour - m.fromHour).toBe(3);
+    const r = computeQuietV2(
+      makePattern(),
+      FROM,
+      TO,
+      6,
+      {},
+      { windowHours: 2 },
+    );
+    r.moments.forEach((m) => {
+      expect(m.toHour - m.fromHour).toBe(2);
+    });
+    // en het venster valt binnen één dagdeel
+    const def = {
+      ochtend: [6, 11],
+      lunch: [11, 14],
+      middag: [14, 17],
+      diner: [17, 21],
+      avond: [21, 24],
+    } as Record<string, number[]>;
+    r.moments.forEach((m) => {
+      expect(m.fromHour).toBeGreaterThanOrEqual(def[m.daypart][0]);
+      expect(m.toHour).toBeLessThanOrEqual(def[m.daypart][1]);
+    });
   });
 
   it('weegt een weekend zwaarder dan een doordeweekse dag (haalbaarheid)', () => {

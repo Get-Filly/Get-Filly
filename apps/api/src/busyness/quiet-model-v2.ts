@@ -7,7 +7,8 @@
  *   1. UURNIVEAU: we meten per uur en zoeken het rustigste tijdvenster
  *      (windowHours) BINNEN een dagdeel. Een dip van 15 tot 17 uur verdwijnt
  *      dus niet in het gemiddelde van een heel dagdeel.
- *   2. DRIE DAGDELEN (ochtend, middag, avond) in plaats van vijf.
+ *   2. VIJF DAGDELEN blijven (ochtend, lunch, middag, diner, avond); het
+ *      tijdvenster zit BINNEN een dagdeel.
  *   3. MARGES: vlak na opening en vlak voor sluiting stellen we niets voor
  *      (dan wordt er klaargezet of afgebouwd).
  *   4. HAALBAARHEID per dagdeel en weekdag: een ochtend doordeweeks is
@@ -27,8 +28,16 @@ import {
   type EventSignal,
 } from './quiet-signals';
 
-export type Dagdeel = 'ochtend' | 'middag' | 'avond';
-export const DAGDELEN: Dagdeel[] = ['ochtend', 'middag', 'avond'];
+export type Dagdeel = 'ochtend' | 'lunch' | 'middag' | 'diner' | 'avond';
+/** Vaste vensters (uur, van tot exclusief), zoals in het live model. */
+export const DAGDEEL_DEFS: { key: Dagdeel; from: number; to: number }[] = [
+  { key: 'ochtend', from: 6, to: 11 },
+  { key: 'lunch', from: 11, to: 14 },
+  { key: 'middag', from: 14, to: 17 },
+  { key: 'diner', from: 17, to: 21 },
+  { key: 'avond', from: 21, to: 24 },
+];
+export const DAGDELEN: Dagdeel[] = DAGDEEL_DEFS.map((d) => d.key);
 
 export interface QuietParamsV2 {
   /** Uren na opening waarin niets wordt voorgesteld (klaarzetten). */
@@ -39,10 +48,6 @@ export interface QuietParamsV2 {
   windowHours: number;
   /** Kansdrempel als deel van je piek: het gat moet minstens zo groot zijn. */
   gapFrac: number;
-  /** Eind van de ochtend (uur, exclusief). */
-  ochtendEind: number;
-  /** Eind van de middag (uur, exclusief); daarna begint de avond. */
-  middagEind: number;
   anomalyWeight: number;
   unusualSpreadMult: number;
   absDevFloor: number;
@@ -57,10 +62,8 @@ export interface QuietParamsV2 {
 export const QUIET_PARAMS_V2: QuietParamsV2 = {
   openMarginHours: 1,
   closeMarginHours: 2,
-  windowHours: 3,
+  windowHours: 2,
   gapFrac: 0.3,
-  ochtendEind: 12,
-  middagEind: 17,
   anomalyWeight: 0.5,
   unusualSpreadMult: 2.0,
   absDevFloor: 2,
@@ -68,8 +71,10 @@ export const QUIET_PARAMS_V2: QuietParamsV2 = {
   exceptionScore: 0.8,
   haalbaarheid: {
     ochtend: [0.3, 0.3, 0.3, 0.3, 0.4, 0.7, 0.7],
+    lunch: [0.6, 0.6, 0.6, 0.6, 0.75, 1, 1],
     middag: [0.7, 0.7, 0.7, 0.7, 0.85, 1, 1],
-    avond: [0.75, 0.75, 0.75, 0.75, 0.95, 1, 1],
+    diner: [0.75, 0.75, 0.75, 0.75, 0.95, 1, 1],
+    avond: [0.6, 0.6, 0.6, 0.6, 0.85, 0.95, 0.9],
   },
 };
 
@@ -189,8 +194,8 @@ export function computeQuietV2(
   overrides: Partial<QuietParamsV2> = {},
 ): QuietResultV2 {
   const P: QuietParamsV2 = { ...QUIET_PARAMS_V2, ...overrides };
-  const dagdeelOf = (h: number): Dagdeel =>
-    h < P.ochtendEind ? 'ochtend' : h < P.middagEind ? 'middag' : 'avond';
+  const dagdeelOf = (h: number): Dagdeel | null =>
+    DAGDEEL_DEFS.find((d) => h >= d.from && h < d.to)?.key ?? null;
 
   // 1. Per weekdag: open uren en de uren waarop we iets mogen voorstellen.
   const usable: boolean[][] = pattern.map((row) => {
