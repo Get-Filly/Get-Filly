@@ -54,9 +54,18 @@ export const DAYPART_DEFS: {
   { key: 'ochtend', label: 'ochtend', from: 6, to: 11 },
   { key: 'lunch', label: 'lunch', from: 11, to: 14 },
   { key: 'middag', label: 'middag', from: 14, to: 17 },
-  { key: 'diner', label: 'diner', from: 17, to: 21 },
-  { key: 'avond', label: 'avond', from: 21, to: 24 },
+  { key: 'diner', label: 'diner', from: 17, to: 24 },
 ];
+
+/**
+ * Oude opgeslagen voorstellen kunnen nog het dagdeel 'avond' (21 tot 24 uur)
+ * hebben. Dat dagdeel bestaat niet meer: diner loopt tot sluiting. Deze
+ * functie vertaalt een opgeslagen sleutel naar een huidige, zodat cool-down
+ * en terugkoppeling ook op oude rijen blijven werken.
+ */
+export function normalizeDaypart(key: string): string {
+  return key === 'avond' ? 'diner' : key;
+}
 
 // ============================================================
 // Typen

@@ -3,6 +3,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import {
   DAYPART_DEFS,
   FEEDBACK_MIN_SAMPLES,
+  normalizeDaypart,
   type SlotPerformance,
 } from './quiet-signals';
 
@@ -180,7 +181,9 @@ export class QuietFeedbackService {
     }>) {
       ctxById.set(s.id, {
         date: s.trigger_context?.target_date,
-        daypart: s.trigger_context?.target_daypart,
+        daypart: s.trigger_context?.target_daypart
+          ? normalizeDaypart(s.trigger_context.target_daypart)
+          : undefined,
       });
     }
 
@@ -371,7 +374,7 @@ export class QuietFeedbackService {
       const perSlot = new Map<string, number[]>();
       const all: number[] = [];
       for (const r of rows) {
-        const key = `${r.weekday}|${r.daypart}`;
+        const key = `${r.weekday}|${normalizeDaypart(r.daypart)}`;
         const lift = Number(r.lift);
         if (!Number.isFinite(lift)) continue;
         const arr = perSlot.get(key);

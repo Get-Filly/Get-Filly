@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { QuietSlotsGrid } from "../_components/quiet-slots-grid";
+import { Switch } from "../_components/switch";
 import { Suspense, useEffect, useState } from "react";
 import {
   fetchRestaurant,
@@ -995,34 +997,31 @@ function AccountPageInner() {
             </div>
           </div>
 
+          {/* ----- Mijn momenten (mig 0080) ----- */}
+          <div className="form-field full">
+            <label>{t("notifications.slotsLabel")}</label>
+            <QuietSlotsGrid
+              disabled={form.quiet_disabled_slots ?? []}
+              onChange={(next) => update("quiet_disabled_slots", next)}
+            />
+          </div>
+
           {/* ----- Tijdvenster rustige momenten (mig 0069) ----- */}
           <div className="form-field full">
             <label>{t("notifications.quietWindowLabel")}</label>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 14,
-                margin: "2px 0 10px",
-                cursor: "pointer",
+            <Switch
+              checked={form.quiet_window_start_hour != null}
+              label={t("notifications.quietWindowEnable")}
+              onChange={(on) => {
+                if (on) {
+                  update("quiet_window_start_hour", 11);
+                  update("quiet_window_end_hour", 18);
+                } else {
+                  update("quiet_window_start_hour", null);
+                  update("quiet_window_end_hour", null);
+                }
               }}
-            >
-              <input
-                type="checkbox"
-                checked={form.quiet_window_start_hour != null}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    update("quiet_window_start_hour", 11);
-                    update("quiet_window_end_hour", 18);
-                  } else {
-                    update("quiet_window_start_hour", null);
-                    update("quiet_window_end_hour", null);
-                  }
-                }}
-              />
-              {t("notifications.quietWindowEnable")}
-            </label>
+            />
             {form.quiet_window_start_hour != null && (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 14 }}>
@@ -1096,7 +1095,8 @@ function AccountPageInner() {
                     from: `${String(form.quiet_window_start_hour).padStart(2, "0")}:00`,
                     to: `${String(form.quiet_window_end_hour ?? 18).padStart(2, "0")}:00`,
                   })
-                : t("notifications.quietWindowHintOff")}
+                : t("notifications.quietWindowHintOff")}{" "}
+              {t("notifications.quietWindowWithSlots")}
             </div>
           </div>
 

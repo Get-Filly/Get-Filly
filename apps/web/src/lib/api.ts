@@ -1489,6 +1489,9 @@ export type Business = {
   // geen beperking (hele open dag). start 0-23, end 1-24 (exclusief).
   quiet_window_start_hour: number | null;
   quiet_window_end_hour: number | null;
+  // "Mijn momenten" (mig 0080): uitgezette momenten als "weekdag|dagdeel"
+  // (0=ma..6=zo; ochtend, lunch, middag, diner). Leeg = alles aan.
+  quiet_disabled_slots: string[];
   // ----- Evenementen in voorstellen (mig 0054) -----
   // Welke event-typen Filly meeneemt in voorstellen.
   // null = alle categorieën; lege array = events uit.
@@ -1567,7 +1570,7 @@ export async function fetchBusynessActual(
 export type QuietMoment = {
   date: string; // YYYY-MM-DD
   weekday: number; // 0=ma..6=zo
-  daypart: string; // ochtend|lunch|middag|diner|avond (eerste van de reeks)
+  daypart: string; // ochtend|lunch|middag|diner
   // Alle dagdeel-sleutels in deze kans; hiermee vertaalt de UI zelf
   // (zie lib/dayparts.ts). daypartLabel is NL en alleen de terugval.
   dayparts: string[];

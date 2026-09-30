@@ -1,60 +1,66 @@
 /**
  * ============================================================
- * Parameters van de rustige-momenten-detectie (groep A)
+ * Parameters van de rustige-momenten-detectie
  * ============================================================
  *
- * Eén plek voor de getallen die bepalen WANNEER een dagdeel een kans is.
- * Uitleg in gewone taal per parameter, zodat je ze zonder codezoektocht kunt
- * aanpassen. `getQuietMoments` leest deze standaardwaarden; de
- * speeltuin (en tests) kunnen ze per aanroep overschrijven.
+ * Eén plek voor de getallen die bepalen WANNEER een moment een kans is, met
+ * uitleg in gewone taal. De detectie (quiet-model.ts) leest deze standaard-
+ * waarden; tests en de speeltuin kunnen ze per aanroep overschrijven.
+ *
+ * Herkomst van de waarden: zie docs/werking/rustige-momenten-model-v2.docx.
  */
+export type Dagdeel = 'ochtend' | 'lunch' | 'middag' | 'diner';
+
 export interface QuietParams {
+  /** Uren na opening waarin niets wordt voorgesteld (dan wordt er klaargezet). */
+  openMarginHours: number;
+  /** Uren voor sluiting waarin niets wordt voorgesteld (dan wordt er afgebouwd). */
+  closeMarginHours: number;
+  /** Lengte (uren) van het rustige tijdvenster dat we binnen een dagdeel zoeken. */
+  windowHours: number;
   /**
-   * Minimaal aantal open uren binnen een dagdeel voordat het meetelt.
-   * Voorkomt dat een dagdeel waarin je maar een uur open bent een "kans" wordt.
+   * Kansdrempel als deel van je piek (0,35 = 35%): het gat met je drukste
+   * blok moet minstens zo groot zijn. Hoger = strenger.
    */
-  minCoverage: number;
-  /**
-   * Kansdrempel: hoeveel punten een dagdeel onder je EIGEN drukste dagdeel
-   * (de piek) moet zitten om te tellen als iets wat je kunt vullen. Hoger =
-   * strenger (alleen echt lege momenten), lager = meer momenten komen in aanmerking.
-   */
-  gapFloor: number;
-  /**
-   * Het eerste en laatste open dagdeel (opening en afsluiting) telt alleen mee
-   * als het minstens dit deel van je piek haalt. Anders is het de dode rand van
-   * je dienst en geen kans.
-   */
-  edgeActivityFrac: number;
-  /**
-   * Ondergrens (in punten) voor de "normale schommeling". Vangt zaken af waar
-   * het patroon zo vlak is dat de schommeling bijna nul zou worden.
-   */
-  absDevFloor: number;
-  /**
-   * Hoe zwaar een "ongewoon rustig" dagdeel maximaal extra meetelt in de
-   * rangschikking, bovenop hoeveel er te vullen valt. Het label
-   * "ongewoon rustig" zelf hangt aan unusualSpreadMult.
-   */
+  gapFrac: number;
+  /** Hoe zwaar een "ongewoon rustig" moment extra meetelt in de volgorde. */
   anomalyWeight: number;
-  /**
-   * Vanaf hoeveel keer de normale schommeling een dagdeel "ongewoon rustig"
-   * heet (in plaats van "doorgaans rustig").
-   */
+  /** Vanaf hoeveel keer de normale schommeling een moment "ongewoon rustig" heet. */
   unusualSpreadMult: number;
+  /** Ondergrens voor "ongewoon": minimaal dit deel (0,12 = 12%) onder het verwachte niveau. */
+  relDevFloor: number;
+  /** Hoe zwaar een evenement in de buurt meetelt in de score. */
+  eventBonusWeight: number;
+  /** Vanaf welke score een evenement-kans boven het tempo uit mag ("kans van de week"). */
+  exceptionScore: number;
   /**
-   * Tempo: maximaal aantal rustige dagen dat Filly per week aandraagt als de
-   * zaak zelf niets heeft ingesteld (per zaak instelbaar, mig 0065, 1 tot 6).
+   * Haalbaarheid 0 tot 1 per dagdeel en weekdag (ma tot zo). Hoe goed een
+   * moment te bereiken is; vermenigvuldigt de score. Onze eerste aanname,
+   * bij te stellen met eigen metingen.
    */
+  haalbaarheid: Record<Dagdeel, number[]>;
+  /** Minimaal aantal open uren voor een dagdeel in de bezettingsrapportage. */
+  minCoverage: number;
+  /** Tempo als de zaak zelf niets heeft ingesteld (per zaak instelbaar, 1 tot 6). */
   defaultPerWeek: number;
 }
 
 export const QUIET_PARAMS: QuietParams = {
-  minCoverage: 2,
-  gapFloor: 15,
-  edgeActivityFrac: 0.3,
-  absDevFloor: 2,
+  openMarginHours: 1,
+  closeMarginHours: 2,
+  windowHours: 2,
+  gapFrac: 0.35,
   anomalyWeight: 0.5,
   unusualSpreadMult: 2.0,
+  relDevFloor: 0.12,
+  eventBonusWeight: 0.5,
+  exceptionScore: 0.8,
+  haalbaarheid: {
+    ochtend: [0.3, 0.3, 0.3, 0.3, 0.4, 0.7, 0.7],
+    lunch: [0.85, 0.85, 0.85, 0.85, 0.85, 1, 1],
+    middag: [0.85, 0.85, 0.85, 0.85, 0.85, 1, 1],
+    diner: [0.85, 0.85, 0.85, 0.85, 0.95, 1, 1],
+  },
+  minCoverage: 2,
   defaultPerWeek: 2,
 };

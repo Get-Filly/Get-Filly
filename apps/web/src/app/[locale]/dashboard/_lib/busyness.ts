@@ -349,15 +349,14 @@ export function occupancyMap(rows: OccupancyDay[]): Map<string, number> {
 // niveau. "Normaal" is hier de mediaan over je weekdagen: de voorspelling
 // zelf is het Google-patroon, dus daar tegen afzetten zou rondjes draaien.
 
-// Spiegelt DAYPART_DEFS in apps/api/src/busyness/busyness.service.ts
+// Spiegelt DAYPART_DEFS in apps/api/src/busyness/quiet-signals.ts
 // ([from, to) = half-open). De frontend gebruikt ze alleen om een
 // normaal-niveau per dagdeel te tekenen; de kans-detectie blijft backend.
 export const DAYPARTS: { key: string; from: number; to: number }[] = [
   { key: "ochtend", from: 6, to: 11 },
   { key: "lunch", from: 11, to: 14 },
   { key: "middag", from: 14, to: 17 },
-  { key: "diner", from: 17, to: 21 },
-  { key: "avond", from: 21, to: 24 },
+  { key: "diner", from: 17, to: 24 },
 ];
 
 export function daypartOf(hour: number): { key: string; from: number; to: number } | null {
