@@ -135,6 +135,50 @@ export class OpenMeteoClient {
     return days;
   }
 
+  /**
+   * Het weer van de afgelopen dagen (tot 92 dagen terug, tot en met vandaag).
+   * Voor het dagoverzicht van de drukte: dan weten we later welk weer een
+   * gemeten dag had. Gooit bij een API-fout; de caller vangt dat af.
+   */
+  async getHistory(
+    lat: number,
+    lng: number,
+    pastDays: number,
+  ): Promise<ForecastDay[]> {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', lat.toString());
+    url.searchParams.set('longitude', lng.toString());
+    url.searchParams.set(
+      'daily',
+      'temperature_2m_max,temperature_2m_min,weather_code',
+    );
+    url.searchParams.set('timezone', 'Europe/Amsterdam');
+    url.searchParams.set(
+      'past_days',
+      String(Math.min(92, Math.max(1, pastDays))),
+    );
+    url.searchParams.set('forecast_days', '1');
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      throw new InternalServerErrorException(`Weather API fout: ${res.status}`);
+    }
+    const data = (await res.json()) as OpenMeteoResponse;
+    return data.daily.time.map((date, i) => {
+      const d = new Date(date);
+      const code = data.daily.weather_code[i];
+      const w = WEATHER_CODES[code] ?? { icon: '🌤️', desc: 'Onbekend' };
+      return {
+        date,
+        dayLabel: DAY_LABELS[d.getDay()],
+        tempMin: Math.round(data.daily.temperature_2m_min[i]),
+        tempMax: Math.round(data.daily.temperature_2m_max[i]),
+        icon: w.icon,
+        description: w.desc,
+        code,
+      };
+    });
+  }
+
   /** Verwachting voor coördinaten, maar nooit een exception: leeg bij fout. */
   async getForecastSafe(lat: number, lng: number): Promise<ForecastDay[]> {
     try {
