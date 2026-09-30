@@ -1,4 +1,7 @@
-import { checkCopyLength, mapCampaignTypeToChannel } from './filly-brain.config';
+import {
+  checkCopyLength,
+  mapCampaignTypeToChannel,
+} from './filly-brain.config';
 
 describe('filly-brain.config', () => {
   describe('checkCopyLength', () => {

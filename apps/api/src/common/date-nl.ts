@@ -66,3 +66,23 @@ export function todayNl(d: Date = new Date()): string {
   const { year, month, day } = amsterdamParts(d);
   return ymd(year, month, day);
 }
+
+/**
+ * Het tijdstip (ISO, UTC) waarop het in Amsterdam `hour`:00 is op de datum
+ * `dateStr` (YYYY-MM-DD). Houdt rekening met zomer- en wintertijd.
+ */
+export function amsterdamIsoAtHour(dateStr: string, hour: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const cand = new Date(Date.UTC(y, m - 1, d, hour, 0, 0));
+  const amsHour = Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: AMSTERDAM,
+      hour: '2-digit',
+      hour12: false,
+    }).format(cand),
+  );
+  let offset = amsHour - hour; // uren dat Amsterdam vóórloopt op UTC
+  if (offset < -12) offset += 24;
+  if (offset > 12) offset -= 24;
+  return new Date(Date.UTC(y, m - 1, d, hour - offset, 0, 0)).toISOString();
+}

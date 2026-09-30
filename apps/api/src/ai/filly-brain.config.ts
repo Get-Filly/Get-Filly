@@ -25,20 +25,14 @@
  *   const rules = CHANNEL_RULES.instagram_feed;
  *   const promptBlock = formatChannelRulesForPrompt('instagram_feed');
  *
- * Wijzigen van CHANNEL_RULES → bump CHANNEL_RULES_VERSION zodat
+ * Wijzigen van CHANNEL_RULES: leg de bron vast bij de waarde zodat
  * historische performance-data correct kan worden geïnterpreteerd.
  */
 
-// ============================================================
-// Versie van het regel-model. Bumpen bij elke wijziging die
-// downstream-services kan beïnvloeden (zelfde patroon als
-// runner_version in HealthService).
-// ============================================================
-// v2 (2026-06-11): bestTimes per kanaal bijgewerkt vanuit het social-
-// posting-brein-doc (Posting-Tijden v1.1); GBP-frequentie 2→3/week.
-// v3 (2026-06-11): tweede-beste vensters (bestTimes.fallback) +
-// gradatie-regel — voorkeursvensters zijn geen vereisten meer.
-export const CHANNEL_RULES_VERSION = 'v3';
+// Wijzigingen: bestTimes per kanaal vanuit het social-posting-brein-doc
+// (Posting-Tijden v1.1), GBP 3 per week, tweede-beste vensters
+// (bestTimes.fallback) en de gradatie-regel (voorkeursvensters zijn geen
+// vereisten); 2026-09-30 Facebook 4 per week (bronnen: 3 tot 4).
 
 // ============================================================
 // Kanalen, funnel-fasen, lifecycle, archetypes, tone-signatures
@@ -64,41 +58,41 @@ export type FunnelStage = 'awareness' | 'consideration' | 'conversion';
 
 /** Lifecycle-fase van een gast (hfst 11.2). */
 export type LifecyclePhase =
-  | 'nieuw'         // reservering gemaakt, nog niet gegeten
-  | 'verse_gast'    // 1 bezoek, < 30 dagen
-  | 'terugkeerder'  // 2-5 bezoeken in laatste 6 maanden
-  | 'vaste_gast'    // 6+ bezoeken in laatste 6 maanden
-  | 'slapend'       // > 90 dagen niet geweest
-  | 'verloren';     // > 365 dagen niet geweest
+  | 'nieuw' // reservering gemaakt, nog niet gegeten
+  | 'verse_gast' // 1 bezoek, < 30 dagen
+  | 'terugkeerder' // 2-5 bezoeken in laatste 6 maanden
+  | 'vaste_gast' // 6+ bezoeken in laatste 6 maanden
+  | 'slapend' // > 90 dagen niet geweest
+  | 'verloren'; // > 365 dagen niet geweest
 
 /**
  * Brand-archetype dat de toon-keuze stuurt (hfst 15.1).
  * Eigenaar kiest primair + optioneel secundair archetype.
  */
 export type BrandArchetype =
-  | 'caregiver'   // familie-bistro, comfort food
-  | 'lover'       // romantisch, fine-dining met emotie
-  | 'magician'    // innovatief, experimenteel
-  | 'everyman'    // toegankelijk, all-day-eatery
-  | 'hero'        // sport, no-nonsense kwaliteit
-  | 'explorer'    // reis-thema, fusion, exotic
-  | 'sage'        // wijn-specialist, kennis-rijk
-  | 'jester'      // casual fun, humor
-  | 'creator'     // chef-driven, ambacht-trots
-  | 'ruler'       // klassiek, traditie, autoriteit
-  | 'innocent'    // puur, eerlijk, simpel
-  | 'outlaw';     // tegendraads, anti-establishment
+  | 'caregiver' // familie-bistro, comfort food
+  | 'lover' // romantisch, fine-dining met emotie
+  | 'magician' // innovatief, experimenteel
+  | 'everyman' // toegankelijk, all-day-eatery
+  | 'hero' // sport, no-nonsense kwaliteit
+  | 'explorer' // reis-thema, fusion, exotic
+  | 'sage' // wijn-specialist, kennis-rijk
+  | 'jester' // casual fun, humor
+  | 'creator' // chef-driven, ambacht-trots
+  | 'ruler' // klassiek, traditie, autoriteit
+  | 'innocent' // puur, eerlijk, simpel
+  | 'outlaw'; // tegendraads, anti-establishment
 
 /**
  * Verteltechniek-signature voor 3-varianten-variatie (hfst 8.4).
  * Filly genereert per voorstel-set verplicht 3 verschillende signatures.
  */
 export type ToneSignature =
-  | 'feit_eerst'    // info → CTA, droog en helder
+  | 'feit_eerst' // info → CTA, droog en helder
   | 'verhaal_eerst' // anekdote/scene → uitnodiging
-  | 'vraag_eerst'   // rhetorische vraag → antwoord
-  | 'lijst'         // opsomming-stijl, scanbaar
-  | 'stelling';     // krachtige claim → onderbouwing
+  | 'vraag_eerst' // rhetorische vraag → antwoord
+  | 'lijst' // opsomming-stijl, scanbaar
+  | 'stelling'; // krachtige claim → onderbouwing
 
 /** CTA-templates voor fingerprint-tracking (hfst 8.2). */
 export type CtaTemplate =
@@ -136,7 +130,11 @@ export interface HashtagStrategy {
   /** Anker-hashtags (uit restaurants.keywords + cuisine + city) tellen NIET mee. */
   excludeAnchorsFromCount: boolean;
   /** Plaatsing in caption. */
-  placement: 'inline' | 'einde_caption' | 'eerste_comment' | 'niet_van_toepassing';
+  placement:
+    | 'inline'
+    | 'einde_caption'
+    | 'eerste_comment'
+    | 'niet_van_toepassing';
   /** Mix-strategie voor de niet-anker-laag. */
   mix?: string;
 }
@@ -235,12 +233,14 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [4, 5], // do/vr
       bestHours: ['09:00-11:00', '17:30-18:30'],
       note: 'Vrijdag 18:00 = piek in open- én click-rate (MailerLite, 2.1M campagnes); do-ochtend ideaal voor weekend-promoties (+30% CTR vs ma/di). Vermijd zondag (click-rate -32%). Maand-begin (1-5) en rond de 25e (loondag) geven extra boost.',
-      fallback: 'di-wo 09:00-11:00 (ochtend-open-piek werkt door de week prima); alleen zondag blijft af te raden.',
+      fallback:
+        'di-wo 09:00-11:00 (ochtend-open-piek werkt door de week prima); alleen zondag blijft af te raden.',
     },
     leadTime: {
       minHours: 24,
       optimalRangeHours: [72, 168], // 3-7 dagen
-      rationale: 'Mensen plannen uit-eten 2-5 dagen vooruit; onder 24u keldert open-rate.',
+      rationale:
+        'Mensen plannen uit-eten 2-5 dagen vooruit; onder 24u keldert open-rate.',
     },
     frequency: { maxPerWeek: 1, maxPerMonth: 4 },
     visual: {
@@ -248,8 +248,10 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       aspectRatios: ['16:9', '4:3'],
       altTextRequired: true,
     },
-    toneModulation: 'Persoonlijk, warm, ondertekend door eigenaar of Filly. Schrijf alsof je een vaste gast persoonlijk benadert.',
-    ctaStyle: 'Eén primaire CTA als button, max 3 woorden ("Reserveer nu" / "Bekijk menu"). Geen 2e of 3e CTA.',
+    toneModulation:
+      'Persoonlijk, warm, ondertekend door eigenaar of Filly. Schrijf alsof je een vaste gast persoonlijk benadert.',
+    ctaStyle:
+      'Eén primaire CTA als button, max 3 woorden ("Reserveer nu" / "Bekijk menu"). Geen 2e of 3e CTA.',
     specifics: [
       'Subject ≤ 40 tekens zichtbaar op mobiel; eerste 30 zijn cruciaal.',
       'Preheader complementair aan subject, niet herhalen.',
@@ -280,7 +282,8 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [3, 4, 5], // wo/do/vr
       bestHours: ['12:00-13:00', '18:00-21:00'],
       note: 'Donderdag 9:00 en 21:00 = hoogste engagement (Buffer, 9.6M posts); wo 12:00 + 18:00 sterk; vr-lunch (11-13) triggert weekend-eetbeslissingen. Vermijd za-zo voor zakelijke posts (engagement -17%). Eerste 125 tekens cruciaal (zichtbaar vóór "meer"-klik).',
-      fallback: 'ma-di 18:00-20:00 (door-de-week-avond); in het weekend alleen sfeer-/food-content, geen zakelijke aanbiedingen.',
+      fallback:
+        'ma-di 18:00-20:00 (door-de-week-avond); in het weekend alleen sfeer-/food-content, geen zakelijke aanbiedingen.',
     },
     leadTime: {
       minHours: 6,
@@ -293,8 +296,10 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       aspectRatios: ['1:1', '4:5'],
       altTextRequired: true,
     },
-    toneModulation: 'Visueel-eerst, kort, emoji\'s mogen (1-3). Schrijf zodat de copy het beeld versterkt, niet beschrijft.',
-    ctaStyle: 'Een save/share-trigger ("Sla op voor je volgende date-night") of profiel-actie ("Link in bio voor reservering").',
+    toneModulation:
+      "Visueel-eerst, kort, emoji's mogen (1-3). Schrijf zodat de copy het beeld versterkt, niet beschrijft.",
+    ctaStyle:
+      'Een save/share-trigger ("Sla op voor je volgende date-night") of profiel-actie ("Link in bio voor reservering").',
     specifics: [
       'Eerste 125 tekens = hook + actie; pas daarna context.',
       'Hashtag-strategie weegt sinds 2023 minder; kwaliteit > kwantiteit.',
@@ -325,12 +330,14 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [4, 5, 6, 7], // do-zo
       bestHours: ['10:00-11:30', '16:00-17:30'],
       note: 'Reels 2-4u vóór het eetmoment plaatsen (lunch ~11:00, diner ~17:00): vlak voor de eetbeslissing presteert F&B-video het best (Dash Social; Reels 2.7% engagement vs 1.4% carousel). Weekend-avond werkt voor F&B óók.',
-      fallback: 'door-de-week dezelfde eetmoment-vensters (2-4u vóór lunch of diner) — de dag maakt voor Reels minder uit dan het moment.',
+      fallback:
+        'door-de-week dezelfde eetmoment-vensters (2-4u vóór lunch of diner) — de dag maakt voor Reels minder uit dan het moment.',
     },
     leadTime: {
       minHours: 4,
       optimalRangeHours: [24, 48],
-      rationale: 'Algoritme-push duurt uren; te late post valt onder later interval.',
+      rationale:
+        'Algoritme-push duurt uren; te late post valt onder later interval.',
     },
     frequency: { maxPerWeek: 2, maxPerMonth: 8 },
     visual: {
@@ -339,8 +346,10 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       altTextRequired: false,
       videoLengthSeconds: { min: 7, max: 60, sweetSpot: 12 },
     },
-    toneModulation: 'Vraag-vorm of one-liner. Caption is bijzaak; video moet het werk doen.',
-    ctaStyle: 'Comment-trigger ("welke versie vind jij beter?") of profiel-actie ("link in bio").',
+    toneModulation:
+      'Vraag-vorm of one-liner. Caption is bijzaak; video moet het werk doen.',
+    ctaStyle:
+      'Comment-trigger ("welke versie vind jij beter?") of profiel-actie ("link in bio").',
     specifics: [
       'Hook in eerste 1-3 sec: beeld dat verbazing/honger triggert.',
       'Trending audio > eigen audio voor algoritme-boost.',
@@ -369,7 +378,8 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [1, 2, 3, 4, 5, 6, 7], // dagelijks
       bestHours: ['11:00-13:00', '17:00-19:00'],
       note: '"Wat is er vandaag"-content vlak vóór de eetmomenten (lunch + diner-prep). Verdwijnt na 24u, dus plaats op de dag zelf.',
-      fallback: 'elk ander moment op de dag zelf — Stories zijn per definitie dag-content, een "gemist" venster bestaat hier nauwelijks.',
+      fallback:
+        'elk ander moment op de dag zelf — Stories zijn per definitie dag-content, een "gemist" venster bestaat hier nauwelijks.',
     },
     leadTime: {
       minHours: 0,
@@ -382,8 +392,10 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       aspectRatios: ['9:16'],
       altTextRequired: false,
     },
-    toneModulation: 'Telegram-stijl: 1 zin per slide, geen completer paragraaf.',
-    ctaStyle: 'Sticker-CTA (poll, vraag, link, swipe-up). Direct, één-klik-actie.',
+    toneModulation:
+      'Telegram-stijl: 1 zin per slide, geen completer paragraaf.',
+    ctaStyle:
+      'Sticker-CTA (poll, vraag, link, swipe-up). Direct, één-klik-actie.',
     specifics: [
       'Set van 3-5 slides; drop-off na 5.',
       'Sticker-engagement (poll/vraag) +20% vs alleen tekst.',
@@ -413,27 +425,30 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [2, 3, 4, 5], // di-vr
       bestHours: ['11:00-13:00', '17:00-19:00'],
       note: 'Di-wo 12:00-20:00 = algemene piek (Sprout, 307K profielen); maaltijd-windows 11-13 en 17-19 voor food-content. Boekings-/aanbod-content scoort do-zo 11:00-14:00 en 19:00-21:00. Events: 2-3 weken vooraf aankondigen + reminder 2 dagen vooraf (3× hogere RSVP).',
-      fallback: 'za-zo 11:00-14:00 (weekend-planmoment, vooral voor boekings-content) of 19:00-21:00 avond-relaxatie.',
+      fallback:
+        'za-zo 11:00-14:00 (weekend-planmoment, vooral voor boekings-content) of 19:00-21:00 avond-relaxatie.',
     },
     leadTime: {
       minHours: 12,
       optimalRangeHours: [48, 120], // 2-5 dagen
       rationale: 'FB-feed langzamer maar verzadigd; lange aanloop helpt.',
     },
-    frequency: { maxPerWeek: 3, maxPerMonth: 12 },
+    frequency: { maxPerWeek: 4, maxPerMonth: 16 },
     visual: {
       required: false,
       aspectRatios: ['1.91:1', '1:1'],
       altTextRequired: true,
       videoLengthSeconds: { min: 15, max: 60, sweetSpot: 35 },
     },
-    toneModulation: 'Storytelling, vraag stellen voor engagement. Warmer en uitgebreider dan IG.',
-    ctaStyle: 'Vraag in copy ("Wat was jouw favoriet vorige week?") of direct event-link.',
+    toneModulation:
+      'Storytelling, vraag stellen voor engagement. Warmer en uitgebreider dan IG.',
+    ctaStyle:
+      'Vraag in copy ("Wat was jouw favoriet vorige week?") of direct event-link.',
     specifics: [
       'Geen hashtags.',
       'Voor evenementen ALTIJD Facebook-event (5× effectiever dan event-post).',
       'Live + video presteert beter dan statische foto.',
-      'Ondertiteling op video\'s verplicht (auto-play = silent op FB).',
+      "Ondertiteling op video's verplicht (auto-play = silent op FB).",
     ],
   },
 
@@ -459,7 +474,8 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [1, 2, 3, 4, 6], // ma-do + za
       bestHours: ['14:00-18:00', '19:00-21:00'],
       note: 'Ma-do 15:00-18:00 = F&B-piek ("afternoon slump": mensen plannen hun diner — Sprout); za-ochtend 10:00-12:00 voor weekend-content. Post 30-60 min vóór de piek: het algoritme test eerst klein en pusht daarna (4× FYP-distributie bij vroege engagement). Consistentie weegt zwaarder dan perfectie.',
-      fallback: 'zo 19:00-21:00 (avond-scroll) of vr-middag; voor het TikTok-algoritme weegt regelmatig posten zwaarder dan het exacte tijdstip.',
+      fallback:
+        'zo 19:00-21:00 (avond-scroll) of vr-middag; voor het TikTok-algoritme weegt regelmatig posten zwaarder dan het exacte tijdstip.',
     },
     leadTime: {
       minHours: 6,
@@ -504,7 +520,8 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [2, 3, 4], // di-do
       bestHours: ['16:00-18:00', '11:00-15:00'],
       note: 'Vaste gasten di-do 16:00-18:00 (last-minute zelfde-avond-uitnodiging, 67% prefereert messaging boven bellen); lege-tafels-broadcast op de dag zelf om 11:00 of 15:00. NOOIT 22:00-09:00 of zondagavond (AVG redelijke uren). Verjaardags-bericht 7 dagen vóór de datum. Conservatief gebruiken; opt-in juridisch verplicht.',
-      fallback: 'vr 11:00-15:00 voor weekend-gerichte last-minute acties; de verboden uren (22:00-09:00, zondagavond) blijven altijd gelden.',
+      fallback:
+        'vr 11:00-15:00 voor weekend-gerichte last-minute acties; de verboden uren (22:00-09:00, zondagavond) blijven altijd gelden.',
     },
     leadTime: {
       minHours: 0.5,
@@ -517,11 +534,13 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       aspectRatios: ['1:1', '4:3'],
       altTextRequired: false,
     },
-    toneModulation: 'Persoonlijk, alsof eigenaar zelf typt. Vermijd marketing-toon.',
-    ctaStyle: 'Directe reserveer-link of telefoon-tap. Eén klik, geen UTM-tracking zichtbaar.',
+    toneModulation:
+      'Persoonlijk, alsof eigenaar zelf typt. Vermijd marketing-toon.',
+    ctaStyle:
+      'Directe reserveer-link of telefoon-tap. Eén klik, geen UTM-tracking zichtbaar.',
     specifics: [
       'Opt-in verplicht (AVG + WhatsApp Business policy).',
-      'Max 1-2 emoji\'s; ALL-CAPS triggert spam-filter.',
+      "Max 1-2 emoji's; ALL-CAPS triggert spam-filter.",
       'Eerste outreach naar nummer (buiten 24u-window) vereist Meta-goedgekeurd template.',
       'Max 1× per 3 weken voor zelfde nummer om ergernis te voorkomen.',
     ],
@@ -549,12 +568,14 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       bestDays: [1, 2, 3, 4, 5], // ma-vr
       bestHours: ['07:00-09:00', '14:00-16:00'],
       note: 'Ma-wo 7:00-9:00 = plan-modus begin van de week (weekreserveringen pieken ma/di, Toast +11%); event-posts wo-do 14:00-16:00 (weekend-planning piekt dan); weekend-aanbiedingen do-vr 14:00-16:00. Vaste maandagochtend-post ("wat is er nieuw") loont: wekelijks posten alleen al +28% klikken. 2-3 posts/week is het optimum.',
-      fallback: 'elke werkdag 10:00-12:00 (snelle indexering); een dag later posten is altijd beter dan overslaan — consistentie weegt het zwaarst voor de local-pack-ranking.',
+      fallback:
+        'elke werkdag 10:00-12:00 (snelle indexering); een dag later posten is altijd beter dan overslaan — consistentie weegt het zwaarst voor de local-pack-ranking.',
     },
     leadTime: {
       minHours: 12,
       optimalRangeHours: [24, 168], // 1-7 dagen
-      rationale: 'Google indexeert binnen uren maar zoekers vinden 1-3 dagen na.',
+      rationale:
+        'Google indexeert binnen uren maar zoekers vinden 1-3 dagen na.',
     },
     frequency: { maxPerWeek: 3, maxPerMonth: 12 }, // 2-3/wk optimum (Shagbark/Wiremo)
     visual: {
@@ -563,8 +584,10 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
       altTextRequired: false,
       videoLengthSeconds: { min: 10, max: 30, sweetSpot: 18 },
     },
-    toneModulation: 'Lokaal-actie-gericht, feitelijk. Vermeld datum + adres + aanbod expliciet.',
-    ctaStyle: 'CTA-knop: Bel / Reserveer / Bekijk menu / Leer meer. Eén knop per post.',
+    toneModulation:
+      'Lokaal-actie-gericht, feitelijk. Vermeld datum + adres + aanbod expliciet.',
+    ctaStyle:
+      'CTA-knop: Bel / Reserveer / Bekijk menu / Leer meer. Eén knop per post.',
     specifics: [
       'Drie post-types: Update (verloopt 7d) / Event (datum-range) / Offer.',
       'Foto verplicht; vergroot CTR met 35%+.',
@@ -589,35 +612,36 @@ export type ThemeType =
   | 'algemeen';
 
 export const CHANNEL_MIX_PER_THEME: Record<ThemeType, FillyChannel[]> = {
-  feestdag: ['mail', 'instagram_feed', 'facebook'],
-  rustige_dag_actie: ['whatsapp', 'instagram_stories'],
-  nieuw_menu: ['instagram_feed', 'mail', 'google_business'],
-  seizoens_aanbod: ['mail', 'instagram_feed', 'google_business'],
-  eenmalig_event: ['mail', 'facebook', 'google_business'], // FB voor event-RSVP, GBP voor event-post
-  algemeen: ['instagram_feed', 'mail'],
+  feestdag: ['instagram_feed', 'facebook', 'google_business'],
+  rustige_dag_actie: ['instagram_feed', 'facebook'],
+  nieuw_menu: ['instagram_feed', 'tiktok', 'google_business'],
+  seizoens_aanbod: ['instagram_feed', 'facebook', 'google_business'],
+  eenmalig_event: ['facebook', 'instagram_feed', 'google_business'], // FB voor event-RSVP, GBP voor event-post
+  algemeen: ['instagram_feed', 'facebook'],
 };
 
-// ============================================================
-// FUNNEL_STAGE_TO_CHANNELS — welke kanalen passen bij welke fase
-// (hoofdstuk 11.1)
-// ============================================================
+/**
+ * Standaardmix per thema als tekstblok voor een prompt: welke kanalen Filly
+ * kiest wanneer de eigenaar zelf niets noemt ("kies jij maar"). Alleen de
+ * kanalen die Get-Filly aanbiedt: Instagram, Facebook, TikTok en Google.
+ */
+export function buildThemeChannelMixBlock(): string {
+  const lines = (Object.keys(CHANNEL_MIX_PER_THEME) as ThemeType[]).map(
+    (theme) =>
+      `- ${THEME_LABEL_NL[theme]}: ${CHANNEL_MIX_PER_THEME[theme]
+        .map((c) => CHANNEL_RULES[c].label)
+        .join(' + ')}`,
+  );
+  return `STANDAARDMIX PER THEMA (alleen als de eigenaar geen kanaal noemt):\n${lines.join('\n')}`;
+}
 
-export const FUNNEL_STAGE_TO_CHANNELS: Record<FunnelStage, FillyChannel[]> = {
-  awareness: ['instagram_reels', 'tiktok', 'google_business', 'facebook'],
-  consideration: ['instagram_feed', 'facebook', 'google_business'],
-  conversion: ['mail', 'whatsapp', 'instagram_stories', 'google_business'],
-};
-
-// ============================================================
-// Retention vs acquisition balans (hoofdstuk 11.4)
-// ============================================================
-
-/** Default-verhouding retentie/acquisitie van Filly's output. */
-export const RETENTION_ACQUISITION_BALANCE = {
-  retentionPercentage: 60, // 60% gericht op bestaande gasten
-  acquisitionPercentage: 40,
-  rationale:
-    'Een nieuwe gast acquireren kost 5-7× meer dan een bestaande terugkrijgen. Default-bias op retentie tenzij eigenaar expliciet acquisitie-fase aangeeft.',
+const THEME_LABEL_NL: Record<ThemeType, string> = {
+  feestdag: 'Feestdag',
+  rustige_dag_actie: 'Actie op een rustige dag',
+  nieuw_menu: 'Nieuw menu of gerecht',
+  seizoens_aanbod: 'Seizoensaanbod',
+  eenmalig_event: 'Eenmalig event',
+  algemeen: 'Algemeen',
 };
 
 // ============================================================
@@ -663,28 +687,6 @@ export const PERSUASION_EXAMPLES: Record<PersuasionPrinciple, string[]> = {
 };
 
 // ============================================================
-// Default rate-limits per restaurant (hoofdstuk 18.1)
-// ============================================================
-
-export const DEFAULT_RATE_LIMITS: Record<
-  FillyChannel,
-  FrequencyLimits
-> = Object.fromEntries(
-  Object.entries(CHANNEL_RULES).map(([k, v]) => [k, v.frequency]),
-) as Record<FillyChannel, FrequencyLimits>;
-
-// ============================================================
-// Score-weights voor success-classificatie (hoofdstuk 9.4)
-// ============================================================
-
-export const SUCCESS_SCORE_THRESHOLDS = {
-  winner: 80,        // ≥ 80 = top 20%
-  average: 50,       // 50-79 = midden
-  underperformer: 20, // 20-49 = onder benchmark
-  // < 20 of measurement_complete_at NULL = no_data
-};
-
-// ============================================================
 // Anti-repetitie-drempels (hoofdstuk 8.3)
 // ============================================================
 
@@ -707,9 +709,7 @@ export const ANTI_REPETITION_THRESHOLDS = {
  * Format de regels van één kanaal als plain text voor in een
  * system-prompt. Gebruikt door chat.service en suggestions.service.
  */
-export function formatChannelRulesForPrompt(
-  channel: FillyChannel,
-): string {
+export function formatChannelRulesForPrompt(channel: FillyChannel): string {
   const r = CHANNEL_RULES[channel];
   const lines: string[] = [];
   lines.push(`KANAAL: ${r.label}`);
@@ -717,15 +717,23 @@ export function formatChannelRulesForPrompt(
   lines.push(``);
   lines.push(`Lengte:`);
   if (r.copyLength.subject) {
-    lines.push(`  - Subject: ${r.copyLength.subject.minChars}-${r.copyLength.subject.maxChars} tekens`);
+    lines.push(
+      `  - Subject: ${r.copyLength.subject.minChars}-${r.copyLength.subject.maxChars} tekens`,
+    );
   }
   if (r.copyLength.preheader) {
-    lines.push(`  - Preheader: ${r.copyLength.preheader.minChars}-${r.copyLength.preheader.maxChars} tekens`);
+    lines.push(
+      `  - Preheader: ${r.copyLength.preheader.minChars}-${r.copyLength.preheader.maxChars} tekens`,
+    );
   }
   if (r.copyLength.minWords && r.copyLength.maxWords) {
-    lines.push(`  - Body: ${r.copyLength.minWords}-${r.copyLength.maxWords} woorden (${r.copyLength.minChars}-${r.copyLength.maxChars} tekens)`);
+    lines.push(
+      `  - Body: ${r.copyLength.minWords}-${r.copyLength.maxWords} woorden (${r.copyLength.minChars}-${r.copyLength.maxChars} tekens)`,
+    );
   } else {
-    lines.push(`  - Body: ${r.copyLength.minChars}-${r.copyLength.maxChars} tekens`);
+    lines.push(
+      `  - Body: ${r.copyLength.minChars}-${r.copyLength.maxChars} tekens`,
+    );
   }
   if (r.visual.videoLengthSeconds) {
     const v = r.visual.videoLengthSeconds;
@@ -736,7 +744,9 @@ export function formatChannelRulesForPrompt(
   if (r.hashtags.countMax === 0) {
     lines.push(`  - Geen hashtags op dit kanaal.`);
   } else {
-    lines.push(`  - ${r.hashtags.countMin}-${r.hashtags.countMax} stuks (excl. anker-hashtags${r.hashtags.excludeAnchorsFromCount ? '' : ', incl. ankers'})`);
+    lines.push(
+      `  - ${r.hashtags.countMin}-${r.hashtags.countMax} stuks (excl. anker-hashtags${r.hashtags.excludeAnchorsFromCount ? '' : ', incl. ankers'})`,
+    );
     if (r.hashtags.mix) lines.push(`  - Mix: ${r.hashtags.mix}`);
     lines.push(`  - Plaatsing: ${r.hashtags.placement}`);
   }
@@ -787,9 +797,7 @@ export function checkCopyLength(
  *   const block = buildAllChannelsBlock();
  *   const systemPrompt = `...${block}...`;
  */
-export function buildAllChannelsBlock(
-  channels?: FillyChannel[],
-): string {
+export function buildAllChannelsBlock(channels?: FillyChannel[]): string {
   const list: FillyChannel[] = channels ?? [
     'mail',
     'instagram_feed',
@@ -801,9 +809,7 @@ export function buildAllChannelsBlock(
     'google_business',
   ];
   const sep = '\n\n────────────────────────────────────────\n\n';
-  const formatted = list
-    .map((c) => formatChannelRulesForPrompt(c))
-    .join(sep);
+  const formatted = list.map((c) => formatChannelRulesForPrompt(c)).join(sep);
   return `────────────────────────────────────────
 REGELS PER KANAAL (bron-van-waarheid, bij conflict met andere regels: HIER staat de juiste waarde)
 ────────────────────────────────────────
@@ -844,11 +850,18 @@ export function mapCampaignTypeToChannel(
  * lengte/hashtag-regels (die horen bij content-generatie, niet bij
  * het tijdstip-vraagstuk).
  */
-export function formatTimingForPrompt(
-  channel: FillyChannel,
-): string {
+export function formatTimingForPrompt(channel: FillyChannel): string {
   const r = CHANNEL_RULES[channel];
-  const dayNames = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+  const dayNames = [
+    '',
+    'maandag',
+    'dinsdag',
+    'woensdag',
+    'donderdag',
+    'vrijdag',
+    'zaterdag',
+    'zondag',
+  ];
   const days = r.bestTimes.bestDays.map((d) => dayNames[d]).join(' / ');
   const lines: string[] = [];
   lines.push(`Beste dagen: ${days}`);
@@ -877,9 +890,7 @@ export function formatTimingForPrompt(
  * De generieke urgentie-regel staat er één keer onder in plaats van
  * per kanaal herhaald (scheelt prompt-tokens).
  */
-export function buildAllTimingBlock(
-  channels?: FillyChannel[],
-): string {
+export function buildAllTimingBlock(channels?: FillyChannel[]): string {
   const list: FillyChannel[] = channels ?? [
     'mail',
     'instagram_feed',
@@ -888,7 +899,16 @@ export function buildAllTimingBlock(
     'whatsapp',
     'google_business',
   ];
-  const dayNames = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+  const dayNames = [
+    '',
+    'maandag',
+    'dinsdag',
+    'woensdag',
+    'donderdag',
+    'vrijdag',
+    'zaterdag',
+    'zondag',
+  ];
   const lines: string[] = [];
   lines.push('TIMING PER KANAAL (bron-van-waarheid voor scheduled_for):');
   for (const c of list) {
@@ -909,73 +929,6 @@ export function buildAllTimingBlock(
 }
 
 /**
- * Bepaal of dit kanaal überhaupt nog op tijd is voor het doel.
- * Returnt 'optimal' / 'within_minimum' / 'below_minimum' (skip).
- */
-export function classifyLeadTime(
-  channel: FillyChannel,
-  hoursUntilTarget: number,
-): 'optimal' | 'sweet_spot_window' | 'below_optimal' | 'below_minimum' {
-  const rules = CHANNEL_RULES[channel].leadTime;
-  if (hoursUntilTarget < rules.minHours) return 'below_minimum';
-  if (hoursUntilTarget < rules.optimalRangeHours[0]) return 'below_optimal';
-  if (hoursUntilTarget <= rules.optimalRangeHours[1]) return 'sweet_spot_window';
-  return 'optimal';
-}
-
-/**
- * Suggereer een plaatsings-strategie op basis van uren-tot-doel.
- * Returnt timing-advies + of urgency-flag in copy moet.
- */
-export interface PlacementStrategy {
-  channel: FillyChannel;
-  /** Hoe het algoritme-optimum scoort tegen onze deadline. */
-  classification: ReturnType<typeof classifyLeadTime>;
-  /** Mens-leesbare uitleg voor scheduled_reasoning. */
-  reasoning: string;
-  /** Voeg urgentie-taal toe aan de copy ("vanavond nog"). */
-  urgencyFlagInCopy: boolean;
-  /** Skip dit kanaal? */
-  skip: boolean;
-}
-
-export function planChannelPlacement(
-  channel: FillyChannel,
-  hoursUntilTarget: number,
-): PlacementStrategy {
-  const classification = classifyLeadTime(channel, hoursUntilTarget);
-  const rules = CHANNEL_RULES[channel];
-
-  if (classification === 'below_minimum') {
-    return {
-      channel,
-      classification,
-      reasoning: `Skip: onder minimum lead-time (${rules.leadTime.minHours}u nodig, ${hoursUntilTarget.toFixed(1)}u beschikbaar). ${rules.leadTime.rationale}`,
-      urgencyFlagInCopy: false,
-      skip: true,
-    };
-  }
-
-  if (classification === 'below_optimal') {
-    return {
-      channel,
-      classification,
-      reasoning: `Onder algoritme-optimum (sweet-spot ${rules.leadTime.optimalRangeHours[0]}-${rules.leadTime.optimalRangeHours[1]}u, nu ${hoursUntilTarget.toFixed(1)}u). Plaats z.s.m. met urgentie-taal in de copy.`,
-      urgencyFlagInCopy: true,
-      skip: false,
-    };
-  }
-
-  return {
-    channel,
-    classification,
-    reasoning: `Binnen ${classification === 'optimal' ? 'optimaal-interval' : 'sweet-spot-window'}; plaats op eerstvolgend kanaal-sweet-spot.`,
-    urgencyFlagInCopy: false,
-    skip: false,
-  };
-}
-
-/**
  * Bouw de complete anker-keyword-set uit restaurant-data.
  * Deze ankers tellen NIET mee in anti-repetitie-overlap.
  */
@@ -986,7 +939,8 @@ export function buildAnchorKeywords(opts: {
   restaurantName: string;
 }): string[] {
   const anchors: string[] = [opts.restaurantName.toLowerCase()];
-  if (opts.cuisineStyle) anchors.push(...opts.cuisineStyle.map((c) => c.toLowerCase()));
+  if (opts.cuisineStyle)
+    anchors.push(...opts.cuisineStyle.map((c) => c.toLowerCase()));
   if (opts.city) anchors.push(opts.city.toLowerCase());
   if (opts.keywords) anchors.push(...opts.keywords.map((k) => k.toLowerCase()));
   return Array.from(new Set(anchors)); // dedupe
@@ -999,19 +953,4 @@ export function buildAnchorKeywords(opts: {
 export function isAnchorHashtag(hashtag: string, anchors: string[]): boolean {
   const normalized = hashtag.toLowerCase().replace(/^#/, '');
   return anchors.some((a) => normalized.includes(a) || a.includes(normalized));
-}
-
-/**
- * Suggereer een default kanaal-mix op basis van thema-type én
- * funnel-stage. Combineert hoofdstuk 3 + 11.
- */
-export function suggestChannelMix(
-  themeType: ThemeType,
-  funnelStage: FunnelStage,
-): FillyChannel[] {
-  const themeChannels = new Set(CHANNEL_MIX_PER_THEME[themeType]);
-  const funnelChannels = new Set(FUNNEL_STAGE_TO_CHANNELS[funnelStage]);
-  // Intersectie als die niet leeg is, anders thema-keuze (sterker signaal).
-  const intersection = [...themeChannels].filter((c) => funnelChannels.has(c));
-  return intersection.length > 0 ? intersection : [...themeChannels];
 }

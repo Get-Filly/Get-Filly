@@ -4,7 +4,6 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 // Service-role-client voor webhook-handlers en nightly-jobs die
 // buiten user-context draaien.
 import { SupabaseService } from '../supabase/supabase.service';
-import { SUCCESS_SCORE_THRESHOLDS } from '../ai/filly-brain.config';
 
 /**
  * ============================================================
@@ -176,9 +175,7 @@ export class CampaignPerformanceService {
    * wordt aangemaakt of bijgewerkt. Increment reservations + guests +
    * revenue cumulatief.
    */
-  async attributeReservation(
-    input: AttributedReservationInput,
-  ): Promise<void> {
+  async attributeReservation(input: AttributedReservationInput): Promise<void> {
     const revenue = input.partySize * input.avgCheckCents;
 
     // Atomic-ish read+write zoals incrementField. Voor v1 simpel.
@@ -217,128 +214,6 @@ export class CampaignPerformanceService {
         `attributeReservation write gefaald: ${writeErr.message}`,
       );
     }
-  }
-
-  // ============================================================
-  // 4. Success-classification (nightly job, hoofdstuk 9.4)
-  // ============================================================
-
-  /**
-   * Classificeer een campagne: winner / average / underperformer /
-   * no_data.
-   *
-   * ⚠️ LET OP — dit is NIET het actieve classificatie-pad. De nightly
-   * classificatie draait in de PL/pgSQL-functie
-   * `classify_campaign_performance()` (mig 0047 → 0050), aangeroepen
-   * door pg_cron. Die classificeert mail t.o.v. een afgeleide
-   * industry-baseline (53): winner >= 69, underperformer <= 37.
-   * Deze TS-helper gebruikt nog de oude absolute 80/50-drempels en
-   * wordt momenteel nergens aangeroepen; behouden als referentie voor
-   * een eventueel toekomstig on-demand-endpoint. Wijzig je de scoring,
-   * doe dat primair in de SQL-functie.
-   *
-   * Per-restaurant-benchmark (shrinkage) staat op de backlog.
-   *
-   * Score-formule (identiek aan SQL): open_rate*100 (cap 30) +
-   * click_rate*1000 (cap 50) + reservation_rate*1000 (cap 20).
-   */
-  classifySuccessScore(metrics: {
-    mail_delivered?: number | null;
-    mail_opened?: number | null;
-    mail_clicked?: number | null;
-    reservations_attributed: number;
-  }): { score: number | null; classification: string } {
-    const delivered = metrics.mail_delivered ?? 0;
-
-    if (delivered === 0) {
-      // Geen mail-data. Voor social/GBP zou hier de berekening per
-      // kanaal komen; tot OAuth live is, no_data.
-      return { score: null, classification: 'no_data' };
-    }
-
-    const openRate = (metrics.mail_opened ?? 0) / delivered;
-    const clickRate = (metrics.mail_clicked ?? 0) / delivered;
-    const reservationRate = metrics.reservations_attributed / delivered;
-
-    // Gewogen score. Mail-benchmarks (HubSpot 2024):
-    //   open_rate >= 30% = sterk → 30% van 30 pts = 9 pts (lineair)
-    //   click_rate >= 4% = sterk → 4% van 50 pts schalen
-    //   reservation_rate >= 2% = sterk → 2% van 20 pts schalen
-    // We clampen zodat outliers niet >100 worden.
-    const openPts = Math.min(30, openRate * 100); // 30% open → 30 pts
-    const clickPts = Math.min(50, clickRate * 1000); // 5% click → 50 pts
-    const reservationPts = Math.min(20, reservationRate * 1000); // 2% conv → 20 pts
-
-    const score = Math.round(openPts + clickPts + reservationPts);
-
-    let classification: string;
-    if (score >= SUCCESS_SCORE_THRESHOLDS.winner) {
-      classification = 'winner';
-    } else if (score >= SUCCESS_SCORE_THRESHOLDS.average) {
-      classification = 'average';
-    } else if (score >= SUCCESS_SCORE_THRESHOLDS.underperformer) {
-      classification = 'underperformer';
-    } else {
-      classification = 'underperformer';
-    }
-
-    return { score, classification };
-  }
-
-  /**
-   * Nightly-job-helper: scan campagnes waar measurement_complete_at
-   * verstreken is (of net moet worden gezet), bereken score + classification.
-   * Aanroep vanuit pg_cron of een Nest-scheduler (later toevoegen).
-   */
-  async runNightlyClassification(): Promise<{ processed: number }> {
-    // V1: scan campagnes ouder dan 14 dagen waarvoor classification
-    // nog null is. In v2 differentiëren we per kanaal-meet-window.
-    const fourteenDaysAgo = new Date(
-      Date.now() - 14 * 24 * 60 * 60 * 1000,
-    ).toISOString();
-
-    const { data: rows, error } = await this.serviceSupabase.client
-      .from('campaign_performance')
-      .select(
-        'id, campaign_id, mail_delivered, mail_opened, mail_clicked, reservations_attributed',
-      )
-      .is('classification', null)
-      .lt('created_at', fourteenDaysAgo)
-      .limit(100); // batches van 100; cron pakt morgen de rest
-
-    if (error) {
-      this.logger.error(`Nightly classification read: ${error.message}`);
-      return { processed: 0 };
-    }
-
-    let processed = 0;
-    for (const row of rows ?? []) {
-      const r = row as {
-        id: string;
-        campaign_id: string;
-        mail_delivered: number | null;
-        mail_opened: number | null;
-        mail_clicked: number | null;
-        reservations_attributed: number;
-      };
-      const { score, classification } = this.classifySuccessScore(r);
-      const { error: updateErr } = await this.serviceSupabase.client
-        .from('campaign_performance')
-        .update({
-          success_score: score,
-          classification,
-          measurement_complete_at: new Date().toISOString(),
-        })
-        .eq('id', r.id);
-      if (updateErr) {
-        this.logger.error(
-          `Nightly classification update ${r.id}: ${updateErr.message}`,
-        );
-        continue;
-      }
-      processed += 1;
-    }
-    return { processed };
   }
 
   // ============================================================

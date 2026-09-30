@@ -39,9 +39,9 @@ describe('naturalizeDashes', () => {
   });
 
   it('meerdere dashes in één tekst', () => {
-    expect(
-      naturalizeDashes('Hoi — fijn dat je er bent — kom snel langs'),
-    ).toBe('Hoi, fijn dat je er bent, kom snel langs');
+    expect(naturalizeDashes('Hoi — fijn dat je er bent — kom snel langs')).toBe(
+      'Hoi, fijn dat je er bent, kom snel langs',
+    );
   });
 
   it('lege/ongewijzigde input', () => {
@@ -61,7 +61,9 @@ describe('naturalizeSuggestedCampaign', () => {
       channels: [
         {
           platform: 'mail',
-          variants: [{ body: 'Variant — met dash', subject_line: 'Sub – line' }],
+          variants: [
+            { body: 'Variant — met dash', subject_line: 'Sub – line' },
+          ],
         },
       ],
     };

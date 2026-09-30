@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OccupancyService, type OccupancyDay } from '../occupancy/occupancy.service';
+import {
+  OccupancyService,
+  type OccupancyDay,
+} from '../occupancy/occupancy.service';
 import { BusynessService } from '../busyness/busyness.service';
 import { WeatherService, type ForecastDay } from '../weather/weather.service';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -101,7 +104,9 @@ export class BusinessContextService {
       // belanden — fail-soft houden we (generatie niet breken), maar de fout
       // mag niet stil in een warn verdwijnen. (Generatie hard afbreken bij een
       // context-fout is een aparte, zorgvuldige stap — raakt alle callers.)
-      this.logger.error(`Profiel-query faalde, context kan leeg zijn: ${error.message}`);
+      this.logger.error(
+        `Profiel-query faalde, context kan leeg zijn: ${error.message}`,
+      );
       return '';
     }
     if (!r) return ''; // Legitiem: nog geen profiel ingevuld.
@@ -118,8 +123,10 @@ export class BusinessContextService {
     }
 
     if (r.tagline) lines.push(`- Tagline: ${r.tagline}`);
-    if (r.description) lines.push(`- Over ons: ${shorten(r.description as string, 280)}`);
-    if (r.atmosphere) lines.push(`- Sfeer: ${shorten(r.atmosphere as string, 220)}`);
+    if (r.description)
+      lines.push(`- Over ons: ${shorten(r.description as string, 280)}`);
+    if (r.atmosphere)
+      lines.push(`- Sfeer: ${shorten(r.atmosphere as string, 220)}`);
     if (r.target_audience) {
       lines.push(`- Doelgroep: ${shorten(r.target_audience as string, 220)}`);
     }
@@ -127,7 +134,9 @@ export class BusinessContextService {
       lines.push(`- USPs: ${shorten(r.unique_selling_points as string, 220)}`);
     }
     if (r.special_events) {
-      lines.push(`- Events / specials: ${shorten(r.special_events as string, 220)}`);
+      lines.push(
+        `- Events / specials: ${shorten(r.special_events as string, 220)}`,
+      );
     }
 
     const sigDishes = (r.signature_dishes as string[] | null)?.filter(Boolean);
@@ -146,8 +155,12 @@ export class BusinessContextService {
 
     // Prijsklasse: 1=€ … 4=€€€€. Vertalen naar leesbare tekens
     // zodat Filly 'm direct begrijpt.
-    if (typeof r.price_range === 'number' && r.price_range >= 1 && r.price_range <= 4) {
-      lines.push(`- Prijsklasse: ${'€'.repeat(r.price_range as number)}`);
+    if (
+      typeof r.price_range === 'number' &&
+      r.price_range >= 1 &&
+      r.price_range <= 4
+    ) {
+      lines.push(`- Prijsklasse: ${'€'.repeat(r.price_range)}`);
     }
 
     // Capaciteit: binnen + terras gecombineerd. Skip als beide null.
@@ -326,10 +339,14 @@ export class BusinessContextService {
     // lege menu-context → Filly kan generiek/gehallucineerd genereren. Fail-soft
     // (niet breken), maar niet stil in een warn laten verdwijnen.
     if (foodResult.error) {
-      this.logger.error(`Food-query faalde, menu-context kan leeg zijn: ${foodResult.error.message}`);
+      this.logger.error(
+        `Food-query faalde, menu-context kan leeg zijn: ${foodResult.error.message}`,
+      );
     }
     if (drinkResult.error) {
-      this.logger.error(`Drink-query faalde, menu-context kan leeg zijn: ${drinkResult.error.message}`);
+      this.logger.error(
+        `Drink-query faalde, menu-context kan leeg zijn: ${drinkResult.error.message}`,
+      );
     }
 
     const foodItems = (foodResult.data ?? []) as Item[];
@@ -644,8 +661,12 @@ export class BusinessContextService {
         // met een wekelijks nieuwsbericht. Incidenteel is tactisch en heeft een
         // houdbaarheidsdatum. Door ze gescheiden aan te bieden kan Filly ze ook
         // verschillend behandelen in plaats van alles als "kans" te noemen.
-        const incidenteel = quiet.moments.filter((m) => m.kind === 'incidenteel');
-        const structureel = quiet.moments.filter((m) => m.kind !== 'incidenteel');
+        const incidenteel = quiet.moments.filter(
+          (m) => m.kind === 'incidenteel',
+        );
+        const structureel = quiet.moments.filter(
+          (m) => m.kind !== 'incidenteel',
+        );
         if (incidenteel.length > 0) {
           parts.push(
             'DEZE WEEK AFWIJKEND (tactisch, vervalt na die dag — dit is het nieuws waar je mee mag beginnen):\n' +
@@ -661,9 +682,7 @@ export class BusinessContextService {
       }
 
       // Live "nu"-drukte kwalitatief (geen exacte percentages in de chat).
-      const live = await this.busyness
-        .getLatest(businessId)
-        .catch(() => null);
+      const live = await this.busyness.getLatest(businessId).catch(() => null);
       if (live?.livePct != null) {
         const nu =
           live.livePct < 40 ? 'rustig' : live.livePct > 70 ? 'druk' : 'normaal';
