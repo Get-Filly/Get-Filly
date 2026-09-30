@@ -185,6 +185,24 @@ export class EventsService {
   }
 
   /**
+   * Feestdagen die de eigenaar per stuk heeft uitgezet (mig 0082), als
+   * sleutels zoals '1e-paasdag'. Leeg = alle feestdagen aan. Fail-soft.
+   */
+  async disabledHolidays(businessId: string): Promise<Set<string>> {
+    try {
+      const { data } = await this.supabase.client
+        .from('businesses')
+        .select('disabled_holidays')
+        .eq('id', businessId)
+        .maybeSingle();
+      const v = data?.disabled_holidays as string[] | null | undefined;
+      return new Set(Array.isArray(v) ? v : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  /**
    * Bouwt het EVENEMENTEN IN DE BUURT-blok voor een system-prompt.
    * Lege string als er niets in de buurt is (geen blok = geen ruis).
    */

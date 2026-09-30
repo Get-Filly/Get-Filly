@@ -32,10 +32,7 @@ import {
   type ChannelReach,
 } from '../ai/channel-reach.service';
 import { EventsService, type NearbyEvent } from '../events/events.service';
-import {
-  WeatherService,
-  type ForecastDay,
-} from '../weather/weather.service';
+import { WeatherService, type ForecastDay } from '../weather/weather.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
 import { HORECA_PACK } from '../ai/horeca-taal';
 
@@ -229,13 +226,7 @@ const GENERATE_SUGGESTIONS_SCHEMA = {
             },
           },
         },
-        required: [
-          'trigger_type',
-          'urgency',
-          'name',
-          'reasoning',
-          'channels',
-        ],
+        required: ['trigger_type', 'urgency', 'name', 'reasoning', 'channels'],
       },
     },
   },
@@ -296,8 +287,7 @@ const LOW_OCCUPANCY_SCHEMA = {
     },
     alternative_reasoning: {
       type: 'string',
-      description:
-        'Eén zin NL: waarom dit alternatief en wat de trade-off is.',
+      description: 'Eén zin NL: waarom dit alternatief en wat de trade-off is.',
     },
     confidence: { type: 'number' },
     expected_extra_reservations: { type: 'integer' },
@@ -782,6 +772,7 @@ ${buildAllTimingBlock()}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, {
   includeHolidays: await this.events.holidaysEnabled(businessId),
+  disabledHolidays: await this.events.disabledHolidays(businessId),
 })}
 ---
 ${await this.reach.buildReachBlock(businessId)}
@@ -1080,9 +1071,8 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     // BusynessService.getQuietMoments en quiet-params.ts). Geen bron → terugval op de seed
     // occupancy_days onder de ingestelde drempel.
     let candidates: Candidate[] = [];
-    let quiet: Awaited<
-      ReturnType<BusynessService['getQuietMoments']>
-    > | null = null;
+    let quiet: Awaited<ReturnType<BusynessService['getQuietMoments']>> | null =
+      null;
     try {
       quiet = await this.busyness.getQuietMoments(businessId, fromIso, toIso);
     } catch (e) {
@@ -1193,9 +1183,8 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     const segmentCounts = {
       mail_opt_in: guestPool.filter((g) => g.mail_opt_in).length,
       whatsapp_opt_in: guestPool.filter((g) => g.whatsapp_opt_in).length,
-      vaste_gast: guestPool.filter((g) =>
-        (g.tags ?? []).includes('vaste_gast'),
-      ).length,
+      vaste_gast: guestPool.filter((g) => (g.tags ?? []).includes('vaste_gast'))
+        .length,
       vip: guestPool.filter((g) => (g.tags ?? []).includes('vip')).length,
       inactief: guestPool.filter((g) => (g.tags ?? []).includes('inactief'))
         .length,
@@ -1207,6 +1196,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     const eventsBlockRaw = await this.events.buildEventsBlock(businessId);
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
     const includeHolidays = await this.events.holidaysEnabled(businessId);
+    const disabledHolidays = await this.events.disabledHolidays(businessId);
 
     // Stap 6, per dag een Claude-call met dag-specifieke context.
     // Sequentieel zodat we de rate-limit niet over de kop laten
@@ -1281,7 +1271,10 @@ ${langWriteRules(lang)}
 ---
 ${buildAllChannelsBlock(PROMPT_CHANNELS)}
 ---
-${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
+${buildExternalFactorsBlock(new Date(), 21, {
+  includeHolidays,
+  disabledHolidays,
+})}
 ---
 ${reachBlock}
 ---
@@ -1454,18 +1447,13 @@ ${dayContext}`;
   // Voedt stap 2 + 3 van de geleide chat-flow (FillyGuidedFlow):
   // welke events spelen er die dag in de buurt, wat is het weer, en
   // welke kanalen hebben bereik (vóórgevinkt). Read-only, geen AI.
-  async getDayContext(
-    businessId: string,
-    date: string,
-  ): Promise<DayContext> {
+  async getDayContext(businessId: string, date: string): Promise<DayContext> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new BadRequestException('Ongeldige datum.');
     }
 
     const [allEvents, forecast, reach] = await Promise.all([
-      this.events
-        .findNearby(businessId)
-        .catch(() => [] as NearbyEvent[]),
+      this.events.findNearby(businessId).catch(() => [] as NearbyEvent[]),
       this.weather
         .getForecastForRestaurant(businessId)
         .catch(() => [] as ForecastDay[]),
@@ -1596,7 +1584,6 @@ ${dayContext}`;
       );
     }
 
-
     // Pre-flight: zelfde guard als de andere generate-flows.
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
@@ -1667,9 +1654,15 @@ ${dayContext}`;
       const qm = await this.busyness
         // applyPolicy:false — zelfde reden als in getDayContext: dit zijn door
         // de eigenaar geselecteerde dagen, geen voorstel-selectie.
-        .getQuietMoments(businessId, sorted[0], sorted[sorted.length - 1], 999, {
-          applyPolicy: false,
-        })
+        .getQuietMoments(
+          businessId,
+          sorted[0],
+          sorted[sorted.length - 1],
+          999,
+          {
+            applyPolicy: false,
+          },
+        )
         .catch(() => null);
       for (const m of qm?.moments ?? []) {
         quietByDate.set(m.date, {
@@ -1695,9 +1688,8 @@ ${dayContext}`;
     const segmentCounts = {
       mail_opt_in: guestPool.filter((g) => g.mail_opt_in).length,
       whatsapp_opt_in: guestPool.filter((g) => g.whatsapp_opt_in).length,
-      vaste_gast: guestPool.filter((g) =>
-        (g.tags ?? []).includes('vaste_gast'),
-      ).length,
+      vaste_gast: guestPool.filter((g) => (g.tags ?? []).includes('vaste_gast'))
+        .length,
       vip: guestPool.filter((g) => (g.tags ?? []).includes('vip')).length,
       inactief: guestPool.filter((g) => (g.tags ?? []).includes('inactief'))
         .length,
@@ -1712,6 +1704,7 @@ ${dayContext}`;
     const eventsBlockRaw = await this.events.buildEventsBlock(businessId);
     const eventsBlock = eventsBlockRaw ? `${eventsBlockRaw}\n---` : '';
     const includeHolidays = await this.events.holidaysEnabled(businessId);
+    const disabledHolidays = await this.events.disabledHolidays(businessId);
 
     // Per item (dag) een voorstel bouwen. Geëxtraheerd naar processItem
     // zodat we de dagen PARALLEL kunnen draaien (zie de primer + pool onder
@@ -1745,8 +1738,7 @@ ${dayContext}`;
                 detected?.daypartLabel === item.daypart.label
                   ? detected.unusual
                   : false,
-              chosen:
-                !detected || detected.daypartLabel !== item.daypart.label,
+              chosen: !detected || detected.daypartLabel !== item.daypart.label,
             }
           : detected
             ? {
@@ -1882,7 +1874,10 @@ ${langWriteRules(lang)}
 ---
 ${buildAllChannelsBlock(PROMPT_CHANNELS)}
 ---
-${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
+${buildExternalFactorsBlock(new Date(), 21, {
+  includeHolidays,
+  disabledHolidays,
+})}
 ---
 ${reachBlock}
 ---
@@ -2176,10 +2171,7 @@ ${segmentsBlock}`;
     // opnieuw aan te maken. Voorkomt dubbele concept-campagnes als
     // de frontend na een navigatie z'n lokale state kwijt is en de
     // user opnieuw op "Goedkeuren" klikt. Stiller dan een error.
-    if (
-      suggestion.status === 'approved' &&
-      suggestion.approved_campaign_id
-    ) {
+    if (suggestion.status === 'approved' && suggestion.approved_campaign_id) {
       return {
         suggestion,
         campaignId: suggestion.approved_campaign_id,
@@ -2219,8 +2211,7 @@ ${segmentsBlock}`;
           ? sc.selected_index
           : 0;
       const variant = sc.variants[idx] ?? {};
-      variantBody =
-        typeof variant.body === 'string' ? variant.body.trim() : '';
+      variantBody = typeof variant.body === 'string' ? variant.body.trim() : '';
       variantSubject =
         typeof variant.subject_line === 'string'
           ? variant.subject_line.trim()
@@ -2236,17 +2227,15 @@ ${segmentsBlock}`;
       (typeof sc.body === 'string' && sc.body.trim().length > 0
         ? sc.body.trim()
         : typeof sc.caption === 'string' && sc.caption.trim().length > 0
-          ? (sc.caption as string).trim()
+          ? sc.caption.trim()
           : '');
 
     const rawSubject =
       variantSubject ||
-      (typeof sc.subject_line === 'string' &&
-      sc.subject_line.trim().length > 0
+      (typeof sc.subject_line === 'string' && sc.subject_line.trim().length > 0
         ? sc.subject_line.trim()
-        : typeof sc.subject === 'string' &&
-            (sc.subject as string).trim().length > 0
-          ? (sc.subject as string).trim()
+        : typeof sc.subject === 'string' && sc.subject.trim().length > 0
+          ? sc.subject.trim()
           : '');
 
     // Als er geen body is, vallen we terug op het onderwerp + reasoning
@@ -2374,7 +2363,8 @@ ${segmentsBlock}`;
     const customMediaId =
       typeof (sc as { restaurant_media_id?: string | null })
         .restaurant_media_id === 'string'
-        ? ((sc as { restaurant_media_id?: string }).restaurant_media_id as string)
+        ? ((sc as { restaurant_media_id?: string })
+            .restaurant_media_id as string)
         : null;
     if (customMediaId && (type === 'social' || type === 'whatsapp')) {
       try {
@@ -2394,8 +2384,7 @@ ${segmentsBlock}`;
             await this.campaigns.uploadMedia(businessId, campaignId, {
               buffer,
               originalName: (mediaRow.file_name as string) ?? 'photo.jpg',
-              mimeType:
-                (mediaRow.mime_type as string) ?? 'image/jpeg',
+              mimeType: (mediaRow.mime_type as string) ?? 'image/jpeg',
             });
           }
         }
@@ -2445,7 +2434,7 @@ ${segmentsBlock}`;
     userId: string,
   ): Promise<{ suggestion: AiSuggestion; campaignId: string }> {
     const suggestion = await this.findById(businessId, suggestionId);
-    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const sc = suggestion.suggested_campaign ?? {};
     const channels = ensureChannels(sc);
     const bundleName =
       typeof sc.name === 'string' && sc.name.trim().length > 0
@@ -2473,114 +2462,112 @@ ${segmentsBlock}`;
     // aangemaakte kanalen + de group op (zie catch onder de loop) zodat een
     // retry schoon begint i.p.v. duplicaten + een wees-group te stapelen.
     try {
-    for (const channel of channels) {
-      const selectedIdx = Math.min(
-        Math.max(channel.selected_index ?? 0, 0),
-        Math.max(channel.variants.length - 1, 0),
-      );
-      const variant = channel.variants[selectedIdx];
-      const body = (variant?.body ?? '').trim();
-      const subject = (variant?.subject_line ?? '').trim();
-      const campaignType = platformToCampaignType(channel.platform);
-      const channelName = `${bundleName}, ${channel.platform.charAt(0).toUpperCase()}${channel.platform.slice(1)}`;
+      for (const channel of channels) {
+        const selectedIdx = Math.min(
+          Math.max(channel.selected_index ?? 0, 0),
+          Math.max(channel.variants.length - 1, 0),
+        );
+        const variant = channel.variants[selectedIdx];
+        const body = (variant?.body ?? '').trim();
+        const subject = (variant?.subject_line ?? '').trim();
+        const campaignType = platformToCampaignType(channel.platform);
+        const channelName = `${bundleName}, ${channel.platform.charAt(0).toUpperCase()}${channel.platform.slice(1)}`;
 
-      // Per 2026-05-13 (mig 0041): per kanaal de complete versies-set
-      // doorgeven, en de juiste gekozen-index. Sanitize hier identiek
-      // aan single-channel-approve (filter lege bodies, normalise
-      // subject_line).
-      const channelVariantsClean = channel.variants
-        .filter(
-          (v): v is { body: string; subject_line?: string } =>
-            typeof v?.body === 'string' && v.body.trim().length > 0,
-        )
-        .map((v) => ({
-          body: v.body.trim(),
-          subject_line: v.subject_line?.trim() || null,
-        }));
-      const channelSelectedIdxClamped = Math.min(
-        selectedIdx,
-        Math.max(channelVariantsClean.length - 1, 0),
-      );
-      const { id: campaignId } = await this.campaigns.create(
-        businessId,
-        {
-          name: channelName.slice(0, 120),
-          type: campaignType,
-          subject_line: subject || null,
-          body: body || 'Inhoud volgt — bewerk deze campagne.',
-          group_id: groupId,
-          variants:
-            channelVariantsClean.length > 0
-              ? channelVariantsClean
-              : undefined,
-          selected_variant_index:
-            channelVariantsClean.length > 0
-              ? channelSelectedIdxClamped
-              : undefined,
-          // Per 2026-05-13: koppeling voor de "Waarom dit voorstel"-
-          // join op concept-detail. Multi-channel: alle kanalen van
-          // de bundle wijzen naar dezelfde bron-suggestie.
-          ai_suggestion_id: suggestion.id,
-          social_platforms:
-            campaignType === 'social' ? [channel.platform] : undefined,
-          // Per-kanaal Filly-moment + reden bewaren voor de
-          // "Wanneer plaatsen"-card.
-          suggested_scheduled_for: channel.scheduled_for ?? null,
-          suggested_scheduled_reasoning:
-            typeof (channel as { scheduled_reasoning?: string })
-              .scheduled_reasoning === 'string'
-              ? (channel as { scheduled_reasoning?: string })
-                  .scheduled_reasoning
-              : null,
-        },
-        userId,
-      );
+        // Per 2026-05-13 (mig 0041): per kanaal de complete versies-set
+        // doorgeven, en de juiste gekozen-index. Sanitize hier identiek
+        // aan single-channel-approve (filter lege bodies, normalise
+        // subject_line).
+        const channelVariantsClean = channel.variants
+          .filter(
+            (v): v is { body: string; subject_line?: string } =>
+              typeof v?.body === 'string' && v.body.trim().length > 0,
+          )
+          .map((v) => ({
+            body: v.body.trim(),
+            subject_line: v.subject_line?.trim() || null,
+          }));
+        const channelSelectedIdxClamped = Math.min(
+          selectedIdx,
+          Math.max(channelVariantsClean.length - 1, 0),
+        );
+        const { id: campaignId } = await this.campaigns.create(
+          businessId,
+          {
+            name: channelName.slice(0, 120),
+            type: campaignType,
+            subject_line: subject || null,
+            body: body || 'Inhoud volgt — bewerk deze campagne.',
+            group_id: groupId,
+            variants:
+              channelVariantsClean.length > 0
+                ? channelVariantsClean
+                : undefined,
+            selected_variant_index:
+              channelVariantsClean.length > 0
+                ? channelSelectedIdxClamped
+                : undefined,
+            // Per 2026-05-13: koppeling voor de "Waarom dit voorstel"-
+            // join op concept-detail. Multi-channel: alle kanalen van
+            // de bundle wijzen naar dezelfde bron-suggestie.
+            ai_suggestion_id: suggestion.id,
+            social_platforms:
+              campaignType === 'social' ? [channel.platform] : undefined,
+            // Per-kanaal Filly-moment + reden bewaren voor de
+            // "Wanneer plaatsen"-card.
+            suggested_scheduled_for: channel.scheduled_for ?? null,
+            suggested_scheduled_reasoning:
+              typeof (channel as { scheduled_reasoning?: string })
+                .scheduled_reasoning === 'string'
+                ? (channel as { scheduled_reasoning?: string })
+                    .scheduled_reasoning
+                : null,
+          },
+          userId,
+        );
 
-      // Per-kanaal scheduled_for overnemen.
-      if (channel.scheduled_for) {
-        try {
-          await this.campaigns.setSchedule(
-            businessId,
-            campaignId,
-            channel.scheduled_for,
-          );
-        } catch {
-          // Niet fataal: campagne staat als concept zonder tijd,
-          // eigenaar kan in detail-pagina alsnog kiezen.
-        }
-      }
-
-      // Foto kopiëren naar campaign-media (alleen non-mail).
-      if (channel.restaurant_media_id && campaignType !== 'mail') {
-        try {
-          const { data: mediaRow } = await this.supabase.client
-            .from('business_media')
-            .select('file_path, file_name, mime_type')
-            .eq('id', channel.restaurant_media_id)
-            .eq('business_id', businessId)
-            .maybeSingle();
-          if (mediaRow?.file_path) {
-            const { data: blob } = await this.supabase.client.storage
-              .from('restaurant-assets')
-              .download(mediaRow.file_path as string);
-            if (blob) {
-              const buffer = Buffer.from(await blob.arrayBuffer());
-              await this.campaigns.uploadMedia(businessId, campaignId, {
-                buffer,
-                originalName:
-                  (mediaRow.file_name as string) ?? 'photo.jpg',
-                mimeType:
-                  (mediaRow.mime_type as string) ?? 'image/jpeg',
-              });
-            }
+        // Per-kanaal scheduled_for overnemen.
+        if (channel.scheduled_for) {
+          try {
+            await this.campaigns.setSchedule(
+              businessId,
+              campaignId,
+              channel.scheduled_for,
+            );
+          } catch {
+            // Niet fataal: campagne staat als concept zonder tijd,
+            // eigenaar kan in detail-pagina alsnog kiezen.
           }
-        } catch {
-          // Niet fataal.
         }
-      }
 
-      createdCampaignIds.push(campaignId);
-    }
+        // Foto kopiëren naar campaign-media (alleen non-mail).
+        if (channel.restaurant_media_id && campaignType !== 'mail') {
+          try {
+            const { data: mediaRow } = await this.supabase.client
+              .from('business_media')
+              .select('file_path, file_name, mime_type')
+              .eq('id', channel.restaurant_media_id)
+              .eq('business_id', businessId)
+              .maybeSingle();
+            if (mediaRow?.file_path) {
+              const { data: blob } = await this.supabase.client.storage
+                .from('restaurant-assets')
+                .download(mediaRow.file_path as string);
+              if (blob) {
+                const buffer = Buffer.from(await blob.arrayBuffer());
+                await this.campaigns.uploadMedia(businessId, campaignId, {
+                  buffer,
+                  originalName: (mediaRow.file_name as string) ?? 'photo.jpg',
+                  mimeType: (mediaRow.mime_type as string) ?? 'image/jpeg',
+                });
+              }
+            }
+          } catch {
+            // Niet fataal.
+          }
+        }
+
+        createdCampaignIds.push(campaignId);
+      }
     } catch (loopErr) {
       // Rollback: verwijder de zojuist aangemaakte kanalen + de group zodat
       // een retry niet op een halve bundel + duplicaat-campagnes stuit (de
@@ -2671,10 +2658,7 @@ ${segmentsBlock}`;
       );
     }
 
-    if (
-      suggestion.status === 'approved' &&
-      suggestion.approved_campaign_id
-    ) {
+    if (suggestion.status === 'approved' && suggestion.approved_campaign_id) {
       // Bestaande state ophalen bij dubbele klik na navigatie. We pakken
       // het anker-campagne-id → group_id → alle siblings, en classificeren
       // elke sibling terug naar z'n bundel-kanaal.
@@ -2719,20 +2703,18 @@ ${segmentsBlock}`;
     // Bundle-payload uit suggested_campaign-jsonb. Validatie hier
     // omdat de jsonb in theorie alles kan bevatten, bij corruptie
     // nette NL-foutmelding ipv crash.
-    const sc = suggestion.suggested_campaign as
-      | {
-          name?: string;
-          theme?: string;
-          channels?: {
-            mail?: { subject_line?: string; body?: string };
-            instagram?: { caption?: string; hashtags?: string[] };
-            facebook?: { caption?: string };
-            whatsapp?: { body?: string };
-            google_business?: { body?: string };
-            tiktok?: { caption?: string; hashtags?: string[] };
-          };
-        }
-      | null;
+    const sc = suggestion.suggested_campaign as {
+      name?: string;
+      theme?: string;
+      channels?: {
+        mail?: { subject_line?: string; body?: string };
+        instagram?: { caption?: string; hashtags?: string[] };
+        facebook?: { caption?: string };
+        whatsapp?: { body?: string };
+        google_business?: { body?: string };
+        tiktok?: { caption?: string; hashtags?: string[] };
+      };
+    } | null;
 
     const bundleName =
       typeof sc?.name === 'string' && sc.name.trim()
@@ -2793,88 +2775,88 @@ ${segmentsBlock}`;
     // aangemaakte kanalen + de group op (zie catch onder de loop) zodat een
     // retry schoon begint i.p.v. duplicaten + een wees-group te stapelen.
     try {
-    for (const channel of requested) {
-      if (channel === 'mail' && ch.mail) {
-        const { id } = await this.campaigns.create(
-          businessId,
-          {
-            name: `${bundleName}, mail`,
-            type: 'mail',
-            subject_line: ch.mail.subject_line!.trim().slice(0, 200),
-            body: ch.mail.body!.trim(),
-            group_id: groupId,
-          },
-          userId,
-        );
-        campaignIds.mail = id;
-      } else if (channel === 'instagram' && ch.instagram) {
-        const { id } = await this.campaigns.create(
-          businessId,
-          {
-            name: `${bundleName}, Instagram`,
-            type: 'social',
-            body: ch.instagram.caption!.trim(),
-            social_platforms: ['instagram'],
-            social_hashtags: ch.instagram.hashtags ?? [],
-            group_id: groupId,
-          },
-          userId,
-        );
-        campaignIds.instagram = id;
-      } else if (channel === 'facebook' && ch.facebook) {
-        const { id } = await this.campaigns.create(
-          businessId,
-          {
-            name: `${bundleName}, Facebook`,
-            type: 'social',
-            body: ch.facebook.caption!.trim(),
-            social_platforms: ['facebook'],
-            group_id: groupId,
-          },
-          userId,
-        );
-        campaignIds.facebook = id;
-      } else if (channel === 'whatsapp' && ch.whatsapp) {
-        const { id } = await this.campaigns.create(
-          businessId,
-          {
-            name: `${bundleName}, WhatsApp`,
-            type: 'whatsapp',
-            body: ch.whatsapp.body!.trim(),
-            group_id: groupId,
-          },
-          userId,
-        );
-        campaignIds.whatsapp = id;
-      } else if (channel === 'google_business' && ch.google_business) {
-        const { id } = await this.campaigns.create(
-          businessId,
-          {
-            name: `${bundleName}, Google Business`,
-            type: 'social',
-            body: ch.google_business.body!.trim(),
-            social_platforms: ['google_business'],
-            group_id: groupId,
-          },
-          userId,
-        );
-        campaignIds.google_business = id;
-      } else if (channel === 'tiktok' && ch.tiktok) {
-        const { id } = await this.campaigns.create(
-          businessId,
-          {
-            name: `${bundleName}, TikTok`,
-            type: 'social',
-            body: ch.tiktok.caption!.trim(),
-            social_platforms: ['tiktok'],
-            social_hashtags: ch.tiktok.hashtags ?? [],
-            group_id: groupId,
-          },
-          userId,
-        );
-        campaignIds.tiktok = id;
+      for (const channel of requested) {
+        if (channel === 'mail' && ch.mail) {
+          const { id } = await this.campaigns.create(
+            businessId,
+            {
+              name: `${bundleName}, mail`,
+              type: 'mail',
+              subject_line: ch.mail.subject_line!.trim().slice(0, 200),
+              body: ch.mail.body!.trim(),
+              group_id: groupId,
+            },
+            userId,
+          );
+          campaignIds.mail = id;
+        } else if (channel === 'instagram' && ch.instagram) {
+          const { id } = await this.campaigns.create(
+            businessId,
+            {
+              name: `${bundleName}, Instagram`,
+              type: 'social',
+              body: ch.instagram.caption!.trim(),
+              social_platforms: ['instagram'],
+              social_hashtags: ch.instagram.hashtags ?? [],
+              group_id: groupId,
+            },
+            userId,
+          );
+          campaignIds.instagram = id;
+        } else if (channel === 'facebook' && ch.facebook) {
+          const { id } = await this.campaigns.create(
+            businessId,
+            {
+              name: `${bundleName}, Facebook`,
+              type: 'social',
+              body: ch.facebook.caption!.trim(),
+              social_platforms: ['facebook'],
+              group_id: groupId,
+            },
+            userId,
+          );
+          campaignIds.facebook = id;
+        } else if (channel === 'whatsapp' && ch.whatsapp) {
+          const { id } = await this.campaigns.create(
+            businessId,
+            {
+              name: `${bundleName}, WhatsApp`,
+              type: 'whatsapp',
+              body: ch.whatsapp.body!.trim(),
+              group_id: groupId,
+            },
+            userId,
+          );
+          campaignIds.whatsapp = id;
+        } else if (channel === 'google_business' && ch.google_business) {
+          const { id } = await this.campaigns.create(
+            businessId,
+            {
+              name: `${bundleName}, Google Business`,
+              type: 'social',
+              body: ch.google_business.body!.trim(),
+              social_platforms: ['google_business'],
+              group_id: groupId,
+            },
+            userId,
+          );
+          campaignIds.google_business = id;
+        } else if (channel === 'tiktok' && ch.tiktok) {
+          const { id } = await this.campaigns.create(
+            businessId,
+            {
+              name: `${bundleName}, TikTok`,
+              type: 'social',
+              body: ch.tiktok.caption!.trim(),
+              social_platforms: ['tiktok'],
+              social_hashtags: ch.tiktok.hashtags ?? [],
+              group_id: groupId,
+            },
+            userId,
+          );
+          campaignIds.tiktok = id;
+        }
       }
-    }
     } catch (loopErr) {
       // Rollback: verwijder de zojuist aangemaakte kanalen + de group zodat
       // een retry niet op een halve bundel + duplicaat-campagnes stuit (de
@@ -3011,7 +2993,7 @@ ${segmentsBlock}`;
         `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
       );
     }
-    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const sc = suggestion.suggested_campaign ?? {};
     const channels = ensureChannels(sc);
     const targetIdx = channelId
       ? channels.findIndex((c) => c.id === channelId)
@@ -3037,7 +3019,9 @@ ${segmentsBlock}`;
     channelId?: string,
   ): Promise<AiSuggestion> {
     if (!Number.isInteger(index) || index < 0) {
-      throw new BadRequestException('Variant-index moet een positief getal zijn.');
+      throw new BadRequestException(
+        'Variant-index moet een positief getal zijn.',
+      );
     }
 
     return this.mutateChannel(
@@ -3082,12 +3066,10 @@ ${segmentsBlock}`;
         `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
       );
     }
-    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const sc = suggestion.suggested_campaign ?? {};
     const existing = ensureChannels(sc);
     if (existing.find((c) => c.platform === platform)) {
-      throw new BadRequestException(
-        'Dit platform staat al in het voorstel.',
-      );
+      throw new BadRequestException('Dit platform staat al in het voorstel.');
     }
     if (existing.length >= 5) {
       throw new BadRequestException(
@@ -3125,7 +3107,7 @@ ${segmentsBlock}`;
         `Alleen open voorstellen zijn aanpasbaar (deze is ${suggestion.status}).`,
       );
     }
-    const sc = (suggestion.suggested_campaign ?? {}) as SuggestedCampaign;
+    const sc = suggestion.suggested_campaign ?? {};
     const existing = ensureChannels(sc);
     if (existing.length <= 1) {
       throw new BadRequestException(
@@ -3259,9 +3241,7 @@ ${segmentsBlock}`;
           newSubject = patch.subject_line.trim().slice(0, 200);
         }
         const newVariants = channel.variants.map((v, i) =>
-          i === index
-            ? { body: newBody, subject_line: newSubject }
-            : v,
+          i === index ? { body: newBody, subject_line: newSubject } : v,
         );
         return { ...channel, variants: newVariants };
       },
@@ -3343,8 +3323,7 @@ ${segmentsBlock}`;
     const lang = await this.getFillyLang(businessId);
 
     const sc = suggestion.suggested_campaign ?? {};
-    const currentName =
-      typeof sc.name === 'string' ? (sc.name as string) : '';
+    const currentName = typeof sc.name === 'string' ? sc.name : '';
 
     // ============================================================
     // Multi-channel detection (per 2026-05-21)
@@ -3355,9 +3334,7 @@ ${segmentsBlock}`;
     // pre-multi-channel refines). Voor multi-channel pakken we de
     // varianten van het target-kanaal i.p.v. de top-level array.
     const channels =
-      Array.isArray(sc.channels) && sc.channels.length > 0
-        ? sc.channels
-        : null;
+      Array.isArray(sc.channels) && sc.channels.length > 0 ? sc.channels : null;
     const isMultiChannel = channels !== null;
 
     let targetChannelIdx = -1;
@@ -3449,8 +3426,7 @@ ${segmentsBlock}`;
     const fillyChannel = mapCampaignTypeToChannel(
       currentType,
       isMultiChannel
-        ? ((channels[targetChannelIdx]?.platform as string | undefined) ??
-            null)
+        ? ((channels[targetChannelIdx]?.platform as string | undefined) ?? null)
         : null,
     );
     const channelRules = formatChannelRulesForPrompt(fillyChannel);
@@ -3512,8 +3488,7 @@ ${channelRules}
 
     const newAlternatives = (parsed.variants ?? [])
       .map((v) => ({
-        body:
-          typeof v.body === 'string' ? v.body.trim().slice(0, 5000) : '',
+        body: typeof v.body === 'string' ? v.body.trim().slice(0, 5000) : '',
         subject_line:
           typeof v.subject_line === 'string' && v.subject_line.trim().length > 0
             ? v.subject_line.trim().slice(0, 200)
@@ -3540,9 +3515,7 @@ ${channelRules}
       // top-level sc.variants laten we ongewijzigd (orphan, maar
       // breken niets — toekomstige cleanup-migratie haalt 'm weg).
       const updatedChannels = channels.map((c, i) =>
-        i === targetChannelIdx
-          ? { ...c, variants: newVariants }
-          : c,
+        i === targetChannelIdx ? { ...c, variants: newVariants } : c,
       );
       newSuggested = {
         ...sc,
@@ -3595,11 +3568,7 @@ ${channelRules}
     // Per 2026-06-24: uitingen vanuit de chat landen direct als Concept
     // (geen aparte Voorstel-fase meer). approve() maakt de concept-campagne
     // ook bij ontbrekende datum/foto — die tonen daarna als "Nog nodig".
-    const { campaignId } = await this.approve(
-      businessId,
-      suggestionId,
-      userId,
-    );
+    const { campaignId } = await this.approve(businessId, suggestionId, userId);
     return { id: suggestionId, campaignId };
   }
 

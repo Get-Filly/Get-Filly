@@ -65,12 +65,11 @@ export type QuietSignals = {
   /** Datums waarvoor al een concept, campagne of voorstel staat. */
   planned?: Set<string>;
   /**
-   * Feestdagen (datum -> naam). Een feestdag is een moment om op in te spelen
-   * en geeft een bonus. Feestdagen waarop je juist NIET moet promoten
-   * (Nieuwjaarsdag, Goede Vrijdag, 1e Paasdag, Sinterklaasavond: `avoid`)
-   * vallen af.
+   * Feestdagen (datum -> naam) waarop de eigenaar wil inspelen. Een feestdag
+   * is een moment om op in te spelen en geeft een bonus. Feestdagen die de
+   * eigenaar heeft uitgezet moet de aanroeper er niet in stoppen.
    */
-  holidays?: Map<string, { name: string; avoid: boolean }>;
+  holidays?: Map<string, string>;
   /**
    * Door de eigenaar uitgezette momenten, als "weekdag|dagdeel" met weekdag
    * 0=ma..6=zo, bijvoorbeeld "2|middag" (woensdagmiddag). Daar komt nooit
@@ -328,7 +327,6 @@ export function computeQuiet(
   for (const date of eachDate(fromIso, toIso)) {
     if (signals.planned?.has(date)) continue; // staat al iets voor
     const holiday = signals.holidays?.get(date);
-    if (holiday?.avoid) continue; // niet promoten op deze dag
     const holidayBoost = holiday ? 1 : 0;
     const weekday = mondayIndex(date);
     const evs = signals.events?.get(date) ?? [];
@@ -389,7 +387,7 @@ export function computeQuiet(
         kind === 'incidenteel' && signalReason
           ? signalReason
           : holiday
-            ? { reasonKey: 'holiday', reasonParams: { name: holiday.name } }
+            ? { reasonKey: 'holiday', reasonParams: { name: holiday } }
             : signalReason?.reasonKey === 'eventNearby'
               ? signalReason
               : {

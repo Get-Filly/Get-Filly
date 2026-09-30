@@ -90,15 +90,14 @@ const OpeningHoursSchema = z.record(
 // dus formaat is gestandaardiseerd vanuit daar.
 const BrandColorsSchema = z.record(
   z.string(),
-  z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Kleur moet hex-formaat zijn (#RRGGBB).'),
+  z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Kleur moet hex-formaat zijn (#RRGGBB).'),
 );
 
 // Social media: { instagram, facebook, tiktok, linkedin } maar
 // alle keys optioneel. Waarde is een URL of handle ("@restaurant").
-const SocialMediaSchema = z.record(
-  z.string(),
-  z.string().trim().max(200),
-);
+const SocialMediaSchema = z.record(z.string(), z.string().trim().max(200));
 
 // ------------------------------------------------------------
 // Service-periods (mig 0038): per-dag ontbijt/lunch/diner-config
@@ -117,12 +116,8 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM 24h
 const ServicePeriodDaySchema = z.union([
   z.null(),
   z.object({
-    start: z
-      .string()
-      .regex(TIME_RE, 'Tijd moet formaat HH:MM hebben.'),
-    end: z
-      .string()
-      .regex(TIME_RE, 'Tijd moet formaat HH:MM hebben.'),
+    start: z.string().regex(TIME_RE, 'Tijd moet formaat HH:MM hebben.'),
+    end: z.string().regex(TIME_RE, 'Tijd moet formaat HH:MM hebben.'),
     session_count: z
       .number()
       .int()
@@ -187,9 +182,7 @@ export const BusinessUpdateSchema = z
 
     // ----- Service-tijden (mig 0038): ontbijt/lunch/diner per dag -----
     // Gebruikt door dashboard week/dag-view + KPI-aggregaten.
-    service_periods: z
-      .union([ServicePeriodsSchema, z.null()])
-      .optional(),
+    service_periods: z.union([ServicePeriodsSchema, z.null()]).optional(),
 
     // ----- Capaciteit + faciliteiten -----
     price_range: z
@@ -235,9 +228,7 @@ export const BusinessUpdateSchema = z
     languages_spoken: optionalStringArray(20, 10),
 
     // ----- Branding -----
-    brand_tone: z
-      .enum(['casual', 'professional', 'playful'])
-      .optional(),
+    brand_tone: z.enum(['casual', 'professional', 'playful']).optional(),
     brand_colors: z.union([BrandColorsSchema, z.null()]).optional(),
     logo_url: optionalText(500),
 
@@ -259,10 +250,7 @@ export const BusinessUpdateSchema = z
           // Sta toe dat eigenaar 'm met spaties of streepjes invoert.
           .transform((v) => v.replace(/[\s.-]/g, ''))
           .pipe(
-            z
-              .string()
-              .regex(KVK_RE, 'KvK-nummer moet 8 cijfers zijn.')
-              .max(8),
+            z.string().regex(KVK_RE, 'KvK-nummer moet 8 cijfers zijn.').max(8),
           ),
         z.literal(''),
         z.null(),
@@ -291,7 +279,10 @@ export const BusinessUpdateSchema = z
       .transform((v) => (v === '' ? null : v)),
     contact_email: z
       .union([
-        z.string().trim().regex(EMAIL_RE, 'Contact-e-mail lijkt geen geldig adres.'),
+        z
+          .string()
+          .trim()
+          .regex(EMAIL_RE, 'Contact-e-mail lijkt geen geldig adres.'),
         z.literal(''),
         z.null(),
       ])
@@ -366,12 +357,19 @@ export const BusinessUpdateSchema = z
       .array(
         z
           .string()
-          .regex(
-            /^[0-6]\|(ochtend|lunch|middag|diner)$/,
-            'Onbekend moment.',
-          ),
+          .regex(/^[0-6]\|(ochtend|lunch|middag|diner)$/, 'Onbekend moment.'),
       )
       .max(28, 'Te veel momenten.')
+      .transform((v) => [...new Set(v)])
+      .optional(),
+
+    // Feestdagen die de eigenaar per stuk heeft uitgezet (mig 0082), als
+    // sleutels zoals '1e-paasdag'. Leeg = alle feestdagen aan.
+    disabled_holidays: z
+      .array(
+        z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Onbekende feestdag.'),
+      )
+      .max(40, 'Te veel feestdagen.')
       .transform((v) => [...new Set(v)])
       .optional(),
 
@@ -418,7 +416,10 @@ export const BusinessUpdateSchema = z
     email_from_name: optionalText(100),
     email_reply_to: z
       .union([
-        z.string().trim().regex(EMAIL_RE, 'Reply-to-adres lijkt geen geldig e-mailadres.'),
+        z
+          .string()
+          .trim()
+          .regex(EMAIL_RE, 'Reply-to-adres lijkt geen geldig e-mailadres.'),
         z.literal(''),
         z.null(),
       ])
@@ -436,22 +437,21 @@ export const BusinessUpdateSchema = z
         message: 'Eind-uur moet ná het begin-uur liggen.',
       });
     }
-  })
-  // **Default zod-gedrag (.strip)**: keys die NIET in het schema staan
-  // worden stilletjes weggegooid (i.p.v. een ZodError zoals .strict()
-  // zou doen). Bewuste keuze: de bestaande frontend stuurt bij elke
-  // save het complete form-object incl. server-managed velden (id,
-  // plan, latitude, etc). Met .strict() zou élke save 400 geven.
-  //
-  // BusinessService.update detecteert + logt welke keys gestripped
-  // zijn zodat we visibiliteit houden, en bij een nieuwe DB-kolom
-  // die per ongeluk in de Business-type belandt zonder schema-update,
-  // zien we 't in de logs i.p.v. dat een eigenaar een gat ontdekt.
-  //
-  // Alternatief voor de toekomst: frontend bouwen om alleen-changed-
-  // velden te sturen (PATCH-semantics). Dan kunnen we hier .strict()
-  // aanzetten voor harde garantie.
-  ;
+  });
+// **Default zod-gedrag (.strip)**: keys die NIET in het schema staan
+// worden stilletjes weggegooid (i.p.v. een ZodError zoals .strict()
+// zou doen). Bewuste keuze: de bestaande frontend stuurt bij elke
+// save het complete form-object incl. server-managed velden (id,
+// plan, latitude, etc). Met .strict() zou élke save 400 geven.
+//
+// BusinessService.update detecteert + logt welke keys gestripped
+// zijn zodat we visibiliteit houden, en bij een nieuwe DB-kolom
+// die per ongeluk in de Business-type belandt zonder schema-update,
+// zien we 't in de logs i.p.v. dat een eigenaar een gat ontdekt.
+//
+// Alternatief voor de toekomst: frontend bouwen om alleen-changed-
+// velden te sturen (PATCH-semantics). Dan kunnen we hier .strict()
+// aanzetten voor harde garantie.
 
 export type BusinessUpdateInput = z.infer<typeof BusinessUpdateSchema>;
 

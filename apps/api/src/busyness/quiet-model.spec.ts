@@ -119,17 +119,10 @@ describe('computeQuiet', () => {
     });
   });
 
-  it('laat een dag waarop je niet moet promoten (avoid) helemaal af', () => {
-    const r = computeQuiet(makePattern(), FROM, TO, 6, {
-      holidays: new Map([['2026-10-10', { name: 'Stille dag', avoid: true }]]),
-    });
-    expect(r.moments.find((m) => m.date === '2026-10-10')).toBeUndefined();
-  });
-
   it('geeft een gewone feestdag een bonus en een reden', () => {
     const kaal = computeQuiet(makePattern(), FROM, TO, 6);
     const met = computeQuiet(makePattern(), FROM, TO, 6, {
-      holidays: new Map([['2026-10-10', { name: 'Testfeest', avoid: false }]]),
+      holidays: new Map([['2026-10-10', 'Testfeest']]),
     });
     const voor = kaal.moments.find((m) => m.date === '2026-10-10')!;
     const na = met.moments.find((m) => m.date === '2026-10-10')!;

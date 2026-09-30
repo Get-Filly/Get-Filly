@@ -119,9 +119,8 @@ type SlotUse = { weekIndex: number; weak?: boolean };
 
 // Alles wat per kalenderdatum verschilt, in één keer geladen voor het venster.
 type QuietContext = {
-  // Feestdagen in het venster. `avoid` = een dag waarop je juist niet moet
-  // promoten (valt af); de rest is een moment om op in te spelen (bonus).
-  holidayByDate: Map<string, { name: string; avoid: boolean }>;
+  // Feestdagen in het venster waarop de eigenaar wil inspelen (bonus).
+  holidayByDate: Map<string, string>;
   eventsByDate: Map<string, EventSignal[]>;
   weatherByDate: Map<string, WeatherSignal>;
   // Weer per uur, voor het weer over het voorgestelde tijdvenster.
@@ -786,16 +785,11 @@ export class BusynessService {
     }));
 
     // Dagen die een harde poort raakten, zodat het dashboard kan zeggen waarom
-    // er (nog) geen voorstel voor is.
+    // er (nog) geen voorstel voor is: alleen nog dagen waar al iets voor staat.
     const notes: QuietNote[] = [];
     if (applyPolicy) {
       for (const date of this.eachDate(fromIso, toIso)) {
-        const holiday = ctx.holidayByDate.get(date);
-        if (holiday?.avoid) {
-          notes.push({ date, reason: 'feestdag', label: holiday.name });
-        } else if (ctx.covered.has(date)) {
-          notes.push({ date, reason: 'al_afgedekt' });
-        }
+        if (ctx.covered.has(date)) notes.push({ date, reason: 'al_afgedekt' });
       }
     }
     return { hasSource: true, moments, notes };
@@ -830,10 +824,11 @@ export class BusynessService {
   ): Promise<QuietContext> {
     // Feestdagen zijn pure code (deterministisch, Meeus) — geen IO, geen
     // fail-soft nodig. Alle jaren die het venster raakt.
-    // Staat feestdagen bij deze zaak aan (mig 0055)? Uit = geen feestdag-bonus.
-    // Dagen waarop je juist niet moet promoten blijven altijd afvallen.
+    // Staan feestdagen bij deze zaak aan (mig 0055), en welke heeft de eigenaar
+    // per stuk uitgezet (mig 0082)? Uitgezette feestdagen krijgen geen bonus.
     const holidaysOn = await this.events.holidaysEnabled(businessId);
-    const holidayByDate = new Map<string, { name: string; avoid: boolean }>();
+    const disabledHolidays = await this.events.disabledHolidays(businessId);
+    const holidayByDate = new Map<string, string>();
     const years = new Set<number>([
       Number(fromIso.slice(0, 4)),
       Number(toIso.slice(0, 4)),
@@ -841,9 +836,9 @@ export class BusynessService {
     for (const y of years) {
       if (!Number.isFinite(y)) continue;
       for (const h of getNlHolidays(y)) {
-        if (h.date >= fromIso && h.date <= toIso)
-          if (!h.avoid && !holidaysOn) continue;
-        holidayByDate.set(h.date, { name: h.name, avoid: !!h.avoid });
+        if (h.date < fromIso || h.date > toIso) continue;
+        if (!holidaysOn || disabledHolidays.has(h.id)) continue;
+        holidayByDate.set(h.date, h.name);
       }
     }
 
