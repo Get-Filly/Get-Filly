@@ -257,6 +257,10 @@ de Meta-app.
 - [ ] **Maximum uitingen per kanaal.** Voor nu is er geen limiet. Zodra de kosten duidelijk zijn kan een
       maximum per kanaal worden ingesteld; het waarschuwingsscherm in de geleide flow is er dan klaar voor.
       *(Floris beslist zodra de kosten bekend zijn)*
+- [ ] **Rapportage per mail naar de klant.** In Rapportages een knop om de gegevens (bezetting,
+      campagne-resultaten, "Wat werkt bij jou") naar de eigenaar te mailen. Mail naar onze eigen klanten
+      blijft dus bestaan (naast afmelden, nieuwsbrieven en updates); de mailservice, de afmeld-flow en de
+      transactionele mail zijn bij het verwijderen van gasten-mail bewust ongemoeid gelaten. *(Claude)*
 - [ ] Off-site autoriteit: backlinks, directories, Google Bedrijfsprofiel voor
       Get-Filly zelf. *(Floris)*
 

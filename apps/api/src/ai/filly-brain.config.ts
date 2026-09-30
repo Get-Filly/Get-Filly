@@ -287,7 +287,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 6,
-      optimalRangeHours: [24, 72], // 1-3 dagen
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale: 'Recent in feed = bovenaan; te ver vooruit = vergeten.',
     },
     frequency: { maxPerWeek: 5, maxPerMonth: 20 },
@@ -430,11 +430,11 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 12,
-      // 1-3 dagen. Was 2-5 dagen (bedoeld voor geplande events). Een actie om
+      // 1-2 dagen. Was 2-5 dagen (bedoeld voor geplande events). Een actie om
       // een rustig moment te vullen is last-minute: bronnen (2026) zeggen
       // geplande events 4-6 weken vooraf aan te kondigen, maar aanbiedingen op
       // korte termijn juist direct te plaatsen. Niet te ver vooruit dus.
-      optimalRangeHours: [24, 72],
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale:
         'Last-minute actie: liever dichtbij het moment dan dagen eerder, zodat het bericht nog vers is.',
     },
@@ -484,7 +484,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 6,
-      optimalRangeHours: [24, 72],
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale: 'Algoritme heeft tijd nodig om bereik te bouwen.',
     },
     frequency: { maxPerWeek: 5, maxPerMonth: 16 },
@@ -578,7 +578,7 @@ export const CHANNEL_RULES: Record<FillyChannel, ChannelRules> = {
     },
     leadTime: {
       minHours: 12,
-      optimalRangeHours: [24, 168], // 1-7 dagen
+      optimalRangeHours: [24, 48], // 1-2 dagen
       rationale:
         'Google indexeert binnen uren maar zoekers vinden 1-3 dagen na.',
     },
