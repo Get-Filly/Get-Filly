@@ -55,9 +55,6 @@ type DrinkItem = {
 type WizardData = {
   // Basics
   name: string;
-  // Branche-taxonomie (mig 0066). Stuurt Filly's industry-pack. Default
-  // 'horeca'; alleen horeca is nu kiesbaar (rest "Binnenkort").
-  industry: string;
   type: string;
   // Locatie
   address: string;
@@ -132,7 +129,6 @@ const API_URL =
 
 const INITIAL_DATA: WizardData = {
   name: "",
-  industry: "horeca",
   type: "",
   address: "",
   postal_code: "",
@@ -427,7 +423,6 @@ function OnboardingPageContent() {
         },
         body: JSON.stringify({
           name: data.name.trim(),
-          industry: data.industry,
           type: data.type,
           address: data.address.trim() || undefined,
           postal_code: data.postal_code.trim() || undefined,

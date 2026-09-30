@@ -37,7 +37,7 @@ import {
   type ForecastDay,
 } from '../weather/weather.service';
 import { CampaignFingerprintService } from '../campaigns/campaign-fingerprint.service';
-import { vaktaalPrefix } from '../ai/industry/industry-pack';
+import { HORECA_PACK } from '../ai/horeca-taal';
 
 // JSON-schema voor de suggestion-refine tool. Per 2026-05-07: van
 // 1-variant-replace naar 3-variants-append. Eigenaar krijgt 3 nieuwe
@@ -596,7 +596,7 @@ export class SuggestionsService {
     private readonly supabase: RequestSupabaseService,
     private readonly campaigns: CampaignsService,
     private readonly ai: AiService,
-    // Levert profile + menu-block (+ industry-pack) zodat Filly kan
+    // Levert profile + menu-block zodat Filly kan
     // refereren aan écht aanbod met échte prijzen ipv generieke tekst.
     private readonly context: BusinessContextService,
     // Gemeten bereik per kanaal (opt-ins + koppel-status) zodat Filly
@@ -705,7 +705,6 @@ export class SuggestionsService {
       throw new NotFoundException('Business niet gevonden.');
     }
     const lang = await this.getFillyLang(businessId);
-    const pack = await this.context.getIndustryPack(businessId);
 
     const { count: menuCount } = await this.supabase.client
       .from('menu_items')
@@ -714,7 +713,7 @@ export class SuggestionsService {
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(pack.menuGuardMessage);
+      throw new BadRequestException(HORECA_PACK.menuGuardMessage);
     }
 
     // Stap 2, context bouwen. Profile + menu zijn altijd nodig; live-
@@ -729,7 +728,7 @@ export class SuggestionsService {
     const todayIso = today.toISOString().slice(0, 10);
     const monthName = today.toLocaleString('nl-NL', { month: 'long' });
 
-    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. De eigenaar drukt op "Vraag Filly om voorstellen" en jij genereert 3-5 concrete campagne-voorstellen die NU passen.
 
 Je antwoord komt via de tool 'generate_proactive_suggestions'. Vul de tool-args met 3-5 verschillende voorstellen die elk een eigen invalshoek hebben.
 
@@ -777,9 +776,9 @@ Per voorstel-niveau:
 Vandaag is ${todayIso}.
 
 ---
-${buildAllChannelsBlock(undefined, pack.channelFlavor)}
+${buildAllChannelsBlock()}
 ---
-${buildAllTimingBlock(undefined, pack.channelFlavor)}
+${buildAllTimingBlock()}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, {
   includeHolidays: await this.events.holidaysEnabled(businessId),
@@ -1019,7 +1018,6 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
     suggestions: AiSuggestion[];
   }> {
     const lang = await this.getFillyLang(businessId);
-    const pack = await this.context.getIndustryPack(businessId);
     // Stap 1, Pre-flight: minstens 3 menu-items zodat Filly concrete
     // gerechten kan noemen. Zelfde guard als generateOnDemand.
     const { count: menuCount } = await this.supabase.client
@@ -1029,7 +1027,7 @@ ${liveBlock || 'LIVE: nog geen actuele bezettings- of weer-data beschikbaar.'}
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(pack.menuGuardMessage);
+      throw new BadRequestException(HORECA_PACK.menuGuardMessage);
     }
 
     // Stap 1b, drempel per restaurant: de eigenaar stelt deze in op
@@ -1257,7 +1255,7 @@ GASTEN-SEGMENTEN VOOR ACTIVATIE:
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
-      const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifiek rustig moment (een dagdeel) in de komende 2 weken bedenk je het beste activatie-voorstel om juist dán meer gasten te trekken.
+      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifiek rustig moment (een dagdeel) in de komende 2 weken bedenk je het beste activatie-voorstel om juist dán meer gasten te trekken.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel, campagne-type, naam, body, doelgroep en verwacht effect.
 
@@ -1281,7 +1279,7 @@ ${langWriteRules(lang)}
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting op basis van segment-grootte × verwachte conversie (typisch 5-15% bij relevante segmenten).
 
 ---
-${buildAllChannelsBlock(PROMPT_CHANNELS, pack.channelFlavor)}
+${buildAllChannelsBlock(PROMPT_CHANNELS)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -1598,7 +1596,6 @@ ${dayContext}`;
       );
     }
 
-    const pack = await this.context.getIndustryPack(businessId);
 
     // Pre-flight: zelfde guard als de andere generate-flows.
     const { count: menuCount } = await this.supabase.client
@@ -1608,7 +1605,7 @@ ${dayContext}`;
       .eq('is_available', true);
 
     if (!menuCount || menuCount < 3) {
-      throw new BadRequestException(pack.menuGuardMessage);
+      throw new BadRequestException(HORECA_PACK.menuGuardMessage);
     }
 
     // Business-config voor de bezetting-drempel.
@@ -1811,7 +1808,7 @@ ${dayContext}`;
 - Datum: ${item.date} (${weekdayNl}, over ${daysFromNow} dagen)
 - Aanleiding: ${item.name ?? 'Speciale dag'}
 
-Dit is een commerciële kans voor ${pack.sectorLabel}. Bedenk een campagne die past
+Dit is een commerciële kans voor ${HORECA_PACK.sectorLabel}. Bedenk een campagne die past
 bij DEZE specifieke gelegenheid (themamenu, gastenactivatie, mailing,
 cadeaubon, sfeer-actie). Spreek de juiste doelgroep aan voor deze dag:
 bv. Moederdag/Vaderdag = families, Valentijn = stelletjes, Kerst =
@@ -1859,7 +1856,7 @@ groepen + traditie.`;
 - VIP: ${segmentCounts.vip}
 - Inactief (>90 dagen niet geweest): ${segmentCounts.inactief}`;
 
-      const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke datum bedenk je het beste marketing-voorstel.
+      const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Voor één specifieke datum bedenk je het beste marketing-voorstel.
 
 Je antwoord komt via de tool 'generate_low_occupancy_campaign'. Vul de tool-args met één concreet voorstel: campagne-type, naam, body, doelgroep en verwacht effect.
 
@@ -1883,7 +1880,7 @@ ${langWriteRules(lang)}
 - expected_extra_reservations + expected_extra_revenue_cents: realistische schatting (5-15% conversie van relevante segment-grootte).${channelDirective}
 
 ---
-${buildAllChannelsBlock(PROMPT_CHANNELS, pack.channelFlavor)}
+${buildAllChannelsBlock(PROMPT_CHANNELS)}
 ---
 ${buildExternalFactorsBlock(new Date(), 21, { includeHolidays })}
 ---
@@ -3344,7 +3341,6 @@ ${segmentsBlock}`;
       );
     }
     const lang = await this.getFillyLang(businessId);
-    const pack = await this.context.getIndustryPack(businessId);
 
     const sc = suggestion.suggested_campaign ?? {};
     const currentName =
@@ -3457,15 +3453,12 @@ ${segmentsBlock}`;
             null)
         : null,
     );
-    const channelRules = formatChannelRulesForPrompt(
-      fillyChannel,
-      pack.channelFlavor?.[fillyChannel],
-    );
+    const channelRules = formatChannelRulesForPrompt(fillyChannel);
 
     // Tool-use forceert het JSON-schema (3 variants exact). Wij geven
     // Filly het bestaande materiaal mee als 'vermijd-lijst' zodat de
     // alternatieven inhoudelijk anders zijn dan wat al gegenereerd is.
-    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, ${pack.systemFraming}. Je krijgt een bestaande campagne en moet drie alternatieve versies bedenken die wezenlijk anders zijn van toon en invalshoek.
+    const systemPrompt = `Je bent Filly, ${HORECA_PACK.systemFraming}. Je krijgt een bestaande campagne en moet drie alternatieve versies bedenken die wezenlijk anders zijn van toon en invalshoek.
 
 Je antwoord komt via de tool 'generate_alternatives'. Lever exact 3 varianten.
 

@@ -8,7 +8,6 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { GoogleProfileService } from '../google-profile/google-profile.service';
-import { coerceIndustry } from '../ai/industry/industry.registry';
 
 // ============================================================
 // OnboardingService, eerste-keer-setup voor een nieuwe user
@@ -31,9 +30,6 @@ import { coerceIndustry } from '../ai/industry/industry.registry';
 export type OnboardingInput = {
   // Basics (verplicht)
   name: string;
-  // Branche-taxonomie (mig 0066). Optioneel meegestuurd door de wizard;
-  // onbekend/leeg → horeca via coerceIndustry. Stuurt Filly's industry-pack.
-  industry?: string;
   type: string; // bistro/brasserie/cafe/...
   // Locatie
   address?: string;
@@ -183,8 +179,6 @@ export class OnboardingService {
       .insert({
         // Basics
         name,
-        // Branche stuurt Filly's pack; vangnet naar horeca bij onbekend/leeg.
-        industry: coerceIndustry(input.industry),
         type,
         slug: slugify(name),
         // Locatie

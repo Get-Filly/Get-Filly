@@ -13,7 +13,6 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AiService } from '../ai/ai.service';
 import { BusinessContextService } from '../ai/business-context.service';
-import { vaktaalPrefix } from '../ai/industry/industry-pack';
 import {
   mapCampaignTypeToChannel,
   formatTimingForPrompt,
@@ -2134,18 +2133,14 @@ export class CampaignsService {
       socialPlatform = (social?.platforms as string[] | null)?.[0] ?? null;
     }
     const channel = mapCampaignTypeToChannel(type, socialPlatform);
-    const pack = await this.context.getIndustryPack(businessId);
-    const channelRules = formatChannelRulesForPrompt(
-      channel,
-      pack.channelFlavor?.[channel],
-    );
+    const channelRules = formatChannelRulesForPrompt(channel);
 
     const [profileBlock, menuBlock] = await Promise.all([
       this.context.buildProfileBlock(businessId).catch(() => ''),
       this.context.buildMenuBlock(businessId).catch(() => ''),
     ]);
 
-    const systemPrompt = `${vaktaalPrefix(pack)}Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
+    const systemPrompt = `Je bent Filly, een AI-assistent voor het hieronder beschreven restaurant. Je krijgt een bestaande campagne en moet 3 alternatieve versies bedenken die specifiek bij DEZE onderneming passen.
 
 Je antwoord komt via de tool 'generate_campaign_variants'. Vul het schema met precies 3 alternatieven.
 

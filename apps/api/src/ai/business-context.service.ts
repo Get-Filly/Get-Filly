@@ -6,8 +6,6 @@ import { ReservationsService } from '../reservations/reservations.service';
 import type { Reservation } from '../reservations/reservations.service';
 // Per-request user-JWT-client (RLS actief). Zie SupabaseModule voor uitleg.
 import { RequestSupabaseService } from '../supabase/request-supabase.service';
-import { getIndustryPack, type IndustryPack } from './industry/industry-pack';
-import { coerceIndustry } from './industry/industry.registry';
 
 // ============================================================
 // BusinessContextService, feiten + identiteit voor AI-prompts
@@ -70,24 +68,6 @@ export class BusinessContextService {
   ) {}
 
   // ============================================================
-  // INDUSTRY-PACK, de branche-laag voor Filly's prompts
-  // ============================================================
-  // Resolvet de branche van de zaak (restaurants.industry, mig 0066) naar
-  // het bijbehorende IndustryPack. Onbekend/leeg → horeca (coerceIndustry),
-  // zodat een rare DB-waarde nooit een generatie laat crashen. Callers
-  // gebruiken de pack voor het VAKTAAL-blok, de system-framing en de
-  // menu-guard-melding. Voor horeca is de pack byte-identiek aan het
-  // oude, hardcoded gedrag.
-  async getIndustryPack(businessId: string): Promise<IndustryPack> {
-    const { data } = await this.supabase.client
-      .from('businesses')
-      .select('industry')
-      .eq('id', businessId)
-      .maybeSingle();
-    return getIndustryPack(coerceIndustry(data?.industry));
-  }
-
-  // ============================================================
   // PROFIEL, identiteit + operationele kenmerken van de zaak
   // ============================================================
   // Pakt alle profiel-velden op in één query en formatteert ze als
@@ -101,7 +81,7 @@ export class BusinessContextService {
         // Alle velden uit restaurants + onboarding-extensies (0003).
         // Bewust géén logo_url / brand_colors, irrelevant voor tekst-LLM.
         `
-        name, industry, type, cuisine_style, description, tagline,
+        name, type, cuisine_style, description, tagline,
         target_audience, atmosphere, unique_selling_points,
         special_events, signature_dishes, brand_tone, languages_spoken,
         city, address, postal_code, country,

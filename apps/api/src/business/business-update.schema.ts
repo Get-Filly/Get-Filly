@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { INDUSTRIES } from '../ai/industry/industry.registry';
 
 // ============================================================
 // BusinessUpdateSchema, strikte allowlist voor PATCH /restaurant/me
@@ -145,10 +144,6 @@ export const BusinessUpdateSchema = z
   .object({
     // ----- Business -----
     name: optionalText(200),
-    // Branche-taxonomie (mig 0066). Gestructureerd, gevalideerd tegen de
-    // code-registry (ai/industry). Stuurt Filly's industry-pack. Los van
-    // de vrije `type` hieronder (subtype/positionering binnen de branche).
-    industry: z.enum(INDUSTRIES).optional(),
     type: optionalText(50),
     cuisine_style: optionalStringArray(20, 50),
     description: optionalText(2000),
