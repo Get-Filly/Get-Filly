@@ -19,7 +19,6 @@ const titleKeyFor: Record<string, string> = {
   "/dashboard/google-business/reviews": "findabilityReviews",
   // Marketing-hub + sub-routes per kanaal.
   "/dashboard/marketing": "marketing",
-  "/dashboard/marketing/mail": "marketingMail",
   "/dashboard/marketing/instagram": "marketingInstagram",
   "/dashboard/marketing/facebook": "marketingFacebook",
   "/dashboard/marketing/tiktok": "marketingTiktok",

@@ -919,7 +919,6 @@
       "base": "Weet je zeker dat je deze campagne nu wil activeren?",
       "withActions": "Weet je zeker dat je deze campagne nu wil activeren? {actions}.",
       "and": " en ",
-      "mailAction": "{count, plural, one {de mail wordt direct verstuurd naar alle opt-in gasten} other {# mails worden direct verstuurd naar alle opt-in gasten}}",
       "socialAction": "{count, plural, one {de social-post wordt direct op Facebook/Instagram geplaatst} other {# social-posts worden direct op Facebook/Instagram geplaatst}}"
     },
     "stopConfirm": "Weet je zeker dat je deze campagne wil stoppen? De geplaatste posts worden van Facebook en Instagram verwijderd en de campagne gaat terug naar concept.",
@@ -2247,53 +2246,6 @@
     "ignore": "Negeren",
     "backToMarketingHub": "← Terug naar Marketing-hub"
   },
-  "dash_marketing_mail_page": {
-    "title": "Mail-prestaties",
-    "subtitle": "Open rates, click rates en industrie-vergelijking, uit je Resend-data.",
-    "loading": "Statistieken laden…",
-    "summary": "{sent} verzonden mails over {count} {count, plural, one {campagne} other {campagnes}}, laatste {days} dagen.",
-    "benchmarkSource": "Mediaan-cijfers uit {source}",
-    "footnote": "Heatmap (beste verzendmoment) en trends-grafiek volgen zodra je meer dan 10 campagnes hebt verzonden, anders zegt het beeld weinig.",
-    "errors": {
-      "unknown": "Onbekende fout"
-    },
-    "empty": {
-      "title": "Nog geen verzonden mails",
-      "description": "Zodra je je eerste mail-campagne verstuurt verschijnen hier open rates, click rates en de vergelijking met de horeca-mediaan.",
-      "cta": "Naar campagnes"
-    },
-    "kpi": {
-      "sent": "Verzonden",
-      "delivered": "{delivered} aangekomen",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "bounceRate": "Bounce rate",
-      "unsubscribes": "Uitschrijvingen",
-      "unsubscribedPeople": "{people} mensen"
-    },
-    "benchmark": {
-      "above": "Boven mediaan",
-      "below": "Onder mediaan",
-      "median": "Mediaan: {value}"
-    },
-    "table": {
-      "campaign": "Campagne",
-      "status": "Status",
-      "sent": "Verzonden",
-      "open": "Open",
-      "click": "Click",
-      "bounce": "Bounce",
-      "emptyPeriod": "Geen campagnes in deze periode.",
-      "sentOn": "Verzonden {date}"
-    },
-    "status": {
-      "afgerond": "Afgerond",
-      "actief": "Actief",
-      "ingepland": "Ingepland",
-      "concept": "Concept",
-      "gearchiveerd": "Gearchiveerd"
-    }
-  },
   "dash_marketing_page": {
     "title": "Marketing",
     "subtitle": "Hoe presteren je kanalen? Filly meet, vergelijkt en stelt verbeteringen voor.",
@@ -2302,19 +2254,12 @@
       "someActive": "Mail-statistieken zijn live. Sociale kanalen volgen na de Meta + TikTok approval-aanvragen.",
       "noneActive": "Geen kanalen actief. Verstuur eerst een mail-campagne om je eerste statistieken te zien."
     },
-    "report": {
-      "heading": "Filly's wekelijks rapport"
-    },
     "status": {
       "live": "Actief",
       "comingSoon": "Binnenkort",
       "future": "Later"
     },
     "channels": {
-      "mail": {
-        "name": "Mail",
-        "description": "Open rates, click rates, beste verzendmoment en wat je beste campagnes deden, direct uit Resend."
-      },
       "instagram": {
         "name": "Instagram",
         "description": "Bereik, engagement, top-posts en beste posttijd zodra je via OAuth koppelt."
@@ -2331,16 +2276,6 @@
         "name": "WhatsApp",
         "description": "Directe gast-communicatie met read-rates en reply-conversie. Komt in een latere fase."
       }
-    },
-    "summary": {
-      "noCampaigns": "Je hebt deze maand nog geen mail-campagnes verzonden. Eerste campagne maak je via /campagnes.",
-      "openAbove": "Je open rate van {rate}% zit {diff}% boven de horeca-mediaan, sterk.",
-      "openBelow": "Je open rate van {rate}% zit {diff}% onder de horeca-mediaan. Onderwerp-regels herzien?",
-      "openAround": "Je open rate van {rate}% ligt rond de horeca-mediaan.",
-      "clickAbove": "Click rate van {rate}% is {diff}% boven mediaan.",
-      "clickLow": "Click rate van {rate}% is laag, duidelijke CTA toevoegen?",
-      "bounceHigh": "Let op: bounce rate is {rate}%, hoger dan ideaal (<2%). Lijst opschonen.",
-      "fallback": "Je verstuurde {sent} mails over {count} {count, plural, one {campagne} other {campagnes}}. Voor diepere analyse open de Mail-pagina."
     },
     "errors": {
       "unknown": "Onbekende fout"
@@ -2955,7 +2890,6 @@
       "sevenrooms": "SevenRooms",
       "resengo": "Resengo",
       "googleBusiness": "Google Bedrijfsprofiel",
-      "mail": "E-mail (campagnes)",
       "meta": "Facebook & Instagram",
       "tiktok": "TikTok for Business",
       "whatsapp": "WhatsApp Business",
@@ -3254,10 +3188,6 @@
       "bundle": "Verstuur (bundel {count} kanalen)"
     },
     "options": {
-      "mail": {
-        "label": "Mail",
-        "hint": "Naar gastenlijst"
-      },
       "instagram": {
         "label": "Instagram",
         "hint": "IG-post"
@@ -3385,12 +3315,12 @@
       "bundleFailed": "Bundle-aanmaken mislukt. Probeer nog eens."
     },
     "prompts": {
-      "mail": "Maak een mail-campagne",
       "instagram": "Maak een Instagram-post",
       "facebook": "Maak een Facebook-post",
       "whatsapp": "Maak een WhatsApp-bericht",
       "googleBusiness": "Maak een Google Business-post",
-      "bundle": "Maak een bundel-campagne voor {channels}"
+      "bundle": "Maak een bundel-campagne voor {channels}",
+      "tiktok": "Maak een TikTok-video"
     }
   },
   "dash__components_filly_guided_flow": {
@@ -3516,59 +3446,6 @@
     "awaitingApproval": "wachten op goedkeuring",
     "notAvailableTitle": "Cijfers nog niet beschikbaar",
     "notAvailableBody": "Zodra je reserveringen en campagnes binnenkomen verschijnen de KPI's hier."
-  },
-  "dash__components_mail_domain_section": {
-    "sectionTitle": "Mail-instellingen",
-    "sectionDesc": "Vanuit welk adres je campagne-mails worden verstuurd.",
-    "loading": "Bezig met laden…",
-    "removeConfirm": "Weet je zeker dat je dit eigen domein wil loskoppelen? Mail valt daarna terug op social@get-filly.com.",
-    "errors": {
-      "unknown": "Onbekende fout.",
-      "register": "Registreren mislukt.",
-      "verify": "Verificatie mislukt.",
-      "remove": "Verwijderen mislukt."
-    },
-    "verified": {
-      "label": "Eigen domein actief: {address}",
-      "sub": "Mails worden verzonden vanuit je eigen domein. Replies komen direct in je mailbox.",
-      "disconnect": "Loskoppelen"
-    },
-    "pending": {
-      "label": "DNS-controle loopt voor {domain}",
-      "sub": "Voeg de onderstaande records toe bij je DNS-host. Klik daarna op 'Verifieer'. DNS-propagatie kan 5-30 minuten duren.",
-      "verify": "Verifieer",
-      "cancel": "Annuleren / loskoppelen"
-    },
-    "failed": {
-      "label": "DNS-records nog niet correct voor {domain}",
-      "sub": "Controleer dat alle records exact zijn overgenomen. Sommige DNS-hosts voegen automatisch het domein achter de hostname toe, corrigeer dan zo nodig."
-    },
-    "none": {
-      "label": "Standaard-verzending via Get-Filly",
-      "sub": "Je campagne-mails komen van social@get-filly.com met je restaurant-naam als afzender. Voor pure klant-branding kun je je eigen domein koppelen.",
-      "setup": "Eigen domein instellen"
-    },
-    "setup": {
-      "title": "Eigen domein koppelen",
-      "domainLabel": "Domein",
-      "domainHint": "Zonder http:// of www., alleen de domeinnaam.",
-      "fromLabel": "Verzendadres",
-      "fromHint": "Het adres dat ontvangers zien in 'Van'. Moet eindigen op je domein.",
-      "create": "Aanmaken",
-      "cancel": "Annuleren",
-      "note": "Na aanmaken krijg je 4 DNS-records die je bij je DNS-host (TransIP / Versio / Namecheap / etc.) moet toevoegen. Daarna kun je verifiëren, duurt meestal 5-15 minuten na DNS-update."
-    },
-    "table": {
-      "empty": "Geen records beschikbaar. Probeer de pagina te herladen.",
-      "type": "Type",
-      "hostname": "Hostname",
-      "value": "Waarde",
-      "priority": "Prio",
-      "status": "Status",
-      "copy": "Kopieer",
-      "copyTitle": "Kopieer waarde naar klembord",
-      "hostnameTip": "Hostname-tip: bij sommige DNS-hosts hoef je <code>.jouw-domein.nl</code> niet zelf achter de hostname te zetten, die voegt 'm zelf toe. Bij andere moet je de volledige hostname (bv. <code>resend._domainkey.jouw-domein.nl</code>) invoeren."
-    }
   },
   "dash__components_media_library_picker": {
     "title": "Kies uit bibliotheek",

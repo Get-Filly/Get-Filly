@@ -106,18 +106,6 @@ const integrations: Integration[] = [
     managePath: "/dashboard/google-business/profiel",
   },
   {
-    // Campagne-mail loopt via het Get-Filly-platform (Resend in de backend);
-    // er is geen account om te "ontkoppelen". Via "Beheer" kom je wél bij het
-    // eigen verzend-domein (MailDomainSection), dat je kunt koppelen/ontkoppelen.
-    key: "mail",
-    icon: "✉️",
-    nameKey: "providers.mail",
-    method: "auto",
-    category: "communicatie",
-    statusKey: "status.activeViaGetFilly",
-    managePath: "#mail-domein",
-  },
-  {
     // Eén rij voor Facebook + Instagram: het is één Meta-koppeling (IG
     // hangt aan een FB-pagina). Eén "Verbind" start de Meta-OAuth; de
     // pagina- + IG-keuze gebeurt daarna in het MetaPublishPanel.

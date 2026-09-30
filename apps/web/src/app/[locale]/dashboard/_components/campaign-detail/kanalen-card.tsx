@@ -24,8 +24,6 @@ import {
 } from "./types";
 
 const ALL_PLATFORMS: Platform[] = [
-  "mail",
-  "whatsapp",
   "instagram",
   "facebook",
   "tiktok",

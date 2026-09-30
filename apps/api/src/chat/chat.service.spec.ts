@@ -206,9 +206,9 @@ describe('sanitizeActionInput', () => {
   it('kanalen worden gefilterd op de whitelist + ontdubbeld', () => {
     expect(
       sanitizeActionInput({
-        channels: ['mail', 'instagram', 'mail', 'hacker', 42],
+        channels: ['instagram', 'facebook', 'instagram', 'hacker', 42],
       }).channels,
-    ).toEqual(['mail', 'instagram']);
+    ).toEqual(['instagram', 'facebook']);
   });
 
   it('niet-array channels → veld weggelaten', () => {
@@ -218,12 +218,19 @@ describe('sanitizeActionInput', () => {
   // Per 2026-09-09: WhatsApp heeft geen verzendpad, dus mag niet meer als
   // gevraagd kanaal binnenkomen — anders zet de flow een campagne klaar
   // die nooit de deur uit kan.
-  it('whatsapp wordt geweerd, de overige kanalen blijven', () => {
+  it('whatsapp en mail worden geweerd, de overige kanalen blijven', () => {
     expect(
       sanitizeActionInput({
-        channels: ['whatsapp', 'instagram', 'facebook', 'tiktok', 'google_business', 'mail'],
+        channels: [
+          'whatsapp',
+          'instagram',
+          'facebook',
+          'tiktok',
+          'google_business',
+          'mail',
+        ],
       }).channels,
-    ).toEqual(['instagram', 'facebook', 'tiktok', 'google_business', 'mail']);
+    ).toEqual(['instagram', 'facebook', 'tiktok', 'google_business']);
   });
 
   it('expliciet null → wis-delta (voor "+ Nog een dag")', () => {

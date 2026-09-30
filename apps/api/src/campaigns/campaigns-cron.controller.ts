@@ -48,9 +48,7 @@ export class CampaignsCronController {
       throw new UnauthorizedException();
     }
     const result = await this.campaigns.runScheduledSocial();
-    this.logger.log(
-      `Cron-publiceren klaar: ${JSON.stringify(result)}`,
-    );
+    this.logger.log(`Cron-publiceren klaar: ${JSON.stringify(result)}`);
     return result;
   }
 }

@@ -1125,39 +1125,6 @@ export async function deleteCampaign(id: string): Promise<{ id: string }> {
   return res.json();
 }
 
-// ============================================================
-// Mail-flow: campagne-send via Resend
-// ============================================================
-// Resultaat-shape van POST /api/campaigns/:id/send. Aantal verstuurd
-// vs gefaald gebruiken we om de UI een nette success/warning-toast
-// te laten tonen na de actie.
-export type SendCampaignResult = {
-  campaignId: string;
-  total: number;
-  sent: number;
-  failed: number;
-  failures: Array<{ email: string; error: string }>;
-};
-
-// Twee modes:
-// - 'test': stuur 1 mail naar `testEmail` om visueel te checken.
-// - 'all_opted_in': stuur naar alle gasten met mail_opt_in=true.
-export async function sendCampaign(
-  id: string,
-  mode: "test" | "all_opted_in",
-  testEmail?: string,
-): Promise<SendCampaignResult> {
-  const res = await authedFetch(`${API_URL}/campaigns/${id}/send`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res, "Versturen mislukt"));
-  }
-  return res.json();
-}
-
 // Publiceert een social-campagne nu naar Facebook/Instagram via de
 // (goedgekeurde) Meta-koppeling. Idempotent: al gepubliceerd → no-op.
 // Gebruikt in de "Activeer nu"-flow voor social-kanalen.
@@ -1191,71 +1158,6 @@ export type DnsRecord = {
   priority?: number;
   status?: string;
 };
-
-export type MailDomainStatus = {
-  // 'none' = geen domein gekoppeld → mail valt op default social@get-filly.com
-  // 'pending' = registratie aangemaakt, DNS-records nog niet geverifieerd
-  // 'verified' = klaar, mail komt van eigen domein
-  // 'failed' = verify is geprobeerd maar DNS klopt niet
-  status: "none" | "pending" | "verified" | "failed";
-  domain: string | null;
-  fromAddress: string | null;
-  verifiedAt: string | null;
-  records: DnsRecord[];
-};
-
-export async function fetchMailDomainStatus(): Promise<MailDomainStatus> {
-  const res = await authedFetch(`${API_URL}/restaurant/me/mail-domain`, {
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res, "Status ophalen mislukt"));
-  }
-  return res.json();
-}
-
-export async function registerMailDomain(
-  domain: string,
-  fromAddress: string,
-): Promise<MailDomainStatus> {
-  const res = await authedFetch(`${API_URL}/restaurant/me/mail-domain`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ domain, fromAddress }),
-  });
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res, "Registreren mislukt"));
-  }
-  return res.json();
-}
-
-// Wordt aangeroepen wanneer eigenaar op "Ik heb de records toegevoegd"
-// klikt, Resend checkt DNS opnieuw en geeft binnen ~1s een nieuwe
-// status terug. Bij 'pending' moet de eigenaar even later opnieuw
-// proberen (DNS-propagatie 5-30 min).
-export async function verifyMailDomain(): Promise<MailDomainStatus> {
-  const res = await authedFetch(
-    `${API_URL}/restaurant/me/mail-domain/verify`,
-    { method: "POST" },
-  );
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res, "Verificatie mislukt"));
-  }
-  return res.json();
-}
-
-// Domein loskoppelen, bij Resend wordt 'ie verwijderd, lokaal worden
-// de mail-velden geleegd. Vanaf dat moment valt mail-flow weer terug
-// op social@get-filly.com.
-export async function removeMailDomain(): Promise<{ removed: true }> {
-  const res = await authedFetch(`${API_URL}/restaurant/me/mail-domain`, {
-    method: "DELETE",
-  });
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res, "Verwijderen mislukt"));
-  }
-  return res.json();
-}
 
 export type Guest = {
   id: string;
@@ -3457,74 +3359,6 @@ export type CompetitorPlace = {
 };
 
 // ============================================================
-// Marketing-hub (fase 1, 2026-05-06)
-// ============================================================
-
-export type MailStats = {
-  periodDays: number;
-  periodStart: string;
-  periodEnd: string;
-  sent: number;
-  delivered: number;
-  opened: number;
-  clicked: number;
-  bounced: number;
-  complained: number;
-  unsubscribed: number;
-  openRate: number | null;
-  clickRate: number | null;
-  bounceRate: number | null;
-  unsubscribeRate: number | null;
-  benchmark: {
-    openRate: number;
-    clickRate: number;
-    bounceRate: number;
-    source: string;
-  };
-  campaignCount: number;
-};
-
-export type CampaignMailStats = {
-  campaignId: string;
-  campaignName: string;
-  campaignType: string;
-  status: string;
-  scheduledFor: string | null;
-  executedAt: string | null;
-  sent: number;
-  delivered: number;
-  opened: number;
-  clicked: number;
-  bounced: number;
-  unsubscribed: number;
-  openRate: number | null;
-  clickRate: number | null;
-};
-
-// Aggregaat-stats over de afgelopen N dagen (default 30).
-export async function fetchMarketingMailStats(
-  days: number = 30,
-): Promise<MailStats> {
-  const res = await authedFetch(`${API_URL}/marketing/mail/stats?days=${days}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-// Per-campagne tabel, default 90 dagen voor wat meer historie.
-export async function fetchMarketingMailCampaigns(
-  days: number = 90,
-): Promise<CampaignMailStats[]> {
-  const res = await authedFetch(
-    `${API_URL}/marketing/mail/campaigns?days=${days}`,
-    { cache: "no-store" },
-  );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-// ============================================================
 // Google Business Profile competitors
 // ============================================================
 
@@ -3775,16 +3609,6 @@ export async function unmarkCampaignOutlier(
   return res.json();
 }
 
-// ============================================================
-// Mail verzenden + ontvangers-preview
-// ============================================================
-
-export interface RecipientsPreview {
-  totalCount: number;
-  sampleNames: string[];
-  ownerEmail: string | null;
-}
-
 // Anti-repetitie-check (filly-brein hfst 8.6)
 export interface RepetitionWarning {
   kind: "opening" | "hashtags" | "cta";
@@ -3811,56 +3635,9 @@ export async function fetchRepetitionCheck(
   }
 }
 
-export async function fetchRecipientsPreview(
-  campaignId: string,
-): Promise<RecipientsPreview> {
-  const res = await authedFetch(
-    `${API_URL}/campaigns/${campaignId}/recipients-preview`,
-    { cache: "no-store" },
-  );
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
 export interface MailSendResult {
   sent: number;
   failures?: Array<{ email: string; error: string }>;
-}
-
-/** Verstuur een test-mail naar één opgegeven adres. */
-export async function sendCampaignTest(
-  campaignId: string,
-  testEmail: string,
-): Promise<MailSendResult> {
-  const res = await authedFetch(`${API_URL}/campaigns/${campaignId}/send`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "test", testEmail }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-/** Verstuur de campagne naar alle opt-in-gasten. Onomkeerbaar. */
-export async function sendCampaignToAll(
-  campaignId: string,
-): Promise<MailSendResult> {
-  const res = await authedFetch(`${API_URL}/campaigns/${campaignId}/send`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "all_opted_in" }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-  return res.json();
 }
 
 // ============================================================

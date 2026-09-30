@@ -42,7 +42,7 @@ const PATH_MODULE_MAP: Array<{ prefix: string; module: Module }> = [
   // /dashboard/reviews-route bestaat nog als server-side redirect-
   // stub, maar wordt nooit gerenderd, dus geen guard nodig.
   { prefix: "/dashboard/google-business", module: "google_business" },
-  // Marketing-hub + sub-routes (mail/instagram/facebook/tiktok).
+  // Marketing-hub + sub-routes (instagram/facebook/tiktok).
   { prefix: "/dashboard/marketing", module: "marketing" },
   { prefix: "/dashboard/menu", module: "menu" },
   { prefix: "/dashboard/rapportages", module: "rapportages" },

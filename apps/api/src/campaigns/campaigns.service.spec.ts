@@ -37,9 +37,7 @@ function makeClient(queues: Record<string, QueryResult[]>) {
 }
 
 function makeService(queues: Record<string, QueryResult[]>): CampaignsService {
-  const service = Object.create(
-    CampaignsService.prototype,
-  ) as CampaignsService;
+  const service = Object.create(CampaignsService.prototype) as CampaignsService;
   (service as unknown as { supabase: unknown }).supabase = {
     client: makeClient(queues),
   };

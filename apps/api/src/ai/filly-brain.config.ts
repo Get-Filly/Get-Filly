@@ -804,13 +804,11 @@ export function checkCopyLength(
  */
 export function buildAllChannelsBlock(channels?: FillyChannel[]): string {
   const list: FillyChannel[] = channels ?? [
-    'mail',
     'instagram_feed',
     'instagram_reels',
     'instagram_stories',
     'facebook',
     'tiktok',
-    'whatsapp',
     'google_business',
   ];
   const sep = '\n\n────────────────────────────────────────\n\n';
@@ -897,11 +895,9 @@ export function formatTimingForPrompt(channel: FillyChannel): string {
  */
 export function buildAllTimingBlock(channels?: FillyChannel[]): string {
   const list: FillyChannel[] = channels ?? [
-    'mail',
     'instagram_feed',
     'facebook',
     'tiktok',
-    'whatsapp',
     'google_business',
   ];
   const dayNames = [

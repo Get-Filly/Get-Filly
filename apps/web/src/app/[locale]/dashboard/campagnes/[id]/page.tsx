@@ -12,7 +12,6 @@ import {
   fetchCampaignBundle,
   generateMoreCampaignVariants,
   selectCampaignVariant,
-  sendCampaign,
   publishCampaign,
   setCampaignSchedule,
   updateCampaignStatus,
@@ -44,7 +43,6 @@ import { getChannelChecklist } from "@/lib/campaign-checks";
 import { InhoudCard } from "../../_components/campaign-detail/inhoud-card";
 import { FotoCard } from "../../_components/campaign-detail/foto-card";
 import { CampaignPerformanceCard } from "./_components/campaign-performance-card";
-import { CampaignSendCard } from "./_components/campaign-send-card";
 import { useLocaleTag } from "@/lib/locale-format";
 
 // ============================================================
@@ -477,30 +475,13 @@ export default function UnifiedDetailPage() {
   // Bundle-niveau: alle campaigns krijgen dezelfde status-overgang
   // tegelijk (Promise.all). Bij single-channel = 1 call.
   //
-  // Bij activeren (next='actief') versturen we ook de daadwerkelijke
-  // mail voor elke mail-channel met sent_count=0. Reden: vroeger deed
-  // 'Activeer nu' alleen de status-flip → stille no-send waardoor de
-  // confirm-tekst ("Mail wordt direct verstuurd") loog. Volgorde:
-  //   1. mail-sends eerst (zwaarste operatie, kan minutenlang duren)
-  //   2. status-flip op alle channels
-  // Als de send faalt blijft status op concept/ingepland zodat we geen
-  // 'actief zonder mail'-toestand krijgen — eigenaar kan dan via de
-  // foutmelding bijsturen (bv. opt-in gasten toevoegen) en opnieuw
-  // proberen. sent_count>0 = al een keer verstuurd → defensief skippen
-  // om dubbele bezorging te voorkomen.
+  // Bij activeren (next='actief') publiceren we de sociale kanalen en flippen
+  // we de status per kanaal.
   const handleStatusChange = useCallback(
     async (next: CampaignStatus) => {
       if (!view || busy) return;
 
       if (next === "actief") {
-        // Identificeer welke mail-channels nog nooit verstuurd zijn.
-        const mailChannelsToSend = view.channels.filter((c) => {
-          if (c.platform !== "mail") return false;
-          const campaign = view.campaignsByChannelId[c.id];
-          return (campaign?.sent_count ?? 0) === 0;
-        });
-        const mailCount = mailChannelsToSend.length;
-
         // Social-kanalen publiceren naar FB/IG bij activeren. We filteren
         // op campagne-type (niet op het granulaire platform-veld); de
         // backend is idempotent, dus al-gepubliceerde kanalen worden
@@ -512,9 +493,6 @@ export default function UnifiedDetailPage() {
 
         // Confirm-tekst opbouwen uit wat er daadwerkelijk gebeurt.
         const actions: string[] = [];
-        if (mailCount > 0) {
-          actions.push(t("activateConfirm.mailAction", { count: mailCount }));
-        }
         if (socialCount > 0) {
           actions.push(
             t("activateConfirm.socialAction", { count: socialCount }),
@@ -530,32 +508,15 @@ export default function UnifiedDetailPage() {
 
         setActionError(null);
         setChangingStatus(true);
-        // Per kanaal: send/publish én direct daarna de status flippen, zodat
-        // een deelfout (bv. één social zonder Meta-pagina) de al-geslaagde
-        // kanalen NIET op concept laat hangen. Vroeger gebeurde de status-
-        // flip pas helemaal aan het eind via één Promise.all; faalde een
-        // publish daarvoor, dan was de mail al verstuurd maar bleef de hele
-        // bundel concept (en werd de mail bij retry overgeslagen → stille
-        // 'actief zonder iets geplaatst'-toestand).
+        // Per kanaal: publish én direct daarna de status flippen, zodat een
+        // deelfout (bv. één social zonder Meta-pagina) de al-geslaagde
+        // kanalen NIET op concept laat hangen.
         const errors: string[] = [];
         const handledIds = new Set<string>();
         const activate = async (channelId: string) => {
           await updateCampaignStatus(channelId, next);
         };
         try {
-          // Mail: versturen (sequentieel i.v.m. Resend-rate-limits) + bij
-          // succes meteen activeren. sent_count>0 zat al niet in deze set.
-          for (const c of mailChannelsToSend) {
-            handledIds.add(c.id);
-            try {
-              await sendCampaign(c.id, "all_opted_in");
-              await activate(c.id);
-            } catch (e) {
-              errors.push(
-                e instanceof Error ? e.message : t("errors.activateFailed"),
-              );
-            }
-          }
           // Social: publiceren naar FB/IG (idempotent) + bij succes activeren.
           for (const c of socialChannelsToPublish) {
             handledIds.add(c.id);
@@ -568,7 +529,7 @@ export default function UnifiedDetailPage() {
               );
             }
           }
-          // Overige kanalen (al-verstuurde mail, niet-publiceerbare types):
+          // Overige kanalen (niet-publiceerbare types):
           // alleen de status flippen.
           for (const c of view.channels) {
             if (handledIds.has(c.id)) continue;
@@ -1228,12 +1189,7 @@ export default function UnifiedDetailPage() {
           foto/video-card en geen performance-card op een concept. */}
       <WaaromCard reasoning={view.reasoning} dayReason={view.dayReason} />
 
-      {/* Mail-verstuur + performance horen bij een lopende campagne, niet
-          bij een concept. Daarom pas tonen zodra de campagne uit de
-          concept-fase is (ingepland/actief). */}
-      {status !== "concept" && activeCampaign?.type === "mail" && (
-        <CampaignSendCard campaignId={activeCampaign.id} />
-      )}
+      {/* Performance hoort bij een lopende campagne, niet bij een concept. */}
       {status !== "concept" && <CampaignPerformanceCard campaignId={id} />}
 
       {/* Media-pop-up: foto óf video toevoegen vanuit de cel in de

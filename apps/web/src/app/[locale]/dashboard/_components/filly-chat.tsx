@@ -545,28 +545,28 @@ export function FillyChat({
     if (choices.length === 1) {
       const single = choices[0];
       promptText =
-        single === "mail"
-          ? t("prompts.mail")
-          : single === "instagram"
-            ? t("prompts.instagram")
-            : single === "facebook"
-              ? t("prompts.facebook")
-              : single === "whatsapp"
-                ? t("prompts.whatsapp")
+        single === "instagram"
+          ? t("prompts.instagram")
+          : single === "facebook"
+            ? t("prompts.facebook")
+            : single === "whatsapp"
+              ? t("prompts.whatsapp")
+              : single === "tiktok"
+                ? t("prompts.tiktok")
                 : t("prompts.googleBusiness");
     } else {
       // 2+ kanalen → één bundel-campagne voor álle gekozen kanalen. Sinds
       // 2026-06-02 ondersteunt de bundel alle 5 kanalen (incl. WhatsApp +
       // Google Business), dus we splitsen niets meer af.
       const labelFor = (c: ChannelChoice): string =>
-        c === "mail"
-          ? "mail"
-          : c === "instagram"
-            ? "Instagram"
-            : c === "facebook"
-              ? "Facebook"
-              : c === "whatsapp"
-                ? "WhatsApp"
+        c === "instagram"
+          ? "Instagram"
+          : c === "facebook"
+            ? "Facebook"
+            : c === "whatsapp"
+              ? "WhatsApp"
+              : c === "tiktok"
+                ? "TikTok"
                 : "Google Business";
       const labels = choices.map(labelFor);
       promptText = t("prompts.bundle", { channels: labels.join(", ") });

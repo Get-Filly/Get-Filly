@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { Public } from '../common/public.decorator';
 import { CampaignsService } from './campaigns.service';
 

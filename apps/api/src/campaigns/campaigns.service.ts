@@ -994,6 +994,12 @@ export class CampaignsService {
     // SuggestionsService.approve) reiken 'm door.
     userId: string,
   ): Promise<{ id: string }> {
+    // Get-Filly mailt geen gasten van klanten meer: nieuwe mail-campagnes
+    // bestaan niet. (Oude, ingeplande voorstellen met mail kunnen hier nog
+    // binnenkomen en worden dan netjes geweigerd.)
+    if ((input.type as string) === 'mail') {
+      throw new BadRequestException('Mail-campagnes bestaan niet meer.');
+    }
     const name = input.name.trim();
     const body = input.body.trim();
     if (!name) {
@@ -1083,19 +1089,7 @@ export class CampaignsService {
     const campaignId = campaign.id as string;
 
     let contentErr: { message: string } | null = null;
-    if (input.type === 'mail') {
-      // Mail-tabel eist subject_line NOT NULL. Als Filly 'm niet gaf
-      // (wat niet zou moeten bij type=mail), vallen we terug op de
-      // campagne-naam, beter een zinvol onderwerp dan een DB-fout.
-      const { error } = await this.supabase.client
-        .from('campaign_mail_content')
-        .insert({
-          campaign_id: campaignId,
-          subject_line: input.subject_line?.trim() || name,
-          body_plain: body,
-        });
-      contentErr = error;
-    } else if (input.type === 'social') {
+    if (input.type === 'social') {
       const { error } = await this.supabase.client
         .from('campaign_social_content')
         .insert({
@@ -1506,7 +1500,11 @@ export class CampaignsService {
     // terug naar het scherm.
     let retractReport: CampaignRetractReport | null = null;
     if (currentStatus === 'actief' && nextStatus === 'concept') {
-      retractReport = await this.retractFromChannel(businessId, id, campaignType);
+      retractReport = await this.retractFromChannel(
+        businessId,
+        id,
+        campaignType,
+      );
     }
 
     const updates: Record<string, unknown> = {

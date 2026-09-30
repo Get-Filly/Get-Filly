@@ -36,7 +36,6 @@ export type ChoiceState = "pending" | "chosen" | "submitting";
 // (approveBundleSuggestion) ondersteunt 'm nog niet. De orchestrator
 // splitst GBP daarom apart af bij multi-select-submissions.
 export type ChannelChoice =
-  | "mail"
   | "instagram"
   | "facebook"
   | "whatsapp"
@@ -72,7 +71,6 @@ const OPTIONS: Array<{
   // Bundle-handling nog niet beschikbaar, dus splitten we 'm af bij
   // multi-select (zie comment hierboven).
   { key: "google_business", icon: "📍", labelKey: "options.googleBusiness.label", hintKey: "options.googleBusiness.hint" },
-  { key: "mail", icon: "✉️", labelKey: "options.mail.label", hintKey: "options.mail.hint" },
 ];
 
 // De keys die daadwerkelijk aan te vinken zijn, afgeleid van OPTIONS zodat

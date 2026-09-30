@@ -128,9 +128,7 @@ export class CampaignFingerprintService {
         .select('name')
         .eq('business_id', (campaign as { business_id: string }).business_id);
 
-      const menuNames = (menu ?? []).map(
-        (m) => (m as { name: string }).name,
-      );
+      const menuNames = (menu ?? []).map((m) => (m as { name: string }).name);
 
       // 3) Bepaal kanaal + ruwe body-text voor extractie.
       const channel: FillyChannel = this.deriveChannel(campaign);
@@ -504,15 +502,17 @@ export class CampaignFingerprintService {
 
     // Filter op classification + non-outlier; sorteer op score.
     type RowWithPerf = Fingerprint & {
-      campaign_performance: {
-        success_score: number | null;
-        classification: string | null;
-        marked_outlier: boolean;
-      } | Array<{
-        success_score: number | null;
-        classification: string | null;
-        marked_outlier: boolean;
-      }>;
+      campaign_performance:
+        | {
+            success_score: number | null;
+            classification: string | null;
+            marked_outlier: boolean;
+          }
+        | Array<{
+            success_score: number | null;
+            classification: string | null;
+            marked_outlier: boolean;
+          }>;
     };
 
     const filtered = (data ?? [])
@@ -531,8 +531,8 @@ export class CampaignFingerprintService {
           x.perf.success_score !== null,
       )
       .sort((a, b) => {
-        const sa = a.perf!.success_score ?? 0;
-        const sb = b.perf!.success_score ?? 0;
+        const sa = a.perf.success_score ?? 0;
+        const sb = b.perf.success_score ?? 0;
         return order === 'desc' ? sb - sa : sa - sb;
       })
       .slice(0, limit)
@@ -564,7 +564,7 @@ export class CampaignFingerprintService {
    */
   async buildLearningContextBlock(
     businessId: string,
-    channels: FillyChannel[] = ['mail', 'instagram_feed', 'facebook'],
+    channels: FillyChannel[] = ['instagram_feed', 'facebook'],
   ): Promise<string> {
     const winnersByChannel: Record<string, Fingerprint[]> = {};
     const underByChannel: Record<string, Fingerprint[]> = {};
@@ -641,9 +641,7 @@ export class CampaignFingerprintService {
   // ============================================================
 
   /** Mapt campaign.type + content naar onze FillyChannel-enum. */
-  private deriveChannel(
-    campaign: Record<string, unknown>,
-  ): FillyChannel {
+  private deriveChannel(campaign: Record<string, unknown>): FillyChannel {
     const type = campaign.type as string;
     if (type === 'mail') return 'mail';
     if (type === 'whatsapp') return 'whatsapp';
@@ -725,9 +723,13 @@ export class CampaignFingerprintService {
     // Volgorde matters: meest-specifieke eerst.
     if (/reserveer|boek\s+je|reserveren/i.test(lower)) return 'reserveer';
     if (/bel(\s+|\s*ons|\s*nu)/i.test(lower)) return 'bel';
-    if (/menu\s*(bekijk|zien)|onze\s+kaart|bekijk\s+(ons|de)\s+menu/i.test(lower))
+    if (
+      /menu\s*(bekijk|zien)|onze\s+kaart|bekijk\s+(ons|de)\s+menu/i.test(lower)
+    )
       return 'bekijk_menu';
-    if (/in\s+de\s+comment|reageer\s+hieronder|comment\s+hieronder/i.test(lower))
+    if (
+      /in\s+de\s+comment|reageer\s+hieronder|comment\s+hieronder/i.test(lower)
+    )
       return 'vraag_in_comment';
     if (/tag\s+(een|je|jouw)\s+vriend/i.test(lower)) return 'tag_vriend';
     if (/save\s+(this|voor)|sla\s+(dit\s+)?op/i.test(lower))
@@ -741,10 +743,7 @@ export class CampaignFingerprintService {
    * Match body tegen menu-namen. Returnt eerste match (langste eerst
    * zodat "Pasta Carbonara" wint van "Pasta").
    */
-  private matchPrimaryDish(
-    body: string,
-    menuNames: string[],
-  ): string | null {
+  private matchPrimaryDish(body: string, menuNames: string[]): string | null {
     if (!body || menuNames.length === 0) return null;
     const lower = body.toLowerCase();
     const sorted = [...menuNames].sort((a, b) => b.length - a.length);
@@ -757,6 +756,9 @@ export class CampaignFingerprintService {
   }
 
   private stripHtml(html: string): string {
-    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

@@ -21,7 +21,6 @@ import {
 import { CampaignPerformanceService } from './campaign-performance.service';
 import { CampaignFingerprintService } from './campaign-fingerprint.service';
 import { CampaignReportService } from './campaign-report.service';
-import { MailService } from '../mail/mail.service';
 import { BusinessId } from '../common/business-id.decorator';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
@@ -35,10 +34,6 @@ import {
 export class CampaignsController {
   constructor(
     private readonly campaigns: CampaignsService,
-    // MailService wordt vanuit MailModule geïnjecteerd. Bedoeling: alle
-    // mail-flow-logica (recipients resolven, Resend-call, audit) blijft
-    // in MailService; de controller is alleen entry-point + validatie.
-    private readonly mail: MailService,
     private readonly performance: CampaignPerformanceService,
     private readonly fingerprint: CampaignFingerprintService,
     private readonly report: CampaignReportService,
@@ -173,7 +168,9 @@ export class CampaignsController {
     let socialPlatforms: string[] | undefined;
     const platform = body.platform;
     if (platform) {
-      if (platform === 'mail' || platform === 'whatsapp') {
+      if (platform === 'mail') {
+        throw new BadRequestException('Mail-campagnes bestaan niet meer.');
+      } else if (platform === 'whatsapp') {
         type = platform;
       } else if (
         platform === 'instagram' ||
@@ -186,15 +183,13 @@ export class CampaignsController {
       } else {
         throw new BadRequestException('Ongeldig kanaal.');
       }
-    } else if (
-      body.type === 'mail' ||
-      body.type === 'social' ||
-      body.type === 'whatsapp'
-    ) {
+    } else if (body.type === 'mail') {
+      throw new BadRequestException('Mail-campagnes bestaan niet meer.');
+    } else if (body.type === 'social' || body.type === 'whatsapp') {
       type = body.type;
     } else {
       throw new BadRequestException(
-        'Geef een geldig kanaal op (mail/instagram/facebook/tiktok/whatsapp/google_business).',
+        'Geef een geldig kanaal op (instagram/facebook/tiktok/google_business).',
       );
     }
 
@@ -394,10 +389,7 @@ export class CampaignsController {
   }
 
   @Delete(':id/media')
-  deleteMedia(
-    @BusinessId() businessId: string,
-    @Param('id') id: string,
-  ) {
+  deleteMedia(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.campaigns.deleteMedia(businessId, id);
   }
 
@@ -432,11 +424,7 @@ export class CampaignsController {
     @Body() body: { status?: string; scheduled_for?: string },
   ) {
     const status = body.status;
-    if (
-      status !== 'concept' &&
-      status !== 'ingepland' &&
-      status !== 'actief'
-    ) {
+    if (status !== 'concept' && status !== 'ingepland' && status !== 'actief') {
       throw new BadRequestException(
         'Ongeldige status. Gebruik concept, ingepland of actief.',
       );
@@ -453,62 +441,12 @@ export class CampaignsController {
     );
   }
 
-  // ============================================================
-  // POST /campaigns/:id/send
-  // ============================================================
-  // Verstuurt een mail-campagne via Resend. Twee modes:
-  //   - 'test' → 1 mail naar opgegeven testEmail (eigenaar gebruikt
-  //     z'n eigen adres om de visuele inhoud te checken voor de
-  //     echte send-batch)
-  //   - 'all_opted_in' → alle gasten van het restaurant met
-  //     mail_opt_in=true en geldig e-mailadres
-  //
-  // Pre-flight checks zitten in MailService.sendCampaignByMode:
-  //   - campagne moet type='mail' zijn
-  //   - mail-content moet ingevuld zijn (subject + body)
-  //   - bij 'all_opted_in': minimaal 1 opt-in gast vereist
-  // Onomkeerbaar, front toont een confirm-modal voordat 'ie deze
-  // call doet.
-  // Aantal opt-in-gasten + eerste 5 namen + eigenaar's contact-mail.
-  // Gebruikt door de detail-page verstuur-sectie zodat eigenaar
-  // zie wie 'ie aanschrijft vóór 'ie op verstuur klikt.
-  @Get(':id/recipients-preview')
-  recipientsPreview(@BusinessId() businessId: string) {
-    return this.mail.getRecipientsPreview(businessId);
-  }
-
   // Anti-repetitie-check (filly-brein hfst 8.6): vergelijkt de huidige
   // variant met recente campagnes en geeft waarschuwingen terug
   // (opening te gelijk / hashtags te overlappend / cta te vaak herhaald).
   // Lege array = niets aan de hand. UI toont de warnings naast de variant.
   @Get(':id/repetition-check')
-  repetitionCheck(
-    @BusinessId() businessId: string,
-    @Param('id') id: string,
-  ) {
+  repetitionCheck(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.fingerprint.checkForCampaign(businessId, id);
-  }
-
-  @Post(':id/send')
-  send(
-    @BusinessId() businessId: string,
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-    @Body()
-    body: { mode?: 'test' | 'all_opted_in'; testEmail?: string },
-  ) {
-    const mode = body?.mode ?? 'test';
-    if (mode !== 'test' && mode !== 'all_opted_in') {
-      throw new BadRequestException(
-        "Ongeldige mode. Gebruik 'test' of 'all_opted_in'.",
-      );
-    }
-    return this.mail.sendCampaignByMode(
-      businessId,
-      id,
-      mode,
-      { testEmail: body?.testEmail },
-      user.id,
-    );
   }
 }

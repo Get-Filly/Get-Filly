@@ -919,7 +919,6 @@
       "base": "Are you sure you want to activate this campaign now?",
       "withActions": "Are you sure you want to activate this campaign now? {actions}.",
       "and": " and ",
-      "mailAction": "{count, plural, one {the email will be sent immediately to all opted-in guests} other {# emails will be sent immediately to all opted-in guests}}",
       "socialAction": "{count, plural, one {the social post will be published immediately on Facebook/Instagram} other {# social posts will be published immediately on Facebook/Instagram}}"
     },
     "stopConfirm": "Are you sure you want to stop this campaign? The published posts will be deleted from Facebook and Instagram and the campaign will go back to draft.",
@@ -2247,53 +2246,6 @@
     "ignore": "Ignore",
     "backToMarketingHub": "← Back to Marketing hub"
   },
-  "dash_marketing_mail_page": {
-    "title": "Mail performance",
-    "subtitle": "Open rates, click rates and industry comparison, from your Resend data.",
-    "loading": "Loading statistics…",
-    "summary": "{sent} mails sent across {count, plural, one {# campaign} other {# campaigns}}, last {days} days.",
-    "benchmarkSource": "Median figures from {source}",
-    "footnote": "Heatmap (best send time) and trends chart will follow once you have sent more than 10 campaigns, otherwise the picture says little.",
-    "errors": {
-      "unknown": "Unknown error"
-    },
-    "empty": {
-      "title": "No mails sent yet",
-      "description": "As soon as you send your first mail campaign, open rates, click rates and the comparison with the hospitality median will appear here.",
-      "cta": "Go to campaigns"
-    },
-    "kpi": {
-      "sent": "Sent",
-      "delivered": "{delivered} delivered",
-      "openRate": "Open rate",
-      "clickRate": "Click rate",
-      "bounceRate": "Bounce rate",
-      "unsubscribes": "Unsubscribes",
-      "unsubscribedPeople": "{people} people"
-    },
-    "benchmark": {
-      "above": "Above median",
-      "below": "Below median",
-      "median": "Median: {value}"
-    },
-    "table": {
-      "campaign": "Campaign",
-      "status": "Status",
-      "sent": "Sent",
-      "open": "Open",
-      "click": "Click",
-      "bounce": "Bounce",
-      "emptyPeriod": "No campaigns in this period.",
-      "sentOn": "Sent {date}"
-    },
-    "status": {
-      "afgerond": "Completed",
-      "actief": "Active",
-      "ingepland": "Scheduled",
-      "concept": "Draft",
-      "gearchiveerd": "Archived"
-    }
-  },
   "dash_marketing_page": {
     "title": "Marketing",
     "subtitle": "How are your channels performing? Filly measures, compares and suggests improvements.",
@@ -2302,19 +2254,12 @@
       "someActive": "Mail statistics are live. Social channels follow after the Meta + TikTok approval requests.",
       "noneActive": "No channels active. Send a mail campaign first to see your first statistics."
     },
-    "report": {
-      "heading": "Filly's weekly report"
-    },
     "status": {
       "live": "Active",
       "comingSoon": "Soon",
       "future": "Later"
     },
     "channels": {
-      "mail": {
-        "name": "Mail",
-        "description": "Open rates, click rates, best send time and what your best campaigns did, straight from Resend."
-      },
       "instagram": {
         "name": "Instagram",
         "description": "Reach, engagement, top posts and best posting time once you connect via OAuth."
@@ -2331,16 +2276,6 @@
         "name": "WhatsApp",
         "description": "Direct guest communication with read rates and reply conversion. Coming in a later phase."
       }
-    },
-    "summary": {
-      "noCampaigns": "You have not sent any mail campaigns this month yet. You create your first campaign via /campagnes.",
-      "openAbove": "Your open rate of {rate}% is {diff}% above the hospitality median, strong.",
-      "openBelow": "Your open rate of {rate}% is {diff}% below the hospitality median. Revise your subject lines?",
-      "openAround": "Your open rate of {rate}% is around the hospitality median.",
-      "clickAbove": "Click rate of {rate}% is {diff}% above the median.",
-      "clickLow": "Click rate of {rate}% is low, add a clear CTA?",
-      "bounceHigh": "Heads up: bounce rate is {rate}%, higher than ideal (<2%). Clean up your list.",
-      "fallback": "You sent {sent} mails across {count} {count, plural, one {campaign} other {campaigns}}. For deeper analysis open the Mail page."
     },
     "errors": {
       "unknown": "Unknown error"
@@ -2955,7 +2890,6 @@
       "sevenrooms": "SevenRooms",
       "resengo": "Resengo",
       "googleBusiness": "Google Business Profile",
-      "mail": "Email (campaigns)",
       "meta": "Facebook & Instagram",
       "tiktok": "TikTok for Business",
       "whatsapp": "WhatsApp Business",
@@ -3254,10 +3188,6 @@
       "bundle": "Send (bundle {count} channels)"
     },
     "options": {
-      "mail": {
-        "label": "Mail",
-        "hint": "To guest list"
-      },
       "instagram": {
         "label": "Instagram",
         "hint": "IG post"
@@ -3385,12 +3315,12 @@
       "bundleFailed": "Creating the bundle failed. Please try again."
     },
     "prompts": {
-      "mail": "Create an email campaign",
       "instagram": "Create an Instagram post",
       "facebook": "Create a Facebook post",
       "whatsapp": "Create a WhatsApp message",
       "googleBusiness": "Create a Google Business post",
-      "bundle": "Create a bundle campaign for {channels}"
+      "bundle": "Create a bundle campaign for {channels}",
+      "tiktok": "Create a TikTok video"
     }
   },
   "dash__components_filly_guided_flow": {
@@ -3516,59 +3446,6 @@
     "awaitingApproval": "awaiting approval",
     "notAvailableTitle": "Figures not available yet",
     "notAvailableBody": "As soon as your reservations and campaigns come in, the KPIs will appear here."
-  },
-  "dash__components_mail_domain_section": {
-    "sectionTitle": "Mail settings",
-    "sectionDesc": "The address your campaign emails are sent from.",
-    "loading": "Loading…",
-    "removeConfirm": "Are you sure you want to disconnect this custom domain? Mail will fall back to social@get-filly.com afterwards.",
-    "errors": {
-      "unknown": "Unknown error.",
-      "register": "Registration failed.",
-      "verify": "Verification failed.",
-      "remove": "Removal failed."
-    },
-    "verified": {
-      "label": "Custom domain active: {address}",
-      "sub": "Emails are sent from your own domain. Replies land directly in your mailbox.",
-      "disconnect": "Disconnect"
-    },
-    "pending": {
-      "label": "DNS check running for {domain}",
-      "sub": "Add the records below at your DNS host. Then click 'Verify'. DNS propagation can take 5-30 minutes.",
-      "verify": "Verify",
-      "cancel": "Cancel / disconnect"
-    },
-    "failed": {
-      "label": "DNS records not correct yet for {domain}",
-      "sub": "Check that all records were copied exactly. Some DNS hosts automatically append the domain after the hostname, so correct that if needed."
-    },
-    "none": {
-      "label": "Default sending via Get-Filly",
-      "sub": "Your campaign emails come from social@get-filly.com with your restaurant name as the sender. For pure customer branding, you can connect your own domain.",
-      "setup": "Set up custom domain"
-    },
-    "setup": {
-      "title": "Connect custom domain",
-      "domainLabel": "Domain",
-      "domainHint": "Without http:// or www., just the domain name.",
-      "fromLabel": "Sender address",
-      "fromHint": "The address recipients see in 'From'. Must end with your domain.",
-      "create": "Create",
-      "cancel": "Cancel",
-      "note": "After creating, you get 4 DNS records to add at your DNS host (TransIP / Versio / Namecheap / etc.). Then you can verify, which usually takes 5-15 minutes after the DNS update."
-    },
-    "table": {
-      "empty": "No records available. Try reloading the page.",
-      "type": "Type",
-      "hostname": "Hostname",
-      "value": "Value",
-      "priority": "Prio",
-      "status": "Status",
-      "copy": "Copy",
-      "copyTitle": "Copy value to clipboard",
-      "hostnameTip": "Hostname tip: at some DNS hosts you don't need to add <code>.your-domain.nl</code> after the hostname yourself, they append it automatically. At others you have to enter the full hostname (e.g. <code>resend._domainkey.your-domain.nl</code>)."
-    }
   },
   "dash__components_media_library_picker": {
     "title": "Choose from library",

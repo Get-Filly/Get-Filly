@@ -24,7 +24,6 @@ import { AiModule } from './ai/ai.module';
 import { ChatModule } from './chat/chat.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { GoogleProfileModule } from './google-profile/google-profile.module';
-import { MarketingModule } from './marketing/marketing.module';
 import { HealthModule } from './health/health.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { MetaModule } from './meta/meta.module';
@@ -57,7 +56,6 @@ import { BusynessModule } from './busyness/busyness.module';
     ChatModule,
     OnboardingModule,
     GoogleProfileModule,
-    MarketingModule,
     HealthModule,
     IntegrationsModule,
     MetaModule,

@@ -537,15 +537,9 @@ export class ChatService {
     businessId: string,
     conversationId: string,
   ): Promise<ActiveChatState> {
-    const messages = await this.getRecentMessages(
-      conversationId,
-      businessId,
-    );
+    const messages = await this.getRecentMessages(conversationId, businessId);
     const messageCount = await this.countMessages(conversationId);
-    const activeAction = await this.getActiveAction(
-      businessId,
-      conversationId,
-    );
+    const activeAction = await this.getActiveAction(businessId, conversationId);
     return { conversationId, messages, messageCount, activeAction };
   }
 
@@ -645,9 +639,7 @@ export class ChatService {
     // 100% voorspelbaar en voegt maar ~5ms toe.
     const { data, error } = await this.supabase.client
       .from('chat_messages')
-      .select(
-        'id, role, content, message_card, ai_suggestion_id, created_at',
-      )
+      .select('id, role, content, message_card, ai_suggestion_id, created_at')
       .eq('conversation_id', conversationId)
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
@@ -1058,17 +1050,16 @@ export class ChatService {
         // We slaan de hele proposal op in suggested_campaign (incl.
         // alle varianten). Approve-flow leest later selected_index
         // en gebruikt die variant voor de campagne-aanmaak.
-        const { id, campaignId } =
-          await this.suggestionsService.createFromChat(
-            businessId,
-            {
-              type: parsedSingle.proposal.type,
-              name: parsedSingle.proposal.name,
-              variants: parsedSingle.proposal.variants,
-              selected_index: parsedSingle.proposal.selected_index,
-            },
-            userId,
-          );
+        const { id, campaignId } = await this.suggestionsService.createFromChat(
+          businessId,
+          {
+            type: parsedSingle.proposal.type,
+            name: parsedSingle.proposal.name,
+            variants: parsedSingle.proposal.variants,
+            selected_index: parsedSingle.proposal.selected_index,
+          },
+          userId,
+        );
         suggestionId = id;
         // Per 2026-06-24: meteen goedgekeurd → het voorstel IS al een
         // concept. De kaart krijgt approved_campaign_id mee zodat 'ie
@@ -1275,8 +1266,7 @@ export class ChatService {
           feature: 'chat-title',
         },
         toolName: 'set_title',
-        toolDescription:
-          'Sla de bedachte titel op voor deze chat-conversatie.',
+        toolDescription: 'Sla de bedachte titel op voor deze chat-conversatie.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -1356,9 +1346,9 @@ export class ChatService {
         // Compacte kaart voor de chat (chat-perf #2): de chat routeert naar
         // de geleide flow en schrijft zelf geen copy, dus de volledige kaart
         // is hier overbodig. Generatie gebruikt buildMenuBlock zonder compact.
-        this.context.buildMenuBlock(businessId, { compact: true }).catch(
-          () => '',
-        ),
+        this.context
+          .buildMenuBlock(businessId, { compact: true })
+          .catch(() => ''),
         this.context.buildPhotosBlock(businessId).catch(() => ''),
         this.context.buildLiveBlock(businessId).catch(() => ''),
         // Laatste N memories ophalen, Filly's leerschat uit afgesloten
@@ -1386,7 +1376,7 @@ export class ChatService {
       'en';
     const languageLine = english
       ? '- English, friendly but not over-the-top American. No exclamation marks, no emoji, no em/en dashes (— or –): write with commas and periods.'
-      : '- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma\'s en punten.';
+      : "- Nederlands, gemoedelijk, niet Amerikaans-enthousiast. Geen uitroeptekens, geen emoji, geen gedachtestreepjes (— of –): schrijf met komma's en punten.";
     // Harde directieve bovenaan zodat de taalkeuze niet ondersneeuwt in de
     // (Nederlandse) instructies eronder.
     const languageDirective = english
@@ -1532,7 +1522,6 @@ export type ActiveActionDelta = {
 // verstuurd kon worden. Bestaande opgeslagen kaarten met WhatsApp-content
 // blijven gewoon renderen (de bundle-parser accepteert 'm nog).
 const ALLOWED_ACTION_CHANNELS = new Set([
-  'mail',
   'social',
   'instagram',
   'facebook',
@@ -1689,8 +1678,7 @@ export function makeMachineBlockSuppressor(
 // Bij een parse-/validatie-fout: volledige tekst terug + geen kaart
 // (de chat gedraagt zich alsof er geen blok was).
 
-const PROPOSAL_REGEX =
-  /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
+const PROPOSAL_REGEX = /<<FILLY_PROPOSE_CAMPAIGN>>\s*([\s\S]*?)\s*<<END>>/i;
 
 // Intermediair type: de parser kent het suggestion_id nog niet (die
 // wordt pas toegekend na insert in ai_suggestions). Caller bouwt de
@@ -1714,10 +1702,7 @@ function sanitizeVariant(v: unknown): ProposalVariant | null {
   const o = v as Record<string, unknown>;
   if (typeof o.body !== 'string' || o.body.trim().length === 0) return null;
   const variant: ProposalVariant = { body: o.body.trim() };
-  if (
-    typeof o.subject_line === 'string' &&
-    o.subject_line.trim().length > 0
-  ) {
+  if (typeof o.subject_line === 'string' && o.subject_line.trim().length > 0) {
     variant.subject_line = o.subject_line.trim().slice(0, 200);
   }
   // tone_signature: alleen overnemen als 't een geldige enum-waarde is.
@@ -1731,9 +1716,10 @@ function sanitizeVariant(v: unknown): ProposalVariant | null {
   return variant;
 }
 
-export function extractCampaignProposal(
-  raw: string,
-): { cleanText: string; proposal: ParsedProposal | null } {
+export function extractCampaignProposal(raw: string): {
+  cleanText: string;
+  proposal: ParsedProposal | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(PROPOSAL_REGEX);
   if (!match) {
@@ -1761,7 +1747,7 @@ export function extractCampaignProposal(
     // meer; dit is de vangnet-kant. Bestaande opgeslagen kaarten met
     // type 'whatsapp' blijven wel renderen.
     if (
-      (type !== 'mail' && type !== 'social' && type !== 'google_business') ||
+      (type !== 'social' && type !== 'google_business') ||
       typeof name !== 'string' ||
       name.trim().length === 0
     ) {
@@ -1832,8 +1818,7 @@ export function extractCampaignProposal(
 //   - Bij elk ontbrekend/leeg veld → null returnen (chat behandelt 'm
 //     dan als gewone tekst zonder voorstel)
 
-const BUNDLE_REGEX =
-  /<<FILLY_PROPOSE_BUNDLE>>\s*([\s\S]*?)\s*<<END>>/i;
+const BUNDLE_REGEX = /<<FILLY_PROPOSE_BUNDLE>>\s*([\s\S]*?)\s*<<END>>/i;
 
 export type BundleMailContent = {
   subject_line: string;
@@ -1871,8 +1856,7 @@ export type ParsedBundle = {
 function sanitizeBundleMail(v: unknown): BundleMailContent | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
-  if (typeof o.subject_line !== 'string' || !o.subject_line.trim())
-    return null;
+  if (typeof o.subject_line !== 'string' || !o.subject_line.trim()) return null;
   if (typeof o.body !== 'string' || !o.body.trim()) return null;
   return {
     subject_line: o.subject_line.trim().slice(0, 200),
@@ -1904,9 +1888,10 @@ function sanitizeBundleText(v: unknown): BundleTextContent | null {
   return { body: o.body.trim() };
 }
 
-export function extractCampaignBundle(
-  raw: string,
-): { cleanText: string; bundle: ParsedBundle | null } {
+export function extractCampaignBundle(raw: string): {
+  cleanText: string;
+  bundle: ParsedBundle | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(BUNDLE_REGEX);
   if (!match) {
@@ -2017,17 +2002,17 @@ export function detectCampaignHint(userMessage: string): string | null {
 // Veel eenvoudiger dan proposal/bundle: alleen een vraag-tekst.
 // De 4 opties (mail/social/whatsapp/bundle) zijn vast in de UI.
 
-const CHOICE_REGEX =
-  /<<FILLY_PROPOSE_CHOICE>>\s*([\s\S]*?)\s*<<END>>/i;
+const CHOICE_REGEX = /<<FILLY_PROPOSE_CHOICE>>\s*([\s\S]*?)\s*<<END>>/i;
 
 export type ParsedChoice = {
   kind: 'channel_choice';
   question: string;
 };
 
-export function extractCampaignChoice(
-  raw: string,
-): { cleanText: string; choice: ParsedChoice | null } {
+export function extractCampaignChoice(raw: string): {
+  cleanText: string;
+  choice: ParsedChoice | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(CHOICE_REGEX);
   if (!match) {
@@ -2071,8 +2056,7 @@ export function extractCampaignChoice(
 // (ISO, geldig, niet ver in 't verleden, ≤120 dgn vooruit). Een leeg
 // of misvormd blok levert nog steeds een guided_start-kaart op zónder
 // datum — de flow vraagt dan zelf de dag.
-const GUIDED_START_REGEX =
-  /<<FILLY_START_GUIDED>>\s*([\s\S]*?)\s*<<END>>/i;
+const GUIDED_START_REGEX = /<<FILLY_START_GUIDED>>\s*([\s\S]*?)\s*<<END>>/i;
 
 export function extractGuidedStart(
   raw: string,
@@ -2111,8 +2095,7 @@ export function extractGuidedStart(
       !Number.isNaN(Date.parse(candidate))
     ) {
       const days =
-        (new Date(`${candidate}T12:00:00`).getTime() - Date.now()) /
-        86_400_000;
+        (new Date(`${candidate}T12:00:00`).getTime() - Date.now()) / 86_400_000;
       if (days >= -1 && days <= 120) date = candidate;
     }
     if (typeof parsed.topic === 'string' && parsed.topic.trim()) {
@@ -2150,9 +2133,10 @@ export type ParsedDateChoice = {
   question: string;
 };
 
-export function extractDateChoice(
-  raw: string,
-): { cleanText: string; choice: ParsedDateChoice | null } {
+export function extractDateChoice(raw: string): {
+  cleanText: string;
+  choice: ParsedDateChoice | null;
+} {
   const trimmed = raw.trim();
   const match = trimmed.match(DATE_CHOICE_REGEX);
   if (!match) {
