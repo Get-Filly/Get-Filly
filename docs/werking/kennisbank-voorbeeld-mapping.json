@@ -1,0 +1,11 @@
+{
+  "fields": {
+    "channel": "Platform",
+    "format": { "column": "Content Type", "map": { "Carousel Album": "carrousel" } },
+    "value": "Avg Engagement Rate",
+    "sampleSize": "Number of Posts",
+    "periodEnd": "Period End"
+  },
+  "constants": { "metric": "interactie", "unit": "procent", "country": "nl" },
+  "numberLocale": "en"
+}

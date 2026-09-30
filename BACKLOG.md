@@ -255,7 +255,9 @@ de Meta-app.
       met nieuwe data (eigen ervaring plus externe bronnen) en waarop wij regelmatig analyseren wat nu
       werkt en wat minder. Doel: voorstellen met de meeste kans op traffic naar de reserveringslink.
       Bronnen zoekt de compagnon; data kan schoon of ruw binnenkomen, dat weten we pas na de eerste
-      leveringen, dus het schema wordt pas na de eerste bron vastgezet. Aanlever-wensen staan in
+      leveringen, dus het schema wordt pas na de eerste bron vastgezet. **Architectuur staat (30-9, mig 0085,
+      `apps/api/src/knowledge`, `scripts/kb.js`)**: ruwe import in elke vorm, mapping naar metingen, analyse
+      per kanaal, kennisblok in Filly's prompts (leeg zonder data). Aanlever-wensen staan in
       `docs/werking/kennisbank-aanlevering.md`. **Later:** een plek waar Floris de kennisbank kan inzien
       (vorm nog te bepalen). *(Compagnon: bronnen, Claude: bouwen, Floris: inzien-plek kiezen)*
 - [ ] **Foto- en video-suggesties bij elk voorstel.** Filly schrijft altijd 2 fotosuggesties en 2

@@ -64,9 +64,11 @@ apps/
                             horeca-taal.ts (Filly's horeca-teksten)
     busyness/               rustige momenten: quiet-model + quiet-params (alle drempels),
                             signalen, terugkoppeling, dagelijkse archivering
+    knowledge/              kennisbank "wat werkt" (intern): import, normaliseren, analyse,
+                            kennisblok voor Filly; scripts/kb.js
     weather/                weer-snapshots (4x per dag) voor het model
     campaigns/ chat/ reviews/ menu/ guests/ team/ meta/ tiktok/ google-business/ …
-    supabase/migrations/    SQL 0001–0084, handmatig runnen in de SQL Editor
+    supabase/migrations/    SQL 0001–0085, handmatig runnen in de SQL Editor
 packages/shared/            gedeelde types + DEFAULT_PERMISSIONS per rol
 ```
 
