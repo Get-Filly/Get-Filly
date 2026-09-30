@@ -16,11 +16,10 @@ repo werkt.
 
 ## Wat het is
 
-**AI-capaciteitoptimalisator voor lokale ondernemers** (multi-branche: horeca,
-wellness, kappers, sportscholen, recreatie — niet meer horeca-only). SaaS met
-Filly als AI-assistent die rustige momenten detecteert en, met goedkeuring van
-de ondernemer, de juiste actie inzet (campagnes, reviews, vindbaarheid) om lege
-capaciteit te vullen.
+**AI-capaciteitoptimalisator voor horeca-ondernemers.** SaaS met Filly als
+AI-assistent die rustige momenten detecteert en, met goedkeuring van de
+ondernemer, de juiste actie inzet (campagnes, reviews, vindbaarheid) om lege
+capaciteit te vullen. Get-Filly is horeca-only (besluit 29-9-2026).
 
 "Get-Filly" = het bedrijf, "Filly" = de assistent. Die scheiding geldt ook in de
 teksten: marketingcopy zegt Get-Filly, de chat en de mockups zeggen Filly.
@@ -60,10 +59,10 @@ apps/
     common/                 auth.guard, business-access.guard, rate-limit.guard,
                             ai-rate-limit.guard, token-crypto, decorators
     ai/                     ai.service (centrale Claude-wrapper), filly-brain.config,
-                            industry/ (branche-packs)
+                            horeca-taal.ts (Filly's horeca-teksten)
     busyness/               rustige momenten: detectie, signalen, terugkoppeling
     campaigns/ chat/ reviews/ menu/ guests/ team/ meta/ tiktok/ google-business/ …
-    supabase/migrations/    SQL 0001–0077, handmatig runnen in de SQL Editor
+    supabase/migrations/    SQL 0001–0078, handmatig runnen in de SQL Editor
 packages/shared/            gedeelde types + DEFAULT_PERMISSIONS per rol
 ```
 
@@ -85,9 +84,6 @@ packages/shared/            gedeelde types + DEFAULT_PERMISSIONS per rol
   endpoint dat Claude aanroept.
 - **Frontend fetch**: via `authedFetch` in `src/lib/api.ts` — stuurt JWT +
   `X-Business-Id` automatisch mee.
-- **Branche**: elke zaak heeft een `industry` (mig 0066); Filly's brein leest een
-  branche-pack uit `apps/api/src/ai/industry/`. Horeca-gedrag is byte-identiek
-  gebleven; andere branches erven een generieke pack + VAKTAAL-blok.
 - **Test-ids**: `00000000-0000-0000-0000-000000000001` (Bistro Get-Filly),
   `…0002` (Cafe Get-Filly).
 - **`.env`** in `apps/{web,api}/` — niet in Git, wel vereist voor dev. Zie
