@@ -10,6 +10,7 @@ import { timingSafeBearer } from '../common/cron-secret';
 import { Public } from '../common/public.decorator';
 import { BusynessService } from './busyness.service';
 import { QuietFeedbackService } from './quiet-feedback.service';
+import { WeatherSnapshotService } from '../weather/weather-snapshot.service';
 
 // ============================================================
 // Busyness-cron — wekelijks het drukte-patroon ophalen (PUBLIEK)
@@ -28,6 +29,7 @@ export class BusynessCronController {
     private readonly config: ConfigService,
     private readonly busyness: BusynessService,
     private readonly feedback: QuietFeedbackService,
+    private readonly weather: WeatherSnapshotService,
   ) {}
 
   // GET /api/busyness/cron/refresh  (Vercel Cron, wekelijks ma 04:00 UTC)
@@ -62,6 +64,16 @@ export class BusynessCronController {
       return null;
     });
     return { ...measured, daily };
+  }
+
+  // GET /api/busyness/cron/weather  (Vercel Cron, vier keer per dag)
+  // Weer-opname per unieke locatie voor het dagdeel van dit moment (ochtend,
+  // lunch, middag of diner, op Amsterdamse tijd). De detectie leest deze
+  // opnames; zie WeatherSnapshotService.
+  @Get('weather')
+  async weatherSnapshot(@Headers('authorization') auth?: string) {
+    if (!this.authorized(auth)) throw new UnauthorizedException();
+    return this.weather.refreshAll();
   }
 
   // GET /api/busyness/cron/rollup  (handmatig vangnet)

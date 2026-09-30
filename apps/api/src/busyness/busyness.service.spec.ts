@@ -52,6 +52,7 @@ function makeService(
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
   );
   jest.spyOn(svc, 'getLatest').mockResolvedValue({
     pattern,

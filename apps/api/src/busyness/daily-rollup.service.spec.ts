@@ -65,6 +65,7 @@ describe('rollupDaily', () => {
       events as never,
       openMeteo as never,
       {} as never,
+      {} as never,
     );
     const pattern = Array.from({ length: 7 }, () =>
       new Array<number>(24).fill(0),
@@ -127,6 +128,7 @@ describe('rollupDaily', () => {
       {} as never,
       events as never,
       openMeteo as never,
+      {} as never,
       {} as never,
     );
     jest.spyOn(svc, 'getLatest').mockResolvedValue({

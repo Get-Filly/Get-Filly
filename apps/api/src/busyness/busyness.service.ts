@@ -21,6 +21,7 @@ import { QUIET_PARAMS, SIGNAL_PARAMS, type QuietParams } from './quiet-params';
 import { computeQuiet } from './quiet-model';
 import { aggregateDaily, buildDayContext } from './daily-rollup';
 import { QuietFeedbackService } from './quiet-feedback.service';
+import { WeatherSnapshotService } from '../weather/weather-snapshot.service';
 import {
   DAYPART_DEFS,
   COOLDOWN_WEEKS,
@@ -399,6 +400,8 @@ export class BusynessService {
     // Fase 4: de leerloop. Alleen gelezen tijdens de detectie; het meten
     // zelf draait in een cron.
     private readonly feedback: QuietFeedbackService,
+    // Weer: vier vaste opnames per dag (mig 0081), niet live per aanroep.
+    private readonly weatherSnapshots: WeatherSnapshotService,
   ) {}
 
   // "Nu" in Europe/Amsterdam als {weekday 0-6, hour 0-23}. Apify geeft
@@ -880,27 +883,18 @@ export class BusynessService {
     // Weer: alleen zinvol binnen de 7-daagse Open-Meteo-horizon. Daarbuiten
     // geen entry → factor 1. Dat is hetzelfde codepad als "weerbron weg", dus
     // die fallback loopt elke aanroep sowieso mee.
+    // Weer per uur uit de laatste opname (een van de vier per dag). Het
+    // daggemiddelde is niet meer nodig: het model kijkt naar het weer over het
+    // voorgestelde tijdvenster.
     const weatherByDate = new Map<string, WeatherSignal>();
     const weatherHourlyByDate = new Map<string, HourlyWeather>();
     if (profile.latitude != null && profile.longitude != null) {
-      const hourly = await this.openMeteo.getHourlyForecastSafe(
+      const hourly = await this.weatherSnapshots.getHourly(
         profile.latitude,
         profile.longitude,
       );
       for (const [date, h] of hourly) {
         if (date >= fromIso && date <= toIso) weatherHourlyByDate.set(date, h);
-      }
-      const forecast = await this.openMeteo.getForecastSafe(
-        profile.latitude,
-        profile.longitude,
-      );
-      for (const d of forecast) {
-        if (d.date < fromIso || d.date > toIso) continue;
-        weatherByDate.set(d.date, {
-          tempMin: d.tempMin,
-          tempMax: d.tempMax,
-          code: d.code,
-        });
       }
     }
 

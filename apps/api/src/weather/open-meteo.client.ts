@@ -191,40 +191,16 @@ export class OpenMeteoClient {
     return out;
   }
 
-  private readonly hourlyCache = new Map<
-    string,
-    { at: number; days: Map<string, HourlyWeather> }
-  >();
-
   /**
-   * Uurverwachting (7 dagen) voor coördinaten. Nooit een exception: leeg bij
-   * een fout, dan valt de detectie terug op het daggemiddelde. Ververst elke
-   * 30 minuten, dus bij elke detectie (dashboard, chat en de automatische
-   * controle) is het weer per uur actueel.
+   * Uurverwachting (7 dagen) voor coördinaten, rechtstreeks van Open-Meteo.
+   * Gooit bij een API-fout. Wordt alleen door WeatherSnapshotService gebruikt:
+   * de detectie leest de opgeslagen opnames.
    */
-  async getHourlyForecastSafe(
+  async getHourlyForecast(
     lat: number,
     lng: number,
   ): Promise<Map<string, HourlyWeather>> {
-    const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
-    const hit = this.hourlyCache.get(key);
-    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.days;
-    try {
-      const days = await this.fetchHourly(lat, lng, 0, FORECAST_DAYS);
-      this.hourlyCache.set(key, { at: Date.now(), days });
-      if (this.hourlyCache.size > 500) {
-        const cutoff = Date.now() - CACHE_TTL_MS;
-        for (const [k, v] of this.hourlyCache) {
-          if (v.at < cutoff) this.hourlyCache.delete(k);
-        }
-      }
-      return days;
-    } catch (e) {
-      this.logger.warn(
-        `Open-Meteo uurdata faalde (${lat},${lng}): ${String(e)}`,
-      );
-      return new Map();
-    }
+    return this.fetchHourly(lat, lng, 0, FORECAST_DAYS);
   }
 
   /** Het weer per uur van de afgelopen dagen (tot 92 terug, tot en met vandaag). */
