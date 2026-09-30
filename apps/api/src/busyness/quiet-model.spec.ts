@@ -1,4 +1,4 @@
-import { computeQuietV2 } from './quiet-model-v2';
+import { computeQuiet } from './quiet-model';
 
 // Café open 8 tot 20: ochtend druk, middag rustig, avond matig.
 function makePattern(): number[][] {
@@ -13,9 +13,9 @@ function makePattern(): number[][] {
 const FROM = '2026-10-05'; // maandag
 const TO = '2026-10-11';
 
-describe('computeQuietV2', () => {
+describe('computeQuiet', () => {
   it('stelt niets voor in de marge na opening en voor sluiting', () => {
-    const r = computeQuietV2(makePattern(), FROM, TO, 6);
+    const r = computeQuiet(makePattern(), FROM, TO, 6);
     r.debug.usable.forEach((mask) => {
       expect(mask[8]).toBe(false); // eerste open uur
       expect(mask[18]).toBe(false); // laatste 2 uur voor sluiting
@@ -29,7 +29,7 @@ describe('computeQuietV2', () => {
   });
 
   it('kiest het rustigste tijdvenster binnen het dagdeel', () => {
-    const r = computeQuietV2(
+    const r = computeQuiet(
       makePattern(),
       FROM,
       TO,
@@ -61,14 +61,14 @@ describe('computeQuietV2', () => {
       row[19] = row[20] = row[21] = 90; // piek
       return row;
     });
-    const r = computeQuietV2(flat, FROM, TO, 1);
+    const r = computeQuiet(flat, FROM, TO, 1);
     expect(r.moments).toHaveLength(1);
     expect([5, 6]).toContain(r.moments[0].weekday); // za of zo
   });
 
   it('telt ingeplande dagen mee voor het tempo', () => {
     const planned = new Set(['2026-10-05', '2026-10-06']);
-    const r = computeQuietV2(makePattern(), FROM, TO, 2, { planned });
+    const r = computeQuiet(makePattern(), FROM, TO, 2, { planned });
     expect(r.moments).toHaveLength(0);
     expect(r.weeks[0]).toMatchObject({ planned: 2, cap: 2, picked: 0 });
   });
@@ -89,9 +89,47 @@ describe('computeQuietV2', () => {
         ],
       ],
     ]);
-    const r = computeQuietV2(makePattern(), FROM, TO, 2, { planned, events });
+    const r = computeQuiet(makePattern(), FROM, TO, 2, { planned, events });
     expect(r.moments).toHaveLength(1);
     expect(r.moments[0]).toMatchObject({ date: '2026-10-10', exception: true });
     expect(r.weeks[0].exception).toBe(true);
+  });
+
+  it('roteert: het moment van vorige week weegt minder (cool-down)', () => {
+    const r = computeQuiet(makePattern(), '2026-10-05', '2026-10-25', 1);
+    const perWeek = r.weeks.map((w) =>
+      r.moments.filter(
+        (m) =>
+          m.date >= w.week &&
+          m.date <
+            new Date(Date.parse(`${w.week}T12:00:00Z`) + 7 * 86400000)
+              .toISOString()
+              .slice(0, 10),
+      ),
+    );
+    const keys = perWeek.map((ms) => `${ms[0].weekday}|${ms[0].daypart}`);
+    // zonder cool-down zou elke week dezelfde combinatie winnen
+    expect(new Set(keys).size).toBeGreaterThan(1);
+  });
+
+  it('doet nooit een voorstel voor een moment dat de eigenaar uit heeft gezet', () => {
+    const free = computeQuiet(makePattern(), FROM, TO, 6);
+    const first = free.moments[0];
+    const disabled = new Set([`${first.weekday}|${first.daypart}`]);
+    const r = computeQuiet(makePattern(), FROM, TO, 6, {
+      disabledSlots: disabled,
+    });
+    r.moments.forEach((m) => {
+      expect(`${m.weekday}|${m.daypart}`).not.toBe(
+        `${first.weekday}|${first.daypart}`,
+      );
+    });
+  });
+
+  it('laat een feestdag helemaal af', () => {
+    const r = computeQuiet(makePattern(), FROM, TO, 6, {
+      holidays: new Map([['2026-10-10', 'Testdag']]),
+    });
+    expect(r.moments.find((m) => m.date === '2026-10-10')).toBeUndefined();
   });
 });

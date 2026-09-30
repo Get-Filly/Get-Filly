@@ -1657,6 +1657,15 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .dashboard-shell .form-field textarea { resize: vertical; min-height: 80px; }
+/* Een vinkje of keuzerondje is geen tekstveld: zonder deze regel erft het width
+   100% en padding van hierboven en belandt het midden in de rij. */
+.dashboard-shell .form-field input[type="checkbox"],
+.dashboard-shell .form-field input[type="radio"] {
+  width: auto;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+}
 .dashboard-shell .form-field input:focus,
 .dashboard-shell .form-field select:focus,
 .dashboard-shell .form-field textarea:focus {

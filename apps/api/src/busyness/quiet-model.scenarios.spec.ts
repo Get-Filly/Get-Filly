@@ -1,8 +1,5 @@
-import {
-  computeQuietV2,
-  DAGDEEL_DEFS,
-  QUIET_PARAMS_V2,
-} from './quiet-model-v2';
+import { computeQuiet, DAGDEEL_DEFS } from './quiet-model';
+import { QUIET_PARAMS } from './quiet-params';
 import type { EventSignal, WeatherSignal } from './quiet-signals';
 
 // 300 gegenereerde zaken (vaste seed, dus reproduceerbaar). Elke zaak krijgt
@@ -88,14 +85,14 @@ function scenario(R: () => number) {
   };
 }
 
-describe('computeQuietV2, 300 gegenereerde zaken', () => {
+describe('computeQuiet, 300 gegenereerde zaken', () => {
   const R = rng(20260930);
   const scenarios = Array.from({ length: 300 }, () => scenario(R));
 
   it.each(scenarios.map((s, i) => [i, s] as const))(
     'zaak %i houdt zich aan alle regels',
     (_i, s) => {
-      const r = computeQuietV2(s.p, FROM, TO, s.perWeek, s.signals);
+      const r = computeQuiet(s.p, FROM, TO, s.perWeek, s.signals);
       const perWeek = new Map<string, number>();
       for (const m of r.moments) {
         // 1. nooit in de marge na opening of voor sluiting
@@ -105,7 +102,7 @@ describe('computeQuietV2, 300 gegenereerde zaken', () => {
         const def = DAGDEEL_DEFS.find((d) => d.key === m.daypart)!;
         expect(m.fromHour).toBeGreaterThanOrEqual(def.from);
         expect(m.toHour).toBeLessThanOrEqual(def.to);
-        expect(m.toHour - m.fromHour).toBe(QUIET_PARAMS_V2.windowHours);
+        expect(m.toHour - m.fromHour).toBe(QUIET_PARAMS.windowHours);
         // 3. nooit op een dag waar al iets voor staat
         expect(s.signals.planned.has(m.date)).toBe(false);
         // 4. een uitzondering heeft altijd een evenement

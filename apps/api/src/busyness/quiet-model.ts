@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Rustige momenten, model v2 (prototype, nog niet aangesloten)
+ * Rustige momenten, de detectie (model v2)
  * ============================================================
  *
  * Verschillen met het live model (getQuietMoments):
@@ -18,88 +18,93 @@
  *      (mensen in de buurt) in plaats van de dag "drukker" te rekenen.
  *   6. TEMPO TELT INGEPLANDE DAGEN MEE, en een uitzonderlijke kans (evenement
  *      plus hoge score) mag boven het tempo uit, als "kans van de week".
+ *   7. EIGENAAR-INSTELLING: momenten (weekdag x dagdeel) die de eigenaar uit
+ *      heeft gezet, krijgen nooit een voorstel.
+ *   8. BELEIDSLAAG (zelfde regels als het live model): feestdagen en al
+ *      afgedekte dagen vallen af; cool-down op recent gebruikte momenten;
+ *      spreiding over dagdelen binnen een week; leren van uitkomsten.
  *
- * Puur (geen database). De beleidslaag (feestdag, cool-down, leren van
- * uitkomsten) zit hier nog niet in.
+ * Puur (geen database).
  */
 import {
   weatherBusynessFactor,
   eventBusynessFactor,
+  cooldownFactor,
+  feedbackFactor,
+  SAME_WEEK_DAYPART_DAMP,
+  INCIDENTAL_MIN_DAMP,
   type WeatherSignal,
   type EventSignal,
+  type SlotHit,
+  type SlotPerformance,
+  type QuietReason,
 } from './quiet-signals';
 
-export type Dagdeel = 'ochtend' | 'lunch' | 'middag' | 'diner';
-/** Vaste vensters (uur, van tot exclusief), zoals in het live model. */
-export const DAGDEEL_DEFS: { key: Dagdeel; from: number; to: number }[] = [
-  { key: 'ochtend', from: 6, to: 11 },
-  { key: 'lunch', from: 11, to: 14 },
-  { key: 'middag', from: 14, to: 17 },
-  { key: 'diner', from: 17, to: 24 },
-];
+import { QUIET_PARAMS, type Dagdeel, type QuietParams } from './quiet-params';
+import { DAYPART_DEFS } from './quiet-signals';
+
+export type { Dagdeel, QuietParams };
+/** Vaste vensters (uur, van tot exclusief): één bron met de rest van de app. */
+export const DAGDEEL_DEFS = DAYPART_DEFS as {
+  key: Dagdeel;
+  label: string;
+  from: number;
+  to: number;
+}[];
 export const DAGDELEN: Dagdeel[] = DAGDEEL_DEFS.map((d) => d.key);
 
-export interface QuietParamsV2 {
-  /** Uren na opening waarin niets wordt voorgesteld (klaarzetten). */
-  openMarginHours: number;
-  /** Uren voor sluiting waarin niets wordt voorgesteld (afbouwen). */
-  closeMarginHours: number;
-  /** Lengte van het tijdvenster (uren) dat we in een dagdeel zoeken. */
-  windowHours: number;
-  /** Kansdrempel als deel van je piek: het gat moet minstens zo groot zijn. */
-  gapFrac: number;
-  anomalyWeight: number;
-  unusualSpreadMult: number;
-  /** Ondergrens voor "ongewoon": minimaal dit deel (0,08 = 8%) onder het verwachte niveau. */
-  relDevFloor: number;
-  /** Hoe zwaar een evenement in de buurt meetelt in de score. */
-  eventBonusWeight: number;
-  /** Vanaf welke score een evenement-kans boven het tempo uit mag. */
-  exceptionScore: number;
-  /** Haalbaarheid 0..1 per dagdeel, per weekdag (ma..zo). */
-  haalbaarheid: Record<Dagdeel, number[]>;
-}
-
-export const QUIET_PARAMS_V2: QuietParamsV2 = {
-  openMarginHours: 1,
-  closeMarginHours: 2,
-  windowHours: 2,
-  gapFrac: 0.35,
-  anomalyWeight: 0.5,
-  unusualSpreadMult: 2.0,
-  relDevFloor: 0.12,
-  eventBonusWeight: 0.5,
-  exceptionScore: 0.8,
-  haalbaarheid: {
-    ochtend: [0.3, 0.3, 0.3, 0.3, 0.4, 0.7, 0.7],
-    lunch: [0.85, 0.85, 0.85, 0.85, 0.85, 1, 1],
-    middag: [0.85, 0.85, 0.85, 0.85, 0.85, 1, 1],
-    diner: [0.85, 0.85, 0.85, 0.85, 0.95, 1, 1],
-  },
-};
-
-export type SignalsV2 = {
+export type QuietSignals = {
   weather?: Map<string, WeatherSignal>;
   events?: Map<string, EventSignal[]>;
   hasTerrace?: boolean;
   /** Datums waarvoor al een concept, campagne of voorstel staat. */
   planned?: Set<string>;
+  /** Feestdagen (datum -> naam). Vallen af, ook de drukke. */
+  holidays?: Map<string, string>;
+  /**
+   * Door de eigenaar uitgezette momenten, als "weekdag|dagdeel" met weekdag
+   * 0=ma..6=zo, bijvoorbeeld "2|middag" (woensdagmiddag). Daar komt nooit
+   * een voorstel.
+   */
+  disabledSlots?: Set<string>;
+  /** Eerder gebruikte momenten voor de cool-down, per "weekdag|dagdeel". */
+  recentSlots?: Map<string, { weekIndex: number; weak?: boolean }[]>;
+  /** Wat campagnes op een moment eerder deden (leren van uitkomsten). */
+  slotPerformance?: Map<string, SlotPerformance>;
+  businessMedianLift?: number;
+  /**
+   * Tijdvenster van de eigenaar (uren, [start, eind)): buiten dit venster
+   * stellen we niets voor. Leeg of null = de hele open dag.
+   */
+  window?: { start: number; end: number } | null;
+  /**
+   * true = geen cool-down, geen spreiding en geen leren van uitkomsten. Voor
+   * aanroepers die het kale patroon willen (een dag die de eigenaar zelf koos).
+   */
+  noPolicy?: boolean;
 };
 
-export type MomentV2 = {
+export type CalcMoment = {
   date: string;
   weekday: number; // 0=ma..6=zo
   daypart: Dagdeel;
   fromHour: number;
   toHour: number; // exclusief
   expectedPct: number;
+  /** Werkelijk min verwacht, in punten (negatief = rustiger dan verwacht). */
+  deviation: number;
   gap: number;
   score: number;
   unusual: boolean;
+  /** Waarom juist dit moment, als sleutel + parameters (de UI is NL/EN). */
+  reasonKey: QuietReason['reasonKey'];
+  reasonParams: Record<string, string | number>;
   kind: 'structureel' | 'incidenteel';
   eventBoost: number; // 0..1
   /** true = boven het tempo uit, als "kans van de week". */
   exception: boolean;
+  /** true = gekozen omdat het gebruikelijke moment recent al gebruikt is. */
+  rotated: boolean;
 };
 
 export type WeekSummary = {
@@ -110,8 +115,8 @@ export type WeekSummary = {
   exception: boolean;
 };
 
-export type QuietResultV2 = {
-  moments: MomentV2[];
+export type QuietResult = {
+  moments: CalcMoment[];
   weeks: WeekSummary[];
   debug: {
     peak: number;
@@ -185,15 +190,15 @@ function* eachDate(fromIso: string, toIso: string): Generator<string> {
   }
 }
 
-export function computeQuietV2(
+export function computeQuiet(
   pattern: number[][],
   fromIso: string,
   toIso: string,
   perWeek: number,
-  signals: SignalsV2 = {},
-  overrides: Partial<QuietParamsV2> = {},
-): QuietResultV2 {
-  const P: QuietParamsV2 = { ...QUIET_PARAMS_V2, ...overrides };
+  signals: QuietSignals = {},
+  overrides: Partial<QuietParams> = {},
+): QuietResult {
+  const P: QuietParams = { ...QUIET_PARAMS, ...overrides };
   const dagdeelOf = (h: number): Dagdeel | null =>
     DAGDEEL_DEFS.find((d) => h >= d.from && h < d.to)?.key ?? null;
 
@@ -204,7 +209,12 @@ export function computeQuietV2(
     if (!open.length) return mask;
     const first = open[0] + P.openMarginHours;
     const last = open[open.length - 1] + 1 - P.closeMarginHours; // exclusief
-    for (const h of open) if (h >= first && h < last) mask[h] = true;
+    const w = signals.window;
+    for (const h of open) {
+      if (h < first || h >= last) continue;
+      if (w && (h < w.start || h >= w.end)) continue;
+      mask[h] = true;
+    }
     return mask;
   });
 
@@ -244,7 +254,7 @@ export function computeQuietV2(
       }),
     );
 
-  const empty: QuietResultV2 = {
+  const empty: QuietResult = {
     moments: [],
     weeks: [],
     debug: { peak, usable, cells },
@@ -270,24 +280,42 @@ export function computeQuietV2(
   );
 
   // 5. Kandidaten per datum: het beste dagdeel (max één per dag).
-  type Cand = MomentV2 & { week: string };
+  type Cand = CalcMoment & { week: string };
   const cands: Cand[] = [];
   for (const date of eachDate(fromIso, toIso)) {
     if (signals.planned?.has(date)) continue; // staat al iets voor
+    if (signals.holidays?.has(date)) continue; // feestdag: geen rustig moment
     const weekday = mondayIndex(date);
-    const { factor } = weatherBusynessFactor(
+    const w = weatherBusynessFactor(
       signals.weather?.get(date) ?? null,
       !!signals.hasTerrace,
     );
+    const factor = w.factor;
     const evs = signals.events?.get(date) ?? [];
-    const evFactor = evs.length ? eventBusynessFactor(evs).factor : 1;
-    const eventBoost = Math.min(1, (evFactor - 1) / 0.5);
+    const ev = evs.length
+      ? eventBusynessFactor(evs)
+      : { factor: 1, reason: null };
+    const eventBoost = Math.min(1, (ev.factor - 1) / 0.5);
+    // Het signaal dat het verst van 1 af ligt verklaart de dag; een weer-
+    // signaal dat de dag rustiger maakt gaat voor (dat maakt de dag tot kans).
+    let signalReason: QuietReason | null = null;
+    if (
+      w.reason &&
+      (Math.abs(w.factor - 1) >= Math.abs(ev.factor - 1) || !ev.reason)
+    ) {
+      signalReason = w.reason;
+    } else if (ev.reason) {
+      signalReason = ev.reason;
+    }
+    const kind: 'structureel' | 'incidenteel' =
+      factor <= 1 - INCIDENTAL_MIN_DAMP ? 'incidenteel' : 'structureel';
 
     let best: Cand | null = null;
     DAGDELEN.forEach((dp, j) => {
       const c = cells[weekday][j];
       const base = residual[weekday][j];
       if (!c || base == null) return;
+      if (signals.disabledSlots?.has(`${weekday}|${dp}`)) return; // uit gezet door de eigenaar
       const adjusted = Math.max(0, Math.min(100, c.avg * factor));
       // Verwacht niveau van deze cel (uit de ontleding), en hoeveel het
       // werkelijke (weer-gecorrigeerde) niveau daaronder of erboven zit, als
@@ -303,6 +331,16 @@ export function computeQuietV2(
           P.anomalyWeight * anomaly +
           P.eventBonusWeight * eventBoost) *
         haal;
+      const unusual = dev <= -unusualThreshold;
+      const reason: QuietReason =
+        kind === 'incidenteel' && signalReason
+          ? signalReason
+          : signalReason?.reasonKey === 'eventNearby'
+            ? signalReason
+            : {
+                reasonKey: unusual ? 'unusual' : 'structural',
+                reasonParams: {},
+              };
       if (!best || score > best.score) {
         best = {
           date,
@@ -311,12 +349,16 @@ export function computeQuietV2(
           fromHour: c.from,
           toHour: c.to,
           expectedPct: Math.round(adjusted),
+          deviation: Math.round((adjusted - expected) * 10) / 10,
           gap: Math.round(gap),
           score: Math.round(score * 1000) / 1000,
-          unusual: dev <= -unusualThreshold,
-          kind: factor <= 0.92 ? 'incidenteel' : 'structureel',
+          unusual,
+          reasonKey: reason.reasonKey,
+          reasonParams: reason.reasonParams,
+          kind,
           eventBoost: Math.round(eventBoost * 100) / 100,
           exception: false,
+          rotated: false,
           week: mondayOf(date),
         };
       }
@@ -324,35 +366,85 @@ export function computeQuietV2(
     if (best) cands.push(best);
   }
 
-  // 6. Selectie per week: tempo minus wat al ingepland staat. Een uitzonderlijke
+  // 6. Selectie per week, in datumvolgorde, met de beleidslaag: tempo minus wat
+  //    al ingepland staat, cool-down op recent gebruikte momenten (en elke
+  //    keuze telt meteen mee voor de weken erna), spreiding over dagdelen
+  //    binnen een week en leren van uitkomsten. Een uitzonderlijke
   //    evenement-kans mag daarboven uit (max één per week).
   const weekKeys = new Set<string>();
   for (const d of eachDate(fromIso, toIso)) weekKeys.add(mondayOf(d));
+  const weekList = [...weekKeys].sort();
+  const weekIndex = (monday: string) =>
+    Math.round(
+      (Date.parse(`${monday}T12:00:00Z`) -
+        Date.parse(`${weekList[0]}T12:00:00Z`)) /
+        (7 * 86_400_000),
+    );
   const plannedPerWeek = new Map<string, number>();
   for (const p of signals.planned ?? []) {
     if (p < fromIso || p > toIso) continue;
     plannedPerWeek.set(mondayOf(p), (plannedPerWeek.get(mondayOf(p)) ?? 0) + 1);
   }
-  const moments: MomentV2[] = [];
+  const hits = new Map<string, { weekIndex: number; weak?: boolean }[]>(
+    [...(signals.recentSlots?.entries() ?? [])].map(([k, v]) => [k, [...v]]),
+  );
+  const moments: CalcMoment[] = [];
   const weeks: WeekSummary[] = [];
-  for (const week of [...weekKeys].sort()) {
+  for (const week of weekList) {
+    const wi = weekIndex(week);
     const planned = plannedPerWeek.get(week) ?? 0;
     const slots = Math.max(0, perWeek - planned);
-    const pool = cands
-      .filter((c) => c.week === week)
-      .sort((a, b) => b.score - a.score);
-    const picked = pool.slice(0, slots);
+    const remaining = cands.filter((c) => c.week === week);
+    const picked: Cand[] = [];
+    const usedDayparts = new Set<Dagdeel>();
+    for (let n = 0; n < slots && remaining.length > 0; n++) {
+      let bestIdx = -1;
+      let bestScore = -Infinity;
+      let bestFactor = 1;
+      let anyDamped = false;
+      remaining.forEach((k, idx) => {
+        const uses: SlotHit[] = [
+          ...(hits.get(`${k.weekday}|${k.daypart}`) ?? []),
+          ...(hits.get(`${k.weekday}|*`) ?? []),
+        ].map((u) => ({ weeksAgo: wi - u.weekIndex, weak: u.weak }));
+        let factor = 1;
+        if (!signals.noPolicy) {
+          factor = cooldownFactor(uses);
+          if (usedDayparts.has(k.daypart)) factor *= SAME_WEEK_DAYPART_DAMP;
+          factor *= feedbackFactor(
+            signals.slotPerformance?.get(`${k.weekday}|${k.daypart}`),
+            signals.businessMedianLift ?? 0,
+          );
+        }
+        if (factor < 1) anyDamped = true;
+        const score = k.score * factor;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = idx;
+          bestFactor = factor;
+        }
+      });
+      if (bestIdx < 0) break;
+      const chosen = remaining.splice(bestIdx, 1)[0];
+      if (anyDamped && bestFactor >= 1 && chosen.reasonKey === 'structural') {
+        chosen.rotated = true;
+        chosen.reasonKey = 'structuralRotated';
+      }
+      picked.push(chosen);
+      usedDayparts.add(chosen.daypart);
+      const key = `${chosen.weekday}|${chosen.daypart}`;
+      hits.set(key, [...(hits.get(key) ?? []), { weekIndex: wi }]);
+    }
     let exception = false;
-    const rest = pool.slice(slots);
-    const ex = rest.find(
-      (c) => c.eventBoost > 0 && c.score >= P.exceptionScore,
-    );
+    const ex = remaining
+      .sort((a, b) => b.score - a.score)
+      .find((c) => c.eventBoost > 0 && c.score >= P.exceptionScore);
     if (ex) {
       picked.push({ ...ex, exception: true });
       exception = true;
     }
     picked.forEach((c) => {
-      const m: MomentV2 & { week?: string } = { ...c };
+      const m: CalcMoment & { week?: string } = { ...c };
       delete m.week;
       moments.push(m);
     });

@@ -359,6 +359,22 @@ export const BusinessUpdateSchema = z
       .nullable()
       .optional(),
 
+    // "Mijn momenten" (mig 0080): momenten die de eigenaar heeft uitgezet, als
+    // "weekdag|dagdeel" met weekdag 0=ma..6=zo. Filly doet daar nooit een
+    // voorstel voor. Leeg = alles aan.
+    quiet_disabled_slots: z
+      .array(
+        z
+          .string()
+          .regex(
+            /^[0-6]\|(ochtend|lunch|middag|diner)$/,
+            'Onbekend moment.',
+          ),
+      )
+      .max(28, 'Te veel momenten.')
+      .transform((v) => [...new Set(v)])
+      .optional(),
+
     // ----- Evenementen in voorstellen (mig 0054) -----
     // Welke event-typen Filly meeneemt; null = alle, lege array =
     // events volledig uit voor deze zaak.

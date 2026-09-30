@@ -18,21 +18,16 @@ import { EventsService } from '../events/events.service';
 import { OpenMeteoClient } from '../weather/open-meteo.client';
 import { getNlHolidays } from '../ai/timing-factors';
 import { QUIET_PARAMS, type QuietParams } from './quiet-params';
+import { computeQuiet } from './quiet-model';
 import { aggregateDaily, buildDayContext } from './daily-rollup';
 import { QuietFeedbackService } from './quiet-feedback.service';
 import {
-  cooldownFactor,
-  dateBusynessFactor,
-  feedbackFactor,
   DAYPART_DEFS,
-  INCIDENTAL_MIN_DAMP,
   COOLDOWN_WEEKS,
-  SAME_WEEK_DAYPART_DAMP,
-  type DateSignals,
+  normalizeDaypart,
   type EventSignal,
   type QuietNote,
   type QuietReason,
-  type SlotHit,
   type SlotPerformance,
   type WeatherSignal,
 } from './quiet-signals';
@@ -53,7 +48,7 @@ export interface RefreshResult {
 export interface QuietMoment {
   date: string; // YYYY-MM-DD
   weekday: number; // 0=ma..6=zo
-  daypart: string; // ochtend|lunch|middag|diner|avond (eerste van de reeks)
+  daypart: string; // ochtend|lunch|middag|diner
   // Alle dagdeel-sleutels in deze kans, op volgorde. De frontend vertaalt
   // hiermee zelf; `daypartLabel` is een Nederlandse zin en hoort dus alleen
   // in de prompts thuis, niet in de UI (de app is NL/EN).
@@ -710,43 +705,18 @@ export class BusynessService {
   }
 
   /**
-   * Rustige momenten per dagdeel, voorspellend, voor een datumbereik. Rekenwijze:
-   *   1. Dagdeel-rooster: gemiddelde drukte per open uur, per (weekdag, dagdeel),
-   *      op vaste vensters, bijgesneden op de open uren (min-dekking).
-   *   2. Robuuste two-way ontleding (median polish): verwacht niveau per cel =
-   *      overall + weekdag-effect + dagdeel-effect (medianen, dus ongevoelig voor
-   *      uitschieters die anders hun eigen baseline zouden vervuilen).
-   *   3. DATUM-SIGNALEN (2026-09-15): weer en evenementen schuiven de verwachte
-   *      drukte per KALENDERDATUM. Dit gebeurt bewust vóór de gap-poort. Zou de
-   *      factor pas op de eindscore werken, dan kan hij alleen herschikken en
-   *      nooit een kans laten ontstaan; nu komt een vrijdag met te weinig gat
-   *      alsnog boven de drempel als er storm staat. Hierdoor is de score geen
-   *      constante per weekdag meer — dát is de eigenlijke oplossing voor het
-   *      "elke week dezelfde weekdagen"-probleem.
-   *   4. Afwijking = werkelijk − verwacht (het residu, inclusief de datum-schuif),
-   *      met robuuste MAD als maat voor de normale schommeling. VULBAARHEID-FIRST:
-   *      de afwijking is geen poort maar een ranking-bonus + het 'ongewoon
-   *      rustig'-label.
-   *   5. Kandidaat = vulbaar: gat t.o.v. de eigen piek ≥ gapFloor. Ook een
-   *      structureel-leeg-maar-"normaal" dagdeel telt dus mee. Het eerste/
-   *      laatste open dagdeel (de rand van de shift) valt af als het doods is
-   *      (< edgeActivityFrac × piek); tussenliggende dagdelen niet.
-   *   6. Aaneengesloten rustige dagdelen op één dag = één kans (bv. diner +
-   *      avond); max één kans per dag.
-   *   7. BELEIDSLAAG (2026-09-15): harde poorten (feestdag, datum al afgedekt
-   *      door een concept/campagne/voorstel) en demping (cool-down op recent
-   *      gebruikte weekdag×dagdeel-slots + spreiding over dagdelen binnen een
-   *      week). Daarna cappen op `perWeek` DAGEN per week.
+   * Rustige momenten, voorspellend, voor een datumbereik. De rekenkern staat
+   * in quiet-model.ts (met uitleg per stap); deze methode haalt alleen op wat
+   * het model nodig heeft en vertaalt de uitkomst naar QuietMoment.
    *
-   * `opts.applyPolicy = false` slaat stap 3 en 7 volledig over en geeft het
-   * kale patroon-model terug. Nodig voor de aanroepers die vragen "wélk dagdeel
-   * is rustig op déze datum" voor een dag die de eigenaar zélf koos (de geleide
-   * flow): daar mag een feestdag of een al afgedekte dag het dagdeel niet
-   * wegfilteren.
+   * `opts.applyPolicy = false` slaat de beleidslaag, de datum-signalen en de
+   * eigenaar-instelling "Mijn momenten" volledig over en geeft het kale
+   * patroon-model terug. Nodig voor de aanroepers die vragen "wélk dagdeel is
+   * rustig op déze datum" voor een dag die de eigenaar zélf koos (de geleide
+   * flow): een bewuste keuze wordt nooit weggefilterd.
    *
    * Fail-soft: valt een signaalbron weg (weer, events, of de DB-lezingen voor
-   * de beleidslaag), dan draait het model door op het patroon alleen. Dat pad
-   * loopt sowieso elke aanroep mee: voorbij dag 7 is er geen weerverwachting.
+   * de beleidslaag), dan draait het model door op het patroon alleen.
    *
    * hasSource=false als er (nog) geen echt patroon is → caller valt terug.
    */
@@ -757,430 +727,100 @@ export class BusynessService {
     // Tempo (max per week). Niet meegegeven → de per-zaak-instelling
     // (quiet_moments_per_week), anders de default.
     perWeek?: number,
-    // `params` overschrijft de standaardwaarden uit quiet-params.ts (speeltuin, tests).
+    // `params` overschrijft de standaardwaarden uit quiet-params.ts (tests, speeltuin).
     opts?: { applyPolicy?: boolean; params?: Partial<QuietParams> },
   ): Promise<QuietMomentsResult> {
     const applyPolicy = opts?.applyPolicy ?? true;
-    const P: QuietParams = { ...QUIET_PARAMS, ...opts?.params };
     const latest = await this.getLatest(businessId);
     if (!latest.pattern || latest.pattern.length < 7) {
       return { hasSource: false, moments: [], notes: [] };
     }
-    const pattern = latest.pattern;
     const effectivePerWeek =
       perWeek ?? (await this.getQuietPerWeek(businessId));
-    // Tijdvenster (mig 0069): null = geen beperking (hele open dag). Anders
-    // [startUur, eindUur) — een dagdeel telt alleen mee als het genoeg open
-    // uren binnen dit venster heeft.
-    const win = await this.getQuietWindow(businessId);
+    // Tijdvenster (mig 0069): null = geen beperking (hele open dag).
+    const window = await this.getQuietWindow(businessId);
 
     // Datum-signalen + beleids-historie. Alles fail-soft; een lege context
-    // levert exact het oude gedrag op.
+    // levert het kale patroon-model op.
     const ctx = applyPolicy
       ? await this.loadQuietContext(businessId, fromIso, toIso)
       : EMPTY_QUIET_CONTEXT;
+    // Door de eigenaar uitgezette momenten ("Mijn momenten", mig 0080).
+    const disabledSlots = applyPolicy
+      ? await this.getDisabledSlots(businessId)
+      : new Set<string>();
 
-    // 1. Dagdeel-rooster. cel = gemiddelde drukte per open uur; null = onder
-    //    min-dekking → telt niet mee. from/to = het open-uur-venster (voor de
-    //    rustig-band op de grafiek).
-    type Cell = { avg: number; from: number; to: number };
-    const cells: (Cell | null)[][] = pattern.map((row) =>
-      DAYPART_DEFS.map((dp) => {
-        const hrs: number[] = [];
-        for (let h = dp.from; h < dp.to; h++)
-          if ((row[h] ?? 0) > 0) hrs.push(h);
-        if (hrs.length < P.minCoverage) return null;
-        const sum = hrs.reduce((a, h) => a + row[h], 0);
-        return { avg: sum / hrs.length, from: hrs[0], to: hrs[hrs.length - 1] };
-      }),
+    const result = computeQuiet(
+      latest.pattern,
+      fromIso,
+      toIso,
+      effectivePerWeek,
+      {
+        window,
+        weather: ctx.weatherByDate,
+        events: ctx.eventsByDate,
+        hasTerrace: ctx.hasTerrace,
+        planned: ctx.covered,
+        holidays: ctx.holidayByDate,
+        disabledSlots,
+        recentSlots: ctx.recentSlots,
+        slotPerformance: ctx.slotPerformance,
+        businessMedianLift: ctx.businessMedianLift,
+        noPolicy: !applyPolicy,
+      },
+      opts?.params,
     );
 
-    // 2. Robuuste two-way ontleding (median polish): niveau + weekdag-effect +
-    //    dagdeel-effect, met medianen i.p.v. gemiddelden zodat één rustige
-    //    uitschieter z'n eigen baseline niet vervuilt. `residual` = wat overblijft
-    //    = de afwijking (werkelijk − verwacht); negatief = rustiger dan verwacht.
-    const grid: (number | null)[][] = cells.map((row) =>
-      row.map((c) => (c ? c.avg : null)),
-    );
-    const { residual } = this.medianPolish(grid);
-
-    // Piek (drukste dagdeel) + alle residu-waarden voor de schommeling. De piek
-    // blijft STRUCTUREEL (onaangeraakt door datum-signalen): het is "hoe vol kan
-    // deze zaak worden", en dat verandert niet door het weer van volgende week.
-    let peak = 0;
-    const resVals: number[] = [];
-    cells.forEach((row, d) =>
-      row.forEach((c, j) => {
-        if (!c) return;
-        if (c.avg > peak) peak = c.avg;
-        const r = residual[d][j];
-        if (r != null) resVals.push(r);
-      }),
-    );
-    if (!resVals.length || !peak) {
-      return { hasSource: true, moments: [], notes: [] };
-    }
-
-    // 3. Normale schommeling = robuuste MAD (mediane absolute afwijking t.o.v. de
-    //    mediaan), op std-schaal gebracht (×1,4826). Deze `spread` gebruiken we
-    //    NIET als poort (dat filterde structureel-lege dagen weg), maar (a) om de
-    //    anomalie-bonus te normaliseren en (b) voor het 'ongewoon rustig'-label
-    //    vanaf unusualSpreadMult × de schommeling. ABS_DEV_FLOOR vangt vlakke
-    //    zaken waar de schommeling ~0 is.
-    const medRes = this.medianExact(resVals);
-    const mad = this.medianExact(resVals.map((r) => Math.abs(r - medRes)));
-    const spread = 1.4826 * mad || 1;
-    const unusualThreshold = -Math.max(
-      P.absDevFloor,
-      P.unusualSpreadMult * spread,
-    );
-
-    // 4. Kandidaat-dagdelen per datum verzamelen (met dagdeel-index j, nodig om
-    //    aaneengesloten dagdelen hieronder samen te voegen).
-    type PartCand = {
-      j: number;
-      label: string;
-      key: string;
-      dev: number;
-      gap: number;
-      from: number;
-      to: number;
-      expectedPct: number;
-    };
-    const perDate = new Map<string, PartCand[]>();
-    const dateReason = new Map<string, QuietReason | null>();
-    const dateFactor = new Map<string, number>();
-    const notes: QuietNote[] = [];
-    // Aantal dagdelen waarop de zaak die dag open is, om "de hele dag" te
-    // kunnen herkennen.
-    const openDayparts = new Map<string, number>();
-
-    for (const date of this.eachDate(fromIso, toIso)) {
-      // Harde poort 1: feestdag. Een feestdag is geen rustig moment om te
-      // vullen — niet de stille (Goede Vrijdag) en niet de drukke (Kerst,
-      // Valentijn). Bewust NIET gekoppeld aan `event_holidays_enabled`
-      // (mig 0055): die voorkeur gaat over feestdag-PROMOTIES, en wie die
-      // uitzet wil al helemaal geen "kerst is rustig, doe een actie".
-      const holiday = ctx.holidayByDate.get(date);
-      if (holiday) {
-        notes.push({ date, reason: 'feestdag', label: holiday });
-        continue;
-      }
-      // Harde poort 2: er staat al een concept, campagne of voorstel voor
-      // deze dag. Dit gebeurt vóór de week-cap, anders vreet een afgedekte
-      // dag een van de weekplekken op en schuift er niets voor in de plaats
-      // (dat was de situatie tot 2026-09-15: afdekken maakte de lijst korter
-      // in plaats van anders).
-      if (ctx.covered.has(date)) {
-        notes.push({ date, reason: 'al_afgedekt' });
-        continue;
-      }
-
-      const weekday = this.mondayIndex(date);
-      // Datum-signalen → drukte-factor. >1 = drukker dan het patroon zegt.
-      const signals: DateSignals = {
-        weather: ctx.weatherByDate.get(date) ?? null,
-        events: ctx.eventsByDate.get(date) ?? [],
-      };
-      const { factor, reason } = applyPolicy
-        ? dateBusynessFactor(signals, ctx.hasTerrace)
-        : { factor: 1, reason: null };
-      dateFactor.set(date, factor);
-      dateReason.set(date, reason);
-
-      // Eerste/laatste open dagdeel = de rand van de shift (opening/afsluiting).
-      const openIdx = cells[weekday]
-        .map((c, j) => (c ? j : -1))
-        .filter((j) => j >= 0);
-      openDayparts.set(date, openIdx.length);
-      const firstIdx = openIdx[0];
-      const lastIdx = openIdx[openIdx.length - 1];
-      const arr: PartCand[] = [];
-      DAYPART_DEFS.forEach((dp, j) => {
-        const c = cells[weekday][j];
-        const baseDev = residual[weekday][j];
-        if (!c || baseDev == null) return;
-        // Rand van de shift (opening/afsluiting): alleen meenemen als er echt
-        // iets te vullen is. Een doods eerste/laatste dagdeel is logisch rustig
-        // maar geen kans. Deze toets blijft op de STRUCTURELE waarde: regen
-        // hoort een dode ochtend niet tot kans te promoveren.
-        const isEdge = j === firstIdx || j === lastIdx;
-        if (isEdge && c.avg < P.edgeActivityFrac * peak) return;
-
-        // Datum-schuif op de verwachte drukte. De schuif telt óók mee als
-        // afwijking, zodat een regendag vanzelf 'ongewoon rustig' wordt en de
-        // bestaande chat-toon klopt.
-        const adjusted = Math.max(0, Math.min(100, c.avg * factor));
-        const dev = baseDev + (adjusted - c.avg);
-        const gap = peak - adjusted;
-        if (gap < P.gapFloor) return; // te weinig te vullen (hoofd-relevantiepoort)
-        // GEEN anomalie-poort: ook een structureel-leeg (maar "normaal" rustig)
-        // dagdeel is een vulbare kans. De afwijking weegt alleen mee in de
-        // ranking + bepaalt het 'ongewoon rustig'-label.
-        //
-        // Tijdvenster (mig 0069): is er een venster ingesteld, dan telt dit
-        // dagdeel alleen mee als het ≥ minCoverage open uren bínnen het venster
-        // heeft. Het getoonde venster (from/to) knippen we bij op het venster,
-        // zodat de eigenaar geen tijd buiten z'n keuze te zien krijgt.
-        let from = c.from;
-        let to = c.to;
-        if (win) {
-          const inWin: number[] = [];
-          for (let h = dp.from; h < dp.to; h++) {
-            if (
-              (pattern[weekday][h] ?? 0) > 0 &&
-              h >= win.start &&
-              h < win.end
-            ) {
-              inWin.push(h);
-            }
-          }
-          if (inWin.length < P.minCoverage) return; // dagdeel valt buiten het venster
-          from = inWin[0];
-          to = inWin[inWin.length - 1];
-        }
-        arr.push({
-          j,
-          label: dp.label,
-          key: dp.key,
-          dev,
-          gap,
-          from,
-          to,
-          expectedPct: adjusted,
-        });
-      });
-      if (arr.length) perDate.set(date, arr);
-    }
-
-    // 5. Per dag: aaneengesloten dagdelen (opeenvolgende j) samenvoegen tot één
-    //    kans (bv. diner + avond = één rustig blok). De sterkste aaneengesloten
-    //    reeks is dé kans van die dag → max één kans per dag.
-    type Kans = QuietMoment & { score: number; week: string };
-    // Vulbaarheid-first: gap/peak (0..~1) is de hoofdmaat; een negatieve
-    // afwijking (rustiger dan verwacht) geeft een bonus zodat verrassende
-    // dips bovenop even-lege-maar-normale slots uitkomen. Een positieve
-    // afwijking straft niet (structureel-leeg blijft een volwaardige kans).
-    //
-    // De anomalie-bonus is BEGRENSD op anomalyWeight (2026-09-15). Zonder die
-    // begrenzing loopt hij weg zodra de residu-verdeling vlak is: `spread` valt
-    // dan terug op 1 en een afwijking van 35 punten levert een bonus van 17,5
-    // tegenover een vulbaarheidsterm van hooguit 1. De vulbaarheid, die de
-    // hoofdmaat hoort te zijn, verdween daarmee in de ruis, en elke factor op
-    // de score (cool-down, spreiding) werd betekenisloos. Ook `spread` zelf
-    // krijgt nu absDevFloor als ondergrens, dezelfde bodem die het 'ongewoon
-    // rustig'-label al gebruikt. Score blijft zo binnen 0..1 + anomalyWeight.
-    const devScale = Math.max(spread, P.absDevFloor);
-    const runScore = (run: PartCand[]) =>
-      Math.max(
-        ...run.map(
-          (p) =>
-            p.gap / (peak || 1) +
-            P.anomalyWeight * Math.min(1, Math.max(0, -p.dev) / devScale),
-        ),
-      );
-    const dayKansen: Kans[] = [];
-    for (const [date, parts] of perDate) {
-      parts.sort((a, b) => a.j - b.j);
-      const runs: PartCand[][] = [];
-      for (const p of parts) {
-        const last = runs[runs.length - 1];
-        if (last && p.j === last[last.length - 1].j + 1) last.push(p);
-        else runs.push([p]);
-      }
-      const best = runs.reduce((a, b) => (runScore(b) > runScore(a) ? b : a));
-      const devMin = Math.min(...best.map((p) => p.dev)); // sterkste afwijking
-      const gapMax = Math.max(...best.map((p) => p.gap));
-      const unusual = devMin <= unusualThreshold;
-      const factor = dateFactor.get(date) ?? 1;
-      // Incidenteel = juist déze datum is rustiger dan het weekpatroon zegt.
-      // Een datum die door een event juist drúkker is, is niet incidenteel —
-      // die zakt gewoon in de ranking.
-      const kind: 'structureel' | 'incidenteel' =
-        factor <= 1 - INCIDENTAL_MIN_DAMP ? 'incidenteel' : 'structureel';
-      const signalReason = dateReason.get(date) ?? null;
-      const reason: QuietReason =
-        kind === 'incidenteel' && signalReason
-          ? signalReason
-          : signalReason?.reasonKey === 'eventNearby'
-            ? signalReason
-            : {
-                reasonKey: unusual ? 'unusual' : 'structural',
-                reasonParams: {},
-              };
-      dayKansen.push({
-        date,
-        weekday: this.mondayIndex(date),
-        daypart: best[0].key,
-        dayparts: best.map((p) => p.key),
-        coversOpenDay: best.length >= (openDayparts.get(date) ?? 0),
-        daypartLabel: this.joinDayparts(best.map((p) => p.label)),
-        expectedPct: Math.round(
-          best.reduce((s, p) => s + p.expectedPct, 0) / best.length,
-        ),
-        deviation: Math.round(devMin * 10) / 10,
-        gap: Math.round(gapMax),
-        unusual,
-        fromHour: Math.min(...best.map((p) => p.from)),
-        toHour: Math.max(...best.map((p) => p.to)),
-        kind,
-        reasonKey: reason.reasonKey,
-        reasonParams: reason.reasonParams,
-        score: runScore(best),
-        week: this.mondayOf(date),
-      });
-    }
-
-    // 6. Selectie. Zonder beleidslaag: het oude gedrag (sorteer op score, cap
-    //    per week). Met beleidslaag: greedy per week in DATUMVOLGORDE, waarbij
-    //    elke pick als cool-down-treffer terugschrijft voor de weken erna.
-    //    Dat vooruit-werkende deel is wat een stateless GET over een rollend
-    //    venster laat rouleren: op historie alleen verandert er niets zolang
-    //    de eigenaar nog nergens op geklikt heeft.
-    const picked = applyPolicy
-      ? this.pickWithPolicy(dayKansen, effectivePerWeek, fromIso, ctx)
-      : this.pickByScore(dayKansen, effectivePerWeek);
-
-    picked.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    const moments: QuietMoment[] = picked.map((k) => ({
-      date: k.date,
-      weekday: k.weekday,
-      daypart: k.daypart,
-      dayparts: k.dayparts,
-      coversOpenDay: k.coversOpenDay,
-      daypartLabel: k.daypartLabel,
-      expectedPct: k.expectedPct,
-      deviation: k.deviation,
-      gap: k.gap,
-      unusual: k.unusual,
-      fromHour: k.fromHour,
-      toHour: k.toHour,
-      kind: k.kind,
-      reasonKey: k.reasonKey,
-      reasonParams: k.reasonParams,
+    const moments: QuietMoment[] = result.moments.map((m) => ({
+      date: m.date,
+      weekday: m.weekday,
+      daypart: m.daypart,
+      dayparts: [m.daypart],
+      coversOpenDay: false,
+      daypartLabel: m.daypart,
+      expectedPct: m.expectedPct,
+      deviation: m.deviation,
+      gap: m.gap,
+      unusual: m.unusual,
+      fromHour: m.fromHour,
+      // Het model levert een half-open venster [van, tot); de consumenten
+      // verwachten het laatste uur zelf (inclusief).
+      toHour: m.toHour - 1,
+      kind: m.kind,
+      reasonKey: m.reasonKey,
+      reasonParams: m.reasonParams,
     }));
+
+    // Dagen die een harde poort raakten, zodat het dashboard kan zeggen waarom
+    // er (nog) geen voorstel voor is.
+    const notes: QuietNote[] = [];
+    if (applyPolicy) {
+      for (const date of this.eachDate(fromIso, toIso)) {
+        const holiday = ctx.holidayByDate.get(date);
+        if (holiday) notes.push({ date, reason: 'feestdag', label: holiday });
+        else if (ctx.covered.has(date)) {
+          notes.push({ date, reason: 'al_afgedekt' });
+        }
+      }
+    }
     return { hasSource: true, moments, notes };
   }
 
-  // Oude selectie: sorteren op score, cappen op het aantal DAGEN per week.
-  private pickByScore<T extends QuietMoment & { score: number; week: string }>(
-    kansen: T[],
-    perWeek: number,
-  ): T[] {
-    const sorted = [...kansen].sort((a, b) => b.score - a.score);
-    const perWeekCount = new Map<string, number>();
-    const out: T[] = [];
-    for (const k of sorted) {
-      if ((perWeekCount.get(k.week) ?? 0) >= perWeek) continue;
-      perWeekCount.set(k.week, (perWeekCount.get(k.week) ?? 0) + 1);
-      out.push(k);
+  // De momenten die de eigenaar heeft uitgezet (mig 0080), als
+  // "weekdag|dagdeel". Leeg bij een fout of ontbrekende kolom: dan blijft
+  // alles aan.
+  private async getDisabledSlots(businessId: string): Promise<Set<string>> {
+    const { data, error } = await this.supabase.client
+      .from('businesses')
+      .select('quiet_disabled_slots')
+      .eq('id', businessId)
+      .maybeSingle();
+    if (error) {
+      this.logger.warn(`quiet_disabled_slots lezen faalde: ${error.message}`);
+      return new Set();
     }
-    return out;
-  }
-
-  /**
-   * Selectie mét beleidslaag: per week greedy kiezen, met cool-down op recent
-   * gebruikte weekdag×dagdeel-slots en een milde spreiding over dagdelen
-   * binnen dezelfde week.
-   *
-   * Belangrijk: demping VERWIJDERT nooit. Is elke kandidaat gedempt, dan
-   * wordt er nog steeds tot `perWeek` gevuld en valt de rangorde terug op de
-   * basisscore — je krijgt dus nooit mínder momenten dan het oude model. Een
-   * week kan alleen leeg raken door de harde poorten (feestdag, al afgedekt),
-   * en die dagen staan dan in `notes`.
-   */
-  private pickWithPolicy<
-    T extends QuietMoment & { score: number; week: string },
-  >(kansen: T[], perWeek: number, fromIso: string, ctx: QuietContext): T[] {
-    // Weeksleutel → weekindex t.o.v. de eerste week in het venster. Historische
-    // treffers krijgen een negatieve index, zodat weeksAgo altijd ≥ 0 uitkomt.
-    const baseMonday = this.mondayOf(fromIso);
-    const weekIndexOf = (monday: string) =>
-      Math.round(
-        (Date.parse(`${monday}T12:00:00Z`) -
-          Date.parse(`${baseMonday}T12:00:00Z`)) /
-          (7 * 86_400_000),
-      );
-
-    // Lopende historie: begint bij wat er in de DB staat, groeit met elke pick.
-    const hits = new Map<string, SlotUse[]>(
-      [...ctx.recentSlots].map(([k, v]) => [k, [...v]]),
-    );
-    const push = (key: string, use: SlotUse) => {
-      const cur = hits.get(key);
-      if (cur) cur.push(use);
-      else hits.set(key, [use]);
-    };
-    const slotKey = (weekday: number, daypart: string) =>
-      `${weekday}|${daypart}`;
-    const dayKey = (weekday: number) => `${weekday}|*`;
-
-    const byWeek = new Map<string, T[]>();
-    for (const k of kansen) {
-      const arr = byWeek.get(k.week);
-      if (arr) arr.push(k);
-      else byWeek.set(k.week, [k]);
-    }
-    const weeks = [...byWeek.keys()].sort();
-
-    const out: T[] = [];
-    for (const week of weeks) {
-      const wi = weekIndexOf(week);
-      const remaining = [...(byWeek.get(week) ?? [])];
-      const pickedDayparts = new Set<string>();
-
-      for (let n = 0; n < perWeek && remaining.length > 0; n++) {
-        let bestIdx = -1;
-        let bestScore = -Infinity;
-        let bestFactor = 1;
-        let anyDamped = false;
-
-        remaining.forEach((k, idx) => {
-          const uses: SlotHit[] = [
-            ...(hits.get(slotKey(k.weekday, k.daypart)) ?? []),
-            ...(hits.get(dayKey(k.weekday)) ?? []),
-          ].map((u) => ({ weeksAgo: wi - u.weekIndex, weak: u.weak }));
-          let factor = cooldownFactor(uses);
-          // Spreiding: een tweede kans in dezelfde week met hetzelfde dagdeel
-          // is minder waard. Dempen, niet forceren — anders is het weer een
-          // regel die een vast patroon oplevert. (Verschillende weekdagen
-          // hoeven we niet af te dwingen: er is al max één kans per dag.)
-          if (pickedDayparts.has(k.daypart)) factor *= SAME_WEEK_DAYPART_DAMP;
-          // Fase 4: wat campagnes op dit slot eerder deden met de drukte.
-          // Bewust een kleine uitslag (±25%) tegenover de cool-down (tot
-          // −60%): dunne data zonder controlegroep mag bijsturen, niet
-          // overrulen. Onder het minimum aantal metingen doet dit niets.
-          factor *= feedbackFactor(
-            ctx.slotPerformance.get(slotKey(k.weekday, k.daypart)),
-            ctx.businessMedianLift,
-          );
-
-          if (factor < 1) anyDamped = true;
-          const score = k.score * factor;
-          if (score > bestScore) {
-            bestScore = score;
-            bestIdx = idx;
-            bestFactor = factor;
-          }
-        });
-
-        if (bestIdx < 0) break;
-        const chosen = remaining.splice(bestIdx, 1)[0];
-        // Gekozen terwijl een ánder slot gedempt was: dan is "het gebruikelijke
-        // moment hebben we recent al gedaan" de eerlijke uitleg voor waarom
-        // juist deze dag, en niet alleen "doorgaans rustig".
-        if (anyDamped && bestFactor >= 1 && chosen.reasonKey === 'structural') {
-          chosen.reasonKey = 'structuralRotated';
-        }
-        out.push(chosen);
-        pickedDayparts.add(chosen.daypart);
-        // Terugschrijven als gebruik in DEZE week, zodat de weken erna 'm
-        // gedempt zien. Dit vooruit-werkende deel is wat een stateless GET
-        // over een rollend venster laat rouleren.
-        push(slotKey(chosen.weekday, chosen.daypart), { weekIndex: wi });
-      }
-    }
-    return out;
+    const v = data?.quiet_disabled_slots as string[] | null | undefined;
+    return new Set(Array.isArray(v) ? v : []);
   }
 
   /**
@@ -1397,7 +1037,9 @@ export class BusynessService {
         const weekday = this.mondayIndex(ctx.target_date);
         const weekIndex = weekIndexOfDate(ctx.target_date);
         if (ctx.target_daypart) {
-          add(`${weekday}|${ctx.target_daypart}`, { weekIndex });
+          add(`${weekday}|${normalizeDaypart(ctx.target_daypart)}`, {
+            weekIndex,
+          });
         } else {
           add(`${weekday}|*`, { weekIndex, weak: true });
         }
@@ -1429,12 +1071,6 @@ export class BusynessService {
       this.logger.warn(`cool-down (campagnes) faalde: ${String(e)}`);
     }
     return out;
-  }
-
-  // Dagdeel-labels natuurlijk aan elkaar: ["diner","avond"] → "diner en avond".
-  private joinDayparts(labels: string[]): string {
-    if (labels.length <= 1) return labels[0] ?? '';
-    return `${labels.slice(0, -1).join(', ')} en ${labels[labels.length - 1]}`;
   }
 
   /**
@@ -1499,75 +1135,6 @@ export class BusynessService {
       return { start: s, end: e };
     }
     return null;
-  }
-
-  // Exacte mediaan (zonder afronding) — voor median polish + MAD.
-  private medianExact(nums: number[]): number {
-    if (!nums.length) return 0;
-    const s = [...nums].sort((a, b) => a - b);
-    const mid = Math.floor(s.length / 2);
-    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
-  }
-
-  /**
-   * Median polish (Tukey): robuuste two-way ontleding van een tabel in
-   *   waarde = overall + rijEffect + kolomEffect + residu.
-   * Werkt met medianen i.p.v. gemiddelden, dus ongevoelig voor uitschieters
-   * (juist de dips die we zoeken vervuilen dan hun eigen baseline niet). Lege
-   * cellen (null) doen niet mee aan de medianen en houden residu = null.
-   */
-  private medianPolish(matrix: (number | null)[][]): {
-    overall: number;
-    rowEff: number[];
-    colEff: number[];
-    residual: (number | null)[][];
-  } {
-    const R = matrix.length;
-    const C = matrix[0]?.length ?? 0;
-    const res: (number | null)[][] = matrix.map((row) => row.slice());
-    const rowEff = new Array<number>(R).fill(0);
-    const colEff = new Array<number>(C).fill(0);
-    let overall = 0;
-
-    for (let iter = 0; iter < 10; iter++) {
-      let maxShift = 0;
-      // Rijen: trek de rij-mediaan eraf, tel op bij het rij-effect.
-      for (let d = 0; d < R; d++) {
-        const vals = res[d].filter((v): v is number => v != null);
-        if (!vals.length) continue;
-        const m = this.medianExact(vals);
-        for (let j = 0; j < C; j++) {
-          if (res[d][j] != null) res[d][j] = (res[d][j] as number) - m;
-        }
-        rowEff[d] += m;
-        maxShift = Math.max(maxShift, Math.abs(m));
-      }
-      // Centreer de rij-effecten in het overall-niveau.
-      const rm = this.medianExact(rowEff);
-      for (let d = 0; d < R; d++) rowEff[d] -= rm;
-      overall += rm;
-      // Kolommen: idem.
-      for (let j = 0; j < C; j++) {
-        const vals: number[] = [];
-        for (let d = 0; d < R; d++) {
-          const v = res[d][j];
-          if (v != null) vals.push(v);
-        }
-        if (!vals.length) continue;
-        const m = this.medianExact(vals);
-        for (let d = 0; d < R; d++) {
-          if (res[d][j] != null) res[d][j] = (res[d][j] as number) - m;
-        }
-        colEff[j] += m;
-        maxShift = Math.max(maxShift, Math.abs(m));
-      }
-      const cm = this.medianExact(colEff);
-      for (let j = 0; j < C; j++) colEff[j] -= cm;
-      overall += cm;
-
-      if (maxShift < 0.01) break; // gestabiliseerd
-    }
-    return { overall, rowEff, colEff, residual: res };
   }
 
   // Maandag (YYYY-MM-DD) van de week waarin `iso` valt — weeksleutel voor de cap.
