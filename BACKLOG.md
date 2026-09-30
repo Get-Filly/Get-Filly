@@ -247,15 +247,13 @@ de Meta-app.
       betaalde-campagneflow (zie "Focus van Floris"). In de campagnes-sectie blijven de statussen
       concept, ingepland en actief; elke campagne krijgt een **label "betaald" of "normaal"**.
       *(Claude bouwt, Floris kiest KPI's en budgetgrenzen)*
-- [ ] **Mail aan gasten van klanten eruit; mail aan onze klanten blijft.** Get-Filly mailt geen gasten
-      meer (geen concurrentie met boekingsplatformen). Weg: campagne-type mail, `campaign_mail_content`,
-      verzenden naar gasten, mail-statistieken, mail-pagina onder Marketing, mail-kaarten in chat en
-      campagne-detail. **Blijft (mag niets van verwijderd worden):** e-mail naar onze eigen klanten
-      (eigenaren): afmelden, nieuwsbrieven, updates, rapportages, plus transactionele mail (contactformulier,
-      uitnodigingen, wachtwoord). Eerst uitzetten, dan code verwijderen, database als laatste. Gasten-opt-ins
-      en de afmeldpagina blijven voorlopig staan. *(Claude, Floris keurt de lijst goed)*
-- [ ] **Maximum uitingen per kanaal.** Voor nu is er geen limiet. Zodra de kosten duidelijk zijn kan een
-      maximum per kanaal worden ingesteld; het waarschuwingsscherm in de geleide flow is er dan klaar voor.
+- [x] **Mail aan gasten en WhatsApp eruit (klaar 2026-09-30).** Campagne-type mail en whatsapp bestaan niet
+      meer in code en database (mig 0083 verwijderde de 38 demo-rijen en de tabellen; mig 0084 de
+      account-velden afzender en reply-to). **Blijft:** mail naar onze eigen klanten (afmelden, nieuwsbrieven,
+      updates, rapportages) en transactionele mail. Gasten-opt-ins en de afmeldpagina staan nog. *(afgerond)*
+- [ ] **Maximum uitingen per kanaal.** Voor nu is er geen limiet. Het waarschuwingsscherm in de geleide flow
+      is gebouwd (zachte melding, blokkeert niets). Zodra de kosten duidelijk zijn vul je per kanaal een
+      grens in bij `CHANNEL_WEEKLY_WARNING_LIMIT` in `filly-brain.config.ts` (nu overal `null`).
       *(Floris beslist zodra de kosten bekend zijn)*
 - [ ] **Rapportage per mail naar de klant.** In Rapportages een knop om de gegevens (bezetting,
       campagne-resultaten, "Wat werkt bij jou") naar de eigenaar te mailen. Mail naar onze eigen klanten

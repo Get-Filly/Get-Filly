@@ -166,6 +166,23 @@ export interface FrequencyLimits {
   maxPerMonth: number;
 }
 
+/**
+ * Waarschuwingsgrens per kanaal voor "te veel uitingen in één week", getoond
+ * in de geleide flow. null = geen limiet (startstand: pas invullen als er
+ * onderbouwde cijfers zijn). De waarschuwing is zacht: de eigenaar kan altijd
+ * doorgaan. Los van FrequencyLimits hierboven (dat zijn richtwaarden voor
+ * Filly's eigen planning).
+ */
+export const CHANNEL_WEEKLY_WARNING_LIMIT: Record<
+  'instagram' | 'facebook' | 'tiktok' | 'google_business',
+  number | null
+> = {
+  instagram: null,
+  facebook: null,
+  tiktok: null,
+  google_business: null,
+};
+
 /** Visuele eisen per kanaal (hfst 13.1 + 13.2). */
 export interface VisualRequirements {
   /** Verplicht visueel? (true voor IG/TT/GBP, optioneel voor FB) */

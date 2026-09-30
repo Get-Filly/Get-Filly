@@ -411,20 +411,6 @@ export const BusinessUpdateSchema = z
     reviews_auto_reply_mode: z.enum(['concept', 'publish']).optional(),
     // Eigen toon voor reviews-reacties; leeg = fallback op tone_of_voice.
     reviews_tone_of_voice: optionalText(500),
-
-    // ----- E-mailinstellingen -----
-    email_from_name: optionalText(100),
-    email_reply_to: z
-      .union([
-        z
-          .string()
-          .trim()
-          .regex(EMAIL_RE, 'Reply-to-adres lijkt geen geldig e-mailadres.'),
-        z.literal(''),
-        z.null(),
-      ])
-      .optional()
-      .transform((v) => (v === '' ? null : v)),
   })
   // Tijdvenster-integriteit: is een venster gezet, dan moet start < end.
   .superRefine((val, ctx) => {

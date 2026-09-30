@@ -50,8 +50,7 @@ function buildChecklist(
     restaurant.opening_hours != null &&
     Object.keys(restaurant.opening_hours).length > 0;
 
-  // KvK + legal_name samen, handig voor mailings en verplicht
-  // op verloop voor verzonden marketing-uitingen.
+  // KvK + legal_name samen, zodat de bedrijfsgegevens kloppen.
   const businessDetailsDone =
     !!restaurant.legal_name && !!restaurant.kvk_number;
 

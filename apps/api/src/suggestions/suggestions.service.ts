@@ -24,6 +24,7 @@ import {
   mapCampaignTypeToChannel,
   type FillyChannel,
   CHANNEL_RULES,
+  CHANNEL_WEEKLY_WARNING_LIMIT,
   buildThemeChannelMixBlock,
 } from '../ai/filly-brain.config';
 import { buildExternalFactorsBlock } from '../ai/timing-factors';
@@ -1375,7 +1376,7 @@ ${dayContext}`;
   // welke kanalen hebben bereik (vóórgevinkt). Read-only, geen AI.
   /**
    * Hoeveel uitingen op dit kanaal staan er al in de week (maandag tot zondag)
-   * van `whenIso`, tegenover het maximum per week uit de kanaalregels? Voor de
+   * van `whenIso`, tegenover de waarschuwingsgrens per week (CHANNEL_WEEKLY_WARNING_LIMIT, null = geen limiet)? Voor de
    * zachte waarschuwing: de eigenaar mag altijd meer inplannen, maar we
    * zeggen het als het veel wordt. Telt alle uitingen van Get-Filly (concept,
    * ingepland, actief en afgerond), niet wat de eigenaar zelf buiten Filly
@@ -1389,7 +1390,7 @@ ${dayContext}`;
     channel: string;
     weekStart: string;
     count: number;
-    max: number;
+    max: number | null;
     exceeded: boolean;
   }> {
     const fillyChannel = platformToFillyChannel(channel);
@@ -1418,9 +1419,18 @@ ${dayContext}`;
       .lt('happened_at', amsterdamIsoAtHour(nextStart, 0));
     if (error) throwDbError(this.logger, error);
 
-    const max = rules.frequency.maxPerWeek;
+    const max =
+      CHANNEL_WEEKLY_WARNING_LIMIT[
+        channel as keyof typeof CHANNEL_WEEKLY_WARNING_LIMIT
+      ] ?? null;
     const n = count ?? 0;
-    return { channel, weekStart, count: n, max, exceeded: n >= max };
+    return {
+      channel,
+      weekStart,
+      count: n,
+      max,
+      exceeded: max !== null && n >= max,
+    };
   }
 
   async getDayContext(businessId: string, date: string): Promise<DayContext> {

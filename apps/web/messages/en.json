@@ -1151,7 +1151,7 @@
     },
     "closedDates": {
       "title": "Closing dates & holidays",
-      "desc": "Specific days when the business is closed (holidays, public holidays). Filly avoids these for mailings and reservation suggestions.",
+      "desc": "Specific days when the business is closed (holidays, public holidays). Filly avoids these for campaigns and reservation suggestions.",
       "addDate": "Add a date",
       "removeDate": "Remove this date",
       "empty": "No closing dates. Add one for example for Christmas Day or your regular holiday week."
@@ -1199,9 +1199,9 @@
     },
     "company": {
       "title": "Company details",
-      "desc": "For mail footers (required under GDPR/CAN-SPAM), your privacy statement and terms and conditions.",
+      "desc": "For your privacy statement, your terms and conditions and the right business details.",
       "legalName": "Full company name (legal)",
-      "legalNameHint": "As registered with the Chamber of Commerce. Appears in the footer of mailings.",
+      "legalNameHint": "As registered with the Chamber of Commerce.",
       "kvkNumber": "Chamber of Commerce number",
       "kvkNumberHint": "8 digits.",
       "vatNumber": "VAT number",
@@ -1209,14 +1209,6 @@
       "contactEmail": "Contact email",
       "contactEmailHint": "The official customer contact address.",
       "contactPhone": "Contact phone"
-    },
-    "emailSettings": {
-      "title": "Email settings for mailings",
-      "desc": "Determines how campaign emails look to the recipient.",
-      "fromName": "Sender name",
-      "fromNameHint": "Appears in the recipient's inbox as “from”.",
-      "replyTo": "Reply-to address",
-      "replyToHint": "Where replies from recipients are sent. May be the same as the contact email."
     },
     "notifications": {
       "title": "Notifications",
@@ -1802,7 +1794,7 @@
       "websiteUrlLabel": "Website URL",
       "websiteNote": "Full website analysis (auto-fill of tagline, atmosphere, USPs) remains available for now via the Account page.",
       "socialTitle": "Social media",
-      "socialDesc": "Filly uses these handles in social campaigns and email footers.",
+      "socialDesc": "Filly uses these handles in social campaigns.",
       "instagramLabel": "Instagram",
       "facebookLabel": "Facebook",
       "tiktokLabel": "TikTok",
@@ -3291,6 +3283,7 @@
       "question": "Which channels do you want? Pick at least one.",
       "autoQuestion": "I'll pick the best channel myself. Shall I make it?",
       "makeAction": "Create the action",
+      "busyWarning": "Heads up, there are already a lot of posts this week on {channels}. You can simply continue.",
       "nextDay": "Next day",
       "makeBatch": "Generate {count} drafts"
     },
@@ -3386,7 +3379,7 @@
       },
       "hours": {
         "label": "Fill in opening hours",
-        "hint": "Prevents Filly from sending mailings on closed days."
+        "hint": "Prevents Filly from suggesting campaigns on closed days."
       },
       "campaign": {
         "label": "Create your first campaign",
@@ -3394,7 +3387,7 @@
       },
       "business": {
         "label": "Business details (legal name + Chamber of Commerce number)",
-        "hint": "Appears in email footers and is required for mailings to guests."
+        "hint": "Keeps your business details correct everywhere in Get-Filly."
       }
     }
   },
