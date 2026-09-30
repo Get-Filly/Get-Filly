@@ -78,3 +78,42 @@ join public.busyness_day_context x
   on x.business_id = d.business_id and x.day = d.day
 group by 1
 order by 1;
+
+-- 3. Weer per UUR (de detectie kijkt naar het weer over het voorgestelde
+--    tijdvenster). Zelfde klassen als hierboven, maar per gemeten uur, met
+--    het weer van precies dat uur (busyness_day_context.weather_hourly,
+--    mig 0081). Dit is de eerlijkste toets van de weersfactoren.
+with uur as (
+  select b.business_id, b.day, b.hour,
+         b.actual_pct / nullif(b.expected_pct, 0) as ratio,
+         (x.weather_hourly -> 'code' ->> b.hour)::int as code,
+         (x.weather_hourly -> 'temp' ->> b.hour)::numeric as temp
+  from public.busyness_daily b
+  join public.busyness_day_context x
+    on x.business_id = b.business_id and x.day = b.day
+  where b.expected_pct > 0 and b.actual_pct is not null
+    and x.weather_hourly is not null
+),
+klasse as (
+  select *,
+         case
+           when temp > 30 then 'hitte (>30 graden)'
+           when code >= 95 or code between 61 and 82 then 'regen of buien'
+           when temp <= 8 then 'koud (8 graden of lager)'
+           when code <= 2 and temp >= 22 then 'terrasweer (droog, 22 graden of meer)'
+           else 'overig'
+         end as weerklasse
+  from uur
+  where code is not null and temp is not null
+),
+mediaan as (
+  select weerklasse, count(*) as uren,
+         (percentile_cont(0.5) within group (order by ratio))::numeric as ratio
+  from klasse group by weerklasse
+)
+select m.weerklasse, m.uren,
+       round(m.ratio, 3) as mediaan_gemeten_door_verwacht,
+       round(m.ratio / nullif(o.ratio, 0), 3) as t_o_v_gewoon_uur
+from mediaan m
+cross join (select ratio from mediaan where weerklasse = 'overig') o
+order by m.weerklasse;

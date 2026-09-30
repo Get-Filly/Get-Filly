@@ -17,7 +17,8 @@
       "weatherRain": "rain forecast, people stay in",
       "weatherCold": "cold forecast ({temp}°), people stay in",
       "weatherHeat": "hot forecast ({temp}°), visits drop",
-      "eventNearby": "{name}, {distanceKm} km away"
+      "eventNearby": "{name}, {distanceKm} km away",
+      "holiday": "{name}, a moment to play into"
     }
   },
   "language": {

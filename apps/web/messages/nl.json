@@ -17,7 +17,8 @@
       "weatherRain": "regen verwacht, mensen blijven thuis",
       "weatherCold": "koud verwacht ({temp}°), mensen blijven thuis",
       "weatherHeat": "warm verwacht ({temp}°), bezoek daalt",
-      "eventNearby": "{name} op {distanceKm} km"
+      "eventNearby": "{name} op {distanceKm} km",
+      "holiday": "{name}, een moment om op in te spelen"
     }
   },
   "language": {

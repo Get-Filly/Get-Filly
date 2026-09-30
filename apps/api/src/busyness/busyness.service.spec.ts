@@ -28,7 +28,8 @@ function makePattern(): number[][] {
 
 type ContextOverrides = {
   window?: { start: number; end: number } | null;
-  holidays?: boolean; // feestdagen-poort actief laten (default: uit in tests)
+  // Feestdagen (datum -> naam + of je die dag juist niet moet promoten).
+  holidays?: Record<string, { name: string; avoid: boolean }>;
   covered?: Set<string>;
   weather?: Map<string, WeatherSignal>;
   events?: Map<string, unknown[]>;
@@ -79,11 +80,9 @@ function makeService(
   // De hele datum-/beleidscontext in één mock: dat is precies de naad waar in
   // productie de DB, Open-Meteo en de events-tabel achter zitten, en waar de
   // fail-soft-terugval op uitkomt.
-  const holidayByDate = new Map<string, string>();
-  if (overrides.holidays) {
-    // 2e Paasdag 2026 valt op ma 6 april.
-    holidayByDate.set('2026-04-06', '2e Paasdag');
-  }
+  const holidayByDate = new Map<string, { name: string; avoid: boolean }>(
+    Object.entries(overrides.holidays ?? {}),
+  );
   jest
     .spyOn(
       svc as unknown as { loadQuietContext: () => Promise<unknown> },
@@ -239,8 +238,29 @@ describe('getQuietMoments — rotatie over acht weken', () => {
 });
 
 describe('getQuietMoments — harde poorten en tempo', () => {
-  it('een feestdag verschijnt niet als kans, maar wel als note', async () => {
-    const svc = makeService(makePattern(), { holidays: true });
+  it('een gewone feestdag is een moment om op in te spelen (bonus, met reden)', async () => {
+    // 2e Paasdag 2026 is ma 6 april. Zonder feestdag wint dinsdag op gelijke
+    // stand; met feestdag wint maandag, met de feestdag als reden.
+    const p = makeFlatPattern([25, 25, 55, 60, 65, 70, 60]);
+    const svc = makeService(p, {
+      holidays: { '2026-04-07': { name: 'Testfeest', avoid: false } },
+    });
+    const { moments, notes } = await svc.getQuietMoments(
+      'biz',
+      '2026-04-06',
+      '2026-04-12',
+      1,
+    );
+    expect(moments[0].date).toBe('2026-04-07');
+    expect(moments[0].reasonKey).toBe('holiday');
+    expect(moments[0].reasonParams).toEqual({ name: 'Testfeest' });
+    expect(notes).toEqual([]);
+  });
+
+  it('een dag waarop je niet moet promoten valt af en staat als note', async () => {
+    const svc = makeService(makePattern(), {
+      holidays: { '2026-04-06': { name: 'Stille dag', avoid: true } },
+    });
     const { moments, notes } = await svc.getQuietMoments(
       'biz',
       '2026-04-06',
@@ -251,7 +271,7 @@ describe('getQuietMoments — harde poorten en tempo', () => {
     expect(notes).toContainEqual({
       date: '2026-04-06',
       reason: 'feestdag',
-      label: '2e Paasdag',
+      label: 'Stille dag',
     });
   });
 
@@ -460,7 +480,7 @@ describe('getQuietMoments — fail-soft', () => {
 describe('getQuietMoments — applyPolicy:false voor een zelfgekozen dag', () => {
   it('geeft het dagdeel terug, ook op een feestdag of een afgedekte dag', async () => {
     const svc = makeService(makePattern(), {
-      holidays: true,
+      holidays: { '2026-04-06': { name: 'Stille dag', avoid: true } },
       covered: new Set(['2026-04-06']),
     });
     const { moments } = await svc.getQuietMoments(

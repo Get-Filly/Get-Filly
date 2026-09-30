@@ -32,15 +32,20 @@ import {
   cooldownFactor,
   feedbackFactor,
   SAME_WEEK_DAYPART_DAMP,
-  INCIDENTAL_MIN_DAMP,
   type WeatherSignal,
+  type HourlyWeather,
   type EventSignal,
   type SlotHit,
   type SlotPerformance,
   type QuietReason,
 } from './quiet-signals';
 
-import { QUIET_PARAMS, type Dagdeel, type QuietParams } from './quiet-params';
+import {
+  QUIET_PARAMS,
+  SIGNAL_PARAMS,
+  type Dagdeel,
+  type QuietParams,
+} from './quiet-params';
 import { DAYPART_DEFS } from './quiet-signals';
 
 export type { Dagdeel, QuietParams };
@@ -59,8 +64,13 @@ export type QuietSignals = {
   hasTerrace?: boolean;
   /** Datums waarvoor al een concept, campagne of voorstel staat. */
   planned?: Set<string>;
-  /** Feestdagen (datum -> naam). Vallen af, ook de drukke. */
-  holidays?: Map<string, string>;
+  /**
+   * Feestdagen (datum -> naam). Een feestdag is een moment om op in te spelen
+   * en geeft een bonus. Feestdagen waarop je juist NIET moet promoten
+   * (Nieuwjaarsdag, Goede Vrijdag, 1e Paasdag, Sinterklaasavond: `avoid`)
+   * vallen af.
+   */
+  holidays?: Map<string, { name: string; avoid: boolean }>;
   /**
    * Door de eigenaar uitgezette momenten, als "weekdag|dagdeel" met weekdag
    * 0=ma..6=zo, bijvoorbeeld "2|middag" (woensdagmiddag). Daar komt nooit
@@ -73,6 +83,12 @@ export type QuietSignals = {
   slotPerformance?: Map<string, SlotPerformance>;
   businessMedianLift?: number;
   /**
+   * Weer per uur (index = uur van de dag). Als dit er is gebruikt het model
+   * het weer over het voorgestelde tijdvenster; anders het daggemiddelde uit
+   * `weather`.
+   */
+  weatherHourly?: Map<string, HourlyWeather>;
+  /**
    * Tijdvenster van de eigenaar (uren, [start, eind)): buiten dit venster
    * stellen we niets voor. Leeg of null = de hele open dag.
    */
@@ -83,6 +99,32 @@ export type QuietSignals = {
    */
   noPolicy?: boolean;
 };
+
+/** Het weer over [from, to): laagste en hoogste temperatuur, en de zwaarste code. */
+function weatherForWindow(
+  signals: QuietSignals,
+  date: string,
+  from: number,
+  to: number,
+): WeatherSignal | null {
+  const h = signals.weatherHourly?.get(date);
+  if (h) {
+    const temps: number[] = [];
+    const codes: number[] = [];
+    for (let hour = from; hour < to; hour++) {
+      if (Number.isFinite(h.temp[hour])) temps.push(h.temp[hour]);
+      if (Number.isFinite(h.code[hour])) codes.push(h.code[hour]);
+    }
+    if (temps.length > 0 && codes.length > 0) {
+      return {
+        tempMin: Math.min(...temps),
+        tempMax: Math.max(...temps),
+        code: Math.max(...codes), // hogere WMO-code = zwaarder weer
+      };
+    }
+  }
+  return signals.weather?.get(date) ?? null;
+}
 
 export type CalcMoment = {
   date: string;
@@ -101,6 +143,7 @@ export type CalcMoment = {
   reasonParams: Record<string, string | number>;
   kind: 'structureel' | 'incidenteel';
   eventBoost: number; // 0..1
+  holidayBoost: number; // 0 of 1
   /** true = boven het tempo uit, als "kans van de week". */
   exception: boolean;
   /** true = gekozen omdat het gebruikelijke moment recent al gebruikt is. */
@@ -284,31 +327,18 @@ export function computeQuiet(
   const cands: Cand[] = [];
   for (const date of eachDate(fromIso, toIso)) {
     if (signals.planned?.has(date)) continue; // staat al iets voor
-    if (signals.holidays?.has(date)) continue; // feestdag: geen rustig moment
+    const holiday = signals.holidays?.get(date);
+    if (holiday?.avoid) continue; // niet promoten op deze dag
+    const holidayBoost = holiday ? 1 : 0;
     const weekday = mondayIndex(date);
-    const w = weatherBusynessFactor(
-      signals.weather?.get(date) ?? null,
-      !!signals.hasTerrace,
-    );
-    const factor = w.factor;
     const evs = signals.events?.get(date) ?? [];
     const ev = evs.length
       ? eventBusynessFactor(evs)
       : { factor: 1, reason: null };
-    const eventBoost = Math.min(1, (ev.factor - 1) / 0.5);
-    // Het signaal dat het verst van 1 af ligt verklaart de dag; een weer-
-    // signaal dat de dag rustiger maakt gaat voor (dat maakt de dag tot kans).
-    let signalReason: QuietReason | null = null;
-    if (
-      w.reason &&
-      (Math.abs(w.factor - 1) >= Math.abs(ev.factor - 1) || !ev.reason)
-    ) {
-      signalReason = w.reason;
-    } else if (ev.reason) {
-      signalReason = ev.reason;
-    }
-    const kind: 'structureel' | 'incidenteel' =
-      factor <= 1 - INCIDENTAL_MIN_DAMP ? 'incidenteel' : 'structureel';
+    const eventBoost = Math.min(
+      1,
+      (ev.factor - 1) / SIGNAL_PARAMS.eventMaxBoost,
+    );
 
     let best: Cand | null = null;
     DAGDELEN.forEach((dp, j) => {
@@ -316,6 +346,28 @@ export function computeQuiet(
       const base = residual[weekday][j];
       if (!c || base == null) return;
       if (signals.disabledSlots?.has(`${weekday}|${dp}`)) return; // uit gezet door de eigenaar
+      // Weer over precies het voorgestelde tijdvenster (per uur), niet over de
+      // hele dag: regen in de ochtend zegt weinig over een avondvenster.
+      const w = weatherBusynessFactor(
+        weatherForWindow(signals, date, c.from, c.to),
+        !!signals.hasTerrace,
+      );
+      const factor = w.factor;
+      // Het signaal dat het verst van 1 af ligt verklaart het moment; een
+      // weer-signaal dat het rustiger maakt gaat voor (dat maakt het tot kans).
+      let signalReason: QuietReason | null = null;
+      if (
+        w.reason &&
+        (Math.abs(w.factor - 1) >= Math.abs(ev.factor - 1) || !ev.reason)
+      ) {
+        signalReason = w.reason;
+      } else if (ev.reason) {
+        signalReason = ev.reason;
+      }
+      const kind: 'structureel' | 'incidenteel' =
+        factor <= 1 - SIGNAL_PARAMS.incidentalMinDamp
+          ? 'incidenteel'
+          : 'structureel';
       const adjusted = Math.max(0, Math.min(100, c.avg * factor));
       // Verwacht niveau van deze cel (uit de ontleding), en hoeveel het
       // werkelijke (weer-gecorrigeerde) niveau daaronder of erboven zit, als
@@ -329,18 +381,21 @@ export function computeQuiet(
       const score =
         (gap / peak +
           P.anomalyWeight * anomaly +
-          P.eventBonusWeight * eventBoost) *
+          P.eventBonusWeight * eventBoost +
+          P.holidayBonusWeight * holidayBoost) *
         haal;
       const unusual = dev <= -unusualThreshold;
       const reason: QuietReason =
         kind === 'incidenteel' && signalReason
           ? signalReason
-          : signalReason?.reasonKey === 'eventNearby'
-            ? signalReason
-            : {
-                reasonKey: unusual ? 'unusual' : 'structural',
-                reasonParams: {},
-              };
+          : holiday
+            ? { reasonKey: 'holiday', reasonParams: { name: holiday.name } }
+            : signalReason?.reasonKey === 'eventNearby'
+              ? signalReason
+              : {
+                  reasonKey: unusual ? 'unusual' : 'structural',
+                  reasonParams: {},
+                };
       if (!best || score > best.score) {
         best = {
           date,
@@ -357,6 +412,7 @@ export function computeQuiet(
           reasonParams: reason.reasonParams,
           kind,
           eventBoost: Math.round(eventBoost * 100) / 100,
+          holidayBoost,
           exception: false,
           rotated: false,
           week: mondayOf(date),
@@ -438,7 +494,11 @@ export function computeQuiet(
     let exception = false;
     const ex = remaining
       .sort((a, b) => b.score - a.score)
-      .find((c) => c.eventBoost > 0 && c.score >= P.exceptionScore);
+      .find(
+        (c) =>
+          (c.eventBoost > 0 || c.holidayBoost > 0) &&
+          c.score >= P.exceptionScore,
+      );
     if (ex) {
       picked.push({ ...ex, exception: true });
       exception = true;

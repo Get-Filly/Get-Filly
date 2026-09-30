@@ -17,7 +17,7 @@ import {
 import { EventsService } from '../events/events.service';
 import { OpenMeteoClient } from '../weather/open-meteo.client';
 import { getNlHolidays } from '../ai/timing-factors';
-import { QUIET_PARAMS, type QuietParams } from './quiet-params';
+import { QUIET_PARAMS, SIGNAL_PARAMS, type QuietParams } from './quiet-params';
 import { computeQuiet } from './quiet-model';
 import { aggregateDaily, buildDayContext } from './daily-rollup';
 import { QuietFeedbackService } from './quiet-feedback.service';
@@ -26,6 +26,7 @@ import {
   COOLDOWN_WEEKS,
   normalizeDaypart,
   type EventSignal,
+  type HourlyWeather,
   type QuietNote,
   type QuietReason,
   type SlotPerformance,
@@ -111,19 +112,6 @@ const MONTHLY_LOOKBACK_DAYS = 120;
 // Zelfde venster voor het dagoverzicht: gelijk aan de retentie van de ruwe metingen.
 const DAILY_LOOKBACK_DAYS = 120;
 
-// Staffel per event-categorie, gespiegeld aan EventsService: hier alleen als
-// SCHAAL om nabijheid op te wegen (een festival op 9 van de 10 km weegt licht,
-// een kermis op 0,2 van de 2 km zwaar). De filtering op afstand heeft
-// findNearbyInRange al gedaan.
-const STAFFEL_KM: Record<string, number> = {
-  kermis: 2,
-  markten: 2,
-  concerten_theater: 5,
-  sportevenementen: 5,
-  events: 5,
-  festivals: 10,
-};
-
 // Eén gebruik van een weekdag×dagdeel-slot, voor de cool-down. `weekIndex` is
 // de week t.o.v. de eerste week van het opgevraagde venster (historie is dus
 // negatief); `weak` = we kennen alleen de weekdag, niet het dagdeel.
@@ -131,9 +119,13 @@ type SlotUse = { weekIndex: number; weak?: boolean };
 
 // Alles wat per kalenderdatum verschilt, in één keer geladen voor het venster.
 type QuietContext = {
-  holidayByDate: Map<string, string>;
+  // Feestdagen in het venster. `avoid` = een dag waarop je juist niet moet
+  // promoten (valt af); de rest is een moment om op in te spelen (bonus).
+  holidayByDate: Map<string, { name: string; avoid: boolean }>;
   eventsByDate: Map<string, EventSignal[]>;
   weatherByDate: Map<string, WeatherSignal>;
+  // Weer per uur, voor het weer over het voorgestelde tijdvenster.
+  weatherHourlyByDate: Map<string, HourlyWeather>;
   hasTerrace: boolean;
   covered: Set<string>;
   recentSlots: Map<string, SlotUse[]>;
@@ -150,6 +142,7 @@ const EMPTY_QUIET_CONTEXT: QuietContext = {
   holidayByDate: new Map(),
   eventsByDate: new Map(),
   weatherByDate: new Map(),
+  weatherHourlyByDate: new Map(),
   hasTerrace: false,
   covered: new Set(),
   recentSlots: new Map(),
@@ -758,6 +751,7 @@ export class BusynessService {
       {
         window,
         weather: ctx.weatherByDate,
+        weatherHourly: ctx.weatherHourlyByDate,
         events: ctx.eventsByDate,
         hasTerrace: ctx.hasTerrace,
         planned: ctx.covered,
@@ -797,8 +791,9 @@ export class BusynessService {
     if (applyPolicy) {
       for (const date of this.eachDate(fromIso, toIso)) {
         const holiday = ctx.holidayByDate.get(date);
-        if (holiday) notes.push({ date, reason: 'feestdag', label: holiday });
-        else if (ctx.covered.has(date)) {
+        if (holiday?.avoid) {
+          notes.push({ date, reason: 'feestdag', label: holiday.name });
+        } else if (ctx.covered.has(date)) {
           notes.push({ date, reason: 'al_afgedekt' });
         }
       }
@@ -835,7 +830,10 @@ export class BusynessService {
   ): Promise<QuietContext> {
     // Feestdagen zijn pure code (deterministisch, Meeus) — geen IO, geen
     // fail-soft nodig. Alle jaren die het venster raakt.
-    const holidayByDate = new Map<string, string>();
+    // Staat feestdagen bij deze zaak aan (mig 0055)? Uit = geen feestdag-bonus.
+    // Dagen waarop je juist niet moet promoten blijven altijd afvallen.
+    const holidaysOn = await this.events.holidaysEnabled(businessId);
+    const holidayByDate = new Map<string, { name: string; avoid: boolean }>();
     const years = new Set<number>([
       Number(fromIso.slice(0, 4)),
       Number(toIso.slice(0, 4)),
@@ -844,7 +842,8 @@ export class BusynessService {
       if (!Number.isFinite(y)) continue;
       for (const h of getNlHolidays(y)) {
         if (h.date >= fromIso && h.date <= toIso)
-          holidayByDate.set(h.date, h.name);
+          if (!h.avoid && !holidaysOn) continue;
+        holidayByDate.set(h.date, { name: h.name, avoid: !!h.avoid });
       }
     }
 
@@ -877,7 +876,7 @@ export class BusynessService {
         // findNearbyInRange heeft de staffel al toegepast, dus de afstand valt
         // binnen de radius van deze categorie. Die radius is hier de schaal
         // waarop we nabijheid wegen.
-        radiusKm: STAFFEL_KM[e.category] ?? 5,
+        radiusKm: SIGNAL_PARAMS.eventRadiusKm[e.category] ?? 5,
       };
       if (arr) arr.push(signal);
       else eventsByDate.set(e.startsOn, [signal]);
@@ -887,7 +886,15 @@ export class BusynessService {
     // geen entry → factor 1. Dat is hetzelfde codepad als "weerbron weg", dus
     // die fallback loopt elke aanroep sowieso mee.
     const weatherByDate = new Map<string, WeatherSignal>();
+    const weatherHourlyByDate = new Map<string, HourlyWeather>();
     if (profile.latitude != null && profile.longitude != null) {
+      const hourly = await this.openMeteo.getHourlyForecastSafe(
+        profile.latitude,
+        profile.longitude,
+      );
+      for (const [date, h] of hourly) {
+        if (date >= fromIso && date <= toIso) weatherHourlyByDate.set(date, h);
+      }
       const forecast = await this.openMeteo.getForecastSafe(
         profile.latitude,
         profile.longitude,
@@ -906,6 +913,7 @@ export class BusynessService {
       holidayByDate,
       eventsByDate,
       weatherByDate,
+      weatherHourlyByDate,
       hasTerrace: profile.hasTerrace,
       covered,
       recentSlots,
@@ -1626,7 +1634,7 @@ export class BusynessService {
     // Wat er al staat: gevuld weer blijft staan, ontbrekend weer proberen we opnieuw.
     const { data: existing } = await this.supabase.client
       .from('busyness_day_context')
-      .select('day, weather_code, temp_max, temp_min')
+      .select('day, weather_code, temp_max, temp_min, weather_hourly')
       .eq('business_id', businessId)
       .gte('day', first)
       .lte('day', last);
@@ -1634,12 +1642,24 @@ export class BusynessService {
       string,
       { code: number; tempMax: number; tempMin: number }
     >();
+    const hourly = new Map<string, HourlyWeather>();
     for (const r of (existing ?? []) as Array<{
       day: string;
       weather_code: number | null;
       temp_max: number | null;
       temp_min: number | null;
+      weather_hourly: {
+        temp: (number | null)[];
+        code: (number | null)[];
+      } | null;
     }>) {
+      if (r.weather_hourly) {
+        const nan = (a: (number | null)[]) => a.map((v) => v ?? NaN);
+        hourly.set(r.day, {
+          temp: nan(r.weather_hourly.temp),
+          code: nan(r.weather_hourly.code),
+        });
+      }
       if (r.weather_code != null && r.temp_max != null && r.temp_min != null) {
         weather.set(r.day, {
           code: r.weather_code,
@@ -1670,6 +1690,22 @@ export class BusynessService {
       }
     }
 
+    // Het weer per uur, voor de dagen waar het nog ontbreekt.
+    const missingHourly = days.filter((d) => !hourly.has(d));
+    if (missingHourly.length > 0 && lat != null && lng != null) {
+      const ageDays = Math.ceil(
+        (Date.now() - Date.parse(`${missingHourly[0]}T00:00:00Z`)) / 86_400_000,
+      );
+      if (ageDays <= 92) {
+        const history = await this.openMeteo
+          .getHourlyHistory(lat, lng, ageDays + 1)
+          .catch(() => new Map<string, HourlyWeather>());
+        for (const [date, h] of history) {
+          if (missingHourly.includes(date)) hourly.set(date, h);
+        }
+      }
+    }
+
     const holidays = new Map<string, string>();
     const years = new Set(days.map((d) => Number(d.slice(0, 4))));
     for (const y of years) {
@@ -1694,19 +1730,24 @@ export class BusynessService {
     }
 
     const now = new Date().toISOString();
-    const payload = buildDayContext(days, weather, holidays, events).map(
-      (r) => ({
-        business_id: businessId,
-        day: r.day,
-        weekday: r.weekday,
-        weather_code: r.weatherCode,
-        temp_max: r.tempMax,
-        temp_min: r.tempMin,
-        holiday: r.holiday,
-        events: r.events,
-        updated_at: now,
-      }),
-    );
+    const payload = buildDayContext(
+      days,
+      weather,
+      holidays,
+      events,
+      hourly,
+    ).map((r) => ({
+      business_id: businessId,
+      day: r.day,
+      weekday: r.weekday,
+      weather_code: r.weatherCode,
+      temp_max: r.tempMax,
+      temp_min: r.tempMin,
+      holiday: r.holiday,
+      weather_hourly: r.weatherHourly,
+      events: r.events,
+      updated_at: now,
+    }));
     for (let i = 0; i < payload.length; i += 500) {
       const { error } = await this.supabase.client
         .from('busyness_day_context')

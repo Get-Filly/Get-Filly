@@ -20,14 +20,16 @@ export type QuietReasonKey =
   | "weatherRain"
   | "weatherCold"
   | "weatherHeat"
-  | "eventNearby";
+  | "eventNearby"
+  | "holiday";
 
-/** Redenen die uit een datum-signaal komen (weer, evenement). */
+/** Redenen die uit een datum-signaal komen (weer, evenement, feestdag). */
 export const DATE_REASONS: readonly QuietReasonKey[] = [
   "weatherRain",
   "weatherCold",
   "weatherHeat",
   "eventNearby",
+  "holiday",
 ];
 
 type Translator = (
@@ -60,4 +62,5 @@ const QUIET_REASON_KEYS: readonly QuietReasonKey[] = [
   "weatherCold",
   "weatherHeat",
   "eventNearby",
+  "holiday",
 ];

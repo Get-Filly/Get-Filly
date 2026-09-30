@@ -1,3 +1,4 @@
+import type { HourlyWeather } from '../busyness/quiet-signals';
 import {
   Injectable,
   InternalServerErrorException,
@@ -64,6 +65,14 @@ const DAY_LABELS = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
 export const FORECAST_DAYS = 7;
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
+
+type HourlyResponse = {
+  hourly: {
+    time: string[];
+    temperature_2m: (number | null)[];
+    weather_code: (number | null)[];
+  };
+};
 
 type OpenMeteoResponse = {
   daily: {
@@ -133,6 +142,98 @@ export class OpenMeteoClient {
       for (const [k, v] of this.cache) if (v.at < cutoff) this.cache.delete(k);
     }
     return days;
+  }
+
+  /**
+   * Weer per uur (temperatuur en weercode) per datum. `pastDays` en
+   * `forecastDays` bepalen het bereik; de sleutel is de Amsterdamse datum.
+   * Gooit bij een API-fout; de callers vangen dat af.
+   */
+  private async fetchHourly(
+    lat: number,
+    lng: number,
+    pastDays: number,
+    forecastDays: number,
+  ): Promise<Map<string, HourlyWeather>> {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', lat.toString());
+    url.searchParams.set('longitude', lng.toString());
+    url.searchParams.set('hourly', 'temperature_2m,weather_code');
+    url.searchParams.set('timezone', 'Europe/Amsterdam');
+    url.searchParams.set(
+      'past_days',
+      String(Math.min(92, Math.max(0, pastDays))),
+    );
+    url.searchParams.set('forecast_days', String(forecastDays));
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      throw new InternalServerErrorException(`Weather API fout: ${res.status}`);
+    }
+    const data = (await res.json()) as HourlyResponse;
+    const out = new Map<string, HourlyWeather>();
+    data.hourly.time.forEach((time, i) => {
+      const [date, hh] = time.split('T');
+      const hour = parseInt(hh.slice(0, 2), 10);
+      if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
+      let day = out.get(date);
+      if (!day) {
+        day = {
+          temp: new Array<number>(24).fill(NaN),
+          code: new Array<number>(24).fill(NaN),
+        };
+        out.set(date, day);
+      }
+      const t = data.hourly.temperature_2m[i];
+      const c = data.hourly.weather_code[i];
+      if (t != null) day.temp[hour] = t;
+      if (c != null) day.code[hour] = c;
+    });
+    return out;
+  }
+
+  private readonly hourlyCache = new Map<
+    string,
+    { at: number; days: Map<string, HourlyWeather> }
+  >();
+
+  /**
+   * Uurverwachting (7 dagen) voor coördinaten. Nooit een exception: leeg bij
+   * een fout, dan valt de detectie terug op het daggemiddelde. Ververst elke
+   * 30 minuten, dus bij elke detectie (dashboard, chat en de automatische
+   * controle) is het weer per uur actueel.
+   */
+  async getHourlyForecastSafe(
+    lat: number,
+    lng: number,
+  ): Promise<Map<string, HourlyWeather>> {
+    const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+    const hit = this.hourlyCache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.days;
+    try {
+      const days = await this.fetchHourly(lat, lng, 0, FORECAST_DAYS);
+      this.hourlyCache.set(key, { at: Date.now(), days });
+      if (this.hourlyCache.size > 500) {
+        const cutoff = Date.now() - CACHE_TTL_MS;
+        for (const [k, v] of this.hourlyCache) {
+          if (v.at < cutoff) this.hourlyCache.delete(k);
+        }
+      }
+      return days;
+    } catch (e) {
+      this.logger.warn(
+        `Open-Meteo uurdata faalde (${lat},${lng}): ${String(e)}`,
+      );
+      return new Map();
+    }
+  }
+
+  /** Het weer per uur van de afgelopen dagen (tot 92 terug, tot en met vandaag). */
+  async getHourlyHistory(
+    lat: number,
+    lng: number,
+    pastDays: number,
+  ): Promise<Map<string, HourlyWeather>> {
+    return this.fetchHourly(lat, lng, pastDays, 1);
   }
 
   /**

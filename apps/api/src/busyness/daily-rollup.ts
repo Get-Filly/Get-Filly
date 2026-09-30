@@ -21,6 +21,8 @@ export type DayContextRow = {
   tempMax: number | null;
   tempMin: number | null;
   holiday: string | null;
+  /** Weer per uur (index = uur); null als er geen uurdata was. */
+  weatherHourly: { temp: (number | null)[]; code: (number | null)[] } | null;
   events: { name: string; category: string; distanceKm: number }[];
 };
 
@@ -104,9 +106,13 @@ export function buildDayContext(
   weather: Map<string, { code: number; tempMax: number; tempMin: number }>,
   holidays: Map<string, string>,
   events: Map<string, { name: string; category: string; distanceKm: number }[]>,
+  hourly: Map<string, { temp: number[]; code: number[] }> = new Map(),
 ): DayContextRow[] {
   return days.map((day) => {
     const w = weather.get(day);
+    const h = hourly.get(day);
+    const clean = (a: number[]) =>
+      a.map((v) => (Number.isFinite(v) ? v : null));
     return {
       day,
       weekday: weekdayOf(day),
@@ -114,6 +120,7 @@ export function buildDayContext(
       tempMax: w ? w.tempMax : null,
       tempMin: w ? w.tempMin : null,
       holiday: holidays.get(day) ?? null,
+      weatherHourly: h ? { temp: clean(h.temp), code: clean(h.code) } : null,
       events: events.get(day) ?? [],
     };
   });

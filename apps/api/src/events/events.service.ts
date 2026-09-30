@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { SIGNAL_PARAMS } from '../busyness/quiet-params';
 import { SupabaseService } from '../supabase/supabase.service';
 
 // ============================================================
@@ -12,14 +13,8 @@ import { SupabaseService } from '../supabase/supabase.service';
 // voor omliggende dorpen relevant, mits eerlijk geframed ("10 min
 // rijden, wél plek") — die framing-regel zit in het blok.
 
-const STAFFEL_KM: Record<string, number> = {
-  kermis: 2,
-  markten: 2,
-  concerten_theater: 5,
-  sportevenementen: 5,
-  events: 5,
-  festivals: 10,
-};
+// Afstandsstaffel per categorie: zie SIGNAL_PARAMS.eventRadiusKm (quiet-params.ts).
+const STAFFEL_KM = SIGNAL_PARAMS.eventRadiusKm;
 const MAX_RADIUS_KM = Math.max(...Object.values(STAFFEL_KM));
 
 // Planningshorizon: zelfde 21 dagen als de feestdagen-factor.

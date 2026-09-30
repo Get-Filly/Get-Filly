@@ -1,6 +1,5 @@
 import {
   cooldownFactor,
-  dateBusynessFactor,
   eventBusynessFactor,
   feedbackFactor,
   weatherBusynessFactor,
@@ -122,48 +121,6 @@ describe('eventBusynessFactor', () => {
       },
     ]);
     expect(reason?.reasonParams.name).toBe('Popfestival');
-  });
-});
-
-describe('dateBusynessFactor', () => {
-  it('weer en events werken tegen elkaar in en blijven binnen de bandbreedte', () => {
-    const { factor } = dateBusynessFactor(
-      {
-        weather: { tempMin: 10, tempMax: 15, code: 82 }, // zware buien
-        events: [
-          {
-            name: 'Popfestival',
-            category: 'festivals',
-            place: 'Zutphen',
-            distanceKm: 0,
-            radiusKm: 10,
-          },
-        ],
-      },
-      false,
-    );
-    // Festival duwt omhoog, regen omlaag; het resultaat blijft geclampt.
-    expect(factor).toBeGreaterThanOrEqual(0.7);
-    expect(factor).toBeLessThanOrEqual(1.6);
-  });
-
-  it('het sterkste signaal levert de reden', () => {
-    const { reason } = dateBusynessFactor(
-      {
-        weather: { tempMin: 8, tempMax: 12, code: 65 },
-        events: [
-          {
-            name: 'Weekmarkt',
-            category: 'markten',
-            place: 'Zutphen',
-            distanceKm: 1.9,
-            radiusKm: 2,
-          },
-        ],
-      },
-      false,
-    );
-    expect(reason?.reasonKey).toBe('weatherRain');
   });
 });
 
