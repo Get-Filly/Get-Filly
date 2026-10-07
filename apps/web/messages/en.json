@@ -45,7 +45,7 @@
     "heroSubtitle": "Fill your empty seats during quiet moments. Get-Filly uses AI to make your restaurant visible to people nearby, exactly when you could use more guests. You approve, we do the rest.",
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
-    "whyTitle": "Better found. Reserved more often.",
+    "whyTitle": "Better found. More reservations.",
     "whySubtitle": "More visibility, better findability and always up-to-date information. This way guests discover you faster and reserve sooner, precisely at the moments when you could use extra occupancy.",
     "pillars": {
       "sectionTitle": "More guests.<br></br>Better occupancy. Higher revenue.",
@@ -225,7 +225,7 @@
   },
   "pricing": {
     "heroTitle": "Choose the plan that fits your business.",
-    "heroSubtitle": "No hidden costs. No long contracts. Just more guests during your quiet moments.",
+    "heroSubtitle": "No hidden costs. Just more guests during your quiet moments.",
     "comingSoon": "Pricing available soon",
     "popular": "Most chosen",
     "perMonth": "/month",
@@ -335,7 +335,7 @@
       },
       "measures": {
         "title": "Measures what really works",
-        "desc": "No open rates or clicks that get you nowhere, but insight into how many reservations, guests and revenue each post actually delivers."
+        "desc": "No open rates or clicks that get you nowhere, but insight into reach and into the effect each post actually has on your occupancy."
       }
     },
     "walkTitle": "A week with Get-Filly, from empty slots to fuller days.",
@@ -351,7 +351,7 @@
         "label": "Proposal",
         "eyebrow": "Monday · 09:15",
         "title": "Three posts, one proposal, ready within a minute.",
-        "desc": "Get-Filly proposes a complete campaign. Imagery, copy, audience, reach and timing, all tailored to your business. Not posting whenever it happens to suit, but automatically at the times when reach is greatest, with proven content."
+        "desc": "Get-Filly proposes a complete campaign. Imagery, copy, audience, reach and timing, all tailored to your business. Not posting whenever it happens to suit, but automatically at the times when reach is greatest."
       },
       "approval": {
         "label": "Approval",
@@ -3444,7 +3444,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. Fill your quiet moments. Automatically.",
+      "title": "Get-Filly. Higher occupancy, exactly when you need it.",
       "description": "Get-Filly is the AI capacity optimiser for hospitality. It fills your quiet moments with social media content and with better visibility in Google and AI search engines."
     },
     "product": {
@@ -3453,7 +3453,7 @@
     },
     "pricing": {
       "title": "Pricing",
-      "description": "See Get-Filly's plans. No hidden costs, no long contracts, just more customers during your quiet moments. Find the plan that fits your business."
+      "description": "See Get-Filly's plans. No hidden costs, just more guests during your quiet moments. Find the plan that fits your business."
     },
     "about": {
       "title": "About",

@@ -45,7 +45,7 @@
     "heroSubtitle": "Vul je lege stoelen op rustige momenten. Get-Filly zet AI in om je restaurant zichtbaar te maken voor mensen in de buurt, precies wanneer jij gasten kunt gebruiken. Jij keurt goed, wij doen de rest.",
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
-    "whyTitle": "Beter gevonden. Vaker gereserveerd.",
+    "whyTitle": "Beter gevonden. Meer reserveringen.",
     "whySubtitle": "Meer zichtbaarheid, betere vindbaarheid en altijd actuele informatie. Zo ontdekken gasten je sneller en reserveren ze eerder, juist op de momenten dat jij extra bezetting kunt gebruiken.",
     "pillars": {
       "sectionTitle": "Meer gasten.<br></br>Betere bezetting. Hogere omzet.",
@@ -225,7 +225,7 @@
   },
   "pricing": {
     "heroTitle": "Kies het pakket dat bij jouw onderneming past.",
-    "heroSubtitle": "Geen verborgen kosten. Geen lange contracten. Gewoon meer gasten op je rustige momenten.",
+    "heroSubtitle": "Geen verborgen kosten. Gewoon meer gasten op je rustige momenten.",
     "comingSoon": "Prijzen binnenkort beschikbaar",
     "popular": "Meest gekozen",
     "perMonth": "/maand",
@@ -335,7 +335,7 @@
       },
       "measures": {
         "title": "Meet wat echt werkt",
-        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel reserveringen, gasten en omzet elke uiting daadwerkelijk oplevert."
+        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in het bereik en in het effect dat elke uiting daadwerkelijk heeft op je bezetting."
       }
     },
     "walkTitle": "Een week met Get-Filly, van lege plekken naar volle dagen.",
@@ -351,7 +351,7 @@
         "label": "Voorstel",
         "eyebrow": "Maandag · 09:15",
         "title": "Drie uitingen, één voorstel, klaar binnen een minuut.",
-        "desc": "Get-Filly stelt een complete campagne voor. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming. Niet posten wanneer het uitkomt, maar automatisch op de tijden waarop het bereik het grootst is, met bewezen inhoud."
+        "desc": "Get-Filly stelt een complete campagne voor. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming. Niet posten wanneer het uitkomt, maar automatisch op de tijden waarop het bereik het grootst is."
       },
       "approval": {
         "label": "Goedkeuring",
@@ -3444,7 +3444,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. Vul je rustige momenten. Automatisch.",
+      "title": "Get-Filly. Meer bezetting, juist wanneer je die nodig hebt.",
       "description": "Get-Filly is de AI-capaciteitoptimalisator voor de horeca. Het vult je rustige momenten met uitingen op sociale media en met betere vindbaarheid in Google en AI-zoekmachines."
     },
     "product": {
@@ -3453,7 +3453,7 @@
     },
     "pricing": {
       "title": "Prijzen",
-      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, geen lange contracten, gewoon meer klanten op je rustige momenten. Vind het abonnement dat bij jouw onderneming past."
+      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, gewoon meer gasten op je rustige momenten. Vind het abonnement dat bij jouw onderneming past."
     },
     "about": {
       "title": "Over ons",
