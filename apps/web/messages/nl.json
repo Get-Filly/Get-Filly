@@ -41,11 +41,11 @@
     "menuClose": "Menu sluiten"
   },
   "home": {
-    "heroTitle": "Meer bezetting, juist wanneer je die nodig hebt.",
+    "heroTitle": "Meer bezetting. Juist wanneer je die nodig hebt.",
     "heroSubtitle": "Vul je lege stoelen op rustige momenten. Get-Filly zet AI in om je restaurant zichtbaar te maken voor mensen in de buurt, precies wanneer jij gasten kunt gebruiken. Jij keurt goed, wij doen de rest.",
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
-    "whyTitle": "Beter gevonden. Meer reserveringen.",
+    "whyTitle": "Waarom het werkt",
     "whySubtitle": "Meer zichtbaarheid, betere vindbaarheid en altijd actuele informatie. Zo ontdekken gasten je sneller en reserveren ze eerder, juist op de momenten dat jij extra bezetting kunt gebruiken.",
     "pillars": {
       "sectionTitle": "Meer gasten.<br></br>Betere bezetting. Hogere omzet.",
@@ -77,7 +77,7 @@
       },
       "reachability": {
         "eyebrow": "Bereikbaarheid",
-        "title": "De juiste boodschap. Op het juiste moment. Bij de juiste gast.",
+        "title": "De juiste boodschap. Op het juiste moment.",
         "desc": "In beeld zijn is één ding, maar je rustige momenten vul je pas door de juiste mensen te bereiken. Per uiting kiezen wij de doelgroep, zetten we indien gewenst betaalde campagnes in om nog meer potentiële gasten te bereiken.",
         "bullets": [
           "Gerichte betaalde campagnes rondom jouw locatie, afgestemd op de juiste doelgroep",
@@ -3444,7 +3444,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. Meer bezetting, juist wanneer je die nodig hebt.",
+      "title": "Get-Filly. Meer bezetting. Juist wanneer je die nodig hebt.",
       "description": "Get-Filly is de AI-capaciteitoptimalisator voor de horeca. Het vult je rustige momenten met uitingen op sociale media en met betere vindbaarheid in Google en AI-zoekmachines."
     },
     "product": {

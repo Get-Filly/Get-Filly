@@ -41,11 +41,11 @@
     "menuClose": "Close menu"
   },
   "home": {
-    "heroTitle": "Higher occupancy, exactly when you need it.",
+    "heroTitle": "Higher occupancy. Exactly when you need it.",
     "heroSubtitle": "Fill your empty seats during quiet moments. Get-Filly uses AI to make your restaurant visible to people nearby, exactly when you could use more guests. You approve, we do the rest.",
     "ctaDemo": "Request a demo",
     "ctaProduct": "See how it works",
-    "whyTitle": "Better found. More reservations.",
+    "whyTitle": "Why it works",
     "whySubtitle": "More visibility, better findability and always up-to-date information. This way guests discover you faster and reserve sooner, precisely at the moments when you could use extra occupancy.",
     "pillars": {
       "sectionTitle": "More guests.<br></br>Better occupancy. Higher revenue.",
@@ -77,7 +77,7 @@
       },
       "reachability": {
         "eyebrow": "Reachability",
-        "title": "The right message. At the right moment. To the right guest.",
+        "title": "The right message. At the right moment.",
         "desc": "Being in sight is one thing, but you only fill your quiet moments by reaching the right people. For every post we pick the audience, run paid campaigns if you want, to reach even more potential guests.",
         "bullets": [
           "Targeted paid campaigns around your location, matched to the right audience",
@@ -3444,7 +3444,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. Higher occupancy, exactly when you need it.",
+      "title": "Get-Filly. Higher occupancy. Exactly when you need it.",
       "description": "Get-Filly is the AI capacity optimiser for hospitality. It fills your quiet moments with social media content and with better visibility in Google and AI search engines."
     },
     "product": {
