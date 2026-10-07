@@ -43,10 +43,6 @@ export default async function AboutPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("about");
-  const ch1 = t.raw("ch1") as string[];
-  const ch2 = t.raw("ch2") as string[];
-  const ch3 = t.raw("ch3") as string[];
-  const ch4 = t.raw("ch4") as string[];
 
   return (
     <>
@@ -142,62 +138,8 @@ export default async function AboutPage({
         </section>
       </div>
 
-      <section className="about-journey">
-        <div className="container">
-          <h2 className="section-title">{t("journeyTitle")}</h2>
-
-          <ol className="zig-timeline">
-            <li className="zig-item zig-left active">
-              <div className="zig-card" data-reveal>
-                <div className="zig-card-badge">{t("now")}</div>
-                <h3 className="zig-card-title">{t("ch1Title")}</h3>
-                <ul className="zig-card-list">
-                  {ch1.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="zig-marker"><span>2026</span></div>
-            </li>
-
-            <li className="zig-item zig-right">
-              <div className="zig-marker"><span>2027</span></div>
-              <div className="zig-card" data-reveal>
-                <h3 className="zig-card-title">{t("ch2Title")}</h3>
-                <ul className="zig-card-list">
-                  {ch2.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </li>
-
-            <li className="zig-item zig-left">
-              <div className="zig-card" data-reveal>
-                <h3 className="zig-card-title">{t("ch3Title")}</h3>
-                <ul className="zig-card-list">
-                  {ch3.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="zig-marker"><span>2028</span></div>
-            </li>
-
-            <li className="zig-item zig-right">
-              <div className="zig-marker"><span>2029</span></div>
-              <div className="zig-card" data-reveal>
-                <h3 className="zig-card-title">{t("ch4Title")}</h3>
-                <ul className="zig-card-list">
-                  {ch4.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </li>
-          </ol>
-        </div>
-      </section>
+      {/* Tijdlijn "Waar we staan" bewust weggehaald (opmerking TZ/FK, 7-10-2026), terug te plaatsen
+          zodra er meer te vertellen is. De teksten staan nog in about.journeyTitle en about.ch1 t/m ch4. */}
 
       <section className="cta-section">
         <h2 className="section-title">{t("ctaTitle")}</h2>

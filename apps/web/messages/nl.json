@@ -41,18 +41,18 @@
     "menuClose": "Menu sluiten"
   },
   "home": {
-    "heroTitle": "Vul je rustige momenten.<br></br>Automatisch.",
-    "heroSubtitle": "Nooit meer een lege zaak met Get-Filly. Onze horeca-AI voorspelt je rustige momenten en zet met jouw goedkeuring de juiste uitingen op sociale media live, precies bij de mensen in jouw buurt.",
+    "heroTitle": "Meer bezetting, juist wanneer je die nodig hebt.",
+    "heroSubtitle": "Vul je lege stoelen op rustige momenten. Get-Filly zet AI in om je restaurant zichtbaar te maken voor mensen in de buurt, precies wanneer jij gasten kunt gebruiken. Jij keurt goed, wij doen de rest.",
     "ctaDemo": "Vraag een demo aan",
     "ctaProduct": "Bekijk de oplossing",
-    "whyTitle": "Waarom het werkt",
-    "whySubtitle": "Betere profielen en uitingen op het juiste moment zorgen ervoor dat klanten je vaker vinden en vaker boeken.",
+    "whyTitle": "Beter gevonden. Meer reserveringen.",
+    "whySubtitle": "Meer zichtbaarheid, betere vindbaarheid en altijd actuele informatie. Zo ontdekken gasten je sneller en reserveren ze eerder, juist op de momenten dat jij extra bezetting kunt gebruiken.",
     "pillars": {
-      "sectionTitle": "Meer klanten.<br></br>Vollere dagen. Automatisch.",
+      "sectionTitle": "Meer gasten.<br></br>Betere bezetting. Hogere omzet.",
       "findability": {
         "eyebrow": "Vindbaarheid",
-        "title": "Gevonden worden begint hier.",
-        "desc": "Klanten zoeken online voordat ze boeken. Wij zorgen dat jouw onderneming bovenaan staat in zoekmachines.",
+        "title": "Gevonden worden. Begint hier.",
+        "desc": "Gasten zoeken online voordat ze reserveren. Wij zorgen dat jouw onderneming bovenaan staat in zoekmachines.",
         "bullets": [
           "Google Business altijd up-to-date met actuele tijden, foto's en beschrijving",
           "Reviews automatisch beantwoord in de tone-of-voice van je onderneming",
@@ -64,27 +64,27 @@
       },
       "visibility": {
         "eyebrow": "Zichtbaarheid",
-        "title": "Blijf in beeld. Ook als ze niet boeken.",
-        "desc": "Klanten die jou kennen maar nog niet hebben geboekt, heb je nodig op je rustige momenten. Wij plaatsen de juiste uitingen op sociale media zodat jij top of mind blijft, automatisch en in jouw stijl.",
+        "title": "Blijf in beeld. Ook als ze nog niet reserveren.",
+        "desc": "Gasten die jou kennen maar nog niet hebben gereserveerd, heb je nodig op je rustige momenten. Wij plaatsen de juiste uitingen op sociale media zodat jij top of mind blijft, automatisch en in jouw stijl.",
         "bullets": [
           "Uitingen op sociale media, ingepland op basis van jouw bezettingsdata",
           "Beeld en tekst automatisch in de stijl en toon van jouw onderneming",
-          "Slimme timing zorgt voor meer zichtbaarheid op de dagen dat het rustig is",
-          "Alles staat onder jouw naam, dus klanten zien jouw merk en niet dat van Get-Filly",
-          "Jij keurt elke uiting goed voordat hij live gaat",
+          "Op data gebaseerde timing zorgt voor meer zichtbaarheid op de dagen dat het rustig is",
+          "Alles staat onder jouw naam (whitelabel), dus gasten zien jouw merk en niet dat van Get-Filly",
+          "Jij keurt elke uiting goed voordat de post live gaat",
           "Live dashboard met rapportage over bereik en betrokkenheid"
         ]
       },
       "reachability": {
         "eyebrow": "Bereikbaarheid",
-        "title": "De juiste boodschap. Op het juiste moment. Bij de juiste klant.",
-        "desc": "In beeld zijn is één ding, maar je rustige momenten vul je pas door de juiste mensen te bereiken. Per uiting kiezen wij de doelgroep, zetten we waar nodig betaald bereik in en leggen we het resultaat naast je drukte op die dag.",
+        "title": "De juiste boodschap. Op het juiste moment. Bij de juiste gast.",
+        "desc": "In beeld zijn is één ding, maar je rustige momenten vul je pas door de juiste mensen te bereiken. Per uiting kiezen wij de doelgroep, zetten we indien gewenst betaalde campagnes in om nog meer potentiële gasten te bereiken.",
         "bullets": [
-          "Doelgroep op straal rond je zaak, leeftijd en interesses",
-          "Betaald bereik op de dagen die gevuld moeten worden",
-          "Segmentatie op nieuwe klanten en de buurt",
-          "Per uiting zie je bereik, doorkliks en wat het deed met je drukte",
-          "Maandrapport in gewone taal, zonder marketingjargon"
+          "Gerichte betaalde campagnes rondom jouw locatie, afgestemd op de juiste doelgroep",
+          "Extra zichtbaarheid op precies de dagen en momenten waarop je meer gasten wilt ontvangen",
+          "Bereik nieuwe gasten en mensen die al in de buurt van je zaak wonen of werken",
+          "Inzicht in bereik, klikken en het effect op je bezetting",
+          "Heldere maandelijkse rapportage met concrete resultaten en verbeterpunten"
         ]
       }
     },
@@ -225,7 +225,7 @@
   },
   "pricing": {
     "heroTitle": "Kies het pakket dat bij jouw onderneming past.",
-    "heroSubtitle": "Geen verborgen kosten. Geen lange contracten. Gewoon meer klanten op je rustige momenten.",
+    "heroSubtitle": "Geen verborgen kosten. Gewoon meer gasten op je rustige momenten.",
     "comingSoon": "Prijzen binnenkort beschikbaar",
     "popular": "Meest gekozen",
     "perMonth": "/maand",
@@ -270,7 +270,7 @@
       },
       {
         "q": "Welke kanalen gebruikt Get-Filly?",
-        "a": "Instagram, Facebook en TikTok, plus je Google Bedrijfsprofiel. Get-Filly maakt per kanaal de juiste uiting in jouw huisstijl en zet die live op het beste moment voor de juiste doelgroep."
+        "a": "Instagram, Facebook en TikTok zorgen voor zichtbaarheid en bereik, maar je Google Bedrijfsprofiel wordt vaak onderschat. Het bepaalt niet alleen hoe je wordt gevonden in Google Search, maar speelt ook een belangrijke rol in Google Maps en andere kaart- en navigatiediensten. Get-Filly zorgt dat je per kanaal de juiste uiting in jouw huisstijl hebt en dat je online aanwezigheid actueel blijft op de momenten dat potentiële gasten zoeken en beslissen."
       },
       {
         "q": "Zet Get-Filly ook betaalde advertenties in?",
@@ -302,11 +302,11 @@
       },
       {
         "q": "Kan ik maandelijks opzeggen?",
-        "a": "Ja. Je zegt maandelijks op via je dashboard, tegen het einde van de lopende periode. Daarna blijft Get-Filly beschikbaar tot het einde van de al betaalde periode."
+        "a": "Ja, na een eerste periode van 6 maanden. Daarna kun je maandelijks opzeggen via je dashboard, tegen het einde van de lopende periode. Die eerste 6 maanden zijn nodig zodat Get-Filly jouw onderneming echt leert kennen. Na het opzeggen blijft Get-Filly beschikbaar tot het einde van de al betaalde periode."
       },
       {
-        "q": "Wat gebeurt er met de gegevens van mijn klanten?",
-        "a": "Jij blijft eigenaar van je klantgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties."
+        "q": "Wat gebeurt er met de gegevens van mijn gasten?",
+        "a": "Jij blijft eigenaar van je gastgegevens. Get-Filly verwerkt ze uitsluitend namens jou, op basis van een verwerkersovereenkomst conform de AVG. We verkopen je gegevens nooit en gebruiken ze niet voor eigen advertenties."
       },
       {
         "q": "Hoe veilig zijn mijn gegevens?",
@@ -318,12 +318,12 @@
     "ctaProduct": "Wil je eerst zien wat Get-Filly doet? Bekijk <link>de oplossing</link>."
   },
   "product": {
-    "heroTitle": "Zo vult Get-Filly je rustige momenten.",
-    "heroSubtitle": "Get-Filly detecteert rustige momenten, maakt de uiting en kiest de doelgroep voor sociale media, en houdt daarnaast je reviews en je vindbaarheid in Google en AI-zoekmachines op orde. Met jouw goedkeuring zet Get-Filly het automatisch live, zodat je meer klanten krijgt op je rustige momenten.",
+    "heroTitle": "Zo helpt Get-Filly je rustige momenten te vullen.",
+    "heroSubtitle": "Get-Filly herkent je rustige momenten en stelt een campagne voor. De juiste uiting wordt gemaakt en de juiste doelgroep wordt bereikt, allemaal op basis van data. Jij keurt goed en Get-Filly zet het live op sociale media. Daarnaast houden we je reviews en je vindbaarheid in Google en AI-zoekmachines op orde. Zo krijg je meer gasten op de momenten dat het stil is.",
     "diffs": {
       "approve": {
         "title": "AI werkt, jij keurt goed",
-        "desc": "Van het herkennen van rustige momenten tot het opzetten van complete campagnes: Get-Filly automatiseert het hele proces voor meer klanten en omzet."
+        "desc": "Van het herkennen van rustige momenten tot het opzetten van complete campagnes: Get-Filly automatiseert het hele proces voor meer gasten en omzet."
       },
       "noMarketing": {
         "title": "Geen marketingkennis nodig",
@@ -335,11 +335,11 @@
       },
       "measures": {
         "title": "Meet wat echt werkt",
-        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in hoeveel boekingen, klanten en omzet elke uiting daadwerkelijk oplevert."
+        "desc": "Geen open-rates of clicks waar je uiteindelijk niets aan hebt, maar inzicht in het bereik en in het effect dat elke uiting daadwerkelijk heeft op je bezetting."
       }
     },
     "walkTitle": "Een week met Get-Filly, van lege plekken naar volle dagen.",
-    "walkSubtitle": "Volg een campagneproces van begin tot eind. Drie minuten werk voor een week vol extra klanten.",
+    "walkSubtitle": "Volg een campagneproces van begin tot eind. Drie minuten werk voor een week vol extra gasten.",
     "steps": {
       "detection": {
         "label": "Detectie",
@@ -351,25 +351,25 @@
         "label": "Voorstel",
         "eyebrow": "Maandag · 09:15",
         "title": "Drie uitingen, één voorstel, klaar binnen een minuut.",
-        "desc": "Get-Filly stelt een complete campagne voor: drie uitingen op sociale media, elk voor een eigen kanaal en doelgroep. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming."
+        "desc": "Get-Filly stelt een complete campagne voor. Beeld, tekst, doelgroep, bereik en timing, alles afgestemd op je onderneming. Niet posten wanneer het uitkomt, maar automatisch op de tijden waarop het bereik het grootst is."
       },
       "approval": {
         "label": "Goedkeuring",
         "eyebrow": "Maandag · 09:16",
-        "title": "Eén goedkeuring, Get-Filly doet de rest.",
+        "title": "Jij keurt goed. Get-Filly doet de rest.",
         "desc": "Get-Filly zet alle drie de uitingen live op het juiste moment en bij de juiste doelgroep. Jij geeft één keer akkoord, en hoeft je daarna niet meer bezig te houden met timing of losse kanalen."
       },
       "placement": {
         "label": "Plaatsing",
         "eyebrow": "Donderdag · 17:00",
         "title": "Je ziet je uiting live verschijnen, precies op tijd.",
-        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-boekers scrollen. Jij hoeft niets te doen. Je ziet de uiting gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de boekingen binnenlopen."
+        "desc": "Op donderdag zet Get-Filly de uitingen automatisch live, op het moment dat laat-reserveerders scrollen. Jij hoeft niets te doen. Je ziet de uiting gewoon voorbijkomen op je tijdlijn, volledig in jouw stijl, terwijl de reserveringen binnenlopen."
       },
       "result": {
         "label": "Resultaat",
         "eyebrow": "Zondag · 23:00",
-        "title": "Resultaat: 12 extra boekingen op een rustige donderdag.",
-        "desc": "Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal leverde de meeste boekingen op, en wat kan de volgende keer anders."
+        "title": "Resultaat: 12 extra reserveringen op een rustige donderdag.",
+        "desc": "Get-Filly meldt zich aan het einde van de week met een korte samenvatting: wat heeft gewerkt, welk kanaal leverde de meeste reserveringen op, en wat kan de volgende keer anders."
       }
     },
     "mock": {
@@ -388,7 +388,7 @@
         "sun": "zo"
       },
       "channelsTitle": "Get-Filly stelt voor, 3 uitingen",
-      "mailLabel": "Instagram · reel voor laat-boekers",
+      "mailLabel": "Instagram · reel voor laat-reserveerders",
       "mailPreview": "“Nog plek donderdag. Drie gangen voor €24,50.”",
       "mailMeta": "do 17:00",
       "igLabel": "Facebook · buurt binnen 3 km",
@@ -400,7 +400,7 @@
       "channelsCta": "Goedkeuren & live zetten",
       "approveTitle": "Campagne ingepland",
       "approveSub": "Goedgekeurd door Sophie · 09:16",
-      "approveRow1": "Instagram-reel voor laat-boekers",
+      "approveRow1": "Instagram-reel voor laat-reserveerders",
       "approveRow2": "Facebook-uiting in de buurt, 3 km",
       "approveRow3": "TikTok-video, 18 tot 34 jaar",
       "approveFoot": "Get-Filly meldt zich zondag met de resultaten.",
@@ -414,24 +414,24 @@
       "resultEyebrow": "DONDERDAG-CAMPAGNE · AFGEROND",
       "resultHeadline": "Donderdagavond, van 38% naar 84%",
       "resultStat1": "extra reserveringen",
-      "resultStat2": "extra klanten",
+      "resultStat2": "extra gasten",
       "resultStat3": "eindbezetting",
       "resultBreakdown": "Per uiting",
       "resultBar1": "Instagram",
       "resultBar2": "Facebook",
       "resultBar3": "TikTok",
       "resultRes": "res.",
-      "resultNote": "Instagram leverde de meeste boekingen op, volgende keer schaal ik dat als eerste op."
+      "resultNote": "Instagram leverde de meeste reserveringen op, volgende keer schaal ik dat als eerste op."
     },
-    "featuresTitle": "Wat zit er in.",
+    "featuresTitle": "Alles wat je nodig hebt om rustige momenten te vullen.",
     "features": {
       "occupancy": {
-        "title": "Bezettingsanalyse",
+        "title": "Huidige bezettingsanalyse",
         "desc": "Realtime inzicht in je bezettingsgraad per dag, week en maand. Get-Filly herkent patronen zoals terugkerende dips of seizoenstrends en laat direct zien waar je omzet mist."
       },
       "chatbot": {
-        "title": "AI-chatbot",
-        "desc": "Chat met Get-Filly zoals je met een collega praat. Get-Filly kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
+        "title": "Filly chatbot",
+        "desc": "Chat met Filly zoals je met een collega praat. Filly kent je data en je onderneming, doet voorstellen en voert ze uit na jouw goedkeuring."
       },
       "campaigns": {
         "title": "Uitingen op sociale media",
@@ -547,30 +547,30 @@
   "about": {
     "heroTitle": "Van idee naar impact.",
     "story": {
-      "p1": "De beste onderneming zit niet altijd vol, maar de best vindbare wel. Wij zagen het overal bij ondernemers met een fantastisch aanbod en trouwe klanten, die toch rustige momenten hadden. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je klanten steekt.",
+      "p1": "De beste onderneming zit niet altijd vol, maar de best vindbare wel. Wij zagen het overal bij ondernemers met een fantastisch aanbod en trouwe gasten, die toch rustige momenten hadden. Niet omdat ze iets fout deden, maar omdat marketing een vak apart is geworden. Een vak waar je een duur bureau voor nodig hebt, of jouw tijd en aandacht die je liever in je gasten steekt.",
       "p2": "En de tools die dat zouden moeten oplossen? Die zijn gebouwd voor ketens met een marketingafdeling. Niet voor de ondernemer die z’n onderneming op z’n eigen manier wil laten groeien.",
-      "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer klanten op je rustige momenten."
+      "p3": "Daar maakten we een einde aan. Get-Filly neemt het marketingwerk over, werkt op jouw eigen data en komt zelf met voorstellen. Jij hoeft alleen ja te zeggen. Geen loze beloftes, geen jargon. Gewoon meer gasten op je rustige momenten."
     },
     "alt1": "Rustig restaurant met slechts een enkele tafel bezet",
     "alt2": "Hetzelfde restaurant dat voller loopt, meerdere bezette tafels",
     "alt3": "Hetzelfde restaurant volledig vol, gasten aan alle tafels",
     "missionLabel": "Missie",
-    "missionText": "Onafhankelijke ondernemers laten groeien zonder dat ze verdrinken in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je onderneming en je klanten.",
+    "missionText": "Onafhankelijke ondernemers laten groeien zonder dat ze verdrinken in marketing. We nemen het werk uit handen, zodat jij je kunt richten op waar je goed in bent: je onderneming en je gasten.",
     "visionLabel": "Visie",
     "visionText": "Een wereld waarin elke horecaondernemer dezelfde marketingkracht heeft als een grote keten. Zonder marketingafdeling, zonder duur bureau, en zonder dat je verstand van techniek nodig hebt.",
     "driveTitle": "Wat ons drijft.",
     "pillars": {
       "ownerFirst": {
         "title": "Ondernemer eerst",
-        "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op je klanten en je vak."
+        "desc": "De ondernemer hoeft geen uren te besteden aan marketing of website-optimalisatie. Get-Filly doet het werk, jij richt je op je gasten en je vak."
       },
       "ownData": {
         "title": "Eigen data, eigen keuzes",
-        "desc": "Jouw bezettingsdata en klantenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren."
+        "desc": "Jouw bezettingsdata en gastenlijst blijven van jou. Geen doorverkoop, je zit nergens aan vast, alles te exporteren."
       },
       "aiPays": {
         "title": "AI die zichzelf terugverdient",
-        "desc": "Geen AI om de AI. We zetten jouw data in voor meer klanten en omzet."
+        "desc": "Geen AI om de AI. We zetten jouw data in voor meer gasten en omzet."
       }
     },
     "journeyTitle": "Waar we staan.",
@@ -3444,7 +3444,7 @@
   },
   "meta": {
     "home": {
-      "title": "Get-Filly. Vul je rustige momenten. Automatisch.",
+      "title": "Get-Filly. Meer bezetting, juist wanneer je die nodig hebt.",
       "description": "Get-Filly is de AI-capaciteitoptimalisator voor de horeca. Het vult je rustige momenten met uitingen op sociale media en met betere vindbaarheid in Google en AI-zoekmachines."
     },
     "product": {
@@ -3453,7 +3453,7 @@
     },
     "pricing": {
       "title": "Prijzen",
-      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, geen lange contracten, gewoon meer klanten op je rustige momenten. Vind het abonnement dat bij jouw onderneming past."
+      "description": "Bekijk de pakketten van Get-Filly. Geen verborgen kosten, gewoon meer gasten op je rustige momenten. Vind het abonnement dat bij jouw onderneming past."
     },
     "about": {
       "title": "Over ons",
