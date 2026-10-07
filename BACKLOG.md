@@ -277,6 +277,15 @@ de Meta-app.
       *(Claude prototype, Floris kiest plek)*
 - [ ] **AI die foto's maakt, aanpast of verbetert** op basis van de kennisbank. Bewust later, na de
       kennisbank en de suggesties hierboven. *(later)*
+- [ ] **Jurist: FAQ "Hoe veilig zijn mijn gegevens?" op de site.** Laten bevestigen dat de tekst klopt:
+      TLS-versleuteling, "passende technische en organisatorische maatregelen volgens de AVG" en de zin over
+      leveranciers buiten de EU (zoals AI) met waarborgen. Uit de code niet te controleren: in welk land de
+      database draait en of er met alle leveranciers (Anthropic, Vercel, Supabase, Resend, Apify en andere) een
+      verwerkersovereenkomst is. Tekst staat in `pricing.faqs[11]` in `apps/web/messages/nl.json` en `en.json`.
+      *(Floris, jurist)*
+- [ ] **Jurist: 6 maanden minimale looptijd.** De prijzen-FAQ zegt nu "na een eerste periode van 6 maanden
+      kun je maandelijks opzeggen" (`pricing.faqs[9]`). Controleren dat dit past bij de algemene voorwaarden en
+      de abonnementsvoorwaarden, en dat de hoofdtekst van de prijzenpagina er niet mee botst. *(Floris, jurist)*
 - [ ] **Jurist: Meta-data samengevat naar Claude.** Bevestigen dat een geanonimiseerde, samengevatte
       uitkomst (geen bedrijfsnamen, geen losse posts) niet als Meta Platform Data telt, voordat we
       "welk type uiting scoort" met Meta-cijfers laten leren. Ontwerp: `docs/werking/uiting-type-scoort-ontwerp.md`. *(Floris, jurist)*
