@@ -150,7 +150,8 @@ de Meta-app.
 
 - [x] **`instagram_manage_contents`** staat in het App Dashboard (8-10) en de code vraagt de scope
       standaard mee. Noodschakelaar: `META_REQUEST_IG_DELETE_SCOPE=false` in de web-env van Vercel.
-      Nog te doen: één keer opnieuw verbinden en een campagne stoppen om te bevestigen dat de
+      Verbreken trekt ook de toestemming bij Meta in, zodat elke nieuwe verbinding het volledige
+      toestemmingsscherm toont (nodig voor de demovideo). Nog te doen: één keer opnieuw verbinden en een campagne stoppen om te bevestigen dat de
       Instagram-post echt verdwijnt. *(Floris + Claude)*
 - [ ] **Meta App Review aanvragen** voor externe klanten (in Development Mode
       werkt alles alleen voor accounts met een rol in de app).

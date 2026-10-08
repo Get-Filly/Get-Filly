@@ -271,6 +271,13 @@ export class MetaService {
 
   /** Verwijdert de Meta-koppeling van dit restaurant (data-deletion). */
   async disconnect(businessId: string): Promise<{ ok: true }> {
+    // Eerst de toestemming bij Meta intrekken. Zonder dit blijven de
+    // permissies bij Meta staan en slaat Meta het toestemmingsscherm bij
+    // het opnieuw verbinden over (alles is al verleend). Dat scherm moet
+    // elke keer terugkomen: de App Review-demovideo laat het zien, en de
+    // eigenaar ziet zo opnieuw wat hij toestaat.
+    await this.revokeAtMeta(businessId);
+
     const { error } = await this.supabase.client
       .from('integration_credentials')
       .delete()
@@ -284,6 +291,51 @@ export class MetaService {
       throw new InternalServerErrorException('Koppeling verwijderen mislukt');
     }
     return { ok: true };
+  }
+
+  /**
+   * Trekt de app-toestemming van deze Meta-gebruiker in (DELETE /me/permissions),
+   * zodat de volgende verbinding weer het volledige toestemmingsscherm toont.
+   * Best-effort: lukt het niet, dan verbreken we onze eigen koppeling gewoon.
+   *
+   * Eén Meta-gebruiker kan meerdere zaken hebben gekoppeld (één token per
+   * zaak, maar dezelfde toestemming). Trekken we die in terwijl een andere
+   * zaak dezelfde Meta-gebruiker gebruikt, dan werkt die andere koppeling
+   * stil niet meer. Dus alleen intrekken als geen andere zaak 'm gebruikt.
+   */
+  private async revokeAtMeta(businessId: string): Promise<void> {
+    try {
+      const { token, meta } = await this.loadCredential(businessId);
+      const metaUserId = (meta.meta_user_id as string | undefined) ?? null;
+      if (metaUserId) {
+        const { data: others } = await this.admin.client
+          .from('integration_credentials')
+          .select('business_id')
+          .eq('provider', PROVIDER)
+          .eq('meta->>meta_user_id', metaUserId)
+          .neq('business_id', businessId)
+          .limit(1);
+        if (others && others.length > 0) {
+          this.logger.log(
+            `Meta-toestemming niet ingetrokken: ander restaurant gebruikt dezelfde Meta-gebruiker.`,
+          );
+          return;
+        }
+      }
+      const res = await this.fetchWithTimeout(
+        `https://graph.facebook.com/${this.graphVersion()}/me/permissions?access_token=${encodeURIComponent(token)}`,
+        { method: 'DELETE' },
+      );
+      if (!res.ok) {
+        this.logger.warn(
+          `Meta-toestemming intrekken mislukt (${res.status}): ${(await res.text()).slice(0, 200)}`,
+        );
+      }
+    } catch (err) {
+      // Geen koppeling meer, token verlopen of Meta onbereikbaar: niet erg,
+      // het verbreken zelf mag hier niet aan blijven hangen.
+      this.logger.warn(`Meta-toestemming intrekken overgeslagen: ${String(err)}`);
+    }
   }
 
   /**
