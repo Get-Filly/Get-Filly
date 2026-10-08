@@ -109,6 +109,11 @@ export function buildAuthorizeUrl({
     state,
     response_type: "code",
     scope: META_SCOPES.join(","),
+    // Verbreken wist alleen onze eigen rij, niet de toestemming bij Meta.
+    // Vinkt iemand in de dialoog een permissie uit, dan vraagt Meta daar
+    // bij de volgende keer NIET meer naar, tenzij we rerequest meesturen.
+    // Zo levert elke disconnect + connect weer alle scopes op.
+    auth_type: "rerequest",
   });
   return `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth?${params.toString()}`;
 }
