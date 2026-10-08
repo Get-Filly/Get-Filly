@@ -55,15 +55,16 @@ const BASIS_SCOPES = [
 // aan toegevoegd is, kent de dialoog de naam niet. Dat is een actie in
 // het App Dashboard.
 //
-// Daarom een vlag en geen vaste waarde: zonder de env-var werkt
-// verbinden gewoon (en blijft verwijderen bij Instagram achterwege),
-// met de var gaat de scope mee. Zet `META_REQUEST_IG_DELETE_SCOPE=true`
-// in de web-env zodra het dashboard de permissie accepteert; dan is dit
-// één env-wijziging en geen deploy.
+// Sinds 2026-10-08 staat de permissie in het Dashboard en vragen we de
+// scope STANDAARD mee, zodat disconnect + connect altijd een werkende
+// koppeling oplevert. De env-var is nu een noodschakelaar: zet
+// `META_REQUEST_IG_DELETE_SCOPE=false` als Meta de scope ooit weer weigert
+// ("Invalid Scopes"), dan werkt verbinden direct weer (zonder verwijderen
+// bij Instagram) en is het geen codewijziging.
 const IG_DELETE_SCOPE = "instagram_manage_contents";
 
 export function vraagtIgDeleteScope(): boolean {
-  return process.env.META_REQUEST_IG_DELETE_SCOPE === "true";
+  return process.env.META_REQUEST_IG_DELETE_SCOPE !== "false";
 }
 
 export const META_SCOPES: readonly string[] = vraagtIgDeleteScope()
