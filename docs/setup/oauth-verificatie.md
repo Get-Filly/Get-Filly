@@ -105,12 +105,12 @@ business-verificatie → App Review met demovideo. Per scope (plak in App Review
   choose which Page the app posts to."
 - **pages_read_engagement** — "Required by Meta alongside posting; read basic
   Page data needed to publish on the selected Page."
-- **pages_manage_posts** — "Publish marketing posts to the selected Facebook
-  Page on the business's behalf."
+- **pages_manage_posts** — "Publish marketing posts and photo Stories to the
+  selected Facebook Page on the business's behalf."
 - **instagram_basic** — "Read the Instagram business account linked to the
   selected Page."
-- **instagram_content_publish** — "Publish marketing posts to the linked
-  Instagram business account."
+- **instagram_content_publish** — "Publish marketing posts and Stories to the
+  linked Instagram business account."
 - **business_management** — "Let the owner connect their business assets
   (Pages/Instagram) so the app can act on their behalf."
 

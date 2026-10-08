@@ -1450,6 +1450,95 @@ ${dayContext}`;
     };
   }
 
+  /**
+   * Filly stelt korte teksten voor die IN het beeld van een Instagram- of
+   * Facebook-story komen ("Cocktail maandag", "Komt dinsdag langs"). Een story
+   * heeft geen caption en geen link, dus de tekst moet kort en in één oogopslag
+   * te lezen zijn. Optioneel afgestemd op een gekozen dag (weer, events).
+   */
+  async suggestStoryTexts(
+    businessId: string,
+    userId: string | null,
+    date?: string,
+  ): Promise<{ texts: string[] }> {
+    const lang = await this.getFillyLang(businessId);
+    const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+    const [profileBlock, menuBlock, liveBlock, day] = await Promise.all([
+      this.context.buildProfileBlock(businessId).catch(() => ''),
+      this.context.buildMenuBlock(businessId).catch(() => ''),
+      this.context.buildLiveBlock(businessId).catch(() => ''),
+      validDate
+        ? this.getDayContext(businessId, validDate).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+
+    const dayLines: string[] = [];
+    if (validDate) {
+      dayLines.push(`Dag waarvoor de story bedoeld is: ${validDate}.`);
+      if (day?.weather) {
+        dayLines.push(
+          `Weer die dag: ${day.weather.description}, ${Math.round(day.weather.tempMin)}-${Math.round(day.weather.tempMax)} graden.`,
+        );
+      }
+      if (day?.events?.length) {
+        dayLines.push(
+          `Events in de buurt: ${day.events
+            .slice(0, 3)
+            .map((e) => e.name)
+            .join(', ')}.`,
+        );
+      }
+    }
+
+    const out = await this.ai.generateStructured<{ texts: string[] }>({
+      system: `Je bent Filly, de marketing-assistent van het hieronder beschreven restaurant. Je bedenkt korte teksten voor een Instagram/Facebook-STORY: één foto met een tekst erop.
+
+Regels:
+- Elke tekst is maximaal 40 tekens (liefst 2-6 woorden), direct leesbaar in één blik.
+- Geen hashtags, geen links, geen "link in bio" (een story heeft geen link). Mag een uitnodiging of dagactie zijn, bv. "Cocktail maandag" of "Komt dinsdag langs".
+- Refereer ALLEEN aan gerechten of acties die echt uit de context blijken. Verzin geen prijzen of aanbiedingen.
+- Maximaal één emoji per tekst, en alleen als het bij de toon van de zaak past.
+${langWriteRules(lang)}
+
+CONTEXT:
+${profileBlock}
+
+${menuBlock}
+
+${liveBlock || ''}`,
+      prompt: `Geef 4 verschillende story-teksten.${
+        dayLines.length ? `\n${dayLines.join('\n')}` : ''
+      }`,
+      model: 'claude-haiku-4-5-20251001',
+      maxTokens: 400,
+      toolName: 'suggest_story_texts',
+      toolDescription: 'Lever 4 korte teksten voor een story-beeld.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          texts: {
+            type: 'array',
+            items: { type: 'string', maxLength: 40 },
+            minItems: 2,
+            maxItems: 4,
+          },
+        },
+        required: ['texts'],
+      },
+      meta: {
+        businessId,
+        userId: userId ?? undefined,
+        feature: 'story_texts',
+      },
+    });
+
+    const texts = (out.texts ?? [])
+      .map((x) => String(x).trim().slice(0, 40))
+      .filter(Boolean)
+      .slice(0, 4);
+    return { texts };
+  }
+
   async getDayContext(businessId: string, date: string): Promise<DayContext> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new BadRequestException('Ongeldige datum.');

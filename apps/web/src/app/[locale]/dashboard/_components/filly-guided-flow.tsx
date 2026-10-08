@@ -1085,6 +1085,21 @@ export function FillyGuidedFlow({
                 ? t("channels.makeBatch", { count: batchTotal })
                 : t("channels.makeAction")}
           </button>
+          {picked?.date && (
+            <div className="fg-hint">
+              <button
+                type="button"
+                className="ui-btn ui-btn--ghost ui-btn--sm"
+                onClick={() =>
+                  router.push(
+                    `/dashboard/marketing/story?date=${encodeURIComponent(picked.date)}`,
+                  )
+                }
+              >
+                {t("channels.storyLink")}
+              </button>
+            </div>
+          )}
         </>
       )}
 

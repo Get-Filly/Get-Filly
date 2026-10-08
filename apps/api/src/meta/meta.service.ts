@@ -658,6 +658,169 @@ export class MetaService {
   }
 
   /**
+   * Slaat een kant-en-klaar story-beeld (9:16 JPEG, tekst al in het beeld
+   * gerenderd door de browser) op in de assets-bucket en geeft de publieke
+   * URL terug waarvan Meta het beeld ophaalt. Bewust los van de
+   * foto-bibliotheek: geen cap van 20, geen Vision-tagging, en een
+   * story-beeld mag niet hergebruikt zijn in een gewone post.
+   */
+  async uploadStoryImage(
+    businessId: string,
+    file: { buffer: Buffer; mimeType: string },
+  ): Promise<{ url: string }> {
+    if (file.mimeType !== 'image/jpeg') {
+      // Instagram accepteert voor stories alleen JPEG.
+      throw new BadRequestException('Een story-beeld moet een JPEG zijn.');
+    }
+    if (file.buffer.length > 8 * 1024 * 1024) {
+      throw new BadRequestException('Het story-beeld is te groot (max 8MB).');
+    }
+    const path = `${businessId}/stories/${randomUUID()}.jpg`;
+    const { error } = await this.supabase.client.storage
+      .from('restaurant-assets')
+      .upload(path, file.buffer, { contentType: 'image/jpeg', upsert: false });
+    if (error) {
+      throw new InternalServerErrorException(
+        `Kon het story-beeld niet opslaan: ${error.message}`,
+      );
+    }
+    const { data } = this.supabase.client.storage
+      .from('restaurant-assets')
+      .getPublicUrl(path);
+    return { url: data.publicUrl };
+  }
+
+  /**
+   * Plaatst een foto-story op de Facebook-pagina en/of het Instagram-account.
+   * Stories hebben geen caption en (via de API) geen link-sticker: alle tekst
+   * zit in het beeld. Fail-soft per kanaal, net als publish().
+   *
+   *  - Instagram: container met media_type=STORIES → media_publish.
+   *  - Facebook: foto ongepubliceerd uploaden (published=false) →
+   *    POST /{page}/photo_stories. Een foto die al in een gewone post zit
+   *    mag niet als story, dus dit is altijd een vers foto-object.
+   */
+  async publishStory(
+    businessId: string,
+    opts: { imageUrl: string; toFacebook: boolean; toInstagram: boolean },
+    useAdmin = false,
+  ): Promise<{
+    facebook?: { id: string; photoId?: string | null };
+    instagram?: { id: string };
+    errors: string[];
+  }> {
+    if (!opts.toFacebook && !opts.toInstagram) {
+      throw new BadRequestException('Kies Instagram en/of Facebook');
+    }
+    const { token, meta } = await this.loadCredential(businessId, useAdmin);
+    const pageId = meta.page_id as string | undefined;
+    const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
+    if (!pageId) {
+      throw new BadRequestException('Kies eerst een Facebook-pagina');
+    }
+    const accounts = await this.fetchAccounts(token);
+    const page = accounts.find((a) => a.id === pageId);
+    if (!page) {
+      throw new BadRequestException(
+        'Gekozen pagina niet meer beschikbaar; kies opnieuw',
+      );
+    }
+    const pageToken = page.access_token;
+    const v = this.graphVersion();
+    const result: {
+      facebook?: { id: string; photoId?: string | null };
+      instagram?: { id: string };
+      errors: string[];
+    } = { errors: [] };
+
+    if (opts.toInstagram) {
+      if (!igUserId) {
+        result.errors.push('Geen Instagram-account gekoppeld aan deze pagina');
+      } else {
+        try {
+          const createRes = await this.fetchWithTimeout(
+            `https://graph.facebook.com/${v}/${igUserId}/media`,
+            {
+              method: 'POST',
+              body: new URLSearchParams({
+                media_type: 'STORIES',
+                image_url: opts.imageUrl,
+                access_token: pageToken,
+              }),
+            },
+          );
+          const createJson = (await createRes.json()) as { id?: string };
+          if (!createRes.ok) throw new Error(JSON.stringify(createJson));
+          const pubRes = await this.fetchWithTimeout(
+            `https://graph.facebook.com/${v}/${igUserId}/media_publish`,
+            {
+              method: 'POST',
+              body: new URLSearchParams({
+                creation_id: createJson.id ?? '',
+                access_token: pageToken,
+              }),
+            },
+          );
+          const pubJson = (await pubRes.json()) as { id?: string };
+          if (!pubRes.ok) throw new Error(JSON.stringify(pubJson));
+          result.instagram = { id: pubJson.id ?? '' };
+        } catch (err) {
+          this.logger.error(`IG-story faalde: ${String(err)}`);
+          result.errors.push(
+            `Instagram-story mislukt: ${this.describeMetaError(err)}`,
+          );
+        }
+      }
+    }
+
+    if (opts.toFacebook) {
+      try {
+        const photoRes = await this.fetchWithTimeout(
+          `https://graph.facebook.com/${v}/${pageId}/photos`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({
+              url: opts.imageUrl,
+              published: 'false',
+              access_token: pageToken,
+            }),
+          },
+        );
+        const photoJson = (await photoRes.json()) as { id?: string };
+        if (!photoRes.ok || !photoJson.id) {
+          throw new Error(JSON.stringify(photoJson));
+        }
+        const storyRes = await this.fetchWithTimeout(
+          `https://graph.facebook.com/${v}/${pageId}/photo_stories`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({
+              photo_id: photoJson.id,
+              access_token: pageToken,
+            }),
+          },
+        );
+        const storyJson = (await storyRes.json()) as {
+          post_id?: string;
+          success?: boolean;
+        };
+        if (!storyRes.ok) throw new Error(JSON.stringify(storyJson));
+        result.facebook = {
+          id: storyJson.post_id ?? '',
+          photoId: photoJson.id,
+        };
+      } catch (err) {
+        this.logger.error(`FB-story faalde: ${String(err)}`);
+        result.errors.push(
+          `Facebook-story mislukt: ${this.describeMetaError(err)}`,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Fase 1 social-insights: live engagement van de gekoppelde FB-pagina +
    * IG-account. Werkt met de bestaande scopes (pages_read_engagement +
    * instagram_basic) — likes/reacties/shares per post + IG-volgers/media-

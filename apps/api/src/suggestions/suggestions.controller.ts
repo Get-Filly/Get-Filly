@@ -105,6 +105,18 @@ export class SuggestionsController {
     return this.suggestions.getDayContext(businessId, date ?? '');
   }
 
+  // Korte tekst-voorstellen voor een story-beeld, optioneel voor een dag.
+  // MOET vóór de ':id'-route staan.
+  @Get('story-texts')
+  @UseGuards(AiRateLimitGuard)
+  getStoryTexts(
+    @BusinessId() businessId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('date') date?: string,
+  ) {
+    return this.suggestions.suggestStoryTexts(businessId, user.id, date);
+  }
+
   // Zachte waarschuwing: hoeveel uitingen staan er al op dit kanaal in de week
   // van dit moment, tegenover het maximum uit de kanaalregels. MOET vóór de
   // ':id'-route staan.

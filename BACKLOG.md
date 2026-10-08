@@ -79,7 +79,12 @@ bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet
       een event. Daarvoor komt een melding; na akkoord van de eigenaar voert Filly de wijziging
       zelf door. Nu schrijft de app al omschrijving, tijden, speciale dagen en reviews; naam,
       telefoon, website en categorie zijn nog alleen lezen. *(Claude)*
-- [ ] **Stories plaatsen op Instagram en Facebook.** Zie "Reels en Stories" in P2. *(Claude;
+- [ ] **Stories vervolg.** (1) Test op een Meta-testaccount in dev-modus en neem een Stories-stap op in de
+      demovideo voor de App Review. (2) Story als volwaardig kanaal in voorstellen en campagnes, met inplannen
+      en auto-publiceren (aanbevolen: tekst bij goedkeuren in de browser in het beeld zetten en opslaan).
+      (3) Video-stories, (4) story terugtrekken, (5) story-insights (`instagram_manage_insights`), (6) Filly
+      stelt ook de foto voor. (7) Betaalde promotie via Meta (`ads_management`). *(Claude; Floris test)*
+- [ ] **Stories plaatsen op Instagram en Facebook.** Foto-story-flow gebouwd (10-2026, `/dashboard/marketing/story`, `MetaService.publishStory`), nog niet getest op een echt account en Filly stelt story-teksten voor (`GET /suggestions/story-texts`, geleide flow linkt naar de composer met de gekozen dag). Open: story als volwaardig kanaal in voorstellen/campagnes (inplannen + auto-publiceren; vraagt server-side beeldrender of render bij goedkeuren), video-stories, terugtrekken, story-insights, Filly maakt zelf story-beelden. Zie "Reels en Stories" in P2. *(Claude;
       compagnon controleert het App Dashboard.)*
 - [ ] **Duidelijk aangeven dat je altijd ook een event of post kunt plaatsen via het Google
       Bedrijfsprofiel** (in de campagneflow en in Filly's voorstellen). Besluit 29-9: de
