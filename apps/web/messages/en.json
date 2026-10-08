@@ -881,7 +881,8 @@
     },
     "deleteConfirm": {
       "bundle": "Are you sure you want to delete this bundle ({count} channels)?",
-      "single": "Are you sure you want to delete this draft campaign?"
+      "single": "Are you sure you want to delete this draft campaign?",
+      "igStillLive": "Note: this campaign’s Instagram post is still live and was not removed automatically. Remove it in Instagram first, because the link to the post disappears once the campaign is deleted."
     },
     "errors": {
       "notFound": "Campaign not found or no longer available.",

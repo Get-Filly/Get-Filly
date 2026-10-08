@@ -881,7 +881,8 @@
     },
     "deleteConfirm": {
       "bundle": "Weet je zeker dat je deze bundle ({count} kanalen) wil verwijderen?",
-      "single": "Weet je zeker dat je deze concept-campagne wil verwijderen?"
+      "single": "Weet je zeker dat je deze concept-campagne wil verwijderen?",
+      "igStillLive": "Let op: de Instagram-post van deze campagne staat nog live en is niet automatisch verwijderd. Haal 'm eerst zelf weg in Instagram, want na het verwijderen van de campagne is de link naar de post weg."
     },
     "errors": {
       "notFound": "Campagne niet gevonden of niet meer beschikbaar.",

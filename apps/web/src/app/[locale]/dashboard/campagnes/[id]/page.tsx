@@ -566,11 +566,19 @@ export default function UnifiedDetailPage() {
   const handleDelete = useCallback(async () => {
     if (!view || busy) return;
     if (status !== "concept") return;
+    // Staat er nog een Instagram-post live die we niet konden verwijderen?
+    // Na het verwijderen van de campagne is de directe link weg, dus eerst
+    // waarschuwen.
+    const igStaatNogLive = view.channels.some(
+      (c) => c.ig_pending_manual_delete_url,
+    );
+    const base =
+      view.channels.length > 1
+        ? t("deleteConfirm.bundle", { count: view.channels.length })
+        : t("deleteConfirm.single");
     if (
       !window.confirm(
-        view.channels.length > 1
-          ? t("deleteConfirm.bundle", { count: view.channels.length })
-          : t("deleteConfirm.single"),
+        igStaatNogLive ? `${base}\n\n${t("deleteConfirm.igStillLive")}` : base,
       )
     ) {
       return;
