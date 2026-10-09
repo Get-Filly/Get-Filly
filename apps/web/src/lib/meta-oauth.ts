@@ -55,16 +55,16 @@ const BASIS_SCOPES = [
 // aan toegevoegd is, kent de dialoog de naam niet. Dat is een actie in
 // het App Dashboard.
 //
-// Sinds 2026-10-08 staat de permissie in het Dashboard en vragen we de
-// scope STANDAARD mee, zodat disconnect + connect altijd een werkende
-// koppeling oplevert. De env-var is nu een noodschakelaar: zet
-// `META_REQUEST_IG_DELETE_SCOPE=false` als Meta de scope ooit weer weigert
-// ("Invalid Scopes"), dan werkt verbinden direct weer (zonder verwijderen
-// bij Instagram) en is het geen codewijziging.
+// Op 2026-10-08 stond deze scope standaard aan omdat het Dashboard de
+// permissie zou hebben, maar de inlogdialoog weigerde 'm nog steeds
+// ("Invalid Scopes: instagram_manage_contents") en dat blokkeerde verbinden
+// voor iedereen. Daarom weer standaard UIT. Zet
+// `META_REQUEST_IG_DELETE_SCOPE=true` pas aan nadat een test-verbinding met
+// precies deze scope in de dialoog is gelukt.
 const IG_DELETE_SCOPE = "instagram_manage_contents";
 
 export function vraagtIgDeleteScope(): boolean {
-  return process.env.META_REQUEST_IG_DELETE_SCOPE !== "false";
+  return process.env.META_REQUEST_IG_DELETE_SCOPE === "true";
 }
 
 export const META_SCOPES: readonly string[] = vraagtIgDeleteScope()
