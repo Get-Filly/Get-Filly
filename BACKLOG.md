@@ -148,11 +148,15 @@ bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet
 Zonder deze punten werken Instagram en Facebook alleen voor mensen met een rol in
 de Meta-app.
 
-- [x] **`instagram_manage_contents`** staat in het App Dashboard (8-10) en de code vraagt de scope
-      standaard mee. Noodschakelaar: `META_REQUEST_IG_DELETE_SCOPE=false` in de web-env van Vercel.
-      Verbreken trekt ook de toestemming bij Meta in, zodat elke nieuwe verbinding het volledige
-      toestemmingsscherm toont (nodig voor de demovideo). Nog te doen: één keer opnieuw verbinden en een campagne stoppen om te bevestigen dat de
-      Instagram-post echt verdwijnt. *(Floris + Claude)*
+- [ ] **Instagram-post automatisch verwijderen: geblokkeerd door Meta (9-10).** De permissie
+      `instagram_manage_contents` staat niet tussen de beschikbare permissies van de app en de
+      inlogdialoog weigert de scope ("Invalid Scopes"). Dit heeft nooit gewerkt: tot 25-09 ging de
+      app ervan uit dat het niet kon, en sinds 28-09 staat de scope achter `META_REQUEST_IG_DELETE_SCOPE`
+      (standaard uit; zet die NIET aan zolang Meta de scope weigert, dan kan niemand meer verbinden).
+      **Werkwijze nu:** Facebook verwijdert automatisch, bij Instagram toont het stopscherm een directe
+      link en haalt de eigenaar de post zelf weg. Laat Instagram-verwijderen weg uit de Meta-demovideo.
+      Mogelijk later: kijken of een andere Instagram-use case de permissie wel biedt, of een vraag aan
+      Meta Developer Support. *(compagnon/Floris, laag)*
 - [ ] **Meta App Review aanvragen** voor externe klanten (in Development Mode
       werkt alles alleen voor accounts met een rol in de app).
 - [ ] **Bestaande Meta-koppelingen van vóór 25 september opnieuw leggen.** Ze
