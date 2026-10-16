@@ -82,8 +82,12 @@ h2.section-title {
 .hero .section-title {
   /* Home-hero bewust groter dan de andere pagina-hero's (base 54): de eerste
      header op de homepage mag prominent zijn — 74px (Floris 2026-06-18). */
-  font-size: 74px; letter-spacing: -3px; line-height: 1;
-  margin: 0 auto; max-width: 880px; font-weight: var(--font-weight-bold);
+  font-size: clamp(44px, 6.2vw, 62px); letter-spacing: -2.5px; line-height: 1;
+  margin: 0 auto; max-width: 1000px; font-weight: var(--font-weight-bold);
+  /* Twee zinnen onder elkaar (Floris 2026-10-16): 62px laat de lange tweede
+     regel op desktop op één regel passen; op smalle schermen verdeelt balance
+     de regels netjes zodat er geen los woord overblijft. */
+  text-wrap: balance;
 }
 /* max-width verbreed van 560 → 680px zodat de langere hero-subtitel
    netjes op 3 regels uitkomt i.p.v. 4. */
@@ -3780,7 +3784,7 @@ html.reveal-armed [data-reveal]:not(.reveal-shown) {
   .site-footer-inner { grid-template-columns: 1fr; gap: 32px; }
   .mockup-content { grid-template-columns: 1fr; }
   /* Home-hero blijft ook op mobiel groter dan de andere pagina-hero's. */
-  .hero .section-title { font-size: 48px; letter-spacing: -1.5px; }
+  .hero .section-title { font-size: clamp(32px, 8.6vw, 44px); letter-spacing: -1.2px; }
   .section-title { font-size: 36px; letter-spacing: -1px; }
   /* Sectiekoppen iets kleiner dan de hero op mobiel (h2.section-title is
      specifieker dan .section-title, dus expliciet overschrijven). */
